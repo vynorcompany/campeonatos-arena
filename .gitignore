@@ -5,6 +5,7 @@ coverage
 *.log
 .env
 .env.local
+.env.vercel.local
 prisma/dev.db
 prisma/dev.db-journal
 tsconfig.tsbuildinfo
