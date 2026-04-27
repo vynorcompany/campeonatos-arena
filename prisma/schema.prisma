@@ -1,0 +1,160 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String       @id @default(cuid())
+  name         String
+  email        String       @unique
+  passwordHash String
+  systemRole   String       @default("ADMIN")
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  sessions     Session[]
+  memberships  ArenaMember[]
+  createdArenas Arena[]     @relation("ArenaCreator")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Arena {
+  id          String        @id @default(cuid())
+  name        String
+  slug        String        @unique
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  createdById String
+  createdBy   User          @relation("ArenaCreator", fields: [createdById], references: [id])
+  members     ArenaMember[]
+  players     Player[]
+  tournaments Tournament[]
+}
+
+model ArenaMember {
+  id       String    @id @default(cuid())
+  role     String    @default("STAFF")
+  createdAt DateTime @default(now())
+  userId   String
+  arenaId  String
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  arena    Arena     @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, arenaId])
+}
+
+model Player {
+  id          String            @id @default(cuid())
+  name        String
+  points      Int               @default(1000)
+  active      Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  arenaId     String
+  arena       Arena             @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  entries     TournamentPlayer[]
+  pairPlayers PairPlayer[]
+
+  @@unique([arenaId, name])
+}
+
+model Tournament {
+  id          String            @id @default(cuid())
+  name        String
+  status      String            @default("DRAFT")
+  groupCount  Int               @default(2)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  arenaId     String
+  arena       Arena             @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  entries     TournamentPlayer[]
+  pairs       Pair[]
+  groups      TournamentGroup[]
+  matches     Match[]
+}
+
+model TournamentPlayer {
+  id           String     @id @default(cuid())
+  seedPoints   Int
+  tournamentPoints Int    @default(0)
+  createdAt    DateTime   @default(now())
+  tournamentId String
+  playerId     String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  player       Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, playerId])
+}
+
+model Pair {
+  id            String      @id @default(cuid())
+  name          String
+  totalPoints   Int
+  drawOrder     Int
+  createdAt     DateTime    @default(now())
+  tournamentId  String
+  groupId       String?
+  tournament    Tournament  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  group         TournamentGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  players       PairPlayer[]
+  homeMatches   Match[]     @relation("HomePair")
+  awayMatches   Match[]     @relation("AwayPair")
+  winnerMatches Match[]     @relation("WinnerPair")
+}
+
+model PairPlayer {
+  id       String @id @default(cuid())
+  pairId   String
+  playerId String
+  slot     Int
+  pair     Pair   @relation(fields: [pairId], references: [id], onDelete: Cascade)
+  player   Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([pairId, playerId])
+  @@unique([pairId, slot])
+}
+
+model TournamentGroup {
+  id           String      @id @default(cuid())
+  name         String
+  drawOrder    Int
+  tournamentId String
+  tournament   Tournament  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  pairs        Pair[]
+  matches      Match[]
+
+  @@unique([tournamentId, name])
+}
+
+model Match {
+  id            String          @id @default(cuid())
+  label         String
+  stage         String
+  roundOrder    Int
+  courtName     String?
+  homeScore     Int?
+  awayScore     Int?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  tournamentId  String
+  groupId       String?
+  homePairId    String?
+  awayPairId    String?
+  winnerPairId  String?
+  tournament    Tournament      @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  group         TournamentGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  homePair      Pair?           @relation("HomePair", fields: [homePairId], references: [id], onDelete: SetNull)
+  awayPair      Pair?           @relation("AwayPair", fields: [awayPairId], references: [id], onDelete: SetNull)
+  winnerPair    Pair?           @relation("WinnerPair", fields: [winnerPairId], references: [id], onDelete: SetNull)
+}
