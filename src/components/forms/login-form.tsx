@@ -15,12 +15,12 @@ export function LoginForm() {
     <form action={formAction} className="stack-md">
       <div className="field">
         <label htmlFor="email">Email</label>
-        <input id="email" name="email" type="email" placeholder="admin@arena.local" required />
+        <input id="email" name="email" type="email" placeholder="voce@suaarena.com" required />
       </div>
 
       <div className="field">
         <label htmlFor="password">Senha</label>
-        <input id="password" name="password" type="password" placeholder="admin123" required />
+        <input id="password" name="password" type="password" placeholder="Sua senha" required />
       </div>
 
       {state?.error ? <p className="form-error">{state.error}</p> : null}

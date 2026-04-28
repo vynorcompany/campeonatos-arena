@@ -1,11 +1,13 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import crypto from "node:crypto";
+import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
-import type { ArenaRole, SystemRole } from "@/types/auth";
+import type { ArenaMembership, ArenaRole, SystemRole } from "@/types/auth";
 
-const SESSION_TTL_DAYS = 14;
-const cookieName = process.env.SESSION_COOKIE_NAME ?? "padel_session";
+const SESSION_TTL_DAYS = env.sessionTtlDays;
+const sessionCookieName = env.sessionCookieName;
+const arenaCookieName = env.arenaCookieName;
 
 export type AuthContext = {
   userId: string;
@@ -15,50 +17,15 @@ export type AuthContext = {
   arenaRole: ArenaRole | null;
   arenaId: string | null;
   arenaName: string | null;
+  memberships: ArenaMembership[];
 };
 
-export async function createSession(userId: string) {
-  const token = crypto.randomBytes(32).toString("hex");
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + SESSION_TTL_DAYS);
-
-  await prisma.session.create({
-    data: {
-      token,
-      userId,
-      expiresAt
-    }
-  });
-
-  cookies().set(cookieName, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    expires: expiresAt,
-    path: "/"
-  });
+function hashSessionToken(token: string) {
+  return crypto.createHash("sha256").update(token).digest("hex");
 }
 
-export async function destroySession() {
-  const token = cookies().get(cookieName)?.value;
-
-  if (token) {
-    await prisma.session.deleteMany({
-      where: { token }
-    });
-  }
-
-  cookies().delete(cookieName);
-}
-
-export async function getAuthContext(): Promise<AuthContext | null> {
-  const token = cookies().get(cookieName)?.value;
-
-  if (!token) {
-    return null;
-  }
-
-  const session = await prisma.session.findUnique({
+async function getSessionWithUser(token: string) {
+  return prisma.session.findUnique({
     where: { token },
     include: {
       user: {
@@ -75,6 +42,121 @@ export async function getAuthContext(): Promise<AuthContext | null> {
       }
     }
   });
+}
+
+function getSelectedArenaId() {
+  return cookies().get(arenaCookieName)?.value ?? null;
+}
+
+function getActiveMembership(memberships: ArenaMembership[]) {
+  const selectedArenaId = getSelectedArenaId();
+
+  if (selectedArenaId) {
+    const selectedMembership = memberships.find((membership) => membership.arenaId === selectedArenaId);
+
+    if (selectedMembership) {
+      return selectedMembership;
+    }
+  }
+
+  return memberships[0] ?? null;
+}
+
+export async function setArenaContextCookie(arenaId: string) {
+  cookies().set(arenaCookieName, arenaId, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/"
+  });
+}
+
+export async function clearArenaContextCookie() {
+  cookies().delete(arenaCookieName);
+}
+
+export async function createSession(userId: string) {
+  const token = crypto.randomBytes(32).toString("hex");
+  const hashedToken = hashSessionToken(token);
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + SESSION_TTL_DAYS);
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      memberships: {
+        include: {
+          arena: true
+        },
+        orderBy: {
+          createdAt: "asc"
+        }
+      }
+    }
+  });
+
+  await prisma.session.create({
+    data: {
+      token: hashedToken,
+      userId,
+      expiresAt
+    }
+  });
+
+  cookies().set(sessionCookieName, token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    expires: expiresAt,
+    path: "/"
+  });
+
+  const firstMembership = user?.memberships[0];
+
+  if (firstMembership) {
+    await setArenaContextCookie(firstMembership.arenaId);
+  }
+}
+
+export async function destroySession() {
+  const token = cookies().get(sessionCookieName)?.value;
+
+  if (token) {
+    await prisma.session.deleteMany({
+      where: {
+        token: {
+          in: [token, hashSessionToken(token)]
+        }
+      }
+    });
+  }
+
+  cookies().delete(sessionCookieName);
+  cookies().delete(arenaCookieName);
+}
+
+export async function getAuthContext(): Promise<AuthContext | null> {
+  const token = cookies().get(sessionCookieName)?.value;
+
+  if (!token) {
+    return null;
+  }
+
+  const hashedToken = hashSessionToken(token);
+  let session = await getSessionWithUser(hashedToken);
+
+  if (!session) {
+    session = await getSessionWithUser(token);
+
+    if (session) {
+      await prisma.session.update({
+        where: { id: session.id },
+        data: {
+          token: hashedToken
+        }
+      });
+    }
+  }
 
   if (!session || session.expiresAt < new Date()) {
     if (session) {
@@ -82,20 +164,32 @@ export async function getAuthContext(): Promise<AuthContext | null> {
         where: { id: session.id }
       });
     }
-    cookies().delete(cookieName);
+
+    cookies().delete(sessionCookieName);
+    cookies().delete(arenaCookieName);
     return null;
   }
 
-  const primaryMembership = session.user.memberships[0] ?? null;
+  const memberships: ArenaMembership[] = session.user.memberships.map((membership) => ({
+    arenaId: membership.arenaId,
+    arenaName: membership.arena.name,
+    arenaRole: membership.role as ArenaRole
+  }));
+  const activeMembership = getActiveMembership(memberships);
+
+  if (activeMembership && activeMembership.arenaId !== getSelectedArenaId()) {
+    await setArenaContextCookie(activeMembership.arenaId);
+  }
 
   return {
     userId: session.user.id,
     userName: session.user.name,
     userEmail: session.user.email,
     systemRole: session.user.systemRole as SystemRole,
-    arenaRole: (primaryMembership?.role as ArenaRole | undefined) ?? null,
-    arenaId: primaryMembership?.arenaId ?? null,
-    arenaName: primaryMembership?.arena.name ?? null
+    arenaRole: activeMembership?.arenaRole ?? null,
+    arenaId: activeMembership?.arenaId ?? null,
+    arenaName: activeMembership?.arenaName ?? null,
+    memberships
   };
 }
 

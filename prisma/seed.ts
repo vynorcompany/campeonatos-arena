@@ -1,31 +1,48 @@
 import bcrypt from "bcryptjs";
 import { PrismaClient } from "@prisma/client";
+import { z } from "zod";
 
 const prisma = new PrismaClient();
 
+const seedEnvSchema = z.object({
+  INITIAL_ADMIN_NAME: z.string().trim().min(2, "INITIAL_ADMIN_NAME obrigatorio."),
+  INITIAL_ADMIN_EMAIL: z.string().trim().email("INITIAL_ADMIN_EMAIL invalido."),
+  INITIAL_ADMIN_PASSWORD: z.string().min(10, "INITIAL_ADMIN_PASSWORD deve ter no minimo 10 caracteres."),
+  INITIAL_ARENA_NAME: z.string().trim().min(2, "INITIAL_ARENA_NAME obrigatorio."),
+  INITIAL_ARENA_SLUG: z
+    .string()
+    .trim()
+    .min(2, "INITIAL_ARENA_SLUG obrigatorio.")
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "INITIAL_ARENA_SLUG deve usar apenas letras minusculas, numeros e hifens."),
+  SEED_DEMO_DATA: z.enum(["true", "false"]).default("false")
+});
+
 async function main() {
-  const passwordHash = await bcrypt.hash("admin123", 10);
+  const env = seedEnvSchema.parse(process.env);
+  const passwordHash = await bcrypt.hash(env.INITIAL_ADMIN_PASSWORD, 12);
 
   const admin = await prisma.user.upsert({
-    where: { email: "admin@arena.local" },
+    where: { email: env.INITIAL_ADMIN_EMAIL },
     update: {
-      name: "Administrador Arena",
+      name: env.INITIAL_ADMIN_NAME,
       passwordHash
     },
     create: {
-      name: "Administrador Arena",
-      email: "admin@arena.local",
+      name: env.INITIAL_ADMIN_NAME,
+      email: env.INITIAL_ADMIN_EMAIL,
       passwordHash,
       systemRole: "SUPER_ADMIN"
     }
   });
 
   const arena = await prisma.arena.upsert({
-    where: { slug: "arena-central-padel" },
-    update: {},
+    where: { slug: env.INITIAL_ARENA_SLUG },
+    update: {
+      name: env.INITIAL_ARENA_NAME
+    },
     create: {
-      name: "Arena Central Padel",
-      slug: "arena-central-padel",
+      name: env.INITIAL_ARENA_NAME,
+      slug: env.INITIAL_ARENA_SLUG,
       createdById: admin.id
     }
   });
@@ -47,60 +64,42 @@ async function main() {
     }
   });
 
-  const playerSeeds = [
-    ["Carlos Mendes", 1920],
-    ["Bruno Lima", 1840],
-    ["Rafael Souza", 1790],
-    ["Felipe Costa", 1710],
-    ["Anderson Melo", 1665],
-    ["Thiago Rocha", 1600],
-    ["Daniel Alves", 1540],
-    ["Gustavo Nunes", 1490],
-    ["Murilo Prado", 1435],
-    ["Leandro Brito", 1380],
-    ["Renato Viana", 1325],
-    ["Caio Teles", 1270],
-    ["Victor Ramos", 1210],
-    ["Diego Matos", 1140],
-    ["Joao Xavier", 1095],
-    ["Igor Fonseca", 1030]
-  ] as const;
+  if (env.SEED_DEMO_DATA === "true") {
+    const playerSeeds = [
+      ["Carlos Mendes", 1920],
+      ["Bruno Lima", 1840],
+      ["Rafael Souza", 1790],
+      ["Felipe Costa", 1710],
+      ["Anderson Melo", 1665],
+      ["Thiago Rocha", 1600],
+      ["Daniel Alves", 1540],
+      ["Gustavo Nunes", 1490],
+      ["Murilo Prado", 1435],
+      ["Leandro Brito", 1380],
+      ["Renato Viana", 1325],
+      ["Caio Teles", 1270],
+      ["Victor Ramos", 1210],
+      ["Diego Matos", 1140],
+      ["Joao Xavier", 1095],
+      ["Igor Fonseca", 1030]
+    ] as const;
 
-  for (const [name, points] of playerSeeds) {
-    await prisma.player.upsert({
-      where: {
-        arenaId_name: {
+    for (const [name, points] of playerSeeds) {
+      await prisma.player.upsert({
+        where: {
+          arenaId_name: {
+            arenaId: arena.id,
+            name
+          }
+        },
+        update: { points, active: true },
+        create: {
           arenaId: arena.id,
-          name
+          name,
+          points
         }
-      },
-      update: { points, active: true },
-      create: {
-        arenaId: arena.id,
-        name,
-        points
-      }
-    });
-  }
-
-  const activeTournament = await prisma.tournament.findFirst({
-    where: {
-      arenaId: arena.id,
-      status: {
-        in: ["DRAFT", "READY_FOR_DRAW", "GROUPS_DEFINED", "MATCHES_DEFINED", "IN_PROGRESS"]
-      }
+      });
     }
-  });
-
-  if (!activeTournament) {
-    await prisma.tournament.create({
-      data: {
-        arenaId: arena.id,
-        name: "Torneio de Abertura",
-        status: "DRAFT",
-        groupCount: 4
-      }
-    });
   }
 }
 

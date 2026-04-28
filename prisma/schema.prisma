@@ -4,8 +4,8 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("POSTGRES_PRISMA_URL")
-  directUrl = env("POSTGRES_URL_NON_POOLING")
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -28,6 +28,19 @@ model Session {
   createdAt DateTime @default(now())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model LoginAttempt {
+  email       String   @id
+  failedCount Int      @default(0)
+  lockedUntil DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([lockedUntil])
 }
 
 model Arena {
@@ -44,15 +57,16 @@ model Arena {
 }
 
 model ArenaMember {
-  id       String    @id @default(cuid())
-  role     String    @default("STAFF")
+  id        String   @id @default(cuid())
+  role      String   @default("STAFF")
   createdAt DateTime @default(now())
-  userId   String
-  arenaId  String
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  arena    Arena     @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  userId    String
+  arenaId   String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  arena     Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
 
   @@unique([userId, arenaId])
+  @@index([arenaId])
 }
 
 model Player {
@@ -68,6 +82,8 @@ model Player {
   pairPlayers PairPlayer[]
 
   @@unique([arenaId, name])
+  @@index([arenaId, active])
+  @@index([arenaId, points])
 }
 
 model Tournament {
@@ -83,19 +99,24 @@ model Tournament {
   pairs       Pair[]
   groups      TournamentGroup[]
   matches     Match[]
+
+  @@index([arenaId, status])
+  @@index([arenaId, createdAt])
 }
 
 model TournamentPlayer {
-  id           String     @id @default(cuid())
-  seedPoints   Int
-  tournamentPoints Int    @default(0)
-  createdAt    DateTime   @default(now())
-  tournamentId String
-  playerId     String
-  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  player       Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  id               String     @id @default(cuid())
+  seedPoints       Int
+  tournamentPoints Int        @default(0)
+  createdAt        DateTime   @default(now())
+  tournamentId     String
+  playerId         String
+  tournament       Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  player           Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@unique([tournamentId, playerId])
+  @@index([tournamentId, seedPoints])
+  @@index([playerId])
 }
 
 model Pair {
@@ -112,6 +133,10 @@ model Pair {
   homeMatches   Match[]     @relation("HomePair")
   awayMatches   Match[]     @relation("AwayPair")
   winnerMatches Match[]     @relation("WinnerPair")
+
+  @@index([tournamentId, drawOrder])
+  @@index([tournamentId, totalPoints])
+  @@index([groupId])
 }
 
 model PairPlayer {
@@ -136,6 +161,7 @@ model TournamentGroup {
   matches      Match[]
 
   @@unique([tournamentId, name])
+  @@index([tournamentId, drawOrder])
 }
 
 model Match {
@@ -158,4 +184,8 @@ model Match {
   homePair      Pair?           @relation("HomePair", fields: [homePairId], references: [id], onDelete: SetNull)
   awayPair      Pair?           @relation("AwayPair", fields: [awayPairId], references: [id], onDelete: SetNull)
   winnerPair    Pair?           @relation("WinnerPair", fields: [winnerPairId], references: [id], onDelete: SetNull)
+
+  @@index([tournamentId, stage, roundOrder])
+  @@index([groupId])
+  @@index([winnerPairId])
 }

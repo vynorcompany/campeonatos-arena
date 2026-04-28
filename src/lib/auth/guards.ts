@@ -24,7 +24,7 @@ export async function requireRole(minRole: ArenaRole = "STAFF") {
   }
 
   if (roleWeight[arenaRole] < roleWeight[minRole]) {
-    throw new Error("Sem permissao para executar esta acao.");
+    throw new Error("Sem permissão para executar esta ação.");
   }
 
   return auth;

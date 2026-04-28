@@ -3,18 +3,23 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const navigation = [
-  { href: "/painel", label: "Painel" },
-  { href: "/torneios", label: "Torneios" },
-  { href: "/jogadores", label: "Jogadores" },
-  { href: "/duplas", label: "Duplas" },
-  { href: "/grupos", label: "Grupos" },
-  { href: "/jogos", label: "Jogos" },
-  { href: "/proximos-jogos", label: "Próximos Jogos" }
-];
+type NavLinksProps = {
+  canManageUsers: boolean;
+};
 
-export function NavLinks() {
+export function NavLinks({ canManageUsers }: NavLinksProps) {
   const pathname = usePathname();
+  const navigation = [
+    { href: "/painel", label: "Painel" },
+    { href: "/torneios", label: "Torneios" },
+    { href: "/jogadores", label: "Jogadores" },
+    { href: "/duplas", label: "Duplas" },
+    { href: "/grupos", label: "Grupos" },
+    { href: "/jogos", label: "Jogos" },
+    { href: "/proximos-jogos", label: "Próximos Jogos" },
+    ...(canManageUsers ? [{ href: "/usuarios", label: "Usuários" }] : []),
+    { href: "/minha-conta", label: "Minha conta" }
+  ];
 
   return (
     <nav className="top-nav" aria-label="Principal">

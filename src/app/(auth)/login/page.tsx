@@ -28,8 +28,6 @@ export default async function LoginPage() {
         </div>
 
         <LoginForm />
-
-        <p className="muted">Acesso inicial: admin@arena.local / admin123</p>
       </div>
     </div>
   );

@@ -1,15 +1,27 @@
 import Image from "next/image";
-import { logoutAction } from "@/lib/auth/actions";
+import { logoutAction, setActiveArenaAction } from "@/lib/auth/actions";
+import type { ArenaMembership } from "@/types/auth";
 import { NavLinks } from "@/components/layout/nav-links";
 
 type AppShellProps = {
   arenaName: string;
+  activeArenaId: string | null;
+  memberships: ArenaMembership[];
   userName: string;
   userRole: string;
+  canManageUsers: boolean;
   children: React.ReactNode;
 };
 
-export function AppShell({ arenaName, userName, userRole, children }: AppShellProps) {
+export function AppShell({
+  arenaName,
+  activeArenaId,
+  memberships,
+  userName,
+  userRole,
+  canManageUsers,
+  children
+}: AppShellProps) {
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -31,9 +43,27 @@ export function AppShell({ arenaName, userName, userRole, children }: AppShellPr
             </div>
           </div>
 
-          <NavLinks />
+          <NavLinks canManageUsers={canManageUsers} />
 
           <div className="topbar-user">
+            {memberships.length > 1 ? (
+              <form action={setActiveArenaAction} className="topbar-arena-form">
+                <label className="sr-only" htmlFor="arenaId">
+                  Arena ativa
+                </label>
+                <select id="arenaId" name="arenaId" defaultValue={activeArenaId ?? memberships[0]?.arenaId} className="topbar-arena-select">
+                  {memberships.map((membership) => (
+                    <option key={membership.arenaId} value={membership.arenaId}>
+                      {membership.arenaName}
+                    </option>
+                  ))}
+                </select>
+                <button className="button" type="submit">
+                  Trocar arena
+                </button>
+              </form>
+            ) : null}
+
             <div className="user-copy">
               <p className="user-name">{userName}</p>
               <p className="muted">{userRole}</p>
