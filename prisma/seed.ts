@@ -1,16 +1,26 @@
 import bcrypt from "bcryptjs";
 import { PrismaClient } from "@prisma/client";
+import { existsSync } from "node:fs";
 import { z } from "zod";
+
+if (typeof process.loadEnvFile === "function" && existsSync(".env")) {
+  process.loadEnvFile(".env");
+}
 
 const prisma = new PrismaClient();
 
 const seedEnvSchema = z.object({
-  INITIAL_ADMIN_NAME: z.string().trim().min(2, "INITIAL_ADMIN_NAME obrigatorio."),
-  INITIAL_ADMIN_EMAIL: z.string().trim().email("INITIAL_ADMIN_EMAIL invalido."),
-  INITIAL_ADMIN_PASSWORD: z.string().min(10, "INITIAL_ADMIN_PASSWORD deve ter no minimo 10 caracteres."),
-  INITIAL_ARENA_NAME: z.string().trim().min(2, "INITIAL_ARENA_NAME obrigatorio."),
+  INITIAL_ADMIN_NAME: z.string({ required_error: "INITIAL_ADMIN_NAME obrigatorio." }).trim().min(2, "INITIAL_ADMIN_NAME obrigatorio."),
+  INITIAL_ADMIN_EMAIL: z
+    .string({ required_error: "INITIAL_ADMIN_EMAIL obrigatorio." })
+    .trim()
+    .email("INITIAL_ADMIN_EMAIL invalido."),
+  INITIAL_ADMIN_PASSWORD: z
+    .string({ required_error: "INITIAL_ADMIN_PASSWORD obrigatorio." })
+    .min(10, "INITIAL_ADMIN_PASSWORD deve ter no minimo 10 caracteres."),
+  INITIAL_ARENA_NAME: z.string({ required_error: "INITIAL_ARENA_NAME obrigatorio." }).trim().min(2, "INITIAL_ARENA_NAME obrigatorio."),
   INITIAL_ARENA_SLUG: z
-    .string()
+    .string({ required_error: "INITIAL_ARENA_SLUG obrigatorio." })
     .trim()
     .min(2, "INITIAL_ARENA_SLUG obrigatorio.")
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "INITIAL_ARENA_SLUG deve usar apenas letras minusculas, numeros e hifens."),
@@ -101,12 +111,27 @@ async function main() {
       });
     }
   }
+
+  console.log(`Seed concluido. Admin: ${admin.email}. Arena: ${arena.name}.`);
+}
+
+function formatSeedError(error: unknown) {
+  if (error instanceof z.ZodError) {
+    const messages = error.issues.map((issue) => `- ${issue.message}`).join("\n");
+    return `Seed nao executado. Configure as variaveis obrigatorias no .env ou no ambiente:\n${messages}`;
+  }
+
+  if (error instanceof Error) {
+    return error.stack ?? error.message;
+  }
+
+  return String(error);
 }
 
 main()
   .then(async () => prisma.$disconnect())
   .catch(async (error) => {
-    console.error(error);
+    console.error(formatSeedError(error));
     await prisma.$disconnect();
     process.exit(1);
   });

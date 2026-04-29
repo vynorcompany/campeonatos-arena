@@ -7,50 +7,72 @@ Sistema online para gerenciar arenas, jogadores, torneios, duplas, grupos e part
 - Next.js 14 App Router
 - Prisma
 - PostgreSQL
-- Autenticação com sessão em cookie `httpOnly`
+- Autenticacao com sessao em cookie `httpOnly`
 
-## Variáveis de ambiente
+## Banco de dados
 
-Use o arquivo `.env.example` como base. Em produção, as variáveis mínimas são:
+O projeto usa somente PostgreSQL. Arquivos locais antigos de banco foram removidos.
+
+Para desenvolvimento local, suba o banco com Docker:
+
+```bash
+npm run db:local:up
+```
+
+Depois aplique as migrations e crie o primeiro administrador:
+
+```bash
+npm run db:setup
+```
+
+O seed cria ou atualiza:
+
+- o primeiro usuario administrador;
+- a primeira arena;
+- o vinculo do administrador como `OWNER` da arena;
+- dados de demonstracao apenas quando `SEED_DEMO_DATA="true"`.
+
+## Variaveis de ambiente
+
+Use `.env.example` como base. Para o banco local criado pelo Docker Compose:
 
 ```env
-DATABASE_URL="postgresql://..."
-DIRECT_URL="postgresql://..."
-APP_URL="https://seu-dominio.com"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/campeonatos_padel?schema=public"
+DIRECT_URL="postgresql://postgres:postgres@localhost:5432/campeonatos_padel?schema=public"
+APP_URL="http://localhost:3000"
 SESSION_COOKIE_NAME="padel_session"
 ARENA_COOKIE_NAME="padel_arena"
 SESSION_TTL_DAYS="14"
 LOGIN_MAX_ATTEMPTS="5"
 LOGIN_LOCK_MINUTES="15"
 INITIAL_ADMIN_NAME="Administrador Arena"
-INITIAL_ADMIN_EMAIL="admin@suaarena.com"
+INITIAL_ADMIN_EMAIL="admin@sua-arena.com"
 INITIAL_ADMIN_PASSWORD="troque-essa-senha-forte"
 INITIAL_ARENA_NAME="Sua Arena"
 INITIAL_ARENA_SLUG="sua-arena"
 SEED_DEMO_DATA="false"
 ```
 
+Troque `INITIAL_ADMIN_EMAIL` e `INITIAL_ADMIN_PASSWORD` antes de usar em um ambiente publico.
+
 ## Desenvolvimento
 
-1. Configure um PostgreSQL local.
-2. Preencha o `.env`.
-3. Rode `npm install`.
-4. Rode `npm run db:migrate:deploy`.
-5. Rode `npm run db:seed`.
-6. Rode `npm run dev`.
+```bash
+npm install
+npm run db:local:up
+npm run db:setup
+npm run dev
+```
 
-## Produção
+Acesse `/login` com o e-mail e senha definidos em `INITIAL_ADMIN_EMAIL` e `INITIAL_ADMIN_PASSWORD`.
 
-1. Configure PostgreSQL gerenciado.
-2. Faça deploy da aplicação.
-3. Rode `npm run db:migrate:deploy`.
-4. Rode `npm run db:seed` uma vez para criar o primeiro administrador e a primeira arena.
-5. Acesse `/login` com o e-mail e a senha definidos no ambiente.
+## Producao
 
-## Operação
+Em producao, use um PostgreSQL gerenciado e rode:
 
-- O seed não injeta dados de demonstração por padrão.
-- Sessões usam cookie `httpOnly` e token hasheado no banco.
-- O login bloqueia novas tentativas após falhas repetidas.
-- Usuários com acesso a mais de uma arena podem trocar a arena ativa no topo do app.
-- O endpoint `GET /api/health` valida a conexão com o banco e pode ser usado em monitoramento.
+```bash
+npm run db:migrate:deploy
+npm run db:seed
+```
+
+O endpoint `GET /api/health` valida a conexao com o banco e pode ser usado em monitoramento.
