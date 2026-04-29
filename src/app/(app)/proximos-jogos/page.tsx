@@ -1,5 +1,6 @@
 import { SectionCard } from "@/components/section-card";
 import { SubmitButton } from "@/components/forms/submit-button";
+import Link from "next/link";
 import {
   createManualUpcomingMatchAction,
   deleteManualUpcomingMatchAction,
@@ -45,7 +46,12 @@ export default async function UpcomingMatchesPage() {
       </header>
 
       <section className="manual-upcoming-preview" aria-label="Previa dos proximos jogos">
-        <p className="manual-upcoming-title">PROXIMOS JOGOS</p>
+        <div className="manual-upcoming-preview-head">
+          <p className="manual-upcoming-title">PROXIMOS JOGOS</p>
+          <Link href="/proximos-jogos/tv" className="button button-primary" target="_blank" rel="noreferrer">
+            Abrir tela da TV
+          </Link>
+        </div>
         {manualMatches.length ? (
           <div className="manual-upcoming-lines">
             {manualMatches.map((match) => (

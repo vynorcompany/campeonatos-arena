@@ -161,7 +161,7 @@ export default async function TournamentsPage() {
               <span className="pill">3</span>
               <div>
                 <strong>Montar grupos</strong>
-                <p className="muted">Distribua as duplas por força e respeite o mínimo necessário em cada grupo.</p>
+                <p className="muted">Distribua as duplas por força, permitindo grupos menores quando a quantidade não fechar.</p>
               </div>
               <form action={generateGroupsAction}>
                 <input type="hidden" name="tournamentId" value={activeTournament.id} />

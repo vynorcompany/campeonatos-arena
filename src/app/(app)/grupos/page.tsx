@@ -28,7 +28,7 @@ export default async function GroupsPage() {
         <>
           <SectionCard
             title="Montar grupos"
-            description={`Este torneio terá ${activeTournament.groupCount} grupos. Cada grupo precisa ter pelo menos 2 duplas.`}
+            description={`Este torneio terá até ${activeTournament.groupCount} grupos. A distribuição prioriza grupos com 3 duplas, mas permite grupos menores quando necessário.`}
           >
             <form action={generateGroupsAction}>
               <input type="hidden" name="tournamentId" value={activeTournament.id} />

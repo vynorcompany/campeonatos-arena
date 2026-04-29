@@ -24,34 +24,36 @@ export function AppShell({
 }: AppShellProps) {
   return (
     <div className="app-shell">
-      <header className="topbar">
-        <div className="topbar-inner">
-          <div className="brand-lockup">
-            <div className="brand-logo-wrap">
-              <Image
-                src="/arena-profile.jpg"
-                alt="Logo da Arena Padel"
-                width={48}
-                height={48}
-                className="brand-logo"
-                priority
-              />
+      <aside className="sidebar" aria-label="Menu lateral">
+        <div className="sidebar-inner">
+          <div className="sidebar-top">
+            <div className="brand-lockup">
+              <div className="brand-logo-wrap">
+                <Image
+                  src="/arena-profile.jpg"
+                  alt="Logo da Arena Padel"
+                  width={48}
+                  height={48}
+                  className="brand-logo"
+                  priority
+                />
+              </div>
+              <div>
+                <p className="eyebrow">Arena Padel</p>
+                <strong>{arenaName}</strong>
+              </div>
             </div>
-            <div>
-              <p className="eyebrow">Arena Padel</p>
-              <strong>{arenaName}</strong>
-            </div>
+
+            <NavLinks canManageUsers={canManageUsers} />
           </div>
 
-          <NavLinks canManageUsers={canManageUsers} />
-
-          <div className="topbar-user">
+          <div className="sidebar-user">
             {memberships.length > 1 ? (
-              <form action={setActiveArenaAction} className="topbar-arena-form">
+              <form action={setActiveArenaAction} className="sidebar-arena-form">
                 <label className="sr-only" htmlFor="arenaId">
                   Arena ativa
                 </label>
-                <select id="arenaId" name="arenaId" defaultValue={activeArenaId ?? memberships[0]?.arenaId} className="topbar-arena-select">
+                <select id="arenaId" name="arenaId" defaultValue={activeArenaId ?? memberships[0]?.arenaId} className="sidebar-arena-select">
                   {memberships.map((membership) => (
                     <option key={membership.arenaId} value={membership.arenaId}>
                       {membership.arenaName}
@@ -76,7 +78,7 @@ export function AppShell({
             </form>
           </div>
         </div>
-      </header>
+      </aside>
 
       <main className="app-main">
         <div className="content-shell">{children}</div>
