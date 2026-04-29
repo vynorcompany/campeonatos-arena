@@ -9,9 +9,9 @@ import { getFinishedTournamentDetails } from "@/lib/services/tournament";
 
 const stageLabels: Record<string, string> = {
   GROUP: "Fase de grupos",
-  QUARTERFINAL: "Quartas de final",
-  SEMIFINAL: "Semifinais",
-  FINAL: "Final"
+  QUARTERFINAL: "Mata-mata: quartas",
+  SEMIFINAL: "Mata-mata: semifinais",
+  FINAL: "Mata-mata: final"
 };
 
 type HistoryPageProps = {

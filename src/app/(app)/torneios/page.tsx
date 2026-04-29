@@ -181,7 +181,7 @@ export default async function TournamentsPage() {
               <span className="pill">4</span>
               <div>
                 <strong>Gerar jogos</strong>
-                <p className="muted">Crie os confrontos da fase de grupos e a chave do mata-mata.</p>
+                <p className="muted">Crie a fase de grupos e o mata-mata conforme a quantidade de grupos e duplas.</p>
               </div>
               <form action={generateMatchesAction}>
                 <input type="hidden" name="tournamentId" value={activeTournament.id} />

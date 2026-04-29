@@ -31,17 +31,34 @@ type BracketOverviewProps = {
   matches: BracketMatch[];
 };
 
-function createStagePlaceholders(groupCount: number) {
+function getKnockoutSize(groupCount: number, pairCount: number) {
+  if (pairCount < 4) {
+    return 2;
+  }
+
+  if (groupCount <= 2) {
+    return 4;
+  }
+
+  if (pairCount >= 8) {
+    return 8;
+  }
+
+  return 4;
+}
+
+function createStagePlaceholders(groupCount: number, pairCount: number) {
+  const knockoutSize = getKnockoutSize(groupCount, pairCount);
   const quarterfinals =
-    groupCount >= 4
-      ? ["QF 1 - A1 x D2", "QF 2 - B1 x C2", "QF 3 - C1 x B2", "QF 4 - D1 x A2"]
+    knockoutSize === 8
+      ? ["QF 1 - 1º geral x 8º geral", "QF 2 - 4º geral x 5º geral", "QF 3 - 3º geral x 6º geral", "QF 4 - 2º geral x 7º geral"]
       : [];
 
   const semifinals =
-    groupCount >= 2
-      ? groupCount >= 4
+    knockoutSize >= 4
+      ? knockoutSize === 8
         ? ["SF 1 - Vencedor QF1 x Vencedor QF2", "SF 2 - Vencedor QF3 x Vencedor QF4"]
-        : ["SF 1 - A1 x B2", "SF 2 - B1 x A2"]
+        : ["SF 1 - 1º geral x 4º geral", "SF 2 - 2º geral x 3º geral"]
       : [];
 
   const final = ["Final"];
@@ -62,7 +79,8 @@ function groupMatchesByStage(matches: BracketMatch[]) {
 }
 
 export function BracketOverview({ groupCount, groups, matches }: BracketOverviewProps) {
-  const placeholders = createStagePlaceholders(groupCount);
+  const pairCount = groups.reduce((total, group) => total + group.pairs.length, 0);
+  const placeholders = createStagePlaceholders(groupCount, pairCount);
   const stageMatches = groupMatchesByStage(matches);
 
   const quarterfinals =

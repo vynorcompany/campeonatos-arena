@@ -102,19 +102,6 @@ async function clearKnockoutMatches(tx: Prisma.TransactionClient, tournamentId: 
   });
 }
 
-function findRankedPair(
-  standings: RankedPair[],
-  groupDrawOrder: number,
-  groupRank: number,
-  fallbackOverallRank: number
-) {
-  return (
-    standings.find((pair) => pair.groupDrawOrder === groupDrawOrder && pair.groupRank === groupRank) ??
-    standings.find((pair) => pair.overallRank === fallbackOverallRank) ??
-    null
-  );
-}
-
 async function buildGroupStandings(tx: Prisma.TransactionClient, tournamentId: string) {
   const groups = await tx.tournamentGroup.findMany({
     where: { tournamentId },
@@ -234,22 +221,12 @@ async function seedKnockoutFromGroupStandings(tx: Prisma.TransactionClient, tour
   });
 
   if (quarterfinals.length) {
-    const classicFourGroupSeeds =
-      quarterfinals.length === 4 && quarterfinals[0]?.label.includes("A1")
-        ? [
-            [findRankedPair(standings, 1, 1, 1), findRankedPair(standings, 4, 2, 8)],
-            [findRankedPair(standings, 2, 1, 2), findRankedPair(standings, 3, 2, 7)],
-            [findRankedPair(standings, 3, 1, 3), findRankedPair(standings, 2, 2, 6)],
-            [findRankedPair(standings, 4, 1, 4), findRankedPair(standings, 1, 2, 5)]
-          ]
-        : null;
-    const overallSeeds = [
+    const seeds = [
       [standings[0] ?? null, standings[7] ?? null],
       [standings[3] ?? null, standings[4] ?? null],
       [standings[2] ?? null, standings[5] ?? null],
       [standings[1] ?? null, standings[6] ?? null]
     ];
-    const seeds = classicFourGroupSeeds ?? overallSeeds;
 
     for (const [index, match] of quarterfinals.entries()) {
       const homePairId = seeds[index]?.[0]?.pairId ?? null;
@@ -278,18 +255,10 @@ async function seedKnockoutFromGroupStandings(tx: Prisma.TransactionClient, tour
   });
 
   if (semifinals.length) {
-    const classicTwoGroupSeeds =
-      semifinals.length === 2 && semifinals[0]?.label.includes("A1")
-        ? [
-            [findRankedPair(standings, 1, 1, 1), findRankedPair(standings, 2, 2, 4)],
-            [findRankedPair(standings, 2, 1, 2), findRankedPair(standings, 1, 2, 3)]
-          ]
-        : null;
-    const overallSeeds = [
+    const seeds = [
       [standings[0] ?? null, standings[3] ?? null],
       [standings[1] ?? null, standings[2] ?? null]
     ];
-    const seeds = classicTwoGroupSeeds ?? overallSeeds;
 
     for (const [index, match] of semifinals.entries()) {
       const homePairId = seeds[index]?.[0]?.pairId ?? null;
@@ -871,8 +840,26 @@ export async function distributeTournamentGroups(tournamentId: string) {
   return groups.length;
 }
 
+function getKnockoutSize(groupCount: number, pairCount: number) {
+  if (pairCount < 4) {
+    return 2;
+  }
+
+  if (groupCount <= 2) {
+    return 4;
+  }
+
+  if (pairCount >= 8) {
+    return 8;
+  }
+
+  return 4;
+}
+
 function buildKnockoutSkeleton(groupCount: number, pairCount: number) {
-  if (pairCount >= 8 && groupCount > 4) {
+  const knockoutSize = getKnockoutSize(groupCount, pairCount);
+
+  if (knockoutSize === 8) {
     return [
       { stage: matchStage.QUARTERFINAL, label: "QF 1 - 1º geral x 8º geral", roundOrder: 1 },
       { stage: matchStage.QUARTERFINAL, label: "QF 2 - 4º geral x 5º geral", roundOrder: 2 },
@@ -884,30 +871,10 @@ function buildKnockoutSkeleton(groupCount: number, pairCount: number) {
     ];
   }
 
-  if (pairCount >= 8 && groupCount === 4) {
-    return [
-      { stage: matchStage.QUARTERFINAL, label: "QF 1 - A1 x D2", roundOrder: 1 },
-      { stage: matchStage.QUARTERFINAL, label: "QF 2 - B1 x C2", roundOrder: 2 },
-      { stage: matchStage.QUARTERFINAL, label: "QF 3 - C1 x B2", roundOrder: 3 },
-      { stage: matchStage.QUARTERFINAL, label: "QF 4 - D1 x A2", roundOrder: 4 },
-      { stage: matchStage.SEMIFINAL, label: "SF 1 - Vencedor QF1 x Vencedor QF2", roundOrder: 5 },
-      { stage: matchStage.SEMIFINAL, label: "SF 2 - Vencedor QF3 x Vencedor QF4", roundOrder: 6 },
-      { stage: matchStage.FINAL, label: "Final", roundOrder: 7 }
-    ];
-  }
-
-  if (pairCount >= 4 && groupCount !== 2) {
+  if (knockoutSize === 4) {
     return [
       { stage: matchStage.SEMIFINAL, label: "SF 1 - 1º geral x 4º geral", roundOrder: 1 },
       { stage: matchStage.SEMIFINAL, label: "SF 2 - 2º geral x 3º geral", roundOrder: 2 },
-      { stage: matchStage.FINAL, label: "Final", roundOrder: 3 }
-    ];
-  }
-
-  if (pairCount >= 4 && groupCount === 2) {
-    return [
-      { stage: matchStage.SEMIFINAL, label: "SF 1 - A1 x B2", roundOrder: 1 },
-      { stage: matchStage.SEMIFINAL, label: "SF 2 - B1 x A2", roundOrder: 2 },
       { stage: matchStage.FINAL, label: "Final", roundOrder: 3 }
     ];
   }

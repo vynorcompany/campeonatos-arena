@@ -12,9 +12,9 @@ import { getArenaDashboard } from "@/lib/services/tournament";
 
 const stageLabels: Record<string, string> = {
   GROUP: "Fase de grupos",
-  QUARTERFINAL: "Quartas de final",
-  SEMIFINAL: "Semifinais",
-  FINAL: "Final"
+  QUARTERFINAL: "Mata-mata: quartas",
+  SEMIFINAL: "Mata-mata: semifinais",
+  FINAL: "Mata-mata: final"
 };
 
 const courtNames = ["Agecon", "Origem", "Elaine"];
@@ -41,7 +41,7 @@ function getCurrentStage(
   if (isPending(quarterfinals)) {
     return {
       stage: "QUARTERFINAL" as const,
-      title: "Quartas de final",
+      title: "Mata-mata: quartas",
       description: `${quarterfinals.length} jogos programados.`
     };
   }
@@ -49,7 +49,7 @@ function getCurrentStage(
   if (isPending(semifinals)) {
     return {
       stage: "SEMIFINAL" as const,
-      title: "Semifinais",
+      title: "Mata-mata: semifinais",
       description: `${semifinals.length} jogos programados.`
     };
   }
@@ -57,7 +57,7 @@ function getCurrentStage(
   if (isPending(final)) {
     return {
       stage: "FINAL" as const,
-      title: "Final",
+      title: "Mata-mata: final",
       description: `${final.length} jogo${final.length === 1 ? "" : "s"} programado${final.length === 1 ? "" : "s"}.`
     };
   }
