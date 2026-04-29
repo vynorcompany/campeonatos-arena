@@ -507,17 +507,14 @@ export async function getFinishedTournamentDetails(tournamentId: string, arenaId
 
 export async function syncTournamentEntries(tournamentId: string, arenaId: string, selectedPlayerIds: string[]) {
   const uniquePlayerIds = [...new Set(selectedPlayerIds)];
+  const selectedPlayerIdSet = new Set(uniquePlayerIds);
   const players = await prisma.player.findMany({
     where: {
       arenaId,
       active: true,
-      ...(uniquePlayerIds.length
-        ? {
-            id: {
-              in: uniquePlayerIds
-            }
-          }
-        : {})
+      id: {
+        in: uniquePlayerIds
+      }
     },
     orderBy: {
       points: "desc"
@@ -528,16 +525,77 @@ export async function syncTournamentEntries(tournamentId: string, arenaId: strin
     throw new Error("Um ou mais jogadores selecionados não estão disponíveis para este torneio.");
   }
 
+  const tournament = await prisma.tournament.findFirst({
+    where: {
+      id: tournamentId,
+      arenaId
+    },
+    include: {
+      entries: true,
+      pairs: {
+        include: {
+          players: true
+        }
+      }
+    }
+  });
+
+  if (!tournament) {
+    throw new Error("Torneio não encontrado.");
+  }
+
+  const existingPlayerIdSet = new Set(tournament.entries.map((entry) => entry.playerId));
+  const playerIdsToAdd = uniquePlayerIds.filter((playerId) => !existingPlayerIdSet.has(playerId));
+  const playerIdsToRemove = tournament.entries
+    .map((entry) => entry.playerId)
+    .filter((playerId) => !selectedPlayerIdSet.has(playerId));
+  const removedPlayerIdSet = new Set(playerIdsToRemove);
+  const pairsToRemove = tournament.pairs.filter((pair) =>
+    pair.players.some((pairPlayer) => removedPlayerIdSet.has(pairPlayer.playerId))
+  );
+  const shouldResetStructure = pairsToRemove.length > 0;
+
   await prisma.$transaction(async (tx) => {
-    await tx.tournamentPlayer.deleteMany({
-      where: { tournamentId }
-    });
+    if (shouldResetStructure) {
+      await resetTournamentStructure(tx, tournamentId);
+    }
 
-    await resetTournamentDraw(tx, tournamentId);
+    if (pairsToRemove.length) {
+      const pairIdsToRemove = pairsToRemove.map((pair) => pair.id);
 
-    if (players.length) {
+      await tx.pairPlayer.deleteMany({
+        where: {
+          pairId: {
+            in: pairIdsToRemove
+          }
+        }
+      });
+
+      await tx.pair.deleteMany({
+        where: {
+          id: {
+            in: pairIdsToRemove
+          }
+        }
+      });
+    }
+
+    if (playerIdsToRemove.length) {
+      await tx.tournamentPlayer.deleteMany({
+        where: {
+          tournamentId,
+          playerId: {
+            in: playerIdsToRemove
+          }
+        }
+      });
+    }
+
+    const playersToAdd = players.filter((player) => playerIdsToAdd.includes(player.id));
+
+    if (playersToAdd.length) {
       await tx.tournamentPlayer.createMany({
-        data: players.map((player) => ({
+        data: playersToAdd.map((player) => ({
           tournamentId,
           playerId: player.id,
           seedPoints: player.points,
@@ -546,10 +604,18 @@ export async function syncTournamentEntries(tournamentId: string, arenaId: strin
       });
     }
 
+    if (pairsToRemove.length) {
+      await resequenceTournamentPairs(tx, tournamentId);
+    }
+
     await tx.tournament.update({
       where: { id: tournamentId },
       data: {
-        status: players.length ? tournamentStatus.READY_FOR_DRAW : tournamentStatus.DRAFT
+        status: !uniquePlayerIds.length
+          ? tournamentStatus.DRAFT
+          : shouldResetStructure || tournament.status === tournamentStatus.DRAFT
+            ? tournamentStatus.READY_FOR_DRAW
+            : tournament.status
       }
     });
   });
@@ -735,6 +801,111 @@ export async function createTournamentPair(tournamentId: string, playerAId: stri
   return true;
 }
 
+export async function updateTournamentPair(pairId: string, arenaId: string, playerAId: string, playerBId: string) {
+  if (playerAId === playerBId) {
+    throw new Error("Selecione dois jogadores diferentes para montar a dupla.");
+  }
+
+  const pair = await prisma.pair.findFirst({
+    where: {
+      id: pairId,
+      tournament: {
+        arenaId
+      }
+    },
+    include: {
+      tournament: {
+        include: {
+          entries: {
+            include: {
+              player: true
+            }
+          },
+          pairs: {
+            include: {
+              players: true
+            }
+          }
+        }
+      }
+    }
+  });
+
+  if (!pair) {
+    throw new Error("Dupla não encontrada.");
+  }
+
+  const entryByPlayerId = new Map(
+    pair.tournament.entries.map((entry) => [
+      entry.playerId,
+      {
+        points: entry.seedPoints,
+        name: entry.player.name
+      }
+    ])
+  );
+
+  const playerA = entryByPlayerId.get(playerAId);
+  const playerB = entryByPlayerId.get(playerBId);
+
+  if (!playerA || !playerB) {
+    throw new Error("Os dois jogadores precisam estar na lista deste torneio.");
+  }
+
+  const pairedPlayerIds = new Set(
+    pair.tournament.pairs
+      .filter((tournamentPair) => tournamentPair.id !== pairId)
+      .flatMap((tournamentPair) => tournamentPair.players.map((player) => player.playerId))
+  );
+
+  if (pairedPlayerIds.has(playerAId) || pairedPlayerIds.has(playerBId)) {
+    throw new Error("Um dos jogadores selecionados já faz parte de outra dupla.");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await resetTournamentStructure(tx, pair.tournamentId);
+
+    await tx.pair.update({
+      where: { id: pairId },
+      data: {
+        name: `${playerA.name} / ${playerB.name}`,
+        totalPoints: playerA.points + playerB.points,
+        groupId: null
+      }
+    });
+
+    await tx.pairPlayer.deleteMany({
+      where: { pairId }
+    });
+
+    await tx.pairPlayer.createMany({
+      data: [
+        {
+          pairId,
+          playerId: playerAId,
+          slot: 1
+        },
+        {
+          pairId,
+          playerId: playerBId,
+          slot: 2
+        }
+      ]
+    });
+
+    await resequenceTournamentPairs(tx, pair.tournamentId);
+
+    await tx.tournament.update({
+      where: { id: pair.tournamentId },
+      data: {
+        status: tournamentStatus.READY_FOR_DRAW
+      }
+    });
+  });
+
+  return true;
+}
+
 export async function deleteTournamentPair(pairId: string, arenaId: string) {
   const pair = await prisma.pair.findFirst({
     where: {
@@ -797,15 +968,13 @@ export async function distributeTournamentGroups(tournamentId: string) {
   }
 
   const groupCount = Math.min(tournament.groupCount, tournament.pairs.length);
-  const pairCapacity = groupCount * tournament.pairsPerGroup;
+  const isRoundRobinOnly = groupCount === 1;
+  const minimumPairsPerGroup = Math.ceil(tournament.pairs.length / groupCount);
+  const effectivePairsPerGroup = isRoundRobinOnly
+    ? tournament.pairs.length
+    : Math.max(tournament.pairsPerGroup, minimumPairsPerGroup);
 
-  if (tournament.pairs.length > pairCapacity) {
-    throw new Error(
-      `A configuração atual comporta até ${pairCapacity} duplas. Aumente a quantidade de grupos ou de duplas por grupo.`
-    );
-  }
-
-  const groups = distributePairsIntoGroups(tournament.pairs, groupCount, tournament.pairsPerGroup);
+  const groups = distributePairsIntoGroups(tournament.pairs, groupCount, effectivePairsPerGroup);
 
   await prisma.$transaction(async (tx) => {
     await resetTournamentStructure(tx, tournamentId);
@@ -841,6 +1010,10 @@ export async function distributeTournamentGroups(tournamentId: string) {
 }
 
 function getKnockoutSize(groupCount: number, pairCount: number) {
+  if (groupCount <= 1) {
+    return 0;
+  }
+
   if (pairCount < 4) {
     return 2;
   }
@@ -858,6 +1031,10 @@ function getKnockoutSize(groupCount: number, pairCount: number) {
 
 function buildKnockoutSkeleton(groupCount: number, pairCount: number) {
   const knockoutSize = getKnockoutSize(groupCount, pairCount);
+
+  if (knockoutSize === 0) {
+    return [];
+  }
 
   if (knockoutSize === 8) {
     return [

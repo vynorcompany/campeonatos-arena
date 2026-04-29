@@ -19,6 +19,7 @@ export default async function OverviewPage() {
   const groupedMatches = activeTournament?.matches.filter((match) => match.stage === "GROUP") ?? [];
   const knockoutMatches = activeTournament?.matches.filter((match) => match.stage !== "GROUP") ?? [];
   const completedMatches = activeTournament?.matches.filter((match) => match.winnerPairId !== null).length ?? 0;
+  const isRoundRobinOnly = activeTournament?.groupCount === 1;
   const activePlayers = players.filter((player) => player.active).length;
   const totalHistoryMatches = tournamentHistory.reduce((total, tournament) => total + tournament._count.matches, 0);
   const totalHistoryEntries = tournamentHistory.reduce((total, tournament) => total + tournament._count.entries, 0);
@@ -51,7 +52,9 @@ export default async function OverviewPage() {
           title="Torneio atual"
           description={
             activeTournament
-              ? `O torneio ${activeTournament.name} está em andamento com ${activeTournament.groupCount} grupos previstos e até ${activeTournament.pairsPerGroup} duplas por grupo.`
+              ? isRoundRobinOnly
+                ? `O torneio ${activeTournament.name} está em andamento no formato todos contra todos.`
+                : `O torneio ${activeTournament.name} está em andamento com ${activeTournament.groupCount} grupos previstos e ${activeTournament.pairsPerGroup} duplas como base por grupo.`
               : "Quando um novo torneio for criado, as informações principais aparecerão aqui."
           }
         >
@@ -92,8 +95,8 @@ export default async function OverviewPage() {
               <span>{groupedMatches.length} jogos</span>
             </div>
             <div className="simple-item">
-              <strong>Mata-mata</strong>
-              <span>{knockoutMatches.length} jogos</span>
+              <strong>{isRoundRobinOnly ? "Formato" : "Mata-mata"}</strong>
+              <span>{isRoundRobinOnly ? "Todos contra todos" : `${knockoutMatches.length} jogos`}</span>
             </div>
             <div className="simple-item">
               <strong>Duplas sem grupo</strong>

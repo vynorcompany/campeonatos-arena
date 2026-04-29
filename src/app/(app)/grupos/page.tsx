@@ -69,6 +69,7 @@ function getGroupStandings(pairs: GroupPair[], matches: GroupMatch[]) {
 export default async function GroupsPage() {
   const auth = await requireArenaAccess();
   const { activeTournament } = await getArenaDashboard(auth.arenaId);
+  const isRoundRobinOnly = activeTournament?.groupCount === 1;
 
   return (
     <div className="stack-md">
@@ -89,8 +90,12 @@ export default async function GroupsPage() {
       ) : (
         <>
           <SectionCard
-            title="Montar grupos"
-            description={`Este torneio terá até ${activeTournament.groupCount} grupos com até ${activeTournament.pairsPerGroup} duplas em cada grupo.`}
+            title={isRoundRobinOnly ? "Montar todos contra todos" : "Montar grupos"}
+            description={
+              isRoundRobinOnly
+                ? "Este torneio terá um grupo único. Todas as duplas jogam entre si, e a classificação é baseada nos resultados."
+                : `Este torneio terá até ${activeTournament.groupCount} grupos, usando ${activeTournament.pairsPerGroup} duplas como base. Sobras podem deixar alguns grupos maiores.`
+            }
           >
             <form action={generateGroupsAction}>
               <input type="hidden" name="tournamentId" value={activeTournament.id} />

@@ -14,7 +14,8 @@ import {
 } from "@/lib/validators/player";
 import {
   createTournamentPairSchema,
-  deleteTournamentPairSchema
+  deleteTournamentPairSchema,
+  updateTournamentPairSchema
 } from "@/lib/validators/pair";
 import {
   updateMatchCourtSchema,
@@ -33,6 +34,7 @@ import {
   generateTournamentPairs,
   syncTournamentEntries,
   updateKnockoutParticipants,
+  updateTournamentPair,
   updateMatchResult
 } from "@/lib/services/tournament";
 
@@ -341,6 +343,22 @@ export async function createTournamentPairAction(_: ActionState, formData: FormD
 
   refreshTournamentRoutes();
   return { error: null, success: "Dupla criada com sucesso." };
+}
+
+export async function updateTournamentPairAction(formData: FormData) {
+  const auth = await requireRole("ADMIN");
+  const parsed = updateTournamentPairSchema.safeParse({
+    pairId: formData.get("pairId"),
+    playerAId: formData.get("playerAId"),
+    playerBId: formData.get("playerBId")
+  });
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  }
+
+  await updateTournamentPair(parsed.data.pairId, auth.arenaId, parsed.data.playerAId, parsed.data.playerBId);
+  refreshTournamentRoutes();
 }
 
 export async function deleteTournamentPairAction(formData: FormData) {

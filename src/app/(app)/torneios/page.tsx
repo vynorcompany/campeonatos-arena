@@ -27,6 +27,7 @@ export default async function TournamentsPage() {
   const { activeTournament, tournamentHistory } = await getArenaDashboard(auth.arenaId);
   const groupedMatches = activeTournament?.matches.filter((match) => match.stage === "GROUP") ?? [];
   const knockoutMatches = activeTournament?.matches.filter((match) => match.stage !== "GROUP") ?? [];
+  const isRoundRobinOnly = activeTournament?.groupCount === 1;
 
   return (
     <div className="stack-md">
@@ -68,11 +69,11 @@ export default async function TournamentsPage() {
                   <span>{statusLabels[activeTournament.status]}</span>
                 </div>
                 <div className="simple-item">
-                  <strong>Grupos previstos</strong>
-                  <span>{activeTournament.groupCount}</span>
+                <strong>Grupos previstos</strong>
+                  <span>{isRoundRobinOnly ? "Todos contra todos" : activeTournament.groupCount}</span>
                 </div>
                 <div className="simple-item">
-                  <strong>Duplas por grupo</strong>
+                  <strong>Base por grupo</strong>
                   <span>{activeTournament.pairsPerGroup}</span>
                 </div>
                 <div className="simple-item">
@@ -106,7 +107,7 @@ export default async function TournamentsPage() {
                 <span>{activeTournament.entries.length}</span>
               </div>
               <div className="simple-item">
-                <strong>Duplas por grupo</strong>
+                <strong>Base por grupo</strong>
                 <span>{activeTournament.pairsPerGroup}</span>
               </div>
               <div className="simple-item">
@@ -114,8 +115,8 @@ export default async function TournamentsPage() {
                 <span>{groupedMatches.length} jogos</span>
               </div>
               <div className="simple-item">
-                <strong>Mata-mata</strong>
-                <span>{knockoutMatches.length} jogos</span>
+                <strong>{isRoundRobinOnly ? "Formato" : "Mata-mata"}</strong>
+                <span>{isRoundRobinOnly ? "Grupo único" : `${knockoutMatches.length} jogos`}</span>
               </div>
             </div>
           ) : (
@@ -140,7 +141,11 @@ export default async function TournamentsPage() {
       {activeTournament ? (
         <SectionCard
           title={activeTournament.name}
-          description={`Siga as etapas para organizar o torneio com ${activeTournament.groupCount} grupos de até ${activeTournament.pairsPerGroup} duplas.`}
+          description={
+            isRoundRobinOnly
+              ? "Siga as etapas para organizar o torneio em grupo único, com todos contra todos."
+              : `Siga as etapas para organizar o torneio com ${activeTournament.groupCount} grupos, usando ${activeTournament.pairsPerGroup} duplas como base por grupo.`
+          }
         >
           <div className="timeline">
             <div className="timeline-step">
@@ -169,7 +174,11 @@ export default async function TournamentsPage() {
               <span className="pill">3</span>
               <div>
                 <strong>Montar grupos</strong>
-                <p className="muted">Distribua as duplas por força, respeitando o limite definido para cada grupo.</p>
+                <p className="muted">
+                  {isRoundRobinOnly
+                    ? "Coloque todas as duplas em um único grupo para jogar todos contra todos."
+                    : "Distribua as duplas por força. Quando a conta não fechar, alguns grupos podem ficar com uma dupla a mais."}
+                </p>
               </div>
               <form action={generateGroupsAction}>
                 <input type="hidden" name="tournamentId" value={activeTournament.id} />
@@ -181,7 +190,11 @@ export default async function TournamentsPage() {
               <span className="pill">4</span>
               <div>
                 <strong>Gerar jogos</strong>
-                <p className="muted">Crie a fase de grupos e o mata-mata conforme a quantidade de grupos e duplas.</p>
+                <p className="muted">
+                  {isRoundRobinOnly
+                    ? "Crie todos os confrontos do grupo único. A classificação define o resultado da fase."
+                    : "Crie a fase de grupos e o mata-mata conforme a quantidade de grupos e duplas."}
+                </p>
               </div>
               <form action={generateMatchesAction}>
                 <input type="hidden" name="tournamentId" value={activeTournament.id} />

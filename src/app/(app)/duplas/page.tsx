@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ManualPairForm } from "@/components/forms/manual-pair-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard } from "@/components/section-card";
-import { deleteTournamentPairAction } from "@/lib/actions/tournament";
+import { deleteTournamentPairAction, updateTournamentPairAction } from "@/lib/actions/tournament";
 import { requireArenaAccess } from "@/lib/auth/session";
 import { getArenaDashboard } from "@/lib/services/tournament";
 
@@ -14,6 +14,7 @@ export default async function PairsPage() {
   );
   const availableEntries =
     activeTournament?.entries.filter((entry) => !pairedPlayerIds.has(entry.playerId)) ?? [];
+  const allEntries = activeTournament?.entries ?? [];
 
   return (
     <div className="stack-md">
@@ -78,20 +79,52 @@ export default async function PairsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {activeTournament.pairs.map((pair, index) => (
-                    <tr key={pair.id}>
-                      <td>#{index + 1}</td>
-                      <td>{pair.name}</td>
-                      <td>{pair.totalPoints}</td>
-                      <td>{pair.group?.name ?? "A definir"}</td>
-                      <td>
-                        <form action={deleteTournamentPairAction}>
-                          <input type="hidden" name="pairId" value={pair.id} />
-                          <SubmitButton label="Excluir" pendingLabel="Excluindo..." className="button" />
-                        </form>
-                      </td>
-                    </tr>
-                  ))}
+                  {activeTournament.pairs.map((pair, index) => {
+                    const currentPairPlayerIds = new Set(pair.players.map((player) => player.playerId));
+
+                    return (
+                      <tr key={pair.id}>
+                        <td>#{index + 1}</td>
+                        <td>
+                          <form action={updateTournamentPairAction} className="inline-pair-edit">
+                            <input type="hidden" name="pairId" value={pair.id} />
+                            {[1, 2].map((slot) => {
+                              const currentPlayerId = pair.players.find((player) => player.slot === slot)?.playerId ?? "";
+                              const eligibleEntries = allEntries.filter(
+                                (entry) => currentPairPlayerIds.has(entry.playerId) || !pairedPlayerIds.has(entry.playerId)
+                              );
+
+                              return (
+                                <select
+                                  key={`${pair.id}-${slot}`}
+                                  name={slot === 1 ? "playerAId" : "playerBId"}
+                                  defaultValue={currentPlayerId}
+                                  aria-label={`Jogador ${slot} da dupla ${index + 1}`}
+                                  required
+                                >
+                                  <option value="">Selecione</option>
+                                  {eligibleEntries.map((entry) => (
+                                    <option key={`${pair.id}-${slot}-${entry.playerId}`} value={entry.playerId}>
+                                      {entry.player.name} ({entry.seedPoints} pts)
+                                    </option>
+                                  ))}
+                                </select>
+                              );
+                            })}
+                            <SubmitButton label="Salvar" pendingLabel="Salvando..." className="button" />
+                          </form>
+                        </td>
+                        <td>{pair.totalPoints}</td>
+                        <td>{pair.group?.name ?? "A definir"}</td>
+                        <td>
+                          <form action={deleteTournamentPairAction}>
+                            <input type="hidden" name="pairId" value={pair.id} />
+                            <SubmitButton label="Excluir" pendingLabel="Excluindo..." className="button" />
+                          </form>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             ) : (

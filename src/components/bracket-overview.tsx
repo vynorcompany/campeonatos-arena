@@ -32,6 +32,10 @@ type BracketOverviewProps = {
 };
 
 function getKnockoutSize(groupCount: number, pairCount: number) {
+  if (groupCount <= 1) {
+    return 0;
+  }
+
   if (pairCount < 4) {
     return 2;
   }
@@ -61,7 +65,7 @@ function createStagePlaceholders(groupCount: number, pairCount: number) {
         : ["SF 1 - 1º geral x 4º geral", "SF 2 - 2º geral x 3º geral"]
       : [];
 
-  const final = ["Final"];
+  const final = knockoutSize > 0 ? ["Final"] : [];
 
   return {
     quarterfinals,
@@ -237,34 +241,36 @@ export function BracketOverview({ groupCount, groups, matches }: BracketOverview
         </div>
       ) : null}
 
-      <div className="bracket-stage bracket-stage-linked">
-        <div className="bracket-stage-head">
-          <p className="eyebrow">Decisão</p>
-          <h3>Final</h3>
-        </div>
+      {final.length ? (
+        <div className="bracket-stage bracket-stage-linked">
+          <div className="bracket-stage-head">
+            <p className="eyebrow">Decisão</p>
+            <h3>Final</h3>
+          </div>
 
-        <div className="bracket-column bracket-column-final">
-          {final.map((match) => (
-            <article key={match.id} className="bracket-card bracket-card-final">
-              <div className="bracket-card-head">
-                <strong>{match.title}</strong>
-              </div>
-              <div className="bracket-card-body">
-                {match.lines.map((line) => (
-                  <span key={line} className={`bracket-team${match.winner === line ? " bracket-team-winner" : ""}`}>
-                    {line}
-                  </span>
-                ))}
-                {match.scores[0] !== null && match.scores[1] !== null ? (
-                  <span className="bracket-meta">
-                    Placar: {match.scores[0]} x {match.scores[1]}
-                  </span>
-                ) : null}
-              </div>
-            </article>
-          ))}
+          <div className="bracket-column bracket-column-final">
+            {final.map((match) => (
+              <article key={match.id} className="bracket-card bracket-card-final">
+                <div className="bracket-card-head">
+                  <strong>{match.title}</strong>
+                </div>
+                <div className="bracket-card-body">
+                  {match.lines.map((line) => (
+                    <span key={line} className={`bracket-team${match.winner === line ? " bracket-team-winner" : ""}`}>
+                      {line}
+                    </span>
+                  ))}
+                  {match.scores[0] !== null && match.scores[1] !== null ? (
+                    <span className="bracket-meta">
+                      Placar: {match.scores[0]} x {match.scores[1]}
+                    </span>
+                  ) : null}
+                </div>
+              </article>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }

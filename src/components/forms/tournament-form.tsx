@@ -22,6 +22,7 @@ export function TournamentForm() {
       <div className="field">
         <label htmlFor="groupCount">Quantidade de grupos</label>
         <select id="groupCount" name="groupCount" defaultValue="4">
+          <option value="1">1 grupo - todos contra todos</option>
           <option value="2">2 grupos</option>
           <option value="3">3 grupos</option>
           <option value="4">4 grupos</option>
@@ -33,7 +34,7 @@ export function TournamentForm() {
       </div>
 
       <div className="field">
-        <label htmlFor="pairsPerGroup">Duplas por grupo</label>
+        <label htmlFor="pairsPerGroup">Base de duplas por grupo</label>
         <select id="pairsPerGroup" name="pairsPerGroup" defaultValue="3">
           <option value="2">2 duplas</option>
           <option value="3">3 duplas</option>
