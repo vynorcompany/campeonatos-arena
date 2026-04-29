@@ -9,12 +9,13 @@ import {
 import { requireArenaAccess } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 
-function formatMatchLine(match: { homePairName: string; awayPairName: string; courtName: string }) {
+function formatMatchLine(match: { homePairName: string; awayPairName: string; courtName: string; scheduledTime: string }) {
   const homePairName = match.homePairName.trim() || "DUPLA 1";
   const awayPairName = match.awayPairName.trim() || "DUPLA 2";
   const courtName = match.courtName.trim() || "QUADRA A DEFINIR";
+  const scheduledTime = match.scheduledTime.trim() || "HORÁRIO A DEFINIR";
 
-  return `${homePairName} VS ${awayPairName} - ${courtName}`;
+  return `${scheduledTime} - ${homePairName} VS ${awayPairName} - ${courtName}`;
 }
 
 export default async function UpcomingMatchesPage() {
@@ -78,6 +79,10 @@ export default async function UpcomingMatchesPage() {
               <input id="new-away-pair" name="awayPairName" type="text" placeholder="DUPLA 2" />
             </div>
             <div className="field">
+              <label htmlFor="new-scheduled-time">Horário</label>
+              <input id="new-scheduled-time" name="scheduledTime" type="time" />
+            </div>
+            <div className="field">
               <label htmlFor="new-court">Quadra</label>
               <input id="new-court" name="courtName" type="text" placeholder="QUADRA AGECON" />
             </div>
@@ -102,6 +107,10 @@ export default async function UpcomingMatchesPage() {
                   <div className="field">
                     <label htmlFor={`${match.id}-away`}>Dupla 2</label>
                     <input id={`${match.id}-away`} name="awayPairName" type="text" defaultValue={match.awayPairName} />
+                  </div>
+                  <div className="field">
+                    <label htmlFor={`${match.id}-scheduled-time`}>Horário</label>
+                    <input id={`${match.id}-scheduled-time`} name="scheduledTime" type="time" defaultValue={match.scheduledTime} />
                   </div>
                   <div className="field">
                     <label htmlFor={`${match.id}-court`}>Quadra</label>

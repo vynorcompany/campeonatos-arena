@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 
 type ManualUpcomingMatch = {
@@ -8,6 +9,7 @@ type ManualUpcomingMatch = {
   homePairName: string;
   awayPairName: string;
   courtName: string;
+  scheduledTime: string;
 };
 
 type ManualUpcomingMatchesTvProps = {
@@ -53,7 +55,7 @@ export function ManualUpcomingMatchesTv({ arenaName, matches }: ManualUpcomingMa
       <main className="tv-stage tv-stage-empty">
         <div className="tv-shell">
           <p className="tv-kicker">Próximos jogos</p>
-          <h1>{arenaName}</h1>
+          <Image src="/arena-profile.jpg" alt={arenaName} width={180} height={180} className="tv-arena-logo tv-arena-logo-empty" priority />
           <p className="tv-empty-copy">Nenhum jogo cadastrado no momento.</p>
         </div>
       </main>
@@ -63,6 +65,7 @@ export function ManualUpcomingMatchesTv({ arenaName, matches }: ManualUpcomingMa
   const homePairName = normalize(activeMatch.homePairName, "DUPLA 1");
   const awayPairName = normalize(activeMatch.awayPairName, "DUPLA 2");
   const courtName = normalize(activeMatch.courtName, "QUADRA A DEFINIR");
+  const scheduledTime = normalize(activeMatch.scheduledTime, "HORÁRIO A DEFINIR");
 
   return (
     <main className="tv-stage">
@@ -70,7 +73,7 @@ export function ManualUpcomingMatchesTv({ arenaName, matches }: ManualUpcomingMa
         <header className="tv-header">
           <div>
             <p className="tv-kicker">Próximos jogos</p>
-            <h1>{arenaName}</h1>
+            <Image src="/arena-profile.jpg" alt={arenaName} width={180} height={180} className="tv-arena-logo" priority />
           </div>
           <div className="tv-counter">
             <span>{activeIndex + 1}</span>
@@ -79,7 +82,10 @@ export function ManualUpcomingMatchesTv({ arenaName, matches }: ManualUpcomingMa
         </header>
 
         <div className="tv-match-card">
-          <div className="tv-court-pill">{courtName}</div>
+          <div className="tv-match-meta-row">
+            <div className="tv-court-pill">{courtName}</div>
+            <div className="tv-time-pill">{scheduledTime}</div>
+          </div>
 
           <div className="tv-versus-grid">
             <article className="tv-team">
@@ -102,7 +108,9 @@ export function ManualUpcomingMatchesTv({ arenaName, matches }: ManualUpcomingMa
             <div className="tv-queue-list">
               {nextMatches.map((match) => (
                 <div className="tv-queue-item" key={match.id}>
-                  <span>{normalize(match.courtName, "Quadra a definir")}</span>
+                  <span>
+                    {normalize(match.scheduledTime, "Horário a definir")} - {normalize(match.courtName, "Quadra a definir")}
+                  </span>
                   <strong>
                     {normalize(match.homePairName, "Dupla 1")} x {normalize(match.awayPairName, "Dupla 2")}
                   </strong>

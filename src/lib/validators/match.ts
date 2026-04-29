@@ -1,13 +1,20 @@
 import { z } from "zod";
 
+const courtNames = ["Agecon", "Origem", "Elaine"] as const;
+
 export const updateMatchCourtSchema = z.object({
   matchId: z.string().min(1),
-  courtName: z
+  courtName: z.enum(courtNames, {
+    errorMap: () => ({ message: "Selecione uma quadra válida." })
+  })
+});
+
+export const updateMatchScheduleSchema = z.object({
+  matchId: z.string().min(1),
+  scheduledTime: z
     .string()
     .trim()
-    .max(40, "Nome da quadra muito longo.")
-    .transform((value) => value || null)
-    .nullable()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Horário inválido.")
 });
 
 export const updateMatchResultSchema = z

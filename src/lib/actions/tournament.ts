@@ -19,7 +19,8 @@ import {
 import {
   updateMatchCourtSchema,
   updateMatchParticipantsSchema,
-  updateMatchResultSchema
+  updateMatchResultSchema,
+  updateMatchScheduleSchema
 } from "@/lib/validators/match";
 import { createTournamentSchema } from "@/lib/validators/tournament";
 import {
@@ -398,6 +399,36 @@ export async function updateMatchCourtAction(formData: FormData) {
     },
     data: {
       courtName: parsed.data.courtName
+    }
+  });
+
+  if (!updated.count) {
+    throw new Error("Jogo não encontrado.");
+  }
+
+  refreshTournamentRoutes();
+}
+
+export async function updateMatchScheduleAction(formData: FormData) {
+  const auth = await requireRole("STAFF");
+  const parsed = updateMatchScheduleSchema.safeParse({
+    matchId: formData.get("matchId"),
+    scheduledTime: formData.get("scheduledTime")
+  });
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  }
+
+  const updated = await prisma.match.updateMany({
+    where: {
+      id: parsed.data.matchId,
+      tournament: {
+        arenaId: auth.arenaId
+      }
+    },
+    data: {
+      scheduledTime: parsed.data.scheduledTime
     }
   });
 

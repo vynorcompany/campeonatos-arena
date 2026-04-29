@@ -26,7 +26,8 @@ export default async function UpcomingMatchesTvPage() {
         displayOrder: match.displayOrder,
         homePairName: match.homePairName,
         awayPairName: match.awayPairName,
-        courtName: match.courtName
+        courtName: match.courtName,
+        scheduledTime: match.scheduledTime
       }))}
     />
   );

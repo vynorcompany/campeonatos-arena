@@ -884,9 +884,51 @@ button {
   justify-content: flex-start;
 }
 
-.match-court-input {
-  width: 100% !important;
-  min-width: 0;
+.match-court-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.match-court-option {
+  cursor: pointer;
+}
+
+.match-court-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.match-court-option span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+.match-court-option input:checked + span {
+  border-color: rgba(30, 94, 168, 0.36);
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  box-shadow: inset 0 0 0 1px rgba(30, 94, 168, 0.16);
+}
+
+.match-court-option input:focus-visible + span {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(18, 93, 156, 0.1);
+}
+
+.match-schedule-form {
+  justify-content: flex-start;
 }
 
 .match-schedule-input {
@@ -1334,7 +1376,7 @@ button {
 }
 
 .manual-upcoming-row {
-  grid-template-columns: minmax(82px, 0.32fr) repeat(3, minmax(0, 1fr)) auto;
+  grid-template-columns: minmax(82px, 0.32fr) minmax(116px, 0.48fr) repeat(3, minmax(0, 1fr)) auto;
   align-items: end;
   padding: 16px;
   border: 1px solid var(--line);
@@ -1343,7 +1385,7 @@ button {
 }
 
 .manual-upcoming-row-new {
-  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  grid-template-columns: minmax(116px, 0.48fr) repeat(3, minmax(0, 1fr)) auto;
   background: #ffffff;
 }
 
@@ -1401,12 +1443,16 @@ button {
   text-transform: uppercase;
 }
 
-.tv-header h1,
-.tv-stage-empty h1 {
-  margin: 0;
-  color: #ffffff;
-  font-size: clamp(3.2rem, 7vw, 7.8rem);
-  line-height: 0.95;
+.tv-arena-logo {
+  width: clamp(92px, 10vw, 180px);
+  height: auto;
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.24);
+}
+
+.tv-arena-logo-empty {
+  margin-inline: auto;
 }
 
 .tv-counter {
@@ -1441,8 +1487,16 @@ button {
   box-shadow: 0 28px 80px rgba(0, 0, 0, 0.24);
 }
 
-.tv-court-pill {
+.tv-match-meta-row {
   justify-self: center;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.tv-court-pill,
+.tv-time-pill {
   padding: 14px 28px;
   border-radius: 999px;
   background: #ffc44f;
@@ -1451,6 +1505,11 @@ button {
   font-weight: 900;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+.tv-time-pill {
+  background: #ffffff;
+  color: #172331;
 }
 
 .tv-versus-grid {

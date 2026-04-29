@@ -4,7 +4,8 @@ import {
   generateMatchesAction,
   updateMatchCourtAction,
   updateMatchParticipantsAction,
-  updateMatchResultAction
+  updateMatchResultAction,
+  updateMatchScheduleAction
 } from "@/lib/actions/tournament";
 import { requireArenaAccess } from "@/lib/auth/session";
 import { getArenaDashboard } from "@/lib/services/tournament";
@@ -15,6 +16,8 @@ const stageLabels: Record<string, string> = {
   SEMIFINAL: "Semifinais",
   FINAL: "Final"
 };
+
+const courtNames = ["Agecon", "Origem", "Elaine"];
 
 function getCurrentStage(
   groupedMatches: NonNullable<Awaited<ReturnType<typeof getArenaDashboard>>["activeTournament"]>["matches"],
@@ -156,6 +159,7 @@ export default async function MatchesPage() {
                           </div>
 
                           <div className="match-card-meta">
+                            <span>{match.scheduledTime ? `Horário: ${match.scheduledTime}` : "Horário ainda não definido"}</span>
                             <span>{match.courtName ? `Quadra: ${match.courtName}` : "Quadra ainda não definida"}</span>
                             <span>{match.winnerPair?.name ? `Vencedor: ${match.winnerPair.name}` : "Resultado pendente"}</span>
                           </div>
@@ -177,14 +181,28 @@ export default async function MatchesPage() {
                             <form action={updateMatchCourtAction} className="inline-form match-court-form match-action-panel">
                               <input type="hidden" name="matchId" value={match.id} />
                               <span className="match-action-title">Quadra</span>
-                              <input
-                                className="match-court-input"
-                                name="courtName"
-                                type="text"
-                                placeholder="Quadra 1"
-                                defaultValue={match.courtName ?? ""}
-                              />
+                              <div className="match-court-options">
+                                {courtNames.map((courtName) => (
+                                  <label key={`${match.id}-${courtName}`} className="match-court-option">
+                                    <input name="courtName" type="radio" value={courtName} defaultChecked={match.courtName === courtName} required />
+                                    <span>{courtName}</span>
+                                  </label>
+                                ))}
+                              </div>
                               <SubmitButton label="Salvar quadra" pendingLabel="..." className="button" />
+                            </form>
+
+                            <form action={updateMatchScheduleAction} className="inline-form match-schedule-form match-action-panel">
+                              <input type="hidden" name="matchId" value={match.id} />
+                              <span className="match-action-title">Horário</span>
+                              <input
+                                className="match-schedule-input"
+                                name="scheduledTime"
+                                type="time"
+                                defaultValue={match.scheduledTime ?? ""}
+                                required
+                              />
+                              <SubmitButton label="Salvar horário" pendingLabel="..." className="button" />
                             </form>
                           </div>
                         </aside>
@@ -236,6 +254,7 @@ export default async function MatchesPage() {
                         </div>
 
                         <div className="match-card-meta">
+                          <span>{match.scheduledTime ? `Horário: ${match.scheduledTime}` : "Horário ainda não definido"}</span>
                           <span>{match.courtName ? `Quadra: ${match.courtName}` : "Quadra ainda não definida"}</span>
                           <span>{match.winnerPair?.name ? `Vencedor: ${match.winnerPair.name}` : "Resultado pendente"}</span>
                         </div>
@@ -280,14 +299,28 @@ export default async function MatchesPage() {
                             <form action={updateMatchCourtAction} className="inline-form match-court-form match-action-panel">
                               <input type="hidden" name="matchId" value={match.id} />
                               <span className="match-action-title">Quadra</span>
-                              <input
-                                className="match-court-input"
-                                name="courtName"
-                                type="text"
-                                placeholder="Quadra central"
-                                defaultValue={match.courtName ?? ""}
-                              />
+                              <div className="match-court-options">
+                                {courtNames.map((courtName) => (
+                                  <label key={`${match.id}-${courtName}`} className="match-court-option">
+                                    <input name="courtName" type="radio" value={courtName} defaultChecked={match.courtName === courtName} required />
+                                    <span>{courtName}</span>
+                                  </label>
+                                ))}
+                              </div>
                               <SubmitButton label="Salvar quadra" pendingLabel="..." className="button" />
+                            </form>
+
+                            <form action={updateMatchScheduleAction} className="inline-form match-schedule-form match-action-panel">
+                              <input type="hidden" name="matchId" value={match.id} />
+                              <span className="match-action-title">Horário</span>
+                              <input
+                                className="match-schedule-input"
+                                name="scheduledTime"
+                                type="time"
+                                defaultValue={match.scheduledTime ?? ""}
+                                required
+                              />
+                              <SubmitButton label="Salvar horário" pendingLabel="..." className="button" />
                             </form>
                           </div>
                         </div>

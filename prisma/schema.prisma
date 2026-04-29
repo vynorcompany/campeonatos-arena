@@ -171,6 +171,7 @@ model Match {
   stage         String
   roundOrder    Int
   courtName     String?
+  scheduledTime String?
   homeScore     Int?
   awayScore     Int?
   createdAt     DateTime        @default(now())
@@ -196,6 +197,7 @@ model ManualUpcomingMatch {
   homePairName String   @default("")
   awayPairName String   @default("")
   courtName    String   @default("")
+  scheduledTime String   @default("")
   displayOrder Int
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

@@ -23,8 +23,11 @@ export function TournamentForm() {
         <label htmlFor="groupCount">Quantidade de grupos</label>
         <select id="groupCount" name="groupCount" defaultValue="4">
           <option value="2">2 grupos</option>
+          <option value="3">3 grupos</option>
           <option value="4">4 grupos</option>
+          <option value="5">5 grupos</option>
           <option value="6">6 grupos</option>
+          <option value="7">7 grupos</option>
           <option value="8">8 grupos</option>
         </select>
       </div>

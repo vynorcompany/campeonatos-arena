@@ -8,7 +8,12 @@ import { prisma } from "@/lib/prisma";
 const manualUpcomingMatchSchema = z.object({
   homePairName: z.string().trim().max(80, "Dupla 1 deve ter no maximo 80 caracteres.").default(""),
   awayPairName: z.string().trim().max(80, "Dupla 2 deve ter no maximo 80 caracteres.").default(""),
-  courtName: z.string().trim().max(80, "Quadra deve ter no maximo 80 caracteres.").default("")
+  courtName: z.string().trim().max(80, "Quadra deve ter no maximo 80 caracteres.").default(""),
+  scheduledTime: z
+    .string()
+    .trim()
+    .regex(/^$|^([01]\d|2[0-3]):[0-5]\d$/, "Horario invalido.")
+    .default("")
 });
 
 const updateManualUpcomingMatchSchema = manualUpcomingMatchSchema.extend({
@@ -25,7 +30,8 @@ export async function createManualUpcomingMatchAction(formData: FormData) {
   const parsed = manualUpcomingMatchSchema.safeParse({
     homePairName: formData.get("homePairName"),
     awayPairName: formData.get("awayPairName"),
-    courtName: formData.get("courtName")
+    courtName: formData.get("courtName"),
+    scheduledTime: formData.get("scheduledTime")
   });
 
   if (!parsed.success) {
@@ -47,7 +53,8 @@ export async function createManualUpcomingMatchAction(formData: FormData) {
       displayOrder: (lastMatch?.displayOrder ?? 0) + 1,
       homePairName: parsed.data.homePairName,
       awayPairName: parsed.data.awayPairName,
-      courtName: parsed.data.courtName
+      courtName: parsed.data.courtName,
+      scheduledTime: parsed.data.scheduledTime
     }
   });
 
@@ -61,7 +68,8 @@ export async function updateManualUpcomingMatchAction(formData: FormData) {
     displayOrder: formData.get("displayOrder"),
     homePairName: formData.get("homePairName"),
     awayPairName: formData.get("awayPairName"),
-    courtName: formData.get("courtName")
+    courtName: formData.get("courtName"),
+    scheduledTime: formData.get("scheduledTime")
   });
 
   if (!parsed.success) {
@@ -77,7 +85,8 @@ export async function updateManualUpcomingMatchAction(formData: FormData) {
       displayOrder: parsed.data.displayOrder,
       homePairName: parsed.data.homePairName,
       awayPairName: parsed.data.awayPairName,
-      courtName: parsed.data.courtName
+      courtName: parsed.data.courtName,
+      scheduledTime: parsed.data.scheduledTime
     }
   });
 
