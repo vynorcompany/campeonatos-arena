@@ -48,9 +48,7 @@ function getSelectedArenaId() {
   return cookies().get(arenaCookieName)?.value ?? null;
 }
 
-function getActiveMembership(memberships: ArenaMembership[]) {
-  const selectedArenaId = getSelectedArenaId();
-
+function getActiveMembership(memberships: ArenaMembership[], selectedArenaId: string | null) {
   if (selectedArenaId) {
     const selectedMembership = memberships.find((membership) => membership.arenaId === selectedArenaId);
 
@@ -165,8 +163,6 @@ export async function getAuthContext(): Promise<AuthContext | null> {
       });
     }
 
-    cookies().delete(sessionCookieName);
-    cookies().delete(arenaCookieName);
     return null;
   }
 
@@ -175,11 +171,7 @@ export async function getAuthContext(): Promise<AuthContext | null> {
     arenaName: membership.arena.name,
     arenaRole: membership.role as ArenaRole
   }));
-  const activeMembership = getActiveMembership(memberships);
-
-  if (activeMembership && activeMembership.arenaId !== getSelectedArenaId()) {
-    await setArenaContextCookie(activeMembership.arenaId);
-  }
+  const activeMembership = getActiveMembership(memberships, getSelectedArenaId());
 
   return {
     userId: session.user.id,
