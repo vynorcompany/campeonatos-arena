@@ -37,23 +37,22 @@ Use uma senha forte em `INITIAL_ADMIN_PASSWORD`. O seed pode ser executado novam
 
 ## Banco e bootstrap
 
-Depois do primeiro deploy, abra o terminal do servico web no Railway e rode:
-
-```bash
-npm run db:setup
-```
-
-Esse comando executa:
+Nao precisa rodar comandos em terminal no Railway. O arquivo `railway.json` incluido no repositorio configura o deploy para executar automaticamente:
 
 - `prisma migrate deploy`, para criar/atualizar as tabelas;
 - `tsx prisma/seed.ts`, para criar o primeiro administrador e a primeira arena.
 
-Se preferir separar os passos:
+Isso acontece pelo `preDeployCommand`:
 
-```bash
-npm run db:migrate:deploy
-npm run db:seed
+```json
+{
+  "deploy": {
+    "preDeployCommand": "npm run db:setup"
+  }
+}
 ```
+
+No Railway, basta configurar as variaveis de ambiente e fazer o deploy pelo GitHub. Se o pre-deploy falhar, o deploy nao entra em producao; veja os logs do deploy para descobrir qual variavel ou conexao de banco esta faltando.
 
 ## Dominio publico
 
