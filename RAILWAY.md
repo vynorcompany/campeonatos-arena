@@ -37,7 +37,16 @@ Use uma senha forte em `INITIAL_ADMIN_PASSWORD`. O seed pode ser executado novam
 
 ## Banco e bootstrap
 
-Nao precisa rodar comandos em terminal no Railway. O arquivo `railway.json` incluido no repositorio configura o deploy para executar automaticamente:
+Nao precisa rodar comandos em terminal no Railway. Tambem nao precisa preencher Custom Build Command, Custom Start Command ou Pre-deploy Command manualmente se o servico estiver usando este repositorio: o arquivo `railway.json` incluido no projeto ja configura isso.
+
+Ele define:
+
+- Build Command: `npm run build`;
+- Pre-deploy Command: `npm run db:setup`;
+- Start Command: `npm run start`;
+- Healthcheck Path: `/api/health`.
+
+Durante o pre-deploy, o `db:setup` executa automaticamente:
 
 - `prisma migrate deploy`, para criar/atualizar as tabelas;
 - `tsx prisma/seed.ts`, para criar o primeiro administrador e a primeira arena.
@@ -53,6 +62,8 @@ Isso acontece pelo `preDeployCommand`:
 ```
 
 No Railway, basta configurar as variaveis de ambiente e fazer o deploy pelo GitHub. Se o pre-deploy falhar, o deploy nao entra em producao; veja os logs do deploy para descobrir qual variavel ou conexao de banco esta faltando.
+
+Se voce preferir configurar pela UI em vez de usar `railway.json`, use exatamente os mesmos valores acima e remova o `railway.json` para evitar configuracoes duplicadas.
 
 ## Dominio publico
 
