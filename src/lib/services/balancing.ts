@@ -66,7 +66,8 @@ export function generateBalancedPairs(players: RankedPlayer[]): {
 
 export function distributePairsIntoGroups(
   pairs: Pick<Pair, "id" | "name" | "totalPoints">[],
-  groupCount: number
+  groupCount: number,
+  pairsPerGroup: number
 ): GroupDraft[] {
   const groups = Array.from({ length: groupCount }, (_, index) => ({
     name: `Grupo ${String.fromCharCode(65 + index)}`,
@@ -77,12 +78,11 @@ export function distributePairsIntoGroups(
   let direction = 1;
   let cursor = 0;
 
-  for (const pair of orderedPairs) {
-    groups[cursor].pairs.push({
-      pairId: pair.id,
-      pairName: pair.name,
-      totalPoints: pair.totalPoints
-    });
+  function moveCursor() {
+    if (groupCount <= 1) {
+      cursor = 0;
+      return;
+    }
 
     const nextCursor = cursor + direction;
 
@@ -92,6 +92,23 @@ export function distributePairsIntoGroups(
     } else {
       cursor = nextCursor;
     }
+  }
+
+  for (const pair of orderedPairs) {
+    let attempts = 0;
+
+    while (groups[cursor].pairs.length >= pairsPerGroup && attempts < groupCount) {
+      moveCursor();
+      attempts += 1;
+    }
+
+    groups[cursor].pairs.push({
+      pairId: pair.id,
+      pairName: pair.name,
+      totalPoints: pair.totalPoints
+    });
+
+    moveCursor();
   }
 
   return groups;

@@ -828,7 +828,15 @@ export async function distributeTournamentGroups(tournamentId: string) {
   }
 
   const groupCount = Math.min(tournament.groupCount, tournament.pairs.length);
-  const groups = distributePairsIntoGroups(tournament.pairs, groupCount);
+  const pairCapacity = groupCount * tournament.pairsPerGroup;
+
+  if (tournament.pairs.length > pairCapacity) {
+    throw new Error(
+      `A configuração atual comporta até ${pairCapacity} duplas. Aumente a quantidade de grupos ou de duplas por grupo.`
+    );
+  }
+
+  const groups = distributePairsIntoGroups(tournament.pairs, groupCount, tournament.pairsPerGroup);
 
   await prisma.$transaction(async (tx) => {
     await resetTournamentStructure(tx, tournamentId);

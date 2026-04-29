@@ -51,7 +51,7 @@ export default async function OverviewPage() {
           title="Torneio atual"
           description={
             activeTournament
-              ? `O torneio ${activeTournament.name} está em andamento com ${activeTournament.groupCount} grupos previstos.`
+              ? `O torneio ${activeTournament.name} está em andamento com ${activeTournament.groupCount} grupos previstos e até ${activeTournament.pairsPerGroup} duplas por grupo.`
               : "Quando um novo torneio for criado, as informações principais aparecerão aqui."
           }
         >

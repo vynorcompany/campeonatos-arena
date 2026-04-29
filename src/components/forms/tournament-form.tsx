@@ -32,6 +32,19 @@ export function TournamentForm() {
         </select>
       </div>
 
+      <div className="field">
+        <label htmlFor="pairsPerGroup">Duplas por grupo</label>
+        <select id="pairsPerGroup" name="pairsPerGroup" defaultValue="3">
+          <option value="2">2 duplas</option>
+          <option value="3">3 duplas</option>
+          <option value="4">4 duplas</option>
+          <option value="5">5 duplas</option>
+          <option value="6">6 duplas</option>
+          <option value="7">7 duplas</option>
+          <option value="8">8 duplas</option>
+        </select>
+      </div>
+
       <div className="field field-submit">
         <label className="sr-only" htmlFor="submit-tournament">
           Criar torneio

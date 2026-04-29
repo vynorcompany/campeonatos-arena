@@ -1,0 +1,1 @@
+ALTER TABLE "Tournament" ADD COLUMN "pairsPerGroup" INTEGER NOT NULL DEFAULT 3;

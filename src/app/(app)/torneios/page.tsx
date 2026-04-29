@@ -51,7 +51,7 @@ export default async function TournamentsPage() {
       <div className="two-column-grid">
         <SectionCard
           title="Novo torneio"
-          description="Defina o nome e a quantidade de grupos para começar uma nova competição."
+          description="Defina o nome, a quantidade de grupos e quantas duplas entram em cada grupo."
         >
           {activeTournament ? (
             <div className="stack-md">
@@ -70,6 +70,10 @@ export default async function TournamentsPage() {
                 <div className="simple-item">
                   <strong>Grupos previstos</strong>
                   <span>{activeTournament.groupCount}</span>
+                </div>
+                <div className="simple-item">
+                  <strong>Duplas por grupo</strong>
+                  <span>{activeTournament.pairsPerGroup}</span>
                 </div>
                 <div className="simple-item">
                   <strong>Próximo passo</strong>
@@ -102,6 +106,10 @@ export default async function TournamentsPage() {
                 <span>{activeTournament.entries.length}</span>
               </div>
               <div className="simple-item">
+                <strong>Duplas por grupo</strong>
+                <span>{activeTournament.pairsPerGroup}</span>
+              </div>
+              <div className="simple-item">
                 <strong>Fase de grupos</strong>
                 <span>{groupedMatches.length} jogos</span>
               </div>
@@ -132,7 +140,7 @@ export default async function TournamentsPage() {
       {activeTournament ? (
         <SectionCard
           title={activeTournament.name}
-          description={`Siga as etapas para organizar o torneio com ${activeTournament.groupCount} grupos.`}
+          description={`Siga as etapas para organizar o torneio com ${activeTournament.groupCount} grupos de até ${activeTournament.pairsPerGroup} duplas.`}
         >
           <div className="timeline">
             <div className="timeline-step">
@@ -161,7 +169,7 @@ export default async function TournamentsPage() {
               <span className="pill">3</span>
               <div>
                 <strong>Montar grupos</strong>
-                <p className="muted">Distribua as duplas por força, permitindo grupos menores quando a quantidade não fechar.</p>
+                <p className="muted">Distribua as duplas por força, respeitando o limite definido para cada grupo.</p>
               </div>
               <form action={generateGroupsAction}>
                 <input type="hidden" name="tournamentId" value={activeTournament.id} />

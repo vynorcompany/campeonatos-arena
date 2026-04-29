@@ -218,7 +218,8 @@ export async function createTournamentAction(_: ActionState, formData: FormData)
   const auth = await requireRole("ADMIN");
   const parsed = createTournamentSchema.safeParse({
     name: formData.get("name"),
-    groupCount: formData.get("groupCount")
+    groupCount: formData.get("groupCount"),
+    pairsPerGroup: formData.get("pairsPerGroup")
   });
 
   if (!parsed.success) {
@@ -245,7 +246,8 @@ export async function createTournamentAction(_: ActionState, formData: FormData)
     data: {
       arenaId: auth.arenaId,
       name: parsed.data.name,
-      groupCount: parsed.data.groupCount
+      groupCount: parsed.data.groupCount,
+      pairsPerGroup: parsed.data.pairsPerGroup
     }
   });
 
