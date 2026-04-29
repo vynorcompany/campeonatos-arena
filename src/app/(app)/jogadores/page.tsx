@@ -3,7 +3,7 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { TournamentParticipantsForm } from "@/components/forms/tournament-participants-form";
 import { PlayerActionsCell } from "@/components/players/player-actions-cell";
 import { SectionCard } from "@/components/section-card";
-import { updateTournamentEntryPointsAction } from "@/lib/actions/tournament";
+import { updatePlayerPointsAction, updateTournamentEntryPointsAction } from "@/lib/actions/tournament";
 import { requireArenaAccess } from "@/lib/auth/session";
 import { getArenaDashboard } from "@/lib/services/tournament";
 
@@ -118,7 +118,20 @@ export default async function PlayersPage() {
                     active={player.active}
                   />
                 </td>
-                <td>{player.points}</td>
+                <td>
+                  <form action={updatePlayerPointsAction} className="inline-form player-points-form">
+                    <input type="hidden" name="playerId" value={player.id} />
+                    <input
+                      name="points"
+                      type="number"
+                      min="0"
+                      defaultValue={player.points}
+                      aria-label={`Pontuação de ${player.name}`}
+                      className="player-points-input"
+                    />
+                    <SubmitButton label="Salvar" pendingLabel="..." className="button" />
+                  </form>
+                </td>
                 <td>
                   <span className={`player-status-pill${player.active ? "" : " player-status-pill-inactive"}`}>
                     {player.active ? "Ativo" : "Inativo"}

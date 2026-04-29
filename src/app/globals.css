@@ -1647,6 +1647,14 @@ button {
   box-shadow: 0 0 0 4px rgba(18, 93, 156, 0.1);
 }
 
+.player-points-form {
+  flex-wrap: nowrap;
+}
+
+.player-points-input {
+  width: 104px;
+}
+
 .player-inline-icon-button,
 .player-trash-button {
   display: inline-flex;
