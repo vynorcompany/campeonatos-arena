@@ -54,6 +54,7 @@ model Arena {
   members     ArenaMember[]
   players     Player[]
   tournaments Tournament[]
+  manualUpcomingMatches ManualUpcomingMatch[]
 }
 
 model ArenaMember {
@@ -188,4 +189,18 @@ model Match {
   @@index([tournamentId, stage, roundOrder])
   @@index([groupId])
   @@index([winnerPairId])
+}
+
+model ManualUpcomingMatch {
+  id           String   @id @default(cuid())
+  homePairName String   @default("")
+  awayPairName String   @default("")
+  courtName    String   @default("")
+  displayOrder Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  arenaId      String
+  arena        Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+
+  @@index([arenaId, displayOrder])
 }
