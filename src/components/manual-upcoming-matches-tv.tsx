@@ -127,8 +127,10 @@ export function ManualUpcomingMatchesTv({ arenaName, matches }: ManualUpcomingMa
             const scheduledTime = match.scheduledTime.trim();
 
             return (
-              <article className={`tv-match-card${scheduledTime ? "" : " tv-match-card-no-time"}`} key={match.id}>
-                {scheduledTime ? <div className="tv-match-time">{scheduledTime}</div> : null}
+              <article className="tv-match-card" key={match.id}>
+                <div className="tv-match-time" aria-hidden={!scheduledTime}>
+                  {scheduledTime}
+                </div>
                 <div className="tv-scoreboard">
                   <div className="tv-match-topline">Jogo {getDisplayNumber(activeIndex, index, liveMatches.length)}</div>
                   <div className="tv-score-row">
