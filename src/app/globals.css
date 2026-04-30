@@ -1911,6 +1911,10 @@ button {
   grid-template-columns: minmax(0, 1fr);
 }
 
+.tv-empty-slot .tv-team-name {
+  text-align: center;
+}
+
 .tv-footer {
   display: grid;
   grid-template-columns: 1fr auto;

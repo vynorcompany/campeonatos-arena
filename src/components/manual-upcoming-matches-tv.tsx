@@ -147,7 +147,8 @@ export function ManualUpcomingMatchesTv({ arenaName, matches }: ManualUpcomingMa
           })}
 
           {Array.from({ length: Math.max(0, 3 - visibleMatches.length) }).map((_, index) => (
-            <article className="tv-match-card tv-match-card-no-time tv-empty-slot" key={`empty-${index}`}>
+            <article className="tv-match-card tv-empty-slot" key={`empty-${index}`}>
+              <div className="tv-match-time" aria-hidden="true" />
               <div className="tv-scoreboard">
                 <div className="tv-match-topline">Em aberto</div>
                 <div className="tv-score-row">
