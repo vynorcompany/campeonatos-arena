@@ -21,17 +21,25 @@ function normalize(value: string, fallback: string) {
   return value.trim() || fallback;
 }
 
+function getDisplayNumber(activeIndex: number, visibleIndex: number, total: number) {
+  const number = activeIndex + visibleIndex + 1;
+  return number > total ? number - total : number;
+}
+
 export function ManualUpcomingMatchesTv({ arenaName, matches }: ManualUpcomingMatchesTvProps) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const activeMatch = matches[activeIndex];
-  const hasMultipleMatches = matches.length > 1;
+  const hasOverflowMatches = matches.length > 3;
 
-  const nextMatches = useMemo(() => {
+  const visibleMatches = useMemo(() => {
     if (!matches.length) {
       return [];
     }
 
-    return matches.filter((_, index) => index !== activeIndex).slice(0, 4);
+    if (matches.length <= 3) {
+      return matches;
+    }
+
+    return [...matches.slice(activeIndex), ...matches.slice(0, activeIndex)].slice(0, 3);
   }, [activeIndex, matches]);
 
   useEffect(() => {
@@ -39,88 +47,81 @@ export function ManualUpcomingMatchesTv({ arenaName, matches }: ManualUpcomingMa
   }, [matches.length]);
 
   useEffect(() => {
-    if (!hasMultipleMatches) {
+    if (!hasOverflowMatches) {
       return;
     }
 
     const timer = window.setInterval(() => {
       setActiveIndex((current) => (current + 1) % matches.length);
-    }, 9000);
+    }, 10000);
 
     return () => window.clearInterval(timer);
-  }, [hasMultipleMatches, matches.length]);
+  }, [hasOverflowMatches, matches.length]);
 
-  if (!activeMatch) {
+  if (!matches.length) {
     return (
       <main className="tv-stage tv-stage-empty">
         <div className="tv-shell">
-          <p className="tv-kicker">Próximos jogos</p>
-          <Image src="/arena-profile.jpg" alt={arenaName} width={180} height={180} className="tv-arena-logo tv-arena-logo-empty" priority />
+          <p className="tv-kicker">Pr&oacute;ximos jogos</p>
+          <Image src="/arena-profile.jpg" alt={arenaName} width={160} height={160} className="tv-arena-logo tv-arena-logo-empty" priority />
           <p className="tv-empty-copy">Nenhum jogo cadastrado no momento.</p>
         </div>
       </main>
     );
   }
 
-  const homePairName = normalize(activeMatch.homePairName, "DUPLA 1");
-  const awayPairName = normalize(activeMatch.awayPairName, "DUPLA 2");
-  const courtName = normalize(activeMatch.courtName, "QUADRA A DEFINIR");
-  const scheduledTime = normalize(activeMatch.scheduledTime, "HORÁRIO A DEFINIR");
-
   return (
     <main className="tv-stage">
-      <section className="tv-shell" key={activeMatch.id}>
+      <section className="tv-shell">
         <header className="tv-header">
-          <div>
-            <p className="tv-kicker">Próximos jogos</p>
-            <Image src="/arena-profile.jpg" alt={arenaName} width={180} height={180} className="tv-arena-logo" priority />
+          <div className="tv-brand">
+            <Image src="/arena-profile.jpg" alt={arenaName} width={140} height={140} className="tv-arena-logo" priority />
           </div>
+          <h1 className="tv-title">Pr&oacute;ximos jogos</h1>
           <div className="tv-counter">
-            <span>{activeIndex + 1}</span>
-            <small>/ {matches.length}</small>
+            <span>{Math.min(visibleMatches.length, 3)}</span>
+            <small>de {matches.length}</small>
           </div>
         </header>
 
-        <div className="tv-match-card">
-          <div className="tv-match-meta-row">
-            <div className="tv-court-pill">{courtName}</div>
-            <div className="tv-time-pill">{scheduledTime}</div>
-          </div>
-
-          <div className="tv-versus-grid">
-            <article className="tv-team">
-              <span>Dupla 1</span>
-              <strong>{homePairName}</strong>
+        <div className="tv-matches-grid" key={visibleMatches.map((match) => match.id).join("-")}>
+          {visibleMatches.map((match, index) => (
+            <article className="tv-match-card" key={match.id}>
+              <div className="tv-match-time">{normalize(match.scheduledTime, "Hor&aacute;rio a definir")}</div>
+              <div className="tv-scoreboard">
+                <div className="tv-match-topline">Jogo {getDisplayNumber(activeIndex, index, matches.length)}</div>
+                <div className="tv-score-row">
+                  <span className="tv-team-side tv-team-side-home" />
+                  <strong className="tv-team-name">{normalize(match.homePairName, "Dupla 1")}</strong>
+                  <span className="tv-vs-line">v</span>
+                  <span className="tv-team-side tv-team-side-away" />
+                  <strong className="tv-team-name">{normalize(match.awayPairName, "Dupla 2")}</strong>
+                </div>
+              </div>
+              <div className="tv-court-name">{normalize(match.courtName, "Quadra a definir")}</div>
             </article>
+          ))}
 
-            <div className="tv-versus">VS</div>
-
-            <article className="tv-team">
-              <span>Dupla 2</span>
-              <strong>{awayPairName}</strong>
+          {Array.from({ length: Math.max(0, 3 - visibleMatches.length) }).map((_, index) => (
+            <article className="tv-match-card tv-empty-slot" key={`empty-${index}`}>
+              <div className="tv-match-time">--:--</div>
+              <div className="tv-scoreboard">
+                <div className="tv-match-topline">Em aberto</div>
+                <div className="tv-score-row">
+                  <strong className="tv-team-name">Aguardando cadastro</strong>
+                </div>
+              </div>
+              <div className="tv-court-name">Quadra</div>
             </article>
-          </div>
+          ))}
         </div>
 
-        {nextMatches.length ? (
-          <aside className="tv-queue" aria-label="Fila de jogos seguintes">
-            <p>Na sequência</p>
-            <div className="tv-queue-list">
-              {nextMatches.map((match) => (
-                <div className="tv-queue-item" key={match.id}>
-                  <span>
-                    {normalize(match.scheduledTime, "Horário a definir")} - {normalize(match.courtName, "Quadra a definir")}
-                  </span>
-                  <strong>
-                    {normalize(match.homePairName, "Dupla 1")} x {normalize(match.awayPairName, "Dupla 2")}
-                  </strong>
-                </div>
-              ))}
-            </div>
-          </aside>
-        ) : null}
+        <footer className="tv-footer">
+          <span>Atualiza&ccedil;&atilde;o autom&aacute;tica da fila</span>
+          {hasOverflowMatches ? <span>Pr&oacute;xima troca em instantes</span> : null}
+        </footer>
 
-        {hasMultipleMatches ? <div className="tv-progress" /> : null}
+        {hasOverflowMatches ? <div className="tv-progress" /> : null}
       </section>
     </main>
   );
