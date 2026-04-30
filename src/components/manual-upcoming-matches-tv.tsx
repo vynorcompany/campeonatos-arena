@@ -21,6 +21,8 @@ type ManualUpcomingMatchesResponse = {
   matches: ManualUpcomingMatch[];
 };
 
+const visibleMatchCount = 6;
+
 function normalize(value: string, fallback: string) {
   return value.trim() || fallback;
 }
@@ -33,18 +35,18 @@ function getDisplayNumber(activeIndex: number, visibleIndex: number, total: numb
 export function ManualUpcomingMatchesTv({ arenaName, matches }: ManualUpcomingMatchesTvProps) {
   const [liveMatches, setLiveMatches] = useState(matches);
   const [activeIndex, setActiveIndex] = useState(0);
-  const hasOverflowMatches = liveMatches.length > 3;
+  const hasOverflowMatches = liveMatches.length > visibleMatchCount;
 
   const visibleMatches = useMemo(() => {
     if (!liveMatches.length) {
       return [];
     }
 
-    if (liveMatches.length <= 3) {
+    if (liveMatches.length <= visibleMatchCount) {
       return liveMatches;
     }
 
-    return [...liveMatches.slice(activeIndex), ...liveMatches.slice(0, activeIndex)].slice(0, 3);
+    return [...liveMatches.slice(activeIndex), ...liveMatches.slice(0, activeIndex)].slice(0, visibleMatchCount);
   }, [activeIndex, liveMatches]);
 
   useEffect(() => {
@@ -117,7 +119,7 @@ export function ManualUpcomingMatchesTv({ arenaName, matches }: ManualUpcomingMa
           </div>
           <h1 className="tv-title">Pr&oacute;ximos jogos</h1>
           <div className="tv-counter">
-            <span>{Math.min(visibleMatches.length, 3)}</span>
+            <span>{Math.min(visibleMatches.length, visibleMatchCount)}</span>
             <small>de {liveMatches.length}</small>
           </div>
         </header>
@@ -146,7 +148,7 @@ export function ManualUpcomingMatchesTv({ arenaName, matches }: ManualUpcomingMa
             );
           })}
 
-          {Array.from({ length: Math.max(0, 3 - visibleMatches.length) }).map((_, index) => (
+          {Array.from({ length: Math.max(0, visibleMatchCount - visibleMatches.length) }).map((_, index) => (
             <article className="tv-match-card tv-empty-slot" key={`empty-${index}`}>
               <div className="tv-match-time" aria-hidden="true" />
               <div className="tv-scoreboard">

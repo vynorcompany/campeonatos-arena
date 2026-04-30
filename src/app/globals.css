@@ -1653,7 +1653,7 @@ button {
   min-height: 100vh;
   display: grid;
   place-items: center;
-  padding: clamp(18px, 2.4vw, 36px);
+  padding: clamp(14px, 1.8vw, 28px);
   background:
     linear-gradient(135deg, rgba(255, 196, 79, 0.08), transparent 34%),
     linear-gradient(180deg, #0d1823 0%, #162636 100%);
@@ -1670,10 +1670,10 @@ button {
 .tv-shell {
   position: relative;
   width: min(1660px, 100%);
-  min-height: min(820px, calc(100vh - 56px));
+  min-height: min(800px, calc(100vh - 40px));
   display: grid;
   grid-template-rows: auto 1fr auto;
-  gap: clamp(20px, 2.7vw, 42px);
+  gap: clamp(14px, 1.8vw, 26px);
   animation: tv-slide-in 720ms var(--ease-standard);
 }
 
@@ -1702,7 +1702,7 @@ button {
 .tv-title {
   margin: 0;
   color: #ffc44f;
-  font-size: clamp(3.4rem, 7.6vw, 8.6rem);
+  font-size: clamp(2.8rem, 5.6vw, 6.4rem);
   line-height: 1;
   font-weight: 900;
   letter-spacing: 0.04em;
@@ -1712,7 +1712,7 @@ button {
 }
 
 .tv-arena-logo {
-  width: clamp(78px, 7.8vw, 128px);
+  width: clamp(66px, 6vw, 96px);
   height: auto;
   border-radius: 8px;
   background: #ffffff;
@@ -1728,7 +1728,7 @@ button {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  padding: 14px 18px;
+  padding: 10px 14px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.06);
@@ -1736,31 +1736,32 @@ button {
 }
 
 .tv-counter span {
-  font-size: clamp(1.85rem, 2.8vw, 3rem);
+  font-size: clamp(1.45rem, 2.1vw, 2.2rem);
   font-weight: 900;
 }
 
 .tv-counter small {
   color: rgba(247, 251, 255, 0.72);
-  font-size: clamp(0.95rem, 1.18vw, 1.1rem);
+  font-size: clamp(0.8rem, 0.98vw, 0.95rem);
   font-weight: 800;
   text-transform: uppercase;
 }
 
 .tv-matches-grid {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-content: center;
-  gap: clamp(22px, 2.9vw, 38px);
+  gap: clamp(12px, 1.45vw, 20px);
 }
 
 .tv-match-card {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(142px, 0.58fr) minmax(0, 3.15fr) minmax(150px, 0.8fr);
+  grid-template-columns: minmax(78px, 0.45fr) minmax(0, 2.6fr) minmax(86px, 0.52fr);
   align-items: center;
-  gap: clamp(18px, 2.3vw, 34px);
-  min-height: clamp(156px, 18vh, 205px);
-  padding: clamp(18px, 2vw, 30px);
+  gap: clamp(8px, 1vw, 14px);
+  min-height: clamp(126px, 16vh, 156px);
+  padding: clamp(12px, 1.25vw, 18px);
   border: 1px solid rgba(255, 255, 255, 0.13);
   border-radius: 8px;
   background:
@@ -1801,7 +1802,7 @@ button {
 
 .tv-match-time {
   color: #ffffff;
-  font-size: clamp(1.55rem, 2.25vw, 2.45rem);
+  font-size: clamp(1.05rem, 1.55vw, 1.55rem);
   font-weight: 900;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -1815,16 +1816,16 @@ button {
 
 .tv-scoreboard {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
 .tv-match-topline {
   justify-self: center;
-  padding: 7px 18px;
+  padding: 5px 12px;
   border-radius: 8px;
   background: #ffffff;
   color: #121a24;
-  font-size: clamp(0.86rem, 1vw, 1.05rem);
+  font-size: clamp(0.68rem, 0.78vw, 0.82rem);
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1833,14 +1834,14 @@ button {
 
 .tv-score-row {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) auto 28px minmax(0, 1fr);
+  grid-template-columns: 18px minmax(0, 1fr) auto 18px minmax(0, 1fr);
   align-items: center;
-  gap: clamp(10px, 1.15vw, 18px);
+  gap: clamp(6px, 0.7vw, 10px);
 }
 
 .tv-team-side {
   width: 100%;
-  height: clamp(42px, 5.1vw, 60px);
+  height: clamp(34px, 4vw, 46px);
   border-radius: 7px 0 0 7px;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
 }
@@ -1857,11 +1858,11 @@ button {
   position: relative;
   display: block;
   min-width: 0;
-  padding: clamp(11px, 1.25vw, 16px) clamp(15px, 1.7vw, 24px);
+  padding: clamp(8px, 0.95vw, 11px) clamp(10px, 1.1vw, 14px);
   border-radius: 0 7px 7px 0;
   background: #f8fbff;
   color: #111923;
-  font-size: clamp(1.3rem, 2.08vw, 2.25rem);
+  font-size: clamp(0.94rem, 1.38vw, 1.42rem);
   line-height: 1;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -1886,7 +1887,7 @@ button {
 
 .tv-vs-line {
   color: #ffffff;
-  font-size: clamp(1.22rem, 1.55vw, 1.55rem);
+  font-size: clamp(0.9rem, 1.1vw, 1.1rem);
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1895,7 +1896,7 @@ button {
 .tv-court-name {
   justify-self: end;
   color: rgba(247, 251, 255, 0.82);
-  font-size: clamp(1.1rem, 1.48vw, 1.5rem);
+  font-size: clamp(0.78rem, 1vw, 1rem);
   font-weight: 900;
   letter-spacing: 0.06em;
   text-align: right;
@@ -2477,6 +2478,10 @@ button {
 
   .showcase-versus,
   .showcase-meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tv-matches-grid {
     grid-template-columns: 1fr;
   }
 
