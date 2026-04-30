@@ -1799,6 +1799,10 @@ button {
   animation-delay: 1800ms;
 }
 
+.tv-match-card-no-time {
+  grid-template-columns: minmax(0, 3fr) minmax(130px, 0.75fr);
+}
+
 .tv-match-time {
   color: #ffffff;
   font-size: clamp(1.25rem, 1.9vw, 2rem);

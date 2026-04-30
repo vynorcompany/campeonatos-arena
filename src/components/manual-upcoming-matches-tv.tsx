@@ -123,26 +123,29 @@ export function ManualUpcomingMatchesTv({ arenaName, matches }: ManualUpcomingMa
         </header>
 
         <div className="tv-matches-grid" key={visibleMatches.map((match) => match.id).join("-")}>
-          {visibleMatches.map((match, index) => (
-            <article className="tv-match-card" key={match.id}>
-              <div className="tv-match-time">{normalize(match.scheduledTime, "Hor&aacute;rio a definir")}</div>
-              <div className="tv-scoreboard">
-                <div className="tv-match-topline">Jogo {getDisplayNumber(activeIndex, index, liveMatches.length)}</div>
-                <div className="tv-score-row">
-                  <span className="tv-team-side tv-team-side-home" />
-                  <strong className="tv-team-name">{normalize(match.homePairName, "Dupla 1")}</strong>
-                  <span className="tv-vs-line">v</span>
-                  <span className="tv-team-side tv-team-side-away" />
-                  <strong className="tv-team-name">{normalize(match.awayPairName, "Dupla 2")}</strong>
+          {visibleMatches.map((match, index) => {
+            const scheduledTime = match.scheduledTime.trim();
+
+            return (
+              <article className={`tv-match-card${scheduledTime ? "" : " tv-match-card-no-time"}`} key={match.id}>
+                {scheduledTime ? <div className="tv-match-time">{scheduledTime}</div> : null}
+                <div className="tv-scoreboard">
+                  <div className="tv-match-topline">Jogo {getDisplayNumber(activeIndex, index, liveMatches.length)}</div>
+                  <div className="tv-score-row">
+                    <span className="tv-team-side tv-team-side-home" />
+                    <strong className="tv-team-name">{normalize(match.homePairName, "Dupla 1")}</strong>
+                    <span className="tv-vs-line">v</span>
+                    <span className="tv-team-side tv-team-side-away" />
+                    <strong className="tv-team-name">{normalize(match.awayPairName, "Dupla 2")}</strong>
+                  </div>
                 </div>
-              </div>
-              <div className="tv-court-name">{normalize(match.courtName, "Quadra a definir")}</div>
-            </article>
-          ))}
+                <div className="tv-court-name">{normalize(match.courtName, "Quadra a definir")}</div>
+              </article>
+            );
+          })}
 
           {Array.from({ length: Math.max(0, 3 - visibleMatches.length) }).map((_, index) => (
-            <article className="tv-match-card tv-empty-slot" key={`empty-${index}`}>
-              <div className="tv-match-time">--:--</div>
+            <article className="tv-match-card tv-match-card-no-time tv-empty-slot" key={`empty-${index}`}>
               <div className="tv-scoreboard">
                 <div className="tv-match-topline">Em aberto</div>
                 <div className="tv-score-row">
