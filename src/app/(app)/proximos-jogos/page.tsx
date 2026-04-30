@@ -1,6 +1,7 @@
-import { SectionCard } from "@/components/section-card";
-import { SubmitButton } from "@/components/forms/submit-button";
 import Link from "next/link";
+import { TimePickerInput } from "@/components/forms/time-picker-input";
+import { SubmitButton } from "@/components/forms/submit-button";
+import { SectionCard } from "@/components/section-card";
 import {
   createManualUpcomingMatchAction,
   deleteManualUpcomingMatchAction,
@@ -9,13 +10,27 @@ import {
 import { requireArenaAccess } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 
+const courtOptions = ["Agecon", "Elaine", "Origem"];
+
 function formatMatchLine(match: { homePairName: string; awayPairName: string; courtName: string; scheduledTime: string }) {
   const homePairName = match.homePairName.trim() || "DUPLA 1";
   const awayPairName = match.awayPairName.trim() || "DUPLA 2";
   const courtName = match.courtName.trim() || "QUADRA A DEFINIR";
-  const scheduledTime = match.scheduledTime.trim() || "HORÁRIO A DEFINIR";
+  const scheduledTime = match.scheduledTime.trim() || "HORARIO A DEFINIR";
 
   return `${scheduledTime} - ${homePairName} VS ${awayPairName} - ${courtName}`;
+}
+
+function CourtSelect({ id, defaultValue }: { id: string; defaultValue?: string }) {
+  return (
+    <select id={id} name="courtName" defaultValue={defaultValue && courtOptions.includes(defaultValue) ? defaultValue : "Agecon"}>
+      {courtOptions.map((courtName) => (
+        <option key={courtName} value={courtName}>
+          {courtName}
+        </option>
+      ))}
+    </select>
+  );
 }
 
 export default async function UpcomingMatchesPage() {
@@ -66,7 +81,7 @@ export default async function UpcomingMatchesPage() {
 
       <SectionCard
         title="Editar proximos jogos"
-        description="Cada linha tem um campo para cada dupla e um campo para a quadra. As alteracoes aparecem na previa acima."
+        description="Cada linha tem um campo para cada dupla, horario e quadra. As alteracoes aparecem na previa acima e na tela da TV automaticamente."
       >
         <div className="manual-upcoming-editor">
           <form action={createManualUpcomingMatchAction} className="manual-upcoming-row manual-upcoming-row-new">
@@ -79,12 +94,12 @@ export default async function UpcomingMatchesPage() {
               <input id="new-away-pair" name="awayPairName" type="text" placeholder="DUPLA 2" />
             </div>
             <div className="field">
-              <label htmlFor="new-scheduled-time">Horário</label>
-              <input id="new-scheduled-time" name="scheduledTime" type="time" />
+              <label htmlFor="new-scheduled-time">Horario</label>
+              <TimePickerInput id="new-scheduled-time" name="scheduledTime" />
             </div>
             <div className="field">
               <label htmlFor="new-court">Quadra</label>
-              <input id="new-court" name="courtName" type="text" placeholder="QUADRA AGECON" />
+              <CourtSelect id="new-court" />
             </div>
             <div className="manual-upcoming-submit">
               <SubmitButton label="Adicionar" pendingLabel="Salvando..." className="button button-primary" />
@@ -109,12 +124,12 @@ export default async function UpcomingMatchesPage() {
                     <input id={`${match.id}-away`} name="awayPairName" type="text" defaultValue={match.awayPairName} />
                   </div>
                   <div className="field">
-                    <label htmlFor={`${match.id}-scheduled-time`}>Horário</label>
-                    <input id={`${match.id}-scheduled-time`} name="scheduledTime" type="time" defaultValue={match.scheduledTime} />
+                    <label htmlFor={`${match.id}-scheduled-time`}>Horario</label>
+                    <TimePickerInput id={`${match.id}-scheduled-time`} name="scheduledTime" defaultValue={match.scheduledTime} />
                   </div>
                   <div className="field">
                     <label htmlFor={`${match.id}-court`}>Quadra</label>
-                    <input id={`${match.id}-court`} name="courtName" type="text" defaultValue={match.courtName} />
+                    <CourtSelect id={`${match.id}-court`} defaultValue={match.courtName} />
                   </div>
                   <div className="manual-upcoming-actions">
                     <SubmitButton label="Salvar" pendingLabel="..." className="button button-primary" />

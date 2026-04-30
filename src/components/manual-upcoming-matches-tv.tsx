@@ -17,6 +17,10 @@ type ManualUpcomingMatchesTvProps = {
   matches: ManualUpcomingMatch[];
 };
 
+type ManualUpcomingMatchesResponse = {
+  matches: ManualUpcomingMatch[];
+};
+
 function normalize(value: string, fallback: string) {
   return value.trim() || fallback;
 }
@@ -27,24 +31,58 @@ function getDisplayNumber(activeIndex: number, visibleIndex: number, total: numb
 }
 
 export function ManualUpcomingMatchesTv({ arenaName, matches }: ManualUpcomingMatchesTvProps) {
+  const [liveMatches, setLiveMatches] = useState(matches);
   const [activeIndex, setActiveIndex] = useState(0);
-  const hasOverflowMatches = matches.length > 3;
+  const hasOverflowMatches = liveMatches.length > 3;
 
   const visibleMatches = useMemo(() => {
-    if (!matches.length) {
+    if (!liveMatches.length) {
       return [];
     }
 
-    if (matches.length <= 3) {
-      return matches;
+    if (liveMatches.length <= 3) {
+      return liveMatches;
     }
 
-    return [...matches.slice(activeIndex), ...matches.slice(0, activeIndex)].slice(0, 3);
-  }, [activeIndex, matches]);
+    return [...liveMatches.slice(activeIndex), ...liveMatches.slice(0, activeIndex)].slice(0, 3);
+  }, [activeIndex, liveMatches]);
+
+  useEffect(() => {
+    setLiveMatches(matches);
+  }, [matches]);
 
   useEffect(() => {
     setActiveIndex(0);
-  }, [matches.length]);
+  }, [liveMatches.length]);
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    async function refreshMatches() {
+      try {
+        const response = await fetch("/api/manual-upcoming-matches", {
+          cache: "no-store"
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const data = (await response.json()) as ManualUpcomingMatchesResponse;
+        if (isCurrent) {
+          setLiveMatches(data.matches);
+        }
+      } catch {
+        // Keep the last known TV schedule if the network blips.
+      }
+    }
+
+    const timer = window.setInterval(refreshMatches, 4000);
+    return () => {
+      isCurrent = false;
+      window.clearInterval(timer);
+    };
+  }, []);
 
   useEffect(() => {
     if (!hasOverflowMatches) {
@@ -52,13 +90,13 @@ export function ManualUpcomingMatchesTv({ arenaName, matches }: ManualUpcomingMa
     }
 
     const timer = window.setInterval(() => {
-      setActiveIndex((current) => (current + 1) % matches.length);
+      setActiveIndex((current) => (current + 1) % liveMatches.length);
     }, 10000);
 
     return () => window.clearInterval(timer);
-  }, [hasOverflowMatches, matches.length]);
+  }, [hasOverflowMatches, liveMatches.length]);
 
-  if (!matches.length) {
+  if (!liveMatches.length) {
     return (
       <main className="tv-stage tv-stage-empty">
         <div className="tv-shell">
@@ -80,7 +118,7 @@ export function ManualUpcomingMatchesTv({ arenaName, matches }: ManualUpcomingMa
           <h1 className="tv-title">Pr&oacute;ximos jogos</h1>
           <div className="tv-counter">
             <span>{Math.min(visibleMatches.length, 3)}</span>
-            <small>de {matches.length}</small>
+            <small>de {liveMatches.length}</small>
           </div>
         </header>
 
@@ -89,7 +127,7 @@ export function ManualUpcomingMatchesTv({ arenaName, matches }: ManualUpcomingMa
             <article className="tv-match-card" key={match.id}>
               <div className="tv-match-time">{normalize(match.scheduledTime, "Hor&aacute;rio a definir")}</div>
               <div className="tv-scoreboard">
-                <div className="tv-match-topline">Jogo {getDisplayNumber(activeIndex, index, matches.length)}</div>
+                <div className="tv-match-topline">Jogo {getDisplayNumber(activeIndex, index, liveMatches.length)}</div>
                 <div className="tv-score-row">
                   <span className="tv-team-side tv-team-side-home" />
                   <strong className="tv-team-name">{normalize(match.homePairName, "Dupla 1")}</strong>

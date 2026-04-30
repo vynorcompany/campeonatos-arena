@@ -5,10 +5,14 @@ import { z } from "zod";
 import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
+const courtOptions = ["Agecon", "Elaine", "Origem"] as const;
+
 const manualUpcomingMatchSchema = z.object({
   homePairName: z.string().trim().max(80, "Dupla 1 deve ter no maximo 80 caracteres.").default(""),
   awayPairName: z.string().trim().max(80, "Dupla 2 deve ter no maximo 80 caracteres.").default(""),
-  courtName: z.string().trim().max(80, "Quadra deve ter no maximo 80 caracteres.").default(""),
+  courtName: z.enum(courtOptions, {
+    errorMap: () => ({ message: "Quadra invalida." })
+  }),
   scheduledTime: z
     .string()
     .trim()
@@ -23,6 +27,7 @@ const updateManualUpcomingMatchSchema = manualUpcomingMatchSchema.extend({
 
 function refreshUpcomingMatches() {
   revalidatePath("/proximos-jogos");
+  revalidatePath("/proximos-jogos/tv");
 }
 
 export async function createManualUpcomingMatchAction(formData: FormData) {
