@@ -29,6 +29,11 @@ export function PlayerForm() {
         <input id="photo" name="photo" type="file" accept="image/png,image/jpeg,image/webp" />
       </div>
 
+      <label className="check-option player-student-toggle">
+        <input name="createStudent" type="checkbox" />
+        <span>Também cadastrar como aluno</span>
+      </label>
+
       <div className="field field-submit">
         <label className="sr-only" htmlFor="submit-player">
           Cadastrar jogador

@@ -64,6 +64,16 @@ model Arena {
   players     Player[]
   tournaments Tournament[]
   manualUpcomingMatches ManualUpcomingMatch[]
+  students    Student[]
+  teachers    Teacher[]
+  lessons     Lesson[]
+  products    Product[]
+  sales       Sale[]
+  stockMovements StockMovement[]
+  plans       Plan[]
+  subscriptions StudentSubscription[]
+  financialEntries FinancialEntry[]
+  payrollEntries TeacherPayrollEntry[]
 }
 
 model ArenaMember {
@@ -91,6 +101,7 @@ model Player {
   arena       Arena             @relation(fields: [arenaId], references: [id], onDelete: Cascade)
   entries     TournamentPlayer[]
   pairPlayers PairPlayer[]
+  student     Student?
 
   @@unique([arenaId, name])
   @@index([arenaId, active])
@@ -216,4 +227,229 @@ model ManualUpcomingMatch {
   arena        Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
 
   @@index([arenaId, displayOrder])
+}
+
+model Student {
+  id             String   @id @default(cuid())
+  name           String
+  phone          String   @default("")
+  email          String   @default("")
+  remainingClasses Int    @default(0)
+  totalClasses   Int      @default(0)
+  attendedClasses Int     @default(0)
+  missedClasses  Int      @default(0)
+  active         Boolean  @default(true)
+  notes          String   @default("")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  arenaId        String
+  playerId       String?
+  arena          Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  player         Player?  @relation(fields: [playerId], references: [id], onDelete: SetNull)
+  attendances    LessonAttendance[]
+  subscriptions  StudentSubscription[]
+
+  @@unique([arenaId, name])
+  @@unique([playerId])
+  @@index([arenaId, active])
+}
+
+model Teacher {
+  id             String   @id @default(cuid())
+  name           String
+  phone          String   @default("")
+  email          String   @default("")
+  monthlyTarget  Int      @default(0)
+  active         Boolean  @default(true)
+  notes          String   @default("")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  arenaId        String
+  arena          Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  lessons        Lesson[]
+  payrollEntries TeacherPayrollEntry[]
+
+  @@unique([arenaId, name])
+  @@index([arenaId, active])
+}
+
+model Lesson {
+  id              String   @id @default(cuid())
+  title           String
+  scheduledAt     DateTime?
+  durationMinutes Int      @default(60)
+  status          String   @default("SCHEDULED")
+  priceCents      Int      @default(0)
+  paymentMethod   String   @default("")
+  paidAt          DateTime?
+  notes           String   @default("")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  arenaId         String
+  teacherId       String?
+  arena           Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  teacher         Teacher? @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  attendances     LessonAttendance[]
+
+  @@index([arenaId, scheduledAt])
+  @@index([teacherId])
+}
+
+model LessonAttendance {
+  id        String  @id @default(cuid())
+  status    String  @default("PRESENT")
+  lessonId  String
+  studentId String
+  lesson    Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([lessonId, studentId])
+  @@index([studentId])
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  name          String
+  sku           String   @default("")
+  priceCents    Int      @default(0)
+  stockQuantity Int      @default(0)
+  minStock      Int      @default(0)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  arenaId       String
+  arena         Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  saleItems     SaleItem[]
+  stockMovements StockMovement[]
+
+  @@unique([arenaId, name])
+  @@index([arenaId, active])
+  @@index([arenaId, stockQuantity])
+}
+
+model Sale {
+  id            String   @id @default(cuid())
+  code          String   @unique
+  customerName  String   @default("")
+  paymentMethod String
+  status        String   @default("PAID")
+  totalCents    Int
+  createdAt     DateTime @default(now())
+  arenaId       String
+  arena         Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  items         SaleItem[]
+
+  @@index([arenaId, createdAt])
+}
+
+model SaleItem {
+  id             String  @id @default(cuid())
+  quantity       Int
+  unitPriceCents Int
+  totalCents     Int
+  saleId         String
+  productId      String
+  sale           Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product        Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([saleId])
+  @@index([productId])
+}
+
+model StockMovement {
+  id        String   @id @default(cuid())
+  type      String
+  quantity  Int
+  reason    String   @default("")
+  createdAt DateTime @default(now())
+  arenaId   String
+  productId String
+  arena     Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([arenaId, createdAt])
+  @@index([productId])
+}
+
+model Plan {
+  id                String   @id @default(cuid())
+  name              String
+  monthlyPriceCents Int      @default(0)
+  classesPerMonth   Int      @default(0)
+  active            Boolean  @default(true)
+  notes             String   @default("")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  arenaId           String
+  arena             Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  subscriptions     StudentSubscription[]
+
+  @@unique([arenaId, name])
+  @@index([arenaId, active])
+}
+
+model StudentSubscription {
+  id                String   @id @default(cuid())
+  status            String   @default("ACTIVE")
+  monthlyPriceCents Int      @default(0)
+  classesPerMonth   Int      @default(0)
+  dueDay            Int      @default(10)
+  startedAt         DateTime @default(now())
+  endedAt           DateTime?
+  notes             String   @default("")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  arenaId           String
+  studentId         String
+  planId            String
+  arena             Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  student           Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  plan              Plan     @relation(fields: [planId], references: [id], onDelete: Restrict)
+
+  @@index([arenaId, status])
+  @@index([planId])
+  @@index([studentId, status])
+}
+
+model FinancialEntry {
+  id            String   @id @default(cuid())
+  type          String
+  category      String
+  description   String
+  amountCents   Int
+  paymentMethod String   @default("")
+  status        String   @default("PENDING")
+  dueDate       DateTime?
+  paidAt        DateTime?
+  notes         String   @default("")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  arenaId       String
+  arena         Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+
+  @@index([arenaId, type, status])
+  @@index([arenaId, dueDate])
+  @@index([arenaId, paidAt])
+}
+
+model TeacherPayrollEntry {
+  id                 String   @id @default(cuid())
+  referenceMonth     String
+  fixedSalaryCents   Int      @default(0)
+  classValueCents    Int      @default(0)
+  bonusCents         Int      @default(0)
+  discountCents      Int      @default(0)
+  paidCents          Int      @default(0)
+  status             String   @default("PENDING")
+  notes              String   @default("")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  arenaId            String
+  teacherId          String
+  arena              Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  teacher            Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherId, referenceMonth])
+  @@index([arenaId, referenceMonth])
+  @@index([arenaId, status])
 }

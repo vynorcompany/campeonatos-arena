@@ -81,12 +81,44 @@ export async function createPlayerAction(_: ActionState, formData: FormData): Pr
   try {
     const photoUrl = await savePublicImageUpload(formData.get("photo") as File | null, "player-photos", auth.arenaId);
 
-    await prisma.player.create({
-      data: {
-        arenaId: auth.arenaId,
-        name: parsed.data.name,
-        points: parsed.data.points,
-        ...(photoUrl ? { photoUrl } : {})
+    const shouldCreateStudent = formData.get("createStudent") === "on";
+
+    await prisma.$transaction(async (tx) => {
+      const player = await tx.player.create({
+        data: {
+          arenaId: auth.arenaId,
+          name: parsed.data.name,
+          points: parsed.data.points,
+          ...(photoUrl ? { photoUrl } : {})
+        }
+      });
+
+      if (shouldCreateStudent) {
+        const existingStudent = await tx.student.findFirst({
+          where: {
+            arenaId: auth.arenaId,
+            name: player.name
+          }
+        });
+
+        if (existingStudent) {
+          await tx.student.update({
+            where: {
+              id: existingStudent.id
+            },
+            data: {
+              playerId: player.id
+            }
+          });
+        } else {
+          await tx.student.create({
+            data: {
+              arenaId: auth.arenaId,
+              playerId: player.id,
+              name: player.name
+            }
+          });
+        }
       }
     });
   } catch (error) {
@@ -94,6 +126,8 @@ export async function createPlayerAction(_: ActionState, formData: FormData): Pr
   }
 
   refreshTournamentRoutes();
+  revalidatePath("/aulas");
+  revalidatePath("/financeiro");
   return { error: null, success: "Jogador cadastrado com sucesso." };
 }
 

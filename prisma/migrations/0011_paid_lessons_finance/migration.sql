@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Lesson" ADD COLUMN "paidAt" TIMESTAMP(3),
+ADD COLUMN "paymentMethod" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "priceCents" INTEGER NOT NULL DEFAULT 0;

@@ -11,18 +11,18 @@ const manualUpcomingMatchSchema = z.object({
   homePairName: z.string().trim().max(80, "Dupla 1 deve ter no maximo 80 caracteres.").default(""),
   awayPairName: z.string().trim().max(80, "Dupla 2 deve ter no maximo 80 caracteres.").default(""),
   courtName: z.enum(courtOptions, {
-    errorMap: () => ({ message: "Quadra invalida." })
+    errorMap: () => ({ message: "Quadra inválida." })
   }),
   scheduledTime: z
     .string()
     .trim()
-    .regex(/^$|^([01]\d|2[0-3]):[0-5]\d$/, "Horario invalido.")
+    .regex(/^$|^([01]\d|2[0-3]):[0-5]\d$/, "Horário inválido.")
     .default("")
 });
 
 const updateManualUpcomingMatchSchema = manualUpcomingMatchSchema.extend({
-  matchId: z.string().min(1, "Jogo invalido."),
-  displayOrder: z.coerce.number().int().min(1, "Ordem invalida.").max(99, "Ordem invalida.")
+  matchId: z.string().min(1, "Jogo inválido."),
+  displayOrder: z.coerce.number().int().min(1, "Ordem inválida.").max(99, "Ordem inválida.")
 });
 
 function refreshUpcomingMatches() {
@@ -40,7 +40,7 @@ export async function createManualUpcomingMatchAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Dados invalidos.");
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
 
   const lastMatch = await prisma.manualUpcomingMatch.findFirst({
@@ -78,7 +78,7 @@ export async function updateManualUpcomingMatchAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Dados invalidos.");
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
 
   const updated = await prisma.manualUpcomingMatch.updateMany({
@@ -96,7 +96,7 @@ export async function updateManualUpcomingMatchAction(formData: FormData) {
   });
 
   if (!updated.count) {
-    throw new Error("Jogo nao encontrado.");
+    throw new Error("Jogo não encontrado.");
   }
 
   refreshUpcomingMatches();
@@ -107,7 +107,7 @@ export async function deleteManualUpcomingMatchAction(formData: FormData) {
   const matchId = String(formData.get("matchId") ?? "");
 
   if (!matchId) {
-    throw new Error("Jogo invalido.");
+    throw new Error("Jogo inválido.");
   }
 
   await prisma.manualUpcomingMatch.deleteMany({
