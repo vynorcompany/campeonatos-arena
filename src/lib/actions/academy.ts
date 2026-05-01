@@ -37,6 +37,7 @@ const lessonSchema = z.object({
 
 function refreshAcademyRoutes() {
   revalidatePath("/aulas");
+  revalidatePath("/aulas/alunos");
   revalidatePath("/professores");
   revalidatePath("/financeiro");
 }
@@ -164,6 +165,85 @@ export async function addStudentCreditsAction(formData: FormData) {
   });
 
   if (!updated.count) {
+    throw new Error("Aluno não encontrado.");
+  }
+
+  refreshAcademyRoutes();
+}
+
+export async function updateStudentAction(formData: FormData) {
+  const auth = await requireRole("STAFF");
+  const studentId = String(formData.get("studentId") ?? "");
+  const parsed = studentSchema.safeParse({
+    name: formData.get("name"),
+    playerId: "",
+    phone: formData.get("phone"),
+    email: formData.get("email"),
+    remainingClasses: formData.get("remainingClasses"),
+    notes: formData.get("notes")
+  });
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  }
+
+  if (parsed.data.name.trim().length < 2) {
+    throw new Error("Informe o nome do aluno.");
+  }
+
+  const student = await prisma.student.findFirst({
+    where: {
+      id: studentId,
+      arenaId: auth.arenaId
+    }
+  });
+
+  if (!student) {
+    throw new Error("Aluno não encontrado.");
+  }
+
+  const nameConflict = await prisma.student.findFirst({
+    where: {
+      arenaId: auth.arenaId,
+      name: parsed.data.name,
+      NOT: {
+        id: student.id
+      }
+    }
+  });
+
+  if (nameConflict) {
+    throw new Error("Já existe outro aluno com esse nome.");
+  }
+
+  await prisma.student.update({
+    where: {
+      id: student.id
+    },
+    data: {
+      name: parsed.data.name,
+      phone: parsed.data.phone,
+      email: parsed.data.email,
+      remainingClasses: parsed.data.remainingClasses,
+      notes: parsed.data.notes
+    }
+  });
+
+  refreshAcademyRoutes();
+}
+
+export async function deleteStudentAction(formData: FormData) {
+  const auth = await requireRole("STAFF");
+  const studentId = String(formData.get("studentId") ?? "");
+
+  const deleted = await prisma.student.deleteMany({
+    where: {
+      id: studentId,
+      arenaId: auth.arenaId
+    }
+  });
+
+  if (!deleted.count) {
     throw new Error("Aluno não encontrado.");
   }
 

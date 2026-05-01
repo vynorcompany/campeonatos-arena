@@ -4,7 +4,15 @@ import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireArenaAccess, requireAuth } from "@/lib/auth/session";
-import { createArenaUserSchema, resetArenaUserPasswordSchema, updateArenaUserRoleSchema, updateOwnPasswordSchema, updateOwnProfileSchema } from "@/lib/validators/user";
+import {
+  createArenaUserSchema,
+  removeArenaUserSchema,
+  resetArenaUserPasswordSchema,
+  updateArenaUserRoleSchema,
+  updateArenaUserSchema,
+  updateOwnPasswordSchema,
+  updateOwnProfileSchema
+} from "@/lib/validators/user";
 import type { ArenaRole, SystemRole } from "@/types/auth";
 
 export type UserActionState = {
@@ -44,6 +52,20 @@ function revalidateUserRoutes() {
   revalidatePath("/painel");
   revalidatePath("/usuarios");
   revalidatePath("/minha-conta");
+}
+
+async function hasAnotherOwner(arenaId: string, userId: string) {
+  const ownerCount = await prisma.arenaMember.count({
+    where: {
+      arenaId,
+      role: "OWNER",
+      NOT: {
+        userId
+      }
+    }
+  });
+
+  return ownerCount > 0;
 }
 
 export async function createArenaUserAction(_: UserActionState, formData: FormData): Promise<UserActionState> {
@@ -157,6 +179,10 @@ export async function updateArenaUserRoleAction(formData: FormData) {
     throw new Error("Somente um owner pode alterar acessos de owner.");
   }
 
+  if (membership.role === "OWNER" && parsed.data.arenaRole !== "OWNER" && !(await hasAnotherOwner(auth.arenaId, parsed.data.userId))) {
+    throw new Error("A arena precisa manter pelo menos um owner.");
+  }
+
   await prisma.arenaMember.update({
     where: {
       userId_arenaId: {
@@ -166,6 +192,141 @@ export async function updateArenaUserRoleAction(formData: FormData) {
     },
     data: {
       role: parsed.data.arenaRole
+    }
+  });
+
+  revalidateUserRoutes();
+}
+
+export async function updateArenaUserAction(formData: FormData) {
+  const auth = await requireArenaAccess();
+
+  if (!canManageUsers(auth.arenaRole, auth.systemRole)) {
+    throw new Error("Você não tem permissão para gerenciar usuários.");
+  }
+
+  const parsed = updateArenaUserSchema.safeParse({
+    userId: formData.get("userId"),
+    name: formData.get("name"),
+    email: formData.get("email"),
+    arenaRole: formData.get("arenaRole")
+  });
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? initialErrorMessage);
+  }
+
+  const membership = await prisma.arenaMember.findUnique({
+    where: {
+      userId_arenaId: {
+        userId: parsed.data.userId,
+        arenaId: auth.arenaId
+      }
+    },
+    include: {
+      user: true
+    }
+  });
+
+  if (!membership) {
+    throw new Error("Usuário não encontrado nesta arena.");
+  }
+
+  if (parsed.data.userId === auth.userId && membership.role !== parsed.data.arenaRole) {
+    throw new Error("Altere seu próprio papel por outro owner para evitar perda de acesso.");
+  }
+
+  if ((membership.role === "OWNER" || parsed.data.arenaRole === "OWNER") && !canManageOwners(auth.arenaRole, auth.systemRole)) {
+    throw new Error("Somente um owner pode alterar acessos de owner.");
+  }
+
+  if (membership.role === "OWNER" && parsed.data.arenaRole !== "OWNER" && !(await hasAnotherOwner(auth.arenaId, parsed.data.userId))) {
+    throw new Error("A arena precisa manter pelo menos um owner.");
+  }
+
+  const email = normalizeEmail(parsed.data.email);
+  const emailOwner = await prisma.user.findUnique({
+    where: {
+      email
+    }
+  });
+
+  if (emailOwner && emailOwner.id !== parsed.data.userId) {
+    throw new Error("Este e-mail já está em uso por outro usuário.");
+  }
+
+  await prisma.$transaction([
+    prisma.user.update({
+      where: {
+        id: parsed.data.userId
+      },
+      data: {
+        name: parsed.data.name,
+        email
+      }
+    }),
+    prisma.arenaMember.update({
+      where: {
+        userId_arenaId: {
+          userId: parsed.data.userId,
+          arenaId: auth.arenaId
+        }
+      },
+      data: {
+        role: parsed.data.arenaRole
+      }
+    })
+  ]);
+
+  revalidateUserRoutes();
+}
+
+export async function removeArenaUserAction(formData: FormData) {
+  const auth = await requireArenaAccess();
+
+  if (!canManageUsers(auth.arenaRole, auth.systemRole)) {
+    throw new Error("Você não tem permissão para gerenciar usuários.");
+  }
+
+  const parsed = removeArenaUserSchema.safeParse({
+    userId: formData.get("userId")
+  });
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? initialErrorMessage);
+  }
+
+  if (parsed.data.userId === auth.userId) {
+    throw new Error("Você não pode remover o próprio acesso por aqui.");
+  }
+
+  const membership = await prisma.arenaMember.findUnique({
+    where: {
+      userId_arenaId: {
+        userId: parsed.data.userId,
+        arenaId: auth.arenaId
+      }
+    }
+  });
+
+  if (!membership) {
+    throw new Error("Usuário não encontrado nesta arena.");
+  }
+
+  if (membership.role === "OWNER" && !canManageOwners(auth.arenaRole, auth.systemRole)) {
+    throw new Error("Somente um owner pode remover outro owner.");
+  }
+
+  if (membership.role === "OWNER" && !(await hasAnotherOwner(auth.arenaId, parsed.data.userId))) {
+    throw new Error("A arena precisa manter pelo menos um owner.");
+  }
+
+  await prisma.arenaMember.delete({
+    where: {
+      userId_arenaId: {
+        userId: parsed.data.userId,
+        arenaId: auth.arenaId
+      }
     }
   });
 

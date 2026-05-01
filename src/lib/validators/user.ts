@@ -12,6 +12,17 @@ export const updateArenaUserRoleSchema = z.object({
   arenaRole: z.enum(["OWNER", "ADMIN", "STAFF", "VIEWER"])
 });
 
+export const updateArenaUserSchema = z.object({
+  userId: z.string().min(1, "Usuário inválido."),
+  name: z.string().trim().min(2, "Informe o nome do usuário."),
+  email: z.string().trim().email("Informe um e-mail válido."),
+  arenaRole: z.enum(["OWNER", "ADMIN", "STAFF", "VIEWER"])
+});
+
+export const removeArenaUserSchema = z.object({
+  userId: z.string().min(1, "Usuário inválido.")
+});
+
 export const resetArenaUserPasswordSchema = z.object({
   userId: z.string().min(1, "Usuário inválido."),
   password: z.string().min(10, "A nova senha deve ter no mínimo 10 caracteres.")

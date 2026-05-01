@@ -1,16 +1,9 @@
-import { SubmitButton } from "@/components/forms/submit-button";
 import { ArenaUserForm } from "@/components/forms/arena-user-form";
 import { SectionCard } from "@/components/section-card";
-import { updateArenaUserRoleAction, resetArenaUserPasswordAction } from "@/lib/actions/user";
+import { UserActionsCell } from "@/components/users/user-actions-cell";
 import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
-
-const roleLabels: Record<string, string> = {
-  OWNER: "Owner",
-  ADMIN: "Admin",
-  STAFF: "Staff",
-  VIEWER: "Viewer"
-};
+import type { ArenaRole } from "@/types/auth";
 
 export default async function UsersPage() {
   const auth = await requireRole("ADMIN");
@@ -48,44 +41,30 @@ export default async function UsersPage() {
 
       <SectionCard
         title="Usuários da arena"
-        description="Acompanhe os acessos ativos e ajuste os papéis de cada pessoa."
+        description="Edite dados, papéis, senha temporária ou remova o acesso de quem não deve mais usar esta arena."
       >
         <table className="data-table">
           <thead>
             <tr>
-              <th>Nome</th>
-              <th>E-mail</th>
-              <th>Papel</th>
-              <th>Atualizar papel</th>
-              <th>Redefinir senha</th>
+              <th>Usuário</th>
+              <th>Ações</th>
             </tr>
           </thead>
           <tbody>
             {members.map((member) => (
               <tr key={member.id}>
-                <td>{member.user.name}</td>
-                <td>{member.user.email}</td>
                 <td>
-                  <span className="pill">{roleLabels[member.role] ?? member.role}</span>
+                  <strong>{member.user.name}</strong>
+                  <span className="table-subtext">{member.user.email}</span>
                 </td>
                 <td>
-                  <form action={updateArenaUserRoleAction} className="inline-form">
-                    <input type="hidden" name="userId" value={member.userId} />
-                    <select name="arenaRole" defaultValue={member.role}>
-                      <option value="OWNER">Owner</option>
-                      <option value="ADMIN">Admin</option>
-                      <option value="STAFF">Staff</option>
-                      <option value="VIEWER">Viewer</option>
-                    </select>
-                    <SubmitButton label="Salvar" pendingLabel="..." className="button" />
-                  </form>
-                </td>
-                <td>
-                  <form action={resetArenaUserPasswordAction} className="inline-form">
-                    <input type="hidden" name="userId" value={member.userId} />
-                    <input name="password" type="password" minLength={10} placeholder="Nova senha temporária" required />
-                    <SubmitButton label="Redefinir" pendingLabel="..." className="button" />
-                  </form>
+                  <UserActionsCell
+                    userId={member.userId}
+                    name={member.user.name}
+                    email={member.user.email}
+                    role={member.role as ArenaRole}
+                    isCurrentUser={member.userId === auth.userId}
+                  />
                 </td>
               </tr>
             ))}

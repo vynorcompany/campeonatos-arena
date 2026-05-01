@@ -2764,6 +2764,86 @@ button {
   color: var(--brand-strong);
 }
 
+.entity-actions-cell,
+.entity-main-text {
+  display: flex;
+  min-width: 0;
+}
+
+.entity-actions-cell {
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.entity-main-text {
+  flex-direction: column;
+  gap: 2px;
+}
+
+.entity-edit-form {
+  display: grid;
+  gap: 10px;
+  min-width: min(100%, 720px);
+}
+
+.entity-edit-grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.2fr) minmax(130px, 0.8fr) minmax(170px, 1fr) 96px minmax(160px, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.entity-edit-grid-user {
+  grid-template-columns: minmax(180px, 1fr) minmax(220px, 1.2fr) minmax(120px, 0.6fr);
+}
+
+.entity-edit-grid input,
+.entity-edit-grid select {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--text);
+}
+
+.entity-edit-grid input:focus,
+.entity-edit-grid select:focus {
+  outline: none;
+  border-color: rgba(18, 93, 156, 0.35);
+  box-shadow: 0 0 0 4px rgba(18, 93, 156, 0.1);
+}
+
+.user-row-actions,
+.user-password-form {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.user-password-form {
+  margin-top: 8px;
+}
+
+.user-password-form input {
+  min-width: 220px;
+}
+
+@media (max-width: 1024px) {
+  .entity-actions-cell {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .entity-edit-grid,
+  .entity-edit-grid-user {
+    grid-template-columns: 1fr;
+  }
+}
+
 .bracket-shell {
   display: grid;
   grid-template-columns: repeat(4, minmax(240px, 1fr));

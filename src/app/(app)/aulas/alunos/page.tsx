@@ -1,6 +1,7 @@
 import { SectionCard } from "@/components/section-card";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
+import { StudentActionsCell } from "@/components/students/student-actions-cell";
 import { addStudentCreditsAction, createStudentAction } from "@/lib/actions/academy";
 import { requireArenaAccess } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
@@ -91,10 +92,15 @@ export default async function StudentsPage() {
             {students.map((student) => (
               <tr key={student.id}>
                 <td>
-                  <strong>{student.name}</strong>
-                  <span className="table-subtext">
-                    {student.player ? "Vinculado ao jogador" : student.phone || student.email || "Sem contato"}
-                  </span>
+                  <StudentActionsCell
+                    studentId={student.id}
+                    name={student.name}
+                    phone={student.phone}
+                    email={student.email}
+                    remainingClasses={student.remainingClasses}
+                    notes={student.notes}
+                    linkedPlayerName={student.player?.name}
+                  />
                 </td>
                 <td>{student.remainingClasses}</td>
                 <td>{student.attendedClasses}</td>
