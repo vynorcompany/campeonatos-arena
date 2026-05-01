@@ -8,10 +8,11 @@ type PlayerActionsCellProps = {
   playerId: string;
   playerName: string;
   playerPoints: number;
+  playerPhotoUrl: string;
   active: boolean;
 };
 
-export function PlayerActionsCell({ playerId, playerName, playerPoints, active }: PlayerActionsCellProps) {
+export function PlayerActionsCell({ playerId, playerName, playerPoints, playerPhotoUrl, active }: PlayerActionsCellProps) {
   const [isEditing, setIsEditing] = useState(false);
 
   if (isEditing) {
@@ -27,6 +28,7 @@ export function PlayerActionsCell({ playerId, playerName, playerPoints, active }
           className="player-name-input"
           autoFocus
         />
+        <input name="photo" type="file" accept="image/png,image/jpeg,image/webp" aria-label={`Foto de ${playerName}`} />
         <div className="player-inline-actions">
           <SubmitButton label="Salvar" pendingLabel="..." className="player-inline-text-button player-inline-text-button-save" />
           <button
@@ -43,6 +45,9 @@ export function PlayerActionsCell({ playerId, playerName, playerPoints, active }
 
   return (
     <div className="player-name-cell">
+      <span className="player-avatar" aria-hidden="true">
+        {playerPhotoUrl ? <img src={playerPhotoUrl} alt="" /> : playerName.slice(0, 1).toUpperCase()}
+      </span>
       <span className="player-name-label">{playerName}</span>
 
       <div className="player-name-tools">

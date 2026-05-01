@@ -22,12 +22,13 @@ export function NavLinks({ canManageUsers }: NavLinksProps) {
         { href: "/duplas", label: "Duplas" },
         { href: "/grupos", label: "Grupos" },
         { href: "/jogos", label: "Jogos" },
-        { href: "/proximos-jogos", label: "Próximos Jogos" }
+        { href: "/proximos-jogos", label: "Próximos jogos" }
       ]
     },
     {
       title: "Administração",
       links: [
+        { href: "/arena", label: "Painel da Arena" },
         ...(canManageUsers ? [{ href: "/usuarios", label: "Usuários" }] : []),
         { href: "/minha-conta", label: "Minha conta" }
       ]

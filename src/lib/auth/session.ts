@@ -169,6 +169,7 @@ export async function getAuthContext(): Promise<AuthContext | null> {
   const memberships: ArenaMembership[] = session.user.memberships.map((membership) => ({
     arenaId: membership.arenaId,
     arenaName: membership.arena.name,
+    arenaLogoUrl: membership.arena.logoUrl || "/arena-profile.jpg",
     arenaRole: membership.role as ArenaRole
   }));
   const activeMembership = getActiveMembership(memberships, getSelectedArenaId());

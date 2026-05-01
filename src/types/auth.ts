@@ -1,6 +1,7 @@
 export type ArenaMembership = {
   arenaId: string;
   arenaName: string;
+  arenaLogoUrl: string;
   arenaRole: ArenaRole;
 };
 

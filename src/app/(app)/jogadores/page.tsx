@@ -115,6 +115,7 @@ export default async function PlayersPage() {
                     playerId={player.id}
                     playerName={player.name}
                     playerPoints={player.points}
+                    playerPhotoUrl={player.photoUrl}
                     active={player.active}
                   />
                 </td>

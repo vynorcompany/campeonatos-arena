@@ -24,6 +24,11 @@ export function PlayerForm() {
         <input id="points" name="points" type="number" min="0" defaultValue="1000" required />
       </div>
 
+      <div className="field">
+        <label htmlFor="photo">Foto do jogador</label>
+        <input id="photo" name="photo" type="file" accept="image/png,image/jpeg,image/webp" />
+      </div>
+
       <div className="field field-submit">
         <label className="sr-only" htmlFor="submit-player">
           Cadastrar jogador

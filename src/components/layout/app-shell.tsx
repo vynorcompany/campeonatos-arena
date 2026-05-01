@@ -5,6 +5,7 @@ import { NavLinks } from "@/components/layout/nav-links";
 
 type AppShellProps = {
   arenaName: string;
+  arenaLogoUrl: string;
   activeArenaId: string | null;
   memberships: ArenaMembership[];
   userName: string;
@@ -15,6 +16,7 @@ type AppShellProps = {
 
 export function AppShell({
   arenaName,
+  arenaLogoUrl,
   activeArenaId,
   memberships,
   userName,
@@ -30,7 +32,7 @@ export function AppShell({
             <div className="brand-lockup">
               <div className="brand-logo-wrap">
                 <Image
-                  src="/arena-profile.jpg"
+                  src={arenaLogoUrl || "/arena-profile.jpg"}
                   alt="Logo da Arena Padel"
                   width={48}
                   height={48}
@@ -39,7 +41,7 @@ export function AppShell({
                 />
               </div>
               <div>
-                <p className="eyebrow">Arena Padel</p>
+                <p className="eyebrow">Arena Padel Manager</p>
                 <strong>{arenaName}</strong>
               </div>
             </div>

@@ -16,6 +16,18 @@ export default async function PairsPage() {
     activeTournament?.entries.filter((entry) => !pairedPlayerIds.has(entry.playerId)) ?? [];
   const allEntries = activeTournament?.entries ?? [];
 
+  function PlayerPhotoStack({ players }: { players: Array<{ player: { name: string; photoUrl: string } }> }) {
+    return (
+      <div className="pair-photo-stack" aria-hidden="true">
+        {players.map(({ player }) => (
+          <span className="pair-player-photo" key={player.name}>
+            {player.photoUrl ? <img src={player.photoUrl} alt="" /> : player.name.slice(0, 1).toUpperCase()}
+          </span>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="stack-md">
       <header className="page-header">
@@ -86,6 +98,7 @@ export default async function PairsPage() {
                       <tr key={pair.id}>
                         <td>#{index + 1}</td>
                         <td>
+                          <PlayerPhotoStack players={pair.players} />
                           <form action={updateTournamentPairAction} className="inline-pair-edit">
                             <input type="hidden" name="pairId" value={pair.id} />
                             {[1, 2].map((slot) => {

@@ -396,8 +396,30 @@ export async function getArenaDashboard(arenaId: string) {
       matches: {
         include: {
           group: true,
-          homePair: true,
-          awayPair: true,
+          homePair: {
+            include: {
+              players: {
+                include: {
+                  player: true
+                },
+                orderBy: {
+                  slot: "asc"
+                }
+              }
+            }
+          },
+          awayPair: {
+            include: {
+              players: {
+                include: {
+                  player: true
+                },
+                orderBy: {
+                  slot: "asc"
+                }
+              }
+            }
+          },
           winnerPair: true
         },
         orderBy: [
@@ -490,8 +512,30 @@ export async function getFinishedTournamentDetails(tournamentId: string, arenaId
       matches: {
         include: {
           group: true,
-          homePair: true,
-          awayPair: true,
+          homePair: {
+            include: {
+              players: {
+                include: {
+                  player: true
+                },
+                orderBy: {
+                  slot: "asc"
+                }
+              }
+            }
+          },
+          awayPair: {
+            include: {
+              players: {
+                include: {
+                  player: true
+                },
+                orderBy: {
+                  slot: "asc"
+                }
+              }
+            }
+          },
           winnerPair: true
         },
         orderBy: [

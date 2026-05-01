@@ -4,6 +4,14 @@ import { prisma } from "@/lib/prisma";
 
 export default async function UpcomingMatchesTvPage() {
   const auth = await requireArenaAccess();
+  const arena = await prisma.arena.findUnique({
+    where: {
+      id: auth.arenaId
+    },
+    select: {
+      logoUrl: true
+    }
+  });
   const manualMatches = await prisma.manualUpcomingMatch.findMany({
     where: {
       arenaId: auth.arenaId
@@ -21,6 +29,7 @@ export default async function UpcomingMatchesTvPage() {
   return (
     <ManualUpcomingMatchesTv
       arenaName={auth.arenaName ?? "Arena Padel"}
+      arenaLogoUrl={arena?.logoUrl ?? "/arena-profile.jpg"}
       matches={manualMatches.map((match) => ({
         id: match.id,
         displayOrder: match.displayOrder,

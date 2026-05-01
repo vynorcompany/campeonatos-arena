@@ -6,3 +6,5 @@ coverage
 .env
 .env.local
 tsconfig.tsbuildinfo
+public/uploads/*
+!public/uploads/.gitkeep

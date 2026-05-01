@@ -54,14 +54,14 @@ export default async function UpcomingMatchesPage() {
       <header className="page-header page-header-showcase">
         <div className="stack-xs">
           <p className="eyebrow">Apresentacao</p>
-          <h1>Proximos jogos</h1>
+          <h1>Próximos jogos</h1>
           <p className="muted">
             Monte manualmente a fila do fim de semana com dupla 1, dupla 2 e quadra para cada jogo.
           </p>
         </div>
       </header>
 
-      <section className="manual-upcoming-preview" aria-label="Previa dos proximos jogos">
+      <section className="manual-upcoming-preview" aria-label="Prévia dos próximos jogos">
         <div className="manual-upcoming-preview-head">
           <p className="manual-upcoming-title">PROXIMOS JOGOS</p>
           <Link href="/proximos-jogos/tv" className="button button-primary" target="_blank" rel="noreferrer">
@@ -80,8 +80,8 @@ export default async function UpcomingMatchesPage() {
       </section>
 
       <SectionCard
-        title="Editar proximos jogos"
-        description="Cada linha tem um campo para cada dupla, horario e quadra. As alteracoes aparecem na previa acima e na tela da TV automaticamente."
+        title="Editar próximos jogos"
+        description="Cada linha tem um campo para cada dupla, horário e quadra. As alterações aparecem na prévia acima e na tela da TV automaticamente."
       >
         <div className="manual-upcoming-editor">
           <form action={createManualUpcomingMatchAction} className="manual-upcoming-row manual-upcoming-row-new">
@@ -94,7 +94,7 @@ export default async function UpcomingMatchesPage() {
               <input id="new-away-pair" name="awayPairName" type="text" placeholder="DUPLA 2" />
             </div>
             <div className="field">
-              <label htmlFor="new-scheduled-time">Horario</label>
+              <label htmlFor="new-scheduled-time">Horário</label>
               <TimePickerInput id="new-scheduled-time" name="scheduledTime" />
             </div>
             <div className="field">
@@ -124,7 +124,7 @@ export default async function UpcomingMatchesPage() {
                     <input id={`${match.id}-away`} name="awayPairName" type="text" defaultValue={match.awayPairName} />
                   </div>
                   <div className="field">
-                    <label htmlFor={`${match.id}-scheduled-time`}>Horario</label>
+                    <label htmlFor={`${match.id}-scheduled-time`}>Horário</label>
                     <TimePickerInput id={`${match.id}-scheduled-time`} name="scheduledTime" defaultValue={match.scheduledTime} />
                   </div>
                   <div className="field">

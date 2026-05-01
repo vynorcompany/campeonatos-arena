@@ -47,6 +47,15 @@ model Arena {
   id          String        @id @default(cuid())
   name        String
   slug        String        @unique
+  legalName   String        @default("")
+  cnpj        String        @default("")
+  phone       String        @default("")
+  email       String        @default("")
+  address     String        @default("")
+  city        String        @default("")
+  state       String        @default("")
+  zipCode     String        @default("")
+  logoUrl     String        @default("/arena-profile.jpg")
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   createdById String
@@ -74,6 +83,7 @@ model Player {
   id          String            @id @default(cuid())
   name        String
   points      Int               @default(1000)
+  photoUrl    String            @default("")
   active      Boolean           @default(true)
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt

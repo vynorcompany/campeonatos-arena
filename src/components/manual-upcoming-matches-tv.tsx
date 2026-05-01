@@ -14,6 +14,7 @@ type ManualUpcomingMatch = {
 
 type ManualUpcomingMatchesTvProps = {
   arenaName: string;
+  arenaLogoUrl: string;
   matches: ManualUpcomingMatch[];
 };
 
@@ -32,7 +33,7 @@ function getDisplayNumber(activeIndex: number, visibleIndex: number, total: numb
   return number > total ? number - total : number;
 }
 
-export function ManualUpcomingMatchesTv({ arenaName, matches }: ManualUpcomingMatchesTvProps) {
+export function ManualUpcomingMatchesTv({ arenaName, arenaLogoUrl, matches }: ManualUpcomingMatchesTvProps) {
   const [liveMatches, setLiveMatches] = useState(matches);
   const [activeIndex, setActiveIndex] = useState(0);
   const hasOverflowMatches = liveMatches.length > visibleMatchCount;
@@ -103,7 +104,7 @@ export function ManualUpcomingMatchesTv({ arenaName, matches }: ManualUpcomingMa
       <main className="tv-stage tv-stage-empty">
         <div className="tv-shell">
           <p className="tv-kicker">Pr&oacute;ximos jogos</p>
-          <Image src="/arena-profile.jpg" alt={arenaName} width={160} height={160} className="tv-arena-logo tv-arena-logo-empty" priority />
+          <Image src={arenaLogoUrl || "/arena-profile.jpg"} alt={arenaName} width={160} height={160} className="tv-arena-logo tv-arena-logo-empty" priority />
           <p className="tv-empty-copy">Nenhum jogo cadastrado no momento.</p>
         </div>
       </main>
@@ -115,7 +116,7 @@ export function ManualUpcomingMatchesTv({ arenaName, matches }: ManualUpcomingMa
       <section className="tv-shell">
         <header className="tv-header">
           <div className="tv-brand">
-            <Image src="/arena-profile.jpg" alt={arenaName} width={140} height={140} className="tv-arena-logo" priority />
+            <Image src={arenaLogoUrl || "/arena-profile.jpg"} alt={arenaName} width={140} height={140} className="tv-arena-logo" priority />
           </div>
           <h1 className="tv-title">Pr&oacute;ximos jogos</h1>
           <div className="tv-counter">

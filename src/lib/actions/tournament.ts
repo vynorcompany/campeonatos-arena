@@ -3,6 +3,7 @@
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { savePublicImageUpload } from "@/lib/uploads";
 import { requireRole } from "@/lib/auth/guards";
 import {
   archivePlayerSchema,
@@ -78,11 +79,14 @@ export async function createPlayerAction(_: ActionState, formData: FormData): Pr
   }
 
   try {
+    const photoUrl = await savePublicImageUpload(formData.get("photo") as File | null, "player-photos", auth.arenaId);
+
     await prisma.player.create({
       data: {
         arenaId: auth.arenaId,
         name: parsed.data.name,
-        points: parsed.data.points
+        points: parsed.data.points,
+        ...(photoUrl ? { photoUrl } : {})
       }
     });
   } catch (error) {
@@ -106,6 +110,7 @@ export async function updatePlayerAction(formData: FormData) {
   }
 
   try {
+    const photoUrl = await savePublicImageUpload(formData.get("photo") as File | null, "player-photos", auth.arenaId);
     const updated = await prisma.player.updateMany({
       where: {
         id: parsed.data.playerId,
@@ -113,7 +118,8 @@ export async function updatePlayerAction(formData: FormData) {
       },
       data: {
         name: parsed.data.name,
-        points: parsed.data.points
+        points: parsed.data.points,
+        ...(photoUrl ? { photoUrl } : {})
       }
     });
 

@@ -12,6 +12,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   return (
     <AppShell
       arenaName={auth.arenaName ?? "Arena"}
+      arenaLogoUrl={auth.memberships.find((membership) => membership.arenaId === auth.arenaId)?.arenaLogoUrl ?? "/arena-profile.jpg"}
       activeArenaId={auth.arenaId}
       memberships={auth.memberships}
       userName={auth.userName}
