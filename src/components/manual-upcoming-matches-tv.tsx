@@ -17,6 +17,7 @@ type TvPresentationSettings = {
   slideIntervalSeconds: number;
   selectedTournamentId: string;
   selectedTournamentName: string;
+  rankingTitle: string;
   showMatches: boolean;
   showSponsors: boolean;
   showRanking: boolean;
@@ -139,7 +140,7 @@ export function ManualUpcomingMatchesTv({
     if (liveSettings.showRanking && liveRanking.length) {
       nextSlides.push({
         id: "ranking",
-        title: liveSettings.selectedTournamentName ? `Ranking - ${liveSettings.selectedTournamentName}` : "Ranking",
+        title: liveSettings.rankingTitle.trim() ? liveSettings.rankingTitle : liveSettings.selectedTournamentName ? `Ranking - ${liveSettings.selectedTournamentName}` : "Ranking",
         type: "ranking"
       });
     }
@@ -328,7 +329,13 @@ export function ManualUpcomingMatchesTv({
                 <p className="tv-info-kicker">{activeSponsor.subtitle.trim() || "Patrocinador"}</p>
                 <div className="tv-sponsor-logo-frame">
                   {activeSponsor.logoUrl ? (
-                    <img src={activeSponsor.logoUrl} alt={`Logo de ${activeSponsor.name}`} className="tv-sponsor-logo" />
+                    <Image
+                      src={activeSponsor.logoUrl}
+                      alt={`Logo de ${activeSponsor.name}`}
+                      fill
+                      className="tv-sponsor-logo"
+                      style={{ objectFit: 'contain' }}
+                    />
                   ) : (
                     <strong className="tv-sponsor-fallback">{activeSponsor.name}</strong>
                   )}

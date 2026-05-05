@@ -73,9 +73,11 @@ export default async function TvPresentationSettingsPage() {
             />
           </div>
 
+          <input type="hidden" name="selectedTournamentId" value={payload.settings.selectedTournamentId} />
+
           <div className="field">
             <label htmlFor="selected-tournament">Torneio para o ranking da TV</label>
-            <select id="selected-tournament" name="selectedTournamentId" defaultValue={payload.settings.selectedTournamentId}>
+            <select id="selected-tournament" name="selectedTournamentId" defaultValue={payload.settings.selectedTournamentId} disabled>
               <option value="">Ranking geral da arena</option>
               {tournaments.map((tournament) => (
                 <option key={tournament.id} value={tournament.id}>
@@ -83,6 +85,11 @@ export default async function TvPresentationSettingsPage() {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="field">
+            <label htmlFor="ranking-title">Título do ranking</label>
+            <input id="ranking-title" name="rankingTitle" type="text" defaultValue={payload.settings.rankingTitle} />
           </div>
 
           <div className="tv-settings-grid form-full">

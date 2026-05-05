@@ -283,6 +283,7 @@ model TvPresentationSettings {
   id                     String   @id @default(cuid())
   slideIntervalSeconds   Int      @default(12)
   selectedTournamentId   String?
+  rankingTitle           String   @default("")
   showMatches            Boolean  @default(true)
   showSponsors           Boolean  @default(false)
   showRanking            Boolean  @default(false)

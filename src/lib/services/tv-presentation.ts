@@ -4,6 +4,7 @@ import { isPrismaSchemaOutdatedError } from "@/lib/prisma-errors";
 type TvSettingsPayload = {
   slideIntervalSeconds: number;
   selectedTournamentId: string | null;
+  rankingTitle: string;
   showMatches: boolean;
   showSponsors: boolean;
   showRanking: boolean;
@@ -72,6 +73,7 @@ async function getTvSettings(arenaId: string) {
       select: {
         slideIntervalSeconds: true,
         selectedTournamentId: true,
+        rankingTitle: true,
         showMatches: true,
         showSponsors: true,
         showRanking: true,
@@ -117,6 +119,7 @@ async function getTvSettings(arenaId: string) {
 
       return {
         ...legacySettings,
+        rankingTitle: "",
         showMatches: true
       } satisfies TvSettingsPayload;
     } catch (legacyError) {
@@ -242,6 +245,7 @@ export async function getTvPresentationPayload(arenaId: string) {
       slideIntervalSeconds: settings?.slideIntervalSeconds ?? 12,
       selectedTournamentId: selectedTournament?.id ?? "",
       selectedTournamentName: selectedTournament?.name ?? "",
+      rankingTitle: settings?.rankingTitle ?? selectedTournament?.name ?? "",
       showMatches: settings?.showMatches ?? true,
       showSponsors: settings?.showSponsors ?? false,
       showRanking: settings?.showRanking ?? false,

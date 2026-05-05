@@ -34,6 +34,7 @@ const updateManualUpcomingMatchSchema = manualUpcomingMatchSchema.extend({
 const tvPresentationSettingsSchema = z.object({
   slideIntervalSeconds: z.coerce.number().int().min(5, "O intervalo mínimo é de 5 segundos.").max(120, "O intervalo máximo é de 120 segundos."),
   selectedTournamentId: z.string().trim().default(""),
+  rankingTitle: z.string().trim().max(80, "Título do ranking muito longo.").default(""),
   showMatches: z.boolean().default(true),
   showSponsors: z.boolean().default(false),
   showRanking: z.boolean().default(false),
@@ -209,6 +210,7 @@ export async function upsertTvPresentationSettingsAction(formData: FormData) {
   const parsed = tvPresentationSettingsSchema.safeParse({
     slideIntervalSeconds: formData.get("slideIntervalSeconds"),
     selectedTournamentId: formData.get("selectedTournamentId"),
+    rankingTitle: formData.get("rankingTitle"),
     showMatches: formData.get("showMatches") === "on",
     showSponsors: formData.get("showSponsors") === "on",
     showRanking: formData.get("showRanking") === "on",
