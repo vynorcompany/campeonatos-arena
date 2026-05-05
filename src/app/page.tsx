@@ -3,5 +3,6 @@ import { getAuthContext } from "@/lib/auth/session";
 
 export default async function HomePage() {
   const auth = await getAuthContext();
-  redirect(auth ? "/painel" : "/login");
+  const agencyUser = auth?.systemRole === "SUPER_ADMIN" || auth?.systemRole === "ADMIN" || auth?.systemRole === "MANAGER";
+  redirect(auth ? (agencyUser ? "/agencia" : "/painel") : "/login");
 }

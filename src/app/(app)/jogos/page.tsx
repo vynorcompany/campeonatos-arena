@@ -8,7 +8,7 @@ import {
   updateMatchResultAction,
   updateMatchScheduleAction
 } from "@/lib/actions/tournament";
-import { requireArenaAccess } from "@/lib/auth/session";
+import { requireModuleView } from "@/lib/auth/guards";
 import { getArenaDashboard } from "@/lib/services/tournament";
 
 const stageLabels: Record<string, string> = {
@@ -162,7 +162,7 @@ function MatchCard({ match, pairs }: { match: MatchItem; pairs: ActiveTournament
 }
 
 export default async function MatchesPage() {
-  const auth = await requireArenaAccess();
+  const auth = await requireModuleView("matches");
   const { activeTournament } = await getArenaDashboard(auth.arenaId);
 
   if (!activeTournament) {

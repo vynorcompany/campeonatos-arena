@@ -3,7 +3,7 @@ import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { StudentActionsCell } from "@/components/students/student-actions-cell";
 import { addStudentCreditsAction, createStudentAction } from "@/lib/actions/academy";
-import { requireArenaAccess } from "@/lib/auth/session";
+import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
 function attendanceRate(student: { attendedClasses: number; missedClasses: number }) {
@@ -12,7 +12,7 @@ function attendanceRate(student: { attendedClasses: number; missedClasses: numbe
 }
 
 export default async function StudentsPage() {
-  const auth = await requireArenaAccess();
+  const auth = await requireModuleView("students");
   const [students, players] = await Promise.all([
     prisma.student.findMany({
       where: { arenaId: auth.arenaId },

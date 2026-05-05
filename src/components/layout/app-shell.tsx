@@ -1,7 +1,8 @@
 import Image from "next/image";
-import { logoutAction, setActiveArenaAction } from "@/lib/auth/actions";
+import { logoutAction } from "@/lib/auth/actions";
 import type { ArenaMembership } from "@/types/auth";
 import { NavLinks } from "@/components/layout/nav-links";
+import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher";
 
 type AppShellProps = {
   arenaName: string;
@@ -11,6 +12,8 @@ type AppShellProps = {
   userName: string;
   userRole: string;
   canManageUsers: boolean;
+  visibleModules: string[];
+  canAccessAgency: boolean;
   children: React.ReactNode;
 };
 
@@ -22,6 +25,8 @@ export function AppShell({
   userName,
   userRole,
   canManageUsers,
+  visibleModules,
+  canAccessAgency,
   children
 }: AppShellProps) {
   return (
@@ -46,28 +51,17 @@ export function AppShell({
               </div>
             </div>
 
-            <NavLinks canManageUsers={canManageUsers} />
+            <WorkspaceSwitcher
+              activeArenaId={activeArenaId}
+              memberships={memberships}
+              canAccessAgency={canAccessAgency}
+              currentWorkspace="arena"
+            />
+
+            <NavLinks canManageUsers={canManageUsers} visibleModules={visibleModules} />
           </div>
 
           <div className="sidebar-user">
-            {memberships.length > 1 ? (
-              <form action={setActiveArenaAction} className="sidebar-arena-form">
-                <label className="sr-only" htmlFor="arenaId">
-                  Arena ativa
-                </label>
-                <select id="arenaId" name="arenaId" defaultValue={activeArenaId ?? memberships[0]?.arenaId} className="sidebar-arena-select">
-                  {memberships.map((membership) => (
-                    <option key={membership.arenaId} value={membership.arenaId}>
-                      {membership.arenaName}
-                    </option>
-                  ))}
-                </select>
-                <button className="button" type="submit">
-                  Trocar arena
-                </button>
-              </form>
-            ) : null}
-
             <div className="user-copy">
               <p className="user-name">{userName}</p>
               <p className="muted">{userRole}</p>

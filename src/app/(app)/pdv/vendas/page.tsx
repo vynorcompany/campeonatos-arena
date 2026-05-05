@@ -1,5 +1,5 @@
 import { SectionCard } from "@/components/section-card";
-import { requireArenaAccess } from "@/lib/auth/session";
+import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
 const paymentLabels: Record<string, string> = {
@@ -24,7 +24,7 @@ function formatDate(value: Date) {
 }
 
 export default async function SalesPage() {
-  const auth = await requireArenaAccess();
+  const auth = await requireModuleView("pos");
   const [sales, stockMovements] = await Promise.all([
     prisma.sale.findMany({
       where: { arenaId: auth.arenaId },

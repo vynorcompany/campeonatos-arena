@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireRole } from "@/lib/auth/guards";
+import { requireModuleEdit } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
 const optionalText = z.string().trim().default("");
@@ -92,7 +92,7 @@ function getReferenceMonthRange(referenceMonth: string) {
 }
 
 export async function createPlanAction(formData: FormData) {
-  const auth = await requireRole("STAFF");
+  const auth = await requireModuleEdit("finance");
   const parsed = planSchema.safeParse({
     name: formData.get("name"),
     monthlyPrice: formData.get("monthlyPrice"),
@@ -118,7 +118,7 @@ export async function createPlanAction(formData: FormData) {
 }
 
 export async function createSubscriptionAction(formData: FormData) {
-  const auth = await requireRole("STAFF");
+  const auth = await requireModuleEdit("finance");
   const parsed = subscriptionSchema.safeParse({
     studentId: formData.get("studentId"),
     planId: formData.get("planId"),
@@ -185,7 +185,7 @@ export async function createSubscriptionAction(formData: FormData) {
 }
 
 export async function recordPlanPaymentAction(formData: FormData) {
-  const auth = await requireRole("STAFF");
+  const auth = await requireModuleEdit("finance");
   const parsed = paymentSchema.safeParse({
     subscriptionId: formData.get("subscriptionId"),
     referenceMonth: formData.get("referenceMonth"),
@@ -235,7 +235,7 @@ export async function recordPlanPaymentAction(formData: FormData) {
 }
 
 export async function createFinancialEntryAction(formData: FormData) {
-  const auth = await requireRole("STAFF");
+  const auth = await requireModuleEdit("finance");
   const parsed = entrySchema.safeParse({
     type: formData.get("type"),
     category: formData.get("category"),
@@ -274,7 +274,7 @@ export async function createFinancialEntryAction(formData: FormData) {
 }
 
 export async function upsertPayrollEntryAction(formData: FormData) {
-  const auth = await requireRole("STAFF");
+  const auth = await requireModuleEdit("finance");
   const parsed = payrollSchema.safeParse({
     teacherId: formData.get("teacherId"),
     referenceMonth: formData.get("referenceMonth"),

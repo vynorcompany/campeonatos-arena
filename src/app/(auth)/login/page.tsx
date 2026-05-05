@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { LoginForm } from "@/components/forms/login-form";
 import { redirectIfAuthenticated } from "@/lib/auth/actions";
 
@@ -28,6 +29,10 @@ export default async function LoginPage() {
         </div>
 
         <LoginForm />
+
+        <p className="auth-switch">
+          Ainda não tem arena? <Link href="/cadastro">Cadastrar arena</Link>
+        </p>
       </div>
     </div>
   );

@@ -1,11 +1,11 @@
 import Image from "next/image";
 import { ArenaProfileForm } from "@/components/forms/arena-profile-form";
 import { SectionCard } from "@/components/section-card";
-import { requireArenaAccess } from "@/lib/auth/session";
+import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
 export default async function ArenaPage() {
-  const auth = await requireArenaAccess();
+  const auth = await requireModuleView("arena");
   const arena = await prisma.arena.findUniqueOrThrow({
     where: {
       id: auth.arenaId

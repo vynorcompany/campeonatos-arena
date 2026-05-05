@@ -8,7 +8,7 @@ import {
   createLessonAction,
   createStudentAction
 } from "@/lib/actions/academy";
-import { requireArenaAccess } from "@/lib/auth/session";
+import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
 function formatDate(value: Date | null) {
@@ -34,7 +34,7 @@ function attendanceRate(student: { attendedClasses: number; missedClasses: numbe
 }
 
 export default async function LessonsPage() {
-  const auth = await requireArenaAccess();
+  const auth = await requireModuleView("lessons");
   const [students, teachers, lessons, players] = await Promise.all([
     prisma.student.findMany({
       where: { arenaId: auth.arenaId },

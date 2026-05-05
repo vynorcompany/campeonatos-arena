@@ -2,7 +2,9 @@
 
 import { useFormState } from "react-dom";
 import { SubmitButton } from "@/components/forms/submit-button";
+import { PermissionMatrix } from "@/components/users/permission-matrix";
 import { createArenaUserAction, type UserActionState } from "@/lib/actions/user";
+import { defaultPermissionsForRole } from "@/lib/permissions";
 
 const initialState: UserActionState = {
   error: null,
@@ -37,6 +39,10 @@ export function ArenaUserForm() {
           <option value="STAFF">Staff</option>
           <option value="VIEWER">Viewer</option>
         </select>
+      </div>
+
+      <div className="form-full">
+        <PermissionMatrix {...defaultPermissionsForRole("STAFF")} />
       </div>
 
       <div className="field field-submit">

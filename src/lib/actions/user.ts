@@ -13,6 +13,7 @@ import {
   updateOwnPasswordSchema,
   updateOwnProfileSchema
 } from "@/lib/validators/user";
+import { defaultPermissionsForRole, normalizePermissionModules } from "@/lib/permissions";
 import type { ArenaRole, SystemRole } from "@/types/auth";
 
 export type UserActionState = {
@@ -38,6 +39,17 @@ const systemRoleWeight: Record<SystemRole, number> = {
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
+}
+
+function getPermissionValues(formData: FormData, name: string, arenaRole: ArenaRole) {
+  const defaults = defaultPermissionsForRole(arenaRole);
+  const selected = normalizePermissionModules(formData.getAll(name).map(String));
+
+  if (arenaRole === "OWNER" || arenaRole === "ADMIN") {
+    return name === "editPermissions" ? defaults.editPermissions : defaults.viewPermissions;
+  }
+
+  return selected;
 }
 
 function canManageUsers(arenaRole: ArenaRole | null, systemRole: SystemRole) {
@@ -79,7 +91,9 @@ export async function createArenaUserAction(_: UserActionState, formData: FormDa
     name: formData.get("name"),
     email: formData.get("email"),
     password: formData.get("password"),
-    arenaRole: formData.get("arenaRole")
+    arenaRole: formData.get("arenaRole"),
+    viewPermissions: getPermissionValues(formData, "viewPermissions", formData.get("arenaRole") as ArenaRole),
+    editPermissions: getPermissionValues(formData, "editPermissions", formData.get("arenaRole") as ArenaRole)
   });
 
   if (!parsed.success) {
@@ -113,7 +127,9 @@ export async function createArenaUserAction(_: UserActionState, formData: FormDa
       data: {
         userId: existingUser.id,
         arenaId: auth.arenaId,
-        role: parsed.data.arenaRole
+        role: parsed.data.arenaRole,
+        viewPermissions: parsed.data.viewPermissions,
+        editPermissions: parsed.data.editPermissions
       }
     });
 
@@ -132,7 +148,9 @@ export async function createArenaUserAction(_: UserActionState, formData: FormDa
       memberships: {
         create: {
           arenaId: auth.arenaId,
-          role: parsed.data.arenaRole
+          role: parsed.data.arenaRole,
+          viewPermissions: parsed.data.viewPermissions,
+          editPermissions: parsed.data.editPermissions
         }
       }
     }
@@ -191,7 +209,8 @@ export async function updateArenaUserRoleAction(formData: FormData) {
       }
     },
     data: {
-      role: parsed.data.arenaRole
+      role: parsed.data.arenaRole,
+      ...defaultPermissionsForRole(parsed.data.arenaRole)
     }
   });
 
@@ -209,7 +228,9 @@ export async function updateArenaUserAction(formData: FormData) {
     userId: formData.get("userId"),
     name: formData.get("name"),
     email: formData.get("email"),
-    arenaRole: formData.get("arenaRole")
+    arenaRole: formData.get("arenaRole"),
+    viewPermissions: getPermissionValues(formData, "viewPermissions", formData.get("arenaRole") as ArenaRole),
+    editPermissions: getPermissionValues(formData, "editPermissions", formData.get("arenaRole") as ArenaRole)
   });
 
   if (!parsed.success) {
@@ -273,7 +294,9 @@ export async function updateArenaUserAction(formData: FormData) {
         }
       },
       data: {
-        role: parsed.data.arenaRole
+        role: parsed.data.arenaRole,
+        viewPermissions: parsed.data.viewPermissions,
+        editPermissions: parsed.data.editPermissions
       }
     })
   ]);

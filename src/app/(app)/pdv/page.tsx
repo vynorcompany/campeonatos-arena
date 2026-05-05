@@ -3,7 +3,7 @@ import Link from "next/link";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { adjustStockAction, createProductAction } from "@/lib/actions/pos";
-import { requireArenaAccess } from "@/lib/auth/session";
+import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
 const paymentLabels: Record<string, string> = {
@@ -31,7 +31,7 @@ function formatDate(value: Date) {
 }
 
 export default async function PosPage() {
-  const auth = await requireArenaAccess();
+  const auth = await requireModuleView("pos");
   const [products, sales, stockMovements] = await Promise.all([
     prisma.product.findMany({
       where: { arenaId: auth.arenaId },

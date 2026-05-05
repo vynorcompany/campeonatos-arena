@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireRole } from "@/lib/auth/guards";
+import { requireModuleEdit } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { savePublicImageUpload } from "@/lib/uploads";
 import type { ActionState } from "@/lib/actions/tournament";
@@ -26,7 +26,7 @@ function refreshArenaRoutes() {
 }
 
 export async function updateArenaProfileAction(_: ActionState, formData: FormData): Promise<ActionState> {
-  const auth = await requireRole("ADMIN");
+  const auth = await requireModuleEdit("arena");
   const parsed = arenaProfileSchema.safeParse({
     name: formData.get("name"),
     legalName: formData.get("legalName"),

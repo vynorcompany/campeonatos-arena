@@ -13,7 +13,9 @@ type IconName =
   | "finance"
   | "building"
   | "users"
-  | "account";
+  | "account"
+  | "calendar"
+  | "support";
 
 type NavItem = {
   href: string;
@@ -29,6 +31,7 @@ type NavGroup = {
 
 type NavLinksProps = {
   canManageUsers: boolean;
+  visibleModules: string[];
 };
 
 function isActivePath(pathname: string, href: string) {
@@ -120,14 +123,33 @@ function NavIcon({ name }: { name: IconName }) {
         <circle cx="12" cy="8" r="4" />
         <path d="M4 21a8 8 0 0 1 16 0" />
       </>
+    ),
+    calendar: (
+      <>
+        <rect x="4" y="5" width="16" height="15" rx="2" />
+        <path d="M8 3v4" />
+        <path d="M16 3v4" />
+        <path d="M4 10h16" />
+        <path d="M8 14h3" />
+        <path d="M13 14h3" />
+        <path d="M8 17h3" />
+      </>
+    ),
+    support: (
+      <>
+        <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z" />
+        <path d="M9 8h6" />
+        <path d="M9 12h4" />
+      </>
     )
   };
 
   return <svg {...common}>{paths[name]}</svg>;
 }
 
-export function NavLinks({ canManageUsers }: NavLinksProps) {
+export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
   const pathname = usePathname();
+  const canSee = (module: string) => visibleModules.includes(module);
   const navigationGroups: NavGroup[] = [
     {
       title: "Início",
@@ -146,6 +168,11 @@ export function NavLinks({ canManageUsers }: NavLinksProps) {
             { href: "/grupos", label: "Grupos" },
             { href: "/jogos", label: "Jogos" }
           ]
+        },
+        {
+          href: "/calendario",
+          label: "Calendário",
+          icon: "calendar"
         },
         {
           href: "/proximos-jogos",
@@ -201,12 +228,53 @@ export function NavLinks({ canManageUsers }: NavLinksProps) {
       title: "Administração",
       links: [
         { href: "/arena", label: "Arena", icon: "building" },
+        { href: "/suporte", label: "Suporte/Ajuda", icon: "support" },
         ...(canManageUsers ? [{ href: "/usuarios", label: "Usuários", icon: "users" as const }] : []),
         { href: "/minha-conta", label: "Minha conta", icon: "account" }
       ]
     }
   ];
-  const initialOpenItems = navigationGroups.flatMap((group) =>
+  const moduleByHref: Record<string, string> = {
+    "/painel": "dashboard",
+    "/torneios": "tournaments",
+    "/jogadores": "players",
+    "/duplas": "pairs",
+    "/grupos": "groups",
+    "/jogos": "matches",
+    "/proximos-jogos": "tv",
+    "/proximos-jogos/tv": "tv",
+    "/calendario": "calendar",
+    "/aulas": "lessons",
+    "/aulas/alunos": "students",
+    "/aulas/registrar": "lessons",
+    "/professores": "teachers",
+    "/pdv": "pos",
+    "/pdv/caixa": "pos",
+    "/pdv/estoque": "stock",
+    "/pdv/vendas": "pos",
+    "/financeiro": "finance",
+    "/financeiro/planos": "finance",
+    "/financeiro/mensalidades": "finance",
+    "/financeiro/folha": "finance",
+    "/financeiro/lancamentos": "finance",
+    "/financeiro/pdv-estoque": "finance",
+    "/arena": "arena",
+    "/suporte": "support",
+    "/usuarios": "users",
+    "/minha-conta": "dashboard"
+  };
+  const filteredGroups = navigationGroups
+    .map((group) => ({
+      ...group,
+      links: group.links
+        .map((item) => ({
+          ...item,
+          children: item.children?.filter((child) => canSee(moduleByHref[child.href] ?? "dashboard"))
+        }))
+        .filter((item) => canSee(moduleByHref[item.href] ?? "dashboard") || (item.children?.length ?? 0) > 0)
+    }))
+    .filter((group) => group.links.length);
+  const initialOpenItems = filteredGroups.flatMap((group) =>
     group.links.filter((item) => item.children?.length && isActivePath(pathname, item.href)).map((item) => item.href)
   );
   const [openItems, setOpenItems] = useState<Set<string>>(() => new Set(initialOpenItems));
@@ -225,7 +293,7 @@ export function NavLinks({ canManageUsers }: NavLinksProps) {
 
   return (
     <nav className="side-nav" aria-label="Principal">
-      {navigationGroups.map((group) => (
+      {filteredGroups.map((group) => (
         <div className="nav-group" key={group.title}>
           <p className="nav-group-label">{group.title}</p>
           <div className="nav-group-links">

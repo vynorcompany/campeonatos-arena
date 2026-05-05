@@ -4,7 +4,9 @@ export const createArenaUserSchema = z.object({
   name: z.string().trim().min(2, "Informe o nome do usuário."),
   email: z.string().trim().email("Informe um e-mail válido."),
   password: z.string().min(10, "A senha temporária deve ter no mínimo 10 caracteres."),
-  arenaRole: z.enum(["OWNER", "ADMIN", "STAFF", "VIEWER"])
+  arenaRole: z.enum(["OWNER", "ADMIN", "STAFF", "VIEWER"]),
+  viewPermissions: z.array(z.string()).default([]),
+  editPermissions: z.array(z.string()).default([])
 });
 
 export const updateArenaUserRoleSchema = z.object({
@@ -16,7 +18,9 @@ export const updateArenaUserSchema = z.object({
   userId: z.string().min(1, "Usuário inválido."),
   name: z.string().trim().min(2, "Informe o nome do usuário."),
   email: z.string().trim().email("Informe um e-mail válido."),
-  arenaRole: z.enum(["OWNER", "ADMIN", "STAFF", "VIEWER"])
+  arenaRole: z.enum(["OWNER", "ADMIN", "STAFF", "VIEWER"]),
+  viewPermissions: z.array(z.string()).default([]),
+  editPermissions: z.array(z.string()).default([])
 });
 
 export const removeArenaUserSchema = z.object({

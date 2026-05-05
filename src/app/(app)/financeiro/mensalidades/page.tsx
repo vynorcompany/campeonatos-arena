@@ -2,7 +2,7 @@ import { SectionCard } from "@/components/section-card";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { createSubscriptionAction, recordPlanPaymentAction } from "@/lib/actions/finance";
-import { requireArenaAccess } from "@/lib/auth/session";
+import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
 function getReferenceMonth() {
@@ -15,7 +15,7 @@ function formatMoney(cents: number) {
 }
 
 export default async function MonthlyPaymentsPage() {
-  const auth = await requireArenaAccess();
+  const auth = await requireModuleView("finance");
   const [students, plans, subscriptions] = await Promise.all([
     prisma.student.findMany({
       where: { arenaId: auth.arenaId, active: true },

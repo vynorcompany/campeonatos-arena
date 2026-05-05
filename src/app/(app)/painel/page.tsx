@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { SectionCard } from "@/components/section-card";
 import { StatCard } from "@/components/stat-card";
-import { requireArenaAccess } from "@/lib/auth/session";
+import { requireModuleView } from "@/lib/auth/guards";
 import { getArenaDashboard } from "@/lib/services/tournament";
 
 const statusLabels: Record<string, string> = {
@@ -14,7 +14,7 @@ const statusLabels: Record<string, string> = {
 };
 
 export default async function OverviewPage() {
-  const auth = await requireArenaAccess();
+  const auth = await requireModuleView("dashboard");
   const { players, activeTournament, tournamentHistory } = await getArenaDashboard(auth.arenaId);
   const groupedMatches = activeTournament?.matches.filter((match) => match.stage === "GROUP") ?? [];
   const knockoutMatches = activeTournament?.matches.filter((match) => match.stage !== "GROUP") ?? [];

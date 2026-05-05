@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
+import { PermissionMatrix } from "@/components/users/permission-matrix";
 import { removeArenaUserAction, resetArenaUserPasswordAction, updateArenaUserAction } from "@/lib/actions/user";
+import { defaultPermissionsForRole } from "@/lib/permissions";
 import type { ArenaRole } from "@/types/auth";
 
 const roleLabels: Record<ArenaRole, string> = {
@@ -18,11 +20,24 @@ type UserActionsCellProps = {
   name: string;
   email: string;
   role: ArenaRole;
+  viewPermissions: string[];
+  editPermissions: string[];
   isCurrentUser: boolean;
 };
 
-export function UserActionsCell({ userId, name, email, role, isCurrentUser }: UserActionsCellProps) {
+export function UserActionsCell({
+  userId,
+  name,
+  email,
+  role,
+  viewPermissions,
+  editPermissions,
+  isCurrentUser
+}: UserActionsCellProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const defaults = defaultPermissionsForRole(role);
+  const effectiveViewPermissions = viewPermissions.length ? viewPermissions : defaults.viewPermissions;
+  const effectiveEditPermissions = editPermissions.length ? editPermissions : defaults.editPermissions;
 
   if (isEditing) {
     return (
@@ -38,6 +53,7 @@ export function UserActionsCell({ userId, name, email, role, isCurrentUser }: Us
             <option value="VIEWER">Viewer</option>
           </select>
         </div>
+        <PermissionMatrix viewPermissions={effectiveViewPermissions} editPermissions={effectiveEditPermissions} />
         <div className="player-inline-actions">
           <SubmitButton label="Salvar" pendingLabel="..." className="player-inline-text-button player-inline-text-button-save" />
           <button type="button" className="player-inline-text-button" onClick={() => setIsEditing(false)}>

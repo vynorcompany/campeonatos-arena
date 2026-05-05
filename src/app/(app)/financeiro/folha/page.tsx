@@ -2,7 +2,7 @@ import { SectionCard } from "@/components/section-card";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { upsertPayrollEntryAction } from "@/lib/actions/finance";
-import { requireArenaAccess } from "@/lib/auth/session";
+import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
 function getReferenceMonth() {
@@ -26,7 +26,7 @@ function payrollTotal(entry: {
 }
 
 export default async function PayrollPage() {
-  const auth = await requireArenaAccess();
+  const auth = await requireModuleView("finance");
   const referenceMonth = getReferenceMonth();
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth(), 1);

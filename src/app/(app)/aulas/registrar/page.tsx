@@ -2,7 +2,7 @@ import { SectionCard } from "@/components/section-card";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { completeLessonAction, createLessonAction } from "@/lib/actions/academy";
-import { requireArenaAccess } from "@/lib/auth/session";
+import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
 function formatDate(value: Date | null) {
@@ -19,7 +19,7 @@ function formatDate(value: Date | null) {
 }
 
 export default async function RegisterLessonPage() {
-  const auth = await requireArenaAccess();
+  const auth = await requireModuleView("lessons");
   const [students, teachers, lessons] = await Promise.all([
     prisma.student.findMany({
       where: { arenaId: auth.arenaId, active: true },

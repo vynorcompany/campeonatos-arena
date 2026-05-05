@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireRole } from "@/lib/auth/guards";
+import { requireModuleEdit } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
 const optionalText = z.string().trim().default("");
@@ -68,7 +68,7 @@ function parseMoneyToCents(value: string) {
 }
 
 export async function createStudentAction(formData: FormData) {
-  const auth = await requireRole("STAFF");
+  const auth = await requireModuleEdit("students");
   const parsed = studentSchema.safeParse({
     name: formData.get("name"),
     playerId: formData.get("playerId"),
@@ -145,7 +145,7 @@ export async function createStudentAction(formData: FormData) {
 }
 
 export async function addStudentCreditsAction(formData: FormData) {
-  const auth = await requireRole("STAFF");
+  const auth = await requireModuleEdit("students");
   const studentId = String(formData.get("studentId") ?? "");
   const quantity = z.coerce.number().int().min(1).max(200).parse(formData.get("quantity"));
 
@@ -172,7 +172,7 @@ export async function addStudentCreditsAction(formData: FormData) {
 }
 
 export async function updateStudentAction(formData: FormData) {
-  const auth = await requireRole("STAFF");
+  const auth = await requireModuleEdit("students");
   const studentId = String(formData.get("studentId") ?? "");
   const parsed = studentSchema.safeParse({
     name: formData.get("name"),
@@ -233,7 +233,7 @@ export async function updateStudentAction(formData: FormData) {
 }
 
 export async function deleteStudentAction(formData: FormData) {
-  const auth = await requireRole("STAFF");
+  const auth = await requireModuleEdit("students");
   const studentId = String(formData.get("studentId") ?? "");
 
   const deleted = await prisma.student.deleteMany({
@@ -251,7 +251,7 @@ export async function deleteStudentAction(formData: FormData) {
 }
 
 export async function createTeacherAction(formData: FormData) {
-  const auth = await requireRole("STAFF");
+  const auth = await requireModuleEdit("teachers");
   const parsed = teacherSchema.safeParse({
     name: formData.get("name"),
     phone: formData.get("phone"),
@@ -275,7 +275,7 @@ export async function createTeacherAction(formData: FormData) {
 }
 
 export async function createLessonAction(formData: FormData) {
-  const auth = await requireRole("STAFF");
+  const auth = await requireModuleEdit("lessons");
   const studentIds = getFormValues(formData, "studentIds");
   const parsed = lessonSchema.safeParse({
     title: formData.get("title"),
@@ -339,7 +339,7 @@ export async function createLessonAction(formData: FormData) {
 }
 
 export async function completeLessonAction(formData: FormData) {
-  const auth = await requireRole("STAFF");
+  const auth = await requireModuleEdit("lessons");
   const lessonId = String(formData.get("lessonId") ?? "");
   const absentStudentIds = new Set(getFormValues(formData, "absentStudentIds"));
 

@@ -63,6 +63,8 @@ export default async function UsersPage() {
                     name={member.user.name}
                     email={member.user.email}
                     role={member.role as ArenaRole}
+                    viewPermissions={member.viewPermissions}
+                    editPermissions={member.editPermissions}
                     isCurrentUser={member.userId === auth.userId}
                   />
                 </td>

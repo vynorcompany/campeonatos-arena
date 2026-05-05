@@ -1,5 +1,5 @@
 import { SectionCard } from "@/components/section-card";
-import { requireArenaAccess } from "@/lib/auth/session";
+import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
 function getMonthRange() {
@@ -15,7 +15,7 @@ function formatMoney(cents: number) {
 }
 
 export default async function FinancePdvStockPage() {
-  const auth = await requireArenaAccess();
+  const auth = await requireModuleView("finance");
   const { start, end } = getMonthRange();
   const [products, sales, stockMovements] = await Promise.all([
     prisma.product.findMany({ where: { arenaId: auth.arenaId }, orderBy: { name: "asc" } }),

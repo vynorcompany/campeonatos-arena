@@ -2,7 +2,7 @@ import { SectionCard } from "@/components/section-card";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { createTeacherAction } from "@/lib/actions/academy";
-import { requireArenaAccess } from "@/lib/auth/session";
+import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
 function getMonthRange() {
@@ -13,7 +13,7 @@ function getMonthRange() {
 }
 
 export default async function TeachersPage() {
-  const auth = await requireArenaAccess();
+  const auth = await requireModuleView("teachers");
   const { start, end } = getMonthRange();
   const teachers = await prisma.teacher.findMany({
     where: {

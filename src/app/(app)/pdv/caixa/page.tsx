@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CheckoutRegister } from "@/components/pos/checkout-register";
-import { requireArenaAccess } from "@/lib/auth/session";
+import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
 function formatMoney(cents: number) {
@@ -11,7 +11,7 @@ function formatMoney(cents: number) {
 }
 
 export default async function CheckoutPage() {
-  const auth = await requireArenaAccess();
+  const auth = await requireModuleView("pos");
   const [products, salesToday] = await Promise.all([
     prisma.product.findMany({
       where: {

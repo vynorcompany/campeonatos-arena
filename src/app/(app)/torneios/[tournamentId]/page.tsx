@@ -4,7 +4,7 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard } from "@/components/section-card";
 import { StatCard } from "@/components/stat-card";
 import { deleteTournamentAction } from "@/lib/actions/tournament";
-import { requireArenaAccess } from "@/lib/auth/session";
+import { requireModuleView } from "@/lib/auth/guards";
 import { getFinishedTournamentDetails } from "@/lib/services/tournament";
 
 const stageLabels: Record<string, string> = {
@@ -71,7 +71,7 @@ function renderMatchSection(
 }
 
 export default async function TournamentHistoryDetailPage({ params }: HistoryPageProps) {
-  const auth = await requireArenaAccess();
+  const auth = await requireModuleView("tournaments");
   const tournament = await getFinishedTournamentDetails(params.tournamentId, auth.arenaId);
 
   if (!tournament) {

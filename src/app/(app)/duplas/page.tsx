@@ -3,11 +3,11 @@ import { ManualPairForm } from "@/components/forms/manual-pair-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard } from "@/components/section-card";
 import { deleteTournamentPairAction, updateTournamentPairAction } from "@/lib/actions/tournament";
-import { requireArenaAccess } from "@/lib/auth/session";
+import { requireModuleView } from "@/lib/auth/guards";
 import { getArenaDashboard } from "@/lib/services/tournament";
 
 export default async function PairsPage() {
-  const auth = await requireArenaAccess();
+  const auth = await requireModuleView("pairs");
   const { activeTournament } = await getArenaDashboard(auth.arenaId);
   const pairedPlayerIds = new Set(
     activeTournament?.pairs.flatMap((pair) => pair.players.map((player) => player.playerId)) ?? []

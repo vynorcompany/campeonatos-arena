@@ -2,7 +2,7 @@ import { SectionCard } from "@/components/section-card";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { adjustStockAction, createProductAction } from "@/lib/actions/pos";
-import { requireArenaAccess } from "@/lib/auth/session";
+import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
 function formatMoney(cents: number) {
@@ -10,7 +10,7 @@ function formatMoney(cents: number) {
 }
 
 export default async function StockPage() {
-  const auth = await requireArenaAccess();
+  const auth = await requireModuleView("stock");
   const products = await prisma.product.findMany({
     where: { arenaId: auth.arenaId },
     orderBy: [{ active: "desc" }, { name: "asc" }]

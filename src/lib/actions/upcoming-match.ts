@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireRole } from "@/lib/auth/guards";
+import { requireModuleEdit } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
 const courtOptions = ["Agecon", "Elaine", "Origem"] as const;
@@ -31,7 +31,7 @@ function refreshUpcomingMatches() {
 }
 
 export async function createManualUpcomingMatchAction(formData: FormData) {
-  const auth = await requireRole("STAFF");
+  const auth = await requireModuleEdit("tv");
   const parsed = manualUpcomingMatchSchema.safeParse({
     homePairName: formData.get("homePairName"),
     awayPairName: formData.get("awayPairName"),
@@ -67,7 +67,7 @@ export async function createManualUpcomingMatchAction(formData: FormData) {
 }
 
 export async function updateManualUpcomingMatchAction(formData: FormData) {
-  const auth = await requireRole("STAFF");
+  const auth = await requireModuleEdit("tv");
   const parsed = updateManualUpcomingMatchSchema.safeParse({
     matchId: formData.get("matchId"),
     displayOrder: formData.get("displayOrder"),
@@ -103,7 +103,7 @@ export async function updateManualUpcomingMatchAction(formData: FormData) {
 }
 
 export async function deleteManualUpcomingMatchAction(formData: FormData) {
-  const auth = await requireRole("STAFF");
+  const auth = await requireModuleEdit("tv");
   const matchId = String(formData.get("matchId") ?? "");
 
   if (!matchId) {

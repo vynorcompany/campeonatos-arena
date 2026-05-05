@@ -7,7 +7,7 @@ import {
   deleteManualUpcomingMatchAction,
   updateManualUpcomingMatchAction
 } from "@/lib/actions/upcoming-match";
-import { requireArenaAccess } from "@/lib/auth/session";
+import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
 const courtOptions = ["Agecon", "Elaine", "Origem"];
@@ -34,7 +34,7 @@ function CourtSelect({ id, defaultValue }: { id: string; defaultValue?: string }
 }
 
 export default async function UpcomingMatchesPage() {
-  const auth = await requireArenaAccess();
+  const auth = await requireModuleView("tv");
   const manualMatches = await prisma.manualUpcomingMatch.findMany({
     where: {
       arenaId: auth.arenaId

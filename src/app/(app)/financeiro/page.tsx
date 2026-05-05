@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { SectionCard } from "@/components/section-card";
-import { requireArenaAccess } from "@/lib/auth/session";
+import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
 function getMonthRange() {
@@ -16,7 +16,7 @@ function formatMoney(cents: number) {
 }
 
 export default async function FinancePage() {
-  const auth = await requireArenaAccess();
+  const auth = await requireModuleView("finance");
   const { start, end } = getMonthRange();
   const [subscriptions, products, sales, financialEntries, payrollEntries, recentEntries] = await Promise.all([
     prisma.studentSubscription.findMany({ where: { arenaId: auth.arenaId, status: "ACTIVE" } }),

@@ -10,7 +10,7 @@ import {
   generateGroupsAction,
   generateMatchesAction
 } from "@/lib/actions/tournament";
-import { requireArenaAccess } from "@/lib/auth/session";
+import { requireModuleView } from "@/lib/auth/guards";
 import { getArenaDashboard } from "@/lib/services/tournament";
 
 const statusLabels: Record<string, string> = {
@@ -23,7 +23,7 @@ const statusLabels: Record<string, string> = {
 };
 
 export default async function TournamentsPage() {
-  const auth = await requireArenaAccess();
+  const auth = await requireModuleView("tournaments");
   const { activeTournament, tournamentHistory } = await getArenaDashboard(auth.arenaId);
   const groupedMatches = activeTournament?.matches.filter((match) => match.stage === "GROUP") ?? [];
   const knockoutMatches = activeTournament?.matches.filter((match) => match.stage !== "GROUP") ?? [];

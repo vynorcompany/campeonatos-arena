@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import crypto from "node:crypto";
 import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
+import { allPermissionModules } from "@/lib/permissions";
 import type { ArenaMembership, ArenaRole, SystemRole } from "@/types/auth";
 
 const SESSION_TTL_DAYS = env.sessionTtlDays;
@@ -17,6 +18,8 @@ export type AuthContext = {
   arenaRole: ArenaRole | null;
   arenaId: string | null;
   arenaName: string | null;
+  viewPermissions: string[];
+  editPermissions: string[];
   memberships: ArenaMembership[];
 };
 
@@ -58,6 +61,10 @@ function getActiveMembership(memberships: ArenaMembership[], selectedArenaId: st
   }
 
   return memberships[0] ?? null;
+}
+
+function isAgencyRole(systemRole: SystemRole) {
+  return systemRole === "SUPER_ADMIN" || systemRole === "ADMIN" || systemRole === "MANAGER";
 }
 
 export async function setArenaContextCookie(arenaId: string) {
@@ -170,18 +177,49 @@ export async function getAuthContext(): Promise<AuthContext | null> {
     arenaId: membership.arenaId,
     arenaName: membership.arena.name,
     arenaLogoUrl: membership.arena.logoUrl || "/arena-profile.jpg",
-    arenaRole: membership.role as ArenaRole
+    arenaRole: membership.role as ArenaRole,
+    viewPermissions: membership.viewPermissions,
+    editPermissions: membership.editPermissions
   }));
+  const systemRole = session.user.systemRole as SystemRole;
+  const membershipArenaIds = new Set(memberships.map((membership) => membership.arenaId));
+
+  if (isAgencyRole(systemRole)) {
+    const agencyArenas = await prisma.arena.findMany({
+      where: {
+        id: {
+          notIn: [...membershipArenaIds]
+        }
+      },
+      orderBy: {
+        name: "asc"
+      }
+    });
+
+    memberships.push(
+      ...agencyArenas.map((arena) => ({
+        arenaId: arena.id,
+        arenaName: arena.name,
+        arenaLogoUrl: arena.logoUrl || "/arena-profile.jpg",
+        arenaRole: "OWNER" as ArenaRole,
+        viewPermissions: allPermissionModules,
+        editPermissions: allPermissionModules
+      }))
+    );
+  }
+
   const activeMembership = getActiveMembership(memberships, getSelectedArenaId());
 
   return {
     userId: session.user.id,
     userName: session.user.name,
     userEmail: session.user.email,
-    systemRole: session.user.systemRole as SystemRole,
+    systemRole,
     arenaRole: activeMembership?.arenaRole ?? null,
     arenaId: activeMembership?.arenaId ?? null,
     arenaName: activeMembership?.arenaName ?? null,
+    viewPermissions: activeMembership?.viewPermissions ?? [],
+    editPermissions: activeMembership?.editPermissions ?? [],
     memberships
   };
 }

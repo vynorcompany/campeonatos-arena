@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { savePublicImageUpload } from "@/lib/uploads";
-import { requireRole } from "@/lib/auth/guards";
+import { requireModuleEdit } from "@/lib/auth/guards";
 import {
   archivePlayerSchema,
   createPlayerSchema,
@@ -68,7 +68,7 @@ function getPrismaMessage(error: unknown, fallback: string) {
 }
 
 export async function createPlayerAction(_: ActionState, formData: FormData): Promise<ActionState> {
-  const auth = await requireRole("STAFF");
+  const auth = await requireModuleEdit("players");
   const parsed = createPlayerSchema.safeParse({
     name: formData.get("name"),
     points: formData.get("points")
@@ -132,7 +132,7 @@ export async function createPlayerAction(_: ActionState, formData: FormData): Pr
 }
 
 export async function updatePlayerAction(formData: FormData) {
-  const auth = await requireRole("STAFF");
+  const auth = await requireModuleEdit("players");
   const parsed = updatePlayerSchema.safeParse({
     playerId: formData.get("playerId"),
     name: formData.get("name"),
@@ -172,7 +172,7 @@ export async function updatePlayerAction(formData: FormData) {
 }
 
 export async function archivePlayerAction(formData: FormData) {
-  const auth = await requireRole("STAFF");
+  const auth = await requireModuleEdit("players");
   const parsed = archivePlayerSchema.safeParse({
     playerId: formData.get("playerId")
   });
@@ -199,7 +199,7 @@ export async function archivePlayerAction(formData: FormData) {
 }
 
 export async function updatePlayerPointsAction(formData: FormData) {
-  const auth = await requireRole("STAFF");
+  const auth = await requireModuleEdit("players");
   const parsed = updatePlayerPointsSchema.safeParse({
     playerId: formData.get("playerId"),
     points: formData.get("points")
@@ -227,7 +227,7 @@ export async function updatePlayerPointsAction(formData: FormData) {
 }
 
 export async function updateTournamentEntryPointsAction(formData: FormData) {
-  const auth = await requireRole("STAFF");
+  const auth = await requireModuleEdit("tournaments");
   const parsed = updateTournamentEntryPointsSchema.safeParse({
     entryId: formData.get("entryId"),
     points: formData.get("points")
@@ -257,7 +257,7 @@ export async function updateTournamentEntryPointsAction(formData: FormData) {
 }
 
 export async function createTournamentAction(_: ActionState, formData: FormData): Promise<ActionState> {
-  const auth = await requireRole("ADMIN");
+  const auth = await requireModuleEdit("tournaments");
   const parsed = createTournamentSchema.safeParse({
     name: formData.get("name"),
     groupCount: formData.get("groupCount"),
@@ -298,7 +298,7 @@ export async function createTournamentAction(_: ActionState, formData: FormData)
 }
 
 export async function finishTournamentAction(formData: FormData) {
-  const auth = await requireRole("ADMIN");
+  const auth = await requireModuleEdit("tournaments");
   const tournamentId = String(formData.get("tournamentId") ?? "");
 
   if (!tournamentId) {
@@ -310,7 +310,7 @@ export async function finishTournamentAction(formData: FormData) {
 }
 
 export async function deleteTournamentAction(formData: FormData) {
-  const auth = await requireRole("ADMIN");
+  const auth = await requireModuleEdit("tournaments");
   const tournamentId = String(formData.get("tournamentId") ?? "");
 
   if (!tournamentId) {
@@ -322,7 +322,7 @@ export async function deleteTournamentAction(formData: FormData) {
 }
 
 export async function syncEntriesAction(formData: FormData) {
-  const auth = await requireRole("ADMIN");
+  const auth = await requireModuleEdit("tournaments");
   const parsed = updateTournamentParticipantsSchema.safeParse({
     tournamentId: formData.get("tournamentId"),
     playerIds: formData.getAll("playerIds").map(String)
@@ -349,7 +349,7 @@ export async function syncEntriesStateAction(_: ActionState, formData: FormData)
 }
 
 export async function generatePairsAction(formData: FormData) {
-  await requireRole("ADMIN");
+  await requireModuleEdit("pairs");
   const tournamentId = String(formData.get("tournamentId") ?? "");
 
   if (!tournamentId) {
@@ -361,7 +361,7 @@ export async function generatePairsAction(formData: FormData) {
 }
 
 export async function createTournamentPairAction(_: ActionState, formData: FormData): Promise<ActionState> {
-  await requireRole("ADMIN");
+  await requireModuleEdit("pairs");
   const parsed = createTournamentPairSchema.safeParse({
     tournamentId: formData.get("tournamentId"),
     playerAId: formData.get("playerAId"),
@@ -386,7 +386,7 @@ export async function createTournamentPairAction(_: ActionState, formData: FormD
 }
 
 export async function updateTournamentPairAction(formData: FormData) {
-  const auth = await requireRole("ADMIN");
+  const auth = await requireModuleEdit("pairs");
   const parsed = updateTournamentPairSchema.safeParse({
     pairId: formData.get("pairId"),
     playerAId: formData.get("playerAId"),
@@ -402,7 +402,7 @@ export async function updateTournamentPairAction(formData: FormData) {
 }
 
 export async function deleteTournamentPairAction(formData: FormData) {
-  const auth = await requireRole("ADMIN");
+  const auth = await requireModuleEdit("pairs");
   const parsed = deleteTournamentPairSchema.safeParse({
     pairId: formData.get("pairId")
   });
@@ -416,7 +416,7 @@ export async function deleteTournamentPairAction(formData: FormData) {
 }
 
 export async function generateGroupsAction(formData: FormData) {
-  await requireRole("ADMIN");
+  await requireModuleEdit("groups");
   const tournamentId = String(formData.get("tournamentId") ?? "");
 
   if (!tournamentId) {
@@ -428,7 +428,7 @@ export async function generateGroupsAction(formData: FormData) {
 }
 
 export async function generateMatchesAction(formData: FormData) {
-  await requireRole("ADMIN");
+  await requireModuleEdit("matches");
   const tournamentId = String(formData.get("tournamentId") ?? "");
 
   if (!tournamentId) {
@@ -440,7 +440,7 @@ export async function generateMatchesAction(formData: FormData) {
 }
 
 export async function updateMatchCourtAction(formData: FormData) {
-  const auth = await requireRole("STAFF");
+  const auth = await requireModuleEdit("matches");
   const parsed = updateMatchCourtSchema.safeParse({
     matchId: formData.get("matchId"),
     courtName: formData.get("courtName")
@@ -470,7 +470,7 @@ export async function updateMatchCourtAction(formData: FormData) {
 }
 
 export async function updateMatchScheduleAction(formData: FormData) {
-  const auth = await requireRole("STAFF");
+  const auth = await requireModuleEdit("matches");
   const parsed = updateMatchScheduleSchema.safeParse({
     matchId: formData.get("matchId"),
     scheduledTime: formData.get("scheduledTime")
@@ -500,7 +500,7 @@ export async function updateMatchScheduleAction(formData: FormData) {
 }
 
 export async function updateMatchResultAction(formData: FormData) {
-  const auth = await requireRole("STAFF");
+  const auth = await requireModuleEdit("matches");
   const parsed = updateMatchResultSchema.safeParse({
     matchId: formData.get("matchId"),
     homeScore: formData.get("homeScore"),
@@ -516,7 +516,7 @@ export async function updateMatchResultAction(formData: FormData) {
 }
 
 export async function updateMatchParticipantsAction(formData: FormData) {
-  const auth = await requireRole("STAFF");
+  const auth = await requireModuleEdit("matches");
   const parsed = updateMatchParticipantsSchema.safeParse({
     matchId: formData.get("matchId"),
     homePairId: formData.get("homePairId"),

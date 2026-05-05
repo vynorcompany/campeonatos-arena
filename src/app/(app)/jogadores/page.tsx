@@ -4,11 +4,11 @@ import { TournamentParticipantsForm } from "@/components/forms/tournament-partic
 import { PlayerActionsCell } from "@/components/players/player-actions-cell";
 import { SectionCard } from "@/components/section-card";
 import { updatePlayerPointsAction, updateTournamentEntryPointsAction } from "@/lib/actions/tournament";
-import { requireArenaAccess } from "@/lib/auth/session";
+import { requireModuleView } from "@/lib/auth/guards";
 import { getArenaDashboard } from "@/lib/services/tournament";
 
 export default async function PlayersPage() {
-  const auth = await requireArenaAccess();
+  const auth = await requireModuleView("players");
   const { players, activeTournament } = await getArenaDashboard(auth.arenaId);
   const activePlayers = players.filter((player) => player.active);
   const selectedPlayerIds = new Set(activeTournament?.entries.map((entry) => entry.playerId) ?? []);

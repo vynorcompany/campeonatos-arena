@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireRole } from "@/lib/auth/guards";
+import { requireModuleEdit } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
 const paymentMethods = ["PIX", "CREDIT_CARD", "DEBIT_CARD", "CASH", "OTHER"] as const;
@@ -60,7 +60,7 @@ function formatSaleCode() {
 }
 
 export async function createProductAction(formData: FormData) {
-  const auth = await requireRole("STAFF");
+  const auth = await requireModuleEdit("stock");
   const parsed = productSchema.safeParse({
     name: formData.get("name"),
     sku: formData.get("sku"),
@@ -104,7 +104,7 @@ export async function createProductAction(formData: FormData) {
 }
 
 export async function adjustStockAction(formData: FormData) {
-  const auth = await requireRole("STAFF");
+  const auth = await requireModuleEdit("stock");
   const parsed = stockSchema.safeParse({
     productId: formData.get("productId"),
     type: formData.get("type"),
@@ -163,7 +163,7 @@ export async function adjustStockAction(formData: FormData) {
 }
 
 export async function createSaleAction(formData: FormData) {
-  const auth = await requireRole("STAFF");
+  const auth = await requireModuleEdit("pos");
   const parsed = saleSchema.safeParse({
     productId: formData.get("productId"),
     quantity: formData.get("quantity"),
@@ -202,7 +202,7 @@ export async function createSaleAction(formData: FormData) {
 }
 
 export async function createCartSaleAction(formData: FormData) {
-  const auth = await requireRole("STAFF");
+  const auth = await requireModuleEdit("pos");
   const parsed = cartSaleSchema.safeParse({
     items: formData.get("items"),
     paymentMethod: formData.get("paymentMethod"),

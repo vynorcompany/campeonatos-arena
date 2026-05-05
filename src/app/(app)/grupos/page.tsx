@@ -1,7 +1,7 @@
 import { SectionCard } from "@/components/section-card";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { generateGroupsAction } from "@/lib/actions/tournament";
-import { requireArenaAccess } from "@/lib/auth/session";
+import { requireModuleView } from "@/lib/auth/guards";
 import { getArenaDashboard } from "@/lib/services/tournament";
 
 function formatScore(homeScore: number | null, awayScore: number | null) {
@@ -67,7 +67,7 @@ function getGroupStandings(pairs: GroupPair[], matches: GroupMatch[]) {
 }
 
 export default async function GroupsPage() {
-  const auth = await requireArenaAccess();
+  const auth = await requireModuleView("groups");
   const { activeTournament } = await getArenaDashboard(auth.arenaId);
   const isRoundRobinOnly = activeTournament?.groupCount === 1;
 

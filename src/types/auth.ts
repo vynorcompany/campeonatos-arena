@@ -3,6 +3,8 @@ export type ArenaMembership = {
   arenaName: string;
   arenaLogoUrl: string;
   arenaRole: ArenaRole;
+  viewPermissions: string[];
+  editPermissions: string[];
 };
 
 export type SystemRole = "SUPER_ADMIN" | "ADMIN" | "MANAGER" | "VIEWER";
