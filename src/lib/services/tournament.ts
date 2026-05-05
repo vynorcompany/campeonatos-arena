@@ -21,9 +21,25 @@ const matchStage = {
 
 type RankedPair = {
   pairId: string;
+  groupId: string;
+  groupName: string;
   groupDrawOrder: number;
   groupRank: number;
   overallRank: number;
+};
+
+type GroupStandingEntry = {
+  pairId: string;
+  pairName: string;
+  groupId: string;
+  groupName: string;
+  groupDrawOrder: number;
+  groupPairCount: number;
+  groupRank: number;
+  wins: number;
+  scoreDiff: number;
+  pointsFor: number;
+  totalPoints: number;
 };
 
 function getNextKnockoutTarget(label: string) {
@@ -135,7 +151,7 @@ async function clearKnockoutMatches(tx: Prisma.TransactionClient, tournamentId: 
   });
 }
 
-async function buildGroupStandings(tx: Prisma.TransactionClient, tournamentId: string) {
+async function buildGroupStandings(tx: Prisma.TransactionClient, tournamentId: string): Promise<GroupStandingEntry[]> {
   const groups = await tx.tournamentGroup.findMany({
     where: { tournamentId },
     include: {
@@ -200,7 +216,11 @@ async function buildGroupStandings(tx: Prisma.TransactionClient, tournamentId: s
       })
       .map((pair, index) => ({
         pairId: pair.pairId,
+        pairName: pair.pairName,
+        groupId: group.id,
+        groupName: group.name,
         groupDrawOrder: pair.groupDrawOrder,
+        groupPairCount: group.pairs.length,
         groupRank: index + 1,
         wins: pair.wins,
         scoreDiff: pair.scoreDiff,
@@ -209,7 +229,98 @@ async function buildGroupStandings(tx: Prisma.TransactionClient, tournamentId: s
       }));
   });
 
-  return standings
+  return standings;
+}
+
+function buildGroupQualificationMap(standings: GroupStandingEntry[], knockoutSize: number) {
+  const groups = new Map<
+    string,
+    {
+      groupId: string;
+      groupName: string;
+      drawOrder: number;
+      pairCount: number;
+      quota: number;
+    }
+  >();
+
+  for (const standing of standings) {
+    if (groups.has(standing.groupId)) {
+      continue;
+    }
+
+    groups.set(standing.groupId, {
+      groupId: standing.groupId,
+      groupName: standing.groupName,
+      drawOrder: standing.groupDrawOrder,
+      pairCount: standing.groupPairCount,
+      quota: 0
+    });
+  }
+
+  const orderedGroups = [...groups.values()].sort((a, b) => {
+    if (b.pairCount !== a.pairCount) return b.pairCount - a.pairCount;
+    return a.drawOrder - b.drawOrder;
+  });
+
+  if (!orderedGroups.length || knockoutSize <= 0) {
+    return groups;
+  }
+
+  const baseQuota = Math.floor(knockoutSize / orderedGroups.length);
+
+  for (const group of orderedGroups) {
+    group.quota = Math.min(group.pairCount, baseQuota);
+  }
+
+  let remainingSlots = knockoutSize - orderedGroups.reduce((total, group) => total + group.quota, 0);
+
+  while (remainingSlots > 0) {
+    let assignedInPass = false;
+
+    for (const group of orderedGroups) {
+      if (group.quota >= group.pairCount) {
+        continue;
+      }
+
+      group.quota += 1;
+      remainingSlots -= 1;
+      assignedInPass = true;
+
+      if (remainingSlots === 0) {
+        break;
+      }
+    }
+
+    if (!assignedInPass) {
+      break;
+    }
+  }
+
+  return groups;
+}
+
+async function buildQualifiedStandings(tx: Prisma.TransactionClient, tournamentId: string): Promise<RankedPair[]> {
+  const standings = await buildGroupStandings(tx, tournamentId);
+  const uniqueGroupCount = new Set(standings.map((entry) => entry.groupId)).size;
+  const knockoutSize = getKnockoutSize(uniqueGroupCount, standings.length);
+
+  if (knockoutSize === 0) {
+    return [];
+  }
+
+  const qualificationMap = buildGroupQualificationMap(standings, knockoutSize);
+  const qualifiedPairs = standings.filter((standing) => {
+    const qualification = qualificationMap.get(standing.groupId);
+
+    if (!qualification) {
+      return false;
+    }
+
+    return standing.groupRank <= qualification.quota;
+  });
+
+  return qualifiedPairs
     .sort((a, b) => {
       if (a.groupRank !== b.groupRank) return a.groupRank - b.groupRank;
       if (b.wins !== a.wins) return b.wins - a.wins;
@@ -220,6 +331,8 @@ async function buildGroupStandings(tx: Prisma.TransactionClient, tournamentId: s
     })
     .map((pair, index) => ({
       pairId: pair.pairId,
+      groupId: pair.groupId,
+      groupName: pair.groupName,
       groupDrawOrder: pair.groupDrawOrder,
       groupRank: pair.groupRank,
       overallRank: index + 1
@@ -239,7 +352,7 @@ async function seedKnockoutFromGroupStandings(tx: Prisma.TransactionClient, tour
     return;
   }
 
-  const standings = await buildGroupStandings(tx, tournamentId);
+  const standings = await buildQualifiedStandings(tx, tournamentId);
 
   await clearKnockoutMatches(tx, tournamentId);
 

@@ -201,28 +201,40 @@ export async function getTvPresentationPayload(arenaId: string) {
       })
     : null;
 
-  const ranking = await prisma.player.findMany({
-    where: {
-      arenaId,
-      active: true,
-      ...(selectedTournament
-        ? {
-            entries: {
-              some: {
-                tournamentId: selectedTournament.id
-              }
+  const ranking = selectedTournament
+    ? (await prisma.tournamentPlayer.findMany({
+        where: {
+          tournamentId: selectedTournament.id
+        },
+        orderBy: [{ tournamentPoints: "desc" }, { seedPoints: "desc" }, { player: { name: "asc" } }],
+        take: 8,
+        select: {
+          id: true,
+          tournamentPoints: true,
+          player: {
+            select: {
+              name: true
             }
           }
-        : {})
-    },
-    orderBy: [{ points: "desc" }, { name: "asc" }],
-    take: 8,
-    select: {
-      id: true,
-      name: true,
-      points: true
-    }
-  });
+        }
+      })).map((entry) => ({
+        id: entry.id,
+        name: entry.player.name,
+        points: entry.tournamentPoints
+      }))
+    : await prisma.player.findMany({
+        where: {
+          arenaId,
+          active: true
+        },
+        orderBy: [{ points: "desc" }, { name: "asc" }],
+        take: 8,
+        select: {
+          id: true,
+          name: true,
+          points: true
+        }
+      });
 
   return {
     matches,
