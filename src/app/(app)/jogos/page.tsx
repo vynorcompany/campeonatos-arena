@@ -13,6 +13,7 @@ import { getArenaDashboard } from "@/lib/services/tournament";
 
 const stageLabels: Record<string, string> = {
   GROUP: "Fase de grupos",
+  OCTOFINAL: "Oitavas de final",
   QUARTERFINAL: "Quartas de final",
   SEMIFINAL: "Semifinais",
   FINAL: "Final"
@@ -183,7 +184,7 @@ export default async function MatchesPage() {
   }
 
   const matches = activeTournament.matches;
-  const stageOrder = ["GROUP", "QUARTERFINAL", "SEMIFINAL", "FINAL"];
+  const stageOrder = ["GROUP", "OCTOFINAL", "QUARTERFINAL", "SEMIFINAL", "FINAL"];
   const currentStage = stageOrder.find((stage) =>
     matches.some((match) => match.stage === stage && match.winnerPairId === null)
   ) ?? (matches.length ? "GROUP" : "NONE");

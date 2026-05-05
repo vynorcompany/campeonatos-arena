@@ -13,6 +13,7 @@ const tournamentStatus = {
 
 const matchStage = {
   GROUP: "GROUP",
+  OCTOFINAL: "OCTOFINAL",
   QUARTERFINAL: "QUARTERFINAL",
   SEMIFINAL: "SEMIFINAL",
   FINAL: "FINAL"
@@ -26,6 +27,38 @@ type RankedPair = {
 };
 
 function getNextKnockoutTarget(label: string) {
+  if (label.startsWith("OF 1")) {
+    return { nextLabel: "QF 1 - Vencedor OF1 x Vencedor OF2", slot: "homePairId" as const };
+  }
+
+  if (label.startsWith("OF 2")) {
+    return { nextLabel: "QF 1 - Vencedor OF1 x Vencedor OF2", slot: "awayPairId" as const };
+  }
+
+  if (label.startsWith("OF 3")) {
+    return { nextLabel: "QF 2 - Vencedor OF3 x Vencedor OF4", slot: "homePairId" as const };
+  }
+
+  if (label.startsWith("OF 4")) {
+    return { nextLabel: "QF 2 - Vencedor OF3 x Vencedor OF4", slot: "awayPairId" as const };
+  }
+
+  if (label.startsWith("OF 5")) {
+    return { nextLabel: "QF 3 - Vencedor OF5 x Vencedor OF6", slot: "homePairId" as const };
+  }
+
+  if (label.startsWith("OF 6")) {
+    return { nextLabel: "QF 3 - Vencedor OF5 x Vencedor OF6", slot: "awayPairId" as const };
+  }
+
+  if (label.startsWith("OF 7")) {
+    return { nextLabel: "QF 4 - Vencedor OF7 x Vencedor OF8", slot: "homePairId" as const };
+  }
+
+  if (label.startsWith("OF 8")) {
+    return { nextLabel: "QF 4 - Vencedor OF7 x Vencedor OF8", slot: "awayPairId" as const };
+  }
+
   if (label.startsWith("QF 1")) {
     return { nextLabel: "SF 1 - Vencedor QF1 x Vencedor QF2", slot: "homePairId" as const };
   }
@@ -209,6 +242,44 @@ async function seedKnockoutFromGroupStandings(tx: Prisma.TransactionClient, tour
   const standings = await buildGroupStandings(tx, tournamentId);
 
   await clearKnockoutMatches(tx, tournamentId);
+
+  const octofinals = await tx.match.findMany({
+    where: {
+      tournamentId,
+      stage: matchStage.OCTOFINAL
+    },
+    orderBy: {
+      roundOrder: "asc"
+    }
+  });
+
+  if (octofinals.length) {
+    const seeds = [
+      [standings[0] ?? null, standings[15] ?? null],
+      [standings[7] ?? null, standings[8] ?? null],
+      [standings[4] ?? null, standings[11] ?? null],
+      [standings[3] ?? null, standings[12] ?? null],
+      [standings[2] ?? null, standings[13] ?? null],
+      [standings[5] ?? null, standings[10] ?? null],
+      [standings[6] ?? null, standings[9] ?? null],
+      [standings[1] ?? null, standings[14] ?? null]
+    ];
+
+    for (const [index, match] of octofinals.entries()) {
+      const homePairId = seeds[index]?.[0]?.pairId ?? null;
+      const awayPairId = seeds[index]?.[1]?.pairId ?? null;
+
+      await tx.match.update({
+        where: { id: match.id },
+        data: {
+          homePairId,
+          awayPairId
+        }
+      });
+    }
+
+    return;
+  }
 
   const quarterfinals = await tx.match.findMany({
     where: {
@@ -1062,8 +1133,8 @@ function getKnockoutSize(groupCount: number, pairCount: number) {
     return 2;
   }
 
-  if (groupCount <= 2) {
-    return 4;
+  if (pairCount >= 16) {
+    return 16;
   }
 
   if (pairCount >= 8) {
@@ -1078,6 +1149,26 @@ function buildKnockoutSkeleton(groupCount: number, pairCount: number) {
 
   if (knockoutSize === 0) {
     return [];
+  }
+
+  if (knockoutSize === 16) {
+    return [
+      { stage: matchStage.OCTOFINAL, label: "OF 1 - 1º geral x 16º geral", roundOrder: 1 },
+      { stage: matchStage.OCTOFINAL, label: "OF 2 - 8º geral x 9º geral", roundOrder: 2 },
+      { stage: matchStage.OCTOFINAL, label: "OF 3 - 5º geral x 12º geral", roundOrder: 3 },
+      { stage: matchStage.OCTOFINAL, label: "OF 4 - 4º geral x 13º geral", roundOrder: 4 },
+      { stage: matchStage.OCTOFINAL, label: "OF 5 - 3º geral x 14º geral", roundOrder: 5 },
+      { stage: matchStage.OCTOFINAL, label: "OF 6 - 6º geral x 11º geral", roundOrder: 6 },
+      { stage: matchStage.OCTOFINAL, label: "OF 7 - 7º geral x 10º geral", roundOrder: 7 },
+      { stage: matchStage.OCTOFINAL, label: "OF 8 - 2º geral x 15º geral", roundOrder: 8 },
+      { stage: matchStage.QUARTERFINAL, label: "QF 1 - Vencedor OF1 x Vencedor OF2", roundOrder: 9 },
+      { stage: matchStage.QUARTERFINAL, label: "QF 2 - Vencedor OF3 x Vencedor OF4", roundOrder: 10 },
+      { stage: matchStage.QUARTERFINAL, label: "QF 3 - Vencedor OF5 x Vencedor OF6", roundOrder: 11 },
+      { stage: matchStage.QUARTERFINAL, label: "QF 4 - Vencedor OF7 x Vencedor OF8", roundOrder: 12 },
+      { stage: matchStage.SEMIFINAL, label: "SF 1 - Vencedor QF1 x Vencedor QF2", roundOrder: 13 },
+      { stage: matchStage.SEMIFINAL, label: "SF 2 - Vencedor QF3 x Vencedor QF4", roundOrder: 14 },
+      { stage: matchStage.FINAL, label: "Final", roundOrder: 15 }
+    ];
   }
 
   if (knockoutSize === 8) {

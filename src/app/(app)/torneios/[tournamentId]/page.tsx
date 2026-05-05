@@ -9,6 +9,7 @@ import { getFinishedTournamentDetails } from "@/lib/services/tournament";
 
 const stageLabels: Record<string, string> = {
   GROUP: "Fase de grupos",
+  OCTOFINAL: "Mata-mata: oitavas",
   QUARTERFINAL: "Mata-mata: quartas",
   SEMIFINAL: "Mata-mata: semifinais",
   FINAL: "Mata-mata: final"
@@ -80,6 +81,7 @@ export default async function TournamentHistoryDetailPage({ params }: HistoryPag
 
   const groupedMatches = tournament.matches.filter((match) => match.stage === "GROUP");
   const knockoutMatches = tournament.matches.filter((match) => match.stage !== "GROUP");
+  const octofinals = knockoutMatches.filter((match) => match.stage === "OCTOFINAL");
   const quarterfinals = knockoutMatches.filter((match) => match.stage === "QUARTERFINAL");
   const semifinals = knockoutMatches.filter((match) => match.stage === "SEMIFINAL");
   const final = knockoutMatches.filter((match) => match.stage === "FINAL");
@@ -185,6 +187,7 @@ export default async function TournamentHistoryDetailPage({ params }: HistoryPag
       </SectionCard>
 
       {renderMatchSection("Resultados da fase de grupos", `${groupedMatches.length} jogo(s) registrados.`, groupedMatches)}
+      {renderMatchSection(stageLabels.OCTOFINAL, `${octofinals.length} jogo(s) registrados.`, octofinals)}
       {renderMatchSection(stageLabels.QUARTERFINAL, `${quarterfinals.length} jogo(s) registrados.`, quarterfinals)}
       {renderMatchSection(stageLabels.SEMIFINAL, `${semifinals.length} jogo(s) registrados.`, semifinals)}
       {renderMatchSection(stageLabels.FINAL, `${final.length} jogo(s) registrados.`, final)}

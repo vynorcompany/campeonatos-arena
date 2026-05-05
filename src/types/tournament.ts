@@ -6,4 +6,4 @@ export type TournamentStatus =
   | "IN_PROGRESS"
   | "FINISHED";
 
-export type MatchStage = "GROUP" | "QUARTERFINAL" | "SEMIFINAL" | "FINAL";
+export type MatchStage = "GROUP" | "OCTOFINAL" | "QUARTERFINAL" | "SEMIFINAL" | "FINAL";

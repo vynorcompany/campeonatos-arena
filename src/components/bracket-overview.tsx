@@ -40,8 +40,8 @@ function getKnockoutSize(groupCount: number, pairCount: number) {
     return 2;
   }
 
-  if (groupCount <= 2) {
-    return 4;
+  if (pairCount >= 16) {
+    return 16;
   }
 
   if (pairCount >= 8) {
@@ -53,14 +53,40 @@ function getKnockoutSize(groupCount: number, pairCount: number) {
 
 function createStagePlaceholders(groupCount: number, pairCount: number) {
   const knockoutSize = getKnockoutSize(groupCount, pairCount);
-  const quarterfinals =
-    knockoutSize === 8
-      ? ["QF 1 - 1º geral x 8º geral", "QF 2 - 4º geral x 5º geral", "QF 3 - 3º geral x 6º geral", "QF 4 - 2º geral x 7º geral"]
+  const octofinals =
+    knockoutSize === 16
+      ? [
+          "OF 1 - 1º geral x 16º geral",
+          "OF 2 - 8º geral x 9º geral",
+          "OF 3 - 5º geral x 12º geral",
+          "OF 4 - 4º geral x 13º geral",
+          "OF 5 - 3º geral x 14º geral",
+          "OF 6 - 6º geral x 11º geral",
+          "OF 7 - 7º geral x 10º geral",
+          "OF 8 - 2º geral x 15º geral"
+        ]
       : [];
+
+  const quarterfinals =
+    knockoutSize === 16
+      ? [
+          "QF 1 - Vencedor OF1 x Vencedor OF2",
+          "QF 2 - Vencedor OF3 x Vencedor OF4",
+          "QF 3 - Vencedor OF5 x Vencedor OF6",
+          "QF 4 - Vencedor OF7 x Vencedor OF8"
+        ]
+      : knockoutSize === 8
+        ? [
+            "QF 1 - 1º geral x 8º geral",
+            "QF 2 - 4º geral x 5º geral",
+            "QF 3 - 3º geral x 6º geral",
+            "QF 4 - 2º geral x 7º geral"
+          ]
+        : [];
 
   const semifinals =
     knockoutSize >= 4
-      ? knockoutSize === 8
+      ? knockoutSize >= 8
         ? ["SF 1 - Vencedor QF1 x Vencedor QF2", "SF 2 - Vencedor QF3 x Vencedor QF4"]
         : ["SF 1 - 1º geral x 4º geral", "SF 2 - 2º geral x 3º geral"]
       : [];
@@ -68,6 +94,7 @@ function createStagePlaceholders(groupCount: number, pairCount: number) {
   const final = knockoutSize > 0 ? ["Final"] : [];
 
   return {
+    octofinals,
     quarterfinals,
     semifinals,
     final
@@ -76,6 +103,7 @@ function createStagePlaceholders(groupCount: number, pairCount: number) {
 
 function groupMatchesByStage(matches: BracketMatch[]) {
   return {
+    octofinals: matches.filter((match) => match.stage === "OCTOFINAL"),
     quarterfinals: matches.filter((match) => match.stage === "QUARTERFINAL"),
     semifinals: matches.filter((match) => match.stage === "SEMIFINAL"),
     final: matches.filter((match) => match.stage === "FINAL")
@@ -86,6 +114,23 @@ export function BracketOverview({ groupCount, groups, matches }: BracketOverview
   const pairCount = groups.reduce((total, group) => total + group.pairs.length, 0);
   const placeholders = createStagePlaceholders(groupCount, pairCount);
   const stageMatches = groupMatchesByStage(matches);
+
+  const octofinals =
+    stageMatches.octofinals.length > 0
+      ? stageMatches.octofinals.map((match) => ({
+          id: match.id,
+          title: match.label,
+          lines: [match.homePair?.name ?? "A definir", match.awayPair?.name ?? "A definir"],
+          scores: [match.homeScore ?? null, match.awayScore ?? null],
+          winner: match.winnerPair?.name ?? null
+        }))
+      : placeholders.octofinals.map((label) => ({
+          id: label,
+          title: label,
+          lines: ["Classificação pendente", "Classificação pendente"],
+          scores: [null, null],
+          winner: null
+        }));
 
   const quarterfinals =
     stageMatches.quarterfinals.length > 0
@@ -179,10 +224,41 @@ export function BracketOverview({ groupCount, groups, matches }: BracketOverview
         </div>
       </div>
 
-      {quarterfinals.length ? (
+      {octofinals.length ? (
         <div className="bracket-stage bracket-stage-linked">
           <div className="bracket-stage-head">
             <p className="eyebrow">Fase 2</p>
+            <h3>Oitavas</h3>
+          </div>
+
+          <div className="bracket-column bracket-column-spaced">
+            {octofinals.map((match) => (
+              <article key={match.id} className="bracket-card">
+                <div className="bracket-card-head">
+                  <strong>{match.title}</strong>
+                </div>
+                <div className="bracket-card-body">
+                  {match.lines.map((line) => (
+                    <span key={line} className={`bracket-team${match.winner === line ? " bracket-team-winner" : ""}`}>
+                      {line}
+                    </span>
+                  ))}
+                  {match.scores[0] !== null && match.scores[1] !== null ? (
+                    <span className="bracket-meta">
+                      Placar: {match.scores[0]} x {match.scores[1]}
+                    </span>
+                  ) : null}
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {quarterfinals.length ? (
+        <div className="bracket-stage bracket-stage-linked">
+          <div className="bracket-stage-head">
+            <p className="eyebrow">{octofinals.length ? "Fase 3" : "Fase 2"}</p>
             <h3>Quartas</h3>
           </div>
 
@@ -213,7 +289,7 @@ export function BracketOverview({ groupCount, groups, matches }: BracketOverview
       {semifinals.length ? (
         <div className="bracket-stage bracket-stage-linked">
           <div className="bracket-stage-head">
-            <p className="eyebrow">Fase 3</p>
+            <p className="eyebrow">{octofinals.length ? "Fase 4" : "Fase 3"}</p>
             <h3>Semis</h3>
           </div>
 
