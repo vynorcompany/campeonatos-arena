@@ -226,6 +226,21 @@ export async function updatePlayerPointsAction(formData: FormData) {
   refreshTournamentRoutes();
 }
 
+export async function resetPlayerRankingAction() {
+  const auth = await requireModuleEdit("players");
+
+  await prisma.player.updateMany({
+    where: {
+      arenaId: auth.arenaId
+    },
+    data: {
+      points: 0
+    }
+  });
+
+  refreshTournamentRoutes();
+}
+
 export async function updateTournamentEntryPointsAction(formData: FormData) {
   const auth = await requireModuleEdit("tournaments");
   const parsed = updateTournamentEntryPointsSchema.safeParse({

@@ -43,6 +43,14 @@ export function TournamentForm() {
           <option value="6">6 duplas</option>
           <option value="7">7 duplas</option>
           <option value="8">8 duplas</option>
+          <option value="9">9 duplas</option>
+          <option value="10">10 duplas</option>
+          <option value="11">11 duplas</option>
+          <option value="12">12 duplas</option>
+          <option value="13">13 duplas</option>
+          <option value="14">14 duplas</option>
+          <option value="15">15 duplas</option>
+          <option value="16">16 duplas</option>
         </select>
       </div>
 

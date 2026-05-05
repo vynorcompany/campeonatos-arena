@@ -178,7 +178,10 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
           href: "/proximos-jogos",
           label: "Tela da TV",
           icon: "tv",
-          children: [{ href: "/proximos-jogos/tv", label: "Abrir TV" }]
+          children: [
+            { href: "/proximos-jogos/apresentacao", label: "Configurar slides" },
+            { href: "/proximos-jogos/tv", label: "Abrir TV" }
+          ]
         }
       ]
     },
@@ -242,6 +245,7 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
     "/grupos": "groups",
     "/jogos": "matches",
     "/proximos-jogos": "tv",
+    "/proximos-jogos/apresentacao": "tv",
     "/proximos-jogos/tv": "tv",
     "/calendario": "calendar",
     "/aulas": "lessons",

@@ -80,6 +80,8 @@ model Arena {
   financialEntries FinancialEntry[]
   payrollEntries TeacherPayrollEntry[]
   supportTickets SupportTicket[]
+  tvPresentationSettings TvPresentationSettings?
+  tvSponsors    TvSponsor[]
 }
 
 model SupportTicket {
@@ -267,11 +269,47 @@ model ManualUpcomingMatch {
   awayPairName String   @default("")
   courtName    String   @default("")
   scheduledTime String   @default("")
+  status       String   @default("SCHEDULED")
   displayOrder Int
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   arenaId      String
   arena        Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+
+  @@index([arenaId, displayOrder])
+}
+
+model TvPresentationSettings {
+  id                     String   @id @default(cuid())
+  slideIntervalSeconds   Int      @default(12)
+  selectedTournamentId   String?
+  showMatches            Boolean  @default(true)
+  showSponsors           Boolean  @default(false)
+  showRanking            Boolean  @default(false)
+  showMonthlyPrize       Boolean  @default(false)
+  showNightWinner        Boolean  @default(false)
+  monthlyPrizeTitle      String   @default("Premiacao mensal")
+  monthlyPrizeAmount     String   @default("1° - R$200 em credito da arena")
+  monthlyPrizeDescription String  @default("2° - Um tubo de bolinha + R$50 em credito da arena | 3° - Um grip + R$25 em credito")
+  nightWinnerTitle       String   @default("Vencedor da noite")
+  nightWinnerName        String   @default("Super 12")
+  nightWinnerDescription String   @default("Ganha uma vaga cortesia para o Super 12 da proxima semana. O uso e obrigatorio na semana seguinte.")
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  arenaId                String   @unique
+  arena                  Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+}
+
+model TvSponsor {
+  id          String   @id @default(cuid())
+  name        String
+  subtitle    String   @default("")
+  logoUrl     String   @default("")
+  displayOrder Int     @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  arenaId     String
+  arena       Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
 
   @@index([arenaId, displayOrder])
 }

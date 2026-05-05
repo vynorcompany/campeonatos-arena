@@ -1,0 +1,5 @@
+ALTER TABLE "TvPresentationSettings"
+ADD COLUMN "showMatches" BOOLEAN NOT NULL DEFAULT true;
+
+ALTER TABLE "TvSponsor"
+ADD COLUMN "logoUrl" TEXT NOT NULL DEFAULT '';

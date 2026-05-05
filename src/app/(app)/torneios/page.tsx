@@ -69,7 +69,7 @@ export default async function TournamentsPage() {
                   <span>{statusLabels[activeTournament.status]}</span>
                 </div>
                 <div className="simple-item">
-                <strong>Grupos previstos</strong>
+                  <strong>Grupos previstos</strong>
                   <span>{isRoundRobinOnly ? "Todos contra todos" : activeTournament.groupCount}</span>
                 </div>
                 <div className="simple-item">
@@ -137,6 +137,19 @@ export default async function TournamentsPage() {
           )}
         </SectionCard>
       </div>
+
+      <SectionCard
+        title="Regras de pontuação do torneio"
+        description="Estas regras valem para a pontuação dos torneios e para a evolução do ranking. Elas não aparecem na TV."
+      >
+        <div className="tv-ranking-preview">
+          <div className="tv-ranking-preview-row"><strong>1º lugar</strong><span>Campeão</span><small>200 pts</small></div>
+          <div className="tv-ranking-preview-row"><strong>2º lugar</strong><span>Vice-campeão</span><small>140 pts</small></div>
+          <div className="tv-ranking-preview-row"><strong>Semifinal</strong><span>SF</span><small>90 pts</small></div>
+          <div className="tv-ranking-preview-row"><strong>Quartas de final</strong><span>QF</span><small>50 pts</small></div>
+          <div className="tv-ranking-preview-row"><strong>Participação</strong><span>Entrada no torneio</span><small>20 pts</small></div>
+        </div>
+      </SectionCard>
 
       {activeTournament ? (
         <SectionCard

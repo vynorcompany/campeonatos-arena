@@ -3,7 +3,7 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { TournamentParticipantsForm } from "@/components/forms/tournament-participants-form";
 import { PlayerActionsCell } from "@/components/players/player-actions-cell";
 import { SectionCard } from "@/components/section-card";
-import { updatePlayerPointsAction, updateTournamentEntryPointsAction } from "@/lib/actions/tournament";
+import { resetPlayerRankingAction, updatePlayerPointsAction, updateTournamentEntryPointsAction } from "@/lib/actions/tournament";
 import { requireModuleView } from "@/lib/auth/guards";
 import { getArenaDashboard } from "@/lib/services/tournament";
 
@@ -23,6 +23,11 @@ export default async function PlayersPage() {
             Cadastre jogadores, escolha quem vai jogar no torneio atual e ajuste as pontuações usadas na competição.
           </p>
         </div>
+        <form action={resetPlayerRankingAction}>
+          <button type="submit" className="button button-danger">
+            Resetar pontuação
+          </button>
+        </form>
       </header>
 
       <SectionCard
@@ -50,7 +55,7 @@ export default async function PlayersPage() {
           </SectionCard>
 
           <SectionCard
-            title={`Configuração do torneio: ${activeTournament.name}`}
+            title={`Configuracao do torneio: ${activeTournament.name}`}
             description="A pontuação do torneio começa zerada. Ajuste a força inicial usada para montar duplas e grupos."
           >
             {activeTournament.entries.length ? (
@@ -60,9 +65,9 @@ export default async function PlayersPage() {
                     <th>Pos.</th>
                     <th>Jogador</th>
                     <th>Pontos no torneio</th>
-                    <th>Força inicial</th>
+                    <th>Forca inicial</th>
                     <th>Pontos no cadastro</th>
-                    <th>Ajustar força</th>
+                    <th>Ajustar forca</th>
                   </tr>
                 </thead>
                 <tbody>

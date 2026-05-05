@@ -8,17 +8,23 @@ import {
   updateManualUpcomingMatchAction
 } from "@/lib/actions/upcoming-match";
 import { requireModuleView } from "@/lib/auth/guards";
-import { prisma } from "@/lib/prisma";
+import { getManualUpcomingMatchesPayload } from "@/lib/services/tv-presentation";
 
 const courtOptions = ["Agecon", "Elaine", "Origem"];
+const statusOptions = [
+  { value: "SCHEDULED", label: "Agendado" },
+  { value: "LIVE", label: "Em andamento" },
+  { value: "FINISHED", label: "Encerrado" }
+];
 
-function formatMatchLine(match: { homePairName: string; awayPairName: string; courtName: string; scheduledTime: string }) {
+function formatMatchLine(match: { homePairName: string; awayPairName: string; courtName: string; scheduledTime: string; status: string }) {
   const homePairName = match.homePairName.trim() || "DUPLA 1";
   const awayPairName = match.awayPairName.trim() || "DUPLA 2";
   const courtName = match.courtName.trim() || "QUADRA A DEFINIR";
-  const scheduledTime = match.scheduledTime.trim() || "HORARIO A DEFINIR";
+  const scheduledTime = match.scheduledTime.trim() || "HORÁRIO A DEFINIR";
+  const statusLabel = statusOptions.find((option) => option.value === match.status)?.label ?? "Agendado";
 
-  return `${scheduledTime} - ${homePairName} VS ${awayPairName} - ${courtName}`;
+  return `${statusLabel} - ${scheduledTime} - ${homePairName} VS ${awayPairName} - ${courtName}`;
 }
 
 function CourtSelect({ id, defaultValue }: { id: string; defaultValue?: string }) {
@@ -33,27 +39,27 @@ function CourtSelect({ id, defaultValue }: { id: string; defaultValue?: string }
   );
 }
 
+function StatusSelect({ id, defaultValue }: { id: string; defaultValue?: string }) {
+  return (
+    <select id={id} name="status" defaultValue={defaultValue ?? "SCHEDULED"}>
+      {statusOptions.map((status) => (
+        <option key={status.value} value={status.value}>
+          {status.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 export default async function UpcomingMatchesPage() {
   const auth = await requireModuleView("tv");
-  const manualMatches = await prisma.manualUpcomingMatch.findMany({
-    where: {
-      arenaId: auth.arenaId
-    },
-    orderBy: [
-      {
-        displayOrder: "asc"
-      },
-      {
-        createdAt: "asc"
-      }
-    ]
-  });
+  const manualMatches = await getManualUpcomingMatchesPayload(auth.arenaId);
 
   return (
     <div className="stack-md">
       <header className="page-header page-header-showcase">
         <div className="stack-xs">
-          <p className="eyebrow">Apresentacao</p>
+          <p className="eyebrow">Apresentação</p>
           <h1>Próximos jogos</h1>
           <p className="muted">
             Monte manualmente a fila do fim de semana com dupla 1, dupla 2 e quadra para cada jogo.
@@ -64,9 +70,14 @@ export default async function UpcomingMatchesPage() {
       <section className="manual-upcoming-preview" aria-label="Prévia dos próximos jogos">
         <div className="manual-upcoming-preview-head">
           <p className="manual-upcoming-title">PROXIMOS JOGOS</p>
-          <Link href="/proximos-jogos/tv" className="button button-primary" target="_blank" rel="noreferrer">
-            Abrir tela da TV
-          </Link>
+          <div className="manual-upcoming-preview-actions">
+            <Link href="/proximos-jogos/apresentacao" className="button">
+              Configurar slides
+            </Link>
+            <Link href="/proximos-jogos/tv" className="button button-primary" target="_blank" rel="noreferrer">
+              Abrir tela da TV
+            </Link>
+          </div>
         </div>
         {manualMatches.length ? (
           <div className="manual-upcoming-lines">
@@ -101,6 +112,10 @@ export default async function UpcomingMatchesPage() {
               <label htmlFor="new-court">Quadra</label>
               <CourtSelect id="new-court" />
             </div>
+            <div className="field">
+              <label htmlFor="new-status">Status</label>
+              <StatusSelect id="new-status" />
+            </div>
             <div className="manual-upcoming-submit">
               <SubmitButton label="Adicionar" pendingLabel="Salvando..." className="button button-primary" />
             </div>
@@ -124,12 +139,16 @@ export default async function UpcomingMatchesPage() {
                     <input id={`${match.id}-away`} name="awayPairName" type="text" defaultValue={match.awayPairName} />
                   </div>
                   <div className="field">
-                    <label htmlFor={`${match.id}-scheduled-time`}>Horário</label>
+                    <label htmlFor={`${match.id}-scheduled-time`}>Horario</label>
                     <TimePickerInput id={`${match.id}-scheduled-time`} name="scheduledTime" defaultValue={match.scheduledTime} />
                   </div>
                   <div className="field">
                     <label htmlFor={`${match.id}-court`}>Quadra</label>
                     <CourtSelect id={`${match.id}-court`} defaultValue={match.courtName} />
+                  </div>
+                  <div className="field">
+                    <label htmlFor={`${match.id}-status`}>Status</label>
+                    <StatusSelect id={`${match.id}-status`} defaultValue={match.status} />
                   </div>
                   <div className="manual-upcoming-actions">
                     <SubmitButton label="Salvar" pendingLabel="..." className="button button-primary" />
