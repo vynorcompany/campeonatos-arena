@@ -42,6 +42,63 @@ type GroupStandingEntry = {
   totalPoints: number;
 };
 
+function getGroupLabelByOrder(drawOrder: number) {
+  return `Grupo ${String.fromCharCode(64 + drawOrder)}`;
+}
+
+function shouldUsePairedGroupSeeding(groupCount: number, knockoutSize: number) {
+  return groupCount > 1 && groupCount % 2 === 0 && knockoutSize === groupCount * 2;
+}
+
+function buildPairedGroupMatchLabels(groupCount: number, stagePrefix: "OF" | "QF" | "SF") {
+  const labels: string[] = [];
+  let matchNumber = 1;
+
+  for (let groupIndex = 1; groupIndex <= groupCount; groupIndex += 2) {
+    const firstGroup = getGroupLabelByOrder(groupIndex);
+    const secondGroup = getGroupLabelByOrder(groupIndex + 1);
+
+    labels.push(`${stagePrefix} ${matchNumber} - 1º ${firstGroup} x 2º ${secondGroup}`);
+    matchNumber += 1;
+    labels.push(`${stagePrefix} ${matchNumber} - 1º ${secondGroup} x 2º ${firstGroup}`);
+    matchNumber += 1;
+  }
+
+  return labels;
+}
+
+function buildPairedGroupSeeds(standings: RankedPair[]) {
+  const groupedStandings = new Map<number, RankedPair[]>();
+
+  for (const standing of standings) {
+    const currentGroup = groupedStandings.get(standing.groupDrawOrder) ?? [];
+    currentGroup.push(standing);
+    groupedStandings.set(standing.groupDrawOrder, currentGroup);
+  }
+
+  const orderedGroups = [...groupedStandings.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([, groupStandings]) => groupStandings.sort((a, b) => a.groupRank - b.groupRank));
+
+  const seeds: Array<[RankedPair | null, RankedPair | null]> = [];
+
+  for (let index = 0; index < orderedGroups.length; index += 2) {
+    const firstGroup = orderedGroups[index] ?? [];
+    const secondGroup = orderedGroups[index + 1] ?? [];
+
+    seeds.push([
+      firstGroup.find((entry) => entry.groupRank === 1) ?? null,
+      secondGroup.find((entry) => entry.groupRank === 2) ?? null
+    ]);
+    seeds.push([
+      secondGroup.find((entry) => entry.groupRank === 1) ?? null,
+      firstGroup.find((entry) => entry.groupRank === 2) ?? null
+    ]);
+  }
+
+  return seeds;
+}
+
 function getNextKnockoutTarget(label: string) {
   if (label.startsWith("OF 1")) {
     return { nextLabel: "QF 1 - Vencedor OF1 x Vencedor OF2", slot: "homePairId" as const };
@@ -100,6 +157,208 @@ function getNextKnockoutTarget(label: string) {
   }
 
   return null;
+}
+
+const rankingStageKey = {
+  CHAMPION: "CHAMPION",
+  RUNNER_UP: "RUNNER_UP",
+  SEMIFINAL: "SEMIFINAL",
+  QUARTERFINAL: "QUARTERFINAL",
+  PARTICIPATION: "PARTICIPATION"
+} as const;
+
+function getMatchLoserPairId(match: {
+  homePairId: string | null;
+  awayPairId: string | null;
+  winnerPairId: string | null;
+}) {
+  if (!match.homePairId || !match.awayPairId || !match.winnerPairId) {
+    return null;
+  }
+
+  if (match.winnerPairId === match.homePairId) {
+    return match.awayPairId;
+  }
+
+  if (match.winnerPairId === match.awayPairId) {
+    return match.homePairId;
+  }
+
+  return null;
+}
+
+function buildRankingRuleMap(
+  rules: Array<{
+    stageKey: string;
+    points: number;
+  }>
+) {
+  return {
+    [rankingStageKey.CHAMPION]: rules.find((rule) => rule.stageKey === rankingStageKey.CHAMPION)?.points ?? 0,
+    [rankingStageKey.RUNNER_UP]: rules.find((rule) => rule.stageKey === rankingStageKey.RUNNER_UP)?.points ?? 0,
+    [rankingStageKey.SEMIFINAL]: rules.find((rule) => rule.stageKey === rankingStageKey.SEMIFINAL)?.points ?? 0,
+    [rankingStageKey.QUARTERFINAL]: rules.find((rule) => rule.stageKey === rankingStageKey.QUARTERFINAL)?.points ?? 0,
+    [rankingStageKey.PARTICIPATION]: rules.find((rule) => rule.stageKey === rankingStageKey.PARTICIPATION)?.points ?? 0
+  };
+}
+
+async function recalculateTournamentRankingPointsTx(tx: Prisma.TransactionClient, tournamentId: string) {
+  const tournament = await tx.tournament.findUnique({
+    where: { id: tournamentId },
+    select: {
+      ranking: {
+        select: {
+          rules: {
+            select: {
+              stageKey: true,
+              points: true
+            }
+          }
+        }
+      },
+      pairs: {
+        select: {
+          id: true,
+          players: {
+            select: {
+              playerId: true
+            }
+          }
+        }
+      },
+      matches: {
+        select: {
+          stage: true,
+          homePairId: true,
+          awayPairId: true,
+          winnerPairId: true
+        }
+      }
+    }
+  });
+
+  if (!tournament) {
+    return;
+  }
+
+  if (!tournament.ranking) {
+    await tx.tournamentPlayer.updateMany({
+      where: { tournamentId },
+      data: {
+        tournamentPoints: 0
+      }
+    });
+    return;
+  }
+
+  const ruleMap = buildRankingRuleMap(tournament.ranking.rules);
+  const playerIdsByPairId = new Map(
+    tournament.pairs.map((pair) => [pair.id, pair.players.map((pairPlayer) => pairPlayer.playerId)])
+  );
+
+  await tx.tournamentPlayer.updateMany({
+    where: { tournamentId },
+    data: {
+      tournamentPoints: ruleMap.PARTICIPATION
+    }
+  });
+
+  const quarterfinalLosers = new Set<string>();
+  const semifinalLosers = new Set<string>();
+  const runnerUpPlayers = new Set<string>();
+  const championPlayers = new Set<string>();
+
+  for (const match of tournament.matches) {
+    const loserPairId = getMatchLoserPairId(match);
+
+    if (match.stage === matchStage.QUARTERFINAL && loserPairId) {
+      for (const playerId of playerIdsByPairId.get(loserPairId) ?? []) {
+        quarterfinalLosers.add(playerId);
+      }
+    }
+
+    if (match.stage === matchStage.SEMIFINAL && loserPairId) {
+      for (const playerId of playerIdsByPairId.get(loserPairId) ?? []) {
+        semifinalLosers.add(playerId);
+      }
+    }
+
+    if (match.stage === matchStage.FINAL) {
+      if (loserPairId) {
+        for (const playerId of playerIdsByPairId.get(loserPairId) ?? []) {
+          runnerUpPlayers.add(playerId);
+        }
+      }
+
+      if (match.winnerPairId) {
+        for (const playerId of playerIdsByPairId.get(match.winnerPairId) ?? []) {
+          championPlayers.add(playerId);
+        }
+      }
+    }
+  }
+
+  if (quarterfinalLosers.size) {
+    await tx.tournamentPlayer.updateMany({
+      where: {
+        tournamentId,
+        playerId: {
+          in: [...quarterfinalLosers]
+        }
+      },
+      data: {
+        tournamentPoints: ruleMap.QUARTERFINAL
+      }
+    });
+  }
+
+  if (semifinalLosers.size) {
+    await tx.tournamentPlayer.updateMany({
+      where: {
+        tournamentId,
+        playerId: {
+          in: [...semifinalLosers]
+        }
+      },
+      data: {
+        tournamentPoints: ruleMap.SEMIFINAL
+      }
+    });
+  }
+
+  if (runnerUpPlayers.size) {
+    await tx.tournamentPlayer.updateMany({
+      where: {
+        tournamentId,
+        playerId: {
+          in: [...runnerUpPlayers]
+        }
+      },
+      data: {
+        tournamentPoints: ruleMap.RUNNER_UP
+      }
+    });
+  }
+
+  if (championPlayers.size) {
+    await tx.tournamentPlayer.updateMany({
+      where: {
+        tournamentId,
+        playerId: {
+          in: [...championPlayers]
+        }
+      },
+      data: {
+        tournamentPoints: ruleMap.CHAMPION
+      }
+    });
+  }
+}
+
+export async function recalculateTournamentRankingPoints(tournamentId: string) {
+  await prisma.$transaction(async (tx) => {
+    await recalculateTournamentRankingPointsTx(tx, tournamentId);
+  });
 }
 
 async function clearFollowingMatches(tx: Prisma.TransactionClient, tournamentId: string, label: string) {
@@ -353,6 +612,7 @@ async function seedKnockoutFromGroupStandings(tx: Prisma.TransactionClient, tour
   }
 
   const standings = await buildQualifiedStandings(tx, tournamentId);
+  const groupCount = new Set(standings.map((entry) => entry.groupId)).size;
 
   await clearKnockoutMatches(tx, tournamentId);
 
@@ -367,16 +627,18 @@ async function seedKnockoutFromGroupStandings(tx: Prisma.TransactionClient, tour
   });
 
   if (octofinals.length) {
-    const seeds = [
-      [standings[0] ?? null, standings[15] ?? null],
-      [standings[7] ?? null, standings[8] ?? null],
-      [standings[4] ?? null, standings[11] ?? null],
-      [standings[3] ?? null, standings[12] ?? null],
-      [standings[2] ?? null, standings[13] ?? null],
-      [standings[5] ?? null, standings[10] ?? null],
-      [standings[6] ?? null, standings[9] ?? null],
-      [standings[1] ?? null, standings[14] ?? null]
-    ];
+    const seeds = shouldUsePairedGroupSeeding(groupCount, 16)
+      ? buildPairedGroupSeeds(standings)
+      : [
+          [standings[0] ?? null, standings[15] ?? null],
+          [standings[7] ?? null, standings[8] ?? null],
+          [standings[4] ?? null, standings[11] ?? null],
+          [standings[3] ?? null, standings[12] ?? null],
+          [standings[2] ?? null, standings[13] ?? null],
+          [standings[5] ?? null, standings[10] ?? null],
+          [standings[6] ?? null, standings[9] ?? null],
+          [standings[1] ?? null, standings[14] ?? null]
+        ];
 
     for (const [index, match] of octofinals.entries()) {
       const homePairId = seeds[index]?.[0]?.pairId ?? null;
@@ -405,12 +667,14 @@ async function seedKnockoutFromGroupStandings(tx: Prisma.TransactionClient, tour
   });
 
   if (quarterfinals.length) {
-    const seeds = [
-      [standings[0] ?? null, standings[7] ?? null],
-      [standings[3] ?? null, standings[4] ?? null],
-      [standings[2] ?? null, standings[5] ?? null],
-      [standings[1] ?? null, standings[6] ?? null]
-    ];
+    const seeds = shouldUsePairedGroupSeeding(groupCount, 8)
+      ? buildPairedGroupSeeds(standings)
+      : [
+          [standings[0] ?? null, standings[7] ?? null],
+          [standings[3] ?? null, standings[4] ?? null],
+          [standings[2] ?? null, standings[5] ?? null],
+          [standings[1] ?? null, standings[6] ?? null]
+        ];
 
     for (const [index, match] of quarterfinals.entries()) {
       const homePairId = seeds[index]?.[0]?.pairId ?? null;
@@ -439,10 +703,12 @@ async function seedKnockoutFromGroupStandings(tx: Prisma.TransactionClient, tour
   });
 
   if (semifinals.length) {
-    const seeds = [
-      [standings[0] ?? null, standings[3] ?? null],
-      [standings[1] ?? null, standings[2] ?? null]
-    ];
+    const seeds = shouldUsePairedGroupSeeding(groupCount, 4)
+      ? buildPairedGroupSeeds(standings)
+      : [
+          [standings[0] ?? null, standings[3] ?? null],
+          [standings[1] ?? null, standings[2] ?? null]
+        ];
 
     for (const [index, match] of semifinals.entries()) {
       const homePairId = seeds[index]?.[0]?.pairId ?? null;
@@ -541,6 +807,7 @@ export async function getArenaDashboard(arenaId: string) {
       createdAt: "desc"
     },
     include: {
+      ranking: true,
       entries: {
         include: {
           player: true
@@ -846,6 +1113,8 @@ export async function syncTournamentEntries(tournamentId: string, arenaId: strin
             : tournament.status
       }
     });
+
+    await recalculateTournamentRankingPointsTx(tx, tournamentId);
   });
 
   return players.length;
@@ -931,6 +1200,8 @@ export async function generateTournamentPairs(tournamentId: string) {
         status: tournamentStatus.READY_FOR_DRAW
       }
     });
+
+    await recalculateTournamentRankingPointsTx(tx, tournamentId);
   });
 
   return {
@@ -1024,6 +1295,8 @@ export async function createTournamentPair(tournamentId: string, playerAId: stri
         status: tournamentStatus.READY_FOR_DRAW
       }
     });
+
+    await recalculateTournamentRankingPointsTx(tx, tournamentId);
   });
 
   return true;
@@ -1129,6 +1402,8 @@ export async function updateTournamentPair(pairId: string, arenaId: string, play
         status: tournamentStatus.READY_FOR_DRAW
       }
     });
+
+    await recalculateTournamentRankingPointsTx(tx, pair.tournamentId);
   });
 
   return true;
@@ -1170,6 +1445,8 @@ export async function deleteTournamentPair(pairId: string, arenaId: string) {
         status: tournamentStatus.READY_FOR_DRAW
       }
     });
+
+    await recalculateTournamentRankingPointsTx(tx, pair.tournamentId);
   });
 
   return true;
@@ -1232,6 +1509,8 @@ export async function distributeTournamentGroups(tournamentId: string) {
         status: tournamentStatus.GROUPS_DEFINED
       }
     });
+
+    await recalculateTournamentRankingPointsTx(tx, tournamentId);
   });
 
   return groups.length;
@@ -1259,21 +1538,32 @@ function getKnockoutSize(groupCount: number, pairCount: number) {
 
 function buildKnockoutSkeleton(groupCount: number, pairCount: number) {
   const knockoutSize = getKnockoutSize(groupCount, pairCount);
+  const usePairedGroupSeeding = shouldUsePairedGroupSeeding(groupCount, knockoutSize);
 
   if (knockoutSize === 0) {
     return [];
   }
 
   if (knockoutSize === 16) {
+    const octofinalLabels = usePairedGroupSeeding
+      ? buildPairedGroupMatchLabels(groupCount, "OF")
+      : [
+          "OF 1 - 1º geral x 16º geral",
+          "OF 2 - 8º geral x 9º geral",
+          "OF 3 - 5º geral x 12º geral",
+          "OF 4 - 4º geral x 13º geral",
+          "OF 5 - 3º geral x 14º geral",
+          "OF 6 - 6º geral x 11º geral",
+          "OF 7 - 7º geral x 10º geral",
+          "OF 8 - 2º geral x 15º geral"
+        ];
+
     return [
-      { stage: matchStage.OCTOFINAL, label: "OF 1 - 1º geral x 16º geral", roundOrder: 1 },
-      { stage: matchStage.OCTOFINAL, label: "OF 2 - 8º geral x 9º geral", roundOrder: 2 },
-      { stage: matchStage.OCTOFINAL, label: "OF 3 - 5º geral x 12º geral", roundOrder: 3 },
-      { stage: matchStage.OCTOFINAL, label: "OF 4 - 4º geral x 13º geral", roundOrder: 4 },
-      { stage: matchStage.OCTOFINAL, label: "OF 5 - 3º geral x 14º geral", roundOrder: 5 },
-      { stage: matchStage.OCTOFINAL, label: "OF 6 - 6º geral x 11º geral", roundOrder: 6 },
-      { stage: matchStage.OCTOFINAL, label: "OF 7 - 7º geral x 10º geral", roundOrder: 7 },
-      { stage: matchStage.OCTOFINAL, label: "OF 8 - 2º geral x 15º geral", roundOrder: 8 },
+      ...octofinalLabels.map((label, index) => ({
+        stage: matchStage.OCTOFINAL,
+        label,
+        roundOrder: index + 1
+      })),
       { stage: matchStage.QUARTERFINAL, label: "QF 1 - Vencedor OF1 x Vencedor OF2", roundOrder: 9 },
       { stage: matchStage.QUARTERFINAL, label: "QF 2 - Vencedor OF3 x Vencedor OF4", roundOrder: 10 },
       { stage: matchStage.QUARTERFINAL, label: "QF 3 - Vencedor OF5 x Vencedor OF6", roundOrder: 11 },
@@ -1285,11 +1575,21 @@ function buildKnockoutSkeleton(groupCount: number, pairCount: number) {
   }
 
   if (knockoutSize === 8) {
+    const quarterfinalLabels = usePairedGroupSeeding
+      ? buildPairedGroupMatchLabels(groupCount, "QF")
+      : [
+          "QF 1 - 1º geral x 8º geral",
+          "QF 2 - 4º geral x 5º geral",
+          "QF 3 - 3º geral x 6º geral",
+          "QF 4 - 2º geral x 7º geral"
+        ];
+
     return [
-      { stage: matchStage.QUARTERFINAL, label: "QF 1 - 1º geral x 8º geral", roundOrder: 1 },
-      { stage: matchStage.QUARTERFINAL, label: "QF 2 - 4º geral x 5º geral", roundOrder: 2 },
-      { stage: matchStage.QUARTERFINAL, label: "QF 3 - 3º geral x 6º geral", roundOrder: 3 },
-      { stage: matchStage.QUARTERFINAL, label: "QF 4 - 2º geral x 7º geral", roundOrder: 4 },
+      ...quarterfinalLabels.map((label, index) => ({
+        stage: matchStage.QUARTERFINAL,
+        label,
+        roundOrder: index + 1
+      })),
       { stage: matchStage.SEMIFINAL, label: "SF 1 - Vencedor QF1 x Vencedor QF2", roundOrder: 5 },
       { stage: matchStage.SEMIFINAL, label: "SF 2 - Vencedor QF3 x Vencedor QF4", roundOrder: 6 },
       { stage: matchStage.FINAL, label: "Final", roundOrder: 7 }
@@ -1297,9 +1597,19 @@ function buildKnockoutSkeleton(groupCount: number, pairCount: number) {
   }
 
   if (knockoutSize === 4) {
+    const semifinalLabels = usePairedGroupSeeding
+      ? buildPairedGroupMatchLabels(groupCount, "SF")
+      : [
+          "SF 1 - 1º geral x 4º geral",
+          "SF 2 - 2º geral x 3º geral"
+        ];
+
     return [
-      { stage: matchStage.SEMIFINAL, label: "SF 1 - 1º geral x 4º geral", roundOrder: 1 },
-      { stage: matchStage.SEMIFINAL, label: "SF 2 - 2º geral x 3º geral", roundOrder: 2 },
+      ...semifinalLabels.map((label, index) => ({
+        stage: matchStage.SEMIFINAL,
+        label,
+        roundOrder: index + 1
+      })),
       { stage: matchStage.FINAL, label: "Final", roundOrder: 3 }
     ];
   }
@@ -1379,6 +1689,8 @@ export async function generateTournamentMatches(tournamentId: string) {
         status: tournamentStatus.MATCHES_DEFINED
       }
     });
+
+    await recalculateTournamentRankingPointsTx(tx, tournamentId);
   });
 
   return true;
@@ -1420,6 +1732,135 @@ export async function deleteTournament(tournamentId: string, arenaId: string) {
   return true;
 }
 
+export async function moveTournamentPairToGroup(pairId: string, targetGroupId: string, arenaId: string) {
+  const pair = await prisma.pair.findFirst({
+    where: {
+      id: pairId,
+      tournament: {
+        arenaId
+      }
+    },
+    select: {
+      id: true,
+      tournamentId: true,
+      groupId: true
+    }
+  });
+
+  if (!pair) {
+    throw new Error("Dupla não encontrada.");
+  }
+
+  const targetGroup = await prisma.tournamentGroup.findFirst({
+    where: {
+      id: targetGroupId,
+      tournamentId: pair.tournamentId,
+      tournament: {
+        arenaId
+      }
+    },
+    select: {
+      id: true
+    }
+  });
+
+  if (!targetGroup) {
+    throw new Error("Grupo de destino não encontrado.");
+  }
+
+  if (pair.groupId === targetGroup.id) {
+    return true;
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.match.deleteMany({
+      where: {
+        tournamentId: pair.tournamentId
+      }
+    });
+
+    await tx.pair.update({
+      where: { id: pair.id },
+      data: {
+        groupId: targetGroup.id
+      }
+    });
+
+    await tx.tournament.update({
+      where: { id: pair.tournamentId },
+      data: {
+        status: tournamentStatus.GROUPS_DEFINED
+      }
+    });
+
+    await recalculateTournamentRankingPointsTx(tx, pair.tournamentId);
+  });
+
+  return true;
+}
+
+export async function updateTournamentSettings(
+  tournamentId: string,
+  arenaId: string,
+  input: { name: string; groupCount: number; pairsPerGroup: number; rankingId: string | null }
+) {
+  const tournament = await prisma.tournament.findFirst({
+    where: {
+      id: tournamentId,
+      arenaId
+    },
+    select: {
+      id: true,
+      groupCount: true,
+      pairsPerGroup: true,
+      _count: {
+        select: {
+          entries: true
+        }
+      }
+    }
+  });
+
+  if (!tournament) {
+    throw new Error("Torneio não encontrado.");
+  }
+
+  const structureChanged =
+    tournament.groupCount !== input.groupCount ||
+    tournament.pairsPerGroup !== input.pairsPerGroup;
+
+  await prisma.$transaction(async (tx) => {
+    if (structureChanged) {
+      await resetTournamentStructure(tx, tournamentId);
+      await tx.pair.updateMany({
+        where: { tournamentId },
+        data: {
+          groupId: null
+        }
+      });
+    }
+
+    await tx.tournament.update({
+      where: { id: tournamentId },
+      data: {
+        name: input.name,
+        groupCount: input.groupCount,
+        pairsPerGroup: input.pairsPerGroup,
+        rankingId: input.rankingId,
+        ...(structureChanged
+          ? {
+              status: tournament._count.entries ? tournamentStatus.READY_FOR_DRAW : tournamentStatus.DRAFT
+            }
+          : {})
+      }
+    });
+
+    await recalculateTournamentRankingPointsTx(tx, tournamentId);
+  });
+
+  return true;
+}
+
 export async function updateMatchResult(matchId: string, arenaId: string, homeScore: number, awayScore: number) {
   const match = await prisma.match.findFirst({
     where: {
@@ -1452,36 +1893,33 @@ export async function updateMatchResult(matchId: string, arenaId: string, homeSc
 
     if (match.stage === matchStage.GROUP) {
       await seedKnockoutFromGroupStandings(tx, match.tournamentId);
-      return;
-    }
-
-    if (match.winnerPairId && match.winnerPairId !== winnerPairId) {
-      await clearFollowingMatches(tx, match.tournamentId, match.label);
-    }
-
-    const target = getNextKnockoutTarget(match.label);
-
-    if (!target) {
-      return;
-    }
-
-    const nextMatch = await tx.match.findFirst({
-      where: {
-        tournamentId: match.tournamentId,
-        label: target.nextLabel
+    } else {
+      if (match.winnerPairId && match.winnerPairId !== winnerPairId) {
+        await clearFollowingMatches(tx, match.tournamentId, match.label);
       }
-    });
 
-    if (!nextMatch) {
-      return;
+      const target = getNextKnockoutTarget(match.label);
+
+      if (target) {
+        const nextMatch = await tx.match.findFirst({
+          where: {
+            tournamentId: match.tournamentId,
+            label: target.nextLabel
+          }
+        });
+
+        if (nextMatch) {
+          await tx.match.update({
+            where: { id: nextMatch.id },
+            data: {
+              [target.slot]: winnerPairId
+            }
+          });
+        }
+      }
     }
 
-    await tx.match.update({
-      where: { id: nextMatch.id },
-      data: {
-        [target.slot]: winnerPairId
-      }
-    });
+    await recalculateTournamentRankingPointsTx(tx, match.tournamentId);
   });
 
   return true;
@@ -1527,7 +1965,10 @@ export async function updateKnockoutParticipants(
     if (participantsChanged) {
       await clearFollowingMatches(tx, match.tournamentId, match.label);
     }
+
+    await recalculateTournamentRankingPointsTx(tx, match.tournamentId);
   });
 
   return true;
 }
+

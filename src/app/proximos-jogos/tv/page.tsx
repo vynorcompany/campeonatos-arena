@@ -25,6 +25,8 @@ export default async function UpcomingMatchesTvPage() {
       settings={payload.settings}
       sponsors={payload.sponsors}
       ranking={payload.ranking}
+      rankingSlides={payload.rankingSlides}
+      calendar={payload.calendar}
     />
   );
 }

@@ -2,26 +2,51 @@
 
 import { useFormState } from "react-dom";
 import { SubmitButton } from "@/components/forms/submit-button";
-import { createTournamentAction, type ActionState } from "@/lib/actions/tournament";
+import { createTournamentAction, type ActionState, updateTournamentAction } from "@/lib/actions/tournament";
 
 const initialState: ActionState = {
   error: null,
   success: null
 };
 
-export function TournamentForm() {
-  const [state, formAction] = useFormState(createTournamentAction, initialState);
+type TournamentFormProps = {
+  mode?: "create" | "update";
+  tournamentId?: string;
+  defaultName?: string;
+  defaultGroupCount?: number;
+  defaultPairsPerGroup?: number;
+  defaultRankingId?: string;
+  rankings?: { id: string; name: string }[];
+  submitLabel?: string;
+  pendingLabel?: string;
+};
+
+export function TournamentForm({
+  mode = "create",
+  tournamentId,
+  defaultName = "",
+  defaultGroupCount = 4,
+  defaultPairsPerGroup = 3,
+  defaultRankingId = "",
+  rankings = [],
+  submitLabel = "Criar torneio",
+  pendingLabel = "Criando..."
+}: TournamentFormProps) {
+  const action = mode === "update" ? updateTournamentAction : createTournamentAction;
+  const [state, formAction] = useFormState(action, initialState);
 
   return (
     <form action={formAction} className="grid-form">
+      {mode === "update" && tournamentId ? <input type="hidden" name="tournamentId" value={tournamentId} /> : null}
+
       <div className="field">
         <label htmlFor="name">Nome do torneio</label>
-        <input id="name" name="name" type="text" placeholder="Ex.: Liga Interna de Abril" required />
+        <input id="name" name="name" type="text" placeholder="Ex.: Liga Interna de Abril" defaultValue={defaultName} required />
       </div>
 
       <div className="field">
         <label htmlFor="groupCount">Quantidade de grupos</label>
-        <select id="groupCount" name="groupCount" defaultValue="4">
+        <select id="groupCount" name="groupCount" defaultValue={String(defaultGroupCount)}>
           <option value="1">1 grupo - todos contra todos</option>
           <option value="2">2 grupos</option>
           <option value="3">3 grupos</option>
@@ -35,7 +60,7 @@ export function TournamentForm() {
 
       <div className="field">
         <label htmlFor="pairsPerGroup">Base de duplas por grupo</label>
-        <select id="pairsPerGroup" name="pairsPerGroup" defaultValue="3">
+        <select id="pairsPerGroup" name="pairsPerGroup" defaultValue={String(defaultPairsPerGroup)}>
           <option value="2">2 duplas</option>
           <option value="3">3 duplas</option>
           <option value="4">4 duplas</option>
@@ -54,11 +79,23 @@ export function TournamentForm() {
         </select>
       </div>
 
+      <div className="field">
+        <label htmlFor="rankingId">Ranking usado no torneio</label>
+        <select id="rankingId" name="rankingId" defaultValue={defaultRankingId}>
+          <option value="">Nenhum ranking vinculado</option>
+          {rankings.map((ranking) => (
+            <option key={ranking.id} value={ranking.id}>
+              {ranking.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <div className="field field-submit">
         <label className="sr-only" htmlFor="submit-tournament">
-          Criar torneio
+          {submitLabel}
         </label>
-        <SubmitButton label="Criar torneio" pendingLabel="Criando..." className="button button-primary" />
+        <SubmitButton label={submitLabel} pendingLabel={pendingLabel} className="button button-primary" />
       </div>
 
       {state?.error ? <p className="form-error form-full">{state.error}</p> : null}

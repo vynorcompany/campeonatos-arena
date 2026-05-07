@@ -65,9 +65,9 @@ export default async function PlayersPage() {
                     <th>Pos.</th>
                     <th>Jogador</th>
                     <th>Pontos no torneio</th>
-                    <th>Forca inicial</th>
+                    <th>Força inicial</th>
                     <th>Pontos no cadastro</th>
-                    <th>Ajustar forca</th>
+                    <th>Ajustar força</th>
                   </tr>
                 </thead>
                 <tbody>

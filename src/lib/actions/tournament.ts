@@ -14,8 +14,14 @@ import {
   updateTournamentParticipantsSchema
 } from "@/lib/validators/player";
 import {
+  createRankingProfileSchema,
+  deleteRankingProfileSchema,
+  updateRankingProfileSchema
+} from "@/lib/validators/ranking";
+import {
   createTournamentPairSchema,
   deleteTournamentPairSchema,
+  moveTournamentPairGroupSchema,
   updateTournamentPairSchema
 } from "@/lib/validators/pair";
 import {
@@ -24,7 +30,7 @@ import {
   updateMatchResultSchema,
   updateMatchScheduleSchema
 } from "@/lib/validators/match";
-import { createTournamentSchema } from "@/lib/validators/tournament";
+import { createTournamentSchema, updateTournamentSchema } from "@/lib/validators/tournament";
 import {
   createTournamentPair,
   deleteTournament,
@@ -33,8 +39,11 @@ import {
   finishTournament,
   generateTournamentMatches,
   generateTournamentPairs,
+  moveTournamentPairToGroup,
+  recalculateTournamentRankingPoints,
   syncTournamentEntries,
   updateKnockoutParticipants,
+  updateTournamentSettings,
   updateTournamentPair,
   updateMatchResult
 } from "@/lib/services/tournament";
@@ -47,6 +56,7 @@ export type ActionState = {
 function refreshTournamentRoutes() {
   revalidatePath("/painel");
   revalidatePath("/torneios");
+  revalidatePath("/torneios/rankings");
   revalidatePath("/jogadores");
   revalidatePath("/duplas");
   revalidatePath("/grupos");
@@ -57,6 +67,72 @@ function refreshTournamentRoutes() {
   revalidatePath("/pairs");
   revalidatePath("/groups");
   revalidatePath("/matches");
+}
+
+const rankingRuleBlueprint = [
+  { stageKey: "CHAMPION", label: "1º lugar", displayOrder: 1, field: "championPoints" as const },
+  { stageKey: "RUNNER_UP", label: "2º lugar", displayOrder: 2, field: "runnerUpPoints" as const },
+  { stageKey: "SEMIFINAL", label: "Semifinal", displayOrder: 3, field: "semifinalPoints" as const },
+  { stageKey: "QUARTERFINAL", label: "Quartas de final", displayOrder: 4, field: "quarterfinalPoints" as const },
+  { stageKey: "PARTICIPATION", label: "Participação", displayOrder: 5, field: "participationPoints" as const }
+];
+
+async function ensureRankingBelongsToArena(arenaId: string, rankingId: string | null) {
+  if (!rankingId) {
+    return null;
+  }
+
+  const ranking = await prisma.rankingProfile.findFirst({
+    where: {
+      id: rankingId,
+      arenaId
+    },
+    select: {
+      id: true
+    }
+  });
+
+  if (!ranking) {
+    throw new Error("Ranking inválido para esta arena.");
+  }
+
+  return ranking.id;
+}
+
+async function syncRankingRules(
+  rankingId: string,
+  values: {
+    championPoints: number;
+    runnerUpPoints: number;
+    semifinalPoints: number;
+    quarterfinalPoints: number;
+    participationPoints: number;
+  }
+) {
+  await prisma.$transaction(
+    rankingRuleBlueprint.map((rule) =>
+      prisma.rankingRule.upsert({
+        where: {
+          rankingId_stageKey: {
+            rankingId,
+            stageKey: rule.stageKey
+          }
+        },
+        create: {
+          rankingId,
+          stageKey: rule.stageKey,
+          label: rule.label,
+          points: values[rule.field],
+          displayOrder: rule.displayOrder
+        },
+        update: {
+          label: rule.label,
+          points: values[rule.field],
+          displayOrder: rule.displayOrder
+        }
+      })
+    )
+  );
 }
 
 function getPrismaMessage(error: unknown, fallback: string) {
@@ -276,7 +352,8 @@ export async function createTournamentAction(_: ActionState, formData: FormData)
   const parsed = createTournamentSchema.safeParse({
     name: formData.get("name"),
     groupCount: formData.get("groupCount"),
-    pairsPerGroup: formData.get("pairsPerGroup")
+    pairsPerGroup: formData.get("pairsPerGroup"),
+    rankingId: formData.get("rankingId")
   });
 
   if (!parsed.success) {
@@ -299,12 +376,15 @@ export async function createTournamentAction(_: ActionState, formData: FormData)
     };
   }
 
+  const rankingId = await ensureRankingBelongsToArena(auth.arenaId, parsed.data.rankingId || null);
+
   await prisma.tournament.create({
     data: {
       arenaId: auth.arenaId,
       name: parsed.data.name,
       groupCount: parsed.data.groupCount,
-      pairsPerGroup: parsed.data.pairsPerGroup
+      pairsPerGroup: parsed.data.pairsPerGroup,
+      rankingId
     }
   });
 
@@ -321,6 +401,137 @@ export async function finishTournamentAction(formData: FormData) {
   }
 
   await finishTournament(tournamentId, auth.arenaId);
+  refreshTournamentRoutes();
+}
+
+export async function updateTournamentAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  const auth = await requireModuleEdit("tournaments");
+  const parsed = updateTournamentSchema.safeParse({
+    tournamentId: formData.get("tournamentId"),
+    name: formData.get("name"),
+    groupCount: formData.get("groupCount"),
+    pairsPerGroup: formData.get("pairsPerGroup"),
+    rankingId: formData.get("rankingId")
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Dados inválidos.", success: null };
+  }
+
+  try {
+    const rankingId = await ensureRankingBelongsToArena(auth.arenaId, parsed.data.rankingId || null);
+    await updateTournamentSettings(parsed.data.tournamentId, auth.arenaId, {
+      name: parsed.data.name,
+      groupCount: parsed.data.groupCount,
+      pairsPerGroup: parsed.data.pairsPerGroup,
+      rankingId
+    });
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Não foi possível atualizar o torneio.",
+      success: null
+    };
+  }
+
+  refreshTournamentRoutes();
+  return { error: null, success: "Torneio atualizado com sucesso." };
+}
+
+export async function createRankingProfileAction(formData: FormData) {
+  const auth = await requireModuleEdit("tournaments");
+  const parsed = createRankingProfileSchema.safeParse({
+    name: formData.get("name"),
+    description: formData.get("description"),
+    championPoints: formData.get("championPoints"),
+    runnerUpPoints: formData.get("runnerUpPoints"),
+    semifinalPoints: formData.get("semifinalPoints"),
+    quarterfinalPoints: formData.get("quarterfinalPoints"),
+    participationPoints: formData.get("participationPoints")
+  });
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  }
+
+  const ranking = await prisma.rankingProfile.create({
+    data: {
+      arenaId: auth.arenaId,
+      name: parsed.data.name,
+      description: parsed.data.description
+    }
+  });
+
+  await syncRankingRules(ranking.id, parsed.data);
+  refreshTournamentRoutes();
+}
+
+export async function updateRankingProfileAction(formData: FormData) {
+  const auth = await requireModuleEdit("tournaments");
+  const parsed = updateRankingProfileSchema.safeParse({
+    rankingId: formData.get("rankingId"),
+    name: formData.get("name"),
+    description: formData.get("description"),
+    championPoints: formData.get("championPoints"),
+    runnerUpPoints: formData.get("runnerUpPoints"),
+    semifinalPoints: formData.get("semifinalPoints"),
+    quarterfinalPoints: formData.get("quarterfinalPoints"),
+    participationPoints: formData.get("participationPoints")
+  });
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  }
+
+  const updated = await prisma.rankingProfile.updateMany({
+    where: {
+      id: parsed.data.rankingId,
+      arenaId: auth.arenaId
+    },
+    data: {
+      name: parsed.data.name,
+      description: parsed.data.description
+    }
+  });
+
+  if (!updated.count) {
+    throw new Error("Ranking não encontrado.");
+  }
+
+  await syncRankingRules(parsed.data.rankingId, parsed.data);
+  const linkedTournaments = await prisma.tournament.findMany({
+    where: {
+      arenaId: auth.arenaId,
+      rankingId: parsed.data.rankingId,
+      status: {
+        not: "FINISHED"
+      }
+    },
+    select: {
+      id: true
+    }
+  });
+
+  await Promise.all(linkedTournaments.map((tournament) => recalculateTournamentRankingPoints(tournament.id)));
+  refreshTournamentRoutes();
+}
+
+export async function deleteRankingProfileAction(formData: FormData) {
+  const auth = await requireModuleEdit("tournaments");
+  const parsed = deleteRankingProfileSchema.safeParse({
+    rankingId: formData.get("rankingId")
+  });
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  }
+
+  await prisma.rankingProfile.deleteMany({
+    where: {
+      id: parsed.data.rankingId,
+      arenaId: auth.arenaId
+    }
+  });
+
   refreshTournamentRoutes();
 }
 
@@ -427,6 +638,21 @@ export async function deleteTournamentPairAction(formData: FormData) {
   }
 
   await deleteTournamentPair(parsed.data.pairId, auth.arenaId);
+  refreshTournamentRoutes();
+}
+
+export async function moveTournamentPairGroupAction(formData: FormData) {
+  const auth = await requireModuleEdit("groups");
+  const parsed = moveTournamentPairGroupSchema.safeParse({
+    pairId: formData.get("pairId"),
+    targetGroupId: formData.get("targetGroupId")
+  });
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  }
+
+  await moveTournamentPairToGroup(parsed.data.pairId, parsed.data.targetGroupId, auth.arenaId);
   refreshTournamentRoutes();
 }
 

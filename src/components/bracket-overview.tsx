@@ -51,20 +51,49 @@ function getKnockoutSize(groupCount: number, pairCount: number) {
   return 4;
 }
 
+function shouldUsePairedGroupSeeding(groupCount: number, knockoutSize: number) {
+  return groupCount > 1 && groupCount % 2 === 0 && knockoutSize === groupCount * 2;
+}
+
+function getGroupLabelByOrder(drawOrder: number) {
+  return `Grupo ${String.fromCharCode(64 + drawOrder)}`;
+}
+
+function buildPairedGroupMatchLabels(groupCount: number, stagePrefix: "OF" | "QF" | "SF") {
+  const labels: string[] = [];
+  let matchNumber = 1;
+
+  for (let groupIndex = 1; groupIndex <= groupCount; groupIndex += 2) {
+    const firstGroup = getGroupLabelByOrder(groupIndex);
+    const secondGroup = getGroupLabelByOrder(groupIndex + 1);
+
+    labels.push(`${stagePrefix} ${matchNumber} - 1º ${firstGroup} x 2º ${secondGroup}`);
+    matchNumber += 1;
+    labels.push(`${stagePrefix} ${matchNumber} - 1º ${secondGroup} x 2º ${firstGroup}`);
+    matchNumber += 1;
+  }
+
+  return labels;
+}
+
 function createStagePlaceholders(groupCount: number, pairCount: number) {
   const knockoutSize = getKnockoutSize(groupCount, pairCount);
+  const usePairedGroupSeeding = shouldUsePairedGroupSeeding(groupCount, knockoutSize);
+
   const octofinals =
     knockoutSize === 16
-      ? [
-          "OF 1 - 1º geral x 16º geral",
-          "OF 2 - 8º geral x 9º geral",
-          "OF 3 - 5º geral x 12º geral",
-          "OF 4 - 4º geral x 13º geral",
-          "OF 5 - 3º geral x 14º geral",
-          "OF 6 - 6º geral x 11º geral",
-          "OF 7 - 7º geral x 10º geral",
-          "OF 8 - 2º geral x 15º geral"
-        ]
+      ? usePairedGroupSeeding
+        ? buildPairedGroupMatchLabels(groupCount, "OF")
+        : [
+            "OF 1 - 1º geral x 16º geral",
+            "OF 2 - 8º geral x 9º geral",
+            "OF 3 - 5º geral x 12º geral",
+            "OF 4 - 4º geral x 13º geral",
+            "OF 5 - 3º geral x 14º geral",
+            "OF 6 - 6º geral x 11º geral",
+            "OF 7 - 7º geral x 10º geral",
+            "OF 8 - 2º geral x 15º geral"
+          ]
       : [];
 
   const quarterfinals =
@@ -76,19 +105,23 @@ function createStagePlaceholders(groupCount: number, pairCount: number) {
           "QF 4 - Vencedor OF7 x Vencedor OF8"
         ]
       : knockoutSize === 8
-        ? [
-            "QF 1 - 1º geral x 8º geral",
-            "QF 2 - 4º geral x 5º geral",
-            "QF 3 - 3º geral x 6º geral",
-            "QF 4 - 2º geral x 7º geral"
-          ]
+        ? usePairedGroupSeeding
+          ? buildPairedGroupMatchLabels(groupCount, "QF")
+          : [
+              "QF 1 - 1º geral x 8º geral",
+              "QF 2 - 4º geral x 5º geral",
+              "QF 3 - 3º geral x 6º geral",
+              "QF 4 - 2º geral x 7º geral"
+            ]
         : [];
 
   const semifinals =
     knockoutSize >= 4
       ? knockoutSize >= 8
         ? ["SF 1 - Vencedor QF1 x Vencedor QF2", "SF 2 - Vencedor QF3 x Vencedor QF4"]
-        : ["SF 1 - 1º geral x 4º geral", "SF 2 - 2º geral x 3º geral"]
+        : usePairedGroupSeeding
+          ? buildPairedGroupMatchLabels(groupCount, "SF")
+          : ["SF 1 - 1º geral x 4º geral", "SF 2 - 2º geral x 3º geral"]
       : [];
 
   const final = knockoutSize > 0 ? ["Final"] : [];
@@ -205,9 +238,7 @@ export function BracketOverview({ groupCount, groups, matches }: BracketOverview
                       {pair.name}
                     </span>
                   ))}
-                  {group.pairs.length > 4 ? (
-                    <span className="bracket-meta">+{group.pairs.length - 4} duplas</span>
-                  ) : null}
+                  {group.pairs.length > 4 ? <span className="bracket-meta">+{group.pairs.length - 4} duplas</span> : null}
                 </div>
               </article>
             ))
@@ -243,11 +274,7 @@ export function BracketOverview({ groupCount, groups, matches }: BracketOverview
                       {line}
                     </span>
                   ))}
-                  {match.scores[0] !== null && match.scores[1] !== null ? (
-                    <span className="bracket-meta">
-                      Placar: {match.scores[0]} x {match.scores[1]}
-                    </span>
-                  ) : null}
+                  {match.scores[0] !== null && match.scores[1] !== null ? <span className="bracket-meta">Placar: {match.scores[0]} x {match.scores[1]}</span> : null}
                 </div>
               </article>
             ))}
@@ -274,11 +301,7 @@ export function BracketOverview({ groupCount, groups, matches }: BracketOverview
                       {line}
                     </span>
                   ))}
-                  {match.scores[0] !== null && match.scores[1] !== null ? (
-                    <span className="bracket-meta">
-                      Placar: {match.scores[0]} x {match.scores[1]}
-                    </span>
-                  ) : null}
+                  {match.scores[0] !== null && match.scores[1] !== null ? <span className="bracket-meta">Placar: {match.scores[0]} x {match.scores[1]}</span> : null}
                 </div>
               </article>
             ))}
@@ -305,11 +328,7 @@ export function BracketOverview({ groupCount, groups, matches }: BracketOverview
                       {line}
                     </span>
                   ))}
-                  {match.scores[0] !== null && match.scores[1] !== null ? (
-                    <span className="bracket-meta">
-                      Placar: {match.scores[0]} x {match.scores[1]}
-                    </span>
-                  ) : null}
+                  {match.scores[0] !== null && match.scores[1] !== null ? <span className="bracket-meta">Placar: {match.scores[0]} x {match.scores[1]}</span> : null}
                 </div>
               </article>
             ))}
@@ -336,11 +355,7 @@ export function BracketOverview({ groupCount, groups, matches }: BracketOverview
                       {line}
                     </span>
                   ))}
-                  {match.scores[0] !== null && match.scores[1] !== null ? (
-                    <span className="bracket-meta">
-                      Placar: {match.scores[0]} x {match.scores[1]}
-                    </span>
-                  ) : null}
+                  {match.scores[0] !== null && match.scores[1] !== null ? <span className="bracket-meta">Placar: {match.scores[0]} x {match.scores[1]}</span> : null}
                 </div>
               </article>
             ))}

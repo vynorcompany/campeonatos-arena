@@ -34,8 +34,9 @@ const updateManualUpcomingMatchSchema = manualUpcomingMatchSchema.extend({
 const tvPresentationSettingsSchema = z.object({
   slideIntervalSeconds: z.coerce.number().int().min(5, "O intervalo mínimo é de 5 segundos.").max(120, "O intervalo máximo é de 120 segundos."),
   selectedTournamentId: z.string().trim().default(""),
-  rankingTitle: z.string().trim().max(80, "Título do ranking muito longo.").default(""),
+  selectedRankingIds: z.array(z.string().trim()).default([]),
   showMatches: z.boolean().default(true),
+  showCalendar: z.boolean().default(false),
   showSponsors: z.boolean().default(false),
   showRanking: z.boolean().default(false),
   showMonthlyPrize: z.boolean().default(false),
@@ -210,8 +211,9 @@ export async function upsertTvPresentationSettingsAction(formData: FormData) {
   const parsed = tvPresentationSettingsSchema.safeParse({
     slideIntervalSeconds: formData.get("slideIntervalSeconds"),
     selectedTournamentId: formData.get("selectedTournamentId"),
-    rankingTitle: formData.get("rankingTitle"),
+    selectedRankingIds: formData.getAll("selectedRankingIds").map(String).filter(Boolean),
     showMatches: formData.get("showMatches") === "on",
+    showCalendar: formData.get("showCalendar") === "on",
     showSponsors: formData.get("showSponsors") === "on",
     showRanking: formData.get("showRanking") === "on",
     showMonthlyPrize: formData.get("showMonthlyPrize") === "on",

@@ -166,7 +166,8 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
             { href: "/jogadores", label: "Jogadores" },
             { href: "/duplas", label: "Duplas" },
             { href: "/grupos", label: "Grupos" },
-            { href: "/jogos", label: "Jogos" }
+            { href: "/jogos", label: "Jogos" },
+            { href: "/torneios/rankings", label: "Rankings" }
           ]
         },
         {
@@ -244,6 +245,7 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
     "/duplas": "pairs",
     "/grupos": "groups",
     "/jogos": "matches",
+    "/torneios/rankings": "tournaments",
     "/proximos-jogos": "tv",
     "/proximos-jogos/apresentacao": "tv",
     "/proximos-jogos/tv": "tv",

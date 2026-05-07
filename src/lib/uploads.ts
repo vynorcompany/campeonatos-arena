@@ -5,7 +5,8 @@ const maxUploadSize = 4 * 1024 * 1024;
 const allowedImageTypes = new Map([
   ["image/jpeg", "jpg"],
   ["image/png", "png"],
-  ["image/webp", "webp"]
+  ["image/webp", "webp"],
+  ["image/svg+xml", "svg"]
 ]);
 
 function sanitizeName(value: string) {
@@ -24,7 +25,7 @@ export async function savePublicImageUpload(file: File | null, folder: string, p
   const extension = allowedImageTypes.get(file.type);
 
   if (!extension) {
-    throw new Error("Envie uma imagem JPG, PNG ou WEBP.");
+    throw new Error("Envie uma imagem JPG, PNG, WEBP ou SVG.");
   }
 
   if (file.size > maxUploadSize) {

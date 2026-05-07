@@ -1,0 +1,23 @@
+import { z } from "zod";
+
+const rankingRuleFields = {
+  championPoints: z.coerce.number().int().min(0).max(5000),
+  runnerUpPoints: z.coerce.number().int().min(0).max(5000),
+  semifinalPoints: z.coerce.number().int().min(0).max(5000),
+  quarterfinalPoints: z.coerce.number().int().min(0).max(5000),
+  participationPoints: z.coerce.number().int().min(0).max(5000)
+};
+
+export const createRankingProfileSchema = z.object({
+  name: z.string().trim().min(3, "Nome do ranking muito curto.").max(80, "Nome do ranking muito longo."),
+  description: z.string().trim().max(240, "Descrição do ranking muito longa.").default(""),
+  ...rankingRuleFields
+});
+
+export const updateRankingProfileSchema = createRankingProfileSchema.extend({
+  rankingId: z.string().trim().min(1, "Ranking inválido.")
+});
+
+export const deleteRankingProfileSchema = z.object({
+  rankingId: z.string().trim().min(1, "Ranking inválido.")
+});

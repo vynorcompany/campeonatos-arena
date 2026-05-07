@@ -67,6 +67,7 @@ model Arena {
   createdBy   User          @relation("ArenaCreator", fields: [createdById], references: [id])
   members     ArenaMember[]
   players     Player[]
+  rankings    RankingProfile[]
   tournaments Tournament[]
   manualUpcomingMatches ManualUpcomingMatch[]
   students    Student[]
@@ -166,7 +167,9 @@ model Tournament {
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
   arenaId     String
+  rankingId   String?
   arena       Arena             @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  ranking     RankingProfile?   @relation(fields: [rankingId], references: [id], onDelete: SetNull)
   entries     TournamentPlayer[]
   pairs       Pair[]
   groups      TournamentGroup[]
@@ -174,6 +177,38 @@ model Tournament {
 
   @@index([arenaId, status])
   @@index([arenaId, createdAt])
+  @@index([rankingId])
+}
+
+model RankingProfile {
+  id          String        @id @default(cuid())
+  name        String
+  description String        @default("")
+  active      Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  arenaId     String
+  arena       Arena         @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  rules       RankingRule[]
+  tournaments Tournament[]
+
+  @@unique([arenaId, name])
+  @@index([arenaId, active])
+}
+
+model RankingRule {
+  id          String         @id @default(cuid())
+  stageKey    String
+  label       String
+  points      Int
+  displayOrder Int
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  rankingId   String
+  ranking     RankingProfile @relation(fields: [rankingId], references: [id], onDelete: Cascade)
+
+  @@unique([rankingId, stageKey])
+  @@index([rankingId, displayOrder])
 }
 
 model TournamentPlayer {
@@ -283,8 +318,10 @@ model TvPresentationSettings {
   id                     String   @id @default(cuid())
   slideIntervalSeconds   Int      @default(12)
   selectedTournamentId   String?
+  selectedRankingIds     String[] @default([])
   rankingTitle           String   @default("")
   showMatches            Boolean  @default(true)
+  showCalendar           Boolean  @default(false)
   showSponsors           Boolean  @default(false)
   showRanking            Boolean  @default(false)
   showMonthlyPrize       Boolean  @default(false)

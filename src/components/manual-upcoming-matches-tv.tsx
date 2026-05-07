@@ -16,9 +16,10 @@ type ManualUpcomingMatch = {
 type TvPresentationSettings = {
   slideIntervalSeconds: number;
   selectedTournamentId: string;
+  selectedRankingIds: string[];
   selectedTournamentName: string;
-  rankingTitle: string;
   showMatches: boolean;
+  showCalendar: boolean;
   showSponsors: boolean;
   showRanking: boolean;
   showMonthlyPrize: boolean;
@@ -45,6 +46,26 @@ type TvRankingEntry = {
   points: number;
 };
 
+type TvRankingSlide = {
+  id: string;
+  title: string;
+  entries: TvRankingEntry[];
+};
+
+type TvCalendarEntry = {
+  id: string;
+  title: string;
+  meta: string;
+  dateLabel: string;
+  timeLabel: string;
+  typeLabel: string;
+};
+
+type TvCalendarPayload = {
+  rangeLabel: string;
+  items: TvCalendarEntry[];
+};
+
 type ManualUpcomingMatchesTvProps = {
   arenaName: string;
   arenaLogoUrl: string;
@@ -52,6 +73,8 @@ type ManualUpcomingMatchesTvProps = {
   settings: TvPresentationSettings;
   sponsors: TvSponsor[];
   ranking: TvRankingEntry[];
+  rankingSlides: TvRankingSlide[];
+  calendar: TvCalendarPayload;
 };
 
 type TvPresentationResponse = {
@@ -59,11 +82,14 @@ type TvPresentationResponse = {
   settings: TvPresentationSettings;
   sponsors: TvSponsor[];
   ranking: TvRankingEntry[];
+  rankingSlides: TvRankingSlide[];
+  calendar: TvCalendarPayload;
 };
 
 type SlideItem =
   | { id: string; title: string; type: "matches" }
-  | { id: string; title: string; type: "ranking" }
+  | { id: string; title: string; type: "calendar" }
+  | { id: string; title: string; type: "ranking"; rankingKey: string }
   | { id: string; title: string; type: "monthlyPrize" }
   | { id: string; title: string; type: "nightWinner" }
   | { id: string; title: string; type: "sponsor"; sponsorId: string };
@@ -97,12 +123,16 @@ export function ManualUpcomingMatchesTv({
   matches,
   settings,
   sponsors,
-  ranking
+  ranking,
+  rankingSlides,
+  calendar
 }: ManualUpcomingMatchesTvProps) {
   const [liveMatches, setLiveMatches] = useState(matches);
   const [liveSettings, setLiveSettings] = useState(settings);
   const [liveSponsors, setLiveSponsors] = useState(sponsors);
   const [liveRanking, setLiveRanking] = useState(ranking);
+  const [liveRankingSlides, setLiveRankingSlides] = useState(rankingSlides);
+  const [liveCalendar, setLiveCalendar] = useState(calendar);
   const [activeIndex, setActiveIndex] = useState(0);
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const hasOverflowMatches = liveMatches.length > visibleMatchCount;
@@ -126,6 +156,10 @@ export function ManualUpcomingMatchesTv({
       nextSlides.push({ id: "matches", title: "Próximos jogos", type: "matches" });
     }
 
+    if (liveSettings.showCalendar && liveCalendar.items.length) {
+      nextSlides.push({ id: "calendar", title: "Calendário da arena", type: "calendar" });
+    }
+
     if (liveSettings.showSponsors && liveSponsors.length) {
       for (const sponsor of liveSponsors) {
         nextSlides.push({
@@ -139,10 +173,22 @@ export function ManualUpcomingMatchesTv({
 
     if (liveSettings.showRanking && liveRanking.length) {
       nextSlides.push({
-        id: "ranking",
-        title: liveSettings.rankingTitle.trim() ? liveSettings.rankingTitle : liveSettings.selectedTournamentName ? `Ranking - ${liveSettings.selectedTournamentName}` : "Ranking",
-        type: "ranking"
+        id: "ranking-default",
+        title: liveSettings.selectedTournamentName ? `Ranking - ${liveSettings.selectedTournamentName}` : "Ranking",
+        type: "ranking",
+        rankingKey: "default"
       });
+    }
+
+    if (liveSettings.showRanking && liveRankingSlides.length) {
+      for (const rankingSlide of liveRankingSlides) {
+        nextSlides.push({
+          id: `ranking-profile-${rankingSlide.id}`,
+          title: `Ranking - ${rankingSlide.title}`,
+          type: "ranking",
+          rankingKey: rankingSlide.id
+        });
+      }
     }
 
     if (
@@ -160,10 +206,16 @@ export function ManualUpcomingMatchesTv({
     }
 
     return nextSlides;
-  }, [liveMatches.length, liveRanking, liveSettings, liveSponsors]);
+  }, [liveCalendar.items.length, liveMatches.length, liveRanking, liveRankingSlides, liveSettings, liveSponsors]);
 
   const activeSlide = slides[activeSlideIndex] ?? slides[0] ?? null;
   const activeSponsor = activeSlide?.type === "sponsor" ? liveSponsors.find((item) => item.id === activeSlide.sponsorId) ?? null : null;
+  const activeRankingEntries =
+    activeSlide?.type === "ranking"
+      ? activeSlide.rankingKey === "default"
+        ? liveRanking
+        : liveRankingSlides.find((item) => item.id === activeSlide.rankingKey)?.entries ?? []
+      : [];
   const monthlyPrizeItems = getPrizeItems(liveSettings.monthlyPrizeAmount, liveSettings.monthlyPrizeDescription);
   const slideIntervalMs = Math.max(5, liveSettings.slideIntervalSeconds || 12) * 1000;
 
@@ -172,7 +224,9 @@ export function ManualUpcomingMatchesTv({
     setLiveSettings(settings);
     setLiveSponsors(sponsors);
     setLiveRanking(ranking);
-  }, [matches, ranking, settings, sponsors]);
+    setLiveRankingSlides(rankingSlides);
+    setLiveCalendar(calendar);
+  }, [calendar, matches, ranking, rankingSlides, settings, sponsors]);
 
   useEffect(() => {
     setActiveIndex(0);
@@ -201,6 +255,8 @@ export function ManualUpcomingMatchesTv({
           setLiveSettings(data.settings);
           setLiveSponsors(data.sponsors);
           setLiveRanking(data.ranking);
+          setLiveRankingSlides(data.rankingSlides);
+          setLiveCalendar(data.calendar);
         }
       } catch {
         // Keep the last known TV presentation if the network blips.
@@ -322,6 +378,30 @@ export function ManualUpcomingMatchesTv({
             </div>
           ) : null}
 
+          {activeSlide.type === "calendar" ? (
+            <div className="tv-calendar-stage">
+              <div className="tv-calendar-head">
+                <p className="tv-info-kicker">Agenda da arena</p>
+                <strong>{liveCalendar.rangeLabel}</strong>
+              </div>
+              <div className="tv-calendar-list">
+                {liveCalendar.items.map((item) => (
+                  <article className="tv-calendar-card" key={item.id}>
+                    <div className="tv-calendar-date">
+                      <span>{item.dateLabel}</span>
+                      <strong>{item.timeLabel}</strong>
+                    </div>
+                    <div className="tv-calendar-copy">
+                      <small>{item.typeLabel}</small>
+                      <strong>{item.title}</strong>
+                      <span>{item.meta}</span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           {activeSlide.type === "sponsor" && activeSponsor ? (
             <div className="tv-sponsor-stage">
               <div className="tv-sponsor-panel">
@@ -329,13 +409,7 @@ export function ManualUpcomingMatchesTv({
                 <p className="tv-info-kicker">{activeSponsor.subtitle.trim() || "Patrocinador"}</p>
                 <div className="tv-sponsor-logo-frame">
                   {activeSponsor.logoUrl ? (
-                    <Image
-                      src={activeSponsor.logoUrl}
-                      alt={`Logo de ${activeSponsor.name}`}
-                      fill
-                      className="tv-sponsor-logo"
-                      style={{ objectFit: 'contain' }}
-                    />
+                    <img src={activeSponsor.logoUrl} alt={`Logo de ${activeSponsor.name}`} className="tv-sponsor-logo" />
                   ) : (
                     <strong className="tv-sponsor-fallback">{activeSponsor.name}</strong>
                   )}
@@ -347,7 +421,7 @@ export function ManualUpcomingMatchesTv({
 
           {activeSlide.type === "ranking" ? (
             <div className="tv-ranking-board">
-              {liveRanking.map((player, index) => (
+              {activeRankingEntries.map((player, index) => (
                 <article className="tv-ranking-card" key={player.id}>
                   <span className="tv-ranking-position">#{index + 1}</span>
                   <strong>{player.name}</strong>

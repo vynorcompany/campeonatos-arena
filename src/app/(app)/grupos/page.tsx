@@ -1,5 +1,6 @@
-import { SectionCard } from "@/components/section-card";
 import { SubmitButton } from "@/components/forms/submit-button";
+import { GroupEditor } from "@/components/group-editor";
+import { SectionCard } from "@/components/section-card";
 import { generateGroupsAction } from "@/lib/actions/tournament";
 import { requireModuleView } from "@/lib/auth/guards";
 import { getArenaDashboard } from "@/lib/services/tournament";
@@ -27,12 +28,7 @@ function getGroupStandings(pairs: GroupPair[], matches: GroupMatch[]) {
   );
 
   for (const match of matches) {
-    if (
-      match.homeScore === null ||
-      match.awayScore === null ||
-      !match.homePairId ||
-      !match.awayPairId
-    ) {
+    if (match.homeScore === null || match.awayScore === null || !match.homePairId || !match.awayPairId) {
       continue;
     }
 
@@ -71,6 +67,31 @@ export default async function GroupsPage() {
   const { activeTournament } = await getArenaDashboard(auth.arenaId);
   const isRoundRobinOnly = activeTournament?.groupCount === 1;
 
+  const groups =
+    activeTournament?.groups.map((group) => {
+      const groupMatches = activeTournament.matches.filter((match) => match.groupId === group.id);
+      const standings = getGroupStandings(group.pairs, groupMatches);
+
+      return {
+        id: group.id,
+        name: group.name,
+        pairs: standings.map((standing) => ({
+          id: standing.pairId,
+          name: standing.pairName,
+          totalPoints: standing.totalPoints,
+          wins: standing.wins,
+          gamesFor: standing.gamesFor,
+          gamesAgainst: standing.gamesAgainst
+        })),
+        matches: groupMatches.map((match) => ({
+          id: match.id,
+          homePairName: match.homePair?.name ?? "A definir",
+          awayPairName: match.awayPair?.name ?? "A definir",
+          scoreLabel: formatScore(match.homeScore, match.awayScore)
+        }))
+      };
+    }) ?? [];
+
   return (
     <div className="stack-md">
       <header className="page-header">
@@ -78,7 +99,7 @@ export default async function GroupsPage() {
           <p className="eyebrow">Grupos</p>
           <h1>Organização dos grupos</h1>
           <p className="muted">
-            Distribua as duplas por força e acompanhe como a competição foi montada.
+            Distribua as duplas por força e, quando precisar, arraste manualmente uma dupla de um grupo para outro.
           </p>
         </div>
       </header>
@@ -97,68 +118,27 @@ export default async function GroupsPage() {
                 : `Este torneio terá até ${activeTournament.groupCount} grupos, usando ${activeTournament.pairsPerGroup} duplas como base. Sobras podem deixar alguns grupos maiores.`
             }
           >
-            <form action={generateGroupsAction}>
-              <input type="hidden" name="tournamentId" value={activeTournament.id} />
-              <SubmitButton label="Distribuir duplas" pendingLabel="Distribuindo..." className="button button-primary" />
-            </form>
+            <div className="stack-sm">
+              <form action={generateGroupsAction}>
+                <input type="hidden" name="tournamentId" value={activeTournament.id} />
+                <SubmitButton label="Distribuir duplas" pendingLabel="Distribuindo..." className="button button-primary" />
+              </form>
+              <div className="form-hint-box">
+                <strong>Ajuste manual liberado</strong>
+                <p className="muted">
+                  Você pode arrastar uma dupla entre os grupos abaixo. Quando isso acontece, os jogos atuais do torneio são limpos para você regenerar a tabela com a nova organização.
+                </p>
+              </div>
+            </div>
           </SectionCard>
 
-          <div className="group-grid">
-            {activeTournament.groups.length ? (
-              activeTournament.groups.map((group) => {
-                const groupMatches = activeTournament.matches.filter((match) => match.groupId === group.id);
-                const standings = getGroupStandings(group.pairs, groupMatches);
-
-                return (
-                  <SectionCard key={group.id} title={group.name} description={`${group.pairs.length} duplas`}>
-                    <div className="group-standings">
-                      <p className="group-results-title">Classificação</p>
-                      <table className="group-standings-table">
-                        <thead>
-                          <tr>
-                            <th>Dupla</th>
-                            <th>Vitórias</th>
-                            <th>Games Pro</th>
-                            <th>Games Contra</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {standings.map((standing) => (
-                            <tr key={standing.pairId}>
-                              <td>
-                                <strong>{standing.pairName}</strong>
-                                <span>{standing.totalPoints} pts</span>
-                              </td>
-                              <td>{standing.wins}</td>
-                              <td>{standing.gamesFor}</td>
-                              <td>{standing.gamesAgainst}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {groupMatches.length ? (
-                      <div className="group-results">
-                        <p className="group-results-title">Resultados</p>
-                        {groupMatches.map((match) => (
-                          <div key={match.id} className="group-result-item">
-                            <span>{match.homePair?.name ?? "A definir"}</span>
-                            <strong>{formatScore(match.homeScore, match.awayScore)}</strong>
-                            <span>{match.awayPair?.name ?? "A definir"}</span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : null}
-                  </SectionCard>
-                );
-              })
-            ) : (
-              <SectionCard title="Grupos ainda não montados">
-                <p className="muted">Assim que as duplas forem distribuídas, os grupos aparecerão aqui.</p>
-              </SectionCard>
-            )}
-          </div>
+          {groups.length ? (
+            <GroupEditor groups={groups} />
+          ) : (
+            <SectionCard title="Grupos ainda não montados">
+              <p className="muted">Assim que as duplas forem distribuídas, os grupos aparecerão aqui.</p>
+            </SectionCard>
+          )}
         </>
       )}
     </div>

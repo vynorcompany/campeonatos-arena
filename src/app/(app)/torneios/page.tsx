@@ -11,6 +11,7 @@ import {
   generateMatchesAction
 } from "@/lib/actions/tournament";
 import { requireModuleView } from "@/lib/auth/guards";
+import { prisma } from "@/lib/prisma";
 import { getArenaDashboard } from "@/lib/services/tournament";
 
 const statusLabels: Record<string, string> = {
@@ -24,7 +25,18 @@ const statusLabels: Record<string, string> = {
 
 export default async function TournamentsPage() {
   const auth = await requireModuleView("tournaments");
-  const { activeTournament, tournamentHistory } = await getArenaDashboard(auth.arenaId);
+  const [{ activeTournament, tournamentHistory }, rankings] = await Promise.all([
+    getArenaDashboard(auth.arenaId),
+    prisma.rankingProfile.findMany({
+      where: { arenaId: auth.arenaId },
+      orderBy: [{ name: "asc" }],
+      select: {
+        id: true,
+        name: true
+      }
+    })
+  ]);
+
   const groupedMatches = activeTournament?.matches.filter((match) => match.stage === "GROUP") ?? [];
   const knockoutMatches = activeTournament?.matches.filter((match) => match.stage !== "GROUP") ?? [];
   const isRoundRobinOnly = activeTournament?.groupCount === 1;
@@ -36,10 +48,15 @@ export default async function TournamentsPage() {
           <p className="eyebrow">Campeonatos</p>
           <h1>Torneios</h1>
           <p className="muted">
-            Crie novos torneios, acompanhe o campeonato atual e consulte os torneios já encerrados.
+            Crie novos torneios, acompanhe o campeonato atual e consulte o histórico das edições já encerradas.
           </p>
         </div>
-        <span className="pill">{activeTournament ? statusLabels[activeTournament.status] : "Pronto para criar um novo torneio"}</span>
+        <div className="section-actions">
+          <Link href="/torneios/rankings" className="button">
+            Rankings
+          </Link>
+          <span className="pill">{activeTournament ? statusLabels[activeTournament.status] : "Pronto para criar um novo torneio"}</span>
+        </div>
       </header>
 
       <div className="stats-grid">
@@ -51,40 +68,36 @@ export default async function TournamentsPage() {
 
       <div className="two-column-grid">
         <SectionCard
-          title="Novo torneio"
-          description="Defina o nome, a quantidade de grupos e quantas duplas entram em cada grupo."
+          title={activeTournament ? "Editar torneio atual" : "Novo torneio"}
+          description={
+            activeTournament
+              ? "Ajuste nome, formato e base por grupo mesmo com o torneio em andamento. Mudanças na estrutura desmontam grupos e jogos para você remontar tudo com clareza."
+              : "Defina o nome, a quantidade de grupos e quantas duplas entram em cada grupo."
+          }
         >
           {activeTournament ? (
             <div className="stack-md">
+              <TournamentForm
+                mode="update"
+                tournamentId={activeTournament.id}
+                defaultName={activeTournament.name}
+                defaultGroupCount={activeTournament.groupCount}
+                defaultPairsPerGroup={activeTournament.pairsPerGroup}
+                defaultRankingId={activeTournament.rankingId ?? ""}
+                rankings={rankings}
+                submitLabel="Salvar ajustes do torneio"
+                pendingLabel="Salvando..."
+              />
               <div className="form-hint-box">
-                <strong>Há um torneio em andamento</strong>
+                <strong>Você pode reorganizar tudo</strong>
                 <p className="muted">
-                  Finalize <strong>{activeTournament.name}</strong> para liberar a criação do próximo torneio.
+                  Depois de salvar a estrutura, volte para as etapas abaixo e regenere grupos e jogos. As páginas de jogadores, duplas, grupos e jogos continuam abertas para ajustes manuais quando precisar.
                 </p>
-              </div>
-
-              <div className="simple-list">
-                <div className="simple-item">
-                  <strong>Status</strong>
-                  <span>{statusLabels[activeTournament.status]}</span>
-                </div>
-                <div className="simple-item">
-                  <strong>Grupos previstos</strong>
-                  <span>{isRoundRobinOnly ? "Todos contra todos" : activeTournament.groupCount}</span>
-                </div>
-                <div className="simple-item">
-                  <strong>Base por grupo</strong>
-                  <span>{activeTournament.pairsPerGroup}</span>
-                </div>
-                <div className="simple-item">
-                  <strong>Próximo passo</strong>
-                  <span>Encerrar o torneio atual</span>
-                </div>
               </div>
             </div>
           ) : (
             <div className="stack-md">
-              <TournamentForm />
+              <TournamentForm rankings={rankings} />
               <div className="form-hint-box">
                 <strong>Tudo pronto para começar</strong>
                 <p className="muted">
@@ -107,8 +120,16 @@ export default async function TournamentsPage() {
                 <span>{activeTournament.entries.length}</span>
               </div>
               <div className="simple-item">
+                <strong>Grupos previstos</strong>
+                <span>{isRoundRobinOnly ? "Todos contra todos" : activeTournament.groupCount}</span>
+              </div>
+              <div className="simple-item">
                 <strong>Base por grupo</strong>
                 <span>{activeTournament.pairsPerGroup}</span>
+              </div>
+              <div className="simple-item">
+                <strong>Ranking vinculado</strong>
+                <span>{activeTournament.ranking?.name ?? "Nenhum"}</span>
               </div>
               <div className="simple-item">
                 <strong>Fase de grupos</strong>
@@ -138,19 +159,6 @@ export default async function TournamentsPage() {
         </SectionCard>
       </div>
 
-      <SectionCard
-        title="Regras de pontuação do torneio"
-        description="Estas regras valem para a pontuação dos torneios e para a evolução do ranking. Elas não aparecem na TV."
-      >
-        <div className="tv-ranking-preview">
-          <div className="tv-ranking-preview-row"><strong>1º lugar</strong><span>Campeão</span><small>200 pts</small></div>
-          <div className="tv-ranking-preview-row"><strong>2º lugar</strong><span>Vice-campeão</span><small>140 pts</small></div>
-          <div className="tv-ranking-preview-row"><strong>Semifinal</strong><span>SF</span><small>90 pts</small></div>
-          <div className="tv-ranking-preview-row"><strong>Quartas de final</strong><span>QF</span><small>50 pts</small></div>
-          <div className="tv-ranking-preview-row"><strong>Participação</strong><span>Entrada no torneio</span><small>20 pts</small></div>
-        </div>
-      </SectionCard>
-
       {activeTournament ? (
         <SectionCard
           title={activeTournament.name}
@@ -176,7 +184,7 @@ export default async function TournamentsPage() {
               <span className="pill">2</span>
               <div>
                 <strong>Montar duplas</strong>
-                <p className="muted">Selecione manualmente as duplas e mantenha a força total de cada uma para balancear os grupos.</p>
+                <p className="muted">Monte ou ajuste as duplas a qualquer momento. A força total delas segue sendo usada para balancear os grupos.</p>
               </div>
               <Link href="/duplas" className="button button-primary">
                 Abrir duplas
@@ -190,7 +198,7 @@ export default async function TournamentsPage() {
                 <p className="muted">
                   {isRoundRobinOnly
                     ? "Coloque todas as duplas em um único grupo para jogar todos contra todos."
-                    : "Distribua as duplas por força. Quando a conta não fechar, alguns grupos podem ficar com uma dupla a mais."}
+                    : "Redistribua as duplas sempre que precisar. Sobras podem deixar alguns grupos com uma dupla a mais."}
                 </p>
               </div>
               <form action={generateGroupsAction}>

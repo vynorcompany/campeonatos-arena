@@ -4,8 +4,9 @@ import { isPrismaSchemaOutdatedError } from "@/lib/prisma-errors";
 type TvSettingsPayload = {
   slideIntervalSeconds: number;
   selectedTournamentId: string | null;
-  rankingTitle: string;
+  selectedRankingIds: string[];
   showMatches: boolean;
+  showCalendar: boolean;
   showSponsors: boolean;
   showRanking: boolean;
   showMonthlyPrize: boolean;
@@ -25,6 +26,55 @@ type TvSponsorPayload = {
   logoUrl: string;
   displayOrder: number;
 };
+
+type TvCalendarEntry = {
+  id: string;
+  title: string;
+  meta: string;
+  dateLabel: string;
+  timeLabel: string;
+  typeLabel: string;
+};
+
+type TvRankingSlide = {
+  id: string;
+  title: string;
+  entries: Array<{
+    id: string;
+    name: string;
+    points: number;
+  }>;
+};
+
+function formatCalendarDate(value: Date) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit"
+  }).format(value);
+}
+
+function formatCalendarTime(value: Date) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(value);
+}
+
+function parseScheduledTime(value: string | null | undefined, fallback: Date) {
+  if (!value) {
+    return fallback;
+  }
+
+  const [hour, minute] = value.split(":").map(Number);
+  const date = new Date(fallback);
+
+  if (Number.isFinite(hour) && Number.isFinite(minute)) {
+    date.setHours(hour, minute, 0, 0);
+  }
+
+  return date;
+}
 
 export async function getManualUpcomingMatchesPayload(arenaId: string) {
   try {
@@ -73,8 +123,9 @@ async function getTvSettings(arenaId: string) {
       select: {
         slideIntervalSeconds: true,
         selectedTournamentId: true,
-        rankingTitle: true,
+        selectedRankingIds: true,
         showMatches: true,
+        showCalendar: true,
         showSponsors: true,
         showRanking: true,
         showMonthlyPrize: true,
@@ -119,8 +170,9 @@ async function getTvSettings(arenaId: string) {
 
       return {
         ...legacySettings,
-        rankingTitle: "",
-        showMatches: true
+        selectedRankingIds: [],
+        showMatches: true,
+        showCalendar: false
       } satisfies TvSettingsPayload;
     } catch (legacyError) {
       if (isPrismaSchemaOutdatedError(legacyError)) {
@@ -178,11 +230,202 @@ async function getTvSponsors(arenaId: string) {
   }
 }
 
+async function getTvCalendarEntries(arenaId: string) {
+  const now = new Date();
+  const end = new Date(now.getTime() + 1000 * 60 * 60 * 24 * 14);
+
+  const [lessons, tournamentMatches, manualMatches] = await Promise.all([
+    prisma.lesson.findMany({
+      where: {
+        arenaId,
+        scheduledAt: {
+          gte: now,
+          lte: end
+        }
+      },
+      include: {
+        teacher: {
+          select: {
+            name: true
+          }
+        }
+      },
+      orderBy: {
+        scheduledAt: "asc"
+      },
+      take: 6
+    }),
+    prisma.match.findMany({
+      where: {
+        tournament: {
+          arenaId
+        },
+        scheduledTime: {
+          not: ""
+        }
+      },
+      include: {
+        tournament: {
+          select: {
+            name: true
+          }
+        },
+        homePair: {
+          select: {
+            name: true
+          }
+        },
+        awayPair: {
+          select: {
+            name: true
+          }
+        }
+      },
+      orderBy: [{ updatedAt: "asc" }],
+      take: 8
+    }),
+    prisma.manualUpcomingMatch.findMany({
+      where: {
+        arenaId,
+        scheduledTime: {
+          not: ""
+        }
+      },
+      orderBy: [{ displayOrder: "asc" }, { updatedAt: "asc" }],
+      take: 6
+    })
+  ]);
+
+  const items = [
+    ...lessons
+      .filter((lesson) => lesson.scheduledAt)
+      .map((lesson) => ({
+        id: `lesson-${lesson.id}`,
+        date: lesson.scheduledAt as Date,
+        title: lesson.title,
+        meta: lesson.teacher?.name ? `Professor ${lesson.teacher.name}` : "Aula agendada",
+        typeLabel: "Aula"
+      })),
+    ...tournamentMatches
+      .map((match) => ({
+        id: `match-${match.id}`,
+        date: parseScheduledTime(match.scheduledTime, match.updatedAt),
+        title: `${match.homePair?.name ?? "A definir"} x ${match.awayPair?.name ?? "A definir"}`,
+        meta: `${match.tournament.name} • ${match.label}`,
+        typeLabel: "Jogo"
+      }))
+      .filter((item) => item.date >= now && item.date <= end),
+    ...manualMatches
+      .map((match) => ({
+        id: `tv-${match.id}`,
+        date: parseScheduledTime(match.scheduledTime, match.updatedAt),
+        title: `${match.homePairName || "Aguardando"} x ${match.awayPairName || "Aguardando"}`,
+        meta: match.courtName || "Quadra a definir",
+        typeLabel: "TV"
+      }))
+      .filter((item) => item.date >= now && item.date <= end)
+  ]
+    .sort((a, b) => a.date.getTime() - b.date.getTime())
+    .slice(0, 8);
+
+  return {
+    rangeLabel: "Próximos 14 dias",
+    items: items.map((item) => ({
+      id: item.id,
+      title: item.title,
+      meta: item.meta,
+      dateLabel: formatCalendarDate(item.date),
+      timeLabel: formatCalendarTime(item.date),
+      typeLabel: item.typeLabel
+    })) satisfies TvCalendarEntry[]
+  };
+}
+
+async function getAdditionalRankingSlides(arenaId: string, rankingIds: string[]) {
+  if (!rankingIds.length) {
+    return [] as TvRankingSlide[];
+  }
+
+  const rankings = await prisma.rankingProfile.findMany({
+    where: {
+      arenaId,
+      id: {
+        in: rankingIds
+      }
+    },
+    select: {
+      id: true,
+      name: true
+    },
+    orderBy: {
+      name: "asc"
+    }
+  });
+
+  const tournamentEntries = await prisma.tournamentPlayer.findMany({
+    where: {
+      tournament: {
+        arenaId,
+        rankingId: {
+          in: rankings.map((ranking) => ranking.id)
+        }
+      }
+    },
+    select: {
+      tournament: {
+        select: {
+          rankingId: true
+        }
+      },
+      playerId: true,
+      tournamentPoints: true,
+      player: {
+        select: {
+          name: true
+        }
+      }
+    }
+  });
+
+  return rankings.map((ranking) => {
+    const grouped = new Map<string, { id: string; name: string; points: number }>();
+
+    for (const entry of tournamentEntries) {
+      if (entry.tournament.rankingId !== ranking.id) {
+        continue;
+      }
+
+      const current = grouped.get(entry.playerId) ?? {
+        id: entry.playerId,
+        name: entry.player.name,
+        points: 0
+      };
+
+      current.points += entry.tournamentPoints;
+      grouped.set(entry.playerId, current);
+    }
+
+    return {
+      id: ranking.id,
+      title: ranking.name,
+      entries: [...grouped.values()]
+        .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name))
+        .slice(0, 8)
+    };
+  }).filter((ranking) => ranking.entries.length);
+}
+
 export async function getTvPresentationPayload(arenaId: string) {
-  const [matches, settings, sponsors]: [Awaited<ReturnType<typeof getManualUpcomingMatchesPayload>>, TvSettingsPayload, TvSponsorPayload[]] = await Promise.all([
+  const [matches, settings, sponsors, calendar]: [
+    Awaited<ReturnType<typeof getManualUpcomingMatchesPayload>>,
+    TvSettingsPayload,
+    TvSponsorPayload[],
+    { rangeLabel: string; items: TvCalendarEntry[] }
+  ] = await Promise.all([
     getManualUpcomingMatchesPayload(arenaId),
     getTvSettings(arenaId),
-    getTvSponsors(arenaId)
+    getTvSponsors(arenaId),
+    getTvCalendarEntries(arenaId)
   ]);
 
   const selectedTournament = settings?.selectedTournamentId
@@ -239,14 +482,17 @@ export async function getTvPresentationPayload(arenaId: string) {
         }
       });
 
+  const rankingSlides = await getAdditionalRankingSlides(arenaId, settings?.selectedRankingIds ?? []);
+
   return {
     matches,
     settings: {
       slideIntervalSeconds: settings?.slideIntervalSeconds ?? 12,
       selectedTournamentId: selectedTournament?.id ?? "",
+      selectedRankingIds: settings?.selectedRankingIds ?? [],
       selectedTournamentName: selectedTournament?.name ?? "",
-      rankingTitle: settings?.rankingTitle ?? selectedTournament?.name ?? "",
       showMatches: settings?.showMatches ?? true,
+      showCalendar: settings?.showCalendar ?? false,
       showSponsors: settings?.showSponsors ?? false,
       showRanking: settings?.showRanking ?? false,
       showMonthlyPrize: settings?.showMonthlyPrize ?? false,
@@ -259,6 +505,8 @@ export async function getTvPresentationPayload(arenaId: string) {
       nightWinnerDescription: settings?.nightWinnerDescription ?? "Ganha uma vaga cortesia para o Super 12 da próxima semana. O uso é obrigatório na semana seguinte."
     },
     sponsors,
-    ranking
+    ranking,
+    rankingSlides,
+    calendar
   };
 }

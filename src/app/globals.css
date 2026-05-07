@@ -1895,6 +1895,69 @@ button {
   gap: 8px;
 }
 
+.group-drop-zone {
+  transition:
+    border-color 180ms var(--ease-standard),
+    box-shadow 180ms var(--ease-standard),
+    background 180ms var(--ease-standard);
+}
+
+.group-drop-zone-ready {
+  border-color: rgba(32, 91, 171, 0.32);
+}
+
+.group-drop-zone-pending {
+  border-color: rgba(32, 91, 171, 0.58);
+  box-shadow: 0 12px 28px rgba(32, 91, 171, 0.14);
+  background: rgba(32, 91, 171, 0.03);
+}
+
+.group-drag-list {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.group-drag-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px dashed rgba(32, 91, 171, 0.24);
+  border-radius: 12px;
+  background: #ffffff;
+  cursor: grab;
+}
+
+.group-drag-card:active {
+  cursor: grabbing;
+}
+
+.group-drag-card strong,
+.group-drag-card span,
+.group-drag-card small {
+  display: block;
+}
+
+.group-drag-card span,
+.group-drag-card small {
+  color: var(--muted);
+}
+
+.group-drag-card small {
+  white-space: nowrap;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.group-drag-card-dragging {
+  opacity: 0.44;
+  transform: scale(0.98);
+}
+
 .group-standings-table {
   width: 100%;
   border-collapse: separate;
@@ -2503,10 +2566,10 @@ button {
   height: 72px;
   margin-top: 10px;
   object-fit: contain;
-  border-radius: 12px;
-  background: #ffffff;
-  border: 1px solid rgba(30, 94, 168, 0.14);
-  padding: 8px;
+  border-radius: 0;
+  background: transparent;
+  border: 0;
+  padding: 0;
 }
 
 .tv-ranking-preview {
@@ -2689,15 +2752,17 @@ button {
   min-height: clamp(220px, 34vw, 360px);
   display: grid;
   place-items: center;
-  padding: clamp(22px, 2vw, 30px);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.96);
-  position: relative;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .tv-sponsor-logo {
+  display: block;
+  width: min(760px, 100%);
   max-width: 100%;
-  max-height: 260px;
+  max-height: 320px;
+  height: auto;
   object-fit: contain;
 }
 
@@ -2764,6 +2829,90 @@ button {
 
 .tv-ranking-board {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tv-calendar-stage {
+  display: grid;
+  gap: 18px;
+}
+
+.tv-calendar-head {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.tv-calendar-head strong {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: clamp(1.2rem, 1.6vw, 1.5rem);
+  font-weight: 800;
+}
+
+.tv-calendar-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(16px, 1.4vw, 22px);
+}
+
+.tv-calendar-card {
+  display: grid;
+  grid-template-columns: 176px minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+  min-height: 112px;
+  padding: 20px 22px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(255, 196, 79, 0.14), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05)),
+    rgba(255, 255, 255, 0.05);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+}
+
+.tv-calendar-date {
+  display: grid;
+  gap: 6px;
+}
+
+.tv-calendar-date span {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.92rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tv-calendar-date strong {
+  color: #ffc44f;
+  font-size: clamp(1.5rem, 2.2vw, 2.2rem);
+  font-weight: 900;
+}
+
+.tv-calendar-copy {
+  display: grid;
+  gap: 8px;
+}
+
+.tv-calendar-copy small {
+  color: rgba(255, 196, 79, 0.92);
+  font-size: 0.9rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tv-calendar-copy strong {
+  color: #ffffff;
+  font-size: clamp(1.2rem, 1.8vw, 1.8rem);
+  line-height: 1.08;
+}
+
+.tv-calendar-copy span {
+  color: rgba(235, 244, 255, 0.82);
+  font-size: clamp(0.98rem, 1.28vw, 1.18rem);
+  font-weight: 600;
 }
 
 .tv-ranking-card {
@@ -4599,6 +4748,10 @@ button {
     grid-template-columns: 1fr;
   }
 
+  .tv-calendar-list {
+    grid-template-columns: 1fr;
+  }
+
   .tv-match-card {
     grid-template-columns: minmax(116px, 0.42fr) minmax(0, 1fr);
   }
@@ -4782,6 +4935,10 @@ button {
 
   .tv-ranking-card {
     grid-template-columns: 70px minmax(0, 1fr);
+  }
+
+  .tv-calendar-card {
+    grid-template-columns: 1fr;
   }
 
   .tv-ranking-card small {

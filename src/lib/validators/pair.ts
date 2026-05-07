@@ -15,3 +15,8 @@ export const updateTournamentPairSchema = z.object({
 export const deleteTournamentPairSchema = z.object({
   pairId: z.string().trim().min(1, "Dupla inválida.")
 });
+
+export const moveTournamentPairGroupSchema = z.object({
+  pairId: z.string().trim().min(1, "Dupla inválida."),
+  targetGroupId: z.string().trim().min(1, "Grupo de destino inválido.")
+});

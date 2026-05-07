@@ -9,8 +9,8 @@ import {
   upsertTvPresentationSettingsAction
 } from "@/lib/actions/upcoming-match";
 import { requireModuleView } from "@/lib/auth/guards";
-import { getTvPresentationPayload } from "@/lib/services/tv-presentation";
 import { prisma } from "@/lib/prisma";
+import { getTvPresentationPayload } from "@/lib/services/tv-presentation";
 
 function checked(value: boolean) {
   return value ? { defaultChecked: true } : {};
@@ -26,7 +26,7 @@ function splitMonthlyPrize(description: string) {
 
 export default async function TvPresentationSettingsPage() {
   const auth = await requireModuleView("tv");
-  const [payload, tournaments] = await Promise.all([
+  const [payload, tournaments, rankings] = await Promise.all([
     getTvPresentationPayload(auth.arenaId),
     prisma.tournament.findMany({
       where: { arenaId: auth.arenaId },
@@ -35,6 +35,14 @@ export default async function TvPresentationSettingsPage() {
         id: true,
         name: true,
         status: true
+      }
+    }),
+    prisma.rankingProfile.findMany({
+      where: { arenaId: auth.arenaId },
+      orderBy: [{ name: "asc" }],
+      select: {
+        id: true,
+        name: true
       }
     })
   ]);
@@ -73,11 +81,9 @@ export default async function TvPresentationSettingsPage() {
             />
           </div>
 
-          <input type="hidden" name="selectedTournamentId" value={payload.settings.selectedTournamentId} />
-
           <div className="field">
             <label htmlFor="selected-tournament">Torneio para o ranking da TV</label>
-            <select id="selected-tournament" name="selectedTournamentId" defaultValue={payload.settings.selectedTournamentId} disabled>
+            <select id="selected-tournament" name="selectedTournamentId" defaultValue={payload.settings.selectedTournamentId}>
               <option value="">Ranking geral da arena</option>
               {tournaments.map((tournament) => (
                 <option key={tournament.id} value={tournament.id}>
@@ -87,15 +93,35 @@ export default async function TvPresentationSettingsPage() {
             </select>
           </div>
 
-          <div className="field">
-            <label htmlFor="ranking-title">Título do ranking</label>
-            <input id="ranking-title" name="rankingTitle" type="text" defaultValue={payload.settings.rankingTitle} />
+          <div className="field form-full">
+            <label>Rankings adicionais na rotação</label>
+            <div className="tv-settings-grid">
+              {rankings.length ? (
+                rankings.map((ranking) => (
+                  <label key={ranking.id} className="check-option tv-check-option">
+                    <input
+                      name="selectedRankingIds"
+                      type="checkbox"
+                      value={ranking.id}
+                      defaultChecked={payload.settings.selectedRankingIds.includes(ranking.id)}
+                    />
+                    <span>{ranking.name}</span>
+                  </label>
+                ))
+              ) : (
+                <p className="muted">Nenhum ranking cadastrado.</p>
+              )}
+            </div>
           </div>
 
           <div className="tv-settings-grid form-full">
             <label className="check-option tv-check-option">
               <input name="showMatches" type="checkbox" {...checked(payload.settings.showMatches)} />
               <span>Próximos jogos</span>
+            </label>
+            <label className="check-option tv-check-option">
+              <input name="showCalendar" type="checkbox" {...checked(payload.settings.showCalendar)} />
+              <span>Calendário da arena</span>
             </label>
             <label className="check-option tv-check-option">
               <input name="showSponsors" type="checkbox" {...checked(payload.settings.showSponsors)} />
@@ -176,7 +202,7 @@ export default async function TvPresentationSettingsPage() {
             </div>
             <div className="field">
               <label htmlFor="new-sponsor-logo">Logo</label>
-              <input id="new-sponsor-logo" name="logo" type="file" accept="image/png,image/jpeg,image/webp" />
+              <input id="new-sponsor-logo" name="logo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" />
             </div>
             <div className="manual-upcoming-submit">
               <SubmitButton label="Adicionar" pendingLabel="Salvando..." className="button button-primary" />
@@ -207,7 +233,7 @@ export default async function TvPresentationSettingsPage() {
                   </div>
                   <div className="field">
                     <label htmlFor={`${sponsor.id}-logo`}>Nova logo</label>
-                    <input id={`${sponsor.id}-logo`} name="logo" type="file" accept="image/png,image/jpeg,image/webp" />
+                    <input id={`${sponsor.id}-logo`} name="logo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" />
                     {sponsor.logoUrl ? <img src={sponsor.logoUrl} alt={`Logo de ${sponsor.name}`} className="tv-sponsor-form-logo" /> : null}
                   </div>
                   <div className="manual-upcoming-actions">
@@ -227,9 +253,11 @@ export default async function TvPresentationSettingsPage() {
 
       <SectionCard
         title="Preview do ranking"
-        description={payload.settings.selectedTournamentName
-          ? `O slide de ranking mostra apenas os inscritos em ${payload.settings.selectedTournamentName}.`
-          : "O slide de ranking usa automaticamente os jogadores ativos com maior pontuação."}
+        description={
+          payload.settings.selectedTournamentName
+            ? `O slide de ranking mostra apenas os inscritos em ${payload.settings.selectedTournamentName}.`
+            : "O slide de ranking usa automaticamente os jogadores ativos com maior pontuação."
+        }
       >
         {payload.ranking.length ? (
           <div className="tv-ranking-preview">
