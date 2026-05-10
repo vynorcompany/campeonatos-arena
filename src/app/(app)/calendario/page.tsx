@@ -122,19 +122,64 @@ function eventStyle(event: CalendarEvent) {
 }
 
 function getEventLayout(dayEvents: CalendarEvent[]) {
-  const occupiedUntil: number[] = [];
-  const placementByIndex = new Map<number, { column: number; columns: number }>();
-  const sorted = dayEvents.map((event, index) => ({ event, index })).sort((a, b) => a.event.date.getTime() - b.event.date.getTime());
+  type ActiveEvent = { index: number; endMinute: number; lane: number };
+  const layout = new Map<number, { column: number; columns: number }>();
+  const sorted = dayEvents
+    .map((event, index) => ({
+      index,
+      startMinute: event.date.getHours() * 60 + event.date.getMinutes(),
+      endMinute: event.date.getHours() * 60 + event.date.getMinutes() + event.durationMinutes
+    }))
+    .sort((a, b) => a.startMinute - b.startMinute || a.endMinute - b.endMinute);
+
+  let active: ActiveEvent[] = [];
+  let freeLanes: number[] = [];
+  let currentGroupIndexes: number[] = [];
+  let currentGroupMaxLanes = 0;
+
+  function flushGroup() {
+    if (!currentGroupIndexes.length) return;
+    for (const eventIndex of currentGroupIndexes) {
+      const current = layout.get(eventIndex);
+      if (!current) continue;
+      layout.set(eventIndex, { column: current.column, columns: Math.max(1, currentGroupMaxLanes) });
+    }
+    currentGroupIndexes = [];
+    currentGroupMaxLanes = 0;
+  }
 
   for (const item of sorted) {
-    const startMinute = item.event.date.getHours() * 60 + item.event.date.getMinutes();
-    const endMinute = startMinute + item.event.durationMinutes;
-    let column = occupiedUntil.findIndex((value) => value <= startMinute);
-    if (column === -1) { column = occupiedUntil.length; occupiedUntil.push(endMinute); }
-    else occupiedUntil[column] = endMinute;
-    placementByIndex.set(item.index, { column, columns: occupiedUntil.length });
+    const stillActive: ActiveEvent[] = [];
+
+    for (const current of active) {
+      if (current.endMinute <= item.startMinute) {
+        freeLanes.push(current.lane);
+      } else {
+        stillActive.push(current);
+      }
+    }
+
+    active = stillActive;
+    freeLanes.sort((a, b) => a - b);
+
+    if (!active.length && currentGroupIndexes.length) {
+      flushGroup();
+    }
+
+    const lane = freeLanes.length ? freeLanes.shift()! : active.length;
+    active.push({
+      index: item.index,
+      endMinute: item.endMinute,
+      lane
+    });
+
+    currentGroupIndexes.push(item.index);
+    currentGroupMaxLanes = Math.max(currentGroupMaxLanes, active.length);
+    layout.set(item.index, { column: lane, columns: 1 });
   }
-  return placementByIndex;
+
+  flushGroup();
+  return layout;
 }
 
 export default async function CalendarPage({ searchParams }: CalendarPageProps) {
@@ -195,7 +240,18 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
                   <div key={key} className="calendar-time-day" data-day={key}>
                     {timelineHours.map((hour) => <span key={hour} className="calendar-hour-line" />)}
                     {dayEvents.map((event, index) => (
-                      <Link key={`${event.type}-${event.title}-${index}`} href={event.href} className={`calendar-time-event calendar-time-event-${event.type}`} style={{ ...eventStyle(event), left: `${((placements.get(index)?.column ?? 0) * 100) / (placements.get(index)?.columns ?? 1)}%`, width: `calc(${100 / (placements.get(index)?.columns ?? 1)}% - 4px)` }}>
+                      <Link
+                        key={`${event.type}-${event.title}-${index}`}
+                        href={event.href}
+                        className={`calendar-time-event calendar-time-event-${event.type}`}
+                        style={{
+                          ...eventStyle(event),
+                          left: `calc(${((placements.get(index)?.column ?? 0) * 100) / (placements.get(index)?.columns ?? 1)}% + 2px)`,
+                          width: `calc(${100 / (placements.get(index)?.columns ?? 1)}% - 6px)`,
+                          right: "auto",
+                          zIndex: 5 + (placements.get(index)?.column ?? 0)
+                        }}
+                      >
                         <strong>{event.title}</strong><span>{formatTime(event.date)} · {event.meta}</span>
                       </Link>
                     ))}
