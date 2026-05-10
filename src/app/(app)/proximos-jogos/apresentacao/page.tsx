@@ -4,7 +4,6 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard } from "@/components/section-card";
 import {
   createTvSponsorAction,
-  deleteTvSponsorAction,
   updateTvSponsorAction,
   upsertTvPresentationSettingsAction
 } from "@/lib/actions/upcoming-match";
@@ -238,9 +237,7 @@ export default async function TvPresentationSettingsPage() {
                   </div>
                   <div className="manual-upcoming-actions">
                     <SubmitButton label="Salvar" pendingLabel="..." className="button button-primary" />
-                    <button type="submit" formAction={deleteTvSponsorAction} className="button button-danger">
-                      Remover
-                    </button>
+                    <button type="submit" name="intent" value="delete" className="button button-danger">Remover</button>
                   </div>
                 </SafeActionForm>
               ))}

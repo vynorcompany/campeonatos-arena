@@ -25,18 +25,40 @@ export function TournamentParticipantsForm({ tournamentId, players }: Tournament
   const [search, setSearch] = useState("");
   const [selectedPlayerIds, setSelectedPlayerIds] = useState(() => new Set(players.filter((player) => player.checked).map((player) => player.id)));
   const normalizedSearch = normalizeSearch(search);
-  const matchingPlayerIds = useMemo(() => {
+  const rankedPlayers = useMemo(() => {
     if (!normalizedSearch) {
-      return new Set(players.map((player) => player.id));
+      return players;
     }
 
-    return new Set(
-      players
-        .filter((player) => normalizeSearch(player.name).includes(normalizedSearch))
-        .map((player) => player.id)
-    );
+    return [...players]
+      .map((player) => {
+        const normalizedName = normalizeSearch(player.name);
+        const index = normalizedName.indexOf(normalizedSearch);
+        const isMatch = index >= 0;
+        const startsWith = index === 0;
+
+        return {
+          player,
+          isMatch,
+          startsWith,
+          index,
+          lengthDelta: Math.abs(normalizedName.length - normalizedSearch.length)
+        };
+      })
+      .sort((a, b) => {
+        if (a.isMatch !== b.isMatch) return a.isMatch ? -1 : 1;
+        if (!a.isMatch && !b.isMatch) return a.player.name.localeCompare(b.player.name);
+        if (a.startsWith !== b.startsWith) return a.startsWith ? -1 : 1;
+        if (a.index !== b.index) return a.index - b.index;
+        if (a.lengthDelta !== b.lengthDelta) return a.lengthDelta - b.lengthDelta;
+        return a.player.name.localeCompare(b.player.name);
+      })
+      .map((entry) => entry.player);
   }, [normalizedSearch, players]);
-  const visibleCount = matchingPlayerIds.size;
+
+  const visibleCount = rankedPlayers.filter((player) =>
+    !normalizedSearch || normalizeSearch(player.name).includes(normalizedSearch)
+  ).length;
   const selectedCount = selectedPlayerIds.size;
 
   function togglePlayer(playerId: string, checked: boolean) {
@@ -75,8 +97,12 @@ export function TournamentParticipantsForm({ tournamentId, players }: Tournament
       </div>
 
       <div className="participant-grid">
-        {players.map((player) => (
-          <label key={player.id} className="participant-option" hidden={!matchingPlayerIds.has(player.id)}>
+        {rankedPlayers.map((player) => (
+          <label
+            key={player.id}
+            className="participant-option"
+            hidden={!!normalizedSearch && !normalizeSearch(player.name).includes(normalizedSearch)}
+          >
             <input
               type="checkbox"
               name="playerIds"

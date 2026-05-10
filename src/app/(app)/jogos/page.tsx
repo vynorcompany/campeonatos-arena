@@ -1,3 +1,4 @@
+﻿import Link from "next/link";
 import { TimePickerInput } from "@/components/forms/time-picker-input";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard } from "@/components/section-card";
@@ -27,15 +28,10 @@ type MatchItem = ActiveTournament["matches"][number];
 type PairItem = ActiveTournament["pairs"][number] | NonNullable<MatchItem["homePair"]>;
 
 function getMatchStatus(match: MatchItem) {
-  if (match.homeScore !== null && match.awayScore !== null) {
-    return `${match.homeScore} x ${match.awayScore}`;
-  }
-
-  if (!match.homePair || !match.awayPair) {
-    return "Aguardando duplas";
-  }
-
-  return "Pendente";
+  if (match.winnerPairId) return "Finalizado";
+  if (match.homeScore !== null || match.awayScore !== null) return "Jogo rodando";
+  if (!match.homePair || !match.awayPair) return "Aguardando duplas";
+  return "Jogo aguardando";
 }
 
 function getStageSummary(matches: MatchItem[], stage: string) {
@@ -162,7 +158,16 @@ function MatchCard({ match, pairs }: { match: MatchItem; pairs: ActiveTournament
   );
 }
 
-export default async function MatchesPage() {
+type MatchesPageProps = {
+  searchParams?: {
+    q?: string;
+    fase?: string;
+    grupo?: string;
+    status?: string;
+  };
+};
+
+export default async function MatchesPage({ searchParams }: MatchesPageProps) {
   const auth = await requireModuleView("matches");
   const { activeTournament } = await getArenaDashboard(auth.arenaId);
 
@@ -185,10 +190,30 @@ export default async function MatchesPage() {
 
   const matches = activeTournament.matches;
   const stageOrder = ["GROUP", "OCTOFINAL", "QUARTERFINAL", "SEMIFINAL", "FINAL"];
+  const selectedStage = stageOrder.includes(searchParams?.fase ?? "") ? searchParams?.fase ?? "ALL" : "ALL";
+  const selectedGroup = searchParams?.grupo ?? "ALL";
+  const selectedStatus = searchParams?.status ?? "ALL";
+  const query = (searchParams?.q ?? "").trim().toLowerCase();
+  const groups = Array.from(new Set(matches.map((match) => match.group?.name).filter(Boolean))) as string[];
+
   const currentStage = stageOrder.find((stage) =>
     matches.some((match) => match.stage === stage && match.winnerPairId === null)
   ) ?? (matches.length ? "GROUP" : "NONE");
-  const currentMatches = currentStage === "NONE" ? [] : matches.filter((match) => match.stage === currentStage);
+
+  const filteredMatches = matches.filter((match) => {
+    const matchStatus = getMatchStatus(match);
+    const teams = `${match.homePair?.name ?? ""} ${match.awayPair?.name ?? ""}`.toLowerCase();
+    const label = `${match.label} ${match.group?.name ?? ""} ${match.scheduledTime ?? ""}`.toLowerCase();
+
+    if (query && !teams.includes(query) && !label.includes(query)) return false;
+    if (selectedStage !== "ALL" && match.stage !== selectedStage) return false;
+    if (selectedGroup !== "ALL" && (match.group?.name ?? "") !== selectedGroup) return false;
+    if (selectedStatus === "LIVE") return matchStatus === "Jogo rodando";
+    if (selectedStatus === "WAITING") return matchStatus === "Jogo aguardando" || matchStatus === "Aguardando duplas";
+    if (selectedStatus === "DONE") return matchStatus === "Finalizado";
+    if (selectedStatus === "NEXT") return matchStatus === "Jogo aguardando" && !!match.scheduledTime;
+    return true;
+  });
 
   return (
     <div className="stack-md">
@@ -218,22 +243,58 @@ export default async function MatchesPage() {
             })}
           </div>
         </div>
+
+        <form method="get" className="grid-form" style={{ marginTop: "0.75rem" }}>
+          <div className="field">
+            <label htmlFor="q">Pesquisar</label>
+            <input id="q" name="q" type="search" defaultValue={searchParams?.q ?? ""} placeholder="Dupla, grupo, horário..." />
+          </div>
+          <div className="field">
+            <label htmlFor="fase">Fase</label>
+            <select id="fase" name="fase" defaultValue={selectedStage}>
+              <option value="ALL">Todas</option>
+              {stageOrder.map((stage) => <option key={stage} value={stage}>{stageLabels[stage]}</option>)}
+            </select>
+          </div>
+          <div className="field">
+            <label htmlFor="grupo">Grupo</label>
+            <select id="grupo" name="grupo" defaultValue={selectedGroup}>
+              <option value="ALL">Todos</option>
+              {groups.map((groupName) => <option key={groupName} value={groupName}>{groupName}</option>)}
+            </select>
+          </div>
+          <div className="field">
+            <label htmlFor="status">Status</label>
+            <select id="status" name="status" defaultValue={selectedStatus}>
+              <option value="ALL">Todos</option>
+              <option value="WAITING">Aguardando</option>
+              <option value="NEXT">Próximo jogo</option>
+              <option value="LIVE">Rodando</option>
+              <option value="DONE">Finalizado</option>
+            </select>
+          </div>
+          <div className="form-full section-actions">
+            <button type="submit" className="button button-primary">Aplicar filtros</button>
+            <Link href="/jogos" className="button">Limpar</Link>
+          </div>
+        </form>
       </SectionCard>
 
       <SectionCard
-        title={currentStage === "NONE" ? "Jogos do torneio" : stageLabels[currentStage]}
-        description={currentMatches.length ? `${currentMatches.length} jogo(s) nesta etapa.` : "Os jogos aparecerão aqui quando forem gerados."}
+        title={selectedStage === "ALL" ? (currentStage === "NONE" ? "Jogos do torneio" : `Filtro em ${stageLabels[currentStage]}`) : stageLabels[selectedStage]}
+        description={filteredMatches.length ? `${filteredMatches.length} jogo(s) filtrado(s).` : "Os jogos aparecerão aqui quando forem gerados."}
       >
-        {currentMatches.length ? (
+        {filteredMatches.length ? (
           <div className="matches-stage-grid matches-stage-grid-refined">
-            {currentMatches.map((match) => (
+            {filteredMatches.map((match) => (
               <MatchCard key={match.id} match={match} pairs={activeTournament.pairs} />
             ))}
           </div>
         ) : (
-          <p className="muted">Gere os jogos para começar o acompanhamento do torneio.</p>
+          <p className="muted">Nenhum jogo encontrado com os filtros atuais.</p>
         )}
       </SectionCard>
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
@@ -69,12 +69,72 @@ function refreshTournamentRoutes() {
   revalidatePath("/matches");
 }
 
+function parseTimeToMinutes(value: string | null) {
+  if (!value) return Number.MAX_SAFE_INTEGER;
+  const [h, m] = value.split(":").map(Number);
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return Number.MAX_SAFE_INTEGER;
+  return h * 60 + m;
+}
+
+async function syncTvUpcomingMatchesFromTournament(arenaId: string) {
+  const matches = await prisma.match.findMany({
+    where: {
+      tournament: {
+        arenaId,
+        status: {
+          not: "FINISHED"
+        }
+      }
+    },
+    include: {
+      homePair: true,
+      awayPair: true
+    },
+    orderBy: [{ roundOrder: "asc" }, { updatedAt: "asc" }]
+  });
+
+  const scheduledPool = matches
+    .filter((match) => match.homePairId && match.awayPairId)
+    .sort((a, b) => parseTimeToMinutes(a.scheduledTime) - parseTimeToMinutes(b.scheduledTime));
+
+  const nextPendingMatchId = scheduledPool.find((match) => !match.winnerPairId && match.homeScore === null && match.awayScore === null)?.id;
+  const top = scheduledPool.slice(0, 8);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.manualUpcomingMatch.deleteMany({
+      where: { arenaId }
+    });
+
+    for (const [index, match] of top.entries()) {
+      const status = match.winnerPairId
+        ? "FINISHED"
+        : match.homeScore !== null || match.awayScore !== null
+          ? "LIVE"
+          : match.id === nextPendingMatchId
+            ? "LIVE"
+            : "SCHEDULED";
+
+      await tx.manualUpcomingMatch.create({
+        data: {
+          arenaId,
+          displayOrder: index + 1,
+          homePairName: match.homePair?.name ?? "",
+          awayPairName: match.awayPair?.name ?? "",
+          courtName: match.courtName ?? "",
+          scheduledTime: match.scheduledTime ?? "",
+          status
+        }
+      });
+    }
+  });
+}
+
 const rankingRuleBlueprint = [
-  { stageKey: "CHAMPION", label: "1º lugar", displayOrder: 1, field: "championPoints" as const },
-  { stageKey: "RUNNER_UP", label: "2º lugar", displayOrder: 2, field: "runnerUpPoints" as const },
+  { stageKey: "CHAMPION", label: "1Âº lugar", displayOrder: 1, field: "championPoints" as const },
+  { stageKey: "RUNNER_UP", label: "2Âº lugar", displayOrder: 2, field: "runnerUpPoints" as const },
   { stageKey: "SEMIFINAL", label: "Semifinal", displayOrder: 3, field: "semifinalPoints" as const },
   { stageKey: "QUARTERFINAL", label: "Quartas de final", displayOrder: 4, field: "quarterfinalPoints" as const },
-  { stageKey: "PARTICIPATION", label: "Participação", displayOrder: 5, field: "participationPoints" as const }
+  { stageKey: "PARTICIPATION", label: "ParticipaÃ§Ã£o", displayOrder: 5, field: "participationPoints" as const }
 ];
 
 async function ensureRankingBelongsToArena(arenaId: string, rankingId: string | null) {
@@ -93,7 +153,7 @@ async function ensureRankingBelongsToArena(arenaId: string, rankingId: string | 
   });
 
   if (!ranking) {
-    throw new Error("Ranking inválido para esta arena.");
+    throw new Error("Ranking invÃ¡lido para esta arena.");
   }
 
   return ranking.id;
@@ -137,7 +197,7 @@ async function syncRankingRules(
 
 function getPrismaMessage(error: unknown, fallback: string) {
   if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-    return "Já existe um jogador com esse nome na arena.";
+    return "JÃ¡ existe um jogador com esse nome na arena.";
   }
 
   return fallback;
@@ -151,7 +211,7 @@ export async function createPlayerAction(_: ActionState, formData: FormData): Pr
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Dados inválidos.", success: null };
+    return { error: parsed.error.issues[0]?.message ?? "Dados invÃ¡lidos.", success: null };
   }
 
   try {
@@ -198,7 +258,7 @@ export async function createPlayerAction(_: ActionState, formData: FormData): Pr
       }
     });
   } catch (error) {
-    return { error: getPrismaMessage(error, "Não foi possível cadastrar o jogador."), success: null };
+    return { error: getPrismaMessage(error, "NÃ£o foi possÃ­vel cadastrar o jogador."), success: null };
   }
 
   refreshTournamentRoutes();
@@ -216,7 +276,7 @@ export async function updatePlayerAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados invÃ¡lidos.");
   }
 
   try {
@@ -234,14 +294,14 @@ export async function updatePlayerAction(formData: FormData) {
     });
 
     if (!updated.count) {
-      throw new Error("Jogador não encontrado.");
+      throw new Error("Jogador nÃ£o encontrado.");
     }
   } catch (error) {
-    if (error instanceof Error && error.message === "Jogador não encontrado.") {
+    if (error instanceof Error && error.message === "Jogador nÃ£o encontrado.") {
       throw error;
     }
 
-    throw new Error(getPrismaMessage(error, "Não foi possível atualizar o jogador."));
+    throw new Error(getPrismaMessage(error, "NÃ£o foi possÃ­vel atualizar o jogador."));
   }
 
   refreshTournamentRoutes();
@@ -254,7 +314,7 @@ export async function archivePlayerAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados invÃ¡lidos.");
   }
 
   const updated = await prisma.player.updateMany({
@@ -268,7 +328,7 @@ export async function archivePlayerAction(formData: FormData) {
   });
 
   if (!updated.count) {
-    throw new Error("Jogador não encontrado.");
+    throw new Error("Jogador nÃ£o encontrado.");
   }
 
   refreshTournamentRoutes();
@@ -282,7 +342,7 @@ export async function updatePlayerPointsAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados invÃ¡lidos.");
   }
 
   const updated = await prisma.player.updateMany({
@@ -296,7 +356,7 @@ export async function updatePlayerPointsAction(formData: FormData) {
   });
 
   if (!updated.count) {
-    throw new Error("Jogador não encontrado.");
+    throw new Error("Jogador nÃ£o encontrado.");
   }
 
   refreshTournamentRoutes();
@@ -325,7 +385,7 @@ export async function updateTournamentEntryPointsAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados invÃ¡lidos.");
   }
 
   const updated = await prisma.tournamentPlayer.updateMany({
@@ -341,7 +401,7 @@ export async function updateTournamentEntryPointsAction(formData: FormData) {
   });
 
   if (!updated.count) {
-    throw new Error("Entrada do campeonato não encontrada.");
+    throw new Error("Entrada do campeonato nÃ£o encontrada.");
   }
 
   refreshTournamentRoutes();
@@ -357,7 +417,7 @@ export async function createTournamentAction(_: ActionState, formData: FormData)
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Dados inválidos.", success: null };
+    return { error: parsed.error.issues[0]?.message ?? "Dados invÃ¡lidos.", success: null };
   }
 
   const existingActiveTournament = await prisma.tournament.findFirst({
@@ -397,7 +457,7 @@ export async function finishTournamentAction(formData: FormData) {
   const tournamentId = String(formData.get("tournamentId") ?? "");
 
   if (!tournamentId) {
-    throw new Error("Torneio inválido.");
+    throw new Error("Torneio invÃ¡lido.");
   }
 
   await finishTournament(tournamentId, auth.arenaId);
@@ -415,7 +475,7 @@ export async function updateTournamentAction(_: ActionState, formData: FormData)
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Dados inválidos.", success: null };
+    return { error: parsed.error.issues[0]?.message ?? "Dados invÃ¡lidos.", success: null };
   }
 
   try {
@@ -428,7 +488,7 @@ export async function updateTournamentAction(_: ActionState, formData: FormData)
     });
   } catch (error) {
     return {
-      error: error instanceof Error ? error.message : "Não foi possível atualizar o torneio.",
+      error: error instanceof Error ? error.message : "NÃ£o foi possÃ­vel atualizar o torneio.",
       success: null
     };
   }
@@ -450,7 +510,7 @@ export async function createRankingProfileAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados invÃ¡lidos.");
   }
 
   const ranking = await prisma.rankingProfile.create({
@@ -479,7 +539,7 @@ export async function updateRankingProfileAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados invÃ¡lidos.");
   }
 
   const updated = await prisma.rankingProfile.updateMany({
@@ -494,7 +554,7 @@ export async function updateRankingProfileAction(formData: FormData) {
   });
 
   if (!updated.count) {
-    throw new Error("Ranking não encontrado.");
+    throw new Error("Ranking nÃ£o encontrado.");
   }
 
   await syncRankingRules(parsed.data.rankingId, parsed.data);
@@ -522,7 +582,7 @@ export async function deleteRankingProfileAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados invÃ¡lidos.");
   }
 
   await prisma.rankingProfile.deleteMany({
@@ -540,7 +600,7 @@ export async function deleteTournamentAction(formData: FormData) {
   const tournamentId = String(formData.get("tournamentId") ?? "");
 
   if (!tournamentId) {
-    throw new Error("Torneio inválido.");
+    throw new Error("Torneio invÃ¡lido.");
   }
 
   await deleteTournament(tournamentId, auth.arenaId);
@@ -555,7 +615,7 @@ export async function syncEntriesAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados invÃ¡lidos.");
   }
 
   await syncTournamentEntries(parsed.data.tournamentId, auth.arenaId, parsed.data.playerIds);
@@ -568,7 +628,7 @@ export async function syncEntriesStateAction(_: ActionState, formData: FormData)
     return { error: null, success: "Participantes do torneio atualizados com sucesso." };
   } catch (error) {
     return {
-      error: error instanceof Error ? error.message : "Não foi possível atualizar os participantes.",
+      error: error instanceof Error ? error.message : "NÃ£o foi possÃ­vel atualizar os participantes.",
       success: null
     };
   }
@@ -579,7 +639,7 @@ export async function generatePairsAction(formData: FormData) {
   const tournamentId = String(formData.get("tournamentId") ?? "");
 
   if (!tournamentId) {
-    throw new Error("Torneio inválido.");
+    throw new Error("Torneio invÃ¡lido.");
   }
 
   await generateTournamentPairs(tournamentId);
@@ -595,14 +655,14 @@ export async function createTournamentPairAction(_: ActionState, formData: FormD
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Dados inválidos.", success: null };
+    return { error: parsed.error.issues[0]?.message ?? "Dados invÃ¡lidos.", success: null };
   }
 
   try {
     await createTournamentPair(parsed.data.tournamentId, parsed.data.playerAId, parsed.data.playerBId);
   } catch (error) {
     return {
-      error: error instanceof Error ? error.message : "Não foi possível salvar a dupla.",
+      error: error instanceof Error ? error.message : "NÃ£o foi possÃ­vel salvar a dupla.",
       success: null
     };
   }
@@ -620,7 +680,7 @@ export async function updateTournamentPairAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados invÃ¡lidos.");
   }
 
   await updateTournamentPair(parsed.data.pairId, auth.arenaId, parsed.data.playerAId, parsed.data.playerBId);
@@ -634,7 +694,7 @@ export async function deleteTournamentPairAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados invÃ¡lidos.");
   }
 
   await deleteTournamentPair(parsed.data.pairId, auth.arenaId);
@@ -649,7 +709,7 @@ export async function moveTournamentPairGroupAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados invÃ¡lidos.");
   }
 
   await moveTournamentPairToGroup(parsed.data.pairId, parsed.data.targetGroupId, auth.arenaId);
@@ -661,7 +721,7 @@ export async function generateGroupsAction(formData: FormData) {
   const tournamentId = String(formData.get("tournamentId") ?? "");
 
   if (!tournamentId) {
-    throw new Error("Torneio inválido.");
+    throw new Error("Torneio invÃ¡lido.");
   }
 
   await distributeTournamentGroups(tournamentId);
@@ -673,7 +733,7 @@ export async function generateMatchesAction(formData: FormData) {
   const tournamentId = String(formData.get("tournamentId") ?? "");
 
   if (!tournamentId) {
-    throw new Error("Torneio inválido.");
+    throw new Error("Torneio invÃ¡lido.");
   }
 
   await generateTournamentMatches(tournamentId);
@@ -688,7 +748,7 @@ export async function updateMatchCourtAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados invÃ¡lidos.");
   }
 
   const updated = await prisma.match.updateMany({
@@ -704,9 +764,10 @@ export async function updateMatchCourtAction(formData: FormData) {
   });
 
   if (!updated.count) {
-    throw new Error("Jogo não encontrado.");
+    throw new Error("Jogo nÃ£o encontrado.");
   }
 
+  await syncTvUpcomingMatchesFromTournament(auth.arenaId);
   refreshTournamentRoutes();
 }
 
@@ -718,7 +779,7 @@ export async function updateMatchScheduleAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados invÃ¡lidos.");
   }
 
   const updated = await prisma.match.updateMany({
@@ -734,9 +795,10 @@ export async function updateMatchScheduleAction(formData: FormData) {
   });
 
   if (!updated.count) {
-    throw new Error("Jogo não encontrado.");
+    throw new Error("Jogo nÃ£o encontrado.");
   }
 
+  await syncTvUpcomingMatchesFromTournament(auth.arenaId);
   refreshTournamentRoutes();
 }
 
@@ -749,10 +811,11 @@ export async function updateMatchResultAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados invÃ¡lidos.");
   }
 
   await updateMatchResult(parsed.data.matchId, auth.arenaId, parsed.data.homeScore, parsed.data.awayScore);
+  await syncTvUpcomingMatchesFromTournament(auth.arenaId);
   refreshTournamentRoutes();
 }
 
@@ -765,7 +828,7 @@ export async function updateMatchParticipantsAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados invÃ¡lidos.");
   }
 
   await updateKnockoutParticipants(
@@ -775,5 +838,9 @@ export async function updateMatchParticipantsAction(formData: FormData) {
     parsed.data.awayPairId
   );
 
+  await syncTvUpcomingMatchesFromTournament(auth.arenaId);
   refreshTournamentRoutes();
 }
+
+
+

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
@@ -119,6 +119,7 @@ export function GroupEditor({ groups }: GroupEditorProps) {
                     <th>Vitórias</th>
                     <th>Games pró</th>
                     <th>Games contra</th>
+                    <th>Saldo</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -131,6 +132,7 @@ export function GroupEditor({ groups }: GroupEditorProps) {
                       <td>{pair.wins}</td>
                       <td>{pair.gamesFor}</td>
                       <td>{pair.gamesAgainst}</td>
+                      <td>{pair.gamesFor - pair.gamesAgainst}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -155,3 +157,4 @@ export function GroupEditor({ groups }: GroupEditorProps) {
     </div>
   );
 }
+

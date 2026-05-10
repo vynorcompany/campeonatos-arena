@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+﻿import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { buildRoundRobin, distributePairsIntoGroups, generateBalancedPairs } from "@/lib/services/balancing";
 import type { MatchStage, TournamentStatus } from "@/types/tournament";
@@ -58,9 +58,9 @@ function buildPairedGroupMatchLabels(groupCount: number, stagePrefix: "OF" | "QF
     const firstGroup = getGroupLabelByOrder(groupIndex);
     const secondGroup = getGroupLabelByOrder(groupIndex + 1);
 
-    labels.push(`${stagePrefix} ${matchNumber} - 1º ${firstGroup} x 2º ${secondGroup}`);
+    labels.push(`${stagePrefix} ${matchNumber} - 1Âº ${firstGroup} x 2Âº ${secondGroup}`);
     matchNumber += 1;
-    labels.push(`${stagePrefix} ${matchNumber} - 1º ${secondGroup} x 2º ${firstGroup}`);
+    labels.push(`${stagePrefix} ${matchNumber} - 1Âº ${secondGroup} x 2Âº ${firstGroup}`);
     matchNumber += 1;
   }
 
@@ -489,6 +489,48 @@ async function buildGroupStandings(tx: Prisma.TransactionClient, tournamentId: s
   });
 
   return standings;
+}
+
+async function assignWinnerToNextMatch(
+  tx: Prisma.TransactionClient,
+  tournamentId: string,
+  label: string,
+  winnerPairId: string
+) {
+  const target = getNextKnockoutTarget(label);
+
+  if (!target) {
+    return;
+  }
+
+  const nextMatch = await tx.match.findFirst({
+    where: {
+      tournamentId,
+      label: target.nextLabel
+    }
+  });
+
+  if (!nextMatch) {
+    return;
+  }
+
+  const slotChanged =
+    (target.slot === "homePairId" && nextMatch.homePairId !== winnerPairId) ||
+    (target.slot === "awayPairId" && nextMatch.awayPairId !== winnerPairId);
+
+  await tx.match.update({
+    where: { id: nextMatch.id },
+    data: {
+      [target.slot]: winnerPairId,
+      ...(slotChanged
+        ? {
+            homeScore: null,
+            awayScore: null,
+            winnerPairId: null
+          }
+        : {})
+    }
+  });
 }
 
 function buildGroupQualificationMap(standings: GroupStandingEntry[], knockoutSize: number) {
@@ -1017,7 +1059,7 @@ export async function syncTournamentEntries(tournamentId: string, arenaId: strin
   });
 
   if (players.length !== uniquePlayerIds.length) {
-    throw new Error("Um ou mais jogadores selecionados não estão disponíveis para este torneio.");
+    throw new Error("Um ou mais jogadores selecionados nÃ£o estÃ£o disponÃ­veis para este torneio.");
   }
 
   const tournament = await prisma.tournament.findFirst({
@@ -1036,7 +1078,7 @@ export async function syncTournamentEntries(tournamentId: string, arenaId: strin
   });
 
   if (!tournament) {
-    throw new Error("Torneio não encontrado.");
+    throw new Error("Torneio nÃ£o encontrado.");
   }
 
   const existingPlayerIdSet = new Set(tournament.entries.map((entry) => entry.playerId));
@@ -1136,7 +1178,7 @@ export async function generateTournamentPairs(tournamentId: string) {
   });
 
   if (!tournament) {
-    throw new Error("Torneio não encontrado.");
+    throw new Error("Torneio nÃ£o encontrado.");
   }
 
   const { pairs, waitlist } = generateBalancedPairs(
@@ -1232,7 +1274,7 @@ export async function createTournamentPair(tournamentId: string, playerAId: stri
   });
 
   if (!tournament) {
-    throw new Error("Torneio não encontrado.");
+    throw new Error("Torneio nÃ£o encontrado.");
   }
 
   const entryByPlayerId = new Map(
@@ -1257,7 +1299,7 @@ export async function createTournamentPair(tournamentId: string, playerAId: stri
   );
 
   if (pairedPlayerIds.has(playerAId) || pairedPlayerIds.has(playerBId)) {
-    throw new Error("Um dos jogadores selecionados já faz parte de outra dupla.");
+    throw new Error("Um dos jogadores selecionados jÃ¡ faz parte de outra dupla.");
   }
 
   await prisma.$transaction(async (tx) => {
@@ -1333,7 +1375,7 @@ export async function updateTournamentPair(pairId: string, arenaId: string, play
   });
 
   if (!pair) {
-    throw new Error("Dupla não encontrada.");
+    throw new Error("Dupla nÃ£o encontrada.");
   }
 
   const entryByPlayerId = new Map(
@@ -1360,7 +1402,7 @@ export async function updateTournamentPair(pairId: string, arenaId: string, play
   );
 
   if (pairedPlayerIds.has(playerAId) || pairedPlayerIds.has(playerBId)) {
-    throw new Error("Um dos jogadores selecionados já faz parte de outra dupla.");
+    throw new Error("Um dos jogadores selecionados jÃ¡ faz parte de outra dupla.");
   }
 
   await prisma.$transaction(async (tx) => {
@@ -1423,7 +1465,7 @@ export async function deleteTournamentPair(pairId: string, arenaId: string) {
   });
 
   if (!pair) {
-    throw new Error("Dupla não encontrada.");
+    throw new Error("Dupla nÃ£o encontrada.");
   }
 
   await prisma.$transaction(async (tx) => {
@@ -1465,7 +1507,7 @@ export async function distributeTournamentGroups(tournamentId: string) {
   });
 
   if (!tournament) {
-    throw new Error("Torneio não encontrado.");
+    throw new Error("Torneio nÃ£o encontrado.");
   }
 
   if (!tournament.pairs.length) {
@@ -1548,14 +1590,14 @@ function buildKnockoutSkeleton(groupCount: number, pairCount: number) {
     const octofinalLabels = usePairedGroupSeeding
       ? buildPairedGroupMatchLabels(groupCount, "OF")
       : [
-          "OF 1 - 1º geral x 16º geral",
-          "OF 2 - 8º geral x 9º geral",
-          "OF 3 - 5º geral x 12º geral",
-          "OF 4 - 4º geral x 13º geral",
-          "OF 5 - 3º geral x 14º geral",
-          "OF 6 - 6º geral x 11º geral",
-          "OF 7 - 7º geral x 10º geral",
-          "OF 8 - 2º geral x 15º geral"
+          "OF 1 - 1Âº geral x 16Âº geral",
+          "OF 2 - 8Âº geral x 9Âº geral",
+          "OF 3 - 5Âº geral x 12Âº geral",
+          "OF 4 - 4Âº geral x 13Âº geral",
+          "OF 5 - 3Âº geral x 14Âº geral",
+          "OF 6 - 6Âº geral x 11Âº geral",
+          "OF 7 - 7Âº geral x 10Âº geral",
+          "OF 8 - 2Âº geral x 15Âº geral"
         ];
 
     return [
@@ -1578,10 +1620,10 @@ function buildKnockoutSkeleton(groupCount: number, pairCount: number) {
     const quarterfinalLabels = usePairedGroupSeeding
       ? buildPairedGroupMatchLabels(groupCount, "QF")
       : [
-          "QF 1 - 1º geral x 8º geral",
-          "QF 2 - 4º geral x 5º geral",
-          "QF 3 - 3º geral x 6º geral",
-          "QF 4 - 2º geral x 7º geral"
+          "QF 1 - 1Âº geral x 8Âº geral",
+          "QF 2 - 4Âº geral x 5Âº geral",
+          "QF 3 - 3Âº geral x 6Âº geral",
+          "QF 4 - 2Âº geral x 7Âº geral"
         ];
 
     return [
@@ -1600,8 +1642,8 @@ function buildKnockoutSkeleton(groupCount: number, pairCount: number) {
     const semifinalLabels = usePairedGroupSeeding
       ? buildPairedGroupMatchLabels(groupCount, "SF")
       : [
-          "SF 1 - 1º geral x 4º geral",
-          "SF 2 - 2º geral x 3º geral"
+          "SF 1 - 1Âº geral x 4Âº geral",
+          "SF 2 - 2Âº geral x 3Âº geral"
         ];
 
     return [
@@ -1633,7 +1675,7 @@ export async function generateTournamentMatches(tournamentId: string) {
   });
 
   if (!tournament) {
-    throw new Error("Torneio não encontrado.");
+    throw new Error("Torneio nÃ£o encontrado.");
   }
 
   if (!tournament.groups.length) {
@@ -1711,7 +1753,7 @@ export async function finishTournament(tournamentId: string, arenaId: string) {
   });
 
   if (!updated.count) {
-    throw new Error("Torneio não encontrado ou já finalizado.");
+    throw new Error("Torneio nÃ£o encontrado ou jÃ¡ finalizado.");
   }
 
   return true;
@@ -1726,7 +1768,7 @@ export async function deleteTournament(tournamentId: string, arenaId: string) {
   });
 
   if (!deleted.count) {
-    throw new Error("Torneio não encontrado.");
+    throw new Error("Torneio nÃ£o encontrado.");
   }
 
   return true;
@@ -1748,7 +1790,7 @@ export async function moveTournamentPairToGroup(pairId: string, targetGroupId: s
   });
 
   if (!pair) {
-    throw new Error("Dupla não encontrada.");
+    throw new Error("Dupla nÃ£o encontrada.");
   }
 
   const targetGroup = await prisma.tournamentGroup.findFirst({
@@ -1765,7 +1807,7 @@ export async function moveTournamentPairToGroup(pairId: string, targetGroupId: s
   });
 
   if (!targetGroup) {
-    throw new Error("Grupo de destino não encontrado.");
+    throw new Error("Grupo de destino nÃ£o encontrado.");
   }
 
   if (pair.groupId === targetGroup.id) {
@@ -1822,7 +1864,7 @@ export async function updateTournamentSettings(
   });
 
   if (!tournament) {
-    throw new Error("Torneio não encontrado.");
+    throw new Error("Torneio nÃ£o encontrado.");
   }
 
   const structureChanged =
@@ -1872,7 +1914,7 @@ export async function updateMatchResult(matchId: string, arenaId: string, homeSc
   });
 
   if (!match) {
-    throw new Error("Jogo não encontrado.");
+    throw new Error("Jogo nÃ£o encontrado.");
   }
 
   if (!match.homePairId || !match.awayPairId) {
@@ -1898,25 +1940,7 @@ export async function updateMatchResult(matchId: string, arenaId: string, homeSc
         await clearFollowingMatches(tx, match.tournamentId, match.label);
       }
 
-      const target = getNextKnockoutTarget(match.label);
-
-      if (target) {
-        const nextMatch = await tx.match.findFirst({
-          where: {
-            tournamentId: match.tournamentId,
-            label: target.nextLabel
-          }
-        });
-
-        if (nextMatch) {
-          await tx.match.update({
-            where: { id: nextMatch.id },
-            data: {
-              [target.slot]: winnerPairId
-            }
-          });
-        }
-      }
+      await assignWinnerToNextMatch(tx, match.tournamentId, match.label, winnerPairId);
     }
 
     await recalculateTournamentRankingPointsTx(tx, match.tournamentId);
@@ -1941,11 +1965,11 @@ export async function updateKnockoutParticipants(
   });
 
   if (!match) {
-    throw new Error("Jogo não encontrado.");
+    throw new Error("Jogo nÃ£o encontrado.");
   }
 
   if (match.stage === matchStage.GROUP) {
-    throw new Error("A definição manual de confronto só vale para o mata-mata.");
+    throw new Error("A definiÃ§Ã£o manual de confronto sÃ³ vale para o mata-mata.");
   }
 
   const participantsChanged = match.homePairId !== homePairId || match.awayPairId !== awayPairId;
@@ -1971,4 +1995,5 @@ export async function updateKnockoutParticipants(
 
   return true;
 }
+
 
