@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
@@ -42,7 +42,7 @@ export function StudentActionsCell({
             defaultValue={remainingClasses}
             aria-label="Aulas restantes"
           />
-          <input name="notes" type="text" defaultValue={notes} aria-label="Observações do aluno" placeholder="Observações" />
+          <input name="notes" type="text" defaultValue={notes} aria-label="ObservaÃ§Ãµes do aluno" placeholder="ObservaÃ§Ãµes" />
         </div>
         <div className="player-inline-actions">
           <SubmitButton label="Salvar" pendingLabel="..." className="player-inline-text-button player-inline-text-button-save" />
@@ -88,18 +88,18 @@ export function StudentActionsCell({
           </svg>
         </button>
 
-        <SafeActionForm action={deleteStudentAction} successMessage="Aluno removido.">
+        <SafeActionForm
+          action={deleteStudentAction}
+          successMessage="Aluno removido."
+          confirmKeyword="EXCLUIR"
+          confirmPrompt={`Digite EXCLUIR para remover ${name} da lista de alunos.`}
+        >
           <input type="hidden" name="studentId" value={studentId} />
           <button
             type="submit"
             className="player-trash-button"
             aria-label={`Excluir ${name}`}
             title="Excluir aluno"
-            onClick={(event) => {
-              if (!window.confirm(`Deseja excluir ${name} da aba de alunos? O jogador vinculado continuará cadastrado.`)) {
-                event.preventDefault();
-              }
-            }}
           >
             <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
               <path d="M4.75 5.75H15.25" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
@@ -126,3 +126,4 @@ export function StudentActionsCell({
     </div>
   );
 }
+

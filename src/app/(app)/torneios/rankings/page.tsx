@@ -189,10 +189,15 @@ export default async function TournamentRankingsPage() {
                     </div>
                   </SafeActionForm>
 
-                  <form action={deleteRankingProfileAction}>
+                  <SafeActionForm
+                    action={deleteRankingProfileAction}
+                    confirmKeyword="EXCLUIR"
+                    confirmPrompt="Digite EXCLUIR para remover este ranking."
+                    successMessage="Ranking excluido."
+                  >
                     <input type="hidden" name="rankingId" value={ranking.id} />
                     <SubmitButton label="Remover ranking" pendingLabel="Removendo..." className="button button-danger" />
-                  </form>
+                  </SafeActionForm>
                 </div>
               );
             })}

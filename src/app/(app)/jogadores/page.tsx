@@ -1,4 +1,5 @@
 ﻿import { PlayerForm } from "@/components/forms/player-form";
+import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { TournamentParticipantsForm } from "@/components/forms/tournament-participants-form";
 import { LiveQueryInput } from "@/components/forms/live-query-input";
@@ -37,9 +38,14 @@ export default async function PlayersPage({ searchParams }: PlayersPageProps) {
           <h1>Jogadores</h1>
           <p className="muted">Cadastre jogadores e ajuste pontuacoes do torneio e ranking.</p>
         </div>
-        <form action={resetPlayerRankingAction}>
+        <SafeActionForm
+          action={resetPlayerRankingAction}
+          confirmKeyword="RESETAR"
+          confirmPrompt="Digite RESETAR para confirmar o reset da pontuacao geral dos jogadores."
+          successMessage="Pontuacao resetada."
+        >
           <button type="submit" className="button button-danger">Resetar pontuacao</button>
-        </form>
+        </SafeActionForm>
       </header>
 
       <SectionCard title="Adicionar jogador" description="Inclua novos participantes e defina pontuacao inicial.">
@@ -136,3 +142,5 @@ export default async function PlayersPage({ searchParams }: PlayersPageProps) {
     </div>
   );
 }
+
+

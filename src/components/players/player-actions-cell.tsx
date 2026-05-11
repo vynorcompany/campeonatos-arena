@@ -87,7 +87,8 @@ export function PlayerActionsCell({ playerId, playerName, playerPoints, playerPh
           <form
             action={archivePlayerAction}
             onSubmit={(event) => {
-              if (!window.confirm(`Deseja remover ${playerName} da lista de jogadores? O histórico dos torneios continuará disponível.`)) {
+              const typed = window.prompt(`Para remover ${playerName}, digite EXCLUIR.`);
+              if ((typed ?? "").trim().toUpperCase() !== "EXCLUIR") {
                 event.preventDefault();
               }
             }}

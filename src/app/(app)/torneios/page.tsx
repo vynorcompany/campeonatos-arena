@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BracketOverview } from "@/components/bracket-overview";
+import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { TournamentForm } from "@/components/forms/tournament-form";
 import { SectionCard } from "@/components/section-card";
@@ -234,10 +235,15 @@ export default async function TournamentsPage() {
                   <input type="hidden" name="tournamentId" value={activeTournament.id} />
                   <SubmitButton label="Encerrar torneio" pendingLabel="Encerrando..." className="button" />
                 </form>
-                <form action={deleteTournamentAction}>
+                <SafeActionForm
+                  action={deleteTournamentAction}
+                  confirmKeyword="EXCLUIR"
+                  confirmPrompt="Digite EXCLUIR para remover este torneio permanentemente."
+                  successMessage="Torneio excluido."
+                >
                   <input type="hidden" name="tournamentId" value={activeTournament.id} />
                   <SubmitButton label="Excluir torneio" pendingLabel="Excluindo..." className="button button-danger" />
-                </form>
+                </SafeActionForm>
               </div>
             </div>
           </div>
@@ -273,10 +279,15 @@ export default async function TournamentsPage() {
                   <Link href={`/torneios/${tournament.id}`} className="button">
                     Ver detalhes
                   </Link>
-                  <form action={deleteTournamentAction}>
+                  <SafeActionForm
+                    action={deleteTournamentAction}
+                    confirmKeyword="EXCLUIR"
+                    confirmPrompt="Digite EXCLUIR para remover este torneio permanentemente."
+                    successMessage="Torneio excluido."
+                  >
                     <input type="hidden" name="tournamentId" value={tournament.id} />
                     <SubmitButton label="Excluir" pendingLabel="Excluindo..." className="button button-danger" />
-                  </form>
+                  </SafeActionForm>
                 </div>
               </div>
             ))}

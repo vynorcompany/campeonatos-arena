@@ -3816,6 +3816,18 @@ button {
   background: #ffffff;
 }
 
+.calendar-drag-scroll {
+  cursor: grab;
+}
+
+.calendar-drag-scroll.calendar-dragging {
+  cursor: grabbing;
+}
+
+.calendar-drag-scroll.calendar-dragging * {
+  user-select: none;
+}
+
 .calendar-agenda-days,
 .calendar-agenda-grid {
   display: grid;
@@ -3889,6 +3901,7 @@ button {
   position: absolute;
   left: 8px;
   right: 8px;
+  border: none;
   display: grid;
   align-content: space-between;
   gap: 8px;
@@ -3896,6 +3909,8 @@ button {
   padding: 12px;
   border-left: 6px solid currentColor;
   border-radius: 0 14px 14px 0;
+  text-align: left;
+  cursor: pointer;
   text-decoration: none;
   box-shadow: 0 10px 22px rgba(35, 50, 70, 0.08);
 }

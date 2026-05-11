@@ -142,7 +142,13 @@ export default async function RegisterLessonPage() {
                   <SubmitButton label="Concluir aula" pendingLabel="Concluindo..." className="button button-primary" />
                 </SafeActionForm>
               ) : null}
-              <SafeActionForm action={deleteLessonAction} className="lesson-complete-form" successMessage="Aula excluida.">
+              <SafeActionForm
+                action={deleteLessonAction}
+                className="lesson-complete-form"
+                successMessage="Aula excluida."
+                confirmKeyword="EXCLUIR"
+                confirmPrompt="Digite EXCLUIR para remover esta aula permanentemente."
+              >
                 <input type="hidden" name="lessonId" value={lesson.id} />
                 <SubmitButton label="Excluir aula" pendingLabel="Excluindo..." className="button button-danger" />
               </SafeActionForm>

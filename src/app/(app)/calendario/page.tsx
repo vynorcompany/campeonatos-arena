@@ -1,7 +1,8 @@
-﻿import Link from "next/link";
-import { SectionCard } from "@/components/section-card";
+import Link from "next/link";
+import { CalendarDragScroll } from "@/components/calendar-drag-scroll";
 import { CalendarQuickCreate } from "@/components/calendar-quick-create";
-import { requireModuleView } from "@/lib/auth/guards";
+import { SectionCard } from "@/components/section-card";
+import { requireArenaAccess } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 
 type CalendarPageProps = {
@@ -15,11 +16,16 @@ type CalendarPageProps = {
 };
 
 type CalendarEvent = {
+  id: string;
+  sourceType: "lesson" | "calendar";
+  lessonId: string;
+  calendarEventId: string;
+  eventType: string;
   type: string;
   date: Date;
   title: string;
   meta: string;
-  href: string;
+  notes: string;
   durationMinutes: number;
 };
 
@@ -139,29 +145,15 @@ function getEventLayout(dayEvents: CalendarEvent[]) {
 
   for (const item of sorted) {
     const stillActive: ActiveEvent[] = [];
-
     for (const current of active) {
-      if (current.endMinute <= item.startMinute) {
-        freeLanes.push(current.lane);
-      } else {
-        stillActive.push(current);
-      }
+      if (current.endMinute <= item.startMinute) freeLanes.push(current.lane);
+      else stillActive.push(current);
     }
-
     active = stillActive;
     freeLanes.sort((a, b) => a - b);
-
-    if (!active.length && currentGroupIndexes.length) {
-      flushGroup();
-    }
-
+    if (!active.length && currentGroupIndexes.length) flushGroup();
     const lane = freeLanes.length ? freeLanes.shift()! : active.length;
-    active.push({
-      index: item.index,
-      endMinute: item.endMinute,
-      lane
-    });
-
+    active.push({ index: item.index, endMinute: item.endMinute, lane });
     currentGroupIndexes.push(item.index);
     currentGroupMaxLanes = Math.max(currentGroupMaxLanes, active.length);
     layout.set(item.index, { column: lane, columns: 1 });
@@ -172,7 +164,7 @@ function getEventLayout(dayEvents: CalendarEvent[]) {
 }
 
 export default async function CalendarPage({ searchParams }: CalendarPageProps) {
-  const auth = await requireModuleView("calendar");
+  const auth = await requireArenaAccess();
   const allowedPeriods = new Set(Object.keys(periodLabels));
   const period = allowedPeriods.has(searchParams?.periodo ?? "") ? searchParams?.periodo ?? "week" : "week";
   const type = searchParams?.tipo ?? "all";
@@ -181,34 +173,52 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
   const customEnd = parseDateParam(searchParams?.fim);
   const { label, start, end, gridStart, gridEnd } = getRange(period, anchor, customStart, customEnd);
 
-  const lessons = await prisma.lesson.findMany({
-    where: {
-      arenaId: auth.arenaId,
-      scheduledAt: {
-        gte: start,
-        lt: end
-      }
-    },
-    include: {
-      teacher: true,
-      attendances: { include: { student: true } }
-    },
-    orderBy: { scheduledAt: "asc" }
-  });
+  const [lessons, calendarEvents] = await Promise.all([
+    prisma.lesson.findMany({
+      where: { arenaId: auth.arenaId, scheduledAt: { gte: start, lt: end } },
+      include: { teacher: true, attendances: { include: { student: true } } },
+      orderBy: { scheduledAt: "asc" }
+    }),
+    prisma.calendarEvent.findMany({
+      where: { arenaId: auth.arenaId, scheduledAt: { gte: start, lt: end } },
+      orderBy: { scheduledAt: "asc" }
+    })
+  ]);
 
   const now = new Date();
   const events: CalendarEvent[] = [
     ...lessons
       .filter((lesson) => lesson.scheduledAt && lesson.scheduledAt >= now)
       .map((lesson) => ({
+        id: lesson.id,
+        sourceType: "lesson" as const,
+        lessonId: lesson.id,
+        calendarEventId: "",
+        eventType: "AULA",
         type: "lessons",
         date: lesson.scheduledAt as Date,
         title: lesson.title,
         meta: `${lesson.teacher?.name ?? "Sem professor"} · ${lesson.attendances.length} aluno(s)`,
-        href: "/aulas",
+        notes: lesson.notes ?? "",
         durationMinutes: lesson.durationMinutes
+      })),
+    ...calendarEvents
+      .filter((event) => event.scheduledAt >= now)
+      .map((event) => ({
+        id: event.id,
+        sourceType: "calendar" as const,
+        lessonId: "",
+        calendarEventId: event.id,
+        eventType: event.eventType,
+        type: "lessons",
+        date: event.scheduledAt,
+        title: event.title,
+        meta: event.eventType === "EVENTO" ? "Evento da agenda" : event.eventType,
+        notes: event.notes ?? "",
+        durationMinutes: event.durationMinutes
       }))
   ];
+
   const filteredEvents = events
     .filter((event) => type === "all" || event.type === type)
     .sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -235,7 +245,7 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
         </aside>
 
         <SectionCard title={label} description={`${formatDateLong(start)} ate ${formatDateLong(addDays(end, -1))}.`}>
-          <div className="calendar-agenda-board">
+          <CalendarDragScroll className="calendar-agenda-board calendar-drag-scroll">
             <div className="calendar-agenda-days" style={{ gridTemplateColumns: `96px repeat(${timeGridDays.length}, minmax(132px, 1fr))` }}><span />{timeGridDays.map((day) => <div key={dateKey(day)} className={dateKey(day) === todayKey ? "calendar-agenda-day calendar-agenda-day-today" : "calendar-agenda-day"}><span>{weekDays[(day.getDay() + 6) % 7]}</span><strong>{day.getDate()}</strong></div>)}</div>
             <div className="calendar-agenda-grid" style={{ gridTemplateColumns: `96px repeat(${timeGridDays.length}, minmax(132px, 1fr))` }}>
               <div className="calendar-time-column">{timelineHours.map((hour) => <span key={hour}>{String(hour).padStart(2, "0")}:00</span>)}</div>
@@ -247,10 +257,19 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
                   <div key={key} className="calendar-time-day" data-day={key}>
                     {timelineHours.map((hour) => <span key={hour} className="calendar-hour-line" />)}
                     {dayEvents.map((event, index) => (
-                      <Link
-                        key={`${event.type}-${event.title}-${index}`}
-                        href={event.href}
+                      <button
+                        type="button"
+                        key={`${event.type}-${event.id}-${index}`}
                         className={`calendar-time-event calendar-time-event-${event.type}`}
+                        data-calendar-event="1"
+                        data-source-type={event.sourceType}
+                        data-lesson-id={event.lessonId}
+                        data-calendar-event-id={event.calendarEventId}
+                        data-event-type={event.eventType}
+                        data-title={event.title}
+                        data-scheduled-at={event.date.toISOString()}
+                        data-duration-minutes={event.durationMinutes}
+                        data-notes={event.notes}
                         style={{
                           ...eventStyle(event),
                           left: `calc(${((placements.get(index)?.column ?? 0) * 100) / (placements.get(index)?.columns ?? 1)}% + 2px)`,
@@ -260,13 +279,13 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
                         }}
                       >
                         <strong>{event.title}</strong><span>{formatTime(event.date)} · {event.meta}</span>
-                      </Link>
+                      </button>
                     ))}
                   </div>
                 );
               })}
             </div>
-          </div>
+          </CalendarDragScroll>
         </SectionCard>
       </div>
       <CalendarQuickCreate />

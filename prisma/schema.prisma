@@ -73,6 +73,7 @@ model Arena {
   students    Student[]
   teachers    Teacher[]
   lessons     Lesson[]
+  calendarEvents CalendarEvent[]
   products    Product[]
   sales       Sale[]
   stockMovements StockMovement[]
@@ -416,6 +417,22 @@ model Lesson {
 
   @@index([arenaId, scheduledAt])
   @@index([teacherId])
+}
+
+model CalendarEvent {
+  id              String   @id @default(cuid())
+  eventType       String   @default("EVENTO")
+  title           String
+  scheduledAt     DateTime
+  durationMinutes Int      @default(60)
+  notes           String   @default("")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  arenaId         String
+  arena           Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+
+  @@index([arenaId, scheduledAt])
+  @@index([arenaId, eventType])
 }
 
 model LessonAttendance {

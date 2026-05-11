@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ManualPairForm } from "@/components/forms/manual-pair-form";
+import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard } from "@/components/section-card";
 import { deleteTournamentPairAction, updateTournamentPairAction } from "@/lib/actions/tournament";
@@ -130,10 +131,15 @@ export default async function PairsPage() {
                         <td>{pair.totalPoints}</td>
                         <td>{pair.group?.name ?? "A definir"}</td>
                         <td>
-                          <form action={deleteTournamentPairAction}>
+                          <SafeActionForm
+                            action={deleteTournamentPairAction}
+                            confirmKeyword="EXCLUIR"
+                            confirmPrompt="Digite EXCLUIR para remover esta dupla."
+                            successMessage="Dupla excluida."
+                          >
                             <input type="hidden" name="pairId" value={pair.id} />
                             <SubmitButton label="Excluir" pendingLabel="Excluindo..." className="button" />
-                          </form>
+                          </SafeActionForm>
                         </td>
                       </tr>
                     );

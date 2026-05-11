@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { BracketOverview } from "@/components/bracket-overview";
+import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard } from "@/components/section-card";
 import { StatCard } from "@/components/stat-card";
@@ -99,10 +100,15 @@ export default async function TournamentHistoryDetailPage({ params }: HistoryPag
         </div>
         <div className="section-actions">
           <span className="pill">Finalizado</span>
-          <form action={deleteTournamentAction}>
+          <SafeActionForm
+            action={deleteTournamentAction}
+            confirmKeyword="EXCLUIR"
+            confirmPrompt="Digite EXCLUIR para remover este torneio permanentemente."
+            successMessage="Torneio excluido."
+          >
             <input type="hidden" name="tournamentId" value={tournament.id} />
             <SubmitButton label="Excluir torneio" pendingLabel="Excluindo..." className="button button-danger" />
-          </form>
+          </SafeActionForm>
         </div>
       </header>
 
