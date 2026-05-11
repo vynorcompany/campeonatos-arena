@@ -3842,6 +3842,14 @@ button {
   background: #f7f9fc;
 }
 
+.calendar-agenda-days > span {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+  background: #f7f9fc;
+  border-right: 1px solid var(--line);
+}
+
 .calendar-agenda-day {
   display: grid;
   gap: 4px;
@@ -3874,6 +3882,9 @@ button {
   grid-template-rows: repeat(17, 72px);
   border-right: 1px solid var(--line);
   background: #ffffff;
+  position: sticky;
+  left: 0;
+  z-index: 3;
 }
 
 .calendar-time-column span {
