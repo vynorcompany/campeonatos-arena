@@ -25,10 +25,7 @@ type CalendarEvent = {
 
 const typeLabels: Record<string, string> = {
   all: "Todos",
-  lessons: "Aulas e eventos",
-  tournaments: "Torneios",
-  matches: "Jogos",
-  tv: "Tela da TV"
+  lessons: "Eventos"
 };
 
 const periodLabels: Record<string, string> = {
@@ -93,14 +90,6 @@ function getCalendarDays(start: Date, end: Date) { const days: Date[] = []; let 
 function dateKey(value: Date) { return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`; }
 function formatDateLong(value: Date) { return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "long", year: "numeric" }).format(value); }
 function formatTime(value: Date) { return new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(value); }
-
-function parseScheduledTime(value: string | null | undefined, fallback: Date) {
-  if (!value) return fallback;
-  const [hour, minute] = value.split(":").map(Number);
-  const date = new Date(fallback);
-  if (Number.isFinite(hour) && Number.isFinite(minute)) date.setHours(hour, minute, 0, 0);
-  return date;
-}
 
 function navHref(period: string, type: string, anchor: Date) {
   return `/calendario?periodo=${period}&tipo=${type}&data=${getDateInputValue(anchor)}`;
@@ -192,23 +181,41 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
   const customEnd = parseDateParam(searchParams?.fim);
   const { label, start, end, gridStart, gridEnd } = getRange(period, anchor, customStart, customEnd);
 
-  const [lessons, tournaments, matches, tvMatches] = await Promise.all([
-    prisma.lesson.findMany({ where: { arenaId: auth.arenaId, scheduledAt: { gte: start, lt: end } }, include: { teacher: true, attendances: { include: { student: true } } }, orderBy: { scheduledAt: "asc" } }),
-    prisma.tournament.findMany({ where: { arenaId: auth.arenaId, OR: [{ createdAt: { gte: start, lt: end } }, { updatedAt: { gte: start, lt: end } }] }, include: { _count: { select: { matches: true, entries: true } } }, orderBy: { updatedAt: "asc" } }),
-    prisma.match.findMany({ where: { tournament: { arenaId: auth.arenaId }, updatedAt: { gte: start, lt: end } }, include: { tournament: true, homePair: true, awayPair: true }, orderBy: { updatedAt: "asc" } }),
-    prisma.manualUpcomingMatch.findMany({ where: { arenaId: auth.arenaId, updatedAt: { gte: start, lt: end } }, orderBy: [{ displayOrder: "asc" }, { updatedAt: "asc" }] })
-  ]);
+  const lessons = await prisma.lesson.findMany({
+    where: {
+      arenaId: auth.arenaId,
+      scheduledAt: {
+        gte: start,
+        lt: end
+      }
+    },
+    include: {
+      teacher: true,
+      attendances: { include: { student: true } }
+    },
+    orderBy: { scheduledAt: "asc" }
+  });
 
+  const now = new Date();
   const events: CalendarEvent[] = [
-    ...lessons.map((lesson) => ({ type: "lessons", date: lesson.scheduledAt ?? lesson.createdAt, title: lesson.title, meta: `${lesson.teacher?.name ?? "Sem professor"} · ${lesson.attendances.length} aluno(s)`, href: "/aulas", durationMinutes: lesson.durationMinutes })),
-    ...tournaments.map((tournament) => ({ type: "tournaments", date: tournament.updatedAt, title: tournament.name, meta: `${tournament.status} · ${tournament._count.entries} jogador(es) · ${tournament._count.matches} jogo(s)`, href: "/torneios", durationMinutes: 90 })),
-    ...matches.map((match) => ({ type: "matches", date: parseScheduledTime(match.scheduledTime, match.updatedAt), title: match.label, meta: `${match.tournament.name} · ${match.homePair?.name ?? "Aguardando"} x ${match.awayPair?.name ?? "Aguardando"}`, href: "/jogos", durationMinutes: 60 })),
-    ...tvMatches.map((match) => ({ type: "tv", date: parseScheduledTime(match.scheduledTime, match.updatedAt), title: `${match.homePairName || "Aguardando"} x ${match.awayPairName || "Aguardando"}`, meta: match.courtName || "Quadra nao definida", href: "/proximos-jogos", durationMinutes: 60 }))
-  ].filter((event) => type === "all" || event.type === type).sort((a, b) => a.date.getTime() - b.date.getTime());
+    ...lessons
+      .filter((lesson) => lesson.scheduledAt && lesson.scheduledAt >= now)
+      .map((lesson) => ({
+        type: "lessons",
+        date: lesson.scheduledAt as Date,
+        title: lesson.title,
+        meta: `${lesson.teacher?.name ?? "Sem professor"} · ${lesson.attendances.length} aluno(s)`,
+        href: "/aulas",
+        durationMinutes: lesson.durationMinutes
+      }))
+  ];
+  const filteredEvents = events
+    .filter((event) => type === "all" || event.type === type)
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
 
   const days = getCalendarDays(period === "day" ? start : gridStart, period === "day" ? end : gridEnd);
   const miniCalendarDays = getCalendarDays(getMonday(new Date(anchor.getFullYear(), anchor.getMonth(), 1)), addDays(getMonday(new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0)), 7));
-  const eventsByDay = groupEventsByDay(events);
+  const eventsByDay = groupEventsByDay(filteredEvents);
   const todayKey = dateKey(new Date());
   const timeGridDays = period === "month" ? days : getCalendarDays(gridStart, gridEnd);
 

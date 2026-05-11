@@ -1,7 +1,7 @@
 import { SectionCard } from "@/components/section-card";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
-import { completeLessonAction, createLessonAction } from "@/lib/actions/academy";
+import { completeLessonAction, createLessonAction, deleteLessonAction } from "@/lib/actions/academy";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
@@ -142,6 +142,10 @@ export default async function RegisterLessonPage() {
                   <SubmitButton label="Concluir aula" pendingLabel="Concluindo..." className="button button-primary" />
                 </SafeActionForm>
               ) : null}
+              <SafeActionForm action={deleteLessonAction} className="lesson-complete-form" successMessage="Aula excluida.">
+                <input type="hidden" name="lessonId" value={lesson.id} />
+                <SubmitButton label="Excluir aula" pendingLabel="Excluindo..." className="button button-danger" />
+              </SafeActionForm>
             </article>
           ))}
           {!lessons.length ? <p className="muted">Nenhuma aula registrada ainda.</p> : null}

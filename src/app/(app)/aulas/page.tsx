@@ -6,6 +6,7 @@ import {
   addStudentCreditsAction,
   completeLessonAction,
   createLessonAction,
+  deleteLessonAction,
   createStudentAction
 } from "@/lib/actions/academy";
 import { requireModuleView } from "@/lib/auth/guards";
@@ -278,6 +279,10 @@ export default async function LessonsPage() {
                   <SubmitButton label="Concluir aula" pendingLabel="Concluindo..." className="button button-primary" />
                 </SafeActionForm>
               ) : null}
+              <SafeActionForm action={deleteLessonAction} className="lesson-complete-form" successMessage="Aula excluida.">
+                <input type="hidden" name="lessonId" value={lesson.id} />
+                <SubmitButton label="Excluir aula" pendingLabel="Excluindo..." className="button button-danger" />
+              </SafeActionForm>
             </article>
           ))}
           {!lessons.length ? <p className="muted">Nenhuma aula registrada ainda.</p> : null}

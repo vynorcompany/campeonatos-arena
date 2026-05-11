@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -231,10 +231,17 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
     {
       title: "Administração",
       links: [
-        { href: "/arena", label: "Arena", icon: "building" },
         { href: "/suporte", label: "Suporte/Ajuda", icon: "support" },
-        ...(canManageUsers ? [{ href: "/usuarios", label: "Usuários", icon: "users" as const }] : []),
-        { href: "/minha-conta", label: "Minha conta", icon: "account" }
+        {
+          href: "/arena",
+          label: "Configurações",
+          icon: "building",
+          children: [
+            { href: "/arena", label: "Arena" },
+            ...(canManageUsers ? [{ href: "/usuarios", label: "Usuários" }] : []),
+            { href: "/minha-conta", label: "Minha conta" }
+          ]
+        }
       ]
     }
   ];
@@ -322,7 +329,7 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
                         aria-expanded={isOpen}
                         onClick={() => toggleItem(item.href)}
                       >
-                        <span aria-hidden="true">{isOpen ? "−" : "+"}</span>
+                        <span aria-hidden="true">{isOpen ? "-" : "+"}</span>
                       </button>
                     ) : null}
                   </div>
@@ -348,3 +355,4 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
     </nav>
   );
 }
+

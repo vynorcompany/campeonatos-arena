@@ -425,3 +425,25 @@ export async function completeLessonAction(formData: FormData) {
 
   refreshAcademyRoutes();
 }
+
+export async function deleteLessonAction(formData: FormData) {
+  const auth = await requireModuleEdit("lessons");
+  const lessonId = String(formData.get("lessonId") ?? "");
+
+  if (!lessonId) {
+    throw new Error("Aula invalida.");
+  }
+
+  const deleted = await prisma.lesson.deleteMany({
+    where: {
+      id: lessonId,
+      arenaId: auth.arenaId
+    }
+  });
+
+  if (!deleted.count) {
+    throw new Error("Aula nao encontrada.");
+  }
+
+  refreshAcademyRoutes();
+}

@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+﻿import { prisma } from "@/lib/prisma";
 import { isPrismaSchemaOutdatedError } from "@/lib/prisma-errors";
 
 type TvSettingsPayload = {
@@ -59,21 +59,6 @@ function formatCalendarTime(value: Date) {
     hour: "2-digit",
     minute: "2-digit"
   }).format(value);
-}
-
-function parseScheduledTime(value: string | null | undefined, fallback: Date) {
-  if (!value) {
-    return fallback;
-  }
-
-  const [hour, minute] = value.split(":").map(Number);
-  const date = new Date(fallback);
-
-  if (Number.isFinite(hour) && Number.isFinite(minute)) {
-    date.setHours(hour, minute, 0, 0);
-  }
-
-  return date;
 }
 
 export async function getManualUpcomingMatchesPayload(arenaId: string) {
@@ -232,69 +217,25 @@ async function getTvSponsors(arenaId: string) {
 
 async function getTvCalendarEntries(arenaId: string) {
   const now = new Date();
-  const end = new Date(now.getTime() + 1000 * 60 * 60 * 24 * 14);
-
-  const [lessons, tournamentMatches, manualMatches] = await Promise.all([
-    prisma.lesson.findMany({
-      where: {
-        arenaId,
-        scheduledAt: {
-          gte: now,
-          lte: end
+  const lessons = await prisma.lesson.findMany({
+    where: {
+      arenaId,
+      scheduledAt: {
+        gte: now
+      }
+    },
+    include: {
+      teacher: {
+        select: {
+          name: true
         }
-      },
-      include: {
-        teacher: {
-          select: {
-            name: true
-          }
-        }
-      },
-      orderBy: {
-        scheduledAt: "asc"
-      },
-      take: 6
-    }),
-    prisma.match.findMany({
-      where: {
-        tournament: {
-          arenaId
-        },
-        scheduledTime: {
-          not: ""
-        }
-      },
-      include: {
-        tournament: {
-          select: {
-            name: true
-          }
-        },
-        homePair: {
-          select: {
-            name: true
-          }
-        },
-        awayPair: {
-          select: {
-            name: true
-          }
-        }
-      },
-      orderBy: [{ updatedAt: "asc" }],
-      take: 8
-    }),
-    prisma.manualUpcomingMatch.findMany({
-      where: {
-        arenaId,
-        scheduledTime: {
-          not: ""
-        }
-      },
-      orderBy: [{ displayOrder: "asc" }, { updatedAt: "asc" }],
-      take: 6
-    })
-  ]);
+      }
+    },
+    orderBy: {
+      scheduledAt: "asc"
+    },
+    take: 6
+  });
 
   const items = [
     ...lessons
@@ -304,32 +245,14 @@ async function getTvCalendarEntries(arenaId: string) {
         date: lesson.scheduledAt as Date,
         title: lesson.title,
         meta: lesson.teacher?.name ? `Professor ${lesson.teacher.name}` : "Aula agendada",
-        typeLabel: "Aula"
-      })),
-    ...tournamentMatches
-      .map((match) => ({
-        id: `match-${match.id}`,
-        date: parseScheduledTime(match.scheduledTime, match.updatedAt),
-        title: `${match.homePair?.name ?? "A definir"} x ${match.awayPair?.name ?? "A definir"}`,
-        meta: `${match.tournament.name} • ${match.label}`,
-        typeLabel: "Jogo"
+        typeLabel: "Evento"
       }))
-      .filter((item) => item.date >= now && item.date <= end),
-    ...manualMatches
-      .map((match) => ({
-        id: `tv-${match.id}`,
-        date: parseScheduledTime(match.scheduledTime, match.updatedAt),
-        title: `${match.homePairName || "Aguardando"} x ${match.awayPairName || "Aguardando"}`,
-        meta: match.courtName || "Quadra a definir",
-        typeLabel: "TV"
-      }))
-      .filter((item) => item.date >= now && item.date <= end)
   ]
     .sort((a, b) => a.date.getTime() - b.date.getTime())
-    .slice(0, 8);
+    .slice(0, 6);
 
   return {
-    rangeLabel: "Próximos 14 dias",
+    rangeLabel: "Proximos eventos",
     items: items.map((item) => ({
       id: item.id,
       title: item.title,
@@ -499,7 +422,7 @@ export async function getTvPresentationPayload(arenaId: string) {
       showNightWinner: settings?.showNightWinner ?? false,
       monthlyPrizeTitle: settings?.monthlyPrizeTitle ?? "Premiação mensal",
       monthlyPrizeAmount: settings?.monthlyPrizeAmount ?? "1º - R$200 em crédito da arena",
-      monthlyPrizeDescription: settings?.monthlyPrizeDescription ?? "2º - Um tubo de bolinha + R$50 em crédito da arena | 3º - Um grip + R$25 em crédito",
+      monthlyPrizeDescription: settings?.monthlyPrizeDescription ?? "2º - Um tubo de bolinha + R$50 em crédito da arena | 3Âº - Um grip + R$25 em crédito",
       nightWinnerTitle: settings?.nightWinnerTitle ?? "Vencedor da noite",
       nightWinnerName: settings?.nightWinnerName ?? "Super 12",
       nightWinnerDescription: settings?.nightWinnerDescription ?? "Ganha uma vaga cortesia para o Super 12 da próxima semana. O uso é obrigatório na semana seguinte."
@@ -510,3 +433,6 @@ export async function getTvPresentationPayload(arenaId: string) {
     calendar
   };
 }
+
+
+

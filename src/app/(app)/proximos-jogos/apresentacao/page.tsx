@@ -4,6 +4,7 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard } from "@/components/section-card";
 import {
   createTvSponsorAction,
+  deleteTvSponsorAction,
   updateTvSponsorAction,
   upsertTvPresentationSettingsAction
 } from "@/lib/actions/upcoming-match";
@@ -211,8 +212,8 @@ export default async function TvPresentationSettingsPage() {
           {payload.sponsors.length ? (
             <div className="manual-upcoming-list">
               {payload.sponsors.map((sponsor: (typeof payload.sponsors)[number]) => (
+                <div key={sponsor.id}>
                 <SafeActionForm
-                  key={sponsor.id}
                   action={updateTvSponsorAction}
                   className="manual-upcoming-row tv-sponsor-row"
                   successMessage="Patrocinador atualizado."
@@ -237,9 +238,13 @@ export default async function TvPresentationSettingsPage() {
                   </div>
                   <div className="manual-upcoming-actions">
                     <SubmitButton label="Salvar" pendingLabel="..." className="button button-primary" />
-                    <button type="submit" name="intent" value="delete" className="button button-danger">Remover</button>
                   </div>
                 </SafeActionForm>
+                <SafeActionForm action={deleteTvSponsorAction} successMessage="Patrocinador excluido.">
+                  <input type="hidden" name="sponsorId" value={sponsor.id} />
+                  <SubmitButton label="Excluir" pendingLabel="Excluindo..." className="button button-danger" />
+                </SafeActionForm>
+                </div>
               ))}
             </div>
           ) : (

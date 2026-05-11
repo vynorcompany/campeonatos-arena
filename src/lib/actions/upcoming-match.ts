@@ -11,28 +11,28 @@ const courtOptions = ["Agecon", "Elaine", "Origem"] as const;
 const manualMatchStatusOptions = ["SCHEDULED", "LIVE", "FINISHED"] as const;
 
 const manualUpcomingMatchSchema = z.object({
-  homePairName: z.string().trim().max(80, "Dupla 1 deve ter no mÃ¡ximo 80 caracteres.").default(""),
-  awayPairName: z.string().trim().max(80, "Dupla 2 deve ter no mÃ¡ximo 80 caracteres.").default(""),
+  homePairName: z.string().trim().max(80, "Dupla 1 deve ter no máximo 80 caracteres.").default(""),
+  awayPairName: z.string().trim().max(80, "Dupla 2 deve ter no máximo 80 caracteres.").default(""),
   courtName: z.enum(courtOptions, {
-    errorMap: () => ({ message: "Quadra invÃ¡lida." })
+    errorMap: () => ({ message: "Quadra inválida." })
   }),
   scheduledTime: z
     .string()
     .trim()
-    .regex(/^$|^([01]\d|2[0-3]):[0-5]\d$/, "HorÃ¡rio invÃ¡lido.")
+    .regex(/^$|^([01]\d|2[0-3]):[0-5]\d$/, "Horário inválido.")
     .default(""),
   status: z.enum(manualMatchStatusOptions, {
-    errorMap: () => ({ message: "Status invÃ¡lido." })
+    errorMap: () => ({ message: "Status inválido." })
   }).default("SCHEDULED")
 });
 
 const updateManualUpcomingMatchSchema = manualUpcomingMatchSchema.extend({
-  matchId: z.string().min(1, "Jogo invÃ¡lido."),
-  displayOrder: z.coerce.number().int().min(1, "Ordem invÃ¡lida.").max(99, "Ordem invÃ¡lida.")
+  matchId: z.string().min(1, "Jogo inválido."),
+  displayOrder: z.coerce.number().int().min(1, "Ordem inválida.").max(99, "Ordem inválida.")
 });
 
 const tvPresentationSettingsSchema = z.object({
-  slideIntervalSeconds: z.coerce.number().int().min(5, "O intervalo mÃ­nimo Ã© de 5 segundos.").max(120, "O intervalo mÃ¡ximo Ã© de 120 segundos."),
+  slideIntervalSeconds: z.coerce.number().int().min(5, "O intervalo mínimo é de 5 segundos.").max(120, "O intervalo máximo é de 120 segundos."),
   selectedTournamentId: z.string().trim().default(""),
   selectedRankingIds: z.array(z.string().trim()).default([]),
   showMatches: z.boolean().default(true),
@@ -41,18 +41,18 @@ const tvPresentationSettingsSchema = z.object({
   showRanking: z.boolean().default(false),
   showMonthlyPrize: z.boolean().default(false),
   showNightWinner: z.boolean().default(false),
-  monthlyPrizeTitle: z.string().trim().max(80, "TÃ­tulo da premiaÃ§Ã£o muito longo.").default("PremiaÃ§Ã£o mensal"),
-  monthlyPrizeAmount: z.string().trim().max(120, "Valor da premiaÃ§Ã£o muito longo.").default("1Âº - R$200 em crÃ©dito da arena"),
-  monthlyPrizeDescription: z.string().trim().max(280, "DescriÃ§Ã£o da premiaÃ§Ã£o muito longa.").default("2Âº - Um tubo de bolinha + R$50 em crÃ©dito da arena | 3Âº - Um grip + R$25 em crÃ©dito"),
-  nightWinnerTitle: z.string().trim().max(80, "TÃ­tulo do vencedor muito longo.").default("Vencedor da noite"),
+  monthlyPrizeTitle: z.string().trim().max(80, "Título da premiação muito longo.").default("Premiação mensal"),
+  monthlyPrizeAmount: z.string().trim().max(120, "Valor da premiação muito longo.").default("1º - R$200 em crédito da arena"),
+  monthlyPrizeDescription: z.string().trim().max(280, "Descrição da premiação muito longa.").default("2º - Um tubo de bolinha + R$50 em crédito da arena | 3Âº - Um grip + R$25 em crédito"),
+  nightWinnerTitle: z.string().trim().max(80, "Título do vencedor muito longo.").default("Vencedor da noite"),
   nightWinnerName: z.string().trim().max(80, "Nome do vencedor muito longo.").default("Super 12"),
-  nightWinnerDescription: z.string().trim().max(280, "DescriÃ§Ã£o do vencedor muito longa.").default("Ganha uma vaga cortesia para o Super 12 da prÃ³xima semana. O uso Ã© obrigatÃ³rio na semana seguinte.")
+  nightWinnerDescription: z.string().trim().max(280, "Descrição do vencedor muito longa.").default("Ganha uma vaga cortesia para o Super 12 da próxima semana. O uso é obrigatório na semana seguinte.")
 });
 
 const tvSponsorSchema = z.object({
   name: z.string().trim().min(1, "Informe o nome do patrocinador.").max(80, "Nome do patrocinador muito longo."),
-  subtitle: z.string().trim().max(120, "TÃ­tulo do plano muito longo.").default(""),
-  displayOrder: z.coerce.number().int().min(1, "Ordem invÃ¡lida.").max(99, "Ordem invÃ¡lida.")
+  subtitle: z.string().trim().max(120, "Título do plano muito longo.").default(""),
+  displayOrder: z.coerce.number().int().min(1, "Ordem inválida.").max(99, "Ordem inválida.")
 });
 
 async function toInlineLogo(file: File | null) {
@@ -96,7 +96,7 @@ export async function createManualUpcomingMatchAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Dados invÃ¡lidos.");
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
 
   const lastMatch = await prisma.manualUpcomingMatch.findFirst({
@@ -153,7 +153,7 @@ export async function updateManualUpcomingMatchAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Dados invÃ¡lidos.");
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
 
   let updated;
@@ -194,7 +194,7 @@ export async function updateManualUpcomingMatchAction(formData: FormData) {
   }
 
   if (!updated.count) {
-    throw new Error("Jogo nÃ£o encontrado.");
+    throw new Error("Jogo não encontrado.");
   }
 
   refreshUpcomingMatches();
@@ -205,7 +205,7 @@ export async function deleteManualUpcomingMatchAction(formData: FormData) {
   const matchId = String(formData.get("matchId") ?? "");
 
   if (!matchId) {
-    throw new Error("Jogo invÃ¡lido.");
+    throw new Error("Jogo inválido.");
   }
 
   await prisma.manualUpcomingMatch.deleteMany({
@@ -242,7 +242,7 @@ export async function upsertTvPresentationSettingsAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Dados invÃ¡lidos.");
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
 
   await withTvSchemaGuard(async () => {
@@ -274,7 +274,7 @@ export async function createTvSponsorAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Dados invÃ¡lidos.");
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
 
   const logoFile = formData.get("logo") as File | null;
@@ -297,7 +297,6 @@ export async function createTvSponsorAction(formData: FormData) {
 export async function updateTvSponsorAction(formData: FormData) {
   const auth = await requireModuleEdit("tv");
   const sponsorId = String(formData.get("sponsorId") ?? "");
-  const intent = String(formData.get("intent") ?? "");
   const parsed = tvSponsorSchema.safeParse({
     name: formData.get("name"),
     subtitle: formData.get("subtitle"),
@@ -305,25 +304,11 @@ export async function updateTvSponsorAction(formData: FormData) {
   });
 
   if (!sponsorId) {
-    throw new Error("Patrocinador invÃ¡lido.");
+    throw new Error("Patrocinador inválido.");
   }
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Dados invÃ¡lidos.");
-  }
-
-  if (intent === "delete") {
-    await withTvSchemaGuard(async () => {
-      await prisma.tvSponsor.deleteMany({
-        where: {
-          id: sponsorId,
-          arenaId: auth.arenaId
-        }
-      });
-    });
-
-    refreshUpcomingMatches();
-    return;
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
 
   const logoFile = formData.get("logo") as File | null;
@@ -343,7 +328,7 @@ export async function updateTvSponsorAction(formData: FormData) {
   );
 
   if (!updated?.count) {
-    throw new Error("Patrocinador nÃ£o encontrado.");
+    throw new Error("Patrocinador não encontrado.");
   }
 
   refreshUpcomingMatches();
@@ -354,7 +339,7 @@ export async function deleteTvSponsorAction(formData: FormData) {
   const sponsorId = String(formData.get("sponsorId") ?? "");
 
   if (!sponsorId) {
-    throw new Error("Patrocinador invÃ¡lido.");
+    throw new Error("Patrocinador inválido.");
   }
 
   await withTvSchemaGuard(async () => {
@@ -368,5 +353,6 @@ export async function deleteTvSponsorAction(formData: FormData) {
 
   refreshUpcomingMatches();
 }
+
 
 
