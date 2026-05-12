@@ -157,7 +157,7 @@ async function getTvSettings(arenaId: string) {
         ...legacySettings,
         selectedRankingIds: [],
         showMatches: true,
-        showCalendar: false
+        showCalendar: true
       } satisfies TvSettingsPayload;
     } catch (legacyError) {
       if (isPrismaSchemaOutdatedError(legacyError)) {
@@ -217,25 +217,39 @@ async function getTvSponsors(arenaId: string) {
 
 async function getTvCalendarEntries(arenaId: string) {
   const now = new Date();
-  const lessons = await prisma.lesson.findMany({
-    where: {
-      arenaId,
-      scheduledAt: {
-        gte: now
-      }
-    },
-    include: {
-      teacher: {
-        select: {
-          name: true
+  const [lessons, calendarEvents] = await Promise.all([
+    prisma.lesson.findMany({
+      where: {
+        arenaId,
+        scheduledAt: {
+          gte: now
         }
-      }
-    },
-    orderBy: {
-      scheduledAt: "asc"
-    },
-    take: 6
-  });
+      },
+      include: {
+        teacher: {
+          select: {
+            name: true
+          }
+        }
+      },
+      orderBy: {
+        scheduledAt: "asc"
+      },
+      take: 12
+    }),
+    prisma.calendarEvent.findMany({
+      where: {
+        arenaId,
+        scheduledAt: {
+          gte: now
+        }
+      },
+      orderBy: {
+        scheduledAt: "asc"
+      },
+      take: 12
+    })
+  ]);
 
   const items = [
     ...lessons
@@ -245,8 +259,15 @@ async function getTvCalendarEntries(arenaId: string) {
         date: lesson.scheduledAt as Date,
         title: lesson.title,
         meta: lesson.teacher?.name ? `Professor ${lesson.teacher.name}` : "Aula agendada",
-        typeLabel: "Evento"
-      }))
+        typeLabel: "Aula"
+      })),
+    ...calendarEvents.map((event) => ({
+      id: `event-${event.id}`,
+      date: event.scheduledAt,
+      title: event.title,
+      meta: event.notes.trim() || "Evento agendado",
+      typeLabel: event.eventType || "Evento"
+    }))
   ]
     .sort((a, b) => a.date.getTime() - b.date.getTime())
     .slice(0, 6);
@@ -415,7 +436,7 @@ export async function getTvPresentationPayload(arenaId: string) {
       selectedRankingIds: settings?.selectedRankingIds ?? [],
       selectedTournamentName: selectedTournament?.name ?? "",
       showMatches: settings?.showMatches ?? true,
-      showCalendar: settings?.showCalendar ?? false,
+      showCalendar: settings?.showCalendar ?? true,
       showSponsors: settings?.showSponsors ?? false,
       showRanking: settings?.showRanking ?? false,
       showMonthlyPrize: settings?.showMonthlyPrize ?? false,
