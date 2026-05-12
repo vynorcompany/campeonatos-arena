@@ -170,3 +170,58 @@ export async function updateCalendarEventAction(formData: FormData) {
   refreshCalendar();
 }
 
+export async function deleteCalendarEventAction(formData: FormData) {
+  const auth = await requireModuleEdit("calendar");
+  const parsed = z
+    .object({
+      sourceType: z.enum(["lesson", "calendar"]).default("calendar"),
+      lessonId: z.string().trim().default(""),
+      calendarEventId: z.string().trim().default("")
+    })
+    .safeParse({
+      sourceType: formData.get("sourceType"),
+      lessonId: formData.get("lessonId"),
+      calendarEventId: formData.get("calendarEventId")
+    });
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados invalidos.");
+  }
+
+  if (parsed.data.sourceType === "lesson") {
+    if (!parsed.data.lessonId) {
+      throw new Error("Evento invalido.");
+    }
+
+    const removed = await prisma.lesson.deleteMany({
+      where: {
+        id: parsed.data.lessonId,
+        arenaId: auth.arenaId
+      }
+    });
+
+    if (!removed.count) {
+      throw new Error("Evento nao encontrado.");
+    }
+
+    refreshCalendar();
+    return;
+  }
+
+  if (!parsed.data.calendarEventId) {
+    throw new Error("Evento invalido.");
+  }
+
+  const removed = await prisma.calendarEvent.deleteMany({
+    where: {
+      id: parsed.data.calendarEventId,
+      arenaId: auth.arenaId
+    }
+  });
+
+  if (!removed.count) {
+    throw new Error("Evento nao encontrado.");
+  }
+
+  refreshCalendar();
+}

@@ -2,7 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { SubmitButton } from "@/components/forms/submit-button";
-import { createCalendarEventAction, updateCalendarEventAction } from "@/lib/actions/calendar";
+import {
+  createCalendarEventAction,
+  deleteCalendarEventAction,
+  updateCalendarEventAction
+} from "@/lib/actions/calendar";
 
 function toDateTimeLocalValue(date: Date) {
   const year = date.getFullYear();
@@ -220,6 +224,20 @@ export function CalendarQuickCreate() {
 
           <div className="calendar-create-actions">
             <button type="button" className="button" onClick={close}>Cancelar</button>
+            {isEditing ? (
+              <button
+                type="submit"
+                formAction={deleteCalendarEventAction}
+                className="button button-danger"
+                onClick={(event) => {
+                  if (!window.confirm("Tem certeza que deseja excluir este evento?")) {
+                    event.preventDefault();
+                  }
+                }}
+              >
+                Excluir
+              </button>
+            ) : null}
             <SubmitButton
               label={isEditing ? "Salvar alteracoes" : "Salvar"}
               pendingLabel="Salvando..."
