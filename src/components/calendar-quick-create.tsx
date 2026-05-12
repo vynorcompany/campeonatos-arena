@@ -142,7 +142,10 @@ export function CalendarQuickCreate() {
               name="title"
               type="text"
               value={state.title}
-              onChange={(e) => setState((current) => ({ ...current, title: e.currentTarget.value }))}
+              onChange={(e) => {
+                const value = e.currentTarget.value;
+                setState((current) => ({ ...current, title: value }));
+              }}
               required
               autoFocus
             />
@@ -154,7 +157,10 @@ export function CalendarQuickCreate() {
               id="event-type"
               name="eventType"
               value={state.eventType}
-              onChange={(e) => setState((current) => ({ ...current, eventType: e.currentTarget.value }))}
+              onChange={(e) => {
+                const value = e.currentTarget.value;
+                setState((current) => ({ ...current, eventType: value }));
+              }}
               disabled={state.sourceType === "lesson"}
             >
               <option value="EVENTO">Evento</option>
@@ -172,7 +178,10 @@ export function CalendarQuickCreate() {
               name="scheduledAt"
               type="datetime-local"
               value={state.scheduledAt}
-              onChange={(e) => setState((current) => ({ ...current, scheduledAt: e.currentTarget.value }))}
+              onChange={(e) => {
+                const value = e.currentTarget.value;
+                setState((current) => ({ ...current, scheduledAt: value }));
+              }}
               required
             />
             <small className="muted">{dateHint}</small>
@@ -187,7 +196,10 @@ export function CalendarQuickCreate() {
               min="15"
               step="15"
               value={state.durationMinutes}
-              onChange={(e) => setState((current) => ({ ...current, durationMinutes: Number(e.currentTarget.value || 60) }))}
+              onChange={(e) => {
+                const value = Number(e.currentTarget.value || 60);
+                setState((current) => ({ ...current, durationMinutes: value }));
+              }}
             />
           </div>
 
@@ -198,7 +210,10 @@ export function CalendarQuickCreate() {
               name="notes"
               type="text"
               value={state.notes}
-              onChange={(e) => setState((current) => ({ ...current, notes: e.currentTarget.value }))}
+              onChange={(e) => {
+                const value = e.currentTarget.value;
+                setState((current) => ({ ...current, notes: value }));
+              }}
               placeholder="Adicionar descricao"
             />
           </div>

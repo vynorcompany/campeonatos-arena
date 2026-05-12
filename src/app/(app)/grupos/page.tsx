@@ -62,6 +62,19 @@ function getGroupStandings(pairs: GroupPair[], matches: GroupMatch[]) {
   });
 }
 
+function getOverallStandings(groups: Array<{ name: string; pairs: GroupPair[] }>, matches: GroupMatch[]) {
+  const pairs = groups.flatMap((group) => group.pairs);
+  const groupByPairId = new Map(
+    groups.flatMap((group) => group.pairs.map((pair) => [pair.id, group.name] as const))
+  );
+  const standings = getGroupStandings(pairs, matches);
+
+  return standings.map((item) => ({
+    ...item,
+    groupName: groupByPairId.get(item.pairId) ?? "-"
+  }));
+}
+
 export default async function GroupsPage() {
   const auth = await requireModuleView("groups");
   const { activeTournament } = await getArenaDashboard(auth.arenaId);
@@ -92,21 +105,29 @@ export default async function GroupsPage() {
       };
     }) ?? [];
 
+  const overallStandings =
+    activeTournament?.groupCount === 3
+      ? getOverallStandings(
+          activeTournament.groups,
+          activeTournament.matches.filter((match) => match.stage === "GROUP")
+        )
+      : [];
+
   return (
     <div className="stack-md">
       <header className="page-header">
         <div className="stack-xs">
           <p className="eyebrow">Grupos</p>
-          <h1>Organização dos grupos</h1>
+          <h1>Organizacao dos grupos</h1>
           <p className="muted">
-            Distribua as duplas por força e, quando precisar, arraste manualmente uma dupla de um grupo para outro.
+            Distribua as duplas por forca e, quando precisar, arraste manualmente uma dupla de um grupo para outro.
           </p>
         </div>
       </header>
 
       {!activeTournament ? (
         <SectionCard title="Nenhum torneio em andamento">
-          <p className="muted">Crie um torneio e monte as duplas para começar a organizar os grupos.</p>
+          <p className="muted">Crie um torneio e monte as duplas para comecar a organizar os grupos.</p>
         </SectionCard>
       ) : (
         <>
@@ -114,8 +135,8 @@ export default async function GroupsPage() {
             title={isRoundRobinOnly ? "Montar todos contra todos" : "Montar grupos"}
             description={
               isRoundRobinOnly
-                ? "Este torneio terá um grupo único. Todas as duplas jogam entre si, e a classificação é baseada nos resultados."
-                : `Este torneio terá até ${activeTournament.groupCount} grupos, usando ${activeTournament.pairsPerGroup} duplas como base. Sobras podem deixar alguns grupos maiores.`
+                ? "Este torneio tera um grupo unico. Todas as duplas jogam entre si, e a classificacao e baseada nos resultados."
+                : `Este torneio tera ate ${activeTournament.groupCount} grupos, usando ${activeTournament.pairsPerGroup} duplas como base. Sobras podem deixar alguns grupos maiores.`
             }
           >
             <div className="stack-sm">
@@ -126,7 +147,7 @@ export default async function GroupsPage() {
               <div className="form-hint-box">
                 <strong>Ajuste manual liberado</strong>
                 <p className="muted">
-                  Você pode arrastar uma dupla entre os grupos abaixo. Quando isso acontece, os jogos atuais do torneio são limpos para você regenerar a tabela com a nova organização.
+                  Voce pode arrastar uma dupla entre os grupos abaixo. Quando isso acontece, os jogos atuais do torneio sao limpos para voce regenerar a tabela com a nova organizacao.
                 </p>
               </div>
             </div>
@@ -135,12 +156,50 @@ export default async function GroupsPage() {
           {groups.length ? (
             <GroupEditor groups={groups} />
           ) : (
-            <SectionCard title="Grupos ainda não montados">
-              <p className="muted">Assim que as duplas forem distribuídas, os grupos aparecerão aqui.</p>
+            <SectionCard title="Grupos ainda nao montados">
+              <p className="muted">Assim que as duplas forem distribuidas, os grupos aparecerao aqui.</p>
             </SectionCard>
           )}
+
+          {overallStandings.length ? (
+            <SectionCard
+              title="Ranking geral da fase de grupos"
+              description="Classificacao final considerando os resultados dos 3 grupos."
+            >
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Pos.</th>
+                    <th>Dupla</th>
+                    <th>Grupo</th>
+                    <th>Vitorias</th>
+                    <th>Games pro</th>
+                    <th>Games contra</th>
+                    <th>Saldo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {overallStandings.map((item, index) => {
+                    const balance = item.gamesFor - item.gamesAgainst;
+                    return (
+                      <tr key={item.pairId}>
+                        <td>#{index + 1}</td>
+                        <td>{item.pairName}</td>
+                        <td>{item.groupName}</td>
+                        <td>{item.wins}</td>
+                        <td>{item.gamesFor}</td>
+                        <td>{item.gamesAgainst}</td>
+                        <td>{balance}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </SectionCard>
+          ) : null}
         </>
       )}
     </div>
   );
 }
+
