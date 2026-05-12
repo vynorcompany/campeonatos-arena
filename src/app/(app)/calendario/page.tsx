@@ -185,10 +185,9 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
     })
   ]);
 
-  const now = new Date();
   const events: CalendarEvent[] = [
     ...lessons
-      .filter((lesson) => lesson.scheduledAt && lesson.scheduledAt >= now)
+      .filter((lesson) => lesson.scheduledAt)
       .map((lesson) => ({
         id: lesson.id,
         sourceType: "lesson" as const,
@@ -203,7 +202,7 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
         durationMinutes: lesson.durationMinutes
       })),
     ...calendarEvents
-      .filter((event) => event.scheduledAt >= now)
+      .filter((event) => event.scheduledAt)
       .map((event) => ({
         id: event.id,
         sourceType: "calendar" as const,
@@ -292,4 +291,3 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
     </div>
   );
 }
-
