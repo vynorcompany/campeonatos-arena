@@ -54,3 +54,8 @@ export const updateMatchManualStatusSchema = z.object({
     errorMap: () => ({ message: "Selecione um status valido." })
   })
 });
+
+export const updateMatchTvVisibilitySchema = z.object({
+  matchId: z.string().min(1),
+  showOnTv: z.boolean()
+});

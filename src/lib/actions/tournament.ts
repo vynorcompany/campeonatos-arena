@@ -3,6 +3,7 @@
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { isPrismaUnknownFieldError } from "@/lib/prisma-errors";
 import { savePublicImageUpload } from "@/lib/uploads";
 import { requireModuleEdit } from "@/lib/auth/guards";
 import {
@@ -27,6 +28,7 @@ import {
 import {
   updateMatchCourtSchema,
   updateMatchManualStatusSchema,
+  updateMatchTvVisibilitySchema,
   updateMatchParticipantsSchema,
   updateMatchResultSchema,
   updateMatchScheduleSchema
@@ -804,6 +806,45 @@ export async function updateMatchManualStatusAction(formData: FormData) {
   }
 
   refreshTournamentRoutes();
+}
+
+export async function updateMatchTvVisibilityAction(formData: FormData) {
+  const auth = await requireModuleEdit("matches");
+  const parsed = updateMatchTvVisibilitySchema.safeParse({
+    matchId: formData.get("matchId"),
+    showOnTv: formData.get("showOnTv") === "on"
+  });
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  }
+
+  try {
+    const updated = await prisma.match.updateMany({
+      where: {
+        id: parsed.data.matchId,
+        tournament: {
+          arenaId: auth.arenaId
+        }
+      },
+      data: {
+        showOnTv: parsed.data.showOnTv
+      }
+    });
+
+    if (!updated.count) {
+      throw new Error("Jogo não encontrado.");
+    }
+  } catch (error) {
+    if (isPrismaUnknownFieldError(error, "showOnTv")) {
+      throw new Error("Seu banco ainda não recebeu a atualização de exibição na TV dos jogos.");
+    }
+
+    throw error;
+  }
+
+  refreshTournamentRoutes();
+  revalidatePath("/proximos-jogos/tv");
 }
 
 

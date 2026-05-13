@@ -282,6 +282,7 @@ model Match {
   homeScore     Int?
   awayScore     Int?
   manualStatus  String?
+  showOnTv      Boolean         @default(true)
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
   tournamentId  String

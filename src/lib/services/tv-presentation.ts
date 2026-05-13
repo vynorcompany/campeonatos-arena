@@ -143,6 +143,7 @@ async function getTournamentUpcomingMatchesPayload(arenaId: string) {
             not: "FINISHED"
           }
         },
+        showOnTv: true,
         homePairId: {
           not: null
         },
@@ -165,7 +166,7 @@ async function getTournamentUpcomingMatchesPayload(arenaId: string) {
       orderBy: [{ roundOrder: "asc" }, { updatedAt: "asc" }]
     });
   } catch (error) {
-    if (!isPrismaUnknownFieldError(error, "manualStatus")) {
+    if (!isPrismaUnknownFieldError(error, "manualStatus") && !isPrismaUnknownFieldError(error, "showOnTv")) {
       throw error;
     }
 
