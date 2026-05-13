@@ -47,6 +47,10 @@ type TvRankingSlide = {
   }>;
 };
 
+function normalizeTvMatchSource(value: unknown): "MANUAL" | "TOURNAMENT" {
+  return value === "TOURNAMENT" ? "TOURNAMENT" : "MANUAL";
+}
+
 function formatCalendarDate(value: Date) {
   return new Intl.DateTimeFormat("pt-BR", {
     weekday: "short",
@@ -239,7 +243,14 @@ async function getTvSettings(arenaId: string) {
       }
     });
 
-    return settings satisfies TvSettingsPayload;
+    if (!settings) {
+      return null;
+    }
+
+    return {
+      ...settings,
+      tvMatchSource: normalizeTvMatchSource(settings.tvMatchSource)
+    } satisfies TvSettingsPayload;
   } catch (error) {
     if (!isPrismaSchemaOutdatedError(error) && !isPrismaUnknownFieldError(error, "tvMatchSource")) {
       throw error;
