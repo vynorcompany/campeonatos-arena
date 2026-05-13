@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 const courtNames = ["Agecon", "Origem", "Elaine"] as const;
+const manualStatusOptions = ["WAITING", "LIVE", "FINISHED"] as const;
 
 export const updateMatchCourtSchema = z.object({
   matchId: z.string().min(1),
@@ -46,3 +47,10 @@ export const updateMatchParticipantsSchema = z
     message: "Selecione duplas diferentes para o confronto.",
     path: ["awayPairId"]
   });
+
+export const updateMatchManualStatusSchema = z.object({
+  matchId: z.string().min(1),
+  manualStatus: z.enum(manualStatusOptions, {
+    errorMap: () => ({ message: "Selecione um status valido." })
+  })
+});

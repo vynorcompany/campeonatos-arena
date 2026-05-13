@@ -5,6 +5,7 @@ import { SectionCard } from "@/components/section-card";
 import {
   generateMatchesAction,
   updateMatchCourtAction,
+  updateMatchManualStatusAction,
   updateMatchParticipantsAction,
   updateMatchResultAction,
   updateMatchScheduleAction
@@ -21,6 +22,11 @@ const stageLabels: Record<string, string> = {
 };
 
 const courtNames = ["Agecon", "Origem", "Elaine"];
+const manualMatchStatusOptions = [
+  { value: "WAITING", label: "Aguardando" },
+  { value: "LIVE", label: "Jogo rolando" },
+  { value: "FINISHED", label: "Encerrado" }
+];
 
 type Dashboard = Awaited<ReturnType<typeof getArenaDashboard>>;
 type ActiveTournament = NonNullable<Dashboard["activeTournament"]>;
@@ -29,6 +35,9 @@ type PairItem = ActiveTournament["pairs"][number] | NonNullable<MatchItem["homeP
 
 function getMatchStatus(match: MatchItem) {
   if (match.winnerPairId) return "Finalizado";
+  if (match.manualStatus === "WAITING") return "Jogo aguardando";
+  if (match.manualStatus === "LIVE") return "Jogo rodando";
+  if (match.manualStatus === "FINISHED") return "Finalizado";
   if (match.homeScore !== null || match.awayScore !== null) return "Jogo rodando";
   if (!match.homePair || !match.awayPair) return "Aguardando duplas";
   return "Jogo aguardando";
@@ -152,6 +161,19 @@ function MatchCard({ match, pairs }: { match: MatchItem; pairs: ActiveTournament
           <span className="match-action-title">Horário</span>
           <TimePickerInput id={`${match.id}-scheduled-time`} name="scheduledTime" defaultValue={match.scheduledTime ?? ""} />
           <SubmitButton label="Salvar horário" pendingLabel="..." className="button" />
+        </form>
+
+        <form action={updateMatchManualStatusAction} className="match-action-panel">
+          <input type="hidden" name="matchId" value={match.id} />
+          <span className="match-action-title">Status manual</span>
+          <select name="manualStatus" defaultValue={match.manualStatus ?? (match.winnerPairId ? "FINISHED" : "WAITING")}>
+            {manualMatchStatusOptions.map((status) => (
+              <option key={`${match.id}-${status.value}`} value={status.value}>
+                {status.label}
+              </option>
+            ))}
+          </select>
+          <SubmitButton label="Salvar status" pendingLabel="..." className="button" />
         </form>
       </div>
     </article>

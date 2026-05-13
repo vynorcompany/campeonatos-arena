@@ -1,9 +1,10 @@
-﻿import { prisma } from "@/lib/prisma";
-import { isPrismaSchemaOutdatedError } from "@/lib/prisma-errors";
+import { prisma } from "@/lib/prisma";
+import { isPrismaSchemaOutdatedError, isPrismaUnknownFieldError } from "@/lib/prisma-errors";
 
 type TvSettingsPayload = {
   slideIntervalSeconds: number;
   selectedTournamentId: string | null;
+  tvMatchSource: "MANUAL" | "TOURNAMENT";
   selectedRankingIds: string[];
   showMatches: boolean;
   showCalendar: boolean;
@@ -101,6 +102,119 @@ export async function getManualUpcomingMatchesPayload(arenaId: string) {
   }
 }
 
+function getMatchDisplayStatus(match: { winnerPairId: string | null; manualStatus: string | null; homeScore: number | null; awayScore: number | null }) {
+  if (match.winnerPairId) return "FINISHED";
+  if (match.manualStatus === "WAITING") return "SCHEDULED";
+  if (match.manualStatus === "LIVE" || match.manualStatus === "FINISHED") return match.manualStatus;
+  if (match.homeScore !== null || match.awayScore !== null) return "LIVE";
+  return "SCHEDULED";
+}
+
+function parseTimeToMinutes(value: string | null | undefined) {
+  if (!value) return Number.MAX_SAFE_INTEGER;
+  const [h, m] = value.split(":").map(Number);
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return Number.MAX_SAFE_INTEGER;
+  return h * 60 + m;
+}
+
+async function getTournamentUpcomingMatchesPayload(arenaId: string) {
+  let matches: Array<{
+    id: string;
+    winnerPairId: string | null;
+    homeScore: number | null;
+    awayScore: number | null;
+    manualStatus: string | null;
+    courtName: string | null;
+    scheduledTime: string | null;
+    homePair: { name: string } | null;
+    awayPair: { name: string } | null;
+  }>;
+
+  try {
+    matches = await prisma.match.findMany({
+      where: {
+        tournament: {
+          arenaId,
+          status: {
+            not: "FINISHED"
+          }
+        },
+        homePairId: {
+          not: null
+        },
+        awayPairId: {
+          not: null
+        }
+      },
+      include: {
+        homePair: {
+          select: {
+            name: true
+          }
+        },
+        awayPair: {
+          select: {
+            name: true
+          }
+        }
+      },
+      orderBy: [{ roundOrder: "asc" }, { updatedAt: "asc" }]
+    });
+  } catch (error) {
+    if (!isPrismaUnknownFieldError(error, "manualStatus")) {
+      throw error;
+    }
+
+    const legacyMatches = await prisma.match.findMany({
+      where: {
+        tournament: {
+          arenaId,
+          status: {
+            not: "FINISHED"
+          }
+        },
+        homePairId: {
+          not: null
+        },
+        awayPairId: {
+          not: null
+        }
+      },
+      include: {
+        homePair: {
+          select: {
+            name: true
+          }
+        },
+        awayPair: {
+          select: {
+            name: true
+          }
+        }
+      },
+      orderBy: [{ roundOrder: "asc" }, { updatedAt: "asc" }]
+    });
+
+    matches = legacyMatches.map((match) => ({
+      ...match,
+      manualStatus: null
+    }));
+  }
+
+  return matches
+    .sort((a, b) => parseTimeToMinutes(a.scheduledTime) - parseTimeToMinutes(b.scheduledTime))
+    .slice(0, 8)
+    .map((match, index) => ({
+      id: `match-${match.id}`,
+      displayOrder: index + 1,
+      homePairName: match.homePair?.name ?? "",
+      awayPairName: match.awayPair?.name ?? "",
+      courtName: match.courtName ?? "",
+      scheduledTime: match.scheduledTime ?? "",
+      status: getMatchDisplayStatus(match)
+    }));
+}
+
 async function getTvSettings(arenaId: string) {
   try {
     const settings = await prisma.tvPresentationSettings.findUnique({
@@ -108,6 +222,7 @@ async function getTvSettings(arenaId: string) {
       select: {
         slideIntervalSeconds: true,
         selectedTournamentId: true,
+        tvMatchSource: true,
         selectedRankingIds: true,
         showMatches: true,
         showCalendar: true,
@@ -126,7 +241,7 @@ async function getTvSettings(arenaId: string) {
 
     return settings satisfies TvSettingsPayload;
   } catch (error) {
-    if (!isPrismaSchemaOutdatedError(error)) {
+    if (!isPrismaSchemaOutdatedError(error) && !isPrismaUnknownFieldError(error, "tvMatchSource")) {
       throw error;
     }
 
@@ -155,6 +270,7 @@ async function getTvSettings(arenaId: string) {
 
       return {
         ...legacySettings,
+        tvMatchSource: "MANUAL",
         selectedRankingIds: [],
         showMatches: true,
         showCalendar: true
@@ -217,6 +333,8 @@ async function getTvSponsors(arenaId: string) {
 
 async function getTvCalendarEntries(arenaId: string) {
   const now = new Date();
+  const calendarEventModel = (prisma as unknown as { calendarEvent?: { findMany: (args: unknown) => Promise<Array<{ id: string; scheduledAt: Date; title: string; notes: string; eventType: string }>> } }).calendarEvent;
+
   const [lessons, calendarEvents] = await Promise.all([
     prisma.lesson.findMany({
       where: {
@@ -237,18 +355,20 @@ async function getTvCalendarEntries(arenaId: string) {
       },
       take: 12
     }),
-    prisma.calendarEvent.findMany({
-      where: {
-        arenaId,
-        scheduledAt: {
-          gte: now
-        }
-      },
-      orderBy: {
-        scheduledAt: "asc"
-      },
-      take: 12
-    })
+    calendarEventModel
+      ? calendarEventModel.findMany({
+          where: {
+            arenaId,
+            scheduledAt: {
+              gte: now
+            }
+          },
+          orderBy: {
+            scheduledAt: "asc"
+          },
+          take: 12
+        })
+      : Promise.resolve([])
   ]);
 
   const items = [
@@ -360,7 +480,7 @@ async function getAdditionalRankingSlides(arenaId: string, rankingIds: string[])
 }
 
 export async function getTvPresentationPayload(arenaId: string) {
-  const [matches, settings, sponsors, calendar]: [
+  const [manualMatches, settings, sponsors, calendar]: [
     Awaited<ReturnType<typeof getManualUpcomingMatchesPayload>>,
     TvSettingsPayload,
     TvSponsorPayload[],
@@ -371,6 +491,10 @@ export async function getTvPresentationPayload(arenaId: string) {
     getTvSponsors(arenaId),
     getTvCalendarEntries(arenaId)
   ]);
+
+  const matches = settings?.tvMatchSource === "TOURNAMENT"
+    ? await getTournamentUpcomingMatchesPayload(arenaId)
+    : manualMatches;
 
   const selectedTournament = settings?.selectedTournamentId
     ? await prisma.tournament.findFirst({
@@ -433,6 +557,7 @@ export async function getTvPresentationPayload(arenaId: string) {
     settings: {
       slideIntervalSeconds: settings?.slideIntervalSeconds ?? 12,
       selectedTournamentId: selectedTournament?.id ?? "",
+      tvMatchSource: settings?.tvMatchSource ?? "MANUAL",
       selectedRankingIds: settings?.selectedRankingIds ?? [],
       selectedTournamentName: selectedTournament?.name ?? "",
       showMatches: settings?.showMatches ?? true,

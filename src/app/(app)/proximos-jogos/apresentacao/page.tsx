@@ -93,6 +93,14 @@ export default async function TvPresentationSettingsPage() {
             </select>
           </div>
 
+          <div className="field">
+            <label htmlFor="tv-match-source">Origem dos jogos da TV</label>
+            <select id="tv-match-source" name="tvMatchSource" defaultValue={payload.settings.tvMatchSource}>
+              <option value="MANUAL">Jogos Manuais</option>
+              <option value="TOURNAMENT">Jogos Torneio</option>
+            </select>
+          </div>
+
           <div className="field form-full">
             <label>Rankings adicionais na rotação</label>
             <div className="tv-settings-grid">

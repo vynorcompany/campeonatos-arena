@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireModuleEdit } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
-import { getMissingTvTablesMessage, isPrismaSchemaOutdatedError } from "@/lib/prisma-errors";
+import { getMissingTvTablesMessage, isPrismaSchemaOutdatedError, isPrismaUnknownFieldError } from "@/lib/prisma-errors";
 import { savePublicImageUpload } from "@/lib/uploads";
 
 const courtOptions = ["Agecon", "Elaine", "Origem"] as const;
@@ -34,6 +34,7 @@ const updateManualUpcomingMatchSchema = manualUpcomingMatchSchema.extend({
 const tvPresentationSettingsSchema = z.object({
   slideIntervalSeconds: z.coerce.number().int().min(5, "O intervalo mínimo é de 5 segundos.").max(120, "O intervalo máximo é de 120 segundos."),
   selectedTournamentId: z.string().trim().default(""),
+  tvMatchSource: z.enum(["MANUAL", "TOURNAMENT"]).default("MANUAL"),
   selectedRankingIds: z.array(z.string().trim()).default([]),
   showMatches: z.boolean().default(true),
   showCalendar: z.boolean().default(false),
@@ -223,6 +224,7 @@ export async function upsertTvPresentationSettingsAction(formData: FormData) {
   const parsed = tvPresentationSettingsSchema.safeParse({
     slideIntervalSeconds: formData.get("slideIntervalSeconds"),
     selectedTournamentId: formData.get("selectedTournamentId"),
+    tvMatchSource: formData.get("tvMatchSource"),
     selectedRankingIds: formData.getAll("selectedRankingIds").map(String).filter(Boolean),
     showMatches: formData.get("showMatches") === "on",
     showCalendar: formData.get("showCalendar") === "on",
@@ -246,20 +248,42 @@ export async function upsertTvPresentationSettingsAction(formData: FormData) {
   }
 
   await withTvSchemaGuard(async () => {
-    await prisma.tvPresentationSettings.upsert({
-      where: {
-        arenaId: auth.arenaId
-      },
-      create: {
-        arenaId: auth.arenaId,
-        ...parsed.data,
-        selectedTournamentId: parsed.data.selectedTournamentId || null
-      },
-      update: {
-        ...parsed.data,
-        selectedTournamentId: parsed.data.selectedTournamentId || null
+    try {
+      await prisma.tvPresentationSettings.upsert({
+        where: {
+          arenaId: auth.arenaId
+        },
+        create: {
+          arenaId: auth.arenaId,
+          ...parsed.data,
+          selectedTournamentId: parsed.data.selectedTournamentId || null
+        },
+        update: {
+          ...parsed.data,
+          selectedTournamentId: parsed.data.selectedTournamentId || null
+        }
+      });
+    } catch (error) {
+      if (!isPrismaUnknownFieldError(error, "tvMatchSource")) {
+        throw error;
       }
-    });
+
+      const { tvMatchSource: _ignored, ...legacyData } = parsed.data;
+      await prisma.tvPresentationSettings.upsert({
+        where: {
+          arenaId: auth.arenaId
+        },
+        create: {
+          arenaId: auth.arenaId,
+          ...legacyData,
+          selectedTournamentId: parsed.data.selectedTournamentId || null
+        },
+        update: {
+          ...legacyData,
+          selectedTournamentId: parsed.data.selectedTournamentId || null
+        }
+      });
+    }
   });
 
   refreshUpcomingMatches();
@@ -353,6 +377,3 @@ export async function deleteTvSponsorAction(formData: FormData) {
 
   refreshUpcomingMatches();
 }
-
-
-

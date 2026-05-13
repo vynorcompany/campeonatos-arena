@@ -16,6 +16,7 @@ type ManualUpcomingMatch = {
 type TvPresentationSettings = {
   slideIntervalSeconds: number;
   selectedTournamentId: string;
+  tvMatchSource: "MANUAL" | "TOURNAMENT";
   selectedRankingIds: string[];
   selectedTournamentName: string;
   showMatches: boolean;
