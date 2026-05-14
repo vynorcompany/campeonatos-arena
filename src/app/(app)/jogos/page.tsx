@@ -1,4 +1,5 @@
 ﻿import Link from "next/link";
+import { AutoSubmitForm } from "@/components/forms/auto-submit-form";
 import { TimePickerInput } from "@/components/forms/time-picker-input";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard } from "@/components/section-card";
@@ -94,14 +95,13 @@ function MatchCard({ match, pairs }: { match: MatchItem; pairs: ActiveTournament
         </div>
         <div className="match-top-tools">
           <span className={`match-status${match.winnerPair ? " match-status-done" : ""}`}>{getMatchStatus(match)}</span>
-          <form action={updateMatchTvVisibilityAction} className="match-tv-toggle-inline">
+          <AutoSubmitForm action={updateMatchTvVisibilityAction} className="match-tv-toggle-inline">
             <input type="hidden" name="matchId" value={match.id} />
             <label className="match-tv-toggle-label">
               <input type="checkbox" name="showOnTv" defaultChecked={match.showOnTv ?? true} />
               <span>Mostrar na TV?</span>
             </label>
-            <button type="submit" className="match-tv-toggle-save">OK</button>
-          </form>
+            </AutoSubmitForm>
         </div>
       </div>
 
@@ -153,7 +153,7 @@ function MatchCard({ match, pairs }: { match: MatchItem; pairs: ActiveTournament
           <SubmitButton label="Salvar resultado" pendingLabel="..." className="button button-primary" />
         </form>
 
-        <form action={updateMatchCourtAction} className="match-action-panel">
+        <AutoSubmitForm action={updateMatchCourtAction} className="match-action-panel">
           <input type="hidden" name="matchId" value={match.id} />
           <span className="match-action-title">Quadra</span>
           <div className="match-court-options">
@@ -163,18 +163,14 @@ function MatchCard({ match, pairs }: { match: MatchItem; pairs: ActiveTournament
                 <span>{courtName}</span>
               </label>
             ))}
-          </div>
-          <SubmitButton label="Salvar quadra" pendingLabel="..." className="button" />
-        </form>
+          </div></AutoSubmitForm>
 
-        <form action={updateMatchScheduleAction} className="match-action-panel">
+        <AutoSubmitForm action={updateMatchScheduleAction} className="match-action-panel">
           <input type="hidden" name="matchId" value={match.id} />
           <span className="match-action-title">Horário</span>
-          <TimePickerInput id={`${match.id}-scheduled-time`} name="scheduledTime" defaultValue={match.scheduledTime ?? ""} />
-          <SubmitButton label="Salvar horário" pendingLabel="..." className="button" />
-        </form>
+          <TimePickerInput id={`${match.id}-scheduled-time`} name="scheduledTime" defaultValue={match.scheduledTime ?? ""} /></AutoSubmitForm>
 
-        <form action={updateMatchManualStatusAction} className="match-action-panel">
+        <AutoSubmitForm action={updateMatchManualStatusAction} className="match-action-panel">
           <input type="hidden" name="matchId" value={match.id} />
           <span className="match-action-title">Status manual</span>
           <select name="manualStatus" defaultValue={match.manualStatus ?? (match.winnerPairId ? "FINISHED" : "WAITING")}>
@@ -183,9 +179,7 @@ function MatchCard({ match, pairs }: { match: MatchItem; pairs: ActiveTournament
                 {status.label}
               </option>
             ))}
-          </select>
-          <SubmitButton label="Salvar status" pendingLabel="..." className="button" />
-        </form>
+          </select></AutoSubmitForm>
 
       </div>
     </article>
@@ -331,4 +325,6 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
     </div>
   );
 }
+
+
 
