@@ -100,60 +100,36 @@ function buildPairedGroupSeeds(standings: RankedPair[]) {
 }
 
 function getNextKnockoutTarget(label: string) {
-  if (label.startsWith("OF 1")) {
-    return { nextLabel: "QF 1 - Vencedor OF1 x Vencedor OF2", slot: "homePairId" as const };
+  const parsedLabel = label.trim().toUpperCase().match(/^(OF|QF|SF)\s*(\d+)/);
+
+  if (!parsedLabel) {
+    return null;
   }
 
-  if (label.startsWith("OF 2")) {
-    return { nextLabel: "QF 1 - Vencedor OF1 x Vencedor OF2", slot: "awayPairId" as const };
+  const [, stagePrefix, rawIndex] = parsedLabel;
+  const index = Number(rawIndex);
+
+  if (stagePrefix === "OF" && index >= 1 && index <= 8) {
+    const quarterIndex = Math.ceil(index / 2);
+    return {
+      nextLabel: `QF ${quarterIndex} - Vencedor OF${quarterIndex * 2 - 1} x Vencedor OF${quarterIndex * 2}`,
+      slot: index % 2 === 1 ? ("homePairId" as const) : ("awayPairId" as const)
+    };
   }
 
-  if (label.startsWith("OF 3")) {
-    return { nextLabel: "QF 2 - Vencedor OF3 x Vencedor OF4", slot: "homePairId" as const };
+  if (stagePrefix === "QF" && index >= 1 && index <= 4) {
+    const semifinalIndex = Math.ceil(index / 2);
+    return {
+      nextLabel: `SF ${semifinalIndex} - Vencedor QF${semifinalIndex * 2 - 1} x Vencedor QF${semifinalIndex * 2}`,
+      slot: index % 2 === 1 ? ("homePairId" as const) : ("awayPairId" as const)
+    };
   }
 
-  if (label.startsWith("OF 4")) {
-    return { nextLabel: "QF 2 - Vencedor OF3 x Vencedor OF4", slot: "awayPairId" as const };
-  }
-
-  if (label.startsWith("OF 5")) {
-    return { nextLabel: "QF 3 - Vencedor OF5 x Vencedor OF6", slot: "homePairId" as const };
-  }
-
-  if (label.startsWith("OF 6")) {
-    return { nextLabel: "QF 3 - Vencedor OF5 x Vencedor OF6", slot: "awayPairId" as const };
-  }
-
-  if (label.startsWith("OF 7")) {
-    return { nextLabel: "QF 4 - Vencedor OF7 x Vencedor OF8", slot: "homePairId" as const };
-  }
-
-  if (label.startsWith("OF 8")) {
-    return { nextLabel: "QF 4 - Vencedor OF7 x Vencedor OF8", slot: "awayPairId" as const };
-  }
-
-  if (label.startsWith("QF 1")) {
-    return { nextLabel: "SF 1 - Vencedor QF1 x Vencedor QF2", slot: "homePairId" as const };
-  }
-
-  if (label.startsWith("QF 2")) {
-    return { nextLabel: "SF 1 - Vencedor QF1 x Vencedor QF2", slot: "awayPairId" as const };
-  }
-
-  if (label.startsWith("QF 3")) {
-    return { nextLabel: "SF 2 - Vencedor QF3 x Vencedor QF4", slot: "homePairId" as const };
-  }
-
-  if (label.startsWith("QF 4")) {
-    return { nextLabel: "SF 2 - Vencedor QF3 x Vencedor QF4", slot: "awayPairId" as const };
-  }
-
-  if (label.startsWith("SF 1")) {
-    return { nextLabel: "Final", slot: "homePairId" as const };
-  }
-
-  if (label.startsWith("SF 2")) {
-    return { nextLabel: "Final", slot: "awayPairId" as const };
+  if (stagePrefix === "SF" && (index === 1 || index === 2)) {
+    return {
+      nextLabel: "Final",
+      slot: index === 1 ? ("homePairId" as const) : ("awayPairId" as const)
+    };
   }
 
   return null;
@@ -353,6 +329,26 @@ async function recalculateTournamentRankingPointsTx(tx: Prisma.TransactionClient
       }
     });
   }
+
+  const tournamentEntries = await tx.tournamentPlayer.findMany({
+    where: { tournamentId },
+    select: {
+      playerId: true,
+      seedPoints: true,
+      tournamentPoints: true
+    }
+  });
+
+  await Promise.all(
+    tournamentEntries.map((entry) =>
+      tx.player.update({
+        where: { id: entry.playerId },
+        data: {
+          points: entry.seedPoints + entry.tournamentPoints
+        }
+      })
+    )
+  );
 }
 
 export async function recalculateTournamentRankingPoints(tournamentId: string) {
