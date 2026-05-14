@@ -1541,6 +1541,54 @@ button {
   gap: 16px;
 }
 
+.match-top-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.match-tv-toggle-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.match-tv-toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.match-tv-toggle-label input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--brand);
+}
+
+.match-tv-toggle-save {
+  min-height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.match-tv-toggle-save:hover {
+  border-color: var(--line-strong);
+  color: var(--text);
+}
+
 .match-card-meta {
   display: flex;
   flex-wrap: wrap;
@@ -4850,6 +4898,10 @@ button {
 
   .match-card-top {
     display: grid;
+  }
+
+  .match-top-tools {
+    justify-content: flex-start;
   }
 
   .match-scoreboard,

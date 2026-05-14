@@ -92,7 +92,17 @@ function MatchCard({ match, pairs }: { match: MatchItem; pairs: ActiveTournament
           <span className="match-kicker">{match.group?.name ?? stageLabels[match.stage] ?? "Jogo"}</span>
           <strong>{match.label}</strong>
         </div>
-        <span className={`match-status${match.winnerPair ? " match-status-done" : ""}`}>{getMatchStatus(match)}</span>
+        <div className="match-top-tools">
+          <span className={`match-status${match.winnerPair ? " match-status-done" : ""}`}>{getMatchStatus(match)}</span>
+          <form action={updateMatchTvVisibilityAction} className="match-tv-toggle-inline">
+            <input type="hidden" name="matchId" value={match.id} />
+            <label className="match-tv-toggle-label">
+              <input type="checkbox" name="showOnTv" defaultChecked={match.showOnTv ?? true} />
+              <span>Mostrar na TV?</span>
+            </label>
+            <button type="submit" className="match-tv-toggle-save">OK</button>
+          </form>
+        </div>
       </div>
 
       <div className="match-teams-grid">
@@ -104,7 +114,6 @@ function MatchCard({ match, pairs }: { match: MatchItem; pairs: ActiveTournament
       <div className="match-card-meta match-card-meta-refined">
         <span>{match.scheduledTime ? `Horário: ${match.scheduledTime}` : "Horário não definido"}</span>
         <span>{match.courtName ? `Quadra: ${match.courtName}` : "Quadra não definida"}</span>
-        <span>{match.showOnTv ?? true ? "Exibir na TV: Sim" : "Exibir na TV: Não"}</span>
         <span>{match.winnerPair?.name ? `Vencedor: ${match.winnerPair.name}` : "Resultado pendente"}</span>
       </div>
 
@@ -178,15 +187,6 @@ function MatchCard({ match, pairs }: { match: MatchItem; pairs: ActiveTournament
           <SubmitButton label="Salvar status" pendingLabel="..." className="button" />
         </form>
 
-        <form action={updateMatchTvVisibilityAction} className="match-action-panel">
-          <input type="hidden" name="matchId" value={match.id} />
-          <span className="match-action-title">Exibição na TV</span>
-          <label className="check-option">
-            <input type="checkbox" name="showOnTv" defaultChecked={match.showOnTv ?? true} />
-            <span>Mostrar este jogo na TV</span>
-          </label>
-          <SubmitButton label="Salvar TV" pendingLabel="..." className="button" />
-        </form>
       </div>
     </article>
   );
