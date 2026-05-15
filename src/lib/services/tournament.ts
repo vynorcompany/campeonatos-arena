@@ -649,6 +649,49 @@ async function seedKnockoutFromGroupStandings(tx: Prisma.TransactionClient, tour
     return;
   }
 
+  const existingKnockoutMatches = await tx.match.count({
+    where: {
+      tournamentId,
+      stage: {
+        not: matchStage.GROUP
+      }
+    }
+  });
+
+  if (existingKnockoutMatches === 0) {
+    const groups = await tx.tournamentGroup.findMany({
+      where: { tournamentId },
+      include: {
+        pairs: true
+      },
+      orderBy: {
+        drawOrder: "asc"
+      }
+    });
+
+    const pairCount = groups.reduce((total, group) => total + group.pairs.length, 0);
+    const maxRoundOrder = await tx.match.aggregate({
+      where: { tournamentId },
+      _max: {
+        roundOrder: true
+      }
+    });
+
+    let nextRoundOrder = maxRoundOrder._max.roundOrder ?? 0;
+
+    for (const match of buildKnockoutSkeleton(groups.length, pairCount)) {
+      nextRoundOrder += 1;
+      await tx.match.create({
+        data: {
+          tournamentId,
+          stage: match.stage,
+          label: match.label,
+          roundOrder: nextRoundOrder
+        }
+      });
+    }
+  }
+
   const standings = await buildQualifiedStandings(tx, tournamentId);
   const groupCount = new Set(standings.map((entry) => entry.groupId)).size;
 
@@ -786,6 +829,57 @@ async function seedKnockoutFromGroupStandings(tx: Prisma.TransactionClient, tour
       }
     });
   }
+}
+
+export async function repairTournamentKnockout(
+  tournamentId: string,
+  arenaId: string,
+  options?: {
+    finishTournamentIfChampionDefined?: boolean;
+  }
+) {
+  const tournament = await prisma.tournament.findFirst({
+    where: {
+      id: tournamentId,
+      arenaId
+    },
+    select: {
+      id: true
+    }
+  });
+
+  if (!tournament) {
+    throw new Error("Torneio não encontrado.");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await seedKnockoutFromGroupStandings(tx, tournamentId);
+
+    if (options?.finishTournamentIfChampionDefined) {
+      const final = await tx.match.findFirst({
+        where: {
+          tournamentId,
+          stage: matchStage.FINAL
+        },
+        select: {
+          winnerPairId: true
+        }
+      });
+
+      if (final?.winnerPairId) {
+        await tx.tournament.update({
+          where: { id: tournamentId },
+          data: {
+            status: tournamentStatus.FINISHED
+          }
+        });
+      }
+    }
+
+    await recalculateTournamentRankingPointsTx(tx, tournamentId);
+  });
+
+  return true;
 }
 
 async function resetTournamentStructure(tx: Prisma.TransactionClient, tournamentId: string) {
@@ -1555,7 +1649,7 @@ export async function distributeTournamentGroups(tournamentId: string) {
 }
 
 function getKnockoutSize(groupCount: number, pairCount: number) {
-  if (groupCount <= 1) {
+  if (groupCount < 1 || pairCount < 2) {
     return 0;
   }
 

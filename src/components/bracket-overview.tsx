@@ -32,7 +32,7 @@ type BracketOverviewProps = {
 };
 
 function getKnockoutSize(groupCount: number, pairCount: number) {
-  if (groupCount <= 1) {
+  if (groupCount < 1 || pairCount < 2) {
     return 0;
   }
 
