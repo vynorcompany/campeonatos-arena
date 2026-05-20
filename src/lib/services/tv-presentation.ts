@@ -121,6 +121,20 @@ function parseTimeToMinutes(value: string | null | undefined) {
   return h * 60 + m;
 }
 
+function getTournamentStatusPriority(status: "SCHEDULED" | "LIVE" | "FINISHED") {
+  if (status === "LIVE") return 0;
+  if (status === "SCHEDULED") return 1;
+  return 2;
+}
+
+function getCourtPriority(courtName: string | null | undefined) {
+  const normalized = (courtName ?? "").trim().toLowerCase();
+  if (normalized === "agecon") return 0;
+  if (normalized === "origem") return 1;
+  if (normalized === "elaine") return 2;
+  return 99;
+}
+
 async function getTournamentUpcomingMatchesPayload(arenaId: string) {
   let matches: Array<{
     id: string;
@@ -207,7 +221,19 @@ async function getTournamentUpcomingMatchesPayload(arenaId: string) {
   }
 
   return matches
-    .sort((a, b) => parseTimeToMinutes(a.scheduledTime) - parseTimeToMinutes(b.scheduledTime))
+    .sort((a, b) => {
+      const statusDiff =
+        getTournamentStatusPriority(getMatchDisplayStatus(a)) - getTournamentStatusPriority(getMatchDisplayStatus(b));
+      if (statusDiff !== 0) return statusDiff;
+
+      const courtDiff = getCourtPriority(a.courtName) - getCourtPriority(b.courtName);
+      if (courtDiff !== 0) return courtDiff;
+
+      const timeDiff = parseTimeToMinutes(a.scheduledTime) - parseTimeToMinutes(b.scheduledTime);
+      if (timeDiff !== 0) return timeDiff;
+
+      return a.id.localeCompare(b.id);
+    })
     .slice(0, 8)
     .map((match, index) => ({
       id: `match-${match.id}`,
