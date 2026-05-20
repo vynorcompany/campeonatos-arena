@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type IconName =
   | "dashboard"
@@ -149,6 +149,7 @@ function NavIcon({ name }: { name: IconName }) {
 
 export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
   const pathname = usePathname();
+  const openItemsStorageKey = "arena:sidebar-open-items";
   const canSee = (module: string) => visibleModules.includes(module);
   const navigationGroups: NavGroup[] = [
     {
@@ -290,7 +291,47 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
   const initialOpenItems = filteredGroups.flatMap((group) =>
     group.links.filter((item) => item.children?.length && isActivePath(pathname, item.href)).map((item) => item.href)
   );
-  const [openItems, setOpenItems] = useState<Set<string>>(() => new Set(initialOpenItems));
+  const [openItems, setOpenItems] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") {
+      return new Set(initialOpenItems);
+    }
+
+    const stored = window.localStorage.getItem(openItemsStorageKey);
+    if (!stored) {
+      return new Set(initialOpenItems);
+    }
+
+    try {
+      const parsed = JSON.parse(stored) as string[];
+      return new Set(parsed);
+    } catch {
+      return new Set(initialOpenItems);
+    }
+  });
+
+  useEffect(() => {
+    const activeParent = filteredGroups
+      .flatMap((group) => group.links)
+      .find((item) => item.children?.length && isActivePath(pathname, item.href));
+
+    if (!activeParent) {
+      return;
+    }
+
+    setOpenItems((current) => {
+      if (current.has(activeParent.href)) {
+        return current;
+      }
+
+      const next = new Set(current);
+      next.add(activeParent.href);
+      return next;
+    });
+  }, [filteredGroups, pathname]);
+
+  useEffect(() => {
+    window.localStorage.setItem(openItemsStorageKey, JSON.stringify([...openItems]));
+  }, [openItems]);
 
   function toggleItem(href: string) {
     setOpenItems((current) => {

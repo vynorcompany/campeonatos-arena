@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type AgencyNavItem = {
   href: string;
@@ -63,9 +63,51 @@ function isActivePath(pathname: string, href: string) {
 
 export function AgencyNavLinks() {
   const pathname = usePathname();
-  const [openItems, setOpenItems] = useState<Set<string>>(
-    () => new Set(groups.flatMap((group) => group.links.filter((item) => isActivePath(pathname, item.href)).map((item) => item.href)))
+  const openItemsStorageKey = "arena:agency-sidebar-open-items";
+  const initialOpenItems = groups.flatMap((group) =>
+    group.links.filter((item) => isActivePath(pathname, item.href)).map((item) => item.href)
   );
+  const [openItems, setOpenItems] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") {
+      return new Set(initialOpenItems);
+    }
+
+    const stored = window.localStorage.getItem(openItemsStorageKey);
+    if (!stored) {
+      return new Set(initialOpenItems);
+    }
+
+    try {
+      const parsed = JSON.parse(stored) as string[];
+      return new Set(parsed);
+    } catch {
+      return new Set(initialOpenItems);
+    }
+  });
+
+  useEffect(() => {
+    const activeParent = groups
+      .flatMap((group) => group.links)
+      .find((item) => item.children?.length && isActivePath(pathname, item.href));
+
+    if (!activeParent) {
+      return;
+    }
+
+    setOpenItems((current) => {
+      if (current.has(activeParent.href)) {
+        return current;
+      }
+
+      const next = new Set(current);
+      next.add(activeParent.href);
+      return next;
+    });
+  }, [pathname]);
+
+  useEffect(() => {
+    window.localStorage.setItem(openItemsStorageKey, JSON.stringify([...openItems]));
+  }, [openItems]);
 
   return (
     <nav className="agency-nav" aria-label="Agência">
