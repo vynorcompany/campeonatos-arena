@@ -50,6 +50,32 @@ export function TournamentParticipantsTab({ tournament }: { tournament: NonNulla
   );
 }
 
+export function TournamentCategoriesTab({ tournament }: { tournament: NonNullable<TournamentDetails> }) {
+  if (!tournament.categories.length) {
+    return <EmptyState title="Sem categorias ativas" description="Adicione categorias nas configurações do torneio." ctaLabel="Abrir Configurações" ctaHref={`/torneios/${tournament.id}?tab=settings`} />;
+  }
+
+  return (
+    <div className="stack-md">
+      <article className="section-card">
+        <h3>Categorias do torneio</h3>
+        <p className="muted">Lista de categorias ativas e ordem usada nas inscrições.</p>
+        <div className="simple-list">
+          {tournament.categories.map((category, index) => (
+            <div key={category.id} className="simple-item">
+              <strong>{category.name}</strong>
+              <span>Nível #{category.level || index + 1}</span>
+            </div>
+          ))}
+        </div>
+      </article>
+      <div className="section-actions">
+        <Link href="/torneios/inscricoes" className="button">Gerenciar inscrições por categoria</Link>
+      </div>
+    </div>
+  );
+}
+
 export function TournamentPairsTab({ tournament }: { tournament: NonNullable<TournamentDetails> }) {
   if (!tournament.pairs.length) {
     return <EmptyState title="Sem duplas montadas" description="Monte as duplas antes de distribuir os grupos." ctaLabel="Abrir Duplas" ctaHref="/duplas" />;

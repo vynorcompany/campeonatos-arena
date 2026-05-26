@@ -1,7 +1,8 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 
 const tabs = [
   { key: "overview", label: "Visão geral" },
+  { key: "categories", label: "Categorias" },
   { key: "participants", label: "Participantes" },
   { key: "pairs", label: "Duplas" },
   { key: "groups", label: "Grupos" },
@@ -28,4 +29,3 @@ export function TournamentTabs({ tournamentId, activeTab }: { tournamentId: stri
     </nav>
   );
 }
-

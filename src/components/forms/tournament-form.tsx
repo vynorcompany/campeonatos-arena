@@ -43,7 +43,7 @@ export function TournamentForm({
   defaultPairsPerGroup = 3,
   defaultPriceFirstCents = 7000,
   defaultPriceSecondCents = 10000,
-  defaultPriceThirdCents = 15000,
+  defaultPriceThirdCents = 12000,
   defaultBlockCategoryGap = true,
   defaultMaxCategoryGap = 1,
   defaultCategoryList = "1,2,3,4",
@@ -120,7 +120,7 @@ export function TournamentForm({
       </div>
       <div className="field">
         <label htmlFor="priceThirdCents">Valor 3ª inscrição+</label>
-        <input id="priceThirdCents" name="priceThirdCents" defaultValue={defaultPriceThirdReais} placeholder="R$ 150" required />
+        <input id="priceThirdCents" name="priceThirdCents" defaultValue={defaultPriceThirdReais} placeholder="R$ 120" required />
       </div>
       <div className="field">
         <label htmlFor="maxCategoryGap">Diferença máxima de nível entre categorias</label>

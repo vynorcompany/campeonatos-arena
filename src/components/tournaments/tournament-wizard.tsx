@@ -149,7 +149,7 @@ export function TournamentWizard({ rankings }: { rankings: { id: string; name: s
         </div>
         <div className="field">
           <label htmlFor="priceThirdCents">Valor 3ª inscrição+</label>
-          <input id="priceThirdCents" name="priceThirdCents" defaultValue="150" placeholder="R$ 150" required />
+          <input id="priceThirdCents" name="priceThirdCents" defaultValue="120" placeholder="R$ 120" required />
         </div>
         <div className="field">
           <label htmlFor="rankingId">Ranking vinculado</label>

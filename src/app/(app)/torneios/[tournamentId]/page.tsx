@@ -1,10 +1,11 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard } from "@/components/section-card";
 import {
   TournamentBracketTab,
+  TournamentCategoriesTab,
   TournamentGamesTab,
   TournamentGroupsTab,
   TournamentOverviewTab,
@@ -31,7 +32,7 @@ type TournamentDetailPageProps = {
   searchParams?: { tab?: string };
 };
 
-const validTabs: TournamentTabKey[] = ["overview", "participants", "pairs", "groups", "games", "bracket", "results", "settings"];
+const validTabs: TournamentTabKey[] = ["overview", "categories", "participants", "pairs", "groups", "games", "bracket", "results", "settings"];
 
 export default async function TournamentDetailPage({ params, searchParams }: TournamentDetailPageProps) {
   const auth = await requireModuleView("tournaments");
@@ -59,11 +60,22 @@ export default async function TournamentDetailPage({ params, searchParams }: Tou
         <div className="section-actions">
           <StatusBadge status={tournament.status} />
           <PublicRegistrationLinkActions slug={tournament.publicSlug} />
-          <Link href={`/torneios/${tournament.id}?tab=settings`} className="button">Editar</Link>
-          <form action={updateTournamentRegistrationPhaseAction}>
+          <Link href={`/torneios/${tournament.id}?tab=settings`} className="button">Editar torneio</Link>
+          <form action={updateTournamentRegistrationPhaseAction} className="section-actions">
             <input type="hidden" name="tournamentId" value={tournament.id} />
-            <input type="hidden" name="registrationPhase" value="REGISTRATIONS" />
-            <SubmitButton label="Abrir inscrições" pendingLabel="..." className="button" />
+            <select
+              name="registrationPhase"
+              defaultValue={tournament.registrationPhase}
+              className="button"
+              aria-label="Selecionar fase do torneio"
+              style={{ minWidth: "190px" }}
+            >
+              <option value="REGISTRATIONS">Inscricoes abertas</option>
+              <option value="EDITING">Editando chaveamentos</option>
+              <option value="LIVE">Em andamento</option>
+              <option value="FINISHED">Finalizado</option>
+            </select>
+            <SubmitButton label="Atualizar fase" pendingLabel="Salvando..." className="button" />
           </form>
           <form action={finishTournamentAction}>
             <input type="hidden" name="tournamentId" value={tournament.id} />
@@ -73,7 +85,7 @@ export default async function TournamentDetailPage({ params, searchParams }: Tou
             action={deleteTournamentAction}
             confirmKeyword="EXCLUIR"
             confirmPrompt="Digite EXCLUIR para remover este torneio permanentemente."
-            successMessage="Torneio excluído."
+            successMessage="Torneio excluido."
           >
             <input type="hidden" name="tournamentId" value={tournament.id} />
             <SubmitButton label="Excluir torneio" pendingLabel="..." className="button button-danger" />
@@ -82,8 +94,9 @@ export default async function TournamentDetailPage({ params, searchParams }: Tou
       </header>
 
       <TournamentDetailLayout tournamentId={tournament.id} activeTab={tab}>
-        <SectionCard title="Área do torneio" description="Cada aba separa uma responsabilidade operacional.">
+        <SectionCard title="Area do torneio" description="Cada aba separa uma responsabilidade operacional.">
           {tab === "overview" ? <TournamentOverviewTab tournament={tournament} /> : null}
+          {tab === "categories" ? <TournamentCategoriesTab tournament={tournament} /> : null}
           {tab === "participants" ? <TournamentParticipantsTab tournament={tournament} /> : null}
           {tab === "pairs" ? <TournamentPairsTab tournament={tournament} /> : null}
           {tab === "groups" ? <TournamentGroupsTab tournament={tournament} /> : null}
