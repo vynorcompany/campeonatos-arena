@@ -855,6 +855,27 @@ button {
   padding: 10px 14px;
 }
 
+.field input[type="checkbox"],
+.field input[type="radio"] {
+  width: auto;
+  min-height: auto;
+  padding: 0;
+}
+
+.category-option {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.category-option input {
+  margin: 0;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
 .time-picker-input {
   cursor: pointer;
 }

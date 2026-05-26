@@ -112,7 +112,7 @@ export function TournamentWizard({ rankings }: { rankings: { id: string; name: s
           <div className="stack-xs">
             <div className="simple-grid simple-grid-2">
               {TOURNAMENT_CATEGORY_PRESETS.map((category) => (
-                <label key={category} className="field-inline">
+                <label key={category} className="category-option">
                   <input type="checkbox" checked={selectedCategories.includes(category)} onChange={() => toggleCategory(category)} />
                   <span>{category}</span>
                 </label>

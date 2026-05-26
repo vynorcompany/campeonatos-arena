@@ -33,10 +33,10 @@ export function PublicRegistrationForm({ tournamentSlug, categories }: { tournam
   const [state, formAction] = useFormState(createPublicRegistrationAction, initialState);
 
   useEffect(() => {
-    if (state?.paymentMethod === "CARD" && state?.paymentCheckoutUrl) {
+    if (state?.paymentCheckoutUrl) {
       window.location.href = state.paymentCheckoutUrl;
     }
-  }, [state?.paymentMethod, state?.paymentCheckoutUrl]);
+  }, [state?.paymentCheckoutUrl]);
 
   return (
     <form action={formAction} className="grid-form">
