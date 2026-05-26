@@ -3,7 +3,13 @@
 import { useMemo, useState } from "react";
 import { useFormState } from "react-dom";
 import { SubmitButton } from "@/components/forms/submit-button";
-import { createManualTournamentRegistrationAction, deleteTournamentRegistrationAction, syncEntriesStateAction, type ActionState } from "@/lib/actions/tournament";
+import {
+  createManualTournamentRegistrationAction,
+  deleteTournamentRegistrationAction,
+  syncEntriesStateAction,
+  updateTournamentRegistrationAction,
+  type ActionState
+} from "@/lib/actions/tournament";
 
 const initialState: ActionState = {
   error: null,
@@ -15,8 +21,15 @@ type TournamentParticipantsFormProps = {
   categories?: Array<{ id: string; name: string }>;
   registrations?: Array<{
     id: string;
+    categoryId: string;
     leadName: string;
+    leadPhone: string;
+    leadCpf: string;
+    leadBirthDate: string;
     partnerName: string;
+    partnerPhone: string;
+    partnerCpf: string;
+    partnerBirthDate: string;
     categoryName: string;
     amountCents: number;
     paymentStatus: string;
@@ -46,8 +59,10 @@ function getConfirmationLabel(paymentStatus: string) {
 export function TournamentParticipantsForm(props: TournamentParticipantsFormProps) {
   const { tournamentId, categories, registrations, players } = props;
   const [state, formAction] = useFormState(createManualTournamentRegistrationAction, initialState);
+  const [updateState, updateAction] = useFormState(updateTournamentRegistrationAction, initialState);
   const [syncState, syncAction] = useFormState(syncEntriesStateAction, initialState);
   const [search, setSearch] = useState("");
+  const [editingRegistrationId, setEditingRegistrationId] = useState<string | null>(null);
   const normalizedSearch = search.trim().toLowerCase();
   const [selectedPlayerIds, setSelectedPlayerIds] = useState(() => new Set((players ?? []).filter((player) => player.checked).map((player) => player.id)));
 
@@ -128,7 +143,7 @@ export function TournamentParticipantsForm(props: TournamentParticipantsFormProp
           </div>
           <div className="field">
             <label htmlFor="leadBirthDate">Nascimento atleta 1</label>
-            <input id="leadBirthDate" name="leadBirthDate" type="date" required />
+            <input id="leadBirthDate" name="leadBirthDate" type="text" inputMode="numeric" placeholder="dd/mm/aaaa" required />
           </div>
           <div className="field">
             <label htmlFor="partnerName">Atleta 2</label>
@@ -144,7 +159,7 @@ export function TournamentParticipantsForm(props: TournamentParticipantsFormProp
           </div>
           <div className="field">
             <label htmlFor="partnerBirthDate">Nascimento atleta 2</label>
-            <input id="partnerBirthDate" name="partnerBirthDate" type="date" required />
+            <input id="partnerBirthDate" name="partnerBirthDate" type="text" inputMode="numeric" placeholder="dd/mm/aaaa" required />
           </div>
           <div className="field">
             <label htmlFor="amountReais">Valor (R$)</label>
@@ -195,7 +210,72 @@ export function TournamentParticipantsForm(props: TournamentParticipantsFormProp
                         <input type="hidden" name="registrationId" value={registration.id} />
                         <SubmitButton label="Excluir participante" pendingLabel="Excluindo..." className="button" />
                       </form>
+                      <button type="button" className="button" onClick={() => setEditingRegistrationId((current) => current === registration.id ? null : registration.id)}>
+                        {editingRegistrationId === registration.id ? "Fechar edicao" : "Editar inscricao"}
+                      </button>
                     </div>
+                    {editingRegistrationId === registration.id ? (
+                      <form action={updateAction} className="grid-form" style={{ marginTop: "0.75rem" }}>
+                        <input type="hidden" name="registrationId" value={registration.id} />
+                        <input type="hidden" name="tournamentId" value={tournamentId} />
+                        <div className="field">
+                          <label>Categoria</label>
+                          <select name="categoryId" defaultValue={registration.categoryId} required>
+                            {safeCategories.map((category) => (
+                              <option key={category.id} value={category.id}>{category.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="field">
+                          <label>Atleta 1</label>
+                          <input name="leadName" defaultValue={registration.leadName} required />
+                        </div>
+                        <div className="field">
+                          <label>Telefone atleta 1</label>
+                          <input name="leadPhone" defaultValue={registration.leadPhone} required />
+                        </div>
+                        <div className="field">
+                          <label>CPF atleta 1</label>
+                          <input name="leadCpf" defaultValue={registration.leadCpf} required />
+                        </div>
+                        <div className="field">
+                          <label>Nascimento atleta 1</label>
+                          <input name="leadBirthDate" type="text" inputMode="numeric" placeholder="dd/mm/aaaa" defaultValue={new Date(registration.leadBirthDate).toLocaleDateString("pt-BR")} required />
+                        </div>
+                        <div className="field">
+                          <label>Atleta 2</label>
+                          <input name="partnerName" defaultValue={registration.partnerName} required />
+                        </div>
+                        <div className="field">
+                          <label>Telefone atleta 2</label>
+                          <input name="partnerPhone" defaultValue={registration.partnerPhone} required />
+                        </div>
+                        <div className="field">
+                          <label>CPF atleta 2</label>
+                          <input name="partnerCpf" defaultValue={registration.partnerCpf} required />
+                        </div>
+                        <div className="field">
+                          <label>Nascimento atleta 2</label>
+                          <input name="partnerBirthDate" type="text" inputMode="numeric" placeholder="dd/mm/aaaa" defaultValue={new Date(registration.partnerBirthDate).toLocaleDateString("pt-BR")} required />
+                        </div>
+                        <div className="field">
+                          <label>Valor (R$)</label>
+                          <input name="amountReais" defaultValue={(registration.amountCents / 100).toFixed(2).replace(".", ",")} required />
+                        </div>
+                        <div className="field">
+                          <label>Pagamento</label>
+                          <select name="paymentStatus" defaultValue={registration.paymentStatus} required>
+                            <option value="PENDING">Pendente</option>
+                            <option value="PAID">Pago</option>
+                          </select>
+                        </div>
+                        <div className="field field-submit">
+                          <SubmitButton label="Salvar alteracoes" pendingLabel="Salvando..." className="button button-primary" />
+                        </div>
+                        {updateState?.error ? <p className="form-error form-full">{updateState.error}</p> : null}
+                        {updateState?.success ? <p className="form-success form-full">{updateState.success}</p> : null}
+                      </form>
+                    ) : null}
                   </div>
                 </div>
               );

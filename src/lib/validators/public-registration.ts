@@ -31,3 +31,7 @@ export const createManualTournamentRegistrationSchema = z.object({
   amountReais: z.union([z.string(), z.number()]),
   paymentStatus: z.enum(["PENDING", "PAID"]).default("PENDING")
 });
+
+export const updateManualTournamentRegistrationSchema = createManualTournamentRegistrationSchema.extend({
+  registrationId: z.string().trim().min(1, "Inscricao invalida.")
+});

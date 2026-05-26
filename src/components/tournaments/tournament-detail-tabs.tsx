@@ -38,8 +38,15 @@ export function TournamentParticipantsTab({ tournament }: { tournament: NonNulla
       categories={tournament.categories.map((category) => ({ id: category.id, name: category.name }))}
       registrations={tournament.publicRegistrations.map((registration) => ({
         id: registration.id,
+        categoryId: registration.categoryId,
         leadName: registration.leadName,
+        leadPhone: registration.leadPhone,
+        leadCpf: registration.leadCpf,
+        leadBirthDate: registration.leadBirthDate.toISOString(),
         partnerName: registration.partnerName,
+        partnerPhone: registration.partnerPhone,
+        partnerCpf: registration.partnerCpf,
+        partnerBirthDate: registration.partnerBirthDate.toISOString(),
         categoryName: registration.category.name,
         amountCents: registration.amountCents,
         paymentStatus: registration.paymentStatus,

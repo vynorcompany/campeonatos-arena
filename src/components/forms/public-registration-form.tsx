@@ -115,7 +115,7 @@ export function PublicRegistrationForm({
             <div className="field"><label htmlFor="leadEmail">E-mail</label><input id="leadEmail" name="leadEmail" type="email" required /></div>
             <div className="field"><label htmlFor="leadPhone">Telefone</label><input id="leadPhone" name="leadPhone" required /></div>
             <div className="field"><label htmlFor="leadCpf">CPF</label><input id="leadCpf" name="leadCpf" required /></div>
-            <div className="field"><label htmlFor="leadBirthDate">Nascimento</label><input id="leadBirthDate" name="leadBirthDate" className="public-reg-date" type="date" required /></div>
+            <div className="field"><label htmlFor="leadBirthDate">Nascimento</label><input id="leadBirthDate" name="leadBirthDate" className="public-reg-date" type="text" inputMode="numeric" placeholder="dd/mm/aaaa" required /></div>
           </div>
         </section>
 
@@ -128,7 +128,7 @@ export function PublicRegistrationForm({
             <div className="field"><label htmlFor="partnerName">Nome</label><input id="partnerName" name="partnerName" required /></div>
             <div className="field"><label htmlFor="partnerPhone">Telefone</label><input id="partnerPhone" name="partnerPhone" required /></div>
             <div className="field"><label htmlFor="partnerCpf">CPF</label><input id="partnerCpf" name="partnerCpf" required /></div>
-            <div className="field"><label htmlFor="partnerBirthDate">Nascimento</label><input id="partnerBirthDate" name="partnerBirthDate" className="public-reg-date" type="date" required /></div>
+            <div className="field"><label htmlFor="partnerBirthDate">Nascimento</label><input id="partnerBirthDate" name="partnerBirthDate" className="public-reg-date" type="text" inputMode="numeric" placeholder="dd/mm/aaaa" required /></div>
           </div>
         </section>
 

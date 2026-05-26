@@ -2143,21 +2143,57 @@ export async function updateTournamentSettings(
       }
     });
 
-    await tx.tournamentCategory.deleteMany({
-      where: {
-        tournamentId
-      }
+    const existingCategories = await tx.tournamentCategory.findMany({
+      where: { tournamentId },
+      select: { id: true, name: true }
     });
 
-    await tx.tournamentCategory.createMany({
-      data: input.categoryList.map((category) => ({
-        tournamentId,
-        name: category.name,
-        level: category.level,
-        groupCount: category.groupCount,
-        pairsPerGroup: category.pairsPerGroup
-      }))
-    });
+    const existingByName = new Map(existingCategories.map((category) => [category.name, category]));
+    const nextNames = new Set(input.categoryList.map((category) => category.name));
+
+    for (const category of input.categoryList) {
+      const existing = existingByName.get(category.name);
+      if (existing) {
+        await tx.tournamentCategory.update({
+          where: { id: existing.id },
+          data: {
+            level: category.level,
+            groupCount: category.groupCount,
+            pairsPerGroup: category.pairsPerGroup,
+            active: true
+          }
+        });
+      } else {
+        await tx.tournamentCategory.create({
+          data: {
+            tournamentId,
+            name: category.name,
+            level: category.level,
+            groupCount: category.groupCount,
+            pairsPerGroup: category.pairsPerGroup,
+            active: true
+          }
+        });
+      }
+    }
+
+    const categoriesToRemove = existingCategories.filter((category) => !nextNames.has(category.name));
+    for (const category of categoriesToRemove) {
+      const registrationCount = await tx.publicTournamentRegistration.count({
+        where: { categoryId: category.id }
+      });
+
+      if (registrationCount > 0) {
+        await tx.tournamentCategory.update({
+          where: { id: category.id },
+          data: { active: false }
+        });
+      } else {
+        await tx.tournamentCategory.delete({
+          where: { id: category.id }
+        });
+      }
+    }
 
     await recalculateTournamentRankingPointsTx(tx, tournamentId);
   });

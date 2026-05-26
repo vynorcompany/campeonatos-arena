@@ -21,6 +21,7 @@ import { type TournamentTabKey } from "@/components/tournaments/tournament-tabs"
 import {
   deleteTournamentAction,
   finishTournamentAction,
+  updateTournamentStatusAction,
   updateTournamentRegistrationPhaseAction
 } from "@/lib/actions/tournament";
 import { requireModuleView } from "@/lib/auth/guards";
@@ -76,6 +77,23 @@ export default async function TournamentDetailPage({ params, searchParams }: Tou
               <option value="FINISHED">Finalizado</option>
             </select>
             <SubmitButton label="Atualizar fase" pendingLabel="Salvando..." className="button" />
+          </form>
+          <form action={updateTournamentStatusAction} className="section-actions">
+            <input type="hidden" name="tournamentId" value={tournament.id} />
+            <select
+              name="status"
+              defaultValue={tournament.status}
+              className="button"
+              aria-label="Selecionar status do torneio"
+              style={{ minWidth: "190px" }}
+            >
+              <option value="DRAFT">Rascunho</option>
+              <option value="READY_FOR_DRAW">Pronto para sorteio</option>
+              <option value="GROUPS_DEFINED">Grupos definidos</option>
+              <option value="MATCHES_DEFINED">Jogos definidos</option>
+              <option value="FINISHED">Finalizado</option>
+            </select>
+            <SubmitButton label="Atualizar status" pendingLabel="Salvando..." className="button" />
           </form>
           <form action={finishTournamentAction}>
             <input type="hidden" name="tournamentId" value={tournament.id} />

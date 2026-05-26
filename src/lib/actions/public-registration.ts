@@ -25,6 +25,16 @@ function normalizeCpf(input: string) {
   return input.replace(/\D/g, "");
 }
 
+function normalizeDateInput(input: unknown) {
+  const value = String(input ?? "").trim();
+  const brMatch = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
+  if (brMatch) {
+    const [, day, month, year] = brMatch;
+    return `${year}-${month}-${day}`;
+  }
+  return value;
+}
+
 function getPriceByOrder(order: number, tournament: { priceFirstCents: number; priceSecondCents: number; priceThirdCents: number }) {
   if (order <= 1) return tournament.priceFirstCents;
   if (order === 2) return tournament.priceSecondCents;
@@ -56,11 +66,11 @@ export async function createPublicRegistrationAction(
     leadEmail: formData.get("leadEmail"),
     leadPhone: formData.get("leadPhone"),
     leadCpf: normalizeCpf(String(formData.get("leadCpf") ?? "")),
-    leadBirthDate: formData.get("leadBirthDate"),
+    leadBirthDate: normalizeDateInput(formData.get("leadBirthDate")),
     partnerName: formData.get("partnerName"),
     partnerPhone: formData.get("partnerPhone"),
     partnerCpf: normalizeCpf(String(formData.get("partnerCpf") ?? "")),
-    partnerBirthDate: formData.get("partnerBirthDate")
+    partnerBirthDate: normalizeDateInput(formData.get("partnerBirthDate"))
   });
 
   if (!parsed.success) {

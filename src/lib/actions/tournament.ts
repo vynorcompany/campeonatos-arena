@@ -34,7 +34,7 @@ import {
   updateMatchScheduleSchema
 } from "@/lib/validators/match";
 import { createTournamentSchema, updateTournamentSchema } from "@/lib/validators/tournament";
-import { createManualTournamentRegistrationSchema } from "@/lib/validators/public-registration";
+import { createManualTournamentRegistrationSchema, updateManualTournamentRegistrationSchema } from "@/lib/validators/public-registration";
 import {
   createTournamentPair,
   deleteTournament,
@@ -205,6 +205,16 @@ function parseReaisToCents(input: unknown) {
 
 function normalizeCpf(input: string) {
   return input.replace(/\D/g, "");
+}
+
+function normalizeDateInput(input: unknown) {
+  const value = String(input ?? "").trim();
+  const brMatch = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
+  if (brMatch) {
+    const [, day, month, year] = brMatch;
+    return `${year}-${month}-${day}`;
+  }
+  return value;
 }
 
 export async function createPlayerAction(_: ActionState, formData: FormData): Promise<ActionState> {
@@ -1134,6 +1144,32 @@ export async function updateTournamentCategoryFormatAction(formData: FormData) {
   revalidatePath(`/torneios/${tournamentId}`);
 }
 
+export async function updateTournamentStatusAction(formData: FormData) {
+  const auth = await requireModuleEdit("tournaments");
+  const tournamentId = String(formData.get("tournamentId") ?? "");
+  const status = String(formData.get("status") ?? "");
+  const allowed = new Set(["DRAFT", "READY_FOR_DRAW", "GROUPS_DEFINED", "MATCHES_DEFINED", "FINISHED"]);
+
+  if (!tournamentId || !allowed.has(status)) {
+    throw new Error("Dados invalidos para atualizacao do status.");
+  }
+
+  const updated = await prisma.tournament.updateMany({
+    where: {
+      id: tournamentId,
+      arenaId: auth.arenaId
+    },
+    data: { status }
+  });
+
+  if (!updated.count) {
+    throw new Error("Torneio nao encontrado.");
+  }
+
+  refreshTournamentRoutes();
+  revalidatePath(`/torneios/${tournamentId}`);
+}
+
 export async function createManualTournamentRegistrationAction(_: ActionState, formData: FormData): Promise<ActionState> {
   const auth = await requireModuleEdit("tournaments");
   const parsed = createManualTournamentRegistrationSchema.safeParse({
@@ -1142,11 +1178,11 @@ export async function createManualTournamentRegistrationAction(_: ActionState, f
     leadName: formData.get("leadName"),
     leadPhone: formData.get("leadPhone"),
     leadCpf: normalizeCpf(String(formData.get("leadCpf") ?? "")),
-    leadBirthDate: formData.get("leadBirthDate"),
+    leadBirthDate: normalizeDateInput(formData.get("leadBirthDate")),
     partnerName: formData.get("partnerName"),
     partnerPhone: formData.get("partnerPhone"),
     partnerCpf: normalizeCpf(String(formData.get("partnerCpf") ?? "")),
-    partnerBirthDate: formData.get("partnerBirthDate"),
+    partnerBirthDate: normalizeDateInput(formData.get("partnerBirthDate")),
     amountReais: formData.get("amountReais"),
     paymentStatus: formData.get("paymentStatus")
   });
@@ -1233,6 +1269,65 @@ export async function deleteTournamentRegistrationAction(formData: FormData) {
   }
 
   refreshTournamentRoutes();
+}
+
+export async function updateTournamentRegistrationAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  const auth = await requireModuleEdit("tournaments");
+  const parsed = updateManualTournamentRegistrationSchema.safeParse({
+    registrationId: formData.get("registrationId"),
+    tournamentId: formData.get("tournamentId"),
+    categoryId: formData.get("categoryId"),
+    leadName: formData.get("leadName"),
+    leadPhone: formData.get("leadPhone"),
+    leadCpf: normalizeCpf(String(formData.get("leadCpf") ?? "")),
+    leadBirthDate: normalizeDateInput(formData.get("leadBirthDate")),
+    partnerName: formData.get("partnerName"),
+    partnerPhone: formData.get("partnerPhone"),
+    partnerCpf: normalizeCpf(String(formData.get("partnerCpf") ?? "")),
+    partnerBirthDate: normalizeDateInput(formData.get("partnerBirthDate")),
+    amountReais: formData.get("amountReais"),
+    paymentStatus: formData.get("paymentStatus")
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Dados invalidos.", success: null };
+  }
+
+  const registration = await prisma.publicTournamentRegistration.findFirst({
+    where: {
+      id: parsed.data.registrationId,
+      tournamentId: parsed.data.tournamentId,
+      tournament: { arenaId: auth.arenaId }
+    },
+    select: { id: true }
+  });
+
+  if (!registration) {
+    return { error: "Inscricao nao encontrada.", success: null };
+  }
+
+  const amountCents = parseReaisToCents(parsed.data.amountReais);
+  await prisma.publicTournamentRegistration.update({
+    where: { id: registration.id },
+    data: {
+      categoryId: parsed.data.categoryId,
+      leadName: parsed.data.leadName,
+      leadPhone: parsed.data.leadPhone,
+      leadCpf: parsed.data.leadCpf,
+      leadBirthDate: parsed.data.leadBirthDate,
+      partnerName: parsed.data.partnerName,
+      partnerPhone: parsed.data.partnerPhone,
+      partnerCpf: parsed.data.partnerCpf,
+      partnerBirthDate: parsed.data.partnerBirthDate,
+      amountCents,
+      paymentStatus: parsed.data.paymentStatus,
+      status: parsed.data.paymentStatus === "PAID" ? "CONFIRMED" : "PENDING_PAYMENT"
+    }
+  });
+
+  refreshTournamentRoutes();
+  revalidatePath(`/torneios/${parsed.data.tournamentId}`);
+  return { error: null, success: "Inscricao atualizada com sucesso." };
 }
 
 
