@@ -140,10 +140,19 @@ export default async function GroupsPage() {
             }
           >
             <div className="stack-sm">
-              <form action={generateGroupsAction}>
-                <input type="hidden" name="tournamentId" value={activeTournament.id} />
-                <SubmitButton label="Distribuir duplas" pendingLabel="Distribuindo..." className="button button-primary" />
-              </form>
+              {activeTournament.registrationPhase === "REGISTRATIONS" ? (
+                <div className="form-hint-box">
+                  <strong>Montagem bloqueada durante inscrições</strong>
+                  <p className="muted">
+                    Encerre as inscrições no torneio para liberar a definição do formato e a montagem dos grupos.
+                  </p>
+                </div>
+              ) : (
+                <form action={generateGroupsAction}>
+                  <input type="hidden" name="tournamentId" value={activeTournament.id} />
+                  <SubmitButton label="Distribuir duplas" pendingLabel="Distribuindo..." className="button button-primary" />
+                </form>
+              )}
               <div className="form-hint-box">
                 <strong>Ajuste manual liberado</strong>
                 <p className="muted">
@@ -202,4 +211,3 @@ export default async function GroupsPage() {
     </div>
   );
 }
-

@@ -5,6 +5,7 @@ import { useFormState } from "react-dom";
 import { useRouter } from "next/navigation";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { createTournamentAction, type ActionState } from "@/lib/actions/tournament";
+import { parseCategoryListInput, TOURNAMENT_CATEGORY_PRESETS } from "@/lib/tournament-categories";
 
 const initialState: ActionState = { error: null, success: null };
 const steps = ["basic", "structure", "pricing", "review"] as const;
@@ -23,6 +24,8 @@ function slugify(value: string) {
 export function TournamentWizard({ rankings }: { rankings: { id: string; name: string }[] }) {
   const [step, setStep] = useState<StepKey>("basic");
   const [name, setName] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(["4ª masculina", "5ª masculina", "6ª masculina", "7ª masculina"]);
+  const [customCategory, setCustomCategory] = useState("");
   const [state, action] = useFormState(createTournamentAction, initialState);
   const router = useRouter();
 
@@ -37,6 +40,7 @@ export function TournamentWizard({ rankings }: { rankings: { id: string; name: s
   const canNext = stepIndex < steps.length - 1;
   const progress = Math.round(((stepIndex + 1) / steps.length) * 100);
   const publicSlug = useMemo(() => slugify(name || "torneio"), [name]);
+  const categoryList = useMemo(() => selectedCategories.join(","), [selectedCategories]);
 
   const labels = {
     basic: "Informações básicas",
@@ -44,6 +48,27 @@ export function TournamentWizard({ rankings }: { rankings: { id: string; name: s
     pricing: "Inscrições e regras financeiras",
     review: "Revisão"
   } satisfies Record<StepKey, string>;
+
+  function toggleCategory(category: string) {
+    setSelectedCategories((current) =>
+      current.includes(category) ? current.filter((item) => item !== category) : [...current, category]
+    );
+  }
+
+  function addCustomCategory() {
+    const normalized = customCategory.trim();
+    if (!normalized) return;
+    if (selectedCategories.includes(normalized)) {
+      setCustomCategory("");
+      return;
+    }
+    setSelectedCategories((current) => [...current, normalized]);
+    setCustomCategory("");
+  }
+
+  function removeCategory(category: string) {
+    setSelectedCategories((current) => current.filter((item) => item !== category));
+  }
 
   return (
     <form action={action} className="t-wizard">
@@ -72,18 +97,8 @@ export function TournamentWizard({ rankings }: { rankings: { id: string; name: s
       </section>
 
       <section className="stack-sm" hidden={step !== "structure"}>
-        <div className="field">
-          <label htmlFor="groupCount">Quantidade de grupos</label>
-          <select id="groupCount" name="groupCount" defaultValue="4">
-            {Array.from({ length: 8 }).map((_, index) => <option key={index + 1} value={index + 1}>{index + 1}</option>)}
-          </select>
-        </div>
-        <div className="field">
-          <label htmlFor="pairsPerGroup">Base de duplas por grupo</label>
-          <select id="pairsPerGroup" name="pairsPerGroup" defaultValue="3">
-            {Array.from({ length: 15 }).map((_, index) => <option key={index + 2} value={index + 2}>{index + 2}</option>)}
-          </select>
-        </div>
+        <input type="hidden" id="groupCount" name="groupCount" value="4" />
+        <input type="hidden" id="pairsPerGroup" name="pairsPerGroup" value="3" />
         <div className="field">
           <label htmlFor="maxCategoryGap">Diferença máxima entre categorias</label>
           <select id="maxCategoryGap" name="maxCategoryGap" defaultValue="1">
@@ -93,8 +108,33 @@ export function TournamentWizard({ rankings }: { rankings: { id: string; name: s
           </select>
         </div>
         <div className="field">
-          <label htmlFor="categoryList">Categorias (ordem)</label>
-          <input id="categoryList" name="categoryList" defaultValue="1,2,3,4" placeholder="Ex.: 1,2,3,4" required />
+          <label>Categorias do torneio</label>
+          <div className="stack-xs">
+            <div className="simple-grid simple-grid-2">
+              {TOURNAMENT_CATEGORY_PRESETS.map((category) => (
+                <label key={category} className="field-inline">
+                  <input type="checkbox" checked={selectedCategories.includes(category)} onChange={() => toggleCategory(category)} />
+                  <span>{category}</span>
+                </label>
+              ))}
+            </div>
+            <div className="field-inline">
+              <input
+                value={customCategory}
+                onChange={(event) => setCustomCategory(event.target.value)}
+                placeholder="Adicionar categoria personalizada"
+              />
+              <button type="button" className="button" onClick={addCustomCategory}>Adicionar</button>
+            </div>
+            <div className="field-inline" style={{ flexWrap: "wrap", gap: "8px" }}>
+              {selectedCategories.map((category) => (
+                <button key={category} type="button" className="button" onClick={() => removeCategory(category)}>
+                  {category} ×
+                </button>
+              ))}
+            </div>
+          </div>
+          <input type="hidden" name="categoryList" value={categoryList} />
         </div>
       </section>
 
@@ -136,7 +176,12 @@ export function TournamentWizard({ rankings }: { rankings: { id: string; name: s
       <div className="section-actions">
         {canBack ? <button type="button" className="button" onClick={() => setStep(steps[stepIndex - 1])}>Voltar</button> : null}
         {canNext ? (
-          <button type="button" className="button button-primary" onClick={() => setStep(steps[stepIndex + 1])}>
+          <button
+            type="button"
+            className="button button-primary"
+            onClick={() => setStep(steps[stepIndex + 1])}
+            disabled={step === "structure" && !parseCategoryListInput(categoryList).length}
+          >
             Próxima etapa
           </button>
         ) : (

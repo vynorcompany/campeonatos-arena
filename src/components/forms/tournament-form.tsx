@@ -1,8 +1,10 @@
 ﻿"use client";
 
 import { useFormState } from "react-dom";
+import { useMemo, useState } from "react";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { createTournamentAction, type ActionState, updateTournamentAction } from "@/lib/actions/tournament";
+import { parseCategoryListInput, TOURNAMENT_CATEGORY_PRESETS } from "@/lib/tournament-categories";
 
 const initialState: ActionState = {
   error: null,
@@ -52,9 +54,33 @@ export function TournamentForm({
 }: TournamentFormProps) {
   const action = mode === "update" ? updateTournamentAction : createTournamentAction;
   const [state, formAction] = useFormState(action, initialState);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(parseCategoryListInput(defaultCategoryList));
+  const [customCategory, setCustomCategory] = useState("");
   const defaultPriceFirstReais = String(Math.round(defaultPriceFirstCents / 100));
   const defaultPriceSecondReais = String(Math.round(defaultPriceSecondCents / 100));
   const defaultPriceThirdReais = String(Math.round(defaultPriceThirdCents / 100));
+  const categoryList = useMemo(() => selectedCategories.join(","), [selectedCategories]);
+
+  function toggleCategory(category: string) {
+    setSelectedCategories((current) =>
+      current.includes(category) ? current.filter((item) => item !== category) : [...current, category]
+    );
+  }
+
+  function addCustomCategory() {
+    const normalized = customCategory.trim();
+    if (!normalized) return;
+    if (selectedCategories.includes(normalized)) {
+      setCustomCategory("");
+      return;
+    }
+    setSelectedCategories((current) => [...current, normalized]);
+    setCustomCategory("");
+  }
+
+  function removeCategory(category: string) {
+    setSelectedCategories((current) => current.filter((item) => item !== category));
+  }
 
   return (
     <form action={formAction} className="grid-form">
@@ -82,28 +108,8 @@ export function TournamentForm({
         </select>
       </div>
 
-      <div className="field">
-        <label htmlFor="groupCount">Quantidade de grupos</label>
-        <select id="groupCount" name="groupCount" defaultValue={String(defaultGroupCount)}>
-          <option value="1">1 grupo - todos contra todos</option>
-          <option value="2">2 grupos</option>
-          <option value="3">3 grupos</option>
-          <option value="4">4 grupos</option>
-          <option value="5">5 grupos</option>
-          <option value="6">6 grupos</option>
-          <option value="7">7 grupos</option>
-          <option value="8">8 grupos</option>
-        </select>
-      </div>
-
-      <div className="field">
-        <label htmlFor="pairsPerGroup">Base de duplas por grupo</label>
-        <select id="pairsPerGroup" name="pairsPerGroup" defaultValue={String(defaultPairsPerGroup)}>
-          {Array.from({ length: 15 }).map((_, index) => (
-            <option key={index + 2} value={index + 2}>{index + 2} duplas</option>
-          ))}
-        </select>
-      </div>
+      <input type="hidden" id="groupCount" name="groupCount" value={String(defaultGroupCount)} />
+      <input type="hidden" id="pairsPerGroup" name="pairsPerGroup" value={String(defaultPairsPerGroup)} />
       <div className="field">
         <label htmlFor="priceFirstCents">Valor 1ª inscrição</label>
         <input id="priceFirstCents" name="priceFirstCents" defaultValue={defaultPriceFirstReais} placeholder="R$ 70" required />
@@ -127,8 +133,33 @@ export function TournamentForm({
         </select>
       </div>
       <div className="field">
-        <label htmlFor="categoryList">Categorias em ordem</label>
-        <input id="categoryList" name="categoryList" defaultValue={defaultCategoryList} placeholder="Ex.: 1,2,3,4" required />
+        <label>Categorias em ordem</label>
+        <div className="stack-xs">
+          <div className="simple-grid simple-grid-2">
+            {TOURNAMENT_CATEGORY_PRESETS.map((category) => (
+              <label key={category} className="field-inline">
+                <input type="checkbox" checked={selectedCategories.includes(category)} onChange={() => toggleCategory(category)} />
+                <span>{category}</span>
+              </label>
+            ))}
+          </div>
+          <div className="field-inline">
+            <input
+              value={customCategory}
+              onChange={(event) => setCustomCategory(event.target.value)}
+              placeholder="Adicionar categoria personalizada"
+            />
+            <button type="button" className="button" onClick={addCustomCategory}>Adicionar</button>
+          </div>
+          <div className="field-inline" style={{ flexWrap: "wrap", gap: "8px" }}>
+            {selectedCategories.map((category) => (
+              <button key={category} type="button" className="button" onClick={() => removeCategory(category)}>
+                {category} ×
+              </button>
+            ))}
+          </div>
+        </div>
+        <input type="hidden" name="categoryList" value={categoryList} />
       </div>
       <div className="field field-inline">
         <input id="blockCategoryGap" name="blockCategoryGap" type="checkbox" defaultChecked={defaultBlockCategoryGap} />

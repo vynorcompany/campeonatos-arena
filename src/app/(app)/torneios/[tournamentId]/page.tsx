@@ -24,7 +24,7 @@ import {
 } from "@/lib/actions/tournament";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
-import { getArenaDashboard, getTournamentDetailsById } from "@/lib/services/tournament";
+import { getTournamentDetailsById } from "@/lib/services/tournament";
 
 type TournamentDetailPageProps = {
   params: { tournamentId: string };
@@ -42,7 +42,6 @@ export default async function TournamentDetailPage({ params, searchParams }: Tou
     ? ((searchParams?.tab as TournamentTabKey) ?? "overview")
     : "overview";
 
-  const { players } = await getArenaDashboard(auth.arenaId);
   const rankings = await prisma.rankingProfile.findMany({
     where: { arenaId: auth.arenaId },
     orderBy: { name: "asc" },
@@ -85,7 +84,7 @@ export default async function TournamentDetailPage({ params, searchParams }: Tou
       <TournamentDetailLayout tournamentId={tournament.id} activeTab={tab}>
         <SectionCard title="Área do torneio" description="Cada aba separa uma responsabilidade operacional.">
           {tab === "overview" ? <TournamentOverviewTab tournament={tournament} /> : null}
-          {tab === "participants" ? <TournamentParticipantsTab tournament={tournament} players={players} /> : null}
+          {tab === "participants" ? <TournamentParticipantsTab tournament={tournament} /> : null}
           {tab === "pairs" ? <TournamentPairsTab tournament={tournament} /> : null}
           {tab === "groups" ? <TournamentGroupsTab tournament={tournament} /> : null}
           {tab === "games" ? <TournamentGamesTab tournament={tournament} /> : null}

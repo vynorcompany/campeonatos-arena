@@ -1183,6 +1183,12 @@ export async function getTournamentDetailsById(tournamentId: string, arenaId: st
           winnerPair: true
         },
         orderBy: [{ stage: "asc" }, { roundOrder: "asc" }]
+      },
+      publicRegistrations: {
+        include: {
+          category: true
+        },
+        orderBy: [{ createdAt: "desc" }]
       }
     }
   });
@@ -2067,7 +2073,7 @@ export async function updateTournamentSettings(
     priceThirdCents: number;
     blockCategoryGap: boolean;
     maxCategoryGap: number;
-    categoryList: Array<{ name: string; level: number }>;
+    categoryList: Array<{ name: string; level: number; groupCount: number; pairsPerGroup: number }>;
     rankingId: string | null;
   }
 ) {
@@ -2140,7 +2146,9 @@ export async function updateTournamentSettings(
       data: input.categoryList.map((category) => ({
         tournamentId,
         name: category.name,
-        level: category.level
+        level: category.level,
+        groupCount: category.groupCount,
+        pairsPerGroup: category.pairsPerGroup
       }))
     });
 

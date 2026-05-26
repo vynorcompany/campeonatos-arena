@@ -34,6 +34,7 @@ import {
   updateMatchScheduleSchema
 } from "@/lib/validators/match";
 import { createTournamentSchema, updateTournamentSchema } from "@/lib/validators/tournament";
+import { createManualTournamentRegistrationSchema } from "@/lib/validators/public-registration";
 import {
   createTournamentPair,
   deleteTournament,
@@ -149,6 +150,29 @@ function getPrismaMessage(error: unknown, fallback: string) {
 }
 
 function parseCategoryList(raw: string) {
+  const maybeJson = raw.trim();
+  if (maybeJson.startsWith("[") || maybeJson.startsWith("{")) {
+    const parsed = JSON.parse(maybeJson) as Array<{ name: string; groupCount?: number; pairsPerGroup?: number }>;
+    const normalized = parsed
+      .map((item) => ({
+        name: String(item.name ?? "").trim(),
+        groupCount: Number(item.groupCount ?? 4),
+        pairsPerGroup: Number(item.pairsPerGroup ?? 3)
+      }))
+      .filter((item) => item.name.length > 0);
+
+    if (!normalized.length) {
+      throw new Error("Informe ao menos uma categoria.");
+    }
+
+    return normalized.map((item, index) => ({
+      name: item.name,
+      level: index + 1,
+      groupCount: Number.isFinite(item.groupCount) ? Math.min(8, Math.max(1, Math.trunc(item.groupCount))) : 4,
+      pairsPerGroup: Number.isFinite(item.pairsPerGroup) ? Math.min(16, Math.max(2, Math.trunc(item.pairsPerGroup))) : 3
+    }));
+  }
+
   const names = raw
     .split(",")
     .map((item) => item.trim())
@@ -160,7 +184,9 @@ function parseCategoryList(raw: string) {
 
   return names.map((name, index) => ({
     name,
-    level: index + 1
+    level: index + 1,
+    groupCount: 4,
+    pairsPerGroup: 3
   }));
 }
 
@@ -175,6 +201,10 @@ function parseReaisToCents(input: unknown) {
     throw new Error("Valor monetário inválido.");
   }
   return Math.round(value * 100);
+}
+
+function normalizeCpf(input: string) {
+  return input.replace(/\D/g, "");
 }
 
 export async function createPlayerAction(_: ActionState, formData: FormData): Promise<ActionState> {
@@ -431,8 +461,8 @@ export async function createTournamentAction(_: ActionState, formData: FormData)
       description: parsed.data.description,
       publicSlug: parsed.data.publicSlug,
       registrationPhase: parsed.data.registrationPhase,
-      groupCount: parsed.data.groupCount,
-      pairsPerGroup: parsed.data.pairsPerGroup,
+      groupCount: categories[0]?.groupCount ?? parsed.data.groupCount,
+      pairsPerGroup: categories[0]?.pairsPerGroup ?? parsed.data.pairsPerGroup,
       priceFirstCents,
       priceSecondCents,
       priceThirdCents,
@@ -497,8 +527,8 @@ export async function updateTournamentAction(_: ActionState, formData: FormData)
       description: parsed.data.description,
       publicSlug: parsed.data.publicSlug,
       registrationPhase: parsed.data.registrationPhase,
-      groupCount: parsed.data.groupCount,
-      pairsPerGroup: parsed.data.pairsPerGroup,
+      groupCount: categories[0]?.groupCount ?? parsed.data.groupCount,
+      pairsPerGroup: categories[0]?.pairsPerGroup ?? parsed.data.pairsPerGroup,
       priceFirstCents,
       priceSecondCents,
       priceThirdCents,
@@ -1073,6 +1103,112 @@ export async function updateCategoryBracketMatchScheduleAction(formData: FormDat
     }
   });
   revalidatePath("/torneios/inscricoes");
+}
+
+export async function updateTournamentCategoryFormatAction(formData: FormData) {
+  const auth = await requireModuleEdit("tournaments");
+  const tournamentId = String(formData.get("tournamentId") ?? "");
+  const categoryId = String(formData.get("categoryId") ?? "");
+  const groupCount = Number(formData.get("groupCount") ?? 0);
+  const pairsPerGroup = Number(formData.get("pairsPerGroup") ?? 0);
+
+  if (!tournamentId || !categoryId || !Number.isFinite(groupCount) || !Number.isFinite(pairsPerGroup)) {
+    throw new Error("Dados inválidos para formato da categoria.");
+  }
+
+  await prisma.tournamentCategory.updateMany({
+    where: {
+      id: categoryId,
+      tournamentId,
+      tournament: {
+        arenaId: auth.arenaId
+      }
+    },
+    data: {
+      groupCount: Math.min(8, Math.max(1, Math.trunc(groupCount))),
+      pairsPerGroup: Math.min(16, Math.max(2, Math.trunc(pairsPerGroup)))
+    }
+  });
+
+  revalidatePath("/torneios/inscricoes");
+  revalidatePath(`/torneios/${tournamentId}`);
+}
+
+export async function createManualTournamentRegistrationAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  const auth = await requireModuleEdit("tournaments");
+  const parsed = createManualTournamentRegistrationSchema.safeParse({
+    tournamentId: formData.get("tournamentId"),
+    categoryId: formData.get("categoryId"),
+    leadName: formData.get("leadName"),
+    leadPhone: formData.get("leadPhone"),
+    leadCpf: normalizeCpf(String(formData.get("leadCpf") ?? "")),
+    leadBirthDate: formData.get("leadBirthDate"),
+    partnerName: formData.get("partnerName"),
+    partnerPhone: formData.get("partnerPhone"),
+    partnerCpf: normalizeCpf(String(formData.get("partnerCpf") ?? "")),
+    partnerBirthDate: formData.get("partnerBirthDate"),
+    amountReais: formData.get("amountReais"),
+    paymentStatus: formData.get("paymentStatus")
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Dados inválidos.", success: null };
+  }
+
+  const tournament = await prisma.tournament.findFirst({
+    where: {
+      id: parsed.data.tournamentId,
+      arenaId: auth.arenaId
+    },
+    select: {
+      id: true,
+      categories: {
+        where: { active: true },
+        select: { id: true }
+      }
+    }
+  });
+
+  if (!tournament) {
+    return { error: "Torneio não encontrado.", success: null };
+  }
+
+  if (!tournament.categories.some((category) => category.id === parsed.data.categoryId)) {
+    return { error: "Categoria inválida para este torneio.", success: null };
+  }
+
+  const registrationCount = await prisma.publicTournamentRegistration.count({
+    where: {
+      tournamentId: tournament.id
+    }
+  });
+
+  const amountCents = parseReaisToCents(parsed.data.amountReais);
+
+  await prisma.publicTournamentRegistration.create({
+    data: {
+      tournamentId: tournament.id,
+      categoryId: parsed.data.categoryId,
+      leadName: parsed.data.leadName,
+      leadPhone: parsed.data.leadPhone,
+      leadCpf: parsed.data.leadCpf,
+      leadBirthDate: parsed.data.leadBirthDate,
+      partnerName: parsed.data.partnerName,
+      partnerPhone: parsed.data.partnerPhone,
+      partnerCpf: parsed.data.partnerCpf,
+      partnerBirthDate: parsed.data.partnerBirthDate,
+      registrationOrder: registrationCount + 1,
+      amountCents,
+      paymentStatus: parsed.data.paymentStatus,
+      status: parsed.data.paymentStatus === "PAID" ? "CONFIRMED" : "PENDING_PAYMENT",
+      paymentProvider: "MANUAL",
+      paymentReference: ""
+    }
+  });
+
+  refreshTournamentRoutes();
+  revalidatePath(`/torneios/${parsed.data.tournamentId}`);
+  return { error: null, success: "Inscrição manual criada com sucesso." };
 }
 
 

@@ -2,7 +2,7 @@
 import { SubmitButton } from "@/components/forms/submit-button";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
-import { generateCategoryBracketAction, updateCategoryBracketMatchScheduleAction } from "@/lib/actions/tournament";
+import { generateCategoryBracketAction, updateCategoryBracketMatchScheduleAction, updateTournamentCategoryFormatAction } from "@/lib/actions/tournament";
 import { getTournamentScheduleConflicts } from "@/lib/services/tournament";
 
 type BracketItem = {
@@ -89,9 +89,17 @@ export default async function TournamentRegistrationsPage() {
         <div className="stack-xs">
           <p className="eyebrow">Torneios</p>
           <h1>Inscritos por categoria</h1>
-          <p className="muted">Gerencie inscrições confirmadas e monte o chaveamento de cada categoria.</p>
+          <p className="muted">Gerencie inscrições e, após encerrar inscrições, defina formato e monte o chaveamento por categoria.</p>
         </div>
       </header>
+
+      {tournament.registrationPhase === "REGISTRATIONS" ? (
+        <SectionCard title="Inscrições em andamento">
+          <p className="muted">
+            A montagem só é liberada após encerrar inscrições. Quando mudar a fase do torneio, você poderá definir grupos e duplas por grupo em cada categoria.
+          </p>
+        </SectionCard>
+      ) : null}
 
       <SectionCard title="Conflitos de agenda (jogos gerais)" description="Validador para evitar atleta em dois jogos no mesmo horário.">
         {conflicts.length ? (
@@ -113,11 +121,38 @@ export default async function TournamentRegistrationsPage() {
         const confirmedCount = category.registrations.filter((reg: any) => reg.status === "CONFIRMED").length;
         return (
           <SectionCard key={category.id} title={`${category.name} (${confirmedCount} confirmadas)`}>
-            <form action={generateCategoryBracketAction} className="section-actions" style={{ marginBottom: "0.75rem" }}>
-              <input type="hidden" name="tournamentId" value={tournament.id} />
-              <input type="hidden" name="categoryId" value={category.id} />
-              <SubmitButton label="Montar chaveamento da categoria" pendingLabel="Montando..." className="button button-primary" />
-            </form>
+            <div className="stack-sm" style={{ marginBottom: "0.75rem" }}>
+              <form action={updateTournamentCategoryFormatAction} className="section-actions">
+                <input type="hidden" name="tournamentId" value={tournament.id} />
+                <input type="hidden" name="categoryId" value={category.id} />
+                <select name="groupCount" defaultValue={String((category as any).groupCount ?? 4)} disabled={tournament.registrationPhase === "REGISTRATIONS"}>
+                  {Array.from({ length: 8 }).map((_, index) => (
+                    <option key={index + 1} value={index + 1}>{index + 1} grupos</option>
+                  ))}
+                </select>
+                <select name="pairsPerGroup" defaultValue={String((category as any).pairsPerGroup ?? 3)} disabled={tournament.registrationPhase === "REGISTRATIONS"}>
+                  {Array.from({ length: 15 }).map((_, index) => (
+                    <option key={index + 2} value={index + 2}>{index + 2} duplas/grupo</option>
+                  ))}
+                </select>
+                <SubmitButton label="Salvar formato" pendingLabel="Salvando..." className="button" />
+              </form>
+              {tournament.registrationPhase === "REGISTRATIONS" ? (
+                <button type="button" className="button button-primary" disabled>
+                  Montar chaveamento da categoria
+                </button>
+              ) : (
+                <form action={generateCategoryBracketAction} className="section-actions">
+                  <input type="hidden" name="tournamentId" value={tournament.id} />
+                  <input type="hidden" name="categoryId" value={category.id} />
+                  <SubmitButton
+                    label="Montar chaveamento da categoria"
+                    pendingLabel="Montando..."
+                    className="button button-primary"
+                  />
+                </form>
+              )}
+            </div>
 
             <div className="simple-list">
               {category.registrations.map((registration: any) => (

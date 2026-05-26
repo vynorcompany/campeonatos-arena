@@ -15,3 +15,18 @@ export const createPublicRegistrationSchema = z.object({
   partnerCpf: cpfSchema,
   partnerBirthDate: z.coerce.date()
 });
+
+export const createManualTournamentRegistrationSchema = z.object({
+  tournamentId: z.string().trim().min(1, "Torneio inválido."),
+  categoryId: z.string().trim().min(1, "Selecione uma categoria."),
+  leadName: z.string().trim().min(3, "Informe o nome do atleta."),
+  leadPhone: z.string().trim().min(8, "Informe o telefone do atleta."),
+  leadCpf: cpfSchema,
+  leadBirthDate: z.coerce.date(),
+  partnerName: z.string().trim().min(3, "Informe o nome da dupla."),
+  partnerPhone: z.string().trim().min(8, "Informe o telefone da dupla."),
+  partnerCpf: cpfSchema,
+  partnerBirthDate: z.coerce.date(),
+  amountReais: z.union([z.string(), z.number()]),
+  paymentStatus: z.enum(["PENDING", "PAID"]).default("PENDING")
+});

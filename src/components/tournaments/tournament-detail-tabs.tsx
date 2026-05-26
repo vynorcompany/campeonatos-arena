@@ -31,13 +31,21 @@ export function TournamentOverviewTab({ tournament }: { tournament: NonNullable<
   );
 }
 
-export function TournamentParticipantsTab({ tournament, players }: { tournament: NonNullable<TournamentDetails>; players: Array<{ id: string; name: string; points: number; active: boolean }> }) {
-  const selected = new Set(tournament.entries.map((entry) => entry.playerId));
-  const activePlayers = players.filter((player) => player.active);
+export function TournamentParticipantsTab({ tournament }: { tournament: NonNullable<TournamentDetails> }) {
   return (
     <TournamentParticipantsForm
       tournamentId={tournament.id}
-      players={activePlayers.map((player) => ({ ...player, checked: selected.has(player.id) }))}
+      categories={tournament.categories.map((category) => ({ id: category.id, name: category.name }))}
+      registrations={tournament.publicRegistrations.map((registration) => ({
+        id: registration.id,
+        leadName: registration.leadName,
+        partnerName: registration.partnerName,
+        categoryName: registration.category.name,
+        amountCents: registration.amountCents,
+        paymentStatus: registration.paymentStatus,
+        status: registration.status,
+        createdAt: registration.createdAt.toISOString()
+      }))}
     />
   );
 }
