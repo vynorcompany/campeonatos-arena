@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useFormState } from "react-dom";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -13,8 +13,17 @@ type TournamentFormProps = {
   mode?: "create" | "update";
   tournamentId?: string;
   defaultName?: string;
+  defaultDescription?: string;
+  defaultPublicSlug?: string;
+  defaultRegistrationPhase?: string;
   defaultGroupCount?: number;
   defaultPairsPerGroup?: number;
+  defaultPriceFirstCents?: number;
+  defaultPriceSecondCents?: number;
+  defaultPriceThirdCents?: number;
+  defaultBlockCategoryGap?: boolean;
+  defaultMaxCategoryGap?: number;
+  defaultCategoryList?: string;
   defaultRankingId?: string;
   rankings?: { id: string; name: string }[];
   submitLabel?: string;
@@ -25,8 +34,17 @@ export function TournamentForm({
   mode = "create",
   tournamentId,
   defaultName = "",
+  defaultDescription = "",
+  defaultPublicSlug = "",
+  defaultRegistrationPhase = "REGISTRATIONS",
   defaultGroupCount = 4,
   defaultPairsPerGroup = 3,
+  defaultPriceFirstCents = 7000,
+  defaultPriceSecondCents = 10000,
+  defaultPriceThirdCents = 15000,
+  defaultBlockCategoryGap = true,
+  defaultMaxCategoryGap = 1,
+  defaultCategoryList = "1,2,3,4",
   defaultRankingId = "",
   rankings = [],
   submitLabel = "Criar torneio",
@@ -34,6 +52,9 @@ export function TournamentForm({
 }: TournamentFormProps) {
   const action = mode === "update" ? updateTournamentAction : createTournamentAction;
   const [state, formAction] = useFormState(action, initialState);
+  const defaultPriceFirstReais = String(Math.round(defaultPriceFirstCents / 100));
+  const defaultPriceSecondReais = String(Math.round(defaultPriceSecondCents / 100));
+  const defaultPriceThirdReais = String(Math.round(defaultPriceThirdCents / 100));
 
   return (
     <form action={formAction} className="grid-form">
@@ -42,6 +63,23 @@ export function TournamentForm({
       <div className="field">
         <label htmlFor="name">Nome do torneio</label>
         <input id="name" name="name" type="text" placeholder="Ex.: Liga Interna de Abril" defaultValue={defaultName} required />
+      </div>
+      <div className="field">
+        <label htmlFor="description">Descrição e regras da inscrição</label>
+        <textarea id="description" name="description" placeholder="Regras, horários, premiação e observações." defaultValue={defaultDescription} rows={4} />
+      </div>
+      <div className="field">
+        <label htmlFor="publicSlug">Link público da inscrição</label>
+        <input id="publicSlug" name="publicSlug" type="text" placeholder="ex.: super12-junho-2026" defaultValue={defaultPublicSlug} required />
+      </div>
+      <div className="field">
+        <label htmlFor="registrationPhase">Fase do torneio</label>
+        <select id="registrationPhase" name="registrationPhase" defaultValue={defaultRegistrationPhase}>
+          <option value="REGISTRATIONS">Inscrições</option>
+          <option value="EDITING">Editando</option>
+          <option value="LIVE">Acontecendo</option>
+          <option value="FINISHED">Finalizado</option>
+        </select>
       </div>
 
       <div className="field">
@@ -61,22 +99,40 @@ export function TournamentForm({
       <div className="field">
         <label htmlFor="pairsPerGroup">Base de duplas por grupo</label>
         <select id="pairsPerGroup" name="pairsPerGroup" defaultValue={String(defaultPairsPerGroup)}>
-          <option value="2">2 duplas</option>
-          <option value="3">3 duplas</option>
-          <option value="4">4 duplas</option>
-          <option value="5">5 duplas</option>
-          <option value="6">6 duplas</option>
-          <option value="7">7 duplas</option>
-          <option value="8">8 duplas</option>
-          <option value="9">9 duplas</option>
-          <option value="10">10 duplas</option>
-          <option value="11">11 duplas</option>
-          <option value="12">12 duplas</option>
-          <option value="13">13 duplas</option>
-          <option value="14">14 duplas</option>
-          <option value="15">15 duplas</option>
-          <option value="16">16 duplas</option>
+          {Array.from({ length: 15 }).map((_, index) => (
+            <option key={index + 2} value={index + 2}>{index + 2} duplas</option>
+          ))}
         </select>
+      </div>
+      <div className="field">
+        <label htmlFor="priceFirstCents">Valor 1ª inscrição</label>
+        <input id="priceFirstCents" name="priceFirstCents" defaultValue={defaultPriceFirstReais} placeholder="R$ 70" required />
+      </div>
+      <div className="field">
+        <label htmlFor="priceSecondCents">Valor 2ª inscrição</label>
+        <input id="priceSecondCents" name="priceSecondCents" defaultValue={defaultPriceSecondReais} placeholder="R$ 100" required />
+      </div>
+      <div className="field">
+        <label htmlFor="priceThirdCents">Valor 3ª inscrição+</label>
+        <input id="priceThirdCents" name="priceThirdCents" defaultValue={defaultPriceThirdReais} placeholder="R$ 150" required />
+      </div>
+      <div className="field">
+        <label htmlFor="maxCategoryGap">Diferença máxima de nível entre categorias</label>
+        <select id="maxCategoryGap" name="maxCategoryGap" defaultValue={String(defaultMaxCategoryGap)}>
+          <option value="1">1 nível</option>
+          <option value="2">2 níveis</option>
+          <option value="3">3 níveis</option>
+          <option value="4">4 níveis</option>
+          <option value="5">5 níveis</option>
+        </select>
+      </div>
+      <div className="field">
+        <label htmlFor="categoryList">Categorias em ordem</label>
+        <input id="categoryList" name="categoryList" defaultValue={defaultCategoryList} placeholder="Ex.: 1,2,3,4" required />
+      </div>
+      <div className="field field-inline">
+        <input id="blockCategoryGap" name="blockCategoryGap" type="checkbox" defaultChecked={defaultBlockCategoryGap} />
+        <label htmlFor="blockCategoryGap">Ativar impedimento por gap de categoria</label>
       </div>
 
       <div className="field">
@@ -103,3 +159,4 @@ export function TournamentForm({
     </form>
   );
 }
+

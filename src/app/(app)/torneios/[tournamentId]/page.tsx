@@ -1,210 +1,99 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BracketOverview } from "@/components/bracket-overview";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard } from "@/components/section-card";
-import { StatCard } from "@/components/stat-card";
-import { deleteTournamentAction } from "@/lib/actions/tournament";
+import {
+  TournamentBracketTab,
+  TournamentGamesTab,
+  TournamentGroupsTab,
+  TournamentOverviewTab,
+  TournamentPairsTab,
+  TournamentParticipantsTab,
+  TournamentResultsTab,
+  TournamentSettingsTab
+} from "@/components/tournaments/tournament-detail-tabs";
+import { TournamentDetailLayout } from "@/components/tournaments/tournament-detail-layout";
+import { PublicRegistrationLinkActions } from "@/components/tournaments/public-registration-link-actions";
+import { StatusBadge } from "@/components/tournaments/status-badge";
+import { type TournamentTabKey } from "@/components/tournaments/tournament-tabs";
+import {
+  deleteTournamentAction,
+  finishTournamentAction,
+  updateTournamentRegistrationPhaseAction
+} from "@/lib/actions/tournament";
 import { requireModuleView } from "@/lib/auth/guards";
-import { getFinishedTournamentDetails } from "@/lib/services/tournament";
+import { prisma } from "@/lib/prisma";
+import { getArenaDashboard, getTournamentDetailsById } from "@/lib/services/tournament";
 
-const stageLabels: Record<string, string> = {
-  GROUP: "Fase de grupos",
-  OCTOFINAL: "Mata-mata: oitavas",
-  QUARTERFINAL: "Mata-mata: quartas",
-  SEMIFINAL: "Mata-mata: semifinais",
-  FINAL: "Mata-mata: final"
+type TournamentDetailPageProps = {
+  params: { tournamentId: string };
+  searchParams?: { tab?: string };
 };
 
-type HistoryPageProps = {
-  params: {
-    tournamentId: string;
-  };
-};
+const validTabs: TournamentTabKey[] = ["overview", "participants", "pairs", "groups", "games", "bracket", "results", "settings"];
 
-function formatMatchScore(homeScore: number | null, awayScore: number | null) {
-  if (homeScore === null || awayScore === null) {
-    return "Placar não registrado";
-  }
-
-  return `${homeScore} x ${awayScore}`;
-}
-
-function renderMatchSection(
-  title: string,
-  description: string,
-  matches: Array<{
-    id: string;
-    label: string;
-    courtName: string | null;
-    homeScore: number | null;
-    awayScore: number | null;
-    homePair: { name: string } | null;
-    awayPair: { name: string } | null;
-    winnerPair: { name: string } | null;
-  }>
-) {
-  return (
-    <SectionCard title={title} description={description}>
-      {matches.length ? (
-        <div className="simple-list">
-          {matches.map((match) => (
-            <div key={match.id} className="simple-item">
-              <div className="match-copy">
-                <strong>{match.label}</strong>
-                <span>
-                  {(match.homePair?.name ?? "A definir")} x {(match.awayPair?.name ?? "A definir")}
-                </span>
-                <span>
-                  {formatMatchScore(match.homeScore, match.awayScore)}
-                  {match.winnerPair ? ` • Vencedor: ${match.winnerPair.name}` : ""}
-                  {match.courtName ? ` • Quadra: ${match.courtName}` : ""}
-                </span>
-              </div>
-              <span className="pill">{match.winnerPair ? "Encerrado" : "Sem resultado"}</span>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="muted">Nenhum jogo registrado nesta fase.</p>
-      )}
-    </SectionCard>
-  );
-}
-
-export default async function TournamentHistoryDetailPage({ params }: HistoryPageProps) {
+export default async function TournamentDetailPage({ params, searchParams }: TournamentDetailPageProps) {
   const auth = await requireModuleView("tournaments");
-  const tournament = await getFinishedTournamentDetails(params.tournamentId, auth.arenaId);
+  const tournament = await getTournamentDetailsById(params.tournamentId, auth.arenaId);
+  if (!tournament) notFound();
 
-  if (!tournament) {
-    notFound();
-  }
+  const tab = validTabs.includes((searchParams?.tab as TournamentTabKey) ?? "overview")
+    ? ((searchParams?.tab as TournamentTabKey) ?? "overview")
+    : "overview";
 
-  const groupedMatches = tournament.matches.filter((match) => match.stage === "GROUP");
-  const knockoutMatches = tournament.matches.filter((match) => match.stage !== "GROUP");
-  const octofinals = knockoutMatches.filter((match) => match.stage === "OCTOFINAL");
-  const quarterfinals = knockoutMatches.filter((match) => match.stage === "QUARTERFINAL");
-  const semifinals = knockoutMatches.filter((match) => match.stage === "SEMIFINAL");
-  const final = knockoutMatches.filter((match) => match.stage === "FINAL");
-  const completedMatches = tournament.matches.filter((match) => match.winnerPairId !== null).length;
+  const { players } = await getArenaDashboard(auth.arenaId);
+  const rankings = await prisma.rankingProfile.findMany({
+    where: { arenaId: auth.arenaId },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true }
+  });
 
   return (
     <div className="stack-md">
-      <header className="page-header">
+      <header className="page-header t-sticky-head">
         <div className="stack-xs">
-          <p className="eyebrow">Histórico</p>
+          <p className="eyebrow">Torneio</p>
           <h1>{tournament.name}</h1>
-          <p className="muted">
-            Revise os jogadores, as duplas, os grupos e todos os resultados deste torneio.
-          </p>
+          <p className="muted">Fase atual: {tournament.registrationPhase}</p>
         </div>
         <div className="section-actions">
-          <span className="pill">Finalizado</span>
+          <StatusBadge status={tournament.status} />
+          <PublicRegistrationLinkActions slug={tournament.publicSlug} />
+          <Link href={`/torneios/${tournament.id}?tab=settings`} className="button">Editar</Link>
+          <form action={updateTournamentRegistrationPhaseAction}>
+            <input type="hidden" name="tournamentId" value={tournament.id} />
+            <input type="hidden" name="registrationPhase" value="REGISTRATIONS" />
+            <SubmitButton label="Abrir inscrições" pendingLabel="..." className="button" />
+          </form>
+          <form action={finishTournamentAction}>
+            <input type="hidden" name="tournamentId" value={tournament.id} />
+            <SubmitButton label="Encerrar torneio" pendingLabel="..." className="button" />
+          </form>
           <SafeActionForm
             action={deleteTournamentAction}
             confirmKeyword="EXCLUIR"
             confirmPrompt="Digite EXCLUIR para remover este torneio permanentemente."
-            successMessage="Torneio excluido."
+            successMessage="Torneio excluído."
           >
             <input type="hidden" name="tournamentId" value={tournament.id} />
-            <SubmitButton label="Excluir torneio" pendingLabel="Excluindo..." className="button button-danger" />
+            <SubmitButton label="Excluir torneio" pendingLabel="..." className="button button-danger" />
           </SafeActionForm>
         </div>
       </header>
 
-      <div className="stats-grid">
-        <StatCard label="Jogadores" value={tournament.entries.length} caption="Participantes do torneio" />
-        <StatCard label="Duplas" value={tournament.pairs.length} caption="Duplas formadas" />
-        <StatCard label="Grupos" value={tournament.groups.length} caption="Grupos montados" />
-        <StatCard label="Jogos" value={completedMatches} caption={`${completedMatches}/${tournament.matches.length} com resultado`} />
-      </div>
-
-      <div className="two-column-grid">
-        <SectionCard title="Força inicial do torneio" description="Pontuação-base usada para montar as duplas e equilibrar os grupos.">
-          {tournament.entries.length ? (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Pos.</th>
-                  <th>Jogador</th>
-                  <th>Pontos</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tournament.entries.map((entry, index) => (
-                  <tr key={entry.id}>
-                    <td>#{index + 1}</td>
-                    <td>{entry.player.name}</td>
-                    <td>{entry.seedPoints}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p className="muted">Não há ranking registrado para este torneio.</p>
-          )}
+      <TournamentDetailLayout tournamentId={tournament.id} activeTab={tab}>
+        <SectionCard title="Área do torneio" description="Cada aba separa uma responsabilidade operacional.">
+          {tab === "overview" ? <TournamentOverviewTab tournament={tournament} /> : null}
+          {tab === "participants" ? <TournamentParticipantsTab tournament={tournament} players={players} /> : null}
+          {tab === "pairs" ? <TournamentPairsTab tournament={tournament} /> : null}
+          {tab === "groups" ? <TournamentGroupsTab tournament={tournament} /> : null}
+          {tab === "games" ? <TournamentGamesTab tournament={tournament} /> : null}
+          {tab === "bracket" ? <TournamentBracketTab tournament={tournament} /> : null}
+          {tab === "results" ? <TournamentResultsTab tournament={tournament} /> : null}
+          {tab === "settings" ? <TournamentSettingsTab tournament={tournament} rankings={rankings} /> : null}
         </SectionCard>
-
-        <SectionCard title="Duplas" description="Composição e pontuação total de cada dupla.">
-          {tournament.pairs.length ? (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Dupla</th>
-                  <th>Pontos</th>
-                  <th>Grupo</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tournament.pairs.map((pair) => (
-                  <tr key={pair.id}>
-                    <td>{pair.name}</td>
-                    <td>{pair.totalPoints}</td>
-                    <td>{pair.group?.name ?? "Sem grupo"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p className="muted">Não há duplas registradas para este torneio.</p>
-          )}
-        </SectionCard>
-      </div>
-
-      <SectionCard title="Grupos" description="Confira como as duplas ficaram distribuídas.">
-        {tournament.groups.length ? (
-          <div className="group-grid">
-            {tournament.groups.map((group) => (
-              <SectionCard key={group.id} title={group.name} description={`${group.pairs.length} duplas`}>
-                <div className="group-list">
-                  {group.pairs.map((pair) => (
-                    <div key={pair.id} className="group-item">
-                      <strong>{pair.name}</strong>
-                      <span>{pair.totalPoints} pts</span>
-                    </div>
-                  ))}
-                </div>
-              </SectionCard>
-            ))}
-          </div>
-        ) : (
-          <p className="muted">Não há grupos registrados neste torneio.</p>
-        )}
-      </SectionCard>
-
-      {renderMatchSection("Resultados da fase de grupos", `${groupedMatches.length} jogo(s) registrados.`, groupedMatches)}
-      {renderMatchSection(stageLabels.OCTOFINAL, `${octofinals.length} jogo(s) registrados.`, octofinals)}
-      {renderMatchSection(stageLabels.QUARTERFINAL, `${quarterfinals.length} jogo(s) registrados.`, quarterfinals)}
-      {renderMatchSection(stageLabels.SEMIFINAL, `${semifinals.length} jogo(s) registrados.`, semifinals)}
-      {renderMatchSection(stageLabels.FINAL, `${final.length} jogo(s) registrados.`, final)}
-
-      <SectionCard title="Chave final" description="Veja a estrutura completa do mata-mata deste torneio.">
-        <BracketOverview
-          groupCount={tournament.groupCount}
-          groups={tournament.groups}
-          matches={knockoutMatches}
-        />
-      </SectionCard>
+      </TournamentDetailLayout>
     </div>
   );
 }

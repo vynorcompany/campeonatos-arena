@@ -162,9 +162,17 @@ model Player {
 model Tournament {
   id          String            @id @default(cuid())
   name        String
+  description String            @default("")
+  publicSlug  String            @unique @default(cuid())
   status      String            @default("DRAFT")
+  registrationPhase String      @default("REGISTRATIONS")
   groupCount  Int               @default(2)
   pairsPerGroup Int             @default(3)
+  priceFirstCents Int           @default(0)
+  priceSecondCents Int          @default(0)
+  priceThirdCents Int           @default(0)
+  blockCategoryGap Boolean      @default(false)
+  maxCategoryGap Int            @default(1)
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
   arenaId     String
@@ -175,10 +183,107 @@ model Tournament {
   pairs       Pair[]
   groups      TournamentGroup[]
   matches     Match[]
+  categories  TournamentCategory[]
+  publicRegistrations PublicTournamentRegistration[]
+  categoryBrackets CategoryBracket[]
 
   @@index([arenaId, status])
   @@index([arenaId, createdAt])
   @@index([rankingId])
+}
+
+model TournamentCategory {
+  id           String     @id @default(cuid())
+  name         String
+  level        Int
+  active       Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  registrations PublicTournamentRegistration[]
+  brackets     CategoryBracket[]
+
+  @@unique([tournamentId, name])
+  @@unique([tournamentId, level])
+  @@index([tournamentId, level])
+}
+
+model PublicTournamentRegistration {
+  id                  String   @id @default(cuid())
+  leadName            String
+  leadPhone           String
+  leadCpf             String
+  leadBirthDate       DateTime
+  partnerName         String
+  partnerPhone        String
+  partnerCpf          String
+  partnerBirthDate    DateTime
+  registrationOrder   Int
+  amountCents         Int
+  paymentStatus       String   @default("PENDING")
+  paymentProvider     String   @default("")
+  paymentReference    String   @default("")
+  mercadoPagoPaymentId String  @default("")
+  paymentQrCode       String   @default("")
+  paymentQrCodeBase64 String   @default("")
+  paymentCheckoutUrl  String   @default("")
+  paymentExpiresAt    DateTime?
+  status              String   @default("PENDING_PAYMENT")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  tournamentId        String
+  categoryId          String
+  tournament          Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  category            TournamentCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  homeBracketMatches  CategoryBracketMatch[] @relation("CategoryBracketHome")
+  awayBracketMatches  CategoryBracketMatch[] @relation("CategoryBracketAway")
+  winnerBracketMatches CategoryBracketMatch[] @relation("CategoryBracketWinner")
+
+  @@index([tournamentId, createdAt])
+  @@index([categoryId, createdAt])
+  @@index([leadCpf, createdAt])
+  @@index([partnerCpf, createdAt])
+}
+
+model CategoryBracket {
+  id           String   @id @default(cuid())
+  status       String   @default("DRAFT")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  tournamentId String
+  categoryId   String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  category     TournamentCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  matches      CategoryBracketMatch[]
+
+  @@unique([tournamentId, categoryId])
+  @@index([categoryId, createdAt])
+}
+
+model CategoryBracketMatch {
+  id                 String   @id @default(cuid())
+  label              String
+  roundOrder         Int
+  stage              String
+  courtName          String   @default("")
+  scheduledTime      String   @default("")
+  status             String   @default("WAITING")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  bracketId          String
+  homeRegistrationId String?
+  awayRegistrationId String?
+  winnerRegistrationId String?
+  bracket            CategoryBracket @relation(fields: [bracketId], references: [id], onDelete: Cascade)
+  homeRegistration   PublicTournamentRegistration? @relation("CategoryBracketHome", fields: [homeRegistrationId], references: [id], onDelete: SetNull)
+  awayRegistration   PublicTournamentRegistration? @relation("CategoryBracketAway", fields: [awayRegistrationId], references: [id], onDelete: SetNull)
+  winnerRegistration PublicTournamentRegistration? @relation("CategoryBracketWinner", fields: [winnerRegistrationId], references: [id], onDelete: SetNull)
+
+  @@index([bracketId, roundOrder])
+  @@index([homeRegistrationId])
+  @@index([awayRegistrationId])
+  @@index([winnerRegistrationId])
 }
 
 model RankingProfile {

@@ -13,7 +13,7 @@ import {
   updateMatchScheduleAction
 } from "@/lib/actions/tournament";
 import { requireModuleView } from "@/lib/auth/guards";
-import { getArenaDashboard } from "@/lib/services/tournament";
+import { getArenaDashboard, getTournamentScheduleConflicts } from "@/lib/services/tournament";
 
 const stageLabels: Record<string, string> = {
   GROUP: "Fase de grupos",
@@ -217,6 +217,7 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
   }
 
   const matches = activeTournament.matches;
+  const conflicts = await getTournamentScheduleConflicts(activeTournament.id, auth.arenaId);
   const stageOrder = ["GROUP", "OCTOFINAL", "QUARTERFINAL", "SEMIFINAL", "FINAL"];
   const selectedStage = stageOrder.includes(searchParams?.fase ?? "") ? searchParams?.fase ?? "ALL" : "ALL";
   const selectedGroup = searchParams?.grupo ?? "ALL";
@@ -306,6 +307,18 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
             <Link href="/jogos" className="button">Limpar</Link>
           </div>
         </form>
+        {conflicts.length ? (
+          <div className="form-hint-box" style={{ marginTop: "0.75rem" }}>
+            <strong>Conflitos detectados na agenda</strong>
+            <ul>
+              {conflicts.map((conflict) => (
+                <li key={`${conflict.playerId}-${conflict.scheduledTime}`}>
+                  {conflict.scheduledTime}: {conflict.labels.join(" | ")}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </SectionCard>
 
       <SectionCard

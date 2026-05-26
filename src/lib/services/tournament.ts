@@ -1010,6 +1010,15 @@ export async function getArenaDashboard(arenaId: string) {
           { roundOrder: "asc" }
         ]
       }
+      ,
+      categories: {
+        where: {
+          active: true
+        },
+        orderBy: {
+          level: "asc"
+        }
+      }
     }
   });
 
@@ -1130,6 +1139,118 @@ export async function getFinishedTournamentDetails(tournamentId: string, arenaId
   });
 
   return tournament;
+}
+
+export async function getTournamentDetailsById(tournamentId: string, arenaId: string) {
+  return prisma.tournament.findFirst({
+    where: {
+      id: tournamentId,
+      arenaId
+    },
+    include: {
+      ranking: true,
+      categories: {
+        where: { active: true },
+        orderBy: { level: "asc" }
+      },
+      entries: {
+        include: { player: true },
+        orderBy: { seedPoints: "desc" }
+      },
+      pairs: {
+        include: {
+          players: {
+            include: { player: true },
+            orderBy: { slot: "asc" }
+          },
+          group: true
+        },
+        orderBy: [{ totalPoints: "desc" }, { drawOrder: "asc" }]
+      },
+      groups: {
+        include: {
+          pairs: {
+            orderBy: { totalPoints: "desc" }
+          }
+        },
+        orderBy: { drawOrder: "asc" }
+      },
+      matches: {
+        include: {
+          group: true,
+          homePair: true,
+          awayPair: true,
+          winnerPair: true
+        },
+        orderBy: [{ stage: "asc" }, { roundOrder: "asc" }]
+      }
+    }
+  });
+}
+
+export async function getTournamentScheduleConflicts(tournamentId: string, arenaId: string) {
+  const matches = await prisma.match.findMany({
+    where: {
+      tournamentId,
+      tournament: {
+        arenaId
+      },
+      scheduledTime: {
+        not: null
+      }
+    },
+    include: {
+      homePair: {
+        include: {
+          players: true
+        }
+      },
+      awayPair: {
+        include: {
+          players: true
+        }
+      }
+    }
+  });
+
+  const conflicts: Array<{
+    scheduledTime: string;
+    playerId: string;
+    matchIds: string[];
+    labels: string[];
+  }> = [];
+
+  const slotByPlayer = new Map<string, Map<string, { matchId: string; label: string }[]>>();
+  for (const match of matches) {
+    if (!match.scheduledTime) continue;
+    const playerIds = [
+      ...(match.homePair?.players.map((pairPlayer) => pairPlayer.playerId) ?? []),
+      ...(match.awayPair?.players.map((pairPlayer) => pairPlayer.playerId) ?? [])
+    ];
+
+    for (const playerId of playerIds) {
+      const perPlayer = slotByPlayer.get(playerId) ?? new Map<string, { matchId: string; label: string }[]>();
+      const list = perPlayer.get(match.scheduledTime) ?? [];
+      list.push({ matchId: match.id, label: match.label });
+      perPlayer.set(match.scheduledTime, list);
+      slotByPlayer.set(playerId, perPlayer);
+    }
+  }
+
+  for (const [playerId, slots] of slotByPlayer.entries()) {
+    for (const [scheduledTime, items] of slots.entries()) {
+      if (items.length > 1) {
+        conflicts.push({
+          playerId,
+          scheduledTime,
+          matchIds: items.map((item) => item.matchId),
+          labels: items.map((item) => item.label)
+        });
+      }
+    }
+  }
+
+  return conflicts;
 }
 
 export async function syncTournamentEntries(tournamentId: string, arenaId: string, selectedPlayerIds: string[]) {
@@ -1934,7 +2055,21 @@ export async function moveTournamentPairToGroup(pairId: string, targetGroupId: s
 export async function updateTournamentSettings(
   tournamentId: string,
   arenaId: string,
-  input: { name: string; groupCount: number; pairsPerGroup: number; rankingId: string | null }
+  input: {
+    name: string;
+    description: string;
+    publicSlug: string;
+    registrationPhase: string;
+    groupCount: number;
+    pairsPerGroup: number;
+    priceFirstCents: number;
+    priceSecondCents: number;
+    priceThirdCents: number;
+    blockCategoryGap: boolean;
+    maxCategoryGap: number;
+    categoryList: Array<{ name: string; level: number }>;
+    rankingId: string | null;
+  }
 ) {
   const tournament = await prisma.tournament.findFirst({
     where: {
@@ -1976,8 +2111,16 @@ export async function updateTournamentSettings(
       where: { id: tournamentId },
       data: {
         name: input.name,
+        description: input.description,
+        publicSlug: input.publicSlug,
+        registrationPhase: input.registrationPhase,
         groupCount: input.groupCount,
         pairsPerGroup: input.pairsPerGroup,
+        priceFirstCents: input.priceFirstCents,
+        priceSecondCents: input.priceSecondCents,
+        priceThirdCents: input.priceThirdCents,
+        blockCategoryGap: input.blockCategoryGap,
+        maxCategoryGap: input.maxCategoryGap,
         rankingId: input.rankingId,
         ...(structureChanged
           ? {
@@ -1985,6 +2128,20 @@ export async function updateTournamentSettings(
             }
           : {})
       }
+    });
+
+    await tx.tournamentCategory.deleteMany({
+      where: {
+        tournamentId
+      }
+    });
+
+    await tx.tournamentCategory.createMany({
+      data: input.categoryList.map((category) => ({
+        tournamentId,
+        name: category.name,
+        level: category.level
+      }))
     });
 
     await recalculateTournamentRankingPointsTx(tx, tournamentId);

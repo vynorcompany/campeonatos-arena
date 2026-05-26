@@ -9,7 +9,9 @@ const envSchema = z.object({
   ARENA_COOKIE_NAME: z.string().min(1).default("padel_arena"),
   SESSION_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(14),
   LOGIN_MAX_ATTEMPTS: z.coerce.number().int().min(3).max(20).default(5),
-  LOGIN_LOCK_MINUTES: z.coerce.number().int().min(1).max(120).default(15)
+  LOGIN_LOCK_MINUTES: z.coerce.number().int().min(1).max(120).default(15),
+  MERCADO_PAGO_ACCESS_TOKEN: z.string().optional(),
+  MERCADO_PAGO_WEBHOOK_SECRET: z.string().optional()
 });
 
 const parsed = envSchema.parse({
@@ -20,7 +22,9 @@ const parsed = envSchema.parse({
   ARENA_COOKIE_NAME: process.env.ARENA_COOKIE_NAME,
   SESSION_TTL_DAYS: process.env.SESSION_TTL_DAYS,
   LOGIN_MAX_ATTEMPTS: process.env.LOGIN_MAX_ATTEMPTS,
-  LOGIN_LOCK_MINUTES: process.env.LOGIN_LOCK_MINUTES
+  LOGIN_LOCK_MINUTES: process.env.LOGIN_LOCK_MINUTES,
+  MERCADO_PAGO_ACCESS_TOKEN: process.env.MERCADO_PAGO_ACCESS_TOKEN,
+  MERCADO_PAGO_WEBHOOK_SECRET: process.env.MERCADO_PAGO_WEBHOOK_SECRET
 });
 
 export const env = {
@@ -31,5 +35,7 @@ export const env = {
   arenaCookieName: parsed.ARENA_COOKIE_NAME,
   sessionTtlDays: parsed.SESSION_TTL_DAYS,
   loginMaxAttempts: parsed.LOGIN_MAX_ATTEMPTS,
-  loginLockMinutes: parsed.LOGIN_LOCK_MINUTES
+  loginLockMinutes: parsed.LOGIN_LOCK_MINUTES,
+  mercadoPagoAccessToken: parsed.MERCADO_PAGO_ACCESS_TOKEN,
+  mercadoPagoWebhookSecret: parsed.MERCADO_PAGO_WEBHOOK_SECRET
 };

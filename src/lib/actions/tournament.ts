@@ -54,6 +54,7 @@ import {
 export type ActionState = {
   error: string | null;
   success: string | null;
+  tournamentId?: string;
 };
 
 function refreshTournamentRoutes() {
@@ -70,6 +71,7 @@ function refreshTournamentRoutes() {
   revalidatePath("/pairs");
   revalidatePath("/groups");
   revalidatePath("/matches");
+  revalidatePath("/torneios/inscricoes");
 }
 
 const rankingRuleBlueprint = [
@@ -144,6 +146,35 @@ function getPrismaMessage(error: unknown, fallback: string) {
   }
 
   return fallback;
+}
+
+function parseCategoryList(raw: string) {
+  const names = raw
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  if (!names.length) {
+    throw new Error("Informe ao menos uma categoria.");
+  }
+
+  return names.map((name, index) => ({
+    name,
+    level: index + 1
+  }));
+}
+
+function parseReaisToCents(input: unknown) {
+  const normalized = String(input ?? "")
+    .replace("R$", "")
+    .replace(/\s/g, "")
+    .replace(/\./g, "")
+    .replace(",", ".");
+  const value = Number(normalized);
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error("Valor monetário inválido.");
+  }
+  return Math.round(value * 100);
 }
 
 export async function createPlayerAction(_: ActionState, formData: FormData): Promise<ActionState> {
@@ -354,8 +385,17 @@ export async function createTournamentAction(_: ActionState, formData: FormData)
   const auth = await requireModuleEdit("tournaments");
   const parsed = createTournamentSchema.safeParse({
     name: formData.get("name"),
+    description: formData.get("description"),
+    publicSlug: formData.get("publicSlug"),
+    registrationPhase: formData.get("registrationPhase"),
     groupCount: formData.get("groupCount"),
     pairsPerGroup: formData.get("pairsPerGroup"),
+    priceFirstCents: formData.get("priceFirstCents"),
+    priceSecondCents: formData.get("priceSecondCents"),
+    priceThirdCents: formData.get("priceThirdCents"),
+    blockCategoryGap: formData.get("blockCategoryGap") === "on",
+    maxCategoryGap: formData.get("maxCategoryGap"),
+    categoryList: formData.get("categoryList"),
     rankingId: formData.get("rankingId")
   });
 
@@ -380,19 +420,35 @@ export async function createTournamentAction(_: ActionState, formData: FormData)
   }
 
   const rankingId = await ensureRankingBelongsToArena(auth.arenaId, parsed.data.rankingId || null);
-
-  await prisma.tournament.create({
+  const priceFirstCents = parseReaisToCents(parsed.data.priceFirstCents);
+  const priceSecondCents = parseReaisToCents(parsed.data.priceSecondCents);
+  const priceThirdCents = parseReaisToCents(parsed.data.priceThirdCents);
+  const categories = parseCategoryList(parsed.data.categoryList);
+  const created = await prisma.tournament.create({
     data: {
       arenaId: auth.arenaId,
       name: parsed.data.name,
+      description: parsed.data.description,
+      publicSlug: parsed.data.publicSlug,
+      registrationPhase: parsed.data.registrationPhase,
       groupCount: parsed.data.groupCount,
       pairsPerGroup: parsed.data.pairsPerGroup,
-      rankingId
+      priceFirstCents,
+      priceSecondCents,
+      priceThirdCents,
+      blockCategoryGap: parsed.data.blockCategoryGap,
+      maxCategoryGap: parsed.data.maxCategoryGap,
+      rankingId,
+      categories: {
+        createMany: {
+          data: categories
+        }
+      }
     }
   });
 
   refreshTournamentRoutes();
-  return { error: null, success: "Torneio criado com sucesso." };
+  return { error: null, success: "Torneio criado com sucesso.", tournamentId: created.id };
 }
 
 export async function finishTournamentAction(formData: FormData) {
@@ -412,8 +468,17 @@ export async function updateTournamentAction(_: ActionState, formData: FormData)
   const parsed = updateTournamentSchema.safeParse({
     tournamentId: formData.get("tournamentId"),
     name: formData.get("name"),
+    description: formData.get("description"),
+    publicSlug: formData.get("publicSlug"),
+    registrationPhase: formData.get("registrationPhase"),
     groupCount: formData.get("groupCount"),
     pairsPerGroup: formData.get("pairsPerGroup"),
+    priceFirstCents: formData.get("priceFirstCents"),
+    priceSecondCents: formData.get("priceSecondCents"),
+    priceThirdCents: formData.get("priceThirdCents"),
+    blockCategoryGap: formData.get("blockCategoryGap") === "on",
+    maxCategoryGap: formData.get("maxCategoryGap"),
+    categoryList: formData.get("categoryList"),
     rankingId: formData.get("rankingId")
   });
 
@@ -423,10 +488,23 @@ export async function updateTournamentAction(_: ActionState, formData: FormData)
 
   try {
     const rankingId = await ensureRankingBelongsToArena(auth.arenaId, parsed.data.rankingId || null);
+    const priceFirstCents = parseReaisToCents(parsed.data.priceFirstCents);
+    const priceSecondCents = parseReaisToCents(parsed.data.priceSecondCents);
+    const priceThirdCents = parseReaisToCents(parsed.data.priceThirdCents);
+    const categories = parseCategoryList(parsed.data.categoryList);
     await updateTournamentSettings(parsed.data.tournamentId, auth.arenaId, {
       name: parsed.data.name,
+      description: parsed.data.description,
+      publicSlug: parsed.data.publicSlug,
+      registrationPhase: parsed.data.registrationPhase,
       groupCount: parsed.data.groupCount,
       pairsPerGroup: parsed.data.pairsPerGroup,
+      priceFirstCents,
+      priceSecondCents,
+      priceThirdCents,
+      blockCategoryGap: parsed.data.blockCategoryGap,
+      maxCategoryGap: parsed.data.maxCategoryGap,
+      categoryList: categories,
       rankingId
     });
   } catch (error) {
@@ -845,6 +923,156 @@ export async function updateMatchTvVisibilityAction(formData: FormData) {
 
   refreshTournamentRoutes();
   revalidatePath("/proximos-jogos/tv");
+}
+
+export async function updateTournamentRegistrationPhaseAction(formData: FormData) {
+  const auth = await requireModuleEdit("tournaments");
+  const tournamentId = String(formData.get("tournamentId") ?? "");
+  const registrationPhase = String(formData.get("registrationPhase") ?? "");
+  const allowed = new Set(["REGISTRATIONS", "EDITING", "LIVE", "FINISHED"]);
+
+  if (!tournamentId || !allowed.has(registrationPhase)) {
+    throw new Error("Dados inválidos para atualização da fase.");
+  }
+
+  const updated = await prisma.tournament.updateMany({
+    where: {
+      id: tournamentId,
+      arenaId: auth.arenaId
+    },
+    data: { registrationPhase }
+  });
+
+  if (!updated.count) {
+    throw new Error("Torneio não encontrado.");
+  }
+
+  refreshTournamentRoutes();
+  revalidatePath(`/torneios/${tournamentId}`);
+}
+
+function buildCategoryBracketSeeds(registrationIds: string[]) {
+  if (registrationIds.length < 2) {
+    throw new Error("É preciso ao menos 2 inscrições confirmadas para montar o chaveamento.");
+  }
+
+  const targetSize = 2 ** Math.ceil(Math.log2(registrationIds.length));
+  const padded = [...registrationIds];
+  while (padded.length < targetSize) {
+    padded.push("");
+  }
+
+  const firstRound: Array<{ home: string | null; away: string | null }> = [];
+  for (let i = 0; i < padded.length / 2; i += 1) {
+    const home = padded[i] || null;
+    const away = padded[padded.length - 1 - i] || null;
+    firstRound.push({ home, away });
+  }
+  return firstRound;
+}
+
+export async function generateCategoryBracketAction(formData: FormData) {
+  const auth = await requireModuleEdit("tournaments");
+  const tournamentId = String(formData.get("tournamentId") ?? "");
+  const categoryId = String(formData.get("categoryId") ?? "");
+
+  if (!tournamentId || !categoryId) {
+    throw new Error("Torneio ou categoria inválidos.");
+  }
+
+  const tournament = await prisma.tournament.findFirst({
+    where: { id: tournamentId, arenaId: auth.arenaId },
+    select: { id: true }
+  });
+  if (!tournament) throw new Error("Torneio não encontrado.");
+
+  const registrations = await prisma.publicTournamentRegistration.findMany({
+    where: {
+      tournamentId,
+      categoryId,
+      status: "CONFIRMED"
+    },
+    orderBy: { createdAt: "asc" },
+    select: { id: true }
+  });
+
+  const firstRoundSeeds = buildCategoryBracketSeeds(registrations.map((item) => item.id));
+  await prisma.$transaction(async (tx) => {
+    const bracket = await tx.categoryBracket.upsert({
+      where: {
+        tournamentId_categoryId: {
+          tournamentId,
+          categoryId
+        }
+      },
+      create: {
+        tournamentId,
+        categoryId,
+        status: "READY"
+      },
+      update: {
+        status: "READY"
+      }
+    });
+
+    await tx.categoryBracketMatch.deleteMany({
+      where: { bracketId: bracket.id }
+    });
+
+    let roundOrder = 1;
+    let roundSize = firstRoundSeeds.length;
+    let roundIndex = 1;
+
+    for (const seed of firstRoundSeeds) {
+      await tx.categoryBracketMatch.create({
+        data: {
+          bracketId: bracket.id,
+          stage: "ROUND_1",
+          label: `R1 - Jogo ${roundOrder}`,
+          roundOrder,
+          homeRegistrationId: seed.home,
+          awayRegistrationId: seed.away
+        }
+      });
+      roundOrder += 1;
+    }
+
+    while (roundSize > 1) {
+      const next = roundSize / 2;
+      roundIndex += 1;
+      for (let i = 1; i <= next; i += 1) {
+        await tx.categoryBracketMatch.create({
+          data: {
+            bracketId: bracket.id,
+            stage: next === 1 ? "FINAL" : `ROUND_${roundIndex}`,
+            label: next === 1 ? "Final" : `R${roundIndex} - Jogo ${i}`,
+            roundOrder
+          }
+        });
+        roundOrder += 1;
+      }
+      roundSize = next;
+    }
+  });
+
+  refreshTournamentRoutes();
+}
+
+export async function updateCategoryBracketMatchScheduleAction(formData: FormData) {
+  await requireModuleEdit("matches");
+  const matchId = String(formData.get("matchId") ?? "");
+  const scheduledTime = String(formData.get("scheduledTime") ?? "");
+  const courtName = String(formData.get("courtName") ?? "");
+  if (!matchId) throw new Error("Jogo inválido.");
+
+  await prisma.categoryBracketMatch.update({
+    where: { id: matchId },
+    data: {
+      scheduledTime,
+      courtName
+    }
+  });
+  revalidatePath("/torneios/inscricoes");
 }
 
 
