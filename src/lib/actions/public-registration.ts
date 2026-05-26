@@ -31,6 +31,19 @@ function getPriceByOrder(order: number, tournament: { priceFirstCents: number; p
   return tournament.priceThirdCents;
 }
 
+function getIncrementalPriceByOrder(
+  order: number,
+  tournament: { priceFirstCents: number; priceSecondCents: number; priceThirdCents: number }
+) {
+  if (order <= 1) {
+    return tournament.priceFirstCents;
+  }
+  if (order === 2) {
+    return Math.max(tournament.priceSecondCents - tournament.priceFirstCents, 0);
+  }
+  return Math.max(tournament.priceThirdCents - tournament.priceSecondCents, 0);
+}
+
 export async function createPublicRegistrationAction(
   _: PublicRegistrationState,
   formData: FormData
@@ -100,7 +113,16 @@ export async function createPublicRegistrationAction(
         }
       }
 
-      const amountCents = getPriceByOrder(registrationOrder, tournament);
+      const leadCount = registrations.filter(
+        (item) => item.leadCpf === parsed.data.leadCpf || item.partnerCpf === parsed.data.leadCpf
+      ).length;
+      const partnerCount = registrations.filter(
+        (item) => item.leadCpf === parsed.data.partnerCpf || item.partnerCpf === parsed.data.partnerCpf
+      ).length;
+
+      const leadAmountCents = getIncrementalPriceByOrder(leadCount + 1, tournament);
+      const partnerAmountCents = getIncrementalPriceByOrder(partnerCount + 1, tournament);
+      const amountCents = leadAmountCents + partnerAmountCents;
       const registration = await tx.publicTournamentRegistration.create({
         data: {
           tournamentId: tournament.id,

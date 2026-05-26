@@ -60,16 +60,26 @@ export function PublicRegistrationForm({ tournamentSlug, categories }: { tournam
         </select>
       </div>
 
-      <div className="field"><label htmlFor="leadName">Atleta 1 - Nome</label><input id="leadName" name="leadName" required /></div>
-      <div className="field"><label htmlFor="leadEmail">Atleta 1 - E-mail</label><input id="leadEmail" name="leadEmail" type="email" required /></div>
-      <div className="field"><label htmlFor="leadPhone">Atleta 1 - Telefone</label><input id="leadPhone" name="leadPhone" required /></div>
-      <div className="field"><label htmlFor="leadCpf">Atleta 1 - CPF</label><input id="leadCpf" name="leadCpf" required /></div>
-      <div className="field"><label htmlFor="leadBirthDate">Atleta 1 - Nascimento</label><input id="leadBirthDate" name="leadBirthDate" type="date" required /></div>
+      <fieldset className="form-full section-card stack-sm">
+        <legend><strong>Atleta 1</strong></legend>
+        <div className="grid-form" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+          <div className="field"><label htmlFor="leadName">Nome</label><input id="leadName" name="leadName" required /></div>
+          <div className="field"><label htmlFor="leadEmail">E-mail</label><input id="leadEmail" name="leadEmail" type="email" required /></div>
+          <div className="field"><label htmlFor="leadPhone">Telefone</label><input id="leadPhone" name="leadPhone" required /></div>
+          <div className="field"><label htmlFor="leadCpf">CPF</label><input id="leadCpf" name="leadCpf" required /></div>
+          <div className="field"><label htmlFor="leadBirthDate">Nascimento</label><input id="leadBirthDate" name="leadBirthDate" type="date" required /></div>
+        </div>
+      </fieldset>
 
-      <div className="field"><label htmlFor="partnerName">Atleta 2 - Nome</label><input id="partnerName" name="partnerName" required /></div>
-      <div className="field"><label htmlFor="partnerPhone">Atleta 2 - Telefone</label><input id="partnerPhone" name="partnerPhone" required /></div>
-      <div className="field"><label htmlFor="partnerCpf">Atleta 2 - CPF</label><input id="partnerCpf" name="partnerCpf" required /></div>
-      <div className="field"><label htmlFor="partnerBirthDate">Atleta 2 - Nascimento</label><input id="partnerBirthDate" name="partnerBirthDate" type="date" required /></div>
+      <fieldset className="form-full section-card stack-sm">
+        <legend><strong>Atleta 2</strong></legend>
+        <div className="grid-form" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+          <div className="field"><label htmlFor="partnerName">Nome</label><input id="partnerName" name="partnerName" required /></div>
+          <div className="field"><label htmlFor="partnerPhone">Telefone</label><input id="partnerPhone" name="partnerPhone" required /></div>
+          <div className="field"><label htmlFor="partnerCpf">CPF</label><input id="partnerCpf" name="partnerCpf" required /></div>
+          <div className="field"><label htmlFor="partnerBirthDate">Nascimento</label><input id="partnerBirthDate" name="partnerBirthDate" type="date" required /></div>
+        </div>
+      </fieldset>
 
       <div className="field field-submit">
         <SubmitButton label="Inscrever e gerar pagamento" pendingLabel="Gerando cobranca..." className="button button-primary" />
