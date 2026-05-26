@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect } from "react";
 import { useFormState } from "react-dom";
@@ -11,7 +11,9 @@ const initialState = {
   paymentReference: undefined as string | undefined,
   amountCents: undefined as number | undefined,
   paymentQrCode: undefined as string | undefined,
-  paymentCheckoutUrl: undefined as string | undefined
+  paymentQrCodeBase64: undefined as string | undefined,
+  paymentCheckoutUrl: undefined as string | undefined,
+  paymentMethod: undefined as "PIX" | "CARD" | undefined
 };
 
 type Category = {
@@ -22,18 +24,19 @@ type Category = {
 function formatCategoryName(input: string) {
   const trimmed = input.trim();
   if (/^\d+$/.test(trimmed)) {
-    return `${trimmed}ª`;
+    return `${trimmed}a`;
   }
   return trimmed;
 }
 
 export function PublicRegistrationForm({ tournamentSlug, categories }: { tournamentSlug: string; categories: Category[] }) {
   const [state, formAction] = useFormState(createPublicRegistrationAction, initialState);
+
   useEffect(() => {
-    if (state?.paymentCheckoutUrl) {
+    if (state?.paymentMethod === "CARD" && state?.paymentCheckoutUrl) {
       window.location.href = state.paymentCheckoutUrl;
     }
-  }, [state?.paymentCheckoutUrl]);
+  }, [state?.paymentMethod, state?.paymentCheckoutUrl]);
 
   return (
     <form action={formAction} className="grid-form">
@@ -49,6 +52,14 @@ export function PublicRegistrationForm({ tournamentSlug, categories }: { tournam
         </select>
       </div>
 
+      <div className="field">
+        <label htmlFor="paymentMethod">Pagamento</label>
+        <select id="paymentMethod" name="paymentMethod" defaultValue="PIX" required>
+          <option value="PIX">PIX</option>
+          <option value="CARD">Cartao</option>
+        </select>
+      </div>
+
       <div className="field"><label htmlFor="leadName">Atleta 1 - Nome</label><input id="leadName" name="leadName" required /></div>
       <div className="field"><label htmlFor="leadEmail">Atleta 1 - E-mail</label><input id="leadEmail" name="leadEmail" type="email" required /></div>
       <div className="field"><label htmlFor="leadPhone">Atleta 1 - Telefone</label><input id="leadPhone" name="leadPhone" required /></div>
@@ -61,16 +72,23 @@ export function PublicRegistrationForm({ tournamentSlug, categories }: { tournam
       <div className="field"><label htmlFor="partnerBirthDate">Atleta 2 - Nascimento</label><input id="partnerBirthDate" name="partnerBirthDate" type="date" required /></div>
 
       <div className="field field-submit">
-        <SubmitButton label="Inscrever e gerar pagamento" pendingLabel="Gerando cobrança..." className="button button-primary" />
+        <SubmitButton label="Inscrever e gerar pagamento" pendingLabel="Gerando cobranca..." className="button button-primary" />
       </div>
 
       {state?.error ? <p className="form-error form-full">{state.error}</p> : null}
       {state?.success ? (
         <p className="form-success form-full">
-          {state.success} Referência: <strong>{state.paymentReference}</strong> · Valor:{" "}
-          <strong>R$ {((state.amountCents ?? 0) / 100).toFixed(2)}</strong>
-          {state.paymentQrCode ? <><br />PIX copia e cola: <code>{state.paymentQrCode}</code></> : null}
-          {state.paymentCheckoutUrl ? <><br /><a href={state.paymentCheckoutUrl} target="_blank" rel="noreferrer">Abrir pagamento no Mercado Pago</a></> : null}
+          {state.success} Referencia: <strong>{state.paymentReference}</strong> · Valor: <strong>R$ {((state.amountCents ?? 0) / 100).toFixed(2)}</strong>
+          {state.paymentMethod === "PIX" ? (
+            <>
+              <br />Status: <strong>Aguardando pagamento</strong>
+              {state.paymentQrCode ? <><br />PIX copia e cola: <code>{state.paymentQrCode}</code></> : null}
+              {state.paymentCheckoutUrl ? <><br /><a href={state.paymentCheckoutUrl} target="_blank" rel="noreferrer">Abrir tela PIX no Mercado Pago</a></> : null}
+            </>
+          ) : null}
+          {state.paymentMethod === "CARD" && state.paymentCheckoutUrl ? (
+            <><br />Redirecionando para checkout de cartao... <a href={state.paymentCheckoutUrl} target="_blank" rel="noreferrer">Abrir manualmente</a></>
+          ) : null}
         </p>
       ) : null}
     </form>

@@ -49,10 +49,19 @@ export default async function PairsPage() {
         <>
           <SectionCard title="Preparar duplas" description="Primeiro defina quem participa do torneio e depois selecione manualmente quem joga junto.">
             <div className="section-actions">
-              <Link href="/jogadores" className="button">
-                Escolher participantes
+              <Link href={`/torneios/${activeTournament.id}?tab=participants`} className="button">
+                Gerenciar inscritos do torneio
               </Link>
             </div>
+
+            {!activeTournament.entries.length && activeTournament.publicRegistrations.length ? (
+              <div className="form-hint-box">
+                <strong>Fluxo por inscrição pública detectado</strong>
+                <p className="muted">
+                  Este torneio já possui inscrições. Gerencie participantes e categorias direto na aba do torneio antes de formar duplas.
+                </p>
+              </div>
+            ) : null}
 
             <ManualPairForm
               tournamentId={activeTournament.id}

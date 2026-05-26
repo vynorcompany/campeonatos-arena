@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
 import { useFormState } from "react-dom";
 import { SubmitButton } from "@/components/forms/submit-button";
-import { createManualTournamentRegistrationAction, syncEntriesStateAction, type ActionState } from "@/lib/actions/tournament";
+import { createManualTournamentRegistrationAction, deleteTournamentRegistrationAction, syncEntriesStateAction, type ActionState } from "@/lib/actions/tournament";
 
 const initialState: ActionState = {
   error: null,
@@ -33,6 +33,14 @@ type TournamentParticipantsFormProps = {
 
 function formatCurrency(amountCents: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(amountCents / 100);
+}
+
+function getPaymentLabel(paymentStatus: string) {
+  return paymentStatus === "PAID" ? "Pago" : "Nao pago";
+}
+
+function getConfirmationLabel(paymentStatus: string) {
+  return paymentStatus === "PAID" ? "Confirmado" : "Nao confirmado";
 }
 
 export function TournamentParticipantsForm(props: TournamentParticipantsFormProps) {
@@ -164,33 +172,34 @@ export function TournamentParticipantsForm(props: TournamentParticipantsFormProp
           <input id="participant-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nome, dupla ou categoria" />
         </div>
         {!safeFiltered.length ? (
-          <p className="muted">Nenhuma inscrição encontrada.</p>
+          <p className="muted">Nenhuma inscricao encontrada.</p>
         ) : (
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Dupla</th>
-                  <th>Categoria</th>
-                  <th>Valor</th>
-                  <th>Pagamento</th>
-                  <th>Situação</th>
-                  <th>Cadastro</th>
-                </tr>
-              </thead>
-              <tbody>
-                {safeFiltered.map((registration) => (
-                  <tr key={registration.id}>
-                    <td>{registration.leadName} / {registration.partnerName}</td>
-                    <td>{registration.categoryName}</td>
-                    <td>{formatCurrency(registration.amountCents)}</td>
-                    <td>{registration.paymentStatus}</td>
-                    <td>{registration.status}</td>
-                    <td>{new Date(registration.createdAt).toLocaleString("pt-BR")}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="simple-list">
+            {safeFiltered.map((registration) => {
+              const paid = registration.paymentStatus === "PAID";
+              return (
+                <div key={registration.id} className="simple-item" style={{ alignItems: "flex-start", gap: "0.5rem" }}>
+                  <div className="stack-xs" style={{ width: "100%" }}>
+                    <strong>{registration.leadName} / {registration.partnerName}</strong>
+                    <span className="muted">
+                      {registration.categoryName} · {formatCurrency(registration.amountCents)} · {new Date(registration.createdAt).toLocaleString("pt-BR")}
+                    </span>
+                    <div className="field-inline" style={{ gap: "0.5rem", flexWrap: "wrap" }}>
+                      <span className={`player-status-pill${paid ? "" : " player-status-pill-inactive"}`}>
+                        Pagamento: {getPaymentLabel(registration.paymentStatus)}
+                      </span>
+                      <span className={`player-status-pill${paid ? "" : " player-status-pill-inactive"}`}>
+                        Situacao: {getConfirmationLabel(registration.paymentStatus)}
+                      </span>
+                      <form action={deleteTournamentRegistrationAction}>
+                        <input type="hidden" name="registrationId" value={registration.id} />
+                        <SubmitButton label="Excluir participante" pendingLabel="Excluindo..." className="button" />
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </article>

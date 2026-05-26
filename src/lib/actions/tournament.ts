@@ -1211,6 +1211,30 @@ export async function createManualTournamentRegistrationAction(_: ActionState, f
   return { error: null, success: "Inscrição manual criada com sucesso." };
 }
 
+export async function deleteTournamentRegistrationAction(formData: FormData) {
+  const auth = await requireModuleEdit("tournaments");
+  const registrationId = String(formData.get("registrationId") ?? "");
+
+  if (!registrationId) {
+    throw new Error("Inscricao invalida.");
+  }
+
+  const deleted = await prisma.publicTournamentRegistration.deleteMany({
+    where: {
+      id: registrationId,
+      tournament: {
+        arenaId: auth.arenaId
+      }
+    }
+  });
+
+  if (!deleted.count) {
+    throw new Error("Inscricao nao encontrada.");
+  }
+
+  refreshTournamentRoutes();
+}
+
 
 
 

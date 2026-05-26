@@ -1,8 +1,8 @@
-"use server";
+﻿"use server";
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { createPixPayment } from "@/lib/payments/mercado-pago";
+import { createCardCheckout, createPixPayment } from "@/lib/payments/mercado-pago";
 import { createPublicRegistrationSchema } from "@/lib/validators/public-registration";
 
 type PublicRegistrationState = {
@@ -11,7 +11,9 @@ type PublicRegistrationState = {
   paymentReference?: string;
   amountCents?: number;
   paymentQrCode?: string;
+  paymentQrCodeBase64?: string;
   paymentCheckoutUrl?: string;
+  paymentMethod?: "PIX" | "CARD";
 };
 
 const initialState: PublicRegistrationState = {
@@ -36,6 +38,7 @@ export async function createPublicRegistrationAction(
   const parsed = createPublicRegistrationSchema.safeParse({
     tournamentSlug: formData.get("tournamentSlug"),
     categoryId: formData.get("categoryId"),
+    paymentMethod: formData.get("paymentMethod"),
     leadName: formData.get("leadName"),
     leadEmail: formData.get("leadEmail"),
     leadPhone: formData.get("leadPhone"),
@@ -48,7 +51,7 @@ export async function createPublicRegistrationAction(
   });
 
   if (!parsed.success) {
-    return { ...initialState, error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+    return { ...initialState, error: parsed.error.issues[0]?.message ?? "Dados invalidos." };
   }
 
   try {
@@ -63,13 +66,13 @@ export async function createPublicRegistrationAction(
         }
       });
 
-      if (!tournament) throw new Error("Torneio não encontrado.");
+      if (!tournament) throw new Error("Torneio nao encontrado.");
       if (tournament.registrationPhase !== "REGISTRATIONS") {
-        throw new Error("As inscrições deste torneio estão encerradas.");
+        throw new Error("As inscricoes deste torneio estao encerradas.");
       }
 
       const selectedCategory = tournament.categories.find((category) => category.id === parsed.data.categoryId);
-      if (!selectedCategory) throw new Error("Categoria inválida.");
+      if (!selectedCategory) throw new Error("Categoria invalida.");
 
       const cpfs = [parsed.data.leadCpf, parsed.data.partnerCpf];
       const registrations = await tx.publicTournamentRegistration.findMany({
@@ -92,7 +95,7 @@ export async function createPublicRegistrationAction(
       if (tournament.blockCategoryGap) {
         for (const existing of registrations) {
           if (Math.abs(existing.category.level - selectedCategory.level) > tournament.maxCategoryGap) {
-            throw new Error("A categoria escolhida viola o bloqueio de diferença de nível permitido.");
+            throw new Error("A categoria escolhida viola o bloqueio de diferenca de nivel permitido.");
           }
         }
       }
@@ -122,17 +125,25 @@ export async function createPublicRegistrationAction(
       return { registration, amountCents, tournamentName: tournament.name };
     });
 
-    const payment = await createPixPayment({
-      amountCents: result.amountCents,
-      description: `Inscrição ${result.tournamentName}`,
-      payerEmail: parsed.data.leadEmail,
-      externalReference: result.registration.id
-    });
+    const payment =
+      parsed.data.paymentMethod === "CARD"
+        ? await createCardCheckout({
+            amountCents: result.amountCents,
+            description: `Inscricao ${result.tournamentName}`,
+            payerEmail: parsed.data.leadEmail,
+            externalReference: result.registration.id
+          })
+        : await createPixPayment({
+            amountCents: result.amountCents,
+            description: `Inscricao ${result.tournamentName}`,
+            payerEmail: parsed.data.leadEmail,
+            externalReference: result.registration.id
+          });
 
     await prisma.publicTournamentRegistration.update({
       where: { id: result.registration.id },
       data: {
-        paymentProvider: payment.provider,
+        paymentProvider: parsed.data.paymentMethod === "CARD" ? "MERCADO_PAGO_CARD" : payment.provider,
         paymentReference: payment.reference,
         mercadoPagoPaymentId: payment.paymentId,
         paymentQrCode: payment.qrCode,
@@ -145,16 +156,18 @@ export async function createPublicRegistrationAction(
     revalidatePath(`/inscricao/${parsed.data.tournamentSlug}`);
     return {
       error: null,
-      success: "Inscrição criada. Finalize o pagamento para confirmar a vaga.",
+      success: "Inscricao criada. Finalize o pagamento para confirmar a vaga.",
       paymentReference: payment.reference,
       amountCents: result.amountCents,
       paymentQrCode: payment.qrCode,
-      paymentCheckoutUrl: payment.checkoutUrl
+      paymentQrCodeBase64: payment.qrCodeBase64,
+      paymentCheckoutUrl: payment.checkoutUrl,
+      paymentMethod: parsed.data.paymentMethod
     };
   } catch (error) {
     return {
       ...initialState,
-      error: error instanceof Error ? error.message : "Não foi possível concluir a inscrição."
+      error: error instanceof Error ? error.message : "Nao foi possivel concluir a inscricao."
     };
   }
 }

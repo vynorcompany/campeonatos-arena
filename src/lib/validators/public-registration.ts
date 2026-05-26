@@ -5,6 +5,7 @@ const cpfSchema = z.string().trim().regex(/^\d{11}$/, "CPF deve ter 11 dígitos 
 export const createPublicRegistrationSchema = z.object({
   tournamentSlug: z.string().trim().min(1),
   categoryId: z.string().trim().min(1, "Selecione uma categoria."),
+  paymentMethod: z.enum(["PIX", "CARD"]).default("PIX"),
   leadName: z.string().trim().min(3, "Informe o nome do atleta."),
   leadEmail: z.string().trim().email("Informe um e-mail válido do atleta."),
   leadPhone: z.string().trim().min(8, "Informe o telefone do atleta."),

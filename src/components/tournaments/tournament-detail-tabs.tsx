@@ -21,10 +21,10 @@ export function TournamentOverviewTab({ tournament }: { tournament: NonNullable<
         <h3>Próximas ações recomendadas</h3>
         <p className="muted">Siga a ordem operacional do torneio com atalhos diretos.</p>
         <div className="section-actions">
-          <Link href="/jogadores" className="button">Participantes</Link>
-          <Link href="/duplas" className="button">Duplas</Link>
-          <Link href="/grupos" className="button">Grupos</Link>
-          <Link href="/jogos" className="button button-primary">Jogos</Link>
+          <Link href={`/torneios/${tournament.id}?tab=participants`} className="button">Participantes</Link>
+          <Link href={`/torneios/${tournament.id}?tab=pairs`} className="button">Duplas</Link>
+          <Link href={`/torneios/${tournament.id}?tab=groups`} className="button">Grupos</Link>
+          <Link href={`/torneios/${tournament.id}?tab=games`} className="button button-primary">Jogos</Link>
         </div>
       </div>
     </div>

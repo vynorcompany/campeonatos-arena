@@ -1018,6 +1018,13 @@ export async function getArenaDashboard(arenaId: string) {
         orderBy: {
           level: "asc"
         }
+      },
+      publicRegistrations: {
+        select: {
+          id: true,
+          paymentStatus: true,
+          status: true
+        }
       }
     }
   });
