@@ -2,7 +2,12 @@
 import { SubmitButton } from "@/components/forms/submit-button";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
-import { generateCategoryBracketAction, updateCategoryBracketMatchScheduleAction, updateTournamentCategoryFormatAction } from "@/lib/actions/tournament";
+import {
+  generateCategoryBracketAction,
+  updateCategoryBracketMatchScheduleAction,
+  updateTournamentCategoryFormatAction,
+  updateTournamentRegistrationAction
+} from "@/lib/actions/tournament";
 import { getTournamentScheduleConflicts } from "@/lib/services/tournament";
 
 type BracketItem = {
@@ -157,8 +162,71 @@ export default async function TournamentRegistrationsPage() {
             <div className="simple-list">
               {category.registrations.map((registration: any) => (
                 <div key={registration.id} className="simple-item">
-                  <strong>{registration.leadName} / {registration.partnerName}</strong>
-                  <span>{registration.status} · {registration.paymentStatus} · R$ {(registration.amountCents / 100).toFixed(2)}</span>
+                  <div className="stack-xs" style={{ width: "100%" }}>
+                    <strong>{registration.leadName} / {registration.partnerName}</strong>
+                    <span>{registration.status} · {registration.paymentStatus} · R$ {(registration.amountCents / 100).toFixed(2)}</span>
+                    <details>
+                      <summary style={{ cursor: "pointer", color: "var(--brand)", fontWeight: 700 }}>Editar inscricao</summary>
+                      <form action={updateTournamentRegistrationAction} className="grid-form" style={{ marginTop: "0.75rem" }}>
+                        <input type="hidden" name="registrationId" value={registration.id} />
+                        <input type="hidden" name="tournamentId" value={tournament.id} />
+                        <div className="field">
+                          <label>Categoria</label>
+                          <select name="categoryId" defaultValue={registration.categoryId} required>
+                            {tournament.categories.map((item: any) => (
+                              <option key={item.id} value={item.id}>{item.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="field">
+                          <label>Atleta 1</label>
+                          <input name="leadName" defaultValue={registration.leadName} required />
+                        </div>
+                        <div className="field">
+                          <label>Telefone atleta 1</label>
+                          <input name="leadPhone" defaultValue={registration.leadPhone} required />
+                        </div>
+                        <div className="field">
+                          <label>CPF atleta 1</label>
+                          <input name="leadCpf" defaultValue={registration.leadCpf} required />
+                        </div>
+                        <div className="field">
+                          <label>Nascimento atleta 1</label>
+                          <input name="leadBirthDate" type="text" inputMode="numeric" placeholder="dd/mm/aaaa" defaultValue={new Date(registration.leadBirthDate).toLocaleDateString("pt-BR")} required />
+                        </div>
+                        <div className="field">
+                          <label>Atleta 2</label>
+                          <input name="partnerName" defaultValue={registration.partnerName} required />
+                        </div>
+                        <div className="field">
+                          <label>Telefone atleta 2</label>
+                          <input name="partnerPhone" defaultValue={registration.partnerPhone} required />
+                        </div>
+                        <div className="field">
+                          <label>CPF atleta 2</label>
+                          <input name="partnerCpf" defaultValue={registration.partnerCpf} required />
+                        </div>
+                        <div className="field">
+                          <label>Nascimento atleta 2</label>
+                          <input name="partnerBirthDate" type="text" inputMode="numeric" placeholder="dd/mm/aaaa" defaultValue={new Date(registration.partnerBirthDate).toLocaleDateString("pt-BR")} required />
+                        </div>
+                        <div className="field">
+                          <label>Valor (R$)</label>
+                          <input name="amountReais" defaultValue={(registration.amountCents / 100).toFixed(2).replace(".", ",")} required />
+                        </div>
+                        <div className="field">
+                          <label>Pagamento</label>
+                          <select name="paymentStatus" defaultValue={registration.paymentStatus} required>
+                            <option value="PENDING">Pendente</option>
+                            <option value="PAID">Pago</option>
+                          </select>
+                        </div>
+                        <div className="field field-submit">
+                          <SubmitButton label="Salvar alteracoes" pendingLabel="Salvando..." className="button button-primary" />
+                        </div>
+                      </form>
+                    </details>
+                  </div>
                 </div>
               ))}
               {!category.registrations.length ? <p className="muted">Sem inscrições.</p> : null}

@@ -1271,7 +1271,15 @@ export async function deleteTournamentRegistrationAction(formData: FormData) {
   refreshTournamentRoutes();
 }
 
-export async function updateTournamentRegistrationAction(_: ActionState, formData: FormData): Promise<ActionState> {
+export async function updateTournamentRegistrationAction(
+  stateOrFormData: ActionState | FormData,
+  maybeFormData?: FormData
+): Promise<ActionState> {
+  const formData = stateOrFormData instanceof FormData ? stateOrFormData : maybeFormData;
+  if (!formData) {
+    return { error: "Dados invalidos.", success: null };
+  }
+
   const auth = await requireModuleEdit("tournaments");
   const parsed = updateManualTournamentRegistrationSchema.safeParse({
     registrationId: formData.get("registrationId"),

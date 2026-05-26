@@ -199,7 +199,7 @@ export function TournamentParticipantsForm(props: TournamentParticipantsFormProp
                     <span className="muted">
                       {registration.categoryName} · {formatCurrency(registration.amountCents)} · {new Date(registration.createdAt).toLocaleString("pt-BR")}
                     </span>
-                    <div className="field-inline" style={{ gap: "0.5rem", flexWrap: "wrap" }}>
+                    <div className="section-actions" style={{ gap: "0.5rem", flexWrap: "wrap", justifyContent: "flex-start" }}>
                       <span className={`player-status-pill${paid ? "" : " player-status-pill-inactive"}`}>
                         Pagamento: {getPaymentLabel(registration.paymentStatus)}
                       </span>
@@ -210,7 +210,7 @@ export function TournamentParticipantsForm(props: TournamentParticipantsFormProp
                         <input type="hidden" name="registrationId" value={registration.id} />
                         <SubmitButton label="Excluir participante" pendingLabel="Excluindo..." className="button" />
                       </form>
-                      <button type="button" className="button" onClick={() => setEditingRegistrationId((current) => current === registration.id ? null : registration.id)}>
+                      <button type="button" className="button button-primary" onClick={() => setEditingRegistrationId((current) => current === registration.id ? null : registration.id)}>
                         {editingRegistrationId === registration.id ? "Fechar edicao" : "Editar inscricao"}
                       </button>
                     </div>
