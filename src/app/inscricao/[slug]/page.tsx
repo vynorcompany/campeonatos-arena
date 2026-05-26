@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+﻿import { notFound } from "next/navigation";
 import { PublicRegistrationForm } from "@/components/forms/public-registration-form";
 import { prisma } from "@/lib/prisma";
 
@@ -6,6 +6,12 @@ export default async function PublicRegistrationPage({ params }: { params: { slu
   const tournament = await prisma.tournament.findUnique({
     where: { publicSlug: params.slug },
     include: {
+      arena: {
+        select: {
+          name: true,
+          logoUrl: true
+        }
+      },
       categories: {
         where: { active: true },
         orderBy: { level: "asc" }
@@ -18,16 +24,21 @@ export default async function PublicRegistrationPage({ params }: { params: { slu
   }
 
   return (
-    <main className="stack-md" style={{ maxWidth: 880, margin: "0 auto", padding: "24px" }}>
+    <main className="stack-md" style={{ maxWidth: 1180, margin: "0 auto", padding: "24px" }}>
       <header className="page-header">
         <div className="stack-xs">
-          <p className="eyebrow">Inscrição Pública</p>
+          <p className="eyebrow">Inscricao Publica</p>
           <h1>{tournament.name}</h1>
           <p className="muted">{tournament.description || "Preencha os dados da dupla para se inscrever no torneio."}</p>
         </div>
       </header>
 
-      <PublicRegistrationForm tournamentSlug={tournament.publicSlug} categories={tournament.categories} />
+      <PublicRegistrationForm
+        tournamentSlug={tournament.publicSlug}
+        categories={tournament.categories}
+        arenaName={tournament.arena.name}
+        arenaLogoUrl={tournament.arena.logoUrl}
+      />
     </main>
   );
 }
