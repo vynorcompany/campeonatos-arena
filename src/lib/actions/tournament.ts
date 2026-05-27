@@ -461,22 +461,6 @@ export async function createTournamentAction(_: ActionState, formData: FormData)
     return { error: parsed.error.issues[0]?.message ?? "Dados inválidos.", success: null };
   }
 
-  const existingActiveTournament = await prisma.tournament.findFirst({
-    where: {
-      arenaId: auth.arenaId,
-      status: {
-        not: "FINISHED"
-      }
-    }
-  });
-
-  if (existingActiveTournament) {
-    return {
-      error: "Finalize o campeonato ativo antes de criar um novo.",
-      success: null
-    };
-  }
-
   const rankingId = await ensureRankingBelongsToArena(auth.arenaId, parsed.data.rankingId || null);
   const priceFirstCents = parseReaisToCents(parsed.data.priceFirstCents);
   const priceSecondCents = parseReaisToCents(parsed.data.priceSecondCents);

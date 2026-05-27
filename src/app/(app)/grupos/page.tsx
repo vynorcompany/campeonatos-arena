@@ -75,9 +75,15 @@ function getOverallStandings(groups: Array<{ name: string; pairs: GroupPair[] }>
   }));
 }
 
-export default async function GroupsPage() {
+type GroupsPageProps = {
+  searchParams?: {
+    tournamentId?: string;
+  };
+};
+
+export default async function GroupsPage({ searchParams }: GroupsPageProps) {
   const auth = await requireModuleView("groups");
-  const { activeTournament } = await getArenaDashboard(auth.arenaId);
+  const { activeTournament, activeTournaments } = await getArenaDashboard(auth.arenaId, searchParams?.tournamentId);
   const isRoundRobinOnly = activeTournament?.groupCount === 1;
 
   const groups =
@@ -123,6 +129,18 @@ export default async function GroupsPage() {
             Distribua as duplas por forca e, quando precisar, arraste manualmente uma dupla de um grupo para outro.
           </p>
         </div>
+        {activeTournaments.length ? (
+          <form method="get" className="section-actions">
+            <select name="tournamentId" defaultValue={activeTournament?.id ?? ""} className="button" aria-label="Selecionar torneio">
+              {activeTournaments.map((tournament) => (
+                <option key={tournament.id} value={tournament.id}>
+                  {tournament.name}
+                </option>
+              ))}
+            </select>
+            <SubmitButton label="Abrir torneio" pendingLabel="..." className="button" />
+          </form>
+        ) : null}
       </header>
 
       {!activeTournament ? (

@@ -188,6 +188,7 @@ function MatchCard({ match, pairs }: { match: MatchItem; pairs: ActiveTournament
 
 type MatchesPageProps = {
   searchParams?: {
+    tournamentId?: string;
     q?: string;
     fase?: string;
     grupo?: string;
@@ -197,7 +198,7 @@ type MatchesPageProps = {
 
 export default async function MatchesPage({ searchParams }: MatchesPageProps) {
   const auth = await requireModuleView("matches");
-  const { activeTournament } = await getArenaDashboard(auth.arenaId);
+  const { activeTournament, activeTournaments } = await getArenaDashboard(auth.arenaId, searchParams?.tournamentId);
 
   if (!activeTournament) {
     return (
@@ -252,6 +253,18 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
           <h1>Confrontos e resultados</h1>
           <p className="muted">Acompanhe a fase atual, lance resultados e organize quadras e horários em poucos cliques.</p>
         </div>
+        {activeTournaments.length ? (
+          <form method="get" className="section-actions">
+            <select name="tournamentId" defaultValue={activeTournament?.id ?? ""} className="button" aria-label="Selecionar torneio">
+              {activeTournaments.map((tournament) => (
+                <option key={tournament.id} value={tournament.id}>
+                  {tournament.name}
+                </option>
+              ))}
+            </select>
+            <SubmitButton label="Abrir torneio" pendingLabel="..." className="button" />
+          </form>
+        ) : null}
       </header>
 
       <SectionCard title="Preparar jogos" description="Gere ou regenere os confrontos conforme os grupos e duplas cadastrados.">
@@ -274,6 +287,7 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
         </div>
 
         <form method="get" className="grid-form" style={{ marginTop: "0.75rem" }}>
+          <input type="hidden" name="tournamentId" value={activeTournament.id} />
           <div className="field">
             <label htmlFor="q">Pesquisar</label>
             <input id="q" name="q" type="search" defaultValue={searchParams?.q ?? ""} placeholder="Dupla, grupo, horário..." />
@@ -304,7 +318,7 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
           </div>
           <div className="form-full section-actions">
             <button type="submit" className="button button-primary">Aplicar filtros</button>
-            <Link href="/jogos" className="button">Limpar</Link>
+            <Link href={`/jogos?tournamentId=${activeTournament.id}`} className="button">Limpar</Link>
           </div>
         </form>
         {conflicts.length ? (

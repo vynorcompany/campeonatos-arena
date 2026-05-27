@@ -1,15 +1,24 @@
 import "server-only";
 import { z } from "zod";
 
+function withDefaultWhenInvalidNumber(value: unknown) {
+  if (value === undefined || value === null) return undefined;
+  const text = String(value).trim();
+  if (!text) return undefined;
+  const numeric = Number(text);
+  if (!Number.isFinite(numeric) || numeric < 1) return undefined;
+  return value;
+}
+
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required."),
   DIRECT_URL: z.string().optional(),
   APP_URL: z.string().url().optional(),
   SESSION_COOKIE_NAME: z.string().min(1).default("padel_session"),
   ARENA_COOKIE_NAME: z.string().min(1).default("padel_arena"),
-  SESSION_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(14),
-  LOGIN_MAX_ATTEMPTS: z.coerce.number().int().min(3).max(20).default(5),
-  LOGIN_LOCK_MINUTES: z.coerce.number().int().min(1).max(120).default(15),
+  SESSION_TTL_DAYS: z.preprocess(withDefaultWhenInvalidNumber, z.coerce.number().int().min(1).max(90).default(14)),
+  LOGIN_MAX_ATTEMPTS: z.preprocess(withDefaultWhenInvalidNumber, z.coerce.number().int().min(3).max(20).default(5)),
+  LOGIN_LOCK_MINUTES: z.preprocess(withDefaultWhenInvalidNumber, z.coerce.number().int().min(1).max(120).default(15)),
   MERCADO_PAGO_ACCESS_TOKEN: z.string().optional(),
   MERCADO_PAGO_WEBHOOK_SECRET: z.string().optional()
 });

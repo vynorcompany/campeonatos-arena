@@ -927,13 +927,31 @@ async function resequenceTournamentPairs(tx: Prisma.TransactionClient, tournamen
   }
 }
 
-export async function getArenaDashboard(arenaId: string) {
+export async function getArenaDashboard(arenaId: string, selectedTournamentId?: string) {
+  const activeWhere = {
+    arenaId,
+    status: {
+      not: tournamentStatus.FINISHED
+    }
+  } as const;
+
+  const activeTournaments = await prisma.tournament.findMany({
+    where: activeWhere,
+    orderBy: {
+      createdAt: "desc"
+    },
+    select: {
+      id: true,
+      name: true,
+      registrationPhase: true,
+      status: true
+    }
+  });
+
   const activeTournament = await prisma.tournament.findFirst({
     where: {
-      arenaId,
-      status: {
-        not: tournamentStatus.FINISHED
-      }
+      ...activeWhere,
+      ...(selectedTournamentId ? { id: selectedTournamentId } : {})
     },
     orderBy: {
       createdAt: "desc"
@@ -1058,6 +1076,7 @@ export async function getArenaDashboard(arenaId: string) {
 
   return {
     players,
+    activeTournaments,
     activeTournament,
     tournamentHistory
   };

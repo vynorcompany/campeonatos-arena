@@ -23,6 +23,7 @@ function slugify(value: string) {
 
 export function TournamentWizard({ rankings }: { rankings: { id: string; name: string }[] }) {
   const [step, setStep] = useState<StepKey>("basic");
+  const [creationMode, setCreationMode] = useState<"PUBLIC" | "MANUAL">("MANUAL");
   const [name, setName] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>(["4ª masculina", "5ª masculina", "6ª masculina", "7ª masculina"]);
   const [customCategory, setCustomCategory] = useState("");
@@ -82,6 +83,17 @@ export function TournamentWizard({ rankings }: { rankings: { id: string; name: s
 
       <section className="stack-sm" hidden={step !== "basic"}>
         <div className="field">
+          <label htmlFor="creationMode">Modo de criação</label>
+          <select
+            id="creationMode"
+            value={creationMode}
+            onChange={(event) => setCreationMode(event.target.value as "PUBLIC" | "MANUAL")}
+          >
+            <option value="MANUAL">Sem inscrições (modo antigo da arena)</option>
+            <option value="PUBLIC">Via inscrições públicas</option>
+          </select>
+        </div>
+        <div className="field">
           <label htmlFor="name">Nome do torneio</label>
           <input id="name" name="name" required placeholder="Ex.: Super 12 de Julho" value={name} onChange={(event) => setName(event.target.value)} />
         </div>
@@ -89,11 +101,14 @@ export function TournamentWizard({ rankings }: { rankings: { id: string; name: s
           <label htmlFor="description">Descrição / Regras</label>
           <textarea id="description" name="description" rows={4} placeholder="Informe regras e instruções para atletas." />
         </div>
-        <div className="field">
-          <label htmlFor="publicSlug">Link público de inscrição</label>
-          <input id="publicSlug" name="publicSlug" value={publicSlug} readOnly />
-        </div>
-        <input type="hidden" name="registrationPhase" value="REGISTRATIONS" />
+        {creationMode === "PUBLIC" ? (
+          <div className="field">
+            <label htmlFor="publicSlug">Link público de inscrição</label>
+            <input id="publicSlug" name="publicSlug" value={publicSlug} readOnly />
+          </div>
+        ) : null}
+        <input type="hidden" name="publicSlug" value={publicSlug} />
+        <input type="hidden" name="registrationPhase" value={creationMode === "PUBLIC" ? "REGISTRATIONS" : "EDITING"} />
       </section>
 
       <section className="stack-sm" hidden={step !== "structure"}>
@@ -168,7 +183,8 @@ export function TournamentWizard({ rankings }: { rankings: { id: string; name: s
 
       <section className="t-review-grid" hidden={step !== "review"}>
         <article><strong>Nome</strong><p>{name || "Sem nome ainda"}</p></article>
-        <article><strong>Link público</strong><p>/inscricao/{publicSlug}</p></article>
+        <article><strong>Modo</strong><p>{creationMode === "PUBLIC" ? "Via inscrições públicas" : "Sem inscrições (modo antigo)"}</p></article>
+        {creationMode === "PUBLIC" ? <article><strong>Link público</strong><p>/inscricao/{publicSlug}</p></article> : null}
         <article><strong>Estrutura</strong><p>Grupos, base por grupo e categorias configuradas nas etapas anteriores.</p></article>
         <article><strong>Valores</strong><p>Valores em R$ por faixa de inscrição.</p></article>
       </section>

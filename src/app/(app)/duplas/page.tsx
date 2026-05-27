@@ -7,9 +7,15 @@ import { deleteTournamentPairAction, updateTournamentPairAction } from "@/lib/ac
 import { requireModuleView } from "@/lib/auth/guards";
 import { getArenaDashboard } from "@/lib/services/tournament";
 
-export default async function PairsPage() {
+type PairsPageProps = {
+  searchParams?: {
+    tournamentId?: string;
+  };
+};
+
+export default async function PairsPage({ searchParams }: PairsPageProps) {
   const auth = await requireModuleView("pairs");
-  const { activeTournament } = await getArenaDashboard(auth.arenaId);
+  const { activeTournament, activeTournaments } = await getArenaDashboard(auth.arenaId, searchParams?.tournamentId);
   const pairedPlayerIds = new Set(
     activeTournament?.pairs.flatMap((pair) => pair.players.map((player) => player.playerId)) ?? []
   );
@@ -39,6 +45,18 @@ export default async function PairsPage() {
             Monte as duplas manualmente e use a pontuação delas como base para equilibrar os grupos.
           </p>
         </div>
+        {activeTournaments.length ? (
+          <form method="get" className="section-actions">
+            <select name="tournamentId" defaultValue={activeTournament?.id ?? ""} className="button" aria-label="Selecionar torneio">
+              {activeTournaments.map((tournament) => (
+                <option key={tournament.id} value={tournament.id}>
+                  {tournament.name}
+                </option>
+              ))}
+            </select>
+            <SubmitButton label="Abrir torneio" pendingLabel="..." className="button" />
+          </form>
+        ) : null}
       </header>
 
       {!activeTournament ? (

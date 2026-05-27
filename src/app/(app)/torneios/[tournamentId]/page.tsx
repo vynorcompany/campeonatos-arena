@@ -60,7 +60,7 @@ export default async function TournamentDetailPage({ params, searchParams }: Tou
         </div>
         <div className="section-actions">
           <StatusBadge status={tournament.status} />
-          <PublicRegistrationLinkActions slug={tournament.publicSlug} />
+          {tournament.registrationPhase === "REGISTRATIONS" ? <PublicRegistrationLinkActions slug={tournament.publicSlug} /> : null}
           <Link href={`/torneios/${tournament.id}?tab=settings`} className="button">Editar torneio</Link>
           <form action={updateTournamentRegistrationPhaseAction} className="section-actions">
             <input type="hidden" name="tournamentId" value={tournament.id} />
