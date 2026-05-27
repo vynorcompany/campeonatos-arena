@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
@@ -56,7 +56,9 @@ async function registerLoginFailure(email: string) {
     }
   });
 
-  const failedCount = (currentAttempt?.failedCount ?? 0) + 1;
+  const isExpiredLock = !!currentAttempt?.lockedUntil && currentAttempt.lockedUntil <= now;
+  const baseFailedCount = isExpiredLock ? 0 : (currentAttempt?.failedCount ?? 0);
+  const failedCount = baseFailedCount + 1;
   const shouldLock = failedCount >= env.loginMaxAttempts;
   const lockedUntil = shouldLock
     ? new Date(now.getTime() + env.loginLockMinutes * 60 * 1000)
@@ -88,6 +90,11 @@ async function clearLoginAttempts(email: string) {
   });
 }
 
+function getRemainingLockMinutes(lockedUntil: Date, now = new Date()) {
+  const diffMs = lockedUntil.getTime() - now.getTime();
+  return Math.max(1, Math.ceil(diffMs / (60 * 1000)));
+}
+
 export async function loginAction(_: LoginState, formData: FormData): Promise<LoginState> {
   const parsed = loginSchema.safeParse({
     email: formData.get("email"),
@@ -95,7 +102,7 @@ export async function loginAction(_: LoginState, formData: FormData): Promise<Lo
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+    return { error: parsed.error.issues[0]?.message ?? "Dados invÃ¡lidos." };
   }
 
   const normalizedEmail = normalizeEmail(parsed.data.email);
@@ -105,9 +112,13 @@ export async function loginAction(_: LoginState, formData: FormData): Promise<Lo
     }
   });
 
+  if (attempt?.lockedUntil && attempt.lockedUntil <= new Date()) {
+    await clearLoginAttempts(normalizedEmail);
+  }
+
   if (attempt?.lockedUntil && attempt.lockedUntil > new Date()) {
     return {
-      error: `Muitas tentativas inválidas. Tente novamente em ${env.loginLockMinutes} minutos.`
+      error: `Muitas tentativas inválidas. Tente novamente em ${getRemainingLockMinutes(attempt.lockedUntil)} minuto(s).`
     };
   }
 
@@ -119,7 +130,7 @@ export async function loginAction(_: LoginState, formData: FormData): Promise<Lo
 
   if (!user) {
     await registerLoginFailure(normalizedEmail);
-    return { error: "E-mail ou senha inválidos." };
+    return { error: "E-mail ou senha invÃ¡lidos." };
   }
 
   const passwordMatches = await bcrypt.compare(parsed.data.password, user.passwordHash);
@@ -129,11 +140,11 @@ export async function loginAction(_: LoginState, formData: FormData): Promise<Lo
 
     if (lockedUntil && lockedUntil > new Date()) {
       return {
-        error: `Muitas tentativas inválidas. Tente novamente em ${env.loginLockMinutes} minutos.`
+        error: `Muitas tentativas inválidas. Tente novamente em ${getRemainingLockMinutes(lockedUntil)} minuto(s).`
       };
     }
 
-    return { error: "E-mail ou senha inválidos." };
+    return { error: "E-mail ou senha invÃ¡lidos." };
   }
 
   await clearLoginAttempts(normalizedEmail);
@@ -156,7 +167,7 @@ export async function registerArenaAction(_: RegisterArenaState, formData: FormD
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+    return { error: parsed.error.issues[0]?.message ?? "Dados invÃ¡lidos." };
   }
 
   const email = normalizeEmail(parsed.data.email);
@@ -167,7 +178,7 @@ export async function registerArenaAction(_: RegisterArenaState, formData: FormD
   });
 
   if (existingUser) {
-    return { error: "Já existe uma conta com este e-mail. Entre e crie/vincule a arena pelo painel." };
+    return { error: "JÃ¡ existe uma conta com este e-mail. Entre e crie/vincule a arena pelo painel." };
   }
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
@@ -220,7 +231,7 @@ export async function setActiveArenaAction(formData: FormData) {
   const membership = auth.memberships.find((item) => item.arenaId === arenaId);
 
   if (!membership) {
-    throw new Error("Arena inválida para este usuário.");
+    throw new Error("Arena invÃ¡lida para este usuÃ¡rio.");
   }
 
   await setArenaContextCookie(arenaId);
@@ -246,3 +257,5 @@ export async function redirectIfAuthenticated() {
     redirect(isAgencyRole(auth.systemRole) ? "/agencia" : "/painel");
   }
 }
+
+
