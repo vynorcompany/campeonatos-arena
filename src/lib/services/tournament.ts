@@ -2080,7 +2080,14 @@ export async function updateTournamentSettings(
     priceThirdCents: number;
     blockCategoryGap: boolean;
     maxCategoryGap: number;
-    categoryList: Array<{ name: string; level: number; groupCount: number; pairsPerGroup: number }>;
+    categoryList: Array<{
+      name: string;
+      level: number;
+      groupCount: number;
+      pairsPerGroup: number;
+      priceSecondCents: number;
+      priceThirdCents: number;
+    }>;
     rankingId: string | null;
   }
 ) {
@@ -2160,6 +2167,8 @@ export async function updateTournamentSettings(
             level: category.level,
             groupCount: category.groupCount,
             pairsPerGroup: category.pairsPerGroup,
+            priceSecondCents: category.priceSecondCents,
+            priceThirdCents: category.priceThirdCents,
             active: true
           }
         });
@@ -2171,6 +2180,8 @@ export async function updateTournamentSettings(
             level: category.level,
             groupCount: category.groupCount,
             pairsPerGroup: category.pairsPerGroup,
+            priceSecondCents: category.priceSecondCents,
+            priceThirdCents: category.priceThirdCents,
             active: true
           }
         });

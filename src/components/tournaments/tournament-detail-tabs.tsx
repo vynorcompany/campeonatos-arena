@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BracketOverview } from "@/components/bracket-overview";
+import { TournamentCategoryManagerForm } from "@/components/forms/tournament-category-manager-form";
 import { TournamentForm } from "@/components/forms/tournament-form";
 import { TournamentParticipantsForm } from "@/components/forms/tournament-participants-form";
 import { EmptyState } from "@/components/tournaments/empty-state";
@@ -58,26 +59,48 @@ export function TournamentParticipantsTab({ tournament }: { tournament: NonNulla
 }
 
 export function TournamentCategoriesTab({ tournament }: { tournament: NonNullable<TournamentDetails> }) {
-  if (!tournament.categories.length) {
-    return <EmptyState title="Sem categorias ativas" description="Adicione categorias nas configurações do torneio." ctaLabel="Abrir Configurações" ctaHref={`/torneios/${tournament.id}?tab=settings`} />;
-  }
-
   return (
     <div className="stack-md">
       <article className="section-card">
         <h3>Categorias do torneio</h3>
-        <p className="muted">Lista de categorias ativas e ordem usada nas inscrições.</p>
+        <p className="muted">Lista de categorias ativas e ordem usada nas inscricoes.</p>
         <div className="simple-list">
           {tournament.categories.map((category, index) => (
             <div key={category.id} className="simple-item">
               <strong>{category.name}</strong>
-              <span>Nível #{category.level || index + 1}</span>
+              <span>
+                Nivel #{category.level || index + 1} · 2ª: R$ {(category.priceSecondCents / 100).toFixed(2)} · 3ª+: R$ {(category.priceThirdCents / 100).toFixed(2)}
+              </span>
             </div>
           ))}
+          {!tournament.categories.length ? <p className="muted">Sem categorias cadastradas.</p> : null}
         </div>
       </article>
+      <article className="section-card">
+        <h3>Editar e criar categorias</h3>
+        <TournamentCategoryManagerForm
+          tournamentId={tournament.id}
+          defaultName={tournament.name}
+          defaultDescription={tournament.description}
+          defaultPublicSlug={tournament.publicSlug}
+          defaultRegistrationPhase={tournament.registrationPhase}
+          defaultGroupCount={tournament.groupCount}
+          defaultPairsPerGroup={tournament.pairsPerGroup}
+          defaultPriceFirstCents={tournament.priceFirstCents}
+          defaultPriceSecondCents={tournament.priceSecondCents}
+          defaultPriceThirdCents={tournament.priceThirdCents}
+          defaultBlockCategoryGap={tournament.blockCategoryGap}
+          defaultMaxCategoryGap={tournament.maxCategoryGap}
+          defaultRankingId={tournament.rankingId ?? ""}
+          defaultCategories={tournament.categories.map((category) => ({
+            name: category.name,
+            priceSecondCents: category.priceSecondCents ?? 0,
+            priceThirdCents: category.priceThirdCents ?? 0
+          }))}
+        />
+      </article>
       <div className="section-actions">
-        <Link href="/torneios/inscricoes" className="button">Gerenciar inscrições por categoria</Link>
+        <Link href="/torneios/inscricoes" className="button">Gerenciar inscricoes por categoria</Link>
       </div>
     </div>
   );
@@ -214,4 +237,5 @@ export function TournamentSettingsTab({ tournament, rankings }: { tournament: No
     </div>
   );
 }
+
 

@@ -67,11 +67,7 @@ export function PublicRegistrationForm({
           </div>
           <div className={`public-reg-step ${state?.success ? "public-reg-step-active" : ""}`}>
             <span>3</span>
-            <div><strong>Gerar cobranca</strong><small>Pagamento via PIX ou cartao</small></div>
-          </div>
-          <div className={`public-reg-step ${state?.paymentCheckoutUrl ? "public-reg-step-active" : ""}`}>
-            <span>4</span>
-            <div><strong>Pagamento</strong><small>Concluir para confirmar vaga</small></div>
+            <div><strong>Confirmacao</strong><small>Inscricao confirmada automaticamente (modo teste)</small></div>
           </div>
         </div>
       </aside>
@@ -82,7 +78,7 @@ export function PublicRegistrationForm({
         <section className="public-reg-card">
           <header className="public-reg-card-head">
             <h3>Configuracao da inscricao</h3>
-            <p>Selecione a categoria e a forma de pagamento.</p>
+            <p>Selecione a categoria. O pagamento esta desabilitado no modo de testes.</p>
           </header>
           <div className="public-reg-grid public-reg-grid-2">
             <div className="field">
@@ -133,23 +129,14 @@ export function PublicRegistrationForm({
         </section>
 
         <div className="public-reg-submit">
-          <SubmitButton label="Inscrever e gerar pagamento" pendingLabel="Gerando cobranca..." className="button button-primary" />
+          <SubmitButton label="Inscrever e confirmar" pendingLabel="Confirmando..." className="button button-primary" />
         </div>
 
         {state?.error ? <p className="form-error form-full">{state.error}</p> : null}
         {state?.success ? (
           <div className="form-success form-full reveal-up" style={{ animationDelay: "180ms" }}>
             {state.success} Referencia: <strong>{state.paymentReference}</strong> · Valor: <strong>R$ {((state.amountCents ?? 0) / 100).toFixed(2)}</strong>
-            {state.paymentMethod === "PIX" ? (
-              <>
-                <br />Status: <strong>Aguardando pagamento</strong>
-                {state.paymentQrCode ? <><br />PIX copia e cola: <code>{state.paymentQrCode}</code></> : null}
-                {state.paymentCheckoutUrl ? <><br /><a href={state.paymentCheckoutUrl} target="_blank" rel="noreferrer">Abrir tela PIX no Mercado Pago</a></> : null}
-              </>
-            ) : null}
-            {state.paymentMethod === "CARD" && state.paymentCheckoutUrl ? (
-              <><br />Redirecionando para checkout de cartao... <a href={state.paymentCheckoutUrl} target="_blank" rel="noreferrer">Abrir manualmente</a></>
-            ) : null}
+            <br />Status: <strong>Confirmado</strong>
           </div>
         ) : null}
       </form>

@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { createCardCheckout, createPixPayment } from "@/lib/payments/mercado-pago";
 import { createPublicRegistrationSchema } from "@/lib/validators/public-registration";
 
 type PublicRegistrationState = {
@@ -35,23 +34,13 @@ function normalizeDateInput(input: unknown) {
   return value;
 }
 
-function getPriceByOrder(order: number, tournament: { priceFirstCents: number; priceSecondCents: number; priceThirdCents: number }) {
-  if (order <= 1) return tournament.priceFirstCents;
-  if (order === 2) return tournament.priceSecondCents;
-  return tournament.priceThirdCents;
-}
-
-function getIncrementalPriceByOrder(
+function getPriceByOrder(
   order: number,
-  tournament: { priceFirstCents: number; priceSecondCents: number; priceThirdCents: number }
+  pricing: { priceFirstCents: number; priceSecondCents: number; priceThirdCents: number }
 ) {
-  if (order <= 1) {
-    return tournament.priceFirstCents;
-  }
-  if (order === 2) {
-    return Math.max(tournament.priceSecondCents - tournament.priceFirstCents, 0);
-  }
-  return Math.max(tournament.priceThirdCents - tournament.priceSecondCents, 0);
+  if (order <= 1) return pricing.priceFirstCents;
+  if (order === 2) return pricing.priceSecondCents;
+  return pricing.priceThirdCents;
 }
 
 export async function createPublicRegistrationAction(
@@ -130,8 +119,14 @@ export async function createPublicRegistrationAction(
         (item) => item.leadCpf === parsed.data.partnerCpf || item.partnerCpf === parsed.data.partnerCpf
       ).length;
 
-      const leadAmountCents = getIncrementalPriceByOrder(leadCount + 1, tournament);
-      const partnerAmountCents = getIncrementalPriceByOrder(partnerCount + 1, tournament);
+      const categoryPricing = {
+        priceFirstCents: tournament.priceFirstCents,
+        priceSecondCents: selectedCategory.priceSecondCents,
+        priceThirdCents: selectedCategory.priceThirdCents
+      };
+
+      const leadAmountCents = getPriceByOrder(leadCount + 1, categoryPricing);
+      const partnerAmountCents = getPriceByOrder(partnerCount + 1, categoryPricing);
       const amountCents = leadAmountCents + partnerAmountCents;
       const registration = await tx.publicTournamentRegistration.create({
         data: {
@@ -147,53 +142,25 @@ export async function createPublicRegistrationAction(
           partnerBirthDate: parsed.data.partnerBirthDate,
           registrationOrder,
           amountCents,
-          paymentStatus: "PENDING",
-          paymentProvider: "",
-          paymentReference: "",
-          status: "PENDING_PAYMENT"
+          paymentStatus: "PAID",
+          paymentProvider: "TEST_NO_PAYMENT",
+          paymentReference: "TEST_NO_PAYMENT",
+          status: "CONFIRMED"
         }
       });
 
       return { registration, amountCents, tournamentName: tournament.name };
     });
 
-    const payment =
-      parsed.data.paymentMethod === "CARD"
-        ? await createCardCheckout({
-            amountCents: result.amountCents,
-            description: `Inscricao ${result.tournamentName}`,
-            payerEmail: parsed.data.leadEmail,
-            externalReference: result.registration.id
-          })
-        : await createPixPayment({
-            amountCents: result.amountCents,
-            description: `Inscricao ${result.tournamentName}`,
-            payerEmail: parsed.data.leadEmail,
-            externalReference: result.registration.id
-          });
-
-    await prisma.publicTournamentRegistration.update({
-      where: { id: result.registration.id },
-      data: {
-        paymentProvider: parsed.data.paymentMethod === "CARD" ? "MERCADO_PAGO_CARD" : payment.provider,
-        paymentReference: payment.reference,
-        mercadoPagoPaymentId: payment.paymentId,
-        paymentQrCode: payment.qrCode,
-        paymentQrCodeBase64: payment.qrCodeBase64,
-        paymentCheckoutUrl: payment.checkoutUrl,
-        paymentExpiresAt: payment.expiresAt
-      }
-    });
-
     revalidatePath(`/inscricao/${parsed.data.tournamentSlug}`);
     return {
       error: null,
-      success: "Inscricao criada. Finalize o pagamento para confirmar a vaga.",
-      paymentReference: payment.reference,
+      success: "Inscricao criada e confirmada com sucesso (modo teste sem pagamento).",
+      paymentReference: "TEST_NO_PAYMENT",
       amountCents: result.amountCents,
-      paymentQrCode: payment.qrCode,
-      paymentQrCodeBase64: payment.qrCodeBase64,
-      paymentCheckoutUrl: payment.checkoutUrl,
+      paymentQrCode: "",
+      paymentQrCodeBase64: "",
+      paymentCheckoutUrl: "",
       paymentMethod: parsed.data.paymentMethod
     };
   } catch (error) {

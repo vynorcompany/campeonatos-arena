@@ -149,15 +149,29 @@ function getPrismaMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
-function parseCategoryList(raw: string) {
+function parseCategoryList(raw: string, fallbackPriceSecondCents: number, fallbackPriceThirdCents: number) {
   const maybeJson = raw.trim();
   if (maybeJson.startsWith("[") || maybeJson.startsWith("{")) {
-    const parsed = JSON.parse(maybeJson) as Array<{ name: string; groupCount?: number; pairsPerGroup?: number }>;
+    const parsed = JSON.parse(maybeJson) as Array<{
+      name: string;
+      groupCount?: number;
+      pairsPerGroup?: number;
+      priceSecondCents?: number | string;
+      priceThirdCents?: number | string;
+    }>;
     const normalized = parsed
       .map((item) => ({
         name: String(item.name ?? "").trim(),
         groupCount: Number(item.groupCount ?? 4),
-        pairsPerGroup: Number(item.pairsPerGroup ?? 3)
+        pairsPerGroup: Number(item.pairsPerGroup ?? 3),
+        priceSecondCents:
+          item.priceSecondCents === undefined
+            ? fallbackPriceSecondCents
+            : parseReaisToCents(item.priceSecondCents),
+        priceThirdCents:
+          item.priceThirdCents === undefined
+            ? fallbackPriceThirdCents
+            : parseReaisToCents(item.priceThirdCents)
       }))
       .filter((item) => item.name.length > 0);
 
@@ -169,7 +183,9 @@ function parseCategoryList(raw: string) {
       name: item.name,
       level: index + 1,
       groupCount: Number.isFinite(item.groupCount) ? Math.min(8, Math.max(1, Math.trunc(item.groupCount))) : 4,
-      pairsPerGroup: Number.isFinite(item.pairsPerGroup) ? Math.min(16, Math.max(2, Math.trunc(item.pairsPerGroup))) : 3
+      pairsPerGroup: Number.isFinite(item.pairsPerGroup) ? Math.min(16, Math.max(2, Math.trunc(item.pairsPerGroup))) : 3,
+      priceSecondCents: Number.isFinite(item.priceSecondCents) ? Math.max(0, Math.trunc(item.priceSecondCents)) : fallbackPriceSecondCents,
+      priceThirdCents: Number.isFinite(item.priceThirdCents) ? Math.max(0, Math.trunc(item.priceThirdCents)) : fallbackPriceThirdCents
     }));
   }
 
@@ -186,7 +202,9 @@ function parseCategoryList(raw: string) {
     name,
     level: index + 1,
     groupCount: 4,
-    pairsPerGroup: 3
+    pairsPerGroup: 3,
+    priceSecondCents: fallbackPriceSecondCents,
+    priceThirdCents: fallbackPriceThirdCents
   }));
 }
 
@@ -463,7 +481,7 @@ export async function createTournamentAction(_: ActionState, formData: FormData)
   const priceFirstCents = parseReaisToCents(parsed.data.priceFirstCents);
   const priceSecondCents = parseReaisToCents(parsed.data.priceSecondCents);
   const priceThirdCents = parseReaisToCents(parsed.data.priceThirdCents);
-  const categories = parseCategoryList(parsed.data.categoryList);
+  const categories = parseCategoryList(parsed.data.categoryList, priceSecondCents, priceThirdCents);
   const created = await prisma.tournament.create({
     data: {
       arenaId: auth.arenaId,
@@ -531,7 +549,7 @@ export async function updateTournamentAction(_: ActionState, formData: FormData)
     const priceFirstCents = parseReaisToCents(parsed.data.priceFirstCents);
     const priceSecondCents = parseReaisToCents(parsed.data.priceSecondCents);
     const priceThirdCents = parseReaisToCents(parsed.data.priceThirdCents);
-    const categories = parseCategoryList(parsed.data.categoryList);
+    const categories = parseCategoryList(parsed.data.categoryList, priceSecondCents, priceThirdCents);
     await updateTournamentSettings(parsed.data.tournamentId, auth.arenaId, {
       name: parsed.data.name,
       description: parsed.data.description,
