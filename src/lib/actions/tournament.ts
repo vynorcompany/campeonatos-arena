@@ -23,6 +23,7 @@ import {
   createTournamentPairSchema,
   deleteTournamentPairSchema,
   moveTournamentPairGroupSchema,
+  updateTournamentPairPointsSchema,
   updateTournamentPairSchema
 } from "@/lib/validators/pair";
 import {
@@ -49,6 +50,7 @@ import {
   updateKnockoutParticipants,
   updateTournamentSettings,
   updateTournamentPair,
+  updateTournamentPairPoints,
   updateMatchResult
 } from "@/lib/services/tournament";
 import { ensureTournamentPairFromRegistration } from "@/lib/services/registration-pair";
@@ -767,6 +769,21 @@ export async function deleteTournamentPairAction(formData: FormData) {
   }
 
   await deleteTournamentPair(parsed.data.pairId, auth.arenaId);
+  refreshTournamentRoutes();
+}
+
+export async function updateTournamentPairPointsAction(formData: FormData) {
+  const auth = await requireModuleEdit("pairs");
+  const parsed = updateTournamentPairPointsSchema.safeParse({
+    pairId: formData.get("pairId"),
+    totalPoints: formData.get("totalPoints")
+  });
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  }
+
+  await updateTournamentPairPoints(parsed.data.pairId, auth.arenaId, parsed.data.totalPoints);
   refreshTournamentRoutes();
 }
 

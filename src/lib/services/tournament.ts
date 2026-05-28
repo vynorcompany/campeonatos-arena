@@ -1702,6 +1702,49 @@ export async function updateTournamentPair(pairId: string, arenaId: string, play
   return true;
 }
 
+export async function updateTournamentPairPoints(pairId: string, arenaId: string, totalPoints: number) {
+  const pair = await prisma.pair.findFirst({
+    where: {
+      id: pairId,
+      tournament: {
+        arenaId
+      }
+    },
+    select: {
+      id: true,
+      tournamentId: true
+    }
+  });
+
+  if (!pair) {
+    throw new Error("Dupla não encontrada.");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await resetTournamentStructure(tx, pair.tournamentId);
+
+    await tx.pair.update({
+      where: { id: pair.id },
+      data: {
+        totalPoints: Math.max(0, Math.trunc(totalPoints))
+      }
+    });
+
+    await resequenceTournamentPairs(tx, pair.tournamentId);
+
+    await tx.tournament.update({
+      where: { id: pair.tournamentId },
+      data: {
+        status: tournamentStatus.READY_FOR_DRAW
+      }
+    });
+
+    await recalculateTournamentRankingPointsTx(tx, pair.tournamentId);
+  });
+
+  return true;
+}
+
 export async function deleteTournamentPair(pairId: string, arenaId: string) {
   const pair = await prisma.pair.findFirst({
     where: {

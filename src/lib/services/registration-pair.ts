@@ -124,7 +124,7 @@ export async function ensureTournamentPairFromRegistration(
       tournamentId: input.tournamentId,
       drawOrder: tournament.pairs.length + 1,
       name: `${leadName} / ${partnerName}`,
-      totalPoints: leadEntry.seedPoints + partnerEntry.seedPoints
+      totalPoints: 0
     }
   });
 

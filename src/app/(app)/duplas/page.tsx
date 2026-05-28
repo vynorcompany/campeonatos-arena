@@ -3,7 +3,7 @@ import { ManualPairForm } from "@/components/forms/manual-pair-form";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard } from "@/components/section-card";
-import { deleteTournamentPairAction, updateTournamentPairAction } from "@/lib/actions/tournament";
+import { deleteTournamentPairAction, updateTournamentPairAction, updateTournamentPairPointsAction } from "@/lib/actions/tournament";
 import { requireModuleView } from "@/lib/auth/guards";
 import { getArenaDashboard } from "@/lib/services/tournament";
 
@@ -155,7 +155,13 @@ export default async function PairsPage({ searchParams }: PairsPageProps) {
                             <SubmitButton label="Salvar" pendingLabel="Salvando..." className="button" />
                           </form>
                         </td>
-                        <td>{pair.totalPoints}</td>
+                        <td>
+                          <form action={updateTournamentPairPointsAction} className="inline-form">
+                            <input type="hidden" name="pairId" value={pair.id} />
+                            <input name="totalPoints" type="number" min="0" defaultValue={pair.totalPoints} aria-label={`Pontuação da dupla ${pair.name}`} />
+                            <SubmitButton label="Salvar" pendingLabel="..." className="button" />
+                          </form>
+                        </td>
                         <td>{pair.group?.name ?? "A definir"}</td>
                         <td>
                           <SafeActionForm

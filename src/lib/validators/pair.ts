@@ -20,3 +20,8 @@ export const moveTournamentPairGroupSchema = z.object({
   pairId: z.string().trim().min(1, "Dupla inv√°lida."),
   targetGroupId: z.string().trim().min(1, "Grupo de destino inv√°lido.")
 });
+
+export const updateTournamentPairPointsSchema = z.object({
+  pairId: z.string().trim().min(1, "Dupla inv·lida."),
+  totalPoints: z.coerce.number().int().min(0, "PontuaÁ„o inv·lida.")
+});
