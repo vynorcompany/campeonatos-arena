@@ -1174,6 +1174,14 @@ export async function getTournamentDetailsById(tournamentId: string, arenaId: st
       arenaId
     },
     include: {
+      arena: {
+        include: {
+          players: {
+            where: { active: true },
+            orderBy: { points: "desc" }
+          }
+        }
+      },
       ranking: true,
       categories: {
         where: { active: true },
@@ -2088,6 +2096,7 @@ export async function updateTournamentSettings(
   tournamentId: string,
   arenaId: string,
   input: {
+    creationMode: "MANUAL" | "PUBLIC";
     name: string;
     description: string;
     publicSlug: string;
@@ -2152,6 +2161,7 @@ export async function updateTournamentSettings(
         name: input.name,
         description: input.description,
         publicSlug: input.publicSlug,
+        creationMode: input.creationMode,
         registrationPhase: input.registrationPhase,
         groupCount: input.groupCount,
         pairsPerGroup: input.pairsPerGroup,

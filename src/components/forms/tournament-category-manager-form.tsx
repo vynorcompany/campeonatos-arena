@@ -17,6 +17,7 @@ type TournamentCategoryManagerFormProps = {
   defaultDescription: string;
   defaultPublicSlug: string;
   defaultRegistrationPhase: string;
+  defaultCreationMode: "MANUAL" | "PUBLIC";
   defaultGroupCount: number;
   defaultPairsPerGroup: number;
   defaultPriceFirstCents: number;
@@ -99,6 +100,7 @@ export function TournamentCategoryManagerForm(props: TournamentCategoryManagerFo
       <input type="hidden" name="name" value={props.defaultName} />
       <input type="hidden" name="description" value={props.defaultDescription} />
       <input type="hidden" name="publicSlug" value={props.defaultPublicSlug} />
+      <input type="hidden" name="creationMode" value={props.defaultCreationMode} />
       <input type="hidden" name="registrationPhase" value={props.defaultRegistrationPhase} />
       <input type="hidden" name="groupCount" value={String(props.defaultGroupCount)} />
       <input type="hidden" name="pairsPerGroup" value={String(props.defaultPairsPerGroup)} />

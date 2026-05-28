@@ -23,7 +23,7 @@ const envSchema = z.object({
   MERCADO_PAGO_WEBHOOK_SECRET: z.string().optional()
 });
 
-const parsed = envSchema.parse({
+const parsedResult = envSchema.safeParse({
   DATABASE_URL: process.env.DATABASE_URL,
   DIRECT_URL: process.env.DIRECT_URL,
   APP_URL: process.env.APP_URL,
@@ -35,6 +35,19 @@ const parsed = envSchema.parse({
   MERCADO_PAGO_ACCESS_TOKEN: process.env.MERCADO_PAGO_ACCESS_TOKEN,
   MERCADO_PAGO_WEBHOOK_SECRET: process.env.MERCADO_PAGO_WEBHOOK_SECRET
 });
+
+if (!parsedResult.success) {
+  const details = parsedResult.error.issues
+    .map((issue) => `${issue.path.join(".") || "env"}: ${issue.message}`)
+    .join("; ");
+
+  throw new Error(
+    `Invalid environment variables. ${details} ` +
+      `Create/update your .env file based on .env.example.`
+  );
+}
+
+const parsed = parsedResult.data;
 
 export const env = {
   databaseUrl: parsed.DATABASE_URL,

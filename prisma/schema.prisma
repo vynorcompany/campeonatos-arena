@@ -164,6 +164,7 @@ model Tournament {
   name        String
   description String            @default("")
   publicSlug  String            @unique @default(cuid())
+  creationMode String           @default("MANUAL")
   status      String            @default("DRAFT")
   registrationPhase String      @default("REGISTRATIONS")
   groupCount  Int               @default(2)

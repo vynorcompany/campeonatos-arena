@@ -442,6 +442,7 @@ export async function updateTournamentEntryPointsAction(formData: FormData) {
 export async function createTournamentAction(_: ActionState, formData: FormData): Promise<ActionState> {
   const auth = await requireModuleEdit("tournaments");
   const parsed = createTournamentSchema.safeParse({
+    creationMode: formData.get("creationMode"),
     name: formData.get("name"),
     description: formData.get("description"),
     publicSlug: formData.get("publicSlug"),
@@ -472,6 +473,7 @@ export async function createTournamentAction(_: ActionState, formData: FormData)
       name: parsed.data.name,
       description: parsed.data.description,
       publicSlug: parsed.data.publicSlug,
+      creationMode: parsed.data.creationMode,
       registrationPhase: parsed.data.registrationPhase,
       groupCount: categories[0]?.groupCount ?? parsed.data.groupCount,
       pairsPerGroup: categories[0]?.pairsPerGroup ?? parsed.data.pairsPerGroup,
@@ -509,6 +511,7 @@ export async function updateTournamentAction(_: ActionState, formData: FormData)
   const auth = await requireModuleEdit("tournaments");
   const parsed = updateTournamentSchema.safeParse({
     tournamentId: formData.get("tournamentId"),
+    creationMode: formData.get("creationMode"),
     name: formData.get("name"),
     description: formData.get("description"),
     publicSlug: formData.get("publicSlug"),
@@ -538,6 +541,7 @@ export async function updateTournamentAction(_: ActionState, formData: FormData)
       name: parsed.data.name,
       description: parsed.data.description,
       publicSlug: parsed.data.publicSlug,
+      creationMode: parsed.data.creationMode,
       registrationPhase: parsed.data.registrationPhase,
       groupCount: categories[0]?.groupCount ?? parsed.data.groupCount,
       pairsPerGroup: categories[0]?.pairsPerGroup ?? parsed.data.pairsPerGroup,

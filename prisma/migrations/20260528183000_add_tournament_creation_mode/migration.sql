@@ -1,0 +1,1 @@
+ALTER TABLE "Tournament" ADD COLUMN "creationMode" TEXT NOT NULL DEFAULT 'MANUAL';

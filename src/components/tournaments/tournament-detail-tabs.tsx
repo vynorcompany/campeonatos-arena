@@ -33,6 +33,23 @@ export function TournamentOverviewTab({ tournament }: { tournament: NonNullable<
 }
 
 export function TournamentParticipantsTab({ tournament }: { tournament: NonNullable<TournamentDetails> }) {
+  const selectedPlayerIds = new Set(tournament.entries.map((entry) => entry.playerId));
+  const shouldUseArenaPlayers = tournament.creationMode === "MANUAL";
+
+  if (shouldUseArenaPlayers) {
+    return (
+      <TournamentParticipantsForm
+        tournamentId={tournament.id}
+        players={tournament.arena.players.map((player) => ({
+          id: player.id,
+          name: player.name,
+          points: player.points,
+          checked: selectedPlayerIds.has(player.id)
+        }))}
+      />
+    );
+  }
+
   return (
     <TournamentParticipantsForm
       tournamentId={tournament.id}
@@ -84,6 +101,7 @@ export function TournamentCategoriesTab({ tournament }: { tournament: NonNullabl
           defaultDescription={tournament.description}
           defaultPublicSlug={tournament.publicSlug}
           defaultRegistrationPhase={tournament.registrationPhase}
+          defaultCreationMode={tournament.creationMode as "MANUAL" | "PUBLIC"}
           defaultGroupCount={tournament.groupCount}
           defaultPairsPerGroup={tournament.pairsPerGroup}
           defaultPriceFirstCents={tournament.priceFirstCents}
@@ -220,6 +238,7 @@ export function TournamentSettingsTab({ tournament, rankings }: { tournament: No
           defaultDescription={tournament.description}
           defaultPublicSlug={tournament.publicSlug}
           defaultRegistrationPhase={tournament.registrationPhase}
+          defaultCreationMode={tournament.creationMode as "MANUAL" | "PUBLIC"}
           defaultGroupCount={tournament.groupCount}
           defaultPairsPerGroup={tournament.pairsPerGroup}
           defaultPriceFirstCents={tournament.priceFirstCents}

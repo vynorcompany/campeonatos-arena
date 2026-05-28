@@ -108,6 +108,7 @@ export function TournamentWizard({ rankings }: { rankings: { id: string; name: s
           </div>
         ) : null}
         <input type="hidden" name="publicSlug" value={publicSlug} />
+        <input type="hidden" name="creationMode" value={creationMode} />
         <input type="hidden" name="registrationPhase" value={creationMode === "PUBLIC" ? "REGISTRATIONS" : "EDITING"} />
       </section>
 

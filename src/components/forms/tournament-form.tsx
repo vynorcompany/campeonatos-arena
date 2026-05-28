@@ -18,6 +18,7 @@ type TournamentFormProps = {
   defaultDescription?: string;
   defaultPublicSlug?: string;
   defaultRegistrationPhase?: string;
+  defaultCreationMode?: "MANUAL" | "PUBLIC";
   defaultGroupCount?: number;
   defaultPairsPerGroup?: number;
   defaultPriceFirstCents?: number;
@@ -39,6 +40,7 @@ export function TournamentForm({
   defaultDescription = "",
   defaultPublicSlug = "",
   defaultRegistrationPhase = "REGISTRATIONS",
+  defaultCreationMode = "MANUAL",
   defaultGroupCount = 4,
   defaultPairsPerGroup = 3,
   defaultPriceFirstCents = 7000,
@@ -86,6 +88,13 @@ export function TournamentForm({
     <form action={formAction} className="grid-form">
       {mode === "update" && tournamentId ? <input type="hidden" name="tournamentId" value={tournamentId} /> : null}
 
+      <div className="field">
+        <label htmlFor="creationMode">Tipo de torneio</label>
+        <select id="creationMode" name="creationMode" defaultValue={defaultCreationMode}>
+          <option value="MANUAL">Sem inscrições (modo antigo da arena)</option>
+          <option value="PUBLIC">Via inscrições públicas</option>
+        </select>
+      </div>
       <div className="field">
         <label htmlFor="name">Nome do torneio</label>
         <input id="name" name="name" type="text" placeholder="Ex.: Liga Interna de Abril" defaultValue={defaultName} required />

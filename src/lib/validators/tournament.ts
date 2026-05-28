@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const createTournamentSchema = z.object({
+  creationMode: z.enum(["MANUAL", "PUBLIC"]).default("MANUAL"),
   name: z.string().trim().min(3, "Nome do campeonato muito curto."),
   description: z.string().trim().default(""),
   publicSlug: z
