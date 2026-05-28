@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
 import { useFormState } from "react-dom";
@@ -27,6 +27,7 @@ type TournamentCategoryManagerFormProps = {
   defaultMaxCategoryGap: number;
   defaultRankingId: string;
   defaultCategories: Array<{ name: string; priceSecondCents: number; priceThirdCents: number }>;
+  compactMode?: boolean;
 };
 
 export function TournamentCategoryManagerForm(props: TournamentCategoryManagerFormProps) {
@@ -116,29 +117,37 @@ export function TournamentCategoryManagerForm(props: TournamentCategoryManagerFo
 
       <div className="field">
         <label>Categorias em ordem</label>
-        <p className="muted">A ordem define o nível. Configure os adicionais da 2ª e da 3ª+ inscrição por categoria.</p>
+        <p className="muted">A ordem define o nível. Clique em uma categoria para configurar.</p>
         <div className="stack-xs">
-          <div className="simple-grid simple-grid-2">
-            {TOURNAMENT_CATEGORY_PRESETS.map((category) => (
-              <label key={category} className="category-option">
-                <input type="checkbox" checked={selectedCategories.includes(category)} onChange={() => toggleCategory(category)} />
-                <span>{category}</span>
-              </label>
-            ))}
-          </div>
-          <div className="field-inline">
-            <input
-              value={customCategory}
-              onChange={(event) => setCustomCategory(event.target.value)}
-              placeholder="Adicionar categoria personalizada"
-            />
-            <button type="button" className="button" onClick={addCustomCategory}>Adicionar</button>
-          </div>
-          <div className="field-inline" style={{ flexWrap: "wrap", gap: "8px" }}>
+          {!props.compactMode ? (
+            <>
+              <div className="simple-grid simple-grid-2">
+                {TOURNAMENT_CATEGORY_PRESETS.map((category) => (
+                  <label key={category} className="category-option">
+                    <input type="checkbox" checked={selectedCategories.includes(category)} onChange={() => toggleCategory(category)} />
+                    <span>{category}</span>
+                  </label>
+                ))}
+              </div>
+              <div className="field-inline">
+                <input
+                  value={customCategory}
+                  onChange={(event) => setCustomCategory(event.target.value)}
+                  placeholder="Adicionar categoria personalizada"
+                />
+                <button type="button" className="button" onClick={addCustomCategory}>Adicionar</button>
+              </div>
+            </>
+          ) : null}
+
+          <div className={props.compactMode ? "simple-list" : "field-inline"} style={{ flexWrap: "wrap", gap: "8px" }}>
             {selectedCategories.map((category) => (
-              <div key={category} className="section-card" style={{ minWidth: "280px" }}>
+              <div key={category} className={props.compactMode ? "simple-item" : "section-card"} style={{ minWidth: "280px" }}>
                 <div className="section-actions" style={{ justifyContent: "space-between", alignItems: "center" }}>
                   <strong>{category}</strong>
+                  {props.compactMode ? (
+                    <span className="muted">Adic. 2ª: R$ {priceByCategory[category]?.second ?? "0"} · Adic. 3ª+: R$ {priceByCategory[category]?.third ?? "0"}</span>
+                  ) : null}
                   <button
                     type="button"
                     className="button"
@@ -165,9 +174,7 @@ export function TournamentCategoryManagerForm(props: TournamentCategoryManagerFo
                         placeholder="R$ 20"
                       />
                     </div>
-                    <button type="button" className="button" onClick={() => removeCategory(category)}>
-                      Remover
-                    </button>
+                    {!props.compactMode ? <button type="button" className="button" onClick={() => removeCategory(category)}>Remover</button> : null}
                   </>
                 ) : null}
               </div>
