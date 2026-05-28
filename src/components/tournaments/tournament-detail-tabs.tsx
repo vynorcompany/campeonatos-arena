@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { BracketOverview } from "@/components/bracket-overview";
 import { TournamentCategoryManagerForm } from "@/components/forms/tournament-category-manager-form";
 import { TournamentForm } from "@/components/forms/tournament-form";
@@ -16,15 +16,15 @@ export function TournamentOverviewTab({ tournament }: { tournament: NonNullable<
         <MetricCard label="Jogadores" value={tournament.entries.length} />
         <MetricCard label="Duplas" value={tournament.pairs.length} />
         <MetricCard label="Grupos" value={tournament.groups.length} />
-        <MetricCard label="Jogos concluídos" value={`${done}/${tournament.matches.length}`} />
+        <MetricCard label="Jogos concluÃ­dos" value={`${done}/${tournament.matches.length}`} />
       </div>
       <div className="section-card">
-        <h3>Próximas ações recomendadas</h3>
+        <h3>PrÃ³ximas aÃ§Ãµes recomendadas</h3>
         <p className="muted">Siga a ordem operacional do torneio com atalhos diretos.</p>
         <div className="section-actions">
           <Link href={`/torneios/${tournament.id}?tab=participants`} className="button">Participantes</Link>
           <Link href={`/torneios/${tournament.id}?tab=pairs`} className="button">Duplas</Link>
-          <Link href={`/torneios/${tournament.id}?tab=groups`} className="button">Grupos</Link>
+          <Link href={`/grupos?tournamentId=${tournament.id}`} className="button">Grupos</Link>
           <Link href={`/torneios/${tournament.id}?tab=games`} className="button button-primary">Jogos</Link>
         </div>
       </div>
@@ -80,21 +80,7 @@ export function TournamentCategoriesTab({ tournament }: { tournament: NonNullabl
     <div className="stack-md">
       <article className="section-card">
         <h3>Categorias do torneio</h3>
-        <p className="muted">Lista de categorias ativas e ordem usada nas inscricoes.</p>
-        <div className="simple-list">
-          {tournament.categories.map((category, index) => (
-            <div key={category.id} className="simple-item">
-              <strong>{category.name}</strong>
-              <span>
-                Nivel #{category.level || index + 1} · Adic. 2ª: R$ {(category.priceSecondCents / 100).toFixed(2)} · Adic. 3ª+: R$ {(category.priceThirdCents / 100).toFixed(2)}
-              </span>
-            </div>
-          ))}
-          {!tournament.categories.length ? <p className="muted">Sem categorias cadastradas.</p> : null}
-        </div>
-      </article>
-      <article className="section-card">
-        <h3>Editar e criar categorias</h3>
+        <p className="muted">Clique em cada categoria para expandir e configurar.</p>
         <TournamentCategoryManagerForm
           tournamentId={tournament.id}
           defaultName={tournament.name}
@@ -115,6 +101,7 @@ export function TournamentCategoriesTab({ tournament }: { tournament: NonNullabl
             priceSecondCents: category.priceSecondCents ?? 0,
             priceThirdCents: category.priceThirdCents ?? 0
           }))}
+          compactMode
         />
       </article>
       <div className="section-actions">
@@ -123,7 +110,6 @@ export function TournamentCategoriesTab({ tournament }: { tournament: NonNullabl
     </div>
   );
 }
-
 export function TournamentPairsTab({ tournament }: { tournament: NonNullable<TournamentDetails> }) {
   if (!tournament.pairs.length) {
     return <EmptyState title="Sem duplas montadas" description="Monte as duplas antes de distribuir os grupos." ctaLabel="Abrir Duplas" ctaHref="/duplas" />;
@@ -133,7 +119,7 @@ export function TournamentPairsTab({ tournament }: { tournament: NonNullable<Tou
       {tournament.pairs.map((pair) => (
         <div key={pair.id} className="simple-item">
           <strong>{pair.name}</strong>
-          <span>{pair.totalPoints} pts · {pair.group?.name ?? "Sem grupo"}</span>
+          <span>{pair.totalPoints} pts Â· {pair.group?.name ?? "Sem grupo"}</span>
         </div>
       ))}
     </div>
@@ -142,19 +128,28 @@ export function TournamentPairsTab({ tournament }: { tournament: NonNullable<Tou
 
 export function TournamentGroupsTab({ tournament }: { tournament: NonNullable<TournamentDetails> }) {
   if (!tournament.groups.length) {
-    return <EmptyState title="Sem grupos montados" description="Distribua as duplas para montar os grupos do torneio." ctaLabel="Abrir Grupos" ctaHref="/grupos" />;
+    return <EmptyState title="Sem grupos montados" description="Distribua as duplas para montar os grupos do torneio." ctaLabel="Abrir Grupos" ctaHref={`/grupos?tournamentId=${tournament.id}`} />;
   }
   return (
-    <div className="group-grid">
-      {tournament.groups.map((group) => (
-        <article className="section-card" key={group.id}>
-          <h3>{group.name}</h3>
-          <p className="muted">{group.pairs.length} duplas</p>
-          <div className="group-list">
-            {group.pairs.map((pair) => <div key={pair.id} className="group-item"><strong>{pair.name}</strong><span>{pair.totalPoints} pts</span></div>)}
-          </div>
-        </article>
-      ))}
+    <div className="stack-md">
+      <article className="section-card">
+        <h3>Gestão de grupos</h3>
+        <p className="muted">A gestão principal de grupos fica na página da sidebar para manter tudo sincronizado.</p>
+        <div className="section-actions">
+          <Link href={`/grupos?tournamentId=${tournament.id}`} className="button button-primary">Abrir Grupos</Link>
+        </div>
+      </article>
+      <div className="group-grid">
+        {tournament.groups.map((group) => (
+          <article className="section-card" key={group.id}>
+            <h3>{group.name}</h3>
+            <p className="muted">{group.pairs.length} duplas</p>
+            <div className="group-list">
+              {group.pairs.map((pair) => <div key={pair.id} className="group-item"><strong>{pair.name}</strong><span>{pair.totalPoints} pts</span></div>)}
+            </div>
+          </article>
+        ))}
+      </div>
     </div>
   );
 }
@@ -185,7 +180,7 @@ export function TournamentGamesTab({ tournament }: { tournament: NonNullable<Tou
         </article>
       ))}
       <div className="section-actions">
-        <Link href="/jogos" className="button button-primary">Abrir gestão completa de jogos</Link>
+        <Link href="/jogos" className="button button-primary">Abrir gestÃ£o completa de jogos</Link>
       </div>
     </div>
   );
@@ -194,7 +189,7 @@ export function TournamentGamesTab({ tournament }: { tournament: NonNullable<Tou
 export function TournamentBracketTab({ tournament }: { tournament: NonNullable<TournamentDetails> }) {
   const knockout = tournament.matches.filter((match) => match.stage !== "GROUP");
   if (!tournament.matches.length) {
-    return <EmptyState title="Chave ainda não gerada" description="Monte grupos e gere jogos para visualizar a chave." ctaLabel="Gerar jogos" ctaHref="/jogos" />;
+    return <EmptyState title="Chave ainda nÃ£o gerada" description="Monte grupos e gere jogos para visualizar a chave." ctaLabel="Gerar jogos" ctaHref="/jogos" />;
   }
   return (
     <div className="stack-md">
@@ -209,14 +204,14 @@ export function TournamentResultsTab({ tournament }: { tournament: NonNullable<T
   const champion = finals.find((match) => !!match.winnerPair)?.winnerPair?.name ?? "A definir";
   return (
     <div className="stack-md">
-      <article className="section-card"><h3>Campeão</h3><p>{champion}</p></article>
+      <article className="section-card"><h3>CampeÃ£o</h3><p>{champion}</p></article>
       <article className="section-card">
         <h3>Resultados consolidados</h3>
         <div className="simple-list">
           {tournament.matches.map((match) => (
             <div className="simple-item" key={match.id}>
               <strong>{match.label}</strong>
-              <span>{match.homeScore ?? "-"} x {match.awayScore ?? "-"} · {match.winnerPair?.name ?? "Sem vencedor"}</span>
+              <span>{match.homeScore ?? "-"} x {match.awayScore ?? "-"} Â· {match.winnerPair?.name ?? "Sem vencedor"}</span>
             </div>
           ))}
         </div>
@@ -229,8 +224,8 @@ export function TournamentSettingsTab({ tournament, rankings }: { tournament: No
   return (
     <div className="stack-md">
       <article className="section-card">
-        <h3>Configurações do torneio</h3>
-        <p className="muted">Alterar a estrutura pode desmontar grupos e jogos já montados.</p>
+        <h3>ConfiguraÃ§Ãµes do torneio</h3>
+        <p className="muted">Alterar a estrutura pode desmontar grupos e jogos jÃ¡ montados.</p>
         <TournamentForm
           mode="update"
           tournamentId={tournament.id}
@@ -249,12 +244,13 @@ export function TournamentSettingsTab({ tournament, rankings }: { tournament: No
           defaultCategoryList={tournament.categories.map((category) => category.name).join(",")}
           defaultRankingId={tournament.rankingId ?? ""}
           rankings={rankings}
-          submitLabel="Salvar configurações"
+          submitLabel="Salvar configuraÃ§Ãµes"
           pendingLabel="Salvando..."
         />
       </article>
     </div>
   );
 }
+
 
 
