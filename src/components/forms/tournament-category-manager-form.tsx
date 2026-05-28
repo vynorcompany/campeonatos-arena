@@ -114,7 +114,7 @@ export function TournamentCategoryManagerForm(props: TournamentCategoryManagerFo
 
       <div className="field">
         <label>Categorias em ordem</label>
-        <p className="muted">A ordem define o nível. Configure os valores da 2ª e da 3ª+ inscrição por categoria.</p>
+        <p className="muted">A ordem define o nível. Configure os adicionais da 2ª e da 3ª+ inscrição por categoria.</p>
         <div className="stack-xs">
           <div className="simple-grid simple-grid-2">
             {TOURNAMENT_CATEGORY_PRESETS.map((category) => (
@@ -137,7 +137,7 @@ export function TournamentCategoryManagerForm(props: TournamentCategoryManagerFo
               <div key={category} className="section-card" style={{ minWidth: "280px" }}>
                 <strong>{category}</strong>
                 <div className="field" style={{ marginTop: "8px" }}>
-                  <label>Valor 2ª inscrição</label>
+                  <label>Adicional 2ª inscrição</label>
                   <input
                     value={priceByCategory[category]?.second ?? "0"}
                     onChange={(event) => updateCategoryPrice(category, "second", event.target.value)}
@@ -145,7 +145,7 @@ export function TournamentCategoryManagerForm(props: TournamentCategoryManagerFo
                   />
                 </div>
                 <div className="field">
-                  <label>Valor 3ª inscrição+</label>
+                  <label>Adicional 3ª inscrição+</label>
                   <input
                     value={priceByCategory[category]?.third ?? "0"}
                     onChange={(event) => updateCategoryPrice(category, "third", event.target.value)}

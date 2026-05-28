@@ -160,12 +160,12 @@ export function TournamentWizard({ rankings }: { rankings: { id: string; name: s
           <input id="priceFirstCents" name="priceFirstCents" defaultValue="70" placeholder="R$ 70" required />
         </div>
         <div className="field">
-          <label htmlFor="priceSecondCents">Valor 2ª inscrição</label>
-          <input id="priceSecondCents" name="priceSecondCents" defaultValue="100" placeholder="R$ 100" required />
+          <label htmlFor="priceSecondCents">Adicional da 2ª inscrição</label>
+          <input id="priceSecondCents" name="priceSecondCents" defaultValue="30" placeholder="R$ 30" required />
         </div>
         <div className="field">
-          <label htmlFor="priceThirdCents">Valor 3ª inscrição+</label>
-          <input id="priceThirdCents" name="priceThirdCents" defaultValue="120" placeholder="R$ 120" required />
+          <label htmlFor="priceThirdCents">Adicional da 3ª inscrição+</label>
+          <input id="priceThirdCents" name="priceThirdCents" defaultValue="20" placeholder="R$ 20" required />
         </div>
         <div className="field">
           <label htmlFor="rankingId">Ranking vinculado</label>

@@ -86,7 +86,7 @@ export function TournamentCategoriesTab({ tournament }: { tournament: NonNullabl
             <div key={category.id} className="simple-item">
               <strong>{category.name}</strong>
               <span>
-                Nivel #{category.level || index + 1} · 2ª: R$ {(category.priceSecondCents / 100).toFixed(2)} · 3ª+: R$ {(category.priceThirdCents / 100).toFixed(2)}
+                Nivel #{category.level || index + 1} · Adic. 2ª: R$ {(category.priceSecondCents / 100).toFixed(2)} · Adic. 3ª+: R$ {(category.priceThirdCents / 100).toFixed(2)}
               </span>
             </div>
           ))}
