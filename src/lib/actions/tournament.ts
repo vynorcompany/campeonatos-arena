@@ -51,6 +51,7 @@ import {
   updateTournamentPair,
   updateMatchResult
 } from "@/lib/services/tournament";
+import { ensureTournamentPairFromRegistration } from "@/lib/services/registration-pair";
 
 export type ActionState = {
   error: string | null;
@@ -234,6 +235,7 @@ function normalizeDateInput(input: unknown) {
   }
   return value;
 }
+
 
 export async function createPlayerAction(_: ActionState, formData: FormData): Promise<ActionState> {
   const auth = await requireModuleEdit("players");
@@ -1227,25 +1229,34 @@ export async function createManualTournamentRegistrationAction(_: ActionState, f
 
   const amountCents = parseReaisToCents(parsed.data.amountReais);
 
-  await prisma.publicTournamentRegistration.create({
-    data: {
+  await prisma.$transaction(async (tx) => {
+    await tx.publicTournamentRegistration.create({
+      data: {
+        tournamentId: tournament.id,
+        categoryId: parsed.data.categoryId,
+        leadName: parsed.data.leadName,
+        leadPhone: parsed.data.leadPhone,
+        leadCpf: parsed.data.leadCpf,
+        leadBirthDate: parsed.data.leadBirthDate,
+        partnerName: parsed.data.partnerName,
+        partnerPhone: parsed.data.partnerPhone,
+        partnerCpf: parsed.data.partnerCpf,
+        partnerBirthDate: parsed.data.partnerBirthDate,
+        registrationOrder: registrationCount + 1,
+        amountCents,
+        paymentStatus: parsed.data.paymentStatus,
+        status: parsed.data.paymentStatus === "PAID" ? "CONFIRMED" : "PENDING_PAYMENT",
+        paymentProvider: "MANUAL",
+        paymentReference: ""
+      }
+    });
+
+    await ensureTournamentPairFromRegistration(tx, {
+      arenaId: auth.arenaId,
       tournamentId: tournament.id,
-      categoryId: parsed.data.categoryId,
       leadName: parsed.data.leadName,
-      leadPhone: parsed.data.leadPhone,
-      leadCpf: parsed.data.leadCpf,
-      leadBirthDate: parsed.data.leadBirthDate,
-      partnerName: parsed.data.partnerName,
-      partnerPhone: parsed.data.partnerPhone,
-      partnerCpf: parsed.data.partnerCpf,
-      partnerBirthDate: parsed.data.partnerBirthDate,
-      registrationOrder: registrationCount + 1,
-      amountCents,
-      paymentStatus: parsed.data.paymentStatus,
-      status: parsed.data.paymentStatus === "PAID" ? "CONFIRMED" : "PENDING_PAYMENT",
-      paymentProvider: "MANUAL",
-      paymentReference: ""
-    }
+      partnerName: parsed.data.partnerName
+    });
   });
 
   refreshTournamentRoutes();
@@ -1338,6 +1349,31 @@ export async function updateTournamentRegistrationAction(
       status: parsed.data.paymentStatus === "PAID" ? "CONFIRMED" : "PENDING_PAYMENT"
     }
   });
+
+  if (parsed.data.paymentStatus === "PAID") {
+    const refreshed = await prisma.publicTournamentRegistration.findUnique({
+      where: { id: registration.id },
+      include: {
+        tournament: {
+          select: {
+            id: true,
+            arenaId: true
+          }
+        }
+      }
+    });
+
+    if (refreshed) {
+      await prisma.$transaction(async (tx) => {
+        await ensureTournamentPairFromRegistration(tx, {
+          arenaId: refreshed.tournament.arenaId,
+          tournamentId: refreshed.tournament.id,
+          leadName: refreshed.leadName,
+          partnerName: refreshed.partnerName
+        });
+      });
+    }
+  }
 
   refreshTournamentRoutes();
   revalidatePath(`/torneios/${parsed.data.tournamentId}`);

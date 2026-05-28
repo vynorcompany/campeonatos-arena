@@ -48,6 +48,7 @@ export function TournamentCategoryManagerForm(props: TournamentCategoryManagerFo
     )
   );
   const [customCategory, setCustomCategory] = useState("");
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
   const categoryList = useMemo(
     () =>
@@ -81,6 +82,7 @@ export function TournamentCategoryManagerForm(props: TournamentCategoryManagerFo
 
   function removeCategory(category: string) {
     setSelectedCategories((current) => current.filter((item) => item !== category));
+    setExpandedCategory((current) => (current === category ? null : current));
   }
 
   function updateCategoryPrice(category: string, key: "second" | "third", value: string) {
@@ -135,26 +137,39 @@ export function TournamentCategoryManagerForm(props: TournamentCategoryManagerFo
           <div className="field-inline" style={{ flexWrap: "wrap", gap: "8px" }}>
             {selectedCategories.map((category) => (
               <div key={category} className="section-card" style={{ minWidth: "280px" }}>
-                <strong>{category}</strong>
-                <div className="field" style={{ marginTop: "8px" }}>
-                  <label>Adicional 2ª inscrição</label>
-                  <input
-                    value={priceByCategory[category]?.second ?? "0"}
-                    onChange={(event) => updateCategoryPrice(category, "second", event.target.value)}
-                    placeholder="R$ 30"
-                  />
+                <div className="section-actions" style={{ justifyContent: "space-between", alignItems: "center" }}>
+                  <strong>{category}</strong>
+                  <button
+                    type="button"
+                    className="button"
+                    onClick={() => setExpandedCategory((current) => (current === category ? null : category))}
+                  >
+                    {expandedCategory === category ? "Fechar" : "Configurar"}
+                  </button>
                 </div>
-                <div className="field">
-                  <label>Adicional 3ª inscrição+</label>
-                  <input
-                    value={priceByCategory[category]?.third ?? "0"}
-                    onChange={(event) => updateCategoryPrice(category, "third", event.target.value)}
-                    placeholder="R$ 20"
-                  />
-                </div>
-                <button type="button" className="button" onClick={() => removeCategory(category)}>
-                  Remover
-                </button>
+                {expandedCategory === category ? (
+                  <>
+                    <div className="field" style={{ marginTop: "8px" }}>
+                      <label>Adicional 2ª inscrição</label>
+                      <input
+                        value={priceByCategory[category]?.second ?? "0"}
+                        onChange={(event) => updateCategoryPrice(category, "second", event.target.value)}
+                        placeholder="R$ 30"
+                      />
+                    </div>
+                    <div className="field">
+                      <label>Adicional 3ª inscrição+</label>
+                      <input
+                        value={priceByCategory[category]?.third ?? "0"}
+                        onChange={(event) => updateCategoryPrice(category, "third", event.target.value)}
+                        placeholder="R$ 20"
+                      />
+                    </div>
+                    <button type="button" className="button" onClick={() => removeCategory(category)}>
+                      Remover
+                    </button>
+                  </>
+                ) : null}
               </div>
             ))}
           </div>

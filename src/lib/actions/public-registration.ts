@@ -1,7 +1,9 @@
 ﻿"use server";
 
 import { revalidatePath } from "next/cache";
+import { createCardCheckout, createPixPayment } from "@/lib/payments/mercado-pago";
 import { prisma } from "@/lib/prisma";
+import { ensureTournamentPairFromRegistration } from "@/lib/services/registration-pair";
 import { createPublicRegistrationSchema } from "@/lib/validators/public-registration";
 
 type PublicRegistrationState = {
@@ -142,25 +144,72 @@ export async function createPublicRegistrationAction(
           partnerBirthDate: parsed.data.partnerBirthDate,
           registrationOrder,
           amountCents,
-          paymentStatus: "PAID",
-          paymentProvider: "TEST_NO_PAYMENT",
-          paymentReference: "TEST_NO_PAYMENT",
-          status: "CONFIRMED"
+          paymentStatus: "PENDING",
+          paymentProvider: "",
+          paymentReference: "",
+          status: "PENDING_PAYMENT"
         }
       });
 
-      return { registration, amountCents, tournamentName: tournament.name };
+      return { registration, amountCents, tournamentName: tournament.name, arenaId: tournament.arenaId };
     });
+
+    const paymentPayload = {
+      amountCents: result.amountCents,
+      description: `Inscrição ${result.tournamentName}`,
+      payerEmail: parsed.data.leadEmail,
+      externalReference: result.registration.id
+    };
+
+    const payment =
+      parsed.data.paymentMethod === "CARD"
+        ? await createCardCheckout(paymentPayload)
+        : await createPixPayment(paymentPayload);
+
+    await prisma.publicTournamentRegistration.update({
+      where: { id: result.registration.id },
+      data: {
+        paymentProvider: payment.provider,
+        paymentReference: payment.reference,
+        mercadoPagoPaymentId: payment.paymentId,
+        paymentQrCode: payment.qrCode,
+        paymentQrCodeBase64: payment.qrCodeBase64,
+        paymentCheckoutUrl: payment.checkoutUrl,
+        paymentExpiresAt: payment.expiresAt
+      }
+    });
+
+    if (payment.provider === "PIX_MOCK") {
+      await prisma.$transaction(async (tx) => {
+        await tx.publicTournamentRegistration.update({
+          where: { id: result.registration.id },
+          data: {
+            paymentStatus: "PAID",
+            status: "CONFIRMED"
+          }
+        });
+
+        await ensureTournamentPairFromRegistration(tx, {
+          arenaId: result.arenaId,
+          tournamentId: result.registration.tournamentId,
+          leadName: result.registration.leadName,
+          partnerName: result.registration.partnerName
+        });
+      });
+    }
 
     revalidatePath(`/inscricao/${parsed.data.tournamentSlug}`);
     return {
       error: null,
-      success: "Inscricao criada e confirmada com sucesso (modo teste sem pagamento).",
-      paymentReference: "TEST_NO_PAYMENT",
+      success:
+        payment.provider === "PIX_MOCK"
+          ? "Inscricao criada e confirmada com sucesso (modo teste sem pagamento)."
+          : "Inscricao criada. Conclua o pagamento para confirmar a vaga no torneio.",
+      paymentReference: payment.reference,
       amountCents: result.amountCents,
-      paymentQrCode: "",
-      paymentQrCodeBase64: "",
-      paymentCheckoutUrl: "",
+      paymentQrCode: payment.qrCode,
+      paymentQrCodeBase64: payment.qrCodeBase64,
+      paymentCheckoutUrl: payment.checkoutUrl,
       paymentMethod: parsed.data.paymentMethod
     };
   } catch (error) {
