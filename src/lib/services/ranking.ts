@@ -71,6 +71,20 @@ type RankingCycleSource = {
   endedAt: Date | null;
 };
 
+function getMonthKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return `${year}-${month}`;
+}
+
+function getMonthStart(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function getMonthEnd(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 1);
+}
+
 function buildRankingLeaderboard(entries: RankingSourceEntry[]) {
   const grouped = new Map<string, RankingLeaderboardPlayer>();
 
@@ -126,39 +140,33 @@ function buildTournamentSummaries(entries: RankingSourceEntry[]) {
 }
 
 function isEntryInCycle(entry: RankingSourceEntry, cycle: RankingCycleSource) {
-  if (entry.tournament.createdAt < cycle.startedAt) {
-    return false;
-  }
-
-  if (cycle.endedAt && entry.tournament.createdAt >= cycle.endedAt) {
-    return false;
-  }
-
-  return true;
+  return getMonthKey(entry.tournament.createdAt) === getMonthKey(cycle.startedAt);
 }
 
 function getCurrentCycle(cycles: RankingCycleSource[]) {
-  return cycles.find((cycle) => cycle.endedAt === null) ?? cycles[cycles.length - 1] ?? null;
+  const currentMonthKey = getMonthKey(new Date());
+  return cycles.find((cycle) => getMonthKey(cycle.startedAt) === currentMonthKey) ?? cycles[cycles.length - 1] ?? null;
 }
 
 function buildCycleLabel(index: number, cycle: RankingCycleSource) {
   const month = new Intl.DateTimeFormat("pt-BR", { month: "long" }).format(cycle.startedAt);
   const year = cycle.startedAt.getFullYear();
-  const suffix = index + 1;
+  const customLabel = cycle.label.trim();
 
-  if (cycle.label.trim()) {
-    return cycle.label.trim();
+  if (customLabel && !/^ciclo\s+\d+$/i.test(customLabel) && customLabel.toLowerCase() !== "ciclo atual") {
+    return customLabel;
   }
 
-  return `Ciclo ${suffix} · ${month} ${year}`;
+  return `${month} ${year}`;
 }
 
 function buildVirtualCycle(rankingCreatedAt: Date): RankingCycleSource {
+  const currentMonth = new Date();
   return {
-    id: "current",
+    id: getMonthKey(currentMonth),
     label: "Ciclo atual",
-    startedAt: rankingCreatedAt,
-    endedAt: null
+    startedAt: getMonthStart(currentMonth),
+    endedAt: getMonthEnd(currentMonth)
   };
 }
 
@@ -167,18 +175,25 @@ function buildCycleSummaries(
   cycles: RankingCycleSource[],
   sourceEntries: RankingSourceEntry[]
 ): RankingCycleSummary[] {
-  const normalizedCycles = cycles.length ? cycles : [buildVirtualCycle(rankingCreatedAt)];
+  const currentMonthKey = getMonthKey(new Date());
+  const normalizedCycles = cycles.length ? [...cycles] : [buildVirtualCycle(rankingCreatedAt)];
 
-  return normalizedCycles.map((cycle, index) => {
+  if (!normalizedCycles.some((cycle) => getMonthKey(cycle.startedAt) === currentMonthKey)) {
+    normalizedCycles.push(buildVirtualCycle(rankingCreatedAt));
+  }
+
+  const monthCycles = [...new Map(normalizedCycles.map((cycle) => [getMonthKey(cycle.startedAt), cycle] as const)).values()];
+
+  return monthCycles.map((cycle) => {
     const entries = sourceEntries.filter((entry) => isEntryInCycle(entry, cycle));
     const tournamentCount = new Set(entries.map((entry) => entry.tournament.id)).size;
 
     return {
-      id: cycle.id,
-      label: buildCycleLabel(index, cycle),
-      startedAt: cycle.startedAt,
+      id: getMonthKey(cycle.startedAt),
+      label: buildCycleLabel(0, cycle),
+      startedAt: getMonthStart(cycle.startedAt),
       endedAt: cycle.endedAt,
-      isCurrent: cycle.endedAt === null,
+      isCurrent: getMonthKey(cycle.startedAt) === currentMonthKey,
       tournamentCount,
       entryCount: entries.length
     };
@@ -212,10 +227,11 @@ function buildRankingView(
 ): RankingProfileWithLeaderboard {
   const cycles = buildCycleSummaries(ranking.createdAt, ranking.cycles, sourceEntries);
   const cycleSource = ranking.cycles.length ? ranking.cycles : [buildVirtualCycle(ranking.createdAt)];
+  const currentMonthKey = getMonthKey(new Date());
   const selectedCycle =
-    cycleSource.find((cycle) => cycle.id === selectedCycleId) ??
-    getCurrentCycle(cycleSource) ??
-    cycleSource[0];
+    (selectedCycleId ? cycleSource.find((cycle) => getMonthKey(cycle.startedAt) === selectedCycleId) : null) ??
+    cycleSource.find((cycle) => getMonthKey(cycle.startedAt) === currentMonthKey) ??
+    buildVirtualCycle(ranking.createdAt);
   const selectedEntries = sourceEntries.filter((entry) => isEntryInCycle(entry, selectedCycle));
   const leaderboard = buildRankingLeaderboard(selectedEntries);
   const tournaments = buildTournamentSummaries(selectedEntries);
@@ -227,7 +243,7 @@ function buildRankingView(
     rules: ranking.rules,
     tournaments,
     cycles,
-    selectedCycleId: selectedCycle.id,
+    selectedCycleId: getMonthKey(selectedCycle.startedAt),
     _count: ranking._count,
     leaderboard,
     linkedPlayers: leaderboard.length,

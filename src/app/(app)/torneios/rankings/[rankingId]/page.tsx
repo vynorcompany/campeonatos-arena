@@ -33,18 +33,11 @@ function formatTournamentLabel(status: string) {
   }
 }
 
-function formatCyclePeriod(startedAt: Date, endedAt: Date | null) {
-  const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
+function formatCyclePeriod(startedAt: Date) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    month: "long",
     year: "numeric"
-  });
-
-  if (!endedAt) {
-    return `${dateFormatter.format(startedAt)} - agora`;
-  }
-
-  return `${dateFormatter.format(startedAt)} - ${dateFormatter.format(endedAt)}`;
+  }).format(startedAt);
 }
 
 export default async function RankingDetailPage({ params, searchParams }: RankingDetailPageProps) {
@@ -82,10 +75,10 @@ export default async function RankingDetailPage({ params, searchParams }: Rankin
           <form className="inline-form" method="get">
             <div className="field">
               <label htmlFor="cycleId">Filtrar período</label>
-              <select id="cycleId" name="cycleId" defaultValue={selectedCycle?.id ?? "current"}>
+              <select id="cycleId" name="cycleId" defaultValue={ranking.selectedCycleId}>
                 {ranking.cycles.map((cycle) => (
                   <option key={cycle.id} value={cycle.id}>
-                    {cycle.label} · {formatCyclePeriod(cycle.startedAt, cycle.endedAt)}
+                    {cycle.label} · {formatCyclePeriod(cycle.startedAt)}
                   </option>
                 ))}
               </select>
@@ -219,7 +212,7 @@ export default async function RankingDetailPage({ params, searchParams }: Rankin
                     {cycle.id === ranking.selectedCycleId ? " · selecionado" : ""}
                   </strong>
                   <span>
-                    {formatCyclePeriod(cycle.startedAt, cycle.endedAt)} · {cycle.tournamentCount} torneios · {cycle.entryCount} entradas
+                    {formatCyclePeriod(cycle.startedAt)} · {cycle.tournamentCount} torneios · {cycle.entryCount} entradas
                   </span>
                 </div>
                 <Link href={`/torneios/rankings/${ranking.id}?cycleId=${cycle.id}`} className="button">
