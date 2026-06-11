@@ -18,6 +18,7 @@ export function LiveQueryInput({
   const pathname = usePathname();
   const params = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const currentParams = params ?? new URLSearchParams();
 
   return (
     <input
@@ -28,7 +29,7 @@ export function LiveQueryInput({
       aria-label={ariaLabel}
       onChange={(event) => {
         const value = event.currentTarget.value;
-        const next = new URLSearchParams(params.toString());
+        const next = new URLSearchParams(currentParams.toString());
         if (value.trim()) next.set(name, value);
         else next.delete(name);
 

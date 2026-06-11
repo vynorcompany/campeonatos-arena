@@ -62,7 +62,7 @@ function isActivePath(pathname: string, href: string) {
 }
 
 export function AgencyNavLinks() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const openItemsStorageKey = "arena:agency-sidebar-open-items";
   const initialOpenItems = groups.flatMap((group) =>
     group.links.filter((item) => isActivePath(pathname, item.href)).map((item) => item.href)

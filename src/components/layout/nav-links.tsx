@@ -148,7 +148,7 @@ function NavIcon({ name }: { name: IconName }) {
 }
 
 export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const openItemsStorageKey = "arena:sidebar-open-items";
   const canSee = (module: string) => visibleModules.includes(module);
   const navigationGroups: NavGroup[] = [

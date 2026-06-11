@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard } from "@/components/section-card";
@@ -8,8 +9,8 @@ import {
   updateRankingProfileAction
 } from "@/lib/actions/tournament";
 import { requireModuleView } from "@/lib/auth/guards";
-import { prisma } from "@/lib/prisma";
 import { getArenaDashboard } from "@/lib/services/tournament";
+import { getRankingProfilesWithLeaderboard } from "@/lib/services/ranking";
 
 const stageOrder = ["CHAMPION", "RUNNER_UP", "SEMIFINAL", "QUARTERFINAL", "PARTICIPATION"] as const;
 
@@ -37,31 +38,7 @@ export default async function TournamentRankingsPage() {
   const auth = await requireModuleView("tournaments");
   const [{ activeTournament, players }, rankings] = await Promise.all([
     getArenaDashboard(auth.arenaId),
-    prisma.rankingProfile.findMany({
-      where: { arenaId: auth.arenaId },
-      orderBy: [{ createdAt: "desc" }],
-      include: {
-        rules: {
-          orderBy: [{ displayOrder: "asc" }]
-        },
-        tournaments: {
-          where: {
-            status: {
-              not: "FINISHED"
-            }
-          },
-          select: {
-            id: true,
-            name: true
-          }
-        },
-        _count: {
-          select: {
-            tournaments: true
-          }
-        }
-      }
-    })
+    getRankingProfilesWithLeaderboard(auth.arenaId)
   ]);
 
   const arenaRanking = players.slice(0, 12);
@@ -182,9 +159,36 @@ export default async function TournamentRankingsPage() {
                         <strong>Total de torneios vinculados</strong>
                         <span>{ranking._count.tournaments}</span>
                       </div>
+                      <div className="simple-item">
+                        <strong>Classificacao do ranking</strong>
+                        <span>{ranking.linkedPlayers ? `${ranking.linkedPlayers} jogadores vinculados` : "Nenhum jogador vinculado ainda"}</span>
+                      </div>
+                      {ranking.leaderboard.length ? (
+                        <div className="form-full stack-sm">
+                          <strong>Preview da classificacao</strong>
+                          <div className="tv-ranking-preview">
+                            {ranking.leaderboard.slice(0, 5).map((entry, index) => (
+                              <div className="tv-ranking-preview-row" key={entry.playerId}>
+                                <strong>#{index + 1}</strong>
+                                <span>{entry.playerName}</span>
+                                <small>{entry.points} pts · {entry.tournamentsPlayed} torneios</small>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="form-full">
+                          <p className="muted">
+                            Ainda nao ha jogadores pontuados neste ranking. O vinculo acontece pelos torneios que selecionam este ranking.
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     <div className="form-full section-actions">
+                      <Link href={`/torneios/rankings/${ranking.id}`} className="button">
+                        Ver classificacao completa
+                      </Link>
                       <SubmitButton label="Salvar ranking" pendingLabel="Salvando..." className="button button-primary" />
                     </div>
                   </SafeActionForm>
