@@ -152,8 +152,8 @@ export default async function TournamentRankingsPage() {
 
                     <div className="form-full simple-list">
                       <div className="simple-item">
-                        <strong>Uso atual</strong>
-                        <span>{ranking.tournaments.length ? ranking.tournaments.map((tournament) => tournament.name).join(", ") : "Nenhum torneio em andamento usando este ranking"}</span>
+                        <strong>Uso no período atual</strong>
+                        <span>{ranking.tournaments.length ? ranking.tournaments.map((tournament) => tournament.name).join(", ") : "Nenhum torneio neste ciclo usando este ranking"}</span>
                       </div>
                       <div className="simple-item">
                         <strong>Total de torneios vinculados</strong>

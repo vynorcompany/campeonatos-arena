@@ -592,6 +592,13 @@ export async function createRankingProfileAction(formData: FormData) {
     }
   });
 
+  await prisma.rankingCycle.create({
+    data: {
+      rankingId: ranking.id,
+      label: "Ciclo 1",
+      startedAt: ranking.createdAt
+    }
+  });
   await syncRankingRules(ranking.id, parsed.data);
   refreshTournamentRoutes();
 }
@@ -644,6 +651,91 @@ export async function updateRankingProfileAction(formData: FormData) {
 
   await Promise.all(linkedTournaments.map((tournament) => recalculateTournamentRankingPoints(tournament.id)));
   refreshTournamentRoutes();
+  revalidatePath(`/torneios/rankings/${parsed.data.rankingId}`);
+}
+
+export async function resetRankingPointsAction(formData: FormData) {
+  const auth = await requireModuleEdit("tournaments");
+  const rankingId = String(formData.get("rankingId") ?? "");
+
+  if (!rankingId) {
+    throw new Error("Ranking inválido.");
+  }
+
+  const ranking = await prisma.rankingProfile.findFirst({
+    where: {
+      id: rankingId,
+      arenaId: auth.arenaId
+    },
+    select: {
+      id: true,
+      createdAt: true
+    }
+  });
+
+  if (!ranking) {
+    throw new Error("Ranking não encontrado.");
+  }
+
+  const currentCycle = await prisma.rankingCycle.findFirst({
+    where: {
+      rankingId: ranking.id,
+      endedAt: null
+    },
+    orderBy: {
+      startedAt: "desc"
+    },
+    select: {
+      id: true
+    }
+  });
+
+  const existingCycleCount = await prisma.rankingCycle.count({
+    where: {
+      rankingId: ranking.id
+    }
+  });
+
+  const now = new Date();
+
+  await prisma.$transaction(async (tx) => {
+    if (currentCycle) {
+      await tx.rankingCycle.update({
+        where: {
+          id: currentCycle.id
+        },
+        data: {
+          endedAt: now
+        }
+      });
+    } else if (!existingCycleCount) {
+      await tx.rankingCycle.create({
+        data: {
+          rankingId: ranking.id,
+          label: "Ciclo 1",
+          startedAt: ranking.createdAt,
+          endedAt: now
+        }
+      });
+    }
+
+    const cycleCount = await tx.rankingCycle.count({
+      where: {
+        rankingId: ranking.id
+      }
+    });
+
+    await tx.rankingCycle.create({
+      data: {
+        rankingId: ranking.id,
+        label: `Ciclo ${cycleCount + 1}`,
+        startedAt: now
+      }
+    });
+  });
+
+  refreshTournamentRoutes();
+  revalidatePath(`/torneios/rankings/${ranking.id}`);
 }
 
 export async function deleteRankingProfileAction(formData: FormData) {

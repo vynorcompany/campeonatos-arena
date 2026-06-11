@@ -302,6 +302,7 @@ model RankingProfile {
   arena       Arena         @relation(fields: [arenaId], references: [id], onDelete: Cascade)
   rules       RankingRule[]
   tournaments Tournament[]
+  cycles      RankingCycle[]
 
   @@unique([arenaId, name])
   @@index([arenaId, active])
@@ -320,6 +321,20 @@ model RankingRule {
 
   @@unique([rankingId, stageKey])
   @@index([rankingId, displayOrder])
+}
+
+model RankingCycle {
+  id         String         @id @default(cuid())
+  label      String         @default("")
+  startedAt  DateTime       @default(now())
+  endedAt    DateTime?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  rankingId  String
+  ranking    RankingProfile @relation(fields: [rankingId], references: [id], onDelete: Cascade)
+
+  @@index([rankingId, startedAt])
+  @@index([rankingId, endedAt])
 }
 
 model TournamentPlayer {

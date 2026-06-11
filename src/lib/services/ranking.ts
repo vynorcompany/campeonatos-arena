@@ -13,6 +13,16 @@ export type RankingLeaderboardPlayer = {
   lastTournamentAt: Date | null;
 };
 
+export type RankingCycleSummary = {
+  id: string;
+  label: string;
+  startedAt: Date;
+  endedAt: Date | null;
+  isCurrent: boolean;
+  tournamentCount: number;
+  entryCount: number;
+};
+
 export type RankingProfileWithLeaderboard = {
   id: string;
   name: string;
@@ -28,6 +38,8 @@ export type RankingProfileWithLeaderboard = {
     status: string;
     createdAt: Date;
   }>;
+  cycles: RankingCycleSummary[];
+  selectedCycleId: string;
   _count: {
     tournaments: number;
   };
@@ -50,6 +62,13 @@ type RankingSourceEntry = {
     active: boolean;
     photoUrl: string;
   };
+};
+
+type RankingCycleSource = {
+  id: string;
+  label: string;
+  startedAt: Date;
+  endedAt: Date | null;
 };
 
 function buildRankingLeaderboard(entries: RankingSourceEntry[]) {
@@ -89,6 +108,133 @@ function buildRankingLeaderboard(entries: RankingSourceEntry[]) {
   });
 }
 
+function buildTournamentSummaries(entries: RankingSourceEntry[]) {
+  const tournaments = new Map<string, {
+    id: string;
+    name: string;
+    status: string;
+    createdAt: Date;
+  }>();
+
+  for (const entry of entries) {
+    if (!tournaments.has(entry.tournament.id)) {
+      tournaments.set(entry.tournament.id, entry.tournament);
+    }
+  }
+
+  return [...tournaments.values()].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+}
+
+function isEntryInCycle(entry: RankingSourceEntry, cycle: RankingCycleSource) {
+  if (entry.tournament.createdAt < cycle.startedAt) {
+    return false;
+  }
+
+  if (cycle.endedAt && entry.tournament.createdAt >= cycle.endedAt) {
+    return false;
+  }
+
+  return true;
+}
+
+function getCurrentCycle(cycles: RankingCycleSource[]) {
+  return cycles.find((cycle) => cycle.endedAt === null) ?? cycles[cycles.length - 1] ?? null;
+}
+
+function buildCycleLabel(index: number, cycle: RankingCycleSource) {
+  const month = new Intl.DateTimeFormat("pt-BR", { month: "long" }).format(cycle.startedAt);
+  const year = cycle.startedAt.getFullYear();
+  const suffix = index + 1;
+
+  if (cycle.label.trim()) {
+    return cycle.label.trim();
+  }
+
+  return `Ciclo ${suffix} · ${month} ${year}`;
+}
+
+function buildVirtualCycle(rankingCreatedAt: Date): RankingCycleSource {
+  return {
+    id: "current",
+    label: "Ciclo atual",
+    startedAt: rankingCreatedAt,
+    endedAt: null
+  };
+}
+
+function buildCycleSummaries(
+  rankingCreatedAt: Date,
+  cycles: RankingCycleSource[],
+  sourceEntries: RankingSourceEntry[]
+): RankingCycleSummary[] {
+  const normalizedCycles = cycles.length ? cycles : [buildVirtualCycle(rankingCreatedAt)];
+
+  return normalizedCycles.map((cycle, index) => {
+    const entries = sourceEntries.filter((entry) => isEntryInCycle(entry, cycle));
+    const tournamentCount = new Set(entries.map((entry) => entry.tournament.id)).size;
+
+    return {
+      id: cycle.id,
+      label: buildCycleLabel(index, cycle),
+      startedAt: cycle.startedAt,
+      endedAt: cycle.endedAt,
+      isCurrent: cycle.endedAt === null,
+      tournamentCount,
+      entryCount: entries.length
+    };
+  });
+}
+
+function buildRankingView(
+  ranking: {
+    id: string;
+    name: string;
+    description: string;
+    createdAt: Date;
+    rules: Array<{
+      stageKey: string;
+      points: number;
+      displayOrder: number;
+    }>;
+    tournaments: Array<{
+      id: string;
+      name: string;
+      status: string;
+      createdAt: Date;
+    }>;
+    _count: {
+      tournaments: number;
+    };
+    cycles: RankingCycleSource[];
+  },
+  sourceEntries: RankingSourceEntry[],
+  selectedCycleId?: string
+): RankingProfileWithLeaderboard {
+  const cycles = buildCycleSummaries(ranking.createdAt, ranking.cycles, sourceEntries);
+  const cycleSource = ranking.cycles.length ? ranking.cycles : [buildVirtualCycle(ranking.createdAt)];
+  const selectedCycle =
+    cycleSource.find((cycle) => cycle.id === selectedCycleId) ??
+    getCurrentCycle(cycleSource) ??
+    cycleSource[0];
+  const selectedEntries = sourceEntries.filter((entry) => isEntryInCycle(entry, selectedCycle));
+  const leaderboard = buildRankingLeaderboard(selectedEntries);
+  const tournaments = buildTournamentSummaries(selectedEntries);
+
+  return {
+    id: ranking.id,
+    name: ranking.name,
+    description: ranking.description,
+    rules: ranking.rules,
+    tournaments,
+    cycles,
+    selectedCycleId: selectedCycle.id,
+    _count: ranking._count,
+    leaderboard,
+    linkedPlayers: leaderboard.length,
+    linkedTournamentEntries: selectedEntries.length
+  };
+}
+
 async function getRankingSourceEntries(arenaId: string, rankingId: string) {
   return prisma.tournamentPlayer.findMany({
     where: {
@@ -119,41 +265,8 @@ async function getRankingSourceEntries(arenaId: string, rankingId: string) {
   });
 }
 
-export async function getRankingProfilesWithLeaderboard(arenaId: string): Promise<RankingProfileWithLeaderboard[]> {
-  const rankings = await prisma.rankingProfile.findMany({
-    where: { arenaId },
-    orderBy: [{ createdAt: "desc" }],
-    include: {
-      rules: {
-        orderBy: [{ displayOrder: "asc" }]
-      },
-      tournaments: {
-        where: {
-          status: {
-            not: "FINISHED"
-          }
-        },
-        select: {
-          id: true,
-          name: true,
-          status: true,
-          createdAt: true
-        }
-      },
-      _count: {
-        select: {
-          tournaments: true
-        }
-      }
-    }
-  });
-
-  if (!rankings.length) {
-    return [];
-  }
-
-  const rankingIds = rankings.map((ranking) => ranking.id);
-  const sourceEntries = await prisma.tournamentPlayer.findMany({
+async function getRankingSourceEntriesByRankingIds(arenaId: string, rankingIds: string[]) {
+  return prisma.tournamentPlayer.findMany({
     where: {
       tournament: {
         arenaId,
@@ -183,34 +296,61 @@ export async function getRankingProfilesWithLeaderboard(arenaId: string): Promis
       }
     }
   });
+}
+
+export async function getRankingProfilesWithLeaderboard(arenaId: string): Promise<RankingProfileWithLeaderboard[]> {
+  const rankings = await prisma.rankingProfile.findMany({
+    where: { arenaId },
+    orderBy: [{ createdAt: "desc" }],
+    include: {
+      rules: {
+        orderBy: [{ displayOrder: "asc" }]
+      },
+      cycles: {
+        orderBy: [{ startedAt: "asc" }],
+        select: {
+          id: true,
+          label: true,
+          startedAt: true,
+          endedAt: true
+        }
+      },
+      tournaments: {
+        select: {
+          id: true,
+          name: true,
+          status: true,
+          createdAt: true
+        }
+      },
+      _count: {
+        select: {
+          tournaments: true
+        }
+      }
+    }
+  });
+
+  if (!rankings.length) {
+    return [];
+  }
+
+  const rankingIds = rankings.map((ranking) => ranking.id);
+  const sourceEntries = await getRankingSourceEntriesByRankingIds(arenaId, rankingIds);
 
   const entriesByRankingId = new Map<string, RankingSourceEntry[]>();
-
   for (const entry of sourceEntries) {
     const current = entriesByRankingId.get(entry.tournament.rankingId ?? "") ?? [];
     current.push(entry);
     entriesByRankingId.set(entry.tournament.rankingId ?? "", current);
   }
 
-  return rankings.map((ranking) => {
-    const rankingEntries = entriesByRankingId.get(ranking.id) ?? [];
-    const leaderboard = buildRankingLeaderboard(rankingEntries);
-
-    return {
-      id: ranking.id,
-      name: ranking.name,
-      description: ranking.description,
-      rules: ranking.rules,
-      tournaments: ranking.tournaments,
-      _count: ranking._count,
-      leaderboard,
-      linkedPlayers: leaderboard.length,
-      linkedTournamentEntries: rankingEntries.length
-    };
-  });
+  return rankings.map((ranking) =>
+    buildRankingView(ranking, entriesByRankingId.get(ranking.id) ?? [])
+  );
 }
 
-export async function getRankingProfileLeaderboard(arenaId: string, rankingId: string) {
+export async function getRankingProfileLeaderboard(arenaId: string, rankingId: string, selectedCycleId?: string) {
   const ranking = await prisma.rankingProfile.findFirst({
     where: {
       id: rankingId,
@@ -220,8 +360,16 @@ export async function getRankingProfileLeaderboard(arenaId: string, rankingId: s
       rules: {
         orderBy: [{ displayOrder: "asc" }]
       },
+      cycles: {
+        orderBy: [{ startedAt: "asc" }],
+        select: {
+          id: true,
+          label: true,
+          startedAt: true,
+          endedAt: true
+        }
+      },
       tournaments: {
-        orderBy: [{ createdAt: "desc" }],
         select: {
           id: true,
           name: true,
@@ -242,17 +390,6 @@ export async function getRankingProfileLeaderboard(arenaId: string, rankingId: s
   }
 
   const sourceEntries = await getRankingSourceEntries(arenaId, ranking.id);
-  const leaderboard = buildRankingLeaderboard(sourceEntries);
 
-  return {
-    id: ranking.id,
-    name: ranking.name,
-    description: ranking.description,
-    rules: ranking.rules,
-    tournaments: ranking.tournaments,
-    _count: ranking._count,
-    leaderboard,
-    linkedPlayers: leaderboard.length,
-    linkedTournamentEntries: sourceEntries.length
-  };
+  return buildRankingView(ranking, sourceEntries, selectedCycleId);
 }
