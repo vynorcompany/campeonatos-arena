@@ -22,6 +22,8 @@ model User {
   openedTickets SupportTicket[] @relation("TicketRequester")
   assignedTickets SupportTicket[] @relation("TicketAssignee")
   ticketMessages SupportTicketMessage[]
+  regulationAcceptances RegulationAcceptance[] @relation("RegulationAcceptedBy")
+  regulationDocuments RegulationDocument[]
 }
 
 model Session {
@@ -84,6 +86,41 @@ model Arena {
   supportTickets SupportTicket[]
   tvPresentationSettings TvPresentationSettings?
   tvSponsors    TvSponsor[]
+  regulationAcceptances RegulationAcceptance[]
+  regulationDocuments RegulationDocument[]
+}
+
+model RegulationAcceptance {
+  id            String   @id @default(cuid())
+  content       String
+  acceptedAt    DateTime @default(now())
+  arenaId       String
+  acceptedById  String?
+  regulationDocumentId String?
+  arena         Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  acceptedBy    User?    @relation("RegulationAcceptedBy", fields: [acceptedById], references: [id], onDelete: SetNull)
+  regulationDocument RegulationDocument? @relation(fields: [regulationDocumentId], references: [id], onDelete: SetNull)
+
+  @@index([arenaId, acceptedAt])
+  @@index([acceptedById])
+  @@index([regulationDocumentId])
+}
+
+model RegulationDocument {
+  id          String   @id @default(cuid())
+  content     String
+  publicSlug  String   @unique
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  arenaId     String
+  createdById String?
+  arena       Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  acceptances RegulationAcceptance[]
+
+  @@index([arenaId, active])
+  @@index([arenaId, createdAt])
 }
 
 model SupportTicket {

@@ -239,6 +239,7 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
           icon: "building",
           children: [
             { href: "/arena", label: "Arena" },
+            { href: "/arena/regulamento", label: "Regulamento" },
             ...(canManageUsers ? [{ href: "/usuarios", label: "Usuários" }] : []),
             { href: "/minha-conta", label: "Minha conta" }
           ]
@@ -273,6 +274,7 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
     "/financeiro/lancamentos": "finance",
     "/financeiro/pdv-estoque": "finance",
     "/arena": "arena",
+    "/arena/regulamento": "arena",
     "/suporte": "support",
     "/usuarios": "users",
     "/minha-conta": "dashboard"
@@ -396,4 +398,3 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
     </nav>
   );
 }
-
