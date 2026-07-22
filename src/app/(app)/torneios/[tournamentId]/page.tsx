@@ -21,6 +21,7 @@ import { type TournamentTabKey } from "@/components/tournaments/tournament-tabs"
 import {
   deleteTournamentAction,
   finishTournamentAction,
+  reopenTournamentAction,
   updateTournamentStatusAction,
   updateTournamentRegistrationPhaseAction
 } from "@/lib/actions/tournament";
@@ -62,43 +63,55 @@ export default async function TournamentDetailPage({ params, searchParams }: Tou
           <StatusBadge status={tournament.status} />
           {tournament.registrationPhase === "REGISTRATIONS" ? <PublicRegistrationLinkActions slug={tournament.publicSlug} /> : null}
           <Link href={`/torneios/${tournament.id}?tab=settings`} className="button">Editar torneio</Link>
-          <form action={updateTournamentRegistrationPhaseAction} className="section-actions">
-            <input type="hidden" name="tournamentId" value={tournament.id} />
-            <select
-              name="registrationPhase"
-              defaultValue={tournament.registrationPhase}
-              className="button"
-              aria-label="Selecionar fase do torneio"
-              style={{ minWidth: "190px" }}
+          {tournament.status === "FINISHED" ? (
+            <SafeActionForm
+              action={reopenTournamentAction}
+              successMessage="Torneio reaberto para edição."
             >
-              <option value="REGISTRATIONS">Inscricoes abertas</option>
-              <option value="EDITING">Editando chaveamentos</option>
-              <option value="LIVE">Em andamento</option>
-              <option value="FINISHED">Finalizado</option>
-            </select>
-            <SubmitButton label="Atualizar fase" pendingLabel="Salvando..." className="button" />
-          </form>
-          <form action={updateTournamentStatusAction} className="section-actions">
-            <input type="hidden" name="tournamentId" value={tournament.id} />
-            <select
-              name="status"
-              defaultValue={tournament.status}
-              className="button"
-              aria-label="Selecionar status do torneio"
-              style={{ minWidth: "190px" }}
-            >
-              <option value="DRAFT">Rascunho</option>
-              <option value="READY_FOR_DRAW">Pronto para sorteio</option>
-              <option value="GROUPS_DEFINED">Grupos definidos</option>
-              <option value="MATCHES_DEFINED">Jogos definidos</option>
-              <option value="FINISHED">Finalizado</option>
-            </select>
-            <SubmitButton label="Atualizar status" pendingLabel="Salvando..." className="button" />
-          </form>
-          <form action={finishTournamentAction}>
-            <input type="hidden" name="tournamentId" value={tournament.id} />
-            <SubmitButton label="Encerrar torneio" pendingLabel="..." className="button" />
-          </form>
+              <input type="hidden" name="tournamentId" value={tournament.id} />
+              <SubmitButton label="Reabrir torneio" pendingLabel="Reabrindo..." className="button button-primary" />
+            </SafeActionForm>
+          ) : (
+            <>
+              <form action={updateTournamentRegistrationPhaseAction} className="section-actions">
+                <input type="hidden" name="tournamentId" value={tournament.id} />
+                <select
+                  name="registrationPhase"
+                  defaultValue={tournament.registrationPhase}
+                  className="button"
+                  aria-label="Selecionar fase do torneio"
+                  style={{ minWidth: "190px" }}
+                >
+                  <option value="REGISTRATIONS">Inscricoes abertas</option>
+                  <option value="EDITING">Editando chaveamentos</option>
+                  <option value="LIVE">Em andamento</option>
+                  <option value="FINISHED">Finalizado</option>
+                </select>
+                <SubmitButton label="Atualizar fase" pendingLabel="Salvando..." className="button" />
+              </form>
+              <form action={updateTournamentStatusAction} className="section-actions">
+                <input type="hidden" name="tournamentId" value={tournament.id} />
+                <select
+                  name="status"
+                  defaultValue={tournament.status}
+                  className="button"
+                  aria-label="Selecionar status do torneio"
+                  style={{ minWidth: "190px" }}
+                >
+                  <option value="DRAFT">Rascunho</option>
+                  <option value="READY_FOR_DRAW">Pronto para sorteio</option>
+                  <option value="GROUPS_DEFINED">Grupos definidos</option>
+                  <option value="MATCHES_DEFINED">Jogos definidos</option>
+                  <option value="FINISHED">Finalizado</option>
+                </select>
+                <SubmitButton label="Atualizar status" pendingLabel="Salvando..." className="button" />
+              </form>
+              <form action={finishTournamentAction}>
+                <input type="hidden" name="tournamentId" value={tournament.id} />
+                <SubmitButton label="Encerrar torneio" pendingLabel="..." className="button" />
+              </form>
+            </>
+          )}
           <SafeActionForm
             action={deleteTournamentAction}
             confirmKeyword="EXCLUIR"
