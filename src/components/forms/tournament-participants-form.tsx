@@ -56,6 +56,13 @@ function getConfirmationLabel(paymentStatus: string) {
   return paymentStatus === "PAID" ? "Confirmado" : "Nao confirmado";
 }
 
+function normalizeSearchValue(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
 export function TournamentParticipantsForm(props: TournamentParticipantsFormProps) {
   const { tournamentId, categories, registrations, players } = props;
   const [state, formAction] = useFormState(createManualTournamentRegistrationAction, initialState);
@@ -63,25 +70,45 @@ export function TournamentParticipantsForm(props: TournamentParticipantsFormProp
   const [syncState, syncAction] = useFormState(syncEntriesStateAction, initialState);
   const [search, setSearch] = useState("");
   const [editingRegistrationId, setEditingRegistrationId] = useState<string | null>(null);
-  const normalizedSearch = search.trim().toLowerCase();
+  const normalizedSearch = normalizeSearchValue(search.trim());
   const [selectedPlayerIds, setSelectedPlayerIds] = useState(() => new Set((players ?? []).filter((player) => player.checked).map((player) => player.id)));
+
+  const filteredPlayers = useMemo(() => {
+    if (!players) return [];
+    if (!normalizedSearch) return players;
+    return players.filter((player) => normalizeSearchValue(player.name).includes(normalizedSearch));
+  }, [normalizedSearch, players]);
 
   const filtered = useMemo(() => {
     if (!registrations) return [];
     if (!normalizedSearch) return registrations;
     return registrations.filter((item) => {
-      const blob = `${item.leadName} ${item.partnerName} ${item.categoryName}`.toLowerCase();
+      const blob = normalizeSearchValue(`${item.leadName} ${item.partnerName} ${item.categoryName}`);
       return blob.includes(normalizedSearch);
     });
   }, [normalizedSearch, registrations]);
 
   if (players) {
+    const filteredPlayerIds = new Set(filteredPlayers.map((player) => player.id));
+
     return (
       <form action={syncAction} className="stack-md">
         <input type="hidden" name="tournamentId" value={tournamentId} />
+        <div className="field">
+          <label htmlFor="player-search">Pesquisar participante</label>
+          <input
+            id="player-search"
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Digite o nome do participante"
+            autoComplete="off"
+          />
+        </div>
+        {!filteredPlayers.length ? <p className="muted">Nenhum participante encontrado.</p> : null}
         <div className="participant-grid">
           {players.map((player) => (
-            <label key={player.id} className="participant-option">
+            <label key={player.id} className="participant-option" hidden={!filteredPlayerIds.has(player.id)}>
               <input
                 type="checkbox"
                 name="playerIds"
@@ -184,7 +211,7 @@ export function TournamentParticipantsForm(props: TournamentParticipantsFormProp
         <h3>Inscritos pelo link e manuais</h3>
         <div className="field">
           <label htmlFor="participant-search">Buscar inscrito</label>
-          <input id="participant-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nome, dupla ou categoria" />
+          <input id="participant-search" type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nome, dupla ou categoria" />
         </div>
         {!safeFiltered.length ? (
           <p className="muted">Nenhuma inscricao encontrada.</p>
