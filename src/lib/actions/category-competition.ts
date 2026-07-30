@@ -10,6 +10,7 @@ import {
   moveCategoryPair,
   publishCategoryDraw,
   recordCategoryMatchResult,
+  removeCategoryPair,
   updateCategoryMatchSchedule,
 } from "@/lib/services/category-competition";
 import {
@@ -20,6 +21,7 @@ import {
   moveCategoryPairSchema,
   publishCategoryDrawSchema,
   recordCategoryMatchResultSchema,
+  removeCategoryPairSchema,
   updateCategoryMatchScheduleSchema,
 } from "@/lib/validators/category-competition";
 
@@ -71,6 +73,20 @@ export async function addManualPairAction(formData: FormData) {
     parsed.data.firstPlayerId,
     parsed.data.secondPlayerId,
   );
+  refreshCategoryCompetitionRoutes();
+  return result;
+}
+
+export async function removeCategoryPairAction(formData: FormData) {
+  const auth = await requireModuleEdit("tournaments");
+  const parsed = removeCategoryPairSchema.safeParse({
+    pairId: formData.get("pairId"),
+  });
+  if (!parsed.success) {
+    throw new Error(invalidInputMessage(parsed.error));
+  }
+
+  const result = await removeCategoryPair(auth.arenaId, parsed.data.pairId);
   refreshCategoryCompetitionRoutes();
   return result;
 }

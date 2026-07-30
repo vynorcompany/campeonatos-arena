@@ -92,4 +92,9 @@ export function validateManualPairEligibility(
   ) {
     throw new Error("Esta dupla já está inscrita na categoria.");
   }
+
+  const pairedPlayerIds = new Set(existingPairPlayerIds.flat());
+  if (players.some((player) => pairedPlayerIds.has(player.id))) {
+    throw new Error("Um dos atletas já está vinculado a uma dupla na categoria.");
+  }
 }

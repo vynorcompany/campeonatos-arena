@@ -531,7 +531,7 @@ export async function addManualPair(
         select: { drawOrder: true },
       });
 
-      return tx.categoryPair.create({
+      const pair = await tx.categoryPair.create({
         data: {
           competitionId: competition.id,
           name: `${orderedPlayers[0].name} / ${orderedPlayers[1].name}`,
@@ -540,16 +540,75 @@ export async function addManualPair(
             0,
           ),
           drawOrder: (lastPair?.drawOrder ?? 0) + 1,
-          players: {
-            create: orderedPlayers.map((player, index) => ({
-              playerId: player.id,
-              slot: index + 1,
-            })),
-          },
         },
       });
+
+      try {
+        await tx.categoryPairPlayer.createMany({
+          data: orderedPlayers.map((player, index) => ({
+            pairId: pair.id,
+            competitionId: competition.id,
+            playerId: player.id,
+            slot: index + 1,
+          })),
+        });
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2002"
+        ) {
+          throw new Error(
+            "Um dos atletas já está vinculado a uma dupla na categoria.",
+          );
+        }
+        throw error;
+      }
+
+      return pair;
     },
   );
+}
+
+export async function removeCategoryPair(
+  arenaId: string,
+  pairId: string,
+) {
+  return runSerializableTransaction(async (tx) => {
+    const pair = await tx.categoryPair.findFirst({
+      where: {
+        id: pairId,
+        competition: {
+          status: categoryCompetitionStatus.DRAFT,
+          category: {
+            active: true,
+            tournament: { arenaId },
+          },
+        },
+      },
+      select: {
+        id: true,
+        competitionId: true,
+      },
+    });
+    if (!pair) {
+      throw new Error("Dupla de competição em rascunho não encontrada.");
+    }
+
+    await tx.categoryMatch.deleteMany({
+      where: { competitionId: pair.competitionId },
+    });
+    await tx.categoryPair.updateMany({
+      where: { competitionId: pair.competitionId },
+      data: { groupId: null },
+    });
+    await tx.categoryGroup.deleteMany({
+      where: { competitionId: pair.competitionId },
+    });
+
+    return tx.categoryPair.delete({
+      where: { id: pair.id },
+    });
+  });
 }
 
 export async function generateCategoryDraw(

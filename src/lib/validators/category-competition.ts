@@ -91,6 +91,10 @@ export const addManualPairSchema = z
     }
   });
 
+export const removeCategoryPairSchema = z.object({
+  pairId: z.string().trim().min(1, "Dupla inválida."),
+});
+
 export const generateCategoryDrawSchema = z.object({
   competitionId: competitionIdSchema,
 });
@@ -120,11 +124,21 @@ export const recordCategoryMatchResultSchema = z
     }
   });
 
-export const updateCategoryMatchScheduleSchema = z.object({
-  matchId: z.string().trim().min(1, "Jogo inválido."),
-  scheduledDate: scheduledDateSchema,
-  scheduledTime: scheduledTimeSchema,
-});
+export const updateCategoryMatchScheduleSchema = z
+  .object({
+    matchId: z.string().trim().min(1, "Jogo inválido."),
+    scheduledDate: scheduledDateSchema,
+    scheduledTime: scheduledTimeSchema,
+  })
+  .superRefine((value, context) => {
+    if (Boolean(value.scheduledDate) !== Boolean(value.scheduledTime)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Informe a data e o horário do jogo.",
+        path: value.scheduledDate ? ["scheduledTime"] : ["scheduledDate"],
+      });
+    }
+  });
 
 export const finishCategoryCompetitionSchema = z.object({
   competitionId: competitionIdSchema,

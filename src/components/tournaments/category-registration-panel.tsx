@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { StatusBadge } from "@/components/tournaments/status-badge";
-import { addManualPairAction } from "@/lib/actions/category-competition";
+import {
+  addManualPairAction,
+  removeCategoryPairAction,
+} from "@/lib/actions/category-competition";
 import { canAddCategoryPair } from "@/lib/tournament-category/draw";
 import {
   getAvailableCategoryAthletes,
@@ -80,6 +83,7 @@ export function CategoryRegistrationPanel({
           eligibleAthletes,
           category.competition?.pairs.flatMap((pair) => pair.playerIds) ?? [],
         );
+        const canRemovePair = category.competition?.status === "DRAFT";
         const canAcceptManualPair =
           category.competition?.status === "DRAFT" &&
           canAddCategoryPair(
@@ -187,12 +191,28 @@ export function CategoryRegistrationPanel({
                     <div className="simple-list">
                       {category.competition.pairs.map((pair) => (
                         <div className="simple-item" key={pair.id}>
-                          <strong>{pair.name}</strong>
-                          <span>
-                            {pair.playerNames.length
-                              ? pair.playerNames.join(" / ")
-                              : "Atletas vinculados"}
-                          </span>
+                          <div className="match-copy">
+                            <strong>{pair.name}</strong>
+                            <span>
+                              {pair.playerNames.length
+                                ? pair.playerNames.join(" / ")
+                                : "Atletas vinculados"}
+                            </span>
+                          </div>
+                          {canRemovePair ? (
+                            <form action={removeCategoryPairAction}>
+                              <input
+                                type="hidden"
+                                name="pairId"
+                                value={pair.id}
+                              />
+                              <SubmitButton
+                                label="Remover dupla"
+                                pendingLabel="Removendo..."
+                                className="button button-danger"
+                              />
+                            </form>
+                          ) : null}
                         </div>
                       ))}
                     </div>

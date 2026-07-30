@@ -1,10 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { updateCategoryMatchScheduleSchema } from "../src/lib/validators/category-competition";
-import { getAvailableCategoryAthletes } from "../src/lib/tournament-category/eligibility";
+import {
+  removeCategoryPairSchema,
+  updateCategoryMatchScheduleSchema,
+} from "../src/lib/validators/category-competition";
+import {
+  getAvailableCategoryAthletes,
+  validateManualPairEligibility,
+} from "../src/lib/tournament-category/eligibility";
 
 const workspaceRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -53,6 +59,22 @@ test("category match schedule accepts valid manual date and time and rejects inv
     }).success,
     false,
   );
+  assert.equal(
+    updateCategoryMatchScheduleSchema.safeParse({
+      matchId: "match-1",
+      scheduledDate: "2026-07-30",
+      scheduledTime: "",
+    }).success,
+    false,
+  );
+  assert.equal(
+    updateCategoryMatchScheduleSchema.safeParse({
+      matchId: "match-1",
+      scheduledDate: "",
+      scheduledTime: "19:45",
+    }).success,
+    false,
+  );
 });
 
 test("paired athletes are unavailable only in the category containing their pair", () => {
@@ -84,6 +106,146 @@ test("paired athletes are unavailable only in the category containing their pair
     "athlete-2",
     "athlete-3",
   ]);
+});
+
+test("an athlete already paired in a category cannot join another pair in that category", () => {
+  const category = {
+    arenaId: "arena-1",
+    className: "5ª",
+    gender: "FEMININO",
+  };
+  const players = [
+    {
+      id: "player-1",
+      arenaId: "arena-1",
+      active: true,
+      className: "5ª",
+      gender: "FEMININO",
+    },
+    {
+      id: "player-3",
+      arenaId: "arena-1",
+      active: true,
+      className: "5ª",
+      gender: "FEMININO",
+    },
+  ];
+
+  assert.throws(
+    () =>
+      validateManualPairEligibility(category, players, [
+        ["player-1", "player-2"],
+      ]),
+    /já.*dupla|vinculado/i,
+  );
+});
+
+test("category pair membership is protected by a competition-player database constraint", async () => {
+  const prismaSchema = await readFile(
+    path.join(workspaceRoot, "prisma", "schema.prisma"),
+    "utf8",
+  );
+  const migrationDirectories = await readdir(
+    path.join(workspaceRoot, "prisma", "migrations"),
+  );
+  const migrationDirectory = migrationDirectories.find((directory) =>
+    directory.endsWith("_category_pair_player_competition"),
+  );
+
+  assert.match(
+    prismaSchema,
+    /model CategoryPairPlayer[^]*competitionId\s+String[^]*@@unique\(\[competitionId,\s*playerId\]\)/,
+  );
+  assert.ok(
+    migrationDirectory,
+    "a migration must enforce one player per category competition",
+  );
+
+  const migration = await readFile(
+    path.join(
+      workspaceRoot,
+      "prisma",
+      "migrations",
+      migrationDirectory,
+      "migration.sql",
+    ),
+    "utf8",
+  );
+  assert.match(migration, /ADD COLUMN "competitionId" TEXT/);
+  assert.match(migration, /UPDATE "CategoryPairPlayer"/);
+  assert.match(
+    migration,
+    /UNIQUE INDEX "CategoryPairPlayer_competitionId_playerId_key"/,
+  );
+});
+
+test("draft category pairs can be removed through a guarded service and action", async () => {
+  assert.equal(
+    removeCategoryPairSchema.safeParse({ pairId: "pair-1" }).success,
+    true,
+  );
+  assert.equal(removeCategoryPairSchema.safeParse({ pairId: "" }).success, false);
+
+  const [service, actions, registrationPanel] = await Promise.all([
+    readFile(
+      path.join(
+        workspaceRoot,
+        "src",
+        "lib",
+        "services",
+        "category-competition.ts",
+      ),
+      "utf8",
+    ),
+    readFile(
+      path.join(
+        workspaceRoot,
+        "src",
+        "lib",
+        "actions",
+        "category-competition.ts",
+      ),
+      "utf8",
+    ),
+    readFile(
+      path.join(
+        workspaceRoot,
+        "src",
+        "components",
+        "tournaments",
+        "category-registration-panel.tsx",
+      ),
+      "utf8",
+    ),
+  ]);
+
+  assert.match(
+    service,
+    /export async function removeCategoryPair\([^]*status:\s*categoryCompetitionStatus\.DRAFT/,
+  );
+  assert.match(
+    service,
+    /removeCategoryPair\([^]*categoryMatch\.deleteMany[^]*categoryGroup\.deleteMany[^]*categoryPair\.delete/,
+  );
+  assert.match(
+    actions,
+    /export async function removeCategoryPairAction\([^]*requireModuleEdit\("tournaments"\)/,
+  );
+  assert.match(registrationPanel, /action=\{removeCategoryPairAction\}/);
+  assert.match(
+    registrationPanel,
+    /\{canRemovePair\s*\?[^]*action=\{removeCategoryPairAction\}/,
+  );
+
+  const athletes = [
+    { id: "player-1", name: "Ana" },
+    { id: "player-2", name: "Bia" },
+  ];
+  assert.deepEqual(
+    getAvailableCategoryAthletes(athletes, ["player-1", "player-2"]),
+    [],
+  );
+  assert.deepEqual(getAvailableCategoryAthletes(athletes, []), athletes);
 });
 
 test("category schedule and availability are wired through schema, service, action, route and forms", async () => {
@@ -168,6 +330,14 @@ test("category schedule and availability are wired through schema, service, acti
   assert.match(resultsPanel, /action=\{updateCategoryMatchScheduleAction\}/);
   assert.match(resultsPanel, /type="date"/);
   assert.match(resultsPanel, /type="time"/);
+  assert.match(
+    resultsPanel,
+    /name="scheduledDate"[^>]*type="date"[^>]*required/,
+  );
+  assert.match(
+    resultsPanel,
+    /name="scheduledTime"[^>]*type="time"[^>]*required/,
+  );
   assert.match(registrationPanel, /const availableAthletes =/);
   assert.match(registrationPanel, /getAvailableCategoryAthletes\(/);
   assert.match(categoryRoute, /playerIds:\s*pair\.players\.map/);

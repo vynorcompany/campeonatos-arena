@@ -455,15 +455,17 @@ model CategoryPair {
 }
 
 model CategoryPairPlayer {
-  id       String       @id @default(cuid())
-  pairId   String
-  playerId String
-  slot     Int
-  pair     CategoryPair @relation(fields: [pairId], references: [id], onDelete: Cascade)
-  player   Player       @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  id            String       @id @default(cuid())
+  pairId        String
+  competitionId String
+  playerId      String
+  slot          Int
+  pair          CategoryPair @relation(fields: [pairId, competitionId], references: [id, competitionId], onDelete: Cascade)
+  player        Player       @relation(fields: [playerId], references: [id], onDelete: Restrict)
 
   @@unique([pairId, playerId])
   @@unique([pairId, slot])
+  @@unique([competitionId, playerId])
   @@index([playerId])
 }
 

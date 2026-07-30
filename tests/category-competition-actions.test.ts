@@ -30,6 +30,7 @@ test("every category competition lifecycle action requires tournament edit acces
   const actionNames = [
     "createCategoryCompetitionAction",
     "addManualPairAction",
+    "removeCategoryPairAction",
     "generateCategoryDrawAction",
     "moveCategoryPairAction",
     "publishCategoryDrawAction",

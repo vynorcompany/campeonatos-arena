@@ -132,12 +132,14 @@ export function CategoryResultsPanel({
                               type="date"
                               defaultValue={match.scheduledDate ?? ""}
                               aria-label={`Data de ${match.label}`}
+                              required
                             />
                             <input
                               name="scheduledTime"
                               type="time"
                               defaultValue={match.scheduledTime ?? ""}
                               aria-label={`Horário de ${match.label}`}
+                              required
                             />
                             <SubmitButton
                               label="Salvar horário"
