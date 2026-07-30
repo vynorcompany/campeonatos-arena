@@ -164,8 +164,6 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
           label: "Torneios",
           icon: "trophy",
           children: [
-            { href: "/duplas", label: "Duplas" },
-            { href: "/grupos", label: "Grupos" },
             { href: "/jogos", label: "Jogos" },
             { href: "/torneios/rankings", label: "Rankings" }
           ]

@@ -69,7 +69,7 @@ export default async function TournamentsPage() {
         description="Abra um evento para seguir a próxima ação de cada categoria."
       >
         {openEvents.length ? (
-          <div className="simple-grid simple-grid-2">
+          <div className="t-event-list">
             {openEvents.map((event) => {
               const configuredCount = event.categories.filter(
                 (category) => category.competition,
@@ -79,54 +79,55 @@ export default async function TournamentsPage() {
               ).length;
 
               return (
-                <article className="section-card stack-sm" key={event.id}>
-                  <div className="page-header">
-                    <div className="stack-xs">
+                <article className="t-event-row" key={event.id}>
+                  <div className="t-event-identity">
+                    <div>
                       <h3>{event.name}</h3>
-                      <p className="muted">
+                      <p>
                         {event.description || "Sem descrição"}
                       </p>
                     </div>
-                    <StatusBadge status={event.registrationPhase} />
+                    {event.categories.length ? (
+                      <div className="t-event-categories">
+                        {event.categories.map((category) => (
+                          <span className="t-event-category" key={category.id}>
+                            {category.name}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="t-event-category">Nenhuma categoria adicionada.</p>
+                    )}
                   </div>
 
-                  <dl className="t-review-grid">
-                    <div>
-                      <dt>Categorias</dt>
-                      <dd>
-                        {configuredCount}/{event.categories.length} configuradas
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Concluídas</dt>
-                      <dd>
-                        {finishedCount}/{event.categories.length}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Inscrições recebidas</dt>
-                      <dd>{event._count.publicRegistrations}</dd>
-                    </div>
-                  </dl>
+                  <div className="t-event-metadata">
+                    <StatusBadge status={event.registrationPhase} />
+                    <dl>
+                      <div>
+                        <dt>Categorias</dt>
+                        <dd>
+                          {configuredCount}/{event.categories.length} configuradas
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Concluídas</dt>
+                        <dd>
+                          {finishedCount}/{event.categories.length}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Inscrições recebidas</dt>
+                        <dd>{event._count.publicRegistrations}</dd>
+                      </div>
+                    </dl>
+                  </div>
 
-                  {event.categories.length ? (
-                    <div className="field-inline">
-                      {event.categories.map((category) => (
-                        <span className="pill" key={category.id}>
-                          {category.name}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="muted">Nenhuma categoria adicionada.</p>
-                  )}
-
-                  <div className="section-actions">
+                  <div className="t-event-action">
                     <Link
                       href={`/torneios/${event.id}?tab=categories`}
                       className="button button-primary"
                     >
-                      Abrir evento
+                      Abrir
                     </Link>
                     <SafeActionForm
                       action={deleteTournamentAction}
@@ -167,21 +168,25 @@ export default async function TournamentsPage() {
         {finishedEvents.length ? (
           <div className="simple-list">
             {finishedEvents.map((event) => (
-              <div className="simple-item" key={event.id}>
-                <div className="match-copy">
+              <article className="t-event-row t-event-row-history" key={event.id}>
+                <div className="t-event-identity">
                   <strong>{event.name}</strong>
-                  <span>
-                    {event.categories.length} categorias · atualizado em{" "}
-                    {event.updatedAt.toLocaleDateString("pt-BR")}
+                  <span className="t-event-category">
+                    {event.categories.length} categorias
                   </span>
                 </div>
-                <Link
-                  href={`/torneios/${event.id}?tab=results`}
-                  className="button"
-                >
-                  Ver resultados
-                </Link>
-              </div>
+                <div className="t-event-metadata">
+                  <span>Atualizado em {event.updatedAt.toLocaleDateString("pt-BR")}</span>
+                </div>
+                <div className="t-event-action">
+                  <Link
+                    href={`/torneios/${event.id}?tab=results`}
+                    className="button"
+                  >
+                    Ver resultados
+                  </Link>
+                </div>
+              </article>
             ))}
           </div>
         ) : (
