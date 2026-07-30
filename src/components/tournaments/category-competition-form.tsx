@@ -21,6 +21,7 @@ type CategoryCompetitionFormProps = {
 
 type CategoryCompetitionCardProps = {
   tournamentId: string;
+  categoryId: string;
   category: {
     id: string;
     name: string;
@@ -127,13 +128,14 @@ export function CategoryCompetitionForm({
 
 export function CategoryCompetitionCard({
   tournamentId,
+  categoryId,
   category,
 }: CategoryCompetitionCardProps) {
   const competition = category.competition;
   const nextStep = !competition
     ? {
         label: "Configurar categoria",
-        href: `/torneios/${tournamentId}?tab=categories#category-${category.id}`,
+        href: `/torneios/${tournamentId}/categorias/${categoryId}?tab=overview`,
       }
     : competition.status === "FINISHED"
       ? null
@@ -144,7 +146,7 @@ export function CategoryCompetitionCard({
               competition.completedMatchCount === competition.matchCount
                 ? "Encerrar categoria"
                 : "Registrar resultados",
-            href: `/torneios/${tournamentId}?tab=${competition.matchCount > 0 && competition.completedMatchCount === competition.matchCount ? "results" : "games"}#category-${category.id}`,
+            href: `/torneios/${tournamentId}/categorias/${categoryId}?tab=${competition.matchCount > 0 && competition.completedMatchCount === competition.matchCount ? "results" : "games"}`,
           }
         : !canGenerateCategoryDraw(
               competition.format,
@@ -152,16 +154,16 @@ export function CategoryCompetitionCard({
             )
           ? {
               label: "Adicionar duplas",
-              href: `/torneios/${tournamentId}?tab=registrations#category-${category.id}`,
+              href: `/torneios/${tournamentId}/categorias/${categoryId}?tab=registrations`,
             }
           : competition.groupCount === 0
             ? {
                 label: "Gerar grupos",
-                href: `/torneios/${tournamentId}?tab=pairs-groups#category-${category.id}`,
+                href: `/torneios/${tournamentId}/categorias/${categoryId}?tab=groups`,
               }
             : {
                 label: "Publicar tabela",
-                href: `/torneios/${tournamentId}?tab=pairs-groups#category-${category.id}`,
+                href: `/torneios/${tournamentId}/categorias/${categoryId}?tab=groups`,
               };
 
   return (

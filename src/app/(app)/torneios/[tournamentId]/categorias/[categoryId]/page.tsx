@@ -206,7 +206,12 @@ export default async function CategoryPage({
           <p className="muted">
             {category.class || "Classe pendente"} ·{" "}
             {category.gender || "Gênero pendente"}
-            {competition ? ` · ${formatLabels[competition.format]}` : ""}
+            {competition ? (
+              <>
+                {" · "}
+                {formatLabels[competition.format]} · Ranking: {competition.ranking?.name ?? "Sem ranking"}
+              </>
+            ) : null}
           </p>
         </div>
         <StatusBadge status={competition?.status ?? "DRAFT"} />
@@ -221,6 +226,7 @@ export default async function CategoryPage({
           <div className="stack-sm">
             <CategoryCompetitionCard
               tournamentId={params.tournamentId}
+              categoryId={category.id}
               category={{
                 id: category.id,
                 name: category.name,
