@@ -3,7 +3,10 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { StatusBadge } from "@/components/tournaments/status-badge";
 import { addManualPairAction } from "@/lib/actions/category-competition";
 import { canAddCategoryPair } from "@/lib/tournament-category/draw";
-import { matchesCategoryEligibility } from "@/lib/tournament-category/eligibility";
+import {
+  getAvailableCategoryAthletes,
+  matchesCategoryEligibility,
+} from "@/lib/tournament-category/eligibility";
 
 type AthleteOption = {
   id: string;
@@ -26,6 +29,7 @@ type RegistrationCategory = {
       id: string;
       name: string;
       playerNames: string[];
+      playerIds: string[];
     }>;
   } | null;
   registrations: Array<{
@@ -71,6 +75,10 @@ export function CategoryRegistrationPanel({
               { className: category.class, gender: category.gender },
               { className: athlete.class, gender: athlete.gender },
             ),
+        );
+        const availableAthletes = getAvailableCategoryAthletes(
+          eligibleAthletes,
+          category.competition?.pairs.flatMap((pair) => pair.playerIds) ?? [],
         );
         const canAcceptManualPair =
           category.competition?.status === "DRAFT" &&
@@ -122,7 +130,7 @@ export function CategoryRegistrationPanel({
                         required
                       >
                         <option value="">Selecione</option>
-                        {eligibleAthletes.map((athlete) => (
+                        {availableAthletes.map((athlete) => (
                           <option key={athlete.id} value={athlete.id}>
                             {athlete.name}
                           </option>
@@ -139,7 +147,7 @@ export function CategoryRegistrationPanel({
                         required
                       >
                         <option value="">Selecione</option>
-                        {eligibleAthletes.map((athlete) => (
+                        {availableAthletes.map((athlete) => (
                           <option key={athlete.id} value={athlete.id}>
                             {athlete.name}
                           </option>
@@ -151,13 +159,13 @@ export function CategoryRegistrationPanel({
                         label="Adicionar dupla"
                         pendingLabel="Adicionando..."
                         className="button button-primary"
-                        disabled={eligibleAthletes.length < 2}
+                        disabled={availableAthletes.length < 2}
                       />
                     </div>
-                    {eligibleAthletes.length < 2 ? (
+                    {availableAthletes.length < 2 ? (
                       <p className="muted form-full">
-                        Cadastre ao menos dois atletas ativos com esta classe e
-                        gênero em{" "}
+                        Disponibilize ao menos dois atletas ativos, elegíveis e
+                        ainda sem dupla nesta categoria em{" "}
                         <Link href="/players">Gestão → Atletas</Link>.
                       </p>
                     ) : null}

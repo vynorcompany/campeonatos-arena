@@ -4,12 +4,15 @@ import { StatusBadge } from "@/components/tournaments/status-badge";
 import {
   finishCategoryCompetitionAction,
   recordCategoryMatchResultAction,
+  updateCategoryMatchScheduleAction,
 } from "@/lib/actions/category-competition";
 
 type CompetitionMatch = {
   id: string;
   label: string;
   stage: string;
+  scheduledDate: string | null;
+  scheduledTime: string | null;
   homeScore: number | null;
   awayScore: number | null;
   homePair: { name: string } | null;
@@ -115,6 +118,33 @@ export function CategoryResultsPanel({
                               {match.awayPair?.name ?? "A definir"}
                             </span>
                           </div>
+                          <form
+                            action={updateCategoryMatchScheduleAction}
+                            className="field-inline"
+                          >
+                            <input
+                              type="hidden"
+                              name="matchId"
+                              value={match.id}
+                            />
+                            <input
+                              name="scheduledDate"
+                              type="date"
+                              defaultValue={match.scheduledDate ?? ""}
+                              aria-label={`Data de ${match.label}`}
+                            />
+                            <input
+                              name="scheduledTime"
+                              type="time"
+                              defaultValue={match.scheduledTime ?? ""}
+                              aria-label={`Horário de ${match.label}`}
+                            />
+                            <SubmitButton
+                              label="Salvar horário"
+                              pendingLabel="..."
+                              className="button"
+                            />
+                          </form>
                           {canRecord ? (
                             <form
                               action={recordCategoryMatchResultAction}

@@ -10,6 +10,7 @@ import {
   moveCategoryPair,
   publishCategoryDraw,
   recordCategoryMatchResult,
+  updateCategoryMatchSchedule,
 } from "@/lib/services/category-competition";
 import {
   addManualPairSchema,
@@ -19,6 +20,7 @@ import {
   moveCategoryPairSchema,
   publishCategoryDrawSchema,
   recordCategoryMatchResultSchema,
+  updateCategoryMatchScheduleSchema,
 } from "@/lib/validators/category-competition";
 
 function invalidInputMessage(error: { issues: Array<{ message: string }> }) {
@@ -142,6 +144,27 @@ export async function recordCategoryMatchResultAction(formData: FormData) {
     parsed.data.matchId,
     parsed.data.homeScore,
     parsed.data.awayScore,
+  );
+  refreshCategoryCompetitionRoutes();
+  return result;
+}
+
+export async function updateCategoryMatchScheduleAction(formData: FormData) {
+  const auth = await requireModuleEdit("tournaments");
+  const parsed = updateCategoryMatchScheduleSchema.safeParse({
+    matchId: formData.get("matchId"),
+    scheduledDate: formData.get("scheduledDate"),
+    scheduledTime: formData.get("scheduledTime"),
+  });
+  if (!parsed.success) {
+    throw new Error(invalidInputMessage(parsed.error));
+  }
+
+  const result = await updateCategoryMatchSchedule(
+    auth.arenaId,
+    parsed.data.matchId,
+    parsed.data.scheduledDate,
+    parsed.data.scheduledTime,
   );
   refreshCategoryCompetitionRoutes();
   return result;

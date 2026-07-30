@@ -37,6 +37,14 @@ export function matchesCategoryEligibility(
   return !categoryGender || playerGender === categoryGender;
 }
 
+export function getAvailableCategoryAthletes<Athlete extends { id: string }>(
+  athletes: Athlete[],
+  pairedPlayerIds: string[],
+) {
+  const pairedPlayerIdSet = new Set(pairedPlayerIds);
+  return athletes.filter((athlete) => !pairedPlayerIdSet.has(athlete.id));
+}
+
 function pairKey(playerIds: string[]) {
   return [...playerIds].sort().join(":");
 }

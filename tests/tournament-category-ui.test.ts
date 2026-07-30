@@ -192,7 +192,7 @@ test("manual registration guides the arena to manage athletes when eligibility i
     "utf8",
   );
 
-  assert.match(source, /eligibleAthletes\.length < 2/);
+  assert.match(source, /availableAthletes\.length < 2/);
   assert.match(source, /href="\/players"/);
   assert.match(source, /atletas ativos/i);
   assert.match(source, /athlete\.active\s*&&/);

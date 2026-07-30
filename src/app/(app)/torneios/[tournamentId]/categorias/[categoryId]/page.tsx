@@ -168,6 +168,9 @@ export default async function CategoryPage({
             playerNames: pair.players.map(
               (pairPlayer) => pairPlayer.player.name,
             ),
+            playerIds: pair.players.map(
+              (pairPlayer) => pairPlayer.player.id,
+            ),
           })),
           groups: competition.groups.map((group) => ({
             id: group.id,
@@ -178,6 +181,8 @@ export default async function CategoryPage({
             id: match.id,
             label: match.label,
             stage: match.stage,
+            scheduledDate: match.scheduledDate,
+            scheduledTime: match.scheduledTime,
             homeScore: match.homeScore,
             awayScore: match.awayScore,
             homePair: match.homePair,

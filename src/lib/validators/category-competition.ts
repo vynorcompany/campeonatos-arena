@@ -24,6 +24,37 @@ const categoryGenderSchema = z.preprocess(
   z.enum(["FEMININO", "MASCULINO"]),
 );
 
+const scheduledDateSchema = z.preprocess(
+  (value) => {
+    const normalized = String(value ?? "").trim();
+    return normalized || null;
+  },
+  z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida.")
+    .refine((value) => {
+      const [year, month, day] = value.split("-").map(Number);
+      const parsedDate = new Date(Date.UTC(year, month - 1, day));
+      return (
+        parsedDate.getUTCFullYear() === year &&
+        parsedDate.getUTCMonth() === month - 1 &&
+        parsedDate.getUTCDate() === day
+      );
+    }, "Data inválida.")
+    .nullable(),
+);
+
+const scheduledTimeSchema = z.preprocess(
+  (value) => {
+    const normalized = String(value ?? "").trim();
+    return normalized || null;
+  },
+  z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Horário inválido.")
+    .nullable(),
+);
+
 export const createCategoryCompetitionSchema = z
   .object({
     categoryId: z.string().trim().min(1, "Categoria inválida."),
@@ -88,6 +119,12 @@ export const recordCategoryMatchResultSchema = z
       });
     }
   });
+
+export const updateCategoryMatchScheduleSchema = z.object({
+  matchId: z.string().trim().min(1, "Jogo inválido."),
+  scheduledDate: scheduledDateSchema,
+  scheduledTime: scheduledTimeSchema,
+});
 
 export const finishCategoryCompetitionSchema = z.object({
   competitionId: competitionIdSchema,

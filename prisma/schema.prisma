@@ -489,6 +489,7 @@ model CategoryMatch {
   stage         String
   roundOrder    Int
   courtName     String?
+  scheduledDate String?
   scheduledTime String?
   homeScore     Int?
   awayScore     Int?

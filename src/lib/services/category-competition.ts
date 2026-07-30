@@ -784,6 +784,39 @@ export async function publishCategoryDraw(
   });
 }
 
+export async function updateCategoryMatchSchedule(
+  arenaId: string,
+  matchId: string,
+  scheduledDate: string | null,
+  scheduledTime: string | null,
+) {
+  return runSerializableTransaction(async (tx) => {
+    const match = await tx.categoryMatch.findFirst({
+      where: {
+        id: matchId,
+        competition: {
+          category: {
+            active: true,
+            tournament: { arenaId },
+          },
+        },
+      },
+      select: { id: true },
+    });
+    if (!match) {
+      throw new Error("Jogo não encontrado nesta arena.");
+    }
+
+    return tx.categoryMatch.update({
+      where: { id: match.id },
+      data: {
+        scheduledDate,
+        scheduledTime,
+      },
+    });
+  });
+}
+
 export async function recordCategoryMatchResult(
   arenaId: string,
   matchId: string,
