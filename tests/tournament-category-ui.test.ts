@@ -45,7 +45,7 @@ test("category configuration lists every supported competition format", async ()
   }
 });
 
-test("event details expose only the category-first operational tabs", async () => {
+test("category workspaces expose the approved operational tabs", async () => {
   const source = await readFile(
     path.join(
       workspaceRoot,
@@ -58,16 +58,16 @@ test("event details expose only the category-first operational tabs", async () =
   );
 
   for (const label of [
-    "Categorias",
+    "Visão geral",
     "Inscrições",
-    "Duplas e grupos",
-    "Tabela e jogos",
+    "Grupos",
+    "Jogos",
     "Resultados",
   ]) {
-    assert.ok(source.includes(label), `missing tournament tab: ${label}`);
+    assert.ok(source.includes(label), `missing category tab: ${label}`);
   }
 
-  assert.doesNotMatch(source, /Visão geral|Participantes|Configurações/);
+  assert.doesNotMatch(source, /Participantes|Configurações/);
 });
 
 test("focused panels submit through the category lifecycle server actions", async () => {
