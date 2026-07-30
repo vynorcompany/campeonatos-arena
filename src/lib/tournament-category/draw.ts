@@ -13,6 +13,29 @@ type BuildGroupsInput = {
 const minimumKnockoutPairs = 8;
 const maximumSimplePairs = 16;
 
+export function canGenerateCategoryDraw(
+  format: CompetitionFormat,
+  pairCount: number,
+) {
+  if (pairCount < 1) {
+    return false;
+  }
+  if (format === "LEAGUE") {
+    return true;
+  }
+  if (pairCount < minimumKnockoutPairs) {
+    return false;
+  }
+  return format !== "SIMPLE" || pairCount <= maximumSimplePairs;
+}
+
+export function canAddCategoryPair(
+  format: CompetitionFormat,
+  currentPairCount: number,
+) {
+  return format !== "SIMPLE" || currentPairCount < maximumSimplePairs;
+}
+
 function requireKnockoutPairMinimum(format: CompetitionFormat, pairIds: string[]) {
   if (format !== "LEAGUE" && pairIds.length < minimumKnockoutPairs) {
     throw new Error("Non-league formats require at least eight pairs.");

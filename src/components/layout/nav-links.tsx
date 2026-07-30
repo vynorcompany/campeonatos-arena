@@ -164,7 +164,6 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
           label: "Torneios",
           icon: "trophy",
           children: [
-            { href: "/jogadores", label: "Jogadores" },
             { href: "/duplas", label: "Duplas" },
             { href: "/grupos", label: "Grupos" },
             { href: "/jogos", label: "Jogos" },
@@ -188,8 +187,13 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
       ]
     },
     {
-      title: "Operação",
+      title: "Gestão",
       links: [
+        {
+          href: "/players",
+          label: "Atletas",
+          icon: "users"
+        },
         {
           href: "/aulas",
           label: "Aulas",
@@ -251,6 +255,7 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
     "/painel": "dashboard",
     "/torneios": "tournaments",
     "/jogadores": "players",
+    "/players": "players",
     "/duplas": "pairs",
     "/grupos": "groups",
     "/jogos": "matches",

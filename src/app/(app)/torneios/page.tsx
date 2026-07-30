@@ -2,106 +2,192 @@ import Link from "next/link";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard } from "@/components/section-card";
-import { ActiveTournamentCard } from "@/components/tournaments/active-tournament-card";
 import { EmptyState } from "@/components/tournaments/empty-state";
 import { StatusBadge } from "@/components/tournaments/status-badge";
-import { TournamentDashboard } from "@/components/tournaments/tournament-dashboard";
-import { TournamentSummaryCards } from "@/components/tournaments/tournament-summary-cards";
 import { deleteTournamentAction } from "@/lib/actions/tournament";
 import { requireModuleView } from "@/lib/auth/guards";
-import { getArenaDashboard } from "@/lib/services/tournament";
-
-function getUpcomingMatches(matches: Array<{ id: string; label: string; manualStatus: string | null; scheduledTime: string | null; winnerPairId: string | null }>) {
-  return matches
-    .filter((match) => !match.winnerPairId)
-    .sort((a, b) => (a.scheduledTime ?? "99:99").localeCompare(b.scheduledTime ?? "99:99"))
-    .slice(0, 6);
-}
-
-function getMatchStatus(match: { manualStatus: string | null; winnerPairId: string | null }) {
-  if (match.winnerPairId) return "FINISHED";
-  if (match.manualStatus === "LIVE") return "LIVE";
-  return "SCHEDULED";
-}
+import { prisma } from "@/lib/prisma";
 
 export default async function TournamentsPage() {
   const auth = await requireModuleView("tournaments");
-  const { activeTournament, tournamentHistory } = await getArenaDashboard(auth.arenaId);
-  const upcomingMatches = activeTournament ? getUpcomingMatches(activeTournament.matches) : [];
+  const events = await prisma.tournament.findMany({
+    where: { arenaId: auth.arenaId },
+    orderBy: { updatedAt: "desc" },
+    include: {
+      categories: {
+        where: { active: true },
+        orderBy: { level: "asc" },
+        select: {
+          id: true,
+          name: true,
+          competition: {
+            select: {
+              id: true,
+              status: true,
+            },
+          },
+        },
+      },
+      _count: {
+        select: {
+          publicRegistrations: true,
+        },
+      },
+    },
+  });
+
+  const openEvents = events.filter(
+    (event) => event.registrationPhase !== "FINISHED",
+  );
+  const finishedEvents = events.filter(
+    (event) => event.registrationPhase === "FINISHED",
+  );
 
   return (
-    <TournamentDashboard>
+    <div className="stack-md">
       <header className="page-header">
         <div className="stack-xs">
-          <p className="eyebrow">Módulo</p>
-          <h1>Torneios</h1>
-          <p className="muted">Gerencie campeonatos, inscrições, chaves e jogos da arena.</p>
+          <p className="eyebrow">Campeonatos</p>
+          <h1>Eventos e categorias</h1>
+          <p className="muted">
+            Cada evento reúne categorias com formato, duplas, jogos e ranking
+            próprios.
+          </p>
         </div>
         <div className="section-actions">
-          <Link href="/torneios/novo" className="button button-primary">Novo torneio</Link>
-          <Link href="/torneios/rankings" className="button">Rankings</Link>
-          <Link href="/torneios/inscricoes" className="button">Inscrições</Link>
+          <Link href="/torneios/novo" className="button button-primary">
+            Novo evento
+          </Link>
+          <Link href="/torneios/rankings" className="button">
+            Rankings
+          </Link>
         </div>
       </header>
 
-      <TournamentSummaryCards
-        hasActive={!!activeTournament}
-        activeName={activeTournament?.name ?? ""}
-        players={activeTournament?.entries.length ?? 0}
-        matches={activeTournament?.matches.length ?? 0}
-        finished={tournamentHistory.length}
-      />
+      <SectionCard
+        title="Eventos em operação"
+        description="Abra um evento para seguir a próxima ação de cada categoria."
+      >
+        {openEvents.length ? (
+          <div className="simple-grid simple-grid-2">
+            {openEvents.map((event) => {
+              const configuredCount = event.categories.filter(
+                (category) => category.competition,
+              ).length;
+              const finishedCount = event.categories.filter(
+                (category) => category.competition?.status === "FINISHED",
+              ).length;
 
-      <ActiveTournamentCard tournament={activeTournament} />
+              return (
+                <article className="section-card stack-sm" key={event.id}>
+                  <div className="page-header">
+                    <div className="stack-xs">
+                      <h3>{event.name}</h3>
+                      <p className="muted">
+                        {event.description || "Sem descrição"}
+                      </p>
+                    </div>
+                    <StatusBadge status={event.registrationPhase} />
+                  </div>
 
-      <SectionCard title="Próximos jogos" description="Agenda compacta do torneio ativo.">
-        {upcomingMatches.length ? (
-          <div className="simple-list">
-            {upcomingMatches.map((match) => (
-              <div key={match.id} className="simple-item">
-                <div className="match-copy">
-                  <strong>{match.label}</strong>
-                  <span>{match.scheduledTime ?? "Horário a definir"}</span>
-                </div>
-                <StatusBadge status={getMatchStatus(match)} />
-              </div>
-            ))}
+                  <dl className="t-review-grid">
+                    <div>
+                      <dt>Categorias</dt>
+                      <dd>
+                        {configuredCount}/{event.categories.length} configuradas
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Concluídas</dt>
+                      <dd>
+                        {finishedCount}/{event.categories.length}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Inscrições recebidas</dt>
+                      <dd>{event._count.publicRegistrations}</dd>
+                    </div>
+                  </dl>
+
+                  {event.categories.length ? (
+                    <div className="field-inline">
+                      {event.categories.map((category) => (
+                        <span className="pill" key={category.id}>
+                          {category.name}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="muted">Nenhuma categoria adicionada.</p>
+                  )}
+
+                  <div className="section-actions">
+                    <Link
+                      href={`/torneios/${event.id}?tab=categories`}
+                      className="button button-primary"
+                    >
+                      Abrir evento
+                    </Link>
+                    <SafeActionForm
+                      action={deleteTournamentAction}
+                      confirmKeyword="EXCLUIR"
+                      confirmPrompt="Digite EXCLUIR para remover este evento permanentemente."
+                      successMessage="Evento excluído."
+                    >
+                      <input
+                        type="hidden"
+                        name="tournamentId"
+                        value={event.id}
+                      />
+                      <SubmitButton
+                        label="Excluir"
+                        pendingLabel="Excluindo..."
+                        className="button button-danger"
+                      />
+                    </SafeActionForm>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         ) : (
-          <EmptyState title="Sem jogos próximos" description="Quando os jogos forem gerados, eles aparecerão aqui." ctaLabel="Abrir torneio" ctaHref={activeTournament ? `/torneios/${activeTournament.id}` : "/torneios/novo"} />
+          <EmptyState
+            title="Nenhum evento em operação"
+            description="Crie um evento e adicione as categorias depois."
+            ctaLabel="Criar evento"
+            ctaHref="/torneios/novo"
+          />
         )}
       </SectionCard>
 
-      <SectionCard title="Histórico recente" description="Torneios encerrados mais recentes.">
-        {tournamentHistory.length ? (
+      <SectionCard
+        title="Histórico"
+        description="Eventos marcados como finalizados."
+      >
+        {finishedEvents.length ? (
           <div className="simple-list">
-            {tournamentHistory.slice(0, 10).map((tournament) => (
-              <div key={tournament.id} className="simple-item">
+            {finishedEvents.map((event) => (
+              <div className="simple-item" key={event.id}>
                 <div className="match-copy">
-                  <strong>{tournament.name}</strong>
+                  <strong>{event.name}</strong>
                   <span>
-                    Finalizado em {tournament.updatedAt.toLocaleDateString("pt-BR")} · {tournament._count.entries} inscritos · {tournament._count.matches} jogos
+                    {event.categories.length} categorias · atualizado em{" "}
+                    {event.updatedAt.toLocaleDateString("pt-BR")}
                   </span>
                 </div>
-                <div className="section-actions">
-                  <Link href={`/torneios/${tournament.id}`} className="button">Ver detalhes</Link>
-                  <SafeActionForm
-                    action={deleteTournamentAction}
-                    confirmKeyword="EXCLUIR"
-                    confirmPrompt="Digite EXCLUIR para remover este torneio permanentemente."
-                    successMessage="Torneio excluído."
-                  >
-                    <input type="hidden" name="tournamentId" value={tournament.id} />
-                    <SubmitButton label="Excluir" pendingLabel="Excluindo..." className="button button-danger" />
-                  </SafeActionForm>
-                </div>
+                <Link
+                  href={`/torneios/${event.id}?tab=results`}
+                  className="button"
+                >
+                  Ver resultados
+                </Link>
               </div>
             ))}
           </div>
         ) : (
-          <EmptyState title="Sem histórico ainda" description="Torneios finalizados aparecerão nesta área." />
+          <p className="muted">Nenhum evento finalizado.</p>
         )}
       </SectionCard>
-    </TournamentDashboard>
+    </div>
   );
 }

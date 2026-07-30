@@ -16,6 +16,21 @@ function normalizeEligibilityValue(value: string) {
   return value.trim().toLocaleUpperCase("pt-BR");
 }
 
+export function matchesCategoryEligibility(
+  category: Pick<CategoryEligibility, "className" | "gender">,
+  player: Pick<EligiblePlayer, "className" | "gender">,
+) {
+  const categoryClass = normalizeEligibilityValue(category.className);
+  const playerClass = normalizeEligibilityValue(player.className);
+  if (categoryClass && playerClass !== categoryClass) {
+    return false;
+  }
+
+  const categoryGender = normalizeEligibilityValue(category.gender);
+  const playerGender = normalizeEligibilityValue(player.gender);
+  return !categoryGender || playerGender === categoryGender;
+}
+
 function pairKey(playerIds: string[]) {
   return [...playerIds].sort().join(":");
 }
@@ -50,9 +65,7 @@ export function validateManualPairEligibility(
   const categoryGender = normalizeEligibilityValue(category.gender);
   if (
     categoryGender &&
-    players.some(
-      (player) => normalizeEligibilityValue(player.gender) !== categoryGender,
-    )
+    players.some((player) => !matchesCategoryEligibility(category, player))
   ) {
     throw new Error("O gênero do atleta não é elegível para esta categoria.");
   }

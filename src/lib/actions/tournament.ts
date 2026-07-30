@@ -568,7 +568,9 @@ export async function createTournamentAction(_: ActionState, formData: FormData)
   const priceFirstCents = parseReaisToCents(parsed.data.priceFirstCents);
   const priceSecondCents = parseReaisToCents(parsed.data.priceSecondCents);
   const priceThirdCents = parseReaisToCents(parsed.data.priceThirdCents);
-  const categories = parseCategoryList(parsed.data.categoryList, priceSecondCents, priceThirdCents);
+  const categories = parsed.data.categoryList
+    ? parseCategoryList(parsed.data.categoryList, priceSecondCents, priceThirdCents)
+    : [];
   const created = await runRankingSerializableTransaction(async (tx) => {
     const rankingId = await ensureRankingBelongsToArena(
       tx,
@@ -591,11 +593,15 @@ export async function createTournamentAction(_: ActionState, formData: FormData)
         blockCategoryGap: parsed.data.blockCategoryGap,
         maxCategoryGap: parsed.data.maxCategoryGap,
         rankingId,
-        categories: {
-          createMany: {
-            data: categories
-          }
-        }
+        ...(categories.length
+          ? {
+              categories: {
+                createMany: {
+                  data: categories
+                }
+              }
+            }
+          : {})
       }
     });
   });

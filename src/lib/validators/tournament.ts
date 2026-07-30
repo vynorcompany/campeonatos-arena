@@ -17,7 +17,7 @@ export const createTournamentSchema = z.object({
   priceThirdCents: z.coerce.number().int().min(0),
   blockCategoryGap: z.coerce.boolean().default(false),
   maxCategoryGap: z.coerce.number().int().min(1).max(5).default(1),
-  categoryList: z.string().trim().min(1, "Informe ao menos uma categoria."),
+  categoryList: z.string().trim().default(""),
   rankingId: z.string().trim().default("")
 });
 

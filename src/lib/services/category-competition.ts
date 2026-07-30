@@ -1,6 +1,7 @@
 import { Prisma, type CompetitionFormat } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
+  canAddCategoryPair,
   buildGroups,
   buildKnockout,
   buildRoundRobin,
@@ -459,6 +460,7 @@ export async function addManualPair(
         },
         select: {
           id: true,
+          format: true,
           category: {
             select: {
               class: true,
@@ -479,6 +481,10 @@ export async function addManualPair(
       });
       if (!competition) {
         throw new Error("Competição em rascunho não encontrada nesta arena.");
+      }
+
+      if (!canAddCategoryPair(competition.format, competition.pairs.length)) {
+        throw new Error("O formato Simples suporta no máximo 16 duplas.");
       }
 
       const requestedPlayerIds = [firstPlayerId, secondPlayerId];

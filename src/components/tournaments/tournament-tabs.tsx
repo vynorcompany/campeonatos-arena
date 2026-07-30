@@ -1,22 +1,24 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 
 const tabs = [
-  { key: "overview", label: "Visão geral" },
   { key: "categories", label: "Categorias" },
-  { key: "participants", label: "Participantes" },
-  { key: "pairs", label: "Duplas" },
-  { key: "groups", label: "Grupos" },
-  { key: "games", label: "Jogos" },
-  { key: "bracket", label: "Chave" },
+  { key: "registrations", label: "Inscrições" },
+  { key: "pairs-groups", label: "Duplas e grupos" },
+  { key: "games", label: "Tabela e jogos" },
   { key: "results", label: "Resultados" },
-  { key: "settings", label: "Configurações" }
 ] as const;
 
 export type TournamentTabKey = (typeof tabs)[number]["key"];
 
-export function TournamentTabs({ tournamentId, activeTab }: { tournamentId: string; activeTab: TournamentTabKey }) {
+export function TournamentTabs({
+  tournamentId,
+  activeTab,
+}: {
+  tournamentId: string;
+  activeTab: TournamentTabKey;
+}) {
   return (
-    <nav className="t-tabs" aria-label="Navegação do torneio">
+    <nav className="t-tabs" aria-label="Etapas do evento">
       {tabs.map((tab) => (
         <Link
           key={tab.key}
