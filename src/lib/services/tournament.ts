@@ -1051,6 +1051,14 @@ export async function getArenaDashboard(arenaId: string, selectedTournamentId?: 
     where: { arenaId },
     orderBy: {
       points: "desc"
+    },
+    include: {
+      _count: {
+        select: {
+          entries: true,
+          pairPlayers: true
+        }
+      }
     }
   });
 

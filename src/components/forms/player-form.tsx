@@ -15,7 +15,7 @@ export function PlayerForm() {
   return (
     <form action={formAction} className="grid-form">
       <div className="field">
-        <label htmlFor="name">Nome do jogador</label>
+        <label htmlFor="name">Nome do atleta</label>
         <input id="name" name="name" type="text" placeholder="Ex.: Pedro Martins" required />
       </div>
 
@@ -25,7 +25,7 @@ export function PlayerForm() {
       </div>
 
       <div className="field">
-        <label htmlFor="photo">Foto do jogador</label>
+        <label htmlFor="photo">Foto do atleta</label>
         <input id="photo" name="photo" type="file" accept="image/png,image/jpeg,image/webp" />
       </div>
 
@@ -36,9 +36,9 @@ export function PlayerForm() {
 
       <div className="field field-submit">
         <label className="sr-only" htmlFor="submit-player">
-          Cadastrar jogador
+          Cadastrar atleta
         </label>
-        <SubmitButton label="Cadastrar jogador" pendingLabel="Salvando..." className="button button-primary" />
+        <SubmitButton label="Cadastrar atleta" pendingLabel="Salvando..." className="button button-primary" />
       </div>
 
       {state?.error ? <p className="form-error form-full">{state.error}</p> : null}

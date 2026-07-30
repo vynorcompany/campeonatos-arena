@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
-import { archivePlayerAction, updatePlayerAction } from "@/lib/actions/tournament";
+import { archivePlayerAction, deleteAthleteAction, updatePlayerAction } from "@/lib/actions/tournament";
 
 type PlayerActionsCellProps = {
   playerId: string;
@@ -10,10 +11,19 @@ type PlayerActionsCellProps = {
   playerPoints: number;
   playerPhotoUrl: string;
   active: boolean;
+  deletionRestriction: string | null;
 };
 
-export function PlayerActionsCell({ playerId, playerName, playerPoints, playerPhotoUrl, active }: PlayerActionsCellProps) {
+export function PlayerActionsCell({
+  playerId,
+  playerName,
+  playerPoints,
+  playerPhotoUrl,
+  active,
+  deletionRestriction
+}: PlayerActionsCellProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   if (isEditing) {
     return (
@@ -31,11 +41,7 @@ export function PlayerActionsCell({ playerId, playerName, playerPoints, playerPh
         <input name="photo" type="file" accept="image/png,image/jpeg,image/webp" aria-label={`Foto de ${playerName}`} />
         <div className="player-inline-actions">
           <SubmitButton label="Salvar" pendingLabel="..." className="player-inline-text-button player-inline-text-button-save" />
-          <button
-            type="button"
-            className="player-inline-text-button"
-            onClick={() => setIsEditing(false)}
-          >
+          <button type="button" className="player-inline-text-button" onClick={() => setIsEditing(false)}>
             Cancelar
           </button>
         </div>
@@ -54,88 +60,68 @@ export function PlayerActionsCell({ playerId, playerName, playerPoints, playerPh
         <button
           type="button"
           className="player-inline-icon-button"
-          onClick={() => setIsEditing(true)}
-          aria-label={`Editar ${playerName}`}
-          title="Editar nome"
+          onClick={() => setIsMenuOpen((current) => !current)}
+          aria-label={`Ações de ${playerName}`}
+          aria-expanded={isMenuOpen}
+          aria-haspopup="menu"
+          title="Ações"
         >
           <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-            <path
-              d="M3.75 14.4V16.25H5.6L14.12 7.73L12.27 5.88L3.75 14.4Z"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M11.62 6.53L13.47 8.38"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M10.93 4.95L12.16 3.72C12.5 3.39 12.95 3.2 13.42 3.2C13.89 3.2 14.34 3.39 14.68 3.72L16.28 5.32C16.61 5.66 16.8 6.11 16.8 6.58C16.8 7.05 16.61 7.5 16.28 7.84L15.05 9.07"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+            <circle cx="10" cy="4.5" r="1.1" fill="currentColor" />
+            <circle cx="10" cy="10" r="1.1" fill="currentColor" />
+            <circle cx="10" cy="15.5" r="1.1" fill="currentColor" />
           </svg>
         </button>
 
-        {active ? (
-          <form
-            action={archivePlayerAction}
-            onSubmit={(event) => {
-              const typed = window.prompt(`Para remover ${playerName}, digite EXCLUIR.`);
-              if ((typed ?? "").trim().toUpperCase() !== "EXCLUIR") {
-                event.preventDefault();
-              }
-            }}
-          >
-            <input type="hidden" name="playerId" value={playerId} />
+        {isMenuOpen ? (
+          <div className="player-action-menu" role="menu" aria-label={`Ações de ${playerName}`}>
             <button
-              type="submit"
-              className="player-trash-button"
-              aria-label={`Excluir ${playerName}`}
-              title="Remover jogador"
+              type="button"
+              className="player-action-menu-item"
+              role="menuitem"
+              onClick={() => {
+                setIsEditing(true);
+                setIsMenuOpen(false);
+              }}
             >
-              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                <path
-                  d="M4.75 5.75H15.25"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M7.25 5.75V4.9C7.25 4.28 7.75 3.78 8.37 3.78H11.63C12.25 3.78 12.75 4.28 12.75 4.9V5.75"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M6.35 7.35V14.2C6.35 15.06 7.04 15.75 7.9 15.75H12.1C12.96 15.75 13.65 15.06 13.65 14.2V7.35"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M8.7 8.95V12.75"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M11.3 8.95V12.75"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                />
-              </svg>
+              Editar
             </button>
-          </form>
+
+            <form action={archivePlayerAction}>
+              <input type="hidden" name="playerId" value={playerId} />
+              <button
+                type="submit"
+                className="player-action-menu-item"
+                role="menuitem"
+                disabled={!active}
+                title={active ? undefined : "Este atleta já está inativo."}
+              >
+                Inativar
+              </button>
+            </form>
+
+            {deletionRestriction ? (
+              <div className="player-action-menu-delete-block">
+                <button type="button" className="player-action-menu-item player-action-menu-danger" disabled aria-disabled="true">
+                  Excluir
+                </button>
+                <p>{deletionRestriction}</p>
+              </div>
+            ) : (
+              <SafeActionForm
+                action={deleteAthleteAction}
+                className="player-action-menu-form"
+                confirmKeyword="EXCLUIR"
+                confirmPrompt={`Digite EXCLUIR para remover ${playerName} permanentemente.`}
+                successMessage="Atleta excluído."
+              >
+                <input type="hidden" name="playerId" value={playerId} />
+                <button type="submit" className="player-action-menu-item player-action-menu-danger" role="menuitem">
+                  Excluir
+                </button>
+              </SafeActionForm>
+            )}
+          </div>
         ) : null}
       </div>
     </div>

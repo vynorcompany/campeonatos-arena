@@ -3767,6 +3767,10 @@ button {
   flex-shrink: 0;
 }
 
+.player-name-tools {
+  position: relative;
+}
+
 .player-name-input {
   width: min(100%, 280px);
   min-height: 38px;
@@ -3853,6 +3857,102 @@ button {
 
 .player-inline-text-button-save:hover {
   color: var(--brand-strong);
+}
+
+.athlete-create-panel {
+  display: grid;
+  justify-items: end;
+  gap: 12px;
+}
+
+.athlete-create-panel > div {
+  width: min(100%, 760px);
+}
+
+.athlete-create-panel .grid-form {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+}
+
+.player-action-menu {
+  position: absolute;
+  z-index: 4;
+  top: calc(100% + 6px);
+  right: 0;
+  display: grid;
+  min-width: 232px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: 0 14px 32px rgba(18, 30, 49, 0.16);
+}
+
+.player-action-menu form,
+.player-action-menu-form {
+  display: contents;
+}
+
+.player-action-menu-item {
+  width: 100%;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 650;
+  text-align: left;
+}
+
+.player-action-menu-item:hover:not(:disabled),
+.player-action-menu-item:focus-visible:not(:disabled) {
+  background: rgba(18, 93, 156, 0.08);
+  color: var(--brand);
+  outline: none;
+}
+
+.player-action-menu-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.player-action-menu-danger {
+  color: var(--danger);
+}
+
+.player-action-menu-danger:hover:not(:disabled),
+.player-action-menu-danger:focus-visible:not(:disabled) {
+  background: rgba(191, 63, 56, 0.08);
+  color: var(--danger);
+}
+
+.player-action-menu-delete-block {
+  display: grid;
+  gap: 2px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+
+.player-action-menu-delete-block p {
+  margin: 0;
+  padding: 0 10px 6px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+.player-action-menu-form > .form-full {
+  margin: 6px 4px 4px;
+}
+
+.player-action-menu-form .inline-form {
+  flex-wrap: wrap;
 }
 
 .entity-actions-cell,

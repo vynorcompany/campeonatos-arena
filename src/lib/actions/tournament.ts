@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { isPrismaUnknownFieldError } from "@/lib/prisma-errors";
+import { getAthleteDeletionRestriction } from "@/lib/athlete-management";
 import { savePublicImageUpload } from "@/lib/uploads";
 import { requireModuleEdit } from "@/lib/auth/guards";
 import {
@@ -366,6 +367,54 @@ export async function archivePlayerAction(formData: FormData) {
   if (!updated.count) {
     throw new Error("Jogador não encontrado.");
   }
+
+  refreshTournamentRoutes();
+}
+
+export async function deleteAthleteAction(formData: FormData) {
+  const auth = await requireModuleEdit("players");
+  const parsed = archivePlayerSchema.safeParse({
+    playerId: formData.get("playerId")
+  });
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  }
+
+  const athlete = await prisma.player.findFirst({
+    where: {
+      id: parsed.data.playerId,
+      arenaId: auth.arenaId
+    },
+    select: {
+      id: true,
+      _count: {
+        select: {
+          entries: true,
+          pairPlayers: true
+        }
+      }
+    }
+  });
+
+  if (!athlete) {
+    throw new Error("Atleta não encontrado.");
+  }
+
+  const restriction = getAthleteDeletionRestriction({
+    tournamentEntries: athlete._count.entries,
+    pairAppearances: athlete._count.pairPlayers
+  });
+
+  if (restriction) {
+    throw new Error(restriction);
+  }
+
+  await prisma.player.delete({
+    where: {
+      id: athlete.id
+    }
+  });
 
   refreshTournamentRoutes();
 }
