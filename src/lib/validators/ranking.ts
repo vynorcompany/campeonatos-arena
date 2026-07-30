@@ -8,9 +8,21 @@ const rankingRuleFields = {
   participationPoints: z.coerce.number().int().min(0).max(5000)
 };
 
+export const rankingTypeSchema = z.preprocess(
+  (value) => value || "PAIR",
+  z.enum(["INDIVIDUAL", "PAIR"])
+);
+
+export const generalRankingTypeSchema = z.literal("INDIVIDUAL", {
+  errorMap: () => ({
+    message: "O Ranking Geral precisa ser individual."
+  })
+});
+
 export const createRankingProfileSchema = z.object({
   name: z.string().trim().min(3, "Nome do ranking muito curto.").max(80, "Nome do ranking muito longo."),
   description: z.string().trim().max(240, "Descrição do ranking muito longa.").default(""),
+  type: rankingTypeSchema.default("PAIR"),
   ...rankingRuleFields
 });
 

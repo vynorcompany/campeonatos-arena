@@ -10,6 +10,8 @@ type PlayerActionsCellProps = {
   playerName: string;
   playerPoints: number;
   playerPhotoUrl: string;
+  playerClass: string;
+  playerGender: string;
   active: boolean;
   deletionRestriction: string | null;
 };
@@ -19,6 +21,8 @@ export function PlayerActionsCell({
   playerName,
   playerPoints,
   playerPhotoUrl,
+  playerClass,
+  playerGender,
   active,
   deletionRestriction
 }: PlayerActionsCellProps) {
@@ -30,6 +34,20 @@ export function PlayerActionsCell({
       <form action={updatePlayerAction} className="player-name-edit-form">
         <input type="hidden" name="playerId" value={playerId} />
         <input type="hidden" name="points" value={playerPoints} />
+        <input
+          name="class"
+          type="text"
+          defaultValue={playerClass}
+          aria-label={`Classe de ${playerName}`}
+          className="player-name-input"
+        />
+        <input
+          name="gender"
+          type="text"
+          defaultValue={playerGender}
+          aria-label={`Gênero de ${playerName}`}
+          className="player-name-input"
+        />
         <input
           name="name"
           type="text"

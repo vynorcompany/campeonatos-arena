@@ -13,6 +13,17 @@ export type RankingLeaderboardPlayer = {
   lastTournamentAt: Date | null;
 };
 
+export type RankingLeaderboardPair = {
+  pairKey: string;
+  pairName: string;
+  playerIds: string[];
+  points: number;
+  competitionsPlayed: number;
+  lastTournamentId: string | null;
+  lastTournamentName: string | null;
+  lastTournamentAt: Date | null;
+};
+
 export type RankingCycleSummary = {
   id: string;
   label: string;
@@ -27,6 +38,7 @@ export type RankingProfileWithLeaderboard = {
   id: string;
   name: string;
   description: string;
+  type: "INDIVIDUAL" | "PAIR";
   rules: Array<{
     stageKey: string;
     points: number;
@@ -44,6 +56,7 @@ export type RankingProfileWithLeaderboard = {
     tournaments: number;
   };
   leaderboard: RankingLeaderboardPlayer[];
+  pairLeaderboard: RankingLeaderboardPair[];
   linkedPlayers: number;
   linkedTournamentEntries: number;
 };
@@ -69,6 +82,30 @@ type RankingCycleSource = {
   label: string;
   startedAt: Date;
   endedAt: Date | null;
+};
+
+type CategoryPairRankingSource = {
+  id: string;
+  name: string;
+  totalPoints: number;
+  players: Array<{
+    playerId: string;
+    player: {
+      name: string;
+    };
+  }>;
+  competition: {
+    id: string;
+    rankingId: string | null;
+    category: {
+      tournament: {
+        id: string;
+        name: string;
+        status: string;
+        createdAt: Date;
+      };
+    };
+  };
 };
 
 function getMonthKey(date: Date) {
@@ -122,6 +159,50 @@ function buildRankingLeaderboard(entries: RankingSourceEntry[]) {
   });
 }
 
+function buildPairRankingLeaderboard(entries: CategoryPairRankingSource[]) {
+  const grouped = new Map<string, RankingLeaderboardPair>();
+
+  for (const entry of entries) {
+    const orderedPlayers = [...entry.players].sort((left, right) =>
+      left.playerId.localeCompare(right.playerId),
+    );
+    const pairKey = orderedPlayers.map((player) => player.playerId).join(":");
+    const tournament = entry.competition.category.tournament;
+    const current = grouped.get(pairKey) ?? {
+      pairKey,
+      pairName: orderedPlayers
+        .map((player) => player.player.name)
+        .join(" / "),
+      playerIds: orderedPlayers.map((player) => player.playerId),
+      points: 0,
+      competitionsPlayed: 0,
+      lastTournamentId: null,
+      lastTournamentName: null,
+      lastTournamentAt: null,
+    };
+
+    current.points += entry.totalPoints;
+    current.competitionsPlayed += 1;
+    if (
+      !current.lastTournamentAt ||
+      tournament.createdAt > current.lastTournamentAt
+    ) {
+      current.lastTournamentId = tournament.id;
+      current.lastTournamentName = tournament.name;
+      current.lastTournamentAt = tournament.createdAt;
+    }
+    grouped.set(pairKey, current);
+  }
+
+  return [...grouped.values()].sort((left, right) => {
+    if (right.points !== left.points) return right.points - left.points;
+    if (right.competitionsPlayed !== left.competitionsPlayed) {
+      return right.competitionsPlayed - left.competitionsPlayed;
+    }
+    return left.pairName.localeCompare(right.pairName);
+  });
+}
+
 function buildTournamentSummaries(entries: RankingSourceEntry[]) {
   const tournaments = new Map<string, {
     id: string;
@@ -139,8 +220,54 @@ function buildTournamentSummaries(entries: RankingSourceEntry[]) {
   return [...tournaments.values()].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 }
 
+function buildPairTournamentSummaries(entries: CategoryPairRankingSource[]) {
+  const tournaments = new Map<string, {
+    id: string;
+    name: string;
+    status: string;
+    createdAt: Date;
+  }>();
+
+  for (const entry of entries) {
+    const tournament = entry.competition.category.tournament;
+    if (!tournaments.has(tournament.id)) {
+      tournaments.set(tournament.id, tournament);
+    }
+  }
+
+  return [...tournaments.values()].sort(
+    (left, right) => right.createdAt.getTime() - left.createdAt.getTime(),
+  );
+}
+
+function mergeTournamentSummaries(
+  legacyEntries: RankingSourceEntry[],
+  pairEntries: CategoryPairRankingSource[],
+) {
+  const tournaments = new Map(
+    [
+      ...buildTournamentSummaries(legacyEntries),
+      ...buildPairTournamentSummaries(pairEntries),
+    ].map((tournament) => [tournament.id, tournament] as const),
+  );
+
+  return [...tournaments.values()].sort(
+    (left, right) => right.createdAt.getTime() - left.createdAt.getTime(),
+  );
+}
+
 function isEntryInCycle(entry: RankingSourceEntry, cycle: RankingCycleSource) {
   return getMonthKey(entry.tournament.createdAt) === getMonthKey(cycle.startedAt);
+}
+
+function isPairEntryInCycle(
+  entry: CategoryPairRankingSource,
+  cycle: RankingCycleSource,
+) {
+  return (
+    getMonthKey(entry.competition.category.tournament.createdAt) ===
+    getMonthKey(cycle.startedAt)
+  );
 }
 
 function getCurrentCycle(cycles: RankingCycleSource[]) {
@@ -173,7 +300,8 @@ function buildVirtualCycle(rankingCreatedAt: Date): RankingCycleSource {
 function buildCycleSummaries(
   rankingCreatedAt: Date,
   cycles: RankingCycleSource[],
-  sourceEntries: RankingSourceEntry[]
+  sourceEntries: RankingSourceEntry[],
+  pairSourceEntries: CategoryPairRankingSource[],
 ): RankingCycleSummary[] {
   const currentMonthKey = getMonthKey(new Date());
   const normalizedCycles = cycles.length ? [...cycles] : [buildVirtualCycle(rankingCreatedAt)];
@@ -186,7 +314,15 @@ function buildCycleSummaries(
 
   return monthCycles.map((cycle) => {
     const entries = sourceEntries.filter((entry) => isEntryInCycle(entry, cycle));
-    const tournamentCount = new Set(entries.map((entry) => entry.tournament.id)).size;
+    const pairEntries = pairSourceEntries.filter((entry) =>
+      isPairEntryInCycle(entry, cycle),
+    );
+    const tournamentCount = new Set([
+      ...entries.map((entry) => entry.tournament.id),
+      ...pairEntries.map(
+        (entry) => entry.competition.category.tournament.id,
+      ),
+    ]).size;
 
     return {
       id: getMonthKey(cycle.startedAt),
@@ -195,7 +331,7 @@ function buildCycleSummaries(
       endedAt: cycle.endedAt,
       isCurrent: getMonthKey(cycle.startedAt) === currentMonthKey,
       tournamentCount,
-      entryCount: entries.length
+      entryCount: entries.length + pairEntries.length
     };
   });
 }
@@ -205,6 +341,7 @@ function buildRankingView(
     id: string;
     name: string;
     description: string;
+    type: "INDIVIDUAL" | "PAIR";
     createdAt: Date;
     rules: Array<{
       stageKey: string;
@@ -223,9 +360,15 @@ function buildRankingView(
     cycles: RankingCycleSource[];
   },
   sourceEntries: RankingSourceEntry[],
+  pairSourceEntries: CategoryPairRankingSource[],
   selectedCycleId?: string
 ): RankingProfileWithLeaderboard {
-  const cycles = buildCycleSummaries(ranking.createdAt, ranking.cycles, sourceEntries);
+  const cycles = buildCycleSummaries(
+    ranking.createdAt,
+    ranking.cycles,
+    sourceEntries,
+    pairSourceEntries,
+  );
   const cycleSource = ranking.cycles.length ? ranking.cycles : [buildVirtualCycle(ranking.createdAt)];
   const currentMonthKey = getMonthKey(new Date());
   const selectedCycle =
@@ -233,21 +376,45 @@ function buildRankingView(
     cycleSource.find((cycle) => getMonthKey(cycle.startedAt) === currentMonthKey) ??
     buildVirtualCycle(ranking.createdAt);
   const selectedEntries = sourceEntries.filter((entry) => isEntryInCycle(entry, selectedCycle));
+  const selectedPairEntries = pairSourceEntries.filter((entry) =>
+    isPairEntryInCycle(entry, selectedCycle),
+  );
   const leaderboard = buildRankingLeaderboard(selectedEntries);
-  const tournaments = buildTournamentSummaries(selectedEntries);
+  const pairLeaderboard = buildPairRankingLeaderboard(selectedPairEntries);
+  const tournaments = mergeTournamentSummaries(
+    selectedEntries,
+    selectedPairEntries,
+  );
+  const pairPlayerIds = new Set(
+    selectedPairEntries.flatMap((entry) =>
+      entry.players.map((player) => player.playerId),
+    ),
+  );
+  const pairTournamentCount = new Set(
+    pairSourceEntries.map(
+      (entry) => entry.competition.category.tournament.id,
+    ),
+  ).size;
+  const usesPairEntries = ranking.type === "PAIR";
 
   return {
     id: ranking.id,
     name: ranking.name,
     description: ranking.description,
+    type: ranking.type,
     rules: ranking.rules,
     tournaments,
     cycles,
     selectedCycleId: getMonthKey(selectedCycle.startedAt),
-    _count: ranking._count,
+    _count: {
+      tournaments: ranking._count.tournaments + pairTournamentCount,
+    },
     leaderboard,
-    linkedPlayers: leaderboard.length,
-    linkedTournamentEntries: selectedEntries.length
+    pairLeaderboard,
+    linkedPlayers: usesPairEntries ? pairPlayerIds.size : leaderboard.length,
+    linkedTournamentEntries: usesPairEntries
+      ? selectedPairEntries.length
+      : selectedEntries.length
   };
 }
 
@@ -314,6 +481,55 @@ async function getRankingSourceEntriesByRankingIds(arenaId: string, rankingIds: 
   });
 }
 
+async function getCategoryPairRankingSourceEntries(
+  arenaId: string,
+  rankingIds: string[],
+) {
+  return prisma.categoryPair.findMany({
+    where: {
+      competition: {
+        rankingId: { in: rankingIds },
+        status: "FINISHED",
+        application: { isNot: null },
+        category: {
+          tournament: { arenaId },
+        },
+      },
+    },
+    select: {
+      id: true,
+      name: true,
+      totalPoints: true,
+      players: {
+        select: {
+          playerId: true,
+          player: {
+            select: { name: true },
+          },
+        },
+      },
+      competition: {
+        select: {
+          id: true,
+          rankingId: true,
+          category: {
+            select: {
+              tournament: {
+                select: {
+                  id: true,
+                  name: true,
+                  status: true,
+                  createdAt: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+}
+
 export async function getRankingProfilesWithLeaderboard(arenaId: string): Promise<RankingProfileWithLeaderboard[]> {
   const rankings = await prisma.rankingProfile.findMany({
     where: { arenaId },
@@ -352,7 +568,10 @@ export async function getRankingProfilesWithLeaderboard(arenaId: string): Promis
   }
 
   const rankingIds = rankings.map((ranking) => ranking.id);
-  const sourceEntries = await getRankingSourceEntriesByRankingIds(arenaId, rankingIds);
+  const [sourceEntries, pairSourceEntries] = await Promise.all([
+    getRankingSourceEntriesByRankingIds(arenaId, rankingIds),
+    getCategoryPairRankingSourceEntries(arenaId, rankingIds),
+  ]);
 
   const entriesByRankingId = new Map<string, RankingSourceEntry[]>();
   for (const entry of sourceEntries) {
@@ -361,8 +580,23 @@ export async function getRankingProfilesWithLeaderboard(arenaId: string): Promis
     entriesByRankingId.set(entry.tournament.rankingId ?? "", current);
   }
 
+  const pairEntriesByRankingId = new Map<
+    string,
+    CategoryPairRankingSource[]
+  >();
+  for (const entry of pairSourceEntries) {
+    const rankingId = entry.competition.rankingId ?? "";
+    const current = pairEntriesByRankingId.get(rankingId) ?? [];
+    current.push(entry);
+    pairEntriesByRankingId.set(rankingId, current);
+  }
+
   return rankings.map((ranking) =>
-    buildRankingView(ranking, entriesByRankingId.get(ranking.id) ?? [])
+    buildRankingView(
+      ranking,
+      entriesByRankingId.get(ranking.id) ?? [],
+      pairEntriesByRankingId.get(ranking.id) ?? [],
+    )
   );
 }
 
@@ -405,7 +639,15 @@ export async function getRankingProfileLeaderboard(arenaId: string, rankingId: s
     return null;
   }
 
-  const sourceEntries = await getRankingSourceEntries(arenaId, ranking.id);
+  const [sourceEntries, pairSourceEntries] = await Promise.all([
+    getRankingSourceEntries(arenaId, ranking.id),
+    getCategoryPairRankingSourceEntries(arenaId, [ranking.id]),
+  ]);
 
-  return buildRankingView(ranking, sourceEntries, selectedCycleId);
+  return buildRankingView(
+    ranking,
+    sourceEntries,
+    pairSourceEntries,
+    selectedCycleId,
+  );
 }

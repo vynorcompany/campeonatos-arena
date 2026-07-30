@@ -24,6 +24,24 @@ test("allows deletion when the athlete has no tournament history", async () => {
   assert.equal(getAthleteDeletionRestriction({ tournamentEntries: 0, pairAppearances: 0 }), null);
 });
 
+test("blocks deletion when the athlete belongs to a category competition pair", async () => {
+  const { getAthleteDeletionRestriction } = await import("../src/lib/athlete-management");
+
+  assert.match(
+    getAthleteDeletionRestriction({
+      tournamentEntries: 0,
+      pairAppearances: 0,
+      categoryPairAppearances: 1
+    }) ?? "",
+    /histórico em torneios/i
+  );
+
+  const actionsSource = readFileSync(path.join(process.cwd(), "src", "lib", "actions", "tournament.ts"), "utf8");
+  const schemaSource = readFileSync(path.join(process.cwd(), "prisma", "schema.prisma"), "utf8");
+  assert.match(actionsSource, /categoryPairPlayers:\s*true/);
+  assert.match(schemaSource, /player\s+Player\s+@relation\([^\n]*onDelete:\s*Restrict/);
+});
+
 test("deletes athletes through the guarded delete action", () => {
   const actionsSource = readFileSync(path.join(process.cwd(), "src", "lib", "actions", "tournament.ts"), "utf8");
 

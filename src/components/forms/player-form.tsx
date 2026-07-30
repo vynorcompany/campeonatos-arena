@@ -25,6 +25,16 @@ export function PlayerForm() {
       </div>
 
       <div className="field">
+        <label htmlFor="class">Classe</label>
+        <input id="class" name="class" type="text" placeholder="Ex.: 5ª" required />
+      </div>
+
+      <div className="field">
+        <label htmlFor="gender">Gênero</label>
+        <input id="gender" name="gender" type="text" placeholder="Ex.: Feminino" required />
+      </div>
+
+      <div className="field">
         <label htmlFor="photo">Foto do atleta</label>
         <input id="photo" name="photo" type="file" accept="image/png,image/jpeg,image/webp" />
       </div>

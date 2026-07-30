@@ -194,6 +194,8 @@ model Player {
   name        String
   points      Int               @default(1000)
   photoUrl    String            @default("")
+  class       String            @default("") @map("category")
+  gender      String            @default("")
   active      Boolean           @default(true)
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
@@ -360,6 +362,7 @@ model RankingProfile {
   rules       RankingRule[]
   tournaments Tournament[]
   competitions CategoryCompetition[]
+  categoryApplications CategoryRankingApplication[]
   cycles      RankingCycle[]
 
   @@unique([arenaId, name])
@@ -410,10 +413,23 @@ model CategoryCompetition {
   pairs               CategoryPair[]
   groups              CategoryGroup[]
   matches             CategoryMatch[]
+  application         CategoryRankingApplication?
 
   @@index([rankingId])
   @@index([status])
   @@unique([id, categoryId])
+}
+
+model CategoryRankingApplication {
+  id                  String              @id @default(cuid())
+  feedsGeneralRanking Boolean
+  appliedAt           DateTime            @default(now())
+  competitionId       String              @unique
+  rankingId           String?
+  competition         CategoryCompetition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  ranking             RankingProfile?     @relation(fields: [rankingId], references: [id], onDelete: SetNull)
+
+  @@index([rankingId])
 }
 
 model CategoryPair {
@@ -444,7 +460,7 @@ model CategoryPairPlayer {
   playerId String
   slot     Int
   pair     CategoryPair @relation(fields: [pairId], references: [id], onDelete: Cascade)
-  player   Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  player   Player       @relation(fields: [playerId], references: [id], onDelete: Restrict)
 
   @@unique([pairId, playerId])
   @@unique([pairId, slot])

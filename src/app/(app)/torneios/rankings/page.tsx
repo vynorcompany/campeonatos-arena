@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
+import { RankingTypeField } from "@/components/forms/ranking-profile-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard } from "@/components/section-card";
 import { StatCard } from "@/components/stat-card";
@@ -74,6 +75,7 @@ export default async function TournamentRankingsPage() {
             <label htmlFor="ranking-name">Nome do ranking</label>
             <input id="ranking-name" name="name" type="text" placeholder="Ex.: Ranking oficial 2026" required />
           </div>
+          <RankingTypeField id="ranking-type" />
           <div className="field form-full">
             <label htmlFor="ranking-description">Descrição</label>
             <input id="ranking-description" name="description" type="text" placeholder="Use para identificar o formato ou a temporada." />
@@ -124,6 +126,7 @@ export default async function TournamentRankingsPage() {
                       <label htmlFor={`${ranking.id}-name`}>Nome do ranking</label>
                       <input id={`${ranking.id}-name`} name="name" type="text" defaultValue={ranking.name} required />
                     </div>
+                    <RankingTypeField id={`${ranking.id}-type`} defaultType={ranking.type} />
                     <div className="field form-full">
                       <label htmlFor={`${ranking.id}-description`}>Descrição</label>
                       <input id={`${ranking.id}-description`} name="description" type="text" defaultValue={ranking.description} />
@@ -163,7 +166,20 @@ export default async function TournamentRankingsPage() {
                         <strong>Classificacao do ranking</strong>
                         <span>{ranking.linkedPlayers ? `${ranking.linkedPlayers} jogadores vinculados` : "Nenhum jogador vinculado ainda"}</span>
                       </div>
-                      {ranking.leaderboard.length ? (
+                      {ranking.type === "PAIR" && ranking.pairLeaderboard.length ? (
+                        <div className="form-full stack-sm">
+                          <strong>Preview da classificação de duplas</strong>
+                          <div className="tv-ranking-preview">
+                            {ranking.pairLeaderboard.slice(0, 5).map((entry, index) => (
+                              <div className="tv-ranking-preview-row" key={entry.pairKey}>
+                                <strong>#{index + 1}</strong>
+                                <span>{entry.pairName}</span>
+                                <small>{entry.points} pts · {entry.competitionsPlayed} categorias</small>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : ranking.leaderboard.length ? (
                         <div className="form-full stack-sm">
                           <strong>Preview da classificacao</strong>
                           <div className="tv-ranking-preview">

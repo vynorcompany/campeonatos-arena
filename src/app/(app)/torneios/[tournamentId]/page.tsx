@@ -45,7 +45,10 @@ export default async function TournamentDetailPage({ params, searchParams }: Tou
     : "overview";
 
   const rankings = await prisma.rankingProfile.findMany({
-    where: { arenaId: auth.arenaId },
+    where: {
+      arenaId: auth.arenaId,
+      type: "INDIVIDUAL"
+    },
     orderBy: { name: "asc" },
     select: { id: true, name: true }
   });

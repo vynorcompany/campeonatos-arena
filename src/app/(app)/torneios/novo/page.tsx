@@ -7,7 +7,10 @@ import { prisma } from "@/lib/prisma";
 export default async function NewTournamentPage() {
   const auth = await requireModuleView("tournaments");
   const rankings = await prisma.rankingProfile.findMany({
-    where: { arenaId: auth.arenaId },
+    where: {
+      arenaId: auth.arenaId,
+      type: "INDIVIDUAL"
+    },
     orderBy: { name: "asc" },
     select: { id: true, name: true }
   });
