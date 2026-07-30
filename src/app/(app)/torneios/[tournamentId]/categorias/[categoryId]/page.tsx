@@ -1,9 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  CategoryCompetitionCard,
-  CategoryCompetitionForm,
-} from "@/components/tournaments/category-competition-form";
+import { CategoryCompetitionForm } from "@/components/tournaments/category-competition-form";
 import { CategoryDrawPanel } from "@/components/tournaments/category-draw-panel";
 import { CategoryRegistrationPanel } from "@/components/tournaments/category-registration-panel";
 import { CategoryResultsPanel } from "@/components/tournaments/category-results-panel";
@@ -12,6 +9,7 @@ import { TournamentDetailLayout } from "@/components/tournaments/tournament-deta
 import { type TournamentTabKey } from "@/components/tournaments/tournament-tabs";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
+import { canGenerateCategoryDraw } from "@/lib/tournament-category/draw";
 
 type CategoryPageProps = {
   params: {
@@ -189,6 +187,38 @@ export default async function CategoryPage({
         }
       : null,
   };
+  const completedMatchCount =
+    competition?.matches.filter((match) => match.winnerPair).length ?? 0;
+  const nextStep = !competition
+    ? {
+        label: "Configurar categoria",
+        href: `/torneios/${params.tournamentId}/categorias/${category.id}?tab=overview`,
+      }
+    : competition.status === "FINISHED"
+      ? null
+      : competition.status === "PUBLISHED"
+        ? {
+            label:
+              competition.matches.length > 0 &&
+              completedMatchCount === competition.matches.length
+                ? "Encerrar categoria"
+                : "Registrar resultados",
+            href: `/torneios/${params.tournamentId}/categorias/${category.id}?tab=${competition.matches.length > 0 && completedMatchCount === competition.matches.length ? "results" : "games"}`,
+          }
+        : !canGenerateCategoryDraw(competition.format, competition.pairs.length)
+          ? {
+              label: "Adicionar duplas",
+              href: `/torneios/${params.tournamentId}/categorias/${category.id}?tab=registrations`,
+            }
+          : competition.groups.length === 0
+            ? {
+                label: "Gerar grupos",
+                href: `/torneios/${params.tournamentId}/categorias/${category.id}?tab=groups`,
+              }
+            : {
+                label: "Publicar tabela",
+                href: `/torneios/${params.tournamentId}/categorias/${category.id}?tab=groups`,
+              };
 
   return (
     <div className="stack-md t-category-workspace">
@@ -199,24 +229,6 @@ export default async function CategoryPage({
         <span aria-hidden="true">←</span> Categorias
       </Link>
 
-      <header className="t-category-workspace-header">
-        <div className="stack-xs">
-          <p className="eyebrow">{category.tournament.name}</p>
-          <h1>{category.name}</h1>
-          <p className="muted">
-            {category.class || "Classe pendente"} ·{" "}
-            {category.gender || "Gênero pendente"}
-            {competition ? (
-              <>
-                {" · "}
-                {formatLabels[competition.format]} · Ranking: {competition.ranking?.name ?? "Sem ranking"}
-              </>
-            ) : null}
-          </p>
-        </div>
-        <StatusBadge status={competition?.status ?? "DRAFT"} />
-      </header>
-
       <TournamentDetailLayout
         tournamentId={params.tournamentId}
         categoryId={category.id}
@@ -224,30 +236,52 @@ export default async function CategoryPage({
       >
         {tab === "overview" ? (
           <div className="stack-sm">
-            <CategoryCompetitionCard
-              tournamentId={params.tournamentId}
-              categoryId={category.id}
-              category={{
-                id: category.id,
-                name: category.name,
-                class: category.class,
-                gender: category.gender,
-                competition: competition
-                  ? {
-                      format: competition.format,
-                      status: competition.status,
-                      feedsGeneralRanking: competition.feedsGeneralRanking,
-                      rankingName: competition.ranking?.name ?? null,
-                      pairCount: competition.pairs.length,
-                      groupCount: competition.groups.length,
-                      matchCount: competition.matches.length,
-                      completedMatchCount: competition.matches.filter(
-                        (match) => match.winnerPair,
-                      ).length,
-                    }
-                  : null,
-              }}
-            />
+            <article id={`category-${category.id}`} className="category-overview">
+              <div className="category-overview-head">
+                <div className="stack-xs">
+                  <p className="eyebrow">{category.tournament.name}</p>
+                  <h1>{category.name}</h1>
+                </div>
+                <StatusBadge status={competition?.status ?? "DRAFT"} />
+              </div>
+
+              <p className="category-overview-context muted">
+                {category.class || "Classe pendente"} · {category.gender || "Gênero pendente"}
+                {competition ? (
+                  <>
+                    {" · "}
+                    {formatLabels[competition.format]} · Ranking: {competition.ranking?.name ?? "Sem ranking"}
+                  </>
+                ) : null}
+              </p>
+
+              <dl className="category-overview-metrics">
+                <div>
+                  <dt>Duplas</dt>
+                  <dd>{competition?.pairs.length ?? 0}</dd>
+                </div>
+                <div>
+                  <dt>Jogos</dt>
+                  <dd>
+                    {completedMatchCount}/{competition?.matches.length ?? 0}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Ranking Geral</dt>
+                  <dd>{competition?.feedsGeneralRanking ? "Ativo" : "Inativo"}</dd>
+                </div>
+              </dl>
+
+              <div className="category-overview-action">
+                {nextStep ? (
+                  <Link href={nextStep.href} className="button button-primary">
+                    {nextStep.label}
+                  </Link>
+                ) : (
+                  <span className="pill">Categoria concluída</span>
+                )}
+              </div>
+            </article>
             {!competition ? (
               <article className="section-card">
                 <CategoryCompetitionForm

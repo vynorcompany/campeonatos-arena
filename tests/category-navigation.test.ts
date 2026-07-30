@@ -65,41 +65,28 @@ test("category tabs stay inside the selected category", async () => {
 });
 
 test("category overview actions stay inside the dedicated category workspace", async () => {
-  const [cardSource, routeSource] = await Promise.all([
-    readSource(
-      "src",
-      "components",
-      "tournaments",
-      "category-competition-form.tsx",
-    ),
-    readSource(
-      "src",
-      "app",
-      "(app)",
-      "torneios",
-      "[tournamentId]",
-      "categorias",
-      "[categoryId]",
-      "page.tsx",
-    ),
-  ]);
-
-  assert.match(cardSource, /categoryId:\s*string/);
-  assert.match(
-    cardSource,
-    /`\/torneios\/\$\{tournamentId\}\/categorias\/\$\{categoryId\}\?tab=/,
+  const routeSource = await readSource(
+    "src",
+    "app",
+    "(app)",
+    "torneios",
+    "[tournamentId]",
+    "categorias",
+    "[categoryId]",
+    "page.tsx",
   );
+
   assert.doesNotMatch(
-    cardSource,
-    /`\/torneios\/\$\{tournamentId\}\?tab=/,
+    routeSource,
+    /`\/torneios\/\$\{params\.tournamentId\}\?tab=/,
   );
   assert.match(
     routeSource,
-    /<CategoryCompetitionCard[\s\S]*?categoryId=\{category\.id\}/,
+    /`\/torneios\/\$\{params\.tournamentId\}\/categorias\/\$\{category\.id\}\?tab=/,
   );
 });
 
-test("category workspace header names the selected pair ranking", async () => {
+test("category overview context names the selected pair ranking", async () => {
   const source = await readSource(
     "src",
     "app",
@@ -113,7 +100,7 @@ test("category workspace header names the selected pair ranking", async () => {
 
   assert.match(
     source,
-    /t-category-workspace-header[\s\S]*?Ranking:\s*\{competition\.ranking\?\.name\s*\?\?\s*"Sem ranking"\}/,
+    /category-overview-context[\s\S]*?Ranking:\s*\{competition\.ranking\?\.name\s*\?\?\s*"Sem ranking"\}/,
   );
 });
 
