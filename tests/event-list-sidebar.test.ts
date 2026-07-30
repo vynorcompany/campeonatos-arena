@@ -30,9 +30,17 @@ test("event index uses aligned editorial rows with an Abrir action", async () =>
 });
 
 test("event row styling subdues categories and reuses the row treatment for history", async () => {
-  const source = await readSource("src", "app", "globals.css");
+  const [pageSource, source] = await Promise.all([
+    readSource("src", "app", "(app)", "torneios", "page.tsx"),
+    readSource("src", "app", "globals.css"),
+  ]);
 
   assert.match(source, /\.t-event-row\s*\{[^}]*grid-template-columns:/s);
   assert.match(source, /\.t-event-category\s*\{[^}]*color:\s*var\(--muted\)/s);
   assert.match(source, /\.t-event-row-history\s*\{/);
+  assert.match(pageSource, /className="t-event-list t-event-list-history"/);
+  assert.match(
+    source,
+    /@media \(max-width: 1120px\)\s*\{[\s\S]*?\.t-event-row\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) auto;/,
+  );
 });

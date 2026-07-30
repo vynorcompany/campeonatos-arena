@@ -166,7 +166,7 @@ export default async function TournamentsPage() {
         description="Eventos marcados como finalizados."
       >
         {finishedEvents.length ? (
-          <div className="simple-list">
+          <div className="t-event-list t-event-list-history">
             {finishedEvents.map((event) => (
               <article className="t-event-row t-event-row-history" key={event.id}>
                 <div className="t-event-identity">
