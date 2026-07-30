@@ -21,21 +21,21 @@ enum RankingType {
 }
 
 model User {
-  id                    String                 @id @default(cuid())
-  name                  String
-  email                 String                 @unique
-  passwordHash          String
-  systemRole            String                 @default("ADMIN")
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  sessions              Session[]
-  memberships           ArenaMember[]
-  createdArenas         Arena[]                @relation("ArenaCreator")
-  openedTickets         SupportTicket[]        @relation("TicketRequester")
-  assignedTickets       SupportTicket[]        @relation("TicketAssignee")
-  ticketMessages        SupportTicketMessage[]
+  id           String       @id @default(cuid())
+  name         String
+  email        String       @unique
+  passwordHash String
+  systemRole   String       @default("ADMIN")
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  sessions     Session[]
+  memberships  ArenaMember[]
+  createdArenas Arena[]     @relation("ArenaCreator")
+  openedTickets SupportTicket[] @relation("TicketRequester")
+  assignedTickets SupportTicket[] @relation("TicketAssignee")
+  ticketMessages SupportTicketMessage[]
   regulationAcceptances RegulationAcceptance[] @relation("RegulationAcceptedBy")
-  regulationDocuments   RegulationDocument[]
+  regulationDocuments RegulationDocument[]
 }
 
 model Session {
@@ -51,67 +51,67 @@ model Session {
 }
 
 model LoginAttempt {
-  email       String    @id
-  failedCount Int       @default(0)
+  email       String   @id
+  failedCount Int      @default(0)
   lockedUntil DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([lockedUntil])
 }
 
 model Arena {
-  id                     String                  @id @default(cuid())
-  name                   String
-  slug                   String                  @unique
-  legalName              String                  @default("")
-  cnpj                   String                  @default("")
-  phone                  String                  @default("")
-  email                  String                  @default("")
-  address                String                  @default("")
-  city                   String                  @default("")
-  state                  String                  @default("")
-  zipCode                String                  @default("")
-  logoUrl                String                  @default("/arena-profile.jpg")
-  accountStatus          String                  @default("ACTIVE")
-  agencyNotes            String                  @default("")
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  createdById            String
-  createdBy              User                    @relation("ArenaCreator", fields: [createdById], references: [id])
-  members                ArenaMember[]
-  players                Player[]
-  rankings               RankingProfile[]
-  tournaments            Tournament[]
-  manualUpcomingMatches  ManualUpcomingMatch[]
-  students               Student[]
-  teachers               Teacher[]
-  lessons                Lesson[]
-  calendarEvents         CalendarEvent[]
-  products               Product[]
-  sales                  Sale[]
-  stockMovements         StockMovement[]
-  plans                  Plan[]
-  subscriptions          StudentSubscription[]
-  financialEntries       FinancialEntry[]
-  payrollEntries         TeacherPayrollEntry[]
-  supportTickets         SupportTicket[]
+  id          String        @id @default(cuid())
+  name        String
+  slug        String        @unique
+  legalName   String        @default("")
+  cnpj        String        @default("")
+  phone       String        @default("")
+  email       String        @default("")
+  address     String        @default("")
+  city        String        @default("")
+  state       String        @default("")
+  zipCode     String        @default("")
+  logoUrl     String        @default("/arena-profile.jpg")
+  accountStatus String      @default("ACTIVE")
+  agencyNotes String        @default("")
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  createdById String
+  createdBy   User          @relation("ArenaCreator", fields: [createdById], references: [id])
+  members     ArenaMember[]
+  players     Player[]
+  rankings    RankingProfile[]
+  tournaments Tournament[]
+  manualUpcomingMatches ManualUpcomingMatch[]
+  students    Student[]
+  teachers    Teacher[]
+  lessons     Lesson[]
+  calendarEvents CalendarEvent[]
+  products    Product[]
+  sales       Sale[]
+  stockMovements StockMovement[]
+  plans       Plan[]
+  subscriptions StudentSubscription[]
+  financialEntries FinancialEntry[]
+  payrollEntries TeacherPayrollEntry[]
+  supportTickets SupportTicket[]
   tvPresentationSettings TvPresentationSettings?
-  tvSponsors             TvSponsor[]
-  regulationAcceptances  RegulationAcceptance[]
-  regulationDocuments    RegulationDocument[]
+  tvSponsors    TvSponsor[]
+  regulationAcceptances RegulationAcceptance[]
+  regulationDocuments RegulationDocument[]
 }
 
 model RegulationAcceptance {
-  id                   String              @id @default(cuid())
-  content              String
-  acceptedAt           DateTime            @default(now())
-  arenaId              String
-  acceptedById         String?
+  id            String   @id @default(cuid())
+  content       String
+  acceptedAt    DateTime @default(now())
+  arenaId       String
+  acceptedById  String?
   regulationDocumentId String?
-  arena                Arena               @relation(fields: [arenaId], references: [id], onDelete: Cascade)
-  acceptedBy           User?               @relation("RegulationAcceptedBy", fields: [acceptedById], references: [id], onDelete: SetNull)
-  regulationDocument   RegulationDocument? @relation(fields: [regulationDocumentId], references: [id], onDelete: SetNull)
+  arena         Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  acceptedBy    User?    @relation("RegulationAcceptedBy", fields: [acceptedById], references: [id], onDelete: SetNull)
+  regulationDocument RegulationDocument? @relation(fields: [regulationDocumentId], references: [id], onDelete: SetNull)
 
   @@index([arenaId, acceptedAt])
   @@index([acceptedById])
@@ -119,16 +119,16 @@ model RegulationAcceptance {
 }
 
 model RegulationDocument {
-  id          String                 @id @default(cuid())
+  id          String   @id @default(cuid())
   content     String
-  publicSlug  String                 @unique
-  active      Boolean                @default(true)
-  createdAt   DateTime               @default(now())
-  updatedAt   DateTime               @updatedAt
+  publicSlug  String   @unique
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   arenaId     String
   createdById String?
-  arena       Arena                  @relation(fields: [arenaId], references: [id], onDelete: Cascade)
-  createdBy   User?                  @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  arena       Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
   acceptances RegulationAcceptance[]
 
   @@index([arenaId, active])
@@ -136,22 +136,22 @@ model RegulationDocument {
 }
 
 model SupportTicket {
-  id          String                 @id @default(cuid())
-  code        String                 @unique
+  id          String   @id @default(cuid())
+  code        String   @unique
   title       String
   description String
-  category    String                 @default("SUPPORT")
-  priority    String                 @default("MEDIUM")
-  status      String                 @default("OPEN")
-  createdAt   DateTime               @default(now())
-  updatedAt   DateTime               @updatedAt
+  category    String   @default("SUPPORT")
+  priority    String   @default("MEDIUM")
+  status      String   @default("OPEN")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   resolvedAt  DateTime?
   arenaId     String
   requesterId String
   assigneeId  String?
-  arena       Arena                  @relation(fields: [arenaId], references: [id], onDelete: Cascade)
-  requester   User                   @relation("TicketRequester", fields: [requesterId], references: [id], onDelete: Cascade)
-  assignee    User?                  @relation("TicketAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  arena       Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  requester   User     @relation("TicketRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  assignee    User?    @relation("TicketAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
   messages    SupportTicketMessage[]
 
   @@index([arenaId, status])
@@ -161,10 +161,10 @@ model SupportTicket {
 }
 
 model SupportTicketMessage {
-  id        String        @id @default(cuid())
+  id        String   @id @default(cuid())
   body      String
-  internal  Boolean       @default(false)
-  createdAt DateTime      @default(now())
+  internal  Boolean  @default(false)
+  createdAt DateTime @default(now())
   ticketId  String
   authorId  String
   ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
@@ -190,19 +190,19 @@ model ArenaMember {
 }
 
 model Player {
-  id                  String               @id @default(cuid())
-  name                String
-  points              Int                  @default(1000)
-  photoUrl            String               @default("")
-  active              Boolean              @default(true)
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-  arenaId             String
-  arena               Arena                @relation(fields: [arenaId], references: [id], onDelete: Cascade)
-  entries             TournamentPlayer[]
-  pairPlayers         PairPlayer[]
+  id          String            @id @default(cuid())
+  name        String
+  points      Int               @default(1000)
+  photoUrl    String            @default("")
+  active      Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  arenaId     String
+  arena       Arena             @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  entries     TournamentPlayer[]
+  pairPlayers PairPlayer[]
   categoryPairPlayers CategoryPairPlayer[]
-  student             Student?
+  student     Student?
 
   @@unique([arenaId, name])
   @@index([arenaId, active])
@@ -210,33 +210,33 @@ model Player {
 }
 
 model Tournament {
-  id                  String                         @id @default(cuid())
-  name                String
-  description         String                         @default("")
-  publicSlug          String                         @unique @default(cuid())
-  creationMode        String                         @default("MANUAL")
-  status              String                         @default("DRAFT")
-  registrationPhase   String                         @default("REGISTRATIONS")
-  groupCount          Int                            @default(2)
-  pairsPerGroup       Int                            @default(3)
-  priceFirstCents     Int                            @default(0)
-  priceSecondCents    Int                            @default(0)
-  priceThirdCents     Int                            @default(0)
-  blockCategoryGap    Boolean                        @default(false)
-  maxCategoryGap      Int                            @default(1)
-  createdAt           DateTime                       @default(now())
-  updatedAt           DateTime                       @updatedAt
-  arenaId             String
-  rankingId           String?
-  arena               Arena                          @relation(fields: [arenaId], references: [id], onDelete: Cascade)
-  ranking             RankingProfile?                @relation(fields: [rankingId], references: [id], onDelete: SetNull)
-  entries             TournamentPlayer[]
-  pairs               Pair[]
-  groups              TournamentGroup[]
-  matches             Match[]
-  categories          TournamentCategory[]
+  id          String            @id @default(cuid())
+  name        String
+  description String            @default("")
+  publicSlug  String            @unique @default(cuid())
+  creationMode String           @default("MANUAL")
+  status      String            @default("DRAFT")
+  registrationPhase String      @default("REGISTRATIONS")
+  groupCount  Int               @default(2)
+  pairsPerGroup Int             @default(3)
+  priceFirstCents Int           @default(0)
+  priceSecondCents Int          @default(0)
+  priceThirdCents Int           @default(0)
+  blockCategoryGap Boolean      @default(false)
+  maxCategoryGap Int            @default(1)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  arenaId     String
+  rankingId   String?
+  arena       Arena             @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  ranking     RankingProfile?   @relation(fields: [rankingId], references: [id], onDelete: SetNull)
+  entries     TournamentPlayer[]
+  pairs       Pair[]
+  groups      TournamentGroup[]
+  matches     Match[]
+  categories  TournamentCategory[]
   publicRegistrations PublicTournamentRegistration[]
-  categoryBrackets    CategoryBracket[]
+  categoryBrackets CategoryBracket[]
 
   @@index([arenaId, status])
   @@index([arenaId, createdAt])
@@ -244,23 +244,23 @@ model Tournament {
 }
 
 model TournamentCategory {
-  id               String                         @id @default(cuid())
-  name             String
-  level            Int
-  class            String                         @default("")
-  gender           String                         @default("")
-  groupCount       Int                            @default(4)
-  pairsPerGroup    Int                            @default(3)
-  priceSecondCents Int                            @default(0)
-  priceThirdCents  Int                            @default(0)
-  active           Boolean                        @default(true)
-  createdAt        DateTime                       @default(now())
-  updatedAt        DateTime                       @updatedAt
-  tournamentId     String
-  tournament       Tournament                     @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  competition      CategoryCompetition?
-  registrations    PublicTournamentRegistration[]
-  brackets         CategoryBracket[]
+  id           String     @id @default(cuid())
+  name         String
+  level        Int
+  class        String     @default("")
+  gender       String     @default("")
+  groupCount   Int        @default(4)
+  pairsPerGroup Int       @default(3)
+  priceSecondCents Int    @default(0)
+  priceThirdCents Int     @default(0)
+  active       Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  competition  CategoryCompetition?
+  registrations PublicTournamentRegistration[]
+  brackets     CategoryBracket[]
 
   @@unique([tournamentId, name])
   @@unique([tournamentId, level])
@@ -268,36 +268,36 @@ model TournamentCategory {
 }
 
 model PublicTournamentRegistration {
-  id                   String                 @id @default(cuid())
-  leadName             String
-  leadPhone            String
-  leadCpf              String
-  leadBirthDate        DateTime
-  partnerName          String
-  partnerPhone         String
-  partnerCpf           String
-  partnerBirthDate     DateTime
-  registrationOrder    Int
-  amountCents          Int
-  paymentStatus        String                 @default("PENDING")
-  paymentProvider      String                 @default("")
-  paymentReference     String                 @default("")
-  mercadoPagoPaymentId String                 @default("")
-  paymentQrCode        String                 @default("")
-  paymentQrCodeBase64  String                 @default("")
-  paymentCheckoutUrl   String                 @default("")
-  paymentExpiresAt     DateTime?
-  status               String                 @default("PENDING_PAYMENT")
-  createdAt            DateTime               @default(now())
-  updatedAt            DateTime               @updatedAt
-  tournamentId         String
-  categoryId           String
-  competitionId        String?
-  tournament           Tournament             @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  category             TournamentCategory     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  competition          CategoryCompetition?   @relation(fields: [competitionId], references: [id], onDelete: Cascade)
-  homeBracketMatches   CategoryBracketMatch[] @relation("CategoryBracketHome")
-  awayBracketMatches   CategoryBracketMatch[] @relation("CategoryBracketAway")
+  id                  String   @id @default(cuid())
+  leadName            String
+  leadPhone           String
+  leadCpf             String
+  leadBirthDate       DateTime
+  partnerName         String
+  partnerPhone        String
+  partnerCpf          String
+  partnerBirthDate    DateTime
+  registrationOrder   Int
+  amountCents         Int
+  paymentStatus       String   @default("PENDING")
+  paymentProvider     String   @default("")
+  paymentReference    String   @default("")
+  mercadoPagoPaymentId String  @default("")
+  paymentQrCode       String   @default("")
+  paymentQrCodeBase64 String   @default("")
+  paymentCheckoutUrl  String   @default("")
+  paymentExpiresAt    DateTime?
+  status              String   @default("PENDING_PAYMENT")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  tournamentId        String
+  categoryId          String
+  competitionId       String?
+  tournament          Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  category            TournamentCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  competition         CategoryCompetition? @relation(fields: [competitionId, categoryId], references: [id, categoryId], onDelete: Cascade)
+  homeBracketMatches  CategoryBracketMatch[] @relation("CategoryBracketHome")
+  awayBracketMatches  CategoryBracketMatch[] @relation("CategoryBracketAway")
   winnerBracketMatches CategoryBracketMatch[] @relation("CategoryBracketWinner")
 
   @@index([tournamentId, createdAt])
@@ -308,14 +308,14 @@ model PublicTournamentRegistration {
 }
 
 model CategoryBracket {
-  id           String                 @id @default(cuid())
-  status       String                 @default("DRAFT")
-  createdAt    DateTime               @default(now())
-  updatedAt    DateTime               @updatedAt
+  id           String   @id @default(cuid())
+  status       String   @default("DRAFT")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
   tournamentId String
   categoryId   String
-  tournament   Tournament             @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  category     TournamentCategory     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  category     TournamentCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   matches      CategoryBracketMatch[]
 
   @@unique([tournamentId, categoryId])
@@ -323,23 +323,23 @@ model CategoryBracket {
 }
 
 model CategoryBracketMatch {
-  id                   String                        @id @default(cuid())
-  label                String
-  roundOrder           Int
-  stage                String
-  courtName            String                        @default("")
-  scheduledTime        String                        @default("")
-  status               String                        @default("WAITING")
-  createdAt            DateTime                      @default(now())
-  updatedAt            DateTime                      @updatedAt
-  bracketId            String
-  homeRegistrationId   String?
-  awayRegistrationId   String?
+  id                 String   @id @default(cuid())
+  label              String
+  roundOrder         Int
+  stage              String
+  courtName          String   @default("")
+  scheduledTime      String   @default("")
+  status             String   @default("WAITING")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  bracketId          String
+  homeRegistrationId String?
+  awayRegistrationId String?
   winnerRegistrationId String?
-  bracket              CategoryBracket               @relation(fields: [bracketId], references: [id], onDelete: Cascade)
-  homeRegistration     PublicTournamentRegistration? @relation("CategoryBracketHome", fields: [homeRegistrationId], references: [id], onDelete: SetNull)
-  awayRegistration     PublicTournamentRegistration? @relation("CategoryBracketAway", fields: [awayRegistrationId], references: [id], onDelete: SetNull)
-  winnerRegistration   PublicTournamentRegistration? @relation("CategoryBracketWinner", fields: [winnerRegistrationId], references: [id], onDelete: SetNull)
+  bracket            CategoryBracket @relation(fields: [bracketId], references: [id], onDelete: Cascade)
+  homeRegistration   PublicTournamentRegistration? @relation("CategoryBracketHome", fields: [homeRegistrationId], references: [id], onDelete: SetNull)
+  awayRegistration   PublicTournamentRegistration? @relation("CategoryBracketAway", fields: [awayRegistrationId], references: [id], onDelete: SetNull)
+  winnerRegistration PublicTournamentRegistration? @relation("CategoryBracketWinner", fields: [winnerRegistrationId], references: [id], onDelete: SetNull)
 
   @@index([bracketId, roundOrder])
   @@index([homeRegistrationId])
@@ -348,48 +348,48 @@ model CategoryBracketMatch {
 }
 
 model RankingProfile {
-  id           String                @id @default(cuid())
-  name         String
-  description  String                @default("")
-  active       Boolean               @default(true)
-  type         RankingType           @default(PAIR)
-  createdAt    DateTime              @default(now())
-  updatedAt    DateTime              @updatedAt
-  arenaId      String
-  arena        Arena                 @relation(fields: [arenaId], references: [id], onDelete: Cascade)
-  rules        RankingRule[]
-  tournaments  Tournament[]
+  id          String        @id @default(cuid())
+  name        String
+  description String        @default("")
+  active      Boolean       @default(true)
+  type        RankingType   @default(PAIR)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  arenaId     String
+  arena       Arena         @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  rules       RankingRule[]
+  tournaments Tournament[]
   competitions CategoryCompetition[]
-  cycles       RankingCycle[]
+  cycles      RankingCycle[]
 
   @@unique([arenaId, name])
   @@index([arenaId, active])
 }
 
 model RankingRule {
-  id           String         @id @default(cuid())
-  stageKey     String
-  label        String
-  points       Int
+  id          String         @id @default(cuid())
+  stageKey    String
+  label       String
+  points      Int
   displayOrder Int
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  rankingId    String
-  ranking      RankingProfile @relation(fields: [rankingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  rankingId   String
+  ranking     RankingProfile @relation(fields: [rankingId], references: [id], onDelete: Cascade)
 
   @@unique([rankingId, stageKey])
   @@index([rankingId, displayOrder])
 }
 
 model RankingCycle {
-  id        String         @id @default(cuid())
-  label     String         @default("")
-  startedAt DateTime       @default(now())
-  endedAt   DateTime?
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-  rankingId String
-  ranking   RankingProfile @relation(fields: [rankingId], references: [id], onDelete: Cascade)
+  id         String         @id @default(cuid())
+  label      String         @default("")
+  startedAt  DateTime       @default(now())
+  endedAt    DateTime?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  rankingId  String
+  ranking    RankingProfile @relation(fields: [rankingId], references: [id], onDelete: Cascade)
 
   @@index([rankingId, startedAt])
   @@index([rankingId, endedAt])
@@ -413,6 +413,7 @@ model CategoryCompetition {
 
   @@index([rankingId])
   @@index([status])
+  @@unique([id, categoryId])
 }
 
 model CategoryPair {
@@ -425,7 +426,7 @@ model CategoryPair {
   competitionId String
   groupId       String?
   competition   CategoryCompetition  @relation(fields: [competitionId], references: [id], onDelete: Cascade)
-  group         CategoryGroup?       @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  group         CategoryGroup?       @relation(fields: [groupId, competitionId], references: [id, competitionId], onDelete: NoAction)
   players       CategoryPairPlayer[]
   homeMatches   CategoryMatch[]      @relation("CategoryHomePair")
   awayMatches   CategoryMatch[]      @relation("CategoryAwayPair")
@@ -434,6 +435,7 @@ model CategoryPair {
   @@index([competitionId, drawOrder])
   @@index([competitionId, totalPoints])
   @@index([groupId])
+  @@unique([id, competitionId])
 }
 
 model CategoryPairPlayer {
@@ -462,6 +464,7 @@ model CategoryGroup {
 
   @@unique([competitionId, name])
   @@index([competitionId, drawOrder])
+  @@unique([id, competitionId])
 }
 
 model CategoryMatch {
@@ -483,10 +486,10 @@ model CategoryMatch {
   awayPairId    String?
   winnerPairId  String?
   competition   CategoryCompetition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
-  group         CategoryGroup?      @relation(fields: [groupId], references: [id], onDelete: SetNull)
-  homePair      CategoryPair?       @relation("CategoryHomePair", fields: [homePairId], references: [id], onDelete: SetNull)
-  awayPair      CategoryPair?       @relation("CategoryAwayPair", fields: [awayPairId], references: [id], onDelete: SetNull)
-  winnerPair    CategoryPair?       @relation("CategoryWinnerPair", fields: [winnerPairId], references: [id], onDelete: SetNull)
+  group         CategoryGroup?      @relation(fields: [groupId, competitionId], references: [id, competitionId], onDelete: NoAction)
+  homePair      CategoryPair?       @relation("CategoryHomePair", fields: [homePairId, competitionId], references: [id, competitionId], onDelete: NoAction)
+  awayPair      CategoryPair?       @relation("CategoryAwayPair", fields: [awayPairId, competitionId], references: [id, competitionId], onDelete: NoAction)
+  winnerPair    CategoryPair?       @relation("CategoryWinnerPair", fields: [winnerPairId, competitionId], references: [id, competitionId], onDelete: NoAction)
 
   @@index([competitionId, stage, roundOrder])
   @@index([groupId])
@@ -509,19 +512,19 @@ model TournamentPlayer {
 }
 
 model Pair {
-  id            String           @id @default(cuid())
+  id            String      @id @default(cuid())
   name          String
   totalPoints   Int
   drawOrder     Int
-  createdAt     DateTime         @default(now())
+  createdAt     DateTime    @default(now())
   tournamentId  String
   groupId       String?
-  tournament    Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tournament    Tournament  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   group         TournamentGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
   players       PairPlayer[]
-  homeMatches   Match[]          @relation("HomePair")
-  awayMatches   Match[]          @relation("AwayPair")
-  winnerMatches Match[]          @relation("WinnerPair")
+  homeMatches   Match[]     @relation("HomePair")
+  awayMatches   Match[]     @relation("AwayPair")
+  winnerMatches Match[]     @relation("WinnerPair")
 
   @@index([tournamentId, drawOrder])
   @@index([tournamentId, totalPoints])
@@ -541,11 +544,11 @@ model PairPlayer {
 }
 
 model TournamentGroup {
-  id           String     @id @default(cuid())
+  id           String      @id @default(cuid())
   name         String
   drawOrder    Int
   tournamentId String
-  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tournament   Tournament  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   pairs        Pair[]
   matches      Match[]
 
@@ -554,7 +557,7 @@ model TournamentGroup {
 }
 
 model Match {
-  id            String           @id @default(cuid())
+  id            String          @id @default(cuid())
   label         String
   stage         String
   roundOrder    Int
@@ -563,19 +566,19 @@ model Match {
   homeScore     Int?
   awayScore     Int?
   manualStatus  String?
-  showOnTv      Boolean          @default(true)
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+  showOnTv      Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
   tournamentId  String
   groupId       String?
   homePairId    String?
   awayPairId    String?
   winnerPairId  String?
-  tournament    Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tournament    Tournament      @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   group         TournamentGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
-  homePair      Pair?            @relation("HomePair", fields: [homePairId], references: [id], onDelete: SetNull)
-  awayPair      Pair?            @relation("AwayPair", fields: [awayPairId], references: [id], onDelete: SetNull)
-  winnerPair    Pair?            @relation("WinnerPair", fields: [winnerPairId], references: [id], onDelete: SetNull)
+  homePair      Pair?           @relation("HomePair", fields: [homePairId], references: [id], onDelete: SetNull)
+  awayPair      Pair?           @relation("AwayPair", fields: [awayPairId], references: [id], onDelete: SetNull)
+  winnerPair    Pair?           @relation("WinnerPair", fields: [winnerPairId], references: [id], onDelete: SetNull)
 
   @@index([tournamentId, stage, roundOrder])
   @@index([groupId])
@@ -583,52 +586,13 @@ model Match {
 }
 
 model ManualUpcomingMatch {
-  id            String   @id @default(cuid())
-  homePairName  String   @default("")
-  awayPairName  String   @default("")
-  courtName     String   @default("")
-  scheduledTime String   @default("")
-  status        String   @default("SCHEDULED")
-  displayOrder  Int
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  arenaId       String
-  arena         Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
-
-  @@index([arenaId, displayOrder])
-}
-
-model TvPresentationSettings {
-  id                      String   @id @default(cuid())
-  slideIntervalSeconds    Int      @default(12)
-  selectedTournamentId    String?
-  selectedRankingIds      String[] @default([])
-  rankingTitle            String   @default("")
-  showMatches             Boolean  @default(true)
-  tvMatchSource           String   @default("MANUAL")
-  showCalendar            Boolean  @default(false)
-  showSponsors            Boolean  @default(false)
-  showRanking             Boolean  @default(false)
-  showMonthlyPrize        Boolean  @default(false)
-  showNightWinner         Boolean  @default(false)
-  monthlyPrizeTitle       String   @default("Premiacao mensal")
-  monthlyPrizeAmount      String   @default("1° - R$200 em credito da arena")
-  monthlyPrizeDescription String   @default("2° - Um tubo de bolinha + R$50 em credito da arena | 3° - Um grip + R$25 em credito")
-  nightWinnerTitle        String   @default("Vencedor da noite")
-  nightWinnerName         String   @default("Super 12")
-  nightWinnerDescription  String   @default("Ganha uma vaga cortesia para o Super 12 da proxima semana. O uso e obrigatorio na semana seguinte.")
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
-  arenaId                 String   @unique
-  arena                   Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
-}
-
-model TvSponsor {
   id           String   @id @default(cuid())
-  name         String
-  subtitle     String   @default("")
-  logoUrl      String   @default("")
-  displayOrder Int      @default(1)
+  homePairName String   @default("")
+  awayPairName String   @default("")
+  courtName    String   @default("")
+  scheduledTime String   @default("")
+  status       String   @default("SCHEDULED")
+  displayOrder Int
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   arenaId      String
@@ -637,25 +601,64 @@ model TvSponsor {
   @@index([arenaId, displayOrder])
 }
 
+model TvPresentationSettings {
+  id                     String   @id @default(cuid())
+  slideIntervalSeconds   Int      @default(12)
+  selectedTournamentId   String?
+  selectedRankingIds     String[] @default([])
+  rankingTitle           String   @default("")
+  showMatches            Boolean  @default(true)
+  tvMatchSource          String   @default("MANUAL")
+  showCalendar           Boolean  @default(false)
+  showSponsors           Boolean  @default(false)
+  showRanking            Boolean  @default(false)
+  showMonthlyPrize       Boolean  @default(false)
+  showNightWinner        Boolean  @default(false)
+  monthlyPrizeTitle      String   @default("Premiacao mensal")
+  monthlyPrizeAmount     String   @default("1° - R$200 em credito da arena")
+  monthlyPrizeDescription String  @default("2° - Um tubo de bolinha + R$50 em credito da arena | 3° - Um grip + R$25 em credito")
+  nightWinnerTitle       String   @default("Vencedor da noite")
+  nightWinnerName        String   @default("Super 12")
+  nightWinnerDescription String   @default("Ganha uma vaga cortesia para o Super 12 da proxima semana. O uso e obrigatorio na semana seguinte.")
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  arenaId                String   @unique
+  arena                  Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+}
+
+model TvSponsor {
+  id          String   @id @default(cuid())
+  name        String
+  subtitle    String   @default("")
+  logoUrl     String   @default("")
+  displayOrder Int     @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  arenaId     String
+  arena       Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+
+  @@index([arenaId, displayOrder])
+}
+
 model Student {
-  id               String                @id @default(cuid())
-  name             String
-  phone            String                @default("")
-  email            String                @default("")
-  remainingClasses Int                   @default(0)
-  totalClasses     Int                   @default(0)
-  attendedClasses  Int                   @default(0)
-  missedClasses    Int                   @default(0)
-  active           Boolean               @default(true)
-  notes            String                @default("")
-  createdAt        DateTime              @default(now())
-  updatedAt        DateTime              @updatedAt
-  arenaId          String
-  playerId         String?
-  arena            Arena                 @relation(fields: [arenaId], references: [id], onDelete: Cascade)
-  player           Player?               @relation(fields: [playerId], references: [id], onDelete: SetNull)
-  attendances      LessonAttendance[]
-  subscriptions    StudentSubscription[]
+  id             String   @id @default(cuid())
+  name           String
+  phone          String   @default("")
+  email          String   @default("")
+  remainingClasses Int    @default(0)
+  totalClasses   Int      @default(0)
+  attendedClasses Int     @default(0)
+  missedClasses  Int      @default(0)
+  active         Boolean  @default(true)
+  notes          String   @default("")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  arenaId        String
+  playerId       String?
+  arena          Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  player         Player?  @relation(fields: [playerId], references: [id], onDelete: SetNull)
+  attendances    LessonAttendance[]
+  subscriptions  StudentSubscription[]
 
   @@unique([arenaId, name])
   @@unique([playerId])
@@ -663,17 +666,17 @@ model Student {
 }
 
 model Teacher {
-  id             String                @id @default(cuid())
+  id             String   @id @default(cuid())
   name           String
-  phone          String                @default("")
-  email          String                @default("")
-  monthlyTarget  Int                   @default(0)
-  active         Boolean               @default(true)
-  notes          String                @default("")
-  createdAt      DateTime              @default(now())
-  updatedAt      DateTime              @updatedAt
+  phone          String   @default("")
+  email          String   @default("")
+  monthlyTarget  Int      @default(0)
+  active         Boolean  @default(true)
+  notes          String   @default("")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
   arenaId        String
-  arena          Arena                 @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  arena          Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
   lessons        Lesson[]
   payrollEntries TeacherPayrollEntry[]
 
@@ -682,21 +685,21 @@ model Teacher {
 }
 
 model Lesson {
-  id              String             @id @default(cuid())
+  id              String   @id @default(cuid())
   title           String
   scheduledAt     DateTime?
-  durationMinutes Int                @default(60)
-  status          String             @default("SCHEDULED")
-  priceCents      Int                @default(0)
-  paymentMethod   String             @default("")
+  durationMinutes Int      @default(60)
+  status          String   @default("SCHEDULED")
+  priceCents      Int      @default(0)
+  paymentMethod   String   @default("")
   paidAt          DateTime?
-  notes           String             @default("")
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  notes           String   @default("")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
   arenaId         String
   teacherId       String?
-  arena           Arena              @relation(fields: [arenaId], references: [id], onDelete: Cascade)
-  teacher         Teacher?           @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  arena           Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  teacher         Teacher? @relation(fields: [teacherId], references: [id], onDelete: SetNull)
   attendances     LessonAttendance[]
 
   @@index([arenaId, scheduledAt])
@@ -732,18 +735,18 @@ model LessonAttendance {
 }
 
 model Product {
-  id             String          @id @default(cuid())
-  name           String
-  sku            String          @default("")
-  priceCents     Int             @default(0)
-  stockQuantity  Int             @default(0)
-  minStock       Int             @default(0)
-  active         Boolean         @default(true)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  arenaId        String
-  arena          Arena           @relation(fields: [arenaId], references: [id], onDelete: Cascade)
-  saleItems      SaleItem[]
+  id            String   @id @default(cuid())
+  name          String
+  sku           String   @default("")
+  priceCents    Int      @default(0)
+  stockQuantity Int      @default(0)
+  minStock      Int      @default(0)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  arenaId       String
+  arena         Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  saleItems     SaleItem[]
   stockMovements StockMovement[]
 
   @@unique([arenaId, name])
@@ -752,15 +755,15 @@ model Product {
 }
 
 model Sale {
-  id            String     @id @default(cuid())
-  code          String     @unique
-  customerName  String     @default("")
+  id            String   @id @default(cuid())
+  code          String   @unique
+  customerName  String   @default("")
   paymentMethod String
-  status        String     @default("PAID")
+  status        String   @default("PAID")
   totalCents    Int
-  createdAt     DateTime   @default(now())
+  createdAt     DateTime @default(now())
   arenaId       String
-  arena         Arena      @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  arena         Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
   items         SaleItem[]
 
   @@index([arenaId, createdAt])
@@ -796,16 +799,16 @@ model StockMovement {
 }
 
 model Plan {
-  id                String                @id @default(cuid())
+  id                String   @id @default(cuid())
   name              String
-  monthlyPriceCents Int                   @default(0)
-  classesPerMonth   Int                   @default(0)
-  active            Boolean               @default(true)
-  notes             String                @default("")
-  createdAt         DateTime              @default(now())
-  updatedAt         DateTime              @updatedAt
+  monthlyPriceCents Int      @default(0)
+  classesPerMonth   Int      @default(0)
+  active            Boolean  @default(true)
+  notes             String   @default("")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
   arenaId           String
-  arena             Arena                 @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  arena             Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
   subscriptions     StudentSubscription[]
 
   @@unique([arenaId, name])
@@ -813,22 +816,22 @@ model Plan {
 }
 
 model StudentSubscription {
-  id                String    @id @default(cuid())
-  status            String    @default("ACTIVE")
-  monthlyPriceCents Int       @default(0)
-  classesPerMonth   Int       @default(0)
-  dueDay            Int       @default(10)
-  startedAt         DateTime  @default(now())
+  id                String   @id @default(cuid())
+  status            String   @default("ACTIVE")
+  monthlyPriceCents Int      @default(0)
+  classesPerMonth   Int      @default(0)
+  dueDay            Int      @default(10)
+  startedAt         DateTime @default(now())
   endedAt           DateTime?
-  notes             String    @default("")
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  notes             String   @default("")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
   arenaId           String
   studentId         String
   planId            String
-  arena             Arena     @relation(fields: [arenaId], references: [id], onDelete: Cascade)
-  student           Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  plan              Plan      @relation(fields: [planId], references: [id], onDelete: Restrict)
+  arena             Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  student           Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  plan              Plan     @relation(fields: [planId], references: [id], onDelete: Restrict)
 
   @@index([arenaId, status])
   @@index([planId])
@@ -836,20 +839,20 @@ model StudentSubscription {
 }
 
 model FinancialEntry {
-  id            String    @id @default(cuid())
+  id            String   @id @default(cuid())
   type          String
   category      String
   description   String
   amountCents   Int
-  paymentMethod String    @default("")
-  status        String    @default("PENDING")
+  paymentMethod String   @default("")
+  status        String   @default("PENDING")
   dueDate       DateTime?
   paidAt        DateTime?
-  notes         String    @default("")
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  notes         String   @default("")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
   arenaId       String
-  arena         Arena     @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  arena         Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
 
   @@index([arenaId, type, status])
   @@index([arenaId, dueDate])
@@ -857,21 +860,21 @@ model FinancialEntry {
 }
 
 model TeacherPayrollEntry {
-  id               String   @id @default(cuid())
-  referenceMonth   String
-  fixedSalaryCents Int      @default(0)
-  classValueCents  Int      @default(0)
-  bonusCents       Int      @default(0)
-  discountCents    Int      @default(0)
-  paidCents        Int      @default(0)
-  status           String   @default("PENDING")
-  notes            String   @default("")
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  arenaId          String
-  teacherId        String
-  arena            Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
-  teacher          Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  id                 String   @id @default(cuid())
+  referenceMonth     String
+  fixedSalaryCents   Int      @default(0)
+  classValueCents    Int      @default(0)
+  bonusCents         Int      @default(0)
+  discountCents      Int      @default(0)
+  paidCents          Int      @default(0)
+  status             String   @default("PENDING")
+  notes              String   @default("")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  arenaId            String
+  teacherId          String
+  arena              Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  teacher            Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 
   @@unique([teacherId, referenceMonth])
   @@index([arenaId, referenceMonth])

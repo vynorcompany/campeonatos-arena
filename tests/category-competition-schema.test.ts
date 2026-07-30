@@ -33,3 +33,13 @@ test("schema keeps competition data scoped to each category", async () => {
   assert.match(schema, /competition\s+CategoryCompetition\s+@relation\([^\n]*onDelete:\s*Cascade/);
   assert.match(schema, /competition\s+CategoryCompetition\?\s+@relation\([^\n]*onDelete:\s*Cascade/);
 });
+
+test("schema prevents cross-competition ownership references", async () => {
+  const schema = await readFile(schemaPath, "utf8");
+
+  assert.match(schema, /@@unique\(\[id, categoryId\]\)/);
+  assert.match(schema, /@@unique\(\[id, competitionId\]\)/);
+  assert.match(schema, /competition\s+CategoryCompetition\?\s+@relation\(fields:\s*\[competitionId, categoryId\],\s*references:\s*\[id, categoryId\]/);
+  assert.match(schema, /group\s+CategoryGroup\?\s+@relation\(fields:\s*\[groupId, competitionId\],\s*references:\s*\[id, competitionId\]/);
+  assert.match(schema, /homePair\s+CategoryPair\?\s+@relation\("CategoryHomePair",\s*fields:\s*\[homePairId, competitionId\],\s*references:\s*\[id, competitionId\]/);
+});

@@ -95,6 +95,9 @@ CREATE INDEX "PublicTournamentRegistration_competitionId_createdAt_idx" ON "Publ
 CREATE UNIQUE INDEX "CategoryCompetition_categoryId_key" ON "CategoryCompetition"("categoryId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "CategoryCompetition_id_categoryId_key" ON "CategoryCompetition"("id", "categoryId");
+
+-- CreateIndex
 CREATE INDEX "CategoryCompetition_rankingId_idx" ON "CategoryCompetition"("rankingId");
 
 -- CreateIndex
@@ -108,6 +111,9 @@ CREATE INDEX "CategoryPair_competitionId_totalPoints_idx" ON "CategoryPair"("com
 
 -- CreateIndex
 CREATE INDEX "CategoryPair_groupId_idx" ON "CategoryPair"("groupId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CategoryPair_id_competitionId_key" ON "CategoryPair"("id", "competitionId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "CategoryPairPlayer_pairId_playerId_key" ON "CategoryPairPlayer"("pairId", "playerId");
@@ -125,6 +131,9 @@ CREATE UNIQUE INDEX "CategoryGroup_competitionId_name_key" ON "CategoryGroup"("c
 CREATE INDEX "CategoryGroup_competitionId_drawOrder_idx" ON "CategoryGroup"("competitionId", "drawOrder");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "CategoryGroup_id_competitionId_key" ON "CategoryGroup"("id", "competitionId");
+
+-- CreateIndex
 CREATE INDEX "CategoryMatch_competitionId_stage_roundOrder_idx" ON "CategoryMatch"("competitionId", "stage", "roundOrder");
 
 -- CreateIndex
@@ -134,7 +143,7 @@ CREATE INDEX "CategoryMatch_groupId_idx" ON "CategoryMatch"("groupId");
 CREATE INDEX "CategoryMatch_winnerPairId_idx" ON "CategoryMatch"("winnerPairId");
 
 -- AddForeignKey
-ALTER TABLE "PublicTournamentRegistration" ADD CONSTRAINT "PublicTournamentRegistration_competitionId_fkey" FOREIGN KEY ("competitionId") REFERENCES "CategoryCompetition"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "PublicTournamentRegistration" ADD CONSTRAINT "PublicTournamentRegistration_competitionId_fkey" FOREIGN KEY ("competitionId", "categoryId") REFERENCES "CategoryCompetition"("id", "categoryId") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "CategoryCompetition" ADD CONSTRAINT "CategoryCompetition_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "TournamentCategory"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -146,7 +155,7 @@ ALTER TABLE "CategoryCompetition" ADD CONSTRAINT "CategoryCompetition_rankingId_
 ALTER TABLE "CategoryPair" ADD CONSTRAINT "CategoryPair_competitionId_fkey" FOREIGN KEY ("competitionId") REFERENCES "CategoryCompetition"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "CategoryPair" ADD CONSTRAINT "CategoryPair_groupId_fkey" FOREIGN KEY ("groupId") REFERENCES "CategoryGroup"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "CategoryPair" ADD CONSTRAINT "CategoryPair_groupId_fkey" FOREIGN KEY ("groupId", "competitionId") REFERENCES "CategoryGroup"("id", "competitionId") ON DELETE NO ACTION ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "CategoryPairPlayer" ADD CONSTRAINT "CategoryPairPlayer_pairId_fkey" FOREIGN KEY ("pairId") REFERENCES "CategoryPair"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -161,13 +170,13 @@ ALTER TABLE "CategoryGroup" ADD CONSTRAINT "CategoryGroup_competitionId_fkey" FO
 ALTER TABLE "CategoryMatch" ADD CONSTRAINT "CategoryMatch_competitionId_fkey" FOREIGN KEY ("competitionId") REFERENCES "CategoryCompetition"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "CategoryMatch" ADD CONSTRAINT "CategoryMatch_groupId_fkey" FOREIGN KEY ("groupId") REFERENCES "CategoryGroup"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "CategoryMatch" ADD CONSTRAINT "CategoryMatch_groupId_fkey" FOREIGN KEY ("groupId", "competitionId") REFERENCES "CategoryGroup"("id", "competitionId") ON DELETE NO ACTION ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "CategoryMatch" ADD CONSTRAINT "CategoryMatch_homePairId_fkey" FOREIGN KEY ("homePairId") REFERENCES "CategoryPair"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "CategoryMatch" ADD CONSTRAINT "CategoryMatch_homePairId_fkey" FOREIGN KEY ("homePairId", "competitionId") REFERENCES "CategoryPair"("id", "competitionId") ON DELETE NO ACTION ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "CategoryMatch" ADD CONSTRAINT "CategoryMatch_awayPairId_fkey" FOREIGN KEY ("awayPairId") REFERENCES "CategoryPair"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "CategoryMatch" ADD CONSTRAINT "CategoryMatch_awayPairId_fkey" FOREIGN KEY ("awayPairId", "competitionId") REFERENCES "CategoryPair"("id", "competitionId") ON DELETE NO ACTION ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "CategoryMatch" ADD CONSTRAINT "CategoryMatch_winnerPairId_fkey" FOREIGN KEY ("winnerPairId") REFERENCES "CategoryPair"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "CategoryMatch" ADD CONSTRAINT "CategoryMatch_winnerPairId_fkey" FOREIGN KEY ("winnerPairId", "competitionId") REFERENCES "CategoryPair"("id", "competitionId") ON DELETE NO ACTION ON UPDATE CASCADE;
