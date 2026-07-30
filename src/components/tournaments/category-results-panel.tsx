@@ -25,15 +25,27 @@ type ResultCategory = {
   name: string;
   competition: {
     id: string;
+    format: "LEAGUE" | "THREE_GROUPS" | "FOUR_GROUPS" | "SIMPLE";
     status: string;
-    feedsGeneralRanking: boolean;
-    rankingName: string | null;
     pairs: Array<{
       id: string;
       name: string;
-      totalPoints: number;
     }>;
     matches: CompetitionMatch[];
+    sportsResults: {
+      leagueStandings: Array<{
+        position: number;
+        pairName: string;
+        matches: number;
+        victories: number;
+        losses: number;
+        differential: number;
+      }>;
+      knockoutPlacement: Array<{
+        position: number;
+        pairName: string;
+      }>;
+    };
   } | null;
 };
 
@@ -198,41 +210,56 @@ export function CategoryResultsPanel({
               </>
             ) : (
               <>
-                <dl className="t-review-grid">
-                  <div>
-                    <dt>Ranking de duplas</dt>
-                    <dd>{competition.rankingName ?? "Sem ranking"}</dd>
-                  </div>
-                  <div>
-                    <dt>Ranking Geral</dt>
-                    <dd>
-                      {competition.feedsGeneralRanking
-                        ? "Recebe pontuação"
-                        : "Não recebe pontuação"}
-                    </dd>
-                  </div>
-                </dl>
-
-                {competition.pairs.length ? (
+                {competition.format === "LEAGUE" ? (
+                  competition.sportsResults.leagueStandings.length ? (
+                    <div className="group-standings">
+                      <h4>Classificação da Liga</h4>
+                      <table className="group-standings-table">
+                        <thead>
+                          <tr>
+                            <th>Posição</th>
+                            <th>Dupla</th>
+                            <th>Jogos</th>
+                            <th>Vitórias</th>
+                            <th>Derrotas</th>
+                            <th>Saldo</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {competition.sportsResults.leagueStandings.map(
+                            (standing) => (
+                              <tr key={standing.pairName}>
+                                <td>{standing.position}</td>
+                                <td>{standing.pairName}</td>
+                                <td>{standing.matches}</td>
+                                <td>{standing.victories}</td>
+                                <td>{standing.losses}</td>
+                                <td>{standing.differential}</td>
+                              </tr>
+                            ),
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="muted">Nenhum resultado registrado.</p>
+                  )
+                ) : competition.sportsResults.knockoutPlacement.length ? (
                   <div className="simple-list">
-                    {[...competition.pairs]
-                      .sort((first, second) => {
-                        if (second.totalPoints !== first.totalPoints) {
-                          return second.totalPoints - first.totalPoints;
-                        }
-                        return first.name.localeCompare(second.name);
-                      })
-                      .map((pair, index) => (
-                        <div className="simple-item" key={pair.id}>
+                    {competition.sportsResults.knockoutPlacement.map(
+                      (placement) => (
+                        <div className="simple-item" key={placement.position}>
                           <strong>
-                            {index + 1}. {pair.name}
+                            {placement.position}. {placement.pairName}
                           </strong>
-                          <span>{pair.totalPoints} pts</span>
                         </div>
-                      ))}
+                      ),
+                    )}
                   </div>
                 ) : (
-                  <p className="muted">Nenhuma dupla classificada.</p>
+                  <p className="muted">
+                    A classificação final estará disponível após a final.
+                  </p>
                 )}
 
                 {competition.status === "PUBLISHED" ? (
@@ -244,7 +271,7 @@ export function CategoryResultsPanel({
                         value={competition.id}
                       />
                       <SubmitButton
-                        label="Encerrar categoria e aplicar ranking"
+                        label="Encerrar categoria"
                         pendingLabel="Encerrando..."
                         className="button button-primary"
                       />

@@ -10,6 +10,8 @@ import { type TournamentTabKey } from "@/components/tournaments/tournament-tabs"
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { canGenerateCategoryDraw } from "@/lib/tournament-category/draw";
+import { buildPlacementStages } from "@/lib/tournament-category/ranking";
+import { rankStandings } from "@/lib/tournament-category/standings";
 
 type CategoryPageProps = {
   params: {
@@ -147,6 +149,90 @@ export default async function CategoryPage({
       ? requestedTab
       : "overview";
   const competition = category.competition;
+  const completedSportsMatches =
+    competition?.matches.filter(
+      (
+        match,
+      ): match is typeof match & {
+        homePairId: string;
+        awayPairId: string;
+        winnerPairId: string;
+        homeScore: number;
+        awayScore: number;
+      } =>
+        Boolean(
+          match.homePairId &&
+            match.awayPairId &&
+            match.winnerPairId &&
+            match.homeScore != null &&
+            match.awayScore != null,
+        ),
+    ) ?? [];
+  const leagueStandings =
+    competition?.format === "LEAGUE"
+      ? rankStandings(
+          competition.pairs.map((pair) => {
+            const pairMatches = completedSportsMatches.filter(
+              (match) =>
+                match.homePairId === pair.id || match.awayPairId === pair.id,
+            );
+            return {
+              pairId: pair.id,
+              victories: pairMatches.filter(
+                (match) => match.winnerPairId === pair.id,
+              ).length,
+              differential: pairMatches.reduce(
+                (total, match) =>
+                  total +
+                  (match.homePairId === pair.id
+                    ? match.homeScore - match.awayScore
+                    : match.awayScore - match.homeScore),
+                0,
+              ),
+            };
+          }),
+          completedSportsMatches,
+        ).map((row, index) => {
+          const matches = completedSportsMatches.filter(
+            (match) =>
+              match.homePairId === row.pairId ||
+              match.awayPairId === row.pairId,
+          ).length;
+          return {
+            position: index + 1,
+            pairName:
+              competition.pairs.find((pair) => pair.id === row.pairId)?.name ??
+              "Dupla removida",
+            matches,
+            victories: row.victories,
+            losses: matches - row.victories,
+            differential: row.differential,
+          };
+        })
+      : [];
+  const knockoutPlacement =
+    competition &&
+    competition.format !== "LEAGUE" &&
+    completedSportsMatches.some((match) => match.stage === "FINAL")
+      ? [...buildPlacementStages({
+          format: competition.format,
+          pairIds: competition.pairs.map((pair) => pair.id),
+          matches: competition.matches,
+        })]
+          .filter(
+            ([, stage]) => stage === "CHAMPION" || stage === "RUNNER_UP",
+          )
+          .sort(([, first], [, second]) =>
+            first === "CHAMPION" ? -1 : second === "CHAMPION" ? 1 : 0,
+          )
+          .map(([pairId], index) => ({
+            position: index + 1,
+            pairName:
+              competition.pairs.find((pair) => pair.id === pairId)?.name ??
+              "Dupla removida",
+          }))
+      : [];
+  const sportsResults = { leagueStandings, knockoutPlacement };
   const categoryView = {
     id: category.id,
     name: category.name,
@@ -158,12 +244,9 @@ export default async function CategoryPage({
           id: competition.id,
           format: competition.format,
           status: competition.status,
-          feedsGeneralRanking: competition.feedsGeneralRanking,
-          rankingName: competition.ranking?.name ?? null,
           pairs: competition.pairs.map((pair) => ({
             id: pair.id,
             name: pair.name,
-            totalPoints: pair.totalPoints,
             groupId: pair.groupId,
             playerNames: pair.players.map(
               (pairPlayer) => pairPlayer.player.name,
@@ -188,7 +271,8 @@ export default async function CategoryPage({
             homePair: match.homePair,
             awayPair: match.awayPair,
             winnerPair: match.winnerPair,
-          })),
+            })),
+          sportsResults,
         }
       : null,
   };
