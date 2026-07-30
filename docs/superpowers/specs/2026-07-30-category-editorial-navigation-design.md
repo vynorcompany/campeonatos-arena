@@ -16,7 +16,12 @@ uma lista de categorias; cada categoria possui uma página operacional própria.
 ## Tela da categoria
 
 - Rota própria dentro do evento, com retorno para a lista de categorias.
-- Cabeçalho apresenta nome, formato, ranking e status em uma linha secundária.
+- Visão geral começa com um único bloco compacto: nome à esquerda e status à
+  direita; abaixo, uma linha de contexto (`classe · gênero · formato ·
+  ranking`); por fim, métricas de duplas, jogos e Ranking Geral alinhadas à
+  esquerda, com a próxima ação no extremo direito.
+- Não renderizar um segundo card com nome/status nem métricas soltas abaixo:
+  ele cria vazio visual e quebra a leitura em F.
 - Abas: Visão geral, Inscrições, Grupos, Jogos e Resultados.
 - Cada aba mostra apenas os dados da categoria atual; não renderiza categorias
   vizinhas.
