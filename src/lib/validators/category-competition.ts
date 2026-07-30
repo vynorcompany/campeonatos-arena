@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CATEGORY_CLASS_OPTIONS } from "@/lib/tournament-category/options";
 
 const competitionIdSchema = z
   .string()
@@ -18,11 +19,16 @@ const checkboxSchema = z.preprocess(
   z.boolean(),
 );
 
+const categoryGenderSchema = z.preprocess(
+  (value) => String(value ?? "").trim().toLocaleUpperCase("pt-BR"),
+  z.enum(["FEMININO", "MASCULINO"]),
+);
+
 export const createCategoryCompetitionSchema = z
   .object({
     categoryId: z.string().trim().min(1, "Categoria inválida."),
-    class: z.string().trim().min(1, "Informe a classe da categoria.").max(40),
-    gender: z.string().trim().min(1, "Informe o gênero da categoria.").max(40),
+    class: z.enum(CATEGORY_CLASS_OPTIONS),
+    gender: categoryGenderSchema,
     format: z.enum(["LEAGUE", "THREE_GROUPS", "FOUR_GROUPS", "SIMPLE"]),
     rankingId: nullableIdSchema,
     feedsGeneralRanking: checkboxSchema,

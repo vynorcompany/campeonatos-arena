@@ -9,6 +9,7 @@ import {
 } from "../src/lib/validators/category-competition";
 import { createPlayerSchema } from "../src/lib/validators/player";
 import { validateManualPairEligibility } from "../src/lib/tournament-category/eligibility";
+import { CATEGORY_CLASS_OPTIONS } from "../src/lib/tournament-category/options";
 
 const workspaceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const actionsPath = path.join(workspaceRoot, "src", "lib", "actions", "category-competition.ts");
@@ -113,6 +114,47 @@ test("manual pair eligibility rejects an existing pair regardless of slot order"
         [["player-2", "player-1"]],
       ),
     /já está inscrita/i,
+  );
+});
+
+test("category classes are limited to the supported ordinal options", () => {
+  assert.deepEqual(CATEGORY_CLASS_OPTIONS, ["3ª", "4ª", "5ª", "6ª", "7ª"]);
+});
+
+test("category competition configuration only accepts standard class and gender values", () => {
+  const validInput = {
+    categoryId: "category-1",
+    class: "5ª",
+    gender: "FEMININO",
+    format: "LEAGUE",
+    rankingId: null,
+    feedsGeneralRanking: false,
+  };
+
+  assert.equal(createCategoryCompetitionSchema.safeParse(validInput).success, true);
+  assert.equal(
+    createCategoryCompetitionSchema.safeParse({ ...validInput, class: "5a" }).success,
+    false,
+  );
+  assert.equal(
+    createCategoryCompetitionSchema.safeParse({ ...validInput, gender: "MISTO" }).success,
+    false,
+  );
+});
+
+test("manual pair eligibility treats legacy class spellings as the same class", () => {
+  const category = {
+    arenaId: "arena-1",
+    className: "5ª",
+    gender: "FEMININO",
+  };
+  const players = [
+    { id: "player-1", arenaId: "arena-1", active: true, className: "5a", gender: "FEMININO" },
+    { id: "player-2", arenaId: "arena-1", active: true, className: "5", gender: "FEMININO" },
+  ];
+
+  assert.doesNotThrow(() =>
+    validateManualPairEligibility(category, players, []),
   );
 });
 

@@ -55,6 +55,7 @@ export default async function TournamentDetailPage({
               select: {
                 id: true,
                 name: true,
+                active: true,
                 class: true,
                 gender: true,
               },

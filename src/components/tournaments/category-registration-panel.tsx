@@ -8,6 +8,7 @@ import { matchesCategoryEligibility } from "@/lib/tournament-category/eligibilit
 type AthleteOption = {
   id: string;
   name: string;
+  active: boolean;
   class: string;
   gender: string;
 };
@@ -65,6 +66,7 @@ export function CategoryRegistrationPanel({
       {categories.map((category) => {
         const eligibleAthletes = athletes.filter(
           (athlete) =>
+            athlete.active &&
             matchesCategoryEligibility(
               { className: category.class, gender: category.gender },
               { className: athlete.class, gender: athlete.gender },
@@ -155,7 +157,8 @@ export function CategoryRegistrationPanel({
                     {eligibleAthletes.length < 2 ? (
                       <p className="muted form-full">
                         Cadastre ao menos dois atletas ativos com esta classe e
-                        gênero em Gestão → Atletas.
+                        gênero em{" "}
+                        <Link href="/players">Gestão → Atletas</Link>.
                       </p>
                     ) : null}
                   </form>

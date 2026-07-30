@@ -16,12 +16,18 @@ function normalizeEligibilityValue(value: string) {
   return value.trim().toLocaleUpperCase("pt-BR");
 }
 
+function normalizeCategoryClass(value: string) {
+  const normalized = normalizeEligibilityValue(value).replace(/\s+/g, "");
+  const ordinalClass = normalized.match(/^(\d+)(?:A|ª)?$/u);
+  return ordinalClass?.[1] ?? normalized;
+}
+
 export function matchesCategoryEligibility(
   category: Pick<CategoryEligibility, "className" | "gender">,
   player: Pick<EligiblePlayer, "className" | "gender">,
 ) {
-  const categoryClass = normalizeEligibilityValue(category.className);
-  const playerClass = normalizeEligibilityValue(player.className);
+  const categoryClass = normalizeCategoryClass(category.className);
+  const playerClass = normalizeCategoryClass(player.className);
   if (categoryClass && playerClass !== categoryClass) {
     return false;
   }
@@ -52,11 +58,11 @@ export function validateManualPairEligibility(
     throw new Error("Atleta inativo não pode ser inscrito.");
   }
 
-  const categoryClass = normalizeEligibilityValue(category.className);
+  const categoryClass = normalizeCategoryClass(category.className);
   if (
     categoryClass &&
     players.some(
-      (player) => normalizeEligibilityValue(player.className) !== categoryClass,
+      (player) => normalizeCategoryClass(player.className) !== categoryClass,
     )
   ) {
     throw new Error("A classe do atleta não é elegível para esta categoria.");

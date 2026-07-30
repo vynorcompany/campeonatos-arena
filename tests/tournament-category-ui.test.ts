@@ -161,6 +161,43 @@ test("category selectors share the normalized eligibility rule", () => {
   );
 });
 
+test("category configuration uses standard class and binary gender selectors", async () => {
+  const source = await readFile(
+    path.join(
+      workspaceRoot,
+      "src",
+      "components",
+      "tournaments",
+      "category-competition-form.tsx",
+    ),
+    "utf8",
+  );
+
+  assert.match(source, /CATEGORY_CLASS_OPTIONS/);
+  assert.match(source, /<select[^>]*name="class"/);
+  assert.doesNotMatch(source, /<input[^>]*name="class"/);
+  assert.match(source, /CATEGORY_GENDER_OPTIONS/);
+  assert.doesNotMatch(source, /value="MISTO"/);
+});
+
+test("manual registration guides the arena to manage athletes when eligibility is insufficient", async () => {
+  const source = await readFile(
+    path.join(
+      workspaceRoot,
+      "src",
+      "components",
+      "tournaments",
+      "category-registration-panel.tsx",
+    ),
+    "utf8",
+  );
+
+  assert.match(source, /eligibleAthletes\.length < 2/);
+  assert.match(source, /href="\/players"/);
+  assert.match(source, /atletas ativos/i);
+  assert.match(source, /athlete\.active\s*&&/);
+});
+
 test("draw availability follows the shared format rule", () => {
   assert.equal(canGenerateCategoryDraw("LEAGUE", 1), true);
   assert.equal(canGenerateCategoryDraw("THREE_GROUPS", 7), false);

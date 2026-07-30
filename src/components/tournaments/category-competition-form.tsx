@@ -3,6 +3,10 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { StatusBadge } from "@/components/tournaments/status-badge";
 import { createCategoryCompetitionAction } from "@/lib/actions/category-competition";
 import { canGenerateCategoryDraw } from "@/lib/tournament-category/draw";
+import {
+  CATEGORY_CLASS_OPTIONS,
+  CATEGORY_GENDER_OPTIONS,
+} from "@/lib/tournament-category/options";
 
 type PairRankingOption = {
   id: string;
@@ -61,21 +65,25 @@ export function CategoryCompetitionForm({
 
       <div className="field">
         <label htmlFor={`class-${categoryId}`}>Classe</label>
-        <input
-          id={`class-${categoryId}`}
-          name="class"
-          placeholder="Ex.: 5ª"
-          required
-        />
+        <select id={`class-${categoryId}`} name="class" required defaultValue="">
+          <option value="">Selecione</option>
+          {CATEGORY_CLASS_OPTIONS.map((className) => (
+            <option key={className} value={className}>
+              {className}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="field">
         <label htmlFor={`gender-${categoryId}`}>Gênero</label>
         <select id={`gender-${categoryId}`} name="gender" required>
           <option value="">Selecione</option>
-          <option value="FEMININO">Feminino</option>
-          <option value="MASCULINO">Masculino</option>
-          <option value="MISTO">Misto</option>
+          {CATEGORY_GENDER_OPTIONS.map((gender) => (
+            <option key={gender.value} value={gender.value}>
+              {gender.label}
+            </option>
+          ))}
         </select>
       </div>
 
