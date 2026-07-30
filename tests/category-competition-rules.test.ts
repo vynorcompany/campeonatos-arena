@@ -41,6 +41,14 @@ test("non-league formats reject draws with fewer than eight pairs", () => {
   assert.doesNotThrow(() => buildGroups({ format: "LEAGUE", pairIds: pairIds(2) }));
 });
 
+test("Simple rejects more than sixteen pairs to preserve eight quarterfinalists", () => {
+  assert.equal(buildGroups({ format: "SIMPLE", pairIds: pairIds(16) }).length, 4);
+  assert.throws(
+    () => buildGroups({ format: "SIMPLE", pairIds: pairIds(17) }),
+    /at most sixteen pairs/i,
+  );
+});
+
 test("round robin schedules every unique pair matchup once", () => {
   assert.deepEqual(buildRoundRobin(["a", "b", "c"]), [
     { homePairId: "a", awayPairId: "b" },
@@ -81,6 +89,23 @@ test("standings prioritize victories before head-to-head and differential", () =
     "higher-differential",
     "lower-differential",
   ]);
+});
+
+test("standings use differential after a circular three-way mini-table", () => {
+  const ranked = rankStandings(
+    [
+      { pairId: "a", victories: 1, differential: 0 },
+      { pairId: "b", victories: 1, differential: 1 },
+      { pairId: "c", victories: 1, differential: 100 },
+    ],
+    [
+      { homePairId: "a", awayPairId: "b", homeScore: 6, awayScore: 4 },
+      { homePairId: "b", awayPairId: "c", homeScore: 6, awayScore: 4 },
+      { homePairId: "c", awayPairId: "a", homeScore: 6, awayScore: 4 },
+    ],
+  );
+
+  assert.deepEqual(ranked.map((row) => row.pairId), ["c", "b", "a"]);
 });
 
 test("three groups qualify the top two and the two best third places", () => {

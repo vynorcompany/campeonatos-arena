@@ -11,6 +11,7 @@ type BuildGroupsInput = {
 };
 
 const minimumKnockoutPairs = 8;
+const maximumSimplePairs = 16;
 
 function requireKnockoutPairMinimum(format: CompetitionFormat, pairIds: string[]) {
   if (format !== "LEAGUE" && pairIds.length < minimumKnockoutPairs) {
@@ -40,6 +41,10 @@ export function buildGroups({ format, pairIds }: BuildGroupsInput): DrawGroup[] 
   }
 
   requireKnockoutPairMinimum(format, pairIds);
+
+  if (format === "SIMPLE" && pairIds.length > maximumSimplePairs) {
+    throw new Error("Simple format supports at most sixteen pairs.");
+  }
 
   if (format === "THREE_GROUPS") {
     return buildBalancedGroups(pairIds, 3);
