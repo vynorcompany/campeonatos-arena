@@ -59,6 +59,7 @@ async function lockIndividualRanking(
       id: rankingId,
       arenaId,
       type: "INDIVIDUAL",
+      model: "KNOCKOUT",
     },
     select: { id: true },
   });

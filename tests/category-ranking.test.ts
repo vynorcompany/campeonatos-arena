@@ -190,7 +190,7 @@ test("legacy tournaments only accept individual rankings and the migration backf
   ]);
 
   assert.match(actions, /type:\s*"INDIVIDUAL"/);
-  assert.match(actions, /linkedTournamentCount/);
+  assert.match(actions, /linkedLegacyTournamentCount/);
   assert.match(migration, /UPDATE "RankingProfile"[\s\S]*SET "type" = 'INDIVIDUAL'/);
 });
 

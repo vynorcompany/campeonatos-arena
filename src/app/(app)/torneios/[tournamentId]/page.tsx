@@ -48,6 +48,7 @@ export default async function TournamentDetailPage({
         arenaId: auth.arenaId,
         active: true,
         type: "INDIVIDUAL",
+        model: "KNOCKOUT",
       },
       orderBy: { name: "asc" },
       select: { id: true, name: true },

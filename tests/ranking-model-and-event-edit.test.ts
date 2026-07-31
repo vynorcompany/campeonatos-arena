@@ -149,6 +149,49 @@ test("ranking persistence stores model and one General Ranking per arena", async
   );
 });
 
+test("ranking migration backfills exclusive League links and rejects ambiguous consumers", async () => {
+  const migrationNames = await readdir(
+    path.join(workspaceRoot, "prisma", "migrations"),
+  );
+  const migrationName = migrationNames.find((name) =>
+    name.includes("ranking_model_compatibility"),
+  );
+
+  assert.ok(migrationName, "ranking compatibility migration is missing");
+  const migration = await readFile(
+    path.join(
+      workspaceRoot,
+      "prisma",
+      "migrations",
+      migrationName ?? "",
+      "migration.sql",
+    ),
+    "utf8",
+  );
+
+  assert.match(migration, /RAISE EXCEPTION[\s\S]*LEAGUE[\s\S]*KNOCKOUT/i);
+  assert.match(
+    migration,
+    /RAISE EXCEPTION[\s\S]*LEAGUE[\s\S]*legacy tournament/i,
+  );
+  assert.match(
+    migration,
+    /UPDATE "RankingProfile"[\s\S]*SET "model" = 'LEAGUE'[\s\S]*"CategoryCompetition"[\s\S]*"format" = 'LEAGUE'/,
+  );
+  assert.match(
+    migration,
+    /INSERT INTO "RankingRule"[\s\S]*'THIRD'[\s\S]*COALESCE[\s\S]*'SEMIFINAL'/,
+  );
+  assert.match(
+    migration,
+    /DELETE FROM "RankingRule"[\s\S]*IN \('SEMIFINAL', 'QUARTERFINAL'\)/,
+  );
+  assert.match(
+    migration,
+    /UPDATE "RankingRule"[\s\S]*"displayOrder" = 4[\s\S]*'PARTICIPATION'/,
+  );
+});
+
 test("ranking actions and forms synchronize model-aware rules", async () => {
   const [actions, form, page] = await Promise.all([
     readFile(
@@ -207,6 +250,79 @@ test("a ranking model cannot change beneath an incompatible category table", asy
   assert.match(updateAction, /format:\s*\{\s*not:\s*"LEAGUE"\s*\}/);
   assert.match(updateAction, /format:\s*"LEAGUE"/);
   assert.match(updateAction, /modelo.*categorias vinculadas/i);
+});
+
+test("legacy tournaments only select and accept individual knockout rankings", async () => {
+  const [newEventPage, eventPage, actions, tournamentService] =
+    await Promise.all([
+      readFile(
+        path.join(
+          workspaceRoot,
+          "src",
+          "app",
+          "(app)",
+          "torneios",
+          "novo",
+          "page.tsx",
+        ),
+        "utf8",
+      ),
+      readFile(
+        path.join(
+          workspaceRoot,
+          "src",
+          "app",
+          "(app)",
+          "torneios",
+          "[tournamentId]",
+          "page.tsx",
+        ),
+        "utf8",
+      ),
+      readFile(
+        path.join(workspaceRoot, "src", "lib", "actions", "tournament.ts"),
+        "utf8",
+      ),
+      readFile(
+        path.join(workspaceRoot, "src", "lib", "services", "tournament.ts"),
+        "utf8",
+      ),
+    ]);
+
+  for (const source of [newEventPage, eventPage]) {
+    const rankingQuery = source.slice(
+      source.indexOf("prisma.rankingProfile.findMany"),
+      source.indexOf("orderBy:", source.indexOf("prisma.rankingProfile.findMany")),
+    );
+    assert.match(rankingQuery, /type:\s*"INDIVIDUAL"/);
+    assert.match(rankingQuery, /model:\s*"KNOCKOUT"/);
+  }
+
+  const actionGuard = actions.slice(
+    actions.indexOf("async function ensureRankingBelongsToArena"),
+    actions.indexOf("async function syncRankingRules"),
+  );
+  const serviceGuard = tournamentService.slice(
+    tournamentService.indexOf("async function lockIndividualRanking"),
+    tournamentService.indexOf("function getGroupLabelByOrder"),
+  );
+  assert.match(actionGuard, /type:\s*"INDIVIDUAL"[\s\S]*model:\s*"KNOCKOUT"/);
+  assert.match(serviceGuard, /type:\s*"INDIVIDUAL"[\s\S]*model:\s*"KNOCKOUT"/);
+});
+
+test("a legacy-linked ranking cannot change to the League model", async () => {
+  const actions = await readFile(
+    path.join(workspaceRoot, "src", "lib", "actions", "tournament.ts"),
+    "utf8",
+  );
+  const updateAction = actions.slice(
+    actions.indexOf("export async function updateRankingProfileAction"),
+    actions.indexOf("export async function resetRankingPointsAction"),
+  );
+
+  assert.match(updateAction, /linkedLegacyTournamentCount/);
+  assert.match(updateAction, /parsed\.data\.model\s*===\s*"LEAGUE"/);
+  assert.match(updateAction, /Mata-mata.*torneios vinculados/i);
 });
 
 test("editing an existing event submits its name and refreshes its detail", async () => {

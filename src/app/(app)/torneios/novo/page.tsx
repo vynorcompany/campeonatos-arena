@@ -10,6 +10,7 @@ export default async function NewTournamentPage() {
     where: {
       arenaId: auth.arenaId,
       type: "INDIVIDUAL",
+      model: "KNOCKOUT",
     },
     orderBy: { name: "asc" },
     select: { id: true, name: true },

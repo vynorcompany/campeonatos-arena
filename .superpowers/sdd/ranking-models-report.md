@@ -70,3 +70,47 @@
 
 - The pre-existing untracked `.superpowers/brainstorm/` directory was not
   modified or included.
+
+## P1 compatibility review follow-up
+
+The review identified two historical compatibility gaps and both were fixed in
+a separate follow-up migration and guarded application paths.
+
+### League backfill
+
+- Added and applied locally:
+  `20260730211000_ranking_model_compatibility`.
+- A ranking linked exclusively to `LEAGUE` category competitions is backfilled
+  to `model = LEAGUE`.
+- Its rule table is converted to the League shape:
+  - `THIRD` is created from the previous `SEMIFINAL` value, falling back to
+    `PARTICIPATION` and then zero;
+  - `PARTICIPATION` moves to display order 4;
+  - `SEMIFINAL` and `QUARTERFINAL` are removed.
+- A ranking linked to both League and non-League categories cannot be assigned
+  one truthful model. The migration raises an explicit exception before any
+  mutation instead of silently breaking one consumer.
+- A ranking shared by a League category and a legacy tournament is likewise
+  rejected before backfill, because the legacy calculation requires knockout
+  rules.
+
+### Legacy tournament enforcement
+
+- Both legacy ranking write guards now require
+  `type = INDIVIDUAL` and `model = KNOCKOUT`.
+- The new-event and existing-event ranking queries apply the same pair of
+  filters, so an incompatible ranking is not offered for selection.
+- Ranking editing counts linked legacy tournaments and rejects changing their
+  ranking to `LEAGUE`, even when its type remains `INDIVIDUAL`.
+
+### Follow-up TDD and verification
+
+- RED: compatibility migration absent; both legacy selectors/guards lacked the
+  model constraint; legacy-linked ranking model changes remained allowed.
+- GREEN: 11/11 focused ranking tests passed.
+- `npx tsx --test tests/*.test.ts` — 85 passed, 0 failed.
+- `npm run typecheck` — passed.
+- `npm run lint` — passed with only the same 8 pre-existing `<img>`
+  optimization warnings.
+- `npx prisma migrate deploy` — compatibility migration applied successfully
+  to local `campeonatos_arena_dev` at `localhost:5433`.

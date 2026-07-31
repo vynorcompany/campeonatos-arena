@@ -155,7 +155,8 @@ async function ensureRankingBelongsToArena(
     where: {
       id: rankingId,
       arenaId,
-      type: "INDIVIDUAL"
+      type: "INDIVIDUAL",
+      model: "KNOCKOUT",
     },
     select: {
       id: true
@@ -814,17 +815,26 @@ export async function updateRankingProfileAction(formData: FormData) {
       }
     }
 
-    if (parsed.data.type === "PAIR") {
-      const linkedTournamentCount = await tx.tournament.count({
-        where: {
-          arenaId: auth.arenaId,
-          rankingId: parsed.data.rankingId
-        }
-      });
+    const linkedLegacyTournamentCount = await tx.tournament.count({
+      where: {
+        arenaId: auth.arenaId,
+        rankingId: parsed.data.rankingId,
+      },
+    });
 
-      if (linkedTournamentCount) {
+    if (parsed.data.type === "PAIR") {
+      if (linkedLegacyTournamentCount) {
         throw new Error("Um ranking vinculado a torneios legados não pode se tornar ranking de duplas.");
       }
+    }
+
+    if (
+      parsed.data.model === "LEAGUE" &&
+      linkedLegacyTournamentCount
+    ) {
+      throw new Error(
+        "O ranking precisa permanecer no modelo Mata-mata enquanto houver torneios vinculados.",
+      );
     }
 
     const linkedIncompatibleCategoryCount =
