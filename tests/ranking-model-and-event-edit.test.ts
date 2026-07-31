@@ -219,7 +219,7 @@ test("ranking migration backfills exclusive League links and rejects ambiguous c
 });
 
 test("ranking actions and forms synchronize model-aware rules", async () => {
-  const [actions, form, page] = await Promise.all([
+  const [actions, form, createForm] = await Promise.all([
     readFile(
       path.join(workspaceRoot, "src", "lib", "actions", "tournament.ts"),
       "utf8",
@@ -238,11 +238,9 @@ test("ranking actions and forms synchronize model-aware rules", async () => {
       path.join(
         workspaceRoot,
         "src",
-        "app",
-        "(app)",
-        "torneios",
-        "rankings",
-        "page.tsx",
+        "components",
+        "forms",
+        "ranking-create-form.tsx",
       ),
       "utf8",
     ),
@@ -259,7 +257,9 @@ test("ranking actions and forms synchronize model-aware rules", async () => {
   assert.match(form, /name="thirdPoints"/);
   assert.match(form, /name="semifinalPoints"/);
   assert.match(form, /name="quarterfinalPoints"/);
-  assert.match(page, /RankingProfileFields/);
+  assert.match(createForm, /name="model"/);
+  assert.doesNotMatch(createForm, /name="isGeneral"/);
+  assert.doesNotMatch(createForm, /name="championPoints"/);
 });
 
 test("a ranking model cannot change beneath an incompatible category table", async () => {

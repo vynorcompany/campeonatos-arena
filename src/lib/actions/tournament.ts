@@ -796,19 +796,19 @@ export async function createRankingProfileAction(formData: FormData) {
     model: formData.get("model"),
     isGeneral: formData.get("isGeneral") === "on",
     feedsGeneralRanking: formData.get("feedsGeneralRanking") === "on",
-    championPoints: formData.get("championPoints"),
-    runnerUpPoints: formData.get("runnerUpPoints"),
-    thirdPoints: formData.get("thirdPoints"),
-    semifinalPoints: formData.get("semifinalPoints"),
-    quarterfinalPoints: formData.get("quarterfinalPoints"),
-    participationPoints: formData.get("participationPoints")
+    championPoints: formData.get("championPoints") ?? 200,
+    runnerUpPoints: formData.get("runnerUpPoints") ?? 140,
+    thirdPoints: formData.get("thirdPoints") ?? 90,
+    semifinalPoints: formData.get("semifinalPoints") ?? 90,
+    quarterfinalPoints: formData.get("quarterfinalPoints") ?? 50,
+    participationPoints: formData.get("participationPoints") ?? 20
   });
 
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
 
-  await runRankingSerializableTransaction(async (tx) => {
+  const rankingId = await runRankingSerializableTransaction(async (tx) => {
     await ensureGeneralRankingAvailable(
       tx,
       auth.arenaId,
@@ -835,8 +835,10 @@ export async function createRankingProfileAction(formData: FormData) {
       }
     });
     await syncRankingRules(tx, ranking.id, parsed.data);
+    return ranking.id;
   });
   refreshTournamentRoutes();
+  return rankingId;
 }
 
 export async function updateRankingProfileAction(formData: FormData) {
