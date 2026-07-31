@@ -17,8 +17,8 @@ Separar a consulta, a criação e a configuração dos rankings para reduzir a d
 
 ## Edição e regras de dados
 
-- A troca de nome ficará em uma ação de atualização específica, com validação de unicidade por arena e retorno de mensagem de erro no próprio formulário.
-- Alterações de tipo/modelo continuarão protegidas quando houver categorias ou torneios incompatíveis vinculados.
+- A troca de nome e descrição ficará em uma ação de atualização específica, com validação de unicidade por arena e retorno de mensagem de erro no próprio formulário.
+- Tipo e modelo serão somente leitura depois que uma categoria iniciar sua competição. Antes disso, a configuração atual continuará aplicando as proteções de compatibilidade.
 - Somente ranking individual pode ser o Ranking Geral. Somente ranking de duplas pode alimentar o Geral.
 - O botão de remoção ficará na aba Configuração, como ação secundária com confirmação.
 

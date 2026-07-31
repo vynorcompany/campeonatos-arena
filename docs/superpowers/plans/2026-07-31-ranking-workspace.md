@@ -4,7 +4,7 @@
 
 **Goal:** Transform rankings into a compact index with creation and tabbed workspaces, while making name updates reliable.
 
-**Architecture:** Retain existing Prisma services and split the current all-in-one page into index, create, and detail routes. Configuration and points use separate actions/forms so a name edit never requires unrelated score inputs.
+**Architecture:** Retain existing Prisma services and split the current all-in-one page into index, create, and detail routes. Configuration and points use separate actions/forms so a name edit never requires unrelated score inputs. Type and model are read-only once a linked category competition has started.
 
 **Tech Stack:** Next.js App Router, React, TypeScript, Prisma, Zod, Node test runner.
 
@@ -25,7 +25,7 @@
 - Test: `tests/ranking-model-and-event-edit.test.ts`
 
 **Interfaces:**
-- Produces `updateRankingConfigurationAction(formData)` and `updateRankingConfigurationSchema`.
+- Produces `updateRankingConfigurationAction(formData)` and `updateRankingConfigurationSchema` for name and description only.
 
 - [ ] **Step 1: Add failing tests**
 
@@ -33,7 +33,6 @@
 test("ranking configuration accepts a name-only update", () => {
   const parsed = updateRankingConfigurationSchema.safeParse({
     rankingId: "ranking-1", name: "Liga Masculina 2026", description: "",
-    type: "PAIR", model: "LEAGUE", isGeneral: false, feedsGeneralRanking: false,
   });
   assert.equal(parsed.success, true);
 });
@@ -49,7 +48,7 @@ Run `npx tsx --test tests/ranking-model-and-event-edit.test.ts`; expect failure 
 
 - [ ] **Step 3: Implement minimal configuration update**
 
-Create a schema with only `rankingId`, `name`, `description`, `type`, `model`, `isGeneral`, and `feedsGeneralRanking`. Reuse the existing ownership, compatibility, serializable transaction, and general-ranking guards. Map Prisma `P2002` to `Já existe um ranking com este nome na arena.` and preserve other messages.
+Create a schema with only `rankingId`, `name`, and `description`. Reuse arena ownership and the serializable transaction. Map Prisma `P2002` to `Já existe um ranking com este nome na arena.` and preserve other messages.
 
 - [ ] **Step 4: Verify GREEN and commit**
 
@@ -136,7 +135,7 @@ Run `npx tsx --test tests/ranking-workspace.test.ts`; expect failure because tab
 
 - [ ] **Step 3: Implement the workspace**
 
-Render compact header and tabs. Keep name/description/type/model/general switches in Configuração; model-compatible score inputs in Pontuação; leaderboard in Classificação; category/event rows in Uso. Keep deletion as confirmed secondary action in Configuração.
+Render compact header and tabs. Keep name/description in Configuração and show type/model as context; type/model controls are disabled once a linked category competition started. Keep model-compatible score inputs in Pontuação; leaderboard in Classificação; category/event rows in Uso. Keep deletion as confirmed secondary action in Configuração.
 
 - [ ] **Step 4: Verify and commit**
 
