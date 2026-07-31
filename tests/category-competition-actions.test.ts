@@ -278,3 +278,33 @@ test("category configuration ignores General Ranking feed sent by the client", (
   assert.equal(parsed.success, true);
   assert.equal("feedsGeneralRanking" in (parsed.data ?? {}), false);
 });
+
+test("category creation reads the feed setting after locking the selected ranking", async () => {
+  const source = await readFile(
+    path.join(
+      workspaceRoot,
+      "src",
+      "lib",
+      "services",
+      "category-competition.ts",
+    ),
+    "utf8",
+  );
+  const createCategoryCompetitionSource = source.slice(
+    source.indexOf("export async function createCategoryCompetition"),
+    source.indexOf("export async function updateCategoryPublicVisibility"),
+  );
+
+  assert.doesNotMatch(
+    createCategoryCompetitionSource,
+    /const rankingSettings = await resolveCompetitionRankingSettings/,
+  );
+  assert.match(
+    createCategoryCompetitionSource,
+    /await lockRankingProfile\(tx, input\.rankingId\);[\s\S]*select: \{ id: true, model: true, feedsGeneralRanking: true \}/,
+  );
+  assert.match(
+    createCategoryCompetitionSource,
+    /feedsGeneralRanking = ranking\.feedsGeneralRanking;[\s\S]*feedsGeneralRanking,/,
+  );
+});

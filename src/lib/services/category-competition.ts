@@ -405,11 +405,6 @@ export async function createCategoryCompetition(
   arenaId: string,
   input: CreateCategoryCompetitionInput,
 ) {
-  const rankingSettings = await resolveCompetitionRankingSettings(
-    arenaId,
-    input.rankingId,
-  );
-
   return runSerializableTransaction(async (tx) => {
     const category = await tx.tournamentCategory.findFirst({
       where: {
@@ -429,16 +424,19 @@ export async function createCategoryCompetition(
       throw new Error("Esta categoria já possui uma competição.");
     }
 
-    if (rankingSettings.rankingId) {
-      await lockRankingProfile(tx, rankingSettings.rankingId);
+    let rankingId: string | null = null;
+    let feedsGeneralRanking = false;
+
+    if (input.rankingId) {
+      await lockRankingProfile(tx, input.rankingId);
       const ranking = await tx.rankingProfile.findFirst({
         where: {
-          id: rankingSettings.rankingId,
+          id: input.rankingId,
           arenaId,
           active: true,
           type: "PAIR",
         },
-        select: { id: true, model: true },
+        select: { id: true, model: true, feedsGeneralRanking: true },
       });
       if (!ranking) {
         throw new Error("Selecione um ranking de duplas válido para esta arena.");
@@ -452,6 +450,9 @@ export async function createCategoryCompetition(
           } para este formato.`,
         );
       }
+
+      rankingId = ranking.id;
+      feedsGeneralRanking = ranking.feedsGeneralRanking;
     }
 
     await tx.tournamentCategory.update({
@@ -466,8 +467,8 @@ export async function createCategoryCompetition(
       data: {
         categoryId: category.id,
         format: input.format,
-        rankingId: rankingSettings.rankingId,
-        feedsGeneralRanking: rankingSettings.feedsGeneralRanking,
+        rankingId,
+        feedsGeneralRanking,
         isPublic: input.isPublic,
       },
     });
