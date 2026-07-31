@@ -2,12 +2,15 @@ import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
+import {
+  updateRankingConfigurationSchema,
+  type RankingModel,
+} from "../src/lib/validators/ranking";
 import * as rankingValidators from "../src/lib/validators/ranking";
 import { buildPlacementStages } from "../src/lib/tournament-category/ranking";
 
 const workspaceRoot = process.cwd();
 
-type RankingModel = "LEAGUE" | "KNOCKOUT";
 type RankingRuleBlueprint = {
   stageKey: string;
   field: string;
@@ -94,6 +97,29 @@ test("ranking validation keeps type and model separate", () => {
   assert.equal(knockout.data?.model, "KNOCKOUT");
   assert.equal(knockout.data?.semifinalPoints, 90);
   assert.equal(knockout.data?.quarterfinalPoints, 50);
+});
+
+test("ranking configuration accepts a name-only update", () => {
+  const parsed = updateRankingConfigurationSchema.safeParse({
+    rankingId: "ranking-1",
+    name: "Liga Masculina 2026",
+    description: "",
+  });
+
+  assert.equal(parsed.success, true);
+});
+
+test("ranking configuration maps duplicate names to readable text", async () => {
+  const actions = await readFile(
+    path.join(workspaceRoot, "src", "lib", "actions", "tournament.ts"),
+    "utf8",
+  );
+
+  assert.match(actions, /function getRankingUpdateError\(error: unknown\)/);
+  assert.match(
+    actions,
+    /getRankingUpdateError[\s\S]*P2002[\s\S]*Já existe um ranking com este nome na arena\./,
+  );
 });
 
 test("only an individual ranking can be the arena General Ranking", () => {

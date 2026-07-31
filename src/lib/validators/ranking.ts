@@ -147,6 +147,19 @@ export const updateRankingProfileSchema = z.intersection(
   }),
 );
 
+export const updateRankingConfigurationSchema = z.object({
+  rankingId: z.string().trim().min(1, "Ranking inválido."),
+  name: z
+    .string()
+    .trim()
+    .min(3, "Nome do ranking muito curto.")
+    .max(80, "Nome do ranking muito longo."),
+  description: z
+    .string()
+    .trim()
+    .max(240, "Descrição do ranking muito longa."),
+});
+
 export const deleteRankingProfileSchema = z.object({
   rankingId: z.string().trim().min(1, "Ranking inválido."),
 });

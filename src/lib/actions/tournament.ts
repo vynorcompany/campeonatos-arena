@@ -19,6 +19,7 @@ import {
   createRankingProfileSchema,
   deleteRankingProfileSchema,
   getRankingRuleBlueprint,
+  updateRankingConfigurationSchema,
   updateRankingProfileSchema
 } from "@/lib/validators/ranking";
 import {
@@ -235,6 +236,21 @@ function getPrismaMessage(error: unknown, fallback: string) {
   }
 
   return fallback;
+}
+
+export function getRankingUpdateError(error: unknown) {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "P2002"
+  ) {
+    return "Já existe um ranking com este nome na arena.";
+  }
+
+  return error instanceof Error
+    ? error.message
+    : "Não foi possível atualizar o ranking.";
 }
 
 function parseCategoryList(raw: string, fallbackPriceSecondCents: number, fallbackPriceThirdCents: number) {
@@ -949,6 +965,45 @@ export async function updateRankingProfileAction(formData: FormData) {
   });
 
   await Promise.all(linkedTournaments.map((tournament) => recalculateTournamentRankingPoints(tournament.id)));
+  refreshTournamentRoutes();
+  revalidatePath(`/torneios/rankings/${parsed.data.rankingId}`);
+}
+
+export async function updateRankingConfigurationAction(formData: FormData) {
+  const auth = await requireModuleEdit("tournaments");
+  const parsed = updateRankingConfigurationSchema.safeParse({
+    rankingId: formData.get("rankingId"),
+    name: formData.get("name"),
+    description: formData.get("description"),
+  });
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  }
+
+  try {
+    await runRankingSerializableTransaction(async (tx) => {
+      await lockRankingProfile(tx, parsed.data.rankingId);
+
+      const updated = await tx.rankingProfile.updateMany({
+        where: {
+          id: parsed.data.rankingId,
+          arenaId: auth.arenaId,
+        },
+        data: {
+          name: parsed.data.name,
+          description: parsed.data.description,
+        },
+      });
+
+      if (!updated.count) {
+        throw new Error("Ranking não encontrado.");
+      }
+    });
+  } catch (error) {
+    throw new Error(getRankingUpdateError(error));
+  }
+
   refreshTournamentRoutes();
   revalidatePath(`/torneios/rankings/${parsed.data.rankingId}`);
 }
