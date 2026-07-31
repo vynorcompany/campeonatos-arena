@@ -320,7 +320,7 @@ test("category games can be filtered by one selected status", async () => {
     ),
   ]);
 
-  assert.match(route, /searchParams\?: \{ tab\?: string; sort\?: string; status\?: string \}/);
+  assert.match(route, /searchParams\?: \{ tab\?: string; sort\?: string; status\?: string(?:; player\?: string)? \}/);
   assert.match(route, /statusFilter=\{gameStatusFilter\}/);
   assert.match(panel, /name="status"/);
   assert.match(panel, /value="ALL"/);
