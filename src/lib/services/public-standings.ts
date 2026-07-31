@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import {
+  buildPublicGameAgenda,
   buildPublicCategoryStandings,
   selectPublicStandingsOptions,
+  type PublicGameDay,
   type PublicStandingsOption,
 } from "@/lib/public-standings";
 import { getRankingProfileLeaderboard } from "@/lib/services/ranking";
@@ -14,6 +16,7 @@ export type ArenaPublicStandings = {
   };
   options: PublicStandingsOption[];
   selectedOptionId: string | null;
+  upcomingGames: PublicGameDay[];
   selected:
     | {
         kind: "GENERAL_RANKING";
@@ -56,7 +59,7 @@ export async function getArenaPublicStandings(
     return null;
   }
 
-  const [generalRanking, categoryRecords] = await Promise.all([
+  const [generalRanking, categoryRecords, agendaCategoryRecords] = await Promise.all([
     prisma.rankingProfile.findFirst({
       where: {
         arenaId: arena.id,
@@ -114,7 +117,65 @@ export async function getArenaPublicStandings(
         },
       },
     }),
+    prisma.categoryCompetition.findMany({
+      where: {
+        isPublic: true,
+        status: { not: "FINISHED" },
+        category: {
+          tournament: { arenaId: arena.id },
+        },
+        matches: {
+          some: {
+            scheduledDate: { not: null },
+            scheduledTime: { not: null },
+            winnerPairId: null,
+          },
+        },
+      },
+      select: {
+        category: {
+          select: {
+            name: true,
+            tournament: {
+              select: { name: true },
+            },
+          },
+        },
+        matches: {
+          where: {
+            scheduledDate: { not: null },
+            scheduledTime: { not: null },
+            winnerPairId: null,
+          },
+          select: {
+            label: true,
+            stage: true,
+            roundOrder: true,
+            scheduledDate: true,
+            scheduledTime: true,
+            homePair: { select: { name: true } },
+            awayPair: { select: { name: true } },
+          },
+        },
+      },
+    }),
   ]);
+  const upcomingGames = buildPublicGameAgenda(
+    agendaCategoryRecords.flatMap((record) =>
+      record.matches.map((match) => ({
+        eventName: record.category.tournament.name,
+        categoryName: record.category.name,
+        label: match.label,
+        stage: match.stage,
+        roundOrder: match.roundOrder,
+        scheduledDate: match.scheduledDate,
+        scheduledTime: match.scheduledTime,
+        homePairName: match.homePair?.name ?? "Dupla a definir",
+        awayPairName: match.awayPair?.name ?? "Dupla a definir",
+        finished: false,
+      })),
+    ),
+  );
   const categorySources = categoryRecords.map((record) => ({
     id: record.category.id,
     name: record.category.name,
@@ -134,6 +195,7 @@ export async function getArenaPublicStandings(
       arena,
       options,
       selectedOptionId: null,
+      upcomingGames,
       selected: null,
     };
   }
@@ -151,6 +213,7 @@ export async function getArenaPublicStandings(
       arena,
       options,
       selectedOptionId: selectedOption.id,
+      upcomingGames,
       selected: ranking
         ? {
             kind: "GENERAL_RANKING",
@@ -175,6 +238,7 @@ export async function getArenaPublicStandings(
       arena,
       options,
       selectedOptionId: selectedOption.id,
+      upcomingGames,
       selected: null,
     };
   }
@@ -185,6 +249,7 @@ export async function getArenaPublicStandings(
     arena,
     options,
     selectedOptionId: selectedOption.id,
+    upcomingGames,
     selected: {
       kind: "CATEGORY",
       categoryName: category.category.name,

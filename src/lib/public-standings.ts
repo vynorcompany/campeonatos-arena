@@ -27,6 +27,101 @@ export type PublicStandingsOption = {
   label: string;
 };
 
+export type PublicGameSource = {
+  eventName: string;
+  categoryName: string;
+  label: string;
+  stage: string;
+  roundOrder: number;
+  scheduledDate: string | null;
+  scheduledTime: string | null;
+  homePairName: string;
+  awayPairName: string;
+  finished: boolean;
+};
+
+export type PublicGameDay = {
+  date: string;
+  label: string;
+  games: Array<{
+    eventName: string;
+    categoryName: string;
+    label: string;
+    stage: string;
+    scheduledTime: string;
+    homePairName: string;
+    awayPairName: string;
+  }>;
+};
+
+function formatPublicGameDay(date: string) {
+  const [year, month, day] = date.split("-").map(Number);
+  const dateAtNoon = new Date(Date.UTC(year, month - 1, day, 12));
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    timeZone: "UTC",
+  }).format(dateAtNoon);
+}
+
+export function buildPublicGameAgenda(
+  matches: PublicGameSource[],
+): PublicGameDay[] {
+  const visibleMatches = matches
+    .filter(
+      (match) =>
+        !match.finished &&
+        Boolean(match.scheduledDate?.trim()) &&
+        Boolean(match.scheduledTime?.trim()),
+    )
+    .sort((first, second) => {
+      const byDate = first.scheduledDate!.localeCompare(second.scheduledDate!);
+      if (byDate) return byDate;
+
+      const byTime = first.scheduledTime!.localeCompare(second.scheduledTime!);
+      if (byTime) return byTime;
+
+      const byEvent = first.eventName.localeCompare(second.eventName, "pt-BR");
+      if (byEvent) return byEvent;
+
+      const byCategory = first.categoryName.localeCompare(
+        second.categoryName,
+        "pt-BR",
+      );
+      if (byCategory) return byCategory;
+
+      return first.roundOrder - second.roundOrder;
+    });
+
+  return visibleMatches.reduce<PublicGameDay[]>((days, match) => {
+    const date = match.scheduledDate!;
+    const day = days.at(-1);
+    const game = {
+      eventName: match.eventName,
+      categoryName: match.categoryName,
+      label: match.label,
+      stage: match.stage,
+      scheduledTime: match.scheduledTime!,
+      homePairName: match.homePairName,
+      awayPairName: match.awayPairName,
+    };
+
+    if (day?.date === date) {
+      day.games.push(game);
+      return days;
+    }
+
+    days.push({
+      date,
+      label: formatPublicGameDay(date),
+      games: [game],
+    });
+    return days;
+  }, []);
+}
+
 export function selectPublicStandingsOptions({
   generalRanking,
   categories,

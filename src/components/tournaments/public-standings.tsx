@@ -141,6 +141,37 @@ export function PublicStandings({
           )}
         </section>
       ) : null}
+
+      <section className="section-card stack-md">
+        <div className="stack-xs">
+          <p className="eyebrow">Agenda pÃºblica</p>
+          <h2>PrÃ³ximos jogos</h2>
+        </div>
+        {data.upcomingGames.length ? (
+          data.upcomingGames.map((day) => (
+            <div className="stack-sm" key={day.date}>
+              <h3>{day.label}</h3>
+              {day.games.map((game) => (
+                <div
+                  className="simple-item"
+                  key={`${day.date}-${game.scheduledTime}-${game.eventName}-${game.categoryName}-${game.label}`}
+                >
+                  <strong>{game.scheduledTime}</strong>
+                  <span>
+                    {game.eventName} Â· {game.categoryName}
+                    {game.stage ? ` Â· ${game.stage}` : ""}
+                  </span>
+                  <span>
+                    {game.homePairName} Ã— {game.awayPairName}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ))
+        ) : (
+          <p className="muted">Nenhum jogo agendado.</p>
+        )}
+      </section>
     </main>
   );
 }
