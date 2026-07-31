@@ -1,4 +1,8 @@
 import { prisma } from "@/lib/prisma";
+import {
+  buildGeneralRankingSourceEntries,
+  type GeneralRankingFeedPairSource,
+} from "@/lib/ranking/general-feed";
 
 export type RankingLeaderboardPlayer = {
   playerId: string;
@@ -490,6 +494,61 @@ async function getRankingSourceEntriesByRankingIds(arenaId: string, rankingIds: 
   });
 }
 
+async function getGeneralRankingSourceEntries(
+  arenaId: string,
+): Promise<RankingSourceEntry[]> {
+  const entries = await prisma.categoryPair.findMany({
+    where: {
+      competition: {
+        status: "FINISHED",
+        application: { is: { feedsGeneralRanking: true } },
+        category: {
+          tournament: { arenaId },
+        },
+      },
+    },
+    select: {
+      totalPoints: true,
+      players: {
+        select: {
+          playerId: true,
+          player: {
+            select: {
+              name: true,
+              active: true,
+              photoUrl: true,
+            },
+          },
+        },
+      },
+      competition: {
+        select: {
+          status: true,
+          application: {
+            select: { feedsGeneralRanking: true },
+          },
+          category: {
+            select: {
+              tournament: {
+                select: {
+                  id: true,
+                  name: true,
+                  status: true,
+                  createdAt: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return buildGeneralRankingSourceEntries(
+    entries satisfies GeneralRankingFeedPairSource[],
+  );
+}
+
 async function getCategoryPairRankingSourceEntries(
   arenaId: string,
   rankingIds: string[],
@@ -648,14 +707,17 @@ export async function getRankingProfileLeaderboard(arenaId: string, rankingId: s
     return null;
   }
 
-  const [sourceEntries, pairSourceEntries] = await Promise.all([
+  const [sourceEntries, pairSourceEntries, generalFeedEntries] = await Promise.all([
     getRankingSourceEntries(arenaId, ranking.id),
     getCategoryPairRankingSourceEntries(arenaId, [ranking.id]),
+    ranking.isGeneral
+      ? getGeneralRankingSourceEntries(arenaId)
+      : Promise.resolve([]),
   ]);
 
   return buildRankingView(
     ranking,
-    sourceEntries,
+    [...sourceEntries, ...generalFeedEntries],
     pairSourceEntries,
     selectedCycleId,
   );
