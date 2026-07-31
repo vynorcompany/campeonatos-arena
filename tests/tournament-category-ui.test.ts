@@ -299,7 +299,7 @@ test("category games can be ordered by round, date, or operational status", asyn
     ),
   ]);
 
-  assert.match(route, /searchParams\?: \{ tab\?: string; sort\?: string(?:; status\?: string)? \}/);
+  assert.match(route, /searchParams\?: \{ tab\?: string; sort\?: string(?:; status\?: string)?(?:; player\?: string)? \}/);
   assert.match(route, /sort=\{gameSort\}/);
   assert.match(panel, /name="sort"/);
   assert.match(panel, /value="round"/);
@@ -328,4 +328,18 @@ test("category games can be filtered by one selected status", async () => {
   assert.match(panel, /value="LIVE"/);
   assert.match(panel, /value="FINISHED"/);
   assert.match(panel, /\.filter\(\(match\) =>\s*statusFilter === "ALL"/);
+});
+
+test("category games can be searched by either pair name", async () => {
+  const [route, panel] = await Promise.all([
+    readFile(path.join(workspaceRoot, "src", "app", "(app)", "torneios", "[tournamentId]", "categorias", "[categoryId]", "page.tsx"), "utf8"),
+    readFile(path.join(workspaceRoot, "src", "components", "tournaments", "category-results-panel.tsx"), "utf8"),
+  ]);
+
+  assert.match(route, /player\?: string/);
+  assert.match(route, /playerSearch=\{searchParams\?\.player\?\.trim\(\) \?\? ""\}/);
+  assert.match(panel, /name="player"/);
+  assert.match(panel, /match\.homePair\?\.name/);
+  assert.match(panel, /match\.awayPair\?\.name/);
+  assert.match(panel, /toLocaleLowerCase\("pt-BR"\)/);
 });

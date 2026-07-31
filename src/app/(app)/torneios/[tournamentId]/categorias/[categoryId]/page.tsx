@@ -21,7 +21,7 @@ type CategoryPageProps = {
     tournamentId: string;
     categoryId: string;
   };
-  searchParams?: { tab?: string; sort?: string; status?: string };
+  searchParams?: { tab?: string; sort?: string; status?: string; player?: string };
 };
 
 const validTabs: TournamentTabKey[] = [
@@ -435,6 +435,7 @@ export default async function CategoryPage({
             mode="games"
             sort={gameSort}
             statusFilter={gameStatusFilter}
+            playerSearch={searchParams?.player?.trim() ?? ""}
           />
         ) : null}
 

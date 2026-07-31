@@ -97,12 +97,14 @@ export function CategoryResultsPanel({
   mode,
   sort = "round",
   statusFilter = "ALL",
+  playerSearch = "",
 }: {
   tournamentId: string;
   categories: ResultCategory[];
   mode: "games" | "summary";
   sort?: GameSort;
   statusFilter?: GameStatusFilter;
+  playerSearch?: string;
 }) {
   if (!categories.length) {
     return (
@@ -130,9 +132,15 @@ export function CategoryResultsPanel({
           completedMatchCount === competition?.matches.length;
         const visibleMatches = competition
           ? sortMatches(
-              competition.matches.filter((match) =>
-                statusFilter === "ALL" || getMatchStatus(match) === statusFilter,
-              ),
+              competition.matches.filter((match) => {
+                const playerQuery = playerSearch.toLocaleLowerCase("pt-BR");
+                const pairNames = `${match.homePair?.name ?? ""} ${match.awayPair?.name ?? ""}`
+                  .toLocaleLowerCase("pt-BR");
+                return (
+                  (statusFilter === "ALL" || getMatchStatus(match) === statusFilter) &&
+                  (!playerQuery || pairNames.includes(playerQuery))
+                );
+              }),
               sort,
             )
           : [];
@@ -172,6 +180,7 @@ export function CategoryResultsPanel({
                     <form method="get" className="field-inline">
                       <input type="hidden" name="tab" value="games" />
                       <input type="hidden" name="sort" value={sort} />
+                      <input type="hidden" name="status" value={statusFilter} />
                       <label htmlFor={`game-sort-${category.id}`}>
                         Ordenar jogos por
                       </label>
@@ -202,6 +211,19 @@ export function CategoryResultsPanel({
                       </select>
                       <button className="button" type="submit">
                         Filtrar
+                      </button>
+                      <label htmlFor={`game-player-${category.id}`}>
+                        Buscar jogador
+                      </label>
+                      <input
+                        id={`game-player-${category.id}`}
+                        name="player"
+                        type="search"
+                        defaultValue={playerSearch}
+                        placeholder="Nome do atleta"
+                      />
+                      <button className="button" type="submit">
+                        Buscar
                       </button>
                     </form>
                   <div className="category-game-list">
