@@ -238,7 +238,7 @@ function getPrismaMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
-export function getRankingUpdateError(error: unknown) {
+async function getRankingUpdateError(error: unknown) {
   if (
     typeof error === "object" &&
     error !== null &&
@@ -865,6 +865,36 @@ export async function updateRankingProfileAction(formData: FormData) {
 
   await runRankingSerializableTransaction(async (tx) => {
     await lockRankingProfile(tx, parsed.data.rankingId);
+    const currentRanking = await tx.rankingProfile.findFirst({
+      where: {
+        id: parsed.data.rankingId,
+        arenaId: auth.arenaId,
+      },
+      select: { type: true, model: true },
+    });
+
+    if (!currentRanking) {
+      throw new Error("Ranking não encontrado.");
+    }
+
+    const startedCategoryCompetitionCount = await tx.categoryCompetition.count({
+      where: {
+        rankingId: parsed.data.rankingId,
+        category: { tournament: { arenaId: auth.arenaId } },
+        status: { not: "DRAFT" },
+      },
+    });
+
+    if (
+      startedCategoryCompetitionCount &&
+      (currentRanking.type !== parsed.data.type ||
+        currentRanking.model !== parsed.data.model)
+    ) {
+      throw new Error(
+        "Não pode alterar o tipo ou o modelo depois que uma competição de categoria começa.",
+      );
+    }
+
     await ensureGeneralRankingAvailable(
       tx,
       auth.arenaId,
@@ -1003,7 +1033,7 @@ export async function updateRankingConfigurationAction(formData: FormData) {
       }
     });
   } catch (error) {
-    throw new Error(getRankingUpdateError(error));
+    throw new Error(await getRankingUpdateError(error));
   }
 
   refreshTournamentRoutes();
