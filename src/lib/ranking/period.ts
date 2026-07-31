@@ -296,12 +296,13 @@ export function resolveRankingPeriod(
     const legacyMonthId = /^(?:current-)?(\d{4}-\d{2})$/.exec(
       query.cycleId ?? "",
     )?.[1] ?? null;
-    const cycle = cycles.find(
-      (item) =>
-        item.id === query.cycleId ||
-        (legacyMonthId &&
-          getMonthKey(item.startedAt, timeZone) === legacyMonthId),
-    );
+    const cycle =
+      cycles.find((item) => item.id === query.cycleId) ??
+      cycles.find(
+        (item) =>
+          legacyMonthId &&
+          getMonthKey(item.startedAt, timeZone) === legacyMonthId,
+      );
     if (cycle) {
       return {
         mode: "cycle",

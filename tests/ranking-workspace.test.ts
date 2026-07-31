@@ -290,6 +290,27 @@ test("cycle period resolves virtual and legacy month identifiers", () => {
   assert.equal(staleVirtual.query.cycleId, namedCycle.id);
 });
 
+test("cycle period prefers an exact virtual identifier over a named month alias", () => {
+  const now = new Date("2026-07-31T12:00:00.000Z");
+  const virtualCycle = buildVirtualRankingCycle(now);
+  const endedNamedJulyCycle = {
+    id: "july-2026",
+    label: "Julho encerrado",
+    startedAt: new Date("2026-07-01T03:00:00.000Z"),
+    endedAt: new Date("2026-07-15T02:59:59.999Z"),
+  };
+
+  const resolved = resolveRankingPeriod(
+    { period: "cycle", cycleId: virtualCycle.id },
+    [endedNamedJulyCycle, virtualCycle],
+    now,
+  );
+
+  assert.equal(resolved.error, null);
+  assert.equal(resolved.query.cycleId, virtualCycle.id);
+  assert.equal(resolved.label, virtualCycle.label);
+});
+
 test("ranking service without an explicit period retains legacy cycle selection", () => {
   const now = new Date("2026-08-01T01:30:00.000Z");
   const cycle = {
