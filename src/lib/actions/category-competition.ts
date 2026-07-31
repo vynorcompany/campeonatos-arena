@@ -11,6 +11,7 @@ import {
   publishCategoryDraw,
   recordCategoryMatchResult,
   removeCategoryPair,
+  updateCategoryMatchStatus,
   updateCategoryMatchSchedule,
   updateCategoryPublicVisibility,
 } from "@/lib/services/category-competition";
@@ -24,6 +25,7 @@ import {
   recordCategoryMatchResultSchema,
   removeCategoryPairSchema,
   updateCategoryMatchScheduleSchema,
+  updateCategoryMatchStatusSchema,
   updateCategoryPublicVisibilitySchema,
 } from "@/lib/validators/category-competition";
 
@@ -163,6 +165,25 @@ export async function recordCategoryMatchResultAction(formData: FormData) {
     parsed.data.matchId,
     parsed.data.homeScore,
     parsed.data.awayScore,
+  );
+  refreshCategoryCompetitionRoutes();
+  return result;
+}
+
+export async function updateCategoryMatchStatusAction(formData: FormData) {
+  const auth = await requireModuleEdit("tournaments");
+  const parsed = updateCategoryMatchStatusSchema.safeParse({
+    matchId: formData.get("matchId"),
+    status: formData.get("status"),
+  });
+  if (!parsed.success) {
+    throw new Error(invalidInputMessage(parsed.error));
+  }
+
+  const result = await updateCategoryMatchStatus(
+    auth.arenaId,
+    parsed.data.matchId,
+    parsed.data.status,
   );
   refreshCategoryCompetitionRoutes();
   return result;

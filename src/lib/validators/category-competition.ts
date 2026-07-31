@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CATEGORY_CLASS_OPTIONS } from "@/lib/tournament-category/options";
+import { categoryMatchManualStatuses } from "@/lib/tournament-category/match-status";
 
 const competitionIdSchema = z
   .string()
@@ -113,6 +114,13 @@ export const recordCategoryMatchResultSchema = z
       });
     }
   });
+
+export const categoryMatchStatusSchema = z.enum(categoryMatchManualStatuses);
+
+export const updateCategoryMatchStatusSchema = z.object({
+  matchId: z.string().trim().min(1, "Jogo inválido."),
+  status: categoryMatchStatusSchema,
+});
 
 export const updateCategoryMatchScheduleSchema = z
   .object({

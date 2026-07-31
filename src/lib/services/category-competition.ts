@@ -22,6 +22,16 @@ import {
   selectQuarterfinalists,
 } from "@/lib/tournament-category/standings";
 import type { GroupStandings, StandingMatch } from "@/lib/tournament-category/types";
+import {
+  assertMatchCanBeCorrected,
+  buildReopenedMatch,
+  type CategoryMatchManualStatus,
+} from "@/lib/tournament-category/match-status";
+
+export {
+  assertMatchCanBeCorrected,
+  buildReopenedMatch,
+} from "@/lib/tournament-category/match-status";
 
 const categoryCompetitionStatus = {
   DRAFT: "DRAFT",
@@ -103,6 +113,38 @@ function getWinnerPairId(
   awayScore: number,
 ) {
   return homeScore > awayScore ? homePairId : awayPairId;
+}
+
+async function assertStoredMatchCanBeCorrected(
+  tx: Prisma.TransactionClient,
+  match: {
+    competitionId: string;
+    stage: string;
+    roundOrder: number;
+    winnerPairId: string | null;
+  },
+) {
+  if (!match.winnerPairId || match.stage === categoryMatchStage.GROUP) {
+    return;
+  }
+
+  const downstreamMatch = await tx.categoryMatch.findFirst({
+    where: {
+      competitionId: match.competitionId,
+      roundOrder: { gt: match.roundOrder },
+      OR: [
+        { homePairId: match.winnerPairId },
+        { awayPairId: match.winnerPairId },
+      ],
+    },
+    select: { id: true },
+  });
+
+  assertMatchCanBeCorrected({
+    stage: match.stage,
+    winnerPairId: match.winnerPairId,
+    hasDownstreamParticipant: Boolean(downstreamMatch),
+  });
 }
 
 function getKnockoutLabel(stage: string, stageIndex: number) {
@@ -915,6 +957,82 @@ export async function updateCategoryMatchSchedule(
   });
 }
 
+export async function updateCategoryMatchStatus(
+  arenaId: string,
+  matchId: string,
+  status: CategoryMatchManualStatus,
+) {
+  return runSerializableTransaction(async (tx) => {
+    const match = await tx.categoryMatch.findFirst({
+      where: {
+        id: matchId,
+        competition: {
+          status: categoryCompetitionStatus.PUBLISHED,
+          category: {
+            active: true,
+            tournament: { arenaId },
+          },
+        },
+      },
+      select: {
+        id: true,
+        competitionId: true,
+        stage: true,
+        roundOrder: true,
+        homePairId: true,
+        awayPairId: true,
+        homeScore: true,
+        awayScore: true,
+        winnerPairId: true,
+      },
+    });
+    if (!match) {
+      throw new Error("Jogo publicado não encontrado nesta arena.");
+    }
+
+    await assertStoredMatchCanBeCorrected(tx, match);
+
+    if (status === "FINISHED") {
+      if (match.homeScore === null || match.awayScore === null) {
+        throw new Error("Informe um placar vencedor antes de finalizar o jogo.");
+      }
+      if (!match.homePairId || !match.awayPairId) {
+        throw new Error("Defina as duas duplas antes de finalizar o jogo.");
+      }
+      if (match.homeScore === match.awayScore) {
+        throw new Error("O jogo precisa ter uma dupla vencedora.");
+      }
+
+      const winnerPairId = getWinnerPairId(
+        match.homePairId,
+        match.awayPairId,
+        match.homeScore,
+        match.awayScore,
+      );
+      await tx.categoryMatch.update({
+        where: { id: match.id },
+        data: {
+          manualStatus: "FINISHED",
+          winnerPairId,
+        },
+      });
+
+      if (!match.winnerPairId && match.stage !== categoryMatchStage.GROUP) {
+        await advanceKnockoutWinner(tx, match, winnerPairId);
+      }
+
+      return true;
+    }
+
+    await tx.categoryMatch.update({
+      where: { id: match.id },
+      data: buildReopenedMatch(match, status),
+    });
+
+    return true;
+  });
+}
+
 export async function recordCategoryMatchResult(
   arenaId: string,
   matchId: string,
@@ -937,6 +1055,7 @@ export async function recordCategoryMatchResult(
         id: true,
         competitionId: true,
         stage: true,
+        roundOrder: true,
         homePairId: true,
         awayPairId: true,
         winnerPairId: true,
@@ -951,6 +1070,11 @@ export async function recordCategoryMatchResult(
     if (!match.homePairId || !match.awayPairId) {
       throw new Error("Defina as duas duplas antes de salvar o resultado.");
     }
+    if (homeScore === awayScore) {
+      throw new Error("O jogo precisa ter uma dupla vencedora.");
+    }
+
+    await assertStoredMatchCanBeCorrected(tx, match);
 
     const winnerPairId = getWinnerPairId(
       match.homePairId,
@@ -964,6 +1088,7 @@ export async function recordCategoryMatchResult(
         homeScore,
         awayScore,
         winnerPairId,
+        manualStatus: "FINISHED",
       },
     });
 

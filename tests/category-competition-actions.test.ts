@@ -35,6 +35,7 @@ test("every category competition lifecycle action requires tournament edit acces
     "moveCategoryPairAction",
     "publishCategoryDrawAction",
     "recordCategoryMatchResultAction",
+    "updateCategoryMatchStatusAction",
     "finishCategoryCompetitionAction",
   ];
 
