@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
+import { RankingProfileFields } from "@/components/forms/ranking-profile-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard } from "@/components/section-card";
 import { StatCard } from "@/components/stat-card";
@@ -12,7 +13,14 @@ import { requireModuleView } from "@/lib/auth/guards";
 import { getArenaDashboard } from "@/lib/services/tournament";
 import { getRankingProfilesWithLeaderboard } from "@/lib/services/ranking";
 
-const stageOrder = ["CHAMPION", "RUNNER_UP", "SEMIFINAL", "QUARTERFINAL", "PARTICIPATION"] as const;
+const stageOrder = [
+  "CHAMPION",
+  "RUNNER_UP",
+  "THIRD",
+  "SEMIFINAL",
+  "QUARTERFINAL",
+  "PARTICIPATION",
+] as const;
 
 type RuleMap = Record<(typeof stageOrder)[number], number>;
 
@@ -20,6 +28,7 @@ function buildRuleMap(rules: { stageKey: string; points: number }[]): RuleMap {
   const defaults: RuleMap = {
     CHAMPION: 200,
     RUNNER_UP: 140,
+    THIRD: 90,
     SEMIFINAL: 90,
     QUARTERFINAL: 50,
     PARTICIPATION: 20
@@ -74,30 +83,10 @@ export default async function TournamentRankingsPage() {
             <label htmlFor="ranking-name">Nome do ranking</label>
             <input id="ranking-name" name="name" type="text" placeholder="Ex.: Ranking oficial 2026" required />
           </div>
+          <RankingProfileFields idPrefix="ranking" />
           <div className="field form-full">
             <label htmlFor="ranking-description">Descrição</label>
             <input id="ranking-description" name="description" type="text" placeholder="Use para identificar o formato ou a temporada." />
-          </div>
-
-          <div className="field">
-            <label htmlFor="championPoints">1º lugar</label>
-            <input id="championPoints" name="championPoints" type="number" min="0" defaultValue="200" />
-          </div>
-          <div className="field">
-            <label htmlFor="runnerUpPoints">2º lugar</label>
-            <input id="runnerUpPoints" name="runnerUpPoints" type="number" min="0" defaultValue="140" />
-          </div>
-          <div className="field">
-            <label htmlFor="semifinalPoints">Semifinal</label>
-            <input id="semifinalPoints" name="semifinalPoints" type="number" min="0" defaultValue="90" />
-          </div>
-          <div className="field">
-            <label htmlFor="quarterfinalPoints">Quartas de final</label>
-            <input id="quarterfinalPoints" name="quarterfinalPoints" type="number" min="0" defaultValue="50" />
-          </div>
-          <div className="field">
-            <label htmlFor="participationPoints">Participação</label>
-            <input id="participationPoints" name="participationPoints" type="number" min="0" defaultValue="20" />
           </div>
 
           <div className="form-full">
@@ -124,30 +113,24 @@ export default async function TournamentRankingsPage() {
                       <label htmlFor={`${ranking.id}-name`}>Nome do ranking</label>
                       <input id={`${ranking.id}-name`} name="name" type="text" defaultValue={ranking.name} required />
                     </div>
+                    <RankingProfileFields
+                      idPrefix={ranking.id}
+                      defaultType={ranking.type}
+                      defaultModel={ranking.model}
+                      defaultIsGeneral={ranking.isGeneral}
+                      defaultFeedsGeneralRanking={ranking.feedsGeneralRanking}
+                      defaultRules={{
+                        championPoints: ruleMap.CHAMPION,
+                        runnerUpPoints: ruleMap.RUNNER_UP,
+                        thirdPoints: ruleMap.THIRD,
+                        semifinalPoints: ruleMap.SEMIFINAL,
+                        quarterfinalPoints: ruleMap.QUARTERFINAL,
+                        participationPoints: ruleMap.PARTICIPATION,
+                      }}
+                    />
                     <div className="field form-full">
                       <label htmlFor={`${ranking.id}-description`}>Descrição</label>
                       <input id={`${ranking.id}-description`} name="description" type="text" defaultValue={ranking.description} />
-                    </div>
-
-                    <div className="field">
-                      <label htmlFor={`${ranking.id}-champion`}>1º lugar</label>
-                      <input id={`${ranking.id}-champion`} name="championPoints" type="number" min="0" defaultValue={ruleMap.CHAMPION} />
-                    </div>
-                    <div className="field">
-                      <label htmlFor={`${ranking.id}-runner`}>2º lugar</label>
-                      <input id={`${ranking.id}-runner`} name="runnerUpPoints" type="number" min="0" defaultValue={ruleMap.RUNNER_UP} />
-                    </div>
-                    <div className="field">
-                      <label htmlFor={`${ranking.id}-semi`}>Semifinal</label>
-                      <input id={`${ranking.id}-semi`} name="semifinalPoints" type="number" min="0" defaultValue={ruleMap.SEMIFINAL} />
-                    </div>
-                    <div className="field">
-                      <label htmlFor={`${ranking.id}-quarter`}>Quartas de final</label>
-                      <input id={`${ranking.id}-quarter`} name="quarterfinalPoints" type="number" min="0" defaultValue={ruleMap.QUARTERFINAL} />
-                    </div>
-                    <div className="field">
-                      <label htmlFor={`${ranking.id}-participation`}>Participação</label>
-                      <input id={`${ranking.id}-participation`} name="participationPoints" type="number" min="0" defaultValue={ruleMap.PARTICIPATION} />
                     </div>
 
                     <div className="form-full simple-list">
@@ -163,7 +146,20 @@ export default async function TournamentRankingsPage() {
                         <strong>Classificacao do ranking</strong>
                         <span>{ranking.linkedPlayers ? `${ranking.linkedPlayers} jogadores vinculados` : "Nenhum jogador vinculado ainda"}</span>
                       </div>
-                      {ranking.leaderboard.length ? (
+                      {ranking.type === "PAIR" && ranking.pairLeaderboard.length ? (
+                        <div className="form-full stack-sm">
+                          <strong>Preview da classificação de duplas</strong>
+                          <div className="tv-ranking-preview">
+                            {ranking.pairLeaderboard.slice(0, 5).map((entry, index) => (
+                              <div className="tv-ranking-preview-row" key={entry.pairKey}>
+                                <strong>#{index + 1}</strong>
+                                <span>{entry.pairName}</span>
+                                <small>{entry.points} pts · {entry.competitionsPlayed} categorias</small>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : ranking.leaderboard.length ? (
                         <div className="form-full stack-sm">
                           <strong>Preview da classificacao</strong>
                           <div className="tv-ranking-preview">

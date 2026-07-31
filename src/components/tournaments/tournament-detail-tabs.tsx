@@ -98,6 +98,8 @@ export function TournamentCategoriesTab({ tournament }: { tournament: NonNullabl
           defaultRankingId={tournament.rankingId ?? ""}
           defaultCategories={tournament.categories.map((category) => ({
             name: category.name,
+            groupCount: category.groupCount,
+            pairsPerGroup: category.pairsPerGroup,
             priceSecondCents: category.priceSecondCents ?? 0,
             priceThirdCents: category.priceThirdCents ?? 0
           }))}

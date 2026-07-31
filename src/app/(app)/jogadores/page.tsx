@@ -67,10 +67,13 @@ export default async function PlayersPage({ searchParams }: PlayersPageProps) {
                       playerName={player.name}
                       playerPoints={player.points}
                       playerPhotoUrl={player.photoUrl}
+                      playerClass={player.class}
+                      playerGender={player.gender}
                       active={player.active}
                       deletionRestriction={getAthleteDeletionRestriction({
                         tournamentEntries: player._count.entries,
-                        pairAppearances: player._count.pairPlayers
+                        pairAppearances: player._count.pairPlayers,
+                        categoryPairAppearances: player._count.categoryPairPlayers
                       })}
                     />
                   ) : (

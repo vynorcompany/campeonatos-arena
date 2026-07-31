@@ -8,6 +8,23 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum CompetitionFormat {
+  LEAGUE
+  THREE_GROUPS
+  FOUR_GROUPS
+  SIMPLE
+}
+
+enum RankingType {
+  INDIVIDUAL
+  PAIR
+}
+
+enum RankingModel {
+  LEAGUE
+  KNOCKOUT
+}
+
 model User {
   id           String       @id @default(cuid())
   name         String
@@ -182,6 +199,8 @@ model Player {
   name        String
   points      Int               @default(1000)
   photoUrl    String            @default("")
+  class       String            @default("") @map("category")
+  gender      String            @default("")
   active      Boolean           @default(true)
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
@@ -189,6 +208,7 @@ model Player {
   arena       Arena             @relation(fields: [arenaId], references: [id], onDelete: Cascade)
   entries     TournamentPlayer[]
   pairPlayers PairPlayer[]
+  categoryPairPlayers CategoryPairPlayer[]
   student     Student?
 
   @@unique([arenaId, name])
@@ -234,6 +254,8 @@ model TournamentCategory {
   id           String     @id @default(cuid())
   name         String
   level        Int
+  class        String     @default("")
+  gender       String     @default("")
   groupCount   Int        @default(4)
   pairsPerGroup Int       @default(3)
   priceSecondCents Int    @default(0)
@@ -243,6 +265,7 @@ model TournamentCategory {
   updatedAt    DateTime   @updatedAt
   tournamentId String
   tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  competition  CategoryCompetition?
   registrations PublicTournamentRegistration[]
   brackets     CategoryBracket[]
 
@@ -276,8 +299,10 @@ model PublicTournamentRegistration {
   updatedAt           DateTime @updatedAt
   tournamentId        String
   categoryId          String
+  competitionId       String?
   tournament          Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   category            TournamentCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  competition         CategoryCompetition? @relation(fields: [competitionId, categoryId], references: [id, categoryId], onDelete: Cascade)
   homeBracketMatches  CategoryBracketMatch[] @relation("CategoryBracketHome")
   awayBracketMatches  CategoryBracketMatch[] @relation("CategoryBracketAway")
   winnerBracketMatches CategoryBracketMatch[] @relation("CategoryBracketWinner")
@@ -286,6 +311,7 @@ model PublicTournamentRegistration {
   @@index([categoryId, createdAt])
   @@index([leadCpf, createdAt])
   @@index([partnerCpf, createdAt])
+  @@index([competitionId, createdAt])
 }
 
 model CategoryBracket {
@@ -333,16 +359,23 @@ model RankingProfile {
   name        String
   description String        @default("")
   active      Boolean       @default(true)
+  type        RankingType   @default(PAIR)
+  model       RankingModel  @default(KNOCKOUT)
+  isGeneral   Boolean       @default(false)
+  feedsGeneralRanking Boolean @default(false)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   arenaId     String
   arena       Arena         @relation(fields: [arenaId], references: [id], onDelete: Cascade)
   rules       RankingRule[]
   tournaments Tournament[]
+  competitions CategoryCompetition[]
+  categoryApplications CategoryRankingApplication[]
   cycles      RankingCycle[]
 
   @@unique([arenaId, name])
   @@index([arenaId, active])
+  @@index([arenaId, isGeneral])
 }
 
 model RankingRule {
@@ -372,6 +405,124 @@ model RankingCycle {
 
   @@index([rankingId, startedAt])
   @@index([rankingId, endedAt])
+}
+
+model CategoryCompetition {
+  id                  String                         @id @default(cuid())
+  format              CompetitionFormat
+  status              String                         @default("DRAFT")
+  feedsGeneralRanking Boolean                        @default(false)
+  isPublic            Boolean                        @default(false)
+  createdAt           DateTime                       @default(now())
+  updatedAt           DateTime                       @updatedAt
+  categoryId          String                         @unique
+  rankingId           String?
+  category            TournamentCategory             @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  ranking             RankingProfile?                @relation(fields: [rankingId], references: [id], onDelete: SetNull)
+  registrations       PublicTournamentRegistration[]
+  pairs               CategoryPair[]
+  groups              CategoryGroup[]
+  matches             CategoryMatch[]
+  application         CategoryRankingApplication?
+
+  @@index([rankingId])
+  @@index([status])
+  @@unique([id, categoryId])
+}
+
+model CategoryRankingApplication {
+  id                  String              @id @default(cuid())
+  feedsGeneralRanking Boolean
+  appliedAt           DateTime            @default(now())
+  competitionId       String              @unique
+  rankingId           String?
+  competition         CategoryCompetition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  ranking             RankingProfile?     @relation(fields: [rankingId], references: [id], onDelete: SetNull)
+
+  @@index([rankingId])
+}
+
+model CategoryPair {
+  id            String               @id @default(cuid())
+  name          String
+  totalPoints   Int                  @default(0)
+  drawOrder     Int                  @default(0)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  competitionId String
+  groupId       String?
+  competition   CategoryCompetition  @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  group         CategoryGroup?       @relation(fields: [groupId, competitionId], references: [id, competitionId], onDelete: NoAction)
+  players       CategoryPairPlayer[]
+  homeMatches   CategoryMatch[]      @relation("CategoryHomePair")
+  awayMatches   CategoryMatch[]      @relation("CategoryAwayPair")
+  winnerMatches CategoryMatch[]      @relation("CategoryWinnerPair")
+
+  @@index([competitionId, drawOrder])
+  @@index([competitionId, totalPoints])
+  @@index([groupId])
+  @@unique([id, competitionId])
+}
+
+model CategoryPairPlayer {
+  id            String       @id @default(cuid())
+  pairId        String
+  competitionId String
+  playerId      String
+  slot          Int
+  pair          CategoryPair @relation(fields: [pairId, competitionId], references: [id, competitionId], onDelete: Cascade)
+  player        Player       @relation(fields: [playerId], references: [id], onDelete: Restrict)
+
+  @@unique([pairId, playerId])
+  @@unique([pairId, slot])
+  @@unique([competitionId, playerId])
+  @@index([playerId])
+}
+
+model CategoryGroup {
+  id            String              @id @default(cuid())
+  name          String
+  drawOrder     Int
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  competitionId String
+  competition   CategoryCompetition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  pairs         CategoryPair[]
+  matches       CategoryMatch[]
+
+  @@unique([competitionId, name])
+  @@index([competitionId, drawOrder])
+  @@unique([id, competitionId])
+}
+
+model CategoryMatch {
+  id            String              @id @default(cuid())
+  label         String
+  stage         String
+  roundOrder    Int
+  courtName     String?
+  scheduledDate String?
+  scheduledTime String?
+  homeScore     Int?
+  awayScore     Int?
+  manualStatus  String?
+  showOnTv      Boolean             @default(true)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  competitionId String
+  groupId       String?
+  homePairId    String?
+  awayPairId    String?
+  winnerPairId  String?
+  competition   CategoryCompetition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  group         CategoryGroup?      @relation(fields: [groupId, competitionId], references: [id, competitionId], onDelete: NoAction)
+  homePair      CategoryPair?       @relation("CategoryHomePair", fields: [homePairId, competitionId], references: [id, competitionId], onDelete: NoAction)
+  awayPair      CategoryPair?       @relation("CategoryAwayPair", fields: [awayPairId, competitionId], references: [id, competitionId], onDelete: NoAction)
+  winnerPair    CategoryPair?       @relation("CategoryWinnerPair", fields: [winnerPairId, competitionId], references: [id, competitionId], onDelete: NoAction)
+
+  @@index([competitionId, stage, roundOrder])
+  @@index([groupId])
+  @@index([winnerPairId])
 }
 
 model TournamentPlayer {

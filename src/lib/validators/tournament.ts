@@ -17,10 +17,16 @@ export const createTournamentSchema = z.object({
   priceThirdCents: z.coerce.number().int().min(0),
   blockCategoryGap: z.coerce.boolean().default(false),
   maxCategoryGap: z.coerce.number().int().min(1).max(5).default(1),
-  categoryList: z.string().trim().min(1, "Informe ao menos uma categoria."),
+  categoryList: z.string().trim().default(""),
   rankingId: z.string().trim().default("")
 });
 
 export const updateTournamentSchema = createTournamentSchema.extend({
   tournamentId: z.string().min(1, "Torneio inválido.")
+});
+
+export const updateTournamentEventSchema = z.object({
+  tournamentId: z.string().min(1, "Torneio inválido."),
+  name: z.string().trim().min(3, "Nome do campeonato muito curto."),
+  description: z.string().trim().default(""),
 });

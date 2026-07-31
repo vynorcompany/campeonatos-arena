@@ -1,14 +1,18 @@
-﻿"use client";
+"use client";
 
+import { useEffect } from "react";
 import { useFormState } from "react-dom";
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { SubmitButton } from "@/components/forms/submit-button";
-import { createTournamentAction, type ActionState, updateTournamentAction } from "@/lib/actions/tournament";
-import { parseCategoryListInput, TOURNAMENT_CATEGORY_PRESETS } from "@/lib/tournament-categories";
+import {
+  createTournamentAction,
+  type ActionState,
+  updateTournamentAction,
+} from "@/lib/actions/tournament";
 
 const initialState: ActionState = {
   error: null,
-  success: null
+  success: null,
 };
 
 type TournamentFormProps = {
@@ -39,164 +43,146 @@ export function TournamentForm({
   defaultName = "",
   defaultDescription = "",
   defaultPublicSlug = "",
-  defaultRegistrationPhase = "REGISTRATIONS",
+  defaultRegistrationPhase = "EDITING",
   defaultCreationMode = "MANUAL",
   defaultGroupCount = 4,
   defaultPairsPerGroup = 3,
-  defaultPriceFirstCents = 7000,
-  defaultPriceSecondCents = 3000,
-  defaultPriceThirdCents = 2000,
-  defaultBlockCategoryGap = true,
+  defaultPriceFirstCents = 0,
+  defaultPriceSecondCents = 0,
+  defaultPriceThirdCents = 0,
+  defaultBlockCategoryGap = false,
   defaultMaxCategoryGap = 1,
-  defaultCategoryList = "1,2,3,4",
+  defaultCategoryList = "",
   defaultRankingId = "",
-  rankings = [],
-  submitLabel = "Criar torneio",
-  pendingLabel = "Criando..."
+  submitLabel = "Criar evento",
+  pendingLabel = "Criando...",
 }: TournamentFormProps) {
-  const action = mode === "update" ? updateTournamentAction : createTournamentAction;
+  const action =
+    mode === "update" ? updateTournamentAction : createTournamentAction;
   const [state, formAction] = useFormState(action, initialState);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(parseCategoryListInput(defaultCategoryList));
-  const [customCategory, setCustomCategory] = useState("");
-  const defaultPriceFirstReais = String(Math.round(defaultPriceFirstCents / 100));
-  const defaultPriceSecondReais = String(Math.round(defaultPriceSecondCents / 100));
-  const defaultPriceThirdReais = String(Math.round(defaultPriceThirdCents / 100));
-  const categoryList = useMemo(() => selectedCategories.join(","), [selectedCategories]);
+  const router = useRouter();
 
-  function toggleCategory(category: string) {
-    setSelectedCategories((current) =>
-      current.includes(category) ? current.filter((item) => item !== category) : [...current, category]
-    );
-  }
-
-  function addCustomCategory() {
-    const normalized = customCategory.trim();
-    if (!normalized) return;
-    if (selectedCategories.includes(normalized)) {
-      setCustomCategory("");
-      return;
+  useEffect(() => {
+    if (mode === "create" && state.success && state.tournamentId) {
+      router.push(`/torneios/${state.tournamentId}?tab=categories`);
     }
-    setSelectedCategories((current) => [...current, normalized]);
-    setCustomCategory("");
-  }
-
-  function removeCategory(category: string) {
-    setSelectedCategories((current) => current.filter((item) => item !== category));
-  }
+  }, [mode, router, state.success, state.tournamentId]);
 
   return (
     <form action={formAction} className="grid-form">
-      {mode === "update" && tournamentId ? <input type="hidden" name="tournamentId" value={tournamentId} /> : null}
+      {mode === "update" && tournamentId ? (
+        <input type="hidden" name="tournamentId" value={tournamentId} />
+      ) : null}
 
       <div className="field">
-        <label htmlFor="creationMode">Tipo de torneio</label>
-        <select id="creationMode" name="creationMode" defaultValue={defaultCreationMode}>
-          <option value="MANUAL">Sem inscrições (modo antigo da arena)</option>
-          <option value="PUBLIC">Via inscrições públicas</option>
+        <label htmlFor="name">Nome do evento</label>
+        <input
+          id="name"
+          name="name"
+          type="text"
+          placeholder="Ex.: Open da Arena — Agosto"
+          defaultValue={defaultName}
+          required
+        />
+      </div>
+
+      <div className="field">
+        <label htmlFor="creationMode">Origem das inscrições</label>
+        <select
+          id="creationMode"
+          name="creationMode"
+          defaultValue={defaultCreationMode}
+        >
+          <option value="MANUAL">Somente inscrições manuais</option>
+          <option value="PUBLIC">Aceitar inscrições pelo link público</option>
         </select>
       </div>
-      <div className="field">
-        <label htmlFor="name">Nome do torneio</label>
-        <input id="name" name="name" type="text" placeholder="Ex.: Liga Interna de Abril" defaultValue={defaultName} required />
+
+      <div className="field form-full">
+        <label htmlFor="description">Descrição</label>
+        <textarea
+          id="description"
+          name="description"
+          placeholder="Datas, local, regras gerais e observações do evento."
+          defaultValue={defaultDescription}
+          rows={4}
+        />
       </div>
+
       <div className="field">
-        <label htmlFor="description">Descrição e regras da inscrição</label>
-        <textarea id="description" name="description" placeholder="Regras, horários, premiação e observações." defaultValue={defaultDescription} rows={4} />
+        <label htmlFor="publicSlug">Identificador do link público</label>
+        <input
+          id="publicSlug"
+          name="publicSlug"
+          type="text"
+          placeholder="open-arena-agosto"
+          defaultValue={defaultPublicSlug}
+          pattern="[a-z0-9-]+"
+          required
+        />
+        <p className="muted">Use letras minúsculas, números e hífens.</p>
       </div>
+
       <div className="field">
-        <label htmlFor="publicSlug">Link público da inscrição</label>
-        <input id="publicSlug" name="publicSlug" type="text" placeholder="ex.: super12-junho-2026" defaultValue={defaultPublicSlug} required />
-      </div>
-      <div className="field">
-        <label htmlFor="registrationPhase">Fase do torneio</label>
-        <select id="registrationPhase" name="registrationPhase" defaultValue={defaultRegistrationPhase}>
-          <option value="REGISTRATIONS">Inscrições</option>
-          <option value="EDITING">Editando</option>
-          <option value="LIVE">Acontecendo</option>
+        <label htmlFor="registrationPhase">Fase do evento</label>
+        <select
+          id="registrationPhase"
+          name="registrationPhase"
+          defaultValue={defaultRegistrationPhase}
+        >
+          <option value="REGISTRATIONS">Inscrições abertas</option>
+          <option value="EDITING">Configuração</option>
+          <option value="LIVE">Em andamento</option>
           <option value="FINISHED">Finalizado</option>
         </select>
       </div>
 
-      <input type="hidden" id="groupCount" name="groupCount" value={String(defaultGroupCount)} />
-      <input type="hidden" id="pairsPerGroup" name="pairsPerGroup" value={String(defaultPairsPerGroup)} />
-      <div className="field">
-        <label htmlFor="priceFirstCents">Valor 1ª inscrição</label>
-        <input id="priceFirstCents" name="priceFirstCents" defaultValue={defaultPriceFirstReais} placeholder="R$ 70" required />
-      </div>
-      <div className="field">
-        <label htmlFor="priceSecondCents">Adicional da 2ª inscrição</label>
-        <input id="priceSecondCents" name="priceSecondCents" defaultValue={defaultPriceSecondReais} placeholder="R$ 30" required />
-      </div>
-      <div className="field">
-        <label htmlFor="priceThirdCents">Adicional da 3ª inscrição+</label>
-        <input id="priceThirdCents" name="priceThirdCents" defaultValue={defaultPriceThirdReais} placeholder="R$ 20" required />
-      </div>
-      <div className="field">
-        <label htmlFor="maxCategoryGap">Diferença máxima de nível entre categorias</label>
-        <select id="maxCategoryGap" name="maxCategoryGap" defaultValue={String(defaultMaxCategoryGap)}>
-          <option value="1">1 nível</option>
-          <option value="2">2 níveis</option>
-          <option value="3">3 níveis</option>
-          <option value="4">4 níveis</option>
-          <option value="5">5 níveis</option>
-        </select>
-      </div>
-      <div className="field">
-        <label>Categorias em ordem</label>
-        <div className="stack-xs">
-          <div className="simple-grid simple-grid-2">
-            {TOURNAMENT_CATEGORY_PRESETS.map((category) => (
-              <label key={category} className="category-option">
-                <input type="checkbox" checked={selectedCategories.includes(category)} onChange={() => toggleCategory(category)} />
-                <span>{category}</span>
-              </label>
-            ))}
-          </div>
-          <div className="field-inline">
-            <input
-              value={customCategory}
-              onChange={(event) => setCustomCategory(event.target.value)}
-              placeholder="Adicionar categoria personalizada"
-            />
-            <button type="button" className="button" onClick={addCustomCategory}>Adicionar</button>
-          </div>
-          <div className="field-inline" style={{ flexWrap: "wrap", gap: "8px" }}>
-            {selectedCategories.map((category) => (
-              <button key={category} type="button" className="button" onClick={() => removeCategory(category)}>
-                {category} ×
-              </button>
-            ))}
-          </div>
-        </div>
-        <input type="hidden" name="categoryList" value={categoryList} />
-      </div>
-      <div className="field field-inline">
-        <input id="blockCategoryGap" name="blockCategoryGap" type="checkbox" defaultChecked={defaultBlockCategoryGap} />
-        <label htmlFor="blockCategoryGap">Ativar impedimento por gap de categoria</label>
+      <input type="hidden" name="groupCount" value={String(defaultGroupCount)} />
+      <input
+        type="hidden"
+        name="pairsPerGroup"
+        value={String(defaultPairsPerGroup)}
+      />
+      <input
+        type="hidden"
+        name="priceFirstCents"
+        value={String(Math.round(defaultPriceFirstCents / 100))}
+      />
+      <input
+        type="hidden"
+        name="priceSecondCents"
+        value={String(Math.round(defaultPriceSecondCents / 100))}
+      />
+      <input
+        type="hidden"
+        name="priceThirdCents"
+        value={String(Math.round(defaultPriceThirdCents / 100))}
+      />
+      <input
+        type="hidden"
+        name="maxCategoryGap"
+        value={String(defaultMaxCategoryGap)}
+      />
+      <input type="hidden" name="categoryList" value={defaultCategoryList} />
+      <input type="hidden" name="rankingId" value={defaultRankingId} />
+      {defaultBlockCategoryGap ? (
+        <input type="hidden" name="blockCategoryGap" value="on" />
+      ) : null}
+
+      <div className="field field-submit form-full">
+        <SubmitButton
+          label={submitLabel}
+          pendingLabel={pendingLabel}
+          className="button button-primary"
+        />
       </div>
 
-      <div className="field">
-        <label htmlFor="rankingId">Ranking usado no torneio</label>
-        <select id="rankingId" name="rankingId" defaultValue={defaultRankingId}>
-          <option value="">Nenhum ranking vinculado</option>
-          {rankings.map((ranking) => (
-            <option key={ranking.id} value={ranking.id}>
-              {ranking.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="field field-submit">
-        <label className="sr-only" htmlFor="submit-tournament">
-          {submitLabel}
-        </label>
-        <SubmitButton label={submitLabel} pendingLabel={pendingLabel} className="button button-primary" />
-      </div>
-
-      {state?.error ? <p className="form-error form-full">{state.error}</p> : null}
-      {state?.success ? <p className="form-success form-full">{state.success}</p> : null}
+      {state?.error ? (
+        <p className="form-error form-full">{state.error}</p>
+      ) : null}
+      {state?.success && mode === "update" ? (
+        <p className="form-success form-full">{state.success}</p>
+      ) : null}
     </form>
   );
 }
-

@@ -1,142 +1,159 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
-import { SectionCard } from "@/components/section-card";
-import {
-  TournamentBracketTab,
-  TournamentCategoriesTab,
-  TournamentGamesTab,
-  TournamentGroupsTab,
-  TournamentOverviewTab,
-  TournamentPairsTab,
-  TournamentParticipantsTab,
-  TournamentResultsTab,
-  TournamentSettingsTab
-} from "@/components/tournaments/tournament-detail-tabs";
-import { TournamentDetailLayout } from "@/components/tournaments/tournament-detail-layout";
+import { TournamentCategoryManagerForm } from "@/components/forms/tournament-category-manager-form";
+import { CategoryList } from "@/components/tournaments/category-list";
 import { PublicRegistrationLinkActions } from "@/components/tournaments/public-registration-link-actions";
 import { StatusBadge } from "@/components/tournaments/status-badge";
-import { type TournamentTabKey } from "@/components/tournaments/tournament-tabs";
-import {
-  deleteTournamentAction,
-  finishTournamentAction,
-  reopenTournamentAction,
-  updateTournamentStatusAction,
-  updateTournamentRegistrationPhaseAction
-} from "@/lib/actions/tournament";
+import { TournamentEventEditForm } from "@/components/tournaments/tournament-event-edit-form";
+import { deleteTournamentAction } from "@/lib/actions/tournament";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
-import { getTournamentDetailsById } from "@/lib/services/tournament";
 
 type TournamentDetailPageProps = {
   params: { tournamentId: string };
-  searchParams?: { tab?: string };
 };
 
-const validTabs: TournamentTabKey[] = ["overview", "categories", "participants", "pairs", "groups", "games", "bracket", "results", "settings"];
-
-export default async function TournamentDetailPage({ params, searchParams }: TournamentDetailPageProps) {
+export default async function TournamentDetailPage({
+  params,
+}: TournamentDetailPageProps) {
   const auth = await requireModuleView("tournaments");
-  const tournament = await getTournamentDetailsById(params.tournamentId, auth.arenaId);
-  if (!tournament) notFound();
+  const [tournament] = await Promise.all([
+    prisma.tournament.findFirst({
+      where: {
+        id: params.tournamentId,
+        arenaId: auth.arenaId,
+      },
+      include: {
+        categories: {
+          where: { active: true },
+          orderBy: { level: "asc" },
+          include: {
+            competition: {
+              select: {
+                format: true,
+                status: true,
+                _count: {
+                  select: { pairs: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    }),
+    prisma.rankingProfile.findMany({
+      where: {
+        arenaId: auth.arenaId,
+        active: true,
+        type: "INDIVIDUAL",
+        model: "KNOCKOUT",
+      },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+  ]);
 
-  const tab = validTabs.includes((searchParams?.tab as TournamentTabKey) ?? "overview")
-    ? ((searchParams?.tab as TournamentTabKey) ?? "overview")
-    : "overview";
+  if (!tournament) {
+    notFound();
+  }
 
-  const rankings = await prisma.rankingProfile.findMany({
-    where: { arenaId: auth.arenaId },
-    orderBy: { name: "asc" },
-    select: { id: true, name: true }
-  });
+  const finishedCategoryCount = tournament.categories.filter(
+    (category) => category.competition?.status === "FINISHED",
+  ).length;
 
   return (
     <div className="stack-md">
       <header className="page-header t-sticky-head">
         <div className="stack-xs">
-          <p className="eyebrow">Torneio</p>
+          <p className="eyebrow">Evento</p>
           <h1>{tournament.name}</h1>
-          <p className="muted">Fase atual: {tournament.registrationPhase}</p>
+          <p className="muted">
+            {tournament.categories.length} categorias · {finishedCategoryCount}{" "}
+            concluídas
+          </p>
         </div>
         <div className="section-actions">
-          <StatusBadge status={tournament.status} />
-          {tournament.registrationPhase === "REGISTRATIONS" ? <PublicRegistrationLinkActions slug={tournament.publicSlug} /> : null}
-          <Link href={`/torneios/${tournament.id}?tab=settings`} className="button">Editar torneio</Link>
-          {tournament.status === "FINISHED" ? (
-            <SafeActionForm
-              action={reopenTournamentAction}
-              successMessage="Torneio reaberto para edição."
-            >
-              <input type="hidden" name="tournamentId" value={tournament.id} />
-              <SubmitButton label="Reabrir torneio" pendingLabel="Reabrindo..." className="button button-primary" />
-            </SafeActionForm>
-          ) : (
-            <>
-              <form action={updateTournamentRegistrationPhaseAction} className="section-actions">
-                <input type="hidden" name="tournamentId" value={tournament.id} />
-                <select
-                  name="registrationPhase"
-                  defaultValue={tournament.registrationPhase}
-                  className="button"
-                  aria-label="Selecionar fase do torneio"
-                  style={{ minWidth: "190px" }}
-                >
-                  <option value="REGISTRATIONS">Inscricoes abertas</option>
-                  <option value="EDITING">Editando chaveamentos</option>
-                  <option value="LIVE">Em andamento</option>
-                  <option value="FINISHED">Finalizado</option>
-                </select>
-                <SubmitButton label="Atualizar fase" pendingLabel="Salvando..." className="button" />
-              </form>
-              <form action={updateTournamentStatusAction} className="section-actions">
-                <input type="hidden" name="tournamentId" value={tournament.id} />
-                <select
-                  name="status"
-                  defaultValue={tournament.status}
-                  className="button"
-                  aria-label="Selecionar status do torneio"
-                  style={{ minWidth: "190px" }}
-                >
-                  <option value="DRAFT">Rascunho</option>
-                  <option value="READY_FOR_DRAW">Pronto para sorteio</option>
-                  <option value="GROUPS_DEFINED">Grupos definidos</option>
-                  <option value="MATCHES_DEFINED">Jogos definidos</option>
-                  <option value="FINISHED">Finalizado</option>
-                </select>
-                <SubmitButton label="Atualizar status" pendingLabel="Salvando..." className="button" />
-              </form>
-              <form action={finishTournamentAction}>
-                <input type="hidden" name="tournamentId" value={tournament.id} />
-                <SubmitButton label="Encerrar torneio" pendingLabel="..." className="button" />
-              </form>
-            </>
-          )}
+          <StatusBadge status={tournament.registrationPhase} />
+           {tournament.creationMode === "PUBLIC" ? (
+             <PublicRegistrationLinkActions slug={tournament.publicSlug} />
+          ) : null}
+          <Link href="/torneios" className="button">
+             Voltar aos eventos
+           </Link>
           <SafeActionForm
             action={deleteTournamentAction}
             confirmKeyword="EXCLUIR"
-            confirmPrompt="Digite EXCLUIR para remover este torneio permanentemente."
-            successMessage="Torneio excluido."
+            confirmPrompt="Digite EXCLUIR para remover este evento permanentemente."
+            successMessage="Evento excluído."
           >
             <input type="hidden" name="tournamentId" value={tournament.id} />
-            <SubmitButton label="Excluir torneio" pendingLabel="..." className="button button-danger" />
+            <SubmitButton
+              label="Excluir evento"
+              pendingLabel="Excluindo..."
+              className="button button-danger"
+            />
           </SafeActionForm>
         </div>
       </header>
 
-      <TournamentDetailLayout tournamentId={tournament.id} activeTab={tab}>
-        <SectionCard title="Area do torneio" description="Cada aba separa uma responsabilidade operacional.">
-          {tab === "overview" ? <TournamentOverviewTab tournament={tournament} /> : null}
-          {tab === "categories" ? <TournamentCategoriesTab tournament={tournament} /> : null}
-          {tab === "participants" ? <TournamentParticipantsTab tournament={tournament} /> : null}
-          {tab === "pairs" ? <TournamentPairsTab tournament={tournament} /> : null}
-          {tab === "groups" ? <TournamentGroupsTab tournament={tournament} /> : null}
-          {tab === "games" ? <TournamentGamesTab tournament={tournament} /> : null}
-          {tab === "bracket" ? <TournamentBracketTab tournament={tournament} /> : null}
-          {tab === "results" ? <TournamentResultsTab tournament={tournament} /> : null}
-          {tab === "settings" ? <TournamentSettingsTab tournament={tournament} rankings={rankings} /> : null}
-        </SectionCard>
-      </TournamentDetailLayout>
+      <details className="section-card">
+        <summary>
+          <strong>Editar evento</strong>
+        </summary>
+        <div style={{ marginTop: "1rem" }}>
+          <TournamentEventEditForm tournament={tournament} />
+        </div>
+      </details>
+
+      <CategoryList
+        tournamentId={tournament.id}
+        categories={tournament.categories.map((category) => ({
+          id: category.id,
+          name: category.name,
+          competition: category.competition
+            ? {
+                format: category.competition.format,
+                pairCount: category.competition._count.pairs,
+              }
+            : null,
+        }))}
+      />
+
+      <details className="section-card">
+        <summary>
+          <strong>Gerenciar categorias</strong>
+        </summary>
+        <div style={{ marginTop: "1rem" }}>
+          <TournamentCategoryManagerForm
+            tournamentId={tournament.id}
+            defaultName={tournament.name}
+            defaultDescription={tournament.description}
+            defaultPublicSlug={tournament.publicSlug}
+            defaultRegistrationPhase={tournament.registrationPhase}
+            defaultCreationMode={
+              tournament.creationMode as "MANUAL" | "PUBLIC"
+            }
+            defaultGroupCount={tournament.groupCount}
+            defaultPairsPerGroup={tournament.pairsPerGroup}
+            defaultPriceFirstCents={tournament.priceFirstCents}
+            defaultPriceSecondCents={tournament.priceSecondCents}
+            defaultPriceThirdCents={tournament.priceThirdCents}
+            defaultBlockCategoryGap={tournament.blockCategoryGap}
+            defaultMaxCategoryGap={tournament.maxCategoryGap}
+            defaultRankingId={tournament.rankingId ?? ""}
+            defaultCategories={tournament.categories.map((category) => ({
+              name: category.name,
+              groupCount: category.groupCount,
+              pairsPerGroup: category.pairsPerGroup,
+              priceSecondCents: category.priceSecondCents,
+              priceThirdCents: category.priceThirdCents,
+              hasCompetition: Boolean(category.competition),
+            }))}
+          />
+        </div>
+      </details>
     </div>
   );
 }

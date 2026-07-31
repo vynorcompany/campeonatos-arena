@@ -42,6 +42,32 @@ type GroupStandingEntry = {
   totalPoints: number;
 };
 
+async function lockIndividualRanking(
+  tx: Prisma.TransactionClient,
+  arenaId: string,
+  rankingId: string | null,
+) {
+  if (!rankingId) {
+    return;
+  }
+
+  await tx.$queryRaw`
+    SELECT pg_advisory_xact_lock(hashtext(${rankingId}))
+  `;
+  const ranking = await tx.rankingProfile.findFirst({
+    where: {
+      id: rankingId,
+      arenaId,
+      type: "INDIVIDUAL",
+      model: "KNOCKOUT",
+    },
+    select: { id: true },
+  });
+  if (!ranking) {
+    throw new Error("Ranking individual inválido para esta arena.");
+  }
+}
+
 function getGroupLabelByOrder(drawOrder: number) {
   return `Grupo ${String.fromCharCode(64 + drawOrder)}`;
 }
@@ -1056,7 +1082,8 @@ export async function getArenaDashboard(arenaId: string, selectedTournamentId?: 
       _count: {
         select: {
           entries: true,
-          pairPlayers: true
+          pairPlayers: true,
+          categoryPairPlayers: true
         }
       }
     }
@@ -2255,6 +2282,8 @@ export async function updateTournamentSettings(
     tournament.pairsPerGroup !== input.pairsPerGroup;
 
   await prisma.$transaction(async (tx) => {
+    await lockIndividualRanking(tx, arenaId, input.rankingId);
+
     if (structureChanged) {
       await resetTournamentStructure(tx, tournamentId);
       await tx.pair.updateMany({

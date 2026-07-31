@@ -7,6 +7,7 @@ const labels: Record<string, string> = {
   READY_FOR_DRAW: "Pronto para sorteio",
   GROUPS_DEFINED: "Grupos definidos",
   MATCHES_DEFINED: "Jogos definidos",
+  PUBLISHED: "Publicado",
   IN_PROGRESS: "Em andamento",
   FINISHED: "Finalizado",
   REGISTRATIONS: "Inscrições",

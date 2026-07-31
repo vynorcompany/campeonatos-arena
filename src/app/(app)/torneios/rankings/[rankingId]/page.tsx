@@ -59,7 +59,7 @@ export default async function RankingDetailPage({ params, searchParams }: Rankin
           <p className="eyebrow">Campeonatos</p>
           <h1>{ranking.name}</h1>
           <p className="muted">
-            Esta tela mostra a classificacao acumulada dos jogadores nos torneios que usam este ranking.
+            Esta tela mostra a classificacao acumulada {ranking.type === "PAIR" ? "das duplas" : "dos jogadores"} nos torneios que usam este ranking.
           </p>
         </div>
         <div className="section-actions">
@@ -110,7 +110,7 @@ export default async function RankingDetailPage({ params, searchParams }: Rankin
       </SectionCard>
 
       <div className="stats-grid">
-        <StatCard label="Jogadores vinculados" value={ranking.linkedPlayers} caption="Somados a partir dos torneios desse ranking" />
+        <StatCard label={ranking.type === "PAIR" ? "Jogadores nas duplas" : "Jogadores vinculados"} value={ranking.linkedPlayers} caption="Somados a partir dos torneios desse ranking" />
         <StatCard label="Torneios do período" value={ranking.tournaments.length} caption="Torneios que entram no ciclo selecionado" />
         <StatCard label="Entradas pontuadas" value={ranking.linkedTournamentEntries} caption="Entradas do período selecionado" />
         <StatCard label="Regras" value={ranking.rules.length} caption="Pontuacao usada para este ranking" />
@@ -118,16 +118,26 @@ export default async function RankingDetailPage({ params, searchParams }: Rankin
 
       <SectionCard
         title="Como o ranking e calculado"
-        description="Nao existe um ranking direto no jogador. A classificacao e montada pelos torneios que selecionam este ranking e somam os pontos de cada inscricao no ciclo ativo."
+        description={ranking.type === "PAIR"
+          ? "A classificacao soma, para cada dupla, os pontos aplicados pelas competicoes de categoria no ciclo selecionado."
+          : "Nao existe um ranking direto no jogador. A classificacao e montada pelos torneios que selecionam este ranking e somam os pontos de cada inscricao no ciclo ativo."}
       >
           <div className="simple-list">
             <div className="simple-item">
               <strong>Vinculo</strong>
-              <span>Torneio {"->"} ranking selecionado {"->"} entradas do torneio</span>
+              <span>
+                {ranking.type === "PAIR"
+                  ? <>Categoria {"->"} ranking selecionado {"->"} duplas da competição</>
+                  : <>Torneio {"->"} ranking selecionado {"->"} entradas do torneio</>}
+              </span>
             </div>
           <div className="simple-item">
             <strong>Pontos</strong>
-            <span>Somatorio de tournamentPoints das entradas do período selecionado</span>
+            <span>
+              {ranking.type === "PAIR"
+                ? "Soma dos pontos por colocação aplicados às duplas no período selecionado"
+                : "Somatorio de tournamentPoints das entradas do período selecionado"}
+            </span>
           </div>
           <div className="simple-item">
             <strong>Reset</strong>
@@ -135,13 +145,45 @@ export default async function RankingDetailPage({ params, searchParams }: Rankin
           </div>
           <div className="simple-item">
             <strong>Desempate</strong>
-            <span>Mais torneios, depois ordem alfabetica do jogador</span>
+            <span>
+              {ranking.type === "PAIR"
+                ? "Mais competições, depois ordem alfabética da dupla"
+                : "Mais torneios, depois ordem alfabetica do jogador"}
+            </span>
           </div>
         </div>
       </SectionCard>
 
-      <SectionCard title="Ranking dos jogadores" description="Lista completa dos jogadores vinculados a este ranking.">
-        {ranking.leaderboard.length ? (
+      <SectionCard
+        title={ranking.type === "PAIR" ? "Ranking das duplas" : "Ranking dos jogadores"}
+        description={ranking.type === "PAIR"
+          ? "Lista completa das duplas pontuadas neste ranking."
+          : "Lista completa dos jogadores vinculados a este ranking."}
+      >
+        {ranking.type === "PAIR" && ranking.pairLeaderboard.length ? (
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Pos.</th>
+                <th>Dupla</th>
+                <th>Pontos</th>
+                <th>Competições</th>
+                <th>Último torneio</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ranking.pairLeaderboard.map((pair, index) => (
+                <tr key={pair.pairKey}>
+                  <td>#{index + 1}</td>
+                  <td><strong>{pair.pairName}</strong></td>
+                  <td>{pair.points}</td>
+                  <td>{pair.competitionsPlayed}</td>
+                  <td>{pair.lastTournamentName ?? "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : ranking.type === "INDIVIDUAL" && ranking.leaderboard.length ? (
           <table className="data-table">
             <thead>
               <tr>
@@ -176,7 +218,7 @@ export default async function RankingDetailPage({ params, searchParams }: Rankin
           </table>
         ) : (
           <p className="muted">
-            Ainda nao ha jogadores neste período. Isso significa que nenhum torneio com este ranking foi pontuado neste ciclo.
+            Ainda nao ha {ranking.type === "PAIR" ? "duplas" : "jogadores"} neste período. Isso significa que nenhum torneio com este ranking foi pontuado neste ciclo.
           </p>
         )}
       </SectionCard>

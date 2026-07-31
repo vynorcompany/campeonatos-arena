@@ -18,6 +18,7 @@ import {
 import {
   createRankingProfileSchema,
   deleteRankingProfileSchema,
+  getRankingRuleBlueprint,
   updateRankingProfileSchema
 } from "@/lib/validators/ranking";
 import {
@@ -35,7 +36,11 @@ import {
   updateMatchResultSchema,
   updateMatchScheduleSchema
 } from "@/lib/validators/match";
-import { createTournamentSchema, updateTournamentSchema } from "@/lib/validators/tournament";
+import {
+  createTournamentSchema,
+  updateTournamentEventSchema,
+  updateTournamentSchema,
+} from "@/lib/validators/tournament";
 import { createManualTournamentRegistrationSchema, updateManualTournamentRegistrationSchema } from "@/lib/validators/public-registration";
 import {
   createTournamentPair,
@@ -80,23 +85,83 @@ function refreshTournamentRoutes() {
   revalidatePath("/torneios/inscricoes");
 }
 
-const rankingRuleBlueprint = [
-  { stageKey: "CHAMPION", label: "1º lugar", displayOrder: 1, field: "championPoints" as const },
-  { stageKey: "RUNNER_UP", label: "2º lugar", displayOrder: 2, field: "runnerUpPoints" as const },
-  { stageKey: "SEMIFINAL", label: "Semifinal", displayOrder: 3, field: "semifinalPoints" as const },
-  { stageKey: "QUARTERFINAL", label: "Quartas de final", displayOrder: 4, field: "quarterfinalPoints" as const },
-  { stageKey: "PARTICIPATION", label: "Participação", displayOrder: 5, field: "participationPoints" as const }
-];
+async function runRankingSerializableTransaction<T>(
+  operation: (tx: Prisma.TransactionClient) => Promise<T>,
+) {
+  const maximumAttempts = 3;
 
-async function ensureRankingBelongsToArena(arenaId: string, rankingId: string | null) {
+  for (let attempt = 1; attempt <= maximumAttempts; attempt += 1) {
+    try {
+      return await prisma.$transaction(operation, {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      });
+    } catch (error) {
+      const canRetry =
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2034" &&
+        attempt < maximumAttempts;
+      if (!canRetry) {
+        throw error;
+      }
+    }
+  }
+
+  throw new Error("Não foi possível serializar a atualização do ranking.");
+}
+
+async function lockRankingProfile(
+  tx: Prisma.TransactionClient,
+  rankingId: string,
+) {
+  await tx.$queryRaw`
+    SELECT pg_advisory_xact_lock(hashtext(${rankingId}))
+  `;
+}
+
+async function ensureGeneralRankingAvailable(
+  tx: Prisma.TransactionClient,
+  arenaId: string,
+  rankingId: string | null,
+  isGeneral: boolean,
+) {
+  if (!isGeneral) {
+    return;
+  }
+
+  await tx.$queryRaw`
+    SELECT pg_advisory_xact_lock(hashtext(${`general-ranking:${arenaId}`}))
+  `;
+
+  const existingGeneral = await tx.rankingProfile.findFirst({
+    where: {
+      arenaId,
+      isGeneral: true,
+      ...(rankingId ? { id: { not: rankingId } } : {}),
+    },
+    select: { id: true },
+  });
+
+  if (existingGeneral) {
+    throw new Error("A arena já possui um Ranking Geral.");
+  }
+}
+
+async function ensureRankingBelongsToArena(
+  tx: Prisma.TransactionClient,
+  arenaId: string,
+  rankingId: string | null,
+) {
   if (!rankingId) {
     return null;
   }
 
-  const ranking = await prisma.rankingProfile.findFirst({
+  await lockRankingProfile(tx, rankingId);
+  const ranking = await tx.rankingProfile.findFirst({
     where: {
       id: rankingId,
-      arenaId
+      arenaId,
+      type: "INDIVIDUAL",
+      model: "KNOCKOUT",
     },
     select: {
       id: true
@@ -104,25 +169,43 @@ async function ensureRankingBelongsToArena(arenaId: string, rankingId: string | 
   });
 
   if (!ranking) {
-    throw new Error("Ranking inválido para esta arena.");
+    throw new Error("Ranking individual inválido para esta arena.");
   }
 
   return ranking.id;
 }
 
 async function syncRankingRules(
+  tx: Prisma.TransactionClient,
   rankingId: string,
   values: {
-    championPoints: number;
-    runnerUpPoints: number;
-    semifinalPoints: number;
-    quarterfinalPoints: number;
-    participationPoints: number;
+    model: "LEAGUE" | "KNOCKOUT";
+    championPoints?: number;
+    runnerUpPoints?: number;
+    thirdPoints?: number;
+    semifinalPoints?: number;
+    quarterfinalPoints?: number;
+    participationPoints?: number;
   }
 ) {
-  await prisma.$transaction(
-    rankingRuleBlueprint.map((rule) =>
-      prisma.rankingRule.upsert({
+  const rankingRuleBlueprint = getRankingRuleBlueprint(values.model);
+  const stageKeys = rankingRuleBlueprint.map((rule) => rule.stageKey);
+
+  await tx.rankingRule.deleteMany({
+    where: {
+      rankingId,
+      stageKey: { notIn: stageKeys },
+    },
+  });
+
+  await Promise.all(
+    rankingRuleBlueprint.map((rule) => {
+      const points = values[rule.field];
+      if (points === undefined) {
+        throw new Error(`Pontuação ausente para ${rule.label}.`);
+      }
+
+      return tx.rankingRule.upsert({
         where: {
           rankingId_stageKey: {
             rankingId,
@@ -133,16 +216,16 @@ async function syncRankingRules(
           rankingId,
           stageKey: rule.stageKey,
           label: rule.label,
-          points: values[rule.field],
+          points,
           displayOrder: rule.displayOrder
         },
         update: {
           label: rule.label,
-          points: values[rule.field],
+          points,
           displayOrder: rule.displayOrder
         }
-      })
-    )
+      });
+    })
   );
 }
 
@@ -245,7 +328,9 @@ export async function createPlayerAction(_: ActionState, formData: FormData): Pr
   const auth = await requireModuleEdit("players");
   const parsed = createPlayerSchema.safeParse({
     name: formData.get("name"),
-    points: formData.get("points")
+    points: formData.get("points"),
+    class: formData.get("class"),
+    gender: formData.get("gender")
   });
 
   if (!parsed.success) {
@@ -263,6 +348,8 @@ export async function createPlayerAction(_: ActionState, formData: FormData): Pr
           arenaId: auth.arenaId,
           name: parsed.data.name,
           points: parsed.data.points,
+          class: parsed.data.class,
+          gender: parsed.data.gender,
           ...(photoUrl ? { photoUrl } : {})
         }
       });
@@ -310,7 +397,9 @@ export async function updatePlayerAction(formData: FormData) {
   const parsed = updatePlayerSchema.safeParse({
     playerId: formData.get("playerId"),
     name: formData.get("name"),
-    points: formData.get("points")
+    points: formData.get("points"),
+    class: formData.get("class"),
+    gender: formData.get("gender")
   });
 
   if (!parsed.success) {
@@ -327,6 +416,8 @@ export async function updatePlayerAction(formData: FormData) {
       data: {
         name: parsed.data.name,
         points: parsed.data.points,
+        class: parsed.data.class,
+        gender: parsed.data.gender,
         ...(photoUrl ? { photoUrl } : {})
       }
     });
@@ -392,7 +483,8 @@ export async function deleteAthleteAction(formData: FormData) {
       _count: {
         select: {
           entries: true,
-          pairPlayers: true
+          pairPlayers: true,
+          categoryPairPlayers: true
         }
       }
     }
@@ -404,7 +496,8 @@ export async function deleteAthleteAction(formData: FormData) {
 
   const restriction = getAthleteDeletionRestriction({
     tournamentEntries: athlete._count.entries,
-    pairAppearances: athlete._count.pairPlayers
+    pairAppearances: athlete._count.pairPlayers,
+    categoryPairAppearances: athlete._count.categoryPairPlayers
   });
 
   if (restriction) {
@@ -516,33 +609,45 @@ export async function createTournamentAction(_: ActionState, formData: FormData)
     return { error: parsed.error.issues[0]?.message ?? "Dados inválidos.", success: null };
   }
 
-  const rankingId = await ensureRankingBelongsToArena(auth.arenaId, parsed.data.rankingId || null);
   const priceFirstCents = parseReaisToCents(parsed.data.priceFirstCents);
   const priceSecondCents = parseReaisToCents(parsed.data.priceSecondCents);
   const priceThirdCents = parseReaisToCents(parsed.data.priceThirdCents);
-  const categories = parseCategoryList(parsed.data.categoryList, priceSecondCents, priceThirdCents);
-  const created = await prisma.tournament.create({
-    data: {
-      arenaId: auth.arenaId,
-      name: parsed.data.name,
-      description: parsed.data.description,
-      publicSlug: parsed.data.publicSlug,
-      creationMode: parsed.data.creationMode,
-      registrationPhase: parsed.data.registrationPhase,
-      groupCount: categories[0]?.groupCount ?? parsed.data.groupCount,
-      pairsPerGroup: categories[0]?.pairsPerGroup ?? parsed.data.pairsPerGroup,
-      priceFirstCents,
-      priceSecondCents,
-      priceThirdCents,
-      blockCategoryGap: parsed.data.blockCategoryGap,
-      maxCategoryGap: parsed.data.maxCategoryGap,
-      rankingId,
-      categories: {
-        createMany: {
-          data: categories
-        }
+  const categories = parsed.data.categoryList
+    ? parseCategoryList(parsed.data.categoryList, priceSecondCents, priceThirdCents)
+    : [];
+  const created = await runRankingSerializableTransaction(async (tx) => {
+    const rankingId = await ensureRankingBelongsToArena(
+      tx,
+      auth.arenaId,
+      parsed.data.rankingId || null,
+    );
+    return tx.tournament.create({
+      data: {
+        arenaId: auth.arenaId,
+        name: parsed.data.name,
+        description: parsed.data.description,
+        publicSlug: parsed.data.publicSlug,
+        creationMode: parsed.data.creationMode,
+        registrationPhase: parsed.data.registrationPhase,
+        groupCount: categories[0]?.groupCount ?? parsed.data.groupCount,
+        pairsPerGroup: categories[0]?.pairsPerGroup ?? parsed.data.pairsPerGroup,
+        priceFirstCents,
+        priceSecondCents,
+        priceThirdCents,
+        blockCategoryGap: parsed.data.blockCategoryGap,
+        maxCategoryGap: parsed.data.maxCategoryGap,
+        rankingId,
+        ...(categories.length
+          ? {
+              categories: {
+                createMany: {
+                  data: categories
+                }
+              }
+            }
+          : {})
       }
-    }
+    });
   });
 
   refreshTournamentRoutes();
@@ -576,6 +681,41 @@ export async function reopenTournamentAction(formData: FormData) {
 
 export async function updateTournamentAction(_: ActionState, formData: FormData): Promise<ActionState> {
   const auth = await requireModuleEdit("tournaments");
+
+  if (!formData.has("publicSlug")) {
+    const eventParsed = updateTournamentEventSchema.safeParse({
+      tournamentId: formData.get("tournamentId"),
+      name: formData.get("name"),
+      description: formData.get("description"),
+    });
+
+    if (!eventParsed.success) {
+      return {
+        error: eventParsed.error.issues[0]?.message ?? "Dados inválidos.",
+        success: null,
+      };
+    }
+
+    const updated = await prisma.tournament.updateMany({
+      where: {
+        id: eventParsed.data.tournamentId,
+        arenaId: auth.arenaId,
+      },
+      data: {
+        name: eventParsed.data.name,
+        description: eventParsed.data.description,
+      },
+    });
+
+    if (!updated.count) {
+      return { error: "Evento não encontrado.", success: null };
+    }
+
+    refreshTournamentRoutes();
+    revalidatePath(`/torneios/${eventParsed.data.tournamentId}`);
+    return { error: null, success: "Evento atualizado com sucesso." };
+  }
+
   const parsed = updateTournamentSchema.safeParse({
     tournamentId: formData.get("tournamentId"),
     creationMode: formData.get("creationMode"),
@@ -599,7 +739,6 @@ export async function updateTournamentAction(_: ActionState, formData: FormData)
   }
 
   try {
-    const rankingId = await ensureRankingBelongsToArena(auth.arenaId, parsed.data.rankingId || null);
     const priceFirstCents = parseReaisToCents(parsed.data.priceFirstCents);
     const priceSecondCents = parseReaisToCents(parsed.data.priceSecondCents);
     const priceThirdCents = parseReaisToCents(parsed.data.priceThirdCents);
@@ -618,7 +757,7 @@ export async function updateTournamentAction(_: ActionState, formData: FormData)
       blockCategoryGap: parsed.data.blockCategoryGap,
       maxCategoryGap: parsed.data.maxCategoryGap,
       categoryList: categories,
-      rankingId
+      rankingId: parsed.data.rankingId || null
     });
   } catch (error) {
     return {
@@ -628,6 +767,7 @@ export async function updateTournamentAction(_: ActionState, formData: FormData)
   }
 
   refreshTournamentRoutes();
+  revalidatePath(`/torneios/${parsed.data.tournamentId}`);
   return { error: null, success: "Torneio atualizado com sucesso." };
 }
 
@@ -636,8 +776,13 @@ export async function createRankingProfileAction(formData: FormData) {
   const parsed = createRankingProfileSchema.safeParse({
     name: formData.get("name"),
     description: formData.get("description"),
+    type: formData.get("type"),
+    model: formData.get("model"),
+    isGeneral: formData.get("isGeneral") === "on",
+    feedsGeneralRanking: formData.get("feedsGeneralRanking") === "on",
     championPoints: formData.get("championPoints"),
     runnerUpPoints: formData.get("runnerUpPoints"),
+    thirdPoints: formData.get("thirdPoints"),
     semifinalPoints: formData.get("semifinalPoints"),
     quarterfinalPoints: formData.get("quarterfinalPoints"),
     participationPoints: formData.get("participationPoints")
@@ -647,22 +792,34 @@ export async function createRankingProfileAction(formData: FormData) {
     throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
 
-  const ranking = await prisma.rankingProfile.create({
-    data: {
-      arenaId: auth.arenaId,
-      name: parsed.data.name,
-      description: parsed.data.description
-    }
-  });
+  await runRankingSerializableTransaction(async (tx) => {
+    await ensureGeneralRankingAvailable(
+      tx,
+      auth.arenaId,
+      null,
+      parsed.data.isGeneral,
+    );
+    const ranking = await tx.rankingProfile.create({
+      data: {
+        arenaId: auth.arenaId,
+        name: parsed.data.name,
+        description: parsed.data.description,
+        type: parsed.data.type,
+        model: parsed.data.model,
+        isGeneral: parsed.data.isGeneral,
+        feedsGeneralRanking: parsed.data.feedsGeneralRanking,
+      }
+    });
 
-  await prisma.rankingCycle.create({
-    data: {
-      rankingId: ranking.id,
-      label: "Ciclo 1",
-      startedAt: ranking.createdAt
-    }
+    await tx.rankingCycle.create({
+      data: {
+        rankingId: ranking.id,
+        label: "Ciclo 1",
+        startedAt: ranking.createdAt
+      }
+    });
+    await syncRankingRules(tx, ranking.id, parsed.data);
   });
-  await syncRankingRules(ranking.id, parsed.data);
   refreshTournamentRoutes();
 }
 
@@ -672,8 +829,13 @@ export async function updateRankingProfileAction(formData: FormData) {
     rankingId: formData.get("rankingId"),
     name: formData.get("name"),
     description: formData.get("description"),
+    type: formData.get("type"),
+    model: formData.get("model"),
+    isGeneral: formData.get("isGeneral") === "on",
+    feedsGeneralRanking: formData.get("feedsGeneralRanking") === "on",
     championPoints: formData.get("championPoints"),
     runnerUpPoints: formData.get("runnerUpPoints"),
+    thirdPoints: formData.get("thirdPoints"),
     semifinalPoints: formData.get("semifinalPoints"),
     quarterfinalPoints: formData.get("quarterfinalPoints"),
     participationPoints: formData.get("participationPoints")
@@ -683,22 +845,96 @@ export async function updateRankingProfileAction(formData: FormData) {
     throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
 
-  const updated = await prisma.rankingProfile.updateMany({
-    where: {
-      id: parsed.data.rankingId,
-      arenaId: auth.arenaId
-    },
-    data: {
-      name: parsed.data.name,
-      description: parsed.data.description
+  await runRankingSerializableTransaction(async (tx) => {
+    await lockRankingProfile(tx, parsed.data.rankingId);
+    await ensureGeneralRankingAvailable(
+      tx,
+      auth.arenaId,
+      parsed.data.rankingId,
+      parsed.data.isGeneral,
+    );
+
+    if (parsed.data.type === "INDIVIDUAL") {
+      const linkedCategoryCount = await tx.categoryCompetition.count({
+        where: {
+          rankingId: parsed.data.rankingId,
+          category: {
+            tournament: {
+              arenaId: auth.arenaId
+            }
+          }
+        }
+      });
+
+      if (linkedCategoryCount) {
+        throw new Error("Um ranking vinculado a categorias de duplas não pode se tornar individual.");
+      }
     }
+
+    const linkedLegacyTournamentCount = await tx.tournament.count({
+      where: {
+        arenaId: auth.arenaId,
+        rankingId: parsed.data.rankingId,
+      },
+    });
+
+    if (parsed.data.type === "PAIR") {
+      if (linkedLegacyTournamentCount) {
+        throw new Error("Um ranking vinculado a torneios legados não pode se tornar ranking de duplas.");
+      }
+    }
+
+    if (
+      parsed.data.model === "LEAGUE" &&
+      linkedLegacyTournamentCount
+    ) {
+      throw new Error(
+        "O ranking precisa permanecer no modelo Mata-mata enquanto houver torneios vinculados.",
+      );
+    }
+
+    const linkedIncompatibleCategoryCount =
+      await tx.categoryCompetition.count({
+        where: {
+          rankingId: parsed.data.rankingId,
+          category: {
+            tournament: {
+              arenaId: auth.arenaId,
+            },
+          },
+          ...(parsed.data.model === "LEAGUE"
+            ? { format: { not: "LEAGUE" } }
+            : { format: "LEAGUE" }),
+        },
+      });
+
+    if (linkedIncompatibleCategoryCount) {
+      throw new Error(
+        "O modelo do ranking não é compatível com as categorias vinculadas.",
+      );
+    }
+
+    const updated = await tx.rankingProfile.updateMany({
+      where: {
+        id: parsed.data.rankingId,
+        arenaId: auth.arenaId
+      },
+      data: {
+        name: parsed.data.name,
+        description: parsed.data.description,
+        type: parsed.data.type,
+        model: parsed.data.model,
+        isGeneral: parsed.data.isGeneral,
+        feedsGeneralRanking: parsed.data.feedsGeneralRanking,
+      }
+    });
+
+    if (!updated.count) {
+      throw new Error("Ranking não encontrado.");
+    }
+
+    await syncRankingRules(tx, parsed.data.rankingId, parsed.data);
   });
-
-  if (!updated.count) {
-    throw new Error("Ranking não encontrado.");
-  }
-
-  await syncRankingRules(parsed.data.rankingId, parsed.data);
   const linkedTournaments = await prisma.tournament.findMany({
     where: {
       arenaId: auth.arenaId,
