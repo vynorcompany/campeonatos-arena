@@ -244,7 +244,10 @@ export async function createPlayerAction(_: ActionState, formData: FormData): Pr
   const auth = await requireModuleEdit("players");
   const parsed = createPlayerSchema.safeParse({
     name: formData.get("name"),
-    points: formData.get("points")
+    points: formData.get("points"),
+    phone: formData.get("phone"),
+    cpf: normalizeCpf(String(formData.get("cpf") ?? "")),
+    birthDate: formData.get("birthDate")
   });
 
   if (!parsed.success) {
@@ -262,6 +265,9 @@ export async function createPlayerAction(_: ActionState, formData: FormData): Pr
           arenaId: auth.arenaId,
           name: parsed.data.name,
           points: parsed.data.points,
+          phone: parsed.data.phone,
+          cpf: parsed.data.cpf,
+          birthDate: parsed.data.birthDate,
           ...(photoUrl ? { photoUrl } : {})
         }
       });
@@ -309,7 +315,10 @@ export async function updatePlayerAction(formData: FormData) {
   const parsed = updatePlayerSchema.safeParse({
     playerId: formData.get("playerId"),
     name: formData.get("name"),
-    points: formData.get("points")
+    points: formData.get("points"),
+    phone: formData.get("phone"),
+    cpf: normalizeCpf(String(formData.get("cpf") ?? "")),
+    birthDate: formData.get("birthDate")
   });
 
   if (!parsed.success) {
@@ -326,6 +335,9 @@ export async function updatePlayerAction(formData: FormData) {
       data: {
         name: parsed.data.name,
         points: parsed.data.points,
+        phone: parsed.data.phone,
+        cpf: parsed.data.cpf,
+        birthDate: parsed.data.birthDate,
         ...(photoUrl ? { photoUrl } : {})
       }
     });
@@ -1341,14 +1353,8 @@ export async function createManualTournamentRegistrationAction(_: ActionState, f
   const parsed = createManualTournamentRegistrationSchema.safeParse({
     tournamentId: formData.get("tournamentId"),
     categoryId: formData.get("categoryId"),
-    leadName: formData.get("leadName"),
-    leadPhone: formData.get("leadPhone"),
-    leadCpf: normalizeCpf(String(formData.get("leadCpf") ?? "")),
-    leadBirthDate: normalizeDateInput(formData.get("leadBirthDate")),
-    partnerName: formData.get("partnerName"),
-    partnerPhone: formData.get("partnerPhone"),
-    partnerCpf: normalizeCpf(String(formData.get("partnerCpf") ?? "")),
-    partnerBirthDate: normalizeDateInput(formData.get("partnerBirthDate")),
+    leadPlayerId: formData.get("leadPlayerId"),
+    partnerPlayerId: formData.get("partnerPlayerId"),
     amountReais: formData.get("amountReais"),
     paymentStatus: formData.get("paymentStatus")
   });
@@ -1379,6 +1385,39 @@ export async function createManualTournamentRegistrationAction(_: ActionState, f
     return { error: "Categoria inválida para este torneio.", success: null };
   }
 
+  if (parsed.data.leadPlayerId === parsed.data.partnerPlayerId) {
+    return { error: "Os atletas da dupla devem ser diferentes.", success: null };
+  }
+
+  const athletes = await prisma.player.findMany({
+    where: {
+      arenaId: auth.arenaId,
+      active: true,
+      id: { in: [parsed.data.leadPlayerId, parsed.data.partnerPlayerId] }
+    },
+    select: {
+      id: true,
+      name: true,
+      phone: true,
+      cpf: true,
+      birthDate: true
+    }
+  });
+
+  if (athletes.length !== 2 || athletes.some((athlete) => !athlete.phone || !/^\d{11}$/.test(athlete.cpf) || !athlete.birthDate)) {
+    return { error: "Atleta não encontrado, inativo ou sem cadastro completo.", success: null };
+  }
+
+  const athletesById = new Map(athletes.map((athlete) => [athlete.id, athlete]));
+  const lead = athletesById.get(parsed.data.leadPlayerId);
+  const partner = athletesById.get(parsed.data.partnerPlayerId);
+  if (!lead || !partner || !lead.birthDate || !partner.birthDate) {
+    return { error: "Atleta não encontrado, inativo ou sem cadastro completo.", success: null };
+  }
+
+  const leadBirthDate = lead.birthDate;
+  const partnerBirthDate = partner.birthDate;
+
   const registrationCount = await prisma.publicTournamentRegistration.count({
     where: {
       tournamentId: tournament.id
@@ -1392,14 +1431,14 @@ export async function createManualTournamentRegistrationAction(_: ActionState, f
       data: {
         tournamentId: tournament.id,
         categoryId: parsed.data.categoryId,
-        leadName: parsed.data.leadName,
-        leadPhone: parsed.data.leadPhone,
-        leadCpf: parsed.data.leadCpf,
-        leadBirthDate: parsed.data.leadBirthDate,
-        partnerName: parsed.data.partnerName,
-        partnerPhone: parsed.data.partnerPhone,
-        partnerCpf: parsed.data.partnerCpf,
-        partnerBirthDate: parsed.data.partnerBirthDate,
+        leadName: lead.name,
+        leadPhone: lead.phone,
+        leadCpf: lead.cpf,
+        leadBirthDate,
+        partnerName: partner.name,
+        partnerPhone: partner.phone,
+        partnerCpf: partner.cpf,
+        partnerBirthDate,
         registrationOrder: registrationCount + 1,
         amountCents,
         paymentStatus: parsed.data.paymentStatus,
@@ -1412,8 +1451,8 @@ export async function createManualTournamentRegistrationAction(_: ActionState, f
     await ensureTournamentPairFromRegistration(tx, {
       arenaId: auth.arenaId,
       tournamentId: tournament.id,
-      leadName: parsed.data.leadName,
-      partnerName: parsed.data.partnerName
+      leadName: lead.name,
+      partnerName: partner.name
     });
   });
 

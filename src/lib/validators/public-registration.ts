@@ -20,6 +20,16 @@ export const createPublicRegistrationSchema = z.object({
 export const createManualTournamentRegistrationSchema = z.object({
   tournamentId: z.string().trim().min(1, "Torneio inválido."),
   categoryId: z.string().trim().min(1, "Selecione uma categoria."),
+  leadPlayerId: z.string().trim().min(1, "Selecione o primeiro atleta."),
+  partnerPlayerId: z.string().trim().min(1, "Selecione o segundo atleta."),
+  amountReais: z.union([z.string(), z.number()]),
+  paymentStatus: z.enum(["PENDING", "PAID"]).default("PENDING")
+});
+
+export const updateManualTournamentRegistrationSchema = z.object({
+  registrationId: z.string().trim().min(1, "Inscricao invalida."),
+  tournamentId: z.string().trim().min(1, "Torneio inválido."),
+  categoryId: z.string().trim().min(1, "Selecione uma categoria."),
   leadName: z.string().trim().min(3, "Informe o nome do atleta."),
   leadPhone: z.string().trim().min(8, "Informe o telefone do atleta."),
   leadCpf: cpfSchema,
@@ -30,8 +40,4 @@ export const createManualTournamentRegistrationSchema = z.object({
   partnerBirthDate: z.coerce.date(),
   amountReais: z.union([z.string(), z.number()]),
   paymentStatus: z.enum(["PENDING", "PAID"]).default("PENDING")
-});
-
-export const updateManualTournamentRegistrationSchema = createManualTournamentRegistrationSchema.extend({
-  registrationId: z.string().trim().min(1, "Inscricao invalida.")
 });

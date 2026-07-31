@@ -10,6 +10,9 @@ type PlayerActionsCellProps = {
   playerName: string;
   playerPoints: number;
   playerPhotoUrl: string;
+  playerPhone: string;
+  playerCpf: string;
+  playerBirthDate: string | null;
   active: boolean;
   deletionRestriction: string | null;
 };
@@ -19,6 +22,9 @@ export function PlayerActionsCell({
   playerName,
   playerPoints,
   playerPhotoUrl,
+  playerPhone,
+  playerCpf,
+  playerBirthDate,
   active,
   deletionRestriction
 }: PlayerActionsCellProps) {
@@ -38,6 +44,9 @@ export function PlayerActionsCell({
           className="player-name-input"
           autoFocus
         />
+        <input name="phone" type="tel" defaultValue={playerPhone} aria-label={`Telefone de ${playerName}`} required />
+        <input name="cpf" inputMode="numeric" defaultValue={playerCpf} aria-label={`CPF de ${playerName}`} required />
+        <input name="birthDate" type="date" defaultValue={playerBirthDate ? playerBirthDate.slice(0, 10) : ""} aria-label={`Nascimento de ${playerName}`} required />
         <input name="photo" type="file" accept="image/png,image/jpeg,image/webp" aria-label={`Foto de ${playerName}`} />
         <div className="player-inline-actions">
           <SubmitButton label="Salvar" pendingLabel="..." className="player-inline-text-button player-inline-text-button-save" />

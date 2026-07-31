@@ -4,13 +4,13 @@
 
 **Goal:** Let Arena operators select two existing active athletes and add their pair to a tournament category.
 
-**Architecture:** The tournament detail query already supplies active Arena athletes to manual tournaments. The participant form will receive category and athlete selection data, submit athlete IDs, and the server action will resolve the IDs inside the authenticated Arena before creating the category registration. Contact fields are filled from the athlete records rather than accepting free-text identities.
+**Architecture:** A Prisma migration will add contact data to the master athlete record. Athlete create and edit forms will maintain those fields. The participant form will receive category and athlete selection data, submit athlete IDs, and the server action will resolve eligible athletes inside the authenticated Arena before creating the category registration.
 
 **Tech Stack:** Next.js 14 Server Actions, React, TypeScript, Prisma, Zod, `node:test` via `tsx`.
 
 ## Global Constraints
 
-- Only athletes with `Player.active === true` and belonging to the authenticated Arena can be selected.
+- Only athletes with `Player.active === true`, complete contact data, and belonging to the authenticated Arena can be selected.
 - A pair must contain two different athletes.
 - The change must keep the existing `PublicTournamentRegistration` and category bracket flow intact.
 - Resetting points and changing athlete status are explicitly outside this plan.
@@ -20,6 +20,10 @@
 ### Task 1: Connect the master athlete list to manual category registrations
 
 **Files:**
+- Modify: `prisma/schema.prisma`
+- Create: `prisma/migrations/20260731120000_add_player_registration_details/migration.sql`
+- Modify: `src/components/forms/player-form.tsx`
+- Modify: `src/components/players/player-actions-cell.tsx`
 - Modify: `src/components/forms/tournament-participants-form.tsx`
 - Modify: `src/components/tournaments/tournament-detail-tabs.tsx`
 - Modify: `src/lib/validators/public-registration.ts`
@@ -27,10 +31,10 @@
 - Test: `tests/category-athlete-selection.test.ts`
 
 **Interfaces:**
-- Consumes: `tournament.arena.players`, where each player has `id`, `name`, `active`, and the contact fields needed by manual registration.
+- Consumes: `tournament.arena.players`, where each player has `id`, `name`, `phone`, `cpf`, `birthDate`, and `active`.
 - Produces: `createManualTournamentRegistrationAction` accepts `leadPlayerId` and `partnerPlayerId`, validates the pair, and persists the selected athlete data in a category registration.
 
-- [ ] **Step 1: Write the failing UI and action-contract test**
+- [ ] **Step 1: Write the failing schema, athlete form, and registration-contract test**
 
 Create `tests/category-athlete-selection.test.ts` with assertions that document the required source contracts:
 
@@ -53,6 +57,18 @@ test("manual category registration selects two master athletes", () => {
   assert.match(tabs, /players=\{tournament\.arena\.players\.map/);
 });
 
+test("master athletes retain the registration data required by categories", () => {
+  const schema = read("prisma", "schema.prisma");
+  const athleteForm = read("src", "components", "forms", "player-form.tsx");
+
+  assert.match(schema, /phone\s+String/);
+  assert.match(schema, /cpf\s+String/);
+  assert.match(schema, /birthDate\s+DateTime\?/);
+  assert.match(athleteForm, /name="phone"/);
+  assert.match(athleteForm, /name="cpf"/);
+  assert.match(athleteForm, /name="birthDate"/);
+});
+
 test("manual category registration rejects the same athlete twice", () => {
   const validator = read("src", "lib", "validators", "public-registration.ts");
   const action = read("src", "lib", "actions", "tournament.ts");
@@ -69,13 +85,15 @@ test("manual category registration rejects the same athlete twice", () => {
 
 Run: `npx tsx --test tests/category-athlete-selection.test.ts`
 
-Expected: FAIL because the manual form does not yet expose `leadPlayerId` and `partnerPlayerId`.
+Expected: FAIL because `Player` and the athlete form do not yet expose the registration details or the manual form exposes athlete IDs.
 
 - [ ] **Step 3: Implement the smallest complete selection flow**
 
-In `TournamentParticipantsFormProps`, replace the legacy optional `players` checkbox shape with a manual-registration athlete shape that includes `id`, `name`, `phone`, `cpf`, and `birthDate`. In the manual registration form, replace the free-text athlete identity/contact inputs with two required `<select>` controls named `leadPlayerId` and `partnerPlayerId`; preserve only category, amount, and payment controls. Render a clear empty state with a link to `/jogadores` when no active athletes are supplied.
+Add `phone String @default(\"\")`, `cpf String @default(\"\")`, and `birthDate DateTime?` to `Player`, then create the migration SQL that adds those columns without deleting existing athletes. Extend the player create/update Zod schemas and `createPlayerAction`/`updatePlayerAction` to persist them. Add inputs named `phone`, `cpf`, and `birthDate` to `PlayerForm` and the inline edit form.
 
-In `TournamentParticipantsTab`, always render the category-registration form for manual tournaments and pass the active Arena players with the fields required to prefill the registration. Do not pass inactive athletes.
+In `TournamentParticipantsFormProps`, replace the legacy optional `players` checkbox shape with a manual-registration athlete shape that includes `id`, `name`, `phone`, `cpf`, and `birthDate`. In the manual registration form, replace the free-text athlete identity/contact inputs with two required `<select>` controls named `leadPlayerId` and `partnerPlayerId`; preserve only category, amount, and payment controls. Render a clear empty state with a link to `/jogadores` when no active and complete athletes are supplied.
+
+In `TournamentParticipantsTab`, always render the category-registration form for manual tournaments and pass the active Arena players with the fields required to prefill the registration. Do not pass inactive or incomplete athletes.
 
 Extend `createManualTournamentRegistrationSchema` with these fields:
 
