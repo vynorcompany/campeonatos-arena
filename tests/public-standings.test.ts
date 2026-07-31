@@ -256,3 +256,20 @@ test("one public arena route renders the unified selector and sports-only standi
     /isPublic:\s*true[\s\S]*status:\s*"FINISHED"/,
   );
 });
+
+test("public agenda copy is stored as valid Portuguese text", async () => {
+  const component = await readFile(
+    path.join(
+      workspaceRoot,
+      "src",
+      "components",
+      "tournaments",
+      "public-standings.tsx",
+    ),
+    "utf8",
+  );
+
+  assert.match(component, /Agenda pública/);
+  assert.match(component, /Próximos jogos/);
+  assert.doesNotMatch(component, /PÃ|Ãƒ/);
+});

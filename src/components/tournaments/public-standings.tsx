@@ -144,8 +144,8 @@ export function PublicStandings({
 
       <section className="section-card stack-md">
         <div className="stack-xs">
-          <p className="eyebrow">Agenda pÃºblica</p>
-          <h2>PrÃ³ximos jogos</h2>
+          <p className="eyebrow">Agenda pública</p>
+          <h2>Próximos jogos</h2>
         </div>
         {data.upcomingGames.length ? (
           data.upcomingGames.map((day) => (
@@ -158,11 +158,11 @@ export function PublicStandings({
                 >
                   <strong>{game.scheduledTime}</strong>
                   <span>
-                    {game.eventName} Â· {game.categoryName}
-                    {game.stage ? ` Â· ${game.stage}` : ""}
+                    {game.eventName} · {game.categoryName}
+                    {game.stage ? ` · ${game.stage}` : ""}
                   </span>
                   <span>
-                    {game.homePairName} Ã— {game.awayPairName}
+                    {game.homePairName} × {game.awayPairName}
                   </span>
                 </div>
               ))}
