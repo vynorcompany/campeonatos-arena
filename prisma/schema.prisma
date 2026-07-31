@@ -411,6 +411,7 @@ model CategoryCompetition {
   format              CompetitionFormat
   status              String                         @default("DRAFT")
   feedsGeneralRanking Boolean                        @default(false)
+  isPublic            Boolean                        @default(false)
   createdAt           DateTime                       @default(now())
   updatedAt           DateTime                       @updatedAt
   categoryId          String                         @unique

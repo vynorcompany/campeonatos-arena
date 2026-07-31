@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CategoryCompetitionForm } from "@/components/tournaments/category-competition-form";
+import {
+  CategoryCompetitionForm,
+  CategoryPublicVisibilityForm,
+} from "@/components/tournaments/category-competition-form";
 import { CategoryDrawPanel } from "@/components/tournaments/category-draw-panel";
 import { CategoryRegistrationPanel } from "@/components/tournaments/category-registration-panel";
 import { CategoryResultsPanel } from "@/components/tournaments/category-results-panel";
@@ -371,6 +374,21 @@ export default async function CategoryPage({
                 )}
               </div>
             </article>
+            {competition ? (
+              <article className="section-card stack-sm">
+                <div className="stack-xs">
+                  <h2>Visibilidade pública</h2>
+                  <p className="muted">
+                    A categoria aparecerá na classificação pública somente
+                    depois de encerrada.
+                  </p>
+                </div>
+                <CategoryPublicVisibilityForm
+                  competitionId={competition.id}
+                  isPublic={competition.isPublic}
+                />
+              </article>
+            ) : null}
             {!competition ? (
               <article className="section-card">
                 <CategoryCompetitionForm

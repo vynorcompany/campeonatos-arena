@@ -12,6 +12,7 @@ import {
   recordCategoryMatchResult,
   removeCategoryPair,
   updateCategoryMatchSchedule,
+  updateCategoryPublicVisibility,
 } from "@/lib/services/category-competition";
 import {
   addManualPairSchema,
@@ -23,6 +24,7 @@ import {
   recordCategoryMatchResultSchema,
   removeCategoryPairSchema,
   updateCategoryMatchScheduleSchema,
+  updateCategoryPublicVisibilitySchema,
 } from "@/lib/validators/category-competition";
 
 function invalidInputMessage(error: { issues: Array<{ message: string }> }) {
@@ -35,6 +37,7 @@ function refreshCategoryCompetitionRoutes() {
   revalidatePath("/torneios/rankings");
   revalidatePath("/jogos");
   revalidatePath("/matches");
+  revalidatePath("/classificacao/[arenaSlug]", "page");
 }
 
 export async function createCategoryCompetitionAction(formData: FormData) {
@@ -46,6 +49,7 @@ export async function createCategoryCompetitionAction(formData: FormData) {
     format: formData.get("format"),
     rankingId: formData.get("rankingId"),
     feedsGeneralRanking: formData.get("feedsGeneralRanking"),
+    isPublic: formData.get("isPublic"),
   });
   if (!parsed.success) {
     throw new Error(invalidInputMessage(parsed.error));
@@ -198,6 +202,25 @@ export async function finishCategoryCompetitionAction(formData: FormData) {
   const result = await finishCategoryCompetition(
     auth.arenaId,
     parsed.data.competitionId,
+  );
+  refreshCategoryCompetitionRoutes();
+  return result;
+}
+
+export async function updateCategoryPublicVisibilityAction(formData: FormData) {
+  const auth = await requireModuleEdit("tournaments");
+  const parsed = updateCategoryPublicVisibilitySchema.safeParse({
+    competitionId: formData.get("competitionId"),
+    isPublic: formData.get("isPublic"),
+  });
+  if (!parsed.success) {
+    throw new Error(invalidInputMessage(parsed.error));
+  }
+
+  const result = await updateCategoryPublicVisibility(
+    auth.arenaId,
+    parsed.data.competitionId,
+    parsed.data.isPublic,
   );
   refreshCategoryCompetitionRoutes();
   return result;

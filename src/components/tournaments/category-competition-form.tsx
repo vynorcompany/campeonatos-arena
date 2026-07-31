@@ -1,5 +1,8 @@
 import { SubmitButton } from "@/components/forms/submit-button";
-import { createCategoryCompetitionAction } from "@/lib/actions/category-competition";
+import {
+  createCategoryCompetitionAction,
+  updateCategoryPublicVisibilityAction,
+} from "@/lib/actions/category-competition";
 import {
   CATEGORY_CLASS_OPTIONS,
   CATEGORY_GENDER_OPTIONS,
@@ -84,6 +87,11 @@ export function CategoryCompetitionForm({
         <span>Também pontuar o Ranking Geral individual</span>
       </label>
 
+      <label className="field field-inline form-full">
+        <input type="checkbox" name="isPublic" />
+        <span>Exibir na página pública</span>
+      </label>
+
       <div className="field field-submit form-full">
         <SubmitButton
           label="Criar competição da categoria"
@@ -91,6 +99,36 @@ export function CategoryCompetitionForm({
           className="button button-primary"
         />
       </div>
+    </form>
+  );
+}
+
+export function CategoryPublicVisibilityForm({
+  competitionId,
+  isPublic,
+}: {
+  competitionId: string;
+  isPublic: boolean;
+}) {
+  return (
+    <form
+      action={updateCategoryPublicVisibilityAction}
+      className="field-inline"
+    >
+      <input type="hidden" name="competitionId" value={competitionId} />
+      <label className="field-inline">
+        <input
+          type="checkbox"
+          name="isPublic"
+          defaultChecked={isPublic}
+        />
+        <span>Exibir na página pública</span>
+      </label>
+      <SubmitButton
+        label="Salvar visibilidade"
+        pendingLabel="Salvando..."
+        className="button"
+      />
     </form>
   );
 }

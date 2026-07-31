@@ -63,6 +63,7 @@ export const createCategoryCompetitionSchema = z
     format: z.enum(["LEAGUE", "THREE_GROUPS", "FOUR_GROUPS", "SIMPLE"]),
     rankingId: nullableIdSchema,
     feedsGeneralRanking: checkboxSchema,
+    isPublic: checkboxSchema,
   })
   .superRefine((value, context) => {
     if (value.feedsGeneralRanking && !value.rankingId) {
@@ -142,4 +143,9 @@ export const updateCategoryMatchScheduleSchema = z
 
 export const finishCategoryCompetitionSchema = z.object({
   competitionId: competitionIdSchema,
+});
+
+export const updateCategoryPublicVisibilitySchema = z.object({
+  competitionId: competitionIdSchema,
+  isPublic: checkboxSchema,
 });

@@ -76,6 +76,7 @@ type CreateCategoryCompetitionInput = {
   format: CompetitionFormat;
   rankingId: string | null;
   feedsGeneralRanking: boolean;
+  isPublic: boolean;
 };
 
 type PairResultMatch = {
@@ -446,6 +447,38 @@ export async function createCategoryCompetition(
         format: input.format,
         rankingId: input.rankingId,
         feedsGeneralRanking: input.feedsGeneralRanking,
+        isPublic: input.isPublic,
+      },
+    });
+  });
+}
+
+export async function updateCategoryPublicVisibility(
+  arenaId: string,
+  competitionId: string,
+  isPublic: boolean,
+) {
+  return runSerializableTransaction(async (tx) => {
+    const competition = await tx.categoryCompetition.findFirst({
+      where: {
+        id: competitionId,
+        category: {
+          active: true,
+          tournament: { arenaId },
+        },
+      },
+      select: { id: true },
+    });
+    if (!competition) {
+      throw new Error("Categoria não encontrada nesta arena.");
+    }
+
+    return tx.categoryCompetition.update({
+      where: { id: competition.id },
+      data: { isPublic },
+      select: {
+        id: true,
+        isPublic: true,
       },
     });
   });
