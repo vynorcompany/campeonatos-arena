@@ -21,7 +21,7 @@ type CategoryPageProps = {
     tournamentId: string;
     categoryId: string;
   };
-  searchParams?: { tab?: string; sort?: string };
+  searchParams?: { tab?: string; sort?: string; status?: string };
 };
 
 const validTabs: TournamentTabKey[] = [
@@ -155,6 +155,12 @@ export default async function CategoryPage({
     searchParams?.sort === "date" || searchParams?.sort === "status"
       ? searchParams.sort
       : "round";
+  const gameStatusFilter =
+    searchParams?.status === "SCHEDULED" ||
+    searchParams?.status === "LIVE" ||
+    searchParams?.status === "FINISHED"
+      ? searchParams.status
+      : "ALL";
   const competition = category.competition;
   const completedSportsMatches =
     competition?.matches.filter(
@@ -428,6 +434,7 @@ export default async function CategoryPage({
             categories={[categoryView]}
             mode="games"
             sort={gameSort}
+            statusFilter={gameStatusFilter}
           />
         ) : null}
 

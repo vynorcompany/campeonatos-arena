@@ -24,6 +24,7 @@ type CompetitionMatch = {
 };
 
 type GameSort = "round" | "date" | "status";
+type GameStatusFilter = "ALL" | "SCHEDULED" | "LIVE" | "FINISHED";
 
 const statusPriority = {
   SCHEDULED: 0,
@@ -95,11 +96,13 @@ export function CategoryResultsPanel({
   categories,
   mode,
   sort = "round",
+  statusFilter = "ALL",
 }: {
   tournamentId: string;
   categories: ResultCategory[];
   mode: "games" | "summary";
   sort?: GameSort;
+  statusFilter?: GameStatusFilter;
 }) {
   if (!categories.length) {
     return (
@@ -125,6 +128,14 @@ export function CategoryResultsPanel({
         const allMatchesCompleted =
           Boolean(competition?.matches.length) &&
           completedMatchCount === competition?.matches.length;
+        const visibleMatches = competition
+          ? sortMatches(
+              competition.matches.filter((match) =>
+                statusFilter === "ALL" || getMatchStatus(match) === statusFilter,
+              ),
+              sort,
+            )
+          : [];
 
         return (
           <article
@@ -160,6 +171,7 @@ export function CategoryResultsPanel({
                   <>
                     <form method="get" className="field-inline">
                       <input type="hidden" name="tab" value="games" />
+                      <input type="hidden" name="sort" value={sort} />
                       <label htmlFor={`game-sort-${category.id}`}>
                         Ordenar jogos por
                       </label>
@@ -175,9 +187,25 @@ export function CategoryResultsPanel({
                       <button className="button" type="submit">
                         Ordenar
                       </button>
+                      <label htmlFor={`game-status-${category.id}`}>
+                        Exibir status
+                      </label>
+                      <select
+                        id={`game-status-${category.id}`}
+                        name="status"
+                        defaultValue={statusFilter}
+                      >
+                        <option value="ALL">Todos os status</option>
+                        <option value="SCHEDULED">Agendados</option>
+                        <option value="LIVE">Em andamento</option>
+                        <option value="FINISHED">Finalizados</option>
+                      </select>
+                      <button className="button" type="submit">
+                        Filtrar
+                      </button>
                     </form>
                   <div className="category-game-list">
-                    {sortMatches(competition.matches, sort).map((match) => {
+                    {visibleMatches.map((match) => {
                       const canRecord =
                         competition.status === "PUBLISHED" &&
                         match.homePair &&
@@ -324,6 +352,9 @@ export function CategoryResultsPanel({
                 ) : (
                   <p className="muted">Nenhum jogo publicado.</p>
                 )}
+                {!visibleMatches.length && competition.matches.length ? (
+                  <p className="muted">Nenhum jogo encontrado para este status.</p>
+                ) : null}
               </>
             ) : (
               <>
