@@ -48,6 +48,7 @@ export type PublicGameDay = {
     categoryName: string;
     label: string;
     stage: string;
+    roundOrder: number;
     scheduledTime: string;
     homePairName: string;
     awayPairName: string;
@@ -103,6 +104,7 @@ export function buildPublicGameAgenda(
       categoryName: match.categoryName,
       label: match.label,
       stage: match.stage,
+      roundOrder: match.roundOrder,
       scheduledTime: match.scheduledTime!,
       homePairName: match.homePairName,
       awayPairName: match.awayPairName,

@@ -154,7 +154,7 @@ export function PublicStandings({
               {day.games.map((game) => (
                 <div
                   className="simple-item"
-                  key={`${day.date}-${game.scheduledTime}-${game.eventName}-${game.categoryName}-${game.label}`}
+                  key={`${day.date}-${game.scheduledTime}-${game.eventName}-${game.categoryName}-${game.label}-${game.roundOrder}`}
                 >
                   <strong>{game.scheduledTime}</strong>
                   <span>

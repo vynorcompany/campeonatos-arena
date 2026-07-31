@@ -11,6 +11,9 @@ test("edição de evento envia somente id, nome e descrição", () => {
   assert.match(source, /name="name"/);
   assert.match(source, /name="description"/);
   assert.match(source, /updateTournamentAction/);
+  assert.doesNotMatch(source, /name="publicSlug"/);
+  assert.doesNotMatch(source, /name="rankingId"/);
+  assert.doesNotMatch(source, /name="registrationPhase"/);
 });
 
 test("jogos não oferece atalho para classificação completa", () => {

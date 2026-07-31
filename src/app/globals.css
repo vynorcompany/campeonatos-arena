@@ -6340,7 +6340,7 @@ button {
   min-width: 0;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 980px) {
   .category-overview,
   .category-overview-head,
   .category-overview-metrics {
