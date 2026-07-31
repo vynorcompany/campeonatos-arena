@@ -133,6 +133,32 @@ test("successful ranking deletion returns to the ranking index", () => {
   assert.match(source, /successHref="\/torneios\/rankings"/);
 });
 
+test("ranking configuration executes advisory locks and keeps General controls aligned", () => {
+  const [actions, form, styles] = [
+    readFileSync(path.join(workspaceRoot, "src", "lib", "actions", "tournament.ts"), "utf8"),
+    readFileSync(path.join(workspaceRoot, "src", "components", "forms", "ranking-configuration-form.tsx"), "utf8"),
+    readFileSync(path.join(workspaceRoot, "src", "app", "globals.css"), "utf8"),
+  ];
+
+  const lockRankingProfile = actions.slice(
+    actions.indexOf("async function lockRankingProfile"),
+    actions.indexOf("async function ensureGeneralRankingAvailable"),
+  );
+  const ensureGeneralRankingAvailable = actions.slice(
+    actions.indexOf("async function ensureGeneralRankingAvailable"),
+    actions.indexOf("async function ensureRankingBelongsToArena"),
+  );
+
+  assert.match(lockRankingProfile, /\$executeRaw/);
+  assert.doesNotMatch(lockRankingProfile, /\$queryRaw/);
+  assert.match(ensureGeneralRankingAvailable, /\$executeRaw/);
+  assert.doesNotMatch(ensureGeneralRankingAvailable, /\$queryRaw/);
+  assert.match(form, /ranking-general-control/);
+  assert.match(styles, /\.ranking-general-control\s*\{/);
+  assert.match(styles, /\.ranking-general-control input\s*\{[\s\S]*width:\s*18px/);
+  assert.match(styles, /\.ranking-general-control-copy\s*\{[\s\S]*gap:\s*4px/);
+});
+
 test("ranking format changes are rejected after a category competition starts", () => {
   const source = readFileSync(
     path.join(workspaceRoot, "src", "lib", "actions", "tournament.ts"),

@@ -115,7 +115,7 @@ async function lockRankingProfile(
   tx: Prisma.TransactionClient,
   rankingId: string,
 ) {
-  await tx.$queryRaw`
+  await tx.$executeRaw`
     SELECT pg_advisory_xact_lock(hashtext(${rankingId}))
   `;
 }
@@ -130,7 +130,7 @@ async function ensureGeneralRankingAvailable(
     return;
   }
 
-  await tx.$queryRaw`
+  await tx.$executeRaw`
     SELECT pg_advisory_xact_lock(hashtext(${`general-ranking:${arenaId}`}))
   `;
 

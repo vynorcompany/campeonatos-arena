@@ -73,30 +73,32 @@ export function RankingConfigurationForm({
             <option value="KNOCKOUT">Mata-mata</option>
           </select>
         </div>
-        <label className="field field-inline form-full">
+        <div className="ranking-general-options form-full">
+        <label className="ranking-general-control">
           <input
             name="isGeneral"
             type="checkbox"
             defaultChecked={ranking.isGeneral}
             disabled={type !== "INDIVIDUAL"}
           />
-          <span>
+          <span className="ranking-general-control-copy">
             <strong>Ranking Geral da arena</strong>
             <small>Somente um ranking individual pode ser o Ranking Geral público.</small>
           </span>
         </label>
-        <label className="field field-inline form-full">
+        <label className="ranking-general-control">
           <input
             name="feedsGeneralRanking"
             type="checkbox"
             defaultChecked={ranking.feedsGeneralRanking}
             disabled={type !== "PAIR"}
           />
-          <span>
+          <span className="ranking-general-control-copy">
             <strong>Alimentar o Ranking Geral</strong>
             <small>As categorias vinculadas também pontuam o Ranking Geral individual.</small>
           </span>
         </label>
+        </div>
         <p className="muted form-full">
           {formatLocked
             ? "Tipo e modelo estão protegidos porque já existe uma competição de categoria iniciada. Nome, descrição e opções do Geral continuam editáveis."
