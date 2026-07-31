@@ -327,7 +327,7 @@ test("category games can be filtered by one selected status", async () => {
   assert.match(panel, /value="SCHEDULED"/);
   assert.match(panel, /value="LIVE"/);
   assert.match(panel, /value="FINISHED"/);
-  assert.match(panel, /\.filter\(\(match\) =>\s*statusFilter === "ALL"/);
+  assert.match(panel, /statusFilter === "ALL" \|\| getMatchStatus\(match\) === statusFilter/);
 });
 
 test("category games can be searched by either pair name", async () => {
