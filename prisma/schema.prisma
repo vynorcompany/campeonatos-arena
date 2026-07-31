@@ -201,6 +201,9 @@ model Player {
   photoUrl    String            @default("")
   class       String            @default("") @map("category")
   gender      String            @default("")
+  phone       String            @default("")
+  cpf         String            @default("")
+  birthDate   DateTime?
   active      Boolean           @default(true)
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt

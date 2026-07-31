@@ -28,13 +28,13 @@ export function matchesCategoryEligibility(
 ) {
   const categoryClass = normalizeCategoryClass(category.className);
   const playerClass = normalizeCategoryClass(player.className);
-  if (categoryClass && playerClass !== categoryClass) {
+  if (categoryClass && playerClass && playerClass !== categoryClass) {
     return false;
   }
 
   const categoryGender = normalizeEligibilityValue(category.gender);
   const playerGender = normalizeEligibilityValue(player.gender);
-  return !categoryGender || playerGender === categoryGender;
+  return !categoryGender || !playerGender || playerGender === categoryGender;
 }
 
 export function getAvailableCategoryAthletes<Athlete extends { id: string }>(
@@ -70,7 +70,10 @@ export function validateManualPairEligibility(
   if (
     categoryClass &&
     players.some(
-      (player) => normalizeCategoryClass(player.className) !== categoryClass,
+      (player) => {
+        const playerClass = normalizeCategoryClass(player.className);
+        return playerClass && playerClass !== categoryClass;
+      },
     )
   ) {
     throw new Error("A classe do atleta não é elegível para esta categoria.");
@@ -79,7 +82,10 @@ export function validateManualPairEligibility(
   const categoryGender = normalizeEligibilityValue(category.gender);
   if (
     categoryGender &&
-    players.some((player) => !matchesCategoryEligibility(category, player))
+    players.some((player) => {
+      const playerGender = normalizeEligibilityValue(player.gender);
+      return playerGender && !matchesCategoryEligibility(category, player);
+    })
   ) {
     throw new Error("O gênero do atleta não é elegível para esta categoria.");
   }

@@ -6,7 +6,6 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import {
   createManualTournamentRegistrationAction,
   deleteTournamentRegistrationAction,
-  syncEntriesStateAction,
   updateTournamentRegistrationAction,
   type ActionState
 } from "@/lib/actions/tournament";
@@ -39,8 +38,9 @@ type TournamentParticipantsFormProps = {
   players?: Array<{
     id: string;
     name: string;
-    points: number;
-    checked: boolean;
+    phone: string;
+    cpf: string;
+    birthDate: string | null;
   }>;
 };
 
@@ -56,96 +56,34 @@ function getConfirmationLabel(paymentStatus: string) {
   return paymentStatus === "PAID" ? "Confirmado" : "Nao confirmado";
 }
 
-function normalizeSearchValue(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-}
-
 export function TournamentParticipantsForm(props: TournamentParticipantsFormProps) {
   const { tournamentId, categories, registrations, players } = props;
   const [state, formAction] = useFormState(createManualTournamentRegistrationAction, initialState);
   const [updateState, updateAction] = useFormState(updateTournamentRegistrationAction, initialState);
-  const [syncState, syncAction] = useFormState(syncEntriesStateAction, initialState);
   const [search, setSearch] = useState("");
   const [editingRegistrationId, setEditingRegistrationId] = useState<string | null>(null);
-  const normalizedSearch = normalizeSearchValue(search.trim());
-  const [selectedPlayerIds, setSelectedPlayerIds] = useState(() => new Set((players ?? []).filter((player) => player.checked).map((player) => player.id)));
-
-  const filteredPlayers = useMemo(() => {
-    if (!players) return [];
-    if (!normalizedSearch) return players;
-    return players.filter((player) => normalizeSearchValue(player.name).includes(normalizedSearch));
-  }, [normalizedSearch, players]);
+  const normalizedSearch = search.trim().toLowerCase();
 
   const filtered = useMemo(() => {
     if (!registrations) return [];
     if (!normalizedSearch) return registrations;
     return registrations.filter((item) => {
-      const blob = normalizeSearchValue(`${item.leadName} ${item.partnerName} ${item.categoryName}`);
+      const blob = `${item.leadName} ${item.partnerName} ${item.categoryName}`.toLowerCase();
       return blob.includes(normalizedSearch);
     });
   }, [normalizedSearch, registrations]);
 
-  if (players) {
-    const filteredPlayerIds = new Set(filteredPlayers.map((player) => player.id));
-
-    return (
-      <form action={syncAction} className="stack-md">
-        <input type="hidden" name="tournamentId" value={tournamentId} />
-        <div className="field">
-          <label htmlFor="player-search">Pesquisar participante</label>
-          <input
-            id="player-search"
-            type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Digite o nome do participante"
-            autoComplete="off"
-          />
-        </div>
-        {!filteredPlayers.length ? <p className="muted">Nenhum participante encontrado.</p> : null}
-        <div className="participant-grid">
-          {players.map((player) => (
-            <label key={player.id} className="participant-option" hidden={!filteredPlayerIds.has(player.id)}>
-              <input
-                type="checkbox"
-                name="playerIds"
-                value={player.id}
-                checked={selectedPlayerIds.has(player.id)}
-                onChange={(event) => {
-                  setSelectedPlayerIds((current) => {
-                    const next = new Set(current);
-                    if (event.target.checked) next.add(player.id);
-                    else next.delete(player.id);
-                    return next;
-                  });
-                }}
-              />
-              <div className="participant-copy">
-                <strong>{player.name}</strong>
-                <span>{player.points} pts</span>
-              </div>
-            </label>
-          ))}
-        </div>
-        <div className="section-actions">
-          <SubmitButton label="Salvar participantes" pendingLabel="Salvando..." className="button button-primary" />
-        </div>
-        {syncState?.error ? <p className="form-error">{syncState.error}</p> : null}
-        {syncState?.success ? <p className="form-success">{syncState.success}</p> : null}
-      </form>
-    );
-  }
-
   const safeCategories = categories ?? [];
+  const eligiblePlayers = (players ?? []).filter((player) => player.phone && /^\d{11}$/.test(player.cpf) && player.birthDate);
   const safeFiltered = filtered ?? [];
 
   return (
     <div className="stack-md">
       <article className="section-card">
         <h3>Inscrever dupla manualmente</h3>
+        {!eligiblePlayers.length ? (
+          <p className="muted">Nenhum atleta ativo possui os dados completos. Atualize telefone, CPF e nascimento em <a href="/jogadores">Atletas</a>.</p>
+        ) : (
         <form action={formAction} className="grid-form">
           <input type="hidden" name="tournamentId" value={tournamentId} />
           <div className="field">
@@ -157,36 +95,22 @@ export function TournamentParticipantsForm(props: TournamentParticipantsFormProp
             </select>
           </div>
           <div className="field">
-            <label htmlFor="leadName">Atleta 1</label>
-            <input id="leadName" name="leadName" required />
+            <label htmlFor="leadPlayerId">Atleta 1</label>
+            <select id="leadPlayerId" name="leadPlayerId" required>
+              <option value="">Selecione um atleta</option>
+              {eligiblePlayers.map((player) => (
+                <option key={player.id} value={player.id}>{player.name}</option>
+              ))}
+            </select>
           </div>
           <div className="field">
-            <label htmlFor="leadPhone">Telefone atleta 1</label>
-            <input id="leadPhone" name="leadPhone" required />
-          </div>
-          <div className="field">
-            <label htmlFor="leadCpf">CPF atleta 1</label>
-            <input id="leadCpf" name="leadCpf" required />
-          </div>
-          <div className="field">
-            <label htmlFor="leadBirthDate">Nascimento atleta 1</label>
-            <input id="leadBirthDate" name="leadBirthDate" type="text" inputMode="numeric" placeholder="dd/mm/aaaa" required />
-          </div>
-          <div className="field">
-            <label htmlFor="partnerName">Atleta 2</label>
-            <input id="partnerName" name="partnerName" required />
-          </div>
-          <div className="field">
-            <label htmlFor="partnerPhone">Telefone atleta 2</label>
-            <input id="partnerPhone" name="partnerPhone" required />
-          </div>
-          <div className="field">
-            <label htmlFor="partnerCpf">CPF atleta 2</label>
-            <input id="partnerCpf" name="partnerCpf" required />
-          </div>
-          <div className="field">
-            <label htmlFor="partnerBirthDate">Nascimento atleta 2</label>
-            <input id="partnerBirthDate" name="partnerBirthDate" type="text" inputMode="numeric" placeholder="dd/mm/aaaa" required />
+            <label htmlFor="partnerPlayerId">Atleta 2</label>
+            <select id="partnerPlayerId" name="partnerPlayerId" required>
+              <option value="">Selecione um atleta</option>
+              {eligiblePlayers.map((player) => (
+                <option key={player.id} value={player.id}>{player.name}</option>
+              ))}
+            </select>
           </div>
           <div className="field">
             <label htmlFor="amountReais">Valor (R$)</label>
@@ -205,13 +129,14 @@ export function TournamentParticipantsForm(props: TournamentParticipantsFormProp
           {state?.error ? <p className="form-error form-full">{state.error}</p> : null}
           {state?.success ? <p className="form-success form-full">{state.success}</p> : null}
         </form>
+        )}
       </article>
 
       <article className="section-card">
         <h3>Inscritos pelo link e manuais</h3>
         <div className="field">
           <label htmlFor="participant-search">Buscar inscrito</label>
-          <input id="participant-search" type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nome, dupla ou categoria" />
+          <input id="participant-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nome, dupla ou categoria" />
         </div>
         {!safeFiltered.length ? (
           <p className="muted">Nenhuma inscricao encontrada.</p>

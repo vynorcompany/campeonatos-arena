@@ -69,6 +69,9 @@ export default async function PlayersPage({ searchParams }: PlayersPageProps) {
                       playerPhotoUrl={player.photoUrl}
                       playerClass={player.class}
                       playerGender={player.gender}
+                      playerPhone={player.phone}
+                      playerCpf={player.cpf}
+                      playerBirthDate={player.birthDate?.toISOString() ?? null}
                       active={player.active}
                       deletionRestriction={getAthleteDeletionRestriction({
                         tournamentEntries: player._count.entries,

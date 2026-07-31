@@ -161,6 +161,16 @@ test("category selectors share the normalized eligibility rule", () => {
   );
 });
 
+test("category selectors keep legacy athletes without profile classification available", () => {
+  assert.equal(
+    matchesCategoryEligibility(
+      { className: "5Âª", gender: "FEMININO" },
+      { className: "", gender: "" },
+    ),
+    true,
+  );
+});
+
 test("category configuration uses standard class and binary gender selectors", async () => {
   const source = await readFile(
     path.join(

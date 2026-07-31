@@ -35,6 +35,21 @@ export function PlayerForm() {
       </div>
 
       <div className="field">
+        <label htmlFor="phone">Telefone</label>
+        <input id="phone" name="phone" type="tel" required />
+      </div>
+
+      <div className="field">
+        <label htmlFor="cpf">CPF</label>
+        <input id="cpf" name="cpf" inputMode="numeric" required />
+      </div>
+
+      <div className="field">
+        <label htmlFor="birthDate">Nascimento</label>
+        <input id="birthDate" name="birthDate" type="date" required />
+      </div>
+
+      <div className="field">
         <label htmlFor="photo">Foto do atleta</label>
         <input id="photo" name="photo" type="file" accept="image/png,image/jpeg,image/webp" />
       </div>
