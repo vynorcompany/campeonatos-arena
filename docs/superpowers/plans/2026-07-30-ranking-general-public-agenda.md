@@ -12,7 +12,7 @@
 
 - Trabalhar exclusivamente em `C:\Users\jefer\campeonatos-arena\.worktrees\tournament-management-implementation` e no banco local PostgreSQL da porta 5433; não tocar Railway.
 - O Ranking Geral da arena é individual; somente um perfil individual pode usar `isGeneral`.
-- Somente um ranking de duplas pode habilitar `feedsGeneralRanking` por vez dentro de uma arena, para que a tabela de pontuação do Geral seja inequívoca.
+- Vários rankings de duplas podem habilitar `feedsGeneralRanking` dentro da mesma arena; cada categoria usa a tabela do ranking que selecionou para creditar o Ranking Geral individual.
 - Categorias existentes preservam seu booleano persistido; novas categorias herdam o estado do ranking selecionado no servidor e não recebem chave manual no formulário.
 - A agenda pública mostra somente partidas de categorias públicas, não finalizadas, com `scheduledDate` e `scheduledTime` preenchidos, no escopo da arena.
 - Classificações públicas de categoria seguem restritas a competições públicas `FINISHED`.
@@ -101,7 +101,7 @@ if (ranking.feedsGeneralRanking && ranking.type !== "PAIR") {
 }
 ```
 
-Create an additive migration that adds `"feedsGeneralRanking" BOOLEAN NOT NULL DEFAULT false`; add a partial unique index on `( "arenaId" ) WHERE "feedsGeneralRanking" = true`; then backfill only a ranking whose active category competitions all have `feedsGeneralRanking = true`. Leave mixed historical consumers unchanged so their persisted competition result is preserved.
+Create an additive migration that adds `"feedsGeneralRanking" BOOLEAN NOT NULL DEFAULT false`; do not add a unique index because multiple pair rankings can feed the General Ranking. Backfill only a ranking whose active category competitions all have `feedsGeneralRanking = true`. Leave mixed historical consumers unchanged so their persisted competition result is preserved.
 
 - [ ] **Step 4: Resolver a regra somente no servidor**
 
@@ -117,7 +117,7 @@ export async function resolveCompetitionRankingSettings(arenaId: string, ranking
 }
 ```
 
-Use this return value in `createCategoryCompetition` instead of trusting `feedsGeneralRanking` from `FormData`. In ranking create/update actions, parse `formData.get("feedsGeneralRanking") === "on"` and reject a second enabled ranking through the existing arena-scoped transaction.
+Use this return value in `createCategoryCompetition` instead of trusting `feedsGeneralRanking` from `FormData`. In ranking create/update actions, parse `formData.get("feedsGeneralRanking") === "on"`; allow multiple pair rankings enabled in the same arena.
 
 - [ ] **Step 5: Ajustar os formulários**
 

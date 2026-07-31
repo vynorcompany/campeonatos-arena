@@ -9,7 +9,7 @@ Consolidar a regra de alimentação do Ranking Geral no próprio Ranking, tornar
 ### 1. Ranking que alimenta o Geral
 
 - O cadastro e a edição de um perfil de ranking terão a opção selecionável **"Alimenta o Ranking Geral"**.
-- Apenas rankings de duplas poderão habilitar essa opção, pois o Ranking Geral da arena é individual.
+- Apenas rankings de duplas poderão habilitar essa opção, pois o Ranking Geral da arena é individual. Vários rankings de duplas da mesma arena podem alimentar o Geral simultaneamente; cada um aplica sua própria tabela de pontos.
 - Uma categoria que escolher um ranking marcado com essa opção herdará a alimentação do Ranking Geral automaticamente.
 - A configuração manual `feedsGeneralRanking` deixará de ser editável na categoria. A tela da categoria exibirá apenas o estado herdado, para evitar divergência entre Ranking e categoria.
 - A regra de pontuação do Ranking Geral continua a usar a tabela de pontos do ranking de duplas selecionado e credita os dois atletas de cada dupla.
