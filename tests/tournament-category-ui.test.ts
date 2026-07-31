@@ -270,3 +270,40 @@ test("tournament header links to the arena public standings page", async () => {
   );
   assert.match(source, /target="_blank"/);
 });
+
+test("category games can be ordered by round, date, or operational status", async () => {
+  const [route, panel] = await Promise.all([
+    readFile(
+      path.join(
+        workspaceRoot,
+        "src",
+        "app",
+        "(app)",
+        "torneios",
+        "[tournamentId]",
+        "categorias",
+        "[categoryId]",
+        "page.tsx",
+      ),
+      "utf8",
+    ),
+    readFile(
+      path.join(
+        workspaceRoot,
+        "src",
+        "components",
+        "tournaments",
+        "category-results-panel.tsx",
+      ),
+      "utf8",
+    ),
+  ]);
+
+  assert.match(route, /searchParams\?: \{ tab\?: string; sort\?: string \}/);
+  assert.match(route, /sort=\{gameSort\}/);
+  assert.match(panel, /name="sort"/);
+  assert.match(panel, /value="round"/);
+  assert.match(panel, /value="date"/);
+  assert.match(panel, /value="status"/);
+  assert.match(panel, /SCHEDULED:\s*0[\s\S]*LIVE:\s*1[\s\S]*FINISHED:\s*2/);
+});

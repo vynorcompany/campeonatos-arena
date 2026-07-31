@@ -12,6 +12,7 @@ type CompetitionMatch = {
   id: string;
   label: string;
   stage: string;
+  roundOrder: number;
   scheduledDate: string | null;
   scheduledTime: string | null;
   homeScore: number | null;
@@ -21,6 +22,44 @@ type CompetitionMatch = {
   awayPair: { name: string } | null;
   winnerPair: { name: string } | null;
 };
+
+type GameSort = "round" | "date" | "status";
+
+const statusPriority = {
+  SCHEDULED: 0,
+  LIVE: 1,
+  FINISHED: 2,
+} as const;
+
+function getMatchStatus(match: CompetitionMatch) {
+  return match.manualStatus ?? (match.winnerPair ? "FINISHED" : "SCHEDULED");
+}
+
+function compareByDate(first: CompetitionMatch, second: CompetitionMatch) {
+  const firstDate = first.scheduledDate
+    ? `${first.scheduledDate}T${first.scheduledTime ?? "23:59"}`
+    : "9999-12-31T23:59";
+  const secondDate = second.scheduledDate
+    ? `${second.scheduledDate}T${second.scheduledTime ?? "23:59"}`
+    : "9999-12-31T23:59";
+  return firstDate.localeCompare(secondDate) || first.roundOrder - second.roundOrder;
+}
+
+function sortMatches(matches: CompetitionMatch[], sort: GameSort) {
+  return [...matches].sort((first, second) => {
+    if (sort === "date") {
+      return compareByDate(first, second);
+    }
+    if (sort === "status") {
+      return (
+        statusPriority[getMatchStatus(first) as keyof typeof statusPriority] -
+          statusPriority[getMatchStatus(second) as keyof typeof statusPriority] ||
+        compareByDate(first, second)
+      );
+    }
+    return first.roundOrder - second.roundOrder;
+  });
+}
 
 type ResultCategory = {
   id: string;
@@ -55,10 +94,12 @@ export function CategoryResultsPanel({
   tournamentId,
   categories,
   mode,
+  sort = "round",
 }: {
   tournamentId: string;
   categories: ResultCategory[];
   mode: "games" | "summary";
+  sort?: GameSort;
 }) {
   if (!categories.length) {
     return (
@@ -116,15 +157,32 @@ export function CategoryResultsPanel({
                 ) : null}
 
                 {competition.matches.length ? (
+                  <>
+                    <form method="get" className="field-inline">
+                      <input type="hidden" name="tab" value="games" />
+                      <label htmlFor={`game-sort-${category.id}`}>
+                        Ordenar jogos por
+                      </label>
+                      <select
+                        id={`game-sort-${category.id}`}
+                        name="sort"
+                        defaultValue={sort}
+                      >
+                        <option value="round">Rodada</option>
+                        <option value="date">Data</option>
+                        <option value="status">Status</option>
+                      </select>
+                      <button className="button" type="submit">
+                        Ordenar
+                      </button>
+                    </form>
                   <div className="category-game-list">
-                    {competition.matches.map((match) => {
+                    {sortMatches(competition.matches, sort).map((match) => {
                       const canRecord =
                         competition.status === "PUBLISHED" &&
                         match.homePair &&
                         match.awayPair;
-                      const matchStatus =
-                        match.manualStatus ??
-                        (match.winnerPair ? "FINISHED" : "SCHEDULED");
+                      const matchStatus = getMatchStatus(match);
 
                       return (
                         <div className="category-game-row" key={match.id}>
@@ -262,6 +320,7 @@ export function CategoryResultsPanel({
                       );
                     })}
                   </div>
+                  </>
                 ) : (
                   <p className="muted">Nenhum jogo publicado.</p>
                 )}
