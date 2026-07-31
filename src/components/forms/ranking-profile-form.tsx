@@ -39,6 +39,7 @@ type RankingProfileFieldsProps = {
   defaultType?: RankingType;
   defaultModel?: RankingModel;
   defaultIsGeneral?: boolean;
+  defaultFeedsGeneralRanking?: boolean;
   defaultRules?: Partial<RankingRuleDefaults>;
 };
 
@@ -83,12 +84,16 @@ export function RankingProfileFields({
   defaultType = "PAIR",
   defaultModel = "KNOCKOUT",
   defaultIsGeneral = false,
+  defaultFeedsGeneralRanking = false,
   defaultRules = {},
 }: RankingProfileFieldsProps) {
   const [type, setType] = useState<RankingType>(defaultType);
   const [model, setModel] = useState<RankingModel>(defaultModel);
   const [isGeneral, setIsGeneral] = useState(
     defaultIsGeneral && defaultType === "INDIVIDUAL",
+  );
+  const [feedsGeneralRanking, setFeedsGeneralRanking] = useState(
+    defaultFeedsGeneralRanking && defaultType === "PAIR",
   );
   const rules = { ...fallbackRules, ...defaultRules };
 
@@ -105,6 +110,9 @@ export function RankingProfileFields({
             setType(nextType);
             if (nextType !== "INDIVIDUAL") {
               setIsGeneral(false);
+            }
+            if (nextType !== "PAIR") {
+              setFeedsGeneralRanking(false);
             }
           }}
         >
@@ -127,6 +135,22 @@ export function RankingProfileFields({
           <option value="KNOCKOUT">Mata-mata</option>
         </select>
       </div>
+
+      <label className="field field-inline form-full">
+        <input
+          name="feedsGeneralRanking"
+          type="checkbox"
+          checked={feedsGeneralRanking}
+          disabled={type !== "PAIR"}
+          onChange={(event) => setFeedsGeneralRanking(event.currentTarget.checked)}
+        />
+        <span>
+          <strong>Alimentar o Ranking Geral</strong>
+          <small>
+            As categorias que usarem este ranking tambÃ©m pontuarÃ£o o Ranking Geral individual.
+          </small>
+        </span>
+      </label>
 
       <label className="field field-inline form-full">
         <input

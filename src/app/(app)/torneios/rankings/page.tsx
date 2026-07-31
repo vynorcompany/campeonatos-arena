@@ -118,6 +118,7 @@ export default async function TournamentRankingsPage() {
                       defaultType={ranking.type}
                       defaultModel={ranking.model}
                       defaultIsGeneral={ranking.isGeneral}
+                      defaultFeedsGeneralRanking={ranking.feedsGeneralRanking}
                       defaultRules={{
                         championPoints: ruleMap.CHAMPION,
                         runnerUpPoints: ruleMap.RUNNER_UP,

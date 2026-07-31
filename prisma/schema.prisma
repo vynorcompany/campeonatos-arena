@@ -362,6 +362,7 @@ model RankingProfile {
   type        RankingType   @default(PAIR)
   model       RankingModel  @default(KNOCKOUT)
   isGeneral   Boolean       @default(false)
+  feedsGeneralRanking Boolean @default(false)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   arenaId     String

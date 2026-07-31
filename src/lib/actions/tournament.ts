@@ -726,6 +726,7 @@ export async function createRankingProfileAction(formData: FormData) {
     type: formData.get("type"),
     model: formData.get("model"),
     isGeneral: formData.get("isGeneral") === "on",
+    feedsGeneralRanking: formData.get("feedsGeneralRanking") === "on",
     championPoints: formData.get("championPoints"),
     runnerUpPoints: formData.get("runnerUpPoints"),
     thirdPoints: formData.get("thirdPoints"),
@@ -753,6 +754,7 @@ export async function createRankingProfileAction(formData: FormData) {
         type: parsed.data.type,
         model: parsed.data.model,
         isGeneral: parsed.data.isGeneral,
+        feedsGeneralRanking: parsed.data.feedsGeneralRanking,
       }
     });
 
@@ -777,6 +779,7 @@ export async function updateRankingProfileAction(formData: FormData) {
     type: formData.get("type"),
     model: formData.get("model"),
     isGeneral: formData.get("isGeneral") === "on",
+    feedsGeneralRanking: formData.get("feedsGeneralRanking") === "on",
     championPoints: formData.get("championPoints"),
     runnerUpPoints: formData.get("runnerUpPoints"),
     thirdPoints: formData.get("thirdPoints"),
@@ -869,6 +872,7 @@ export async function updateRankingProfileAction(formData: FormData) {
         type: parsed.data.type,
         model: parsed.data.model,
         isGeneral: parsed.data.isGeneral,
+        feedsGeneralRanking: parsed.data.feedsGeneralRanking,
       }
     });
 

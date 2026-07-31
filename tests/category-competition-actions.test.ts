@@ -265,7 +265,7 @@ test("all category lifecycle mutations use retryable serializable transactions",
   assert.match(source, /return runSerializableTransaction\(/);
 });
 
-test("General Ranking is rejected at configuration time without a points table", () => {
+test("category configuration ignores General Ranking feed sent by the client", () => {
   const parsed = createCategoryCompetitionSchema.safeParse({
     categoryId: "category-1",
     class: "5ª",
@@ -275,6 +275,6 @@ test("General Ranking is rejected at configuration time without a points table",
     feedsGeneralRanking: true,
   });
 
-  assert.equal(parsed.success, false);
-  assert.match(parsed.error?.issues[0]?.message ?? "", /ranking de duplas/i);
+  assert.equal(parsed.success, true);
+  assert.equal("feedsGeneralRanking" in (parsed.data ?? {}), false);
 });

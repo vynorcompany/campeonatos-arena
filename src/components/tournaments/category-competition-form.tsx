@@ -82,10 +82,9 @@ export function CategoryCompetitionForm({
         </select>
       </div>
 
-      <label className="field field-inline form-full">
-        <input type="checkbox" name="feedsGeneralRanking" />
-        <span>Também pontuar o Ranking Geral individual</span>
-      </label>
+      <p className="muted form-full">
+        O Ranking Geral será alimentado conforme a configuração do ranking selecionado.
+      </p>
 
       <label className="field field-inline form-full">
         <input type="checkbox" name="isPublic" />

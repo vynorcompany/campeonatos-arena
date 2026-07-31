@@ -48,7 +48,6 @@ export async function createCategoryCompetitionAction(formData: FormData) {
     gender: formData.get("gender"),
     format: formData.get("format"),
     rankingId: formData.get("rankingId"),
-    feedsGeneralRanking: formData.get("feedsGeneralRanking"),
     isPublic: formData.get("isPublic"),
   });
   if (!parsed.success) {

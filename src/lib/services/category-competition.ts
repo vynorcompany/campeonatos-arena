@@ -69,13 +69,35 @@ async function lockRankingProfile(
   `;
 }
 
+export async function resolveCompetitionRankingSettings(
+  arenaId: string,
+  rankingId?: string | null,
+): Promise<{ rankingId: string | null; feedsGeneralRanking: boolean }> {
+  if (!rankingId) {
+    return { rankingId: null, feedsGeneralRanking: false };
+  }
+
+  const ranking = await prisma.rankingProfile.findFirst({
+    where: { id: rankingId, arenaId, active: true, type: "PAIR" },
+    select: { id: true, feedsGeneralRanking: true },
+  });
+
+  if (!ranking) {
+    throw new Error("Ranking de duplas invÃ¡lido para esta arena.");
+  }
+
+  return {
+    rankingId: ranking.id,
+    feedsGeneralRanking: ranking.feedsGeneralRanking,
+  };
+}
+
 type CreateCategoryCompetitionInput = {
   categoryId: string;
   class: string;
   gender: string;
   format: CompetitionFormat;
   rankingId: string | null;
-  feedsGeneralRanking: boolean;
   isPublic: boolean;
 };
 
@@ -383,11 +405,10 @@ export async function createCategoryCompetition(
   arenaId: string,
   input: CreateCategoryCompetitionInput,
 ) {
-  if (input.feedsGeneralRanking && !input.rankingId) {
-    throw new Error(
-      "Selecione um ranking de duplas com tabela de pontos para alimentar o Ranking Geral.",
-    );
-  }
+  const rankingSettings = await resolveCompetitionRankingSettings(
+    arenaId,
+    input.rankingId,
+  );
 
   return runSerializableTransaction(async (tx) => {
     const category = await tx.tournamentCategory.findFirst({
@@ -408,11 +429,11 @@ export async function createCategoryCompetition(
       throw new Error("Esta categoria já possui uma competição.");
     }
 
-    if (input.rankingId) {
-      await lockRankingProfile(tx, input.rankingId);
+    if (rankingSettings.rankingId) {
+      await lockRankingProfile(tx, rankingSettings.rankingId);
       const ranking = await tx.rankingProfile.findFirst({
         where: {
-          id: input.rankingId,
+          id: rankingSettings.rankingId,
           arenaId,
           active: true,
           type: "PAIR",
@@ -445,8 +466,8 @@ export async function createCategoryCompetition(
       data: {
         categoryId: category.id,
         format: input.format,
-        rankingId: input.rankingId,
-        feedsGeneralRanking: input.feedsGeneralRanking,
+        rankingId: rankingSettings.rankingId,
+        feedsGeneralRanking: rankingSettings.feedsGeneralRanking,
         isPublic: input.isPublic,
       },
     });

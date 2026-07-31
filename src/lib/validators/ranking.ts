@@ -104,6 +104,7 @@ export const createRankingProfileSchema = z
     type: rankingTypeSchema.default("PAIR"),
     model: rankingModelSchema.default("KNOCKOUT"),
     isGeneral: z.boolean().default(false),
+    feedsGeneralRanking: z.boolean().default(false),
     championPoints: optionalRankingPointSchema,
     runnerUpPoints: optionalRankingPointSchema,
     thirdPoints: optionalRankingPointSchema,
@@ -117,6 +118,14 @@ export const createRankingProfileSchema = z
         code: z.ZodIssueCode.custom,
         path: ["isGeneral"],
         message: "O Ranking Geral precisa ser individual.",
+      });
+    }
+
+    if (ranking.feedsGeneralRanking && ranking.type !== "PAIR") {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["feedsGeneralRanking"],
+        message: "Apenas um ranking de duplas pode alimentar o Ranking Geral.",
       });
     }
 

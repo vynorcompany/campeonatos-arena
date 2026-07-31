@@ -62,18 +62,7 @@ export const createCategoryCompetitionSchema = z
     gender: categoryGenderSchema,
     format: z.enum(["LEAGUE", "THREE_GROUPS", "FOUR_GROUPS", "SIMPLE"]),
     rankingId: nullableIdSchema,
-    feedsGeneralRanking: checkboxSchema,
     isPublic: checkboxSchema,
-  })
-  .superRefine((value, context) => {
-    if (value.feedsGeneralRanking && !value.rankingId) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          "Selecione um ranking de duplas com tabela de pontos para alimentar o Ranking Geral.",
-        path: ["rankingId"],
-      });
-    }
   });
 
 export const addManualPairSchema = z
