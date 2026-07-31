@@ -9,6 +9,7 @@ type SafeActionFormProps = {
   className?: string;
   resetOnSuccess?: boolean;
   successMessage?: string;
+  successHref?: string;
   confirmKeyword?: string;
   confirmPrompt?: string;
 };
@@ -19,6 +20,7 @@ export function SafeActionForm({
   className,
   resetOnSuccess = false,
   successMessage = "Salvo com sucesso.",
+  successHref,
   confirmKeyword,
   confirmPrompt
 }: SafeActionFormProps) {
@@ -63,7 +65,11 @@ export function SafeActionForm({
             if (resetOnSuccess) {
               formRef.current?.reset();
             }
-            router.refresh();
+            if (successHref) {
+              router.push(successHref);
+            } else {
+              router.refresh();
+            }
           } catch (caughtError) {
             setError(caughtError instanceof Error ? caughtError.message : "Não foi possível concluir a ação.");
           }

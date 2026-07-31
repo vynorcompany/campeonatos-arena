@@ -20,22 +20,29 @@ export function isRankingWorkspaceTab(value: string | undefined): value is Ranki
 export function RankingWorkspaceTabs({
   rankingId,
   activeTab,
+  cycleId,
 }: {
   rankingId: string;
   activeTab: RankingWorkspaceTab;
+  cycleId?: string;
 }) {
   return (
     <nav className="section-actions" aria-label="Áreas do ranking">
-      {tabs.map((tab) => (
-        <Link
-          key={tab.id}
-          href={`/torneios/rankings/${rankingId}?tab=${tab.id}`}
-          className={`button${tab.id === activeTab ? " button-primary" : ""}`}
-          aria-current={tab.id === activeTab ? "page" : undefined}
-        >
-          {tab.label}
-        </Link>
-      ))}
+      {tabs.map((tab) => {
+        const searchParams = new URLSearchParams({ tab: tab.id });
+        if (cycleId) searchParams.set("cycleId", cycleId);
+
+        return (
+          <Link
+            key={tab.id}
+            href={`/torneios/rankings/${rankingId}?${searchParams.toString()}`}
+            className={`button${tab.id === activeTab ? " button-primary" : ""}`}
+            aria-current={tab.id === activeTab ? "page" : undefined}
+          >
+            {tab.label}
+          </Link>
+        );
+      })}
     </nav>
   );
 }

@@ -20,6 +20,7 @@ import {
   deleteRankingProfileSchema,
   getRankingRuleBlueprint,
   updateRankingConfigurationSchema,
+  updateRankingPointsSchema,
   updateRankingProfileSchema
 } from "@/lib/validators/ranking";
 import {
@@ -252,6 +253,11 @@ async function getRankingUpdateError(error: unknown) {
     ? error.message
     : "Não foi possível atualizar o ranking.";
 }
+
+export type RankingActionState = {
+  error: string | null;
+  success: string | null;
+};
 
 function parseCategoryList(raw: string, fallbackPriceSecondCents: number, fallbackPriceThirdCents: number) {
   const maybeJson = raw.trim();
@@ -1001,21 +1007,192 @@ export async function updateRankingProfileAction(formData: FormData) {
   revalidatePath(`/torneios/rankings/${parsed.data.rankingId}`);
 }
 
-export async function updateRankingConfigurationAction(formData: FormData) {
+export async function updateRankingPointsAction(formData: FormData) {
   const auth = await requireModuleEdit("tournaments");
-  const parsed = updateRankingConfigurationSchema.safeParse({
+  const parsed = updateRankingPointsSchema.safeParse({
     rankingId: formData.get("rankingId"),
-    name: formData.get("name"),
-    description: formData.get("description"),
+    championPoints: formData.get("championPoints"),
+    runnerUpPoints: formData.get("runnerUpPoints"),
+    thirdPoints: formData.get("thirdPoints"),
+    semifinalPoints: formData.get("semifinalPoints"),
+    quarterfinalPoints: formData.get("quarterfinalPoints"),
+    participationPoints: formData.get("participationPoints"),
   });
 
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
 
+  await runRankingSerializableTransaction(async (tx) => {
+    await lockRankingProfile(tx, parsed.data.rankingId);
+    const ranking = await tx.rankingProfile.findFirst({
+      where: {
+        id: parsed.data.rankingId,
+        arenaId: auth.arenaId,
+      },
+      select: { id: true, model: true },
+    });
+
+    if (!ranking) {
+      throw new Error("Ranking não encontrado.");
+    }
+
+    const values = { model: ranking.model, ...parsed.data };
+    for (const rule of getRankingRuleBlueprint(ranking.model)) {
+      if (values[rule.field] === undefined) {
+        throw new Error(`Informe os pontos para ${rule.label}.`);
+      }
+    }
+
+    await syncRankingRules(tx, ranking.id, values);
+  });
+
+  const linkedTournaments = await prisma.tournament.findMany({
+    where: {
+      arenaId: auth.arenaId,
+      rankingId: parsed.data.rankingId,
+      status: { not: "FINISHED" },
+    },
+    select: { id: true },
+  });
+  await Promise.all(
+    linkedTournaments.map((tournament) =>
+      recalculateTournamentRankingPoints(tournament.id),
+    ),
+  );
+
+  refreshTournamentRoutes();
+  revalidatePath(`/torneios/rankings/${parsed.data.rankingId}`);
+}
+
+export async function updateRankingConfigurationAction(
+  _: RankingActionState,
+  formData: FormData,
+): Promise<RankingActionState> {
+  const auth = await requireModuleEdit("tournaments");
+  const parsed = updateRankingConfigurationSchema.safeParse({
+    rankingId: formData.get("rankingId"),
+    name: formData.get("name"),
+    description: formData.get("description"),
+    type: formData.get("type") || undefined,
+    model: formData.get("model") || undefined,
+    isGeneral: formData.has("generalSettingsPresent")
+      ? formData.get("isGeneral") === "on"
+      : undefined,
+    feedsGeneralRanking: formData.has("generalSettingsPresent")
+      ? formData.get("feedsGeneralRanking") === "on"
+      : undefined,
+  });
+
+  if (!parsed.success) {
+    return {
+      error: parsed.error.issues[0]?.message ?? "Dados inválidos.",
+      success: null,
+    };
+  }
+
   try {
     await runRankingSerializableTransaction(async (tx) => {
       await lockRankingProfile(tx, parsed.data.rankingId);
+      const currentRanking = await tx.rankingProfile.findFirst({
+        where: {
+          id: parsed.data.rankingId,
+          arenaId: auth.arenaId,
+        },
+        select: {
+          type: true,
+          model: true,
+          isGeneral: true,
+          feedsGeneralRanking: true,
+          rules: { select: { stageKey: true, points: true } },
+        },
+      });
+
+      if (!currentRanking) {
+        throw new Error("Ranking não encontrado.");
+      }
+
+      const nextType = parsed.data.type ?? currentRanking.type;
+      const nextModel = parsed.data.model ?? currentRanking.model;
+      const nextIsGeneral = parsed.data.isGeneral ?? currentRanking.isGeneral;
+      const nextFeedsGeneral =
+        parsed.data.feedsGeneralRanking ?? currentRanking.feedsGeneralRanking;
+
+      if (nextIsGeneral && nextType !== "INDIVIDUAL") {
+        throw new Error("O Ranking Geral precisa ser individual.");
+      }
+      if (nextFeedsGeneral && nextType !== "PAIR") {
+        throw new Error(
+          "Apenas um ranking de duplas pode alimentar o Ranking Geral.",
+        );
+      }
+
+      const startedCategoryCompetitionCount =
+        await tx.categoryCompetition.count({
+          where: {
+            rankingId: parsed.data.rankingId,
+            category: { tournament: { arenaId: auth.arenaId } },
+            status: { not: "DRAFT" },
+          },
+        });
+
+      if (
+        startedCategoryCompetitionCount &&
+        (currentRanking.type !== nextType || currentRanking.model !== nextModel)
+      ) {
+        throw new Error(
+          "Não pode alterar o tipo ou o modelo depois que uma competição de categoria começa.",
+        );
+      }
+
+      await ensureGeneralRankingAvailable(
+        tx,
+        auth.arenaId,
+        parsed.data.rankingId,
+        nextIsGeneral,
+      );
+
+      const linkedCategoryCount = await tx.categoryCompetition.count({
+        where: {
+          rankingId: parsed.data.rankingId,
+          category: { tournament: { arenaId: auth.arenaId } },
+        },
+      });
+      if (nextType === "INDIVIDUAL" && linkedCategoryCount) {
+        throw new Error(
+          "Um ranking vinculado a categorias de duplas não pode se tornar individual.",
+        );
+      }
+
+      const linkedLegacyTournamentCount = await tx.tournament.count({
+        where: { arenaId: auth.arenaId, rankingId: parsed.data.rankingId },
+      });
+      if (nextType === "PAIR" && linkedLegacyTournamentCount) {
+        throw new Error(
+          "Um ranking vinculado a torneios legados não pode se tornar ranking de duplas.",
+        );
+      }
+      if (nextModel === "LEAGUE" && linkedLegacyTournamentCount) {
+        throw new Error(
+          "O ranking precisa permanecer no modelo Mata-mata enquanto houver torneios vinculados.",
+        );
+      }
+
+      const linkedIncompatibleCategoryCount =
+        await tx.categoryCompetition.count({
+          where: {
+            rankingId: parsed.data.rankingId,
+            category: { tournament: { arenaId: auth.arenaId } },
+            ...(nextModel === "LEAGUE"
+              ? { format: { not: "LEAGUE" } }
+              : { format: "LEAGUE" }),
+          },
+        });
+      if (linkedIncompatibleCategoryCount) {
+        throw new Error(
+          "O modelo do ranking não é compatível com as categorias vinculadas.",
+        );
+      }
 
       const updated = await tx.rankingProfile.updateMany({
         where: {
@@ -1025,19 +1202,41 @@ export async function updateRankingConfigurationAction(formData: FormData) {
         data: {
           name: parsed.data.name,
           description: parsed.data.description,
+          type: nextType,
+          model: nextModel,
+          isGeneral: nextIsGeneral,
+          feedsGeneralRanking: nextFeedsGeneral,
         },
       });
 
       if (!updated.count) {
         throw new Error("Ranking não encontrado.");
       }
+
+      if (nextModel !== currentRanking.model) {
+        const currentPoints = new Map(
+          currentRanking.rules.map((rule) => [rule.stageKey, rule.points]),
+        );
+        await syncRankingRules(tx, parsed.data.rankingId, {
+          model: nextModel,
+          championPoints: currentPoints.get("CHAMPION") ?? 200,
+          runnerUpPoints: currentPoints.get("RUNNER_UP") ?? 140,
+          thirdPoints:
+            currentPoints.get("THIRD") ?? currentPoints.get("SEMIFINAL") ?? 90,
+          semifinalPoints:
+            currentPoints.get("SEMIFINAL") ?? currentPoints.get("THIRD") ?? 90,
+          quarterfinalPoints: currentPoints.get("QUARTERFINAL") ?? 50,
+          participationPoints: currentPoints.get("PARTICIPATION") ?? 20,
+        });
+      }
     });
   } catch (error) {
-    throw new Error(await getRankingUpdateError(error));
+    return { error: await getRankingUpdateError(error), success: null };
   }
 
   refreshTournamentRoutes();
   revalidatePath(`/torneios/rankings/${parsed.data.rankingId}`);
+  return { error: null, success: "Configuração salva com sucesso." };
 }
 
 export async function resetRankingPointsAction(formData: FormData) {

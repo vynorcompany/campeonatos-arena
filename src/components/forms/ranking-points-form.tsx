@@ -1,7 +1,7 @@
 "use client";
 
 import { SafeActionForm } from "@/components/forms/safe-action-form";
-import { updateRankingProfileAction } from "@/lib/actions/tournament";
+import { updateRankingPointsAction } from "@/lib/actions/tournament";
 
 type Rule = { stageKey: string; points: number };
 
@@ -28,12 +28,7 @@ export function RankingPointsForm({
 }: {
   ranking: {
     id: string;
-    name: string;
-    description: string;
-    type: "PAIR" | "INDIVIDUAL";
     model: "LEAGUE" | "KNOCKOUT";
-    isGeneral: boolean;
-    feedsGeneralRanking: boolean;
     rules: Rule[];
   };
 }) {
@@ -44,14 +39,8 @@ export function RankingPointsForm({
   );
 
   return (
-    <SafeActionForm action={updateRankingProfileAction} className="grid-form" successMessage="Pontuação salva com sucesso.">
+    <SafeActionForm action={updateRankingPointsAction} className="grid-form" successMessage="Pontuação salva com sucesso.">
       <input type="hidden" name="rankingId" value={ranking.id} />
-      <input type="hidden" name="name" value={ranking.name} />
-      <input type="hidden" name="description" value={ranking.description} />
-      <input type="hidden" name="type" value={ranking.type} />
-      <input type="hidden" name="model" value={ranking.model} />
-      {ranking.isGeneral ? <input type="hidden" name="isGeneral" value="on" /> : null}
-      {ranking.feedsGeneralRanking ? <input type="hidden" name="feedsGeneralRanking" value="on" /> : null}
       <p className="muted form-full">
         {ranking.model === "LEAGUE" ? "Distribua os pontos da classificação da liga." : "Distribua os pontos por fase do mata-mata."}
       </p>

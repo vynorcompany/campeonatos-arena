@@ -60,7 +60,30 @@ export default async function RankingDetailPage({ params, searchParams }: Rankin
         <div className="section-actions"><Link href="/torneios/rankings" className="button">Voltar aos rankings</Link></div>
       </header>
 
-      <RankingWorkspaceTabs rankingId={ranking.id} activeTab={tab} />
+      <RankingWorkspaceTabs
+        rankingId={ranking.id}
+        activeTab={tab}
+        cycleId={ranking.selectedCycleId}
+      />
+
+      <form method="get" className="inline-form" aria-label="Período do ranking">
+        <input type="hidden" name="tab" value={tab} />
+        <div className="field">
+          <label htmlFor="ranking-cycle">Período</label>
+          <select
+            id="ranking-cycle"
+            name="cycleId"
+            defaultValue={ranking.selectedCycleId}
+          >
+            {ranking.cycles.map((cycle) => (
+              <option key={cycle.id} value={cycle.id}>
+                {cycle.label}{cycle.isCurrent ? " · atual" : ""}
+              </option>
+            ))}
+          </select>
+        </div>
+        <button type="submit" className="button">Exibir período</button>
+      </form>
 
       {tab === "configuracao" ? <RankingConfigurationForm ranking={ranking} formatLocked={formatLocked} /> : null}
 

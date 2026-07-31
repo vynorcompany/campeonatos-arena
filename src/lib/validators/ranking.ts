@@ -158,6 +158,36 @@ export const updateRankingConfigurationSchema = z.object({
     .string()
     .trim()
     .max(240, "Descrição do ranking muito longa."),
+  type: rankingTypeSchema.optional(),
+  model: rankingModelSchema.optional(),
+  isGeneral: z.boolean().optional(),
+  feedsGeneralRanking: z.boolean().optional(),
+}).superRefine((ranking, context) => {
+  if (ranking.isGeneral && ranking.type && ranking.type !== "INDIVIDUAL") {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["isGeneral"],
+      message: "O Ranking Geral precisa ser individual.",
+    });
+  }
+
+  if (ranking.feedsGeneralRanking && ranking.type && ranking.type !== "PAIR") {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["feedsGeneralRanking"],
+      message: "Apenas um ranking de duplas pode alimentar o Ranking Geral.",
+    });
+  }
+});
+
+export const updateRankingPointsSchema = z.object({
+  rankingId: z.string().trim().min(1, "Ranking inválido."),
+  championPoints: optionalRankingPointSchema,
+  runnerUpPoints: optionalRankingPointSchema,
+  thirdPoints: optionalRankingPointSchema,
+  semifinalPoints: optionalRankingPointSchema,
+  quarterfinalPoints: optionalRankingPointSchema,
+  participationPoints: optionalRankingPointSchema,
 });
 
 export const deleteRankingProfileSchema = z.object({

@@ -4,6 +4,7 @@ import path from "node:path";
 import test from "node:test";
 import {
   updateRankingConfigurationSchema,
+  updateRankingPointsSchema,
   type RankingModel,
 } from "../src/lib/validators/ranking";
 import * as rankingValidators from "../src/lib/validators/ranking";
@@ -107,6 +108,36 @@ test("ranking configuration accepts a name-only update", () => {
   });
 
   assert.equal(parsed.success, true);
+});
+
+test("ranking configuration accepts editable format and General settings", () => {
+  const parsed = updateRankingConfigurationSchema.safeParse({
+    rankingId: "ranking-1",
+    name: "Liga Masculina 2026",
+    description: "Temporada anual",
+    type: "PAIR",
+    model: "LEAGUE",
+    isGeneral: false,
+    feedsGeneralRanking: true,
+  });
+
+  assert.equal(parsed.success, true);
+  assert.equal(parsed.data?.feedsGeneralRanking, true);
+});
+
+test("ranking points validation never accepts unrelated profile fields", () => {
+  const parsed = updateRankingPointsSchema.safeParse({
+    rankingId: "ranking-1",
+    championPoints: 500,
+    runnerUpPoints: 300,
+    participationPoints: 50,
+    name: "Nome obsoleto",
+    model: "LEAGUE",
+  });
+
+  assert.equal(parsed.success, true);
+  assert.equal("name" in (parsed.data ?? {}), false);
+  assert.equal("model" in (parsed.data ?? {}), false);
 });
 
 test("ranking configuration maps duplicate names to readable text", async () => {
