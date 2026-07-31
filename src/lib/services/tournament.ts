@@ -2061,6 +2061,65 @@ export async function finishTournament(tournamentId: string, arenaId: string) {
   return true;
 }
 
+export async function reopenTournament(tournamentId: string, arenaId: string) {
+  const tournament = await prisma.tournament.findFirst({
+    where: {
+      id: tournamentId,
+      arenaId,
+      status: tournamentStatus.FINISHED
+    },
+    select: {
+      id: true,
+      _count: {
+        select: {
+          entries: true,
+          pairs: true,
+          groups: true,
+          matches: true,
+          publicRegistrations: true,
+          categoryBrackets: true
+        }
+      }
+    }
+  });
+
+  if (!tournament) {
+    throw new Error("Torneio não encontrado ou não está finalizado.");
+  }
+
+  const hasMatches = tournament._count.matches > 0 || tournament._count.categoryBrackets > 0;
+  const hasGroups = tournament._count.groups > 0;
+  const hasParticipants =
+    tournament._count.entries > 0 ||
+    tournament._count.pairs > 0 ||
+    tournament._count.publicRegistrations > 0;
+  const reopenedStatus = hasMatches
+    ? tournamentStatus.MATCHES_DEFINED
+    : hasGroups
+      ? tournamentStatus.GROUPS_DEFINED
+      : hasParticipants
+        ? tournamentStatus.READY_FOR_DRAW
+        : tournamentStatus.DRAFT;
+
+  const reopened = await prisma.tournament.updateMany({
+    where: {
+      id: tournament.id,
+      arenaId,
+      status: tournamentStatus.FINISHED
+    },
+    data: {
+      status: reopenedStatus,
+      registrationPhase: "EDITING"
+    }
+  });
+
+  if (!reopened.count) {
+    throw new Error("O torneio já foi alterado. Atualize a página e tente novamente.");
+  }
+
+  return true;
+}
+
 export async function deleteTournament(tournamentId: string, arenaId: string) {
   const deleted = await prisma.tournament.deleteMany({
     where: {

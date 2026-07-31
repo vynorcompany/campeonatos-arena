@@ -47,6 +47,7 @@ import {
   generateTournamentPairs,
   moveTournamentPairToGroup,
   recalculateTournamentRankingPoints,
+  reopenTournament,
   syncTournamentEntries,
   updateKnockoutParticipants,
   updateTournamentSettings,
@@ -558,6 +559,19 @@ export async function finishTournamentAction(formData: FormData) {
 
   await finishTournament(tournamentId, auth.arenaId);
   refreshTournamentRoutes();
+}
+
+export async function reopenTournamentAction(formData: FormData) {
+  const auth = await requireModuleEdit("tournaments");
+  const tournamentId = String(formData.get("tournamentId") ?? "");
+
+  if (!tournamentId) {
+    throw new Error("Torneio inválido.");
+  }
+
+  await reopenTournament(tournamentId, auth.arenaId);
+  refreshTournamentRoutes();
+  revalidatePath(`/torneios/${tournamentId}`);
 }
 
 export async function updateTournamentAction(_: ActionState, formData: FormData): Promise<ActionState> {
