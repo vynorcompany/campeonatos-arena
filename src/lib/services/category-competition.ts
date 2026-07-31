@@ -242,6 +242,26 @@ async function getGroupStandings(
   });
 }
 
+async function invalidateKnockoutBracket(
+  tx: Prisma.TransactionClient,
+  competitionId: string,
+) {
+  await tx.categoryMatch.updateMany({
+    where: {
+      competitionId,
+      stage: { not: categoryMatchStage.GROUP },
+    },
+    data: {
+      homePairId: null,
+      awayPairId: null,
+      homeScore: null,
+      awayScore: null,
+      winnerPairId: null,
+      manualStatus: "SCHEDULED",
+    },
+  });
+}
+
 async function resetKnockoutFromStandings(
   tx: Prisma.TransactionClient,
   competitionId: string,
@@ -270,21 +290,7 @@ async function resetKnockoutFromStandings(
     throw new Error("A chave de quartas de final está incompleta.");
   }
 
-  await tx.categoryMatch.updateMany({
-    where: {
-      competitionId,
-      stage: {
-        in: [categoryMatchStage.SEMIFINAL, categoryMatchStage.FINAL],
-      },
-    },
-    data: {
-      homePairId: null,
-      awayPairId: null,
-      homeScore: null,
-      awayScore: null,
-      winnerPairId: null,
-    },
-  });
+  await invalidateKnockoutBracket(tx, competitionId);
 
   for (const [index, match] of quarterfinals.entries()) {
     const blueprint = quarterfinalBlueprint[index];
@@ -296,6 +302,7 @@ async function resetKnockoutFromStandings(
         homeScore: null,
         awayScore: null,
         winnerPairId: null,
+        manualStatus: "SCHEDULED",
       },
     });
   }
@@ -1028,6 +1035,10 @@ export async function updateCategoryMatchStatus(
       where: { id: match.id },
       data: buildReopenedMatch(match, status),
     });
+
+    if (match.stage === categoryMatchStage.GROUP && match.winnerPairId) {
+      await invalidateKnockoutBracket(tx, match.competitionId);
+    }
 
     return true;
   });

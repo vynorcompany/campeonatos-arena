@@ -87,6 +87,37 @@ test("status updates retain scores while reopening and finish only with a winner
   assert.match(statusUpdateSource, /advanceKnockoutWinner/);
 });
 
+test("reopening a completed group match invalidates its derived knockout bracket", async () => {
+  const source = await readFile(
+    path.join(workspaceRoot, "src", "lib", "services", "category-competition.ts"),
+    "utf8",
+  );
+  const statusUpdateSource = source.slice(
+    source.indexOf("export async function updateCategoryMatchStatus"),
+    source.indexOf("export async function recordCategoryMatchResult"),
+  );
+  const invalidationSource = source.slice(
+    source.indexOf("async function invalidateKnockoutBracket"),
+    source.indexOf("async function resetKnockoutFromStandings"),
+  );
+
+  assert.match(
+    statusUpdateSource,
+    /match\.stage === categoryMatchStage\.GROUP && match\.winnerPairId/,
+  );
+  assert.match(
+    statusUpdateSource,
+    /invalidateKnockoutBracket\(tx, match\.competitionId\)/,
+  );
+  assert.match(invalidationSource, /stage:\s*\{\s*not:\s*categoryMatchStage\.GROUP\s*\}/);
+  assert.match(invalidationSource, /homePairId:\s*null/);
+  assert.match(invalidationSource, /awayPairId:\s*null/);
+  assert.match(invalidationSource, /homeScore:\s*null/);
+  assert.match(invalidationSource, /awayScore:\s*null/);
+  assert.match(invalidationSource, /winnerPairId:\s*null/);
+  assert.match(invalidationSource, /manualStatus:\s*"SCHEDULED"/);
+});
+
 test("recording a result marks the match as finished and guards downstream knockout changes", async () => {
   const source = await readFile(
     path.join(workspaceRoot, "src", "lib", "services", "category-competition.ts"),
