@@ -248,3 +248,25 @@ test("category saves preserve each existing group structure", async () => {
   assert.match(source, /groupCount:\s*category\.groupCount/);
   assert.match(source, /pairsPerGroup:\s*category\.pairsPerGroup/);
 });
+
+test("tournament header links to the arena public standings page", async () => {
+  const source = await readFile(
+    path.join(
+      workspaceRoot,
+      "src",
+      "app",
+      "(app)",
+      "torneios",
+      "[tournamentId]",
+      "page.tsx",
+    ),
+    "utf8",
+  );
+
+  assert.match(source, /arena:\s*\{\s*select:\s*\{\s*slug:\s*true/);
+  assert.match(
+    source,
+    /href=\{`\/classificacao\/\$\{tournament\.arena\.slug\}`\}/,
+  );
+  assert.match(source, /target="_blank"/);
+});

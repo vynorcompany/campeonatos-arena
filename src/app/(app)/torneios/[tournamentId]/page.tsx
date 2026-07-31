@@ -26,6 +26,9 @@ export default async function TournamentDetailPage({
         arenaId: auth.arenaId,
       },
       include: {
+        arena: {
+          select: { slug: true },
+        },
         categories: {
           where: { active: true },
           orderBy: { level: "asc" },
@@ -76,9 +79,17 @@ export default async function TournamentDetailPage({
         </div>
         <div className="section-actions">
           <StatusBadge status={tournament.registrationPhase} />
-           {tournament.creationMode === "PUBLIC" ? (
+          {tournament.creationMode === "PUBLIC" ? (
              <PublicRegistrationLinkActions slug={tournament.publicSlug} />
           ) : null}
+          <Link
+            href={`/classificacao/${tournament.arena.slug}`}
+            className="button"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Ver página pública
+          </Link>
           <Link href="/torneios" className="button">
              Voltar aos eventos
            </Link>
