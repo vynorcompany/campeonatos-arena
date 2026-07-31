@@ -21,16 +21,21 @@ export function RankingWorkspaceTabs({
   rankingId,
   activeTab,
   cycleId,
+  periodQuery = {},
 }: {
   rankingId: string;
   activeTab: RankingWorkspaceTab;
   cycleId?: string;
+  periodQuery?: Record<string, string>;
 }) {
   return (
     <nav className="section-actions" aria-label="Áreas do ranking">
       {tabs.map((tab) => {
         const searchParams = new URLSearchParams({ tab: tab.id });
         if (cycleId) searchParams.set("cycleId", cycleId);
+        for (const [key, value] of Object.entries(periodQuery)) {
+          if (value) searchParams.set(key, value);
+        }
 
         return (
           <Link

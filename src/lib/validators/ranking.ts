@@ -190,6 +190,16 @@ export const updateRankingPointsSchema = z.object({
   participationPoints: optionalRankingPointSchema,
 });
 
+export const createRankingCycleSchema = z.object({
+  rankingId: z.string().trim().min(1, "Ranking inválido."),
+  label: z.string().trim().min(2, "Informe o nome do ciclo.").max(80, "Nome do ciclo muito longo."),
+  startedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data inicial."),
+  endedAt: z.preprocess(
+    (value) => value === "" || value === null ? undefined : value,
+    z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data final inválida.").optional(),
+  ),
+});
+
 export const deleteRankingProfileSchema = z.object({
   rankingId: z.string().trim().min(1, "Ranking inválido."),
 });

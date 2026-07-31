@@ -3,6 +3,7 @@
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { resolveRankingPeriod } from "@/lib/ranking/period";
 import { isPrismaUnknownFieldError } from "@/lib/prisma-errors";
 import { getAthleteDeletionRestriction } from "@/lib/athlete-management";
 import { savePublicImageUpload } from "@/lib/uploads";
@@ -16,6 +17,7 @@ import {
   updateTournamentParticipantsSchema
 } from "@/lib/validators/player";
 import {
+  createRankingCycleSchema,
   createRankingProfileSchema,
   deleteRankingProfileSchema,
   getRankingRuleBlueprint,
@@ -1320,6 +1322,48 @@ export async function resetRankingPointsAction(formData: FormData) {
   });
 
   refreshTournamentRoutes();
+  revalidatePath(`/torneios/rankings/${ranking.id}`);
+}
+
+export async function createRankingCycleAction(formData: FormData) {
+  const auth = await requireModuleEdit("tournaments");
+  const parsed = createRankingCycleSchema.safeParse({
+    rankingId: formData.get("rankingId"),
+    label: formData.get("label"),
+    startedAt: formData.get("startedAt"),
+    endedAt: formData.get("endedAt"),
+  });
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  }
+
+  const ranking = await prisma.rankingProfile.findFirst({
+    where: { id: parsed.data.rankingId, arenaId: auth.arenaId },
+    select: { id: true },
+  });
+  if (!ranking) throw new Error("Ranking não encontrado.");
+
+  const resolvedDates = resolveRankingPeriod({
+    period: "custom",
+    start: parsed.data.startedAt,
+    end: parsed.data.endedAt ?? parsed.data.startedAt,
+  }, []);
+  if (resolvedDates.error) throw new Error(resolvedDates.error);
+  const startedAt = resolvedDates.start;
+  const endedAt = parsed.data.endedAt && resolvedDates.endExclusive
+    ? new Date(resolvedDates.endExclusive.getTime() - 1)
+    : null;
+
+  await prisma.rankingCycle.create({
+    data: {
+      rankingId: ranking.id,
+      label: parsed.data.label,
+      startedAt,
+      endedAt,
+    },
+  });
+
   revalidatePath(`/torneios/rankings/${ranking.id}`);
 }
 

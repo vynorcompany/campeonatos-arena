@@ -3,6 +3,11 @@ import {
   buildGeneralRankingSourceEntries,
   type GeneralRankingFeedPairSource,
 } from "@/lib/ranking/general-feed";
+import {
+  resolveRankingPeriod,
+  type RankingPeriodQuery,
+  type ResolvedRankingPeriod,
+} from "@/lib/ranking/period";
 
 export type RankingLeaderboardPlayer = {
   playerId: string;
@@ -59,6 +64,7 @@ export type RankingProfileWithLeaderboard = {
   }>;
   cycles: RankingCycleSummary[];
   selectedCycleId: string;
+  period: ResolvedRankingPeriod;
   _count: {
     tournaments: number;
   };
@@ -264,17 +270,18 @@ function mergeTournamentSummaries(
 }
 
 function isEntryInCycle(entry: RankingSourceEntry, cycle: RankingCycleSource) {
-  return getMonthKey(entry.tournament.createdAt) === getMonthKey(cycle.startedAt);
+  const timestamp = entry.tournament.createdAt.getTime();
+  return timestamp >= cycle.startedAt.getTime() &&
+    (!cycle.endedAt || timestamp <= cycle.endedAt.getTime());
 }
 
 function isPairEntryInCycle(
   entry: CategoryPairRankingSource,
   cycle: RankingCycleSource,
 ) {
-  return (
-    getMonthKey(entry.competition.category.tournament.createdAt) ===
-    getMonthKey(cycle.startedAt)
-  );
+  const timestamp = entry.competition.category.tournament.createdAt.getTime();
+  return timestamp >= cycle.startedAt.getTime() &&
+    (!cycle.endedAt || timestamp <= cycle.endedAt.getTime());
 }
 
 function getCurrentCycle(cycles: RankingCycleSource[]) {
@@ -297,10 +304,10 @@ function buildCycleLabel(index: number, cycle: RankingCycleSource) {
 function buildVirtualCycle(rankingCreatedAt: Date): RankingCycleSource {
   const currentMonth = new Date();
   return {
-    id: getMonthKey(currentMonth),
+    id: `current-${getMonthKey(currentMonth)}`,
     label: "Ciclo atual",
     startedAt: getMonthStart(currentMonth),
-    endedAt: getMonthEnd(currentMonth)
+    endedAt: new Date(getMonthEnd(currentMonth).getTime() - 1)
   };
 }
 
@@ -310,16 +317,18 @@ function buildCycleSummaries(
   sourceEntries: RankingSourceEntry[],
   pairSourceEntries: CategoryPairRankingSource[],
 ): RankingCycleSummary[] {
-  const currentMonthKey = getMonthKey(new Date());
+  const now = new Date();
   const normalizedCycles = cycles.length ? [...cycles] : [buildVirtualCycle(rankingCreatedAt)];
 
-  if (!normalizedCycles.some((cycle) => getMonthKey(cycle.startedAt) === currentMonthKey)) {
+  if (!normalizedCycles.some((cycle) =>
+    cycle.startedAt <= now && (!cycle.endedAt || cycle.endedAt >= now)
+  )) {
     normalizedCycles.push(buildVirtualCycle(rankingCreatedAt));
   }
 
-  const monthCycles = [...new Map(normalizedCycles.map((cycle) => [getMonthKey(cycle.startedAt), cycle] as const)).values()];
+  const uniqueCycles = [...new Map(normalizedCycles.map((cycle) => [cycle.id, cycle] as const)).values()];
 
-  return monthCycles.map((cycle) => {
+  return uniqueCycles.map((cycle) => {
     const entries = sourceEntries.filter((entry) => isEntryInCycle(entry, cycle));
     const pairEntries = pairSourceEntries.filter((entry) =>
       isPairEntryInCycle(entry, cycle),
@@ -332,11 +341,11 @@ function buildCycleSummaries(
     ]).size;
 
     return {
-      id: getMonthKey(cycle.startedAt),
+      id: cycle.id,
       label: buildCycleLabel(0, cycle),
       startedAt: getMonthStart(cycle.startedAt),
       endedAt: cycle.endedAt,
-      isCurrent: getMonthKey(cycle.startedAt) === currentMonthKey,
+      isCurrent: cycle.startedAt <= now && (!cycle.endedAt || cycle.endedAt >= now),
       tournamentCount,
       entryCount: entries.length + pairEntries.length
     };
@@ -371,7 +380,7 @@ function buildRankingView(
   },
   sourceEntries: RankingSourceEntry[],
   pairSourceEntries: CategoryPairRankingSource[],
-  selectedCycleId?: string
+  periodQuery: RankingPeriodQuery = { period: "month" },
 ): RankingProfileWithLeaderboard {
   const cycles = buildCycleSummaries(
     ranking.createdAt,
@@ -379,15 +388,14 @@ function buildRankingView(
     sourceEntries,
     pairSourceEntries,
   );
-  const cycleSource = ranking.cycles.length ? ranking.cycles : [buildVirtualCycle(ranking.createdAt)];
-  const currentMonthKey = getMonthKey(new Date());
-  const selectedCycle =
-    (selectedCycleId ? cycleSource.find((cycle) => getMonthKey(cycle.startedAt) === selectedCycleId) : null) ??
-    cycleSource.find((cycle) => getMonthKey(cycle.startedAt) === currentMonthKey) ??
-    buildVirtualCycle(ranking.createdAt);
-  const selectedEntries = sourceEntries.filter((entry) => isEntryInCycle(entry, selectedCycle));
+  const period = resolveRankingPeriod(periodQuery, ranking.cycles);
+  const isInPeriod = (date: Date) =>
+    date >= period.start && (!period.endExclusive || date < period.endExclusive);
+  const selectedEntries = sourceEntries.filter((entry) =>
+    isInPeriod(entry.tournament.createdAt),
+  );
   const selectedPairEntries = pairSourceEntries.filter((entry) =>
-    isPairEntryInCycle(entry, selectedCycle),
+    isInPeriod(entry.competition.category.tournament.createdAt),
   );
   const leaderboard = buildRankingLeaderboard(selectedEntries);
   const pairLeaderboard = buildPairRankingLeaderboard(selectedPairEntries);
@@ -418,7 +426,8 @@ function buildRankingView(
     rules: ranking.rules,
     tournaments,
     cycles,
-    selectedCycleId: getMonthKey(selectedCycle.startedAt),
+    selectedCycleId: period.query.cycleId ?? "",
+    period,
     _count: {
       tournaments: ranking._count.tournaments + pairTournamentCount,
     },
@@ -668,7 +677,11 @@ export async function getRankingProfilesWithLeaderboard(arenaId: string): Promis
   );
 }
 
-export async function getRankingProfileLeaderboard(arenaId: string, rankingId: string, selectedCycleId?: string) {
+export async function getRankingProfileLeaderboard(
+  arenaId: string,
+  rankingId: string,
+  requestedPeriod: RankingPeriodQuery | string = { period: "month" },
+) {
   const ranking = await prisma.rankingProfile.findFirst({
     where: {
       id: rankingId,
@@ -719,6 +732,8 @@ export async function getRankingProfileLeaderboard(arenaId: string, rankingId: s
     ranking,
     [...sourceEntries, ...generalFeedEntries],
     pairSourceEntries,
-    selectedCycleId,
+    typeof requestedPeriod === "string"
+      ? { period: "cycle", cycleId: requestedPeriod }
+      : requestedPeriod,
   );
 }
