@@ -39,6 +39,8 @@ export type RankingProfileWithLeaderboard = {
   name: string;
   description: string;
   type: "INDIVIDUAL" | "PAIR";
+  model: "LEAGUE" | "KNOCKOUT";
+  isGeneral: boolean;
   rules: Array<{
     stageKey: string;
     points: number;
@@ -342,6 +344,8 @@ function buildRankingView(
     name: string;
     description: string;
     type: "INDIVIDUAL" | "PAIR";
+    model: "LEAGUE" | "KNOCKOUT";
+    isGeneral: boolean;
     createdAt: Date;
     rules: Array<{
       stageKey: string;
@@ -402,6 +406,8 @@ function buildRankingView(
     name: ranking.name,
     description: ranking.description,
     type: ranking.type,
+    model: ranking.model,
+    isGeneral: ranking.isGeneral,
     rules: ranking.rules,
     tournaments,
     cycles,

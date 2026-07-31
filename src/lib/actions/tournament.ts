@@ -18,6 +18,7 @@ import {
 import {
   createRankingProfileSchema,
   deleteRankingProfileSchema,
+  getRankingRuleBlueprint,
   updateRankingProfileSchema
 } from "@/lib/validators/ranking";
 import {
@@ -79,14 +80,6 @@ function refreshTournamentRoutes() {
   revalidatePath("/torneios/inscricoes");
 }
 
-const rankingRuleBlueprint = [
-  { stageKey: "CHAMPION", label: "1º lugar", displayOrder: 1, field: "championPoints" as const },
-  { stageKey: "RUNNER_UP", label: "2º lugar", displayOrder: 2, field: "runnerUpPoints" as const },
-  { stageKey: "SEMIFINAL", label: "Semifinal", displayOrder: 3, field: "semifinalPoints" as const },
-  { stageKey: "QUARTERFINAL", label: "Quartas de final", displayOrder: 4, field: "quarterfinalPoints" as const },
-  { stageKey: "PARTICIPATION", label: "Participação", displayOrder: 5, field: "participationPoints" as const }
-];
-
 async function runRankingSerializableTransaction<T>(
   operation: (tx: Prisma.TransactionClient) => Promise<T>,
 ) {
@@ -118,6 +111,34 @@ async function lockRankingProfile(
   await tx.$queryRaw`
     SELECT pg_advisory_xact_lock(hashtext(${rankingId}))
   `;
+}
+
+async function ensureGeneralRankingAvailable(
+  tx: Prisma.TransactionClient,
+  arenaId: string,
+  rankingId: string | null,
+  isGeneral: boolean,
+) {
+  if (!isGeneral) {
+    return;
+  }
+
+  await tx.$queryRaw`
+    SELECT pg_advisory_xact_lock(hashtext(${`general-ranking:${arenaId}`}))
+  `;
+
+  const existingGeneral = await tx.rankingProfile.findFirst({
+    where: {
+      arenaId,
+      isGeneral: true,
+      ...(rankingId ? { id: { not: rankingId } } : {}),
+    },
+    select: { id: true },
+  });
+
+  if (existingGeneral) {
+    throw new Error("A arena já possui um Ranking Geral.");
+  }
 }
 
 async function ensureRankingBelongsToArena(
@@ -152,16 +173,33 @@ async function syncRankingRules(
   tx: Prisma.TransactionClient,
   rankingId: string,
   values: {
-    championPoints: number;
-    runnerUpPoints: number;
-    semifinalPoints: number;
-    quarterfinalPoints: number;
-    participationPoints: number;
+    model: "LEAGUE" | "KNOCKOUT";
+    championPoints?: number;
+    runnerUpPoints?: number;
+    thirdPoints?: number;
+    semifinalPoints?: number;
+    quarterfinalPoints?: number;
+    participationPoints?: number;
   }
 ) {
+  const rankingRuleBlueprint = getRankingRuleBlueprint(values.model);
+  const stageKeys = rankingRuleBlueprint.map((rule) => rule.stageKey);
+
+  await tx.rankingRule.deleteMany({
+    where: {
+      rankingId,
+      stageKey: { notIn: stageKeys },
+    },
+  });
+
   await Promise.all(
-    rankingRuleBlueprint.map((rule) =>
-      tx.rankingRule.upsert({
+    rankingRuleBlueprint.map((rule) => {
+      const points = values[rule.field];
+      if (points === undefined) {
+        throw new Error(`Pontuação ausente para ${rule.label}.`);
+      }
+
+      return tx.rankingRule.upsert({
         where: {
           rankingId_stageKey: {
             rankingId,
@@ -172,16 +210,16 @@ async function syncRankingRules(
           rankingId,
           stageKey: rule.stageKey,
           label: rule.label,
-          points: values[rule.field],
+          points,
           displayOrder: rule.displayOrder
         },
         update: {
           label: rule.label,
-          points: values[rule.field],
+          points,
           displayOrder: rule.displayOrder
         }
-      })
-    )
+      });
+    })
   );
 }
 
@@ -675,6 +713,7 @@ export async function updateTournamentAction(_: ActionState, formData: FormData)
   }
 
   refreshTournamentRoutes();
+  revalidatePath(`/torneios/${parsed.data.tournamentId}`);
   return { error: null, success: "Torneio atualizado com sucesso." };
 }
 
@@ -684,8 +723,11 @@ export async function createRankingProfileAction(formData: FormData) {
     name: formData.get("name"),
     description: formData.get("description"),
     type: formData.get("type"),
+    model: formData.get("model"),
+    isGeneral: formData.get("isGeneral") === "on",
     championPoints: formData.get("championPoints"),
     runnerUpPoints: formData.get("runnerUpPoints"),
+    thirdPoints: formData.get("thirdPoints"),
     semifinalPoints: formData.get("semifinalPoints"),
     quarterfinalPoints: formData.get("quarterfinalPoints"),
     participationPoints: formData.get("participationPoints")
@@ -696,12 +738,20 @@ export async function createRankingProfileAction(formData: FormData) {
   }
 
   await runRankingSerializableTransaction(async (tx) => {
+    await ensureGeneralRankingAvailable(
+      tx,
+      auth.arenaId,
+      null,
+      parsed.data.isGeneral,
+    );
     const ranking = await tx.rankingProfile.create({
       data: {
         arenaId: auth.arenaId,
         name: parsed.data.name,
         description: parsed.data.description,
-        type: parsed.data.type
+        type: parsed.data.type,
+        model: parsed.data.model,
+        isGeneral: parsed.data.isGeneral,
       }
     });
 
@@ -724,8 +774,11 @@ export async function updateRankingProfileAction(formData: FormData) {
     name: formData.get("name"),
     description: formData.get("description"),
     type: formData.get("type"),
+    model: formData.get("model"),
+    isGeneral: formData.get("isGeneral") === "on",
     championPoints: formData.get("championPoints"),
     runnerUpPoints: formData.get("runnerUpPoints"),
+    thirdPoints: formData.get("thirdPoints"),
     semifinalPoints: formData.get("semifinalPoints"),
     quarterfinalPoints: formData.get("quarterfinalPoints"),
     participationPoints: formData.get("participationPoints")
@@ -737,6 +790,12 @@ export async function updateRankingProfileAction(formData: FormData) {
 
   await runRankingSerializableTransaction(async (tx) => {
     await lockRankingProfile(tx, parsed.data.rankingId);
+    await ensureGeneralRankingAvailable(
+      tx,
+      auth.arenaId,
+      parsed.data.rankingId,
+      parsed.data.isGeneral,
+    );
 
     if (parsed.data.type === "INDIVIDUAL") {
       const linkedCategoryCount = await tx.categoryCompetition.count({
@@ -768,6 +827,27 @@ export async function updateRankingProfileAction(formData: FormData) {
       }
     }
 
+    const linkedIncompatibleCategoryCount =
+      await tx.categoryCompetition.count({
+        where: {
+          rankingId: parsed.data.rankingId,
+          category: {
+            tournament: {
+              arenaId: auth.arenaId,
+            },
+          },
+          ...(parsed.data.model === "LEAGUE"
+            ? { format: { not: "LEAGUE" } }
+            : { format: "LEAGUE" }),
+        },
+      });
+
+    if (linkedIncompatibleCategoryCount) {
+      throw new Error(
+        "O modelo do ranking não é compatível com as categorias vinculadas.",
+      );
+    }
+
     const updated = await tx.rankingProfile.updateMany({
       where: {
         id: parsed.data.rankingId,
@@ -776,7 +856,9 @@ export async function updateRankingProfileAction(formData: FormData) {
       data: {
         name: parsed.data.name,
         description: parsed.data.description,
-        type: parsed.data.type
+        type: parsed.data.type,
+        model: parsed.data.model,
+        isGeneral: parsed.data.isGeneral,
       }
     });
 

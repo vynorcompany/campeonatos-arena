@@ -94,7 +94,7 @@ test("league placements use standings order and never create knockout awards", (
   assert.deepEqual(Object.fromEntries(stages), {
     "pair-1": "RUNNER_UP",
     "pair-2": "CHAMPION",
-    "pair-3": "PARTICIPATION",
+    "pair-3": "THIRD",
   });
 });
 

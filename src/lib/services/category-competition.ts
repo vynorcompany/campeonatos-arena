@@ -14,6 +14,10 @@ import {
   type PlacementStage,
 } from "@/lib/tournament-category/ranking";
 import {
+  getRankingRuleBlueprint,
+  type RankingModel,
+} from "@/lib/validators/ranking";
+import {
   rankStandings,
   selectQuarterfinalists,
 } from "@/lib/tournament-category/standings";
@@ -83,15 +87,12 @@ type PairResultMatch = {
 
 function buildRuleMap(
   rules: Array<{ stageKey: string; points: number }>,
+  model: RankingModel,
 ): PlacementRuleMap {
   const values = new Map(rules.map((rule) => [rule.stageKey, rule.points]));
-  const stageKeys: PlacementStage[] = [
-    "CHAMPION",
-    "RUNNER_UP",
-    "SEMIFINAL",
-    "QUARTERFINAL",
-    "PARTICIPATION",
-  ];
+  const stageKeys = getRankingRuleBlueprint(model).map(
+    (rule) => rule.stageKey as PlacementStage,
+  );
 
   for (const stageKey of stageKeys) {
     if (!values.has(stageKey)) {
@@ -415,10 +416,19 @@ export async function createCategoryCompetition(
           active: true,
           type: "PAIR",
         },
-        select: { id: true },
+        select: { id: true, model: true },
       });
       if (!ranking) {
         throw new Error("Selecione um ranking de duplas válido para esta arena.");
+      }
+      const expectedModel =
+        input.format === "LEAGUE" ? "LEAGUE" : "KNOCKOUT";
+      if (ranking.model !== expectedModel) {
+        throw new Error(
+          `Selecione um ranking do modelo ${
+            expectedModel === "LEAGUE" ? "Liga" : "Mata-mata"
+          } para este formato.`,
+        );
       }
     }
 
@@ -977,6 +987,7 @@ export async function finishCategoryCompetition(
             ranking: {
               select: {
                 type: true,
+                model: true,
                 rules: {
                   select: {
                     stageKey: true,
@@ -1031,6 +1042,16 @@ export async function finishCategoryCompetition(
         if (competition.ranking && competition.ranking.type !== "PAIR") {
           throw new Error("A categoria só pode pontuar um ranking de duplas.");
         }
+        const expectedRankingModel =
+          competition.format === "LEAGUE" ? "LEAGUE" : "KNOCKOUT";
+        if (
+          competition.ranking &&
+          competition.ranking.model !== expectedRankingModel
+        ) {
+          throw new Error(
+            "O modelo do ranking não é compatível com o formato da categoria.",
+          );
+        }
         if (competition.feedsGeneralRanking && !competition.ranking) {
           throw new Error(
             "Selecione um ranking com tabela de pontos antes de alimentar o Ranking Geral.",
@@ -1055,10 +1076,14 @@ export async function finishCategoryCompetition(
           leagueOrder,
         });
         const rules = competition.ranking
-          ? buildRuleMap(competition.ranking.rules)
+          ? buildRuleMap(
+              competition.ranking.rules,
+              competition.ranking.model,
+            )
           : {
               CHAMPION: 0,
               RUNNER_UP: 0,
+              THIRD: 0,
               SEMIFINAL: 0,
               QUARTERFINAL: 0,
               PARTICIPATION: 0,

@@ -3,6 +3,7 @@ import type { CompetitionFormat } from "./types";
 export type PlacementStage =
   | "CHAMPION"
   | "RUNNER_UP"
+  | "THIRD"
   | "SEMIFINAL"
   | "QUARTERFINAL"
   | "PARTICIPATION";
@@ -21,7 +22,7 @@ type BuildPlacementStagesInput = {
   leagueOrder?: string[];
 };
 
-export type PlacementRuleMap = Record<PlacementStage, number>;
+export type PlacementRuleMap = Partial<Record<PlacementStage, number>>;
 
 function getLoserPairId(match: PlacementMatch) {
   if (!match.homePairId || !match.awayPairId || !match.winnerPairId) {
@@ -53,6 +54,9 @@ export function buildPlacementStages({
     }
     if (leagueOrder[1]) {
       stages.set(leagueOrder[1], "RUNNER_UP");
+    }
+    if (leagueOrder[2]) {
+      stages.set(leagueOrder[2], "THIRD");
     }
     return stages;
   }
@@ -87,6 +91,12 @@ export function buildPlacementAwards(
   rules: PlacementRuleMap,
 ) {
   return new Map(
-    [...stages].map(([pairId, stage]) => [pairId, rules[stage]]),
+    [...stages].map(([pairId, stage]) => {
+      const points = rules[stage];
+      if (points === undefined) {
+        throw new Error(`O ranking não possui pontuação para ${stage}.`);
+      }
+      return [pairId, points];
+    }),
   );
 }

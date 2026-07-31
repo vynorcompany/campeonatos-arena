@@ -20,6 +20,11 @@ enum RankingType {
   PAIR
 }
 
+enum RankingModel {
+  LEAGUE
+  KNOCKOUT
+}
+
 model User {
   id           String       @id @default(cuid())
   name         String
@@ -355,6 +360,8 @@ model RankingProfile {
   description String        @default("")
   active      Boolean       @default(true)
   type        RankingType   @default(PAIR)
+  model       RankingModel  @default(KNOCKOUT)
+  isGeneral   Boolean       @default(false)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   arenaId     String
@@ -367,6 +374,7 @@ model RankingProfile {
 
   @@unique([arenaId, name])
   @@index([arenaId, active])
+  @@index([arenaId, isGeneral])
 }
 
 model RankingRule {
