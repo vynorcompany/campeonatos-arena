@@ -219,7 +219,8 @@ test("ranking profile writes are atomic and all ranking links share the same loc
   assert.match(actions, /runRankingSerializableTransaction/);
   assert.match(actions, /syncRankingRules\(\s*tx,/);
   assert.match(actions, /pg_advisory_xact_lock/);
-  assert.match(categoryService, /pg_advisory_xact_lock/);
+  assert.match(categoryService, /FROM "RankingProfile"/);
+  assert.match(categoryService, /FOR UPDATE/);
   assert.match(tournamentService, /pg_advisory_xact_lock/);
 });
 
