@@ -279,7 +279,7 @@ test("category configuration ignores General Ranking feed sent by the client", (
   assert.equal("feedsGeneralRanking" in (parsed.data ?? {}), false);
 });
 
-test("category creation reads the feed setting after locking the selected ranking", async () => {
+test("category creation locks and reads the selected ranking before reading the category", async () => {
   const source = await readFile(
     path.join(
       workspaceRoot,
@@ -294,6 +294,15 @@ test("category creation reads the feed setting after locking the selected rankin
     source.indexOf("export async function createCategoryCompetition"),
     source.indexOf("export async function updateCategoryPublicVisibility"),
   );
+  const lockIndex = createCategoryCompetitionSource.indexOf(
+    "await lockRankingProfile(tx, input.rankingId);",
+  );
+  const rankingReadIndex = createCategoryCompetitionSource.indexOf(
+    "const ranking = await tx.rankingProfile.findFirst",
+  );
+  const categoryReadIndex = createCategoryCompetitionSource.indexOf(
+    "const category = await tx.tournamentCategory.findFirst",
+  );
 
   assert.doesNotMatch(
     createCategoryCompetitionSource,
@@ -303,6 +312,9 @@ test("category creation reads the feed setting after locking the selected rankin
     createCategoryCompetitionSource,
     /await lockRankingProfile\(tx, input\.rankingId\);[\s\S]*select: \{ id: true, model: true, feedsGeneralRanking: true \}/,
   );
+  assert.ok(lockIndex >= 0);
+  assert.ok(rankingReadIndex > lockIndex);
+  assert.ok(categoryReadIndex > rankingReadIndex);
   assert.match(
     createCategoryCompetitionSource,
     /feedsGeneralRanking = ranking\.feedsGeneralRanking;[\s\S]*feedsGeneralRanking,/,

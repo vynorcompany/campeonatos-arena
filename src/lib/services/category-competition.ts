@@ -69,29 +69,6 @@ async function lockRankingProfile(
   `;
 }
 
-export async function resolveCompetitionRankingSettings(
-  arenaId: string,
-  rankingId?: string | null,
-): Promise<{ rankingId: string | null; feedsGeneralRanking: boolean }> {
-  if (!rankingId) {
-    return { rankingId: null, feedsGeneralRanking: false };
-  }
-
-  const ranking = await prisma.rankingProfile.findFirst({
-    where: { id: rankingId, arenaId, active: true, type: "PAIR" },
-    select: { id: true, feedsGeneralRanking: true },
-  });
-
-  if (!ranking) {
-    throw new Error("Ranking de duplas invÃ¡lido para esta arena.");
-  }
-
-  return {
-    rankingId: ranking.id,
-    feedsGeneralRanking: ranking.feedsGeneralRanking,
-  };
-}
-
 type CreateCategoryCompetitionInput = {
   categoryId: string;
   class: string;
@@ -406,24 +383,6 @@ export async function createCategoryCompetition(
   input: CreateCategoryCompetitionInput,
 ) {
   return runSerializableTransaction(async (tx) => {
-    const category = await tx.tournamentCategory.findFirst({
-      where: {
-        id: input.categoryId,
-        active: true,
-        tournament: { arenaId },
-      },
-      select: {
-        id: true,
-        competition: { select: { id: true } },
-      },
-    });
-    if (!category) {
-      throw new Error("Categoria não encontrada nesta arena.");
-    }
-    if (category.competition) {
-      throw new Error("Esta categoria já possui uma competição.");
-    }
-
     let rankingId: string | null = null;
     let feedsGeneralRanking = false;
 
@@ -453,6 +412,24 @@ export async function createCategoryCompetition(
 
       rankingId = ranking.id;
       feedsGeneralRanking = ranking.feedsGeneralRanking;
+    }
+
+    const category = await tx.tournamentCategory.findFirst({
+      where: {
+        id: input.categoryId,
+        active: true,
+        tournament: { arenaId },
+      },
+      select: {
+        id: true,
+        competition: { select: { id: true } },
+      },
+    });
+    if (!category) {
+      throw new Error("Categoria não encontrada nesta arena.");
+    }
+    if (category.competition) {
+      throw new Error("Esta categoria já possui uma competição.");
     }
 
     await tx.tournamentCategory.update({
