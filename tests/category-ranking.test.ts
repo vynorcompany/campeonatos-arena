@@ -140,10 +140,20 @@ test("ranking actions, form and read model preserve the selected ranking type", 
   assert.match(service, /pairLeaderboard/);
 });
 
-test("pair ranking screens render pair entries and category activity", async () => {
-  const [listPage, detailPage, service] = await Promise.all([
+test("pair ranking screens keep category activity in the workspace and summarize it in the index", async () => {
+  const [listPage, rankingList, detailPage, service] = await Promise.all([
     readFile(
       path.join(workspaceRoot, "src", "app", "(app)", "torneios", "rankings", "page.tsx"),
+      "utf8",
+    ),
+    readFile(
+      path.join(
+        workspaceRoot,
+        "src",
+        "components",
+        "tournaments",
+        "ranking-list.tsx",
+      ),
       "utf8",
     ),
     readFile(
@@ -165,7 +175,10 @@ test("pair ranking screens render pair entries and category activity", async () 
     ),
   ]);
 
-  assert.match(listPage, /ranking\.pairLeaderboard/);
+  assert.match(listPage, /RankingList/);
+  assert.match(rankingList, /formatType\(ranking\.type\)/);
+  assert.match(rankingList, /ranking\._count\.tournaments/);
+  assert.doesNotMatch(rankingList, /ranking\.pairLeaderboard/);
   assert.match(detailPage, /ranking\.pairLeaderboard/);
   assert.match(service, /buildPairTournamentSummaries/);
   assert.match(service, /pairSourceEntries.*buildCycleSummaries/s);
