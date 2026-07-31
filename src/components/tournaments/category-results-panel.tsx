@@ -5,6 +5,7 @@ import {
   finishCategoryCompetitionAction,
   recordCategoryMatchResultAction,
   updateCategoryMatchScheduleAction,
+  updateCategoryMatchStatusAction,
 } from "@/lib/actions/category-competition";
 
 type CompetitionMatch = {
@@ -15,6 +16,7 @@ type CompetitionMatch = {
   scheduledTime: string | null;
   homeScore: number | null;
   awayScore: number | null;
+  manualStatus: string | null;
   homePair: { name: string } | null;
   awayPair: { name: string } | null;
   winnerPair: { name: string } | null;
@@ -120,11 +122,9 @@ export function CategoryResultsPanel({
                         competition.status === "PUBLISHED" &&
                         match.homePair &&
                         match.awayPair;
-                      const matchStatus = match.winnerPair
-                        ? "FINISHED"
-                        : match.scheduledDate && match.scheduledTime
-                          ? "SCHEDULED"
-                          : "DRAFT";
+                      const matchStatus =
+                        match.manualStatus ??
+                        (match.winnerPair ? "FINISHED" : "SCHEDULED");
 
                       return (
                         <div className="category-game-row" key={match.id}>
@@ -157,6 +157,32 @@ export function CategoryResultsPanel({
                             <StatusBadge status={matchStatus} />
                           </div>
                           <div className="category-game-actions">
+                          {competition.status === "PUBLISHED" ? (
+                            <form
+                              action={updateCategoryMatchStatusAction}
+                              className="field-inline category-game-form"
+                            >
+                              <input
+                                type="hidden"
+                                name="matchId"
+                                value={match.id}
+                              />
+                              <select
+                                name="status"
+                                defaultValue={matchStatus}
+                                aria-label={`Status de ${match.label}`}
+                              >
+                                <option value="SCHEDULED">Agendado</option>
+                                <option value="LIVE">Em andamento</option>
+                                <option value="FINISHED">Finalizado</option>
+                              </select>
+                              <SubmitButton
+                                label="Salvar status"
+                                pendingLabel="..."
+                                className="button"
+                              />
+                            </form>
+                          ) : null}
                           <form
                             action={updateCategoryMatchScheduleAction}
                             className="field-inline category-game-form"
@@ -216,7 +242,11 @@ export function CategoryResultsPanel({
                                 style={{ width: "76px" }}
                               />
                               <SubmitButton
-                                label={match.winnerPair ? "Atualizar" : "Salvar"}
+                                label={
+                                  match.winnerPair
+                                    ? "Atualizar resultado"
+                                    : "Salvar resultado"
+                                }
                                 pendingLabel="..."
                                 className="button"
                               />

@@ -271,6 +271,7 @@ export default async function CategoryPage({
             scheduledTime: match.scheduledTime,
             homeScore: match.homeScore,
             awayScore: match.awayScore,
+            manualStatus: match.manualStatus,
             homePair: match.homePair,
             awayPair: match.awayPair,
             winnerPair: match.winnerPair,
