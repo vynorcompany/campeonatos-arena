@@ -24,3 +24,9 @@ export const createTournamentSchema = z.object({
 export const updateTournamentSchema = createTournamentSchema.extend({
   tournamentId: z.string().min(1, "Torneio inválido.")
 });
+
+export const updateTournamentEventSchema = z.object({
+  tournamentId: z.string().min(1, "Torneio inválido."),
+  name: z.string().trim().min(3, "Nome do campeonato muito curto."),
+  description: z.string().trim().default(""),
+});

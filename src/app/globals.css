@@ -6282,6 +6282,64 @@ button {
   text-align: right;
 }
 
+.category-game-list {
+  display: grid;
+  gap: 10px;
+}
+
+.category-game-row {
+  display: grid;
+  grid-template-columns: 9rem 9rem minmax(13rem, 1fr) 8rem minmax(17rem, auto);
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--panel-muted);
+}
+
+.category-game-time,
+.category-game-stage,
+.category-game-pairs,
+.category-game-result {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.category-game-label {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.category-game-stage span:not(.category-game-label),
+.category-game-pairs span:not(.category-game-label) {
+  overflow-wrap: anywhere;
+}
+
+.category-game-result .status-badge {
+  justify-self: start;
+}
+
+.category-game-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.category-game-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.category-game-form input {
+  min-width: 0;
+}
+
 @media (max-width: 640px) {
   .category-overview,
   .category-overview-head,
@@ -6296,5 +6354,9 @@ button {
 
   .category-overview-action .button {
     width: 100%;
+  }
+
+  .category-game-row {
+    grid-template-columns: 1fr;
   }
 }

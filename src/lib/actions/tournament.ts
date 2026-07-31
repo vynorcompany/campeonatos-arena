@@ -36,7 +36,11 @@ import {
   updateMatchResultSchema,
   updateMatchScheduleSchema
 } from "@/lib/validators/match";
-import { createTournamentSchema, updateTournamentSchema } from "@/lib/validators/tournament";
+import {
+  createTournamentSchema,
+  updateTournamentEventSchema,
+  updateTournamentSchema,
+} from "@/lib/validators/tournament";
 import { createManualTournamentRegistrationSchema, updateManualTournamentRegistrationSchema } from "@/lib/validators/public-registration";
 import {
   createTournamentPair,
@@ -663,6 +667,41 @@ export async function finishTournamentAction(formData: FormData) {
 
 export async function updateTournamentAction(_: ActionState, formData: FormData): Promise<ActionState> {
   const auth = await requireModuleEdit("tournaments");
+
+  if (!formData.has("publicSlug")) {
+    const eventParsed = updateTournamentEventSchema.safeParse({
+      tournamentId: formData.get("tournamentId"),
+      name: formData.get("name"),
+      description: formData.get("description"),
+    });
+
+    if (!eventParsed.success) {
+      return {
+        error: eventParsed.error.issues[0]?.message ?? "Dados inválidos.",
+        success: null,
+      };
+    }
+
+    const updated = await prisma.tournament.updateMany({
+      where: {
+        id: eventParsed.data.tournamentId,
+        arenaId: auth.arenaId,
+      },
+      data: {
+        name: eventParsed.data.name,
+        description: eventParsed.data.description,
+      },
+    });
+
+    if (!updated.count) {
+      return { error: "Evento não encontrado.", success: null };
+    }
+
+    refreshTournamentRoutes();
+    revalidatePath(`/torneios/${eventParsed.data.tournamentId}`);
+    return { error: null, success: "Evento atualizado com sucesso." };
+  }
+
   const parsed = updateTournamentSchema.safeParse({
     tournamentId: formData.get("tournamentId"),
     creationMode: formData.get("creationMode"),

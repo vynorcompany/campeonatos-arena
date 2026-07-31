@@ -114,25 +114,52 @@ export function CategoryResultsPanel({
                 ) : null}
 
                 {competition.matches.length ? (
-                  <div className="simple-list">
+                  <div className="category-game-list">
                     {competition.matches.map((match) => {
                       const canRecord =
                         competition.status === "PUBLISHED" &&
                         match.homePair &&
                         match.awayPair;
+                      const matchStatus = match.winnerPair
+                        ? "FINISHED"
+                        : match.scheduledDate && match.scheduledTime
+                          ? "SCHEDULED"
+                          : "DRAFT";
 
                       return (
-                        <div className="simple-item" key={match.id}>
-                          <div className="match-copy">
-                            <strong>{match.label}</strong>
+                        <div className="category-game-row" key={match.id}>
+                          <div className="category-game-time">
+                            <span className="category-game-label">Data e horário</span>
+                            <strong>
+                              {match.scheduledDate ?? "A definir"}
+                              {match.scheduledTime
+                                ? ` · ${match.scheduledTime}`
+                                : ""}
+                            </strong>
+                          </div>
+                          <div className="category-game-stage">
+                            <span className="category-game-label">Fase / grupo</span>
+                            <strong>{match.stage}</strong>
+                            <span>{match.label}</span>
+                          </div>
+                          <div className="category-game-pairs">
+                            <span className="category-game-label">Duplas</span>
                             <span>
                               {match.homePair?.name ?? "A definir"} ×{" "}
                               {match.awayPair?.name ?? "A definir"}
                             </span>
                           </div>
+                          <div className="category-game-result">
+                            <span className="category-game-label">Placar / status</span>
+                            <strong>
+                              {match.homeScore ?? "–"} × {match.awayScore ?? "–"}
+                            </strong>
+                            <StatusBadge status={matchStatus} />
+                          </div>
+                          <div className="category-game-actions">
                           <form
                             action={updateCategoryMatchScheduleAction}
-                            className="field-inline"
+                            className="field-inline category-game-form"
                           >
                             <input
                               type="hidden"
@@ -162,7 +189,7 @@ export function CategoryResultsPanel({
                           {canRecord ? (
                             <form
                               action={recordCategoryMatchResultAction}
-                              className="field-inline"
+                              className="field-inline category-game-form"
                             >
                               <input
                                 type="hidden"
@@ -200,6 +227,7 @@ export function CategoryResultsPanel({
                               {match.awayScore ?? "–"}
                             </span>
                           )}
+                          </div>
                         </div>
                       );
                     })}

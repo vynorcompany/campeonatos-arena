@@ -3,10 +3,10 @@ import { notFound } from "next/navigation";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { TournamentCategoryManagerForm } from "@/components/forms/tournament-category-manager-form";
-import { TournamentForm } from "@/components/forms/tournament-form";
 import { CategoryList } from "@/components/tournaments/category-list";
 import { PublicRegistrationLinkActions } from "@/components/tournaments/public-registration-link-actions";
 import { StatusBadge } from "@/components/tournaments/status-badge";
+import { TournamentEventEditForm } from "@/components/tournaments/tournament-event-edit-form";
 import { deleteTournamentAction } from "@/lib/actions/tournament";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
@@ -19,7 +19,7 @@ export default async function TournamentDetailPage({
   params,
 }: TournamentDetailPageProps) {
   const auth = await requireModuleView("tournaments");
-  const [tournament, individualRankings] = await Promise.all([
+  const [tournament] = await Promise.all([
     prisma.tournament.findFirst({
       where: {
         id: params.tournamentId,
@@ -100,40 +100,10 @@ export default async function TournamentDetailPage({
 
       <details className="section-card">
         <summary>
-          <strong>Editar dados do evento</strong>
+          <strong>Editar evento</strong>
         </summary>
         <div style={{ marginTop: "1rem" }}>
-          <TournamentForm
-            mode="update"
-            tournamentId={tournament.id}
-            defaultName={tournament.name}
-            defaultDescription={tournament.description}
-            defaultPublicSlug={tournament.publicSlug}
-            defaultRegistrationPhase={tournament.registrationPhase}
-            defaultCreationMode={
-              tournament.creationMode as "MANUAL" | "PUBLIC"
-            }
-            defaultGroupCount={tournament.groupCount}
-            defaultPairsPerGroup={tournament.pairsPerGroup}
-            defaultPriceFirstCents={tournament.priceFirstCents}
-            defaultPriceSecondCents={tournament.priceSecondCents}
-            defaultPriceThirdCents={tournament.priceThirdCents}
-            defaultBlockCategoryGap={tournament.blockCategoryGap}
-            defaultMaxCategoryGap={tournament.maxCategoryGap}
-            defaultCategoryList={JSON.stringify(
-              tournament.categories.map((category) => ({
-                name: category.name,
-                groupCount: category.groupCount,
-                pairsPerGroup: category.pairsPerGroup,
-                priceSecondCents: category.priceSecondCents / 100,
-                priceThirdCents: category.priceThirdCents / 100,
-              })),
-            )}
-            defaultRankingId={tournament.rankingId ?? ""}
-            rankings={individualRankings}
-            submitLabel="Salvar evento"
-            pendingLabel="Salvando..."
-          />
+          <TournamentEventEditForm tournament={tournament} />
         </div>
       </details>
 
