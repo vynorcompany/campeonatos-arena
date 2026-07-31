@@ -32,8 +32,17 @@ test("games routes score entry to the selected category workspace", async () => 
 
   assert.match(
     source,
-    /href=\{`\/torneios\/\$\{selectedTournament\.id\}\/categorias\/\$\{selectedCategory\.id\}\?tab=games`\}/,
+    /if \(searchParams\?\.open === "games" && selectedTournament && selectedCategory\) \{\s*redirect\(\s*`\/torneios\/\$\{selectedTournament\.id\}\/categorias\/\$\{selectedCategory\.id\}\?tab=games`,\s*\);\s*\}/,
   );
+  assert.match(source, /<button\s+type="submit"\s+name="open"\s+value="games"/);
+  assert.doesNotMatch(source, /<Link\s+href=\{`\/torneios\/\$\{selectedTournament\.id\}\/categorias\/\$\{selectedCategory\.id\}\?tab=games`\}/);
+});
+
+test("games requires the same tournament permission as its score workspace", async () => {
+  const source = await readSource("src", "app", "(app)", "jogos", "page.tsx");
+
+  assert.match(source, /requireModuleView\("tournaments"\)/);
+  assert.doesNotMatch(source, /requireModuleView\("matches"\)/);
 });
 
 test("games no longer loads the legacy global match workspace", async () => {

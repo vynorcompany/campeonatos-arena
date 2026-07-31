@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { SectionCard } from "@/components/section-card";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
@@ -7,11 +8,12 @@ type GamesPageProps = {
   searchParams?: {
     tournamentId?: string;
     categoryId?: string;
+    open?: string;
   };
 };
 
 export default async function GamesPage({ searchParams }: GamesPageProps) {
-  const auth = await requireModuleView("matches");
+  const auth = await requireModuleView("tournaments");
   const activeTournaments = await prisma.tournament.findMany({
     where: {
       arenaId: auth.arenaId,
@@ -37,6 +39,12 @@ export default async function GamesPage({ searchParams }: GamesPageProps) {
   const selectedCategory =
     categories.find((category) => category.id === searchParams?.categoryId) ??
     categories[0];
+
+  if (searchParams?.open === "games" && selectedTournament && selectedCategory) {
+    redirect(
+      `/torneios/${selectedTournament.id}/categorias/${selectedCategory.id}?tab=games`,
+    );
+  }
 
   return (
     <div className="stack-md">
@@ -107,12 +115,14 @@ export default async function GamesPage({ searchParams }: GamesPageProps) {
                 Atualizar seleção
               </button>
               {selectedCategory ? (
-                <Link
-                  href={`/torneios/${selectedTournament.id}/categorias/${selectedCategory.id}?tab=games`}
+                <button
+                  type="submit"
+                  name="open"
+                  value="games"
                   className="button button-primary"
                 >
                   Abrir jogos da categoria
-                </Link>
+                </button>
               ) : (
                 <Link
                   href={`/torneios/${selectedTournament.id}`}
