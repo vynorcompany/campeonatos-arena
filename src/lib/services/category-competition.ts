@@ -60,15 +60,6 @@ async function runSerializableTransaction<T>(
   throw new Error("Não foi possível serializar a operação da competição.");
 }
 
-async function lockRankingProfile(
-  tx: Prisma.TransactionClient,
-  rankingId: string,
-) {
-  await tx.$queryRaw`
-    SELECT pg_advisory_xact_lock(hashtext(${rankingId}))
-  `;
-}
-
 type CreateCategoryCompetitionInput = {
   categoryId: string;
   class: string;
@@ -387,16 +378,22 @@ export async function createCategoryCompetition(
     let feedsGeneralRanking = false;
 
     if (input.rankingId) {
-      await lockRankingProfile(tx, input.rankingId);
-      const ranking = await tx.rankingProfile.findFirst({
-        where: {
-          id: input.rankingId,
-          arenaId,
-          active: true,
-          type: "PAIR",
-        },
-        select: { id: true, model: true, feedsGeneralRanking: true },
-      });
+      const rankingRows = await tx.$queryRaw<
+        Array<{
+          id: string;
+          model: RankingModel;
+          feedsGeneralRanking: boolean;
+        }>
+      >`
+        SELECT "id", "model", "feedsGeneralRanking"
+        FROM "RankingProfile"
+        WHERE "id" = ${input.rankingId}
+          AND "arenaId" = ${arenaId}
+          AND "active" = true
+          AND "type" = 'PAIR'::"RankingType"
+        FOR UPDATE
+      `;
+      const ranking = rankingRows[0];
       if (!ranking) {
         throw new Error("Selecione um ranking de duplas válido para esta arena.");
       }
