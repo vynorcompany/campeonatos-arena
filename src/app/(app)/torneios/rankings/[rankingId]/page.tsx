@@ -15,6 +15,7 @@ import {
 } from "@/lib/actions/tournament";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
+import { formatRankingDateInput } from "@/lib/ranking/period";
 import { getRankingProfileLeaderboard } from "@/lib/services/ranking";
 
 type RankingDetailPageProps = {
@@ -157,7 +158,7 @@ export default async function RankingDetailPage({ params, searchParams }: Rankin
     (competition) => competition.status !== "DRAFT",
   );
   const periodQuery = ranking.period.query;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = formatRankingDateInput(new Date());
 
   return (
     <div className="stack-md">

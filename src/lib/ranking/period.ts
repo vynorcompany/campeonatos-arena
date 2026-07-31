@@ -126,6 +126,17 @@ function formatDateOnly(date: Date, timeZone: string) {
   ].join("-");
 }
 
+export function formatRankingDateInput(
+  date: Date,
+  timeZone = "America/Sao_Paulo",
+) {
+  return formatDateOnly(date, timeZone);
+}
+
+function getMonthKey(date: Date, timeZone: string) {
+  return formatDateOnly(date, timeZone).slice(0, 7);
+}
+
 function addDays(date: Date, days: number, timeZone: string) {
   const parts = getZonedDateParts(date, timeZone);
   const calendarDate = new Date(Date.UTC(parts.year, parts.month - 1, parts.day + days));
@@ -190,6 +201,42 @@ const presetLabels: Record<Exclude<RankingPeriodMode, "custom" | "cycle">, strin
   year: "Ano atual",
 };
 
+export function buildVirtualRankingCycle(
+  now = new Date(),
+  timeZone = "America/Sao_Paulo",
+): RankingPeriodCycle {
+  const [startedAt, endExclusive] = presetRange("month", now, timeZone);
+  return {
+    id: `current-${getMonthKey(now, timeZone)}`,
+    label: "Ciclo atual",
+    startedAt,
+    endedAt: new Date(endExclusive.getTime() - 1),
+  };
+}
+
+export function resolveLegacyRankingPeriod(
+  cycles: RankingPeriodCycle[],
+  now = new Date(),
+  timeZone = "America/Sao_Paulo",
+): ResolvedRankingPeriod {
+  const currentMonthKey = getMonthKey(now, timeZone);
+  const cycle =
+    cycles.find(
+      (item) => getMonthKey(item.startedAt, timeZone) === currentMonthKey,
+    ) ?? buildVirtualRankingCycle(now, timeZone);
+
+  return {
+    mode: "cycle",
+    label: cycle.label,
+    start: cycle.startedAt,
+    endExclusive: cycle.endedAt
+      ? new Date(cycle.endedAt.getTime() + 1)
+      : null,
+    query: { period: "cycle", cycleId: cycle.id },
+    error: null,
+  };
+}
+
 export function resolveRankingPeriod(
   query: RankingPeriodQuery,
   cycles: RankingPeriodCycle[],
@@ -246,7 +293,15 @@ export function resolveRankingPeriod(
   }
 
   if (requestedMode === "cycle") {
-    const cycle = cycles.find((item) => item.id === query.cycleId);
+    const legacyMonthId = /^(?:current-)?(\d{4}-\d{2})$/.exec(
+      query.cycleId ?? "",
+    )?.[1] ?? null;
+    const cycle = cycles.find(
+      (item) =>
+        item.id === query.cycleId ||
+        (legacyMonthId &&
+          getMonthKey(item.startedAt, timeZone) === legacyMonthId),
+    );
     if (cycle) {
       return {
         mode: "cycle",

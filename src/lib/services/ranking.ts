@@ -4,6 +4,8 @@ import {
   type GeneralRankingFeedPairSource,
 } from "@/lib/ranking/general-feed";
 import {
+  buildVirtualRankingCycle,
+  resolveLegacyRankingPeriod,
   resolveRankingPeriod,
   type RankingPeriodQuery,
   type ResolvedRankingPeriod,
@@ -121,18 +123,8 @@ type CategoryPairRankingSource = {
   };
 };
 
-function getMonthKey(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  return `${year}-${month}`;
-}
-
 function getMonthStart(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), 1);
-}
-
-function getMonthEnd(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 1);
 }
 
 function buildRankingLeaderboard(entries: RankingSourceEntry[]) {
@@ -284,11 +276,6 @@ function isPairEntryInCycle(
     (!cycle.endedAt || timestamp <= cycle.endedAt.getTime());
 }
 
-function getCurrentCycle(cycles: RankingCycleSource[]) {
-  const currentMonthKey = getMonthKey(new Date());
-  return cycles.find((cycle) => getMonthKey(cycle.startedAt) === currentMonthKey) ?? cycles[cycles.length - 1] ?? null;
-}
-
 function buildCycleLabel(index: number, cycle: RankingCycleSource) {
   const month = new Intl.DateTimeFormat("pt-BR", { month: "long" }).format(cycle.startedAt);
   const year = cycle.startedAt.getFullYear();
@@ -301,34 +288,34 @@ function buildCycleLabel(index: number, cycle: RankingCycleSource) {
   return `${month} ${year}`;
 }
 
-function buildVirtualCycle(rankingCreatedAt: Date): RankingCycleSource {
-  const currentMonth = new Date();
-  return {
-    id: `current-${getMonthKey(currentMonth)}`,
-    label: "Ciclo atual",
-    startedAt: getMonthStart(currentMonth),
-    endedAt: new Date(getMonthEnd(currentMonth).getTime() - 1)
-  };
+function buildAvailableCycles(
+  cycles: RankingCycleSource[],
+  now = new Date(),
+) {
+  const normalizedCycles = cycles.length
+    ? [...cycles]
+    : [buildVirtualRankingCycle(now)];
+
+  if (!normalizedCycles.some((cycle) =>
+    cycle.startedAt <= now && (!cycle.endedAt || cycle.endedAt >= now)
+  )) {
+    normalizedCycles.push(buildVirtualRankingCycle(now));
+  }
+
+  return [...new Map(
+    normalizedCycles.map((cycle) => [cycle.id, cycle] as const),
+  ).values()];
 }
 
 function buildCycleSummaries(
-  rankingCreatedAt: Date,
   cycles: RankingCycleSource[],
   sourceEntries: RankingSourceEntry[],
   pairSourceEntries: CategoryPairRankingSource[],
 ): RankingCycleSummary[] {
   const now = new Date();
-  const normalizedCycles = cycles.length ? [...cycles] : [buildVirtualCycle(rankingCreatedAt)];
+  const availableCycles = buildAvailableCycles(cycles, now);
 
-  if (!normalizedCycles.some((cycle) =>
-    cycle.startedAt <= now && (!cycle.endedAt || cycle.endedAt >= now)
-  )) {
-    normalizedCycles.push(buildVirtualCycle(rankingCreatedAt));
-  }
-
-  const uniqueCycles = [...new Map(normalizedCycles.map((cycle) => [cycle.id, cycle] as const)).values()];
-
-  return uniqueCycles.map((cycle) => {
+  return availableCycles.map((cycle) => {
     const entries = sourceEntries.filter((entry) => isEntryInCycle(entry, cycle));
     const pairEntries = pairSourceEntries.filter((entry) =>
       isPairEntryInCycle(entry, cycle),
@@ -380,15 +367,17 @@ function buildRankingView(
   },
   sourceEntries: RankingSourceEntry[],
   pairSourceEntries: CategoryPairRankingSource[],
-  periodQuery: RankingPeriodQuery = { period: "month" },
+  periodQuery?: RankingPeriodQuery,
 ): RankingProfileWithLeaderboard {
+  const availableCycles = buildAvailableCycles(ranking.cycles);
   const cycles = buildCycleSummaries(
-    ranking.createdAt,
     ranking.cycles,
     sourceEntries,
     pairSourceEntries,
   );
-  const period = resolveRankingPeriod(periodQuery, ranking.cycles);
+  const period = periodQuery
+    ? resolveRankingPeriod(periodQuery, availableCycles)
+    : resolveLegacyRankingPeriod(availableCycles);
   const isInPeriod = (date: Date) =>
     date >= period.start && (!period.endExclusive || date < period.endExclusive);
   const selectedEntries = sourceEntries.filter((entry) =>
@@ -680,7 +669,7 @@ export async function getRankingProfilesWithLeaderboard(arenaId: string): Promis
 export async function getRankingProfileLeaderboard(
   arenaId: string,
   rankingId: string,
-  requestedPeriod: RankingPeriodQuery | string = { period: "month" },
+  requestedPeriod?: RankingPeriodQuery | string,
 ) {
   const ranking = await prisma.rankingProfile.findFirst({
     where: {

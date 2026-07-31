@@ -2,7 +2,12 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
-import { resolveRankingPeriod } from "../src/lib/ranking/period";
+import {
+  buildVirtualRankingCycle,
+  formatRankingDateInput,
+  resolveLegacyRankingPeriod,
+  resolveRankingPeriod,
+} from "../src/lib/ranking/period";
 
 const workspaceRoot = process.cwd();
 
@@ -246,6 +251,78 @@ test("cycle ranking period uses the selected named cycle range", () => {
   assert.equal(resolved.query.cycleId, "cycle-2");
   assertLocalDate(resolved.start, "2026-07-01");
   assertLocalDate(resolved.endExclusive, "2027-01-01");
+});
+
+test("cycle period resolves virtual and legacy month identifiers", () => {
+  const now = new Date("2026-08-01T01:30:00.000Z");
+  const virtualCycle = buildVirtualRankingCycle(now);
+  assert.equal(virtualCycle.id, "current-2026-07");
+
+  const virtual = resolveRankingPeriod(
+    { period: "cycle", cycleId: virtualCycle.id },
+    [virtualCycle],
+    now,
+  );
+  assert.equal(virtual.error, null);
+  assert.equal(virtual.query.cycleId, "current-2026-07");
+
+  const namedCycle = {
+    id: "cycle-2",
+    label: "2º semestre 2026",
+    startedAt: new Date("2026-07-01T03:00:00.000Z"),
+    endedAt: new Date("2027-01-01T02:59:59.999Z"),
+  };
+  const legacy = resolveRankingPeriod(
+    { period: "cycle", cycleId: "2026-07" },
+    [namedCycle],
+    now,
+  );
+  assert.equal(legacy.error, null);
+  assert.equal(legacy.query.cycleId, namedCycle.id);
+  assert.equal(legacy.label, namedCycle.label);
+
+  const staleVirtual = resolveRankingPeriod(
+    { period: "cycle", cycleId: "current-2026-07" },
+    [namedCycle],
+    now,
+  );
+  assert.equal(staleVirtual.error, null);
+  assert.equal(staleVirtual.query.cycleId, namedCycle.id);
+});
+
+test("ranking service without an explicit period retains legacy cycle selection", () => {
+  const now = new Date("2026-08-01T01:30:00.000Z");
+  const cycle = {
+    id: "second-semester",
+    label: "2º semestre 2026",
+    startedAt: new Date("2026-07-01T03:00:00.000Z"),
+    endedAt: new Date("2027-01-01T02:59:59.999Z"),
+  };
+
+  const resolved = resolveLegacyRankingPeriod([cycle], now);
+  assert.equal(resolved.mode, "cycle");
+  assert.equal(resolved.query.cycleId, cycle.id);
+  assert.equal(resolved.start, cycle.startedAt);
+  assert.equal(resolved.endExclusive?.toISOString(), "2027-01-01T03:00:00.000Z");
+
+  const service = readFileSync(
+    path.join(workspaceRoot, "src", "lib", "services", "ranking.ts"),
+    "utf8",
+  );
+  assert.match(service, /requestedPeriod\?: RankingPeriodQuery \| string/);
+  assert.match(service, /resolveLegacyRankingPeriod\(availableCycles\)/);
+});
+
+test("named cycle default date follows São Paulo calendar date", () => {
+  const edge = new Date("2026-08-01T01:30:00.000Z");
+  assert.equal(formatRankingDateInput(edge), "2026-07-31");
+
+  const page = readFileSync(
+    path.join(workspaceRoot, "src", "app", "(app)", "torneios", "rankings", "[rankingId]", "page.tsx"),
+    "utf8",
+  );
+  assert.match(page, /formatRankingDateInput\(new Date\(\)\)/);
+  assert.doesNotMatch(page, /new Date\(\)\.toISOString\(\)\.slice\(0, 10\)/);
 });
 
 test("ranking period selection is preserved across every workspace tab", () => {
