@@ -28,6 +28,7 @@ export type PublicStandingsOption = {
 };
 
 export type PublicGameSource = {
+  categoryId?: string;
   eventName: string;
   categoryName: string;
   label: string;
@@ -37,8 +38,11 @@ export type PublicGameSource = {
   scheduledTime: string | null;
   homePairName: string;
   awayPairName: string;
-  finished: boolean;
+  status?: PublicGameStatus;
+  finished?: boolean;
 };
+
+export type PublicGameStatus = "SCHEDULED" | "LIVE" | "FINISHED";
 
 export type PublicGameDay = {
   date: string;
@@ -49,7 +53,8 @@ export type PublicGameDay = {
     label: string;
     stage: string;
     roundOrder: number;
-    scheduledTime: string;
+    scheduledTime: string | null;
+    status: PublicGameStatus;
     homePairName: string;
     awayPairName: string;
   }>;
@@ -70,18 +75,15 @@ function formatPublicGameDay(date: string) {
 export function buildPublicGameAgenda(
   matches: PublicGameSource[],
 ): PublicGameDay[] {
-  const visibleMatches = matches
-    .filter(
-      (match) =>
-        !match.finished &&
-        Boolean(match.scheduledDate?.trim()) &&
-        Boolean(match.scheduledTime?.trim()),
-    )
-    .sort((first, second) => {
-      const byDate = first.scheduledDate!.localeCompare(second.scheduledDate!);
+  const visibleMatches = [...matches].sort((first, second) => {
+      const byDate = (first.scheduledDate ?? "9999-12-31").localeCompare(
+        second.scheduledDate ?? "9999-12-31",
+      );
       if (byDate) return byDate;
 
-      const byTime = first.scheduledTime!.localeCompare(second.scheduledTime!);
+      const byTime = (first.scheduledTime ?? "23:59").localeCompare(
+        second.scheduledTime ?? "23:59",
+      );
       if (byTime) return byTime;
 
       const byEvent = first.eventName.localeCompare(second.eventName, "pt-BR");
@@ -97,7 +99,7 @@ export function buildPublicGameAgenda(
     });
 
   return visibleMatches.reduce<PublicGameDay[]>((days, match) => {
-    const date = match.scheduledDate!;
+    const date = match.scheduledDate ?? "unscheduled";
     const day = days.at(-1);
     const game = {
       eventName: match.eventName,
@@ -105,7 +107,8 @@ export function buildPublicGameAgenda(
       label: match.label,
       stage: match.stage,
       roundOrder: match.roundOrder,
-      scheduledTime: match.scheduledTime!,
+      scheduledTime: match.scheduledTime,
+      status: match.status ?? (match.finished ? "FINISHED" : "SCHEDULED"),
       homePairName: match.homePairName,
       awayPairName: match.awayPairName,
     };
@@ -117,11 +120,27 @@ export function buildPublicGameAgenda(
 
     days.push({
       date,
-      label: formatPublicGameDay(date),
+      label: match.scheduledDate ? formatPublicGameDay(date) : "A definir",
       games: [game],
     });
     return days;
   }, []);
+}
+
+export function filterPublicGames(
+  games: PublicGameSource[],
+  filters: {
+    categoryId: string | null;
+    status: PublicGameStatus | "ALL";
+  },
+) {
+  return games.filter(
+    (game) =>
+      (!filters.categoryId || game.categoryId === filters.categoryId) &&
+      (filters.status === "ALL" ||
+        (game.status ?? (game.finished ? "FINISHED" : "SCHEDULED")) ===
+          filters.status),
+  );
 }
 
 export function selectPublicStandingsOptions({

@@ -293,6 +293,19 @@ export function CategoryResultsPanel({
                               className="button"
                             />
                           </form>
+                          <form
+                            action={updateCategoryMatchScheduleAction}
+                            className="category-game-form"
+                          >
+                            <input type="hidden" name="matchId" value={match.id} />
+                            <input type="hidden" name="scheduledDate" value="" />
+                            <input type="hidden" name="scheduledTime" value="" />
+                            <SubmitButton
+                              label="Limpar agendamento"
+                              pendingLabel="..."
+                              className="button"
+                            />
+                          </form>
                           {canRecord ? (
                             <form
                               action={recordCategoryMatchResultAction}

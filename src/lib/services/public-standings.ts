@@ -2,8 +2,10 @@ import { prisma } from "@/lib/prisma";
 import {
   buildPublicGameAgenda,
   buildPublicCategoryStandings,
+  filterPublicGames,
   selectPublicStandingsOptions,
   type PublicGameDay,
+  type PublicGameStatus,
   type PublicStandingsOption,
 } from "@/lib/public-standings";
 import { getRankingProfileLeaderboard } from "@/lib/services/ranking";
@@ -16,7 +18,11 @@ export type ArenaPublicStandings = {
   };
   options: PublicStandingsOption[];
   selectedOptionId: string | null;
-  upcomingGames: PublicGameDay[];
+  selectedTab: "ranking" | "games";
+  gameCategories: Array<{ id: string; label: string }>;
+  selectedGameCategoryId: string | null;
+  selectedGameStatus: PublicGameStatus | "ALL";
+  games: PublicGameDay[];
   selected:
     | {
         kind: "GENERAL_RANKING";
@@ -45,7 +51,12 @@ export type ArenaPublicStandings = {
 
 export async function getArenaPublicStandings(
   arenaSlug: string,
-  requestedOptionId?: string,
+  requested: {
+    view?: string;
+    tab?: string;
+    league?: string;
+    status?: string;
+  } = {},
 ): Promise<ArenaPublicStandings | null> {
   const arena = await prisma.arena.findUnique({
     where: { slug: arenaSlug },
@@ -59,7 +70,7 @@ export async function getArenaPublicStandings(
     return null;
   }
 
-  const [generalRanking, categoryRecords, agendaCategoryRecords] = await Promise.all([
+  const [generalRanking, categoryRecords, gameCategoryRecords] = await Promise.all([
     prisma.rankingProfile.findFirst({
       where: {
         arenaId: arena.id,
@@ -120,21 +131,14 @@ export async function getArenaPublicStandings(
     prisma.categoryCompetition.findMany({
       where: {
         isPublic: true,
-        status: { not: "FINISHED" },
         category: {
           tournament: { arenaId: arena.id },
-        },
-        matches: {
-          some: {
-            scheduledDate: { not: null },
-            scheduledTime: { not: null },
-            winnerPairId: null,
-          },
         },
       },
       select: {
         category: {
           select: {
+            id: true,
             name: true,
             tournament: {
               select: { name: true },
@@ -142,17 +146,14 @@ export async function getArenaPublicStandings(
           },
         },
         matches: {
-          where: {
-            scheduledDate: { not: null },
-            scheduledTime: { not: null },
-            winnerPairId: null,
-          },
           select: {
             label: true,
             stage: true,
             roundOrder: true,
             scheduledDate: true,
             scheduledTime: true,
+            manualStatus: true,
+            winnerPairId: true,
             homePair: { select: { name: true } },
             awayPair: { select: { name: true } },
           },
@@ -160,9 +161,27 @@ export async function getArenaPublicStandings(
       },
     }),
   ]);
-  const upcomingGames = buildPublicGameAgenda(
-    agendaCategoryRecords.flatMap((record) =>
+  const selectedTab = requested.tab === "games" ? "games" : "ranking";
+  const selectedGameStatus: PublicGameStatus | "ALL" =
+    requested.status === "SCHEDULED" ||
+    requested.status === "LIVE" ||
+    requested.status === "FINISHED"
+      ? requested.status
+      : "ALL";
+  const gameCategories = gameCategoryRecords.map((record) => ({
+    id: record.category.id,
+    label: `${record.category.name} · ${record.category.tournament.name}`,
+  }));
+  const selectedGameCategoryId = gameCategories.some(
+    (category) => category.id === requested.league,
+  )
+    ? requested.league ?? null
+    : null;
+  const games = buildPublicGameAgenda(
+    filterPublicGames(
+      gameCategoryRecords.flatMap((record) =>
       record.matches.map((match) => ({
+        categoryId: record.category.id,
         eventName: record.category.tournament.name,
         categoryName: record.category.name,
         label: match.label,
@@ -172,8 +191,14 @@ export async function getArenaPublicStandings(
         scheduledTime: match.scheduledTime,
         homePairName: match.homePair?.name ?? "Dupla a definir",
         awayPairName: match.awayPair?.name ?? "Dupla a definir",
-        finished: false,
+        status: match.winnerPairId
+          ? "FINISHED"
+          : match.manualStatus === "LIVE"
+            ? "LIVE"
+            : "SCHEDULED",
       })),
+      ),
+      { categoryId: selectedGameCategoryId, status: selectedGameStatus },
     ),
   );
   const categorySources = categoryRecords.map((record) => ({
@@ -188,14 +213,18 @@ export async function getArenaPublicStandings(
     categories: categorySources,
   });
   const selectedOption =
-    options.find((option) => option.id === requestedOptionId) ?? options[0];
+    options.find((option) => option.id === requested.view) ?? options[0];
 
   if (!selectedOption) {
     return {
       arena,
       options,
       selectedOptionId: null,
-      upcomingGames,
+      selectedTab,
+      gameCategories,
+      selectedGameCategoryId,
+      selectedGameStatus,
+      games,
       selected: null,
     };
   }
@@ -213,7 +242,11 @@ export async function getArenaPublicStandings(
       arena,
       options,
       selectedOptionId: selectedOption.id,
-      upcomingGames,
+      selectedTab,
+      gameCategories,
+      selectedGameCategoryId,
+      selectedGameStatus,
+      games,
       selected: ranking
         ? {
             kind: "GENERAL_RANKING",
@@ -238,7 +271,11 @@ export async function getArenaPublicStandings(
       arena,
       options,
       selectedOptionId: selectedOption.id,
-      upcomingGames,
+      selectedTab,
+      gameCategories,
+      selectedGameCategoryId,
+      selectedGameStatus,
+      games,
       selected: null,
     };
   }
@@ -249,7 +286,11 @@ export async function getArenaPublicStandings(
     arena,
     options,
     selectedOptionId: selectedOption.id,
-    upcomingGames,
+    selectedTab,
+    gameCategories,
+    selectedGameCategoryId,
+    selectedGameStatus,
+    games,
     selected: {
       kind: "CATEGORY",
       categoryName: category.category.name,

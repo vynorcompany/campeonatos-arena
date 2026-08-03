@@ -209,7 +209,7 @@ test("category visibility is persisted and wired through its guarded admin actio
   assert.match(form, /Exibir na página pública/);
 });
 
-test("one public arena route renders the unified selector and sports-only standings", async () => {
+test("public arena route renders ranking and game views", async () => {
   const [route, component, service] = await Promise.all([
     readFile(
       path.join(
@@ -245,16 +245,20 @@ test("one public arena route renders the unified selector and sports-only standi
   ]);
 
   assert.match(route, /getArenaPublicStandings/);
+  assert.match(route, /tab\?: string/);
+  assert.match(route, /league\?: string/);
+  assert.match(route, /status\?: string/);
+  assert.match(component, />Ranking</);
+  assert.match(component, />Jogos</);
   assert.match(component, /<select[\s\S]*name="view"/);
+  assert.match(component, /name="league"/);
+  assert.match(component, /option value="LIVE">Em andamento/);
   assert.match(component, /Classificação da Liga/);
   assert.match(component, /Colocação final/);
   assert.match(component, /Ranking Geral/);
   assert.doesNotMatch(component, /totalPoints/);
   assert.doesNotMatch(component, /finishCategoryCompetitionAction/);
-  assert.match(
-    service,
-    /isPublic:\s*true[\s\S]*status:\s*"FINISHED"/,
-  );
+  assert.match(service, /filterPublicGames\(/);
 });
 
 test("public agenda copy is stored as valid Portuguese text", async () => {
@@ -270,6 +274,6 @@ test("public agenda copy is stored as valid Portuguese text", async () => {
   );
 
   assert.match(component, /Agenda pública/);
-  assert.match(component, /Próximos jogos/);
+  assert.match(component, />Jogos</);
   assert.doesNotMatch(component, /PÃ|Ãƒ/);
 });

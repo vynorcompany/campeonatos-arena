@@ -328,6 +328,8 @@ test("category schedule and availability are wired through schema, service, acti
     /export async function updateCategoryMatchScheduleAction\([^]*requireModuleEdit\("tournaments"\)/,
   );
   assert.match(resultsPanel, /action=\{updateCategoryMatchScheduleAction\}/);
+  assert.match(resultsPanel, /label="Limpar agendamento"/);
+  assert.match(resultsPanel, /name="scheduledDate"\s+value=""/);
   assert.match(resultsPanel, /type="date"/);
   assert.match(resultsPanel, /type="time"/);
   assert.match(

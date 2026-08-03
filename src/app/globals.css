@@ -6426,3 +6426,10 @@ button {
 .category-game-filter-field label { font-size: .8rem; font-weight: 700; }
 .category-game-filter-toolbar select, .category-game-filter-toolbar input { width: 100%; min-height: 38px; }
 @media (max-width: 760px) { .category-game-filter-toolbar { grid-template-columns: 1fr; } }
+
+.public-standings-tabs { display: flex; gap: 8px; }
+.public-standings-filter, .public-games-filter { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto; gap: 12px; align-items: end; }
+.public-standings-filter label, .public-games-filter label, .public-games-filter div { display: grid; gap: 6px; }
+.public-games-filter select, .public-standings-filter select { min-height: 38px; width: 100%; }
+.public-game-item { display: grid; gap: 4px; }
+@media (max-width: 640px) { .public-standings-filter, .public-games-filter { grid-template-columns: 1fr; } .public-standings-tabs .button { flex: 1; } }

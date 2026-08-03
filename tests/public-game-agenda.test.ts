@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildPublicGameAgenda } from "../src/lib/public-standings";
+import {
+  buildPublicGameAgenda,
+  filterPublicGames,
+} from "../src/lib/public-standings";
 
 test("groups public games by day and sorts them by time", () => {
   const agenda = buildPublicGameAgenda([
@@ -90,7 +93,7 @@ test("sorts equal-time games by event, category, and round order", () => {
   ]);
 });
 
-test("ignores finished games or games with incomplete scheduling", () => {
+test("keeps finished and unscheduled games in the public agenda", () => {
   const agenda = buildPublicGameAgenda([
     {
       eventName: "Open",
@@ -102,7 +105,8 @@ test("ignores finished games or games with incomplete scheduling", () => {
       scheduledTime: "18:00",
       homePairName: "A",
       awayPairName: "B",
-      finished: true,
+      categoryId: "category-a",
+      status: "FINISHED",
     },
     {
       eventName: "Open",
@@ -114,9 +118,73 @@ test("ignores finished games or games with incomplete scheduling", () => {
       scheduledTime: "",
       homePairName: "A",
       awayPairName: "B",
-      finished: false,
+      categoryId: "category-a",
+      status: "SCHEDULED",
     },
   ]);
 
-  assert.equal(agenda.length, 0);
+  assert.equal(agenda.length, 1);
+  assert.deepEqual(
+    agenda[0].games.map((game) => game.status).sort(),
+    ["FINISHED", "SCHEDULED"],
+  );
+  assert.equal(
+    agenda[0].games.find((game) => game.status === "SCHEDULED")?.scheduledTime,
+    "",
+  );
+});
+
+test("filters public games by league and status", () => {
+  const games = [
+    {
+      categoryId: "category-a",
+      eventName: "Open",
+      categoryName: "5ª M",
+      label: "Agendado",
+      stage: "GROUP",
+      roundOrder: 1,
+      scheduledDate: "2026-08-02",
+      scheduledTime: "18:00",
+      homePairName: "A",
+      awayPairName: "B",
+      status: "SCHEDULED" as const,
+    },
+    {
+      categoryId: "category-a",
+      eventName: "Open",
+      categoryName: "5ª M",
+      label: "Em andamento",
+      stage: "GROUP",
+      roundOrder: 2,
+      scheduledDate: "2026-08-02",
+      scheduledTime: "19:00",
+      homePairName: "C",
+      awayPairName: "D",
+      status: "LIVE" as const,
+    },
+    {
+      categoryId: "category-b",
+      eventName: "Open",
+      categoryName: "6ª M",
+      label: "Finalizado",
+      stage: "FINAL",
+      roundOrder: 3,
+      scheduledDate: null,
+      scheduledTime: null,
+      homePairName: "E",
+      awayPairName: "F",
+      status: "FINISHED" as const,
+    },
+  ];
+
+  assert.deepEqual(
+    filterPublicGames(games, { categoryId: "category-a", status: "LIVE" }).map(
+      (game) => game.label,
+    ),
+    ["Em andamento"],
+  );
+  assert.equal(
+    filterPublicGames(games, { categoryId: null, status: "ALL" }).length,
+    3,
+  );
 });

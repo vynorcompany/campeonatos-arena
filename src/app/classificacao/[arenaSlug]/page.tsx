@@ -9,12 +9,14 @@ export default async function PublicStandingsPage({
   searchParams,
 }: {
   params: { arenaSlug: string };
-  searchParams?: { view?: string };
+  searchParams?: {
+    view?: string;
+    tab?: string;
+    league?: string;
+    status?: string;
+  };
 }) {
-  const data = await getArenaPublicStandings(
-    params.arenaSlug,
-    searchParams?.view,
-  );
+  const data = await getArenaPublicStandings(params.arenaSlug, searchParams);
   if (!data) {
     notFound();
   }
