@@ -177,53 +177,26 @@ export function CategoryResultsPanel({
 
                 {competition.matches.length ? (
                   <>
-                    <form method="get" className="field-inline">
+                    <form method="get" className="category-game-filter-toolbar">
                       <input type="hidden" name="tab" value="games" />
-                      <input type="hidden" name="sort" value={sort} />
-                      <input type="hidden" name="status" value={statusFilter} />
-                      <label htmlFor={`game-sort-${category.id}`}>
-                        Ordenar jogos por
-                      </label>
-                      <select
-                        id={`game-sort-${category.id}`}
-                        name="sort"
-                        defaultValue={sort}
-                      >
-                        <option value="round">Rodada</option>
-                        <option value="date">Data</option>
-                        <option value="status">Status</option>
-                      </select>
+                      <div className="category-game-filter-field">
+                        <label htmlFor={`game-sort-${category.id}`}>Ordenar jogos por</label>
+                        <select id={`game-sort-${category.id}`} name="sort" defaultValue={sort}>
+                          <option value="round">Rodada</option><option value="date">Data</option><option value="status">Status</option>
+                        </select>
+                      </div>
+                      <div className="category-game-filter-field">
+                        <label htmlFor={`game-status-${category.id}`}>Exibir status</label>
+                        <select id={`game-status-${category.id}`} name="status" defaultValue={statusFilter}>
+                          <option value="ALL">Todos os status</option><option value="SCHEDULED">Agendados</option><option value="LIVE">Em andamento</option><option value="FINISHED">Finalizados</option>
+                        </select>
+                      </div>
+                      <div className="category-game-filter-field category-game-filter-search">
+                        <label htmlFor={`game-player-${category.id}`}>Buscar jogador</label>
+                        <input id={`game-player-${category.id}`} name="player" type="search" defaultValue={playerSearch} placeholder="Nome do atleta" />
+                      </div>
                       <button className="button" type="submit">
-                        Ordenar
-                      </button>
-                      <label htmlFor={`game-status-${category.id}`}>
-                        Exibir status
-                      </label>
-                      <select
-                        id={`game-status-${category.id}`}
-                        name="status"
-                        defaultValue={statusFilter}
-                      >
-                        <option value="ALL">Todos os status</option>
-                        <option value="SCHEDULED">Agendados</option>
-                        <option value="LIVE">Em andamento</option>
-                        <option value="FINISHED">Finalizados</option>
-                      </select>
-                      <button className="button" type="submit">
-                        Filtrar
-                      </button>
-                      <label htmlFor={`game-player-${category.id}`}>
-                        Buscar jogador
-                      </label>
-                      <input
-                        id={`game-player-${category.id}`}
-                        name="player"
-                        type="search"
-                        defaultValue={playerSearch}
-                        placeholder="Nome do atleta"
-                      />
-                      <button className="button" type="submit">
-                        Buscar
+                        Aplicar filtros
                       </button>
                     </form>
                   <div className="category-game-list">

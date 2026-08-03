@@ -6412,3 +6412,17 @@ button {
     grid-template-columns: 1fr;
   }
 }
+.category-game-filter-toolbar {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) minmax(180px, 1fr) minmax(220px, 1.4fr) auto;
+  gap: 12px;
+  align-items: end;
+  padding: 16px;
+  border: 1px solid var(--line, #d9e1ea);
+  border-radius: 12px;
+  background: var(--surface-muted, #f7f9fc);
+}
+.category-game-filter-field { display: grid; gap: 6px; }
+.category-game-filter-field label { font-size: .8rem; font-weight: 700; }
+.category-game-filter-toolbar select, .category-game-filter-toolbar input { width: 100%; min-height: 38px; }
+@media (max-width: 760px) { .category-game-filter-toolbar { grid-template-columns: 1fr; } }

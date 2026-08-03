@@ -343,3 +343,16 @@ test("category games can be searched by either pair name", async () => {
   assert.match(panel, /match\.awayPair\?\.name/);
   assert.match(panel, /toLocaleLowerCase\("pt-BR"\)/);
 });
+
+test("category game filters submit each criterion only once in a responsive toolbar", async () => {
+  const [panel, styles] = await Promise.all([
+    readFile(path.join(workspaceRoot, "src", "components", "tournaments", "category-results-panel.tsx"), "utf8"),
+    readFile(path.join(workspaceRoot, "src", "app", "globals.css"), "utf8"),
+  ]);
+
+  assert.match(panel, /className="category-game-filter-toolbar"/);
+  assert.equal((panel.match(/name="sort"/g) ?? []).length, 1);
+  assert.equal((panel.match(/name="status"/g) ?? []).length, 2);
+  assert.equal((panel.match(/name="player"/g) ?? []).length, 1);
+  assert.match(styles, /\.category-game-filter-toolbar/);
+});
