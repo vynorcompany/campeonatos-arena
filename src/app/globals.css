@@ -6429,9 +6429,11 @@ button {
 
 .public-standings-page { max-width: 960px; margin: 0 auto; padding: 40px 24px 56px; }
 .public-standings-header { padding: 8px 0 16px; }
-.public-standings-header-content { max-width: 620px; }
-.public-standings-logo { display: block; width: 96px; height: 96px; object-fit: contain; }
-.public-standings-header h1 { margin: 0; letter-spacing: -.035em; }
+.public-standings-brand-band { width: 100vw; margin-left: calc(50% - 50vw); padding: 44px 24px; color: #fff; background: linear-gradient(135deg, #174983 0%, #1e5ea8 55%, #4f8cd0 100%); box-shadow: 0 14px 30px rgba(23, 73, 131, .22); }
+.public-standings-header-content { width: min(100%, 912px); margin: 0 auto; align-items: center; text-align: center; }
+.public-standings-logo { display: block; width: 96px; height: 96px; object-fit: contain; filter: brightness(0) invert(1); }
+.public-standings-header h1 { margin: 0; color: #fff; letter-spacing: -.035em; }
+.public-standings-header-support { margin: 0; color: rgba(255, 255, 255, .88); font-size: 1rem; }
 .public-standings-tabs { display: flex; gap: 24px; border-bottom: 1px solid var(--line); }
 .public-standings-tabs .button { min-height: 44px; padding: 10px 2px 12px; border: 0; border-radius: 0; background: transparent; color: var(--muted); box-shadow: none; }
 .public-standings-tabs .button-primary { color: var(--primary); border-bottom: 2px solid var(--primary); }
@@ -6441,7 +6443,13 @@ button {
 .public-standings-filter-label { color: var(--muted); font-size: .7rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .public-games-filter select, .public-standings-filter select { min-height: 46px; width: 100%; border-radius: 10px; background: var(--panel); }
 .public-standings-filter .button { min-height: 46px; border-color: var(--line); background: transparent; color: var(--ink); box-shadow: none; }
-.public-game-item { display: grid; gap: 4px; }
+.public-game-item { display: grid; gap: 6px; }
+.public-game-matchup { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 12px; align-items: center; }
+.public-game-matchup > span { min-width: 0; overflow-wrap: anywhere; }
+.public-game-matchup > span:last-child { text-align: right; }
+.public-game-score { display: grid; justify-items: center; gap: 2px; min-width: 84px; padding: 7px 10px; border-radius: 10px; color: var(--brand-strong); background: var(--brand-soft); line-height: 1; }
+.public-game-score strong { font-size: 1.05rem; white-space: nowrap; }
+.public-game-set-scores { color: var(--muted); font-size: .72rem; font-weight: 700; line-height: 1.3; text-align: center; }
 .public-standing-mobile-list { display: none; }
 .category-league-result-trigger { border: 0; background: transparent; padding: 0; font: inherit; font-weight: 700; color: var(--primary); cursor: pointer; text-align: left; }
 .league-score-backdrop { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 20px; background: rgb(15 23 42 / .52); }
@@ -6456,14 +6464,19 @@ button {
 @media (max-width: 640px) {
   .public-standings-page { padding: 20px 14px 36px; gap: 16px; }
   .public-standings-header { padding: 4px 2px 8px; }
+  .public-standings-brand-band { padding: 32px 18px; }
   .public-standings-header h1 { font-size: clamp(1.7rem, 8vw, 2.2rem); }
   .public-standings-logo { width: 80px; height: 80px; }
+  .public-standings-header-support { font-size: .9rem; }
   .public-standings-tabs { width: 100%; gap: 22px; }
   .public-standings-tabs .button { flex: 0 0 auto; min-height: 44px; display: grid; place-items: center; }
   .public-standings-filter, .public-games-filter { grid-template-columns: 1fr; gap: 14px; padding: 16px; }
   .public-standings-filter { padding: 0; }
   .public-standings-filter .button, .public-games-filter .button { min-height: 44px; width: 100%; }
   .public-standings-page .section-card { border-radius: 18px; }
+  .public-game-matchup { gap: 8px; font-size: .9rem; }
+  .public-game-score { min-width: 72px; padding: 7px 8px; }
+  .public-game-score strong { font-size: 1rem; }
   .public-standings-page .group-standings { display: none; }
   .public-standing-mobile-list { display: grid; gap: 9px; }
   .public-standing-mobile-card { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 13px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); box-shadow: 0 6px 16px rgb(15 23 42 / .05); }

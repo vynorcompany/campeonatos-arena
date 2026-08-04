@@ -41,6 +41,14 @@ export type PublicGameSource = {
   awayPairName: string;
   status?: PublicGameStatus;
   finished?: boolean;
+  homeScore?: number | null;
+  awayScore?: number | null;
+  homeSet1?: number | null;
+  awaySet1?: number | null;
+  homeSet2?: number | null;
+  awaySet2?: number | null;
+  homeSet3?: number | null;
+  awaySet3?: number | null;
 };
 
 export type PublicGameStatus = "SCHEDULED" | "LIVE" | "FINISHED";
@@ -58,6 +66,14 @@ export type PublicGameDay = {
     status: PublicGameStatus;
     homePairName: string;
     awayPairName: string;
+    finalScore?: {
+      homeScore: number;
+      awayScore: number;
+    };
+    setScores?: Array<{
+      homeScore: number;
+      awayScore: number;
+    }>;
   }>;
 };
 
@@ -102,6 +118,24 @@ export function buildPublicGameAgenda(
   return visibleMatches.reduce<PublicGameDay[]>((days, match) => {
     const date = match.scheduledDate ?? "unscheduled";
     const day = days.at(-1);
+    const status = match.status ?? (match.finished ? "FINISHED" : "SCHEDULED");
+    const finalScore =
+      status === "FINISHED" &&
+      match.homeScore != null &&
+      match.awayScore != null
+        ? { homeScore: match.homeScore, awayScore: match.awayScore }
+        : undefined;
+    const setScores = finalScore
+      ? [
+          [match.homeSet1, match.awaySet1],
+          [match.homeSet2, match.awaySet2],
+          [match.homeSet3, match.awaySet3],
+        ].flatMap(([homeScore, awayScore]) =>
+          homeScore != null && awayScore != null
+            ? [{ homeScore, awayScore }]
+            : [],
+        )
+      : undefined;
     const game = {
       eventName: match.eventName,
       categoryName: match.categoryName,
@@ -109,9 +143,11 @@ export function buildPublicGameAgenda(
       stage: match.stage,
       roundOrder: match.roundOrder,
       scheduledTime: match.scheduledTime,
-      status: match.status ?? (match.finished ? "FINISHED" : "SCHEDULED"),
+      status,
       homePairName: match.homePairName,
       awayPairName: match.awayPairName,
+      ...(finalScore ? { finalScore } : {}),
+      ...(setScores?.length ? { setScores } : {}),
     };
 
     if (day?.date === date) {

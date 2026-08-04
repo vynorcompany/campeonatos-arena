@@ -157,6 +157,14 @@ export async function getArenaPublicStandings(
             scheduledTime: true,
             manualStatus: true,
             winnerPairId: true,
+            homeScore: true,
+            awayScore: true,
+            homeSet1: true,
+            awaySet1: true,
+            homeSet2: true,
+            awaySet2: true,
+            homeSet3: true,
+            awaySet3: true,
             homePair: { select: { name: true } },
             awayPair: { select: { name: true } },
           },
@@ -183,7 +191,14 @@ export async function getArenaPublicStandings(
   const games = buildPublicGameAgenda(
     filterPublicGames(
       gameCategoryRecords.flatMap((record) =>
-      record.matches.map((match) => ({
+      record.matches.map((match) => {
+        const status = match.winnerPairId
+          ? "FINISHED"
+          : match.manualStatus === "LIVE"
+            ? "LIVE"
+            : "SCHEDULED";
+
+        return {
         categoryId: record.category.id,
         eventName: record.category.tournament.name,
         categoryName: record.category.name,
@@ -194,12 +209,21 @@ export async function getArenaPublicStandings(
         scheduledTime: match.scheduledTime,
         homePairName: match.homePair?.name ?? "Dupla a definir",
         awayPairName: match.awayPair?.name ?? "Dupla a definir",
-        status: match.winnerPairId
-          ? "FINISHED"
-          : match.manualStatus === "LIVE"
-            ? "LIVE"
-            : "SCHEDULED",
-      })),
+        status,
+        ...(status === "FINISHED"
+          ? {
+              homeScore: match.homeScore,
+              awayScore: match.awayScore,
+              homeSet1: match.homeSet1,
+              awaySet1: match.awaySet1,
+              homeSet2: match.homeSet2,
+              awaySet2: match.awaySet2,
+              homeSet3: match.homeSet3,
+              awaySet3: match.awaySet3,
+            }
+          : {}),
+      };
+      }),
       ),
       { categoryId: selectedGameCategoryId, status: selectedGameStatus },
     ),

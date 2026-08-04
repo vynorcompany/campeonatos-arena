@@ -18,7 +18,7 @@ export function PublicStandings({
     <main
       className="stack-md public-standings-page"
     >
-      <header className="public-standings-header">
+      <header className="public-standings-header public-standings-brand-band">
         <div className="stack-xs public-standings-header-content">
           {data.arena.logoUrl ? (
             <img
@@ -30,6 +30,9 @@ export function PublicStandings({
             />
           ) : null}
           <h1>Arena Padel — Classificação e Rankings</h1>
+          <p className="public-standings-header-support">
+            Acompanhe as classificações e os jogos da arena.
+          </p>
         </div>
       </header>
 
@@ -189,7 +192,31 @@ export function PublicStandings({
                 <div className="simple-item public-game-item" key={`${day.date}-${game.label}-${game.roundOrder}-${game.categoryName}`}>
                   <strong>{game.scheduledTime ?? "Horário a definir"}</strong>
                   <span>{game.eventName} · {game.categoryName}{game.stage ? ` · ${game.stage}` : ""}</span>
-                  <span>{game.homePairName} × {game.awayPairName}</span>
+                  {game.status === "FINISHED" && game.finalScore ? (
+                    <div className="public-game-matchup">
+                      <span>{game.homePairName}</span>
+                      <div
+                        className="public-game-score"
+                        aria-label={`Placar final: ${game.finalScore.homeScore} a ${game.finalScore.awayScore}`}
+                      >
+                        <strong>
+                          {game.finalScore.homeScore} × {game.finalScore.awayScore}
+                        </strong>
+                        {game.setScores?.length ? (
+                          <span className="public-game-set-scores">
+                            {game.setScores
+                              .map(
+                                (set) => `${set.homeScore}–${set.awayScore}`,
+                              )
+                              .join(" · ")}
+                          </span>
+                        ) : null}
+                      </div>
+                      <span>{game.awayPairName}</span>
+                    </div>
+                  ) : (
+                    <span>{game.homePairName} × {game.awayPairName}</span>
+                  )}
                   <span className="muted">{statusLabels[game.status]}</span>
                 </div>
               ))}
