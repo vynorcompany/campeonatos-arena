@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireModuleEdit } from "@/lib/auth/guards";
+import { buildArenaProfileUpdateData } from "@/lib/arena-profile";
 import { prisma } from "@/lib/prisma";
-import { toPersistentArenaLogo } from "@/lib/uploads";
 import type { ActionState } from "@/lib/actions/tournament";
 
 const arenaProfileSchema = z.object({
@@ -44,16 +44,11 @@ export async function updateArenaProfileAction(_: ActionState, formData: FormDat
   }
 
   try {
-    const logoUrl = await toPersistentArenaLogo(formData.get("logo") as File | null);
-
     await prisma.arena.update({
       where: {
         id: auth.arenaId
       },
-      data: {
-        ...parsed.data,
-        ...(logoUrl ? { logoUrl } : {})
-      }
+      data: await buildArenaProfileUpdateData(parsed.data, formData.get("logo") as File | null)
     });
   } catch (error) {
     return {

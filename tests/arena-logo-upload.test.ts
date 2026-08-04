@@ -1,22 +1,34 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import test from "node:test";
+import { buildArenaProfileUpdateData } from "@/lib/arena-profile";
 import { toPersistentArenaLogo } from "@/lib/uploads";
 
-test("Arena profile action persists logos through the arena-specific helper", async () => {
-  const actionSource = await readFile(path.join(process.cwd(), "src/lib/actions/arena.ts"), "utf8");
+const profile = {
+  name: "Arena Central",
+  legalName: "Arena Central LTDA",
+  cnpj: "12.345.678/0001-90",
+  phone: "(11) 99999-9999",
+  email: "contato@arena.test",
+  address: "Rua da Arena, 100",
+  city: "Sao Paulo",
+  state: "SP",
+  zipCode: "01000-000"
+};
 
-  assert.match(actionSource, /toPersistentArenaLogo\(/);
-  assert.doesNotMatch(actionSource, /savePublicImageUpload\(/);
-});
-
-test("Arena logo is persisted as a PNG data URL", async () => {
+test("buildArenaProfileUpdateData returns a Prisma payload with a persistent PNG data URL", async () => {
   const file = new File([new Uint8Array([137, 80, 78, 71])], "arena.png", { type: "image/png" });
 
-  const logoUrl = await toPersistentArenaLogo(file);
+  const data = await buildArenaProfileUpdateData(profile, file);
 
-  assert.match(logoUrl ?? "", /^data:image\/png;base64,/);
+  assert.deepEqual({ ...data, logoUrl: undefined }, { ...profile, logoUrl: undefined });
+  assert.match(data.logoUrl ?? "", /^data:image\/png;base64,/);
+});
+
+test("buildArenaProfileUpdateData preserves profile fields and omits logoUrl without a file", async () => {
+  const data = await buildArenaProfileUpdateData(profile, null);
+
+  assert.deepEqual(data, profile);
+  assert.equal("logoUrl" in data, false);
 });
 
 test("Arena logo rejects files larger than 500 KB", async () => {
