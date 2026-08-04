@@ -89,7 +89,10 @@ export async function getArenaPublicStandings(
     prisma.categoryCompetition.findMany({
       where: {
         isPublic: true,
-        status: "FINISHED",
+        OR: [
+          { status: "FINISHED" },
+          { status: "PUBLISHED", format: "LEAGUE" },
+        ],
         category: {
           tournament: { arenaId: arena.id },
         },
@@ -207,6 +210,7 @@ export async function getArenaPublicStandings(
     eventName: record.category.tournament.name,
     isPublic: record.isPublic,
     status: record.status,
+    format: record.format,
   }));
   const options = selectPublicStandingsOptions({
     generalRanking,

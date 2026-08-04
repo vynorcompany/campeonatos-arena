@@ -19,6 +19,7 @@ export type PublicStandingsCategorySource = {
   eventName: string;
   isPublic: boolean;
   status: string;
+  format: CompetitionFormat;
 };
 
 export type PublicStandingsOption = {
@@ -168,7 +169,9 @@ export function selectPublicStandingsOptions({
     ...categories
       .filter(
         (category) =>
-          category.isPublic && category.status === "FINISHED",
+          category.isPublic &&
+          (category.status === "FINISHED" ||
+            (category.status === "PUBLISHED" && category.format === "LEAGUE")),
       )
       .map((category) => ({
         id: `category:${category.id}`,

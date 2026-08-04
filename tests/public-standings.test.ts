@@ -18,6 +18,7 @@ test("public standings list only the General Ranking and public finished categor
       eventName: "Open de Inverno",
       isPublic: true,
       status: "FINISHED",
+      format: "LEAGUE",
     },
     {
       id: "finished-private",
@@ -25,6 +26,7 @@ test("public standings list only the General Ranking and public finished categor
       eventName: "Open de Inverno",
       isPublic: false,
       status: "FINISHED",
+      format: "LEAGUE",
     },
     {
       id: "published-public",
@@ -32,6 +34,15 @@ test("public standings list only the General Ranking and public finished categor
       eventName: "Copa da Arena",
       isPublic: true,
       status: "PUBLISHED",
+      format: "SIMPLE",
+    },
+    {
+      id: "published-league",
+      name: "Liga Masculina A",
+      eventName: "Liga de Agosto",
+      isPublic: true,
+      status: "PUBLISHED",
+      format: "LEAGUE",
     },
   ];
 
@@ -58,6 +69,11 @@ test("public standings list only the General Ranking and public finished categor
         id: "category:finished-public",
         kind: "CATEGORY",
         label: "5ª Feminina · Open de Inverno",
+      },
+      {
+        id: "category:published-league",
+        kind: "CATEGORY",
+        label: "Liga Masculina A · Liga de Agosto",
       },
     ],
   );
