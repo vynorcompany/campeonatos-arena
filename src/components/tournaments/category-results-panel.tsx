@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { StatusBadge } from "@/components/tournaments/status-badge";
+import { LeagueMatchResultDialog } from "@/components/tournaments/league-match-result-dialog";
 import {
   finishCategoryCompetitionAction,
   recordCategoryMatchResultAction,
@@ -17,6 +18,12 @@ type CompetitionMatch = {
   scheduledTime: string | null;
   homeScore: number | null;
   awayScore: number | null;
+  homeSet1: number | null;
+  awaySet1: number | null;
+  homeSet2: number | null;
+  awaySet2: number | null;
+  homeSet3: number | null;
+  awaySet3: number | null;
   manualStatus: string | null;
   homePair: { name: string } | null;
   awayPair: { name: string } | null;
@@ -236,6 +243,7 @@ export function CategoryResultsPanel({
                               {match.homeScore ?? "–"} × {match.awayScore ?? "–"}
                             </strong>
                             <StatusBadge status={matchStatus} />
+                            {competition.format === "LEAGUE" && canRecord ? <LeagueMatchResultDialog match={match} /> : null}
                           </div>
                           <div className="category-game-actions">
                           {competition.status === "PUBLISHED" ? (
@@ -306,7 +314,7 @@ export function CategoryResultsPanel({
                               className="button"
                             />
                           </form>
-                          {canRecord ? (
+                          {canRecord && competition.format !== "LEAGUE" ? (
                             <form
                               action={recordCategoryMatchResultAction}
                               className="field-inline category-game-form"

@@ -6432,4 +6432,14 @@ button {
 .public-standings-filter label, .public-games-filter label, .public-games-filter div { display: grid; gap: 6px; }
 .public-games-filter select, .public-standings-filter select { min-height: 38px; width: 100%; }
 .public-game-item { display: grid; gap: 4px; }
+.category-league-result-trigger { border: 0; background: transparent; padding: 0; font: inherit; font-weight: 700; color: var(--primary); cursor: pointer; text-align: left; }
+.league-score-backdrop { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 20px; background: rgb(15 23 42 / .52); }
+.league-score-dialog { width: min(100%, 640px); display: grid; gap: 20px; padding: 24px; border: 1px solid var(--line); border-radius: 18px; background: var(--panel); box-shadow: 0 24px 60px rgb(15 23 42 / .28); }
+.league-score-dialog header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+.league-score-dialog h3 { margin: 0; }
+.league-score-grid { display: grid; grid-template-columns: minmax(150px, 1fr) repeat(3, minmax(64px, .42fr)); gap: 10px; align-items: center; }
+.league-score-grid span { color: var(--muted); font-size: .78rem; font-weight: 700; text-align: center; }
+.league-score-grid span:first-child { text-align: left; }
+.league-score-grid input { width: 100%; min-height: 42px; text-align: center; }
+@media (max-width: 560px) { .league-score-dialog { padding: 18px; } .league-score-grid { grid-template-columns: minmax(104px, 1fr) repeat(3, minmax(48px, .55fr)); gap: 7px; } }
 @media (max-width: 640px) { .public-standings-filter, .public-games-filter { grid-template-columns: 1fr; } .public-standings-tabs .button { flex: 1; } }

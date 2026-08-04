@@ -1126,6 +1126,34 @@ export async function recordCategoryMatchResult(
   });
 }
 
+export async function recordCategoryLeagueMatchResult(
+  arenaId: string,
+  input: {
+    matchId: string; homeSet1: number | null; awaySet1: number | null;
+    homeSet2: number | null; awaySet2: number | null;
+    homeSet3: number | null; awaySet3: number | null;
+  },
+) {
+  return runSerializableTransaction(async (tx) => {
+    const match = await tx.categoryMatch.findFirst({
+      where: { id: input.matchId, competition: { status: categoryCompetitionStatus.PUBLISHED, format: "LEAGUE", category: { active: true, tournament: { arenaId } } } },
+      select: { id: true, homePairId: true, awayPairId: true },
+    });
+    if (!match?.homePairId || !match.awayPairId) throw new Error("Jogo de Liga inválido.");
+    const sets = [[input.homeSet1, input.awaySet1], [input.homeSet2, input.awaySet2], [input.homeSet3, input.awaySet3]];
+    const homeWins = sets.filter(([home, away]) => home != null && away != null && home > away).length;
+    const awayWins = sets.filter(([home, away]) => home != null && away != null && away > home).length;
+    if (homeWins !== 2 && awayWins !== 2) throw new Error("Uma dupla deve vencer dois sets.");
+    return tx.categoryMatch.update({ where: { id: match.id }, data: {
+      ...input,
+      homeScore: homeWins,
+      awayScore: awayWins,
+      winnerPairId: homeWins === 2 ? match.homePairId : match.awayPairId,
+      manualStatus: "FINISHED",
+    }});
+  });
+}
+
 export async function finishCategoryCompetition(
   arenaId: string,
   competitionId: string,

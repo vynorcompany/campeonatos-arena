@@ -508,6 +508,12 @@ model CategoryMatch {
   scheduledTime String?
   homeScore     Int?
   awayScore     Int?
+  homeSet1      Int?
+  awaySet1      Int?
+  homeSet2      Int?
+  awaySet2      Int?
+  homeSet3      Int?
+  awaySet3      Int?
   manualStatus  String?
   showOnTv      Boolean             @default(true)
   createdAt     DateTime            @default(now())

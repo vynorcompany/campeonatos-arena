@@ -10,6 +10,7 @@ import {
   moveCategoryPair,
   publishCategoryDraw,
   recordCategoryMatchResult,
+  recordCategoryLeagueMatchResult,
   removeCategoryPair,
   updateCategoryMatchStatus,
   updateCategoryMatchSchedule,
@@ -23,6 +24,7 @@ import {
   moveCategoryPairSchema,
   publishCategoryDrawSchema,
   recordCategoryMatchResultSchema,
+  recordCategoryLeagueMatchResultSchema,
   removeCategoryPairSchema,
   updateCategoryMatchScheduleSchema,
   updateCategoryMatchStatusSchema,
@@ -166,6 +168,15 @@ export async function recordCategoryMatchResultAction(formData: FormData) {
     parsed.data.homeScore,
     parsed.data.awayScore,
   );
+  refreshCategoryCompetitionRoutes();
+  return result;
+}
+
+export async function recordCategoryLeagueMatchResultAction(formData: FormData) {
+  const auth = await requireModuleEdit("tournaments");
+  const parsed = recordCategoryLeagueMatchResultSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) throw new Error(invalidInputMessage(parsed.error));
+  const result = await recordCategoryLeagueMatchResult(auth.arenaId, parsed.data);
   refreshCategoryCompetitionRoutes();
   return result;
 }

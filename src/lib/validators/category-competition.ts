@@ -115,6 +115,37 @@ export const recordCategoryMatchResultSchema = z
     }
   });
 
+const nullableSetScore = z.preprocess(
+  (value) => (String(value ?? "").trim() === "" ? null : value),
+  z.coerce.number().int().min(0, "Placar inválido.").nullable(),
+);
+
+export const recordCategoryLeagueMatchResultSchema = z
+  .object({
+    matchId: z.string().trim().min(1, "Jogo inválido."),
+    homeSet1: nullableSetScore,
+    awaySet1: nullableSetScore,
+    homeSet2: nullableSetScore,
+    awaySet2: nullableSetScore,
+    homeSet3: nullableSetScore,
+    awaySet3: nullableSetScore,
+  })
+  .superRefine((value, context) => {
+    const sets = [[value.homeSet1, value.awaySet1], [value.homeSet2, value.awaySet2], [value.homeSet3, value.awaySet3]] as const;
+    const firstTwo = sets.slice(0, 2);
+    if (firstTwo.some(([home, away]) => home == null || away == null || home === away)) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "Informe os dois primeiros sets sem empate.", path: ["awaySet2"] });
+      return;
+    }
+    const homeWins = firstTwo.filter(([home, away]) => home! > away!).length;
+    const third = sets[2];
+    if (homeWins === 1) {
+      if (third[0] == null || third[1] == null || third[0] === third[1]) context.addIssue({ code: z.ZodIssueCode.custom, message: "Informe o set de desempate sem empate.", path: ["awaySet3"] });
+    } else if (third[0] != null || third[1] != null) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "O terceiro set só é usado no desempate.", path: ["homeSet3"] });
+    }
+  });
+
 export const categoryMatchStatusSchema = z.enum(categoryMatchManualStatuses);
 
 export const updateCategoryMatchStatusSchema = z.object({
