@@ -264,8 +264,10 @@ test("public arena route renders ranking and game views", async () => {
   assert.match(route, /tab\?: string/);
   assert.match(route, /league\?: string/);
   assert.match(route, /status\?: string/);
-  assert.match(component, />Ranking</);
-  assert.match(component, />Jogos</);
+  assert.match(component, />\s*Ranking/);
+  assert.match(component, />\s*Jogos/);
+  assert.match(component, /public-standings-header-content/);
+  assert.match(component, /public-standings-filter-label/);
   assert.match(component, /public-standing-mobile-card/);
   assert.match(component, /Vitórias/);
   assert.match(component, /<select[\s\S]*name="view"/);

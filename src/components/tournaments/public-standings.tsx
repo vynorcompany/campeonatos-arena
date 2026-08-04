@@ -18,8 +18,8 @@ export function PublicStandings({
     <main
       className="stack-md public-standings-page"
     >
-      <header className="page-header">
-        <div className="stack-xs">
+      <header className="page-header public-standings-header">
+        <div className="stack-xs public-standings-header-content">
           <p className="eyebrow">{data.arena.name}</p>
           <h1>Classificação pública</h1>
           <p className="muted">
@@ -29,6 +29,7 @@ export function PublicStandings({
         </div>
         {data.arena.logoUrl ? (
           <img
+            className="public-standings-logo"
             src={data.arena.logoUrl}
             alt={`Logo da arena ${data.arena.name}`}
             width={64}
@@ -59,7 +60,7 @@ export function PublicStandings({
           {data.options.length ? (
             <form method="get" className="section-card public-standings-filter">
               <input type="hidden" name="tab" value="ranking" />
-              <label htmlFor="public-standings-view">Ranking</label>
+              <label className="public-standings-filter-label" htmlFor="public-standings-view">Visualizando</label>
               <select
                 id="public-standings-view"
                 name="view"
@@ -168,7 +169,7 @@ export function PublicStandings({
           <form method="get" className="public-games-filter">
             <input type="hidden" name="tab" value="games" />
             <div>
-              <label htmlFor="public-games-league">Liga</label>
+              <label className="public-standings-filter-label" htmlFor="public-games-league">Liga</label>
               <select id="public-games-league" name="league" defaultValue={data.selectedGameCategoryId ?? ""}>
                 <option value="">Todas as ligas</option>
                 {data.gameCategories.map((category) => (
@@ -177,7 +178,7 @@ export function PublicStandings({
               </select>
             </div>
             <div>
-              <label htmlFor="public-games-status">Status</label>
+              <label className="public-standings-filter-label" htmlFor="public-games-status">Status</label>
               <select id="public-games-status" name="status" defaultValue={data.selectedGameStatus}>
                 <option value="ALL">Todos</option>
                 <option value="SCHEDULED">Agendados</option>
