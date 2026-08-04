@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireModuleEdit } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
-import { savePublicImageUpload } from "@/lib/uploads";
+import { toPersistentArenaLogo } from "@/lib/uploads";
 import type { ActionState } from "@/lib/actions/tournament";
 
 const arenaProfileSchema = z.object({
@@ -44,7 +44,7 @@ export async function updateArenaProfileAction(_: ActionState, formData: FormDat
   }
 
   try {
-    const logoUrl = await savePublicImageUpload(formData.get("logo") as File | null, "arena-logos", auth.arenaId);
+    const logoUrl = await toPersistentArenaLogo(formData.get("logo") as File | null);
 
     await prisma.arena.update({
       where: {
