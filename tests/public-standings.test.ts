@@ -119,6 +119,35 @@ test("public standings renders the branded header and finished-game score treatm
   assert.match(styles, /@media \(max-width: 640px\)[\s\S]*\.public-game-score/);
 });
 
+test("public standings use a horizontal desktop brand lockup and one-row ranking filter", async () => {
+  const [component, styles] = await Promise.all([
+    readFile(
+      path.join(
+        workspaceRoot,
+        "src",
+        "components",
+        "tournaments",
+        "public-standings.tsx",
+      ),
+      "utf8",
+    ),
+    readFile(path.join(workspaceRoot, "src", "app", "globals.css"), "utf8"),
+  ]);
+
+  assert.match(component, /public-standings-brand-lockup/);
+  assert.match(component, /public-standings-brand-copy/);
+  assert.match(styles, /\.public-standings-brand-lockup\s*\{[^}]*display:\s*flex/s);
+  assert.match(styles, /\.public-standings-logo\s*\{[^}]*width:\s*260px/s);
+  assert.match(
+    styles,
+    /\.public-standings-filter\s*\{[^}]*grid-template-columns:\s*auto minmax\(180px, 1fr\) auto/s,
+  );
+  assert.match(
+    styles,
+    /@media \(max-width: 640px\)[\s\S]*\.public-standings-filter[^}]*grid-template-columns:\s*1fr/s,
+  );
+});
+
 test("public standings list only the General Ranking and public finished categories with their event", () => {
   const categories: PublicStandingsCategorySource[] = [
     {

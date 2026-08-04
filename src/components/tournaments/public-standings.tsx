@@ -19,20 +19,22 @@ export function PublicStandings({
       className="stack-md public-standings-page"
     >
       <header className="public-standings-header public-standings-brand-band">
-        <div className="stack-xs public-standings-header-content">
-          {data.arena.logoUrl ? (
-            <img
-              className="public-standings-logo"
-              src={data.arena.logoUrl}
-              alt={`Logo da arena ${data.arena.name}`}
-              width={96}
-              height={96}
-            />
-          ) : null}
+        <div className="public-standings-header-content">
+          <div className="public-standings-brand-lockup">
+            {data.arena.logoUrl ? (
+              <img
+                className="public-standings-logo"
+                src={data.arena.logoUrl}
+                alt={`Logo da arena ${data.arena.name}`}
+              />
+            ) : null}
+            <div className="public-standings-brand-copy">
           <h1>Arena Padel — Classificação e Rankings</h1>
           <p className="public-standings-header-support">
             Acompanhe as classificações e os jogos da arena.
           </p>
+            </div>
+          </div>
         </div>
       </header>
 
