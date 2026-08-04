@@ -9,6 +9,22 @@ const allowedImageTypes = new Map([
   ["image/svg+xml", "svg"]
 ]);
 
+export async function toPersistentArenaLogo(file: File | null): Promise<string | null> {
+  if (!file || file.size === 0) {
+    return null;
+  }
+
+  if (!allowedImageTypes.has(file.type)) {
+    throw new Error("Envie uma imagem JPG, PNG, WEBP ou SVG.");
+  }
+
+  if (file.size > maxUploadSize) {
+    throw new Error("A imagem deve ter no mÃ¡ximo 4 MB.");
+  }
+
+  return `data:${file.type};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}`;
+}
+
 function sanitizeName(value: string) {
   return value
     .toLowerCase()
