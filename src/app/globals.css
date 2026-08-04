@@ -6427,11 +6427,16 @@ button {
 .category-game-filter-toolbar select, .category-game-filter-toolbar input { width: 100%; min-height: 38px; }
 @media (max-width: 760px) { .category-game-filter-toolbar { grid-template-columns: 1fr; } }
 
-.public-standings-tabs { display: flex; gap: 8px; }
-.public-standings-filter, .public-games-filter { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto; gap: 12px; align-items: end; }
+.public-standings-page { max-width: 960px; margin: 0 auto; padding: 40px 24px 56px; }
+.public-standings-page .page-header { padding: 8px 0 16px; }
+.public-standings-page .page-header h1 { letter-spacing: -.035em; }
+.public-standings-tabs { display: flex; gap: 6px; padding: 5px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel-muted); }
+.public-standings-tabs .button { border: 0; border-radius: 10px; }
+.public-standings-filter, .public-games-filter { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto; gap: 12px; align-items: end; padding: 18px; border-radius: 16px; }
 .public-standings-filter label, .public-games-filter label, .public-games-filter div { display: grid; gap: 6px; }
 .public-games-filter select, .public-standings-filter select { min-height: 38px; width: 100%; }
 .public-game-item { display: grid; gap: 4px; }
+.public-standing-mobile-list { display: none; }
 .category-league-result-trigger { border: 0; background: transparent; padding: 0; font: inherit; font-weight: 700; color: var(--primary); cursor: pointer; text-align: left; }
 .league-score-backdrop { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 20px; background: rgb(15 23 42 / .52); }
 .league-score-dialog { width: min(100%, 640px); display: grid; gap: 20px; padding: 24px; border: 1px solid var(--line); border-radius: 18px; background: var(--panel); box-shadow: 0 24px 60px rgb(15 23 42 / .28); }
@@ -6442,4 +6447,23 @@ button {
 .league-score-grid span:first-child { text-align: left; }
 .league-score-grid input { width: 100%; min-height: 42px; text-align: center; }
 @media (max-width: 560px) { .league-score-dialog { padding: 18px; } .league-score-grid { grid-template-columns: minmax(104px, 1fr) repeat(3, minmax(48px, .55fr)); gap: 7px; } }
-@media (max-width: 640px) { .public-standings-filter, .public-games-filter { grid-template-columns: 1fr; } .public-standings-tabs .button { flex: 1; } }
+@media (max-width: 640px) {
+  .public-standings-page { padding: 20px 14px 36px; gap: 16px; }
+  .public-standings-page .page-header { gap: 14px; padding: 4px 2px 8px; }
+  .public-standings-page .page-header h1 { font-size: clamp(1.7rem, 8vw, 2.2rem); }
+  .public-standings-page .page-header .muted { font-size: .92rem; }
+  .public-standings-tabs { width: 100%; }
+  .public-standings-tabs .button { flex: 1; min-height: 44px; display: grid; place-items: center; }
+  .public-standings-filter, .public-games-filter { grid-template-columns: 1fr; gap: 14px; padding: 16px; }
+  .public-standings-filter .button, .public-games-filter .button { min-height: 44px; width: 100%; }
+  .public-standings-page .section-card { border-radius: 18px; }
+  .public-standings-page .group-standings { display: none; }
+  .public-standing-mobile-list { display: grid; gap: 9px; }
+  .public-standing-mobile-card { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 13px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); box-shadow: 0 6px 16px rgb(15 23 42 / .05); }
+  .public-standing-position { color: var(--primary); font-size: 1.2rem; text-align: center; }
+  .public-standing-mobile-card > div:nth-child(2) { min-width: 0; }
+  .public-standing-mobile-card > div:nth-child(2) > strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .public-standing-mobile-card p { margin: 3px 0 0; color: var(--muted); font-size: .76rem; }
+  .public-standing-differential { display: grid; gap: 1px; text-align: right; }
+  .public-standing-differential span { color: var(--muted); font-size: .66rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+}

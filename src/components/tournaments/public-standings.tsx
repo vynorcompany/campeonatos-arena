@@ -16,8 +16,7 @@ export function PublicStandings({
 
   return (
     <main
-      className="stack-md"
-      style={{ maxWidth: 960, margin: "0 auto", padding: "32px 20px" }}
+      className="stack-md public-standings-page"
     >
       <header className="page-header">
         <div className="stack-xs">
@@ -121,6 +120,7 @@ export function PublicStandings({
                 <h2>{data.selected.categoryName}</h2>
               </div>
               {data.selected.format === "LEAGUE" ? (
+                <>
                 <div className="group-standings">
                   <h3>Classificação da Liga</h3>
                   <table className="group-standings-table">
@@ -133,6 +133,19 @@ export function PublicStandings({
                     ))}</tbody>
                   </table>
                 </div>
+                <div className="public-standing-mobile-list">
+                  {data.selected.leagueStandings.map((standing) => (
+                    <article className="public-standing-mobile-card" key={standing.position}>
+                      <strong className="public-standing-position">{standing.position}</strong>
+                      <div>
+                        <strong>{standing.pairName}</strong>
+                        <p>{standing.matches} jogos · {standing.victories} Vitórias · {standing.losses} derrotas</p>
+                      </div>
+                      <div className="public-standing-differential"><span>Saldo</span><strong>{standing.differential}</strong></div>
+                    </article>
+                  ))}
+                </div>
+                </>
               ) : (
                 <div className="stack-sm">
                   <h3>Colocação final</h3>
