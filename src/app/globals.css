@@ -6444,7 +6444,7 @@ button {
 .public-standings-filter label, .public-games-filter label, .public-games-filter div { display: grid; gap: 7px; }
 .public-standings-filter-label { color: var(--muted); font-size: .7rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .public-standings-filter .public-standings-filter-label { align-self: center; }
-.public-games-filter select, .public-standings-filter select { min-height: 46px; width: 100%; border-radius: 10px; background: var(--panel); }
+.public-games-filter select, .public-standings-filter select { min-height: 46px; width: 100%; padding-left: 14px; border-radius: 10px; background: var(--panel); }
 .public-standings-filter .button { min-height: 46px; border-color: var(--line); background: transparent; color: var(--ink); box-shadow: none; }
 .public-game-item { display: grid; gap: 6px; }
 .public-game-matchup { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 12px; align-items: center; }
