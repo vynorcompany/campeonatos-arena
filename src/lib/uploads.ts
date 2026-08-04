@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const maxUploadSize = 4 * 1024 * 1024;
+const maxArenaLogoUploadSize = 500 * 1024;
 const allowedImageTypes = new Map([
   ["image/jpeg", "jpg"],
   ["image/png", "png"],
@@ -18,8 +19,8 @@ export async function toPersistentArenaLogo(file: File | null): Promise<string |
     throw new Error("Envie uma imagem JPG, PNG, WEBP ou SVG.");
   }
 
-  if (file.size > maxUploadSize) {
-    throw new Error("A imagem deve ter no mÃ¡ximo 4 MB.");
+  if (file.size > maxArenaLogoUploadSize) {
+    throw new Error("A imagem deve ter no máximo 500 KB.");
   }
 
   return `data:${file.type};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}`;

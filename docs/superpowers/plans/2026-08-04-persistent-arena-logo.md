@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - Persist only the Arena profile logo as a PNG data URL in the existing `Arena.logoUrl` text field.
-- Keep the current file type and 4 MB validation rules.
+- Keep the existing accepted image types, with a 500 KB maximum for the persisted Arena logo; other upload flows retain their 4 MB limit.
 - Do not change other upload flows.
 - Replace the existing broken `/uploads/...` Arena logo when a new image is saved.
 

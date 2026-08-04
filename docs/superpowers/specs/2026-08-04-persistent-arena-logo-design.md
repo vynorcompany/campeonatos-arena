@@ -7,7 +7,7 @@ The Arena profile upload succeeds but stores its file under the Railway runtime 
 ## Approved Design
 
 - Persist only the Arena profile logo as a PNG data URL in the existing `Arena.logoUrl` text field.
-- Keep the current file type and 4 MB validation rules.
+- Keep the existing accepted image types, with a 500 KB maximum for the persisted Arena logo. Other upload flows keep their current 4 MB limit.
 - Do not change other upload flows, which are outside this correction's scope.
 - When a new Arena logo is uploaded, replace the broken `/uploads/...` value with the data URL and revalidate the existing Arena routes.
 
