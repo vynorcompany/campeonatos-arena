@@ -146,6 +146,10 @@ test("public standings use a full-bleed desktop brand band aligned to the page c
   );
   assert.match(styles, /\.public-standings-brand-lockup\s*\{[^}]*display:\s*flex/s);
   assert.match(styles, /\.public-standings-logo\s*\{[^}]*width:\s*260px/s);
+  assert.doesNotMatch(
+    styles,
+    /\.public-standings-logo\s*\{[^}]*filter:\s*brightness\(0\)\s*invert\(1\)/s,
+  );
   assert.match(
     styles,
     /\.public-standings-filter\s*\{[^}]*grid-template-columns:\s*auto minmax\(180px, 1fr\) auto/s,
