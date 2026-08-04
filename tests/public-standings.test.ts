@@ -119,7 +119,7 @@ test("public standings renders the branded header and finished-game score treatm
   assert.match(styles, /@media \(max-width: 640px\)[\s\S]*\.public-game-score/);
 });
 
-test("public standings use a horizontal desktop brand lockup and one-row ranking filter", async () => {
+test("public standings use a full-bleed desktop brand band aligned to the page column", async () => {
   const [component, styles] = await Promise.all([
     readFile(
       path.join(
@@ -136,6 +136,14 @@ test("public standings use a horizontal desktop brand lockup and one-row ranking
 
   assert.match(component, /public-standings-brand-lockup/);
   assert.match(component, /public-standings-brand-copy/);
+  assert.match(
+    styles,
+    /\.public-standings-brand-band\s*\{[^}]*width:\s*100vw[^}]*margin-inline:\s*calc\(50% - 50vw\)/s,
+  );
+  assert.match(
+    styles,
+    /\.public-standings-header-content\s*\{[^}]*width:\s*100%[^}]*max-width:\s*912px/s,
+  );
   assert.match(styles, /\.public-standings-brand-lockup\s*\{[^}]*display:\s*flex/s);
   assert.match(styles, /\.public-standings-logo\s*\{[^}]*width:\s*260px/s);
   assert.match(
@@ -148,7 +156,7 @@ test("public standings use a horizontal desktop brand lockup and one-row ranking
   );
 });
 
-test("public standings list only the General Ranking and public finished categories with their event", () => {
+test("public standings list only the General Ranking and public finished category names", () => {
   const categories: PublicStandingsCategorySource[] = [
     {
       id: "finished-public",
@@ -201,17 +209,17 @@ test("public standings list only the General Ranking and public finished categor
       {
         id: "ranking:general",
         kind: "GENERAL_RANKING",
-        label: "Ranking Geral · Ranking anual",
+        label: "Ranking Geral",
       },
       {
         id: "category:finished-public",
         kind: "CATEGORY",
-        label: "5ª Feminina · Open de Inverno",
+        label: "5ª Feminina",
       },
       {
         id: "category:published-league",
         kind: "CATEGORY",
-        label: "Liga Masculina A · Liga de Agosto",
+        label: "Liga Masculina A",
       },
     ],
   );

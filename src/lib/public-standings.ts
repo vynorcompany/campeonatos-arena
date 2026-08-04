@@ -197,7 +197,7 @@ export function selectPublicStandingsOptions({
     options.push({
       id: `ranking:${generalRanking.id}`,
       kind: "GENERAL_RANKING",
-      label: `Ranking Geral · ${generalRanking.name}`,
+      label: "Ranking Geral",
     });
   }
 
@@ -212,7 +212,7 @@ export function selectPublicStandingsOptions({
       .map((category) => ({
         id: `category:${category.id}`,
         kind: "CATEGORY" as const,
-        label: `${category.name} · ${category.eventName}`,
+        label: category.name,
       })),
   );
 
