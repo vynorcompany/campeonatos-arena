@@ -1135,8 +1135,9 @@ export async function recordCategoryLeagueMatchResult(
   },
 ) {
   return runSerializableTransaction(async (tx) => {
+    const { matchId, ...setScores } = input;
     const match = await tx.categoryMatch.findFirst({
-      where: { id: input.matchId, competition: { status: categoryCompetitionStatus.PUBLISHED, format: "LEAGUE", category: { active: true, tournament: { arenaId } } } },
+      where: { id: matchId, competition: { status: categoryCompetitionStatus.PUBLISHED, format: "LEAGUE", category: { active: true, tournament: { arenaId } } } },
       select: { id: true, homePairId: true, awayPairId: true },
     });
     if (!match?.homePairId || !match.awayPairId) throw new Error("Jogo de Liga inválido.");
@@ -1145,7 +1146,7 @@ export async function recordCategoryLeagueMatchResult(
     const awayWins = sets.filter(([home, away]) => home != null && away != null && away > home).length;
     if (homeWins !== 2 && awayWins !== 2) throw new Error("Uma dupla deve vencer dois sets.");
     return tx.categoryMatch.update({ where: { id: match.id }, data: {
-      ...input,
+      ...setScores,
       homeScore: homeWins,
       awayScore: awayWins,
       winnerPairId: homeWins === 2 ? match.homePairId : match.awayPairId,
