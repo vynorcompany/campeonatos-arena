@@ -18,24 +18,19 @@ export function PublicStandings({
     <main
       className="stack-md public-standings-page"
     >
-      <header className="page-header public-standings-header">
+      <header className="public-standings-header">
         <div className="stack-xs public-standings-header-content">
-          <p className="eyebrow">{data.arena.name}</p>
-          <h1>Classificação pública</h1>
-          <p className="muted">
-            Consulte o Ranking Geral, as classificações das ligas e os jogos
-            publicados pela arena.
-          </p>
+          {data.arena.logoUrl ? (
+            <img
+              className="public-standings-logo"
+              src={data.arena.logoUrl}
+              alt={`Logo da arena ${data.arena.name}`}
+              width={96}
+              height={96}
+            />
+          ) : null}
+          <h1>Arena Padel — Classificação e Rankings</h1>
         </div>
-        {data.arena.logoUrl ? (
-          <img
-            className="public-standings-logo"
-            src={data.arena.logoUrl}
-            alt={`Logo da arena ${data.arena.name}`}
-            width={64}
-            height={64}
-          />
-        ) : null}
       </header>
 
       <nav className="public-standings-tabs" aria-label="Visualização pública">
@@ -58,9 +53,9 @@ export function PublicStandings({
       {isRanking ? (
         <>
           {data.options.length ? (
-            <form method="get" className="section-card public-standings-filter">
+            <form method="get" className="public-standings-filter">
               <input type="hidden" name="tab" value="ranking" />
-              <label className="public-standings-filter-label" htmlFor="public-standings-view">Visualizando</label>
+              <label className="public-standings-filter-label" htmlFor="public-standings-view">Ranking</label>
               <select
                 id="public-standings-view"
                 name="view"
@@ -72,7 +67,7 @@ export function PublicStandings({
                   </option>
                 ))}
               </select>
-              <button className="button button-primary" type="submit">
+              <button className="button" type="submit">
                 Consultar
               </button>
             </form>
@@ -89,8 +84,7 @@ export function PublicStandings({
           {data.selected?.kind === "GENERAL_RANKING" ? (
             <section className="section-card stack-md">
               <div className="stack-xs">
-                <p className="eyebrow">Ranking Geral</p>
-                <h2>{data.selected.rankingName}</h2>
+                <h2>Ranking Geral</h2>
               </div>
               {data.selected.rows.length ? (
                 <div className="group-standings">

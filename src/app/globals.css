@@ -6428,19 +6428,19 @@ button {
 @media (max-width: 760px) { .category-game-filter-toolbar { grid-template-columns: 1fr; } }
 
 .public-standings-page { max-width: 960px; margin: 0 auto; padding: 40px 24px 56px; }
-.public-standings-page .page-header { padding: 8px 0 16px; }
-.public-standings-header { align-items: flex-start; }
+.public-standings-header { padding: 8px 0 16px; }
 .public-standings-header-content { max-width: 620px; }
-.public-standings-header .muted { max-width: 560px; line-height: 1.55; }
-.public-standings-logo { width: 56px; height: 56px; object-fit: contain; border-radius: 14px; background: var(--ink); padding: 8px; }
-.public-standings-page .page-header h1 { letter-spacing: -.035em; }
+.public-standings-logo { display: block; width: 96px; height: 96px; object-fit: contain; }
+.public-standings-header h1 { margin: 0; letter-spacing: -.035em; }
 .public-standings-tabs { display: flex; gap: 24px; border-bottom: 1px solid var(--line); }
 .public-standings-tabs .button { min-height: 44px; padding: 10px 2px 12px; border: 0; border-radius: 0; background: transparent; color: var(--muted); box-shadow: none; }
 .public-standings-tabs .button-primary { color: var(--primary); border-bottom: 2px solid var(--primary); }
 .public-standings-filter, .public-games-filter { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto; gap: 12px; align-items: end; padding: 18px; border-radius: 16px; }
+.public-standings-filter { grid-template-columns: minmax(180px, 360px) auto; padding: 0; }
 .public-standings-filter label, .public-games-filter label, .public-games-filter div { display: grid; gap: 7px; }
 .public-standings-filter-label { color: var(--muted); font-size: .7rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .public-games-filter select, .public-standings-filter select { min-height: 46px; width: 100%; border-radius: 10px; background: var(--panel); }
+.public-standings-filter .button { min-height: 46px; border-color: var(--line); background: transparent; color: var(--ink); box-shadow: none; }
 .public-game-item { display: grid; gap: 4px; }
 .public-standing-mobile-list { display: none; }
 .category-league-result-trigger { border: 0; background: transparent; padding: 0; font: inherit; font-weight: 700; color: var(--primary); cursor: pointer; text-align: left; }
@@ -6455,13 +6455,13 @@ button {
 @media (max-width: 560px) { .league-score-dialog { padding: 18px; } .league-score-grid { grid-template-columns: minmax(104px, 1fr) repeat(3, minmax(48px, .55fr)); gap: 7px; } }
 @media (max-width: 640px) {
   .public-standings-page { padding: 20px 14px 36px; gap: 16px; }
-  .public-standings-page .page-header { gap: 14px; padding: 4px 2px 8px; }
-  .public-standings-page .page-header h1 { font-size: clamp(1.7rem, 8vw, 2.2rem); }
-  .public-standings-page .page-header .muted { font-size: .92rem; }
-  .public-standings-logo { width: 46px; height: 46px; border-radius: 12px; padding: 7px; }
+  .public-standings-header { padding: 4px 2px 8px; }
+  .public-standings-header h1 { font-size: clamp(1.7rem, 8vw, 2.2rem); }
+  .public-standings-logo { width: 80px; height: 80px; }
   .public-standings-tabs { width: 100%; gap: 22px; }
   .public-standings-tabs .button { flex: 0 0 auto; min-height: 44px; display: grid; place-items: center; }
   .public-standings-filter, .public-games-filter { grid-template-columns: 1fr; gap: 14px; padding: 16px; }
+  .public-standings-filter { padding: 0; }
   .public-standings-filter .button, .public-games-filter .button { min-height: 44px; width: 100%; }
   .public-standings-page .section-card { border-radius: 18px; }
   .public-standings-page .group-standings { display: none; }

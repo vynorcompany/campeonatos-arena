@@ -267,6 +267,7 @@ test("public arena route renders ranking and game views", async () => {
   assert.match(component, />\s*Ranking/);
   assert.match(component, />\s*Jogos/);
   assert.match(component, /public-standings-header-content/);
+  assert.match(component, /Arena Padel — Classificação e Rankings/);
   assert.match(component, /public-standings-filter-label/);
   assert.match(component, /public-standing-mobile-card/);
   assert.match(component, /Vitórias/);
