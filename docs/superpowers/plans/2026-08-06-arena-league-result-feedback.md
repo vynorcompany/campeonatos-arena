@@ -153,3 +153,91 @@ Expected: all commands exit with status 0.
 git add src/lib/actions/category-competition.ts src/lib/actions/league-match-result-state.ts src/lib/actions/league-match-result-state.test.ts src/components/tournaments/league-match-result-dialog.tsx package.json
 git commit -m "fix: show league score errors in dialog"
 ```
+
+### Task 3: Restrict feedback handling to expected result errors
+
+**Files:**
+- Modify: `src/lib/actions/category-competition.ts`
+- Modify: `src/lib/actions/league-match-result-state.ts`
+- Modify: `src/lib/actions/league-match-result-state.test.ts`
+- Modify: `src/components/tournaments/league-match-result-dialog.tsx`
+
+**Interfaces:**
+- `leagueMatchResultErrorState(error)` returns a form state only for expected League result errors and rethrows all other errors.
+- `recordCategoryLeagueMatchResultAction` performs authorization and validation outside its service-error boundary; route revalidation is only run after a successful service call.
+
+- [ ] **Step 1: Add failing tests for the boundary**
+
+```ts
+test("rethrows an unexpected error instead of exposing it to the form", () => {
+  assert.throws(
+    () => leagueMatchResultErrorState(new Error("database connection refused")),
+    /database connection refused/,
+  );
+});
+```
+
+Add a regression test for the schema message returned by the action boundary, asserting that `"Informe os dois primeiros sets sem empate."` becomes `{ error: "Informe os dois primeiros sets sem empate.", success: false }`.
+
+- [ ] **Step 2: Verify the test fails**
+
+Run: `npm test -- src/lib/actions/league-match-result-state.test.ts`
+
+Expected: FAIL because the mapper currently returns every error message as form state.
+
+- [ ] **Step 3: Implement the narrow boundary**
+
+Use an allowlist containing only `"Jogo de Liga inválido."` and `"Uma dupla deve vencer dois sets."`; preserve the form message only for those values and rethrow every other error. In the server action, call `requireModuleEdit` before parsing input, return `{ error: invalidInputMessage(parsed.error), success: false }` for schema failure, then wrap only `recordCategoryLeagueMatchResult`; run `refreshCategoryCompetitionRoutes` after that `try` succeeds.
+
+Move `useFormState` into a small child form component rendered only while `open` is true, so closing the dialog clears stale form feedback while invalid submissions still preserve the mounted form fields.
+
+- [ ] **Step 4: Verify the boundary and build**
+
+Run: `npm test && npm run typecheck && npm run build`
+
+Expected: all commands exit with status 0.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/lib/actions/category-competition.ts src/lib/actions/league-match-result-state.ts src/lib/actions/league-match-result-state.test.ts src/components/tournaments/league-match-result-dialog.tsx
+git commit -m "fix: limit league result feedback errors"
+```
+
+### Task 4: Exercise invalid score submission as data
+
+**Files:**
+- Create: `src/lib/actions/league-match-result-input.ts`
+- Create: `src/lib/actions/league-match-result-input.test.ts`
+- Modify: `src/lib/actions/category-competition.ts`
+
+**Interfaces:**
+- Produces a pure parser that accepts `FormData` and returns either validated League input or `LeagueMatchResultActionState` containing the first schema error.
+- The server action must consume this parser for its schema-error branch.
+
+- [ ] **Step 1: Write a failing FormData regression test**
+
+Create `FormData` with a match id and tied first-set values, submit it to the pure parser, and assert it returns `{ error: "Informe os dois primeiros sets sem empate.", success: false }`.
+
+- [ ] **Step 2: Verify the test fails**
+
+Run: `npm test -- src/lib/actions/league-match-result-input.test.ts`
+
+Expected: FAIL because the parser does not exist.
+
+- [ ] **Step 3: Implement and connect the pure parser**
+
+Parse `Object.fromEntries(formData)` with `recordCategoryLeagueMatchResultSchema`. Return a serializable error state on `safeParse` failure and validated data on success. Replace the action's direct `safeParse` branch with this parser, preserving authorization before parsing and the existing service-only error boundary.
+
+- [ ] **Step 4: Run full verification**
+
+Run: `npm test && npm run typecheck && npm run build`
+
+Expected: all commands exit with status 0.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/lib/actions/league-match-result-input.ts src/lib/actions/league-match-result-input.test.ts src/lib/actions/category-competition.ts
+git commit -m "test: cover invalid league score submission"
+```
