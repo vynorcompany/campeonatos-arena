@@ -16,7 +16,7 @@
 
 ---
 
-### Task 1: Define the serializable League result state
+### Task 1: Define the serializable League result state (complete)
 
 **Files:**
 - Create: `src/lib/actions/league-match-result-state.ts`
@@ -90,7 +90,7 @@ git add package.json src/lib/actions/league-match-result-state.ts src/lib/action
 git commit -m "test: define league result action state"
 ```
 
-### Task 2: Render server feedback in the League dialog
+### Task 2: Render server feedback in the League dialog (complete)
 
 **Files:**
 - Modify: `src/lib/actions/category-competition.ts`
@@ -100,25 +100,7 @@ git commit -m "test: define league result action state"
 - Consumes: `LeagueMatchResultActionState`, `initialLeagueMatchResultActionState`, and `leagueMatchResultErrorState` from `src/lib/actions/league-match-result-state.ts`.
 - Produces: an inline error alert for invalid League score submissions.
 
-- [ ] **Step 1: Write the failing test**
-
-Extend `src/lib/actions/league-match-result-state.test.ts` with the desired initial state contract:
-
-```ts
-import { initialLeagueMatchResultActionState } from "./league-match-result-state";
-
-test("exposes an empty initial state for the League result dialog", () => {
-  assert.deepEqual(initialLeagueMatchResultActionState, { error: null, success: false });
-});
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `npm test -- src/lib/actions/league-match-result-state.test.ts`
-
-Expected: FAIL because the initial-state constant has not yet been exported.
-
-- [ ] **Step 3: Write minimal implementation**
+- [ ] **Step 1: Write minimal implementation**
 
 In `src/lib/actions/category-competition.ts`, import the state type and error mapper, then change the action to this signature and body:
 
@@ -159,13 +141,13 @@ const [state, formAction] = useFormState(
 
 Keep the existing hidden match id and six Set 1–3 score inputs inside this form.
 
-- [ ] **Step 4: Run tests and static verification**
+- [ ] **Step 2: Run tests and static verification**
 
 Run: `npm test -- src/lib/actions/league-match-result-state.test.ts && npm run typecheck && npm run build`
 
 Expected: all commands exit with status 0.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
 git add src/lib/actions/category-competition.ts src/lib/actions/league-match-result-state.ts src/lib/actions/league-match-result-state.test.ts src/components/tournaments/league-match-result-dialog.tsx package.json
