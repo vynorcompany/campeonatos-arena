@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "test": "node --import tsx --test",
     "dev": "next dev",
     "build": "prisma generate && next build && node scripts/prepare-standalone.mjs",
     "start": "node .next/standalone/server.js",
