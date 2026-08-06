@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useFormState } from "react-dom";
 import { recordCategoryLeagueMatchResultAction } from "@/lib/actions/category-competition";
+import { initialLeagueMatchResultActionState } from "@/lib/actions/league-match-result-state";
 
 type Match = {
   id: string; label: string;
@@ -11,6 +13,10 @@ type Match = {
 
 export function LeagueMatchResultDialog({ match }: { match: Match }) {
   const [open, setOpen] = useState(false);
+  const [state, formAction] = useFormState(
+    recordCategoryLeagueMatchResultAction,
+    initialLeagueMatchResultActionState,
+  );
   const sets = [["homeSet1", "awaySet1", "Set 1"], ["homeSet2", "awaySet2", "Set 2"], ["homeSet3", "awaySet3", "Set 3"]] as const;
   return (
     <>
@@ -20,7 +26,8 @@ export function LeagueMatchResultDialog({ match }: { match: Match }) {
       {open ? <div className="league-score-backdrop" role="presentation" onMouseDown={() => setOpen(false)}>
         <section className="league-score-dialog" role="dialog" aria-modal="true" aria-label={`Resultado de ${match.label}`} onMouseDown={(event) => event.stopPropagation()}>
           <header><div><p className="eyebrow">Liga</p><h3>{match.label}</h3></div><button type="button" className="button" onClick={() => setOpen(false)}>Fechar</button></header>
-          <form action={recordCategoryLeagueMatchResultAction} className="stack-md">
+          <form action={formAction} className="stack-md">
+            {state.error ? <p className="form-error" role="alert">{state.error}</p> : null}
             <input type="hidden" name="matchId" value={match.id} />
             <div className="league-score-grid">
               <span>Dupla</span>{sets.map(([, , label]) => <span key={label}>{label}</span>)}

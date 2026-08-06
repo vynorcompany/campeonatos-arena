@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { requireModuleEdit } from "@/lib/auth/guards";
 import {
+  leagueMatchResultErrorState,
+  type LeagueMatchResultActionState,
+} from "@/lib/actions/league-match-result-state";
+import {
   addManualPair,
   createCategoryCompetition,
   finishCategoryCompetition,
@@ -172,13 +176,20 @@ export async function recordCategoryMatchResultAction(formData: FormData) {
   return result;
 }
 
-export async function recordCategoryLeagueMatchResultAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
-  const parsed = recordCategoryLeagueMatchResultSchema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) throw new Error(invalidInputMessage(parsed.error));
-  const result = await recordCategoryLeagueMatchResult(auth.arenaId, parsed.data);
-  refreshCategoryCompetitionRoutes();
-  return result;
+export async function recordCategoryLeagueMatchResultAction(
+  _: LeagueMatchResultActionState,
+  formData: FormData,
+): Promise<LeagueMatchResultActionState> {
+  try {
+    const auth = await requireModuleEdit("tournaments");
+    const parsed = recordCategoryLeagueMatchResultSchema.safeParse(Object.fromEntries(formData));
+    if (!parsed.success) return { error: invalidInputMessage(parsed.error), success: false };
+    await recordCategoryLeagueMatchResult(auth.arenaId, parsed.data);
+    refreshCategoryCompetitionRoutes();
+    return { error: null, success: true };
+  } catch (error) {
+    return leagueMatchResultErrorState(error);
+  }
 }
 
 export async function updateCategoryMatchStatusAction(formData: FormData) {
