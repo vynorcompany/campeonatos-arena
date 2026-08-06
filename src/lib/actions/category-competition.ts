@@ -180,16 +180,20 @@ export async function recordCategoryLeagueMatchResultAction(
   _: LeagueMatchResultActionState,
   formData: FormData,
 ): Promise<LeagueMatchResultActionState> {
+  const auth = await requireModuleEdit("tournaments");
+  const parsed = recordCategoryLeagueMatchResultSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    throw new Error(invalidInputMessage(parsed.error));
+  }
+
   try {
-    const auth = await requireModuleEdit("tournaments");
-    const parsed = recordCategoryLeagueMatchResultSchema.safeParse(Object.fromEntries(formData));
-    if (!parsed.success) return { error: invalidInputMessage(parsed.error), success: false };
     await recordCategoryLeagueMatchResult(auth.arenaId, parsed.data);
-    refreshCategoryCompetitionRoutes();
-    return { error: null, success: true };
   } catch (error) {
     return leagueMatchResultErrorState(error);
   }
+
+  refreshCategoryCompetitionRoutes();
+  return { error: null, success: true };
 }
 
 export async function updateCategoryMatchStatusAction(formData: FormData) {

@@ -4,10 +4,16 @@ export type LeagueMatchResultActionState = {
 };
 
 export function leagueMatchResultErrorState(error: unknown): LeagueMatchResultActionState {
-  return {
-    error: error instanceof Error ? error.message : "Não foi possível salvar o resultado.",
-    success: false,
-  };
+  const expectedErrors = new Set([
+    "Jogo de Liga inválido.",
+    "Uma dupla deve vencer dois sets.",
+  ]);
+
+  if (error instanceof Error && expectedErrors.has(error.message)) {
+    return { error: error.message, success: false };
+  }
+
+  throw error;
 }
 
 export const initialLeagueMatchResultActionState: LeagueMatchResultActionState = {

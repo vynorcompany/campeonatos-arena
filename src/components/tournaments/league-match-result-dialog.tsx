@@ -11,13 +11,31 @@ type Match = {
   homeSet1: number | null; awaySet1: number | null; homeSet2: number | null; awaySet2: number | null; homeSet3: number | null; awaySet3: number | null;
 };
 
-export function LeagueMatchResultDialog({ match }: { match: Match }) {
-  const [open, setOpen] = useState(false);
+const sets = [["homeSet1", "awaySet1", "Set 1"], ["homeSet2", "awaySet2", "Set 2"], ["homeSet3", "awaySet3", "Set 3"]] as const;
+
+function LeagueMatchResultForm({ match, onClose }: { match: Match; onClose: () => void }) {
   const [state, formAction] = useFormState(
     recordCategoryLeagueMatchResultAction,
     initialLeagueMatchResultActionState,
   );
-  const sets = [["homeSet1", "awaySet1", "Set 1"], ["homeSet2", "awaySet2", "Set 2"], ["homeSet3", "awaySet3", "Set 3"]] as const;
+
+  return (
+    <form action={formAction} className="stack-md">
+      {state.error ? <p className="form-error" role="alert">{state.error}</p> : null}
+      <input type="hidden" name="matchId" value={match.id} />
+      <div className="league-score-grid">
+        <span>Dupla</span>{sets.map(([, , label]) => <span key={label}>{label}</span>)}
+        <strong>{match.homePair?.name ?? "A definir"}</strong>{sets.map(([home, , label]) => <input key={home} name={home} type="number" min="0" defaultValue={match[home] ?? ""} aria-label={`${label} de ${match.homePair?.name ?? "casa"}`} />)}
+        <strong>{match.awayPair?.name ?? "A definir"}</strong>{sets.map(([, away, label]) => <input key={away} name={away} type="number" min="0" defaultValue={match[away] ?? ""} aria-label={`${label} de ${match.awayPair?.name ?? "visitante"}`} />)}
+      </div>
+      <p className="muted">Informe os dois primeiros sets. O terceiro é usado apenas no desempate.</p>
+      <div className="field-inline"><button type="button" className="button" onClick={onClose}>Cancelar</button><button className="button button-primary" type="submit">Salvar resultado</button></div>
+    </form>
+  );
+}
+
+export function LeagueMatchResultDialog({ match }: { match: Match }) {
+  const [open, setOpen] = useState(false);
   return (
     <>
       <button type="button" className="category-league-result-trigger" onClick={() => setOpen(true)}>
@@ -26,17 +44,7 @@ export function LeagueMatchResultDialog({ match }: { match: Match }) {
       {open ? <div className="league-score-backdrop" role="presentation" onMouseDown={() => setOpen(false)}>
         <section className="league-score-dialog" role="dialog" aria-modal="true" aria-label={`Resultado de ${match.label}`} onMouseDown={(event) => event.stopPropagation()}>
           <header><div><p className="eyebrow">Liga</p><h3>{match.label}</h3></div><button type="button" className="button" onClick={() => setOpen(false)}>Fechar</button></header>
-          <form action={formAction} className="stack-md">
-            {state.error ? <p className="form-error" role="alert">{state.error}</p> : null}
-            <input type="hidden" name="matchId" value={match.id} />
-            <div className="league-score-grid">
-              <span>Dupla</span>{sets.map(([, , label]) => <span key={label}>{label}</span>)}
-              <strong>{match.homePair?.name ?? "A definir"}</strong>{sets.map(([home, , label]) => <input key={home} name={home} type="number" min="0" defaultValue={match[home] ?? ""} aria-label={`${label} de ${match.homePair?.name ?? "casa"}`} />)}
-              <strong>{match.awayPair?.name ?? "A definir"}</strong>{sets.map(([, away, label]) => <input key={away} name={away} type="number" min="0" defaultValue={match[away] ?? ""} aria-label={`${label} de ${match.awayPair?.name ?? "visitante"}`} />)}
-            </div>
-            <p className="muted">Informe os dois primeiros sets. O terceiro é usado apenas no desempate.</p>
-            <div className="field-inline"><button type="button" className="button" onClick={() => setOpen(false)}>Cancelar</button><button className="button button-primary" type="submit">Salvar resultado</button></div>
-          </form>
+          <LeagueMatchResultForm match={match} onClose={() => setOpen(false)} />
         </section>
       </div> : null}
     </>
