@@ -183,7 +183,7 @@ export async function recordCategoryLeagueMatchResultAction(
   const auth = await requireModuleEdit("tournaments");
   const parsed = recordCategoryLeagueMatchResultSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
-    throw new Error(invalidInputMessage(parsed.error));
+    return { error: invalidInputMessage(parsed.error), success: false };
   }
 
   try {
