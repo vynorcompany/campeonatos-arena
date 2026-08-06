@@ -6,6 +6,7 @@ import {
   leagueMatchResultErrorState,
   type LeagueMatchResultActionState,
 } from "@/lib/actions/league-match-result-state";
+import { parseLeagueMatchResultInput } from "@/lib/actions/league-match-result-input";
 import {
   addManualPair,
   createCategoryCompetition,
@@ -28,7 +29,6 @@ import {
   moveCategoryPairSchema,
   publishCategoryDrawSchema,
   recordCategoryMatchResultSchema,
-  recordCategoryLeagueMatchResultSchema,
   removeCategoryPairSchema,
   updateCategoryMatchScheduleSchema,
   updateCategoryMatchStatusSchema,
@@ -181,13 +181,13 @@ export async function recordCategoryLeagueMatchResultAction(
   formData: FormData,
 ): Promise<LeagueMatchResultActionState> {
   const auth = await requireModuleEdit("tournaments");
-  const parsed = recordCategoryLeagueMatchResultSchema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) {
-    return { error: invalidInputMessage(parsed.error), success: false };
+  const input = parseLeagueMatchResultInput(formData);
+  if ("success" in input) {
+    return input;
   }
 
   try {
-    await recordCategoryLeagueMatchResult(auth.arenaId, parsed.data);
+    await recordCategoryLeagueMatchResult(auth.arenaId, input);
   } catch (error) {
     return leagueMatchResultErrorState(error);
   }
