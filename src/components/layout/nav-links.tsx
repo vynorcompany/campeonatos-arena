@@ -180,7 +180,7 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
       ]
     },
     {
-      title: "Gestão",
+      title: "Arena",
       links: [
         {
           href: "/players",
