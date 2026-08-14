@@ -6518,3 +6518,41 @@ button {
 .agenda-court-list { display: grid; gap: 8px; padding: 0; margin: 18px 0 0; list-style: none; }
 .agenda-court-list li { display: flex; justify-content: space-between; gap: 12px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px; }
 @media (max-width: 760px) { .agenda-header, .agenda-settings-layout, .agenda-settings-form, .agenda-court-form { display: grid; grid-template-columns: 1fr; } .agenda-day-controls form { width: 100%; margin-left: 0; } .agenda-day-controls form input { min-width: 0; flex: 1; } }
+
+.agenda-page { display: grid; gap: 10px; min-width: 0; }
+.agenda-date-strip { display: flex; align-items: stretch; gap: 6px; padding: 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); box-shadow: var(--shadow); }
+.agenda-date-list { display: grid; grid-template-columns: repeat(7, minmax(54px, 1fr)); flex: 1; gap: 4px; }
+.agenda-date-item, .agenda-date-arrow, .agenda-today-link, .agenda-settings-link { display: grid; place-items: center; min-width: 42px; border-radius: 10px; color: var(--muted); text-decoration: none; font-weight: 700; }
+.agenda-date-item { gap: 1px; min-height: 52px; padding: 5px 10px; text-transform: uppercase; font-size: .67rem; }
+.agenda-date-item strong { color: var(--ink); font-size: 1.05rem; }
+.agenda-date-item-active { color: #fff; background: var(--primary); }
+.agenda-date-item-active strong { color: #fff; }
+.agenda-date-arrow { font-size: 2rem; line-height: 1; }
+.agenda-today-link, .agenda-settings-link { padding: 0 12px; background: var(--panel-muted); font-size: .78rem; }
+.agenda-settings-link { color: var(--primary); }
+.agenda-grid-caption { display: flex; justify-content: space-between; align-items: center; padding: 1px 4px; color: var(--muted); font-size: .8rem; }
+.agenda-grid-caption strong { color: var(--ink); text-transform: capitalize; }
+.daily-court-grid-scroll { border-radius: 12px; box-shadow: var(--shadow); }
+.daily-court-grid { min-width: 640px; background: var(--panel); }
+.daily-court-grid th, .daily-court-grid td { min-height: 40px; padding: 6px 9px; }
+.daily-court-grid thead th { padding: 11px 10px; font-size: .78rem; }
+.daily-court-grid tbody > tr > th { width: 62px; padding-top: 10px; font-size: .72rem; }
+.daily-court-available { background: #f5fbf7; color: #23633c; }
+.daily-court-available strong, .daily-court-available span, .daily-court-unavailable span { display: block; }
+.daily-court-available strong { font-size: .78rem; }
+.daily-court-available span { margin-top: 2px; font-size: .66rem; }
+.daily-court-unavailable { color: #9aa3af; background: #f5f6f8; }
+.daily-court-unavailable span { font-size: .67rem; }
+.agenda-court-link { color: var(--ink); font-weight: 700; text-decoration: none; }
+.agenda-court-link-active { color: var(--primary); }
+.weekly-rule-form { display: grid; grid-template-columns: 1.4fr repeat(3, minmax(90px, 1fr)) minmax(150px, 1.3fr) auto; gap: 10px; align-items: end; }
+.checkbox-field { display: flex; gap: 7px; align-items: center; min-height: 42px; font-size: .78rem; font-weight: 700; }
+.weekly-rule-list { display: grid; gap: 10px; margin-top: 18px; }
+.weekly-rule-day { padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel-muted); }
+.weekly-rule-day h3 { margin: 0 0 8px; font-size: .82rem; }
+.weekly-rule-day p { margin: 0; font-size: .78rem; }
+.weekly-rule-day ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.weekly-rule-day li { display: grid; grid-template-columns: minmax(94px, 1fr) minmax(86px, auto) minmax(104px, auto) auto; gap: 8px; align-items: center; padding: 7px 8px; border-radius: 8px; background: var(--panel); font-size: .78rem; }
+.button-small { min-height: 30px; padding: 5px 8px; font-size: .72rem; }
+@media (max-width: 900px) { .weekly-rule-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 700px) { .agenda-date-strip { overflow-x: auto; } .agenda-date-list { min-width: 420px; } .agenda-today-link, .agenda-settings-link { display: none; } .agenda-grid-caption { align-items: flex-start; flex-direction: column; gap: 2px; } .weekly-rule-form { grid-template-columns: 1fr; } .weekly-rule-day li { grid-template-columns: 1fr 1fr; } }

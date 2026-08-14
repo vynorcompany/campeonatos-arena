@@ -2,23 +2,47 @@ import Link from "next/link";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard } from "@/components/section-card";
-import { createCourtAction, updateScheduleSettingsAction } from "@/lib/actions/calendar";
+import { createCourtAction, createCourtWeeklyRuleAction, deleteCourtWeeklyRuleAction } from "@/lib/actions/calendar";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
-function timeValue(value: number) { return `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`; }
+type AgendaConfiguracaoPageProps = { searchParams?: { court?: string } };
 
-export default async function AgendaConfiguracaoPage() {
+const weekDays = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+
+function minuteLabel(value: number) { return `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`; }
+function priceLabel(value: number) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value / 100); }
+
+export default async function AgendaConfiguracaoPage({ searchParams }: AgendaConfiguracaoPageProps) {
   const auth = await requireModuleView("calendar");
-  const [arena, courts] = await Promise.all([
-    prisma.arena.findUniqueOrThrow({ where: { id: auth.arenaId }, select: { scheduleStartMinute: true, scheduleEndMinute: true, scheduleSlotMinutes: true } }),
-    prisma.court.findMany({ where: { arenaId: auth.arenaId }, orderBy: [{ active: "desc" }, { name: "asc" }] })
-  ]);
+  const courts = await prisma.court.findMany({
+    where: { arenaId: auth.arenaId },
+    include: { weeklyRules: { orderBy: [{ weekday: "asc" }, { startsAtMinute: "asc" }] } },
+    orderBy: [{ active: "desc" }, { name: "asc" }]
+  });
+  const selectedCourt = courts.find((court) => court.id === searchParams?.court) ?? courts.find((court) => court.active) ?? courts[0];
+
   return <div className="stack-md">
-    <header className="page-header agenda-header"><div className="stack-xs"><p className="eyebrow">Operação</p><h1>Configuração da agenda</h1><p className="muted">Defina a operação da grade e as quadras, sem misturar esses controles à agenda diária.</p></div><Link href="/agenda" className="button">Ver agenda</Link></header>
+    <header className="page-header agenda-header"><div className="stack-xs"><p className="eyebrow">Operação</p><h1>Configuração da agenda</h1><p className="muted">Cadastre as faixas recorrentes de cada quadra, de domingo a sábado.</p></div><Link href="/agenda" className="button">Ver agenda</Link></header>
     <div className="agenda-settings-layout">
-      <SectionCard title="Horários da grade" description="Os intervalos definem as linhas disponíveis na agenda de quadras."><SafeActionForm action={updateScheduleSettingsAction} className="agenda-settings-form" successMessage="Grade atualizada."><div className="field"><label htmlFor="schedule-start-time">Horário de abertura</label><input id="schedule-start-time" name="startTime" type="time" defaultValue={timeValue(arena.scheduleStartMinute)} required /></div><div className="field"><label htmlFor="schedule-end-time">Horário de encerramento</label><input id="schedule-end-time" name="endTime" type="time" defaultValue={timeValue(arena.scheduleEndMinute)} required /></div><div className="field"><label htmlFor="schedule-slot-minutes">Intervalo da grade</label><select id="schedule-slot-minutes" name="slotMinutes" defaultValue={arena.scheduleSlotMinutes}>{[15, 30, 45, 60].map((value) => <option key={value} value={value}>{value} minutos</option>)}</select></div><SubmitButton label="Salvar horários" pendingLabel="Salvando..." className="button button-primary" /></SafeActionForm></SectionCard>
-      <SectionCard title="Quadras cadastradas" description="Cadastre quantas quadras sua arena possuir. Elas serão as colunas da agenda diária."><SafeActionForm action={createCourtAction} className="agenda-court-form" resetOnSuccess successMessage="Quadra cadastrada."><div className="field"><label htmlFor="court-name">Nova quadra</label><input id="court-name" name="name" type="text" placeholder="Ex.: Quadra 1" required /></div><SubmitButton label="Adicionar quadra" pendingLabel="Salvando..." className="button button-primary" /></SafeActionForm>{courts.length ? <ul className="agenda-court-list">{courts.map((court) => <li key={court.id}><span>{court.name}</span><span className={court.active ? "status-badge status-active" : "status-badge"}>{court.active ? "Ativa" : "Inativa"}</span></li>)}</ul> : <p className="muted">Nenhuma quadra cadastrada.</p>}</SectionCard>
+      <SectionCard title="Quadras cadastradas" description="As faixas de preço e disponibilidade são configuradas isoladamente para cada quadra.">
+        <SafeActionForm action={createCourtAction} className="agenda-court-form" resetOnSuccess successMessage="Quadra cadastrada."><div className="field"><label htmlFor="court-name">Nova quadra</label><input id="court-name" name="name" type="text" placeholder="Ex.: Quadra 1" required /></div><SubmitButton label="Adicionar quadra" pendingLabel="Salvando..." className="button button-primary" /></SafeActionForm>
+        {courts.length ? <ul className="agenda-court-list">{courts.map((court) => <li key={court.id}><Link href={`/agenda/configuracao?court=${court.id}`} className={court.id === selectedCourt?.id ? "agenda-court-link agenda-court-link-active" : "agenda-court-link"}>{court.name}</Link><span className={court.active ? "status-badge status-active" : "status-badge"}>{court.active ? "Ativa" : "Inativa"}</span></li>)}</ul> : <p className="muted">Nenhuma quadra cadastrada.</p>}
+      </SectionCard>
+      <SectionCard title={selectedCourt ? `Quadra selecionada: ${selectedCourt.name}` : "Quadra selecionada"} description="Crie quantas faixas precisar para cada dia. Faixas que se sobrepõem são bloqueadas.">
+        {selectedCourt ? <>
+          <SafeActionForm action={createCourtWeeklyRuleAction} className="weekly-rule-form" resetOnSuccess successMessage="Faixa cadastrada.">
+            <input name="courtId" type="hidden" value={selectedCourt.id} />
+            <div className="field"><label htmlFor="weekly-rule-weekday">Dia da semana</label><select id="weekly-rule-weekday" name="weekday" defaultValue="1">{weekDays.map((day, index) => <option key={day} value={index}>{day}</option>)}</select></div>
+            <div className="field"><label htmlFor="weekly-rule-start">Início</label><input id="weekly-rule-start" name="startTime" type="time" defaultValue="07:00" required /></div>
+            <div className="field"><label htmlFor="weekly-rule-end">Fim</label><input id="weekly-rule-end" name="endTime" type="time" defaultValue="08:00" required /></div>
+            <div className="field"><label htmlFor="weekly-rule-price">Valor do horário</label><input id="weekly-rule-price" name="price" inputMode="decimal" defaultValue="0,00" required /></div>
+            <label className="checkbox-field"><input name="available" type="checkbox" defaultChecked />Disponível para reserva</label>
+            <SubmitButton label="Adicionar faixa" pendingLabel="Salvando..." className="button button-primary" />
+          </SafeActionForm>
+          <div className="weekly-rule-list">{weekDays.map((day, weekday) => { const rules = selectedCourt.weeklyRules.filter((rule) => rule.weekday === weekday); return <section key={day} className="weekly-rule-day"><h3>{day}</h3>{rules.length ? <ul>{rules.map((rule) => <li key={rule.id}><span>{minuteLabel(rule.startsAtMinute)}–{minuteLabel(rule.endsAtMinute)}</span><strong>{priceLabel(rule.priceCents)}</strong><span className={rule.available ? "status-badge status-active" : "status-badge"}>{rule.available ? "Disponível" : "Indisponível"}</span><SafeActionForm action={deleteCourtWeeklyRuleAction} successMessage="Faixa removida."><input type="hidden" name="ruleId" value={rule.id} /><SubmitButton label="Remover" pendingLabel="Removendo..." className="button button-danger button-small" /></SafeActionForm></li>)}</ul> : <p className="muted">Sem faixa cadastrada.</p>}</section>; })}</div>
+        </> : <p className="muted">Cadastre uma quadra para definir suas faixas.</p>}
+      </SectionCard>
     </div>
   </div>;
 }

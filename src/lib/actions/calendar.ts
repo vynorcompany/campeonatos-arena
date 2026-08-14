@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireModuleEdit } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
+import { weeklyRangesOverlap } from "@/lib/scheduling/weekly-rule";
 
 const calendarSchema = z.object({
   sourceType: z.enum(["lesson", "calendar"]).default("calendar"),
@@ -26,6 +27,15 @@ const scheduleSettingsSchema = z.object({
   slotMinutes: z.coerce.number().int().min(15).max(120)
 });
 
+const courtWeeklyRuleSchema = z.object({
+  courtId: z.string().trim().min(1),
+  weekday: z.coerce.number().int().min(0).max(6),
+  startTime: z.string().regex(/^\d{2}:\d{2}$/),
+  endTime: z.string().regex(/^\d{2}:\d{2}$/),
+  price: z.string().trim().min(1),
+  available: z.enum(["on"]).optional()
+});
+
 function parseScheduledAt(value: string) {
   const scheduledAt = new Date(value);
   if (Number.isNaN(scheduledAt.getTime())) {
@@ -43,6 +53,80 @@ function refreshCalendar() {
 function timeToMinutes(value: string) {
   const [hours, minutes] = value.split(":").map(Number);
   return hours * 60 + minutes;
+}
+
+function moneyToCents(value: string) {
+  const normalized = value.replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    throw new Error("Informe um valor válido.");
+  }
+  return Math.round(parsed * 100);
+}
+
+export async function createCourtWeeklyRuleAction(formData: FormData) {
+  const auth = await requireModuleEdit("calendar");
+  const parsed = courtWeeklyRuleSchema.safeParse({
+    courtId: formData.get("courtId"),
+    weekday: formData.get("weekday"),
+    startTime: formData.get("startTime"),
+    endTime: formData.get("endTime"),
+    price: formData.get("price"),
+    available: formData.get("available")
+  });
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  }
+
+  const startsAtMinute = timeToMinutes(parsed.data.startTime);
+  const endsAtMinute = timeToMinutes(parsed.data.endTime);
+  if (startsAtMinute >= endsAtMinute) {
+    throw new Error("O horário final deve ser posterior ao inicial.");
+  }
+
+  const court = await prisma.court.findFirst({
+    where: { id: parsed.data.courtId, arenaId: auth.arenaId },
+    include: { weeklyRules: { where: { weekday: parsed.data.weekday } } }
+  });
+  if (!court) {
+    throw new Error("Quadra não encontrada.");
+  }
+
+  const conflicts = court.weeklyRules.some((rule) =>
+    weeklyRangesOverlap(startsAtMinute, endsAtMinute, rule.startsAtMinute, rule.endsAtMinute)
+  );
+  if (conflicts) {
+    throw new Error("Esta faixa se sobrepõe a outra regra da mesma quadra.");
+  }
+
+  await prisma.courtWeeklyRule.create({
+    data: {
+      courtId: court.id,
+      weekday: parsed.data.weekday,
+      startsAtMinute,
+      endsAtMinute,
+      priceCents: moneyToCents(parsed.data.price),
+      available: parsed.data.available === "on"
+    }
+  });
+  refreshCalendar();
+}
+
+export async function deleteCourtWeeklyRuleAction(formData: FormData) {
+  const auth = await requireModuleEdit("calendar");
+  const ruleId = z.string().trim().min(1).safeParse(formData.get("ruleId"));
+  if (!ruleId.success) {
+    throw new Error("Regra inválida.");
+  }
+
+  const removed = await prisma.courtWeeklyRule.deleteMany({
+    where: { id: ruleId.data, court: { arenaId: auth.arenaId } }
+  });
+  if (!removed.count) {
+    throw new Error("Regra não encontrada.");
+  }
+  refreshCalendar();
 }
 
 export async function updateScheduleSettingsAction(formData: FormData) {

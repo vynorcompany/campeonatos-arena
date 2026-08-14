@@ -774,9 +774,25 @@ model Court {
   arenaId     String
   arena       Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
   occurrenceCourts ScheduleOccurrenceCourt[]
+  weeklyRules CourtWeeklyRule[]
 
   @@unique([arenaId, name])
   @@index([arenaId, active])
+}
+
+model CourtWeeklyRule {
+  id             String   @id @default(cuid())
+  weekday        Int
+  startsAtMinute Int
+  endsAtMinute   Int
+  priceCents     Int      @default(0)
+  available      Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  courtId        String
+  court          Court    @relation(fields: [courtId], references: [id], onDelete: Cascade)
+
+  @@index([courtId, weekday])
 }
 
 model ScheduleOccurrence {
