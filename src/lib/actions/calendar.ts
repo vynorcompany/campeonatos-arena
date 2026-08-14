@@ -16,6 +16,10 @@ const calendarSchema = z.object({
   notes: z.string().trim().default("")
 });
 
+const courtSchema = z.object({
+  name: z.string().trim().min(2, "Informe o nome da quadra.")
+});
+
 function parseScheduledAt(value: string) {
   const scheduledAt = new Date(value);
   if (Number.isNaN(scheduledAt.getTime())) {
@@ -26,6 +30,21 @@ function parseScheduledAt(value: string) {
 
 function refreshCalendar() {
   revalidatePath("/calendario");
+}
+
+export async function createCourtAction(formData: FormData) {
+  const auth = await requireModuleEdit("calendar");
+  const parsed = courtSchema.safeParse({ name: formData.get("name") });
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados invalidos.");
+  }
+
+  await prisma.court.create({
+    data: { arenaId: auth.arenaId, name: parsed.data.name }
+  });
+
+  refreshCalendar();
 }
 
 export async function createCalendarEventAction(formData: FormData) {
