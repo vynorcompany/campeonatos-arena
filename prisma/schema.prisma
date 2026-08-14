@@ -93,6 +93,8 @@ model Arena {
   teachers    Teacher[]
   lessons     Lesson[]
   calendarEvents CalendarEvent[]
+  courts      Court[]
+  scheduleOccurrences ScheduleOccurrence[]
   products    Product[]
   sales       Sale[]
   stockMovements StockMovement[]
@@ -758,6 +760,47 @@ model CalendarEvent {
 
   @@index([arenaId, scheduledAt])
   @@index([arenaId, eventType])
+}
+
+model Court {
+  id          String   @id @default(cuid())
+  name        String
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  arenaId     String
+  arena       Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  occurrenceCourts ScheduleOccurrenceCourt[]
+
+  @@unique([arenaId, name])
+  @@index([arenaId, active])
+}
+
+model ScheduleOccurrence {
+  id          String   @id @default(cuid())
+  sourceType  String
+  title       String
+  startsAt    DateTime
+  endsAt      DateTime
+  status      String   @default("SCHEDULED")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  arenaId     String
+  arena       Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  occurrenceCourts ScheduleOccurrenceCourt[]
+
+  @@index([arenaId, startsAt, endsAt])
+}
+
+model ScheduleOccurrenceCourt {
+  id           String             @id @default(cuid())
+  occurrenceId String
+  courtId      String
+  occurrence   ScheduleOccurrence @relation(fields: [occurrenceId], references: [id], onDelete: Cascade)
+  court        Court              @relation(fields: [courtId], references: [id], onDelete: Cascade)
+
+  @@unique([occurrenceId, courtId])
+  @@index([courtId])
 }
 
 model LessonAttendance {
