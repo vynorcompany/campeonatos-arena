@@ -36,6 +36,17 @@ const courtWeeklyRuleSchema = z.object({
   available: z.enum(["on"]).optional()
 });
 
+const courtBookingSchema = z.object({
+  occurrenceId: z.string().trim().default(""),
+  courtId: z.string().trim().min(1),
+  title: z.string().trim().min(2),
+  startsAt: z.string().trim().min(1),
+  durationMinutes: z.coerce.number().int().min(15).max(720),
+  modality: z.string().trim().default(""),
+  notes: z.string().trim().default(""),
+  participants: z.string().trim().default("[]")
+});
+
 function parseScheduledAt(value: string) {
   const scheduledAt = new Date(value);
   if (Number.isNaN(scheduledAt.getTime())) {
@@ -62,6 +73,66 @@ function moneyToCents(value: string) {
     throw new Error("Informe um valor válido.");
   }
   return Math.round(parsed * 100);
+}
+
+type BookingParticipant = { playerId: string; amountCents: number; paymentMethod: string };
+
+function parseBookingParticipants(value: string): BookingParticipant[] {
+  let raw: unknown;
+  try { raw = JSON.parse(value); } catch { throw new Error("Participantes inválidos."); }
+  const parsed = z.array(z.object({
+    playerId: z.string().trim().min(1),
+    amountCents: z.coerce.number().int().min(0),
+    paymentMethod: z.string().trim().default("")
+  })).safeParse(raw);
+  if (!parsed.success) throw new Error("Participantes inválidos.");
+  if (new Set(parsed.data.map((participant) => participant.playerId)).size !== parsed.data.length) {
+    throw new Error("Cada atleta só pode participar uma vez.");
+  }
+  return parsed.data;
+}
+
+export async function saveCourtBookingAction(formData: FormData) {
+  const auth = await requireModuleEdit("calendar");
+  const parsed = courtBookingSchema.safeParse({
+    occurrenceId: formData.get("occurrenceId"), courtId: formData.get("courtId"), title: formData.get("title"),
+    startsAt: formData.get("startsAt"), durationMinutes: formData.get("durationMinutes"), modality: formData.get("modality"),
+    notes: formData.get("notes"), participants: formData.get("participants")
+  });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  const startsAt = parseScheduledAt(parsed.data.startsAt);
+  const endsAt = new Date(startsAt.getTime() + parsed.data.durationMinutes * 60_000);
+  const participants = parseBookingParticipants(parsed.data.participants);
+  const court = await prisma.court.findFirst({ where: { id: parsed.data.courtId, arenaId: auth.arenaId } });
+  if (!court) throw new Error("Quadra não encontrada.");
+  const players = participants.length ? await prisma.player.findMany({ where: { arenaId: auth.arenaId, id: { in: participants.map((participant) => participant.playerId) } }, select: { id: true, name: true } }) : [];
+  if (players.length !== participants.length) throw new Error("Um ou mais atletas não pertencem à arena.");
+  const conflicts = await prisma.scheduleOccurrence.findFirst({ where: {
+    arenaId: auth.arenaId, id: parsed.data.occurrenceId ? { not: parsed.data.occurrenceId } : undefined,
+    status: { not: "CANCELED" }, startsAt: { lt: endsAt }, endsAt: { gt: startsAt }, occurrenceCourts: { some: { courtId: court.id } }
+  } });
+  if (conflicts) throw new Error("Já existe um agendamento nessa quadra para este horário.");
+
+  await prisma.$transaction(async (tx) => {
+    const occurrence = parsed.data.occurrenceId
+      ? await tx.scheduleOccurrence.update({ where: { id: parsed.data.occurrenceId, arenaId: auth.arenaId }, data: { title: parsed.data.title, startsAt, endsAt, modality: parsed.data.modality, notes: parsed.data.notes } })
+      : await tx.scheduleOccurrence.create({ data: { arenaId: auth.arenaId, sourceType: "BOOKING", title: parsed.data.title, startsAt, endsAt, modality: parsed.data.modality, notes: parsed.data.notes, occurrenceCourts: { create: { courtId: court.id } } } });
+    const previous = await tx.scheduleParticipant.findMany({ where: { occurrenceId: occurrence.id } });
+    for (const participant of previous) {
+      if (!participants.some((item) => item.playerId === participant.playerId) && participant.financialEntryId) await tx.financialEntry.delete({ where: { id: participant.financialEntryId } });
+    }
+    await tx.scheduleParticipant.deleteMany({ where: { occurrenceId: occurrence.id, playerId: { notIn: participants.map((participant) => participant.playerId) } } });
+    for (const participant of participants) {
+      const existing = previous.find((item) => item.playerId === participant.playerId);
+      const player = players.find((item) => item.id === participant.playerId)!;
+      const hasCharge = participant.amountCents > 0;
+      const entryData = { type: "INCOME", category: "COURT_BOOKING", description: `${parsed.data.title} · ${player.name}`, amountCents: participant.amountCents, paymentMethod: participant.paymentMethod, status: participant.paymentMethod ? "PAID" : "PENDING", dueDate: startsAt, paidAt: participant.paymentMethod ? new Date() : null, notes: `Agendamento ${occurrence.id}`, arenaId: auth.arenaId };
+      const financialEntryId = hasCharge ? (existing?.financialEntryId ? (await tx.financialEntry.update({ where: { id: existing.financialEntryId }, data: entryData })).id : (await tx.financialEntry.create({ data: entryData })).id) : null;
+      if (!hasCharge && existing?.financialEntryId) await tx.financialEntry.delete({ where: { id: existing.financialEntryId } });
+      await tx.scheduleParticipant.upsert({ where: { occurrenceId_playerId: { occurrenceId: occurrence.id, playerId: participant.playerId } }, update: { amountCents: participant.amountCents, paymentMethod: participant.paymentMethod, financialEntryId }, create: { occurrenceId: occurrence.id, playerId: participant.playerId, amountCents: participant.amountCents, paymentMethod: participant.paymentMethod, financialEntryId } });
+    }
+  });
+  refreshCalendar();
 }
 
 export async function createCourtWeeklyRuleAction(formData: FormData) {

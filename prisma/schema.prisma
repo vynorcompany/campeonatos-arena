@@ -218,6 +218,7 @@ model Player {
   pairPlayers PairPlayer[]
   categoryPairPlayers CategoryPairPlayer[]
   student     Student?
+  scheduleParticipants ScheduleParticipant[]
 
   @@unique([arenaId, name])
   @@index([arenaId, active])
@@ -802,13 +803,33 @@ model ScheduleOccurrence {
   startsAt    DateTime
   endsAt      DateTime
   status      String   @default("SCHEDULED")
+  modality    String   @default("")
+  notes       String   @default("")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   arenaId     String
   arena       Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
   occurrenceCourts ScheduleOccurrenceCourt[]
+  participants ScheduleParticipant[]
 
   @@index([arenaId, startsAt, endsAt])
+}
+
+model ScheduleParticipant {
+  id               String             @id @default(cuid())
+  amountCents      Int                @default(0)
+  paymentMethod    String             @default("")
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  occurrenceId     String
+  playerId         String
+  financialEntryId String?            @unique
+  occurrence       ScheduleOccurrence @relation(fields: [occurrenceId], references: [id], onDelete: Cascade)
+  player           Player             @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  financialEntry   FinancialEntry?    @relation(fields: [financialEntryId], references: [id], onDelete: SetNull)
+
+  @@unique([occurrenceId, playerId])
+  @@index([playerId])
 }
 
 model ScheduleOccurrenceCourt {
@@ -953,6 +974,7 @@ model FinancialEntry {
   updatedAt     DateTime @updatedAt
   arenaId       String
   arena         Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  scheduleParticipant ScheduleParticipant?
 
   @@index([arenaId, type, status])
   @@index([arenaId, dueDate])
