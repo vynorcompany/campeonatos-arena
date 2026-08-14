@@ -169,6 +169,12 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
           ]
         },
         {
+          href: "/agenda",
+          label: "Agenda de quadras",
+          icon: "calendar",
+          children: [{ href: "/agenda/configuracao", label: "Configuração" }]
+        },
+        {
           href: "/proximos-jogos",
           label: "Tela da TV",
           icon: "tv",
@@ -199,8 +205,6 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
           children: [
             { href: "/arena", label: "Arena" },
             { href: "/arena/regulamento", label: "Regulamento" },
-            { href: "/agenda", label: "Agenda de quadras" },
-            { href: "/agenda/configuracao", label: "Configuração da agenda" },
             ...(canManageUsers ? [{ href: "/usuarios", label: "Usuários" }] : []),
             { href: "/minha-conta", label: "Minha conta" }
           ]
