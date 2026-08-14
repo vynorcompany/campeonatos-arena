@@ -7,6 +7,7 @@ test("daily court agenda renders time rows, court columns and a configuration en
   const page = readFileSync(resolve(process.cwd(), "src/app/(app)/agenda/page.tsx"), "utf8");
 
   assert.match(page, /agenda-date-strip/);
+  assert.match(page, /agenda-date-item-centered/);
   assert.match(page, /scheduleOccurrences/);
   assert.match(page, /daily-court-grid/);
   assert.match(page, /Agenda de quadras/);
@@ -22,5 +23,6 @@ test("agenda configuration keeps court registration separate from the daily view
   assert.match(page, /Configuração da agenda/);
   assert.match(page, /Quadra selecionada/);
   assert.match(page, /Dia da semana/);
+  assert.match(page, /name="court"/);
   assert.match(page, /Nova quadra/);
 });

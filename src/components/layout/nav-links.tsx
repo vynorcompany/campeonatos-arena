@@ -157,7 +157,7 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
       links: [{ href: "/painel", label: "Dashboard", icon: "dashboard" }]
     },
     {
-      title: "Campeonatos",
+      title: "Painéis",
       links: [
         {
           href: "/torneios",
@@ -167,12 +167,6 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
             { href: "/jogos", label: "Jogos" },
             { href: "/torneios/rankings", label: "Rankings" }
           ]
-        },
-        {
-          href: "/agenda",
-          label: "Agenda de quadras",
-          icon: "calendar",
-          children: [{ href: "/agenda/configuracao", label: "Configuração" }]
         },
         {
           href: "/proximos-jogos",
@@ -192,50 +186,12 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
           href: "/players",
           label: "Atletas",
           icon: "users"
-        },
-        {
-          href: "/aulas",
-          label: "Aulas",
-          icon: "lesson",
-          children: [
-            { href: "/aulas/alunos", label: "Alunos" },
-            { href: "/aulas/registrar", label: "Registrar aula" },
-            { href: "/professores", label: "Professores" }
-          ]
-        },
-        {
-          href: "/pdv",
-          label: "PDV e estoque",
-          icon: "cart",
-          children: [
-            { href: "/pdv/caixa", label: "Caixa" },
-            { href: "/pdv/estoque", label: "Estoque" },
-            { href: "/pdv/vendas", label: "Vendas" }
-          ]
-        }
-      ]
-    },
-    {
-      title: "Financeiro",
-      links: [
-        {
-          href: "/financeiro",
-          label: "Dashboard",
-          icon: "finance",
-          children: [
-            { href: "/financeiro/planos", label: "Planos" },
-            { href: "/financeiro/mensalidades", label: "Mensalidades" },
-            { href: "/financeiro/folha", label: "Folha" },
-            { href: "/financeiro/lancamentos", label: "Lançamentos" },
-            { href: "/financeiro/pdv-estoque", label: "PDV/estoque" }
-          ]
         }
       ]
     },
     {
       title: "Administração",
       links: [
-        { href: "/suporte", label: "Suporte/Ajuda", icon: "support" },
         {
           href: "/arena",
           label: "Configurações",
@@ -243,6 +199,8 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
           children: [
             { href: "/arena", label: "Arena" },
             { href: "/arena/regulamento", label: "Regulamento" },
+            { href: "/agenda", label: "Agenda de quadras" },
+            { href: "/agenda/configuracao", label: "Configuração da agenda" },
             ...(canManageUsers ? [{ href: "/usuarios", label: "Usuários" }] : []),
             { href: "/minha-conta", label: "Minha conta" }
           ]

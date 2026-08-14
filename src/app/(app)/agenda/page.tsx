@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AgendaSlotDialog } from "@/components/agenda-slot-dialog";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
@@ -30,7 +31,7 @@ export default async function AgendaPage({ searchParams }: AgendaPageProps) {
   return <div className="agenda-page" aria-label="Agenda de quadras">
     <div className="agenda-date-strip">
       <Link href={dayHref(addDays(selectedDate, -1))} className="agenda-date-arrow" aria-label="Dia anterior">‹</Link>
-      <div className="agenda-date-list">{days.map((date) => { const selected = date.getTime() === selectedDate.getTime(); return <Link key={dateInputValue(date)} href={dayHref(date)} className={selected ? "agenda-date-item agenda-date-item-active" : "agenda-date-item"}><span>{new Intl.DateTimeFormat("pt-BR", { weekday: "short" }).format(date).replace(".", "")}</span><strong>{date.getDate()}</strong></Link>; })}</div>
+      <div className="agenda-date-list">{days.map((date) => { const selected = date.getTime() === selectedDate.getTime(); return <Link key={dateInputValue(date)} href={dayHref(date)} className={selected ? "agenda-date-item agenda-date-item-active agenda-date-item-centered" : "agenda-date-item"}><span>{new Intl.DateTimeFormat("pt-BR", { weekday: "short" }).format(date).replace(".", "")}</span><strong>{date.getDate()}</strong></Link>; })}</div>
       <Link href={dayHref(addDays(selectedDate, 1))} className="agenda-date-arrow" aria-label="Próximo dia">›</Link>
       <Link href={dayHref(startOfDay(new Date()))} className="agenda-today-link">Hoje</Link>
       <Link href="/agenda/configuracao" className="agenda-settings-link">Configurar</Link>
@@ -40,10 +41,10 @@ export default async function AgendaPage({ searchParams }: AgendaPageProps) {
       const occurrence = scheduleOccurrences.find((item) => item.occurrenceCourts.some((entry) => entry.courtId === court.id) && minuteOfDay(item.startsAt) === slot);
       const isOccupied = scheduleOccurrences.some((item) => item.occurrenceCourts.some((entry) => entry.courtId === court.id) && minuteOfDay(item.startsAt) < slot && minuteOfDay(item.endsAt) > slot);
       if (isOccupied) return null;
-      if (occurrence) { const rows = Math.max(1, Math.ceil((minuteOfDay(occurrence.endsAt) - minuteOfDay(occurrence.startsAt)) / arena.scheduleSlotMinutes)); return <td className="daily-court-event" key={court.id} rowSpan={rows}><strong>{occurrence.title}</strong><span>{occurrence.sourceType}</span></td>; }
+      if (occurrence) { const rows = Math.max(1, Math.ceil((minuteOfDay(occurrence.endsAt) - minuteOfDay(occurrence.startsAt)) / arena.scheduleSlotMinutes)); return <td className="daily-court-event" key={court.id} rowSpan={rows}><AgendaSlotDialog slot={{ courtName: court.name, dateLabel: selectedDateLabel, startsAt: minuteLabel(minuteOfDay(occurrence.startsAt)), endsAt: minuteLabel(minuteOfDay(occurrence.endsAt)), state: "OCCUPIED", title: occurrence.title, sourceType: occurrence.sourceType }}><strong>{occurrence.title}</strong><span>{occurrence.sourceType}</span></AgendaSlotDialog></td>; }
       const rule = court.weeklyRules.find((item) => item.weekday === weekday && item.startsAtMinute <= slot && item.endsAtMinute > slot);
-      if (!rule || !rule.available) return <td className="daily-court-unavailable" key={court.id}><span>Indisponível</span></td>;
-      return <td className="daily-court-available" key={court.id}><strong>{priceLabel(rule.priceCents)}</strong><span>Livre</span></td>;
+      if (!rule || !rule.available) return <td className="daily-court-unavailable" key={court.id}><AgendaSlotDialog slot={{ courtName: court.name, dateLabel: selectedDateLabel, startsAt: minuteLabel(slot), endsAt: minuteLabel(slot + arena.scheduleSlotMinutes), state: "UNAVAILABLE" }}><span>Indisponível</span></AgendaSlotDialog></td>;
+      return <td className="daily-court-available" key={court.id}><AgendaSlotDialog slot={{ courtName: court.name, dateLabel: selectedDateLabel, startsAt: minuteLabel(slot), endsAt: minuteLabel(slot + arena.scheduleSlotMinutes), state: "AVAILABLE", priceLabel: priceLabel(rule.priceCents) }}><strong>{priceLabel(rule.priceCents)}</strong><span>Livre</span></AgendaSlotDialog></td>;
     })}</tr>)}</tbody></table></div> : <div className="agenda-empty"><h2>Cadastre suas quadras para abrir a agenda</h2><p>Crie as quadras e as faixas semanais para visualizar os horários disponíveis.</p><Link className="button button-primary" href="/agenda/configuracao">Configurar agenda</Link></div>}
   </div>;
 }

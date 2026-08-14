@@ -31,6 +31,7 @@ export default async function AgendaConfiguracaoPage({ searchParams }: AgendaCon
       </SectionCard>
       <SectionCard title={selectedCourt ? `Quadra selecionada: ${selectedCourt.name}` : "Quadra selecionada"} description="Crie quantas faixas precisar para cada dia. Faixas que se sobrepõem são bloqueadas.">
         {selectedCourt ? <>
+          <form className="agenda-court-selector"><label htmlFor="selected-court">Quadra selecionada</label><select id="selected-court" name="court" defaultValue={selectedCourt.id}>{courts.map((court) => <option key={court.id} value={court.id}>{court.name}</option>)}</select><button className="button" type="submit">Editar</button></form>
           <SafeActionForm action={createCourtWeeklyRuleAction} className="weekly-rule-form" resetOnSuccess successMessage="Faixa cadastrada.">
             <input name="courtId" type="hidden" value={selectedCourt.id} />
             <div className="field"><label htmlFor="weekly-rule-weekday">Dia da semana</label><select id="weekly-rule-weekday" name="weekday" defaultValue="1">{weekDays.map((day, index) => <option key={day} value={index}>{day}</option>)}</select></div>
