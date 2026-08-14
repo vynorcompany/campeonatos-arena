@@ -20,6 +20,12 @@ const courtSchema = z.object({
   name: z.string().trim().min(2, "Informe o nome da quadra.")
 });
 
+const scheduleSettingsSchema = z.object({
+  startTime: z.string().regex(/^\d{2}:\d{2}$/, "Informe o horário de abertura."),
+  endTime: z.string().regex(/^\d{2}:\d{2}$/, "Informe o horário de encerramento."),
+  slotMinutes: z.coerce.number().int().min(15).max(120)
+});
+
 function parseScheduledAt(value: string) {
   const scheduledAt = new Date(value);
   if (Number.isNaN(scheduledAt.getTime())) {
@@ -30,6 +36,39 @@ function parseScheduledAt(value: string) {
 
 function refreshCalendar() {
   revalidatePath("/calendario");
+  revalidatePath("/agenda");
+  revalidatePath("/agenda/configuracao");
+}
+
+function timeToMinutes(value: string) {
+  const [hours, minutes] = value.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+export async function updateScheduleSettingsAction(formData: FormData) {
+  const auth = await requireModuleEdit("calendar");
+  const parsed = scheduleSettingsSchema.safeParse({
+    startTime: formData.get("startTime"),
+    endTime: formData.get("endTime"),
+    slotMinutes: formData.get("slotMinutes")
+  });
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  }
+
+  const scheduleStartMinute = timeToMinutes(parsed.data.startTime);
+  const scheduleEndMinute = timeToMinutes(parsed.data.endTime);
+  if (scheduleStartMinute >= scheduleEndMinute) {
+    throw new Error("O encerramento deve ser posterior à abertura.");
+  }
+
+  await prisma.arena.update({
+    where: { id: auth.arenaId },
+    data: { scheduleStartMinute, scheduleEndMinute, scheduleSlotMinutes: parsed.data.slotMinutes }
+  });
+
+  refreshCalendar();
 }
 
 export async function createCourtAction(formData: FormData) {

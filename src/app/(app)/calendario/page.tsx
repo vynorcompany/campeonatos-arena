@@ -2,9 +2,6 @@ import Link from "next/link";
 import { CalendarDragScroll } from "@/components/calendar-drag-scroll";
 import { CalendarQuickCreate } from "@/components/calendar-quick-create";
 import { SectionCard } from "@/components/section-card";
-import { SafeActionForm } from "@/components/forms/safe-action-form";
-import { SubmitButton } from "@/components/forms/submit-button";
-import { createCourtAction } from "@/lib/actions/calendar";
 import { requireArenaAccess } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 
@@ -176,7 +173,7 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
   const customEnd = parseDateParam(searchParams?.fim);
   const { label, start, end, gridStart, gridEnd } = getRange(period, anchor, customStart, customEnd);
 
-  const [lessons, calendarEvents, courts] = await Promise.all([
+  const [lessons, calendarEvents] = await Promise.all([
     prisma.lesson.findMany({
       where: { arenaId: auth.arenaId, scheduledAt: { gte: start, lt: end } },
       include: { teacher: true, attendances: { include: { student: true } } },
@@ -185,10 +182,6 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
     prisma.calendarEvent.findMany({
       where: { arenaId: auth.arenaId, scheduledAt: { gte: start, lt: end } },
       orderBy: { scheduledAt: "asc" }
-    }),
-    prisma.court.findMany({
-      where: { arenaId: auth.arenaId, active: true },
-      orderBy: { name: "asc" }
     })
   ]);
 
@@ -248,7 +241,6 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
           </section>
 
           <section className="calendar-mini-card"><h2>Filtros</h2><form className="calendar-filter-stack"><div className="field"><label htmlFor="calendar-period">Periodo</label><select id="calendar-period" name="periodo" defaultValue={period}>{Object.entries(periodLabels).map(([value, optionLabel]) => <option key={value} value={value}>{optionLabel}</option>)}</select></div><div className="field"><label htmlFor="calendar-type">Tipo</label><select id="calendar-type" name="tipo" defaultValue={type}>{Object.entries(typeLabels).map(([value, optionLabel]) => <option key={value} value={value}>{optionLabel}</option>)}</select></div><div className="field"><label htmlFor="calendar-date">Data base</label><input id="calendar-date" name="data" type="date" defaultValue={getDateInputValue(anchor)} /></div><div className="field"><label htmlFor="calendar-start">Inicio</label><input id="calendar-start" name="inicio" type="date" defaultValue={customStart ? getDateInputValue(customStart) : ""} /></div><div className="field"><label htmlFor="calendar-end">Fim</label><input id="calendar-end" name="fim" type="date" defaultValue={customEnd ? getDateInputValue(customEnd) : ""} /></div><button className="button button-primary button-block" type="submit">Aplicar filtros</button><button className="button button-block" type="button" data-calendar-create>Criar</button></form></section>
-          <section className="calendar-mini-card"><h2>Quadras</h2><p className="muted">{courts.length ? courts.map((court) => court.name).join(" · ") : "Cadastre a primeira quadra para preparar a agenda por quadra."}</p><SafeActionForm action={createCourtAction} className="calendar-filter-stack" resetOnSuccess successMessage="Quadra cadastrada."><div className="field"><label htmlFor="court-name">Nova quadra</label><input id="court-name" name="name" type="text" placeholder="Ex.: Quadra 1" required /></div><SubmitButton label="Adicionar quadra" pendingLabel="Salvando..." className="button button-primary button-block" /></SafeActionForm></section>
         </aside>
 
         <SectionCard title={label} description={`${formatDateLong(start)} ate ${formatDateLong(addDays(end, -1))}.`}>

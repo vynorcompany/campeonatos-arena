@@ -6492,3 +6492,29 @@ button {
   .public-standing-differential { display: grid; gap: 1px; text-align: right; }
   .public-standing-differential span { color: var(--muted); font-size: .66rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
 }
+
+.agenda-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.agenda-day-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.agenda-day-controls form { display: flex; gap: 8px; margin-left: auto; }
+.daily-court-grid-scroll { overflow: auto; border: 1px solid var(--line); border-radius: 14px; }
+.daily-court-grid { width: 100%; min-width: 720px; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+.daily-court-grid th, .daily-court-grid td { min-height: 54px; padding: 10px 12px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); vertical-align: top; }
+.daily-court-grid tr:last-child th, .daily-court-grid tr:last-child td { border-bottom: 0; }
+.daily-court-grid th:last-child, .daily-court-grid td:last-child { border-right: 0; }
+.daily-court-grid thead th { position: sticky; top: 0; z-index: 2; color: var(--ink); background: var(--panel); text-align: left; }
+.daily-court-grid thead th:first-child { width: 92px; }
+.daily-court-grid tbody > tr > th { color: var(--muted); background: var(--panel-muted); font-size: .82rem; text-align: right; }
+.daily-court-empty { display: block; color: var(--muted); font-size: .78rem; }
+.daily-court-event { background: var(--brand-soft); color: var(--brand-strong); }
+.daily-court-event strong, .daily-court-event span { display: block; }
+.daily-court-event span { margin-top: 4px; font-size: .72rem; font-weight: 700; text-transform: uppercase; }
+.agenda-empty { display: grid; justify-items: start; gap: 8px; padding: 24px; border: 1px dashed var(--line); border-radius: 14px; background: var(--panel-muted); }
+.agenda-empty h3, .agenda-empty p { margin: 0; }
+.agenda-settings-layout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.agenda-settings-form, .agenda-court-form { display: grid; gap: 14px; }
+.agenda-settings-form { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; }
+.agenda-settings-form .button { align-self: end; }
+.agenda-court-form { grid-template-columns: minmax(0, 1fr) auto; align-items: end; }
+.agenda-court-list { display: grid; gap: 8px; padding: 0; margin: 18px 0 0; list-style: none; }
+.agenda-court-list li { display: flex; justify-content: space-between; gap: 12px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px; }
+@media (max-width: 760px) { .agenda-header, .agenda-settings-layout, .agenda-settings-form, .agenda-court-form { display: grid; grid-template-columns: 1fr; } .agenda-day-controls form { width: 100%; margin-left: 0; } .agenda-day-controls form input { min-width: 0; flex: 1; } }
