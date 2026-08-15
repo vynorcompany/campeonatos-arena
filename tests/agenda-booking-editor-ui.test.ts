@@ -8,5 +8,9 @@ test("agenda slot dialog offers booking details, participants and payment contro
   assert.match(source, /saveCourtBookingAction/);
   assert.match(source, /Adicionar atleta/);
   assert.match(source, /Forma de pagamento/);
-  assert.match(source, /Duração/);
+  assert.match(source, /Horário/);
+  assert.match(source, /Valor da quadra/);
+  assert.match(source, /Dividir igualmente/);
+  assert.match(source, /Math\.max\(0, 4/);
+  assert.match(source, /às/);
 });
