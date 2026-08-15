@@ -42,10 +42,12 @@ const courtBookingSchema = z.object({
   title: z.string().trim().min(2),
   startsAt: z.string().trim().min(1),
   durationMinutes: z.coerce.number().int().min(15).max(720),
-  modality: z.string().trim().default(""),
+  bookingTypeName: z.string().trim().min(1).default("Reserva"),
   notes: z.string().trim().default(""),
   participants: z.string().trim().default("[]")
 });
+
+export const DEFAULT_BOOKING_TYPES = ["Aula", "Aula fixa", "Plano", "Super 12", "Liga", "Reserva"];
 
 function parseScheduledAt(value: string) {
   const scheduledAt = new Date(value);
@@ -92,11 +94,32 @@ function parseBookingParticipants(value: string): BookingParticipant[] {
   return parsed.data;
 }
 
+async function ensureBookingTypes(arenaId: string) {
+  await prisma.bookingType.createMany({ data: DEFAULT_BOOKING_TYPES.map((name) => ({ arenaId, name })), skipDuplicates: true });
+}
+
+export async function createBookingTypeAction(formData: FormData) {
+  const auth = await requireModuleEdit("arena");
+  const name = z.string().trim().min(2, "Informe o tipo de reserva.").safeParse(formData.get("name"));
+  if (!name.success) throw new Error(name.error.issues[0]?.message ?? "Tipo inválido.");
+  await ensureBookingTypes(auth.arenaId);
+  await prisma.bookingType.create({ data: { arenaId: auth.arenaId, name: name.data } });
+  revalidatePath("/arena"); revalidatePath("/agenda");
+}
+
+export async function createQuickPlayerAction(formData: FormData) {
+  const auth = await requireModuleEdit("calendar");
+  const parsed = z.object({ name: z.string().trim().min(3), phone: z.string().trim().min(8), cpf: z.string().trim().default(""), class: z.string().trim().default(""), gender: z.string().trim().default(""), birthDate: z.string().trim().default("") }).safeParse({ name: formData.get("name"), phone: formData.get("phone"), cpf: formData.get("cpf"), class: formData.get("class"), gender: formData.get("gender"), birthDate: formData.get("birthDate") });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  const player = await prisma.player.create({ data: { arenaId: auth.arenaId, name: parsed.data.name, phone: parsed.data.phone, cpf: parsed.data.cpf.replace(/\D/g, ""), class: parsed.data.class, gender: parsed.data.gender, birthDate: parsed.data.birthDate ? new Date(parsed.data.birthDate) : null } });
+  refreshCalendar(); return { id: player.id, name: player.name };
+}
+
 export async function saveCourtBookingAction(formData: FormData) {
   const auth = await requireModuleEdit("calendar");
   const parsed = courtBookingSchema.safeParse({
     occurrenceId: formData.get("occurrenceId"), courtId: formData.get("courtId"), title: formData.get("title"),
-    startsAt: formData.get("startsAt"), durationMinutes: formData.get("durationMinutes"), modality: formData.get("modality"),
+    startsAt: formData.get("startsAt"), durationMinutes: formData.get("durationMinutes"), bookingTypeName: formData.get("bookingTypeName"),
     notes: formData.get("notes"), participants: formData.get("participants")
   });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
@@ -115,8 +138,8 @@ export async function saveCourtBookingAction(formData: FormData) {
 
   await prisma.$transaction(async (tx) => {
     const occurrence = parsed.data.occurrenceId
-      ? await tx.scheduleOccurrence.update({ where: { id: parsed.data.occurrenceId, arenaId: auth.arenaId }, data: { title: parsed.data.title, startsAt, endsAt, modality: parsed.data.modality, notes: parsed.data.notes } })
-      : await tx.scheduleOccurrence.create({ data: { arenaId: auth.arenaId, sourceType: "BOOKING", title: parsed.data.title, startsAt, endsAt, modality: parsed.data.modality, notes: parsed.data.notes, occurrenceCourts: { create: { courtId: court.id } } } });
+      ? await tx.scheduleOccurrence.update({ where: { id: parsed.data.occurrenceId, arenaId: auth.arenaId }, data: { title: parsed.data.title, startsAt, endsAt, bookingTypeName: parsed.data.bookingTypeName, notes: parsed.data.notes } })
+      : await tx.scheduleOccurrence.create({ data: { arenaId: auth.arenaId, sourceType: "BOOKING", title: parsed.data.title, startsAt, endsAt, bookingTypeName: parsed.data.bookingTypeName, notes: parsed.data.notes, occurrenceCourts: { create: { courtId: court.id } } } });
     const previous = await tx.scheduleParticipant.findMany({ where: { occurrenceId: occurrence.id } });
     for (const participant of previous) {
       if (!participants.some((item) => item.playerId === participant.playerId) && participant.financialEntryId) await tx.financialEntry.delete({ where: { id: participant.financialEntryId } });

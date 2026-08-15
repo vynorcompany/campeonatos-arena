@@ -6519,7 +6519,7 @@ button {
 .agenda-court-list li { display: flex; justify-content: space-between; gap: 12px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px; }
 @media (max-width: 760px) { .agenda-header, .agenda-settings-layout, .agenda-settings-form, .agenda-court-form { display: grid; grid-template-columns: 1fr; } .agenda-day-controls form { width: 100%; margin-left: 0; } .agenda-day-controls form input { min-width: 0; flex: 1; } }
 
-.agenda-page { display: grid; gap: 10px; min-width: 0; }
+.agenda-page { display: grid; gap: 12px; min-width: 0; width: 100%; max-width: none; padding: 4px 18px 28px; }
 .agenda-date-strip { display: flex; align-items: stretch; gap: 6px; padding: 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); box-shadow: var(--shadow); }
 .agenda-date-list { display: grid; grid-template-columns: repeat(7, minmax(54px, 1fr)); flex: 1; gap: 4px; }
 .agenda-date-item, .agenda-date-arrow, .agenda-today-link, .agenda-settings-link { display: grid; place-items: center; min-width: 42px; border-radius: 10px; color: var(--muted); text-decoration: none; font-weight: 700; }
@@ -6534,10 +6534,14 @@ button {
 .agenda-grid-caption { display: flex; justify-content: space-between; align-items: center; padding: 1px 4px; color: var(--muted); font-size: .8rem; }
 .agenda-grid-caption strong { color: var(--ink); text-transform: capitalize; }
 .daily-court-grid-scroll { border-radius: 12px; box-shadow: var(--shadow); }
-.daily-court-grid { min-width: 640px; background: var(--panel); }
-.daily-court-grid th, .daily-court-grid td { min-height: 40px; padding: 6px 9px; }
-.daily-court-grid thead th { padding: 11px 10px; font-size: .78rem; }
-.daily-court-grid tbody > tr > th { width: 62px; padding-top: 10px; font-size: .72rem; }
+.daily-court-grid { min-width: 100%; background: var(--panel); }
+.daily-court-grid th, .daily-court-grid td { min-height: 48px; padding: 9px 14px; }
+.daily-court-grid thead th { padding: 13px 14px; font-size: .9rem; }
+.daily-court-grid tbody > tr > th { width: 74px; padding-top: 12px; font-size: .8rem; }
+.agenda-player-search { display: flex; gap: 8px; }
+.agenda-player-search input { flex: 1; min-height: 38px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); }
+.agenda-quick-player { display: grid; gap: 10px; margin-top: 14px; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-muted); }
+.agenda-quick-player h3 { margin: 0; }.agenda-quick-player label { display: grid; gap: 5px; font-size: .78rem; font-weight: 700; }.agenda-quick-player input { min-height: 38px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; }.agenda-quick-player div { display: flex; justify-content: flex-end; gap: 8px; }
 .daily-court-available { background: #f5fbf7; color: #23633c; }
 .daily-court-available strong, .daily-court-available span, .daily-court-unavailable span { display: block; }
 .daily-court-available strong { font-size: .78rem; }

@@ -98,6 +98,7 @@ model Arena {
   calendarEvents CalendarEvent[]
   courts      Court[]
   scheduleOccurrences ScheduleOccurrence[]
+  bookingTypes BookingType[]
   products    Product[]
   sales       Sale[]
   stockMovements StockMovement[]
@@ -804,6 +805,7 @@ model ScheduleOccurrence {
   endsAt      DateTime
   status      String   @default("SCHEDULED")
   modality    String   @default("")
+  bookingTypeName String @default("Reserva")
   notes       String   @default("")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -813,6 +815,19 @@ model ScheduleOccurrence {
   participants ScheduleParticipant[]
 
   @@index([arenaId, startsAt, endsAt])
+}
+
+model BookingType {
+  id        String   @id @default(cuid())
+  name      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  arenaId   String
+  arena     Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+
+  @@unique([arenaId, name])
+  @@index([arenaId, active])
 }
 
 model ScheduleParticipant {
