@@ -627,13 +627,14 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 42px;
-  padding: 0 16px;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius-control);
   background: var(--panel);
   color: var(--text);
+  font-size: 0.86rem;
   transition:
     transform 180ms var(--ease-standard),
     border-color 180ms var(--ease-standard),
@@ -6565,6 +6566,7 @@ button {
 .court-order-action { display: grid; gap: 8px; min-width: 0; }
 .court-order-action .form-success, .court-order-action .form-error { padding: 8px 10px; font-size: .8rem; }
 .court-copy-settings > div { display: flex; flex-wrap: wrap; gap: 10px; }
+.court-copy-settings > .button { justify-self: start; min-height: 34px; padding-inline: 11px; }
 .agenda-court-form { grid-template-columns: minmax(0, 1fr) auto; align-items: end; }
 .agenda-court-list { display: grid; gap: 8px; padding: 0; margin: 18px 0 0; list-style: none; }
 .agenda-court-list li { display: flex; justify-content: space-between; gap: 12px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px; }

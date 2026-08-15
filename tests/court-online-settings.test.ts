@@ -25,5 +25,7 @@ test("primary action buttons use the shared subtle rounded control style", () =>
   const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
 
   assert.match(styles, /\.button\s*\{[\s\S]*?border-radius:\s*var\(--radius-control\)/);
+  assert.match(styles, /\.button\s*\{[\s\S]*?min-height:\s*36px/);
   assert.match(styles, /--radius-control:\s*8px/);
+  assert.match(styles, /\.court-copy-settings\s*>\s*\.button\s*\{[\s\S]*?justify-self:\s*start/);
 });
