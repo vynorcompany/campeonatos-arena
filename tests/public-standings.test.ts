@@ -112,11 +112,38 @@ test("public standings renders the branded header and finished-game score treatm
   assert.match(component, /game\.status === "FINISHED" && game\.finalScore/);
   assert.match(component, /public-game-score/);
   assert.match(component, /public-game-set-scores/);
+  assert.match(component, /public-game-finished-tag/);
+  assert.match(component, /public-game-pair-winner/);
+  assert.match(component, /public-game-pair-loser/);
   assert.match(component, /game\.setScores\?\.length/);
   assert.match(styles, /\.public-standings-brand-band\s*\{[^}]*linear-gradient/s);
   assert.match(styles, /\.public-game-score\s*\{/);
   assert.match(styles, /\.public-game-set-scores\s*\{/);
+  assert.match(styles, /\.public-game-finished-tag\s*\{/);
+  assert.match(styles, /\.public-game-pair-winner\s*\{/);
+  assert.match(styles, /\.public-game-pair-loser\s*\{/);
   assert.match(styles, /@media \(max-width: 640px\)[\s\S]*\.public-game-score/);
+});
+
+test("public game agenda identifies the winning and losing pair in finished games", () => {
+  const [day] = buildPublicGameAgenda([
+    {
+      eventName: "Open de Inverno",
+      categoryName: "5ª Feminina",
+      label: "Final",
+      stage: "FINAL",
+      roundOrder: 1,
+      scheduledDate: "2026-08-02",
+      scheduledTime: "18:00",
+      homePairName: "Ana / Bia",
+      awayPairName: "Clara / Duda",
+      status: "FINISHED",
+      homeScore: 2,
+      awayScore: 1,
+    },
+  ]);
+
+  assert.equal(day.games[0].winnerSide, "home");
 });
 
 test("public standings use a full-bleed desktop brand band aligned to the page column", async () => {

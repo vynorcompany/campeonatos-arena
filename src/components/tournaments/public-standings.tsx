@@ -191,12 +191,12 @@ export function PublicStandings({
             <div className="stack-sm" key={day.date}>
               <h3>{day.label}</h3>
               {day.games.map((game) => (
-                <div className="simple-item public-game-item" key={`${day.date}-${game.label}-${game.roundOrder}-${game.categoryName}`}>
-                  <strong>{game.scheduledTime ?? "Horário a definir"}</strong>
-                  <span>{game.eventName} · {game.categoryName}{game.stage ? ` · ${game.stage}` : ""}</span>
+                <div className={`simple-item public-game-item ${game.status === "FINISHED" ? "public-game-item-finished" : ""}`} key={`${day.date}-${game.label}-${game.roundOrder}-${game.categoryName}`}>
+                  <div className="public-game-topline"><strong>{game.scheduledTime ?? "Horário a definir"}</strong>{game.status === "FINISHED" ? <span className="public-game-finished-tag">Finalizado</span> : null}</div>
+                  <span className="public-game-meta">{game.eventName} · {game.categoryName}{game.stage ? ` · ${game.stage}` : ""}</span>
                   {game.status === "FINISHED" && game.finalScore ? (
                     <div className="public-game-matchup">
-                      <span>{game.homePairName}</span>
+                      <strong className={game.winnerSide === "home" ? "public-game-pair-winner" : "public-game-pair-loser"}>{game.homePairName}</strong>
                       <div
                         className="public-game-score"
                         aria-label={`Placar final: ${game.finalScore.homeScore} a ${game.finalScore.awayScore}`}
@@ -214,12 +214,12 @@ export function PublicStandings({
                           </span>
                         ) : null}
                       </div>
-                      <span>{game.awayPairName}</span>
+                      <strong className={game.winnerSide === "away" ? "public-game-pair-winner" : "public-game-pair-loser"}>{game.awayPairName}</strong>
                     </div>
                   ) : (
-                    <span>{game.homePairName} × {game.awayPairName}</span>
+                    <strong className="public-game-pairs">{game.homePairName} <span>×</span> {game.awayPairName}</strong>
                   )}
-                  <span className="muted">{statusLabels[game.status]}</span>
+                  {game.status !== "FINISHED" ? <span className="muted">{statusLabels[game.status]}</span> : null}
                 </div>
               ))}
             </div>

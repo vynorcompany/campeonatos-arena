@@ -66,6 +66,7 @@ export type PublicGameDay = {
     status: PublicGameStatus;
     homePairName: string;
     awayPairName: string;
+    winnerSide?: "home" | "away";
     finalScore?: {
       homeScore: number;
       awayScore: number;
@@ -136,6 +137,13 @@ export function buildPublicGameAgenda(
             : [],
         )
       : undefined;
+    const winnerSide: "home" | "away" | undefined = finalScore
+      ? finalScore.homeScore > finalScore.awayScore
+        ? "home"
+        : finalScore.awayScore > finalScore.homeScore
+          ? "away"
+          : undefined
+      : undefined;
     const game = {
       eventName: match.eventName,
       categoryName: match.categoryName,
@@ -147,6 +155,7 @@ export function buildPublicGameAgenda(
       homePairName: match.homePairName,
       awayPairName: match.awayPairName,
       ...(finalScore ? { finalScore } : {}),
+      ...(winnerSide ? { winnerSide } : {}),
       ...(setScores?.length ? { setScores } : {}),
     };
 
