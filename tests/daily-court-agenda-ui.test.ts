@@ -25,4 +25,5 @@ test("agenda configuration keeps court registration separate from the daily view
   assert.match(page, /Dia da semana/);
   assert.match(page, /name="court"/);
   assert.match(page, /Nova quadra/);
+  assert.match(page, /export const dynamic = "force-dynamic"/);
 });

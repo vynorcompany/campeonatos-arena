@@ -6,6 +6,8 @@ import { createCourtAction, createCourtWeeklyRuleAction, deleteCourtWeeklyRuleAc
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 type AgendaConfiguracaoPageProps = { searchParams?: { court?: string } };
 
 const weekDays = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];

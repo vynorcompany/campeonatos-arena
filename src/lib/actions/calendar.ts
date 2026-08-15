@@ -47,7 +47,7 @@ const courtBookingSchema = z.object({
   participants: z.string().trim().default("[]")
 });
 
-export const DEFAULT_BOOKING_TYPES = ["Aula", "Aula fixa", "Plano", "Super 12", "Liga", "Reserva"];
+const DEFAULT_BOOKING_TYPES = ["Aula", "Aula fixa", "Plano", "Super 12", "Liga", "Reserva"];
 
 function parseScheduledAt(value: string) {
   const scheduledAt = new Date(value);

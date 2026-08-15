@@ -3,6 +3,8 @@ import { AgendaSlotDialog } from "@/components/agenda-slot-dialog";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 type AgendaPageProps = { searchParams?: { data?: string } };
 
 function parseDate(value?: string) { if (!value) return new Date(); const [year, month, day] = value.split("-").map(Number); const parsed = new Date(year, (month ?? 1) - 1, day ?? 1); return Number.isNaN(parsed.getTime()) ? new Date() : parsed; }
