@@ -27,6 +27,9 @@ export default async function AgendaConfiguracaoPage({ searchParams }: AgendaCon
   return <div className="stack-md">
     <header className="page-header agenda-header"><div className="stack-xs"><p className="eyebrow">Operação</p><h1>Configuração da agenda</h1><p className="muted">Cadastre as faixas recorrentes de cada quadra, de domingo a sábado.</p></div><Link href="/agenda" className="button">Ver agenda</Link></header>
     <div className="agenda-settings-layout">
+      <SectionCard title="Selecionar quadra" description="Escolha uma quadra para configurar seus períodos.">
+        {courts.length ? <ul className="agenda-court-list">{courts.map((court) => <li key={court.id}><Link href={`/agenda/configuracao/${court.id}`} className="agenda-court-link">{court.name}</Link><span className={court.active ? "status-badge status-active" : "status-badge"}>{court.active ? "Ativa" : "Inativa"}</span></li>)}</ul> : <p className="muted">Nenhuma quadra cadastrada.</p>}
+      </SectionCard>
       <SectionCard title="Cadastrar nova quadra" description="Informe o nome da nova quadra para adicioná-la à agenda.">
         <SafeActionForm action={createCourtAction} className="agenda-court-form" resetOnSuccess successMessage="Quadra cadastrada."><div className="field"><label htmlFor="court-name">Nova quadra</label><input id="court-name" name="name" type="text" placeholder="Ex.: Quadra 1" required /></div><SubmitButton label="Adicionar quadra" pendingLabel="Salvando..." className="button button-primary" /></SafeActionForm>
       </SectionCard>
