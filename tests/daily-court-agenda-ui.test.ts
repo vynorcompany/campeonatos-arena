@@ -13,19 +13,19 @@ test("daily court agenda renders time rows, court columns and a configuration en
   assert.match(page, /Agenda de quadras/);
   assert.match(page, /\/agenda\/configuracao/);
   assert.match(page, /priceCents/);
-  assert.match(page, /Indisponível/);
+  assert.match(page, /daily-court-unavailable/);
   assert.doesNotMatch(page, /<header className="page-header agenda-header">/);
 });
 
-test("agenda configuration keeps court registration separate from the daily view", () => {
+test("agenda configuration presents court selection and periods as one operational workspace", () => {
   const page = readFileSync(resolve(process.cwd(), "src/app/(app)/agenda/configuracao/page.tsx"), "utf8");
 
-  assert.match(page, /Configuração da agenda/);
-  assert.match(page, /Quadra selecionada/);
-  assert.match(page, /Dia da semana/);
-  assert.match(page, /name="court"/);
-  assert.match(page, /Nova quadra/);
+  assert.match(page, /agenda-config-toolbar/);
+  assert.match(page, /agenda-court-tabs/);
+  assert.match(page, /agenda-court-workspace/);
+  assert.match(page, /agenda-create-court-inline/);
+  assert.match(page, /weekly-rule-form/);
   assert.match(page, /export const dynamic = "force-dynamic"/);
-  assert.match(page, /Selecionar quadra/);
+  assert.doesNotMatch(page, /page-header agenda-header/);
   assert.match(page, /agenda\/configuracao\/\$\{court\.id\}/);
 });
