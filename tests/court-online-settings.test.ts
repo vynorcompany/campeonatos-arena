@@ -20,3 +20,10 @@ test("courts persist visual order, color and online reservation combinations", (
   assert.match(page, /Aplicar a outras quadras/);
   assert.match(agenda, /daily-court-heading/);
 });
+
+test("primary action buttons use the shared subtle rounded control style", () => {
+  const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
+
+  assert.match(styles, /\.button\s*\{[\s\S]*?border-radius:\s*var\(--radius-control\)/);
+  assert.match(styles, /--radius-control:\s*8px/);
+});
