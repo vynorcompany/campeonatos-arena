@@ -21,6 +21,13 @@ const courtSchema = z.object({
   name: z.string().trim().min(2, "Informe o nome da quadra.")
 });
 
+const courtSettingsSchema = z.object({
+  courtId: z.string().trim().min(1),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Informe uma cor válida."),
+  onlineSlotMinutes: z.coerce.number().int().min(15).max(120),
+  onlineDurationMinutes: z.array(z.coerce.number().int().min(15).max(720)).min(1)
+});
+
 const scheduleSettingsSchema = z.object({
   startTime: z.string().regex(/^\d{2}:\d{2}$/, "Informe o horário de abertura."),
   endTime: z.string().regex(/^\d{2}:\d{2}$/, "Informe o horário de encerramento."),
@@ -257,10 +264,58 @@ export async function createCourtAction(formData: FormData) {
     throw new Error(parsed.error.issues[0]?.message ?? "Dados invalidos.");
   }
 
-  await prisma.court.create({
-    data: { arenaId: auth.arenaId, name: parsed.data.name }
-  });
+  const lastCourt = await prisma.court.findFirst({ where: { arenaId: auth.arenaId }, orderBy: { displayOrder: "desc" }, select: { displayOrder: true } });
+  await prisma.court.create({ data: { arenaId: auth.arenaId, name: parsed.data.name, displayOrder: (lastCourt?.displayOrder ?? -1) + 1 } });
 
+  refreshCalendar();
+}
+
+export async function updateCourtSettingsAction(formData: FormData) {
+  const auth = await requireModuleEdit("calendar");
+  const parsed = courtSettingsSchema.safeParse({
+    courtId: formData.get("courtId"), color: formData.get("color"), onlineSlotMinutes: formData.get("onlineSlotMinutes"),
+    onlineDurationMinutes: formData.getAll("onlineDurationMinutes")
+  });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  const durations = Array.from(new Set(parsed.data.onlineDurationMinutes)).sort((first, second) => first - second);
+  if (durations.some((duration) => duration < parsed.data.onlineSlotMinutes || duration % parsed.data.onlineSlotMinutes !== 0)) {
+    throw new Error("Cada duração deve respeitar o intervalo de reserva online.");
+  }
+  const updated = await prisma.court.updateMany({ where: { id: parsed.data.courtId, arenaId: auth.arenaId }, data: { color: parsed.data.color, onlineSlotMinutes: parsed.data.onlineSlotMinutes, onlineDurationMinutes: durations } });
+  if (!updated.count) throw new Error("Quadra não encontrada.");
+  refreshCalendar();
+}
+
+export async function moveCourtAction(formData: FormData) {
+  const auth = await requireModuleEdit("calendar");
+  const parsed = z.object({ courtId: z.string().trim().min(1), direction: z.enum(["up", "down"]) }).safeParse({ courtId: formData.get("courtId"), direction: formData.get("direction") });
+  if (!parsed.success) throw new Error("Movimentação inválida.");
+  const courts = await prisma.court.findMany({ where: { arenaId: auth.arenaId }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }] });
+  const currentIndex = courts.findIndex((court) => court.id === parsed.data.courtId);
+  const targetIndex = currentIndex + (parsed.data.direction === "up" ? -1 : 1);
+  if (currentIndex < 0 || targetIndex < 0 || targetIndex >= courts.length) return;
+  await prisma.$transaction([
+    prisma.court.update({ where: { id: courts[currentIndex].id }, data: { displayOrder: courts[targetIndex].displayOrder } }),
+    prisma.court.update({ where: { id: courts[targetIndex].id }, data: { displayOrder: courts[currentIndex].displayOrder } })
+  ]);
+  refreshCalendar();
+}
+
+export async function copyCourtConfigurationAction(formData: FormData) {
+  const auth = await requireModuleEdit("calendar");
+  const sourceCourtId = z.string().trim().min(1).safeParse(formData.get("sourceCourtId"));
+  const targetCourtIds = Array.from(new Set(formData.getAll("targetCourtId").flatMap((value) => typeof value === "string" && value.length > 0 ? [value] : [])));
+  if (!sourceCourtId.success || !targetCourtIds.length) throw new Error("Selecione ao menos uma quadra de destino.");
+  const source = await prisma.court.findFirst({ where: { id: sourceCourtId.data, arenaId: auth.arenaId }, include: { weeklyRules: true } });
+  const targets = await prisma.court.findMany({ where: { arenaId: auth.arenaId, id: { in: targetCourtIds.filter((id) => id !== sourceCourtId.data) } }, select: { id: true } });
+  if (!source || !targets.length) throw new Error("Quadras de origem ou destino inválidas.");
+  await prisma.$transaction(async (tx) => {
+    for (const target of targets) {
+      await tx.court.update({ where: { id: target.id }, data: { onlineSlotMinutes: source.onlineSlotMinutes, onlineDurationMinutes: source.onlineDurationMinutes } });
+      await tx.courtWeeklyRule.deleteMany({ where: { courtId: target.id } });
+      if (source.weeklyRules.length) await tx.courtWeeklyRule.createMany({ data: source.weeklyRules.map((rule) => ({ courtId: target.id, weekday: rule.weekday, startsAtMinute: rule.startsAtMinute, endsAtMinute: rule.endsAtMinute, priceCents: rule.priceCents, available: rule.available })) });
+    }
+  });
   refreshCalendar();
 }
 

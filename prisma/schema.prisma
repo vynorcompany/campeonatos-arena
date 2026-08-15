@@ -771,6 +771,10 @@ model Court {
   id          String   @id @default(cuid())
   name        String
   active      Boolean  @default(true)
+  displayOrder Int     @default(0)
+  color       String   @default("#1E5EA8")
+  onlineSlotMinutes Int @default(30)
+  onlineDurationMinutes Int[] @default([60])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   arenaId     String
@@ -779,7 +783,7 @@ model Court {
   weeklyRules CourtWeeklyRule[]
 
   @@unique([arenaId, name])
-  @@index([arenaId, active])
+  @@index([arenaId, active, displayOrder])
 }
 
 model CourtWeeklyRule {

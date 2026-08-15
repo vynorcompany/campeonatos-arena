@@ -125,8 +125,8 @@ export function PublicStandings({
                   <h3>Classificação da Liga</h3>
                   <table className="group-standings-table">
                     <thead><tr><th>Posição</th><th>Dupla</th><th>Jogos</th><th>Vitórias</th><th>Derrotas</th><th>Saldo</th></tr></thead>
-                    <tbody>{data.selected.leagueStandings.map((standing) => (
-                      <tr key={standing.position}>
+                    <tbody>{data.selected.leagueStandings.map((standing, index, rows) => (
+                      <tr key={standing.position} className={index === 0 ? "public-standing-first" : index === rows.length - 1 ? "public-standing-last" : undefined}>
                         <td>{standing.position}</td><td>{standing.pairName}</td><td>{standing.matches}</td>
                         <td>{standing.victories}</td><td>{standing.losses}</td><td>{standing.differential}</td>
                       </tr>
@@ -134,8 +134,8 @@ export function PublicStandings({
                   </table>
                 </div>
                 <div className="public-standing-mobile-list">
-                  {data.selected.leagueStandings.map((standing) => (
-                    <article className="public-standing-mobile-card" key={standing.position}>
+                  {data.selected.leagueStandings.map((standing, index, rows) => (
+                    <article className={`public-standing-mobile-card ${index === 0 ? "public-standing-first" : index === rows.length - 1 ? "public-standing-last" : ""}`} key={standing.position}>
                       <strong className="public-standing-position">{standing.position}</strong>
                       <div>
                         <strong>{standing.pairName}</strong>
@@ -149,8 +149,8 @@ export function PublicStandings({
               ) : (
                 <div className="stack-sm">
                   <h3>Colocação final</h3>
-                  {data.selected.knockoutPlacement.map((placement) => (
-                    <div className="simple-item" key={placement.position}>
+                  {data.selected.knockoutPlacement.map((placement, index, rows) => (
+                    <div className={`simple-item ${index === 0 ? "public-standing-first" : index === rows.length - 1 ? "public-standing-last" : ""}`} key={placement.position}>
                       <strong>{placement.position}. {placement.pairName}</strong>
                     </div>
                   ))}

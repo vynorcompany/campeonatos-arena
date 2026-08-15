@@ -122,6 +122,10 @@ test("public standings renders the branded header and finished-game score treatm
   assert.match(styles, /\.public-game-finished-tag\s*\{/);
   assert.match(styles, /\.public-game-pair-winner\s*\{/);
   assert.match(styles, /\.public-game-pair-loser\s*\{/);
+  assert.match(component, /public-standing-first/);
+  assert.match(component, /public-standing-last/);
+  assert.match(styles, /\.public-standing-first\s*\{/);
+  assert.match(styles, /\.public-standing-last\s*\{/);
   assert.match(styles, /@media \(max-width: 640px\)[\s\S]*\.public-game-score/);
 });
 

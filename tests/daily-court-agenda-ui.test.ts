@@ -27,5 +27,5 @@ test("agenda configuration presents court selection and periods as one operation
   assert.match(page, /weekly-rule-form/);
   assert.match(page, /export const dynamic = "force-dynamic"/);
   assert.doesNotMatch(page, /page-header agenda-header/);
-  assert.match(page, /agenda\/configuracao\/\$\{court\.id\}/);
+  assert.match(page, /agenda\/configuracao\/\$\{item\.id\}/);
 });
