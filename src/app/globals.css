@@ -6520,6 +6520,7 @@ button {
 @media (max-width: 760px) { .agenda-header, .agenda-settings-layout, .agenda-settings-form, .agenda-court-form { display: grid; grid-template-columns: 1fr; } .agenda-day-controls form { width: 100%; margin-left: 0; } .agenda-day-controls form input { min-width: 0; flex: 1; } }
 
 .agenda-page { display: grid; gap: 12px; min-width: 0; width: 100%; max-width: none; padding: 4px 18px 28px; }
+.content-shell:has(.agenda-page) { max-width: none; margin: 0; }
 .agenda-date-strip { display: flex; align-items: stretch; gap: 6px; padding: 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); box-shadow: var(--shadow); }
 .agenda-date-list { display: grid; grid-template-columns: repeat(7, minmax(54px, 1fr)); flex: 1; gap: 4px; }
 .agenda-date-item, .agenda-date-arrow, .agenda-today-link, .agenda-settings-link { display: grid; place-items: center; min-width: 42px; border-radius: 10px; color: var(--muted); text-decoration: none; font-weight: 700; }

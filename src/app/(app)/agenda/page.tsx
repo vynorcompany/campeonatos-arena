@@ -21,7 +21,7 @@ export default async function AgendaPage({ searchParams }: AgendaPageProps) {
   const nextDay = addDays(selectedDate, 1);
   const [arena, courts, scheduleOccurrences, players, storedBookingTypes] = await Promise.all([
     prisma.arena.findUniqueOrThrow({ where: { id: auth.arenaId }, select: { scheduleStartMinute: true, scheduleEndMinute: true, scheduleSlotMinutes: true } }),
-    prisma.court.findMany({ where: { arenaId: auth.arenaId, active: true }, include: { weeklyRules: true }, orderBy: { name: "asc" } }),
+    prisma.court.findMany({ where: { arenaId: auth.arenaId, active: true, weeklyRules: { some: {} } }, include: { weeklyRules: true }, orderBy: { name: "asc" } }),
     prisma.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, status: { not: "CANCELED" }, startsAt: { lt: nextDay }, endsAt: { gt: selectedDate } }, include: { occurrenceCourts: true, participants: true }, orderBy: { startsAt: "asc" } }),
     prisma.player.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.bookingType.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { name: true }, orderBy: { name: "asc" } })

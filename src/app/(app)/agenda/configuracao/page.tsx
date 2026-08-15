@@ -22,16 +22,16 @@ export default async function AgendaConfiguracaoPage({ searchParams }: AgendaCon
     include: { weeklyRules: { orderBy: [{ weekday: "asc" }, { startsAtMinute: "asc" }] } },
     orderBy: [{ active: "desc" }, { name: "asc" }]
   });
-  const selectedCourt = courts.find((court) => court.id === searchParams?.court) ?? courts.find((court) => court.active) ?? courts[0];
+  const selectedCourt = searchParams?.court ? courts.find((court) => court.id === searchParams.court) : undefined;
 
   return <div className="stack-md">
     <header className="page-header agenda-header"><div className="stack-xs"><p className="eyebrow">Operação</p><h1>Configuração da agenda</h1><p className="muted">Cadastre as faixas recorrentes de cada quadra, de domingo a sábado.</p></div><Link href="/agenda" className="button">Ver agenda</Link></header>
     <div className="agenda-settings-layout">
       <SectionCard title="Quadras cadastradas" description="As faixas de preço e disponibilidade são configuradas isoladamente para cada quadra.">
         <SafeActionForm action={createCourtAction} className="agenda-court-form" resetOnSuccess successMessage="Quadra cadastrada."><div className="field"><label htmlFor="court-name">Nova quadra</label><input id="court-name" name="name" type="text" placeholder="Ex.: Quadra 1" required /></div><SubmitButton label="Adicionar quadra" pendingLabel="Salvando..." className="button button-primary" /></SafeActionForm>
-        {courts.length ? <ul className="agenda-court-list">{courts.map((court) => <li key={court.id}><Link href={`/agenda/configuracao?court=${court.id}`} className={court.id === selectedCourt?.id ? "agenda-court-link agenda-court-link-active" : "agenda-court-link"}>{court.name}</Link><span className={court.active ? "status-badge status-active" : "status-badge"}>{court.active ? "Ativa" : "Inativa"}</span></li>)}</ul> : <p className="muted">Nenhuma quadra cadastrada.</p>}
+        {courts.length ? <ul className="agenda-court-list">{courts.map((court) => <li key={court.id}><Link href={`/agenda/configuracao/${court.id}`} className={court.id === selectedCourt?.id ? "agenda-court-link agenda-court-link-active" : "agenda-court-link"}>{court.name}</Link><span className={court.active ? "status-badge status-active" : "status-badge"}>{court.active ? "Ativa" : "Inativa"}</span></li>)}</ul> : <p className="muted">Nenhuma quadra cadastrada.</p>}
       </SectionCard>
-      <SectionCard title={selectedCourt ? `Quadra selecionada: ${selectedCourt.name}` : "Quadra selecionada"} description="Crie quantas faixas precisar para cada dia. Faixas que se sobrepõem são bloqueadas.">
+      {selectedCourt ? <SectionCard title={`Configuração da quadra: ${selectedCourt.name}`} description="Crie quantas faixas precisar para cada dia. Faixas que se sobrepõem são bloqueadas.">
         {selectedCourt ? <>
           <form className="agenda-court-selector"><label htmlFor="selected-court">Quadra selecionada</label><select id="selected-court" name="court" defaultValue={selectedCourt.id}>{courts.map((court) => <option key={court.id} value={court.id}>{court.name}</option>)}</select><button className="button" type="submit">Editar</button></form>
           <SafeActionForm action={createCourtWeeklyRuleAction} className="weekly-rule-form" resetOnSuccess successMessage="Faixa cadastrada.">
@@ -45,7 +45,7 @@ export default async function AgendaConfiguracaoPage({ searchParams }: AgendaCon
           </SafeActionForm>
           <div className="weekly-rule-list">{weekDays.map((day, weekday) => { const rules = selectedCourt.weeklyRules.filter((rule) => rule.weekday === weekday); return <section key={day} className="weekly-rule-day"><h3>{day}</h3>{rules.length ? <ul>{rules.map((rule) => <li key={rule.id}><span>{minuteLabel(rule.startsAtMinute)}–{minuteLabel(rule.endsAtMinute)}</span><strong>{priceLabel(rule.priceCents)}</strong><span className={rule.available ? "status-badge status-active" : "status-badge"}>{rule.available ? "Disponível" : "Indisponível"}</span><SafeActionForm action={deleteCourtWeeklyRuleAction} successMessage="Faixa removida."><input type="hidden" name="ruleId" value={rule.id} /><SubmitButton label="Remover" pendingLabel="Removendo..." className="button button-danger button-small" /></SafeActionForm></li>)}</ul> : <p className="muted">Sem faixa cadastrada.</p>}</section>; })}</div>
         </> : <p className="muted">Cadastre uma quadra para definir suas faixas.</p>}
-      </SectionCard>
+      </SectionCard> : null}
     </div>
   </div>;
 }
