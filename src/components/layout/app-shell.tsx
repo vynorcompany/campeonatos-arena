@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { logoutAction } from "@/lib/auth/actions";
 import type { ArenaMembership } from "@/types/auth";
 import { NavLinks } from "@/components/layout/nav-links";
@@ -67,6 +68,7 @@ export function AppShell({
               <p className="muted">{userRole}</p>
             </div>
 
+            {visibleModules.includes("arena") ? <Link href="/arena" className="button button-secondary sidebar-settings-link">Configurações</Link> : null}
             <form action={logoutAction}>
               <button className="button button-secondary" type="submit">
                 Sair
