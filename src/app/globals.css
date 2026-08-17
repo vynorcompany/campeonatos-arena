@@ -211,10 +211,7 @@ button {
 }
 
 .nav-parent-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 32px;
-  gap: 6px;
-  align-items: center;
+  min-width: 0;
 }
 
 .nav-link {
@@ -6513,6 +6510,18 @@ button {
   .public-standing-differential span { color: var(--muted); font-size: .66rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
 }
 
+.nav-link-parent {
+  width: 100%;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.nav-link-parent > span:last-child {
+  margin-left: auto;
+  font-weight: 800;
+}
+
 .agenda-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .agenda-day-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .agenda-day-controls form { display: flex; gap: 8px; margin-left: auto; }
@@ -6650,6 +6659,7 @@ button {
 
 .active-event-list, .active-event-category-list { display: grid; gap: 8px; }
 .active-event-row, .active-event-category { display: flex; justify-content: space-between; gap: 14px; align-items: center; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--panel-muted); }
+.active-event-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .active-event-row strong, .active-event-category strong { display: block; }
 .active-event-row span, .active-event-category span { display: block; margin-top: 3px; color: var(--muted); font-size: .8rem; }
 .active-event-back { margin-bottom: 14px; }

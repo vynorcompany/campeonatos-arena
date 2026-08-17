@@ -247,8 +247,10 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
         .filter((item) => canSee(moduleByHref[item.href] ?? "dashboard") || (item.children?.length ?? 0) > 0)
     }))
     .filter((group) => group.links.length);
+  const itemIsActive = (item: NavItem) =>
+    isActivePath(pathname, item.href) || Boolean(item.children?.some((child) => isActivePath(pathname, child.href)));
   const initialOpenItems = filteredGroups.flatMap((group) =>
-    group.links.filter((item) => item.children?.length && isActivePath(pathname, item.href)).map((item) => item.href)
+    group.links.filter((item) => item.children?.length && itemIsActive(item)).map((item) => item.href)
   );
   const [openItems, setOpenItems] = useState<Set<string>>(() => {
     if (typeof window === "undefined") {
@@ -271,7 +273,11 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
   useEffect(() => {
     const activeParent = filteredGroups
       .flatMap((group) => group.links)
-      .find((item) => item.children?.length && isActivePath(pathname, item.href));
+      .find(
+        (item) =>
+          item.children?.length &&
+          (isActivePath(pathname, item.href) || Boolean(item.children?.some((child) => isActivePath(pathname, child.href))))
+      );
 
     if (!activeParent) {
       return;
@@ -311,27 +317,30 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
           <p className="nav-group-label">{group.title}</p>
           <div className="nav-group-links">
             {group.links.map((item) => {
-              const isActive = isActivePath(pathname, item.href);
+              const isActive = itemIsActive(item);
               const isOpen = openItems.has(item.href) || isActive;
 
               return (
                 <div className="nav-link-block" key={item.href}>
                   <div className="nav-parent-row">
-                    <Link href={item.href} className={`nav-link${isActive ? " nav-link-active" : ""}`}>
-                      <span className="nav-icon" aria-hidden="true">{item.icon ? <NavIcon name={item.icon} /> : null}</span>
-                      <span>{item.label}</span>
-                    </Link>
                     {item.children?.length ? (
                       <button
-                        className="nav-toggle"
+                        className={`nav-link nav-link-parent${isActive ? " nav-link-active" : ""}`}
                         type="button"
                         aria-label={isOpen ? `Fechar ${item.label}` : `Abrir ${item.label}`}
                         aria-expanded={isOpen}
                         onClick={() => toggleItem(item.href)}
                       >
+                        <span className="nav-icon" aria-hidden="true">{item.icon ? <NavIcon name={item.icon} /> : null}</span>
+                        <span>{item.label}</span>
                         <span aria-hidden="true">{isOpen ? "-" : "+"}</span>
                       </button>
-                    ) : null}
+                    ) : (
+                      <Link href={item.href} className={`nav-link${isActive ? " nav-link-active" : ""}`}>
+                        <span className="nav-icon" aria-hidden="true">{item.icon ? <NavIcon name={item.icon} /> : null}</span>
+                        <span>{item.label}</span>
+                      </Link>
+                    )}
                   </div>
                   {item.children?.length ? (
                     <div className={`nav-submenu${isOpen ? " nav-submenu-open" : ""}`}>

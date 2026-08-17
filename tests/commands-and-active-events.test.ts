@@ -9,8 +9,17 @@ test("active events are listed before their categories are selected", () => {
 
   assert.match(navigation, /label: "Eventos ativos"/);
   assert.match(page, /Entrar no evento/);
+  assert.match(page, /Novo evento/);
+  assert.match(page, /Gerenciar evento/);
   assert.match(page, /Escolha uma categoria/);
   assert.doesNotMatch(page, /<select[\s\S]*name="tournamentId"/);
+});
+
+test("sidebar parent sections only expand their submenus", () => {
+  const navigation = readFileSync(resolve(process.cwd(), "src/components/layout/nav-links.tsx"), "utf8");
+
+  assert.match(navigation, /className=\{`nav-link nav-link-parent/);
+  assert.match(navigation, /onClick=\{\(\) => toggleItem\(item\.href\)\}/);
 });
 
 test("comandas keep their opening status and support day filtering", () => {
