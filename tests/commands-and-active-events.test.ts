@@ -20,17 +20,22 @@ test("sidebar parent sections only expand their submenus", () => {
 
   assert.match(navigation, /className=\{`nav-link nav-link-parent/);
   assert.match(navigation, /onClick=\{\(\) => toggleItem\(item\.href\)\}/);
+  assert.match(navigation, /nav-link-parent/);
 });
 
-test("comandas keep their opening status and support day filtering", () => {
+test("comandas use a compact date trigger and a floating calendar modal", () => {
   const schema = readFileSync(resolve(process.cwd(), "prisma/schema.prisma"), "utf8");
   const page = readFileSync(resolve(process.cwd(), "src/app/(app)/comandas/page.tsx"), "utf8");
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/comanda.ts"), "utf8");
+  const picker = readFileSync(resolve(process.cwd(), "src/components/comandas/commands-date-picker.tsx"), "utf8");
 
   assert.match(schema, /model Comanda \{/);
   assert.match(schema, /status\s+String\s+@default\("OPEN"\)/);
   assert.match(actions, /export async function createComandaAction/);
   assert.match(page, /Nova Comanda Avulsa/);
-  assert.match(page, /calendar-open-indicator/);
-  assert.match(page, /name="date"/);
+  assert.match(page, /CommandsDatePicker/);
+  assert.match(picker, /commands-date-trigger/);
+  assert.match(picker, /commands-calendar-modal/);
+  assert.match(picker, /calendar-open-indicator/);
+  assert.match(picker, /router\.push/);
 });
