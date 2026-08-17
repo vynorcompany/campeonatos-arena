@@ -101,6 +101,7 @@ model Arena {
   bookingTypes BookingType[]
   products    Product[]
   sales       Sale[]
+  comandas    Comanda[]
   stockMovements StockMovement[]
   plans       Plan[]
   subscriptions StudentSubscription[]
@@ -220,6 +221,7 @@ model Player {
   categoryPairPlayers CategoryPairPlayer[]
   student     Student?
   scheduleParticipants ScheduleParticipant[]
+  comandas    Comanda[]
 
   @@unique([arenaId, name])
   @@index([arenaId, active])
@@ -907,6 +909,26 @@ model Sale {
   items         SaleItem[]
 
   @@index([arenaId, createdAt])
+}
+
+model Comanda {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  label       String
+  type        String   @default("CLIENT")
+  status      String   @default("OPEN")
+  openedAt    DateTime @default(now())
+  closedAt    DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  arenaId     String
+  playerId    String?
+  arena       Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  player      Player?  @relation(fields: [playerId], references: [id], onDelete: SetNull)
+
+  @@index([arenaId, openedAt])
+  @@index([arenaId, status])
+  @@index([playerId])
 }
 
 model SaleItem {

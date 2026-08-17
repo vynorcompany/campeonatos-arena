@@ -9,10 +9,10 @@ async function readSource(...segments: string[]) {
   return readFile(path.join(workspaceRoot, ...segments), "utf8");
 }
 
-test("tournament sidebar keeps only games and rankings children", async () => {
+test("tournament sidebar keeps active events and rankings children", async () => {
   const source = await readSource("src", "components", "layout", "nav-links.tsx");
 
-  assert.match(source, /href: "\/jogos", label: "Jogos"/);
+  assert.match(source, /href: "\/jogos", label: "Eventos ativos"/);
   assert.match(source, /href: "\/torneios\/rankings", label: "Rankings"/);
   assert.doesNotMatch(source, /label: "Duplas"/);
   assert.doesNotMatch(source, /label: "Grupos"/);

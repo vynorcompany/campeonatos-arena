@@ -1,140 +1,21 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { SectionCard } from "@/components/section-card";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
-type GamesPageProps = {
-  searchParams?: {
-    tournamentId?: string;
-    categoryId?: string;
-    open?: string;
-  };
-};
+type GamesPageProps = { searchParams?: { tournamentId?: string } };
 
 export default async function GamesPage({ searchParams }: GamesPageProps) {
   const auth = await requireModuleView("tournaments");
   const activeTournaments = await prisma.tournament.findMany({
-    where: {
-      arenaId: auth.arenaId,
-      registrationPhase: { not: "FINISHED" },
-    },
+    where: { arenaId: auth.arenaId, registrationPhase: { not: "FINISHED" } },
     orderBy: { updatedAt: "desc" },
-    select: { id: true, name: true },
+    include: { categories: { where: { active: true }, orderBy: { level: "asc" }, select: { id: true, name: true, competition: { select: { status: true } } } } }
   });
-  const selectedTournament =
-    activeTournaments.find(
-      (tournament) => tournament.id === searchParams?.tournamentId,
-    ) ?? activeTournaments[0];
-  const categories = selectedTournament
-    ? await prisma.tournamentCategory.findMany({
-        where: {
-          tournamentId: selectedTournament.id,
-          active: true,
-        },
-        orderBy: { level: "asc" },
-        select: { id: true, name: true },
-      })
-    : [];
-  const selectedCategory =
-    categories.find((category) => category.id === searchParams?.categoryId) ??
-    categories[0];
+  const selectedTournament = activeTournaments.find((event) => event.id === searchParams?.tournamentId);
 
-  if (searchParams?.open === "games" && selectedTournament && selectedCategory) {
-    redirect(
-      `/torneios/${selectedTournament.id}/categorias/${selectedCategory.id}?tab=games`,
-    );
-  }
-
-  return (
-    <div className="stack-md">
-      <header className="page-header">
-        <div className="stack-xs">
-          <p className="eyebrow">Jogos</p>
-          <h1>Confrontos e resultados</h1>
-          <p className="muted">
-            Escolha o evento e a categoria para lançar os placares.
-          </p>
-        </div>
-      </header>
-
-      {!selectedTournament ? (
-        <SectionCard title="Nenhum evento em operação">
-          <p className="muted">
-            Crie um evento e adicione categorias para começar a registrar jogos.
-          </p>
-          <Link href="/torneios/novo" className="button button-primary">
-            Criar evento
-          </Link>
-        </SectionCard>
-      ) : (
-        <SectionCard
-          title="Selecionar jogos"
-          description="Os placares são registrados dentro da categoria escolhida."
-        >
-          <form method="get" className="grid-form">
-            <div className="field">
-              <label htmlFor="tournamentId">Evento ativo</label>
-              <select
-                id="tournamentId"
-                name="tournamentId"
-                defaultValue={selectedTournament.id}
-                aria-label="Selecionar evento"
-              >
-                {activeTournaments.map((tournament) => (
-                  <option key={tournament.id} value={tournament.id}>
-                    {tournament.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="field">
-              <label htmlFor="categoryId">Categoria</label>
-              <select
-                id="categoryId"
-                name="categoryId"
-                defaultValue={selectedCategory?.id ?? ""}
-                aria-label="Selecionar categoria"
-                disabled={!categories.length}
-              >
-                {!categories.length ? (
-                  <option value="">Nenhuma categoria ativa</option>
-                ) : (
-                  categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))
-                )}
-              </select>
-            </div>
-
-            <div className="form-full section-actions">
-              <button type="submit" className="button">
-                Atualizar seleção
-              </button>
-              {selectedCategory ? (
-                <button
-                  type="submit"
-                  name="open"
-                  value="games"
-                  className="button button-primary"
-                >
-                  Abrir jogos da categoria
-                </button>
-              ) : (
-                <Link
-                  href={`/torneios/${selectedTournament.id}`}
-                  className="button button-primary"
-                >
-                  Adicionar categoria
-                </Link>
-              )}
-            </div>
-          </form>
-        </SectionCard>
-      )}
-    </div>
-  );
+  return <div className="stack-md">
+    <header className="page-header"><div className="stack-xs"><p className="eyebrow">Torneios</p><h1>Eventos ativos</h1><p className="muted">Entre no evento para escolher a categoria que deseja operar.</p></div></header>
+    {selectedTournament ? <SectionCard title={selectedTournament.name} description="Escolha uma categoria para navegar até o espaço operacional."><div className="active-event-back"><Link href="/jogos" className="button">Voltar aos eventos</Link></div><h3 className="active-event-category-heading">Escolha uma categoria</h3>{selectedTournament.categories.length ? <div className="active-event-category-list">{selectedTournament.categories.map((category) => <article className="active-event-category" key={category.id}><div><strong>{category.name}</strong><span>{category.competition?.status === "FINISHED" ? "Concluída" : "Em operação"}</span></div><Link href={`/torneios/${selectedTournament.id}/categorias/${category.id}`} className="button button-primary">Abrir categoria</Link></article>)}</div> : <p className="muted">Este evento ainda não possui categorias ativas.</p>}</SectionCard> : activeTournaments.length ? <SectionCard title="Eventos em operação" description="Selecione um evento para ver as categorias disponíveis."><div className="active-event-list">{activeTournaments.map((event) => <article className="active-event-row" key={event.id}><div><strong>{event.name}</strong><span>{event.categories.length} categoria{event.categories.length === 1 ? "" : "s"} ativa{event.categories.length === 1 ? "" : "s"}</span></div><Link href={`/jogos?tournamentId=${event.id}`} className="button button-primary">Entrar no evento</Link></article>)}</div></SectionCard> : <SectionCard title="Nenhum evento em operação"><p className="muted">Crie um evento e adicione categorias para começar a registrar jogos.</p><Link href="/torneios/novo" className="button button-primary">Criar evento</Link></SectionCard>}
+  </div>;
 }

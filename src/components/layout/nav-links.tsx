@@ -164,7 +164,7 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
           label: "Torneios",
           icon: "trophy",
           children: [
-            { href: "/jogos", label: "Jogos" },
+            { href: "/jogos", label: "Eventos ativos" },
             { href: "/torneios/rankings", label: "Rankings" }
           ]
         },
@@ -174,7 +174,7 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
           icon: "calendar"
         },
         {
-          href: "/pdv",
+          href: "/comandas",
           label: "Comandas",
           icon: "cart"
         },
@@ -208,6 +208,7 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
     "/duplas": "pairs",
     "/grupos": "groups",
     "/jogos": "matches",
+    "/comandas": "pos",
     "/torneios/rankings": "tournaments",
     "/proximos-jogos": "tv",
     "/proximos-jogos/apresentacao": "tv",

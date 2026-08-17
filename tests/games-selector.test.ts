@@ -9,33 +9,30 @@ async function readSource(...segments: string[]) {
   return readFile(path.join(workspaceRoot, ...segments), "utf8");
 }
 
-test("games starts with arena-scoped active events", async () => {
+test("games starts with arena-scoped active events in a list", async () => {
   const source = await readSource("src", "app", "(app)", "jogos", "page.tsx");
 
   assert.match(source, /prisma\.tournament\.findMany/);
   assert.match(source, /arenaId:\s*auth\.arenaId/);
   assert.match(source, /registrationPhase:\s*\{\s*not:\s*"FINISHED"\s*\}/);
-  assert.match(source, /aria-label="Selecionar evento"/);
+  assert.match(source, /Entrar no evento/);
+  assert.doesNotMatch(source, /aria-label="Selecionar evento"/);
 });
 
-test("games only offers categories from the selected active event", async () => {
+test("games offers categories only after selecting an active event", async () => {
   const source = await readSource("src", "app", "(app)", "jogos", "page.tsx");
 
-  assert.match(source, /prisma\.tournamentCategory\.findMany/);
-  assert.match(source, /tournamentId:\s*selectedTournament\.id/);
+  assert.match(source, /selectedTournament\.categories/);
   assert.match(source, /active:\s*true/);
-  assert.match(source, /aria-label="Selecionar categoria"/);
+  assert.match(source, /Escolha uma categoria/);
+  assert.doesNotMatch(source, /aria-label="Selecionar categoria"/);
 });
 
-test("games routes score entry to the selected category workspace", async () => {
+test("games routes the selected category to its workspace", async () => {
   const source = await readSource("src", "app", "(app)", "jogos", "page.tsx");
 
-  assert.match(
-    source,
-    /if \(searchParams\?\.open === "games" && selectedTournament && selectedCategory\) \{\s*redirect\(\s*`\/torneios\/\$\{selectedTournament\.id\}\/categorias\/\$\{selectedCategory\.id\}\?tab=games`,\s*\);\s*\}/,
-  );
-  assert.match(source, /<button\s+type="submit"\s+name="open"\s+value="games"/);
-  assert.doesNotMatch(source, /<Link\s+href=\{`\/torneios\/\$\{selectedTournament\.id\}\/categorias\/\$\{selectedCategory\.id\}\?tab=games`\}/);
+  assert.match(source, /href=\{`\/torneios\/\$\{selectedTournament\.id\}\/categorias\/\$\{category\.id\}`\}/);
+  assert.match(source, /Abrir categoria/);
 });
 
 test("games requires the same tournament permission as its score workspace", async () => {
@@ -59,7 +56,7 @@ test("tournaments keeps only games and rankings as sidebar children", async () =
     /href: "\/torneios",[\s\S]*?children: \[([\s\S]*?)\]/,
   )?.[1] ?? "";
 
-  assert.match(tournamentChildren, /href: "\/jogos", label: "Jogos"/);
+  assert.match(tournamentChildren, /href: "\/jogos", label: "Eventos ativos"/);
   assert.match(tournamentChildren, /href: "\/torneios\/rankings", label: "Rankings"/);
   assert.doesNotMatch(tournamentChildren, /label: "Duplas"/);
   assert.doesNotMatch(tournamentChildren, /label: "Grupos"/);
