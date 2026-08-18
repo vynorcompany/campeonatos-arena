@@ -11,4 +11,6 @@ test("commands centers the date picker and keeps search in the right toolbar", (
   assert.match(css, /\.commands-date-trigger \{[^}]*grid-column: 2/);
   assert.match(css, /\.commands-toolbar-right \{[^}]*grid-column: 3/);
   assert.match(css, /\.content-shell:has\(\.commands-page\)/);
+  assert.match(css, /\.commands-list-items \{[^}]*grid-template-columns/);
+  assert.match(css, /\.command-card \{[^}]*min-height/);
 });

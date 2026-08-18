@@ -21,4 +21,8 @@ test("agenda slot dialog offers booking details, participants and payment contro
   assert.match(source, /CREDIT_BALANCE/);
   assert.match(source, /Professor responsável/);
   assert.match(source, /courtIds/);
+  assert.match(source, /Valor por atleta/);
+  assert.match(source, /super12PaymentPlayerId/);
+  assert.match(source, /Pagamento do atleta/);
+  assert.doesNotMatch(source, /aceita no máximo 24 atletas/);
 });
