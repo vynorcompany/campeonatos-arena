@@ -25,5 +25,6 @@ test("agenda slot dialog offers booking details, participants and payment contro
   assert.match(source, /super12PaymentPlayerId/);
   assert.match(source, /Pagamento do atleta/);
   assert.match(source, /agenda-payment-indicator/);
+  assert.match(source, /agenda-super12-payment-status/);
   assert.doesNotMatch(source, /aceita no máximo 24 atletas/);
 });

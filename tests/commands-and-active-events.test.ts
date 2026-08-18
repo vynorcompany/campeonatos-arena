@@ -31,6 +31,8 @@ test("comandas use a compact date trigger and a floating calendar modal", () => 
 
   assert.match(schema, /model Comanda \{/);
   assert.match(schema, /model ComandaItem \{/);
+  const migration = readFileSync(resolve(process.cwd(), "prisma/migrations/20260817140000_add_comanda_demo_product/migration.sql"), "utf8");
+  assert.match(migration, /Produto de teste · Água 500 ml/);
   assert.match(schema, /status\s+String\s+@default\("OPEN"\)/);
   assert.match(actions, /export async function createComandaAction/);
   assert.match(actions, /export async function addComandaProductAction/);
