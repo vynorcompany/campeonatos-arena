@@ -106,6 +106,10 @@ model Arena {
   plans       Plan[]
   subscriptions StudentSubscription[]
   financialEntries FinancialEntry[]
+  financialCategories FinancialCategory[]
+  paymentMethodSettings PaymentMethodSetting[]
+  bankAccounts BankAccount[]
+  suppliers Supplier[]
   payrollEntries TeacherPayrollEntry[]
   supportTickets SupportTicket[]
   tvPresentationSettings TvPresentationSettings?
@@ -1042,6 +1046,65 @@ model FinancialEntry {
   @@index([arenaId, type, status])
   @@index([arenaId, dueDate])
   @@index([arenaId, paidAt])
+}
+
+model FinancialCategory {
+  id        String   @id @default(cuid())
+  name      String
+  type      String   @default("BOTH")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  arenaId   String
+  arena     Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+
+  @@unique([arenaId, name])
+  @@index([arenaId, active])
+}
+
+model PaymentMethodSetting {
+  id        String   @id @default(cuid())
+  name      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  arenaId   String
+  arena     Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+
+  @@unique([arenaId, name])
+  @@index([arenaId, active])
+}
+
+model BankAccount {
+  id                  String   @id @default(cuid())
+  name                String
+  bankName            String   @default("")
+  openingBalanceCents Int      @default(0)
+  active              Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  arenaId             String
+  arena               Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+
+  @@unique([arenaId, name])
+  @@index([arenaId, active])
+}
+
+model Supplier {
+  id        String   @id @default(cuid())
+  name      String
+  document  String   @default("")
+  phone     String   @default("")
+  email     String   @default("")
+  notes     String   @default("")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  arenaId   String
+  arena     Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+
+  @@unique([arenaId, name])
+  @@index([arenaId, active])
 }
 
 model TeacherPayrollEntry {

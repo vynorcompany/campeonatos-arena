@@ -42,6 +42,18 @@ const entrySchema = z.object({
   notes: optionalText
 });
 
+const financialSettingSchema = z.object({
+  area: z.enum(["categorias-financeiras", "formas-pagamento", "contas-bancarias", "fornecedores"]),
+  name: z.string().trim().min(2, "Informe o nome."),
+  type: z.enum(["REVENUE", "EXPENSE", "BOTH"]).default("BOTH"),
+  bankName: optionalText,
+  openingBalance: z.string().trim().optional().default("0"),
+  document: optionalText,
+  phone: optionalText,
+  email: optionalText,
+  notes: optionalText
+});
+
 const payrollSchema = z.object({
   teacherId: z.string().min(1, "Selecione um professor."),
   referenceMonth: z.string().trim().min(7, "Informe o mês de referência."),
@@ -56,6 +68,14 @@ const payrollSchema = z.object({
 function refreshFinanceRoutes() {
   revalidatePath("/financeiro");
   revalidatePath("/professores");
+}
+
+function refreshFinancialSettings() {
+  revalidatePath("/financeiro/configuracoes");
+  revalidatePath("/financeiro/configuracoes/categorias-financeiras");
+  revalidatePath("/financeiro/configuracoes/formas-pagamento");
+  revalidatePath("/financeiro/configuracoes/contas-bancarias");
+  revalidatePath("/financeiro/configuracoes/fornecedores");
 }
 
 function parseMoneyToCents(value: string) {
@@ -271,6 +291,26 @@ export async function createFinancialEntryAction(formData: FormData) {
   });
 
   refreshFinanceRoutes();
+}
+
+export async function createFinancialSettingAction(formData: FormData) {
+  const auth = await requireModuleEdit("finance");
+  const parsed = financialSettingSchema.safeParse({
+    area: formData.get("area"), name: formData.get("name"), type: formData.get("type"), bankName: formData.get("bankName"), openingBalance: formData.get("openingBalance"), document: formData.get("document"), phone: formData.get("phone"), email: formData.get("email"), notes: formData.get("notes")
+  });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+
+  try {
+    if (parsed.data.area === "categorias-financeiras") await prisma.financialCategory.create({ data: { arenaId: auth.arenaId, name: parsed.data.name, type: parsed.data.type } });
+    if (parsed.data.area === "formas-pagamento") await prisma.paymentMethodSetting.create({ data: { arenaId: auth.arenaId, name: parsed.data.name } });
+    if (parsed.data.area === "contas-bancarias") await prisma.bankAccount.create({ data: { arenaId: auth.arenaId, name: parsed.data.name, bankName: parsed.data.bankName, openingBalanceCents: parseMoneyToCents(parsed.data.openingBalance) } });
+    if (parsed.data.area === "fornecedores") await prisma.supplier.create({ data: { arenaId: auth.arenaId, name: parsed.data.name, document: parsed.data.document, phone: parsed.data.phone, email: parsed.data.email, notes: parsed.data.notes } });
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Unique constraint")) throw new Error("Já existe um cadastro com este nome.");
+    throw error;
+  }
+
+  refreshFinancialSettings();
 }
 
 export async function upsertPayrollEntryAction(formData: FormData) {

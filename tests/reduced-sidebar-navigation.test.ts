@@ -38,9 +38,17 @@ test("sidebar groups financial routines and reports in dedicated expandable modu
 test("financial configuration and report routes have dedicated base pages", () => {
   const financeConfig = readFileSync(resolve(process.cwd(), "src/app/(app)/financeiro/configuracoes/[area]/page.tsx"), "utf8");
   const reports = readFileSync(resolve(process.cwd(), "src/app/(app)/relatorios/[relatorio]/page.tsx"), "utf8");
+  const schema = readFileSync(resolve(process.cwd(), "prisma/schema.prisma"), "utf8");
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/finance.ts"), "utf8");
 
   assert.match(financeConfig, /requireModuleView\("finance"\)/);
   assert.match(reports, /requireModuleView\("finance"\)/);
   assert.match(reports, /Relatório de Planos/);
   assert.match(reports, /Relatório de Reservas/);
+  assert.match(schema, /model FinancialCategory/);
+  assert.match(schema, /model PaymentMethodSetting/);
+  assert.match(schema, /model BankAccount/);
+  assert.match(schema, /model Supplier/);
+  assert.match(actions, /export async function createFinancialSettingAction/);
+  assert.match(financeConfig, /SafeActionForm/);
 });
