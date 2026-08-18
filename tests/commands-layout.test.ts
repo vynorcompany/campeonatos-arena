@@ -5,6 +5,7 @@ import test from "node:test";
 
 test("commands centers the date picker and keeps search in the right toolbar", () => {
   const page = readFileSync(resolve(process.cwd(), "src/app/(app)/comandas/page.tsx"), "utf8");
+  const card = readFileSync(resolve(process.cwd(), "src/components/comandas/command-card.tsx"), "utf8");
   const css = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
 
   assert.match(page, /commands-toolbar-right/);
@@ -13,4 +14,9 @@ test("commands centers the date picker and keeps search in the right toolbar", (
   assert.match(css, /\.content-shell:has\(\.commands-page\)/);
   assert.match(css, /\.commands-list-items \{[^}]*grid-template-columns/);
   assert.match(css, /\.command-card \{[^}]*min-height/);
+  assert.match(page, /CommandCard/);
+  assert.match(card, /Finalizar comanda/);
+  assert.match(card, /Inserir produtos/);
+  assert.match(card, /Total atual/);
+  assert.match(card, /command-item-controls/);
 });

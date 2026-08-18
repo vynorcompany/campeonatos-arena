@@ -893,6 +893,7 @@ model Product {
   arenaId       String
   arena         Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
   saleItems     SaleItem[]
+  comandaItems  ComandaItem[]
   stockMovements StockMovement[]
 
   @@unique([arenaId, name])
@@ -929,10 +930,27 @@ model Comanda {
   playerId    String?
   arena       Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
   player      Player?  @relation(fields: [playerId], references: [id], onDelete: SetNull)
+  items       ComandaItem[]
 
   @@index([arenaId, openedAt])
   @@index([arenaId, status])
   @@index([playerId])
+}
+
+model ComandaItem {
+  id             String   @id @default(cuid())
+  quantity       Int      @default(1)
+  unitPriceCents Int
+  totalCents     Int
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  comandaId      String
+  productId      String
+  comanda        Comanda  @relation(fields: [comandaId], references: [id], onDelete: Cascade)
+  product        Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@unique([comandaId, productId])
+  @@index([productId])
 }
 
 model SaleItem {

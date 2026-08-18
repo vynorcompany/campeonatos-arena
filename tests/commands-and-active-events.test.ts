@@ -30,8 +30,12 @@ test("comandas use a compact date trigger and a floating calendar modal", () => 
   const picker = readFileSync(resolve(process.cwd(), "src/components/comandas/commands-date-picker.tsx"), "utf8");
 
   assert.match(schema, /model Comanda \{/);
+  assert.match(schema, /model ComandaItem \{/);
   assert.match(schema, /status\s+String\s+@default\("OPEN"\)/);
   assert.match(actions, /export async function createComandaAction/);
+  assert.match(actions, /export async function addComandaProductAction/);
+  assert.match(actions, /export async function updateComandaItemQuantityAction/);
+  assert.match(actions, /export async function finishComandaAction/);
   assert.match(page, /Nova Comanda Avulsa/);
   assert.match(page, /CommandsDatePicker/);
   assert.match(picker, /commands-date-trigger/);
