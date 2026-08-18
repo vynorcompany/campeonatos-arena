@@ -725,6 +725,7 @@ model Teacher {
   arenaId        String
   arena          Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
   lessons        Lesson[]
+  scheduleOccurrences ScheduleOccurrence[]
   payrollEntries TeacherPayrollEntry[]
 
   @@unique([arenaId, name])
@@ -813,14 +814,17 @@ model ScheduleOccurrence {
   modality    String   @default("")
   bookingTypeName String @default("Reserva")
   notes       String   @default("")
+  teacherId   String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   arenaId     String
   arena       Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
   occurrenceCourts ScheduleOccurrenceCourt[]
   participants ScheduleParticipant[]
+  teacher     Teacher? @relation(fields: [teacherId], references: [id], onDelete: SetNull)
 
   @@index([arenaId, startsAt, endsAt])
+  @@index([teacherId])
 }
 
 model BookingType {

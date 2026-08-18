@@ -46,10 +46,12 @@ const courtWeeklyRuleSchema = z.object({
 const courtBookingSchema = z.object({
   occurrenceId: z.string().trim().default(""),
   courtId: z.string().trim().min(1),
+  courtIds: z.string().trim().default("[]"),
   title: z.string().trim().min(2),
   startsAt: z.string().trim().min(1),
   durationMinutes: z.coerce.number().int().min(15).max(720),
   bookingTypeName: z.string().trim().min(1).default("Reserva"),
+  teacherId: z.string().trim().default(""),
   notes: z.string().trim().default(""),
   participants: z.string().trim().default("[]")
 });
@@ -85,6 +87,14 @@ function moneyToCents(value: string) {
 }
 
 type BookingParticipant = { playerId: string; amountCents: number; paymentMethod: string };
+
+function parseCourtIds(value: string, fallbackCourtId: string) {
+  let raw: unknown;
+  try { raw = JSON.parse(value); } catch { throw new Error("Quadras inválidas."); }
+  const parsed = z.array(z.string().trim().min(1)).safeParse(raw);
+  if (!parsed.success) throw new Error("Quadras inválidas.");
+  return Array.from(new Set([fallbackCourtId, ...parsed.data]));
+}
 
 function parseBookingParticipants(value: string): BookingParticipant[] {
   let raw: unknown;
@@ -125,28 +135,35 @@ export async function createQuickPlayerAction(formData: FormData) {
 export async function saveCourtBookingAction(formData: FormData) {
   const auth = await requireModuleEdit("calendar");
   const parsed = courtBookingSchema.safeParse({
-    occurrenceId: formData.get("occurrenceId"), courtId: formData.get("courtId"), title: formData.get("title"),
+    occurrenceId: formData.get("occurrenceId"), courtId: formData.get("courtId"), courtIds: formData.get("courtIds"), title: formData.get("title"),
     startsAt: formData.get("startsAt"), durationMinutes: formData.get("durationMinutes"), bookingTypeName: formData.get("bookingTypeName"),
-    notes: formData.get("notes"), participants: formData.get("participants")
+    teacherId: formData.get("teacherId"), notes: formData.get("notes"), participants: formData.get("participants")
   });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   const startsAt = parseScheduledAt(parsed.data.startsAt);
   const endsAt = new Date(startsAt.getTime() + parsed.data.durationMinutes * 60_000);
   const participants = parseBookingParticipants(parsed.data.participants);
-  const court = await prisma.court.findFirst({ where: { id: parsed.data.courtId, arenaId: auth.arenaId } });
-  if (!court) throw new Error("Quadra não encontrada.");
+  const courtIds = parseCourtIds(parsed.data.courtIds, parsed.data.courtId);
+  const courts = await prisma.court.findMany({ where: { arenaId: auth.arenaId, id: { in: courtIds } }, select: { id: true } });
+  if (courts.length !== courtIds.length) throw new Error("Uma ou mais quadras não pertencem à arena.");
+  const isLesson = ["aula", "aula fixa"].includes(parsed.data.bookingTypeName.toLowerCase());
+  if (isLesson && !parsed.data.teacherId) throw new Error("Selecione o professor responsável.");
+  if (parsed.data.teacherId) {
+    const teacher = await prisma.teacher.findFirst({ where: { id: parsed.data.teacherId, arenaId: auth.arenaId, active: true }, select: { id: true } });
+    if (!teacher) throw new Error("Professor não encontrado.");
+  }
   const players = participants.length ? await prisma.player.findMany({ where: { arenaId: auth.arenaId, id: { in: participants.map((participant) => participant.playerId) } }, select: { id: true, name: true } }) : [];
   if (players.length !== participants.length) throw new Error("Um ou mais atletas não pertencem à arena.");
   const conflicts = await prisma.scheduleOccurrence.findFirst({ where: {
     arenaId: auth.arenaId, id: parsed.data.occurrenceId ? { not: parsed.data.occurrenceId } : undefined,
-    status: { not: "CANCELED" }, startsAt: { lt: endsAt }, endsAt: { gt: startsAt }, occurrenceCourts: { some: { courtId: court.id } }
+    status: { not: "CANCELED" }, startsAt: { lt: endsAt }, endsAt: { gt: startsAt }, occurrenceCourts: { some: { courtId: { in: courtIds } } }
   } });
   if (conflicts) throw new Error("Já existe um agendamento nessa quadra para este horário.");
 
   await prisma.$transaction(async (tx) => {
     const occurrence = parsed.data.occurrenceId
-      ? await tx.scheduleOccurrence.update({ where: { id: parsed.data.occurrenceId, arenaId: auth.arenaId }, data: { title: parsed.data.title, startsAt, endsAt, bookingTypeName: parsed.data.bookingTypeName, notes: parsed.data.notes } })
-      : await tx.scheduleOccurrence.create({ data: { arenaId: auth.arenaId, sourceType: "BOOKING", title: parsed.data.title, startsAt, endsAt, bookingTypeName: parsed.data.bookingTypeName, notes: parsed.data.notes, occurrenceCourts: { create: { courtId: court.id } } } });
+      ? await tx.scheduleOccurrence.update({ where: { id: parsed.data.occurrenceId, arenaId: auth.arenaId }, data: { title: parsed.data.title, startsAt, endsAt, bookingTypeName: parsed.data.bookingTypeName, teacherId: parsed.data.teacherId || null, notes: parsed.data.notes, occurrenceCourts: { deleteMany: {}, create: courtIds.map((courtId) => ({ courtId })) } } })
+      : await tx.scheduleOccurrence.create({ data: { arenaId: auth.arenaId, sourceType: "BOOKING", title: parsed.data.title, startsAt, endsAt, bookingTypeName: parsed.data.bookingTypeName, teacherId: parsed.data.teacherId || null, notes: parsed.data.notes, occurrenceCourts: { create: courtIds.map((courtId) => ({ courtId })) } } });
     const previous = await tx.scheduleParticipant.findMany({ where: { occurrenceId: occurrence.id } });
     for (const participant of previous) {
       if (!participants.some((item) => item.playerId === participant.playerId) && participant.financialEntryId) await tx.financialEntry.delete({ where: { id: participant.financialEntryId } });

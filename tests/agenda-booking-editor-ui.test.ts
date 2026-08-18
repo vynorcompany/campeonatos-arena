@@ -13,4 +13,12 @@ test("agenda slot dialog offers booking details, participants and payment contro
   assert.match(source, /Dividir igualmente/);
   assert.match(source, /Math\.max\(0, 4/);
   assert.match(source, /às/);
+  assert.match(source, /setParticipants\(\(current\) => \[\.\.\.current/);
+  assert.match(source, /Super 12/);
+  assert.match(source, /agenda-super12-participants/);
+  assert.match(source, /CREDIT_CARD/);
+  assert.match(source, /DEBIT_CARD/);
+  assert.match(source, /CREDIT_BALANCE/);
+  assert.match(source, /Professor responsável/);
+  assert.match(source, /courtIds/);
 });

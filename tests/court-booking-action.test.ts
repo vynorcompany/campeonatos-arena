@@ -9,4 +9,7 @@ test("court booking action creates paid or pending receivables from participant 
   assert.match(source, /prisma\.\$transaction/);
   assert.match(source, /paymentMethod \? "PAID" : "PENDING"/);
   assert.match(source, /scheduleParticipant/);
+  assert.match(source, /teacherId/);
+  assert.match(source, /courtIds/);
+  assert.match(source, /occurrenceCourts/);
 });
