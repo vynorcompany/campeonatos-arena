@@ -15,7 +15,32 @@ test("sidebar exposes the compact arena workspaces and keeps settings near sign 
   assert.match(navigation, /label: "Clientes"/);
   assert.doesNotMatch(navigation, /title: "Administração"/);
   assert.match(shell, /href="\/arena"[\s\S]*Configurações[\s\S]*Sair/);
-  assert.doesNotMatch(navigation, /title: "Gestão"/);
+  assert.match(navigation, /title: "Gestão"/);
   assert.doesNotMatch(navigation, /title: "Financeiro"/);
   assert.doesNotMatch(navigation, /Suporte\/Ajuda/);
+});
+
+test("sidebar groups financial routines and reports in dedicated expandable modules", () => {
+  const navigation = readFileSync(resolve(process.cwd(), "src/components/layout/nav-links.tsx"), "utf8");
+
+  assert.match(navigation, /label: "Financeiro"/);
+  assert.match(navigation, /label: "Entradas e Saídas"/);
+  assert.match(navigation, /label: "Produtos e Serviços"/);
+  assert.match(navigation, /label: "Configurações Financeiras"/);
+  assert.match(navigation, /label: "Notas Fiscais"/);
+  assert.match(navigation, /label: "Contas Bancárias"/);
+  assert.match(navigation, /label: "Pagamentos Online"/);
+  assert.match(navigation, /label: "Relatórios"/);
+  assert.match(navigation, /label: "DRE Gerencial"/);
+  assert.match(navigation, /label: "Relatório de Reservas"/);
+});
+
+test("financial configuration and report routes have dedicated base pages", () => {
+  const financeConfig = readFileSync(resolve(process.cwd(), "src/app/(app)/financeiro/configuracoes/[area]/page.tsx"), "utf8");
+  const reports = readFileSync(resolve(process.cwd(), "src/app/(app)/relatorios/[relatorio]/page.tsx"), "utf8");
+
+  assert.match(financeConfig, /requireModuleView\("finance"\)/);
+  assert.match(reports, /requireModuleView\("finance"\)/);
+  assert.match(reports, /Relatório de Planos/);
+  assert.match(reports, /Relatório de Reservas/);
 });

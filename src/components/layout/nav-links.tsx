@@ -198,6 +198,49 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
           icon: "users"
         }
       ]
+    },
+    {
+      title: "Gestão",
+      links: [
+        {
+          href: "/financeiro",
+          label: "Financeiro",
+          icon: "finance",
+          children: [
+            { href: "/financeiro/lancamentos", label: "Entradas e Saídas" },
+            { href: "/pdv", label: "Produtos e Serviços" },
+            {
+              href: "/financeiro/configuracoes",
+              label: "Configurações Financeiras",
+              children: [
+                { href: "/financeiro/configuracoes/notas-fiscais", label: "Notas Fiscais" },
+                { href: "/financeiro/configuracoes/fornecedores", label: "Fornecedores" },
+                { href: "/financeiro/configuracoes/categorias-produtos", label: "Categorias de Produtos" },
+                { href: "/financeiro/configuracoes/formas-pagamento", label: "Formas de Pagamentos" },
+                { href: "/financeiro/configuracoes/contas-bancarias", label: "Contas Bancárias" },
+                { href: "/financeiro/configuracoes/cupons", label: "Cupons" },
+                { href: "/financeiro/configuracoes/categorias-financeiras", label: "Categorias Financeiras" },
+                { href: "/financeiro/configuracoes/pagamentos-online", label: "Pagamentos Online" }
+              ]
+            }
+          ]
+        },
+        {
+          href: "/relatorios",
+          label: "Relatórios",
+          icon: "building",
+          children: [
+            { href: "/relatorios/caixa", label: "Relatório de Caixa" },
+            { href: "/relatorios/lancamentos", label: "Relatório de Lançamentos" },
+            { href: "/relatorios/produtos", label: "Relatórios de Produtos" },
+            { href: "/relatorios/estoque", label: "Movimentação de Estoque" },
+            { href: "/relatorios/comandas", label: "Histórico de Comandas" },
+            { href: "/relatorios/dre", label: "DRE Gerencial" },
+            { href: "/relatorios/planos", label: "Relatório de Planos" },
+            { href: "/relatorios/reservas", label: "Relatório de Reservas" }
+          ]
+        }
+      ]
     }
   ];
   const moduleByHref: Record<string, string> = {
@@ -230,6 +273,24 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
     "/financeiro/folha": "finance",
     "/financeiro/lancamentos": "finance",
     "/financeiro/pdv-estoque": "finance",
+    "/financeiro/configuracoes": "finance",
+    "/financeiro/configuracoes/notas-fiscais": "finance",
+    "/financeiro/configuracoes/fornecedores": "finance",
+    "/financeiro/configuracoes/categorias-produtos": "finance",
+    "/financeiro/configuracoes/formas-pagamento": "finance",
+    "/financeiro/configuracoes/contas-bancarias": "finance",
+    "/financeiro/configuracoes/cupons": "finance",
+    "/financeiro/configuracoes/categorias-financeiras": "finance",
+    "/financeiro/configuracoes/pagamentos-online": "finance",
+    "/relatorios": "finance",
+    "/relatorios/caixa": "finance",
+    "/relatorios/lancamentos": "finance",
+    "/relatorios/produtos": "finance",
+    "/relatorios/estoque": "finance",
+    "/relatorios/comandas": "finance",
+    "/relatorios/dre": "finance",
+    "/relatorios/planos": "finance",
+    "/relatorios/reservas": "finance",
     "/arena": "arena",
     "/arena/regulamento": "arena",
     "/suporte": "support",
@@ -247,8 +308,7 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
         .filter((item) => canSee(moduleByHref[item.href] ?? "dashboard") || (item.children?.length ?? 0) > 0)
     }))
     .filter((group) => group.links.length);
-  const itemIsActive = (item: NavItem) =>
-    isActivePath(pathname, item.href) || Boolean(item.children?.some((child) => isActivePath(pathname, child.href)));
+  const itemIsActive = (item: NavItem): boolean => isActivePath(pathname, item.href) || Boolean(item.children?.some(itemIsActive));
   const initialOpenItems = filteredGroups.flatMap((group) =>
     group.links.filter((item) => item.children?.length && itemIsActive(item)).map((item) => item.href)
   );
@@ -345,7 +405,14 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
                   {item.children?.length ? (
                     <div className={`nav-submenu${isOpen ? " nav-submenu-open" : ""}`}>
                       {item.children.map((child) => (
-                        <Link
+                        child.children?.length ? <div className="nav-submenu-block" key={child.href}>
+                          <button type="button" className={`nav-sub-link nav-sub-link-parent${itemIsActive(child) ? " nav-sub-link-active" : ""}`} onClick={() => toggleItem(child.href)} aria-expanded={openItems.has(child.href) || itemIsActive(child)}>
+                            <span>{child.label}</span><span aria-hidden="true">{openItems.has(child.href) || itemIsActive(child) ? "−" : "+"}</span>
+                          </button>
+                          <div className={`nav-submenu nav-submenu-nested${openItems.has(child.href) || itemIsActive(child) ? " nav-submenu-open" : ""}`}>
+                            {child.children.map((grandchild) => <Link key={grandchild.href} href={grandchild.href} className={`nav-sub-link nav-sub-link-nested${isActivePath(pathname, grandchild.href) ? " nav-sub-link-active" : ""}`}>{grandchild.label}</Link>)}
+                          </div>
+                        </div> : <Link
                           key={child.href}
                           href={child.href}
                           className={`nav-sub-link${isActivePath(pathname, child.href) ? " nav-sub-link-active" : ""}`}

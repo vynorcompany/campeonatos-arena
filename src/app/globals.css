@@ -323,6 +323,25 @@ button {
   background: rgba(151, 213, 255, 0.22);
 }
 
+.nav-sub-link-parent {
+  width: 100%;
+  justify-content: space-between;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.nav-submenu-nested {
+  margin-left: 8px;
+  padding-left: 8px;
+}
+
+.nav-sub-link-nested {
+  min-height: 27px;
+  padding-block: 5px;
+  font-size: 0.8rem;
+}
+
 .sidebar-user {
   display: grid;
   gap: 14px;
