@@ -100,6 +100,7 @@ model Arena {
   scheduleOccurrences ScheduleOccurrence[]
   bookingTypes BookingType[]
   products    Product[]
+  productCategories ProductCategory[]
   sales       Sale[]
   comandas    Comanda[]
   stockMovements StockMovement[]
@@ -895,7 +896,9 @@ model Product {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   arenaId       String
+  categoryId    String?
   arena         Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  category      ProductCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   saleItems     SaleItem[]
   comandaItems  ComandaItem[]
   stockMovements StockMovement[]
@@ -903,6 +906,21 @@ model Product {
   @@unique([arenaId, name])
   @@index([arenaId, active])
   @@index([arenaId, stockQuantity])
+  @@index([categoryId])
+}
+
+model ProductCategory {
+  id        String   @id @default(cuid())
+  name      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  arenaId   String
+  arena     Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  products  Product[]
+
+  @@unique([arenaId, name])
+  @@index([arenaId, active])
 }
 
 model Sale {
@@ -914,10 +932,25 @@ model Sale {
   totalCents    Int
   createdAt     DateTime @default(now())
   arenaId       String
+  comandaId     String?  @unique
   arena         Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  comanda       Comanda? @relation(fields: [comandaId], references: [id], onDelete: SetNull)
   items         SaleItem[]
+  payments      SalePayment[]
+  financialEntries FinancialEntry[]
 
   @@index([arenaId, createdAt])
+}
+
+model SalePayment {
+  id            String   @id @default(cuid())
+  amountCents   Int
+  paymentMethod String
+  createdAt     DateTime @default(now())
+  saleId        String
+  sale          Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@index([saleId])
 }
 
 model Comanda {
@@ -935,6 +968,7 @@ model Comanda {
   arena       Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
   player      Player?  @relation(fields: [playerId], references: [id], onDelete: SetNull)
   items       ComandaItem[]
+  sale        Sale?
 
   @@index([arenaId, openedAt])
   @@index([arenaId, status])
@@ -1040,12 +1074,15 @@ model FinancialEntry {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   arenaId       String
+  saleId        String?
   arena         Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  sale          Sale?    @relation(fields: [saleId], references: [id], onDelete: SetNull)
   scheduleParticipant ScheduleParticipant?
 
   @@index([arenaId, type, status])
   @@index([arenaId, dueDate])
   @@index([arenaId, paidAt])
+  @@index([saleId])
 }
 
 model FinancialCategory {

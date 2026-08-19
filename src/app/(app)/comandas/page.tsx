@@ -44,7 +44,7 @@ export default async function ComandasPage({ searchParams }: ComandasPageProps) 
   const calendarEnd = new Date(calendarStart);
   calendarEnd.setDate(calendarEnd.getDate() + 42);
 
-  const [comandas, openComandas, players, products] = await Promise.all([
+  const [comandas, openComandas, players, products, paymentMethodSettings] = await Promise.all([
     prisma.comanda.findMany({
       where: {
         arenaId: auth.arenaId,
@@ -61,13 +61,15 @@ export default async function ComandasPage({ searchParams }: ComandasPageProps) 
     searchParams?.new === "client"
       ? prisma.player.findMany({ where: { arenaId: auth.arenaId, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } })
       : Promise.resolve([]),
-    prisma.product.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true, priceCents: true, stockQuantity: true }, orderBy: { name: "asc" } })
+    prisma.product.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true, priceCents: true, stockQuantity: true, category: { select: { name: true } } }, orderBy: { name: "asc" } }),
+    prisma.paymentMethodSetting.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { name: true }, orderBy: { name: "asc" } })
   ]);
 
   const openDays = new Set(openComandas.map((comanda) => toDateInput(comanda.openedAt)));
   const today = startOfDay(new Date());
   const baseParams = new URLSearchParams({ date: toDateInput(selectedDate) });
   if (search) baseParams.set("search", search);
+  const paymentMethods = paymentMethodSettings.length ? paymentMethodSettings.map((method) => method.name) : ["Dinheiro", "PIX", "Cartão de crédito", "Cartão de débito", "Saldo de crédito"];
 
   return <div className="commands-page">
     <header className="commands-toolbar">
@@ -78,6 +80,6 @@ export default async function ComandasPage({ searchParams }: ComandasPageProps) 
     {searchParams?.new === "client" ? <section className="commands-create-panel"><SafeActionForm action={createComandaAction} className="commands-create-form" successMessage="Comanda aberta."><input type="hidden" name="type" value="CLIENT" /><label className="field">Cliente<select name="playerId" defaultValue="" required><option value="">Selecione um cliente</option>{players.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}</select></label><SubmitButton label="Abrir comanda" pendingLabel="Abrindo..." className="button button-primary" /><Link href={`/comandas?${baseParams}`} className="button">Cancelar</Link></SafeActionForm></section> : null}
     {searchParams?.new === "avulsa" ? <section className="commands-create-panel"><SafeActionForm action={createComandaAction} className="commands-create-form" successMessage="Comanda avulsa aberta."><input type="hidden" name="type" value="AVULSA" /><label className="field">Nome da comanda<input name="label" placeholder="Ex.: Mesa 4" required /></label><SubmitButton label="Abrir comanda" pendingLabel="Abrindo..." className="button button-primary" /><Link href={`/comandas?${baseParams}`} className="button">Cancelar</Link></SafeActionForm></section> : null}
 
-    <section className="commands-list"><div className="commands-list-head"><strong>{formatDate(selectedDate)}</strong><span>{comandas.length} comanda{comandas.length === 1 ? "" : "s"}</span></div>{comandas.length ? <div className="commands-list-items">{comandas.map((comanda) => <CommandCard key={comanda.id} products={products} comanda={{ id: comanda.id, code: comanda.code, label: comanda.label, type: comanda.type, playerName: comanda.player?.name, items: comanda.items }} />)}</div> : <div className="commands-empty"><strong>Nenhuma comanda neste dia.</strong><span>Crie uma nova comanda para iniciar o atendimento.</span></div>}</section>
+    <section className="commands-list"><div className="commands-list-head"><strong>{formatDate(selectedDate)}</strong><span>{comandas.length} comanda{comandas.length === 1 ? "" : "s"}</span></div>{comandas.length ? <div className="commands-list-items">{comandas.map((comanda) => <CommandCard key={comanda.id} products={products} paymentMethods={paymentMethods} comanda={{ id: comanda.id, code: comanda.code, label: comanda.label, type: comanda.type, playerName: comanda.player?.name, items: comanda.items }} />)}</div> : <div className="commands-empty"><strong>Nenhuma comanda neste dia.</strong><span>Crie uma nova comanda para iniciar o atendimento.</span></div>}</section>
   </div>;
 }

@@ -13,7 +13,8 @@ const comandaSchema = z.object({
 
 const comandaProductSchema = z.object({
   comandaId: z.string().min(1),
-  productId: z.string().min(1)
+  productId: z.string().min(1),
+  quantity: z.coerce.number().int().min(1).max(999).default(1)
 });
 
 const itemQuantitySchema = z.object({
@@ -21,7 +22,15 @@ const itemQuantitySchema = z.object({
   delta: z.coerce.number().int().refine((value) => value === 1 || value === -1, "Ajuste inválido.")
 });
 
-const finishComandaSchema = z.object({ comandaId: z.string().min(1) });
+const paymentsSchema = z.array(z.object({
+  paymentMethod: z.string().trim().min(1).max(80),
+  amountCents: z.coerce.number().int().positive()
+})).max(8);
+
+const finishComandaSchema = z.object({
+  comandaId: z.string().min(1),
+  payments: paymentsSchema
+});
 
 function formatComandaCode() {
   return `CMD-${Date.now().toString(36).toUpperCase()}`;
@@ -81,7 +90,7 @@ export async function createComandaAction(formData: FormData) {
 
 export async function addComandaProductAction(formData: FormData) {
   const auth = await requireModuleEdit("pos");
-  const parsed = comandaProductSchema.safeParse({ comandaId: formData.get("comandaId"), productId: formData.get("productId") });
+  const parsed = comandaProductSchema.safeParse({ comandaId: formData.get("comandaId"), productId: formData.get("productId"), quantity: formData.get("quantity") || 1 });
   if (!parsed.success) throw new Error("Produto inválido.");
 
   await prisma.$transaction(async (tx) => {
@@ -92,12 +101,12 @@ export async function addComandaProductAction(formData: FormData) {
     if (!comanda) throw new Error("Comanda não está disponível.");
     if (!product) throw new Error("Produto não encontrado.");
     const current = await tx.comandaItem.findUnique({ where: { comandaId_productId: { comandaId: comanda.id, productId: product.id } } });
-    const nextQuantity = (current?.quantity ?? 0) + 1;
+    const nextQuantity = (current?.quantity ?? 0) + parsed.data.quantity;
     if (product.stockQuantity < nextQuantity) throw new Error("Estoque insuficiente para este produto.");
     await tx.comandaItem.upsert({
       where: { comandaId_productId: { comandaId: comanda.id, productId: product.id } },
       update: { quantity: nextQuantity, unitPriceCents: product.priceCents, totalCents: product.priceCents * nextQuantity },
-      create: { comandaId: comanda.id, productId: product.id, quantity: 1, unitPriceCents: product.priceCents, totalCents: product.priceCents }
+      create: { comandaId: comanda.id, productId: product.id, quantity: parsed.data.quantity, unitPriceCents: product.priceCents, totalCents: product.priceCents * parsed.data.quantity }
     });
   });
   revalidatePath("/comandas");
@@ -121,19 +130,49 @@ export async function updateComandaItemQuantityAction(formData: FormData) {
 
 export async function finishComandaAction(formData: FormData) {
   const auth = await requireModuleEdit("pos");
-  const parsed = finishComandaSchema.safeParse({ comandaId: formData.get("comandaId") });
+  let payments: unknown = [];
+  const rawPayments = formData.get("payments");
+  if (typeof rawPayments === "string" && rawPayments.trim()) {
+    try { payments = JSON.parse(rawPayments); } catch { throw new Error("Pagamentos inválidos."); }
+  }
+  const parsed = finishComandaSchema.safeParse({ comandaId: formData.get("comandaId"), payments });
   if (!parsed.success) throw new Error("Comanda inválida.");
 
   await prisma.$transaction(async (tx) => {
     const comanda = await tx.comanda.findFirst({ where: { id: parsed.data.comandaId, arenaId: auth.arenaId, status: "OPEN" }, include: { items: { include: { product: true } } } });
     if (!comanda) throw new Error("Comanda não está disponível.");
     if (!comanda.items.length) throw new Error("Insira ao menos um produto antes de finalizar.");
+    const totalCents = comanda.items.reduce((total, item) => total + item.totalCents, 0);
+    const paymentTotalCents = parsed.data.payments.reduce((total, payment) => total + payment.amountCents, 0);
+    if (paymentTotalCents > totalCents) throw new Error("Os pagamentos não podem ultrapassar o total da comanda.");
+    const remainingCents = totalCents - paymentTotalCents;
+    const now = new Date();
+    const sale = await tx.sale.create({
+      data: {
+        arenaId: auth.arenaId,
+        comandaId: comanda.id,
+        code: `VEN-${Date.now().toString(36).toUpperCase()}`,
+        customerName: comanda.label,
+        paymentMethod: parsed.data.payments.length === 1 ? parsed.data.payments[0].paymentMethod : parsed.data.payments.length ? "MÚLTIPLO" : "",
+        status: remainingCents ? (paymentTotalCents ? "PARTIAL" : "PENDING") : "PAID",
+        totalCents,
+        items: { create: comanda.items.map((item) => ({ productId: item.productId, quantity: item.quantity, unitPriceCents: item.unitPriceCents, totalCents: item.totalCents })) }
+      }
+    });
     for (const item of comanda.items) {
       if (item.product.stockQuantity < item.quantity) throw new Error(`Estoque insuficiente para ${item.product.name}.`);
       await tx.product.update({ where: { id: item.productId }, data: { stockQuantity: { decrement: item.quantity } } });
       await tx.stockMovement.create({ data: { arenaId: auth.arenaId, productId: item.productId, type: "OUT", quantity: item.quantity, reason: `Comanda ${comanda.code}` } });
     }
-    await tx.comanda.update({ where: { id: comanda.id }, data: { status: "CLOSED", closedAt: new Date() } });
+    for (const payment of parsed.data.payments) {
+      await tx.salePayment.create({ data: { saleId: sale.id, paymentMethod: payment.paymentMethod, amountCents: payment.amountCents } });
+      await tx.financialEntry.create({ data: { arenaId: auth.arenaId, saleId: sale.id, type: "INCOME", category: "COMANDAS", description: `Recebimento da comanda ${comanda.code}`, amountCents: payment.amountCents, paymentMethod: payment.paymentMethod, status: "PAID", paidAt: now } });
+    }
+    if (remainingCents) {
+      await tx.financialEntry.create({ data: { arenaId: auth.arenaId, saleId: sale.id, type: "INCOME", category: "COMANDAS", description: `Conta a receber da comanda ${comanda.code}`, amountCents: remainingCents, status: "PENDING", dueDate: now } });
+    }
+    await tx.comanda.update({ where: { id: comanda.id }, data: { status: "CLOSED", closedAt: now } });
   });
   revalidatePath("/comandas");
+  revalidatePath("/financeiro/lancamentos");
 }
