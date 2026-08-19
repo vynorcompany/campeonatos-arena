@@ -31,8 +31,11 @@ test("command checkout offers only the client's pending balances for joint settl
   assert.match(actions, /debtIds/);
   assert.match(actions, /selectedDebts/);
   assert.match(actions, /settleSelectedDebts/);
+  assert.match(actions, /partialDebtPaymentCents/);
+  assert.match(actions, /Baixa parcial/);
   assert.match(card, /Débitos em aberto/);
   assert.match(card, /Selecionar para quitar junto/);
+  assert.match(card, /baixa parcial/);
 });
 
 test("command product picker opens as a category modal with item quantities", () => {

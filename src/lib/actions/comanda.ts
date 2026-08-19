@@ -164,8 +164,9 @@ export async function finishComandaAction(formData: FormData) {
     const selectedDebtTotalCents = selectedDebts.reduce((total, debt) => total + debt.amountCents, 0);
     const grandTotalCents = totalCents + selectedDebtTotalCents;
     if (paymentTotalCents > grandTotalCents) throw new Error("Os pagamentos não podem ultrapassar o total a receber.");
-    const settleSelectedDebts = Boolean(selectedDebts.length) && paymentTotalCents >= grandTotalCents;
-    const comandaPaymentCents = settleSelectedDebts ? totalCents : Math.min(totalCents, paymentTotalCents);
+    const partialDebtPaymentCents = Math.min(paymentTotalCents, selectedDebtTotalCents);
+    const settleSelectedDebts = Boolean(selectedDebts.length) && partialDebtPaymentCents >= selectedDebtTotalCents;
+    const comandaPaymentCents = Math.min(totalCents, Math.max(0, paymentTotalCents - partialDebtPaymentCents));
     const remainingCents = totalCents - comandaPaymentCents;
     const now = new Date();
     const sale = await tx.sale.create({
@@ -185,7 +186,7 @@ export async function finishComandaAction(formData: FormData) {
       await tx.product.update({ where: { id: item.productId }, data: { stockQuantity: { decrement: item.quantity } } });
       await tx.stockMovement.create({ data: { arenaId: auth.arenaId, productId: item.productId, type: "OUT", quantity: item.quantity, reason: `Comanda ${comanda.code}` } });
     }
-    let debtAllocationCents = settleSelectedDebts ? selectedDebtTotalCents : 0;
+    let debtAllocationCents = partialDebtPaymentCents;
     for (const payment of parsed.data.payments) {
       const amountAfterDebtSettlement = Math.max(0, payment.amountCents - debtAllocationCents);
       debtAllocationCents = Math.max(0, debtAllocationCents - payment.amountCents);
@@ -193,7 +194,19 @@ export async function finishComandaAction(formData: FormData) {
       await tx.salePayment.create({ data: { saleId: sale.id, paymentMethod: payment.paymentMethod, amountCents: amountAfterDebtSettlement } });
       await tx.financialEntry.create({ data: { arenaId: auth.arenaId, saleId: sale.id, type: "INCOME", category: "COMANDAS", description: `Recebimento da comanda ${comanda.code}`, amountCents: amountAfterDebtSettlement, paymentMethod: payment.paymentMethod, status: "PAID", paidAt: now } });
     }
-    if (settleSelectedDebts) await tx.financialEntry.updateMany({ where: { id: { in: selectedDebts.map((debt) => debt.id) } }, data: { status: "PAID", paidAt: now, paymentMethod: parsed.data.payments.map((payment) => payment.paymentMethod).join(" + ") } });
+    let remainingDebtAllocationCents = partialDebtPaymentCents;
+    for (const debt of selectedDebts) {
+      const paidCents = Math.min(debt.amountCents, remainingDebtAllocationCents);
+      remainingDebtAllocationCents -= paidCents;
+      if (!paidCents) continue;
+      const paymentMethod = parsed.data.payments.map((payment) => payment.paymentMethod).join(" + ");
+      if (paidCents === debt.amountCents) {
+        await tx.financialEntry.update({ where: { id: debt.id }, data: { status: "PAID", paidAt: now, paymentMethod } });
+      } else {
+        await tx.financialEntry.update({ where: { id: debt.id }, data: { amountCents: debt.amountCents - paidCents, notes: `Saldo após baixa parcial: ${debt.amountCents - paidCents} centavos.` } });
+        await tx.financialEntry.create({ data: { arenaId: auth.arenaId, type: "INCOME", category: "COMANDAS", description: `Baixa parcial de débito (${debt.id})`, amountCents: paidCents, paymentMethod, status: "PAID", paidAt: now, notes: "Recebimento parcial realizado junto à finalização de comanda." } });
+      }
+    }
     if (remainingCents) {
       await tx.financialEntry.create({ data: { arenaId: auth.arenaId, saleId: sale.id, type: "INCOME", category: "COMANDAS", description: `Conta a receber da comanda ${comanda.code}`, amountCents: remainingCents, status: "PENDING", dueDate: now } });
     }
