@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireModuleEdit } from "@/lib/auth/guards";
+import { allocatePaymentsToDebts, getOutstandingCents } from "@/lib/finance/settlements";
 import { prisma } from "@/lib/prisma";
 
 const comandaSchema = z.object({
@@ -158,15 +159,23 @@ export async function finishComandaAction(formData: FormData) {
           { sale: { comanda: { playerId: comanda.playerId } } }
         ]
       },
-      select: { id: true, amountCents: true }
+      select: { id: true, amountCents: true, settlements: { select: { amountCents: true } } }
     }) : [];
     if (selectedDebts.length !== parsed.data.debtIds.length) throw new Error("Um dos débitos selecionados não está disponível para este cliente.");
-    const selectedDebtTotalCents = selectedDebts.reduce((total, debt) => total + debt.amountCents, 0);
+    const selectedDebtBalances = selectedDebts
+      .map((debt) => ({
+        financialEntryId: debt.id,
+        outstandingCents: getOutstandingCents(debt.amountCents, debt.settlements)
+      }))
+      .filter((debt) => debt.outstandingCents > 0);
+    if (selectedDebtBalances.length !== selectedDebts.length) throw new Error("Um dos débitos selecionados já foi quitado.");
+    const selectedDebtTotalCents = selectedDebtBalances.reduce((total, debt) => total + debt.outstandingCents, 0);
     const grandTotalCents = totalCents + selectedDebtTotalCents;
     if (paymentTotalCents > grandTotalCents) throw new Error("Os pagamentos não podem ultrapassar o total a receber.");
-    const partialDebtPaymentCents = Math.min(paymentTotalCents, selectedDebtTotalCents);
+    const debtPaymentAllocation = allocatePaymentsToDebts(selectedDebtBalances, parsed.data.payments);
+    const partialDebtPaymentCents = debtPaymentAllocation.settlements.reduce((total, settlement) => total + settlement.amountCents, 0);
     const settleSelectedDebts = Boolean(selectedDebts.length) && partialDebtPaymentCents >= selectedDebtTotalCents;
-    const comandaPaymentCents = Math.min(totalCents, Math.max(0, paymentTotalCents - partialDebtPaymentCents));
+    const comandaPaymentCents = debtPaymentAllocation.remainingPayments.reduce((total, payment) => total + payment.amountCents, 0);
     const remainingCents = totalCents - comandaPaymentCents;
     const now = new Date();
     const sale = await tx.sale.create({
@@ -186,25 +195,34 @@ export async function finishComandaAction(formData: FormData) {
       await tx.product.update({ where: { id: item.productId }, data: { stockQuantity: { decrement: item.quantity } } });
       await tx.stockMovement.create({ data: { arenaId: auth.arenaId, productId: item.productId, type: "OUT", quantity: item.quantity, reason: `Comanda ${comanda.code}` } });
     }
-    let debtAllocationCents = partialDebtPaymentCents;
-    for (const payment of parsed.data.payments) {
-      const amountAfterDebtSettlement = Math.max(0, payment.amountCents - debtAllocationCents);
-      debtAllocationCents = Math.max(0, debtAllocationCents - payment.amountCents);
-      if (!amountAfterDebtSettlement) continue;
-      await tx.salePayment.create({ data: { saleId: sale.id, paymentMethod: payment.paymentMethod, amountCents: amountAfterDebtSettlement } });
-      await tx.financialEntry.create({ data: { arenaId: auth.arenaId, saleId: sale.id, type: "INCOME", category: "COMANDAS", description: `Recebimento da comanda ${comanda.code}`, amountCents: amountAfterDebtSettlement, paymentMethod: payment.paymentMethod, status: "PAID", paidAt: now } });
+    for (const payment of debtPaymentAllocation.remainingPayments) {
+      await tx.salePayment.create({ data: { saleId: sale.id, paymentMethod: payment.paymentMethod, amountCents: payment.amountCents } });
+      await tx.financialEntry.create({ data: { arenaId: auth.arenaId, saleId: sale.id, type: "INCOME", category: "COMANDAS", description: `Recebimento da comanda ${comanda.code}`, amountCents: payment.amountCents, paymentMethod: payment.paymentMethod, status: "PAID", paidAt: now } });
     }
-    let remainingDebtAllocationCents = partialDebtPaymentCents;
+    for (const settlement of debtPaymentAllocation.settlements) {
+      await tx.financialSettlement.create({
+        data: {
+          arenaId: auth.arenaId,
+          financialEntryId: settlement.financialEntryId,
+          saleId: sale.id,
+          amountCents: settlement.amountCents,
+          paymentMethod: settlement.paymentMethod,
+          paidAt: now,
+          notes: `Baixa realizada junto à finalização da comanda ${comanda.code}.`
+        }
+      });
+    }
     for (const debt of selectedDebts) {
-      const paidCents = Math.min(debt.amountCents, remainingDebtAllocationCents);
-      remainingDebtAllocationCents -= paidCents;
-      if (!paidCents) continue;
-      const paymentMethod = parsed.data.payments.map((payment) => payment.paymentMethod).join(" + ");
-      if (paidCents === debt.amountCents) {
-        await tx.financialEntry.update({ where: { id: debt.id }, data: { status: "PAID", paidAt: now, paymentMethod } });
-      } else {
-        await tx.financialEntry.update({ where: { id: debt.id }, data: { amountCents: debt.amountCents - paidCents, notes: `Saldo após baixa parcial: ${debt.amountCents - paidCents} centavos.` } });
-        await tx.financialEntry.create({ data: { arenaId: auth.arenaId, type: "INCOME", category: "COMANDAS", description: `Baixa parcial de débito (${debt.id})`, amountCents: paidCents, paymentMethod, status: "PAID", paidAt: now, notes: "Recebimento parcial realizado junto à finalização de comanda." } });
+      const newSettledCents = debtPaymentAllocation.settlements
+        .filter((settlement) => settlement.financialEntryId === debt.id)
+        .reduce((total, settlement) => total + settlement.amountCents, 0);
+      if (!newSettledCents) continue;
+      const outstandingCents = getOutstandingCents(debt.amountCents, [
+        ...debt.settlements,
+        { amountCents: newSettledCents }
+      ]);
+      if (outstandingCents === 0) {
+        await tx.financialEntry.update({ where: { id: debt.id }, data: { status: "PAID", paidAt: now } });
       }
     }
     if (remainingCents) {

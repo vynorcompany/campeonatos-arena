@@ -9,6 +9,8 @@ test("command checkout persists split payments and an open receivable for the un
   const card = readFileSync(resolve(process.cwd(), "src/components/comandas/command-card.tsx"), "utf8");
 
   assert.match(schema, /model SalePayment \{/);
+  assert.match(schema, /model FinancialSettlement \{/);
+  assert.match(schema, /settlements\s+FinancialSettlement\[\]/);
   assert.match(schema, /payments\s+SalePayment\[\]/);
   assert.match(schema, /saleId\s+String\?/);
   assert.match(actions, /paymentsSchema/);
@@ -32,10 +34,13 @@ test("command checkout offers only the client's pending balances for joint settl
   assert.match(actions, /selectedDebts/);
   assert.match(actions, /settleSelectedDebts/);
   assert.match(actions, /partialDebtPaymentCents/);
-  assert.match(actions, /Baixa parcial/);
+  assert.match(actions, /financialSettlement\.create/);
+  assert.match(actions, /getOutstandingCents/);
   assert.match(card, /Débitos em aberto/);
   assert.match(card, /Selecionar para quitar junto/);
   assert.match(card, /baixa parcial/);
+  assert.match(page, /settlements/);
+  assert.match(page, /getOutstandingCents/);
 });
 
 test("command product picker opens as a category modal with item quantities", () => {

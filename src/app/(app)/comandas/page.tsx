@@ -5,6 +5,7 @@ import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { createComandaAction } from "@/lib/actions/comanda";
 import { requireModuleView } from "@/lib/auth/guards";
+import { getOutstandingCents } from "@/lib/finance/settlements";
 import { prisma } from "@/lib/prisma";
 
 type ComandasPageProps = {
@@ -67,6 +68,7 @@ export default async function ComandasPage({ searchParams }: ComandasPageProps) 
       where: { arenaId: auth.arenaId, status: "PENDING" },
       select: {
         id: true, description: true, amountCents: true, dueDate: true,
+        settlements: { select: { amountCents: true } },
         scheduleParticipant: { select: { playerId: true } },
         sale: { select: { comanda: { select: { playerId: true } } } }
       },
@@ -81,7 +83,8 @@ export default async function ComandasPage({ searchParams }: ComandasPageProps) 
   const paymentMethods = paymentMethodSettings.length ? paymentMethodSettings.map((method) => method.name) : ["Dinheiro", "PIX", "Cartão de crédito", "Cartão de débito", "Saldo de crédito"];
   const debtsByPlayer = pendingDebts.reduce<Record<string, { id: string; description: string; amountCents: number; dueDate: Date | null }[]>>((current, debt) => {
     const playerId = debt.scheduleParticipant?.playerId ?? debt.sale?.comanda?.playerId;
-    if (playerId) (current[playerId] ??= []).push({ id: debt.id, description: debt.description, amountCents: debt.amountCents, dueDate: debt.dueDate });
+    const outstandingCents = getOutstandingCents(debt.amountCents, debt.settlements);
+    if (playerId && outstandingCents > 0) (current[playerId] ??= []).push({ id: debt.id, description: debt.description, amountCents: outstandingCents, dueDate: debt.dueDate });
     return current;
   }, {});
 

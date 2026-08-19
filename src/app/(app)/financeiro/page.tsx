@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { SectionCard } from "@/components/section-card";
 import { requireModuleView } from "@/lib/auth/guards";
+import { getReceivedRevenueCents } from "@/lib/finance/dashboard";
 import { prisma } from "@/lib/prisma";
 
 function getMonthRange() {
@@ -18,15 +19,15 @@ function formatMoney(cents: number) {
 export default async function FinancePage() {
   const auth = await requireModuleView("finance");
   const { start, end } = getMonthRange();
-  const [subscriptions, products, sales, financialEntries, payrollEntries, recentEntries] = await Promise.all([
+  const [subscriptions, products, financialEntries, payrollEntries, recentEntries] = await Promise.all([
     prisma.studentSubscription.findMany({ where: { arenaId: auth.arenaId, status: "ACTIVE" } }),
     prisma.product.findMany({ where: { arenaId: auth.arenaId } }),
-    prisma.sale.findMany({ where: { arenaId: auth.arenaId, createdAt: { gte: start, lt: end } } }),
     prisma.financialEntry.findMany({
       where: {
         arenaId: auth.arenaId,
-        OR: [{ dueDate: { gte: start, lt: end } }, { paidAt: { gte: start, lt: end } }]
-      }
+        OR: [{ paidAt: { gte: start, lt: end } }, { settlements: { some: { paidAt: { gte: start, lt: end } } } }]
+      },
+      include: { settlements: { select: { amountCents: true, paidAt: true } } }
     }),
     prisma.teacherPayrollEntry.findMany({ where: { arenaId: auth.arenaId } }),
     prisma.financialEntry.findMany({
@@ -36,10 +37,7 @@ export default async function FinancePage() {
     })
   ]);
   const projectedPlanRevenue = subscriptions.reduce((total, subscription) => total + subscription.monthlyPriceCents, 0);
-  const paidRevenue = financialEntries
-    .filter((entry) => entry.type === "REVENUE" && entry.status === "PAID")
-    .reduce((total, entry) => total + entry.amountCents, 0);
-  const pdvRevenue = sales.reduce((total, sale) => total + sale.totalCents, 0);
+  const paidRevenue = getReceivedRevenueCents(financialEntries, start, end);
   const expenses = financialEntries
     .filter((entry) => entry.type === "EXPENSE")
     .reduce((total, entry) => total + entry.amountCents, 0);
@@ -69,7 +67,7 @@ export default async function FinancePage() {
 
       <div className="stats-grid finance-stats-grid">
         <div className="stat-card">
-          <strong>{formatMoney(paidRevenue + pdvRevenue)}</strong>
+          <strong>{formatMoney(paidRevenue)}</strong>
           <span>receita recebida no mês</span>
         </div>
         <div className="stat-card">

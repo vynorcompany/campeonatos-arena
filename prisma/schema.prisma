@@ -107,6 +107,7 @@ model Arena {
   plans       Plan[]
   subscriptions StudentSubscription[]
   financialEntries FinancialEntry[]
+  financialSettlements FinancialSettlement[]
   financialCategories FinancialCategory[]
   paymentMethodSettings PaymentMethodSetting[]
   bankAccounts BankAccount[]
@@ -938,6 +939,7 @@ model Sale {
   items         SaleItem[]
   payments      SalePayment[]
   financialEntries FinancialEntry[]
+  debtSettlements FinancialSettlement[]
 
   @@index([arenaId, createdAt])
 }
@@ -1078,10 +1080,30 @@ model FinancialEntry {
   arena         Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
   sale          Sale?    @relation(fields: [saleId], references: [id], onDelete: SetNull)
   scheduleParticipant ScheduleParticipant?
+  settlements   FinancialSettlement[]
 
   @@index([arenaId, type, status])
   @@index([arenaId, dueDate])
   @@index([arenaId, paidAt])
+  @@index([saleId])
+}
+
+model FinancialSettlement {
+  id               String   @id @default(cuid())
+  amountCents      Int
+  paymentMethod    String
+  paidAt           DateTime @default(now())
+  notes            String   @default("")
+  createdAt        DateTime @default(now())
+  arenaId          String
+  financialEntryId String
+  saleId           String?
+  arena            Arena          @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  financialEntry   FinancialEntry @relation(fields: [financialEntryId], references: [id], onDelete: Cascade)
+  sale             Sale?          @relation(fields: [saleId], references: [id], onDelete: SetNull)
+
+  @@index([arenaId, paidAt])
+  @@index([financialEntryId, paidAt])
   @@index([saleId])
 }
 
