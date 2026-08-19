@@ -942,6 +942,7 @@ model Sale {
   debtSettlements FinancialSettlement[]
 
   @@index([arenaId, createdAt])
+  @@index([arenaId, status, createdAt])
 }
 
 model SalePayment {
@@ -974,6 +975,7 @@ model Comanda {
 
   @@index([arenaId, openedAt])
   @@index([arenaId, status])
+  @@index([arenaId, status, openedAt])
   @@index([playerId])
 }
 
@@ -1084,6 +1086,7 @@ model FinancialEntry {
 
   @@index([arenaId, type, status])
   @@index([arenaId, dueDate])
+  @@index([arenaId, status, dueDate])
   @@index([arenaId, paidAt])
   @@index([saleId])
 }
