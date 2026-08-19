@@ -29,7 +29,8 @@ const paymentsSchema = z.array(z.object({
 
 const finishComandaSchema = z.object({
   comandaId: z.string().min(1),
-  payments: paymentsSchema
+  payments: paymentsSchema,
+  debtIds: z.array(z.string().min(1)).max(30)
 });
 
 function formatComandaCode() {
@@ -131,11 +132,16 @@ export async function updateComandaItemQuantityAction(formData: FormData) {
 export async function finishComandaAction(formData: FormData) {
   const auth = await requireModuleEdit("pos");
   let payments: unknown = [];
+  let debtIds: unknown = [];
   const rawPayments = formData.get("payments");
+  const rawDebtIds = formData.get("debtIds");
   if (typeof rawPayments === "string" && rawPayments.trim()) {
     try { payments = JSON.parse(rawPayments); } catch { throw new Error("Pagamentos inválidos."); }
   }
-  const parsed = finishComandaSchema.safeParse({ comandaId: formData.get("comandaId"), payments });
+  if (typeof rawDebtIds === "string" && rawDebtIds.trim()) {
+    try { debtIds = JSON.parse(rawDebtIds); } catch { throw new Error("Débitos inválidos."); }
+  }
+  const parsed = finishComandaSchema.safeParse({ comandaId: formData.get("comandaId"), payments, debtIds });
   if (!parsed.success) throw new Error("Comanda inválida.");
 
   await prisma.$transaction(async (tx) => {
@@ -144,8 +150,23 @@ export async function finishComandaAction(formData: FormData) {
     if (!comanda.items.length) throw new Error("Insira ao menos um produto antes de finalizar.");
     const totalCents = comanda.items.reduce((total, item) => total + item.totalCents, 0);
     const paymentTotalCents = parsed.data.payments.reduce((total, payment) => total + payment.amountCents, 0);
-    if (paymentTotalCents > totalCents) throw new Error("Os pagamentos não podem ultrapassar o total da comanda.");
-    const remainingCents = totalCents - paymentTotalCents;
+    const selectedDebts = comanda.playerId && parsed.data.debtIds.length ? await tx.financialEntry.findMany({
+      where: {
+        id: { in: parsed.data.debtIds }, arenaId: auth.arenaId, status: "PENDING",
+        OR: [
+          { scheduleParticipant: { playerId: comanda.playerId } },
+          { sale: { comanda: { playerId: comanda.playerId } } }
+        ]
+      },
+      select: { id: true, amountCents: true }
+    }) : [];
+    if (selectedDebts.length !== parsed.data.debtIds.length) throw new Error("Um dos débitos selecionados não está disponível para este cliente.");
+    const selectedDebtTotalCents = selectedDebts.reduce((total, debt) => total + debt.amountCents, 0);
+    const grandTotalCents = totalCents + selectedDebtTotalCents;
+    if (paymentTotalCents > grandTotalCents) throw new Error("Os pagamentos não podem ultrapassar o total a receber.");
+    const settleSelectedDebts = Boolean(selectedDebts.length) && paymentTotalCents >= grandTotalCents;
+    const comandaPaymentCents = settleSelectedDebts ? totalCents : Math.min(totalCents, paymentTotalCents);
+    const remainingCents = totalCents - comandaPaymentCents;
     const now = new Date();
     const sale = await tx.sale.create({
       data: {
@@ -154,7 +175,7 @@ export async function finishComandaAction(formData: FormData) {
         code: `VEN-${Date.now().toString(36).toUpperCase()}`,
         customerName: comanda.label,
         paymentMethod: parsed.data.payments.length === 1 ? parsed.data.payments[0].paymentMethod : parsed.data.payments.length ? "MÚLTIPLO" : "",
-        status: remainingCents ? (paymentTotalCents ? "PARTIAL" : "PENDING") : "PAID",
+        status: remainingCents ? (comandaPaymentCents ? "PARTIAL" : "PENDING") : "PAID",
         totalCents,
         items: { create: comanda.items.map((item) => ({ productId: item.productId, quantity: item.quantity, unitPriceCents: item.unitPriceCents, totalCents: item.totalCents })) }
       }
@@ -164,10 +185,15 @@ export async function finishComandaAction(formData: FormData) {
       await tx.product.update({ where: { id: item.productId }, data: { stockQuantity: { decrement: item.quantity } } });
       await tx.stockMovement.create({ data: { arenaId: auth.arenaId, productId: item.productId, type: "OUT", quantity: item.quantity, reason: `Comanda ${comanda.code}` } });
     }
+    let debtAllocationCents = settleSelectedDebts ? selectedDebtTotalCents : 0;
     for (const payment of parsed.data.payments) {
-      await tx.salePayment.create({ data: { saleId: sale.id, paymentMethod: payment.paymentMethod, amountCents: payment.amountCents } });
-      await tx.financialEntry.create({ data: { arenaId: auth.arenaId, saleId: sale.id, type: "INCOME", category: "COMANDAS", description: `Recebimento da comanda ${comanda.code}`, amountCents: payment.amountCents, paymentMethod: payment.paymentMethod, status: "PAID", paidAt: now } });
+      const amountAfterDebtSettlement = Math.max(0, payment.amountCents - debtAllocationCents);
+      debtAllocationCents = Math.max(0, debtAllocationCents - payment.amountCents);
+      if (!amountAfterDebtSettlement) continue;
+      await tx.salePayment.create({ data: { saleId: sale.id, paymentMethod: payment.paymentMethod, amountCents: amountAfterDebtSettlement } });
+      await tx.financialEntry.create({ data: { arenaId: auth.arenaId, saleId: sale.id, type: "INCOME", category: "COMANDAS", description: `Recebimento da comanda ${comanda.code}`, amountCents: amountAfterDebtSettlement, paymentMethod: payment.paymentMethod, status: "PAID", paidAt: now } });
     }
+    if (settleSelectedDebts) await tx.financialEntry.updateMany({ where: { id: { in: selectedDebts.map((debt) => debt.id) } }, data: { status: "PAID", paidAt: now, paymentMethod: parsed.data.payments.map((payment) => payment.paymentMethod).join(" + ") } });
     if (remainingCents) {
       await tx.financialEntry.create({ data: { arenaId: auth.arenaId, saleId: sale.id, type: "INCOME", category: "COMANDAS", description: `Conta a receber da comanda ${comanda.code}`, amountCents: remainingCents, status: "PENDING", dueDate: now } });
     }

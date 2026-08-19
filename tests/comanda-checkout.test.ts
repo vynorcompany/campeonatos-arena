@@ -20,6 +20,21 @@ test("command checkout persists split payments and an open receivable for the un
   assert.match(card, /Conta a receber/);
 });
 
+test("command checkout offers only the client's pending balances for joint settlement", () => {
+  const page = readFileSync(resolve(process.cwd(), "src/app/(app)/comandas/page.tsx"), "utf8");
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/comanda.ts"), "utf8");
+  const card = readFileSync(resolve(process.cwd(), "src/components/comandas/command-card.tsx"), "utf8");
+
+  assert.match(page, /pendingDebts/);
+  assert.match(page, /scheduleParticipant/);
+  assert.match(page, /comanda/);
+  assert.match(actions, /debtIds/);
+  assert.match(actions, /selectedDebts/);
+  assert.match(actions, /settleSelectedDebts/);
+  assert.match(card, /Débitos em aberto/);
+  assert.match(card, /Selecionar para quitar junto/);
+});
+
 test("command product picker opens as a category modal with item quantities", () => {
   const schema = readFileSync(resolve(process.cwd(), "prisma/schema.prisma"), "utf8");
   const page = readFileSync(resolve(process.cwd(), "src/app/(app)/comandas/page.tsx"), "utf8");
