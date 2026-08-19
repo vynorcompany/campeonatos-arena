@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { addComandaProductAction, finishComandaAction, updateComandaItemQuantityAction } from "@/lib/actions/comanda";
 
 type Product = { id: string; name: string; priceCents: number; stockQuantity: number; category?: { name: string } | null };
@@ -13,7 +12,6 @@ function money(value: number) { return new Intl.NumberFormat("pt-BR", { style: "
 function toCents(value: string) { return Math.round(Number(value.replace(",", ".")) * 100) || 0; }
 
 export function CommandCard({ comanda, products, paymentMethods, debts }: { comanda: { id: string; code: string; label: string; type: string; playerName?: string | null; items: CommandItem[] }; products: Product[]; paymentMethods: string[]; debts: Debt[] }) {
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -34,7 +32,7 @@ export function CommandCard({ comanda, products, paymentMethods, debts }: { coma
     (groups[categoryName] ??= []).push(product);
     return groups;
   }, {}), [products]);
-  const run = (operation: () => Promise<void>, success?: () => void) => startTransition(async () => { try { setMessage(""); await operation(); success?.(); router.refresh(); } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível atualizar a comanda."); } });
+  const run = (operation: () => Promise<void>, success?: () => void) => startTransition(async () => { try { setMessage(""); await operation(); success?.(); } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível atualizar a comanda."); } });
   const form = (values: Record<string, string>) => { const data = new FormData(); Object.entries(values).forEach(([key, value]) => data.set(key, value)); return data; };
   const changeQuantity = (productId: string, value: number) => setQuantities((current) => ({ ...current, [productId]: Math.max(0, Math.min(value, products.find((product) => product.id === productId)?.stockQuantity ?? 0)) }));
   const addSelectedProducts = () => run(async () => {

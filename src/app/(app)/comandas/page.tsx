@@ -49,6 +49,7 @@ export default async function ComandasPage({ searchParams }: ComandasPageProps) 
     prisma.comanda.findMany({
       where: {
         arenaId: auth.arenaId,
+        status: "OPEN",
         openedAt: { gte: selectedDate, lt: nextDate },
         ...(search ? { label: { contains: search, mode: "insensitive" } } : {})
       },

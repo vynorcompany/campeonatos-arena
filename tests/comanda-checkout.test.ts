@@ -57,3 +57,11 @@ test("command product picker opens as a category modal with item quantities", ()
   assert.match(card, /categoryName/);
   assert.ok(existsSync(resolve(process.cwd(), "prisma/migrations/20260819090000_add_comanda_checkout/migration.sql")));
 });
+
+test("closed commands are excluded from the active command grid without a duplicate refresh", () => {
+  const page = readFileSync(resolve(process.cwd(), "src/app/(app)/comandas/page.tsx"), "utf8");
+  const card = readFileSync(resolve(process.cwd(), "src/components/comandas/command-card.tsx"), "utf8");
+
+  assert.match(page, /const \[comandas[\s\S]{0,650}?where: \{\s*arenaId: auth\.arenaId,\s*status: "OPEN",/);
+  assert.doesNotMatch(card, /router\.refresh\(\)/);
+});
