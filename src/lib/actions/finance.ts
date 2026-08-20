@@ -8,6 +8,7 @@ import {
   parseDate,
   parseMoneyToCents
 } from "@/lib/finance/inputs";
+import { getFinancialEntryBalance } from "@/lib/finance/ledger";
 import { prisma } from "@/lib/prisma";
 
 const optionalText = z.string().trim().default("");
@@ -39,6 +40,7 @@ const entrySchema = z.object({
   type: z.enum(["REVENUE", "EXPENSE"]),
   category: z.string().trim().min(2, "Informe a categoria."),
   description: z.string().trim().min(2, "Informe a descrição."),
+  counterpartyName: optionalText,
   amount: z.string().trim().min(1, "Informe o valor."),
   paymentMethod: optionalText,
   status: z.enum(["PENDING", "PAID"]).default("PENDING"),
@@ -59,6 +61,20 @@ const financialSettingSchema = z.object({
   notes: optionalText
 });
 
+const settlementSchema = z.object({
+  entryId: z.string().min(1, "Conta inválida."),
+  amount: z.string().trim().min(1, "Informe o valor recebido."),
+  interest: z.string().trim().optional().default("0"),
+  paymentMethod: z.string().trim().min(1, "Selecione a forma de pagamento."),
+  paidAt: z.string().optional().default(""),
+  notes: optionalText
+});
+
+const voidEntrySchema = z.object({
+  entryId: z.string().min(1, "Conta inválida."),
+  reason: z.string().trim().min(3, "Informe o motivo do estorno.")
+});
+
 const payrollSchema = z.object({
   teacherId: z.string().min(1, "Selecione um professor."),
   referenceMonth: z.string().trim().min(7, "Informe o mês de referência."),
@@ -72,6 +88,9 @@ const payrollSchema = z.object({
 
 function refreshFinanceRoutes() {
   revalidatePath("/financeiro");
+  revalidatePath("/financeiro/lancamentos");
+  revalidatePath("/financeiro/contas-a-receber");
+  revalidatePath("/financeiro/contas-a-pagar");
   revalidatePath("/professores");
 }
 
@@ -232,6 +251,7 @@ export async function createFinancialEntryAction(formData: FormData) {
     type: formData.get("type"),
     category: formData.get("category"),
     description: formData.get("description"),
+    counterpartyName: formData.get("counterpartyName"),
     amount: formData.get("amount"),
     paymentMethod: formData.get("paymentMethod"),
     status: formData.get("status"),
@@ -253,6 +273,7 @@ export async function createFinancialEntryAction(formData: FormData) {
       type: parsed.data.type,
       category: parsed.data.category,
       description: parsed.data.description,
+      counterpartyName: parsed.data.counterpartyName,
       amountCents: parseMoneyToCents(parsed.data.amount),
       paymentMethod: parsed.data.paymentMethod,
       status: parsed.data.status,
@@ -262,6 +283,71 @@ export async function createFinancialEntryAction(formData: FormData) {
     }
   });
 
+  refreshFinanceRoutes();
+}
+
+export async function settleFinancialEntryAction(formData: FormData) {
+  const auth = await requireModuleEdit("finance");
+  const parsed = settlementSchema.safeParse({
+    entryId: formData.get("entryId"),
+    amount: formData.get("amount"),
+    interest: formData.get("interest"),
+    paymentMethod: formData.get("paymentMethod"),
+    paidAt: formData.get("paidAt"),
+    notes: formData.get("notes")
+  });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+
+  const amountCents = parseMoneyToCents(parsed.data.amount);
+  const interestCents = parseMoneyToCents(parsed.data.interest);
+  const paidAt = parseDate(parsed.data.paidAt) ?? new Date();
+
+  await prisma.$transaction(async (tx) => {
+    const entry = await tx.financialEntry.findFirst({
+      where: { id: parsed.data.entryId, arenaId: auth.arenaId, status: "PENDING" },
+      include: { settlements: { select: { amountCents: true, interestCents: true } } }
+    });
+    if (!entry) throw new Error("Esta conta não está disponível para baixa.");
+
+    const before = getFinancialEntryBalance(entry.amountCents, entry.settlements);
+    const allowedCents = before.outstandingCents + interestCents;
+    if (amountCents > allowedCents) throw new Error("O valor informado supera o saldo desta conta com os juros.");
+
+    const after = getFinancialEntryBalance(entry.amountCents, [...entry.settlements, { amountCents, interestCents }]);
+    await tx.financialSettlement.create({
+      data: {
+        arenaId: auth.arenaId,
+        financialEntryId: entry.id,
+        amountCents,
+        interestCents,
+        paymentMethod: parsed.data.paymentMethod,
+        paidAt,
+        notes: parsed.data.notes || `Baixa ${entry.type === "REVENUE" ? "recebida" : "paga"} manualmente.`
+      }
+    });
+    await tx.financialEntry.update({
+      where: { id: entry.id },
+      data: {
+        status: after.settled ? "PAID" : "PENDING",
+        paidAt: after.settled ? paidAt : null,
+        paymentMethod: parsed.data.paymentMethod
+      }
+    });
+  });
+
+  refreshFinanceRoutes();
+}
+
+export async function voidFinancialEntryAction(formData: FormData) {
+  const auth = await requireModuleEdit("finance");
+  const parsed = voidEntrySchema.safeParse({ entryId: formData.get("entryId"), reason: formData.get("reason") });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+
+  const updated = await prisma.financialEntry.updateMany({
+    where: { id: parsed.data.entryId, arenaId: auth.arenaId, status: { not: "VOIDED" } },
+    data: { status: "VOIDED", voidedAt: new Date(), voidReason: parsed.data.reason }
+  });
+  if (!updated.count) throw new Error("Esta conta já foi estornada ou não está disponível.");
   refreshFinanceRoutes();
 }
 

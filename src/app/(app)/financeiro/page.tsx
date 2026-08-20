@@ -51,7 +51,8 @@ export default async function FinancePage() {
     ["Planos", "/financeiro/planos", "Cadastre pacotes e mensalidades."],
     ["Mensalidades", "/financeiro/mensalidades", "Vincule alunos a planos e registre pagamentos."],
     ["Folha", "/financeiro/folha", "Calcule salários e despesas de professores."],
-    ["Lançamentos", "/financeiro/lancamentos", "Registre receitas e despesas manuais."],
+    ["Contas a Receber", "/financeiro/contas-a-receber", "Receba aulas, comandas, planos e demais receitas."],
+    ["Contas a Pagar", "/financeiro/contas-a-pagar", "Gerencie fornecedores, custos e despesas da arena."],
     ["PDV/estoque", "/financeiro/pdv-estoque", "Veja vendas, estoque e movimentações."]
   ] as const;
 

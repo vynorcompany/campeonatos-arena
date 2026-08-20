@@ -207,7 +207,8 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
           label: "Financeiro",
           icon: "finance",
           children: [
-            { href: "/financeiro/lancamentos", label: "Entradas e Saídas" },
+            { href: "/financeiro/contas-a-receber", label: "Contas a Receber" },
+            { href: "/financeiro/contas-a-pagar", label: "Contas a Pagar" },
             { href: "/pdv", label: "Produtos e Serviços" },
             {
               href: "/financeiro/configuracoes",
@@ -272,6 +273,8 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
     "/financeiro/mensalidades": "finance",
     "/financeiro/folha": "finance",
     "/financeiro/lancamentos": "finance",
+    "/financeiro/contas-a-receber": "finance",
+    "/financeiro/contas-a-pagar": "finance",
     "/financeiro/pdv-estoque": "finance",
     "/financeiro/configuracoes": "finance",
     "/financeiro/configuracoes/notas-fiscais": "finance",

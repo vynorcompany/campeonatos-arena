@@ -24,7 +24,8 @@ test("sidebar groups financial routines and reports in dedicated expandable modu
   const navigation = readFileSync(resolve(process.cwd(), "src/components/layout/nav-links.tsx"), "utf8");
 
   assert.match(navigation, /label: "Financeiro"/);
-  assert.match(navigation, /label: "Entradas e Saídas"/);
+  assert.match(navigation, /label: "Contas a Receber"/);
+  assert.match(navigation, /label: "Contas a Pagar"/);
   assert.match(navigation, /label: "Produtos e Serviços"/);
   assert.match(navigation, /label: "Configurações Financeiras"/);
   assert.match(navigation, /label: "Notas Fiscais"/);
