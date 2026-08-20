@@ -102,8 +102,8 @@ export function AccountsLedger({
         <select name="productId" defaultValue={String(filters.productId ?? "")}><option value="">Produto</option>{products.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
         <select name="planId" defaultValue={String(filters.planId ?? "")}><option value="">Plano/pacote</option>{plans.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
         <select name="dateField" defaultValue={String(filters.dateField ?? "dueDate")}><option value="dueDate">Data de vencimento</option><option value="paidAt">Data de pagamento</option></select>
-        <label><input name="includeEarlier" type="checkbox" value="1" defaultChecked={filters.includeEarlier === true} /> Anteriores à data inicial</label>
-        <label><input name="includeVoided" type="checkbox" value="1" defaultChecked={filters.includeVoided === true} /> Incluir estornados/deletados</label>
+        <label className="control-toggle"><input name="includeEarlier" type="checkbox" value="1" defaultChecked={filters.includeEarlier === true} /><span aria-hidden="true" /><em>Anteriores à data inicial</em></label>
+        <label className="control-toggle"><input name="includeVoided" type="checkbox" value="1" defaultChecked={filters.includeVoided === true} /><span aria-hidden="true" /><em>Incluir estornados/deletados</em></label>
         <button className="button button-small">Filtrar</button>
       </form>
 
