@@ -162,6 +162,10 @@ export const recordCategoryLeagueMatchResultSchema = z
     }
   });
 
+export const resetCategoryLeagueMatchResultSchema = z.object({
+  matchId: z.string().trim().min(1, "Jogo inválido."),
+});
+
 export const categoryMatchStatusSchema = z.enum(categoryMatchManualStatuses);
 
 export const updateCategoryMatchStatusSchema = z.object({

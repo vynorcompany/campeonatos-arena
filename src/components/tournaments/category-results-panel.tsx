@@ -5,6 +5,7 @@ import { LeagueMatchResultDialog } from "@/components/tournaments/league-match-r
 import {
   finishCategoryCompetitionAction,
   recordCategoryMatchResultAction,
+  resetCategoryLeagueMatchResultAction,
   updateCategoryMatchScheduleAction,
   updateCategoryMatchStatusAction,
 } from "@/lib/actions/category-competition";
@@ -359,6 +360,12 @@ export function CategoryResultsPanel({
                               {match.awayScore ?? "–"}
                             </span>
                           )}
+                          {competition.format === "LEAGUE" && match.winnerPair ? (
+                            <form action={resetCategoryLeagueMatchResultAction} className="category-game-form">
+                              <input type="hidden" name="matchId" value={match.id} />
+                              <SubmitButton label="Resetar resultado" pendingLabel="Resetando..." className="button" />
+                            </form>
+                          ) : null}
                           </div>
                         </div>
                       );

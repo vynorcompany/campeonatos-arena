@@ -132,3 +132,26 @@ test("recording a result marks the match as finished and guards downstream knock
   assert.match(resultSource, /assertStoredMatchCanBeCorrected/);
   assert.match(resultSource, /homeScore === awayScore/);
 });
+
+test("liga permite resetar um resultado apagando sets, placar e vencedora", async () => {
+  const service = await readFile(
+    path.join(workspaceRoot, "src", "lib", "services", "category-competition.ts"),
+    "utf8",
+  );
+  const action = await readFile(
+    path.join(workspaceRoot, "src", "lib", "actions", "category-competition.ts"),
+    "utf8",
+  );
+  const panel = await readFile(
+    path.join(workspaceRoot, "src", "components", "tournaments", "category-results-panel.tsx"),
+    "utf8",
+  );
+
+  assert.match(service, /export async function resetCategoryLeagueMatchResult/);
+  assert.match(service, /format:\s*"LEAGUE"/);
+  assert.match(service, /homeSet1:\s*null/);
+  assert.match(service, /awaySet3:\s*null/);
+  assert.match(service, /winnerPairId:\s*null/);
+  assert.match(action, /resetCategoryLeagueMatchResultAction/);
+  assert.match(panel, /Resetar resultado/);
+});

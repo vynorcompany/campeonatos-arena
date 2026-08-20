@@ -1290,6 +1290,42 @@ export async function recordCategoryLeagueMatchResult(
   });
 }
 
+export async function resetCategoryLeagueMatchResult(
+  arenaId: string,
+  matchId: string,
+) {
+  return runSerializableTransaction(async (tx) => {
+    const match = await tx.categoryMatch.findFirst({
+      where: {
+        id: matchId,
+        competition: {
+          status: categoryCompetitionStatus.PUBLISHED,
+          format: "LEAGUE",
+          category: { active: true, tournament: { arenaId } },
+        },
+      },
+      select: { id: true },
+    });
+    if (!match) throw new Error("Jogo de Liga publicado não encontrado nesta arena.");
+
+    return tx.categoryMatch.update({
+      where: { id: match.id },
+      data: {
+        homeSet1: null,
+        awaySet1: null,
+        homeSet2: null,
+        awaySet2: null,
+        homeSet3: null,
+        awaySet3: null,
+        homeScore: null,
+        awayScore: null,
+        winnerPairId: null,
+        manualStatus: "SCHEDULED",
+      },
+    });
+  });
+}
+
 export async function finishCategoryCompetition(
   arenaId: string,
   competitionId: string,
