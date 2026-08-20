@@ -107,6 +107,7 @@ model Arena {
   plans       Plan[]
   subscriptions StudentSubscription[]
   financialEntries FinancialEntry[]
+  financialRecurrences FinancialRecurrence[]
   financialSettlements FinancialSettlement[]
   financialCategories FinancialCategory[]
   paymentMethodSettings PaymentMethodSetting[]
@@ -1036,6 +1037,8 @@ model Plan {
   arenaId           String
   arena             Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
   subscriptions     StudentSubscription[]
+  financialEntries  FinancialEntry[]
+  financialRecurrences FinancialRecurrence[]
 
   @@unique([arenaId, name])
   @@index([arenaId, active])
@@ -1082,8 +1085,17 @@ model FinancialEntry {
   updatedAt     DateTime @updatedAt
   arenaId       String
   saleId        String?
+  supplierId    String?
+  bankAccountId String?
+  planId        String?
+  recurrenceId  String?
+  productId     String?
   arena         Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
   sale          Sale?    @relation(fields: [saleId], references: [id], onDelete: SetNull)
+  supplier      Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  bankAccount   BankAccount? @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+  plan          Plan?    @relation(fields: [planId], references: [id], onDelete: SetNull)
+  recurrence    FinancialRecurrence? @relation(fields: [recurrenceId], references: [id], onDelete: SetNull)
   scheduleParticipant ScheduleParticipant?
   settlements   FinancialSettlement[]
 
@@ -1092,6 +1104,39 @@ model FinancialEntry {
   @@index([arenaId, status, dueDate])
   @@index([arenaId, paidAt])
   @@index([saleId])
+  @@index([supplierId])
+  @@index([bankAccountId])
+  @@index([planId])
+  @@index([recurrenceId])
+  @@index([productId])
+}
+
+model FinancialRecurrence {
+  id               String   @id @default(cuid())
+  type             String
+  counterpartyName String
+  category         String
+  description      String
+  amountCents      Int
+  frequency        String
+  startsAt         DateTime
+  endsAt           DateTime?
+  nextDueDate      DateTime
+  active           Boolean  @default(true)
+  notes            String   @default("")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  arenaId          String
+  supplierId       String?
+  bankAccountId    String?
+  planId           String?
+  arena            Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  supplier         Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  bankAccount      BankAccount? @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+  plan             Plan? @relation(fields: [planId], references: [id], onDelete: SetNull)
+  entries          FinancialEntry[]
+
+  @@index([arenaId, active, nextDueDate])
 }
 
 model FinancialSettlement {
@@ -1151,6 +1196,8 @@ model BankAccount {
   updatedAt           DateTime @updatedAt
   arenaId             String
   arena               Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  financialEntries    FinancialEntry[]
+  financialRecurrences FinancialRecurrence[]
 
   @@unique([arenaId, name])
   @@index([arenaId, active])
@@ -1168,6 +1215,8 @@ model Supplier {
   updatedAt DateTime @updatedAt
   arenaId   String
   arena     Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  financialEntries FinancialEntry[]
+  financialRecurrences FinancialRecurrence[]
 
   @@unique([arenaId, name])
   @@index([arenaId, active])

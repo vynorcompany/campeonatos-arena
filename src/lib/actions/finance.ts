@@ -9,6 +9,7 @@ import {
   parseMoneyToCents
 } from "@/lib/finance/inputs";
 import { getFinancialEntryBalance } from "@/lib/finance/ledger";
+import { getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
 import { prisma } from "@/lib/prisma";
 
 const optionalText = z.string().trim().default("");
@@ -41,11 +42,28 @@ const entrySchema = z.object({
   category: z.string().trim().min(2, "Informe a categoria."),
   description: z.string().trim().min(2, "Informe a descrição."),
   counterpartyName: optionalText,
+  supplierId: z.string().optional().default(""),
+  bankAccountId: z.string().optional().default(""),
+  planId: z.string().optional().default(""),
+  productId: z.string().optional().default(""),
   amount: z.string().trim().min(1, "Informe o valor."),
   paymentMethod: optionalText,
   status: z.enum(["PENDING", "PAID"]).default("PENDING"),
   dueDate: z.string().optional().default(""),
   paidAt: z.string().optional().default(""),
+  notes: optionalText
+});
+
+const recurrenceSchema = z.object({
+  counterpartyName: z.string().trim().min(2, "Informe o cliente."),
+  category: z.string().trim().min(2, "Selecione a categoria."),
+  description: z.string().trim().min(2, "Informe a descrição."),
+  amount: z.string().trim().min(1, "Informe o valor."),
+  frequency: z.enum(["WEEKLY", "MONTHLY", "ANNUAL"]),
+  startsAt: z.string().min(1, "Informe a data inicial."),
+  endsAt: z.string().optional().default(""),
+  bankAccountId: z.string().optional().default(""),
+  planId: z.string().optional().default(""),
   notes: optionalText
 });
 
@@ -233,6 +251,8 @@ export async function recordPlanPaymentAction(formData: FormData) {
       type: "REVENUE",
       category: "Planos",
       description: `${subscription.student.name} - ${subscription.plan.name} (${parsed.data.referenceMonth})`,
+      counterpartyName: subscription.student.name,
+      planId: subscription.plan.id,
       amountCents,
       paymentMethod: parsed.data.paymentMethod,
       status: "PAID",
@@ -252,6 +272,10 @@ export async function createFinancialEntryAction(formData: FormData) {
     category: formData.get("category"),
     description: formData.get("description"),
     counterpartyName: formData.get("counterpartyName"),
+    supplierId: formData.get("supplierId"),
+    bankAccountId: formData.get("bankAccountId"),
+    planId: formData.get("planId"),
+    productId: formData.get("productId"),
     amount: formData.get("amount"),
     paymentMethod: formData.get("paymentMethod"),
     status: formData.get("status"),
@@ -266,6 +290,14 @@ export async function createFinancialEntryAction(formData: FormData) {
 
   const dueDate = parseDate(parsed.data.dueDate);
   const paidAt = parsed.data.status === "PAID" ? parseDate(parsed.data.paidAt) ?? new Date() : parseDate(parsed.data.paidAt);
+  let supplierId = parsed.data.supplierId || null;
+  if (parsed.data.type === "EXPENSE" && parsed.data.counterpartyName && !supplierId) {
+    const supplier = await prisma.supplier.upsert({
+      where: { arenaId_name: { arenaId: auth.arenaId, name: parsed.data.counterpartyName } },
+      update: {}, create: { arenaId: auth.arenaId, name: parsed.data.counterpartyName }
+    });
+    supplierId = supplier.id;
+  }
 
   await prisma.financialEntry.create({
     data: {
@@ -274,6 +306,10 @@ export async function createFinancialEntryAction(formData: FormData) {
       category: parsed.data.category,
       description: parsed.data.description,
       counterpartyName: parsed.data.counterpartyName,
+      supplierId,
+      bankAccountId: parsed.data.bankAccountId || null,
+      planId: parsed.data.planId || null,
+      productId: parsed.data.productId || null,
       amountCents: parseMoneyToCents(parsed.data.amount),
       paymentMethod: parsed.data.paymentMethod,
       status: parsed.data.status,
@@ -283,6 +319,40 @@ export async function createFinancialEntryAction(formData: FormData) {
     }
   });
 
+  refreshFinanceRoutes();
+}
+
+export async function createFinancialRecurrenceAction(formData: FormData) {
+  const auth = await requireModuleEdit("finance");
+  const parsed = recurrenceSchema.safeParse({
+    counterpartyName: formData.get("counterpartyName"), category: formData.get("category"), description: formData.get("description"),
+    amount: formData.get("amount"), frequency: formData.get("frequency"), startsAt: formData.get("startsAt"),
+    endsAt: formData.get("endsAt"), bankAccountId: formData.get("bankAccountId"), planId: formData.get("planId"), notes: formData.get("notes")
+  });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  const startsAt = parseDate(parsed.data.startsAt);
+  const endsAt = parseDate(parsed.data.endsAt);
+  if (!startsAt) throw new Error("Data inicial inválida.");
+  if (endsAt && endsAt < startsAt) throw new Error("A data final deve ser posterior à inicial.");
+
+  await prisma.$transaction(async (tx) => {
+    const recurrence = await tx.financialRecurrence.create({ data: {
+      arenaId: auth.arenaId, type: "REVENUE", counterpartyName: parsed.data.counterpartyName, category: parsed.data.category,
+      description: parsed.data.description, amountCents: parseMoneyToCents(parsed.data.amount), frequency: parsed.data.frequency,
+      startsAt, endsAt, nextDueDate: startsAt, bankAccountId: parsed.data.bankAccountId || null, planId: parsed.data.planId || null, notes: parsed.data.notes
+    } });
+    let dueDate = startsAt;
+    const limit = endsAt ?? new Date(startsAt.getFullYear() + 1, startsAt.getMonth(), startsAt.getDate());
+    while (dueDate <= limit) {
+      await tx.financialEntry.create({ data: {
+        arenaId: auth.arenaId, type: "REVENUE", counterpartyName: recurrence.counterpartyName, category: recurrence.category,
+        description: recurrence.description, amountCents: recurrence.amountCents, dueDate, notes: recurrence.notes,
+        recurrenceId: recurrence.id, bankAccountId: recurrence.bankAccountId, planId: recurrence.planId
+      } });
+      dueDate = getNextFinancialRecurrenceDate(dueDate, parsed.data.frequency);
+    }
+    await tx.financialRecurrence.update({ where: { id: recurrence.id }, data: { nextDueDate: dueDate } });
+  });
   refreshFinanceRoutes();
 }
 
