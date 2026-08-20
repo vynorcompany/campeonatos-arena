@@ -813,6 +813,141 @@ export async function moveCategoryPair(
   });
 }
 
+export async function replaceCategoryPairPlayer(
+  arenaId: string,
+  input: {
+    pairId: string;
+    previousPlayerId: string;
+    replacementPlayerId: string;
+  },
+) {
+  return runSerializableTransaction(async (tx) => {
+    const pair = await tx.categoryPair.findFirst({
+      where: {
+        id: input.pairId,
+        competition: {
+          status: categoryCompetitionStatus.PUBLISHED,
+          category: {
+            active: true,
+            tournament: { arenaId },
+          },
+        },
+      },
+      select: {
+        id: true,
+        competitionId: true,
+        players: {
+          orderBy: { slot: "asc" },
+          select: {
+            id: true,
+            playerId: true,
+            slot: true,
+            player: {
+              select: {
+                id: true,
+                name: true,
+                points: true,
+                arenaId: true,
+                active: true,
+                class: true,
+                gender: true,
+              },
+            },
+          },
+        },
+        competition: {
+          select: {
+            category: {
+              select: {
+                class: true,
+                gender: true,
+                tournament: { select: { arenaId: true } },
+              },
+            },
+            pairs: {
+              where: { id: { not: input.pairId } },
+              select: { players: { select: { playerId: true } } },
+            },
+          },
+        },
+      },
+    });
+    if (!pair) {
+      throw new Error("A troca só está disponível para uma liga publicada nesta arena.");
+    }
+
+    const previous = pair.players.find((pairPlayer) => pairPlayer.playerId === input.previousPlayerId);
+    if (!previous) {
+      throw new Error("O atleta informado não pertence a esta dupla.");
+    }
+
+    const replacement = await tx.player.findFirst({
+      where: { id: input.replacementPlayerId, arenaId, active: true },
+      select: { id: true, name: true, points: true, arenaId: true, active: true, class: true, gender: true },
+    });
+    if (!replacement) {
+      throw new Error("Atleta substituto não encontrado ou inativo.");
+    }
+
+    const partner = pair.players.find((pairPlayer) => pairPlayer.id !== previous.id)?.player;
+    if (!partner) {
+      throw new Error("A dupla precisa ter dois atletas para realizar a troca.");
+    }
+
+    validateManualPairEligibility(
+      {
+        arenaId: pair.competition.category.tournament.arenaId,
+        className: pair.competition.category.class,
+        gender: pair.competition.category.gender,
+      },
+      [replacement, partner].map((player) => ({
+        id: player.id,
+        arenaId: player.arenaId,
+        active: player.active,
+        className: player.class,
+        gender: player.gender,
+      })),
+      pair.competition.pairs.map((otherPair) => otherPair.players.map((player) => player.playerId)),
+    );
+
+    try {
+      await tx.categoryPairPlayer.update({
+        where: { id: previous.id },
+        data: { playerId: replacement.id },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        throw new Error("O atleta substituto já está vinculado a outra dupla nesta categoria.");
+      }
+      throw error;
+    }
+
+    const playersAfterReplacement = pair.players.map((pairPlayer) =>
+      pairPlayer.id === previous.id ? replacement : pairPlayer.player,
+    );
+    const updatedPair = await tx.categoryPair.update({
+      where: { id: pair.id },
+      data: {
+        name: playersAfterReplacement.map((player) => player.name).join(" / "),
+        totalPoints: playersAfterReplacement.reduce((total, player) => total + player.points, 0),
+      },
+    });
+
+    await tx.categoryPairSubstitution.create({
+      data: {
+        pairId: pair.id,
+        competitionId: pair.competitionId,
+        previousPlayerId: previous.player.id,
+        replacementPlayerId: replacement.id,
+        previousPlayerName: previous.player.name,
+        replacementPlayerName: replacement.name,
+      },
+    });
+
+    return updatedPair;
+  });
+}
+
 export async function publishCategoryDraw(
   arenaId: string,
   competitionId: string,

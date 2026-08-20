@@ -3,6 +3,7 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { StatusBadge } from "@/components/tournaments/status-badge";
 import {
   addManualPairAction,
+  replaceCategoryPairPlayerAction,
   removeCategoryPairAction,
 } from "@/lib/actions/category-competition";
 import { canAddCategoryPair } from "@/lib/tournament-category/draw";
@@ -84,6 +85,7 @@ export function CategoryRegistrationPanel({
           category.competition?.pairs.flatMap((pair) => pair.playerIds) ?? [],
         );
         const canRemovePair = category.competition?.status === "DRAFT";
+        const canReplacePairPlayer = category.competition?.status === "PUBLISHED";
         const canAcceptManualPair =
           category.competition?.status === "DRAFT" &&
           canAddCategoryPair(
@@ -212,6 +214,21 @@ export function CategoryRegistrationPanel({
                                 className="button button-danger"
                               />
                             </form>
+                          ) : null}
+                          {canReplacePairPlayer && availableAthletes.length ? (
+                            <div className="stack-xs">
+                              {pair.playerIds.map((playerId, index) => (
+                                <form action={replaceCategoryPairPlayerAction} className="inline-pair-edit" key={`${pair.id}-${playerId}`}>
+                                  <input type="hidden" name="pairId" value={pair.id} />
+                                  <input type="hidden" name="previousPlayerId" value={playerId} />
+                                  <select name="replacementPlayerId" required aria-label={`Substituir ${pair.playerNames[index] ?? "atleta"}`} defaultValue="">
+                                    <option value="">Substituir {pair.playerNames[index] ?? "atleta"}</option>
+                                    {availableAthletes.map((athlete) => <option key={athlete.id} value={athlete.id}>{athlete.name}</option>)}
+                                  </select>
+                                  <SubmitButton label="Trocar" pendingLabel="Trocando..." className="button button-small" />
+                                </form>
+                              ))}
+                            </div>
                           ) : null}
                         </div>
                       ))}

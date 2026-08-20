@@ -13,6 +13,7 @@ import {
   finishCategoryCompetition,
   generateCategoryDraw,
   moveCategoryPair,
+  replaceCategoryPairPlayer,
   publishCategoryDraw,
   recordCategoryMatchResult,
   recordCategoryLeagueMatchResult,
@@ -27,6 +28,7 @@ import {
   finishCategoryCompetitionSchema,
   generateCategoryDrawSchema,
   moveCategoryPairSchema,
+  replaceCategoryPairPlayerSchema,
   publishCategoryDrawSchema,
   recordCategoryMatchResultSchema,
   removeCategoryPairSchema,
@@ -134,6 +136,22 @@ export async function moveCategoryPairAction(formData: FormData) {
     parsed.data.pairId,
     parsed.data.targetGroupId,
   );
+  refreshCategoryCompetitionRoutes();
+  return result;
+}
+
+export async function replaceCategoryPairPlayerAction(formData: FormData) {
+  const auth = await requireModuleEdit("tournaments");
+  const parsed = replaceCategoryPairPlayerSchema.safeParse({
+    pairId: formData.get("pairId"),
+    previousPlayerId: formData.get("previousPlayerId"),
+    replacementPlayerId: formData.get("replacementPlayerId"),
+  });
+  if (!parsed.success) {
+    throw new Error(invalidInputMessage(parsed.error));
+  }
+
+  const result = await replaceCategoryPairPlayer(auth.arenaId, parsed.data);
   refreshCategoryCompetitionRoutes();
   return result;
 }

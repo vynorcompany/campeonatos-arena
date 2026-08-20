@@ -95,6 +95,22 @@ export const moveCategoryPairSchema = z.object({
   targetGroupId: z.string().trim().min(1, "Grupo inválido."),
 });
 
+export const replaceCategoryPairPlayerSchema = z
+  .object({
+    pairId: z.string().trim().min(1, "Dupla inválida."),
+    previousPlayerId: z.string().trim().min(1, "Atleta atual inválido."),
+    replacementPlayerId: z.string().trim().min(1, "Selecione o atleta substituto."),
+  })
+  .superRefine((value, context) => {
+    if (value.previousPlayerId === value.replacementPlayerId) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Selecione um atleta diferente para a substituição.",
+        path: ["replacementPlayerId"],
+      });
+    }
+  });
+
 export const publishCategoryDrawSchema = z.object({
   competitionId: competitionIdSchema,
 });

@@ -476,6 +476,7 @@ model CategoryPair {
   homeMatches   CategoryMatch[]      @relation("CategoryHomePair")
   awayMatches   CategoryMatch[]      @relation("CategoryAwayPair")
   winnerMatches CategoryMatch[]      @relation("CategoryWinnerPair")
+  substitutions CategoryPairSubstitution[]
 
   @@index([competitionId, drawOrder])
   @@index([competitionId, totalPoints])
@@ -794,6 +795,21 @@ model Court {
 
   @@unique([arenaId, name])
   @@index([arenaId, active, displayOrder])
+}
+
+model CategoryPairSubstitution {
+  id                    String       @id @default(cuid())
+  previousPlayerId      String
+  replacementPlayerId   String
+  previousPlayerName    String
+  replacementPlayerName String
+  createdAt             DateTime     @default(now())
+  pairId                String
+  competitionId         String
+  pair                  CategoryPair @relation(fields: [pairId, competitionId], references: [id, competitionId], onDelete: Cascade)
+
+  @@index([competitionId, createdAt])
+  @@index([pairId, createdAt])
 }
 
 model CourtWeeklyRule {
