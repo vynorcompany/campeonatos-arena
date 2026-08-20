@@ -67,6 +67,20 @@ const recurrenceSchema = z.object({
   notes: optionalText
 });
 
+const updateEntrySchema = entrySchema.pick({
+  category: true,
+  description: true,
+  counterpartyName: true,
+  bankAccountId: true,
+  planId: true,
+  productId: true,
+  amount: true,
+  dueDate: true,
+  notes: true,
+}).extend({
+  entryId: z.string().min(1, "Lançamento inválido."),
+});
+
 const financialSettingSchema = z.object({
   area: z.enum(["categorias-financeiras", "formas-pagamento", "contas-bancarias", "fornecedores"]),
   name: z.string().trim().min(2, "Informe o nome."),
@@ -319,6 +333,51 @@ export async function createFinancialEntryAction(formData: FormData) {
     }
   });
 
+  refreshFinanceRoutes();
+}
+
+export async function updateFinancialEntryAction(formData: FormData) {
+  const auth = await requireModuleEdit("finance");
+  const parsed = updateEntrySchema.safeParse({
+    entryId: formData.get("entryId"),
+    category: formData.get("category"),
+    description: formData.get("description"),
+    counterpartyName: formData.get("counterpartyName"),
+    bankAccountId: formData.get("bankAccountId"),
+    planId: formData.get("planId"),
+    productId: formData.get("productId"),
+    amount: formData.get("amount"),
+    dueDate: formData.get("dueDate"),
+    notes: formData.get("notes"),
+  });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+
+  const amountCents = parseMoneyToCents(parsed.data.amount);
+  await prisma.$transaction(async (tx) => {
+    const entry = await tx.financialEntry.findFirst({
+      where: { id: parsed.data.entryId, arenaId: auth.arenaId, status: { not: "VOIDED" } },
+      include: { settlements: { select: { amountCents: true } } },
+    });
+    if (!entry) throw new Error("Lançamento não encontrado ou estornado.");
+
+    const paidCents = entry.settlements.reduce((total, settlement) => total + settlement.amountCents, 0);
+    if (amountCents < paidCents) throw new Error("O valor não pode ser menor que o total já baixado.");
+
+    await tx.financialEntry.update({
+      where: { id: entry.id },
+      data: {
+        counterpartyName: parsed.data.counterpartyName,
+        category: parsed.data.category,
+        description: parsed.data.description,
+        amountCents,
+        dueDate: parseDate(parsed.data.dueDate),
+        notes: parsed.data.notes,
+        bankAccountId: parsed.data.bankAccountId || null,
+        planId: parsed.data.planId || null,
+        productId: parsed.data.productId || null,
+      },
+    });
+  });
   refreshFinanceRoutes();
 }
 

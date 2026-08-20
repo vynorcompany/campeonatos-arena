@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import {
   createFinancialEntryAction,
   createFinancialRecurrenceAction,
   settleFinancialEntryAction,
+  updateFinancialEntryAction,
   voidFinancialEntryAction,
 } from "@/lib/actions/finance";
 
@@ -14,9 +16,15 @@ type Account = {
   category: string;
   description: string;
   amountCents: number;
+  paymentMethod: string;
+  bankAccountId: string | null;
+  planId: string | null;
+  productId: string | null;
   dueDate: string | null;
+  notes: string;
   status: string;
   voidReason: string;
+  settlements: Array<{ amountCents: number; interestCents: number; paymentMethod: string; paidAt: string; notes: string }>;
   balance: { interestCents: number; paidCents: number; outstandingCents: number };
 };
 
@@ -28,6 +36,10 @@ function money(cents: number) {
 
 function date(value: string | null) {
   return value ? new Intl.DateTimeFormat("pt-BR").format(new Date(`${value}T12:00:00`)) : "Sem vencimento";
+}
+
+function amountInput(cents: number) {
+  return (cents / 100).toFixed(2).replace(".", ",");
 }
 
 export function AccountsLedger({
@@ -56,6 +68,7 @@ export function AccountsLedger({
   const [pending, startTransition] = useTransition();
   const [newEntryOpen, setNewEntryOpen] = useState(false);
   const [paymentEntry, setPaymentEntry] = useState<Account | null>(null);
+  const [selectedEntry, setSelectedEntry] = useState<Account | null>(null);
   const [voidEntry, setVoidEntry] = useState<Account | null>(null);
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [category, setCategory] = useState("");
@@ -111,11 +124,11 @@ export function AccountsLedger({
       <section className="accounts-ledger-list" aria-label={title}>
         <div className="accounts-ledger-columns"><span>Vencimento</span><span>{partyLabel}</span><span>Tipo</span><span>Descrição</span><span>Valor / saldo</span><span>Status</span><span>Ações</span></div>
         {entries.map((entry) => (
-          <article className="accounts-ledger-row" key={entry.id}>
-            <span>{date(entry.dueDate)}</span><strong>{entry.counterpartyName}</strong><span>{entry.category}</span><span>{entry.description}</span>
+          <article className="accounts-ledger-row accounts-ledger-row-clickable" key={entry.id} role="button" tabIndex={0} onClick={() => setSelectedEntry(entry)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") setSelectedEntry(entry); }}>
+            <span>{date(entry.dueDate)}</span><strong>{type === "REVENUE" && entry.counterpartyName !== "Não informado" ? <Link href={`/jogadores?q=${encodeURIComponent(entry.counterpartyName)}`} onClick={(event) => event.stopPropagation()}>{entry.counterpartyName}</Link> : entry.counterpartyName}</strong><span>{entry.category}</span><span>{entry.description}</span>
             <span><b>{money(entry.amountCents)}</b>{entry.balance.interestCents ? <small>Juros: {money(entry.balance.interestCents)}</small> : null}{entry.status !== "VOIDED" ? <small>Saldo: {money(entry.balance.outstandingCents)}</small> : null}</span>
             <span><em className={`account-status account-status-${entry.status.toLowerCase()}`}>{entry.status === "PAID" ? "Quitada" : entry.status === "VOIDED" ? "Estornada" : "Em aberto"}</em>{entry.voidReason ? <small>{entry.voidReason}</small> : null}</span>
-            <span className="accounts-ledger-actions">{entry.status === "PENDING" ? <button type="button" className="button button-small button-primary" onClick={() => setPaymentEntry(entry)}>{actionLabel}</button> : null}{entry.status !== "VOIDED" ? <button type="button" className="button button-small" onClick={() => setVoidEntry(entry)}>Estornar</button> : null}</span>
+            <span className="accounts-ledger-actions">{entry.status === "PENDING" ? <button type="button" className="button button-small button-primary" onClick={(event) => { event.stopPropagation(); setPaymentEntry(entry); }}>{actionLabel}</button> : null}{entry.status !== "VOIDED" ? <button type="button" className="button button-small" onClick={(event) => { event.stopPropagation(); setVoidEntry(entry); }}>Estornar</button> : null}</span>
           </article>
         ))}
         {!entries.length ? <div className="accounts-ledger-empty">Nenhuma conta cadastrada.</div> : null}
@@ -159,6 +172,8 @@ export function AccountsLedger({
       ) : null}
 
       {categoryModalOpen ? <div className="command-modal-backdrop" role="presentation" onMouseDown={() => setCategoryModalOpen(false)}><section className="financial-entry-modal financial-entry-modal-small" role="dialog" aria-modal="true" aria-label="Categorias financeiras" onMouseDown={(event) => event.stopPropagation()}><header><div><span>CLASSIFICAÇÃO</span><h2>Categorias financeiras</h2></div><button type="button" className="button button-small" onClick={() => setCategoryModalOpen(false)}>Fechar</button></header><div className="simple-list">{categories.map((item) => <button type="button" className="button" key={item} onClick={() => { setCategory(item); setCategoryModalOpen(false); }}>{item}</button>)}{!categories.length ? <p className="muted">Cadastre categorias financeiras nas configurações.</p> : null}</div></section></div> : null}
+
+      {selectedEntry ? <div className="command-modal-backdrop" onMouseDown={() => setSelectedEntry(null)} role="presentation"><section className="financial-entry-modal" role="dialog" aria-modal="true" aria-label="Editar lançamento" onMouseDown={(event) => event.stopPropagation()}><header><div><span>LANÇAMENTO</span><h2>{selectedEntry.description}</h2></div><button type="button" className="button button-small" onClick={() => setSelectedEntry(null)}>Fechar</button></header><form onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget); form.set("entryId", selectedEntry.id); run(() => updateFinancialEntryAction(form), () => setSelectedEntry(null)); }} className="grid-form"><label className="field">{partyLabel}<input name="counterpartyName" defaultValue={selectedEntry.counterpartyName === "Não informado" ? "" : selectedEntry.counterpartyName} required /></label><label className="field">Categoria<select name="category" defaultValue={selectedEntry.category}>{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select></label><label className="field form-full">Descrição<input name="description" defaultValue={selectedEntry.description} required /></label><label className="field">Valor original<input name="amount" inputMode="decimal" defaultValue={amountInput(selectedEntry.amountCents)} required /></label><label className="field">Vencimento<input name="dueDate" type="date" defaultValue={selectedEntry.dueDate ?? ""} /></label><label className="field">Conta bancária<select name="bankAccountId" defaultValue={selectedEntry.bankAccountId ?? ""}><option value="">Não definida</option>{bankAccounts.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="field">Plano/pacote<select name="planId" defaultValue={selectedEntry.planId ?? ""}><option value="">Não vincular</option>{plans.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="field">Produto<select name="productId" defaultValue={selectedEntry.productId ?? ""}><option value="">Não vincular</option>{products.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="field form-full">Observações<input name="notes" defaultValue={selectedEntry.notes} /></label>{selectedEntry.settlements.length ? <div className="form-full account-settlement-history"><strong>Histórico de baixas</strong>{selectedEntry.settlements.map((settlement, index) => <span key={`${settlement.paidAt}-${index}`}>{date(settlement.paidAt)} · {settlement.paymentMethod} · {money(settlement.amountCents)}{settlement.interestCents ? ` + ${money(settlement.interestCents)} de juros` : ""}</span>)}</div> : null}<footer className="modal-actions form-full"><button type="button" className="button" onClick={() => setSelectedEntry(null)}>Cancelar</button><button className="button button-primary" disabled={pending}>Salvar alterações</button></footer></form></section></div> : null}
 
       {paymentEntry ? <div className="command-modal-backdrop" onMouseDown={() => setPaymentEntry(null)} role="presentation"><section className="financial-entry-modal" role="dialog" aria-modal="true" aria-label={actionLabel} onMouseDown={(event) => event.stopPropagation()}><header><div><span>BAIXA DE CONTA</span><h2>{actionLabel}: {paymentEntry.counterpartyName}</h2></div><button type="button" className="button button-small" onClick={() => setPaymentEntry(null)}>Fechar</button></header><div className="account-payment-summary"><span>Valor original <b>{money(paymentEntry.amountCents)}</b></span><span>Juros já lançados <b>{money(paymentEntry.balance.interestCents)}</b></span><span>Já baixado <b>{money(paymentEntry.balance.paidCents)}</b></span><span>Saldo atual <b>{money(paymentEntry.balance.outstandingCents)}</b></span></div><form onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget); form.set("entryId", paymentEntry.id); run(() => settleFinancialEntryAction(form), () => setPaymentEntry(null)); }} className="grid-form"><label className="field">Valor desta baixa<input name="amount" inputMode="decimal" placeholder="0,00" required /></label><label className="field">Juros desta baixa<input name="interest" inputMode="decimal" defaultValue="0,00" /></label><label className="field">Forma de pagamento<select name="paymentMethod" defaultValue={paymentMethods[0] ?? "PIX"}>{paymentMethods.map((method) => <option key={method} value={method}>{method}</option>)}</select></label><label className="field">Data<input name="paidAt" type="date" /></label><label className="field form-full">Observação<input name="notes" /></label><footer className="modal-actions form-full"><button type="button" className="button" onClick={() => setPaymentEntry(null)}>Cancelar</button><button className="button button-success" disabled={pending}>{actionLabel} conta</button></footer></form></section></div> : null}
       {voidEntry ? <div className="command-modal-backdrop" onMouseDown={() => setVoidEntry(null)} role="presentation"><section className="financial-entry-modal financial-entry-modal-small" role="dialog" aria-modal="true" aria-label="Estornar conta" onMouseDown={(event) => event.stopPropagation()}><header><div><span>ESTORNO</span><h2>Estornar conta</h2></div><button type="button" className="button button-small" onClick={() => setVoidEntry(null)}>Fechar</button></header><p>O lançamento será mantido no histórico como estornado.</p><form onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget); form.set("entryId", voidEntry.id); run(() => voidFinancialEntryAction(form), () => setVoidEntry(null)); }} className="stack-sm"><label className="field">Motivo<input name="reason" required minLength={3} /></label><footer className="modal-actions"><button type="button" className="button" onClick={() => setVoidEntry(null)}>Cancelar</button><button className="button button-danger" disabled={pending}>Confirmar estorno</button></footer></form></section></div> : null}
