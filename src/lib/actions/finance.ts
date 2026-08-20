@@ -9,6 +9,7 @@ import {
   parseMoneyToCents
 } from "@/lib/finance/inputs";
 import { getFinancialEntryBalance } from "@/lib/finance/ledger";
+import { getDiscountedAmountCents } from "@/lib/finance/discounts";
 import { getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
 import { prisma } from "@/lib/prisma";
 
@@ -47,6 +48,8 @@ const entrySchema = z.object({
   planId: z.string().optional().default(""),
   productId: z.string().optional().default(""),
   amount: z.string().trim().min(1, "Informe o valor."),
+  discount: z.string().trim().optional().default("0"),
+  discountMode: z.enum(["AMOUNT", "PERCENTAGE"]).default("AMOUNT"),
   paymentMethod: optionalText,
   status: z.enum(["PENDING", "PAID"]).default("PENDING"),
   dueDate: z.string().optional().default(""),
@@ -59,6 +62,8 @@ const recurrenceSchema = z.object({
   category: z.string().trim().min(2, "Selecione a categoria."),
   description: z.string().trim().min(2, "Informe a descrição."),
   amount: z.string().trim().min(1, "Informe o valor."),
+  discount: z.string().trim().optional().default("0"),
+  discountMode: z.enum(["AMOUNT", "PERCENTAGE"]).default("AMOUNT"),
   frequency: z.enum(["WEEKLY", "MONTHLY", "ANNUAL"]),
   startsAt: z.string().min(1, "Informe a data inicial."),
   endsAt: z.string().optional().default(""),
@@ -291,6 +296,8 @@ export async function createFinancialEntryAction(formData: FormData) {
     planId: formData.get("planId"),
     productId: formData.get("productId"),
     amount: formData.get("amount"),
+    discount: formData.get("discount"),
+    discountMode: formData.get("discountMode"),
     paymentMethod: formData.get("paymentMethod"),
     status: formData.get("status"),
     dueDate: formData.get("dueDate"),
@@ -302,6 +309,9 @@ export async function createFinancialEntryAction(formData: FormData) {
     throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
 
+  const discount = parsed.data.discountMode === "PERCENTAGE" ? Number(parsed.data.discount.replace(",", ".")) : parseMoneyToCents(parsed.data.discount);
+  if (!Number.isFinite(discount)) throw new Error("Informe um desconto válido.");
+  const amountCents = getDiscountedAmountCents(parseMoneyToCents(parsed.data.amount), discount, parsed.data.discountMode);
   const dueDate = parseDate(parsed.data.dueDate);
   const paidAt = parsed.data.status === "PAID" ? parseDate(parsed.data.paidAt) ?? new Date() : parseDate(parsed.data.paidAt);
   let supplierId = parsed.data.supplierId || null;
@@ -313,23 +323,36 @@ export async function createFinancialEntryAction(formData: FormData) {
     supplierId = supplier.id;
   }
 
-  await prisma.financialEntry.create({
-    data: {
-      arenaId: auth.arenaId,
-      type: parsed.data.type,
-      category: parsed.data.category,
-      description: parsed.data.description,
-      counterpartyName: parsed.data.counterpartyName,
-      supplierId,
-      bankAccountId: parsed.data.bankAccountId || null,
-      planId: parsed.data.planId || null,
-      productId: parsed.data.productId || null,
-      amountCents: parseMoneyToCents(parsed.data.amount),
-      paymentMethod: parsed.data.paymentMethod,
-      status: parsed.data.status,
-      dueDate,
-      paidAt,
-      notes: parsed.data.notes
+  await prisma.$transaction(async (tx) => {
+    const entry = await tx.financialEntry.create({
+      data: {
+        arenaId: auth.arenaId,
+        type: parsed.data.type,
+        category: parsed.data.category,
+        description: parsed.data.description,
+        counterpartyName: parsed.data.counterpartyName,
+        supplierId,
+        bankAccountId: parsed.data.bankAccountId || null,
+        planId: parsed.data.planId || null,
+        productId: parsed.data.productId || null,
+        amountCents,
+        paymentMethod: parsed.data.paymentMethod,
+        status: parsed.data.status,
+        dueDate,
+        paidAt,
+        notes: parsed.data.notes
+      }
+    });
+    if (parsed.data.status === "PAID") {
+      await tx.financialSettlement.create({ data: {
+        arenaId: auth.arenaId,
+        financialEntryId: entry.id,
+        amountCents,
+        interestCents: 0,
+        paymentMethod: parsed.data.paymentMethod || "Não informado",
+        paidAt: paidAt ?? new Date(),
+        notes: "Baixa registrada na criação do lançamento."
+      } });
     }
   });
 
@@ -385,7 +408,7 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
   const auth = await requireModuleEdit("finance");
   const parsed = recurrenceSchema.safeParse({
     counterpartyName: formData.get("counterpartyName"), category: formData.get("category"), description: formData.get("description"),
-    amount: formData.get("amount"), frequency: formData.get("frequency"), startsAt: formData.get("startsAt"),
+    amount: formData.get("amount"), discount: formData.get("discount"), discountMode: formData.get("discountMode"), frequency: formData.get("frequency"), startsAt: formData.get("startsAt"),
     endsAt: formData.get("endsAt"), bankAccountId: formData.get("bankAccountId"), planId: formData.get("planId"), notes: formData.get("notes")
   });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
@@ -393,11 +416,14 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
   const endsAt = parseDate(parsed.data.endsAt);
   if (!startsAt) throw new Error("Data inicial inválida.");
   if (endsAt && endsAt < startsAt) throw new Error("A data final deve ser posterior à inicial.");
+  const discount = parsed.data.discountMode === "PERCENTAGE" ? Number(parsed.data.discount.replace(",", ".")) : parseMoneyToCents(parsed.data.discount);
+  if (!Number.isFinite(discount)) throw new Error("Informe um desconto válido.");
+  const amountCents = getDiscountedAmountCents(parseMoneyToCents(parsed.data.amount), discount, parsed.data.discountMode);
 
   await prisma.$transaction(async (tx) => {
     const recurrence = await tx.financialRecurrence.create({ data: {
       arenaId: auth.arenaId, type: "REVENUE", counterpartyName: parsed.data.counterpartyName, category: parsed.data.category,
-      description: parsed.data.description, amountCents: parseMoneyToCents(parsed.data.amount), frequency: parsed.data.frequency,
+      description: parsed.data.description, amountCents, frequency: parsed.data.frequency,
       startsAt, endsAt, nextDueDate: startsAt, bankAccountId: parsed.data.bankAccountId || null, planId: parsed.data.planId || null, notes: parsed.data.notes
     } });
     let dueDate = startsAt;

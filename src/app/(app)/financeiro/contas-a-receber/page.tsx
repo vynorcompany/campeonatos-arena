@@ -12,7 +12,7 @@ export default async function AccountsReceivablePage({ searchParams }: { searchP
     prisma.bankAccount.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.plan.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.product.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.player.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } })
+    prisma.player.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true, phone: true }, orderBy: { name: "asc" } })
   ]);
   return <AccountsLedger title="Contas a Receber" type="REVENUE" entries={entries} filters={filters} categories={categories.map((item) => item.name)} bankAccounts={banks} plans={plans} products={products} suppliers={[]} clients={clients} paymentMethods={methods.length ? methods.map((method) => method.name) : ["Dinheiro", "PIX", "Cartão de crédito", "Cartão de débito", "Saldo de crédito"]} />;
 }
