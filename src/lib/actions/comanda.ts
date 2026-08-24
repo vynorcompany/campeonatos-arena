@@ -90,6 +90,23 @@ export async function createComandaAction(formData: FormData) {
   revalidatePath("/comandas");
 }
 
+export async function openBookingComandasAction(formData: FormData) {
+  const auth = await requireModuleEdit("pos");
+  const occurrenceId = z.string().trim().min(1).safeParse(formData.get("occurrenceId"));
+  if (!occurrenceId.success) throw new Error("Horário inválido.");
+
+  await prisma.$transaction(async (tx) => {
+    const occurrence = await tx.scheduleOccurrence.findFirst({ where: { id: occurrenceId.data, arenaId: auth.arenaId, status: { not: "CANCELED" } }, include: { participants: { select: { playerId: true, player: { select: { name: true } } } } } });
+    if (!occurrence) throw new Error("Horário não encontrado.");
+    if (!occurrence.participants.length) throw new Error("Este horário não possui atletas para abrir comandas.");
+    for (const participant of occurrence.participants) {
+      const existing = await tx.comanda.findFirst({ where: { arenaId: auth.arenaId, playerId: participant.playerId, status: "OPEN" }, select: { id: true } });
+      if (!existing) await tx.comanda.create({ data: { arenaId: auth.arenaId, playerId: participant.playerId, label: participant.player.name, type: "CLIENT", code: formatComandaCode() } });
+    }
+  });
+  revalidatePath("/comandas");
+}
+
 export async function addComandaProductAction(formData: FormData) {
   const auth = await requireModuleEdit("pos");
   const parsed = comandaProductSchema.safeParse({ comandaId: formData.get("comandaId"), productId: formData.get("productId"), quantity: formData.get("quantity") || 1 });

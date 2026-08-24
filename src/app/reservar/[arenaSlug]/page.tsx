@@ -26,7 +26,7 @@ export default async function PublicBookingPage({ params, searchParams }: Public
       const tooSoon = startsAt.getTime() < Date.now() + arena.onlineBookingLeadTimeMinutes * 60_000;
       if (!rule || occupied || tooSoon) return [];
       const durations = court.onlineDurationMinutes.filter((item) => minute + item <= rule.endsAtMinute && !occurrences.some((occurrence) => occurrence.occurrenceCourts.some((entry) => entry.courtId === court.id) && occurrence.startsAt.getHours() * 60 + occurrence.startsAt.getMinutes() < minute + item && occurrence.endsAt.getHours() * 60 + occurrence.endsAt.getMinutes() > minute));
-      return durations.length ? [{ startsAt: `${dateValue(selectedDate)}T${minuteLabel(minute)}`, label: minuteLabel(minute), priceCents: rule.priceCents, durations }] : [];
+      return durations.length === court.onlineDurationMinutes.length ? [{ startsAt: `${dateValue(selectedDate)}T${minuteLabel(minute)}`, label: minuteLabel(minute), priceCents: rule.priceCents, durations }] : [];
     });
     return { id: court.id, name: court.name, color: court.color, slotMinutes: court.onlineSlotMinutes, slots };
   }).filter((court) => court.slots.length);

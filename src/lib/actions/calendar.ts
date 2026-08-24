@@ -154,6 +154,15 @@ export async function confirmOnlineBookingAction(formData: FormData) {
   refreshCalendar();
 }
 
+export async function cancelCourtBookingAction(formData: FormData) {
+  const auth = await requireModuleEdit("calendar");
+  const parsed = z.object({ occurrenceId: z.string().trim().min(1), mode: z.enum(["CANCEL", "FREE"]).default("CANCEL") }).safeParse({ occurrenceId: formData.get("occurrenceId"), mode: formData.get("mode") });
+  if (!parsed.success) throw new Error("Horário inválido.");
+  const result = await prisma.scheduleOccurrence.updateMany({ where: { id: parsed.data.occurrenceId, arenaId: auth.arenaId, status: { not: "CANCELED" } }, data: { status: "CANCELED" } });
+  if (!result.count) throw new Error("Este horário já foi cancelado ou não foi encontrado.");
+  refreshCalendar();
+}
+
 async function ensureBookingTypes(arenaId: string) {
   await prisma.bookingType.createMany({ data: DEFAULT_BOOKING_TYPES.map((name) => ({ arenaId, name })), skipDuplicates: true });
 }
