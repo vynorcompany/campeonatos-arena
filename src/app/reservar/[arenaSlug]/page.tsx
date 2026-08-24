@@ -14,7 +14,7 @@ function minuteLabel(value: number) { return `${String(Math.floor(value / 60)).p
 export default async function PublicBookingPage({ params, searchParams }: PublicBookingPageProps) {
   const selectedDate = startOfDay(parseDate(searchParams?.data));
   const nextDay = new Date(selectedDate); nextDay.setDate(nextDay.getDate() + 1);
-  const arena = await prisma.arena.findUnique({ where: { slug: params.arenaSlug }, select: { name: true, logoUrl: true, scheduleStartMinute: true, scheduleEndMinute: true, onlineBookingLayout: true, onlineBookingShowReserved: true, onlineBookingPaymentEnabled: true, onlineBookingLeadTimeMinutes: true, courts: { where: { active: true, weeklyRules: { some: { available: true } } }, include: { weeklyRules: true }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }] } } });
+  const arena = await prisma.arena.findUnique({ where: { slug: params.arenaSlug }, select: { name: true, logoUrl: true, scheduleStartMinute: true, scheduleEndMinute: true, onlineBookingLayout: true, onlineBookingShowReserved: true, onlineBookingPaymentEnabled: true, onlineBookingLeadTimeMinutes: true, players: { where: { active: true }, select: { id: true, name: true, phone: true }, orderBy: { name: "asc" } }, courts: { where: { active: true, weeklyRules: { some: { available: true } } }, include: { weeklyRules: true }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }] } } });
   if (!arena) notFound();
   const occurrences = await prisma.scheduleOccurrence.findMany({ where: { arena: { slug: params.arenaSlug }, status: { not: "CANCELED" }, startsAt: { lt: nextDay }, endsAt: { gt: selectedDate } }, include: { occurrenceCourts: true }, orderBy: { startsAt: "asc" } });
   const weekday = selectedDate.getDay();
@@ -28,12 +28,12 @@ export default async function PublicBookingPage({ params, searchParams }: Public
       const durations = court.onlineDurationMinutes.filter((item) => minute + item <= rule.endsAtMinute && !occurrences.some((occurrence) => occurrence.occurrenceCourts.some((entry) => entry.courtId === court.id) && occurrence.startsAt.getHours() * 60 + occurrence.startsAt.getMinutes() < minute + item && occurrence.endsAt.getHours() * 60 + occurrence.endsAt.getMinutes() > minute));
       return durations.length ? [{ startsAt: `${dateValue(selectedDate)}T${minuteLabel(minute)}`, label: minuteLabel(minute), priceCents: rule.priceCents, durations }] : [];
     });
-    return { id: court.id, name: court.name, color: court.color, slots };
+    return { id: court.id, name: court.name, color: court.color, slotMinutes: court.onlineSlotMinutes, slots };
   }).filter((court) => court.slots.length);
   const reservedSlots = arena.onlineBookingShowReserved ? occurrences.flatMap((occurrence) => occurrence.occurrenceCourts.map((entry) => {
     const court = arena.courts.find((item) => item.id === entry.courtId);
     return court ? `${court.name}: ${minuteLabel(occurrence.startsAt.getHours() * 60 + occurrence.startsAt.getMinutes())}` : "";
   })).filter(Boolean) : [];
 
-  return <main className="public-booking-page"><section className="public-booking-shell"><header><img src={arena.logoUrl} alt="" /><div><span>RESERVA ONLINE</span><h1>{arena.name}</h1><p>Escolha a quadra, horário e duração da sua reserva.</p></div></header><form className="public-booking-date" method="get"><label>Data<input type="date" name="data" defaultValue={dateValue(selectedDate)} /></label><button className="button" type="submit">Ver horários</button></form>{arena.onlineBookingShowReserved && occurrences.length ? <p className="public-booking-reserved">Os horários reservados estão sinalizados abaixo.</p> : null}<h2>Reserva online</h2><PublicCourtBookingForm arenaSlug={params.arenaSlug} courts={courts} layout={arena.onlineBookingLayout} paymentOnlineEnabled={arena.onlineBookingPaymentEnabled} reservedSlots={reservedSlots} /></section></main>;
+  return <main className="public-booking-page"><section className="public-booking-shell"><header><img src={arena.logoUrl} alt="" /><div><span>RESERVA ONLINE</span><h1>{arena.name}</h1><p>Escolha a quadra, horário e duração da sua reserva.</p></div></header><form className="public-booking-date" method="get"><label>Data<input type="date" name="data" defaultValue={dateValue(selectedDate)} /></label><button className="button" type="submit">Ver horários</button></form>{arena.onlineBookingShowReserved && occurrences.length ? <p className="public-booking-reserved">Os horários reservados estão sinalizados abaixo.</p> : null}<h2>Reserva online</h2><PublicCourtBookingForm arenaSlug={params.arenaSlug} courts={courts} clients={arena.players} layout={arena.onlineBookingLayout} paymentOnlineEnabled={arena.onlineBookingPaymentEnabled} reservedSlots={reservedSlots} /></section></main>;
 }

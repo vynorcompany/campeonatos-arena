@@ -72,6 +72,7 @@ const courtBookingSchema = z.object({
 const publicCourtBookingSchema = z.object({
   arenaSlug: z.string().trim().min(1),
   courtId: z.string().trim().min(1),
+  playerId: z.string().trim().default(""),
   customerName: z.string().trim().min(3, "Informe seu nome."),
   phone: z.string().trim().min(8, "Informe um telefone para contato."),
   startsAt: z.string().trim().min(1),
@@ -111,7 +112,7 @@ export async function updateOnlineBookingSettingsAction(formData: FormData) {
 
 export async function createPublicCourtBookingAction(formData: FormData) {
   const parsed = publicCourtBookingSchema.safeParse({
-    arenaSlug: formData.get("arenaSlug"), courtId: formData.get("courtId"), customerName: formData.get("customerName"), phone: formData.get("phone"), startsAt: formData.get("startsAt"), durationMinutes: formData.get("durationMinutes")
+    arenaSlug: formData.get("arenaSlug"), courtId: formData.get("courtId"), playerId: formData.get("playerId"), customerName: formData.get("customerName"), phone: formData.get("phone"), startsAt: formData.get("startsAt"), durationMinutes: formData.get("durationMinutes")
   });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   const arena = await prisma.arena.findUnique({ where: { slug: parsed.data.arenaSlug }, select: { id: true, slug: true, onlineBookingRequiresConfirmation: true, onlineBookingPaymentEnabled: true, onlineBookingLeadTimeMinutes: true } });
@@ -132,7 +133,9 @@ export async function createPublicCourtBookingAction(formData: FormData) {
   if (conflict) throw new Error("Este horário acabou de ser reservado. Selecione outro horário.");
   const phone = parsed.data.phone.replace(/\D/g, "");
   await prisma.$transaction(async (tx) => {
-    const existingByPhone = await tx.player.findFirst({ where: { arenaId: arena.id, phone }, select: { id: true } });
+    const selectedPlayer = parsed.data.playerId ? await tx.player.findFirst({ where: { id: parsed.data.playerId, arenaId: arena.id, active: true }, select: { id: true, name: true, phone: true } }) : null;
+    if (parsed.data.playerId && !selectedPlayer) throw new Error("Cliente selecionado não encontrado.");
+    const existingByPhone = selectedPlayer ?? await tx.player.findFirst({ where: { arenaId: arena.id, phone }, select: { id: true, name: true, phone: true } });
     const existingByName = existingByPhone ? null : await tx.player.findFirst({ where: { arenaId: arena.id, name: parsed.data.customerName }, select: { id: true, phone: true } });
     if (existingByName && existingByName.phone && existingByName.phone !== phone) throw new Error("Já existe um cliente com este nome. Use o telefone cadastrado ou entre em contato com a arena.");
     const player = existingByPhone ?? existingByName ?? await tx.player.create({ data: { arenaId: arena.id, name: parsed.data.customerName, phone } });
