@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { AgendaSlotDialog } from "@/components/agenda-slot-dialog";
+import { OnlineBookingSettingsDialog } from "@/components/online-booking-settings-dialog";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
@@ -21,7 +22,7 @@ export default async function AgendaPage({ searchParams }: AgendaPageProps) {
   const selectedDate = startOfDay(parseDate(searchParams?.data));
   const nextDay = addDays(selectedDate, 1);
   const [arena, courts, scheduleOccurrences, players, teachers, storedBookingTypes] = await Promise.all([
-    prisma.arena.findUniqueOrThrow({ where: { id: auth.arenaId }, select: { scheduleStartMinute: true, scheduleEndMinute: true, scheduleSlotMinutes: true } }),
+    prisma.arena.findUniqueOrThrow({ where: { id: auth.arenaId }, select: { slug: true, scheduleStartMinute: true, scheduleEndMinute: true, scheduleSlotMinutes: true, onlineBookingLayout: true, onlineBookingRequiresConfirmation: true, onlineBookingShowReserved: true, onlineBookingPaymentEnabled: true, onlineBookingWhatsappMessage: true } }),
     prisma.court.findMany({ where: { arenaId: auth.arenaId, active: true, weeklyRules: { some: {} } }, include: { weeklyRules: true }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }] }),
     prisma.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, status: { not: "CANCELED" }, startsAt: { lt: nextDay }, endsAt: { gt: selectedDate } }, include: { occurrenceCourts: true, participants: true }, orderBy: { startsAt: "asc" } }),
     prisma.player.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
@@ -38,6 +39,7 @@ export default async function AgendaPage({ searchParams }: AgendaPageProps) {
 
   return <div className="agenda-page" aria-label="Agenda de quadras">
     <div className="agenda-date-strip">
+      <OnlineBookingSettingsDialog settings={{ arenaSlug: arena.slug, layout: arena.onlineBookingLayout, requiresConfirmation: arena.onlineBookingRequiresConfirmation, showReserved: arena.onlineBookingShowReserved, paymentOnlineEnabled: arena.onlineBookingPaymentEnabled, whatsappMessage: arena.onlineBookingWhatsappMessage }} />
       <Link href={dayHref(addDays(selectedDate, -1))} className="agenda-date-arrow" aria-label="Dia anterior">‹</Link>
       <div className="agenda-date-list">{days.map((date) => { const selected = date.getTime() === selectedDate.getTime(); return <Link key={dateInputValue(date)} href={dayHref(date)} className={selected ? "agenda-date-item agenda-date-item-active agenda-date-item-centered" : "agenda-date-item"}><span>{new Intl.DateTimeFormat("pt-BR", { weekday: "short" }).format(date).replace(".", "")}</span><strong>{date.getDate()}</strong></Link>; })}</div>
       <Link href={dayHref(addDays(selectedDate, 1))} className="agenda-date-arrow" aria-label="Próximo dia">›</Link>

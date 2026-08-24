@@ -41,6 +41,11 @@ const scheduleSettingsSchema = z.object({
   slotMinutes: z.coerce.number().int().min(15).max(120)
 });
 
+const onlineBookingSettingsSchema = z.object({
+  layout: z.enum(["BLOCKS", "LIST"]),
+  whatsappMessage: z.string().trim().max(1000, "A mensagem pode ter no máximo 1000 caracteres.")
+});
+
 const courtWeeklyRuleSchema = z.object({
   courtId: z.string().trim().min(1),
   weekday: z.coerce.number().int().min(0).max(6),
@@ -63,12 +68,73 @@ const courtBookingSchema = z.object({
   participants: z.string().trim().default("[]")
 });
 
+const publicCourtBookingSchema = z.object({
+  arenaSlug: z.string().trim().min(1),
+  courtId: z.string().trim().min(1),
+  customerName: z.string().trim().min(3, "Informe seu nome."),
+  phone: z.string().trim().min(8, "Informe um telefone para contato."),
+  startsAt: z.string().trim().min(1),
+  durationMinutes: z.coerce.number().int().min(15).max(720)
+});
+
 const DEFAULT_BOOKING_TYPES = ["Aula", "Aula fixa", "Plano", "Super 12", "Liga", "Reserva"];
 
 function refreshCalendar() {
   revalidatePath("/calendario");
   revalidatePath("/agenda");
   revalidatePath("/agenda/configuracao");
+}
+
+export async function updateOnlineBookingSettingsAction(formData: FormData) {
+  const auth = await requireModuleEdit("calendar");
+  const parsed = onlineBookingSettingsSchema.safeParse({
+    layout: formData.get("layout"),
+    whatsappMessage: formData.get("whatsappMessage")
+  });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Configuração inválida.");
+
+  await prisma.arena.update({
+    where: { id: auth.arenaId },
+    data: {
+      onlineBookingLayout: parsed.data.layout,
+      onlineBookingRequiresConfirmation: formData.get("requiresConfirmation") === "on",
+      onlineBookingShowReserved: formData.get("showReserved") === "on",
+      onlineBookingPaymentEnabled: formData.get("paymentOnlineEnabled") === "on",
+      onlineBookingWhatsappMessage: parsed.data.whatsappMessage
+    }
+  });
+  refreshCalendar();
+}
+
+export async function createPublicCourtBookingAction(formData: FormData) {
+  const parsed = publicCourtBookingSchema.safeParse({
+    arenaSlug: formData.get("arenaSlug"), courtId: formData.get("courtId"), customerName: formData.get("customerName"), phone: formData.get("phone"), startsAt: formData.get("startsAt"), durationMinutes: formData.get("durationMinutes")
+  });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  const arena = await prisma.arena.findUnique({ where: { slug: parsed.data.arenaSlug }, select: { id: true, slug: true, onlineBookingRequiresConfirmation: true, onlineBookingPaymentEnabled: true } });
+  if (!arena) throw new Error("Arena não encontrada.");
+  const startsAt = parseScheduledAt(parsed.data.startsAt);
+  const endsAt = new Date(startsAt.getTime() + parsed.data.durationMinutes * 60_000);
+  const startsAtMinute = startsAt.getHours() * 60 + startsAt.getMinutes();
+  const endsAtMinute = endsAt.getHours() * 60 + endsAt.getMinutes();
+  const court = await prisma.court.findFirst({ where: { id: parsed.data.courtId, arenaId: arena.id, active: true }, include: { weeklyRules: true } });
+  if (!court) throw new Error("Quadra não encontrada.");
+  if (!court.onlineDurationMinutes.includes(parsed.data.durationMinutes)) throw new Error("Esta duração não está disponível para reserva online.");
+  if (parsed.data.durationMinutes % court.onlineSlotMinutes !== 0) throw new Error("A duração deve respeitar o intervalo configurado para a quadra.");
+  const available = court.weeklyRules.some((rule) => rule.weekday === startsAt.getDay() && rule.available && rule.startsAtMinute <= startsAtMinute && rule.endsAtMinute >= endsAtMinute);
+  if (!available) throw new Error("Este horário não está disponível para reserva online.");
+  const conflict = await prisma.scheduleOccurrence.findFirst({ where: { arenaId: arena.id, status: { not: "CANCELED" }, startsAt: { lt: endsAt }, endsAt: { gt: startsAt }, occurrenceCourts: { some: { courtId: court.id } } }, select: { id: true } });
+  if (conflict) throw new Error("Este horário acabou de ser reservado. Selecione outro horário.");
+  const phone = parsed.data.phone.replace(/\D/g, "");
+  await prisma.$transaction(async (tx) => {
+    const existingByPhone = await tx.player.findFirst({ where: { arenaId: arena.id, phone }, select: { id: true } });
+    const existingByName = existingByPhone ? null : await tx.player.findFirst({ where: { arenaId: arena.id, name: parsed.data.customerName }, select: { id: true, phone: true } });
+    if (existingByName && existingByName.phone && existingByName.phone !== phone) throw new Error("Já existe um cliente com este nome. Use o telefone cadastrado ou entre em contato com a arena.");
+    const player = existingByPhone ?? existingByName ?? await tx.player.create({ data: { arenaId: arena.id, name: parsed.data.customerName, phone } });
+    await tx.scheduleOccurrence.create({ data: { arenaId: arena.id, sourceType: "ONLINE_BOOKING", title: `${parsed.data.customerName} - Reserva`, startsAt, endsAt, status: arena.onlineBookingRequiresConfirmation ? "PENDING_CONFIRMATION" : arena.onlineBookingPaymentEnabled ? "PENDING_PAYMENT" : "SCHEDULED", bookingTypeName: "Reserva", occurrenceCourts: { create: { courtId: court.id } }, participants: { create: { playerId: player.id } } } });
+  });
+  revalidatePath("/agenda");
+  revalidatePath(`/reservar/${arena.slug}`);
 }
 
 async function ensureBookingTypes(arenaId: string) {
