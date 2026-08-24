@@ -29,4 +29,5 @@ export const updateTournamentEventSchema = z.object({
   tournamentId: z.string().min(1, "Torneio inválido."),
   name: z.string().trim().min(3, "Nome do campeonato muito curto."),
   description: z.string().trim().default(""),
+  rules: z.string().trim().max(8000, "As regras podem ter no máximo 8000 caracteres.").default(""),
 });

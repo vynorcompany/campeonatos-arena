@@ -17,6 +17,7 @@ type TournamentEventEditFormProps = {
     id: string;
     name: string;
     description: string;
+    rules: string;
   };
 };
 
@@ -44,6 +45,10 @@ export function TournamentEventEditForm({
           name="description"
           defaultValue={tournament.description}
         />
+      </div>
+      <div className="field form-full">
+        <label htmlFor="event-rules">Regras da liga</label>
+        <textarea id="event-rules" name="rules" defaultValue={tournament.rules} placeholder="Insira as regras que serão exibidas na página pública." />
       </div>
       <div className="field field-submit form-full">
         <SubmitButton

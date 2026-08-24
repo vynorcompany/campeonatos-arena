@@ -43,6 +43,7 @@ const scheduleSettingsSchema = z.object({
 
 const onlineBookingSettingsSchema = z.object({
   layout: z.enum(["BLOCKS", "LIST"]),
+  leadTimeMinutes: z.coerce.number().int().min(0).max(10080, "O prazo máximo é de 7 dias."),
   whatsappMessage: z.string().trim().max(1000, "A mensagem pode ter no máximo 1000 caracteres.")
 });
 
@@ -89,6 +90,7 @@ export async function updateOnlineBookingSettingsAction(formData: FormData) {
   const auth = await requireModuleEdit("calendar");
   const parsed = onlineBookingSettingsSchema.safeParse({
     layout: formData.get("layout"),
+    leadTimeMinutes: formData.get("leadTimeMinutes"),
     whatsappMessage: formData.get("whatsappMessage")
   });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Configuração inválida.");
@@ -100,6 +102,7 @@ export async function updateOnlineBookingSettingsAction(formData: FormData) {
       onlineBookingRequiresConfirmation: formData.get("requiresConfirmation") === "on",
       onlineBookingShowReserved: formData.get("showReserved") === "on",
       onlineBookingPaymentEnabled: formData.get("paymentOnlineEnabled") === "on",
+      onlineBookingLeadTimeMinutes: parsed.data.leadTimeMinutes,
       onlineBookingWhatsappMessage: parsed.data.whatsappMessage
     }
   });
@@ -111,9 +114,11 @@ export async function createPublicCourtBookingAction(formData: FormData) {
     arenaSlug: formData.get("arenaSlug"), courtId: formData.get("courtId"), customerName: formData.get("customerName"), phone: formData.get("phone"), startsAt: formData.get("startsAt"), durationMinutes: formData.get("durationMinutes")
   });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
-  const arena = await prisma.arena.findUnique({ where: { slug: parsed.data.arenaSlug }, select: { id: true, slug: true, onlineBookingRequiresConfirmation: true, onlineBookingPaymentEnabled: true } });
+  const arena = await prisma.arena.findUnique({ where: { slug: parsed.data.arenaSlug }, select: { id: true, slug: true, onlineBookingRequiresConfirmation: true, onlineBookingPaymentEnabled: true, onlineBookingLeadTimeMinutes: true } });
   if (!arena) throw new Error("Arena não encontrada.");
   const startsAt = parseScheduledAt(parsed.data.startsAt);
+  const earliestStart = new Date(Date.now() + arena.onlineBookingLeadTimeMinutes * 60_000);
+  if (startsAt.getTime() < earliestStart.getTime()) throw new Error(`Este horário exige antecedência mínima de ${arena.onlineBookingLeadTimeMinutes} minutos.`);
   const endsAt = new Date(startsAt.getTime() + parsed.data.durationMinutes * 60_000);
   const startsAtMinute = startsAt.getHours() * 60 + startsAt.getMinutes();
   const endsAtMinute = endsAt.getHours() * 60 + endsAt.getMinutes();
@@ -135,6 +140,15 @@ export async function createPublicCourtBookingAction(formData: FormData) {
   });
   revalidatePath("/agenda");
   revalidatePath(`/reservar/${arena.slug}`);
+}
+
+export async function confirmOnlineBookingAction(formData: FormData) {
+  const auth = await requireModuleEdit("calendar");
+  const occurrenceId = z.string().trim().min(1).safeParse(formData.get("occurrenceId"));
+  if (!occurrenceId.success) throw new Error("Reserva inválida.");
+  const confirmed = await prisma.scheduleOccurrence.updateMany({ where: { id: occurrenceId.data, arenaId: auth.arenaId, sourceType: "ONLINE_BOOKING", status: "PENDING_CONFIRMATION" }, data: { status: "SCHEDULED" } });
+  if (!confirmed.count) throw new Error("Esta reserva já foi confirmada ou não foi encontrada.");
+  refreshCalendar();
 }
 
 async function ensureBookingTypes(arenaId: string) {

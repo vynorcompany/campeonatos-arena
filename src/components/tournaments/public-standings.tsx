@@ -13,6 +13,7 @@ export function PublicStandings({
   data: ArenaPublicStandings;
 }) {
   const isRanking = data.selectedTab === "ranking";
+  const isRules = data.selectedTab === "rules";
 
   return (
     <main
@@ -48,14 +49,15 @@ export function PublicStandings({
         </Link>
         <Link
           href="?tab=games"
-          className={`button ${!isRanking ? "button-primary" : ""}`}
-          aria-current={!isRanking ? "page" : undefined}
+          className={`button ${data.selectedTab === "games" ? "button-primary" : ""}`}
+          aria-current={data.selectedTab === "games" ? "page" : undefined}
         >
           Jogos
         </Link>
+        <Link href="?tab=rules" className={`button ${isRules ? "button-primary" : ""}`} aria-current={isRules ? "page" : undefined}>Regras</Link>
       </nav>
 
-      {isRanking ? (
+      {isRules ? <section className="section-card stack-md public-league-rules"><div className="stack-xs"><p className="eyebrow">Regulamento</p><h2>Regras das ligas</h2></div>{data.leagueRules.length ? data.leagueRules.map((league) => <article key={league.id}><header><strong>{league.eventName}</strong><span>{league.categoryName}</span></header><p>{league.rules}</p></article>) : <p className="muted">Nenhuma regra foi publicada para as ligas ativas.</p>}</section> : isRanking ? (
         <>
           {data.options.length ? (
             <form method="get" className="public-standings-filter">

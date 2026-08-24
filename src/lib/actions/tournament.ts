@@ -643,6 +643,7 @@ export async function updateTournamentAction(_: ActionState, formData: FormData)
       tournamentId: formData.get("tournamentId"),
       name: formData.get("name"),
       description: formData.get("description"),
+      rules: formData.get("rules"),
     });
 
     if (!eventParsed.success) {
@@ -660,6 +661,7 @@ export async function updateTournamentAction(_: ActionState, formData: FormData)
       data: {
         name: eventParsed.data.name,
         description: eventParsed.data.description,
+        rules: eventParsed.data.rules,
       },
     });
 

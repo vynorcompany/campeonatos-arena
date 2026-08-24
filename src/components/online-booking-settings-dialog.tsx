@@ -11,6 +11,7 @@ type OnlineBookingSettings = {
   requiresConfirmation: boolean;
   showReserved: boolean;
   paymentOnlineEnabled: boolean;
+  leadTimeMinutes: number;
   whatsappMessage: string;
 };
 
@@ -33,6 +34,7 @@ export function OnlineBookingSettingsDialog({ settings }: { settings: OnlineBook
         <div className="online-booking-link"><div><strong>Link da página pública</strong><code>{publicPath}</code></div><button type="button" className="button button-small" onClick={copyLink}>{copied ? "Link copiado" : "Copiar link"}</button></div>
         <SafeActionForm action={updateOnlineBookingSettingsAction} className="online-booking-settings-form" successMessage="Configurações do agendamento online salvas.">
           <label className="field">Disposição dos horários<select name="layout" defaultValue={settings.layout}><option value="BLOCKS">Blocos</option><option value="LIST">Lista</option></select></label>
+          <label className="field">Prazo mínimo para agendamento<input name="leadTimeMinutes" type="number" min="0" max="10080" step="15" defaultValue={settings.leadTimeMinutes} /><small>Em minutos antes do horário escolhido.</small></label>
           <label className="control-toggle"><input name="requiresConfirmation" type="checkbox" defaultChecked={settings.requiresConfirmation} /><span aria-hidden="true" /><em>Confirmação de reserva</em></label>
           <label className="control-toggle"><input name="showReserved" type="checkbox" defaultChecked={settings.showReserved} /><span aria-hidden="true" /><em>Mostrar horários reservados</em></label>
           <label className="control-toggle"><input name="paymentOnlineEnabled" type="checkbox" defaultChecked={settings.paymentOnlineEnabled} /><span aria-hidden="true" /><em>Pagamento online</em></label>

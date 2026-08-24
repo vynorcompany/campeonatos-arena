@@ -14,7 +14,7 @@ function minuteLabel(value: number) { return `${String(Math.floor(value / 60)).p
 export default async function PublicBookingPage({ params, searchParams }: PublicBookingPageProps) {
   const selectedDate = startOfDay(parseDate(searchParams?.data));
   const nextDay = new Date(selectedDate); nextDay.setDate(nextDay.getDate() + 1);
-  const arena = await prisma.arena.findUnique({ where: { slug: params.arenaSlug }, select: { name: true, logoUrl: true, scheduleStartMinute: true, scheduleEndMinute: true, onlineBookingLayout: true, onlineBookingShowReserved: true, onlineBookingPaymentEnabled: true, courts: { where: { active: true, weeklyRules: { some: { available: true } } }, include: { weeklyRules: true }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }] } } });
+  const arena = await prisma.arena.findUnique({ where: { slug: params.arenaSlug }, select: { name: true, logoUrl: true, scheduleStartMinute: true, scheduleEndMinute: true, onlineBookingLayout: true, onlineBookingShowReserved: true, onlineBookingPaymentEnabled: true, onlineBookingLeadTimeMinutes: true, courts: { where: { active: true, weeklyRules: { some: { available: true } } }, include: { weeklyRules: true }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }] } } });
   if (!arena) notFound();
   const occurrences = await prisma.scheduleOccurrence.findMany({ where: { arena: { slug: params.arenaSlug }, status: { not: "CANCELED" }, startsAt: { lt: nextDay }, endsAt: { gt: selectedDate } }, include: { occurrenceCourts: true }, orderBy: { startsAt: "asc" } });
   const weekday = selectedDate.getDay();
@@ -22,7 +22,9 @@ export default async function PublicBookingPage({ params, searchParams }: Public
     const slots = Array.from({ length: Math.max(0, Math.ceil((arena.scheduleEndMinute - arena.scheduleStartMinute) / court.onlineSlotMinutes)) }, (_, index) => arena.scheduleStartMinute + index * court.onlineSlotMinutes).flatMap((minute) => {
       const rule = court.weeklyRules.find((item) => item.weekday === weekday && item.available && item.startsAtMinute <= minute && item.endsAtMinute > minute);
       const occupied = occurrences.some((item) => item.occurrenceCourts.some((entry) => entry.courtId === court.id) && item.startsAt.getHours() * 60 + item.startsAt.getMinutes() <= minute && item.endsAt.getHours() * 60 + item.endsAt.getMinutes() > minute);
-      if (!rule || occupied) return [];
+      const startsAt = new Date(selectedDate); startsAt.setHours(Math.floor(minute / 60), minute % 60, 0, 0);
+      const tooSoon = startsAt.getTime() < Date.now() + arena.onlineBookingLeadTimeMinutes * 60_000;
+      if (!rule || occupied || tooSoon) return [];
       const durations = court.onlineDurationMinutes.filter((item) => minute + item <= rule.endsAtMinute && !occurrences.some((occurrence) => occurrence.occurrenceCourts.some((entry) => entry.courtId === court.id) && occurrence.startsAt.getHours() * 60 + occurrence.startsAt.getMinutes() < minute + item && occurrence.endsAt.getHours() * 60 + occurrence.endsAt.getMinutes() > minute));
       return durations.length ? [{ startsAt: `${dateValue(selectedDate)}T${minuteLabel(minute)}`, label: minuteLabel(minute), priceCents: rule.priceCents, durations }] : [];
     });

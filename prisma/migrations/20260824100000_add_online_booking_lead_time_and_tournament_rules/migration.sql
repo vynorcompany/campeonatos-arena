@@ -1,0 +1,2 @@
+ALTER TABLE "Arena" ADD COLUMN "onlineBookingLeadTimeMinutes" INTEGER NOT NULL DEFAULT 120;
+ALTER TABLE "Tournament" ADD COLUMN "rules" TEXT NOT NULL DEFAULT '';

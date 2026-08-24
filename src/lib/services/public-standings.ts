@@ -18,7 +18,8 @@ export type ArenaPublicStandings = {
   };
   options: PublicStandingsOption[];
   selectedOptionId: string | null;
-  selectedTab: "ranking" | "games";
+  selectedTab: "ranking" | "games" | "rules";
+  leagueRules: Array<{ id: string; eventName: string; categoryName: string; rules: string }>;
   gameCategories: Array<{ id: string; label: string }>;
   selectedGameCategoryId: string | null;
   selectedGameStatus: PublicGameStatus | "ALL";
@@ -107,7 +108,7 @@ export async function getArenaPublicStandings(
             id: true,
             name: true,
             tournament: {
-              select: { name: true },
+              select: { id: true, name: true, rules: true },
             },
           },
         },
@@ -172,7 +173,7 @@ export async function getArenaPublicStandings(
       },
     }),
   ]);
-  const selectedTab = requested.tab === "games" ? "games" : "ranking";
+  const selectedTab = requested.tab === "games" || requested.tab === "rules" ? requested.tab : "ranking";
   const selectedGameStatus: PublicGameStatus | "ALL" =
     requested.status === "SCHEDULED" ||
     requested.status === "LIVE" ||
@@ -236,6 +237,7 @@ export async function getArenaPublicStandings(
     status: record.status,
     format: record.format,
   }));
+  const leagueRules = Array.from(new Map(categoryRecords.filter((record) => record.format === "LEAGUE" && record.category.tournament.rules.trim()).map((record) => [record.category.tournament.id, { id: record.category.tournament.id, eventName: record.category.tournament.name, categoryName: record.category.name, rules: record.category.tournament.rules }])).values());
   const options = selectPublicStandingsOptions({
     generalRanking,
     categories: categorySources,
@@ -249,6 +251,7 @@ export async function getArenaPublicStandings(
       options,
       selectedOptionId: null,
       selectedTab,
+      leagueRules,
       gameCategories,
       selectedGameCategoryId,
       selectedGameStatus,
@@ -271,6 +274,7 @@ export async function getArenaPublicStandings(
       options,
       selectedOptionId: selectedOption.id,
       selectedTab,
+      leagueRules,
       gameCategories,
       selectedGameCategoryId,
       selectedGameStatus,
@@ -300,6 +304,7 @@ export async function getArenaPublicStandings(
       options,
       selectedOptionId: selectedOption.id,
       selectedTab,
+      leagueRules,
       gameCategories,
       selectedGameCategoryId,
       selectedGameStatus,
@@ -315,6 +320,7 @@ export async function getArenaPublicStandings(
     options,
     selectedOptionId: selectedOption.id,
     selectedTab,
+    leagueRules,
     gameCategories,
     selectedGameCategoryId,
     selectedGameStatus,
