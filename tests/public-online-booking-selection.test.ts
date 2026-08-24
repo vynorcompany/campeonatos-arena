@@ -3,20 +3,17 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
 
-test("public booking highlights the consecutive slots and identifies an existing client", () => {
+test("public booking highlights the consecutive slots for the authenticated client", () => {
   const form = readFileSync(resolve(process.cwd(), "src/components/public-court-booking-form.tsx"), "utf8");
   const page = readFileSync(resolve(process.cwd(), "src/app/reservar/[arenaSlug]/page.tsx"), "utf8");
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/calendar.ts"), "utf8");
 
   assert.match(form, /slotMinutes/);
   assert.match(form, /public-booking-slot-block-selected/);
-  assert.match(form, /selectedClientId/);
-  assert.match(form, /slice\(-4\)/);
-  assert.match(form, /public-booking-client-results/);
-  assert.match(page, /players:/);
-  assert.match(page, /clients=\{arena\.players\}/);
-  assert.match(actions, /playerId:/);
-  assert.match(actions, /selectedPlayer/);
+  assert.match(form, /currentClient/);
+  assert.match(page, /getPublicPlayerAuth/);
+  assert.match(page, /PublicClientAuthForm/);
+  assert.match(actions, /requirePublicPlayerAuth/);
 });
 
 test("daily court grid uses compact rows and the public form remains responsive", () => {

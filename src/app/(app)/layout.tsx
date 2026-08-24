@@ -1,6 +1,7 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { requireArenaAccess } from "@/lib/auth/session";
 import { allPermissionModules, canViewModule } from "@/lib/permissions";
+import { prisma } from "@/lib/prisma";
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const auth = await requireArenaAccess();
@@ -13,6 +14,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     canViewModule(module, auth.arenaRole, auth.systemRole, auth.viewPermissions)
   );
   const canAccessAgency = auth.systemRole === "SUPER_ADMIN" || auth.systemRole === "ADMIN" || auth.systemRole === "MANAGER";
+  const notifications = await prisma.arenaNotification.findMany({ where: { arenaId: auth.arenaId, readAt: null }, select: { id: true, title: true, message: true, href: true, createdAt: true }, orderBy: { createdAt: "desc" }, take: 8 });
 
   return (
     <AppShell
@@ -25,6 +27,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
       canManageUsers={canManageUsers}
       visibleModules={visibleModules}
       canAccessAgency={canAccessAgency}
+      notifications={notifications}
     >
       {children}
     </AppShell>

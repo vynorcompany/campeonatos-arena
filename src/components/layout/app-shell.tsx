@@ -4,6 +4,7 @@ import { logoutAction } from "@/lib/auth/actions";
 import type { ArenaMembership } from "@/types/auth";
 import { NavLinks } from "@/components/layout/nav-links";
 import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher";
+import { ArenaNotificationBell } from "@/components/layout/arena-notification-bell";
 
 type AppShellProps = {
   arenaName: string;
@@ -15,6 +16,7 @@ type AppShellProps = {
   canManageUsers: boolean;
   visibleModules: string[];
   canAccessAgency: boolean;
+  notifications: { id: string; title: string; message: string; href: string; createdAt: Date }[];
   children: React.ReactNode;
 };
 
@@ -28,6 +30,7 @@ export function AppShell({
   canManageUsers,
   visibleModules,
   canAccessAgency,
+  notifications,
   children
 }: AppShellProps) {
   return (
@@ -58,6 +61,8 @@ export function AppShell({
               canAccessAgency={canAccessAgency}
               currentWorkspace="arena"
             />
+
+            <ArenaNotificationBell notifications={notifications} />
 
             <NavLinks canManageUsers={canManageUsers} visibleModules={visibleModules} />
           </div>

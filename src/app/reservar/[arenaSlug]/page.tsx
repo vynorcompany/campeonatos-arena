@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import { PublicCourtBookingForm } from "@/components/public-court-booking-form";
+import { PublicClientAuthForm } from "@/components/public-client-auth-form";
+import { getPublicPlayerAuth } from "@/lib/auth/player-session";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +16,7 @@ function minuteLabel(value: number) { return `${String(Math.floor(value / 60)).p
 export default async function PublicBookingPage({ params, searchParams }: PublicBookingPageProps) {
   const selectedDate = startOfDay(parseDate(searchParams?.data));
   const nextDay = new Date(selectedDate); nextDay.setDate(nextDay.getDate() + 1);
-  const arena = await prisma.arena.findUnique({ where: { slug: params.arenaSlug }, select: { name: true, logoUrl: true, scheduleStartMinute: true, scheduleEndMinute: true, onlineBookingLayout: true, onlineBookingShowReserved: true, onlineBookingPaymentEnabled: true, onlineBookingLeadTimeMinutes: true, players: { where: { active: true }, select: { id: true, name: true, phone: true }, orderBy: { name: "asc" } }, courts: { where: { active: true, weeklyRules: { some: { available: true } } }, include: { weeklyRules: true }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }] } } });
+  const [arena, currentClient] = await Promise.all([prisma.arena.findUnique({ where: { slug: params.arenaSlug }, select: { name: true, logoUrl: true, scheduleStartMinute: true, scheduleEndMinute: true, onlineBookingLayout: true, onlineBookingShowReserved: true, onlineBookingPaymentEnabled: true, onlineBookingLeadTimeMinutes: true, courts: { where: { active: true, weeklyRules: { some: { available: true } } }, include: { weeklyRules: true }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }] } } }), getPublicPlayerAuth(params.arenaSlug)]);
   if (!arena) notFound();
   const occurrences = await prisma.scheduleOccurrence.findMany({ where: { arena: { slug: params.arenaSlug }, status: { not: "CANCELED" }, startsAt: { lt: nextDay }, endsAt: { gt: selectedDate } }, include: { occurrenceCourts: true }, orderBy: { startsAt: "asc" } });
   const weekday = selectedDate.getDay();
@@ -35,5 +37,5 @@ export default async function PublicBookingPage({ params, searchParams }: Public
     return court ? `${court.name}: ${minuteLabel(occurrence.startsAt.getHours() * 60 + occurrence.startsAt.getMinutes())}` : "";
   })).filter(Boolean) : [];
 
-  return <main className="public-booking-page"><section className="public-booking-shell"><header><img src={arena.logoUrl} alt="" /><div><span>RESERVA ONLINE</span><h1>{arena.name}</h1><p>Escolha a quadra, horário e duração da sua reserva.</p></div></header><form className="public-booking-date" method="get"><label>Data<input type="date" name="data" defaultValue={dateValue(selectedDate)} /></label><button className="button" type="submit">Ver horários</button></form>{arena.onlineBookingShowReserved && occurrences.length ? <p className="public-booking-reserved">Os horários reservados estão sinalizados abaixo.</p> : null}<h2>Reserva online</h2><PublicCourtBookingForm arenaSlug={params.arenaSlug} courts={courts} clients={arena.players} layout={arena.onlineBookingLayout} paymentOnlineEnabled={arena.onlineBookingPaymentEnabled} reservedSlots={reservedSlots} /></section></main>;
+  return <main className="public-booking-page"><section className="public-booking-shell"><header><img src={arena.logoUrl} alt="" /><div><span>RESERVA ONLINE</span><h1>{arena.name}</h1><p>Escolha a quadra, horário e duração da sua reserva.</p></div></header>{currentClient ? <><form className="public-booking-date" method="get"><label>Data<input type="date" name="data" defaultValue={dateValue(selectedDate)} /></label><button className="button" type="submit">Ver horários</button></form>{arena.onlineBookingShowReserved && occurrences.length ? <p className="public-booking-reserved">Os horários reservados estão sinalizados abaixo.</p> : null}<h2>Reserva online</h2><PublicCourtBookingForm arenaSlug={params.arenaSlug} courts={courts} currentClient={currentClient} layout={arena.onlineBookingLayout} paymentOnlineEnabled={arena.onlineBookingPaymentEnabled} reservedSlots={reservedSlots} /></> : <PublicClientAuthForm arenaSlug={params.arenaSlug} />}</section></main>;
 }

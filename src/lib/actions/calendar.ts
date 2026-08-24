@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireModuleEdit } from "@/lib/auth/guards";
+import { requirePublicPlayerAuth } from "@/lib/auth/player-session";
 import { prisma } from "@/lib/prisma";
 import {
   moneyToCents,
@@ -72,9 +73,6 @@ const courtBookingSchema = z.object({
 const publicCourtBookingSchema = z.object({
   arenaSlug: z.string().trim().min(1),
   courtId: z.string().trim().min(1),
-  playerId: z.string().trim().default(""),
-  customerName: z.string().trim().min(3, "Informe seu nome."),
-  phone: z.string().trim().min(8, "Informe um telefone para contato."),
   startsAt: z.string().trim().min(1),
   durationMinutes: z.coerce.number().int().min(15).max(720)
 });
@@ -112,9 +110,10 @@ export async function updateOnlineBookingSettingsAction(formData: FormData) {
 
 export async function createPublicCourtBookingAction(formData: FormData) {
   const parsed = publicCourtBookingSchema.safeParse({
-    arenaSlug: formData.get("arenaSlug"), courtId: formData.get("courtId"), playerId: formData.get("playerId"), customerName: formData.get("customerName"), phone: formData.get("phone"), startsAt: formData.get("startsAt"), durationMinutes: formData.get("durationMinutes")
+    arenaSlug: formData.get("arenaSlug"), courtId: formData.get("courtId"), startsAt: formData.get("startsAt"), durationMinutes: formData.get("durationMinutes")
   });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  const playerAuth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
   const arena = await prisma.arena.findUnique({ where: { slug: parsed.data.arenaSlug }, select: { id: true, slug: true, onlineBookingRequiresConfirmation: true, onlineBookingPaymentEnabled: true, onlineBookingLeadTimeMinutes: true } });
   if (!arena) throw new Error("Arena não encontrada.");
   const startsAt = parseScheduledAt(parsed.data.startsAt);
@@ -131,15 +130,12 @@ export async function createPublicCourtBookingAction(formData: FormData) {
   if (!available) throw new Error("Este horário não está disponível para reserva online.");
   const conflict = await prisma.scheduleOccurrence.findFirst({ where: { arenaId: arena.id, status: { not: "CANCELED" }, startsAt: { lt: endsAt }, endsAt: { gt: startsAt }, occurrenceCourts: { some: { courtId: court.id } } }, select: { id: true } });
   if (conflict) throw new Error("Este horário acabou de ser reservado. Selecione outro horário.");
-  const phone = parsed.data.phone.replace(/\D/g, "");
   await prisma.$transaction(async (tx) => {
-    const selectedPlayer = parsed.data.playerId ? await tx.player.findFirst({ where: { id: parsed.data.playerId, arenaId: arena.id, active: true }, select: { id: true, name: true, phone: true } }) : null;
-    if (parsed.data.playerId && !selectedPlayer) throw new Error("Cliente selecionado não encontrado.");
-    const existingByPhone = selectedPlayer ?? await tx.player.findFirst({ where: { arenaId: arena.id, phone }, select: { id: true, name: true, phone: true } });
-    const existingByName = existingByPhone ? null : await tx.player.findFirst({ where: { arenaId: arena.id, name: parsed.data.customerName }, select: { id: true, phone: true } });
-    if (existingByName && existingByName.phone && existingByName.phone !== phone) throw new Error("Já existe um cliente com este nome. Use o telefone cadastrado ou entre em contato com a arena.");
-    const player = existingByPhone ?? existingByName ?? await tx.player.create({ data: { arenaId: arena.id, name: parsed.data.customerName, phone } });
-    await tx.scheduleOccurrence.create({ data: { arenaId: arena.id, sourceType: "ONLINE_BOOKING", title: `${parsed.data.customerName} - Reserva`, startsAt, endsAt, status: arena.onlineBookingRequiresConfirmation ? "PENDING_CONFIRMATION" : arena.onlineBookingPaymentEnabled ? "PENDING_PAYMENT" : "SCHEDULED", bookingTypeName: "Reserva", occurrenceCourts: { create: { courtId: court.id } }, participants: { create: { playerId: player.id } } } });
+    const player = await tx.player.findFirst({ where: { id: playerAuth.playerId, arenaId: arena.id, active: true }, select: { id: true, name: true } });
+    if (!player) throw new Error("Cliente não encontrado.");
+    const occurrence = await tx.scheduleOccurrence.create({ data: { arenaId: arena.id, sourceType: "ONLINE_BOOKING", title: `${player.name} - Reserva`, startsAt, endsAt, status: arena.onlineBookingRequiresConfirmation ? "PENDING_CONFIRMATION" : arena.onlineBookingPaymentEnabled ? "PENDING_PAYMENT" : "SCHEDULED", bookingTypeName: "Reserva", occurrenceCourts: { create: { courtId: court.id } }, participants: { create: { playerId: player.id } } } });
+    const localDate = `${startsAt.getFullYear()}-${String(startsAt.getMonth() + 1).padStart(2, "0")}-${String(startsAt.getDate()).padStart(2, "0")}`;
+    await tx.arenaNotification.create({ data: { arenaId: arena.id, title: "Nova reserva online", message: `${player.name} solicitou ${court.name} às ${String(startsAt.getHours()).padStart(2, "0")}:${String(startsAt.getMinutes()).padStart(2, "0")}.`, href: `/agenda?data=${localDate}`, type: "ONLINE_BOOKING" } });
   });
   revalidatePath("/agenda");
   revalidatePath(`/reservar/${arena.slug}`);

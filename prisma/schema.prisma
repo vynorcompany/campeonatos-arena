@@ -125,6 +125,7 @@ model Arena {
   tvSponsors    TvSponsor[]
   regulationAcceptances RegulationAcceptance[]
   regulationDocuments RegulationDocument[]
+  notifications ArenaNotification[]
 }
 
 model RegulationAcceptance {
@@ -235,10 +236,52 @@ model Player {
   student     Student?
   scheduleParticipants ScheduleParticipant[]
   comandas    Comanda[]
+  account     PlayerAccount?
 
   @@unique([arenaId, name])
   @@index([arenaId, active])
   @@index([arenaId, points])
+}
+
+model PlayerAccount {
+  id           String          @id @default(cuid())
+  arenaId      String
+  phone        String
+  passwordHash String
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  playerId     String          @unique
+  player       Player          @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  sessions     PlayerSession[]
+
+  @@unique([arenaId, phone])
+  @@index([arenaId])
+}
+
+model PlayerSession {
+  id              String        @id @default(cuid())
+  token           String        @unique
+  expiresAt       DateTime
+  createdAt       DateTime      @default(now())
+  playerAccountId String
+  playerAccount   PlayerAccount @relation(fields: [playerAccountId], references: [id], onDelete: Cascade)
+
+  @@index([playerAccountId])
+  @@index([expiresAt])
+}
+
+model ArenaNotification {
+  id        String   @id @default(cuid())
+  type      String   @default("ONLINE_BOOKING")
+  title     String
+  message   String
+  href      String   @default("")
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+  arenaId   String
+  arena     Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+
+  @@index([arenaId, readAt, createdAt])
 }
 
 model Tournament {

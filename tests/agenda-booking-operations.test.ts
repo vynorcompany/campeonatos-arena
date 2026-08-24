@@ -24,7 +24,7 @@ test("online booking lists only starts that fit every configured duration", () =
   const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
 
   assert.match(page, /durations\.length === court\.onlineDurationMinutes\.length/);
-  assert.match(form, /Telefone final:/);
-  assert.doesNotMatch(form, /Telefone ••••/);
+  assert.match(form, /Você está usando sua conta de cliente/);
+  assert.doesNotMatch(form, /Telefone final:/);
   assert.match(styles, /\.public-booking-shell \{ width: min\(100%, 1020px\)/);
 });
