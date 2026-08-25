@@ -126,6 +126,7 @@ model Arena {
   regulationAcceptances RegulationAcceptance[]
   regulationDocuments RegulationDocument[]
   notifications ArenaNotification[]
+  leagueChallenges LeagueChallenge[]
 }
 
 model RegulationAcceptance {
@@ -237,6 +238,8 @@ model Player {
   scheduleParticipants ScheduleParticipant[]
   comandas    Comanda[]
   account     PlayerAccount?
+  notifications PlayerNotification[]
+  respondedLeagueChallenges LeagueChallenge[] @relation("LeagueChallengeResponder")
 
   @@unique([arenaId, name])
   @@index([arenaId, active])
@@ -282,6 +285,20 @@ model ArenaNotification {
   arena     Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
 
   @@index([arenaId, readAt, createdAt])
+}
+
+model PlayerNotification {
+  id        String   @id @default(cuid())
+  type      String   @default("LEAGUE_CHALLENGE")
+  title     String
+  message   String
+  href      String   @default("")
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+  playerId  String
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId, readAt, createdAt])
 }
 
 model Tournament {
@@ -493,6 +510,7 @@ model CategoryCompetition {
   groups              CategoryGroup[]
   matches             CategoryMatch[]
   application         CategoryRankingApplication?
+  leagueChallenges    LeagueChallenge[]
 
   @@index([rankingId])
   @@index([status])
@@ -527,6 +545,8 @@ model CategoryPair {
   awayMatches   CategoryMatch[]      @relation("CategoryAwayPair")
   winnerMatches CategoryMatch[]      @relation("CategoryWinnerPair")
   substitutions CategoryPairSubstitution[]
+  sentLeagueChallenges LeagueChallenge[] @relation("LeagueChallengeProposer")
+  receivedLeagueChallenges LeagueChallenge[] @relation("LeagueChallengeOpponent")
 
   @@index([competitionId, drawOrder])
   @@index([competitionId, totalPoints])
@@ -595,6 +615,7 @@ model CategoryMatch {
   homePair      CategoryPair?       @relation("CategoryHomePair", fields: [homePairId, competitionId], references: [id, competitionId], onDelete: NoAction)
   awayPair      CategoryPair?       @relation("CategoryAwayPair", fields: [awayPairId, competitionId], references: [id, competitionId], onDelete: NoAction)
   winnerPair    CategoryPair?       @relation("CategoryWinnerPair", fields: [winnerPairId, competitionId], references: [id, competitionId], onDelete: NoAction)
+  challenge     LeagueChallenge?
 
   @@index([competitionId, stage, roundOrder])
   @@index([groupId])
@@ -842,6 +863,7 @@ model Court {
   arena       Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
   occurrenceCourts ScheduleOccurrenceCourt[]
   weeklyRules CourtWeeklyRule[]
+  leagueChallenges LeagueChallenge[]
 
   @@unique([arenaId, name])
   @@index([arenaId, active, displayOrder])
@@ -888,6 +910,7 @@ model ScheduleOccurrence {
   bookingTypeName String @default("Reserva")
   notes       String   @default("")
   teacherId   String?
+  challengeId String?  @unique
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   arenaId     String
@@ -895,9 +918,39 @@ model ScheduleOccurrence {
   occurrenceCourts ScheduleOccurrenceCourt[]
   participants ScheduleParticipant[]
   teacher     Teacher? @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  challenge   LeagueChallenge? @relation(fields: [challengeId], references: [id], onDelete: SetNull)
 
   @@index([arenaId, startsAt, endsAt])
   @@index([teacherId])
+}
+
+model LeagueChallenge {
+  id              String   @id @default(cuid())
+  status          String   @default("PENDING")
+  proposedStartsAt DateTime
+  proposedEndsAt  DateTime
+  respondedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  arenaId         String
+  competitionId   String
+  categoryMatchId String   @unique
+  courtId         String
+  proposerPairId  String
+  opponentPairId  String
+  responderId     String?
+  arena           Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  competition     CategoryCompetition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  categoryMatch   CategoryMatch @relation(fields: [categoryMatchId], references: [id], onDelete: Cascade)
+  court           Court    @relation(fields: [courtId], references: [id], onDelete: Restrict)
+  proposerPair    CategoryPair @relation("LeagueChallengeProposer", fields: [proposerPairId], references: [id], onDelete: Cascade)
+  opponentPair    CategoryPair @relation("LeagueChallengeOpponent", fields: [opponentPairId], references: [id], onDelete: Cascade)
+  responder       Player?  @relation("LeagueChallengeResponder", fields: [responderId], references: [id], onDelete: SetNull)
+  occurrence      ScheduleOccurrence?
+
+  @@index([arenaId, status, createdAt])
+  @@index([opponentPairId, status])
+  @@index([proposerPairId, status])
 }
 
 model BookingType {

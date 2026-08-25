@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ArenaPublicStandings } from "@/lib/services/public-standings";
+import { PublicLeaguePortal } from "@/components/tournaments/public-league-portal";
 
 const statusLabels = {
   SCHEDULED: "Agendado",
@@ -9,11 +10,18 @@ const statusLabels = {
 
 export function PublicStandings({
   data,
+  currentClient,
+  portal,
+  authForm,
 }: {
   data: ArenaPublicStandings;
+  currentClient: { name: string } | null;
+  portal: Awaited<ReturnType<typeof import("@/lib/services/public-league-portal").getPublicLeaguePortal>>;
+  authForm: React.ReactNode;
 }) {
   const isRanking = data.selectedTab === "ranking";
   const isRules = data.selectedTab === "rules";
+  const isPortal = data.selectedTab === "portal";
 
   return (
     <main
@@ -55,9 +63,10 @@ export function PublicStandings({
           Jogos
         </Link>
         <Link href="?tab=rules" className={`button ${isRules ? "button-primary" : ""}`} aria-current={isRules ? "page" : undefined}>Regras</Link>
+        <Link href="?tab=portal" className={`button ${isPortal ? "button-primary" : ""}`} aria-current={isPortal ? "page" : undefined}>Meu portal</Link>
       </nav>
 
-      {isRules ? <section className="section-card stack-md public-league-rules"><div className="stack-xs"><p className="eyebrow">Regulamento</p><h2>Regras das ligas</h2></div>{data.leagueRules.length ? data.leagueRules.map((league) => <article key={league.id}><header><strong>{league.eventName}</strong><span>{league.categoryName}</span></header><p>{league.rules}</p></article>) : <p className="muted">Nenhuma regra foi publicada para as ligas ativas.</p>}</section> : isRanking ? (
+      {isPortal ? (currentClient && portal ? <PublicLeaguePortal arenaSlug={data.arena.slug} playerName={currentClient.name} portal={portal} /> : authForm) : isRules ? <section className="section-card stack-md public-league-rules"><div className="stack-xs"><p className="eyebrow">Regulamento</p><h2>Regras das ligas</h2></div>{data.leagueRules.length ? data.leagueRules.map((league) => <article key={league.id}><header><strong>{league.eventName}</strong><span>{league.categoryName}</span></header><p>{league.rules}</p></article>) : <p className="muted">Nenhuma regra foi publicada para as ligas ativas.</p>}</section> : isRanking ? (
         <>
           {data.options.length ? (
             <form method="get" className="public-standings-filter">

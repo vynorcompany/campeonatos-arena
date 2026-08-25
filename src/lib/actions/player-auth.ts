@@ -8,10 +8,11 @@ import { prisma } from "@/lib/prisma";
 
 export type PublicClientAuthState = { error: string | null };
 
-const loginSchema = z.object({ arenaSlug: z.string().trim().min(1), phone: z.string().trim().min(8), password: z.string().min(8, "A senha deve ter ao menos 8 caracteres.") });
+const loginSchema = z.object({ arenaSlug: z.string().trim().min(1), returnTo: z.string().trim().default(""), phone: z.string().trim().min(8), password: z.string().min(8, "A senha deve ter ao menos 8 caracteres.") });
 const registerSchema = loginSchema.extend({ name: z.string().trim().min(3, "Informe seu nome."), confirmPassword: z.string().min(8) }).refine((data) => data.password === data.confirmPassword, { path: ["confirmPassword"], message: "As senhas não coincidem." });
 
 function normalizePhone(phone: string) { return phone.replace(/\D/g, ""); }
+function destination(arenaSlug: string, returnTo: string) { return returnTo.startsWith(`/classificacao/${arenaSlug}`) ? returnTo : `/reservar/${arenaSlug}`; }
 
 async function findPlayerByPhone(arenaId: string, phone: string) {
   const players = await prisma.player.findMany({ where: { arenaId, active: true, phone: { not: "" } }, include: { account: true }, orderBy: { createdAt: "asc" } });
@@ -23,7 +24,7 @@ async function findAccountByPhone(arenaId: string, phone: string) {
 }
 
 export async function registerPublicClientAction(_: PublicClientAuthState, formData: FormData): Promise<PublicClientAuthState> {
-  const parsed = registerSchema.safeParse({ arenaSlug: formData.get("arenaSlug"), name: formData.get("name"), phone: formData.get("phone"), password: formData.get("password"), confirmPassword: formData.get("confirmPassword") });
+  const parsed = registerSchema.safeParse({ arenaSlug: formData.get("arenaSlug"), returnTo: formData.get("returnTo"), name: formData.get("name"), phone: formData.get("phone"), password: formData.get("password"), confirmPassword: formData.get("confirmPassword") });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   const phone = normalizePhone(parsed.data.phone);
   if (phone.length < 10) return { error: "Informe um telefone válido." };
@@ -38,18 +39,18 @@ export async function registerPublicClientAction(_: PublicClientAuthState, formD
     return tx.playerAccount.create({ data: { arenaId: arena.id, phone, playerId: linkedPlayer.id, passwordHash } });
   });
   await createPublicPlayerSession(account.id);
-  redirect(`/reservar/${parsed.data.arenaSlug}`);
+  redirect(destination(parsed.data.arenaSlug, parsed.data.returnTo));
 }
 
 export async function loginPublicClientAction(_: PublicClientAuthState, formData: FormData): Promise<PublicClientAuthState> {
-  const parsed = loginSchema.safeParse({ arenaSlug: formData.get("arenaSlug"), phone: formData.get("phone"), password: formData.get("password") });
+  const parsed = loginSchema.safeParse({ arenaSlug: formData.get("arenaSlug"), returnTo: formData.get("returnTo"), phone: formData.get("phone"), password: formData.get("password") });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   const arena = await prisma.arena.findUnique({ where: { slug: parsed.data.arenaSlug }, select: { id: true } });
   if (!arena) return { error: "Arena não encontrada." };
   const account = await findAccountByPhone(arena.id, normalizePhone(parsed.data.phone));
   if (!account?.player.active || !await bcrypt.compare(parsed.data.password, account.passwordHash)) return { error: "Telefone ou senha inválidos." };
   await createPublicPlayerSession(account.id);
-  redirect(`/reservar/${parsed.data.arenaSlug}`);
+  redirect(destination(parsed.data.arenaSlug, parsed.data.returnTo));
 }
 
 export async function logoutPublicClientAction(formData: FormData) {

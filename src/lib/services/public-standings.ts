@@ -15,10 +15,11 @@ export type ArenaPublicStandings = {
   arena: {
     name: string;
     logoUrl: string;
+    slug: string;
   };
   options: PublicStandingsOption[];
   selectedOptionId: string | null;
-  selectedTab: "ranking" | "games" | "rules";
+  selectedTab: "ranking" | "games" | "rules" | "portal";
   leagueRules: Array<{ id: string; eventName: string; categoryName: string; rules: string }>;
   gameCategories: Array<{ id: string; label: string }>;
   selectedGameCategoryId: string | null;
@@ -65,6 +66,7 @@ export async function getArenaPublicStandings(
       id: true,
       name: true,
       logoUrl: true,
+      slug: true,
     },
   });
   if (!arena) {
@@ -173,7 +175,7 @@ export async function getArenaPublicStandings(
       },
     }),
   ]);
-  const selectedTab = requested.tab === "games" || requested.tab === "rules" ? requested.tab : "ranking";
+  const selectedTab = requested.tab === "games" || requested.tab === "rules" || requested.tab === "portal" ? requested.tab : "ranking";
   const selectedGameStatus: PublicGameStatus | "ALL" =
     requested.status === "SCHEDULED" ||
     requested.status === "LIVE" ||

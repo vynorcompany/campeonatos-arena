@@ -1,4 +1,7 @@
 import { notFound } from "next/navigation";
+import { PublicClientAuthForm } from "@/components/public-client-auth-form";
+import { getPublicPlayerAuth } from "@/lib/auth/player-session";
+import { getPublicLeaguePortal } from "@/lib/services/public-league-portal";
 import { PublicStandings } from "@/components/tournaments/public-standings";
 import { getArenaPublicStandings } from "@/lib/services/public-standings";
 
@@ -16,10 +19,11 @@ export default async function PublicStandingsPage({
     status?: string;
   };
 }) {
-  const data = await getArenaPublicStandings(params.arenaSlug, searchParams);
+  const [data, currentClient] = await Promise.all([getArenaPublicStandings(params.arenaSlug, searchParams), getPublicPlayerAuth(params.arenaSlug)]);
   if (!data) {
     notFound();
   }
 
-  return <PublicStandings data={data} />;
+  const portal = currentClient ? await getPublicLeaguePortal(params.arenaSlug, currentClient.playerId) : null;
+  return <PublicStandings data={data} currentClient={currentClient} portal={portal} authForm={<PublicClientAuthForm arenaSlug={params.arenaSlug} returnTo={`/classificacao/${params.arenaSlug}?tab=portal`} />} />;
 }
