@@ -126,6 +126,7 @@ model Arena {
   regulationAcceptances RegulationAcceptance[]
   regulationDocuments RegulationDocument[]
   notifications ArenaNotification[]
+  balanceMovements ClientBalanceMovement[]
   leagueChallenges LeagueChallenge[]
 }
 
@@ -239,6 +240,7 @@ model Player {
   comandas    Comanda[]
   account     PlayerAccount?
   notifications PlayerNotification[]
+  balanceMovements ClientBalanceMovement[]
   respondedLeagueChallenges LeagueChallenge[] @relation("LeagueChallengeResponder")
 
   @@index([arenaId, active])
@@ -298,6 +300,22 @@ model PlayerNotification {
   player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@index([playerId, readAt, createdAt])
+}
+
+model ClientBalanceMovement {
+  id           String   @id @default(cuid())
+  kind         String
+  amountCents  Int      @default(0)
+  classesDelta Int      @default(0)
+  reason       String
+  createdAt    DateTime @default(now())
+  arenaId      String
+  playerId     String
+  arena        Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  player       Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([arenaId, createdAt])
+  @@index([playerId, createdAt])
 }
 
 model Tournament {

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { PlayerForm } from "@/components/forms/player-form";
 
-export function AthleteCreatePanel() {
+export function AthleteCreatePanel({ openLabel = "Adicionar novo atleta" }: { openLabel?: string }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -15,7 +15,7 @@ export function AthleteCreatePanel() {
         aria-controls="athlete-create-form"
         onClick={() => setIsOpen((current) => !current)}
       >
-        {isOpen ? "Fechar cadastro" : "Adicionar novo atleta"}
+        {isOpen ? "Fechar cadastro" : openLabel}
       </button>
 
       <div id="athlete-create-form" hidden={!isOpen}>
