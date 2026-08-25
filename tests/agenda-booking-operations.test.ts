@@ -10,7 +10,7 @@ test("occupied agenda slots expose cancellation and command operations", () => {
 
   assert.match(dialog, /agenda-slot-options-trigger/);
   assert.match(dialog, /Cancelar horário/);
-  assert.match(dialog, /Livrar horário/);
+  assert.match(dialog, /Liberar horário/);
   assert.match(dialog, /Abrir comandas/);
   assert.match(dialog, /cancelCourtBookingAction/);
   assert.match(dialog, /openBookingComandasAction/);

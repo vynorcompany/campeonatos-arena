@@ -23,6 +23,7 @@ test("client accounts use a dedicated player session linked to an existing phone
 });
 
 test("public registration resolves an existing player by normalized phone without blocking a repeated name", () => {
+  const schema = readFileSync(resolve(process.cwd(), "prisma/schema.prisma"), "utf8");
   const registration = resolve(process.cwd(), "src/lib/services/public-client-registration.ts");
   assert.ok(existsSync(registration));
   const source = readFileSync(registration, "utf8");
@@ -30,6 +31,8 @@ test("public registration resolves an existing player by normalized phone withou
   assert.match(source, /resolvePublicClientPlayer/);
   assert.match(source, /return playerByPhone/);
   assert.doesNotMatch(source, /Já existe um cliente com este nome/);
+  const playerModel = schema.match(/model Player \{[\s\S]*?\n\}/)?.[0] ?? "";
+  assert.doesNotMatch(playerModel, /@@unique\(\[arenaId, name\]\)/);
 });
 
 test("public league panels require a signed-in client", () => {

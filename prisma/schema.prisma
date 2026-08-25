@@ -241,7 +241,6 @@ model Player {
   notifications PlayerNotification[]
   respondedLeagueChallenges LeagueChallenge[] @relation("LeagueChallengeResponder")
 
-  @@unique([arenaId, name])
   @@index([arenaId, active])
   @@index([arenaId, points])
 }
