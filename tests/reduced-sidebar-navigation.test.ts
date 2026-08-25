@@ -20,6 +20,17 @@ test("sidebar exposes the compact arena workspaces and keeps settings near sign 
   assert.doesNotMatch(navigation, /Suporte\/Ajuda/);
 });
 
+test("sidebar and dashboard share the new operational visual system", () => {
+  const navigation = readFileSync(resolve(process.cwd(), "src/components/layout/nav-links.tsx"), "utf8");
+  const dashboard = readFileSync(resolve(process.cwd(), "src/app/(app)/painel/page.tsx"), "utf8");
+  const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
+
+  assert.match(navigation, /nav-chevron/);
+  assert.match(dashboard, /workspace-page/);
+  assert.match(styles, /\.sidebar\s*\{[\s\S]*?linear-gradient\(180deg, #061d46/s);
+  assert.match(styles, /\.workspace-page\s*\{/);
+});
+
 test("sidebar groups financial routines and reports in dedicated expandable modules", () => {
   const navigation = readFileSync(resolve(process.cwd(), "src/components/layout/nav-links.tsx"), "utf8");
 

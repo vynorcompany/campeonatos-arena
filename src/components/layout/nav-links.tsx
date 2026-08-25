@@ -15,7 +15,8 @@ type IconName =
   | "users"
   | "account"
   | "calendar"
-  | "support";
+  | "support"
+  | "chevron";
 
 type NavItem = {
   href: string;
@@ -141,7 +142,8 @@ function NavIcon({ name }: { name: IconName }) {
         <path d="M9 8h6" />
         <path d="M9 12h4" />
       </>
-    )
+    ),
+    chevron: <path d="m9 18 6-6-6-6" />
   };
 
   return <svg {...common}>{paths[name]}</svg>;
@@ -396,7 +398,9 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
                       >
                         <span className="nav-icon" aria-hidden="true">{item.icon ? <NavIcon name={item.icon} /> : null}</span>
                         <span>{item.label}</span>
-                        <span aria-hidden="true">{isOpen ? "-" : "+"}</span>
+                            <span className={`nav-chevron${isOpen ? " nav-chevron-open" : ""}`} aria-hidden="true">
+                              <NavIcon name="chevron" />
+                            </span>
                       </button>
                     ) : (
                       <Link href={item.href} className={`nav-link${isActive ? " nav-link-active" : ""}`}>
@@ -410,7 +414,7 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
                       {item.children.map((child) => (
                         child.children?.length ? <div className="nav-submenu-block" key={child.href}>
                           <button type="button" className={`nav-sub-link nav-sub-link-parent${itemIsActive(child) ? " nav-sub-link-active" : ""}`} onClick={() => toggleItem(child.href)} aria-expanded={openItems.has(child.href) || itemIsActive(child)}>
-                            <span>{child.label}</span><span aria-hidden="true">{openItems.has(child.href) || itemIsActive(child) ? "−" : "+"}</span>
+                                <span>{child.label}</span><span className={`nav-chevron${openItems.has(child.href) || itemIsActive(child) ? " nav-chevron-open" : ""}`} aria-hidden="true"><NavIcon name="chevron" /></span>
                           </button>
                           <div className={`nav-submenu nav-submenu-nested${openItems.has(child.href) || itemIsActive(child) ? " nav-submenu-open" : ""}`}>
                             {child.children.map((grandchild) => <Link key={grandchild.href} href={grandchild.href} className={`nav-sub-link nav-sub-link-nested${isActivePath(pathname, grandchild.href) ? " nav-sub-link-active" : ""}`}>{grandchild.label}</Link>)}

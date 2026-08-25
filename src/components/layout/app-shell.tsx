@@ -38,7 +38,7 @@ export function AppShell({
       <aside className="sidebar" aria-label="Menu lateral">
         <div className="sidebar-inner">
           <div className="sidebar-top">
-            <div className="brand-lockup">
+            <div className="brand-lockup sidebar-brand-lockup">
               <div className="brand-logo-wrap">
                 <Image
                   src={arenaLogoUrl || "/arena-profile.jpg"}
@@ -67,7 +67,7 @@ export function AppShell({
             <NavLinks canManageUsers={canManageUsers} visibleModules={visibleModules} />
           </div>
 
-          <div className="sidebar-user">
+          <div className="sidebar-user sidebar-user-panel">
             <div className="user-copy">
               <p className="user-name">{userName}</p>
               <p className="muted">{userRole}</p>

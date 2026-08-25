@@ -28,7 +28,7 @@ export default async function OverviewPage() {
     : "0";
 
   return (
-    <div className="stack-md">
+    <div className="stack-md workspace-page">
       <header className="page-header">
         <div className="stack-xs">
           <p className="eyebrow">Visão geral</p>
