@@ -99,20 +99,16 @@ async function main() {
     ] as const;
 
     for (const [name, points] of playerSeeds) {
-      await prisma.player.upsert({
-        where: {
-          arenaId_name: {
-            arenaId: arena.id,
-            name
-          }
-        },
-        update: { points, active: true },
-        create: {
-          arenaId: arena.id,
-          name,
-          points
-        }
+      const existingPlayer = await prisma.player.findFirst({
+        where: { arenaId: arena.id, name },
+        orderBy: { createdAt: "asc" }
       });
+
+      if (existingPlayer) {
+        await prisma.player.update({ where: { id: existingPlayer.id }, data: { points, active: true } });
+      } else {
+        await prisma.player.create({ data: { arenaId: arena.id, name, points } });
+      }
     }
 
     const players = await prisma.player.findMany({
