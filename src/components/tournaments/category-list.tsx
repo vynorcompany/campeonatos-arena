@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EventIcon } from "@/components/tournaments/event-icon";
 
 type CategoryListItem = {
   id: string;
@@ -33,7 +34,7 @@ export function CategoryList({
           <h2 id="category-list-title">Categorias do evento</h2>
           <p className="muted">Gerencie as categorias e acompanhe as inscrições.</p>
         </div>
-        <a className="button button-primary" href="#gerenciar-categorias">＋ Adicionar categoria</a>
+        <a className="button button-primary" href="#gerenciar-categorias"><span className="category-add-symbol">＋</span>Adicionar categoria</a>
       </div>
 
       {categories.length ? (
@@ -41,7 +42,7 @@ export function CategoryList({
           <div className="t-category-table-head"><span>Categoria</span><span>Tipo</span><span>Duplas inscritas</span><span>Status</span><span>Ações</span></div>
           {categories.map((category) => (
             <div className="t-category-row" key={category.id}>
-              <span className="t-category-icon">♧</span>
+              <span className="t-category-icon"><EventIcon name="users" /></span>
               <div className="t-category-name"><strong>{category.name}</strong><small>{category.competition ? "Categoria configurada" : "Aguardando configuração"}</small></div>
               <span className="t-category-format">
                 {category.competition

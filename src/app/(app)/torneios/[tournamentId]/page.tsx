@@ -4,8 +4,8 @@ import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { TournamentCategoryManagerForm } from "@/components/forms/tournament-category-manager-form";
 import { CategoryList } from "@/components/tournaments/category-list";
+import { EventIcon } from "@/components/tournaments/event-icon";
 import { PublicRegistrationLinkActions } from "@/components/tournaments/public-registration-link-actions";
-import { StatusBadge } from "@/components/tournaments/status-badge";
 import { TournamentEventEditForm } from "@/components/tournaments/tournament-event-edit-form";
 import { deleteTournamentAction } from "@/lib/actions/tournament";
 import { requireModuleView } from "@/lib/auth/guards";
@@ -70,6 +70,7 @@ export default async function TournamentDetailPage({
     0,
   );
   const createdAt = new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(tournament.createdAt);
+  const eventState = tournament.status === "PUBLISHED" ? "Publicado" : tournament.status === "FINISHED" ? "Finalizado" : "Editando";
 
   return (
     <div className="event-dashboard">
@@ -77,10 +78,10 @@ export default async function TournamentDetailPage({
         <div className="event-operation-title">
           <p className="eyebrow">Evento</p>
           <h1>{tournament.name}</h1>
-          <p className="event-breadcrumb"><Link href="/torneios">Eventos</Link><span>›</span>{tournament.name}</p>
+          <p className="event-breadcrumb"><Link href="/torneios">Eventos</Link><EventIcon name="chevron" size={13} />{tournament.name}</p>
         </div>
         <div className="event-operation-actions">
-          <StatusBadge status={tournament.registrationPhase} />
+          <span className="event-editing-badge">{eventState} <EventIcon name="edit" size={14} /></span>
           {tournament.creationMode === "PUBLIC" ? (
              <PublicRegistrationLinkActions slug={tournament.publicSlug} />
           ) : null}
@@ -90,10 +91,10 @@ export default async function TournamentDetailPage({
             target="_blank"
             rel="noreferrer"
           >
-            Ver página pública
+            <EventIcon name="external" />Ver página pública
           </Link>
           <Link href="/torneios" className="button">
-             Voltar aos eventos
+             <EventIcon name="arrow-left" />Voltar aos eventos
            </Link>
           <SafeActionForm
             action={deleteTournamentAction}
@@ -112,10 +113,10 @@ export default async function TournamentDetailPage({
       </header>
 
       <section className="event-metrics-grid" aria-label="Resumo do evento">
-        <article className="event-metric-card"><span className="event-metric-icon">✎</span><div><small>Status do evento</small><strong>{tournament.registrationPhase === "REGISTRATIONS" ? "Editando" : tournament.registrationPhase}</strong><p>Controle disponível para administradores.</p></div></article>
-        <article className="event-metric-card"><span className="event-metric-icon">♜</span><div><small>Categorias</small><strong>{tournament.categories.length}</strong><p>{finishedCategoryCount} concluídas</p></div></article>
-        <article className="event-metric-card"><span className="event-metric-icon event-metric-icon-success">♧</span><div><small>Inscrições / duplas</small><strong>{pairCount}</strong><p>Duplas inscritas</p></div></article>
-        <article className="event-metric-card"><span className="event-metric-icon event-metric-icon-purple">▣</span><div><small>Criado em</small><strong>{createdAt}</strong><p>Informação do evento</p></div></article>
+        <article className="event-metric-card"><span className="event-metric-icon"><EventIcon name="edit" size={24} /></span><div><small>Status do evento</small><strong>{eventState}</strong><p>O evento está visível apenas para administradores.</p></div></article>
+        <article className="event-metric-card"><span className="event-metric-icon"><EventIcon name="trophy" size={24} /></span><div><small>Categorias</small><strong>{tournament.categories.length}</strong><p>Categorias configuradas</p></div></article>
+        <article className="event-metric-card"><span className="event-metric-icon event-metric-icon-success"><EventIcon name="users" size={24} /></span><div><small>Inscrições / duplas</small><strong>{pairCount}</strong><p>Duplas inscritas</p></div></article>
+        <article className="event-metric-card"><span className="event-metric-icon event-metric-icon-purple"><EventIcon name="calendar" size={24} /></span><div><small>Criado em</small><strong>{createdAt}</strong><p>Informação do evento</p></div></article>
       </section>
 
       <div className="event-detail-grid">
@@ -164,14 +165,14 @@ export default async function TournamentDetailPage({
         </div>
         <aside className="event-side-column">
           <section className="event-quick-actions">
-            <header><span>ϟ</span><h2>Ações rápidas</h2></header>
-            <a href="#gerenciar-categorias"><strong>Configurar categorias</strong><small>Crie, edite e organize as categorias do evento.</small><b>›</b></a>
-            <a href="#gerenciar-categorias"><strong>Gerenciar inscrições</strong><small>Consulte as duplas e a situação de cada categoria.</small><b>›</b></a>
-            <Link href={`/classificacao/${tournament.arena.slug}`} target="_blank" rel="noreferrer"><strong>Página pública</strong><small>Veja como o evento será apresentado ao público.</small><b>›</b></Link>
-            <details className="event-edit-action"><summary><strong>Editar evento</strong><b>›</b></summary><TournamentEventEditForm tournament={tournament} /></details>
+            <header><EventIcon name="bolt" /><h2>Ações rápidas</h2></header>
+            <a href="#gerenciar-categorias"><span className="event-quick-action-icon"><EventIcon name="sliders" /></span><strong>Configurar categorias</strong><small>Crie, edite e organize as categorias do evento.</small><EventIcon name="chevron" /></a>
+            <a href="#gerenciar-categorias"><span className="event-quick-action-icon event-quick-action-icon-success"><EventIcon name="users" /></span><strong>Gerenciar inscrições</strong><small>Veja, aprove ou gerencie inscrições das duplas.</small><EventIcon name="chevron" /></a>
+            <Link href={`/classificacao/${tournament.arena.slug}`} target="_blank" rel="noreferrer"><span className="event-quick-action-icon event-quick-action-icon-purple"><EventIcon name="globe" /></span><strong>Página pública</strong><small>Visualizar como o evento aparece para o público.</small><EventIcon name="chevron" /></Link>
+            <details className="event-edit-action"><summary><span className="event-quick-action-icon"><EventIcon name="edit" /></span><strong>Editar evento</strong><EventIcon name="chevron" /></summary><TournamentEventEditForm tournament={tournament} /></details>
           </section>
           <section className="event-information">
-            <header><span>ⓘ</span><h2>Informações do evento</h2></header>
+            <header><EventIcon name="info" /><h2>Informações do evento</h2></header>
             <dl><div><dt>Organizador</dt><dd>{auth.arenaName}</dd></div><div><dt>Formato</dt><dd>{tournament.categories[0]?.competition ? formatLabel(tournament.categories[0].competition.format) : "A definir"}</dd></div><div><dt>Visibilidade</dt><dd>{tournament.creationMode === "PUBLIC" ? "Público" : "Privado"}</dd></div><div><dt>Atualizado em</dt><dd>{new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(tournament.updatedAt)}</dd></div></dl>
           </section>
         </aside>

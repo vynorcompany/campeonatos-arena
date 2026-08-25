@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { EventIcon } from "@/components/tournaments/event-icon";
 
 export function PublicRegistrationLinkActions({ slug }: { slug: string }) {
   const [copied, setCopied] = useState(false);
@@ -17,10 +18,10 @@ export function PublicRegistrationLinkActions({ slug }: { slug: string }) {
   return (
     <div className="section-actions">
       <Link href={path} target="_blank" rel="noreferrer" className="button">
-        Abrir inscrição pública
+        <EventIcon name="user-plus" />Abrir inscrição pública
       </Link>
       <button type="button" className="button" onClick={handleCopy}>
-        {copied ? "Link copiado" : "Copiar link"}
+        <EventIcon name="link" />{copied ? "Link copiado" : "Copiar link"}
       </button>
     </div>
   );

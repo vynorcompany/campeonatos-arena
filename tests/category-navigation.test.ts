@@ -35,6 +35,8 @@ test("event detail uses the operational dashboard layout", async () => {
   assert.match(source, /event-metrics-grid/);
   assert.match(source, /event-detail-grid/);
   assert.match(source, /event-quick-actions/);
+  assert.match(source, /EventIcon/);
+  assert.doesNotMatch(source, /event-metric-icon">✎/);
   assert.match(styles, /\.event-metrics-grid\s*\{/);
   assert.match(styles, /\.event-detail-grid\s*\{/);
 });
