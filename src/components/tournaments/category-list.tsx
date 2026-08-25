@@ -30,19 +30,19 @@ export function CategoryList({
     <section className="t-category-index" aria-labelledby="category-list-title">
       <div className="t-category-index-head">
         <div>
-          <p className="eyebrow">Categorias</p>
           <h2 id="category-list-title">Categorias do evento</h2>
-          <p className="muted">
-            Escolha uma categoria para configurar e operar.
-          </p>
+          <p className="muted">Gerencie as categorias e acompanhe as inscrições.</p>
         </div>
+        <a className="button button-primary" href="#gerenciar-categorias">＋ Adicionar categoria</a>
       </div>
 
       {categories.length ? (
         <div className="t-category-list">
+          <div className="t-category-table-head"><span>Categoria</span><span>Tipo</span><span>Duplas inscritas</span><span>Status</span><span>Ações</span></div>
           {categories.map((category) => (
             <div className="t-category-row" key={category.id}>
-              <strong>{category.name}</strong>
+              <span className="t-category-icon">♧</span>
+              <div className="t-category-name"><strong>{category.name}</strong><small>{category.competition ? "Categoria configurada" : "Aguardando configuração"}</small></div>
               <span className="t-category-format">
                 {category.competition
                   ? formatLabels[category.competition.format]
@@ -53,11 +53,12 @@ export function CategoryList({
                   ? `${category.competition.pairCount} duplas`
                   : "—"}
               </span>
+              <span className={`t-category-status ${category.competition ? "active" : "pending"}`}>{category.competition ? "Ativa" : "Pendente"}</span>
               <Link
                 href={`/torneios/${tournamentId}/categorias/${category.id}`}
                 className="t-category-enter"
               >
-                Entrar <span aria-hidden="true">→</span>
+                Entrar <span aria-hidden="true">›</span>
               </Link>
             </div>
           ))}

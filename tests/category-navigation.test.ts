@@ -25,6 +25,20 @@ test("event detail is an editorial category index", async () => {
   assert.doesNotMatch(source, /CategoryResultsPanel/);
 });
 
+test("event detail uses the operational dashboard layout", async () => {
+  const source = await readSource(
+    "src", "app", "(app)", "torneios", "[tournamentId]", "page.tsx",
+  );
+  const styles = await readSource("src", "app", "globals.css");
+
+  assert.match(source, /event-operation-header/);
+  assert.match(source, /event-metrics-grid/);
+  assert.match(source, /event-detail-grid/);
+  assert.match(source, /event-quick-actions/);
+  assert.match(styles, /\.event-metrics-grid\s*\{/);
+  assert.match(styles, /\.event-detail-grid\s*\{/);
+});
+
 test("category list links each row to its dedicated workspace", async () => {
   const source = await readSource(
     "src",
@@ -149,13 +163,13 @@ test("dedicated category route renders operational panels for the selected categ
   );
 });
 
-test("editorial category rows use the approved restrained grid", async () => {
+test("event category rows use the operational dashboard grid", async () => {
   const source = await readSource("src", "app", "globals.css");
 
   assert.match(
     source,
-    /\.t-category-row\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+9rem\s+7rem\s+8rem;/s,
+    /\.t-category-row\s*\{[^}]*grid-template-columns:\s*40px\s+minmax\(0,\s*1fr\)\s+6\.5rem\s+8\.5rem\s+6rem\s+7rem;/s,
   );
   assert.match(source, /\.t-category-row\s*\{[^}]*padding:\s*15px\s+0;/s);
-  assert.match(source, /\.t-category-enter\s*\{[^}]*text-align:\s*right;/s);
+  assert.match(source, /\.t-category-enter\s*\{[^}]*text-align:\s*center;/s);
 });
