@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createPublicPlayerSession, destroyPublicPlayerSession } from "@/lib/auth/player-session";
 import { prisma } from "@/lib/prisma";
+import { resolvePublicClientPlayer } from "@/lib/services/public-client-registration";
 
 export type PublicClientAuthState = { error: string | null };
 
@@ -16,7 +17,7 @@ function destination(arenaSlug: string, returnTo: string) { return returnTo.star
 
 async function findPlayerByPhone(arenaId: string, phone: string) {
   const players = await prisma.player.findMany({ where: { arenaId, active: true, phone: { not: "" } }, include: { account: true }, orderBy: { createdAt: "asc" } });
-  return players.find((player) => normalizePhone(player.phone) === phone) ?? null;
+  return resolvePublicClientPlayer(players, phone);
 }
 
 async function findAccountByPhone(arenaId: string, phone: string) {

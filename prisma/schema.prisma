@@ -962,7 +962,6 @@ model BookingType {
   arenaId   String
   arena     Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
 
-  @@unique([arenaId, name])
   @@index([arenaId, active])
 }
 

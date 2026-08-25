@@ -108,7 +108,7 @@ test("public standings renders the branded header and finished-game score treatm
 
   assert.match(component, /public-standings-brand-band/);
   assert.match(component, /public-standings-header-support/);
-  assert.match(component, /Acompanhe as classificaç[õo]es e os jogos da arena\./);
+  assert.match(component, /Entre para acompanhar sua Liga, jogos e regras da Arena\./);
   assert.match(component, /game\.status === "FINISHED" && game\.finalScore/);
   assert.match(component, /public-game-score/);
   assert.match(component, /public-game-set-scores/);
@@ -448,7 +448,8 @@ test("public arena route renders ranking and game views", async () => {
   assert.match(component, />\s*Ranking/);
   assert.match(component, />\s*Jogos/);
   assert.match(component, /public-standings-header-content/);
-  assert.match(component, /Arena Padel — Classificação e Rankings/);
+  assert.match(component, /Arena Padel — Área do cliente/);
+  assert.match(component, /Entre para acompanhar sua Liga, jogos e regras da Arena/);
   assert.match(component, /public-standings-filter-label/);
   assert.match(component, /public-standing-mobile-card/);
   assert.match(component, /Vitórias/);

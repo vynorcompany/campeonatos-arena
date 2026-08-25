@@ -6906,3 +6906,59 @@ button {
 
 .public-league-portal { background: linear-gradient(145deg, #f8fcff, #eef7fb); }.public-league-portal-header, .public-portal-pair > header, .public-challenge-list > article, .public-challenge-actions { display: flex; gap: 12px; justify-content: space-between; align-items: center; }.public-league-portal h2, .public-league-portal h3, .public-league-portal p { margin: 0; }.public-portal-badge { padding: 6px 9px; border-radius: var(--radius-control); background: #e2f4ed; color: #087353; font-size: .72rem; font-weight: 800; }.public-portal-notifications { display: grid; gap: 6px; }.public-portal-notifications a { display: grid; gap: 2px; padding: 10px; border: 1px solid #c9e0ef; border-radius: var(--radius-control); background: #fff; color: #173e5d; text-decoration: none; }.public-portal-notifications a span, .public-portal-pair header span, .public-portal-pair header small, .public-challenge-list article span, .public-challenge-list article small { color: var(--muted); font-size: .72rem; }.public-portal-pairs { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }.public-portal-pair { display: grid; gap: 12px; padding: 14px; border: 1px solid #c6dae8; border-radius: 10px; background: #fff; }.public-portal-pair > header { align-items: flex-start; }.public-portal-pair header > div { display: grid; gap: 3px; }.public-challenge-form { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: end; }.public-challenge-form label { display: grid; gap: 4px; color: #446078; font-size: .7rem; font-weight: 800; }.public-challenge-form select { width: 100%; min-height: 34px; padding: 0 8px; border: 1px solid #cbdbe8; border-radius: var(--radius-control); background: #fff; color: #17324b; }.public-challenge-list { display: grid; gap: 8px; }.public-challenge-list > article { padding: 11px; border: 1px solid #d6e4ee; border-radius: var(--radius-control); background: #fff; }.public-challenge-list article > div:first-child { display: grid; gap: 3px; }.public-challenge-actions { justify-content: flex-end; }.public-challenge-actions form { margin: 0; }
 @media (max-width: 700px) { .public-league-portal-header, .public-portal-pair > header, .public-challenge-list > article { align-items: flex-start; flex-direction: column; }.public-challenge-form { grid-template-columns: 1fr; }.public-challenge-actions { width: 100%; justify-content: flex-start; } }
+
+/* Base central: cada módulo é uma superfície contínua, não cartões empilhados. */
+.app-main { background: #ffffff; }
+.content-shell { min-height: calc(100vh - 32px); }
+.page-header {
+  margin: 0;
+  padding: 4px 0 22px;
+  border: 0;
+  border-bottom: 2px solid color-mix(in srgb, var(--brand) 24%, var(--line));
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.page-header::after { content: ""; position: absolute; }
+.page-header-showcase {
+  border-color: transparent;
+  background: transparent;
+  color: var(--text);
+}
+.page-header-showcase .eyebrow { color: var(--brand); }
+.page-header-showcase .muted { color: var(--muted); }
+.section-card {
+  padding: 22px 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.stack-md > .section-card:last-child { border-bottom: 1px solid var(--line); }
+.card, .stat-card {
+  border-radius: 10px;
+  box-shadow: 0 5px 16px rgba(19, 48, 83, 0.05);
+}
+.simple-item, .data-table tbody tr { background: #ffffff; }
+.public-standings-page {
+  width: min(100% - 32px, 1160px);
+  margin: 0 auto;
+  padding: 28px 0 48px;
+}
+.public-standings-header { border-radius: 0; box-shadow: none; }
+.public-standings-private {
+  display: grid;
+  width: min(100%, 520px);
+  margin: 8px auto 0;
+  padding: 26px;
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--brand);
+  background: #ffffff;
+}
+.public-league-portal { border-top: 3px solid var(--brand); background: linear-gradient(180deg, #ffffff, #f4f9ff); }
+@media (max-width: 720px) {
+  .app-main { padding: 16px; }
+  .public-standings-page { width: min(100% - 24px, 1160px); padding-top: 18px; }
+  .page-header { align-items: flex-start; flex-direction: column; }
+}

@@ -22,6 +22,23 @@ test("client accounts use a dedicated player session linked to an existing phone
   assert.match(form, /Telefone/);
 });
 
+test("public registration resolves an existing player by normalized phone without blocking a repeated name", () => {
+  const registration = resolve(process.cwd(), "src/lib/services/public-client-registration.ts");
+  assert.ok(existsSync(registration));
+  const source = readFileSync(registration, "utf8");
+
+  assert.match(source, /resolvePublicClientPlayer/);
+  assert.match(source, /return playerByPhone/);
+  assert.doesNotMatch(source, /Já existe um cliente com este nome/);
+});
+
+test("public league panels require a signed-in client", () => {
+  const standings = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"), "utf8");
+
+  assert.match(standings, /if \(!currentClient\) return/);
+  assert.match(standings, /public-standings-private/);
+});
+
 test("online bookings create arena notifications that the team can read in the shell", () => {
   const schema = readFileSync(resolve(process.cwd(), "prisma/schema.prisma"), "utf8");
   const calendar = readFileSync(resolve(process.cwd(), "src/lib/actions/calendar.ts"), "utf8");

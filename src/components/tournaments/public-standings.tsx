@@ -22,30 +22,25 @@ export function PublicStandings({
   const isRanking = data.selectedTab === "ranking";
   const isRules = data.selectedTab === "rules";
   const isPortal = data.selectedTab === "portal";
+  const publicHeader = <header className="public-standings-header public-standings-brand-band">
+    <div className="public-standings-header-content">
+      <div className="public-standings-brand-lockup">
+        {data.arena.logoUrl ? <img className="public-standings-logo" src={data.arena.logoUrl} alt={`Logo da arena ${data.arena.name}`} /> : null}
+        <div className="public-standings-brand-copy">
+          <h1>Arena Padel — Área do cliente</h1>
+          <p className="public-standings-header-support">Entre para acompanhar sua Liga, jogos e regras da Arena.</p>
+        </div>
+      </div>
+    </div>
+  </header>;
+
+  if (!currentClient) return <main className="stack-md public-standings-page">{publicHeader}<section className="section-card public-standings-private">{authForm}</section></main>;
 
   return (
     <main
       className="stack-md public-standings-page"
     >
-      <header className="public-standings-header public-standings-brand-band">
-        <div className="public-standings-header-content">
-          <div className="public-standings-brand-lockup">
-            {data.arena.logoUrl ? (
-              <img
-                className="public-standings-logo"
-                src={data.arena.logoUrl}
-                alt={`Logo da arena ${data.arena.name}`}
-              />
-            ) : null}
-            <div className="public-standings-brand-copy">
-          <h1>Arena Padel — Classificação e Rankings</h1>
-          <p className="public-standings-header-support">
-            Acompanhe as classificações e os jogos da arena.
-          </p>
-            </div>
-          </div>
-        </div>
-      </header>
+      {publicHeader}
 
       <nav className="public-standings-tabs" aria-label="Visualização pública">
         <Link
