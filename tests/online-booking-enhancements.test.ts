@@ -8,6 +8,8 @@ test("online booking enforces a configurable lead time and marks pending request
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/calendar.ts"), "utf8");
   const dialog = readFileSync(resolve(process.cwd(), "src/components/online-booking-settings-dialog.tsx"), "utf8");
   const agenda = readFileSync(resolve(process.cwd(), "src/app/(app)/agenda/page.tsx"), "utf8");
+  const bookingPage = readFileSync(resolve(process.cwd(), "src/app/reservar/[arenaSlug]/page.tsx"), "utf8");
+  const bookingForm = readFileSync(resolve(process.cwd(), "src/components/public-court-booking-form.tsx"), "utf8");
   const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
 
   assert.match(schema, /model Arena \{[\s\S]*onlineBookingLeadTimeMinutes\s+Int/);
@@ -16,7 +18,12 @@ test("online booking enforces a configurable lead time and marks pending request
   assert.match(actions, /export async function confirmOnlineBookingAction/);
   assert.match(dialog, /Prazo mínimo para agendamento/);
   assert.match(agenda, /daily-court-event-online/);
-  assert.match(agenda, /OnlineBookingConfirmButton/);
+  assert.match(agenda, /agenda-pending-confirmation/);
+  assert.match(agenda, /Aguardando confirmação/);
+  assert.match(actions, /playerNotification\.createMany/);
+  assert.match(actions, /Reserva confirmada/);
+  assert.match(bookingPage, /pendingReservations/);
+  assert.match(bookingForm, /Aguardando confirmação/);
   assert.match(styles, /agenda-online-settings-trigger[\s\S]*background:/);
   assert.match(styles, /daily-court-event-online/);
 });

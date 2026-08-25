@@ -135,7 +135,7 @@ export async function createPublicCourtBookingAction(formData: FormData) {
     if (!player) throw new Error("Cliente não encontrado.");
     const occurrence = await tx.scheduleOccurrence.create({ data: { arenaId: arena.id, sourceType: "ONLINE_BOOKING", title: `${player.name} - Reserva`, startsAt, endsAt, status: arena.onlineBookingRequiresConfirmation ? "PENDING_CONFIRMATION" : arena.onlineBookingPaymentEnabled ? "PENDING_PAYMENT" : "SCHEDULED", bookingTypeName: "Reserva", occurrenceCourts: { create: { courtId: court.id } }, participants: { create: { playerId: player.id } } } });
     const localDate = `${startsAt.getFullYear()}-${String(startsAt.getMonth() + 1).padStart(2, "0")}-${String(startsAt.getDate()).padStart(2, "0")}`;
-    await tx.arenaNotification.create({ data: { arenaId: arena.id, title: "Nova reserva online", message: `${player.name} solicitou ${court.name} às ${String(startsAt.getHours()).padStart(2, "0")}:${String(startsAt.getMinutes()).padStart(2, "0")}.`, href: `/agenda?data=${localDate}`, type: "ONLINE_BOOKING" } });
+    await tx.arenaNotification.create({ data: { arenaId: arena.id, title: arena.onlineBookingRequiresConfirmation ? "Reserva aguardando confirmação" : "Nova reserva online", message: `${player.name} solicitou ${court.name} às ${String(startsAt.getHours()).padStart(2, "0")}:${String(startsAt.getMinutes()).padStart(2, "0")}.`, href: `/agenda?data=${localDate}`, type: "ONLINE_BOOKING" } });
   });
   revalidatePath("/agenda");
   revalidatePath(`/reservar/${arena.slug}`);
@@ -145,8 +145,15 @@ export async function confirmOnlineBookingAction(formData: FormData) {
   const auth = await requireModuleEdit("calendar");
   const occurrenceId = z.string().trim().min(1).safeParse(formData.get("occurrenceId"));
   if (!occurrenceId.success) throw new Error("Reserva inválida.");
-  const confirmed = await prisma.scheduleOccurrence.updateMany({ where: { id: occurrenceId.data, arenaId: auth.arenaId, sourceType: "ONLINE_BOOKING", status: "PENDING_CONFIRMATION" }, data: { status: "SCHEDULED" } });
-  if (!confirmed.count) throw new Error("Esta reserva já foi confirmada ou não foi encontrada.");
+  await prisma.$transaction(async (tx) => {
+    const occurrence = await tx.scheduleOccurrence.findFirst({ where: { id: occurrenceId.data, arenaId: auth.arenaId, sourceType: "ONLINE_BOOKING", status: "PENDING_CONFIRMATION" }, include: { arena: { select: { slug: true } }, participants: { select: { playerId: true } } } });
+    if (!occurrence) throw new Error("Esta reserva já foi confirmada ou não foi encontrada.");
+    await tx.scheduleOccurrence.update({ where: { id: occurrence.id }, data: { status: "SCHEDULED" } });
+    if (occurrence.participants.length) {
+      const dateLabel = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(occurrence.startsAt);
+      await tx.playerNotification.createMany({ data: occurrence.participants.map((participant) => ({ playerId: participant.playerId, type: "ONLINE_BOOKING_CONFIRMED", title: "Reserva confirmada", message: `Sua reserva para ${dateLabel} foi confirmada pela arena.`, href: `/reservar/${occurrence.arena.slug}` })) });
+    }
+  });
   refreshCalendar();
 }
 

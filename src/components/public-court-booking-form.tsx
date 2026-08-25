@@ -12,7 +12,7 @@ function duration(minutes: number) { return minutes % 60 ? `${Math.floor(minutes
 function dateMinute(value: string) { const [, time = "00:00"] = value.split("T"); const [hour, minute] = time.split(":").map(Number); return hour * 60 + minute; }
 function endLabel(startsAt: string, minutes: number) { const value = dateMinute(startsAt) + minutes; return `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`; }
 
-export function PublicCourtBookingForm({ arenaSlug, courts, currentClient, layout, paymentOnlineEnabled, reservedSlots }: { arenaSlug: string; courts: Court[]; currentClient: { name: string }; layout: string; paymentOnlineEnabled: boolean; reservedSlots: string[] }) {
+export function PublicCourtBookingForm({ arenaSlug, courts, currentClient, layout, paymentOnlineEnabled, reservedSlots, pendingReservations }: { arenaSlug: string; courts: Court[]; currentClient: { name: string }; layout: string; paymentOnlineEnabled: boolean; reservedSlots: string[]; pendingReservations: string[] }) {
   const [courtId, setCourtId] = useState(courts[0]?.id ?? "");
   const court = courts.find((item) => item.id === courtId) ?? courts[0];
   const [startsAt, setStartsAt] = useState(court?.slots[0]?.startsAt ?? "");
@@ -37,6 +37,7 @@ export function PublicCourtBookingForm({ arenaSlug, courts, currentClient, layou
     {layout === "LIST" ? <label className="field">Horário<select value={startsAt} onChange={(event) => changeSlot(event.target.value)}>{visibleSlots.map((item) => <option value={item.startsAt} key={item.startsAt}>{item.label} · {money(item.priceCents)}</option>)}</select></label> : <section className="public-booking-slot-blocks"><strong>Horários disponíveis</strong><div>{visibleSlots.map((item) => { const selected = selectedSlotMinutes.has(dateMinute(item.startsAt)); return <button type="button" className={`public-booking-slot-block${selected ? " public-booking-slot-block-selected" : ""}${startsAt === item.startsAt ? " public-booking-slot-block-active" : ""}`} onClick={() => changeSlot(item.startsAt)} key={item.startsAt}><b>{item.label}</b><small>{money(item.priceCents)}</small></button>; })}</div></section>}
     <label className="field">Duração<select value={durationMinutes} onChange={(event) => setDurationMinutes(Number(event.target.value))}>{slot?.durations.map((item) => <option value={item} key={item}>{duration(item)} · até {endLabel(startsAt, item)}</option>)}</select></label>
     <section className="public-booking-client-summary"><span>RESERVA PARA</span><strong>{currentClient.name}</strong><small>Você está usando sua conta de cliente.</small></section>
+    {pendingReservations.length ? <section className="public-booking-pending"><strong>Aguardando confirmação</strong><span>{pendingReservations.join(" · ")}</span><small>A arena avisará você assim que confirmar a reserva.</small></section> : null}
     <button className="button button-primary" disabled={pending}>{pending ? "Enviando..." : "Solicitar reserva"}</button>
     {reservedSlots.length ? <section className="public-booking-reserved-slots"><strong>Horários reservados</strong><span>{reservedSlots.join(" · ")}</span></section> : null}
     {message ? <p className="public-booking-message" role="status">{message}</p> : null}
