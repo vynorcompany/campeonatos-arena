@@ -71,7 +71,7 @@ export default async function TeachersPage() {
         </div>
       </div>
 
-      <SectionCard title="Cadastrar professor" description="Defina contato e meta mensal para acompanhar a carga de aulas.">
+      <details className="teacher-create-panel"><summary className="button button-primary">Cadastrar professor</summary><SectionCard title="Novo professor">
         <SafeActionForm action={createTeacherAction} className="grid-form" resetOnSuccess successMessage="Professor salvo.">
           <div className="field">
             <label htmlFor="teacher-name">Nome</label>
@@ -97,7 +97,7 @@ export default async function TeachersPage() {
             <SubmitButton label="Cadastrar professor" pendingLabel="Salvando..." className="button button-primary" />
           </div>
         </SafeActionForm>
-      </SectionCard>
+      </SectionCard></details>
 
       <SectionCard title="Resumo mensal" description="Veja rapidamente quem já bateu a meta e quem ainda precisa completar aulas neste mês.">
         <div className="teacher-grid">

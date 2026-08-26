@@ -38,4 +38,5 @@ test("financial launches and product management use dedicated spacious work area
   assert.match(pricing, /Preço de custo/);
   assert.match(pricing, /Margem desejada/);
   assert.match(history, /Ver histórico/);
+  assert.match(history, /createPortal/);
 });
