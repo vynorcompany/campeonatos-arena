@@ -7,10 +7,13 @@ const source = (path: string) => readFileSync(resolve(process.cwd(), path), "utf
 
 test("agenda starts with no placeholder athletes and keeps the court price at the top", () => {
   const dialog = source("src/components/agenda-slot-dialog.tsx");
+  const css = source("src/app/globals.css");
 
   assert.match(dialog, /useState<Participant\[\]>\(\(\) => slot\.participants \?\? \[\]\)/);
   assert.match(dialog, /agenda-court-price-summary/);
+  assert.match(css, /\.agenda-court-price-summary \{ order: -1/);
   assert.match(dialog, /Adicionar atleta/);
+  assert.doesNotMatch(dialog, /Valor com forma de pagamento entra como quitado/);
 });
 
 test("agenda makes the complete slot clickable and exposes individual commandas", () => {
@@ -40,4 +43,7 @@ test("global scale restores readable base text while the agenda keeps compact op
   assert.match(css, /:root \{\s*font-size: 100%/);
   assert.match(css, /\.daily-court-available[^}]*padding: 1px 6px/);
   assert.match(css, /\.daily-court-event[^}]*min-height: 42px/);
+  const page = source("src/app/(app)/agenda/page.tsx");
+  assert.doesNotMatch(page, /<strong>\{priceLabel\(rule\.priceCents\)\}<\/strong>/);
+  assert.match(css, /\.button-primary[^}]*background:.*(?:#|var\(--success\))/);
 });
