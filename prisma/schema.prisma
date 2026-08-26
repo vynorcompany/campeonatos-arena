@@ -1027,6 +1027,7 @@ model Product {
   name          String
   sku           String   @default("")
   priceCents    Int      @default(0)
+  costCents     Int      @default(0)
   stockQuantity Int      @default(0)
   minStock      Int      @default(0)
   active        Boolean  @default(true)

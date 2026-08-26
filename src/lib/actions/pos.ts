@@ -10,6 +10,7 @@ const paymentMethods = ["PIX", "CREDIT_CARD", "DEBIT_CARD", "CASH", "OTHER"] as 
 const productSchema = z.object({
   name: z.string().trim().min(2, "Informe o nome do produto."),
   sku: z.string().trim().max(40).default(""),
+  cost: z.string().trim().min(1, "Informe o preço de custo."),
   price: z.string().trim().min(1, "Informe o preço."),
   stockQuantity: z.coerce.number().int().min(0, "Estoque inválido.").default(0),
   minStock: z.coerce.number().int().min(0, "Estoque mínimo inválido.").default(0)
@@ -64,6 +65,7 @@ export async function createProductAction(formData: FormData) {
   const parsed = productSchema.safeParse({
     name: formData.get("name"),
     sku: formData.get("sku"),
+    cost: formData.get("cost"),
     price: formData.get("price"),
     stockQuantity: formData.get("stockQuantity"),
     minStock: formData.get("minStock")
@@ -74,6 +76,7 @@ export async function createProductAction(formData: FormData) {
   }
 
   const priceCents = parseMoneyToCents(parsed.data.price);
+  const costCents = parseMoneyToCents(parsed.data.cost);
 
   await prisma.$transaction(async (tx) => {
     const product = await tx.product.create({
@@ -82,6 +85,7 @@ export async function createProductAction(formData: FormData) {
         name: parsed.data.name,
         sku: parsed.data.sku,
         priceCents,
+        costCents,
         stockQuantity: parsed.data.stockQuantity,
         minStock: parsed.data.minStock
       }
@@ -107,11 +111,11 @@ export async function updateProductAction(formData: FormData) {
   const auth = await requireModuleEdit("stock");
   const productId = String(formData.get("productId") ?? "");
   const parsed = productSchema.safeParse({
-    name: formData.get("name"), sku: formData.get("sku"), price: formData.get("price"),
+    name: formData.get("name"), sku: formData.get("sku"), cost: formData.get("cost"), price: formData.get("price"),
     stockQuantity: formData.get("stockQuantity"), minStock: formData.get("minStock")
   });
   if (!productId || !parsed.success) throw new Error(parsed.success ? "Produto inválido." : parsed.error.issues[0]?.message ?? "Dados inválidos.");
-  const updated = await prisma.product.updateMany({ where: { id: productId, arenaId: auth.arenaId }, data: { name: parsed.data.name, sku: parsed.data.sku, priceCents: parseMoneyToCents(parsed.data.price), minStock: parsed.data.minStock } });
+  const updated = await prisma.product.updateMany({ where: { id: productId, arenaId: auth.arenaId }, data: { name: parsed.data.name, sku: parsed.data.sku, costCents: parseMoneyToCents(parsed.data.cost), priceCents: parseMoneyToCents(parsed.data.price), minStock: parsed.data.minStock } });
   if (!updated.count) throw new Error("Produto não encontrado.");
   refreshPosRoutes();
 }

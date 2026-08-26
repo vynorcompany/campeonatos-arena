@@ -3,6 +3,7 @@ import { SectionCard } from "@/components/section-card";
 import { StatCard } from "@/components/stat-card";
 import { requireModuleView } from "@/lib/auth/guards";
 import { getArenaDashboard } from "@/lib/services/tournament";
+import { prisma } from "@/lib/prisma";
 
 const statusLabels: Record<string, string> = {
   DRAFT: "Rascunho",
@@ -16,6 +17,16 @@ const statusLabels: Record<string, string> = {
 export default async function OverviewPage() {
   const auth = await requireModuleView("dashboard");
   const { players, activeTournament, tournamentHistory } = await getArenaDashboard(auth.arenaId);
+  const now = new Date();
+  const [financialEntries, upcomingReservations, activeEvents] = await Promise.all([
+    prisma.financialEntry.findMany({ where: { arenaId: auth.arenaId }, select: { type: true, status: true, amountCents: true } }),
+    prisma.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, startsAt: { gte: now }, status: { not: "CANCELLED" } }, orderBy: { startsAt: "asc" }, take: 5, select: { id: true, title: true, startsAt: true, bookingTypeName: true } }),
+    prisma.tournament.findMany({ where: { arenaId: auth.arenaId, registrationPhase: { not: "FINISHED" } }, orderBy: { updatedAt: "desc" }, take: 4, select: { id: true, name: true, registrationPhase: true } })
+  ]);
+  const receivedCents = financialEntries.filter((entry) => entry.type === "REVENUE" && entry.status === "PAID").reduce((total, entry) => total + entry.amountCents, 0);
+  const paidCents = financialEntries.filter((entry) => entry.type === "EXPENSE" && entry.status === "PAID").reduce((total, entry) => total + entry.amountCents, 0);
+  const receivableCents = financialEntries.filter((entry) => entry.type === "REVENUE" && entry.status === "PENDING").reduce((total, entry) => total + entry.amountCents, 0);
+  const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value / 100);
   const groupedMatches = activeTournament?.matches.filter((match) => match.stage === "GROUP") ?? [];
   const knockoutMatches = activeTournament?.matches.filter((match) => match.stage !== "GROUP") ?? [];
   const completedMatches = activeTournament?.matches.filter((match) => match.winnerPairId !== null).length ?? 0;
@@ -34,18 +45,20 @@ export default async function OverviewPage() {
           <p className="eyebrow">Visão geral</p>
           <h1>Painel principal</h1>
           <p className="muted">
-            Acompanhe o andamento do campeonato, o desempenho da arena e o histórico dos torneios em um só lugar.
+            Saúde financeira, reservas e torneios da arena em um só lugar.
           </p>
         </div>
         <span className="pill">{activeTournament ? statusLabels[activeTournament.status] : "Nenhum torneio em andamento"}</span>
       </header>
 
       <div className="stats-grid">
-        <StatCard label="Jogadores ativos" value={activePlayers} caption="Disponíveis para os próximos torneios" />
-        <StatCard label="Duplas formadas" value={activeTournament?.pairs.length ?? 0} caption="No torneio atual" />
-        <StatCard label="Grupos montados" value={activeTournament?.groups.length ?? 0} caption="Distribuição atual" />
-        <StatCard label="Jogos finalizados" value={completedMatches} caption="Resultados já registrados" />
+        <StatCard label="Recebido" value={money(receivedCents)} caption="Lançamentos quitados" />
+        <StatCard label="Pago" value={money(paidCents)} caption="Despesas quitadas" />
+        <StatCard label="A receber" value={money(receivableCents)} caption="Contas em aberto" />
+        <StatCard label="Resultado" value={money(receivedCents - paidCents)} caption="Saldo financeiro atual" />
       </div>
+
+      <div className="dashboard-grid"><SectionCard title="Próximas reservas">{upcomingReservations.length ? <div className="simple-list">{upcomingReservations.map((reservation) => <div className="simple-item" key={reservation.id}><strong>{reservation.title}</strong><span>{reservation.bookingTypeName} · {reservation.startsAt.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</span></div>)}</div> : <p className="muted">Nenhuma reserva futura.</p>}</SectionCard><SectionCard title="Torneios ativos">{activeEvents.length ? <div className="simple-list">{activeEvents.map((event) => <div className="simple-item" key={event.id}><strong>{event.name}</strong><span>{statusLabels[event.registrationPhase] ?? "Em operação"}</span></div>)}</div> : <p className="muted">Nenhum torneio ativo.</p>}</SectionCard></div>
 
       <div className="dashboard-grid">
         <SectionCard

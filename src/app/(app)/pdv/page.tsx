@@ -39,32 +39,7 @@ export default async function PosPage() {
         </div>
       </section>
 
-      <SectionCard id="estoque" title="Listagem" description="Clique em um produto para configurar dados, estoque e NFC-e.">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Produto</th>
-              <th>Preço</th>
-              <th>Estoque</th>
-              <th>Mínimo</th>
-              <th>Abrir</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map((product) => (
-              <tr key={product.id}>
-                <td><Link href={`/pdv/${product.id}`} className="product-table-link"><strong>{product.name}</strong><span className="table-subtext">{product.sku || "Sem SKU"}</span></Link></td>
-                <td>{formatMoney(product.priceCents)}</td>
-                <td>
-                  <span className={product.stockQuantity <= product.minStock ? "stock-alert" : ""}>{product.stockQuantity}</span>
-                </td>
-                <td>{product.minStock}</td>
-                <td><Link href={`/pdv/${product.id}`} className="button button-small">Abrir</Link></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </SectionCard>
+      <SectionCard id="estoque" title="Listagem" description="Clique em um produto para configurar dados, estoque e NFC-e."><div className="product-list-head"><span>Produto</span><span>Preço de venda</span><span>Estoque</span><span>Mínimo</span><span>Ações</span></div><div className="product-list">{products.map((product) => <article className="product-row" key={product.id}><Link href={`/pdv/${product.id}`} className="product-table-link"><strong>{product.name}</strong><span>{product.sku || "Sem SKU"}</span></Link><span>{formatMoney(product.priceCents)}</span><span className={product.stockQuantity <= product.minStock ? "stock-alert" : ""}>{product.stockQuantity}</span><span>{product.minStock}</span><Link href={`/pdv/${product.id}`} className="button button-small">Abrir</Link></article>)}{!products.length ? <p className="client-empty">Nenhum produto cadastrado.</p> : null}</div></SectionCard>
     </div>
   );
 }

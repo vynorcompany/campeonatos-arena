@@ -198,6 +198,11 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
           href: "/players",
           label: "Clientes",
           icon: "users"
+        },
+        {
+          href: "/professores",
+          label: "Professores",
+          icon: "lesson"
         }
       ]
     },

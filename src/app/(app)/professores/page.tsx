@@ -28,7 +28,7 @@ export default async function TeachersPage() {
           }
         },
         include: {
-          attendances: true
+          attendances: { include: { student: { include: { subscriptions: { where: { status: "ACTIVE" }, include: { plan: true } } } } } }
         },
         orderBy: {
           scheduledAt: "desc"
@@ -106,6 +106,8 @@ export default async function TeachersPage() {
             const scheduled = teacher.lessons.filter((lesson) => lesson.status !== "COMPLETED").length;
             const remaining = Math.max(0, teacher.monthlyTarget - completed);
             const progress = teacher.monthlyTarget ? Math.min(100, Math.round((completed / teacher.monthlyTarget) * 100)) : 0;
+            const students = Array.from(new Map(teacher.lessons.flatMap((lesson) => lesson.attendances.map((attendance) => [attendance.student.id, attendance.student] as const))).values());
+            const plans = [...new Set(students.flatMap((student) => student.subscriptions.map((subscription) => subscription.plan.name)))];
 
             return (
               <article className="teacher-card" key={teacher.id}>
@@ -124,6 +126,7 @@ export default async function TeachersPage() {
                   <span>{scheduled} agendadas</span>
                   <span>{remaining} faltam</span>
                 </div>
+                <p className="muted">{students.length} aluno(s) · {plans.join(" · ") || "Sem plano vinculado"}</p>
                 <p className="muted">{teacher.phone || teacher.email || "Sem contato cadastrado"}</p>
               </article>
             );
