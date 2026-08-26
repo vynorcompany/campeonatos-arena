@@ -20,3 +20,17 @@ test("forms use the shared visual control and active-state switch patterns", asy
   assert.match(products, /product-management-filters/);
   assert.match(products, /Criar produto\/serviço/);
 });
+
+test("financial launches and product management use dedicated spacious work areas", async () => {
+  const [styles, products, productDetail] = await Promise.all([
+    readFile("src/app/globals.css", "utf8"),
+    readFile("src/app/(app)/pdv/page.tsx", "utf8"),
+    readFile("src/app/(app)/pdv/[productId]/page.tsx", "utf8"),
+  ]);
+
+  assert.match(styles, /\.financial-entry-modal \{ width: min\(100%, 1080px\)/);
+  assert.match(products, /href="\/pdv\/novo"/);
+  assert.match(products, /href=\{`\/pdv\/\$\{product\.id\}`\}/);
+  assert.match(productDetail, /Ajuste de estoque/);
+  assert.match(productDetail, /Configurações NFC-e/);
+});

@@ -103,6 +103,19 @@ export async function createProductAction(formData: FormData) {
   refreshPosRoutes();
 }
 
+export async function updateProductAction(formData: FormData) {
+  const auth = await requireModuleEdit("stock");
+  const productId = String(formData.get("productId") ?? "");
+  const parsed = productSchema.safeParse({
+    name: formData.get("name"), sku: formData.get("sku"), price: formData.get("price"),
+    stockQuantity: formData.get("stockQuantity"), minStock: formData.get("minStock")
+  });
+  if (!productId || !parsed.success) throw new Error(parsed.success ? "Produto inválido." : parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  const updated = await prisma.product.updateMany({ where: { id: productId, arenaId: auth.arenaId }, data: { name: parsed.data.name, sku: parsed.data.sku, priceCents: parseMoneyToCents(parsed.data.price), minStock: parsed.data.minStock } });
+  if (!updated.count) throw new Error("Produto não encontrado.");
+  refreshPosRoutes();
+}
+
 export async function adjustStockAction(formData: FormData) {
   const auth = await requireModuleEdit("stock");
   const parsed = stockSchema.safeParse({

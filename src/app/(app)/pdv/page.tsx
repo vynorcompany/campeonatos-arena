@@ -1,7 +1,5 @@
+import Link from "next/link";
 import { SectionCard } from "@/components/section-card";
-import { SafeActionForm } from "@/components/forms/safe-action-form";
-import { SubmitButton } from "@/components/forms/submit-button";
-import { adjustStockAction, createProductAction } from "@/lib/actions/pos";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
@@ -26,7 +24,7 @@ export default async function PosPage() {
         <div className="product-management-actions">
           <button type="button" className="button button-import" disabled title="Importação de nota será disponibilizada em breve">Importar nota de compra</button>
           <button type="button" className="button button-import-csv" disabled title="Importação CSV será disponibilizada em breve">Importar CSV</button>
-          <a href="#novo-produto" className="button button-primary">Criar produto/serviço</a>
+          <Link href="/pdv/novo" className="button button-primary">Criar produto/serviço</Link>
         </div>
       </header>
 
@@ -41,35 +39,7 @@ export default async function PosPage() {
         </div>
       </section>
 
-      <SectionCard id="novo-produto" title="Cadastrar produto" description="Produtos cadastrados aparecem na frente de caixa e no controle de estoque.">
-        <SafeActionForm action={createProductAction} className="grid-form" resetOnSuccess successMessage="Produto salvo.">
-          <div className="field">
-            <label htmlFor="product-name">Produto</label>
-            <input id="product-name" name="name" type="text" placeholder="Ex.: Agua sem gas" required />
-          </div>
-          <div className="field">
-            <label htmlFor="product-sku">Código/SKU</label>
-            <input id="product-sku" name="sku" type="text" />
-          </div>
-          <div className="field">
-            <label htmlFor="product-price">Preço</label>
-            <input id="product-price" name="price" type="text" placeholder="12,90" required />
-          </div>
-          <div className="field">
-            <label htmlFor="product-stock">Estoque inicial</label>
-            <input id="product-stock" name="stockQuantity" type="number" min="0" defaultValue="0" />
-          </div>
-          <div className="field">
-            <label htmlFor="product-min-stock">Estoque mínimo</label>
-            <input id="product-min-stock" name="minStock" type="number" min="0" defaultValue="0" />
-          </div>
-          <div className="field field-submit">
-            <SubmitButton label="Cadastrar produto" pendingLabel="Salvando..." className="button button-primary" />
-          </div>
-        </SafeActionForm>
-      </SectionCard>
-
-      <SectionCard id="estoque" title="Listagem" description="Produtos e serviços cadastrados, com estoque e ajustes operacionais.">
+      <SectionCard id="estoque" title="Listagem" description="Clique em um produto para configurar dados, estoque e NFC-e.">
         <table className="data-table">
           <thead>
             <tr>
@@ -77,34 +47,19 @@ export default async function PosPage() {
               <th>Preço</th>
               <th>Estoque</th>
               <th>Mínimo</th>
-              <th>Ajuste</th>
+              <th>Abrir</th>
             </tr>
           </thead>
           <tbody>
             {products.map((product) => (
               <tr key={product.id}>
-                <td>
-                  <strong>{product.name}</strong>
-                  <span className="table-subtext">{product.sku || "Sem SKU"}</span>
-                </td>
+                <td><Link href={`/pdv/${product.id}`} className="product-table-link"><strong>{product.name}</strong><span className="table-subtext">{product.sku || "Sem SKU"}</span></Link></td>
                 <td>{formatMoney(product.priceCents)}</td>
                 <td>
                   <span className={product.stockQuantity <= product.minStock ? "stock-alert" : ""}>{product.stockQuantity}</span>
                 </td>
                 <td>{product.minStock}</td>
-                <td>
-                  <SafeActionForm action={adjustStockAction} className="inline-form stock-adjust-form" successMessage="Estoque ajustado.">
-                    <input type="hidden" name="productId" value={product.id} />
-                    <select name="type" defaultValue="IN" aria-label="Tipo de ajuste">
-                      <option value="IN">Entrada</option>
-                      <option value="OUT">Saida</option>
-                      <option value="ADJUST">Contagem</option>
-                    </select>
-                    <input name="quantity" type="number" min="0" defaultValue="1" />
-                    <input name="reason" type="text" placeholder="Motivo" />
-                    <SubmitButton label="Salvar" pendingLabel="..." className="button" />
-                  </SafeActionForm>
-                </td>
+                <td><Link href={`/pdv/${product.id}`} className="button button-small">Abrir</Link></td>
               </tr>
             ))}
           </tbody>
