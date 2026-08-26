@@ -9,6 +9,7 @@ import {
   updateFinancialEntryAction,
   voidFinancialEntryAction,
 } from "@/lib/actions/finance";
+import { MoneyInput } from "@/components/forms/money-input";
 
 type Account = {
   id: string;
@@ -177,7 +178,7 @@ export function AccountsLedger({
               </div> : null}
               <label className="field">Categoria financeira<button type="button" className="field-select-button" onClick={() => setCategoryModalOpen(true)}>{category || "Selecionar categoria"}</button></label>
               <label className="field form-full">Descrição<input name="description" required /></label>
-              <label className="field">Valor original<input name="amount" inputMode="decimal" placeholder="0,00" required /></label>
+              <label className="field">Valor original<MoneyInput name="amount" placeholder="0,00" required /></label>
               <label className="field">Desconto<div className="discount-control"><input name="discount" inputMode="decimal" value={discount} onChange={(event) => setDiscount(event.target.value)} placeholder="0,00" /><select name="discountMode" value={discountMode} onChange={(event) => setDiscountMode(event.target.value as "AMOUNT" | "PERCENTAGE")} aria-label="Tipo de desconto"><option value="AMOUNT">R$</option><option value="PERCENTAGE">%</option></select></div></label>
               <label className="field">Vencimento<input name="dueDate" type="date" /></label>
               <label className="field">Conta bancária<select name="bankAccountId" defaultValue=""><option value="">Não definida</option>{bankAccounts.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
