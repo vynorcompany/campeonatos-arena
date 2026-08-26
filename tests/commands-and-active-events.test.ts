@@ -12,7 +12,18 @@ test("active events are listed before their categories are selected", () => {
   assert.match(page, /Novo evento/);
   assert.match(page, /Gerenciar evento/);
   assert.match(page, /Escolha uma categoria/);
+  assert.doesNotMatch(page, /title="Eventos em operação"/);
+  assert.doesNotMatch(page, /description="Selecione um evento para ver as categorias disponíveis ou gerencie sua estrutura\."/);
   assert.doesNotMatch(page, /<select[\s\S]*name="tournamentId"/);
+});
+
+test("clients can be opened from the list and edited in a modal", () => {
+  const workspace = readFileSync(resolve(process.cwd(), "src/components/players/client-management-workspace.tsx"), "utf8");
+
+  assert.match(workspace, /updatePlayerAction/);
+  assert.match(workspace, /setEditingClient\(client\)/);
+  assert.match(workspace, /aria-label="Editar cliente"/);
+  assert.match(workspace, /Salvar alterações/);
 });
 
 test("sidebar parent sections only expand their submenus", () => {
