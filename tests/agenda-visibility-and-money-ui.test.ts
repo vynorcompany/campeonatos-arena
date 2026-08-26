@@ -26,6 +26,21 @@ test("agenda makes the complete slot clickable and exposes individual commandas"
   assert.match(css, /\.agenda-booking-dialog \{[^}]*width: min\(100%, 1100px\)/);
 });
 
+test("agenda booking identifies reservation types, suggests athletes and closes slot options outside", () => {
+  const dialog = source("src/components/agenda-slot-dialog.tsx");
+  const page = source("src/app/(app)/agenda/page.tsx");
+  const css = source("src/app/globals.css");
+
+  assert.match(page, /bookingTypeIcon/);
+  assert.match(page, /agenda-booking-type-icon/);
+  assert.match(dialog, /event\.target as HTMLElement/);
+  assert.match(dialog, /agenda-slot-options/);
+  assert.match(dialog, /agenda-player-suggestions/);
+  assert.match(dialog, /addPlayerToReservation/);
+  assert.match(css, /agenda-slot-options-trigger[^}]*border-radius: 50%/);
+  assert.match(css, /button-primary:not\(\.agenda-add-athlete\)/);
+});
+
 test("money fields use the shared intelligent monetary editor", () => {
   const dialog = source("src/components/agenda-slot-dialog.tsx");
   const ledger = source("src/components/finance/accounts-ledger.tsx");
