@@ -10,6 +10,11 @@ function withDefaultWhenInvalidNumber(value: unknown) {
   return value;
 }
 
+const optionalUrl = z.preprocess(
+  (value) => (typeof value === "string" && !value.trim() ? undefined : value),
+  z.string().url().optional()
+);
+
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required."),
   DIRECT_URL: z.string().optional(),
@@ -20,7 +25,11 @@ const envSchema = z.object({
   LOGIN_MAX_ATTEMPTS: z.preprocess(withDefaultWhenInvalidNumber, z.coerce.number().int().min(3).max(20).default(5)),
   LOGIN_LOCK_MINUTES: z.preprocess(withDefaultWhenInvalidNumber, z.coerce.number().int().min(1).max(120).default(15)),
   MERCADO_PAGO_ACCESS_TOKEN: z.string().optional(),
-  MERCADO_PAGO_WEBHOOK_SECRET: z.string().optional()
+  MERCADO_PAGO_WEBHOOK_SECRET: z.string().optional(),
+  EVOLUTION_API_URL: optionalUrl,
+  EVOLUTION_API_KEY: z.string().optional(),
+  EVOLUTION_INSTANCE_NAME: z.string().optional(),
+  EVOLUTION_WEBHOOK_SECRET: z.string().optional()
 });
 
 const parsedResult = envSchema.safeParse({
@@ -33,7 +42,11 @@ const parsedResult = envSchema.safeParse({
   LOGIN_MAX_ATTEMPTS: process.env.LOGIN_MAX_ATTEMPTS,
   LOGIN_LOCK_MINUTES: process.env.LOGIN_LOCK_MINUTES,
   MERCADO_PAGO_ACCESS_TOKEN: process.env.MERCADO_PAGO_ACCESS_TOKEN,
-  MERCADO_PAGO_WEBHOOK_SECRET: process.env.MERCADO_PAGO_WEBHOOK_SECRET
+  MERCADO_PAGO_WEBHOOK_SECRET: process.env.MERCADO_PAGO_WEBHOOK_SECRET,
+  EVOLUTION_API_URL: process.env.EVOLUTION_API_URL,
+  EVOLUTION_API_KEY: process.env.EVOLUTION_API_KEY,
+  EVOLUTION_INSTANCE_NAME: process.env.EVOLUTION_INSTANCE_NAME,
+  EVOLUTION_WEBHOOK_SECRET: process.env.EVOLUTION_WEBHOOK_SECRET
 });
 
 if (!parsedResult.success) {
@@ -59,5 +72,9 @@ export const env = {
   loginMaxAttempts: parsed.LOGIN_MAX_ATTEMPTS,
   loginLockMinutes: parsed.LOGIN_LOCK_MINUTES,
   mercadoPagoAccessToken: parsed.MERCADO_PAGO_ACCESS_TOKEN,
-  mercadoPagoWebhookSecret: parsed.MERCADO_PAGO_WEBHOOK_SECRET
+  mercadoPagoWebhookSecret: parsed.MERCADO_PAGO_WEBHOOK_SECRET,
+  evolutionApiUrl: parsed.EVOLUTION_API_URL,
+  evolutionApiKey: parsed.EVOLUTION_API_KEY,
+  evolutionInstanceName: parsed.EVOLUTION_INSTANCE_NAME,
+  evolutionWebhookSecret: parsed.EVOLUTION_WEBHOOK_SECRET
 };
