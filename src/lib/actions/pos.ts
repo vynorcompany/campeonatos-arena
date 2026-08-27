@@ -82,6 +82,8 @@ export async function createProductAction(formData: FormData) {
     const product = await tx.product.create({
       data: {
         arenaId: auth.arenaId,
+        createdByUserId: auth.userId,
+        updatedByUserId: auth.userId,
         name: parsed.data.name,
         sku: parsed.data.sku,
         priceCents,
@@ -115,7 +117,7 @@ export async function updateProductAction(formData: FormData) {
     stockQuantity: formData.get("stockQuantity"), minStock: formData.get("minStock")
   });
   if (!productId || !parsed.success) throw new Error(parsed.success ? "Produto inválido." : parsed.error.issues[0]?.message ?? "Dados inválidos.");
-  const updated = await prisma.product.updateMany({ where: { id: productId, arenaId: auth.arenaId }, data: { name: parsed.data.name, sku: parsed.data.sku, costCents: parseMoneyToCents(parsed.data.cost), priceCents: parseMoneyToCents(parsed.data.price), minStock: parsed.data.minStock } });
+  const updated = await prisma.product.updateMany({ where: { id: productId, arenaId: auth.arenaId }, data: { name: parsed.data.name, sku: parsed.data.sku, costCents: parseMoneyToCents(parsed.data.cost), priceCents: parseMoneyToCents(parsed.data.price), minStock: parsed.data.minStock, updatedByUserId: auth.userId } });
   if (!updated.count) throw new Error("Produto não encontrado.");
   refreshPosRoutes();
 }

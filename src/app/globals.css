@@ -7039,3 +7039,21 @@ button {
 .product-history-trigger { margin-top: 10px; }
 .teacher-create-panel > summary { width: fit-content; cursor: pointer; list-style: none; }.teacher-create-panel > summary::-webkit-details-marker { display: none; }.teacher-create-panel[open] > summary { margin-bottom: 12px; }
 @media (max-width: 620px) { .client-edit-form { grid-template-columns: 1fr; } }
+
+/* Assistente administrativo: conversa isolada das telas operacionais. */
+.assistant-page { max-width: 1040px; }
+.assistant-chat { display: grid; min-height: min(66vh, 720px); grid-template-rows: 1fr auto; overflow: hidden; border: 1px solid #dce6f2; border-radius: 16px; background: #fff; box-shadow: 0 12px 32px rgb(26 59 99 / .08); }
+.assistant-chat-messages { display: grid; align-content: start; gap: 12px; min-height: 420px; max-height: 62vh; overflow: auto; padding: 24px; background: linear-gradient(180deg, #f8fbff 0%, #fff 45%); }
+.assistant-message { display: grid; gap: 5px; width: min(78%, 680px); padding: 13px 15px; border: 1px solid #dbe6f4; border-radius: 12px; background: #fff; color: #193456; }
+.assistant-message span { color: #547093; font-size: .72rem; font-weight: 800; letter-spacing: .03em; }
+.assistant-message p { margin: 0; line-height: 1.45; }
+.assistant-message-user { justify-self: end; border-color: #0f64c5; background: #0f64c5; color: #fff; }
+.assistant-message-user span { color: #dbeaff; }
+.assistant-chat-empty { display: grid; gap: 7px; place-items: center; min-height: 360px; text-align: center; color: #61728b; }
+.assistant-chat-empty strong { color: #143661; font-size: 1.05rem; }
+.assistant-chat-empty span { max-width: 560px; line-height: 1.5; }
+.assistant-chat-form { display: grid; gap: 8px; padding: 18px 20px; border-top: 1px solid #dce6f2; background: #fff; }
+.assistant-chat-form label { color: #26476f; font-size: .8rem; font-weight: 800; }
+.assistant-chat-form > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+.assistant-chat-form input { min-width: 0; }
+@media (max-width: 700px) { .assistant-chat { min-height: 70vh; border-radius: 10px; }.assistant-chat-messages { min-height: 380px; padding: 15px; }.assistant-message { width: 92%; }.assistant-chat-form { padding: 14px; }.assistant-chat-form > div { grid-template-columns: 1fr; }.assistant-chat-form .button { width: 100%; } }

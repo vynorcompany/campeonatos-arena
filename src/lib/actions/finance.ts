@@ -155,6 +155,8 @@ export async function createPlanAction(formData: FormData) {
   await prisma.plan.create({
     data: {
       arenaId: auth.arenaId,
+      createdByUserId: auth.userId,
+      updatedByUserId: auth.userId,
       name: parsed.data.name,
       monthlyPriceCents: parseMoneyToCents(parsed.data.monthlyPrice),
       classesPerMonth: parsed.data.classesPerMonth,
@@ -327,6 +329,7 @@ export async function createFinancialEntryAction(formData: FormData) {
     const entry = await tx.financialEntry.create({
       data: {
         arenaId: auth.arenaId,
+        source: "MANUAL",
         type: parsed.data.type,
         category: parsed.data.category,
         description: parsed.data.description,

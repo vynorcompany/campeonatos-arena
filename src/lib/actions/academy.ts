@@ -267,6 +267,8 @@ export async function createTeacherAction(formData: FormData) {
   await prisma.teacher.create({
     data: {
       arenaId: auth.arenaId,
+      createdByUserId: auth.userId,
+      updatedByUserId: auth.userId,
       ...parsed.data
     }
   });

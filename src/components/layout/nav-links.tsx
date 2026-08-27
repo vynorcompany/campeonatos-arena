@@ -156,7 +156,10 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
   const navigationGroups: NavGroup[] = [
     {
       title: "Início",
-      links: [{ href: "/painel", label: "Dashboard", icon: "dashboard" }]
+      links: [
+        { href: "/painel", label: "Dashboard", icon: "dashboard" },
+        ...(canManageUsers ? [{ href: "/assistente", label: "Assistente", icon: "support" as IconName }] : [])
+      ]
     },
     {
       title: "Painéis",
@@ -253,6 +256,7 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
   ];
   const moduleByHref: Record<string, string> = {
     "/painel": "dashboard",
+    "/assistente": "dashboard",
     "/torneios": "tournaments",
     "/jogadores": "players",
     "/players": "players",

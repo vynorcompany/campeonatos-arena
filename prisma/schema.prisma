@@ -130,6 +130,8 @@ model Arena {
   notifications ArenaNotification[]
   balanceMovements ClientBalanceMovement[]
   leagueChallenges LeagueChallenge[]
+  assistantConversations AssistantConversation[]
+  assistantCommands AssistantCommand[]
 }
 
 model RegulationAcceptance {
@@ -288,6 +290,52 @@ model ArenaNotification {
   arena     Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
 
   @@index([arenaId, readAt, createdAt])
+}
+
+model AssistantConversation {
+  id        String   @id @default(cuid())
+  title     String   @default("Assistente da Arena")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  arenaId   String
+  userId    String
+  arena     Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  messages  AssistantMessage[]
+  commands  AssistantCommand[]
+
+  @@unique([arenaId, userId])
+  @@index([arenaId, updatedAt])
+}
+
+model AssistantMessage {
+  id             String   @id @default(cuid())
+  role           String
+  content        String
+  createdAt      DateTime @default(now())
+  conversationId String
+  conversation   AssistantConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+}
+
+model AssistantCommand {
+  id                String   @id @default(cuid())
+  type              String
+  status            String   @default("PROCESSING")
+  input             String
+  output            String   @default("")
+  targetModule      String   @default("")
+  targetId          String   @default("")
+  createdAt         DateTime @default(now())
+  executedAt        DateTime?
+  arenaId           String
+  conversationId    String
+  requestedByUserId String
+  arena             Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  conversation      AssistantConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([arenaId, createdAt])
+  @@index([conversationId, createdAt])
 }
 
 model PlayerNotification {
@@ -821,6 +869,8 @@ model Teacher {
   notes          String   @default("")
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  createdByUserId String?
+  updatedByUserId String?
   arenaId        String
   arena          Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
   lessons        Lesson[]
@@ -1038,6 +1088,8 @@ model Product {
   active        Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  createdByUserId String?
+  updatedByUserId String?
   arenaId       String
   categoryId    String?
   arena         Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
@@ -1175,6 +1227,8 @@ model Plan {
   notes             String   @default("")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+  createdByUserId   String?
+  updatedByUserId   String?
   arenaId           String
   arena             Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
   subscriptions     StudentSubscription[]
@@ -1223,6 +1277,8 @@ model FinancialEntry {
   voidedAt      DateTime?
   voidReason    String   @default("")
   notes         String   @default("")
+  source        String   @default("MANUAL")
+  externalReference String @default("")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   arenaId       String
