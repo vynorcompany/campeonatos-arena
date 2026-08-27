@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireModuleEdit } from "@/lib/auth/guards";
+import { requireModuleEdit, requireRole } from "@/lib/auth/guards";
 import { allocatePaymentsToDebts, getOutstandingCents } from "@/lib/finance/settlements";
 import { prisma } from "@/lib/prisma";
 
@@ -72,6 +72,13 @@ export async function createComandaAction(formData: FormData) {
   }
 
   await prisma.$transaction(async (tx) => {
+    if (player) {
+      const existing = await tx.comanda.findFirst({
+        where: { arenaId: auth.arenaId, playerId: player.id, status: "OPEN" },
+        select: { id: true }
+      });
+      if (existing) throw new Error("Já existe uma comanda aberta para este cliente.");
+    }
     const productCount = await tx.product.count({ where: { arenaId: auth.arenaId, active: true } });
     if (!productCount) {
       await tx.product.create({ data: { arenaId: auth.arenaId, name: "Água mineral 500 ml", sku: "DEMO-AGUA-500", priceCents: 500, stockQuantity: 100, minStock: 10 } });
@@ -87,6 +94,18 @@ export async function createComandaAction(formData: FormData) {
     });
   });
 
+  revalidatePath("/comandas");
+}
+
+export async function deleteComandaAction(formData: FormData) {
+  const auth = await requireRole("ADMIN");
+  const comandaId = z.string().trim().min(1).safeParse(formData.get("comandaId"));
+  if (!comandaId.success) throw new Error("Comanda inválida.");
+
+  const deleted = await prisma.comanda.deleteMany({
+    where: { id: comandaId.data, arenaId: auth.arenaId, status: "OPEN" }
+  });
+  if (!deleted.count) throw new Error("A comanda não está disponível para exclusão.");
   revalidatePath("/comandas");
 }
 

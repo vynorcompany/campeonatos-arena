@@ -65,3 +65,27 @@ test("closed commands are excluded from the active command grid without a duplic
   assert.match(page, /const \[comandas[\s\S]{0,650}?where: \{\s*arenaId: auth\.arenaId,\s*status: "OPEN",/);
   assert.doesNotMatch(card, /router\.refresh\(\)/);
 });
+
+test("commands protect an open client tab and expose the complete checkout controls", () => {
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/comanda.ts"), "utf8");
+  const card = readFileSync(resolve(process.cwd(), "src/components/comandas/command-card.tsx"), "utf8");
+
+  assert.match(actions, /Já existe uma comanda aberta para este cliente/);
+  assert.match(actions, /export async function deleteComandaAction/);
+  assert.match(actions, /requireRole\("ADMIN"\)/);
+  assert.match(card, /onClick=\{\(\) => setCheckoutOpen\(true\)\}/);
+  assert.match(card, /Apagar comanda/);
+  assert.match(card, /DIVIDIR COMANDA/);
+  assert.match(card, /Incluir débitos em aberto/);
+});
+
+test("command products use a searchable category kanban", () => {
+  const card = readFileSync(resolve(process.cwd(), "src/components/comandas/command-card.tsx"), "utf8");
+  const css = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
+
+  assert.match(card, /Buscar produto/);
+  assert.match(card, /productSearch/);
+  assert.match(card, /command-product-kanban/);
+  assert.match(css, /\.command-product-kanban/);
+  assert.match(css, /\.command-product-modal \{ width: min\(100%, 1280px\)/);
+});
