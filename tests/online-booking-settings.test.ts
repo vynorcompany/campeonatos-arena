@@ -16,7 +16,7 @@ test("online booking settings are persisted in the agenda configuration workspac
   assert.match(schema, /model Arena \{[\s\S]*onlineBookingPaymentEnabled\s+Boolean/);
   assert.match(schema, /model Arena \{[\s\S]*onlineBookingWhatsappMessage\s+String/);
   assert.match(actions, /export async function updateOnlineBookingSettingsAction/);
-  assert.doesNotMatch(agenda, /OnlineBookingSettingsDialog/);
+  assert.match(agenda, /OnlineBookingSettingsDialog/);
   assert.match(configuration, /OnlineBookingSettingsDialog/);
   assert.ok(existsSync(dialogPath));
 

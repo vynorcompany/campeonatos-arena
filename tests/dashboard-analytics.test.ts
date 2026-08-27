@@ -5,6 +5,7 @@ import test from "node:test";
 
 test("dashboard renders a daily cash-flow chart and the requested operational charts", () => {
   const dashboard = readFileSync(resolve(process.cwd(), "src/app/(app)/painel/page.tsx"), "utf8");
+  const comparison = readFileSync(resolve(process.cwd(), "src/components/dashboard-comparison-filter.tsx"), "utf8");
 
   assert.match(dashboard, /Resumo financeiro/);
   assert.match(dashboard, /Fluxo de caixa diário/);
@@ -21,8 +22,11 @@ test("dashboard renders a daily cash-flow chart and the requested operational ch
   assert.match(dashboard, /Mês passado/);
   assert.match(dashboard, /Últimos 90 dias/);
   assert.match(dashboard, /Últimos 7 dias/);
-  assert.match(dashboard, /Comparar/);
+  assert.match(dashboard, /DashboardComparisonFilter/);
   assert.match(dashboard, /comparison/);
+  assert.match(comparison, /Mês anterior/);
+  assert.match(comparison, /Mesmo período do ano passado/);
+  assert.match(comparison, /Personalizado/);
 });
 
 test("command checkout keeps pending debts compact until the toggle is enabled", () => {

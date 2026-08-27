@@ -350,7 +350,7 @@ export default async function CategoryPage({
               <div className="category-overview-head">
                 <div className="stack-xs">
                   <p className="eyebrow">{category.tournament.name}</p>
-                  <h1>{category.name}</h1>
+                  <div className="category-overview-title-row"><h1>{category.name}</h1>{competition ? <CategoryPublicVisibilityForm competitionId={competition.id} isPublic={competition.isPublic} /> : null}</div>
                 </div>
                 <StatusBadge status={competition?.status ?? "DRAFT"} />
               </div>
@@ -392,21 +392,6 @@ export default async function CategoryPage({
                 )}
               </div>
             </article>
-            {competition ? (
-              <article className="section-card stack-sm">
-                <div className="stack-xs">
-                  <h2>Visibilidade pública</h2>
-                  <p className="muted">
-                    A categoria aparecerá na classificação pública somente
-                    depois de encerrada.
-                  </p>
-                </div>
-                <CategoryPublicVisibilityForm
-                  competitionId={competition.id}
-                  isPublic={competition.isPublic}
-                />
-              </article>
-            ) : null}
             {!competition ? (
               <article className="section-card">
                 <CategoryCompetitionForm

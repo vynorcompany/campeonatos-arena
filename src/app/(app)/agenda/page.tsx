@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
+import { AgendaMonthPicker } from "@/components/agenda-month-picker";
 import { AgendaSlotDialog } from "@/components/agenda-slot-dialog";
+import { OnlineBookingSettingsDialog } from "@/components/online-booking-settings-dialog";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
@@ -42,6 +44,8 @@ export default async function AgendaPage({ searchParams }: AgendaPageProps) {
       <div className="agenda-date-list">{days.map((date) => { const selected = date.getTime() === selectedDate.getTime(); return <Link key={dateInputValue(date)} href={dayHref(date)} className={selected ? "agenda-date-item agenda-date-item-active agenda-date-item-centered" : "agenda-date-item"}><span>{new Intl.DateTimeFormat("pt-BR", { weekday: "short" }).format(date).replace(".", "")}</span><strong>{date.getDate()}</strong></Link>; })}</div>
       <Link href={dayHref(addDays(selectedDate, 1))} className="agenda-date-arrow" aria-label="Próximo dia">›</Link>
       <Link href={dayHref(startOfDay(new Date()))} className="agenda-today-link">Hoje</Link>
+      <AgendaMonthPicker selectedDate={dateInputValue(selectedDate)} />
+      <OnlineBookingSettingsDialog settings={{ arenaSlug: arena.slug, layout: arena.onlineBookingLayout, requiresConfirmation: arena.onlineBookingRequiresConfirmation, showReserved: arena.onlineBookingShowReserved, paymentOnlineEnabled: arena.onlineBookingPaymentEnabled, leadTimeMinutes: arena.onlineBookingLeadTimeMinutes, whatsappMessage: arena.onlineBookingWhatsappMessage }} />
     </div>
     <div className="agenda-grid-caption"><strong>{selectedDateLabel}</strong><span>Preço e disponibilidade por quadra</span></div>
     {courts.length ? <div className="daily-court-grid-scroll"><table className="daily-court-grid"><thead><tr><th scope="col">Hora</th>{courts.map((court) => <th scope="col" className="daily-court-heading" style={{ "--court-color": court.color } as CSSProperties} key={court.id}>{court.name}</th>)}</tr></thead><tbody>{slots.map((slot) => <tr key={slot}><th scope="row">{minuteLabel(slot)}</th>{courts.map((court) => {

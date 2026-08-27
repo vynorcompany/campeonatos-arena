@@ -403,7 +403,8 @@ test("category visibility is persisted and wired through its guarded admin actio
   assert.match(action, /updateCategoryPublicVisibilityAction/);
   assert.match(service, /export async function updateCategoryPublicVisibility/);
   assert.match(form, /name="isPublic"/);
-  assert.match(form, /Exibir na página pública/);
+  assert.match(form, /Exibir no App/);
+  assert.match(form, /public-visibility-switch/);
 });
 
 test("public arena route renders ranking and game views", async () => {

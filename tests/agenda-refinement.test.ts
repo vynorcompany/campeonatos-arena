@@ -18,17 +18,18 @@ test("public booking keeps the selected duration and exposes only the conflictin
   assert.equal(selection.hasConflict, true);
 });
 
-test("agenda refinement makes dashboard comparison explicit and moves online settings to configuration", () => {
+test("agenda keeps online settings on the daily grade and provides a compact month calendar", () => {
   const dashboard = readFileSync(resolve(process.cwd(), "src/app/(app)/painel/page.tsx"), "utf8");
+  const comparison = readFileSync(resolve(process.cwd(), "src/components/dashboard-comparison-filter.tsx"), "utf8");
   const agenda = readFileSync(resolve(process.cwd(), "src/app/(app)/agenda/page.tsx"), "utf8");
   const configuration = readFileSync(resolve(process.cwd(), "src/app/(app)/agenda/configuracao/page.tsx"), "utf8");
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/calendar.ts"), "utf8");
 
-  assert.match(dashboard, /Comparar com/);
+  assert.match(dashboard, /DashboardComparisonFilter/);
+  assert.match(comparison, /Comparar com/);
   assert.match(dashboard, /dashboard-period-preset-active/);
-  assert.doesNotMatch(agenda, /<OnlineBookingSettingsDialog/);
-  assert.doesNotMatch(agenda, /agenda-settings-link/);
-  assert.doesNotMatch(agenda, /href="\/agenda\/configuracao"/);
+  assert.match(agenda, /<OnlineBookingSettingsDialog/);
+  assert.match(agenda, /AgendaMonthPicker/);
   assert.match(configuration, /OnlineBookingSettingsDialog/);
   assert.match(configuration, /copyCourtWeeklyRuleAction/);
   assert.match(actions, /export async function copyCourtWeeklyRuleAction/);

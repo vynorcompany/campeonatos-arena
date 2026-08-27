@@ -1,3 +1,6 @@
+"use client";
+
+import { useRef } from "react";
 import { SubmitButton } from "@/components/forms/submit-button";
 import {
   createCategoryCompetitionAction,
@@ -109,25 +112,25 @@ export function CategoryPublicVisibilityForm({
   competitionId: string;
   isPublic: boolean;
 }) {
+  const formRef = useRef<HTMLFormElement>(null);
   return (
     <form
       action={updateCategoryPublicVisibilityAction}
-      className="field-inline"
+      className="public-visibility-switch"
+      ref={formRef}
     >
       <input type="hidden" name="competitionId" value={competitionId} />
-      <label className="field-inline">
+      <label>
         <input
           type="checkbox"
           name="isPublic"
           defaultChecked={isPublic}
+          onChange={() => formRef.current?.requestSubmit()}
         />
-        <span>Exibir na página pública</span>
+        <span aria-hidden="true" />
+        Exibir no App
       </label>
-      <SubmitButton
-        label="Salvar visibilidade"
-        pendingLabel="Salvando..."
-        className="button"
-      />
+      <button className="sr-only" type="submit" tabIndex={-1}>Salvar visibilidade</button>
     </form>
   );
 }
