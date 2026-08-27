@@ -13,15 +13,23 @@ test("dashboard renders a daily cash-flow chart and the requested operational ch
   assert.match(dashboard, /Produtos mais vendidos/);
   assert.match(dashboard, /Alunos por professor/);
   assert.match(dashboard, /paidAt/);
+  assert.match(dashboard, /Visão de caixa/);
+  assert.match(dashboard, /Visão de competência/);
+  assert.match(dashboard, /dataInicial/);
+  assert.match(dashboard, /dataFinal/);
 });
 
 test("command checkout keeps pending debts compact until the toggle is enabled", () => {
   const card = readFileSync(resolve(process.cwd(), "src/components/comandas/command-card.tsx"), "utf8");
   const css = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
 
-  assert.match(card, /Valor em aberto/);
+  assert.match(card, /Em aberto/);
   assert.match(card, /openDebtTotalCents/);
-  assert.match(card, /Incluir débitos em aberto/);
+  assert.match(card, /Incluir débitos/);
+  assert.match(card, /command-open-debts-summary/);
+  assert.match(card, /Dividir comanda/);
+  assert.doesNotMatch(card, />DIVIDIR COMANDA</);
+  assert.match(card, /event\.stopPropagation\(\); setCheckoutOpen\(false\)/);
   assert.match(css, /\.command-open-debts \{ display: flex/);
   assert.match(css, /\.command-open-debt-items/);
 });

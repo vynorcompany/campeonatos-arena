@@ -75,8 +75,8 @@ test("commands protect an open client tab and expose the complete checkout contr
   assert.match(actions, /requireRole\("ADMIN"\)/);
   assert.match(card, /onClick=\{\(\) => setCheckoutOpen\(true\)\}/);
   assert.match(card, /Apagar comanda/);
-  assert.match(card, /DIVIDIR COMANDA/);
-  assert.match(card, /Incluir débitos em aberto/);
+  assert.match(card, /Dividir comanda/);
+  assert.match(card, /Incluir débitos/);
 });
 
 test("command products use a searchable category kanban", () => {

@@ -6,6 +6,13 @@ import { prisma } from "@/lib/prisma";
 const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value / 100);
 const dayKey = (value: Date) => `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
 const dayLabel = (value: Date) => new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" }).format(value);
+const inputDate = (value: Date) => dayKey(value);
+
+function parseDate(value: string | undefined, fallback: Date) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return fallback;
+  const parsed = new Date(`${value}T00:00:00`);
+  return Number.isNaN(parsed.getTime()) ? fallback : parsed;
+}
 
 function ranking(items: Array<{ name: string; value: number }>) {
   return Object.values(items.reduce<Record<string, { name: string; value: number }>>((all, item) => {
@@ -14,26 +21,34 @@ function ranking(items: Array<{ name: string; value: number }>) {
   }, {})).sort((a, b) => b.value - a.value).slice(0, 5);
 }
 
-export default async function OverviewPage() {
+type DashboardSearchParams = Promise<{ dataInicial?: string; dataFinal?: string; visao?: string }>;
+
+export default async function OverviewPage({ searchParams }: { searchParams: DashboardSearchParams }) {
   const auth = await requireModuleView("dashboard");
-  const from = new Date();
-  from.setDate(from.getDate() - 29);
-  from.setHours(0, 0, 0, 0);
+  const query = await searchParams;
+  const defaultEnd = new Date(); defaultEnd.setHours(23, 59, 59, 999);
+  const defaultStart = new Date(defaultEnd); defaultStart.setDate(defaultStart.getDate() - 29); defaultStart.setHours(0, 0, 0, 0);
+  const from = parseDate(query.dataInicial, defaultStart); from.setHours(0, 0, 0, 0);
+  const to = parseDate(query.dataFinal, defaultEnd); to.setHours(23, 59, 59, 999);
+  const view = query.visao === "competencia" ? "competencia" : "caixa";
+  const financialDateField = view === "caixa" ? "paidAt" : "dueDate";
+  const financialWhere = view === "caixa"
+    ? { arenaId: auth.arenaId, status: "PAID", paidAt: { gte: from, lte: to } }
+    : { arenaId: auth.arenaId, status: { not: "VOIDED" }, dueDate: { gte: from, lte: to } };
   const [entries, reservations, saleItems, teachers] = await Promise.all([
-    prisma.financialEntry.findMany({ where: { arenaId: auth.arenaId, createdAt: { gte: from } }, select: { type: true, status: true, amountCents: true, paidAt: true } }),
-    prisma.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, startsAt: { gte: from }, status: { not: "CANCELLED" } }, include: { occurrenceCourts: { include: { court: { select: { name: true } } } } } }),
-    prisma.saleItem.findMany({ where: { sale: { arenaId: auth.arenaId, createdAt: { gte: from } } }, select: { quantity: true, totalCents: true, product: { select: { name: true } } } }),
-    prisma.teacher.findMany({ where: { arenaId: auth.arenaId, active: true }, include: { lessons: { where: { scheduledAt: { gte: from } }, include: { attendances: true } } } })
+    prisma.financialEntry.findMany({ where: financialWhere, select: { type: true, status: true, amountCents: true, paidAt: true, dueDate: true } }),
+    prisma.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, startsAt: { gte: from, lte: to }, status: { not: "CANCELLED" } }, include: { occurrenceCourts: { include: { court: { select: { name: true } } } } } }),
+    prisma.saleItem.findMany({ where: { sale: { arenaId: auth.arenaId, createdAt: { gte: from, lte: to } } }, select: { quantity: true, totalCents: true, product: { select: { name: true } } } }),
+    prisma.teacher.findMany({ where: { arenaId: auth.arenaId, active: true }, include: { lessons: { where: { scheduledAt: { gte: from, lte: to } }, include: { attendances: true } } } })
   ]);
-  const received = entries.filter((entry) => entry.type === "REVENUE" && entry.status === "PAID").reduce((total, entry) => total + entry.amountCents, 0);
-  const paid = entries.filter((entry) => entry.type === "EXPENSE" && entry.status === "PAID").reduce((total, entry) => total + entry.amountCents, 0);
-  const pending = entries.filter((entry) => entry.type === "REVENUE" && entry.status === "PENDING").reduce((total, entry) => total + entry.amountCents, 0);
-  const days = Array.from({ length: 30 }, (_, index) => { const date = new Date(from); date.setDate(from.getDate() + index); return date; });
+  const received = entries.filter((entry) => entry.type === "REVENUE").reduce((total, entry) => total + entry.amountCents, 0);
+  const paid = entries.filter((entry) => entry.type === "EXPENSE").reduce((total, entry) => total + entry.amountCents, 0);
+  const days = Array.from({ length: Math.max(1, Math.min(93, Math.round((to.getTime() - from.getTime()) / 86_400_000) + 1)) }, (_, index) => { const date = new Date(from); date.setDate(from.getDate() + index); return date; });
   const cashDays = days.map((date) => {
     const key = dayKey(date);
-    const income = entries.filter((entry) => entry.type === "REVENUE" && entry.status === "PAID" && entry.paidAt && dayKey(entry.paidAt) === key).reduce((total, entry) => total + entry.amountCents, 0);
-    const expense = entries.filter((entry) => entry.type === "EXPENSE" && entry.status === "PAID" && entry.paidAt && dayKey(entry.paidAt) === key).reduce((total, entry) => total + entry.amountCents, 0);
-    return { label: dayLabel(date), income, expense, total: income - expense };
+    const income = entries.filter((entry) => entry.type === "REVENUE" && entry[financialDateField] && dayKey(entry[financialDateField] as Date) === key).reduce((total, entry) => total + entry.amountCents, 0);
+    const expense = entries.filter((entry) => entry.type === "EXPENSE" && entry[financialDateField] && dayKey(entry[financialDateField] as Date) === key).reduce((total, entry) => total + entry.amountCents, 0);
+    return { label: dayLabel(date), income, expense };
   });
   const cashMax = Math.max(1, ...cashDays.flatMap((day) => [day.income, day.expense]));
   const courts = ranking(reservations.flatMap((reservation) => reservation.occurrenceCourts.map((court) => ({ name: court.court.name, value: 1 }))));
@@ -42,9 +57,9 @@ export default async function OverviewPage() {
   const maxRanking = Math.max(1, ...courts.map((item) => item.value), ...products.map((item) => item.value), ...students.map((item) => item.value));
 
   return <div className="stack-md workspace-page dashboard-analytics-page">
-    <header className="page-header"><div><p className="eyebrow">VISÃO GERAL</p><h1>Saúde da arena</h1><p className="muted">Últimos 30 dias.</p></div></header>
-    <SectionCard title="Resumo financeiro" className="dashboard-financial-summary"><div className="stats-grid"><StatCard label="Entradas" value={money(received)} caption="Receitas quitadas" /><StatCard label="Saídas" value={money(paid)} caption="Despesas quitadas" /><StatCard label="Resultado" value={money(received - paid)} caption={`A receber: ${money(pending)}`} /><StatCard label="Reservas" value={reservations.length} caption="No período" /></div></SectionCard>
-    <SectionCard title="Fluxo de caixa diário" className="dashboard-cash-flow"><div className="dashboard-chart-legend"><span><i className="dashboard-chart-income" />Entradas</span><span><i className="dashboard-chart-expense" />Saídas</span></div><div className="dashboard-cash-chart" role="img" aria-label="Gráfico diário de entradas e saídas"><div className="dashboard-cash-bars">{cashDays.map((day) => <div className="dashboard-cash-day" key={day.label} title={`${day.label}: entradas ${money(day.income)}, saídas ${money(day.expense)}`}><div className="dashboard-cash-column"><span className="dashboard-cash-income" style={{ height: `${Math.max(day.income ? 7 : 0, (day.income / cashMax) * 100)}%` }} /><span className="dashboard-cash-expense" style={{ height: `${Math.max(day.expense ? 7 : 0, (day.expense / cashMax) * 100)}%` }} /></div><small>{day.label}</small></div>)}</div></div></SectionCard>
+    <header className="page-header dashboard-header"><div><p className="eyebrow">VISÃO GERAL</p><h1>Saúde da arena</h1></div><form className="dashboard-filters"><label>Período inicial<input type="date" name="dataInicial" defaultValue={inputDate(from)} /></label><label>Período final<input type="date" name="dataFinal" defaultValue={inputDate(to)} /></label><label>Visualização<select name="visao" defaultValue={view}><option value="caixa">Visão de caixa</option><option value="competencia">Visão de competência</option></select></label><button type="submit" className="button button-primary">Aplicar</button></form></header>
+    <SectionCard title="Resumo financeiro" className="dashboard-financial-summary"><div className="stats-grid"><StatCard label="Entradas" value={money(received)} caption={view === "caixa" ? "Valores recebidos" : "Receitas previstas"} /><StatCard label="Saídas" value={money(paid)} caption={view === "caixa" ? "Valores pagos" : "Despesas previstas"} /><StatCard label="Resultado" value={money(received - paid)} caption={view === "caixa" ? "Saldo do período" : "Resultado por competência"} /><StatCard label="Reservas" value={reservations.length} caption="No período" /></div></SectionCard>
+    <SectionCard title={view === "caixa" ? "Fluxo de caixa diário" : "Fluxo por competência diário"} className="dashboard-cash-flow"><div className="dashboard-chart-legend"><span><i className="dashboard-chart-income" />Entradas</span><span><i className="dashboard-chart-expense" />Saídas</span></div><div className="dashboard-cash-chart" role="img" aria-label={`Gráfico diário de entradas e saídas na visão de ${view}`}><div className="dashboard-cash-bars" style={{ gridTemplateColumns: `repeat(${cashDays.length}, minmax(0, 1fr))` }}>{cashDays.map((day) => <div className="dashboard-cash-day" key={day.label} title={`${day.label}: entradas ${money(day.income)}, saídas ${money(day.expense)}`}><div className="dashboard-cash-column"><span className="dashboard-cash-income" style={{ height: `${Math.max(day.income ? 7 : 0, (day.income / cashMax) * 100)}%` }} /><span className="dashboard-cash-expense" style={{ height: `${Math.max(day.expense ? 7 : 0, (day.expense / cashMax) * 100)}%` }} /></div><small>{day.label}</small></div>)}</div></div></SectionCard>
     <div className="dashboard-grid dashboard-chart-grid">
       <SectionCard title="Quadras com mais reservas"><div className="dashboard-ranking-chart">{courts.map((item) => <div key={item.name}><span>{item.name}</span><i><b style={{ width: `${(item.value / maxRanking) * 100}%` }} /></i><strong>{item.value}</strong></div>)}</div></SectionCard>
       <SectionCard title="Produtos mais vendidos"><div className="dashboard-ranking-chart">{products.map((item) => <div key={item.name}><span>{item.name}</span><i><b style={{ width: `${(item.value / maxRanking) * 100}%` }} /></i><strong>{item.value}</strong></div>)}</div></SectionCard>
