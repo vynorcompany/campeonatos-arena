@@ -17,6 +17,12 @@ test("dashboard renders a daily cash-flow chart and the requested operational ch
   assert.match(dashboard, /Visão de competência/);
   assert.match(dashboard, /dataInicial/);
   assert.match(dashboard, /dataFinal/);
+  assert.match(dashboard, /Este mês/);
+  assert.match(dashboard, /Mês passado/);
+  assert.match(dashboard, /Últimos 90 dias/);
+  assert.match(dashboard, /Últimos 7 dias/);
+  assert.match(dashboard, /Comparar/);
+  assert.match(dashboard, /comparison/);
 });
 
 test("command checkout keeps pending debts compact until the toggle is enabled", () => {

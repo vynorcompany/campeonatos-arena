@@ -274,6 +274,36 @@ export async function createTeacherAction(formData: FormData) {
   refreshAcademyRoutes();
 }
 
+export async function createTeacherStudentAction(formData: FormData) {
+  const auth = await requireModuleEdit("teachers");
+  const teacherId = String(formData.get("teacherId") ?? "");
+  const studentId = String(formData.get("studentId") ?? "");
+  const newStudentName = String(formData.get("newStudentName") ?? "").trim();
+  const newStudentPhone = String(formData.get("newStudentPhone") ?? "").trim();
+  const teacher = await prisma.teacher.findFirst({ where: { id: teacherId, arenaId: auth.arenaId }, select: { id: true } });
+  const student = studentId
+    ? await prisma.student.findFirst({ where: { id: studentId, arenaId: auth.arenaId }, select: { id: true } })
+    : newStudentName.length >= 2
+      ? await prisma.student.upsert({ where: { arenaId_name: { arenaId: auth.arenaId, name: newStudentName } }, update: { active: true, phone: newStudentPhone }, create: { arenaId: auth.arenaId, name: newStudentName, phone: newStudentPhone } })
+      : null;
+  if (!teacher || !student) throw new Error("Professor ou aluno não encontrado.");
+  await prisma.teacherStudent.upsert({ where: { teacherId_studentId: { teacherId, studentId } }, update: { active: true }, create: { arenaId: auth.arenaId, teacherId, studentId } });
+  refreshAcademyRoutes();
+}
+
+export async function createTeacherPlanAction(formData: FormData) {
+  const auth = await requireModuleEdit("teachers");
+  const teacherId = String(formData.get("teacherId") ?? "");
+  const planId = String(formData.get("planId") ?? "");
+  const [teacher, plan] = await Promise.all([
+    prisma.teacher.findFirst({ where: { id: teacherId, arenaId: auth.arenaId }, select: { id: true } }),
+    prisma.plan.findFirst({ where: { id: planId, arenaId: auth.arenaId }, select: { id: true } })
+  ]);
+  if (!teacher || !plan) throw new Error("Professor ou plano não encontrado.");
+  await prisma.teacherPlan.upsert({ where: { teacherId_planId: { teacherId, planId } }, update: { active: true }, create: { arenaId: auth.arenaId, teacherId, planId } });
+  refreshAcademyRoutes();
+}
+
 export async function createLessonAction(formData: FormData) {
   const auth = await requireModuleEdit("lessons");
   const studentIds = getFormValues(formData, "studentIds");

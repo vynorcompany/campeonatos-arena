@@ -120,6 +120,8 @@ model Arena {
   bankAccounts BankAccount[]
   suppliers Supplier[]
   payrollEntries TeacherPayrollEntry[]
+  studentAssignments TeacherStudent[]
+  planAssignments TeacherPlan[]
   supportTickets SupportTicket[]
   tvPresentationSettings TvPresentationSettings?
   tvSponsors    TvSponsor[]
@@ -802,6 +804,7 @@ model Student {
   player         Player?  @relation(fields: [playerId], references: [id], onDelete: SetNull)
   attendances    LessonAttendance[]
   subscriptions  StudentSubscription[]
+  teacherAssignments TeacherStudent[]
 
   @@unique([arenaId, name])
   @@unique([playerId])
@@ -823,6 +826,8 @@ model Teacher {
   lessons        Lesson[]
   scheduleOccurrences ScheduleOccurrence[]
   payrollEntries TeacherPayrollEntry[]
+  studentAssignments TeacherStudent[]
+  planAssignments TeacherPlan[]
 
   @@unique([arenaId, name])
   @@index([arenaId, active])
@@ -1175,6 +1180,7 @@ model Plan {
   subscriptions     StudentSubscription[]
   financialEntries  FinancialEntry[]
   financialRecurrences FinancialRecurrence[]
+  teacherAssignments TeacherPlan[]
 
   @@unique([arenaId, name])
   @@index([arenaId, active])
@@ -1245,6 +1251,39 @@ model FinancialEntry {
   @@index([planId])
   @@index([recurrenceId])
   @@index([productId])
+}
+
+model TeacherStudent {
+  id        String   @id @default(cuid())
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  arenaId   String
+  teacherId String
+  studentId String
+  arena     Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  teacher   Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherId, studentId])
+  @@index([arenaId, active])
+  @@index([studentId, active])
+}
+
+model TeacherPlan {
+  id        String   @id @default(cuid())
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  arenaId   String
+  teacherId String
+  planId    String
+  arena     Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  teacher   Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  plan      Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherId, planId])
+  @@index([arenaId, active])
 }
 
 model FinancialRecurrence {
