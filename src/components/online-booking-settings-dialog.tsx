@@ -39,8 +39,8 @@ export function OnlineBookingSettingsDialog({ settings }: { settings: OnlineBook
           <label className="control-toggle"><input name="showReserved" type="checkbox" defaultChecked={settings.showReserved} /><span aria-hidden="true" /><em>Mostrar horários reservados</em></label>
           <label className="control-toggle"><input name="paymentOnlineEnabled" type="checkbox" defaultChecked={settings.paymentOnlineEnabled} /><span aria-hidden="true" /><em>Pagamento online</em></label>
           <label className="field form-full">Mensagem de WhatsApp<textarea name="whatsappMessage" defaultValue={settings.whatsappMessage} placeholder="Ex.: Olá, {cliente}! Sua reserva foi recebida para {data} às {horario}." /></label>
-          <p className="form-note form-full">As combinações de duração e o intervalo de cada quadra são definidos individualmente na configuração da agenda.</p>
-          <div className="online-booking-settings-footer form-full"><a className="button" href="/agenda/configuracao">Configurar combinações por quadra</a><SubmitButton label="Salvar configurações" pendingLabel="Salvando..." className="button button-primary" /></div>
+          <p className="form-note form-full">As combinações de duração e o intervalo de cada quadra são definidos nesta mesma área, abaixo.</p>
+          <div className="online-booking-settings-footer form-full"><SubmitButton label="Salvar configurações" pendingLabel="Salvando..." className="button button-primary" /></div>
         </SafeActionForm>
       </section>
     </div> : null}

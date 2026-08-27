@@ -37,7 +37,7 @@ test("agenda booking identifies reservation types, suggests athletes and closes 
   assert.match(dialog, /agenda-slot-options/);
   assert.match(dialog, /agenda-player-suggestions/);
   assert.match(dialog, /addPlayerToReservation/);
-  assert.match(css, /agenda-slot-options-trigger[^}]*border-radius: 50%/);
+  assert.match(css, /agenda-slot-options-trigger[^}]*border-radius: 5px/);
   assert.match(css, /button-primary:not\(\.agenda-add-athlete\)/);
 });
 

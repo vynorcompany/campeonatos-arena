@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
 
-test("daily court agenda renders time rows, court columns and a configuration entry point", () => {
+test("daily court agenda renders time rows and court columns without mixing in configuration", () => {
   const page = readFileSync(resolve(process.cwd(), "src/app/(app)/agenda/page.tsx"), "utf8");
 
   assert.match(page, /agenda-date-strip/);
@@ -11,7 +11,7 @@ test("daily court agenda renders time rows, court columns and a configuration en
   assert.match(page, /scheduleOccurrences/);
   assert.match(page, /daily-court-grid/);
   assert.match(page, /Agenda de quadras/);
-  assert.match(page, /\/agenda\/configuracao/);
+  assert.doesNotMatch(page, /href="\/agenda\/configuracao"/);
   assert.match(page, /priceCents/);
   assert.match(page, /daily-court-unavailable/);
   assert.doesNotMatch(page, /<header className="page-header agenda-header">/);

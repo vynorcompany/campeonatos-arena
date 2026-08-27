@@ -30,8 +30,12 @@ export default async function PublicBookingPage({ params, searchParams }: Public
       const startsAt = new Date(selectedDate); startsAt.setHours(Math.floor(minute / 60), minute % 60, 0, 0);
       const tooSoon = startsAt.getTime() < Date.now() + arena.onlineBookingLeadTimeMinutes * 60_000;
       if (!rule || occupied || tooSoon) return [];
-      const durations = court.onlineDurationMinutes.filter((item) => minute + item <= rule.endsAtMinute && !occurrences.some((occurrence) => occurrence.occurrenceCourts.some((entry) => entry.courtId === court.id) && occurrence.startsAt.getHours() * 60 + occurrence.startsAt.getMinutes() < minute + item && occurrence.endsAt.getHours() * 60 + occurrence.endsAt.getMinutes() > minute));
-      return durations.length === court.onlineDurationMinutes.length ? [{ startsAt: `${dateValue(selectedDate)}T${minuteLabel(minute)}`, label: minuteLabel(minute), priceCents: rule.priceCents, durations }] : [];
+      const durations = court.onlineDurationMinutes.filter((item) => minute + item <= rule.endsAtMinute);
+      const minimumDuration = durations[0];
+      const blockedMinutes = Array.from({ length: Math.ceil((Math.max(...durations) || 0) / court.onlineSlotMinutes) }, (_, index) => minute + index * court.onlineSlotMinutes).filter((slotMinute) => occurrences.some((occurrence) => occurrence.occurrenceCourts.some((entry) => entry.courtId === court.id) && occurrence.startsAt.getHours() * 60 + occurrence.startsAt.getMinutes() <= slotMinute && occurrence.endsAt.getHours() * 60 + occurrence.endsAt.getMinutes() > slotMinute));
+      const minimumBlocked = !minimumDuration || blockedMinutes.some((slotMinute) => slotMinute < minute + minimumDuration);
+      const availableMinutes = Array.from({ length: Math.ceil((Math.max(...durations) || 0) / court.onlineSlotMinutes) }, (_, index) => minute + index * court.onlineSlotMinutes);
+      return !minimumBlocked && durations.length ? [{ startsAt: `${dateValue(selectedDate)}T${minuteLabel(minute)}`, label: minuteLabel(minute), priceCents: rule.priceCents, durations, availableMinutes, blockedMinutes }] : [];
     });
     return { id: court.id, name: court.name, color: court.color, slotMinutes: court.onlineSlotMinutes, slots };
   }).filter((court) => court.slots.length);

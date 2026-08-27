@@ -74,6 +74,7 @@ export function AppShell({
             </div>
 
             {visibleModules.includes("arena") ? <Link href="/arena" className="button button-secondary sidebar-settings-link">Configurações</Link> : null}
+            {visibleModules.includes("calendar") ? <Link href="/agenda/configuracao" className="sidebar-settings-sub-link">Grade de horários</Link> : null}
             <form action={logoutAction}>
               <button className="button button-secondary" type="submit">
                 Sair

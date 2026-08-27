@@ -18,12 +18,15 @@ test("occupied agenda slots expose cancellation and command operations", () => {
   assert.match(comandaActions, /export async function openBookingComandasAction/);
 });
 
-test("online booking lists only starts that fit every configured duration", () => {
+test("online booking lists starts that fit the minimum duration and flags a conflicting extension", () => {
   const page = readFileSync(resolve(process.cwd(), "src/app/reservar/[arenaSlug]/page.tsx"), "utf8");
   const form = readFileSync(resolve(process.cwd(), "src/components/public-court-booking-form.tsx"), "utf8");
   const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
 
-  assert.match(page, /durations\.length === court\.onlineDurationMinutes\.length/);
+  assert.match(page, /minimumDuration/);
+  assert.match(page, /minimumBlocked/);
+  assert.match(page, /blockedMinutes/);
+  assert.match(form, /public-booking-slot-block-conflict/);
   assert.match(form, /Você está usando sua conta de cliente/);
   assert.doesNotMatch(form, /Telefone final:/);
   assert.match(styles, /\.public-booking-shell \{ width: min\(100%, 1020px\)/);

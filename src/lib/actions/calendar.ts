@@ -302,6 +302,33 @@ export async function deleteCourtWeeklyRuleAction(formData: FormData) {
   refreshCalendar();
 }
 
+export async function copyCourtWeeklyRuleAction(formData: FormData) {
+  const auth = await requireModuleEdit("calendar");
+  const parsed = z.object({ ruleId: z.string().trim().min(1), targetWeekday: z.string().regex(/^[0-6]$/).transform(Number) }).safeParse({
+    ruleId: formData.get("ruleId"),
+    targetWeekday: formData.get("targetWeekday")
+  });
+  if (!parsed.success) throw new Error("Selecione o dia de destino.");
+
+  const source = await prisma.courtWeeklyRule.findFirst({
+    where: { id: parsed.data.ruleId, court: { arenaId: auth.arenaId } },
+    include: { court: { include: { weeklyRules: { where: { weekday: parsed.data.targetWeekday } } } } }
+  });
+  if (!source) throw new Error("Faixa não encontrada.");
+  const conflicts = source.court.weeklyRules.some((rule) => weeklyRangesOverlap(source.startsAtMinute, source.endsAtMinute, rule.startsAtMinute, rule.endsAtMinute));
+  if (conflicts) throw new Error("A faixa se sobrepõe a outra regra no dia de destino.");
+
+  await prisma.courtWeeklyRule.create({ data: {
+    courtId: source.courtId,
+    weekday: parsed.data.targetWeekday,
+    startsAtMinute: source.startsAtMinute,
+    endsAtMinute: source.endsAtMinute,
+    priceCents: source.priceCents,
+    available: source.available
+  } });
+  refreshCalendar();
+}
+
 export async function updateScheduleSettingsAction(formData: FormData) {
   const auth = await requireModuleEdit("calendar");
   const parsed = scheduleSettingsSchema.safeParse({
