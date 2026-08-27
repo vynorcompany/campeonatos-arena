@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { TeacherMonthlyReport } from "@/components/teachers/teacher-monthly-report";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { assignTeacherPlanStudentAction, createTeacherPlanWithPriceAction, removeTeacherPlanStudentAction } from "@/lib/actions/academy";
@@ -7,11 +8,15 @@ import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
 const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value / 100);
+const inputDate = (value: Date) => value.toISOString().slice(0, 10);
+type DetailQuery = { tab?: string; planId?: string; inicio?: string; fim?: string; status?: string; percentual?: string };
 
-export default async function TeacherDetailPage({ params }: { params: { teacherId: string } }) {
+export default async function TeacherDetailPage({ params, searchParams }: { params: { teacherId: string }; searchParams?: DetailQuery }) {
   const auth = await requireModuleView("teachers");
-  const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
-  const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0, 23, 59, 59, 999);
+  const tab = searchParams?.tab === "students" || searchParams?.tab === "report" ? searchParams.tab : "plans";
+  const now = new Date(); const monthStart = new Date(now.getFullYear(), now.getMonth(), 1); const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  const reportStart = searchParams?.inicio ? new Date(`${searchParams.inicio}T00:00:00`) : monthStart;
+  const reportEnd = searchParams?.fim ? new Date(`${searchParams.fim}T23:59:59`) : monthEnd;
   const [teacher, students] = await Promise.all([
     prisma.teacher.findFirst({
       where: { id: params.teacherId, arenaId: auth.arenaId },
@@ -21,35 +26,44 @@ export default async function TeacherDetailPage({ params }: { params: { teacherI
           include: {
             plan: {
               include: {
-                subscriptions: {
-                  where: { status: "ACTIVE" },
-                  include: { student: { select: { id: true, name: true, remainingClasses: true } } }
-                },
-                financialEntries: { where: { status: { not: "VOIDED" } }, select: { counterpartyName: true, status: true, dueDate: true }, orderBy: { dueDate: "desc" } }
+                subscriptions: { where: { status: "ACTIVE" }, include: { student: { select: { id: true, name: true, remainingClasses: true } } } },
+                financialEntries: {
+                  where: {
+                    status: { not: "VOIDED" },
+                    OR: [
+                      { status: "PAID", paidAt: { gte: reportStart, lte: reportEnd } },
+                      { status: { not: "PAID" }, dueDate: { gte: reportStart, lte: reportEnd } }
+                    ]
+                  },
+                  select: { id: true, counterpartyName: true, amountCents: true, status: true, paidAt: true, dueDate: true },
+                  orderBy: { dueDate: "desc" }
+                }
               }
             }
           }
         },
-        studentAssignments: { where: { active: true }, include: { student: { select: { id: true, name: true, remainingClasses: true } } } },
         lessons: { where: { scheduledAt: { gte: monthStart, lte: monthEnd } }, include: { attendances: true } }
       }
     }),
     prisma.student.findMany({ where: { arenaId: auth.arenaId, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } })
   ]);
   if (!teacher) notFound();
+  const activePlanId = teacher.planAssignments.some(({ plan }) => plan.id === searchParams?.planId) ? searchParams?.planId! : teacher.planAssignments[0]?.plan.id;
+  const activePlan = teacher.planAssignments.find(({ plan }) => plan.id === activePlanId)?.plan;
   const planStudentIds = new Set(teacher.planAssignments.flatMap(({ plan }) => plan.subscriptions.map((subscription) => subscription.studentId)));
   const availableStudents = students.filter((student) => !planStudentIds.has(student.id));
   const totalAttendances = teacher.lessons.reduce((total, lesson) => total + lesson.attendances.length, 0);
   const completedLessons = teacher.lessons.filter((lesson) => lesson.status === "COMPLETED").length;
+  const reportRows = teacher.planAssignments.flatMap(({ plan }) => plan.financialEntries.filter((entry) => searchParams?.status === "open" ? entry.status !== "PAID" : searchParams?.status === "paid" ? entry.status === "PAID" : true).map((entry) => ({ id: entry.id, studentName: entry.counterpartyName || "Cliente não informado", planName: plan.name, amountCents: entry.amountCents, paidAt: entry.paidAt?.toISOString() ?? null, status: entry.status })));
+  const percent = Math.max(0, Math.min(100, Number(searchParams?.percentual ?? 0) || 0));
+  const tabHref = (nextTab: string, planId?: string) => `/professores/${teacher.id}?tab=${nextTab}${planId ? `&planId=${planId}` : ""}`;
 
   return <div className="stack-md workspace-page teacher-detail-page">
     <header className="page-header"><div><Link href="/professores" className="back-link">← Professores</Link><p className="eyebrow">PROFESSOR</p><h1>{teacher.name}</h1></div><span className={teacher.active ? "status-badge status-active" : "status-badge"}>{teacher.active ? "Ativo" : "Inativo"}</span></header>
+    <nav className="teacher-detail-tabs" aria-label="Painel do professor"><Link href={tabHref("plans")} className={tab === "plans" ? "is-active" : ""}>Planos e preços</Link><Link href={tabHref("students")} className={tab === "students" ? "is-active" : ""}>Alunos ativos</Link><Link href={tabHref("report")} className={tab === "report" ? "is-active" : ""}>Relatório</Link></nav>
     <section className="teacher-detail-metrics"><article><span>Planos ativos</span><strong>{teacher.planAssignments.length}</strong></article><article><span>Alunos ativos</span><strong>{planStudentIds.size}</strong></article><article><span>Aulas concluídas no mês</span><strong>{completedLessons}</strong></article><article><span>Presenças no mês</span><strong>{totalAttendances}</strong></article></section>
-    <div className="teacher-detail-grid">
-      <section className="section-card teacher-detail-section"><header><h2>Planos e preços</h2></header><div className="teacher-plan-cards">{teacher.planAssignments.map(({ plan }) => <article key={plan.id}><strong>{plan.name}</strong><span>{plan.classesPerMonth} aulas/mês</span><b>{money(plan.monthlyPriceCents)}</b><small>{plan.subscriptions.length} aluno(s) ativo(s)</small></article>)}{!teacher.planAssignments.length ? <p className="muted">Nenhum plano vinculado.</p> : null}</div><SafeActionForm action={createTeacherPlanWithPriceAction} className="teacher-inline-form" resetOnSuccess successMessage="Plano criado e vinculado ao professor."><input type="hidden" name="teacherId" value={teacher.id} /><label>Plano<input name="name" required placeholder="Ex.: 2x por semana" /></label><label>Aulas/mês<input name="classesPerMonth" type="number" min="1" max="31" defaultValue="8" /></label><label>Preço mensal<input name="monthlyPrice" inputMode="decimal" required placeholder="0,00" /></label><SubmitButton label="Criar plano" pendingLabel="Salvando..." className="button button-primary" /></SafeActionForm></section>
-      <section className="section-card teacher-detail-section"><header><h2>Adicionar aluno ao plano</h2></header><SafeActionForm action={assignTeacherPlanStudentAction} className="teacher-inline-form" successMessage="Aluno vinculado ao plano."><input type="hidden" name="teacherId" value={teacher.id} /><label>Plano<select name="planId" defaultValue="" required><option value="" disabled>Selecione</option>{teacher.planAssignments.map(({ plan }) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}</select></label><label>Aluno<select name="studentId" defaultValue="" required><option value="" disabled>Selecione</option>{availableStudents.map((student) => <option key={student.id} value={student.id}>{student.name}</option>)}</select></label><SubmitButton label="Adicionar aluno" pendingLabel="Salvando..." className="button button-primary" /></SafeActionForm></section>
-    </div>
-    <section className="section-card teacher-detail-section"><header><h2>Alunos ativos</h2></header><div className="teacher-student-plan-list">{teacher.planAssignments.flatMap(({ plan }) => plan.subscriptions.map((subscription) => { const payment = plan.financialEntries.find((entry) => entry.counterpartyName === subscription.student.name); const paid = payment?.status === "PAID"; return <article key={subscription.id}><div><strong>{subscription.student.name}</strong><span>{plan.name}</span></div><span className={paid ? "status-badge status-active" : "status-badge status-pending"}>{paid ? "Pago" : "Em aberto"}</span><strong>Saldo de aulas: {subscription.student.remainingClasses}</strong><SafeActionForm action={removeTeacherPlanStudentAction}><input type="hidden" name="teacherId" value={teacher.id} /><input type="hidden" name="planId" value={plan.id} /><input type="hidden" name="studentId" value={subscription.student.id} /><SubmitButton label="Remover" pendingLabel="Removendo..." className="button button-danger button-small" /></SafeActionForm></article>; }))}{!planStudentIds.size ? <p className="muted">Nenhum aluno ativo nos planos deste professor.</p> : null}</div></section>
-    <section className="section-card teacher-detail-section teacher-month-report"><header><h2>Relatório do mês</h2><span>{new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(monthStart)}</span></header><div><strong>{completedLessons} aulas concluídas</strong><span>{teacher.lessons.length - completedLessons} aulas programadas</span><span>{totalAttendances} presenças registradas</span></div><Link href={`/relatorios/planos?professorId=${teacher.id}`} className="button">Abrir relatório completo</Link></section>
+    {tab === "plans" ? <div className="teacher-detail-grid"><section className="section-card teacher-detail-section"><header><h2>Planos e preços</h2></header><div className="teacher-plan-cards">{teacher.planAssignments.map(({ plan }) => <Link key={plan.id} href={tabHref("plans", plan.id)} className={plan.id === activePlanId ? "is-selected" : ""}><strong>{plan.name}</strong><span>{plan.classesPerMonth} aulas/mês</span><b>{money(plan.monthlyPriceCents)}</b><small>{plan.subscriptions.length} aluno(s) ativo(s)</small></Link>)}{!teacher.planAssignments.length ? <p className="muted">Nenhum plano vinculado.</p> : null}</div><SafeActionForm action={createTeacherPlanWithPriceAction} className="teacher-inline-form" resetOnSuccess successMessage="Plano criado e vinculado ao professor."><input type="hidden" name="teacherId" value={teacher.id} /><label>Plano<input name="name" required placeholder="Ex.: 2x por semana" /></label><label>Aulas/mês<input name="classesPerMonth" type="number" min="1" max="31" defaultValue="8" /></label><label>Preço mensal<input name="monthlyPrice" inputMode="decimal" required placeholder="0,00" /></label><SubmitButton label="Criar plano" pendingLabel="Salvando..." className="button button-primary" /></SafeActionForm></section>{activePlan ? <section className="section-card teacher-detail-section"><header><h2>{activePlan.name}</h2><span>{activePlan.subscriptions.length} alunos</span></header><div className="teacher-student-plan-list">{activePlan.subscriptions.map((subscription) => <article key={subscription.id}><strong>{subscription.student.name}</strong><span>Saldo de aulas: {subscription.student.remainingClasses}</span><SafeActionForm action={removeTeacherPlanStudentAction}><input type="hidden" name="teacherId" value={teacher.id} /><input type="hidden" name="planId" value={activePlan.id} /><input type="hidden" name="studentId" value={subscription.student.id} /><SubmitButton label="Remover" pendingLabel="Removendo..." className="button button-danger button-small" /></SafeActionForm></article>)}</div><SafeActionForm action={assignTeacherPlanStudentAction} className="teacher-inline-form" successMessage="Aluno vinculado ao plano."><input type="hidden" name="teacherId" value={teacher.id} /><input type="hidden" name="planId" value={activePlan.id} /><label>Aluno<select name="studentId" defaultValue="" required><option value="" disabled>Selecione</option>{availableStudents.map((student) => <option key={student.id} value={student.id}>{student.name}</option>)}</select></label><SubmitButton label="Adicionar aluno" pendingLabel="Salvando..." className="button button-primary" /></SafeActionForm></section> : null}</div> : null}
+    {tab === "students" ? <section className="section-card teacher-detail-section"><header><h2>Alunos ativos</h2></header><div className="teacher-student-plan-list">{teacher.planAssignments.flatMap(({ plan }) => plan.subscriptions.map((subscription) => { const payment = plan.financialEntries.find((entry) => entry.counterpartyName === subscription.student.name); const paid = payment?.status === "PAID"; return <article key={subscription.id}><div><strong>{subscription.student.name}</strong><Link href={tabHref("plans", plan.id)}>{plan.name}</Link></div><span className={paid ? "status-badge status-active" : "status-badge status-pending"}>{paid ? "Pago" : "Em aberto"}</span><strong>Saldo de aulas: {subscription.student.remainingClasses}</strong></article>; }))}{!planStudentIds.size ? <p className="muted">Nenhum aluno ativo nos planos deste professor.</p> : null}</div></section> : null}
+    {tab === "report" ? <section className="section-card teacher-detail-section"><header><h2>Relatório</h2></header><form className="teacher-report-filters"><input type="hidden" name="tab" value="report" /><label>Período inicial<input type="date" name="inicio" defaultValue={inputDate(reportStart)} /></label><label>Período final<input type="date" name="fim" defaultValue={inputDate(reportEnd)} /></label><label>Status<select name="status" defaultValue={searchParams?.status ?? "all"}><option value="all">Todos</option><option value="paid">Pagos</option><option value="open">Em aberto</option></select></label><label>Percentual do professor<input type="number" name="percentual" min="0" max="100" step="0.5" defaultValue={percent} /></label><button type="submit" className="button button-primary">Aplicar</button></form><TeacherMonthlyReport rows={reportRows} initialPercent={percent} /></section> : null}
   </div>;
 }

@@ -30,6 +30,7 @@ test("agenda keeps online settings on the daily grade and provides a compact mon
   assert.match(dashboard, /dashboard-period-preset-active/);
   assert.match(agenda, /<OnlineBookingSettingsDialog/);
   assert.match(agenda, /AgendaMonthPicker/);
+  assert.match(agenda, /agenda-calendar-controls/);
   assert.match(configuration, /OnlineBookingSettingsDialog/);
   assert.match(configuration, /copyCourtWeeklyRuleAction/);
   assert.match(actions, /export async function copyCourtWeeklyRuleAction/);

@@ -14,10 +14,17 @@ test("sidebar exposes the compact arena workspaces and keeps settings near sign 
   assert.match(navigation, /label: "Comandas"/);
   assert.match(navigation, /label: "Clientes"/);
   assert.doesNotMatch(navigation, /title: "Administração"/);
-  assert.match(shell, /href="\/arena"[\s\S]*Configurações[\s\S]*Sair/);
+  assert.match(shell, /sidebar-settings-menu[\s\S]*Configurações[\s\S]*href="\/arena"[\s\S]*Sair/);
   assert.match(navigation, /title: "Gestão"/);
   assert.doesNotMatch(navigation, /title: "Financeiro"/);
   assert.doesNotMatch(navigation, /Suporte\/Ajuda/);
+});
+
+test("settings menu exposes court configuration outside the schedule grade", () => {
+  const shell = readFileSync(resolve(process.cwd(), "src/components/layout/app-shell.tsx"), "utf8");
+
+  assert.match(shell, /sidebar-settings-menu/);
+  assert.match(shell, /href="\/agenda\/configuracao"[\s\S]*Configuração de quadras/);
 });
 
 test("sidebar and dashboard share the new operational visual system", () => {

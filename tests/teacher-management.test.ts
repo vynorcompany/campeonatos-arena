@@ -32,6 +32,24 @@ test("teachers list opens a dedicated operational panel for the selected profess
   const detail = readFileSync(teacherPanel, "utf8");
   assert.match(detail, /Planos e preços/);
   assert.match(detail, /Alunos ativos/);
-  assert.match(detail, /Relatório do mês/);
+  assert.match(detail, /Relatório/);
   assert.match(detail, /Saldo de aulas/);
+});
+
+test("teacher workspace separates plan, student and monthly payment-report operations", () => {
+  const detail = readFileSync(resolve(process.cwd(), "src/app/(app)/professores/[teacherId]/page.tsx"), "utf8");
+  const report = resolve(process.cwd(), "src/components/teachers/teacher-monthly-report.tsx");
+
+  assert.match(detail, /Planos e preços/);
+  assert.match(detail, /Alunos ativos/);
+  assert.match(detail, /Relatório/);
+  assert.match(detail, /tab === "plans"/);
+  assert.match(detail, /tab === "students"/);
+  assert.match(detail, /tab === "report"/);
+  assert.match(detail, /paidAt: \{ gte: reportStart, lte: reportEnd \}/);
+  assert.ok(existsSync(report));
+  const reportContent = readFileSync(report, "utf8");
+  assert.match(reportContent, /Percentual do professor/);
+  assert.match(reportContent, /Desmarcar do cálculo/);
+  assert.match(reportContent, /Total a pagar/);
 });

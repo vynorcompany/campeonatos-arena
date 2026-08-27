@@ -73,8 +73,7 @@ export function AppShell({
               <p className="muted">{userRole}</p>
             </div>
 
-            {visibleModules.includes("arena") ? <Link href="/arena" className="button button-secondary sidebar-settings-link">Configurações</Link> : null}
-            {visibleModules.includes("calendar") ? <Link href="/agenda/configuracao" className="sidebar-settings-sub-link">Grade de horários</Link> : null}
+            {visibleModules.includes("arena") || visibleModules.includes("calendar") ? <nav className="sidebar-settings-menu" aria-label="Configurações"><strong>Configurações</strong>{visibleModules.includes("arena") ? <Link href="/arena" className="sidebar-settings-link">Dados da arena</Link> : null}{visibleModules.includes("calendar") ? <Link href="/agenda/configuracao" className="sidebar-settings-sub-link">Configuração de quadras</Link> : null}</nav> : null}
             <form action={logoutAction}>
               <button className="button button-secondary" type="submit">
                 Sair
