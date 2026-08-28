@@ -12,7 +12,7 @@ import { StatusBadge } from "@/components/tournaments/status-badge";
 import { TournamentDetailLayout } from "@/components/tournaments/tournament-detail-layout";
 import { type TournamentTabKey } from "@/components/tournaments/tournament-tabs";
 import { requireModuleView } from "@/lib/auth/guards";
-import { updateLeaguePrizeAction } from "@/lib/actions/category-competition";
+import { runLeagueLifecycleAction, updateLeaguePrizeAction } from "@/lib/actions/category-competition";
 import { prisma } from "@/lib/prisma";
 import { canGenerateCategoryDraw } from "@/lib/tournament-category/draw";
 import { buildPlacementStages } from "@/lib/tournament-category/ranking";
@@ -410,6 +410,7 @@ export default async function CategoryPage({
               replacementPlayerName: athletes.find((athlete) => athlete.id === request.replacementPlayerId)?.name ?? "Novo atleta",
             }))} /> : null}
             {competition?.format === "LEAGUE" ? <form action={updateLeaguePrizeAction} className="section-card stack-sm"><div><p className="eyebrow">PORTAL DO ATLETA</p><h2>Premiação da Liga</h2></div><input type="hidden" name="competitionId" value={competition.id} /><textarea name="prizeDescription" defaultValue={competition.leagueCycles[0]?.prizeDescription ?? ""} placeholder="Ex.: campeãs recebem troféu, voucher e premiação em dinheiro." /><button className="button button-primary" type="submit">Salvar premiação</button></form> : null}
+            {competition?.format === "LEAGUE" ? <form action={runLeagueLifecycleAction} className="league-lifecycle-manual-action"><button className="button button-primary" type="submit">Processar ciclo da Liga</button></form> : null}
             {!competition ? (
               <article className="section-card">
                 <CategoryCompetitionForm

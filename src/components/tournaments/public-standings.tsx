@@ -2,236 +2,96 @@ import Link from "next/link";
 import type { ArenaPublicStandings } from "@/lib/services/public-standings";
 import { PublicLeaguePortal } from "@/components/tournaments/public-league-portal";
 
-const statusLabels = {
-  SCHEDULED: "Agendado",
-  LIVE: "Em andamento",
-  FINISHED: "Finalizado",
-} as const;
+type Portal = Awaited<ReturnType<typeof import("@/lib/services/public-league-portal").getPublicLeaguePortal>>;
+type PortalSection = "leagues" | "reservations" | "lessons" | "classes";
+type LeagueTab = "games" | "ranking" | "rules" | "prizes";
+
+function portalHref(section: PortalSection, leagueTab?: LeagueTab) {
+  const query = new URLSearchParams({ section, tab: leagueTab === "ranking" ? "ranking" : leagueTab === "rules" ? "rules" : leagueTab === "prizes" ? "portal" : "games" });
+  if (leagueTab) query.set("leagueTab", leagueTab);
+  return `?${query.toString()}`;
+}
 
 export function PublicStandings({
   data,
   currentClient,
   portal,
   authForm,
+  section = "leagues",
+  leagueTab = "games",
 }: {
   data: ArenaPublicStandings;
   currentClient: { name: string } | null;
-  portal: Awaited<ReturnType<typeof import("@/lib/services/public-league-portal").getPublicLeaguePortal>>;
+  portal: Portal;
   authForm: React.ReactNode;
+  section?: PortalSection;
+  leagueTab?: LeagueTab;
 }) {
-  const isRanking = data.selectedTab === "ranking";
-  const isRules = data.selectedTab === "rules";
-  const isPortal = data.selectedTab === "portal";
-  const publicHeader = <header className="public-standings-header public-standings-brand-band">
-    <div className="public-standings-header-content">
-      <div className="public-standings-brand-lockup">
-        {data.arena.logoUrl ? <img className="public-standings-logo" src={data.arena.logoUrl} alt={`Logo da arena ${data.arena.name}`} /> : null}
-        <div className="public-standings-brand-copy">
-          <h1>Arena Padel — Área do cliente</h1>
-          <p className="public-standings-header-support">Entre para acompanhar sua Liga, jogos e regras da Arena.</p>
+  const publicHeader = (
+    <header className="athlete-portal-hero">
+      <div className="athlete-portal-hero-inner">
+        <div className="athlete-portal-brand">
+          {data.arena.logoUrl ? <img src={data.arena.logoUrl} alt={`Logo da arena ${data.arena.name}`} /> : <span className="athlete-portal-mark">AP</span>}
+          <div><span>ARENA PADEL</span><h1>Portal do Atleta</h1><p>Acompanhe suas atividades, reservas e Ligas em um só lugar.</p></div>
         </div>
+        {currentClient ? <strong className="athlete-portal-greeting">Olá, {currentClient.name}</strong> : null}
       </div>
-    </div>
-  </header>;
-
-  if (!currentClient) return <main className="stack-md public-standings-page">{publicHeader}<section className="section-card public-standings-private">{authForm}</section></main>;
-
-  return (
-    <main
-      className="stack-md public-standings-page"
-    >
-      {publicHeader}
-
-      <nav className="public-standings-tabs" aria-label="Visualização pública">
-        <Link
-          href="?tab=ranking"
-          className={`button ${isRanking ? "button-primary" : ""}`}
-          aria-current={isRanking ? "page" : undefined}
-        >
-          Ranking
-        </Link>
-        <Link
-          href="?tab=games"
-          className={`button ${data.selectedTab === "games" ? "button-primary" : ""}`}
-          aria-current={data.selectedTab === "games" ? "page" : undefined}
-        >
-          Jogos
-        </Link>
-        <Link href="?tab=rules" className={`button ${isRules ? "button-primary" : ""}`} aria-current={isRules ? "page" : undefined}>Regras</Link>
-        <Link href="?tab=portal" className={`button ${isPortal ? "button-primary" : ""}`} aria-current={isPortal ? "page" : undefined}>Meu portal</Link>
-      </nav>
-
-      {isPortal ? (currentClient && portal ? <PublicLeaguePortal arenaSlug={data.arena.slug} playerName={currentClient.name} portal={portal} /> : authForm) : isRules ? <section className="section-card stack-md public-league-rules"><div className="stack-xs"><p className="eyebrow">Regulamento</p><h2>Regras das ligas</h2></div>{data.leagueRules.length ? data.leagueRules.map((league) => <article key={league.id}><header><strong>{league.eventName}</strong><span>{league.categoryName}</span></header><p>{league.rules}</p></article>) : <p className="muted">Nenhuma regra foi publicada para as ligas ativas.</p>}</section> : isRanking ? (
-        <>
-          {data.options.length ? (
-            <form method="get" className="public-standings-filter">
-              <input type="hidden" name="tab" value="ranking" />
-              <label className="public-standings-filter-label" htmlFor="public-standings-view">Ranking</label>
-              <select
-                id="public-standings-view"
-                name="view"
-                defaultValue={data.selectedOptionId ?? undefined}
-              >
-                {data.options.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <button className="button" type="submit">
-                Consultar
-              </button>
-            </form>
-          ) : (
-            <section className="empty-state">
-              <h2>Nenhuma classificação publicada</h2>
-              <p>
-                O Ranking Geral e as categorias encerradas aparecerão aqui
-                quando forem publicados pela arena.
-              </p>
-            </section>
-          )}
-
-          {data.selected?.kind === "GENERAL_RANKING" ? (
-            <section className="section-card stack-md">
-              <div className="stack-xs">
-                <h2>Ranking Geral</h2>
-              </div>
-              {data.selected.rows.length ? (
-                <div className="group-standings">
-                  <table className="group-standings-table">
-                    <thead>
-                      <tr>
-                        <th>Posição</th><th>Atleta</th><th>Pontos</th><th>Eventos</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.selected.rows.map((row) => (
-                        <tr key={`${row.position}-${row.playerName}`}>
-                          <td>{row.position}</td><td>{row.playerName}</td>
-                          <td>{row.points}</td><td>{row.tournamentsPlayed}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : <p className="muted">Nenhuma pontuação publicada neste ciclo.</p>}
-            </section>
-          ) : null}
-
-          {data.selected?.kind === "CATEGORY" ? (
-            <section className="section-card stack-md">
-              <div className="stack-xs">
-                <p className="eyebrow">{data.selected.eventName}</p>
-                <h2>{data.selected.categoryName}</h2>
-              </div>
-              {data.selected.format === "LEAGUE" ? (
-                <>
-                <div className="group-standings">
-                  <h3>Classificação da Liga</h3>
-                  <table className="group-standings-table">
-                    <thead><tr><th>Posição</th><th>Dupla</th><th>Jogos</th><th>Vitórias</th><th>Derrotas</th><th>Saldo</th></tr></thead>
-                    <tbody>{data.selected.leagueStandings.map((standing, index, rows) => (
-                      <tr key={standing.position} className={index === 0 ? "public-standing-first" : index === rows.length - 1 ? "public-standing-last" : undefined}>
-                        <td>{standing.position}</td><td>{standing.pairName}</td><td>{standing.matches}</td>
-                        <td>{standing.victories}</td><td>{standing.losses}</td><td>{standing.differential}</td>
-                      </tr>
-                    ))}</tbody>
-                  </table>
-                </div>
-                <div className="public-standing-mobile-list">
-                  {data.selected.leagueStandings.map((standing, index, rows) => (
-                    <article className={`public-standing-mobile-card ${index === 0 ? "public-standing-first" : index === rows.length - 1 ? "public-standing-last" : ""}`} key={standing.position}>
-                      <strong className="public-standing-position">{standing.position}</strong>
-                      <div>
-                        <strong>{standing.pairName}</strong>
-                        <p>{standing.matches} jogos · {standing.victories} Vitórias · {standing.losses} derrotas</p>
-                      </div>
-                      <div className="public-standing-differential"><span>Saldo</span><strong>{standing.differential}</strong></div>
-                    </article>
-                  ))}
-                </div>
-                </>
-              ) : (
-                <div className="stack-sm">
-                  <h3>Colocação final</h3>
-                  {data.selected.knockoutPlacement.map((placement, index, rows) => (
-                    <div className={`simple-item ${index === 0 ? "public-standing-first" : index === rows.length - 1 ? "public-standing-last" : ""}`} key={placement.position}>
-                      <strong>{placement.position}. {placement.pairName}</strong>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-          ) : null}
-        </>
-      ) : (
-        <section className="section-card stack-md">
-          <div className="stack-xs">
-            <p className="eyebrow">Agenda pública</p>
-            <h2>Jogos</h2>
-          </div>
-          <form method="get" className="public-games-filter">
-            <input type="hidden" name="tab" value="games" />
-            <div>
-              <label className="public-standings-filter-label" htmlFor="public-games-league">Liga</label>
-              <select id="public-games-league" name="league" defaultValue={data.selectedGameCategoryId ?? ""}>
-                <option value="">Todas as ligas</option>
-                {data.gameCategories.map((category) => (
-                  <option key={category.id} value={category.id}>{category.label}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="public-standings-filter-label" htmlFor="public-games-status">Status</label>
-              <select id="public-games-status" name="status" defaultValue={data.selectedGameStatus}>
-                <option value="ALL">Todos</option>
-                <option value="SCHEDULED">Agendados</option>
-                <option value="LIVE">Em andamento</option>
-                <option value="FINISHED">Finalizados</option>
-              </select>
-            </div>
-            <button className="button button-primary" type="submit">Filtrar</button>
-          </form>
-          {data.games.length ? data.games.map((day) => (
-            <div className="stack-sm" key={day.date}>
-              <h3>{day.label}</h3>
-              {day.games.map((game) => (
-                <div className={`simple-item public-game-item ${game.status === "FINISHED" ? "public-game-item-finished" : ""}`} key={`${day.date}-${game.label}-${game.roundOrder}-${game.categoryName}`}>
-                  <div className="public-game-topline"><strong>{game.scheduledTime ?? "Horário a definir"}</strong>{game.status === "FINISHED" ? <span className="public-game-finished-tag">Finalizado</span> : null}</div>
-                  <span className="public-game-meta">{game.eventName} · {game.categoryName}{game.stage ? ` · ${game.stage}` : ""}</span>
-                  {game.status === "FINISHED" && game.finalScore ? (
-                    <div className="public-game-matchup">
-                      <strong className={game.winnerSide === "home" ? "public-game-pair-winner" : "public-game-pair-loser"}>{game.homePairName}</strong>
-                      <div
-                        className="public-game-score"
-                        aria-label={`Placar final: ${game.finalScore.homeScore} a ${game.finalScore.awayScore}`}
-                      >
-                        <strong>
-                          {game.finalScore.homeScore} × {game.finalScore.awayScore}
-                        </strong>
-                        {game.setScores?.length ? (
-                          <span className="public-game-set-scores">
-                            {game.setScores
-                              .map(
-                                (set) => `${set.homeScore}–${set.awayScore}`,
-                              )
-                              .join(" · ")}
-                          </span>
-                        ) : null}
-                      </div>
-                      <strong className={game.winnerSide === "away" ? "public-game-pair-winner" : "public-game-pair-loser"}>{game.awayPairName}</strong>
-                    </div>
-                  ) : (
-                    <strong className="public-game-pairs">{game.homePairName} <span>×</span> {game.awayPairName}</strong>
-                  )}
-                  {game.status !== "FINISHED" ? <span className="muted">{statusLabels[game.status]}</span> : null}
-                </div>
-              ))}
-            </div>
-          )) : <p className="muted">Nenhum jogo encontrado com estes filtros.</p>}
-        </section>
-      )}
-    </main>
+    </header>
   );
+
+  if (!currentClient) return <main className="athlete-portal-page">{publicHeader}<section className="athlete-portal-auth">{authForm}</section></main>;
+
+  const selectedLeagueTab: LeagueTab = leagueTab === "ranking" || leagueTab === "rules" || leagueTab === "prizes" ? leagueTab : "games";
+
+  return <main className="athlete-portal-page">
+    {publicHeader}
+    <nav className="athlete-portal-main-nav" aria-label="Menu do portal do atleta">
+      <Link className={section === "leagues" ? "active" : ""} href={portalHref("leagues", "games")}>Ligas</Link>
+      <Link href={`/reservar/${data.arena.slug}`}>Grade de horários</Link>
+      <Link className={section === "reservations" ? "active" : ""} href={portalHref("reservations")}>Minhas reservas</Link>
+      <Link className={section === "lessons" ? "active" : ""} href={portalHref("lessons")}>Aulas</Link>
+      <Link className={section === "classes" ? "active" : ""} href={portalHref("classes")}>Turmas</Link>
+    </nav>
+    {section === "leagues" ? <>
+      <nav className="athlete-portal-league-nav" aria-label="Menu da Liga">
+        <Link className={selectedLeagueTab === "games" ? "active" : ""} href={portalHref("leagues", "games")}>Jogos</Link>
+        <Link className={selectedLeagueTab === "ranking" ? "active" : ""} href={portalHref("leagues", "ranking")}>Ranking</Link>
+        <Link className={selectedLeagueTab === "rules" ? "active" : ""} href={portalHref("leagues", "rules")}>Regras</Link>
+        <Link className={selectedLeagueTab === "prizes" ? "active" : ""} href={portalHref("leagues", "prizes")}>Premiação</Link>
+      </nav>
+      {selectedLeagueTab === "games" ? (portal ? <PublicLeaguePortal arenaSlug={data.arena.slug} playerName={currentClient.name} portal={portal} showPrize={false} /> : <section className="athlete-portal-content-panel"><PortalEmpty title="Portal indisponível" detail="Não foi possível carregar os dados do atleta neste momento." /></section>) : null}
+      {selectedLeagueTab === "rules" ? <RulesPanel data={data} /> : null}
+      {selectedLeagueTab === "ranking" ? <RankingPanel data={data} /> : null}
+      {selectedLeagueTab === "prizes" ? <PrizePanel portal={portal} /> : null}
+    </> : section === "reservations" ? <ReservationsPanel portal={portal} /> : section === "lessons" ? <LessonsPanel portal={portal} /> : <ClassesPanel portal={portal} />}
+  </main>;
+}
+
+function PrizePanel({ portal }: { portal: Portal }) {
+  return <section className="portal-league-prize-podium"><div className="portal-league-prize-cup" aria-hidden="true">🏆</div><div className="portal-league-prize-copy"><span>PREMIAÇÃO DA LIGA</span><h2>O pódio está à sua espera</h2><p>Acompanhe a premiação das suas Ligas em tempo real.</p></div><div className="portal-league-prize-list">{portal?.prizes.length ? portal.prizes.map((prize) => <article key={prize.id}><strong>{prize.categoryName}</strong><span>{prize.eventName}</span><b>{prize.description}</b></article>) : <p>A arena ainda não divulgou a premiação das suas Ligas.</p>}</div></section>;
+}
+
+function RulesPanel({ data }: { data: ArenaPublicStandings }) {
+  return <section className="athlete-portal-content-panel"><header><span>REGULAMENTO</span><h2>Regras das Ligas</h2></header>{data.leagueRules.length ? data.leagueRules.map((league) => <article className="portal-rule" key={league.id}><strong>{league.eventName} · {league.categoryName}</strong><p>{league.rules}</p></article>) : <p className="muted">Nenhuma regra foi publicada para as Ligas ativas.</p>}</section>;
+}
+
+function RankingPanel({ data }: { data: ArenaPublicStandings }) {
+  return <section className="athlete-portal-content-panel stack-md"><header><span>CLASSIFICAÇÃO</span><h2>Ranking da Liga</h2></header>{data.options.length ? <form method="get" className="portal-compact-filter"><input type="hidden" name="section" value="leagues" /><input type="hidden" name="leagueTab" value="ranking" /><input type="hidden" name="tab" value="ranking" /><select name="view" defaultValue={data.selectedOptionId ?? undefined}>{data.options.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select><button className="button button-primary" type="submit">Consultar</button></form> : null}{data.selected?.kind === "GENERAL_RANKING" ? <table className="portal-ranking-table"><thead><tr><th>Pos.</th><th>Atleta</th><th>Pontos</th><th>Eventos</th></tr></thead><tbody>{data.selected.rows.map((row) => <tr key={`${row.position}-${row.playerName}`}><td>{row.position}</td><td>{row.playerName}</td><td>{row.points}</td><td>{row.tournamentsPlayed}</td></tr>)}</tbody></table> : null}{data.selected?.kind === "CATEGORY" && data.selected.format === "LEAGUE" ? <table className="portal-ranking-table"><thead><tr><th>Pos.</th><th>Dupla</th><th>Jogos</th><th>Vitórias</th><th>Derrotas</th><th>Saldo</th></tr></thead><tbody>{data.selected.leagueStandings.map((standing) => <tr key={standing.position}><td>{standing.position}</td><td>{standing.pairName}</td><td>{standing.matches}</td><td>{standing.victories}</td><td>{standing.losses}</td><td>{standing.differential}</td></tr>)}</tbody></table> : null}{!data.selected ? <p className="muted">Nenhuma classificação publicada neste momento.</p> : null}</section>;
+}
+
+function ReservationsPanel({ portal }: { portal: Portal }) {
+  return <section className="athlete-portal-content-panel"><header><span>MINHAS RESERVAS</span><h2>Próximos horários</h2></header>{portal?.reservations.length ? <div className="portal-activity-list">{portal.reservations.map((reservation) => <article key={reservation.id}><div><strong>{reservation.title}</strong><span>{reservation.courtName} · {reservation.when}</span></div><b>{reservation.status}</b></article>)}</div> : <PortalEmpty title="Nenhuma reserva futura" detail="Suas próximas reservas aparecerão aqui." action="Reservar horário" href={`/reservar/${portal?.arenaSlug ?? ""}`} />}</section>;
+}
+
+function LessonsPanel({ portal }: { portal: Portal }) {
+  return <section className="athlete-portal-content-panel"><header><span>AULAS</span><h2>Suas próximas aulas</h2></header>{portal?.lessons.length ? <div className="portal-activity-list">{portal.lessons.map((lesson) => <article key={lesson.id}><div><strong>{lesson.title}</strong><span>{lesson.teacherName ? `${lesson.teacherName} · ` : ""}{lesson.when}</span></div><b>{lesson.status}</b></article>)}</div> : <PortalEmpty title="Nenhuma aula programada" detail="Quando uma aula for agendada, ela aparecerá neste painel." />}</section>;
+}
+
+function ClassesPanel({ portal }: { portal: Portal }) {
+  const student = portal?.student;
+  return <section className="athlete-portal-content-panel"><header><span>TURMAS</span><h2>Seu plano de aulas</h2></header>{student ? <div className="portal-class-summary"><article><span>Saldo de aulas</span><strong>{student.remainingClasses}</strong></article><article><span>Aulas realizadas</span><strong>{student.attendedClasses}</strong></article><article><span>Faltas</span><strong>{student.missedClasses}</strong></article><div className="portal-class-details"><strong>{student.planName || "Plano não vinculado"}</strong><span>{student.teacherName || "Professor a definir"}</span><small>{student.active ? "Plano ativo" : "Plano inativo"}</small></div></div> : <PortalEmpty title="Nenhum plano de aulas vinculado" detail="A arena ainda não vinculou um plano ao seu cadastro." />}</section>;
+}
+
+function PortalEmpty({ title, detail, action, href }: { title: string; detail: string; action?: string; href?: string }) {
+  return <div className="portal-empty"><strong>{title}</strong><span>{detail}</span>{action && href ? <Link className="button button-primary" href={href}>{action}</Link> : null}</div>;
 }

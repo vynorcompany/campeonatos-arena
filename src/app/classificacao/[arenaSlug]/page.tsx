@@ -17,6 +17,8 @@ export default async function PublicStandingsPage({
     tab?: string;
     league?: string;
     status?: string;
+    section?: string;
+    leagueTab?: string;
   };
 }) {
   const [data, currentClient] = await Promise.all([getArenaPublicStandings(params.arenaSlug, searchParams), getPublicPlayerAuth(params.arenaSlug)]);
@@ -25,5 +27,7 @@ export default async function PublicStandingsPage({
   }
 
   const portal = currentClient ? await getPublicLeaguePortal(params.arenaSlug, currentClient.playerId) : null;
-  return <PublicStandings data={data} currentClient={currentClient} portal={portal} authForm={<PublicClientAuthForm arenaSlug={params.arenaSlug} returnTo={`/classificacao/${params.arenaSlug}?tab=portal`} />} />;
+  const section = searchParams?.section === "reservations" || searchParams?.section === "lessons" || searchParams?.section === "classes" ? searchParams.section : "leagues";
+  const leagueTab = searchParams?.leagueTab === "ranking" || searchParams?.leagueTab === "rules" || searchParams?.leagueTab === "prizes" ? searchParams.leagueTab : "games";
+  return <PublicStandings data={data} currentClient={currentClient} portal={portal} section={section} leagueTab={leagueTab} authForm={<PublicClientAuthForm arenaSlug={params.arenaSlug} returnTo={`/classificacao/${params.arenaSlug}?section=leagues&leagueTab=games&tab=games`} />} />;
 }

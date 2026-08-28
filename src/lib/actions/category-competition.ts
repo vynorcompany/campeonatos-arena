@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireModuleEdit } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
+import { closeExpiredLeagueCycles } from "@/lib/league/lifecycle";
 import {
   leagueMatchResultErrorState,
   type LeagueMatchResultActionState,
@@ -316,4 +317,11 @@ export async function updateLeaguePrizeAction(formData: FormData) {
   const referenceMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   await prisma.leagueCycle.upsert({ where: { competitionId_referenceMonth: { competitionId, referenceMonth } }, update: { prizeDescription }, create: { competitionId, referenceMonth, prizeDescription } });
   refreshCategoryCompetitionRoutes();
+}
+
+export async function runLeagueLifecycleAction() {
+  const auth = await requireModuleEdit("tournaments");
+  const result = await closeExpiredLeagueCycles(new Date(), auth.arenaId);
+  refreshCategoryCompetitionRoutes();
+  return result;
 }

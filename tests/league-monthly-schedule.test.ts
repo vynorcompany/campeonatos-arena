@@ -67,3 +67,20 @@ test("monthly closing resolves deadlines, W.O. and opens the next cycle", () => 
   assert.match(lifecycle, /createMonthlyCycle/);
   assert.match(lifecycle, /applyPromotionAndRelegation/);
 });
+
+test("arena can process the League lifecycle manually without a cron", () => {
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/category-competition.ts"), "utf8");
+  const page = readFileSync(resolve(process.cwd(), "src/app/(app)/torneios/[tournamentId]/categorias/[categoryId]/page.tsx"), "utf8");
+  assert.match(actions, /runLeagueLifecycleAction/);
+  assert.match(actions, /closeExpiredLeagueCycles/);
+  assert.match(page, /Processar ciclo da Liga/);
+});
+
+test("athlete portal exposes the main modules and League submenus", () => {
+  const view = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"), "utf8");
+  assert.match(view, /Portal do Atleta/);
+  assert.match(view, /Grade de horários/);
+  assert.match(view, /Minhas reservas/);
+  assert.match(view, /Premiação/);
+  assert.match(view, /portal-league-prize-podium/);
+});

@@ -44,9 +44,9 @@ async function applyWo(matchId: string, winnerPairId: string | null, reason: "HO
 }
 
 /** Processes missed response deadlines and blocks. It is safe to invoke repeatedly from a cron job. */
-export async function processLeagueDeadlines(now = new Date()) {
+export async function processLeagueDeadlines(now = new Date(), arenaId?: string) {
   const unresolved = await prisma.categoryMatch.findMany({
-    where: { leagueCycle: { status: "OPEN" }, winnerPairId: null, competition: { format: "LEAGUE" } },
+    where: { leagueCycle: { status: "OPEN" }, winnerPairId: null, competition: { format: "LEAGUE", ...(arenaId ? { category: { tournament: { arenaId } } } : {}) } },
     select: { id: true, homePairId: true, awayPairId: true, hostProposalDeadline: true, proposals: { orderBy: { createdAt: "desc" }, select: { status: true, responseDueAt: true } } },
   });
   let resolved = 0;
@@ -134,10 +134,10 @@ async function applyPromotionAndRelegation(cycleId: string) {
 }
 
 /** Finalizes all past open cycles, keeps their matches as history, and opens the next monthly cycle. */
-export async function closeExpiredLeagueCycles(now = new Date()) {
-  await processLeagueDeadlines(now);
+export async function closeExpiredLeagueCycles(now = new Date(), arenaId?: string) {
+  await processLeagueDeadlines(now, arenaId);
   const currentMonth = monthKey(now);
-  const cycles = await prisma.leagueCycle.findMany({ where: { status: "OPEN", referenceMonth: { lt: currentMonth } }, select: { id: true, competitionId: true } });
+  const cycles = await prisma.leagueCycle.findMany({ where: { status: "OPEN", referenceMonth: { lt: currentMonth }, ...(arenaId ? { competition: { category: { tournament: { arenaId } } } } : {}) }, select: { id: true, competitionId: true } });
   for (const cycle of cycles) {
     const unresolved = await prisma.categoryMatch.findMany({ where: { leagueCycleId: cycle.id, winnerPairId: null }, select: { id: true } });
     for (const match of unresolved) await applyWo(match.id, null, "DOUBLE_WO");
