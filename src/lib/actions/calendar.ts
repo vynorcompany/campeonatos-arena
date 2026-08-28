@@ -204,7 +204,7 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
   try {
   const auth = await requireModuleEdit("calendar");
   const parsed = courtBookingSchema.safeParse({
-    occurrenceId: formData.get("occurrenceId"), courtId: formData.get("courtId"), courtIds: formData.get("courtIds"), title: formData.get("title"),
+    occurrenceId: String(formData.get("occurrenceId") ?? ""), courtId: formData.get("courtId"), courtIds: formData.get("courtIds"), title: formData.get("title"),
     startsAt: formData.get("startsAt"), durationMinutes: formData.get("durationMinutes"), bookingTypeName: formData.get("bookingTypeName"),
     teacherId: formData.get("teacherId"), notes: formData.get("notes"), participants: formData.get("participants")
   });

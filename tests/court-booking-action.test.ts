@@ -21,3 +21,9 @@ test("court booking keeps expected validation errors visible in production", () 
   assert.match(source, /return \{ error: message \}/);
   assert.match(source, /Falha ao salvar agendamento da grade/);
 });
+
+test("new court bookings normalize an absent occurrence id before validation", () => {
+  const source = readFileSync(resolve(process.cwd(), "src/lib/actions/calendar.ts"), "utf8");
+
+  assert.match(source, /occurrenceId:\s*String\(formData\.get\("occurrenceId"\) \?\? ""\)/);
+});
