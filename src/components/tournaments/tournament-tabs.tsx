@@ -6,6 +6,7 @@ const tabs = [
   { key: "groups", label: "Grupos" },
   { key: "games", label: "Jogos" },
   { key: "results", label: "Resultados" },
+  { key: "history", label: "Histórico" },
 ] as const;
 
 export type TournamentTabKey = (typeof tabs)[number]["key"];

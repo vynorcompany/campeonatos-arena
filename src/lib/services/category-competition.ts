@@ -550,6 +550,7 @@ export async function addManualPair(
         select: {
           id: true,
           format: true,
+          leagueTier: true,
           category: {
             select: {
               class: true,
@@ -595,6 +596,18 @@ export async function addManualPair(
       const orderedPlayers = requestedPlayerIds
         .map((playerId) => playersById.get(playerId))
         .filter((player): player is NonNullable<typeof player> => Boolean(player));
+
+      const configuredTier = competition.leagueTier.trim().toUpperCase();
+      if (competition.format === "LEAGUE" && (configuredTier === "A" || configuredTier === "B")) {
+        const memberships = await tx.leagueAthleteTier.findMany({
+          where: { arenaId, playerId: { in: requestedPlayerIds }, modality: "PADEL", active: true },
+          select: { playerId: true, tier: true },
+        });
+        const incompatible = memberships.find((membership) => membership.tier !== configuredTier);
+        if (incompatible) {
+          throw new Error(`Este atleta pertence atualmente à Liga ${incompatible.tier}. A inscrição deve respeitar a Liga ${configuredTier}.`);
+        }
+      }
 
       validateManualPairEligibility(
         {

@@ -319,6 +319,36 @@ export async function updateLeaguePrizeAction(formData: FormData) {
   refreshCategoryCompetitionRoutes();
 }
 
+export async function updateLeagueCategoryAction(formData: FormData) {
+  const auth = await requireModuleEdit("tournaments");
+  const categoryId = String(formData.get("categoryId") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim().slice(0, 120);
+  const className = String(formData.get("class") ?? "").trim();
+  const gender = String(formData.get("gender") ?? "").trim().toUpperCase();
+  const leagueTier = String(formData.get("leagueTier") ?? "").trim().toUpperCase();
+  if (!categoryId || !name || !className || !["FEMININO", "MASCULINO"].includes(gender) || !["A", "B"].includes(leagueTier)) {
+    throw new Error("Preencha nome, classe, gênero e nível da Liga.");
+  }
+  const category = await prisma.tournamentCategory.findFirst({ where: { id: categoryId, tournament: { arenaId: auth.arenaId }, competition: { format: "LEAGUE" } }, select: { id: true, competition: { select: { id: true, pairs: { where: { active: true }, select: { players: { select: { playerId: true } } } } } } } });
+  if (!category?.competition) throw new Error("Categoria de Liga não encontrada.");
+  const competition = category.competition;
+  await prisma.$transaction(async (tx) => {
+    await tx.tournamentCategory.update({ where: { id: category.id }, data: { name, class: className, gender } });
+    await tx.categoryCompetition.update({ where: { id: competition.id }, data: { leagueTier } });
+    const playerIds = Array.from(new Set(competition.pairs.flatMap((pair) => pair.players.map((player) => player.playerId))));
+    if (playerIds.length) {
+      const current = await tx.leagueAthleteTier.findMany({ where: { arenaId: auth.arenaId, playerId: { in: playerIds }, modality: "PADEL", active: true }, select: { playerId: true, tier: true } });
+      const unchanged = new Set(current.filter((item) => item.tier === leagueTier).map((item) => item.playerId));
+      const changedIds = playerIds.filter((playerId) => !unchanged.has(playerId));
+      if (changedIds.length) {
+        await tx.leagueAthleteTier.updateMany({ where: { arenaId: auth.arenaId, playerId: { in: changedIds }, modality: "PADEL", active: true }, data: { active: false } });
+        await tx.leagueAthleteTier.createMany({ data: changedIds.map((playerId) => ({ arenaId: auth.arenaId, playerId, modality: "PADEL", tier: leagueTier })) });
+      }
+    }
+  });
+  refreshCategoryCompetitionRoutes();
+}
+
 export async function runLeagueLifecycleAction() {
   const auth = await requireModuleEdit("tournaments");
   const result = await closeExpiredLeagueCycles(new Date(), auth.arenaId);

@@ -8,6 +8,8 @@ import { CategoryDrawPanel } from "@/components/tournaments/category-draw-panel"
 import { CategoryRegistrationPanel } from "@/components/tournaments/category-registration-panel";
 import { CategoryResultsPanel } from "@/components/tournaments/category-results-panel";
 import { LeagueMedicalRequestsPanel } from "@/components/tournaments/league-medical-requests-panel";
+import { LeagueHistoryPanel } from "@/components/tournaments/league-history-panel";
+import { LeagueCategorySettingsDialog } from "@/components/tournaments/league-category-settings-dialog";
 import { StatusBadge } from "@/components/tournaments/status-badge";
 import { TournamentDetailLayout } from "@/components/tournaments/tournament-detail-layout";
 import { type TournamentTabKey } from "@/components/tournaments/tournament-tabs";
@@ -32,6 +34,7 @@ const validTabs: TournamentTabKey[] = [
   "groups",
   "games",
   "results",
+  "history",
 ];
 
 const formatLabels = {
@@ -79,7 +82,7 @@ export default async function CategoryPage({
                 name: true,
               },
             },
-            leagueCycles: { orderBy: { referenceMonth: "desc" }, take: 1, select: { prizeDescription: true } },
+            leagueCycles: { orderBy: { referenceMonth: "desc" }, select: { id: true, referenceMonth: true, status: true, prizeDescription: true, championPairId: true, promotedPairId: true, relegatedPairId: true, matches: { select: { winnerPairId: true } } } },
             pairs: {
               orderBy: { drawOrder: "asc" },
               include: {
@@ -359,7 +362,7 @@ export default async function CategoryPage({
               <div className="category-overview-head">
                 <div className="stack-xs">
                   <p className="eyebrow">{category.tournament.name}</p>
-                  <div className="category-overview-title-row"><h1>{category.name}</h1>{competition ? <CategoryPublicVisibilityForm competitionId={competition.id} isPublic={competition.isPublic} /> : null}</div>
+                  <div className="category-overview-title-row"><h1>{category.name}</h1>{competition ? <CategoryPublicVisibilityForm competitionId={competition.id} isPublic={competition.isPublic} /> : null}{competition?.format === "LEAGUE" ? <LeagueCategorySettingsDialog category={{ id: category.id, name: category.name, class: category.class, gender: category.gender, leagueTier: competition.leagueTier }} /> : null}</div>
                 </div>
                 <StatusBadge status={competition?.status ?? "DRAFT"} />
               </div>
@@ -410,18 +413,15 @@ export default async function CategoryPage({
               replacementPlayerName: athletes.find((athlete) => athlete.id === request.replacementPlayerId)?.name ?? "Novo atleta",
             }))} /> : null}
             {competition?.format === "LEAGUE" ? (
-              <section className="league-prize-control" aria-labelledby="league-prize-title">
+              <section className="league-management-panel" aria-labelledby="league-prize-title">
                 <form action={updateLeaguePrizeAction} className="league-prize-form">
-                  <div className="league-prize-copy">
-                    <p className="eyebrow">Liga</p>
-                    <h2 id="league-prize-title">Premiação</h2>
-                  </div>
+                  <div className="league-prize-copy"><p className="eyebrow">Premiação</p><h2 id="league-prize-title">Prêmio do ciclo atual</h2></div>
                   <div className="league-prize-editor">
                     <input type="hidden" name="competitionId" value={competition.id} />
                     <textarea
                       className="league-prize-textarea"
                       name="prizeDescription"
-                      rows={5}
+                      rows={4}
                       defaultValue={competition.leagueCycles[0]?.prizeDescription ?? ""}
                       placeholder="Descreva a premiação da Liga. Ex.: campeãs recebem troféu, voucher e premiação em dinheiro."
                     />
@@ -430,9 +430,7 @@ export default async function CategoryPage({
                     </div>
                   </div>
                 </form>
-                <form action={runLeagueLifecycleAction} className="league-lifecycle-manual-action">
-                  <button className="button button-small" type="submit">Processar ciclo da Liga</button>
-                </form>
+                <aside className="league-cycle-actions"><strong>Ciclo mensal</strong><span>Fecha o mês vigente, registra campeã e executa acesso ou rebaixamento.</span><form action={runLeagueLifecycleAction}><button className="button button-small" type="submit">Processar ciclo da Liga</button></form></aside>
               </section>
             ) : null}
             {!competition ? (
@@ -479,6 +477,10 @@ export default async function CategoryPage({
             categories={[categoryView]}
             mode="summary"
           />
+        ) : null}
+
+        {tab === "history" && competition?.format === "LEAGUE" ? (
+          <LeagueHistoryPanel cycles={competition.leagueCycles.map((cycle) => ({ id: cycle.id, referenceMonth: cycle.referenceMonth, status: cycle.status, completedMatches: cycle.matches.filter((match) => Boolean(match.winnerPairId)).length, matchCount: cycle.matches.length, championPairId: cycle.championPairId, promotedPairId: cycle.promotedPairId, relegatedPairId: cycle.relegatedPairId }))} />
         ) : null}
       </TournamentDetailLayout>
     </div>

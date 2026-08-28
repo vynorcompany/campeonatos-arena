@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 import { buildMonthlyLeagueSchedule, getLeagueMonthBlocks } from "@/lib/league/monthly-schedule";
 
 const monthKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
@@ -101,16 +102,48 @@ function tierOf(competition: { leagueTier: string; category: { name: string } })
   return /(?:LIGA\s*)A(?:\b|\s|\[)/.test(name) ? "A" : /(?:LIGA\s*)B(?:\b|\s|\[)/.test(name) ? "B" : "";
 }
 
+const leagueModality = "PADEL";
+
+async function syncLeagueAthleteTiers(
+  tx: Prisma.TransactionClient,
+  input: { arenaId: string; playerIds: string[]; tier: "A" | "B"; cycleId: string },
+) {
+  const playerIds = Array.from(new Set(input.playerIds));
+  if (!playerIds.length) return;
+  const current = await tx.leagueAthleteTier.findMany({
+    where: { arenaId: input.arenaId, modality: leagueModality, playerId: { in: playerIds }, active: true },
+    select: { id: true, playerId: true, tier: true },
+  });
+  const unchanged = new Set(current.filter((item) => item.tier === input.tier).map((item) => item.playerId));
+  const changedIds = playerIds.filter((playerId) => !unchanged.has(playerId));
+  if (!changedIds.length) return;
+  await tx.leagueAthleteTier.updateMany({
+    where: { arenaId: input.arenaId, modality: leagueModality, playerId: { in: changedIds }, active: true },
+    data: { active: false },
+  });
+  await tx.leagueAthleteTier.createMany({
+    data: changedIds.map((playerId) => ({ arenaId: input.arenaId, playerId, tier: input.tier, modality: leagueModality, leagueCycleId: input.cycleId })),
+  });
+}
+
 async function applyPromotionAndRelegation(cycleId: string) {
   const cycle = await prisma.leagueCycle.findUnique({
     where: { id: cycleId },
     include: {
-      competition: { include: { category: { include: { tournament: { select: { id: true } } } }, pairs: { where: { active: true }, include: { players: { select: { playerId: true } } } } } },
+      competition: { include: { category: { include: { tournament: { select: { id: true, arenaId: true } } } }, pairs: { where: { active: true }, include: { players: { select: { playerId: true } } } } } },
       matches: true,
     },
   });
   if (!cycle) return;
   const tier = tierOf(cycle.competition);
+  if (tier === "A" || tier === "B") {
+    await prisma.$transaction((tx) => syncLeagueAthleteTiers(tx, {
+      arenaId: cycle.competition.category.tournament.arenaId,
+      playerIds: cycle.competition.pairs.flatMap((pair) => pair.players.map((player) => player.playerId)),
+      tier,
+      cycleId: cycle.id,
+    }));
+  }
   const table = standings(cycle.matches);
   const championPairId = table[0]?.pairId ?? null;
   const relegatedPairId = tier === "A" ? table.at(-1)?.pairId ?? null : null;
@@ -121,16 +154,17 @@ async function applyPromotionAndRelegation(cycleId: string) {
   const siblings = await prisma.categoryCompetition.findMany({ where: { format: "LEAGUE", category: { tournamentId: cycle.competition.category.tournament.id } }, include: { category: { select: { name: true } } } });
   const a = siblings.find((item) => tierOf(item) === "A");
   const b = siblings.find((item) => tierOf(item) === "B");
-  const movePair = async (pairId: string, targetCompetitionId: string) => {
+  const movePair = async (pairId: string, targetCompetitionId: string, targetTier: "A" | "B") => {
     const pair = cycle.competition.pairs.find((item) => item.id === pairId);
     if (!pair || targetCompetitionId === cycle.competitionId) return;
     await prisma.$transaction(async (tx) => {
       await tx.categoryPair.update({ where: { id: pair.id }, data: { active: false } });
       await tx.categoryPair.create({ data: { name: pair.name, totalPoints: 0, active: true, competitionId: targetCompetitionId, players: { create: pair.players.map((player, slot) => ({ playerId: player.playerId, competitionId: targetCompetitionId, slot: slot + 1 })) } } });
+      await syncLeagueAthleteTiers(tx, { arenaId: cycle.competition.category.tournament.arenaId, playerIds: pair.players.map((player) => player.playerId), tier: targetTier, cycleId: cycle.id });
     });
   };
-  if (tier === "A" && relegatedPairId && b) await movePair(relegatedPairId, b.id);
-  if (tier === "B" && championPairId && a) await movePair(championPairId, a.id);
+  if (tier === "A" && relegatedPairId && b) await movePair(relegatedPairId, b.id, "B");
+  if (tier === "B" && championPairId && a) await movePair(championPairId, a.id, "A");
 }
 
 /** Finalizes all past open cycles, keeps their matches as history, and opens the next monthly cycle. */
@@ -148,4 +182,4 @@ export async function closeExpiredLeagueCycles(now = new Date(), arenaId?: strin
   return { closedCycles: cycles.length };
 }
 
-export { createMonthlyCycle, monthBounds };
+export { createMonthlyCycle, monthBounds, syncLeagueAthleteTiers };

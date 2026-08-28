@@ -115,12 +115,12 @@ test("event rules use a spacious editor and category management only lives in qu
   assert.doesNotMatch(eventPage, /id="gerenciar-categorias"/);
 });
 
-test("League prize controls are compact and category add opens the category modal", () => {
+test("League management keeps the prize controls compact and category add opens the category modal", () => {
   const categoryPage = readFileSync(resolve(process.cwd(), "src/app/(app)/torneios/[tournamentId]/categorias/[categoryId]/page.tsx"), "utf8");
   const categoryList = readFileSync(resolve(process.cwd(), "src/components/tournaments/category-list.tsx"), "utf8");
   const quickActions = readFileSync(resolve(process.cwd(), "src/components/tournaments/event-quick-actions.tsx"), "utf8");
 
-  assert.match(categoryPage, /league-prize-control/);
+  assert.match(categoryPage, /league-management-panel/);
   assert.match(categoryPage, /league-prize-editor/);
   assert.match(categoryList, /\?action=categories/);
   assert.match(quickActions, /initialAction/);
@@ -143,4 +143,34 @@ test("portal reservation confirmations use their own compact notification treatm
   const portal = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-league-portal.tsx"), "utf8");
   assert.match(portal, /public-portal-notification-reservation/);
   assert.match(portal, /public-portal-notification-icon/);
+});
+
+test("Liga persists athlete eligibility by modality and keeps a tier history", () => {
+  const schema = readFileSync(resolve(process.cwd(), "prisma/schema.prisma"), "utf8");
+  const lifecycle = readFileSync(resolve(process.cwd(), "src/lib/league/lifecycle.ts"), "utf8");
+
+  assert.match(schema, /model LeagueAthleteTier/);
+  assert.match(schema, /modality\s+String/);
+  assert.match(schema, /tier\s+String/);
+  assert.match(schema, /leagueAthleteTiers\s+LeagueAthleteTier\[\]/);
+  assert.match(lifecycle, /syncLeagueAthleteTiers/);
+});
+
+test("Liga workspace exposes category editing and a monthly history tab", () => {
+  const tabs = readFileSync(resolve(process.cwd(), "src/components/tournaments/tournament-tabs.tsx"), "utf8");
+  const page = readFileSync(resolve(process.cwd(), "src/app/(app)/torneios/[tournamentId]/categorias/[categoryId]/page.tsx"), "utf8");
+
+  assert.match(tabs, /Histórico/);
+  assert.match(page, /LeagueCategorySettingsDialog/);
+  assert.match(page, /LeagueHistoryPanel/);
+  assert.match(page, /league-management-panel/);
+});
+
+test("athlete portal keeps ordinary reservations out of League notifications", () => {
+  const portalService = readFileSync(resolve(process.cwd(), "src/lib/services/public-league-portal.ts"), "utf8");
+  const portal = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-league-portal.tsx"), "utf8");
+
+  assert.match(portalService, /type:\s*"LEAGUE_MATCH"/);
+  assert.match(portal, /leagueNotifications/);
+  assert.doesNotMatch(portal, /isReservationConfirmation/);
 });

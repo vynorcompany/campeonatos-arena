@@ -132,6 +132,7 @@ model Arena {
   leagueChallenges LeagueChallenge[]
   assistantConversations AssistantConversation[]
   assistantCommands AssistantCommand[]
+  leagueAthleteTiers LeagueAthleteTier[]
 }
 
 model RegulationAcceptance {
@@ -246,6 +247,7 @@ model Player {
   notifications PlayerNotification[]
   balanceMovements ClientBalanceMovement[]
   respondedLeagueChallenges LeagueChallenge[] @relation("LeagueChallengeResponder")
+  leagueAthleteTiers LeagueAthleteTier[]
 
   @@index([arenaId, active])
   @@index([arenaId, points])
@@ -714,9 +716,28 @@ model LeagueCycle {
   competitionId      String
   competition        CategoryCompetition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
   matches            CategoryMatch[]
+  athleteTiers       LeagueAthleteTier[]
 
   @@unique([competitionId, referenceMonth])
   @@index([referenceMonth, status])
+}
+
+model LeagueAthleteTier {
+  id          String      @id @default(cuid())
+  modality    String      @default("PADEL")
+  tier        String
+  active      Boolean     @default(true)
+  changedAt   DateTime    @default(now())
+  arenaId     String
+  playerId    String
+  leagueCycleId String?
+  arena       Arena       @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  player      Player      @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  leagueCycle LeagueCycle? @relation(fields: [leagueCycleId], references: [id], onDelete: SetNull)
+
+  @@index([arenaId, modality, tier, active])
+  @@index([playerId, modality, active])
+  @@index([leagueCycleId])
 }
 
 model LeagueMatchProposal {
