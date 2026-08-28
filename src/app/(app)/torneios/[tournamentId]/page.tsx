@@ -5,8 +5,8 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { TournamentCategoryManagerForm } from "@/components/forms/tournament-category-manager-form";
 import { CategoryList } from "@/components/tournaments/category-list";
 import { EventIcon } from "@/components/tournaments/event-icon";
+import { EventQuickActions } from "@/components/tournaments/event-quick-actions";
 import { PublicRegistrationLinkActions } from "@/components/tournaments/public-registration-link-actions";
-import { TournamentEventEditForm } from "@/components/tournaments/tournament-event-edit-form";
 import { deleteTournamentAction } from "@/lib/actions/tournament";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
@@ -164,13 +164,18 @@ export default async function TournamentDetailPage({
           </details>
         </div>
         <aside className="event-side-column">
-          <section className="event-quick-actions">
-            <header><EventIcon name="bolt" /><h2>Ações rápidas</h2></header>
-            <a href="#gerenciar-categorias"><span className="event-quick-action-icon"><EventIcon name="sliders" /></span><strong>Configurar categorias</strong><small>Crie, edite e organize as categorias do evento.</small><EventIcon name="chevron" /></a>
-            <a href="#gerenciar-categorias"><span className="event-quick-action-icon event-quick-action-icon-success"><EventIcon name="users" /></span><strong>Gerenciar inscrições</strong><small>Veja, aprove ou gerencie inscrições das duplas.</small><EventIcon name="chevron" /></a>
-            <Link href={`/classificacao/${tournament.arena.slug}`} target="_blank" rel="noreferrer"><span className="event-quick-action-icon event-quick-action-icon-purple"><EventIcon name="globe" /></span><strong>Página pública</strong><small>Visualizar como o evento aparece para o público.</small><EventIcon name="chevron" /></Link>
-            <details className="event-edit-action"><summary><span className="event-quick-action-icon"><EventIcon name="edit" /></span><strong>Editar evento</strong><EventIcon name="chevron" /></summary><TournamentEventEditForm tournament={tournament} /></details>
-          </section>
+          <EventQuickActions
+            tournament={tournament}
+            publicPageUrl={`/classificacao/${tournament.arena.slug}`}
+            categories={tournament.categories.map((category) => ({ id: category.id, name: category.name, pairCount: category.competition?._count.pairs ?? 0 }))}
+            categoryManager={{
+              tournamentId: tournament.id, defaultName: tournament.name, defaultDescription: tournament.description, defaultPublicSlug: tournament.publicSlug,
+              defaultRegistrationPhase: tournament.registrationPhase, defaultCreationMode: tournament.creationMode as "MANUAL" | "PUBLIC", defaultGroupCount: tournament.groupCount,
+              defaultPairsPerGroup: tournament.pairsPerGroup, defaultPriceFirstCents: tournament.priceFirstCents, defaultPriceSecondCents: tournament.priceSecondCents,
+              defaultPriceThirdCents: tournament.priceThirdCents, defaultBlockCategoryGap: tournament.blockCategoryGap, defaultMaxCategoryGap: tournament.maxCategoryGap,
+              defaultRankingId: tournament.rankingId ?? "", defaultCategories: tournament.categories.map((category) => ({ name: category.name, groupCount: category.groupCount, pairsPerGroup: category.pairsPerGroup, priceSecondCents: category.priceSecondCents, priceThirdCents: category.priceThirdCents, hasCompetition: Boolean(category.competition) }))
+            }}
+          />
           <section className="event-information">
             <header><EventIcon name="info" /><h2>Informações do evento</h2></header>
             <dl><div><dt>Organizador</dt><dd>{auth.arenaName}</dd></div><div><dt>Formato</dt><dd>{tournament.categories[0]?.competition ? formatLabel(tournament.categories[0].competition.format) : "A definir"}</dd></div><div><dt>Visibilidade</dt><dd>{tournament.creationMode === "PUBLIC" ? "Público" : "Privado"}</dd></div><div><dt>Atualizado em</dt><dd>{new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(tournament.updatedAt)}</dd></div></dl>

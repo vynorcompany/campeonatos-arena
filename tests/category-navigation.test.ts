@@ -41,6 +41,22 @@ test("event detail uses the operational dashboard layout", async () => {
   assert.match(styles, /\.event-detail-grid\s*\{/);
 });
 
+test("event quick actions open their workflows in a central modal", async () => {
+  const source = await readSource(
+    "src", "app", "(app)", "torneios", "[tournamentId]", "page.tsx",
+  );
+  const quickActions = await readSource(
+    "src", "components", "tournaments", "event-quick-actions.tsx",
+  );
+
+  assert.match(source, /EventQuickActions/);
+  assert.match(quickActions, /role="dialog"/);
+  assert.match(quickActions, /Configurar categorias/);
+  assert.match(quickActions, /Gerenciar inscrições/);
+  assert.match(quickActions, /Página pública/);
+  assert.match(quickActions, /Editar evento/);
+});
+
 test("category list links each row to its dedicated workspace", async () => {
   const source = await readSource(
     "src",
