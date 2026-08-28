@@ -46,11 +46,22 @@ export async function createLeagueChallengeAction(formData: FormData) {
   if (!proposer.players.some((entry) => entry.playerId === auth.playerId)) throw new Error("Você não participa desta dupla.");
   if (opponent.competitionId !== proposer.competitionId) throw new Error("A dupla convidada deve ser da mesma categoria.");
   if (proposer.groupId && proposer.groupId !== opponent.groupId) throw new Error("A dupla convidada deve ser do mesmo grupo.");
-  const categoryMatch = await prisma.categoryMatch.findFirst({ where: { competitionId: proposer.competitionId, winnerPairId: null, OR: [{ homePairId: proposer.id, awayPairId: opponent.id }, { homePairId: opponent.id, awayPairId: proposer.id }] }, select: { id: true } });
+  const categoryMatch = await prisma.categoryMatch.findFirst({ where: { competitionId: proposer.competitionId, winnerPairId: null, OR: [{ homePairId: proposer.id, awayPairId: opponent.id }, { homePairId: opponent.id, awayPairId: proposer.id }] }, select: { id: true, homePairId: true, awayPairId: true, leagueBlock: true, leagueCycle: { select: { referenceMonth: true } } } });
   if (!categoryMatch) throw new Error("Não existe jogo pendente entre estas duplas.");
+  if (categoryMatch.homePairId !== proposer.id) throw new Error("Somente a dupla mandante pode sugerir horários.");
+  const proposalCount = await prisma.leagueMatchProposal.count({ where: { categoryMatchId: categoryMatch.id } });
+  if (proposalCount >= 3) throw new Error("As três sugestões deste confronto já foram utilizadas.");
+  if (categoryMatch.leagueBlock && categoryMatch.leagueCycle) {
+    const [year, month] = categoryMatch.leagueCycle.referenceMonth.split("-").map(Number);
+    const startDay = categoryMatch.leagueBlock === 1 ? 1 : categoryMatch.leagueBlock === 2 ? 8 : categoryMatch.leagueBlock === 3 ? 15 : 22;
+    const endDay = categoryMatch.leagueBlock === 4 ? new Date(year, month, 0).getDate() : startDay + 6;
+    if (startsAt.getFullYear() !== year || startsAt.getMonth() + 1 !== month || startsAt.getDate() < startDay || startsAt.getDate() > endDay) throw new Error("O horário deve estar dentro do bloco semanal deste confronto.");
+  }
   await validateCourtAvailability({ arenaId: auth.arenaId, courtId: parsed.data.courtId, startsAt, endsAt });
-  const challenge = await prisma.leagueChallenge.create({ data: { arenaId: auth.arenaId, competitionId: proposer.competitionId, categoryMatchId: categoryMatch.id, courtId: parsed.data.courtId, proposerPairId: proposer.id, opponentPairId: opponent.id, proposedStartsAt: startsAt, proposedEndsAt: endsAt } });
-  await prisma.playerNotification.createMany({ data: opponent.players.map((entry) => ({ playerId: entry.playerId, title: "Novo desafio de Liga", message: "Sua dupla recebeu uma proposta de jogo.", href: `${publicPortalPath(parsed.data.arenaSlug)}#desafio-${challenge.id}` })) });
+  const responseDueAt = new Date(Math.min(Date.now() + 48 * 60 * 60_000, startsAt.getTime() - 2 * 60 * 60_000));
+  if (responseDueAt <= new Date()) throw new Error("O horário sugerido não permite o prazo mínimo de resposta.");
+  const proposal = await prisma.leagueMatchProposal.create({ data: { categoryMatchId: categoryMatch.id, courtId: parsed.data.courtId, proposerPairId: proposer.id, opponentPairId: opponent.id, startsAt, endsAt, responseDueAt } });
+  await prisma.playerNotification.createMany({ data: opponent.players.map((entry) => ({ playerId: entry.playerId, title: "Novo horário de Liga", message: "Sua dupla recebeu uma sugestão de horário para responder.", href: `${publicPortalPath(parsed.data.arenaSlug)}#desafio-${proposal.id}` })) });
   revalidatePath(publicPortalPath(parsed.data.arenaSlug));
 }
 
@@ -81,4 +92,32 @@ export async function respondLeagueChallengeAction(formData: FormData) {
   });
   revalidatePath("/agenda");
   revalidatePath(publicPortalPath(parsed.data.arenaSlug));
+}
+
+export async function respondLeagueProposalAction(formData: FormData) {
+  const parsed = z.object({ arenaSlug: z.string().trim().min(1), proposalId: z.string().trim().min(1), response: z.enum(["ACCEPTED", "REJECTED"]) }).safeParse({ arenaSlug: formData.get("arenaSlug"), proposalId: formData.get("proposalId"), response: formData.get("response") });
+  if (!parsed.success) throw new Error("Resposta de horário inválida.");
+  const auth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
+  const proposal = await prisma.leagueMatchProposal.findFirst({ where: { id: parsed.data.proposalId, status: "PENDING" }, include: { court: true, categoryMatch: { include: { homePair: { include: { players: { select: { playerId: true } } } }, awayPair: { include: { players: { select: { playerId: true } } } } } } } });
+  if (!proposal || !proposal.categoryMatch.homePair || !proposal.categoryMatch.awayPair) throw new Error("Esta sugestão não está mais disponível.");
+  if (!proposal.categoryMatch.awayPair.players.some((entry) => entry.playerId === auth.playerId)) throw new Error("Somente a dupla visitante pode responder.");
+  if (proposal.responseDueAt <= new Date()) throw new Error("O prazo para responder esta sugestão expirou.");
+  if (parsed.data.response === "REJECTED") {
+    await prisma.$transaction([
+      prisma.leagueMatchProposal.update({ where: { id: proposal.id }, data: { status: "REJECTED", respondedAt: new Date() } }),
+      prisma.playerNotification.createMany({ data: proposal.categoryMatch.homePair.players.map((entry) => ({ playerId: entry.playerId, title: "Sugestão de Liga recusada", message: "A dupla visitante recusou o horário sugerido.", href: publicPortalPath(parsed.data.arenaSlug) })) }),
+    ]);
+    revalidatePath(publicPortalPath(parsed.data.arenaSlug));
+    return;
+  }
+  await validateCourtAvailability({ arenaId: auth.arenaId, courtId: proposal.courtId, startsAt: proposal.startsAt, endsAt: proposal.endsAt });
+  const playerIds = Array.from(new Set([...proposal.categoryMatch.homePair.players, ...proposal.categoryMatch.awayPair.players].map((entry) => entry.playerId)));
+  await prisma.$transaction(async (tx) => {
+    await tx.scheduleOccurrence.create({ data: { arenaId: auth.arenaId, sourceType: "LEAGUE_PROPOSAL", title: `${proposal.categoryMatch.homePair!.name} × ${proposal.categoryMatch.awayPair!.name}`, startsAt: proposal.startsAt, endsAt: proposal.endsAt, status: "PENDING_CONFIRMATION", bookingTypeName: "Liga", occurrenceCourts: { create: { courtId: proposal.courtId } }, participants: { create: playerIds.map((playerId) => ({ playerId })) } } });
+    await tx.categoryMatch.update({ where: { id: proposal.categoryMatchId }, data: { courtName: proposal.court.name, scheduledDate: proposal.startsAt.toISOString().slice(0, 10), scheduledTime: proposal.startsAt.toISOString().slice(11, 16), manualStatus: "PENDING_CONFIRMATION" } });
+    await tx.leagueMatchProposal.update({ where: { id: proposal.id }, data: { status: "ACCEPTED", respondedAt: new Date() } });
+    await tx.playerNotification.createMany({ data: proposal.categoryMatch.homePair!.players.map((entry) => ({ playerId: entry.playerId, title: "Sugestão de Liga aceita", message: "A partida foi enviada para confirmação da arena.", href: publicPortalPath(parsed.data.arenaSlug) })) });
+    await tx.arenaNotification.create({ data: { arenaId: auth.arenaId, type: "LEAGUE_PROPOSAL", title: "Jogo de Liga aguardando confirmação", message: `${proposal.categoryMatch.homePair!.name} × ${proposal.categoryMatch.awayPair!.name} aceitou um horário e aguarda a arena.`, href: "/agenda" } });
+  });
+  revalidatePath("/agenda"); revalidatePath(publicPortalPath(parsed.data.arenaSlug));
 }

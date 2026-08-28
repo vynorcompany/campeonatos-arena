@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireModuleEdit } from "@/lib/auth/guards";
+import { prisma } from "@/lib/prisma";
 import {
   leagueMatchResultErrorState,
   type LeagueMatchResultActionState,
@@ -302,4 +303,17 @@ export async function updateCategoryPublicVisibilityAction(formData: FormData) {
   );
   refreshCategoryCompetitionRoutes();
   return result;
+}
+
+export async function updateLeaguePrizeAction(formData: FormData) {
+  const auth = await requireModuleEdit("tournaments");
+  const competitionId = String(formData.get("competitionId") ?? "").trim();
+  const prizeDescription = String(formData.get("prizeDescription") ?? "").trim().slice(0, 1600);
+  if (!competitionId) throw new Error("Liga inválida.");
+  const competition = await prisma.categoryCompetition.findFirst({ where: { id: competitionId, format: "LEAGUE", category: { tournament: { arenaId: auth.arenaId } } }, select: { id: true } });
+  if (!competition) throw new Error("Liga não encontrada.");
+  const now = new Date();
+  const referenceMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  await prisma.leagueCycle.upsert({ where: { competitionId_referenceMonth: { competitionId, referenceMonth } }, update: { prizeDescription }, create: { competitionId, referenceMonth, prizeDescription } });
+  refreshCategoryCompetitionRoutes();
 }

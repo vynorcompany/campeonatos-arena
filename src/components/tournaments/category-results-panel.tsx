@@ -26,6 +26,8 @@ type CompetitionMatch = {
   homeSet3: number | null;
   awaySet3: number | null;
   manualStatus: string | null;
+  leagueBlock: number | null;
+  woReason: string | null;
   homePair: { name: string } | null;
   awayPair: { name: string } | null;
   winnerPair: { name: string } | null;
@@ -228,7 +230,7 @@ export function CategoryResultsPanel({
                           </div>
                           <div className="category-game-stage">
                             <span className="category-game-label">Fase / grupo</span>
-                            <strong>{match.stage}</strong>
+                            <strong>{competition.format === "LEAGUE" && match.leagueBlock ? `Semana ${match.leagueBlock}` : match.stage}</strong>
                             <span>{match.label}</span>
                           </div>
                           <div className="category-game-pairs">
@@ -244,6 +246,7 @@ export function CategoryResultsPanel({
                               {match.homeScore ?? "–"} × {match.awayScore ?? "–"}
                             </strong>
                             <StatusBadge status={matchStatus} />
+                            {match.woReason ? <small className="league-wo-badge">W.O.</small> : null}
                             {competition.format === "LEAGUE" && canRecord ? <LeagueMatchResultDialog match={match} /> : null}
                           </div>
                           <div className="category-game-actions">

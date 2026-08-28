@@ -566,6 +566,7 @@ model CategoryCompetition {
   status              String                         @default("DRAFT")
   feedsGeneralRanking Boolean                        @default(false)
   isPublic            Boolean                        @default(false)
+  leagueTier          String                         @default("")
   createdAt           DateTime                       @default(now())
   updatedAt           DateTime                       @updatedAt
   categoryId          String                         @unique
@@ -578,6 +579,7 @@ model CategoryCompetition {
   matches             CategoryMatch[]
   application         CategoryRankingApplication?
   leagueChallenges    LeagueChallenge[]
+  leagueCycles        LeagueCycle[]
 
   @@index([rankingId])
   @@index([status])
@@ -600,6 +602,7 @@ model CategoryPair {
   id            String               @id @default(cuid())
   name          String
   totalPoints   Int                  @default(0)
+  active        Boolean              @default(true)
   drawOrder     Int                  @default(0)
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
@@ -614,8 +617,9 @@ model CategoryPair {
   substitutions CategoryPairSubstitution[]
   sentLeagueChallenges LeagueChallenge[] @relation("LeagueChallengeProposer")
   receivedLeagueChallenges LeagueChallenge[] @relation("LeagueChallengeOpponent")
+  medicalSubstitutionRequests LeagueMedicalSubstitutionRequest[]
 
-  @@index([competitionId, drawOrder])
+  @@index([competitionId, active, drawOrder])
   @@index([competitionId, totalPoints])
   @@index([groupId])
   @@unique([id, competitionId])
@@ -683,10 +687,72 @@ model CategoryMatch {
   awayPair      CategoryPair?       @relation("CategoryAwayPair", fields: [awayPairId, competitionId], references: [id, competitionId], onDelete: NoAction)
   winnerPair    CategoryPair?       @relation("CategoryWinnerPair", fields: [winnerPairId, competitionId], references: [id, competitionId], onDelete: NoAction)
   challenge     LeagueChallenge?
+  leagueCycleId String?
+  leagueBlock   Int?
+  hostProposalDeadline DateTime?
+  woReason      String?
+  leagueCycle   LeagueCycle? @relation(fields: [leagueCycleId], references: [id], onDelete: SetNull)
+  proposals     LeagueMatchProposal[]
 
   @@index([competitionId, stage, roundOrder])
   @@index([groupId])
   @@index([winnerPairId])
+  @@index([leagueCycleId, leagueBlock])
+}
+
+model LeagueCycle {
+  id                 String              @id @default(cuid())
+  referenceMonth     String
+  status             String              @default("OPEN")
+  championPairId     String?
+  promotedPairId     String?
+  relegatedPairId    String?
+  prizeDescription   String              @default("")
+  closedAt           DateTime?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  competitionId      String
+  competition        CategoryCompetition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  matches            CategoryMatch[]
+
+  @@unique([competitionId, referenceMonth])
+  @@index([referenceMonth, status])
+}
+
+model LeagueMatchProposal {
+  id              String        @id @default(cuid())
+  status          String        @default("PENDING")
+  startsAt        DateTime
+  endsAt          DateTime
+  responseDueAt   DateTime
+  createdAt       DateTime      @default(now())
+  respondedAt     DateTime?
+  proposerPairId  String
+  opponentPairId  String
+  courtId         String
+  categoryMatchId String
+  categoryMatch   CategoryMatch @relation(fields: [categoryMatchId], references: [id], onDelete: Cascade)
+  court           Court         @relation(fields: [courtId], references: [id], onDelete: Restrict)
+
+  @@index([categoryMatchId, status])
+  @@index([opponentPairId, responseDueAt])
+}
+
+model LeagueMedicalSubstitutionRequest {
+  id                  String       @id @default(cuid())
+  status              String       @default("PENDING")
+  reason              String
+  requestedAt         DateTime     @default(now())
+  reviewedAt          DateTime?
+  reviewNotes         String       @default("")
+  pairId              String
+  previousPlayerId    String
+  replacementPlayerId String
+  requestedByPlayerId String
+  pair                CategoryPair @relation(fields: [pairId], references: [id], onDelete: Cascade)
+
+  @@index([pairId, status])
+  @@index([requestedByPlayerId, status])
 }
 
 model TournamentPlayer {
@@ -936,6 +1002,7 @@ model Court {
   occurrenceCourts ScheduleOccurrenceCourt[]
   weeklyRules CourtWeeklyRule[]
   leagueChallenges LeagueChallenge[]
+  leagueMatchProposals LeagueMatchProposal[]
 
   @@unique([arenaId, name])
   @@index([arenaId, active, displayOrder])

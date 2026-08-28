@@ -7042,6 +7042,21 @@ button {
   background: #ffffff;
 }
 .public-league-portal { border-top: 3px solid var(--brand); background: linear-gradient(180deg, #ffffff, #f4f9ff); }
+.public-league-prizes { display: grid; gap: 8px; padding: 14px; border: 1px solid #d7d6ff; border-radius: 10px; background: linear-gradient(135deg, #f7f5ff, #fff); }
+.public-league-prizes h3, .public-league-prizes p { margin: 0; }
+.public-league-prizes article { display: grid; gap: 3px; }
+.public-medical-request { border-top: 1px solid #e3edf4; padding-top: 10px; color: #274762; font-size: .78rem; }
+.public-medical-request summary { cursor: pointer; font-weight: 800; }
+.public-medical-request form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+.public-medical-request label { display: grid; gap: 4px; font-weight: 700; }
+.public-medical-request textarea { min-height: 68px; }
+.public-medical-request label:last-of-type { grid-column: 1 / -1; }
+.league-wo-badge { margin-top: 4px; padding: 2px 6px; border-radius: 5px; color: #a12828; background: #ffeded; font-weight: 800; }
+.league-medical-admin-row { display: flex; justify-content: space-between; gap: 18px; padding: 12px 0; border-top: 1px solid var(--line); }
+.league-medical-admin-row > div, .league-medical-admin-row form { display: grid; gap: 6px; }
+.league-medical-admin-row form { min-width: min(100%, 340px); }
+.league-medical-admin-row p { margin: 0; color: var(--muted); font-size: .82rem; }
+@media (max-width: 700px) { .public-medical-request form { grid-template-columns: 1fr; } }
 @media (max-width: 720px) {
   .app-main { padding: 16px; }
   .public-standings-page { width: min(100% - 24px, 1160px); padding-top: 18px; }

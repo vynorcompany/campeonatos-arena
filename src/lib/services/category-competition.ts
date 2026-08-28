@@ -6,6 +6,7 @@ import {
   buildKnockout,
   buildRoundRobin,
 } from "@/lib/tournament-category/draw";
+import { buildMonthlyLeagueSchedule, getLeagueMonthBlocks } from "@/lib/league/monthly-schedule";
 import { validateManualPairEligibility } from "@/lib/tournament-category/eligibility";
 import {
   buildPlacementAwards,
@@ -717,6 +718,7 @@ export async function generateCategoryDraw(
         id: true,
         format: true,
         pairs: {
+          where: { active: true },
           orderBy: { drawOrder: "asc" },
           select: { id: true },
         },
@@ -966,6 +968,7 @@ export async function publishCategoryDraw(
         id: true,
         format: true,
         pairs: {
+          where: { active: true },
           orderBy: { drawOrder: "asc" },
           select: {
             id: true,
@@ -1018,13 +1021,26 @@ export async function publishCategoryDraw(
       where: { competitionId: competition.id },
     });
 
+    const now = new Date();
+    const referenceMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const monthlySchedule = competition.format === "LEAGUE" ? buildMonthlyLeagueSchedule(competition.pairs.map((pair) => pair.id)) : null;
+    const leagueBlocks = getLeagueMonthBlocks(now.getFullYear(), now.getMonth() + 1);
+    const leagueCycle = monthlySchedule ? await tx.leagueCycle.upsert({
+      where: { competitionId_referenceMonth: { competitionId: competition.id, referenceMonth } },
+      update: { status: "OPEN", closedAt: null },
+      create: { competitionId: competition.id, referenceMonth },
+      select: { id: true },
+    }) : null;
+
     let roundOrder = 0;
-    for (const group of competition.groups) {
-      const groupMatches = buildRoundRobin(
-        group.pairs.map((pair) => pair.id),
-      );
+    for (const [groupIndex, group] of competition.groups.entries()) {
+      const groupMatches = monthlySchedule && groupIndex === 0
+        ? monthlySchedule.matches
+        : buildRoundRobin(group.pairs.map((pair) => pair.id));
       for (const [matchIndex, match] of groupMatches.entries()) {
         roundOrder += 1;
+        const block = monthlySchedule && groupIndex === 0 ? monthlySchedule.matches[matchIndex]?.blockNumber ?? null : null;
+        const blockEnd = block ? leagueBlocks[block - 1].endsOn : null;
         await tx.categoryMatch.create({
           data: {
             competitionId: competition.id,
@@ -1034,6 +1050,9 @@ export async function publishCategoryDraw(
             roundOrder,
             homePairId: match.homePairId,
             awayPairId: match.awayPairId,
+            leagueCycleId: leagueCycle?.id,
+            leagueBlock: block,
+            hostProposalDeadline: blockEnd ? new Date(`${blockEnd}T23:59:59`) : null,
           },
         });
       }

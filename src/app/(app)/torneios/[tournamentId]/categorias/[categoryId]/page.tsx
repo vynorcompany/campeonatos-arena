@@ -7,10 +7,12 @@ import {
 import { CategoryDrawPanel } from "@/components/tournaments/category-draw-panel";
 import { CategoryRegistrationPanel } from "@/components/tournaments/category-registration-panel";
 import { CategoryResultsPanel } from "@/components/tournaments/category-results-panel";
+import { LeagueMedicalRequestsPanel } from "@/components/tournaments/league-medical-requests-panel";
 import { StatusBadge } from "@/components/tournaments/status-badge";
 import { TournamentDetailLayout } from "@/components/tournaments/tournament-detail-layout";
 import { type TournamentTabKey } from "@/components/tournaments/tournament-tabs";
 import { requireModuleView } from "@/lib/auth/guards";
+import { updateLeaguePrizeAction } from "@/lib/actions/category-competition";
 import { prisma } from "@/lib/prisma";
 import { canGenerateCategoryDraw } from "@/lib/tournament-category/draw";
 import { buildPlacementStages } from "@/lib/tournament-category/ranking";
@@ -44,7 +46,7 @@ export default async function CategoryPage({
   searchParams,
 }: CategoryPageProps) {
   const auth = await requireModuleView("tournaments");
-  const [category, athletes, pairRankings] = await Promise.all([
+  const [category, athletes, pairRankings, medicalRequests] = await Promise.all([
     prisma.tournamentCategory.findFirst({
       where: {
         id: params.categoryId,
@@ -77,6 +79,7 @@ export default async function CategoryPage({
                 name: true,
               },
             },
+            leagueCycles: { orderBy: { referenceMonth: "desc" }, take: 1, select: { prizeDescription: true } },
             pairs: {
               orderBy: { drawOrder: "asc" },
               include: {
@@ -139,6 +142,10 @@ export default async function CategoryPage({
       },
       orderBy: { name: "asc" },
       select: { id: true, name: true },
+    }),
+    prisma.leagueMedicalSubstitutionRequest.findMany({
+      where: { status: "PENDING", pair: { competition: { categoryId: params.categoryId } } },
+      include: { pair: { include: { players: { include: { player: { select: { id: true, name: true } } } } } } },
     }),
   ]);
 
@@ -289,6 +296,8 @@ export default async function CategoryPage({
             homeSet3: match.homeSet3,
             awaySet3: match.awaySet3,
             manualStatus: match.manualStatus,
+            leagueBlock: match.leagueBlock,
+            woReason: match.woReason,
             homePair: match.homePair,
             awayPair: match.awayPair,
             winnerPair: match.winnerPair,
@@ -392,6 +401,15 @@ export default async function CategoryPage({
                 )}
               </div>
             </article>
+            {competition?.format === "LEAGUE" ? <LeagueMedicalRequestsPanel requests={medicalRequests.map((request) => ({
+              id: request.id,
+              reason: request.reason,
+              requestedAt: request.requestedAt,
+              pairName: request.pair.name,
+              previousPlayerName: athletes.find((athlete) => athlete.id === request.previousPlayerId)?.name ?? "Atleta anterior",
+              replacementPlayerName: athletes.find((athlete) => athlete.id === request.replacementPlayerId)?.name ?? "Novo atleta",
+            }))} /> : null}
+            {competition?.format === "LEAGUE" ? <form action={updateLeaguePrizeAction} className="section-card stack-sm"><div><p className="eyebrow">PORTAL DO ATLETA</p><h2>Premiação da Liga</h2></div><input type="hidden" name="competitionId" value={competition.id} /><textarea name="prizeDescription" defaultValue={competition.leagueCycles[0]?.prizeDescription ?? ""} placeholder="Ex.: campeãs recebem troféu, voucher e premiação em dinheiro." /><button className="button button-primary" type="submit">Salvar premiação</button></form> : null}
             {!competition ? (
               <article className="section-card">
                 <CategoryCompetitionForm

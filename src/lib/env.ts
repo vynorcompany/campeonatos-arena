@@ -29,7 +29,8 @@ const envSchema = z.object({
   EVOLUTION_API_URL: optionalUrl,
   EVOLUTION_API_KEY: z.string().optional(),
   EVOLUTION_INSTANCE_NAME: z.string().optional(),
-  EVOLUTION_WEBHOOK_SECRET: z.string().optional()
+  EVOLUTION_WEBHOOK_SECRET: z.string().optional(),
+  CRON_SECRET: z.string().min(24).optional()
 });
 
 const parsedResult = envSchema.safeParse({
@@ -46,7 +47,8 @@ const parsedResult = envSchema.safeParse({
   EVOLUTION_API_URL: process.env.EVOLUTION_API_URL,
   EVOLUTION_API_KEY: process.env.EVOLUTION_API_KEY,
   EVOLUTION_INSTANCE_NAME: process.env.EVOLUTION_INSTANCE_NAME,
-  EVOLUTION_WEBHOOK_SECRET: process.env.EVOLUTION_WEBHOOK_SECRET
+  EVOLUTION_WEBHOOK_SECRET: process.env.EVOLUTION_WEBHOOK_SECRET,
+  CRON_SECRET: process.env.CRON_SECRET
 });
 
 if (!parsedResult.success) {
@@ -76,5 +78,6 @@ export const env = {
   evolutionApiUrl: parsed.EVOLUTION_API_URL,
   evolutionApiKey: parsed.EVOLUTION_API_KEY,
   evolutionInstanceName: parsed.EVOLUTION_INSTANCE_NAME,
-  evolutionWebhookSecret: parsed.EVOLUTION_WEBHOOK_SECRET
+  evolutionWebhookSecret: parsed.EVOLUTION_WEBHOOK_SECRET,
+  cronSecret: parsed.CRON_SECRET
 };
