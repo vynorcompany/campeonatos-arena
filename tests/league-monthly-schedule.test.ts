@@ -92,6 +92,14 @@ test("athlete portal exposes the main modules and League submenus", () => {
   assert.match(leaguePortal, /Reserva confirmada/);
 });
 
+test("portal classes are available by teacher instead of a student plan", () => {
+  const portal = readFileSync(resolve(process.cwd(), "src/lib/services/public-league-portal.ts"), "utf8");
+  const view = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"), "utf8");
+  assert.match(portal, /prisma\.teacher\.findMany/);
+  assert.match(view, /Turmas disponíveis/);
+  assert.doesNotMatch(view, /Seu plano de aulas/);
+});
+
 test("event rules use a spacious editor and category management only lives in quick actions", () => {
   const editor = readFileSync(resolve(process.cwd(), "src/components/tournaments/tournament-event-edit-form.tsx"), "utf8");
   const eventPage = readFileSync(resolve(process.cwd(), "src/app/(app)/torneios/[tournamentId]/page.tsx"), "utf8");
