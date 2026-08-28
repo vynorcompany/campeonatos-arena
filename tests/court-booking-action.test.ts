@@ -13,3 +13,11 @@ test("court booking action creates paid or pending receivables from participant 
   assert.match(source, /courtIds/);
   assert.match(source, /occurrenceCourts/);
 });
+
+test("court booking keeps expected validation errors visible in production", () => {
+  const source = readFileSync(resolve(process.cwd(), "src/lib/actions/calendar.ts"), "utf8");
+
+  assert.match(source, /type CourtBookingActionResult/);
+  assert.match(source, /return \{ error: message \}/);
+  assert.match(source, /Falha ao salvar agendamento da grade/);
+});

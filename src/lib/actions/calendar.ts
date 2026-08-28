@@ -70,6 +70,19 @@ const courtBookingSchema = z.object({
   participants: z.string().trim().default("[]")
 });
 
+type CourtBookingActionResult = { error?: string };
+const visibleCourtBookingErrors = new Set([
+  "Dados inválidos.",
+  "Data e hora invalidas.",
+  "Participantes inválidos.",
+  "Quadras inválidas.",
+  "Uma ou mais quadras não pertencem à arena.",
+  "Selecione o professor responsável.",
+  "Professor não encontrado.",
+  "Um ou mais atletas não pertencem à arena.",
+  "Já existe um agendamento nessa quadra para este horário."
+]);
+
 const publicCourtBookingSchema = z.object({
   arenaSlug: z.string().trim().min(1),
   courtId: z.string().trim().min(1),
@@ -187,7 +200,8 @@ export async function createQuickPlayerAction(formData: FormData) {
   refreshCalendar(); return { id: player.id, name: player.name };
 }
 
-export async function saveCourtBookingAction(formData: FormData) {
+export async function saveCourtBookingAction(formData: FormData): Promise<CourtBookingActionResult> {
+  try {
   const auth = await requireModuleEdit("calendar");
   const parsed = courtBookingSchema.safeParse({
     occurrenceId: formData.get("occurrenceId"), courtId: formData.get("courtId"), courtIds: formData.get("courtIds"), title: formData.get("title"),
@@ -235,6 +249,13 @@ export async function saveCourtBookingAction(formData: FormData) {
     }
   });
   refreshCalendar();
+  return {};
+  } catch (reason) {
+    const message = reason instanceof Error ? reason.message : "";
+    if (visibleCourtBookingErrors.has(message)) return { error: message };
+    console.error("Falha ao salvar agendamento da grade", reason);
+    return { error: "Não foi possível salvar o agendamento. Tente novamente." };
+  }
 }
 
 export async function createCourtWeeklyRuleAction(formData: FormData) {

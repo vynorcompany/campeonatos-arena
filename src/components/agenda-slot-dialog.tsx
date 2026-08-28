@@ -65,7 +65,7 @@ export function AgendaSlotDialog({ slot, players, courts, teachers, bookingTypes
     const formData = new FormData();
     if (slot.occurrenceId) formData.set("occurrenceId", slot.occurrenceId);
     formData.set("courtId", slot.courtId); formData.set("courtIds", JSON.stringify(super12 ? courtIds : [slot.courtId])); formData.set("title", reservationName); formData.set("startsAt", `${slot.dateValue}T${slot.startsAt}`); formData.set("durationMinutes", String(duration)); formData.set("bookingTypeName", bookingTypeName); formData.set("teacherId", lesson ? teacherId : ""); formData.set("notes", notes); formData.set("participants", JSON.stringify(selectedParticipants));
-    startTransition(async () => { try { await saveCourtBookingAction(formData); setOpen(false); router.refresh(); } catch (reason) { setError(reason instanceof Error ? reason.message : "Não foi possível salvar o agendamento."); } });
+    startTransition(async () => { try { const result = await saveCourtBookingAction(formData); if (result.error) { setError(result.error); return; } setOpen(false); router.refresh(); } catch (reason) { setError(reason instanceof Error ? reason.message : "Não foi possível salvar o agendamento."); } });
   };
   const cancelBooking = (mode: "CANCEL" | "FREE") => {
     if (!slot.occurrenceId) return;
