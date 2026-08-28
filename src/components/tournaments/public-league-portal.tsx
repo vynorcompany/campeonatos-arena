@@ -15,7 +15,13 @@ export function PublicLeaguePortal({ arenaSlug, playerName, portal, showPrize = 
 
   return <section className="public-league-portal section-card stack-md">
     <header className="public-league-portal-header"><h2>Olá, {playerName}</h2><span className="public-portal-badge">{portal.notifications.length} notificação{portal.notifications.length === 1 ? "" : "ões"}</span></header>
-    {portal.notifications.length ? <section className="public-portal-notifications">{portal.notifications.map((notification) => <a href={notification.href || "#"} key={notification.id}><strong>{notification.title}</strong><span>{notification.message}</span></a>)}</section> : null}
+    {portal.notifications.length ? <section className="public-portal-notifications">{portal.notifications.map((notification) => {
+      const isReservationConfirmation = notification.title.trim().toLocaleLowerCase("pt-BR") === "reserva confirmada";
+      return <a className={isReservationConfirmation ? "public-portal-notification-reservation" : ""} href={notification.href || "#"} key={notification.id}>
+        <span className="public-portal-notification-icon" aria-hidden="true">{isReservationConfirmation ? "✓" : "•"}</span>
+        <span className="public-portal-notification-copy"><strong>{notification.title}</strong><small>{notification.message}</small></span>
+      </a>;
+    })}</section> : null}
     {showPrize && portal.prizes.length ? <section className="public-league-prizes"><h3>Premiação da Liga</h3>{portal.prizes.map((prize) => <article key={prize.id}><strong>{prize.eventName} · {prize.categoryName}</strong><p>{prize.description}</p></article>)}</section> : null}
     {portal.pairs.length ? <section className="public-portal-pairs">{portal.pairs.map((pair) => <article className="public-portal-pair" key={pair.id}>
       <header><strong>{pair.name}</strong></header>

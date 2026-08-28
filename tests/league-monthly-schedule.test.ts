@@ -138,3 +138,9 @@ test("confirmed League reservations are integrated into the match title", () => 
   assert.match(portal, /public-challenge-title-row/);
   assert.match(portal, /public-league-reservation-status/);
 });
+
+test("portal reservation confirmations use their own compact notification treatment", () => {
+  const portal = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-league-portal.tsx"), "utf8");
+  assert.match(portal, /public-portal-notification-reservation/);
+  assert.match(portal, /public-portal-notification-icon/);
+});
