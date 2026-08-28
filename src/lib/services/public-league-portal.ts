@@ -8,7 +8,7 @@ export async function getPublicLeaguePortal(arenaSlug: string, playerId: string)
   const ownPairs = await prisma.categoryPair.findMany({ where: { active: true, players: { some: { playerId } }, competition: { format: "LEAGUE", status: { in: ["PUBLISHED", "FINISHED"] }, category: { tournament: { arenaId: arena.id } } } }, include: { group: true, competition: { include: { category: { include: { tournament: true } } } }, players: { include: { player: { select: { id: true, name: true } } } }, homeMatches: { include: { awayPair: { select: { id: true, name: true, groupId: true } }, leagueCycle: { select: { id: true } } } }, awayMatches: { include: { homePair: { select: { id: true, name: true, groupId: true } } } } }, orderBy: { createdAt: "asc" } });
   const challenges = await prisma.leagueMatchProposal.findMany({ where: { OR: [{ proposerPairId: { in: ownPairs.map((pair) => pair.id) } }, { opponentPairId: { in: ownPairs.map((pair) => pair.id) } }] }, include: { court: { select: { name: true } }, categoryMatch: { include: { homePair: { select: { name: true } }, awayPair: { select: { name: true } } } } }, orderBy: { createdAt: "desc" } });
   const now = new Date();
-  const [notifications, medicalRequests, replacementPlayers, prizes, reservations, student] = await Promise.all([
+  const [notifications, medicalRequests, replacementPlayers, prizes, reservations, student, classOccurrences] = await Promise.all([
     prisma.playerNotification.findMany({ where: { playerId, readAt: null }, orderBy: { createdAt: "desc" }, take: 8, select: { id: true, title: true, message: true, href: true } }),
     prisma.leagueMedicalSubstitutionRequest.findMany({ where: { requestedByPlayerId: playerId, status: "PENDING" }, select: { pairId: true } }),
     prisma.player.findMany({ where: { arenaId: arena.id, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
@@ -18,7 +18,7 @@ export async function getPublicLeaguePortal(arenaSlug: string, playerId: string)
       where: { arenaId: arena.id, playerId },
       include: {
         subscriptions: { where: { status: "ACTIVE" }, orderBy: { startedAt: "desc" }, take: 1, include: { plan: { select: { name: true } } } },
-        teacherAssignments: { where: { active: true }, take: 1, include: { teacher: { select: { name: true } } } },
+        teacherAssignments: { where: { active: true }, include: { teacher: { select: { id: true, name: true } } }, orderBy: { teacher: { name: "asc" } } },
         attendances: {
           where: { lesson: { scheduledAt: { gte: now } } },
           include: { lesson: { select: { id: true, title: true, scheduledAt: true, status: true, teacher: { select: { name: true } } } } },
@@ -26,6 +26,7 @@ export async function getPublicLeaguePortal(arenaSlug: string, playerId: string)
         },
       },
     }),
+    prisma.scheduleOccurrence.findMany({ where: { arenaId: arena.id, startsAt: { gte: now }, status: { not: "CANCELED" }, teacherId: { not: null }, participants: { some: { playerId } } }, include: { teacher: { select: { id: true, name: true } } }, orderBy: { startsAt: "asc" }, take: 24 }),
   ]);
   const occurrences = await prisma.scheduleOccurrence.findMany({ where: { arenaId: arena.id, status: { not: "CANCELED" }, startsAt: { gte: now, lt: new Date(now.getTime() + 8 * 24 * 60 * 60_000) } }, include: { occurrenceCourts: true } });
   const slots = arena.courts.flatMap((court) => Array.from({ length: 7 }, (_, dayOffset) => {
@@ -50,6 +51,8 @@ export async function getPublicLeaguePortal(arenaSlug: string, playerId: string)
     prizes: prizes.map((cycle) => ({ id: cycle.id, eventName: cycle.competition.category.tournament.name, categoryName: cycle.competition.category.name, description: cycle.prizeDescription })),
     reservations: reservations.map((reservation) => ({ id: reservation.id, title: reservation.title, courtName: reservation.occurrenceCourts.map((entry) => entry.court.name).join(" · ") || "Quadra a definir", when: dateTimeLabel(reservation.startsAt), status: reservation.status === "CONFIRMED" ? "Confirmada" : reservation.status === "PENDING" ? "Aguardando confirmação" : "Agendada" })),
     lessons: student?.attendances.map((attendance) => ({ id: attendance.lesson.id, title: attendance.lesson.title, teacherName: attendance.lesson.teacher?.name ?? "", when: attendance.lesson.scheduledAt ? dateTimeLabel(attendance.lesson.scheduledAt) : "Horário a definir", status: attendance.lesson.status === "CANCELED" ? "Cancelada" : "Agendada" })) ?? [],
+    teachers: student?.teacherAssignments.map((assignment) => ({ id: assignment.teacher.id, name: assignment.teacher.name })) ?? [],
+    classes: classOccurrences.map((occurrence) => ({ id: occurrence.id, teacherId: occurrence.teacher?.id ?? "", teacherName: occurrence.teacher?.name ?? "Professor", title: occurrence.title, when: dateTimeLabel(occurrence.startsAt), status: occurrence.status === "PENDING_CONFIRMATION" ? "Aguardando confirmação" : "Agendada" })),
     student: student ? { remainingClasses: student.remainingClasses, attendedClasses: student.attendedClasses, missedClasses: student.missedClasses, active: student.active, planName: student.subscriptions[0]?.plan.name ?? "", teacherName: student.teacherAssignments[0]?.teacher.name ?? "" } : null,
   };
 }

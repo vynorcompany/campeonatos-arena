@@ -7,9 +7,10 @@ type Portal = Awaited<ReturnType<typeof import("@/lib/services/public-league-por
 type PortalSection = "leagues" | "booking" | "reservations" | "lessons" | "classes";
 type LeagueTab = "games" | "ranking" | "rules" | "prizes";
 
-function portalHref(section: PortalSection, leagueTab?: LeagueTab) {
+function portalHref(section: PortalSection, leagueTab?: LeagueTab, teacherId?: string) {
   const query = new URLSearchParams({ section, tab: leagueTab === "ranking" ? "ranking" : leagueTab === "rules" ? "rules" : leagueTab === "prizes" ? "portal" : "games" });
   if (leagueTab) query.set("leagueTab", leagueTab);
+  if (teacherId) query.set("teacher", teacherId);
   return `?${query.toString()}`;
 }
 
@@ -21,6 +22,7 @@ export function PublicStandings({
   section = "leagues",
   leagueTab = "games",
   bookingDate,
+  teacherId,
 }: {
   data: ArenaPublicStandings;
   currentClient: { name: string } | null;
@@ -29,6 +31,7 @@ export function PublicStandings({
   section?: PortalSection;
   leagueTab?: LeagueTab;
   bookingDate?: string;
+  teacherId?: string;
 }) {
   const publicHeader = (
     <header className="athlete-portal-hero">
@@ -66,7 +69,7 @@ export function PublicStandings({
       {selectedLeagueTab === "rules" ? <RulesPanel data={data} /> : null}
       {selectedLeagueTab === "ranking" ? <RankingPanel data={data} /> : null}
       {selectedLeagueTab === "prizes" ? <PrizePanel portal={portal} /> : null}
-    </> : section === "booking" ? <PublicBookingContent arenaSlug={data.arena.slug} date={bookingDate} embedded /> : section === "reservations" ? <ReservationsPanel portal={portal} /> : section === "lessons" ? <LessonsPanel portal={portal} /> : <ClassesPanel portal={portal} />}
+    </> : section === "booking" ? <PublicBookingContent arenaSlug={data.arena.slug} date={bookingDate} embedded /> : section === "reservations" ? <ReservationsPanel portal={portal} /> : section === "lessons" ? <LessonsPanel portal={portal} /> : <ClassesPanel portal={portal} teacherId={teacherId} />}
   </main>;
 }
 
@@ -90,9 +93,12 @@ function LessonsPanel({ portal }: { portal: Portal }) {
   return <section className="athlete-portal-content-panel"><header><span>AULAS</span><h2>Suas próximas aulas</h2></header>{portal?.lessons.length ? <div className="portal-activity-list">{portal.lessons.map((lesson) => <article key={lesson.id}><div><strong>{lesson.title}</strong><span>{lesson.teacherName ? `${lesson.teacherName} · ` : ""}{lesson.when}</span></div><b>{lesson.status}</b></article>)}</div> : <PortalEmpty title="Nenhuma aula programada" detail="Quando uma aula for agendada, ela aparecerá neste painel." />}</section>;
 }
 
-function ClassesPanel({ portal }: { portal: Portal }) {
+function ClassesPanel({ portal, teacherId }: { portal: Portal; teacherId?: string }) {
   const student = portal?.student;
-  return <section className="athlete-portal-content-panel"><header><span>TURMAS</span><h2>Seu plano de aulas</h2></header>{student ? <div className="portal-class-summary"><article><span>Saldo de aulas</span><strong>{student.remainingClasses}</strong></article><article><span>Aulas realizadas</span><strong>{student.attendedClasses}</strong></article><article><span>Faltas</span><strong>{student.missedClasses}</strong></article><div className="portal-class-details"><strong>{student.planName || "Plano não vinculado"}</strong><span>{student.teacherName || "Professor a definir"}</span><small>{student.active ? "Plano ativo" : "Plano inativo"}</small></div></div> : <PortalEmpty title="Nenhum plano de aulas vinculado" detail="A arena ainda não vinculou um plano ao seu cadastro." />}</section>;
+  const teachers = portal?.teachers ?? [];
+  const selectedTeacher = teachers.find((teacher) => teacher.id === teacherId);
+  const classes = selectedTeacher ? (portal?.classes ?? []).filter((item) => item.teacherId === selectedTeacher.id) : [];
+  return <section className="athlete-portal-content-panel"><header><span>TURMAS</span><h2>Suas turmas</h2></header>{student ? <><div className="portal-class-summary"><article><span>Saldo de aulas</span><strong>{student.remainingClasses}</strong></article><article><span>Aulas realizadas</span><strong>{student.attendedClasses}</strong></article><article><span>Faltas</span><strong>{student.missedClasses}</strong></article><div className="portal-class-details"><strong>{student.planName || "Plano não vinculado"}</strong><span>{student.teacherName || "Professor a definir"}</span><small>{student.active ? "Plano ativo" : "Plano inativo"}</small></div></div><div className="portal-teacher-picker"><strong>Selecionar professor</strong>{teachers.length ? <div>{teachers.map((teacher) => <Link className={selectedTeacher?.id === teacher.id ? "active" : ""} href={portalHref("classes", undefined, teacher.id)} key={teacher.id}>{teacher.name}</Link>)}</div> : <span>Nenhum professor vinculado.</span>}</div>{selectedTeacher ? <div className="portal-activity-list"><strong className="portal-selected-teacher">Turmas de {selectedTeacher.name}</strong>{classes.length ? classes.map((item) => <article key={item.id}><div><strong>{item.title}</strong><span>{item.when}</span></div><b>{item.status}</b></article>) : <p className="muted">Não há turmas futuras agendadas para este professor.</p>}</div> : <p className="portal-teacher-hint">Selecione um professor para ver os dias e horários das suas turmas.</p>}</> : <PortalEmpty title="Nenhum plano de aulas vinculado" detail="A arena ainda não vinculou um plano ao seu cadastro." />}</section>;
 }
 
 function PortalEmpty({ title, detail, action, href }: { title: string; detail: string; action?: string; href?: string }) {

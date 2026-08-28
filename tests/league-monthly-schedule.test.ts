@@ -78,6 +78,7 @@ test("arena can process the League lifecycle manually without a cron", () => {
 
 test("athlete portal exposes the main modules and League submenus", () => {
   const view = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"), "utf8");
+  const leaguePortal = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-league-portal.tsx"), "utf8");
   assert.match(view, /Portal do Atleta/);
   assert.match(view, /Grade de horários/);
   assert.match(view, /Minhas reservas/);
@@ -85,6 +86,10 @@ test("athlete portal exposes the main modules and League submenus", () => {
   assert.match(view, /portal-league-prize-podium/);
   assert.match(view, /section === "booking"/);
   assert.match(view, /PublicBookingContent/);
+  assert.match(view, /Selecionar professor/);
+  assert.match(view, /teacherId/);
+  assert.match(leaguePortal, /Sugerir horário para este jogo/);
+  assert.match(leaguePortal, /Reserva confirmada/);
 });
 
 test("event rules use a spacious editor and category management only lives in quick actions", () => {
