@@ -415,17 +415,20 @@ export default async function CategoryPage({
                   <div className="league-prize-copy">
                     <p className="eyebrow">Liga</p>
                     <h2 id="league-prize-title">Premiação</h2>
-                    <p className="muted">Informe como a premiação será apresentada no Portal do Atleta.</p>
                   </div>
-                  <input type="hidden" name="competitionId" value={competition.id} />
-                  <textarea
-                    className="league-prize-textarea"
-                    name="prizeDescription"
-                    rows={4}
-                    defaultValue={competition.leagueCycles[0]?.prizeDescription ?? ""}
-                    placeholder="Ex.: campeãs recebem troféu, voucher e premiação em dinheiro."
-                  />
-                  <button className="button button-primary" type="submit">Salvar premiação</button>
+                  <div className="league-prize-editor">
+                    <input type="hidden" name="competitionId" value={competition.id} />
+                    <textarea
+                      className="league-prize-textarea"
+                      name="prizeDescription"
+                      rows={5}
+                      defaultValue={competition.leagueCycles[0]?.prizeDescription ?? ""}
+                      placeholder="Descreva a premiação da Liga. Ex.: campeãs recebem troféu, voucher e premiação em dinheiro."
+                    />
+                    <div className="league-prize-actions">
+                      <button className="button button-primary" type="submit">Salvar premiação</button>
+                    </div>
+                  </div>
                 </form>
                 <form action={runLeagueLifecycleAction} className="league-lifecycle-manual-action">
                   <button className="button button-small" type="submit">Processar ciclo da Liga</button>

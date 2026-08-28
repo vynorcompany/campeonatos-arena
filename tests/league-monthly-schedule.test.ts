@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
-import { buildMonthlyLeagueSchedule, getLeagueMonthBlocks } from "@/lib/league/monthly-schedule";
+import { buildMonthlyLeagueSchedule, getLeagueMonthBlocks, getLeagueMatchBlock } from "@/lib/league/monthly-schedule";
 
 test("Liga divides its monthly calendar into the four fixed blocks", () => {
   assert.deepEqual(getLeagueMonthBlocks(2026, 2), [
@@ -30,6 +30,13 @@ test("Liga keeps home duties balanced with an odd number of pairs", () => {
   for (const match of schedule.matches) homes.set(match.homePairId, (homes.get(match.homePairId) ?? 0) + 1);
   assert.equal(schedule.matches.length, 10);
   assert.ok(Math.max(...homes.values()) - Math.min(...homes.values()) <= 1);
+});
+
+test("legacy League matches receive a stable weekly block from their round", () => {
+  assert.equal(getLeagueMatchBlock({ leagueBlock: null, roundOrder: 1 }), 1);
+  assert.equal(getLeagueMatchBlock({ leagueBlock: null, roundOrder: 4 }), 4);
+  assert.equal(getLeagueMatchBlock({ leagueBlock: null, roundOrder: 5 }), 1);
+  assert.equal(getLeagueMatchBlock({ leagueBlock: 3, roundOrder: 1 }), 3);
 });
 
 test("schema keeps monthly League cycles, proposals and medical substitution requests isolated", () => {
@@ -114,7 +121,20 @@ test("League prize controls are compact and category add opens the category moda
   const quickActions = readFileSync(resolve(process.cwd(), "src/components/tournaments/event-quick-actions.tsx"), "utf8");
 
   assert.match(categoryPage, /league-prize-control/);
-  assert.match(categoryPage, /league-prize-textarea/);
+  assert.match(categoryPage, /league-prize-editor/);
   assert.match(categoryList, /\?action=categories/);
   assert.match(quickActions, /initialAction/);
+});
+
+test("League games render their existing fixtures in four visual weekly blocks", () => {
+  const games = readFileSync(resolve(process.cwd(), "src/components/tournaments/category-results-panel.tsx"), "utf8");
+  assert.match(games, /getLeagueMatchBlock/);
+  assert.match(games, /league-week-divider/);
+  assert.match(games, /Semana \{leagueBlock\}/);
+});
+
+test("confirmed League reservations are integrated into the match title", () => {
+  const portal = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-league-portal.tsx"), "utf8");
+  assert.match(portal, /public-challenge-title-row/);
+  assert.match(portal, /public-league-reservation-status/);
 });

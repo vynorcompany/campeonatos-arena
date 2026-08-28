@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Fragment } from "react";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { StatusBadge } from "@/components/tournaments/status-badge";
 import { LeagueMatchResultDialog } from "@/components/tournaments/league-match-result-dialog";
@@ -9,6 +10,7 @@ import {
   updateCategoryMatchScheduleAction,
   updateCategoryMatchStatusAction,
 } from "@/lib/actions/category-competition";
+import { getLeagueMatchBlock } from "@/lib/league/monthly-schedule";
 
 type CompetitionMatch = {
   id: string;
@@ -154,6 +156,12 @@ export function CategoryResultsPanel({
               sort,
             )
           : [];
+        const orderedMatches = competition?.format === "LEAGUE"
+          ? [...visibleMatches].sort((first, second) =>
+              getLeagueMatchBlock(first) - getLeagueMatchBlock(second) ||
+              first.roundOrder - second.roundOrder,
+            )
+          : visibleMatches;
 
         return (
           <article
@@ -210,15 +218,28 @@ export function CategoryResultsPanel({
                       </button>
                     </form>
                   <div className="category-game-list">
-                    {visibleMatches.map((match) => {
+                    {orderedMatches.map((match, index) => {
                       const canRecord =
                         competition.status === "PUBLISHED" &&
                         match.homePair &&
                         match.awayPair;
                       const matchStatus = getMatchStatus(match);
+                      const leagueBlock = getLeagueMatchBlock(match);
+                      const startsLeagueWeek = competition.format === "LEAGUE" &&
+                        (index === 0 || getLeagueMatchBlock(orderedMatches[index - 1]) !== leagueBlock);
 
                       return (
-                        <div className="category-game-row" key={match.id}>
+                        <Fragment key={match.id}>
+                          {startsLeagueWeek ? (
+                            <div className="league-week-divider">
+                              <div>
+                                <span>Calendário mensal</span>
+                                <strong>Semana {leagueBlock}</strong>
+                              </div>
+                              <small>{orderedMatches.filter((item) => getLeagueMatchBlock(item) === leagueBlock).length} jogos</small>
+                            </div>
+                          ) : null}
+                        <div className="category-game-row">
                           <div className="category-game-time">
                             <span className="category-game-label">Data e horário</span>
                             <strong>
@@ -230,7 +251,7 @@ export function CategoryResultsPanel({
                           </div>
                           <div className="category-game-stage">
                             <span className="category-game-label">Fase / grupo</span>
-                            <strong>{competition.format === "LEAGUE" && match.leagueBlock ? `Semana ${match.leagueBlock}` : match.stage}</strong>
+                            <strong>{competition.format === "LEAGUE" ? `Semana ${leagueBlock}` : match.stage}</strong>
                             <span>{match.label}</span>
                           </div>
                           <div className="category-game-pairs">
@@ -371,6 +392,7 @@ export function CategoryResultsPanel({
                           ) : null}
                           </div>
                         </div>
+                        </Fragment>
                       );
                     })}
                   </div>

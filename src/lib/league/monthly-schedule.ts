@@ -1,6 +1,14 @@
 export type LeagueMonthBlock = { number: 1 | 2 | 3 | 4; startsOn: string; endsOn: string };
 export type MonthlyLeagueMatch = { homePairId: string; awayPairId: string; blockNumber: 1 | 2 | 3 | 4 };
 
+export function getLeagueMatchBlock(match: { leagueBlock: number | null; roundOrder: number }): 1 | 2 | 3 | 4 {
+  if (match.leagueBlock && match.leagueBlock >= 1 && match.leagueBlock <= 4) {
+    return match.leagueBlock as 1 | 2 | 3 | 4;
+  }
+
+  return (((Math.max(match.roundOrder, 1) - 1) % 4) + 1) as 1 | 2 | 3 | 4;
+}
+
 function isoDate(year: number, month: number, day: number) {
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
