@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
-import { TournamentCategoryManagerForm } from "@/components/forms/tournament-category-manager-form";
 import { CategoryList } from "@/components/tournaments/category-list";
 import { EventIcon } from "@/components/tournaments/event-icon";
 import { EventQuickActions } from "@/components/tournaments/event-quick-actions";
@@ -131,37 +130,6 @@ export default async function TournamentDetailPage({
                 : null,
             }))}
           />
-          <details id="gerenciar-categorias" className="event-expandable-panel">
-            <summary><strong>Gerenciar categorias</strong><span>⌄</span></summary>
-            <div className="event-expandable-content">
-          <TournamentCategoryManagerForm
-            tournamentId={tournament.id}
-            defaultName={tournament.name}
-            defaultDescription={tournament.description}
-            defaultPublicSlug={tournament.publicSlug}
-            defaultRegistrationPhase={tournament.registrationPhase}
-            defaultCreationMode={
-              tournament.creationMode as "MANUAL" | "PUBLIC"
-            }
-            defaultGroupCount={tournament.groupCount}
-            defaultPairsPerGroup={tournament.pairsPerGroup}
-            defaultPriceFirstCents={tournament.priceFirstCents}
-            defaultPriceSecondCents={tournament.priceSecondCents}
-            defaultPriceThirdCents={tournament.priceThirdCents}
-            defaultBlockCategoryGap={tournament.blockCategoryGap}
-            defaultMaxCategoryGap={tournament.maxCategoryGap}
-            defaultRankingId={tournament.rankingId ?? ""}
-            defaultCategories={tournament.categories.map((category) => ({
-              name: category.name,
-              groupCount: category.groupCount,
-              pairsPerGroup: category.pairsPerGroup,
-              priceSecondCents: category.priceSecondCents,
-              priceThirdCents: category.priceThirdCents,
-              hasCompetition: Boolean(category.competition),
-            }))}
-          />
-            </div>
-          </details>
         </div>
         <aside className="event-side-column">
           <EventQuickActions

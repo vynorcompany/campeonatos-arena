@@ -84,3 +84,11 @@ test("athlete portal exposes the main modules and League submenus", () => {
   assert.match(view, /Premiação/);
   assert.match(view, /portal-league-prize-podium/);
 });
+
+test("event rules use a spacious editor and category management only lives in quick actions", () => {
+  const editor = readFileSync(resolve(process.cwd(), "src/components/tournaments/tournament-event-edit-form.tsx"), "utf8");
+  const eventPage = readFileSync(resolve(process.cwd(), "src/app/(app)/torneios/[tournamentId]/page.tsx"), "utf8");
+  assert.match(editor, /id="event-rules"[\s\S]*rows=\{12\}/);
+  assert.match(editor, /className="event-rules-editor"/);
+  assert.doesNotMatch(eventPage, /id="gerenciar-categorias"/);
+});

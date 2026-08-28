@@ -48,7 +48,14 @@ export function TournamentEventEditForm({
       </div>
       <div className="field form-full">
         <label htmlFor="event-rules">Regras da liga</label>
-        <textarea id="event-rules" name="rules" defaultValue={tournament.rules} placeholder="Insira as regras que serão exibidas na página pública." />
+        <textarea
+          id="event-rules"
+          name="rules"
+          className="event-rules-editor"
+          rows={12}
+          defaultValue={tournament.rules}
+          placeholder="Insira as regras que serão exibidas na página pública."
+        />
       </div>
       <div className="field field-submit form-full">
         <SubmitButton
