@@ -13,6 +13,7 @@ type EventQuickActionsProps = {
   publicPageUrl: string;
   categories: { id: string; name: string; pairCount: number }[];
   categoryManager: ComponentProps<typeof TournamentCategoryManagerForm>;
+  initialAction?: ActionKey | null;
 };
 
 const actionCopy: Record<ActionKey, { title: string; icon: "sliders" | "users" | "globe" | "edit"; tone?: "success" | "purple" }> = {
@@ -22,8 +23,12 @@ const actionCopy: Record<ActionKey, { title: string; icon: "sliders" | "users" |
   edit: { title: "Editar evento", icon: "edit" },
 };
 
-export function EventQuickActions({ tournament, publicPageUrl, categories, categoryManager }: EventQuickActionsProps) {
-  const [activeAction, setActiveAction] = useState<ActionKey | null>(null);
+export function EventQuickActions({ tournament, publicPageUrl, categories, categoryManager, initialAction = null }: EventQuickActionsProps) {
+  const [activeAction, setActiveAction] = useState<ActionKey | null>(initialAction);
+
+  useEffect(() => {
+    setActiveAction(initialAction);
+  }, [initialAction]);
 
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {

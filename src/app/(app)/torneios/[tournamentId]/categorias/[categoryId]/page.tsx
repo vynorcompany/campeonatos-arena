@@ -409,8 +409,29 @@ export default async function CategoryPage({
               previousPlayerName: athletes.find((athlete) => athlete.id === request.previousPlayerId)?.name ?? "Atleta anterior",
               replacementPlayerName: athletes.find((athlete) => athlete.id === request.replacementPlayerId)?.name ?? "Novo atleta",
             }))} /> : null}
-            {competition?.format === "LEAGUE" ? <form action={updateLeaguePrizeAction} className="section-card stack-sm"><div><p className="eyebrow">PORTAL DO ATLETA</p><h2>Premiação da Liga</h2></div><input type="hidden" name="competitionId" value={competition.id} /><textarea name="prizeDescription" defaultValue={competition.leagueCycles[0]?.prizeDescription ?? ""} placeholder="Ex.: campeãs recebem troféu, voucher e premiação em dinheiro." /><button className="button button-primary" type="submit">Salvar premiação</button></form> : null}
-            {competition?.format === "LEAGUE" ? <form action={runLeagueLifecycleAction} className="league-lifecycle-manual-action"><button className="button button-primary" type="submit">Processar ciclo da Liga</button></form> : null}
+            {competition?.format === "LEAGUE" ? (
+              <section className="league-prize-control" aria-labelledby="league-prize-title">
+                <form action={updateLeaguePrizeAction} className="league-prize-form">
+                  <div className="league-prize-copy">
+                    <p className="eyebrow">Liga</p>
+                    <h2 id="league-prize-title">Premiação</h2>
+                    <p className="muted">Informe como a premiação será apresentada no Portal do Atleta.</p>
+                  </div>
+                  <input type="hidden" name="competitionId" value={competition.id} />
+                  <textarea
+                    className="league-prize-textarea"
+                    name="prizeDescription"
+                    rows={4}
+                    defaultValue={competition.leagueCycles[0]?.prizeDescription ?? ""}
+                    placeholder="Ex.: campeãs recebem troféu, voucher e premiação em dinheiro."
+                  />
+                  <button className="button button-primary" type="submit">Salvar premiação</button>
+                </form>
+                <form action={runLeagueLifecycleAction} className="league-lifecycle-manual-action">
+                  <button className="button button-small" type="submit">Processar ciclo da Liga</button>
+                </form>
+              </section>
+            ) : null}
             {!competition ? (
               <article className="section-card">
                 <CategoryCompetitionForm

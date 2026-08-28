@@ -34,7 +34,12 @@ export function CategoryList({
           <h2 id="category-list-title">Categorias do evento</h2>
           <p className="muted">Gerencie as categorias e acompanhe as inscrições.</p>
         </div>
-        <a className="button button-primary" href="#gerenciar-categorias"><span className="category-add-symbol">＋</span>Adicionar categoria</a>
+        <Link
+          className="button button-primary"
+          href={`/torneios/${tournamentId}?action=categories#acoes-rapidas`}
+        >
+          <span className="category-add-symbol">＋</span>Adicionar categoria
+        </Link>
       </div>
 
       {categories.length ? (

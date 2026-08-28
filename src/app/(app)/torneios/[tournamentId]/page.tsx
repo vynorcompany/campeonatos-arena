@@ -12,10 +12,12 @@ import { prisma } from "@/lib/prisma";
 
 type TournamentDetailPageProps = {
   params: { tournamentId: string };
+  searchParams?: { action?: string };
 };
 
 export default async function TournamentDetailPage({
   params,
+  searchParams,
 }: TournamentDetailPageProps) {
   const auth = await requireModuleView("tournaments");
   const [tournament] = await Promise.all([
@@ -70,6 +72,7 @@ export default async function TournamentDetailPage({
   );
   const createdAt = new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(tournament.createdAt);
   const eventState = tournament.status === "PUBLISHED" ? "Publicado" : tournament.status === "FINISHED" ? "Finalizado" : "Editando";
+  const initialQuickAction = searchParams?.action === "categories" ? "categories" : null;
 
   return (
     <div className="event-dashboard">
@@ -143,6 +146,7 @@ export default async function TournamentDetailPage({
               defaultPriceThirdCents: tournament.priceThirdCents, defaultBlockCategoryGap: tournament.blockCategoryGap, defaultMaxCategoryGap: tournament.maxCategoryGap,
               defaultRankingId: tournament.rankingId ?? "", defaultCategories: tournament.categories.map((category) => ({ name: category.name, groupCount: category.groupCount, pairsPerGroup: category.pairsPerGroup, priceSecondCents: category.priceSecondCents, priceThirdCents: category.priceThirdCents, hasCompetition: Boolean(category.competition) }))
             }}
+            initialAction={initialQuickAction}
           />
           <section className="event-information">
             <header><EventIcon name="info" /><h2>Informações do evento</h2></header>
