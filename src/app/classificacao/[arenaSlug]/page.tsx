@@ -17,6 +17,7 @@ export default async function PublicStandingsPage({
     tab?: string;
     league?: string;
     status?: string;
+    data?: string;
     section?: string;
     leagueTab?: string;
   };
@@ -27,7 +28,7 @@ export default async function PublicStandingsPage({
   }
 
   const portal = currentClient ? await getPublicLeaguePortal(params.arenaSlug, currentClient.playerId) : null;
-  const section = searchParams?.section === "reservations" || searchParams?.section === "lessons" || searchParams?.section === "classes" ? searchParams.section : "leagues";
+  const section = searchParams?.section === "booking" || searchParams?.section === "reservations" || searchParams?.section === "lessons" || searchParams?.section === "classes" ? searchParams.section : "leagues";
   const leagueTab = searchParams?.leagueTab === "ranking" || searchParams?.leagueTab === "rules" || searchParams?.leagueTab === "prizes" ? searchParams.leagueTab : "games";
-  return <PublicStandings data={data} currentClient={currentClient} portal={portal} section={section} leagueTab={leagueTab} authForm={<PublicClientAuthForm arenaSlug={params.arenaSlug} returnTo={`/classificacao/${params.arenaSlug}?section=leagues&leagueTab=games&tab=games`} />} />;
+  return <PublicStandings data={data} currentClient={currentClient} portal={portal} section={section} leagueTab={leagueTab} bookingDate={searchParams?.data} authForm={<PublicClientAuthForm arenaSlug={params.arenaSlug} returnTo={`/classificacao/${params.arenaSlug}?section=leagues&leagueTab=games&tab=games`} />} />;
 }

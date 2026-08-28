@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { PublicBookingContent } from "@/components/public-booking-content";
 import type { ArenaPublicStandings } from "@/lib/services/public-standings";
 import { PublicLeaguePortal } from "@/components/tournaments/public-league-portal";
 
 type Portal = Awaited<ReturnType<typeof import("@/lib/services/public-league-portal").getPublicLeaguePortal>>;
-type PortalSection = "leagues" | "reservations" | "lessons" | "classes";
+type PortalSection = "leagues" | "booking" | "reservations" | "lessons" | "classes";
 type LeagueTab = "games" | "ranking" | "rules" | "prizes";
 
 function portalHref(section: PortalSection, leagueTab?: LeagueTab) {
@@ -19,6 +20,7 @@ export function PublicStandings({
   authForm,
   section = "leagues",
   leagueTab = "games",
+  bookingDate,
 }: {
   data: ArenaPublicStandings;
   currentClient: { name: string } | null;
@@ -26,6 +28,7 @@ export function PublicStandings({
   authForm: React.ReactNode;
   section?: PortalSection;
   leagueTab?: LeagueTab;
+  bookingDate?: string;
 }) {
   const publicHeader = (
     <header className="athlete-portal-hero">
@@ -47,7 +50,7 @@ export function PublicStandings({
     {publicHeader}
     <nav className="athlete-portal-main-nav" aria-label="Menu do portal do atleta">
       <Link className={section === "leagues" ? "active" : ""} href={portalHref("leagues", "games")}>Ligas</Link>
-      <Link href={`/reservar/${data.arena.slug}`}>Grade de horários</Link>
+      <Link className={section === "booking" ? "active" : ""} href={portalHref("booking")}>Grade de horários</Link>
       <Link className={section === "reservations" ? "active" : ""} href={portalHref("reservations")}>Minhas reservas</Link>
       <Link className={section === "lessons" ? "active" : ""} href={portalHref("lessons")}>Aulas</Link>
       <Link className={section === "classes" ? "active" : ""} href={portalHref("classes")}>Turmas</Link>
@@ -63,7 +66,7 @@ export function PublicStandings({
       {selectedLeagueTab === "rules" ? <RulesPanel data={data} /> : null}
       {selectedLeagueTab === "ranking" ? <RankingPanel data={data} /> : null}
       {selectedLeagueTab === "prizes" ? <PrizePanel portal={portal} /> : null}
-    </> : section === "reservations" ? <ReservationsPanel portal={portal} /> : section === "lessons" ? <LessonsPanel portal={portal} /> : <ClassesPanel portal={portal} />}
+    </> : section === "booking" ? <PublicBookingContent arenaSlug={data.arena.slug} date={bookingDate} embedded /> : section === "reservations" ? <ReservationsPanel portal={portal} /> : section === "lessons" ? <LessonsPanel portal={portal} /> : <ClassesPanel portal={portal} />}
   </main>;
 }
 

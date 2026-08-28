@@ -83,6 +83,8 @@ test("athlete portal exposes the main modules and League submenus", () => {
   assert.match(view, /Minhas reservas/);
   assert.match(view, /Premiação/);
   assert.match(view, /portal-league-prize-podium/);
+  assert.match(view, /section === "booking"/);
+  assert.match(view, /PublicBookingContent/);
 });
 
 test("event rules use a spacious editor and category management only lives in quick actions", () => {
