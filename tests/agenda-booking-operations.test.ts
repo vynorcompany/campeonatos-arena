@@ -19,7 +19,7 @@ test("occupied agenda slots expose cancellation and command operations", () => {
 });
 
 test("online booking lists starts that fit the minimum duration and flags a conflicting extension", () => {
-  const page = readFileSync(resolve(process.cwd(), "src/app/reservar/[arenaSlug]/page.tsx"), "utf8");
+  const page = readFileSync(resolve(process.cwd(), "src/components/public-booking-content.tsx"), "utf8");
   const form = readFileSync(resolve(process.cwd(), "src/components/public-court-booking-form.tsx"), "utf8");
   const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
 
