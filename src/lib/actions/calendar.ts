@@ -58,6 +58,13 @@ const courtWeeklyRuleSchema = z.object({
   available: z.enum(["on"]).optional()
 });
 
+const updateCourtWeeklyRuleSchema = courtWeeklyRuleSchema.pick({
+  startTime: true,
+  endTime: true,
+  price: true,
+  available: true
+}).extend({ ruleId: z.string().trim().min(1) });
+
 const courtBookingSchema = z.object({
   occurrenceId: z.string().trim().default(""),
   courtId: z.string().trim().min(1),
@@ -299,6 +306,46 @@ export async function createCourtWeeklyRuleAction(formData: FormData) {
     data: {
       courtId: court.id,
       weekday: parsed.data.weekday,
+      startsAtMinute,
+      endsAtMinute,
+      priceCents: moneyToCents(parsed.data.price),
+      available: parsed.data.available === "on"
+    }
+  });
+  refreshCalendar();
+}
+
+export async function updateCourtWeeklyRuleAction(formData: FormData) {
+  const auth = await requireModuleEdit("calendar");
+  const parsed = updateCourtWeeklyRuleSchema.safeParse({
+    ruleId: formData.get("ruleId"),
+    startTime: formData.get("startTime"),
+    endTime: formData.get("endTime"),
+    price: formData.get("price"),
+    available: formData.get("available")
+  });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+
+  const startsAtMinute = timeToMinutes(parsed.data.startTime);
+  const endsAtMinute = timeToMinutes(parsed.data.endTime);
+  if (startsAtMinute >= endsAtMinute) throw new Error("O horário final deve ser posterior ao inicial.");
+
+  const rule = await prisma.courtWeeklyRule.findFirst({
+    where: { id: parsed.data.ruleId, court: { arenaId: auth.arenaId } },
+    include: { court: { include: { weeklyRules: true } } }
+  });
+  if (!rule) throw new Error("Faixa não encontrada.");
+
+  const conflicts = rule.court.weeklyRules.some((item) =>
+    item.id !== rule.id &&
+    item.weekday === rule.weekday &&
+    weeklyRangesOverlap(startsAtMinute, endsAtMinute, item.startsAtMinute, item.endsAtMinute)
+  );
+  if (conflicts) throw new Error("Esta faixa se sobrepõe a outra regra da mesma quadra.");
+
+  await prisma.courtWeeklyRule.update({
+    where: { id: rule.id },
+    data: {
       startsAtMinute,
       endsAtMinute,
       priceCents: moneyToCents(parsed.data.price),
