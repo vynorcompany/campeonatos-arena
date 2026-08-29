@@ -53,3 +53,18 @@ test("teacher workspace separates plan, student and monthly payment-report opera
   assert.match(reportContent, /Desmarcar do cálculo/);
   assert.match(reportContent, /Total a pagar/);
 });
+
+test("teacher plans enroll searchable clients with balance, due date, discount and recurring finance", () => {
+  const detail = readFileSync(resolve(process.cwd(), "src/app/(app)/professores/[teacherId]/page.tsx"), "utf8");
+  const enrollment = readFileSync(resolve(process.cwd(), "src/components/teachers/teacher-plan-enrollment-form.tsx"), "utf8");
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/academy.ts"), "utf8");
+
+  assert.match(enrollment, /Pesquisar cliente/);
+  assert.match(enrollment, /Data de início/);
+  assert.match(enrollment, /Saldo de aulas/);
+  assert.match(enrollment, /Desconto/);
+  assert.match(detail, /Copiar planos/);
+  assert.match(actions, /financialRecurrence\.create/);
+  assert.match(actions, /discountMode/);
+  assert.match(actions, /dueDay/);
+});

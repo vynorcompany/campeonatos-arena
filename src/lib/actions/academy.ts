@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireModuleEdit } from "@/lib/auth/guards";
+import { getDiscountedAmountCents } from "@/lib/finance/discounts";
+import { getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
 import { prisma } from "@/lib/prisma";
 
 const optionalText = z.string().trim().default("");
@@ -276,6 +278,19 @@ export async function createTeacherAction(formData: FormData) {
   refreshAcademyRoutes();
 }
 
+function parseFormDate(value: string) {
+  if (!value) return null;
+  const date = new Date(`${value}T12:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getFirstDueDate(startedAt: Date, dueDay: number) {
+  const dueDate = new Date(startedAt.getFullYear(), startedAt.getMonth(), Math.min(dueDay, 28), 12);
+  return dueDate < startedAt
+    ? new Date(startedAt.getFullYear(), startedAt.getMonth() + 1, Math.min(dueDay, 28), 12)
+    : dueDate;
+}
+
 export async function createTeacherStudentAction(formData: FormData) {
   const auth = await requireModuleEdit("teachers");
   const teacherId = String(formData.get("teacherId") ?? "");
@@ -323,20 +338,61 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
   const auth = await requireModuleEdit("teachers");
   const teacherId = String(formData.get("teacherId") ?? "");
   const planId = String(formData.get("planId") ?? "");
-  const studentId = String(formData.get("studentId") ?? "");
-  const [teacher, plan, student] = await Promise.all([
+  const clientId = String(formData.get("clientId") ?? "");
+  const startedAt = parseFormDate(String(formData.get("startedAt") ?? "")) ?? new Date();
+  const dueDateInput = parseFormDate(String(formData.get("dueDate") ?? ""));
+  const dueDay = dueDateInput?.getDate() ?? Math.min(28, Math.max(1, Number(formData.get("dueDay") ?? 10) || 10));
+  const remainingClasses = z.coerce.number().int().min(0).max(500).parse(formData.get("remainingClasses") ?? "0");
+  const discountMode = String(formData.get("discountMode") ?? "AMOUNT") === "PERCENTAGE" ? "PERCENTAGE" : "AMOUNT";
+  const discountApplication = String(formData.get("discountApplication") ?? "ONE_TIME") === "RECURRING" ? "RECURRING" : "ONE_TIME";
+  const discountRaw = String(formData.get("discount") ?? "0");
+  const discount = discountMode === "PERCENTAGE" ? Number(discountRaw.replace(",", ".")) : parseMoneyToCents(discountRaw);
+  if (!Number.isFinite(discount) || discount < 0) throw new Error("Informe um desconto válido.");
+  const [teacher, plan, client] = await Promise.all([
     prisma.teacher.findFirst({ where: { id: teacherId, arenaId: auth.arenaId }, select: { id: true } }),
-    prisma.plan.findFirst({ where: { id: planId, arenaId: auth.arenaId }, select: { id: true, monthlyPriceCents: true, classesPerMonth: true } }),
-    prisma.student.findFirst({ where: { id: studentId, arenaId: auth.arenaId }, select: { id: true } })
+    prisma.plan.findFirst({ where: { id: planId, arenaId: auth.arenaId }, select: { id: true, name: true, monthlyPriceCents: true, classesPerMonth: true } }),
+    prisma.player.findFirst({ where: { id: clientId, arenaId: auth.arenaId, active: true }, select: { id: true, name: true, phone: true } })
   ]);
-  if (!teacher || !plan || !student) throw new Error("Professor, plano ou aluno não encontrado.");
-  const subscription = await prisma.studentSubscription.findFirst({ where: { arenaId: auth.arenaId, studentId, planId }, orderBy: { createdAt: "desc" }, select: { id: true } });
-  await prisma.$transaction([
-    prisma.teacherStudent.upsert({ where: { teacherId_studentId: { teacherId, studentId } }, update: { active: true }, create: { arenaId: auth.arenaId, teacherId, studentId } }),
-    subscription
-      ? prisma.studentSubscription.update({ where: { id: subscription.id }, data: { status: "ACTIVE", endedAt: null } })
-      : prisma.studentSubscription.create({ data: { arenaId: auth.arenaId, studentId, planId, monthlyPriceCents: plan.monthlyPriceCents, classesPerMonth: plan.classesPerMonth } })
+  if (!teacher || !plan || !client) throw new Error("Professor, plano ou cliente não encontrado.");
+  const discountedAmountCents = getDiscountedAmountCents(plan.monthlyPriceCents, discount, discountMode);
+  const recurringAmountCents = discountApplication === "RECURRING" ? discountedAmountCents : plan.monthlyPriceCents;
+  const firstAmountCents = discountedAmountCents;
+  const firstDueDate = dueDateInput ?? getFirstDueDate(startedAt, dueDay);
+  await prisma.$transaction(async (tx) => {
+    const student = await tx.student.upsert({
+      where: { playerId: client.id },
+      update: { active: true, name: client.name, phone: client.phone, remainingClasses, totalClasses: { increment: remainingClasses } },
+      create: { arenaId: auth.arenaId, playerId: client.id, name: client.name, phone: client.phone, remainingClasses, totalClasses: remainingClasses }
+    });
+    const subscription = await tx.studentSubscription.findFirst({ where: { arenaId: auth.arenaId, studentId: student.id, planId }, orderBy: { createdAt: "desc" }, select: { id: true } });
+    await tx.teacherStudent.upsert({ where: { teacherId_studentId: { teacherId, studentId: student.id } }, update: { active: true }, create: { arenaId: auth.arenaId, teacherId, studentId: student.id } });
+    const note = `Desconto ${discountMode === "PERCENTAGE" ? `${discount}%` : `R$ ${(discount / 100).toFixed(2)}`} ${discountApplication === "RECURRING" ? "recorrente" : "na primeira mensalidade"}.`;
+    if (subscription) await tx.studentSubscription.update({ where: { id: subscription.id }, data: { status: "ACTIVE", endedAt: null, monthlyPriceCents: recurringAmountCents, classesPerMonth: plan.classesPerMonth, dueDay, startedAt, notes: note } });
+    else await tx.studentSubscription.create({ data: { arenaId: auth.arenaId, studentId: student.id, planId, monthlyPriceCents: recurringAmountCents, classesPerMonth: plan.classesPerMonth, dueDay, startedAt, notes: note } });
+    await tx.financialRecurrence.updateMany({ where: { arenaId: auth.arenaId, planId, counterpartyName: client.name, active: true }, data: { active: false } });
+    const recurrence = await tx.financialRecurrence.create({ data: { arenaId: auth.arenaId, type: "REVENUE", counterpartyName: client.name, category: "Planos de aulas", description: `${plan.name} · ${client.name}`, amountCents: recurringAmountCents, frequency: "MONTHLY", startsAt: startedAt, nextDueDate: firstDueDate, planId, notes: `Gerado pelo plano do professor. ${note}` } });
+    await tx.financialEntry.create({ data: { arenaId: auth.arenaId, type: "REVENUE", counterpartyName: client.name, category: "Planos de aulas", description: `${plan.name} · ${client.name}`, amountCents: firstAmountCents, dueDate: firstDueDate, planId, recurrenceId: recurrence.id, notes: `Primeira mensalidade. ${note}` } });
+    let nextDueDate = getNextFinancialRecurrenceDate(firstDueDate, "MONTHLY");
+    for (let month = 0; month < 11; month += 1) {
+      await tx.financialEntry.create({ data: { arenaId: auth.arenaId, type: "REVENUE", counterpartyName: client.name, category: "Planos de aulas", description: `${plan.name} · ${client.name}`, amountCents: recurringAmountCents, dueDate: nextDueDate, planId, recurrenceId: recurrence.id, notes: `Mensalidade recorrente gerada pelo plano do professor. ${note}` } });
+      nextDueDate = getNextFinancialRecurrenceDate(nextDueDate, "MONTHLY");
+    }
+    await tx.financialRecurrence.update({ where: { id: recurrence.id }, data: { nextDueDate } });
+  });
+  refreshAcademyRoutes();
+}
+
+export async function copyTeacherPlansAction(formData: FormData) {
+  const auth = await requireModuleEdit("teachers");
+  const sourceTeacherId = String(formData.get("sourceTeacherId") ?? "");
+  const targetTeacherId = String(formData.get("targetTeacherId") ?? "");
+  if (!sourceTeacherId || !targetTeacherId || sourceTeacherId === targetTeacherId) throw new Error("Selecione outro professor para receber os planos.");
+  const [source, target] = await Promise.all([
+    prisma.teacher.findFirst({ where: { id: sourceTeacherId, arenaId: auth.arenaId }, include: { planAssignments: { where: { active: true }, select: { planId: true } } } }),
+    prisma.teacher.findFirst({ where: { id: targetTeacherId, arenaId: auth.arenaId }, select: { id: true } })
   ]);
+  if (!source || !target) throw new Error("Professor não encontrado.");
+  await prisma.$transaction(source.planAssignments.map(({ planId }) => prisma.teacherPlan.upsert({ where: { teacherId_planId: { teacherId: target.id, planId } }, update: { active: true }, create: { arenaId: auth.arenaId, teacherId: target.id, planId } })));
   refreshAcademyRoutes();
 }
 
