@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { PublicCourtBookingForm } from "@/components/public-court-booking-form";
 import { PublicClientAuthForm } from "@/components/public-client-auth-form";
 import { getPublicPlayerAuth } from "@/lib/auth/player-session";
+import { calculateCourtIntervalPrice } from "@/lib/calendar/court-interval-pricing";
 import { prisma } from "@/lib/prisma";
 
 type PublicBookingContentProps = { arenaSlug: string; date?: string; embedded?: boolean };
@@ -28,7 +29,7 @@ export async function PublicBookingContent({ arenaSlug, date, embedded = false }
       const startsAt = new Date(selectedDate); startsAt.setHours(Math.floor(minute / 60), minute % 60, 0, 0);
       const tooSoon = startsAt.getTime() < Date.now() + arena.onlineBookingLeadTimeMinutes * 60_000;
       if (!rule || occupied || tooSoon) return [];
-      const durations = court.onlineDurationMinutes.filter((item) => minute + item <= rule.endsAtMinute);
+      const durations = court.onlineDurationMinutes.filter((item) => calculateCourtIntervalPrice({ startsAtMinute: minute, durationMinutes: item, intervalMinutes: court.onlineSlotMinutes, weekday, rules: court.weeklyRules }) !== null);
       const minimumDuration = durations[0];
       const blockedMinutes = Array.from({ length: Math.ceil((Math.max(...durations) || 0) / court.onlineSlotMinutes) }, (_, index) => minute + index * court.onlineSlotMinutes).filter((slotMinute) => occurrences.some((occurrence) => occurrence.occurrenceCourts.some((entry) => entry.courtId === court.id) && occurrence.startsAt.getHours() * 60 + occurrence.startsAt.getMinutes() <= slotMinute && occurrence.endsAt.getHours() * 60 + occurrence.endsAt.getMinutes() > slotMinute));
       const minimumBlocked = !minimumDuration || blockedMinutes.some((slotMinute) => slotMinute < minute + minimumDuration);
