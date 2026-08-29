@@ -373,7 +373,7 @@ export async function deleteCourtWeeklyRuleAction(formData: FormData) {
 
 export async function copyCourtWeeklyRuleAction(formData: FormData) {
   const auth = await requireModuleEdit("calendar");
-  const parsed = z.object({ ruleId: z.string().trim().min(1), targetWeekday: z.string().regex(/^[0-6]$/).transform(Number) }).safeParse({
+  const parsed = z.object({ ruleId: z.string().trim().min(1), targetWeekday: z.union([z.string().regex(/^[0-6]$/).transform(Number), z.literal("ALL")]) }).safeParse({
     ruleId: formData.get("ruleId"),
     targetWeekday: formData.get("targetWeekday")
   });
@@ -381,20 +381,23 @@ export async function copyCourtWeeklyRuleAction(formData: FormData) {
 
   const source = await prisma.courtWeeklyRule.findFirst({
     where: { id: parsed.data.ruleId, court: { arenaId: auth.arenaId } },
-    include: { court: { include: { weeklyRules: { where: { weekday: parsed.data.targetWeekday } } } } }
+    include: { court: { include: { weeklyRules: true } } }
   });
   if (!source) throw new Error("Faixa não encontrada.");
-  const conflicts = source.court.weeklyRules.some((rule) => weeklyRangesOverlap(source.startsAtMinute, source.endsAtMinute, rule.startsAtMinute, rule.endsAtMinute));
-  if (conflicts) throw new Error("A faixa se sobrepõe a outra regra no dia de destino.");
+  const targetWeekdays = parsed.data.targetWeekday === "ALL" ? [0, 1, 2, 3, 4, 5, 6] : [parsed.data.targetWeekday];
+  const destinations = targetWeekdays.filter((weekday) => weekday !== source.weekday && !source.court.weeklyRules.some((rule) =>
+    rule.weekday === weekday && weeklyRangesOverlap(source.startsAtMinute, source.endsAtMinute, rule.startsAtMinute, rule.endsAtMinute)
+  ));
+  if (!destinations.length) throw new Error("Já existe uma faixa sobreposta nos períodos selecionados.");
 
-  await prisma.courtWeeklyRule.create({ data: {
+  await prisma.courtWeeklyRule.createMany({ data: destinations.map((weekday) => ({
     courtId: source.courtId,
-    weekday: parsed.data.targetWeekday,
+    weekday,
     startsAtMinute: source.startsAtMinute,
     endsAtMinute: source.endsAtMinute,
     priceCents: source.priceCents,
     available: source.available
-  } });
+  })) });
   refreshCalendar();
 }
 

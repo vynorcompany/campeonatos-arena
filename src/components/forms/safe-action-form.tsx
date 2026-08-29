@@ -8,6 +8,7 @@ type SafeActionFormProps = {
   children: React.ReactNode;
   className?: string;
   resetOnSuccess?: boolean;
+  closeClosestDetailsOnSuccess?: boolean;
   successMessage?: string;
   successHref?: string;
   confirmKeyword?: string;
@@ -19,6 +20,7 @@ export function SafeActionForm({
   children,
   className,
   resetOnSuccess = false,
+  closeClosestDetailsOnSuccess = false,
   successMessage = "Salvo com sucesso.",
   successHref,
   confirmKeyword,
@@ -64,6 +66,9 @@ export function SafeActionForm({
             setConfirmValue("");
             if (resetOnSuccess) {
               formRef.current?.reset();
+            }
+            if (closeClosestDetailsOnSuccess) {
+              formRef.current?.closest("details")?.removeAttribute("open");
             }
             if (successHref) {
               router.push(successHref);

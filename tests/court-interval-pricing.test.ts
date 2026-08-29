@@ -27,3 +27,14 @@ test("existing court intervals expose an edit action for their configured value"
   assert.match(page, /updateCourtWeeklyRuleAction/);
   assert.match(actions, /export async function updateCourtWeeklyRuleAction/);
 });
+
+test("court interval controls close after editing and can copy to all weekly periods", () => {
+  const page = readFileSync(resolve(process.cwd(), "src/app/(app)/agenda/configuracao/page.tsx"), "utf8");
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/calendar.ts"), "utf8");
+  const form = readFileSync(resolve(process.cwd(), "src/components/forms/safe-action-form.tsx"), "utf8");
+
+  assert.match(page, /closeClosestDetailsOnSuccess/);
+  assert.match(page, /Todos os períodos/);
+  assert.match(actions, /targetWeekday: z\.union/);
+  assert.match(form, /closeClosestDetailsOnSuccess/);
+});
