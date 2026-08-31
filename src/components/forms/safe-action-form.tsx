@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 type SafeActionFormProps = {
-  action: (formData: FormData) => Promise<void>;
+  action: (formData: FormData) => Promise<unknown>;
   children: React.ReactNode;
   className?: string;
   resetOnSuccess?: boolean;

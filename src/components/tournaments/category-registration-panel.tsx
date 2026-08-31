@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { StatusBadge } from "@/components/tournaments/status-badge";
 import {
@@ -120,7 +121,7 @@ export function CategoryRegistrationPanel({
             ) : (
               <>
                 {canAcceptManualPair ? (
-                  <form action={addManualPairAction} className="grid-form">
+                  <SafeActionForm action={addManualPairAction} className="grid-form" successMessage="Dupla adicionada com sucesso.">
                     <input
                       type="hidden"
                       name="competitionId"
@@ -175,7 +176,7 @@ export function CategoryRegistrationPanel({
                         <Link href="/players">Gestão → Atletas</Link>.
                       </p>
                     ) : null}
-                  </form>
+                  </SafeActionForm>
                 ) : category.competition.status !== "DRAFT" ? (
                   <p className="muted">
                     As inscrições manuais ficam bloqueadas após a publicação.
