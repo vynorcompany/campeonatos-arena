@@ -25,18 +25,23 @@ export function PlayerForm() {
       </div>
 
       <div className="field">
-        <label htmlFor="class">Classe</label>
-        <input id="class" name="class" type="text" placeholder="Ex.: 5ª" required />
-      </div>
-
-      <div className="field">
         <label htmlFor="gender">Gênero</label>
-        <input id="gender" name="gender" type="text" placeholder="Ex.: Feminino" required />
+        <select id="gender" name="gender" defaultValue="">
+          <option value="">Não informar</option>
+          <option value="Feminino">Feminino</option>
+          <option value="Masculino">Masculino</option>
+          <option value="Outro">Outro</option>
+        </select>
       </div>
 
       <div className="field">
         <label htmlFor="phone">Telefone</label>
         <input id="phone" name="phone" type="tel" required />
+      </div>
+
+      <div className="field">
+        <label htmlFor="email">E-mail</label>
+        <input id="email" name="email" type="email" />
       </div>
 
       <div className="field">
@@ -54,9 +59,9 @@ export function PlayerForm() {
         <input id="photo" name="photo" type="file" accept="image/png,image/jpeg,image/webp" />
       </div>
 
-      <label className="check-option player-student-toggle">
-        <input name="createStudent" type="checkbox" />
-        <span>Também cadastrar como aluno</span>
+      <label className="check-option">
+        <input name="isTeacher" type="checkbox" />
+        <span>É professor</span>
       </label>
 
       <div className="field field-submit">

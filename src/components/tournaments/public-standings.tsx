@@ -2,9 +2,10 @@ import Link from "next/link";
 import { PublicBookingContent } from "@/components/public-booking-content";
 import type { ArenaPublicStandings } from "@/lib/services/public-standings";
 import { PublicLeaguePortal } from "@/components/tournaments/public-league-portal";
+import { PublicPlayerProfile } from "@/components/public-player-profile";
 
 type Portal = Awaited<ReturnType<typeof import("@/lib/services/public-league-portal").getPublicLeaguePortal>>;
-type PortalSection = "leagues" | "booking" | "reservations" | "lessons" | "classes";
+type PortalSection = "leagues" | "booking" | "reservations" | "lessons" | "classes" | "profile" | "teacher";
 type LeagueTab = "games" | "ranking" | "rules" | "prizes";
 
 function portalHref(section: PortalSection, leagueTab?: LeagueTab, teacherId?: string) {
@@ -25,7 +26,7 @@ export function PublicStandings({
   teacherId,
 }: {
   data: ArenaPublicStandings;
-  currentClient: { name: string } | null;
+  currentClient: { name: string; phone: string; email: string; photoUrl: string; birthDate: string; isTeacher: boolean } | null;
   portal: Portal;
   authForm: React.ReactNode;
   section?: PortalSection;
@@ -57,6 +58,8 @@ export function PublicStandings({
       <Link className={section === "reservations" ? "active" : ""} href={portalHref("reservations")}>Minhas reservas</Link>
       <Link className={section === "lessons" ? "active" : ""} href={portalHref("lessons")}>Aulas</Link>
       <Link className={section === "classes" ? "active" : ""} href={portalHref("classes")}>Turmas</Link>
+      {currentClient.isTeacher ? <Link className={section === "teacher" ? "active" : ""} href={portalHref("teacher")}>Gestão</Link> : null}
+      <Link className={section === "profile" ? "active" : ""} href={portalHref("profile")}>Meu perfil</Link>
     </nav>
     {section === "leagues" ? <>
       <nav className="athlete-portal-league-nav" aria-label="Menu da Liga">
@@ -69,7 +72,7 @@ export function PublicStandings({
       {selectedLeagueTab === "rules" ? <RulesPanel data={data} /> : null}
       {selectedLeagueTab === "ranking" ? <RankingPanel data={data} /> : null}
       {selectedLeagueTab === "prizes" ? <PrizePanel portal={portal} /> : null}
-    </> : section === "booking" ? <PublicBookingContent arenaSlug={data.arena.slug} date={bookingDate} embedded /> : section === "reservations" ? <ReservationsPanel portal={portal} /> : section === "lessons" ? <LessonsPanel portal={portal} /> : <ClassesPanel portal={portal} teacherId={teacherId} />}
+    </> : section === "booking" ? <PublicBookingContent arenaSlug={data.arena.slug} date={bookingDate} embedded /> : section === "reservations" ? <ReservationsPanel portal={portal} /> : section === "lessons" ? <LessonsPanel portal={portal} /> : section === "classes" ? <ClassesPanel portal={portal} teacherId={teacherId} /> : section === "teacher" && currentClient.isTeacher ? <TeacherManagementPanel portal={portal} /> : <PublicPlayerProfile arenaSlug={data.arena.slug} player={currentClient} />}
   </main>;
 }
 
@@ -98,6 +101,11 @@ function ClassesPanel({ portal, teacherId }: { portal: Portal; teacherId?: strin
   const selectedTeacher = teachers.find((teacher) => teacher.id === teacherId);
   const classes = selectedTeacher ? (portal?.classes ?? []).filter((item) => item.teacherId === selectedTeacher.id) : [];
   return <section className="athlete-portal-content-panel"><header><span>TURMAS</span><h2>Turmas disponíveis</h2></header><div className="portal-teacher-picker"><strong>Selecionar professor</strong>{teachers.length ? <div>{teachers.map((teacher) => <Link className={selectedTeacher?.id === teacher.id ? "active" : ""} href={portalHref("classes", undefined, teacher.id)} key={teacher.id}>{teacher.name}</Link>)}</div> : <span>Nenhum professor ativo cadastrado.</span>}</div>{selectedTeacher ? <div className="portal-activity-list"><strong className="portal-selected-teacher">Turmas de {selectedTeacher.name}</strong>{classes.length ? classes.map((item) => <article key={item.id}><div><strong>{item.title}</strong><span>{item.when}</span></div><b>{item.status}</b></article>) : <p className="muted">Não há turmas futuras agendadas para este professor.</p>}</div> : <p className="portal-teacher-hint">Selecione um professor para ver os dias e horários das turmas.</p>}</section>;
+}
+
+function TeacherManagementPanel({ portal }: { portal: Portal }) {
+  const management = portal?.teacherManagement;
+  return <section className="athlete-portal-content-panel teacher-portal-management"><header><span>GESTÃO DO PROFESSOR</span><h2>Planos, alunos, turmas e agenda</h2></header>{management ? <div className="teacher-portal-management-grid"><article><h3>Planos</h3>{management.plans.length ? management.plans.map((plan) => <div key={plan.id}><strong>{plan.name}</strong><span>{plan.classesPerMonth} aulas/mês · {(plan.monthlyPriceCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span></div>) : <p>Nenhum plano vinculado.</p>}</article><article><h3>Alunos ativos</h3>{management.students.length ? management.students.map((student) => <div key={student.id}><strong>{student.name}</strong><span>{student.planName} · saldo: {student.remainingClasses} aula(s)</span></div>) : <p>Nenhum aluno ativo.</p>}</article><article><h3>Turmas e agenda</h3>{management.agenda.length ? management.agenda.map((item) => <div key={item.id}><strong>{item.title}</strong><span>{item.when} · {item.status}</span></div>) : <p>Nenhuma atividade futura.</p>}</article></div> : <PortalEmpty title="Perfil de professor indisponível" detail="Peça à arena para ativar o seu cadastro de professor." />}</section>;
 }
 
 function PortalEmpty({ title, detail, action, href }: { title: string; detail: string; action?: string; href?: string }) {

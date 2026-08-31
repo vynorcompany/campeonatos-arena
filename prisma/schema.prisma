@@ -230,6 +230,7 @@ model Player {
   class       String            @default("") @map("category")
   gender      String            @default("")
   phone       String            @default("")
+  email       String            @default("")
   cpf         String            @default("")
   birthDate   DateTime?
   active      Boolean           @default(true)
@@ -244,6 +245,7 @@ model Player {
   scheduleParticipants ScheduleParticipant[]
   comandas    Comanda[]
   account     PlayerAccount?
+  teacher     Teacher?
   notifications PlayerNotification[]
   balanceMovements ClientBalanceMovement[]
   respondedLeagueChallenges LeagueChallenge[] @relation("LeagueChallengeResponder")
@@ -960,7 +962,9 @@ model Teacher {
   createdByUserId String?
   updatedByUserId String?
   arenaId        String
+  playerId       String?  @unique
   arena          Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  player         Player?  @relation(fields: [playerId], references: [id], onDelete: SetNull)
   lessons        Lesson[]
   scheduleOccurrences ScheduleOccurrence[]
   payrollEntries TeacherPayrollEntry[]

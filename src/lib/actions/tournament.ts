@@ -276,9 +276,11 @@ export async function createPlayerAction(_: ActionState, formData: FormData): Pr
     class: formData.get("class"),
     gender: formData.get("gender"),
     phone: formData.get("phone"),
+    email: formData.get("email"),
     cpf: normalizeCpf(String(formData.get("cpf") ?? "")),
     birthDate: formData.get("birthDate"),
-    leagueTier: formData.get("leagueTier")
+    leagueTier: formData.get("leagueTier"),
+    isTeacher: formData.get("isTeacher")
   });
 
   if (!parsed.success) {
@@ -287,8 +289,6 @@ export async function createPlayerAction(_: ActionState, formData: FormData): Pr
 
   try {
     const photoUrl = await savePublicImageUpload(formData.get("photo") as File | null, "player-photos", auth.arenaId);
-
-    const shouldCreateStudent = formData.get("createStudent") === "on";
 
     await prisma.$transaction(async (tx) => {
       const player = await tx.player.create({
@@ -299,37 +299,28 @@ export async function createPlayerAction(_: ActionState, formData: FormData): Pr
           class: parsed.data.class,
           gender: parsed.data.gender,
           phone: parsed.data.phone,
+          email: parsed.data.email ?? "",
           cpf: parsed.data.cpf,
           birthDate: parsed.data.birthDate,
           ...(photoUrl ? { photoUrl } : {})
         }
       });
 
-      if (shouldCreateStudent) {
-        const existingStudent = await tx.student.findFirst({
-          where: {
-            arenaId: auth.arenaId,
-            name: player.name
-          }
-        });
+      const existingStudent = await tx.student.findFirst({
+        where: { arenaId: auth.arenaId, name: player.name }
+      });
+      if (existingStudent) {
+        await tx.student.update({ where: { id: existingStudent.id }, data: { playerId: player.id, phone: parsed.data.phone, email: parsed.data.email ?? "", active: true } });
+      } else {
+        await tx.student.create({ data: { arenaId: auth.arenaId, playerId: player.id, name: player.name, phone: parsed.data.phone, email: parsed.data.email ?? "" } });
+      }
 
-        if (existingStudent) {
-          await tx.student.update({
-            where: {
-              id: existingStudent.id
-            },
-            data: {
-              playerId: player.id
-            }
-          });
+      if (parsed.data.isTeacher) {
+        const existingTeacher = await tx.teacher.findFirst({ where: { arenaId: auth.arenaId, name: player.name, playerId: null }, select: { id: true } });
+        if (existingTeacher) {
+          await tx.teacher.update({ where: { id: existingTeacher.id }, data: { playerId: player.id, phone: player.phone, email: player.email, active: true, updatedByUserId: auth.userId } });
         } else {
-          await tx.student.create({
-            data: {
-              arenaId: auth.arenaId,
-              playerId: player.id,
-              name: player.name
-            }
-          });
+          await tx.teacher.create({ data: { arenaId: auth.arenaId, playerId: player.id, name: player.name, phone: player.phone, email: player.email, createdByUserId: auth.userId, updatedByUserId: auth.userId } });
         }
       }
     });
@@ -352,9 +343,11 @@ export async function updatePlayerAction(formData: FormData) {
     class: formData.get("class"),
     gender: formData.get("gender"),
     phone: formData.get("phone"),
+    email: formData.get("email"),
     cpf: normalizeCpf(String(formData.get("cpf") ?? "")),
     birthDate: formData.get("birthDate"),
-    leagueTier: formData.get("leagueTier")
+    leagueTier: formData.get("leagueTier"),
+    isTeacher: formData.get("isTeacher")
   });
 
   if (!parsed.success) {
@@ -364,32 +357,46 @@ export async function updatePlayerAction(formData: FormData) {
   try {
     const photoUrl = await savePublicImageUpload(formData.get("photo") as File | null, "player-photos", auth.arenaId);
     const updated = await prisma.player.updateMany({
-      where: {
-        id: parsed.data.playerId,
-        arenaId: auth.arenaId
-      },
-      data: {
-        name: parsed.data.name,
-        points: parsed.data.points,
-        class: parsed.data.class,
-        gender: parsed.data.gender,
-        phone: parsed.data.phone,
-        cpf: parsed.data.cpf,
-        birthDate: parsed.data.birthDate,
-        ...(photoUrl ? { photoUrl } : {})
-      }
+      where: { id: parsed.data.playerId, arenaId: auth.arenaId },
+      data: { name: parsed.data.name, points: parsed.data.points, class: parsed.data.class, gender: parsed.data.gender, phone: parsed.data.phone, ...(parsed.data.email !== undefined ? { email: parsed.data.email } : {}), cpf: parsed.data.cpf, birthDate: parsed.data.birthDate, ...(photoUrl ? { photoUrl } : {}) }
     });
 
     if (!updated.count) {
       throw new Error("Jogador não encontrado.");
     }
 
+    await prisma.$transaction(async (tx) => {
+      const player = await tx.player.findFirst({ where: { id: parsed.data.playerId, arenaId: auth.arenaId }, select: { name: true, phone: true, email: true } });
+      if (!player) throw new Error("Jogador não encontrado.");
+      const student = await tx.student.findFirst({ where: { playerId: parsed.data.playerId, arenaId: auth.arenaId }, select: { id: true } });
+      if (student) {
+        await tx.student.update({ where: { id: student.id }, data: { name: player.name, phone: player.phone, email: player.email } });
+      } else {
+        await tx.student.create({ data: { arenaId: auth.arenaId, playerId: parsed.data.playerId, name: player.name, phone: player.phone, email: player.email } });
+      }
+      const teacher = await tx.teacher.findUnique({ where: { playerId: parsed.data.playerId }, select: { id: true } });
+      if (parsed.data.isTeacher) {
+        const standaloneTeacher = teacher ? null : await tx.teacher.findFirst({ where: { arenaId: auth.arenaId, name: player.name, playerId: null }, select: { id: true } });
+        if (standaloneTeacher) {
+          await tx.teacher.update({ where: { id: standaloneTeacher.id }, data: { playerId: parsed.data.playerId, phone: player.phone, email: player.email, active: true, updatedByUserId: auth.userId } });
+        } else {
+          await tx.teacher.upsert({
+            where: { playerId: parsed.data.playerId },
+            update: { name: player.name, phone: player.phone, email: player.email, active: true, updatedByUserId: auth.userId },
+            create: { arenaId: auth.arenaId, playerId: parsed.data.playerId, name: player.name, phone: player.phone, email: player.email, createdByUserId: auth.userId, updatedByUserId: auth.userId }
+          });
+        }
+      } else if (parsed.data.isTeacher === false && teacher) {
+        await tx.teacher.update({ where: { id: teacher.id }, data: { active: false, updatedByUserId: auth.userId } });
+      }
+    });
+
     const currentTier = await prisma.leagueAthleteTier.findFirst({
       where: { arenaId: auth.arenaId, playerId: parsed.data.playerId, modality: "PADEL", active: true },
       orderBy: { changedAt: "desc" },
       select: { id: true, tier: true }
     });
-    if (currentTier && currentTier.tier !== parsed.data.leagueTier) {
+    if (parsed.data.leagueTier !== undefined && currentTier && currentTier.tier !== parsed.data.leagueTier) {
       await prisma.leagueAthleteTier.update({ where: { id: currentTier.id }, data: { active: false } });
     }
     if (parsed.data.leagueTier && currentTier?.tier !== parsed.data.leagueTier) {

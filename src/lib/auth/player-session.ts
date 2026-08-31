@@ -25,14 +25,14 @@ export async function destroyPublicPlayerSession() {
 export async function getPublicPlayerAuth(arenaSlug: string) {
   const token = cookies().get(PLAYER_SESSION_COOKIE)?.value;
   if (!token) return null;
-  const session = await prisma.playerSession.findFirst({ where: { token: { in: [token, hashToken(token)] } }, include: { playerAccount: { include: { player: { include: { arena: { select: { slug: true } } } } } } } });
+  const session = await prisma.playerSession.findFirst({ where: { token: { in: [token, hashToken(token)] } }, include: { playerAccount: { include: { player: { include: { arena: { select: { slug: true } }, teacher: { select: { active: true } } } } } } } });
   if (!session || session.expiresAt < new Date()) {
     if (session) await prisma.playerSession.delete({ where: { id: session.id } });
     return null;
   }
   const player = session.playerAccount.player;
   if (!player.active || player.arena.slug !== arenaSlug) return null;
-  return { playerId: player.id, playerAccountId: session.playerAccountId, name: player.name, arenaId: player.arenaId };
+  return { playerId: player.id, playerAccountId: session.playerAccountId, name: player.name, phone: player.phone, email: player.email, photoUrl: player.photoUrl, birthDate: player.birthDate?.toISOString().slice(0, 10) ?? "", isTeacher: Boolean(player.teacher?.active), arenaId: player.arenaId };
 }
 
 export async function requirePublicPlayerAuth(arenaSlug: string) {

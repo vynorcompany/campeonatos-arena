@@ -26,9 +26,11 @@ export const createPlayerSchema = z.object({
   class: eligibilityFieldSchema,
   gender: eligibilityFieldSchema,
   phone: optionalPhoneSchema,
+  email: z.preprocess((value) => value ?? "", z.string().trim().email("E-mail inválido.").or(z.literal(""))),
   cpf: optionalCpfSchema,
   birthDate: optionalBirthDateSchema,
-  leagueTier: z.enum(["", "A", "B"]).default("")
+  leagueTier: z.preprocess((value) => value ?? "", z.enum(["", "A", "B"])),
+  isTeacher: z.preprocess((value) => value === "on" || value === true, z.boolean())
 });
 
 export const updatePlayerSchema = z.object({
@@ -38,9 +40,11 @@ export const updatePlayerSchema = z.object({
   class: eligibilityFieldSchema,
   gender: eligibilityFieldSchema,
   phone: optionalPhoneSchema,
+  email: z.preprocess((value) => value === null ? undefined : value, z.string().trim().email("E-mail inválido.").or(z.literal("")).optional()),
   cpf: optionalCpfSchema,
   birthDate: optionalBirthDateSchema,
-  leagueTier: z.enum(["", "A", "B"]).default("")
+  leagueTier: z.preprocess((value) => value === null ? undefined : value, z.enum(["", "A", "B"]).optional()),
+  isTeacher: z.preprocess((value) => value === null ? undefined : value === "on" || value === true, z.boolean().optional())
 });
 
 export const archivePlayerSchema = z.object({
