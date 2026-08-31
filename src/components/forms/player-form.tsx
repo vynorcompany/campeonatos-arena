@@ -59,7 +59,7 @@ export function PlayerForm() {
         <input id="photo" name="photo" type="file" accept="image/png,image/jpeg,image/webp" />
       </div>
 
-      <label className="check-option">
+      <label className="teacher-role-switch">
         <input name="isTeacher" type="checkbox" />
         <span>É professor</span>
       </label>

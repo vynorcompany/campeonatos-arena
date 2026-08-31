@@ -21,11 +21,15 @@ test("cliente pode ser vinculado a um professor no mesmo cadastro", () => {
 test("formulário de cliente remove cadastro redundante de aluno e oferece papel de professor", () => {
   const form = read("src/components/forms/player-form.tsx");
   const workspace = read("src/components/players/client-management-workspace.tsx");
+  const styles = read("src/app/globals.css");
 
   assert.doesNotMatch(form, /createStudent/);
   assert.doesNotMatch(form, /Classe/);
   assert.match(form, /Gênero[\s\S]*<select/);
+  assert.match(form, /className="teacher-role-switch"/);
   assert.match(workspace, /name="isTeacher"/);
+  assert.match(styles, /\.teacher-role-switch/);
+  assert.match(styles, /input\[name="isTeacher"\]/);
 });
 
 test("novo cliente pode ser criado sem CPF ou data de nascimento", () => {
