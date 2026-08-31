@@ -3,6 +3,12 @@ import type { Prisma } from "@prisma/client";
 import { buildMonthlyLeagueSchedule, getLeagueMonthBlocks } from "@/lib/league/monthly-schedule";
 
 const monthKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+const nextMonthKey = (referenceMonth: string) => {
+  const [year, month] = referenceMonth.split("-").map(Number);
+  const nextYear = month === 12 ? year + 1 : year;
+  const nextMonth = month === 12 ? 1 : month + 1;
+  return `${nextYear}-${String(nextMonth).padStart(2, "0")}`;
+};
 const monthBounds = (referenceMonth: string) => {
   const [year, month] = referenceMonth.split("-").map(Number);
   return { startsAt: new Date(year, month - 1, 1), endsAt: new Date(year, month, 1) };
@@ -180,6 +186,29 @@ export async function closeExpiredLeagueCycles(now = new Date(), arenaId?: strin
     await createMonthlyCycle(cycle.competitionId, currentMonth);
   }
   return { closedCycles: cycles.length };
+}
+
+/** Manually closes the current cycle of one League and opens its next monthly cycle. */
+export async function closeLeagueCycleManually(competitionId: string, now = new Date(), arenaId?: string) {
+  const referenceMonth = monthKey(now);
+  const cycle = await prisma.leagueCycle.findFirst({
+    where: {
+      competitionId,
+      referenceMonth,
+      status: "OPEN",
+      ...(arenaId ? { competition: { category: { tournament: { arenaId } } } } : {})
+    },
+    select: { id: true, competitionId: true, referenceMonth: true }
+  });
+  if (!cycle) throw new Error("Não há um ciclo aberto desta Liga para encerrar.");
+
+  await processLeagueDeadlines(now, arenaId);
+  const unresolved = await prisma.categoryMatch.findMany({ where: { leagueCycleId: cycle.id, winnerPairId: null }, select: { id: true } });
+  for (const match of unresolved) await applyWo(match.id, null, "DOUBLE_WO");
+  await applyPromotionAndRelegation(cycle.id);
+  await prisma.leagueCycle.update({ where: { id: cycle.id }, data: { status: "CLOSED", closedAt: now } });
+  await createMonthlyCycle(cycle.competitionId, nextMonthKey(cycle.referenceMonth));
+  return { closedCycles: 1, nextReferenceMonth: nextMonthKey(cycle.referenceMonth) };
 }
 
 export { createMonthlyCycle, monthBounds, syncLeagueAthleteTiers };

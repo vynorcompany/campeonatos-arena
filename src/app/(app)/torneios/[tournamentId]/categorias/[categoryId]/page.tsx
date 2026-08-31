@@ -430,7 +430,7 @@ export default async function CategoryPage({
                     </div>
                   </div>
                 </form>
-                <aside className="league-cycle-actions"><strong>Ciclo mensal</strong><span>Fecha o mês vigente, registra campeã e executa acesso ou rebaixamento.</span><form action={runLeagueLifecycleAction}><button className="button button-small" type="submit">Processar ciclo da Liga</button></form></aside>
+                <aside className="league-cycle-actions"><strong>Ciclo mensal</strong><span>Fecha o mês vigente, registra campeã e executa acesso ou rebaixamento.</span><form action={runLeagueLifecycleAction}><input type="hidden" name="competitionId" value={competition.id} /><button className="button button-small" type="submit">Processar ciclo da Liga</button></form></aside>
               </section>
             ) : null}
             {!competition ? (
