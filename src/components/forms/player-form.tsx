@@ -46,12 +46,12 @@ export function PlayerForm() {
 
       <div className="field">
         <label htmlFor="cpf">CPF</label>
-        <input id="cpf" name="cpf" inputMode="numeric" required />
+        <input id="cpf" name="cpf" inputMode="numeric" />
       </div>
 
       <div className="field">
         <label htmlFor="birthDate">Nascimento</label>
-        <input id="birthDate" name="birthDate" type="date" required />
+        <input id="birthDate" name="birthDate" type="date" />
       </div>
 
       <div className="field">
