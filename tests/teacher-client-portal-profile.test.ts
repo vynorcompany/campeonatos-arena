@@ -9,11 +9,13 @@ const read = (path: string) => readFileSync(resolve(root, path), "utf8");
 test("cliente pode ser vinculado a um professor no mesmo cadastro", () => {
   const schema = read("prisma/schema.prisma");
   const action = read("src/lib/actions/tournament.ts");
+  const migration = read("prisma/migrations/20260831210000_link_players_teachers_and_profile/migration.sql");
 
   assert.match(schema, /model Player \{[\s\S]*email\s+String\s+@default\(""\)[\s\S]*teacher\s+Teacher\?/);
   assert.match(schema, /model Teacher \{[\s\S]*playerId\s+String\?\s+@unique[\s\S]*player\s+Player\?/);
   assert.match(action, /isTeacher:\s*formData\.get\("isTeacher"\)/);
   assert.match(action, /tx\.teacher\.upsert/);
+  assert.doesNotMatch(migration, /ALTER TABLE "Player" ADD COLUMN "email"/);
 });
 
 test("formulário de cliente remove cadastro redundante de aluno e oferece papel de professor", () => {

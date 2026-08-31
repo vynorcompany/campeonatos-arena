@@ -1,5 +1,3 @@
-ALTER TABLE "Player" ADD COLUMN "email" TEXT NOT NULL DEFAULT '';
-
 ALTER TABLE "Teacher" ADD COLUMN "playerId" TEXT;
 
 CREATE UNIQUE INDEX "Teacher_playerId_key" ON "Teacher"("playerId");
