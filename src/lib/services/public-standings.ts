@@ -73,7 +73,7 @@ export async function getArenaPublicStandings(
     return null;
   }
 
-  const [generalRanking, categoryRecords, gameCategoryRecords] = await Promise.all([
+  const [generalRanking, categoryRecords, gameCategoryRecords, leagueRuleRecords] = await Promise.all([
     prisma.rankingProfile.findFirst({
       where: {
         arenaId: arena.id,
@@ -174,6 +174,29 @@ export async function getArenaPublicStandings(
         },
       },
     }),
+    prisma.categoryCompetition.findMany({
+      where: {
+        format: "LEAGUE",
+        status: { not: "FINISHED" },
+        category: {
+          active: true,
+          tournament: {
+            arenaId: arena.id,
+            rules: { not: "" },
+          },
+        },
+      },
+      orderBy: { updatedAt: "desc" },
+      select: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            tournament: { select: { id: true, name: true, rules: true } },
+          },
+        },
+      },
+    }),
   ]);
   const selectedTab = requested.tab === "games" || requested.tab === "rules" || requested.tab === "portal" ? requested.tab : "ranking";
   const selectedGameStatus: PublicGameStatus | "ALL" =
@@ -239,7 +262,7 @@ export async function getArenaPublicStandings(
     status: record.status,
     format: record.format,
   }));
-  const leagueRules = Array.from(new Map(categoryRecords.filter((record) => record.format === "LEAGUE" && record.category.tournament.rules.trim()).map((record) => [record.category.tournament.id, { id: record.category.tournament.id, eventName: record.category.tournament.name, categoryName: record.category.name, rules: record.category.tournament.rules }])).values());
+  const leagueRules = Array.from(new Map(leagueRuleRecords.filter((record) => record.category.tournament.rules.trim()).map((record) => [record.category.tournament.id, { id: record.category.tournament.id, eventName: record.category.tournament.name, categoryName: record.category.name, rules: record.category.tournament.rules }])).values());
   const options = selectPublicStandingsOptions({
     generalRanking,
     categories: categorySources,
