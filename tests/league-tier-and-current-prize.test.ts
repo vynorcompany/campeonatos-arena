@@ -13,7 +13,7 @@ test("criação de Liga exige e persiste o nível A ou B da categoria", () => {
   assert.match(action, /leagueTier:\s*formData\.get\("leagueTier"\)/);
   assert.match(schema, /leagueTier:\s*z\.enum\(\["A", "B"\]\)/);
   assert.match(service, /leagueTier:\s*input\.format === "LEAGUE" \? input\.leagueTier \?\? "" : ""/);
-  assert.match(service, /\\bLIGA\\b\.\*\\bB\\b/);
+  assert.match(service, /import \{ resolveLeagueTier \} from "@\/lib\/league\/tier"/);
 });
 
 test("premiação é salva no ciclo de Liga aberto, não no mês do calendário", () => {

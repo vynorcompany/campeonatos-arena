@@ -7,6 +7,7 @@ import {
   buildRoundRobin,
 } from "@/lib/tournament-category/draw";
 import { buildMonthlyLeagueSchedule, getLeagueMonthBlocks } from "@/lib/league/monthly-schedule";
+import { resolveLeagueTier } from "@/lib/league/tier";
 import { validateManualPairEligibility } from "@/lib/tournament-category/eligibility";
 import {
   buildPlacementAwards,
@@ -600,7 +601,7 @@ export async function addManualPair(
         .map((playerId) => playersById.get(playerId))
         .filter((player): player is NonNullable<typeof player> => Boolean(player));
 
-      const configuredTier = competition.leagueTier.trim().toUpperCase() || (/\bLIGA\b.*\bB\b/i.test(competition.category.name) ? "B" : /\bLIGA\b.*\bA\b/i.test(competition.category.name) ? "A" : "");
+      const configuredTier = resolveLeagueTier(competition.category.name, competition.leagueTier);
       if (competition.format === "LEAGUE" && (configuredTier === "A" || configuredTier === "B")) {
         const memberships = await tx.leagueAthleteTier.findMany({
           where: { arenaId, playerId: { in: requestedPlayerIds }, modality: "PADEL", active: true },

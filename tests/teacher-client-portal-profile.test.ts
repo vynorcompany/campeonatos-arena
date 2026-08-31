@@ -28,6 +28,7 @@ test("formulário de cliente remove cadastro redundante de aluno e oferece papel
   assert.match(form, /Gênero[\s\S]*<select/);
   assert.match(form, /className="teacher-role-switch"/);
   assert.match(workspace, /name="isTeacher"/);
+  assert.match(styles, /\.client-edit-form \.check-option \{/);
   assert.match(styles, /\.teacher-role-switch/);
   assert.match(styles, /input\[name="isTeacher"\]/);
 });

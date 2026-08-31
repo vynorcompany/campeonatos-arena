@@ -19,6 +19,7 @@ import { prisma } from "@/lib/prisma";
 import { canGenerateCategoryDraw } from "@/lib/tournament-category/draw";
 import { buildPlacementStages } from "@/lib/tournament-category/ranking";
 import { rankStandings } from "@/lib/tournament-category/standings";
+import { resolveLeagueTier } from "@/lib/league/tier";
 
 type CategoryPageProps = {
   params: {
@@ -50,13 +51,6 @@ const formatLabels = {
   FOUR_GROUPS: "4 grupos",
   SIMPLE: "Simples",
 } as const;
-
-function inferredLeagueTier(name: string, configuredTier: string) {
-  if (configuredTier === "A" || configuredTier === "B") return configuredTier;
-  if (/\bLIGA\b.*\bB\b/i.test(name)) return "B";
-  if (/\bLIGA\b.*\bA\b/i.test(name)) return "A";
-  return "";
-}
 
 export default async function CategoryPage({
   params,
@@ -377,7 +371,7 @@ export default async function CategoryPage({
               <div className="category-overview-head">
                 <div className="stack-xs">
                   <p className="eyebrow">{category.tournament.name}</p>
-                  <div className="category-overview-title-row"><h1>{category.name}</h1>{competition ? <CategoryPublicVisibilityForm competitionId={competition.id} isPublic={competition.isPublic} /> : null}{competition?.format === "LEAGUE" ? <LeagueCategorySettingsDialog category={{ id: category.id, name: category.name, class: category.class, gender: category.gender, leagueTier: inferredLeagueTier(category.name, competition.leagueTier) }} /> : null}</div>
+                  <div className="category-overview-title-row"><h1>{category.name}</h1>{competition ? <CategoryPublicVisibilityForm competitionId={competition.id} isPublic={competition.isPublic} /> : null}{competition?.format === "LEAGUE" ? <LeagueCategorySettingsDialog category={{ id: category.id, name: category.name, class: category.class, gender: category.gender, leagueTier: resolveLeagueTier(category.name, competition.leagueTier) }} /> : null}</div>
                 </div>
                 <StatusBadge status={competition?.status ?? "DRAFT"} />
               </div>

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import { buildMonthlyLeagueSchedule, getLeagueMonthBlocks } from "@/lib/league/monthly-schedule";
+import { resolveLeagueTier } from "@/lib/league/tier";
 
 const monthKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 const nextMonthKey = (referenceMonth: string) => {
@@ -142,10 +143,7 @@ async function resetLeagueCompetition(competitionId: string) {
 }
 
 function tierOf(competition: { leagueTier: string; category: { name: string } }) {
-  const configured = competition.leagueTier.trim().toUpperCase();
-  if (configured === "A" || configured === "B") return configured;
-  const name = competition.category.name.toUpperCase();
-  return /(?:LIGA\s*)A(?:\b|\s|\[)/.test(name) ? "A" : /(?:LIGA\s*)B(?:\b|\s|\[)/.test(name) ? "B" : "";
+  return resolveLeagueTier(competition.category.name, competition.leagueTier);
 }
 
 const leagueModality = "PADEL";
