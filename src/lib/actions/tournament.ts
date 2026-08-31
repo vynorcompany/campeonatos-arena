@@ -277,7 +277,8 @@ export async function createPlayerAction(_: ActionState, formData: FormData): Pr
     gender: formData.get("gender"),
     phone: formData.get("phone"),
     cpf: normalizeCpf(String(formData.get("cpf") ?? "")),
-    birthDate: formData.get("birthDate")
+    birthDate: formData.get("birthDate"),
+    leagueTier: formData.get("leagueTier")
   });
 
   if (!parsed.success) {
@@ -380,6 +381,18 @@ export async function updatePlayerAction(formData: FormData) {
 
     if (!updated.count) {
       throw new Error("Jogador não encontrado.");
+    }
+
+    const currentTier = await prisma.leagueAthleteTier.findFirst({
+      where: { arenaId: auth.arenaId, playerId: parsed.data.playerId, modality: "PADEL", active: true },
+      orderBy: { changedAt: "desc" },
+      select: { id: true, tier: true }
+    });
+    if (currentTier && currentTier.tier !== parsed.data.leagueTier) {
+      await prisma.leagueAthleteTier.update({ where: { id: currentTier.id }, data: { active: false } });
+    }
+    if (parsed.data.leagueTier && currentTier?.tier !== parsed.data.leagueTier) {
+      await prisma.leagueAthleteTier.create({ data: { arenaId: auth.arenaId, playerId: parsed.data.playerId, modality: "PADEL", tier: parsed.data.leagueTier } });
     }
   } catch (error) {
     if (error instanceof Error && error.message === "Jogador não encontrado.") {

@@ -78,12 +78,13 @@ async function createMonthlyCycle(competitionId: string, referenceMonth: string)
     where: { id: competitionId },
     include: { pairs: { where: { active: true }, orderBy: { drawOrder: "asc" }, select: { id: true, groupId: true } }, groups: { orderBy: { drawOrder: "asc" }, select: { id: true, name: true } } },
   });
-  if (!competition || competition.format !== "LEAGUE" || !competition.pairs.length) return null;
+  if (!competition || competition.format !== "LEAGUE") return null;
   const existing = await prisma.leagueCycle.findUnique({ where: { competitionId_referenceMonth: { competitionId, referenceMonth } } });
   if (existing) return existing;
   const [year, month] = referenceMonth.split("-").map(Number);
   const blocks = getLeagueMonthBlocks(year, month);
   const cycle = await prisma.leagueCycle.create({ data: { competitionId, referenceMonth } });
+  if (!competition.pairs.length) return cycle;
   const groupId = competition.groups[0]?.id ?? null;
   const schedule = buildMonthlyLeagueSchedule(competition.pairs.map((pair) => pair.id));
   await prisma.categoryMatch.createMany({ data: schedule.matches.map((match, index) => ({
@@ -99,6 +100,42 @@ async function createMonthlyCycle(competitionId: string, referenceMonth: string)
     hostProposalDeadline: new Date(`${blocks[match.blockNumber - 1].endsOn}T23:59:59.999`),
   })) });
   return cycle;
+}
+
+async function snapshotLeagueCycle(competitionId: string) {
+  const competition = await prisma.categoryCompetition.findUnique({
+    where: { id: competitionId },
+    include: {
+      category: { include: { registrations: { select: { id: true, leadName: true, partnerName: true, status: true, paymentStatus: true, createdAt: true } } } },
+      pairs: { include: { players: { include: { player: { select: { name: true } } } } } },
+      groups: { include: { pairs: { select: { id: true, name: true } } } },
+      leagueCycles: { include: { matches: { include: { homePair: { select: { name: true } }, awayPair: { select: { name: true } }, winnerPair: { select: { name: true } } } } } }
+    }
+  });
+  if (!competition) return;
+  const pairs = competition.pairs.map((pair) => ({ id: pair.id, name: pair.name, players: pair.players.map((player) => player.player.name) }));
+  const groups = competition.groups.map((group) => ({ id: group.id, name: group.name, pairs: group.pairs.map((pair) => ({ id: pair.id, name: pair.name })) }));
+  const registrations = competition.category.registrations.map((registration) => ({ id: registration.id, leadName: registration.leadName, partnerName: registration.partnerName, status: registration.status, paymentStatus: registration.paymentStatus, createdAt: registration.createdAt.toISOString() }));
+  await prisma.$transaction(competition.leagueCycles.map((cycle) => prisma.leagueCycle.update({
+    where: { id: cycle.id },
+    data: { snapshot: {
+      pairs,
+      groups,
+      registrations,
+      matches: cycle.matches.map((match) => ({ label: match.label, stage: match.stage, roundOrder: match.roundOrder, homePair: match.homePair?.name ?? null, awayPair: match.awayPair?.name ?? null, winnerPair: match.winnerPair?.name ?? null, homeScore: match.homeScore, awayScore: match.awayScore, scheduledDate: match.scheduledDate, scheduledTime: match.scheduledTime, woReason: match.woReason }))
+    } as Prisma.InputJsonValue }
+  })));
+}
+
+async function resetLeagueCompetition(competitionId: string) {
+  await snapshotLeagueCycle(competitionId);
+  await prisma.$transaction(async (tx) => {
+    await tx.publicTournamentRegistration.updateMany({ where: { competitionId }, data: { status: "CANCELED" } });
+    await tx.categoryMatch.deleteMany({ where: { competitionId } });
+    await tx.categoryPair.deleteMany({ where: { competitionId } });
+    await tx.categoryGroup.deleteMany({ where: { competitionId } });
+    await tx.categoryCompetition.update({ where: { id: competitionId }, data: { status: "DRAFT" } });
+  });
 }
 
 function tierOf(competition: { leagueTier: string; category: { name: string } }) {
@@ -183,6 +220,7 @@ export async function closeExpiredLeagueCycles(now = new Date(), arenaId?: strin
     for (const match of unresolved) await applyWo(match.id, null, "DOUBLE_WO");
     await applyPromotionAndRelegation(cycle.id);
     await prisma.leagueCycle.update({ where: { id: cycle.id }, data: { status: "CLOSED", closedAt: now } });
+    await resetLeagueCompetition(cycle.competitionId);
     await createMonthlyCycle(cycle.competitionId, currentMonth);
   }
   return { closedCycles: cycles.length };
@@ -207,6 +245,7 @@ export async function closeLeagueCycleManually(competitionId: string, now = new 
   for (const match of unresolved) await applyWo(match.id, null, "DOUBLE_WO");
   await applyPromotionAndRelegation(cycle.id);
   await prisma.leagueCycle.update({ where: { id: cycle.id }, data: { status: "CLOSED", closedAt: now } });
+  await resetLeagueCompetition(cycle.competitionId);
   await createMonthlyCycle(cycle.competitionId, nextMonthKey(cycle.referenceMonth));
   return { closedCycles: 1, nextReferenceMonth: nextMonthKey(cycle.referenceMonth) };
 }

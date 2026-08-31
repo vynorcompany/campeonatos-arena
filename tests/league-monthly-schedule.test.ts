@@ -68,11 +68,15 @@ test("league proposals enforce host ownership, three attempts and response deadl
 
 test("monthly closing resolves deadlines, W.O. and opens the next cycle", () => {
   const lifecycle = readFileSync(resolve(process.cwd(), "src/lib/league/lifecycle.ts"), "utf8");
+  const schema = readFileSync(resolve(process.cwd(), "prisma/schema.prisma"), "utf8");
   assert.match(lifecycle, /HOST_NO_PROPOSAL/);
   assert.match(lifecycle, /VISITOR_NO_RESPONSE/);
   assert.match(lifecycle, /DOUBLE_WO/);
   assert.match(lifecycle, /createMonthlyCycle/);
   assert.match(lifecycle, /applyPromotionAndRelegation/);
+  assert.match(lifecycle, /snapshotLeagueCycle/);
+  assert.match(lifecycle, /resetLeagueCompetition/);
+  assert.match(schema, /snapshot\s+Json\?/);
 });
 
 test("arena can close the current League cycle manually without waiting for the next month", () => {
@@ -157,6 +161,17 @@ test("Liga persists athlete eligibility by modality and keeps a tier history", (
   assert.match(schema, /tier\s+String/);
   assert.match(schema, /leagueAthleteTiers\s+LeagueAthleteTier\[\]/);
   assert.match(lifecycle, /syncLeagueAthleteTiers/);
+});
+
+test("client profile can set the athlete's Liga A or B eligibility", () => {
+  const clientEditor = readFileSync(resolve(process.cwd(), "src/components/players/client-management-workspace.tsx"), "utf8");
+  const playerAction = readFileSync(resolve(process.cwd(), "src/lib/actions/tournament.ts"), "utf8");
+  const playerPage = readFileSync(resolve(process.cwd(), "src/app/(app)/jogadores/page.tsx"), "utf8");
+
+  assert.match(clientEditor, /Liga do atleta/);
+  assert.match(clientEditor, /name="leagueTier"/);
+  assert.match(playerAction, /leagueAthleteTier/);
+  assert.match(playerPage, /leagueAthleteTiers/);
 });
 
 test("Liga workspace exposes category editing and a monthly history tab", () => {

@@ -27,7 +27,8 @@ export const createPlayerSchema = z.object({
   gender: eligibilityFieldSchema,
   phone: optionalPhoneSchema,
   cpf: optionalCpfSchema,
-  birthDate: optionalBirthDateSchema
+  birthDate: optionalBirthDateSchema,
+  leagueTier: z.enum(["", "A", "B"]).default("")
 });
 
 export const updatePlayerSchema = z.object({
@@ -38,7 +39,8 @@ export const updatePlayerSchema = z.object({
   gender: eligibilityFieldSchema,
   phone: optionalPhoneSchema,
   cpf: optionalCpfSchema,
-  birthDate: optionalBirthDateSchema
+  birthDate: optionalBirthDateSchema,
+  leagueTier: z.enum(["", "A", "B"]).default("")
 });
 
 export const archivePlayerSchema = z.object({

@@ -710,6 +710,7 @@ model LeagueCycle {
   promotedPairId     String?
   relegatedPairId    String?
   prizeDescription   String              @default("")
+  snapshot           Json?
   closedAt           DateTime?
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt

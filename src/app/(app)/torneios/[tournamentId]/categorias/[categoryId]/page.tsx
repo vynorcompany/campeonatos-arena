@@ -37,6 +37,13 @@ const validTabs: TournamentTabKey[] = [
   "history",
 ];
 
+function snapshotMatchSummary(snapshot: unknown) {
+  if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) return { matchCount: 0, completedMatches: 0 };
+  const matches = (snapshot as { matches?: unknown }).matches;
+  if (!Array.isArray(matches)) return { matchCount: 0, completedMatches: 0 };
+  return { matchCount: matches.length, completedMatches: matches.filter((match) => Boolean(match && typeof match === "object" && "winnerPair" in match && (match as { winnerPair?: unknown }).winnerPair)).length };
+}
+
 const formatLabels = {
   LEAGUE: "Liga",
   THREE_GROUPS: "3 grupos",
@@ -65,6 +72,7 @@ export default async function CategoryPage({
           },
         },
         registrations: {
+          where: { status: { not: "CANCELED" } },
           orderBy: { createdAt: "desc" },
           select: {
             id: true,
@@ -82,7 +90,7 @@ export default async function CategoryPage({
                 name: true,
               },
             },
-            leagueCycles: { orderBy: { referenceMonth: "desc" }, select: { id: true, referenceMonth: true, status: true, prizeDescription: true, championPairId: true, promotedPairId: true, relegatedPairId: true, matches: { select: { winnerPairId: true } } } },
+            leagueCycles: { orderBy: { referenceMonth: "desc" }, select: { id: true, referenceMonth: true, status: true, prizeDescription: true, snapshot: true, championPairId: true, promotedPairId: true, relegatedPairId: true, matches: { select: { winnerPairId: true } } } },
             pairs: {
               orderBy: { drawOrder: "asc" },
               include: {
@@ -480,7 +488,7 @@ export default async function CategoryPage({
         ) : null}
 
         {tab === "history" && competition?.format === "LEAGUE" ? (
-          <LeagueHistoryPanel cycles={competition.leagueCycles.map((cycle) => ({ id: cycle.id, referenceMonth: cycle.referenceMonth, status: cycle.status, completedMatches: cycle.matches.filter((match) => Boolean(match.winnerPairId)).length, matchCount: cycle.matches.length, championPairId: cycle.championPairId, promotedPairId: cycle.promotedPairId, relegatedPairId: cycle.relegatedPairId }))} />
+          <LeagueHistoryPanel cycles={competition.leagueCycles.map((cycle) => { const snapshot = snapshotMatchSummary(cycle.snapshot); return { id: cycle.id, referenceMonth: cycle.referenceMonth, status: cycle.status, completedMatches: cycle.matches.length ? cycle.matches.filter((match) => Boolean(match.winnerPairId)).length : snapshot.completedMatches, matchCount: cycle.matches.length || snapshot.matchCount, championPairId: cycle.championPairId, promotedPairId: cycle.promotedPairId, relegatedPairId: cycle.relegatedPairId }; })} />
         ) : null}
       </TournamentDetailLayout>
     </div>
