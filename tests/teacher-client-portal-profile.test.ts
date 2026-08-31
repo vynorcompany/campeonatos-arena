@@ -30,9 +30,11 @@ test("formulário de cliente remove cadastro redundante de aluno e oferece papel
 
 test("novo cliente pode ser criado sem CPF ou data de nascimento", () => {
   const form = read("src/components/forms/player-form.tsx");
+  const quickEdit = read("src/components/players/player-actions-cell.tsx");
 
   assert.doesNotMatch(form, /name="cpf"[^>]*required/);
   assert.doesNotMatch(form, /name="birthDate"[^>]*required/);
+  assert.doesNotMatch(quickEdit, /name="cpf"[^>]*required/);
 });
 
 test("Portal do Atleta disponibiliza edição do próprio perfil", () => {
