@@ -358,7 +358,7 @@ export default async function CategoryPage({
               };
 
   return (
-    <div className="stack-md t-category-workspace">
+      <div className="stack-md t-category-workspace category-detail-workspace">
       <Link
         href={`/torneios/${params.tournamentId}`}
         className="t-category-back"
@@ -373,7 +373,7 @@ export default async function CategoryPage({
       >
         {tab === "overview" ? (
           <div className="stack-sm">
-            <article id={`category-${category.id}`} className="category-overview">
+                <article id={`category-${category.id}`} className="category-overview category-detail-hero">
               <div className="category-overview-head">
                 <div className="stack-xs">
                   <p className="eyebrow">{category.tournament.name}</p>

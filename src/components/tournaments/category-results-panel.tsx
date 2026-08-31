@@ -166,7 +166,7 @@ export function CategoryResultsPanel({
         return (
           <article
             id={`category-${category.id}`}
-            className="section-card stack-md"
+            className="section-card stack-md category-operation-panel"
             key={category.id}
           >
             <div className="page-header">

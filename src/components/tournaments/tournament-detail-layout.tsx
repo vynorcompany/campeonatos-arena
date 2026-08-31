@@ -12,7 +12,7 @@ export function TournamentDetailLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="stack-md">
+    <div className="stack-md category-detail-layout">
       <TournamentTabs
         tournamentId={tournamentId}
         categoryId={categoryId}
