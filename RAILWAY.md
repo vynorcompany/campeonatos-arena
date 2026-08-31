@@ -77,3 +77,4 @@ Se voce preferir configurar pela UI em vez de usar `railway.json`, use exatament
 - O build nao executa migrations automaticamente.
 - O seed nao cria dados ficticios em producao, a menos que `SEED_DEMO_DATA=true`.
 - A aplicacao usa cookies `httpOnly`; em producao, eles sao marcados como `secure`.
+- O servico opcional `services/db-backup` cria um dump diario do PostgreSQL em um bucket S3 externo. Consulte `services/db-backup/README.md` para configura-lo como um cron separado no Railway.
