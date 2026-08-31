@@ -62,6 +62,7 @@ export const createCategoryCompetitionSchema = z
     class: z.enum(CATEGORY_CLASS_OPTIONS),
     gender: categoryGenderSchema,
     format: z.enum(["LEAGUE", "THREE_GROUPS", "FOUR_GROUPS", "SIMPLE"]),
+    leagueTier: z.enum(["A", "B"]).optional(),
     rankingId: nullableIdSchema,
     isPublic: checkboxSchema,
   });

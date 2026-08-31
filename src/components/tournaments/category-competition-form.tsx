@@ -74,6 +74,14 @@ export function CategoryCompetitionForm({
       </div>
 
       <div className="field">
+        <label htmlFor={`league-tier-${categoryId}`}>Nível da Liga</label>
+        <select id={`league-tier-${categoryId}`} name="leagueTier" defaultValue="A">
+          <option value="A">Liga A</option>
+          <option value="B">Liga B</option>
+        </select>
+      </div>
+
+      <div className="field">
         <label htmlFor={`ranking-${categoryId}`}>Ranking de duplas</label>
         <select id={`ranking-${categoryId}`} name="rankingId" defaultValue="">
           <option value="">Sem ranking</option>

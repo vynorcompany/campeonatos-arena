@@ -76,6 +76,7 @@ type CreateCategoryCompetitionInput = {
   class: string;
   gender: string;
   format: CompetitionFormat;
+  leagueTier?: "A" | "B";
   rankingId: string | null;
   isPublic: boolean;
 };
@@ -494,6 +495,7 @@ export async function createCategoryCompetition(
         rankingId,
         feedsGeneralRanking,
         isPublic: input.isPublic,
+        leagueTier: input.format === "LEAGUE" ? input.leagueTier ?? "" : "",
       },
     });
   });
@@ -553,6 +555,7 @@ export async function addManualPair(
           leagueTier: true,
           category: {
             select: {
+              name: true,
               class: true,
               gender: true,
               tournament: {
@@ -597,7 +600,7 @@ export async function addManualPair(
         .map((playerId) => playersById.get(playerId))
         .filter((player): player is NonNullable<typeof player> => Boolean(player));
 
-      const configuredTier = competition.leagueTier.trim().toUpperCase();
+      const configuredTier = competition.leagueTier.trim().toUpperCase() || (/\bLIGA\b.*\bB\b/i.test(competition.category.name) ? "B" : /\bLIGA\b.*\bA\b/i.test(competition.category.name) ? "A" : "");
       if (competition.format === "LEAGUE" && (configuredTier === "A" || configuredTier === "B")) {
         const memberships = await tx.leagueAthleteTier.findMany({
           where: { arenaId, playerId: { in: requestedPlayerIds }, modality: "PADEL", active: true },

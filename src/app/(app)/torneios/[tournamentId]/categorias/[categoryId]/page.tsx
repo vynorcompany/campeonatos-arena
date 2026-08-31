@@ -51,6 +51,13 @@ const formatLabels = {
   SIMPLE: "Simples",
 } as const;
 
+function inferredLeagueTier(name: string, configuredTier: string) {
+  if (configuredTier === "A" || configuredTier === "B") return configuredTier;
+  if (/\bLIGA\b.*\bB\b/i.test(name)) return "B";
+  if (/\bLIGA\b.*\bA\b/i.test(name)) return "A";
+  return "";
+}
+
 export default async function CategoryPage({
   params,
   searchParams,
@@ -370,7 +377,7 @@ export default async function CategoryPage({
               <div className="category-overview-head">
                 <div className="stack-xs">
                   <p className="eyebrow">{category.tournament.name}</p>
-                  <div className="category-overview-title-row"><h1>{category.name}</h1>{competition ? <CategoryPublicVisibilityForm competitionId={competition.id} isPublic={competition.isPublic} /> : null}{competition?.format === "LEAGUE" ? <LeagueCategorySettingsDialog category={{ id: category.id, name: category.name, class: category.class, gender: category.gender, leagueTier: competition.leagueTier }} /> : null}</div>
+                  <div className="category-overview-title-row"><h1>{category.name}</h1>{competition ? <CategoryPublicVisibilityForm competitionId={competition.id} isPublic={competition.isPublic} /> : null}{competition?.format === "LEAGUE" ? <LeagueCategorySettingsDialog category={{ id: category.id, name: category.name, class: category.class, gender: category.gender, leagueTier: inferredLeagueTier(category.name, competition.leagueTier) }} /> : null}</div>
                 </div>
                 <StatusBadge status={competition?.status ?? "DRAFT"} />
               </div>
@@ -430,7 +437,7 @@ export default async function CategoryPage({
                       className="league-prize-textarea"
                       name="prizeDescription"
                       rows={4}
-                      defaultValue={competition.leagueCycles[0]?.prizeDescription ?? ""}
+                      defaultValue={competition.leagueCycles.find((cycle) => cycle.status === "OPEN")?.prizeDescription ?? ""}
                       placeholder="Descreva a premiação da Liga. Ex.: campeãs recebem troféu, voucher e premiação em dinheiro."
                     />
                     <div className="league-prize-actions">

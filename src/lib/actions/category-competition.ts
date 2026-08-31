@@ -61,6 +61,7 @@ export async function createCategoryCompetitionAction(formData: FormData) {
     class: formData.get("class"),
     gender: formData.get("gender"),
     format: formData.get("format"),
+    leagueTier: formData.get("leagueTier") || undefined,
     rankingId: formData.get("rankingId"),
     isPublic: formData.get("isPublic"),
   });
@@ -313,9 +314,18 @@ export async function updateLeaguePrizeAction(formData: FormData) {
   if (!competitionId) throw new Error("Liga inválida.");
   const competition = await prisma.categoryCompetition.findFirst({ where: { id: competitionId, format: "LEAGUE", category: { tournament: { arenaId: auth.arenaId } } }, select: { id: true } });
   if (!competition) throw new Error("Liga não encontrada.");
-  const now = new Date();
-  const referenceMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  await prisma.leagueCycle.upsert({ where: { competitionId_referenceMonth: { competitionId, referenceMonth } }, update: { prizeDescription }, create: { competitionId, referenceMonth, prizeDescription } });
+  const openCycle = await prisma.leagueCycle.findFirst({
+    where: { competitionId, status: "OPEN" },
+    orderBy: { referenceMonth: "desc" },
+    select: { id: true },
+  });
+  if (openCycle) {
+    await prisma.leagueCycle.update({ where: { id: openCycle.id }, data: { prizeDescription } });
+  } else {
+    const now = new Date();
+    const referenceMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    await prisma.leagueCycle.create({ data: { competitionId, referenceMonth, prizeDescription } });
+  }
   refreshCategoryCompetitionRoutes();
 }
 
