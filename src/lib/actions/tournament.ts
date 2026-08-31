@@ -353,7 +353,8 @@ export async function updatePlayerAction(formData: FormData) {
     gender: formData.get("gender"),
     phone: formData.get("phone"),
     cpf: normalizeCpf(String(formData.get("cpf") ?? "")),
-    birthDate: formData.get("birthDate")
+    birthDate: formData.get("birthDate"),
+    leagueTier: formData.get("leagueTier")
   });
 
   if (!parsed.success) {

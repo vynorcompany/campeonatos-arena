@@ -91,14 +91,18 @@ export async function getArenaPublicStandings(
     }),
     prisma.categoryCompetition.findMany({
       where: {
-        isPublic: true,
         OR: [
-          { status: "FINISHED" },
-          { status: "PUBLISHED", format: "LEAGUE" },
+          {
+            format: "LEAGUE",
+            status: { not: "FINISHED" },
+            category: { active: true, tournament: { arenaId: arena.id } },
+          },
+          {
+            isPublic: true,
+            status: "FINISHED",
+            category: { tournament: { arenaId: arena.id } },
+          },
         ],
-        category: {
-          tournament: { arenaId: arena.id },
-        },
       },
       orderBy: { updatedAt: "desc" },
       select: {
