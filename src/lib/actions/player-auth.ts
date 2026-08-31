@@ -21,7 +21,12 @@ async function findPlayerByPhone(arenaId: string, phone: string) {
 }
 
 async function findAccountByPhone(arenaId: string, phone: string) {
-  return prisma.playerAccount.findUnique({ where: { arenaId_phone: { arenaId, phone } }, include: { player: true } });
+  const canonicalPhone = normalizePhone(phone);
+  const account = await prisma.playerAccount.findUnique({ where: { arenaId_phone: { arenaId, phone: canonicalPhone } }, include: { player: true } });
+  if (account) return account;
+
+  const legacyAccounts = await prisma.playerAccount.findMany({ where: { arenaId }, include: { player: true }, orderBy: { createdAt: "asc" } });
+  return legacyAccounts.find((account) => normalizePhone(account.phone) === normalizePhone(phone)) ?? null;
 }
 
 export async function registerPublicClientAction(_: PublicClientAuthState, formData: FormData): Promise<PublicClientAuthState> {

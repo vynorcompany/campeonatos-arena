@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
+import { resolvePublicClientPlayer } from "@/lib/services/public-client-registration";
 
 test("client accounts use a dedicated player session linked to an existing phone", () => {
   const schema = readFileSync(resolve(process.cwd(), "prisma/schema.prisma"), "utf8");
@@ -37,11 +38,30 @@ test("public registration resolves an existing player by normalized phone withou
   assert.doesNotMatch(seed, /prisma\.player\.upsert/);
 });
 
+test("public client identity ignores presentation characters in either phone value", () => {
+  const players = [
+    { id: "athlete-1", phone: "(41) 98888-1234" },
+    { id: "athlete-2", phone: "41977776666" },
+  ];
+
+  assert.equal(resolvePublicClientPlayer(players, "41 98888 - 1234")?.id, "athlete-1");
+  assert.equal(resolvePublicClientPlayer(players, "(41) 97777-6666")?.id, "athlete-2");
+});
+
+test("public authentication also resolves legacy account phones by their digits", () => {
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/player-auth.ts"), "utf8");
+
+  assert.match(actions, /function findAccountByPhone[\s\S]*?findMany/);
+  assert.match(actions, /normalizePhone\(account\.phone\) === normalizePhone\(phone\)/);
+});
+
 test("public league panels require a signed-in client", () => {
   const standings = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"), "utf8");
+  const page = readFileSync(resolve(process.cwd(), "src/app/classificacao/[arenaSlug]/page.tsx"), "utf8");
 
   assert.match(standings, /if \(!currentClient\) return/);
-  assert.match(standings, /public-standings-private/);
+  assert.match(standings, /athlete-portal-auth/);
+  assert.match(page, /getPublicLeaguePortal\(params\.arenaSlug, currentClient\.playerId\)/);
 });
 
 test("online bookings create arena notifications that the team can read in the shell", () => {
