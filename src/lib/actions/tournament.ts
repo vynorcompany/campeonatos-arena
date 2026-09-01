@@ -440,6 +440,15 @@ export async function archivePlayerAction(formData: FormData) {
   refreshTournamentRoutes();
 }
 
+export async function reactivatePlayerAction(formData: FormData) {
+  const auth = await requireModuleEdit("players");
+  const parsed = archivePlayerSchema.safeParse({ playerId: formData.get("playerId") });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  const updated = await prisma.player.updateMany({ where: { id: parsed.data.playerId, arenaId: auth.arenaId }, data: { active: true } });
+  if (!updated.count) throw new Error("Jogador não encontrado.");
+  refreshTournamentRoutes();
+}
+
 export async function deleteAthleteAction(formData: FormData) {
   const auth = await requireModuleEdit("players");
   const parsed = archivePlayerSchema.safeParse({

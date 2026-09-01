@@ -13,3 +13,15 @@ test("inativação de cliente preserva o cadastro e expõe a ação no modal", (
   assert.match(workspace, /archivePlayerAction/);
   assert.match(workspace, /Excluir cliente/);
 });
+
+test("clientes inativos podem ser reativados pelo mesmo modal", () => {
+  assert.match(actions, /export async function reactivatePlayerAction/);
+  assert.match(actions, /data:\s*\{\s*active:\s*true\s*\}/);
+  assert.match(workspace, /Reativar cliente/);
+});
+
+test("mesclagem mantém o acesso do cliente principal quando ambos possuem portal", () => {
+  const managementActions = readFileSync(resolve(root, "src/lib/actions/client-management.ts"), "utf8");
+  assert.doesNotMatch(managementActions, /if \(primary\.account && duplicate\.account\) throw new Error/);
+  assert.match(managementActions, /playerAccount\.delete/);
+});

@@ -54,7 +54,7 @@ export async function mergeClientsAction(formData: FormData) {
     const primary = clients.find((item) => item.id === parsed.data.primaryPlayerId);
     const duplicate = clients.find((item) => item.id === parsed.data.duplicatePlayerId);
     if (!primary || !duplicate) throw new Error("Cliente não encontrado.");
-    if (primary.account && duplicate.account) throw new Error("Os dois clientes possuem acesso ao portal. Escolha manualmente qual conta manter.");
+    if (primary.account && duplicate.account) await tx.playerAccount.delete({ where: { id: duplicate.account.id } });
     if (!primary.account && duplicate.account) await tx.playerAccount.update({ where: { playerId: duplicate.id }, data: { playerId: primary.id } });
     await tx.comanda.updateMany({ where: { arenaId: auth.arenaId, playerId: duplicate.id }, data: { playerId: primary.id } });
     await tx.clientBalanceMovement.updateMany({ where: { arenaId: auth.arenaId, playerId: duplicate.id }, data: { playerId: primary.id } });
