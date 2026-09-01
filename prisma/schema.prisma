@@ -116,6 +116,11 @@ model Arena {
   comandas    Comanda[]
   stockMovements StockMovement[]
   plans       Plan[]
+  classGroups ClassGroup[]
+  classGroupSchedules ClassGroupSchedule[]
+  classGroupEnrollments ClassGroupEnrollment[]
+  classGroupRequests ClassGroupRequest[]
+  classGroupMakeups ClassGroupMakeup[]
   subscriptions StudentSubscription[]
   financialEntries FinancialEntry[]
   financialRecurrences FinancialRecurrence[]
@@ -989,6 +994,9 @@ model Student {
   attendances    LessonAttendance[]
   subscriptions  StudentSubscription[]
   teacherAssignments TeacherStudent[]
+  classGroupEnrollments ClassGroupEnrollment[]
+  classGroupRequests ClassGroupRequest[]
+  classGroupMakeups ClassGroupMakeup[]
 
   @@unique([arenaId, name])
   @@unique([playerId])
@@ -1016,6 +1024,8 @@ model Teacher {
   payrollEntries TeacherPayrollEntry[]
   studentAssignments TeacherStudent[]
   planAssignments TeacherPlan[]
+  classGroups ClassGroup[]
+  classGroupMakeups ClassGroupMakeup[]
 
   @@unique([arenaId, name])
   @@index([arenaId, active])
@@ -1041,6 +1051,114 @@ model Lesson {
 
   @@index([arenaId, scheduledAt])
   @@index([teacherId])
+}
+
+model ClassGroup {
+  id        String   @id @default(cuid())
+  name      String
+  active    Boolean  @default(true)
+  notes     String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  arenaId   String
+  teacherId String
+  arena     Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  teacher   Teacher  @relation(fields: [teacherId], references: [id], onDelete: Restrict)
+  schedules ClassGroupSchedule[]
+  enrollments ClassGroupEnrollment[]
+  requests  ClassGroupRequest[]
+  plans     ClassGroupPlan[]
+  sourceMakeups ClassGroupMakeup[] @relation("ClassGroupMakeupSource")
+  destinationMakeups ClassGroupMakeup[] @relation("ClassGroupMakeupDestination")
+
+  @@unique([arenaId, name])
+  @@index([arenaId, active])
+  @@index([teacherId, active])
+}
+
+model ClassGroupSchedule {
+  id           String   @id @default(cuid())
+  weekday      Int
+  startTime    String
+  capacity     Int      @default(1)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  arenaId      String
+  classGroupId String
+  arena        Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  classGroup   ClassGroup @relation(fields: [classGroupId], references: [id], onDelete: Cascade)
+
+  @@unique([classGroupId, weekday, startTime])
+  @@index([arenaId, weekday])
+}
+
+model ClassGroupPlan {
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now())
+  classGroupId String
+  planId       String
+  classGroup   ClassGroup @relation(fields: [classGroupId], references: [id], onDelete: Cascade)
+  plan         Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([classGroupId, planId])
+  @@index([planId])
+}
+
+model ClassGroupEnrollment {
+  id           String   @id @default(cuid())
+  status       String   @default("ACTIVE")
+  startedAt    DateTime @default(now())
+  endedAt      DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  arenaId      String
+  classGroupId String
+  studentId    String
+  arena        Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  classGroup   ClassGroup @relation(fields: [classGroupId], references: [id], onDelete: Cascade)
+  student      Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([classGroupId, studentId])
+  @@index([arenaId, status])
+  @@index([studentId, status])
+}
+
+model ClassGroupRequest {
+  id           String   @id @default(cuid())
+  status       String   @default("PENDING")
+  message      String   @default("")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  arenaId      String
+  classGroupId String
+  studentId    String
+  arena        Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  classGroup   ClassGroup @relation(fields: [classGroupId], references: [id], onDelete: Cascade)
+  student      Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([arenaId, status])
+  @@index([classGroupId, status])
+  @@index([studentId, status])
+}
+
+model ClassGroupMakeup {
+  id                      String   @id @default(cuid())
+  scheduledFor            DateTime
+  createdAt               DateTime @default(now())
+  arenaId                 String
+  studentId               String
+  sourceClassGroupId      String
+  destinationClassGroupId String
+  teacherId               String
+  arena                   Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  student                 Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  sourceClassGroup        ClassGroup @relation("ClassGroupMakeupSource", fields: [sourceClassGroupId], references: [id], onDelete: Cascade)
+  destinationClassGroup   ClassGroup @relation("ClassGroupMakeupDestination", fields: [destinationClassGroupId], references: [id], onDelete: Cascade)
+  teacher                 Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@index([arenaId, scheduledFor])
+  @@index([studentId, scheduledFor])
+  @@index([destinationClassGroupId, scheduledFor])
 }
 
 model CalendarEvent {
@@ -1374,6 +1492,7 @@ model Plan {
   financialEntries  FinancialEntry[]
   financialRecurrences FinancialRecurrence[]
   teacherAssignments TeacherPlan[]
+  classGroupAssignments ClassGroupPlan[]
 
   @@unique([arenaId, name])
   @@index([arenaId, active])

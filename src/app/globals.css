@@ -7345,3 +7345,27 @@ button {
 .public-league-portal .public-medical-request textarea { min-height: 76px; line-height: 1.4; }
 .public-league-portal .public-medical-request > .muted { margin: 0; padding: 11px 12px; color: #61798c; font-size: .76rem; line-height: 1.4; }
 @media (max-width: 700px) { .public-league-portal .portal-league-category-picker { width: 100%; align-items: stretch; gap: 8px; } .public-league-portal .portal-league-category-picker label { flex-basis: 100%; min-width: 0; } .public-league-portal .portal-league-category-picker .button { width: auto; } .public-league-portal .public-medical-request form { grid-template-columns: 1fr; } }
+
+/* Gestão de turmas: horários fixos em uma leitura operacional compacta. */
+.class-group-workspace { display: grid; gap: 16px; padding: 20px; border: 1px solid #d7e4f1; border-radius: 16px; background: #fff; box-shadow: 0 8px 22px rgb(17 62 112 / .05); }
+.class-group-workspace-header h2 { margin: 3px 0 4px; color: #0c376b; font-size: 1.12rem; }
+.class-group-workspace-header .muted { margin: 0; font-size: .83rem; }
+.class-group-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 14px; border: 1px solid #dce8f3; border-radius: 12px; background: #f8fbfe; }
+.class-group-form > label, .class-group-schedule-row > label { display: grid; gap: 5px; color: #5d768e; font-size: .67rem; font-weight: 800; letter-spacing: .035em; text-transform: uppercase; }
+.class-group-plans, .class-group-schedules { grid-column: 1 / -1; display: grid; gap: 9px; min-width: 0; margin: 0; padding: 12px; border: 1px solid #dce8f3; border-radius: 10px; background: #fff; }
+.class-group-plans legend { padding: 0 4px; color: #365b7e; font-size: .75rem; font-weight: 800; }
+.class-group-plans { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.class-group-plans > label { display: inline-flex; align-items: center; gap: 7px; color: #365b7e; font-size: .77rem; }
+.class-group-schedules-title { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: #143f6d; font-size: .82rem; }
+.class-group-schedules-title span { color: #6b849a; font-size: .71rem; }
+.class-group-schedule-row { display: grid; grid-template-columns: minmax(150px, 1fr) minmax(110px, .55fr) minmax(90px, .42fr) auto; align-items: end; gap: 9px; padding-top: 9px; border-top: 1px solid #e5edf5; }
+.class-group-notes { grid-column: 1 / -1; }
+.class-group-form > .button-primary { justify-self: start; min-height: 38px; padding-inline: 15px; }
+.class-group-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 10px; }
+.class-group-list article { display: grid; gap: 10px; padding: 14px; border: 1px solid #dce7f2; border-radius: 12px; background: #fff; }
+.class-group-list article header div { display: grid; gap: 2px; }
+.class-group-list article strong { color: #123b70; font-size: .9rem; }
+.class-group-list article header span { color: #698196; font-size: .76rem; }
+.class-group-list article > div { display: grid; gap: 5px; }
+.class-group-list article > div span { color: #45647f; font-size: .76rem; line-height: 1.35; }
+@media (max-width: 700px) { .class-group-workspace { padding: 16px; } .class-group-form { grid-template-columns: 1fr; } .class-group-schedule-row { grid-template-columns: 1fr 1fr; } .class-group-schedule-row > .button { grid-column: 1 / -1; justify-self: start; } }

@@ -278,6 +278,41 @@ export async function createTeacherAction(formData: FormData) {
   refreshAcademyRoutes();
 }
 
+export async function createClassGroupAction(formData: FormData) {
+  const auth = await requireModuleEdit("lessons");
+  const name = String(formData.get("name") ?? "").trim();
+  const teacherId = String(formData.get("teacherId") ?? "");
+  const planIds = getFormValues(formData, "planIds");
+  const weekdays = getFormValues(formData, "weekdays");
+  const startTimes = getFormValues(formData, "startTimes");
+  const capacities = getFormValues(formData, "capacities");
+  const schedules = weekdays.map((weekday, index) => ({
+    weekday: Number(weekday),
+    startTime: startTimes[index] ?? "",
+    capacity: Number(capacities[index])
+  })).filter((item) => Number.isInteger(item.weekday) && item.weekday >= 0 && item.weekday <= 6 && /^\d{2}:\d{2}$/.test(item.startTime) && Number.isInteger(item.capacity) && item.capacity > 0);
+  if (name.length < 2 || !teacherId || !schedules.length) throw new Error("Informe nome, professor e ao menos um horário da turma.");
+  const [teacher, plans] = await Promise.all([
+    prisma.teacher.findFirst({ where: { id: teacherId, arenaId: auth.arenaId, active: true }, select: { id: true } }),
+    prisma.plan.findMany({ where: { id: { in: planIds }, arenaId: auth.arenaId, active: true }, select: { id: true } })
+  ]);
+  if (!teacher) throw new Error("Professor não encontrado.");
+  if (plans.length !== planIds.length) throw new Error("Selecione apenas planos ativos desta arena.");
+  const duplicateSchedule = new Set(schedules.map((item) => `${item.weekday}-${item.startTime}`)).size !== schedules.length;
+  if (duplicateSchedule) throw new Error("Não repita o mesmo dia e horário na turma.");
+  await prisma.classGroup.create({
+    data: {
+      arenaId: auth.arenaId,
+      name,
+      teacherId,
+      notes: String(formData.get("notes") ?? "").trim(),
+      schedules: { create: schedules.map((item) => ({ ...item, arenaId: auth.arenaId })) },
+      plans: { create: plans.map((plan) => ({ planId: plan.id })) }
+    }
+  });
+  refreshAcademyRoutes();
+}
+
 function parseFormDate(value: string) {
   if (!value) return null;
   const date = new Date(`${value}T12:00:00`);

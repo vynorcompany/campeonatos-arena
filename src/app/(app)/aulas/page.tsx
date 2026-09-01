@@ -2,6 +2,7 @@ import { SectionCard } from "@/components/section-card";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { StudentActionsCell } from "@/components/students/student-actions-cell";
+import { ClassGroupWorkspace } from "@/components/teachers/class-group-workspace";
 import {
   addStudentCreditsAction,
   completeLessonAction,
@@ -36,7 +37,7 @@ function attendanceRate(student: { attendedClasses: number; missedClasses: numbe
 
 export default async function LessonsPage() {
   const auth = await requireModuleView("lessons");
-  const [students, teachers, lessons, players] = await Promise.all([
+  const [students, teachers, lessons, players, plans, classGroups, classGroupRequests] = await Promise.all([
     prisma.student.findMany({
       where: { arenaId: auth.arenaId },
       include: {
@@ -69,7 +70,14 @@ export default async function LessonsPage() {
     prisma.player.findMany({
       where: { arenaId: auth.arenaId, active: true },
       orderBy: { name: "asc" }
-    })
+    }),
+    prisma.plan.findMany({ where: { arenaId: auth.arenaId, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.classGroup.findMany({
+      where: { arenaId: auth.arenaId, active: true },
+      include: { teacher: { select: { name: true } }, enrollments: { where: { status: "ACTIVE" }, select: { id: true } }, schedules: { orderBy: [{ weekday: "asc" }, { startTime: "asc" }] } },
+      orderBy: { name: "asc" }
+    }),
+    prisma.classGroupRequest.findMany({ where: { arenaId: auth.arenaId, status: "PENDING" }, include: { student: { select: { name: true } }, classGroup: { include: { plans: { include: { plan: { select: { id: true, name: true } } } } } } }, orderBy: { createdAt: "asc" } })
   ]);
 
   const activeStudents = students.filter((student) => student.active);
@@ -104,6 +112,8 @@ export default async function LessonsPage() {
           <span>aulas restantes vendidas</span>
         </div>
       </div>
+
+      <ClassGroupWorkspace teachers={teachers.map((teacher) => ({ id: teacher.id, name: teacher.name }))} plans={plans} groups={classGroups} requests={classGroupRequests} />
 
       <SectionCard id="cadastro" title="Cadastrar aluno" description="Use este cadastro para controlar pacotes, frequência e histórico de aulas.">
         <SafeActionForm action={createStudentAction} className="grid-form" resetOnSuccess successMessage="Aluno salvo.">

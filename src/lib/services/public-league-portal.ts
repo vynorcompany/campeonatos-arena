@@ -8,7 +8,7 @@ export async function getPublicLeaguePortal(arenaSlug: string, playerId: string,
   const ownPairs = await prisma.categoryPair.findMany({ where: { active: true, players: { some: { playerId } }, competition: { format: "LEAGUE", status: { not: "FINISHED" }, category: { tournament: { arenaId: arena.id } } } }, include: { group: true, competition: { include: { category: { include: { tournament: true } } } }, players: { include: { player: { select: { id: true, name: true } } } }, homeMatches: { include: { awayPair: { select: { id: true, name: true, groupId: true } }, leagueCycle: { select: { id: true } } } }, awayMatches: { include: { homePair: { select: { id: true, name: true, groupId: true } } } } }, orderBy: { createdAt: "asc" } });
   const challenges = await prisma.leagueMatchProposal.findMany({ where: { OR: [{ proposerPairId: { in: ownPairs.map((pair) => pair.id) } }, { opponentPairId: { in: ownPairs.map((pair) => pair.id) } }] }, include: { court: { select: { name: true } }, categoryMatch: { include: { homePair: { select: { name: true } }, awayPair: { select: { name: true } } } } }, orderBy: { createdAt: "desc" } });
   const now = new Date();
-  const [leagueNotifications, medicalRequests, replacementPlayers, prizes, reservations, student, classOccurrences, teachers, teacherManagement] = await Promise.all([
+  const [leagueNotifications, medicalRequests, replacementPlayers, prizes, reservations, student, classOccurrences, teachers, teacherManagement, classGroups] = await Promise.all([
     prisma.playerNotification.findMany({ where: { playerId, readAt: null, type: "LEAGUE_MATCH" }, orderBy: { createdAt: "desc" }, take: 8, select: { id: true, title: true, message: true, href: true } }),
     prisma.leagueMedicalSubstitutionRequest.findMany({ where: { requestedByPlayerId: playerId, status: "PENDING" }, select: { pairId: true } }),
     prisma.player.findMany({ where: { arenaId: arena.id, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
@@ -47,7 +47,18 @@ export async function getPublicLeaguePortal(arenaSlug: string, playerId: string,
           orderBy: { student: { name: "asc" } },
         },
         scheduleOccurrences: { where: { startsAt: { gte: now }, status: { not: "CANCELED" } }, select: { id: true, title: true, startsAt: true, endsAt: true, status: true }, orderBy: { startsAt: "asc" }, take: 20 },
+        classGroups: { where: { active: true }, include: { schedules: { orderBy: [{ weekday: "asc" }, { startTime: "asc" }] }, enrollments: { where: { status: "ACTIVE" }, include: { student: { select: { id: true, name: true } } } } }, orderBy: { name: "asc" } },
       },
+    }),
+    prisma.classGroup.findMany({
+      where: { arenaId: arena.id, active: true },
+      include: {
+        teacher: { select: { id: true, name: true } },
+        schedules: { orderBy: [{ weekday: "asc" }, { startTime: "asc" }] },
+        enrollments: { where: { status: "ACTIVE" }, select: { id: true, studentId: true } },
+        requests: { where: { student: { playerId }, status: "PENDING" }, select: { id: true } }
+      },
+      orderBy: { name: "asc" }
     }),
   ]);
   const occurrences = await prisma.scheduleOccurrence.findMany({ where: { arenaId: arena.id, status: { not: "CANCELED" }, startsAt: { gte: now, lt: new Date(now.getTime() + 8 * 24 * 60 * 60_000) } }, include: { occurrenceCourts: true } });
@@ -93,11 +104,13 @@ export async function getPublicLeaguePortal(arenaSlug: string, playerId: string,
     lessons: student?.attendances.map((attendance) => ({ id: attendance.lesson.id, title: attendance.lesson.title, teacherName: attendance.lesson.teacher?.name ?? "", when: attendance.lesson.scheduledAt ? dateTimeLabel(attendance.lesson.scheduledAt) : "Horário a definir", status: attendance.lesson.status === "CANCELED" ? "Cancelada" : "Agendada" })) ?? [],
     teachers,
     classes: classOccurrences.map((occurrence) => ({ id: occurrence.id, teacherId: occurrence.teacher?.id ?? "", teacherName: occurrence.teacher?.name ?? "Professor", title: occurrence.title, when: dateTimeLabel(occurrence.startsAt), status: occurrence.status === "PENDING_CONFIRMATION" ? "Aguardando confirmação" : "Agendada" })),
+    classGroups: classGroups.map((group) => ({ id: group.id, name: group.name, teacherName: group.teacher.name, schedules: group.schedules.map((schedule) => ({ weekday: schedule.weekday, startTime: schedule.startTime, capacity: schedule.capacity })), enrolled: group.enrollments.some((enrollment) => enrollment.studentId === student?.id), requestPending: Boolean(group.requests.length), available: group.schedules.every((schedule) => group.enrollments.length < schedule.capacity) })),
     student: student ? { remainingClasses: student.remainingClasses, attendedClasses: student.attendedClasses, missedClasses: student.missedClasses, active: student.active, planName: student.subscriptions[0]?.plan.name ?? "", teacherName: student.teacherAssignments[0]?.teacher.name ?? "" } : null,
     teacherManagement: teacherManagement ? {
       plans: teacherManagement.planAssignments.map((assignment) => ({ id: assignment.plan.id, name: assignment.plan.name, classesPerMonth: assignment.plan.classesPerMonth, monthlyPriceCents: assignment.plan.monthlyPriceCents })),
       students: teacherManagement.studentAssignments.map((assignment) => ({ id: assignment.student.id, name: assignment.student.name, remainingClasses: assignment.student.remainingClasses, planName: assignment.student.subscriptions[0]?.plan.name ?? "Sem plano ativo" })),
       agenda: teacherManagement.scheduleOccurrences.map((occurrence) => ({ id: occurrence.id, title: occurrence.title, when: dateTimeLabel(occurrence.startsAt), status: occurrence.status === "PENDING_CONFIRMATION" ? "Aguardando confirmação" : "Agendada" })),
+      classGroups: teacherManagement.classGroups.map((group) => ({ id: group.id, name: group.name, schedules: group.schedules.map((schedule) => ({ weekday: schedule.weekday, startTime: schedule.startTime, capacity: schedule.capacity })), enrolledCount: group.enrollments.length, students: group.enrollments.map((enrollment) => ({ id: enrollment.student.id, name: enrollment.student.name })) })),
     } : null,
   };
 }
