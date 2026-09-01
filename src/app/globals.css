@@ -7057,6 +7057,7 @@ button {
 .public-league-prizes { display: grid; gap: 8px; padding: 14px; border: 1px solid #d7d6ff; border-radius: 10px; background: linear-gradient(135deg, #f7f5ff, #fff); }
 .public-league-prizes h3, .public-league-prizes p { margin: 0; }
 .public-league-prizes article { display: grid; gap: 3px; }
+.public-league-prize-description { white-space: pre-line; }
 .public-medical-request { border-top: 1px solid #e3edf4; padding-top: 10px; color: #274762; font-size: .78rem; }
 .public-medical-request summary { cursor: pointer; font-weight: 800; }
 .public-medical-request form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
