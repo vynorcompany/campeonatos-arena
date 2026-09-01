@@ -51,20 +51,22 @@ export function PublicStandings({
 
   if (!currentClient) return <main className="athlete-portal-page">{publicHeader}<section className="athlete-portal-auth">{authForm}</section></main>;
 
+  const portalVisibility = data.arena;
+  const requestedSection = section === "leagues" && !portalVisibility.athletePortalShowLeagues ? "profile" : section === "booking" && !portalVisibility.athletePortalShowBooking ? "profile" : section === "reservations" && !portalVisibility.athletePortalShowReservations ? "profile" : section === "lessons" && !portalVisibility.athletePortalShowLessons ? "profile" : section === "classes" && !portalVisibility.athletePortalShowClasses ? "profile" : section;
   const selectedLeagueTab: LeagueTab = leagueTab === "pairs" || leagueTab === "ranking" || leagueTab === "rules" || leagueTab === "prizes" ? leagueTab : "games";
 
   return <main className="athlete-portal-page">
     {publicHeader}
     <nav className="athlete-portal-main-nav" aria-label="Menu do portal do atleta">
-      <Link className={section === "leagues" ? "active" : ""} href={portalHref("leagues", "games")}>Ligas</Link>
-      <Link className={section === "booking" ? "active" : ""} href={portalHref("booking")}>Grade de horários</Link>
-      <Link className={section === "reservations" ? "active" : ""} href={portalHref("reservations")}>Minhas reservas</Link>
-      <Link className={section === "lessons" ? "active" : ""} href={portalHref("lessons")}>Aulas</Link>
-      <Link className={section === "classes" ? "active" : ""} href={portalHref("classes")}>Turmas</Link>
-      {currentClient.isTeacher ? <Link className={section === "teacher" ? "active" : ""} href={portalHref("teacher")}>Gestão</Link> : null}
-      <Link className={section === "profile" ? "active" : ""} href={portalHref("profile")}>Meu perfil</Link>
+      {portalVisibility.athletePortalShowLeagues ? <Link className={requestedSection === "leagues" ? "active" : ""} href={portalHref("leagues", "games")}>Ligas</Link> : null}
+      {portalVisibility.athletePortalShowBooking ? <Link className={requestedSection === "booking" ? "active" : ""} href={portalHref("booking")}>Grade de horários</Link> : null}
+      {portalVisibility.athletePortalShowReservations ? <Link className={requestedSection === "reservations" ? "active" : ""} href={portalHref("reservations")}>Minhas reservas</Link> : null}
+      {portalVisibility.athletePortalShowLessons ? <Link className={requestedSection === "lessons" ? "active" : ""} href={portalHref("lessons")}>Aulas</Link> : null}
+      {portalVisibility.athletePortalShowClasses ? <Link className={requestedSection === "classes" ? "active" : ""} href={portalHref("classes")}>Turmas</Link> : null}
+      {currentClient.isTeacher ? <Link className={requestedSection === "teacher" ? "active" : ""} href={portalHref("teacher")}>Gestão</Link> : null}
+      <Link className={requestedSection === "profile" ? "active" : ""} href={portalHref("profile")}>Meu perfil</Link>
     </nav>
-    {section === "leagues" ? <>
+    {requestedSection === "leagues" ? <>
       <nav className="athlete-portal-league-nav" aria-label="Menu da Liga">
         <Link className={selectedLeagueTab === "games" ? "active" : ""} href={portalHref("leagues", "games", undefined, leagueCategoryId)}>Jogos</Link>
         <Link className={selectedLeagueTab === "pairs" ? "active" : ""} href={portalHref("leagues", "pairs", undefined, leagueCategoryId)}>Duplas</Link>
@@ -76,7 +78,7 @@ export function PublicStandings({
       {selectedLeagueTab === "rules" ? <RulesPanel data={data} /> : null}
       {selectedLeagueTab === "ranking" ? <RankingPanel data={data} /> : null}
       {selectedLeagueTab === "prizes" ? <PrizePanel portal={portal} /> : null}
-    </> : section === "booking" ? <PublicBookingContent arenaSlug={data.arena.slug} date={bookingDate} embedded /> : section === "reservations" ? <ReservationsPanel portal={portal} /> : section === "lessons" ? <LessonsPanel portal={portal} /> : section === "classes" ? <ClassesPanel portal={portal} teacherId={teacherId} /> : section === "teacher" && currentClient.isTeacher ? <TeacherManagementPanel portal={portal} /> : <PublicPlayerProfile arenaSlug={data.arena.slug} player={currentClient} />}
+    </> : requestedSection === "booking" ? <PublicBookingContent arenaSlug={data.arena.slug} date={bookingDate} embedded /> : requestedSection === "reservations" ? <ReservationsPanel portal={portal} /> : requestedSection === "lessons" ? <LessonsPanel portal={portal} /> : requestedSection === "classes" ? <ClassesPanel portal={portal} teacherId={teacherId} /> : requestedSection === "teacher" && currentClient.isTeacher ? <TeacherManagementPanel portal={portal} /> : <PublicPlayerProfile arenaSlug={data.arena.slug} player={currentClient} />}
   </main>;
 }
 
@@ -85,7 +87,7 @@ function PrizePanel({ portal }: { portal: Portal }) {
 }
 
 function RulesPanel({ data }: { data: ArenaPublicStandings }) {
-  return <section className="athlete-portal-content-panel"><header><span>REGULAMENTO</span><h2>Regras das Ligas</h2></header>{data.leagueRules.length ? data.leagueRules.map((league) => <article className="portal-rule" key={league.id}><strong>{league.eventName} · {league.categoryName}</strong><p>{league.rules}</p></article>) : <p className="muted">Nenhuma regra foi publicada para as Ligas ativas.</p>}</section>;
+  return <section className="athlete-portal-content-panel"><header><span>REGULAMENTO</span><h2>Regras das Ligas</h2></header>{data.leagueRules.length ? data.leagueRules.map((league) => <article className="portal-rule" key={league.id}><strong>{league.categoryName}</strong><p>{league.rules}</p></article>) : <p className="muted">Nenhuma regra foi publicada para as Ligas ativas.</p>}</section>;
 }
 
 function RankingPanel({ data }: { data: ArenaPublicStandings }) {

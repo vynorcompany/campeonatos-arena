@@ -16,6 +16,11 @@ export type ArenaPublicStandings = {
     name: string;
     logoUrl: string;
     slug: string;
+    athletePortalShowLeagues: boolean;
+    athletePortalShowBooking: boolean;
+    athletePortalShowReservations: boolean;
+    athletePortalShowLessons: boolean;
+    athletePortalShowClasses: boolean;
   };
   options: PublicStandingsOption[];
   selectedOptionId: string | null;
@@ -67,6 +72,11 @@ export async function getArenaPublicStandings(
       name: true,
       logoUrl: true,
       slug: true,
+      athletePortalShowLeagues: true,
+      athletePortalShowBooking: true,
+      athletePortalShowReservations: true,
+      athletePortalShowLessons: true,
+      athletePortalShowClasses: true,
     },
   });
   if (!arena) {

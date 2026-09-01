@@ -25,6 +25,23 @@ function refreshArenaRoutes() {
   revalidatePath("/proximos-jogos/tv");
 }
 
+export async function updateAthletePortalSettingsAction(formData: FormData) {
+  const auth = await requireModuleEdit("arena");
+  const updated = await prisma.arena.update({
+    where: { id: auth.arenaId },
+    data: {
+      athletePortalShowLeagues: formData.get("showLeagues") === "on",
+      athletePortalShowBooking: formData.get("showBooking") === "on",
+      athletePortalShowReservations: formData.get("showReservations") === "on",
+      athletePortalShowLessons: formData.get("showLessons") === "on",
+      athletePortalShowClasses: formData.get("showClasses") === "on",
+    },
+    select: { slug: true },
+  });
+  revalidatePath("/arena");
+  revalidatePath(`/classificacao/${updated.slug}`);
+}
+
 async function createUniqueArenaSlug(name: string, arenaId: string) {
   const base = slugifyArenaName(name);
   let slug = base;

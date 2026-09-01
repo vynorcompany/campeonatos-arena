@@ -89,6 +89,11 @@ model Arena {
   onlineBookingPaymentEnabled Boolean @default(false)
   onlineBookingWhatsappMessage String @default("")
   onlineBookingLeadTimeMinutes Int @default(120)
+  athletePortalShowLeagues Boolean @default(true)
+  athletePortalShowBooking Boolean @default(true)
+  athletePortalShowReservations Boolean @default(true)
+  athletePortalShowLessons Boolean @default(true)
+  athletePortalShowClasses Boolean @default(true)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   createdById String

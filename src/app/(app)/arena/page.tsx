@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { ArenaProfileForm } from "@/components/forms/arena-profile-form";
+import { AthletePortalSettingsForm } from "@/components/forms/athlete-portal-settings-form";
 import { SectionCard } from "@/components/section-card";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
@@ -42,6 +43,10 @@ export default async function ArenaPage() {
             }}
           />
         </div>
+      </SectionCard>
+
+      <SectionCard title="Portal do Atleta" description="Escolha quais áreas ficarão visíveis para os atletas no portal online.">
+        <AthletePortalSettingsForm settings={{ showLeagues: arena.athletePortalShowLeagues, showBooking: arena.athletePortalShowBooking, showReservations: arena.athletePortalShowReservations, showLessons: arena.athletePortalShowLessons, showClasses: arena.athletePortalShowClasses }} />
       </SectionCard>
     </div>
   );
