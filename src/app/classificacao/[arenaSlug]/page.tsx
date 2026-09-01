@@ -1,9 +1,10 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { PublicClientAuthForm } from "@/components/public-client-auth-form";
 import { getPublicPlayerAuth } from "@/lib/auth/player-session";
 import { getPublicLeaguePortal } from "@/lib/services/public-league-portal";
 import { PublicStandings } from "@/components/tournaments/public-standings";
 import { getArenaPublicStandings } from "@/lib/services/public-standings";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,8 @@ export default async function PublicStandingsPage({
     teacher?: string;
   };
 }) {
+  const alias = await prisma.arenaPublicSlug.findUnique({ where: { slug: params.arenaSlug }, include: { arena: { select: { slug: true } } } });
+  if (alias && alias.arena.slug !== params.arenaSlug) redirect(`/classificacao/${alias.arena.slug}`);
   const [data, currentClient] = await Promise.all([getArenaPublicStandings(params.arenaSlug, searchParams), getPublicPlayerAuth(params.arenaSlug)]);
   if (!data) {
     notFound();

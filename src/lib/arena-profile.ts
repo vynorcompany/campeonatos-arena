@@ -16,6 +16,10 @@ export type ArenaProfileUpdateData = ArenaProfileFields & {
   logoUrl?: string;
 };
 
+export function slugifyArenaName(name: string) {
+  return name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 72) || "arena";
+}
+
 export async function buildArenaProfileUpdateData(
   profile: ArenaProfileFields,
   logoFile: File | null

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireModuleEdit } from "@/lib/auth/guards";
-import { buildArenaProfileUpdateData } from "@/lib/arena-profile";
+import { buildArenaProfileUpdateData, slugifyArenaName } from "@/lib/arena-profile";
 import { prisma } from "@/lib/prisma";
 import type { ActionState } from "@/lib/actions/tournament";
 
@@ -25,6 +25,17 @@ function refreshArenaRoutes() {
   revalidatePath("/proximos-jogos/tv");
 }
 
+async function createUniqueArenaSlug(name: string, arenaId: string) {
+  const base = slugifyArenaName(name);
+  let slug = base;
+  let index = 2;
+  while (true) {
+    const taken = await prisma.arena.findFirst({ where: { slug, NOT: { id: arenaId } }, select: { id: true } }) ?? await prisma.arenaPublicSlug.findUnique({ where: { slug }, select: { id: true } });
+    if (!taken) return slug;
+    slug = `${base}-${index++}`;
+  }
+}
+
 export async function updateArenaProfileAction(_: ActionState, formData: FormData): Promise<ActionState> {
   const auth = await requireModuleEdit("arena");
   const parsed = arenaProfileSchema.safeParse({
@@ -44,11 +55,16 @@ export async function updateArenaProfileAction(_: ActionState, formData: FormDat
   }
 
   try {
-    await prisma.arena.update({
+    const currentArena = await prisma.arena.findUniqueOrThrow({ where: { id: auth.arenaId }, select: { slug: true, name: true } });
+    const slug = parsed.data.name === currentArena.name ? currentArena.slug : await createUniqueArenaSlug(parsed.data.name, auth.arenaId);
+    await prisma.$transaction(async (tx) => {
+      if (slug !== currentArena.slug) await tx.arenaPublicSlug.upsert({ where: { slug: currentArena.slug }, update: {}, create: { slug: currentArena.slug, arenaId: auth.arenaId } });
+      await tx.arena.update({
       where: {
         id: auth.arenaId
       },
-      data: await buildArenaProfileUpdateData(parsed.data, formData.get("logo") as File | null)
+      data: { ...await buildArenaProfileUpdateData(parsed.data, formData.get("logo") as File | null), slug }
+      });
     });
   } catch (error) {
     return {

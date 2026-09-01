@@ -133,6 +133,9 @@ model Arena {
   assistantConversations AssistantConversation[]
   assistantCommands AssistantCommand[]
   leagueAthleteTiers LeagueAthleteTier[]
+  publicSlugs ArenaPublicSlug[]
+  playerAuthAttempts PlayerAuthAttempt[]
+  playerVerificationCodes PlayerVerificationCode[]
 }
 
 model RegulationAcceptance {
@@ -280,6 +283,44 @@ model PlayerSession {
 
   @@index([playerAccountId])
   @@index([expiresAt])
+}
+
+model PlayerAuthAttempt {
+  id          String   @id @default(cuid())
+  arenaId     String
+  phone       String
+  failedCount Int      @default(0)
+  lockedUntil DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  arena       Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+
+  @@unique([arenaId, phone])
+  @@index([lockedUntil])
+}
+
+model PlayerVerificationCode {
+  id        String   @id @default(cuid())
+  arenaId   String
+  phone     String
+  purpose   String
+  codeHash  String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  arena     Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+
+  @@index([arenaId, phone, purpose, expiresAt])
+}
+
+model ArenaPublicSlug {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  arenaId   String
+  arena     Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+
+  @@index([arenaId])
 }
 
 model ArenaNotification {
