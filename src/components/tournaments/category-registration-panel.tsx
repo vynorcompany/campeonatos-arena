@@ -121,7 +121,7 @@ export function CategoryRegistrationPanel({
             ) : (
               <>
                 {canAcceptManualPair ? (
-                  <SafeActionForm action={addManualPairAction} className="grid-form" successMessage="Dupla adicionada com sucesso.">
+                  <SafeActionForm action={addManualPairAction} className="grid-form category-pair-form" successMessage="Dupla adicionada com sucesso.">
                     <input
                       type="hidden"
                       name="competitionId"
@@ -161,7 +161,7 @@ export function CategoryRegistrationPanel({
                         ))}
                       </select>
                     </div>
-                    <div className="field field-submit form-full">
+                    <div className="field field-submit category-pair-submit">
                       <SubmitButton
                         label="Adicionar dupla"
                         pendingLabel="Adicionando..."
