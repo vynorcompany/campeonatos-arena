@@ -31,4 +31,12 @@ test("league category control stays compact and separated from its panel title",
 
   assert.match(styles, /\.portal-league-category-picker[^}]*width:\s*fit-content/);
   assert.match(styles, /\.portal-league-category-picker[^}]*margin-top:\s*18px/);
+  assert.match(styles, /\.portal-league-category-picker[^}]*border:\s*0/);
+});
+
+test("medical substitution uses a compact action card instead of a raw details row", () => {
+  const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
+
+  assert.match(styles, /\.public-medical-request[^}]*border-radius/);
+  assert.match(styles, /\.public-medical-request summary[^}]*background/);
 });
