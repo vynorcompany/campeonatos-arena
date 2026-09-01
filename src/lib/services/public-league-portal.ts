@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 
 function dateTimeLabel(value: Date) { return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(value); }
 
-export async function getPublicLeaguePortal(arenaSlug: string, playerId: string) {
+export async function getPublicLeaguePortal(arenaSlug: string, playerId: string, requestedCategoryId?: string) {
   const arena = await prisma.arena.findUnique({ where: { slug: arenaSlug }, select: { id: true, scheduleStartMinute: true, scheduleEndMinute: true, courts: { where: { active: true }, include: { weeklyRules: true }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }] } } });
   if (!arena) return null;
   const ownPairs = await prisma.categoryPair.findMany({ where: { active: true, players: { some: { playerId } }, competition: { format: "LEAGUE", status: { not: "FINISHED" }, category: { tournament: { arenaId: arena.id } } } }, include: { group: true, competition: { include: { category: { include: { tournament: true } } } }, players: { include: { player: { select: { id: true, name: true } } } }, homeMatches: { include: { awayPair: { select: { id: true, name: true, groupId: true } }, leagueCycle: { select: { id: true } } } }, awayMatches: { include: { homePair: { select: { id: true, name: true, groupId: true } } } } }, orderBy: { createdAt: "asc" } });
@@ -51,6 +51,20 @@ export async function getPublicLeaguePortal(arenaSlug: string, playerId: string)
     }),
   ]);
   const occurrences = await prisma.scheduleOccurrence.findMany({ where: { arenaId: arena.id, status: { not: "CANCELED" }, startsAt: { gte: now, lt: new Date(now.getTime() + 8 * 24 * 60 * 60_000) } }, include: { occurrenceCourts: true } });
+  const leagueCompetitions = await prisma.categoryCompetition.findMany({
+    where: { format: "LEAGUE", status: { not: "FINISHED" }, category: { active: true, tournament: { arenaId: arena.id } } },
+    orderBy: [{ category: { tournament: { name: "asc" } } }, { category: { name: "asc" } }],
+    include: {
+      category: { include: { tournament: { select: { name: true } } } },
+      pairs: { where: { active: true }, orderBy: { drawOrder: "asc" }, include: { group: true, players: { include: { player: { select: { id: true, name: true } } } } } },
+      matches: { orderBy: [{ leagueBlock: "asc" }, { roundOrder: "asc" }], include: { homePair: { select: { name: true } }, awayPair: { select: { name: true } }, winnerPair: { select: { id: true } } } },
+    },
+  });
+  const ownCompetitionIds = new Set(ownPairs.map((pair) => pair.competitionId));
+  const selectedLeagueCompetition = leagueCompetitions.find((competition) => competition.categoryId === requestedCategoryId) ?? leagueCompetitions.find((competition) => ownCompetitionIds.has(competition.id)) ?? leagueCompetitions[0] ?? null;
+  const leagueCategories = leagueCompetitions.map((competition) => ({ id: competition.categoryId, label: `${competition.category.name} · ${competition.category.tournament.name}`, member: ownCompetitionIds.has(competition.id) }));
+  const selectedLeaguePairs = selectedLeagueCompetition?.pairs.map((pair) => ({ id: pair.id, name: pair.name, groupName: pair.group?.name ?? "", players: pair.players.map((entry) => ({ id: entry.player.id, name: entry.player.name })) })) ?? [];
+  const leagueResults = selectedLeagueCompetition?.matches.map((match) => ({ id: match.id, block: match.leagueBlock, homePairName: match.homePair?.name ?? "Dupla a definir", awayPairName: match.awayPair?.name ?? "Dupla a definir", homeScore: match.homeScore, awayScore: match.awayScore, finished: Boolean(match.winnerPairId) })) ?? [];
   const slots = arena.courts.flatMap((court) => Array.from({ length: 7 }, (_, dayOffset) => {
     const date = new Date(now); date.setHours(0, 0, 0, 0); date.setDate(date.getDate() + dayOffset);
     const rule = court.weeklyRules.find((item) => item.weekday === date.getDay() && item.available);
@@ -65,8 +79,12 @@ export async function getPublicLeaguePortal(arenaSlug: string, playerId: string)
   })).flat();
   return {
     arenaSlug,
-    pairs: ownPairs.map((pair) => ({ id: pair.id, name: pair.name, categoryName: pair.competition.category.name, eventName: pair.competition.category.tournament.name, groupName: pair.group?.name ?? "", players: pair.players.map((entry) => ({ id: entry.player.id, name: entry.player.name })), medicalRequestPending: medicalRequests.some((request) => request.pairId === pair.id), opponents: pair.homeMatches.filter((match) => !match.winnerPairId && match.leagueCycleId).map((match) => ({ matchId: match.id, pair: match.awayPair, block: match.leagueBlock })).filter((item): item is { matchId: string; block: number | null; pair: { id: string; name: string; groupId: string | null } } => Boolean(item.pair) && item.pair!.id !== pair.id && (!pair.groupId || item.pair!.groupId === pair.groupId)).map((item) => ({ matchId: item.matchId, id: item.pair.id, name: item.pair.name, block: item.block })) })),
-    challenges: challenges.map((challenge) => ({ id: challenge.id, status: challenge.status, opponent: challenge.categoryMatch.awayPair?.name ?? "Dupla visitante", proposer: challenge.categoryMatch.homePair?.name ?? "Dupla mandante", court: challenge.court.name, proposedAt: dateTimeLabel(challenge.startsAt), responseDueAt: dateTimeLabel(challenge.responseDueAt), block: challenge.categoryMatch.leagueBlock, incoming: ownPairs.some((pair) => pair.id === challenge.opponentPairId) })),
+    leagueCategories,
+    selectedLeagueCategoryId: selectedLeagueCompetition?.categoryId ?? null,
+    selectedLeaguePairs,
+    leagueResults,
+    pairs: ownPairs.map((pair) => ({ id: pair.id, categoryId: pair.competition.categoryId, name: pair.name, categoryName: pair.competition.category.name, eventName: pair.competition.category.tournament.name, groupName: pair.group?.name ?? "", players: pair.players.map((entry) => ({ id: entry.player.id, name: entry.player.name })), medicalRequestPending: medicalRequests.some((request) => request.pairId === pair.id), opponents: pair.homeMatches.filter((match) => !match.winnerPairId && match.leagueCycleId).map((match) => ({ matchId: match.id, pair: match.awayPair, block: match.leagueBlock })).filter((item): item is { matchId: string; block: number | null; pair: { id: string; name: string; groupId: string | null } } => Boolean(item.pair) && item.pair!.id !== pair.id && (!pair.groupId || item.pair!.groupId === pair.groupId)).map((item) => ({ matchId: item.matchId, id: item.pair.id, name: item.pair.name, block: item.block })) })),
+    challenges: challenges.map((challenge) => ({ id: challenge.id, categoryId: challenge.categoryMatch.competitionId, status: challenge.status, opponent: challenge.categoryMatch.awayPair?.name ?? "Dupla visitante", proposer: challenge.categoryMatch.homePair?.name ?? "Dupla mandante", court: challenge.court.name, proposedAt: dateTimeLabel(challenge.startsAt), responseDueAt: dateTimeLabel(challenge.responseDueAt), block: challenge.categoryMatch.leagueBlock, incoming: ownPairs.some((pair) => pair.id === challenge.opponentPairId) })),
     leagueNotifications,
     slots,
     replacementPlayers,

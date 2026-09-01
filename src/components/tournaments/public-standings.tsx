@@ -6,12 +6,13 @@ import { PublicPlayerProfile } from "@/components/public-player-profile";
 
 type Portal = Awaited<ReturnType<typeof import("@/lib/services/public-league-portal").getPublicLeaguePortal>>;
 type PortalSection = "leagues" | "booking" | "reservations" | "lessons" | "classes" | "profile" | "teacher";
-type LeagueTab = "games" | "ranking" | "rules" | "prizes";
+type LeagueTab = "games" | "pairs" | "ranking" | "rules" | "prizes";
 
-function portalHref(section: PortalSection, leagueTab?: LeagueTab, teacherId?: string) {
+function portalHref(section: PortalSection, leagueTab?: LeagueTab, teacherId?: string, leagueCategoryId?: string) {
   const query = new URLSearchParams({ section, tab: leagueTab === "ranking" ? "ranking" : leagueTab === "rules" ? "rules" : leagueTab === "prizes" ? "portal" : "games" });
   if (leagueTab) query.set("leagueTab", leagueTab);
   if (teacherId) query.set("teacher", teacherId);
+  if (leagueCategoryId) query.set("leagueCategory", leagueCategoryId);
   return `?${query.toString()}`;
 }
 
@@ -22,6 +23,7 @@ export function PublicStandings({
   authForm,
   section = "leagues",
   leagueTab = "games",
+  leagueCategoryId,
   bookingDate,
   teacherId,
 }: {
@@ -31,6 +33,7 @@ export function PublicStandings({
   authForm: React.ReactNode;
   section?: PortalSection;
   leagueTab?: LeagueTab;
+  leagueCategoryId?: string;
   bookingDate?: string;
   teacherId?: string;
 }) {
@@ -48,7 +51,7 @@ export function PublicStandings({
 
   if (!currentClient) return <main className="athlete-portal-page">{publicHeader}<section className="athlete-portal-auth">{authForm}</section></main>;
 
-  const selectedLeagueTab: LeagueTab = leagueTab === "ranking" || leagueTab === "rules" || leagueTab === "prizes" ? leagueTab : "games";
+  const selectedLeagueTab: LeagueTab = leagueTab === "pairs" || leagueTab === "ranking" || leagueTab === "rules" || leagueTab === "prizes" ? leagueTab : "games";
 
   return <main className="athlete-portal-page">
     {publicHeader}
@@ -63,12 +66,13 @@ export function PublicStandings({
     </nav>
     {section === "leagues" ? <>
       <nav className="athlete-portal-league-nav" aria-label="Menu da Liga">
-        <Link className={selectedLeagueTab === "games" ? "active" : ""} href={portalHref("leagues", "games")}>Jogos</Link>
-        <Link className={selectedLeagueTab === "ranking" ? "active" : ""} href={portalHref("leagues", "ranking")}>Ranking</Link>
-        <Link className={selectedLeagueTab === "rules" ? "active" : ""} href={portalHref("leagues", "rules")}>Regras</Link>
-        <Link className={selectedLeagueTab === "prizes" ? "active" : ""} href={portalHref("leagues", "prizes")}>Premiação</Link>
+        <Link className={selectedLeagueTab === "games" ? "active" : ""} href={portalHref("leagues", "games", undefined, leagueCategoryId)}>Jogos</Link>
+        <Link className={selectedLeagueTab === "pairs" ? "active" : ""} href={portalHref("leagues", "pairs", undefined, leagueCategoryId)}>Duplas</Link>
+        <Link className={selectedLeagueTab === "ranking" ? "active" : ""} href={portalHref("leagues", "ranking", undefined, leagueCategoryId)}>Ranking</Link>
+        <Link className={selectedLeagueTab === "rules" ? "active" : ""} href={portalHref("leagues", "rules", undefined, leagueCategoryId)}>Regras</Link>
+        <Link className={selectedLeagueTab === "prizes" ? "active" : ""} href={portalHref("leagues", "prizes", undefined, leagueCategoryId)}>Premiação</Link>
       </nav>
-      {selectedLeagueTab === "games" ? (portal ? <PublicLeaguePortal arenaSlug={data.arena.slug} playerName={currentClient.name} portal={portal} showPrize={false} /> : <section className="athlete-portal-content-panel"><PortalEmpty title="Portal indisponível" detail="Não foi possível carregar os dados do atleta neste momento." /></section>) : null}
+      {selectedLeagueTab === "games" || selectedLeagueTab === "pairs" ? (portal ? <PublicLeaguePortal arenaSlug={data.arena.slug} playerName={currentClient.name} portal={portal} view={selectedLeagueTab} showPrize={false} /> : <section className="athlete-portal-content-panel"><PortalEmpty title="Portal indisponível" detail="Não foi possível carregar os dados do atleta neste momento." /></section>) : null}
       {selectedLeagueTab === "rules" ? <RulesPanel data={data} /> : null}
       {selectedLeagueTab === "ranking" ? <RankingPanel data={data} /> : null}
       {selectedLeagueTab === "prizes" ? <PrizePanel portal={portal} /> : null}
