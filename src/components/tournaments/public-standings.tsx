@@ -77,7 +77,7 @@ export function PublicStandings({
 }
 
 function PrizePanel({ portal }: { portal: Portal }) {
-  return <section className="portal-league-prize-podium"><div className="portal-league-prize-cup" aria-hidden="true">🏆</div><div className="portal-league-prize-copy"><span>PREMIAÇÃO DA LIGA</span><h2>O pódio está à sua espera</h2><p>Acompanhe a premiação das suas Ligas em tempo real.</p></div><div className="portal-league-prize-list">{portal?.prizes.length ? portal.prizes.map((prize) => <article key={prize.id}><strong>{prize.categoryName}</strong><span>{prize.eventName}</span><b>{prize.description}</b></article>) : <p>A arena ainda não divulgou a premiação das suas Ligas.</p>}</div></section>;
+  return <section className="portal-league-prize-podium"><div className="portal-league-prize-cup" aria-hidden="true">🏆</div><div className="portal-league-prize-copy"><span>PREMIAÇÃO DA LIGA</span><h2>O pódio está à sua espera</h2><p>Acompanhe a premiação das suas Ligas em tempo real.</p></div><div className="portal-league-prize-list">{portal?.prizes.length ? portal.prizes.map((prize) => <article key={prize.id}><strong>{prize.categoryName}</strong><span>{prize.eventName}</span><b className="portal-league-prize-description">{prize.description}</b></article>) : <p>A arena ainda não divulgou a premiação das suas Ligas.</p>}</div></section>;
 }
 
 function RulesPanel({ data }: { data: ArenaPublicStandings }) {
