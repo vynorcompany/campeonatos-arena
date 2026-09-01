@@ -7314,7 +7314,7 @@ button {
 /* Configurações e Portal do Atleta: identidade visual mais enxuta. */
 .athlete-portal-brand { gap: 0; }
 .athlete-portal-brand > div { display: grid; justify-items: start; gap: 2px; }
-.athlete-portal-arena-logo { display: block; width: min(176px, 42vw); height: 28px; object-fit: contain; object-position: left center; }
+.athlete-portal-brand .athlete-portal-arena-logo { display: block; width: min(176px, 42vw); height: 28px; border: 0; border-radius: 0; background: transparent; box-shadow: none; object-fit: contain; object-position: left center; }
 .athlete-portal-arena-name { color: #b7f4dd; font-size: .7rem; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
 .athlete-portal-user { display: grid; justify-items: center; gap: 5px; }
 .athlete-portal-user-avatar { display: grid; width: 42px; height: 42px; place-items: center; overflow: hidden; border: 1px solid rgb(255 255 255 / .48); border-radius: 50%; color: #fff; background: rgb(0 45 67 / .28); box-shadow: 0 7px 16px rgb(0 25 45 / .2); font-size: .8rem; font-weight: 850; }
