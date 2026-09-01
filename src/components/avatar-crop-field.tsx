@@ -30,6 +30,9 @@ export function AvatarCropField({ currentPhotoUrl, name }: { currentPhotoUrl: st
 
   const selectImage = (file?: File) => {
     if (!file) return;
+    if (outputRef.current) {
+      const data = new DataTransfer(); data.items.add(file); outputRef.current.files = data.files;
+    }
     const src = URL.createObjectURL(file); const element = new Image();
     element.onload = () => { setPreviewReady(false); setImage({ src, width: element.naturalWidth, height: element.naturalHeight }); setZoom(1); setOffset({ x: 0, y: 0 }); };
     element.src = src;
