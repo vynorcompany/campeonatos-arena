@@ -25,5 +25,6 @@ test("nome da arena gera endereço público canônico e preserva aliases", () =>
   assert.match(schema, /model ArenaPublicSlug \{/);
   assert.match(arenaAction, /createUniqueArenaSlug/);
   assert.match(arenaAction, /arenaPublicSlug\.upsert/);
+  assert.match(arenaAction, /slugifyArenaName\(parsed\.data\.name\) !== currentArena\.slug/);
   assert.match(profile, /slugifyArenaName/);
 });

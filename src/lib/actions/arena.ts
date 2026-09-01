@@ -56,7 +56,7 @@ export async function updateArenaProfileAction(_: ActionState, formData: FormDat
 
   try {
     const currentArena = await prisma.arena.findUniqueOrThrow({ where: { id: auth.arenaId }, select: { slug: true, name: true } });
-    const slug = parsed.data.name === currentArena.name ? currentArena.slug : await createUniqueArenaSlug(parsed.data.name, auth.arenaId);
+    const slug = slugifyArenaName(parsed.data.name) !== currentArena.slug ? await createUniqueArenaSlug(parsed.data.name, auth.arenaId) : currentArena.slug;
     await prisma.$transaction(async (tx) => {
       if (slug !== currentArena.slug) await tx.arenaPublicSlug.upsert({ where: { slug: currentArena.slug }, update: {}, create: { slug: currentArena.slug, arenaId: auth.arenaId } });
       await tx.arena.update({
