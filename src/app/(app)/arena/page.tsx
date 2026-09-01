@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { CourtConfigurationWorkspace } from "@/components/courts/court-configuration-workspace";
 import { ArenaProfileForm } from "@/components/forms/arena-profile-form";
 import { AthletePortalSettingsForm } from "@/components/forms/athlete-portal-settings-form";
 import { SectionCard } from "@/components/section-card";
@@ -7,14 +8,14 @@ import { ArenaUsersManagement } from "@/components/users/arena-users-management"
 import { requireRole, requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
-type ArenaSection = "data" | "portal" | "users";
+type ArenaSection = "data" | "portal" | "courts" | "users";
 
 type ArenaPageProps = {
-  searchParams?: { section?: string };
+  searchParams?: { section?: string; court?: string };
 };
 
 function resolveSection(value?: string): ArenaSection {
-  return value === "portal" || value === "users" ? value : "data";
+  return value === "portal" || value === "courts" || value === "users" ? value : "data";
 }
 
 function canManageUsers(auth: { arenaRole: string | null; systemRole: string }) {
@@ -34,22 +35,16 @@ export default async function ArenaPage({ searchParams }: ArenaPageProps) {
 
   return (
     <div className="stack-md">
-      <header className="page-header">
-        <div className="stack-xs">
-          <p className="eyebrow">Configurações</p>
-          <h1>Dados da Arena</h1>
-          <p className="muted">Centralize a identidade da arena, a experiência do Portal do Atleta e os acessos da equipe.</p>
-        </div>
-      </header>
-
       <div className="arena-settings-layout">
         <aside className="arena-settings-nav" aria-label="Seções de Dados da Arena">
-          <span className="arena-settings-nav-title">Dados da Arena</span>
           <Link href="/arena" className={activeSection === "data" ? "arena-settings-nav-link is-active" : "arena-settings-nav-link"}>
             Dados da Arena
           </Link>
           <Link href="/arena?section=portal" className={activeSection === "portal" ? "arena-settings-nav-link is-active" : "arena-settings-nav-link"}>
             Portal do Atleta
+          </Link>
+          <Link href="/arena?section=courts" className={activeSection === "courts" ? "arena-settings-nav-link is-active" : "arena-settings-nav-link"}>
+            Quadras
           </Link>
           {userManagementAllowed ? (
             <Link href="/arena?section=users" className={activeSection === "users" ? "arena-settings-nav-link is-active" : "arena-settings-nav-link"}>
@@ -96,6 +91,8 @@ export default async function ArenaPage({ searchParams }: ArenaPageProps) {
               />
             </SectionCard>
           ) : null}
+
+          {activeSection === "courts" ? <CourtConfigurationWorkspace courtId={searchParams?.court} /> : null}
 
           {activeSection === "users" && userManagementAllowed ? (
             <ArenaUsersManagement arenaId={auth.arenaId} currentUserId={auth.userId} />

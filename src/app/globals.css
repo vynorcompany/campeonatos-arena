@@ -1416,7 +1416,7 @@ button {
   width: 150px;
   height: 150px;
   object-fit: contain;
-  border-radius: 8px;
+  border-radius: 50%;
   background: #ffffff;
   box-shadow: var(--shadow);
 }
@@ -7305,8 +7305,22 @@ button {
 
 @media (max-width: 760px) {
   .arena-settings-layout { grid-template-columns: 1fr; gap: 14px; }
-  .arena-settings-nav { position: static; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 6px; }
+  .arena-settings-nav { position: static; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 6px; }
   .arena-settings-nav-title { display: none; }
   .arena-settings-nav-link { min-height: 36px; justify-content: center; padding: 7px 6px; font-size: .74rem; text-align: center; }
   .arena-profile-layout { grid-template-columns: 1fr; }
 }
+
+/* Configurações e Portal do Atleta: identidade visual mais enxuta. */
+.athlete-portal-brand { gap: 0; }
+.athlete-portal-brand > div { display: grid; justify-items: start; gap: 2px; }
+.athlete-portal-arena-logo { display: block; width: min(176px, 42vw); height: 28px; object-fit: contain; object-position: left center; }
+.athlete-portal-arena-name { color: #b7f4dd; font-size: .7rem; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+.athlete-portal-user { display: grid; justify-items: center; gap: 5px; }
+.athlete-portal-user-avatar { display: grid; width: 42px; height: 42px; place-items: center; overflow: hidden; border: 1px solid rgb(255 255 255 / .48); border-radius: 50%; color: #fff; background: rgb(0 45 67 / .28); box-shadow: 0 7px 16px rgb(0 25 45 / .2); font-size: .8rem; font-weight: 850; }
+.athlete-portal-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.athlete-portal-greeting { padding: 0; border: 0; background: transparent; box-shadow: none; white-space: nowrap; }
+.portal-league-category-picker { width: fit-content; max-width: 100%; align-items: end; gap: 8px; margin-top: 18px; padding: 8px 9px; }
+.portal-league-category-picker label { flex: 0 1 330px; min-width: min(260px, 100%); }
+.portal-league-category-picker select { width: 100%; min-width: 0; }
+@media (max-width: 700px) { .athlete-portal-user { justify-items: start; }.athlete-portal-brand > div { width: 100%; }.portal-league-category-picker { width: 100%; align-items: stretch; } }

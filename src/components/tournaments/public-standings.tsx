@@ -41,10 +41,9 @@ export function PublicStandings({
     <header className="athlete-portal-hero">
       <div className="athlete-portal-hero-inner">
         <div className="athlete-portal-brand">
-          {data.arena.logoUrl ? <img src={data.arena.logoUrl} alt={`Logo da arena ${data.arena.name}`} /> : <span className="athlete-portal-mark">AP</span>}
-          <div><span>ARENA PADEL</span><h1>Portal do Atleta</h1><p>Acompanhe suas atividades, reservas e Ligas em um só lugar.</p></div>
+          <div>{data.arena.logoUrl ? <img className="athlete-portal-arena-logo" src={data.arena.logoUrl} alt={`Logo da arena ${data.arena.name}`} /> : <span className="athlete-portal-arena-name">{data.arena.name}</span>}<h1>Portal do Atleta</h1><p>Acompanhe suas atividades, reservas e Ligas em um só lugar.</p></div>
         </div>
-        {currentClient ? <strong className="athlete-portal-greeting">Olá, {currentClient.name}</strong> : null}
+        {currentClient ? <div className="athlete-portal-user"><span className="athlete-portal-user-avatar">{currentClient.photoUrl ? <img src={currentClient.photoUrl} alt="" /> : currentClient.name.slice(0, 1).toUpperCase()}</span><strong className="athlete-portal-greeting">Olá, {currentClient.name}</strong></div> : null}
       </div>
     </header>
   );
