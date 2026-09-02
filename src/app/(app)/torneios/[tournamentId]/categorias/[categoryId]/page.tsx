@@ -367,12 +367,97 @@ export default async function CategoryPage({
         activeTab={tab}
       >
         {tab === "overview" ? (
+          competition?.format === "LEAGUE" ? (
+          <div className="league-overview-dashboard">
+            <article id={`category-${category.id}`} className="league-overview-hero">
+              <header className="league-overview-header">
+                <div>
+                  <p className="eyebrow">{category.tournament.name}</p>
+                  <div className="league-overview-title-row">
+                    <h1>{category.name}</h1>
+                    <CategoryPublicVisibilityForm competitionId={competition.id} isPublic={competition.isPublic} />
+                    <LeagueCategorySettingsDialog category={{ id: category.id, name: category.name, class: category.class, gender: category.gender, leagueTier: resolveLeagueTier(category.name, competition.leagueTier) }} />
+                  </div>
+                </div>
+                <div className="league-overview-status"><StatusBadge status={competition.status} /></div>
+              </header>
+
+              <p className="league-overview-context">
+                {category.class || "Classe pendente"} · {category.gender || "Gênero pendente"}
+                {" · "}{formatLabels[competition.format]} · Ranking: {competition.ranking?.name ?? "Sem ranking"}
+              </p>
+
+              <div className="league-overview-summary-row">
+                <article className="league-overview-metric">
+                  <span className="league-overview-metric-icon league-overview-metric-icon-blue" aria-hidden="true">♧</span>
+                  <div><span>Duplas</span><strong>{competition.pairs.length}</strong></div>
+                </article>
+                <article className="league-overview-metric">
+                  <span className="league-overview-metric-icon league-overview-metric-icon-green" aria-hidden="true">▣</span>
+                  <div><span>Jogos</span><strong>{completedMatchCount}/{competition.matches.length}</strong></div>
+                </article>
+                <article className="league-overview-metric">
+                  <span className="league-overview-metric-icon league-overview-metric-icon-purple" aria-hidden="true">▥</span>
+                  <div><span>Ranking geral</span><strong>{competition.feedsGeneralRanking ? "Ativo" : "Inativo"}</strong></div>
+                </article>
+                <div className="league-overview-primary-action">
+                  {nextStep ? (
+                    <Link href={nextStep.href} className="button button-primary">
+                      <span aria-hidden="true">♕</span> {nextStep.label}
+                    </Link>
+                  ) : <span className="pill">Categoria concluída</span>}
+                </div>
+              </div>
+            </article>
+
+            <div className="league-overview-bottom">
+              <section className="league-prize-card" aria-labelledby="league-prize-title">
+                <form action={updateLeaguePrizeAction} className="league-prize-form">
+                  <div className="league-prize-card-heading">
+                    <span className="league-overview-section-icon" aria-hidden="true">♕</span>
+                    <div><h2 id="league-prize-title">Premiação</h2><p>Prêmio do ciclo atual</p></div>
+                    <span className="league-prize-edit-icon" aria-hidden="true">✎</span>
+                  </div>
+                  <div className="league-prize-editor">
+                    <input type="hidden" name="competitionId" value={competition.id} />
+                    <textarea
+                      className="league-prize-textarea"
+                      name="prizeDescription"
+                      rows={4}
+                      defaultValue={competition.leagueCycles.find((cycle) => cycle.status === "OPEN")?.prizeDescription ?? ""}
+                      placeholder="Descreva a premiação da Liga. Ex.: campeãs recebem troféu, voucher e premiação em dinheiro."
+                    />
+                    <div className="league-prize-actions"><button className="button button-primary" type="submit"><span aria-hidden="true">▣</span> Salvar premiação</button></div>
+                  </div>
+                </form>
+              </section>
+
+              <aside className="league-cycle-card">
+                <div className="league-cycle-card-heading"><span className="league-overview-section-icon" aria-hidden="true">▣</span><h2>Ciclo mensal</h2></div>
+                <p>Fecha o mês vigente, registra campeã e executa acesso ou rebaixamento.</p>
+                <form action={runLeagueLifecycleAction}>
+                  <input type="hidden" name="competitionId" value={competition.id} />
+                  <button className="button button-secondary" type="submit"><span aria-hidden="true">⟳</span> Processar ciclo da Liga</button>
+                </form>
+              </aside>
+            </div>
+
+            {medicalRequests.length > 0 ? <LeagueMedicalRequestsPanel requests={medicalRequests.map((request) => ({
+              id: request.id,
+              reason: request.reason,
+              requestedAt: request.requestedAt,
+              pairName: request.pair.name,
+              previousPlayerName: athletes.find((athlete) => athlete.id === request.previousPlayerId)?.name ?? "Atleta anterior",
+              replacementPlayerName: athletes.find((athlete) => athlete.id === request.replacementPlayerId)?.name ?? "Novo atleta",
+            }))} /> : null}
+          </div>
+          ) : (
           <div className="stack-sm">
                 <article id={`category-${category.id}`} className="category-overview category-detail-hero">
               <div className="category-overview-head">
                 <div className="stack-xs">
                   <p className="eyebrow">{category.tournament.name}</p>
-                  <div className="category-overview-title-row"><h1>{category.name}</h1>{competition ? <CategoryPublicVisibilityForm competitionId={competition.id} isPublic={competition.isPublic} /> : null}{competition?.format === "LEAGUE" ? <LeagueCategorySettingsDialog category={{ id: category.id, name: category.name, class: category.class, gender: category.gender, leagueTier: resolveLeagueTier(category.name, competition.leagueTier) }} /> : null}</div>
+                  <div className="category-overview-title-row"><h1>{category.name}</h1>{competition ? <CategoryPublicVisibilityForm competitionId={competition.id} isPublic={competition.isPublic} /> : null}</div>
                 </div>
                 <StatusBadge status={competition?.status ?? "DRAFT"} />
               </div>
@@ -414,35 +499,6 @@ export default async function CategoryPage({
                 )}
               </div>
             </article>
-            {competition?.format === "LEAGUE" ? <LeagueMedicalRequestsPanel requests={medicalRequests.map((request) => ({
-              id: request.id,
-              reason: request.reason,
-              requestedAt: request.requestedAt,
-              pairName: request.pair.name,
-              previousPlayerName: athletes.find((athlete) => athlete.id === request.previousPlayerId)?.name ?? "Atleta anterior",
-              replacementPlayerName: athletes.find((athlete) => athlete.id === request.replacementPlayerId)?.name ?? "Novo atleta",
-            }))} /> : null}
-            {competition?.format === "LEAGUE" ? (
-              <section className="league-management-panel" aria-labelledby="league-prize-title">
-                <form action={updateLeaguePrizeAction} className="league-prize-form">
-                  <div className="league-prize-copy"><p className="eyebrow">Premiação</p><h2 id="league-prize-title">Prêmio do ciclo atual</h2></div>
-                  <div className="league-prize-editor">
-                    <input type="hidden" name="competitionId" value={competition.id} />
-                    <textarea
-                      className="league-prize-textarea"
-                      name="prizeDescription"
-                      rows={4}
-                      defaultValue={competition.leagueCycles.find((cycle) => cycle.status === "OPEN")?.prizeDescription ?? ""}
-                      placeholder="Descreva a premiação da Liga. Ex.: campeãs recebem troféu, voucher e premiação em dinheiro."
-                    />
-                    <div className="league-prize-actions">
-                      <button className="button button-primary" type="submit">Salvar premiação</button>
-                    </div>
-                  </div>
-                </form>
-                <aside className="league-cycle-actions"><strong>Ciclo mensal</strong><span>Fecha o mês vigente, registra campeã e executa acesso ou rebaixamento.</span><form action={runLeagueLifecycleAction}><input type="hidden" name="competitionId" value={competition.id} /><button className="button button-small" type="submit">Processar ciclo da Liga</button></form></aside>
-              </section>
-            ) : null}
             {!competition ? (
               <article className="section-card">
                 <CategoryCompetitionForm
@@ -453,6 +509,7 @@ export default async function CategoryPage({
               </article>
             ) : null}
           </div>
+          )
         ) : null}
 
         {tab === "registrations" ? (

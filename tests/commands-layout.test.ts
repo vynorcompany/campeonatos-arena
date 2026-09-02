@@ -20,3 +20,17 @@ test("commands centers the date picker and keeps search in the right toolbar", (
   assert.match(card, /Total atual/);
   assert.match(card, /command-item-controls/);
 });
+
+test("commands use an operational day panel with a clear empty state", () => {
+  const page = readFileSync(resolve(process.cwd(), "src/app/(app)/comandas/page.tsx"), "utf8");
+  const picker = readFileSync(resolve(process.cwd(), "src/components/comandas/commands-date-picker.tsx"), "utf8");
+  const css = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
+
+  assert.match(page, /commands-day-panel/);
+  assert.match(page, /commands-empty-illustration/);
+  assert.match(page, /commands-empty-action/);
+  assert.match(picker, /commands-date-icon/);
+  assert.match(css, /\.commands-day-panel/);
+  assert.match(css, /\.commands-empty-illustration/);
+  assert.match(css, /\.commands-empty-action/);
+});

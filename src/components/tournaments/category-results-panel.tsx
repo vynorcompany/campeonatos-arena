@@ -166,10 +166,10 @@ export function CategoryResultsPanel({
         return (
           <article
             id={`category-${category.id}`}
-            className="section-card stack-md category-operation-panel"
+            className={`section-card stack-md category-operation-panel ${competition?.format === "LEAGUE" && mode === "games" ? "league-games-panel" : ""}`}
             key={category.id}
           >
-            <div className="page-header">
+            <div className={`page-header ${competition?.format === "LEAGUE" && mode === "games" ? "league-games-hero" : ""}`}>
               <div className="stack-xs">
                 <h3>{category.name}</h3>
                 <p className="muted">
@@ -195,7 +195,7 @@ export function CategoryResultsPanel({
 
                 {competition.matches.length ? (
                   <>
-                    <form method="get" className="category-game-filter-toolbar">
+                    <form method="get" className={`category-game-filter-toolbar ${competition.format === "LEAGUE" ? "league-games-filters" : ""}`}>
                       <input type="hidden" name="tab" value="games" />
                       <div className="category-game-filter-field">
                         <label htmlFor={`game-sort-${category.id}`}>Ordenar jogos por</label>
@@ -217,7 +217,7 @@ export function CategoryResultsPanel({
                         Aplicar filtros
                       </button>
                     </form>
-                  <div className="category-game-list">
+                  <div className={`category-game-list ${competition.format === "LEAGUE" ? "league-calendar-list" : ""}`}>
                     {orderedMatches.map((match, index) => {
                       const canRecord =
                         competition.status === "PUBLISHED" &&
@@ -239,7 +239,7 @@ export function CategoryResultsPanel({
                               <small>{orderedMatches.filter((item) => getLeagueMatchBlock(item) === leagueBlock).length} jogos</small>
                             </div>
                           ) : null}
-                        <div className="category-game-row">
+                        <div className={`category-game-row ${competition.format === "LEAGUE" ? "league-calendar-card" : ""}`}>
                           <div className="category-game-time">
                             <span className="category-game-label">Data e horário</span>
                             <strong>

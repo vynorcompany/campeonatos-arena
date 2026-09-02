@@ -70,6 +70,22 @@ test("category workspaces expose the approved operational tabs", async () => {
   assert.doesNotMatch(source, /Participantes|Configurações/);
 });
 
+test("League overview uses the category dashboard layout with metrics, prize and cycle panels", async () => {
+  const [page, styles, tabs] = await Promise.all([
+    readFile(path.join(workspaceRoot, "src", "app", "(app)", "torneios", "[tournamentId]", "categorias", "[categoryId]", "page.tsx"), "utf8"),
+    readFile(path.join(workspaceRoot, "src", "app", "globals.css"), "utf8"),
+    readFile(path.join(workspaceRoot, "src", "components", "tournaments", "tournament-tabs.tsx"), "utf8"),
+  ]);
+
+  assert.match(page, /league-overview-dashboard/);
+  assert.match(page, /league-overview-metric/);
+  assert.match(page, /Registrar resultados/);
+  assert.match(page, /league-prize-form/);
+  assert.match(styles, /\.league-overview-dashboard/);
+  assert.match(styles, /\.league-overview-bottom/);
+  assert.match(tabs, /t-tab-icon/);
+});
+
 test("focused panels submit through the category lifecycle server actions", async () => {
   const [registrationPanel, drawPanel, resultsPanel] = await Promise.all([
     readFile(
@@ -355,4 +371,23 @@ test("category game filters submit each criterion only once in a responsive tool
   assert.equal((panel.match(/name="status"/g) ?? []).length, 2);
   assert.equal((panel.match(/name="player"/g) ?? []).length, 1);
   assert.match(styles, /\.category-game-filter-toolbar/);
+});
+
+test("league tabs use dedicated responsive layouts for registrations, groups and the game calendar", async () => {
+  const [registrations, groups, games, styles] = await Promise.all([
+    readFile(path.join(workspaceRoot, "src", "components", "tournaments", "category-registration-panel.tsx"), "utf8"),
+    readFile(path.join(workspaceRoot, "src", "components", "tournaments", "category-draw-panel.tsx"), "utf8"),
+    readFile(path.join(workspaceRoot, "src", "components", "tournaments", "category-results-panel.tsx"), "utf8"),
+    readFile(path.join(workspaceRoot, "src", "app", "globals.css"), "utf8"),
+  ]);
+
+  assert.match(registrations, /league-registration-card/);
+  assert.match(registrations, /league-registration-pair-name/);
+  assert.match(groups, /league-groups-hero/);
+  assert.match(groups, /league-group-card/);
+  assert.match(games, /league-games-hero/);
+  assert.match(games, /league-calendar-card/);
+  assert.match(styles, /\.league-registration-card/);
+  assert.match(styles, /\.league-group-card/);
+  assert.match(styles, /\.league-calendar-card/);
 });

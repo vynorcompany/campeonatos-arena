@@ -8,13 +8,13 @@ import { assignTeacherPlanStudentAction } from "@/lib/actions/academy";
 type Client = { id: string; name: string; phone: string };
 type Plan = { id: string; name: string };
 
-export function TeacherPlanEnrollmentForm({ teacherId, plans, clients }: { teacherId: string; plans: Plan[]; clients: Client[] }) {
+export function TeacherPlanEnrollmentForm({ teacherId, plans, clients, variant = "default" }: { teacherId: string; plans: Plan[]; clients: Client[]; variant?: "default" | "students" }) {
   const [query, setQuery] = useState("");
   const [clientId, setClientId] = useState("");
   const [planId, setPlanId] = useState(plans[0]?.id ?? "");
   const matches = useMemo(() => query.trim().length < 1 ? [] : clients.filter((client) => client.name.toLocaleLowerCase("pt-BR").includes(query.toLocaleLowerCase("pt-BR"))).slice(0, 8), [clients, query]);
 
-  return <SafeActionForm action={assignTeacherPlanStudentAction} className="teacher-enrollment-form" resetOnSuccess successMessage="Aluno inserido e mensalidade recorrente criada.">
+  return <SafeActionForm action={assignTeacherPlanStudentAction} className={`teacher-enrollment-form ${variant === "students" ? "teacher-enrollment-students" : ""}`} resetOnSuccess successMessage="Aluno inserido e mensalidade recorrente criada.">
     <input type="hidden" name="teacherId" value={teacherId} />
     <input type="hidden" name="planId" value={planId} />
     <input type="hidden" name="clientId" value={clientId} />

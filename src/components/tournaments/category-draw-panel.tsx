@@ -75,10 +75,10 @@ export function CategoryDrawPanel({
         return (
           <article
             id={`category-${category.id}`}
-            className="section-card stack-md category-operation-panel"
+            className={`section-card stack-md category-operation-panel ${competition?.format === "LEAGUE" ? "league-groups-panel" : ""}`}
             key={category.id}
           >
-            <div className="page-header">
+            <div className={`page-header ${competition?.format === "LEAGUE" ? "league-groups-hero" : ""}`}>
               <div className="stack-xs">
                 <h3>{category.name}</h3>
                 <p className="muted">
@@ -96,7 +96,7 @@ export function CategoryDrawPanel({
             ) : (
               <>
                 {competition.status === "DRAFT" ? (
-                  <div className="section-actions">
+                  <div className={`section-actions ${competition.format === "LEAGUE" ? "league-groups-actions" : ""}`}>
                     <form action={generateCategoryDrawAction}>
                       <input
                         type="hidden"
@@ -135,22 +135,26 @@ export function CategoryDrawPanel({
                       </form>
                     ) : null}
                   </div>
-                ) : canReopenLeague ? <div className="section-actions"><form action={reopenCategoryLeagueForEditingAction}><input type="hidden" name="competitionId" value={competition.id} /><SubmitButton label="Voltar para edição" pendingLabel="Reabrindo..." className="button button-secondary" /></form><p className="muted">Nenhum jogo foi iniciado. As duplas serão mantidas, mas a tabela atual será refeita.</p></div> : <p className="muted">A composição foi publicada e não recebe mais ajustes.</p>}
+                ) : canReopenLeague ? <div className="section-actions league-groups-actions"><form action={reopenCategoryLeagueForEditingAction}><input type="hidden" name="competitionId" value={competition.id} /><SubmitButton label="Voltar para edição" pendingLabel="Reabrindo..." className="button button-secondary" /></form><p className="muted">Nenhum jogo foi iniciado. As duplas serão mantidas, mas a tabela atual será refeita.</p></div> : <p className="muted">A composição foi publicada e não recebe mais ajustes.</p>}
 
                 {competition.groups.length ? (
-                  <div className="simple-grid simple-grid-2">
+                  <div className={`simple-grid simple-grid-2 ${competition.format === "LEAGUE" ? "league-groups-list" : ""}`}>
                     {competition.groups.map((group) => (
-                      <section className="section-card stack-sm" key={group.id}>
-                        <div>
+                      <section className={`section-card stack-sm ${competition.format === "LEAGUE" ? "league-group-card" : ""}`} key={group.id}>
+                        <div className={competition.format === "LEAGUE" ? "league-group-card-heading" : ""}>
+                          {competition.format === "LEAGUE" ? <span className="league-group-icon" aria-hidden="true">♧</span> : null}
+                          <div>
                           <h4>{group.name}</h4>
                           <p className="muted">
                             {group.pairs.length} duplas
                           </p>
+                          </div>
                         </div>
                         {group.pairs.length ? (
-                          <div className="simple-list">
+                          <div className={`simple-list ${competition.format === "LEAGUE" ? "league-group-pair-list" : ""}`}>
                             {group.pairs.map((pair) => (
-                              <div className="simple-item" key={pair.id}>
+                              <div className={`simple-item ${competition.format === "LEAGUE" ? "league-group-pair" : ""}`} key={pair.id}>
+                                {competition.format === "LEAGUE" ? <span className="league-group-pair-icon" aria-hidden="true">♧</span> : null}
                                 <strong>{pair.name}</strong>
                                 {competition.status === "DRAFT" ? (
                                   <form

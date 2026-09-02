@@ -21,6 +21,20 @@ test("teachers directory keeps only professors and opens creation in a floating 
   assert.match(schema, /model TeacherPlan/);
 });
 
+test("teachers directory presents searchable operational rows with status and metrics", () => {
+  const page = readFileSync(resolve(process.cwd(), "src/app/(app)/professores/page.tsx"), "utf8");
+  const workspace = readFileSync(resolve(process.cwd(), "src/components/teachers/teacher-management-workspace.tsx"), "utf8");
+  const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
+
+  assert.match(page, /teacher-directory-page/);
+  assert.match(workspace, /teacher-directory-filters/);
+  assert.match(workspace, /teacher-directory-avatar/);
+  assert.match(workspace, /teacher-directory-metric/);
+  assert.match(styles, /\.teacher-directory-filters/);
+  assert.match(styles, /\.teacher-directory-avatar/);
+  assert.match(styles, /\.teacher-directory-metric/);
+});
+
 test("teachers list opens a dedicated operational panel for the selected professor", () => {
   const page = readFileSync(resolve(process.cwd(), "src/app/(app)/professores/page.tsx"), "utf8");
   const teacherPanel = resolve(process.cwd(), "src/app/(app)/professores/[teacherId]/page.tsx");
@@ -91,4 +105,29 @@ test("teacher enrollment has responsive visual groups instead of one long row", 
   assert.match(enrollment, /teacher-enrollment-financial/);
   assert.match(styles, /\.teacher-enrollment-primary/);
   assert.match(styles, /\.teacher-enrollment-financial/);
+});
+
+test("active students use a dedicated teacher dashboard with summary and enrollment workspace", () => {
+  const detail = readFileSync(resolve(process.cwd(), "src/app/(app)/professores/[teacherId]/page.tsx"), "utf8");
+  const enrollment = readFileSync(resolve(process.cwd(), "src/components/teachers/teacher-plan-enrollment-form.tsx"), "utf8");
+  const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
+
+  assert.match(detail, /teacher-students-dashboard/);
+  assert.match(detail, /teacher-active-students-panel/);
+  assert.match(detail, /teacher-detail-metric-icon/);
+  assert.match(enrollment, /teacher-enrollment-students/);
+  assert.match(styles, /\.teacher-active-students-panel/);
+  assert.match(styles, /\.teacher-enrollment-students/);
+});
+
+test("teacher classes use a schedule-first directory with a dedicated create action", () => {
+  const groups = readFileSync(resolve(process.cwd(), "src/components/teachers/teacher-class-groups-panel.tsx"), "utf8");
+  const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
+
+  assert.match(groups, /teacher-class-directory/);
+  assert.match(groups, /teacher-class-row/);
+  assert.match(groups, /teacher-class-create-panel/);
+  assert.match(styles, /\.teacher-class-directory/);
+  assert.match(styles, /\.teacher-class-row/);
+  assert.match(styles, /\.teacher-class-weekday/);
 });

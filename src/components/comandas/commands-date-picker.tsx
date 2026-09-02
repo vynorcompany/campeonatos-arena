@@ -36,8 +36,9 @@ export function CommandsDatePicker({ selectedDate, search, openDays, today }: Co
 
   return <>
     <button className="commands-date-trigger" type="button" onClick={() => setIsOpen(true)} aria-haspopup="dialog" aria-expanded={isOpen}>
-      <span>Comandas do dia</span>
-      <strong>{new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "short" }).format(selected)}</strong>
+      <span className="commands-date-icon" aria-hidden="true">▣</span>
+      <span className="commands-date-copy"><span>Comandas do dia</span><strong>{new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "short" }).format(selected)}</strong></span>
+      <span className="commands-date-chevron" aria-hidden="true">⌄</span>
     </button>
     {isOpen ? <div className="commands-calendar-modal-overlay" role="presentation" onMouseDown={() => setIsOpen(false)}>
       <section className="commands-calendar-modal" role="dialog" aria-modal="true" aria-label="Selecionar dia das comandas" onMouseDown={(event) => event.stopPropagation()}>

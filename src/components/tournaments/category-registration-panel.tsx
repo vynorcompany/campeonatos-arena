@@ -96,10 +96,10 @@ export function CategoryRegistrationPanel({
         return (
           <article
             id={`category-${category.id}`}
-            className="section-card stack-md category-operation-panel"
+            className={`section-card stack-md category-operation-panel ${category.competition?.format === "LEAGUE" ? "league-registration-panel" : ""}`}
             key={category.id}
           >
-            <div className="page-header">
+            <div className={`page-header ${category.competition?.format === "LEAGUE" ? "league-registration-hero" : ""}`}>
               <div className="stack-xs">
                 <h3>{category.name}</h3>
                 <p className="muted">
@@ -132,19 +132,14 @@ export function CategoryRegistrationPanel({
                   </p>
                 )}
 
-                <div className="stack-sm">
+                <div className={`stack-sm ${category.competition.format === "LEAGUE" ? "league-registration-list-section" : ""}`}>
                   <h4>Duplas confirmadas</h4>
                   {category.competition.pairs.length ? (
-                    <div className="simple-list">
+                    <div className={`simple-list ${category.competition.format === "LEAGUE" ? "league-registration-list" : ""}`}>
                       {category.competition.pairs.map((pair) => (
-                        <div className="simple-item" key={pair.id}>
-                          <div className="match-copy">
-                            <strong>{pair.name}</strong>
-                            <span>
-                              {pair.playerNames.length
-                                ? pair.playerNames.join(" / ")
-                                : "Atletas vinculados"}
-                            </span>
+                        <div className={`simple-item ${category.competition?.format === "LEAGUE" ? "league-registration-card" : ""}`} key={pair.id}>
+                          <div className={`match-copy ${category.competition?.format === "LEAGUE" ? "league-registration-pair-name" : ""}`}>
+                            <strong>{pair.playerNames.length ? pair.playerNames.join(" / ") : pair.name}</strong>
                           </div>
                           {canRemovePair ? (
                             <form action={removeCategoryPairAction}>
@@ -161,7 +156,7 @@ export function CategoryRegistrationPanel({
                             </form>
                           ) : null}
                           {canReplacePairPlayer && availableAthletes.length ? (
-                            <div className="stack-xs">
+                            <div className="stack-xs league-registration-replacements">
                               {pair.playerIds.map((playerId, index) => (
                                 <form action={replaceCategoryPairPlayerAction} className="inline-pair-edit" key={`${pair.id}-${playerId}`}>
                                   <input type="hidden" name="pairId" value={pair.id} />

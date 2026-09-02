@@ -6,5 +6,5 @@ export default async function TeachersPage() {
   const auth = await requireModuleView("teachers");
   const teachers = await prisma.teacher.findMany({ where: { arenaId: auth.arenaId }, orderBy: [{ active: "desc" }, { name: "asc" }], include: { studentAssignments: { where: { active: true }, select: { id: true } }, planAssignments: { where: { active: true }, select: { id: true } } } });
 
-  return <div className="stack-md workspace-page"><header className="page-header"><div><p className="eyebrow">ARENA</p><h1>Professores</h1></div></header><TeacherManagementWorkspace teachers={teachers} /></div>;
+  return <div className="teacher-directory-page"><header className="teacher-directory-page-header"><nav aria-label="Caminho de navegação"><span>Arena</span><i aria-hidden="true">›</i><strong>Professores</strong></nav><div><h1>Professores</h1><p>Gerencie os professores da arena</p></div></header><TeacherManagementWorkspace teachers={teachers} /></div>;
 }
