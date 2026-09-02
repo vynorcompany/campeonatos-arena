@@ -36,16 +36,20 @@ type CompetitionMatch = {
 };
 
 type GameSort = "round" | "date" | "status";
-type GameStatusFilter = "ALL" | "SCHEDULED" | "LIVE" | "FINISHED";
+type GameStatusFilter = "ALL" | "WAITING" | "SCHEDULED" | "LIVE" | "FINISHED";
 
 const statusPriority = {
-  SCHEDULED: 0,
-  LIVE: 1,
-  FINISHED: 2,
+  WAITING: 0,
+  SCHEDULED: 1,
+  LIVE: 2,
+  FINISHED: 3,
 } as const;
 
 function getMatchStatus(match: CompetitionMatch) {
-  return match.manualStatus ?? (match.winnerPair ? "FINISHED" : "SCHEDULED");
+  if (match.winnerPair || match.manualStatus === "FINISHED") return "FINISHED";
+  if (match.manualStatus === "LIVE") return "LIVE";
+  if (!match.scheduledDate || !match.scheduledTime) return "WAITING";
+  return match.manualStatus ?? "SCHEDULED";
 }
 
 function compareByDate(first: CompetitionMatch, second: CompetitionMatch) {
@@ -206,7 +210,7 @@ export function CategoryResultsPanel({
                       <div className="category-game-filter-field">
                         <label htmlFor={`game-status-${category.id}`}>Exibir status</label>
                         <select id={`game-status-${category.id}`} name="status" defaultValue={statusFilter}>
-                          <option value="ALL">Todos os status</option><option value="SCHEDULED">Agendados</option><option value="LIVE">Em andamento</option><option value="FINISHED">Finalizados</option>
+                          <option value="ALL">Todos os status</option><option value="WAITING">Aguardando</option><option value="SCHEDULED">Agendados</option><option value="LIVE">Em andamento</option><option value="FINISHED">Finalizados</option>
                         </select>
                       </div>
                       <div className="category-game-filter-field category-game-filter-search">
@@ -283,7 +287,8 @@ export function CategoryResultsPanel({
                                 defaultValue={matchStatus}
                                 aria-label={`Status de ${match.label}`}
                               >
-                                <option value="SCHEDULED">Agendado</option>
+                                <option value="WAITING">Aguardando</option>
+                                <option value="SCHEDULED" disabled={!match.scheduledDate || !match.scheduledTime}>Agendado</option>
                                 <option value="LIVE">Em andamento</option>
                                 <option value="FINISHED">Finalizado</option>
                               </select>

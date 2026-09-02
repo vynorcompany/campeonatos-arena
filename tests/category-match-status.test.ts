@@ -39,7 +39,14 @@ test("blocks knockout corrections after the winner occupies a later round", () =
   );
 });
 
-test("accepts only the three supported match statuses", () => {
+test("accepts waiting, scheduled, live and finished match statuses", () => {
+  assert.equal(
+    updateCategoryMatchStatusSchema.safeParse({
+      matchId: "match-1",
+      status: "WAITING",
+    }).success,
+    true,
+  );
   assert.equal(
     updateCategoryMatchStatusSchema.safeParse({
       matchId: "match-1",
@@ -69,6 +76,22 @@ test("status updates use published competition and arena ownership constraints",
   assert.match(statusUpdateSource, /status:\s*categoryCompetitionStatus\.PUBLISHED/);
   assert.match(statusUpdateSource, /tournament:\s*\{\s*arenaId\s*\}/);
   assert.match(statusUpdateSource, /runSerializableTransaction/);
+  assert.match(statusUpdateSource, /Defina data e horário antes de marcar o jogo como agendado/);
+});
+
+test("scheduling promotes an unscheduled match and clearing returns it to waiting", async () => {
+  const source = await readFile(
+    path.join(workspaceRoot, "src", "lib", "services", "category-competition.ts"),
+    "utf8",
+  );
+  const scheduleSource = source.slice(
+    source.indexOf("export async function updateCategoryMatchSchedule"),
+    source.indexOf("export async function updateCategoryMatchStatus"),
+  );
+
+  assert.match(scheduleSource, /scheduledDate && scheduledTime/);
+  assert.match(scheduleSource, /\? "SCHEDULED"/);
+  assert.match(scheduleSource, /: "WAITING"/);
 });
 
 test("status updates retain scores while reopening and finish only with a winner", async () => {
@@ -115,7 +138,7 @@ test("reopening a completed group match invalidates its derived knockout bracket
   assert.match(invalidationSource, /homeScore:\s*null/);
   assert.match(invalidationSource, /awayScore:\s*null/);
   assert.match(invalidationSource, /winnerPairId:\s*null/);
-  assert.match(invalidationSource, /manualStatus:\s*"SCHEDULED"/);
+  assert.match(invalidationSource, /manualStatus:\s*"WAITING"/);
 });
 
 test("recording a result marks the match as finished and guards downstream knockout changes", async () => {

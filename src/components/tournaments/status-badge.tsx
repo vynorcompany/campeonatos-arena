@@ -14,6 +14,7 @@ const labels: Record<string, string> = {
   EDITING: "Editando",
   LIVE: "Acontecendo"
   ,
+  WAITING: "Aguardando",
   SCHEDULED: "Agendado"
 };
 

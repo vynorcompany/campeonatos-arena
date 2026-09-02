@@ -260,7 +260,7 @@ async function invalidateKnockoutBracket(
       homeScore: null,
       awayScore: null,
       winnerPairId: null,
-      manualStatus: "SCHEDULED",
+      manualStatus: "WAITING",
     },
   });
 }
@@ -305,7 +305,7 @@ async function resetKnockoutFromStandings(
         homeScore: null,
         awayScore: null,
         winnerPairId: null,
-        manualStatus: "SCHEDULED",
+        manualStatus: "WAITING",
       },
     });
   }
@@ -1119,7 +1119,7 @@ export async function updateCategoryMatchSchedule(
           },
         },
       },
-      select: { id: true },
+      select: { id: true, manualStatus: true },
     });
     if (!match) {
       throw new Error("Jogo não encontrado nesta arena.");
@@ -1130,6 +1130,12 @@ export async function updateCategoryMatchSchedule(
       data: {
         scheduledDate,
         scheduledTime,
+        manualStatus:
+          match.manualStatus === "FINISHED"
+            ? "FINISHED"
+            : scheduledDate && scheduledTime
+              ? "SCHEDULED"
+              : "WAITING",
       },
     });
   });
@@ -1162,6 +1168,8 @@ export async function updateCategoryMatchStatus(
         homeScore: true,
         awayScore: true,
         winnerPairId: true,
+        scheduledDate: true,
+        scheduledTime: true,
       },
     });
     if (!match) {
@@ -1169,6 +1177,10 @@ export async function updateCategoryMatchStatus(
     }
 
     await assertStoredMatchCanBeCorrected(tx, match);
+
+    if (status === "SCHEDULED" && (!match.scheduledDate || !match.scheduledTime)) {
+      throw new Error("Defina data e horário antes de marcar o jogo como agendado.");
+    }
 
     if (status === "FINISHED") {
       if (match.homeScore === null || match.awayScore === null) {
@@ -1356,7 +1368,7 @@ export async function resetCategoryLeagueMatchResult(
         homeScore: null,
         awayScore: null,
         winnerPairId: null,
-        manualStatus: "SCHEDULED",
+        manualStatus: "WAITING",
       },
     });
   });

@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const workspaceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-test("jogos da categoria oferecem status Agendado, Em andamento e Finalizado", async () => {
+test("jogos da categoria distinguem Aguardando de Agendado", async () => {
   const panel = await readFile(
     path.join(
       workspaceRoot,
@@ -19,6 +19,7 @@ test("jogos da categoria oferecem status Agendado, Em andamento e Finalizado", a
   );
 
   assert.match(panel, /updateCategoryMatchStatusAction/);
+  assert.match(panel, /value="WAITING"/);
   assert.match(panel, /value="SCHEDULED"/);
   assert.match(panel, /value="LIVE"/);
   assert.match(panel, /value="FINISHED"/);

@@ -321,7 +321,7 @@ test("category games can be ordered by round, date, or operational status", asyn
   assert.match(panel, /value="round"/);
   assert.match(panel, /value="date"/);
   assert.match(panel, /value="status"/);
-  assert.match(panel, /SCHEDULED:\s*0[\s\S]*LIVE:\s*1[\s\S]*FINISHED:\s*2/);
+  assert.match(panel, /WAITING:\s*0[\s\S]*SCHEDULED:\s*1[\s\S]*LIVE:\s*2[\s\S]*FINISHED:\s*3/);
 });
 
 test("category games can be filtered by one selected status", async () => {
@@ -340,6 +340,7 @@ test("category games can be filtered by one selected status", async () => {
   assert.match(route, /statusFilter=\{gameStatusFilter\}/);
   assert.match(panel, /name="status"/);
   assert.match(panel, /value="ALL"/);
+  assert.match(panel, /value="WAITING"/);
   assert.match(panel, /value="SCHEDULED"/);
   assert.match(panel, /value="LIVE"/);
   assert.match(panel, /value="FINISHED"/);

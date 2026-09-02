@@ -444,6 +444,35 @@ export async function createTeacherPlanWithPriceAction(formData: FormData) {
   refreshAcademyRoutes();
 }
 
+export async function updateTeacherPlanWithPriceAction(formData: FormData) {
+  const auth = await requireModuleEdit("teachers");
+  const teacherId = String(formData.get("teacherId") ?? "");
+  const planId = String(formData.get("planId") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  const classesPerMonth = z.coerce.number().int().min(1).max(31).parse(formData.get("classesPerMonth"));
+  const monthlyPriceCents = parseMoneyToCents(String(formData.get("monthlyPrice") ?? ""));
+
+  if (name.length < 2) throw new Error("Informe o nome do plano.");
+
+  const assignment = await prisma.teacherPlan.findFirst({
+    where: { teacherId, planId, arenaId: auth.arenaId, active: true },
+    select: { id: true },
+  });
+  if (!assignment) throw new Error("Plano não encontrado para este professor.");
+
+  const duplicate = await prisma.plan.findFirst({
+    where: { arenaId: auth.arenaId, name, NOT: { id: planId } },
+    select: { id: true },
+  });
+  if (duplicate) throw new Error("Já existe outro plano com este nome.");
+
+  await prisma.plan.update({
+    where: { id: planId },
+    data: { name, classesPerMonth, monthlyPriceCents, updatedByUserId: auth.userId },
+  });
+  refreshAcademyRoutes();
+}
+
 export async function assignTeacherPlanStudentAction(formData: FormData) {
   const auth = await requireModuleEdit("teachers");
   const teacherId = String(formData.get("teacherId") ?? "");

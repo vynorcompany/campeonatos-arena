@@ -14,7 +14,7 @@ type SafeActionFormProps = {
   confirmKeyword?: string;
   confirmPrompt?: string;
   onSuccess?: () => void;
-  validate?: () => string | null;
+  validate?: (formData: FormData) => string | null;
 };
 
 export function SafeActionForm({
@@ -44,7 +44,8 @@ export function SafeActionForm({
       className={className}
       onSubmit={(event) => {
         event.preventDefault();
-        const validationError = validate?.();
+        const formData = new FormData(event.currentTarget);
+        const validationError = validate?.(formData);
         if (validationError) {
           setError(validationError);
           return;
@@ -61,8 +62,6 @@ export function SafeActionForm({
           setError(`Digite ${confirmKeyword} para confirmar.`);
           return;
         }
-
-        const formData = new FormData(event.currentTarget);
 
         setError(null);
         setSuccess(null);

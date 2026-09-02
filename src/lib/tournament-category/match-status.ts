@@ -1,4 +1,5 @@
 export const categoryMatchManualStatuses = [
+  "WAITING",
   "SCHEDULED",
   "LIVE",
   "FINISHED",
@@ -13,7 +14,7 @@ export function buildReopenedMatch(
     awayScore: number | null;
     winnerPairId: string | null;
   },
-  status: Extract<CategoryMatchManualStatus, "SCHEDULED" | "LIVE">,
+  status: Extract<CategoryMatchManualStatus, "WAITING" | "SCHEDULED" | "LIVE">,
 ) {
   return {
     homeScore: match.homeScore,

@@ -176,6 +176,7 @@ export default async function CategoryPage({
       ? searchParams.sort
       : "round";
   const gameStatusFilter =
+    searchParams?.status === "WAITING" ||
     searchParams?.status === "SCHEDULED" ||
     searchParams?.status === "LIVE" ||
     searchParams?.status === "FINISHED"

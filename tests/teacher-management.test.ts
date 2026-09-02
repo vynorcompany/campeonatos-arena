@@ -191,3 +191,38 @@ test("class groups created from the teacher panel use the teacher permission sco
   assert.match(actions, /export async function createClassGroupAction\(formData: FormData\) \{\s*const auth = await requireModuleEdit\("teachers"\)/);
   assert.match(panel, /Selecione ao menos um plano para a turma/);
 });
+
+test("class group plan selection validates the submitted checkboxes instead of stale visual state", () => {
+  const [form, panel] = [
+    readFileSync(resolve(process.cwd(), "src/components/forms/safe-action-form.tsx"), "utf8"),
+    readFileSync(resolve(process.cwd(), "src/components/teachers/teacher-class-groups-panel.tsx"), "utf8"),
+  ];
+
+  assert.match(form, /validate\?: \(formData: FormData\) => string \| null/);
+  assert.match(form, /const formData = new FormData\(event\.currentTarget\);\s*const validationError = validate\?\.\(formData\)/);
+  assert.match(panel, /validate=\{\(formData\) => formData\.getAll\("planIds"\)\.length/);
+  assert.doesNotMatch(panel, /checked=\{selectedPlanIds/);
+});
+
+test("existing teacher plans can be edited without changing active subscriptions", () => {
+  const [actions, page] = [
+    readFileSync(resolve(process.cwd(), "src/lib/actions/academy.ts"), "utf8"),
+    readFileSync(resolve(process.cwd(), "src/app/(app)/professores/[teacherId]/page.tsx"), "utf8"),
+  ];
+
+  assert.match(actions, /export async function updateTeacherPlanWithPriceAction/);
+  assert.match(actions, /prisma\.plan\.update/);
+  assert.match(page, /updateTeacherPlanWithPriceAction/);
+  assert.match(page, /teacher-plan-edit/);
+});
+
+test("plan enrollment keeps financial fields inside a compact three-column grid", () => {
+  const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
+  const enrollmentStyles = styles.slice(
+    styles.indexOf(".teacher-enrollment-financial {"),
+    styles.indexOf(".teacher-enrollment-form > .button"),
+  );
+
+  assert.match(enrollmentStyles, /grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
+  assert.match(enrollmentStyles, /\.teacher-enrollment-financial > label \{ min-width: 0; \}/);
+});
