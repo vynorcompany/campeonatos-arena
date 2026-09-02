@@ -256,10 +256,7 @@ export function CategoryResultsPanel({
                           </div>
                           <div className="category-game-pairs">
                             <span className="category-game-label">Duplas</span>
-                            <span>
-                              {match.homePair?.name ?? "A definir"} ×{" "}
-                              {match.awayPair?.name ?? "A definir"}
-                            </span>
+                            {competition.format === "LEAGUE" ? <span className="league-match-sides"><span><small>Mandante</small>{match.homePair?.name ?? "A definir"}</span><b>×</b><span><small>Visitante</small>{match.awayPair?.name ?? "A definir"}</span></span> : <span>{match.homePair?.name ?? "A definir"} × {match.awayPair?.name ?? "A definir"}</span>}
                           </div>
                           <div className="category-game-result">
                             <span className="category-game-label">Placar / status</span>
