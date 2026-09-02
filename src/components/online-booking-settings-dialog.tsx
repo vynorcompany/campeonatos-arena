@@ -18,7 +18,7 @@ type OnlineBookingSettings = {
 export function OnlineBookingSettingsDialog({ settings }: { settings: OnlineBookingSettings }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const publicPath = `/reservar/${settings.arenaSlug}`;
+  const publicPath = `/classificacao/${settings.arenaSlug}?section=booking`;
 
   const copyLink = async () => {
     await navigator.clipboard.writeText(`${window.location.origin}${publicPath}`);
@@ -31,7 +31,7 @@ export function OnlineBookingSettingsDialog({ settings }: { settings: OnlineBook
     {open ? <div className="command-modal-backdrop" role="presentation" onMouseDown={() => setOpen(false)}>
       <section className="online-booking-settings-modal" role="dialog" aria-modal="true" aria-label="Configurações do agendamento online" onMouseDown={(event) => event.stopPropagation()}>
         <header><div><span>AGENDAMENTO ONLINE</span><h2>Configurações</h2></div><button type="button" className="button button-small" onClick={() => setOpen(false)}>Fechar</button></header>
-        <div className="online-booking-link"><div><strong>Link da página pública</strong><code>{publicPath}</code></div><button type="button" className="button button-small" onClick={copyLink}>{copied ? "Link copiado" : "Copiar link"}</button></div>
+        <div className="online-booking-link"><div><strong>Link do Portal do Atleta</strong><code>{publicPath}</code></div><button type="button" className="button button-small" onClick={copyLink}>{copied ? "Link copiado" : "Copiar link"}</button></div>
         <SafeActionForm action={updateOnlineBookingSettingsAction} className="online-booking-settings-form" successMessage="Configurações do agendamento online salvas.">
           <label className="field">Disposição dos horários<select name="layout" defaultValue={settings.layout}><option value="BLOCKS">Blocos</option><option value="LIST">Lista</option></select></label>
           <label className="field">Prazo mínimo para agendamento<input name="leadTimeMinutes" type="number" min="0" max="10080" step="15" defaultValue={settings.leadTimeMinutes} /><small>Em minutos antes do horário escolhido.</small></label>

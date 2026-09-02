@@ -575,22 +575,23 @@ export async function moveTeacherClassGroupStudentAction(formData: FormData) {
   const studentId = String(formData.get("studentId") ?? "");
   if (
     !teacherId ||
-    !sourceClassGroupId ||
     !destinationClassGroupId ||
     !studentId ||
     sourceClassGroupId === destinationClassGroupId
   )
     throw new Error("Selecione uma turma de destino diferente.");
   const [source, destination] = await Promise.all([
-    prisma.classGroup.findFirst({
-      where: {
-        id: sourceClassGroupId,
-        arenaId: auth.arenaId,
-        teacherId,
-        active: true,
-      },
-      select: { id: true },
-    }),
+    sourceClassGroupId
+      ? prisma.classGroup.findFirst({
+          where: {
+            id: sourceClassGroupId,
+            arenaId: auth.arenaId,
+            teacherId,
+            active: true,
+          },
+          select: { id: true },
+        })
+      : Promise.resolve(null),
     prisma.classGroup.findFirst({
       where: {
         id: destinationClassGroupId,
@@ -604,7 +605,7 @@ export async function moveTeacherClassGroupStudentAction(formData: FormData) {
       },
     }),
   ]);
-  if (!source || !destination)
+  if (!destination || (sourceClassGroupId && !source))
     throw new Error("Selecione turmas ativas deste professor.");
   if (
     !destination.schedules.every(
@@ -613,15 +614,17 @@ export async function moveTeacherClassGroupStudentAction(formData: FormData) {
   )
     throw new Error("A turma de destino não possui vagas.");
   await prisma.$transaction(async (tx) => {
-    const enrollment = await tx.classGroupEnrollment.findFirst({
-      where: { classGroupId: source.id, studentId, status: "ACTIVE" },
-      select: { id: true },
-    });
-    if (!enrollment) throw new Error("Aluno não encontrado nesta turma.");
-    await tx.classGroupEnrollment.update({
-      where: { id: enrollment.id },
-      data: { status: "TRANSFERRED", endedAt: new Date() },
-    });
+    if (source) {
+      const enrollment = await tx.classGroupEnrollment.findFirst({
+        where: { classGroupId: source.id, studentId, status: "ACTIVE" },
+        select: { id: true },
+      });
+      if (!enrollment) throw new Error("Aluno não encontrado nesta turma.");
+      await tx.classGroupEnrollment.update({
+        where: { id: enrollment.id },
+        data: { status: "TRANSFERRED", endedAt: new Date() },
+      });
+    }
     await tx.classGroupEnrollment.upsert({
       where: {
         classGroupId_studentId: { classGroupId: destination.id, studentId },

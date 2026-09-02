@@ -28,18 +28,33 @@ test("online booking settings are persisted in the agenda configuration workspac
   assert.match(dialog, /Mostrar horários reservados/);
   assert.match(dialog, /Pagamento online/);
   assert.match(dialog, /Mensagem de WhatsApp/);
+  assert.match(dialog, /classificacao\/\$\{settings\.arenaSlug\}\?section=booking/);
+  assert.doesNotMatch(dialog, /const publicPath = `\/reservar\//);
   assert.doesNotMatch(dialog, /Configurar combinações por quadra/);
 });
 
-test("a public reservation route exists for the arena link", () => {
+test("booking link enters the athlete portal and preserves booking after login", () => {
+  const portal = readFileSync(
+    resolve(process.cwd(), "src/app/classificacao/[arenaSlug]/page.tsx"),
+    "utf8",
+  );
+
+  assert.match(portal, /section=\$\{section\}/);
+  assert.match(portal, /returnTo=\{authReturnTo\}/);
+});
+
+test("legacy public reservation route delegates to the configured booking content", () => {
   const pagePath = resolve(process.cwd(), "src/app/reservar/[arenaSlug]/page.tsx");
   const formPath = resolve(process.cwd(), "src/components/public-court-booking-form.tsx");
+  const contentPath = resolve(process.cwd(), "src/components/public-booking-content.tsx");
   assert.ok(existsSync(pagePath));
   const page = readFileSync(pagePath, "utf8");
   const form = readFileSync(formPath, "utf8");
-  assert.match(page, /onlineBookingLayout/);
-  assert.match(page, /onlineBookingShowReserved/);
-  assert.match(page, /Reserva online/);
+  const content = readFileSync(contentPath, "utf8");
+  assert.match(page, /PublicBookingContent/);
+  assert.match(content, /onlineBookingLayout/);
+  assert.match(content, /onlineBookingShowReserved/);
+  assert.match(content, /Reserva online/);
   assert.match(form, /public-booking-slot-blocks/);
   assert.match(form, /Horários reservados/);
 });

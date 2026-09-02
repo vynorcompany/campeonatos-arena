@@ -134,7 +134,8 @@ test("teacher plans enroll searchable clients with balance, due date, discount a
   assert.match(enrollment, /Data de início/);
   assert.match(enrollment, /Saldo de aulas/);
   assert.match(enrollment, /Desconto/);
-  assert.match(detail, /Copiar planos/);
+  assert.match(detail, /TeacherPlanEnrollmentForm/);
+  assert.match(detail, /variant="students"/);
   assert.match(actions, /financialRecurrence\.create/);
   assert.match(actions, /discountMode/);
   assert.match(actions, /dueDay/);
@@ -556,4 +557,60 @@ test("class groups can be duplicated from their action menu with schedules and p
   assert.match(styles, /\.teacher-class-weekday\.weekday-1/);
   assert.match(styles, /\.teacher-class-weekday\.weekday-2/);
   assert.match(styles, /\.teacher-class-weekday\.weekday-3/);
+});
+
+test("teacher workspace keeps plan creation and student enrollment in focused dialogs", () => {
+  const [page, enrollment, styles] = [
+    readFileSync(
+      resolve(process.cwd(), "src/app/(app)/professores/[teacherId]/page.tsx"),
+      "utf8",
+    ),
+    readFileSync(
+      resolve(
+        process.cwd(),
+        "src/components/teachers/teacher-plan-enrollment-form.tsx",
+      ),
+      "utf8",
+    ),
+    readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8"),
+  ];
+
+  assert.match(page, /TeacherPlanCreateDialog/);
+  assert.match(page, /TeacherPlanCreateDialog/);
+  assert.doesNotMatch(page, /<TeacherPlanEnrollmentForm\s+[\s\S]*activePlan/);
+  assert.match(enrollment, /teacher-student-enrollment-modal/);
+  assert.match(enrollment, /teacher-enrollment-financial/);
+  assert.match(styles, /\.teacher-student-enrollment-modal > section \{[\s\S]*grid-template-columns/);
+});
+
+test("active-student rows expose a compact class assignment and financial shortcut", () => {
+  const [page, styles] = [
+    readFileSync(
+      resolve(process.cwd(), "src/app/(app)/professores/[teacherId]/page.tsx"),
+      "utf8",
+    ),
+    readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8"),
+  ];
+
+  assert.match(page, /teacher-student-row-link/);
+  assert.match(page, /teacher-student-financial-link/);
+  assert.match(page, /financeiro\/contas-a-receber/);
+  assert.match(styles, /\.teacher-active-students-panel \.teacher-student-plan-list article \{[\s\S]*min-height: 52px/);
+});
+
+test("teachers directory uses compact rows and an explicit status indicator", () => {
+  const [workspace, styles] = [
+    readFileSync(
+      resolve(
+        process.cwd(),
+        "src/components/teachers/teacher-management-workspace.tsx",
+      ),
+      "utf8",
+    ),
+    readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8"),
+  ];
+
+  assert.match(workspace, /teacher-directory-status-dot/);
+  assert.match(styles, /\.teacher-directory-item \{[\s\S]*min-height: 68px/);
+  assert.match(styles, /\.teacher-directory-status-dot/);
 });

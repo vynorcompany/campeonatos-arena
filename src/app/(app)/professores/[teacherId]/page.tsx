@@ -3,17 +3,15 @@ import { notFound } from "next/navigation";
 import { TeacherMonthlyReport } from "@/components/teachers/teacher-monthly-report";
 import { TeacherClassGroupsPanel } from "@/components/teachers/teacher-class-groups-panel";
 import { TeacherPlanEditor } from "@/components/teachers/teacher-plan-editor";
+import { TeacherPlanCreateDialog } from "@/components/teachers/teacher-plan-create-dialog";
 import { TeacherPlanEnrollmentForm } from "@/components/teachers/teacher-plan-enrollment-form";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { EventIcon } from "@/components/tournaments/event-icon";
 import {
   archiveTeacherAction,
-  copyTeacherPlansAction,
-  createTeacherPlanWithPriceAction,
   deleteTeacherAction,
   moveTeacherClassGroupStudentAction,
-  removeTeacherPlanStudentAction,
 } from "@/lib/actions/academy";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
@@ -63,7 +61,7 @@ export default async function TeacherDetailPage({
   const reportEnd = searchParams?.fim
     ? new Date(`${searchParams.fim}T23:59:59`)
     : monthEnd;
-  const [teacher, clients, teachers] = await Promise.all([
+  const [teacher, clients] = await Promise.all([
     prisma.teacher.findFirst({
       where: { id: params.teacherId, arenaId: auth.arenaId },
       include: {
@@ -132,25 +130,8 @@ export default async function TeacherDetailPage({
       orderBy: { name: "asc" },
       select: { id: true, name: true, phone: true },
     }),
-    prisma.teacher.findMany({
-      where: {
-        arenaId: auth.arenaId,
-        active: true,
-        NOT: { id: params.teacherId },
-      },
-      orderBy: { name: "asc" },
-      select: { id: true, name: true },
-    }),
   ]);
   if (!teacher) notFound();
-  const activePlanId = teacher.planAssignments.some(
-    ({ plan }) => plan.id === searchParams?.planId,
-  )
-    ? searchParams?.planId!
-    : teacher.planAssignments[0]?.plan.id;
-  const activePlan = teacher.planAssignments.find(
-    ({ plan }) => plan.id === activePlanId,
-  )?.plan;
   const planStudentIds = new Set(
     teacher.planAssignments.flatMap(({ plan }) =>
       plan.subscriptions.map((subscription) => subscription.studentId),
@@ -344,145 +325,28 @@ export default async function TeacherDetailPage({
         </article>
       </section>
       {tab === "plans" ? (
-        <div className="teacher-detail-grid">
-          <section className="section-card teacher-detail-section">
+        <section className="section-card teacher-detail-section teacher-plans-panel">
             <header>
               <h2>Planos e preços</h2>
+              <TeacherPlanCreateDialog teacherId={teacher.id} />
             </header>
             <div className="teacher-plan-cards">
               {teacher.planAssignments.map(({ plan }) => (
-                <Link
-                  key={plan.id}
-                  href={tabHref("plans", plan.id)}
-                  className={plan.id === activePlanId ? "is-selected" : ""}
-                >
-                  <strong>{plan.name}</strong>
-                  <span>{plan.classesPerMonth} aulas/mês</span>
-                  <b>{money(plan.monthlyPriceCents)}</b>
-                  <small>{plan.subscriptions.length} aluno(s) ativo(s)</small>
-                </Link>
+                <article key={plan.id}>
+                  <div>
+                    <strong>{plan.name}</strong>
+                    <span>{plan.classesPerMonth} aulas/mês</span>
+                    <b>{money(plan.monthlyPriceCents)}</b>
+                    <small>{plan.subscriptions.length} aluno(s) ativo(s)</small>
+                  </div>
+                  <TeacherPlanEditor teacherId={teacher.id} plan={plan} />
+                </article>
               ))}
               {!teacher.planAssignments.length ? (
                 <p className="muted">Nenhum plano vinculado.</p>
               ) : null}
             </div>
-            <SafeActionForm
-              action={createTeacherPlanWithPriceAction}
-              className="teacher-inline-form"
-              resetOnSuccess
-              successMessage="Plano criado e vinculado ao professor."
-            >
-              <input type="hidden" name="teacherId" value={teacher.id} />
-              <label>
-                Plano
-                <input name="name" required placeholder="Ex.: 2x por semana" />
-              </label>
-              <label>
-                Aulas/mês
-                <input
-                  name="classesPerMonth"
-                  type="number"
-                  min="1"
-                  max="31"
-                  defaultValue="8"
-                />
-              </label>
-              <label>
-                Preço mensal
-                <input
-                  name="monthlyPrice"
-                  inputMode="decimal"
-                  required
-                  placeholder="0,00"
-                />
-              </label>
-              <SubmitButton
-                label="Criar plano"
-                pendingLabel="Salvando..."
-                className="button button-primary"
-              />
-            </SafeActionForm>
-            {teachers.length ? (
-              <SafeActionForm
-                action={copyTeacherPlansAction}
-                className="teacher-copy-plans"
-                successMessage="Planos copiados."
-              >
-                <input
-                  type="hidden"
-                  name="sourceTeacherId"
-                  value={teacher.id}
-                />
-                <label>
-                  Copiar planos para
-                  <select name="targetTeacherId" defaultValue="">
-                    <option value="" disabled>
-                      Selecione o professor
-                    </option>
-                    {teachers.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <SubmitButton
-                  label="Copiar planos"
-                  pendingLabel="Copiando..."
-                  className="button button-secondary"
-                />
-              </SafeActionForm>
-            ) : null}
-          </section>
-          {activePlan ? (
-            <section className="section-card teacher-detail-section">
-              <header>
-                <div>
-                  <h2>{activePlan.name}</h2>
-                  <span>{activePlan.subscriptions.length} alunos</span>
-                </div>
-                <TeacherPlanEditor teacherId={teacher.id} plan={activePlan} />
-              </header>
-              <div className="teacher-student-plan-list">
-                {activePlan.subscriptions.map((subscription) => (
-                  <article key={subscription.id}>
-                    <strong>{subscription.student.name}</strong>
-                    <span>
-                      Saldo de aulas: {subscription.student.remainingClasses}
-                    </span>
-                    <SafeActionForm action={removeTeacherPlanStudentAction}>
-                      <input
-                        type="hidden"
-                        name="teacherId"
-                        value={teacher.id}
-                      />
-                      <input
-                        type="hidden"
-                        name="planId"
-                        value={activePlan.id}
-                      />
-                      <input
-                        type="hidden"
-                        name="studentId"
-                        value={subscription.student.id}
-                      />
-                      <SubmitButton
-                        label="Remover"
-                        pendingLabel="Removendo..."
-                        className="button button-danger button-small"
-                      />
-                    </SafeActionForm>
-                  </article>
-                ))}
-              </div>
-              <TeacherPlanEnrollmentForm
-                teacherId={teacher.id}
-                plans={[{ id: activePlan.id, name: activePlan.name }]}
-                clients={clients}
-              />
-            </section>
-          ) : null}
-        </div>
+        </section>
       ) : null}
       {tab === "students" ? (
         <section className="section-card teacher-detail-section teacher-active-students-panel">
@@ -521,64 +385,75 @@ export default async function TeacherDetailPage({
                 );
                 return (
                   <article key={subscription.id}>
-                    <div>
-                      <strong>{subscription.student.name}</strong>
-                      <Link href={tabHref("plans", plan.id)}>{plan.name}</Link>
-                    </div>
-                    <span
-                      className={
-                        paid
-                          ? "status-badge status-active"
-                          : "status-badge status-pending"
-                      }
-                    >
-                      {paid ? "Pago" : "Em aberto"}
-                    </span>
-                    <strong>
-                      Saldo de aulas: {subscription.student.remainingClasses}
-                    </strong>
-                    {studentGroup ? (
+                    <details className="teacher-student-row-link">
+                      <summary>
+                        <span>
+                          <strong>{subscription.student.name}</strong>
+                          <small>
+                            {plan.name} · {studentGroup?.name ?? "Sem turma"}
+                          </small>
+                        </span>
+                        <em>
+                          Saldo de aulas: {subscription.student.remainingClasses}
+                        </em>
+                      </summary>
                       <SafeActionForm
                         action={moveTeacherClassGroupStudentAction}
                         className="teacher-student-group-move"
                         successMessage="Turma do aluno atualizada."
                       >
-                        <input
-                          type="hidden"
-                          name="teacherId"
-                          value={teacher.id}
-                        />
-                        <input
-                          type="hidden"
-                          name="sourceClassGroupId"
-                          value={studentGroup.id}
-                        />
+                        <input type="hidden" name="teacherId" value={teacher.id} />
+                        {studentGroup ? (
+                          <input
+                            type="hidden"
+                            name="sourceClassGroupId"
+                            value={studentGroup.id}
+                          />
+                        ) : null}
                         <input
                           type="hidden"
                           name="studentId"
                           value={subscription.student.id}
                         />
-                        <select name="destinationClassGroupId" defaultValue="">
-                          <option value="" disabled>
-                            Alterar turma…
-                          </option>
-                          {teacher.classGroups
-                            .filter((group) => group.id !== studentGroup.id)
-                            .map((group) => (
-                              <option key={group.id} value={group.id}>
-                                {group.name}
-                              </option>
-                            ))}
-                        </select>
+                        <label>
+                          Turma
+                          <select name="destinationClassGroupId" defaultValue="">
+                            <option value="" disabled>
+                              {studentGroup ? "Alterar turma" : "Atribuir turma"}
+                            </option>
+                            {teacher.classGroups
+                              .filter((group) => group.id !== studentGroup?.id)
+                              .filter((group) =>
+                                group.plans.some(({ planId }) => planId === plan.id),
+                              )
+                              .map((group) => (
+                                <option key={group.id} value={group.id}>
+                                  {group.name}
+                                </option>
+                              ))}
+                          </select>
+                        </label>
                         <SubmitButton
-                          label="Mover"
-                          pendingLabel="..."
+                          label={studentGroup ? "Alterar" : "Atribuir"}
+                          pendingLabel="Salvando..."
                           className="button button-small"
                         />
                       </SafeActionForm>
-                    ) : (
-                      <span className="muted">Sem turma definida</span>
-                    )}
+                    </details>
+                    <Link
+                      className="teacher-student-financial-link"
+                      href={`/financeiro/contas-a-receber?name=${encodeURIComponent(subscription.student.name)}`}
+                    >
+                      <span
+                        className={
+                          paid
+                            ? "status-badge status-active"
+                            : "status-badge status-pending"
+                        }
+                      >
+                        {paid ? "Mensalidade paga" : "Mensalidade em aberto"}
+                      </span>
+                    </Link>
                   </article>
                 );
               }),

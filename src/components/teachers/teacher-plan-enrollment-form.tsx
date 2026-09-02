@@ -55,7 +55,7 @@ export function TeacherPlanEnrollmentForm({
       <input type="hidden" name="planId" value={planId} />
       <input type="hidden" name="clientId" value={clientId} />
       <div className="teacher-enrollment-primary">
-        {plans.length > 1 ? (
+        {plans.length > 1 || variant === "students" ? (
           <label>
             Plano
             <select
