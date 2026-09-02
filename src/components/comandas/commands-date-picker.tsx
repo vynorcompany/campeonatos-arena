@@ -7,6 +7,10 @@ function CalendarIcon() {
   return <svg className="commands-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14" rx="2" /><path d="M8 3.5v4M16 3.5v4M4 10h16" /></svg>;
 }
 
+function ChevronDownIcon() {
+  return <svg className="commands-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg>;
+}
+
 type CommandsDatePickerProps = { selectedDate: string; search: string; openDays: string[]; today: string };
 
 function parseDate(value: string) { return new Date(`${value}T00:00:00`); }
@@ -42,7 +46,7 @@ export function CommandsDatePicker({ selectedDate, search, openDays, today }: Co
     <button className="commands-date-trigger" type="button" onClick={() => setIsOpen(true)} aria-haspopup="dialog" aria-expanded={isOpen}>
       <span className="commands-date-icon" aria-hidden="true"><CalendarIcon /></span>
       <span className="commands-date-copy"><span>Comandas do dia</span><strong>{new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "short" }).format(selected)}</strong></span>
-      <span className="commands-date-chevron" aria-hidden="true">⌄</span>
+      <span className="commands-date-chevron" aria-hidden="true"><ChevronDownIcon /></span>
     </button>
     {isOpen ? <div className="commands-calendar-modal-overlay" role="presentation" onMouseDown={() => setIsOpen(false)}>
       <section className="commands-calendar-modal" role="dialog" aria-modal="true" aria-label="Selecionar dia das comandas" onMouseDown={(event) => event.stopPropagation()}>

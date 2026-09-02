@@ -7725,6 +7725,28 @@ button {
 @media (max-width: 1260px) { .commands-search input { width: min(320px, 36vw); } }
 @media (max-width: 760px) { .content-shell:has(.commands-page) { padding: 16px 13px 26px; } .commands-page { gap: 18px; } .commands-date-trigger { min-height: 68px; } .commands-date-icon { width: 42px; height: 42px; } .commands-search input, .commands-search .button { min-height: 44px; } .commands-actions .button, .commands-actions .button.button-primary { min-height: 44px; } .commands-day-panel { min-height: 500px; } .commands-day-panel .commands-list-head { padding: 16px; } .commands-empty { min-height: 365px; } .commands-empty-illustration { width: 82px; height: 82px; } .commands-empty-illustration .commands-icon { width: 39px; height: 39px; } }
 
+/* Seletor de data e abertura de comanda com presença visual mais leve. */
+.commands-date-trigger { min-width: 272px; min-height: 64px; gap: 10px; padding: 9px 12px; border-color: #d6e2ee; border-radius: 12px; box-shadow: none; }
+.commands-date-icon { width: 40px; height: 40px; border-radius: 10px; color: #315e8b; background: #edf4fb; }
+.commands-date-icon .commands-icon { width: 19px; height: 19px; }
+.commands-date-trigger .commands-date-copy > span { color: #315e8b; font-size: .62rem; letter-spacing: .045em; }
+.commands-date-trigger .commands-date-copy strong { font-size: .9rem; }
+.commands-date-chevron { display: grid; width: 22px; height: 22px; margin-left: auto; place-items: center; color: #6b7f95; font-size: 1rem; }
+.commands-date-chevron .commands-icon { width: 14px; height: 14px; }
+.commands-new-modal-backdrop { position: fixed; z-index: 95; inset: 0; display: grid; place-items: center; padding: 20px; background: rgb(12 29 53 / .38); backdrop-filter: blur(4px); }
+.commands-new-modal { display: grid; gap: 18px; width: min(100%, 440px); padding: 22px; border: 1px solid #d9e5f0; border-radius: 15px; background: #fff; box-shadow: 0 22px 58px rgb(12 33 61 / .2); }
+.commands-new-modal > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding-bottom: 15px; border-bottom: 1px solid #e4ebf3; }
+.commands-new-modal header div { display: grid; gap: 4px; }
+.commands-new-modal header span { color: #2365b5; font-size: .64rem; font-weight: 850; letter-spacing: .07em; }
+.commands-new-modal h2, .commands-new-modal p { margin: 0; }
+.commands-new-modal h2 { color: #132743; font-size: 1.15rem; }
+.commands-new-modal header p { color: #698097; font-size: .82rem; line-height: 1.45; }
+.commands-new-modal .field { display: grid; gap: 6px; color: #49647e; font-size: .72rem; font-weight: 800; }
+.commands-new-modal select { min-height: 44px; padding-inline: 11px; border-color: #cad9e7; border-radius: 9px; color: #193d64; font-size: .86rem; }
+.commands-modal-close { display: grid; width: 30px; height: 30px; place-items: center; border: 1px solid #d7e2ec; border-radius: 8px; color: #49647e; background: #fff; font-size: 1.2rem; line-height: 1; cursor: pointer; }
+.commands-modal-close:hover { border-color: #9bbad7; background: #f3f8fc; color: #1d5792; }
+@media (max-width: 760px) { .commands-date-trigger { min-height: 60px; } .commands-date-icon { width: 38px; height: 38px; } .commands-new-modal-backdrop { align-items: end; padding: 12px; } .commands-new-modal { width: 100%; padding: 18px; border-radius: 14px; } }
+
 /* Densidade final do diretório: mantém a escala dos painéis da arena. */
 .teacher-directory-page { gap: 24px; max-width: 1320px; padding: 18px 22px 36px; }
 .teacher-directory-page-header { gap: 17px; }

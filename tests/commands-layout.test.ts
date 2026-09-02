@@ -45,3 +45,13 @@ test("commands use compact controls and vector icons in the daily workspace", ()
   assert.match(css, /\.commands-day-panel \{[^}]*min-height: 620px/);
   assert.match(css, /\.commands-actions \.button \{[^}]*min-height: 46px/);
 });
+
+test("new client commands open in a floating picker and submit on selection", () => {
+  const page = readFileSync(resolve(process.cwd(), "src/app/(app)/comandas/page.tsx"), "utf8");
+  const modal = readFileSync(resolve(process.cwd(), "src/components/comandas/new-command-modal.tsx"), "utf8");
+
+  assert.match(page, /NewCommandModal/);
+  assert.match(modal, /commands-new-modal/);
+  assert.match(modal, /onChange/);
+  assert.match(modal, /router\.push\(closeHref\)/);
+});
