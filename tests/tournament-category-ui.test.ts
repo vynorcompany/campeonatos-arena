@@ -391,3 +391,22 @@ test("league tabs use dedicated responsive layouts for registrations, groups and
   assert.match(styles, /\.league-group-card/);
   assert.match(styles, /\.league-calendar-card/);
 });
+
+test("league category workspaces follow the compact visual density standard", async () => {
+  const [styles, rules] = await Promise.all([
+    readFile(path.join(workspaceRoot, "src", "app", "globals.css"), "utf8"),
+    readFile(path.join(workspaceRoot, "docs", "VISUAL_RULES.md"), "utf8"),
+  ]);
+
+  assert.match(styles, /\.league-overview-metric \{[^}]*min-height: 96px/);
+  assert.match(styles, /\.league-overview-primary-action \.button \{[^}]*min-height: 50px/);
+  assert.match(styles, /\.league-registration-panel, \.league-groups-panel, \.league-games-panel \{[^}]*padding: 22px/);
+  assert.match(rules, /Escala compacta/);
+  assert.match(rules, /não devem ser grandes ou grotescos/);
+});
+
+test("athlete portal prize descriptions use a lighter reading weight", async () => {
+  const styles = await readFile(path.join(workspaceRoot, "src", "app", "globals.css"), "utf8");
+
+  assert.match(styles, /\.portal-league-prize-list b \{[^}]*font-weight: 600/);
+});
