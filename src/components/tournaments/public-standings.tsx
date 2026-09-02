@@ -176,21 +176,38 @@ export function PublicStandings({
             Minhas reservas
           </Link>
         ) : null}
-        {portalVisibility.athletePortalShowLessons ? (
-          <Link
-            className={requestedSection === "lessons" ? "active" : ""}
-            href={portalHref("lessons")}
+        {portalVisibility.athletePortalShowLessons ||
+        portalVisibility.athletePortalShowClasses ? (
+          <details
+            className={`athlete-portal-nav-menu ${
+              requestedSection === "lessons" || requestedSection === "classes"
+                ? "active"
+                : ""
+            }`}
+            open={
+              requestedSection === "lessons" || requestedSection === "classes"
+            }
           >
-            Aulas
-          </Link>
-        ) : null}
-        {portalVisibility.athletePortalShowClasses ? (
-          <Link
-            className={requestedSection === "classes" ? "active" : ""}
-            href={portalHref("classes")}
-          >
-            Turmas
-          </Link>
+            <summary>Aulas</summary>
+            <div>
+              {portalVisibility.athletePortalShowLessons ? (
+                <Link
+                  className={requestedSection === "lessons" ? "active" : ""}
+                  href={portalHref("lessons")}
+                >
+                  Minhas aulas
+                </Link>
+              ) : null}
+              {portalVisibility.athletePortalShowClasses ? (
+                <Link
+                  className={requestedSection === "classes" ? "active" : ""}
+                  href={portalHref("classes")}
+                >
+                  Turmas
+                </Link>
+              ) : null}
+            </div>
+          </details>
         ) : null}
         {currentClient.isTeacher ? (
           <Link
