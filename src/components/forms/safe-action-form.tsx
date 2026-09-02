@@ -28,7 +28,7 @@ export function SafeActionForm({
   confirmKeyword,
   confirmPrompt,
   onSuccess,
-  validate
+  validate,
 }: SafeActionFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
@@ -58,7 +58,10 @@ export function SafeActionForm({
           return;
         }
 
-        if (confirmKeyword && confirmValue.trim().toUpperCase() !== confirmKeyword.toUpperCase()) {
+        if (
+          confirmKeyword &&
+          confirmValue.trim().toUpperCase() !== confirmKeyword.toUpperCase()
+        ) {
           setError(`Digite ${confirmKeyword} para confirmar.`);
           return;
         }
@@ -68,7 +71,16 @@ export function SafeActionForm({
 
         startTransition(async () => {
           try {
-            await action(formData);
+            const result = await action(formData);
+            if (
+              result &&
+              typeof result === "object" &&
+              "error" in result &&
+              typeof result.error === "string"
+            ) {
+              setError(result.error);
+              return;
+            }
             setSuccess(successMessage);
             onSuccess?.();
             setIsConfirming(false);
@@ -85,7 +97,11 @@ export function SafeActionForm({
               router.refresh();
             }
           } catch (caughtError) {
-            setError(caughtError instanceof Error ? caughtError.message : "Não foi possível concluir a ação.");
+            setError(
+              caughtError instanceof Error
+                ? caughtError.message
+                : "Não foi possível concluir a ação.",
+            );
           }
         });
       }}
@@ -93,9 +109,12 @@ export function SafeActionForm({
     >
       {children}
       {confirmKeyword && isConfirming ? (
-            <div className="form-full stack-xs safe-action-confirmation">
-          <p className="muted">{confirmPrompt ?? `Digite ${confirmKeyword} para confirmar esta ação.`}</p>
-              <div className="inline-form safe-action-confirmation-actions">
+        <div className="form-full stack-xs safe-action-confirmation">
+          <p className="muted">
+            {confirmPrompt ??
+              `Digite ${confirmKeyword} para confirmar esta ação.`}
+          </p>
+          <div className="inline-form safe-action-confirmation-actions">
             <input
               name="confirmKeyword"
               type="text"
@@ -104,7 +123,11 @@ export function SafeActionForm({
               placeholder={`Digite ${confirmKeyword}`}
               autoFocus
             />
-            <button type="submit" className="button button-danger" disabled={isPending}>
+            <button
+              type="submit"
+              className="button button-danger"
+              disabled={isPending}
+            >
               Confirmar
             </button>
             <button
@@ -122,7 +145,11 @@ export function SafeActionForm({
           </div>
         </div>
       ) : null}
-      {error ? <p className="form-error form-full" role="alert">{error}</p> : null}
+      {error ? (
+        <p className="form-error form-full" role="alert">
+          {error}
+        </p>
+      ) : null}
       {success ? <p className="form-success form-full">{success}</p> : null}
     </form>
   );

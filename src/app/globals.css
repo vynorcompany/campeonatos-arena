@@ -7941,3 +7941,29 @@ button {
 .teacher-detail-page .teacher-detail-metrics article > div > strong { line-height: 1.1; }
 .teacher-detail-page .teacher-detail-metric-icon { width: 50px; height: 50px; font-size: 1.45rem; }
 @media (max-width: 760px) { .teacher-directory .teacher-management-toolbar { top: auto; } .teacher-detail-page .teacher-detail-metrics article { min-height: 82px; padding: 11px; gap: 9px; } .teacher-detail-page .teacher-detail-metric-icon { width: 38px; height: 38px; font-size: 1.1rem; } }
+
+/* Controles compactos no painel do professor. */
+.teacher-enrollment-students { gap: 12px; padding: 12px; }
+.teacher-enrollment-students .teacher-enrollment-primary { grid-template-columns: minmax(155px, .38fr) minmax(0, 1.62fr); gap: 10px; }
+.teacher-enrollment-students .teacher-enrollment-financial { gap: 10px; }
+.teacher-enrollment-students input, .teacher-enrollment-students select { min-height: 38px; font-size: .78rem; }
+.teacher-enrollment-students .teacher-client-search::before { top: 25px; left: 12px; font-size: 1rem; }
+.teacher-enrollment-students .teacher-client-search input { padding-left: 34px; }
+.teacher-enrollment-students > .button { min-height: 36px; padding-inline: 13px; font-size: .74rem; }
+.teacher-plan-edit-trigger { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 6px 10px; border: 1px solid #cbd9e8; border-radius: 7px; color: #155d99; background: #fff; font: inherit; font-size: .74rem; font-weight: 750; cursor: pointer; }
+.teacher-plan-edit-trigger:hover { border-color: #79abd0; background: #f4f9fd; }
+.teacher-plan-edit-trigger .event-icon { width: 15px; height: 15px; }
+.teacher-plan-edit-modal { position: fixed; z-index: 90; inset: 0; display: grid; place-items: center; padding: 20px; background: rgb(10 29 54 / .34); backdrop-filter: blur(3px); }
+.teacher-plan-edit-dialog { display: grid; gap: 15px; width: min(390px, 100%); padding: 19px; border: 1px solid #d8e5f0; border-radius: 13px; background: #fff; box-shadow: 0 22px 54px rgb(12 33 61 / .22); }
+.teacher-plan-edit-dialog > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid #e3ebf3; }
+.teacher-plan-edit-dialog h2 { margin: 3px 0 0; color: #12213f; font-size: 1.05rem; }
+.teacher-plan-edit-close { display: grid; width: 30px; height: 30px; place-items: center; border: 1px solid #d4e0ed; border-radius: 7px; color: #42607e; background: #fff; font-size: 1.1rem; cursor: pointer; }
+.teacher-plan-edit-modal .teacher-plan-edit-form { position: static; width: auto; padding: 0; border: 0; border-radius: 0; box-shadow: none; }
+.teacher-plan-edit-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 3px; }
+.teacher-plan-edit-actions .button { min-height: 34px; }
+.teacher-page-actions .status-badge { display: inline-flex; align-items: center; gap: 5px; min-height: 32px; padding: 5px 9px; border-radius: 999px; font-weight: 700; }
+.teacher-page-actions .status-badge .event-icon { width: 14px; height: 14px; }
+.teacher-actions-menu summary { min-height: 32px; padding: 5px 9px; border-radius: 7px; font-weight: 650; }
+.teacher-actions-menu summary .event-icon { width: 14px; height: 14px; color: #5e7790; }
+.teacher-actions-menu[open] summary .event-icon { transform: rotate(180deg); }
+@media (max-width: 600px) { .teacher-enrollment-students .teacher-enrollment-primary { grid-template-columns: 1fr; } .teacher-plan-edit-modal { align-items: end; padding: 12px; } .teacher-plan-edit-dialog { border-radius: 13px; } }

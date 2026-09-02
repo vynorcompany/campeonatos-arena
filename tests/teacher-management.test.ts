@@ -395,8 +395,14 @@ test("existing teacher plans can be edited without changing active subscriptions
     /export async function updateTeacherPlanWithPriceAction/,
   );
   assert.match(actions, /prisma\.plan\.update/);
-  assert.match(page, /updateTeacherPlanWithPriceAction/);
-  assert.match(page, /teacher-plan-edit/);
+  assert.match(page, /TeacherPlanEditor/);
+  assert.match(
+    readFileSync(
+      resolve(process.cwd(), "src/components/teachers/teacher-plan-editor.tsx"),
+      "utf8",
+    ),
+    /updateTeacherPlanWithPriceAction/,
+  );
 });
 
 test("plan enrollment keeps financial fields inside a compact three-column grid", () => {
@@ -507,4 +513,27 @@ test("class row action menus close when the user clicks outside them", () => {
   );
   assert.match(panel, /\.teacher-class-actions\[open\]/);
   assert.match(panel, /target\.closest\("\.teacher-class-actions"\)/);
+});
+
+test("plan editing returns a safe validation message and uses a dismissible modal", () => {
+  const [actions, editor, form] = [
+    readFileSync(resolve(process.cwd(), "src/lib/actions/academy.ts"), "utf8"),
+    readFileSync(
+      resolve(process.cwd(), "src/components/teachers/teacher-plan-editor.tsx"),
+      "utf8",
+    ),
+    readFileSync(
+      resolve(process.cwd(), "src/components/forms/safe-action-form.tsx"),
+      "utf8",
+    ),
+  ];
+
+  assert.match(actions, /updateTeacherPlanWithPriceAction/);
+  assert.match(actions, /return \{ error:/);
+  assert.match(editor, /teacher-plan-edit-modal/);
+  assert.match(editor, /onMouseDown=\{\(\) => setOpen\(false\)\}/);
+  assert.match(
+    form,
+    /result &&\s*typeof result === "object" &&\s*"error" in result/,
+  );
 });

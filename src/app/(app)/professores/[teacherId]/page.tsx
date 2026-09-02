@@ -2,16 +2,17 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { TeacherMonthlyReport } from "@/components/teachers/teacher-monthly-report";
 import { TeacherClassGroupsPanel } from "@/components/teachers/teacher-class-groups-panel";
+import { TeacherPlanEditor } from "@/components/teachers/teacher-plan-editor";
 import { TeacherPlanEnrollmentForm } from "@/components/teachers/teacher-plan-enrollment-form";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
+import { EventIcon } from "@/components/tournaments/event-icon";
 import {
   archiveTeacherAction,
   copyTeacherPlansAction,
   createTeacherPlanWithPriceAction,
   deleteTeacherAction,
   removeTeacherPlanStudentAction,
-  updateTeacherPlanWithPriceAction,
 } from "@/lib/actions/academy";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
@@ -20,11 +21,6 @@ const money = (value: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
     value / 100,
   );
-const moneyInput = (value: number) =>
-  (value / 100).toLocaleString("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
 const inputDate = (value: Date) => value.toISOString().slice(0, 10);
 type DetailQuery = {
   tab?: string;
@@ -223,11 +219,17 @@ export default async function TeacherDetailPage({
               teacher.active ? "status-badge status-active" : "status-badge"
             }
           >
-            {teacher.active ? "● Ativo" : "Inativo"}
+            {teacher.active ? (
+              <>
+                <EventIcon name="check-circle" /> Ativo
+              </>
+            ) : (
+              "Inativo"
+            )}
           </span>
           <details className="teacher-actions-menu">
             <summary>
-              Ações <span aria-hidden="true">⌄</span>
+              Ações <EventIcon name="chevron-down" />
             </summary>
             <div className="teacher-actions-menu-content">
               {teacher.active ? (
@@ -296,7 +298,7 @@ export default async function TeacherDetailPage({
             className="teacher-detail-metric-icon metric-blue"
             aria-hidden="true"
           >
-            ▤
+            <EventIcon name="clipboard" />
           </span>
           <div>
             <span>Planos ativos</span>
@@ -308,7 +310,7 @@ export default async function TeacherDetailPage({
             className="teacher-detail-metric-icon metric-blue"
             aria-hidden="true"
           >
-            ♧
+            <EventIcon name="users" />
           </span>
           <div>
             <span>Alunos ativos</span>
@@ -320,7 +322,7 @@ export default async function TeacherDetailPage({
             className="teacher-detail-metric-icon metric-green"
             aria-hidden="true"
           >
-            ◇
+            <EventIcon name="calendar" />
           </span>
           <div>
             <span>Aulas concluídas no mês</span>
@@ -332,7 +334,7 @@ export default async function TeacherDetailPage({
             className="teacher-detail-metric-icon metric-purple"
             aria-hidden="true"
           >
-            ▣
+            <EventIcon name="check-circle" />
           </span>
           <div>
             <span>Presenças no mês</span>
@@ -438,50 +440,7 @@ export default async function TeacherDetailPage({
                   <h2>{activePlan.name}</h2>
                   <span>{activePlan.subscriptions.length} alunos</span>
                 </div>
-                <details className="teacher-plan-edit">
-                  <summary>Editar plano</summary>
-                  <SafeActionForm
-                    action={updateTeacherPlanWithPriceAction}
-                    className="teacher-plan-edit-form"
-                    successMessage="Plano atualizado. Os alunos atuais mantêm seus valores contratados."
-                  >
-                    <input type="hidden" name="teacherId" value={teacher.id} />
-                    <input type="hidden" name="planId" value={activePlan.id} />
-                    <label>
-                      Nome do plano
-                      <input
-                        name="name"
-                        required
-                        minLength={2}
-                        defaultValue={activePlan.name}
-                      />
-                    </label>
-                    <label>
-                      Aulas/mês
-                      <input
-                        name="classesPerMonth"
-                        type="number"
-                        min="1"
-                        max="31"
-                        defaultValue={activePlan.classesPerMonth}
-                      />
-                    </label>
-                    <label>
-                      Preço mensal
-                      <input
-                        name="monthlyPrice"
-                        inputMode="decimal"
-                        required
-                        defaultValue={moneyInput(activePlan.monthlyPriceCents)}
-                      />
-                    </label>
-                    <SubmitButton
-                      label="Salvar plano"
-                      pendingLabel="Salvando..."
-                      className="button button-primary button-small"
-                    />
-                  </SafeActionForm>
-                </details>
+                <TeacherPlanEditor teacherId={teacher.id} plan={activePlan} />
               </header>
               <div className="teacher-student-plan-list">
                 {activePlan.subscriptions.map((subscription) => (
