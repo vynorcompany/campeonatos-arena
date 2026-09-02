@@ -1362,6 +1362,49 @@ export async function resetCategoryLeagueMatchResult(
   });
 }
 
+export async function reopenCategoryLeagueForEditing(
+  arenaId: string,
+  competitionId: string,
+) {
+  return runSerializableTransaction(async (tx) => {
+    const competition = await tx.categoryCompetition.findFirst({
+      where: {
+        id: competitionId,
+        format: "LEAGUE",
+        status: categoryCompetitionStatus.PUBLISHED,
+        category: { active: true, tournament: { arenaId } },
+      },
+      select: { id: true },
+    });
+    if (!competition) throw new Error("Somente uma Liga publicada pode voltar para edição.");
+
+    const playedMatch = await tx.categoryMatch.findFirst({
+      where: {
+        competitionId: competition.id,
+        OR: [
+          { winnerPairId: { not: null } },
+          { homeScore: { not: null } },
+          { awayScore: { not: null } },
+          { homeSet1: { not: null } },
+          { awaySet1: { not: null } },
+          { homeSet2: { not: null } },
+          { awaySet2: { not: null } },
+          { homeSet3: { not: null } },
+          { awaySet3: { not: null } },
+          { manualStatus: { in: ["LIVE", "FINISHED"] } },
+        ],
+      },
+      select: { id: true },
+    });
+    if (playedMatch) throw new Error("A Liga não pode voltar para edição após o início de um jogo.");
+
+    await tx.categoryMatch.deleteMany({ where: { competitionId: competition.id } });
+    await tx.categoryPair.updateMany({ where: { competitionId: competition.id }, data: { groupId: null } });
+    await tx.categoryGroup.deleteMany({ where: { competitionId: competition.id } });
+    return tx.categoryCompetition.update({ where: { id: competition.id }, data: { status: categoryCompetitionStatus.DRAFT } });
+  });
+}
+
 export async function finishCategoryCompetition(
   arenaId: string,
   competitionId: string,

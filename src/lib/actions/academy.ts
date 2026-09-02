@@ -278,6 +278,17 @@ export async function createTeacherAction(formData: FormData) {
   refreshAcademyRoutes();
 }
 
+export async function archiveTeacherAction(formData: FormData) {
+  const auth = await requireModuleEdit("teachers");
+  const teacherId = String(formData.get("teacherId") ?? "");
+  const archived = await prisma.teacher.updateMany({
+    where: { id: teacherId, arenaId: auth.arenaId, active: true },
+    data: { active: false, updatedByUserId: auth.userId }
+  });
+  if (!archived.count) throw new Error("Professor não encontrado ou já removido.");
+  refreshAcademyRoutes();
+}
+
 export async function createClassGroupAction(formData: FormData) {
   const auth = await requireModuleEdit("lessons");
   const name = String(formData.get("name") ?? "").trim();
@@ -292,6 +303,7 @@ export async function createClassGroupAction(formData: FormData) {
     capacity: Number(capacities[index])
   })).filter((item) => Number.isInteger(item.weekday) && item.weekday >= 0 && item.weekday <= 6 && /^\d{2}:\d{2}$/.test(item.startTime) && Number.isInteger(item.capacity) && item.capacity > 0);
   if (name.length < 2 || !teacherId || !schedules.length) throw new Error("Informe nome, professor e ao menos um horário da turma.");
+  if (!planIds.length) throw new Error("Selecione ao menos um plano para a turma.");
   const [teacher, plans] = await Promise.all([
     prisma.teacher.findFirst({ where: { id: teacherId, arenaId: auth.arenaId, active: true }, select: { id: true } }),
     prisma.plan.findMany({ where: { id: { in: planIds }, arenaId: auth.arenaId, active: true }, select: { id: true } })
@@ -309,6 +321,44 @@ export async function createClassGroupAction(formData: FormData) {
       schedules: { create: schedules.map((item) => ({ ...item, arenaId: auth.arenaId })) },
       plans: { create: plans.map((plan) => ({ planId: plan.id })) }
     }
+  });
+  refreshAcademyRoutes();
+}
+
+export async function updateTeacherClassGroupCapacityAction(formData: FormData) {
+  const auth = await requireModuleEdit("lessons");
+  const teacherId = String(formData.get("teacherId") ?? "");
+  const classGroupId = String(formData.get("classGroupId") ?? "");
+  const scheduleId = String(formData.get("scheduleId") ?? "");
+  const capacity = z.coerce.number().int().min(1).max(100).parse(formData.get("capacity"));
+  const schedule = await prisma.classGroupSchedule.findFirst({
+    where: { id: scheduleId, classGroupId, arenaId: auth.arenaId, classGroup: { teacherId, active: true } },
+    include: { classGroup: { include: { enrollments: { where: { status: "ACTIVE" }, select: { id: true } } } } }
+  });
+  if (!schedule) throw new Error("Horário da turma não encontrado.");
+  if (capacity < schedule.classGroup.enrollments.length) throw new Error("As vagas não podem ser menores que os alunos já matriculados.");
+  await prisma.classGroupSchedule.update({ where: { id: schedule.id }, data: { capacity } });
+  refreshAcademyRoutes();
+}
+
+export async function moveTeacherClassGroupStudentAction(formData: FormData) {
+  const auth = await requireModuleEdit("lessons");
+  const teacherId = String(formData.get("teacherId") ?? "");
+  const sourceClassGroupId = String(formData.get("sourceClassGroupId") ?? "");
+  const destinationClassGroupId = String(formData.get("destinationClassGroupId") ?? "");
+  const studentId = String(formData.get("studentId") ?? "");
+  if (!teacherId || !sourceClassGroupId || !destinationClassGroupId || !studentId || sourceClassGroupId === destinationClassGroupId) throw new Error("Selecione uma turma de destino diferente.");
+  const [source, destination] = await Promise.all([
+    prisma.classGroup.findFirst({ where: { id: sourceClassGroupId, arenaId: auth.arenaId, teacherId, active: true }, select: { id: true } }),
+    prisma.classGroup.findFirst({ where: { id: destinationClassGroupId, arenaId: auth.arenaId, teacherId, active: true }, include: { schedules: true, enrollments: { where: { status: "ACTIVE" }, select: { id: true } } } })
+  ]);
+  if (!source || !destination) throw new Error("Selecione turmas ativas deste professor.");
+  if (!destination.schedules.every((schedule) => destination.enrollments.length < schedule.capacity)) throw new Error("A turma de destino não possui vagas.");
+  await prisma.$transaction(async (tx) => {
+    const enrollment = await tx.classGroupEnrollment.findFirst({ where: { classGroupId: source.id, studentId, status: "ACTIVE" }, select: { id: true } });
+    if (!enrollment) throw new Error("Aluno não encontrado nesta turma.");
+    await tx.classGroupEnrollment.update({ where: { id: enrollment.id }, data: { status: "TRANSFERRED", endedAt: new Date() } });
+    await tx.classGroupEnrollment.upsert({ where: { classGroupId_studentId: { classGroupId: destination.id, studentId } }, update: { status: "ACTIVE", endedAt: null, startedAt: new Date() }, create: { arenaId: auth.arenaId, classGroupId: destination.id, studentId } });
   });
   refreshAcademyRoutes();
 }

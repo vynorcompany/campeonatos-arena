@@ -1,11 +1,18 @@
 import { prisma } from "@/lib/prisma";
+import { getLeagueMonthBlocks } from "@/lib/league/monthly-schedule";
 
 function dateTimeLabel(value: Date) { return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(value); }
+function leagueWeekPeriod(referenceMonth: string | null | undefined, block: number | null) {
+  if (!referenceMonth || !block || block < 1 || block > 4) return "Período a definir";
+  const [year, month] = referenceMonth.split("-").map(Number);
+  const period = getLeagueMonthBlocks(year, month)[block - 1];
+  return period ? `${period.startsOn.split("-").reverse().join("/")} a ${period.endsOn.split("-").reverse().join("/")}` : "Período a definir";
+}
 
 export async function getPublicLeaguePortal(arenaSlug: string, playerId: string, requestedCategoryId?: string) {
   const arena = await prisma.arena.findUnique({ where: { slug: arenaSlug }, select: { id: true, scheduleStartMinute: true, scheduleEndMinute: true, courts: { where: { active: true }, include: { weeklyRules: true }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }] } } });
   if (!arena) return null;
-  const ownPairs = await prisma.categoryPair.findMany({ where: { active: true, players: { some: { playerId } }, competition: { format: "LEAGUE", status: { not: "FINISHED" }, category: { tournament: { arenaId: arena.id } } } }, include: { group: true, competition: { include: { category: { include: { tournament: true } } } }, players: { include: { player: { select: { id: true, name: true } } } }, homeMatches: { include: { awayPair: { select: { id: true, name: true, groupId: true } }, leagueCycle: { select: { id: true } } } }, awayMatches: { include: { homePair: { select: { id: true, name: true, groupId: true } } } } }, orderBy: { createdAt: "asc" } });
+  const ownPairs = await prisma.categoryPair.findMany({ where: { active: true, players: { some: { playerId } }, competition: { format: "LEAGUE", status: "PUBLISHED", category: { tournament: { arenaId: arena.id } } } }, include: { group: true, competition: { include: { category: { include: { tournament: true } } } }, players: { include: { player: { select: { id: true, name: true } } } }, homeMatches: { include: { awayPair: { select: { id: true, name: true, groupId: true } }, leagueCycle: { select: { id: true } } } }, awayMatches: { include: { homePair: { select: { id: true, name: true, groupId: true } } } } }, orderBy: { createdAt: "asc" } });
   const challenges = await prisma.leagueMatchProposal.findMany({ where: { OR: [{ proposerPairId: { in: ownPairs.map((pair) => pair.id) } }, { opponentPairId: { in: ownPairs.map((pair) => pair.id) } }] }, include: { court: { select: { name: true } }, categoryMatch: { include: { homePair: { select: { name: true } }, awayPair: { select: { name: true } } } } }, orderBy: { createdAt: "desc" } });
   const now = new Date();
   const [leagueNotifications, medicalRequests, replacementPlayers, prizes, reservations, student, classOccurrences, teachers, teacherManagement, classGroups] = await Promise.all([
@@ -63,19 +70,19 @@ export async function getPublicLeaguePortal(arenaSlug: string, playerId: string,
   ]);
   const occurrences = await prisma.scheduleOccurrence.findMany({ where: { arenaId: arena.id, status: { not: "CANCELED" }, startsAt: { gte: now, lt: new Date(now.getTime() + 8 * 24 * 60 * 60_000) } }, include: { occurrenceCourts: true } });
   const leagueCompetitions = await prisma.categoryCompetition.findMany({
-    where: { format: "LEAGUE", status: { not: "FINISHED" }, category: { active: true, tournament: { arenaId: arena.id } } },
+    where: { format: "LEAGUE", status: "PUBLISHED", category: { active: true, tournament: { arenaId: arena.id } } },
     orderBy: [{ category: { tournament: { name: "asc" } } }, { category: { name: "asc" } }],
     include: {
       category: { include: { tournament: { select: { name: true } } } },
       pairs: { where: { active: true }, orderBy: { drawOrder: "asc" }, include: { group: true, players: { include: { player: { select: { id: true, name: true } } } } } },
-      matches: { orderBy: [{ leagueBlock: "asc" }, { roundOrder: "asc" }], include: { homePair: { select: { name: true } }, awayPair: { select: { name: true } }, winnerPair: { select: { id: true } } } },
+      matches: { orderBy: [{ leagueBlock: "asc" }, { roundOrder: "asc" }], include: { homePair: { select: { name: true } }, awayPair: { select: { name: true } }, winnerPair: { select: { id: true } }, leagueCycle: { select: { referenceMonth: true } } } },
     },
   });
   const ownCompetitionIds = new Set(ownPairs.map((pair) => pair.competitionId));
   const selectedLeagueCompetition = leagueCompetitions.find((competition) => competition.categoryId === requestedCategoryId) ?? leagueCompetitions.find((competition) => ownCompetitionIds.has(competition.id)) ?? leagueCompetitions[0] ?? null;
   const leagueCategories = leagueCompetitions.map((competition) => ({ id: competition.categoryId, label: `${competition.category.name} · ${competition.category.tournament.name}`, member: ownCompetitionIds.has(competition.id) }));
   const selectedLeaguePairs = selectedLeagueCompetition?.pairs.map((pair) => ({ id: pair.id, name: pair.name, groupName: pair.group?.name ?? "", players: pair.players.map((entry) => ({ id: entry.player.id, name: entry.player.name })) })) ?? [];
-  const leagueResults = selectedLeagueCompetition?.matches.map((match) => ({ id: match.id, block: match.leagueBlock, homePairName: match.homePair?.name ?? "Dupla a definir", awayPairName: match.awayPair?.name ?? "Dupla a definir", homeScore: match.homeScore, awayScore: match.awayScore, finished: Boolean(match.winnerPairId) })) ?? [];
+  const leagueResults = selectedLeagueCompetition?.matches.map((match) => ({ id: match.id, block: match.leagueBlock, period: leagueWeekPeriod(match.leagueCycle?.referenceMonth, match.leagueBlock), homePairName: match.homePair?.name ?? "Dupla a definir", awayPairName: match.awayPair?.name ?? "Dupla a definir", homeScore: match.homeScore, awayScore: match.awayScore, finished: Boolean(match.winnerPairId) })) ?? [];
   const slots = arena.courts.flatMap((court) => Array.from({ length: 7 }, (_, dayOffset) => {
     const date = new Date(now); date.setHours(0, 0, 0, 0); date.setDate(date.getDate() + dayOffset);
     const rule = court.weeklyRules.find((item) => item.weekday === date.getDay() && item.available);

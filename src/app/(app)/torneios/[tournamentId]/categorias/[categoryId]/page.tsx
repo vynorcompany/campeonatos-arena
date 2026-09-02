@@ -308,6 +308,7 @@ export default async function CategoryPage({
             homeSet3: match.homeSet3,
             awaySet3: match.awaySet3,
             manualStatus: match.manualStatus,
+            winnerPairId: match.winnerPairId,
             leagueBlock: match.leagueBlock,
             woReason: match.woReason,
             homePair: match.homePair,

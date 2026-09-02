@@ -17,6 +17,7 @@ import {
   moveCategoryPair,
   replaceCategoryPairPlayer,
   publishCategoryDraw,
+  reopenCategoryLeagueForEditing,
   recordCategoryMatchResult,
   recordCategoryLeagueMatchResult,
   resetCategoryLeagueMatchResult,
@@ -227,6 +228,15 @@ export async function resetCategoryLeagueMatchResultAction(formData: FormData) {
   if (!parsed.success) throw new Error(invalidInputMessage(parsed.error));
 
   const result = await resetCategoryLeagueMatchResult(auth.arenaId, parsed.data.matchId);
+  refreshCategoryCompetitionRoutes();
+  return result;
+}
+
+export async function reopenCategoryLeagueForEditingAction(formData: FormData) {
+  const auth = await requireModuleEdit("tournaments");
+  const parsed = publishCategoryDrawSchema.safeParse({ competitionId: formData.get("competitionId") });
+  if (!parsed.success) throw new Error(invalidInputMessage(parsed.error));
+  const result = await reopenCategoryLeagueForEditing(auth.arenaId, parsed.data.competitionId);
   refreshCategoryCompetitionRoutes();
   return result;
 }

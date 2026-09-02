@@ -140,6 +140,26 @@ test("League games render their existing fixtures in four visual weekly blocks",
   assert.match(games, /Semana \{leagueBlock\}/);
 });
 
+test("a published League can return to editing only before a game is started", () => {
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/category-competition.ts"), "utf8");
+  const service = readFileSync(resolve(process.cwd(), "src/lib/services/category-competition.ts"), "utf8");
+  const page = readFileSync(resolve(process.cwd(), "src/components/tournaments/category-draw-panel.tsx"), "utf8");
+
+  assert.match(actions, /reopenCategoryLeagueForEditingAction/);
+  assert.match(service, /reopenCategoryLeagueForEditing/);
+  assert.match(service, /manualStatus: \{ in: \["LIVE", "FINISHED"\] \}/);
+  assert.match(page, /Voltar para edição/);
+});
+
+test("athlete portal groups League fixtures by week and shows the date range", () => {
+  const portal = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-league-portal.tsx"), "utf8");
+  const service = readFileSync(resolve(process.cwd(), "src/lib/services/public-league-portal.ts"), "utf8");
+
+  assert.match(portal, /leagueResultsByWeek/);
+  assert.match(portal, /Período: \{week\.period\}/);
+  assert.match(service, /period:/);
+});
+
 test("confirmed League reservations are integrated into the match title", () => {
   const portal = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-league-portal.tsx"), "utf8");
   assert.match(portal, /public-challenge-title-row/);

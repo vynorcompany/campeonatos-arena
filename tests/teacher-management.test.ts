@@ -68,3 +68,27 @@ test("teacher plans enroll searchable clients with balance, due date, discount a
   assert.match(actions, /discountMode/);
   assert.match(actions, /dueDay/);
 });
+
+test("teacher panel archives professors and centralizes their class-group management", () => {
+  const detail = readFileSync(resolve(process.cwd(), "src/app/(app)/professores/[teacherId]/page.tsx"), "utf8");
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/academy.ts"), "utf8");
+  const groups = resolve(process.cwd(), "src/components/teachers/teacher-class-groups-panel.tsx");
+
+  assert.match(detail, /Remover professor/);
+  assert.match(detail, /Turmas/);
+  assert.match(detail, /TeacherClassGroupsPanel/);
+  assert.match(actions, /archiveTeacherAction/);
+  assert.match(actions, /updateTeacherClassGroupCapacityAction/);
+  assert.match(actions, /moveTeacherClassGroupStudentAction/);
+  assert.ok(existsSync(groups));
+});
+
+test("teacher enrollment has responsive visual groups instead of one long row", () => {
+  const enrollment = readFileSync(resolve(process.cwd(), "src/components/teachers/teacher-plan-enrollment-form.tsx"), "utf8");
+  const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
+
+  assert.match(enrollment, /teacher-enrollment-primary/);
+  assert.match(enrollment, /teacher-enrollment-financial/);
+  assert.match(styles, /\.teacher-enrollment-primary/);
+  assert.match(styles, /\.teacher-enrollment-financial/);
+});

@@ -5,6 +5,7 @@ import {
   generateCategoryDrawAction,
   moveCategoryPairAction,
   publishCategoryDrawAction,
+  reopenCategoryLeagueForEditingAction,
 } from "@/lib/actions/category-competition";
 import { canGenerateCategoryDraw } from "@/lib/tournament-category/draw";
 
@@ -27,6 +28,18 @@ type DrawCategory = {
         id: string;
         name: string;
       }>;
+    }>;
+    matches: Array<{
+      winnerPairId: string | null;
+      homeScore: number | null;
+      awayScore: number | null;
+      homeSet1: number | null;
+      awaySet1: number | null;
+      homeSet2: number | null;
+      awaySet2: number | null;
+      homeSet3: number | null;
+      awaySet3: number | null;
+      manualStatus: string | null;
     }>;
   } | null;
 };
@@ -57,6 +70,7 @@ export function CategoryDrawPanel({
     <div className="stack-md">
       {categories.map((category) => {
         const competition = category.competition;
+        const canReopenLeague = competition?.format === "LEAGUE" && competition.status === "PUBLISHED" && competition.matches.every((match) => !match.winnerPairId && match.homeScore == null && match.awayScore == null && match.homeSet1 == null && match.awaySet1 == null && match.homeSet2 == null && match.awaySet2 == null && match.homeSet3 == null && match.awaySet3 == null && match.manualStatus !== "LIVE" && match.manualStatus !== "FINISHED");
 
         return (
           <article
@@ -121,11 +135,7 @@ export function CategoryDrawPanel({
                       </form>
                     ) : null}
                   </div>
-                ) : (
-                  <p className="muted">
-                    A composição foi publicada e não recebe mais ajustes.
-                  </p>
-                )}
+                ) : canReopenLeague ? <div className="section-actions"><form action={reopenCategoryLeagueForEditingAction}><input type="hidden" name="competitionId" value={competition.id} /><SubmitButton label="Voltar para edição" pendingLabel="Reabrindo..." className="button button-secondary" /></form><p className="muted">Nenhum jogo foi iniciado. As duplas serão mantidas, mas a tabela atual será refeita.</p></div> : <p className="muted">A composição foi publicada e não recebe mais ajustes.</p>}
 
                 {competition.groups.length ? (
                   <div className="simple-grid simple-grid-2">
