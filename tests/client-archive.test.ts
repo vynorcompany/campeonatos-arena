@@ -25,3 +25,13 @@ test("mesclagem mantém o acesso do cliente principal quando ambos possuem porta
   assert.doesNotMatch(managementActions, /if \(primary\.account && duplicate\.account\) throw new Error/);
   assert.match(managementActions, /playerAccount\.delete/);
 });
+
+test("cliente mesclado fica fora de todas as listas sem perder o histórico técnico", () => {
+  const schema = readFileSync(resolve(root, "prisma/schema.prisma"), "utf8");
+  const page = readFileSync(resolve(root, "src/app/(app)/jogadores/page.tsx"), "utf8");
+  const managementActions = readFileSync(resolve(root, "src/lib/actions/client-management.ts"), "utf8");
+
+  assert.match(schema, /mergedIntoPlayerId\s+String\?/);
+  assert.match(managementActions, /mergedIntoPlayerId:\s*primary\.id/);
+  assert.match(page, /mergedIntoPlayerId:\s*null/);
+});

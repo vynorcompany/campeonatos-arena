@@ -70,7 +70,7 @@ export async function mergeClientsAction(formData: FormData) {
       await tx.student.update({ where: { id: primary.student.id }, data: { remainingClasses: { increment: duplicate.student.remainingClasses }, totalClasses: { increment: duplicate.student.totalClasses }, attendedClasses: { increment: duplicate.student.attendedClasses }, missedClasses: { increment: duplicate.student.missedClasses } } });
       await tx.student.delete({ where: { id: duplicate.student.id } });
     }
-    await tx.player.update({ where: { id: duplicate.id }, data: { active: false } });
+    await tx.player.update({ where: { id: duplicate.id }, data: { active: false, mergedIntoPlayerId: primary.id } });
   });
   refreshClients();
 }

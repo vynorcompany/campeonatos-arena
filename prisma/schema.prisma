@@ -247,10 +247,13 @@ model Player {
   cpf         String            @default("")
   birthDate   DateTime?
   active      Boolean           @default(true)
+  mergedIntoPlayerId String?
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
   arenaId     String
   arena       Arena             @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  mergedInto  Player?           @relation("MergedPlayers", fields: [mergedIntoPlayerId], references: [id], onDelete: SetNull)
+  mergedPlayers Player[]        @relation("MergedPlayers")
   entries     TournamentPlayer[]
   pairPlayers PairPlayer[]
   categoryPairPlayers CategoryPairPlayer[]
@@ -265,6 +268,7 @@ model Player {
   leagueAthleteTiers LeagueAthleteTier[]
 
   @@index([arenaId, active])
+  @@index([mergedIntoPlayerId])
   @@index([arenaId, points])
 }
 
