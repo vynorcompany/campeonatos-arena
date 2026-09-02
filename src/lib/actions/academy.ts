@@ -830,6 +830,7 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
   const teacherId = String(formData.get("teacherId") ?? "");
   const planId = String(formData.get("planId") ?? "");
   const clientId = String(formData.get("clientId") ?? "");
+  const classGroupId = String(formData.get("classGroupId") ?? "");
   const startedAt =
     parseFormDate(String(formData.get("startedAt") ?? "")) ?? new Date();
   const dueDateInput = parseFormDate(String(formData.get("dueDate") ?? ""));
@@ -857,7 +858,7 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
       : parseMoneyToCents(discountRaw);
   if (!Number.isFinite(discount) || discount < 0)
     throw new Error("Informe um desconto válido.");
-  const [teacher, plan, client] = await Promise.all([
+  const [teacher, plan, client, classGroup] = await Promise.all([
     prisma.teacher.findFirst({
       where: { id: teacherId, arenaId: auth.arenaId },
       select: { id: true },
@@ -875,9 +876,41 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
       where: { id: clientId, arenaId: auth.arenaId, active: true },
       select: { id: true, name: true, phone: true },
     }),
+    classGroupId
+      ? prisma.classGroup.findFirst({
+          where: {
+            id: classGroupId,
+            arenaId: auth.arenaId,
+            teacherId,
+            active: true,
+          },
+          include: {
+            plans: { select: { planId: true } },
+            schedules: true,
+            enrollments: { where: { status: "ACTIVE" }, select: { id: true } },
+          },
+        })
+      : null,
   ]);
   if (!teacher || !plan || !client)
     throw new Error("Professor, plano ou cliente não encontrado.");
+  if (
+    classGroupId &&
+    (!classGroup ||
+      !classGroup.plans.some(
+        ({ planId: groupPlanId }) => groupPlanId === planId,
+      ))
+  ) {
+    throw new Error("Selecione uma turma compatível com o plano.");
+  }
+  if (
+    classGroup &&
+    !classGroup.schedules.every(
+      (schedule) => classGroup.enrollments.length < schedule.capacity,
+    )
+  ) {
+    throw new Error("A turma selecionada não possui vagas.");
+  }
   const discountedAmountCents = getDiscountedAmountCents(
     plan.monthlyPriceCents,
     discount,
@@ -918,6 +951,31 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
       update: { active: true },
       create: { arenaId: auth.arenaId, teacherId, studentId: student.id },
     });
+    if (classGroup) {
+      await tx.classGroupEnrollment.updateMany({
+        where: {
+          arenaId: auth.arenaId,
+          studentId: student.id,
+          status: "ACTIVE",
+          classGroup: { teacherId, NOT: { id: classGroup.id } },
+        },
+        data: { status: "TRANSFERRED", endedAt: new Date() },
+      });
+      await tx.classGroupEnrollment.upsert({
+        where: {
+          classGroupId_studentId: {
+            classGroupId: classGroup.id,
+            studentId: student.id,
+          },
+        },
+        update: { status: "ACTIVE", endedAt: null, startedAt: new Date() },
+        create: {
+          arenaId: auth.arenaId,
+          classGroupId: classGroup.id,
+          studentId: student.id,
+        },
+      });
+    }
     const note = `Desconto ${discountMode === "PERCENTAGE" ? `${discount}%` : `R$ ${(discount / 100).toFixed(2)}`} ${discountApplication === "RECURRING" ? "recorrente" : "na primeira mensalidade"}.`;
     if (subscription)
       await tx.studentSubscription.update({

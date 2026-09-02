@@ -4,7 +4,10 @@ import { resolve } from "node:path";
 import test from "node:test";
 
 test("academy data model supports fixed class groups with capacity by weekday and time", () => {
-  const schema = readFileSync(resolve(process.cwd(), "prisma/schema.prisma"), "utf8");
+  const schema = readFileSync(
+    resolve(process.cwd(), "prisma/schema.prisma"),
+    "utf8",
+  );
 
   assert.match(schema, /model ClassGroup\s*\{/);
   assert.match(schema, /model ClassGroupSchedule\s*\{/);
@@ -16,9 +19,18 @@ test("academy data model supports fixed class groups with capacity by weekday an
 });
 
 test("academy page exposes a dedicated workspace for class groups", () => {
-  const page = readFileSync(resolve(process.cwd(), "src/app/(app)/aulas/page.tsx"), "utf8");
-  const workspace = readFileSync(resolve(process.cwd(), "src/components/teachers/class-group-workspace.tsx"), "utf8");
-  const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
+  const page = readFileSync(
+    resolve(process.cwd(), "src/app/(app)/aulas/page.tsx"),
+    "utf8",
+  );
+  const workspace = readFileSync(
+    resolve(process.cwd(), "src/components/teachers/class-group-workspace.tsx"),
+    "utf8",
+  );
+  const styles = readFileSync(
+    resolve(process.cwd(), "src/app/globals.css"),
+    "utf8",
+  );
 
   assert.match(page, /ClassGroupWorkspace/);
   assert.match(workspace, /Turmas e horários/);
@@ -27,8 +39,14 @@ test("academy page exposes a dedicated workspace for class groups", () => {
 });
 
 test("athlete portal offers active class groups as requests instead of direct enrollments", () => {
-  const portal = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"), "utf8");
-  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/class-groups.ts"), "utf8");
+  const portal = readFileSync(
+    resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"),
+    "utf8",
+  );
+  const actions = readFileSync(
+    resolve(process.cwd(), "src/lib/actions/class-groups.ts"),
+    "utf8",
+  );
 
   assert.match(portal, /Solicitar vaga/);
   assert.match(actions, /requestClassGroupAction/);
@@ -36,18 +54,55 @@ test("athlete portal offers active class groups as requests instead of direct en
 });
 
 test("athlete portal shows class groups only below the selected teacher", () => {
-  const portal = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"), "utf8");
-  const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
+  const portal = readFileSync(
+    resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"),
+    "utf8",
+  );
+  const styles = readFileSync(
+    resolve(process.cwd(), "src/app/globals.css"),
+    "utf8",
+  );
 
   assert.match(portal, /const selectedClassGroups = selectedTeacher/);
-  assert.match(portal, /portal-class-group-list portal-selected-teacher-groups/);
+  assert.match(
+    portal,
+    /portal-class-group-list portal-selected-teacher-groups/,
+  );
   assert.match(portal, /selectedClassGroups\.length/);
   assert.match(styles, /\.portal-class-group-list \.button \{[^}]*padding:/);
 });
 
+test("athlete portal orders class groups by weekday and marks availability", () => {
+  const [portal, styles] = [
+    readFileSync(
+      resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"),
+      "utf8",
+    ),
+    readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8"),
+  ];
+
+  assert.match(portal, /\.sort\(\(first, second\) =>/);
+  assert.match(portal, /portal-class-group-available/);
+  assert.match(portal, /portal-class-group-full/);
+  assert.match(
+    styles,
+    /\.portal-class-group-list article\.portal-class-group-available/,
+  );
+  assert.match(
+    styles,
+    /\.portal-class-group-list article\.portal-class-group-full/,
+  );
+});
+
 test("arena approval requires a plan before creating a class enrollment", () => {
-  const workspace = readFileSync(resolve(process.cwd(), "src/components/teachers/class-group-workspace.tsx"), "utf8");
-  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/class-groups.ts"), "utf8");
+  const workspace = readFileSync(
+    resolve(process.cwd(), "src/components/teachers/class-group-workspace.tsx"),
+    "utf8",
+  );
+  const actions = readFileSync(
+    resolve(process.cwd(), "src/lib/actions/class-groups.ts"),
+    "utf8",
+  );
 
   assert.match(workspace, /Solicitações pendentes/);
   assert.match(workspace, /name="planId"/);
@@ -56,8 +111,14 @@ test("arena approval requires a plan before creating a class enrollment", () => 
 });
 
 test("teacher portal management includes the teacher class groups and their occupancy", () => {
-  const service = readFileSync(resolve(process.cwd(), "src/lib/services/public-league-portal.ts"), "utf8");
-  const portal = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"), "utf8");
+  const service = readFileSync(
+    resolve(process.cwd(), "src/lib/services/public-league-portal.ts"),
+    "utf8",
+  );
+  const portal = readFileSync(
+    resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"),
+    "utf8",
+  );
 
   assert.match(service, /classGroups:/);
   assert.match(portal, /Minhas turmas/);
@@ -65,9 +126,18 @@ test("teacher portal management includes the teacher class groups and their occu
 });
 
 test("teacher class management supports moving students and logging make-up classes", () => {
-  const schema = readFileSync(resolve(process.cwd(), "prisma/schema.prisma"), "utf8");
-  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/class-groups.ts"), "utf8");
-  const portal = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"), "utf8");
+  const schema = readFileSync(
+    resolve(process.cwd(), "prisma/schema.prisma"),
+    "utf8",
+  );
+  const actions = readFileSync(
+    resolve(process.cwd(), "src/lib/actions/class-groups.ts"),
+    "utf8",
+  );
+  const portal = readFileSync(
+    resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"),
+    "utf8",
+  );
 
   assert.match(schema, /model ClassGroupMakeup\s*\{/);
   assert.match(actions, /moveClassGroupStudentAction/);

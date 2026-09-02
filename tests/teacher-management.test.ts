@@ -537,3 +537,23 @@ test("plan editing returns a safe validation message and uses a dismissible moda
     /result &&\s*typeof result === "object" &&\s*"error" in result/,
   );
 });
+
+test("class groups can be duplicated from their action menu with schedules and plans prefilled", () => {
+  const [panel, styles] = [
+    readFileSync(
+      resolve(
+        process.cwd(),
+        "src/components/teachers/teacher-class-groups-panel.tsx",
+      ),
+      "utf8",
+    ),
+    readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8"),
+  ];
+
+  assert.match(panel, /Duplicar turma/);
+  assert.match(panel, /const duplicateGroup/);
+  assert.match(panel, /setCreatePlanIds\(group\.plans\.map/);
+  assert.match(styles, /\.teacher-class-weekday\.weekday-1/);
+  assert.match(styles, /\.teacher-class-weekday\.weekday-2/);
+  assert.match(styles, /\.teacher-class-weekday\.weekday-3/);
+});

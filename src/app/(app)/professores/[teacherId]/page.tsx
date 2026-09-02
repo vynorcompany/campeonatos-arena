@@ -12,6 +12,7 @@ import {
   copyTeacherPlansAction,
   createTeacherPlanWithPriceAction,
   deleteTeacherAction,
+  moveTeacherClassGroupStudentAction,
   removeTeacherPlanStudentAction,
 } from "@/lib/actions/academy";
 import { requireModuleView } from "@/lib/auth/guards";
@@ -499,6 +500,11 @@ export default async function TeacherDetailPage({
               name: plan.name,
             }))}
             clients={clients}
+            groups={teacher.classGroups.map((group) => ({
+              id: group.id,
+              name: group.name,
+              planIds: group.plans.map(({ planId }) => planId),
+            }))}
           />
           <div className="teacher-student-plan-list">
             {teacher.planAssignments.flatMap(({ plan }) =>
@@ -508,6 +514,11 @@ export default async function TeacherDetailPage({
                     entry.counterpartyName === subscription.student.name,
                 );
                 const paid = payment?.status === "PAID";
+                const studentGroup = teacher.classGroups.find((group) =>
+                  group.enrollments.some(
+                    ({ student }) => student.id === subscription.student.id,
+                  ),
+                );
                 return (
                   <article key={subscription.id}>
                     <div>
@@ -526,6 +537,48 @@ export default async function TeacherDetailPage({
                     <strong>
                       Saldo de aulas: {subscription.student.remainingClasses}
                     </strong>
+                    {studentGroup ? (
+                      <SafeActionForm
+                        action={moveTeacherClassGroupStudentAction}
+                        className="teacher-student-group-move"
+                        successMessage="Turma do aluno atualizada."
+                      >
+                        <input
+                          type="hidden"
+                          name="teacherId"
+                          value={teacher.id}
+                        />
+                        <input
+                          type="hidden"
+                          name="sourceClassGroupId"
+                          value={studentGroup.id}
+                        />
+                        <input
+                          type="hidden"
+                          name="studentId"
+                          value={subscription.student.id}
+                        />
+                        <select name="destinationClassGroupId" defaultValue="">
+                          <option value="" disabled>
+                            Alterar turma…
+                          </option>
+                          {teacher.classGroups
+                            .filter((group) => group.id !== studentGroup.id)
+                            .map((group) => (
+                              <option key={group.id} value={group.id}>
+                                {group.name}
+                              </option>
+                            ))}
+                        </select>
+                        <SubmitButton
+                          label="Mover"
+                          pendingLabel="..."
+                          className="button button-small"
+                        />
+                      </SafeActionForm>
+                    ) : (
+                      <span className="muted">Sem turma definida</span>
+                    )}
                   </article>
                 );
               }),

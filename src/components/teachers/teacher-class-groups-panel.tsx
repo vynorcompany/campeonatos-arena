@@ -48,6 +48,8 @@ export function TeacherClassGroupsPanel({
     { weekday: "1", startTime: "18:00", capacity: "8" },
   ]);
   const [createOpen, setCreateOpen] = useState(false);
+  const [createName, setCreateName] = useState("");
+  const [createPlanIds, setCreatePlanIds] = useState<string[]>([]);
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingSchedules, setEditingSchedules] = useState<DraftSchedule[]>([]);
   const updateSchedule = (index: number, change: Partial<DraftSchedule>) =>
@@ -75,6 +77,24 @@ export function TeacherClassGroupsPanel({
       })),
     );
     setEditingGroupId(group.id);
+  };
+  const openCreate = () => {
+    setCreateName("");
+    setCreatePlanIds([]);
+    setSchedules([{ weekday: "1", startTime: "18:00", capacity: "8" }]);
+    setCreateOpen(true);
+  };
+  const duplicateGroup = (group: Group) => {
+    setCreateName(`${group.name} (cópia)`);
+    setCreatePlanIds(group.plans.map(({ planId }) => planId));
+    setSchedules(
+      group.schedules.map((schedule) => ({
+        weekday: String(schedule.weekday),
+        startTime: schedule.startTime,
+        capacity: String(schedule.capacity),
+      })),
+    );
+    setCreateOpen(true);
   };
   useEffect(() => {
     const closeClassActionMenus = (event: PointerEvent) => {
@@ -145,7 +165,11 @@ export function TeacherClassGroupsPanel({
                 className="teacher-group-create-form"
                 resetOnSuccess
                 successMessage="Turma criada."
-                onSuccess={() => setCreateOpen(false)}
+                onSuccess={() => {
+                  setCreateOpen(false);
+                  setCreateName("");
+                  setCreatePlanIds([]);
+                }}
                 validate={(formData) =>
                   formData.getAll("planIds").length
                     ? null
@@ -159,13 +183,19 @@ export function TeacherClassGroupsPanel({
                     name="name"
                     required
                     placeholder="Ex.: Iniciante noite"
+                    defaultValue={createName}
                   />
                 </label>
                 <fieldset>
                   <legend>Plano obrigatório</legend>
                   {plans.map((plan) => (
                     <label key={plan.id}>
-                      <input type="checkbox" name="planIds" value={plan.id} />
+                      <input
+                        type="checkbox"
+                        name="planIds"
+                        value={plan.id}
+                        defaultChecked={createPlanIds.includes(plan.id)}
+                      />
                       {plan.name}
                     </label>
                   ))}
@@ -461,7 +491,7 @@ export function TeacherClassGroupsPanel({
           <button
             type="button"
             className="button button-secondary"
-            onClick={() => setCreateOpen(true)}
+            onClick={openCreate}
           >
             ＋ Nova turma
           </button>
@@ -510,6 +540,13 @@ export function TeacherClassGroupsPanel({
                     onClick={() => openEdit(group)}
                   >
                     Editar turma
+                  </button>
+                  <button
+                    type="button"
+                    className="button button-secondary button-small teacher-class-edit-trigger"
+                    onClick={() => duplicateGroup(group)}
+                  >
+                    Duplicar turma
                   </button>
                   <SafeActionForm
                     action={updateTeacherClassGroupCapacityAction}

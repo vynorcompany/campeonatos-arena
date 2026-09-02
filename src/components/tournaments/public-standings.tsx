@@ -509,9 +509,24 @@ function ClassesPanel({
   const teachers = portal?.teachers ?? [];
   const selectedTeacher = teachers.find((teacher) => teacher.id === teacherId);
   const selectedClassGroups = selectedTeacher
-    ? (portal?.classGroups ?? []).filter(
-        (group) => group.teacherId === selectedTeacher.id,
-      )
+    ? (portal?.classGroups ?? [])
+        .filter((group) => group.teacherId === selectedTeacher.id)
+        .sort((first, second) => {
+          const firstSchedule = [...first.schedules].sort(
+            (a, b) =>
+              a.weekday - b.weekday || a.startTime.localeCompare(b.startTime),
+          )[0];
+          const secondSchedule = [...second.schedules].sort(
+            (a, b) =>
+              a.weekday - b.weekday || a.startTime.localeCompare(b.startTime),
+          )[0];
+          return (
+            (firstSchedule?.weekday ?? 7) - (secondSchedule?.weekday ?? 7) ||
+            (firstSchedule?.startTime ?? "").localeCompare(
+              secondSchedule?.startTime ?? "",
+            )
+          );
+        })
     : [];
   const weekdays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
   return (
@@ -546,7 +561,14 @@ function ClassesPanel({
           <div className="portal-class-group-list portal-selected-teacher-groups">
             {selectedClassGroups.length ? (
               selectedClassGroups.map((group) => (
-                <article key={group.id}>
+                <article
+                  key={group.id}
+                  className={
+                    group.available
+                      ? "portal-class-group-available"
+                      : "portal-class-group-full"
+                  }
+                >
                   <div>
                     <strong>{group.name}</strong>
                     <small>
