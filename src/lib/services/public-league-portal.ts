@@ -8,6 +8,12 @@ function leagueWeekPeriod(referenceMonth: string | null | undefined, block: numb
   const period = getLeagueMonthBlocks(year, month)[block - 1];
   return period ? `${period.startsOn.split("-").reverse().join("/")} a ${period.endsOn.split("-").reverse().join("/")}` : "Período a definir";
 }
+function leagueMatchScheduleLabel(scheduledDate: string | null, scheduledTime: string | null) {
+  if (!scheduledDate || !scheduledTime) return null;
+  const [year, month, day] = scheduledDate.split("-");
+  if (!year || !month || !day) return null;
+  return `${day}/${month} às ${scheduledTime}`;
+}
 
 export async function getPublicLeaguePortal(arenaSlug: string, playerId: string, requestedCategoryId?: string) {
   const arena = await prisma.arena.findUnique({ where: { slug: arenaSlug }, select: { id: true, scheduleStartMinute: true, scheduleEndMinute: true, courts: { where: { active: true }, include: { weeklyRules: true }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }] } } });
@@ -82,7 +88,7 @@ export async function getPublicLeaguePortal(arenaSlug: string, playerId: string,
   const selectedLeagueCompetition = leagueCompetitions.find((competition) => competition.categoryId === requestedCategoryId) ?? leagueCompetitions.find((competition) => ownCompetitionIds.has(competition.id)) ?? leagueCompetitions[0] ?? null;
   const leagueCategories = leagueCompetitions.map((competition) => ({ id: competition.categoryId, label: `${competition.category.name} · ${competition.category.tournament.name}`, member: ownCompetitionIds.has(competition.id), registrationFeeCents: competition.registrationFeeCents }));
   const selectedLeaguePairs = selectedLeagueCompetition?.pairs.map((pair) => ({ id: pair.id, name: pair.name, groupName: pair.group?.name ?? "", players: pair.players.map((entry) => ({ id: entry.player.id, name: entry.player.name })) })) ?? [];
-  const leagueResults = selectedLeagueCompetition?.matches.map((match) => ({ id: match.id, block: match.leagueBlock, period: leagueWeekPeriod(match.leagueCycle?.referenceMonth, match.leagueBlock), homePairName: match.homePair?.name ?? "Dupla a definir", awayPairName: match.awayPair?.name ?? "Dupla a definir", homeScore: match.homeScore, awayScore: match.awayScore, finished: Boolean(match.winnerPairId) })) ?? [];
+  const leagueResults = selectedLeagueCompetition?.matches.map((match) => ({ id: match.id, block: match.leagueBlock, period: leagueWeekPeriod(match.leagueCycle?.referenceMonth, match.leagueBlock), homePairName: match.homePair?.name ?? "Dupla a definir", awayPairName: match.awayPair?.name ?? "Dupla a definir", homeScore: match.homeScore, awayScore: match.awayScore, scheduledDate: match.scheduledDate, scheduledTime: match.scheduledTime, scheduledAtLabel: leagueMatchScheduleLabel(match.scheduledDate, match.scheduledTime), finished: Boolean(match.winnerPairId) })) ?? [];
   const slots = arena.courts.flatMap((court) => Array.from({ length: 7 }, (_, dayOffset) => {
     const date = new Date(now); date.setHours(0, 0, 0, 0); date.setDate(date.getDate() + dayOffset);
     const rule = court.weeklyRules.find((item) => item.weekday === date.getDay() && item.available);
