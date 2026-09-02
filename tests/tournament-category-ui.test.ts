@@ -410,3 +410,19 @@ test("athlete portal prize descriptions use a lighter reading weight", async () 
 
   assert.match(styles, /\.portal-league-prize-list b \{[^}]*font-weight: 600/);
 });
+
+test("league registration fee is configured by the arena and shown in the athlete portal", async () => {
+  const [schema, action, dialog, portalService, portal] = await Promise.all([
+    readFile(path.join(workspaceRoot, "prisma", "schema.prisma"), "utf8"),
+    readFile(path.join(workspaceRoot, "src", "lib", "actions", "category-competition.ts"), "utf8"),
+    readFile(path.join(workspaceRoot, "src", "components", "tournaments", "league-category-settings-dialog.tsx"), "utf8"),
+    readFile(path.join(workspaceRoot, "src", "lib", "services", "public-league-portal.ts"), "utf8"),
+    readFile(path.join(workspaceRoot, "src", "components", "tournaments", "public-league-portal.tsx"), "utf8"),
+  ]);
+
+  assert.match(schema, /registrationFeeCents\s+Int\s+@default\(0\)/);
+  assert.match(dialog, /name="registrationFee"/);
+  assert.match(action, /registrationFeeCents/);
+  assert.match(portalService, /registrationFeeCents/);
+  assert.match(portal, /portal-league-registration-fee/);
+});

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireModuleEdit } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { closeLeagueCycleManually } from "@/lib/league/lifecycle";
+import { parseReaisToCents } from "@/lib/tournaments/inputs";
 import {
   leagueMatchResultErrorState,
   type LeagueMatchResultActionState,
@@ -346,6 +347,12 @@ export async function updateLeagueCategoryAction(formData: FormData) {
   const className = String(formData.get("class") ?? "").trim();
   const gender = String(formData.get("gender") ?? "").trim().toUpperCase();
   const leagueTier = String(formData.get("leagueTier") ?? "").trim().toUpperCase();
+  let registrationFeeCents: number;
+  try {
+    registrationFeeCents = parseReaisToCents(formData.get("registrationFee"));
+  } catch {
+    throw new Error("Informe um valor de inscrição válido.");
+  }
   if (!categoryId || !name || !className || !["FEMININO", "MASCULINO"].includes(gender) || !["A", "B"].includes(leagueTier)) {
     throw new Error("Preencha nome, classe, gênero e nível da Liga.");
   }
@@ -354,7 +361,7 @@ export async function updateLeagueCategoryAction(formData: FormData) {
   const competition = category.competition;
   await prisma.$transaction(async (tx) => {
     await tx.tournamentCategory.update({ where: { id: category.id }, data: { name, class: className, gender } });
-    await tx.categoryCompetition.update({ where: { id: competition.id }, data: { leagueTier } });
+    await tx.categoryCompetition.update({ where: { id: competition.id }, data: { leagueTier, registrationFeeCents } });
     const playerIds = Array.from(new Set(competition.pairs.flatMap((pair) => pair.players.map((player) => player.playerId))));
     if (playerIds.length) {
       const current = await tx.leagueAthleteTier.findMany({ where: { arenaId: auth.arenaId, playerId: { in: playerIds }, modality: "PADEL", active: true }, select: { playerId: true, tier: true } });

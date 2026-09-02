@@ -80,7 +80,7 @@ export async function getPublicLeaguePortal(arenaSlug: string, playerId: string,
   });
   const ownCompetitionIds = new Set(ownPairs.map((pair) => pair.competitionId));
   const selectedLeagueCompetition = leagueCompetitions.find((competition) => competition.categoryId === requestedCategoryId) ?? leagueCompetitions.find((competition) => ownCompetitionIds.has(competition.id)) ?? leagueCompetitions[0] ?? null;
-  const leagueCategories = leagueCompetitions.map((competition) => ({ id: competition.categoryId, label: `${competition.category.name} · ${competition.category.tournament.name}`, member: ownCompetitionIds.has(competition.id) }));
+  const leagueCategories = leagueCompetitions.map((competition) => ({ id: competition.categoryId, label: `${competition.category.name} · ${competition.category.tournament.name}`, member: ownCompetitionIds.has(competition.id), registrationFeeCents: competition.registrationFeeCents }));
   const selectedLeaguePairs = selectedLeagueCompetition?.pairs.map((pair) => ({ id: pair.id, name: pair.name, groupName: pair.group?.name ?? "", players: pair.players.map((entry) => ({ id: entry.player.id, name: entry.player.name })) })) ?? [];
   const leagueResults = selectedLeagueCompetition?.matches.map((match) => ({ id: match.id, block: match.leagueBlock, period: leagueWeekPeriod(match.leagueCycle?.referenceMonth, match.leagueBlock), homePairName: match.homePair?.name ?? "Dupla a definir", awayPairName: match.awayPair?.name ?? "Dupla a definir", homeScore: match.homeScore, awayScore: match.awayScore, finished: Boolean(match.winnerPairId) })) ?? [];
   const slots = arena.courts.flatMap((court) => Array.from({ length: 7 }, (_, dayOffset) => {

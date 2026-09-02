@@ -626,6 +626,7 @@ model CategoryCompetition {
   feedsGeneralRanking Boolean                        @default(false)
   isPublic            Boolean                        @default(false)
   leagueTier          String                         @default("")
+  registrationFeeCents Int                           @default(0)
   createdAt           DateTime                       @default(now())
   updatedAt           DateTime                       @updatedAt
   categoryId          String                         @unique

@@ -376,7 +376,7 @@ export default async function CategoryPage({
                   <div className="league-overview-title-row">
                     <h1>{category.name}</h1>
                     <CategoryPublicVisibilityForm competitionId={competition.id} isPublic={competition.isPublic} />
-                    <LeagueCategorySettingsDialog category={{ id: category.id, name: category.name, class: category.class, gender: category.gender, leagueTier: resolveLeagueTier(category.name, competition.leagueTier) }} />
+                    <LeagueCategorySettingsDialog category={{ id: category.id, name: category.name, class: category.class, gender: category.gender, leagueTier: resolveLeagueTier(category.name, competition.leagueTier), registrationFeeCents: competition.registrationFeeCents }} />
                   </div>
                 </div>
                 <div className="league-overview-status"><StatusBadge status={competition.status} /></div>
