@@ -165,6 +165,25 @@ test("teacher destructive confirmations and enrollment actions stay compact", ()
   assert.match(styles, /\.teacher-enrollment-form > \.button \{[^}]*grid-column: 2/);
 });
 
+test("inactive test teachers can be deleted after removable plan links are cleaned up", () => {
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/academy.ts"), "utf8");
+
+  assert.match(actions, /const historicalLinks = \[teacher\._count\.lessons, teacher\._count\.scheduleOccurrences, teacher\._count\.payrollEntries, teacher\._count\.classGroups, teacher\._count\.classGroupMakeups\]/);
+  assert.match(actions, /tx\.teacherPlan\.deleteMany\(\{ where: \{ teacherId: teacher\.id \} \}\)/);
+  assert.match(actions, /tx\.teacherStudent\.deleteMany\(\{ where: \{ teacherId: teacher\.id \} \}\)/);
+  assert.match(actions, /tx\.teacher\.delete\(\{ where: \{ id: teacher\.id \} \}\)/);
+});
+
+test("teacher deletion stays inside an actions menu with an uncropped confirmation input", () => {
+  const [page, styles] = [
+    readFileSync(resolve(process.cwd(), "src/app/(app)/professores/[teacherId]/page.tsx"), "utf8"),
+    readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8"),
+  ];
+
+  assert.match(page, /teacher-actions-menu/);
+  assert.match(styles, /\.teacher-delete-form \.safe-action-confirmation-actions input[^}]*min-width: 112px/);
+});
+
 test("class groups created from the teacher panel use the teacher permission scope", () => {
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/academy.ts"), "utf8");
   const panel = readFileSync(resolve(process.cwd(), "src/components/teachers/teacher-class-groups-panel.tsx"), "utf8");

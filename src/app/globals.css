@@ -7849,8 +7849,16 @@ button {
 .teacher-delete-form .safe-action-confirmation, .teacher-archive-form .safe-action-confirmation { position: absolute; z-index: 25; top: calc(100% + 7px); right: 0; display: grid; gap: 8px; width: min(330px, 78vw); padding: 11px; border: 1px solid #e6c9c5; border-radius: 10px; background: #fff; box-shadow: 0 13px 30px rgb(36 50 68 / .18); }
 .teacher-delete-form .safe-action-confirmation .muted, .teacher-archive-form .safe-action-confirmation .muted { margin: 0; color: #65758b; font-size: .74rem; line-height: 1.4; }
 .teacher-delete-form .safe-action-confirmation-actions, .teacher-archive-form .safe-action-confirmation-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.teacher-delete-form .safe-action-confirmation-actions input, .teacher-archive-form .safe-action-confirmation-actions input { width: 62px; min-height: 32px; padding: 5px 7px; font-size: .74rem; }
+.teacher-delete-form .safe-action-confirmation-actions input, .teacher-archive-form .safe-action-confirmation-actions input { width: 118px; min-width: 112px; min-height: 32px; padding: 5px 7px; font-size: .74rem; }
 .teacher-delete-form .safe-action-confirmation-actions .button, .teacher-archive-form .safe-action-confirmation-actions .button { min-height: 32px; padding: 5px 9px; border-radius: 7px; font-size: .72rem; }
+.teacher-actions-menu { position: relative; }
+.teacher-actions-menu summary { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 6px 10px; border: 1px solid #d6e1eb; border-radius: 7px; color: #35536f; background: #fff; font-size: .75rem; font-weight: 700; cursor: pointer; list-style: none; }
+.teacher-actions-menu summary::-webkit-details-marker { display: none; }
+.teacher-actions-menu summary span { color: #6e8195; font-size: .86rem; }
+.teacher-actions-menu[open] summary { border-color: #acc6de; background: #f5f9fc; }
+.teacher-actions-menu-content { position: absolute; z-index: 24; top: calc(100% + 7px); right: 0; min-width: 150px; padding: 6px; border: 1px solid #d6e1eb; border-radius: 9px; background: #fff; box-shadow: 0 12px 25px rgb(35 53 77 / .14); }
+.teacher-actions-menu-content .teacher-delete-form, .teacher-actions-menu-content .teacher-archive-form { display: flex; }
+.teacher-actions-menu-content .button { width: 100%; justify-content: flex-start; }
 .teacher-enrollment-form > .button { grid-column: 2; justify-self: end; width: auto; min-width: 106px; min-height: 38px; padding-inline: 14px; font-size: .78rem; }
 .teacher-enrollment-students > .button { grid-column: auto; }
 @media (max-width: 600px) { .teacher-enrollment-form > .button { grid-column: 1; width: 100%; } .teacher-delete-form .safe-action-confirmation, .teacher-archive-form .safe-action-confirmation { right: auto; left: 0; width: min(320px, calc(100vw - 32px)); } }

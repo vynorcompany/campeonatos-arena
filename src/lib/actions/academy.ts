@@ -296,14 +296,21 @@ export async function deleteTeacherAction(formData: FormData) {
     where: { id: teacherId, arenaId: auth.arenaId },
     select: {
       id: true,
+      active: true,
       _count: { select: { lessons: true, scheduleOccurrences: true, payrollEntries: true, studentAssignments: true, planAssignments: true, classGroups: true, classGroupMakeups: true } }
     }
   });
   if (!teacher) throw new Error("Professor não encontrado.");
-  if (Object.values(teacher._count).some(Boolean)) {
-    throw new Error("Este professor possui histórico ou vínculos. Desative-o para preservar os dados.");
+  if (teacher.active) throw new Error("Desative o professor antes de excluí-lo definitivamente.");
+  const historicalLinks = [teacher._count.lessons, teacher._count.scheduleOccurrences, teacher._count.payrollEntries, teacher._count.classGroups, teacher._count.classGroupMakeups];
+  if (historicalLinks.some(Boolean)) {
+    throw new Error("Este professor possui histórico operacional. Mantenha-o inativo para preservar os dados.");
   }
-  await prisma.teacher.delete({ where: { id: teacher.id } });
+  await prisma.$transaction(async (tx) => {
+    await tx.teacherPlan.deleteMany({ where: { teacherId: teacher.id } });
+    await tx.teacherStudent.deleteMany({ where: { teacherId: teacher.id } });
+    await tx.teacher.delete({ where: { id: teacher.id } });
+  });
   refreshAcademyRoutes();
 }
 
