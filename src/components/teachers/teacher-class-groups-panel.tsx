@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import {
@@ -76,6 +76,25 @@ export function TeacherClassGroupsPanel({
     );
     setEditingGroupId(group.id);
   };
+  useEffect(() => {
+    const closeClassActionMenus = (event: PointerEvent) => {
+      const target = event.target;
+      if (
+        !(target instanceof Element) ||
+        target.closest(".teacher-class-actions")
+      ) {
+        return;
+      }
+      document
+        .querySelectorAll<HTMLDetailsElement>(".teacher-class-actions[open]")
+        .forEach((menu) => {
+          menu.open = false;
+        });
+    };
+    document.addEventListener("pointerdown", closeClassActionMenus);
+    return () =>
+      document.removeEventListener("pointerdown", closeClassActionMenus);
+  }, []);
   const classRows = groups
     .flatMap((group) =>
       group.schedules.map((schedule) => ({ group, schedule })),
@@ -448,15 +467,27 @@ export function TeacherClassGroupsPanel({
           </button>
         </header>
         <div className="teacher-class-row-list">
+          <div className="teacher-class-list-heading" aria-hidden="true">
+            <span>Turma</span>
+            <span>Dia e horário</span>
+            <span>Vagas</span>
+            <span>Ações</span>
+          </div>
           {classRows.map(({ group, schedule }) => (
             <article className="teacher-class-row" key={schedule.id}>
-              <span
-                className={`teacher-class-weekday weekday-${schedule.weekday}`}
-              >
-                {weekdays[schedule.weekday].replace("-feira", "")}
+              <span className="teacher-class-name">
+                <strong>{group.name}</strong>
+                <small>
+                  {group.plans.length} plano
+                  {group.plans.length === 1 ? "" : "s"}
+                </small>
               </span>
               <span className="teacher-class-time">
-                <i aria-hidden="true">◷</i>
+                <span
+                  className={`teacher-class-weekday weekday-${schedule.weekday}`}
+                >
+                  {weekdays[schedule.weekday].replace("-feira", "")}
+                </span>
                 {schedule.startTime}
               </span>
               <span className="teacher-class-capacity">

@@ -472,3 +472,39 @@ test("existing class groups can be edited with their plans and fixed schedules",
   assert.match(panel, /Editar turma/);
   assert.match(page, /plans: \{ select: \{ planId: true \} \}/);
 });
+
+test("teacher class groups use a compact table-like directory for larger schedules", () => {
+  const [panel, styles] = [
+    readFileSync(
+      resolve(
+        process.cwd(),
+        "src/components/teachers/teacher-class-groups-panel.tsx",
+      ),
+      "utf8",
+    ),
+    readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8"),
+  ];
+
+  assert.match(panel, /teacher-class-list-heading/);
+  assert.match(panel, />Turma</);
+  assert.match(panel, />Dia e horário</);
+  assert.match(styles, /\.teacher-class-row \{[^}]*min-height: 50px/);
+  assert.match(styles, /\.teacher-class-row-list \{[^}]*gap: 0/);
+});
+
+test("class row action menus close when the user clicks outside them", () => {
+  const panel = readFileSync(
+    resolve(
+      process.cwd(),
+      "src/components/teachers/teacher-class-groups-panel.tsx",
+    ),
+    "utf8",
+  );
+
+  assert.match(
+    panel,
+    /document\.addEventListener\("pointerdown", closeClassActionMenus\)/,
+  );
+  assert.match(panel, /\.teacher-class-actions\[open\]/);
+  assert.match(panel, /target\.closest\("\.teacher-class-actions"\)/);
+});

@@ -7180,17 +7180,23 @@ button {
 .teacher-class-list-panel > header h2 { color: #12213f; font-size: 1.18rem; }
 .teacher-class-list-panel > header .muted { margin: 6px 0 0; color: #5e738f; font-size: .91rem; }
 .teacher-class-list-panel > header .button { min-height: 43px; border-color: #cdddec; color: #1162cf; background: #fff; box-shadow: none; }
-.teacher-class-row-list { display: grid; gap: 9px; }
-.teacher-class-row { position: relative; display: grid; grid-template-columns: 280px minmax(210px, 1fr) minmax(250px, 1fr) auto; align-items: center; gap: 22px; min-height: 70px; padding: 10px 12px; border: 1px solid #dbe6f1; border-radius: 11px; background: linear-gradient(90deg, #fff, #fcfdff); }
-.teacher-class-row > * + * { min-height: 30px; padding-left: 22px; border-left: 1px solid #e2eaf3; }
-.teacher-class-weekday { display: inline-flex; width: fit-content; min-width: 82px; align-items: center; justify-content: center; min-height: 34px; padding: 0 12px; border-radius: 7px; color: #1261c4; background: #eaf2ff; font-size: .84rem; font-weight: 800; }
+.teacher-class-row-list { display: grid; gap: 0; border-top: 1px solid #e0e8f1; }
+.teacher-class-list-heading, .teacher-class-row { display: grid; grid-template-columns: minmax(180px, 1.2fr) minmax(190px, 1fr) minmax(150px, .72fr) 42px; align-items: center; column-gap: 18px; }
+.teacher-class-list-heading { min-height: 32px; padding: 0 12px; color: #5d7490; font-size: .66rem; font-weight: 800; letter-spacing: .035em; text-transform: uppercase; }
+.teacher-class-list-heading span:last-child { text-align: center; }
+.teacher-class-row { position: relative; min-height: 50px; padding: 7px 12px; border-bottom: 1px solid #e6edf4; background: #fff; }
+.teacher-class-row:hover { background: #fbfdff; }
+.teacher-class-name { display: grid; gap: 2px; min-width: 0; color: #122b4c; }
+.teacher-class-name strong { overflow: hidden; font-size: .82rem; text-overflow: ellipsis; white-space: nowrap; }
+.teacher-class-name small { color: #68809b; font-size: .67rem; }
+.teacher-class-weekday { display: inline-flex; width: fit-content; align-items: center; justify-content: center; min-height: 25px; padding: 0 8px; border-radius: 5px; color: #1261c4; background: #eaf2ff; font-size: .68rem; font-weight: 800; }
 .teacher-class-weekday.weekday-2, .teacher-class-weekday.weekday-3 { color: #009b61; background: #e4faef; }
 .teacher-class-weekday.weekday-4 { color: #743bd5; background: #f1eaff; }
 .teacher-class-weekday.weekday-5 { color: #c66713; background: #fff0df; }
 .teacher-class-weekday.weekday-6, .teacher-class-weekday.weekday-0 { color: #5b42d8; background: #f0ecff; }
-.teacher-class-time, .teacher-class-capacity { display: inline-flex; align-items: center; gap: 12px; color: #1b2c4c; font-size: 1rem; }
-.teacher-class-time i, .teacher-class-capacity i { display: grid; width: 28px; height: 28px; place-items: center; border-radius: 50%; color: #395672; background: #f1f5f9; font-size: 1.2rem; font-style: normal; }
-.teacher-class-capacity strong { font-size: 1rem; }
+.teacher-class-time, .teacher-class-capacity { display: inline-flex; align-items: center; gap: 9px; color: #284462; font-size: .8rem; }
+.teacher-class-capacity i { display: grid; width: 24px; height: 24px; place-items: center; border-radius: 50%; color: #395672; background: #f1f5f9; font-size: .92rem; font-style: normal; }
+.teacher-class-capacity strong { font-size: .8rem; }
 .teacher-class-actions { position: relative; }
 .teacher-class-actions > summary { display: grid; width: 39px; height: 39px; place-items: center; border: 1px solid #d5e1ed; border-radius: 9px; color: #31506f; background: #fff; cursor: pointer; font-size: 1.5rem; line-height: 1; list-style: none; }
 .teacher-class-actions > summary::-webkit-details-marker { display: none; }
@@ -7204,8 +7210,8 @@ button {
 .teacher-class-actions .teacher-group-students { max-height: 210px; overflow: auto; padding-top: 3px; }
 .teacher-class-footer { padding: 19px 0 24px; border-top: 1px solid #e5edf4; color: #5d728d; font-size: .9rem; }
 .teacher-class-empty { padding: 38px 12px; text-align: center; }
-@media (max-width: 880px) { .teacher-class-row { grid-template-columns: 1fr 1fr auto; } .teacher-class-capacity { grid-column: 1 / 3; padding: 12px 0 0 !important; border-top: 1px solid #e2eaf3; border-left: 0 !important; } .teacher-class-actions { grid-column: 3; grid-row: 1; } }
-@media (max-width: 580px) { .teacher-class-list-panel { padding: 19px 13px 0; } .teacher-class-list-panel > header { align-items: flex-start; flex-direction: column; } .teacher-class-list-panel > header .button { width: 100%; } .teacher-class-row { grid-template-columns: 1fr auto; gap: 12px; padding: 12px; } .teacher-class-row > * + * { min-height: 0; padding-left: 0; border-left: 0; } .teacher-class-time { grid-column: 1; grid-row: 2; padding-top: 10px; border-top: 1px solid #e2eaf3; } .teacher-class-capacity { grid-column: 1 / -1; grid-row: 3; padding-top: 10px !important; } .teacher-class-actions { grid-column: 2; grid-row: 1; } .teacher-class-actions > div { width: min(330px, calc(100vw - 52px)); } .teacher-class-footer { padding: 17px 0 20px; font-size: .8rem; } }
+@media (max-width: 880px) { .teacher-class-list-heading, .teacher-class-row { grid-template-columns: minmax(150px, 1fr) minmax(170px, 1fr) minmax(120px, .7fr) 42px; column-gap: 12px; } }
+@media (max-width: 580px) { .teacher-class-list-panel { padding: 19px 13px 0; } .teacher-class-list-panel > header { align-items: flex-start; flex-direction: column; } .teacher-class-list-panel > header .button { width: 100%; } .teacher-class-list-heading { display: none; } .teacher-class-row { grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; min-height: 0; padding: 11px 0; } .teacher-class-name { grid-column: 1; grid-row: 1; } .teacher-class-time { grid-column: 1; grid-row: 2; } .teacher-class-capacity { grid-column: 1; grid-row: 3; } .teacher-class-actions { grid-column: 2; grid-row: 1; } .teacher-class-actions > div { width: min(330px, calc(100vw - 52px)); } .teacher-class-footer { padding: 17px 0 20px; font-size: .8rem; } }
 
 /* Professores: diretório da arena com dados operacionais em uma única leitura. */
 .teacher-directory-page { display: grid; gap: 34px; width: min(100%, 1412px); margin-inline: auto; padding: 24px 26px 48px; }
