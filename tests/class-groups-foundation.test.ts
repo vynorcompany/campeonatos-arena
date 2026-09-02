@@ -35,6 +35,16 @@ test("athlete portal offers active class groups as requests instead of direct en
   assert.match(actions, /requirePublicPlayerAuth/);
 });
 
+test("athlete portal shows class groups only below the selected teacher", () => {
+  const portal = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"), "utf8");
+  const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
+
+  assert.match(portal, /const selectedClassGroups = selectedTeacher/);
+  assert.match(portal, /portal-class-group-list portal-selected-teacher-groups/);
+  assert.match(portal, /selectedClassGroups\.length/);
+  assert.match(styles, /\.portal-class-group-list \.button \{[^}]*padding:/);
+});
+
 test("arena approval requires a plan before creating a class enrollment", () => {
   const workspace = readFileSync(resolve(process.cwd(), "src/components/teachers/class-group-workspace.tsx"), "utf8");
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/class-groups.ts"), "utf8");

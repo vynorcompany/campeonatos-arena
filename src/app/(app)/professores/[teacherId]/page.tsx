@@ -119,6 +119,7 @@ export default async function TeacherDetailPage({
           where: { active: true },
           include: {
             schedules: { orderBy: [{ weekday: "asc" }, { startTime: "asc" }] },
+            plans: { select: { planId: true } },
             enrollments: {
               where: { status: "ACTIVE" },
               include: { student: { select: { id: true, name: true } } },
@@ -446,10 +447,39 @@ export default async function TeacherDetailPage({
                   >
                     <input type="hidden" name="teacherId" value={teacher.id} />
                     <input type="hidden" name="planId" value={activePlan.id} />
-                    <label>Nome do plano<input name="name" required minLength={2} defaultValue={activePlan.name} /></label>
-                    <label>Aulas/mês<input name="classesPerMonth" type="number" min="1" max="31" defaultValue={activePlan.classesPerMonth} /></label>
-                    <label>Preço mensal<input name="monthlyPrice" inputMode="decimal" required defaultValue={moneyInput(activePlan.monthlyPriceCents)} /></label>
-                    <SubmitButton label="Salvar plano" pendingLabel="Salvando..." className="button button-primary button-small" />
+                    <label>
+                      Nome do plano
+                      <input
+                        name="name"
+                        required
+                        minLength={2}
+                        defaultValue={activePlan.name}
+                      />
+                    </label>
+                    <label>
+                      Aulas/mês
+                      <input
+                        name="classesPerMonth"
+                        type="number"
+                        min="1"
+                        max="31"
+                        defaultValue={activePlan.classesPerMonth}
+                      />
+                    </label>
+                    <label>
+                      Preço mensal
+                      <input
+                        name="monthlyPrice"
+                        inputMode="decimal"
+                        required
+                        defaultValue={moneyInput(activePlan.monthlyPriceCents)}
+                      />
+                    </label>
+                    <SubmitButton
+                      label="Salvar plano"
+                      pendingLabel="Salvando..."
+                      className="button button-primary button-small"
+                    />
                   </SafeActionForm>
                 </details>
               </header>
