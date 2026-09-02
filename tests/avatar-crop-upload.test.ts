@@ -29,3 +29,12 @@ test("portal troca uma foto legada ausente pelas iniciais do atleta", () => {
   assert.match(portal, /PlayerAvatar/);
   assert.match(portal, /athlete-portal-user-avatar/);
 });
+
+test("avatar do cabeçalho tenta novamente quando a foto do perfil muda", () => {
+  const avatar = readFileSync(resolve(process.cwd(), "src/components/player-avatar.tsx"), "utf8");
+  const profile = readFileSync(resolve(process.cwd(), "src/components/public-player-profile.tsx"), "utf8");
+
+  assert.match(avatar, /useEffect/);
+  assert.match(avatar, /\[photoUrl\]/);
+  assert.match(profile, /router\.refresh/);
+});
