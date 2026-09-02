@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
+import { EventIcon } from "@/components/tournaments/event-icon";
 import { assignTeacherPlanStudentAction } from "@/lib/actions/academy";
 
 type Client = { id: string; name: string; phone: string };
@@ -175,10 +176,10 @@ export function TeacherPlanEnrollmentForm({
     <>
       <button
         type="button"
-        className="button button-secondary teacher-insert-student-trigger"
+        className="button button-primary button-small teacher-insert-student-trigger"
         onClick={() => setOpen(true)}
       >
-        ＋ Inserir aluno
+        <EventIcon name="user-plus" size={15} /> Inserir aluno
       </button>
       {open ? (
         <div

@@ -614,3 +614,37 @@ test("teachers directory uses compact rows and an explicit status indicator", ()
   assert.match(styles, /\.teacher-directory-item \{[\s\S]*min-height: 68px/);
   assert.match(styles, /\.teacher-directory-status-dot/);
 });
+
+test("teacher groups follow the weekday order and retain compact, clear controls", () => {
+  const [page, enrollment, panel, styles] = [
+    readFileSync(
+      resolve(process.cwd(), "src/app/(app)/professores/[teacherId]/page.tsx"),
+      "utf8",
+    ),
+    readFileSync(
+      resolve(
+        process.cwd(),
+        "src/components/teachers/teacher-plan-enrollment-form.tsx",
+      ),
+      "utf8",
+    ),
+    readFileSync(
+      resolve(
+        process.cwd(),
+        "src/components/teachers/teacher-class-groups-panel.tsx",
+      ),
+      "utf8",
+    ),
+    readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8"),
+  ];
+
+  assert.match(page, /const classGroupsBySchedule/);
+  assert.match(page, /weekday === 0 \? 7/);
+  assert.match(page, /groups=\{classGroupsBySchedule\.map/);
+  assert.match(page, /classGroupsBySchedule\s*\.filter/);
+  assert.match(enrollment, /EventIcon name="user-plus"/);
+  assert.match(enrollment, /button-primary button-small teacher-insert-student-trigger/);
+  assert.match(panel, /button button-primary button-small/);
+  assert.match(styles, /\.teacher-class-actions > summary \{[^}]*width: 30px/);
+  assert.match(styles, /\.teacher-student-financial-link \.status-badge\.status-pending/);
+});

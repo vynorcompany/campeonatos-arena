@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
+import { EventIcon } from "@/components/tournaments/event-icon";
 import {
   createClassGroupAction,
   moveTeacherClassGroupStudentAction,
@@ -34,6 +35,7 @@ const weekdays = [
   "Sexta-feira",
   "Sábado",
 ];
+const weekdayOrder = (weekday: number) => (weekday === 0 ? 7 : weekday);
 
 export function TeacherClassGroupsPanel({
   teacherId,
@@ -121,7 +123,7 @@ export function TeacherClassGroupsPanel({
     )
     .sort(
       (first, second) =>
-        first.schedule.weekday - second.schedule.weekday ||
+        weekdayOrder(first.schedule.weekday) - weekdayOrder(second.schedule.weekday) ||
         first.schedule.startTime.localeCompare(second.schedule.startTime),
     );
 
@@ -490,10 +492,10 @@ export function TeacherClassGroupsPanel({
           </div>
           <button
             type="button"
-            className="button button-secondary"
+            className="button button-primary button-small teacher-class-create-trigger"
             onClick={openCreate}
           >
-            ＋ Nova turma
+            <EventIcon name="user-plus" size={15} /> Nova turma
           </button>
         </header>
         <div className="teacher-class-row-list">

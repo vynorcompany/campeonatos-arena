@@ -132,6 +132,25 @@ export default async function TeacherDetailPage({
     }),
   ]);
   if (!teacher) notFound();
+  const classGroupsBySchedule = [...teacher.classGroups].sort(
+    (first, second) => {
+      const firstSchedule = first.schedules[0];
+      const secondSchedule = second.schedules[0];
+      const firstWeekday =
+        firstSchedule?.weekday === 0 ? 7 : (firstSchedule?.weekday ?? 8);
+      const secondWeekday =
+        secondSchedule?.weekday === 0 ? 7 : (secondSchedule?.weekday ?? 8);
+
+      return (
+        firstWeekday - secondWeekday ||
+        (firstSchedule?.startTime ?? "").localeCompare(
+          secondSchedule?.startTime ?? "",
+          "pt-BR",
+        ) ||
+        first.name.localeCompare(second.name, "pt-BR")
+      );
+    },
+  );
   const planStudentIds = new Set(
     teacher.planAssignments.flatMap(({ plan }) =>
       plan.subscriptions.map((subscription) => subscription.studentId),
@@ -364,7 +383,7 @@ export default async function TeacherDetailPage({
               name: plan.name,
             }))}
             clients={clients}
-            groups={teacher.classGroups.map((group) => ({
+            groups={classGroupsBySchedule.map((group) => ({
               id: group.id,
               name: group.name,
               planIds: group.plans.map(({ planId }) => planId),
@@ -421,7 +440,7 @@ export default async function TeacherDetailPage({
                             <option value="" disabled>
                               {studentGroup ? "Alterar turma" : "Atribuir turma"}
                             </option>
-                            {teacher.classGroups
+                            {classGroupsBySchedule
                               .filter((group) => group.id !== studentGroup?.id)
                               .filter((group) =>
                                 group.plans.some(({ planId }) => planId === plan.id),
@@ -476,7 +495,7 @@ export default async function TeacherDetailPage({
             id: plan.id,
             name: plan.name,
           }))}
-          groups={teacher.classGroups}
+          groups={classGroupsBySchedule}
         />
       ) : null}
       {tab === "report" ? (
