@@ -13,6 +13,7 @@ type SafeActionFormProps = {
   successHref?: string;
   confirmKeyword?: string;
   confirmPrompt?: string;
+  onSuccess?: () => void;
 };
 
 export function SafeActionForm({
@@ -24,7 +25,8 @@ export function SafeActionForm({
   successMessage = "Salvo com sucesso.",
   successHref,
   confirmKeyword,
-  confirmPrompt
+  confirmPrompt,
+  onSuccess
 }: SafeActionFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
@@ -62,6 +64,7 @@ export function SafeActionForm({
           try {
             await action(formData);
             setSuccess(successMessage);
+            onSuccess?.();
             setIsConfirming(false);
             setConfirmValue("");
             if (resetOnSuccess) {

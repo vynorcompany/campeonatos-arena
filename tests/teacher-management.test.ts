@@ -88,7 +88,7 @@ test("teacher panel archives professors and centralizes their class-group manage
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/academy.ts"), "utf8");
   const groups = resolve(process.cwd(), "src/components/teachers/teacher-class-groups-panel.tsx");
 
-  assert.match(detail, /Remover professor/);
+  assert.match(detail, /Desativar professor/);
   assert.match(detail, /Turmas/);
   assert.match(detail, /TeacherClassGroupsPanel/);
   assert.match(actions, /archiveTeacherAction/);
@@ -138,4 +138,20 @@ test("teacher metrics keep the label and value in a vertical compact stack on ev
   assert.match(styles, /\.teacher-detail-page \.teacher-detail-metrics article > div/);
   assert.match(styles, /\.teacher-detail-page \.teacher-detail-metrics article/);
   assert.match(styles, /\.teacher-directory-item \{[^}]*min-height: 128px/);
+});
+
+test("teacher classes open their creation form in a visible floating modal", () => {
+  const panel = readFileSync(resolve(process.cwd(), "src/components/teachers/teacher-class-groups-panel.tsx"), "utf8");
+
+  assert.match(panel, /teacher-class-create-modal/);
+  assert.match(panel, /setCreateOpen\(true\)/);
+});
+
+test("untouched test teachers can be permanently deleted from their management panel", () => {
+  const page = readFileSync(resolve(process.cwd(), "src/app/(app)/professores/[teacherId]/page.tsx"), "utf8");
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/academy.ts"), "utf8");
+
+  assert.match(page, /deleteTeacherAction/);
+  assert.match(page, /Excluir professor/);
+  assert.match(actions, /export async function deleteTeacherAction/);
 });

@@ -289,6 +289,24 @@ export async function archiveTeacherAction(formData: FormData) {
   refreshAcademyRoutes();
 }
 
+export async function deleteTeacherAction(formData: FormData) {
+  const auth = await requireModuleEdit("teachers");
+  const teacherId = String(formData.get("teacherId") ?? "");
+  const teacher = await prisma.teacher.findFirst({
+    where: { id: teacherId, arenaId: auth.arenaId },
+    select: {
+      id: true,
+      _count: { select: { lessons: true, scheduleOccurrences: true, payrollEntries: true, studentAssignments: true, planAssignments: true, classGroups: true, classGroupMakeups: true } }
+    }
+  });
+  if (!teacher) throw new Error("Professor não encontrado.");
+  if (Object.values(teacher._count).some(Boolean)) {
+    throw new Error("Este professor possui histórico ou vínculos. Desative-o para preservar os dados.");
+  }
+  await prisma.teacher.delete({ where: { id: teacher.id } });
+  refreshAcademyRoutes();
+}
+
 export async function createClassGroupAction(formData: FormData) {
   const auth = await requireModuleEdit("lessons");
   const name = String(formData.get("name") ?? "").trim();

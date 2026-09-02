@@ -7747,6 +7747,16 @@ button {
 .commands-modal-close:hover { border-color: #9bbad7; background: #f3f8fc; color: #1d5792; }
 @media (max-width: 760px) { .commands-date-trigger { min-height: 60px; } .commands-date-icon { width: 38px; height: 38px; } .commands-new-modal-backdrop { align-items: end; padding: 12px; } .commands-new-modal { width: 100%; padding: 18px; border-radius: 14px; } }
 
+/* Criação de turma: abertura inequívoca em modal, sem deslocar a lista existente. */
+.teacher-class-create-modal { position: fixed; z-index: 90; inset: 0; display: grid; place-items: center; padding: 20px; background: rgb(10 29 54 / .38); backdrop-filter: blur(4px); }
+.teacher-class-create-modal .teacher-class-create-panel { display: grid; gap: 17px; width: min(760px, 100%); max-height: calc(100vh - 40px); overflow: auto; padding: 22px; box-shadow: 0 22px 58px rgb(12 33 61 / .2); }
+.teacher-class-create-panel > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding-bottom: 14px; border-bottom: 1px solid #e2eaf2; }
+.teacher-class-create-close { display: grid; width: 30px; height: 30px; place-items: center; border: 1px solid #d5e1ec; border-radius: 8px; color: #46627e; background: #fff; font-size: 1.18rem; line-height: 1; cursor: pointer; }
+.teacher-class-create-close:hover { border-color: #9ebbd6; background: #f1f7fc; color: #185793; }
+.teacher-page-actions { flex-wrap: wrap; }
+.teacher-delete-form, .teacher-archive-form { display: inline-flex; }
+@media (max-width: 640px) { .teacher-class-create-modal { align-items: end; padding: 12px; } .teacher-class-create-modal .teacher-class-create-panel { max-height: calc(100vh - 24px); padding: 18px 14px; border-radius: 14px; } .teacher-page-actions { align-items: flex-start; } }
+
 /* Densidade final do diretório: mantém a escala dos painéis da arena. */
 .teacher-directory-page { gap: 24px; max-width: 1320px; padding: 18px 22px 36px; }
 .teacher-directory-page-header { gap: 17px; }
