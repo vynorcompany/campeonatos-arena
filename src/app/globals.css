@@ -7843,6 +7843,21 @@ button {
 .portal-league-prize-list b { color: #ffe39a; font-size: .86rem; font-weight: 600; line-height: 1.42; }
 .portal-league-prize-description { letter-spacing: 0; }
 
+/* Liga: ícones vetoriais e ações operacionais de escala compacta. */
+.league-icon { width: 1em; height: 1em; flex: 0 0 auto; }
+.category-detail-layout .t-tab-icon { display: inline-flex; align-items: center; justify-content: center; }
+.category-detail-layout .t-tab-icon .league-icon { width: 15px; height: 15px; stroke-width: 1.9; }
+.league-overview-metric-icon, .league-overview-section-icon { width: 38px; height: 38px; font-size: 1rem; }
+.league-overview-metric-icon .league-icon, .league-overview-section-icon .league-icon { width: 19px; height: 19px; }
+.league-prize-edit-icon { width: 32px; height: 32px; font-size: 1rem; }
+.league-prize-edit-icon .league-icon { width: 16px; height: 16px; }
+.category-detail-layout .button { min-height: 36px; padding: 7px 11px; border-radius: 7px; font-size: .76rem; }
+.league-overview-primary-action .button { gap: 7px; min-height: 38px; padding: 7px 12px; font-size: .78rem; }
+.league-overview-primary-action .button .league-icon { width: 16px; height: 16px; }
+.league-prize-card .league-prize-actions .button, .league-cycle-card .button { min-height: 36px; padding-inline: 12px; font-size: .76rem; }
+.league-prize-card .league-prize-actions .league-icon, .league-cycle-card .league-icon { width: 15px; height: 15px; }
+@media (max-width: 580px) { .league-overview-primary-action .button, .league-prize-card .league-prize-actions .button, .league-cycle-card .button { min-height: 38px; } }
+
 /* Professores: ações críticas e matrículas seguem a escala compacta. */
 .teacher-delete-form, .teacher-archive-form { position: relative; align-items: center; }
 .teacher-delete-form > .button, .teacher-archive-form > .button { min-height: 34px; padding: 6px 10px; border-radius: 7px; font-size: .72rem; }

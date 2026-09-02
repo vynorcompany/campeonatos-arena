@@ -426,3 +426,18 @@ test("league registration fee is configured by the arena and shown in the athlet
   assert.match(portalService, /registrationFeeCents/);
   assert.match(portal, /portal-league-registration-fee/);
 });
+
+test("league workspace uses compact vector icons and identifies registration as individual", async () => {
+  const [tabs, page, portal, styles] = await Promise.all([
+    readFile(path.join(workspaceRoot, "src", "components", "tournaments", "tournament-tabs.tsx"), "utf8"),
+    readFile(path.join(workspaceRoot, "src", "app", "(app)", "torneios", "[tournamentId]", "categorias", "[categoryId]", "page.tsx"), "utf8"),
+    readFile(path.join(workspaceRoot, "src", "components", "tournaments", "public-league-portal.tsx"), "utf8"),
+    readFile(path.join(workspaceRoot, "src", "app", "globals.css"), "utf8"),
+  ]);
+
+  assert.match(tabs, /LeagueIcon/);
+  assert.match(page, /LeagueIcon/);
+  assert.match(portal, /por atleta/);
+  assert.match(styles, /\.league-overview-primary-action \.button \{[^}]*min-height: 38px/);
+  assert.match(styles, /\.league-overview-metric-icon, \.league-overview-section-icon \{[^}]*width: 38px/);
+});

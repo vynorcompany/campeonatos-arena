@@ -10,6 +10,7 @@ import { CategoryResultsPanel } from "@/components/tournaments/category-results-
 import { LeagueMedicalRequestsPanel } from "@/components/tournaments/league-medical-requests-panel";
 import { LeagueHistoryPanel } from "@/components/tournaments/league-history-panel";
 import { LeagueCategorySettingsDialog } from "@/components/tournaments/league-category-settings-dialog";
+import { LeagueIcon } from "@/components/tournaments/league-icon";
 import { StatusBadge } from "@/components/tournaments/status-badge";
 import { TournamentDetailLayout } from "@/components/tournaments/tournament-detail-layout";
 import { type TournamentTabKey } from "@/components/tournaments/tournament-tabs";
@@ -389,21 +390,21 @@ export default async function CategoryPage({
 
               <div className="league-overview-summary-row">
                 <article className="league-overview-metric">
-                  <span className="league-overview-metric-icon league-overview-metric-icon-blue" aria-hidden="true">♧</span>
+                  <span className="league-overview-metric-icon league-overview-metric-icon-blue"><LeagueIcon name="users" /></span>
                   <div><span>Duplas</span><strong>{competition.pairs.length}</strong></div>
                 </article>
                 <article className="league-overview-metric">
-                  <span className="league-overview-metric-icon league-overview-metric-icon-green" aria-hidden="true">▣</span>
+                  <span className="league-overview-metric-icon league-overview-metric-icon-green"><LeagueIcon name="calendar" /></span>
                   <div><span>Jogos</span><strong>{completedMatchCount}/{competition.matches.length}</strong></div>
                 </article>
                 <article className="league-overview-metric">
-                  <span className="league-overview-metric-icon league-overview-metric-icon-purple" aria-hidden="true">▥</span>
+                  <span className="league-overview-metric-icon league-overview-metric-icon-purple"><LeagueIcon name="ranking" /></span>
                   <div><span>Ranking geral</span><strong>{competition.feedsGeneralRanking ? "Ativo" : "Inativo"}</strong></div>
                 </article>
                 <div className="league-overview-primary-action">
                   {nextStep ? (
                     <Link href={nextStep.href} className="button button-primary">
-                      <span aria-hidden="true">♕</span> {nextStep.label}
+                      <LeagueIcon name="trophy" /> {nextStep.label}
                     </Link>
                   ) : <span className="pill">Categoria concluída</span>}
                 </div>
@@ -414,9 +415,9 @@ export default async function CategoryPage({
               <section className="league-prize-card" aria-labelledby="league-prize-title">
                 <form action={updateLeaguePrizeAction} className="league-prize-form">
                   <div className="league-prize-card-heading">
-                    <span className="league-overview-section-icon" aria-hidden="true">♕</span>
+                    <span className="league-overview-section-icon"><LeagueIcon name="trophy" /></span>
                     <div><h2 id="league-prize-title">Premiação</h2><p>Prêmio do ciclo atual</p></div>
-                    <span className="league-prize-edit-icon" aria-hidden="true">✎</span>
+                    <span className="league-prize-edit-icon"><LeagueIcon name="edit" /></span>
                   </div>
                   <div className="league-prize-editor">
                     <input type="hidden" name="competitionId" value={competition.id} />
@@ -427,17 +428,17 @@ export default async function CategoryPage({
                       defaultValue={competition.leagueCycles.find((cycle) => cycle.status === "OPEN")?.prizeDescription ?? ""}
                       placeholder="Descreva a premiação da Liga. Ex.: campeãs recebem troféu, voucher e premiação em dinheiro."
                     />
-                    <div className="league-prize-actions"><button className="button button-primary" type="submit"><span aria-hidden="true">▣</span> Salvar premiação</button></div>
+                    <div className="league-prize-actions"><button className="button button-primary" type="submit"><LeagueIcon name="save" /> Salvar premiação</button></div>
                   </div>
                 </form>
               </section>
 
               <aside className="league-cycle-card">
-                <div className="league-cycle-card-heading"><span className="league-overview-section-icon" aria-hidden="true">▣</span><h2>Ciclo mensal</h2></div>
+                <div className="league-cycle-card-heading"><span className="league-overview-section-icon"><LeagueIcon name="calendar" /></span><h2>Ciclo mensal</h2></div>
                 <p>Fecha o mês vigente, registra campeã e executa acesso ou rebaixamento.</p>
                 <form action={runLeagueLifecycleAction}>
                   <input type="hidden" name="competitionId" value={competition.id} />
-                  <button className="button button-secondary" type="submit"><span aria-hidden="true">⟳</span> Processar ciclo da Liga</button>
+                  <button className="button button-secondary" type="submit"><LeagueIcon name="refresh" /> Processar ciclo da Liga</button>
                 </form>
               </aside>
             </div>
