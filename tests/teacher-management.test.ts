@@ -131,3 +131,11 @@ test("teacher classes use a schedule-first directory with a dedicated create act
   assert.match(styles, /\.teacher-class-row/);
   assert.match(styles, /\.teacher-class-weekday/);
 });
+
+test("teacher metrics keep the label and value in a vertical compact stack on every tab", () => {
+  const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
+
+  assert.match(styles, /\.teacher-detail-page \.teacher-detail-metrics article > div/);
+  assert.match(styles, /\.teacher-detail-page \.teacher-detail-metrics article/);
+  assert.match(styles, /\.teacher-directory-item \{[^}]*min-height: 128px/);
+});

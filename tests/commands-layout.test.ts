@@ -34,3 +34,14 @@ test("commands use an operational day panel with a clear empty state", () => {
   assert.match(css, /\.commands-empty-illustration/);
   assert.match(css, /\.commands-empty-action/);
 });
+
+test("commands use compact controls and vector icons in the daily workspace", () => {
+  const page = readFileSync(resolve(process.cwd(), "src/app/(app)/comandas/page.tsx"), "utf8");
+  const picker = readFileSync(resolve(process.cwd(), "src/components/comandas/commands-date-picker.tsx"), "utf8");
+  const css = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
+
+  assert.match(page, /commands-icon/);
+  assert.match(picker, /commands-icon/);
+  assert.match(css, /\.commands-day-panel \{[^}]*min-height: 620px/);
+  assert.match(css, /\.commands-actions \.button \{[^}]*min-height: 46px/);
+});

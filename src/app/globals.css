@@ -7683,3 +7683,77 @@ button {
 .class-group-list article > div { display: grid; gap: 5px; }
 .class-group-list article > div span { color: #45647f; font-size: .76rem; line-height: 1.35; }
 @media (max-width: 700px) { .class-group-workspace { padding: 16px; } .class-group-form { grid-template-columns: 1fr; } .class-group-schedule-row { grid-template-columns: 1fr 1fr; } .class-group-schedule-row > .button { grid-column: 1 / -1; justify-self: start; } }
+
+/* Comandas: controles compactos e ícones de traço, adequados ao balcão diário. */
+.content-shell:has(.commands-page) { padding: 20px 30px 34px; }
+.commands-page { gap: 28px; width: min(100%, 1320px); }
+.commands-toolbar { gap: 24px; }
+.commands-date-trigger { gap: 12px; min-width: 294px; min-height: 76px; padding: 11px 14px; border-radius: 13px; }
+.commands-date-icon { width: 48px; height: 48px; border-radius: 13px; font-size: 1rem; }
+.commands-icon { display: block; width: 1em; height: 1em; }
+.commands-date-icon .commands-icon { width: 22px; height: 22px; }
+.commands-date-copy { gap: 3px; }
+.commands-date-trigger .commands-date-copy > span { font-size: .67rem; }
+.commands-date-trigger .commands-date-copy strong { font-size: .98rem; }
+.commands-date-chevron { font-size: 1.1rem; }
+.commands-toolbar-right { gap: 14px; }
+.commands-search { gap: 8px; }
+.commands-search > span { left: 14px; font-size: 1.2rem; }
+.commands-search input { width: 320px; min-height: 46px; padding: 0 12px 0 47px; border-radius: 9px; font-size: .86rem; }
+.commands-search .button { min-height: 46px; padding-inline: 16px; font-size: .8rem; }
+.commands-actions { gap: 12px; }
+.commands-actions .button { gap: 8px; min-height: 46px; padding-inline: 17px; border-radius: 9px; font-size: .84rem; }
+.commands-actions .button .commands-icon { width: 17px; height: 17px; }
+.commands-actions .button.button-primary { min-width: 164px; }
+.commands-day-panel { min-height: 620px; border-radius: 15px; }
+.commands-day-panel .commands-list-head { padding: 20px 24px; }
+.commands-list-head > div { gap: 13px; }
+.commands-day-heading-icon { width: 42px; height: 42px; font-size: 1.1rem; box-shadow: 0 5px 12px rgb(13 94 195 / .13); }
+.commands-day-heading-icon .commands-icon { width: 21px; height: 21px; }
+.commands-day-panel .commands-list-head strong { font-size: 1.12rem; }
+.commands-day-panel .commands-list-head > span { gap: 7px; font-size: .82rem; }
+.commands-day-panel .commands-list-head > span i { width: 30px; height: 30px; font-size: .9rem; }
+.commands-day-panel .commands-list-head > span i .commands-icon { width: 15px; height: 15px; }
+.commands-day-panel .commands-list-items { padding: 18px 24px 24px; }
+.commands-empty { min-height: 465px; gap: 8px; padding: 34px 18px; }
+.commands-empty-illustration { width: 104px; height: 104px; margin-bottom: 5px; font-size: 1rem; }
+.commands-empty-illustration .commands-icon { width: 50px; height: 50px; }
+.commands-empty strong { font-size: 1.08rem; }
+.commands-empty > span { font-size: .87rem; }
+.commands-empty-action { gap: 8px; min-height: 46px; margin-top: 12px; padding-inline: 18px; border-radius: 9px; font-size: .84rem; }
+.commands-empty-action .commands-icon { width: 17px; height: 17px; }
+@media (max-width: 1260px) { .commands-search input { width: min(320px, 36vw); } }
+@media (max-width: 760px) { .content-shell:has(.commands-page) { padding: 16px 13px 26px; } .commands-page { gap: 18px; } .commands-date-trigger { min-height: 68px; } .commands-date-icon { width: 42px; height: 42px; } .commands-search input, .commands-search .button { min-height: 44px; } .commands-actions .button, .commands-actions .button.button-primary { min-height: 44px; } .commands-day-panel { min-height: 500px; } .commands-day-panel .commands-list-head { padding: 16px; } .commands-empty { min-height: 365px; } .commands-empty-illustration { width: 82px; height: 82px; } .commands-empty-illustration .commands-icon { width: 39px; height: 39px; } }
+
+/* Densidade final do diretório: mantém a escala dos painéis da arena. */
+.teacher-directory-page { gap: 24px; max-width: 1320px; padding: 18px 22px 36px; }
+.teacher-directory-page-header { gap: 17px; }
+.teacher-directory-page-header h1 { font-size: clamp(2rem, 3vw, 2.45rem); }
+.teacher-directory-page-header p { margin-top: 7px; font-size: .98rem; }
+.teacher-directory .teacher-management-toolbar { top: -94px; }
+.teacher-management-toolbar .button { min-height: 48px; padding-inline: 18px; font-size: .88rem; }
+.teacher-directory-filters { grid-template-columns: minmax(250px, 1.25fr) minmax(160px, .5fr) minmax(220px, .7fr); gap: 16px; padding: 16px; border-radius: 13px; }
+.teacher-directory-filters label > span { left: 14px; font-size: 1.45rem; }
+.teacher-directory-filters input, .teacher-directory-filters select { min-height: 52px; border-radius: 9px; font-size: .86rem; }
+.teacher-directory-filters input { padding-left: 48px; }
+.teacher-directory-item { grid-template-columns: 70px minmax(220px, 1fr) minmax(92px, .38fr) minmax(235px, .7fr) 48px; gap: 14px; min-height: 128px; padding: 18px; }
+.teacher-directory-avatar { width: 64px; height: 64px; font-size: 1.08rem; }
+.teacher-directory-person { gap: 6px !important; }
+.teacher-directory-person strong { font-size: 1rem; }
+.teacher-directory-person > span { font-size: .82rem; }
+.teacher-directory-status { min-width: 90px; padding: 8px 12px; font-size: .78rem; }
+.teacher-directory-metric { padding: 3px 15px; }
+.teacher-directory-metric strong { font-size: 1.08rem; }
+.teacher-directory-metric small { font-size: .75rem; }
+.teacher-directory-arrow { width: 48px; height: 48px; border-radius: 9px; font-size: 1.6rem; }
+.teacher-directory-footer { margin-top: -24px; padding: 18px 24px; font-size: .88rem; }
+.teacher-directory-footer .button, .teacher-directory-footer b { width: 42px; min-width: 42px; height: 42px; min-height: 42px; }
+
+/* Os cartões aparecem em todas as abas do professor, não só em Alunos ativos. */
+.teacher-detail-page .teacher-detail-metrics { gap: 16px; }
+.teacher-detail-page .teacher-detail-metrics article { display: flex; align-items: center; gap: 13px; min-height: 92px; padding: 14px; }
+.teacher-detail-page .teacher-detail-metrics article > div { display: grid; gap: 3px; min-width: 0; }
+.teacher-detail-page .teacher-detail-metrics article > div > span { line-height: 1.2; }
+.teacher-detail-page .teacher-detail-metrics article > div > strong { line-height: 1.1; }
+.teacher-detail-page .teacher-detail-metric-icon { width: 50px; height: 50px; font-size: 1.45rem; }
+@media (max-width: 760px) { .teacher-directory .teacher-management-toolbar { top: auto; } .teacher-detail-page .teacher-detail-metrics article { min-height: 82px; padding: 11px; gap: 9px; } .teacher-detail-page .teacher-detail-metric-icon { width: 38px; height: 38px; font-size: 1.1rem; } }
