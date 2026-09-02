@@ -26,6 +26,14 @@ export async function toPersistentArenaLogo(file: File | null): Promise<string |
   return `data:${file.type};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}`;
 }
 
+export async function toPersistentPlayerPhoto(file: File | null): Promise<string | null> {
+  if (!file || file.size === 0) return null;
+  if (!allowedImageTypes.has(file.type) || file.type === "image/svg+xml") throw new Error("Envie uma foto JPG, PNG ou WEBP.");
+  if (file.size > maxUploadSize) throw new Error("A foto deve ter no máximo 4 MB.");
+
+  return `data:${file.type};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}`;
+}
+
 function sanitizeName(value: string) {
   return value
     .toLowerCase()

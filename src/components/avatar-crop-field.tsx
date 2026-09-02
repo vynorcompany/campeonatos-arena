@@ -8,6 +8,7 @@ type ImageMeta = { src: string; width: number; height: number };
 export function AvatarCropField({ currentPhotoUrl, name }: { currentPhotoUrl: string; name: string }) {
   const [image, setImage] = useState<ImageMeta | null>(null);
   const [previewReady, setPreviewReady] = useState(false);
+  const [currentPhotoFailed, setCurrentPhotoFailed] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const drag = useRef<{ x: number; y: number; offset: { x: number; y: number } } | null>(null);
@@ -41,6 +42,6 @@ export function AvatarCropField({ currentPhotoUrl, name }: { currentPhotoUrl: st
   const initials = name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "?";
 
   return <div className="avatar-crop-field"><input ref={outputRef} name="photo" type="file" className="avatar-crop-output" tabIndex={-1} aria-hidden="true" /><div className="avatar-crop-preview" onPointerDown={(event) => { if (!image) return; event.currentTarget.setPointerCapture(event.pointerId); drag.current = { x: event.clientX, y: event.clientY, offset }; }} onPointerMove={(event) => { if (!drag.current) return; setOffset(clamp({ x: drag.current.offset.x + event.clientX - drag.current.x, y: drag.current.offset.y + event.clientY - drag.current.y })); }} onPointerUp={() => { drag.current = null; }}>
-    {image ? <img ref={previewRef} src={image.src} alt="Prévia do avatar" draggable={false} onLoad={() => setPreviewReady(true)} style={{ width: image.width * scale, height: image.height * scale, left: size / 2 + offset.x, top: size / 2 + offset.y }} /> : currentPhotoUrl ? <img src={currentPhotoUrl} alt="Foto de perfil atual" /> : <span>{initials}</span>}
+    {image ? <img ref={previewRef} src={image.src} alt="Prévia do avatar" draggable={false} onLoad={() => setPreviewReady(true)} style={{ width: image.width * scale, height: image.height * scale, left: size / 2 + offset.x, top: size / 2 + offset.y }} /> : currentPhotoUrl && !currentPhotoFailed ? <img className="avatar-crop-current-photo" src={currentPhotoUrl} alt="Foto de perfil atual" onError={() => setCurrentPhotoFailed(true)} /> : <span>{initials}</span>}
   </div><div className="avatar-crop-controls"><label className="button button-small">Escolher foto<input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => selectImage(event.target.files?.[0])} /></label>{image ? <><button type="button" className="button button-small" onClick={() => changeZoom(zoom - .1)} aria-label="Diminuir zoom">−</button><label className="avatar-crop-zoom">Zoom<input type="range" min="1" max="3" step="0.05" value={zoom} onChange={(event) => changeZoom(Number(event.target.value))} /></label><button type="button" className="button button-small" onClick={() => changeZoom(zoom + .1)} aria-label="Aumentar zoom">+</button></> : null}</div>{image ? <small>Arraste a foto para centralizar. Use o zoom para ajustar o enquadramento.</small> : <small>Use uma foto quadrada ou retangular; ela será ajustada ao avatar.</small>}</div>;
 }

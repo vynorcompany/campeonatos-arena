@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
+import { CategoryPairForm } from "@/components/tournaments/category-pair-form";
 import { StatusBadge } from "@/components/tournaments/status-badge";
 import {
-  addManualPairAction,
   replaceCategoryPairPlayerAction,
   removeCategoryPairAction,
 } from "@/lib/actions/category-competition";
@@ -121,62 +120,7 @@ export function CategoryRegistrationPanel({
             ) : (
               <>
                 {canAcceptManualPair ? (
-                  <SafeActionForm action={addManualPairAction} className="grid-form category-pair-form" successMessage="Dupla adicionada com sucesso.">
-                    <input
-                      type="hidden"
-                      name="competitionId"
-                      value={category.competition.id}
-                    />
-                    <div className="field">
-                      <label htmlFor={`first-player-${category.id}`}>
-                        Primeiro atleta
-                      </label>
-                      <select
-                        id={`first-player-${category.id}`}
-                        name="firstPlayerId"
-                        required
-                      >
-                        <option value="">Selecione</option>
-                        {availableAthletes.map((athlete) => (
-                          <option key={athlete.id} value={athlete.id}>
-                            {athlete.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="field">
-                      <label htmlFor={`second-player-${category.id}`}>
-                        Segundo atleta
-                      </label>
-                      <select
-                        id={`second-player-${category.id}`}
-                        name="secondPlayerId"
-                        required
-                      >
-                        <option value="">Selecione</option>
-                        {availableAthletes.map((athlete) => (
-                          <option key={athlete.id} value={athlete.id}>
-                            {athlete.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="field field-submit category-pair-submit">
-                      <SubmitButton
-                        label="Adicionar dupla"
-                        pendingLabel="Adicionando..."
-                        className="button button-primary"
-                        disabled={availableAthletes.length < 2}
-                      />
-                    </div>
-                    {availableAthletes.length < 2 ? (
-                      <p className="muted form-full">
-                        Disponibilize ao menos dois atletas ativos, elegíveis e
-                        ainda sem dupla nesta categoria em{" "}
-                        <Link href="/players">Gestão → Atletas</Link>.
-                      </p>
-                    ) : null}
-                  </SafeActionForm>
+                  <CategoryPairForm competitionId={category.competition.id} athletes={availableAthletes} />
                 ) : category.competition.status !== "DRAFT" ? (
                   <p className="muted">
                     As inscrições manuais ficam bloqueadas após a publicação.

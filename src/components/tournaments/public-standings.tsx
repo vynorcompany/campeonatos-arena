@@ -5,6 +5,7 @@ import { PublicLeaguePortal } from "@/components/tournaments/public-league-porta
 import { PublicPlayerProfile } from "@/components/public-player-profile";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
+import { PlayerAvatar } from "@/components/player-avatar";
 import { moveClassGroupStudentAction, registerClassGroupMakeupAction, requestClassGroupAction } from "@/lib/actions/class-groups";
 
 type Portal = Awaited<ReturnType<typeof import("@/lib/services/public-league-portal").getPublicLeaguePortal>>;
@@ -46,7 +47,7 @@ export function PublicStandings({
         <div className="athlete-portal-brand">
           <div>{data.arena.logoUrl ? <img className="athlete-portal-arena-logo" src={data.arena.logoUrl} alt={`Logo da arena ${data.arena.name}`} /> : <span className="athlete-portal-arena-name">{data.arena.name}</span>}<h1>Portal do Atleta</h1><p>Acompanhe suas atividades, reservas e Ligas em um só lugar.</p></div>
         </div>
-        {currentClient ? <div className="athlete-portal-user"><span className="athlete-portal-user-avatar">{currentClient.photoUrl ? <img src={currentClient.photoUrl} alt="" /> : currentClient.name.slice(0, 1).toUpperCase()}</span><strong className="athlete-portal-greeting">Olá, {currentClient.name}</strong></div> : null}
+        {currentClient ? <div className="athlete-portal-user"><PlayerAvatar className="athlete-portal-user-avatar" photoUrl={currentClient.photoUrl} name={currentClient.name} /><strong className="athlete-portal-greeting">Olá, {currentClient.name}</strong></div> : null}
       </div>
     </header>
   );

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requirePublicPlayerAuth } from "@/lib/auth/player-session";
-import { savePublicImageUpload } from "@/lib/uploads";
+import { toPersistentPlayerPhoto } from "@/lib/uploads";
 
 const profileSchema = z.object({
   arenaSlug: z.string().trim().min(1),
@@ -30,7 +30,7 @@ export async function updatePublicPlayerProfileAction(_: PublicProfileActionStat
 
   const auth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
   const phone = normalizePhone(parsed.data.phone);
-  const photoUrl = await savePublicImageUpload(formData.get("photo") as File | null, "player-photos", auth.arenaId);
+  const photoUrl = await toPersistentPlayerPhoto(formData.get("photo") as File | null);
   const conflictingAccount = await prisma.playerAccount.findFirst({ where: { arenaId: auth.arenaId, phone, playerId: { not: auth.playerId } }, select: { id: true } });
   if (conflictingAccount) return { error: "Este telefone já está vinculado a outro cliente.", success: null };
 

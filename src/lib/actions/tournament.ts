@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { resolveRankingPeriod } from "@/lib/ranking/period";
 import { isPrismaUnknownFieldError } from "@/lib/prisma-errors";
 import { getAthleteDeletionRestriction } from "@/lib/athlete-management";
-import { savePublicImageUpload } from "@/lib/uploads";
+import { toPersistentPlayerPhoto } from "@/lib/uploads";
 import { requireModuleEdit } from "@/lib/auth/guards";
 import {
   archivePlayerSchema,
@@ -288,7 +288,7 @@ export async function createPlayerAction(_: ActionState, formData: FormData): Pr
   }
 
   try {
-    const photoUrl = await savePublicImageUpload(formData.get("photo") as File | null, "player-photos", auth.arenaId);
+    const photoUrl = await toPersistentPlayerPhoto(formData.get("photo") as File | null);
 
     await prisma.$transaction(async (tx) => {
       const player = await tx.player.create({
@@ -355,7 +355,7 @@ export async function updatePlayerAction(formData: FormData) {
   }
 
   try {
-    const photoUrl = await savePublicImageUpload(formData.get("photo") as File | null, "player-photos", auth.arenaId);
+    const photoUrl = await toPersistentPlayerPhoto(formData.get("photo") as File | null);
     const updated = await prisma.player.updateMany({
       where: { id: parsed.data.playerId, arenaId: auth.arenaId },
       data: { name: parsed.data.name, points: parsed.data.points, class: parsed.data.class, gender: parsed.data.gender, phone: parsed.data.phone, ...(parsed.data.email !== undefined ? { email: parsed.data.email } : {}), cpf: parsed.data.cpf, birthDate: parsed.data.birthDate, ...(photoUrl ? { photoUrl } : {}) }
