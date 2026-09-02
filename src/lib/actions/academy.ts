@@ -308,7 +308,7 @@ export async function deleteTeacherAction(formData: FormData) {
 }
 
 export async function createClassGroupAction(formData: FormData) {
-  const auth = await requireModuleEdit("lessons");
+  const auth = await requireModuleEdit("teachers");
   const name = String(formData.get("name") ?? "").trim();
   const teacherId = String(formData.get("teacherId") ?? "");
   const planIds = getFormValues(formData, "planIds");

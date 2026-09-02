@@ -155,3 +155,20 @@ test("untouched test teachers can be permanently deleted from their management p
   assert.match(page, /Excluir professor/);
   assert.match(actions, /export async function deleteTeacherAction/);
 });
+
+test("teacher destructive confirmations and enrollment actions stay compact", () => {
+  const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
+  const form = readFileSync(resolve(process.cwd(), "src/components/forms/safe-action-form.tsx"), "utf8");
+
+  assert.match(form, /safe-action-confirmation/);
+  assert.match(styles, /\.teacher-delete-form > \.button, \.teacher-archive-form > \.button \{[^}]*min-height: 34px/);
+  assert.match(styles, /\.teacher-enrollment-form > \.button \{[^}]*grid-column: 2/);
+});
+
+test("class groups created from the teacher panel use the teacher permission scope", () => {
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/academy.ts"), "utf8");
+  const panel = readFileSync(resolve(process.cwd(), "src/components/teachers/teacher-class-groups-panel.tsx"), "utf8");
+
+  assert.match(actions, /export async function createClassGroupAction\(formData: FormData\) \{\s*const auth = await requireModuleEdit\("teachers"\)/);
+  assert.match(panel, /Selecione ao menos um plano para a turma/);
+});

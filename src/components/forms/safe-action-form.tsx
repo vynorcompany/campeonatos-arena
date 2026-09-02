@@ -14,6 +14,7 @@ type SafeActionFormProps = {
   confirmKeyword?: string;
   confirmPrompt?: string;
   onSuccess?: () => void;
+  validate?: () => string | null;
 };
 
 export function SafeActionForm({
@@ -26,7 +27,8 @@ export function SafeActionForm({
   successHref,
   confirmKeyword,
   confirmPrompt,
-  onSuccess
+  onSuccess,
+  validate
 }: SafeActionFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
@@ -42,6 +44,11 @@ export function SafeActionForm({
       className={className}
       onSubmit={(event) => {
         event.preventDefault();
+        const validationError = validate?.();
+        if (validationError) {
+          setError(validationError);
+          return;
+        }
         if (confirmKeyword && !isConfirming) {
           setError(null);
           setSuccess(null);
@@ -87,9 +94,9 @@ export function SafeActionForm({
     >
       {children}
       {confirmKeyword && isConfirming ? (
-        <div className="form-full stack-xs">
+            <div className="form-full stack-xs safe-action-confirmation">
           <p className="muted">{confirmPrompt ?? `Digite ${confirmKeyword} para confirmar esta ação.`}</p>
-          <div className="inline-form">
+              <div className="inline-form safe-action-confirmation-actions">
             <input
               name="confirmKeyword"
               type="text"

@@ -7838,6 +7838,18 @@ button {
 .portal-league-prize-list b { color: #ffe39a; font-size: .86rem; font-weight: 600; line-height: 1.42; }
 .portal-league-prize-description { letter-spacing: 0; }
 
+/* Professores: ações críticas e matrículas seguem a escala compacta. */
+.teacher-delete-form, .teacher-archive-form { position: relative; align-items: center; }
+.teacher-delete-form > .button, .teacher-archive-form > .button { min-height: 34px; padding: 6px 10px; border-radius: 7px; font-size: .72rem; }
+.teacher-delete-form .safe-action-confirmation, .teacher-archive-form .safe-action-confirmation { position: absolute; z-index: 25; top: calc(100% + 7px); right: 0; display: grid; gap: 8px; width: min(330px, 78vw); padding: 11px; border: 1px solid #e6c9c5; border-radius: 10px; background: #fff; box-shadow: 0 13px 30px rgb(36 50 68 / .18); }
+.teacher-delete-form .safe-action-confirmation .muted, .teacher-archive-form .safe-action-confirmation .muted { margin: 0; color: #65758b; font-size: .74rem; line-height: 1.4; }
+.teacher-delete-form .safe-action-confirmation-actions, .teacher-archive-form .safe-action-confirmation-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.teacher-delete-form .safe-action-confirmation-actions input, .teacher-archive-form .safe-action-confirmation-actions input { width: 62px; min-height: 32px; padding: 5px 7px; font-size: .74rem; }
+.teacher-delete-form .safe-action-confirmation-actions .button, .teacher-archive-form .safe-action-confirmation-actions .button { min-height: 32px; padding: 5px 9px; border-radius: 7px; font-size: .72rem; }
+.teacher-enrollment-form > .button { grid-column: 2; justify-self: end; width: auto; min-width: 106px; min-height: 38px; padding-inline: 14px; font-size: .78rem; }
+.teacher-enrollment-students > .button { grid-column: auto; }
+@media (max-width: 600px) { .teacher-enrollment-form > .button { grid-column: 1; width: 100%; } .teacher-delete-form .safe-action-confirmation, .teacher-archive-form .safe-action-confirmation { right: auto; left: 0; width: min(320px, calc(100vw - 32px)); } }
+
 /* Densidade final do diretório: mantém a escala dos painéis da arena. */
 .teacher-directory-page { gap: 24px; max-width: 1320px; padding: 18px 22px 36px; }
 .teacher-directory-page-header { gap: 17px; }
