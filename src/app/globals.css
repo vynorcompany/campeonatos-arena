@@ -7652,7 +7652,10 @@ button {
 .public-league-portal .portal-league-registration-fee strong { color: #17634f; font-size: .8rem; }
 .public-league-portal .portal-league-registration-fee small { color: #67867c; font-size: .66rem; }
 .portal-league-match-meta { display: grid; justify-items: end; gap: 4px; }
-.portal-league-match-schedule { color: #19765f; font-size: .7rem; font-weight: 750; }
+.portal-league-match-status { display: inline-flex; width: fit-content; padding: 3px 6px; border-radius: 999px; background: #f0f4f7; color: #60788c; font-size: .66rem; font-weight: 750; }
+.portal-league-match-status.is-scheduled { background: #e8f7f0; color: #19765f; }
+.portal-league-match-status.is-finished { background: #eaf2ff; color: #2866a9; }
+.portal-league-match-schedule { color: #647e91; font-size: .7rem; font-weight: 650; }
 .public-league-portal .public-portal-pair { gap: 9px; padding: 13px 14px; border-color: #d9e6f0; border-radius: 12px; background: #fff; box-shadow: 0 4px 14px rgb(18 62 103 / .035); }
 .public-league-portal .public-portal-pair > header strong { color: #153d68; font-size: .88rem; line-height: 1.3; }
 .public-league-portal .public-medical-request { margin-top: 1px; padding: 0; overflow: hidden; border: 1px solid #d7e5ef; border-radius: 10px; color: #274a69; background: #f8fbfd; }

@@ -16,6 +16,7 @@ test("Portal do Atleta oferece Duplas e consulta categorias de Liga", () => {
   assert.match(portal, /selectedLeaguePairs/);
   assert.match(portal, /leagueResults/);
   assert.match(portal, /portal-league-match-schedule/);
+  assert.match(portal, /result\.scheduledAtLabel \? "Agendado" : "Aguardando"/);
   assert.match(service, /const leagueCategories/);
   assert.match(service, /const selectedLeaguePairs/);
   assert.match(service, /const leagueResults/);
