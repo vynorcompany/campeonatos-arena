@@ -246,6 +246,18 @@ test("teacher metrics keep the label and value in a vertical compact stack on ev
   assert.match(styles, /\.teacher-directory-item \{[^}]*min-height: 128px/);
 });
 
+test("teacher tabs keep one shared hero and metric layout", () => {
+  const styles = readFileSync(
+    resolve(process.cwd(), "src/app/globals.css"),
+    "utf8",
+  );
+
+  assert.match(styles, /\.teacher-detail-page \{ gap: 30px; max-width: 1460px/);
+  assert.match(styles, /\.teacher-detail-page \.teacher-page-actions \{[^}]*padding-top: 64px/);
+  assert.match(styles, /\.teacher-detail-page \.teacher-detail-tabs \{[^}]*gap: 20px/);
+  assert.doesNotMatch(styles, /\.teacher-students-dashboard \.teacher-detail-tabs/);
+});
+
 test("teacher classes open their creation form in a visible floating modal", () => {
   const panel = readFileSync(
     resolve(
@@ -690,7 +702,7 @@ test("teacher workspace uses client photos, vector icons and matching compact me
   assert.match(styles, /\.teacher-insert-student-trigger \{[^}]*justify-self: start/);
   assert.match(
     styles,
-    /\.teacher-detail-page\.teacher-students-dashboard \.teacher-detail-metrics article \{[^}]*min-height: 92px/,
+    /\.teacher-detail-page \.teacher-detail-metrics article \{[^}]*min-height: 92px/,
   );
 });
 

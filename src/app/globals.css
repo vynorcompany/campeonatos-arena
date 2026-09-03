@@ -7127,24 +7127,24 @@ button {
 @media (max-width: 430px) { .commands-actions { grid-template-columns: 1fr; } .commands-day-panel .commands-list-head { align-items: center; } .commands-day-panel .commands-list-head > span { align-self: flex-start; } }
 
 /* Painel do professor: leitura orientada a alunos, planos e presença mensal. */
-.teacher-detail-page.teacher-students-dashboard { gap: 30px; max-width: 1460px; padding: 18px 24px 46px; }
+.teacher-detail-page { gap: 30px; max-width: 1460px; padding: 18px 24px 46px; }
 .teacher-detail-hero { align-items: flex-start; padding-bottom: 22px; border-bottom: 0; }
 .teacher-detail-hero .back-link { display: inline-flex; margin-bottom: 26px; color: #1263c7; font-size: .92rem; }
 .teacher-detail-identity { display: flex; align-items: center; gap: 22px; }
 .teacher-detail-avatar { display: grid; width: 78px; height: 78px; place-items: center; border-radius: 50%; color: #fff; background: linear-gradient(145deg, #2453ef, #1737d6); box-shadow: 0 9px 19px rgb(33 69 219 / .18); font-size: 1.55rem; font-weight: 800; }
 .teacher-detail-identity .eyebrow { margin: 0 0 8px; color: #667692; font-size: .72rem; }
 .teacher-detail-identity h1 { margin: 0; color: #0b193a; font-size: clamp(2rem, 3.1vw, 2.75rem); letter-spacing: -.055em; }
-.teacher-students-dashboard .teacher-page-actions { gap: 12px; padding-top: 64px; }
-.teacher-students-dashboard .teacher-page-actions .status-badge { padding: 9px 13px; border: 1px solid #b9ecd0; border-radius: 7px; color: #0f9d59; background: #effcf4; font-size: .82rem; }
-.teacher-students-dashboard .teacher-archive-form .button { min-height: 40px; padding-inline: 15px; border-color: #ffaeae; border-radius: 7px; background: #fff; color: #ec3c3c; box-shadow: none; }
-.teacher-students-dashboard .teacher-detail-tabs { gap: 20px; padding-bottom: 0; border-color: #e0e8f1; }
-.teacher-students-dashboard .teacher-detail-tabs a { padding: 12px 17px 14px; color: #61718a; font-size: .9rem; }
-.teacher-students-dashboard .teacher-detail-tabs a.is-active { border-color: #1464e4; color: #1260d4; }
-.teacher-students-dashboard .teacher-detail-metrics { gap: 24px; }
-.teacher-students-dashboard .teacher-detail-metrics article { display: flex; align-items: center; gap: 17px; min-height: 105px; padding: 19px; border-color: #dce6f1; border-radius: 13px; box-shadow: 0 6px 16px rgb(13 50 96 / .035); }
-.teacher-students-dashboard .teacher-detail-metrics article > div { display: grid; gap: 5px; }
-.teacher-students-dashboard .teacher-detail-metrics span:not(.teacher-detail-metric-icon) { color: #697992; font-size: .82rem; }
-.teacher-students-dashboard .teacher-detail-metrics strong { color: #111d3a; font-size: 1.45rem; }
+.teacher-detail-page .teacher-page-actions { gap: 12px; padding-top: 64px; }
+.teacher-detail-page .teacher-page-actions .status-badge { padding: 9px 13px; border: 1px solid #b9ecd0; border-radius: 7px; color: #0f9d59; background: #effcf4; font-size: .82rem; }
+.teacher-detail-page .teacher-archive-form .button { min-height: 40px; padding-inline: 15px; border-color: #ffaeae; border-radius: 7px; background: #fff; color: #ec3c3c; box-shadow: none; }
+.teacher-detail-page .teacher-detail-tabs { gap: 20px; padding-bottom: 0; border-color: #e0e8f1; }
+.teacher-detail-page .teacher-detail-tabs a { padding: 12px 17px 14px; color: #61718a; font-size: .9rem; }
+.teacher-detail-page .teacher-detail-tabs a.is-active { border-color: #1464e4; color: #1260d4; }
+.teacher-detail-page .teacher-detail-metrics { gap: 24px; }
+.teacher-detail-page .teacher-detail-metrics article { display: flex; align-items: center; gap: 17px; min-height: 105px; padding: 19px; border-color: #dce6f1; border-radius: 13px; box-shadow: 0 6px 16px rgb(13 50 96 / .035); }
+.teacher-detail-page .teacher-detail-metrics article > div { display: grid; gap: 5px; }
+.teacher-detail-page .teacher-detail-metrics span:not(.teacher-detail-metric-icon) { color: #697992; font-size: .82rem; }
+.teacher-detail-page .teacher-detail-metrics strong { color: #111d3a; font-size: 1.45rem; }
 .teacher-detail-metric-icon { display: grid; flex: 0 0 auto; width: 58px; height: 58px; place-items: center; border-radius: 50%; font-size: 1.7rem; font-weight: 700; }
 .teacher-detail-metric-icon.metric-blue { color: #1164db; background: linear-gradient(145deg, #eaf2ff, #dce9fb); }
 .teacher-detail-metric-icon.metric-green { color: #18a35f; background: linear-gradient(145deg, #e5f9ed, #d8f4e3); }
@@ -7170,7 +7170,7 @@ button {
 .teacher-active-students-empty > span { display: grid; width: 64px; height: 64px; place-items: center; border-radius: 50%; color: #1665d9; background: #eaf2ff; font-size: 2rem; }
 .teacher-active-students-empty .muted { margin: 0; color: #64738d; font-size: .95rem; }
 @media (max-width: 1080px) { .teacher-enrollment-students .teacher-enrollment-financial { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 760px) { .teacher-detail-page.teacher-students-dashboard { gap: 20px; padding: 14px 14px 32px; } .teacher-detail-hero { display: grid; gap: 14px; } .teacher-detail-hero .back-link { margin-bottom: 16px; } .teacher-detail-identity { gap: 14px; } .teacher-detail-avatar { width: 58px; height: 58px; font-size: 1.15rem; } .teacher-detail-identity h1 { font-size: 1.85rem; } .teacher-students-dashboard .teacher-page-actions { padding-top: 0; } .teacher-students-dashboard .teacher-detail-tabs { gap: 0; overflow-x: auto; } .teacher-students-dashboard .teacher-detail-tabs a { flex: 0 0 auto; padding: 10px 12px 12px; font-size: .78rem; } .teacher-students-dashboard .teacher-detail-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .teacher-students-dashboard .teacher-detail-metrics article { min-height: 88px; gap: 10px; padding: 12px; } .teacher-detail-metric-icon { width: 40px; height: 40px; font-size: 1.2rem; } .teacher-students-dashboard .teacher-detail-metrics strong { font-size: 1.15rem; } .teacher-students-dashboard .teacher-detail-metrics span:not(.teacher-detail-metric-icon) { font-size: .69rem; } .teacher-active-students-panel { padding: 19px 14px 0; } .teacher-enrollment-students { padding: 12px; } .teacher-enrollment-students .teacher-enrollment-primary, .teacher-enrollment-students .teacher-enrollment-financial { grid-template-columns: 1fr; } .teacher-enrollment-students > .button { width: 100%; justify-self: stretch; } .teacher-active-students-panel .teacher-student-plan-list { margin-inline: -14px; padding: 18px 14px 24px; } }
+@media (max-width: 760px) { .teacher-detail-page { gap: 20px; padding: 14px 14px 32px; } .teacher-detail-hero { display: grid; gap: 14px; } .teacher-detail-hero .back-link { margin-bottom: 16px; } .teacher-detail-identity { gap: 14px; } .teacher-detail-avatar { width: 58px; height: 58px; font-size: 1.15rem; } .teacher-detail-identity h1 { font-size: 1.85rem; } .teacher-detail-page .teacher-page-actions { padding-top: 0; } .teacher-detail-page .teacher-detail-tabs { gap: 0; overflow-x: auto; } .teacher-detail-page .teacher-detail-tabs a { flex: 0 0 auto; padding: 10px 12px 12px; font-size: .78rem; } .teacher-detail-page .teacher-detail-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .teacher-detail-page .teacher-detail-metrics article { min-height: 88px; gap: 10px; padding: 12px; } .teacher-detail-metric-icon { width: 40px; height: 40px; font-size: 1.2rem; } .teacher-detail-page .teacher-detail-metrics strong { font-size: 1.15rem; } .teacher-detail-page .teacher-detail-metrics span:not(.teacher-detail-metric-icon) { font-size: .69rem; } .teacher-active-students-panel { padding: 19px 14px 0; } .teacher-enrollment-students { padding: 12px; } .teacher-enrollment-students .teacher-enrollment-primary, .teacher-enrollment-students .teacher-enrollment-financial { grid-template-columns: 1fr; } .teacher-enrollment-students > .button { width: 100%; justify-self: stretch; } .teacher-active-students-panel .teacher-student-plan-list { margin-inline: -14px; padding: 18px 14px 24px; } }
 
 /* Turmas do professor: agenda em primeiro plano e gestão sob demanda. */
 .teacher-class-directory { gap: 20px; }
@@ -8008,7 +8008,7 @@ button {
 .teacher-enrollment-students > .button { min-height: 34px; min-width: 0; padding-inline: 11px; font-size: .74rem; }
 .teacher-active-students-panel { gap: 14px; padding: 17px 18px 0; }
 .teacher-insert-student-trigger { justify-self: start; width: fit-content; min-width: 0; }
-.teacher-detail-page.teacher-students-dashboard .teacher-detail-metrics article { min-height: 92px; padding: 14px; gap: 13px; }
+.teacher-detail-page .teacher-detail-metrics article { min-height: 92px; padding: 14px; gap: 13px; }
 .teacher-detail-avatar { overflow: hidden; }
 .teacher-detail-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .teacher-active-students-panel > header h2 { font-size: 1rem; }
