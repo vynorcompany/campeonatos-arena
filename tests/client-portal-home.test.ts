@@ -23,18 +23,21 @@ test("client portal opens on Home with arena notices, client summary and feature
   assert.match(schema, /featuredInPortal\s+Boolean\s+@default\(false\)/);
 });
 
-test("arena has a dedicated page to publish portal notices and feature upcoming events", () => {
-  const settings = read("src/app/(app)/arena/portal-cliente/page.tsx");
+test("arena publishes portal notices and upcoming events inside Dados da arena > Portal do Atleta", () => {
+  const settings = read("src/app/(app)/arena/page.tsx");
+  const legacySettings = read("src/app/(app)/arena/portal-cliente/page.tsx");
   const editor = read("src/components/portal-editor-panels.tsx");
   const actions = read("src/lib/actions/client-portal.ts");
   const shell = read("src/components/layout/app-shell.tsx");
 
   assert.match(settings, /PortalEditorPanels/);
+  assert.match(settings, /activeSection === "portal"/);
   assert.match(editor, /Avisos para o portal/);
   assert.match(editor, /Eventos em destaque/);
   assert.match(actions, /createPortalAnnouncementAction/);
   assert.match(actions, /togglePortalEventFeatureAction/);
-  assert.match(shell, /\/arena\/portal-cliente/);
+  assert.match(legacySettings, /redirect\("\/arena\?section=portal"\)/);
+  assert.doesNotMatch(shell, /\/arena\/portal-cliente/);
 });
 
 test("portal management keeps editorial forms in dialogs and publishes vertical event posts", () => {
@@ -46,7 +49,7 @@ test("portal management keeps editorial forms in dialogs and publishes vertical 
 
   assert.match(editor, /Novo aviso/);
   assert.match(editor, /Novo evento/);
-  assert.match(editor, /accept="image\/\*"/);
+  assert.match(editor, /accept="image\/jpeg,image\/png,image\/webp"/);
   assert.match(actions, /createPortalEventPostAction/);
   assert.match(schema, /model PortalEventPost \{/);
   assert.match(home, /portalEventPost\.findMany/);

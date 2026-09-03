@@ -4,12 +4,13 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireModuleEdit } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
-import { savePublicImageUpload } from "@/lib/uploads";
+import { saveOptimizedPortalEventImageUpload } from "@/lib/uploads";
 
 const announcementSchema = z.object({ title: z.string().trim().min(2, "Informe o título."), message: z.string().trim().min(2, "Informe o aviso."), startsAt: z.string().trim().default(""), endsAt: z.string().trim().default("") });
 
 async function refreshPortal(arenaId: string) {
   const arena = await prisma.arena.findUnique({ where: { id: arenaId }, select: { slug: true } });
+  revalidatePath("/arena");
   revalidatePath("/arena/portal-cliente");
   if (arena) revalidatePath(`/classificacao/${arena.slug}`);
 }
@@ -49,8 +50,24 @@ export async function createPortalEventPostAction(formData: FormData) {
   const image = formData.get("image") as File | null;
   if (title.length < 2) throw new Error("Informe o título do evento.");
   if (!image?.size || !image.type.startsWith("image/")) throw new Error("Envie uma imagem válida para o evento.");
-  const imageUrl = await savePublicImageUpload(image, "portal-events", "event", auth.arenaId);
+  const imageUrl = await saveOptimizedPortalEventImageUpload(image, auth.arenaId);
   if (!imageUrl) throw new Error("Não foi possível salvar a imagem.");
   await prisma.portalEventPost.create({ data: { arenaId: auth.arenaId, title, caption, imageUrl } });
+  await refreshPortal(auth.arenaId);
+}
+
+export async function replacePortalEventPostImageAction(formData: FormData) {
+  const auth = await requireModuleEdit("arena");
+  const id = String(formData.get("eventPostId") ?? "").trim();
+  const image = formData.get("image") as File | null;
+  if (!id) throw new Error("Evento não encontrado.");
+  if (!image?.size || !image.type.startsWith("image/")) throw new Error("Envie uma imagem válida para o evento.");
+
+  const post = await prisma.portalEventPost.findFirst({ where: { id, arenaId: auth.arenaId }, select: { id: true } });
+  if (!post) throw new Error("Evento não encontrado.");
+  const imageUrl = await saveOptimizedPortalEventImageUpload(image, auth.arenaId, `event-${post.id}`);
+  if (!imageUrl) throw new Error("Não foi possível salvar a imagem.");
+
+  await prisma.portalEventPost.updateMany({ where: { id: post.id, arenaId: auth.arenaId }, data: { imageUrl } });
   await refreshPortal(auth.arenaId);
 }

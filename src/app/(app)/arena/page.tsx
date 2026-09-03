@@ -3,6 +3,7 @@ import Link from "next/link";
 import { CourtConfigurationWorkspace } from "@/components/courts/court-configuration-workspace";
 import { ArenaProfileForm } from "@/components/forms/arena-profile-form";
 import { AthletePortalSettingsForm } from "@/components/forms/athlete-portal-settings-form";
+import { PortalEditorPanels } from "@/components/portal-editor-panels";
 import { SectionCard } from "@/components/section-card";
 import { ArenaUsersManagement } from "@/components/users/arena-users-management";
 import { requireRole, requireModuleView } from "@/lib/auth/guards";
@@ -32,6 +33,10 @@ export default async function ArenaPage({ searchParams }: ArenaPageProps) {
   }
 
   const arena = await prisma.arena.findUniqueOrThrow({ where: { id: auth.arenaId } });
+  const [announcements, posts] = await Promise.all([
+    prisma.portalAnnouncement.findMany({ where: { arenaId: auth.arenaId }, orderBy: { createdAt: "desc" } }),
+    prisma.portalEventPost.findMany({ where: { arenaId: auth.arenaId }, orderBy: { createdAt: "desc" } })
+  ]);
 
   return (
     <div className="stack-md">
@@ -79,17 +84,20 @@ export default async function ArenaPage({ searchParams }: ArenaPageProps) {
           ) : null}
 
           {activeSection === "portal" ? (
-            <SectionCard title="Portal do Atleta" description="Escolha quais áreas ficarão visíveis para os atletas no portal online.">
-              <AthletePortalSettingsForm
-                settings={{
-                  showLeagues: arena.athletePortalShowLeagues,
-                  showBooking: arena.athletePortalShowBooking,
-                  showReservations: arena.athletePortalShowReservations,
-                  showLessons: arena.athletePortalShowLessons,
-                  showClasses: arena.athletePortalShowClasses
-                }}
-              />
-            </SectionCard>
+            <div className="stack-md">
+              <SectionCard title="Portal do Atleta" description="Escolha quais áreas ficarão visíveis para os atletas no portal online.">
+                <AthletePortalSettingsForm
+                  settings={{
+                    showLeagues: arena.athletePortalShowLeagues,
+                    showBooking: arena.athletePortalShowBooking,
+                    showReservations: arena.athletePortalShowReservations,
+                    showLessons: arena.athletePortalShowLessons,
+                    showClasses: arena.athletePortalShowClasses
+                  }}
+                />
+              </SectionCard>
+              <PortalEditorPanels announcements={announcements} posts={posts} />
+            </div>
           ) : null}
 
           {activeSection === "courts" ? <CourtConfigurationWorkspace courtId={searchParams?.court} /> : null}

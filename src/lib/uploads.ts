@@ -1,6 +1,7 @@
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import sharp from "sharp";
 
 const maxUploadSize = 4 * 1024 * 1024;
 const maxArenaLogoUploadSize = 500 * 1024;
@@ -81,21 +82,10 @@ function sanitizeName(value: string) {
     .slice(0, 48);
 }
 
-export async function savePublicImageUpload(file: File | null, folder: string, prefix: string, arenaId?: string) {
-  if (!file || file.size === 0) {
-    return null;
-  }
-
-  const extension = allowedImageTypes.get(file.type);
-
-  if (!extension) {
-    throw new Error("Envie uma imagem JPG, PNG, WEBP ou SVG.");
-  }
-
-  if (file.size > maxUploadSize) {
-    throw new Error("A imagem deve ter no máximo 4 MB.");
-  }
-
+async function storePublicImage(
+  content: Buffer,
+  { folder, prefix, extension, contentType, arenaId }: { folder: string; prefix: string; extension: string; contentType: string; arenaId?: string }
+) {
   const safeFolder = sanitizeName(folder) || "uploads";
   const safePrefix = sanitizeName(prefix) || "imagem";
   const fileName = `${safePrefix}-${Date.now()}.${extension}`;
@@ -109,8 +99,9 @@ export async function savePublicImageUpload(file: File | null, folder: string, p
       new PutObjectCommand({
         Bucket: r2.bucket,
         Key: key,
-        Body: Buffer.from(await file.arrayBuffer()),
-        ContentType: file.type
+        Body: content,
+        ContentType: contentType,
+        CacheControl: "public, max-age=31536000, immutable"
       })
     );
     return `${r2.publicBaseUrl}/${key}`;
@@ -123,7 +114,45 @@ export async function savePublicImageUpload(file: File | null, folder: string, p
   const uploadDir = path.join(process.cwd(), "public", "uploads", safeFolder);
 
   await mkdir(uploadDir, { recursive: true });
-  await writeFile(path.join(uploadDir, fileName), Buffer.from(await file.arrayBuffer()));
+  await writeFile(path.join(uploadDir, fileName), content);
 
   return `/uploads/${safeFolder}/${fileName}`;
+}
+
+export async function savePublicImageUpload(file: File | null, folder: string, prefix: string, arenaId?: string) {
+  if (!file || file.size === 0) return null;
+
+  const extension = allowedImageTypes.get(file.type);
+  if (!extension) throw new Error("Envie uma imagem JPG, PNG, WEBP ou SVG.");
+  if (file.size > maxUploadSize) throw new Error("A imagem deve ter no máximo 4 MB.");
+
+  return storePublicImage(Buffer.from(await file.arrayBuffer()), {
+    folder,
+    prefix,
+    extension,
+    contentType: file.type,
+    arenaId
+  });
+}
+
+export async function saveOptimizedPortalEventImageUpload(file: File | null, arenaId: string, prefix = "event") {
+  if (!file || file.size === 0) return null;
+  if (!allowedImageTypes.has(file.type) || file.type === "image/svg+xml") {
+    throw new Error("Envie uma imagem JPG, PNG ou WEBP.");
+  }
+  if (file.size > maxUploadSize) throw new Error("A imagem deve ter no máximo 4 MB.");
+
+  const optimizedImage = await sharp(Buffer.from(await file.arrayBuffer()))
+    .rotate()
+    .resize({ width: 1080, height: 1920, fit: "cover" })
+    .webp({ quality: 82, effort: 4 })
+    .toBuffer();
+
+  return storePublicImage(optimizedImage, {
+    folder: "portal-events",
+    prefix,
+    extension: "webp",
+    contentType: "image/webp",
+    arenaId
+  });
 }
