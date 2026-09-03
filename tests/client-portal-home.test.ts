@@ -25,14 +25,32 @@ test("client portal opens on Home with arena notices, client summary and feature
 
 test("arena has a dedicated page to publish portal notices and feature upcoming events", () => {
   const settings = read("src/app/(app)/arena/portal-cliente/page.tsx");
+  const editor = read("src/components/portal-editor-panels.tsx");
   const actions = read("src/lib/actions/client-portal.ts");
   const shell = read("src/components/layout/app-shell.tsx");
 
-  assert.match(settings, /Avisos para o portal/);
-  assert.match(settings, /Eventos em destaque/);
+  assert.match(settings, /PortalEditorPanels/);
+  assert.match(editor, /Avisos para o portal/);
+  assert.match(editor, /Eventos em destaque/);
   assert.match(actions, /createPortalAnnouncementAction/);
   assert.match(actions, /togglePortalEventFeatureAction/);
   assert.match(shell, /\/arena\/portal-cliente/);
+});
+
+test("portal management keeps editorial forms in dialogs and publishes vertical event posts", () => {
+  const editor = read("src/components/portal-editor-panels.tsx");
+  const actions = read("src/lib/actions/client-portal.ts");
+  const schema = read("prisma/schema.prisma");
+  const home = read("src/lib/services/public-client-home.ts");
+  const portal = read("src/components/tournaments/public-standings.tsx");
+
+  assert.match(editor, /Novo aviso/);
+  assert.match(editor, /Novo evento/);
+  assert.match(editor, /accept="image\/\*"/);
+  assert.match(actions, /createPortalEventPostAction/);
+  assert.match(schema, /model PortalEventPost \{/);
+  assert.match(home, /portalEventPost\.findMany/);
+  assert.match(portal, /PortalRichText/);
 });
 
 test("league header no longer displays the isolated notification count tag", () => {
