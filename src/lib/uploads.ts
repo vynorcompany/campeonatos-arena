@@ -83,6 +83,12 @@ function sanitizeName(value: string) {
     .slice(0, 48);
 }
 
+function getPersistentUploadDirectory() {
+  const volumeMountPath = process.env.RAILWAY_VOLUME_MOUNT_PATH?.trim();
+  if (volumeMountPath) return volumeMountPath;
+  return path.join(process.cwd(), "public", "uploads");
+}
+
 async function storePublicImage(
   content: Buffer,
   { folder, prefix, extension, contentType, arenaId }: { folder: string; prefix: string; extension: string; contentType: string; arenaId?: string }
@@ -108,11 +114,11 @@ async function storePublicImage(
     return `${r2.publicBaseUrl}/${key}`;
   }
 
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("Configure o Cloudflare R2 antes de enviar imagens em produção.");
+  if (process.env.NODE_ENV === "production" && !process.env.RAILWAY_VOLUME_MOUNT_PATH?.trim()) {
+    throw new Error("Configure um Volume da Railway ou o Cloudflare R2 antes de enviar imagens em produção.");
   }
 
-  const uploadDir = path.join(process.cwd(), "public", "uploads", safeFolder);
+  const uploadDir = path.join(getPersistentUploadDirectory(), safeFolder);
 
   await mkdir(uploadDir, { recursive: true });
   await writeFile(path.join(uploadDir, fileName), content);
