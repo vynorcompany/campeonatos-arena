@@ -1,0 +1,21 @@
+import { prisma } from "@/lib/prisma";
+
+const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value / 100);
+const date = (value: Date) => new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(value);
+
+export async function getPublicClientHome(arenaSlug: string, playerId: string) {
+  const arena = await prisma.arena.findUnique({ where: { slug: arenaSlug }, select: { id: true } });
+  if (!arena) return null;
+  const now = new Date();
+  const [announcements, events, student, reservations, pairs, entries] = await Promise.all([
+    prisma.portalAnnouncement.findMany({ where: { arenaId: arena.id, active: true, AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }] }, orderBy: { createdAt: "desc" }, take: 4, select: { id: true, title: true, message: true } }),
+    prisma.calendarEvent.findMany({ where: { arenaId: arena.id, featuredInPortal: true, scheduledAt: { gte: now } }, orderBy: { scheduledAt: "asc" }, take: 4, select: { id: true, title: true, notes: true, scheduledAt: true } }),
+    prisma.student.findFirst({ where: { arenaId: arena.id, playerId }, select: { remainingClasses: true } }),
+    prisma.scheduleOccurrence.count({ where: { arenaId: arena.id, startsAt: { gte: now }, status: { not: "CANCELED" }, participants: { some: { playerId } } } }),
+    prisma.categoryPair.count({ where: { active: true, players: { some: { playerId } }, competition: { format: "LEAGUE", status: "PUBLISHED", category: { tournament: { arenaId: arena.id } } } } }),
+    prisma.financialEntry.findMany({ where: { arenaId: arena.id, type: "REVENUE", status: { in: ["PENDING", "OVERDUE"] }, counterpartyName: { not: "" } }, select: { counterpartyName: true, amountCents: true } }),
+  ]);
+  const player = await prisma.player.findUnique({ where: { id: playerId }, select: { name: true } });
+  const due = entries.filter((entry) => entry.counterpartyName === player?.name).reduce((total, entry) => total + entry.amountCents, 0);
+  return { announcements, events: events.map((event) => ({ ...event, when: date(event.scheduledAt) })), summary: { financial: due ? `${money(due)} em aberto` : "Em dia", financialStatus: due ? "pending" : "active", classes: student?.remainingClasses ?? 0, reservations, leagues: pairs } };
+}

@@ -17,7 +17,9 @@ type Portal = Awaited<
     typeof import("@/lib/services/public-league-portal").getPublicLeaguePortal
   >
 >;
+type ClientHome = Awaited<ReturnType<typeof import("@/lib/services/public-client-home").getPublicClientHome>>;
 type PortalSection =
+  | "home"
   | "leagues"
   | "booking"
   | "reservations"
@@ -54,6 +56,7 @@ export function PublicStandings({
   data,
   currentClient,
   portal,
+  home,
   authForm,
   section = "leagues",
   leagueTab = "games",
@@ -71,6 +74,7 @@ export function PublicStandings({
     isTeacher: boolean;
   } | null;
   portal: Portal;
+  home: ClientHome;
   authForm: React.ReactNode;
   section?: PortalSection;
   leagueTab?: LeagueTab;
@@ -152,6 +156,12 @@ export function PublicStandings({
         className="athlete-portal-main-nav"
         aria-label="Menu do portal do atleta"
       >
+        <Link
+          className={requestedSection === "home" ? "active" : ""}
+          href={portalHref("home")}
+        >
+          Início
+        </Link>
         {portalVisibility.athletePortalShowLeagues ? (
           <Link
             className={requestedSection === "leagues" ? "active" : ""}
@@ -229,7 +239,9 @@ export function PublicStandings({
           ) : null}
         </nav>
       ) : null}
-      {requestedSection === "leagues" ? (
+      {requestedSection === "home" ? (
+        <ClientHomePanel home={home} name={currentClient.name} />
+      ) : requestedSection === "leagues" ? (
         <>
           <nav className="athlete-portal-league-nav" aria-label="Menu da Liga">
             <Link
@@ -321,6 +333,12 @@ export function PublicStandings({
       )}
     </main>
   );
+}
+
+function ClientHomePanel({ home, name }: { home: ClientHome; name: string }) {
+  if (!home) return <section className="athlete-portal-content-panel"><PortalEmpty title="Início indisponível" detail="Não foi possível carregar suas informações agora." /></section>;
+  const firstName = name.trim().split(/\s+/)[0] || name;
+  return <section className="client-portal-home"><header><span>INÍCIO</span><h2>Olá, {firstName}</h2><p>Veja o que acontece na arena e acompanhe sua situação.</p></header><div className="client-portal-home-grid"><section className="client-portal-announcements"><h3>Avisos da Arena</h3>{home.announcements.length ? home.announcements.map((announcement) => <article key={announcement.id}><strong>{announcement.title}</strong><p>{announcement.message}</p></article>) : <p className="muted">Nenhum aviso no momento.</p>}</section><section className="client-portal-summary"><h3>Resumo da sua situação</h3><div><article><span>Financeiro</span><strong className={home.summary.financialStatus === "pending" ? "is-pending" : "is-active"}>{home.summary.financial}</strong></article><article><span>Aulas</span><strong>{home.summary.classes} disponíveis</strong></article><article><span>Reservas</span><strong>{home.summary.reservations} próxima{home.summary.reservations === 1 ? "" : "s"}</strong></article><article><span>Ligas</span><strong>{home.summary.leagues} ativa{home.summary.leagues === 1 ? "" : "s"}</strong></article></div></section></div><section className="client-portal-events"><header><div><span>AGENDA DA ARENA</span><h3>Eventos próximos</h3></div></header>{home.events.length ? <div>{home.events.map((event) => <article key={event.id}><time>{event.when}</time><div><strong>{event.title}</strong>{event.notes ? <p>{event.notes}</p> : null}</div></article>)}</div> : <p className="muted">A arena ainda não divulgou eventos próximos.</p>}</section></section>;
 }
 
 function PrizePanel({ portal }: { portal: Portal }) {

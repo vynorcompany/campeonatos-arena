@@ -107,6 +107,7 @@ model Arena {
   teachers    Teacher[]
   lessons     Lesson[]
   calendarEvents CalendarEvent[]
+  portalAnnouncements PortalAnnouncement[]
   courts      Court[]
   scheduleOccurrences ScheduleOccurrence[]
   bookingTypes BookingType[]
@@ -1173,6 +1174,7 @@ model CalendarEvent {
   scheduledAt     DateTime
   durationMinutes Int      @default(60)
   notes           String   @default("")
+  featuredInPortal Boolean  @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   arenaId         String
@@ -1180,6 +1182,21 @@ model CalendarEvent {
 
   @@index([arenaId, scheduledAt])
   @@index([arenaId, eventType])
+}
+
+model PortalAnnouncement {
+  id        String   @id @default(cuid())
+  title     String
+  message   String
+  active    Boolean  @default(true)
+  startsAt  DateTime?
+  endsAt    DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  arenaId   String
+  arena     Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+
+  @@index([arenaId, active, startsAt, endsAt])
 }
 
 model Court {
