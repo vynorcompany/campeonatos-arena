@@ -4,6 +4,7 @@ import path from "node:path";
 import sharp from "sharp";
 
 const maxUploadSize = 4 * 1024 * 1024;
+const maxPortalEventUploadSize = 25 * 1024 * 1024;
 const maxArenaLogoUploadSize = 500 * 1024;
 const allowedImageTypes = new Map([
   ["image/jpeg", "jpg"],
@@ -140,7 +141,7 @@ export async function saveOptimizedPortalEventImageUpload(file: File | null, are
   if (!allowedImageTypes.has(file.type) || file.type === "image/svg+xml") {
     throw new Error("Envie uma imagem JPG, PNG ou WEBP.");
   }
-  if (file.size > maxUploadSize) throw new Error("A imagem deve ter no máximo 4 MB.");
+  if (file.size > maxPortalEventUploadSize) throw new Error("A imagem original deve ter no máximo 25 MB.");
 
   const optimizedImage = await sharp(Buffer.from(await file.arrayBuffer()))
     .rotate()

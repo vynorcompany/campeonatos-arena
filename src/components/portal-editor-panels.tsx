@@ -18,7 +18,7 @@ function validatePortalEventImage(formData: FormData) {
   const image = formData.get("image");
   if (!(image instanceof File) || image.size === 0) return "Selecione uma imagem para o evento.";
   if (!portalEventImageTypes.includes(image.type)) return "O arquivo selecionado não é uma imagem. Envie JPG, PNG ou WebP.";
-  if (image.size > 4 * 1024 * 1024) return "A imagem deve ter no máximo 4 MB.";
+  if (image.size > 25 * 1024 * 1024) return "A imagem original deve ter no máximo 25 MB.";
   return null;
 }
 
@@ -42,7 +42,7 @@ function ImageUploadField() {
     <label className="portal-upload-field">
       <span>Imagem vertical <small>1080 × 1920 · otimizada automaticamente</small></span>
       <input name="image" type="file" accept="image/jpeg,image/png,image/webp" required onChange={(event) => setFileName(event.target.files?.[0]?.name ?? "")} />
-      <span className="portal-upload-control"><strong>Selecionar imagem</strong><em>{fileName || "JPG, PNG ou WebP · até 4 MB"}</em></span>
+      <span className="portal-upload-control"><strong>Selecionar imagem</strong><em>{fileName || "JPG, PNG ou WebP · até 25 MB"}</em></span>
     </label>
   );
 }
