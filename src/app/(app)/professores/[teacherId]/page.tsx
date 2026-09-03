@@ -13,6 +13,7 @@ import {
   archiveTeacherAction,
   deleteTeacherAction,
   moveTeacherClassGroupStudentAction,
+  removeTeacherPlanStudentAction,
 } from "@/lib/actions/academy";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
@@ -477,6 +478,27 @@ export default async function TeacherDetailPage({
                           label={studentGroup ? "Alterar" : "Atribuir"}
                           pendingLabel="Salvando..."
                           className="button button-small"
+                        />
+                      </SafeActionForm>
+                      <SafeActionForm
+                        action={removeTeacherPlanStudentAction}
+                        className="teacher-student-plan-remove"
+                        confirmKeyword="REMOVER"
+                        confirmPrompt={`Remover ${subscription.student.name} do plano ${plan.name}? O cadastro do cliente será preservado.`}
+                        successMessage="Aluno removido do plano."
+                        closeClosestDetailsOnSuccess
+                      >
+                        <input type="hidden" name="teacherId" value={teacher.id} />
+                        <input type="hidden" name="planId" value={plan.id} />
+                        <input
+                          type="hidden"
+                          name="studentId"
+                          value={subscription.student.id}
+                        />
+                        <SubmitButton
+                          label="Remover do plano"
+                          pendingLabel="Removendo..."
+                          className="button button-danger button-small"
                         />
                       </SafeActionForm>
                     </details>

@@ -1082,26 +1082,76 @@ export async function copyTeacherPlansAction(formData: FormData) {
     throw new Error("Selecione outro professor para receber os planos.");
   const [source, target] = await Promise.all([
     prisma.teacher.findFirst({
-      where: { id: sourceTeacherId, arenaId: auth.arenaId },
+      where: { id: sourceTeacherId, arenaId: auth.arenaId, active: true },
       include: {
-        planAssignments: { where: { active: true }, select: { planId: true } },
+        planAssignments: {
+          where: { active: true },
+          include: {
+            plan: {
+              select: {
+                id: true,
+                name: true,
+                monthlyPriceCents: true,
+                classesPerMonth: true,
+                notes: true,
+              },
+            },
+          },
+        },
       },
     }),
     prisma.teacher.findFirst({
-      where: { id: targetTeacherId, arenaId: auth.arenaId },
-      select: { id: true },
+      where: { id: targetTeacherId, arenaId: auth.arenaId, active: true },
+      select: { id: true, name: true },
     }),
   ]);
   if (!source || !target) throw new Error("Professor não encontrado.");
-  await prisma.$transaction(
-    source.planAssignments.map(({ planId }) =>
-      prisma.teacherPlan.upsert({
-        where: { teacherId_planId: { teacherId: target.id, planId } },
+  const sourcePlanIds = source.planAssignments.map(({ planId }) => planId);
+  await prisma.$transaction(async (tx) => {
+    await tx.teacherPlan.updateMany({
+      where: {
+        arenaId: auth.arenaId,
+        teacherId: target.id,
+        planId: { in: sourcePlanIds },
+        active: true,
+      },
+      data: { active: false },
+    });
+
+    for (const { plan } of source.planAssignments) {
+      const name = `${plan.name} · ${target.name}`;
+      const copiedPlan = await tx.plan.upsert({
+        where: { arenaId_name: { arenaId: auth.arenaId, name } },
+        update: {
+          monthlyPriceCents: plan.monthlyPriceCents,
+          classesPerMonth: plan.classesPerMonth,
+          notes: plan.notes,
+          active: true,
+          updatedByUserId: auth.userId,
+        },
+        create: {
+          arenaId: auth.arenaId,
+          name,
+          monthlyPriceCents: plan.monthlyPriceCents,
+          classesPerMonth: plan.classesPerMonth,
+          notes: plan.notes,
+          createdByUserId: auth.userId,
+          updatedByUserId: auth.userId,
+        },
+      });
+      await tx.teacherPlan.upsert({
+        where: {
+          teacherId_planId: { teacherId: target.id, planId: copiedPlan.id },
+        },
         update: { active: true },
-        create: { arenaId: auth.arenaId, teacherId: target.id, planId },
-      }),
-    ),
-  );
+        create: {
+          arenaId: auth.arenaId,
+          teacherId: target.id,
+          planId: copiedPlan.id,
+        },
+      });
+    }
+  });
   refreshAcademyRoutes();
 }
 

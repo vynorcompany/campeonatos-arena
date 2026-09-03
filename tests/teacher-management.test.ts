@@ -598,6 +598,24 @@ test("active-student rows expose a compact class assignment and financial shortc
   assert.match(styles, /\.teacher-active-students-panel \.teacher-student-plan-list article \{[\s\S]*min-height: 52px/);
 });
 
+test("active students can be removed from a teacher plan with confirmation", () => {
+  const [page, actions, styles] = [
+    readFileSync(
+      resolve(process.cwd(), "src/app/(app)/professores/[teacherId]/page.tsx"),
+      "utf8",
+    ),
+    readFileSync(resolve(process.cwd(), "src/lib/actions/academy.ts"), "utf8"),
+    readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8"),
+  ];
+
+  assert.match(page, /removeTeacherPlanStudentAction/);
+  assert.match(page, /Remover do plano/);
+  assert.match(page, /confirmKeyword="REMOVER"/);
+  assert.match(actions, /export async function removeTeacherPlanStudentAction/);
+  assert.match(actions, /status: "CANCELED"/);
+  assert.match(styles, /\.teacher-student-plan-remove/);
+});
+
 test("teachers directory uses compact rows and an explicit status indicator", () => {
   const [workspace, styles] = [
     readFileSync(
@@ -692,7 +710,10 @@ test("teacher plans can be copied to another active professor in a compact dialo
   assert.ok(existsSync(dialogPath));
   const dialog = readFileSync(dialogPath, "utf8");
   assert.match(actions, /export async function copyTeacherPlansAction/);
-  assert.match(actions, /prisma\.teacherPlan\.upsert/);
+  assert.match(actions, /planAssignments: \{[\s\S]*include: \{[\s\S]*plan: \{/);
+  assert.match(actions, /tx\.plan\.upsert/);
+  assert.match(actions, /tx\.teacherPlan\.upsert/);
+  assert.match(actions, /planId: \{ in: sourcePlanIds \}/);
   assert.match(page, /TeacherPlanCopyDialog/);
   assert.match(page, /targetTeachers/);
   assert.match(dialog, /Copiar planos/);
