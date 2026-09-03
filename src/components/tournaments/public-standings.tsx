@@ -178,36 +178,18 @@ export function PublicStandings({
         ) : null}
         {portalVisibility.athletePortalShowLessons ||
         portalVisibility.athletePortalShowClasses ? (
-          <details
-            className={`athlete-portal-nav-menu ${
+          <Link
+            className={
               requestedSection === "lessons" || requestedSection === "classes"
                 ? "active"
                 : ""
-            }`}
-            open={
-              requestedSection === "lessons" || requestedSection === "classes"
             }
+            href={portalHref(
+              portalVisibility.athletePortalShowLessons ? "lessons" : "classes",
+            )}
           >
-            <summary>Aulas</summary>
-            <div>
-              {portalVisibility.athletePortalShowLessons ? (
-                <Link
-                  className={requestedSection === "lessons" ? "active" : ""}
-                  href={portalHref("lessons")}
-                >
-                  Minhas aulas
-                </Link>
-              ) : null}
-              {portalVisibility.athletePortalShowClasses ? (
-                <Link
-                  className={requestedSection === "classes" ? "active" : ""}
-                  href={portalHref("classes")}
-                >
-                  Turmas
-                </Link>
-              ) : null}
-            </div>
-          </details>
+            Aulas
+          </Link>
         ) : null}
         {currentClient.isTeacher ? (
           <Link
@@ -224,6 +206,29 @@ export function PublicStandings({
           Meu perfil
         </Link>
       </nav>
+      {requestedSection === "lessons" || requestedSection === "classes" ? (
+        <nav
+          className="athlete-portal-league-nav athlete-portal-lessons-nav"
+          aria-label="Menu de aulas"
+        >
+          {portalVisibility.athletePortalShowLessons ? (
+            <Link
+              className={requestedSection === "lessons" ? "active" : ""}
+              href={portalHref("lessons")}
+            >
+              Minhas aulas
+            </Link>
+          ) : null}
+          {portalVisibility.athletePortalShowClasses ? (
+            <Link
+              className={requestedSection === "classes" ? "active" : ""}
+              href={portalHref("classes")}
+            >
+              Turmas
+            </Link>
+          ) : null}
+        </nav>
+      ) : null}
       {requestedSection === "leagues" ? (
         <>
           <nav className="athlete-portal-league-nav" aria-label="Menu da Liga">

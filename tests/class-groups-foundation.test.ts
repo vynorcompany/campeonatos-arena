@@ -125,20 +125,22 @@ test("teacher portal management includes the teacher class groups and their occu
   assert.match(portal, /vagas/);
 });
 
-test("athlete portal nests class groups below the lessons navigation", () => {
-  const [portal, styles] = [
+test("athlete portal presents classes as an internal lessons navigation", () => {
+  const portal =
     readFileSync(
       resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"),
       "utf8",
-    ),
-    readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8"),
-  ];
+    );
 
-  assert.match(portal, /athlete-portal-nav-menu/);
+  assert.doesNotMatch(portal, /athlete-portal-nav-menu/);
+  assert.match(
+    portal,
+    /portalVisibility\.athletePortalShowLessons \? "lessons" : "classes"/,
+  );
+  assert.match(portal, /athlete-portal-league-nav athlete-portal-lessons-nav/);
   assert.match(portal, /Minhas aulas/);
   assert.match(portal, /Turmas/);
   assert.match(portal, /portalHref\("classes"\)/);
-  assert.match(styles, /\.athlete-portal-nav-menu/);
 });
 
 test("teacher class management supports moving students and logging make-up classes", () => {
