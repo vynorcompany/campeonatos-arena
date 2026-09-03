@@ -31,7 +31,12 @@ const envSchema = z.object({
   EVOLUTION_API_KEY: z.string().optional(),
   EVOLUTION_INSTANCE_NAME: z.string().optional(),
   EVOLUTION_WEBHOOK_SECRET: z.string().optional(),
-  CRON_SECRET: z.string().min(24).optional()
+  CRON_SECRET: z.string().min(24).optional(),
+  R2_ENDPOINT: optionalUrl,
+  R2_BUCKET: z.string().trim().optional(),
+  R2_ACCESS_KEY_ID: z.string().trim().optional(),
+  R2_SECRET_ACCESS_KEY: z.string().trim().optional(),
+  R2_PUBLIC_BASE_URL: optionalUrl
 });
 
 const parsedResult = envSchema.safeParse({
@@ -50,7 +55,12 @@ const parsedResult = envSchema.safeParse({
   EVOLUTION_API_KEY: process.env.EVOLUTION_API_KEY,
   EVOLUTION_INSTANCE_NAME: process.env.EVOLUTION_INSTANCE_NAME,
   EVOLUTION_WEBHOOK_SECRET: process.env.EVOLUTION_WEBHOOK_SECRET,
-  CRON_SECRET: process.env.CRON_SECRET
+  CRON_SECRET: process.env.CRON_SECRET,
+  R2_ENDPOINT: process.env.R2_ENDPOINT,
+  R2_BUCKET: process.env.R2_BUCKET,
+  R2_ACCESS_KEY_ID: process.env.R2_ACCESS_KEY_ID,
+  R2_SECRET_ACCESS_KEY: process.env.R2_SECRET_ACCESS_KEY,
+  R2_PUBLIC_BASE_URL: process.env.R2_PUBLIC_BASE_URL
 });
 
 if (!parsedResult.success) {
@@ -82,5 +92,10 @@ export const env = {
   evolutionApiKey: parsed.EVOLUTION_API_KEY,
   evolutionInstanceName: parsed.EVOLUTION_INSTANCE_NAME,
   evolutionWebhookSecret: parsed.EVOLUTION_WEBHOOK_SECRET,
-  cronSecret: parsed.CRON_SECRET
+  cronSecret: parsed.CRON_SECRET,
+  r2Endpoint: parsed.R2_ENDPOINT,
+  r2Bucket: parsed.R2_BUCKET,
+  r2AccessKeyId: parsed.R2_ACCESS_KEY_ID,
+  r2SecretAccessKey: parsed.R2_SECRET_ACCESS_KEY,
+  r2PublicBaseUrl: parsed.R2_PUBLIC_BASE_URL
 };

@@ -19,3 +19,14 @@ test("database backup service creates portable dumps on a daily Railway cron", (
   assert.match(readFileSync(script, "utf8"), /aws s3 cp/);
   assert.match(readFileSync(railway, "utf8"), /"cronSchedule": "0 6 \* \* \*"/);
 });
+
+test("backup recovery requires a confirmed disposable database instead of restoring over production", () => {
+  const script = resolve(backupRoot, "restore-test.sh");
+
+  assert.ok(existsSync(script));
+  const contents = readFileSync(script, "utf8");
+  assert.match(contents, /RESTORE_DATABASE_URL is required/);
+  assert.match(contents, /RESTORE_CONFIRM/);
+  assert.match(contents, /RESTORE_DATABASE_URL must not match DATABASE_URL/);
+  assert.match(contents, /pg_restore .*--exit-on-error/);
+});

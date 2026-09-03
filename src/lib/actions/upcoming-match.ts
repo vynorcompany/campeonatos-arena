@@ -303,7 +303,7 @@ export async function createTvSponsorAction(formData: FormData) {
 
   const logoFile = formData.get("logo") as File | null;
   const inlineLogo = await toInlineLogo(logoFile);
-  const logoUrl = inlineLogo ?? await savePublicImageUpload(logoFile, "tv-sponsor-logos", auth.arenaId);
+  const logoUrl = inlineLogo ?? await savePublicImageUpload(logoFile, "tv-sponsor-logos", auth.arenaId, auth.arenaId);
 
   await withTvSchemaGuard(async () => {
     await prisma.tvSponsor.create({
@@ -337,7 +337,7 @@ export async function updateTvSponsorAction(formData: FormData) {
 
   const logoFile = formData.get("logo") as File | null;
   const inlineLogo = await toInlineLogo(logoFile);
-  const logoUrl = inlineLogo ?? await savePublicImageUpload(logoFile, "tv-sponsor-logos", auth.arenaId);
+  const logoUrl = inlineLogo ?? await savePublicImageUpload(logoFile, "tv-sponsor-logos", auth.arenaId, auth.arenaId);
   const updated = await withTvSchemaGuard(async () =>
     prisma.tvSponsor.updateMany({
       where: {

@@ -1,3 +1,4 @@
+import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -9,6 +10,44 @@ const allowedImageTypes = new Map([
   ["image/webp", "webp"],
   ["image/svg+xml", "svg"]
 ]);
+
+type R2Configuration = {
+  endpoint: string;
+  bucket: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+  publicBaseUrl: string;
+};
+
+let r2Client: S3Client | null = null;
+
+function getR2Configuration(): R2Configuration | null {
+  const endpoint = process.env.R2_ENDPOINT?.trim();
+  const bucket = process.env.R2_BUCKET?.trim();
+  const accessKeyId = process.env.R2_ACCESS_KEY_ID?.trim();
+  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY?.trim();
+  const publicBaseUrl = process.env.R2_PUBLIC_BASE_URL?.trim();
+  const values = [endpoint, bucket, accessKeyId, secretAccessKey, publicBaseUrl];
+  if (values.every((value) => !value)) return null;
+  if (values.some((value) => !value)) throw new Error("A configuração do Cloudflare R2 está incompleta.");
+
+  return {
+    endpoint: endpoint!,
+    bucket: bucket!,
+    accessKeyId: accessKeyId!,
+    secretAccessKey: secretAccessKey!,
+    publicBaseUrl: publicBaseUrl!.replace(/\/$/, "")
+  };
+}
+
+function getR2Client(config: R2Configuration) {
+  r2Client ??= new S3Client({
+    region: "auto",
+    endpoint: config.endpoint,
+    credentials: { accessKeyId: config.accessKeyId, secretAccessKey: config.secretAccessKey }
+  });
+  return r2Client;
+}
 
 export async function toPersistentArenaLogo(file: File | null): Promise<string | null> {
   if (!file || file.size === 0) {
@@ -42,7 +81,7 @@ function sanitizeName(value: string) {
     .slice(0, 48);
 }
 
-export async function savePublicImageUpload(file: File | null, folder: string, prefix: string) {
+export async function savePublicImageUpload(file: File | null, folder: string, prefix: string, arenaId?: string) {
   if (!file || file.size === 0) {
     return null;
   }
@@ -59,8 +98,29 @@ export async function savePublicImageUpload(file: File | null, folder: string, p
 
   const safeFolder = sanitizeName(folder) || "uploads";
   const safePrefix = sanitizeName(prefix) || "imagem";
-  const uploadDir = path.join(process.cwd(), "public", "uploads", safeFolder);
   const fileName = `${safePrefix}-${Date.now()}.${extension}`;
+  const r2 = getR2Configuration();
+
+  if (r2) {
+    const safeArenaId = sanitizeName(arenaId ?? "");
+    if (!safeArenaId) throw new Error("Não foi possível identificar a arena do upload.");
+    const key = `arenas/${safeArenaId}/${safeFolder}/${fileName}`;
+    await getR2Client(r2).send(
+      new PutObjectCommand({
+        Bucket: r2.bucket,
+        Key: key,
+        Body: Buffer.from(await file.arrayBuffer()),
+        ContentType: file.type
+      })
+    );
+    return `${r2.publicBaseUrl}/${key}`;
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Configure o Cloudflare R2 antes de enviar imagens em produção.");
+  }
+
+  const uploadDir = path.join(process.cwd(), "public", "uploads", safeFolder);
 
   await mkdir(uploadDir, { recursive: true });
   await writeFile(path.join(uploadDir, fileName), Buffer.from(await file.arrayBuffer()));

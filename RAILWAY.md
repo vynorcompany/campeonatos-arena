@@ -33,7 +33,7 @@ NODE_ENV=production
 
 Troque `Postgres` pelo nome real do servico de banco se o Railway usar outro nome.
 
-Use uma senha forte em `INITIAL_ADMIN_PASSWORD`. O seed pode ser executado novamente: ele atualiza o admin e a arena inicial sem duplicar registros.
+Use uma senha forte em `INITIAL_ADMIN_PASSWORD`. O seed é apenas para bootstrap controlado; não o execute durante atualizações rotineiras.
 
 ## Banco e bootstrap
 
@@ -46,10 +46,9 @@ Ele define:
 - Start Command: `npm run start`;
 - Healthcheck Path: `/api/health`.
 
-Durante o pre-deploy, o `db:setup` executa automaticamente:
+Durante o pre-deploy, o `db:setup` executa somente `prisma migrate deploy`, para criar/atualizar as tabelas sem reexecutar cadastros de bootstrap.
 
-- `prisma migrate deploy`, para criar/atualizar as tabelas;
-- `tsx prisma/seed.ts`, para criar o primeiro administrador e a primeira arena.
+O seed de bootstrap **não** roda durante atualizações. Execute `npm run db:bootstrap` apenas uma vez, na criação controlada do ambiente, com `SEED_DEMO_DATA=false`. Isso impede que um deploy altere o administrador ou a arena inicial.
 
 Isso acontece pelo `preDeployCommand`:
 
@@ -78,3 +77,19 @@ Se voce preferir configurar pela UI em vez de usar `railway.json`, use exatament
 - O seed nao cria dados ficticios em producao, a menos que `SEED_DEMO_DATA=true`.
 - A aplicacao usa cookies `httpOnly`; em producao, eles sao marcados como `secure`.
 - O servico opcional `services/db-backup` cria um dump diario do PostgreSQL em um bucket S3 externo. Consulte `services/db-backup/README.md` para configura-lo como um cron separado no Railway.
+
+## Uploads no Cloudflare R2
+
+Imagens enviadas pelo sistema usam armazenamento durável no R2 em produção. Configure no serviço web:
+
+```env
+R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
+R2_BUCKET=arena-padel-assets
+R2_ACCESS_KEY_ID=<access-key>
+R2_SECRET_ACCESS_KEY=<secret-key>
+R2_PUBLIC_BASE_URL=https://assets.seudominio.com
+```
+
+`R2_PUBLIC_BASE_URL` deve apontar para um domínio público configurado no bucket. Sem todas essas variáveis, o envio de imagens é bloqueado em produção; nunca use o disco local como armazenamento produtivo.
+
+Depois de configurar o R2, transfira arquivos antigos que ainda estejam em `public/uploads` executando `npm run storage:migrate-local` em um ambiente que possua os arquivos e a conexão do banco. O script só processa URLs locais (`/uploads/...`) e atualiza os registros depois que o arquivo chega ao R2.

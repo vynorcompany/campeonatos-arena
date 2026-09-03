@@ -27,7 +27,8 @@ export async function togglePortalAnnouncementAction(formData: FormData) {
   const id = String(formData.get("announcementId") ?? "");
   const current = await prisma.portalAnnouncement.findFirst({ where: { id, arenaId: auth.arenaId }, select: { active: true } });
   if (!current) throw new Error("Aviso não encontrado.");
-  await prisma.portalAnnouncement.update({ where: { id }, data: { active: !current.active } });
+  const updated = await prisma.portalAnnouncement.updateMany({ where: { id, arenaId: auth.arenaId }, data: { active: !current.active } });
+  if (!updated.count) throw new Error("Aviso não encontrado.");
   await refreshPortal(auth.arenaId);
 }
 
@@ -36,7 +37,8 @@ export async function togglePortalEventFeatureAction(formData: FormData) {
   const id = String(formData.get("calendarEventId") ?? "");
   const current = await prisma.calendarEvent.findFirst({ where: { id, arenaId: auth.arenaId }, select: { featuredInPortal: true } });
   if (!current) throw new Error("Evento não encontrado.");
-  await prisma.calendarEvent.update({ where: { id }, data: { featuredInPortal: !current.featuredInPortal } });
+  const updated = await prisma.calendarEvent.updateMany({ where: { id, arenaId: auth.arenaId }, data: { featuredInPortal: !current.featuredInPortal } });
+  if (!updated.count) throw new Error("Evento não encontrado.");
   await refreshPortal(auth.arenaId);
 }
 
@@ -47,7 +49,7 @@ export async function createPortalEventPostAction(formData: FormData) {
   const image = formData.get("image") as File | null;
   if (title.length < 2) throw new Error("Informe o título do evento.");
   if (!image?.size || !image.type.startsWith("image/")) throw new Error("Envie uma imagem válida para o evento.");
-  const imageUrl = await savePublicImageUpload(image, "portal-events", "event");
+  const imageUrl = await savePublicImageUpload(image, "portal-events", "event", auth.arenaId);
   if (!imageUrl) throw new Error("Não foi possível salvar a imagem.");
   await prisma.portalEventPost.create({ data: { arenaId: auth.arenaId, title, caption, imageUrl } });
   await refreshPortal(auth.arenaId);
