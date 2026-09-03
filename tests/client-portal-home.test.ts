@@ -40,3 +40,13 @@ test("league header no longer displays the isolated notification count tag", () 
 
   assert.doesNotMatch(portal, /notificação\{portal\.leagueNotifications\.length/);
 });
+
+test("portal header presents only the athlete name with an integrated larger avatar", () => {
+  const portal = read("src/components/tournaments/public-standings.tsx");
+  const styles = read("src/app/globals.css");
+
+  assert.match(portal, /\{currentClient\.name\}/);
+  assert.doesNotMatch(portal, /Olá, \{currentClient\.name\}/);
+  assert.match(styles, /\.athlete-portal-user-avatar \{[^}]*width: 64px[^}]*height: 64px/);
+  assert.match(styles, /\.athlete-portal-user-avatar \{[^}]*border: 2px solid rgb\(106 229 191 \/ \.6\)/);
+});

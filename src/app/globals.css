@@ -7664,8 +7664,8 @@ button {
 .athlete-portal-brand .athlete-portal-arena-logo { display: block; width: min(176px, 42vw); height: 28px; border: 0; border-radius: 0; background: transparent; box-shadow: none; object-fit: contain; object-position: left center; }
 .athlete-portal-arena-name { color: #b7f4dd; font-size: .7rem; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
 .athlete-portal-user { display: grid; justify-items: center; gap: 5px; }
-.athlete-portal-user-avatar { display: grid; width: 42px; height: 42px; place-items: center; overflow: hidden; border: 1px solid rgb(255 255 255 / .48); border-radius: 50%; color: #fff; background: rgb(0 45 67 / .28); box-shadow: 0 7px 16px rgb(0 25 45 / .2); font-size: .8rem; font-weight: 850; }
-.athlete-portal-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.athlete-portal-user-avatar { display: grid; width: 64px; height: 64px; place-items: center; overflow: hidden; padding: 3px; border: 2px solid rgb(106 229 191 / .6); border-radius: 50%; color: #fff; background: rgb(1 57 75 / .58); box-shadow: 0 10px 22px rgb(0 24 41 / .3), inset 0 0 0 1px rgb(255 255 255 / .1); font-size: .8rem; font-weight: 850; }
+.athlete-portal-user-avatar img { width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
 .athlete-portal-greeting { padding: 0; border: 0; background: transparent; box-shadow: none; white-space: nowrap; }
 .portal-league-category-picker { width: fit-content; max-width: 100%; align-items: end; gap: 8px; margin-top: 18px; padding: 8px 9px; }
 .portal-league-category-picker label { flex: 0 1 330px; min-width: min(260px, 100%); }

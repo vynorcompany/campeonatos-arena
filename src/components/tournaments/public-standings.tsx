@@ -110,7 +110,7 @@ export function PublicStandings({
               name={currentClient.name}
             />
             <strong className="athlete-portal-greeting">
-              Olá, {currentClient.name}
+              {currentClient.name}
             </strong>
           </div>
         ) : null}
