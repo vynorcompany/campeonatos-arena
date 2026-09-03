@@ -48,10 +48,15 @@ export async function createPortalEventPostAction(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
   const caption = String(formData.get("caption") ?? "").trim();
   const image = formData.get("image") as File | null;
-  if (title.length < 2) throw new Error("Informe o título do evento.");
-  if (!image?.size || !image.type.startsWith("image/")) throw new Error("Envie uma imagem válida para o evento.");
-  const imageUrl = await saveOptimizedPortalEventImageUpload(image, auth.arenaId);
-  if (!imageUrl) throw new Error("Não foi possível salvar a imagem.");
+  if (title.length < 2) return { error: "Informe o título do evento." };
+  if (!image?.size || !["image/jpeg", "image/png", "image/webp"].includes(image.type)) return { error: "Envie uma imagem válida para o evento." };
+  let imageUrl: string | null;
+  try {
+    imageUrl = await saveOptimizedPortalEventImageUpload(image, auth.arenaId);
+  } catch {
+    return { error: "Não foi possível processar a imagem. Envie JPG, PNG ou WebP de até 4 MB." };
+  }
+  if (!imageUrl) return { error: "Não foi possível salvar a imagem." };
   await prisma.portalEventPost.create({ data: { arenaId: auth.arenaId, title, caption, imageUrl } });
   await refreshPortal(auth.arenaId);
 }
@@ -60,13 +65,18 @@ export async function replacePortalEventPostImageAction(formData: FormData) {
   const auth = await requireModuleEdit("arena");
   const id = String(formData.get("eventPostId") ?? "").trim();
   const image = formData.get("image") as File | null;
-  if (!id) throw new Error("Evento não encontrado.");
-  if (!image?.size || !image.type.startsWith("image/")) throw new Error("Envie uma imagem válida para o evento.");
+  if (!id) return { error: "Evento não encontrado." };
+  if (!image?.size || !["image/jpeg", "image/png", "image/webp"].includes(image.type)) return { error: "Envie uma imagem válida para o evento." };
 
   const post = await prisma.portalEventPost.findFirst({ where: { id, arenaId: auth.arenaId }, select: { id: true } });
-  if (!post) throw new Error("Evento não encontrado.");
-  const imageUrl = await saveOptimizedPortalEventImageUpload(image, auth.arenaId, `event-${post.id}`);
-  if (!imageUrl) throw new Error("Não foi possível salvar a imagem.");
+  if (!post) return { error: "Evento não encontrado." };
+  let imageUrl: string | null;
+  try {
+    imageUrl = await saveOptimizedPortalEventImageUpload(image, auth.arenaId, `event-${post.id}`);
+  } catch {
+    return { error: "Não foi possível processar a imagem. Envie JPG, PNG ou WebP de até 4 MB." };
+  }
+  if (!imageUrl) return { error: "Não foi possível salvar a imagem." };
 
   await prisma.portalEventPost.updateMany({ where: { id: post.id, arenaId: auth.arenaId }, data: { imageUrl } });
   await refreshPortal(auth.arenaId);
