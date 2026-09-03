@@ -277,10 +277,22 @@ export async function deleteStudentAction(formData: FormData) {
 
 export async function createTeacherAction(formData: FormData) {
   const auth = await requireModuleEdit("teachers");
+  const playerId = String(formData.get("playerId") ?? "").trim();
+  const client = playerId
+    ? await prisma.player.findFirst({
+        where: { id: playerId, arenaId: auth.arenaId, active: true, teacher: null },
+        select: { id: true, name: true, phone: true, email: true },
+      })
+    : null;
+
+  if (!client) {
+    throw new Error("Cliente inválido ou já vinculado a outro professor.");
+  }
+
   const parsed = teacherSchema.safeParse({
-    name: formData.get("name"),
-    phone: formData.get("phone"),
-    email: formData.get("email"),
+    name: client.name,
+    phone: client.phone,
+    email: client.email,
     monthlyTarget: formData.get("monthlyTarget"),
     notes: formData.get("notes"),
   });
@@ -289,14 +301,20 @@ export async function createTeacherAction(formData: FormData) {
     throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
 
-  await prisma.teacher.create({
-    data: {
-      arenaId: auth.arenaId,
-      createdByUserId: auth.userId,
-      updatedByUserId: auth.userId,
-      ...parsed.data,
-    },
-  });
+  const standaloneTeacher = await prisma.teacher.findFirst({ where: { arenaId: auth.arenaId, name: client.name, playerId: null }, select: { id: true } });
+  if (standaloneTeacher) {
+    await prisma.teacher.update({ where: { id: standaloneTeacher.id }, data: { ...parsed.data, playerId: client.id, active: true, updatedByUserId: auth.userId } });
+  } else {
+    await prisma.teacher.create({
+      data: {
+        arenaId: auth.arenaId,
+        playerId: client.id,
+        createdByUserId: auth.userId,
+        updatedByUserId: auth.userId,
+        ...parsed.data,
+      },
+    });
+  }
 
   refreshAcademyRoutes();
 }

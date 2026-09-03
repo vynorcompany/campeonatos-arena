@@ -29,11 +29,23 @@ test("teachers directory keeps only professors and opens creation in a floating 
   assert.match(workspace, /teacher-modal-backdrop/);
   assert.match(workspace, /teacher-directory-item/);
   assert.match(workspace, /href={`\/professores\/\$\{teacher\.id\}`}/);
+  assert.match(workspace, /name="playerId" required/);
+  assert.match(workspace, /Selecione um cliente/);
+  assert.match(page, /prisma\.player\.findMany/);
+  assert.match(page, /TeacherManagementWorkspace teachers=\{teachers\} clients=\{clients\}/);
   assert.doesNotMatch(workspace, /Alunos ativos/);
   assert.match(actions, /assignTeacherPlanStudentAction/);
   assert.match(actions, /createTeacherPlanWithPriceAction/);
   assert.match(schema, /model TeacherStudent/);
   assert.match(schema, /model TeacherPlan/);
+  assert.match(actions, /playerId: formData\.get\("playerId"\)/);
+  assert.match(actions, /Cliente inválido ou já vinculado a outro professor/);
+});
+
+test("teacher creation fields use the compact radius standard", () => {
+  const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
+
+  assert.match(styles, /\.teacher-modal \.grid-form :where\(input, select\) \{[^}]*border-radius: 7px/);
 });
 
 test("teachers directory presents searchable operational rows with status and metrics", () => {
