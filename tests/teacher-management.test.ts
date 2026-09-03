@@ -648,3 +648,30 @@ test("teacher groups follow the weekday order and retain compact, clear controls
   assert.match(styles, /\.teacher-class-actions > summary \{[^}]*width: 30px/);
   assert.match(styles, /\.teacher-student-financial-link \.status-badge\.status-pending/);
 });
+
+test("teacher workspace uses client photos, vector icons and matching compact metrics", () => {
+  const [page, classPanel, styles] = [
+    readFileSync(
+      resolve(process.cwd(), "src/app/(app)/professores/[teacherId]/page.tsx"),
+      "utf8",
+    ),
+    readFileSync(
+      resolve(
+        process.cwd(),
+        "src/components/teachers/teacher-class-groups-panel.tsx",
+      ),
+      "utf8",
+    ),
+    readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8"),
+  ];
+
+  assert.match(page, /player: \{ select: \{ photoUrl: true \} \}/);
+  assert.match(page, /teacher\.player\?\.photoUrl/);
+  assert.match(page, /EventIcon name="users" size=\{16\}/);
+  assert.match(classPanel, /EventIcon name="users" size=\{14\}/);
+  assert.match(styles, /\.teacher-insert-student-trigger \{[^}]*justify-self: start/);
+  assert.match(
+    styles,
+    /\.teacher-detail-page\.teacher-students-dashboard \.teacher-detail-metrics article \{[^}]*min-height: 92px/,
+  );
+});

@@ -523,7 +523,7 @@ export function TeacherClassGroupsPanel({
                 {schedule.startTime}
               </span>
               <span className="teacher-class-capacity">
-                <i aria-hidden="true">♧</i>
+                <EventIcon name="users" size={14} />
                 <strong>
                   {group.enrollments.length} / {schedule.capacity} vagas
                 </strong>

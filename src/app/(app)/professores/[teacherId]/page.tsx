@@ -65,6 +65,7 @@ export default async function TeacherDetailPage({
     prisma.teacher.findFirst({
       where: { id: params.teacherId, arenaId: auth.arenaId },
       include: {
+        player: { select: { photoUrl: true } },
         planAssignments: {
           where: { active: true },
           include: {
@@ -206,7 +207,11 @@ export default async function TeacherDetailPage({
           </Link>
           <div className="teacher-detail-identity">
             <span className="teacher-detail-avatar" aria-hidden="true">
-              {initials}
+              {teacher.player?.photoUrl ? (
+                <img src={teacher.player.photoUrl} alt="" />
+              ) : (
+                initials
+              )}
             </span>
             <div>
               <p className="eyebrow">PROFESSOR</p>
@@ -371,7 +376,7 @@ export default async function TeacherDetailPage({
         <section className="section-card teacher-detail-section teacher-active-students-panel">
           <header>
             <span className="teacher-active-students-icon" aria-hidden="true">
-              ♧
+              <EventIcon name="users" size={16} />
             </span>
             <h2>Alunos ativos</h2>
           </header>
