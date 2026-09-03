@@ -4,6 +4,7 @@ import { TeacherMonthlyReport } from "@/components/teachers/teacher-monthly-repo
 import { TeacherClassGroupsPanel } from "@/components/teachers/teacher-class-groups-panel";
 import { TeacherPlanEditor } from "@/components/teachers/teacher-plan-editor";
 import { TeacherPlanCreateDialog } from "@/components/teachers/teacher-plan-create-dialog";
+import { TeacherPlanCopyDialog } from "@/components/teachers/teacher-plan-copy-dialog";
 import { TeacherPlanEnrollmentForm } from "@/components/teachers/teacher-plan-enrollment-form";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -61,7 +62,7 @@ export default async function TeacherDetailPage({
   const reportEnd = searchParams?.fim
     ? new Date(`${searchParams.fim}T23:59:59`)
     : monthEnd;
-  const [teacher, clients] = await Promise.all([
+  const [teacher, clients, targetTeachers] = await Promise.all([
     prisma.teacher.findFirst({
       where: { id: params.teacherId, arenaId: auth.arenaId },
       include: {
@@ -130,6 +131,15 @@ export default async function TeacherDetailPage({
       where: { arenaId: auth.arenaId, active: true },
       orderBy: { name: "asc" },
       select: { id: true, name: true, phone: true },
+    }),
+    prisma.teacher.findMany({
+      where: {
+        arenaId: auth.arenaId,
+        active: true,
+        NOT: { id: params.teacherId },
+      },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
     }),
   ]);
   if (!teacher) notFound();
@@ -352,7 +362,13 @@ export default async function TeacherDetailPage({
         <section className="section-card teacher-detail-section teacher-plans-panel">
             <header>
               <h2>Planos e preços</h2>
-              <TeacherPlanCreateDialog teacherId={teacher.id} />
+              <div className="teacher-plan-panel-actions">
+                <TeacherPlanCopyDialog
+                  teacherId={teacher.id}
+                  teachers={targetTeachers}
+                />
+                <TeacherPlanCreateDialog teacherId={teacher.id} />
+              </div>
             </header>
             <div className="teacher-plan-cards">
               {teacher.planAssignments.map(({ plan }) => (

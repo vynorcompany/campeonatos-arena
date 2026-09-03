@@ -675,3 +675,27 @@ test("teacher workspace uses client photos, vector icons and matching compact me
     /\.teacher-detail-page\.teacher-students-dashboard \.teacher-detail-metrics article \{[^}]*min-height: 92px/,
   );
 });
+
+test("teacher plans can be copied to another active professor in a compact dialog", () => {
+  const [page, actions] = [
+    readFileSync(
+      resolve(process.cwd(), "src/app/(app)/professores/[teacherId]/page.tsx"),
+      "utf8",
+    ),
+    readFileSync(resolve(process.cwd(), "src/lib/actions/academy.ts"), "utf8"),
+  ];
+  const dialogPath = resolve(
+    process.cwd(),
+    "src/components/teachers/teacher-plan-copy-dialog.tsx",
+  );
+
+  assert.ok(existsSync(dialogPath));
+  const dialog = readFileSync(dialogPath, "utf8");
+  assert.match(actions, /export async function copyTeacherPlansAction/);
+  assert.match(actions, /prisma\.teacherPlan\.upsert/);
+  assert.match(page, /TeacherPlanCopyDialog/);
+  assert.match(page, /targetTeachers/);
+  assert.match(dialog, /Copiar planos/);
+  assert.match(dialog, /copyTeacherPlansAction/);
+  assert.match(dialog, /onMouseDown=\{\(\) => setOpen\(false\)\}/);
+});

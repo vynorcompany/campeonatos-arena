@@ -7994,6 +7994,9 @@ button {
 .teacher-plan-cards > article span, .teacher-plan-cards > article small { color: #627590; font-size: .72rem; }
 .teacher-plan-cards > article b { color: #17395e; font-size: .84rem; }
 .teacher-plan-cards .teacher-plan-edit-trigger { flex: 0 0 auto; }
+.teacher-plan-panel-actions { display: inline-flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
+.teacher-plan-copy-trigger { gap: 6px; min-height: 32px; padding-inline: 10px; font-size: .74rem; }
+.teacher-plan-copy-note { margin: -3px 0 0; color: #60758f; font-size: .72rem; line-height: 1.45; }
 .teacher-student-enrollment-modal > section { width: min(900px, 100%); grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 20px 22px; }
 .teacher-enrollment-students { gap: 14px; padding: 0; border: 0; background: transparent; }
 .teacher-enrollment-students .teacher-enrollment-primary { grid-template-columns: minmax(170px, .55fr) minmax(260px, 1fr); gap: 12px; }
