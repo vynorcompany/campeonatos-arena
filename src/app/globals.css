@@ -7614,6 +7614,7 @@ button {
 .league-group-card-heading h4 { margin: 0; color: #0a1c40; font-size: 1.18rem; }
 .league-group-card-heading .muted { margin: 0; color: #64738d; }
 .league-group-icon, .league-group-pair-icon { display: grid; flex: 0 0 auto; place-items: center; color: #1264d2; background: #eaf2ff; font-weight: 700; }
+.league-group-icon svg, .league-group-pair-icon svg { display: block; width: 55%; height: 55%; stroke-linecap: round; stroke-linejoin: round; }
 .league-group-icon { width: 42px; height: 42px; border-radius: 11px; font-size: 1.4rem; }
 .league-group-pair-list { gap: 9px; }
 .league-group-pair { display: flex !important; align-items: center !important; gap: 15px; min-height: 67px; padding: 12px 14px !important; border-color: #dce7f2 !important; border-radius: 12px !important; background: linear-gradient(90deg, #fff, #fcfdff) !important; }

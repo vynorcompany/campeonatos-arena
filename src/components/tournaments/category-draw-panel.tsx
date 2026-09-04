@@ -44,6 +44,26 @@ type DrawCategory = {
   } | null;
 };
 
+function LeagueTrophyIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" focusable="false">
+      <path d="M8 4h8v4.5a4 4 0 0 1-8 0V4Z" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8 6H5.5v1.25A3.25 3.25 0 0 0 8.75 10.5M16 6h2.5v1.25a3.25 3.25 0 0 1-3.25 3.25" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 12.5V17m-3.5 3h7M10 17h4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function PairPlayersIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" focusable="false">
+      <circle cx="9" cy="8" r="2.5" />
+      <circle cx="16.5" cy="9" r="2" />
+      <path d="M4.75 18.5c.45-3.1 2.05-4.65 4.25-4.65s3.8 1.55 4.25 4.65M14.25 14.4c.63-.4 1.38-.6 2.25-.6 1.9 0 3.25 1.38 3.65 3.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function CategoryDrawPanel({
   tournamentId,
   categories,
@@ -142,7 +162,7 @@ export function CategoryDrawPanel({
                     {competition.groups.map((group) => (
                       <section className={`section-card stack-sm ${competition.format === "LEAGUE" ? "league-group-card" : ""}`} key={group.id}>
                         <div className={competition.format === "LEAGUE" ? "league-group-card-heading" : ""}>
-                          {competition.format === "LEAGUE" ? <span className="league-group-icon" aria-hidden="true">♧</span> : null}
+                          {competition.format === "LEAGUE" ? <span className="league-group-icon" aria-hidden="true"><LeagueTrophyIcon /></span> : null}
                           <div>
                           <h4>{group.name}</h4>
                           <p className="muted">
@@ -154,7 +174,7 @@ export function CategoryDrawPanel({
                           <div className={`simple-list ${competition.format === "LEAGUE" ? "league-group-pair-list" : ""}`}>
                             {group.pairs.map((pair) => (
                               <div className={`simple-item ${competition.format === "LEAGUE" ? "league-group-pair" : ""}`} key={pair.id}>
-                                {competition.format === "LEAGUE" ? <span className="league-group-pair-icon" aria-hidden="true">♧</span> : null}
+                                {competition.format === "LEAGUE" ? <span className="league-group-pair-icon" aria-hidden="true"><PairPlayersIcon /></span> : null}
                                 <strong>{pair.name}</strong>
                                 {competition.status === "DRAFT" ? (
                                   <form
