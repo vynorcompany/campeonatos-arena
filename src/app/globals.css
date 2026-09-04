@@ -8100,3 +8100,8 @@ button {
 .client-portal-event-posts article > div { padding: 10px; }
 .client-portal-event-posts p { white-space: pre-wrap; }
 @media (max-width: 620px) { .portal-editor-modal { padding: 12px; } .portal-editor-modal > section { max-height: calc(100vh - 24px); padding: 16px; } .portal-editor-form { grid-template-columns: 1fr; } .portal-editor-form .form-full, .portal-editor-form-footer { grid-column: auto; } .portal-editor-header { align-items: flex-start; } .portal-upload-control { align-items: flex-start; flex-direction: column; } }
+
+/* Eventos mantêm presença visual sem dominar a página em telas largas. */
+.client-portal-event-posts { grid-template-columns: repeat(auto-fill, minmax(220px, 280px)); justify-content: start; }
+.client-portal-event-posts img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; }
+@media (max-width: 620px) { .client-portal-event-posts { grid-template-columns: 1fr; } .client-portal-event-posts img { max-height: 440px; } }
