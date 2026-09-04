@@ -7,7 +7,9 @@ import {
   createPortalAnnouncementAction,
   createPortalEventPostAction,
   replacePortalEventPostImageAction,
-  togglePortalAnnouncementAction
+  togglePortalAnnouncementAction,
+  togglePortalEventPostAction,
+  updatePortalEventPostAction
 } from "@/lib/actions/client-portal";
 
 type Announcement = { id: string; title: string; message: string; active: boolean };
@@ -49,6 +51,7 @@ function ImageUploadField() {
 
 export function PortalEditorPanels({ announcements, posts }: { announcements: Announcement[]; posts: Post[] }) {
   const [dialog, setDialog] = useState<"notice" | "event" | null>(null);
+  const [postToEdit, setPostToEdit] = useState<Post | null>(null);
   const [postToReplace, setPostToReplace] = useState<Post | null>(null);
   return (
     <div className="portal-editor-workspace">
@@ -62,12 +65,13 @@ export function PortalEditorPanels({ announcements, posts }: { announcements: An
       <section className="section-card">
         <header className="portal-editor-header"><div><h2>Eventos em destaque</h2><p>Posts verticais para a experiência mobile do atleta.</p></div><button className="button button-primary button-small" type="button" onClick={() => setDialog("event")}>Novo evento</button></header>
         <div className="portal-event-post-list">
-          {posts.map((post) => <article key={post.id}><img src={post.imageUrl} alt={`Imagem do evento ${post.title}`} /><div><strong>{post.title}</strong><span className="portal-editor-text">{post.caption}</span>{post.linkUrl ? <small>Link ativo</small> : null}<button className="button button-small" type="button" onClick={() => setPostToReplace(post)}>Trocar imagem</button></div></article>)}
+          {posts.map((post) => <article key={post.id}><img src={post.imageUrl} alt={`Imagem do evento ${post.title}`} /><div><strong>{post.title}</strong><span className="portal-editor-text">{post.caption}</span>{post.linkUrl ? <small>Link ativo</small> : null}<form action={togglePortalEventPostAction}><input type="hidden" name="eventPostId" value={post.id} /><label className="control-toggle"><input type="checkbox" defaultChecked={post.active} onChange={(event) => event.currentTarget.form?.requestSubmit()} /><span aria-hidden="true" />Exibir no Portal</label></form><div className="section-actions"><button className="button button-small" type="button" onClick={() => setPostToEdit(post)}>Editar evento</button><button className="button button-small" type="button" onClick={() => setPostToReplace(post)}>Trocar imagem</button></div></div></article>)}
           {!posts.length ? <p className="muted">Nenhum evento publicado.</p> : null}
         </div>
       </section>
       {dialog === "notice" ? <Dialog title="Novo aviso" close={() => setDialog(null)}><SafeActionForm action={createPortalAnnouncementAction} className="portal-editor-form" resetOnSuccess successMessage="Aviso publicado." onSuccess={() => setDialog(null)}><div className="field form-full"><label>Título<input name="title" required /></label></div><div className="field"><label>Início da publicação<input name="startsAt" type="datetime-local" /></label></div><div className="field"><label>Fim da publicação<input name="endsAt" type="datetime-local" /></label></div><div className="field form-full"><label>Aviso<textarea name="message" rows={6} required placeholder="Use **texto** para negrito." /></label></div><footer className="portal-editor-form-footer"><SubmitButton label="Publicar aviso" pendingLabel="Publicando..." className="button button-primary" /></footer></SafeActionForm></Dialog> : null}
       {dialog === "event" ? <Dialog title="Novo evento" close={() => setDialog(null)}><SafeActionForm action={createPortalEventPostAction} validate={validatePortalEventImage} className="portal-editor-form" resetOnSuccess successMessage="Evento publicado." onSuccess={() => setDialog(null)}><div className="field form-full"><label>Título<input name="title" required /></label></div><div className="field form-full"><ImageUploadField /></div><div className="field form-full"><label>Link ao tocar na imagem <small>Opcional. Use um endereço iniciado por https://</small><input name="linkUrl" type="url" inputMode="url" placeholder="https://exemplo.com/evento" /></label></div><div className="field form-full"><label>Legenda<textarea name="caption" rows={6} placeholder="Use **texto** para negrito." /></label></div><footer className="portal-editor-form-footer"><SubmitButton label="Publicar evento" pendingLabel="Publicando..." className="button button-primary" /></footer></SafeActionForm></Dialog> : null}
+      {postToEdit ? <Dialog title="Editar evento" close={() => setPostToEdit(null)}><SafeActionForm action={updatePortalEventPostAction} className="portal-editor-form" successMessage="Evento atualizado." onSuccess={() => setPostToEdit(null)}><input type="hidden" name="eventPostId" value={postToEdit.id} /><div className="field form-full"><label>Título<input name="title" defaultValue={postToEdit.title} required /></label></div><div className="field form-full"><label>Link ao tocar na imagem <small>Opcional. Use um endereço iniciado por https://</small><input name="linkUrl" type="url" inputMode="url" defaultValue={postToEdit.linkUrl ?? ""} placeholder="https://exemplo.com/evento" /></label></div><div className="field form-full"><label>Legenda<textarea name="caption" rows={6} defaultValue={postToEdit.caption} placeholder="Use **texto** para negrito." /></label></div><footer className="portal-editor-form-footer"><SubmitButton label="Salvar evento" pendingLabel="Salvando..." className="button button-primary" /></footer></SafeActionForm></Dialog> : null}
       {postToReplace ? <Dialog title="Trocar imagem" close={() => setPostToReplace(null)}><SafeActionForm action={replacePortalEventPostImageAction} validate={validatePortalEventImage} className="portal-editor-form" resetOnSuccess successMessage="Imagem atualizada." onSuccess={() => setPostToReplace(null)}><input type="hidden" name="eventPostId" value={postToReplace.id} /><div className="field form-full"><p className="muted">Envie novamente a imagem de “{postToReplace.title}”. Ela será convertida para WebP antes da publicação.</p><ImageUploadField /></div><footer className="portal-editor-form-footer"><SubmitButton label="Atualizar imagem" pendingLabel="Atualizando..." className="button button-primary" /></footer></SafeActionForm></Dialog> : null}
     </div>
   );

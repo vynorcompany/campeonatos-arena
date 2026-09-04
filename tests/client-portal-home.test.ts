@@ -80,6 +80,19 @@ test("client home filters financial entries in the database for the signed-in at
   assert.doesNotMatch(home, /entries\.filter\(\(entry\) => entry\.counterpartyName === player\?\.name\)/);
 });
 
+test("arena can edit and activate or deactivate an existing portal event without deleting it", () => {
+  const editor = read("src/components/portal-editor-panels.tsx");
+  const actions = read("src/lib/actions/client-portal.ts");
+
+  assert.match(editor, /Editar evento/);
+  assert.match(editor, /Exibir no Portal/);
+  assert.match(editor, /type="checkbox"/);
+  assert.match(actions, /updatePortalEventPostAction/);
+  assert.match(actions, /togglePortalEventPostAction/);
+  assert.match(actions, /where: \{ id, arenaId: auth\.arenaId \}/);
+  assert.match(actions, /data: \{ active: !current\.active \}/);
+});
+
 test("league header no longer displays the isolated notification count tag", () => {
   const portal = read("src/components/tournaments/public-league-portal.tsx");
 

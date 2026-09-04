@@ -73,6 +73,27 @@ export async function createPortalEventPostAction(formData: FormData) {
   await refreshPortal(auth.arenaId);
 }
 
+export async function updatePortalEventPostAction(formData: FormData) {
+  const auth = await requireModuleEdit("arena");
+  const id = String(formData.get("eventPostId") ?? "").trim();
+  const parsed = eventPostSchema.safeParse({ title: formData.get("title"), caption: formData.get("caption"), linkUrl: formData.get("linkUrl") });
+  if (!id) return { error: "Evento não encontrado." };
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  const updated = await prisma.portalEventPost.updateMany({ where: { id, arenaId: auth.arenaId }, data: { title: parsed.data.title, caption: parsed.data.caption, linkUrl: parsed.data.linkUrl || null } });
+  if (!updated.count) return { error: "Evento não encontrado." };
+  await refreshPortal(auth.arenaId);
+}
+
+export async function togglePortalEventPostAction(formData: FormData) {
+  const auth = await requireModuleEdit("arena");
+  const id = String(formData.get("eventPostId") ?? "").trim();
+  const current = await prisma.portalEventPost.findFirst({ where: { id, arenaId: auth.arenaId }, select: { active: true } });
+  if (!current) return { error: "Evento não encontrado." };
+  const updated = await prisma.portalEventPost.updateMany({ where: { id, arenaId: auth.arenaId }, data: { active: !current.active } });
+  if (!updated.count) return { error: "Evento não encontrado." };
+  await refreshPortal(auth.arenaId);
+}
+
 export async function replacePortalEventPostImageAction(formData: FormData) {
   const auth = await requireModuleEdit("arena");
   const id = String(formData.get("eventPostId") ?? "").trim();
