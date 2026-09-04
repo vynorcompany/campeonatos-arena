@@ -42,3 +42,15 @@ test("área da categoria mantém ações e formulário de duplas em escala compa
   assert.match(styles, /\.category-detail-hero[^\n]*padding: 18px 20px/);
   assert.match(styles, /\.league-overview-bottom/);
 });
+
+test("gestão de Liga usa ícones vetoriais distintos para competição e dupla", () => {
+  const draw = readFileSync(resolve(process.cwd(), "src/components/tournaments/category-draw-panel.tsx"), "utf8");
+  const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
+
+  assert.match(draw, /function LeagueTrophyIcon\(/);
+  assert.match(draw, /function PairPlayersIcon\(/);
+  assert.match(draw, /<LeagueTrophyIcon\s*\/>/);
+  assert.match(draw, /<PairPlayersIcon\s*\/>/);
+  assert.doesNotMatch(draw, />♧</);
+  assert.match(styles, /\.league-group-icon svg, \.league-group-pair-icon svg/);
+});

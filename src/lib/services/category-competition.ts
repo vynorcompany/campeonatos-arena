@@ -8,7 +8,7 @@ import {
 } from "@/lib/tournament-category/draw";
 import { buildMonthlyLeagueSchedule, getLeagueMonthBlocks } from "@/lib/league/monthly-schedule";
 import { resolveLeagueTier } from "@/lib/league/tier";
-import { validateManualPairEligibility } from "@/lib/tournament-category/eligibility";
+import { matchesCategoryEligibility, validateManualPairEligibility } from "@/lib/tournament-category/eligibility";
 import {
   buildPlacementAwards,
   buildPlacementStages,
@@ -908,26 +908,19 @@ export async function replaceCategoryPairPlayer(
       throw new Error("Atleta substituto não encontrado ou inativo.");
     }
 
-    const partner = pair.players.find((pairPlayer) => pairPlayer.id !== previous.id)?.player;
-    if (!partner) {
+    if (!pair.players.some((pairPlayer) => pairPlayer.id !== previous.id)) {
       throw new Error("A dupla precisa ter dois atletas para realizar a troca.");
     }
 
-    validateManualPairEligibility(
+    if (!matchesCategoryEligibility(
       {
-        arenaId: pair.competition.category.tournament.arenaId,
         className: pair.competition.category.class,
         gender: pair.competition.category.gender,
       },
-      [replacement, partner].map((player) => ({
-        id: player.id,
-        arenaId: player.arenaId,
-        active: player.active,
-        className: player.class,
-        gender: player.gender,
-      })),
-      pair.competition.pairs.map((otherPair) => otherPair.players.map((player) => player.playerId)),
-    );
+      { className: replacement.class, gender: replacement.gender },
+    )) {
+      throw new Error("O atleta substituto não é elegível para esta categoria.");
+    }
 
     try {
       await tx.categoryPairPlayer.update({

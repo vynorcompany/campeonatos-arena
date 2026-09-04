@@ -7596,12 +7596,14 @@ button {
 .league-registration-list-section > h4 { margin: 0; color: #0d1d40; font-size: 1.05rem; }
 .league-registration-list { gap: 10px; }
 .league-registration-card { display: grid !important; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center !important; gap: 18px; min-height: 86px; padding: 13px 20px !important; border-color: #dce7f2 !important; border-radius: 13px !important; background: #fff !important; }
+.league-registration-card:focus-within { position: relative; z-index: 20; overflow: visible; }
 .league-registration-pair-name strong { color: #0c1d40; font-size: 1rem; line-height: 1.4; }
 .league-registration-card > form .button { min-height: 36px; padding-inline: 12px; font-size: .74rem; }
 .league-registration-replacements { display: grid; gap: 6px; }
 .league-registration-replacements .inline-pair-edit { display: grid; grid-template-columns: minmax(230px, 1fr) auto; gap: 8px; }
 .league-registration-replacements .inline-pair-edit select { min-width: 0; min-height: 36px; border-color: #cdddeb; border-radius: 8px; color: #223757; font-size: .84rem; }
 .league-registration-replacements .inline-pair-edit .category-athlete-search { min-width: 0; margin: 0; }.league-registration-replacements .inline-pair-edit .category-athlete-search-input { min-width: 0; min-height: 36px; border-color: #cdddeb; border-radius: 8px; color: #223757; font-size: .84rem; }
+.league-registration-replacements .inline-pair-edit .form-error, .league-registration-replacements .inline-pair-edit .form-success { grid-column: 1 / -1; margin: 0; }
 .league-registration-replacements .inline-pair-edit .button { min-height: 36px; border-color: #d0dfed; background: #fff; color: #1c63bd; box-shadow: none; font-size: .74rem; }
 .league-groups-actions { display: flex !important; align-items: center; gap: 18px !important; padding: 16px 20px !important; border-color: #cfdef0 !important; border-radius: 13px !important; background: #f7fbff !important; }
 .league-groups-actions .muted { margin: 0; color: #64738d; font-size: .9rem; }
@@ -7612,6 +7614,7 @@ button {
 .league-group-card-heading h4 { margin: 0; color: #0a1c40; font-size: 1.18rem; }
 .league-group-card-heading .muted { margin: 0; color: #64738d; }
 .league-group-icon, .league-group-pair-icon { display: grid; flex: 0 0 auto; place-items: center; color: #1264d2; background: #eaf2ff; font-weight: 700; }
+.league-group-icon svg, .league-group-pair-icon svg { display: block; width: 55%; height: 55%; stroke-linecap: round; stroke-linejoin: round; }
 .league-group-icon { width: 42px; height: 42px; border-radius: 11px; font-size: 1.4rem; }
 .league-group-pair-list { gap: 9px; }
 .league-group-pair { display: flex !important; align-items: center !important; gap: 15px; min-height: 67px; padding: 12px 14px !important; border-color: #dce7f2 !important; border-radius: 12px !important; background: linear-gradient(90deg, #fff, #fcfdff) !important; }
