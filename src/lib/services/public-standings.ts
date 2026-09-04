@@ -56,6 +56,24 @@ export type ArenaPublicStandings = {
     | null;
 };
 
+export type PublicArenaShell = ArenaPublicStandings["arena"];
+
+export async function getPublicArenaShell(arenaSlug: string): Promise<PublicArenaShell | null> {
+  return prisma.arena.findUnique({
+    where: { slug: arenaSlug },
+    select: {
+      name: true,
+      logoUrl: true,
+      slug: true,
+      athletePortalShowLeagues: true,
+      athletePortalShowBooking: true,
+      athletePortalShowReservations: true,
+      athletePortalShowLessons: true,
+      athletePortalShowClasses: true,
+    },
+  });
+}
+
 export async function getArenaPublicStandings(
   arenaSlug: string,
   requested: {

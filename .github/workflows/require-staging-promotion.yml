@@ -1,0 +1,15 @@
+name: Require staging promotion
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, reopened, synchronize, ready_for_review]
+
+jobs:
+  release-source:
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_BRANCH: ${{ github.head_ref }}
+    steps:
+      - name: Confirm staging is the promotion source
+        run: test "$SOURCE_BRANCH" = "staging"
