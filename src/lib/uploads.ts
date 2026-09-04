@@ -83,7 +83,7 @@ function sanitizeName(value: string) {
     .slice(0, 48);
 }
 
-function getPersistentUploadDirectory() {
+export function getPersistentUploadDirectory() {
   const volumeMountPath = process.env.RAILWAY_VOLUME_MOUNT_PATH?.trim();
   if (volumeMountPath) return volumeMountPath;
   return path.join(process.cwd(), "public", "uploads");
@@ -123,7 +123,7 @@ async function storePublicImage(
   await mkdir(uploadDir, { recursive: true });
   await writeFile(path.join(uploadDir, fileName), content);
 
-  return `/uploads/${safeFolder}/${fileName}`;
+  return `/media/uploads/${safeFolder}/${fileName}`;
 }
 
 export async function savePublicImageUpload(file: File | null, folder: string, prefix: string, arenaId?: string) {
