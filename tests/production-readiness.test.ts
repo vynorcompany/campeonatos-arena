@@ -32,7 +32,7 @@ test("public uploads use R2 with an arena-scoped object key", () => {
 test("portal event uploads are isolated under the active arena", () => {
   const actions = read("src/lib/actions/client-portal.ts");
 
-  assert.match(actions, /savePublicImageUpload\(image, "portal-events", "event", auth\.arenaId\)/);
+  assert.match(actions, /saveOptimizedPortalEventImageUpload\(image, auth\.arenaId\)/);
   assert.match(actions, /portalEventPost\.create\(\{ data: \{ arenaId: auth\.arenaId/);
   assert.match(actions, /portalAnnouncement\.findFirst\(\{ where: \{ id, arenaId: auth\.arenaId \}/);
 });

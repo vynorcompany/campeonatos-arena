@@ -24,7 +24,7 @@ test("formulário de cliente remove cadastro redundante de aluno e oferece papel
   const styles = read("src/app/globals.css");
 
   assert.doesNotMatch(form, /createStudent/);
-  assert.doesNotMatch(form, /Classe/);
+  assert.match(form, /Classe[\s\S]*name="class"/);
   assert.match(form, /Gênero[\s\S]*<select/);
   assert.match(form, /className="teacher-role-switch"/);
   assert.match(workspace, /name="isTeacher"/);

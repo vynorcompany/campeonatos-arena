@@ -56,6 +56,30 @@ test("portal management keeps editorial forms in dialogs and publishes vertical 
   assert.match(portal, /PortalRichText/);
 });
 
+test("portal events preserve the image on mobile and can open an optional external link", () => {
+  const editor = read("src/components/portal-editor-panels.tsx");
+  const actions = read("src/lib/actions/client-portal.ts");
+  const schema = read("prisma/schema.prisma");
+  const home = read("src/lib/services/public-client-home.ts");
+  const portal = read("src/components/tournaments/public-standings.tsx");
+  const styles = read("src/app/globals.css");
+
+  assert.match(schema, /linkUrl\s+String\?/);
+  assert.match(editor, /name="linkUrl"/);
+  assert.match(actions, /linkUrl/);
+  assert.match(home, /linkUrl: true/);
+  assert.match(portal, /event\.linkUrl/);
+  assert.match(portal, /target="_blank"/);
+  assert.match(styles, /@media \(max-width: 620px\) \{[\s\S]*\.client-portal-event-posts img \{[^}]*object-fit: contain/);
+});
+
+test("client home filters financial entries in the database for the signed-in athlete", () => {
+  const home = read("src/lib/services/public-client-home.ts");
+
+  assert.match(home, /counterpartyName: player\.name/);
+  assert.doesNotMatch(home, /entries\.filter\(\(entry\) => entry\.counterpartyName === player\?\.name\)/);
+});
+
 test("league header no longer displays the isolated notification count tag", () => {
   const portal = read("src/components/tournaments/public-league-portal.tsx");
 

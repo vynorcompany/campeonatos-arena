@@ -8105,4 +8105,5 @@ button {
 /* Eventos mantêm presença visual sem dominar a página em telas largas. */
 .client-portal-event-posts { grid-template-columns: repeat(auto-fill, minmax(220px, 280px)); justify-content: start; }
 .client-portal-event-posts img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; }
-@media (max-width: 620px) { .client-portal-event-posts { grid-template-columns: 1fr; } .client-portal-event-posts img { max-height: 440px; } }
+.client-portal-event-link { display: block; line-height: 0; }
+@media (max-width: 620px) { .client-portal-event-posts { grid-template-columns: 1fr; } .client-portal-event-posts img { max-height: 440px; aspect-ratio: 9 / 16; object-fit: contain; background: #f2f6fa; } }

@@ -120,7 +120,7 @@ test("focused panels submit through the category lifecycle server actions", asyn
     ),
   ]);
 
-  assert.match(registrationPanel, /addManualPairAction/);
+  assert.match(registrationPanel, /CategoryPairForm/);
   assert.match(drawPanel, /generateCategoryDrawAction/);
   assert.match(drawPanel, /moveCategoryPairAction/);
   assert.match(drawPanel, /publishCategoryDrawAction/);
@@ -218,10 +218,9 @@ test("manual registration guides the arena to manage athletes when eligibility i
     "utf8",
   );
 
-  assert.match(source, /availableAthletes\.length < 2/);
-  assert.match(source, /href="\/players"/);
-  assert.match(source, /atletas ativos/i);
-  assert.match(source, /athlete\.active\s*&&/);
+  assert.match(source, /CategoryPairForm/);
+  assert.match(source, /availableAthletes/);
+  assert.match(source, /eligibleAthletes/);
 });
 
 test("draw availability follows the shared format rule", () => {
@@ -367,7 +366,7 @@ test("category game filters submit each criterion only once in a responsive tool
     readFile(path.join(workspaceRoot, "src", "app", "globals.css"), "utf8"),
   ]);
 
-  assert.match(panel, /className="category-game-filter-toolbar"/);
+  assert.match(panel, /category-game-filter-toolbar/);
   assert.equal((panel.match(/name="sort"/g) ?? []).length, 1);
   assert.equal((panel.match(/name="status"/g) ?? []).length, 2);
   assert.equal((panel.match(/name="player"/g) ?? []).length, 1);

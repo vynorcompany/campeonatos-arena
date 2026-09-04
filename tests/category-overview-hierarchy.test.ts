@@ -22,11 +22,11 @@ test("category workspace overview is a single compact summary", async () => {
   );
 
   assert.equal(
-    source.match(/className="category-overview"/g)?.length,
+    source.match(/className="league-overview-hero"/g)?.length,
     1,
     "the overview must render one category-overview summary",
   );
-  for (const label of ["Duplas", "Jogos", "Ranking Geral"]) {
+  for (const label of ["Duplas", "Jogos", "Ranking geral"]) {
     assert.ok(source.includes(label), `missing overview metric: ${label}`);
   }
   assert.doesNotMatch(source, /<CategoryCompetitionCard/);

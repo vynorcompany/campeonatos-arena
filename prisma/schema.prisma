@@ -1205,6 +1205,7 @@ model PortalEventPost {
   title     String
   caption   String   @default("")
   imageUrl  String
+  linkUrl   String?
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

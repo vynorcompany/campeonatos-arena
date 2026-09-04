@@ -25,6 +25,11 @@ export function PlayerForm() {
       </div>
 
       <div className="field">
+        <label htmlFor="class">Classe</label>
+        <input id="class" name="class" type="text" placeholder="Ex.: B" />
+      </div>
+
+      <div className="field">
         <label htmlFor="gender">Gênero</label>
         <select id="gender" name="gender" defaultValue="">
           <option value="">Não informar</option>

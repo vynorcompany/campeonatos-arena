@@ -100,7 +100,7 @@ test("athlete portal exposes the main modules and League submenus", () => {
   assert.match(view, /portal-league-prize-podium/);
   assert.match(view, /section === "booking"/);
   assert.match(view, /PublicBookingContent/);
-  assert.match(view, /Selecionar professor/);
+  assert.match(view, /Escolha um professor para ver as turmas disponíveis/);
   assert.match(view, /teacherId/);
   assert.match(leaguePortal, /Sugerir horário para este jogo/);
   assert.match(leaguePortal, /Reserva confirmada/);
@@ -109,8 +109,8 @@ test("athlete portal exposes the main modules and League submenus", () => {
 test("portal classes are available by teacher instead of a student plan", () => {
   const portal = readFileSync(resolve(process.cwd(), "src/lib/services/public-league-portal.ts"), "utf8");
   const view = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"), "utf8");
-  assert.match(portal, /prisma\.teacher\.findMany/);
-  assert.match(view, /Turmas disponíveis/);
+  assert.match(portal, /tx\.teacher\.findMany/);
+  assert.match(view, /Encontre sua turma/);
   assert.doesNotMatch(view, /Seu plano de aulas/);
 });
 
@@ -127,7 +127,7 @@ test("League management keeps the prize controls compact and category add opens 
   const categoryList = readFileSync(resolve(process.cwd(), "src/components/tournaments/category-list.tsx"), "utf8");
   const quickActions = readFileSync(resolve(process.cwd(), "src/components/tournaments/event-quick-actions.tsx"), "utf8");
 
-  assert.match(categoryPage, /league-management-panel/);
+  assert.match(categoryPage, /league-overview-bottom/);
   assert.match(categoryPage, /league-prize-editor/);
   assert.match(categoryList, /\?action=categories/);
   assert.match(quickActions, /initialAction/);
@@ -201,7 +201,7 @@ test("Liga workspace exposes category editing and a monthly history tab", () => 
   assert.match(tabs, /Histórico/);
   assert.match(page, /LeagueCategorySettingsDialog/);
   assert.match(page, /LeagueHistoryPanel/);
-  assert.match(page, /league-management-panel/);
+  assert.match(page, /league-overview-bottom/);
 });
 
 test("athlete portal keeps ordinary reservations out of League notifications", () => {

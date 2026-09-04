@@ -34,5 +34,5 @@ test("agenda keeps online settings on the daily grade and provides a compact mon
   assert.match(configuration, /OnlineBookingSettingsDialog/);
   assert.match(configuration, /copyCourtWeeklyRuleAction/);
   assert.match(actions, /export async function copyCourtWeeklyRuleAction/);
-  assert.match(actions, /targetWeekday: z\.string\(\)\.regex\(\/\^\[0-6\]\$\//);
+  assert.match(actions, /targetWeekday: z\.union\(\[z\.string\(\)\.regex\(\/\^\[0-6\]\$\//);
 });

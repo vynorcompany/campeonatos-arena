@@ -59,9 +59,9 @@ test("public league panels require a signed-in client", () => {
   const standings = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"), "utf8");
   const page = readFileSync(resolve(process.cwd(), "src/app/classificacao/[arenaSlug]/page.tsx"), "utf8");
 
-  assert.match(standings, /if \(!currentClient\) return/);
+  assert.match(standings, /if \(!currentClient\)\s*return/);
   assert.match(standings, /athlete-portal-auth/);
-  assert.match(page, /getPublicLeaguePortal\(params\.arenaSlug, currentClient\.playerId\)/);
+  assert.match(page, /getPublicLeaguePortal\(params\.arenaSlug, currentClient\.playerId, searchParams\?\.leagueCategory\)/);
 });
 
 test("online bookings create arena notifications that the team can read in the shell", () => {

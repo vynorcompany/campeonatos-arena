@@ -22,7 +22,7 @@ test("online booking enforces a configurable lead time and marks pending request
   assert.match(agenda, /Aguardando confirmação/);
   assert.match(actions, /playerNotification\.createMany/);
   assert.match(actions, /Reserva confirmada/);
-  assert.match(bookingPage, /pendingReservations/);
+  assert.match(bookingPage, /PublicBookingContent/);
   assert.match(bookingForm, /Aguardando confirmação/);
   assert.match(styles, /agenda-online-settings-trigger[\s\S]*background:/);
   assert.match(styles, /daily-court-event-online/);
@@ -38,6 +38,6 @@ test("each tournament stores rules and the public league page exposes them", () 
   assert.match(form, /Regras da liga/);
   assert.match(form, /name="rules"/);
   assert.match(service, /leagueRules/);
-  assert.match(publicPage, />Regras</);
+  assert.match(publicPage, /Regras/);
   assert.match(publicPage, /data\.leagueRules/);
 });

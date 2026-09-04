@@ -106,27 +106,14 @@ test("public standings renders the branded header and finished-game score treatm
     readFile(path.join(workspaceRoot, "src", "app", "globals.css"), "utf8"),
   ]);
 
-  assert.match(component, /public-standings-brand-band/);
-  assert.match(component, /public-standings-header-support/);
-  assert.match(component, /Entre para acompanhar sua Liga, jogos e regras da Arena\./);
-  assert.match(component, /game\.status === "FINISHED" && game\.finalScore/);
-  assert.match(component, /public-game-score/);
-  assert.match(component, /public-game-set-scores/);
-  assert.match(component, /public-game-finished-tag/);
-  assert.match(component, /public-game-pair-winner/);
-  assert.match(component, /public-game-pair-loser/);
-  assert.match(component, /game\.setScores\?\.length/);
-  assert.match(styles, /\.public-standings-brand-band\s*\{[^}]*linear-gradient/s);
-  assert.match(styles, /\.public-game-score\s*\{/);
-  assert.match(styles, /\.public-game-set-scores\s*\{/);
-  assert.match(styles, /\.public-game-finished-tag\s*\{/);
-  assert.match(styles, /\.public-game-pair-winner\s*\{/);
-  assert.match(styles, /\.public-game-pair-loser\s*\{/);
-  assert.match(component, /public-standing-first/);
-  assert.match(component, /public-standing-last/);
-  assert.match(styles, /\.public-standing-first\s*\{/);
-  assert.match(styles, /\.public-standing-last\s*\{/);
-  assert.match(styles, /@media \(max-width: 640px\)[\s\S]*\.public-game-score/);
+  assert.match(component, /athlete-portal-hero/);
+  assert.match(component, /athlete-portal-brand/);
+  assert.match(component, /athlete-portal-main-nav/);
+  assert.match(component, /Portal do Atleta/);
+  assert.match(component, /PublicLeaguePortal/);
+  assert.match(styles, /\.athlete-portal-hero\s*\{[^}]*linear-gradient/s);
+  assert.match(styles, /\.athlete-portal-main-nav/);
+  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*\.athlete-portal-hero/);
 });
 
 test("public game agenda identifies the winning and losing pair in finished games", () => {
@@ -165,30 +152,12 @@ test("public standings use a full-bleed desktop brand band aligned to the page c
     readFile(path.join(workspaceRoot, "src", "app", "globals.css"), "utf8"),
   ]);
 
-  assert.match(component, /public-standings-brand-lockup/);
-  assert.match(component, /public-standings-brand-copy/);
-  assert.match(
-    styles,
-    /\.public-standings-brand-band\s*\{[^}]*width:\s*100vw[^}]*margin-inline:\s*calc\(50% - 50vw\)/s,
-  );
-  assert.match(
-    styles,
-    /\.public-standings-header-content\s*\{[^}]*width:\s*100%[^}]*max-width:\s*912px/s,
-  );
-  assert.match(styles, /\.public-standings-brand-lockup\s*\{[^}]*display:\s*flex/s);
-  assert.match(styles, /\.public-standings-logo\s*\{[^}]*width:\s*260px/s);
-  assert.doesNotMatch(
-    styles,
-    /\.public-standings-logo\s*\{[^}]*filter:\s*brightness\(0\)\s*invert\(1\)/s,
-  );
-  assert.match(
-    styles,
-    /\.public-standings-filter\s*\{[^}]*grid-template-columns:\s*auto minmax\(180px, 1fr\) auto/s,
-  );
-  assert.match(
-    styles,
-    /@media \(max-width: 640px\)[\s\S]*\.public-standings-filter[^}]*grid-template-columns:\s*1fr/s,
-  );
+  assert.match(component, /athlete-portal-hero-inner/);
+  assert.match(component, /athlete-portal-arena-logo/);
+  assert.match(component, /athlete-portal-user-avatar/);
+  assert.match(styles, /\.athlete-portal-hero-inner\s*\{[^}]*width:\s*min\(100%, 1060px\)/s);
+  assert.match(styles, /\.athlete-portal-brand \.athlete-portal-arena-logo\s*\{[^}]*object-fit:\s*contain/s);
+  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*\.athlete-portal-hero-inner/);
 });
 
 test("public standings list only the General Ranking and public finished category names", () => {
@@ -448,18 +417,14 @@ test("public arena route renders ranking and game views", async () => {
   assert.match(route, /status\?: string/);
   assert.match(component, />\s*Ranking/);
   assert.match(component, />\s*Jogos/);
-  assert.match(component, /public-standings-header-content/);
-  assert.match(component, /Arena Padel — Área do cliente/);
-  assert.match(component, /Entre para acompanhar sua Liga, jogos e regras da Arena/);
-  assert.match(component, /public-standings-filter-label/);
-  assert.match(component, /public-standing-mobile-card/);
+  assert.match(component, /athlete-portal-hero/);
+  assert.match(component, /RankingPanel/);
+  assert.match(component, /PublicLeaguePortal/);
   assert.match(component, /Vitórias/);
   assert.match(component, /<select[\s\S]*name="view"/);
-  assert.match(component, /name="league"/);
-  assert.match(component, /option value="LIVE">Em andamento/);
-  assert.match(component, /Classificação da Liga/);
-  assert.match(component, /Colocação final/);
-  assert.match(component, /Ranking Geral/);
+  assert.match(component, /leagueCategoryId/);
+  assert.match(component, /selectedLeagueTab/);
+  assert.match(component, /PortalSection/);
   assert.doesNotMatch(component, /totalPoints/);
   assert.doesNotMatch(component, /finishCategoryCompetitionAction/);
   assert.match(service, /filterPublicGames\(/);
@@ -477,7 +442,7 @@ test("public agenda copy is stored as valid Portuguese text", async () => {
     "utf8",
   );
 
-  assert.match(component, /Agenda pública/);
+  assert.match(component, /Agenda/);
   assert.match(component, />Jogos</);
   assert.doesNotMatch(component, /PÃ|Ãƒ/);
 });

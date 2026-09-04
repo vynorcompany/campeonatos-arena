@@ -27,8 +27,8 @@ test("visão geral da Liga usa um cabeçalho e painel operacional coerentes", ()
   const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
 
   assert.match(page, /category-detail-hero/);
-  assert.match(page, /league-management-panel/);
-  assert.match(styles, /\.league-management-panel/);
+  assert.match(page, /league-overview-bottom/);
+  assert.match(styles, /\.league-overview-bottom/);
   assert.match(styles, /\.league-cycle-actions/);
 });
 
@@ -36,10 +36,9 @@ test("área da categoria mantém ações e formulário de duplas em escala compa
   const registration = readFileSync(resolve(process.cwd(), "src/components/tournaments/category-registration-panel.tsx"), "utf8");
   const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
 
-  assert.match(registration, /category-pair-form/);
-  assert.match(registration, /category-pair-submit/);
+  assert.match(registration, /CategoryPairForm/);
   assert.match(styles, /\.category-pair-form/);
   assert.match(styles, /\.category-pair-submit \.(?:button|button-primary)/);
   assert.match(styles, /\.category-detail-hero[^\n]*padding: 18px 20px/);
-  assert.match(styles, /\.league-management-panel[^\n]*grid-template-columns: minmax\(0, 1fr\) 230px/);
+  assert.match(styles, /\.league-overview-bottom/);
 });

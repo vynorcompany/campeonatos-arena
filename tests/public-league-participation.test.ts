@@ -8,5 +8,5 @@ test("Portal reconhece atleta inscrito em Liga ainda não encerrada", () => {
 
   assert.match(service, /players:\s*\{\s*some:\s*\{\s*playerId\s*\}\s*\}/);
   assert.match(service, /format:\s*"LEAGUE"/);
-  assert.match(service, /status:\s*\{\s*not:\s*"FINISHED"\s*\}/);
+  assert.match(service, /status:\s*"PUBLISHED"/);
 });

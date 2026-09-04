@@ -7,6 +7,19 @@ import { prisma } from "@/lib/prisma";
 import { saveOptimizedPortalEventImageUpload } from "@/lib/uploads";
 
 const announcementSchema = z.object({ title: z.string().trim().min(2, "Informe o título."), message: z.string().trim().min(2, "Informe o aviso."), startsAt: z.string().trim().default(""), endsAt: z.string().trim().default("") });
+const eventPostSchema = z.object({
+  title: z.string().trim().min(2, "Informe o título do evento."),
+  caption: z.string().trim().default(""),
+  linkUrl: z.string().trim().default("").refine((value) => {
+    if (!value) return true;
+    try {
+      const url = new URL(value);
+      return url.protocol === "https:" || url.protocol === "http:";
+    } catch {
+      return false;
+    }
+  }, "Informe um link iniciado por http:// ou https://.")
+});
 
 async function refreshPortal(arenaId: string) {
   const arena = await prisma.arena.findUnique({ where: { id: arenaId }, select: { slug: true } });
@@ -45,10 +58,9 @@ export async function togglePortalEventFeatureAction(formData: FormData) {
 
 export async function createPortalEventPostAction(formData: FormData) {
   const auth = await requireModuleEdit("arena");
-  const title = String(formData.get("title") ?? "").trim();
-  const caption = String(formData.get("caption") ?? "").trim();
+  const parsed = eventPostSchema.safeParse({ title: formData.get("title"), caption: formData.get("caption"), linkUrl: formData.get("linkUrl") });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   const image = formData.get("image") as File | null;
-  if (title.length < 2) return { error: "Informe o título do evento." };
   if (!image?.size || !["image/jpeg", "image/png", "image/webp"].includes(image.type)) return { error: "Envie uma imagem válida para o evento." };
   let imageUrl: string | null;
   try {
@@ -57,7 +69,7 @@ export async function createPortalEventPostAction(formData: FormData) {
     return { error: "Não foi possível processar a imagem. Envie JPG, PNG ou WebP de até 4 MB." };
   }
   if (!imageUrl) return { error: "Não foi possível salvar a imagem." };
-  await prisma.portalEventPost.create({ data: { arenaId: auth.arenaId, title, caption, imageUrl } });
+  await prisma.portalEventPost.create({ data: { arenaId: auth.arenaId, title: parsed.data.title, caption: parsed.data.caption, imageUrl, linkUrl: parsed.data.linkUrl || null } });
   await refreshPortal(auth.arenaId);
 }
 
