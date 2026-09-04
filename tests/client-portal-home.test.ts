@@ -62,14 +62,16 @@ test("portal events preserve the image on mobile and can open an optional extern
   const schema = read("prisma/schema.prisma");
   const home = read("src/lib/services/public-client-home.ts");
   const portal = read("src/components/tournaments/public-standings.tsx");
+  const carousel = read("src/components/client-portal-event-carousel.tsx");
   const styles = read("src/app/globals.css");
 
   assert.match(schema, /linkUrl\s+String\?/);
   assert.match(editor, /name="linkUrl"/);
   assert.match(actions, /linkUrl/);
   assert.match(home, /linkUrl: true/);
-  assert.match(portal, /event\.linkUrl/);
-  assert.match(portal, /target="_blank"/);
+  assert.match(portal, /ClientPortalEventCarousel/);
+  assert.match(carousel, /event\.linkUrl/);
+  assert.match(carousel, /target="_blank"/);
   assert.match(styles, /@media \(max-width: 620px\) \{[\s\S]*\.client-portal-event-posts img \{[^}]*object-fit: contain/);
 });
 
@@ -91,6 +93,20 @@ test("arena can edit and activate or deactivate an existing portal event without
   assert.match(actions, /togglePortalEventPostAction/);
   assert.match(actions, /where: \{ id, arenaId: auth\.arenaId \}/);
   assert.match(actions, /data: \{ active: !current\.active \}/);
+});
+
+test("client portal presents multiple featured events in an accessible carousel", () => {
+  const portal = read("src/components/tournaments/public-standings.tsx");
+  const carousel = read("src/components/client-portal-event-carousel.tsx");
+  const styles = read("src/app/globals.css");
+
+  assert.match(portal, /ClientPortalEventCarousel/);
+  assert.match(carousel, /events\.length <= 1/);
+  assert.match(carousel, /scrollBy/);
+  assert.match(carousel, /Evento anterior/);
+  assert.match(carousel, /Próximo evento/);
+  assert.match(styles, /\.client-portal-event-carousel-track/);
+  assert.match(styles, /scroll-snap-type: x mandatory/);
 });
 
 test("league header no longer displays the isolated notification count tag", () => {

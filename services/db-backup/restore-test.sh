@@ -40,4 +40,12 @@ aws s3 cp "s3://${S3_BUCKET}/${latest_key}" "$file" --endpoint-url "$S3_ENDPOINT
 echo "Restoring into the confirmed disposable database"
 pg_restore --dbname="$RESTORE_DATABASE_URL" --clean --if-exists --no-owner --exit-on-error "$file"
 psql "$RESTORE_DATABASE_URL" -v ON_ERROR_STOP=1 -c 'SELECT current_database() AS restored_database, NOW() AS checked_at;'
-echo "Restore test completed successfully."
+psql "$RESTORE_DATABASE_URL" -v ON_ERROR_STOP=1 -c '
+SELECT
+  (SELECT count(*) FROM "FinancialEntry") AS financial_entries,
+  (SELECT count(*) FROM "FinancialSettlement") AS financial_settlements,
+  (SELECT count(*) FROM "Comanda") AS comandas,
+  (SELECT count(*) FROM "ScheduleOccurrence") AS schedule_occurrences,
+  (SELECT count(*) FROM "Tournament") AS tournaments;
+'
+echo "Restore validation completed successfully."

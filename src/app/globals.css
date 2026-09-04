@@ -8106,4 +8106,15 @@ button {
 .client-portal-event-posts { grid-template-columns: repeat(auto-fill, minmax(220px, 280px)); justify-content: start; }
 .client-portal-event-posts img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; }
 .client-portal-event-link { display: block; line-height: 0; }
+.client-portal-event-carousel { display: grid; gap: 10px; min-width: 0; }
+.client-portal-event-carousel-track { display: grid; grid-auto-columns: minmax(220px, 280px); grid-auto-flow: column; gap: 12px; overflow-x: auto; padding: 1px 1px 8px; scroll-snap-type: x mandatory; scrollbar-width: thin; }
+.client-portal-event-carousel-track article { display: grid; grid-template-columns: 1fr; gap: 0; overflow: hidden; padding: 0; border: 1px solid #dce7f0; border-radius: 9px; background: #fff; scroll-snap-align: start; }
+.client-portal-event-carousel-track img { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: cover; }
+.client-portal-event-carousel-track article > div { padding: 10px; }
+.client-portal-event-carousel-track p { margin-top: 3px; white-space: pre-wrap; }
+.client-portal-event-carousel-controls { display: flex; align-items: center; justify-content: flex-end; gap: 8px; color: #5d7188; font-size: .74rem; }
+.client-portal-event-carousel-controls button { display: grid; width: 30px; height: 30px; place-items: center; padding: 0; border: 1px solid #cfdfed; border-radius: 7px; background: #fff; color: #1f5f9e; cursor: pointer; }
+.client-portal-event-carousel-controls button:hover { border-color: #8eb7dc; background: #f2f8fd; }
+.client-portal-event-carousel-controls svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
 @media (max-width: 620px) { .client-portal-event-posts { grid-template-columns: 1fr; } .client-portal-event-posts img { max-height: 440px; aspect-ratio: 9 / 16; object-fit: contain; background: #f2f6fa; } }
+@media (max-width: 620px) { .client-portal-event-carousel-track { grid-auto-columns: minmax(82%, 330px); padding-bottom: 4px; } .client-portal-event-carousel-track img { aspect-ratio: 9 / 16; max-height: 440px; object-fit: contain; background: #f2f6fa; } .client-portal-event-carousel-controls { justify-content: center; } }

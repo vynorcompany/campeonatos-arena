@@ -29,4 +29,9 @@ test("backup recovery requires a confirmed disposable database instead of restor
   assert.match(contents, /RESTORE_CONFIRM/);
   assert.match(contents, /RESTORE_DATABASE_URL must not match DATABASE_URL/);
   assert.match(contents, /pg_restore .*--exit-on-error/);
+  assert.match(contents, /FinancialEntry/);
+  assert.match(contents, /Comanda/);
+  assert.match(contents, /ScheduleOccurrence/);
+  assert.match(contents, /Tournament/);
+  assert.match(contents, /Restore validation completed successfully/);
 });
