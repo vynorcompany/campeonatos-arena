@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireModuleEdit, requireRole } from "@/lib/auth/guards";
 import { allocatePaymentsToDebts, getOutstandingCents } from "@/lib/finance/settlements";
 import { prisma } from "@/lib/prisma";
+import { withArenaTransaction } from "@/lib/rls";
 
 const comandaSchema = z.object({
   type: z.enum(["CLIENT", "AVULSA"]),
@@ -71,7 +72,7 @@ export async function createComandaAction(formData: FormData) {
     throw new Error("Informe um nome para a comanda avulsa.");
   }
 
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(auth.arenaId, async (tx) => {
     if (player) {
       const existing = await tx.comanda.findFirst({
         where: { arenaId: auth.arenaId, playerId: player.id, status: "OPEN" },
@@ -102,9 +103,9 @@ export async function deleteComandaAction(formData: FormData) {
   const comandaId = z.string().trim().min(1).safeParse(formData.get("comandaId"));
   if (!comandaId.success) throw new Error("Comanda inválida.");
 
-  const deleted = await prisma.comanda.deleteMany({
+  const deleted = await withArenaTransaction(auth.arenaId, (tx) => tx.comanda.deleteMany({
     where: { id: comandaId.data, arenaId: auth.arenaId, status: "OPEN" }
-  });
+  }));
   if (!deleted.count) throw new Error("A comanda não está disponível para exclusão.");
   revalidatePath("/comandas");
 }
@@ -114,7 +115,7 @@ export async function openBookingComandasAction(formData: FormData) {
   const occurrenceId = z.string().trim().min(1).safeParse(formData.get("occurrenceId"));
   if (!occurrenceId.success) throw new Error("Horário inválido.");
 
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(auth.arenaId, async (tx) => {
     const occurrence = await tx.scheduleOccurrence.findFirst({ where: { id: occurrenceId.data, arenaId: auth.arenaId, status: { not: "CANCELED" } }, include: { participants: { select: { playerId: true, player: { select: { name: true } } } } } });
     if (!occurrence) throw new Error("Horário não encontrado.");
     if (!occurrence.participants.length) throw new Error("Este horário não possui atletas para abrir comandas.");
@@ -131,7 +132,7 @@ export async function addComandaProductAction(formData: FormData) {
   const parsed = comandaProductSchema.safeParse({ comandaId: formData.get("comandaId"), productId: formData.get("productId"), quantity: formData.get("quantity") || 1 });
   if (!parsed.success) throw new Error("Produto inválido.");
 
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(auth.arenaId, async (tx) => {
     const [comanda, product] = await Promise.all([
       tx.comanda.findFirst({ where: { id: parsed.data.comandaId, arenaId: auth.arenaId, status: "OPEN" }, select: { id: true } }),
       tx.product.findFirst({ where: { id: parsed.data.productId, arenaId: auth.arenaId, active: true }, select: { id: true, priceCents: true, stockQuantity: true } })
@@ -155,7 +156,7 @@ export async function updateComandaItemQuantityAction(formData: FormData) {
   const parsed = itemQuantitySchema.safeParse({ itemId: formData.get("itemId"), delta: formData.get("delta") });
   if (!parsed.success) throw new Error("Ajuste inválido.");
 
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(auth.arenaId, async (tx) => {
     const item = await tx.comandaItem.findFirst({ where: { id: parsed.data.itemId, comanda: { arenaId: auth.arenaId, status: "OPEN" } }, include: { product: { select: { stockQuantity: true } } } });
     if (!item) throw new Error("Item não encontrado.");
     const nextQuantity = item.quantity + parsed.data.delta;
@@ -181,7 +182,7 @@ export async function finishComandaAction(formData: FormData) {
   const parsed = finishComandaSchema.safeParse({ comandaId: formData.get("comandaId"), payments, debtIds });
   if (!parsed.success) throw new Error("Comanda inválida.");
 
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(auth.arenaId, async (tx) => {
     const comanda = await tx.comanda.findFirst({ where: { id: parsed.data.comandaId, arenaId: auth.arenaId, status: "OPEN" }, include: { items: { include: { product: true } } } });
     if (!comanda) throw new Error("Comanda não está disponível.");
     if (!comanda.items.length) throw new Error("Insira ao menos um produto antes de finalizar.");

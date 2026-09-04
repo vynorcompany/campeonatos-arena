@@ -1,6 +1,6 @@
 import { SectionCard } from "@/components/section-card";
 import { requireModuleView } from "@/lib/auth/guards";
-import { prisma } from "@/lib/prisma";
+import { withArenaTransaction } from "@/lib/rls";
 
 const paymentLabels: Record<string, string> = {
   PIX: "Pix",
@@ -25,20 +25,20 @@ function formatDate(value: Date) {
 
 export default async function SalesPage() {
   const auth = await requireModuleView("pos");
-  const [sales, stockMovements] = await Promise.all([
-    prisma.sale.findMany({
+  const [sales, stockMovements] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
+    tx.sale.findMany({
       where: { arenaId: auth.arenaId },
       include: { items: { include: { product: true } } },
       orderBy: { createdAt: "desc" },
       take: 40
     }),
-    prisma.stockMovement.findMany({
+    tx.stockMovement.findMany({
       where: { arenaId: auth.arenaId },
       include: { product: true },
       orderBy: { createdAt: "desc" },
       take: 24
     })
-  ]);
+  ]));
 
   return (
     <div className="stack-md">

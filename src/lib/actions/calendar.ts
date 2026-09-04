@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireModuleEdit } from "@/lib/auth/guards";
 import { requirePublicPlayerAuth } from "@/lib/auth/player-session";
 import { prisma } from "@/lib/prisma";
+import { withArenaTransaction } from "@/lib/rls";
 import {
   moneyToCents,
   parseBookingParticipants,
@@ -149,9 +150,9 @@ export async function createPublicCourtBookingAction(formData: FormData) {
   if (parsed.data.durationMinutes % court.onlineSlotMinutes !== 0) throw new Error("A duração deve respeitar o intervalo configurado para a quadra.");
   const bookingAmountCents = calculateCourtIntervalPrice({ startsAtMinute, durationMinutes: parsed.data.durationMinutes, intervalMinutes: court.onlineSlotMinutes, weekday: startsAt.getDay(), rules: court.weeklyRules });
   if (bookingAmountCents === null) throw new Error("Este horário não está disponível para reserva online.");
-  const conflict = await prisma.scheduleOccurrence.findFirst({ where: { arenaId: arena.id, status: { not: "CANCELED" }, startsAt: { lt: endsAt }, endsAt: { gt: startsAt }, occurrenceCourts: { some: { courtId: court.id } } }, select: { id: true } });
+  const conflict = await withArenaTransaction(arena.id, (tx) => tx.scheduleOccurrence.findFirst({ where: { arenaId: arena.id, status: { not: "CANCELED" }, startsAt: { lt: endsAt }, endsAt: { gt: startsAt }, occurrenceCourts: { some: { courtId: court.id } } }, select: { id: true } }));
   if (conflict) throw new Error("Este horário acabou de ser reservado. Selecione outro horário.");
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(arena.id, async (tx) => {
     const player = await tx.player.findFirst({ where: { id: playerAuth.playerId, arenaId: arena.id, active: true }, select: { id: true, name: true } });
     if (!player) throw new Error("Cliente não encontrado.");
     const occurrence = await tx.scheduleOccurrence.create({ data: { arenaId: arena.id, sourceType: "ONLINE_BOOKING", title: `${player.name} - Reserva`, startsAt, endsAt, status: arena.onlineBookingRequiresConfirmation ? "PENDING_CONFIRMATION" : arena.onlineBookingPaymentEnabled ? "PENDING_PAYMENT" : "SCHEDULED", bookingTypeName: "Reserva", occurrenceCourts: { create: { courtId: court.id } }, participants: { create: { playerId: player.id, amountCents: bookingAmountCents } } } });
@@ -166,7 +167,7 @@ export async function confirmOnlineBookingAction(formData: FormData) {
   const auth = await requireModuleEdit("calendar");
   const occurrenceId = z.string().trim().min(1).safeParse(formData.get("occurrenceId"));
   if (!occurrenceId.success) throw new Error("Reserva inválida.");
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(auth.arenaId, async (tx) => {
     const occurrence = await tx.scheduleOccurrence.findFirst({ where: { id: occurrenceId.data, arenaId: auth.arenaId, sourceType: "ONLINE_BOOKING", status: "PENDING_CONFIRMATION" }, include: { arena: { select: { slug: true } }, participants: { select: { playerId: true } } } });
     if (!occurrence) throw new Error("Esta reserva já foi confirmada ou não foi encontrada.");
     await tx.scheduleOccurrence.update({ where: { id: occurrence.id }, data: { status: "SCHEDULED" } });
@@ -182,7 +183,7 @@ export async function cancelCourtBookingAction(formData: FormData) {
   const auth = await requireModuleEdit("calendar");
   const parsed = z.object({ occurrenceId: z.string().trim().min(1), mode: z.enum(["CANCEL", "FREE"]).default("CANCEL") }).safeParse({ occurrenceId: formData.get("occurrenceId"), mode: formData.get("mode") });
   if (!parsed.success) throw new Error("Horário inválido.");
-  const result = await prisma.scheduleOccurrence.updateMany({ where: { id: parsed.data.occurrenceId, arenaId: auth.arenaId, status: { not: "CANCELED" } }, data: { status: "CANCELED" } });
+  const result = await withArenaTransaction(auth.arenaId, (tx) => tx.scheduleOccurrence.updateMany({ where: { id: parsed.data.occurrenceId, arenaId: auth.arenaId, status: { not: "CANCELED" } }, data: { status: "CANCELED" } }));
   if (!result.count) throw new Error("Este horário já foi cancelado ou não foi encontrado.");
   refreshCalendar();
 }
@@ -231,13 +232,13 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
   }
   const players = participants.length ? await prisma.player.findMany({ where: { arenaId: auth.arenaId, id: { in: participants.map((participant) => participant.playerId) } }, select: { id: true, name: true } }) : [];
   if (players.length !== participants.length) throw new Error("Um ou mais atletas não pertencem à arena.");
-  const conflicts = await prisma.scheduleOccurrence.findFirst({ where: {
+  const conflicts = await withArenaTransaction(auth.arenaId, (tx) => tx.scheduleOccurrence.findFirst({ where: {
     arenaId: auth.arenaId, id: parsed.data.occurrenceId ? { not: parsed.data.occurrenceId } : undefined,
     status: { not: "CANCELED" }, startsAt: { lt: endsAt }, endsAt: { gt: startsAt }, occurrenceCourts: { some: { courtId: { in: courtIds } } }
-  } });
+  } }));
   if (conflicts) throw new Error("Já existe um agendamento nessa quadra para este horário.");
 
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(auth.arenaId, async (tx) => {
     const occurrence = parsed.data.occurrenceId
       ? await tx.scheduleOccurrence.update({ where: { id: parsed.data.occurrenceId, arenaId: auth.arenaId }, data: { title: parsed.data.title, startsAt, endsAt, bookingTypeName: parsed.data.bookingTypeName, teacherId: parsed.data.teacherId || null, notes: parsed.data.notes, occurrenceCourts: { deleteMany: {}, create: courtIds.map((courtId) => ({ courtId })) } } })
       : await tx.scheduleOccurrence.create({ data: { arenaId: auth.arenaId, sourceType: "BOOKING", title: parsed.data.title, startsAt, endsAt, bookingTypeName: parsed.data.bookingTypeName, teacherId: parsed.data.teacherId || null, notes: parsed.data.notes, occurrenceCourts: { create: courtIds.map((courtId) => ({ courtId })) } } });

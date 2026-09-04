@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getLeagueMonthBlocks } from "@/lib/league/monthly-schedule";
+import { withArenaTransaction } from "@/lib/rls";
 
 function dateTimeLabel(value: Date) { return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(value); }
 function leagueWeekPeriod(referenceMonth: string | null | undefined, block: number | null) {
@@ -21,13 +22,13 @@ export async function getPublicLeaguePortal(arenaSlug: string, playerId: string,
   const ownPairs = await prisma.categoryPair.findMany({ where: { active: true, players: { some: { playerId } }, competition: { format: "LEAGUE", status: "PUBLISHED", category: { tournament: { arenaId: arena.id } } } }, include: { group: true, competition: { include: { category: { include: { tournament: true } } } }, players: { include: { player: { select: { id: true, name: true } } } }, homeMatches: { include: { awayPair: { select: { id: true, name: true, groupId: true } }, leagueCycle: { select: { id: true } } } }, awayMatches: { include: { homePair: { select: { id: true, name: true, groupId: true } } } } }, orderBy: { createdAt: "asc" } });
   const challenges = await prisma.leagueMatchProposal.findMany({ where: { OR: [{ proposerPairId: { in: ownPairs.map((pair) => pair.id) } }, { opponentPairId: { in: ownPairs.map((pair) => pair.id) } }] }, include: { court: { select: { name: true } }, categoryMatch: { include: { homePair: { select: { name: true } }, awayPair: { select: { name: true } } } } }, orderBy: { createdAt: "desc" } });
   const now = new Date();
-  const [leagueNotifications, medicalRequests, replacementPlayers, prizes, reservations, student, classOccurrences, teachers, teacherManagement, classGroups] = await Promise.all([
-    prisma.playerNotification.findMany({ where: { playerId, readAt: null, type: "LEAGUE_MATCH" }, orderBy: { createdAt: "desc" }, take: 8, select: { id: true, title: true, message: true, href: true } }),
-    prisma.leagueMedicalSubstitutionRequest.findMany({ where: { requestedByPlayerId: playerId, status: "PENDING" }, select: { pairId: true } }),
-    prisma.player.findMany({ where: { arenaId: arena.id, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.leagueCycle.findMany({ where: { status: "OPEN", competition: { category: { tournament: { arenaId: arena.id } } }, prizeDescription: { not: "" } }, include: { competition: { include: { category: { include: { tournament: true } } } } }, orderBy: { referenceMonth: "desc" } }),
-    prisma.scheduleOccurrence.findMany({ where: { arenaId: arena.id, startsAt: { gte: now }, status: { not: "CANCELED" }, participants: { some: { playerId } } }, include: { occurrenceCourts: { include: { court: { select: { name: true } } } } }, orderBy: { startsAt: "asc" }, take: 12 }),
-    prisma.student.findFirst({
+  const [leagueNotifications, medicalRequests, replacementPlayers, prizes, reservations, student, classOccurrences, teachers, teacherManagement, classGroups] = await withArenaTransaction(arena.id, (tx) => Promise.all([
+    tx.playerNotification.findMany({ where: { playerId, readAt: null, type: "LEAGUE_MATCH" }, orderBy: { createdAt: "desc" }, take: 8, select: { id: true, title: true, message: true, href: true } }),
+    tx.leagueMedicalSubstitutionRequest.findMany({ where: { requestedByPlayerId: playerId, status: "PENDING" }, select: { pairId: true } }),
+    tx.player.findMany({ where: { arenaId: arena.id, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    tx.leagueCycle.findMany({ where: { status: "OPEN", competition: { category: { tournament: { arenaId: arena.id } } }, prizeDescription: { not: "" } }, include: { competition: { include: { category: { include: { tournament: true } } } } }, orderBy: { referenceMonth: "desc" } }),
+    tx.scheduleOccurrence.findMany({ where: { arenaId: arena.id, startsAt: { gte: now }, status: { not: "CANCELED" }, participants: { some: { playerId } } }, include: { occurrenceCourts: { include: { court: { select: { name: true } } } } }, orderBy: { startsAt: "asc" }, take: 12 }),
+    tx.student.findFirst({
       where: { arenaId: arena.id, playerId },
       include: {
         subscriptions: { where: { status: "ACTIVE" }, orderBy: { startedAt: "desc" }, take: 1, include: { plan: { select: { name: true } } } },
@@ -39,9 +40,9 @@ export async function getPublicLeaguePortal(arenaSlug: string, playerId: string,
         },
       },
     }),
-    prisma.scheduleOccurrence.findMany({ where: { arenaId: arena.id, startsAt: { gte: now }, status: { not: "CANCELED" }, teacherId: { not: null } }, include: { teacher: { select: { id: true, name: true } } }, orderBy: { startsAt: "asc" }, take: 48 }),
-    prisma.teacher.findMany({ where: { arenaId: arena.id, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.teacher.findFirst({
+    tx.scheduleOccurrence.findMany({ where: { arenaId: arena.id, startsAt: { gte: now }, status: { not: "CANCELED" }, teacherId: { not: null } }, include: { teacher: { select: { id: true, name: true } } }, orderBy: { startsAt: "asc" }, take: 48 }),
+    tx.teacher.findMany({ where: { arenaId: arena.id, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    tx.teacher.findFirst({
       where: { arenaId: arena.id, playerId, active: true },
       include: {
         planAssignments: { where: { active: true }, include: { plan: { select: { id: true, name: true, classesPerMonth: true, monthlyPriceCents: true } } }, orderBy: { plan: { name: "asc" } } },
@@ -63,7 +64,7 @@ export async function getPublicLeaguePortal(arenaSlug: string, playerId: string,
         classGroups: { where: { active: true }, include: { schedules: { orderBy: [{ weekday: "asc" }, { startTime: "asc" }] }, enrollments: { where: { status: "ACTIVE" }, include: { student: { select: { id: true, name: true } } } } }, orderBy: { name: "asc" } },
       },
     }),
-    prisma.classGroup.findMany({
+    tx.classGroup.findMany({
       where: { arenaId: arena.id, active: true },
       include: {
         teacher: { select: { id: true, name: true } },
@@ -73,8 +74,8 @@ export async function getPublicLeaguePortal(arenaSlug: string, playerId: string,
       },
       orderBy: { name: "asc" }
     }),
-  ]);
-  const occurrences = await prisma.scheduleOccurrence.findMany({ where: { arenaId: arena.id, status: { not: "CANCELED" }, startsAt: { gte: now, lt: new Date(now.getTime() + 8 * 24 * 60 * 60_000) } }, include: { occurrenceCourts: true } });
+  ]));
+  const occurrences = await withArenaTransaction(arena.id, (tx) => tx.scheduleOccurrence.findMany({ where: { arenaId: arena.id, status: { not: "CANCELED" }, startsAt: { gte: now, lt: new Date(now.getTime() + 8 * 24 * 60 * 60_000) } }, include: { occurrenceCourts: true } }));
   const leagueCompetitions = await prisma.categoryCompetition.findMany({
     where: { format: "LEAGUE", status: "PUBLISHED", category: { active: true, tournament: { arenaId: arena.id } } },
     orderBy: [{ category: { tournament: { name: "asc" } } }, { category: { name: "asc" } }],

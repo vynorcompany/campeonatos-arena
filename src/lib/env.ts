@@ -17,6 +17,7 @@ const optionalUrl = z.preprocess(
 
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required."),
+  APP_DATABASE_URL: optionalUrl,
   DIRECT_URL: z.string().optional(),
   APP_URL: z.string().url().optional(),
   SESSION_COOKIE_NAME: z.string().min(1).default("padel_session"),
@@ -41,6 +42,7 @@ const envSchema = z.object({
 
 const parsedResult = envSchema.safeParse({
   DATABASE_URL: process.env.DATABASE_URL,
+  APP_DATABASE_URL: process.env.APP_DATABASE_URL,
   DIRECT_URL: process.env.DIRECT_URL,
   APP_URL: process.env.APP_URL,
   SESSION_COOKIE_NAME: process.env.SESSION_COOKIE_NAME,
@@ -78,6 +80,7 @@ const parsed = parsedResult.data;
 
 export const env = {
   databaseUrl: parsed.DATABASE_URL,
+  appDatabaseUrl: parsed.APP_DATABASE_URL,
   directUrl: parsed.DIRECT_URL,
   appUrl: parsed.APP_URL,
   sessionCookieName: parsed.SESSION_COOKIE_NAME,

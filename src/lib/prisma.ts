@@ -10,6 +10,11 @@ void env;
 export const prisma =
   global.prisma ??
   new PrismaClient({
+    datasources: {
+      db: {
+        url: env.appDatabaseUrl ?? env.databaseUrl
+      }
+    },
     log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"]
   });
 

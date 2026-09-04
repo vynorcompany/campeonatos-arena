@@ -4,6 +4,7 @@ import { PublicClientAuthForm } from "@/components/public-client-auth-form";
 import { getPublicPlayerAuth } from "@/lib/auth/player-session";
 import { calculateCourtIntervalPrice } from "@/lib/calendar/court-interval-pricing";
 import { prisma } from "@/lib/prisma";
+import { withArenaTransaction } from "@/lib/rls";
 
 type PublicBookingContentProps = { arenaSlug: string; date?: string; embedded?: boolean };
 
@@ -15,12 +16,12 @@ function minuteLabel(value: number) { return `${String(Math.floor(value / 60)).p
 export async function PublicBookingContent({ arenaSlug, date, embedded = false }: PublicBookingContentProps) {
   const selectedDate = startOfDay(parseDate(date));
   const nextDay = new Date(selectedDate); nextDay.setDate(nextDay.getDate() + 1);
-  const [arena, currentClient] = await Promise.all([prisma.arena.findUnique({ where: { slug: arenaSlug }, select: { name: true, logoUrl: true, scheduleStartMinute: true, scheduleEndMinute: true, onlineBookingLayout: true, onlineBookingShowReserved: true, onlineBookingPaymentEnabled: true, onlineBookingLeadTimeMinutes: true, courts: { where: { active: true, weeklyRules: { some: { available: true } } }, include: { weeklyRules: true }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }] } } }), getPublicPlayerAuth(arenaSlug)]);
+  const [arena, currentClient] = await Promise.all([prisma.arena.findUnique({ where: { slug: arenaSlug }, select: { id: true, name: true, logoUrl: true, scheduleStartMinute: true, scheduleEndMinute: true, onlineBookingLayout: true, onlineBookingShowReserved: true, onlineBookingPaymentEnabled: true, onlineBookingLeadTimeMinutes: true, courts: { where: { active: true, weeklyRules: { some: { available: true } } }, include: { weeklyRules: true }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }] } } }), getPublicPlayerAuth(arenaSlug)]);
   if (!arena) notFound();
-  const [occurrences, pendingReservations] = await Promise.all([
-    prisma.scheduleOccurrence.findMany({ where: { arena: { slug: arenaSlug }, status: { not: "CANCELED" }, startsAt: { lt: nextDay }, endsAt: { gt: selectedDate } }, include: { occurrenceCourts: true }, orderBy: { startsAt: "asc" } }),
-    currentClient ? prisma.scheduleOccurrence.findMany({ where: { arena: { slug: arenaSlug }, sourceType: "ONLINE_BOOKING", status: "PENDING_CONFIRMATION", participants: { some: { playerId: currentClient.playerId } }, endsAt: { gte: selectedDate } }, include: { occurrenceCourts: true }, orderBy: { startsAt: "asc" }, take: 5 }) : Promise.resolve([]),
-  ]);
+  const [occurrences, pendingReservations] = await withArenaTransaction(arena.id, (tx) => Promise.all([
+    tx.scheduleOccurrence.findMany({ where: { arenaId: arena.id, status: { not: "CANCELED" }, startsAt: { lt: nextDay }, endsAt: { gt: selectedDate } }, include: { occurrenceCourts: true }, orderBy: { startsAt: "asc" } }),
+    currentClient ? tx.scheduleOccurrence.findMany({ where: { arenaId: arena.id, sourceType: "ONLINE_BOOKING", status: "PENDING_CONFIRMATION", participants: { some: { playerId: currentClient.playerId } }, endsAt: { gte: selectedDate } }, include: { occurrenceCourts: true }, orderBy: { startsAt: "asc" }, take: 5 }) : Promise.resolve([]),
+  ]));
   const weekday = selectedDate.getDay();
   const courts = arena.courts.map((court) => {
     const slots = Array.from({ length: Math.max(0, Math.ceil((arena.scheduleEndMinute - arena.scheduleStartMinute) / court.onlineSlotMinutes)) }, (_, index) => arena.scheduleStartMinute + index * court.onlineSlotMinutes).flatMap((minute) => {

@@ -7,7 +7,7 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { createComandaAction } from "@/lib/actions/comanda";
 import { requireModuleView } from "@/lib/auth/guards";
 import { getOutstandingCents } from "@/lib/finance/settlements";
-import { prisma } from "@/lib/prisma";
+import { withArenaTransaction } from "@/lib/rls";
 
 type ComandasPageProps = {
   searchParams?: { date?: string; search?: string; new?: "client" | "avulsa" };
@@ -58,8 +58,8 @@ export default async function ComandasPage({ searchParams }: ComandasPageProps) 
   const calendarEnd = new Date(calendarStart);
   calendarEnd.setDate(calendarEnd.getDate() + 42);
 
-  const [comandas, openComandas, players, products, paymentMethodSettings, pendingDebts] = await Promise.all([
-    prisma.comanda.findMany({
+  const [comandas, openComandas, players, products, paymentMethodSettings, pendingDebts] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
+    tx.comanda.findMany({
       where: {
         arenaId: auth.arenaId,
         status: "OPEN",
@@ -69,16 +69,16 @@ export default async function ComandasPage({ searchParams }: ComandasPageProps) 
       orderBy: { openedAt: "desc" },
       include: { player: { select: { name: true } }, items: { include: { product: { select: { name: true } } }, orderBy: { createdAt: "asc" } } }
     }),
-    prisma.comanda.findMany({
+    tx.comanda.findMany({
       where: { arenaId: auth.arenaId, status: "OPEN", openedAt: { gte: calendarStart, lt: calendarEnd } },
       select: { openedAt: true }
     }),
     searchParams?.new === "client"
-      ? prisma.player.findMany({ where: { arenaId: auth.arenaId, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } })
+      ? tx.player.findMany({ where: { arenaId: auth.arenaId, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } })
       : Promise.resolve([]),
-    prisma.product.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true, priceCents: true, stockQuantity: true, category: { select: { name: true } } }, orderBy: { name: "asc" } }),
-    prisma.paymentMethodSetting.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { name: true }, orderBy: { name: "asc" } }),
-    prisma.financialEntry.findMany({
+    tx.product.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true, priceCents: true, stockQuantity: true, category: { select: { name: true } } }, orderBy: { name: "asc" } }),
+    tx.paymentMethodSetting.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { name: true }, orderBy: { name: "asc" } }),
+    tx.financialEntry.findMany({
       where: { arenaId: auth.arenaId, status: "PENDING" },
       select: {
         id: true, description: true, amountCents: true, dueDate: true,
@@ -88,7 +88,7 @@ export default async function ComandasPage({ searchParams }: ComandasPageProps) 
       },
       orderBy: [{ dueDate: "asc" }, { createdAt: "asc" }]
     })
-  ]);
+  ]));
 
   const openDays = new Set(openComandas.map((comanda) => toDateInput(comanda.openedAt)));
   const today = startOfDay(new Date());

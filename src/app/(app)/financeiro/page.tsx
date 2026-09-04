@@ -2,7 +2,7 @@ import Link from "next/link";
 import { SectionCard } from "@/components/section-card";
 import { requireModuleView } from "@/lib/auth/guards";
 import { getReceivedRevenueCents } from "@/lib/finance/dashboard";
-import { prisma } from "@/lib/prisma";
+import { withArenaTransaction } from "@/lib/rls";
 
 function getMonthRange() {
   const now = new Date();
@@ -19,23 +19,23 @@ function formatMoney(cents: number) {
 export default async function FinancePage() {
   const auth = await requireModuleView("finance");
   const { start, end } = getMonthRange();
-  const [subscriptions, products, financialEntries, payrollEntries, recentEntries] = await Promise.all([
-    prisma.studentSubscription.findMany({ where: { arenaId: auth.arenaId, status: "ACTIVE" } }),
-    prisma.product.findMany({ where: { arenaId: auth.arenaId } }),
-    prisma.financialEntry.findMany({
+  const [subscriptions, products, financialEntries, payrollEntries, recentEntries] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
+    tx.studentSubscription.findMany({ where: { arenaId: auth.arenaId, status: "ACTIVE" } }),
+    tx.product.findMany({ where: { arenaId: auth.arenaId } }),
+    tx.financialEntry.findMany({
       where: {
         arenaId: auth.arenaId,
         OR: [{ paidAt: { gte: start, lt: end } }, { settlements: { some: { paidAt: { gte: start, lt: end } } } }]
       },
       include: { settlements: { select: { amountCents: true, paidAt: true } } }
     }),
-    prisma.teacherPayrollEntry.findMany({ where: { arenaId: auth.arenaId } }),
-    prisma.financialEntry.findMany({
+    tx.teacherPayrollEntry.findMany({ where: { arenaId: auth.arenaId } }),
+    tx.financialEntry.findMany({
       where: { arenaId: auth.arenaId },
       orderBy: [{ paidAt: "desc" }, { dueDate: "asc" }, { createdAt: "desc" }],
       take: 8
     })
-  ]);
+  ]));
   const projectedPlanRevenue = subscriptions.reduce((total, subscription) => total + subscription.monthlyPriceCents, 0);
   const paidRevenue = getReceivedRevenueCents(financialEntries, start, end);
   const expenses = financialEntries

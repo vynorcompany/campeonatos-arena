@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { CheckoutRegister } from "@/components/pos/checkout-register";
 import { requireModuleView } from "@/lib/auth/guards";
-import { prisma } from "@/lib/prisma";
+import { withArenaTransaction } from "@/lib/rls";
 
 function formatMoney(cents: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -12,15 +12,15 @@ function formatMoney(cents: number) {
 
 export default async function CheckoutPage() {
   const auth = await requireModuleView("pos");
-  const [products, salesToday] = await Promise.all([
-    prisma.product.findMany({
+  const [products, salesToday] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
+    tx.product.findMany({
       where: {
         arenaId: auth.arenaId,
         active: true
       },
       orderBy: { name: "asc" }
     }),
-    prisma.sale.findMany({
+    tx.sale.findMany({
       where: {
         arenaId: auth.arenaId,
         createdAt: {
@@ -29,7 +29,7 @@ export default async function CheckoutPage() {
       },
       orderBy: { createdAt: "desc" }
     })
-  ]);
+  ]));
   const totalToday = salesToday.reduce((total, sale) => total + sale.totalCents, 0);
 
   return (

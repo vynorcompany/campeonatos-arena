@@ -12,6 +12,7 @@ import { getFinancialEntryBalance } from "@/lib/finance/ledger";
 import { getDiscountedAmountCents } from "@/lib/finance/discounts";
 import { getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
 import { prisma } from "@/lib/prisma";
+import { withArenaTransaction } from "@/lib/rls";
 
 const optionalText = z.string().trim().default("");
 
@@ -204,7 +205,7 @@ export async function createSubscriptionAction(formData: FormData) {
     throw new Error("Aluno não encontrado.");
   }
 
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(auth.arenaId, async (tx) => {
     await tx.studentSubscription.updateMany({
       where: {
         arenaId: auth.arenaId,
@@ -266,7 +267,7 @@ export async function recordPlanPaymentAction(formData: FormData) {
   const amountCents = parsed.data.amount ? parseMoneyToCents(parsed.data.amount) : subscription.monthlyPriceCents;
   const paidAt = parseDate(parsed.data.paidAt) ?? new Date();
 
-  await prisma.financialEntry.create({
+  await withArenaTransaction(auth.arenaId, (tx) => tx.financialEntry.create({
     data: {
       arenaId: auth.arenaId,
       type: "REVENUE",
@@ -281,7 +282,7 @@ export async function recordPlanPaymentAction(formData: FormData) {
       paidAt,
       notes: "Pagamento mensal de aluno."
     }
-  });
+  }));
 
   refreshFinanceRoutes();
 }
@@ -325,7 +326,7 @@ export async function createFinancialEntryAction(formData: FormData) {
     supplierId = supplier.id;
   }
 
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(auth.arenaId, async (tx) => {
     const entry = await tx.financialEntry.create({
       data: {
         arenaId: auth.arenaId,
@@ -379,7 +380,7 @@ export async function updateFinancialEntryAction(formData: FormData) {
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
 
   const amountCents = parseMoneyToCents(parsed.data.amount);
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(auth.arenaId, async (tx) => {
     const entry = await tx.financialEntry.findFirst({
       where: { id: parsed.data.entryId, arenaId: auth.arenaId, status: { not: "VOIDED" } },
       include: { settlements: { select: { amountCents: true } } },
@@ -423,7 +424,7 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
   if (!Number.isFinite(discount)) throw new Error("Informe um desconto válido.");
   const amountCents = getDiscountedAmountCents(parseMoneyToCents(parsed.data.amount), discount, parsed.data.discountMode);
 
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(auth.arenaId, async (tx) => {
     const recurrence = await tx.financialRecurrence.create({ data: {
       arenaId: auth.arenaId, type: "REVENUE", counterpartyName: parsed.data.counterpartyName, category: parsed.data.category,
       description: parsed.data.description, amountCents, frequency: parsed.data.frequency,
@@ -460,7 +461,7 @@ export async function settleFinancialEntryAction(formData: FormData) {
   const interestCents = parseMoneyToCents(parsed.data.interest);
   const paidAt = parseDate(parsed.data.paidAt) ?? new Date();
 
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(auth.arenaId, async (tx) => {
     const entry = await tx.financialEntry.findFirst({
       where: { id: parsed.data.entryId, arenaId: auth.arenaId, status: "PENDING" },
       include: { settlements: { select: { amountCents: true, interestCents: true } } }
@@ -501,10 +502,10 @@ export async function voidFinancialEntryAction(formData: FormData) {
   const parsed = voidEntrySchema.safeParse({ entryId: formData.get("entryId"), reason: formData.get("reason") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
 
-  const updated = await prisma.financialEntry.updateMany({
+  const updated = await withArenaTransaction(auth.arenaId, (tx) => tx.financialEntry.updateMany({
     where: { id: parsed.data.entryId, arenaId: auth.arenaId, status: { not: "VOIDED" } },
     data: { status: "VOIDED", voidedAt: new Date(), voidReason: parsed.data.reason }
-  });
+  }));
   if (!updated.count) throw new Error("Esta conta já foi estornada ou não está disponível.");
   refreshFinanceRoutes();
 }
@@ -579,7 +580,7 @@ export async function upsertPayrollEntryAction(formData: FormData) {
   );
   const description = `Folha ${teacher.name} - ${parsed.data.referenceMonth}`;
 
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(auth.arenaId, async (tx) => {
     await tx.teacherPayrollEntry.upsert({
       where: {
         teacherId_referenceMonth: {

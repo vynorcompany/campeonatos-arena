@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requirePublicPlayerAuth } from "@/lib/auth/player-session";
 import { parseScheduledAt } from "@/lib/calendar/inputs";
 import { prisma } from "@/lib/prisma";
+import { withArenaTransaction } from "@/lib/rls";
 
 const proposalSchema = z.object({
   arenaSlug: z.string().trim().min(1),
@@ -24,7 +25,7 @@ async function validateCourtAvailability({ arenaId, courtId, startsAt, endsAt }:
   const endsAtMinute = endsAt.getHours() * 60 + endsAt.getMinutes();
   const available = court.weeklyRules.some((rule) => rule.weekday === startsAt.getDay() && rule.available && rule.startsAtMinute <= startsAtMinute && rule.endsAtMinute >= endsAtMinute);
   if (!available) throw new Error("Este horário não está disponível nesta quadra.");
-  const conflict = await prisma.scheduleOccurrence.findFirst({ where: { arenaId, status: { not: "CANCELED" }, startsAt: { lt: endsAt }, endsAt: { gt: startsAt }, occurrenceCourts: { some: { courtId } } }, select: { id: true } });
+  const conflict = await withArenaTransaction(arenaId, (tx) => tx.scheduleOccurrence.findFirst({ where: { arenaId, status: { not: "CANCELED" }, startsAt: { lt: endsAt }, endsAt: { gt: startsAt }, occurrenceCourts: { some: { courtId } } }, select: { id: true } }));
   if (conflict) throw new Error("Este horário não está mais disponível.");
   return court;
 }

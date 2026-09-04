@@ -3,7 +3,7 @@ import { DashboardComparisonFilter } from "@/components/dashboard-comparison-fil
 import { SectionCard } from "@/components/section-card";
 import { StatCard } from "@/components/stat-card";
 import { requireModuleView } from "@/lib/auth/guards";
-import { prisma } from "@/lib/prisma";
+import { withArenaTransaction } from "@/lib/rls";
 
 const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value / 100);
 const dayKey = (value: Date) => `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
@@ -51,14 +51,14 @@ export default async function OverviewPage({ searchParams }: { searchParams: Das
   const previousFinancialWhere = view === "caixa"
     ? { arenaId: auth.arenaId, status: "PAID", paidAt: { gte: previousFrom, lte: previousTo } }
     : { arenaId: auth.arenaId, status: { not: "VOIDED" }, dueDate: { gte: previousFrom, lte: previousTo } };
-  const [entries, previousEntries, reservations, previousReservations, saleItems, teachers] = await Promise.all([
-    prisma.financialEntry.findMany({ where: financialWhere, select: { type: true, status: true, amountCents: true, paidAt: true, dueDate: true } }),
-    prisma.financialEntry.findMany({ where: previousFinancialWhere, select: { type: true, amountCents: true } }),
-    prisma.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, startsAt: { gte: from, lte: to }, status: { not: "CANCELLED" } }, include: { occurrenceCourts: { include: { court: { select: { name: true } } } } } }),
-    prisma.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, startsAt: { gte: previousFrom, lte: previousTo }, status: { not: "CANCELLED" } }, select: { id: true } }),
-    prisma.saleItem.findMany({ where: { sale: { arenaId: auth.arenaId, createdAt: { gte: from, lte: to } } }, select: { quantity: true, totalCents: true, product: { select: { name: true } } } }),
-    prisma.teacher.findMany({ where: { arenaId: auth.arenaId, active: true }, include: { lessons: { where: { scheduledAt: { gte: from, lte: to } }, include: { attendances: true } } } })
-  ]);
+  const [entries, previousEntries, reservations, previousReservations, saleItems, teachers] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
+    tx.financialEntry.findMany({ where: financialWhere, select: { type: true, status: true, amountCents: true, paidAt: true, dueDate: true } }),
+    tx.financialEntry.findMany({ where: previousFinancialWhere, select: { type: true, amountCents: true } }),
+    tx.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, startsAt: { gte: from, lte: to }, status: { not: "CANCELLED" } }, include: { occurrenceCourts: { include: { court: { select: { name: true } } } } } }),
+    tx.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, startsAt: { gte: previousFrom, lte: previousTo }, status: { not: "CANCELLED" } }, select: { id: true } }),
+    tx.saleItem.findMany({ where: { sale: { arenaId: auth.arenaId, createdAt: { gte: from, lte: to } } }, select: { quantity: true, totalCents: true, product: { select: { name: true } } } }),
+    tx.teacher.findMany({ where: { arenaId: auth.arenaId, active: true }, include: { lessons: { where: { scheduledAt: { gte: from, lte: to } }, include: { attendances: true } } } })
+  ]));
   const received = entries.filter((entry) => entry.type === "REVENUE").reduce((total, entry) => total + entry.amountCents, 0);
   const paid = entries.filter((entry) => entry.type === "EXPENSE").reduce((total, entry) => total + entry.amountCents, 0);
   const previousReceived = previousEntries.filter((entry) => entry.type === "REVENUE").reduce((total, entry) => total + entry.amountCents, 0);

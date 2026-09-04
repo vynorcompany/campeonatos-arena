@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/guards";
 import { parseArenaAssistantCommand } from "@/lib/assistant/commands";
 import { prisma } from "@/lib/prisma";
+import { withArenaTransaction } from "@/lib/rls";
 
 type AssistantReply = {
   ok: boolean;
@@ -86,7 +87,7 @@ export async function runArenaAssistantCommandAction(input: string): Promise<Ass
   const client = clients[0];
   const dueDate = new Date();
   dueDate.setHours(0, 0, 0, 0);
-  const entry = await prisma.financialEntry.create({
+  const entry = await withArenaTransaction(auth.arenaId, (tx) => tx.financialEntry.create({
     data: {
       arenaId: auth.arenaId,
       type: "REVENUE",
@@ -100,7 +101,7 @@ export async function runArenaAssistantCommandAction(input: string): Promise<Ass
       source: "ASSISTANT",
       externalReference: audit.id
     }
-  });
+  }));
   const reply = `Fatura de R$ ${(command.amountCents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} criada para ${client.name}, com vencimento hoje. Ela está em aberto no Contas a Receber.`;
 
   await prisma.assistantCommand.update({

@@ -1,6 +1,6 @@
 import { SectionCard } from "@/components/section-card";
 import { requireModuleView } from "@/lib/auth/guards";
-import { prisma } from "@/lib/prisma";
+import { withArenaTransaction } from "@/lib/rls";
 
 function getMonthRange() {
   const now = new Date();
@@ -17,16 +17,16 @@ function formatMoney(cents: number) {
 export default async function FinancePdvStockPage() {
   const auth = await requireModuleView("finance");
   const { start, end } = getMonthRange();
-  const [products, sales, stockMovements] = await Promise.all([
-    prisma.product.findMany({ where: { arenaId: auth.arenaId }, orderBy: { name: "asc" } }),
-    prisma.sale.findMany({ where: { arenaId: auth.arenaId, createdAt: { gte: start, lt: end } } }),
-    prisma.stockMovement.findMany({
+  const [products, sales, stockMovements] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
+    tx.product.findMany({ where: { arenaId: auth.arenaId }, orderBy: { name: "asc" } }),
+    tx.sale.findMany({ where: { arenaId: auth.arenaId, createdAt: { gte: start, lt: end } } }),
+    tx.stockMovement.findMany({
       where: { arenaId: auth.arenaId, createdAt: { gte: start, lt: end } },
       include: { product: true },
       orderBy: { createdAt: "desc" },
       take: 30
     })
-  ]);
+  ]));
   const pdvRevenue = sales.reduce((total, sale) => total + sale.totalCents, 0);
   const stockValue = products.reduce((total, product) => total + product.stockQuantity * product.priceCents, 0);
 
