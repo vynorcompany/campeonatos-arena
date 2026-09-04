@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
-import { CategoryPairForm } from "@/components/tournaments/category-pair-form";
+import { AthleteSearchField, CategoryPairForm } from "@/components/tournaments/category-pair-form";
 import { StatusBadge } from "@/components/tournaments/status-badge";
 import {
   replaceCategoryPairPlayerAction,
@@ -158,15 +159,12 @@ export function CategoryRegistrationPanel({
                           {canReplacePairPlayer && availableAthletes.length ? (
                             <div className="stack-xs league-registration-replacements">
                               {pair.playerIds.map((playerId, index) => (
-                                <form action={replaceCategoryPairPlayerAction} className="inline-pair-edit" key={`${pair.id}-${playerId}`}>
+                                <SafeActionForm action={replaceCategoryPairPlayerAction} className="inline-pair-edit" successMessage="Atleta substituído." key={`${pair.id}-${playerId}`}>
                                   <input type="hidden" name="pairId" value={pair.id} />
                                   <input type="hidden" name="previousPlayerId" value={playerId} />
-                                  <select name="replacementPlayerId" required aria-label={`Substituir ${pair.playerNames[index] ?? "atleta"}`} defaultValue="">
-                                    <option value="">Substituir {pair.playerNames[index] ?? "atleta"}</option>
-                                    {availableAthletes.map((athlete) => <option key={athlete.id} value={athlete.id}>{athlete.name}</option>)}
-                                  </select>
+                                  <AthleteSearchField id={`replace-${pair.id}-${playerId}`} label={`Substituir ${pair.playerNames[index] ?? "atleta"}`} name="replacementPlayerId" athletes={availableAthletes} compact />
                                   <SubmitButton label="Trocar" pendingLabel="Trocando..." className="button button-small" />
-                                </form>
+                                </SafeActionForm>
                               ))}
                             </div>
                           ) : null}
