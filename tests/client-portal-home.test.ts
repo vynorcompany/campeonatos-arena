@@ -109,6 +109,18 @@ test("client portal presents multiple featured events in an accessible carousel"
   assert.match(styles, /scroll-snap-type: x mandatory/);
 });
 
+test("portal only calculates league standings when the athlete opens Ligas", () => {
+  const page = read("src/app/classificacao/[arenaSlug]/page.tsx");
+  const standings = read("src/lib/services/public-standings.ts");
+
+  assert.match(page, /getPublicArenaShell/);
+  assert.match(page, /section === "leagues" \? await getArenaPublicStandings/);
+  assert.doesNotMatch(page, /Promise\.all\(\[getArenaPublicStandings/);
+  assert.match(standings, /export async function getPublicArenaShell/);
+  assert.match(page, /section !== "home" \? await getPublicLeaguePortal/);
+  assert.match(page, /section === "home" \? await getPublicClientHome/);
+});
+
 test("league header no longer displays the isolated notification count tag", () => {
   const portal = read("src/components/tournaments/public-league-portal.tsx");
 

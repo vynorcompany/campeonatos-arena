@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { PublicBookingContent } from "@/components/public-booking-content";
-import type { ArenaPublicStandings } from "@/lib/services/public-standings";
+import type { ArenaPublicStandings, PublicArenaShell } from "@/lib/services/public-standings";
 import { PublicLeaguePortal } from "@/components/tournaments/public-league-portal";
 import { PublicPlayerProfile } from "@/components/public-player-profile";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
@@ -56,6 +56,7 @@ function portalHref(
 
 export function PublicStandings({
   data,
+  arena,
   currentClient,
   portal,
   home,
@@ -66,7 +67,8 @@ export function PublicStandings({
   bookingDate,
   teacherId,
 }: {
-  data: ArenaPublicStandings;
+  data: ArenaPublicStandings | null;
+  arena: PublicArenaShell;
   currentClient: {
     name: string;
     phone: string;
@@ -89,15 +91,15 @@ export function PublicStandings({
       <div className="athlete-portal-hero-inner">
         <div className="athlete-portal-brand">
           <div>
-            {data.arena.logoUrl ? (
+            {arena.logoUrl ? (
               <img
                 className="athlete-portal-arena-logo"
-                src={data.arena.logoUrl}
-                alt={`Logo da arena ${data.arena.name}`}
+                src={arena.logoUrl}
+                alt={`Logo da arena ${arena.name}`}
               />
             ) : (
               <span className="athlete-portal-arena-name">
-                {data.arena.name}
+                {arena.name}
               </span>
             )}
             <h1>Portal do Atleta</h1>
@@ -128,7 +130,7 @@ export function PublicStandings({
       </main>
     );
 
-  const portalVisibility = data.arena;
+  const portalVisibility = arena;
   const requestedSection =
     section === "leagues" && !portalVisibility.athletePortalShowLeagues
       ? "profile"
@@ -290,7 +292,7 @@ export function PublicStandings({
           {selectedLeagueTab === "games" || selectedLeagueTab === "pairs" ? (
             portal ? (
               <PublicLeaguePortal
-                arenaSlug={data.arena.slug}
+                arenaSlug={arena.slug}
                 playerName={currentClient.name}
                 portal={portal}
                 view={selectedLeagueTab}
@@ -305,9 +307,9 @@ export function PublicStandings({
               </section>
             )
           ) : null}
-          {selectedLeagueTab === "rules" ? <RulesPanel data={data} /> : null}
+          {selectedLeagueTab === "rules" && data ? <RulesPanel data={data} /> : null}
           {selectedLeagueTab === "ranking" ? (
-            <RankingPanel data={data} />
+            data ? <RankingPanel data={data} /> : null
           ) : null}
           {selectedLeagueTab === "prizes" ? (
             <PrizePanel portal={portal} />
@@ -315,7 +317,7 @@ export function PublicStandings({
         </>
       ) : requestedSection === "booking" ? (
         <PublicBookingContent
-          arenaSlug={data.arena.slug}
+          arenaSlug={arena.slug}
           date={bookingDate}
           embedded
         />
@@ -329,7 +331,7 @@ export function PublicStandings({
         <TeacherManagementPanel portal={portal} />
       ) : (
         <PublicPlayerProfile
-          arenaSlug={data.arena.slug}
+          arenaSlug={arena.slug}
           player={currentClient}
         />
       )}
