@@ -14,4 +14,5 @@ test("fixed court bookings belong to a series that can be released for one date 
   assert.match(actions, /mode === "FREE"/);
   assert.match(actions, /bookingSeriesId/);
   assert.match(actions, /isFixedBooking/);
+  assert.match(actions, /occurrence === occurrences\[0\] \? participant\.paymentMethod : ""/);
 });
