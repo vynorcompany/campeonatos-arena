@@ -9,13 +9,14 @@ test("occupied agenda slots expose cancellation and command operations", () => {
   const comandaActions = readFileSync(resolve(process.cwd(), "src/lib/actions/comanda.ts"), "utf8");
 
   assert.match(dialog, /agenda-slot-options-trigger/);
-  assert.match(dialog, /Cancelar horário/);
-  assert.match(dialog, /Liberar horário/);
+  assert.match(dialog, /Cancelar reserva/);
+  assert.match(dialog, /Liberar este horário/);
   assert.match(dialog, /Abrir comandas/);
   assert.match(dialog, /cancelCourtBookingAction/);
   assert.match(dialog, /openBookingComandasAction/);
   assert.match(calendarActions, /export async function cancelCourtBookingAction/);
   assert.match(comandaActions, /export async function openBookingComandasAction/);
+  assert.match(comandaActions, /crypto\.randomUUID\(\)/);
 });
 
 test("online booking lists starts that fit the minimum duration and flags a conflicting extension", () => {

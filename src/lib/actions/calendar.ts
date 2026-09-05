@@ -15,6 +15,7 @@ import {
 } from "@/lib/calendar/inputs";
 import { weeklyRangesOverlap } from "@/lib/scheduling/weekly-rule";
 import { calculateCourtIntervalPrice } from "@/lib/calendar/court-interval-pricing";
+import { expandWeeklyOccurrences } from "@/lib/scheduling/recurrence";
 
 const calendarSchema = z.object({
   sourceType: z.enum(["lesson", "calendar"]).default("calendar"),
@@ -74,6 +75,7 @@ const courtBookingSchema = z.object({
   startsAt: z.string().trim().min(1),
   durationMinutes: z.coerce.number().int().min(15).max(720),
   bookingTypeName: z.string().trim().min(1).default("Reserva"),
+  repeatUntil: z.string().trim().default(""),
   teacherId: z.string().trim().default(""),
   notes: z.string().trim().default(""),
   participants: z.string().trim().default("[]")
@@ -88,6 +90,8 @@ const visibleCourtBookingErrors = new Set([
   "Uma ou mais quadras não pertencem à arena.",
   "Selecione o professor responsável.",
   "Professor não encontrado.",
+  "Informe até quando a reserva fixa deve se repetir.",
+  "A data final da reserva fixa deve ser igual ou posterior ao primeiro horário.",
   "Um ou mais atletas não pertencem à arena.",
   "Já existe um agendamento nessa quadra para este horário."
 ]);
@@ -100,6 +104,10 @@ const publicCourtBookingSchema = z.object({
 });
 
 const DEFAULT_BOOKING_TYPES = ["Aula", "Aula fixa", "Plano", "Super 12", "Liga", "Reserva"];
+
+function isFixedBooking(bookingTypeName: string) {
+  return ["aula fixa", "reserva fixa"].includes(bookingTypeName.trim().toLowerCase());
+}
 
 function refreshCalendar() {
   revalidatePath("/calendario");
@@ -183,8 +191,16 @@ export async function cancelCourtBookingAction(formData: FormData) {
   const auth = await requireModuleEdit("calendar");
   const parsed = z.object({ occurrenceId: z.string().trim().min(1), mode: z.enum(["CANCEL", "FREE"]).default("CANCEL") }).safeParse({ occurrenceId: formData.get("occurrenceId"), mode: formData.get("mode") });
   if (!parsed.success) throw new Error("Horário inválido.");
-  const result = await withArenaTransaction(auth.arenaId, (tx) => tx.scheduleOccurrence.updateMany({ where: { id: parsed.data.occurrenceId, arenaId: auth.arenaId, status: { not: "CANCELED" } }, data: { status: "CANCELED" } }));
-  if (!result.count) throw new Error("Este horário já foi cancelado ou não foi encontrado.");
+  const result = await withArenaTransaction(auth.arenaId, async (tx) => {
+    const occurrence = await tx.scheduleOccurrence.findFirst({ where: { id: parsed.data.occurrenceId, arenaId: auth.arenaId, status: { not: "CANCELED" } }, select: { id: true, startsAt: true, bookingSeriesId: true } });
+    if (!occurrence) return 0;
+    if (parsed.data.mode === "FREE" || !occurrence.bookingSeriesId) {
+      return (await tx.scheduleOccurrence.updateMany({ where: { id: occurrence.id, arenaId: auth.arenaId, status: { not: "CANCELED" } }, data: { status: "CANCELED" } })).count;
+    }
+    await tx.scheduleBookingSeries.updateMany({ where: { id: occurrence.bookingSeriesId, arenaId: auth.arenaId, status: "ACTIVE" }, data: { status: "CANCELED" } });
+    return (await tx.scheduleOccurrence.updateMany({ where: { bookingSeriesId: occurrence.bookingSeriesId, arenaId: auth.arenaId, startsAt: { gte: occurrence.startsAt }, status: { not: "CANCELED" } }, data: { status: "CANCELED" } })).count;
+  });
+  if (!result) throw new Error("Este horário já foi cancelado ou não foi encontrado.");
   refreshCalendar();
 }
 
@@ -215,11 +231,19 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
   const parsed = courtBookingSchema.safeParse({
     occurrenceId: String(formData.get("occurrenceId") ?? ""), courtId: formData.get("courtId"), courtIds: formData.get("courtIds"), title: formData.get("title"),
     startsAt: formData.get("startsAt"), durationMinutes: formData.get("durationMinutes"), bookingTypeName: formData.get("bookingTypeName"),
+    repeatUntil: formData.get("repeatUntil"),
     teacherId: formData.get("teacherId"), notes: formData.get("notes"), participants: formData.get("participants")
   });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   const startsAt = parseScheduledAt(parsed.data.startsAt);
   const endsAt = new Date(startsAt.getTime() + parsed.data.durationMinutes * 60_000);
+  const fixedBooking = isFixedBooking(parsed.data.bookingTypeName);
+  const repeatUntil = parsed.data.repeatUntil ? new Date(`${parsed.data.repeatUntil}T23:59:59`) : null;
+  if (fixedBooking && !parsed.data.occurrenceId && !repeatUntil) throw new Error("Informe até quando a reserva fixa deve se repetir.");
+  if (repeatUntil && (Number.isNaN(repeatUntil.getTime()) || repeatUntil < startsAt)) throw new Error("A data final da reserva fixa deve ser igual ou posterior ao primeiro horário.");
+  const occurrenceTimes = fixedBooking && !parsed.data.occurrenceId && repeatUntil
+    ? expandWeeklyOccurrences({ startsAt, endsAt, until: repeatUntil })
+    : [{ startsAt, endsAt }];
   const participants = parseBookingParticipants(parsed.data.participants);
   const courtIds = parseCourtIds(parsed.data.courtIds, parsed.data.courtId);
   const courts = await prisma.court.findMany({ where: { arenaId: auth.arenaId, id: { in: courtIds } }, select: { id: true } });
@@ -234,27 +258,30 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
   if (players.length !== participants.length) throw new Error("Um ou mais atletas não pertencem à arena.");
   const conflicts = await withArenaTransaction(auth.arenaId, (tx) => tx.scheduleOccurrence.findFirst({ where: {
     arenaId: auth.arenaId, id: parsed.data.occurrenceId ? { not: parsed.data.occurrenceId } : undefined,
-    status: { not: "CANCELED" }, startsAt: { lt: endsAt }, endsAt: { gt: startsAt }, occurrenceCourts: { some: { courtId: { in: courtIds } } }
+    status: { not: "CANCELED" }, OR: occurrenceTimes.map((occurrence) => ({ startsAt: { lt: occurrence.endsAt }, endsAt: { gt: occurrence.startsAt } })), occurrenceCourts: { some: { courtId: { in: courtIds } } }
   } }));
   if (conflicts) throw new Error("Já existe um agendamento nessa quadra para este horário.");
 
   await withArenaTransaction(auth.arenaId, async (tx) => {
-    const occurrence = parsed.data.occurrenceId
-      ? await tx.scheduleOccurrence.update({ where: { id: parsed.data.occurrenceId, arenaId: auth.arenaId }, data: { title: parsed.data.title, startsAt, endsAt, bookingTypeName: parsed.data.bookingTypeName, teacherId: parsed.data.teacherId || null, notes: parsed.data.notes, occurrenceCourts: { deleteMany: {}, create: courtIds.map((courtId) => ({ courtId })) } } })
-      : await tx.scheduleOccurrence.create({ data: { arenaId: auth.arenaId, sourceType: "BOOKING", title: parsed.data.title, startsAt, endsAt, bookingTypeName: parsed.data.bookingTypeName, teacherId: parsed.data.teacherId || null, notes: parsed.data.notes, occurrenceCourts: { create: courtIds.map((courtId) => ({ courtId })) } } });
-    const previous = await tx.scheduleParticipant.findMany({ where: { occurrenceId: occurrence.id } });
-    for (const participant of previous) {
-      if (!participants.some((item) => item.playerId === participant.playerId) && participant.financialEntryId) await tx.financialEntry.delete({ where: { id: participant.financialEntryId } });
-    }
-    await tx.scheduleParticipant.deleteMany({ where: { occurrenceId: occurrence.id, playerId: { notIn: participants.map((participant) => participant.playerId) } } });
-    for (const participant of participants) {
-      const existing = previous.find((item) => item.playerId === participant.playerId);
-      const player = players.find((item) => item.id === participant.playerId)!;
-      const hasCharge = participant.amountCents > 0;
-      const entryData = { type: "INCOME", category: "COURT_BOOKING", description: `${parsed.data.title} · ${player.name}`, amountCents: participant.amountCents, paymentMethod: participant.paymentMethod, status: participant.paymentMethod ? "PAID" : "PENDING", dueDate: startsAt, paidAt: participant.paymentMethod ? new Date() : null, notes: `Agendamento ${occurrence.id}`, arenaId: auth.arenaId };
-      const financialEntryId = hasCharge ? (existing?.financialEntryId ? (await tx.financialEntry.update({ where: { id: existing.financialEntryId }, data: entryData })).id : (await tx.financialEntry.create({ data: entryData })).id) : null;
-      if (!hasCharge && existing?.financialEntryId) await tx.financialEntry.delete({ where: { id: existing.financialEntryId } });
-      await tx.scheduleParticipant.upsert({ where: { occurrenceId_playerId: { occurrenceId: occurrence.id, playerId: participant.playerId } }, update: { amountCents: participant.amountCents, paymentMethod: participant.paymentMethod, financialEntryId }, create: { occurrenceId: occurrence.id, playerId: participant.playerId, amountCents: participant.amountCents, paymentMethod: participant.paymentMethod, financialEntryId } });
+    const occurrences = parsed.data.occurrenceId
+      ? [await tx.scheduleOccurrence.update({ where: { id: parsed.data.occurrenceId, arenaId: auth.arenaId }, data: { title: parsed.data.title, startsAt, endsAt, bookingTypeName: parsed.data.bookingTypeName, teacherId: parsed.data.teacherId || null, notes: parsed.data.notes, occurrenceCourts: { deleteMany: {}, create: courtIds.map((courtId) => ({ courtId })) } } })]
+      : await (async () => {
+        const series = fixedBooking ? await tx.scheduleBookingSeries.create({ data: { arenaId: auth.arenaId, title: parsed.data.title, bookingTypeName: parsed.data.bookingTypeName, startsAt, endsAt: occurrenceTimes.at(-1)!.endsAt, teacherId: parsed.data.teacherId || null, notes: parsed.data.notes } }) : null;
+        return Promise.all(occurrenceTimes.map((occurrence) => tx.scheduleOccurrence.create({ data: { arenaId: auth.arenaId, sourceType: "BOOKING", bookingSeriesId: series?.id, title: parsed.data.title, startsAt: occurrence.startsAt, endsAt: occurrence.endsAt, bookingTypeName: parsed.data.bookingTypeName, teacherId: parsed.data.teacherId || null, notes: parsed.data.notes, occurrenceCourts: { create: courtIds.map((courtId) => ({ courtId })) } } })));
+      })();
+    for (const occurrence of occurrences) {
+      const previous = await tx.scheduleParticipant.findMany({ where: { occurrenceId: occurrence.id } });
+      for (const participant of previous) if (!participants.some((item) => item.playerId === participant.playerId) && participant.financialEntryId) await tx.financialEntry.delete({ where: { id: participant.financialEntryId } });
+      await tx.scheduleParticipant.deleteMany({ where: { occurrenceId: occurrence.id, playerId: { notIn: participants.map((participant) => participant.playerId) } } });
+      for (const participant of participants) {
+        const existing = previous.find((item) => item.playerId === participant.playerId);
+        const player = players.find((item) => item.id === participant.playerId)!;
+        const hasCharge = participant.amountCents > 0;
+        const entryData = { type: "INCOME", category: "COURT_BOOKING", description: `${parsed.data.title} · ${player.name}`, amountCents: participant.amountCents, paymentMethod: participant.paymentMethod, status: participant.paymentMethod ? "PAID" : "PENDING", dueDate: occurrence.startsAt, paidAt: participant.paymentMethod ? new Date() : null, notes: `Agendamento ${occurrence.id}`, arenaId: auth.arenaId };
+        const financialEntryId = hasCharge ? (existing?.financialEntryId ? (await tx.financialEntry.update({ where: { id: existing.financialEntryId }, data: entryData })).id : (await tx.financialEntry.create({ data: entryData })).id) : null;
+        if (!hasCharge && existing?.financialEntryId) await tx.financialEntry.delete({ where: { id: existing.financialEntryId } });
+        await tx.scheduleParticipant.upsert({ where: { occurrenceId_playerId: { occurrenceId: occurrence.id, playerId: participant.playerId } }, update: { amountCents: participant.amountCents, paymentMethod: participant.paymentMethod, financialEntryId }, create: { occurrenceId: occurrence.id, playerId: participant.playerId, amountCents: participant.amountCents, paymentMethod: participant.paymentMethod, financialEntryId } });
+      }
     }
   });
   refreshCalendar();

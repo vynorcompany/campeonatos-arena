@@ -8122,3 +8122,38 @@ button {
 .client-portal-event-carousel-controls svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
 @media (max-width: 620px) { .client-portal-event-posts { grid-template-columns: 1fr; } .client-portal-event-posts img { max-height: 440px; aspect-ratio: 9 / 16; object-fit: contain; background: #f2f6fa; } }
 @media (max-width: 620px) { .client-portal-event-carousel-track { grid-auto-columns: minmax(82%, 330px); padding-bottom: 4px; } .client-portal-event-carousel-track img { aspect-ratio: 9 / 16; max-height: 440px; object-fit: contain; background: #f2f6fa; } .client-portal-event-carousel-controls { justify-content: center; } }
+
+/* Grade de horários: reserva organizada para leitura operacional. */
+.agenda-booking-dialog { width: min(100%, 1240px); max-height: calc(100vh - 24px); padding: 28px 32px; }
+.agenda-booking-form { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+.agenda-booking-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.agenda-booking-summary-card { display: grid; align-content: start; gap: 8px; min-height: 118px; padding: 14px; border: 1px solid #d9e5f1; border-radius: 10px; background: #fbfdff; }
+.agenda-booking-summary-card > span { color: #5d748e; font-size: .66rem; font-weight: 850; letter-spacing: .065em; }
+.agenda-booking-summary-card > strong { color: #112d52; font-size: 1rem; }
+.agenda-booking-summary-card select, .agenda-booking-summary-card input { min-height: 36px; }
+.agenda-price-editor { padding: 0; border: 0; background: transparent; color: #0d4d93; font: inherit; font-size: 1.05rem; font-weight: 850; text-align: left; cursor: pointer; }
+.agenda-split-button { justify-self: start; padding: 0; border: 0; background: transparent; color: #2767a7; font: inherit; font-size: .74rem; font-weight: 750; cursor: pointer; }
+.agenda-booking-datetime-card { grid-column: span 1; }
+.agenda-booking-datetime-card > div { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.agenda-booking-datetime-card label { display: grid; gap: 4px; color: #526b86; font-size: .67rem; font-weight: 750; }
+.agenda-booking-datetime-card label:first-child { grid-column: 1 / -1; }
+.agenda-booking-datetime-card small { color: #7a5d21; font-size: .68rem; }
+.agenda-booking-extra { display: grid; grid-template-columns: minmax(220px, 420px); gap: 6px; color: #526b86; font-size: .76rem; font-weight: 750; }
+.agenda-booking-extra textarea { min-height: 68px; }
+.agenda-participants { grid-template-columns: minmax(210px, 270px) minmax(0, 1fr); align-items: start; gap: 16px; padding: 16px 0 0; }
+.agenda-client-search { position: relative; display: grid; gap: 8px; max-width: 270px; }
+.agenda-client-search label { display: grid; gap: 6px; color: #526b86; font-size: .74rem; font-weight: 750; }
+.agenda-client-search .button { justify-self: start; min-height: 33px; padding-inline: 10px; font-size: .73rem; }
+.agenda-client-search .agenda-player-suggestions { position: absolute; z-index: 2; top: 68px; width: min(270px, 100%); max-height: 220px; overflow: auto; grid-template-columns: 1fr; box-shadow: 0 10px 22px rgb(20 60 95 / .12); }
+.agenda-participant-list { display: grid; gap: 7px; min-width: 0; }
+.agenda-participant-list > p { margin: 8px 0; color: var(--muted); font-size: .82rem; }
+.agenda-participant-row { grid-template-columns: minmax(150px, 1fr) 125px minmax(155px, .9fr) auto; align-items: end; gap: 9px; padding: 10px 12px; border: 1px solid #e0e9f1; border-radius: 9px; background: #fff; }
+.agenda-participant-row > strong { align-self: center; color: #153456; font-size: .85rem; }
+.agenda-participant-row label { display: grid; gap: 4px; color: #60758c; font-size: .67rem; font-weight: 750; }
+.agenda-participant-row input, .agenda-participant-row select { min-height: 34px; padding: 6px 8px; }
+.agenda-participant-row .button { min-height: 34px; padding-inline: 10px; font-size: .7rem; white-space: nowrap; }
+.agenda-booking-form footer { grid-column: auto; }
+@media (max-width: 960px) { .agenda-booking-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .agenda-booking-datetime-card { grid-column: auto; } .agenda-participants { grid-template-columns: 1fr; } .agenda-client-search { max-width: 340px; } }
+@media (max-width: 680px) { .agenda-booking-dialog { width: calc(100% - 16px); max-height: calc(100vh - 16px); padding: 18px; } .agenda-booking-summary-grid { grid-template-columns: 1fr; } .agenda-booking-summary-card { min-height: 0; } .agenda-booking-extra { grid-template-columns: 1fr; } .agenda-participant-row { grid-template-columns: 1fr 1fr; } .agenda-participant-row > strong { grid-column: 1 / -1; } .agenda-participant-row .button { justify-self: start; } }
+.agenda-booking-type-icon svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.9; }
+.agenda-booking-type-label { color: #4e6b89 !important; font-size: .62rem !important; font-weight: 750 !important; letter-spacing: .02em; text-transform: none !important; }

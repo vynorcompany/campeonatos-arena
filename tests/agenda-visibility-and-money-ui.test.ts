@@ -5,14 +5,14 @@ import test from "node:test";
 
 const source = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8");
 
-test("agenda starts with no placeholder athletes and keeps the court price at the top", () => {
+test("agenda starts with no placeholder athletes and keeps the court price in the summary", () => {
   const dialog = source("src/components/agenda-slot-dialog.tsx");
   const css = source("src/app/globals.css");
 
   assert.match(dialog, /useState<Participant\[\]>\(\(\) => slot\.participants \?\? \[\]\)/);
-  assert.match(dialog, /agenda-court-price-summary/);
-  assert.match(css, /\.agenda-court-price-summary \{ order: -1/);
-  assert.match(dialog, /Adicionar atleta/);
+  assert.match(dialog, /agenda-booking-summary-grid/);
+  assert.match(css, /\.agenda-booking-summary-grid \{[^}]*repeat\(4/);
+  assert.match(dialog, /Buscar cliente/);
   assert.doesNotMatch(dialog, /Valor com forma de pagamento entra como quitado/);
 });
 
