@@ -277,10 +277,11 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
         const existing = previous.find((item) => item.playerId === participant.playerId);
         const player = players.find((item) => item.id === participant.playerId)!;
         const hasCharge = participant.amountCents > 0;
-        const entryData = { type: "INCOME", category: "COURT_BOOKING", description: `${parsed.data.title} · ${player.name}`, amountCents: participant.amountCents, paymentMethod: participant.paymentMethod, status: participant.paymentMethod ? "PAID" : "PENDING", dueDate: occurrence.startsAt, paidAt: participant.paymentMethod ? new Date() : null, notes: `Agendamento ${occurrence.id}`, arenaId: auth.arenaId };
+        const paymentMethod = occurrence === occurrences[0] ? participant.paymentMethod : "";
+        const entryData = { type: "INCOME", category: "COURT_BOOKING", description: `${parsed.data.title} · ${player.name}`, amountCents: participant.amountCents, paymentMethod, status: paymentMethod ? "PAID" : "PENDING", dueDate: occurrence.startsAt, paidAt: paymentMethod ? new Date() : null, notes: `Agendamento ${occurrence.id}`, arenaId: auth.arenaId };
         const financialEntryId = hasCharge ? (existing?.financialEntryId ? (await tx.financialEntry.update({ where: { id: existing.financialEntryId }, data: entryData })).id : (await tx.financialEntry.create({ data: entryData })).id) : null;
         if (!hasCharge && existing?.financialEntryId) await tx.financialEntry.delete({ where: { id: existing.financialEntryId } });
-        await tx.scheduleParticipant.upsert({ where: { occurrenceId_playerId: { occurrenceId: occurrence.id, playerId: participant.playerId } }, update: { amountCents: participant.amountCents, paymentMethod: participant.paymentMethod, financialEntryId }, create: { occurrenceId: occurrence.id, playerId: participant.playerId, amountCents: participant.amountCents, paymentMethod: participant.paymentMethod, financialEntryId } });
+        await tx.scheduleParticipant.upsert({ where: { occurrenceId_playerId: { occurrenceId: occurrence.id, playerId: participant.playerId } }, update: { amountCents: participant.amountCents, paymentMethod, financialEntryId }, create: { occurrenceId: occurrence.id, playerId: participant.playerId, amountCents: participant.amountCents, paymentMethod, financialEntryId } });
       }
     }
   });
