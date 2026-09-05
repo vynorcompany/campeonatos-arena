@@ -58,3 +58,16 @@ export function endMinutesForBookingStart({
   }
   return ends;
 }
+
+export function durationMinutesForBookingStart({
+  startMinute,
+  slotMinutes,
+  availableMinutes,
+}: {
+  startMinute: number;
+  slotMinutes: number;
+  availableMinutes: number[];
+}) {
+  return endMinutesForBookingStart({ startMinute, slotMinutes, availableMinutes })
+    .map((endMinute) => endMinute - startMinute);
+}

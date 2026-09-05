@@ -111,6 +111,7 @@ model Arena {
   portalEventPosts PortalEventPost[]
   courts      Court[]
   scheduleOccurrences ScheduleOccurrence[]
+  scheduleBookingSeries ScheduleBookingSeries[]
   bookingTypes BookingType[]
   products    Product[]
   productCategories ProductCategory[]
@@ -1028,6 +1029,7 @@ model Teacher {
   player         Player?  @relation(fields: [playerId], references: [id], onDelete: SetNull)
   lessons        Lesson[]
   scheduleOccurrences ScheduleOccurrence[]
+  scheduleBookingSeries ScheduleBookingSeries[]
   payrollEntries TeacherPayrollEntry[]
   studentAssignments TeacherStudent[]
   planAssignments TeacherPlan[]
@@ -1277,6 +1279,7 @@ model ScheduleOccurrence {
   bookingTypeName String @default("Reserva")
   notes       String   @default("")
   teacherId   String?
+  bookingSeriesId String?
   challengeId String?  @unique
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -1285,9 +1288,31 @@ model ScheduleOccurrence {
   occurrenceCourts ScheduleOccurrenceCourt[]
   participants ScheduleParticipant[]
   teacher     Teacher? @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  bookingSeries ScheduleBookingSeries? @relation(fields: [bookingSeriesId], references: [id], onDelete: SetNull)
   challenge   LeagueChallenge? @relation(fields: [challengeId], references: [id], onDelete: SetNull)
 
   @@index([arenaId, startsAt, endsAt])
+  @@index([teacherId])
+  @@index([bookingSeriesId, startsAt])
+}
+
+model ScheduleBookingSeries {
+  id              String   @id @default(cuid())
+  title           String
+  bookingTypeName String
+  startsAt        DateTime
+  endsAt          DateTime
+  status          String   @default("ACTIVE")
+  notes           String   @default("")
+  teacherId       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  arenaId         String
+  arena           Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  teacher         Teacher? @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  occurrences     ScheduleOccurrence[]
+
+  @@index([arenaId, status, startsAt])
   @@index([teacherId])
 }
 

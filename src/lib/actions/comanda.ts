@@ -36,7 +36,7 @@ const finishComandaSchema = z.object({
 });
 
 function formatComandaCode() {
-  return `CMD-${Date.now().toString(36).toUpperCase()}`;
+  return `CMD-${Date.now().toString(36).toUpperCase()}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 }
 
 export async function createComandaAction(formData: FormData) {
