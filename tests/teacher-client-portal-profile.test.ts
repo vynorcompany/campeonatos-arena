@@ -26,11 +26,10 @@ test("formulário de cliente remove cadastro redundante de aluno e oferece papel
   assert.doesNotMatch(form, /createStudent/);
   assert.match(form, /Classe[\s\S]*name="class"/);
   assert.match(form, /Gênero[\s\S]*<select/);
-  assert.match(form, /className="teacher-role-switch"/);
-  assert.match(workspace, /name="isTeacher"/);
-  assert.match(styles, /\.client-edit-form \.check-option \{/);
-  assert.match(styles, /\.teacher-role-switch/);
-  assert.match(styles, /input\[name="isTeacher"\]/);
+  assert.match(form, /className="control-toggle"[\s\S]*name="isTeacher"[\s\S]*<span aria-hidden="true" \/>[\s\S]*<em>É professor<\/em>/);
+  assert.match(workspace, /className="control-toggle"[\s\S]*name="isTeacher"[\s\S]*<span aria-hidden="true" \/>[\s\S]*<em>É professor<\/em>/);
+  assert.match(styles, /\.control-toggle span::after/);
+  assert.doesNotMatch(styles, /\.teacher-role-switch/);
 });
 
 test("novo cliente pode ser criado sem CPF ou data de nascimento", () => {
