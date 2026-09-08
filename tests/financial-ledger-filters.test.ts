@@ -39,3 +39,11 @@ test("receivable plan selectors show the professor from the persisted plan assig
   assert.match(ledger, /Professor:/);
   assert.match(ledger, /teacherNames/);
 });
+
+test("financial setting actions normalize missing optional FormData fields", () => {
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/finance.ts"), "utf8");
+
+  assert.match(actions, /const optionalText = z\.preprocess\(\(value\) => value \?\? "", z\.string\(\)\.trim\(\)\.default\(""\)\);/);
+  assert.match(actions, /openingBalance: z\.preprocess\(\(value\) => value \?\? "0", z\.string\(\)\.trim\(\)\.default\("0"\)\)/);
+  assert.match(actions, /createFinancialSettingAction[\s\S]*withArenaTransaction\(auth\.arenaId, async \(tx\) => \{[\s\S]*tx\.financialCategory\.create/);
+});
