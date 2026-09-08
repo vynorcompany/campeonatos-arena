@@ -5,7 +5,10 @@ import { useMemo, useState, useTransition } from "react";
 import {
   createFinancialEntryAction,
   createFinancialRecurrenceAction,
+  deleteFinancialEntryAction,
+  deleteFinancialEntriesBulkAction,
   settleFinancialEntryAction,
+  settleFinancialEntriesBulkAction,
   updateFinancialEntryAction,
   voidFinancialEntryAction,
 } from "@/lib/actions/finance";
@@ -29,7 +32,7 @@ type Account = {
   balance: { interestCents: number; paidCents: number; outstandingCents: number };
 };
 
-type Option = { id: string; name: string; phone?: string };
+type Option = { id: string; name: string; phone?: string; teacherNames?: string[] };
 
 function money(cents: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
@@ -41,6 +44,13 @@ function date(value: string | null) {
 
 function amountInput(cents: number) {
   return (cents / 100).toFixed(2).replace(".", ",");
+}
+
+function planLabel(plan: Option) {
+  if (!plan.teacherNames) return plan.name;
+  if (!plan.teacherNames.length) return `${plan.name} · Sem professor vinculado`;
+  const label = plan.teacherNames.length === 1 ? "Professor:" : "Professores:";
+  return `${plan.name} · ${label} ${plan.teacherNames.join(", ")}`;
 }
 
 export function AccountsLedger({
@@ -55,6 +65,7 @@ export function AccountsLedger({
   products,
   suppliers,
   clients,
+  canDeleteEntries,
 }: {
   title: string;
   type: "REVENUE" | "EXPENSE";
@@ -67,6 +78,7 @@ export function AccountsLedger({
   products: Option[];
   suppliers: Option[];
   clients: Option[];
+  canDeleteEntries: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const [newEntryOpen, setNewEntryOpen] = useState(false);
@@ -84,9 +96,14 @@ export function AccountsLedger({
   const [discount, setDiscount] = useState("");
   const [discountMode, setDiscountMode] = useState<"AMOUNT" | "PERCENTAGE">("AMOUNT");
   const [message, setMessage] = useState("");
+  const [clientFilter, setClientFilter] = useState(String(filters.name ?? ""));
+  const [clientFilterOpen, setClientFilterOpen] = useState(false);
+  const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(new Set());
+  const [bulkPaymentOpen, setBulkPaymentOpen] = useState(false);
 
   const actionLabel = type === "REVENUE" ? "Receber" : "Pagar";
   const partyLabel = type === "REVENUE" ? "Cliente" : "Fornecedor";
+  const filterLabel = type === "REVENUE" ? "Cliente" : "Nome";
   const matchingSuppliers = useMemo(
     () => suppliers.filter((supplier) => supplier.name.toLocaleLowerCase("pt-BR").includes(counterpartyName.toLocaleLowerCase("pt-BR"))).slice(0, 6),
     [counterpartyName, suppliers],
@@ -100,6 +117,19 @@ export function AccountsLedger({
     () => clients.filter((client) => client.name.toLocaleLowerCase("pt-BR").includes(editCounterpartyName.toLocaleLowerCase("pt-BR"))).slice(0, 6),
     [clients, editCounterpartyName],
   );
+  const matchingFilterClients = useMemo(
+    () => clients.filter((client) => client.name.toLocaleLowerCase("pt-BR").includes(clientFilter.toLocaleLowerCase("pt-BR"))).slice(0, 6),
+    [clientFilter, clients],
+  );
+  const selectableEntries = entries.filter((entry) => entry.status !== "VOIDED");
+  const selectedEntries = entries.filter((entry) => selectedEntryIds.has(entry.id));
+  const selectedPendingEntries = selectedEntries.filter((entry) => entry.status === "PENDING" && entry.balance.outstandingCents > 0);
+  const allSelectableEntriesSelected = selectableEntries.length > 0 && selectableEntries.every((entry) => selectedEntryIds.has(entry.id));
+  const toggleEntrySelection = (entryId: string) => setSelectedEntryIds((current) => {
+    const next = new Set(current);
+    if (next.has(entryId)) next.delete(entryId); else next.add(entryId);
+    return next;
+  });
   const openEntry = (entry: Account) => {
     setEditCounterpartyName(entry.counterpartyName === "Não informado" ? "" : entry.counterpartyName);
     setSelectedEntry(entry);
@@ -121,11 +151,11 @@ export function AccountsLedger({
     <div className="accounts-ledger stack-md">
       <header className="accounts-ledger-header">
         <div><h1>{title}</h1><p className="muted">Lançamentos em ordem de vencimento.</p></div>
-        <button type="button" className="button button-primary" onClick={() => setNewEntryOpen(true)}>Novo lançamento</button>
+        <button type="button" className="button button-primary" onClick={() => { setMessage(""); setNewEntryOpen(true); }}>Novo lançamento</button>
       </header>
 
       <form method="get" className="accounts-filters">
-        <input name="name" placeholder="Nome" defaultValue={String(filters.name ?? "")} />
+        {type === "REVENUE" ? <div className="accounts-client-filter"><input name="name" placeholder={filterLabel} aria-label={filterLabel} value={clientFilter} onFocus={() => setClientFilterOpen(true)} onChange={(event) => { setClientFilter(event.target.value); setClientFilterOpen(true); }} />{clientFilterOpen && clientFilter.trim() ? <div className="client-search-panel accounts-client-suggestions" aria-label="Clientes encontrados">{matchingFilterClients.map((client) => <button key={client.id} className="client-search-result" type="button" onClick={() => { setClientFilter(client.name); setClientFilterOpen(false); }}><span className="client-search-avatar">{client.name.slice(0, 1).toUpperCase()}</span><span><strong>{client.name}</strong><small>{client.phone || "Sem telefone cadastrado"}</small></span></button>)}{!matchingFilterClients.length ? <span className="client-search-empty">Nenhum cliente encontrado.</span> : null}</div> : null}</div> : <input name="name" placeholder={filterLabel} defaultValue={String(filters.name ?? "")} />}
         <input name="start" type="date" aria-label="Data inicial" defaultValue={String(filters.start ?? "")} />
         <input name="end" type="date" aria-label="Data final" defaultValue={String(filters.end ?? "")} />
         <select name="status" defaultValue={String(filters.status ?? "")}><option value="">Todos os status</option><option value="PENDING">Em aberto</option><option value="PAID">Quitada</option><option value="VOIDED">Estornada</option></select>
@@ -134,22 +164,23 @@ export function AccountsLedger({
         <select name="category" defaultValue={String(filters.category ?? "")}><option value="">Classificação</option>{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select>
         <input name="description" placeholder="Descrição" defaultValue={String(filters.description ?? "")} />
         <select name="productId" defaultValue={String(filters.productId ?? "")}><option value="">Produto</option>{products.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
-        <select name="planId" defaultValue={String(filters.planId ?? "")}><option value="">Plano/pacote</option>{plans.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
+        <select name="planId" defaultValue={String(filters.planId ?? "")}><option value="">Plano/pacote</option>{plans.map((item) => <option key={item.id} value={item.id}>{planLabel(item)}</option>)}</select>
         <select name="dateField" defaultValue={String(filters.dateField ?? "dueDate")}><option value="dueDate">Data de vencimento</option><option value="paidAt">Data de pagamento</option></select>
         <label className="control-toggle"><input name="includeEarlier" type="checkbox" value="1" defaultChecked={filters.includeEarlier === true} /><span aria-hidden="true" /><em>Anteriores à data inicial</em></label>
         <label className="control-toggle"><input name="includeVoided" type="checkbox" value="1" defaultChecked={filters.includeVoided === true} /><span aria-hidden="true" /><em>Incluir estornados/deletados</em></label>
-        <button className="button button-small">Filtrar</button>
+        <button className="button button-primary accounts-filters-submit">Filtrar</button>
       </form>
 
-      {message ? <p className="form-message form-message-error">{message}</p> : null}
+      {message && !newEntryOpen && !bulkPaymentOpen ? <p className="form-message form-message-error">{message}</p> : null}
+      {selectedEntries.length ? <section className="accounts-bulk-actions" aria-label="Ações em massa"><strong>{selectedEntries.length} lançamento{selectedEntries.length === 1 ? " selecionado" : "s selecionados"}</strong><span>{selectedPendingEntries.length ? `${selectedPendingEntries.length} pendente${selectedPendingEntries.length === 1 ? "" : "s"} para quitar` : "Nenhuma pendência selecionada"}</span>{selectedPendingEntries.length ? <button type="button" className="button button-primary button-small" onClick={() => { setMessage(""); setBulkPaymentOpen(true); }}>Quitar pendentes</button> : null}{canDeleteEntries ? <button type="button" className="button button-danger button-small" onClick={() => { if (!window.confirm(`Excluir ${selectedEntries.length} lançamento(s)? Eles permanecerão registrados para auditoria.`)) return; const form = new FormData(); selectedEntries.forEach((entry) => form.append("entryIds", entry.id)); run(() => deleteFinancialEntriesBulkAction(form), () => setSelectedEntryIds(new Set())); }}>Excluir selecionados</button> : null}<button type="button" className="button button-small" onClick={() => setSelectedEntryIds(new Set())}>Limpar seleção</button></section> : null}
       <section className="accounts-ledger-list" aria-label={title}>
-        <div className="accounts-ledger-columns"><span>Vencimento</span><span>{partyLabel}</span><span>Tipo</span><span>Descrição</span><span>Valor / saldo</span><span>Status</span><span>Ações</span></div>
+        <div className="accounts-ledger-columns"><span><input type="checkbox" aria-label="Selecionar todos os lançamentos" checked={allSelectableEntriesSelected} onChange={() => setSelectedEntryIds(allSelectableEntriesSelected ? new Set() : new Set(selectableEntries.map((entry) => entry.id)))} /></span><span>Vencimento</span><span>{partyLabel}</span><span>Tipo</span><span>Descrição</span><span>Valor / saldo</span><span>Status</span><span>Ações</span></div>
         {entries.map((entry) => (
           <article className="accounts-ledger-row accounts-ledger-row-clickable" key={entry.id} role="button" tabIndex={0} onClick={() => openEntry(entry)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") openEntry(entry); }}>
-            <span>{date(entry.dueDate)}</span><strong>{type === "REVENUE" && entry.counterpartyName !== "Não informado" ? <Link href={`/jogadores?q=${encodeURIComponent(entry.counterpartyName)}`} onClick={(event) => event.stopPropagation()}>{entry.counterpartyName}</Link> : entry.counterpartyName}</strong><span>{entry.category}</span><span>{entry.description}</span>
+            <span className="accounts-ledger-selection"><input type="checkbox" aria-label={`Selecionar ${entry.description}`} checked={selectedEntryIds.has(entry.id)} disabled={entry.status === "VOIDED"} onClick={(event) => event.stopPropagation()} onChange={() => toggleEntrySelection(entry.id)} /></span><span>{date(entry.dueDate)}</span><strong>{type === "REVENUE" && entry.counterpartyName !== "Não informado" ? <Link href={`/jogadores?q=${encodeURIComponent(entry.counterpartyName)}`} onClick={(event) => event.stopPropagation()}>{entry.counterpartyName}</Link> : entry.counterpartyName}</strong><span>{entry.category}</span><span>{entry.description}</span>
             <span><b>{money(entry.amountCents)}</b>{entry.balance.interestCents ? <small>Juros: {money(entry.balance.interestCents)}</small> : null}{entry.status !== "VOIDED" ? <small>Saldo: {money(entry.balance.outstandingCents)}</small> : null}</span>
             <span><em className={`account-status account-status-${entry.status.toLowerCase()}`}>{entry.status === "PAID" ? "Quitada" : entry.status === "VOIDED" ? "Estornada" : "Em aberto"}</em>{entry.voidReason ? <small>{entry.voidReason}</small> : null}</span>
-            <span className="accounts-ledger-actions">{entry.status === "PENDING" ? <button type="button" className="button button-small button-primary" onClick={(event) => { event.stopPropagation(); setPaymentEntry(entry); }}>{actionLabel}</button> : null}{entry.status !== "VOIDED" ? <button type="button" className="button button-small" onClick={(event) => { event.stopPropagation(); setVoidEntry(entry); }}>Estornar</button> : null}</span>
+            <span className="accounts-ledger-actions">{entry.status === "PENDING" ? <button type="button" className="button button-small button-primary" onClick={(event) => { event.stopPropagation(); setPaymentEntry(entry); }}>{actionLabel}</button> : null}{entry.status !== "VOIDED" ? <button type="button" className="button button-small" onClick={(event) => { event.stopPropagation(); setVoidEntry(entry); }}>Estornar</button> : null}{canDeleteEntries && entry.status !== "VOIDED" ? <button type="button" className="button button-small button-danger" onClick={(event) => { event.stopPropagation(); if (!window.confirm("Excluir este lançamento? Ele será removido da operação, mas permanecerá registrado para auditoria.")) return; const form = new FormData(); form.set("entryId", entry.id); run(() => deleteFinancialEntryAction(form), () => {}); }}>Excluir</button> : null}</span>
           </article>
         ))}
         {!entries.length ? <div className="accounts-ledger-empty">Nenhuma conta cadastrada.</div> : null}
@@ -159,8 +190,10 @@ export function AccountsLedger({
         <div className="command-modal-backdrop" onMouseDown={() => setNewEntryOpen(false)} role="presentation">
           <section className="financial-entry-modal" role="dialog" aria-modal="true" aria-label="Novo lançamento" onMouseDown={(event) => event.stopPropagation()}>
             <header><div><span>NOVO LANÇAMENTO</span><h2>{title}</h2></div><button type="button" className="button button-small" onClick={() => setNewEntryOpen(false)}>Fechar</button></header>
+            {message ? <p className="form-message form-message-error" role="alert">{message}</p> : null}
             <form onSubmit={(event) => {
               event.preventDefault();
+              if (!category) { setMessage("Selecione uma categoria financeira."); return; }
               const form = new FormData(event.currentTarget);
               run(() => recurring ? createFinancialRecurrenceAction(form) : createFinancialEntryAction(form), () => setNewEntryOpen(false));
             }} className="grid-form">
@@ -182,7 +215,7 @@ export function AccountsLedger({
               <label className="field">Desconto<div className="discount-control"><input name="discount" inputMode="decimal" value={discount} onChange={(event) => setDiscount(event.target.value)} placeholder="0,00" /><select name="discountMode" value={discountMode} onChange={(event) => setDiscountMode(event.target.value as "AMOUNT" | "PERCENTAGE")} aria-label="Tipo de desconto"><option value="AMOUNT">R$</option><option value="PERCENTAGE">%</option></select></div></label>
               <label className="field">Vencimento<input name="dueDate" type="date" /></label>
               <label className="field">Conta bancária<select name="bankAccountId" defaultValue=""><option value="">Não definida</option>{bankAccounts.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-              <label className="field">Plano/pacote<select name="planId" defaultValue=""><option value="">Não vincular</option>{plans.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+              <label className="field">Plano/pacote<select name="planId" defaultValue=""><option value="">Não vincular</option>{plans.map((item) => <option key={item.id} value={item.id}>{planLabel(item)}</option>)}</select></label>
               <label className="field">Produto<select name="productId" defaultValue=""><option value="">Não vincular</option>{products.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
               <div className="form-full financial-entry-toggles">
                 <label className="control-toggle"><input type="checkbox" checked={paid} disabled={recurring} onChange={(event) => setPaid(event.target.checked)} /><span aria-hidden="true" /><em>Pago</em></label>
@@ -195,15 +228,17 @@ export function AccountsLedger({
                 <label className="field">Encerramento (opcional)<input name="endsAt" type="date" /></label>
               </> : null}
               <label className="field form-full">Observações<input name="notes" /></label>
-              <footer className="modal-actions form-full"><button type="button" className="button" onClick={() => setNewEntryOpen(false)}>Cancelar</button><button className="button button-primary" disabled={pending}>{recurring ? "Criar recorrência" : "Salvar lançamento"}</button></footer>
+              <footer className="modal-actions form-full"><button type="button" className="button" onClick={() => setNewEntryOpen(false)}>Cancelar</button><button className="button button-primary" disabled={pending}>{pending ? "Salvando..." : recurring ? "Criar recorrência" : "Salvar lançamento"}</button></footer>
             </form>
           </section>
         </div>
       ) : null}
 
+      {bulkPaymentOpen ? <div className="command-modal-backdrop" onMouseDown={() => setBulkPaymentOpen(false)} role="presentation"><section className="financial-entry-modal financial-entry-modal-small" role="dialog" aria-modal="true" aria-label="Quitar lançamentos em massa" onMouseDown={(event) => event.stopPropagation()}><header><div><span>QUITAÇÃO EM MASSA</span><h2>Quitar {selectedPendingEntries.length} lançamento{selectedPendingEntries.length === 1 ? "" : "s"}</h2></div><button type="button" className="button button-small" onClick={() => setBulkPaymentOpen(false)}>Fechar</button></header><p>Todos os saldos pendentes selecionados serão quitados integralmente.</p>{message ? <p className="form-message form-message-error" role="alert">{message}</p> : null}<form onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget); selectedPendingEntries.forEach((entry) => form.append("entryIds", entry.id)); run(() => settleFinancialEntriesBulkAction(form), () => { setBulkPaymentOpen(false); setSelectedEntryIds(new Set()); }); }} className="grid-form"><label className="field">Forma de pagamento<select name="paymentMethod" defaultValue={paymentMethods[0] ?? "PIX"}>{paymentMethods.map((method) => <option key={method} value={method}>{method}</option>)}</select></label><label className="field">Data da quitação<input name="paidAt" type="date" defaultValue={new Date().toISOString().slice(0, 10)} /></label><footer className="modal-actions form-full"><button type="button" className="button" onClick={() => setBulkPaymentOpen(false)}>Cancelar</button><button className="button button-success" disabled={pending}>Quitar selecionados</button></footer></form></section></div> : null}
+
       {categoryModalOpen ? <div className="command-modal-backdrop" role="presentation" onMouseDown={() => setCategoryModalOpen(false)}><section className="financial-entry-modal financial-entry-modal-small" role="dialog" aria-modal="true" aria-label="Categorias financeiras" onMouseDown={(event) => event.stopPropagation()}><header><div><span>CLASSIFICAÇÃO</span><h2>Categorias financeiras</h2></div><button type="button" className="button button-small" onClick={() => setCategoryModalOpen(false)}>Fechar</button></header><div className="simple-list">{categories.map((item) => <button type="button" className="button" key={item} onClick={() => { setCategory(item); setCategoryModalOpen(false); }}>{item}</button>)}{!categories.length ? <p className="muted">Cadastre categorias financeiras nas configurações.</p> : null}</div></section></div> : null}
 
-      {selectedEntry ? <div className="command-modal-backdrop" onMouseDown={() => setSelectedEntry(null)} role="presentation"><section className="financial-entry-modal" role="dialog" aria-modal="true" aria-label="Editar lançamento" onMouseDown={(event) => event.stopPropagation()}><header><div><span>LANÇAMENTO</span><h2>{selectedEntry.description}</h2></div><button type="button" className="button button-small" onClick={() => setSelectedEntry(null)}>Fechar</button></header><form onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget); form.set("entryId", selectedEntry.id); run(() => updateFinancialEntryAction(form), () => setSelectedEntry(null)); }} className="grid-form"><label className="field">{partyLabel}<input name="counterpartyName" value={editCounterpartyName} onFocus={() => setEditClientPickerOpen(true)} onChange={(event) => { setEditCounterpartyName(event.target.value); setEditClientPickerOpen(true); }} required /></label>{type === "REVENUE" && editClientPickerOpen && editCounterpartyName.trim() ? <div className="client-search-panel form-full" aria-label="Selecionar cliente cadastrado">{matchingEditedClients.map((client) => <button key={client.id} className="client-search-result" type="button" onClick={() => { setEditCounterpartyName(client.name); setEditClientPickerOpen(false); }}><span className="client-search-avatar">{client.name.slice(0, 1).toUpperCase()}</span><span><strong>{client.name}</strong><small>{client.phone || "Sem telefone cadastrado"}</small></span></button>)}{!matchingEditedClients.length ? <span className="client-search-empty">Nenhum cliente encontrado.</span> : null}</div> : null}<label className="field">Categoria<select name="category" defaultValue={selectedEntry.category}>{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select></label><label className="field form-full">Descrição<input name="description" defaultValue={selectedEntry.description} required /></label><label className="field">Valor original<input name="amount" inputMode="decimal" defaultValue={amountInput(selectedEntry.amountCents)} required /></label><label className="field">Vencimento<input name="dueDate" type="date" defaultValue={selectedEntry.dueDate ?? ""} /></label><label className="field">Conta bancária<select name="bankAccountId" defaultValue={selectedEntry.bankAccountId ?? ""}><option value="">Não definida</option>{bankAccounts.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="field">Plano/pacote<select name="planId" defaultValue={selectedEntry.planId ?? ""}><option value="">Não vincular</option>{plans.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="field">Produto<select name="productId" defaultValue={selectedEntry.productId ?? ""}><option value="">Não vincular</option>{products.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="field form-full">Observações<input name="notes" defaultValue={selectedEntry.notes} /></label>{selectedEntry.settlements.length ? <div className="form-full account-settlement-history"><strong>Histórico de baixas</strong>{selectedEntry.settlements.map((settlement, index) => <span key={`${settlement.paidAt}-${index}`}>{date(settlement.paidAt)} · {settlement.paymentMethod} · {money(settlement.amountCents)}{settlement.interestCents ? ` + ${money(settlement.interestCents)} de juros` : ""}</span>)}</div> : null}<footer className="modal-actions form-full"><button type="button" className="button" onClick={() => setSelectedEntry(null)}>Cancelar</button><button className="button button-primary" disabled={pending}>Salvar alterações</button></footer></form></section></div> : null}
+      {selectedEntry ? <div className="command-modal-backdrop" onMouseDown={() => setSelectedEntry(null)} role="presentation"><section className="financial-entry-modal" role="dialog" aria-modal="true" aria-label="Editar lançamento" onMouseDown={(event) => event.stopPropagation()}><header><div><span>LANÇAMENTO</span><h2>{selectedEntry.description}</h2></div><button type="button" className="button button-small" onClick={() => setSelectedEntry(null)}>Fechar</button></header><form onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget); form.set("entryId", selectedEntry.id); run(() => updateFinancialEntryAction(form), () => setSelectedEntry(null)); }} className="grid-form"><label className="field">{partyLabel}<input name="counterpartyName" value={editCounterpartyName} onFocus={() => setEditClientPickerOpen(true)} onChange={(event) => { setEditCounterpartyName(event.target.value); setEditClientPickerOpen(true); }} required /></label>{type === "REVENUE" && editClientPickerOpen && editCounterpartyName.trim() ? <div className="client-search-panel form-full" aria-label="Selecionar cliente cadastrado">{matchingEditedClients.map((client) => <button key={client.id} className="client-search-result" type="button" onClick={() => { setEditCounterpartyName(client.name); setEditClientPickerOpen(false); }}><span className="client-search-avatar">{client.name.slice(0, 1).toUpperCase()}</span><span><strong>{client.name}</strong><small>{client.phone || "Sem telefone cadastrado"}</small></span></button>)}{!matchingEditedClients.length ? <span className="client-search-empty">Nenhum cliente encontrado.</span> : null}</div> : null}<label className="field">Categoria<select name="category" defaultValue={selectedEntry.category}>{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select></label><label className="field form-full">Descrição<input name="description" defaultValue={selectedEntry.description} required /></label><label className="field">Valor original<input name="amount" inputMode="decimal" defaultValue={amountInput(selectedEntry.amountCents)} required /></label><label className="field">Vencimento<input name="dueDate" type="date" defaultValue={selectedEntry.dueDate ?? ""} /></label><label className="field">Conta bancária<select name="bankAccountId" defaultValue={selectedEntry.bankAccountId ?? ""}><option value="">Não definida</option>{bankAccounts.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="field">Plano/pacote<select name="planId" defaultValue={selectedEntry.planId ?? ""}><option value="">Não vincular</option>{plans.map((item) => <option key={item.id} value={item.id}>{planLabel(item)}</option>)}</select></label><label className="field">Produto<select name="productId" defaultValue={selectedEntry.productId ?? ""}><option value="">Não vincular</option>{products.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="field form-full">Observações<input name="notes" defaultValue={selectedEntry.notes} /></label>{selectedEntry.settlements.length ? <div className="form-full account-settlement-history"><strong>Histórico de baixas</strong>{selectedEntry.settlements.map((settlement, index) => <span key={`${settlement.paidAt}-${index}`}>{date(settlement.paidAt)} · {settlement.paymentMethod} · {money(settlement.amountCents)}{settlement.interestCents ? ` + ${money(settlement.interestCents)} de juros` : ""}</span>)}</div> : null}<footer className="modal-actions form-full"><button type="button" className="button" onClick={() => setSelectedEntry(null)}>Cancelar</button><button className="button button-primary" disabled={pending}>Salvar alterações</button></footer></form></section></div> : null}
 
       {paymentEntry ? <div className="command-modal-backdrop" onMouseDown={() => setPaymentEntry(null)} role="presentation"><section className="financial-entry-modal" role="dialog" aria-modal="true" aria-label={actionLabel} onMouseDown={(event) => event.stopPropagation()}><header><div><span>BAIXA DE CONTA</span><h2>{actionLabel}: {paymentEntry.counterpartyName}</h2></div><button type="button" className="button button-small" onClick={() => setPaymentEntry(null)}>Fechar</button></header><div className="account-payment-summary"><span>Valor original <b>{money(paymentEntry.amountCents)}</b></span><span>Juros já lançados <b>{money(paymentEntry.balance.interestCents)}</b></span><span>Já baixado <b>{money(paymentEntry.balance.paidCents)}</b></span><span>Saldo atual <b>{money(paymentEntry.balance.outstandingCents)}</b></span></div><form onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget); form.set("entryId", paymentEntry.id); run(() => settleFinancialEntryAction(form), () => setPaymentEntry(null)); }} className="grid-form"><label className="field">Valor desta baixa<input name="amount" inputMode="decimal" placeholder="0,00" required /></label><label className="field">Juros desta baixa<input name="interest" inputMode="decimal" defaultValue="0,00" /></label><label className="field">Forma de pagamento<select name="paymentMethod" defaultValue={paymentMethods[0] ?? "PIX"}>{paymentMethods.map((method) => <option key={method} value={method}>{method}</option>)}</select></label><label className="field">Data<input name="paidAt" type="date" /></label><label className="field form-full">Observação<input name="notes" /></label><footer className="modal-actions form-full"><button type="button" className="button" onClick={() => setPaymentEntry(null)}>Cancelar</button><button className="button button-success" disabled={pending}>{actionLabel} conta</button></footer></form></section></div> : null}
       {voidEntry ? <div className="command-modal-backdrop" onMouseDown={() => setVoidEntry(null)} role="presentation"><section className="financial-entry-modal financial-entry-modal-small" role="dialog" aria-modal="true" aria-label="Estornar conta" onMouseDown={(event) => event.stopPropagation()}><header><div><span>ESTORNO</span><h2>Estornar conta</h2></div><button type="button" className="button button-small" onClick={() => setVoidEntry(null)}>Fechar</button></header><p>O lançamento será mantido no histórico como estornado.</p><form onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget); form.set("entryId", voidEntry.id); run(() => voidFinancialEntryAction(form), () => setVoidEntry(null)); }} className="stack-sm"><label className="field">Motivo<input name="reason" required minLength={3} /></label><footer className="modal-actions"><button type="button" className="button" onClick={() => setVoidEntry(null)}>Cancelar</button><button className="button button-danger" disabled={pending}>Confirmar estorno</button></footer></form></section></div> : null}

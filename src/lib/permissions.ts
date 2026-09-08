@@ -21,6 +21,7 @@ export const permissionModules = [
 export type PermissionModule = (typeof permissionModules)[number]["key"];
 
 export const allPermissionModules = permissionModules.map((module) => module.key);
+export const financialEntryDeletePermission = "finance:delete-entry";
 
 const alwaysVisibleModules: PermissionModule[] = ["dashboard", "support"];
 
@@ -64,4 +65,12 @@ export function canEditModule(module: PermissionModule, role: string | null, sys
   }
 
   return editPermissions.includes(module);
+}
+
+export function canDeleteFinancialEntries(role: string | null, systemRole: string, editPermissions: string[]) {
+  if (systemRole === "SUPER_ADMIN" || systemRole === "ADMIN" || role === "OWNER" || role === "ADMIN") {
+    return true;
+  }
+
+  return editPermissions.includes(financialEntryDeletePermission);
 }

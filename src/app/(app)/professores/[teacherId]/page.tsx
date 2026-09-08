@@ -84,16 +84,6 @@ export default async function TeacherDetailPage({
                 financialEntries: {
                   where: {
                     status: { not: "VOIDED" },
-                    OR: [
-                      {
-                        status: "PAID",
-                        paidAt: { gte: reportStart, lte: reportEnd },
-                      },
-                      {
-                        status: { not: "PAID" },
-                        dueDate: { gte: reportStart, lte: reportEnd },
-                      },
-                    ],
                   },
                   select: {
                     id: true,
@@ -177,6 +167,19 @@ export default async function TeacherDetailPage({
   ).length;
   const reportRows = teacher.planAssignments.flatMap(({ plan }) =>
     plan.financialEntries
+      .filter((entry) =>
+        entry.status === "PAID"
+          ? Boolean(
+              entry.paidAt &&
+                entry.paidAt >= reportStart &&
+                entry.paidAt <= reportEnd,
+            )
+          : Boolean(
+              entry.dueDate &&
+                entry.dueDate >= reportStart &&
+                entry.dueDate <= reportEnd,
+            ),
+      )
       .filter((entry) =>
         searchParams?.status === "open"
           ? entry.status !== "PAID"
@@ -376,6 +379,9 @@ export default async function TeacherDetailPage({
                 <article key={plan.id}>
                   <div>
                     <strong>{plan.name}</strong>
+                    <span className="teacher-plan-owner-tag">
+                      Professor: {teacher.name}
+                    </span>
                     <span>{plan.classesPerMonth} aulas/mês</span>
                     <b>{money(plan.monthlyPriceCents)}</b>
                     <small>{plan.subscriptions.length} aluno(s) ativo(s)</small>
@@ -418,7 +424,11 @@ export default async function TeacherDetailPage({
                   (entry) =>
                     entry.counterpartyName === subscription.student.name,
                 );
-                const paid = payment?.status === "PAID";
+                const financialStatus = !payment
+                  ? "Sem lançamento atribuído"
+                  : payment.status === "PAID"
+                    ? "Mensalidade paga"
+                    : "Mensalidade em aberto";
                 const studentGroup = teacher.classGroups.find((group) =>
                   group.enrollments.some(
                     ({ student }) => student.id === subscription.student.id,
@@ -508,12 +518,12 @@ export default async function TeacherDetailPage({
                     >
                       <span
                         className={
-                          paid
+                          payment?.status === "PAID"
                             ? "status-badge status-active"
                             : "status-badge status-pending"
                         }
                       >
-                        {paid ? "Mensalidade paga" : "Mensalidade em aberto"}
+                        {financialStatus}
                       </span>
                     </Link>
                   </article>

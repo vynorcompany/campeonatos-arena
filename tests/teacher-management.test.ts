@@ -117,7 +117,8 @@ test("teacher workspace separates plan, student and monthly payment-report opera
   assert.match(detail, /tab === "plans"/);
   assert.match(detail, /tab === "students"/);
   assert.match(detail, /tab === "report"/);
-  assert.match(detail, /paidAt: \{ gte: reportStart, lte: reportEnd \}/);
+  assert.match(detail, /entry\.paidAt >= reportStart/);
+  assert.match(detail, /entry\.dueDate >= reportStart/);
   assert.ok(existsSync(report));
   const reportContent = readFileSync(report, "utf8");
   assert.match(reportContent, /Percentual do professor/);
@@ -743,4 +744,38 @@ test("teacher plans can be copied to another active professor in a compact dialo
   assert.match(dialog, /Copiar planos/);
   assert.match(dialog, /copyTeacherPlansAction/);
   assert.match(dialog, /onMouseDown=\{\(\) => setOpen\(false\)\}/);
+});
+
+test("teacher plans identify their owner and flag active students without a financial entry", () => {
+  const detail = readFileSync(
+    resolve(process.cwd(), "src/app/(app)/professores/[teacherId]/page.tsx"),
+    "utf8",
+  );
+  const financePlans = readFileSync(
+    resolve(process.cwd(), "src/app/(app)/financeiro/planos/page.tsx"),
+    "utf8",
+  );
+
+  assert.match(detail, /Professor:\s*\{teacher\.name\}/);
+  assert.match(detail, /Sem lançamento atribuído/);
+  assert.match(financePlans, /teacherAssignments/);
+  assert.match(financePlans, /Professor:/);
+});
+
+test("class groups derive their name from weekday and time and cap capacity at four", () => {
+  const actions = readFileSync(
+    resolve(process.cwd(), "src/lib/actions/academy.ts"),
+    "utf8",
+  );
+  const panel = readFileSync(
+    resolve(process.cwd(), "src/components/teachers/teacher-class-groups-panel.tsx"),
+    "utf8",
+  );
+
+  assert.match(actions, /function getClassGroupName/);
+  assert.match(actions, /\.max\(4\)/);
+  assert.match(actions, /name: getClassGroupName\(schedules\)/);
+  assert.doesNotMatch(panel, /name="name"/);
+  assert.match(panel, /max="4"/);
+  assert.match(panel, /capacity: "4"/);
 });
