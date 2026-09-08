@@ -20,3 +20,22 @@ test("financial ledgers support recurrence, supplier selection and server-side f
   assert.match(query, /productId/);
   assert.match(query, /planId/);
 });
+
+test("receivable plan selectors show the professor from the persisted plan assignment", () => {
+  const page = readFileSync(
+    resolve(
+      process.cwd(),
+      "src/app/(app)/financeiro/contas-a-receber/page.tsx",
+    ),
+    "utf8",
+  );
+  const ledger = readFileSync(
+    resolve(process.cwd(), "src/components/finance/accounts-ledger.tsx"),
+    "utf8",
+  );
+
+  assert.match(page, /teacherAssignments/);
+  assert.match(page, /teacherNames/);
+  assert.match(ledger, /Professor:/);
+  assert.match(ledger, /teacherNames/);
+});

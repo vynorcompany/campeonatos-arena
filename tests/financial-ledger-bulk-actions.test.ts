@@ -39,6 +39,20 @@ test("manual expense creation keeps supplier creation inside the arena RLS trans
   assert.doesNotMatch(actions, /let supplierId[\s\S]*await prisma\.supplier\.upsert[\s\S]*await withArenaTransaction/);
 });
 
+test("financial settings are created inside the active arena RLS transaction", () => {
+  const actions = read("src/lib/actions/finance.ts");
+  const createSettings = actions.slice(
+    actions.indexOf("export async function createFinancialSettingAction"),
+    actions.indexOf("export async function upsertPayrollEntryAction")
+  );
+
+  assert.match(createSettings, /withArenaTransaction\(auth\.arenaId, async \(tx\) => \{/);
+  assert.match(createSettings, /tx\.financialCategory\.create/);
+  assert.match(createSettings, /tx\.paymentMethodSetting\.create/);
+  assert.match(createSettings, /tx\.bankAccount\.create/);
+  assert.match(createSettings, /tx\.supplier\.create/);
+});
+
 test("manual entry blocks submission locally until a financial category is selected", () => {
   const ledger = read("src/components/finance/accounts-ledger.tsx");
 

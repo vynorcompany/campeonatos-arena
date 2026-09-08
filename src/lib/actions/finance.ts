@@ -590,10 +590,12 @@ export async function createFinancialSettingAction(formData: FormData) {
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
 
   try {
-    if (parsed.data.area === "categorias-financeiras") await prisma.financialCategory.create({ data: { arenaId: auth.arenaId, name: parsed.data.name, type: parsed.data.type } });
-    if (parsed.data.area === "formas-pagamento") await prisma.paymentMethodSetting.create({ data: { arenaId: auth.arenaId, name: parsed.data.name } });
-    if (parsed.data.area === "contas-bancarias") await prisma.bankAccount.create({ data: { arenaId: auth.arenaId, name: parsed.data.name, bankName: parsed.data.bankName, openingBalanceCents: parseMoneyToCents(parsed.data.openingBalance) } });
-    if (parsed.data.area === "fornecedores") await prisma.supplier.create({ data: { arenaId: auth.arenaId, name: parsed.data.name, document: parsed.data.document, phone: parsed.data.phone, email: parsed.data.email, notes: parsed.data.notes } });
+    await withArenaTransaction(auth.arenaId, async (tx) => {
+      if (parsed.data.area === "categorias-financeiras") await tx.financialCategory.create({ data: { arenaId: auth.arenaId, name: parsed.data.name, type: parsed.data.type } });
+      if (parsed.data.area === "formas-pagamento") await tx.paymentMethodSetting.create({ data: { arenaId: auth.arenaId, name: parsed.data.name } });
+      if (parsed.data.area === "contas-bancarias") await tx.bankAccount.create({ data: { arenaId: auth.arenaId, name: parsed.data.name, bankName: parsed.data.bankName, openingBalanceCents: parseMoneyToCents(parsed.data.openingBalance) } });
+      if (parsed.data.area === "fornecedores") await tx.supplier.create({ data: { arenaId: auth.arenaId, name: parsed.data.name, document: parsed.data.document, phone: parsed.data.phone, email: parsed.data.email, notes: parsed.data.notes } });
+    });
   } catch (error) {
     if (error instanceof Error && error.message.includes("Unique constraint")) throw new Error("Já existe um cadastro com este nome.");
     throw error;
