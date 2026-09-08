@@ -12,6 +12,7 @@ const productSchema = z.object({
   sku: z.string().trim().max(40).default(""),
   cost: z.string().trim().min(1, "Informe o preço de custo."),
   price: z.string().trim().min(1, "Informe o preço."),
+  categoryId: z.string().trim().optional().default(""),
   stockQuantity: z.coerce.number().int().min(0, "Estoque inválido.").default(0),
   minStock: z.coerce.number().int().min(0, "Estoque mínimo inválido.").default(0)
 });
@@ -67,6 +68,7 @@ export async function createProductAction(formData: FormData) {
     sku: formData.get("sku"),
     cost: formData.get("cost"),
     price: formData.get("price"),
+    categoryId: formData.get("categoryId"),
     stockQuantity: formData.get("stockQuantity"),
     minStock: formData.get("minStock")
   });
@@ -77,6 +79,10 @@ export async function createProductAction(formData: FormData) {
 
   const priceCents = parseMoneyToCents(parsed.data.price);
   const costCents = parseMoneyToCents(parsed.data.cost);
+  if (parsed.data.categoryId) {
+    const category = await prisma.productCategory.findFirst({ where: { id: parsed.data.categoryId, arenaId: auth.arenaId, active: true }, select: { id: true } });
+    if (!category) throw new Error("Categoria de produto inválida.");
+  }
 
   await prisma.$transaction(async (tx) => {
     const product = await tx.product.create({
@@ -90,6 +96,7 @@ export async function createProductAction(formData: FormData) {
         costCents,
         stockQuantity: parsed.data.stockQuantity,
         minStock: parsed.data.minStock
+        , categoryId: parsed.data.categoryId || null
       }
     });
 
@@ -114,10 +121,14 @@ export async function updateProductAction(formData: FormData) {
   const productId = String(formData.get("productId") ?? "");
   const parsed = productSchema.safeParse({
     name: formData.get("name"), sku: formData.get("sku"), cost: formData.get("cost"), price: formData.get("price"),
-    stockQuantity: formData.get("stockQuantity"), minStock: formData.get("minStock")
+    stockQuantity: formData.get("stockQuantity"), minStock: formData.get("minStock"), categoryId: formData.get("categoryId")
   });
   if (!productId || !parsed.success) throw new Error(parsed.success ? "Produto inválido." : parsed.error.issues[0]?.message ?? "Dados inválidos.");
-  const updated = await prisma.product.updateMany({ where: { id: productId, arenaId: auth.arenaId }, data: { name: parsed.data.name, sku: parsed.data.sku, costCents: parseMoneyToCents(parsed.data.cost), priceCents: parseMoneyToCents(parsed.data.price), minStock: parsed.data.minStock, updatedByUserId: auth.userId } });
+  if (parsed.data.categoryId) {
+    const category = await prisma.productCategory.findFirst({ where: { id: parsed.data.categoryId, arenaId: auth.arenaId, active: true }, select: { id: true } });
+    if (!category) throw new Error("Categoria de produto inválida.");
+  }
+  const updated = await prisma.product.updateMany({ where: { id: productId, arenaId: auth.arenaId }, data: { name: parsed.data.name, sku: parsed.data.sku, costCents: parseMoneyToCents(parsed.data.cost), priceCents: parseMoneyToCents(parsed.data.price), minStock: parsed.data.minStock, categoryId: parsed.data.categoryId || null, updatedByUserId: auth.userId } });
   if (!updated.count) throw new Error("Produto não encontrado.");
   refreshPosRoutes();
 }

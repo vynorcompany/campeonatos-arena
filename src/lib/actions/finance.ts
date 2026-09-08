@@ -14,7 +14,7 @@ import { getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 
-const optionalText = z.string().trim().default("");
+const optionalText = z.preprocess((value) => value ?? "", z.string().trim().default(""));
 
 const planSchema = z.object({
   name: z.string().trim().min(2, "Informe o nome do plano."),
@@ -92,11 +92,39 @@ const financialSettingSchema = z.object({
   name: z.string().trim().min(2, "Informe o nome."),
   type: z.enum(["REVENUE", "EXPENSE", "BOTH"]).default("BOTH"),
   bankName: optionalText,
-  openingBalance: z.string().trim().optional().default("0"),
+  openingBalance: z.preprocess((value) => value ?? "0", z.string().trim().default("0")),
   document: optionalText,
   phone: optionalText,
   email: optionalText,
   notes: optionalText
+});
+
+const productCategorySchema = z.object({
+  name: z.string().trim().min(2, "Informe o nome da categoria.")
+});
+
+const couponSchema = z.object({
+  code: z.string().trim().min(3, "Informe um código com ao menos 3 caracteres.").max(32),
+  discountType: z.enum(["PERCENTAGE", "FIXED"]),
+  discountValue: z.coerce.number().int().positive("Informe um desconto maior que zero."),
+  minimumAmount: z.string().trim().optional().default("0"),
+  maxUses: z.string().trim().optional().default(""),
+  startsAt: z.string().trim().optional().default(""),
+  endsAt: z.string().trim().optional().default("")
+});
+
+const fiscalSettingsSchema = z.object({
+  provider: z.enum(["NONE", "MANUAL"]),
+  environment: z.enum(["SANDBOX", "PRODUCTION"]),
+  series: z.string().trim().max(20).default(""),
+  nextNumber: z.coerce.number().int().min(1).max(999999999).default(1),
+  notes: optionalText
+});
+
+const onlinePaymentSettingsSchema = z.object({
+  provider: z.enum(["NONE", "MANUAL"]),
+  webhookUrl: z.string().trim().max(500).default(""),
+  instructions: optionalText
 });
 
 const settlementSchema = z.object({
@@ -148,6 +176,13 @@ function refreshFinancialSettings() {
   revalidatePath("/financeiro/configuracoes/formas-pagamento");
   revalidatePath("/financeiro/configuracoes/contas-bancarias");
   revalidatePath("/financeiro/configuracoes/fornecedores");
+  revalidatePath("/financeiro/configuracoes/categorias-produtos");
+  revalidatePath("/financeiro/configuracoes/cupons");
+  revalidatePath("/financeiro/configuracoes/notas-fiscais");
+  revalidatePath("/financeiro/configuracoes/pagamentos-online");
+  revalidatePath("/pdv");
+  revalidatePath("/pdv/novo");
+  revalidatePath("/pdv/estoque");
 }
 
 export async function createPlanAction(formData: FormData) {
@@ -601,6 +636,120 @@ export async function createFinancialSettingAction(formData: FormData) {
     throw error;
   }
 
+  refreshFinancialSettings();
+}
+
+export async function createProductCategoryAction(formData: FormData) {
+  const auth = await requireModuleEdit("finance");
+  const parsed = productCategorySchema.safeParse({ name: formData.get("name") });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+
+  try {
+    await withArenaTransaction(auth.arenaId, async (tx) => {
+      await tx.productCategory.create({ data: { arenaId: auth.arenaId, name: parsed.data.name } });
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Unique constraint")) throw new Error("Já existe uma categoria com este nome.");
+    throw error;
+  }
+
+  refreshFinancialSettings();
+}
+
+export async function createCouponAction(formData: FormData) {
+  const auth = await requireModuleEdit("finance");
+  const parsed = couponSchema.safeParse({
+    code: formData.get("code"),
+    discountType: formData.get("discountType"),
+    discountValue: formData.get("discountValue"),
+    minimumAmount: formData.get("minimumAmount"),
+    maxUses: formData.get("maxUses"),
+    startsAt: formData.get("startsAt"),
+    endsAt: formData.get("endsAt")
+  });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  if (parsed.data.discountType === "PERCENTAGE" && parsed.data.discountValue > 100) throw new Error("O desconto percentual não pode passar de 100%.");
+
+  const startsAt = parsed.data.startsAt ? parseDate(parsed.data.startsAt) : null;
+  const endsAt = parsed.data.endsAt ? parseDate(parsed.data.endsAt) : null;
+  if ((parsed.data.startsAt && !startsAt) || (parsed.data.endsAt && !endsAt)) throw new Error("Informe datas válidas para o cupom.");
+  if (startsAt && endsAt && endsAt < startsAt) throw new Error("A validade final deve ser posterior à inicial.");
+  const maxUses = parsed.data.maxUses ? Number(parsed.data.maxUses) : null;
+  if (maxUses !== null && (!Number.isInteger(maxUses) || maxUses < 1)) throw new Error("Informe um limite de uso válido.");
+
+  try {
+    await withArenaTransaction(auth.arenaId, async (tx) => {
+      await tx.coupon.create({
+        data: {
+          arenaId: auth.arenaId,
+          code: parsed.data.code.toUpperCase().replace(/\s+/g, ""),
+          discountType: parsed.data.discountType,
+          discountValue: parsed.data.discountValue,
+          minimumAmountCents: parseMoneyToCents(parsed.data.minimumAmount),
+          maxUses,
+          startsAt,
+          endsAt
+        }
+      });
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Unique constraint")) throw new Error("Já existe um cupom com este código.");
+    throw error;
+  }
+
+  refreshFinancialSettings();
+}
+
+export async function updateFiscalSettingsAction(formData: FormData) {
+  const auth = await requireModuleEdit("finance");
+  const parsed = fiscalSettingsSchema.safeParse({
+    provider: formData.get("provider"),
+    environment: formData.get("environment"),
+    series: formData.get("series"),
+    nextNumber: formData.get("nextNumber"),
+    notes: formData.get("notes")
+  });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  const enabled = parsed.data.provider !== "NONE";
+
+  await withArenaTransaction(auth.arenaId, async (tx) => {
+    await tx.fiscalSettings.upsert({
+      where: { arenaId: auth.arenaId },
+      create: { arenaId: auth.arenaId, ...parsed.data, enabled },
+      update: { ...parsed.data, enabled }
+    });
+  });
+  refreshFinancialSettings();
+}
+
+export async function updateOnlinePaymentSettingsAction(formData: FormData) {
+  const auth = await requireModuleEdit("finance");
+  const parsed = onlinePaymentSettingsSchema.safeParse({
+    provider: formData.get("provider"),
+    webhookUrl: formData.get("webhookUrl"),
+    instructions: formData.get("instructions")
+  });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  const enabled = parsed.data.provider !== "NONE";
+
+  await withArenaTransaction(auth.arenaId, async (tx) => {
+    await tx.onlinePaymentSettings.upsert({
+      where: { arenaId: auth.arenaId },
+      create: {
+        arenaId: auth.arenaId,
+        ...parsed.data,
+        enabled,
+        pixEnabled: formData.get("pixEnabled") === "on",
+        cardEnabled: formData.get("cardEnabled") === "on"
+      },
+      update: {
+        ...parsed.data,
+        enabled,
+        pixEnabled: formData.get("pixEnabled") === "on",
+        cardEnabled: formData.get("cardEnabled") === "on"
+      }
+    });
+  });
   refreshFinancialSettings();
 }
 

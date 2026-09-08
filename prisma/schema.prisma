@@ -115,6 +115,9 @@ model Arena {
   bookingTypes BookingType[]
   products    Product[]
   productCategories ProductCategory[]
+  coupons     Coupon[]
+  fiscalSettings FiscalSettings?
+  onlinePaymentSettings OnlinePaymentSettings?
   sales       Sale[]
   comandas    Comanda[]
   stockMovements StockMovement[]
@@ -1436,6 +1439,54 @@ model ProductCategory {
 
   @@unique([arenaId, name])
   @@index([arenaId, active])
+}
+
+model Coupon {
+  id                String   @id @default(cuid())
+  code              String
+  discountType      String   @default("PERCENTAGE")
+  discountValue     Int
+  minimumAmountCents Int    @default(0)
+  maxUses           Int?
+  usesCount         Int      @default(0)
+  startsAt          DateTime?
+  endsAt            DateTime?
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  arenaId           String
+  arena             Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+
+  @@unique([arenaId, code])
+  @@index([arenaId, active])
+}
+
+model FiscalSettings {
+  id          String   @id @default(cuid())
+  provider    String   @default("NONE")
+  environment String   @default("SANDBOX")
+  enabled     Boolean  @default(false)
+  series      String   @default("")
+  nextNumber  Int      @default(1)
+  notes       String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  arenaId     String   @unique
+  arena       Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+}
+
+model OnlinePaymentSettings {
+  id           String   @id @default(cuid())
+  provider     String   @default("NONE")
+  enabled      Boolean  @default(false)
+  pixEnabled   Boolean  @default(true)
+  cardEnabled  Boolean  @default(false)
+  webhookUrl   String   @default("")
+  instructions String   @default("")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  arenaId      String   @unique
+  arena        Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
 }
 
 model Sale {
