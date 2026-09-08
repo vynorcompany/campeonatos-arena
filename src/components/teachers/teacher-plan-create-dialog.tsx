@@ -6,7 +6,7 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { EventIcon } from "@/components/tournaments/event-icon";
 import { createTeacherPlanWithPriceAction } from "@/lib/actions/academy";
 
-export function TeacherPlanCreateDialog({ teacherId }: { teacherId: string }) {
+export function TeacherPlanCreateDialog({ teacherId, plans }: { teacherId: string; plans: { id: string; name: string; classesPerMonth: number }[] }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -34,7 +34,7 @@ export function TeacherPlanCreateDialog({ teacherId }: { teacherId: string }) {
             <header>
               <div>
                 <p className="eyebrow">NOVO PLANO</p>
-                <h2 id="teacher-plan-create-title">Plano e preço mensal</h2>
+                <h2 id="teacher-plan-create-title">Vincular plano e preço mensal</h2>
               </div>
               <button
                 type="button"
@@ -54,18 +54,11 @@ export function TeacherPlanCreateDialog({ teacherId }: { teacherId: string }) {
             >
               <input type="hidden" name="teacherId" value={teacherId} />
               <label>
-                Nome do plano
-                <input name="name" required placeholder="Ex.: 2x por semana" />
-              </label>
-              <label>
-                Aulas/mês
-                <input
-                  name="classesPerMonth"
-                  type="number"
-                  min="1"
-                  max="31"
-                  defaultValue="8"
-                />
+                Plano padrão
+                <select name="planId" required defaultValue="">
+                  <option value="" disabled>Selecione o plano padrão</option>
+                  {plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name} · {plan.classesPerMonth} aulas/mês</option>)}
+                </select>
               </label>
               <label>
                 Preço mensal
@@ -85,7 +78,7 @@ export function TeacherPlanCreateDialog({ teacherId }: { teacherId: string }) {
                   Cancelar
                 </button>
                 <SubmitButton
-                  label="Criar plano"
+                  label="Vincular plano"
                   pendingLabel="Salvando..."
                   className="button button-primary button-small"
                 />

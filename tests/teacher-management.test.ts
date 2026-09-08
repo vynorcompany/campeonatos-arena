@@ -420,7 +420,7 @@ test("existing teacher plans can be edited without changing active subscriptions
     actions,
     /export async function updateTeacherPlanWithPriceAction/,
   );
-  assert.match(actions, /prisma\.plan\.update/);
+  assert.match(actions, /prisma\.teacherPlan\.update/);
   assert.match(page, /TeacherPlanEditor/);
   assert.match(
     readFileSync(
@@ -736,7 +736,7 @@ test("teacher plans can be copied to another active professor in a compact dialo
   const dialog = readFileSync(dialogPath, "utf8");
   assert.match(actions, /export async function copyTeacherPlansAction/);
   assert.match(actions, /planAssignments: \{[\s\S]*include: \{[\s\S]*plan: \{/);
-  assert.match(actions, /tx\.plan\.upsert/);
+  assert.match(actions, /tx\.teacherPlan\.upsert/);
   assert.match(actions, /tx\.teacherPlan\.upsert/);
   assert.match(actions, /planId: \{ in: sourcePlanIds \}/);
   assert.match(page, /TeacherPlanCopyDialog/);
@@ -778,4 +778,18 @@ test("class groups derive their name from weekday and time and cap capacity at f
   assert.doesNotMatch(panel, /name="name"/);
   assert.match(panel, /max="4"/);
   assert.match(panel, /capacity: "4"/);
+});
+
+test("teacher pricing links a standard plan instead of duplicating its name", () => {
+  const schema = readFileSync(resolve(process.cwd(), "prisma/schema.prisma"), "utf8");
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/academy.ts"), "utf8");
+  const createDialog = readFileSync(resolve(process.cwd(), "src/components/teachers/teacher-plan-create-dialog.tsx"), "utf8");
+  const editor = readFileSync(resolve(process.cwd(), "src/components/teachers/teacher-plan-editor.tsx"), "utf8");
+
+  assert.match(schema, /model TeacherPlan \{[\s\S]*monthlyPriceCents\s+Int/);
+  assert.match(actions, /createTeacherPlanWithPriceAction[\s\S]*planId/);
+  assert.doesNotMatch(actions, /const duplicate = await prisma\.plan\.findFirst/);
+  assert.match(createDialog, /Plano padrão/);
+  assert.match(createDialog, /name="planId"/);
+  assert.doesNotMatch(editor, /name="name"/);
 });

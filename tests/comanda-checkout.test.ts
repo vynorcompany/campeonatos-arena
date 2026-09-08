@@ -73,7 +73,8 @@ test("commands protect an open client tab and expose the complete checkout contr
   assert.match(actions, /Já existe uma comanda aberta para este cliente/);
   assert.match(actions, /export async function deleteComandaAction/);
   assert.match(actions, /requireRole\("ADMIN"\)/);
-  assert.match(card, /onClick=\{\(\) => setCheckoutOpen\(true\)\}/);
+  assert.match(card, /onClick=\{openDetails\}/);
+  assert.match(card, /command-details-modal/);
   assert.match(card, /Apagar comanda/);
   assert.match(card, /Dividir comanda/);
   assert.match(card, /Incluir débitos/);

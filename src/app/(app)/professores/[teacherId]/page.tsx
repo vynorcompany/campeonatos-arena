@@ -63,7 +63,7 @@ export default async function TeacherDetailPage({
   const reportEnd = searchParams?.fim
     ? new Date(`${searchParams.fim}T23:59:59`)
     : monthEnd;
-  const [teacher, clients, targetTeachers] = await Promise.all([
+  const [teacher, clients, targetTeachers, standardPlans] = await Promise.all([
     prisma.teacher.findFirst({
       where: { id: params.teacherId, arenaId: auth.arenaId },
       include: {
@@ -131,6 +131,11 @@ export default async function TeacherDetailPage({
       },
       orderBy: { name: "asc" },
       select: { id: true, name: true },
+    }),
+    prisma.plan.findMany({
+      where: { arenaId: auth.arenaId, active: true },
+      select: { id: true, name: true, classesPerMonth: true },
+      orderBy: { name: "asc" },
     }),
   ]);
   if (!teacher) notFound();
@@ -371,11 +376,11 @@ export default async function TeacherDetailPage({
                   teacherId={teacher.id}
                   teachers={targetTeachers}
                 />
-                <TeacherPlanCreateDialog teacherId={teacher.id} />
+                <TeacherPlanCreateDialog teacherId={teacher.id} plans={standardPlans} />
               </div>
             </header>
             <div className="teacher-plan-cards">
-              {teacher.planAssignments.map(({ plan }) => (
+              {teacher.planAssignments.map(({ plan, monthlyPriceCents }) => (
                 <article key={plan.id}>
                   <div>
                     <strong>{plan.name}</strong>
@@ -383,10 +388,10 @@ export default async function TeacherDetailPage({
                       Professor: {teacher.name}
                     </span>
                     <span>{plan.classesPerMonth} aulas/mês</span>
-                    <b>{money(plan.monthlyPriceCents)}</b>
+                    <b>{money(monthlyPriceCents)}</b>
                     <small>{plan.subscriptions.length} aluno(s) ativo(s)</small>
                   </div>
-                  <TeacherPlanEditor teacherId={teacher.id} plan={plan} />
+                  <TeacherPlanEditor teacherId={teacher.id} plan={{ id: plan.id, name: plan.name, monthlyPriceCents }} />
                 </article>
               ))}
               {!teacher.planAssignments.length ? (
