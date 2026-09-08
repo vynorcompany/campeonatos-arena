@@ -11,7 +11,6 @@ type PlanEditorProps = {
   plan: {
     id: string;
     name: string;
-    classesPerMonth: number;
     monthlyPriceCents: number;
   };
 };
@@ -70,25 +69,6 @@ export function TeacherPlanEditor({ teacherId, plan }: PlanEditorProps) {
             >
               <input type="hidden" name="teacherId" value={teacherId} />
               <input type="hidden" name="planId" value={plan.id} />
-              <label>
-                Nome do plano
-                <input
-                  name="name"
-                  required
-                  minLength={2}
-                  defaultValue={plan.name}
-                />
-              </label>
-              <label>
-                Aulas/mês
-                <input
-                  name="classesPerMonth"
-                  type="number"
-                  min="1"
-                  max="31"
-                  defaultValue={plan.classesPerMonth}
-                />
-              </label>
               <label>
                 Preço mensal
                 <input

@@ -1701,6 +1701,7 @@ model TeacherStudent {
 model TeacherPlan {
   id        String   @id @default(cuid())
   active    Boolean  @default(true)
+  monthlyPriceCents Int @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   arenaId   String

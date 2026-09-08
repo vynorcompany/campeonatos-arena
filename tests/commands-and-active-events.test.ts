@@ -56,3 +56,27 @@ test("comandas use a compact date trigger and a floating calendar modal", () => 
   assert.match(picker, /calendar-open-indicator/);
   assert.match(picker, /router\.push/);
 });
+
+test("comanda editing opens before checkout and client selection supports typing", () => {
+  const card = readFileSync(resolve(process.cwd(), "src/components/comandas/command-card.tsx"), "utf8");
+  const modal = readFileSync(resolve(process.cwd(), "src/components/comandas/new-command-modal.tsx"), "utf8");
+  const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
+
+  assert.match(card, /setDetailsOpen\(true\)/);
+  assert.match(card, /Itens da comanda/);
+  assert.match(card, /Finalizar comanda/);
+  assert.match(styles, /grid-template-columns: repeat\(auto-fill, minmax\(210px, 280px\)\)/);
+  assert.match(modal, /Buscar cliente/);
+  assert.match(modal, /matchingPlayers/);
+  assert.doesNotMatch(modal, /<select name="playerId"/);
+});
+
+test("agenda generates reservation labels without a manual name field", () => {
+  const dialog = readFileSync(resolve(process.cwd(), "src/components/agenda-slot-dialog.tsx"), "utf8");
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/calendar.ts"), "utf8");
+
+  assert.match(dialog, /\$\{bookingTypeName\} ·/);
+  assert.doesNotMatch(dialog, /Nome da reserva/);
+  assert.match(actions, /let bookingTitle/);
+  assert.match(actions, /classGroup\.name/);
+});

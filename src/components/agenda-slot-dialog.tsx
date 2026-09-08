@@ -54,7 +54,7 @@ export function AgendaSlotDialog({ slot, players, courts, teachers, bookingTypes
   const selectedParticipants = participants.filter((participant) => participant.playerId);
   const matchingPlayers = useMemo(() => playerOptions.filter((player) => player.name.toLowerCase().includes(playerSearch.toLowerCase()) && !selectedParticipants.some((participant) => participant.playerId === player.id)), [playerOptions, playerSearch, selectedParticipants]);
   const stateLabel = slot.state === "AVAILABLE" ? "Nova reserva" : slot.state === "OCCUPIED" ? "Editar reserva" : "Horário indisponível";
-  const reservationName = super12 ? "Super 12" : `${playerOptions.find((player) => player.id === selectedParticipants[0]?.playerId)?.name ?? "Cliente"} - ${bookingTypeName}`;
+  const reservationName = super12 ? "Super 12" : `${bookingTypeName} · ${playerOptions.find((player) => player.id === selectedParticipants[0]?.playerId)?.name ?? "Cliente"}`;
   const primaryParticipantName = playerOptions.find((player) => player.id === selectedParticipants[0]?.playerId)?.name ?? reservationName;
   const selectedStartMinute = startMinute(startsAt);
   const selectedEndMinute = selectedStartMinute + durationMinutes;

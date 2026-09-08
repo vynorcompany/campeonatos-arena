@@ -256,6 +256,11 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
   }
   const players = participants.length ? await prisma.player.findMany({ where: { arenaId: auth.arenaId, id: { in: participants.map((participant) => participant.playerId) } }, select: { id: true, name: true } }) : [];
   if (players.length !== participants.length) throw new Error("Um ou mais atletas não pertencem à arena.");
+  let bookingTitle = parsed.data.bookingTypeName === "Super 12" ? "Super 12" : `${parsed.data.bookingTypeName} · ${players[0]?.name ?? "Cliente"}`;
+  if (parsed.data.bookingTypeName.trim().toLowerCase() === "aula fixa" && parsed.data.teacherId) {
+    const classGroup = await prisma.classGroup.findFirst({ where: { arenaId: auth.arenaId, teacherId: parsed.data.teacherId, active: true, schedules: { some: { weekday: startsAt.getDay(), startTime: `${String(startsAt.getHours()).padStart(2, "0")}:${String(startsAt.getMinutes()).padStart(2, "0")}` } } }, select: { name: true } });
+    if (classGroup) bookingTitle = `${parsed.data.bookingTypeName} · ${classGroup.name}`;
+  }
   const conflicts = await withArenaTransaction(auth.arenaId, (tx) => tx.scheduleOccurrence.findFirst({ where: {
     arenaId: auth.arenaId, id: parsed.data.occurrenceId ? { not: parsed.data.occurrenceId } : undefined,
     status: { not: "CANCELED" }, OR: occurrenceTimes.map((occurrence) => ({ startsAt: { lt: occurrence.endsAt }, endsAt: { gt: occurrence.startsAt } })), occurrenceCourts: { some: { courtId: { in: courtIds } } }
@@ -264,10 +269,10 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
 
   await withArenaTransaction(auth.arenaId, async (tx) => {
     const occurrences = parsed.data.occurrenceId
-      ? [await tx.scheduleOccurrence.update({ where: { id: parsed.data.occurrenceId, arenaId: auth.arenaId }, data: { title: parsed.data.title, startsAt, endsAt, bookingTypeName: parsed.data.bookingTypeName, teacherId: parsed.data.teacherId || null, notes: parsed.data.notes, occurrenceCourts: { deleteMany: {}, create: courtIds.map((courtId) => ({ courtId })) } } })]
+      ? [await tx.scheduleOccurrence.update({ where: { id: parsed.data.occurrenceId, arenaId: auth.arenaId }, data: { title: bookingTitle, startsAt, endsAt, bookingTypeName: parsed.data.bookingTypeName, teacherId: parsed.data.teacherId || null, notes: parsed.data.notes, occurrenceCourts: { deleteMany: {}, create: courtIds.map((courtId) => ({ courtId })) } } })]
       : await (async () => {
-        const series = fixedBooking ? await tx.scheduleBookingSeries.create({ data: { arenaId: auth.arenaId, title: parsed.data.title, bookingTypeName: parsed.data.bookingTypeName, startsAt, endsAt: occurrenceTimes.at(-1)!.endsAt, teacherId: parsed.data.teacherId || null, notes: parsed.data.notes } }) : null;
-        return Promise.all(occurrenceTimes.map((occurrence) => tx.scheduleOccurrence.create({ data: { arenaId: auth.arenaId, sourceType: "BOOKING", bookingSeriesId: series?.id, title: parsed.data.title, startsAt: occurrence.startsAt, endsAt: occurrence.endsAt, bookingTypeName: parsed.data.bookingTypeName, teacherId: parsed.data.teacherId || null, notes: parsed.data.notes, occurrenceCourts: { create: courtIds.map((courtId) => ({ courtId })) } } })));
+        const series = fixedBooking ? await tx.scheduleBookingSeries.create({ data: { arenaId: auth.arenaId, title: bookingTitle, bookingTypeName: parsed.data.bookingTypeName, startsAt, endsAt: occurrenceTimes.at(-1)!.endsAt, teacherId: parsed.data.teacherId || null, notes: parsed.data.notes } }) : null;
+        return Promise.all(occurrenceTimes.map((occurrence) => tx.scheduleOccurrence.create({ data: { arenaId: auth.arenaId, sourceType: "BOOKING", bookingSeriesId: series?.id, title: bookingTitle, startsAt: occurrence.startsAt, endsAt: occurrence.endsAt, bookingTypeName: parsed.data.bookingTypeName, teacherId: parsed.data.teacherId || null, notes: parsed.data.notes, occurrenceCourts: { create: courtIds.map((courtId) => ({ courtId })) } } })));
       })();
     for (const occurrence of occurrences) {
       const previous = await tx.scheduleParticipant.findMany({ where: { occurrenceId: occurrence.id } });
@@ -278,7 +283,7 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
         const player = players.find((item) => item.id === participant.playerId)!;
         const hasCharge = participant.amountCents > 0;
         const paymentMethod = occurrence === occurrences[0] ? participant.paymentMethod : "";
-        const entryData = { type: "INCOME", category: "COURT_BOOKING", description: `${parsed.data.title} · ${player.name}`, amountCents: participant.amountCents, paymentMethod, status: paymentMethod ? "PAID" : "PENDING", dueDate: occurrence.startsAt, paidAt: paymentMethod ? new Date() : null, notes: `Agendamento ${occurrence.id}`, arenaId: auth.arenaId };
+        const entryData = { type: "INCOME", category: "COURT_BOOKING", description: `${bookingTitle} · ${player.name}`, amountCents: participant.amountCents, paymentMethod, status: paymentMethod ? "PAID" : "PENDING", dueDate: occurrence.startsAt, paidAt: paymentMethod ? new Date() : null, notes: `Agendamento ${occurrence.id}`, arenaId: auth.arenaId };
         const financialEntryId = hasCharge ? (existing?.financialEntryId ? (await tx.financialEntry.update({ where: { id: existing.financialEntryId }, data: entryData })).id : (await tx.financialEntry.create({ data: entryData })).id) : null;
         if (!hasCharge && existing?.financialEntryId) await tx.financialEntry.delete({ where: { id: existing.financialEntryId } });
         await tx.scheduleParticipant.upsert({ where: { occurrenceId_playerId: { occurrenceId: occurrence.id, playerId: participant.playerId } }, update: { amountCents: participant.amountCents, paymentMethod, financialEntryId }, create: { occurrenceId: occurrence.id, playerId: participant.playerId, amountCents: participant.amountCents, paymentMethod, financialEntryId } });

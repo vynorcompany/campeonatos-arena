@@ -28,20 +28,20 @@ export default async function FinancePlansPage() {
       <header className="page-header">
         <div className="stack-xs">
           <p className="eyebrow">Financeiro</p>
-          <h1>Planos</h1>
-          <p className="muted">Cadastre e acompanhe os pacotes mensais vendidos para alunos.</p>
+          <h1>Planos padrão</h1>
+          <p className="muted">Defina os modelos de frequência e as turmas compatíveis. O preço é configurado no vínculo de cada professor.</p>
         </div>
       </header>
 
-      <SectionCard title="Cadastrar plano" description="Defina valor mensal, quantidade de aulas e regras do pacote.">
+      <SectionCard title="Cadastrar plano padrão" description="Defina o nome e a frequência que os professores poderão vincular aos seus preços.">
         <SafeActionForm action={createPlanAction} className="grid-form" resetOnSuccess successMessage="Plano salvo.">
           <div className="field">
             <label htmlFor="plan-name">Nome do plano</label>
             <input id="plan-name" name="name" type="text" placeholder="Ex.: Mensal 8 aulas" required />
           </div>
           <div className="field">
-            <label htmlFor="plan-price">Valor mensal</label>
-            <input id="plan-price" name="monthlyPrice" type="text" placeholder="350,00" required />
+            <label htmlFor="plan-price">Preço de referência</label>
+            <input id="plan-price" name="monthlyPrice" type="text" placeholder="0,00" defaultValue="0,00" required />
           </div>
           <div className="field">
             <label htmlFor="plan-classes">Aulas por mês</label>
@@ -57,7 +57,7 @@ export default async function FinancePlansPage() {
         </SafeActionForm>
       </SectionCard>
 
-      <SectionCard title="Planos cadastrados" description="Lista de planos disponíveis para assinaturas.">
+      <SectionCard title="Planos padrão cadastrados" description="Os professores vinculam estes modelos e definem seu preço mensal individualmente.">
         <div className="simple-list">
           {plans.map((plan) => (
             <div className="simple-item" key={plan.id}>
