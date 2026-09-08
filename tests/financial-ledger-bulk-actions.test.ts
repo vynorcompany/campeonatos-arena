@@ -38,3 +38,10 @@ test("manual expense creation keeps supplier creation inside the arena RLS trans
   assert.match(actions, /withArenaTransaction\(auth\.arenaId, async \(tx\) => \{[\s\S]*tx\.supplier\.upsert/);
   assert.doesNotMatch(actions, /let supplierId[\s\S]*await prisma\.supplier\.upsert[\s\S]*await withArenaTransaction/);
 });
+
+test("manual entry blocks submission locally until a financial category is selected", () => {
+  const ledger = read("src/components/finance/accounts-ledger.tsx");
+
+  assert.match(ledger, /if \(!category\) \{ setMessage\("Selecione uma categoria financeira\."\); return; \}/);
+  assert.match(ledger, /pending \? "Salvando\.\.\." : recurring \? "Criar recorrência" : "Salvar lançamento"/);
+});

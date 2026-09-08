@@ -186,6 +186,7 @@ export function AccountsLedger({
             {message ? <p className="form-message form-message-error" role="alert">{message}</p> : null}
             <form onSubmit={(event) => {
               event.preventDefault();
+              if (!category) { setMessage("Selecione uma categoria financeira."); return; }
               const form = new FormData(event.currentTarget);
               run(() => recurring ? createFinancialRecurrenceAction(form) : createFinancialEntryAction(form), () => setNewEntryOpen(false));
             }} className="grid-form">
@@ -220,7 +221,7 @@ export function AccountsLedger({
                 <label className="field">Encerramento (opcional)<input name="endsAt" type="date" /></label>
               </> : null}
               <label className="field form-full">Observações<input name="notes" /></label>
-              <footer className="modal-actions form-full"><button type="button" className="button" onClick={() => setNewEntryOpen(false)}>Cancelar</button><button className="button button-primary" disabled={pending}>{recurring ? "Criar recorrência" : "Salvar lançamento"}</button></footer>
+              <footer className="modal-actions form-full"><button type="button" className="button" onClick={() => setNewEntryOpen(false)}>Cancelar</button><button className="button button-primary" disabled={pending}>{pending ? "Salvando..." : recurring ? "Criar recorrência" : "Salvar lançamento"}</button></footer>
             </form>
           </section>
         </div>
