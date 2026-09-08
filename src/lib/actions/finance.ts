@@ -108,6 +108,16 @@ const settlementSchema = z.object({
   notes: optionalText
 });
 
+const bulkEntrySchema = z.object({
+  entryIds: z.array(z.string().min(1)).min(1, "Selecione ao menos um lançamento."),
+  paymentMethod: z.string().trim().min(1, "Selecione a forma de pagamento."),
+  paidAt: z.string().optional().default("")
+});
+
+const bulkDeleteEntrySchema = z.object({
+  entryIds: z.array(z.string().min(1)).min(1, "Selecione ao menos um lançamento.")
+});
+
 const voidEntrySchema = z.object({
   entryId: z.string().min(1, "Conta inválida."),
   reason: z.string().trim().min(3, "Informe o motivo do estorno.")
@@ -317,16 +327,15 @@ export async function createFinancialEntryAction(formData: FormData) {
   const amountCents = getDiscountedAmountCents(parseMoneyToCents(parsed.data.amount), discount, parsed.data.discountMode);
   const dueDate = parseDate(parsed.data.dueDate);
   const paidAt = parsed.data.status === "PAID" ? parseDate(parsed.data.paidAt) ?? new Date() : parseDate(parsed.data.paidAt);
-  let supplierId = parsed.data.supplierId || null;
-  if (parsed.data.type === "EXPENSE" && parsed.data.counterpartyName && !supplierId) {
-    const supplier = await prisma.supplier.upsert({
-      where: { arenaId_name: { arenaId: auth.arenaId, name: parsed.data.counterpartyName } },
-      update: {}, create: { arenaId: auth.arenaId, name: parsed.data.counterpartyName }
-    });
-    supplierId = supplier.id;
-  }
-
   await withArenaTransaction(auth.arenaId, async (tx) => {
+    let supplierId = parsed.data.supplierId || null;
+    if (parsed.data.type === "EXPENSE" && parsed.data.counterpartyName && !supplierId) {
+      const supplier = await tx.supplier.upsert({
+        where: { arenaId_name: { arenaId: auth.arenaId, name: parsed.data.counterpartyName } },
+        update: {}, create: { arenaId: auth.arenaId, name: parsed.data.counterpartyName }
+      });
+      supplierId = supplier.id;
+    }
     const entry = await tx.financialEntry.create({
       data: {
         arenaId: auth.arenaId,
@@ -497,6 +506,43 @@ export async function settleFinancialEntryAction(formData: FormData) {
   refreshFinanceRoutes();
 }
 
+export async function settleFinancialEntriesBulkAction(formData: FormData) {
+  const auth = await requireModuleEdit("finance");
+  const parsed = bulkEntrySchema.safeParse({
+    entryIds: formData.getAll("entryIds"),
+    paymentMethod: formData.get("paymentMethod"),
+    paidAt: formData.get("paidAt")
+  });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+
+  const paidAt = parseDate(parsed.data.paidAt) ?? new Date();
+  const settledCount = await withArenaTransaction(auth.arenaId, async (tx) => {
+    const entries = await tx.financialEntry.findMany({
+      where: { arenaId: auth.arenaId, id: { in: [...new Set(parsed.data.entryIds)] }, status: "PENDING" },
+      include: { settlements: { select: { amountCents: true, interestCents: true } } }
+    });
+    let count = 0;
+    for (const entry of entries) {
+      const balance = getFinancialEntryBalance(entry.amountCents, entry.settlements);
+      if (balance.outstandingCents <= 0) continue;
+      await tx.financialSettlement.create({ data: {
+        arenaId: auth.arenaId,
+        financialEntryId: entry.id,
+        amountCents: balance.outstandingCents,
+        interestCents: 0,
+        paymentMethod: parsed.data.paymentMethod,
+        paidAt,
+        notes: "Baixa em massa registrada manualmente."
+      } });
+      await tx.financialEntry.update({ where: { id: entry.id }, data: { status: "PAID", paidAt, paymentMethod: parsed.data.paymentMethod } });
+      count += 1;
+    }
+    return count;
+  });
+  if (!settledCount) throw new Error("Nenhum lançamento pendente estava disponível para quitação.");
+  refreshFinanceRoutes();
+}
+
 export async function voidFinancialEntryAction(formData: FormData) {
   const auth = await requireModuleEdit("finance");
   const parsed = voidEntrySchema.safeParse({ entryId: formData.get("entryId"), reason: formData.get("reason") });
@@ -520,6 +566,19 @@ export async function deleteFinancialEntryAction(formData: FormData) {
     data: { status: "VOIDED", voidedAt: new Date(), voidReason: `Excluído por ${auth.userName} em ${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date())}.` }
   }));
   if (!updated.count) throw new Error("Este lançamento já foi excluído ou não está disponível.");
+  refreshFinanceRoutes();
+}
+
+export async function deleteFinancialEntriesBulkAction(formData: FormData) {
+  const auth = await requireFinancialEntryDelete();
+  const parsed = bulkDeleteEntrySchema.safeParse({ entryIds: formData.getAll("entryIds") });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+
+  const updated = await withArenaTransaction(auth.arenaId, (tx) => tx.financialEntry.updateMany({
+    where: { id: { in: [...new Set(parsed.data.entryIds)] }, arenaId: auth.arenaId, status: { not: "VOIDED" } },
+    data: { status: "VOIDED", voidedAt: new Date(), voidReason: `Excluído em massa por ${auth.userName} em ${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date())}.` }
+  }));
+  if (!updated.count) throw new Error("Nenhum lançamento estava disponível para exclusão.");
   refreshFinanceRoutes();
 }
 
