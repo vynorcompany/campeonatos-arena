@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireModuleEdit } from "@/lib/auth/guards";
+import { requireFinancialEntryDelete, requireModuleEdit } from "@/lib/auth/guards";
 import {
   getReferenceMonthRange,
   parseDate,
@@ -507,6 +507,19 @@ export async function voidFinancialEntryAction(formData: FormData) {
     data: { status: "VOIDED", voidedAt: new Date(), voidReason: parsed.data.reason }
   }));
   if (!updated.count) throw new Error("Esta conta já foi estornada ou não está disponível.");
+  refreshFinanceRoutes();
+}
+
+export async function deleteFinancialEntryAction(formData: FormData) {
+  const auth = await requireFinancialEntryDelete();
+  const parsed = voidEntrySchema.safeParse({ entryId: formData.get("entryId"), reason: "Exclusão autorizada" });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+
+  const updated = await withArenaTransaction(auth.arenaId, (tx) => tx.financialEntry.updateMany({
+    where: { id: parsed.data.entryId, arenaId: auth.arenaId, status: { not: "VOIDED" } },
+    data: { status: "VOIDED", voidedAt: new Date(), voidReason: `Excluído por ${auth.userName} em ${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date())}.` }
+  }));
+  if (!updated.count) throw new Error("Este lançamento já foi excluído ou não está disponível.");
   refreshFinanceRoutes();
 }
 

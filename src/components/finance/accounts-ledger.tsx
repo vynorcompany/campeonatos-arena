@@ -5,6 +5,7 @@ import { useMemo, useState, useTransition } from "react";
 import {
   createFinancialEntryAction,
   createFinancialRecurrenceAction,
+  deleteFinancialEntryAction,
   settleFinancialEntryAction,
   updateFinancialEntryAction,
   voidFinancialEntryAction,
@@ -55,6 +56,7 @@ export function AccountsLedger({
   products,
   suppliers,
   clients,
+  canDeleteEntries,
 }: {
   title: string;
   type: "REVENUE" | "EXPENSE";
@@ -67,6 +69,7 @@ export function AccountsLedger({
   products: Option[];
   suppliers: Option[];
   clients: Option[];
+  canDeleteEntries: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const [newEntryOpen, setNewEntryOpen] = useState(false);
@@ -138,7 +141,7 @@ export function AccountsLedger({
         <select name="dateField" defaultValue={String(filters.dateField ?? "dueDate")}><option value="dueDate">Data de vencimento</option><option value="paidAt">Data de pagamento</option></select>
         <label className="control-toggle"><input name="includeEarlier" type="checkbox" value="1" defaultChecked={filters.includeEarlier === true} /><span aria-hidden="true" /><em>Anteriores à data inicial</em></label>
         <label className="control-toggle"><input name="includeVoided" type="checkbox" value="1" defaultChecked={filters.includeVoided === true} /><span aria-hidden="true" /><em>Incluir estornados/deletados</em></label>
-        <button className="button button-small">Filtrar</button>
+        <button className="button button-primary accounts-filters-submit">Filtrar</button>
       </form>
 
       {message ? <p className="form-message form-message-error">{message}</p> : null}
@@ -149,7 +152,7 @@ export function AccountsLedger({
             <span>{date(entry.dueDate)}</span><strong>{type === "REVENUE" && entry.counterpartyName !== "Não informado" ? <Link href={`/jogadores?q=${encodeURIComponent(entry.counterpartyName)}`} onClick={(event) => event.stopPropagation()}>{entry.counterpartyName}</Link> : entry.counterpartyName}</strong><span>{entry.category}</span><span>{entry.description}</span>
             <span><b>{money(entry.amountCents)}</b>{entry.balance.interestCents ? <small>Juros: {money(entry.balance.interestCents)}</small> : null}{entry.status !== "VOIDED" ? <small>Saldo: {money(entry.balance.outstandingCents)}</small> : null}</span>
             <span><em className={`account-status account-status-${entry.status.toLowerCase()}`}>{entry.status === "PAID" ? "Quitada" : entry.status === "VOIDED" ? "Estornada" : "Em aberto"}</em>{entry.voidReason ? <small>{entry.voidReason}</small> : null}</span>
-            <span className="accounts-ledger-actions">{entry.status === "PENDING" ? <button type="button" className="button button-small button-primary" onClick={(event) => { event.stopPropagation(); setPaymentEntry(entry); }}>{actionLabel}</button> : null}{entry.status !== "VOIDED" ? <button type="button" className="button button-small" onClick={(event) => { event.stopPropagation(); setVoidEntry(entry); }}>Estornar</button> : null}</span>
+            <span className="accounts-ledger-actions">{entry.status === "PENDING" ? <button type="button" className="button button-small button-primary" onClick={(event) => { event.stopPropagation(); setPaymentEntry(entry); }}>{actionLabel}</button> : null}{entry.status !== "VOIDED" ? <button type="button" className="button button-small" onClick={(event) => { event.stopPropagation(); setVoidEntry(entry); }}>Estornar</button> : null}{canDeleteEntries && entry.status !== "VOIDED" ? <button type="button" className="button button-small button-danger" onClick={(event) => { event.stopPropagation(); if (!window.confirm("Excluir este lançamento? Ele será removido da operação, mas permanecerá registrado para auditoria.")) return; const form = new FormData(); form.set("entryId", entry.id); run(() => deleteFinancialEntryAction(form), () => {}); }}>Excluir</button> : null}</span>
           </article>
         ))}
         {!entries.length ? <div className="accounts-ledger-empty">Nenhuma conta cadastrada.</div> : null}

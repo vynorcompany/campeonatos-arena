@@ -13,7 +13,7 @@ import {
   updateOwnPasswordSchema,
   updateOwnProfileSchema
 } from "@/lib/validators/user";
-import { defaultPermissionsForRole, normalizePermissionModules } from "@/lib/permissions";
+import { defaultPermissionsForRole, financialEntryDeletePermission, normalizePermissionModules } from "@/lib/permissions";
 import type { ArenaRole, SystemRole } from "@/types/auth";
 
 export type UserActionState = {
@@ -47,6 +47,10 @@ function getPermissionValues(formData: FormData, name: string, arenaRole: ArenaR
 
   if (arenaRole === "OWNER" || arenaRole === "ADMIN") {
     return name === "editPermissions" ? defaults.editPermissions : defaults.viewPermissions;
+  }
+
+  if (name === "editPermissions" && formData.get("financialEntryDelete") === "1") {
+    return Array.from(new Set([...selected, financialEntryDeletePermission]));
   }
 
   return selected;

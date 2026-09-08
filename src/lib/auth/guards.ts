@@ -1,5 +1,5 @@
 import { requireArenaAccess, requireAuth } from "@/lib/auth/session";
-import { canEditModule, canViewModule, type PermissionModule } from "@/lib/permissions";
+import { canDeleteFinancialEntries, canEditModule, canViewModule, type PermissionModule } from "@/lib/permissions";
 import type { ArenaRole, SystemRole } from "@/types/auth";
 
 const roleWeight: Record<ArenaRole, number> = {
@@ -46,6 +46,16 @@ export async function requireModuleEdit(module: PermissionModule) {
 
   if (!canEditModule(module, auth.arenaRole, auth.systemRole, auth.editPermissions)) {
     throw new Error("Sem permissão para alterar este módulo.");
+  }
+
+  return auth;
+}
+
+export async function requireFinancialEntryDelete() {
+  const auth = await requireArenaAccess();
+
+  if (!canDeleteFinancialEntries(auth.arenaRole, auth.systemRole, auth.editPermissions)) {
+    throw new Error("Sem permissão para excluir lançamentos financeiros.");
   }
 
   return auth;

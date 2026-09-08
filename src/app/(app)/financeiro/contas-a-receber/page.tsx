@@ -1,5 +1,6 @@
 import { AccountsLedger } from "@/components/finance/accounts-ledger";
 import { requireModuleView } from "@/lib/auth/guards";
+import { canDeleteFinancialEntries } from "@/lib/permissions";
 import { getAccountsLedger } from "@/lib/finance/accounts";
 import { prisma } from "@/lib/prisma";
 
@@ -14,5 +15,5 @@ export default async function AccountsReceivablePage({ searchParams }: { searchP
     prisma.product.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.player.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true, phone: true }, orderBy: { name: "asc" } })
   ]);
-  return <AccountsLedger title="Contas a Receber" type="REVENUE" entries={entries} filters={filters} categories={categories.map((item) => item.name)} bankAccounts={banks} plans={plans} products={products} suppliers={[]} clients={clients} paymentMethods={methods.length ? methods.map((method) => method.name) : ["Dinheiro", "PIX", "Cartão de crédito", "Cartão de débito", "Saldo de crédito"]} />;
+  return <AccountsLedger title="Contas a Receber" type="REVENUE" entries={entries} filters={filters} categories={categories.map((item) => item.name)} bankAccounts={banks} plans={plans} products={products} suppliers={[]} clients={clients} canDeleteEntries={canDeleteFinancialEntries(auth.arenaRole, auth.systemRole, auth.editPermissions)} paymentMethods={methods.length ? methods.map((method) => method.name) : ["Dinheiro", "PIX", "Cartão de crédito", "Cartão de débito", "Saldo de crédito"]} />;
 }

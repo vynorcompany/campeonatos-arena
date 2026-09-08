@@ -1,4 +1,4 @@
-import { permissionModules } from "@/lib/permissions";
+import { financialEntryDeletePermission, permissionModules } from "@/lib/permissions";
 
 type PermissionMatrixProps = {
   viewPermissions?: string[];
@@ -13,6 +13,7 @@ export function PermissionMatrix({ viewPermissions = [], editPermissions = [] }:
         <span>Módulo</span>
         <span>Visualizar</span>
         <span>Alterar</span>
+        <span>Excluir</span>
       </div>
       {permissionModules.map((module) => (
         <label className="permission-row" key={module.key}>
@@ -31,6 +32,7 @@ export function PermissionMatrix({ viewPermissions = [], editPermissions = [] }:
             defaultChecked={editPermissions.includes(module.key)}
             aria-label={`Alterar ${module.label}`}
           />
+          {module.key === "finance" ? <input name="financialEntryDelete" type="checkbox" value="1" defaultChecked={editPermissions.includes(financialEntryDeletePermission)} aria-label="Excluir lançamentos" /> : <span aria-hidden="true" />}
         </label>
       ))}
     </fieldset>
