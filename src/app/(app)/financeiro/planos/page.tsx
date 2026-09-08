@@ -13,7 +13,14 @@ export default async function FinancePlansPage() {
   const auth = await requireModuleView("finance");
   const plans = await prisma.plan.findMany({
     where: { arenaId: auth.arenaId },
-    orderBy: [{ active: "desc" }, { name: "asc" }]
+    include: {
+      teacherAssignments: {
+        where: { active: true },
+        include: { teacher: { select: { name: true } } },
+        orderBy: { teacher: { name: "asc" } },
+      },
+    },
+    orderBy: [{ active: "desc" }, { name: "asc" }],
   });
 
   return (
@@ -57,6 +64,16 @@ export default async function FinancePlansPage() {
               <strong>{plan.name}</strong>
               <span>
                 {formatMoney(plan.monthlyPriceCents)} por mês - {plan.classesPerMonth} aulas
+              </span>
+              <span className="plan-owner-tags">
+                {plan.teacherAssignments.map(({ teacher }) => (
+                  <em className="plan-owner-tag" key={teacher.name}>
+                    Professor: {teacher.name}
+                  </em>
+                ))}
+                {!plan.teacherAssignments.length ? (
+                  <em className="plan-owner-tag">Sem professor vinculado</em>
+                ) : null}
               </span>
             </div>
           ))}

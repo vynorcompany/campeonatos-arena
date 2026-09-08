@@ -7999,6 +7999,8 @@ button {
 .teacher-plan-cards > article strong { color: #152643; font-size: .88rem; }
 .teacher-plan-cards > article span, .teacher-plan-cards > article small { color: #627590; font-size: .72rem; }
 .teacher-plan-cards > article b { color: #17395e; font-size: .84rem; }
+.teacher-plan-owner-tag, .plan-owner-tag { width: fit-content; padding: 3px 6px; border: 1px solid #cbdcf0; border-radius: 999px; background: #eef5ff; color: #28598d !important; font-size: .66rem !important; font-style: normal; font-weight: 800; }
+.plan-owner-tags { display: flex; flex-wrap: wrap; gap: 4px; }
 .teacher-plan-cards .teacher-plan-edit-trigger { flex: 0 0 auto; }
 .teacher-plan-panel-actions { display: inline-flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
 .teacher-plan-copy-trigger { gap: 6px; min-height: 32px; padding-inline: 10px; font-size: .74rem; }
@@ -8043,6 +8045,8 @@ button {
 .teacher-student-financial-link .status-badge.status-active { border-color: #bce7cd; color: #147345; background: #edf9f1; }
 .teacher-student-financial-link .status-badge.status-pending { border-color: #f0c5c5; color: #b73939; background: #fff3f3; }
 .teacher-student-financial-link:hover .status-badge { filter: brightness(.97); box-shadow: 0 2px 7px rgb(13 50 96 / .12); }
+.teacher-group-generated-name { margin: 0; color: #5a7189; font-size: .74rem; }
+.teacher-group-generated-name strong { color: #173f6d; }
 .teacher-directory .teacher-management-toolbar { top: -72px; }
 .teacher-management-toolbar .button { min-height: 34px; padding-inline: 11px; font-size: .76rem; }
 .teacher-directory-filters { gap: 10px; padding: 10px; }

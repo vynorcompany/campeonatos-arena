@@ -36,6 +36,18 @@ const weekdays = [
   "Sábado",
 ];
 const weekdayOrder = (weekday: number) => (weekday === 0 ? 7 : weekday);
+const weekdayAbbreviations = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const getGeneratedClassGroupName = (schedules: DraftSchedule[]) => {
+  const firstSchedule = [...schedules].sort(
+    (first, second) =>
+      weekdayOrder(Number(first.weekday)) - weekdayOrder(Number(second.weekday)) ||
+      first.startTime.localeCompare(second.startTime),
+  )[0];
+
+  return firstSchedule
+    ? `${weekdayAbbreviations[Number(firstSchedule.weekday)]} ${firstSchedule.startTime}`
+    : "—";
+};
 
 export function TeacherClassGroupsPanel({
   teacherId,
@@ -47,10 +59,9 @@ export function TeacherClassGroupsPanel({
   groups: Group[];
 }) {
   const [schedules, setSchedules] = useState<DraftSchedule[]>([
-    { weekday: "1", startTime: "18:00", capacity: "8" },
+    { weekday: "1", startTime: "18:00", capacity: "4" },
   ]);
   const [createOpen, setCreateOpen] = useState(false);
-  const [createName, setCreateName] = useState("");
   const [createPlanIds, setCreatePlanIds] = useState<string[]>([]);
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingSchedules, setEditingSchedules] = useState<DraftSchedule[]>([]);
@@ -81,13 +92,11 @@ export function TeacherClassGroupsPanel({
     setEditingGroupId(group.id);
   };
   const openCreate = () => {
-    setCreateName("");
     setCreatePlanIds([]);
-    setSchedules([{ weekday: "1", startTime: "18:00", capacity: "8" }]);
+    setSchedules([{ weekday: "1", startTime: "18:00", capacity: "4" }]);
     setCreateOpen(true);
   };
   const duplicateGroup = (group: Group) => {
-    setCreateName(`${group.name} (cópia)`);
     setCreatePlanIds(group.plans.map(({ planId }) => planId));
     setSchedules(
       group.schedules.map((schedule) => ({
@@ -169,7 +178,6 @@ export function TeacherClassGroupsPanel({
                 successMessage="Turma criada."
                 onSuccess={() => {
                   setCreateOpen(false);
-                  setCreateName("");
                   setCreatePlanIds([]);
                 }}
                 validate={(formData) =>
@@ -179,15 +187,6 @@ export function TeacherClassGroupsPanel({
                 }
               >
                 <input type="hidden" name="teacherId" value={teacherId} />
-                <label>
-                  Nome da turma
-                  <input
-                    name="name"
-                    required
-                    placeholder="Ex.: Iniciante noite"
-                    defaultValue={createName}
-                  />
-                </label>
                 <fieldset>
                   <legend>Plano obrigatório</legend>
                   {plans.map((plan) => (
@@ -250,6 +249,7 @@ export function TeacherClassGroupsPanel({
                           name="capacities"
                           type="number"
                           min="1"
+                          max="4"
                           value={schedule.capacity}
                           onChange={(event) =>
                             updateSchedule(index, {
@@ -282,12 +282,15 @@ export function TeacherClassGroupsPanel({
                     onClick={() =>
                       setSchedules((current) => [
                         ...current,
-                        { weekday: "3", startTime: "18:00", capacity: "8" },
+                        { weekday: "3", startTime: "18:00", capacity: "4" },
                       ])
                     }
                   >
-                    + Adicionar horário
+                  + Adicionar horário
                   </button>
+                  <p className="teacher-group-generated-name">
+                    Nome gerado automaticamente: <strong>{getGeneratedClassGroupName(schedules)}</strong>
+                  </p>
                 </div>
                 <label className="teacher-group-notes">
                   Observações
@@ -357,10 +360,6 @@ export function TeacherClassGroupsPanel({
                 name="classGroupId"
                 value={editingGroup.id}
               />
-              <label>
-                Nome da turma
-                <input name="name" required defaultValue={editingGroup.name} />
-              </label>
               <fieldset>
                 <legend>Plano obrigatório</legend>
                 {plans.map((plan) => (
@@ -425,6 +424,7 @@ export function TeacherClassGroupsPanel({
                         name="capacities"
                         type="number"
                         min={editingGroup.enrollments.length || 1}
+                        max="4"
                         value={schedule.capacity}
                         onChange={(event) =>
                           updateEditingSchedule(index, {
@@ -457,12 +457,15 @@ export function TeacherClassGroupsPanel({
                   onClick={() =>
                     setEditingSchedules((current) => [
                       ...current,
-                      { weekday: "3", startTime: "18:00", capacity: "8" },
+                      { weekday: "3", startTime: "18:00", capacity: "4" },
                     ])
                   }
                 >
-                  + Adicionar horário
+                + Adicionar horário
                 </button>
+                <p className="teacher-group-generated-name">
+                  Nome gerado automaticamente: <strong>{getGeneratedClassGroupName(editingSchedules)}</strong>
+                </p>
               </div>
               <label className="teacher-group-notes">
                 Observações
@@ -568,6 +571,7 @@ export function TeacherClassGroupsPanel({
                         name="capacity"
                         type="number"
                         min={group.enrollments.length || 1}
+                        max="4"
                         defaultValue={schedule.capacity}
                       />
                     </label>

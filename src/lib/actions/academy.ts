@@ -66,6 +66,30 @@ function getFormValues(formData: FormData, name: string) {
   return formData.getAll(name).map(String).filter(Boolean);
 }
 
+const classGroupWeekdayAbbreviations = [
+  "Dom",
+  "Seg",
+  "Ter",
+  "Qua",
+  "Qui",
+  "Sex",
+  "Sáb",
+];
+
+function getClassGroupName(
+  schedules: { weekday: number; startTime: string }[],
+) {
+  const firstSchedule = [...schedules].sort(
+    (first, second) =>
+      (first.weekday === 0 ? 7 : first.weekday) -
+        (second.weekday === 0 ? 7 : second.weekday) ||
+      first.startTime.localeCompare(second.startTime),
+  )[0];
+
+  if (!firstSchedule) throw new Error("Informe ao menos um horário da turma.");
+  return `${classGroupWeekdayAbbreviations[firstSchedule.weekday]} ${firstSchedule.startTime}`;
+}
+
 function parseScheduledAt(value: string) {
   if (!value) {
     return null;
@@ -377,7 +401,6 @@ export async function deleteTeacherAction(formData: FormData) {
 
 export async function createClassGroupAction(formData: FormData) {
   const auth = await requireModuleEdit("teachers");
-  const name = String(formData.get("name") ?? "").trim();
   const teacherId = String(formData.get("teacherId") ?? "");
   const planIds = getFormValues(formData, "planIds");
   const weekdays = getFormValues(formData, "weekdays");
@@ -396,10 +419,11 @@ export async function createClassGroupAction(formData: FormData) {
         item.weekday <= 6 &&
         /^\d{2}:\d{2}$/.test(item.startTime) &&
         Number.isInteger(item.capacity) &&
-        item.capacity > 0,
+        item.capacity > 0 &&
+        item.capacity <= 4,
     );
-  if (name.length < 2 || !teacherId || !schedules.length)
-    throw new Error("Informe nome, professor e ao menos um horário da turma.");
+  if (!teacherId || !schedules.length)
+    throw new Error("Informe professor e ao menos um horário da turma.");
   if (!planIds.length)
     throw new Error("Selecione ao menos um plano para a turma.");
   const [teacher, plans] = await Promise.all([
@@ -423,7 +447,7 @@ export async function createClassGroupAction(formData: FormData) {
   await prisma.classGroup.create({
     data: {
       arenaId: auth.arenaId,
-      name,
+      name: getClassGroupName(schedules),
       teacherId,
       notes: String(formData.get("notes") ?? "").trim(),
       schedules: {
@@ -439,15 +463,14 @@ export async function updateTeacherClassGroupAction(formData: FormData) {
   const auth = await requireModuleEdit("teachers");
   const classGroupId = String(formData.get("classGroupId") ?? "");
   const teacherId = String(formData.get("teacherId") ?? "");
-  const name = String(formData.get("name") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
   const planIds = getFormValues(formData, "planIds");
   const weekdays = getFormValues(formData, "weekdays");
   const startTimes = getFormValues(formData, "startTimes");
   const capacities = getFormValues(formData, "capacities");
 
-  if (!classGroupId || !teacherId || name.length < 2) {
-    throw new Error("Informe o nome da turma.");
+  if (!classGroupId || !teacherId) {
+    throw new Error("Informe a turma e o professor.");
   }
   if (!planIds.length) {
     throw new Error("Selecione ao menos um plano para a turma.");
@@ -473,7 +496,7 @@ export async function updateTeacherClassGroupAction(formData: FormData) {
       /^\d{2}:\d{2}$/.test(schedule.startTime) &&
       Number.isInteger(schedule.capacity) &&
       schedule.capacity > 0 &&
-      schedule.capacity <= 100,
+      schedule.capacity <= 4,
   );
   if (!validSchedules) {
     throw new Error("Revise dia, hora e vagas de cada horário.");
@@ -525,7 +548,7 @@ export async function updateTeacherClassGroupAction(formData: FormData) {
   await prisma.classGroup.update({
     where: { id: group.id },
     data: {
-      name,
+      name: getClassGroupName(schedules),
       notes,
       plans: {
         deleteMany: {},
@@ -554,7 +577,7 @@ export async function updateTeacherClassGroupCapacityAction(
     .number()
     .int()
     .min(1)
-    .max(100)
+    .max(4)
     .parse(formData.get("capacity"));
   const schedule = await prisma.classGroupSchedule.findFirst({
     where: {
