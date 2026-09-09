@@ -27,7 +27,8 @@ export function TeacherPlanEnrollmentForm({
   const [clientId, setClientId] = useState("");
   const [planId, setPlanId] = useState(plans[0]?.id ?? "");
   const [groupId, setGroupId] = useState("");
-  const [open, setOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [clientPickerOpen, setClientPickerOpen] = useState(false);
   const matches = useMemo(
     () =>
       query.trim()
@@ -50,7 +51,10 @@ export function TeacherPlanEnrollmentForm({
       className={`teacher-enrollment-form ${variant === "students" ? "teacher-enrollment-students" : ""}`}
       resetOnSuccess
       successMessage="Aluno inserido e mensalidade recorrente criada."
-      onSuccess={() => setOpen(false)}
+      onSuccess={() => {
+        setClientPickerOpen(false);
+        setModalOpen(false);
+      }}
     >
       <input type="hidden" name="teacherId" value={teacherId} />
       <input type="hidden" name="planId" value={planId} />
@@ -98,23 +102,27 @@ export function TeacherPlanEnrollmentForm({
           Pesquisar cliente
           <input
             value={query}
+            onFocus={() => setClientPickerOpen(true)}
             onChange={(event) => {
               setQuery(event.currentTarget.value);
               setClientId("");
+              setClientPickerOpen(true);
             }}
             placeholder="Digite o nome do cliente"
             autoComplete="off"
             required
           />
-          {matches.length ? (
+          {clientPickerOpen && matches.length ? (
             <div className="teacher-client-options">
               {matches.map((client) => (
                 <button
                   key={client.id}
                   type="button"
+                  onMouseDown={(event) => event.preventDefault()}
                   onClick={() => {
                     setClientId(client.id);
                     setQuery(client.name);
+                    setClientPickerOpen(false);
                   }}
                 >
                   <strong>{client.name}</strong>
@@ -177,15 +185,15 @@ export function TeacherPlanEnrollmentForm({
       <button
         type="button"
         className="button button-primary button-small teacher-insert-student-trigger"
-        onClick={() => setOpen(true)}
+        onClick={() => setModalOpen(true)}
       >
         <EventIcon name="user-plus" size={15} /> Inserir aluno
       </button>
-      {open ? (
+      {modalOpen ? (
         <div
           className="teacher-student-enrollment-modal"
           role="presentation"
-          onMouseDown={() => setOpen(false)}
+          onMouseDown={() => setModalOpen(false)}
         >
           <section
             role="dialog"
@@ -200,7 +208,7 @@ export function TeacherPlanEnrollmentForm({
               </div>
               <button
                 type="button"
-                onClick={() => setOpen(false)}
+                onClick={() => setModalOpen(false)}
                 aria-label="Fechar"
               >
                 ×

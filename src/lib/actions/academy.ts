@@ -6,6 +6,7 @@ import { requireModuleEdit } from "@/lib/auth/guards";
 import { getDiscountedAmountCents } from "@/lib/finance/discounts";
 import { getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
 import { prisma } from "@/lib/prisma";
+import { withArenaTransaction } from "@/lib/rls";
 
 const optionalText = z.string().trim().default("");
 
@@ -934,7 +935,7 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
       : assignment.monthlyPriceCents;
   const firstAmountCents = discountedAmountCents;
   const firstDueDate = dueDateInput ?? getFirstDueDate(startedAt, dueDay);
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(auth.arenaId, async (tx) => {
     const student = await tx.student.upsert({
       where: { playerId: client.id },
       update: {
