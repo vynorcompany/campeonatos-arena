@@ -791,6 +791,15 @@ test("student enrollment closes only the client picker after a client is selecte
   assert.match(actions, /assignTeacherPlanStudentAction[\s\S]*withArenaTransaction\(auth\.arenaId, async \(tx\) =>/);
 });
 
+test("student enrollment validates the destination class before sending the form", () => {
+  const form = readFileSync(resolve(process.cwd(), "src/components/teachers/teacher-plan-enrollment-form.tsx"), "utf8");
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/academy.ts"), "utf8");
+
+  assert.match(form, /Selecione a turma de destino para inserir o aluno/);
+  assert.match(form, /Não há turma ativa compatível com este plano/);
+  assert.match(actions, /Selecione o cliente, o plano e a turma de destino/);
+});
+
 test("a student has at most one active subscription for each plan", () => {
   const migration = readFileSync(resolve(process.cwd(), "prisma/migrations/20260909173000_enforce_unique_active_student_plan/migration.sql"), "utf8");
   const academy = readFileSync(resolve(process.cwd(), "src/lib/actions/academy.ts"), "utf8");

@@ -8013,6 +8013,7 @@ button {
 .teacher-enrollment-students .teacher-client-search::before { top: 25px; font-size: 1rem; }
 .teacher-insert-student-trigger { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 32px; padding: 6px 10px; border-radius: 7px; font-size: .75rem; font-weight: 700; }
 .teacher-enrollment-students > .button { min-height: 34px; min-width: 0; padding-inline: 11px; font-size: .74rem; }
+.teacher-enrollment-students > .button:disabled { border-color: #c8d6e5; color: #8aa0b7; background: #edf2f7; cursor: not-allowed; }
 .teacher-active-students-panel { gap: 14px; padding: 17px 18px 0; }
 .teacher-insert-student-trigger { justify-self: start; width: fit-content; min-width: 0; }
 .teacher-detail-page .teacher-detail-metrics article { min-height: 92px; padding: 14px; gap: 13px; }
