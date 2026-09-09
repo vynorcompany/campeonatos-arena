@@ -42,6 +42,15 @@ test("receivable plan selectors separate the same standard plan by professor", (
   assert.doesNotMatch(ledger, /Professores:/);
 });
 
+test("selecting a plan fills the entry value with its configured price", () => {
+  const receivables = readFileSync(resolve(process.cwd(), "src/app/(app)/financeiro/contas-a-receber/page.tsx"), "utf8");
+  const ledger = readFileSync(resolve(process.cwd(), "src/components/finance/accounts-ledger.tsx"), "utf8");
+
+  assert.match(receivables, /monthlyPriceCents: true/);
+  assert.match(ledger, /data-monthly-price-cents=\{plan\.monthlyPriceCents\}/);
+  assert.match(ledger, /setNewEntryAmountCents\(priceCents\)/);
+});
+
 test("financial setting actions normalize missing optional FormData fields", () => {
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/finance.ts"), "utf8");
 
