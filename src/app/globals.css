@@ -6838,6 +6838,7 @@ button {
 .teacher-report-summary > label input { grid-column: 1 / -1; padding-right: 25px; }
 .teacher-report-summary > label span { position: absolute; right: 18px; bottom: 16px; }
 .teacher-report-summary strong { color: #146342; font-size: 1rem; }
+.teacher-report-payable-form { display: flex; flex-wrap: wrap; align-items: end; gap: 8px 10px; padding: 10px; border: 1px solid #cfe0ee; border-radius: 8px; background: #f7fbff; }.teacher-report-payable-form label { display: grid; gap: 4px; color: #50657f; font-size: .7rem; font-weight: 700; }.teacher-report-payable-form small { flex: 1 1 260px; color: #65788d; font-size: .72rem; line-height: 1.35; }
 .teacher-report-list { display: grid; }
 .teacher-report-list article { display: grid; grid-template-columns: 1.3fr .7fr .55fr auto; align-items: center; gap: 12px; padding: 10px 2px; border-bottom: 1px solid #edf1f6; font-size: .78rem; }
 .teacher-report-list article > div { display: grid; gap: 2px; }.teacher-report-list article span { color: #687b91; font-size: .7rem; }.teacher-report-list article.is-excluded { opacity: .52; }.teacher-report-list article.is-excluded strong { text-decoration: line-through; }

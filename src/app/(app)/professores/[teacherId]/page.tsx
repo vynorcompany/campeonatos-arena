@@ -16,6 +16,7 @@ import {
   removeTeacherPlanStudentAction,
 } from "@/lib/actions/academy";
 import { requireModuleView } from "@/lib/auth/guards";
+import { canEditModule } from "@/lib/permissions";
 import { uniqueStandardPlanOptions } from "@/lib/academy/standard-plans";
 import { prisma } from "@/lib/prisma";
 
@@ -175,8 +176,12 @@ export default async function TeacherDetailPage({
   const completedLessons = teacher.lessons.filter(
     (lesson) => lesson.status === "COMPLETED",
   ).length;
-  const reportRows = teacher.planAssignments.flatMap(({ plan }) =>
-    plan.financialEntries
+  const reportRows = teacher.planAssignments.flatMap(({ plan }) => {
+    const teacherStudentNames = new Set(
+      plan.subscriptions.map((subscription) => subscription.student.name),
+    );
+    return plan.financialEntries
+      .filter((entry) => teacherStudentNames.has(entry.counterpartyName))
       .filter((entry) =>
         entry.status === "PAID"
           ? Boolean(
@@ -205,7 +210,7 @@ export default async function TeacherDetailPage({
         paidAt: entry.paidAt?.toISOString() ?? null,
         status: entry.status,
       })),
-  );
+  });
   const percent = Math.max(
     0,
     Math.min(100, Number(searchParams?.percentual ?? 0) || 0),
@@ -610,7 +615,7 @@ export default async function TeacherDetailPage({
               Aplicar
             </button>
           </form>
-          <TeacherMonthlyReport rows={reportRows} initialPercent={percent} />
+          <TeacherMonthlyReport rows={reportRows} initialPercent={percent} teacherId={teacher.id} referenceStart={inputDate(reportStart)} referenceEnd={inputDate(reportEnd)} defaultDueDate={inputDate(now)} canGeneratePayable={canEditModule("finance", auth.arenaRole, auth.systemRole, auth.editPermissions)} />
         </section>
       ) : null}
     </div>

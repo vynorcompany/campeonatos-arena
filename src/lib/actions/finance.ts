@@ -162,6 +162,15 @@ const payrollSchema = z.object({
   notes: optionalText
 });
 
+const teacherMonthlyPayableSchema = z.object({
+  teacherId: z.string().min(1, "Professor inválido."),
+  entryIds: z.array(z.string().min(1)).min(1, "Selecione ao menos um recebimento quitado."),
+  percentage: z.coerce.number().min(0, "Informe um percentual válido.").max(100, "O percentual não pode passar de 100%."),
+  referenceStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe o início do período."),
+  referenceEnd: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe o fim do período."),
+  dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe o vencimento.")
+});
+
 function refreshFinanceRoutes() {
   revalidatePath("/financeiro");
   revalidatePath("/financeiro/lancamentos");
@@ -602,6 +611,90 @@ export async function settleFinancialEntriesBulkAction(formData: FormData) {
   });
   if (!settledCount) throw new Error("Nenhum lançamento pendente estava disponível para quitação.");
   refreshFinanceRoutes();
+}
+
+export async function createTeacherMonthlyPayableAction(formData: FormData) {
+  const auth = await requireModuleEdit("finance");
+  const parsed = teacherMonthlyPayableSchema.safeParse({
+    teacherId: formData.get("teacherId"),
+    entryIds: formData.getAll("entryIds"),
+    percentage: formData.get("percentage"),
+    referenceStart: formData.get("referenceStart"),
+    referenceEnd: formData.get("referenceEnd"),
+    dueDate: formData.get("dueDate")
+  });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+
+  const referenceStart = parseDate(parsed.data.referenceStart);
+  const referenceEnd = parseDate(parsed.data.referenceEnd);
+  const dueDate = parseDate(parsed.data.dueDate);
+  if (!referenceStart || !referenceEnd || !dueDate || referenceStart > referenceEnd) {
+    throw new Error("Informe um período e vencimento válidos.");
+  }
+  referenceEnd.setHours(23, 59, 59, 999);
+  const entryIds = [...new Set(parsed.data.entryIds)];
+  const percentageBasisPoints = Math.round(parsed.data.percentage * 100);
+  const externalReference = `teacher-monthly-payable:${parsed.data.teacherId}:${parsed.data.referenceStart}:${parsed.data.referenceEnd}:${percentageBasisPoints}:${[...entryIds].sort().join(",")}`;
+
+  const entryId = await withArenaTransaction(auth.arenaId, async (tx) => {
+    const teacher = await tx.teacher.findFirst({
+      where: { id: parsed.data.teacherId, arenaId: auth.arenaId },
+      select: { id: true, name: true }
+    });
+    if (!teacher) throw new Error("Professor não encontrado.");
+
+    const existing = await tx.financialEntry.findFirst({
+      where: { arenaId: auth.arenaId, externalReference, type: "EXPENSE", status: { not: "VOIDED" } },
+      select: { id: true }
+    });
+    if (existing) return existing.id;
+
+    const receivables = await tx.financialEntry.findMany({
+      where: {
+        arenaId: auth.arenaId,
+        id: { in: entryIds },
+        type: "REVENUE",
+        status: "PAID",
+        paidAt: { gte: referenceStart, lte: referenceEnd },
+        plan: { teacherAssignments: { some: { teacherId: teacher.id, active: true } } }
+      },
+      select: { id: true, amountCents: true }
+    });
+    if (receivables.length !== entryIds.length) {
+      throw new Error("Um ou mais recebimentos não pertencem a este relatório ou não estão quitados.");
+    }
+
+    const receivedCents = receivables.reduce((total, entry) => total + entry.amountCents, 0);
+    const amountCents = Math.round(receivedCents * (percentageBasisPoints / 10000));
+    if (amountCents <= 0) throw new Error("O valor a pagar deve ser maior que zero.");
+
+    const supplier = await tx.supplier.upsert({
+      where: { arenaId_name: { arenaId: auth.arenaId, name: teacher.name } },
+      update: {},
+      create: { arenaId: auth.arenaId, name: teacher.name }
+    });
+    const created = await tx.financialEntry.create({
+      data: {
+        arenaId: auth.arenaId,
+        source: "TEACHER_MONTHLY_REPORT",
+        externalReference,
+        type: "EXPENSE",
+        category: "Repasse de professor",
+        description: `Repasse ${teacher.name} · ${parsed.data.referenceStart} a ${parsed.data.referenceEnd}`,
+        counterpartyName: teacher.name,
+        supplierId: supplier.id,
+        amountCents,
+        status: "PENDING",
+        dueDate,
+        notes: `Gerado pelo relatório mensal do professor. ${receivables.length} recebimento(s) incluído(s), percentual de ${parsed.data.percentage}%.`
+      }
+    });
+    return created.id;
+  });
+
+  refreshFinanceRoutes();
+  revalidatePath(`/professores/${parsed.data.teacherId}`);
+  return { entryId };
 }
 
 export async function voidFinancialEntryAction(formData: FormData) {
