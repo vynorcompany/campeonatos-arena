@@ -791,6 +791,18 @@ test("student enrollment closes only the client picker after a client is selecte
   assert.match(actions, /assignTeacherPlanStudentAction[\s\S]*withArenaTransaction\(auth\.arenaId, async \(tx\) =>/);
 });
 
+test("a student has at most one active subscription for each plan", () => {
+  const migration = readFileSync(resolve(process.cwd(), "prisma/migrations/20260909173000_enforce_unique_active_student_plan/migration.sql"), "utf8");
+  const academy = readFileSync(resolve(process.cwd(), "src/lib/actions/academy.ts"), "utf8");
+  const classGroups = readFileSync(resolve(process.cwd(), "src/lib/actions/class-groups.ts"), "utf8");
+
+  assert.match(migration, /CREATE UNIQUE INDEX "StudentSubscription_one_active_plan_per_student"/);
+  assert.match(migration, /WHERE "status" = 'ACTIVE'/);
+  assert.match(migration, /ROW_NUMBER\(\) OVER/);
+  assert.match(academy, /studentId: student\.id, planId, status: "ACTIVE"/);
+  assert.match(classGroups, /const activeSubscription = await tx\.studentSubscription\.findFirst/);
+});
+
 test("teacher pricing links a standard plan instead of duplicating its name", () => {
   const schema = readFileSync(resolve(process.cwd(), "prisma/schema.prisma"), "utf8");
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/academy.ts"), "utf8");
