@@ -41,6 +41,7 @@ test("commands use compact controls and vector icons in the daily workspace", ()
   const css = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
 
   assert.match(page, /commands-icon/);
+  assert.match(page, /M8 14h\.01M12 14h\.01M16 14h\.01/);
   assert.match(picker, /commands-icon/);
   assert.match(css, /\.commands-day-panel \{[^}]*min-height: 620px/);
   assert.match(css, /\.commands-actions \.button \{[^}]*min-height: 46px/);
