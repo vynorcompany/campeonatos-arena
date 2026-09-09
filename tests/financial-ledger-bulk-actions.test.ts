@@ -59,3 +59,10 @@ test("manual entry blocks submission locally until a financial category is selec
   assert.match(ledger, /if \(!category\) \{ setMessage\("Selecione uma categoria financeira\."\); return; \}/);
   assert.match(ledger, /pending \? "Salvando\.\.\." : recurring \? "Criar recorrência" : "Salvar lançamento"/);
 });
+
+test("lançamento manual aceita campos opcionais que não são exibidos no formulário", () => {
+  const actions = read("src/lib/actions/finance.ts");
+
+  assert.match(actions, /supplierId: formData\.get\("supplierId"\) \?\? ""/);
+  assert.match(actions, /paidAt: formData\.get\("paidAt"\) \?\? ""/);
+});
