@@ -35,7 +35,8 @@ export function AppShell({
 }: AppShellProps) {
   return (
     <div className="app-shell">
-      <aside className="sidebar" aria-label="Menu lateral" style={{ backgroundColor: "#062b57", backgroundImage: "radial-gradient(circle at 12% 6%, rgb(69 184 255 / .34), transparent 30%), linear-gradient(145deg, #062b57 0%, #0d4f99 52%, #1575c2 100%)" }}>
+      <aside className="sidebar" aria-label="Menu lateral">
+        <div className="sidebar-surface" aria-hidden="true" />
         <div className="sidebar-inner">
           <div className="sidebar-top">
             <div className="brand-lockup sidebar-brand-lockup">
