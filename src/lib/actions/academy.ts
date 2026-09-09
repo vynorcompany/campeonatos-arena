@@ -840,6 +840,8 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
   const planId = String(formData.get("planId") ?? "");
   const clientId = String(formData.get("clientId") ?? "");
   const classGroupId = String(formData.get("classGroupId") ?? "");
+  if (!teacherId || !planId || !clientId || !classGroupId)
+    throw new Error("Selecione o cliente, o plano e a turma de destino.");
   const startedAt =
     parseFormDate(String(formData.get("startedAt") ?? "")) ?? new Date();
   const dueDateInput = parseFormDate(String(formData.get("dueDate") ?? ""));

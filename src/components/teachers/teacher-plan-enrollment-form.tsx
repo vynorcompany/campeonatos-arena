@@ -51,6 +51,11 @@ export function TeacherPlanEnrollmentForm({
       className={`teacher-enrollment-form ${variant === "students" ? "teacher-enrollment-students" : ""}`}
       resetOnSuccess
       successMessage="Aluno inserido e mensalidade recorrente criada."
+      validate={() => {
+        if (!clientId) return "Selecione um cliente na lista de pesquisa.";
+        if (variant === "students" && !groupId) return "Selecione a turma de destino para inserir o aluno.";
+        return null;
+      }}
       onSuccess={() => {
         setClientPickerOpen(false);
         setModalOpen(false);
@@ -85,7 +90,6 @@ export function TeacherPlanEnrollmentForm({
               name="classGroupId"
               value={groupId}
               onChange={(event) => setGroupId(event.currentTarget.value)}
-              required
             >
               <option value="" disabled>
                 Selecione a turma
@@ -175,8 +179,8 @@ export function TeacherPlanEnrollmentForm({
         label="Inserir aluno"
         pendingLabel="Inserindo..."
         className="button button-primary"
-        disabled={!clientId || (variant === "students" && !groupId)}
       />
+      {variant === "students" && !availableGroups.length ? <p className="form-note form-full">Não há turma ativa compatível com este plano. Cadastre ou vincule uma turma antes de inserir o aluno.</p> : null}
     </SafeActionForm>
   );
   if (variant !== "students") return form;
