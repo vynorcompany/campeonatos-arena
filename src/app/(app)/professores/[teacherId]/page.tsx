@@ -209,7 +209,7 @@ export default async function TeacherDetailPage({
         amountCents: entry.amountCents,
         paidAt: entry.paidAt?.toISOString() ?? null,
         status: entry.status,
-      })),
+      }));
   });
   const percent = Math.max(
     0,
