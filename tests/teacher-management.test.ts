@@ -124,6 +124,26 @@ test("teacher workspace separates plan, student and monthly payment-report opera
   assert.match(reportContent, /Percentual do professor/);
   assert.match(reportContent, /Desmarcar do cálculo/);
   assert.match(reportContent, /Total a pagar/);
+  assert.match(reportContent, /Gerar a pagar/);
+  assert.match(reportContent, /createTeacherMonthlyPayableAction/);
+  assert.match(reportContent, /Contas a Pagar/);
+  assert.match(detail, /canGeneratePayable/);
+  assert.match(detail, /teacherStudentNames/);
+  assert.match(detail, /teacherStudentNames\.has\(entry\.counterpartyName\)/);
+});
+
+test("teacher monthly reports generate one auditable payable entry from selected paid receivables", () => {
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/finance.ts"), "utf8");
+  const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
+
+  assert.match(actions, /export async function createTeacherMonthlyPayableAction/);
+  assert.match(actions, /type: "EXPENSE"/);
+  assert.match(actions, /category: "Repasse de professor"/);
+  assert.match(actions, /source: "TEACHER_MONTHLY_REPORT"/);
+  assert.match(actions, /externalReference/);
+  assert.match(actions, /status: "PAID"/);
+  assert.match(actions, /teacherAssignments: \{ some: \{ teacherId: teacher\.id, active: true \} \}/);
+  assert.match(styles, /\.teacher-report-payable-form/);
 });
 
 test("teacher plans enroll searchable clients with balance, due date, discount and recurring finance", () => {
