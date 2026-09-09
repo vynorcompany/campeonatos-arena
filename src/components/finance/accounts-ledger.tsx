@@ -32,7 +32,7 @@ type Account = {
   balance: { interestCents: number; paidCents: number; outstandingCents: number };
 };
 
-type Option = { id: string; name: string; phone?: string; teacherId?: string; teacherName?: string };
+type Option = { id: string; name: string; phone?: string; teacherId?: string; teacherName?: string; monthlyPriceCents?: number };
 
 function money(cents: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
@@ -57,7 +57,7 @@ function PlanSelectOptions({ plans }: { plans: Option[] }) {
 
   return <>{[...groups.entries()].map(([key, group]) => (
     <optgroup key={key} label={`Professor: ${group.teacherName}`}>
-      {group.plans.map((plan) => <option key={`${plan.id}-${plan.teacherId || "unassigned"}`} value={plan.id}>{plan.name}</option>)}
+      {group.plans.map((plan) => <option key={`${plan.id}-${plan.teacherId || "unassigned"}`} value={plan.id} data-monthly-price-cents={plan.monthlyPriceCents}>{plan.name}</option>)}
     </optgroup>
   ))}</>;
 }
@@ -104,6 +104,7 @@ export function AccountsLedger({
   const [paid, setPaid] = useState(false);
   const [discount, setDiscount] = useState("");
   const [discountMode, setDiscountMode] = useState<"AMOUNT" | "PERCENTAGE">("AMOUNT");
+  const [newEntryAmountCents, setNewEntryAmountCents] = useState<number | undefined>();
   const [message, setMessage] = useState("");
   const [clientFilter, setClientFilter] = useState(String(filters.name ?? ""));
   const [clientFilterOpen, setClientFilterOpen] = useState(false);
@@ -160,7 +161,7 @@ export function AccountsLedger({
     <div className="accounts-ledger stack-md">
       <header className="accounts-ledger-header">
         <div><h1>{title}</h1><p className="muted">Lançamentos em ordem de vencimento.</p></div>
-        <button type="button" className="button button-primary" onClick={() => { setMessage(""); setNewEntryOpen(true); }}>Novo lançamento</button>
+        <button type="button" className="button button-primary" onClick={() => { setMessage(""); setNewEntryAmountCents(undefined); setNewEntryOpen(true); }}>Novo lançamento</button>
       </header>
 
       <form method="get" className="accounts-filters">
@@ -220,11 +221,11 @@ export function AccountsLedger({
               </div> : null}
               <label className="field">Categoria financeira<button type="button" className="field-select-button" onClick={() => setCategoryModalOpen(true)}>{category || "Selecionar categoria"}</button></label>
               <label className="field form-full">Descrição<input name="description" required /></label>
-              <label className="field">Valor original<MoneyInput name="amount" placeholder="0,00" required /></label>
+              <label className="field">Valor original<MoneyInput name="amount" valueCents={newEntryAmountCents} onValueCentsChange={setNewEntryAmountCents} placeholder="0,00" required /></label>
               <label className="field">Desconto<div className="discount-control"><input name="discount" inputMode="decimal" value={discount} onChange={(event) => setDiscount(event.target.value)} placeholder="0,00" /><select name="discountMode" value={discountMode} onChange={(event) => setDiscountMode(event.target.value as "AMOUNT" | "PERCENTAGE")} aria-label="Tipo de desconto"><option value="AMOUNT">R$</option><option value="PERCENTAGE">%</option></select></div></label>
               <label className="field">Vencimento<input name="dueDate" type="date" /></label>
               <label className="field">Conta bancária<select name="bankAccountId" defaultValue=""><option value="">Não definida</option>{bankAccounts.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-              <label className="field">Plano/pacote<select name="planId" defaultValue=""><option value="">Não vincular</option><PlanSelectOptions plans={plans} /></select></label>
+              <label className="field">Plano/pacote<select name="planId" defaultValue="" onChange={(event) => { const priceCents = Number(event.currentTarget.selectedOptions[0]?.dataset.monthlyPriceCents); if (Number.isSafeInteger(priceCents) && priceCents >= 0) setNewEntryAmountCents(priceCents); }}><option value="">Não vincular</option><PlanSelectOptions plans={plans} /></select></label>
               <label className="field">Produto<select name="productId" defaultValue=""><option value="">Não vincular</option>{products.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
               <div className="form-full financial-entry-toggles">
                 <label className="control-toggle"><input type="checkbox" checked={paid} disabled={recurring} onChange={(event) => setPaid(event.target.checked)} /><span aria-hidden="true" /><em>Pago</em></label>

@@ -11,7 +11,7 @@ export default async function AccountsPayablePage({ searchParams }: { searchPara
     getAccountsLedger(auth.arenaId, "EXPENSE", filters), prisma.paymentMethodSetting.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { name: true }, orderBy: { name: "asc" } }),
     prisma.financialCategory.findMany({ where: { arenaId: auth.arenaId, active: true, type: { in: ["EXPENSE", "BOTH"] } }, select: { name: true }, orderBy: { name: "asc" } }),
     prisma.bankAccount.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.plan.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.plan.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true, monthlyPriceCents: true }, orderBy: { name: "asc" } }),
     prisma.product.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.supplier.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } })
   ]);
