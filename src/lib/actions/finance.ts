@@ -59,6 +59,7 @@ const entrySchema = z.object({
 });
 
 const recurrenceSchema = z.object({
+  type: z.enum(["REVENUE", "EXPENSE"]),
   counterpartyName: z.string().trim().min(2, "Informe o cliente."),
   category: z.string().trim().min(2, "Selecione a categoria."),
   description: z.string().trim().min(2, "Informe a descrição."),
@@ -490,6 +491,7 @@ export async function updateFinancialEntryAction(formData: FormData) {
 export async function createFinancialRecurrenceAction(formData: FormData) {
   const auth = await requireModuleEdit("finance");
   const parsed = recurrenceSchema.safeParse({
+    type: formData.get("type"),
     counterpartyName: formData.get("counterpartyName"), category: formData.get("category"), description: formData.get("description"),
     amount: formData.get("amount"), discount: formData.get("discount"), discountMode: formData.get("discountMode"), frequency: formData.get("frequency"), startsAt: formData.get("startsAt"),
     endsAt: formData.get("endsAt"), bankAccountId: formData.get("bankAccountId"), planId: formData.get("planId"), notes: formData.get("notes")
@@ -505,7 +507,7 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
 
   await withArenaTransaction(auth.arenaId, async (tx) => {
     const recurrence = await tx.financialRecurrence.create({ data: {
-      arenaId: auth.arenaId, type: "REVENUE", counterpartyName: parsed.data.counterpartyName, category: parsed.data.category,
+      arenaId: auth.arenaId, type: parsed.data.type, counterpartyName: parsed.data.counterpartyName, category: parsed.data.category,
       description: parsed.data.description, amountCents, frequency: parsed.data.frequency,
       startsAt, endsAt, nextDueDate: startsAt, bankAccountId: parsed.data.bankAccountId || null, planId: parsed.data.planId || null, notes: parsed.data.notes
     } });
@@ -513,7 +515,7 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
     const limit = endsAt ?? new Date(startsAt.getFullYear() + 1, startsAt.getMonth(), startsAt.getDate());
     while (dueDate <= limit) {
       await tx.financialEntry.create({ data: {
-        arenaId: auth.arenaId, type: "REVENUE", counterpartyName: recurrence.counterpartyName, category: recurrence.category,
+        arenaId: auth.arenaId, type: recurrence.type, counterpartyName: recurrence.counterpartyName, category: recurrence.category,
         description: recurrence.description, amountCents: recurrence.amountCents, dueDate, notes: recurrence.notes,
         recurrenceId: recurrence.id, bankAccountId: recurrence.bankAccountId, planId: recurrence.planId
       } });

@@ -21,6 +21,22 @@ test("financial ledgers support recurrence, supplier selection and server-side f
   assert.match(query, /planId/);
 });
 
+test("payables keep only expense fields and create suppliers, categories, and recurring payments inline", () => {
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/finance.ts"), "utf8");
+  const ledger = readFileSync(resolve(process.cwd(), "src/components/finance/accounts-ledger.tsx"), "utf8");
+  const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
+
+  assert.match(actions, /type: z\.enum\(\["REVENUE", "EXPENSE"\]\)/);
+  assert.match(actions, /type: parsed\.data\.type/);
+  assert.match(ledger, /createFinancialSettingAction/);
+  assert.match(ledger, /createQuickSetting\("fornecedores"/);
+  assert.match(ledger, /Criar categoria/);
+  assert.match(ledger, /type === "REVENUE" \? <>.*Plano\/pacote/s);
+  assert.match(ledger, /<em>Pagamento recorrente<\/em>/);
+  assert.match(styles, /\.accounts-ledger \{ width: 100%; max-width: none; font-size: 90%/);
+  assert.match(styles, /grid-template-columns: minmax\(0, 1fr\) 76px/);
+});
+
 test("receivable plan selectors separate the same standard plan by professor", () => {
   const page = readFileSync(
     resolve(
