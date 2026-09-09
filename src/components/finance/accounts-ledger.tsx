@@ -57,7 +57,7 @@ function PlanSelectOptions({ plans }: { plans: Option[] }) {
 
   return <>{[...groups.entries()].map(([key, group]) => (
     <optgroup key={key} label={`Professor: ${group.teacherName}`}>
-      {group.plans.map((plan) => <option key={`${plan.id}-${plan.teacherId || "unassigned"}`} value={plan.id} data-monthly-price-cents={plan.monthlyPriceCents}>{plan.name}</option>)}
+      {group.plans.map((plan) => <option key={`${plan.id}-${plan.teacherId || "unassigned"}`} value={plan.id} data-monthly-price-cents={plan.monthlyPriceCents} data-teacher-id={plan.teacherId}>{plan.name}</option>)}
     </optgroup>
   ))}</>;
 }
@@ -97,6 +97,8 @@ export function AccountsLedger({
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [category, setCategory] = useState("");
   const [counterpartyName, setCounterpartyName] = useState("");
+  const [selectedClientId, setSelectedClientId] = useState("");
+  const [selectedPlanTeacherId, setSelectedPlanTeacherId] = useState("");
   const [editCounterpartyName, setEditCounterpartyName] = useState("");
   const [clientPickerOpen, setClientPickerOpen] = useState(false);
   const [editClientPickerOpen, setEditClientPickerOpen] = useState(false);
@@ -106,6 +108,7 @@ export function AccountsLedger({
   const [discountMode, setDiscountMode] = useState<"AMOUNT" | "PERCENTAGE">("AMOUNT");
   const [newEntryAmountCents, setNewEntryAmountCents] = useState<number | undefined>();
   const [message, setMessage] = useState("");
+  const [notice, setNotice] = useState("");
   const [clientFilter, setClientFilter] = useState(String(filters.name ?? ""));
   const [clientFilterOpen, setClientFilterOpen] = useState(false);
   const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(new Set());
@@ -145,11 +148,12 @@ export function AccountsLedger({
     setSelectedEntry(entry);
   };
 
-  const run = (operation: () => Promise<void>, close: () => void) => {
+  const run = (operation: () => Promise<unknown>, close: () => void) => {
     startTransition(async () => {
       try {
         setMessage("");
-        await operation();
+        const result = await operation();
+        if (result && typeof result === "object" && "notice" in result && typeof result.notice === "string") setNotice(result.notice);
         close();
       } catch (error) {
         setMessage(error instanceof Error ? error.message : "Não foi possível concluir a operação.");
@@ -161,7 +165,7 @@ export function AccountsLedger({
     <div className="accounts-ledger stack-md">
       <header className="accounts-ledger-header">
         <div><h1>{title}</h1><p className="muted">Lançamentos em ordem de vencimento.</p></div>
-        <button type="button" className="button button-primary" onClick={() => { setMessage(""); setNewEntryAmountCents(undefined); setNewEntryOpen(true); }}>Novo lançamento</button>
+        <button type="button" className="button button-primary" onClick={() => { setMessage(""); setNotice(""); setSelectedClientId(""); setSelectedPlanTeacherId(""); setNewEntryAmountCents(undefined); setNewEntryOpen(true); }}>Novo lançamento</button>
       </header>
 
       <form method="get" className="accounts-filters">
@@ -182,6 +186,7 @@ export function AccountsLedger({
       </form>
 
       {message && !newEntryOpen && !bulkPaymentOpen ? <p className="form-message form-message-error">{message}</p> : null}
+      {notice && !newEntryOpen && !bulkPaymentOpen ? <p className="form-success">{notice}</p> : null}
       {selectedEntries.length ? <section className="accounts-bulk-actions" aria-label="Ações em massa"><strong>{selectedEntries.length} lançamento{selectedEntries.length === 1 ? " selecionado" : "s selecionados"}</strong><span>{selectedPendingEntries.length ? `${selectedPendingEntries.length} pendente${selectedPendingEntries.length === 1 ? "" : "s"} para quitar` : "Nenhuma pendência selecionada"}</span>{selectedPendingEntries.length ? <button type="button" className="button button-primary button-small" onClick={() => { setMessage(""); setBulkPaymentOpen(true); }}>Quitar pendentes</button> : null}{canDeleteEntries ? <button type="button" className="button button-danger button-small" onClick={() => { if (!window.confirm(`Excluir ${selectedEntries.length} lançamento(s)? Eles permanecerão registrados para auditoria.`)) return; const form = new FormData(); selectedEntries.forEach((entry) => form.append("entryIds", entry.id)); run(() => deleteFinancialEntriesBulkAction(form), () => setSelectedEntryIds(new Set())); }}>Excluir selecionados</button> : null}<button type="button" className="button button-small" onClick={() => setSelectedEntryIds(new Set())}>Limpar seleção</button></section> : null}
       <section className="accounts-ledger-list" aria-label={title}>
         <div className="accounts-ledger-columns"><span><input type="checkbox" aria-label="Selecionar todos os lançamentos" checked={allSelectableEntriesSelected} onChange={() => setSelectedEntryIds(allSelectableEntriesSelected ? new Set() : new Set(selectableEntries.map((entry) => entry.id)))} /></span><span>Vencimento</span><span>{partyLabel}</span><span>Tipo</span><span>Descrição</span><span>Valor / saldo</span><span>Status</span><span>Ações</span></div>
@@ -210,9 +215,11 @@ export function AccountsLedger({
               <input type="hidden" name="type" value={type} />
               <input type="hidden" name="status" value={paid && !recurring ? "PAID" : "PENDING"} />
               <input type="hidden" name="category" value={category} />
-              <label className="field">{partyLabel}<input name="counterpartyName" value={counterpartyName} onFocus={() => setClientPickerOpen(true)} onChange={(event) => { setCounterpartyName(event.target.value); setClientPickerOpen(true); }} required /></label>
+              <input type="hidden" name="clientId" value={selectedClientId} />
+              <input type="hidden" name="teacherId" value={selectedPlanTeacherId} />
+              <label className="field">{partyLabel}<input name="counterpartyName" value={counterpartyName} onFocus={() => setClientPickerOpen(true)} onChange={(event) => { setCounterpartyName(event.target.value); setSelectedClientId(""); setClientPickerOpen(true); }} required /></label>
               {type === "REVENUE" && clientPickerOpen && counterpartyName.trim() ? <div className="client-search-panel form-full" aria-label="Selecionar cliente cadastrado">
-                {matchingClients.map((client) => <button key={client.id} className="client-search-result" type="button" onClick={() => { setCounterpartyName(client.name); setClientPickerOpen(false); }}><span className="client-search-avatar">{client.name.slice(0, 1).toUpperCase()}</span><span><strong>{client.name}</strong><small>{client.phone || "Sem telefone cadastrado"}</small></span></button>)}
+                {matchingClients.map((client) => <button key={client.id} className="client-search-result" type="button" onClick={() => { setCounterpartyName(client.name); setSelectedClientId(client.id); setClientPickerOpen(false); }}><span className="client-search-avatar">{client.name.slice(0, 1).toUpperCase()}</span><span><strong>{client.name}</strong><small>{client.phone || "Sem telefone cadastrado"}</small></span></button>)}
                 {!matchingClients.length ? <span className="client-search-empty">Nenhum cliente encontrado.</span> : null}
               </div> : null}
               {type === "EXPENSE" && counterpartyName.trim() ? <div className="supplier-suggestions form-full">
@@ -225,7 +232,7 @@ export function AccountsLedger({
               <label className="field">Desconto<div className="discount-control"><input name="discount" inputMode="decimal" value={discount} onChange={(event) => setDiscount(event.target.value)} placeholder="0,00" /><select name="discountMode" value={discountMode} onChange={(event) => setDiscountMode(event.target.value as "AMOUNT" | "PERCENTAGE")} aria-label="Tipo de desconto"><option value="AMOUNT">R$</option><option value="PERCENTAGE">%</option></select></div></label>
               <label className="field">Vencimento<input name="dueDate" type="date" /></label>
               <label className="field">Conta bancária<select name="bankAccountId" defaultValue=""><option value="">Não definida</option>{bankAccounts.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-              <label className="field">Plano/pacote<select name="planId" defaultValue="" onChange={(event) => { const priceCents = Number(event.currentTarget.selectedOptions[0]?.dataset.monthlyPriceCents); if (Number.isSafeInteger(priceCents) && priceCents >= 0) setNewEntryAmountCents(priceCents); }}><option value="">Não vincular</option><PlanSelectOptions plans={plans} /></select></label>
+              <label className="field">Plano/pacote<select name="planId" defaultValue="" onChange={(event) => { const selectedPlan = event.currentTarget.selectedOptions[0]; const priceCents = Number(selectedPlan?.dataset.monthlyPriceCents); setSelectedPlanTeacherId(selectedPlan?.dataset.teacherId ?? ""); if (Number.isSafeInteger(priceCents) && priceCents >= 0) setNewEntryAmountCents(priceCents); }}><option value="">Não vincular</option><PlanSelectOptions plans={plans} /></select></label>
               <label className="field">Produto<select name="productId" defaultValue=""><option value="">Não vincular</option>{products.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
               <div className="form-full financial-entry-toggles">
                 <label className="control-toggle"><input type="checkbox" checked={paid} disabled={recurring} onChange={(event) => setPaid(event.target.checked)} /><span aria-hidden="true" /><em>Pago</em></label>
