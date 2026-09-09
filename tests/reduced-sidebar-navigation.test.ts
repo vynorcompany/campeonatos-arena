@@ -35,7 +35,7 @@ test("sidebar and dashboard share the new operational visual system", () => {
 
   assert.match(navigation, /nav-chevron/);
   assert.match(dashboard, /workspace-page/);
-  assert.match(styles, /\.sidebar\s*\{[\s\S]*?linear-gradient\(180deg, #061d46/s);
+  assert.match(styles, /\.app-shell \.sidebar\s*\{[\s\S]*?linear-gradient\(145deg, #062b57/s);
   assert.match(styles, /\.workspace-page\s*\{/);
 });
 
