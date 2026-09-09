@@ -323,50 +323,44 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
     }))
     .filter((group) => group.links.length);
   const itemIsActive = (item: NavItem): boolean => isActivePath(pathname, item.href) || Boolean(item.children?.some(itemIsActive));
-  const initialOpenItems = filteredGroups.flatMap((group) =>
-    group.links.filter((item) => item.children?.length && itemIsActive(item)).map((item) => item.href)
+  const activeExpandableItems = filteredGroups.flatMap((group) =>
+    group.links.flatMap((item) => [
+      ...(item.children?.length && itemIsActive(item) ? [item.href] : []),
+      ...(item.children?.flatMap((child) => child.children?.length && itemIsActive(child) ? [child.href] : []) ?? [])
+    ])
   );
   const [openItems, setOpenItems] = useState<Set<string>>(() => {
     if (typeof window === "undefined") {
-      return new Set(initialOpenItems);
+      return new Set(activeExpandableItems);
     }
 
     const stored = window.localStorage.getItem(openItemsStorageKey);
     if (!stored) {
-      return new Set(initialOpenItems);
+      return new Set(activeExpandableItems);
     }
 
     try {
       const parsed = JSON.parse(stored) as string[];
       return new Set(parsed);
     } catch {
-      return new Set(initialOpenItems);
+      return new Set(activeExpandableItems);
     }
   });
 
   useEffect(() => {
-    const activeParent = filteredGroups
-      .flatMap((group) => group.links)
-      .find(
-        (item) =>
-          item.children?.length &&
-          (isActivePath(pathname, item.href) || Boolean(item.children?.some((child) => isActivePath(pathname, child.href))))
-      );
-
-    if (!activeParent) {
-      return;
-    }
-
     setOpenItems((current) => {
-      if (current.has(activeParent.href)) {
+      const missingActiveItem = activeExpandableItems.find((href) => !current.has(href));
+      if (!missingActiveItem) {
         return current;
       }
 
       const next = new Set(current);
-      next.add(activeParent.href);
+      activeExpandableItems.forEach((href) => next.add(href));
       return next;
     });
-  }, [filteredGroups, pathname]);
+  // Abertura automática ocorre somente ao mudar de página; depois disso o clique sempre prevalece.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   useEffect(() => {
     window.localStorage.setItem(openItemsStorageKey, JSON.stringify([...openItems]));
@@ -392,7 +386,7 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
           <div className="nav-group-links">
             {group.links.map((item) => {
               const isActive = itemIsActive(item);
-              const isOpen = openItems.has(item.href) || isActive;
+              const isOpen = openItems.has(item.href);
 
               return (
                 <div className="nav-link-block" key={item.href}>
@@ -422,10 +416,10 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
                     <div className={`nav-submenu${isOpen ? " nav-submenu-open" : ""}`}>
                       {item.children.map((child) => (
                         child.children?.length ? <div className="nav-submenu-block" key={child.href}>
-                          <button type="button" className={`nav-sub-link nav-sub-link-parent${itemIsActive(child) ? " nav-sub-link-active" : ""}`} onClick={() => toggleItem(child.href)} aria-expanded={openItems.has(child.href) || itemIsActive(child)}>
-                                <span>{child.label}</span><span className={`nav-chevron${openItems.has(child.href) || itemIsActive(child) ? " nav-chevron-open" : ""}`} aria-hidden="true"><NavIcon name="chevron" /></span>
+                          <button type="button" className={`nav-sub-link nav-sub-link-parent${itemIsActive(child) ? " nav-sub-link-active" : ""}`} onClick={() => toggleItem(child.href)} aria-expanded={openItems.has(child.href)}>
+                                <span>{child.label}</span><span className={`nav-chevron${openItems.has(child.href) ? " nav-chevron-open" : ""}`} aria-hidden="true"><NavIcon name="chevron" /></span>
                           </button>
-                          <div className={`nav-submenu nav-submenu-nested${openItems.has(child.href) || itemIsActive(child) ? " nav-submenu-open" : ""}`}>
+                          <div className={`nav-submenu nav-submenu-nested${openItems.has(child.href) ? " nav-submenu-open" : ""}`}>
                             {child.children.map((grandchild) => <Link key={grandchild.href} href={grandchild.href} className={`nav-sub-link nav-sub-link-nested${isActivePath(pathname, grandchild.href) ? " nav-sub-link-active" : ""}`}>{grandchild.label}</Link>)}
                           </div>
                         </div> : <Link

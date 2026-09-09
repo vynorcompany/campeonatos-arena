@@ -28,13 +28,18 @@ test("clients can be opened from the list and edited in a modal", () => {
 
 test("sidebar parent sections only expand their submenus", () => {
   const navigation = readFileSync(resolve(process.cwd(), "src/components/layout/nav-links.tsx"), "utf8");
+  const shell = readFileSync(resolve(process.cwd(), "src/components/layout/app-shell.tsx"), "utf8");
   const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
 
   assert.match(navigation, /className=\{`nav-link nav-link-parent/);
   assert.match(navigation, /onClick=\{\(\) => toggleItem\(item\.href\)\}/);
   assert.match(navigation, /nav-link-parent/);
+  assert.match(navigation, /const activeExpandableItems/);
+  assert.match(navigation, /const isOpen = openItems\.has\(item\.href\)/);
+  assert.match(navigation, /\}, \[pathname\]\);/);
   assert.match(styles, /\.app-shell \.sidebar \{[^}]*linear-gradient\(145deg, #062b57/);
   assert.match(styles, /\.app-shell \.nav-link-active \{[^}]*#0868e5/);
+  assert.match(shell, /style=\{\{ background: "radial-gradient\(circle at 12% 6%/);
 });
 
 test("comandas use a compact date trigger and a floating calendar modal", () => {

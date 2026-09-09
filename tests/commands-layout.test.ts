@@ -45,7 +45,8 @@ test("commands use compact controls and vector icons in the daily workspace", ()
   assert.match(css, /\.commands-day-panel \{[^}]*min-height: 620px/);
   assert.match(css, /\.commands-actions \.button \{[^}]*min-height: 46px/);
   assert.match(picker, /<svg className="commands-icon"/);
-  assert.match(css, /\.commands-date-icon \{[^}]*color: #fff/);
+  assert.match(css, /\.commands-date-trigger \.commands-date-icon \{[^}]*color: #fff/);
+  assert.match(css, /\.commands-day-heading-icon \.commands-icon \{ color: #fff; stroke: #fff; \}/);
 });
 
 test("new client commands open in a floating picker and submit on selection", () => {
