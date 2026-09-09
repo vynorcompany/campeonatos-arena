@@ -7798,8 +7798,18 @@ button {
 .commands-modal-close:hover { border-color: #9bbad7; background: #f3f8fc; color: #1d5792; }
 @media (max-width: 760px) { .commands-date-trigger { min-height: 60px; } .commands-date-icon { width: 38px; height: 38px; } .commands-new-modal-backdrop { align-items: end; padding: 12px; } .commands-new-modal { width: 100%; padding: 18px; border-radius: 14px; } }
 
-/* A navegação permanece com a mesma identidade azul em todos os módulos. */
-.app-shell .sidebar { background: radial-gradient(circle at 12% 6%, rgb(69 184 255 / .34), transparent 30%), linear-gradient(145deg, #062b57 0%, #0d4f99 52%, #1575c2 100%); }
+/*
+ * A navegação é compartilhada por todos os módulos. Alguns chunks antigos de
+ * página ainda podem trazer uma regra de fundo própria durante uma troca de
+ * rota; esta declaração vence essas regras e mantém a mesma composição da
+ * barra em Clientes, Professores e demais telas.
+ */
+.app-shell > .sidebar {
+  background-color: #062b57 !important;
+  background-image:
+    radial-gradient(circle at 12% 6%, rgb(69 184 255 / .34), transparent 30%),
+    linear-gradient(145deg, #062b57 0%, #0d4f99 52%, #1575c2 100%) !important;
+}
 .app-shell .nav-link-active { border-color: rgb(83 158 255 / .56); background: linear-gradient(135deg, #0868e5, #0754c3); color: #fff; }
 
 /* Criação de turma: abertura inequívoca em modal, sem deslocar a lista existente. */
