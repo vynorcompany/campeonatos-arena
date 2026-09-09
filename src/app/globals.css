@@ -7379,7 +7379,6 @@ button {
 .sidebar {
   padding: 18px 14px;
   border-right: 1px solid rgb(96 163 255 / .22);
-  background: linear-gradient(180deg, #061d46 0%, #062b63 48%, #073777 100%);
   box-shadow: inset -1px 0 rgb(255 255 255 / .04);
 }
 .sidebar-inner { gap: 18px; }.sidebar-top { gap: 14px; }

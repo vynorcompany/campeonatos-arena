@@ -39,6 +39,7 @@ test("sidebar parent sections only expand their submenus", () => {
   assert.match(navigation, /\}, \[pathname\]\);/);
   assert.match(styles, /\.app-shell \.sidebar \{[^}]*linear-gradient\(145deg, #062b57/);
   assert.match(styles, /\.app-shell \.nav-link-active \{[^}]*#0868e5/);
+  assert.doesNotMatch(styles, /background: linear-gradient\(180deg, #061d46 0%, #062b63 48%, #073777 100%\)/);
   assert.match(shell, /style=\{\{ backgroundColor: "#062b57", backgroundImage: "radial-gradient\(circle at 12% 6%/);
 });
 
