@@ -21,7 +21,7 @@ test("financial ledgers support recurrence, supplier selection and server-side f
   assert.match(query, /planId/);
 });
 
-test("receivable plan selectors show the professor from the persisted plan assignment", () => {
+test("receivable plan selectors separate the same standard plan by professor", () => {
   const page = readFileSync(
     resolve(
       process.cwd(),
@@ -35,9 +35,11 @@ test("receivable plan selectors show the professor from the persisted plan assig
   );
 
   assert.match(page, /teacherAssignments/);
-  assert.match(page, /teacherNames/);
-  assert.match(ledger, /Professor:/);
-  assert.match(ledger, /teacherNames/);
+  assert.match(page, /teacherId/);
+  assert.match(page, /teacherName/);
+  assert.match(ledger, /<optgroup/);
+  assert.match(ledger, /Professor: \$\{group\.teacherName\}/);
+  assert.doesNotMatch(ledger, /Professores:/);
 });
 
 test("financial setting actions normalize missing optional FormData fields", () => {

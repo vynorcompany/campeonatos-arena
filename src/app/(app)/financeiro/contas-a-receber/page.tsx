@@ -11,10 +11,12 @@ export default async function AccountsReceivablePage({ searchParams }: { searchP
     getAccountsLedger(auth.arenaId, "REVENUE", filters), prisma.paymentMethodSetting.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { name: true }, orderBy: { name: "asc" } }),
     prisma.financialCategory.findMany({ where: { arenaId: auth.arenaId, active: true, type: { in: ["REVENUE", "BOTH"] } }, select: { name: true }, orderBy: { name: "asc" } }),
     prisma.bankAccount.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.plan.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true, teacherAssignments: { where: { active: true }, select: { teacher: { select: { name: true } } }, orderBy: { teacher: { name: "asc" } } } }, orderBy: { name: "asc" } }),
+    prisma.plan.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true, teacherAssignments: { where: { active: true }, select: { teacher: { select: { id: true, name: true } } }, orderBy: { teacher: { name: "asc" } } } }, orderBy: { name: "asc" } }),
     prisma.product.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.player.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true, phone: true }, orderBy: { name: "asc" } })
   ]);
-  const planOptions = plans.map(({ teacherAssignments, ...plan }) => ({ ...plan, teacherNames: teacherAssignments.map(({ teacher }) => teacher.name) }));
+  const planOptions = plans.flatMap(({ teacherAssignments, ...plan }) => teacherAssignments.length
+    ? teacherAssignments.map(({ teacher }) => ({ ...plan, teacherId: teacher.id, teacherName: teacher.name }))
+    : [{ ...plan, teacherId: "", teacherName: "" }]);
   return <AccountsLedger title="Contas a Receber" type="REVENUE" entries={entries} filters={filters} categories={categories.map((item) => item.name)} bankAccounts={banks} plans={planOptions} products={products} suppliers={[]} clients={clients} canDeleteEntries={canDeleteFinancialEntries(auth.arenaRole, auth.systemRole, auth.editPermissions)} paymentMethods={methods.length ? methods.map((method) => method.name) : ["Dinheiro", "PIX", "Cartão de crédito", "Cartão de débito", "Saldo de crédito"]} />;
 }
