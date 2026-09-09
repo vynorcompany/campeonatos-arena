@@ -7805,10 +7805,18 @@ button {
  * barra em Clientes, Professores e demais telas.
  */
 .app-shell > .sidebar {
-  background-color: #062b57 !important;
-  background-image:
+  position: relative;
+  isolation: isolate;
+  background: transparent !important;
+}
+
+.app-shell > .sidebar > .sidebar-surface {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background:
     radial-gradient(circle at 12% 6%, rgb(69 184 255 / .34), transparent 30%),
-    linear-gradient(145deg, #062b57 0%, #0d4f99 52%, #1575c2 100%) !important;
+    linear-gradient(145deg, #062b57 0%, #0d4f99 52%, #1575c2 100%);
 }
 .app-shell .nav-link-active { border-color: rgb(83 158 255 / .56); background: linear-gradient(135deg, #0868e5, #0754c3); color: #fff; }
 
