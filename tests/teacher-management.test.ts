@@ -780,6 +780,17 @@ test("class groups derive their name from weekday and time and cap capacity at f
   assert.match(panel, /capacity: "4"/);
 });
 
+test("student enrollment closes only the client picker after a client is selected and scopes financial writes", () => {
+  const form = readFileSync(resolve(process.cwd(), "src/components/teachers/teacher-plan-enrollment-form.tsx"), "utf8");
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/academy.ts"), "utf8");
+
+  assert.match(form, /const \[modalOpen, setModalOpen\] = useState\(false\)/);
+  assert.match(form, /const \[clientPickerOpen, setClientPickerOpen\] = useState\(false\)/);
+  assert.match(form, /setClientPickerOpen\(false\)/);
+  assert.match(form, /clientPickerOpen && matches\.length/);
+  assert.match(actions, /assignTeacherPlanStudentAction[\s\S]*withArenaTransaction\(auth\.arenaId, async \(tx\) =>/);
+});
+
 test("teacher pricing links a standard plan instead of duplicating its name", () => {
   const schema = readFileSync(resolve(process.cwd(), "prisma/schema.prisma"), "utf8");
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/academy.ts"), "utf8");
