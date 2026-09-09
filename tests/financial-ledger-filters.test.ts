@@ -51,6 +51,18 @@ test("selecting a plan fills the entry value with its configured price", () => {
   assert.match(ledger, /setNewEntryAmountCents\(priceCents\)/);
 });
 
+test("a receivable linked to a teacher plan enrolls the selected client and alerts about the class", () => {
+  const ledger = readFileSync(resolve(process.cwd(), "src/components/finance/accounts-ledger.tsx"), "utf8");
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/finance.ts"), "utf8");
+
+  assert.match(ledger, /name="clientId" value=\{selectedClientId\}/);
+  assert.match(ledger, /name="teacherId" value=\{selectedPlanTeacherId\}/);
+  assert.match(ledger, /data-teacher-id=\{plan\.teacherId\}/);
+  assert.match(actions, /tx\.teacherStudent\.upsert/);
+  assert.match(actions, /tx\.studentSubscription\.create/);
+  assert.match(actions, /Agora atribua-o a uma turma em Alunos ativos/);
+});
+
 test("financial setting actions normalize missing optional FormData fields", () => {
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/finance.ts"), "utf8");
 

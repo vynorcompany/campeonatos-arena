@@ -75,7 +75,7 @@ export default async function TeacherDetailPage({
             plan: {
               include: {
                 subscriptions: {
-                  where: { status: "ACTIVE" },
+                  where: { status: "ACTIVE", student: { teacherAssignments: { some: { teacherId: params.teacherId, active: true } } } },
                   include: {
                     student: {
                       select: { id: true, name: true, remainingClasses: true },
