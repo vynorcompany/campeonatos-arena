@@ -14,6 +14,18 @@ test("client portal marks open receivables past their due date as overdue", () =
   assert.match(home, /em atraso/);
   assert.match(home, /financialStatus: overdue \? "overdue" : due \? "pending" : "active"/);
   assert.match(portal, /financialStatus === "overdue" \? "is-overdue"/);
+  assert.match(portal, /portal-financial-overdue/);
+});
+
+test("financial ledger highlights pending entries that are past due", () => {
+  const ledger = read("src/components/finance/accounts-ledger.tsx");
+  const styles = read("src/app/globals.css");
+
+  assert.match(ledger, /function isOverdue\(entry: Account\)/);
+  assert.match(ledger, /accounts-ledger-row-overdue/);
+  assert.match(ledger, /EM ATRASO/);
+  assert.match(styles, /\.accounts-ledger-row-overdue/);
+  assert.match(styles, /\.account-status-overdue/);
 });
 
 test("financial deletion is an explicit user permission and remains auditable", () => {

@@ -46,6 +46,13 @@ function amountInput(cents: number) {
   return (cents / 100).toFixed(2).replace(".", ",");
 }
 
+function isOverdue(entry: Account) {
+  if (entry.status !== "PENDING" || !entry.dueDate) return false;
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return new Date(`${entry.dueDate}T12:00:00`) < today;
+}
+
 function PlanSelectOptions({ plans }: { plans: Option[] }) {
   const groups = new Map<string, { teacherName: string; plans: Option[] }>();
   for (const plan of plans) {
@@ -190,14 +197,17 @@ export function AccountsLedger({
       {selectedEntries.length ? <section className="accounts-bulk-actions" aria-label="Ações em massa"><strong>{selectedEntries.length} lançamento{selectedEntries.length === 1 ? " selecionado" : "s selecionados"}</strong><span>{selectedPendingEntries.length ? `${selectedPendingEntries.length} pendente${selectedPendingEntries.length === 1 ? "" : "s"} para quitar` : "Nenhuma pendência selecionada"}</span>{selectedPendingEntries.length ? <button type="button" className="button button-primary button-small" onClick={() => { setMessage(""); setBulkPaymentOpen(true); }}>Quitar pendentes</button> : null}{canDeleteEntries ? <button type="button" className="button button-danger button-small" onClick={() => { if (!window.confirm(`Excluir ${selectedEntries.length} lançamento(s)? Eles permanecerão registrados para auditoria.`)) return; const form = new FormData(); selectedEntries.forEach((entry) => form.append("entryIds", entry.id)); run(() => deleteFinancialEntriesBulkAction(form), () => setSelectedEntryIds(new Set())); }}>Excluir selecionados</button> : null}<button type="button" className="button button-small" onClick={() => setSelectedEntryIds(new Set())}>Limpar seleção</button></section> : null}
       <section className="accounts-ledger-list" aria-label={title}>
         <div className="accounts-ledger-columns"><span><input type="checkbox" aria-label="Selecionar todos os lançamentos" checked={allSelectableEntriesSelected} onChange={() => setSelectedEntryIds(allSelectableEntriesSelected ? new Set() : new Set(selectableEntries.map((entry) => entry.id)))} /></span><span>Vencimento</span><span>{partyLabel}</span><span>Tipo</span><span>Descrição</span><span>Valor / saldo</span><span>Status</span><span>Ações</span></div>
-        {entries.map((entry) => (
-          <article className="accounts-ledger-row accounts-ledger-row-clickable" key={entry.id} role="button" tabIndex={0} onClick={() => openEntry(entry)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") openEntry(entry); }}>
+        {entries.map((entry) => {
+          const overdue = isOverdue(entry);
+          return (
+          <article className={`accounts-ledger-row accounts-ledger-row-clickable${overdue ? " accounts-ledger-row-overdue" : ""}`} key={entry.id} role="button" tabIndex={0} onClick={() => openEntry(entry)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") openEntry(entry); }}>
             <span className="accounts-ledger-selection"><input type="checkbox" aria-label={`Selecionar ${entry.description}`} checked={selectedEntryIds.has(entry.id)} disabled={entry.status === "VOIDED"} onClick={(event) => event.stopPropagation()} onChange={() => toggleEntrySelection(entry.id)} /></span><span>{date(entry.dueDate)}</span><strong>{type === "REVENUE" && entry.counterpartyName !== "Não informado" ? <Link href={`/jogadores?q=${encodeURIComponent(entry.counterpartyName)}`} onClick={(event) => event.stopPropagation()}>{entry.counterpartyName}</Link> : entry.counterpartyName}</strong><span>{entry.category}</span><span>{entry.description}</span>
             <span><b>{money(entry.amountCents)}</b>{entry.balance.interestCents ? <small>Juros: {money(entry.balance.interestCents)}</small> : null}{entry.status !== "VOIDED" ? <small>Saldo: {money(entry.balance.outstandingCents)}</small> : null}</span>
-            <span><em className={`account-status account-status-${entry.status.toLowerCase()}`}>{entry.status === "PAID" ? "Quitada" : entry.status === "VOIDED" ? "Estornada" : "Em aberto"}</em>{entry.voidReason ? <small>{entry.voidReason}</small> : null}</span>
+            <span><em className={`account-status ${overdue ? "account-status-overdue" : `account-status-${entry.status.toLowerCase()}`}`}>{overdue ? "EM ATRASO" : entry.status === "PAID" ? "Quitada" : entry.status === "VOIDED" ? "Estornada" : "Em aberto"}</em>{entry.voidReason ? <small>{entry.voidReason}</small> : null}</span>
             <span className="accounts-ledger-actions">{entry.status === "PENDING" ? <button type="button" className="button button-small button-primary" onClick={(event) => { event.stopPropagation(); setPaymentEntry(entry); }}>{actionLabel}</button> : null}{entry.status !== "VOIDED" ? <button type="button" className="button button-small" onClick={(event) => { event.stopPropagation(); setVoidEntry(entry); }}>Estornar</button> : null}{canDeleteEntries && entry.status !== "VOIDED" ? <button type="button" className="button button-small button-danger" onClick={(event) => { event.stopPropagation(); if (!window.confirm("Excluir este lançamento? Ele será removido da operação, mas permanecerá registrado para auditoria.")) return; const form = new FormData(); form.set("entryId", entry.id); run(() => deleteFinancialEntryAction(form), () => {}); }}>Excluir</button> : null}</span>
           </article>
-        ))}
+          );
+        })}
         {!entries.length ? <div className="accounts-ledger-empty">Nenhuma conta cadastrada.</div> : null}
       </section>
 
