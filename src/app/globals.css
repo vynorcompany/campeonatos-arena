@@ -7778,7 +7778,8 @@ button {
 
 /* Seletor de data e abertura de comanda com presença visual mais leve. */
 .commands-date-trigger { min-width: 272px; min-height: 64px; gap: 10px; padding: 9px 12px; border-color: #d6e2ee; border-radius: 12px; box-shadow: none; }
-.commands-date-icon { width: 40px; height: 40px; border-radius: 10px; color: #fff; background: linear-gradient(145deg, #1d73d4, #1353a0); box-shadow: 0 5px 12px rgb(18 79 155 / .24); }
+.commands-date-trigger .commands-date-icon { width: 40px; height: 40px; border-radius: 10px; color: #fff; background: linear-gradient(145deg, #1d73d4, #1353a0); box-shadow: 0 5px 12px rgb(18 79 155 / .24); }
+.commands-date-trigger .commands-date-icon .commands-icon, .commands-day-heading-icon .commands-icon { color: #fff; stroke: #fff; }
 .commands-date-icon .commands-icon { width: 19px; height: 19px; }
 .commands-date-trigger .commands-date-copy > span { color: #315e8b; font-size: .62rem; letter-spacing: .045em; }
 .commands-date-trigger .commands-date-copy strong { font-size: .9rem; }
