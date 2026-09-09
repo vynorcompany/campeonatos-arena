@@ -17,11 +17,11 @@ function CommandIcon({ name }: { name: "search" | "receipt" | "calendar" | "list
   const paths = {
     search: <><circle cx="11" cy="11" r="5.5" /><path d="m15.2 15.2 4 4" /></>,
     receipt: <><path d="M7 3.5h10v17L15 19l-2 1.5L11 19l-2 1.5L7 19V3.5Z" /><path d="M10 8h4M10 12h4M10 16h3" /></>,
-    calendar: <><rect x="4" y="5.5" width="16" height="14" rx="2" /><path d="M8 3.5v4M16 3.5v4M4 10h16" /></>,
+    calendar: <><rect x="4" y="5.5" width="16" height="14" rx="2" /><path d="M8 3.5v4M16 3.5v4M4 10h16M8 14h.01M12 14h.01M16 14h.01M8 17h.01M12 17h.01" /></>,
     list: <><path d="M9 7h9M9 12h9M9 17h9" /><circle cx="6" cy="7" r=".7" /><circle cx="6" cy="12" r=".7" /><circle cx="6" cy="17" r=".7" /></>,
     plus: <path d="M12 6v12M6 12h12" />
   };
-  return <svg className="commands-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;
+  return <svg className="commands-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;
 }
 
 function toDateInput(value: Date) {
