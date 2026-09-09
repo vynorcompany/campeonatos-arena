@@ -16,6 +16,7 @@ import {
   removeTeacherPlanStudentAction,
 } from "@/lib/actions/academy";
 import { requireModuleView } from "@/lib/auth/guards";
+import { uniqueStandardPlanOptions } from "@/lib/academy/standard-plans";
 import { prisma } from "@/lib/prisma";
 
 const money = (value: number) =>
@@ -139,6 +140,10 @@ export default async function TeacherDetailPage({
     }),
   ]);
   if (!teacher) notFound();
+  const standardPlanOptions = uniqueStandardPlanOptions(standardPlans, [
+    teacher.name,
+    ...targetTeachers.map((targetTeacher) => targetTeacher.name),
+  ]);
   const classGroupsBySchedule = [...teacher.classGroups].sort(
     (first, second) => {
       const firstSchedule = first.schedules[0];
@@ -376,7 +381,7 @@ export default async function TeacherDetailPage({
                   teacherId={teacher.id}
                   teachers={targetTeachers}
                 />
-                <TeacherPlanCreateDialog teacherId={teacher.id} plans={standardPlans} />
+                <TeacherPlanCreateDialog teacherId={teacher.id} plans={standardPlanOptions} />
               </div>
             </header>
             <div className="teacher-plan-cards">
