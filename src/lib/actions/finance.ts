@@ -339,7 +339,7 @@ export async function createFinancialEntryAction(formData: FormData) {
     category: formData.get("category"),
     description: formData.get("description"),
     counterpartyName: formData.get("counterpartyName"),
-    supplierId: formData.get("supplierId"),
+    supplierId: formData.get("supplierId") ?? "",
     bankAccountId: formData.get("bankAccountId"),
     planId: formData.get("planId"),
     productId: formData.get("productId"),
@@ -349,7 +349,7 @@ export async function createFinancialEntryAction(formData: FormData) {
     paymentMethod: formData.get("paymentMethod"),
     status: formData.get("status"),
     dueDate: formData.get("dueDate"),
-    paidAt: formData.get("paidAt"),
+    paidAt: formData.get("paidAt") ?? "",
     notes: formData.get("notes")
   });
 
