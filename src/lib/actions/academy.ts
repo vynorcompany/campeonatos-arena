@@ -955,7 +955,7 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
       },
     });
     const subscription = await tx.studentSubscription.findFirst({
-      where: { arenaId: auth.arenaId, studentId: student.id, planId },
+      where: { arenaId: auth.arenaId, studentId: student.id, planId, status: "ACTIVE" },
       orderBy: { createdAt: "desc" },
       select: { id: true },
     });

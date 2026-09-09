@@ -5,6 +5,7 @@ import { requirePublicPlayerAuth } from "@/lib/auth/player-session";
 import { requireModuleEdit } from "@/lib/auth/guards";
 import { getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
 import { prisma } from "@/lib/prisma";
+import { withArenaTransaction } from "@/lib/rls";
 
 export async function requestClassGroupAction(formData: FormData) {
   const arenaSlug = String(formData.get("arenaSlug") ?? "").trim();
@@ -50,12 +51,15 @@ export async function approveClassGroupRequestAction(formData: FormData) {
   if (!plan) throw new Error("Plano não encontrado.");
   const firstDueDate = new Date(startedAt.getFullYear(), startedAt.getMonth(), dueDay, 12);
   if (firstDueDate < startedAt) firstDueDate.setMonth(firstDueDate.getMonth() + 1);
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(auth.arenaId, async (tx) => {
     await tx.classGroupEnrollment.upsert({ where: { classGroupId_studentId: { classGroupId: request.classGroupId, studentId: request.studentId } }, update: { status: "ACTIVE", endedAt: null, startedAt }, create: { arenaId: auth.arenaId, classGroupId: request.classGroupId, studentId: request.studentId, startedAt } });
-    await tx.studentSubscription.create({ data: { arenaId: auth.arenaId, studentId: request.studentId, planId: plan.id, monthlyPriceCents: plan.monthlyPriceCents, classesPerMonth: plan.classesPerMonth, dueDay, startedAt, notes: `Matrícula na turma ${request.classGroup.name}.` } });
-    const recurrence = await tx.financialRecurrence.create({ data: { arenaId: auth.arenaId, type: "REVENUE", counterpartyName: request.student.name, category: "Planos de aulas", description: `${plan.name} · ${request.student.name}`, amountCents: plan.monthlyPriceCents, frequency: "MONTHLY", startsAt: startedAt, nextDueDate: firstDueDate, planId: plan.id, notes: `Gerado pela matrícula na turma ${request.classGroup.name}.` } });
-    await tx.financialEntry.create({ data: { arenaId: auth.arenaId, type: "REVENUE", counterpartyName: request.student.name, category: "Planos de aulas", description: `${plan.name} · ${request.student.name}`, amountCents: plan.monthlyPriceCents, dueDate: firstDueDate, planId: plan.id, recurrenceId: recurrence.id } });
-    await tx.financialRecurrence.update({ where: { id: recurrence.id }, data: { nextDueDate: getNextFinancialRecurrenceDate(firstDueDate, "MONTHLY") } });
+    const activeSubscription = await tx.studentSubscription.findFirst({ where: { arenaId: auth.arenaId, studentId: request.studentId, planId: plan.id, status: "ACTIVE" }, select: { id: true } });
+    if (!activeSubscription) {
+      await tx.studentSubscription.create({ data: { arenaId: auth.arenaId, studentId: request.studentId, planId: plan.id, monthlyPriceCents: plan.monthlyPriceCents, classesPerMonth: plan.classesPerMonth, dueDay, startedAt, notes: `Matrícula na turma ${request.classGroup.name}.` } });
+      const recurrence = await tx.financialRecurrence.create({ data: { arenaId: auth.arenaId, type: "REVENUE", counterpartyName: request.student.name, category: "Planos de aulas", description: `${plan.name} · ${request.student.name}`, amountCents: plan.monthlyPriceCents, frequency: "MONTHLY", startsAt: startedAt, nextDueDate: firstDueDate, planId: plan.id, notes: `Gerado pela matrícula na turma ${request.classGroup.name}.` } });
+      await tx.financialEntry.create({ data: { arenaId: auth.arenaId, type: "REVENUE", counterpartyName: request.student.name, category: "Planos de aulas", description: `${plan.name} · ${request.student.name}`, amountCents: plan.monthlyPriceCents, dueDate: firstDueDate, planId: plan.id, recurrenceId: recurrence.id } });
+      await tx.financialRecurrence.update({ where: { id: recurrence.id }, data: { nextDueDate: getNextFinancialRecurrenceDate(firstDueDate, "MONTHLY") } });
+    }
     await tx.classGroupRequest.update({ where: { id: request.id }, data: { status: "APPROVED" } });
   });
   revalidatePath("/aulas");
