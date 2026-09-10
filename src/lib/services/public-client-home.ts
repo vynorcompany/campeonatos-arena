@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
+import { getOutstandingCents } from "@/lib/finance/settlements";
 
 const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value / 100);
 const date = (value: Date) => new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(value);
@@ -17,10 +18,14 @@ export async function getPublicClientHome(arenaSlug: string, playerId: string) {
     tx.student.findFirst({ where: { arenaId: arena.id, playerId }, select: { remainingClasses: true } }),
     tx.scheduleOccurrence.count({ where: { arenaId: arena.id, startsAt: { gte: now }, status: { not: "CANCELED" }, participants: { some: { playerId } } } }),
     tx.categoryPair.count({ where: { active: true, players: { some: { playerId } }, competition: { format: "LEAGUE", status: "PUBLISHED", category: { tournament: { arenaId: arena.id } } } } }),
-    tx.financialEntry.findMany({ where: { arenaId: arena.id, type: "REVENUE", status: { in: ["PENDING", "OVERDUE"] }, counterpartyName: player.name }, select: { amountCents: true, dueDate: true } })
+    tx.financialEntry.findMany({ where: { arenaId: arena.id, type: "REVENUE", status: { in: ["PENDING", "OVERDUE"] }, counterpartyName: player.name }, select: { amountCents: true, dueDate: true, status: true, settlements: { select: { amountCents: true, interestCents: true } } } })
   ]));
-  const due = entries.reduce((total, entry) => total + entry.amountCents, 0);
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const overdue = entries.some((entry) => entry.dueDate && entry.dueDate < today);
-  return { announcements, events: events.map((event) => ({ ...event, when: date(event.scheduledAt) })), eventPosts, summary: { financial: due ? `${money(due)} ${overdue ? "em atraso" : "em aberto"}` : "Em dia", financialStatus: overdue ? "overdue" : due ? "pending" : "active", classes: student?.remainingClasses ?? 0, reservations, leagues: pairs } };
+  const balances = entries.map((entry) => ({ ...entry, outstandingCents: getOutstandingCents(entry.amountCents, entry.settlements) })).filter((entry) => entry.outstandingCents > 0);
+  const currentEntries = balances.filter((entry) => entry.status === "OVERDUE" || !entry.dueDate || entry.dueDate <= today);
+  const futureEntries = balances.filter((entry) => entry.status !== "OVERDUE" && entry.dueDate && entry.dueDate > today);
+  const due = currentEntries.reduce((total, entry) => total + entry.outstandingCents, 0);
+  const future = futureEntries.reduce((total, entry) => total + entry.outstandingCents, 0);
+  const overdue = currentEntries.some((entry) => entry.status === "OVERDUE" || (entry.dueDate && entry.dueDate < today));
+  return { announcements, events: events.map((event) => ({ ...event, when: date(event.scheduledAt) })), eventPosts, summary: { financial: due ? `${money(due)} ${overdue ? "em atraso" : "em aberto"}` : "Em dia", futureFinancial: future ? `${money(future)} em lançamentos futuros` : null, financialStatus: overdue ? "overdue" : due ? "pending" : "active", classes: student?.remainingClasses ?? 0, reservations, leagues: pairs } };
 }

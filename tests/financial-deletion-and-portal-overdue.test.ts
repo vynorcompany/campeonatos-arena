@@ -9,12 +9,15 @@ test("client portal marks open receivables past their due date as overdue", () =
   const home = read("src/lib/services/public-client-home.ts");
   const portal = read("src/components/tournaments/public-standings.tsx");
 
-  assert.match(home, /select: \{ amountCents: true, dueDate: true \}/);
+  assert.match(home, /settlements: \{ select: \{ amountCents: true, interestCents: true \} \}/);
+  assert.match(home, /getOutstandingCents/);
+  assert.match(home, /futureEntries/);
   assert.match(home, /entry\.dueDate && entry\.dueDate < today/);
   assert.match(home, /em atraso/);
   assert.match(home, /financialStatus: overdue \? "overdue" : due \? "pending" : "active"/);
   assert.match(portal, /financialStatus === "overdue" \? "is-overdue"/);
   assert.match(portal, /portal-financial-overdue/);
+  assert.match(portal, /futureFinancial/);
 });
 
 test("financial ledger highlights pending entries that are past due", () => {
@@ -56,4 +59,15 @@ test("financial ledger only exposes deletion to users with the explicit permissi
   assert.match(receivable, /canDeleteEntries=/);
   assert.match(payable, /canDeleteEntries=/);
   assert.match(styles, /\.accounts-filters-submit/);
+});
+
+test("financial ledger shows listed and selected totals", () => {
+  const ledger = read("src/components/finance/accounts-ledger.tsx");
+  const styles = read("src/app/globals.css");
+
+  assert.match(ledger, /listedTotalCents/);
+  assert.match(ledger, /selectedTotalCents/);
+  assert.match(ledger, /Total listado/);
+  assert.match(ledger, /Total selecionado/);
+  assert.match(styles, /\.accounts-ledger-totals/);
 });
