@@ -36,7 +36,6 @@ export function AppShell({
   return (
     <div className="app-shell">
       <aside className="sidebar" aria-label="Menu lateral">
-        <div className="sidebar-surface" aria-hidden="true" />
         <div className="sidebar-inner">
           <div className="sidebar-top">
             <div className="brand-lockup sidebar-brand-lockup">
