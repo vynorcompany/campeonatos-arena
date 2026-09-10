@@ -13,6 +13,7 @@ import { getDiscountedAmountCents } from "@/lib/finance/discounts";
 import { getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
+import { encryptConnectionSecrets } from "@/lib/payments/connection-secrets";
 
 const optionalText = z.preprocess((value) => value ?? "", z.string().trim().default(""));
 
@@ -161,6 +162,18 @@ const payrollSchema = z.object({
   discount: z.string().trim().optional().default("0"),
   status: z.enum(["PENDING", "PAID"]).default("PENDING"),
   notes: optionalText
+});
+
+const paymentConnectionSchema = z.object({
+  provider: z.enum(["ASAAS", "SICOOB"]),
+  environment: z.enum(["SANDBOX", "PRODUCTION"]),
+  accessToken: z.string().trim().optional().default(""),
+  clientId: z.string().trim().optional().default(""),
+  clientSecret: z.string().trim().optional().default(""),
+  pixKey: z.string().trim().optional().default(""),
+  certificate: z.string().trim().optional().default(""),
+  privateKey: z.string().trim().optional().default(""),
+  certificatePassword: z.string().trim().optional().default("")
 });
 
 const teacherMonthlyPayableSchema = z.object({
@@ -872,6 +885,30 @@ export async function updateOnlinePaymentSettingsAction(formData: FormData) {
     });
   });
   refreshFinancialSettings();
+}
+
+export async function connectPaymentProviderAction(formData: FormData) {
+  const auth = await requireModuleEdit("finance");
+  const parsed = paymentConnectionSchema.safeParse({
+    provider: formData.get("provider"), environment: formData.get("environment"), accessToken: formData.get("accessToken"),
+    clientId: formData.get("clientId"), clientSecret: formData.get("clientSecret"), pixKey: formData.get("pixKey"),
+    certificate: formData.get("certificate"), privateKey: formData.get("privateKey"), certificatePassword: formData.get("certificatePassword")
+  });
+  if (!parsed.success) throw new Error("Dados da conexão inválidos.");
+
+  const data = parsed.data;
+  if (data.provider === "ASAAS") {
+    if (!data.accessToken) throw new Error("Informe a chave de API do Asaas.");
+    const baseUrl = data.environment === "SANDBOX" ? "https://api-sandbox.asaas.com/v3" : "https://api.asaas.com/v3";
+    const response = await fetch(`${baseUrl}/myAccount`, { headers: { access_token: data.accessToken, "User-Agent": "ArenaPadelManager/1.0" }, cache: "no-store" });
+    if (!response.ok) throw new Error("Não foi possível validar a chave do Asaas. Confira o ambiente e a chave informada.");
+    const account = await response.json() as { name?: string; email?: string; id?: string };
+    await withArenaTransaction(auth.arenaId, (tx) => tx.paymentConnection.upsert({ where: { arenaId_provider: { arenaId: auth.arenaId, provider: "ASAAS" } }, create: { arenaId: auth.arenaId, provider: "ASAAS", environment: data.environment, status: "CONNECTED", displayName: account.name || "Asaas", accountReference: account.id || account.email || "", encryptedSecrets: encryptConnectionSecrets({ accessToken: data.accessToken }), lastValidatedAt: new Date() }, update: { environment: data.environment, status: "CONNECTED", displayName: account.name || "Asaas", accountReference: account.id || account.email || "", encryptedSecrets: encryptConnectionSecrets({ accessToken: data.accessToken }), lastValidatedAt: new Date(), lastError: "" } }));
+  } else {
+    if (!data.clientId || !data.clientSecret || !data.pixKey || !data.certificate || !data.privateKey) throw new Error("Informe Client ID, Client Secret, chave PIX, certificado e chave privada do Sicoob.");
+    await withArenaTransaction(auth.arenaId, (tx) => tx.paymentConnection.upsert({ where: { arenaId_provider: { arenaId: auth.arenaId, provider: "SICOOB" } }, create: { arenaId: auth.arenaId, provider: "SICOOB", environment: data.environment, status: "CONFIGURED", displayName: "Sicoob", accountReference: data.pixKey, encryptedSecrets: encryptConnectionSecrets({ clientId: data.clientId, clientSecret: data.clientSecret, pixKey: data.pixKey, certificate: data.certificate, privateKey: data.privateKey, certificatePassword: data.certificatePassword }) }, update: { environment: data.environment, status: "CONFIGURED", accountReference: data.pixKey, encryptedSecrets: encryptConnectionSecrets({ clientId: data.clientId, clientSecret: data.clientSecret, pixKey: data.pixKey, certificate: data.certificate, privateKey: data.privateKey, certificatePassword: data.certificatePassword }), lastError: "" } }));
+  }
+  revalidatePath("/financeiro/configuracoes/pagamentos-online");
 }
 
 export async function upsertPayrollEntryAction(formData: FormData) {
