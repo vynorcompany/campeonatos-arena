@@ -1,3 +1,6 @@
+"use client";
+
+import { useRef } from "react";
 import { permissionAreas } from "@/lib/permissions";
 
 type PermissionMatrixProps = {
@@ -6,9 +9,20 @@ type PermissionMatrixProps = {
 };
 
 export function PermissionMatrix({ viewPermissions = [], editPermissions = [] }: PermissionMatrixProps) {
-  return <fieldset className="permission-matrix">
+  const fieldsetRef = useRef<HTMLFieldSetElement>(null);
+
+  function selectAllPermissions() {
+    fieldsetRef.current?.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach((input) => {
+      input.checked = true;
+    });
+  }
+
+  return <fieldset ref={fieldsetRef} className="permission-matrix">
     <legend>Permissões do perfil</legend>
-    <p className="permission-matrix-help">Marque somente as ações que este perfil poderá executar.</p>
+    <div className="permission-matrix-heading">
+      <p className="permission-matrix-help">Marque somente as ações que este perfil poderá executar.</p>
+      <button type="button" className="button button-small" onClick={selectAllPermissions}>Selecionar tudo</button>
+    </div>
     <div className="permission-area-grid">
       {permissionAreas.map((area) => <section className="permission-area" key={area.title}>
         <h3>{area.title}</h3>

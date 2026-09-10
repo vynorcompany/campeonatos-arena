@@ -13,7 +13,7 @@ export function PermissionProfilesManagement({ profiles }: { profiles: { id: str
     </SectionCard>
     <SectionCard title="Perfis de usuário" description="As alterações feitas em um perfil valem para todos os usuários vinculados a ele.">
       <div className="simple-list">
-        {profiles.map((profile) => <Link key={profile.id} href={`/arena/perfis/${profile.id}`} className="simple-item"><span><strong>{profile.name}</strong><small>{profile.description || "Sem descrição"}</small></span><span>{profile._count.members} usuário(s) · Configurar</span></Link>)}
+        {profiles.map((profile) => <Link key={profile.id} href={`/arena/perfis/${profile.id}`} className="simple-item permission-profile-item"><span><strong>{profile.name}</strong><small>{profile.description || "Sem descrição"}</small></span><span>{profile._count.members} usuário(s) · Configurar</span></Link>)}
         {!profiles.length ? <p className="muted">Nenhum perfil criado.</p> : null}
       </div>
     </SectionCard>

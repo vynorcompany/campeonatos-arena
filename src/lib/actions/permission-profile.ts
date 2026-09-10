@@ -40,6 +40,7 @@ export async function updatePermissionProfileAction(formData: FormData) {
   if (!profile) throw new Error("Perfil não encontrado nesta arena.");
   await prisma.permissionProfile.update({ where: { id: profile.id }, data: values });
   revalidateProfiles();
+  revalidatePath(`/arena/perfis/${profile.id}`);
 }
 
 export async function deletePermissionProfileAction(formData: FormData) {
