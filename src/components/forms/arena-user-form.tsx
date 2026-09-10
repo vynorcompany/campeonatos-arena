@@ -29,15 +29,7 @@ export function ArenaUserForm({ profiles }: { profiles: { id: string; name: stri
         <input id="password" name="password" type="password" placeholder="Senha inicial" required />
       </div>
 
-      <div className="field">
-        <label htmlFor="arenaRole">Papel na arena</label>
-        <select id="arenaRole" name="arenaRole" defaultValue="STAFF">
-          <option value="OWNER">Owner</option>
-          <option value="ADMIN">Admin</option>
-          <option value="STAFF">Staff</option>
-          <option value="VIEWER">Viewer</option>
-        </select>
-      </div>
+      <input type="hidden" name="arenaRole" value="STAFF" />
 
       <div className="field">
         <label htmlFor="permissionProfileId">Perfil de usuário</label>

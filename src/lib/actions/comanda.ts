@@ -72,19 +72,19 @@ export async function createComandaAction(formData: FormData) {
     throw new Error("Informe um nome para a comanda avulsa.");
   }
 
-  await withArenaTransaction(auth.arenaId, async (tx) => {
+  const result = await withArenaTransaction(auth.arenaId, async (tx) => {
     if (player) {
       const existing = await tx.comanda.findFirst({
         where: { arenaId: auth.arenaId, playerId: player.id, status: "OPEN" },
-        select: { id: true }
+        select: { id: true, openedAt: true }
       });
-      if (existing) throw new Error("Já existe uma comanda aberta para este cliente.");
+      if (existing) return { comandaId: existing.id, openedAt: existing.openedAt.toISOString(), reused: true, message: "Já existe uma comanda aberta para este cliente." };
     }
     const productCount = await tx.product.count({ where: { arenaId: auth.arenaId, active: true } });
     if (!productCount) {
       await tx.product.create({ data: { arenaId: auth.arenaId, name: "Água mineral 500 ml", sku: "DEMO-AGUA-500", priceCents: 500, stockQuantity: 100, minStock: 10 } });
     }
-    await tx.comanda.create({
+    const comanda = await tx.comanda.create({
       data: {
         arenaId: auth.arenaId,
         playerId: player?.id,
@@ -93,9 +93,11 @@ export async function createComandaAction(formData: FormData) {
         type: parsed.data.type
       }
     });
+    return { comandaId: comanda.id, openedAt: comanda.openedAt.toISOString(), reused: false };
   });
 
   revalidatePath("/comandas");
+  return result;
 }
 
 export async function deleteComandaAction(formData: FormData) {

@@ -20,8 +20,11 @@ export function NewCommandModal({ players, closeHref, action }: { players: Playe
     formData.set("playerId", playerId);
     startTransition(async () => {
       try {
-        await action(formData);
-        router.push(closeHref);
+        const result = await action(formData);
+        const openedAt = result && typeof result === "object" && "openedAt" in result && typeof result.openedAt === "string" ? result.openedAt : null;
+        const destination = new URL(closeHref, window.location.origin);
+        if (openedAt) destination.searchParams.set("date", openedAt.slice(0, 10));
+        router.push(`${destination.pathname}${destination.search}`);
         router.refresh();
       } catch (caughtError) {
         setError(caughtError instanceof Error ? caughtError.message : "Não foi possível abrir a comanda.");

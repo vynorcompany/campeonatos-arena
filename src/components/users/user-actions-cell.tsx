@@ -44,12 +44,7 @@ export function UserActionsCell({
         <div className="entity-edit-grid entity-edit-grid-user">
           <input name="name" type="text" defaultValue={name} aria-label="Nome do usuário" autoFocus />
           <input name="email" type="email" defaultValue={email} aria-label="E-mail do usuário" />
-          <select name="arenaRole" defaultValue={role} aria-label="Papel do usuário">
-            <option value="OWNER">Owner</option>
-            <option value="ADMIN">Admin</option>
-            <option value="STAFF">Staff</option>
-            <option value="VIEWER">Viewer</option>
-          </select>
+          <input type="hidden" name="arenaRole" value={role} />
           <select name="permissionProfileId" defaultValue={profileId ?? ""} aria-label="Perfil de usuário" required>
             <option value="" disabled>Selecione o perfil</option>
             {profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}
