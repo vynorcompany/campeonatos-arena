@@ -79,7 +79,7 @@ export default async function ComandasPage({ searchParams }: ComandasPageProps) 
     tx.product.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true, priceCents: true, stockQuantity: true, category: { select: { name: true } } }, orderBy: { name: "asc" } }),
     tx.paymentMethodSetting.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { name: true }, orderBy: { name: "asc" } }),
     tx.financialEntry.findMany({
-      where: { arenaId: auth.arenaId, status: "PENDING" },
+      where: { arenaId: auth.arenaId, status: { in: ["PENDING", "OVERDUE"] } },
       select: {
         id: true, description: true, amountCents: true, dueDate: true,
         settlements: { select: { amountCents: true } },
