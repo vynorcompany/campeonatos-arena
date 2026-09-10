@@ -33,7 +33,8 @@ const finishComandaSchema = z.object({
   comandaId: z.string().min(1),
   payments: paymentsSchema,
   debtIds: z.array(z.string().min(1)).max(30),
-  creditCents: z.coerce.number().int().nonnegative()
+  creditCents: z.coerce.number().int().nonnegative(),
+  allowEmpty: z.coerce.boolean().default(false)
 });
 
 function formatComandaCode() {
@@ -182,13 +183,17 @@ export async function finishComandaAction(formData: FormData) {
   if (typeof rawDebtIds === "string" && rawDebtIds.trim()) {
     try { debtIds = JSON.parse(rawDebtIds); } catch { throw new Error("Débitos inválidos."); }
   }
-  const parsed = finishComandaSchema.safeParse({ comandaId: formData.get("comandaId"), payments, debtIds, creditCents: formData.get("creditCents") ?? 0 });
+  const parsed = finishComandaSchema.safeParse({ comandaId: formData.get("comandaId"), payments, debtIds, creditCents: formData.get("creditCents") ?? 0, allowEmpty: formData.get("allowEmpty") ?? false });
   if (!parsed.success) throw new Error("Comanda inválida.");
 
   await withArenaTransaction(auth.arenaId, async (tx) => {
     const comanda = await tx.comanda.findFirst({ where: { id: parsed.data.comandaId, arenaId: auth.arenaId, status: "OPEN" }, include: { items: { include: { product: true } } } });
     if (!comanda) throw new Error("Comanda não está disponível.");
-    if (!comanda.items.length) throw new Error("Insira ao menos um produto antes de finalizar.");
+    if (!comanda.items.length) {
+      if (!parsed.data.allowEmpty) throw new Error("Confirme o encerramento da comanda zerada.");
+      await tx.comanda.update({ where: { id: comanda.id }, data: { status: "CLOSED", closedAt: new Date() } });
+      return;
+    }
     const totalCents = comanda.items.reduce((total, item) => total + item.totalCents, 0);
     const clientCreditCents = comanda.playerId ? Math.max(0, (await tx.clientBalanceMovement.aggregate({ where: { arenaId: auth.arenaId, playerId: comanda.playerId }, _sum: { amountCents: true } }))._sum.amountCents ?? 0) : 0;
     if (parsed.data.creditCents && !comanda.playerId) throw new Error("Saldo de cliente só pode ser usado em comandas vinculadas a um cliente.");
