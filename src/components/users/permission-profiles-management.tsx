@@ -5,9 +5,9 @@ import { SectionCard } from "@/components/section-card";
 export function PermissionProfilesManagement({ profiles }: { profiles: { id: string; name: string; description: string; _count: { members: number } }[] }) {
   return <div className="stack-md">
     <SectionCard title="Novo perfil" description="Crie um perfil e defina as permissões antes de atribuí-lo aos usuários.">
-      <form action={createPermissionProfileAction} className="inline-form">
-        <input name="name" placeholder="Ex.: Recepção" minLength={2} required />
-        <input name="description" placeholder="Descrição opcional" />
+      <form action={createPermissionProfileAction} className="permission-profile-create-form">
+        <label className="field">Nome do perfil<input name="name" placeholder="Ex.: Recepção" minLength={2} required /></label>
+        <label className="field">Descrição<input name="description" placeholder="Ex.: Pode abrir e finalizar comandas" /></label>
         <button className="button button-primary">Criar perfil</button>
       </form>
     </SectionCard>

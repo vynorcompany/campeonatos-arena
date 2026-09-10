@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireModuleEdit } from "@/lib/auth/guards";
+import { requirePermission } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
 function refreshClients() {
@@ -25,7 +25,7 @@ const balanceSchema = z.object({
 });
 
 export async function adjustClientBalanceAction(formData: FormData) {
-  const auth = await requireModuleEdit("players");
+  const auth = await requirePermission("players:balance");
   const parsed = balanceSchema.safeParse({ playerId: formData.get("playerId"), kind: formData.get("kind"), operation: formData.get("operation"), amount: formData.get("amount"), reason: formData.get("reason") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Movimentação inválida.");
   const quantity = parsed.data.kind === "MONEY" ? moneyToCents(parsed.data.amount) : Number(parsed.data.amount);
@@ -46,7 +46,7 @@ export async function adjustClientBalanceAction(formData: FormData) {
 }
 
 export async function mergeClientsAction(formData: FormData) {
-  const auth = await requireModuleEdit("players");
+  const auth = await requirePermission("players:merge");
   const parsed = z.object({ primaryPlayerId: z.string().min(1), duplicatePlayerId: z.string().min(1) }).safeParse({ primaryPlayerId: formData.get("primaryPlayerId"), duplicatePlayerId: formData.get("duplicatePlayerId") });
   if (!parsed.success || parsed.data.primaryPlayerId === parsed.data.duplicatePlayerId) throw new Error("Selecione dois clientes diferentes.");
   await prisma.$transaction(async (tx) => {
@@ -76,7 +76,7 @@ export async function mergeClientsAction(formData: FormData) {
 }
 
 export async function importClientsAction(formData: FormData) {
-  const auth = await requireModuleEdit("players");
+  const auth = await requirePermission("players:import");
   const file = formData.get("file");
   if (!(file instanceof File) || !file.size) throw new Error("Selecione um arquivo CSV.");
   const rows = (await file.text()).replace(/^\uFEFF/, "").split(/\r?\n/).slice(1).map((line) => line.split(";").map((value) => value.trim())).filter(([name]) => name);

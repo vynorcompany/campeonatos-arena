@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireModuleEdit, requireRole } from "@/lib/auth/guards";
+import { requirePermission, requireRole } from "@/lib/auth/guards";
 import { allocatePaymentsToDebts, getOutstandingCents } from "@/lib/finance/settlements";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
@@ -40,7 +40,7 @@ function formatComandaCode() {
 }
 
 export async function createComandaAction(formData: FormData) {
-  const auth = await requireModuleEdit("pos");
+  const auth = await requirePermission("pos:command:create");
   const parsed = comandaSchema.safeParse({
     type: formData.get("type"),
     playerId: formData.get("playerId") || undefined,
@@ -111,7 +111,7 @@ export async function deleteComandaAction(formData: FormData) {
 }
 
 export async function openBookingComandasAction(formData: FormData) {
-  const auth = await requireModuleEdit("pos");
+  const auth = await requirePermission("pos:command:create");
   const occurrenceId = z.string().trim().min(1).safeParse(formData.get("occurrenceId"));
   if (!occurrenceId.success) throw new Error("Horário inválido.");
 
@@ -128,7 +128,7 @@ export async function openBookingComandasAction(formData: FormData) {
 }
 
 export async function addComandaProductAction(formData: FormData) {
-  const auth = await requireModuleEdit("pos");
+  const auth = await requirePermission("pos:command:items");
   const parsed = comandaProductSchema.safeParse({ comandaId: formData.get("comandaId"), productId: formData.get("productId"), quantity: formData.get("quantity") || 1 });
   if (!parsed.success) throw new Error("Produto inválido.");
 
@@ -152,7 +152,7 @@ export async function addComandaProductAction(formData: FormData) {
 }
 
 export async function updateComandaItemQuantityAction(formData: FormData) {
-  const auth = await requireModuleEdit("pos");
+  const auth = await requirePermission("pos:command:items");
   const parsed = itemQuantitySchema.safeParse({ itemId: formData.get("itemId"), delta: formData.get("delta") });
   if (!parsed.success) throw new Error("Ajuste inválido.");
 
@@ -168,7 +168,7 @@ export async function updateComandaItemQuantityAction(formData: FormData) {
 }
 
 export async function finishComandaAction(formData: FormData) {
-  const auth = await requireModuleEdit("pos");
+  const auth = await requirePermission("pos:command:finish");
   let payments: unknown = [];
   let debtIds: unknown = [];
   const rawPayments = formData.get("payments");

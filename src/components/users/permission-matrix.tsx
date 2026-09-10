@@ -1,4 +1,4 @@
-import { financialEntryDeletePermission, permissionModules } from "@/lib/permissions";
+import { permissionAreas } from "@/lib/permissions";
 
 type PermissionMatrixProps = {
   viewPermissions?: string[];
@@ -6,35 +6,18 @@ type PermissionMatrixProps = {
 };
 
 export function PermissionMatrix({ viewPermissions = [], editPermissions = [] }: PermissionMatrixProps) {
-  return (
-    <fieldset className="permission-matrix">
-      <legend>Permissões por módulo</legend>
-      <div className="permission-matrix-head" aria-hidden="true">
-        <span>Módulo</span>
-        <span>Visualizar</span>
-        <span>Alterar</span>
-        <span>Excluir</span>
-      </div>
-      {permissionModules.map((module) => (
-        <label className="permission-row" key={module.key}>
-          <span>{module.label}</span>
-          <input
-            name="viewPermissions"
-            type="checkbox"
-            value={module.key}
-            defaultChecked={viewPermissions.includes(module.key)}
-            aria-label={`Visualizar ${module.label}`}
-          />
-          <input
-            name="editPermissions"
-            type="checkbox"
-            value={module.key}
-            defaultChecked={editPermissions.includes(module.key)}
-            aria-label={`Alterar ${module.label}`}
-          />
-          {module.key === "finance" ? <input name="financialEntryDelete" type="checkbox" value="1" defaultChecked={editPermissions.includes(financialEntryDeletePermission)} aria-label="Excluir lançamentos" /> : <span aria-hidden="true" />}
-        </label>
-      ))}
-    </fieldset>
-  );
+  return <fieldset className="permission-matrix">
+    <legend>Permissões do perfil</legend>
+    <p className="permission-matrix-help">Marque somente as ações que este perfil poderá executar.</p>
+    <div className="permission-area-grid">
+      {permissionAreas.map((area) => <section className="permission-area" key={area.title}>
+        <h3>{area.title}</h3>
+        {area.actions.map(([key, label]) => {
+          const isView = key.endsWith(":view") || key === "support:view";
+          const checked = isView ? viewPermissions.includes(key) : editPermissions.includes(key);
+          return <label key={key} className="permission-action">{key === "finance:delete-entry" ? <input name="financialEntryDelete" type="checkbox" value={key} defaultChecked={checked} /> : <input name={isView ? "viewPermissions" : "editPermissions"} type="checkbox" value={key} defaultChecked={checked} />}<span>{key === "finance:delete-entry" ? "Excluir lançamentos" : label}</span></label>;
+        })}
+      </section>)}
+    </div>
+  </fieldset>;
 }

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireFinancialEntryDelete, requireModuleEdit } from "@/lib/auth/guards";
+import { requireFinancialEntryDelete, requireModuleEdit, requirePermission } from "@/lib/auth/guards";
 import {
   getReferenceMonthRange,
   parseDate,
@@ -343,7 +343,7 @@ export async function recordPlanPaymentAction(formData: FormData) {
 }
 
 export async function createFinancialEntryAction(formData: FormData) {
-  const auth = await requireModuleEdit("finance");
+  const auth = await requirePermission("finance:settings:manage");
   const clientId = String(formData.get("clientId") ?? "");
   const teacherId = String(formData.get("teacherId") ?? "");
   const parsed = entrySchema.safeParse({
@@ -489,7 +489,7 @@ export async function updateFinancialEntryAction(formData: FormData) {
 }
 
 export async function createFinancialRecurrenceAction(formData: FormData) {
-  const auth = await requireModuleEdit("finance");
+  const auth = await requirePermission("finance:receivable:create");
   const parsed = recurrenceSchema.safeParse({
     type: formData.get("type"),
     counterpartyName: formData.get("counterpartyName"), category: formData.get("category"), description: formData.get("description"),
@@ -616,7 +616,7 @@ export async function settleFinancialEntriesBulkAction(formData: FormData) {
 }
 
 export async function createTeacherMonthlyPayableAction(formData: FormData) {
-  const auth = await requireModuleEdit("finance");
+  const auth = await requirePermission("finance:receivable:settle");
   const parsed = teacherMonthlyPayableSchema.safeParse({
     teacherId: formData.get("teacherId"),
     entryIds: formData.getAll("entryIds"),
@@ -700,7 +700,7 @@ export async function createTeacherMonthlyPayableAction(formData: FormData) {
 }
 
 export async function voidFinancialEntryAction(formData: FormData) {
-  const auth = await requireModuleEdit("finance");
+  const auth = await requirePermission(String(formData.get("type")) === "PAYABLE" ? "finance:payable:create" : "finance:receivable:create");
   const parsed = voidEntrySchema.safeParse({ entryId: formData.get("entryId"), reason: formData.get("reason") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
 
@@ -739,7 +739,7 @@ export async function deleteFinancialEntriesBulkAction(formData: FormData) {
 }
 
 export async function createFinancialSettingAction(formData: FormData) {
-  const auth = await requireModuleEdit("finance");
+  const auth = await requirePermission("finance:receivable:edit");
   const parsed = financialSettingSchema.safeParse({
     area: formData.get("area"), name: formData.get("name"), type: formData.get("type"), bankName: formData.get("bankName"), openingBalance: formData.get("openingBalance"), document: formData.get("document"), phone: formData.get("phone"), email: formData.get("email"), notes: formData.get("notes")
   });
@@ -761,7 +761,7 @@ export async function createFinancialSettingAction(formData: FormData) {
 }
 
 export async function createProductCategoryAction(formData: FormData) {
-  const auth = await requireModuleEdit("finance");
+  const auth = await requirePermission(String(formData.get("type")) === "PAYABLE" ? "finance:payable:create" : "finance:receivable:create");
   const parsed = productCategorySchema.safeParse({ name: formData.get("name") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
 
@@ -778,7 +778,7 @@ export async function createProductCategoryAction(formData: FormData) {
 }
 
 export async function createCouponAction(formData: FormData) {
-  const auth = await requireModuleEdit("finance");
+  const auth = await requirePermission("finance:receivable:settle");
   const parsed = couponSchema.safeParse({
     code: formData.get("code"),
     discountType: formData.get("discountType"),
@@ -822,7 +822,7 @@ export async function createCouponAction(formData: FormData) {
 }
 
 export async function updateFiscalSettingsAction(formData: FormData) {
-  const auth = await requireModuleEdit("finance");
+  const auth = await requirePermission("finance:receivable:settle");
   const parsed = fiscalSettingsSchema.safeParse({
     provider: formData.get("provider"),
     environment: formData.get("environment"),
@@ -844,7 +844,7 @@ export async function updateFiscalSettingsAction(formData: FormData) {
 }
 
 export async function updateOnlinePaymentSettingsAction(formData: FormData) {
-  const auth = await requireModuleEdit("finance");
+  const auth = await requirePermission("finance:payable:create");
   const parsed = onlinePaymentSettingsSchema.safeParse({
     provider: formData.get("provider"),
     webhookUrl: formData.get("webhookUrl"),

@@ -4212,8 +4212,8 @@ button {
 
 .permission-matrix {
   display: grid;
-  gap: 8px;
-  padding: 14px;
+  gap: 14px;
+  padding: 18px;
   border: 1px solid var(--line);
   border-radius: 14px;
   background: rgba(18, 93, 156, 0.04);
@@ -4252,25 +4252,36 @@ button {
   justify-self: center;
 }
 
+.permission-matrix-help { margin: -5px 0 0; color: var(--muted); font-size: .78rem; }
+.permission-area-grid { display: grid; grid-template-columns: repeat(3, minmax(220px, 1fr)); gap: 12px; }
+.permission-area { overflow: hidden; border: 1px solid var(--line); border-radius: 9px; background: #fff; }
+.permission-area h3 { margin: 0; padding: 10px 12px; border-bottom: 1px solid var(--line); color: var(--brand-strong); background: var(--panel-muted); font-size: .8rem; }
+.permission-action { display: flex; align-items: center; gap: 8px; min-height: 34px; padding: 7px 12px; border-bottom: 1px solid #e7edf3; color: var(--text); font-size: .76rem; cursor: pointer; }
+.permission-action:last-child { border-bottom: 0; }
+.permission-action input { inline-size: 15px; block-size: 15px; accent-color: #238448; }
+.profile-editor-page { display: grid; gap: 14px; max-width: 1240px; }
+.profile-page-back { width: fit-content; min-height: 34px; color: #185d9d; font-size: .78rem; font-weight: 750; text-decoration: none; }
+.profile-page-back:hover { color: #0a437a; text-decoration: none; }
+.profile-editor-card { display: grid; gap: 16px; }
+.profile-editor-card > header { padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.profile-editor-card h1 { margin: 5px 0 4px; }
+.profile-editor-card header p { margin: 0; }
+.profile-editor-form { display: grid; gap: 16px; }
+.profile-editor-fields { display: grid; grid-template-columns: minmax(220px, .7fr) minmax(320px, 1.3fr); gap: 12px; }
+.profile-editor-actions { display: flex; justify-content: flex-end; gap: 9px; }
+.permission-profile-create-form { display: grid; grid-template-columns: minmax(190px, .7fr) minmax(260px, 1.3fr) auto; align-items: end; gap: 12px; max-width: 880px; }
+
 @media (max-width: 620px) {
   .permission-matrix {
     padding: 10px;
   }
 
-  .permission-matrix-head,
-  .permission-row {
-    grid-template-columns: minmax(104px, 1fr) repeat(3, 48px);
-    gap: 4px;
-  }
-
-  .permission-matrix-head {
-    font-size: 0.61rem;
-    letter-spacing: 0.02em;
-  }
-
-  .permission-row {
-    font-size: 0.8rem;
-  }
+  .permission-area-grid { grid-template-columns: 1fr; }
+  .profile-editor-fields { grid-template-columns: 1fr; }
+  .permission-profile-create-form { grid-template-columns: 1fr; }
+  .permission-profile-create-form .button { width: 100%; }
+  .profile-editor-actions { align-items: stretch; flex-direction: column-reverse; }
+  .profile-editor-actions .button { width: 100%; }
 }
 
 .auth-switch {

@@ -14,7 +14,9 @@ function profileValues(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   if (name.length < 2) throw new Error("Informe um nome para o perfil.");
-  return { name, description, viewPermissions: profilePermissions(formData, "viewPermissions"), editPermissions: profilePermissions(formData, "editPermissions") };
+  const editPermissions = profilePermissions(formData, "editPermissions");
+  if (formData.get("financialEntryDelete")) editPermissions.push("finance:delete-entry");
+  return { name, description, viewPermissions: profilePermissions(formData, "viewPermissions"), editPermissions: normalizePermissionModules(editPermissions) };
 }
 
 function revalidateProfiles() {
@@ -40,12 +42,14 @@ export async function updatePermissionProfileAction(formData: FormData) {
   revalidateProfiles();
 }
 
-export async function archivePermissionProfileAction(formData: FormData) {
+export async function deletePermissionProfileAction(formData: FormData) {
   const auth = await requireRole("ADMIN");
   const profileId = String(formData.get("profileId") ?? "");
   const profile = await prisma.permissionProfile.findFirst({ where: { id: profileId, arenaId: auth.arenaId } });
   if (!profile) throw new Error("Perfil não encontrado nesta arena.");
-  await prisma.permissionProfile.update({ where: { id: profile.id }, data: { active: false } });
+  const members = await prisma.arenaMember.count({ where: { permissionProfileId: profile.id } });
+  if (members) throw new Error("Remova ou altere o perfil dos usuários vinculados antes de excluir este perfil.");
+  await prisma.permissionProfile.delete({ where: { id: profile.id } });
   revalidateProfiles();
   redirect("/arena?section=profiles");
 }
