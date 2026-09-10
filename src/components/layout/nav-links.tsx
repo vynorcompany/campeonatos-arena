@@ -224,14 +224,14 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
               href: "/financeiro/configuracoes",
               label: "Configurações Financeiras",
               children: [
-                { href: "/financeiro/configuracoes/notas-fiscais", label: "Notas Fiscais" },
-                { href: "/financeiro/configuracoes/fornecedores", label: "Fornecedores" },
+                { href: "/financeiro/configuracoes/categorias-financeiras", label: "Categorias Financeiras" },
                 { href: "/financeiro/configuracoes/categorias-produtos", label: "Categorias de Produtos" },
-                { href: "/financeiro/configuracoes/formas-pagamento", label: "Formas de Pagamentos" },
+                { href: "/financeiro/configuracoes/pagamentos-online", label: "Conectores de pagamento" },
                 { href: "/financeiro/configuracoes/contas-bancarias", label: "Contas Bancárias" },
                 { href: "/financeiro/configuracoes/cupons", label: "Cupons" },
-                { href: "/financeiro/configuracoes/categorias-financeiras", label: "Categorias Financeiras" },
-                { href: "/financeiro/configuracoes/pagamentos-online", label: "Pagamentos Online" }
+                { href: "/financeiro/configuracoes/fornecedores", label: "Fornecedores" },
+                { href: "/financeiro/configuracoes/formas-pagamento", label: "Formas de Pagamentos" },
+                { href: "/financeiro/configuracoes/notas-fiscais", label: "Notas Fiscais" }
               ]
             }
           ]
