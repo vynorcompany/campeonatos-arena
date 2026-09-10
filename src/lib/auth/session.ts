@@ -35,7 +35,8 @@ async function getSessionWithUser(token: string) {
         include: {
           memberships: {
             include: {
-              arena: true
+              arena: true,
+              permissionProfile: true
             },
             orderBy: {
               createdAt: "asc"
@@ -178,8 +179,8 @@ export async function getAuthContext(): Promise<AuthContext | null> {
     arenaName: membership.arena.name,
     arenaLogoUrl: membership.arena.logoUrl || "/arena-profile.jpg",
     arenaRole: membership.role as ArenaRole,
-    viewPermissions: membership.viewPermissions,
-    editPermissions: membership.editPermissions
+    viewPermissions: membership.permissionProfile?.viewPermissions ?? membership.viewPermissions,
+    editPermissions: membership.permissionProfile?.editPermissions ?? membership.editPermissions
   }));
   const systemRole = session.user.systemRole as SystemRole;
   const membershipArenaIds = new Set(memberships.map((membership) => membership.arenaId));

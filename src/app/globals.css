@@ -4252,6 +4252,27 @@ button {
   justify-self: center;
 }
 
+@media (max-width: 620px) {
+  .permission-matrix {
+    padding: 10px;
+  }
+
+  .permission-matrix-head,
+  .permission-row {
+    grid-template-columns: minmax(104px, 1fr) repeat(3, 48px);
+    gap: 4px;
+  }
+
+  .permission-matrix-head {
+    font-size: 0.61rem;
+    letter-spacing: 0.02em;
+  }
+
+  .permission-row {
+    font-size: 0.8rem;
+  }
+}
+
 .auth-switch {
   margin: 0;
   text-align: center;

@@ -84,6 +84,13 @@ async function hasAnotherOwner(arenaId: string, userId: string) {
   return ownerCount > 0;
 }
 
+async function resolvePermissionProfile(arenaId: string, profileId: string | undefined, role: ArenaRole) {
+  if (!profileId) return { id: null, ...defaultPermissionsForRole(role) };
+  const profile = await prisma.permissionProfile.findFirst({ where: { id: profileId, arenaId, active: true } });
+  if (!profile) throw new Error("Perfil de usuário inválido ou inativo.");
+  return { id: profile.id, viewPermissions: profile.viewPermissions, editPermissions: profile.editPermissions };
+}
+
 export async function createArenaUserAction(_: UserActionState, formData: FormData): Promise<UserActionState> {
   const auth = await requireArenaAccess();
 
@@ -96,6 +103,7 @@ export async function createArenaUserAction(_: UserActionState, formData: FormDa
     email: formData.get("email"),
     password: formData.get("password"),
     arenaRole: formData.get("arenaRole"),
+    permissionProfileId: formData.get("permissionProfileId") || undefined,
     viewPermissions: getPermissionValues(formData, "viewPermissions", formData.get("arenaRole") as ArenaRole),
     editPermissions: getPermissionValues(formData, "editPermissions", formData.get("arenaRole") as ArenaRole)
   });
@@ -109,6 +117,7 @@ export async function createArenaUserAction(_: UserActionState, formData: FormDa
   }
 
   const email = normalizeEmail(parsed.data.email);
+  const profile = await resolvePermissionProfile(auth.arenaId, parsed.data.permissionProfileId, parsed.data.arenaRole);
   const existingUser = await prisma.user.findUnique({
     where: { email }
   });
@@ -132,8 +141,9 @@ export async function createArenaUserAction(_: UserActionState, formData: FormDa
         userId: existingUser.id,
         arenaId: auth.arenaId,
         role: parsed.data.arenaRole,
-        viewPermissions: parsed.data.viewPermissions,
-        editPermissions: parsed.data.editPermissions
+        permissionProfileId: profile.id,
+        viewPermissions: profile.viewPermissions,
+        editPermissions: profile.editPermissions
       }
     });
 
@@ -153,8 +163,9 @@ export async function createArenaUserAction(_: UserActionState, formData: FormDa
         create: {
           arenaId: auth.arenaId,
           role: parsed.data.arenaRole,
-          viewPermissions: parsed.data.viewPermissions,
-          editPermissions: parsed.data.editPermissions
+          permissionProfileId: profile.id,
+          viewPermissions: profile.viewPermissions,
+          editPermissions: profile.editPermissions
         }
       }
     }
@@ -233,6 +244,7 @@ export async function updateArenaUserAction(formData: FormData) {
     name: formData.get("name"),
     email: formData.get("email"),
     arenaRole: formData.get("arenaRole"),
+    permissionProfileId: formData.get("permissionProfileId") || undefined,
     viewPermissions: getPermissionValues(formData, "viewPermissions", formData.get("arenaRole") as ArenaRole),
     editPermissions: getPermissionValues(formData, "editPermissions", formData.get("arenaRole") as ArenaRole)
   });
@@ -270,6 +282,7 @@ export async function updateArenaUserAction(formData: FormData) {
   }
 
   const email = normalizeEmail(parsed.data.email);
+  const profile = await resolvePermissionProfile(auth.arenaId, parsed.data.permissionProfileId, parsed.data.arenaRole);
   const emailOwner = await prisma.user.findUnique({
     where: {
       email
@@ -299,8 +312,9 @@ export async function updateArenaUserAction(formData: FormData) {
       },
       data: {
         role: parsed.data.arenaRole,
-        viewPermissions: parsed.data.viewPermissions,
-        editPermissions: parsed.data.editPermissions
+        permissionProfileId: profile.id,
+        viewPermissions: profile.viewPermissions,
+        editPermissions: profile.editPermissions
       }
     })
   ]);
@@ -403,6 +417,7 @@ export async function resetArenaUserPasswordAction(formData: FormData) {
       passwordHash
     }
   });
+  await prisma.session.deleteMany({ where: { userId: parsed.data.userId } });
 
   revalidateUserRoutes();
 }
@@ -468,6 +483,7 @@ export async function updateOwnPasswordAction(_: UserActionState, formData: Form
       passwordHash
     }
   });
+  await prisma.session.deleteMany({ where: { userId: auth.userId } });
 
   revalidateUserRoutes();
   return { error: null, success: "Sua senha foi atualizada com sucesso." };
