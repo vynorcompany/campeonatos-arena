@@ -89,7 +89,7 @@ test("zero-value commands keep the checkout available for debts and match manual
   assert.match(page, /toLocaleLowerCase\("pt-BR"\)/);
 });
 
-test("command product picker opens as a category modal with item quantities", () => {
+test("command product picker offers a compact category-filtered quantity stepper", () => {
   const schema = readFileSync(resolve(process.cwd(), "prisma/schema.prisma"), "utf8");
   const page = readFileSync(resolve(process.cwd(), "src/app/(app)/comandas/page.tsx"), "utf8");
   const card = readFileSync(resolve(process.cwd(), "src/components/comandas/command-card.tsx"), "utf8");
@@ -99,8 +99,9 @@ test("command product picker opens as a category modal with item quantities", ()
   assert.match(page, /category:/);
   assert.match(card, /command-product-modal/);
   assert.match(card, /Produtos em estoque/);
-  assert.match(card, /Quantidade/);
-  assert.match(card, /categoryName/);
+  assert.match(card, /productCategories/);
+  assert.match(card, /command-product-stepper/);
+  assert.match(card, /Adicionar à comanda/);
   assert.ok(existsSync(resolve(process.cwd(), "prisma/migrations/20260819090000_add_comanda_checkout/migration.sql")));
 });
 
@@ -126,13 +127,16 @@ test("commands protect an open client tab and expose the complete checkout contr
   assert.match(card, /Incluir débitos/);
 });
 
-test("command products use a searchable category kanban", () => {
+test("command products use a searchable compact catalog", () => {
   const card = readFileSync(resolve(process.cwd(), "src/components/comandas/command-card.tsx"), "utf8");
   const css = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
 
   assert.match(card, /Buscar produto/);
   assert.match(card, /productSearch/);
+  assert.match(card, /productCategory/);
+  assert.match(card, /selectedProductCount/);
   assert.match(card, /command-product-kanban/);
+  assert.match(card, /command-product-grid/);
   assert.match(css, /\.command-product-kanban/);
-  assert.match(css, /\.command-product-modal \{ width: min\(100%, 1280px\)/);
+  assert.match(css, /\.command-product-stepper/);
 });
