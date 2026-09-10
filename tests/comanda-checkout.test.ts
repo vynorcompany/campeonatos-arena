@@ -141,13 +141,16 @@ test("command products use a searchable compact catalog", () => {
   assert.match(css, /\.command-product-stepper/);
 });
 
-test("command detail product action is isolated from the card and modals close with Escape", () => {
+test("command detail acts as an item editor and modals close with Escape", () => {
   const card = readFileSync(resolve(process.cwd(), "src/components/comandas/command-card.tsx"), "utf8");
   const css = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
 
-  assert.match(card, /event\.preventDefault\(\); event\.stopPropagation\(\); setDetailsOpen\(false\); setProductModalOpen\(true\)/);
+  assert.match(card, /event\.preventDefault\(\); event\.stopPropagation\(\); setProductModalOpen\(true\)/);
   assert.match(card, /onClick=\{\(event\) => event\.stopPropagation\(\)\}/);
+  assert.match(card, /Adicionar o primeiro produto/);
+  assert.match(card, /command-details-item-controls/);
   assert.match(card, /event\.key !== "Escape"/);
   assert.match(card, /setProductModalOpen\(false\)/);
   assert.match(css, /command-checkout-grid > section:first-child \{ padding: 18px/);
+  assert.match(css, /\.command-details-item-controls/);
 });
