@@ -3,9 +3,7 @@
 import { useState } from "react";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
-import { PermissionMatrix } from "@/components/users/permission-matrix";
 import { removeArenaUserAction, resetArenaUserPasswordAction, updateArenaUserAction } from "@/lib/actions/user";
-import { defaultPermissionsForRole } from "@/lib/permissions";
 import type { ArenaRole } from "@/types/auth";
 
 const roleLabels: Record<ArenaRole, string> = {
@@ -22,6 +20,8 @@ type UserActionsCellProps = {
   role: ArenaRole;
   viewPermissions: string[];
   editPermissions: string[];
+  profileId: string | null;
+  profiles: { id: string; name: string }[];
   isCurrentUser: boolean;
 };
 
@@ -32,13 +32,11 @@ export function UserActionsCell({
   role,
   viewPermissions,
   editPermissions,
+  profileId,
+  profiles,
   isCurrentUser
 }: UserActionsCellProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const defaults = defaultPermissionsForRole(role);
-  const effectiveViewPermissions = viewPermissions.length ? viewPermissions : defaults.viewPermissions;
-  const effectiveEditPermissions = editPermissions.length ? editPermissions : defaults.editPermissions;
-
   if (isEditing) {
     return (
       <SafeActionForm action={updateArenaUserAction} className="entity-edit-form" successMessage="Usuário atualizado.">
@@ -52,8 +50,11 @@ export function UserActionsCell({
             <option value="STAFF">Staff</option>
             <option value="VIEWER">Viewer</option>
           </select>
+          <select name="permissionProfileId" defaultValue={profileId ?? ""} aria-label="Perfil de usuário" required>
+            <option value="" disabled>Selecione o perfil</option>
+            {profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}
+          </select>
         </div>
-        <PermissionMatrix viewPermissions={effectiveViewPermissions} editPermissions={effectiveEditPermissions} />
         <div className="player-inline-actions">
           <SubmitButton label="Salvar" pendingLabel="..." className="player-inline-text-button player-inline-text-button-save" />
           <button type="button" className="player-inline-text-button" onClick={() => setIsEditing(false)}>

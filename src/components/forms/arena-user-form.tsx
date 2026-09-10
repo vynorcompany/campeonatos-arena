@@ -2,16 +2,14 @@
 
 import { useFormState } from "react-dom";
 import { SubmitButton } from "@/components/forms/submit-button";
-import { PermissionMatrix } from "@/components/users/permission-matrix";
 import { createArenaUserAction, type UserActionState } from "@/lib/actions/user";
-import { defaultPermissionsForRole } from "@/lib/permissions";
 
 const initialState: UserActionState = {
   error: null,
   success: null
 };
 
-export function ArenaUserForm() {
+export function ArenaUserForm({ profiles }: { profiles: { id: string; name: string }[] }) {
   const [state, formAction] = useFormState(createArenaUserAction, initialState);
 
   return (
@@ -41,8 +39,12 @@ export function ArenaUserForm() {
         </select>
       </div>
 
-      <div className="form-full">
-        <PermissionMatrix {...defaultPermissionsForRole("STAFF")} />
+      <div className="field">
+        <label htmlFor="permissionProfileId">Perfil de usuário</label>
+        <select id="permissionProfileId" name="permissionProfileId" required defaultValue="">
+          <option value="" disabled>Selecione o perfil</option>
+          {profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}
+        </select>
       </div>
 
       <div className="field field-submit">

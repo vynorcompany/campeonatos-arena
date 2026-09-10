@@ -6,17 +6,19 @@ import { AthletePortalSettingsForm } from "@/components/forms/athlete-portal-set
 import { PortalEditorPanels } from "@/components/portal-editor-panels";
 import { SectionCard } from "@/components/section-card";
 import { ArenaUsersManagement } from "@/components/users/arena-users-management";
+import { PermissionProfilesManagement } from "@/components/users/permission-profiles-management";
+import { ensureArenaPermissionProfiles } from "@/lib/actions/permission-profile";
 import { requireRole, requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
-type ArenaSection = "data" | "portal" | "courts" | "users";
+type ArenaSection = "data" | "portal" | "courts" | "users" | "profiles";
 
 type ArenaPageProps = {
   searchParams?: { section?: string; court?: string };
 };
 
 function resolveSection(value?: string): ArenaSection {
-  return value === "portal" || value === "courts" || value === "users" ? value : "data";
+  return value === "portal" || value === "courts" || value === "users" || value === "profiles" ? value : "data";
 }
 
 function canManageUsers(auth: { arenaRole: string | null; systemRole: string }) {
@@ -28,7 +30,7 @@ export default async function ArenaPage({ searchParams }: ArenaPageProps) {
   const activeSection = resolveSection(searchParams?.section);
   const userManagementAllowed = canManageUsers(auth);
 
-  if (activeSection === "users" && !userManagementAllowed) {
+  if ((activeSection === "users" || activeSection === "profiles") && !userManagementAllowed) {
     await requireRole("ADMIN");
   }
 
@@ -52,9 +54,10 @@ export default async function ArenaPage({ searchParams }: ArenaPageProps) {
             Quadras
           </Link>
           {userManagementAllowed ? (
-            <Link href="/arena?section=users" className={activeSection === "users" ? "arena-settings-nav-link is-active" : "arena-settings-nav-link"}>
-              Usuários
-            </Link>
+            <>
+              <Link href="/arena?section=users" className={activeSection === "users" ? "arena-settings-nav-link is-active" : "arena-settings-nav-link"}>Usuários</Link>
+              <Link href="/arena?section=profiles" className={activeSection === "profiles" ? "arena-settings-nav-link is-active" : "arena-settings-nav-link"}>Perfis de usuário</Link>
+            </>
           ) : null}
         </aside>
 
@@ -105,8 +108,18 @@ export default async function ArenaPage({ searchParams }: ArenaPageProps) {
           {activeSection === "users" && userManagementAllowed ? (
             <ArenaUsersManagement arenaId={auth.arenaId} currentUserId={auth.userId} />
           ) : null}
+
+          {activeSection === "profiles" && userManagementAllowed ? (
+            <PermissionProfilesSection arenaId={auth.arenaId} />
+          ) : null}
         </section>
       </div>
     </div>
   );
+}
+
+async function PermissionProfilesSection({ arenaId }: { arenaId: string }) {
+  await ensureArenaPermissionProfiles(arenaId);
+  const profiles = await prisma.permissionProfile.findMany({ where: { arenaId, active: true }, select: { id: true, name: true, description: true, _count: { select: { members: true } } }, orderBy: { name: "asc" } });
+  return <PermissionProfilesManagement profiles={profiles} />;
 }

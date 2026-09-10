@@ -99,6 +99,7 @@ model Arena {
   createdById String
   createdBy   User          @relation("ArenaCreator", fields: [createdById], references: [id])
   members     ArenaMember[]
+  permissionProfiles PermissionProfile[]
   players     Player[]
   rankings    RankingProfile[]
   tournaments Tournament[]
@@ -234,11 +235,31 @@ model ArenaMember {
   createdAt       DateTime @default(now())
   userId          String
   arenaId         String
+  permissionProfileId String?
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   arena           Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  permissionProfile PermissionProfile? @relation(fields: [permissionProfileId], references: [id], onDelete: SetNull)
 
   @@unique([userId, arenaId])
   @@index([arenaId])
+  @@index([permissionProfileId])
+}
+
+model PermissionProfile {
+  id              String        @id @default(cuid())
+  arenaId         String
+  name            String
+  description     String        @default("")
+  viewPermissions String[]      @default([])
+  editPermissions String[]      @default([])
+  active          Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  arena           Arena         @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  members         ArenaMember[]
+
+  @@unique([arenaId, name])
+  @@index([arenaId, active])
 }
 
 model Player {

@@ -52,7 +52,7 @@ export function defaultPermissionsForRole(role: string) {
 }
 
 export function canViewModule(module: PermissionModule, role: string | null, systemRole: string, viewPermissions: string[]) {
-  if (systemRole === "SUPER_ADMIN" || systemRole === "ADMIN" || role === "OWNER" || role === "ADMIN") {
+  if (systemRole === "SUPER_ADMIN" || systemRole === "ADMIN" || role === "OWNER") {
     return true;
   }
 
@@ -60,7 +60,7 @@ export function canViewModule(module: PermissionModule, role: string | null, sys
 }
 
 export function canEditModule(module: PermissionModule, role: string | null, systemRole: string, editPermissions: string[]) {
-  if (systemRole === "SUPER_ADMIN" || systemRole === "ADMIN" || role === "OWNER" || role === "ADMIN") {
+  if (systemRole === "SUPER_ADMIN" || systemRole === "ADMIN" || role === "OWNER") {
     return true;
   }
 
@@ -68,7 +68,7 @@ export function canEditModule(module: PermissionModule, role: string | null, sys
 }
 
 export function canDeleteFinancialEntries(role: string | null, systemRole: string, editPermissions: string[]) {
-  if (systemRole === "SUPER_ADMIN" || systemRole === "ADMIN" || role === "OWNER" || role === "ADMIN") {
+  if (systemRole === "SUPER_ADMIN" || systemRole === "ADMIN" || role === "OWNER") {
     return true;
   }
 
