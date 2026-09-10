@@ -32,7 +32,8 @@ const paymentsSchema = z.array(z.object({
 const finishComandaSchema = z.object({
   comandaId: z.string().min(1),
   payments: paymentsSchema,
-  debtIds: z.array(z.string().min(1)).max(30)
+  debtIds: z.array(z.string().min(1)).max(30),
+  creditCents: z.coerce.number().int().nonnegative()
 });
 
 function formatComandaCode() {
@@ -181,7 +182,7 @@ export async function finishComandaAction(formData: FormData) {
   if (typeof rawDebtIds === "string" && rawDebtIds.trim()) {
     try { debtIds = JSON.parse(rawDebtIds); } catch { throw new Error("Débitos inválidos."); }
   }
-  const parsed = finishComandaSchema.safeParse({ comandaId: formData.get("comandaId"), payments, debtIds });
+  const parsed = finishComandaSchema.safeParse({ comandaId: formData.get("comandaId"), payments, debtIds, creditCents: formData.get("creditCents") ?? 0 });
   if (!parsed.success) throw new Error("Comanda inválida.");
 
   await withArenaTransaction(auth.arenaId, async (tx) => {
@@ -189,6 +190,10 @@ export async function finishComandaAction(formData: FormData) {
     if (!comanda) throw new Error("Comanda não está disponível.");
     if (!comanda.items.length) throw new Error("Insira ao menos um produto antes de finalizar.");
     const totalCents = comanda.items.reduce((total, item) => total + item.totalCents, 0);
+    const clientCreditCents = comanda.playerId ? Math.max(0, (await tx.clientBalanceMovement.aggregate({ where: { arenaId: auth.arenaId, playerId: comanda.playerId }, _sum: { amountCents: true } }))._sum.amountCents ?? 0) : 0;
+    if (parsed.data.creditCents && !comanda.playerId) throw new Error("Saldo de cliente só pode ser usado em comandas vinculadas a um cliente.");
+    if (parsed.data.creditCents > clientCreditCents) throw new Error("O saldo disponível do cliente foi alterado. Atualize a comanda e tente novamente.");
+    const creditAppliedCents = Math.min(parsed.data.creditCents, totalCents);
     const paymentTotalCents = parsed.data.payments.reduce((total, payment) => total + payment.amountCents, 0);
     const selectedDebts = comanda.playerId && parsed.data.debtIds.length ? await tx.financialEntry.findMany({
       where: {
@@ -215,7 +220,7 @@ export async function finishComandaAction(formData: FormData) {
     const partialDebtPaymentCents = debtPaymentAllocation.settlements.reduce((total, settlement) => total + settlement.amountCents, 0);
     const settleSelectedDebts = Boolean(selectedDebts.length) && partialDebtPaymentCents >= selectedDebtTotalCents;
     const comandaPaymentCents = debtPaymentAllocation.remainingPayments.reduce((total, payment) => total + payment.amountCents, 0);
-    const remainingCents = totalCents - comandaPaymentCents;
+    const remainingCents = totalCents - comandaPaymentCents - creditAppliedCents;
     const now = new Date();
     const sale = await tx.sale.create({
       data: {
@@ -223,7 +228,7 @@ export async function finishComandaAction(formData: FormData) {
         comandaId: comanda.id,
         code: `VEN-${Date.now().toString(36).toUpperCase()}`,
         customerName: comanda.label,
-        paymentMethod: parsed.data.payments.length === 1 ? parsed.data.payments[0].paymentMethod : parsed.data.payments.length ? "MÚLTIPLO" : "",
+        paymentMethod: parsed.data.payments.length + (creditAppliedCents ? 1 : 0) === 1 ? (creditAppliedCents ? "Saldo do cliente" : parsed.data.payments[0].paymentMethod) : parsed.data.payments.length || creditAppliedCents ? "MÚLTIPLO" : "",
         status: remainingCents ? (comandaPaymentCents ? "PARTIAL" : "PENDING") : "PAID",
         totalCents,
         items: { create: comanda.items.map((item) => ({ productId: item.productId, quantity: item.quantity, unitPriceCents: item.unitPriceCents, totalCents: item.totalCents })) }
@@ -233,6 +238,10 @@ export async function finishComandaAction(formData: FormData) {
       if (item.product.stockQuantity < item.quantity) throw new Error(`Estoque insuficiente para ${item.product.name}.`);
       await tx.product.update({ where: { id: item.productId }, data: { stockQuantity: { decrement: item.quantity } } });
       await tx.stockMovement.create({ data: { arenaId: auth.arenaId, productId: item.productId, type: "OUT", quantity: item.quantity, reason: `Comanda ${comanda.code}` } });
+    }
+    if (creditAppliedCents && comanda.playerId) {
+      await tx.salePayment.create({ data: { saleId: sale.id, paymentMethod: "Saldo do cliente", amountCents: creditAppliedCents } });
+      await tx.clientBalanceMovement.create({ data: { arenaId: auth.arenaId, playerId: comanda.playerId, kind: "MONEY", amountCents: -creditAppliedCents, reason: `Saldo utilizado na comanda ${comanda.code}` } });
     }
     for (const payment of debtPaymentAllocation.remainingPayments) {
       await tx.salePayment.create({ data: { saleId: sale.id, paymentMethod: payment.paymentMethod, amountCents: payment.amountCents } });

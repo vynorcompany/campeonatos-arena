@@ -43,6 +43,21 @@ test("command checkout offers only the client's pending balances for joint settl
   assert.match(page, /getOutstandingCents/);
 });
 
+test("command checkout can consume a client's available credit without treating it as a new receipt", () => {
+  const page = readFileSync(resolve(process.cwd(), "src/app/(app)/comandas/page.tsx"), "utf8");
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/comanda.ts"), "utf8");
+  const card = readFileSync(resolve(process.cwd(), "src/components/comandas/command-card.tsx"), "utf8");
+
+  assert.match(page, /balanceMovements/);
+  assert.match(page, /clientCreditCents/);
+  assert.match(card, /Saldo do cliente/);
+  assert.match(card, /Usar saldo/);
+  assert.match(card, /creditCents/);
+  assert.match(actions, /clientBalanceMovement\.aggregate/);
+  assert.match(actions, /amountCents: -creditAppliedCents/);
+  assert.match(actions, /Saldo utilizado na comanda/);
+});
+
 test("command product picker opens as a category modal with item quantities", () => {
   const schema = readFileSync(resolve(process.cwd(), "prisma/schema.prisma"), "utf8");
   const page = readFileSync(resolve(process.cwd(), "src/app/(app)/comandas/page.tsx"), "utf8");
