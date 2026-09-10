@@ -48,8 +48,8 @@ function includesModulePermission(permissions: string[], module: PermissionModul
 }
 
 export function hasPermissionKey(permissions: string[], key: string) {
-  const module = permissionModuleAliases[key.split(":")[0]];
-  return permissions.includes(key) || (module ? permissions.includes(module) : false);
+  const permissionModule = permissionModuleAliases[key.split(":")[0]];
+  return permissions.includes(key) || (permissionModule ? permissions.includes(permissionModule) : false);
 }
 
 export function defaultPermissionsForRole(role: string) {
