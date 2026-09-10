@@ -148,6 +148,8 @@ export function AccountsLedger({
   const selectableEntries = entries.filter((entry) => entry.status !== "VOIDED");
   const selectedEntries = entries.filter((entry) => selectedEntryIds.has(entry.id));
   const selectedPendingEntries = selectedEntries.filter((entry) => entry.status === "PENDING" && entry.balance.outstandingCents > 0);
+  const listedTotalCents = selectableEntries.reduce((total, entry) => total + entry.amountCents, 0);
+  const selectedTotalCents = selectedEntries.filter((entry) => entry.status !== "VOIDED").reduce((total, entry) => total + entry.amountCents, 0);
   const allSelectableEntriesSelected = selectableEntries.length > 0 && selectableEntries.every((entry) => selectedEntryIds.has(entry.id));
   const toggleEntrySelection = (entryId: string) => setSelectedEntryIds((current) => {
     const next = new Set(current);
@@ -220,6 +222,11 @@ export function AccountsLedger({
         <label className="control-toggle"><input name="includeVoided" type="checkbox" value="1" defaultChecked={filters.includeVoided === true} /><span aria-hidden="true" /><em>Incluir estornados/deletados</em></label>
         <button className="button button-primary accounts-filters-submit">Filtrar</button>
       </form>
+
+      <section className="accounts-ledger-totals" aria-label="Totais dos lançamentos">
+        <article><span>Total listado</span><strong>{money(listedTotalCents)}</strong><small>{selectableEntries.length} lançamento{selectableEntries.length === 1 ? "" : "s"} ativo{selectableEntries.length === 1 ? "" : "s"}</small></article>
+        <article className={selectedEntries.length ? "accounts-ledger-total-selected" : ""}><span>Total selecionado</span><strong>{money(selectedTotalCents)}</strong><small>{selectedEntries.length ? `${selectedEntries.length} lançamento${selectedEntries.length === 1 ? "" : "s"} selecionado${selectedEntries.length === 1 ? "" : "s"}` : "Selecione lançamentos na lista"}</small></article>
+      </section>
 
       {message && !newEntryOpen && !bulkPaymentOpen ? <p className="form-message form-message-error">{message}</p> : null}
       {notice && !newEntryOpen && !bulkPaymentOpen ? <p className="form-success">{notice}</p> : null}
