@@ -10,7 +10,7 @@ const settings = [
   ["Contas Bancárias", "contas-bancarias"],
   ["Cupons", "cupons"],
   ["Categorias Financeiras", "categorias-financeiras"],
-  ["Pagamentos Online", "pagamentos-online"]
+  ["Conectores de pagamento", "pagamentos-online"]
 ] as const;
 
 export default async function FinancialSettingsPage() {
