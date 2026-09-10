@@ -119,6 +119,7 @@ model Arena {
   coupons     Coupon[]
   fiscalSettings FiscalSettings?
   onlinePaymentSettings OnlinePaymentSettings?
+  paymentConnections PaymentConnection[]
   sales       Sale[]
   comandas    Comanda[]
   stockMovements StockMovement[]
@@ -1508,6 +1509,27 @@ model OnlinePaymentSettings {
   updatedAt    DateTime @updatedAt
   arenaId      String   @unique
   arena        Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+}
+
+model PaymentConnection {
+  id                 String   @id @default(cuid())
+  provider           String
+  environment        String   @default("SANDBOX")
+  status             String   @default("PENDING")
+  displayName        String   @default("")
+  accountReference   String   @default("")
+  encryptedSecrets   String   @default("")
+  webhookSecretHash  String   @default("")
+  expiresAt          DateTime?
+  lastValidatedAt    DateTime?
+  lastError          String   @default("")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  arenaId            String
+  arena              Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+
+  @@unique([arenaId, provider])
+  @@index([arenaId, status])
 }
 
 model Sale {
