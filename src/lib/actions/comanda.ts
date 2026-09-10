@@ -189,7 +189,7 @@ export async function finishComandaAction(formData: FormData) {
   await withArenaTransaction(auth.arenaId, async (tx) => {
     const comanda = await tx.comanda.findFirst({ where: { id: parsed.data.comandaId, arenaId: auth.arenaId, status: "OPEN" }, include: { items: { include: { product: true } } } });
     if (!comanda) throw new Error("Comanda não está disponível.");
-    if (!comanda.items.length) {
+    if (!comanda.items.length && !parsed.data.debtIds.length) {
       if (!parsed.data.allowEmpty) throw new Error("Confirme o encerramento da comanda zerada.");
       await tx.comanda.update({ where: { id: comanda.id }, data: { status: "CLOSED", closedAt: new Date() } });
       return;

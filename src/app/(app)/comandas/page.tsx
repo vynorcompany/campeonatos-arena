@@ -81,7 +81,7 @@ export default async function ComandasPage({ searchParams }: ComandasPageProps) 
     tx.financialEntry.findMany({
       where: { arenaId: auth.arenaId, status: { in: ["PENDING", "OVERDUE"] } },
       select: {
-        id: true, description: true, amountCents: true, dueDate: true,
+        id: true, counterpartyName: true, description: true, amountCents: true, dueDate: true,
         settlements: { select: { amountCents: true } },
         scheduleParticipant: { select: { playerId: true } },
         sale: { select: { comanda: { select: { playerId: true } } } }
@@ -95,8 +95,9 @@ export default async function ComandasPage({ searchParams }: ComandasPageProps) 
   const baseParams = new URLSearchParams({ date: toDateInput(selectedDate) });
   if (search) baseParams.set("search", search);
   const paymentMethods = paymentMethodSettings.length ? paymentMethodSettings.map((method) => method.name) : ["Dinheiro", "PIX", "Cartão de crédito", "Cartão de débito", "Saldo de crédito"];
+  const commandPlayerIdsByName = new Map(comandas.flatMap((comanda) => comanda.playerId && comanda.player?.name ? [[comanda.player.name.trim().toLocaleLowerCase("pt-BR"), comanda.playerId] as const] : []));
   const debtsByPlayer = pendingDebts.reduce<Record<string, { id: string; description: string; amountCents: number; dueDate: Date | null }[]>>((current, debt) => {
-    const playerId = debt.scheduleParticipant?.playerId ?? debt.sale?.comanda?.playerId;
+    const playerId = debt.scheduleParticipant?.playerId ?? debt.sale?.comanda?.playerId ?? commandPlayerIdsByName.get(debt.counterpartyName.trim().toLocaleLowerCase("pt-BR"));
     const outstandingCents = getOutstandingCents(debt.amountCents, debt.settlements);
     if (playerId && outstandingCents > 0) (current[playerId] ??= []).push({ id: debt.id, description: debt.description, amountCents: outstandingCents, dueDate: debt.dueDate });
     return current;
