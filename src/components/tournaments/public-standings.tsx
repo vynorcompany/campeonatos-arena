@@ -8,6 +8,7 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { PlayerAvatar } from "@/components/player-avatar";
 import { PortalRichText } from "@/components/portal-rich-text";
 import { ClientPortalEventCarousel } from "@/components/client-portal-event-carousel";
+import { PublicDoublesRadar } from "@/components/public-doubles-radar";
 import {
   moveClassGroupStudentAction,
   registerClassGroupMakeupAction,
@@ -30,6 +31,7 @@ type PortalSection =
   | "lessons"
   | "classes"
   | "profile"
+  | "radar"
   | "teacher";
 type LeagueTab = "games" | "pairs" | "ranking" | "rules" | "prizes";
 
@@ -63,6 +65,9 @@ export function PublicStandings({
   portal,
   home,
   finance,
+  radar,
+  radarGender,
+  radarCategory,
   financeTab = "upcoming",
   authForm,
   section = "leagues",
@@ -81,11 +86,16 @@ export function PublicStandings({
     birthDate: string;
     padelCategory: string;
     padelSide: string;
+    gender: string;
+    tournamentAvailability: string;
     isTeacher: boolean;
   } | null;
   portal: Portal;
   home: ClientHome;
   finance: ClientFinance;
+  radar: Awaited<ReturnType<typeof import("@/lib/services/public-doubles-radar").getPublicDoublesRadar>>;
+  radarGender?: string;
+  radarCategory?: string;
   financeTab?: "upcoming" | "history";
   authForm: React.ReactNode;
   section?: PortalSection;
@@ -152,6 +162,9 @@ export function PublicStandings({
             : section === "classes" &&
                 !portalVisibility.athletePortalShowClasses
               ? "profile"
+              : section === "radar" &&
+                  !portalVisibility.athletePortalShowDoublesRadar
+                ? "profile"
               : section;
   const selectedLeagueTab: LeagueTab =
     leagueTab === "pairs" ||
@@ -175,6 +188,9 @@ export function PublicStandings({
           Início
         </Link>
         <Link className={requestedSection === "finance" ? "active" : ""} href={portalHref("finance")}>Finanças</Link>
+        {portalVisibility.athletePortalShowDoublesRadar ? (
+          <Link className={requestedSection === "radar" ? "active" : ""} href={portalHref("radar")}>Radar de duplas</Link>
+        ) : null}
         {portalVisibility.athletePortalShowLeagues ? (
           <Link
             className={requestedSection === "leagues" ? "active" : ""}
@@ -256,6 +272,14 @@ export function PublicStandings({
         <ClientHomePanel home={home} name={currentClient.name} arenaSlug={arena.slug} />
       ) : requestedSection === "finance" ? (
         <ClientFinancePanel finance={finance} arenaSlug={arena.slug} tab={financeTab} />
+      ) : requestedSection === "radar" ? (
+        <PublicDoublesRadar
+          arenaSlug={arena.slug}
+          radar={radar}
+          currentAvailability={currentClient.tournamentAvailability === "AVAILABLE" || currentClient.tournamentAvailability === "LOOKING_FOR_PARTNER" ? currentClient.tournamentAvailability : "OFF"}
+          selectedGender={radarGender}
+          selectedCategory={radarCategory}
+        />
       ) : requestedSection === "leagues" ? (
         <>
           <nav className="athlete-portal-league-nav" aria-label="Menu da Liga">

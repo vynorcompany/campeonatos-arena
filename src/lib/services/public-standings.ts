@@ -21,6 +21,7 @@ export type ArenaPublicStandings = {
     athletePortalShowReservations: boolean;
     athletePortalShowLessons: boolean;
     athletePortalShowClasses: boolean;
+    athletePortalShowDoublesRadar: boolean;
   };
   options: PublicStandingsOption[];
   selectedOptionId: string | null;
@@ -70,6 +71,7 @@ export async function getPublicArenaShell(arenaSlug: string): Promise<PublicAren
       athletePortalShowReservations: true,
       athletePortalShowLessons: true,
       athletePortalShowClasses: true,
+      athletePortalShowDoublesRadar: true,
     },
   });
 }
@@ -95,6 +97,7 @@ export async function getArenaPublicStandings(
       athletePortalShowReservations: true,
       athletePortalShowLessons: true,
       athletePortalShowClasses: true,
+      athletePortalShowDoublesRadar: true,
     },
   });
   if (!arena) {

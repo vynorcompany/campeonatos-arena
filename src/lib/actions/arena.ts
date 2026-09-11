@@ -35,6 +35,7 @@ export async function updateAthletePortalSettingsAction(formData: FormData) {
       athletePortalShowReservations: formData.get("showReservations") === "on",
       athletePortalShowLessons: formData.get("showLessons") === "on",
       athletePortalShowClasses: formData.get("showClasses") === "on",
+      athletePortalShowDoublesRadar: formData.get("showDoublesRadar") === "on",
     },
     select: { slug: true },
   });
