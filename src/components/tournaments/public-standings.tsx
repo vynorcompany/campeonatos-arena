@@ -20,8 +20,10 @@ type Portal = Awaited<
   >
 >;
 type ClientHome = Awaited<ReturnType<typeof import("@/lib/services/public-client-home").getPublicClientHome>>;
+type ClientFinance = Awaited<ReturnType<typeof import("@/lib/services/public-client-home").getPublicClientFinance>>;
 type PortalSection =
   | "home"
+  | "finance"
   | "leagues"
   | "booking"
   | "reservations"
@@ -60,6 +62,7 @@ export function PublicStandings({
   currentClient,
   portal,
   home,
+  finance,
   authForm,
   section = "leagues",
   leagueTab = "games",
@@ -79,6 +82,7 @@ export function PublicStandings({
   } | null;
   portal: Portal;
   home: ClientHome;
+  finance: ClientFinance;
   authForm: React.ReactNode;
   section?: PortalSection;
   leagueTab?: LeagueTab;
@@ -166,6 +170,7 @@ export function PublicStandings({
         >
           Início
         </Link>
+        <Link className={requestedSection === "finance" ? "active" : ""} href={portalHref("finance")}>Finanças</Link>
         {portalVisibility.athletePortalShowLeagues ? (
           <Link
             className={requestedSection === "leagues" ? "active" : ""}
@@ -245,6 +250,8 @@ export function PublicStandings({
       ) : null}
       {requestedSection === "home" ? (
         <ClientHomePanel home={home} name={currentClient.name} arenaSlug={arena.slug} />
+      ) : requestedSection === "finance" ? (
+        <ClientFinancePanel finance={finance} arenaSlug={arena.slug} />
       ) : requestedSection === "leagues" ? (
         <>
           <nav className="athlete-portal-league-nav" aria-label="Menu da Liga">
@@ -337,6 +344,16 @@ export function PublicStandings({
       )}
     </main>
   );
+}
+
+function ClientFinancePanel({ finance, arenaSlug }: { finance: ClientFinance; arenaSlug: string }) {
+  if (!finance) return <section className="athlete-portal-content-panel"><PortalEmpty title="Finanças indisponíveis" detail="Não foi possível carregar suas informações financeiras agora." /></section>;
+  const title = finance.health === "healthy" ? "Tudo saudável" : finance.health === "upcoming" ? "Tudo organizado" : "Vamos resolver isso juntos";
+  return <section className="client-finance-page"><header className={`client-finance-hero is-${finance.health}`}><span>FINANÇAS</span><div><div className="client-finance-orb" aria-hidden="true">{finance.health === "healthy" ? "✓" : finance.health === "upcoming" ? "◷" : "!"}</div><div><h2>{title}</h2><p>{finance.detail}</p></div></div></header><section className="client-finance-section"><header><h3>Para agora</h3><span>{finance.overdue.length ? "Há algo pendente" : "Nenhuma pendência"}</span></header>{finance.overdue.length ? finance.overdue.map((entry) => <FinanceEntry key={entry.id} entry={entry} arenaSlug={arenaSlug} />) : <p className="client-finance-empty">Você está em dia. Obrigado por manter tudo organizado ✨</p>}</section><section className="client-finance-section"><header><h3>Próximos pagamentos</h3><span>{finance.open.length}</span></header>{finance.open.length ? finance.open.map((entry) => <FinanceEntry key={entry.id} entry={entry} arenaSlug={arenaSlug} />) : <p className="client-finance-empty">Nenhum pagamento futuro aguardando você.</p>}</section><section className="client-finance-section"><header><h3>Histórico</h3><span>{finance.paid.length} pagamento{finance.paid.length === 1 ? "" : "s"}</span></header>{finance.paid.length ? finance.paid.map((entry) => <article className="client-finance-entry is-paid" key={entry.id}><div><strong>{entry.description}</strong><small>Pago em {entry.paidAt || entry.dueDate}</small></div><b>{entry.amount}</b><em>Pago</em></article>) : <p className="client-finance-empty">Quando houver pagamentos, eles aparecerão aqui.</p>}</section></section>;
+}
+
+function FinanceEntry({ entry, arenaSlug }: { entry: NonNullable<ClientFinance>["open"][number]; arenaSlug: string }) {
+  return <article className={`client-finance-entry is-${entry.status}`}><div><strong>{entry.description}</strong><small>{entry.status === "overdue" ? "Venceu em" : "Vence em"} {entry.dueDate}</small></div><b>{entry.amount}</b>{entry.hasCharge ? <a className="button button-primary button-small" href={`/classificacao/${arenaSlug}/cobranca/${entry.id}`}>Ver boleto</a> : <em>{entry.status === "overdue" ? "Em aberto" : "Programado"}</em>}</article>;
 }
 
 function ClientHomePanel({ home, name, arenaSlug }: { home: ClientHome; name: string; arenaSlug: string }) {
