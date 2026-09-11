@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { getMercadoPagoPayment } from "@/lib/payments/mercado-pago";
+import { prisma } from "@/lib/prisma";
+import { withArenaTransaction } from "@/lib/rls";
 import { ensureTournamentPairFromRegistration } from "@/lib/services/registration-pair";
 
 export async function POST(request: Request) {
@@ -15,33 +16,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, ignored: "missing_payment_id" });
     }
 
-    const payment = await getMercadoPagoPayment(paymentId);
-    const externalReference = String(payment.external_reference ?? "");
+    const registration = await prisma.publicTournamentRegistration.findFirst({
+      where: { mercadoPagoPaymentId: paymentId },
+      include: { tournament: { select: { id: true, arenaId: true } } }
+    });
+    if (!registration) return NextResponse.json({ ok: true, ignored: "unknown_payment" });
 
-    if (!externalReference) {
-      return NextResponse.json({ ok: true, ignored: "missing_external_reference" });
-    }
-
+    const payment = await getMercadoPagoPayment(registration.tournament.arenaId, paymentId);
     const approved = payment.status === "approved";
-    await prisma.$transaction(async (tx) => {
-      const registration = await tx.publicTournamentRegistration.findUnique({
-        where: { id: externalReference },
-        include: {
-          tournament: {
-            select: {
-              id: true,
-              arenaId: true
-            }
-          }
-        }
-      });
-
-      if (!registration) {
-        return;
-      }
+    await withArenaTransaction(registration.tournament.arenaId, async (tx) => {
 
       await tx.publicTournamentRegistration.update({
-        where: { id: externalReference },
+        where: { id: registration.id },
         data: {
           paymentStatus: approved ? "PAID" : String(payment.status ?? "PENDING"),
           status: approved ? "CONFIRMED" : "PENDING_PAYMENT",
