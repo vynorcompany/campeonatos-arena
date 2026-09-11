@@ -45,7 +45,8 @@ export async function getPublicClientFinance(arenaSlug: string, playerId: string
   const rows = entries.map((entry) => {
     const outstandingCents = getOutstandingCents(entry.amountCents, entry.settlements);
     const overdue = outstandingCents > 0 && Boolean(entry.dueDate && entry.dueDate < today);
-    return { id: entry.id, description: entry.description || "Lançamento financeiro", amount: money(outstandingCents || entry.amountCents), dueDate: entry.dueDate ? new Intl.DateTimeFormat("pt-BR").format(entry.dueDate) : "Sem vencimento", paidAt: entry.paidAt ? new Intl.DateTimeFormat("pt-BR").format(entry.paidAt) : "", status: outstandingCents ? overdue ? "overdue" : "open" : "paid", hasCharge: Boolean(entry.onlinePaymentUrl) };
+    const daysUntilDue = entry.dueDate ? Math.ceil((new Date(entry.dueDate).getTime() - today.getTime()) / 86_400_000) : null;
+    return { id: entry.id, description: entry.description || "Lançamento financeiro", amount: money(outstandingCents || entry.amountCents), dueDate: entry.dueDate ? new Intl.DateTimeFormat("pt-BR").format(entry.dueDate) : "Sem vencimento", paidAt: entry.paidAt ? new Intl.DateTimeFormat("pt-BR").format(entry.paidAt) : "", status: outstandingCents ? overdue ? "overdue" : "open" : "paid", urgency: overdue ? "overdue" : daysUntilDue !== null && daysUntilDue <= 5 ? "soon" : "normal", hasCharge: Boolean(entry.onlinePaymentUrl) };
   });
   const open = rows.filter((entry) => entry.status === "open");
   const overdue = rows.filter((entry) => entry.status === "overdue");

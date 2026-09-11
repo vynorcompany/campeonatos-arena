@@ -62,6 +62,20 @@ function isOverdue(entry: Account) {
   return new Date(`${entry.dueDate}T12:00:00`) < today;
 }
 
+function OnlineChargeBadge({ entry }: { entry: Account }) {
+  if (entry.onlinePaymentUrl) {
+    const boleto = entry.onlinePaymentMethod === "BOLETO" || entry.paymentMethod === "Boleto";
+    const viewed = Boolean(entry.onlinePaymentViewedAt);
+    const label = boleto ? viewed ? "Boleto emitido e visualizado pelo cliente" : "Boleto emitido e disponível no Portal do Atleta" : "Cobrança online emitida";
+    return <span className={`online-charge-badge${viewed ? " online-charge-badge-viewed" : ""}`} data-tooltip={label} aria-label={label} tabIndex={0}>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6z" /><path d="M15 3v5h5M8.5 13h7M8.5 16h5" /></svg>
+      <b>{boleto ? "Boleto emitido" : "Cobrança emitida"}</b>
+      {viewed ? <svg className="online-charge-eye" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-5.5 9.5-5.5S21.5 12 21.5 12 18.1 17.5 12 17.5 2.5 12 2.5 12Z" /><circle cx="12" cy="12" r="2.3" /></svg> : null}
+    </span>;
+  }
+  return entry.onlinePaymentMethod === "BOLETO" ? <small className="online-charge-status online-charge-pending">Boleto pendente de emissão</small> : null;
+}
+
 function PlanSelectOptions({ plans }: { plans: Option[] }) {
   const groups = new Map<string, { teacherName: string; plans: Option[] }>();
   for (const plan of plans) {
@@ -261,7 +275,7 @@ export function AccountsLedger({
           <article className={`accounts-ledger-row accounts-ledger-row-clickable${overdue ? " accounts-ledger-row-overdue" : ""}`} key={entry.id} role="button" tabIndex={0} onClick={() => openEntry(entry)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") openEntry(entry); }}>
             <span className="accounts-ledger-selection"><input type="checkbox" aria-label={`Selecionar ${entry.description}`} checked={selectedEntryIds.has(entry.id)} disabled={entry.status === "VOIDED"} onClick={(event) => event.stopPropagation()} onChange={() => toggleEntrySelection(entry.id)} /></span><span>{date(entry.dueDate)}</span><strong>{type === "REVENUE" && entry.counterpartyName !== "Não informado" ? <Link href={`/jogadores?q=${encodeURIComponent(entry.counterpartyName)}`} onClick={(event) => event.stopPropagation()}>{entry.counterpartyName}</Link> : entry.counterpartyName}</strong><span>{entry.category}</span><span>{entry.description}</span>
             <span><b>{money(entry.amountCents)}</b>{entry.balance.interestCents ? <small>Juros: {money(entry.balance.interestCents)}</small> : null}{entry.status !== "VOIDED" ? <small>Saldo: {money(entry.balance.outstandingCents)}</small> : null}</span>
-            <span><em className={`account-status ${overdue ? "account-status-overdue" : `account-status-${entry.status.toLowerCase()}`}`}>{overdue ? "EM ATRASO" : entry.status === "PAID" ? "Quitada" : entry.status === "VOIDED" ? "Estornada" : "Em aberto"}</em>{entry.onlinePaymentUrl ? <small className="online-charge-status online-charge-issued">{entry.onlinePaymentMethod === "BOLETO" || entry.paymentMethod === "Boleto" ? "Boleto emitido" : "Cobrança online emitida"}{entry.onlinePaymentPublishedAt ? " · disponível no portal" : ""}{entry.onlinePaymentViewedAt ? " · visualizado pelo cliente" : ""}</small> : entry.onlinePaymentMethod === "BOLETO" ? <small className="online-charge-status online-charge-pending">Boleto pendente de emissão</small> : null}{entry.voidReason ? <small>{entry.voidReason}</small> : null}</span>
+            <span><em className={`account-status ${overdue ? "account-status-overdue" : `account-status-${entry.status.toLowerCase()}`}`}>{overdue ? "EM ATRASO" : entry.status === "PAID" ? "Quitada" : entry.status === "VOIDED" ? "Estornada" : "Em aberto"}</em><OnlineChargeBadge entry={entry} />{entry.voidReason ? <small>{entry.voidReason}</small> : null}</span>
             <span className="accounts-ledger-actions">{entry.status === "PENDING" ? <><button type="button" className="button button-small button-primary" onClick={(event) => { event.stopPropagation(); setPaymentEntry(entry); }}>{actionLabel}</button>{type === "REVENUE" ? <>{entry.onlinePaymentUrl ? <button type="button" className="button button-small" onClick={(event) => { event.stopPropagation(); setOnlineCharge({ method: entry.onlinePaymentQrCode ? "BOLETO" : "PIX", url: entry.onlinePaymentUrl, code: entry.onlinePaymentQrCode }); }}>Ver cobrança</button> : <><button type="button" className="button button-small" disabled={pending} onClick={(event) => { event.stopPropagation(); generateOnlineCharge(entry, "PIX"); }}>Gerar PIX</button><button type="button" className="button button-small" disabled={pending} onClick={(event) => { event.stopPropagation(); generateOnlineCharge(entry, "BOLETO"); }}>{entry.onlinePaymentMethod === "BOLETO" ? "Emitir boleto" : "Gerar boleto"}</button></>}</> : null}</> : null}{entry.status !== "VOIDED" ? <button type="button" className="button button-small" onClick={(event) => { event.stopPropagation(); setVoidEntry(entry); }}>Estornar</button> : null}{canDeleteEntries && entry.status !== "VOIDED" ? <button type="button" className="button button-small button-danger" onClick={(event) => { event.stopPropagation(); if (!window.confirm("Excluir este lançamento? Ele será removido da operação, mas permanecerá registrado para auditoria.")) return; const form = new FormData(); form.set("entryId", entry.id); run(() => deleteFinancialEntryAction(form), () => {}); }}>Excluir</button> : null}</span>
           </article>
           );

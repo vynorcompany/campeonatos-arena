@@ -24,6 +24,7 @@ export default async function PublicStandingsPage({
     leagueTab?: string;
     leagueCategory?: string;
     teacher?: string;
+    financeTab?: string;
   };
 }) {
   const alias = await prisma.arenaPublicSlug.findUnique({ where: { slug: params.arenaSlug }, include: { arena: { select: { slug: true } } } });
@@ -45,5 +46,5 @@ export default async function PublicStandingsPage({
   ]) : [null, null, null];
   const leagueTab = searchParams?.leagueTab === "pairs" || searchParams?.leagueTab === "ranking" || searchParams?.leagueTab === "rules" || searchParams?.leagueTab === "prizes" ? searchParams.leagueTab : "games";
   const authReturnTo = `/classificacao/${params.arenaSlug}?section=${section}${searchParams?.data ? `&data=${encodeURIComponent(searchParams.data)}` : ""}`;
-  return <PublicStandings data={data} arena={arena} currentClient={currentClient} portal={portal} home={home} finance={finance} section={section} leagueTab={leagueTab} leagueCategoryId={searchParams?.leagueCategory} bookingDate={searchParams?.data} teacherId={searchParams?.teacher} authForm={<PublicClientAuthForm arenaSlug={params.arenaSlug} returnTo={authReturnTo} />} />;
+  return <PublicStandings data={data} arena={arena} currentClient={currentClient} portal={portal} home={home} finance={finance} financeTab={searchParams?.financeTab === "history" ? "history" : "upcoming"} section={section} leagueTab={leagueTab} leagueCategoryId={searchParams?.leagueCategory} bookingDate={searchParams?.data} teacherId={searchParams?.teacher} authForm={<PublicClientAuthForm arenaSlug={params.arenaSlug} returnTo={authReturnTo} />} />;
 }
