@@ -2,7 +2,7 @@ import { createBoletoPayment } from "@/lib/payments/mercado-pago";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 
-const daysFromNow = 3;
+const daysFromNow = 15;
 
 /** Issues only the next due boleto for recurring receivables. It is safe to run more than once. */
 export async function issueRecurringOnlineCharges(now = new Date()) {
