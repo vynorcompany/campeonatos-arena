@@ -59,6 +59,13 @@ export function PlayerForm() {
         <input id="birthDate" name="birthDate" type="date" />
       </div>
 
+      <div className="field form-full"><label htmlFor="addressStreet">Endereço para boleto</label><input id="addressStreet" name="addressStreet" placeholder="Rua / avenida" /></div>
+      <div className="field"><label htmlFor="addressNumber">Número</label><input id="addressNumber" name="addressNumber" placeholder="Ex.: 120 ou S/N" /></div>
+      <div className="field"><label htmlFor="addressNeighborhood">Bairro</label><input id="addressNeighborhood" name="addressNeighborhood" /></div>
+      <div className="field"><label htmlFor="addressZipCode">CEP</label><input id="addressZipCode" name="addressZipCode" inputMode="numeric" /></div>
+      <div className="field"><label htmlFor="addressCity">Cidade</label><input id="addressCity" name="addressCity" /></div>
+      <div className="field"><label htmlFor="addressState">UF</label><input id="addressState" name="addressState" maxLength={2} placeholder="SP" /></div>
+
       <div className="field">
         <label htmlFor="photo">Foto do atleta</label>
         <input id="photo" name="photo" type="file" accept="image/png,image/jpeg,image/webp" />

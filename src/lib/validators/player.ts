@@ -19,6 +19,8 @@ const optionalBirthDateSchema = z.preprocess(
   (value) => value || null,
   z.coerce.date().nullable(),
 );
+const optionalAddressField = z.preprocess((value) => value ?? "", z.string().trim().max(120));
+const optionalAddressUpdateField = z.preprocess((value) => value === null ? undefined : value, z.string().trim().max(120).optional());
 
 export const createPlayerSchema = z.object({
   name: z.string().trim().min(3, "Informe ao menos 3 caracteres."),
@@ -28,6 +30,12 @@ export const createPlayerSchema = z.object({
   phone: optionalPhoneSchema,
   email: z.preprocess((value) => value ?? "", z.string().trim().email("E-mail inválido.").or(z.literal(""))),
   cpf: optionalCpfSchema,
+  addressZipCode: optionalAddressField,
+  addressStreet: optionalAddressField,
+  addressNumber: optionalAddressField,
+  addressNeighborhood: optionalAddressField,
+  addressCity: optionalAddressField,
+  addressState: optionalAddressField,
   birthDate: optionalBirthDateSchema,
   leagueTier: z.preprocess((value) => value ?? "", z.enum(["", "A", "B"])),
   isTeacher: z.preprocess((value) => value === "on" || value === true, z.boolean())
@@ -42,6 +50,12 @@ export const updatePlayerSchema = z.object({
   phone: optionalPhoneSchema,
   email: z.preprocess((value) => value === null ? undefined : value, z.string().trim().email("E-mail inválido.").or(z.literal("")).optional()),
   cpf: optionalCpfSchema,
+  addressZipCode: optionalAddressUpdateField,
+  addressStreet: optionalAddressUpdateField,
+  addressNumber: optionalAddressUpdateField,
+  addressNeighborhood: optionalAddressUpdateField,
+  addressCity: optionalAddressUpdateField,
+  addressState: optionalAddressUpdateField,
   birthDate: optionalBirthDateSchema,
   leagueTier: z.preprocess((value) => value === null ? undefined : value, z.enum(["", "A", "B"]).optional()),
   isTeacher: z.preprocess((value) => value === null ? undefined : value === "on" || value === true, z.boolean().optional())

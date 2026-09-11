@@ -14,7 +14,7 @@ import { getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 import { encryptConnectionSecrets } from "@/lib/payments/connection-secrets";
-import { createBoletoPayment, createPixPayment } from "@/lib/payments/mercado-pago";
+import { createBoletoPayment, createPixPayment, getMissingBoletoPayerFields } from "@/lib/payments/mercado-pago";
 import { issueRecurringOnlineChargeForEntry } from "@/lib/payments/recurring-online-charges";
 
 const optionalText = z.preprocess((value) => value ?? "", z.string().trim().default(""));
@@ -528,8 +528,8 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
   if (parsed.data.onlinePaymentMethod === "BOLETO") {
     if (amountCents < 500) return { error: "Boleto recorrente exige valor mínimo de R$ 5,00. Ajuste o valor antes de continuar." };
     if (parsed.data.type !== "REVENUE" || !clientId) return { error: "Dados incompletos do cliente: selecione um cliente cadastrado para gerar o boleto recorrente." };
-    const player = await withArenaTransaction(auth.arenaId, (tx) => tx.player.findFirst({ where: { id: clientId, arenaId: auth.arenaId, active: true }, select: { email: true, cpf: true } }));
-    const missing = [!player?.email ? "e-mail" : "", !/^\d{11}$/.test(player?.cpf ?? "") ? "CPF com 11 dígitos" : ""].filter(Boolean);
+    const player = await withArenaTransaction(auth.arenaId, (tx) => tx.player.findFirst({ where: { id: clientId, arenaId: auth.arenaId, active: true }, select: { email: true, cpf: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } }));
+    const missing = getMissingBoletoPayerFields(player ?? {});
     if (missing.length) return { error: `Dados incompletos do cliente: informe ${missing.join(" e ")} no cadastro de ${parsed.data.counterpartyName} antes de gerar o boleto recorrente.` };
   }
 
@@ -556,7 +556,13 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
     await tx.financialRecurrence.update({ where: { id: recurrence.id }, data: { nextDueDate: dueDate } });
   });
   if (parsed.data.onlinePaymentMethod === "BOLETO" && firstEntryId) {
-    try { await issueRecurringOnlineChargeForEntry(firstEntryId); }
+    try {
+      const result = await issueRecurringOnlineChargeForEntry(firstEntryId);
+      refreshFinanceRoutes();
+      return result.created
+        ? { notice: "Recorrência criada e primeiro boleto emitido. A cobrança já está disponível no Portal do Atleta." }
+        : { notice: "Recorrência criada, mas o primeiro boleto ficou pendente de emissão. Verifique os dados do cliente." };
+    }
     catch (error) {
       console.error("Could not issue the initial recurring boleto", error);
       refreshFinanceRoutes();
@@ -574,21 +580,21 @@ export async function generateFinancialEntryOnlineChargeAction(formData: FormDat
   if (!entry) return { error: "Lançamento a receber não encontrado ou já quitado." };
   const playerId = entry.playerId;
   if (!playerId) return { error: "Associe este lançamento a um cliente cadastrado antes de gerar a cobrança online." };
-  const player = await withArenaTransaction(auth.arenaId, (tx) => tx.player.findFirst({ where: { id: playerId, arenaId: auth.arenaId, active: true }, select: { name: true, email: true, cpf: true } }));
+  const player = await withArenaTransaction(auth.arenaId, (tx) => tx.player.findFirst({ where: { id: playerId, arenaId: auth.arenaId, active: true }, select: { name: true, email: true, cpf: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } }));
   if (!player?.email) return { error: "Informe o e-mail do atleta antes de gerar a cobrança." };
-  if (parsed.data.method === "BOLETO" && !/^\d{11}$/.test(player.cpf)) return { error: "Informe o CPF de 11 dígitos do atleta para emitir boleto." };
+  if (parsed.data.method === "BOLETO") { const missing = getMissingBoletoPayerFields(player); if (missing.length) return { error: `Dados incompletos do cliente: informe ${missing.join(", ")} no cadastro de ${player.name} antes de emitir o boleto.` }; }
   const amountCents = getFinancialEntryBalance(entry.amountCents, entry.settlements).outstandingCents;
   if (!amountCents) return { error: "Este lançamento não possui saldo para cobrar." };
   if (parsed.data.method === "BOLETO" && amountCents < 500) return { error: "Boleto exige valor mínimo de R$ 5,00. Ajuste o lançamento antes de emitir." };
   const input = { arenaId: auth.arenaId, amountCents, description: entry.description, payerEmail: player.email, externalReference: entry.id };
   let charge;
   try {
-    charge = parsed.data.method === "BOLETO" ? await createBoletoPayment({ ...input, payerCpf: player.cpf, payerName: player.name, expiresAt: entry.dueDate ?? undefined }) : await createPixPayment(input);
+    charge = parsed.data.method === "BOLETO" ? await createBoletoPayment({ ...input, payerCpf: player.cpf, payerName: player.name, payerAddress: player, expiresAt: entry.dueDate ?? undefined }) : await createPixPayment(input);
   } catch (error) {
     console.error("Could not create online financial charge", error);
     return { error: parsed.data.method === "BOLETO" ? "Não foi possível emitir o boleto agora. Verifique a conexão do Mercado Pago e tente novamente." : "Não foi possível gerar o PIX agora. Verifique a conexão do Mercado Pago e tente novamente." };
   }
-  await withArenaTransaction(auth.arenaId, (tx) => tx.financialEntry.update({ where: { id: entry.id }, data: { onlineProvider: "MERCADO_PAGO", onlinePaymentId: charge.paymentId, onlinePaymentUrl: charge.checkoutUrl, onlinePaymentQrCode: charge.qrCode, onlinePaymentExpiresAt: charge.expiresAt } }));
+  await withArenaTransaction(auth.arenaId, (tx) => tx.financialEntry.update({ where: { id: entry.id }, data: { onlineProvider: "MERCADO_PAGO", onlinePaymentId: charge.paymentId, onlinePaymentUrl: charge.checkoutUrl, onlinePaymentQrCode: charge.qrCode, onlinePaymentExpiresAt: charge.expiresAt, onlinePaymentPublishedAt: new Date() } }));
   refreshFinanceRoutes();
   return { url: charge.checkoutUrl, code: charge.qrCode, method: parsed.data.method };
 }

@@ -18,7 +18,21 @@ type CreateCardCheckoutInput = {
   externalReference: string;
 };
 
-type CreateBoletoPaymentInput = CreatePixPaymentInput & { payerCpf: string; payerName: string; expiresAt?: Date };
+export type BoletoPayerAddress = { addressZipCode: string; addressStreet: string; addressNumber: string; addressNeighborhood: string; addressCity: string; addressState: string };
+type CreateBoletoPaymentInput = CreatePixPaymentInput & { payerCpf: string; payerName: string; payerAddress: BoletoPayerAddress; expiresAt?: Date };
+
+export function getMissingBoletoPayerFields(payer: Partial<BoletoPayerAddress> & { email?: string; cpf?: string }) {
+  return [
+    !payer.email ? "e-mail" : "",
+    !/^\d{11}$/.test(payer.cpf ?? "") ? "CPF com 11 dígitos" : "",
+    !/^\d{8}$/.test((payer.addressZipCode ?? "").replace(/\D/g, "")) ? "CEP" : "",
+    !payer.addressStreet?.trim() ? "rua" : "",
+    !payer.addressNumber?.trim() ? "número" : "",
+    !payer.addressNeighborhood?.trim() ? "bairro" : "",
+    !payer.addressCity?.trim() ? "cidade" : "",
+    !/^[A-Za-z]{2}$/.test(payer.addressState?.trim() ?? "") ? "UF" : ""
+  ].filter(Boolean);
+}
 
 function paymentNotificationUrl() {
   return env.appUrl ? `${env.appUrl.replace(/\/$/, "")}/api/payments/mercado-pago/webhook` : undefined;
@@ -157,7 +171,7 @@ export async function createBoletoPayment(input: CreateBoletoPaymentInput): Prom
       transaction_amount: Number((input.amountCents / 100).toFixed(2)), description: input.description, payment_method_id: "bolbradesco",
       date_of_expiration: expiresAt.toISOString(), external_reference: input.externalReference,
       ...(paymentNotificationUrl() ? { notification_url: paymentNotificationUrl() } : {}),
-      payer: { email: input.payerEmail, first_name: input.payerName.split(" ")[0], last_name: input.payerName.split(" ").slice(1).join(" "), identification: { type: "CPF", number: input.payerCpf } }
+      payer: { email: input.payerEmail, first_name: input.payerName.split(" ")[0], last_name: input.payerName.split(" ").slice(1).join(" "), identification: { type: "CPF", number: input.payerCpf }, address: { zip_code: input.payerAddress.addressZipCode.replace(/\D/g, ""), street_name: input.payerAddress.addressStreet, street_number: input.payerAddress.addressNumber, neighborhood: input.payerAddress.addressNeighborhood, city: input.payerAddress.addressCity, federal_unit: input.payerAddress.addressState.toUpperCase() } }
     })
   });
   if (!response.ok) throw new Error(`Falha ao gerar boleto no Mercado Pago: ${await response.text()}`);
