@@ -1779,6 +1779,7 @@ model FinancialRecurrence {
   startsAt         DateTime
   endsAt           DateTime?
   nextDueDate      DateTime
+  onlinePaymentMethod String @default("")
   active           Boolean  @default(true)
   notes            String   @default("")
   createdAt        DateTime @default(now())

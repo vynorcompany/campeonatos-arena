@@ -14,6 +14,7 @@ export async function issueRecurringOnlineChargeForEntry(entryId: string): Promi
       type: "REVENUE",
       status: "PENDING",
       recurrenceId: { not: null },
+      recurrence: { onlinePaymentMethod: "BOLETO" },
       playerId: { not: null },
       onlinePaymentId: ""
     },
@@ -56,6 +57,7 @@ export async function issueRecurringOnlineCharges(now = new Date()) {
       type: "REVENUE",
       status: "PENDING",
       recurrenceId: { not: null },
+      recurrence: { onlinePaymentMethod: "BOLETO" },
       playerId: { not: null },
       onlinePaymentId: "",
       dueDate: { lte: limit }
