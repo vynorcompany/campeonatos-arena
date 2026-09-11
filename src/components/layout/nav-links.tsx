@@ -226,7 +226,7 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
               children: [
                 { href: "/financeiro/configuracoes/categorias-financeiras", label: "Categorias Financeiras" },
                 { href: "/financeiro/configuracoes/categorias-produtos", label: "Categorias de Produtos" },
-                { href: "/financeiro/configuracoes/pagamentos-online", label: "Conectores de pagamento" },
+                { href: "/financeiro/configuracoes/pagamentos-online", label: "Pagamentos Online" },
                 { href: "/financeiro/configuracoes/contas-bancarias", label: "Contas Bancárias" },
                 { href: "/financeiro/configuracoes/cupons", label: "Cupons" },
                 { href: "/financeiro/configuracoes/fornecedores", label: "Fornecedores" },

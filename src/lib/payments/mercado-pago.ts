@@ -18,6 +18,8 @@ type CreateCardCheckoutInput = {
   externalReference: string;
 };
 
+type CreateBoletoPaymentInput = CreatePixPaymentInput & { payerCpf: string; payerName: string; expiresAt?: Date };
+
 async function mercadoPagoAccessTokenForArena(arenaId: string) {
   const connection = await withArenaTransaction(arenaId, (tx) =>
     tx.paymentConnection.findUnique({
@@ -137,6 +139,22 @@ export async function createCardCheckout(input: CreateCardCheckoutInput): Promis
     checkoutUrl: String(payload.init_point ?? ""),
     expiresAt: null
   };
+}
+
+export async function createBoletoPayment(input: CreateBoletoPaymentInput): Promise<CreatePixPaymentResult> {
+  const accessToken = await mercadoPagoAccessTokenForArena(input.arenaId);
+  const response = await fetch("https://api.mercadopago.com/v1/payments", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json", "X-Idempotency-Key": `boleto_${input.externalReference}` },
+    body: JSON.stringify({
+      transaction_amount: Number((input.amountCents / 100).toFixed(2)), description: input.description, payment_method_id: "bolbradesco",
+      date_of_expiration: (input.expiresAt ?? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)).toISOString(), external_reference: input.externalReference,
+      payer: { email: input.payerEmail, first_name: input.payerName.split(" ")[0], last_name: input.payerName.split(" ").slice(1).join(" "), identification: { type: "CPF", number: input.payerCpf } }
+    })
+  });
+  if (!response.ok) throw new Error(`Falha ao gerar boleto no Mercado Pago: ${await response.text()}`);
+  const payload = await response.json();
+  return { provider: "MERCADO_PAGO", reference: String(payload.id ?? input.externalReference), paymentId: String(payload.id ?? ""), qrCode: String(payload.barcode?.content ?? ""), qrCodeBase64: "", checkoutUrl: String(payload.transaction_details?.external_resource_url ?? ""), expiresAt: payload.date_of_expiration ? new Date(payload.date_of_expiration) : null };
 }
 
 export async function getMercadoPagoPayment(arenaId: string, paymentId: string) {

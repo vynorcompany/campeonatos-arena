@@ -8,6 +8,7 @@ import {
   createFinancialRecurrenceAction,
   deleteFinancialEntryAction,
   deleteFinancialEntriesBulkAction,
+  generateFinancialEntryOnlineChargeAction,
   settleFinancialEntryAction,
   settleFinancialEntriesBulkAction,
   updateFinancialEntryAction,
@@ -25,6 +26,10 @@ type Account = {
   bankAccountId: string | null;
   planId: string | null;
   productId: string | null;
+  onlineProvider: string;
+  onlinePaymentId: string;
+  onlinePaymentUrl: string;
+  onlinePaymentQrCode: string;
   dueDate: string | null;
   notes: string;
   status: string;
@@ -100,6 +105,7 @@ export function AccountsLedger({
   const [pending, startTransition] = useTransition();
   const [newEntryOpen, setNewEntryOpen] = useState(false);
   const [paymentEntry, setPaymentEntry] = useState<Account | null>(null);
+  const [onlineCharge, setOnlineCharge] = useState<{ method: string; url: string; code: string } | null>(null);
   const [selectedEntry, setSelectedEntry] = useState<Account | null>(null);
   const [voidEntry, setVoidEntry] = useState<Account | null>(null);
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
@@ -173,6 +179,16 @@ export function AccountsLedger({
       }
     });
   };
+  const generateOnlineCharge = (entry: Account, method: "PIX" | "BOLETO") => {
+    startTransition(async () => {
+      try {
+        setMessage("");
+        const form = new FormData(); form.set("entryId", entry.id); form.set("method", method);
+        const result = await generateFinancialEntryOnlineChargeAction(form);
+        setOnlineCharge(result);
+      } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível gerar a cobrança."); }
+    });
+  };
   const createQuickSetting = (area: "fornecedores" | "categorias-financeiras", name: string) => {
     const normalizedName = name.trim();
     if (!normalizedName) return;
@@ -202,6 +218,7 @@ export function AccountsLedger({
 
   return (
     <div className="accounts-ledger stack-md">
+      {onlineCharge ? <div className="command-modal-backdrop" role="presentation" onMouseDown={() => setOnlineCharge(null)}><section className="financial-entry-modal financial-entry-modal-small" role="dialog" aria-modal="true" aria-label="Cobrança online" onMouseDown={(event) => event.stopPropagation()}><header><div><span>COBRANÇA ONLINE</span><h2>{onlineCharge.method === "PIX" ? "PIX gerado" : "Boleto gerado"}</h2></div><button type="button" className="button button-small" onClick={() => setOnlineCharge(null)}>Fechar</button></header>{onlineCharge.code ? <p><strong>Código:</strong> {onlineCharge.code}</p> : null}{onlineCharge.url ? <a className="button button-primary" href={onlineCharge.url} target="_blank" rel="noreferrer">Abrir cobrança</a> : null}</section></div> : null}
       <header className="accounts-ledger-header">
         <div><h1>{title}</h1><p className="muted">Lançamentos em ordem de vencimento.</p></div>
         <button type="button" className="button button-primary" onClick={() => { setMessage(""); setNotice(""); setSelectedClientId(""); setSelectedPlanTeacherId(""); setNewEntryAmountCents(undefined); setNewEntryOpen(true); }}>Novo lançamento</button>
@@ -240,7 +257,7 @@ export function AccountsLedger({
             <span className="accounts-ledger-selection"><input type="checkbox" aria-label={`Selecionar ${entry.description}`} checked={selectedEntryIds.has(entry.id)} disabled={entry.status === "VOIDED"} onClick={(event) => event.stopPropagation()} onChange={() => toggleEntrySelection(entry.id)} /></span><span>{date(entry.dueDate)}</span><strong>{type === "REVENUE" && entry.counterpartyName !== "Não informado" ? <Link href={`/jogadores?q=${encodeURIComponent(entry.counterpartyName)}`} onClick={(event) => event.stopPropagation()}>{entry.counterpartyName}</Link> : entry.counterpartyName}</strong><span>{entry.category}</span><span>{entry.description}</span>
             <span><b>{money(entry.amountCents)}</b>{entry.balance.interestCents ? <small>Juros: {money(entry.balance.interestCents)}</small> : null}{entry.status !== "VOIDED" ? <small>Saldo: {money(entry.balance.outstandingCents)}</small> : null}</span>
             <span><em className={`account-status ${overdue ? "account-status-overdue" : `account-status-${entry.status.toLowerCase()}`}`}>{overdue ? "EM ATRASO" : entry.status === "PAID" ? "Quitada" : entry.status === "VOIDED" ? "Estornada" : "Em aberto"}</em>{entry.voidReason ? <small>{entry.voidReason}</small> : null}</span>
-            <span className="accounts-ledger-actions">{entry.status === "PENDING" ? <button type="button" className="button button-small button-primary" onClick={(event) => { event.stopPropagation(); setPaymentEntry(entry); }}>{actionLabel}</button> : null}{entry.status !== "VOIDED" ? <button type="button" className="button button-small" onClick={(event) => { event.stopPropagation(); setVoidEntry(entry); }}>Estornar</button> : null}{canDeleteEntries && entry.status !== "VOIDED" ? <button type="button" className="button button-small button-danger" onClick={(event) => { event.stopPropagation(); if (!window.confirm("Excluir este lançamento? Ele será removido da operação, mas permanecerá registrado para auditoria.")) return; const form = new FormData(); form.set("entryId", entry.id); run(() => deleteFinancialEntryAction(form), () => {}); }}>Excluir</button> : null}</span>
+            <span className="accounts-ledger-actions">{entry.status === "PENDING" ? <><button type="button" className="button button-small button-primary" onClick={(event) => { event.stopPropagation(); setPaymentEntry(entry); }}>{actionLabel}</button>{type === "REVENUE" ? <>{entry.onlinePaymentUrl ? <button type="button" className="button button-small" onClick={(event) => { event.stopPropagation(); setOnlineCharge({ method: entry.onlinePaymentQrCode ? "BOLETO" : "PIX", url: entry.onlinePaymentUrl, code: entry.onlinePaymentQrCode }); }}>Ver cobrança</button> : <><button type="button" className="button button-small" disabled={pending} onClick={(event) => { event.stopPropagation(); generateOnlineCharge(entry, "PIX"); }}>Gerar PIX</button><button type="button" className="button button-small" disabled={pending} onClick={(event) => { event.stopPropagation(); generateOnlineCharge(entry, "BOLETO"); }}>Gerar boleto</button></>}</> : null}</> : null}{entry.status !== "VOIDED" ? <button type="button" className="button button-small" onClick={(event) => { event.stopPropagation(); setVoidEntry(entry); }}>Estornar</button> : null}{canDeleteEntries && entry.status !== "VOIDED" ? <button type="button" className="button button-small button-danger" onClick={(event) => { event.stopPropagation(); if (!window.confirm("Excluir este lançamento? Ele será removido da operação, mas permanecerá registrado para auditoria.")) return; const form = new FormData(); form.set("entryId", entry.id); run(() => deleteFinancialEntryAction(form), () => {}); }}>Excluir</button> : null}</span>
           </article>
           );
         })}

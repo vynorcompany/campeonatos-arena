@@ -292,6 +292,8 @@ model Player {
   teacher     Teacher?
   notifications PlayerNotification[]
   balanceMovements ClientBalanceMovement[]
+  financialEntries FinancialEntry[]
+  financialRecurrences FinancialRecurrence[]
   respondedLeagueChallenges LeagueChallenge[] @relation("LeagueChallengeResponder")
   leagueAthleteTiers LeagueAthleteTier[]
 
@@ -1694,6 +1696,11 @@ model FinancialEntry {
   notes         String   @default("")
   source        String   @default("MANUAL")
   externalReference String @default("")
+  onlineProvider String  @default("")
+  onlinePaymentId String @default("")
+  onlinePaymentUrl String @default("")
+  onlinePaymentQrCode String @default("")
+  onlinePaymentExpiresAt DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   arenaId       String
@@ -1703,12 +1710,14 @@ model FinancialEntry {
   planId        String?
   recurrenceId  String?
   productId     String?
+  playerId      String?
   arena         Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
   sale          Sale?    @relation(fields: [saleId], references: [id], onDelete: SetNull)
   supplier      Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
   bankAccount   BankAccount? @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
   plan          Plan?    @relation(fields: [planId], references: [id], onDelete: SetNull)
   recurrence    FinancialRecurrence? @relation(fields: [recurrenceId], references: [id], onDelete: SetNull)
+  player        Player?  @relation(fields: [playerId], references: [id], onDelete: SetNull)
   scheduleParticipant ScheduleParticipant?
   settlements   FinancialSettlement[]
 
@@ -1722,6 +1731,7 @@ model FinancialEntry {
   @@index([planId])
   @@index([recurrenceId])
   @@index([productId])
+  @@index([arenaId, playerId, status])
 }
 
 model TeacherStudent {
@@ -1777,10 +1787,12 @@ model FinancialRecurrence {
   supplierId       String?
   bankAccountId    String?
   planId           String?
+  playerId         String?
   arena            Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
   supplier         Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
   bankAccount      BankAccount? @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
   plan             Plan? @relation(fields: [planId], references: [id], onDelete: SetNull)
+  player           Player? @relation(fields: [playerId], references: [id], onDelete: SetNull)
   entries          FinancialEntry[]
 
   @@index([arenaId, active, nextDueDate])
