@@ -14,7 +14,7 @@ test("database backup service creates portable dumps on a daily Railway cron", (
   assert.ok(existsSync(script));
   assert.ok(existsSync(railway));
 
-  assert.match(readFileSync(dockerfile, "utf8"), /postgres:16-alpine/);
+  assert.match(readFileSync(dockerfile, "utf8"), /postgres:18-alpine/);
   assert.match(readFileSync(script, "utf8"), /pg_dump "\$DATABASE_URL" --format=custom --no-owner/);
   assert.match(readFileSync(script, "utf8"), /aws s3 cp/);
   assert.match(readFileSync(railway, "utf8"), /"cronSchedule": "0 6 \* \* \*"/);

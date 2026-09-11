@@ -3,14 +3,14 @@ import { SectionCard } from "@/components/section-card";
 import { requireModuleView } from "@/lib/auth/guards";
 
 const settings = [
-  ["Notas Fiscais", "notas-fiscais"],
-  ["Fornecedores", "fornecedores"],
+  ["Categorias Financeiras", "categorias-financeiras"],
   ["Categorias de Produtos", "categorias-produtos"],
-  ["Formas de Pagamentos", "formas-pagamento"],
+  ["Conectores de pagamento", "pagamentos-online"],
   ["Contas Bancárias", "contas-bancarias"],
   ["Cupons", "cupons"],
-  ["Categorias Financeiras", "categorias-financeiras"],
-  ["Conectores de pagamento", "pagamentos-online"]
+  ["Fornecedores", "fornecedores"],
+  ["Formas de Pagamentos", "formas-pagamento"],
+  ["Notas Fiscais", "notas-fiscais"]
 ] as const;
 
 export default async function FinancialSettingsPage() {
