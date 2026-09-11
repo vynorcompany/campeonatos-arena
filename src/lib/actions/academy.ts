@@ -1166,14 +1166,24 @@ export async function removeTeacherPlanStudentAction(formData: FormData) {
   const teacherId = String(formData.get("teacherId") ?? "");
   const planId = String(formData.get("planId") ?? "");
   const studentId = String(formData.get("studentId") ?? "");
-  const assignment = await prisma.teacherPlan.findFirst({
-    where: { teacherId, planId, arenaId: auth.arenaId, active: true },
-    select: { id: true },
-  });
-  if (!assignment) throw new Error("Vínculo de plano não encontrado.");
-  await prisma.studentSubscription.updateMany({
-    where: { arenaId: auth.arenaId, studentId, planId, status: "ACTIVE" },
-    data: { status: "CANCELED", endedAt: new Date() },
+  const clearRemainingClasses = formData.get("clearRemainingClasses") === "true";
+  const voidPendingEntries = formData.get("voidPendingEntries") === "true";
+  await withArenaTransaction(auth.arenaId, async (tx) => {
+    const [assignment, subscription] = await Promise.all([
+      tx.teacherPlan.findFirst({ where: { teacherId, planId, arenaId: auth.arenaId, active: true }, select: { id: true } }),
+      tx.studentSubscription.findFirst({ where: { arenaId: auth.arenaId, studentId, planId, status: "ACTIVE" }, include: { student: { select: { id: true, name: true, playerId: true, remainingClasses: true } } } }),
+    ]);
+    if (!assignment || !subscription) throw new Error("Vínculo de plano não encontrado.");
+    const now = new Date();
+    await tx.studentSubscription.update({ where: { id: subscription.id }, data: { status: "CANCELED", endedAt: now } });
+    if (clearRemainingClasses && subscription.student.remainingClasses > 0) {
+      await tx.student.update({ where: { id: subscription.student.id }, data: { remainingClasses: 0 } });
+      if (subscription.student.playerId) await tx.clientBalanceMovement.create({ data: { arenaId: auth.arenaId, playerId: subscription.student.playerId, kind: "CLASSES", classesDelta: -subscription.student.remainingClasses, reason: `Saldo removido ao encerrar o plano ${planId}.` } });
+    }
+    if (subscription.student.playerId) {
+      await tx.financialRecurrence.updateMany({ where: { arenaId: auth.arenaId, planId, playerId: subscription.student.playerId, active: true }, data: { active: false } });
+      if (voidPendingEntries) await tx.financialEntry.updateMany({ where: { arenaId: auth.arenaId, planId, playerId: subscription.student.playerId, type: "REVENUE", status: "PENDING" }, data: { status: "VOIDED", voidedAt: now, voidReason: "Estornado ao remover aluno do plano." } });
+    }
   });
   refreshAcademyRoutes();
 }

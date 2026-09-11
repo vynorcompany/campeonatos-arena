@@ -510,6 +510,7 @@ export default async function TeacherDetailPage({
                         className="teacher-student-plan-remove"
                         confirmKeyword="REMOVER"
                         confirmPrompt={`Remover ${subscription.student.name} do plano ${plan.name}? O cadastro do cliente será preservado.`}
+                        confirmationContent={<div className="teacher-plan-removal-options"><label><input type="checkbox" name="clearRemainingClasses" value="true" />Remover o saldo de {subscription.student.remainingClasses} aula{subscription.student.remainingClasses === 1 ? "" : "s"} restante{subscription.student.remainingClasses === 1 ? "" : "s"}</label><label><input type="checkbox" name="voidPendingEntries" value="true" />Excluir da cobrança os lançamentos em aberto deste plano</label><small>Os lançamentos serão estornados, mantendo o histórico financeiro.</small></div>}
                         successMessage="Aluno removido do plano."
                         closeClosestDetailsOnSuccess
                       >

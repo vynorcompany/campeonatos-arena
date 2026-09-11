@@ -13,6 +13,7 @@ type SafeActionFormProps = {
   successHref?: string;
   confirmKeyword?: string;
   confirmPrompt?: string;
+  confirmationContent?: React.ReactNode;
   onSuccess?: () => void;
   validate?: (formData: FormData) => string | null;
 };
@@ -27,6 +28,7 @@ export function SafeActionForm({
   successHref,
   confirmKeyword,
   confirmPrompt,
+  confirmationContent,
   onSuccess,
   validate,
 }: SafeActionFormProps) {
@@ -114,6 +116,7 @@ export function SafeActionForm({
             {confirmPrompt ??
               `Digite ${confirmKeyword} para confirmar esta ação.`}
           </p>
+          {confirmationContent}
           <div className="inline-form safe-action-confirmation-actions">
             <input
               name="confirmKeyword"
