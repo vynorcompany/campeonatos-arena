@@ -1,6 +1,9 @@
 import { env } from "@/lib/env";
+import { decryptConnectionSecrets } from "@/lib/payments/connection-secrets";
+import { withArenaTransaction } from "@/lib/rls";
 
 type CreatePixPaymentInput = {
+  arenaId: string;
   amountCents: number;
   description: string;
   payerEmail: string;
@@ -8,11 +11,29 @@ type CreatePixPaymentInput = {
 };
 
 type CreateCardCheckoutInput = {
+  arenaId: string;
   amountCents: number;
   description: string;
   payerEmail: string;
   externalReference: string;
 };
+
+async function mercadoPagoAccessTokenForArena(arenaId: string) {
+  const connection = await withArenaTransaction(arenaId, (tx) =>
+    tx.paymentConnection.findUnique({
+      where: { arenaId_provider: { arenaId, provider: "MERCADO_PAGO" } },
+      select: { status: true, encryptedSecrets: true }
+    })
+  );
+
+  if (connection?.status !== "CONNECTED" || !connection.encryptedSecrets) {
+    throw new Error("A arena não possui uma conta do Mercado Pago conectada para receber pagamentos.");
+  }
+
+  const accessToken = decryptConnectionSecrets(connection.encryptedSecrets).accessToken?.trim();
+  if (!accessToken) throw new Error("A conexão do Mercado Pago da arena não possui um token de recebimento válido.");
+  return accessToken;
+}
 
 type CreatePixPaymentResult = {
   provider: "MERCADO_PAGO" | "PIX_MOCK";
@@ -25,23 +46,13 @@ type CreatePixPaymentResult = {
 };
 
 export async function createPixPayment(input: CreatePixPaymentInput): Promise<CreatePixPaymentResult> {
-  if (!env.mercadoPagoAccessToken) {
-    return {
-      provider: "PIX_MOCK",
-      reference: `mock_${input.externalReference}`,
-      paymentId: "",
-      qrCode: `PIX-MOCK-${input.externalReference}`,
-      qrCodeBase64: "",
-      checkoutUrl: "",
-      expiresAt: null
-    };
-  }
+  const accessToken = await mercadoPagoAccessTokenForArena(input.arenaId);
 
   const dateOfExpiration = new Date(Date.now() + 30 * 60 * 1000).toISOString();
   const response = await fetch("https://api.mercadopago.com/v1/payments", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${env.mercadoPagoAccessToken}`,
+      Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
       "X-Idempotency-Key": `reg_${input.externalReference}`
     },
@@ -75,23 +86,13 @@ export async function createPixPayment(input: CreatePixPaymentInput): Promise<Cr
 }
 
 export async function createCardCheckout(input: CreateCardCheckoutInput): Promise<CreatePixPaymentResult> {
-  if (!env.mercadoPagoAccessToken) {
-    return {
-      provider: "PIX_MOCK",
-      reference: `mock_${input.externalReference}`,
-      paymentId: "",
-      qrCode: "",
-      qrCodeBase64: "",
-      checkoutUrl: "",
-      expiresAt: null
-    };
-  }
+  const accessToken = await mercadoPagoAccessTokenForArena(input.arenaId);
 
   const baseUrl = env.appUrl ?? "http://localhost:3000";
   const response = await fetch("https://api.mercadopago.com/checkout/preferences", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${env.mercadoPagoAccessToken}`,
+      Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
       "X-Idempotency-Key": `card_${input.externalReference}`
     },
@@ -138,14 +139,12 @@ export async function createCardCheckout(input: CreateCardCheckoutInput): Promis
   };
 }
 
-export async function getMercadoPagoPayment(paymentId: string) {
-  if (!env.mercadoPagoAccessToken) {
-    throw new Error("MERCADO_PAGO_ACCESS_TOKEN não configurado.");
-  }
+export async function getMercadoPagoPayment(arenaId: string, paymentId: string) {
+  const accessToken = await mercadoPagoAccessTokenForArena(arenaId);
 
   const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
     headers: {
-      Authorization: `Bearer ${env.mercadoPagoAccessToken}`
+      Authorization: `Bearer ${accessToken}`
     },
     cache: "no-store"
   });

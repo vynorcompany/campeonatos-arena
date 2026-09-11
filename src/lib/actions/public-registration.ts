@@ -155,6 +155,7 @@ export async function createPublicRegistrationAction(
     });
 
     const paymentPayload = {
+      arenaId: result.arenaId,
       amountCents: result.amountCents,
       description: `Inscrição ${result.tournamentName}`,
       payerEmail: parsed.data.leadEmail,
