@@ -12,6 +12,8 @@ const profileSchema = z.object({
   phone: z.string().trim().min(8, "Informe um telefone válido."),
   email: z.preprocess((value) => value ?? "", z.string().trim().email("E-mail inválido.").or(z.literal(""))),
   birthDate: z.preprocess((value) => value || null, z.coerce.date().nullable()),
+  padelCategory: z.string().trim().max(40, "Informe uma categoria com até 40 caracteres.").default(""),
+  padelSide: z.enum(["", "RIGHT", "LEFT", "BOTH"]),
 });
 
 const normalizePhone = (value: string) => value.replace(/\D/g, "");
@@ -25,6 +27,8 @@ export async function updatePublicPlayerProfileAction(_: PublicProfileActionStat
     phone: formData.get("phone"),
     email: formData.get("email"),
     birthDate: formData.get("birthDate"),
+    padelCategory: formData.get("padelCategory"),
+    padelSide: formData.get("padelSide"),
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos.", success: null };
 
@@ -35,7 +39,7 @@ export async function updatePublicPlayerProfileAction(_: PublicProfileActionStat
   if (conflictingAccount) return { error: "Este telefone já está vinculado a outro cliente.", success: null };
 
   await prisma.$transaction(async (tx) => {
-    await tx.player.update({ where: { id: auth.playerId }, data: { name: parsed.data.name, phone, email: parsed.data.email, birthDate: parsed.data.birthDate, ...(photoUrl ? { photoUrl } : {}) } });
+    await tx.player.update({ where: { id: auth.playerId }, data: { name: parsed.data.name, phone, email: parsed.data.email, birthDate: parsed.data.birthDate, class: parsed.data.padelCategory, padelSide: parsed.data.padelSide, ...(photoUrl ? { photoUrl } : {}) } });
     await tx.playerAccount.update({ where: { id: auth.playerAccountId }, data: { phone } });
     const student = await tx.student.findFirst({ where: { playerId: auth.playerId }, select: { id: true } });
     if (student) await tx.student.update({ where: { id: student.id }, data: { name: parsed.data.name, phone, email: parsed.data.email } });

@@ -79,6 +79,8 @@ export function PublicStandings({
     email: string;
     photoUrl: string;
     birthDate: string;
+    padelCategory: string;
+    padelSide: string;
     isTeacher: boolean;
   } | null;
   portal: Portal;

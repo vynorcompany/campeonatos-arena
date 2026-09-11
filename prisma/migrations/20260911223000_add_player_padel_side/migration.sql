@@ -1,0 +1,1 @@
+ALTER TABLE "Player" ADD COLUMN "padelSide" TEXT NOT NULL DEFAULT '';

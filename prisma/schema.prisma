@@ -279,6 +279,7 @@ model Player {
   addressNeighborhood String     @default("")
   addressCity String             @default("")
   addressState String            @default("")
+  padelSide   String             @default("")
   birthDate   DateTime?
   active      Boolean           @default(true)
   mergedIntoPlayerId String?
