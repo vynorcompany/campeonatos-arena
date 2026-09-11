@@ -73,6 +73,7 @@ const recurrenceSchema = z.object({
   endsAt: z.string().optional().default(""),
   bankAccountId: z.string().optional().default(""),
   planId: z.string().optional().default(""),
+  onlinePaymentMethod: z.enum(["", "BOLETO"]).default(""),
   notes: optionalText
 });
 
@@ -513,7 +514,7 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
     type: formData.get("type"),
     counterpartyName: formData.get("counterpartyName"), category: formData.get("category"), description: formData.get("description"),
     amount: formData.get("amount"), discount: formData.get("discount"), discountMode: formData.get("discountMode"), frequency: formData.get("frequency"), startsAt: formData.get("startsAt"),
-    endsAt: formData.get("endsAt"), bankAccountId: formData.get("bankAccountId"), planId: formData.get("planId"), notes: formData.get("notes")
+    endsAt: formData.get("endsAt"), bankAccountId: formData.get("bankAccountId"), planId: formData.get("planId"), onlinePaymentMethod: formData.get("onlinePaymentMethod"), notes: formData.get("notes")
   });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   const startsAt = parseDate(parsed.data.startsAt);
@@ -523,13 +524,19 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
   const discount = parsed.data.discountMode === "PERCENTAGE" ? Number(parsed.data.discount.replace(",", ".")) : parseMoneyToCents(parsed.data.discount);
   if (!Number.isFinite(discount)) throw new Error("Informe um desconto válido.");
   const amountCents = getDiscountedAmountCents(parseMoneyToCents(parsed.data.amount), discount, parsed.data.discountMode);
+  if (parsed.data.onlinePaymentMethod === "BOLETO") {
+    if (parsed.data.type !== "REVENUE" || !clientId) throw new Error("Selecione um cliente cadastrado para gerar boletos recorrentes.");
+    const player = await withArenaTransaction(auth.arenaId, (tx) => tx.player.findFirst({ where: { id: clientId, arenaId: auth.arenaId, active: true }, select: { email: true, cpf: true } }));
+    if (!player?.email) throw new Error("Informe o e-mail do atleta antes de criar a recorrência por boleto.");
+    if (!/^\d{11}$/.test(player.cpf)) throw new Error("Informe o CPF de 11 dígitos do atleta antes de criar a recorrência por boleto.");
+  }
 
   await withArenaTransaction(auth.arenaId, async (tx) => {
     const recurrence = await tx.financialRecurrence.create({ data: {
       arenaId: auth.arenaId, type: parsed.data.type, counterpartyName: parsed.data.counterpartyName, category: parsed.data.category,
       description: parsed.data.description, amountCents, frequency: parsed.data.frequency,
       startsAt, endsAt, nextDueDate: startsAt, bankAccountId: parsed.data.bankAccountId || null, planId: parsed.data.planId || null,
-      playerId: parsed.data.type === "REVENUE" && clientId ? clientId : null, notes: parsed.data.notes
+      playerId: parsed.data.type === "REVENUE" && clientId ? clientId : null, onlinePaymentMethod: parsed.data.onlinePaymentMethod, notes: parsed.data.notes
     } });
     let dueDate = startsAt;
     const limit = endsAt ?? new Date(startsAt.getFullYear() + 1, startsAt.getMonth(), startsAt.getDate());
@@ -537,7 +544,8 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
       await tx.financialEntry.create({ data: {
         arenaId: auth.arenaId, type: recurrence.type, counterpartyName: recurrence.counterpartyName, category: recurrence.category,
         description: recurrence.description, amountCents: recurrence.amountCents, dueDate, notes: recurrence.notes,
-        recurrenceId: recurrence.id, bankAccountId: recurrence.bankAccountId, planId: recurrence.planId, playerId: recurrence.playerId
+        recurrenceId: recurrence.id, bankAccountId: recurrence.bankAccountId, planId: recurrence.planId, playerId: recurrence.playerId,
+        paymentMethod: recurrence.onlinePaymentMethod === "BOLETO" ? "Boleto" : ""
       } });
       dueDate = getNextFinancialRecurrenceDate(dueDate, parsed.data.frequency);
     }

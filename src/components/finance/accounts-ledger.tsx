@@ -306,6 +306,7 @@ export function AccountsLedger({
                 <label className="field">Periodicidade<select name="frequency" defaultValue="MONTHLY"><option value="WEEKLY">Semanal</option><option value="MONTHLY">Mensal</option><option value="ANNUAL">Anual</option></select></label>
                 <label className="field">Início<input name="startsAt" type="date" required /></label>
                 <label className="field">Encerramento (opcional)<input name="endsAt" type="date" /></label>
+                {type === "REVENUE" ? <label className="field form-full">Cobrança online<select name="onlinePaymentMethod" defaultValue=""><option value="">Não gerar cobrança online</option><option value="BOLETO">Boleto recorrente (Mercado Pago)</option></select><small>Para boleto, o atleta precisa ter CPF e e-mail válidos.</small></label> : null}
               </> : null}
               <label className="field form-full">Observações<textarea className="financial-notes-field" name="notes" rows={4} /></label>
               <footer className="modal-actions form-full"><button type="button" className="button" onClick={() => setNewEntryOpen(false)}>Cancelar</button><button className="button button-primary" disabled={pending}>{pending ? "Salvando..." : recurring ? "Criar recorrência" : "Salvar lançamento"}</button></footer>
