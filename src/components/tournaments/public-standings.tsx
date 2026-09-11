@@ -84,7 +84,7 @@ export function PublicStandings({
     email: string;
     photoUrl: string;
     birthDate: string;
-    padelCategory: string;
+    padelCategories: string[];
     padelSide: string;
     gender: string;
     tournamentAvailability: string;

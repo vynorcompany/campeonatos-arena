@@ -281,6 +281,7 @@ model Player {
   addressCity String             @default("")
   addressState String            @default("")
   padelSide   String             @default("")
+  padelCategories String          @default("[]")
   tournamentAvailability String  @default("OFF")
   birthDate   DateTime?
   active      Boolean           @default(true)

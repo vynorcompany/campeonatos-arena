@@ -12,7 +12,7 @@ const profileSchema = z.object({
   phone: z.string().trim().min(8, "Informe um telefone válido."),
   email: z.preprocess((value) => value ?? "", z.string().trim().email("E-mail inválido.").or(z.literal(""))),
   birthDate: z.preprocess((value) => value || null, z.coerce.date().nullable()),
-  padelCategory: z.string().trim().max(40, "Informe uma categoria com até 40 caracteres.").default(""),
+  padelCategories: z.array(z.string().trim().min(1).max(40)).max(5, "Selecione até cinco categorias.").default([]),
   padelSide: z.enum(["", "RIGHT", "LEFT", "BOTH"]),
 });
 
@@ -38,6 +38,40 @@ export async function updateTournamentAvailabilityAction(formData: FormData) {
   return { error: null };
 }
 
+const doublesRequestSchema = z.object({
+  arenaSlug: z.string().trim().min(1),
+  targetPlayerId: z.string().trim().min(1),
+});
+
+export async function requestDoublesPartnerAction(formData: FormData) {
+  const parsed = doublesRequestSchema.safeParse({
+    arenaSlug: formData.get("arenaSlug"),
+    targetPlayerId: formData.get("targetPlayerId"),
+  });
+  if (!parsed.success) return { error: "Não foi possível identificar o atleta." };
+  const auth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
+  if (auth.playerId === parsed.data.targetPlayerId) return { error: "Você não pode enviar uma solicitação para si mesmo." };
+
+  const target = await prisma.player.findFirst({
+    where: { id: parsed.data.targetPlayerId, arenaId: auth.arenaId, active: true, tournamentAvailability: { in: ["AVAILABLE", "LOOKING_FOR_PARTNER"] } },
+    select: { id: true },
+  });
+  if (!target) return { error: "Este atleta não está mais disponível no Radar." };
+
+  const message = `${auth.name} quer conversar sobre formar dupla para um torneio.`;
+  const alreadyRequested = await prisma.playerNotification.findFirst({
+    where: { playerId: target.id, type: "DOUBLES_REQUEST", message, readAt: null },
+    select: { id: true },
+  });
+  if (alreadyRequested) return { error: "Sua solicitação já está aguardando a visualização deste atleta." };
+
+  await prisma.playerNotification.create({
+    data: { playerId: target.id, type: "DOUBLES_REQUEST", title: "Pedido para formar dupla 🎾", message, href: `/classificacao/${parsed.data.arenaSlug}?section=radar` },
+  });
+  revalidatePath(`/classificacao/${parsed.data.arenaSlug}`);
+  return { error: null };
+}
+
 export async function updatePublicPlayerProfileAction(_: PublicProfileActionState, formData: FormData): Promise<PublicProfileActionState> {
   const parsed = profileSchema.safeParse({
     arenaSlug: formData.get("arenaSlug"),
@@ -45,7 +79,7 @@ export async function updatePublicPlayerProfileAction(_: PublicProfileActionStat
     phone: formData.get("phone"),
     email: formData.get("email"),
     birthDate: formData.get("birthDate"),
-    padelCategory: formData.get("padelCategory"),
+    padelCategories: formData.getAll("padelCategories"),
     padelSide: formData.get("padelSide"),
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos.", success: null };
@@ -57,7 +91,7 @@ export async function updatePublicPlayerProfileAction(_: PublicProfileActionStat
   if (conflictingAccount) return { error: "Este telefone já está vinculado a outro cliente.", success: null };
 
   await prisma.$transaction(async (tx) => {
-    await tx.player.update({ where: { id: auth.playerId }, data: { name: parsed.data.name, phone, email: parsed.data.email, birthDate: parsed.data.birthDate, class: parsed.data.padelCategory, padelSide: parsed.data.padelSide, ...(photoUrl ? { photoUrl } : {}) } });
+    await tx.player.update({ where: { id: auth.playerId }, data: { name: parsed.data.name, phone, email: parsed.data.email, birthDate: parsed.data.birthDate, class: parsed.data.padelCategories[0] ?? "", padelCategories: JSON.stringify(parsed.data.padelCategories), padelSide: parsed.data.padelSide, ...(photoUrl ? { photoUrl } : {}) } });
     await tx.playerAccount.update({ where: { id: auth.playerAccountId }, data: { phone } });
     const student = await tx.student.findFirst({ where: { playerId: auth.playerId }, select: { id: true } });
     if (student) await tx.student.update({ where: { id: student.id }, data: { name: parsed.data.name, phone, email: parsed.data.email } });
