@@ -1184,7 +1184,7 @@ export async function removeTeacherPlanStudentAction(formData: FormData) {
       ? { OR: [{ playerId: subscription.student.playerId }, { playerId: null, counterpartyName: subscription.student.name }] }
       : { counterpartyName: subscription.student.name };
     await tx.financialRecurrence.updateMany({ where: { arenaId: auth.arenaId, planId, active: true, ...studentFinancialOwner }, data: { active: false } });
-    if (voidPendingEntries) await tx.financialEntry.updateMany({ where: { arenaId: auth.arenaId, planId, type: "REVENUE", status: { in: ["PENDING", "OVERDUE"] }, ...studentFinancialOwner }, data: { status: "VOIDED", voidedAt: now, voidReason: "Estornado ao remover aluno do plano." } });
+    if (voidPendingEntries) await tx.financialEntry.updateMany({ where: { arenaId: auth.arenaId, planId, type: "REVENUE", status: "PENDING", dueDate: { gt: now }, ...studentFinancialOwner }, data: { status: "VOIDED", voidedAt: now, voidReason: "Estornado ao remover aluno do plano." } });
   });
   refreshAcademyRoutes();
 }
