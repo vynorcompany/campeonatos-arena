@@ -185,6 +185,7 @@ export function AccountsLedger({
         setMessage("");
         const form = new FormData(); form.set("entryId", entry.id); form.set("method", method);
         const result = await generateFinancialEntryOnlineChargeAction(form);
+        if ("error" in result) { setMessage(result.error ?? "Não foi possível gerar a cobrança."); return; }
         setOnlineCharge(result);
       } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível gerar a cobrança."); }
     });

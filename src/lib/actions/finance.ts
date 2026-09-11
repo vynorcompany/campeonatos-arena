@@ -549,16 +549,16 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
 export async function generateFinancialEntryOnlineChargeAction(formData: FormData) {
   const auth = await requirePermission("finance:receivable:settle");
   const parsed = onlineChargeSchema.safeParse({ entryId: formData.get("entryId"), method: formData.get("method") });
-  if (!parsed.success) throw new Error("Dados da cobrança inválidos.");
+  if (!parsed.success) return { error: "Dados da cobrança inválidos." };
   const entry = await withArenaTransaction(auth.arenaId, (tx) => tx.financialEntry.findFirst({ where: { id: parsed.data.entryId, arenaId: auth.arenaId, type: "REVENUE", status: "PENDING" }, include: { settlements: { select: { amountCents: true, interestCents: true } } } }));
-  if (!entry) throw new Error("Lançamento a receber não encontrado ou já quitado.");
+  if (!entry) return { error: "Lançamento a receber não encontrado ou já quitado." };
   const playerId = entry.playerId;
-  if (!playerId) throw new Error("Associe este lançamento a um cliente cadastrado antes de gerar a cobrança online.");
+  if (!playerId) return { error: "Associe este lançamento a um cliente cadastrado antes de gerar a cobrança online." };
   const player = await withArenaTransaction(auth.arenaId, (tx) => tx.player.findFirst({ where: { id: playerId, arenaId: auth.arenaId, active: true }, select: { name: true, email: true, cpf: true } }));
-  if (!player?.email) throw new Error("Informe o e-mail do atleta antes de gerar a cobrança.");
-  if (parsed.data.method === "BOLETO" && !/^\d{11}$/.test(player.cpf)) throw new Error("Informe o CPF de 11 dígitos do atleta para emitir boleto.");
+  if (!player?.email) return { error: "Informe o e-mail do atleta antes de gerar a cobrança." };
+  if (parsed.data.method === "BOLETO" && !/^\d{11}$/.test(player.cpf)) return { error: "Informe o CPF de 11 dígitos do atleta para emitir boleto." };
   const amountCents = getFinancialEntryBalance(entry.amountCents, entry.settlements).outstandingCents;
-  if (!amountCents) throw new Error("Este lançamento não possui saldo para cobrar.");
+  if (!amountCents) return { error: "Este lançamento não possui saldo para cobrar." };
   const input = { arenaId: auth.arenaId, amountCents, description: entry.description, payerEmail: player.email, externalReference: entry.id };
   const charge = parsed.data.method === "BOLETO" ? await createBoletoPayment({ ...input, payerCpf: player.cpf, payerName: player.name }) : await createPixPayment(input);
   await withArenaTransaction(auth.arenaId, (tx) => tx.financialEntry.update({ where: { id: entry.id }, data: { onlineProvider: "MERCADO_PAGO", onlinePaymentId: charge.paymentId, onlinePaymentUrl: charge.checkoutUrl, onlinePaymentQrCode: charge.qrCode, onlinePaymentExpiresAt: charge.expiresAt } }));
