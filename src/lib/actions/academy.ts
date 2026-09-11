@@ -1180,10 +1180,11 @@ export async function removeTeacherPlanStudentAction(formData: FormData) {
       await tx.student.update({ where: { id: subscription.student.id }, data: { remainingClasses: 0 } });
       if (subscription.student.playerId) await tx.clientBalanceMovement.create({ data: { arenaId: auth.arenaId, playerId: subscription.student.playerId, kind: "CLASSES", classesDelta: -subscription.student.remainingClasses, reason: `Saldo removido ao encerrar o plano ${planId}.` } });
     }
-    if (subscription.student.playerId) {
-      await tx.financialRecurrence.updateMany({ where: { arenaId: auth.arenaId, planId, playerId: subscription.student.playerId, active: true }, data: { active: false } });
-      if (voidPendingEntries) await tx.financialEntry.updateMany({ where: { arenaId: auth.arenaId, planId, playerId: subscription.student.playerId, type: "REVENUE", status: "PENDING" }, data: { status: "VOIDED", voidedAt: now, voidReason: "Estornado ao remover aluno do plano." } });
-    }
+    const studentFinancialOwner = subscription.student.playerId
+      ? { OR: [{ playerId: subscription.student.playerId }, { playerId: null, counterpartyName: subscription.student.name }] }
+      : { counterpartyName: subscription.student.name };
+    await tx.financialRecurrence.updateMany({ where: { arenaId: auth.arenaId, planId, active: true, ...studentFinancialOwner }, data: { active: false } });
+    if (voidPendingEntries) await tx.financialEntry.updateMany({ where: { arenaId: auth.arenaId, planId, type: "REVENUE", status: { in: ["PENDING", "OVERDUE"] }, ...studentFinancialOwner }, data: { status: "VOIDED", voidedAt: now, voidReason: "Estornado ao remover aluno do plano." } });
   });
   refreshAcademyRoutes();
 }
