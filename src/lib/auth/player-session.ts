@@ -8,6 +8,13 @@ const PLAYER_SESSION_COOKIE = "arena_player_session";
 const PLAYER_SESSION_DAYS = 14;
 
 function hashToken(token: string) { return crypto.createHash("sha256").update(token).digest("hex"); }
+function parsePadelCategories(value: string, fallback: string) {
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) return parsed.filter((item): item is string => typeof item === "string" && Boolean(item.trim())).map((item) => item.trim());
+  } catch {}
+  return fallback.trim() ? [fallback.trim()] : [];
+}
 
 export async function createPublicPlayerSession(playerAccountId: string) {
   const token = crypto.randomBytes(32).toString("hex");
@@ -32,7 +39,7 @@ export async function getPublicPlayerAuth(arenaSlug: string) {
   }
   const player = session.playerAccount.player;
   if (!player.active || player.arena.slug !== arenaSlug) return null;
-  return { playerId: player.id, playerAccountId: session.playerAccountId, name: player.name, phone: player.phone, email: player.email, photoUrl: player.photoUrl, birthDate: player.birthDate?.toISOString().slice(0, 10) ?? "", gender: player.gender, padelCategory: player.class, padelSide: player.padelSide, tournamentAvailability: player.tournamentAvailability, isTeacher: Boolean(player.teacher?.active), arenaId: player.arenaId };
+  return { playerId: player.id, playerAccountId: session.playerAccountId, name: player.name, phone: player.phone, email: player.email, photoUrl: player.photoUrl, birthDate: player.birthDate?.toISOString().slice(0, 10) ?? "", gender: player.gender, padelCategories: parsePadelCategories(player.padelCategories, player.class), padelSide: player.padelSide, tournamentAvailability: player.tournamentAvailability, isTeacher: Boolean(player.teacher?.active), arenaId: player.arenaId };
 }
 
 export async function requirePublicPlayerAuth(arenaSlug: string) {

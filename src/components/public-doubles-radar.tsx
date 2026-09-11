@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PlayerAvatar } from "@/components/player-avatar";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
-import { updateTournamentAvailabilityAction } from "@/lib/actions/public-player-profile";
+import { requestDoublesPartnerAction, updateTournamentAvailabilityAction } from "@/lib/actions/public-player-profile";
 import type { DoublesRadar } from "@/lib/services/public-doubles-radar";
 
 const sideLabel: Record<string, string> = {
@@ -58,12 +58,18 @@ export function PublicDoublesRadar({
       </SafeActionForm>
     </section>
 
+    {radar.notifications.length ? <section className="doubles-radar-notifications" aria-label="Pedidos de dupla recebidos">
+      <strong>Pedidos recebidos</strong>
+      {radar.notifications.map((notification) => <article key={notification.id}><span aria-hidden="true">🎾</span><div><b>{notification.title}</b><p>{notification.message}</p></div></article>)}
+    </section> : null}
+
     {radar.selectedAthlete ? <section className="doubles-radar-profile">
       <Link href={href({ gender: selectedGender, category: selectedCategory })} className="doubles-radar-back">← Voltar ao Radar</Link>
       <PlayerAvatar className="doubles-radar-profile-avatar" photoUrl={radar.selectedAthlete.photoUrl} name={radar.selectedAthlete.name} />
       <div><span className="doubles-radar-availability">{radar.selectedAthlete.availability === "LOOKING_FOR_PARTNER" ? "Procurando dupla" : "Disponível para torneio"}</span><h3>{radar.selectedAthlete.name}</h3><p>Perfil esportivo disponível para atletas da {" "}arena.</p></div>
-      <dl><div><dt>Categoria</dt><dd>{radar.selectedAthlete.category}</dd></div><div><dt>Gênero</dt><dd>{radar.selectedAthlete.gender || "Não informado"}</dd></div><div><dt>Lado de jogo</dt><dd>{sideLabel[radar.selectedAthlete.padelSide] ?? "Ainda não informado"}</dd></div></dl>
-      <p className="doubles-radar-profile-note">Os dados de contato continuam protegidos. Combine a dupla pessoalmente na arena.</p>
+      <dl><div><dt>Categorias</dt><dd>{radar.selectedAthlete.categories.join(" · ")}</dd></div><div><dt>Gênero</dt><dd>{radar.selectedAthlete.gender || "Não informado"}</dd></div><div><dt>Lado de jogo</dt><dd>{sideLabel[radar.selectedAthlete.padelSide] ?? "Ainda não informado"}</dd></div></dl>
+      <SafeActionForm action={requestDoublesPartnerAction} className="doubles-radar-request" successMessage="Solicitação enviada. O atleta verá o aviso no Portal."><input type="hidden" name="arenaSlug" value={arenaSlug} /><input type="hidden" name="targetPlayerId" value={radar.selectedAthlete.id} /><SubmitButton label="Convidar para formar dupla" pendingLabel="Enviando..." className="button button-primary button-small" /></SafeActionForm>
+      <p className="doubles-radar-profile-note">Os dados de contato continuam protegidos. O convite será entregue como notificação no Portal do atleta.</p>
     </section> : <>
       <form className="doubles-radar-filters" method="get">
         <input type="hidden" name="section" value="radar" />
@@ -74,7 +80,7 @@ export function PublicDoublesRadar({
       <div className="doubles-radar-list">
         {radar.athletes.length ? radar.athletes.map((athlete) => <article key={athlete.id}>
           <PlayerAvatar className="doubles-radar-avatar" photoUrl={athlete.photoUrl} name={athlete.name} />
-          <div className="doubles-radar-athlete-copy"><div><strong>{athlete.name}</strong><span className="doubles-radar-availability">{athlete.availability === "LOOKING_FOR_PARTNER" ? "Procurando dupla" : "Disponível"}</span></div><p>{athlete.category} · {athlete.gender || "Gênero não informado"}</p><small>{sideLabel[athlete.padelSide] ?? "Lado de jogo não informado"}</small></div>
+          <div className="doubles-radar-athlete-copy"><div><strong>{athlete.name}</strong><span className="doubles-radar-availability">{athlete.availability === "LOOKING_FOR_PARTNER" ? "Procurando dupla" : "Disponível"}</span></div><p>{athlete.categories.join(" · ")} · {athlete.gender || "Gênero não informado"}</p><small>{sideLabel[athlete.padelSide] ?? "Lado de jogo não informado"}</small></div>
           <Link className="button button-small" href={href({ gender: selectedGender, category: selectedCategory, athleteId: athlete.id })}>Ver perfil</Link>
         </article>) : <div className="doubles-radar-empty"><strong>Nenhum atleta encontrado</strong><span>Tente ampliar os filtros ou aguarde novos atletas entrarem no radar.</span></div>}
       </div>
