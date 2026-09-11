@@ -1039,6 +1039,7 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
         startsAt: startedAt,
         nextDueDate: firstDueDate,
         planId,
+        playerId: client.id,
         notes: `Gerado pelo plano do professor. ${note}`,
       },
     });
@@ -1053,6 +1054,7 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
         dueDate: firstDueDate,
         planId,
         recurrenceId: recurrence.id,
+        playerId: client.id,
         notes: `Primeira mensalidade. ${note}`,
       },
     });
@@ -1069,6 +1071,7 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
           dueDate: nextDueDate,
           planId,
           recurrenceId: recurrence.id,
+          playerId: client.id,
           notes: `Mensalidade recorrente gerada pelo plano do professor. ${note}`,
         },
       });

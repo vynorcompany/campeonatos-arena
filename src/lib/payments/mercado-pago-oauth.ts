@@ -53,3 +53,10 @@ export async function exchangeMercadoPagoAuthorizationCode(code: string) {
   if (!response.ok) throw new Error("Não foi possível autorizar a conta do Mercado Pago.");
   return response.json() as Promise<{ access_token: string; refresh_token?: string; user_id?: string | number; expires_in?: number; public_key?: string }>;
 }
+
+export async function getMercadoPagoAccount(accessToken: string) {
+  const response = await fetch("https://api.mercadopago.com/users/me", { headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/json" }, cache: "no-store" });
+  if (!response.ok) return { reference: "", displayName: "" };
+  const account = await response.json() as { id?: string | number; first_name?: string; last_name?: string; nickname?: string; email?: string };
+  return { reference: String(account.id ?? ""), displayName: [account.first_name, account.last_name].filter(Boolean).join(" ") || account.nickname || account.email || "" };
+}

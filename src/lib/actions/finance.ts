@@ -14,6 +14,7 @@ import { getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 import { encryptConnectionSecrets } from "@/lib/payments/connection-secrets";
+import { createBoletoPayment, createPixPayment } from "@/lib/payments/mercado-pago";
 
 const optionalText = z.preprocess((value) => value ?? "", z.string().trim().default(""));
 
@@ -163,6 +164,8 @@ const payrollSchema = z.object({
   status: z.enum(["PENDING", "PAID"]).default("PENDING"),
   notes: optionalText
 });
+
+const onlineChargeSchema = z.object({ entryId: z.string().min(1), method: z.enum(["PIX", "BOLETO"]) });
 
 const paymentConnectionSchema = z.object({
   provider: z.enum(["ASAAS", "SICOOB"]),
@@ -343,6 +346,7 @@ export async function recordPlanPaymentAction(formData: FormData) {
       description: `${subscription.student.name} - ${subscription.plan.name} (${parsed.data.referenceMonth})`,
       counterpartyName: subscription.student.name,
       planId: subscription.plan.id,
+      playerId: subscription.student.playerId,
       amountCents,
       paymentMethod: parsed.data.paymentMethod,
       status: "PAID",
@@ -409,6 +413,7 @@ export async function createFinancialEntryAction(formData: FormData) {
         bankAccountId: parsed.data.bankAccountId || null,
         planId: parsed.data.planId || null,
         productId: parsed.data.productId || null,
+        playerId: parsed.data.type === "REVENUE" && clientId ? clientId : null,
         amountCents,
         paymentMethod: parsed.data.paymentMethod,
         status: parsed.data.status,
@@ -503,6 +508,7 @@ export async function updateFinancialEntryAction(formData: FormData) {
 
 export async function createFinancialRecurrenceAction(formData: FormData) {
   const auth = await requirePermission("finance:receivable:create");
+  const clientId = String(formData.get("clientId") ?? "");
   const parsed = recurrenceSchema.safeParse({
     type: formData.get("type"),
     counterpartyName: formData.get("counterpartyName"), category: formData.get("category"), description: formData.get("description"),
@@ -522,7 +528,8 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
     const recurrence = await tx.financialRecurrence.create({ data: {
       arenaId: auth.arenaId, type: parsed.data.type, counterpartyName: parsed.data.counterpartyName, category: parsed.data.category,
       description: parsed.data.description, amountCents, frequency: parsed.data.frequency,
-      startsAt, endsAt, nextDueDate: startsAt, bankAccountId: parsed.data.bankAccountId || null, planId: parsed.data.planId || null, notes: parsed.data.notes
+      startsAt, endsAt, nextDueDate: startsAt, bankAccountId: parsed.data.bankAccountId || null, planId: parsed.data.planId || null,
+      playerId: parsed.data.type === "REVENUE" && clientId ? clientId : null, notes: parsed.data.notes
     } });
     let dueDate = startsAt;
     const limit = endsAt ?? new Date(startsAt.getFullYear() + 1, startsAt.getMonth(), startsAt.getDate());
@@ -530,13 +537,33 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
       await tx.financialEntry.create({ data: {
         arenaId: auth.arenaId, type: recurrence.type, counterpartyName: recurrence.counterpartyName, category: recurrence.category,
         description: recurrence.description, amountCents: recurrence.amountCents, dueDate, notes: recurrence.notes,
-        recurrenceId: recurrence.id, bankAccountId: recurrence.bankAccountId, planId: recurrence.planId
+        recurrenceId: recurrence.id, bankAccountId: recurrence.bankAccountId, planId: recurrence.planId, playerId: recurrence.playerId
       } });
       dueDate = getNextFinancialRecurrenceDate(dueDate, parsed.data.frequency);
     }
     await tx.financialRecurrence.update({ where: { id: recurrence.id }, data: { nextDueDate: dueDate } });
   });
   refreshFinanceRoutes();
+}
+
+export async function generateFinancialEntryOnlineChargeAction(formData: FormData) {
+  const auth = await requirePermission("finance:receivable:settle");
+  const parsed = onlineChargeSchema.safeParse({ entryId: formData.get("entryId"), method: formData.get("method") });
+  if (!parsed.success) throw new Error("Dados da cobrança inválidos.");
+  const entry = await withArenaTransaction(auth.arenaId, (tx) => tx.financialEntry.findFirst({ where: { id: parsed.data.entryId, arenaId: auth.arenaId, type: "REVENUE", status: "PENDING" }, include: { settlements: { select: { amountCents: true, interestCents: true } } } }));
+  if (!entry) throw new Error("Lançamento a receber não encontrado ou já quitado.");
+  const playerId = entry.playerId;
+  if (!playerId) throw new Error("Associe este lançamento a um cliente cadastrado antes de gerar a cobrança online.");
+  const player = await withArenaTransaction(auth.arenaId, (tx) => tx.player.findFirst({ where: { id: playerId, arenaId: auth.arenaId, active: true }, select: { name: true, email: true, cpf: true } }));
+  if (!player?.email) throw new Error("Informe o e-mail do atleta antes de gerar a cobrança.");
+  if (parsed.data.method === "BOLETO" && !/^\d{11}$/.test(player.cpf)) throw new Error("Informe o CPF de 11 dígitos do atleta para emitir boleto.");
+  const amountCents = getFinancialEntryBalance(entry.amountCents, entry.settlements).outstandingCents;
+  if (!amountCents) throw new Error("Este lançamento não possui saldo para cobrar.");
+  const input = { arenaId: auth.arenaId, amountCents, description: entry.description, payerEmail: player.email, externalReference: entry.id };
+  const charge = parsed.data.method === "BOLETO" ? await createBoletoPayment({ ...input, payerCpf: player.cpf, payerName: player.name }) : await createPixPayment(input);
+  await withArenaTransaction(auth.arenaId, (tx) => tx.financialEntry.update({ where: { id: entry.id }, data: { onlineProvider: "MERCADO_PAGO", onlinePaymentId: charge.paymentId, onlinePaymentUrl: charge.checkoutUrl, onlinePaymentQrCode: charge.qrCode, onlinePaymentExpiresAt: charge.expiresAt } }));
+  refreshFinanceRoutes();
+  return { url: charge.checkoutUrl, code: charge.qrCode, method: parsed.data.method };
 }
 
 export async function settleFinancialEntryAction(formData: FormData) {
