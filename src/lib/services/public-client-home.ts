@@ -30,3 +30,25 @@ export async function getPublicClientHome(arenaSlug: string, playerId: string) {
   const charges = balances.filter((entry) => entry.onlinePaymentUrl).map((entry) => ({ id: entry.id, description: entry.description, amount: money(entry.outstandingCents), dueDate: entry.dueDate ? new Intl.DateTimeFormat("pt-BR").format(entry.dueDate) : "Sem vencimento" }));
   return { announcements, events: events.map((event) => ({ ...event, when: date(event.scheduledAt) })), eventPosts, charges, summary: { financial: due ? `${money(due)} ${overdue ? "em atraso" : "em aberto"}` : "Em dia", futureFinancial: future ? `${money(future)} em lançamentos futuros` : null, financialStatus: overdue ? "overdue" : due ? "pending" : "active", classes: student?.remainingClasses ?? 0, reservations, leagues: pairs } };
 }
+
+export async function getPublicClientFinance(arenaSlug: string, playerId: string) {
+  const arena = await prisma.arena.findUnique({ where: { slug: arenaSlug }, select: { id: true } });
+  if (!arena) return null;
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const entries = await withArenaTransaction(arena.id, (tx) => tx.financialEntry.findMany({
+    where: { arenaId: arena.id, playerId, type: "REVENUE", status: { not: "VOIDED" } },
+    orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
+    take: 100,
+    select: { id: true, description: true, amountCents: true, dueDate: true, status: true, paidAt: true, onlinePaymentUrl: true, settlements: { select: { amountCents: true, interestCents: true } } }
+  }));
+  const rows = entries.map((entry) => {
+    const outstandingCents = getOutstandingCents(entry.amountCents, entry.settlements);
+    const overdue = outstandingCents > 0 && Boolean(entry.dueDate && entry.dueDate < today);
+    return { id: entry.id, description: entry.description || "Lançamento financeiro", amount: money(outstandingCents || entry.amountCents), dueDate: entry.dueDate ? new Intl.DateTimeFormat("pt-BR").format(entry.dueDate) : "Sem vencimento", paidAt: entry.paidAt ? new Intl.DateTimeFormat("pt-BR").format(entry.paidAt) : "", status: outstandingCents ? overdue ? "overdue" : "open" : "paid", hasCharge: Boolean(entry.onlinePaymentUrl) };
+  });
+  const open = rows.filter((entry) => entry.status === "open");
+  const overdue = rows.filter((entry) => entry.status === "overdue");
+  const paid = rows.filter((entry) => entry.status === "paid").slice(-12).reverse();
+  return { health: overdue.length ? "attention" : open.length ? "upcoming" : "healthy", headline: overdue.length ? "Há um pagamento em aberto para cuidar" : open.length ? "Tudo certo por aqui" : "Está tudo saudável", detail: overdue.length ? "Regularize quando puder para continuar aproveitando a arena sem pendências." : open.length ? "Você tem pagamentos futuros organizados e nenhum valor em atraso." : "Nenhuma pendência financeira no momento. Aproveite a arena!", overdue, open, paid };
+}
