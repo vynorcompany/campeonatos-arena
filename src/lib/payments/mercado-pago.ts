@@ -20,6 +20,10 @@ type CreateCardCheckoutInput = {
 
 type CreateBoletoPaymentInput = CreatePixPaymentInput & { payerCpf: string; payerName: string; expiresAt?: Date };
 
+function paymentNotificationUrl() {
+  return env.appUrl ? `${env.appUrl.replace(/\/$/, "")}/api/payments/mercado-pago/webhook` : undefined;
+}
+
 async function mercadoPagoAccessTokenForArena(arenaId: string) {
   const connection = await withArenaTransaction(arenaId, (tx) =>
     tx.paymentConnection.findUnique({
@@ -64,6 +68,7 @@ export async function createPixPayment(input: CreatePixPaymentInput): Promise<Cr
       payment_method_id: "pix",
       date_of_expiration: dateOfExpiration,
       external_reference: input.externalReference,
+      ...(paymentNotificationUrl() ? { notification_url: paymentNotificationUrl() } : {}),
       payer: {
         email: input.payerEmail
       }
@@ -143,12 +148,15 @@ export async function createCardCheckout(input: CreateCardCheckoutInput): Promis
 
 export async function createBoletoPayment(input: CreateBoletoPaymentInput): Promise<CreatePixPaymentResult> {
   const accessToken = await mercadoPagoAccessTokenForArena(input.arenaId);
+  const minimumExpiration = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const expiresAt = input.expiresAt && input.expiresAt > minimumExpiration ? input.expiresAt : new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
   const response = await fetch("https://api.mercadopago.com/v1/payments", {
     method: "POST",
     headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json", "X-Idempotency-Key": `boleto_${input.externalReference}` },
     body: JSON.stringify({
       transaction_amount: Number((input.amountCents / 100).toFixed(2)), description: input.description, payment_method_id: "bolbradesco",
-      date_of_expiration: (input.expiresAt ?? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)).toISOString(), external_reference: input.externalReference,
+      date_of_expiration: expiresAt.toISOString(), external_reference: input.externalReference,
+      ...(paymentNotificationUrl() ? { notification_url: paymentNotificationUrl() } : {}),
       payer: { email: input.payerEmail, first_name: input.payerName.split(" ")[0], last_name: input.payerName.split(" ").slice(1).join(" "), identification: { type: "CPF", number: input.payerCpf } }
     })
   });
