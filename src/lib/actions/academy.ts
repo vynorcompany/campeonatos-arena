@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireModuleEdit } from "@/lib/auth/guards";
 import { getDiscountedAmountCents } from "@/lib/finance/discounts";
 import { getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
+import { issueRecurringOnlineChargeForEntry } from "@/lib/payments/recurring-online-charges";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 
@@ -937,6 +938,7 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
       : assignment.monthlyPriceCents;
   const firstAmountCents = discountedAmountCents;
   const firstDueDate = dueDateInput ?? getFirstDueDate(startedAt, dueDay);
+  let firstEntryId = "";
   await withArenaTransaction(auth.arenaId, async (tx) => {
     const student = await tx.student.upsert({
       where: { playerId: client.id },
@@ -1043,7 +1045,7 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
         notes: `Gerado pelo plano do professor. ${note}`,
       },
     });
-    await tx.financialEntry.create({
+    const firstEntry = await tx.financialEntry.create({
       data: {
         arenaId: auth.arenaId,
         type: "REVENUE",
@@ -1058,6 +1060,7 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
         notes: `Primeira mensalidade. ${note}`,
       },
     });
+    firstEntryId = firstEntry.id;
     let nextDueDate = getNextFinancialRecurrenceDate(firstDueDate, "MONTHLY");
     for (let month = 0; month < 11; month += 1) {
       await tx.financialEntry.create({
@@ -1082,6 +1085,10 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
       data: { nextDueDate },
     });
   });
+  if (firstEntryId) {
+    try { await issueRecurringOnlineChargeForEntry(firstEntryId); }
+    catch (error) { console.error("Could not issue the initial plan boleto", error); }
+  }
   refreshAcademyRoutes();
 }
 
