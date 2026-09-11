@@ -172,6 +172,7 @@ export function AccountsLedger({
       try {
         setMessage("");
         const result = await operation();
+        if (result && typeof result === "object" && "error" in result && typeof result.error === "string") { setMessage(result.error); return; }
         if (result && typeof result === "object" && "notice" in result && typeof result.notice === "string") setNotice(result.notice);
         close();
       } catch (error) {
@@ -269,7 +270,7 @@ export function AccountsLedger({
         <div className="command-modal-backdrop" onMouseDown={() => setNewEntryOpen(false)} role="presentation">
           <section className="financial-entry-modal" role="dialog" aria-modal="true" aria-label="Novo lançamento" onMouseDown={(event) => event.stopPropagation()}>
             <header><div><span>NOVO LANÇAMENTO</span><h2>{title}</h2></div><button type="button" className="button button-small" onClick={() => setNewEntryOpen(false)}>Fechar</button></header>
-            {message ? <p className="form-message form-message-error" role="alert">{message}</p> : null}
+            {message && !message.startsWith("Dados incompletos do cliente:") ? <p className="form-message form-message-error" role="alert">{message}</p> : null}
             <form onSubmit={(event) => {
               event.preventDefault();
               if (!category) { setMessage("Selecione uma categoria financeira."); return; }
@@ -306,7 +307,7 @@ export function AccountsLedger({
                 <label className="field">Periodicidade<select name="frequency" defaultValue="MONTHLY"><option value="WEEKLY">Semanal</option><option value="MONTHLY">Mensal</option><option value="ANNUAL">Anual</option></select></label>
                 <label className="field">Início<input name="startsAt" type="date" required /></label>
                 <label className="field">Encerramento (opcional)<input name="endsAt" type="date" /></label>
-                {type === "REVENUE" ? <label className="field form-full">Cobrança online<select name="onlinePaymentMethod" defaultValue=""><option value="">Não gerar cobrança online</option><option value="BOLETO">Boleto recorrente (Mercado Pago)</option></select><small>Para boleto, o atleta precisa ter CPF e e-mail válidos.</small></label> : null}
+                {type === "REVENUE" ? <label className="field form-full">Cobrança online<select name="onlinePaymentMethod" defaultValue=""><option value="">Não gerar cobrança online</option><option value="BOLETO">Boleto recorrente (Mercado Pago)</option></select><small>Para boleto, o atleta precisa ter CPF e e-mail válidos.</small>{message.startsWith("Dados incompletos do cliente:") ? <span className="form-message form-message-error financial-boleto-validation" role="alert"><strong>Complete o cadastro do cliente</strong>{message.replace("Dados incompletos do cliente: ", "")}</span> : null}</label> : null}
               </> : null}
               <label className="field form-full">Observações<textarea className="financial-notes-field" name="notes" rows={4} /></label>
               <footer className="modal-actions form-full"><button type="button" className="button" onClick={() => setNewEntryOpen(false)}>Cancelar</button><button className="button button-primary" disabled={pending}>{pending ? "Salvando..." : recurring ? "Criar recorrência" : "Salvar lançamento"}</button></footer>
