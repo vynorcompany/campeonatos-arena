@@ -273,6 +273,12 @@ model Player {
   phone       String            @default("")
   email       String            @default("")
   cpf         String            @default("")
+  addressZipCode String          @default("")
+  addressStreet String           @default("")
+  addressNumber String           @default("")
+  addressNeighborhood String     @default("")
+  addressCity String             @default("")
+  addressState String            @default("")
   birthDate   DateTime?
   active      Boolean           @default(true)
   mergedIntoPlayerId String?
@@ -1701,6 +1707,8 @@ model FinancialEntry {
   onlinePaymentUrl String @default("")
   onlinePaymentQrCode String @default("")
   onlinePaymentExpiresAt DateTime?
+  onlinePaymentPublishedAt DateTime?
+  onlinePaymentViewedAt DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   arenaId       String

@@ -278,6 +278,7 @@ export async function createPlayerAction(_: ActionState, formData: FormData): Pr
     phone: formData.get("phone"),
     email: formData.get("email"),
     cpf: normalizeCpf(String(formData.get("cpf") ?? "")),
+    addressZipCode: formData.get("addressZipCode"), addressStreet: formData.get("addressStreet"), addressNumber: formData.get("addressNumber"), addressNeighborhood: formData.get("addressNeighborhood"), addressCity: formData.get("addressCity"), addressState: formData.get("addressState"),
     birthDate: formData.get("birthDate"),
     leagueTier: formData.get("leagueTier"),
     isTeacher: formData.get("isTeacher")
@@ -301,6 +302,7 @@ export async function createPlayerAction(_: ActionState, formData: FormData): Pr
           phone: parsed.data.phone,
           email: parsed.data.email ?? "",
           cpf: parsed.data.cpf,
+          addressZipCode: parsed.data.addressZipCode.replace(/\D/g, ""), addressStreet: parsed.data.addressStreet, addressNumber: parsed.data.addressNumber, addressNeighborhood: parsed.data.addressNeighborhood, addressCity: parsed.data.addressCity, addressState: parsed.data.addressState.toUpperCase(),
           birthDate: parsed.data.birthDate,
           ...(photoUrl ? { photoUrl } : {})
         }
@@ -345,6 +347,7 @@ export async function updatePlayerAction(formData: FormData) {
     phone: formData.get("phone"),
     email: formData.get("email"),
     cpf: normalizeCpf(String(formData.get("cpf") ?? "")),
+    addressZipCode: formData.get("addressZipCode"), addressStreet: formData.get("addressStreet"), addressNumber: formData.get("addressNumber"), addressNeighborhood: formData.get("addressNeighborhood"), addressCity: formData.get("addressCity"), addressState: formData.get("addressState"),
     birthDate: formData.get("birthDate"),
     leagueTier: formData.get("leagueTier"),
     isTeacher: formData.get("isTeacher")
@@ -358,7 +361,7 @@ export async function updatePlayerAction(formData: FormData) {
     const photoUrl = await toPersistentPlayerPhoto(formData.get("photo") as File | null);
     const updated = await prisma.player.updateMany({
       where: { id: parsed.data.playerId, arenaId: auth.arenaId },
-      data: { name: parsed.data.name, points: parsed.data.points, class: parsed.data.class, gender: parsed.data.gender, phone: parsed.data.phone, ...(parsed.data.email !== undefined ? { email: parsed.data.email } : {}), cpf: parsed.data.cpf, birthDate: parsed.data.birthDate, ...(photoUrl ? { photoUrl } : {}) }
+      data: { name: parsed.data.name, points: parsed.data.points, class: parsed.data.class, gender: parsed.data.gender, phone: parsed.data.phone, ...(parsed.data.email !== undefined ? { email: parsed.data.email } : {}), cpf: parsed.data.cpf, birthDate: parsed.data.birthDate, ...(parsed.data.addressZipCode !== undefined ? { addressZipCode: parsed.data.addressZipCode.replace(/\D/g, ""), addressStreet: parsed.data.addressStreet ?? "", addressNumber: parsed.data.addressNumber ?? "", addressNeighborhood: parsed.data.addressNeighborhood ?? "", addressCity: parsed.data.addressCity ?? "", addressState: (parsed.data.addressState ?? "").toUpperCase() } : {}), ...(photoUrl ? { photoUrl } : {}) }
     });
 
     if (!updated.count) {

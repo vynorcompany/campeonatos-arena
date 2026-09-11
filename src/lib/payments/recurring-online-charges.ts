@@ -1,4 +1,4 @@
-import { createBoletoPayment } from "@/lib/payments/mercado-pago";
+import { createBoletoPayment, getMissingBoletoPayerFields } from "@/lib/payments/mercado-pago";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 
@@ -18,12 +18,12 @@ export async function issueRecurringOnlineChargeForEntry(entryId: string): Promi
       playerId: { not: null },
       onlinePaymentId: ""
     },
-    include: { player: { select: { name: true, email: true, cpf: true } } }
+    include: { player: { select: { name: true, email: true, cpf: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } } }
   });
 
   if (!entry) return { created: false, skipped: false };
   const player = entry.player;
-  if (!player?.email || !/^\d{11}$/.test(player.cpf)) return { created: false, skipped: true };
+  if (!player || getMissingBoletoPayerFields(player).length) return { created: false, skipped: true };
   if (entry.amountCents < 500) return { created: false, skipped: true };
 
   const charge = await createBoletoPayment({
@@ -33,6 +33,7 @@ export async function issueRecurringOnlineChargeForEntry(entryId: string): Promi
     payerEmail: player.email,
     payerCpf: player.cpf,
     payerName: player.name,
+    payerAddress: player,
     externalReference: entry.id,
     expiresAt: entry.dueDate ?? undefined
   });
@@ -43,7 +44,8 @@ export async function issueRecurringOnlineChargeForEntry(entryId: string): Promi
       onlinePaymentId: charge.paymentId,
       onlinePaymentUrl: charge.checkoutUrl,
       onlinePaymentQrCode: charge.qrCode,
-      onlinePaymentExpiresAt: charge.expiresAt
+      onlinePaymentExpiresAt: charge.expiresAt,
+      onlinePaymentPublishedAt: new Date()
     }
   }));
   return { created: Boolean(updated.count), skipped: false };
