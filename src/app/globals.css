@@ -8186,6 +8186,8 @@ button {
 @media (max-width: 620px) { .client-portal-event-carousel-track { grid-auto-columns: minmax(82%, 330px); padding-bottom: 4px; } .client-portal-event-carousel-track img { aspect-ratio: 9 / 16; max-height: 440px; object-fit: contain; background: #f2f6fa; } .client-portal-event-carousel-controls { justify-content: center; } }
 
 /* Grade de horários: reserva organizada para leitura operacional. */
+.financial-boleto-validation { display: grid; gap: 3px; margin-top: 8px; padding: 10px 12px; border: 1px solid #efb9b2; border-radius: 8px; background: #fff4f2; color: #9f291f; font-size: .76rem; font-weight: 600; line-height: 1.35; }
+.financial-boleto-validation strong { color: #8d2119; font-size: .78rem; }
 .agenda-booking-dialog { width: min(100%, 1240px); max-height: calc(100vh - 24px); padding: 28px 32px; }
 .agenda-booking-form { grid-template-columns: minmax(0, 1fr); gap: 18px; }
 .agenda-booking-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }

@@ -516,19 +516,19 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
     amount: formData.get("amount"), discount: formData.get("discount"), discountMode: formData.get("discountMode"), frequency: formData.get("frequency"), startsAt: formData.get("startsAt"),
     endsAt: formData.get("endsAt"), bankAccountId: formData.get("bankAccountId"), planId: formData.get("planId"), onlinePaymentMethod: formData.get("onlinePaymentMethod"), notes: formData.get("notes")
   });
-  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   const startsAt = parseDate(parsed.data.startsAt);
   const endsAt = parseDate(parsed.data.endsAt);
-  if (!startsAt) throw new Error("Data inicial inválida.");
-  if (endsAt && endsAt < startsAt) throw new Error("A data final deve ser posterior à inicial.");
+  if (!startsAt) return { error: "Data inicial inválida." };
+  if (endsAt && endsAt < startsAt) return { error: "A data final deve ser posterior à inicial." };
   const discount = parsed.data.discountMode === "PERCENTAGE" ? Number(parsed.data.discount.replace(",", ".")) : parseMoneyToCents(parsed.data.discount);
-  if (!Number.isFinite(discount)) throw new Error("Informe um desconto válido.");
+  if (!Number.isFinite(discount)) return { error: "Informe um desconto válido." };
   const amountCents = getDiscountedAmountCents(parseMoneyToCents(parsed.data.amount), discount, parsed.data.discountMode);
   if (parsed.data.onlinePaymentMethod === "BOLETO") {
-    if (parsed.data.type !== "REVENUE" || !clientId) throw new Error("Selecione um cliente cadastrado para gerar boletos recorrentes.");
+    if (parsed.data.type !== "REVENUE" || !clientId) return { error: "Dados incompletos do cliente: selecione um cliente cadastrado para gerar o boleto recorrente." };
     const player = await withArenaTransaction(auth.arenaId, (tx) => tx.player.findFirst({ where: { id: clientId, arenaId: auth.arenaId, active: true }, select: { email: true, cpf: true } }));
-    if (!player?.email) throw new Error("Informe o e-mail do atleta antes de criar a recorrência por boleto.");
-    if (!/^\d{11}$/.test(player.cpf)) throw new Error("Informe o CPF de 11 dígitos do atleta antes de criar a recorrência por boleto.");
+    const missing = [!player?.email ? "e-mail" : "", !/^\d{11}$/.test(player?.cpf ?? "") ? "CPF com 11 dígitos" : ""].filter(Boolean);
+    if (missing.length) return { error: `Dados incompletos do cliente: informe ${missing.join(" e ")} no cadastro de ${parsed.data.counterpartyName} antes de gerar o boleto recorrente.` };
   }
 
   await withArenaTransaction(auth.arenaId, async (tx) => {
