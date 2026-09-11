@@ -15,6 +15,7 @@ import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 import { encryptConnectionSecrets } from "@/lib/payments/connection-secrets";
 import { createBoletoPayment, createPixPayment } from "@/lib/payments/mercado-pago";
+import { issueRecurringOnlineChargeForEntry } from "@/lib/payments/recurring-online-charges";
 
 const optionalText = z.preprocess((value) => value ?? "", z.string().trim().default(""));
 
@@ -525,12 +526,14 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
   if (!Number.isFinite(discount)) return { error: "Informe um desconto válido." };
   const amountCents = getDiscountedAmountCents(parseMoneyToCents(parsed.data.amount), discount, parsed.data.discountMode);
   if (parsed.data.onlinePaymentMethod === "BOLETO") {
+    if (amountCents < 500) return { error: "Boleto recorrente exige valor mínimo de R$ 5,00. Ajuste o valor antes de continuar." };
     if (parsed.data.type !== "REVENUE" || !clientId) return { error: "Dados incompletos do cliente: selecione um cliente cadastrado para gerar o boleto recorrente." };
     const player = await withArenaTransaction(auth.arenaId, (tx) => tx.player.findFirst({ where: { id: clientId, arenaId: auth.arenaId, active: true }, select: { email: true, cpf: true } }));
     const missing = [!player?.email ? "e-mail" : "", !/^\d{11}$/.test(player?.cpf ?? "") ? "CPF com 11 dígitos" : ""].filter(Boolean);
     if (missing.length) return { error: `Dados incompletos do cliente: informe ${missing.join(" e ")} no cadastro de ${parsed.data.counterpartyName} antes de gerar o boleto recorrente.` };
   }
 
+  let firstEntryId = "";
   await withArenaTransaction(auth.arenaId, async (tx) => {
     const recurrence = await tx.financialRecurrence.create({ data: {
       arenaId: auth.arenaId, type: parsed.data.type, counterpartyName: parsed.data.counterpartyName, category: parsed.data.category,
@@ -541,16 +544,25 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
     let dueDate = startsAt;
     const limit = endsAt ?? new Date(startsAt.getFullYear() + 1, startsAt.getMonth(), startsAt.getDate());
     while (dueDate <= limit) {
-      await tx.financialEntry.create({ data: {
+      const entry = await tx.financialEntry.create({ data: {
         arenaId: auth.arenaId, type: recurrence.type, counterpartyName: recurrence.counterpartyName, category: recurrence.category,
         description: recurrence.description, amountCents: recurrence.amountCents, dueDate, notes: recurrence.notes,
         recurrenceId: recurrence.id, bankAccountId: recurrence.bankAccountId, planId: recurrence.planId, playerId: recurrence.playerId,
         paymentMethod: recurrence.onlinePaymentMethod === "BOLETO" ? "Boleto" : ""
       } });
+      if (!firstEntryId) firstEntryId = entry.id;
       dueDate = getNextFinancialRecurrenceDate(dueDate, parsed.data.frequency);
     }
     await tx.financialRecurrence.update({ where: { id: recurrence.id }, data: { nextDueDate: dueDate } });
   });
+  if (parsed.data.onlinePaymentMethod === "BOLETO" && firstEntryId) {
+    try { await issueRecurringOnlineChargeForEntry(firstEntryId); }
+    catch (error) {
+      console.error("Could not issue the initial recurring boleto", error);
+      refreshFinanceRoutes();
+      return { notice: "Recorrência criada, mas o primeiro boleto não pôde ser emitido agora. Verifique a conexão Mercado Pago e tente emitir o lançamento." };
+    }
+  }
   refreshFinanceRoutes();
 }
 
@@ -567,8 +579,15 @@ export async function generateFinancialEntryOnlineChargeAction(formData: FormDat
   if (parsed.data.method === "BOLETO" && !/^\d{11}$/.test(player.cpf)) return { error: "Informe o CPF de 11 dígitos do atleta para emitir boleto." };
   const amountCents = getFinancialEntryBalance(entry.amountCents, entry.settlements).outstandingCents;
   if (!amountCents) return { error: "Este lançamento não possui saldo para cobrar." };
+  if (parsed.data.method === "BOLETO" && amountCents < 500) return { error: "Boleto exige valor mínimo de R$ 5,00. Ajuste o lançamento antes de emitir." };
   const input = { arenaId: auth.arenaId, amountCents, description: entry.description, payerEmail: player.email, externalReference: entry.id };
-  const charge = parsed.data.method === "BOLETO" ? await createBoletoPayment({ ...input, payerCpf: player.cpf, payerName: player.name }) : await createPixPayment(input);
+  let charge;
+  try {
+    charge = parsed.data.method === "BOLETO" ? await createBoletoPayment({ ...input, payerCpf: player.cpf, payerName: player.name, expiresAt: entry.dueDate ?? undefined }) : await createPixPayment(input);
+  } catch (error) {
+    console.error("Could not create online financial charge", error);
+    return { error: parsed.data.method === "BOLETO" ? "Não foi possível emitir o boleto agora. Verifique a conexão do Mercado Pago e tente novamente." : "Não foi possível gerar o PIX agora. Verifique a conexão do Mercado Pago e tente novamente." };
+  }
   await withArenaTransaction(auth.arenaId, (tx) => tx.financialEntry.update({ where: { id: entry.id }, data: { onlineProvider: "MERCADO_PAGO", onlinePaymentId: charge.paymentId, onlinePaymentUrl: charge.checkoutUrl, onlinePaymentQrCode: charge.qrCode, onlinePaymentExpiresAt: charge.expiresAt } }));
   refreshFinanceRoutes();
   return { url: charge.checkoutUrl, code: charge.qrCode, method: parsed.data.method };

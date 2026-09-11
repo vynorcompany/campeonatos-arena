@@ -24,6 +24,7 @@ export async function issueRecurringOnlineChargeForEntry(entryId: string): Promi
   if (!entry) return { created: false, skipped: false };
   const player = entry.player;
   if (!player?.email || !/^\d{11}$/.test(player.cpf)) return { created: false, skipped: true };
+  if (entry.amountCents < 500) return { created: false, skipped: true };
 
   const charge = await createBoletoPayment({
     arenaId: entry.arenaId,
