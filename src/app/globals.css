@@ -8191,11 +8191,10 @@ button {
 .online-charge-status { display: block; margin-top: 5px; font-size: .65rem; font-weight: 800; }
 .online-charge-issued { color: #15734c; }
 .online-charge-pending { color: #a35a00; }
-.online-charge-badge { position: relative; display: inline-flex; align-items: center; gap: 5px; margin-top: 6px; padding: 4px 7px; border: 1px solid #9fd9bd; border-radius: 999px; background: #edfaf2; color: #137148; font-size: .64rem; font-weight: 850; line-height: 1; cursor: help; outline: none; }
-.online-charge-badge > svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }.online-charge-badge .online-charge-eye { margin-left: 1px; color: #1a6fa4; }
-.online-charge-badge-viewed { border-color: #a9cfe7; background: #eef8ff; color: #17699a; }
-.online-charge-badge::after { position: absolute; z-index: 20; bottom: calc(100% + 8px); left: 0; width: max-content; max-width: 220px; padding: 7px 9px; border-radius: 7px; background: #142b42; color: #fff; font-size: .7rem; font-weight: 650; line-height: 1.35; content: attr(data-tooltip); opacity: 0; pointer-events: none; transform: translateY(3px); transition: opacity .15s ease, transform .15s ease; }
-.online-charge-badge:hover::after, .online-charge-badge:focus-visible::after { opacity: 1; transform: translateY(0); }
+.online-charge-icons { display: inline-flex; align-items: center; gap: 6px; margin-top: 7px; vertical-align: middle; }
+.online-charge-icon { position: relative; display: inline-grid; width: 16px; height: 16px; place-items: center; color: #137148; cursor: help; outline: none; }.online-charge-icon > svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }.online-charge-icon-viewed { color: #17699a; }
+.online-charge-icon::after { position: absolute; z-index: 20; bottom: calc(100% + 8px); left: 50%; width: max-content; max-width: 220px; padding: 7px 9px; border-radius: 7px; background: #142b42; color: #fff; font-size: .7rem; font-weight: 650; line-height: 1.35; content: attr(data-tooltip); opacity: 0; pointer-events: none; transform: translate(-50%, 3px); transition: opacity .15s ease, transform .15s ease; }
+.online-charge-icon:hover::after, .online-charge-icon:focus-visible::after { opacity: 1; transform: translate(-50%, 0); }
 .portal-payment-charge { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; border-top: 1px solid var(--border); }
 .portal-payment-charge:first-of-type { border-top: 0; }
 .portal-payment-charge div { display: grid; gap: 3px; }
