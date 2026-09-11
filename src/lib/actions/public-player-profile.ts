@@ -20,6 +20,24 @@ const normalizePhone = (value: string) => value.replace(/\D/g, "");
 
 export type PublicProfileActionState = { error: string | null; success: string | null };
 
+const tournamentAvailabilitySchema = z.object({
+  arenaSlug: z.string().trim().min(1),
+  tournamentAvailability: z.enum(["OFF", "AVAILABLE", "LOOKING_FOR_PARTNER"]),
+});
+
+export async function updateTournamentAvailabilityAction(formData: FormData) {
+  const parsed = tournamentAvailabilitySchema.safeParse({
+    arenaSlug: formData.get("arenaSlug"),
+    tournamentAvailability: formData.get("tournamentAvailability"),
+  });
+  if (!parsed.success) return { error: "Selecione uma disponibilidade válida." };
+
+  const auth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
+  await prisma.player.update({ where: { id: auth.playerId }, data: { tournamentAvailability: parsed.data.tournamentAvailability } });
+  revalidatePath(`/classificacao/${parsed.data.arenaSlug}`);
+  return { error: null };
+}
+
 export async function updatePublicPlayerProfileAction(_: PublicProfileActionState, formData: FormData): Promise<PublicProfileActionState> {
   const parsed = profileSchema.safeParse({
     arenaSlug: formData.get("arenaSlug"),

@@ -32,7 +32,7 @@ export async function getPublicPlayerAuth(arenaSlug: string) {
   }
   const player = session.playerAccount.player;
   if (!player.active || player.arena.slug !== arenaSlug) return null;
-  return { playerId: player.id, playerAccountId: session.playerAccountId, name: player.name, phone: player.phone, email: player.email, photoUrl: player.photoUrl, birthDate: player.birthDate?.toISOString().slice(0, 10) ?? "", padelCategory: player.class, padelSide: player.padelSide, isTeacher: Boolean(player.teacher?.active), arenaId: player.arenaId };
+  return { playerId: player.id, playerAccountId: session.playerAccountId, name: player.name, phone: player.phone, email: player.email, photoUrl: player.photoUrl, birthDate: player.birthDate?.toISOString().slice(0, 10) ?? "", gender: player.gender, padelCategory: player.class, padelSide: player.padelSide, tournamentAvailability: player.tournamentAvailability, isTeacher: Boolean(player.teacher?.active), arenaId: player.arenaId };
 }
 
 export async function requirePublicPlayerAuth(arenaSlug: string) {
