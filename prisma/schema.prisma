@@ -321,14 +321,30 @@ model PlayerAccount {
   arenaId      String
   phone        String
   passwordHash String
+  identityId   String?
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
   playerId     String          @unique
   player       Player          @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  identity     AthleteIdentity? @relation(fields: [identityId], references: [id], onDelete: SetNull)
   sessions     PlayerSession[]
 
   @@unique([arenaId, phone])
   @@index([arenaId])
+  @@index([identityId])
+}
+
+// A identidade é global para o atleta. Os PlayerAccount continuam sendo o
+// vínculo privado de cada arena e preservam os dados financeiros e operacionais
+// daquele tenant.
+model AthleteIdentity {
+  id           String          @id @default(cuid())
+  phone        String          @unique
+  passwordHash String
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  accounts     PlayerAccount[]
+  sessions     PlayerSession[]
 }
 
 model PlayerSession {
@@ -337,9 +353,12 @@ model PlayerSession {
   expiresAt       DateTime
   createdAt       DateTime      @default(now())
   playerAccountId String
+  athleteIdentityId String?
   playerAccount   PlayerAccount @relation(fields: [playerAccountId], references: [id], onDelete: Cascade)
+  athleteIdentity AthleteIdentity? @relation(fields: [athleteIdentityId], references: [id], onDelete: Cascade)
 
   @@index([playerAccountId])
+  @@index([athleteIdentityId])
   @@index([expiresAt])
 }
 

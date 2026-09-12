@@ -16,10 +16,10 @@ function parsePadelCategories(value: string, fallback: string) {
   return fallback.trim() ? [fallback.trim()] : [];
 }
 
-export async function createPublicPlayerSession(playerAccountId: string) {
+export async function createPublicPlayerSession(playerAccountId: string, athleteIdentityId?: string | null) {
   const token = crypto.randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + PLAYER_SESSION_DAYS * 24 * 60 * 60 * 1000);
-  await prisma.playerSession.create({ data: { token: hashToken(token), expiresAt, playerAccountId } });
+  await prisma.playerSession.create({ data: { token: hashToken(token), expiresAt, playerAccountId, athleteIdentityId: athleteIdentityId ?? undefined } });
   cookies().set(PLAYER_SESSION_COOKIE, token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", expires: expiresAt, path: "/" });
 }
 
@@ -29,17 +29,44 @@ export async function destroyPublicPlayerSession() {
   cookies().delete(PLAYER_SESSION_COOKIE);
 }
 
-export async function getPublicPlayerAuth(arenaSlug: string) {
+const membershipInclude = {
+  player: { include: { arena: { select: { slug: true, name: true, logoUrl: true } }, teacher: { select: { active: true } } } },
+} as const;
+
+async function getSession() {
   const token = cookies().get(PLAYER_SESSION_COOKIE)?.value;
   if (!token) return null;
-  const session = await prisma.playerSession.findFirst({ where: { token: { in: [token, hashToken(token)] } }, include: { playerAccount: { include: { player: { include: { arena: { select: { slug: true } }, teacher: { select: { active: true } } } } } } } });
+  const session = await prisma.playerSession.findFirst({
+    where: { token: { in: [token, hashToken(token)] } },
+    include: {
+      athleteIdentity: { include: { accounts: { include: membershipInclude } } },
+      playerAccount: { include: { identity: { include: { accounts: { include: membershipInclude } } }, player: { include: membershipInclude.player.include } } },
+    },
+  });
   if (!session || session.expiresAt < new Date()) {
     if (session) await prisma.playerSession.delete({ where: { id: session.id } });
     return null;
   }
-  const player = session.playerAccount.player;
-  if (!player.active || player.arena.slug !== arenaSlug) return null;
-  return { playerId: player.id, playerAccountId: session.playerAccountId, name: player.name, phone: player.phone, email: player.email, photoUrl: player.photoUrl, birthDate: player.birthDate?.toISOString().slice(0, 10) ?? "", gender: player.gender, padelCategories: parsePadelCategories(player.padelCategories, player.class), padelSide: player.padelSide, tournamentAvailability: player.tournamentAvailability, isTeacher: Boolean(player.teacher?.active), arenaId: player.arenaId };
+  return session;
+}
+
+export async function getPublicPlayerAuth(arenaSlug: string) {
+  const session = await getSession();
+  if (!session) return null;
+  const identity = session.athleteIdentity ?? session.playerAccount.identity;
+  const account = identity?.accounts.find((entry) => entry.player.active && entry.player.arena.slug === arenaSlug)
+    ?? (session.playerAccount.player.active && session.playerAccount.player.arena.slug === arenaSlug ? session.playerAccount : null);
+  if (!account) return null;
+  const player = account.player;
+  return { playerId: player.id, playerAccountId: account.id, athleteIdentityId: identity?.id ?? null, name: player.name, phone: player.phone, email: player.email, photoUrl: player.photoUrl, birthDate: player.birthDate?.toISOString().slice(0, 10) ?? "", gender: player.gender, padelCategories: parsePadelCategories(player.padelCategories, player.class), padelSide: player.padelSide, tournamentAvailability: player.tournamentAvailability, isTeacher: Boolean(player.teacher?.active), arenaId: player.arenaId };
+}
+
+export async function getPublicAthleteIdentity() {
+  const session = await getSession();
+  if (!session) return null;
+  const identity = session.athleteIdentity ?? session.playerAccount.identity;
+  const accounts = identity?.accounts ?? [session.playerAccount];
+  return { id: identity?.id ?? null, phone: identity?.phone ?? session.playerAccount.phone, arenas: accounts.filter((account) => account.player.active).map((account) => ({ slug: account.player.arena.slug, name: account.player.arena.name, logoUrl: account.player.arena.logoUrl, playerName: account.player.name })) };
 }
 
 export async function requirePublicPlayerAuth(arenaSlug: string) {
