@@ -7750,13 +7750,16 @@ button {
 .athlete-portal-user-copy .athlete-portal-greeting { overflow: hidden; max-width: 150px; color: #fff; font-size: .8rem; text-overflow: ellipsis; }
 .athlete-portal-profile-link { padding: 7px 9px; border: 1px solid rgb(255 255 255 / .3); border-radius: 8px; color: #fff; background: rgb(255 255 255 / .1); font-size: .7rem; font-weight: 800; text-decoration: none; white-space: nowrap; }
 .athlete-portal-profile-link:hover { color: #073f68; background: #d8ffef; }
+.athlete-portal-main-nav { position: sticky; top: 8px; z-index: 30; backdrop-filter: blur(12px); }
+.athlete-portal-main-nav + .athlete-portal-league-nav { position: sticky; top: 64px; z-index: 29; padding-top: 6px; background: rgb(248 252 255 / .94); backdrop-filter: blur(12px); }
+.athlete-portal-main-nav + .athlete-portal-league-nav + .athlete-portal-league-nav { top: 105px; z-index: 28; }
 .super12-panel > .super12-create { width: fit-content; max-width: 100%; overflow: visible; border: 0; border-radius: 0; background: transparent; }
 .super12-panel > .super12-create > summary { display: inline-flex; width: auto; min-height: 34px; align-items: center; padding: 7px 11px; border: 1px solid #176aa5; border-radius: 8px; color: #fff; background: #176aa5; font-size: .74rem; font-weight: 850; line-height: 1; }
 .super12-panel > .super12-create > summary:hover { border-color: #0e568a; background: #0e568a; }
 .super12-panel > .super12-create[open] { width: 100%; overflow: hidden; border: 1px solid #cfe2ed; border-radius: 12px; background: #f8fcff; }
 .super12-panel > .super12-create[open] > summary { width: 100%; border: 0; border-radius: 0; color: #164460; background: transparent; }
 .super12-panel > .super12-create[open] > summary:hover { color: #0e568a; background: #eef7fc; }
-@media (max-width: 700px) { .athlete-portal-hero-inner { gap: 16px; }.athlete-portal-brand-copy p { max-width: 250px; }.athlete-portal-user { width: 100%; }.athlete-portal-user-copy { flex: 1; }.athlete-portal-user-copy .athlete-portal-greeting { max-width: none; }.athlete-portal-profile-link { margin-left: auto; } }
+@media (max-width: 700px) { .athlete-portal-hero-inner { gap: 16px; }.athlete-portal-brand-copy p { max-width: 250px; }.athlete-portal-user { width: 100%; }.athlete-portal-user-copy { flex: 1; }.athlete-portal-user-copy .athlete-portal-greeting { max-width: none; }.athlete-portal-profile-link { margin-left: auto; }.athlete-portal-main-nav { top: 4px; }.athlete-portal-main-nav + .athlete-portal-league-nav { top: 54px; }.athlete-portal-main-nav + .athlete-portal-league-nav + .athlete-portal-league-nav { top: 95px; } }
 .portal-league-category-picker { width: fit-content; max-width: 100%; align-items: end; gap: 8px; margin-top: 18px; padding: 8px 9px; }
 .portal-league-category-picker label { flex: 0 1 330px; min-width: min(260px, 100%); }
 .portal-league-category-picker select { width: 100%; min-width: 0; }

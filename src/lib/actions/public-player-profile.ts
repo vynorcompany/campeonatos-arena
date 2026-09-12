@@ -13,7 +13,7 @@ const profileSchema = z.object({
   email: z.preprocess((value) => value ?? "", z.string().trim().email("E-mail inválido.").or(z.literal(""))),
   birthDate: z.preprocess((value) => value || null, z.coerce.date().nullable()),
   gender: z.enum(["", "Feminino", "Masculino", "Outro"]),
-  padelCategories: z.array(z.string().trim().min(1).max(40)).max(5, "Selecione até cinco categorias.").default([]),
+  padelCategories: z.array(z.string().trim().min(1).max(40)).max(1, "Selecione apenas uma categoria.").default([]),
   padelSide: z.enum(["", "RIGHT", "LEFT", "BOTH"]),
 });
 
@@ -88,7 +88,7 @@ export async function updatePublicPlayerProfileAction(_: PublicProfileActionStat
     email: formData.get("email"),
     birthDate: formData.get("birthDate"),
     gender: formData.get("gender"),
-    padelCategories: formData.getAll("padelCategories"),
+    padelCategories: formData.get("padelCategory") ? [formData.get("padelCategory")] : [],
     padelSide: formData.get("padelSide"),
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos.", success: null };
