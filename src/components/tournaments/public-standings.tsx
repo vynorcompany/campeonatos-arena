@@ -134,7 +134,6 @@ export function PublicStandings({
           <div className="athlete-portal-brand-copy">
             <span className="athlete-portal-arena-name">{arena.name}</span>
             <h1>Portal do Atleta</h1>
-            <p>Acompanhe suas atividades, reservas e Ligas em um só lugar.</p>
           </div>
         </div>
         {currentClient ? (
