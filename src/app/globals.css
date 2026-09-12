@@ -7750,6 +7750,9 @@ button {
 .athlete-portal-user-copy .athlete-portal-greeting { overflow: hidden; max-width: 150px; color: #fff; font-size: .8rem; text-overflow: ellipsis; }
 .athlete-portal-profile-link { padding: 7px 9px; border: 1px solid rgb(255 255 255 / .3); border-radius: 8px; color: #fff; background: rgb(255 255 255 / .1); font-size: .7rem; font-weight: 800; text-decoration: none; white-space: nowrap; }
 .athlete-portal-profile-link:hover { color: #073f68; background: #d8ffef; }
+.public-portal-notifications a { grid-template-columns: 26px minmax(0, 1fr) auto; }
+.public-portal-notification-view { justify-self: end; padding: 4px 7px; border: 1px solid #b9dfce; border-radius: 6px; color: #197154; background: #fff; font-size: .66rem; font-weight: 850; }
+.public-challenge-list article { scroll-margin-top: 145px; }
 .athlete-portal-main-nav { position: sticky; top: 8px; z-index: 30; backdrop-filter: blur(12px); }
 .athlete-portal-main-nav + .athlete-portal-league-nav { position: sticky; top: 64px; z-index: 29; padding-top: 6px; background: rgb(248 252 255 / .94); backdrop-filter: blur(12px); }
 .athlete-portal-main-nav + .athlete-portal-league-nav + .athlete-portal-league-nav { top: 105px; z-index: 28; }
