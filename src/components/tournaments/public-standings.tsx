@@ -200,32 +200,12 @@ export function PublicStandings({
         >
           Início
         </Link>
-        <Link className={requestedSection === "finance" ? "active" : ""} href={portalHref("finance")}>Finanças</Link>
-        {portalVisibility.athletePortalShowDoublesRadar ? (
-          <Link className={requestedSection === "radar" ? "active" : ""} href={portalHref("radar")}>Radar de duplas</Link>
-        ) : null}
         {portalVisibility.athletePortalShowLeagues ? (
           <Link
             className={requestedSection === "leagues" ? "active" : ""}
               href={portalHref("leagues", "games")}
             >
               Eventos
-          </Link>
-        ) : null}
-        {portalVisibility.athletePortalShowBooking ? (
-          <Link
-            className={requestedSection === "booking" ? "active" : ""}
-            href={portalHref("booking")}
-          >
-            Grade de horários
-          </Link>
-        ) : null}
-        {portalVisibility.athletePortalShowReservations ? (
-          <Link
-            className={requestedSection === "reservations" ? "active" : ""}
-            href={portalHref("reservations")}
-          >
-            Minhas reservas
           </Link>
         ) : null}
         {portalVisibility.athletePortalShowLessons ||
@@ -243,6 +223,31 @@ export function PublicStandings({
             Aulas
           </Link>
         ) : null}
+        <Link
+          className={requestedSection === "profile" || requestedSection === "finance" ? "active" : ""}
+          href={portalHref("profile")}
+        >
+          Meu perfil
+        </Link>
+        {portalVisibility.athletePortalShowDoublesRadar ? (
+          <Link className={requestedSection === "radar" ? "active" : ""} href={portalHref("radar")}>Radar de duplas</Link>
+        ) : null}
+        {portalVisibility.athletePortalShowBooking ? (
+          <Link
+            className={requestedSection === "booking" ? "active" : ""}
+            href={portalHref("booking")}
+          >
+            Grade de horários
+          </Link>
+        ) : null}
+        {portalVisibility.athletePortalShowReservations ? (
+          <Link
+            className={requestedSection === "reservations" ? "active" : ""}
+            href={portalHref("reservations")}
+          >
+            Minhas reservas
+          </Link>
+        ) : null}
         {currentClient.isTeacher ? (
           <Link
             className={requestedSection === "teacher" ? "active" : ""}
@@ -251,12 +256,6 @@ export function PublicStandings({
             Gestão
           </Link>
         ) : null}
-        <Link
-          className={requestedSection === "profile" ? "active" : ""}
-          href={portalHref("profile")}
-        >
-          Meu perfil
-        </Link>
       </nav>
       {requestedSection === "lessons" || requestedSection === "classes" ? (
         <nav
@@ -279,6 +278,12 @@ export function PublicStandings({
               Turmas
             </Link>
           ) : null}
+        </nav>
+      ) : null}
+      {requestedSection === "profile" || requestedSection === "finance" ? (
+        <nav className="athlete-portal-league-nav" aria-label="Menu do meu perfil">
+          <Link className={requestedSection === "profile" ? "active" : ""} href={portalHref("profile")}>Dados pessoais</Link>
+          <Link className={requestedSection === "finance" ? "active" : ""} href={portalHref("finance")}>Finanças</Link>
         </nav>
       ) : null}
       {requestedSection === "home" ? (
