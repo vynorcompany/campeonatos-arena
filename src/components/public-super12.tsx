@@ -16,7 +16,10 @@ function super12Href(eventId?: string) {
 export function PublicSuper12({ arenaSlug, data }: { arenaSlug: string; data: Super12Data }) {
   if (!data) return null;
   const event = data.selectedEvent;
-  const boardGroups = event ? event.groups as Array<typeof event.groups[number] & { rows: StandingRow[] }> : [];
+  const boardGroups = event ? event.groups.map((group) => ({
+    ...group,
+    rows: event.standings.find((standing) => standing.id === group.id)?.rows ?? [] as StandingRow[],
+  })) : [];
   return <section className="athlete-portal-content-panel super12-panel">
     <header className="super12-header"><span>SUPER 12</span><h2>Rodadas entre duplas, do seu jeito</h2><p>Monte os confrontos, registre os placares e acompanhe a classificação. Sem impacto no ranking ou histórico oficial.</p></header>
     <PublicSuper12Create arenaSlug={arenaSlug} athletes={data.availablePlayers} defaultOpen={!event} />
