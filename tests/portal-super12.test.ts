@@ -21,3 +21,9 @@ test("Super 12 permanece separado das estruturas oficiais de torneio", () => {
   assert.match(action, /Selecione de 4 a 24 atletas/);
   assert.match(action, /status: "ACTIVE"/);
 });
+
+test("Super 12 associa a classificação calculada ao grupo antes de renderizar a tabela", () => {
+  const panel = source("src/components/public-super12.tsx");
+  assert.match(panel, /event\.standings\.find/);
+  assert.match(panel, /rows: event\.standings/);
+});
