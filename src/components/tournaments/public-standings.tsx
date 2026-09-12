@@ -9,6 +9,7 @@ import { PlayerAvatar } from "@/components/player-avatar";
 import { PortalRichText } from "@/components/portal-rich-text";
 import { ClientPortalEventCarousel } from "@/components/client-portal-event-carousel";
 import { PublicDoublesRadar } from "@/components/public-doubles-radar";
+import { PublicSuper12 } from "@/components/public-super12";
 import {
   moveClassGroupStudentAction,
   registerClassGroupMakeupAction,
@@ -34,12 +35,15 @@ type PortalSection =
   | "radar"
   | "teacher";
 type LeagueTab = "games" | "pairs" | "ranking" | "rules" | "prizes";
+type EventTab = "leagues" | "super12";
 
 function portalHref(
   section: PortalSection,
   leagueTab?: LeagueTab,
   teacherId?: string,
   leagueCategoryId?: string,
+  eventTab?: EventTab,
+  super12Id?: string,
 ) {
   const query = new URLSearchParams({
     section,
@@ -53,6 +57,8 @@ function portalHref(
             : "games",
   });
   if (leagueTab) query.set("leagueTab", leagueTab);
+  if (eventTab) query.set("eventTab", eventTab);
+  if (super12Id) query.set("super12", super12Id);
   if (teacherId) query.set("teacher", teacherId);
   if (leagueCategoryId) query.set("leagueCategory", leagueCategoryId);
   return `?${query.toString()}`;
@@ -68,6 +74,9 @@ export function PublicStandings({
   radar,
   radarGender,
   radarCategory,
+  super12,
+  eventTab = "leagues",
+  super12Id,
   financeTab = "upcoming",
   authForm,
   section = "leagues",
@@ -96,6 +105,9 @@ export function PublicStandings({
   radar: Awaited<ReturnType<typeof import("@/lib/services/public-doubles-radar").getPublicDoublesRadar>>;
   radarGender?: string;
   radarCategory?: string;
+  super12: Awaited<ReturnType<typeof import("@/lib/services/public-super12").getPublicSuper12>>;
+  eventTab?: EventTab;
+  super12Id?: string;
   financeTab?: "upcoming" | "history";
   authForm: React.ReactNode;
   section?: PortalSection;
@@ -173,6 +185,7 @@ export function PublicStandings({
     leagueTab === "prizes"
       ? leagueTab
       : "games";
+  const selectedEventTab: EventTab = eventTab === "super12" ? "super12" : "leagues";
 
   return (
     <main className="athlete-portal-page">
@@ -194,9 +207,9 @@ export function PublicStandings({
         {portalVisibility.athletePortalShowLeagues ? (
           <Link
             className={requestedSection === "leagues" ? "active" : ""}
-            href={portalHref("leagues", "games")}
-          >
-            Ligas
+              href={portalHref("leagues", "games")}
+            >
+              Eventos
           </Link>
         ) : null}
         {portalVisibility.athletePortalShowBooking ? (
@@ -282,6 +295,11 @@ export function PublicStandings({
         />
       ) : requestedSection === "leagues" ? (
         <>
+          <nav className="athlete-portal-league-nav" aria-label="Menu de Eventos">
+            <Link className={selectedEventTab === "leagues" ? "active" : ""} href={portalHref("leagues", "games", undefined, leagueCategoryId, "leagues")}>Ligas</Link>
+            <Link className={selectedEventTab === "super12" ? "active" : ""} href={portalHref("leagues", undefined, undefined, undefined, "super12", super12Id)}>Super 12</Link>
+          </nav>
+          {selectedEventTab === "leagues" ? <>
           <nav className="athlete-portal-league-nav" aria-label="Menu da Liga">
             <Link
               className={selectedLeagueTab === "games" ? "active" : ""}
@@ -349,6 +367,7 @@ export function PublicStandings({
           {selectedLeagueTab === "prizes" ? (
             <PrizePanel portal={portal} />
           ) : null}
+          </> : <PublicSuper12 arenaSlug={arena.slug} data={super12} />}
         </>
       ) : requestedSection === "booking" ? (
         <PublicBookingContent

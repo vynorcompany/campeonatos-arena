@@ -4,6 +4,7 @@ import { getPublicPlayerAuth } from "@/lib/auth/player-session";
 import { getPublicLeaguePortal } from "@/lib/services/public-league-portal";
 import { getPublicClientFinance, getPublicClientHome } from "@/lib/services/public-client-home";
 import { getPublicDoublesRadar } from "@/lib/services/public-doubles-radar";
+import { getPublicSuper12 } from "@/lib/services/public-super12";
 import { PublicStandings } from "@/components/tournaments/public-standings";
 import { getArenaPublicStandings, getPublicArenaShell } from "@/lib/services/public-standings";
 import { prisma } from "@/lib/prisma";
@@ -29,6 +30,8 @@ export default async function PublicStandingsPage({
     radarGender?: string;
     radarCategory?: string;
     athlete?: string;
+    eventTab?: string;
+    super12?: string;
   };
 }) {
   const alias = await prisma.arenaPublicSlug.findUnique({ where: { slug: params.arenaSlug }, include: { arena: { select: { slug: true } } } });
@@ -43,13 +46,14 @@ export default async function PublicStandingsPage({
     notFound();
   }
 
-  const [portal, home, finance, radar] = currentClient ? await Promise.all([
+  const [portal, home, finance, radar, super12] = currentClient ? await Promise.all([
     section !== "home" ? await getPublicLeaguePortal(params.arenaSlug, currentClient.playerId, searchParams?.leagueCategory) : null,
     section === "home" ? await getPublicClientHome(params.arenaSlug, currentClient.playerId) : null,
     section === "finance" ? await getPublicClientFinance(params.arenaSlug, currentClient.playerId) : null,
     section === "radar" ? await getPublicDoublesRadar(params.arenaSlug, currentClient.playerId, { gender: searchParams?.radarGender, category: searchParams?.radarCategory, athleteId: searchParams?.athlete }) : null,
-  ]) : [null, null, null, null];
+    section === "leagues" && searchParams?.eventTab === "super12" ? await getPublicSuper12(params.arenaSlug, currentClient.playerId, searchParams?.super12) : null,
+  ]) : [null, null, null, null, null];
   const leagueTab = searchParams?.leagueTab === "pairs" || searchParams?.leagueTab === "ranking" || searchParams?.leagueTab === "rules" || searchParams?.leagueTab === "prizes" ? searchParams.leagueTab : "games";
   const authReturnTo = `/classificacao/${params.arenaSlug}?section=${section}${searchParams?.data ? `&data=${encodeURIComponent(searchParams.data)}` : ""}`;
-  return <PublicStandings data={data} arena={arena} currentClient={currentClient} portal={portal} home={home} finance={finance} radar={radar} radarGender={searchParams?.radarGender} radarCategory={searchParams?.radarCategory} financeTab={searchParams?.financeTab === "history" ? "history" : "upcoming"} section={section} leagueTab={leagueTab} leagueCategoryId={searchParams?.leagueCategory} bookingDate={searchParams?.data} teacherId={searchParams?.teacher} authForm={<PublicClientAuthForm arenaSlug={params.arenaSlug} returnTo={authReturnTo} />} />;
+  return <PublicStandings data={data} arena={arena} currentClient={currentClient} portal={portal} home={home} finance={finance} radar={radar} radarGender={searchParams?.radarGender} radarCategory={searchParams?.radarCategory} super12={super12} eventTab={searchParams?.eventTab === "super12" ? "super12" : "leagues"} super12Id={searchParams?.super12} financeTab={searchParams?.financeTab === "history" ? "history" : "upcoming"} section={section} leagueTab={leagueTab} leagueCategoryId={searchParams?.leagueCategory} bookingDate={searchParams?.data} teacherId={searchParams?.teacher} authForm={<PublicClientAuthForm arenaSlug={params.arenaSlug} returnTo={authReturnTo} />} />;
 }
