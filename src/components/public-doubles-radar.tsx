@@ -53,20 +53,6 @@ export function PublicDoublesRadar({
       <p>Filtre atletas da arena e conheça o jogo de quem está pronto para entrar em quadra.</p>
     </header>
 
-    <section className={`doubles-radar-status is-${currentAvailability.toLowerCase()}`}>
-      <div><span aria-hidden="true">🎾</span><div><strong>{current.title}</strong><p>{current.detail}</p></div></div>
-      <SafeActionForm action={updateTournamentAvailabilityAction} successMessage="Seu status no Radar foi atualizado.">
-        <input type="hidden" name="arenaSlug" value={arenaSlug} />
-        <input type="hidden" name="tournamentAvailability" value={nextStatus} />
-        <SubmitButton label={current.action} pendingLabel="Atualizando..." className="button button-primary button-small" />
-      </SafeActionForm>
-    </section>
-
-    {radar.notifications.length ? <section className="doubles-radar-notifications" aria-label="Pedidos de dupla recebidos">
-      <strong>Pedidos recebidos</strong>
-      {radar.notifications.map((notification) => <article key={notification.id}><span aria-hidden="true">🎾</span><div><b>{notification.title}</b><p>{notification.message}</p></div></article>)}
-    </section> : null}
-
     {radar.selectedAthlete ? <section className="doubles-radar-profile">
       <Link href={href({ gender: selectedGender, category: selectedCategory })} className="doubles-radar-back">← Voltar ao Radar</Link>
       <PlayerAvatar className="doubles-radar-profile-avatar" photoUrl={radar.selectedAthlete.photoUrl} name={radar.selectedAthlete.name} />
@@ -75,6 +61,20 @@ export function PublicDoublesRadar({
       <SafeActionForm action={requestDoublesPartnerAction} className="doubles-radar-request" successMessage="Solicitação enviada. O atleta verá o aviso no Portal."><input type="hidden" name="arenaSlug" value={arenaSlug} /><input type="hidden" name="targetPlayerId" value={radar.selectedAthlete.id} /><SubmitButton label="Convidar para formar dupla" pendingLabel="Enviando..." className="button button-primary button-small" /></SafeActionForm>
       <p className="doubles-radar-profile-note">Os dados de contato continuam protegidos. O convite será entregue como notificação no Portal do atleta.</p>
     </section> : <>
+      <section className={`doubles-radar-status is-${currentAvailability.toLowerCase()}`}>
+        <div><span aria-hidden="true">🎾</span><div><strong>{current.title}</strong><p>{current.detail}</p></div></div>
+        <SafeActionForm action={updateTournamentAvailabilityAction} successMessage="Seu status no Radar foi atualizado.">
+          <input type="hidden" name="arenaSlug" value={arenaSlug} />
+          <input type="hidden" name="tournamentAvailability" value={nextStatus} />
+          <SubmitButton label={current.action} pendingLabel="Atualizando..." className="button button-primary button-small" />
+        </SafeActionForm>
+      </section>
+
+      {radar.notifications.length ? <section className="doubles-radar-notifications" aria-label="Pedidos de dupla recebidos">
+        <strong>Pedidos recebidos</strong>
+        {radar.notifications.map((notification) => <article key={notification.id}><span aria-hidden="true">🎾</span><div><b>{notification.title}</b><p>{notification.message}</p></div></article>)}
+      </section> : null}
+
       <form className="doubles-radar-filters" method="get">
         <input type="hidden" name="section" value="radar" />
         <label>Sexo<select name="radarGender" defaultValue={selectedGender ?? ""}><option value="">Todos</option>{availableGenders.map((gender) => <option key={gender} value={gender}>{gender}</option>)}</select></label>
