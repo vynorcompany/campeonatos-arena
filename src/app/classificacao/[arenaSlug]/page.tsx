@@ -48,8 +48,9 @@ export default async function PublicStandingsPage({
     notFound();
   }
 
+  const needsPortalData = section === "leagues" || section === "reservations" || section === "lessons" || section === "classes" || section === "teacher";
   const [portal, home, finance, radar, super12, notifications] = currentClient ? await Promise.all([
-    section !== "home" && !isSuper12 ? await getPublicLeaguePortal(params.arenaSlug, currentClient.playerId, searchParams?.leagueCategory) : null,
+    needsPortalData && !isSuper12 ? await getPublicLeaguePortal(params.arenaSlug, currentClient.playerId, searchParams?.leagueCategory) : null,
     section === "home" ? await getPublicClientHome(params.arenaSlug, currentClient.playerId) : null,
     section === "finance" ? await getPublicClientFinance(params.arenaSlug, currentClient.playerId) : null,
     section === "radar" ? await getPublicDoublesRadar(params.arenaSlug, currentClient.playerId, { gender: searchParams?.radarGender, category: searchParams?.radarCategory, athleteId: searchParams?.athlete }) : null,
