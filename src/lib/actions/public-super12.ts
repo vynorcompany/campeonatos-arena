@@ -24,7 +24,7 @@ export async function createSuper12Action(formData: FormData) {
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Revise os dados do Super 12." };
   const selectedIds = [...new Set(parsed.data.playerIds)];
-  if (selectedIds.length < 4 || selectedIds.length > 12 || selectedIds.length % 2 !== 0) return { error: "Selecione de 4 a 12 atletas, sempre em número par, para formar as duplas." };
+  if (selectedIds.length < 4 || selectedIds.length > 24 || selectedIds.length % 2 !== 0) return { error: "Selecione de 4 a 24 atletas, sempre em número par, para formar até 12 duplas." };
 
   const auth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
   const players = await prisma.player.findMany({ where: { arenaId: auth.arenaId, active: true, id: { in: selectedIds } }, select: { id: true, name: true } });
