@@ -120,18 +120,19 @@ export function PublicStandings({
     <header className="athlete-portal-hero">
       <div className="athlete-portal-hero-inner">
         <div className="athlete-portal-brand">
-          <div>
-            {arena.logoUrl ? (
-              <img
-                className="athlete-portal-arena-logo"
-                src={arena.logoUrl}
-                alt={`Logo da arena ${arena.name}`}
-              />
-            ) : (
-              <span className="athlete-portal-arena-name">
-                {arena.name}
-              </span>
-            )}
+          {arena.logoUrl ? (
+            <img
+              className="athlete-portal-arena-logo"
+              src={arena.logoUrl}
+              alt={`Logo da arena ${arena.name}`}
+            />
+          ) : (
+            <span className="athlete-portal-mark" aria-hidden="true">
+              {arena.name.slice(0, 2).toUpperCase()}
+            </span>
+          )}
+          <div className="athlete-portal-brand-copy">
+            <span className="athlete-portal-arena-name">{arena.name}</span>
             <h1>Portal do Atleta</h1>
             <p>Acompanhe suas atividades, reservas e Ligas em um só lugar.</p>
           </div>
@@ -143,9 +144,15 @@ export function PublicStandings({
               photoUrl={currentClient.photoUrl}
               name={currentClient.name}
             />
-            <strong className="athlete-portal-greeting">
-              {currentClient.name}
-            </strong>
+            <div className="athlete-portal-user-copy">
+              <span>Área do atleta</span>
+              <strong className="athlete-portal-greeting">
+                {currentClient.name}
+              </strong>
+            </div>
+            <Link className="athlete-portal-profile-link" href="?section=profile">
+              Meu perfil
+            </Link>
           </div>
         ) : null}
       </div>
@@ -223,12 +230,6 @@ export function PublicStandings({
             Aulas
           </Link>
         ) : null}
-        <Link
-          className={requestedSection === "profile" || requestedSection === "finance" ? "active" : ""}
-          href={portalHref("profile")}
-        >
-          Meu perfil
-        </Link>
         {portalVisibility.athletePortalShowDoublesRadar ? (
           <Link className={requestedSection === "radar" ? "active" : ""} href={portalHref("radar")}>Radar de duplas</Link>
         ) : null}

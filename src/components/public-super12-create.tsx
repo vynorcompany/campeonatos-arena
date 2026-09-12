@@ -5,7 +5,7 @@ import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { createSuper12Action } from "@/lib/actions/public-super12";
 
-export function PublicSuper12Create({ arenaSlug, athletes, defaultOpen = false }: { arenaSlug: string; athletes: Array<{ id: string; name: string; photoUrl: string }>; defaultOpen?: boolean }) {
+export function PublicSuper12Create({ arenaSlug, athletes }: { arenaSlug: string; athletes: Array<{ id: string; name: string; photoUrl: string }> }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [format, setFormat] = useState<"ROUND_ROBIN" | "GROUPS">("ROUND_ROBIN");
   const [search, setSearch] = useState("");
@@ -14,8 +14,8 @@ export function PublicSuper12Create({ arenaSlug, athletes, defaultOpen = false }
   const add = (id: string) => { if (selected.length < 24) setSelected((current) => [...current, id]); setSearch(""); };
   const remove = (id: string) => setSelected((current) => current.filter((item) => item !== id));
 
-  return <details className="super12-create" open={defaultOpen}>
-    <summary><span>CRIAR SUPER 12</span><strong>Monte uma rodada avulsa</strong><small>Duplas fixas, jogos automáticos e classificação ao vivo.</small></summary>
+  return <details className="super12-create">
+    <summary>Criar Super 12</summary>
     <SafeActionForm action={createSuper12Action} successMessage="Super 12 criado. A rodada já está pronta para começar." className="super12-create-form" resetOnSuccess>
       <input type="hidden" name="arenaSlug" value={arenaSlug} />
       {selected.map((id) => <input type="hidden" key={id} name="playerIds" value={id} />)}
