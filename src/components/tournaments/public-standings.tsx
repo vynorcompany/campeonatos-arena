@@ -10,6 +10,7 @@ import { PortalRichText } from "@/components/portal-rich-text";
 import { ClientPortalEventCarousel } from "@/components/client-portal-event-carousel";
 import { PublicDoublesRadar } from "@/components/public-doubles-radar";
 import { PublicSuper12 } from "@/components/public-super12";
+import { AthletePortalNotifications } from "@/components/athlete-portal-notifications";
 import {
   moveClassGroupStudentAction,
   registerClassGroupMakeupAction,
@@ -23,6 +24,7 @@ type Portal = Awaited<
 >;
 type ClientHome = Awaited<ReturnType<typeof import("@/lib/services/public-client-home").getPublicClientHome>>;
 type ClientFinance = Awaited<ReturnType<typeof import("@/lib/services/public-client-home").getPublicClientFinance>>;
+type AthleteNotifications = Awaited<ReturnType<typeof import("@/lib/services/public-player-notifications").getAthletePortalNotifications>>;
 type PortalSection =
   | "home"
   | "finance"
@@ -75,6 +77,7 @@ export function PublicStandings({
   radarGender,
   radarCategory,
   super12,
+  notifications,
   eventTab = "leagues",
   super12Id,
   financeTab = "upcoming",
@@ -106,6 +109,7 @@ export function PublicStandings({
   radarGender?: string;
   radarCategory?: string;
   super12: Awaited<ReturnType<typeof import("@/lib/services/public-super12").getPublicSuper12>>;
+  notifications: AthleteNotifications;
   eventTab?: EventTab;
   super12Id?: string;
   financeTab?: "upcoming" | "history";
@@ -137,21 +141,24 @@ export function PublicStandings({
           </div>
         </div>
         {currentClient ? (
-          <div className="athlete-portal-user">
-            <PlayerAvatar
-              className="athlete-portal-user-avatar"
-              photoUrl={currentClient.photoUrl}
-              name={currentClient.name}
-            />
-            <div className="athlete-portal-user-copy">
-              <span>Área do atleta</span>
-              <strong className="athlete-portal-greeting">
-                {currentClient.name}
-              </strong>
+          <div className="athlete-portal-user-area">
+            <div className="athlete-portal-user">
+              <PlayerAvatar
+                className="athlete-portal-user-avatar"
+                photoUrl={currentClient.photoUrl}
+                name={currentClient.name}
+              />
+              <div className="athlete-portal-user-copy">
+                <span>Área do atleta</span>
+                <strong className="athlete-portal-greeting">
+                  {currentClient.name}
+                </strong>
+              </div>
+              <Link className="athlete-portal-profile-link" href="?section=profile">
+                Meu perfil
+              </Link>
             </div>
-            <Link className="athlete-portal-profile-link" href="?section=profile">
-              Meu perfil
-            </Link>
+            <AthletePortalNotifications arenaSlug={arena.slug} notifications={notifications} />
           </div>
         ) : null}
       </div>

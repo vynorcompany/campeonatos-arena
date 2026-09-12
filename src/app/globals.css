@@ -33,13 +33,13 @@
 
 html {
   min-height: 100%;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow-x: clip;
   font-family: var(--font-body);
   color: var(--text);
   background:
@@ -7750,6 +7750,8 @@ button {
 .athlete-portal-user-copy .athlete-portal-greeting { overflow: hidden; max-width: 150px; color: #fff; font-size: .8rem; text-overflow: ellipsis; }
 .athlete-portal-profile-link { padding: 7px 9px; border: 1px solid rgb(255 255 255 / .3); border-radius: 8px; color: #fff; background: rgb(255 255 255 / .1); font-size: .7rem; font-weight: 800; text-decoration: none; white-space: nowrap; }
 .athlete-portal-profile-link:hover { color: #073f68; background: #d8ffef; }
+.athlete-portal-user-area { position: relative; display: flex; align-items: center; gap: 7px; }
+.athlete-portal-notifications { position: relative; }.athlete-portal-notification-trigger { position: relative; display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid rgb(255 255 255 / .28); border-radius: 9px; color: #eafff6; background: rgb(0 42 65 / .24); cursor: pointer; }.athlete-portal-notification-trigger:hover { background: rgb(255 255 255 / .16); }.athlete-portal-notification-trigger b { position: absolute; top: -6px; right: -7px; min-width: 16px; padding: 2px 4px; border: 2px solid #0c5874; border-radius: 99px; color: #fff; background: #e0544e; font-size: .57rem; line-height: 1; }.athlete-portal-notification-modal { position: absolute; z-index: 50; top: calc(100% + 9px); right: 0; display: grid; width: min(370px, calc(100vw - 28px)); max-height: min(530px, calc(100vh - 90px)); overflow: auto; border: 1px solid #c9dfe9; border-radius: 12px; color: #214963; background: #fff; box-shadow: 0 20px 48px rgb(0 34 55 / .28); }.athlete-portal-notification-modal > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 13px; border-bottom: 1px solid #e1edf2; }.athlete-portal-notification-modal header div { display: grid; gap: 2px; }.athlete-portal-notification-modal header strong { font-size: .82rem; }.athlete-portal-notification-modal header span { color: #71879a; font-size: .68rem; }.athlete-portal-notification-modal header > button { width: 25px; height: 25px; border: 0; border-radius: 6px; color: #58758a; background: #f0f6f9; font-size: 1.1rem; cursor: pointer; }.athlete-portal-notification-modal > div { display: grid; }.athlete-portal-notification-modal a { display: grid; grid-template-columns: 25px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid #edf2f5; color: inherit; text-decoration: none; }.athlete-portal-notification-modal a:hover { background: #f2faf8; }.athlete-portal-notification-modal a > i { display: grid; width: 24px; height: 24px; place-items: center; border-radius: 50%; color: #177560; background: #e4f6ee; font-size: .62rem; font-style: normal; font-weight: 900; }.athlete-portal-notification-modal a > i.is-finance { color: #1765a2; background: #e7f1fd; font-size: .54rem; }.athlete-portal-notification-modal a > i.is-arena { color: #9a6814; background: #fff4d9; }.athlete-portal-notification-modal a > span { display: grid; min-width: 0; gap: 2px; }.athlete-portal-notification-modal a strong { overflow: hidden; color: #214963; font-size: .74rem; text-overflow: ellipsis; white-space: nowrap; }.athlete-portal-notification-modal a small { display: -webkit-box; overflow: hidden; color: #6b8193; font-size: .66rem; line-height: 1.35; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }.athlete-portal-notification-modal a em { padding: 4px 6px; border: 1px solid #cfe0e9; border-radius: 5px; color: #356680; font-size: .62rem; font-style: normal; font-weight: 800; }.athlete-portal-notification-modal > p { margin: 0; padding: 20px 13px; color: #6b8193; font-size: .75rem; }
 .public-portal-notifications a { grid-template-columns: 26px minmax(0, 1fr) auto; }
 .public-portal-notification-view { justify-self: end; padding: 4px 7px; border: 1px solid #b9dfce; border-radius: 6px; color: #197154; background: #fff; font-size: .66rem; font-weight: 850; }
 .public-challenge-list article { scroll-margin-top: 145px; }
@@ -7762,7 +7764,7 @@ button {
 .super12-panel > .super12-create[open] { width: 100%; overflow: hidden; border: 1px solid #cfe2ed; border-radius: 12px; background: #f8fcff; }
 .super12-panel > .super12-create[open] > summary { width: 100%; border: 0; border-radius: 0; color: #164460; background: transparent; }
 .super12-panel > .super12-create[open] > summary:hover { color: #0e568a; background: #eef7fc; }
-@media (max-width: 700px) { .athlete-portal-hero-inner { gap: 16px; }.athlete-portal-brand-copy p { max-width: 250px; }.athlete-portal-user { width: 100%; }.athlete-portal-user-copy { flex: 1; }.athlete-portal-user-copy .athlete-portal-greeting { max-width: none; }.athlete-portal-profile-link { margin-left: auto; }.athlete-portal-main-nav { top: 4px; }.athlete-portal-main-nav + .athlete-portal-league-nav { top: 54px; }.athlete-portal-main-nav + .athlete-portal-league-nav + .athlete-portal-league-nav { top: 95px; } }
+@media (max-width: 700px) { .athlete-portal-hero-inner { gap: 16px; }.athlete-portal-brand-copy p { max-width: 250px; }.athlete-portal-user-area { width: 100%; }.athlete-portal-user { width: 100%; }.athlete-portal-user-copy { flex: 1; }.athlete-portal-user-copy .athlete-portal-greeting { max-width: none; }.athlete-portal-profile-link { margin-left: auto; }.athlete-portal-notification-modal { position: fixed; top: 12px; right: 10px; left: 10px; width: auto; max-height: calc(100vh - 24px); }.athlete-portal-main-nav { top: 4px; }.athlete-portal-main-nav + .athlete-portal-league-nav { top: 54px; }.athlete-portal-main-nav + .athlete-portal-league-nav + .athlete-portal-league-nav { top: 95px; } }
 .portal-league-category-picker { width: fit-content; max-width: 100%; align-items: end; gap: 8px; margin-top: 18px; padding: 8px 9px; }
 .portal-league-category-picker label { flex: 0 1 330px; min-width: min(260px, 100%); }
 .portal-league-category-picker select { width: 100%; min-width: 0; }
