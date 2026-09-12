@@ -302,6 +302,7 @@ model Player {
   account     PlayerAccount?
   teacher     Teacher?
   notifications PlayerNotification[]
+  portalNotificationReads PlayerPortalNotificationRead[]
   balanceMovements ClientBalanceMovement[]
   financialEntries FinancialEntry[]
   financialRecurrences FinancialRecurrence[]
@@ -452,6 +453,17 @@ model PlayerNotification {
   player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@index([playerId, readAt, createdAt])
+}
+
+model PlayerPortalNotificationRead {
+  id              String   @id @default(cuid())
+  notificationKey String
+  readAt          DateTime @default(now())
+  playerId        String
+  player          Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, notificationKey])
+  @@index([playerId, readAt])
 }
 
 model ClientBalanceMovement {
