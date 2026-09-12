@@ -37,8 +37,9 @@ export default async function PublicStandingsPage({
   const alias = await prisma.arenaPublicSlug.findUnique({ where: { slug: params.arenaSlug }, include: { arena: { select: { slug: true } } } });
   if (alias && alias.arena.slug !== params.arenaSlug) redirect(`/classificacao/${alias.arena.slug}`);
   const section = searchParams?.section === "home" || searchParams?.section === "finance" || searchParams?.section === "leagues" || searchParams?.section === "booking" || searchParams?.section === "reservations" || searchParams?.section === "lessons" || searchParams?.section === "classes" || searchParams?.section === "profile" || searchParams?.section === "teacher" || searchParams?.section === "radar" ? searchParams.section : "home";
+  const isSuper12 = section === "leagues" && searchParams?.eventTab === "super12";
   const [data, currentClient] = await Promise.all([
-    section === "leagues" ? await getArenaPublicStandings(params.arenaSlug, { ...searchParams, league: searchParams?.leagueCategory ?? searchParams?.league }) : null,
+    section === "leagues" && !isSuper12 ? await getArenaPublicStandings(params.arenaSlug, { ...searchParams, league: searchParams?.leagueCategory ?? searchParams?.league }) : null,
     getPublicPlayerAuth(params.arenaSlug),
   ]);
   const arena = data?.arena ?? await getPublicArenaShell(params.arenaSlug);
@@ -47,11 +48,11 @@ export default async function PublicStandingsPage({
   }
 
   const [portal, home, finance, radar, super12] = currentClient ? await Promise.all([
-    section !== "home" ? await getPublicLeaguePortal(params.arenaSlug, currentClient.playerId, searchParams?.leagueCategory) : null,
+    section !== "home" && !isSuper12 ? await getPublicLeaguePortal(params.arenaSlug, currentClient.playerId, searchParams?.leagueCategory) : null,
     section === "home" ? await getPublicClientHome(params.arenaSlug, currentClient.playerId) : null,
     section === "finance" ? await getPublicClientFinance(params.arenaSlug, currentClient.playerId) : null,
     section === "radar" ? await getPublicDoublesRadar(params.arenaSlug, currentClient.playerId, { gender: searchParams?.radarGender, category: searchParams?.radarCategory, athleteId: searchParams?.athlete }) : null,
-    section === "leagues" && searchParams?.eventTab === "super12" ? await getPublicSuper12(params.arenaSlug, currentClient.playerId, searchParams?.super12) : null,
+    isSuper12 ? await getPublicSuper12(params.arenaSlug, currentClient.playerId, searchParams?.super12) : null,
   ]) : [null, null, null, null, null];
   const leagueTab = searchParams?.leagueTab === "pairs" || searchParams?.leagueTab === "ranking" || searchParams?.leagueTab === "rules" || searchParams?.leagueTab === "prizes" ? searchParams.leagueTab : "games";
   const authReturnTo = `/classificacao/${params.arenaSlug}?section=${section}${searchParams?.data ? `&data=${encodeURIComponent(searchParams.data)}` : ""}`;
