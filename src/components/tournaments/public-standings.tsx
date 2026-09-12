@@ -154,6 +154,9 @@ export function PublicStandings({
                   {currentClient.name}
                 </strong>
               </div>
+              <Link className="athlete-portal-profile-link" href="/portal">
+                Minhas arenas
+              </Link>
               <Link className="athlete-portal-profile-link" href="?section=profile">
                 Meu perfil
               </Link>

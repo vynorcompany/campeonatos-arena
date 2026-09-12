@@ -13,6 +13,7 @@ import { sendEvolutionTextMessage } from "@/lib/integrations/evolution/client";
 export type PublicClientAuthState = { error: string | null };
 
 const loginSchema = z.object({ arenaSlug: z.string().trim().min(1), returnTo: z.string().trim().default(""), phone: z.string().trim().min(8), password: z.string().min(8, "A senha deve ter ao menos 8 caracteres.") });
+const globalLoginSchema = z.object({ phone: z.string().trim().min(8), password: z.string().min(8, "A senha deve ter ao menos 8 caracteres.") });
 const registerSchema = loginSchema.extend({ name: z.string().trim().min(3, "Informe seu nome."), confirmPassword: z.string().min(8) }).refine((data) => data.password === data.confirmPassword, { path: ["confirmPassword"], message: "As senhas não coincidem." });
 const resetSchema = loginSchema.extend({ code: z.string().trim().length(6), newPassword: z.string().min(8), confirmPassword: z.string().min(8) }).refine((data) => data.newPassword === data.confirmPassword, { path: ["confirmPassword"], message: "As senhas não coincidem." });
 
@@ -35,11 +36,21 @@ async function findPlayerByPhone(arenaId: string, phone: string) {
 
 async function findAccountByPhone(arenaId: string, phone: string) {
   const canonicalPhone = normalizePhone(phone);
-  const account = await prisma.playerAccount.findUnique({ where: { arenaId_phone: { arenaId, phone: canonicalPhone } }, include: { player: true } });
+  const account = await prisma.playerAccount.findUnique({ where: { arenaId_phone: { arenaId, phone: canonicalPhone } }, include: { player: true, identity: { include: { accounts: { select: { id: true, passwordHash: true } } } } } });
   if (account) return account;
 
-  const legacyAccounts = await prisma.playerAccount.findMany({ where: { arenaId }, include: { player: true }, orderBy: { createdAt: "asc" } });
+  const legacyAccounts = await prisma.playerAccount.findMany({ where: { arenaId }, include: { player: true, identity: { include: { accounts: { select: { id: true, passwordHash: true } } } } }, orderBy: { createdAt: "asc" } });
   return legacyAccounts.find((account) => normalizePhone(account.phone) === normalizePhone(phone)) ?? null;
+}
+
+async function findGlobalIdentityByPhone(phone: string) {
+  return prisma.athleteIdentity.findUnique({ where: { phone: normalizePhone(phone) }, include: { accounts: { select: { id: true, passwordHash: true } } } });
+}
+
+async function matchesIdentityPassword(identity: { passwordHash: string; accounts: Array<{ passwordHash: string }> }, password: string) {
+  if (await bcrypt.compare(password, identity.passwordHash)) return true;
+  for (const account of identity.accounts) if (await bcrypt.compare(password, account.passwordHash)) return true;
+  return false;
 }
 
 export async function registerPublicClientAction(_: PublicClientAuthState, formData: FormData): Promise<PublicClientAuthState> {
@@ -55,13 +66,16 @@ export async function registerPublicClientAction(_: PublicClientAuthState, formD
   }
   const existingAccount = await findAccountByPhone(arena.id, phone);
   if (existingAccount) return { error: "Este telefone já possui uma conta. Entre com sua senha." };
+  const identity = await findGlobalIdentityByPhone(phone);
+  if (identity && !await matchesIdentityPassword(identity, parsed.data.password)) return { error: "Este telefone já possui uma Conta do Atleta. Use a senha que você já utiliza em outra arena." };
   const player = await findPlayerByPhone(arena.id, phone);
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
   const account = await prisma.$transaction(async (tx) => {
     const linkedPlayer = player ?? await tx.player.create({ data: { arenaId: arena.id, name: parsed.data.name, phone } });
-    return tx.playerAccount.create({ data: { arenaId: arena.id, phone, playerId: linkedPlayer.id, passwordHash } });
+    const athleteIdentity = identity ?? await tx.athleteIdentity.create({ data: { phone, passwordHash } });
+    return tx.playerAccount.create({ data: { arenaId: arena.id, phone, playerId: linkedPlayer.id, passwordHash, identityId: athleteIdentity.id } });
   });
-  await createPublicPlayerSession(account.id);
+  await createPublicPlayerSession(account.id, account.identityId);
   redirect(destination(parsed.data.arenaSlug, parsed.data.returnTo));
 }
 
@@ -80,8 +94,19 @@ export async function loginPublicClientAction(_: PublicClientAuthState, formData
     return { error: "Telefone ou senha inválidos." };
   }
   await prisma.playerAuthAttempt.deleteMany({ where: { arenaId: arena.id, phone } });
-  await createPublicPlayerSession(account.id);
+  await createPublicPlayerSession(account.id, account.identityId);
   redirect(destination(parsed.data.arenaSlug, parsed.data.returnTo));
+}
+
+// The neutral portal is intentionally global. It authenticates the person once
+// and lets the arena route resolve the tenant-specific PlayerAccount afterwards.
+export async function loginGlobalAthleteAction(_: PublicClientAuthState, formData: FormData): Promise<PublicClientAuthState> {
+  const parsed = globalLoginSchema.safeParse({ phone: formData.get("phone"), password: formData.get("password") });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  const identity = await findGlobalIdentityByPhone(parsed.data.phone);
+  if (!identity?.accounts.length || !await matchesIdentityPassword(identity, parsed.data.password)) return { error: "Telefone ou senha inválidos." };
+  await createPublicPlayerSession(identity.accounts[0].id, identity.id);
+  redirect("/portal");
 }
 
 export async function requestPublicPasswordResetAction(_: PublicClientAuthState, formData: FormData): Promise<PublicClientAuthState> {
