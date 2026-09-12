@@ -12,6 +12,7 @@ const profileSchema = z.object({
   phone: z.string().trim().min(8, "Informe um telefone válido."),
   email: z.preprocess((value) => value ?? "", z.string().trim().email("E-mail inválido.").or(z.literal(""))),
   birthDate: z.preprocess((value) => value || null, z.coerce.date().nullable()),
+  gender: z.enum(["", "Feminino", "Masculino", "Outro"]),
   padelCategories: z.array(z.string().trim().min(1).max(40)).max(5, "Selecione até cinco categorias.").default([]),
   padelSide: z.enum(["", "RIGHT", "LEFT", "BOTH"]),
 });
@@ -33,6 +34,13 @@ export async function updateTournamentAvailabilityAction(formData: FormData) {
   if (!parsed.success) return { error: "Selecione uma disponibilidade válida." };
 
   const auth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
+  const player = await prisma.player.findFirst({ where: { id: auth.playerId, arenaId: auth.arenaId }, select: { gender: true, class: true, padelCategories: true } });
+  let categories: string[] = [];
+  try { const value = JSON.parse(player?.padelCategories ?? "[]"); if (Array.isArray(value)) categories = value.filter((item): item is string => typeof item === "string" && Boolean(item.trim())); } catch {}
+  if (!categories.length && player?.class.trim()) categories = [player.class.trim()];
+  if (parsed.data.tournamentAvailability !== "OFF" && (!player?.gender.trim() || !categories.length)) {
+    return { error: "Complete seu sexo e ao menos uma categoria em Meu perfil antes de aparecer no Radar." };
+  }
   await prisma.player.update({ where: { id: auth.playerId }, data: { tournamentAvailability: parsed.data.tournamentAvailability } });
   revalidatePath(`/classificacao/${parsed.data.arenaSlug}`);
   return { error: null };
@@ -79,6 +87,7 @@ export async function updatePublicPlayerProfileAction(_: PublicProfileActionStat
     phone: formData.get("phone"),
     email: formData.get("email"),
     birthDate: formData.get("birthDate"),
+    gender: formData.get("gender"),
     padelCategories: formData.getAll("padelCategories"),
     padelSide: formData.get("padelSide"),
   });
@@ -91,7 +100,7 @@ export async function updatePublicPlayerProfileAction(_: PublicProfileActionStat
   if (conflictingAccount) return { error: "Este telefone já está vinculado a outro cliente.", success: null };
 
   await prisma.$transaction(async (tx) => {
-    await tx.player.update({ where: { id: auth.playerId }, data: { name: parsed.data.name, phone, email: parsed.data.email, birthDate: parsed.data.birthDate, class: parsed.data.padelCategories[0] ?? "", padelCategories: JSON.stringify(parsed.data.padelCategories), padelSide: parsed.data.padelSide, ...(photoUrl ? { photoUrl } : {}) } });
+    await tx.player.update({ where: { id: auth.playerId }, data: { name: parsed.data.name, phone, email: parsed.data.email, birthDate: parsed.data.birthDate, gender: parsed.data.gender, class: parsed.data.padelCategories[0] ?? "", padelCategories: JSON.stringify(parsed.data.padelCategories), padelSide: parsed.data.padelSide, ...(photoUrl ? { photoUrl } : {}) } });
     await tx.playerAccount.update({ where: { id: auth.playerAccountId }, data: { phone } });
     const student = await tx.student.findFirst({ where: { playerId: auth.playerId }, select: { id: true } });
     if (student) await tx.student.update({ where: { id: student.id }, data: { name: parsed.data.name, phone, email: parsed.data.email } });

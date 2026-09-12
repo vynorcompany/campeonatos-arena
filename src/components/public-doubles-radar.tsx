@@ -16,6 +16,8 @@ const availabilityCopy = {
   AVAILABLE: { title: "Disponível para torneio", detail: "Seu perfil já está no radar da arena.", action: "Procurar dupla" },
   LOOKING_FOR_PARTNER: { title: "Procurando dupla", detail: "Outros atletas podem ver que você busca um parceiro.", action: "Pausar radar" },
 } as const;
+const radarGenders = ["Feminino", "Masculino", "Outro"];
+const radarCategories = ["Iniciante", "7ª categoria", "6ª categoria", "5ª categoria", "4ª categoria", "3ª categoria", "2ª categoria", "1ª categoria", "Profissional"];
 
 function href(filters: { gender?: string; category?: string; athleteId?: string }) {
   const query = new URLSearchParams({ section: "radar" });
@@ -41,6 +43,8 @@ export function PublicDoublesRadar({
   if (!radar) return null;
   const current = availabilityCopy[currentAvailability];
   const nextStatus = currentAvailability === "OFF" ? "AVAILABLE" : currentAvailability === "AVAILABLE" ? "LOOKING_FOR_PARTNER" : "OFF";
+  const availableGenders = [...new Set([...radarGenders, ...radar.genders])];
+  const availableCategories = [...new Set([...radarCategories, ...radar.categories])];
 
   return <section className="athlete-portal-content-panel doubles-radar">
     <header>
@@ -73,8 +77,8 @@ export function PublicDoublesRadar({
     </section> : <>
       <form className="doubles-radar-filters" method="get">
         <input type="hidden" name="section" value="radar" />
-        <label>Sexo<select name="radarGender" defaultValue={selectedGender ?? ""}><option value="">Todos</option>{radar.genders.map((gender) => <option key={gender} value={gender}>{gender}</option>)}</select></label>
-        <label>Categoria<select name="radarCategory" defaultValue={selectedCategory ?? ""}><option value="">Todas</option>{radar.categories.map((category) => <option key={category} value={category}>{category}</option>)}</select></label>
+        <label>Sexo<select name="radarGender" defaultValue={selectedGender ?? ""}><option value="">Todos</option>{availableGenders.map((gender) => <option key={gender} value={gender}>{gender}</option>)}</select></label>
+        <label>Categoria<select name="radarCategory" defaultValue={selectedCategory ?? ""}><option value="">Todas</option>{availableCategories.map((category) => <option key={category} value={category}>{category}</option>)}</select></label>
         <div><button className="button button-primary button-small" type="submit">Filtrar</button>{selectedGender || selectedCategory ? <Link className="button button-small" href={href({})}>Limpar</Link> : null}</div>
       </form>
       <div className="doubles-radar-list">
