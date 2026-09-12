@@ -38,6 +38,16 @@ function paymentNotificationUrl() {
   return env.appUrl ? `${env.appUrl.replace(/\/$/, "")}/api/payments/mercado-pago/webhook` : undefined;
 }
 
+async function boletoDescriptionForArena(arenaId: string, description: string) {
+  const arena = await withArenaTransaction(arenaId, (tx) =>
+    tx.arena.findFirst({ where: { id: arenaId }, select: { name: true } }),
+  );
+  const arenaName = arena?.name.trim();
+  const itemDescription = description.trim();
+  if (!arenaName) return itemDescription;
+  return `${arenaName} — ${itemDescription}`.slice(0, 255);
+}
+
 async function mercadoPagoAccessTokenForArena(arenaId: string) {
   const connection = await withArenaTransaction(arenaId, (tx) =>
     tx.paymentConnection.findUnique({
@@ -161,14 +171,17 @@ export async function createCardCheckout(input: CreateCardCheckoutInput): Promis
 }
 
 export async function createBoletoPayment(input: CreateBoletoPaymentInput): Promise<CreatePixPaymentResult> {
-  const accessToken = await mercadoPagoAccessTokenForArena(input.arenaId);
+  const [accessToken, description] = await Promise.all([
+    mercadoPagoAccessTokenForArena(input.arenaId),
+    boletoDescriptionForArena(input.arenaId, input.description),
+  ]);
   const minimumExpiration = new Date(Date.now() + 24 * 60 * 60 * 1000);
   const expiresAt = input.expiresAt && input.expiresAt > minimumExpiration ? input.expiresAt : new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
   const response = await fetch("https://api.mercadopago.com/v1/payments", {
     method: "POST",
     headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json", "X-Idempotency-Key": `boleto_${input.externalReference}` },
     body: JSON.stringify({
-      transaction_amount: Number((input.amountCents / 100).toFixed(2)), description: input.description, payment_method_id: "bolbradesco",
+      transaction_amount: Number((input.amountCents / 100).toFixed(2)), description, payment_method_id: "bolbradesco",
       date_of_expiration: expiresAt.toISOString(), external_reference: input.externalReference,
       ...(paymentNotificationUrl() ? { notification_url: paymentNotificationUrl() } : {}),
       payer: { email: input.payerEmail, first_name: input.payerName.split(" ")[0], last_name: input.payerName.split(" ").slice(1).join(" "), identification: { type: "CPF", number: input.payerCpf }, address: { zip_code: input.payerAddress.addressZipCode.replace(/\D/g, ""), street_name: input.payerAddress.addressStreet, street_number: input.payerAddress.addressNumber, neighborhood: input.payerAddress.addressNeighborhood, city: input.payerAddress.addressCity, federal_unit: input.payerAddress.addressState.toUpperCase() } }
