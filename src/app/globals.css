@@ -7738,6 +7738,7 @@ button {
 .athlete-portal-brand { min-width: 0; align-items: center; gap: 13px; }
 .athlete-portal-brand > .athlete-portal-arena-logo, .athlete-portal-brand > .athlete-portal-mark { display: grid; width: 52px; height: 52px; flex: 0 0 52px; place-items: center; border: 1px solid rgb(255 255 255 / .36); border-radius: 13px; color: #d9fff0; background: rgb(0 40 64 / .22); box-shadow: 0 8px 18px rgb(0 25 45 / .16); object-fit: contain; }
 .athlete-portal-brand > .athlete-portal-arena-logo { padding: 5px; background: rgb(255 255 255 / .94); }
+.athlete-portal-brand > .athlete-portal-arena-logo { display: block; width: min(176px, 42vw); height: 32px; flex-basis: auto; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; object-fit: contain; object-position: left center; }
 .athlete-portal-brand-copy { display: grid; min-width: 0; gap: 2px; }
 .athlete-portal-brand-copy .athlete-portal-arena-name { overflow: hidden; color: #b7f4dd; font-size: .64rem; font-weight: 900; letter-spacing: .1em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
 .athlete-portal-brand-copy h1 { margin: 0; font-size: clamp(1.28rem, 2.6vw, 1.75rem); }
