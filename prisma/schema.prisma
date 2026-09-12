@@ -104,6 +104,7 @@ model Arena {
   players     Player[]
   rankings    RankingProfile[]
   tournaments Tournament[]
+  super12Events Super12Event[]
   manualUpcomingMatches ManualUpcomingMatch[]
   students    Student[]
   teachers    Teacher[]
@@ -306,6 +307,8 @@ model Player {
   financialRecurrences FinancialRecurrence[]
   respondedLeagueChallenges LeagueChallenge[] @relation("LeagueChallengeResponder")
   leagueAthleteTiers LeagueAthleteTier[]
+  createdSuper12Events Super12Event[] @relation("Super12Creator")
+  super12PairPlayers Super12PairPlayer[]
 
   @@index([arenaId, active])
   @@index([mergedIntoPlayerId])
@@ -1521,6 +1524,90 @@ model OnlinePaymentSettings {
   updatedAt    DateTime @updatedAt
   arenaId      String   @unique
   arena        Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+}
+
+// Rodadas avulsas criadas pelo atleta no Portal. Não participam de rankings,
+// categorias oficiais ou do histórico de Ligas.
+model Super12Event {
+  id          String   @id @default(cuid())
+  name        String
+  format      String   @default("ROUND_ROBIN")
+  status      String   @default("ACTIVE")
+  groupCount  Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  arenaId     String
+  creatorId   String
+  arena       Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  creator     Player   @relation("Super12Creator", fields: [creatorId], references: [id], onDelete: Cascade)
+  pairs       Super12Pair[]
+  groups      Super12Group[]
+  matches     Super12Match[]
+
+  @@index([arenaId, status, createdAt])
+  @@index([creatorId, createdAt])
+}
+
+model Super12Pair {
+  id          String   @id @default(cuid())
+  name        String
+  drawOrder   Int
+  eventId     String
+  groupId     String?
+  event       Super12Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  group       Super12Group? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  players     Super12PairPlayer[]
+  homeMatches Super12Match[] @relation("Super12HomePair")
+  awayMatches Super12Match[] @relation("Super12AwayPair")
+
+  @@index([eventId, drawOrder])
+  @@index([groupId])
+}
+
+model Super12PairPlayer {
+  id       String @id @default(cuid())
+  pairId   String
+  playerId String
+  slot     Int
+  pair     Super12Pair @relation(fields: [pairId], references: [id], onDelete: Cascade)
+  player   Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([pairId, playerId])
+  @@unique([pairId, slot])
+  @@index([playerId])
+}
+
+model Super12Group {
+  id        String @id @default(cuid())
+  name      String
+  drawOrder Int
+  eventId   String
+  event     Super12Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  pairs     Super12Pair[]
+  matches   Super12Match[]
+
+  @@unique([eventId, name])
+  @@index([eventId, drawOrder])
+}
+
+model Super12Match {
+  id        String   @id @default(cuid())
+  roundOrder Int
+  homeScore Int?
+  awayScore Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  eventId   String
+  groupId   String
+  homePairId String
+  awayPairId String
+  event     Super12Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  group     Super12Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  homePair  Super12Pair @relation("Super12HomePair", fields: [homePairId], references: [id], onDelete: Cascade)
+  awayPair  Super12Pair @relation("Super12AwayPair", fields: [awayPairId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, roundOrder])
+  @@index([groupId])
 }
 
 model PaymentConnection {
