@@ -16,7 +16,11 @@ const proposalSchema = z.object({
   durationMinutes: z.coerce.number().int().min(15).max(240),
 });
 
-function publicPortalPath(arenaSlug: string) { return `/classificacao/${arenaSlug}?tab=portal`; }
+function publicPortalPath(arenaSlug: string, leagueCategoryId?: string) {
+  const query = new URLSearchParams({ section: "leagues", tab: "games", leagueTab: "games" });
+  if (leagueCategoryId) query.set("leagueCategory", leagueCategoryId);
+  return `/classificacao/${arenaSlug}?${query.toString()}`;
+}
 
 async function validateCourtAvailability({ arenaId, courtId, startsAt, endsAt }: { arenaId: string; courtId: string; startsAt: Date; endsAt: Date }) {
   const court = await prisma.court.findFirst({ where: { id: courtId, arenaId, active: true }, include: { weeklyRules: true } });
@@ -39,7 +43,7 @@ export async function createLeagueChallengeAction(formData: FormData) {
   const [proposer, opponent] = await Promise.all([
     prisma.categoryPair.findUnique({
       where: { id: parsed.data.proposerPairId },
-      include: { players: { select: { playerId: true } }, competition: { select: { id: true, format: true, category: { select: { tournament: { select: { arenaId: true } } } } } } },
+      include: { players: { select: { playerId: true } }, competition: { select: { id: true, format: true, category: { select: { id: true, tournament: { select: { arenaId: true } } } } } } },
     }),
     prisma.categoryPair.findUnique({ where: { id: parsed.data.opponentPairId }, include: { players: { select: { playerId: true } } } }),
   ]);
@@ -62,7 +66,7 @@ export async function createLeagueChallengeAction(formData: FormData) {
   const responseDueAt = new Date(Math.min(Date.now() + 48 * 60 * 60_000, startsAt.getTime() - 2 * 60 * 60_000));
   if (responseDueAt <= new Date()) throw new Error("O horário sugerido não permite o prazo mínimo de resposta.");
   const proposal = await prisma.leagueMatchProposal.create({ data: { categoryMatchId: categoryMatch.id, courtId: parsed.data.courtId, proposerPairId: proposer.id, opponentPairId: opponent.id, startsAt, endsAt, responseDueAt } });
-  await prisma.playerNotification.createMany({ data: opponent.players.map((entry) => ({ playerId: entry.playerId, type: "LEAGUE_MATCH", title: "Novo horário de Liga", message: "Sua dupla recebeu uma sugestão de horário para responder.", href: `${publicPortalPath(parsed.data.arenaSlug)}#desafio-${proposal.id}` })) });
+  await prisma.playerNotification.createMany({ data: opponent.players.map((entry) => ({ playerId: entry.playerId, type: "LEAGUE_MATCH", title: "Novo horário de Liga", message: "Sua dupla recebeu uma sugestão de horário para responder.", href: `${publicPortalPath(parsed.data.arenaSlug, proposer.competition.category.id)}#desafio-${proposal.id}` })) });
   revalidatePath(publicPortalPath(parsed.data.arenaSlug));
 }
 
