@@ -384,7 +384,34 @@ function ClientFinancePanel({ finance, arenaSlug, tab }: { finance: ClientFinanc
     : finance.health === "upcoming"
       ? { title: "Tudo certo por aqui, padelista! 🎾", detail: "Seus próximos pagamentos já estão na linha. Quem mantém as contas em ordem, acerta 85% mais voleios." }
       : { title: "Vamos virar esse jogo? 🎾", detail: "Tem uma pendência pedindo atenção. Resolva agora e volte para a quadra com a cabeça leve." };
-  return <section className="client-finance-page"><header className={`client-finance-hero is-${finance.health}`}><span>FINANÇAS</span><div><div className="client-finance-orb" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M24 4C13.5 4 5 12.5 5 23s8.5 19 19 19c2.4 0 4.7-.5 6.7-1.3l5.4 5.4a3.2 3.2 0 0 0 4.5-4.5l-5.4-5.4A18.8 18.8 0 0 0 43 23C43 12.5 34.5 4 24 4Zm0 6.5c6.9 0 12.5 5.6 12.5 12.5S30.9 35.5 24 35.5 11.5 29.9 11.5 23 17.1 10.5 24 10.5Z" /><circle cx="18.5" cy="17.5" r="2" /><circle cx="28.8" cy="17.5" r="2" /><circle cx="18.5" cy="27.5" r="2" /><circle cx="28.8" cy="27.5" r="2" /></svg></div><div><h2>{message.title}</h2><p>{message.detail}</p></div></div></header><nav className="client-finance-tabs" aria-label="Navegação financeira"><Link className={tab === "upcoming" ? "active" : ""} href="?section=finance">Lançamentos</Link><Link className={tab === "history" ? "active" : ""} href="?section=finance&financeTab=history">Histórico</Link></nav>{tab === "upcoming" ? <><section className="client-finance-section"><header><h3>Para agora</h3><span>{finance.overdue.length ? "Há algo pendente" : "Nenhuma pendência"}</span></header>{finance.overdue.length ? finance.overdue.map((entry) => <FinanceEntry key={entry.id} entry={entry} arenaSlug={arenaSlug} />) : <p className="client-finance-empty">Você está em dia. Obrigado por manter tudo organizado ✨</p>}</section><section className="client-finance-section"><header><h3>Próximos pagamentos</h3><span>{finance.open.length}</span></header>{finance.open.length ? finance.open.map((entry) => <FinanceEntry key={entry.id} entry={entry} arenaSlug={arenaSlug} />) : <p className="client-finance-empty">Nenhum pagamento futuro aguardando você.</p>}</section></> : <section className="client-finance-section"><header><h3>Histórico de pagamentos</h3><span>{finance.paid.length} pagamento{finance.paid.length === 1 ? "" : "s"}</span></header>{finance.paid.length ? finance.paid.map((entry) => <article className="client-finance-entry is-paid" key={entry.id}><div><strong>{entry.description}</strong><small>Pago em {entry.paidAt || entry.dueDate}</small></div><b>{entry.amount}</b><em>Pago</em></article>) : <p className="client-finance-empty">Quando houver pagamentos, eles aparecerão aqui.</p>}</section>}</section>;
+  return <section className="client-finance-page">
+    <header className={`client-finance-hero is-${finance.health}`}>
+      <span>FINANÇAS</span>
+      <div><div className="client-finance-orb" aria-hidden="true"><FinanceIcon icon="wallet" /></div><div><h2>{message.title}</h2><p>{message.detail}</p></div></div>
+      <b className="client-finance-motto">DISCIPLINA<br />TAMBÉM<br />JOGA.</b>
+    </header>
+    <div className="client-finance-summary" aria-label="Resumo financeiro">
+      <article className={finance.overdue.length ? "is-attention" : "is-healthy"}><span><FinanceIcon icon={finance.overdue.length ? "receipt" : "check"} /></span><div><b>{finance.overdue.length ? "Pendências" : "Em dia"}</b><small>{finance.overdue.length ? `${finance.overdue.length} para resolver` : "Suas finanças organizadas"}</small></div></article>
+      <article><span><FinanceIcon icon="receipt" /></span><div><b>Pendências</b><strong>{finance.overdue.length}</strong></div></article>
+      <article><span><FinanceIcon icon="calendar" /></span><div><b>Próximos</b><strong>{finance.open.length}</strong></div></article>
+    </div>
+    <nav className="client-finance-tabs" aria-label="Navegação financeira"><Link className={tab === "upcoming" ? "active" : ""} href="?section=finance">Lançamentos</Link><Link className={tab === "history" ? "active" : ""} href="?section=finance&financeTab=history">Histórico</Link></nav>
+    {tab === "upcoming" ? <>
+      <section className="client-finance-section"><header><div><span className="client-finance-section-icon"><FinanceIcon icon="clock" /></span><h3>Para agora</h3></div><span>{finance.overdue.length ? "Há algo pendente" : "Nenhuma pendência"}</span></header>{finance.overdue.length ? finance.overdue.map((entry) => <FinanceEntry key={entry.id} entry={entry} arenaSlug={arenaSlug} />) : <p className="client-finance-empty">Você está em dia. Obrigado por manter tudo organizado ✨</p>}</section>
+      <section className="client-finance-section"><header><div><span className="client-finance-section-icon"><FinanceIcon icon="calendar" /></span><h3>Próximos pagamentos</h3></div><span>{finance.open.length}</span></header>{finance.open.length ? finance.open.map((entry) => <FinanceEntry key={entry.id} entry={entry} arenaSlug={arenaSlug} />) : <p className="client-finance-empty">Nenhum pagamento futuro aguardando você.</p>}</section>
+    </> : <section className="client-finance-section"><header><div><span className="client-finance-section-icon"><FinanceIcon icon="receipt" /></span><h3>Histórico de pagamentos</h3></div><span>{finance.paid.length}</span></header>{finance.paid.length ? finance.paid.map((entry) => <article className="client-finance-entry is-paid" key={entry.id}><div><strong>{entry.description}</strong><small>Pago em {entry.paidAt || entry.dueDate}</small></div><b>{entry.amount}</b><em>Pago</em></article>) : <p className="client-finance-empty">Quando houver pagamentos, eles aparecerão aqui.</p>}</section>}
+  </section>;
+}
+
+function FinanceIcon({ icon }: { icon: "wallet" | "check" | "receipt" | "calendar" | "clock" }) {
+  const shapes = {
+    wallet: <><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18a2 2 0 0 1 2 2v12H6.5A2.5 2.5 0 0 1 4 16.5v-9Z" /><path d="M4 9h14a2 2 0 0 1 2 2v4H14a2 2 0 0 1 0-4h6M15 13h.01" /></>,
+    check: <><circle cx="12" cy="12" r="8.5" /><path d="m8 12 2.7 2.7L16.5 9" /></>,
+    receipt: <><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Z" /><path d="M9 8h6M9 12h6" /></>,
+    calendar: <><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M7 3v4M17 3v4M3 10h18" /></>,
+    clock: <><circle cx="12" cy="12" r="8.5" /><path d="M12 7v5l3 2" /></>,
+  };
+  return <svg className="client-finance-icon" viewBox="0 0 24 24" aria-hidden="true">{shapes[icon]}</svg>;
 }
 
 function FinanceEntry({ entry, arenaSlug }: { entry: NonNullable<ClientFinance>["open"][number]; arenaSlug: string }) {
