@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireModuleEdit } from "@/lib/auth/guards";
 import { buildArenaProfileUpdateData, slugifyArenaName } from "@/lib/arena-profile";
 import { prisma } from "@/lib/prisma";
+import { toPersistentArenaLogo } from "@/lib/uploads";
 import type { ActionState } from "@/lib/actions/tournament";
 
 const arenaProfileSchema = z.object({
@@ -27,6 +28,7 @@ function refreshArenaRoutes() {
 
 export async function updateAthletePortalSettingsAction(formData: FormData) {
   const auth = await requireModuleEdit("arena");
+  const portalLogoUrl = await toPersistentArenaLogo(formData.get("athletePortalLogo") as File | null);
   const updated = await prisma.arena.update({
     where: { id: auth.arenaId },
     data: {
@@ -36,6 +38,7 @@ export async function updateAthletePortalSettingsAction(formData: FormData) {
       athletePortalShowLessons: formData.get("showLessons") === "on",
       athletePortalShowClasses: formData.get("showClasses") === "on",
       athletePortalShowDoublesRadar: formData.get("showDoublesRadar") === "on",
+      ...(portalLogoUrl ? { athletePortalLogoUrl: portalLogoUrl } : {}),
     },
     select: { slug: true },
   });
