@@ -15,6 +15,7 @@ export type ArenaPublicStandings = {
   arena: {
     name: string;
     logoUrl: string;
+    athletePortalLogoUrl: string;
     slug: string;
     athletePortalShowLeagues: boolean;
     athletePortalShowBooking: boolean;
@@ -65,6 +66,7 @@ export async function getPublicArenaShell(arenaSlug: string): Promise<PublicAren
     select: {
       name: true,
       logoUrl: true,
+      athletePortalLogoUrl: true,
       slug: true,
       athletePortalShowLeagues: true,
       athletePortalShowBooking: true,
@@ -91,6 +93,7 @@ export async function getArenaPublicStandings(
       id: true,
       name: true,
       logoUrl: true,
+      athletePortalLogoUrl: true,
       slug: true,
       athletePortalShowLeagues: true,
       athletePortalShowBooking: true,

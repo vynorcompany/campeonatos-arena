@@ -1,0 +1,1 @@
+ALTER TABLE "Arena" ADD COLUMN "athletePortalLogoUrl" TEXT NOT NULL DEFAULT '';

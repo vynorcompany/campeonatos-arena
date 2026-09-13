@@ -127,10 +127,10 @@ export function PublicStandings({
     <header className="athlete-portal-hero">
       <div className="athlete-portal-hero-inner">
         <div className="athlete-portal-brand">
-          {arena.logoUrl ? (
+          {arena.athletePortalLogoUrl || arena.logoUrl ? (
             <img
               className="athlete-portal-arena-logo"
-              src={arena.logoUrl}
+              src={arena.athletePortalLogoUrl || arena.logoUrl}
               alt={`Logo da arena ${arena.name}`}
             />
           ) : (
@@ -158,7 +158,7 @@ export function PublicStandings({
                 </strong>
               </div>
               <details className="athlete-portal-arena-switcher">
-                <summary aria-label="Trocar de arena" title="Minhas arenas"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4" width="17" height="16" rx="2" /><path d="M12 4v16M3.5 12h17M7.5 8h9M7.5 16h9" /></svg></summary>
+                <summary aria-label="Trocar de arena" title="Trocar de arena"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5" /><path d="M20 12a8 8 0 0 0-14.6-4.6L4 9" /><path d="M4 17v-5h5" /><path d="M4 12a8 8 0 0 0 14.6 4.6L20 15" /></svg></summary>
                 <div><Link href="/portal"><b>Minhas arenas</b></Link>{athleteArenas.filter((entry) => entry.slug !== arena.slug).map((entry) => <Link href={`/classificacao/${entry.slug}`} key={entry.slug}>{entry.logoUrl ? <img src={entry.logoUrl} alt="" /> : null}<span>{entry.name}</span></Link>)}</div>
               </details>
               <Link className="athlete-portal-profile-link" href="?section=profile">

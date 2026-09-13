@@ -96,7 +96,8 @@ export default async function ArenaPage({ searchParams }: ArenaPageProps) {
                     showReservations: arena.athletePortalShowReservations,
                     showLessons: arena.athletePortalShowLessons,
                     showClasses: arena.athletePortalShowClasses,
-                    showDoublesRadar: arena.athletePortalShowDoublesRadar
+                    showDoublesRadar: arena.athletePortalShowDoublesRadar,
+                    portalLogoUrl: arena.athletePortalLogoUrl
                   }}
                 />
               </SectionCard>

@@ -78,6 +78,7 @@ model Arena {
   state       String        @default("")
   zipCode     String        @default("")
   logoUrl     String        @default("/arena-profile.jpg")
+  athletePortalLogoUrl String @default("")
   accountStatus String      @default("ACTIVE")
   agencyNotes String        @default("")
   scheduleStartMinute Int   @default(360)
