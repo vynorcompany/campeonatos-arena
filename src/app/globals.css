@@ -8381,3 +8381,24 @@ button {
   .athlete-portal-profile-link { min-height: 42px; padding: 8px 12px; font-size: .75rem; }
   .athlete-portal-notifications, .athlete-portal-notification-trigger { width: 58px; height: 58px; }
 }
+
+/* Compactação final do hero em telas estreitas: o nome do atleta não pode truncar. */
+@media (max-width: 700px) {
+  .athlete-portal-hero { padding: 16px 24px 17px; }
+  .athlete-portal-hero-inner { gap: 12px; }
+  .athlete-portal-brand { gap: 7px; }
+  .athlete-portal-brand > .athlete-portal-arena-logo { width: min(168px, 52vw); height: 28px; }
+  .athlete-portal-brand-copy { gap: 1px; }
+  .athlete-portal-brand-copy .athlete-portal-arena-name { font-size: .56rem; }
+  .athlete-portal-brand-copy h1, .athlete-portal-brand h1 { font-size: 1.55rem; }
+  .athlete-portal-user-area { grid-template-columns: minmax(0, 1fr) 48px; gap: 7px; }
+  .athlete-portal-user { min-height: 56px; padding: 6px 7px; border-radius: 13px; gap: 7px; }
+  .athlete-portal-user-avatar { width: 40px !important; height: 40px !important; flex-basis: 40px; }
+  .athlete-portal-user-copy { gap: 0; }
+  .athlete-portal-user-copy > span { font-size: .52rem; }
+  .athlete-portal-user-copy .athlete-portal-greeting { max-width: none; overflow: visible; font-size: .78rem; text-overflow: clip; white-space: nowrap; }
+  .athlete-portal-profile-link { min-height: 34px; padding: 6px 7px; font-size: .64rem; }
+  .athlete-portal-notifications, .athlete-portal-notification-trigger { width: 48px; height: 48px; }
+  .athlete-portal-notification-trigger { border-radius: 12px; }
+  .athlete-portal-notification-trigger svg { width: 21px; height: 21px; }
+}
