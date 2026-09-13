@@ -267,24 +267,25 @@ export function PublicStandings({
         />
       ) : requestedSection === "leagues" ? (
         <>
-          <nav className="athlete-portal-league-nav" aria-label="Menu de Eventos">
-            <Link className={selectedEventTab === "leagues" ? "active" : ""} href={portalHref("leagues", "games", undefined, leagueCategoryId, "leagues")}>Ligas</Link>
-            <Link className={selectedEventTab === "super12" ? "active" : ""} href={portalHref("leagues", undefined, undefined, undefined, "super12", super12Id)}>Super 12</Link>
-            <Link href="/portal/eventos">Radar de Torneios</Link>
+          <section className="athlete-portal-events-shell">
+          <nav className="athlete-portal-events-nav" aria-label="Menu de Eventos">
+            <Link className={selectedEventTab === "leagues" ? "active" : ""} href={portalHref("leagues", "games", undefined, leagueCategoryId, "leagues")}><EventNavIcon icon="trophy" /><span><strong>Ligas</strong><small>Competições regulares</small></span></Link>
+            <Link className={selectedEventTab === "super12" ? "active" : ""} href={portalHref("leagues", undefined, undefined, undefined, "super12", super12Id)}><EventNavIcon icon="crown" /><span><strong>Super 12</strong><small>Os melhores no ano</small></span></Link>
+            <Link href="/portal/eventos"><EventNavIcon icon="target" /><span><strong>Radar de Torneios</strong><small>Torneios próximos</small></span></Link>
           </nav>
           {selectedEventTab === "leagues" ? <>
-          <nav className="athlete-portal-league-nav" aria-label="Menu da Liga">
+          <nav className="athlete-portal-event-tabs" aria-label="Menu da Liga">
             <Link
               className={selectedLeagueTab === "games" ? "active" : ""}
               href={portalHref("leagues", "games", undefined, leagueCategoryId)}
             >
-              Jogos
+              <EventNavIcon icon="calendar" /><span>Jogos</span>
             </Link>
             <Link
               className={selectedLeagueTab === "pairs" ? "active" : ""}
               href={portalHref("leagues", "pairs", undefined, leagueCategoryId)}
             >
-              Duplas
+              <EventNavIcon icon="players" /><span>Duplas</span>
             </Link>
             <Link
               className={selectedLeagueTab === "ranking" ? "active" : ""}
@@ -295,13 +296,13 @@ export function PublicStandings({
                 leagueCategoryId,
               )}
             >
-              Ranking
+              <EventNavIcon icon="ranking" /><span>Ranking</span>
             </Link>
             <Link
               className={selectedLeagueTab === "rules" ? "active" : ""}
               href={portalHref("leagues", "rules", undefined, leagueCategoryId)}
             >
-              Regras
+              <EventNavIcon icon="rules" /><span>Regras</span>
             </Link>
             <Link
               className={selectedLeagueTab === "prizes" ? "active" : ""}
@@ -312,7 +313,7 @@ export function PublicStandings({
                 leagueCategoryId,
               )}
             >
-              Premiação
+              <EventNavIcon icon="trophy" /><span>Premiação</span>
             </Link>
           </nav>
           {selectedLeagueTab === "games" || selectedLeagueTab === "pairs" ? (
@@ -341,6 +342,7 @@ export function PublicStandings({
             <PrizePanel portal={portal} />
           ) : null}
           </> : <PublicSuper12 arenaSlug={arena.slug} data={super12} />}
+          </section>
         </>
       ) : requestedSection === "booking" ? (
         <PublicBookingContent
@@ -396,6 +398,19 @@ function PortalNavIcon({ icon }: { icon: "home" | "calendar" | "graduation" | "t
     money: <><circle cx="12" cy="12" r="9" /><path d="M14.8 8.6c-.6-.5-1.5-.8-2.6-.8-1.6 0-2.8.8-2.8 2s1 1.8 2.8 2.2c1.8.4 2.8 1 2.8 2.2s-1.2 2-2.8 2c-1.1 0-2.1-.4-2.8-.9M12 6.2v11.6" /></>,
   };
   return <svg className="portal-nav-icon" viewBox="0 0 24 24" aria-hidden="true">{paths[icon]}</svg>;
+}
+
+function EventNavIcon({ icon }: { icon: "calendar" | "players" | "ranking" | "rules" | "trophy" | "crown" | "target" }) {
+  const shapes = {
+    calendar: <><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M7 3v4M17 3v4M3 10h18" /></>,
+    players: <><circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2.5" /><path d="M3 20c.7-4 3-6 6-6s5.3 2 6 6M14.5 14.5c3 0 5.1 1.7 5.5 5.5" /></>,
+    ranking: <><path d="M5 20V11M12 20V4M19 20v-7" /><path d="M3 20h18" /></>,
+    rules: <><path d="M6 3h8l4 4v14H6V3Z" /><path d="M14 3v5h5M9 12h6M9 16h6" /></>,
+    trophy: <><path d="M8 3h8v5a4 4 0 0 1-8 0V3Z" /><path d="M8 5H4v1a4 4 0 0 0 4 4M16 5h4v1a4 4 0 0 1-4 4M12 12v5M8 21h8M9 17h6" /></>,
+    crown: <><path d="m4 18 2-11 6 5 6-7 2 13H4Z" /><path d="M4 21h16" /><circle cx="6" cy="6" r="1" /><circle cx="18" cy="4" r="1" /></>,
+    target: <><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="4.5" /><circle cx="12" cy="12" r="1" /><path d="M12 1v3M12 20v3M1 12h3M20 12h3" /></>,
+  };
+  return <svg className="athlete-portal-event-icon" viewBox="0 0 24 24" aria-hidden="true">{shapes[icon]}</svg>;
 }
 
 function ClientHomePanel({ home, name, arenaSlug, shortcuts }: { home: ClientHome; name: string; arenaSlug: string; shortcuts: { label: string; href: string; icon: "calendar" | "graduation" | "trophy" | "players" }[] }) {
