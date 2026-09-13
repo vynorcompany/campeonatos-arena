@@ -8499,3 +8499,20 @@ button {
 
 .athlete-portal-events-shell .portal-league-category-actions { grid-template-columns: 1fr; }
 .athlete-portal-events-shell .portal-league-category-actions .portal-league-registration-fee { width: 100%; }
+
+/* Aulas: densidade consistente também quando o aparelho reporta viewport amplo. */
+.athlete-portal-learning-tabs { width: min(100% - 32px, 620px); }
+.athlete-portal-learning-tabs a { min-height: 48px; gap: 7px; font-size: .76rem; }
+.athlete-portal-learning-tabs .athlete-portal-event-icon { width: 20px; height: 20px; }
+.athlete-portal-learning-panel { width: min(100% - 32px, 620px); gap: 12px; padding: 16px; border-radius: 14px; }
+.athlete-portal-learning-heading { padding-right: 42px; }
+.athlete-portal-learning-heading h2 { margin: 4px 0; font-size: 1.32rem; }
+.athlete-portal-learning-heading p { font-size: .75rem; line-height: 1.35; }
+.athlete-portal-learning-heading > .athlete-portal-event-icon { width: 34px; height: 34px; }
+.portal-learning-empty { min-height: 210px; padding: 20px 14px 16px; border-radius: 13px; }
+.portal-learning-empty::before { bottom: -132px; height: 220px; }
+.portal-learning-empty > .athlete-portal-event-icon { width: 43px; height: 43px; }
+.portal-learning-empty .portal-empty { margin: 10px 0; }
+.portal-learning-empty .portal-empty strong { font-size: .96rem; }
+.portal-learning-empty .portal-empty span { font-size: .73rem; }
+.portal-learning-empty > b { padding-top: 10px; font-size: .5rem; }
