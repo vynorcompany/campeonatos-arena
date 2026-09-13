@@ -47,10 +47,11 @@ export function PublicDoublesRadar({
   const availableCategories = [...new Set([...radarCategories, ...radar.categories])];
 
   return <section className="athlete-portal-content-panel doubles-radar">
-    <header>
+    <header className="doubles-radar-hero">
       <span>RADAR DE DUPLAS</span>
       <h2>Encontre seu parceiro de torneio</h2>
       <p>Filtre atletas da arena e conheça o jogo de quem está pronto para entrar em quadra.</p>
+      <RadarIcon icon="ball" />
     </header>
 
     {radar.selectedAthlete ? <section className="doubles-radar-profile">
@@ -62,7 +63,7 @@ export function PublicDoublesRadar({
       <p className="doubles-radar-profile-note">Os dados de contato continuam protegidos. O convite será entregue como notificação no Portal do atleta.</p>
     </section> : <>
       <section className={`doubles-radar-status is-${currentAvailability.toLowerCase()}`}>
-        <div><span aria-hidden="true">🎾</span><div><strong>{current.title}</strong><p>{current.detail}</p></div></div>
+        <div><span aria-hidden="true"><RadarIcon icon="radar" /></span><div><strong>{current.title}</strong><p>{current.detail}</p></div></div>
         <SafeActionForm action={updateTournamentAvailabilityAction} successMessage="Seu status no Radar foi atualizado.">
           <input type="hidden" name="arenaSlug" value={arenaSlug} />
           <input type="hidden" name="tournamentAvailability" value={nextStatus} />
@@ -72,16 +73,17 @@ export function PublicDoublesRadar({
 
       {radar.notifications.length ? <section className="doubles-radar-notifications" aria-label="Pedidos de dupla recebidos">
         <strong>Pedidos recebidos</strong>
-        {radar.notifications.map((notification) => <article key={notification.id}><span aria-hidden="true">🎾</span><div><b>{notification.title}</b><p>{notification.message}</p></div></article>)}
+        {radar.notifications.map((notification) => <article key={notification.id}><span aria-hidden="true"><RadarIcon icon="radar" /></span><div><b>{notification.title}</b><p>{notification.message}</p></div></article>)}
       </section> : null}
 
       <form className="doubles-radar-filters" method="get">
         <input type="hidden" name="section" value="radar" />
+        <strong><RadarIcon icon="filter" /> Filtrar atletas</strong>
         <label>Sexo<select name="radarGender" defaultValue={selectedGender ?? ""}><option value="">Todos</option>{availableGenders.map((gender) => <option key={gender} value={gender}>{gender}</option>)}</select></label>
         <label>Categoria<select name="radarCategory" defaultValue={selectedCategory ?? ""}><option value="">Todas</option>{availableCategories.map((category) => <option key={category} value={category}>{category}</option>)}</select></label>
         <div><button className="button button-primary button-small" type="submit">Filtrar</button>{selectedGender || selectedCategory ? <Link className="button button-small" href={href({})}>Limpar</Link> : null}</div>
       </form>
-      <div className="doubles-radar-list">
+      <div className="doubles-radar-list"><header><strong>Atletas encontrados</strong><span>{radar.athletes.length} atleta{radar.athletes.length === 1 ? "" : "s"}</span></header>
         {radar.athletes.length ? radar.athletes.map((athlete) => <article key={athlete.id}>
           <PlayerAvatar className="doubles-radar-avatar" photoUrl={athlete.photoUrl} name={athlete.name} />
           <div className="doubles-radar-athlete-copy"><div><strong>{athlete.name}</strong><span className="doubles-radar-availability">{athlete.availability === "LOOKING_FOR_PARTNER" ? "Procurando dupla" : "Disponível"}</span></div><p>{athlete.categories.join(" · ")} · {athlete.gender || "Gênero não informado"}</p><small>{sideLabel[athlete.padelSide] ?? "Lado de jogo não informado"}</small></div>
@@ -90,4 +92,13 @@ export function PublicDoublesRadar({
       </div>
     </>}
   </section>;
+}
+
+function RadarIcon({ icon }: { icon: "radar" | "ball" | "filter" }) {
+  const shapes = {
+    radar: <><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="4.4" /><path d="M12 12 17.5 6.5M12 3v2M21 12h-2M12 21v-2M3 12h2" /><circle cx="17.5" cy="6.5" r="1" /></>,
+    ball: <><circle cx="12" cy="12" r="8.5" /><path d="M5.2 6.8c2.4 1.1 4 3.1 4.4 5.5.4 2.4-.5 4.7-2.3 6.3M18.8 17.2c-2.4-1.1-4-3.1-4.4-5.5-.4-2.4.5-4.7 2.3-6.3" /></>,
+    filter: <><path d="M3 5h18l-7 8v5l-4 2v-7L3 5Z" /></>,
+  };
+  return <svg className={`doubles-radar-icon is-${icon}`} viewBox="0 0 24 24" aria-hidden="true">{shapes[icon]}</svg>;
 }
