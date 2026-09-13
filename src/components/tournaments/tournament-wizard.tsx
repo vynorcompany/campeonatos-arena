@@ -110,6 +110,7 @@ export function TournamentWizard({ rankings }: { rankings: { id: string; name: s
         <input type="hidden" name="publicSlug" value={publicSlug} />
         <input type="hidden" name="creationMode" value={creationMode} />
         <input type="hidden" name="registrationPhase" value={creationMode === "PUBLIC" ? "REGISTRATIONS" : "EDITING"} />
+        <label className="tournament-radar-toggle"><input name="showInEventRadar" type="checkbox" defaultChecked={creationMode === "PUBLIC"} /><span><b>Exibir no Radar de Eventos</b><small>Divulga este torneio para atletas de outras arenas.</small></span></label>
       </section>
 
       <section className="stack-sm" hidden={step !== "structure"}>

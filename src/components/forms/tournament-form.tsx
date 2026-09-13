@@ -22,6 +22,7 @@ type TournamentFormProps = {
   defaultDescription?: string;
   defaultPublicSlug?: string;
   defaultRegistrationPhase?: string;
+  defaultShowInEventRadar?: boolean;
   defaultCreationMode?: "MANUAL" | "PUBLIC";
   defaultGroupCount?: number;
   defaultPairsPerGroup?: number;
@@ -44,6 +45,7 @@ export function TournamentForm({
   defaultDescription = "",
   defaultPublicSlug = "",
   defaultRegistrationPhase = "EDITING",
+  defaultShowInEventRadar = false,
   defaultCreationMode = "MANUAL",
   defaultGroupCount = 4,
   defaultPairsPerGroup = 3,
@@ -85,6 +87,12 @@ export function TournamentForm({
           required
         />
       </div>
+
+      <label className="field form-full tournament-radar-setting">
+        <span>Radar de Eventos</span>
+        <span className="tournament-radar-toggle"><input name="showInEventRadar" type="checkbox" defaultChecked={defaultShowInEventRadar} /><b>Exibir este torneio no Radar de Eventos</b></span>
+        <p className="muted">Atletas de outras arenas poderão encontrá-lo e abrir o link de inscrição.</p>
+      </label>
 
       <div className="field">
         <label htmlFor="creationMode">Origem das inscrições</label>

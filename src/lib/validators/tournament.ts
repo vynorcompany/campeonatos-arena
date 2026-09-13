@@ -10,6 +10,7 @@ export const createTournamentSchema = z.object({
     .min(3, "Informe um slug com pelo menos 3 caracteres.")
     .regex(/^[a-z0-9-]+$/, "Use apenas letras minúsculas, números e hífen no link público."),
   registrationPhase: z.enum(["REGISTRATIONS", "EDITING", "LIVE", "FINISHED"]).default("REGISTRATIONS"),
+  showInEventRadar: z.coerce.boolean().default(false),
   groupCount: z.coerce.number().int().min(1).max(8),
   pairsPerGroup: z.coerce.number().int().min(2).max(16),
   priceFirstCents: z.coerce.number().int().min(0),

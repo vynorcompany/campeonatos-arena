@@ -11,6 +11,7 @@ import { ClientPortalEventCarousel } from "@/components/client-portal-event-caro
 import { PublicDoublesRadar } from "@/components/public-doubles-radar";
 import { PublicSuper12 } from "@/components/public-super12";
 import { AthletePortalNotifications } from "@/components/athlete-portal-notifications";
+import { AthletePortalPrefetch } from "@/components/athlete-portal-prefetch";
 import {
   moveClassGroupStudentAction,
   registerClassGroupMakeupAction,
@@ -70,6 +71,7 @@ export function PublicStandings({
   data,
   arena,
   currentClient,
+  athleteArenas,
   portal,
   home,
   finance,
@@ -102,6 +104,7 @@ export function PublicStandings({
     tournamentAvailability: string;
     isTeacher: boolean;
   } | null;
+  athleteArenas: { slug: string; name: string; logoUrl: string; playerName: string }[];
   portal: Portal;
   home: ClientHome;
   finance: ClientFinance;
@@ -154,9 +157,10 @@ export function PublicStandings({
                   {currentClient.name}
                 </strong>
               </div>
-              <Link className="athlete-portal-profile-link" href="/portal">
-                Minhas arenas
-              </Link>
+              <details className="athlete-portal-arena-switcher">
+                <summary aria-label="Trocar de arena" title="Minhas arenas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5 12 3l8 3.5v10L12 21l-8-4.5v-10Zm8 3.1L4.9 6.5 12 3.9l7.1 2.6L12 9.6Zm-6 8.1 5 2.8v-9.1L6 8.5v9.2Zm7 2.8 5-2.8V8.5l-5 2.8v9.1Z" /></svg></summary>
+                <div><Link href="/portal"><b>Minhas arenas</b></Link>{athleteArenas.filter((entry) => entry.slug !== arena.slug).map((entry) => <Link href={`/classificacao/${entry.slug}`} key={entry.slug}>{entry.logoUrl ? <img src={entry.logoUrl} alt="" /> : null}<span>{entry.name}</span></Link>)}</div>
+              </details>
               <Link className="athlete-portal-profile-link" href="?section=profile">
                 Meu perfil
               </Link>
@@ -206,6 +210,7 @@ export function PublicStandings({
   return (
     <main className="athlete-portal-page">
       {publicHeader}
+      <AthletePortalPrefetch hrefs={[portalHref("home"), portalHref("leagues", "games"), portalHref("lessons"), portalHref("profile"), portalHref("radar")]} />
       <nav
         className="athlete-portal-main-nav"
         aria-label="Menu do portal do atleta"
