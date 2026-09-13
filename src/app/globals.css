@@ -8516,3 +8516,23 @@ button {
 .portal-learning-empty .portal-empty strong { font-size: .96rem; }
 .portal-learning-empty .portal-empty span { font-size: .73rem; }
 .portal-learning-empty > b { padding-top: 10px; font-size: .5rem; }
+
+/* Ranking: seletor enxuto e todos os dados da dupla visíveis em telas estreitas. */
+.portal-ranking-panel .portal-compact-filter { grid-template-columns: minmax(0, 280px); justify-content: start; }
+.portal-ranking-panel .portal-compact-filter label { gap: 3px; }
+.portal-ranking-panel .portal-compact-filter select { min-height: 42px; font-size: .8rem; }
+@media (max-width: 700px) {
+  .portal-ranking-panel { width: calc(100% - 22px); gap: 12px; padding: 14px; }
+  .portal-ranking-panel .portal-compact-filter { grid-template-columns: minmax(0, 1fr); }
+  .portal-ranking-panel .portal-compact-filter label > span { display: none; }
+  .portal-ranking-panel .portal-compact-filter select { min-height: 39px; padding: 0 9px; font-size: .72rem; }
+  .portal-ranking-panel .portal-ranking-table { display: table; width: 100%; overflow: visible; table-layout: fixed; white-space: normal; }
+  .portal-ranking-panel .portal-ranking-table th,
+  .portal-ranking-panel .portal-ranking-table td { display: table-cell; padding: 8px 3px; font-size: .6rem; line-height: 1.2; text-align: center; }
+  .portal-ranking-panel .portal-ranking-table th:first-child,
+  .portal-ranking-panel .portal-ranking-table td:first-child { width: 28px; }
+  .portal-ranking-panel .portal-ranking-table th:nth-child(2),
+  .portal-ranking-panel .portal-ranking-table td:nth-child(2) { width: auto; overflow-wrap: anywhere; font-size: .67rem; text-align: left; }
+  .portal-ranking-panel .portal-ranking-table th:nth-child(n+3),
+  .portal-ranking-panel .portal-ranking-table td:nth-child(n+3) { display: table-cell; width: 31px; }
+}
