@@ -474,9 +474,9 @@ function RulesPanel({ data }: { data: ArenaPublicStandings }) {
 
 function RankingPanel({ data }: { data: ArenaPublicStandings }) {
   return (
-    <section className="athlete-portal-content-panel stack-md">
-      <header>
-        <span>CLASSIFICAÇÃO</span>
+    <section className="athlete-portal-content-panel stack-md portal-ranking-panel">
+      <header className="portal-ranking-heading">
+        <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V4M19 20v-7" /><path d="M3 20h18" /></svg>CLASSIFICAÇÃO</span>
         <h2>Ranking da Liga</h2>
       </header>
       {data.options.length ? (
@@ -484,13 +484,13 @@ function RankingPanel({ data }: { data: ArenaPublicStandings }) {
           <input type="hidden" name="section" value="leagues" />
           <input type="hidden" name="leagueTab" value="ranking" />
           <input type="hidden" name="tab" value="ranking" />
-          <select name="view" defaultValue={data.selectedOptionId ?? undefined}>
+          <label><span>Categoria</span><select name="view" defaultValue={data.selectedOptionId ?? undefined}>
             {data.options.map((option) => (
               <option key={option.id} value={option.id}>
                 {option.label}
               </option>
             ))}
-          </select>
+          </select></label>
           <button className="button button-primary" type="submit">
             Consultar
           </button>
