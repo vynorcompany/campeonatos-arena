@@ -28,6 +28,7 @@ type TournamentCategoryManagerFormProps = {
   defaultDescription: string;
   defaultPublicSlug: string;
   defaultRegistrationPhase: string;
+  defaultShowInEventRadar?: boolean;
   defaultCreationMode: "MANUAL" | "PUBLIC";
   defaultGroupCount: number;
   defaultPairsPerGroup: number;
@@ -114,6 +115,7 @@ export function TournamentCategoryManagerForm(
         name="registrationPhase"
         value={props.defaultRegistrationPhase}
       />
+      {props.defaultShowInEventRadar ? <input type="hidden" name="showInEventRadar" value="on" /> : null}
       <input
         type="hidden"
         name="groupCount"

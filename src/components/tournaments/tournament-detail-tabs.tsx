@@ -77,6 +77,7 @@ export function TournamentCategoriesTab({ tournament }: { tournament: NonNullabl
           defaultDescription={tournament.description}
           defaultPublicSlug={tournament.publicSlug}
           defaultRegistrationPhase={tournament.registrationPhase}
+          defaultShowInEventRadar={tournament.showInEventRadar}
           defaultCreationMode={tournament.creationMode as "MANUAL" | "PUBLIC"}
           defaultGroupCount={tournament.groupCount}
           defaultPairsPerGroup={tournament.pairsPerGroup}
@@ -225,6 +226,7 @@ export function TournamentSettingsTab({ tournament, rankings }: { tournament: No
           defaultDescription={tournament.description}
           defaultPublicSlug={tournament.publicSlug}
           defaultRegistrationPhase={tournament.registrationPhase}
+          defaultShowInEventRadar={tournament.showInEventRadar}
           defaultCreationMode={tournament.creationMode as "MANUAL" | "PUBLIC"}
           defaultGroupCount={tournament.groupCount}
           defaultPairsPerGroup={tournament.pairsPerGroup}

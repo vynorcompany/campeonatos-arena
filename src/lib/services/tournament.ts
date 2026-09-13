@@ -2238,6 +2238,7 @@ export async function updateTournamentSettings(
     description: string;
     publicSlug: string;
     registrationPhase: string;
+    showInEventRadar: boolean;
     groupCount: number;
     pairsPerGroup: number;
     priceFirstCents: number;
@@ -2302,6 +2303,7 @@ export async function updateTournamentSettings(
         publicSlug: input.publicSlug,
         creationMode: input.creationMode,
         registrationPhase: input.registrationPhase,
+        showInEventRadar: input.showInEventRadar,
         groupCount: input.groupCount,
         pairsPerGroup: input.pairsPerGroup,
         priceFirstCents: input.priceFirstCents,

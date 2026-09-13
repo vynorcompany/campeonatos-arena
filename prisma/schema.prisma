@@ -510,6 +510,7 @@ model Tournament {
   creationMode String           @default("MANUAL")
   status      String            @default("DRAFT")
   registrationPhase String      @default("REGISTRATIONS")
+  showInEventRadar Boolean     @default(false)
   groupCount  Int               @default(2)
   pairsPerGroup Int             @default(3)
   priceFirstCents Int           @default(0)
@@ -532,6 +533,7 @@ model Tournament {
   categoryBrackets CategoryBracket[]
 
   @@index([arenaId, status])
+  @@index([showInEventRadar, registrationPhase])
   @@index([arenaId, createdAt])
   @@index([rankingId])
 }
