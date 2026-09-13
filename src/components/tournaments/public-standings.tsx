@@ -13,6 +13,7 @@ import { PublicSuper12 } from "@/components/public-super12";
 import { AthletePortalNotifications } from "@/components/athlete-portal-notifications";
 import { AthletePortalPrefetch } from "@/components/athlete-portal-prefetch";
 import { PublicEventRadar } from "@/components/public-event-radar";
+import { RankingCategorySelect } from "@/components/ranking-category-select";
 import {
   moveClassGroupStudentAction,
   registerClassGroupMakeupAction,
@@ -509,20 +510,7 @@ function RankingPanel({ data }: { data: ArenaPublicStandings }) {
         <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V4M19 20v-7" /><path d="M3 20h18" /></svg>CLASSIFICAÇÃO</span>
         <h2>Ranking da Liga</h2>
       </header>
-      {data.options.length ? (
-        <form method="get" className="portal-compact-filter">
-          <input type="hidden" name="section" value="leagues" />
-          <input type="hidden" name="leagueTab" value="ranking" />
-          <input type="hidden" name="tab" value="ranking" />
-          <label><span>Categoria</span><select name="view" defaultValue={data.selectedOptionId ?? undefined} onChange={(event) => event.currentTarget.form?.requestSubmit()}>
-            {data.options.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.label}
-              </option>
-            ))}
-          </select></label>
-        </form>
-      ) : null}
+      {data.options.length ? <RankingCategorySelect options={data.options} selectedOptionId={data.selectedOptionId} /> : null}
       {data.selected?.kind === "GENERAL_RANKING" ? (
         <table className="portal-ranking-table">
           <thead>
