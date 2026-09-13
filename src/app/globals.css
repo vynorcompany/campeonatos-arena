@@ -8365,3 +8365,19 @@ button {
   .client-portal-shortcuts span { font-size: .7rem; line-height: 1.08; }
   .client-portal-shortcuts b { display: none; }
 }
+
+/* Hero móvel: composição vertical da identidade da arena, como no aplicativo de referência. */
+@media (max-width: 700px) {
+  .athlete-portal-hero { min-height: 0; padding: 24px 34px 20px; background-image: linear-gradient(90deg, rgb(2 14 30 / .88) 0%, rgb(2 18 34 / .72) 48%, rgb(1 27 34 / .32) 100%), url('/portal-padel-hero.png'); background-position: 64% center; }
+  .athlete-portal-hero-inner { gap: 18px; }
+  .athlete-portal-brand { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .athlete-portal-brand > .athlete-portal-arena-logo { width: min(205px, 60vw); height: 34px; }
+  .athlete-portal-brand-copy { gap: 3px; padding: 0; }
+  .athlete-portal-brand-copy .athlete-portal-arena-name { font-size: .64rem; letter-spacing: .13em; }
+  .athlete-portal-brand-copy h1, .athlete-portal-brand h1 { font-size: 1.92rem; line-height: 1.04; }
+  .athlete-portal-user-area { grid-template-columns: minmax(0, 1fr) 58px; gap: 10px; }
+  .athlete-portal-user { min-height: 70px; padding: 9px 10px; border-radius: 17px; }
+  .athlete-portal-user-avatar { width: 51px !important; height: 51px !important; flex-basis: 51px; }
+  .athlete-portal-profile-link { min-height: 42px; padding: 8px 12px; font-size: .75rem; }
+  .athlete-portal-notifications, .athlete-portal-notification-trigger { width: 58px; height: 58px; }
+}
