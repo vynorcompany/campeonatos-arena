@@ -30,7 +30,7 @@ export async function destroyPublicPlayerSession() {
 }
 
 const membershipInclude = {
-  player: { include: { arena: { select: { slug: true, name: true, logoUrl: true } }, teacher: { select: { active: true } } } },
+  player: { include: { arena: { select: { slug: true, name: true, logoUrl: true, city: true, state: true } }, teacher: { select: { active: true } } } },
 } as const;
 
 async function getSession() {
@@ -66,7 +66,7 @@ export async function getPublicAthleteIdentity() {
   if (!session) return null;
   const identity = session.athleteIdentity ?? session.playerAccount.identity;
   const accounts = identity?.accounts ?? [session.playerAccount];
-  return { id: identity?.id ?? null, phone: identity?.phone ?? session.playerAccount.phone, arenas: accounts.filter((account) => account.player.active).map((account) => ({ slug: account.player.arena.slug, name: account.player.arena.name, logoUrl: account.player.arena.logoUrl, playerName: account.player.name })) };
+  return { id: identity?.id ?? null, phone: identity?.phone ?? session.playerAccount.phone, arenas: accounts.filter((account) => account.player.active).map((account) => ({ slug: account.player.arena.slug, name: account.player.arena.name, logoUrl: account.player.arena.logoUrl, playerName: account.player.name, city: account.player.addressCity || account.player.arena.city, state: account.player.addressState || account.player.arena.state })) };
 }
 
 export async function requirePublicPlayerAuth(arenaSlug: string) {

@@ -158,7 +158,7 @@ export function PublicStandings({
                 </strong>
               </div>
               <details className="athlete-portal-arena-switcher">
-                <summary aria-label="Trocar de arena" title="Minhas arenas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5 12 3l8 3.5v10L12 21l-8-4.5v-10Zm8 3.1L4.9 6.5 12 3.9l7.1 2.6L12 9.6Zm-6 8.1 5 2.8v-9.1L6 8.5v9.2Zm7 2.8 5-2.8V8.5l-5 2.8v9.1Z" /></svg></summary>
+                <summary aria-label="Trocar de arena" title="Minhas arenas"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4" width="17" height="16" rx="2" /><path d="M12 4v16M3.5 12h17M7.5 8h9M7.5 16h9" /></svg></summary>
                 <div><Link href="/portal"><b>Minhas arenas</b></Link>{athleteArenas.filter((entry) => entry.slug !== arena.slug).map((entry) => <Link href={`/classificacao/${entry.slug}`} key={entry.slug}>{entry.logoUrl ? <img src={entry.logoUrl} alt="" /> : null}<span>{entry.name}</span></Link>)}</div>
               </details>
               <Link className="athlete-portal-profile-link" href="?section=profile">
