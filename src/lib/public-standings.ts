@@ -303,6 +303,7 @@ function buildLeagueStandings(category: PublicCategoryStandingsSource) {
       pairName:
         category.pairs.find((pair) => pair.id === standing.pairId)?.name ??
         "Dupla removida",
+      points: standing.victories,
       matches,
       victories: standing.victories,
       losses: matches - standing.victories,

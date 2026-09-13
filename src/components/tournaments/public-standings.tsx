@@ -514,16 +514,13 @@ function RankingPanel({ data }: { data: ArenaPublicStandings }) {
           <input type="hidden" name="section" value="leagues" />
           <input type="hidden" name="leagueTab" value="ranking" />
           <input type="hidden" name="tab" value="ranking" />
-          <label><span>Categoria</span><select name="view" defaultValue={data.selectedOptionId ?? undefined}>
+          <label><span>Categoria</span><select name="view" defaultValue={data.selectedOptionId ?? undefined} onChange={(event) => event.currentTarget.form?.requestSubmit()}>
             {data.options.map((option) => (
               <option key={option.id} value={option.id}>
                 {option.label}
               </option>
             ))}
           </select></label>
-          <button className="button button-primary" type="submit">
-            Consultar
-          </button>
         </form>
       ) : null}
       {data.selected?.kind === "GENERAL_RANKING" ? (
@@ -555,6 +552,7 @@ function RankingPanel({ data }: { data: ArenaPublicStandings }) {
             <tr>
               <th>Pos.</th>
               <th>Dupla</th>
+              <th>Pts.</th>
               <th>Jogos</th>
               <th>Vitórias</th>
               <th>Derrotas</th>
@@ -566,6 +564,7 @@ function RankingPanel({ data }: { data: ArenaPublicStandings }) {
               <tr key={standing.position}>
                 <td>{standing.position}</td>
                 <td>{standing.pairName}</td>
+                <td>{standing.points}</td>
                 <td>{standing.matches}</td>
                 <td>{standing.victories}</td>
                 <td>{standing.losses}</td>
