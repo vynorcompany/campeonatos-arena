@@ -226,7 +226,7 @@ export function PublicStandings({
       {requestedSection !== "home" ? <div className="athlete-portal-back"><Link href={portalHref("home")}>← Voltar ao início</Link></div> : null}
       {requestedSection === "lessons" || requestedSection === "classes" ? (
         <nav
-          className="athlete-portal-league-nav athlete-portal-lessons-nav"
+          className="athlete-portal-league-nav athlete-portal-lessons-nav athlete-portal-learning-tabs"
           aria-label="Menu de aulas"
         >
           {portalVisibility.athletePortalShowLessons ? (
@@ -234,7 +234,7 @@ export function PublicStandings({
               className={requestedSection === "lessons" ? "active" : ""}
               href={portalHref("lessons")}
             >
-              Minhas aulas
+              <EventNavIcon icon="calendar" /><span>Minhas aulas</span>
             </Link>
           ) : null}
           {portalVisibility.athletePortalShowClasses ? (
@@ -242,7 +242,7 @@ export function PublicStandings({
               className={requestedSection === "classes" ? "active" : ""}
               href={portalHref("classes")}
             >
-              Turmas
+              <EventNavIcon icon="players" /><span>Turmas</span>
             </Link>
           ) : null}
         </nav>
@@ -587,10 +587,11 @@ function ReservationsPanel({ portal }: { portal: Portal }) {
 
 function LessonsPanel({ portal }: { portal: Portal }) {
   return (
-    <section className="athlete-portal-content-panel">
-      <header>
+    <section className="athlete-portal-content-panel athlete-portal-learning-panel is-lessons">
+      <header className="athlete-portal-learning-heading">
         <span>AULAS</span>
         <h2>Suas próximas aulas</h2>
+        <p>Acompanhe aqui as aulas que você já agendou.</p>
       </header>
       {portal?.lessons.length ? (
         <div className="portal-activity-list">
@@ -608,10 +609,7 @@ function LessonsPanel({ portal }: { portal: Portal }) {
           ))}
         </div>
       ) : (
-        <PortalEmpty
-          title="Nenhuma aula programada"
-          detail="Quando uma aula for agendada, ela aparecerá neste painel."
-        />
+        <div className="portal-learning-empty"><EventNavIcon icon="calendar" /><PortalEmpty title="Nenhuma aula programada" detail="Quando uma aula for agendada, ela aparecerá neste painel." /><b>EVOLUÇÃO TAMBÉM SE CONSTRÓI<br />COM PLANEJAMENTO</b></div>
       )}
     </section>
   );
@@ -648,10 +646,12 @@ function ClassesPanel({
     : [];
   const weekdays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
   return (
-    <section className="athlete-portal-content-panel">
-      <header>
+    <section className="athlete-portal-content-panel athlete-portal-learning-panel is-classes">
+      <header className="athlete-portal-learning-heading">
         <span>TURMAS</span>
         <h2>Encontre sua turma</h2>
+        <p>Escolha um professor para ver as turmas disponíveis.</p>
+        <EventNavIcon icon="players" />
       </header>
       <div className="portal-teacher-picker">
         <strong>Professores</strong>
