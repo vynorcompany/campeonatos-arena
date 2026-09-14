@@ -19,7 +19,7 @@ export async function PublicBookingContent({ arenaSlug, date, embedded = false }
   const [arena, currentClient] = await Promise.all([prisma.arena.findUnique({ where: { slug: arenaSlug }, select: { id: true, name: true, logoUrl: true, scheduleStartMinute: true, scheduleEndMinute: true, onlineBookingLayout: true, onlineBookingShowReserved: true, onlineBookingPaymentEnabled: true, onlineBookingLeadTimeMinutes: true, courts: { where: { active: true, weeklyRules: { some: { available: true } } }, include: { weeklyRules: true }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }] } } }), getPublicPlayerAuth(arenaSlug)]);
   if (!arena) notFound();
   const [occurrences, pendingReservations] = await withArenaTransaction(arena.id, (tx) => Promise.all([
-    tx.scheduleOccurrence.findMany({ where: { arenaId: arena.id, status: { not: "CANCELED" }, startsAt: { lt: nextDay }, endsAt: { gt: selectedDate } }, include: { occurrenceCourts: true }, orderBy: { startsAt: "asc" } }),
+    tx.scheduleOccurrence.findMany({ where: { arenaId: arena.id, status: { notIn: ["CANCELED", "PENDING_PAYMENT"] }, startsAt: { lt: nextDay }, endsAt: { gt: selectedDate } }, include: { occurrenceCourts: true }, orderBy: { startsAt: "asc" } }),
     currentClient ? tx.scheduleOccurrence.findMany({ where: { arenaId: arena.id, sourceType: "ONLINE_BOOKING", status: "PENDING_PAYMENT", participants: { some: { playerId: currentClient.playerId } }, endsAt: { gte: selectedDate } }, include: { occurrenceCourts: true }, orderBy: { startsAt: "asc" }, take: 5 }) : Promise.resolve([]),
   ]));
   const weekday = selectedDate.getDay();

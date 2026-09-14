@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
       where: {
         arenaId: auth.arenaId,
         id: parsed.data.occurrenceId ? { not: parsed.data.occurrenceId } : undefined,
-        status: { not: "CANCELED" },
+        status: { notIn: ["CANCELED", "PENDING_PAYMENT"] },
         startsAt: { lt: dayEnd },
         endsAt: { gt: dayStart },
         occurrenceCourts: { some: { courtId: court.id } },
