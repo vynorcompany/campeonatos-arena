@@ -636,6 +636,7 @@ export async function getTvPresentationPayload(arenaId: string) {
       nightWinnerDescription: settings?.nightWinnerDescription ?? "Ganha uma vaga cortesia para o Super 12 da próxima semana. O uso é obrigatório na semana seguinte."
     },
     sponsors: selectedSponsors,
+    availableSponsors: sponsors,
     ranking: [],
     rankingSlides,
     calendar

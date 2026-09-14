@@ -185,7 +185,7 @@ export function PublicStandings({
     );
 
   const portalVisibility = arena;
-  const requestedSection =
+  const requestedSection: string =
     section === "leagues" && !portalVisibility.athletePortalShowLeagues
       ? "profile"
       : section === "booking" && !portalVisibility.athletePortalShowBooking
@@ -259,6 +259,8 @@ export function PublicStandings({
       ) : null}
       {requestedSection === "home" ? (
         <ClientHomePanel home={home} name={currentClient.name} arenaSlug={arena.slug} shortcuts={homeShortcuts} />
+      ) : requestedSection === "announcements" ? (
+        <section className="athlete-portal-content-panel portal-announcements-feed"><header><span>AVISOS DA ARENA</span><h2>Feed de avisos</h2></header>{home!.announcements.length ? home!.announcements.map((announcement) => <article key={announcement.id}><strong>{announcement.title}</strong><p><PortalRichText text={announcement.message} /></p></article>) : <p className="muted">A arena ainda não divulgou avisos.</p>}</section>
       ) : requestedSection === "finance" ? (
         <ClientFinancePanel finance={finance} arenaSlug={arena.slug} tab={financeTab} />
       ) : requestedSection === "radar" ? (

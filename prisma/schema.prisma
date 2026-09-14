@@ -146,6 +146,7 @@ model Arena {
   supportTickets SupportTicket[]
   tvPresentationSettings TvPresentationSettings?
   tvSponsors    TvSponsor[]
+  sponsorshipPlans SponsorshipPlan[]
   regulationAcceptances RegulationAcceptance[]
   regulationDocuments RegulationDocument[]
   notifications ArenaNotification[]
@@ -1057,9 +1058,29 @@ model TvSponsor {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   arenaId     String
+  sponsorshipPlanId String?
   arena       Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  sponsorshipPlan SponsorshipPlan? @relation(fields: [sponsorshipPlanId], references: [id], onDelete: SetNull)
 
   @@index([arenaId, displayOrder])
+  @@index([sponsorshipPlanId])
+}
+
+model SponsorshipPlan {
+  id                  String   @id @default(cuid())
+  name                String
+  sponsorshipType     String   @default("Mensal")
+  monthlyAmountCents  Int      @default(0)
+  reservationCredits  Int      @default(0)
+  lessonCredits       Int      @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  arenaId             String
+  arena               Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  sponsors            TvSponsor[]
+
+  @@unique([arenaId, name])
+  @@index([arenaId, createdAt])
 }
 
 model Student {

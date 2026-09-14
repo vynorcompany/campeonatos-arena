@@ -8649,6 +8649,16 @@ button {
 .sponsor-benefit-options input { width: auto; margin: 0; }
 .sponsor-benefit-tags { display: flex; flex-wrap: wrap; gap: 6px; }
 .sponsor-logo-placeholder { display: grid; width: 42px; height: 42px; flex: 0 0 42px; place-items: center; border-radius: 10px; color: var(--primary); background: var(--brand-soft); font-weight: 900; }
+.sponsor-company-list { display: grid; gap: 8px; }
+.sponsor-company-list > strong { font-size: .78rem; }
+.sponsor-company-row { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; align-items: center; gap: 9px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-muted); }
+.sponsor-company-row img, .sponsor-company-row > span { width: 32px; height: 32px; object-fit: contain; border-radius: 7px; background: var(--surface); }
+.sponsor-company-row > span { display: grid; place-items: center; font-size: .72rem; font-weight: 800; }
+.sponsor-company-row b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .82rem; }
+.sponsor-company-row .button { min-width: 30px; padding-inline: 7px; font-size: 0; }
+.sponsor-company-row .button::after { content: "🗑"; font-size: .82rem; }
+.sponsor-legacy-list { display: grid; gap: 5px; margin-top: 16px; padding: 12px; border: 1px dashed var(--border); border-radius: 10px; }
+.sponsor-legacy-list p { margin: 0; font-size: .8rem; }
 
 /* Navegação administrativa: leitura leve, marca e ambiente sem controles redundantes. */
 .page-breadcrumb { display: flex; align-items: center; gap: 10px; color: #1763c5; font-size: .88rem; }
@@ -8665,3 +8675,28 @@ button {
 .sponsor-management-card > form:last-child .button { min-width: 34px; padding-inline: 8px; font-size: 0; }
 .sponsor-management-card > form:last-child .button::after { content: "🗑"; font-size: .9rem; }
 @media (max-width: 640px) { .sponsor-management-list { grid-template-columns: 1fr; } .tv-sponsor-picker { padding: 12px; } }
+
+/* Ajustes de leitura: controles compactos e sem áreas vazias excessivas. */
+.tv-event-source-field { max-width: 460px; }
+.tv-event-source-field select { min-height: 38px; font-size: .84rem; }
+.assistant-page { min-height: calc(100dvh - 48px); display: grid; grid-template-rows: auto minmax(0, 1fr); }
+.assistant-page .assistant-chat { min-height: 0; height: 100%; }
+.assistant-chat { display: grid; grid-template-rows: minmax(0, 1fr) auto; }
+.assistant-chat-messages { min-height: 0; }
+.portal-announcements-feed { display: grid; gap: 12px; max-width: 760px; }
+.portal-announcements-feed > header { display: grid; gap: 4px; }
+.portal-announcements-feed > header span { color: var(--portal-accent, #37e8b4); font-size: .72rem; font-weight: 800; letter-spacing: .12em; }
+.portal-announcements-feed article { padding: 16px; border: 1px solid rgb(79 174 195 / .25); border-radius: 14px; background: rgb(8 30 45 / .72); }
+.portal-announcements-feed article p { margin: 8px 0 0; color: #bbcedb; line-height: 1.55; }
+.athlete-portal-events-shell .portal-league-category-card { max-width: 620px; padding: 10px 13px; gap: 7px; }
+.athlete-portal-events-shell .portal-league-category-card > header { min-height: 0; }
+.athlete-portal-events-shell .portal-league-category-card > label > span,
+.athlete-portal-events-shell .portal-league-category-context { display: none; }
+.athlete-portal-events-shell .portal-league-category-card > label select { min-height: 36px; font-size: .76rem; }
+.athlete-portal-events-shell .portal-league-category-actions { margin-top: 0; }
+.athlete-portal-events-shell .portal-league-category-actions .portal-league-registration-fee { padding: 6px 9px; font-size: .72rem; }
+.athlete-portal-user-area { grid-template-columns: minmax(0, 1fr) 42px; }
+.athlete-portal-notifications, .athlete-portal-notification-trigger { width: 42px; height: 42px; }
+.athlete-portal-notification-trigger { border-radius: 11px; }
+.athlete-portal-notification-trigger svg { width: 19px; height: 19px; }
+@media (max-width: 700px) { .assistant-page { min-height: calc(100dvh - 24px); } .athlete-portal-user-area { grid-template-columns: minmax(0, 1fr) 40px; } .athlete-portal-notifications, .athlete-portal-notification-trigger { width: 40px; height: 40px; } }

@@ -62,6 +62,14 @@ const tvSponsorSchema = z.object({
   displayOrder: z.coerce.number().int().min(1, "Ordem inválida.").max(99, "Ordem inválida.")
 });
 
+const sponsorshipPlanSchema = z.object({
+  name: z.string().trim().min(1, "Informe o nome do plano.").max(80),
+  sponsorshipType: z.string().trim().min(1, "Informe o tipo de patrocínio.").max(80),
+  monthlyAmount: z.string().trim().default("0"),
+  reservationCredits: z.coerce.number().int().min(0).max(99).default(0),
+  lessonCredits: z.coerce.number().int().min(0).max(99).default(0)
+});
+
 async function toInlineLogo(file: File | null) {
   if (!file || file.size === 0) return null;
   if (!file.type.startsWith("image/")) {
@@ -322,6 +330,9 @@ export async function createTvSponsorAction(formData: FormData) {
     throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
   const { monthlyAmount, ...sponsorData } = parsed.data;
+  const sponsorshipPlanId = String(formData.get("sponsorshipPlanId") ?? "");
+  const sponsorshipPlan = sponsorshipPlanId ? await prisma.sponsorshipPlan.findFirst({ where: { id: sponsorshipPlanId, arenaId: auth.arenaId } }) : null;
+  if (sponsorshipPlanId && !sponsorshipPlan) throw new Error("Plano de patrocínio inválido.");
 
   const logoFile = formData.get("logo") as File | null;
   const inlineLogo = await toInlineLogo(logoFile);
@@ -332,12 +343,34 @@ export async function createTvSponsorAction(formData: FormData) {
       data: {
         arenaId: auth.arenaId,
         ...sponsorData,
-        monthlyAmountCents: parseMonthlyAmountToCents(monthlyAmount),
+        subtitle: sponsorshipPlan?.name ?? sponsorData.subtitle,
+        sponsorshipType: sponsorshipPlan?.sponsorshipType ?? sponsorData.sponsorshipType,
+        monthlyAmountCents: sponsorshipPlan?.monthlyAmountCents ?? parseMonthlyAmountToCents(monthlyAmount),
+        reservationCredits: sponsorshipPlan?.reservationCredits ?? sponsorData.reservationCredits,
+        lessonCredits: sponsorshipPlan?.lessonCredits ?? sponsorData.lessonCredits,
+        sponsorshipPlanId: sponsorshipPlan?.id ?? null,
         ...(logoUrl ? { logoUrl } : {})
       }
     });
   });
 
+  refreshUpcomingMatches();
+}
+
+export async function createSponsorshipPlanAction(formData: FormData) {
+  const auth = await requireModuleEdit("tv");
+  const parsed = sponsorshipPlanSchema.safeParse({ name: formData.get("name"), sponsorshipType: formData.get("sponsorshipType"), monthlyAmount: formData.get("monthlyAmount"), reservationCredits: formData.get("reservationCredits"), lessonCredits: formData.get("lessonCredits") });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  const { monthlyAmount, ...data } = parsed.data;
+  await prisma.sponsorshipPlan.create({ data: { arenaId: auth.arenaId, ...data, monthlyAmountCents: parseMonthlyAmountToCents(monthlyAmount) } });
+  refreshUpcomingMatches();
+}
+
+export async function deleteSponsorshipPlanAction(formData: FormData) {
+  const auth = await requireModuleEdit("tv");
+  const planId = z.string().trim().min(1).safeParse(formData.get("planId"));
+  if (!planId.success) throw new Error("Plano de patrocínio inválido.");
+  await prisma.sponsorshipPlan.deleteMany({ where: { id: planId.data, arenaId: auth.arenaId } });
   refreshUpcomingMatches();
 }
 

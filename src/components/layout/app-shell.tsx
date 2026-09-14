@@ -55,14 +55,14 @@ export function AppShell({
               </div>
             </div>
 
+            <ArenaNotificationBell notifications={notifications} />
+
             <WorkspaceSwitcher
               activeArenaId={activeArenaId}
               memberships={memberships}
               canAccessAgency={canAccessAgency}
               currentWorkspace="arena"
             />
-
-            <ArenaNotificationBell notifications={notifications} />
 
             <NavLinks canManageUsers={canManageUsers} visibleModules={visibleModules} />
           </div>
