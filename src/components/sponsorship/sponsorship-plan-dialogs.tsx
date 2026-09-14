@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { CurrencyInput } from "@/components/forms/currency-input";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -36,13 +36,16 @@ export function CreateSponsorshipPlanButton({ action }: { action: Action }) {
 
 export function AddSponsorToPlanButton({ action, planId, clients = [], monthlyAmount = "0,00" }: { action: Action; planId: string; clients?: { id: string; name: string; phone: string }[]; monthlyAmount?: string }) {
   const [open, setOpen] = useState(false);
+  const [clientQuery, setClientQuery] = useState("");
+  const [clientId, setClientId] = useState("");
+  const matchingClients = useMemo(() => clientQuery.trim() ? clients.filter((client) => `${client.name} ${client.phone}`.toLocaleLowerCase("pt-BR").includes(clientQuery.toLocaleLowerCase("pt-BR"))).slice(0, 8) : [], [clientQuery, clients]);
   return <>
     <button type="button" className="button button-small" onClick={() => setOpen(true)}>Inserir empresa</button>
     {open ? <Dialog title="Inserir empresa no plano" close={() => setOpen(false)}>
       <SafeActionForm action={action} className="grid-form sponsorship-dialog-form" resetOnSuccess successMessage="Empresa inserida e lançamentos a receber gerados." onSuccess={() => setOpen(false)}>
         <input type="hidden" name="sponsorshipPlanId" value={planId} />
         <label className="field form-full">Empresa<input name="name" required placeholder="Nome da empresa" autoFocus /></label>
-        <label className="field form-full">Vincular a um cliente <select name="clientId" defaultValue=""><option value="">Sem cliente vinculado</option>{clients.map((client) => <option key={client.id} value={client.id}>{client.name}{client.phone ? ` · ${client.phone}` : ""}</option>)}</select><small>Quando selecionado, o lançamento será emitido no nome do cliente.</small></label>
+        <input type="hidden" name="clientId" value={clientId} /><label className="field form-full sponsor-client-search">Cliente vinculado <input value={clientQuery} autoComplete="off" onChange={(event) => { setClientQuery(event.currentTarget.value); setClientId(""); }} placeholder="Digite para pesquisar um cliente" />{clientQuery && !clientId ? <div className="sponsor-client-options"><button type="button" onClick={() => { setClientId(""); setClientQuery(""); }}>Sem cliente vinculado</button>{matchingClients.map((client) => <button type="button" key={client.id} onClick={() => { setClientId(client.id); setClientQuery(client.name); }}><strong>{client.name}</strong><small>{client.phone || "Sem telefone"}</small></button>)}{!matchingClients.length ? <span>Nenhum cliente encontrado.</span> : null}</div> : null}<small>Quando selecionado, o lançamento será emitido no nome do cliente.</small></label>
         <label className="field form-full">Logo <small>PNG, JPG, WebP ou SVG</small><input name="logo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" /></label>
         <label className="field">Data de início<input name="startedAt" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} /></label>
         <label className="field">Número de parcelas<input name="installments" type="number" min="1" max="60" defaultValue="12" required /></label>

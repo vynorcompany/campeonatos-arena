@@ -54,7 +54,7 @@ export async function POST(request: Request) {
         });
         await tx.financialEntry.update({
           where: { id: current.id },
-          data: { status: "PAID", paidAt: new Date(), onlinePaymentId: String(payment.id ?? paymentId) }
+          data: { status: "PAID", paidAt: new Date(), paymentMethod: "Mercado Pago online", onlinePaymentId: String(payment.id ?? paymentId) }
         });
         if (current.source === "ONLINE_BOOKING" && current.externalReference) {
           await tx.scheduleOccurrence.updateMany({ where: { id: current.externalReference, arenaId: entry.arenaId, sourceType: "ONLINE_BOOKING", status: "PENDING_PAYMENT" }, data: { status: "SCHEDULED" } });
