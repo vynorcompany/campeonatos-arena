@@ -35,9 +35,11 @@ export function OnlineBookingSettingsDialog({ settings }: { settings: OnlineBook
         <SafeActionForm action={updateOnlineBookingSettingsAction} className="online-booking-settings-form" successMessage="Configurações do agendamento online salvas.">
           <label className="field">Disposição dos horários<select name="layout" defaultValue={settings.layout}><option value="BLOCKS">Blocos</option><option value="LIST">Lista</option></select></label>
           <label className="field">Prazo mínimo para agendamento<input name="leadTimeMinutes" type="number" min="0" max="10080" step="15" defaultValue={settings.leadTimeMinutes} /><small>Em minutos antes do horário escolhido.</small></label>
-          <label className="control-toggle"><input name="requiresConfirmation" type="checkbox" defaultChecked={settings.requiresConfirmation} /><span aria-hidden="true" /><em>Confirmação de reserva</em></label>
-          <label className="control-toggle"><input name="showReserved" type="checkbox" defaultChecked={settings.showReserved} /><span aria-hidden="true" /><em>Mostrar horários reservados</em></label>
-          <label className="control-toggle"><input name="paymentOnlineEnabled" type="checkbox" defaultChecked={settings.paymentOnlineEnabled} /><span aria-hidden="true" /><em>Pagamento online</em></label>
+          <div className="online-booking-settings-toggles form-full">
+            <label className="control-toggle"><input name="requiresConfirmation" type="checkbox" defaultChecked={settings.requiresConfirmation} /><span aria-hidden="true" /><em>Confirmação de reserva</em></label>
+            <label className="control-toggle"><input name="showReserved" type="checkbox" defaultChecked={settings.showReserved} /><span aria-hidden="true" /><em>Mostrar horários reservados</em></label>
+            <label className="control-toggle"><input name="paymentOnlineEnabled" type="checkbox" defaultChecked={settings.paymentOnlineEnabled} /><span aria-hidden="true" /><em>Pagamento online</em></label>
+          </div>
           <label className="field form-full">Mensagem de WhatsApp<textarea name="whatsappMessage" defaultValue={settings.whatsappMessage} placeholder="Ex.: Olá, {cliente}! Sua reserva foi recebida para {data} às {horario}." /></label>
           <p className="form-note form-full">As combinações de duração e o intervalo de cada quadra são definidos nesta mesma área, abaixo.</p>
           <div className="online-booking-settings-footer form-full"><SubmitButton label="Salvar configurações" pendingLabel="Salvando..." className="button button-primary" /></div>

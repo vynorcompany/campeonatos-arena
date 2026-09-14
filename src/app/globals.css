@@ -6898,7 +6898,11 @@ button {
 .online-booking-link > div { display: grid; gap: 3px; min-width: 0; }
 .online-booking-link strong { font-size: .78rem; }
 .online-booking-link code { overflow: hidden; color: var(--muted); font-size: .75rem; text-overflow: ellipsis; white-space: nowrap; }
-.online-booking-settings-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; align-items: end; }
+.online-booking-settings-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; align-items: start; }
+.online-booking-settings-form .field { display: grid; align-content: start; gap: 6px; }
+.online-booking-settings-form .field input, .online-booking-settings-form .field select, .online-booking-settings-form .field textarea { box-sizing: border-box; width: 100%; }
+.online-booking-settings-toggles { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; min-height: 34px; padding: 2px 0; }
+.online-booking-settings-toggles .control-toggle { min-height: 30px; }
 .online-booking-settings-form textarea { min-height: 82px; resize: vertical; }
 .online-booking-settings-form small { color: var(--muted); font-size: .7rem; font-weight: 550; }
 .online-booking-settings-form .control-toggle { align-self: center; }
