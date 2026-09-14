@@ -16,6 +16,7 @@ import {
 import { weeklyRangesOverlap } from "@/lib/scheduling/weekly-rule";
 import { calculateCourtIntervalPrice } from "@/lib/calendar/court-interval-pricing";
 import { expandWeeklyOccurrences } from "@/lib/scheduling/recurrence";
+import { createCardCheckout } from "@/lib/payments/mercado-pago";
 
 const calendarSchema = z.object({
   sourceType: z.enum(["lesson", "calendar"]).default("calendar"),
@@ -164,15 +165,25 @@ export async function createPublicCourtBookingAction(formData: FormData) {
   if (bookingAmountCents === null) throw new Error("Este horário não está disponível para reserva online.");
   const conflict = await withArenaTransaction(arena.id, (tx) => tx.scheduleOccurrence.findFirst({ where: { arenaId: arena.id, status: { not: "CANCELED" }, startsAt: { lt: endsAt }, endsAt: { gt: startsAt }, occurrenceCourts: { some: { courtId: court.id } } }, select: { id: true } }));
   if (conflict) throw new Error("Este horário acabou de ser reservado. Selecione outro horário.");
-  await withArenaTransaction(arena.id, async (tx) => {
-    const player = await tx.player.findFirst({ where: { id: playerAuth.playerId, arenaId: arena.id, active: true }, select: { id: true, name: true } });
+  const onlineBooking = await withArenaTransaction(arena.id, async (tx) => {
+    const player = await tx.player.findFirst({ where: { id: playerAuth.playerId, arenaId: arena.id, active: true }, select: { id: true, name: true, email: true } });
     if (!player) throw new Error("Cliente não encontrado.");
     const occurrence = await tx.scheduleOccurrence.create({ data: { arenaId: arena.id, sourceType: "ONLINE_BOOKING", title: `${player.name} - Reserva`, startsAt, endsAt, status: arena.onlineBookingRequiresConfirmation ? "PENDING_CONFIRMATION" : arena.onlineBookingPaymentEnabled ? "PENDING_PAYMENT" : "SCHEDULED", bookingTypeName: "Reserva", occurrenceCourts: { create: { courtId: court.id } }, participants: { create: { playerId: player.id, amountCents: bookingAmountCents } } } });
     const localDate = `${startsAt.getFullYear()}-${String(startsAt.getMonth() + 1).padStart(2, "0")}-${String(startsAt.getDate()).padStart(2, "0")}`;
     await tx.arenaNotification.create({ data: { arenaId: arena.id, title: arena.onlineBookingRequiresConfirmation ? "Reserva aguardando confirmação" : "Nova reserva online", message: `${player.name} solicitou ${court.name} às ${String(startsAt.getHours()).padStart(2, "0")}:${String(startsAt.getMinutes()).padStart(2, "0")}.`, href: `/agenda?data=${localDate}`, type: "ONLINE_BOOKING" } });
+    const entry = arena.onlineBookingPaymentEnabled && !arena.onlineBookingRequiresConfirmation ? await tx.financialEntry.create({ data: { arenaId: arena.id, type: "REVENUE", category: "COURT_BOOKING", description: `Reserva online · ${court.name}`, counterpartyName: player.name, playerId: player.id, amountCents: bookingAmountCents, dueDate: startsAt, source: "ONLINE_BOOKING", externalReference: occurrence.id, notes: `Reserva online ${occurrence.id}` } }) : null;
+    return { entryId: entry?.id ?? "", playerEmail: player.email, playerName: player.name };
   });
+  let checkoutUrl = "";
+  if (onlineBooking.entryId) {
+    if (!onlineBooking.playerEmail) throw new Error("Informe seu e-mail no perfil para continuar com o pagamento online.");
+    const payment = await createCardCheckout({ arenaId: arena.id, amountCents: bookingAmountCents, description: `Reserva de quadra · ${court.name}`, payerEmail: onlineBooking.playerEmail, externalReference: onlineBooking.entryId });
+    checkoutUrl = payment.checkoutUrl;
+    await withArenaTransaction(arena.id, (tx) => tx.financialEntry.update({ where: { id: onlineBooking.entryId }, data: { onlineProvider: payment.provider, onlinePaymentId: payment.paymentId, onlinePaymentUrl: payment.checkoutUrl, onlinePaymentExpiresAt: payment.expiresAt } }));
+  }
   revalidatePath("/agenda");
   revalidatePath(`/reservar/${arena.slug}`);
+  return { checkoutUrl };
 }
 
 export async function confirmOnlineBookingAction(formData: FormData) {
