@@ -8704,8 +8704,9 @@ button {
 /* Regras finais da barra lateral e do seletor do Portal: prevalecem sobre estilos legados. */
 .sidebar-brand-lockup .brand-logo-wrap { width: 100% !important; height: 54px !important; overflow: visible !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; }
 .sidebar-brand-lockup .brand-logo { width: auto !important; height: 54px !important; max-width: 150px !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; }
-.sidebar-top > .arena-notification-bell { order: -1; align-self: flex-end; margin: 0 0 2px; }
-.arena-notification-bell { z-index: 40; }
+.sidebar-brand-lockup { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "logo logo" "copy notification"; row-gap: 7px; column-gap: 10px; width: 100%; }
+.sidebar-brand-lockup .brand-logo-wrap { grid-area: logo; }.sidebar-brand-copy { grid-area: copy; min-width: 0; }.sidebar-brand-lockup .arena-notification-bell { grid-area: notification; align-self: center; justify-self: end; z-index: 40; }
+.sidebar-brand-lockup .arena-notification-bell > button { width: 32px; height: 32px; }
 .athlete-portal-events-shell .portal-league-category-card,
 .athlete-portal-events-shell .portal-league-category-picker { width: min(100%, 420px); max-width: 420px; min-height: 0; padding: 8px 10px; border-radius: 10px; }
 .athlete-portal-events-shell .portal-league-category-card > header { display: none; }
