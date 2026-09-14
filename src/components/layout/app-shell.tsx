@@ -53,9 +53,8 @@ export function AppShell({
                 <p className="eyebrow">Arena Padel Manager</p>
                 <strong>{arenaName}</strong>
               </div>
+              <ArenaNotificationBell notifications={notifications} />
             </div>
-
-            <ArenaNotificationBell notifications={notifications} />
 
             <WorkspaceSwitcher
               activeArenaId={activeArenaId}

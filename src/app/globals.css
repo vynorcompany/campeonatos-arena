@@ -8700,3 +8700,42 @@ button {
 .athlete-portal-notification-trigger { border-radius: 11px; }
 .athlete-portal-notification-trigger svg { width: 19px; height: 19px; }
 @media (max-width: 700px) { .assistant-page { min-height: calc(100dvh - 24px); } .athlete-portal-user-area { grid-template-columns: minmax(0, 1fr) 40px; } .athlete-portal-notifications, .athlete-portal-notification-trigger { width: 40px; height: 40px; } }
+
+/* Regras finais da barra lateral e do seletor do Portal: prevalecem sobre estilos legados. */
+.sidebar-brand-lockup .brand-logo-wrap { width: 100% !important; height: 54px !important; overflow: visible !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; }
+.sidebar-brand-lockup .brand-logo { width: auto !important; height: 54px !important; max-width: 150px !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; }
+.sidebar-brand-lockup { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "logo logo" "copy notification"; row-gap: 7px; column-gap: 10px; width: 100%; }
+.sidebar-brand-lockup .brand-logo-wrap { grid-area: logo; }.sidebar-brand-copy { grid-area: copy; min-width: 0; }.sidebar-brand-lockup .arena-notification-bell { grid-area: notification; align-self: center; justify-self: end; z-index: 40; }
+.sidebar-brand-lockup .arena-notification-bell > button { width: 32px; height: 32px; }
+.athlete-portal-events-shell .portal-league-category-card,
+.athlete-portal-events-shell .portal-league-category-picker { width: min(100%, 420px); max-width: 420px; min-height: 0; padding: 8px 10px; border-radius: 10px; }
+.athlete-portal-events-shell .portal-league-category-card > header { display: none; }
+.athlete-portal-events-shell .portal-league-category-card > label select,
+.athlete-portal-events-shell .portal-league-category-picker select { min-height: 34px; padding: 0 9px; border-radius: 8px; font-size: .74rem; font-weight: 700; }
+.athlete-portal-events-shell .portal-league-category-actions { display: none; }
+@media (max-width: 700px) { .athlete-portal-events-shell .portal-league-category-card, .athlete-portal-events-shell .portal-league-category-picker { width: 100%; max-width: none; } }
+
+/* Reserva online usa a mesma linguagem visual do Portal do Atleta. */
+.athlete-portal-booking .public-booking-shell { border-color: rgb(74 157 181 / .28); background: linear-gradient(145deg, #0d263b, #091a2d); box-shadow: inset 0 1px rgb(255 255 255 / .04), 0 18px 42px rgb(0 0 0 / .22); color: #eaf5fb; }
+.athlete-portal-booking .public-booking-shell > header { border-color: rgb(75 151 176 / .25); }
+.athlete-portal-booking .public-booking-shell > header img { border: 0; border-radius: 0; background: transparent; box-shadow: none; object-fit: contain; }
+.athlete-portal-booking .public-booking-shell h1, .athlete-portal-booking .public-booking-shell h2 { color: #f1f9ff; }
+.athlete-portal-booking .public-booking-shell p, .athlete-portal-booking .public-booking-date label, .athlete-portal-booking .public-booking-form .field, .athlete-portal-booking .public-booking-slot-blocks strong { color: #b7cad9; }
+.athlete-portal-booking .public-booking-date input, .athlete-portal-booking .public-booking-form input, .athlete-portal-booking .public-booking-form select { border-color: rgb(92 151 190 / .42); background: #102b46; color: #edf7ff; }
+.athlete-portal-booking .public-booking-reserved { border-color: rgb(83 146 192 / .3); background: rgb(19 53 82 / .62); color: #b9d8f0; }
+.athlete-portal-booking .public-booking-form { border-color: rgb(62 173 192 / .42); background: linear-gradient(145deg, #0c2d42, #0c2237); }
+.athlete-portal-booking .public-booking-slot-block { border-color: rgb(89 155 194 / .48); background: #102d49; color: #e5f2fb; }
+.athlete-portal-booking .public-booking-slot-block small { color: #a8c4d8; }
+.athlete-portal-booking .public-booking-slot-block:hover, .athlete-portal-booking .public-booking-slot-block-active, .athlete-portal-booking .public-booking-slot-block-selected { border-color: #4ee8b1; background: rgb(20 83 76 / .72); color: #eafff8; }
+.athlete-portal-booking .public-booking-client-summary { border-color: rgb(62 205 165 / .4); background: rgb(13 65 59 / .56); }.athlete-portal-booking .public-booking-client-summary strong, .athlete-portal-booking .public-booking-total strong { color: #72f2bf; }.athlete-portal-booking .public-booking-client-summary small { color: #b2d7cf; }.athlete-portal-booking .public-booking-total { border-color: rgb(77 193 162 / .3); }
+.athlete-portal-booking .public-booking-reserved-slots { border-color: rgb(223 112 112 / .42); background: rgb(83 31 43 / .35); }.athlete-portal-booking .public-booking-reserved-slots span { color: #ffb7ba; }
+
+/* A rota pública /reservar usa a mesma composição, sem depender do contêiner do Portal. */
+.public-booking-page { background: radial-gradient(circle at 8% 0, rgb(35 178 141 / .17), transparent 30%), radial-gradient(circle at 95% 4%, rgb(30 139 206 / .18), transparent 33%), #061827; }
+.public-booking-page .public-booking-shell { border-color: rgb(74 157 181 / .28); background: linear-gradient(145deg, #0d263b, #091a2d); box-shadow: inset 0 1px rgb(255 255 255 / .04), 0 18px 42px rgb(0 0 0 / .22); color: #eaf5fb; }
+.public-booking-page .public-booking-shell > header { border-color: rgb(75 151 176 / .25); }.public-booking-page .public-booking-shell > header img { border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; object-fit: contain; }
+.public-booking-page .public-booking-shell h1, .public-booking-page .public-booking-shell h2 { color: #f1f9ff; }.public-booking-page .public-booking-shell p, .public-booking-page .public-booking-date label, .public-booking-page .public-booking-form .field, .public-booking-page .public-booking-slot-blocks strong { color: #b7cad9; }
+.public-booking-page .public-booking-date input, .public-booking-page .public-booking-form input, .public-booking-page .public-booking-form select { border-color: rgb(92 151 190 / .42); background: #102b46; color: #edf7ff; }.public-booking-page .public-booking-reserved { border-color: rgb(83 146 192 / .3); background: rgb(19 53 82 / .62); color: #b9d8f0; }
+.public-booking-page .public-booking-form { border-color: rgb(62 173 192 / .42); background: linear-gradient(145deg, #0c2d42, #0c2237); }.public-booking-page .public-booking-slot-block { border-color: rgb(89 155 194 / .48); background: #102d49; color: #e5f2fb; }.public-booking-page .public-booking-slot-block small { color: #a8c4d8; }.public-booking-page .public-booking-slot-block:hover, .public-booking-page .public-booking-slot-block-active, .public-booking-page .public-booking-slot-block-selected { border-color: #4ee8b1; background: rgb(20 83 76 / .72); color: #eafff8; }
+.public-booking-page .public-booking-client-summary { border-color: rgb(62 205 165 / .4); background: rgb(13 65 59 / .56); }.public-booking-page .public-booking-client-summary strong, .public-booking-page .public-booking-total strong { color: #72f2bf; }.public-booking-page .public-booking-client-summary small { color: #b2d7cf; }.public-booking-page .public-booking-total { border-color: rgb(77 193 162 / .3); }.public-booking-page .public-booking-reserved-slots { border-color: rgb(223 112 112 / .42); background: rgb(83 31 43 / .35); }.public-booking-page .public-booking-reserved-slots span { color: #ffb7ba; }
+.public-booking-page .public-booking-empty { border-color: rgb(91 156 195 / .35); background: rgb(14 43 67 / .76); color: #afcbe0; }

@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     if (!registration) {
       const entry = await prisma.financialEntry.findFirst({
         where: { onlineProvider: "MERCADO_PAGO", onlinePaymentId: paymentId, type: "REVENUE" },
-        select: { id: true, arenaId: true }
+        select: { id: true, arenaId: true, externalReference: true }
       });
       if (!entry) return NextResponse.json({ ok: true, ignored: "unknown_payment" });
 
@@ -56,6 +56,9 @@ export async function POST(request: Request) {
           where: { id: current.id },
           data: { status: "PAID", paidAt: new Date(), onlinePaymentId: String(payment.id ?? paymentId) }
         });
+        if (current.source === "ONLINE_BOOKING" && current.externalReference) {
+          await tx.scheduleOccurrence.updateMany({ where: { id: current.externalReference, arenaId: entry.arenaId, sourceType: "ONLINE_BOOKING", status: "PENDING_PAYMENT" }, data: { status: "SCHEDULED" } });
+        }
       });
       return NextResponse.json({ ok: true });
     }

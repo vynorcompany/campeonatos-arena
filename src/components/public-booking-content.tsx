@@ -20,7 +20,7 @@ export async function PublicBookingContent({ arenaSlug, date, embedded = false }
   if (!arena) notFound();
   const [occurrences, pendingReservations] = await withArenaTransaction(arena.id, (tx) => Promise.all([
     tx.scheduleOccurrence.findMany({ where: { arenaId: arena.id, status: { not: "CANCELED" }, startsAt: { lt: nextDay }, endsAt: { gt: selectedDate } }, include: { occurrenceCourts: true }, orderBy: { startsAt: "asc" } }),
-    currentClient ? tx.scheduleOccurrence.findMany({ where: { arenaId: arena.id, sourceType: "ONLINE_BOOKING", status: "PENDING_CONFIRMATION", participants: { some: { playerId: currentClient.playerId } }, endsAt: { gte: selectedDate } }, include: { occurrenceCourts: true }, orderBy: { startsAt: "asc" }, take: 5 }) : Promise.resolve([]),
+    currentClient ? tx.scheduleOccurrence.findMany({ where: { arenaId: arena.id, sourceType: "ONLINE_BOOKING", status: "PENDING_PAYMENT", participants: { some: { playerId: currentClient.playerId } }, endsAt: { gte: selectedDate } }, include: { occurrenceCourts: true }, orderBy: { startsAt: "asc" }, take: 5 }) : Promise.resolve([]),
   ]));
   const weekday = selectedDate.getDay();
   const courts = arena.courts.map((court) => {
