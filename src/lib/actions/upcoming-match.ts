@@ -36,6 +36,7 @@ const tvPresentationSettingsSchema = z.object({
   selectedTournamentId: z.string().trim().default(""),
   tvMatchSource: z.enum(["MANUAL", "TOURNAMENT"]).default("MANUAL"),
   selectedRankingIds: z.array(z.string().trim()).default([]),
+  selectedSponsorIds: z.array(z.string().trim()).default([]),
   showMatches: z.boolean().default(true),
   showCalendar: z.boolean().default(false),
   showSponsors: z.boolean().default(false),
@@ -53,6 +54,9 @@ const tvPresentationSettingsSchema = z.object({
 const tvSponsorSchema = z.object({
   name: z.string().trim().min(1, "Informe o nome do patrocinador.").max(80, "Nome do patrocinador muito longo."),
   subtitle: z.string().trim().max(120, "Título do plano muito longo.").default(""),
+  sponsorshipType: z.string().trim().max(80, "Tipo de patrocínio muito longo.").default(""),
+  monthlyAmount: z.string().trim().default("0"),
+  benefits: z.string().trim().max(500, "As entregas estão muito longas.").default(""),
   displayOrder: z.coerce.number().int().min(1, "Ordem inválida.").max(99, "Ordem inválida.")
 });
 
@@ -66,6 +70,16 @@ async function toInlineLogo(file: File | null) {
   }
   const buffer = Buffer.from(await file.arrayBuffer());
   return `data:${file.type};base64,${buffer.toString("base64")}`;
+}
+
+function parseMonthlyAmountToCents(value: string) {
+  const cleaned = value.replace(/[R$\s]/g, "");
+  const normalized = cleaned.includes(",") ? cleaned.replace(/\./g, "").replace(",", ".") : cleaned;
+  const amount = Number(normalized);
+  if (!Number.isFinite(amount) || amount < 0) {
+    throw new Error("Informe um valor mensal válido.");
+  }
+  return Math.round(amount * 100);
 }
 
 function refreshUpcomingMatches() {
@@ -99,7 +113,6 @@ export async function createManualUpcomingMatchAction(formData: FormData) {
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
-
   const lastMatch = await prisma.manualUpcomingMatch.findFirst({
     where: {
       arenaId: auth.arenaId
@@ -226,6 +239,7 @@ export async function upsertTvPresentationSettingsAction(formData: FormData) {
     selectedTournamentId: formData.get("selectedTournamentId"),
     tvMatchSource: formData.get("tvMatchSource"),
     selectedRankingIds: formData.getAll("selectedRankingIds").map(String).filter(Boolean),
+    selectedSponsorIds: formData.getAll("selectedSponsorIds").map(String).filter(Boolean),
     showMatches: formData.get("showMatches") === "on",
     showCalendar: formData.get("showCalendar") === "on",
     showSponsors: formData.get("showSponsors") === "on",
@@ -294,12 +308,16 @@ export async function createTvSponsorAction(formData: FormData) {
   const parsed = tvSponsorSchema.safeParse({
     name: formData.get("name"),
     subtitle: formData.get("subtitle"),
+    sponsorshipType: formData.get("sponsorshipType"),
+    monthlyAmount: formData.get("monthlyAmount"),
+    benefits: formData.get("benefits"),
     displayOrder: formData.get("displayOrder")
   });
 
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
+  const { monthlyAmount, ...sponsorData } = parsed.data;
 
   const logoFile = formData.get("logo") as File | null;
   const inlineLogo = await toInlineLogo(logoFile);
@@ -309,7 +327,8 @@ export async function createTvSponsorAction(formData: FormData) {
     await prisma.tvSponsor.create({
       data: {
         arenaId: auth.arenaId,
-        ...parsed.data,
+        ...sponsorData,
+        monthlyAmountCents: parseMonthlyAmountToCents(monthlyAmount),
         ...(logoUrl ? { logoUrl } : {})
       }
     });
@@ -324,6 +343,9 @@ export async function updateTvSponsorAction(formData: FormData) {
   const parsed = tvSponsorSchema.safeParse({
     name: formData.get("name"),
     subtitle: formData.get("subtitle"),
+    sponsorshipType: formData.get("sponsorshipType"),
+    monthlyAmount: formData.get("monthlyAmount"),
+    benefits: formData.get("benefits"),
     displayOrder: formData.get("displayOrder")
   });
 
@@ -334,6 +356,7 @@ export async function updateTvSponsorAction(formData: FormData) {
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
+  const { monthlyAmount, ...sponsorData } = parsed.data;
 
   const logoFile = formData.get("logo") as File | null;
   const inlineLogo = await toInlineLogo(logoFile);
@@ -345,7 +368,8 @@ export async function updateTvSponsorAction(formData: FormData) {
         arenaId: auth.arenaId
       },
       data: {
-        ...parsed.data,
+        ...sponsorData,
+        monthlyAmountCents: parseMonthlyAmountToCents(monthlyAmount),
         ...(logoUrl ? { logoUrl } : {})
       }
     })

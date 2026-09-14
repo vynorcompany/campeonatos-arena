@@ -1,0 +1,5 @@
+ALTER TABLE "TvPresentationSettings" ADD COLUMN "selectedSponsorIds" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];
+
+ALTER TABLE "TvSponsor" ADD COLUMN "sponsorshipType" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "TvSponsor" ADD COLUMN "monthlyAmountCents" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "TvSponsor" ADD COLUMN "benefits" TEXT NOT NULL DEFAULT '';

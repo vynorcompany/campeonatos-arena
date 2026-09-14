@@ -189,6 +189,7 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
           icon: "tv",
           children: [
             { href: "/proximos-jogos/apresentacao", label: "Configurar slides" },
+            { href: "/proximos-jogos/patrocinios", label: "Gestão de patrocínios" },
             { href: "/proximos-jogos/tv", label: "Abrir TV" }
           ]
         }
@@ -267,6 +268,7 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
     "/torneios/rankings": "tournaments",
     "/proximos-jogos": "tv",
     "/proximos-jogos/apresentacao": "tv",
+    "/proximos-jogos/patrocinios": "tv",
     "/proximos-jogos/tv": "tv",
     "/calendario": "calendar",
     "/agenda": "calendar",
