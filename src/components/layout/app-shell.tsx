@@ -49,7 +49,7 @@ export function AppShell({
                   priority
                 />
               </div>
-              <div>
+              <div className="sidebar-brand-copy">
                 <p className="eyebrow">Arena Padel Manager</p>
                 <strong>{arenaName}</strong>
               </div>
