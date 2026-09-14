@@ -6,6 +6,7 @@ type TvSettingsPayload = {
   selectedTournamentId: string | null;
   tvMatchSource: "MANUAL" | "TOURNAMENT";
   selectedRankingIds: string[];
+  selectedSponsorIds: string[];
   showMatches: boolean;
   showCalendar: boolean;
   showSponsors: boolean;
@@ -255,6 +256,7 @@ async function getTvSettings(arenaId: string) {
         selectedTournamentId: true,
         tvMatchSource: true,
         selectedRankingIds: true,
+        selectedSponsorIds: true,
         showMatches: true,
         showCalendar: true,
         showSponsors: true,
@@ -310,6 +312,7 @@ async function getTvSettings(arenaId: string) {
         ...legacySettings,
         tvMatchSource: "MANUAL",
         selectedRankingIds: [],
+        selectedSponsorIds: [],
         showMatches: true,
         showCalendar: true
       } satisfies TvSettingsPayload;
@@ -542,7 +545,10 @@ export async function getTvPresentationPayload(arenaId: string) {
         },
         select: {
           id: true,
-          name: true
+          name: true,
+          priceFirstCents: true,
+          priceSecondCents: true,
+          priceThirdCents: true
         }
       }).catch((error) => {
         if (isPrismaSchemaOutdatedError(error)) {
@@ -588,7 +594,13 @@ export async function getTvPresentationPayload(arenaId: string) {
         }
       });
 
-  const rankingSlides = await getAdditionalRankingSlides(arenaId, settings?.selectedRankingIds ?? []);
+  const rankingSlides: TvRankingSlide[] = [];
+  const selectedSponsorIds = settings?.selectedSponsorIds ?? [];
+  const selectedSponsors = selectedSponsorIds.length ? sponsors.filter((sponsor) => selectedSponsorIds.includes(sponsor.id)) : [];
+  const formatPrize = (position: number, cents: number) => cents > 0 ? `${position}º lugar — ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100)}` : "";
+  const tournamentPrizeItems = selectedTournament
+    ? [formatPrize(1, selectedTournament.priceFirstCents), formatPrize(2, selectedTournament.priceSecondCents), formatPrize(3, selectedTournament.priceThirdCents)].filter(Boolean)
+    : [];
 
   return {
     matches,
@@ -597,22 +609,23 @@ export async function getTvPresentationPayload(arenaId: string) {
       selectedTournamentId: selectedTournament?.id ?? "",
       tvMatchSource: settings?.tvMatchSource ?? "MANUAL",
       selectedRankingIds: settings?.selectedRankingIds ?? [],
+      selectedSponsorIds,
       selectedTournamentName: selectedTournament?.name ?? "",
       showMatches: settings?.showMatches ?? true,
       showCalendar: settings?.showCalendar ?? true,
       showSponsors: settings?.showSponsors ?? false,
-      showRanking: settings?.showRanking ?? false,
-      showMonthlyPrize: settings?.showMonthlyPrize ?? false,
+      showRanking: false,
+      showMonthlyPrize: (settings?.showMonthlyPrize ?? false) && tournamentPrizeItems.length > 0,
       showNightWinner: settings?.showNightWinner ?? false,
-      monthlyPrizeTitle: settings?.monthlyPrizeTitle ?? "Premiação mensal",
-      monthlyPrizeAmount: settings?.monthlyPrizeAmount ?? "1º - R$200 em crédito da arena",
-      monthlyPrizeDescription: settings?.monthlyPrizeDescription ?? "2º - Um tubo de bolinha + R$50 em crédito da arena | 3Âº - Um grip + R$25 em crédito",
+      monthlyPrizeTitle: selectedTournament ? `Premiação • ${selectedTournament.name}` : "Premiação do evento",
+      monthlyPrizeAmount: tournamentPrizeItems[0] ?? "",
+      monthlyPrizeDescription: tournamentPrizeItems.slice(1).join(" | "),
       nightWinnerTitle: settings?.nightWinnerTitle ?? "Vencedor da noite",
       nightWinnerName: settings?.nightWinnerName ?? "Super 12",
       nightWinnerDescription: settings?.nightWinnerDescription ?? "Ganha uma vaga cortesia para o Super 12 da próxima semana. O uso é obrigatório na semana seguinte."
     },
-    sponsors,
-    ranking,
+    sponsors: selectedSponsors,
+    ranking: [],
     rankingSlides,
     calendar
   };

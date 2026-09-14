@@ -8589,12 +8589,12 @@ button {
 }
 
 /* Notificações: presença discreta, mas painel sempre acima do restante do portal. */
-.athlete-portal-hero { overflow: visible; position: relative; z-index: 40; }
+.athlete-portal-hero { overflow: visible; position: relative; z-index: 1000; }
 .athlete-portal-user-area { grid-template-columns: minmax(0, 1fr) 52px; }
 .athlete-portal-notifications, .athlete-portal-notification-trigger { width: 52px; height: 52px; }
 .athlete-portal-notification-trigger { border-radius: 14px; background: linear-gradient(145deg, rgb(18 57 80 / .72), rgb(12 39 59 / .72)); box-shadow: 0 8px 18px rgb(0 0 0 / .13); }
 .athlete-portal-notification-trigger svg { width: 24px; height: 24px; }
-.athlete-portal-notification-modal { z-index: 100; }
+.athlete-portal-notification-modal { z-index: 1001; }
 @media (max-width: 700px) {
   .athlete-portal-user-area { grid-template-columns: minmax(0, 1fr) 46px; }
   .athlete-portal-notifications, .athlete-portal-notification-trigger { width: 46px; height: 46px; }
@@ -8631,3 +8631,10 @@ button {
 .checkout-product.is-negative small, .command-product-row.is-negative small { color: #b42318; font-weight: 850; }
 .sidebar-brand-lockup .brand-logo-wrap { overflow: hidden; background: #fff; }
 .sidebar-brand-lockup .brand-logo { width: 100%; height: 100%; object-fit: contain; }
+
+/* Gestão de patrocínios: cartões compactos, com leitura confortável em qualquer largura. */
+.tv-sponsor-picker { display: grid; gap: 14px; padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-muted); }
+.sponsor-management-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+.sponsor-management-card { display: grid; gap: 16px; padding: 18px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+.sponsor-card-header { display: flex; align-items: center; gap: 12px; min-width: 0; }
+@media (max-width: 640px) { .sponsor-management-list { grid-template-columns: 1fr; } .tv-sponsor-picker { padding: 12px; } }

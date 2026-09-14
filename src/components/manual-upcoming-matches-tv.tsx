@@ -18,6 +18,7 @@ type TvPresentationSettings = {
   selectedTournamentId: string;
   tvMatchSource: "MANUAL" | "TOURNAMENT";
   selectedRankingIds: string[];
+  selectedSponsorIds: string[];
   selectedTournamentName: string;
   showMatches: boolean;
   showCalendar: boolean;
