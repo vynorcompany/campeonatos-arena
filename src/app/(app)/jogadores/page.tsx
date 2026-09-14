@@ -2,6 +2,7 @@ import { AthleteCreatePanel } from "@/components/players/athlete-create-panel";
 import { ClientManagementWorkspace } from "@/components/players/client-management-workspace";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
+import { normalizeBrazilianPhone } from "@/lib/phone";
 
 type PlayersPageProps = { searchParams?: { q?: string; phone?: string; financial?: string; planId?: string; active?: string; teacherId?: string } };
 type Entry = { status: string; amountCents: number };
@@ -14,7 +15,7 @@ export default async function PlayersPage({ searchParams }: PlayersPageProps) {
     prisma.teacher.findMany({ where: { arenaId: auth.arenaId, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } })
   ]);
   const query = (searchParams?.q ?? "").trim().toLowerCase();
-  const phone = (searchParams?.phone ?? "").replace(/\D/g, "");
+  const phone = normalizeBrazilianPhone(searchParams?.phone ?? "");
   const filtered = players.filter((player) => {
     const entries = [...player.scheduleParticipants.map((item) => item.financialEntry), ...player.comandas.flatMap((comanda) => comanda.sale?.financialEntries ?? [])].filter((entry): entry is Entry => Boolean(entry));
     const pending = entries.some((entry) => entry.status === "PENDING");
@@ -22,7 +23,7 @@ export default async function PlayersPage({ searchParams }: PlayersPageProps) {
     const planActive = player.student?.subscriptions.some((subscription) => subscription.status === "ACTIVE" && (!searchParams?.planId || subscription.planId === searchParams.planId));
     const hasTeacher = !searchParams?.teacherId || player.scheduleParticipants.some((participant) => participant.occurrence.teacherId === searchParams.teacherId);
     const financialMatch = !searchParams?.financial || searchParams.financial === "ALL" || (searchParams.financial === "CURRENT" && !pending && !overdue) || (searchParams.financial === "OPEN" && pending) || (searchParams.financial === "OVERDUE" && overdue);
-    return (!query || player.name.toLowerCase().includes(query)) && (!phone || player.phone.replace(/\D/g, "").includes(phone)) && (!searchParams?.active || searchParams.active === "ALL" || (searchParams.active === "ACTIVE" ? player.active : !player.active)) && (!searchParams?.planId || Boolean(planActive)) && hasTeacher && financialMatch;
+    return (!query || player.name.toLowerCase().includes(query)) && (!phone || normalizeBrazilianPhone(player.phone).includes(phone)) && (!searchParams?.active || searchParams.active === "ALL" || (searchParams.active === "ACTIVE" ? player.active : !player.active)) && (!searchParams?.planId || Boolean(planActive)) && hasTeacher && financialMatch;
   }).map((player) => {
     const entries = [...player.scheduleParticipants.map((item) => item.financialEntry), ...player.comandas.flatMap((comanda) => comanda.sale?.financialEntries ?? [])].filter((entry): entry is Entry => Boolean(entry));
     return { id: player.id, name: player.name, photoUrl: player.photoUrl, phone: player.phone, email: player.email, cpf: player.cpf, addressZipCode: player.addressZipCode, addressStreet: player.addressStreet, addressNumber: player.addressNumber, addressNeighborhood: player.addressNeighborhood, addressCity: player.addressCity, addressState: player.addressState, birthDate: player.birthDate?.toISOString().slice(0, 10) ?? "", gender: player.gender, class: player.class, isTeacher: Boolean(player.teacher?.active), points: player.points, leagueTier: player.leagueAthleteTiers[0]?.tier ?? "", active: player.active, financialStatus: entries.some((entry) => entry.status === "OVERDUE") ? "Em atraso" : entries.some((entry) => entry.status === "PENDING") ? "Com débitos em aberto" : "Adimplente", moneyBalanceCents: player.balanceMovements.reduce((sum, movement) => sum + movement.amountCents, 0), classBalance: player.student?.remainingClasses ?? 0, plans: player.student?.subscriptions.map((subscription) => ({ id: subscription.id, name: subscription.plan.name, status: subscription.status, startedAt: subscription.startedAt.toISOString(), endedAt: subscription.endedAt?.toISOString() ?? null, classesPerMonth: subscription.classesPerMonth, dueDay: subscription.dueDay })) ?? [], balanceMovements: player.balanceMovements.map((movement) => ({ id: movement.id, kind: movement.kind, amountCents: movement.amountCents, classesDelta: movement.classesDelta, reason: movement.reason, createdAt: movement.createdAt.toISOString() })) };

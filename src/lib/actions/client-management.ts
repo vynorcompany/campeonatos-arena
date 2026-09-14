@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requirePermission } from "@/lib/auth/guards";
+import { normalizeBrazilianPhone } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
 
 function refreshClients() {
@@ -75,6 +76,14 @@ export async function mergeClientsAction(formData: FormData) {
   refreshClients();
 }
 
+export async function archiveClientsAction(formData: FormData) {
+  const auth = await requirePermission("players:edit");
+  const playerIds = [...new Set(formData.getAll("playerId").map(String).filter(Boolean))];
+  if (!playerIds.length) throw new Error("Selecione ao menos um cliente.");
+  await prisma.player.updateMany({ where: { arenaId: auth.arenaId, id: { in: playerIds } }, data: { active: false } });
+  refreshClients();
+}
+
 export async function importClientsAction(formData: FormData) {
   const auth = await requirePermission("players:import");
   const file = formData.get("file");
@@ -82,13 +91,16 @@ export async function importClientsAction(formData: FormData) {
   const rows = (await file.text()).replace(/^\uFEFF/, "").split(/\r?\n/).slice(1).map((line) => line.split(";").map((value) => value.trim())).filter(([name]) => name);
   if (!rows.length) throw new Error("O CSV não possui clientes para importar.");
   let imported = 0;
+  const existingClients = await prisma.player.findMany({ where: { arenaId: auth.arenaId }, select: { phone: true, cpf: true } });
+  const knownPhones = new Set(existingClients.map((client) => normalizeBrazilianPhone(client.phone)).filter(Boolean));
+  const knownCpfs = new Set(existingClients.map((client) => client.cpf.replace(/\D/g, "")).filter(Boolean));
   await prisma.$transaction(async (tx) => {
     for (const [name, phone, cpf] of rows) {
       if (name.length < 2 || phone.replace(/\D/g, "").length < 8) continue;
-      const normalizedPhone = phone.replace(/\D/g, ""); const normalizedCpf = cpf.replace(/\D/g, "");
-      const existing = await tx.player.findFirst({ where: { arenaId: auth.arenaId, OR: [{ phone: normalizedPhone }, ...(normalizedCpf ? [{ cpf: normalizedCpf }] : [])] }, select: { id: true } });
-      if (existing) continue;
+      const normalizedPhone = normalizeBrazilianPhone(phone); const normalizedCpf = cpf.replace(/\D/g, "");
+      if (knownPhones.has(normalizedPhone) || (normalizedCpf && knownCpfs.has(normalizedCpf))) continue;
       await tx.player.create({ data: { arenaId: auth.arenaId, name, phone: normalizedPhone, cpf: normalizedCpf } }); imported += 1;
+      knownPhones.add(normalizedPhone); if (normalizedCpf) knownCpfs.add(normalizedCpf);
     }
   });
   refreshClients();
