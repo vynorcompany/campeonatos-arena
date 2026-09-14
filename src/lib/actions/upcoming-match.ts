@@ -248,15 +248,15 @@ export async function upsertTvPresentationSettingsAction(formData: FormData) {
     showRanking: formData.get("showRanking") === "on",
     showMonthlyPrize: formData.get("showMonthlyPrize") === "on",
     showNightWinner: false,
-    monthlyPrizeTitle: formData.get("monthlyPrizeTitle"),
-    monthlyPrizeAmount: formData.get("monthlyPrizeFirst"),
+    monthlyPrizeTitle: String(formData.get("monthlyPrizeTitle") ?? ""),
+    monthlyPrizeAmount: String(formData.get("monthlyPrizeFirst") ?? ""),
     monthlyPrizeDescription: [
       String(formData.get("monthlyPrizeSecond") ?? "").trim(),
       String(formData.get("monthlyPrizeThird") ?? "").trim()
     ].filter(Boolean).join(" | "),
-    nightWinnerTitle: formData.get("nightWinnerTitle"),
-    nightWinnerName: formData.get("nightWinnerName"),
-    nightWinnerDescription: formData.get("nightWinnerDescription")
+    nightWinnerTitle: String(formData.get("nightWinnerTitle") ?? ""),
+    nightWinnerName: String(formData.get("nightWinnerName") ?? ""),
+    nightWinnerDescription: String(formData.get("nightWinnerDescription") ?? "")
   });
 
   if (!parsed.success) {

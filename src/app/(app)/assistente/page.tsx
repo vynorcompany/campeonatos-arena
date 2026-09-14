@@ -11,9 +11,7 @@ export default async function ArenaAssistantPage() {
   const messages = conversation?.messages.map((message) => ({ ...message, createdAt: message.createdAt.toISOString() })) ?? [];
 
   return <div className="workspace-page assistant-page">
-    <header className="page-header">
-      <div><p className="eyebrow">Administração</p><h1>Assistente da Arena</h1><p>Comandos ficam registrados e são executados somente dentro do catálogo autorizado.</p></div>
-    </header>
+    <nav className="page-breadcrumb" aria-label="Caminho de navegação"><span>Administração</span><i aria-hidden="true">›</i><strong>Assistente</strong></nav>
     <ArenaAssistantChat initialMessages={messages} />
   </div>;
 }

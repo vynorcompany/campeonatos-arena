@@ -25,6 +25,7 @@ export function WorkspaceSwitcher({
         id="workspaceId"
         name="workspaceId"
         defaultValue={currentWorkspace === "agency" ? "agency" : activeArenaId ?? memberships[0]?.arenaId}
+        onChange={(event) => event.currentTarget.form?.requestSubmit()}
       >
         {canAccessAgency ? <option value="agency">Agencia</option> : null}
         {memberships.map((membership, index) => (
@@ -33,23 +34,7 @@ export function WorkspaceSwitcher({
           </option>
         ))}
       </select>
-      <button type="submit" aria-label="Trocar ambiente">
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="m7 7 5-5 5 5" />
-          <path d="M12 2v20" />
-          <path d="m17 17-5 5-5-5" />
-        </svg>
-      </button>
     </form>
   );
 }
+"use client";
