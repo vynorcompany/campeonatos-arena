@@ -40,7 +40,7 @@ export function AddSponsorToPlanButton({ action, planId, clients = [], monthlyAm
   const [clientId, setClientId] = useState("");
   const matchingClients = useMemo(() => clientQuery.trim() ? clients.filter((client) => `${client.name} ${client.phone}`.toLocaleLowerCase("pt-BR").includes(clientQuery.toLocaleLowerCase("pt-BR"))).slice(0, 8) : [], [clientQuery, clients]);
   return <>
-    <button type="button" className="button button-small" onClick={() => setOpen(true)}>Inserir empresa</button>
+    <button type="button" className="button button-primary button-small" onClick={() => setOpen(true)}>Inserir empresa</button>
     {open ? <Dialog title="Inserir empresa no plano" close={() => setOpen(false)}>
       <SafeActionForm action={action} className="grid-form sponsorship-dialog-form" resetOnSuccess successMessage="Empresa inserida e lançamentos a receber gerados." onSuccess={() => setOpen(false)}>
         <input type="hidden" name="sponsorshipPlanId" value={planId} />
