@@ -164,10 +164,6 @@ export async function adjustStockAction(formData: FormData) {
         ? product.stockQuantity + parsed.data.quantity
         : product.stockQuantity - parsed.data.quantity;
 
-  if (nextStock < 0) {
-    throw new Error("Estoque insuficiente.");
-  }
-
   await prisma.$transaction(async (tx) => {
     await tx.product.update({
       where: {
@@ -215,10 +211,6 @@ export async function createSaleAction(formData: FormData) {
 
   if (!product) {
     throw new Error("Produto não encontrado.");
-  }
-
-  if (product.stockQuantity < parsed.data.quantity) {
-    throw new Error("Estoque insuficiente para finalizar a venda.");
   }
 
   await createSaleFromProducts({
@@ -273,14 +265,10 @@ export async function createCartSaleAction(formData: FormData) {
     throw new Error("Um ou mais produtos não foram encontrados.");
   }
 
-  const productsWithQuantities = products.map((product) => {
-    const quantity = quantitiesByProduct.get(product.id) ?? 0;
-    if (product.stockQuantity < quantity) {
-      throw new Error(`Estoque insuficiente para ${product.name}.`);
-    }
-
-    return { ...product, quantity };
-  });
+  const productsWithQuantities = products.map((product) => ({
+    ...product,
+    quantity: quantitiesByProduct.get(product.id) ?? 0
+  }));
 
   await createSaleFromProducts({
     arenaId: auth.arenaId,

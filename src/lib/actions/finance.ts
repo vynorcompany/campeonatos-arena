@@ -167,6 +167,11 @@ const payrollSchema = z.object({
   notes: optionalText
 });
 
+const bankBalanceSchema = z.object({
+  bankAccountId: z.string().min(1, "Selecione a conta bancária."),
+  balance: z.string().trim().min(1, "Informe o saldo conferido.")
+});
+
 const onlineChargeSchema = z.object({ entryId: z.string().min(1), method: z.enum(["PIX", "BOLETO"]) });
 
 const paymentConnectionSchema = z.object({
@@ -812,7 +817,7 @@ export async function deleteFinancialEntriesBulkAction(formData: FormData) {
 }
 
 export async function createFinancialSettingAction(formData: FormData) {
-  const auth = await requirePermission("finance:receivable:edit");
+  const auth = await requireModuleEdit("finance");
   const parsed = financialSettingSchema.safeParse({
     area: formData.get("area"), name: formData.get("name"), type: formData.get("type"), bankName: formData.get("bankName"), openingBalance: formData.get("openingBalance"), document: formData.get("document"), phone: formData.get("phone"), email: formData.get("email"), notes: formData.get("notes")
   });
@@ -830,6 +835,40 @@ export async function createFinancialSettingAction(formData: FormData) {
     throw error;
   }
 
+  refreshFinancialSettings();
+}
+
+export async function reconcileBankAccountBalanceAction(formData: FormData) {
+  const auth = await requireModuleEdit("finance");
+  const parsed = bankBalanceSchema.safeParse({ bankAccountId: formData.get("bankAccountId"), balance: formData.get("balance") });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  const expectedBalanceCents = parseMoneyToCents(parsed.data.balance);
+
+  await withArenaTransaction(auth.arenaId, async (tx) => {
+    const account = await tx.bankAccount.findFirst({ where: { id: parsed.data.bankAccountId, arenaId: auth.arenaId }, select: { id: true, name: true, openingBalanceCents: true } });
+    if (!account) throw new Error("Conta bancária não encontrada.");
+    const [income, expense] = await Promise.all([
+      tx.financialEntry.aggregate({ where: { arenaId: auth.arenaId, bankAccountId: account.id, status: "PAID", type: "INCOME" }, _sum: { amountCents: true } }),
+      tx.financialEntry.aggregate({ where: { arenaId: auth.arenaId, bankAccountId: account.id, status: "PAID", type: "EXPENSE" }, _sum: { amountCents: true } })
+    ]);
+    const calculatedBalanceCents = account.openingBalanceCents + (income._sum.amountCents ?? 0) - (expense._sum.amountCents ?? 0);
+    const differenceCents = expectedBalanceCents - calculatedBalanceCents;
+    if (!differenceCents) throw new Error("O saldo informado já confere com o saldo calculado.");
+    await tx.financialEntry.create({ data: {
+      arenaId: auth.arenaId,
+      bankAccountId: account.id,
+      type: differenceCents > 0 ? "INCOME" : "EXPENSE",
+      category: "AJUSTE DE SALDO BANCÁRIO",
+      description: `Balanço de saldo · ${account.name}`,
+      amountCents: Math.abs(differenceCents),
+      paymentMethod: "Ajuste de saldo",
+      status: "PAID",
+      paidAt: new Date(),
+      notes: `Saldo conferido: ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(expectedBalanceCents / 100)}.`
+    } });
+  });
+
+  refreshFinanceRoutes();
   refreshFinancialSettings();
 }
 

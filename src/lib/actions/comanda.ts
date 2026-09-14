@@ -150,7 +150,6 @@ export async function addComandaProductAction(formData: FormData) {
     if (!product) throw new Error("Produto não encontrado.");
     const current = await tx.comandaItem.findUnique({ where: { comandaId_productId: { comandaId: comanda.id, productId: product.id } } });
     const nextQuantity = (current?.quantity ?? 0) + parsed.data.quantity;
-    if (product.stockQuantity < nextQuantity) throw new Error("Estoque insuficiente para este produto.");
     await tx.comandaItem.upsert({
       where: { comandaId_productId: { comandaId: comanda.id, productId: product.id } },
       update: { quantity: nextQuantity, unitPriceCents: product.priceCents, totalCents: product.priceCents * nextQuantity },
@@ -170,7 +169,6 @@ export async function updateComandaItemQuantityAction(formData: FormData) {
     if (!item) throw new Error("Item não encontrado.");
     const nextQuantity = item.quantity + parsed.data.delta;
     if (nextQuantity <= 0) { await tx.comandaItem.delete({ where: { id: item.id } }); return; }
-    if (item.product.stockQuantity < nextQuantity) throw new Error("Estoque insuficiente para este produto.");
     await tx.comandaItem.update({ where: { id: item.id }, data: { quantity: nextQuantity, totalCents: item.unitPriceCents * nextQuantity } });
   });
   revalidatePath("/comandas");
@@ -245,7 +243,6 @@ export async function finishComandaAction(formData: FormData) {
       }
     });
     for (const item of comanda.items) {
-      if (item.product.stockQuantity < item.quantity) throw new Error(`Estoque insuficiente para ${item.product.name}.`);
       await tx.product.update({ where: { id: item.productId }, data: { stockQuantity: { decrement: item.quantity } } });
       await tx.stockMovement.create({ data: { arenaId: auth.arenaId, productId: item.productId, type: "OUT", quantity: item.quantity, reason: `Comanda ${comanda.code}` } });
     }

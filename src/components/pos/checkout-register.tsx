@@ -58,10 +58,6 @@ export function CheckoutRegister({ products }: { products: Product[] }) {
     setCart((currentCart) => {
       const existingItem = currentCart.find((item) => item.productId === productId);
       const currentQuantity = existingItem?.quantity ?? 0;
-      if (currentQuantity >= product.stockQuantity) {
-        return currentCart;
-      }
-
       if (existingItem) {
         return currentCart.map((item) =>
           item.productId === productId ? { ...item, quantity: item.quantity + 1 } : item
@@ -78,7 +74,7 @@ export function CheckoutRegister({ products }: { products: Product[] }) {
       return;
     }
 
-    const nextQuantity = Math.max(0, Math.min(quantity, product.stockQuantity));
+    const nextQuantity = Math.max(0, quantity);
     setCart((currentCart) =>
       nextQuantity
         ? currentCart.map((item) => (item.productId === productId ? { ...item, quantity: nextQuantity } : item))
@@ -102,16 +98,15 @@ export function CheckoutRegister({ products }: { products: Product[] }) {
         <div className="checkout-product-grid">
           {filteredProducts.map((product) => (
             <button
-              className="checkout-product"
               key={product.id}
               type="button"
               onClick={() => addProduct(product.id)}
-              disabled={product.stockQuantity <= 0}
+              className={`checkout-product ${product.stockQuantity < 0 ? "is-negative" : product.stockQuantity === 0 ? "is-zero" : ""}`}
             >
               <strong>{product.name}</strong>
               <span>{product.sku || "Sem SKU"}</span>
               <em>{formatMoney(product.priceCents)}</em>
-              <small>Estoque: {product.stockQuantity}</small>
+              <small>{product.stockQuantity < 0 ? `Estoque negativo: ${product.stockQuantity}` : product.stockQuantity === 0 ? "Estoque zerado" : `Estoque: ${product.stockQuantity}`}</small>
             </button>
           ))}
           {!filteredProducts.length ? <p className="muted">Nenhum produto encontrado.</p> : null}
@@ -150,7 +145,6 @@ export function CheckoutRegister({ products }: { products: Product[] }) {
                     aria-label={`Quantidade de ${product.name}`}
                     type="number"
                     min="1"
-                    max={product.stockQuantity}
                     value={item.quantity}
                     onChange={(event) => updateQuantity(item.productId, Number(event.target.value))}
                   />
