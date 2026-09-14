@@ -7475,6 +7475,8 @@ button {
 .daily-court-event-online .agenda-booking-event-card strong { color: #135635; }
 
 /* Ações e cores da agenda: cada tipo de reserva tem leitura imediata. */
+.daily-court-event .agenda-slot-entry { padding-right: 32px; }
+.daily-court-event .agenda-slot-trigger { padding-right: 0; }
 .daily-court-event .agenda-slot-options { top: 50%; right: 7px; transform: translateY(-50%); }
 .daily-court-event .agenda-slot-options-trigger { display: grid; width: 22px; height: 22px; place-items: center; padding: 0; border: 0; border-radius: 6px; background: rgb(255 255 255 / .36); color: currentColor; box-shadow: none; }
 .daily-court-event .agenda-slot-options-trigger:hover, .daily-court-event .agenda-slot-options-trigger[aria-expanded="true"] { background: rgb(255 255 255 / .72); }
