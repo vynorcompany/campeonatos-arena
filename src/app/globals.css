@@ -8589,7 +8589,7 @@ button {
 }
 
 /* Notificações: presença discreta, mas painel sempre acima do restante do portal. */
-.athlete-portal-hero { overflow: visible; position: relative; z-index: 2; }
+.athlete-portal-hero { overflow: visible; position: relative; z-index: 40; }
 .athlete-portal-user-area { grid-template-columns: minmax(0, 1fr) 52px; }
 .athlete-portal-notifications, .athlete-portal-notification-trigger { width: 52px; height: 52px; }
 .athlete-portal-notification-trigger { border-radius: 14px; background: linear-gradient(145deg, rgb(18 57 80 / .72), rgb(12 39 59 / .72)); box-shadow: 0 8px 18px rgb(0 0 0 / .13); }
