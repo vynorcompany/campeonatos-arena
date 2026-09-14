@@ -25,10 +25,10 @@ export function RankingList({ rankings }: RankingListProps) {
   }
 
   return (
-    <div className="simple-list">
+    <section className="active-event-list ranking-active-list" aria-label="Rankings ativos">
       {rankings.map((ranking) => (
-        <div key={ranking.id} className="simple-item">
-          <div className="match-copy">
+        <article key={ranking.id} className="active-event-row ranking-active-row">
+          <div>
             <strong>{ranking.name}</strong>
             <span>
               {formatType(ranking.type)} · {formatModel(ranking.model)} · {formatGeneralUsage(ranking)}
@@ -38,8 +38,8 @@ export function RankingList({ rankings }: RankingListProps) {
           <Link href={`/torneios/rankings/${ranking.id}`} className="button">
             Abrir
           </Link>
-        </div>
+        </article>
       ))}
-    </div>
+    </section>
   );
 }

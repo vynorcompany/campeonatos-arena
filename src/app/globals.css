@@ -8601,3 +8601,31 @@ button {
   .athlete-portal-notification-trigger { border-radius: 12px; }
   .athlete-portal-notification-trigger svg { width: 21px; height: 21px; }
 }
+
+/* Perfil e avisos preservam legibilidade no tema escuro do Portal. */
+.client-portal-announcements article { display: block; }
+.public-player-profile .grid-form > .field > label,
+.public-player-profile .public-player-padel-profile,
+.public-player-profile .public-player-padel-profile legend { color: #eaf5fb; }
+.public-player-profile .grid-form input,
+.public-player-profile .grid-form select { border-color: rgb(101 154 194 / .42); color: #edf7ff; background: #102740; }
+.public-player-profile .grid-form input::placeholder { color: #98b0c1; }
+.public-player-profile .public-player-padel-profile { border-color: rgb(65 211 162 / .34); background: linear-gradient(135deg, #0d2b35, #10243a); }
+.public-player-profile .public-player-padel-profile p { color: #a9c5cf; }
+.public-player-profile .public-player-padel-categories label { border-color: rgb(91 173 183 / .35); color: #d7eef0; background: rgb(9 31 46 / .54); }
+.public-player-profile .public-player-padel-categories input:checked + span { color: #68f0bd; }
+.public-player-profile .public-player-padel-categories label:has(input:checked) { border-color: #44dba7; background: rgb(22 108 86 / .28); }
+
+/* Cadastros administrativos compactos e consistentes. */
+.setting-create-panel { margin-bottom: 14px; }
+.setting-create-panel > summary { width: fit-content; list-style: none; cursor: pointer; }
+.setting-create-panel > summary::-webkit-details-marker { display: none; }
+.setting-create-panel > div { margin-top: 12px; }
+.settings-compact-list { gap: 7px; }
+.settings-compact-list .simple-item { min-height: 0; padding: 10px 13px; }
+.checkout-product.is-zero, .command-product-row.is-zero { border-color: #e7ad49; background: #fff9ec; }
+.checkout-product.is-negative, .command-product-row.is-negative { border-color: #dc6666; background: #fff2f2; }
+.checkout-product.is-zero small, .command-product-row.is-zero small { color: #98640b; font-weight: 800; }
+.checkout-product.is-negative small, .command-product-row.is-negative small { color: #b42318; font-weight: 850; }
+.sidebar-brand-lockup .brand-logo-wrap { overflow: hidden; background: #fff; }
+.sidebar-brand-lockup .brand-logo { width: 100%; height: 100%; object-fit: contain; }
