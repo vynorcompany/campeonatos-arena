@@ -86,6 +86,7 @@ const visibleCourtBookingErrors = new Set([
   "Dados inválidos.",
   "Data e hora invalidas.",
   "Participantes inválidos.",
+  "Selecione pelo menos um cliente antes de salvar a reserva.",
   "Quadras inválidas.",
   "Uma ou mais quadras não pertencem à arena.",
   "Selecione o professor responsável.",
@@ -248,6 +249,7 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
     ? expandWeeklyOccurrences({ startsAt, endsAt, until: repeatUntil })
     : [{ startsAt, endsAt }];
   const participants = parseBookingParticipants(parsed.data.participants);
+  if (!participants.length) throw new Error("Selecione pelo menos um cliente antes de salvar a reserva.");
   const courtIds = parseCourtIds(parsed.data.courtIds, parsed.data.courtId);
   const courts = await prisma.court.findMany({ where: { arenaId: auth.arenaId, id: { in: courtIds } }, select: { id: true } });
   if (courts.length !== courtIds.length) throw new Error("Uma ou mais quadras não pertencem à arena.");
