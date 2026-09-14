@@ -6,6 +6,9 @@ import { requireModuleEdit } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { getMissingTvTablesMessage, isPrismaSchemaOutdatedError, isPrismaUnknownFieldError } from "@/lib/prisma-errors";
 import { savePublicImageUpload } from "@/lib/uploads";
+import { getDiscountedAmountCents } from "@/lib/finance/discounts";
+import { getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
+import { withArenaTransaction } from "@/lib/rls";
 
 const courtOptions = ["Agecon", "Elaine", "Origem"] as const;
 const manualMatchStatusOptions = ["SCHEDULED", "LIVE", "FINISHED"] as const;
@@ -90,6 +93,16 @@ function parseMonthlyAmountToCents(value: string) {
     throw new Error("Informe um valor mensal válido.");
   }
   return Math.round(amount * 100);
+}
+
+function parseFormDate(value: string) {
+  const date = new Date(`${value}T12:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function firstDueDate(startedAt: Date, dueDay: number) {
+  const date = new Date(startedAt.getFullYear(), startedAt.getMonth(), dueDay, 12);
+  return date < startedAt ? new Date(startedAt.getFullYear(), startedAt.getMonth() + 1, dueDay, 12) : date;
 }
 
 function refreshUpcomingMatches() {
@@ -364,6 +377,50 @@ export async function createSponsorshipPlanAction(formData: FormData) {
   const { monthlyAmount, ...data } = parsed.data;
   await prisma.sponsorshipPlan.create({ data: { arenaId: auth.arenaId, ...data, monthlyAmountCents: parseMonthlyAmountToCents(monthlyAmount) } });
   refreshUpcomingMatches();
+}
+
+export async function insertSponsorInPlanAction(formData: FormData) {
+  const auth = await requireModuleEdit("tv");
+  const planId = String(formData.get("sponsorshipPlanId") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  const clientId = String(formData.get("clientId") ?? "");
+  const startedAt = parseFormDate(String(formData.get("startedAt") ?? ""));
+  const installments = Math.min(60, Math.max(1, Number(formData.get("installments") ?? 1) || 1));
+  const dueDay = Math.min(28, Math.max(1, Number(formData.get("dueDay") ?? 10) || 10));
+  const discountMode = String(formData.get("discountMode") ?? "AMOUNT") === "PERCENTAGE" ? "PERCENTAGE" : "AMOUNT";
+  const discountApplication = String(formData.get("discountApplication") ?? "ONE_TIME") === "RECURRING" ? "RECURRING" : "ONE_TIME";
+  const discountRaw = String(formData.get("discount") ?? "0");
+  const discountValue = discountMode === "PERCENTAGE" ? Number(discountRaw.replace(",", ".")) : parseMonthlyAmountToCents(discountRaw);
+  if (!planId || name.length < 2 || !startedAt) throw new Error("Informe empresa, plano e data de início.");
+  if (!Number.isFinite(discountValue) || discountValue < 0 || (discountMode === "PERCENTAGE" && discountValue > 100)) throw new Error("Informe um desconto válido.");
+  const [plan, client, lastSponsor] = await Promise.all([
+    prisma.sponsorshipPlan.findFirst({ where: { id: planId, arenaId: auth.arenaId } }),
+    clientId ? prisma.player.findFirst({ where: { id: clientId, arenaId: auth.arenaId, active: true }, select: { id: true, name: true } }) : Promise.resolve(null),
+    prisma.tvSponsor.findFirst({ where: { arenaId: auth.arenaId, sponsorshipPlanId: planId }, orderBy: { displayOrder: "desc" }, select: { displayOrder: true } })
+  ]);
+  if (!plan) throw new Error("Plano de patrocínio não encontrado.");
+  if (clientId && !client) throw new Error("Cliente vinculado não encontrado.");
+  const monthlyAmountCents = parseMonthlyAmountToCents(String(formData.get("monthlyAmount") ?? ""));
+  const logoFile = formData.get("logo") as File | null;
+  const inlineLogo = await toInlineLogo(logoFile);
+  const logoUrl = inlineLogo ?? await savePublicImageUpload(logoFile, "tv-sponsor-logos", auth.arenaId, auth.arenaId);
+  const firstAmountCents = getDiscountedAmountCents(monthlyAmountCents, discountValue, discountMode);
+  const recurringAmountCents = discountApplication === "RECURRING" ? firstAmountCents : monthlyAmountCents;
+  const counterpartyName = client?.name ?? name;
+  const firstDue = firstDueDate(startedAt, dueDay);
+  await withArenaTransaction(auth.arenaId, async (tx) => {
+    const sponsor = await tx.tvSponsor.create({ data: { arenaId: auth.arenaId, name, subtitle: plan.name, sponsorshipType: plan.sponsorshipType, monthlyAmountCents, benefits: [plan.reservationCredits ? "Reservas" : "", plan.lessonCredits ? "Aulas" : ""].filter(Boolean).join(" · "), reservationCredits: plan.reservationCredits, lessonCredits: plan.lessonCredits, sponsorshipPlanId: plan.id, playerId: client?.id ?? null, startedAt, installments, dueDay, discountMode, discountValue: Math.round(discountValue), discountApplication, displayOrder: (lastSponsor?.displayOrder ?? 0) + 1, ...(logoUrl ? { logoUrl } : {}) } });
+    const note = `Patrocínio ${plan.name}. Desconto ${discountMode === "PERCENTAGE" ? `${discountValue}%` : `R$ ${(discountValue / 100).toFixed(2)}`} ${discountApplication === "RECURRING" ? "recorrente" : "na primeira mensalidade"}.`;
+    const recurrence = await tx.financialRecurrence.create({ data: { arenaId: auth.arenaId, type: "REVENUE", counterpartyName, playerId: client?.id ?? null, category: "Patrocínios", description: `${plan.name} · ${name}`, amountCents: recurringAmountCents, frequency: "MONTHLY", startsAt: startedAt, endsAt: installments === 1 ? firstDue : null, nextDueDate: firstDue, notes: `${note} Sponsor:${sponsor.id}` } });
+    let dueDate = firstDue;
+    for (let installment = 0; installment < installments; installment += 1) {
+      await tx.financialEntry.create({ data: { arenaId: auth.arenaId, type: "REVENUE", counterpartyName, playerId: client?.id ?? null, category: "Patrocínios", description: `${plan.name} · ${name} · ${installment + 1}/${installments}`, amountCents: installment === 0 ? firstAmountCents : recurringAmountCents, dueDate, recurrenceId: recurrence.id, paymentMethod: "Boleto", source: "SPONSORSHIP", externalReference: sponsor.id, notes: note } });
+      dueDate = getNextFinancialRecurrenceDate(dueDate, "MONTHLY");
+    }
+    await tx.financialRecurrence.update({ where: { id: recurrence.id }, data: { nextDueDate: dueDate, active: installments > 1 } });
+  });
+  refreshUpcomingMatches();
+  revalidatePath(`/proximos-jogos/patrocinios/${planId}`);
 }
 
 export async function deleteSponsorshipPlanAction(formData: FormData) {
