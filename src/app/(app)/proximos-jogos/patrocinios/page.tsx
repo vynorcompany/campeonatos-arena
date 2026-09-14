@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
+import { SponsorshipFilters } from "@/components/sponsorship/sponsorship-filters";
 import { CreateSponsorshipPlanButton } from "@/components/sponsorship/sponsorship-plan-dialogs";
 import { createSponsorshipPlanAction, deleteSponsorshipPlanAction, deleteTvSponsorAction } from "@/lib/actions/upcoming-match";
 import { requireModuleView } from "@/lib/auth/guards";
@@ -21,7 +22,7 @@ export default async function SponsorshipManagementPage({ searchParams }: { sear
   const planTypes = planTypeRows.map((plan) => plan.sponsorshipType).sort((first, second) => first.localeCompare(second, "pt-BR"));
 
   return <div className="stack-md sponsorship-management-page">
-    <section className="sponsorship-management-toolbar"><form method="get" className="sponsorship-filter-form"><label>Pesquisa<input name="q" defaultValue={query} placeholder="Digite o nome do plano" /></label><label>Filtros<input name="type" list="sponsorship-plan-types" defaultValue={type} placeholder="Todos os tipos" /><datalist id="sponsorship-plan-types">{planTypes.map((item) => <option key={item} value={item} />)}</datalist></label><label>Classificação<select name="sort" defaultValue={sort}><option value="name">Nome do plano</option><option value="value">Maior valor mensal</option><option value="companies">Mais empresas</option></select></label><button className="button button-small" type="submit">Aplicar</button></form><CreateSponsorshipPlanButton action={createSponsorshipPlanAction} /></section>
+    <section className="sponsorship-management-toolbar"><SponsorshipFilters query={query} type={type} sort={sort} planTypes={planTypes} /><CreateSponsorshipPlanButton action={createSponsorshipPlanAction} /></section>
     {orderedPlans.length ? <div className="active-event-list sponsor-plan-list">
       {orderedPlans.map((plan) => <article className="active-event-row sponsor-plan-row" key={plan.id}>
         <div><strong>{plan.name}</strong><span>{plan.sponsorshipType} · R$ {asCurrency(plan.monthlyAmountCents)}/mês</span><div className="sponsor-benefit-tags">{plan.reservationCredits ? <span>{plan.reservationCredits} reserva(s) por ciclo</span> : null}{plan.lessonCredits ? <span>{plan.lessonCredits} aula(s) por ciclo</span> : null}{!plan.reservationCredits && !plan.lessonCredits ? <span>Sem saldo incluído</span> : null}</div></div>
