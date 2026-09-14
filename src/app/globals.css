@@ -8571,3 +8571,19 @@ button {
   .portal-ranking-panel .portal-ranking-table th:nth-child(n+3),
   .portal-ranking-panel .portal-ranking-table td:nth-child(n+3) { display: table-cell; width: 31px; }
 }
+
+/* Controles do portal: sempre legíveis e sem competir com o conteúdo. */
+.athlete-portal-back { position: relative; z-index: 22; margin-bottom: 12px; }
+.athlete-portal-events-shell .portal-league-category-card { gap: 9px; padding: 13px 14px; }
+.athlete-portal-events-shell .portal-league-category-card > label select { min-height: 42px; padding-inline: 12px; border-radius: 9px; font-size: .8rem; font-weight: 700; }
+.portal-ranking-panel .portal-compact-filter select { min-height: 38px; padding-inline: 10px; font-size: .76rem; }
+.athlete-portal-events-shell .portal-league-category-card select option,
+.portal-ranking-panel .portal-compact-filter select option { color: #eef8ff; background: #102a45; }
+.athlete-portal-events-shell .portal-league-category-card select option:checked,
+.portal-ranking-panel .portal-compact-filter select option:checked { color: #ffffff; background: #1b5a84; }
+@media (max-width: 700px) {
+  .athlete-portal-back { margin-bottom: 10px; }
+  .athlete-portal-events-shell .portal-league-category-card { gap: 8px; padding: 11px 12px; }
+  .athlete-portal-events-shell .portal-league-category-card > label select,
+  .portal-ranking-panel .portal-compact-filter select { min-height: 38px; font-size: .72rem; }
+}
