@@ -314,6 +314,7 @@ export function ManualUpcomingMatchesTv({
         <header className="tv-header">
           <div className="tv-brand">
             <Image src={arenaLogoUrl || "/arena-profile.jpg"} alt={arenaName} width={140} height={140} className="tv-arena-logo" priority />
+            <div className="tv-brand-copy"><span>ARENA PADEL</span><strong>{arenaName}</strong></div>
           </div>
           <h1 className="tv-title">{activeSlide.title}</h1>
           <div className="tv-counter">
