@@ -1,7 +1,8 @@
 import { SafeActionForm } from "@/components/forms/safe-action-form";
+import Link from "next/link";
 import { SubmitButton } from "@/components/forms/submit-button";
-import { AddSponsorToPlanButton, CreateSponsorshipPlanButton } from "@/components/sponsorship/sponsorship-plan-dialogs";
-import { createSponsorshipPlanAction, createTvSponsorAction, deleteSponsorshipPlanAction, deleteTvSponsorAction } from "@/lib/actions/upcoming-match";
+import { CreateSponsorshipPlanButton } from "@/components/sponsorship/sponsorship-plan-dialogs";
+import { createSponsorshipPlanAction, deleteSponsorshipPlanAction, deleteTvSponsorAction } from "@/lib/actions/upcoming-match";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
@@ -20,7 +21,7 @@ export default async function SponsorshipManagementPage() {
       {plans.map((plan) => <article className="active-event-row sponsor-plan-row" key={plan.id}>
         <div><strong>{plan.name}</strong><span>{plan.sponsorshipType} · R$ {asCurrency(plan.monthlyAmountCents)}/mês</span><div className="sponsor-benefit-tags">{plan.reservationCredits ? <span>{plan.reservationCredits} reserva(s) por ciclo</span> : null}{plan.lessonCredits ? <span>{plan.lessonCredits} aula(s) por ciclo</span> : null}{!plan.reservationCredits && !plan.lessonCredits ? <span>Sem saldo incluído</span> : null}</div></div>
         <section className="sponsor-company-list"><strong>Empresas · {plan.sponsors.length}</strong>{plan.sponsors.length ? plan.sponsors.map((sponsor) => <div className="sponsor-company-row" key={sponsor.id}>{sponsor.logoUrl ? <img src={sponsor.logoUrl} alt="" /> : <span>{sponsor.name.slice(0, 1)}</span>}<b>{sponsor.name}</b><SafeActionForm action={deleteTvSponsorAction}><input type="hidden" name="sponsorId" value={sponsor.id} /><SubmitButton label={`Excluir ${sponsor.name}`} pendingLabel="..." className="button button-danger button-small sponsor-delete-button" /></SafeActionForm></div>) : <p className="muted">Ainda não há empresa vinculada.</p>}</section>
-        <div className="active-event-actions"><AddSponsorToPlanButton action={createTvSponsorAction} planId={plan.id} order={plan.sponsors.length + 1} /><SafeActionForm action={deleteSponsorshipPlanAction}><input type="hidden" name="planId" value={plan.id} /><SubmitButton label="Excluir plano" pendingLabel="Excluindo..." className="button button-secondary button-small" /></SafeActionForm></div>
+        <div className="active-event-actions"><Link href={`/proximos-jogos/patrocinios/${plan.id}`} className="button button-primary button-small">Entrar no plano</Link><SafeActionForm action={deleteSponsorshipPlanAction}><input type="hidden" name="planId" value={plan.id} /><SubmitButton label="Excluir plano" pendingLabel="Excluindo..." className="button button-secondary button-small" /></SafeActionForm></div>
       </article>)}
     </div> : <section className="sponsor-empty-state"><strong>Nenhum plano cadastrado</strong><p>Crie um plano e, em seguida, inclua as empresas que fazem parte dele.</p></section>}
     {legacySponsors.length ? <section className="sponsor-legacy-list"><strong>Empresas sem plano</strong><div>{legacySponsors.map((sponsor) => <span key={sponsor.id}>{sponsor.name}</span>)}</div><p>Crie um plano para organizar estas empresas e os benefícios vinculados.</p></section> : null}

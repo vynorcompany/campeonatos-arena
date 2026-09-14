@@ -34,17 +34,36 @@ export function CreateSponsorshipPlanButton({ action }: { action: Action }) {
   </>;
 }
 
-export function AddSponsorToPlanButton({ action, planId, order }: { action: Action; planId: string; order: number }) {
+export function AddSponsorToPlanButton({ action, planId, clients = [], monthlyAmount = "0,00" }: { action: Action; planId: string; clients?: { id: string; name: string; phone: string }[]; monthlyAmount?: string }) {
   const [open, setOpen] = useState(false);
   return <>
     <button type="button" className="button button-small" onClick={() => setOpen(true)}>Inserir empresa</button>
     {open ? <Dialog title="Inserir empresa no plano" close={() => setOpen(false)}>
-      <SafeActionForm action={action} className="grid-form sponsorship-dialog-form" resetOnSuccess successMessage="Empresa adicionada ao plano." onSuccess={() => setOpen(false)}>
-        <input type="hidden" name="sponsorshipPlanId" value={planId} /><input type="hidden" name="displayOrder" value={order} /><input type="hidden" name="subtitle" value="" /><input type="hidden" name="sponsorshipType" value="" /><input type="hidden" name="monthlyAmount" value="0" /><input type="hidden" name="reservationCredits" value="0" /><input type="hidden" name="lessonCredits" value="0" />
+      <SafeActionForm action={action} className="grid-form sponsorship-dialog-form" resetOnSuccess successMessage="Empresa inserida e lançamentos a receber gerados." onSuccess={() => setOpen(false)}>
+        <input type="hidden" name="sponsorshipPlanId" value={planId} />
         <label className="field form-full">Empresa<input name="name" required placeholder="Nome da empresa" autoFocus /></label>
+        <label className="field form-full">Vincular a um cliente <select name="clientId" defaultValue=""><option value="">Sem cliente vinculado</option>{clients.map((client) => <option key={client.id} value={client.id}>{client.name}{client.phone ? ` · ${client.phone}` : ""}</option>)}</select><small>Quando selecionado, o lançamento será emitido no nome do cliente.</small></label>
         <label className="field form-full">Logo <small>PNG, JPG, WebP ou SVG</small><input name="logo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" /></label>
+        <label className="field">Data de início<input name="startedAt" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} /></label>
+        <label className="field">Número de parcelas<input name="installments" type="number" min="1" max="60" defaultValue="12" required /></label>
+        <label className="field">Dia de vencimento<input name="dueDay" type="number" min="1" max="28" defaultValue="10" required /></label>
+        <label className="field">Valor mensal<CurrencyInput name="monthlyAmount" defaultValue={monthlyAmount} required /></label>
+        <label className="field">Desconto<input name="discount" inputMode="decimal" defaultValue="0" /></label>
+        <label className="field">Desconto em<select name="discountMode" defaultValue="AMOUNT"><option value="AMOUNT">R$</option><option value="PERCENTAGE">%</option></select></label>
+        <label className="field form-full">Aplicar desconto<select name="discountApplication" defaultValue="ONE_TIME"><option value="ONE_TIME">Somente na primeira mensalidade</option><option value="RECURRING">Em todas as mensalidades</option></select></label>
         <footer className="sponsorship-dialog-actions form-full"><button type="button" className="button" onClick={() => setOpen(false)}>Cancelar</button><SubmitButton label="Adicionar empresa" pendingLabel="Adicionando..." className="button button-primary" /></footer>
       </SafeActionForm>
     </Dialog> : null}
+  </>;
+}
+
+export function EditSponsorButton({ action, sponsor, plan }: { action: Action; sponsor: { id: string; name: string; logoUrl: string; displayOrder: number }; plan: { name: string; sponsorshipType: string; monthlyAmount: string; reservationCredits: number; lessonCredits: number } }) {
+  const [open, setOpen] = useState(false);
+  return <>
+    <button type="button" className="button button-small" onClick={() => setOpen(true)}>Editar</button>
+    {open ? <Dialog title="Editar empresa" close={() => setOpen(false)}><SafeActionForm action={action} className="grid-form sponsorship-dialog-form" successMessage="Empresa atualizada." onSuccess={() => setOpen(false)}>
+      <input type="hidden" name="sponsorId" value={sponsor.id} /><input type="hidden" name="subtitle" value={plan.name} /><input type="hidden" name="sponsorshipType" value={plan.sponsorshipType} /><input type="hidden" name="monthlyAmount" value={plan.monthlyAmount} /><input type="hidden" name="reservationCredits" value={plan.reservationCredits} /><input type="hidden" name="lessonCredits" value={plan.lessonCredits} /><input type="hidden" name="displayOrder" value={sponsor.displayOrder} />
+      <label className="field form-full">Nome da empresa<input name="name" defaultValue={sponsor.name} required /></label><label className="field form-full">Nova logo <small>Deixe vazio para manter a atual.</small><input name="logo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" /></label><footer className="sponsorship-dialog-actions form-full"><button type="button" className="button" onClick={() => setOpen(false)}>Cancelar</button><SubmitButton label="Salvar empresa" pendingLabel="Salvando..." className="button button-primary" /></footer>
+    </SafeActionForm></Dialog> : null}
   </>;
 }
