@@ -1,9 +1,10 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard } from "@/components/section-card";
-import { connectPaymentProviderAction, createCouponAction, createFinancialSettingAction, createProductCategoryAction, updateFiscalSettingsAction, updateOnlinePaymentSettingsAction } from "@/lib/actions/finance";
+import { connectPaymentProviderAction, createCouponAction, createFinancialSettingAction, createProductCategoryAction, reconcileBankAccountBalanceAction, updateFiscalSettingsAction, updateOnlinePaymentSettingsAction } from "@/lib/actions/finance";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
@@ -20,6 +21,7 @@ const areas = {
 
 function money(value: number) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value / 100); }
 function backLink() { return <Link className="button" href="/financeiro/configuracoes">Voltar às configurações</Link>; }
+function SettingCreatePanel({ label, children }: { label: string; children: ReactNode }) { return <details className="setting-create-panel"><summary className="button button-primary">{label}</summary><div>{children}</div></details>; }
 
 export default async function FinancialSettingAreaPage({ params, searchParams }: { params: { area: string }; searchParams?: { connectionError?: string } }) {
   const auth = await requireModuleView("finance");
@@ -29,7 +31,7 @@ export default async function FinancialSettingAreaPage({ params, searchParams }:
 
   if (area === "categorias-produtos") {
     const categories = await prisma.productCategory.findMany({ where: { arenaId: auth.arenaId }, include: { _count: { select: { products: true } } }, orderBy: { name: "asc" } });
-    return <div className="stack-md"><SectionCard title={item[0]} description={item[1]}><SafeActionForm action={createProductCategoryAction} className="grid-form" resetOnSuccess successMessage="Categoria criada."><div className="field"><label>Nome<input name="name" required /></label></div><div className="field field-submit"><SubmitButton label="Adicionar categoria" pendingLabel="Salvando..." className="button button-primary" /></div></SafeActionForm><div className="simple-list">{categories.map((entry) => <div className="simple-item" key={entry.id}><strong>{entry.name}</strong><span>{entry.active ? "Ativa" : "Inativa"} · {entry._count.products} produto(s)</span></div>)}{!categories.length ? <p className="muted">Nenhuma categoria cadastrada.</p> : null}</div>{backLink()}</SectionCard></div>;
+    return <div className="stack-md"><SectionCard title={item[0]} description={item[1]}><SettingCreatePanel label="Nova categoria"><SafeActionForm action={createProductCategoryAction} className="grid-form" resetOnSuccess successMessage="Categoria criada."><div className="field"><label>Nome<input name="name" required /></label></div><div className="field field-submit"><SubmitButton label="Salvar categoria" pendingLabel="Salvando..." className="button button-primary" /></div></SafeActionForm></SettingCreatePanel><div className="simple-list settings-compact-list">{categories.map((entry) => <div className="simple-item" key={entry.id}><strong>{entry.name}</strong><span>{entry.active ? "Ativa" : "Inativa"} · {entry._count.products} produto(s)</span></div>)}{!categories.length ? <p className="muted">Nenhuma categoria cadastrada.</p> : null}</div>{backLink()}</SectionCard></div>;
   }
 
   if (area === "cupons") {
