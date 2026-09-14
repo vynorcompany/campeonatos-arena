@@ -8658,6 +8658,27 @@ button {
 .sponsor-company-row .button { min-width: 30px; padding-inline: 7px; font-size: 0; }
 .sponsor-company-row .button::after { content: "🗑"; font-size: .82rem; }
 .sponsor-legacy-list { display: grid; gap: 5px; margin-top: 16px; padding: 12px; border: 1px dashed var(--border); border-radius: 10px; }
+
+/* Planos de patrocínio seguem o mesmo ritmo visual dos eventos ativos. */
+.sponsorship-management-page { max-width: 1120px; }
+.sponsor-plan-list { grid-template-columns: repeat(auto-fit, minmax(290px, 360px)); }
+.sponsor-plan-row { min-height: 0; gap: 12px; }
+.sponsor-plan-row .sponsor-benefit-tags { margin-top: 5px; }
+.sponsor-empty-state { display: grid; gap: 5px; max-width: 520px; padding: 18px; border: 1px dashed #c8d8e8; border-radius: 14px; background: #f8fbfe; color: #526987; }
+.sponsor-empty-state strong { color: #132d58; }
+.sponsor-empty-state p, .sponsor-legacy-list p { margin: 0; color: #6f829f; font-size: .82rem; }
+.sponsor-legacy-list { max-width: 720px; gap: 9px; margin-top: 0; background: #fff; }
+.sponsor-legacy-list > div { display: flex; flex-wrap: wrap; gap: 7px; }
+.sponsor-legacy-list > div span { padding: 5px 8px; border-radius: 999px; background: #f1f6fb; color: #49627f; font-size: .74rem; font-weight: 700; }
+.sponsor-delete-button { display: grid; width: 32px; min-width: 32px !important; height: 32px; padding: 0 !important; place-items: center; overflow: hidden; text-indent: -999px; }
+.sponsor-delete-button::after { content: "🗑"; display: block; font-size: .82rem; line-height: 1; text-indent: 0; }
+.sponsorship-dialog-backdrop { position: fixed; z-index: 300; inset: 0; display: grid; place-items: center; padding: 20px; background: rgb(8 27 48 / .48); }
+.sponsorship-dialog { width: min(100%, 720px); max-height: min(720px, calc(100dvh - 40px)); overflow: auto; padding: 20px; border: 1px solid #cbd9e8; border-radius: 16px; background: #fff; box-shadow: 0 20px 56px rgb(9 35 67 / .3); }
+.sponsorship-dialog > header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; padding-bottom: 13px; border-bottom: 1px solid #e2ebf4; }
+.sponsorship-dialog h2 { margin: 0; color: #132d58; font-size: 1.08rem; }
+.sponsorship-dialog-form { gap: 14px; }
+.sponsorship-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+@media (max-width: 640px) { .sponsor-plan-list { grid-template-columns: 1fr; }.sponsorship-dialog-backdrop { padding: 12px; }.sponsorship-dialog { max-height: calc(100dvh - 24px); padding: 16px; }.sponsorship-dialog-actions { align-items: stretch; flex-direction: column-reverse; }.sponsorship-dialog-actions .button { width: 100%; justify-content: center; } }
 .sponsor-legacy-list p { margin: 0; font-size: .8rem; }
 
 /* Navegação administrativa: leitura leve, marca e ambiente sem controles redundantes. */
