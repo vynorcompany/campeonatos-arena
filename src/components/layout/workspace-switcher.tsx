@@ -1,3 +1,5 @@
+"use client";
+
 import { setWorkspaceAction } from "@/lib/auth/actions";
 import type { ArenaMembership } from "@/types/auth";
 
@@ -37,4 +39,3 @@ export function WorkspaceSwitcher({
     </form>
   );
 }
-"use client";
