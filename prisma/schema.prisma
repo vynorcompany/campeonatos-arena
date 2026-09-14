@@ -1050,6 +1050,8 @@ model TvSponsor {
   sponsorshipType String @default("")
   monthlyAmountCents Int @default(0)
   benefits    String   @default("")
+  reservationCredits Int @default(0)
+  lessonCredits Int @default(0)
   logoUrl     String   @default("")
   displayOrder Int     @default(1)
   createdAt   DateTime @default(now())

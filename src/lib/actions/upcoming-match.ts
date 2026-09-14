@@ -57,6 +57,8 @@ const tvSponsorSchema = z.object({
   sponsorshipType: z.string().trim().max(80, "Tipo de patrocínio muito longo.").default(""),
   monthlyAmount: z.string().trim().default("0"),
   benefits: z.string().trim().max(500, "As entregas estão muito longas.").default(""),
+  reservationCredits: z.coerce.number().int().min(0, "Saldo de reservas inválido.").max(99, "Saldo de reservas inválido.").default(0),
+  lessonCredits: z.coerce.number().int().min(0, "Saldo de aulas inválido.").max(99, "Saldo de aulas inválido.").default(0),
   displayOrder: z.coerce.number().int().min(1, "Ordem inválida.").max(99, "Ordem inválida.")
 });
 
@@ -310,7 +312,9 @@ export async function createTvSponsorAction(formData: FormData) {
     subtitle: formData.get("subtitle"),
     sponsorshipType: formData.get("sponsorshipType"),
     monthlyAmount: formData.get("monthlyAmount"),
-    benefits: formData.getAll("benefits").map(String).map((item) => item.trim()).filter(Boolean).join(" · "),
+    benefits: [Number(formData.get("reservationCredits") ?? 0) > 0 ? "Reservas" : "", Number(formData.get("lessonCredits") ?? 0) > 0 ? "Aulas" : ""].filter(Boolean).join(" · "),
+    reservationCredits: formData.get("reservationCredits"),
+    lessonCredits: formData.get("lessonCredits"),
     displayOrder: formData.get("displayOrder")
   });
 
@@ -345,7 +349,9 @@ export async function updateTvSponsorAction(formData: FormData) {
     subtitle: formData.get("subtitle"),
     sponsorshipType: formData.get("sponsorshipType"),
     monthlyAmount: formData.get("monthlyAmount"),
-    benefits: formData.getAll("benefits").map(String).map((item) => item.trim()).filter(Boolean).join(" · "),
+    benefits: [Number(formData.get("reservationCredits") ?? 0) > 0 ? "Reservas" : "", Number(formData.get("lessonCredits") ?? 0) > 0 ? "Aulas" : ""].filter(Boolean).join(" · "),
+    reservationCredits: formData.get("reservationCredits"),
+    lessonCredits: formData.get("lessonCredits"),
     displayOrder: formData.get("displayOrder")
   });
 
