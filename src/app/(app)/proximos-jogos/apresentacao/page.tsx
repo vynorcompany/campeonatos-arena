@@ -11,9 +11,10 @@ function checked(value: boolean) { return value ? { defaultChecked: true } : {};
 
 export default async function TvPresentationSettingsPage() {
   const auth = await requireModuleView("tv");
-  const [payload, tournaments] = await Promise.all([
+  const [payload, tournaments, leagueCycles] = await Promise.all([
     getTvPresentationPayload(auth.arenaId),
-    prisma.tournament.findMany({ where: { arenaId: auth.arenaId, status: { not: "FINISHED" } }, orderBy: [{ createdAt: "desc" }], select: { id: true, name: true, status: true } })
+    prisma.tournament.findMany({ where: { arenaId: auth.arenaId, status: { not: "FINISHED" } }, orderBy: [{ createdAt: "desc" }], select: { id: true, name: true, status: true } }),
+    prisma.leagueCycle.findMany({ where: { status: "OPEN", competition: { category: { tournament: { arenaId: auth.arenaId } } } }, orderBy: [{ updatedAt: "desc" }], select: { id: true, prizeDescription: true, competition: { select: { category: { select: { name: true } } } } } })
   ]);
 
   return <div className="stack-md">
@@ -22,7 +23,7 @@ export default async function TvPresentationSettingsPage() {
       <SafeActionForm action={upsertTvPresentationSettingsAction} className="grid-form" successMessage="Configurações da TV salvas.">
         <div className="field"><label htmlFor="slide-interval">Troca de slides (segundos)</label><input id="slide-interval" name="slideIntervalSeconds" type="number" min="5" max="120" defaultValue={payload.settings.slideIntervalSeconds} /></div>
         <div className="field"><label htmlFor="tv-match-source">Origem dos jogos</label><select id="tv-match-source" name="tvMatchSource" defaultValue={payload.settings.tvMatchSource}><option value="MANUAL">Jogos manuais</option><option value="TOURNAMENT">Jogos de torneios</option></select></div>
-        <div className="field form-full"><label htmlFor="selected-tournament">Evento ativo para os jogos e premiações</label><select id="selected-tournament" name="selectedTournamentId" defaultValue={payload.settings.selectedTournamentId}><option value="">Usar eventos ativos da arena</option>{tournaments.map((tournament) => <option key={tournament.id} value={tournament.id}>{tournament.name} ({tournament.status})</option>)}</select></div>
+        <div className="field form-full"><label htmlFor="selected-tournament">Liga ou evento ativo para a premiação</label><select id="selected-tournament" name="selectedTournamentId" defaultValue={payload.settings.selectedTournamentId}><option value="">Não exibir premiação</option>{tournaments.map((tournament) => <option key={tournament.id} value={tournament.id}>Evento · {tournament.name} ({tournament.status})</option>)}{leagueCycles.map((cycle) => <option key={cycle.id} value={`league:${cycle.id}`}>Liga · {cycle.competition.category.name}{cycle.prizeDescription ? "" : " (sem premiação cadastrada)"}</option>)}</select></div>
         <div className="tv-settings-grid form-full">
           <label className="check-option tv-check-option"><input name="showMatches" type="checkbox" {...checked(payload.settings.showMatches)} /><span>Próximos jogos</span></label><label className="check-option tv-check-option"><input name="showCalendar" type="checkbox" {...checked(payload.settings.showCalendar)} /><span>Calendário da arena</span></label><label className="check-option tv-check-option"><input name="showSponsors" type="checkbox" {...checked(payload.settings.showSponsors)} /><span>Patrocinadores</span></label><label className="check-option tv-check-option"><input name="showMonthlyPrize" type="checkbox" {...checked(payload.settings.showMonthlyPrize)} /><span>Premiações de eventos</span></label><label className="check-option tv-check-option"><input name="showNightWinner" type="checkbox" {...checked(payload.settings.showNightWinner)} /><span>Destaque da noite</span></label>
         </div>

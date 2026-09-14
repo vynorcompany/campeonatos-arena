@@ -537,10 +537,11 @@ export async function getTvPresentationPayload(arenaId: string) {
     ? await getTournamentUpcomingMatchesPayload(arenaId)
     : manualMatches;
 
-  const selectedTournament = settings?.selectedTournamentId
+  const selectedSourceId = settings?.selectedTournamentId ?? "";
+  const selectedTournament = selectedSourceId && !selectedSourceId.startsWith("league:")
     ? await prisma.tournament.findFirst({
         where: {
-          id: settings.selectedTournamentId,
+          id: selectedSourceId,
           arenaId
         },
         select: {
@@ -556,6 +557,16 @@ export async function getTvPresentationPayload(arenaId: string) {
         }
 
         throw error;
+      })
+    : null;
+  const selectedLeagueCycle = selectedSourceId.startsWith("league:")
+    ? await prisma.leagueCycle.findFirst({
+        where: {
+          id: selectedSourceId.slice("league:".length),
+          status: "OPEN",
+          competition: { category: { tournament: { arenaId } } }
+        },
+        select: { prizeDescription: true, competition: { select: { category: { select: { name: true } } } } }
       })
     : null;
 
@@ -600,24 +611,24 @@ export async function getTvPresentationPayload(arenaId: string) {
   const formatPrize = (position: number, cents: number) => cents > 0 ? `${position}º lugar — ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100)}` : "";
   const tournamentPrizeItems = selectedTournament
     ? [formatPrize(1, selectedTournament.priceFirstCents), formatPrize(2, selectedTournament.priceSecondCents), formatPrize(3, selectedTournament.priceThirdCents)].filter(Boolean)
-    : [];
+    : selectedLeagueCycle?.prizeDescription.trim() ? [selectedLeagueCycle.prizeDescription.trim()] : [];
 
   return {
     matches,
     settings: {
       slideIntervalSeconds: settings?.slideIntervalSeconds ?? 12,
-      selectedTournamentId: selectedTournament?.id ?? "",
+      selectedTournamentId: selectedSourceId,
       tvMatchSource: settings?.tvMatchSource ?? "MANUAL",
       selectedRankingIds: settings?.selectedRankingIds ?? [],
       selectedSponsorIds,
-      selectedTournamentName: selectedTournament?.name ?? "",
+      selectedTournamentName: selectedTournament?.name ?? selectedLeagueCycle?.competition.category.name ?? "",
       showMatches: settings?.showMatches ?? true,
       showCalendar: settings?.showCalendar ?? true,
       showSponsors: settings?.showSponsors ?? false,
       showRanking: false,
       showMonthlyPrize: (settings?.showMonthlyPrize ?? false) && tournamentPrizeItems.length > 0,
       showNightWinner: settings?.showNightWinner ?? false,
-      monthlyPrizeTitle: selectedTournament ? `Premiação • ${selectedTournament.name}` : "Premiação do evento",
+      monthlyPrizeTitle: selectedTournament ? `Premiação • ${selectedTournament.name}` : selectedLeagueCycle ? `Premiação • Liga ${selectedLeagueCycle.competition.category.name}` : "Premiação do evento",
       monthlyPrizeAmount: tournamentPrizeItems[0] ?? "",
       monthlyPrizeDescription: tournamentPrizeItems.slice(1).join(" | "),
       nightWinnerTitle: settings?.nightWinnerTitle ?? "Vencedor da noite",
