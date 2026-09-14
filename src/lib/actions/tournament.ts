@@ -8,6 +8,7 @@ import { isPrismaUnknownFieldError } from "@/lib/prisma-errors";
 import { getAthleteDeletionRestriction } from "@/lib/athlete-management";
 import { toPersistentPlayerPhoto } from "@/lib/uploads";
 import { requireModuleEdit } from "@/lib/auth/guards";
+import { normalizeBrazilianPhone } from "@/lib/phone";
 import {
   archivePlayerSchema,
   createPlayerSchema,
@@ -289,6 +290,9 @@ export async function createPlayerAction(_: ActionState, formData: FormData): Pr
   }
 
   try {
+    const phone = normalizeBrazilianPhone(parsed.data.phone);
+    const existingPhones = await prisma.player.findMany({ where: { arenaId: auth.arenaId, mergedIntoPlayerId: null }, select: { phone: true } });
+    if (phone && existingPhones.some((player) => normalizeBrazilianPhone(player.phone) === phone)) return { error: "Já existe um cliente cadastrado com este telefone.", success: null };
     const photoUrl = await toPersistentPlayerPhoto(formData.get("photo") as File | null);
 
     await prisma.$transaction(async (tx) => {
@@ -299,7 +303,7 @@ export async function createPlayerAction(_: ActionState, formData: FormData): Pr
           points: parsed.data.points,
           class: parsed.data.class,
           gender: parsed.data.gender,
-          phone: parsed.data.phone,
+          phone,
           email: parsed.data.email ?? "",
           cpf: parsed.data.cpf,
           addressZipCode: parsed.data.addressZipCode.replace(/\D/g, ""), addressStreet: parsed.data.addressStreet, addressNumber: parsed.data.addressNumber, addressNeighborhood: parsed.data.addressNeighborhood, addressCity: parsed.data.addressCity, addressState: parsed.data.addressState.toUpperCase(),
@@ -312,9 +316,9 @@ export async function createPlayerAction(_: ActionState, formData: FormData): Pr
         where: { arenaId: auth.arenaId, name: player.name }
       });
       if (existingStudent) {
-        await tx.student.update({ where: { id: existingStudent.id }, data: { playerId: player.id, phone: parsed.data.phone, email: parsed.data.email ?? "", active: true } });
+        await tx.student.update({ where: { id: existingStudent.id }, data: { playerId: player.id, phone, email: parsed.data.email ?? "", active: true } });
       } else {
-        await tx.student.create({ data: { arenaId: auth.arenaId, playerId: player.id, name: player.name, phone: parsed.data.phone, email: parsed.data.email ?? "" } });
+        await tx.student.create({ data: { arenaId: auth.arenaId, playerId: player.id, name: player.name, phone, email: parsed.data.email ?? "" } });
       }
 
       if (parsed.data.isTeacher) {
@@ -358,10 +362,13 @@ export async function updatePlayerAction(formData: FormData) {
   }
 
   try {
+    const phone = normalizeBrazilianPhone(parsed.data.phone);
+    const existingPhones = await prisma.player.findMany({ where: { arenaId: auth.arenaId, id: { not: parsed.data.playerId }, mergedIntoPlayerId: null }, select: { phone: true } });
+    if (phone && existingPhones.some((player) => normalizeBrazilianPhone(player.phone) === phone)) throw new Error("Já existe um cliente cadastrado com este telefone.");
     const photoUrl = await toPersistentPlayerPhoto(formData.get("photo") as File | null);
     const updated = await prisma.player.updateMany({
       where: { id: parsed.data.playerId, arenaId: auth.arenaId },
-      data: { name: parsed.data.name, points: parsed.data.points, class: parsed.data.class, gender: parsed.data.gender, phone: parsed.data.phone, ...(parsed.data.email !== undefined ? { email: parsed.data.email } : {}), cpf: parsed.data.cpf, birthDate: parsed.data.birthDate, ...(parsed.data.addressZipCode !== undefined ? { addressZipCode: parsed.data.addressZipCode.replace(/\D/g, ""), addressStreet: parsed.data.addressStreet ?? "", addressNumber: parsed.data.addressNumber ?? "", addressNeighborhood: parsed.data.addressNeighborhood ?? "", addressCity: parsed.data.addressCity ?? "", addressState: (parsed.data.addressState ?? "").toUpperCase() } : {}), ...(photoUrl ? { photoUrl } : {}) }
+      data: { name: parsed.data.name, points: parsed.data.points, class: parsed.data.class, gender: parsed.data.gender, phone, ...(parsed.data.email !== undefined ? { email: parsed.data.email } : {}), cpf: parsed.data.cpf, birthDate: parsed.data.birthDate, ...(parsed.data.addressZipCode !== undefined ? { addressZipCode: parsed.data.addressZipCode.replace(/\D/g, ""), addressStreet: parsed.data.addressStreet ?? "", addressNumber: parsed.data.addressNumber ?? "", addressNeighborhood: parsed.data.addressNeighborhood ?? "", addressCity: parsed.data.addressCity ?? "", addressState: (parsed.data.addressState ?? "").toUpperCase() } : {}), ...(photoUrl ? { photoUrl } : {}) }
     });
 
     if (!updated.count) {

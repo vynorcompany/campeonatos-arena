@@ -329,7 +329,7 @@ async function getTvSettings(arenaId: string) {
 async function getTvSponsors(arenaId: string) {
   try {
     const sponsors = await prisma.tvSponsor.findMany({
-      where: { arenaId },
+      where: { arenaId, sponsorshipPlanId: { not: null } },
       orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
       select: {
         id: true,
@@ -348,7 +348,7 @@ async function getTvSponsors(arenaId: string) {
 
     try {
       const legacySponsors = await prisma.tvSponsor.findMany({
-        where: { arenaId },
+        where: { arenaId, sponsorshipPlanId: { not: null } },
         orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
         select: {
           id: true,
