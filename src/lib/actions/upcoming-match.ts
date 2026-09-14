@@ -240,12 +240,12 @@ export async function upsertTvPresentationSettingsAction(formData: FormData) {
     tvMatchSource: formData.get("tvMatchSource"),
     selectedRankingIds: formData.getAll("selectedRankingIds").map(String).filter(Boolean),
     selectedSponsorIds: formData.getAll("selectedSponsorIds").map(String).filter(Boolean),
-    showMatches: formData.get("showMatches") === "on",
-    showCalendar: formData.get("showCalendar") === "on",
+    showMatches: true,
+    showCalendar: true,
     showSponsors: formData.get("showSponsors") === "on",
     showRanking: formData.get("showRanking") === "on",
     showMonthlyPrize: formData.get("showMonthlyPrize") === "on",
-    showNightWinner: formData.get("showNightWinner") === "on",
+    showNightWinner: false,
     monthlyPrizeTitle: formData.get("monthlyPrizeTitle"),
     monthlyPrizeAmount: formData.get("monthlyPrizeFirst"),
     monthlyPrizeDescription: [
@@ -310,7 +310,7 @@ export async function createTvSponsorAction(formData: FormData) {
     subtitle: formData.get("subtitle"),
     sponsorshipType: formData.get("sponsorshipType"),
     monthlyAmount: formData.get("monthlyAmount"),
-    benefits: formData.get("benefits"),
+    benefits: formData.getAll("benefits").map(String).map((item) => item.trim()).filter(Boolean).join(" · "),
     displayOrder: formData.get("displayOrder")
   });
 
@@ -345,7 +345,7 @@ export async function updateTvSponsorAction(formData: FormData) {
     subtitle: formData.get("subtitle"),
     sponsorshipType: formData.get("sponsorshipType"),
     monthlyAmount: formData.get("monthlyAmount"),
-    benefits: formData.get("benefits"),
+    benefits: formData.getAll("benefits").map(String).map((item) => item.trim()).filter(Boolean).join(" · "),
     displayOrder: formData.get("displayOrder")
   });
 
