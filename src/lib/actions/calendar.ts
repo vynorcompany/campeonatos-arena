@@ -135,7 +135,7 @@ export async function updateOnlineBookingSettingsAction(formData: FormData) {
   });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Configuração inválida.");
 
-  await prisma.arena.update({
+  const arena = await withArenaTransaction(auth.arenaId, (tx) => tx.arena.update({
     where: { id: auth.arenaId },
     data: {
       onlineBookingLayout: parsed.data.layout,
@@ -144,9 +144,12 @@ export async function updateOnlineBookingSettingsAction(formData: FormData) {
       onlineBookingPaymentEnabled: formData.get("paymentOnlineEnabled") === "on",
       onlineBookingLeadTimeMinutes: parsed.data.leadTimeMinutes,
       onlineBookingWhatsappMessage: parsed.data.whatsappMessage
-    }
-  });
+    },
+    select: { slug: true }
+  }));
   refreshCalendar();
+  revalidatePath(`/reservar/${arena.slug}`);
+  revalidatePath(`/classificacao/${arena.slug}`);
 }
 
 export async function createPublicCourtBookingAction(formData: FormData) {
@@ -183,6 +186,7 @@ export async function createPublicCourtBookingAction(formData: FormData) {
   const checkoutUrl = arena.onlineBookingPaymentEnabled ? `/reservar/${arena.slug}/pagamento/${onlineBooking.occurrenceId}` : "";
   revalidatePath("/agenda");
   revalidatePath(`/reservar/${arena.slug}`);
+  revalidatePath(`/classificacao/${arena.slug}`);
   return { checkoutUrl };
 }
 
