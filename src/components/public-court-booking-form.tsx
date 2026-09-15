@@ -13,7 +13,7 @@ function duration(minutes: number) { return minutes % 60 ? `${Math.floor(minutes
 function dateMinute(value: string) { const [, time = "00:00"] = value.split("T"); const [hour, minute] = time.split(":").map(Number); return hour * 60 + minute; }
 function endLabel(startsAt: string, minutes: number) { const value = dateMinute(startsAt) + minutes; return `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`; }
 
-export function PublicCourtBookingForm({ arenaSlug, courts, currentClient, layout, paymentOnlineEnabled, reservedSlots, pendingReservations }: { arenaSlug: string; courts: Court[]; currentClient: { name: string }; layout: string; paymentOnlineEnabled: boolean; reservedSlots: string[]; pendingReservations: string[] }) {
+export function PublicCourtBookingForm({ arenaSlug, courts, currentClient, layout, paymentOnlineEnabled, reservedSlots, pendingReservation }: { arenaSlug: string; courts: Court[]; currentClient: { name: string }; layout: string; paymentOnlineEnabled: boolean; reservedSlots: string[]; pendingReservation: string }) {
   const [courtId, setCourtId] = useState(courts[0]?.id ?? "");
   const court = courts.find((item) => item.id === courtId) ?? courts[0];
   const [startsAt, setStartsAt] = useState(court?.slots[0]?.startsAt ?? "");
@@ -38,7 +38,7 @@ export function PublicCourtBookingForm({ arenaSlug, courts, currentClient, layou
     <label className="field">Duração<select value={durationMinutes} onChange={(event) => setDurationMinutes(Number(event.target.value))}>{Array.from(new Set([durationMinutes, ...(slot?.durations ?? [])])).sort((first, second) => first - second).map((item) => <option value={item} key={item}>{duration(item)} · até {endLabel(startsAt, item)}</option>)}</select></label>
     {selection.hasConflict ? <p className="public-booking-conflict" role="alert">Há uma reserva conflitando com este período. Escolha outro horário ou uma duração menor.</p> : null}
     <section className="public-booking-client-summary"><div><span>RESERVA PARA</span><strong>{currentClient.name}</strong><small>Você está usando sua conta de cliente.</small></div><div className="public-booking-total"><span>Valor total</span><strong>{money(selectedTotalCents)}</strong></div></section>
-    {pendingReservations.length ? <section className="public-booking-pending"><strong>Aguardando confirmação</strong><span>{pendingReservations.join(" · ")}</span><small>A arena avisará você assim que confirmar a reserva.</small></section> : null}
+    {pendingReservation ? <section className="public-booking-pending"><strong>Aguardando confirmação</strong><span>{pendingReservation}</span><small>A arena avisará você assim que confirmar a reserva.</small></section> : null}
     <button className="button button-primary" disabled={pending || selection.hasConflict}>{pending ? "Abrindo pagamento..." : paymentOnlineEnabled ? "Ir para pagamento" : "Solicitar reserva"}</button>
     {reservedSlots.length ? <section className="public-booking-reserved-slots"><strong>Horários reservados</strong><span>{reservedSlots.join(" · ")}</span></section> : null}
     {message ? <p className="public-booking-message" role="status">{message}</p> : null}
