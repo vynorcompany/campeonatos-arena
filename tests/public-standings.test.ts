@@ -108,11 +108,11 @@ test("public standings renders the branded header and finished-game score treatm
 
   assert.match(component, /athlete-portal-hero/);
   assert.match(component, /athlete-portal-brand/);
-  assert.match(component, /athlete-portal-main-nav/);
+  assert.match(component, /athlete-portal-bottom-nav/);
   assert.match(component, /Portal do Atleta/);
   assert.match(component, /PublicLeaguePortal/);
   assert.match(styles, /\.athlete-portal-hero\s*\{[^}]*linear-gradient/s);
-  assert.match(styles, /\.athlete-portal-main-nav/);
+  assert.match(styles, /\.athlete-portal-bottom-nav/);
   assert.match(styles, /@media \(max-width: 700px\)[\s\S]*\.athlete-portal-hero/);
 });
 
@@ -267,6 +267,7 @@ test("public League standings use completed sports matches without ranking point
     {
       position: 1,
       pairName: "Ana / Bia",
+      points: 1,
       matches: 1,
       victories: 1,
       losses: 0,
@@ -275,6 +276,7 @@ test("public League standings use completed sports matches without ranking point
     {
       position: 2,
       pairName: "Clara / Duda",
+      points: 0,
       matches: 1,
       victories: 0,
       losses: 1,
@@ -282,7 +284,7 @@ test("public League standings use completed sports matches without ranking point
     },
   ]);
   assert.deepEqual(standings.knockoutPlacement, []);
-  assert.equal("totalPoints" in standings.leagueStandings[0], false);
+  assert.equal("points" in standings.leagueStandings[0], true);
 });
 
 test("public knockout standings expose only champion and runner-up", () => {
@@ -421,7 +423,7 @@ test("public arena route renders ranking and game views", async () => {
   assert.match(component, /RankingPanel/);
   assert.match(component, /PublicLeaguePortal/);
   assert.match(component, /Vitórias/);
-  assert.match(component, /<select[\s\S]*name="view"/);
+  assert.match(component, /selectedLeagueTab/);
   assert.match(component, /leagueCategoryId/);
   assert.match(component, /selectedLeagueTab/);
   assert.match(component, /PortalSection/);

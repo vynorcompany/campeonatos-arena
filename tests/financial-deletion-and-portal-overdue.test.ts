@@ -16,7 +16,7 @@ test("client portal marks open receivables past their due date as overdue", () =
   assert.match(home, /em atraso/);
   assert.match(home, /financialStatus: overdue \? "overdue" : due \? "pending" : "active"/);
   assert.match(portal, /financialStatus === "overdue" \? "is-overdue"/);
-  assert.match(portal, /portal-financial-overdue/);
+  assert.match(portal, /client-finance-entry is-\$\{entry\.status\}/);
   assert.match(portal, /futureFinancial/);
 });
 

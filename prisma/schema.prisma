@@ -1323,12 +1323,13 @@ model PortalEventPost {
   imageUrl  String
   linkUrl   String?
   active    Boolean  @default(true)
+  pinned    Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   arenaId   String
   arena     Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
 
-  @@index([arenaId, active, createdAt])
+  @@index([arenaId, active, pinned, createdAt])
 }
 
 model Court {

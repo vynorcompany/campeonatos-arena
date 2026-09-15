@@ -13,6 +13,8 @@ test("public booking highlights the consecutive slots for the authenticated clie
   assert.match(form, /currentClient/);
   assert.match(form, /Valor total/);
   assert.match(form, /selectedTotalCents/);
+  assert.match(form, /public-booking-court-card/);
+  assert.doesNotMatch(form, /Quadra<select/);
   assert.match(page, /getPublicPlayerAuth/);
   assert.match(page, /PublicClientAuthForm/);
   assert.match(actions, /requirePublicPlayerAuth/);
@@ -23,5 +25,7 @@ test("daily court grid uses compact rows and the public form remains responsive"
 
   assert.match(styles, /\.daily-court-grid th, \.daily-court-grid td \{[^}]*height: 25px;/);
   assert.match(styles, /\.public-booking-slot-block-selected/);
+  assert.match(styles, /\.public-booking-duration-field \{[^}]*align-content: start/);
+  assert.match(styles, /\.public-booking-court-card\.is-active/);
   assert.match(styles, /@media \(max-width: 720px\)[\s\S]*public-booking/);
 });

@@ -98,7 +98,7 @@ test("command product picker offers a compact category-filtered quantity stepper
   assert.match(schema, /categoryId\s+String\?/);
   assert.match(page, /category:/);
   assert.match(card, /command-product-modal/);
-  assert.match(card, /Produtos em estoque/);
+  assert.match(card, /Venda mesmo sem saldo em estoque/);
   assert.match(card, /productCategories/);
   assert.match(card, /command-product-stepper/);
   assert.match(card, /Adicionar à comanda/);

@@ -59,6 +59,14 @@ export async function togglePortalAnnouncementPinAction(formData: FormData) {
   await refreshPortal(auth.arenaId);
 }
 
+export async function deletePortalAnnouncementAction(formData: FormData) {
+  const auth = await requireModuleEdit("arena");
+  const id = String(formData.get("announcementId") ?? "");
+  const deleted = await prisma.portalAnnouncement.deleteMany({ where: { id, arenaId: auth.arenaId } });
+  if (!deleted.count) throw new Error("Aviso não encontrado.");
+  await refreshPortal(auth.arenaId);
+}
+
 export async function togglePortalEventFeatureAction(formData: FormData) {
   const auth = await requireModuleEdit("arena");
   const id = String(formData.get("calendarEventId") ?? "");
@@ -104,6 +112,24 @@ export async function togglePortalEventPostAction(formData: FormData) {
   if (!current) return { error: "Evento não encontrado." };
   const updated = await prisma.portalEventPost.updateMany({ where: { id, arenaId: auth.arenaId }, data: { active: !current.active } });
   if (!updated.count) return { error: "Evento não encontrado." };
+  await refreshPortal(auth.arenaId);
+}
+
+export async function togglePortalEventPostPinAction(formData: FormData) {
+  const auth = await requireModuleEdit("arena");
+  const id = String(formData.get("eventPostId") ?? "").trim();
+  const current = await prisma.portalEventPost.findFirst({ where: { id, arenaId: auth.arenaId }, select: { pinned: true } });
+  if (!current) return { error: "Evento não encontrado." };
+  const updated = await prisma.portalEventPost.updateMany({ where: { id, arenaId: auth.arenaId }, data: { pinned: !current.pinned } });
+  if (!updated.count) return { error: "Evento não encontrado." };
+  await refreshPortal(auth.arenaId);
+}
+
+export async function deletePortalEventPostAction(formData: FormData) {
+  const auth = await requireModuleEdit("arena");
+  const id = String(formData.get("eventPostId") ?? "").trim();
+  const deleted = await prisma.portalEventPost.deleteMany({ where: { id, arenaId: auth.arenaId } });
+  if (!deleted.count) return { error: "Evento não encontrado." };
   await refreshPortal(auth.arenaId);
 }
 

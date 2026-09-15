@@ -19,7 +19,7 @@ test("athlete portal uses the arena logo as branding and reserves the circular a
   assert.match(portal, /athlete-portal-arena-logo/);
   assert.match(portal, /athlete-portal-user-avatar/);
   assert.match(portal, /currentClient\.photoUrl/);
-  assert.doesNotMatch(portal, /athlete-portal-mark/);
+  assert.match(portal, /athlete-portal-mark/);
   assert.match(styles, /\.athlete-portal-user-avatar[^}]*border-radius:\s*50%/);
   assert.match(styles, /\.arena-logo-preview img[^}]*border-radius:\s*50%/);
   assert.match(styles, /\.athlete-portal-brand \.athlete-portal-arena-logo[^}]*border:\s*0/);

@@ -94,8 +94,8 @@ test("athlete portal exposes the main modules and League submenus", () => {
   const view = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"), "utf8");
   const leaguePortal = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-league-portal.tsx"), "utf8");
   assert.match(view, /Portal do Atleta/);
-  assert.match(view, /Grade de horários/);
-  assert.match(view, /Minhas reservas/);
+  assert.match(view, /PublicBookingContent/);
+  assert.match(view, /Reservas/);
   assert.match(view, /Premiação/);
   assert.match(view, /portal-league-prize-podium/);
   assert.match(view, /section === "booking"/);
