@@ -8643,7 +8643,7 @@ button {
 .tv-sponsor-tag button { display: grid; width: 19px; height: 19px; place-items: center; padding: 0; border: 0; border-radius: 5px; background: transparent; color: inherit; font-size: 1rem; line-height: 1; }
 .tv-sponsor-tag button:hover { background: color-mix(in srgb, var(--primary) 15%, transparent); }
 .tv-sponsor-multiselect-arrow { color: var(--muted); font-size: 1.1rem; }
-.tv-sponsor-multiselect-options { position: absolute; z-index: 20; top: calc(100% + 5px); right: 0; left: 0; display: grid; gap: 3px; max-height: 232px; overflow: auto; padding: 5px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); box-shadow: 0 14px 28px rgb(15 33 58 / .15); }
+.tv-sponsor-multiselect-options { position: relative; z-index: 1; display: grid; gap: 3px; max-height: 232px; margin-top: 5px; overflow: auto; padding: 5px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); box-shadow: 0 10px 20px rgb(15 33 58 / .1); }
 .tv-sponsor-multiselect-options button { display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%; min-height: 38px; padding: 8px 10px; border: 0; border-radius: 6px; background: transparent; color: var(--text); text-align: left; }
 .tv-sponsor-multiselect-options button:hover { background: var(--brand-soft); color: var(--brand-strong); }
 .tv-sponsor-multiselect-options small { color: var(--muted); font-size: .7rem; }
