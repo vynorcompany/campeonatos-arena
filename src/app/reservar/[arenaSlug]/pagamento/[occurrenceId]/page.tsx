@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default async function PublicBookingPaymentPage({ params }: { params: { arenaSlug: string; occurrenceId: string } }) {
   const arena = await prisma.arena.findUnique({ where: { slug: params.arenaSlug }, select: { id: true } });
   const booking = arena ? await withArenaTransaction(arena.id, (tx) => tx.scheduleOccurrence.findFirst({
-    where: { id: params.occurrenceId, sourceType: "ONLINE_BOOKING", status: "PENDING_PAYMENT", arena: { slug: params.arenaSlug } },
+    where: { id: params.occurrenceId, arenaId: arena.id, sourceType: "ONLINE_BOOKING", status: "PENDING_PAYMENT" },
     select: { startsAt: true, endsAt: true, occurrenceCourts: { select: { court: { select: { name: true } } } }, participants: { select: { amountCents: true }, take: 1 } }
   })) : null;
   const participant = booking?.participants[0];
