@@ -15,12 +15,11 @@ export async function POST(request: Request) {
       new URL(request.url).searchParams.get("data.id") ||
       new URL(request.url).searchParams.get("id");
 
-    if (!env.mercadoPagoWebhookSecret) {
-      console.error("Mercado Pago webhook rejected: MERCADO_PAGO_WEBHOOK_SECRET is not configured.");
-      return NextResponse.json({ ok: false, error: "webhook_signature_not_configured" }, { status: 503 });
-    }
-
-    if (!verifyMercadoPagoWebhookSignature({
+    // Mercado Pago validates the payment again with the arena's authenticated
+    // connection below before any state changes. When the provider exposes a
+    // signature secret, validate the delivery too; this remains optional for
+    // legacy Checkout Bricks applications without the Webhooks dashboard.
+    if (env.mercadoPagoWebhookSecret && !verifyMercadoPagoWebhookSignature({
       secret: env.mercadoPagoWebhookSecret,
       signatureHeader: request.headers.get("x-signature"),
       requestId: request.headers.get("x-request-id"),
