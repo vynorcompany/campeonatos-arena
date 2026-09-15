@@ -8640,9 +8640,13 @@ button {
 .tv-sponsor-tags { display: flex; flex: 1; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
 .tv-sponsor-tags input { flex: 1 1 160px; min-width: 120px; min-height: 30px; padding: 0 3px; border: 0; outline: 0; background: transparent; color: var(--text); }
 .tv-sponsor-tag { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 4px 6px 4px 9px; border-radius: 7px; background: var(--brand-soft); color: var(--brand-strong); font-size: .78rem; font-weight: 650; }
-.tv-sponsor-tag button { display: grid; width: 19px; height: 19px; place-items: center; padding: 0; border: 0; border-radius: 5px; background: transparent; color: inherit; font-size: 1rem; line-height: 1; }
+.tv-sponsor-tag button { display: grid; width: 19px; height: 19px; place-items: center; padding: 0; border: 0; border-radius: 5px; background: transparent; color: inherit; }
+.tv-sponsor-tag button svg { width: 12px; height: 12px; }
 .tv-sponsor-tag button:hover { background: color-mix(in srgb, var(--primary) 15%, transparent); }
-.tv-sponsor-multiselect-arrow { color: var(--muted); font-size: 1.1rem; }
+.tv-sponsor-multiselect-arrow { display: grid; width: 30px; height: 30px; flex: 0 0 auto; place-items: center; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--muted); }
+.tv-sponsor-multiselect-arrow:hover { background: var(--brand-soft); color: var(--brand-strong); }
+.tv-sponsor-multiselect-arrow svg { width: 18px; height: 18px; transition: transform 160ms var(--ease-standard); }
+.tv-sponsor-multiselect-arrow[aria-expanded="true"] svg { transform: rotate(180deg); }
 .tv-sponsor-multiselect-options { position: relative; z-index: 1; display: grid; gap: 3px; max-height: 232px; margin-top: 5px; overflow: auto; padding: 5px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); box-shadow: 0 10px 20px rgb(15 33 58 / .1); }
 .tv-sponsor-multiselect-options button { display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%; min-height: 38px; padding: 8px 10px; border: 0; border-radius: 6px; background: transparent; color: var(--text); text-align: left; }
 .tv-sponsor-multiselect-options button:hover { background: var(--brand-soft); color: var(--brand-strong); }
