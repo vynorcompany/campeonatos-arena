@@ -34,8 +34,11 @@ export function getMissingBoletoPayerFields(payer: Partial<BoletoPayerAddress> &
   ].filter(Boolean);
 }
 
-function paymentNotificationUrl() {
-  return env.appUrl ? `${env.appUrl.replace(/\/$/, "")}/api/payments/mercado-pago/webhook` : undefined;
+function paymentNotificationUrl(arenaId?: string) {
+  if (!env.appUrl) return undefined;
+  const url = new URL("/api/payments/mercado-pago/webhook", env.appUrl);
+  if (arenaId) url.searchParams.set("arenaId", arenaId);
+  return url.toString();
 }
 
 async function boletoDescriptionForArena(arenaId: string, description: string) {
@@ -92,7 +95,7 @@ export async function createPixPayment(input: CreatePixPaymentInput): Promise<Cr
       payment_method_id: "pix",
       date_of_expiration: dateOfExpiration,
       external_reference: input.externalReference,
-      ...(paymentNotificationUrl() ? { notification_url: paymentNotificationUrl() } : {}),
+      ...(paymentNotificationUrl(input.arenaId) ? { notification_url: paymentNotificationUrl(input.arenaId) } : {}),
       payer: {
         email: input.payerEmail
       }
@@ -116,7 +119,7 @@ export async function createPixPayment(input: CreatePixPaymentInput): Promise<Cr
   };
 }
 
-export async function createCardCheckout(input: CreateCardCheckoutInput): Promise<CreatePixPaymentResult> {
+async function createCheckoutPreference(input: CreateCardCheckoutInput, paymentMethods?: Record<string, unknown>): Promise<CreatePixPaymentResult> {
   const accessToken = await mercadoPagoAccessTokenForArena(input.arenaId);
 
   const baseUrl = env.appUrl ?? "http://localhost:3000";
@@ -140,10 +143,7 @@ export async function createCardCheckout(input: CreateCardCheckoutInput): Promis
           unit_price: Number((input.amountCents / 100).toFixed(2))
         }
       ],
-      payment_methods: {
-        excluded_payment_types: [{ id: "ticket" }, { id: "atm" }],
-        installments: 12
-      },
+      ...(paymentMethods ? { payment_methods: paymentMethods } : {}),
       back_urls: {
         success: `${baseUrl}/inscricao/status`,
         pending: `${baseUrl}/inscricao/status`,
@@ -155,7 +155,7 @@ export async function createCardCheckout(input: CreateCardCheckoutInput): Promis
 
   if (!response.ok) {
     const payload = await response.text();
-    throw new Error(`Falha ao criar checkout de cartao no Mercado Pago: ${payload}`);
+    throw new Error(`Falha ao criar checkout no Mercado Pago: ${payload}`);
   }
 
   const payload = await response.json();
@@ -168,6 +168,17 @@ export async function createCardCheckout(input: CreateCardCheckoutInput): Promis
     checkoutUrl: String(payload.init_point ?? ""),
     expiresAt: null
   };
+}
+
+export async function createCardCheckout(input: CreateCardCheckoutInput): Promise<CreatePixPaymentResult> {
+  return createCheckoutPreference(input, {
+    excluded_payment_types: [{ id: "ticket" }, { id: "atm" }],
+    installments: 12
+  });
+}
+
+export async function createHostedCheckout(input: CreateCardCheckoutInput): Promise<CreatePixPaymentResult> {
+  return createCheckoutPreference(input);
 }
 
 export async function createBoletoPayment(input: CreateBoletoPaymentInput): Promise<CreatePixPaymentResult> {
@@ -183,7 +194,7 @@ export async function createBoletoPayment(input: CreateBoletoPaymentInput): Prom
     body: JSON.stringify({
       transaction_amount: Number((input.amountCents / 100).toFixed(2)), description, payment_method_id: "bolbradesco",
       date_of_expiration: expiresAt.toISOString(), external_reference: input.externalReference,
-      ...(paymentNotificationUrl() ? { notification_url: paymentNotificationUrl() } : {}),
+      ...(paymentNotificationUrl(input.arenaId) ? { notification_url: paymentNotificationUrl(input.arenaId) } : {}),
       payer: { email: input.payerEmail, first_name: input.payerName.split(" ")[0], last_name: input.payerName.split(" ").slice(1).join(" "), identification: { type: "CPF", number: input.payerCpf }, address: { zip_code: input.payerAddress.addressZipCode.replace(/\D/g, ""), street_name: input.payerAddress.addressStreet, street_number: input.payerAddress.addressNumber, neighborhood: input.payerAddress.addressNeighborhood, city: input.payerAddress.addressCity, federal_unit: input.payerAddress.addressState.toUpperCase() } }
     })
   });

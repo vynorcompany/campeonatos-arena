@@ -26,7 +26,49 @@ export async function POST(request: Request) {
         where: { onlineProvider: "MERCADO_PAGO", onlinePaymentId: paymentId, type: "REVENUE" },
         select: { id: true, arenaId: true, externalReference: true }
       });
-      if (!entry) return NextResponse.json({ ok: true, ignored: "unknown_payment" });
+      if (!entry) {
+        const arenaId = new URL(request.url).searchParams.get("arenaId");
+        if (!arenaId) return NextResponse.json({ ok: true, ignored: "unknown_payment" });
+        const payment = await getMercadoPagoPayment(arenaId, paymentId);
+        const reference = String(payment.external_reference ?? "");
+        const occurrenceId = reference.startsWith("online_booking:") ? reference.slice("online_booking:".length) : "";
+        if (!occurrenceId || payment.status !== "approved") return NextResponse.json({ ok: true, ignored: occurrenceId ? "booking_not_approved" : "unknown_payment" });
+
+        await withArenaTransaction(arenaId, async (tx) => {
+          const occurrence = await tx.scheduleOccurrence.findFirst({
+            where: { id: occurrenceId, arenaId, sourceType: "ONLINE_BOOKING", status: "PENDING_PAYMENT" },
+            include: { occurrenceCourts: { include: { court: { select: { name: true } } } }, participants: { include: { player: { select: { id: true, name: true } } } } }
+          });
+          const participant = occurrence?.participants[0];
+          if (!occurrence || !participant || participant.financialEntryId) return;
+          const courtName = occurrence.occurrenceCourts[0]?.court.name ?? "Quadra";
+          const paidAt = new Date();
+          const financialEntry = await tx.financialEntry.create({
+            data: {
+              arenaId,
+              type: "REVENUE",
+              category: "Reserva",
+              description: `Reserva online · ${courtName}`,
+              counterpartyName: participant.player.name,
+              playerId: participant.player.id,
+              amountCents: participant.amountCents,
+              dueDate: occurrence.startsAt,
+              status: "PAID",
+              paidAt,
+              paymentMethod: "Mercado Pago online",
+              source: "ONLINE_BOOKING",
+              externalReference: occurrence.id,
+              onlineProvider: "MERCADO_PAGO",
+              onlinePaymentId: String(payment.id ?? paymentId),
+              notes: `Reserva online paga via Mercado Pago (${String(payment.id ?? paymentId)}).`
+            }
+          });
+          await tx.financialSettlement.create({ data: { arenaId, financialEntryId: financialEntry.id, amountCents: participant.amountCents, paymentMethod: "Mercado Pago online", paidAt, notes: `Pagamento online Mercado Pago confirmado (${String(payment.id ?? paymentId)}).` } });
+          await tx.scheduleParticipant.update({ where: { id: participant.id }, data: { financialEntryId: financialEntry.id, paymentMethod: "Mercado Pago online" } });
+          await tx.scheduleOccurrence.update({ where: { id: occurrence.id }, data: { status: "SCHEDULED" } });
+        });
+        return NextResponse.json({ ok: true });
+      }
 
       const payment = await getMercadoPagoPayment(entry.arenaId, paymentId);
       const approved = payment.status === "approved";

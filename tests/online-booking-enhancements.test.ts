@@ -24,6 +24,9 @@ test("online booking enforces a configurable lead time and marks pending request
   assert.match(actions, /Reserva confirmada/);
   assert.match(bookingPage, /PublicBookingContent/);
   assert.match(bookingForm, /Aguardando confirmação/);
+  assert.match(bookingForm, /Ir para pagamento/);
+  assert.match(actions, /createHostedCheckout/);
+  assert.doesNotMatch(actions, /financialEntry\.create\(\{ data: \{ arenaId: arena\.id, type: "REVENUE", category: "Reserva"/);
   assert.match(styles, /agenda-online-settings-trigger[\s\S]*background:/);
   assert.match(styles, /daily-court-event-online/);
 });
