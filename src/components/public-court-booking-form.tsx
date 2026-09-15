@@ -39,7 +39,7 @@ export function PublicCourtBookingForm({ arenaSlug, courts, currentClient, layou
     {selection.hasConflict ? <p className="public-booking-conflict" role="alert">Há uma reserva conflitando com este período. Escolha outro horário ou uma duração menor.</p> : null}
     <section className="public-booking-client-summary"><div><span>RESERVA PARA</span><strong>{currentClient.name}</strong><small>Você está usando sua conta de cliente.</small></div><div className="public-booking-total"><span>Valor total</span><strong>{money(selectedTotalCents)}</strong></div></section>
     {pendingReservations.length ? <section className="public-booking-pending"><strong>Aguardando confirmação</strong><span>{pendingReservations.join(" · ")}</span><small>A arena avisará você assim que confirmar a reserva.</small></section> : null}
-    <button className="button button-primary" disabled={pending || selection.hasConflict}>{pending ? "Enviando..." : "Solicitar reserva"}</button>
+    <button className="button button-primary" disabled={pending || selection.hasConflict}>{pending ? "Abrindo pagamento..." : paymentOnlineEnabled ? "Ir para pagamento" : "Solicitar reserva"}</button>
     {reservedSlots.length ? <section className="public-booking-reserved-slots"><strong>Horários reservados</strong><span>{reservedSlots.join(" · ")}</span></section> : null}
     {message ? <p className="public-booking-message" role="status">{message}</p> : null}
   </form>;
