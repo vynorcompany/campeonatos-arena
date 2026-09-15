@@ -10,6 +10,7 @@ test("online booking enforces a configurable lead time and marks pending request
   const agenda = readFileSync(resolve(process.cwd(), "src/app/(app)/agenda/page.tsx"), "utf8");
   const bookingPage = readFileSync(resolve(process.cwd(), "src/app/reservar/[arenaSlug]/page.tsx"), "utf8");
   const bookingForm = readFileSync(resolve(process.cwd(), "src/components/public-court-booking-form.tsx"), "utf8");
+  const paymentChoice = readFileSync(resolve(process.cwd(), "src/components/public-booking-payment-choice.tsx"), "utf8");
   const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
 
   assert.match(schema, /model Arena \{[\s\S]*onlineBookingLeadTimeMinutes\s+Int/);
@@ -25,8 +26,12 @@ test("online booking enforces a configurable lead time and marks pending request
   assert.match(bookingPage, /PublicBookingContent/);
   assert.match(bookingForm, /Aguardando confirmação/);
   assert.match(bookingForm, /Ir para pagamento/);
-  assert.match(actions, /createHostedCheckout/);
+  assert.match(actions, /createPixPayment/);
   assert.doesNotMatch(actions, /financialEntry\.create\(\{ data: \{ arenaId: arena\.id, type: "REVENUE", category: "Reserva"/);
+  assert.match(actions, /startPublicCourtBookingPaymentAction/);
+  assert.match(paymentChoice, /Pix/);
+  assert.match(paymentChoice, /Cartão/);
+  assert.match(paymentChoice, /Boleto/);
   assert.match(styles, /agenda-online-settings-trigger[\s\S]*background:/);
   assert.match(styles, /daily-court-event-online/);
 });

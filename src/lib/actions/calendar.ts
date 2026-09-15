@@ -16,7 +16,7 @@ import {
 import { weeklyRangesOverlap } from "@/lib/scheduling/weekly-rule";
 import { calculateCourtIntervalPrice } from "@/lib/calendar/court-interval-pricing";
 import { expandWeeklyOccurrences } from "@/lib/scheduling/recurrence";
-import { createHostedCheckout } from "@/lib/payments/mercado-pago";
+import { createBoletoPayment, createCardCheckout, createPixPayment, getMissingBoletoPayerFields } from "@/lib/payments/mercado-pago";
 
 const calendarSchema = z.object({
   sourceType: z.enum(["lesson", "calendar"]).default("calendar"),
@@ -50,6 +50,12 @@ const onlineBookingSettingsSchema = z.object({
   layout: z.enum(["BLOCKS", "LIST"]),
   leadTimeMinutes: z.coerce.number().int().min(0).max(10080, "O prazo máximo é de 7 dias."),
   whatsappMessage: z.string().trim().max(1000, "A mensagem pode ter no máximo 1000 caracteres.")
+});
+
+const publicBookingPaymentSchema = z.object({
+  arenaSlug: z.string().trim().min(1),
+  occurrenceId: z.string().trim().min(1),
+  method: z.enum(["PIX", "CARD", "BOLETO"])
 });
 
 const courtWeeklyRuleSchema = z.object({
@@ -174,14 +180,26 @@ export async function createPublicCourtBookingAction(formData: FormData) {
     await tx.arenaNotification.create({ data: { arenaId: arena.id, title: arena.onlineBookingRequiresConfirmation ? "Reserva aguardando confirmação" : "Nova reserva online", message: `${player.name} solicitou ${court.name} às ${String(startsAt.getHours()).padStart(2, "0")}:${String(startsAt.getMinutes()).padStart(2, "0")}.`, href: `/agenda?data=${localDate}`, type: "ONLINE_BOOKING" } });
     return { occurrenceId: occurrence.id, playerEmail: player.email };
   });
-  let checkoutUrl = "";
-  if (arena.onlineBookingPaymentEnabled) {
-    const payment = await createHostedCheckout({ arenaId: arena.id, amountCents: bookingAmountCents, description: `Reserva de quadra · ${court.name}`, payerEmail: onlineBooking.playerEmail, externalReference: `online_booking:${onlineBooking.occurrenceId}` });
-    checkoutUrl = payment.checkoutUrl;
-  }
+  const checkoutUrl = arena.onlineBookingPaymentEnabled ? `/reservar/${arena.slug}/pagamento/${onlineBooking.occurrenceId}` : "";
   revalidatePath("/agenda");
   revalidatePath(`/reservar/${arena.slug}`);
   return { checkoutUrl };
+}
+
+export async function startPublicCourtBookingPaymentAction(formData: FormData) {
+  const parsed = publicBookingPaymentSchema.safeParse({ arenaSlug: formData.get("arenaSlug"), occurrenceId: formData.get("occurrenceId"), method: formData.get("method") });
+  if (!parsed.success) throw new Error("Dados do pagamento inválidos.");
+  const playerAuth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
+  const arena = await prisma.arena.findUnique({ where: { slug: parsed.data.arenaSlug }, select: { id: true } });
+  if (!arena) throw new Error("Arena não encontrada.");
+  const booking = await withArenaTransaction(arena.id, (tx) => tx.scheduleOccurrence.findFirst({ where: { id: parsed.data.occurrenceId, arenaId: arena.id, sourceType: "ONLINE_BOOKING", status: "PENDING_PAYMENT", participants: { some: { playerId: playerAuth.playerId } } }, include: { occurrenceCourts: { include: { court: { select: { name: true } } } }, participants: { where: { playerId: playerAuth.playerId }, include: { player: { select: { id: true, name: true, email: true, cpf: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } } } } } }));
+  const participant = booking?.participants[0];
+  if (!booking || !participant) throw new Error("Esta reserva não está mais aguardando pagamento.");
+  if (!participant.player.email) throw new Error("Informe seu e-mail no perfil para continuar com o pagamento online.");
+  const paymentInput = { arenaId: arena.id, amountCents: participant.amountCents, description: `Reserva de quadra · ${booking.occurrenceCourts[0]?.court.name ?? "Quadra"}`, payerEmail: participant.player.email, externalReference: `online_booking:${booking.id}` };
+  const payment = parsed.data.method === "PIX" ? await createPixPayment(paymentInput) : parsed.data.method === "CARD" ? await createCardCheckout(paymentInput) : await (async () => { const missing = getMissingBoletoPayerFields(participant.player); if (missing.length) throw new Error(`Para emitir boleto, complete no perfil: ${missing.join(", ")}.`); return createBoletoPayment({ ...paymentInput, payerCpf: participant.player.cpf, payerName: participant.player.name, payerAddress: participant.player }); })();
+  if (!payment.checkoutUrl) throw new Error("Não foi possível abrir o pagamento escolhido.");
+  return { checkoutUrl: payment.checkoutUrl };
 }
 
 export async function confirmOnlineBookingAction(formData: FormData) {
