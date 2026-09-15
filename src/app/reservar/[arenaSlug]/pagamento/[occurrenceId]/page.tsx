@@ -11,7 +11,7 @@ export default async function PublicBookingPaymentPage({ params }: { params: { a
     select: { startsAt: true, endsAt: true, occurrenceCourts: { select: { court: { select: { name: true } } } }, participants: { select: { amountCents: true }, take: 1 } }
   })) : null;
   const participant = booking?.participants[0];
-  const dateTime = booking ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", hour: "2-digit", minute: "2-digit" }).format(booking.startsAt) : "Reserva selecionada";
+  const dateTime = booking ? new Intl.DateTimeFormat("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(booking.startsAt) : "Reserva selecionada";
   const duration = booking ? Math.round((booking.endsAt.getTime() - booking.startsAt.getTime()) / 60_000) : 0;
   return <PublicBookingPaymentChoice arenaSlug={params.arenaSlug} occurrenceId={params.occurrenceId} summary={{ court: booking?.occurrenceCourts[0]?.court.name ?? "Quadra", dateTime, duration, amountCents: participant?.amountCents ?? 0 }} />;
 }
