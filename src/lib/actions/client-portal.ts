@@ -6,7 +6,11 @@ import { requireModuleEdit } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { saveOptimizedPortalEventImageUpload } from "@/lib/uploads";
 
-const announcementSchema = z.object({ title: z.string().trim().min(2, "Informe o título."), message: z.string().trim().min(2, "Informe o aviso."), startsAt: z.string().trim().default(""), endsAt: z.string().trim().default("") });
+const safeLink = z.string().trim().default("").refine((value) => {
+  if (!value) return true;
+  try { const url = new URL(value); return url.protocol === "https:" || url.protocol === "http:"; } catch { return false; }
+}, "Informe um link iniciado por http:// ou https://.");
+const announcementSchema = z.object({ title: z.string().trim().min(2, "Informe o título."), message: z.string().trim().min(2, "Informe o aviso."), linkUrl: safeLink, startsAt: z.string().trim().default(""), endsAt: z.string().trim().default("") });
 const eventPostSchema = z.object({
   title: z.string().trim().min(2, "Informe o título do evento."),
   caption: z.string().trim().default(""),
@@ -30,9 +34,9 @@ async function refreshPortal(arenaId: string) {
 
 export async function createPortalAnnouncementAction(formData: FormData) {
   const auth = await requireModuleEdit("arena");
-  const parsed = announcementSchema.safeParse({ title: formData.get("title"), message: formData.get("message"), startsAt: formData.get("startsAt"), endsAt: formData.get("endsAt") });
+  const parsed = announcementSchema.safeParse({ title: formData.get("title"), message: formData.get("message"), linkUrl: formData.get("linkUrl"), startsAt: formData.get("startsAt"), endsAt: formData.get("endsAt") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
-  await prisma.portalAnnouncement.create({ data: { arenaId: auth.arenaId, title: parsed.data.title, message: parsed.data.message, startsAt: parsed.data.startsAt ? new Date(parsed.data.startsAt) : null, endsAt: parsed.data.endsAt ? new Date(parsed.data.endsAt) : null } });
+  await prisma.portalAnnouncement.create({ data: { arenaId: auth.arenaId, title: parsed.data.title, message: parsed.data.message, linkUrl: parsed.data.linkUrl, pinned: formData.get("pinned") === "on", startsAt: parsed.data.startsAt ? new Date(parsed.data.startsAt) : null, endsAt: parsed.data.endsAt ? new Date(parsed.data.endsAt) : null } });
   await refreshPortal(auth.arenaId);
 }
 
@@ -43,6 +47,15 @@ export async function togglePortalAnnouncementAction(formData: FormData) {
   if (!current) throw new Error("Aviso não encontrado.");
   const updated = await prisma.portalAnnouncement.updateMany({ where: { id, arenaId: auth.arenaId }, data: { active: !current.active } });
   if (!updated.count) throw new Error("Aviso não encontrado.");
+  await refreshPortal(auth.arenaId);
+}
+
+export async function togglePortalAnnouncementPinAction(formData: FormData) {
+  const auth = await requireModuleEdit("arena");
+  const id = String(formData.get("announcementId") ?? "");
+  const current = await prisma.portalAnnouncement.findFirst({ where: { id, arenaId: auth.arenaId }, select: { pinned: true } });
+  if (!current) throw new Error("Aviso não encontrado.");
+  await prisma.portalAnnouncement.updateMany({ where: { id, arenaId: auth.arenaId }, data: { pinned: !current.pinned } });
   await refreshPortal(auth.arenaId);
 }
 

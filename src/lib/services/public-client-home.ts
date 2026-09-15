@@ -12,7 +12,7 @@ export async function getPublicClientHome(arenaSlug: string, playerId: string) {
   if (!player) return null;
   const now = new Date();
   const [announcements, events, eventPosts, student, reservations, pairs, entries] = await withArenaTransaction(arena.id, (tx) => Promise.all([
-    tx.portalAnnouncement.findMany({ where: { arenaId: arena.id, active: true, AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }] }, orderBy: { createdAt: "desc" }, take: 4, select: { id: true, title: true, message: true } }),
+    tx.portalAnnouncement.findMany({ where: { arenaId: arena.id, active: true, AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }] }, orderBy: [{ pinned: "desc" }, { createdAt: "desc" }], take: 12, select: { id: true, title: true, message: true, pinned: true, linkUrl: true } }),
     tx.calendarEvent.findMany({ where: { arenaId: arena.id, featuredInPortal: true, scheduledAt: { gte: now } }, orderBy: { scheduledAt: "asc" }, take: 4, select: { id: true, title: true, notes: true, scheduledAt: true } }),
     tx.portalEventPost.findMany({ where: { arenaId: arena.id, active: true }, orderBy: { createdAt: "desc" }, take: 6, select: { id: true, title: true, caption: true, imageUrl: true, linkUrl: true } }),
     tx.student.findFirst({ where: { arenaId: arena.id, playerId }, select: { remainingClasses: true } }),

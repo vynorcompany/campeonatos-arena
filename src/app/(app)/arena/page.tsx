@@ -36,7 +36,7 @@ export default async function ArenaPage({ searchParams }: ArenaPageProps) {
 
   const arena = await prisma.arena.findUniqueOrThrow({ where: { id: auth.arenaId } });
   const [announcements, posts] = await Promise.all([
-    prisma.portalAnnouncement.findMany({ where: { arenaId: auth.arenaId }, orderBy: { createdAt: "desc" } }),
+    prisma.portalAnnouncement.findMany({ where: { arenaId: auth.arenaId }, orderBy: [{ pinned: "desc" }, { createdAt: "desc" }] }),
     prisma.portalEventPost.findMany({ where: { arenaId: auth.arenaId }, orderBy: { createdAt: "desc" } })
   ]);
 

@@ -4,6 +4,8 @@ import { getFinancialEntryBalance } from "@/lib/finance/ledger";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 import { ensureTournamentPairFromRegistration } from "@/lib/services/registration-pair";
+import { env } from "@/lib/env";
+import { verifyMercadoPagoWebhookSignature } from "@/lib/payments/mercado-pago-webhook-signature";
 
 export async function POST(request: Request) {
   try {
@@ -12,6 +14,20 @@ export async function POST(request: Request) {
       String(body?.data?.id ?? "") ||
       new URL(request.url).searchParams.get("data.id") ||
       new URL(request.url).searchParams.get("id");
+
+    if (!env.mercadoPagoWebhookSecret) {
+      console.error("Mercado Pago webhook rejected: MERCADO_PAGO_WEBHOOK_SECRET is not configured.");
+      return NextResponse.json({ ok: false, error: "webhook_signature_not_configured" }, { status: 503 });
+    }
+
+    if (!verifyMercadoPagoWebhookSignature({
+      secret: env.mercadoPagoWebhookSecret,
+      signatureHeader: request.headers.get("x-signature"),
+      requestId: request.headers.get("x-request-id"),
+      dataId: paymentId ?? ""
+    })) {
+      return NextResponse.json({ ok: false, error: "invalid_webhook_signature" }, { status: 401 });
+    }
 
     if (!paymentId) {
       return NextResponse.json({ ok: true, ignored: "missing_payment_id" });
