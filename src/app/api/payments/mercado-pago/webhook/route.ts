@@ -36,6 +36,42 @@ export async function POST(request: Request) {
       where: { mercadoPagoPaymentId: paymentId },
       include: { tournament: { select: { id: true, arenaId: true } } }
     });
+    let checkout = await prisma.onlinePaymentCheckout.findFirst({ where: { mercadoPagoPaymentId: paymentId }, select: { id: true, arenaId: true } });
+    let checkoutPayment: Record<string, unknown> | null = null;
+    if (!checkout) {
+      const arenaId = new URL(request.url).searchParams.get("arenaId");
+      if (arenaId) {
+        const payment = await getMercadoPagoPayment(arenaId, paymentId);
+        checkoutPayment = payment;
+        const checkoutId = String(payment.external_reference ?? "");
+        checkout = await prisma.onlinePaymentCheckout.findFirst({ where: { id: checkoutId, arenaId }, select: { id: true, arenaId: true } });
+      }
+    }
+    if (checkout) {
+      const payment = checkoutPayment ?? await getMercadoPagoPayment(checkout.arenaId, paymentId);
+      const approved = payment.status === "approved";
+      await withArenaTransaction(checkout.arenaId, async (tx) => {
+        const current = await tx.onlinePaymentCheckout.findFirst({ where: { id: checkout!.id, arenaId: checkout!.arenaId }, include: { items: { include: { financialEntry: { include: { settlements: { select: { amountCents: true, interestCents: true } } } } } } } });
+        if (!current || current.status === "PAID") return;
+        if (!approved) {
+          await tx.onlinePaymentCheckout.update({ where: { id: current.id }, data: { mercadoPagoPaymentId: String(payment.id ?? paymentId), status: String(payment.status ?? "PENDING") } });
+          return;
+        }
+        const paidAt = new Date();
+        for (const item of current.items) {
+          const entry = item.financialEntry;
+          if (!["PENDING", "OVERDUE"].includes(entry.status)) continue;
+          const balance = getFinancialEntryBalance(entry.amountCents, entry.settlements, entry.status);
+          const amountCents = Math.min(item.amountCents, balance.outstandingCents);
+          if (!amountCents) continue;
+          await tx.financialSettlement.create({ data: { arenaId: current.arenaId, financialEntryId: entry.id, amountCents, paymentMethod: "Mercado Pago online", paidAt, notes: `Pagamento agrupado Mercado Pago confirmado (${String(payment.id ?? paymentId)}).` } });
+          const remaining = balance.outstandingCents - amountCents;
+          await tx.financialEntry.update({ where: { id: entry.id }, data: { status: remaining === 0 ? "PAID" : entry.status, paidAt: remaining === 0 ? paidAt : entry.paidAt, paymentMethod: "Mercado Pago online" } });
+        }
+        await tx.onlinePaymentCheckout.update({ where: { id: current.id }, data: { status: "PAID", paidAt, mercadoPagoPaymentId: String(payment.id ?? paymentId) } });
+      });
+      return NextResponse.json({ ok: true });
+    }
     if (!registration) {
       let entry = await prisma.financialEntry.findFirst({
         where: { onlineProvider: "MERCADO_PAGO", onlinePaymentId: paymentId, type: "REVENUE" },

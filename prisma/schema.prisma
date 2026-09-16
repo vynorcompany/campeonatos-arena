@@ -160,6 +160,7 @@ model Arena {
   publicSlugs                       ArenaPublicSlug[]
   playerAuthAttempts                PlayerAuthAttempt[]
   playerVerificationCodes           PlayerVerificationCode[]
+  onlinePaymentCheckouts            OnlinePaymentCheckout[]
 }
 
 model RegulationAcceptance {
@@ -310,6 +311,7 @@ model Player {
   balanceMovements          ClientBalanceMovement[]
   financialEntries          FinancialEntry[]
   financialRecurrences      FinancialRecurrence[]
+  onlinePaymentCheckouts    OnlinePaymentCheckout[]
   sponsorships              TvSponsor[]
   respondedLeagueChallenges LeagueChallenge[]              @relation("LeagueChallengeResponder")
   leagueAthleteTiers        LeagueAthleteTier[]
@@ -1934,6 +1936,7 @@ model FinancialEntry {
   player                   Player?               @relation(fields: [playerId], references: [id], onDelete: SetNull)
   scheduleParticipant      ScheduleParticipant?
   settlements              FinancialSettlement[]
+  onlinePaymentItems       OnlinePaymentCheckoutItem[]
 
   @@index([arenaId, type, status])
   @@index([arenaId, dueDate])
@@ -1946,6 +1949,40 @@ model FinancialEntry {
   @@index([recurrenceId])
   @@index([productId])
   @@index([arenaId, playerId, status])
+}
+
+model OnlinePaymentCheckout {
+  id                    String                      @id @default(cuid())
+  provider              String                      @default("MERCADO_PAGO")
+  status                String                      @default("PENDING")
+  amountCents           Int
+  mercadoPagoPaymentId  String                      @default("")
+  checkoutUrl           String                      @default("")
+  paidAt                DateTime?
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+  arenaId               String
+  playerId              String
+  arena                 Arena                       @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  player                Player                      @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  items                 OnlinePaymentCheckoutItem[]
+
+  @@index([arenaId, status, createdAt])
+  @@index([playerId, status])
+  @@index([mercadoPagoPaymentId])
+}
+
+model OnlinePaymentCheckoutItem {
+  id               String                @id @default(cuid())
+  amountCents      Int
+  createdAt        DateTime              @default(now())
+  checkoutId       String
+  financialEntryId String
+  checkout         OnlinePaymentCheckout @relation(fields: [checkoutId], references: [id], onDelete: Cascade)
+  financialEntry   FinancialEntry        @relation(fields: [financialEntryId], references: [id], onDelete: Cascade)
+
+  @@unique([checkoutId, financialEntryId])
+  @@index([financialEntryId])
 }
 
 model TeacherStudent {
