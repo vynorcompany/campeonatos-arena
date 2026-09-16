@@ -6,7 +6,7 @@ import { CategoryList } from "@/components/tournaments/category-list";
 import { EventIcon } from "@/components/tournaments/event-icon";
 import { EventQuickActions } from "@/components/tournaments/event-quick-actions";
 import { PublicRegistrationLinkActions } from "@/components/tournaments/public-registration-link-actions";
-import { deleteTournamentAction } from "@/lib/actions/tournament";
+import { deleteTournamentAction, updateTournamentRegistrationPhaseAction } from "@/lib/actions/tournament";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
@@ -144,12 +144,24 @@ export default async function TournamentDetailPage({
               defaultRegistrationPhase: tournament.registrationPhase, defaultCreationMode: tournament.creationMode as "MANUAL" | "PUBLIC", defaultGroupCount: tournament.groupCount,
               defaultPairsPerGroup: tournament.pairsPerGroup, defaultPriceFirstCents: tournament.priceFirstCents, defaultPriceSecondCents: tournament.priceSecondCents,
               defaultPriceThirdCents: tournament.priceThirdCents, defaultBlockCategoryGap: tournament.blockCategoryGap, defaultMaxCategoryGap: tournament.maxCategoryGap,
-              defaultRankingId: tournament.rankingId ?? "", defaultCategories: tournament.categories.map((category) => ({ name: category.name, groupCount: category.groupCount, pairsPerGroup: category.pairsPerGroup, priceSecondCents: category.priceSecondCents, priceThirdCents: category.priceThirdCents, standardKey: category.standardKey, allowedRegistrationCategoryNames: category.allowedRegistrationCategoryIds.map((id) => tournament.categories.find((item) => item.id === id)?.name).filter((name): name is string => Boolean(name)), hasCompetition: Boolean(category.competition) }))
+              defaultRankingId: tournament.rankingId ?? "", defaultCategories: tournament.categories.map((category) => ({ name: category.name, groupCount: category.groupCount, pairsPerGroup: category.pairsPerGroup, priceSecondCents: category.priceSecondCents, priceThirdCents: category.priceThirdCents, standardKey: category.standardKey, maxRegistrations: category.maxRegistrations, allowedRegistrationStandardKeys: category.allowedRegistrationCategoryIds.map((id) => tournament.categories.find((item) => item.id === id)?.standardKey).filter((key): key is string => Boolean(key)), hasCompetition: Boolean(category.competition) }))
             }}
             initialAction={initialQuickAction}
           />
           <section className="event-information">
             <header><EventIcon name="info" /><h2>Informações do evento</h2></header>
+            <SafeActionForm action={updateTournamentRegistrationPhaseAction} className="tournament-status-form" successMessage="Status do torneio atualizado.">
+              <input type="hidden" name="tournamentId" value={tournament.id} />
+              <label htmlFor="tournament-status">Status do torneio
+                <select id="tournament-status" name="registrationPhase" defaultValue={tournament.registrationPhase}>
+                  <option value="EDITING">Em configuração</option>
+                  <option value="REGISTRATIONS">Inscrições abertas</option>
+                  <option value="LIVE">Em andamento</option>
+                  <option value="FINISHED">Finalizado</option>
+                </select>
+              </label>
+              <SubmitButton label="Atualizar status" pendingLabel="Atualizando..." className="button button-small" />
+            </SafeActionForm>
             <dl><div><dt>Organizador</dt><dd>{auth.arenaName}</dd></div><div><dt>Formato</dt><dd>{tournament.categories[0]?.competition ? formatLabel(tournament.categories[0].competition.format) : "A definir"}</dd></div><div><dt>Visibilidade</dt><dd>{tournament.creationMode === "PUBLIC" ? "Público" : "Privado"}</dd></div><div><dt>Atualizado em</dt><dd>{new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(tournament.updatedAt)}</dd></div></dl>
           </section>
         </aside>

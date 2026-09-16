@@ -630,6 +630,7 @@ export async function createTournamentAction(_: ActionState, formData: FormData)
         publicSlug: parsed.data.publicSlug,
         creationMode: parsed.data.creationMode,
         registrationPhase: parsed.data.registrationPhase,
+        status: parsed.data.registrationPhase === "FINISHED" ? "FINISHED" : parsed.data.registrationPhase === "EDITING" ? "DRAFT" : "PUBLISHED",
         showInEventRadar: parsed.data.showInEventRadar,
         groupCount: categories[0]?.groupCount ?? parsed.data.groupCount,
         pairsPerGroup: categories[0]?.pairsPerGroup ?? parsed.data.pairsPerGroup,
@@ -1707,12 +1708,18 @@ export async function updateTournamentRegistrationPhaseAction(formData: FormData
     throw new Error("Dados inválidos para atualização da fase.");
   }
 
+  const statusByPhase: Record<string, string> = {
+    EDITING: "DRAFT",
+    REGISTRATIONS: "PUBLISHED",
+    LIVE: "PUBLISHED",
+    FINISHED: "FINISHED"
+  };
   const updated = await prisma.tournament.updateMany({
     where: {
       id: tournamentId,
       arenaId: auth.arenaId
     },
-    data: { registrationPhase }
+    data: { registrationPhase, status: statusByPhase[registrationPhase] }
   });
 
   if (!updated.count) {

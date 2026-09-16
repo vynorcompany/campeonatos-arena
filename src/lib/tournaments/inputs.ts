@@ -6,7 +6,8 @@ export type TournamentCategoryInput = {
   priceSecondCents: number;
   priceThirdCents: number;
   standardKey: string;
-  allowedRegistrationCategoryNames: string[];
+  allowedRegistrationStandardKeys: string[];
+  maxRegistrations: number;
 };
 
 export function parseCategoryList(
@@ -23,7 +24,11 @@ export function parseCategoryList(
       priceSecondCents?: number | string;
       priceThirdCents?: number | string;
       standardKey?: string;
+      allowedRegistrationStandardKeys?: string[];
+      // Compatibility with category lists saved before standard categories
+      // became the basis for the registration rule.
       allowedRegistrationCategoryNames?: string[];
+      maxRegistrations?: number | string;
     }>;
     const normalized = parsed
       .map((item) => ({
@@ -39,7 +44,10 @@ export function parseCategoryList(
             ? fallbackPriceThirdCents
             : parseReaisToCents(item.priceThirdCents),
         standardKey: String(item.standardKey ?? "").trim(),
-        allowedRegistrationCategoryNames: Array.isArray(item.allowedRegistrationCategoryNames) ? item.allowedRegistrationCategoryNames.map(String).map((name) => name.trim()).filter(Boolean) : []
+        allowedRegistrationStandardKeys: Array.isArray(item.allowedRegistrationStandardKeys)
+          ? item.allowedRegistrationStandardKeys.map(String).map((key) => key.trim()).filter(Boolean)
+          : [],
+        maxRegistrations: Number(item.maxRegistrations ?? 0)
       }))
       .filter((item) => item.name.length > 0);
 
@@ -53,8 +61,10 @@ export function parseCategoryList(
       groupCount: Number.isFinite(item.groupCount) ? Math.min(8, Math.max(1, Math.trunc(item.groupCount))) : 4,
       pairsPerGroup: Number.isFinite(item.pairsPerGroup) ? Math.min(16, Math.max(2, Math.trunc(item.pairsPerGroup))) : 3,
       priceSecondCents: Number.isFinite(item.priceSecondCents) ? Math.max(0, Math.trunc(item.priceSecondCents)) : fallbackPriceSecondCents,
-      priceThirdCents: Number.isFinite(item.priceThirdCents) ? Math.max(0, Math.trunc(item.priceThirdCents)) : fallbackPriceThirdCents
-      , standardKey: item.standardKey, allowedRegistrationCategoryNames: item.allowedRegistrationCategoryNames
+      priceThirdCents: Number.isFinite(item.priceThirdCents) ? Math.max(0, Math.trunc(item.priceThirdCents)) : fallbackPriceThirdCents,
+      standardKey: item.standardKey,
+      allowedRegistrationStandardKeys: item.allowedRegistrationStandardKeys,
+      maxRegistrations: Number.isFinite(item.maxRegistrations) ? Math.max(0, Math.trunc(item.maxRegistrations)) : 0
     }));
   }
 
@@ -73,7 +83,7 @@ export function parseCategoryList(
     groupCount: 4,
     pairsPerGroup: 3,
     priceSecondCents: fallbackPriceSecondCents,
-    priceThirdCents: fallbackPriceThirdCents, standardKey: "", allowedRegistrationCategoryNames: []
+    priceThirdCents: fallbackPriceThirdCents, standardKey: "", allowedRegistrationStandardKeys: [], maxRegistrations: 0
   }));
 }
 

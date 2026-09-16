@@ -88,6 +88,20 @@ export async function createPublicRegistrationAction(
       const selectedCategory = tournament.categories.find((category) => category.id === parsed.data.categoryId);
       if (!selectedCategory) throw new Error("Categoria invalida.");
 
+      const occupiedSlots = await tx.publicTournamentRegistration.count({
+        where: {
+          tournamentId: tournament.id,
+          categoryId: selectedCategory.id,
+          status: { not: "CANCELED" }
+        }
+      });
+      if (selectedCategory.maxRegistrations > 0 && occupiedSlots >= selectedCategory.maxRegistrations) {
+        throw new Error("Esta categoria atingiu o limite máximo de duplas inscritas.");
+      }
+
+      // CPF is the athlete identity in public registration. Counts below are
+      // intentionally calculated per CPF, so the second and third prices
+      // follow the athlete even when they enter with a different partner.
       const cpfs = [parsed.data.leadCpf, parsed.data.partnerCpf];
       const registrations = await tx.publicTournamentRegistration.findMany({
         where: {
