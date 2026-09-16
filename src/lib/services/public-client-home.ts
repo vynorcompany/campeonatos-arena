@@ -42,13 +42,16 @@ export async function getPublicClientFinance(arenaSlug: string, playerId: string
     where: { arenaId: arena.id, playerId, type: "REVENUE", status: { not: "VOIDED" } },
     orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
     take: 100,
-    select: { id: true, description: true, amountCents: true, dueDate: true, status: true, paidAt: true, onlinePaymentUrl: true, settlements: { select: { amountCents: true, interestCents: true } } }
+    select: { id: true, description: true, amountCents: true, dueDate: true, status: true, paidAt: true, onlinePaymentUrl: true, source: true, plan: { select: { name: true } }, sale: { select: { code: true, comanda: { select: { code: true, items: { select: { quantity: true, product: { select: { name: true } } } } } } } }, scheduleParticipant: { select: { occurrence: { select: { title: true, startsAt: true, occurrenceCourts: { select: { court: { select: { name: true } } } } } } } }, settlements: { select: { amountCents: true, interestCents: true } } }
   }));
   const rows = entries.map((entry) => {
     const outstandingCents = getOutstandingCents(entry.amountCents, entry.settlements);
     const overdue = outstandingCents > 0 && Boolean(entry.dueDate && entry.dueDate < today);
     const daysUntilDue = entry.dueDate ? Math.ceil((new Date(entry.dueDate).getTime() - today.getTime()) / 86_400_000) : null;
-    return { id: entry.id, description: entry.description || "Lançamento financeiro", amount: money(outstandingCents || entry.amountCents), dueDate: entry.dueDate ? new Intl.DateTimeFormat("pt-BR").format(entry.dueDate) : "Sem vencimento", paidAt: entry.paidAt ? new Intl.DateTimeFormat("pt-BR").format(entry.paidAt) : "", status: outstandingCents ? overdue ? "overdue" : "open" : "paid", urgency: overdue ? "overdue" : daysUntilDue !== null && daysUntilDue <= 5 ? "soon" : "normal", hasCharge: Boolean(entry.onlinePaymentUrl), paymentUrl: entry.onlinePaymentUrl };
+    const commandItems = entry.sale?.comanda?.items.map((item) => `${item.quantity}× ${item.product.name}`).join(" · ") ?? "";
+    const reservation = entry.scheduleParticipant?.occurrence;
+    const detail = commandItems ? `Comanda ${entry.sale?.comanda?.code ?? entry.sale?.code ?? ""} · ${commandItems}` : reservation ? `Reserva ${reservation.title} · ${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(reservation.startsAt)}${reservation.occurrenceCourts.length ? ` · ${reservation.occurrenceCourts.map((court) => court.court.name).join(" · ")}` : ""}` : entry.plan?.name ? `Plano ${entry.plan.name}` : entry.description || "Lançamento financeiro";
+    return { id: entry.id, description: entry.description || "Lançamento financeiro", detail, amountCents: outstandingCents, amount: money(outstandingCents || entry.amountCents), dueDate: entry.dueDate ? new Intl.DateTimeFormat("pt-BR").format(entry.dueDate) : "Sem vencimento", paidAt: entry.paidAt ? new Intl.DateTimeFormat("pt-BR").format(entry.paidAt) : "", status: outstandingCents ? overdue ? "overdue" : "open" : "paid", urgency: overdue ? "overdue" : daysUntilDue !== null && daysUntilDue <= 5 ? "soon" : "normal", hasCharge: Boolean(entry.onlinePaymentUrl), paymentUrl: entry.onlinePaymentUrl };
   });
   const open = rows.filter((entry) => entry.status === "open");
   const overdue = rows.filter((entry) => entry.status === "overdue");
