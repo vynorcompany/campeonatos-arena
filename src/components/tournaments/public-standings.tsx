@@ -275,7 +275,7 @@ export function PublicStandings({
       ) : requestedSection === "announcements" ? (
         <section className="athlete-portal-content-panel portal-announcements-feed"><header><span>AVISOS DA ARENA</span><h2>Feed de avisos</h2></header>{home!.announcements.length ? home!.announcements.map((announcement) => <article key={announcement.id}>{announcement.pinned ? <span className="portal-announcement-pinned">Fixado</span> : null}<strong>{announcement.title}</strong><p><PortalRichText text={announcement.message} /></p>{announcement.linkUrl ? <a className="portal-announcement-link" href={announcement.linkUrl} target="_blank" rel="noreferrer">Abrir link <span aria-hidden="true">↗</span></a> : null}</article>) : <p className="muted">A arena ainda não divulgou avisos.</p>}</section>
       ) : requestedSection === "finance" ? (
-        <ClientFinancePanel finance={finance} arenaSlug={arena.slug} tab={financeTab} />
+        <ClientFinancePanel finance={finance} tab={financeTab} />
       ) : requestedSection === "radar" ? (
         <PublicDoublesRadar
           arenaSlug={arena.slug}
@@ -393,7 +393,7 @@ export function PublicStandings({
   );
 }
 
-function ClientFinancePanel({ finance, arenaSlug, tab }: { finance: ClientFinance; arenaSlug: string; tab: "upcoming" | "history" }) {
+function ClientFinancePanel({ finance, tab }: { finance: ClientFinance; tab: "upcoming" | "history" }) {
   if (!finance) return <section className="athlete-portal-content-panel"><PortalEmpty title="Finanças indisponíveis" detail="Não foi possível carregar suas informações financeiras agora." /></section>;
   const message = finance.health === "healthy"
     ? { title: "Tudo certo por aqui, padelista! 🎾", detail: "Quadra livre, contas em ordem e foco no próximo voleio." }
@@ -413,8 +413,8 @@ function ClientFinancePanel({ finance, arenaSlug, tab }: { finance: ClientFinanc
     </div>
     <nav className="client-finance-tabs" aria-label="Navegação financeira"><Link className={tab === "upcoming" ? "active" : ""} href="?section=finance">Lançamentos</Link><Link className={tab === "history" ? "active" : ""} href="?section=finance&financeTab=history">Histórico</Link></nav>
     {tab === "upcoming" ? <>
-      <section className="client-finance-section"><header><div><span className="client-finance-section-icon"><FinanceIcon icon="clock" /></span><h3>Para agora</h3></div><span>{finance.overdue.length ? "Há algo pendente" : "Nenhuma pendência"}</span></header>{finance.overdue.length ? finance.overdue.map((entry) => <FinanceEntry key={entry.id} entry={entry} arenaSlug={arenaSlug} />) : <p className="client-finance-empty">Você está em dia. Obrigado por manter tudo organizado ✨</p>}</section>
-      <section className="client-finance-section"><header><div><span className="client-finance-section-icon"><FinanceIcon icon="calendar" /></span><h3>Próximos pagamentos</h3></div><span>{finance.open.length}</span></header>{finance.open.length ? finance.open.map((entry) => <FinanceEntry key={entry.id} entry={entry} arenaSlug={arenaSlug} />) : <p className="client-finance-empty">Nenhum pagamento futuro aguardando você.</p>}</section>
+      <section className="client-finance-section"><header><div><span className="client-finance-section-icon"><FinanceIcon icon="clock" /></span><h3>Para agora</h3></div><span>{finance.overdue.length ? "Há algo pendente" : "Nenhuma pendência"}</span></header>{finance.overdue.length ? finance.overdue.map((entry) => <FinanceEntry key={entry.id} entry={entry} />) : <p className="client-finance-empty">Você está em dia. Obrigado por manter tudo organizado ✨</p>}</section>
+      <section className="client-finance-section"><header><div><span className="client-finance-section-icon"><FinanceIcon icon="calendar" /></span><h3>Próximos pagamentos</h3></div><span>{finance.open.length}</span></header>{finance.open.length ? finance.open.map((entry) => <FinanceEntry key={entry.id} entry={entry} />) : <p className="client-finance-empty">Nenhum pagamento futuro aguardando você.</p>}</section>
     </> : <section className="client-finance-section"><header><div><span className="client-finance-section-icon"><FinanceIcon icon="receipt" /></span><h3>Histórico de pagamentos</h3></div><span>{finance.paid.length}</span></header>{finance.paid.length ? finance.paid.map((entry) => <article className="client-finance-entry is-paid" key={entry.id}><div><strong>{entry.description}</strong><small>Pago em {entry.paidAt || entry.dueDate}</small></div><b>{entry.amount}</b><em>Pago</em></article>) : <p className="client-finance-empty">Quando houver pagamentos, eles aparecerão aqui.</p>}</section>}
   </section>;
 }
@@ -430,8 +430,8 @@ function FinanceIcon({ icon }: { icon: "wallet" | "check" | "receipt" | "calenda
   return <svg className="client-finance-icon" viewBox="0 0 24 24" aria-hidden="true">{shapes[icon]}</svg>;
 }
 
-function FinanceEntry({ entry, arenaSlug }: { entry: NonNullable<ClientFinance>["open"][number]; arenaSlug: string }) {
-  return <article className={`client-finance-entry is-${entry.status} is-due-${entry.urgency}`}><div><strong>{entry.description}</strong><small>{entry.status === "overdue" ? "Venceu em" : "Vence em"} {entry.dueDate}</small></div><b>{entry.amount}</b>{entry.hasCharge ? <a className="button button-primary button-small" href={`/classificacao/${arenaSlug}/cobranca/${entry.id}`}>Ver boleto</a> : <em>{entry.status === "overdue" ? "Em aberto" : "Programado"}</em>}</article>;
+function FinanceEntry({ entry }: { entry: NonNullable<ClientFinance>["open"][number] }) {
+  return <article className={`client-finance-entry is-${entry.status} is-due-${entry.urgency}`}><div><strong>{entry.description}</strong><small>{entry.status === "overdue" ? "Venceu em" : "Vence em"} {entry.dueDate}</small></div><b>{entry.amount}</b>{entry.hasCharge ? <a className="button button-primary button-small" href={entry.paymentUrl}>Pagar agora</a> : <em>{entry.status === "overdue" ? "Em aberto" : "Programado"}</em>}</article>;
 }
 
 function PortalNavIcon({ icon }: { icon: "home" | "calendar" | "graduation" | "trophy" | "players" | "money" }) {
@@ -475,7 +475,7 @@ function ClientHomePanel({ home, name, arenaSlug, shortcuts }: { home: ClientHom
       </Link>
       <section className="client-portal-summary"><header><h3>Resumo da sua situação</h3><Link href="?section=finance">Ver detalhes <b>›</b></Link></header><div><Link className="client-portal-summary-link is-finance" href="?section=finance"><PortalNavIcon icon="money" /><span>Financeiro</span><strong className={home.summary.financialStatus === "overdue" ? "is-overdue" : home.summary.financialStatus === "pending" ? "is-pending" : "is-active"}>{home.summary.financial}</strong>{home.summary.futureFinancial ? <small className="client-portal-future-financial">{home.summary.futureFinancial}</small> : null}</Link><Link className="client-portal-summary-link is-lessons" href="?section=lessons"><PortalNavIcon icon="graduation" /><span>Aulas</span><strong>{home.summary.classes} disponíveis</strong></Link><Link className="client-portal-summary-link is-reservations" href="?section=reservations"><PortalNavIcon icon="calendar" /><span>Reservas</span><strong>{home.summary.reservations} próxima{home.summary.reservations === 1 ? "" : "s"}</strong></Link><Link className="client-portal-summary-link is-leagues" href="?section=leagues"><PortalNavIcon icon="trophy" /><span>Ligas</span><strong>{home.summary.leagues} ativa{home.summary.leagues === 1 ? "" : "s"}</strong></Link></div></section>
     </div>
-    {home.charges.length ? <section className="client-portal-events"><header><div><span>PAGAMENTOS</span><h3>Boletos disponíveis</h3></div></header>{home.charges.map((charge) => <article className="portal-payment-charge" key={charge.id}><div><strong>{charge.description}</strong><small>{charge.amount} · vence em {charge.dueDate}</small></div><a className="button button-primary button-small" href={`/classificacao/${arenaSlug}/cobranca/${charge.id}`}>Abrir boleto</a></article>)}</section> : null}
+    {home.charges.length ? <section className="client-portal-events"><header><div><span>PAGAMENTOS</span><h3>Boletos disponíveis</h3></div></header>{home.charges.map((charge) => <article className="portal-payment-charge" key={charge.id}><div><strong>{charge.description}</strong><small>{charge.amount} · vence em {charge.dueDate}</small></div><a className="button button-primary button-small" href={charge.paymentUrl}>Pagar agora</a></article>)}</section> : null}
     <section className="client-portal-events"><header><div><span>EVENTOS DA ARENA</span><h3>Próximos eventos</h3></div><Link href="/portal/eventos">Ver todos <b>›</b></Link></header>{home.eventPosts.length ? <ClientPortalEventCarousel events={home.eventPosts} /> : <p className="muted">Nenhum evento próximo. Fique de olho: a arena pode abrir novas partidas em breve.</p>}</section>
   </section>;
 }
