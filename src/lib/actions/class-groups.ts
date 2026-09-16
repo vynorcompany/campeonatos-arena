@@ -190,14 +190,16 @@ export async function adjustTeacherStudentBalanceAction(formData: FormData) {
   await prisma.$transaction(async (tx) => {
     const month = referenceMonth(new Date());
     const balance = await tx.studentMonthlyBalance.findUnique({ where: { studentId_referenceMonth: { studentId, referenceMonth: month } } });
-    const current = balance?.remainingClasses ?? assignment.student.subscriptions[0]?.classesPerMonth ?? assignment.student.remainingClasses;
-    const next = current + classesDelta;
-    if (next < 0) throw new Error("O saldo mensal não pode ficar negativo.");
+    // O limite pertence ao plano. Um ajuste do professor recupera ou retira
+    // aulas do saldo do ciclo, mas nunca aumenta o pacote contratado.
+    const monthlyTotal = assignment.student.subscriptions[0]?.classesPerMonth ?? balance?.totalClasses ?? assignment.student.remainingClasses;
+    const current = balance ? Math.min(balance.remainingClasses, monthlyTotal) : monthlyTotal;
+    const next = Math.min(monthlyTotal, Math.max(0, current + classesDelta));
+    if (classesDelta < 0 && current === 0) throw new Error("O saldo mensal não pode ficar negativo.");
     if (balance) {
-      await tx.studentMonthlyBalance.update({ where: { id: balance.id }, data: { remainingClasses: next, totalClasses: classesDelta > 0 ? { increment: classesDelta } : undefined } });
+      await tx.studentMonthlyBalance.update({ where: { id: balance.id }, data: { remainingClasses: next, totalClasses: monthlyTotal } });
     } else {
-      const total = Math.max(0, current + Math.max(0, classesDelta));
-      await tx.studentMonthlyBalance.create({ data: { arenaId: auth.arenaId, studentId, referenceMonth: month, totalClasses: total, remainingClasses: next } });
+      await tx.studentMonthlyBalance.create({ data: { arenaId: auth.arenaId, studentId, referenceMonth: month, totalClasses: monthlyTotal, remainingClasses: next } });
     }
     await tx.student.update({ where: { id: studentId }, data: { remainingClasses: next } });
     if (assignment.student.playerId) await tx.clientBalanceMovement.create({ data: { arenaId: auth.arenaId, playerId: assignment.student.playerId, kind: "LESSON_CREDIT", classesDelta, reason } });
