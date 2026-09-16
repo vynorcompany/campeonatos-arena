@@ -31,6 +31,14 @@ type TournamentFormProps = {
   defaultDescription?: string;
   defaultResponsibleName?: string;
   defaultResponsiblePhone?: string;
+  defaultStartsAt?: string;
+  defaultEndsAt?: string;
+  defaultRegistrationOpensAt?: string;
+  defaultRegistrationClosesAt?: string;
+  defaultEarlyDiscountCents?: number;
+  defaultEarlyDiscountUntil?: string;
+  defaultFirstBonusLimit?: number;
+  defaultFirstBonusUntil?: string;
   defaultPublicSlug?: string;
   defaultRegistrationPhase?: string;
   defaultShowInEventRadar?: boolean;
@@ -56,6 +64,14 @@ export function TournamentForm({
   defaultDescription = "",
   defaultResponsibleName = "",
   defaultResponsiblePhone = "",
+  defaultStartsAt = "",
+  defaultEndsAt = "",
+  defaultRegistrationOpensAt = "",
+  defaultRegistrationClosesAt = "",
+  defaultEarlyDiscountCents = 0,
+  defaultEarlyDiscountUntil = "",
+  defaultFirstBonusLimit = 0,
+  defaultFirstBonusUntil = "",
   defaultPublicSlug = "",
   defaultRegistrationPhase = "REGISTRATIONS",
   defaultShowInEventRadar = false,
@@ -108,6 +124,20 @@ export function TournamentForm({
           <div className="field"><label htmlFor="registrationPhase">Fase do evento</label><select id="registrationPhase" name="registrationPhase" defaultValue={defaultRegistrationPhase}><option value="REGISTRATIONS">Inscrições abertas</option><option value="EDITING">Configuração</option><option value="LIVE">Em andamento</option><option value="FINISHED">Finalizado</option></select></div>
           <div className="field form-full tournament-public-slug"><label htmlFor="publicSlug">Link público do torneio</label><div><span aria-hidden="true">/inscricao/</span><input id="publicSlug" name="publicSlug" type="text" placeholder="open-arena-agosto" value={publicSlug} onChange={(event) => { setSlugEdited(true); setPublicSlug(slugify(event.target.value)); }} pattern="[a-z0-9-]+" required /></div><p>Gerado a partir do nome; você pode personalizá-lo com letras minúsculas, números e hífens.</p></div>
           <label className="tournament-radar-setting form-full"><input name="showInEventRadar" type="checkbox" defaultChecked={defaultShowInEventRadar} /><span aria-hidden="true" /><div><strong>Exibir no Radar de Eventos</strong><p>Atletas de outras arenas poderão encontrar este torneio e abrir a inscrição.</p></div></label>
+        </div>
+      </section>
+
+      <section className="tournament-editor-section">
+        <header><span>03</span><div><h2>Datas, desconto e bônus</h2><p>Defina o calendário comercial do torneio. O desconto é aplicado por dupla enquanto estiver vigente.</p></div></header>
+        <div className="tournament-editor-grid">
+          <div className="field"><label htmlFor="startsAt">Início do evento</label><input id="startsAt" name="startsAt" type="datetime-local" defaultValue={defaultStartsAt} /></div>
+          <div className="field"><label htmlFor="endsAt">Fim do evento</label><input id="endsAt" name="endsAt" type="datetime-local" defaultValue={defaultEndsAt} /></div>
+          <div className="field"><label htmlFor="registrationOpensAt">Abertura das inscrições</label><input id="registrationOpensAt" name="registrationOpensAt" type="datetime-local" defaultValue={defaultRegistrationOpensAt} /></div>
+          <div className="field"><label htmlFor="registrationClosesAt">Encerramento das inscrições</label><input id="registrationClosesAt" name="registrationClosesAt" type="datetime-local" defaultValue={defaultRegistrationClosesAt} /></div>
+          <div className="field"><label htmlFor="earlyDiscountReais">Desconto por dupla</label><div className="currency-input"><span>R$</span><input id="earlyDiscountReais" name="earlyDiscountReais" inputMode="decimal" defaultValue={(defaultEarlyDiscountCents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} /></div></div>
+          <div className="field"><label htmlFor="earlyDiscountUntil">Desconto válido até</label><input id="earlyDiscountUntil" name="earlyDiscountUntil" type="datetime-local" defaultValue={defaultEarlyDiscountUntil} /></div>
+          <div className="field"><label htmlFor="firstBonusLimit">Bônus para os primeiros confirmados</label><input id="firstBonusLimit" name="firstBonusLimit" type="number" min="0" step="1" defaultValue={defaultFirstBonusLimit} /><p>0 desativa a lista de bônus.</p></div>
+          <div className="field"><label htmlFor="firstBonusUntil">Bônus válido até</label><input id="firstBonusUntil" name="firstBonusUntil" type="datetime-local" defaultValue={defaultFirstBonusUntil} /></div>
         </div>
       </section>
 

@@ -44,6 +44,11 @@ export default async function TournamentDetailPage({
             },
           },
         },
+        publicRegistrations: {
+          where: { status: "CONFIRMED", paymentStatus: "PAID" },
+          orderBy: { createdAt: "asc" },
+          select: { id: true, leadName: true, partnerName: true, createdAt: true },
+        },
       },
     }),
     prisma.rankingProfile.findMany({
@@ -77,7 +82,6 @@ export default async function TournamentDetailPage({
       : tournament.registrationPhase === "FINISHED"
         ? "Finalizado"
         : "Em configuração";
-  const initialQuickAction = searchParams?.action === "categories" ? "categories" : null;
 
   return (
     <div className="event-dashboard">
@@ -138,20 +142,13 @@ export default async function TournamentDetailPage({
                 : null,
             }))}
           />
+          {tournament.firstBonusLimit > 0 ? <section className="section-card tournament-bonus-list"><header><div><p className="eyebrow">Bônus</p><h2>Primeiros {tournament.firstBonusLimit} pagamentos confirmados</h2><p className="muted">{tournament.firstBonusUntil ? `Válido até ${new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(tournament.firstBonusUntil)}.` : "Sem data limite configurada."}</p></div></header>{tournament.publicRegistrations.filter((item) => !tournament.firstBonusUntil || item.createdAt <= tournament.firstBonusUntil).slice(0, tournament.firstBonusLimit).length ? <ol>{tournament.publicRegistrations.filter((item) => !tournament.firstBonusUntil || item.createdAt <= tournament.firstBonusUntil).slice(0, tournament.firstBonusLimit).map((item) => <li key={item.id}>{item.leadName} / {item.partnerName}</li>)}</ol> : <p className="muted">A lista será preenchida automaticamente conforme os pagamentos forem confirmados.</p>}</section> : null}
         </div>
         <aside className="event-side-column">
           <EventQuickActions
             tournament={tournament}
             publicPageUrl={`/inscricao/${tournament.publicSlug}`}
             categories={tournament.categories.map((category) => ({ id: category.id, name: category.name, pairCount: category.competition?._count.pairs ?? 0 }))}
-            categoryManager={{
-              tournamentId: tournament.id, defaultName: tournament.name, defaultDescription: tournament.description, defaultResponsibleName: tournament.responsibleName, defaultResponsiblePhone: tournament.responsiblePhone, defaultPublicSlug: tournament.publicSlug,
-              defaultRegistrationPhase: tournament.registrationPhase, defaultCreationMode: tournament.creationMode as "MANUAL" | "PUBLIC", defaultGroupCount: tournament.groupCount,
-              defaultPairsPerGroup: tournament.pairsPerGroup, defaultPriceFirstCents: tournament.priceFirstCents, defaultPriceSecondCents: tournament.priceSecondCents,
-              defaultPriceThirdCents: tournament.priceThirdCents, defaultBlockCategoryGap: tournament.blockCategoryGap, defaultMaxCategoryGap: tournament.maxCategoryGap,
-              defaultRankingId: tournament.rankingId ?? "", defaultCategories: tournament.categories.map((category) => ({ name: category.name, groupCount: category.groupCount, pairsPerGroup: category.pairsPerGroup, priceFirstCents: category.priceFirstCents, priceSecondCents: category.priceSecondCents, priceThirdCents: category.priceThirdCents, standardKey: category.standardKey, maxRegistrations: category.maxRegistrations, active: category.active, allowedRegistrationStandardKeys: category.allowedRegistrationCategoryIds.map((id) => tournament.categories.find((item) => item.id === id)?.standardKey).filter((key): key is string => Boolean(key)), hasCompetition: Boolean(category.competition) }))
-            }}
-            initialAction={initialQuickAction}
           />
           <section className="event-information">
             <header><EventIcon name="info" /><h2>Informações do evento</h2></header>

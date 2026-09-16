@@ -34,6 +34,14 @@ type TournamentCategoryManagerFormProps = {
   defaultDescription: string;
   defaultResponsibleName: string;
   defaultResponsiblePhone: string;
+  defaultStartsAt?: string;
+  defaultEndsAt?: string;
+  defaultRegistrationOpensAt?: string;
+  defaultRegistrationClosesAt?: string;
+  defaultEarlyDiscountCents?: number;
+  defaultEarlyDiscountUntil?: string;
+  defaultFirstBonusLimit?: number;
+  defaultFirstBonusUntil?: string;
   defaultPublicSlug: string;
   defaultRegistrationPhase: string;
   defaultShowInEventRadar?: boolean;
@@ -124,6 +132,14 @@ export function TournamentCategoryManagerForm(
       />
       <input type="hidden" name="responsibleName" value={props.defaultResponsibleName} />
       <input type="hidden" name="responsiblePhone" value={props.defaultResponsiblePhone} />
+      <input type="hidden" name="startsAt" value={props.defaultStartsAt ?? ""} />
+      <input type="hidden" name="endsAt" value={props.defaultEndsAt ?? ""} />
+      <input type="hidden" name="registrationOpensAt" value={props.defaultRegistrationOpensAt ?? ""} />
+      <input type="hidden" name="registrationClosesAt" value={props.defaultRegistrationClosesAt ?? ""} />
+      <input type="hidden" name="earlyDiscountReais" value={String((props.defaultEarlyDiscountCents ?? 0) / 100)} />
+      <input type="hidden" name="earlyDiscountUntil" value={props.defaultEarlyDiscountUntil ?? ""} />
+      <input type="hidden" name="firstBonusLimit" value={String(props.defaultFirstBonusLimit ?? 0)} />
+      <input type="hidden" name="firstBonusUntil" value={props.defaultFirstBonusUntil ?? ""} />
       <input type="hidden" name="publicSlug" value={props.defaultPublicSlug} />
       <input
         type="hidden"
@@ -205,9 +221,9 @@ export function TournamentCategoryManagerForm(
               <div className="tournament-category-settings-grid">
                 <label className="tournament-category-standard">Categoria padrão<select value={category.standardKey ?? ""} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, standardKey: event.target.value, allowedRegistrationStandardKeys: [] } : item))}><option value="">Selecione</option>{TOURNAMENT_CATEGORY_PRESETS.map((preset) => <option value={preset} key={preset}>{preset}</option>)}</select></label>
                 <label className="tournament-category-standard">Limite máximo de duplas inscritas<input type="number" min="0" step="1" value={category.maxRegistrations ?? 0} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, maxRegistrations: Math.max(0, Number(event.target.value) || 0) } : item))} /><small>Use 0 para não limitar inscrições.</small></label>
-                <label className="tournament-category-standard">Valor por dupla<input type="number" min="0" step="0.01" value={(category.priceFirstCents / 100).toFixed(2)} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, priceFirstCents: Math.round(Math.max(0, Number(event.target.value) || 0) * 100) } : item))} /></label>
-                <label className="tournament-category-standard">Valor da 2ª inscrição<input type="number" min="0" step="0.01" value={(category.priceSecondCents / 100).toFixed(2)} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, priceSecondCents: Math.round(Math.max(0, Number(event.target.value) || 0) * 100) } : item))} /></label>
-                <label className="tournament-category-standard">Valor da 3ª inscrição<input type="number" min="0" step="0.01" value={(category.priceThirdCents / 100).toFixed(2)} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, priceThirdCents: Math.round(Math.max(0, Number(event.target.value) || 0) * 100) } : item))} /></label>
+                <label className="tournament-category-standard">Valor por dupla<div className="currency-input"><span>R$</span><input inputMode="decimal" value={(category.priceFirstCents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, priceFirstCents: Math.round(Math.max(0, Number(event.target.value.replace(".", "").replace(",", ".")) || 0) * 100) } : item))} /></div></label>
+                <label className="tournament-category-standard">Valor da 2ª inscrição<div className="currency-input"><span>R$</span><input inputMode="decimal" value={(category.priceSecondCents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, priceSecondCents: Math.round(Math.max(0, Number(event.target.value.replace(".", "").replace(",", ".")) || 0) * 100) } : item))} /></div></label>
+                <label className="tournament-category-standard">Valor da 3ª inscrição<div className="currency-input"><span>R$</span><input inputMode="decimal" value={(category.priceThirdCents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, priceThirdCents: Math.round(Math.max(0, Number(event.target.value.replace(".", "").replace(",", ".")) || 0) * 100) } : item))} /></div></label>
                 <label className="tournament-category-link-toggle"><input type="checkbox" checked={category.active !== false} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, active: event.target.checked } : item))} /><span>Categoria ativa</span></label>
               </div>
               {(() => {
