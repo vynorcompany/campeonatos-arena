@@ -522,6 +522,8 @@ model Tournament {
   priceThirdCents     Int                            @default(0)
   blockCategoryGap    Boolean                        @default(false)
   maxCategoryGap      Int                            @default(1)
+  responsibleName     String                         @default("")
+  responsiblePhone    String                         @default("")
   createdAt           DateTime                       @default(now())
   updatedAt           DateTime                       @updatedAt
   arenaId             String
@@ -548,6 +550,8 @@ model TournamentCategory {
   level            Int
   class            String                         @default("")
   gender           String                         @default("")
+  standardKey      String                         @default("")
+  allowedRegistrationCategoryIds String[]          @default([])
   groupCount       Int                            @default(4)
   pairsPerGroup    Int                            @default(3)
   priceSecondCents Int                            @default(0)

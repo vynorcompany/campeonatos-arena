@@ -38,6 +38,8 @@ export default async function PublicRegistrationPage({ params }: { params: { slu
         categories={tournament.categories}
         arenaName={tournament.arena.name}
         arenaLogoUrl={tournament.arena.logoUrl}
+        responsibleName={tournament.responsibleName}
+        responsiblePhone={tournament.responsiblePhone}
       />
     </main>
   );
