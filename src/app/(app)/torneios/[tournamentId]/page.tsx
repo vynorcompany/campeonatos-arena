@@ -84,9 +84,7 @@ export default async function TournamentDetailPage({
         </div>
         <div className="event-operation-actions">
           <span className="event-editing-badge">{eventState} <EventIcon name="edit" size={14} /></span>
-          {tournament.creationMode === "PUBLIC" ? (
-             <PublicRegistrationLinkActions slug={tournament.publicSlug} />
-          ) : null}
+          <PublicRegistrationLinkActions slug={tournament.publicSlug} />
           <Link
             href={`/classificacao/${tournament.arena.slug}`}
             className="button"
@@ -104,6 +102,7 @@ export default async function TournamentDetailPage({
             confirmKeyword="EXCLUIR"
             confirmPrompt="Digite EXCLUIR para remover este evento permanentemente."
             successMessage="Evento excluído."
+            successHref="/painel"
           >
             <input type="hidden" name="tournamentId" value={tournament.id} />
             <SubmitButton
@@ -138,10 +137,10 @@ export default async function TournamentDetailPage({
         <aside className="event-side-column">
           <EventQuickActions
             tournament={tournament}
-            publicPageUrl={`/classificacao/${tournament.arena.slug}`}
+            publicPageUrl={`/inscricao/${tournament.publicSlug}`}
             categories={tournament.categories.map((category) => ({ id: category.id, name: category.name, pairCount: category.competition?._count.pairs ?? 0 }))}
             categoryManager={{
-              tournamentId: tournament.id, defaultName: tournament.name, defaultDescription: tournament.description, defaultPublicSlug: tournament.publicSlug,
+              tournamentId: tournament.id, defaultName: tournament.name, defaultDescription: tournament.description, defaultResponsibleName: tournament.responsibleName, defaultResponsiblePhone: tournament.responsiblePhone, defaultPublicSlug: tournament.publicSlug,
               defaultRegistrationPhase: tournament.registrationPhase, defaultCreationMode: tournament.creationMode as "MANUAL" | "PUBLIC", defaultGroupCount: tournament.groupCount,
               defaultPairsPerGroup: tournament.pairsPerGroup, defaultPriceFirstCents: tournament.priceFirstCents, defaultPriceSecondCents: tournament.priceSecondCents,
               defaultPriceThirdCents: tournament.priceThirdCents, defaultBlockCategoryGap: tournament.blockCategoryGap, defaultMaxCategoryGap: tournament.maxCategoryGap,

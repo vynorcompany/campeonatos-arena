@@ -75,6 +75,8 @@ export function TournamentCategoriesTab({ tournament }: { tournament: NonNullabl
           tournamentId={tournament.id}
           defaultName={tournament.name}
           defaultDescription={tournament.description}
+          defaultResponsibleName={tournament.responsibleName}
+          defaultResponsiblePhone={tournament.responsiblePhone}
           defaultPublicSlug={tournament.publicSlug}
           defaultRegistrationPhase={tournament.registrationPhase}
           defaultShowInEventRadar={tournament.showInEventRadar}
@@ -92,7 +94,9 @@ export function TournamentCategoriesTab({ tournament }: { tournament: NonNullabl
             groupCount: category.groupCount,
             pairsPerGroup: category.pairsPerGroup,
             priceSecondCents: category.priceSecondCents ?? 0,
-            priceThirdCents: category.priceThirdCents ?? 0
+            priceThirdCents: category.priceThirdCents ?? 0,
+            standardKey: category.standardKey,
+            allowedRegistrationCategoryNames: category.allowedRegistrationCategoryIds.map((id) => tournament.categories.find((item) => item.id === id)?.name).filter((name): name is string => Boolean(name))
           }))}
           compactMode
         />

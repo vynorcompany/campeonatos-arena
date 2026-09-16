@@ -134,6 +134,7 @@ export default async function TournamentsPage() {
                       confirmKeyword="EXCLUIR"
                       confirmPrompt="Digite EXCLUIR para remover este evento permanentemente."
                       successMessage="Evento excluído."
+                      successHref="/painel"
                     >
                       <input
                         type="hidden"
