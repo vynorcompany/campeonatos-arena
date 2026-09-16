@@ -10,6 +10,7 @@ import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 
 const optionalText = z.string().trim().default("");
+const referenceMonth = (value: Date) => `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}`;
 
 const studentSchema = z.object({
   name: z.string().trim().default(""),
@@ -1266,7 +1267,16 @@ export async function completeLessonAction(formData: FormData) {
       arenaId: auth.arenaId,
     },
     include: {
-      attendances: true,
+      attendances: {
+        include: {
+          student: {
+            select: {
+              remainingClasses: true,
+              subscriptions: { where: { status: "ACTIVE" }, orderBy: { startedAt: "desc" }, take: 1, select: { classesPerMonth: true } },
+            },
+          },
+        },
+      },
     },
   });
 
@@ -1302,7 +1312,17 @@ export async function completeLessonAction(formData: FormData) {
             },
           },
         });
-      } else {
+      } else if (!attendance.checkedInAt) {
+        const month = referenceMonth(lesson.scheduledAt ?? new Date());
+        const balance = await tx.studentMonthlyBalance.findUnique({ where: { studentId_referenceMonth: { studentId: attendance.studentId, referenceMonth: month } } });
+        const current = balance?.remainingClasses ?? attendance.student.subscriptions[0]?.classesPerMonth ?? attendance.student.remainingClasses;
+        const next = Math.max(0, current - 1);
+
+        if (balance) {
+          await tx.studentMonthlyBalance.update({ where: { id: balance.id }, data: { remainingClasses: next } });
+        } else {
+          await tx.studentMonthlyBalance.create({ data: { arenaId: auth.arenaId, studentId: attendance.studentId, referenceMonth: month, totalClasses: current, remainingClasses: next } });
+        }
         await tx.student.update({
           where: {
             id: attendance.studentId,
@@ -1311,20 +1331,7 @@ export async function completeLessonAction(formData: FormData) {
             attendedClasses: {
               increment: 1,
             },
-          },
-        });
-
-        await tx.student.updateMany({
-          where: {
-            id: attendance.studentId,
-            remainingClasses: {
-              gt: 0,
-            },
-          },
-          data: {
-            remainingClasses: {
-              decrement: 1,
-            },
+            remainingClasses: next,
           },
         });
       }

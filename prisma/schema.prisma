@@ -133,6 +133,7 @@ model Arena {
   classGroupEnrollments             ClassGroupEnrollment[]
   classGroupRequests                ClassGroupRequest[]
   classGroupMakeups                 ClassGroupMakeup[]
+  studentMonthlyBalances            StudentMonthlyBalance[]
   subscriptions                     StudentSubscription[]
   financialEntries                  FinancialEntry[]
   financialRecurrences              FinancialRecurrence[]
@@ -1132,6 +1133,7 @@ model Student {
   classGroupEnrollments ClassGroupEnrollment[]
   classGroupRequests    ClassGroupRequest[]
   classGroupMakeups     ClassGroupMakeup[]
+  monthlyBalances       StudentMonthlyBalance[]
 
   @@unique([arenaId, name])
   @@unique([playerId])
@@ -1518,6 +1520,7 @@ model ScheduleOccurrenceCourt {
 model LessonAttendance {
   id        String  @id @default(cuid())
   status    String  @default("PRESENT")
+  checkedInAt DateTime?
   lessonId  String
   studentId String
   lesson    Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
@@ -1525,6 +1528,22 @@ model LessonAttendance {
 
   @@unique([lessonId, studentId])
   @@index([studentId])
+}
+
+model StudentMonthlyBalance {
+  id               String   @id @default(cuid())
+  referenceMonth   String
+  totalClasses     Int      @default(0)
+  remainingClasses Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  arenaId          String
+  studentId        String
+  arena            Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  student          Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, referenceMonth])
+  @@index([arenaId, referenceMonth])
 }
 
 model Product {

@@ -17,6 +17,7 @@ import { RankingCategorySelect } from "@/components/ranking-category-select";
 import {
   moveClassGroupStudentAction,
   adjustTeacherStudentBalanceAction,
+  checkInPortalLessonAction,
   notifyTeacherStudentAction,
   registerClassGroupMakeupAction,
   requestClassGroupAction,
@@ -650,7 +651,7 @@ function LessonsPanel({ portal }: { portal: Portal }) {
                   {lesson.when}
                 </span>
               </div>
-              <b>{lesson.status}</b>
+              <div className="portal-lesson-actions"><b>{lesson.checkedIn ? "Check-in realizado" : lesson.status}</b>{!lesson.checkedIn && lesson.status === "Agendada" ? <SafeActionForm action={checkInPortalLessonAction} successMessage="Check-in realizado. Uma aula foi descontada do saldo deste mês."><input type="hidden" name="arenaSlug" value={portal?.arenaSlug} /><input type="hidden" name="lessonId" value={lesson.id} /><SubmitButton label="Fazer check-in" pendingLabel="Registrando..." className="button button-primary button-small" /></SafeActionForm> : null}</div>
             </article>
           ))}
         </div>
@@ -843,23 +844,24 @@ function TeacherManagementPanel({ portal }: { portal: Portal }) {
             )}
             </article>
             <article className="teacher-portal-management-section" data-panel="students">
-            <header><h3>Alunos ativos</h3><p>Ajuste saldo de aulas ou envie avisos para cada aluno.</p></header>
+            <header><h3>Alunos ativos</h3><p>Selecione um aluno para gerenciar saldo, reposições, turma e avisos.</p></header>
             {management.students.length ? (
               management.students.map((student) => (
-                <div className="teacher-portal-student-row" key={student.id}>
-                  <span><strong>{student.name}</strong><small>
-                    {student.planName} · saldo: {student.remainingClasses}{" "}
-                    aula(s)
-                  </small></span>
-                  <div className="teacher-student-portal-actions"><SafeActionForm action={adjustTeacherStudentBalanceAction}><input type="hidden" name="arenaSlug" value={portal?.arenaSlug} /><input type="hidden" name="studentId" value={student.id} /><input name="classesDelta" type="number" min="-99" max="99" placeholder="± aulas" required /><input name="reason" placeholder="Motivo do ajuste" required /><SubmitButton label="Ajustar saldo" pendingLabel="Salvando..." className="button button-small" /></SafeActionForm><SafeActionForm action={notifyTeacherStudentAction}><input type="hidden" name="arenaSlug" value={portal?.arenaSlug} /><input type="hidden" name="studentId" value={student.id} /><input name="message" placeholder="Aviso para o aluno" required /><SubmitButton label="Enviar aviso" pendingLabel="Enviando..." className="button button-small" /></SafeActionForm></div>
-                </div>
+                <details className="teacher-portal-student-row" key={student.id}>
+                  <summary><span><strong>{student.name}</strong><small>{student.planName} · saldo mensal: {student.remainingClasses} aula(s){student.classGroup ? ` · ${student.classGroup.name}` : ""}</small></span><i aria-hidden="true">⌄</i></summary>
+                  <div className="teacher-student-portal-actions">
+                    <SafeActionForm action={adjustTeacherStudentBalanceAction}><input type="hidden" name="arenaSlug" value={portal?.arenaSlug} /><input type="hidden" name="studentId" value={student.id} /><label><span>Ajuste de saldo mensal</span><input name="classesDelta" type="number" min="-99" max="99" placeholder="Ex.: +1 ou -1" required /></label><label><span>Motivo</span><input name="reason" placeholder="Motivo do ajuste" required /></label><SubmitButton label="Salvar saldo" pendingLabel="Salvando..." className="button button-small" /></SafeActionForm>
+                    <SafeActionForm action={notifyTeacherStudentAction}><input type="hidden" name="arenaSlug" value={portal?.arenaSlug} /><input type="hidden" name="studentId" value={student.id} /><label><span>Aviso ao aluno</span><input name="message" placeholder="Escreva uma mensagem" required /></label><SubmitButton label="Enviar aviso" pendingLabel="Enviando..." className="button button-small" /></SafeActionForm>
+                    {student.classGroup ? <><SafeActionForm action={moveClassGroupStudentAction}><input type="hidden" name="arenaSlug" value={portal?.arenaSlug} /><input type="hidden" name="studentId" value={student.id} /><input type="hidden" name="sourceClassGroupId" value={student.classGroup.id} /><label><span>Nova turma</span><select name="destinationClassGroupId" defaultValue=""><option value="" disabled>Selecione uma turma</option>{management.classGroups.filter((group) => group.id !== student.classGroup?.id).map((group) => <option value={group.id} key={group.id}>{group.name}</option>)}</select></label><SubmitButton label="Trocar turma" pendingLabel="Movendo..." className="button button-small" /></SafeActionForm><SafeActionForm action={registerClassGroupMakeupAction} className="teacher-student-makeup-form"><input type="hidden" name="arenaSlug" value={portal?.arenaSlug} /><input type="hidden" name="studentId" value={student.id} /><input type="hidden" name="sourceClassGroupId" value={student.classGroup.id} /><label><span>Turma da reposição</span><select name="destinationClassGroupId" defaultValue=""><option value="" disabled>Selecione uma turma</option>{management.classGroups.filter((group) => group.id !== student.classGroup?.id).map((group) => <option value={group.id} key={group.id}>{group.name}</option>)}</select></label><label><span>Data da reposição</span><input name="scheduledFor" type="date" required /></label><SubmitButton label="Registrar reposição" pendingLabel="Salvando..." className="button button-small" /></SafeActionForm></> : null}
+                  </div>
+                </details>
               ))
             ) : (
               <p>Nenhum aluno ativo.</p>
             )}
             </article>
             <article className="teacher-portal-management-section" data-panel="classes">
-            <header><h3>Turmas</h3><p>Mova alunos entre as turmas e registre reposições.</p></header>
+            <header><h3>Turmas</h3><p>Consulte os grupos. Para ajustar um aluno, abra-o em Alunos ativos.</p></header>
             {management.classGroups.length ? (
               management.classGroups.map((group) => (
                 <div key={group.id}>
@@ -873,78 +875,7 @@ function TeacherManagementPanel({ portal }: { portal: Portal }) {
                       .join(" · ")}
                   </span>
                   {group.students.map((student) => (
-                    <div className="teacher-class-student" key={student.id}>
-                      <b>{student.name}</b>
-                      <SafeActionForm action={moveClassGroupStudentAction}>
-                        <input
-                          type="hidden"
-                          name="arenaSlug"
-                          value={portal?.arenaSlug}
-                        />
-                        <input
-                          type="hidden"
-                          name="sourceClassGroupId"
-                          value={group.id}
-                        />
-                        <input
-                          type="hidden"
-                          name="studentId"
-                          value={student.id}
-                        />
-                        <select name="destinationClassGroupId" defaultValue="">
-                          <option value="" disabled>
-                            Mover aluno
-                          </option>
-                          {management.classGroups
-                            .filter((target) => target.id !== group.id)
-                            .map((target) => (
-                              <option value={target.id} key={target.id}>
-                                {target.name}
-                              </option>
-                            ))}
-                        </select>
-                        <SubmitButton
-                          label="Mover aluno"
-                          pendingLabel="Movendo..."
-                          className="button button-small"
-                        />
-                      </SafeActionForm>
-                      <SafeActionForm action={registerClassGroupMakeupAction}>
-                        <input
-                          type="hidden"
-                          name="arenaSlug"
-                          value={portal?.arenaSlug}
-                        />
-                        <input
-                          type="hidden"
-                          name="sourceClassGroupId"
-                          value={group.id}
-                        />
-                        <input
-                          type="hidden"
-                          name="studentId"
-                          value={student.id}
-                        />
-                        <select name="destinationClassGroupId" defaultValue="">
-                          <option value="" disabled>
-                            Turma da reposição
-                          </option>
-                          {management.classGroups
-                            .filter((target) => target.id !== group.id)
-                            .map((target) => (
-                              <option value={target.id} key={target.id}>
-                                {target.name}
-                              </option>
-                            ))}
-                        </select>
-                        <input name="scheduledFor" type="date" required />
-                        <SubmitButton
-                          label="Registrar reposição"
-                          pendingLabel="Salvando..."
-                          className="button button-small"
-                        />
-                      </SafeActionForm>
-                    </div>
+                    <div className="teacher-class-student" key={student.id}><b>{student.name}</b><small>Abra este aluno em “Alunos ativos” para gerenciá-lo.</small></div>
                   ))}
                 </div>
               ))
