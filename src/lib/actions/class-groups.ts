@@ -141,6 +141,24 @@ export async function moveClassGroupStudentAction(formData: FormData) {
   revalidatePath("/aulas");
 }
 
+export async function updateTeacherPortalClassGroupCapacityAction(formData: FormData) {
+  const arenaSlug = String(formData.get("arenaSlug") ?? "").trim();
+  const classGroupId = String(formData.get("classGroupId") ?? "").trim();
+  const scheduleId = String(formData.get("scheduleId") ?? "").trim();
+  const capacity = Number(formData.get("capacity") ?? 0);
+  const auth = await requireTeacherForClassGroups(arenaSlug);
+  if (!classGroupId || !scheduleId || !Number.isInteger(capacity) || capacity < 1 || capacity > 99) throw new Error("Informe entre 1 e 99 vagas.");
+  const schedule = await prisma.classGroupSchedule.findFirst({
+    where: { id: scheduleId, classGroupId, arenaId: auth.arenaId, classGroup: { teacherId: auth.teacherId, active: true } },
+    include: { classGroup: { include: { enrollments: { where: { status: "ACTIVE" }, select: { id: true } } } } },
+  });
+  if (!schedule) throw new Error("Horário da turma não encontrado.");
+  if (capacity < schedule.classGroup.enrollments.length) throw new Error("As vagas não podem ser menores que os alunos matriculados.");
+  await prisma.classGroupSchedule.update({ where: { id: schedule.id }, data: { capacity } });
+  revalidatePath(`/classificacao/${arenaSlug}`);
+  revalidatePath("/aulas");
+}
+
 export async function adjustTeacherStudentBalanceAction(formData: FormData) {
   const arenaSlug = String(formData.get("arenaSlug") ?? "");
   const studentId = String(formData.get("studentId") ?? "");
