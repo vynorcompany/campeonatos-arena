@@ -58,6 +58,7 @@ export async function getPublicLeaguePortal(arenaSlug: string, playerId: string,
                 subscriptions: { where: { status: "ACTIVE" }, include: { plan: { select: { name: true } } }, take: 1 },
                 classGroupEnrollments: { where: { status: "ACTIVE" }, select: { classGroup: { select: { id: true, name: true } } }, take: 1 },
                 monthlyBalances: { where: { referenceMonth: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}` }, take: 1 },
+                attendances: { where: { status: "ABSENT", makeupScheduledAt: null }, select: { id: true } },
               },
             },
           },
@@ -78,7 +79,7 @@ export async function getPublicLeaguePortal(arenaSlug: string, playerId: string,
       orderBy: { name: "asc" }
     }),
   ]));
-  const occurrences = await withArenaTransaction(arena.id, (tx) => tx.scheduleOccurrence.findMany({ where: { arenaId: arena.id, status: { not: "CANCELED" }, startsAt: { gte: now, lt: new Date(now.getTime() + 8 * 24 * 60 * 60_000) } }, include: { occurrenceCourts: true } }));
+  const occurrences = await withArenaTransaction(arena.id, (tx) => tx.scheduleOccurrence.findMany({ where: { arenaId: arena.id, status: { not: "CANCELED" }, startsAt: { gte: now, lt: new Date(now.getTime() + 15 * 24 * 60 * 60_000) } }, include: { occurrenceCourts: true } }));
   const leagueCompetitions = await prisma.categoryCompetition.findMany({
     where: { format: "LEAGUE", status: "PUBLISHED", category: { active: true, tournament: { arenaId: arena.id } } },
     orderBy: [{ category: { tournament: { name: "asc" } } }, { category: { name: "asc" } }],
@@ -103,6 +104,18 @@ export async function getPublicLeaguePortal(arenaSlug: string, playerId: string,
       const endsAt = new Date(startsAt.getTime() + duration * 60_000);
       if (startsAt <= now || occurrences.some((occurrence) => occurrence.occurrenceCourts.some((entry) => entry.courtId === court.id) && occurrence.startsAt < endsAt && occurrence.endsAt > startsAt)) return [];
       return [{ value: `${court.id}|${startsAt.toISOString()}|${duration}`, label: `${court.name} · ${dateTimeLabel(startsAt)} · ${duration / 60}h` }];
+    });
+  })).flat();
+  const makeupSlots = arena.courts.flatMap((court) => Array.from({ length: 14 }, (_, dayOffset) => {
+    const date = new Date(now); date.setHours(0, 0, 0, 0); date.setDate(date.getDate() + dayOffset);
+    const rule = court.weeklyRules.find((item) => item.weekday === date.getDay() && item.available);
+    if (!rule) return [];
+    const duration = 60;
+    return Array.from({ length: Math.max(0, Math.floor((rule.endsAtMinute - rule.startsAtMinute - duration) / court.onlineSlotMinutes) + 1) }, (_, index) => rule.startsAtMinute + index * court.onlineSlotMinutes).flatMap((minute) => {
+      const startsAt = new Date(date); startsAt.setHours(Math.floor(minute / 60), minute % 60, 0, 0);
+      const endsAt = new Date(startsAt.getTime() + duration * 60_000);
+      if (startsAt <= now || occurrences.some((occurrence) => occurrence.occurrenceCourts.some((entry) => entry.courtId === court.id) && occurrence.startsAt < endsAt && occurrence.endsAt > startsAt)) return [];
+      return [{ value: `${court.id}|${startsAt.toISOString()}|${duration}`, label: `${court.name} · ${dateTimeLabel(startsAt)}` }];
     });
   })).flat();
   return {
@@ -130,7 +143,8 @@ export async function getPublicLeaguePortal(arenaSlug: string, playerId: string,
     student: student ? { remainingClasses: student.monthlyBalances[0]?.remainingClasses ?? student.subscriptions[0]?.classesPerMonth ?? student.remainingClasses, attendedClasses: student.attendedClasses, missedClasses: student.missedClasses, active: student.active, planName: student.subscriptions[0]?.plan.name ?? "", teacherName: student.teacherAssignments[0]?.teacher.name ?? "" } : null,
     teacherManagement: teacherManagement ? {
       plans: teacherManagement.planAssignments.map((assignment) => ({ id: assignment.plan.id, name: assignment.plan.name, classesPerMonth: assignment.plan.classesPerMonth, monthlyPriceCents: assignment.plan.monthlyPriceCents })),
-      students: teacherManagement.studentAssignments.map((assignment) => ({ id: assignment.student.id, name: assignment.student.name, remainingClasses: assignment.student.monthlyBalances[0]?.remainingClasses ?? assignment.student.subscriptions[0]?.classesPerMonth ?? assignment.student.remainingClasses, planName: assignment.student.subscriptions[0]?.plan.name ?? "Sem plano ativo", classGroup: assignment.student.classGroupEnrollments[0]?.classGroup ?? null })),
+      students: teacherManagement.studentAssignments.map((assignment) => ({ id: assignment.student.id, name: assignment.student.name, remainingClasses: assignment.student.monthlyBalances[0]?.remainingClasses ?? assignment.student.subscriptions[0]?.classesPerMonth ?? assignment.student.remainingClasses, initialMonthlyClasses: assignment.student.monthlyBalances[0]?.totalClasses ?? assignment.student.subscriptions[0]?.classesPerMonth ?? assignment.student.remainingClasses, planName: assignment.student.subscriptions[0]?.plan.name ?? "Sem plano ativo", classGroup: assignment.student.classGroupEnrollments[0]?.classGroup ?? null, pendingMakeups: assignment.student.attendances.map((attendance) => attendance.id) })),
+      makeupSlots,
       agenda: teacherManagement.scheduleOccurrences.map((occurrence) => ({ id: occurrence.id, title: occurrence.title, when: dateTimeLabel(occurrence.startsAt), status: occurrence.status === "PENDING_CONFIRMATION" ? "Aguardando confirmação" : "Agendada" })),
       classGroups: teacherManagement.classGroups.map((group) => ({ id: group.id, name: group.name, schedules: group.schedules.map((schedule) => ({ id: schedule.id, weekday: schedule.weekday, startTime: schedule.startTime, capacity: schedule.capacity })), enrolledCount: group.enrollments.length, students: group.enrollments.map((enrollment) => ({ id: enrollment.student.id, name: enrollment.student.name })) })),
     } : null,

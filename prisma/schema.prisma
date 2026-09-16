@@ -1518,16 +1518,19 @@ model ScheduleOccurrenceCourt {
 }
 
 model LessonAttendance {
-  id        String  @id @default(cuid())
-  status    String  @default("PRESENT")
-  checkedInAt DateTime?
-  lessonId  String
-  studentId String
-  lesson    Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  id               String  @id @default(cuid())
+  status           String  @default("PRESENT")
+  checkedInAt      DateTime?
+  makeupScheduledAt DateTime?
+  makeupOccurrenceId String?
+  lessonId         String
+  studentId        String
+  lesson           Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  student          Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([lessonId, studentId])
   @@index([studentId])
+  @@index([studentId, status, makeupScheduledAt])
 }
 
 model StudentMonthlyBalance {
