@@ -5,6 +5,8 @@ export type TournamentCategoryInput = {
   pairsPerGroup: number;
   priceSecondCents: number;
   priceThirdCents: number;
+  standardKey: string;
+  allowedRegistrationCategoryNames: string[];
 };
 
 export function parseCategoryList(
@@ -20,6 +22,8 @@ export function parseCategoryList(
       pairsPerGroup?: number;
       priceSecondCents?: number | string;
       priceThirdCents?: number | string;
+      standardKey?: string;
+      allowedRegistrationCategoryNames?: string[];
     }>;
     const normalized = parsed
       .map((item) => ({
@@ -33,7 +37,9 @@ export function parseCategoryList(
         priceThirdCents:
           item.priceThirdCents === undefined
             ? fallbackPriceThirdCents
-            : parseReaisToCents(item.priceThirdCents)
+            : parseReaisToCents(item.priceThirdCents),
+        standardKey: String(item.standardKey ?? "").trim(),
+        allowedRegistrationCategoryNames: Array.isArray(item.allowedRegistrationCategoryNames) ? item.allowedRegistrationCategoryNames.map(String).map((name) => name.trim()).filter(Boolean) : []
       }))
       .filter((item) => item.name.length > 0);
 
@@ -48,6 +54,7 @@ export function parseCategoryList(
       pairsPerGroup: Number.isFinite(item.pairsPerGroup) ? Math.min(16, Math.max(2, Math.trunc(item.pairsPerGroup))) : 3,
       priceSecondCents: Number.isFinite(item.priceSecondCents) ? Math.max(0, Math.trunc(item.priceSecondCents)) : fallbackPriceSecondCents,
       priceThirdCents: Number.isFinite(item.priceThirdCents) ? Math.max(0, Math.trunc(item.priceThirdCents)) : fallbackPriceThirdCents
+      , standardKey: item.standardKey, allowedRegistrationCategoryNames: item.allowedRegistrationCategoryNames
     }));
   }
 
@@ -66,7 +73,7 @@ export function parseCategoryList(
     groupCount: 4,
     pairsPerGroup: 3,
     priceSecondCents: fallbackPriceSecondCents,
-    priceThirdCents: fallbackPriceThirdCents
+    priceThirdCents: fallbackPriceThirdCents, standardKey: "", allowedRegistrationCategoryNames: []
   }));
 }
 

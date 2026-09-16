@@ -144,7 +144,7 @@ export default async function TournamentDetailPage({
               defaultRegistrationPhase: tournament.registrationPhase, defaultCreationMode: tournament.creationMode as "MANUAL" | "PUBLIC", defaultGroupCount: tournament.groupCount,
               defaultPairsPerGroup: tournament.pairsPerGroup, defaultPriceFirstCents: tournament.priceFirstCents, defaultPriceSecondCents: tournament.priceSecondCents,
               defaultPriceThirdCents: tournament.priceThirdCents, defaultBlockCategoryGap: tournament.blockCategoryGap, defaultMaxCategoryGap: tournament.maxCategoryGap,
-              defaultRankingId: tournament.rankingId ?? "", defaultCategories: tournament.categories.map((category) => ({ name: category.name, groupCount: category.groupCount, pairsPerGroup: category.pairsPerGroup, priceSecondCents: category.priceSecondCents, priceThirdCents: category.priceThirdCents, hasCompetition: Boolean(category.competition) }))
+              defaultRankingId: tournament.rankingId ?? "", defaultCategories: tournament.categories.map((category) => ({ name: category.name, groupCount: category.groupCount, pairsPerGroup: category.pairsPerGroup, priceSecondCents: category.priceSecondCents, priceThirdCents: category.priceThirdCents, standardKey: category.standardKey, allowedRegistrationCategoryNames: category.allowedRegistrationCategoryIds.map((id) => tournament.categories.find((item) => item.id === id)?.name).filter((name): name is string => Boolean(name)), hasCompetition: Boolean(category.competition) }))
             }}
             initialAction={initialQuickAction}
           />

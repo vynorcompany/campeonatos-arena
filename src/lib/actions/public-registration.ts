@@ -106,6 +106,11 @@ export async function createPublicRegistrationAction(
 
       const registrationOrder = registrations.length + 1;
 
+      if (selectedCategory.allowedRegistrationCategoryIds.length) {
+        const incompatible = registrations.find((item) => !selectedCategory.allowedRegistrationCategoryIds.includes(item.categoryId));
+        if (incompatible) throw new Error("Esta categoria só permite inscrição conjunta com as categorias vinculadas na configuração do torneio.");
+      }
+
       if (tournament.blockCategoryGap) {
         for (const existing of registrations) {
           if (Math.abs(existing.category.level - selectedCategory.level) > tournament.maxCategoryGap) {

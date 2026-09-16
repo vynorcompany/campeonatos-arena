@@ -7,6 +7,7 @@ import {
   updateTournamentAction,
   type ActionState,
 } from "@/lib/actions/tournament";
+import { TOURNAMENT_CATEGORY_PRESETS } from "@/lib/tournament-categories";
 
 const initialState: ActionState = {
   error: null,
@@ -20,6 +21,8 @@ type ManagedCategory = {
   priceSecondCents: number;
   priceThirdCents: number;
   hasCompetition?: boolean;
+  standardKey?: string;
+  allowedRegistrationCategoryNames?: string[];
 };
 
 type TournamentCategoryManagerFormProps = {
@@ -63,6 +66,8 @@ export function TournamentCategoryManagerForm(
           pairsPerGroup: category.pairsPerGroup,
           priceSecondCents: Math.round(category.priceSecondCents / 100),
           priceThirdCents: Math.round(category.priceThirdCents / 100),
+          standardKey: category.standardKey ?? "",
+          allowedRegistrationCategoryNames: category.allowedRegistrationCategoryNames ?? [],
         })),
       ),
     [categories],
@@ -82,6 +87,8 @@ export function TournamentCategoryManagerForm(
         pairsPerGroup: props.defaultPairsPerGroup,
         priceSecondCents: props.defaultPriceSecondCents,
         priceThirdCents: props.defaultPriceThirdCents,
+        standardKey: "",
+        allowedRegistrationCategoryNames: [],
       },
     ]);
     setNewCategoryName("");
@@ -180,6 +187,9 @@ export function TournamentCategoryManagerForm(
                     ? "Competição configurada"
                     : "Aguardando classe, gênero e formato"}
                 </span>
+                <label>Categoria padrão<select value={category.standardKey ?? ""} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, standardKey: event.target.value } : item))}><option value="">Não vincular</option>{TOURNAMENT_CATEGORY_PRESETS.map((preset) => <option value={preset} key={preset}>{preset}</option>)}</select></label>
+                <label><input type="checkbox" checked={(category.allowedRegistrationCategoryNames ?? []).length > 0} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, allowedRegistrationCategoryNames: event.target.checked ? current.filter((candidate) => candidate.name !== item.name).map((candidate) => candidate.name) : [] } : item))} /> Vincular inscrição apenas às categorias marcadas</label>
+                {(category.allowedRegistrationCategoryNames ?? []).length ? <div>{categories.filter((candidate) => candidate.name !== category.name).map((candidate) => <label key={candidate.name}><input type="checkbox" checked={category.allowedRegistrationCategoryNames?.includes(candidate.name)} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, allowedRegistrationCategoryNames: event.target.checked ? [...(item.allowedRegistrationCategoryNames ?? []), candidate.name] : (item.allowedRegistrationCategoryNames ?? []).filter((name) => name !== candidate.name) } : item))} /> {candidate.name}</label>)}</div> : null}
               </div>
               {!category.hasCompetition ? (
                 <button

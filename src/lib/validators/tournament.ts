@@ -4,6 +4,8 @@ export const createTournamentSchema = z.object({
   creationMode: z.enum(["MANUAL", "PUBLIC"]).default("MANUAL"),
   name: z.string().trim().min(3, "Nome do campeonato muito curto."),
   description: z.string().trim().default(""),
+  responsibleName: z.string().trim().max(100).default(""),
+  responsiblePhone: z.string().trim().max(30).default(""),
   publicSlug: z
     .string()
     .trim()
