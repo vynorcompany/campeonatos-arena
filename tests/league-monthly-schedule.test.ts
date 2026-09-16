@@ -122,14 +122,14 @@ test("event rules use a spacious editor and category management only lives in qu
   assert.doesNotMatch(eventPage, /id="gerenciar-categorias"/);
 });
 
-test("League management keeps the prize controls compact and category add opens the category modal", () => {
+test("League management keeps the prize controls compact and category add opens its own page", () => {
   const categoryPage = readFileSync(resolve(process.cwd(), "src/app/(app)/torneios/[tournamentId]/categorias/[categoryId]/page.tsx"), "utf8");
   const categoryList = readFileSync(resolve(process.cwd(), "src/components/tournaments/category-list.tsx"), "utf8");
   const quickActions = readFileSync(resolve(process.cwd(), "src/components/tournaments/event-quick-actions.tsx"), "utf8");
 
   assert.match(categoryPage, /league-overview-bottom/);
   assert.match(categoryPage, /league-prize-editor/);
-  assert.match(categoryList, /\?action=categories/);
+  assert.match(categoryList, /\/categorias\/nova/);
   assert.match(quickActions, /initialAction/);
 });
 

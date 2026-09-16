@@ -36,7 +36,7 @@ export function CategoryList({
         </div>
         <Link
           className="button button-primary"
-          href={`/torneios/${tournamentId}?action=categories#acoes-rapidas`}
+          href={`/torneios/${tournamentId}/categorias/nova`}
         >
           <span className="category-add-symbol">＋</span>Adicionar categoria
         </Link>

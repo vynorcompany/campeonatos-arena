@@ -72,7 +72,7 @@ export default async function TournamentDetailPage({
   );
   const createdAt = new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(tournament.createdAt);
   const eventState = tournament.status === "PUBLISHED" ? "Publicado" : tournament.status === "FINISHED" ? "Finalizado" : "Editando";
-  const initialQuickAction = searchParams?.action === "categories" ? "categories" : null;
+  const initialQuickAction = null;
 
   return (
     <div className="event-dashboard">
@@ -139,13 +139,6 @@ export default async function TournamentDetailPage({
             tournament={tournament}
             publicPageUrl={`/inscricao/${tournament.publicSlug}`}
             categories={tournament.categories.map((category) => ({ id: category.id, name: category.name, pairCount: category.competition?._count.pairs ?? 0 }))}
-            categoryManager={{
-              tournamentId: tournament.id, defaultName: tournament.name, defaultDescription: tournament.description, defaultResponsibleName: tournament.responsibleName, defaultResponsiblePhone: tournament.responsiblePhone, defaultPublicSlug: tournament.publicSlug,
-              defaultRegistrationPhase: tournament.registrationPhase, defaultCreationMode: tournament.creationMode as "MANUAL" | "PUBLIC", defaultGroupCount: tournament.groupCount,
-              defaultPairsPerGroup: tournament.pairsPerGroup, defaultPriceFirstCents: tournament.priceFirstCents, defaultPriceSecondCents: tournament.priceSecondCents,
-              defaultPriceThirdCents: tournament.priceThirdCents, defaultBlockCategoryGap: tournament.blockCategoryGap, defaultMaxCategoryGap: tournament.maxCategoryGap,
-              defaultRankingId: tournament.rankingId ?? "", defaultCategories: tournament.categories.map((category) => ({ name: category.name, groupCount: category.groupCount, pairsPerGroup: category.pairsPerGroup, priceSecondCents: category.priceSecondCents, priceThirdCents: category.priceThirdCents, standardKey: category.standardKey, allowedRegistrationCategoryNames: category.allowedRegistrationCategoryIds.map((id) => tournament.categories.find((item) => item.id === id)?.name).filter((name): name is string => Boolean(name)), hasCompetition: Boolean(category.competition) }))
-            }}
             initialAction={initialQuickAction}
           />
           <section className="event-information">

@@ -16,12 +16,12 @@ test("tournament input helpers normalize money and player identity values", () =
 
 test("tournament category parser preserves names and bounded configuration", () => {
   assert.deepEqual(parseCategoryList("A, B", 5000, 7000), [
-    { name: "A", level: 1, groupCount: 4, pairsPerGroup: 3, priceSecondCents: 5000, priceThirdCents: 7000 },
-    { name: "B", level: 2, groupCount: 4, pairsPerGroup: 3, priceSecondCents: 5000, priceThirdCents: 7000 }
+    { name: "A", level: 1, groupCount: 4, pairsPerGroup: 3, priceSecondCents: 5000, priceThirdCents: 7000, standardKey: "", allowedRegistrationCategoryNames: [] },
+    { name: "B", level: 2, groupCount: 4, pairsPerGroup: 3, priceSecondCents: 5000, priceThirdCents: 7000, standardKey: "", allowedRegistrationCategoryNames: [] }
   ]);
   assert.deepEqual(
     parseCategoryList('[{"name":"Avançado","groupCount":10,"pairsPerGroup":20,"priceSecondCents":"90,00"}]', 0, 0),
-    [{ name: "Avançado", level: 1, groupCount: 8, pairsPerGroup: 16, priceSecondCents: 9000, priceThirdCents: 0 }]
+    [{ name: "Avançado", level: 1, groupCount: 8, pairsPerGroup: 16, priceSecondCents: 9000, priceThirdCents: 0, standardKey: "", allowedRegistrationCategoryNames: [] }]
   );
 });
 

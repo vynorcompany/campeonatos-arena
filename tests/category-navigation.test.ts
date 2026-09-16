@@ -41,7 +41,7 @@ test("event detail uses the operational dashboard layout", async () => {
   assert.match(styles, /\.event-detail-grid\s*\{/);
 });
 
-test("event quick actions open their workflows in a central modal", async () => {
+test("event quick actions keep category management in the category list", async () => {
   const source = await readSource(
     "src", "app", "(app)", "torneios", "[tournamentId]", "page.tsx",
   );
@@ -52,6 +52,8 @@ test("event quick actions open their workflows in a central modal", async () => 
   assert.match(source, /EventQuickActions/);
   assert.match(quickActions, /role="dialog"/);
   assert.match(quickActions, /Configurar categorias/);
+  assert.match(quickActions, /href="#category-list-title"/);
+  assert.doesNotMatch(quickActions, /TournamentCategoryManagerForm/);
   assert.match(quickActions, /Gerenciar inscrições/);
   assert.match(quickActions, /Página pública/);
   assert.match(quickActions, /Editar evento/);
