@@ -103,6 +103,34 @@ export async function moveClassGroupStudentAction(formData: FormData) {
   revalidatePath("/aulas");
 }
 
+export async function adjustTeacherStudentBalanceAction(formData: FormData) {
+  const arenaSlug = String(formData.get("arenaSlug") ?? "");
+  const studentId = String(formData.get("studentId") ?? "");
+  const classesDelta = Number(formData.get("classesDelta") ?? 0);
+  const reason = String(formData.get("reason") ?? "Ajuste realizado pelo professor.").trim().slice(0, 240);
+  const auth = await requireTeacherForClassGroups(arenaSlug);
+  if (!studentId || !Number.isInteger(classesDelta) || !classesDelta) throw new Error("Informe um ajuste válido de aulas.");
+  const assignment = await prisma.teacherStudent.findFirst({ where: { teacherId: auth.teacherId, studentId, active: true }, include: { student: { select: { playerId: true } } } });
+  if (!assignment) throw new Error("Você só pode ajustar o saldo dos seus alunos ativos.");
+  await prisma.$transaction(async (tx) => {
+    await tx.student.update({ where: { id: studentId }, data: { remainingClasses: { increment: classesDelta } } });
+    if (assignment.student.playerId) await tx.clientBalanceMovement.create({ data: { arenaId: auth.arenaId, playerId: assignment.student.playerId, kind: "LESSON_CREDIT", classesDelta, reason } });
+  });
+  revalidatePath(`/classificacao/${arenaSlug}`);
+}
+
+export async function notifyTeacherStudentAction(formData: FormData) {
+  const arenaSlug = String(formData.get("arenaSlug") ?? "");
+  const studentId = String(formData.get("studentId") ?? "");
+  const message = String(formData.get("message") ?? "").trim().slice(0, 500);
+  const auth = await requireTeacherForClassGroups(arenaSlug);
+  if (!studentId || !message) throw new Error("Escreva o aviso para o aluno.");
+  const assignment = await prisma.teacherStudent.findFirst({ where: { teacherId: auth.teacherId, studentId, active: true }, include: { student: { select: { playerId: true } } } });
+  if (!assignment?.student.playerId) throw new Error("Aluno não está vinculado ao portal.");
+  await prisma.playerNotification.create({ data: { playerId: assignment.student.playerId, type: "TEACHER_NOTICE", title: "Aviso do professor", message, href: `/classificacao/${arenaSlug}?section=lessons` } });
+  revalidatePath(`/classificacao/${arenaSlug}`);
+}
+
 export async function registerClassGroupMakeupAction(formData: FormData) {
   const arenaSlug = String(formData.get("arenaSlug") ?? "");
   const sourceClassGroupId = String(formData.get("sourceClassGroupId") ?? "");

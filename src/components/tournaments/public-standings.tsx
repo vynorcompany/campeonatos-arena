@@ -16,6 +16,8 @@ import { PublicEventRadar } from "@/components/public-event-radar";
 import { RankingCategorySelect } from "@/components/ranking-category-select";
 import {
   moveClassGroupStudentAction,
+  adjustTeacherStudentBalanceAction,
+  notifyTeacherStudentAction,
   registerClassGroupMakeupAction,
   requestClassGroupAction,
 } from "@/lib/actions/class-groups";
@@ -819,6 +821,7 @@ function TeacherManagementPanel({ portal }: { portal: Portal }) {
                     {student.planName} · saldo: {student.remainingClasses}{" "}
                     aula(s)
                   </span>
+                  <div className="teacher-student-portal-actions"><SafeActionForm action={adjustTeacherStudentBalanceAction}><input type="hidden" name="arenaSlug" value={portal?.arenaSlug} /><input type="hidden" name="studentId" value={student.id} /><input name="classesDelta" type="number" min="-99" max="99" placeholder="± aulas" required /><input name="reason" placeholder="Motivo do ajuste" required /><SubmitButton label="Ajustar saldo" pendingLabel="Salvando..." className="button button-small" /></SafeActionForm><SafeActionForm action={notifyTeacherStudentAction}><input type="hidden" name="arenaSlug" value={portal?.arenaSlug} /><input type="hidden" name="studentId" value={student.id} /><input name="message" placeholder="Aviso para o aluno" required /><SubmitButton label="Enviar aviso" pendingLabel="Enviando..." className="button button-small" /></SafeActionForm></div>
                 </div>
               ))
             ) : (

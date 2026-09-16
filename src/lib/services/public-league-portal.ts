@@ -53,7 +53,7 @@ export async function getPublicLeaguePortal(arenaSlug: string, playerId: string,
               select: {
                 id: true,
                 name: true,
-                remainingClasses: true,
+                remainingClasses: true, playerId: true,
                 subscriptions: { where: { status: "ACTIVE" }, include: { plan: { select: { name: true } } }, take: 1 },
               },
             },
