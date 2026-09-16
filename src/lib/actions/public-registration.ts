@@ -5,6 +5,7 @@ import { createCardCheckout, createPixPayment } from "@/lib/payments/mercado-pag
 import { prisma } from "@/lib/prisma";
 import { ensureTournamentPairFromRegistration } from "@/lib/services/registration-pair";
 import { createPublicRegistrationSchema } from "@/lib/validators/public-registration";
+import { env } from "@/lib/env";
 
 type PublicRegistrationState = {
   error: string | null;
@@ -15,6 +16,7 @@ type PublicRegistrationState = {
   paymentQrCodeBase64?: string;
   paymentCheckoutUrl?: string;
   paymentMethod?: "PIX" | "CARD";
+  registrationId?: string;
 };
 
 const initialState: PublicRegistrationState = {
@@ -84,6 +86,9 @@ export async function createPublicRegistrationAction(
       if (tournament.registrationPhase !== "REGISTRATIONS") {
         throw new Error("As inscricoes deste torneio estao encerradas.");
       }
+      const now = new Date();
+      if (tournament.registrationOpensAt && now < tournament.registrationOpensAt) throw new Error("As inscrições ainda não foram abertas.");
+      if (tournament.registrationClosesAt && now > tournament.registrationClosesAt) throw new Error("As inscrições deste torneio foram encerradas.");
 
       const selectedCategory = tournament.categories.find((category) => category.id === parsed.data.categoryId);
       if (!selectedCategory) throw new Error("Categoria invalida.");
@@ -148,7 +153,11 @@ export async function createPublicRegistrationAction(
 
       const leadAmountCents = getPriceByOrder(leadCount + 1, categoryPricing);
       const partnerAmountCents = getPriceByOrder(partnerCount + 1, categoryPricing);
-      const amountCents = leadAmountCents + partnerAmountCents;
+      const grossAmountCents = leadAmountCents + partnerAmountCents;
+      const discountCents = tournament.earlyDiscountCents > 0 && (!tournament.earlyDiscountUntil || now <= tournament.earlyDiscountUntil)
+        ? Math.min(grossAmountCents, tournament.earlyDiscountCents)
+        : 0;
+      const amountCents = grossAmountCents - discountCents;
       const registration = await tx.publicTournamentRegistration.create({
         data: {
           tournamentId: tournament.id,
@@ -163,6 +172,7 @@ export async function createPublicRegistrationAction(
           partnerBirthDate: parsed.data.partnerBirthDate,
           registrationOrder,
           amountCents,
+          discountCents,
           paymentStatus: "PENDING",
           paymentProvider: "",
           paymentReference: "",
@@ -178,7 +188,8 @@ export async function createPublicRegistrationAction(
       amountCents: result.amountCents,
       description: `Inscrição ${result.tournamentName}`,
       payerEmail: parsed.data.leadEmail,
-      externalReference: result.registration.id
+      externalReference: result.registration.id,
+      returnUrl: `${env.appUrl ?? ""}/inscricao/${parsed.data.tournamentSlug}/sucesso/${result.registration.id}`,
     };
 
     if (result.amountCents === 0) {
@@ -195,7 +206,7 @@ export async function createPublicRegistrationAction(
         });
       });
       revalidatePath(`/inscricao/${parsed.data.tournamentSlug}`);
-      return { error: null, success: "Inscrição gratuita confirmada com sucesso.", paymentReference: "FREE", amountCents: 0 };
+      return { error: null, success: "Inscrição gratuita confirmada com sucesso.", paymentReference: "FREE", amountCents: 0, registrationId: result.registration.id };
     }
 
     const payment =
@@ -247,7 +258,8 @@ export async function createPublicRegistrationAction(
       paymentQrCode: payment.qrCode,
       paymentQrCodeBase64: payment.qrCodeBase64,
       paymentCheckoutUrl: payment.checkoutUrl,
-      paymentMethod: parsed.data.paymentMethod
+      paymentMethod: parsed.data.paymentMethod,
+      registrationId: result.registration.id
     };
   } catch (error) {
     return {

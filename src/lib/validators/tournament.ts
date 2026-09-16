@@ -6,6 +6,14 @@ export const createTournamentSchema = z.object({
   description: z.string().trim().default(""),
   responsibleName: z.string().trim().max(100).default(""),
   responsiblePhone: z.string().trim().max(30).default(""),
+  startsAt: z.string().trim().default(""),
+  endsAt: z.string().trim().default(""),
+  registrationOpensAt: z.string().trim().default(""),
+  registrationClosesAt: z.string().trim().default(""),
+  earlyDiscountReais: z.string().trim().default("0"),
+  earlyDiscountUntil: z.string().trim().default(""),
+  firstBonusLimit: z.coerce.number().int().min(0).default(0),
+  firstBonusUntil: z.string().trim().default(""),
   publicSlug: z
     .string()
     .trim()

@@ -2238,6 +2238,14 @@ export async function updateTournamentSettings(
     description: string;
     responsibleName: string;
     responsiblePhone: string;
+    startsAt: Date | null;
+    endsAt: Date | null;
+    registrationOpensAt: Date | null;
+    registrationClosesAt: Date | null;
+    earlyDiscountCents: number;
+    earlyDiscountUntil: Date | null;
+    firstBonusLimit: number;
+    firstBonusUntil: Date | null;
     publicSlug: string;
     registrationPhase: string;
     showInEventRadar: boolean;
@@ -2309,6 +2317,14 @@ export async function updateTournamentSettings(
         description: input.description,
         responsibleName: input.responsibleName,
         responsiblePhone: input.responsiblePhone,
+        startsAt: input.startsAt,
+        endsAt: input.endsAt,
+        registrationOpensAt: input.registrationOpensAt,
+        registrationClosesAt: input.registrationClosesAt,
+        earlyDiscountCents: input.earlyDiscountCents,
+        earlyDiscountUntil: input.earlyDiscountUntil,
+        firstBonusLimit: input.firstBonusLimit,
+        firstBonusUntil: input.firstBonusUntil,
         publicSlug: input.publicSlug,
         creationMode: input.creationMode,
         registrationPhase: input.registrationPhase,
