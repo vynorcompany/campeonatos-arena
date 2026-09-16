@@ -46,6 +46,25 @@ export async function checkInPortalLessonAction(formData: FormData) {
   revalidatePath("/aulas");
 }
 
+export async function requestPortalLessonMakeupAction(formData: FormData) {
+  const arenaSlug = String(formData.get("arenaSlug") ?? "").trim();
+  const lessonId = String(formData.get("lessonId") ?? "").trim();
+  if (!arenaSlug || !lessonId) throw new Error("Aula inválida.");
+  const auth = await requirePublicPlayerAuth(arenaSlug);
+  const now = new Date();
+  await withArenaTransaction(auth.arenaId, async (tx) => {
+    const attendance = await tx.lessonAttendance.findFirst({ where: { lessonId, student: { arenaId: auth.arenaId, playerId: auth.playerId, active: true } }, include: { lesson: { select: { scheduledAt: true, status: true } } } });
+    if (!attendance?.lesson.scheduledAt || attendance.lesson.status === "CANCELED" || attendance.lesson.scheduledAt <= now) throw new Error("A reposição deve ser solicitada antes do início da aula.");
+    if (attendance.makeupRequestedAt) throw new Error("A reposição desta aula já foi solicitada.");
+    const lessonDate = attendance.lesson.scheduledAt;
+    const monthEnd = new Date(lessonDate.getFullYear(), lessonDate.getMonth() + 1, 0, 23, 59, 59, 999);
+    const expiresAt = new Date(monthEnd); expiresAt.setDate(expiresAt.getDate() + 30);
+    await tx.lessonAttendance.update({ where: { id: attendance.id }, data: { makeupRequestedAt: now, makeupExpiresAt: expiresAt } });
+  });
+  revalidatePath(`/classificacao/${arenaSlug}`);
+  revalidatePath("/aulas");
+}
+
 export async function requestClassGroupAction(formData: FormData) {
   const arenaSlug = String(formData.get("arenaSlug") ?? "").trim();
   const classGroupId = String(formData.get("classGroupId") ?? "").trim();
@@ -229,7 +248,7 @@ export async function scheduleTeacherMakeupAction(formData: FormData) {
   await withArenaTransaction(auth.arenaId, async (tx) => {
     const [court, pendingAttendances, conflict] = await Promise.all([
       tx.court.findFirst({ where: { id: courtId, arenaId: auth.arenaId, active: true }, include: { weeklyRules: true } }),
-      tx.lessonAttendance.findMany({ where: { id: { in: attendanceIds }, status: "ABSENT", makeupScheduledAt: null, student: { teacherAssignments: { some: { teacherId: auth.teacherId, active: true } } } }, include: { student: { select: { id: true, name: true, playerId: true } } } }),
+      tx.lessonAttendance.findMany({ where: { id: { in: attendanceIds }, status: "ABSENT", makeupRequestedAt: { not: null }, makeupScheduledAt: null, makeupExpiresAt: { gte: new Date() }, student: { teacherAssignments: { some: { teacherId: auth.teacherId, active: true } } } }, include: { student: { select: { id: true, name: true, playerId: true } } } }),
       tx.scheduleOccurrence.findFirst({ where: { arenaId: auth.arenaId, status: { not: "CANCELED" }, startsAt: { lt: endsAt }, endsAt: { gt: startsAt }, occurrenceCourts: { some: { courtId } } }, select: { id: true } }),
     ]);
     if (!court) throw new Error("Quadra não encontrada.");

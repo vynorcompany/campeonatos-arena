@@ -14,6 +14,7 @@ import {
   deleteTeacherAction,
   moveTeacherClassGroupStudentAction,
   removeTeacherPlanStudentAction,
+  transferTeacherStudentAction,
 } from "@/lib/actions/academy";
 import { requireModuleView } from "@/lib/auth/guards";
 import { canEditModule } from "@/lib/permissions";
@@ -65,7 +66,7 @@ export default async function TeacherDetailPage({
   const reportEnd = searchParams?.fim
     ? new Date(`${searchParams.fim}T23:59:59`)
     : monthEnd;
-  const [teacher, clients, targetTeachers, standardPlans] = await Promise.all([
+  const [teacher, clients, targetTeachers, standardPlans, makeupAttendances] = await Promise.all([
     prisma.teacher.findFirst({
       where: { id: params.teacherId, arenaId: auth.arenaId },
       include: {
@@ -139,6 +140,7 @@ export default async function TeacherDetailPage({
       select: { id: true, name: true, classesPerMonth: true },
       orderBy: { name: "asc" },
     }),
+    prisma.lessonAttendance.findMany({ where: { student: { arenaId: auth.arenaId, teacherAssignments: { some: { teacherId: params.teacherId, active: true } } }, makeupRequestedAt: { not: null } }, select: { makeupScheduledAt: true, makeupExpiresAt: true } }),
   ]);
   if (!teacher) notFound();
   const standardPlanOptions = uniqueStandardPlanOptions(standardPlans, [
@@ -215,6 +217,8 @@ export default async function TeacherDetailPage({
     0,
     Math.min(100, Number(searchParams?.percentual ?? 0) || 0),
   );
+  const requestedMakeups = makeupAttendances.filter((attendance) => !attendance.makeupScheduledAt && (!attendance.makeupExpiresAt || attendance.makeupExpiresAt >= now)).length;
+  const completedMakeups = makeupAttendances.filter((attendance) => Boolean(attendance.makeupScheduledAt)).length;
   const tabHref = (nextTab: string, planId?: string) =>
     `/professores/${teacher.id}?tab=${nextTab}${planId ? `&planId=${planId}` : ""}`;
   const initials = teacher.name
@@ -339,6 +343,14 @@ export default async function TeacherDetailPage({
             <span>Planos ativos</span>
             <strong>{teacher.planAssignments.length}</strong>
           </div>
+        </article>
+        <article>
+          <span className="teacher-detail-metric-icon metric-purple" aria-hidden="true"><EventIcon name="calendar" /></span>
+          <div><span>Reposições solicitadas</span><strong>{requestedMakeups}</strong></div>
+        </article>
+        <article>
+          <span className="teacher-detail-metric-icon metric-green" aria-hidden="true"><EventIcon name="check-circle" /></span>
+          <div><span>Reposições concluídas</span><strong>{completedMakeups}</strong></div>
         </article>
         <article>
           <span
@@ -505,6 +517,7 @@ export default async function TeacherDetailPage({
                           className="button button-small"
                         />
                       </SafeActionForm>
+                      {targetTeachers.length ? <SafeActionForm action={transferTeacherStudentAction} className="teacher-student-group-move" successMessage="Aluno transferido. O plano e os lançamentos financeiros foram preservados."><input type="hidden" name="sourceTeacherId" value={teacher.id} /><input type="hidden" name="studentId" value={subscription.student.id} /><label>Professor<select name="targetTeacherId" defaultValue=""><option value="" disabled>Transferir para outro professor</option>{targetTeachers.map((target) => <option value={target.id} key={target.id}>{target.name}</option>)}</select></label><SubmitButton label="Transferir professor" pendingLabel="Transferindo..." className="button button-small" /></SafeActionForm> : null}
                       <SafeActionForm
                         action={removeTeacherPlanStudentAction}
                         className="teacher-student-plan-remove"

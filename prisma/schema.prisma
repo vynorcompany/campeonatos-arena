@@ -1521,6 +1521,8 @@ model LessonAttendance {
   id               String  @id @default(cuid())
   status           String  @default("PRESENT")
   checkedInAt      DateTime?
+  makeupRequestedAt DateTime?
+  makeupExpiresAt   DateTime?
   makeupScheduledAt DateTime?
   makeupOccurrenceId String?
   lessonId         String
@@ -1531,6 +1533,7 @@ model LessonAttendance {
   @@unique([lessonId, studentId])
   @@index([studentId])
   @@index([studentId, status, makeupScheduledAt])
+  @@index([studentId, makeupRequestedAt, makeupExpiresAt])
 }
 
 model StudentMonthlyBalance {
