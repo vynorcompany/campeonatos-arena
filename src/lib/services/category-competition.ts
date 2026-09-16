@@ -1100,6 +1100,7 @@ export async function updateCategoryMatchSchedule(
   matchId: string,
   scheduledDate: string | null,
   scheduledTime: string | null,
+  courtName: string | null = null,
 ) {
   return runSerializableTransaction(async (tx) => {
     const match = await tx.categoryMatch.findFirst({
@@ -1123,6 +1124,7 @@ export async function updateCategoryMatchSchedule(
       data: {
         scheduledDate,
         scheduledTime,
+        courtName,
         manualStatus:
           match.manualStatus === "FINISHED"
             ? "FINISHED"

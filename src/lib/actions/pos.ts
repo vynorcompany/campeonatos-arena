@@ -43,6 +43,8 @@ const cartSaleSchema = z.object({
 function refreshPosRoutes() {
   revalidatePath("/pdv");
   revalidatePath("/pdv/caixa");
+  revalidatePath("/pdv/estoque");
+  revalidatePath("/pdv/balanco");
   revalidatePath("/financeiro");
 }
 
@@ -186,6 +188,66 @@ export async function adjustStockAction(formData: FormData) {
   });
 
   refreshPosRoutes();
+}
+
+/**
+ * Applies a physical stock count. Empty fields intentionally do nothing: this
+ * lets the operator finish a balance gradually without accidentally zeroing
+ * products that were not counted.
+ */
+export async function createStockBalanceAction(formData: FormData) {
+  const auth = await requireModuleEdit("stock");
+  const reason = String(formData.get("reason") ?? "").trim().slice(0, 80);
+  const requestedCounts = [...formData.entries()]
+    .filter(([key, value]) => key.startsWith("count_") && String(value).trim() !== "")
+    .map(([key, value]) => ({ productId: key.slice("count_".length), count: Number(value) }));
+
+  if (!requestedCounts.length) {
+    throw new Error("Informe a contagem de pelo menos um produto.");
+  }
+  if (requestedCounts.some((item) => !item.productId || !Number.isInteger(item.count) || item.count < 0)) {
+    throw new Error("Cada contagem informada deve ser um número inteiro igual ou maior que zero.");
+  }
+
+  const productIds = [...new Set(requestedCounts.map((item) => item.productId))];
+  if (productIds.length !== requestedCounts.length) {
+    throw new Error("Há produtos repetidos no balanço.");
+  }
+
+  const products = await prisma.product.findMany({
+    where: { arenaId: auth.arenaId, id: { in: productIds } },
+    select: { id: true, name: true, stockQuantity: true }
+  });
+  if (products.length !== productIds.length) {
+    throw new Error("Um ou mais produtos não pertencem a esta arena.");
+  }
+
+  const productById = new Map(products.map((product) => [product.id, product]));
+  const stamp = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date());
+
+  await prisma.$transaction(async (tx) => {
+    for (const item of requestedCounts) {
+      const product = productById.get(item.productId)!;
+      const difference = item.count - product.stockQuantity;
+      if (!difference) continue;
+      await tx.product.update({
+        where: { id: product.id },
+        data: { stockQuantity: item.count, updatedByUserId: auth.userId }
+      });
+      await tx.stockMovement.create({
+        data: {
+          arenaId: auth.arenaId,
+          productId: product.id,
+          type: "ADJUST",
+          quantity: item.count,
+          reason: `Balanço ${stamp} | sistema: ${product.stockQuantity} | contado: ${item.count} | diferença: ${difference >= 0 ? "+" : ""}${difference}${reason ? ` | ${reason}` : ""}`
+        }
+      });
+    }
+  });
+
+  refreshPosRoutes();
+  return { updated: requestedCounts.length };
 }
 
 export async function createSaleAction(formData: FormData) {

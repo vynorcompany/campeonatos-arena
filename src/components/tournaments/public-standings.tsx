@@ -792,6 +792,16 @@ function ClassesPanel({
   );
 }
 
+function TeacherManagementIcon({ name }: { name: "plans" | "students" | "classes" | "agenda" }) {
+  const paths = {
+    plans: <><path d="M4 7h16M6 4h12v16H6z" /><path d="M9 11h6M9 14h4" /></>,
+    students: <><circle cx="12" cy="8" r="3" /><path d="M5 20c.8-3.4 3.1-5 7-5s6.2 1.6 7 5" /></>,
+    classes: <><rect x="4" y="5" width="16" height="14" rx="2" /><path d="M8 9h8M8 13h3M13 13h3" /></>,
+    agenda: <><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4M16 3v4M4 10h16M8 14h3M8 17h5" /></>,
+  }[name];
+  return <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{paths}</svg>;
+}
+
 function TeacherManagementPanel({ portal }: { portal: Portal }) {
   const management = portal?.teacherManagement;
   const weekdays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -802,45 +812,51 @@ function TeacherManagementPanel({ portal }: { portal: Portal }) {
         <h2>Área do Professor</h2><p>Gerencie saldos, turmas e avisos dos seus alunos.</p>
       </header>
       {management ? (
-        <div className="teacher-portal-management-grid">
-          <article>
-            <h3>Planos</h3>
+        <div className="teacher-portal-management-menu">
+          <details open>
+            <summary><span aria-hidden="true"><TeacherManagementIcon name="plans" /></span><span><strong>Planos e preços</strong><small>Planos vinculados ao professor</small></span><i aria-hidden="true">⌄</i></summary>
+            <article className="teacher-portal-management-section">
+            <header><h3>Planos e preços</h3><p>Consulte os planos usados pelos seus alunos.</p></header>
             {management.plans.length ? (
               management.plans.map((plan) => (
-                <div key={plan.id}>
-                  <strong>{plan.name}</strong>
-                  <span>
+                <div className="teacher-portal-plan-row" key={plan.id}>
+                  <span><strong>{plan.name}</strong><small>
                     {plan.classesPerMonth} aulas/mês ·{" "}
                     {(plan.monthlyPriceCents / 100).toLocaleString("pt-BR", {
                       style: "currency",
                       currency: "BRL",
                     })}
-                  </span>
+                  </small></span>
                 </div>
               ))
             ) : (
               <p>Nenhum plano vinculado.</p>
             )}
-          </article>
-          <article>
-            <h3>Alunos ativos</h3>
+            </article>
+          </details>
+          <details>
+            <summary><span aria-hidden="true"><TeacherManagementIcon name="students" /></span><span><strong>Alunos ativos</strong><small>Saldo e avisos individuais</small></span><i aria-hidden="true">⌄</i></summary>
+            <article className="teacher-portal-management-section">
+            <header><h3>Alunos ativos</h3><p>Ajuste saldo de aulas ou envie avisos para cada aluno.</p></header>
             {management.students.length ? (
               management.students.map((student) => (
-                <div key={student.id}>
-                  <strong>{student.name}</strong>
-                  <span>
+                <div className="teacher-portal-student-row" key={student.id}>
+                  <span><strong>{student.name}</strong><small>
                     {student.planName} · saldo: {student.remainingClasses}{" "}
                     aula(s)
-                  </span>
+                  </small></span>
                   <div className="teacher-student-portal-actions"><SafeActionForm action={adjustTeacherStudentBalanceAction}><input type="hidden" name="arenaSlug" value={portal?.arenaSlug} /><input type="hidden" name="studentId" value={student.id} /><input name="classesDelta" type="number" min="-99" max="99" placeholder="± aulas" required /><input name="reason" placeholder="Motivo do ajuste" required /><SubmitButton label="Ajustar saldo" pendingLabel="Salvando..." className="button button-small" /></SafeActionForm><SafeActionForm action={notifyTeacherStudentAction}><input type="hidden" name="arenaSlug" value={portal?.arenaSlug} /><input type="hidden" name="studentId" value={student.id} /><input name="message" placeholder="Aviso para o aluno" required /><SubmitButton label="Enviar aviso" pendingLabel="Enviando..." className="button button-small" /></SafeActionForm></div>
                 </div>
               ))
             ) : (
               <p>Nenhum aluno ativo.</p>
             )}
-          </article>
-          <article>
-            <h3>Minhas turmas</h3>
+            </article>
+          </details>
+          <details>
+            <summary><span aria-hidden="true"><TeacherManagementIcon name="classes" /></span><span><strong>Turmas</strong><small>Organize os atletas e reposições</small></span><i aria-hidden="true">⌄</i></summary>
+            <article className="teacher-portal-management-section">
+            <header><h3>Turmas</h3><p>Mova alunos entre as turmas e registre reposições.</p></header>
             {management.classGroups.length ? (
               management.classGroups.map((group) => (
                 <div key={group.id}>
@@ -932,9 +948,12 @@ function TeacherManagementPanel({ portal }: { portal: Portal }) {
             ) : (
               <p>Nenhuma turma vinculada.</p>
             )}
-          </article>
-          <article>
-            <h3>Agenda</h3>
+            </article>
+          </details>
+          <details>
+            <summary><span aria-hidden="true"><TeacherManagementIcon name="agenda" /></span><span><strong>Agenda</strong><small>Próximas atividades das turmas</small></span><i aria-hidden="true">⌄</i></summary>
+            <article className="teacher-portal-management-section">
+            <header><h3>Agenda</h3><p>Visualize os próximos compromissos.</p></header>
             {management.agenda.length ? (
               management.agenda.map((item) => (
                 <div key={item.id}>
@@ -947,7 +966,8 @@ function TeacherManagementPanel({ portal }: { portal: Portal }) {
             ) : (
               <p>Nenhuma atividade futura.</p>
             )}
-          </article>
+            </article>
+          </details>
         </div>
       ) : (
         <PortalEmpty
