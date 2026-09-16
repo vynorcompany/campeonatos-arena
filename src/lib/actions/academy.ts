@@ -745,6 +745,29 @@ export async function createTeacherStudentAction(formData: FormData) {
   refreshAcademyRoutes();
 }
 
+export async function transferTeacherStudentAction(formData: FormData) {
+  const auth = await requireModuleEdit("teachers");
+  const sourceTeacherId = String(formData.get("sourceTeacherId") ?? "");
+  const targetTeacherId = String(formData.get("targetTeacherId") ?? "");
+  const studentId = String(formData.get("studentId") ?? "");
+  if (!sourceTeacherId || !targetTeacherId || !studentId || sourceTeacherId === targetTeacherId) throw new Error("Selecione outro professor.");
+  await withArenaTransaction(auth.arenaId, async (tx) => {
+    const [source, target, subscription] = await Promise.all([
+      tx.teacher.findFirst({ where: { id: sourceTeacherId, arenaId: auth.arenaId, active: true }, select: { id: true } }),
+      tx.teacher.findFirst({ where: { id: targetTeacherId, arenaId: auth.arenaId, active: true }, select: { id: true } }),
+      tx.studentSubscription.findFirst({ where: { arenaId: auth.arenaId, studentId, status: "ACTIVE" }, orderBy: { startedAt: "desc" }, select: { planId: true, monthlyPriceCents: true } }),
+    ]);
+    if (!source || !target) throw new Error("Professor não encontrado.");
+    const current = await tx.teacherStudent.findFirst({ where: { teacherId: source.id, studentId, active: true }, select: { id: true } });
+    if (!current) throw new Error("O aluno não está vinculado a este professor.");
+    await tx.teacherStudent.update({ where: { id: current.id }, data: { active: false } });
+    await tx.teacherStudent.upsert({ where: { teacherId_studentId: { teacherId: target.id, studentId } }, update: { active: true }, create: { arenaId: auth.arenaId, teacherId: target.id, studentId } });
+    await tx.classGroupEnrollment.updateMany({ where: { arenaId: auth.arenaId, studentId, status: "ACTIVE", classGroup: { teacherId: source.id } }, data: { status: "TRANSFERRED", endedAt: new Date() } });
+    if (subscription) await tx.teacherPlan.upsert({ where: { teacherId_planId: { teacherId: target.id, planId: subscription.planId } }, update: { active: true }, create: { arenaId: auth.arenaId, teacherId: target.id, planId: subscription.planId, monthlyPriceCents: subscription.monthlyPriceCents } });
+  });
+  refreshAcademyRoutes();
+}
+
 export async function createTeacherPlanAction(formData: FormData) {
   const auth = await requireModuleEdit("teachers");
   const teacherId = String(formData.get("teacherId") ?? "");
@@ -1312,6 +1335,15 @@ export async function completeLessonAction(formData: FormData) {
             },
           },
         });
+        if (!attendance.makeupRequestedAt) {
+          const month = referenceMonth(lesson.scheduledAt ?? new Date());
+          const balance = await tx.studentMonthlyBalance.findUnique({ where: { studentId_referenceMonth: { studentId: attendance.studentId, referenceMonth: month } } });
+          const current = balance?.remainingClasses ?? attendance.student.subscriptions[0]?.classesPerMonth ?? attendance.student.remainingClasses;
+          const next = Math.max(0, current - 1);
+          if (balance) await tx.studentMonthlyBalance.update({ where: { id: balance.id }, data: { remainingClasses: next } });
+          else await tx.studentMonthlyBalance.create({ data: { arenaId: auth.arenaId, studentId: attendance.studentId, referenceMonth: month, totalClasses: current, remainingClasses: next } });
+          await tx.student.update({ where: { id: attendance.studentId }, data: { remainingClasses: next } });
+        }
       } else if (!attendance.checkedInAt) {
         const month = referenceMonth(lesson.scheduledAt ?? new Date());
         const balance = await tx.studentMonthlyBalance.findUnique({ where: { studentId_referenceMonth: { studentId: attendance.studentId, referenceMonth: month } } });
@@ -1334,6 +1366,7 @@ export async function completeLessonAction(formData: FormData) {
             remainingClasses: next,
           },
         });
+        if (attendance.makeupRequestedAt) await tx.lessonAttendance.update({ where: { id: attendance.id }, data: { makeupRequestedAt: null, makeupExpiresAt: null } });
       }
     }
 

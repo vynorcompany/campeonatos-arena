@@ -18,6 +18,7 @@ import { TeacherPortalStudentList } from "@/components/teacher-portal-student-li
 import { TeacherPortalMakeupPlanner } from "@/components/teacher-portal-makeup-planner";
 import {
   checkInPortalLessonAction,
+  requestPortalLessonMakeupAction,
   requestClassGroupAction,
   updateTeacherPortalClassGroupCapacityAction,
 } from "@/lib/actions/class-groups";
@@ -650,7 +651,7 @@ function LessonsPanel({ portal }: { portal: Portal }) {
                   {lesson.when}
                 </span>
               </div>
-              <div className="portal-lesson-actions"><b>{lesson.checkedIn ? "Check-in realizado" : lesson.status}</b>{!lesson.checkedIn && lesson.status === "Agendada" ? <SafeActionForm action={checkInPortalLessonAction} successMessage="Check-in realizado. Uma aula foi descontada do saldo deste mês."><input type="hidden" name="arenaSlug" value={portal?.arenaSlug} /><input type="hidden" name="lessonId" value={lesson.id} /><SubmitButton label="Fazer check-in" pendingLabel="Registrando..." className="button button-primary button-small" /></SafeActionForm> : null}</div>
+              <div className="portal-lesson-actions"><b>{lesson.checkedIn ? "Check-in realizado" : lesson.makeupRequested ? "Reposição solicitada" : lesson.status}</b>{!lesson.checkedIn && lesson.status === "Agendada" ? <SafeActionForm action={checkInPortalLessonAction} successMessage="Check-in realizado. Uma aula foi descontada do saldo deste mês."><input type="hidden" name="arenaSlug" value={portal?.arenaSlug} /><input type="hidden" name="lessonId" value={lesson.id} /><SubmitButton label="Fazer check-in" pendingLabel="Registrando..." className="button button-primary button-small" /></SafeActionForm> : null}{!lesson.checkedIn && !lesson.makeupRequested && lesson.status === "Agendada" ? <SafeActionForm action={requestPortalLessonMakeupAction} successMessage="Reposição solicitada. Seu professor será notificado."><input type="hidden" name="arenaSlug" value={portal?.arenaSlug} /><input type="hidden" name="lessonId" value={lesson.id} /><SubmitButton label="Solicitar reposição" pendingLabel="Solicitando..." className="button button-small" /></SafeActionForm> : null}</div>
             </article>
           ))}
         </div>
