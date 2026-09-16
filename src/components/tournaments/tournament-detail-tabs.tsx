@@ -224,6 +224,8 @@ export function TournamentSettingsTab({ tournament, rankings }: { tournament: No
           tournamentId={tournament.id}
           defaultName={tournament.name}
           defaultDescription={tournament.description}
+          defaultResponsibleName={tournament.responsibleName}
+          defaultResponsiblePhone={tournament.responsiblePhone}
           defaultPublicSlug={tournament.publicSlug}
           defaultRegistrationPhase={tournament.registrationPhase}
           defaultShowInEventRadar={tournament.showInEventRadar}

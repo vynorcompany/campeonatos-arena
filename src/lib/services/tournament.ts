@@ -2236,6 +2236,8 @@ export async function updateTournamentSettings(
     creationMode: "MANUAL" | "PUBLIC";
     name: string;
     description: string;
+    responsibleName: string;
+    responsiblePhone: string;
     publicSlug: string;
     registrationPhase: string;
     showInEventRadar: boolean;
@@ -2302,6 +2304,8 @@ export async function updateTournamentSettings(
       data: {
         name: input.name,
         description: input.description,
+        responsibleName: input.responsibleName,
+        responsiblePhone: input.responsiblePhone,
         publicSlug: input.publicSlug,
         creationMode: input.creationMode,
         registrationPhase: input.registrationPhase,

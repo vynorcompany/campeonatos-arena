@@ -100,6 +100,7 @@ export default async function TournamentDetailPage({
            </Link>
           <SafeActionForm
             action={deleteTournamentAction}
+            className="tournament-delete-action"
             confirmKeyword="EXCLUIR"
             confirmPrompt="Digite EXCLUIR para remover este evento permanentemente."
             successMessage="Evento excluído."

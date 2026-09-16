@@ -20,6 +20,8 @@ type TournamentFormProps = {
   tournamentId?: string;
   defaultName?: string;
   defaultDescription?: string;
+  defaultResponsibleName?: string;
+  defaultResponsiblePhone?: string;
   defaultPublicSlug?: string;
   defaultRegistrationPhase?: string;
   defaultShowInEventRadar?: boolean;
@@ -43,6 +45,8 @@ export function TournamentForm({
   tournamentId,
   defaultName = "",
   defaultDescription = "",
+  defaultResponsibleName = "",
+  defaultResponsiblePhone = "",
   defaultPublicSlug = "",
   defaultRegistrationPhase = "EDITING",
   defaultShowInEventRadar = false,
@@ -116,8 +120,8 @@ export function TournamentForm({
           rows={4}
         />
       </div>
-      <div className="field"><label htmlFor="responsibleName">Responsável pelo torneio</label><input id="responsibleName" name="responsibleName" placeholder="Nome para dúvidas" /></div>
-      <div className="field"><label htmlFor="responsiblePhone">Telefone do responsável</label><input id="responsiblePhone" name="responsiblePhone" inputMode="tel" placeholder="(00) 00000-0000" /></div>
+      <div className="field"><label htmlFor="responsibleName">Responsável pelo torneio</label><input id="responsibleName" name="responsibleName" defaultValue={defaultResponsibleName} placeholder="Nome para dúvidas" /></div>
+      <div className="field"><label htmlFor="responsiblePhone">Telefone do responsável</label><input id="responsiblePhone" name="responsiblePhone" inputMode="tel" defaultValue={defaultResponsiblePhone} placeholder="(00) 00000-0000" /></div>
 
       <div className="field">
         <label htmlFor="publicSlug">Identificador do link público</label>

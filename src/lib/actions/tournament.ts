@@ -753,6 +753,8 @@ export async function updateTournamentAction(_: ActionState, formData: FormData)
     await updateTournamentSettings(parsed.data.tournamentId, auth.arenaId, {
       name: parsed.data.name,
       description: parsed.data.description,
+      responsibleName: parsed.data.responsibleName,
+      responsiblePhone: parsed.data.responsiblePhone,
       publicSlug: parsed.data.publicSlug,
       creationMode: parsed.data.creationMode,
       registrationPhase: parsed.data.registrationPhase,
