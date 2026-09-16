@@ -8200,7 +8200,8 @@ button {
 .teacher-directory-filters label > span { left: 11px; font-size: 1.1rem; }
 .teacher-directory-list { border-radius: 10px; }
 .teacher-directory-item { grid-template-columns: 42px minmax(180px, 1fr) auto minmax(150px, .5fr) 32px; min-height: 68px; gap: 12px; padding: 10px 12px; }
-.teacher-directory-avatar { width: 38px; height: 38px; font-size: .76rem; }
+.teacher-directory-avatar { display: grid; width: 38px; height: 38px; place-items: center; overflow: hidden; border-radius: 50%; font-size: .76rem; }
+.teacher-directory-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .teacher-directory-person { gap: 3px !important; }
 .teacher-directory-person strong { font-size: .84rem; }
 .teacher-directory-person > span { overflow: hidden; font-size: .72rem; text-overflow: ellipsis; white-space: nowrap; }

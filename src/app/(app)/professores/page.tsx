@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 export default async function TeachersPage() {
   const auth = await requireModuleView("teachers");
   const [teachers, clients] = await Promise.all([
-    prisma.teacher.findMany({ where: { arenaId: auth.arenaId }, orderBy: [{ active: "desc" }, { name: "asc" }], include: { studentAssignments: { where: { active: true }, select: { id: true } }, planAssignments: { where: { active: true }, select: { id: true } } } }),
+    prisma.teacher.findMany({ where: { arenaId: auth.arenaId }, orderBy: [{ active: "desc" }, { name: "asc" }], include: { player: { select: { photoUrl: true } }, studentAssignments: { where: { active: true }, select: { id: true } }, planAssignments: { where: { active: true }, select: { id: true } } } }),
     prisma.player.findMany({ where: { arenaId: auth.arenaId, active: true, teacher: null, mergedIntoPlayerId: null }, orderBy: { name: "asc" }, select: { id: true, name: true, phone: true, email: true } }),
   ]);
 
