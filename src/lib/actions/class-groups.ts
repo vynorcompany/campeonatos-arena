@@ -8,6 +8,44 @@ import { issueRecurringOnlineChargeForEntry } from "@/lib/payments/recurring-onl
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 
+function referenceMonth(value: Date) {
+  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}`;
+}
+
+export async function checkInPortalLessonAction(formData: FormData) {
+  const arenaSlug = String(formData.get("arenaSlug") ?? "").trim();
+  const lessonId = String(formData.get("lessonId") ?? "").trim();
+  if (!arenaSlug || !lessonId) throw new Error("Aula inválida.");
+  const auth = await requirePublicPlayerAuth(arenaSlug);
+  const now = new Date();
+  await withArenaTransaction(auth.arenaId, async (tx) => {
+    const attendance = await tx.lessonAttendance.findFirst({
+      where: { lessonId, student: { arenaId: auth.arenaId, playerId: auth.playerId, active: true } },
+      include: { lesson: { select: { id: true, scheduledAt: true, status: true } }, student: { include: { subscriptions: { where: { status: "ACTIVE" }, orderBy: { startedAt: "desc" }, take: 1 } } } }
+    });
+    if (!attendance || !attendance.lesson.scheduledAt || attendance.lesson.status === "CANCELED") throw new Error("Esta aula não está disponível para check-in.");
+    if (attendance.checkedInAt) throw new Error("Seu check-in nesta aula já foi registrado.");
+    const startsAt = attendance.lesson.scheduledAt;
+    const opensAt = new Date(startsAt.getTime() - 3 * 60 * 60_000);
+    const closesAt = new Date(startsAt.getTime() + 8 * 60 * 60_000);
+    if (now < opensAt || now > closesAt) throw new Error("O check-in fica disponível três horas antes da aula e até oito horas após o início.");
+    const month = referenceMonth(startsAt);
+    const subscriptionCredits = attendance.student.subscriptions[0]?.classesPerMonth ?? 0;
+    const existing = await tx.studentMonthlyBalance.findUnique({ where: { studentId_referenceMonth: { studentId: attendance.studentId, referenceMonth: month } } });
+    const initialCredits = existing ? existing.remainingClasses : subscriptionCredits || attendance.student.remainingClasses;
+    if (initialCredits <= 0) throw new Error("Não há saldo de aulas disponível para este mês.");
+    if (existing) {
+      await tx.studentMonthlyBalance.update({ where: { id: existing.id }, data: { remainingClasses: { decrement: 1 } } });
+    } else {
+      await tx.studentMonthlyBalance.create({ data: { arenaId: auth.arenaId, studentId: attendance.studentId, referenceMonth: month, totalClasses: initialCredits, remainingClasses: initialCredits - 1 } });
+    }
+    await tx.lessonAttendance.update({ where: { id: attendance.id }, data: { status: "PRESENT", checkedInAt: now } });
+    await tx.student.update({ where: { id: attendance.studentId }, data: { remainingClasses: Math.max(0, initialCredits - 1), attendedClasses: { increment: 1 } } });
+  });
+  revalidatePath(`/classificacao/${arenaSlug}`);
+  revalidatePath("/aulas");
+}
+
 export async function requestClassGroupAction(formData: FormData) {
   const arenaSlug = String(formData.get("arenaSlug") ?? "").trim();
   const classGroupId = String(formData.get("classGroupId") ?? "").trim();
@@ -110,10 +148,21 @@ export async function adjustTeacherStudentBalanceAction(formData: FormData) {
   const reason = String(formData.get("reason") ?? "Ajuste realizado pelo professor.").trim().slice(0, 240);
   const auth = await requireTeacherForClassGroups(arenaSlug);
   if (!studentId || !Number.isInteger(classesDelta) || !classesDelta) throw new Error("Informe um ajuste válido de aulas.");
-  const assignment = await prisma.teacherStudent.findFirst({ where: { teacherId: auth.teacherId, studentId, active: true }, include: { student: { select: { playerId: true } } } });
+  const assignment = await prisma.teacherStudent.findFirst({ where: { teacherId: auth.teacherId, studentId, active: true }, include: { student: { select: { playerId: true, remainingClasses: true, subscriptions: { where: { status: "ACTIVE" }, orderBy: { startedAt: "desc" }, take: 1, select: { classesPerMonth: true } } } } } });
   if (!assignment) throw new Error("Você só pode ajustar o saldo dos seus alunos ativos.");
   await prisma.$transaction(async (tx) => {
-    await tx.student.update({ where: { id: studentId }, data: { remainingClasses: { increment: classesDelta } } });
+    const month = referenceMonth(new Date());
+    const balance = await tx.studentMonthlyBalance.findUnique({ where: { studentId_referenceMonth: { studentId, referenceMonth: month } } });
+    const current = balance?.remainingClasses ?? assignment.student.subscriptions[0]?.classesPerMonth ?? assignment.student.remainingClasses;
+    const next = current + classesDelta;
+    if (next < 0) throw new Error("O saldo mensal não pode ficar negativo.");
+    if (balance) {
+      await tx.studentMonthlyBalance.update({ where: { id: balance.id }, data: { remainingClasses: next, totalClasses: classesDelta > 0 ? { increment: classesDelta } : undefined } });
+    } else {
+      const total = Math.max(0, current + Math.max(0, classesDelta));
+      await tx.studentMonthlyBalance.create({ data: { arenaId: auth.arenaId, studentId, referenceMonth: month, totalClasses: total, remainingClasses: next } });
+    }
+    await tx.student.update({ where: { id: studentId }, data: { remainingClasses: next } });
     if (assignment.student.playerId) await tx.clientBalanceMovement.create({ data: { arenaId: auth.arenaId, playerId: assignment.student.playerId, kind: "LESSON_CREDIT", classesDelta, reason } });
   });
   revalidatePath(`/classificacao/${arenaSlug}`);
