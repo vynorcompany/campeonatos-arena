@@ -37,15 +37,28 @@ export async function POST(request: Request) {
       include: { tournament: { select: { id: true, arenaId: true } } }
     });
     if (!registration) {
-      const entry = await prisma.financialEntry.findFirst({
+      let entry = await prisma.financialEntry.findFirst({
         where: { onlineProvider: "MERCADO_PAGO", onlinePaymentId: paymentId, type: "REVENUE" },
         select: { id: true, arenaId: true, externalReference: true }
       });
+      let resolvedPayment: Record<string, unknown> | null = null;
       if (!entry) {
         const arenaId = new URL(request.url).searchParams.get("arenaId");
         if (!arenaId) return NextResponse.json({ ok: true, ignored: "unknown_payment" });
         const payment = await getMercadoPagoPayment(arenaId, paymentId);
+        resolvedPayment = payment;
         const reference = String(payment.external_reference ?? "");
+        // Hosted Checkout creates a preference first and only receives the
+        // actual payment id in this webhook. Its external reference is the
+        // financial-entry id, scoped again by the arena authenticated here.
+        entry = await prisma.financialEntry.findFirst({
+          where: { id: reference, arenaId, type: "REVENUE", onlineProvider: "MERCADO_PAGO" },
+          select: { id: true, arenaId: true, externalReference: true }
+        });
+        if (entry) {
+          // The standard financial settlement below handles the approved or
+          // still-pending payment without falling into the booking flow.
+        } else {
         const occurrenceId = reference.startsWith("online_booking:") ? reference.slice("online_booking:".length) : "";
         if (!occurrenceId || payment.status !== "approved") return NextResponse.json({ ok: true, ignored: occurrenceId ? "booking_not_approved" : "unknown_payment" });
 
@@ -83,9 +96,10 @@ export async function POST(request: Request) {
           await tx.scheduleOccurrence.update({ where: { id: occurrence.id }, data: { status: "SCHEDULED" } });
         });
         return NextResponse.json({ ok: true });
+        }
       }
 
-      const payment = await getMercadoPagoPayment(entry.arenaId, paymentId);
+      const payment = resolvedPayment ?? await getMercadoPagoPayment(entry.arenaId, paymentId);
       const approved = payment.status === "approved";
       await withArenaTransaction(entry.arenaId, async (tx) => {
         const current = await tx.financialEntry.findFirst({

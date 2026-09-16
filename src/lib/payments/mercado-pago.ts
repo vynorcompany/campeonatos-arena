@@ -147,6 +147,7 @@ async function createCheckoutPreference(input: CreateCardCheckoutInput, paymentM
         }
       ],
       ...(paymentMethods ? { payment_methods: paymentMethods } : {}),
+      ...(paymentNotificationUrl(input.arenaId) ? { notification_url: paymentNotificationUrl(input.arenaId) } : {}),
       back_urls: {
         success: returnUrl,
         pending: returnUrl,

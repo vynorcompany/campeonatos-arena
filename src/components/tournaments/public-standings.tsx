@@ -13,6 +13,7 @@ import { PublicSuper12 } from "@/components/public-super12";
 import { AthletePortalNotifications } from "@/components/athlete-portal-notifications";
 import { AthletePortalPrefetch } from "@/components/athlete-portal-prefetch";
 import { PublicEventRadar } from "@/components/public-event-radar";
+import { PublicFinancePaymentButton } from "@/components/public-finance-payment-button";
 import { RankingCategorySelect } from "@/components/ranking-category-select";
 import { TeacherPortalStudentList } from "@/components/teacher-portal-student-list";
 import { TeacherPortalMakeupPlanner } from "@/components/teacher-portal-makeup-planner";
@@ -413,8 +414,8 @@ function ClientFinancePanel({ finance, arenaSlug, tab }: { finance: ClientFinanc
     </div>
     <nav className="client-finance-tabs" aria-label="Navegação financeira"><Link className={tab === "upcoming" ? "active" : ""} href={`/home?arena=${encodeURIComponent(arenaSlug)}&section=finance`}>Lançamentos</Link><Link className={tab === "history" ? "active" : ""} href={`/home?arena=${encodeURIComponent(arenaSlug)}&section=finance&financeTab=history`}>Histórico</Link></nav>
     {tab === "upcoming" ? <>
-      <section className="client-finance-section"><header><div><span className="client-finance-section-icon"><FinanceIcon icon="clock" /></span><h3>Para agora</h3></div><span>{finance.overdue.length ? "Há algo pendente" : "Nenhuma pendência"}</span></header>{finance.overdue.length ? finance.overdue.map((entry) => <FinanceEntry key={entry.id} entry={entry} />) : <p className="client-finance-empty">Você está em dia. Obrigado por manter tudo organizado ✨</p>}</section>
-      <section className="client-finance-section"><header><div><span className="client-finance-section-icon"><FinanceIcon icon="calendar" /></span><h3>Próximos pagamentos</h3></div><span>{finance.open.length}</span></header>{finance.open.length ? finance.open.map((entry) => <FinanceEntry key={entry.id} entry={entry} />) : <p className="client-finance-empty">Nenhum pagamento futuro aguardando você.</p>}</section>
+      <section className="client-finance-section"><header><div><span className="client-finance-section-icon"><FinanceIcon icon="clock" /></span><h3>Para agora</h3></div><span>{finance.overdue.length ? "Há algo pendente" : "Nenhuma pendência"}</span></header>{finance.overdue.length ? finance.overdue.map((entry) => <FinanceEntry key={entry.id} entry={entry} arenaSlug={arenaSlug} />) : <p className="client-finance-empty">Você está em dia. Obrigado por manter tudo organizado ✨</p>}</section>
+      <section className="client-finance-section"><header><div><span className="client-finance-section-icon"><FinanceIcon icon="calendar" /></span><h3>Próximos pagamentos</h3></div><span>{finance.open.length}</span></header>{finance.open.length ? finance.open.map((entry) => <FinanceEntry key={entry.id} entry={entry} arenaSlug={arenaSlug} />) : <p className="client-finance-empty">Nenhum pagamento futuro aguardando você.</p>}</section>
     </> : <section className="client-finance-section"><header><div><span className="client-finance-section-icon"><FinanceIcon icon="receipt" /></span><h3>Histórico de pagamentos</h3></div><span>{finance.paid.length}</span></header>{finance.paid.length ? finance.paid.map((entry) => <article className="client-finance-entry is-paid" key={entry.id}><div><strong>{entry.description}</strong><small>Pago em {entry.paidAt || entry.dueDate}</small></div><b>{entry.amount}</b><em>Pago</em></article>) : <p className="client-finance-empty">Quando houver pagamentos, eles aparecerão aqui.</p>}</section>}
   </section>;
 }
@@ -430,8 +431,8 @@ function FinanceIcon({ icon }: { icon: "wallet" | "check" | "receipt" | "calenda
   return <svg className="client-finance-icon" viewBox="0 0 24 24" aria-hidden="true">{shapes[icon]}</svg>;
 }
 
-function FinanceEntry({ entry }: { entry: NonNullable<ClientFinance>["open"][number] }) {
-  return <article className={`client-finance-entry is-${entry.status} is-due-${entry.urgency}`}><div><strong>{entry.description}</strong><small>{entry.status === "overdue" ? "Venceu em" : "Vence em"} {entry.dueDate}</small></div><b>{entry.amount}</b>{entry.hasCharge ? <a className="button button-primary button-small" href={entry.paymentUrl}>Pagar agora</a> : <em>{entry.status === "overdue" ? "Em aberto" : "Programado"}</em>}</article>;
+function FinanceEntry({ entry, arenaSlug }: { entry: NonNullable<ClientFinance>["open"][number]; arenaSlug: string }) {
+  return <article className={`client-finance-entry is-${entry.status} is-due-${entry.urgency}`}><div><strong>{entry.description}</strong><small>{entry.status === "overdue" ? "Venceu em" : "Vence em"} {entry.dueDate}</small></div><b>{entry.amount}</b><PublicFinancePaymentButton arenaSlug={arenaSlug} entryId={entry.id} paymentUrl={entry.hasCharge ? entry.paymentUrl : undefined} /></article>;
 }
 
 function PortalNavIcon({ icon }: { icon: "home" | "calendar" | "graduation" | "trophy" | "players" | "money" }) {
