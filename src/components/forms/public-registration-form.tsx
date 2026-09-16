@@ -34,11 +34,14 @@ export function PublicRegistrationForm({
   categories,
   arenaName,
   arenaLogoUrl
+  , responsibleName = "", responsiblePhone = ""
 }: {
   tournamentSlug: string;
   categories: Category[];
   arenaName: string;
   arenaLogoUrl: string;
+  responsibleName?: string;
+  responsiblePhone?: string;
 }) {
   const [state, formAction] = useFormState(createPublicRegistrationAction, initialState);
 
@@ -74,6 +77,7 @@ export function PublicRegistrationForm({
 
       <form action={formAction} className="public-reg-form reveal-up" style={{ animationDelay: "120ms" }}>
         <input type="hidden" name="tournamentSlug" value={tournamentSlug} />
+        {responsibleName ? <p className="public-reg-contact">Dúvidas? Fale com {responsibleName}{responsiblePhone ? ` · ${responsiblePhone}` : ""}.</p> : null}
 
         <section className="public-reg-card">
           <header className="public-reg-card-head">

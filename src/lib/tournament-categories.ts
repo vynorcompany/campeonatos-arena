@@ -1,20 +1,7 @@
 export const TOURNAMENT_CATEGORY_PRESETS = [
-  "2ª feminina",
-  "2ª masculina",
-  "3ª feminina",
-  "3ª masculina",
-  "4ª feminina",
-  "4ª masculina",
-  "5ª feminina",
-  "5ª masculina",
-  "6ª feminina",
-  "6ª masculina",
-  "7ª feminina",
-  "7ª masculina",
-  "Mista A",
-  "Mista B",
-  "Mista C",
-  "Mista D"
+  ...Array.from({ length: 8 }, (_, index) => `${8 - index}ª Masculina`),
+  ...Array.from({ length: 8 }, (_, index) => `${8 - index}ª Feminina`),
+  "Open Masculina", "Open Feminina", "Mista A", "Mista B", "Mista C", "Kids"
 ] as const;
 
 export function parseCategoryListInput(raw: string) {

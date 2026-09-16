@@ -58,6 +58,11 @@ const publicBookingPaymentSchema = z.object({
   method: z.enum(["PIX", "CARD", "BOLETO"])
 });
 
+const publicBookingCancellationSchema = z.object({
+  arenaSlug: z.string().trim().min(1),
+  occurrenceId: z.string().trim().min(1)
+});
+
 const courtWeeklyRuleSchema = z.object({
   courtId: z.string().trim().min(1),
   weekday: z.coerce.number().int().min(0).max(6),
@@ -142,6 +147,7 @@ export async function updateOnlineBookingSettingsAction(formData: FormData) {
       onlineBookingRequiresConfirmation: formData.get("requiresConfirmation") === "on",
       onlineBookingShowReserved: formData.get("showReserved") === "on",
       onlineBookingPaymentEnabled: formData.get("paymentOnlineEnabled") === "on",
+      onlineBookingEnabled: formData.get("onlineBookingEnabled") === "on",
       onlineBookingLeadTimeMinutes: parsed.data.leadTimeMinutes,
       onlineBookingWhatsappMessage: parsed.data.whatsappMessage
     },
@@ -158,8 +164,9 @@ export async function createPublicCourtBookingAction(formData: FormData) {
   });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   const playerAuth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
-  const arena = await prisma.arena.findUnique({ where: { slug: parsed.data.arenaSlug }, select: { id: true, slug: true, onlineBookingRequiresConfirmation: true, onlineBookingPaymentEnabled: true, onlineBookingLeadTimeMinutes: true } });
+  const arena = await prisma.arena.findUnique({ where: { slug: parsed.data.arenaSlug }, select: { id: true, slug: true, onlineBookingEnabled: true, onlineBookingRequiresConfirmation: true, onlineBookingPaymentEnabled: true, onlineBookingLeadTimeMinutes: true } });
   if (!arena) throw new Error("Arena não encontrada.");
+  if (!arena.onlineBookingEnabled) throw new Error("A reserva online está desabilitada pela arena.");
   const startsAt = parseScheduledAt(parsed.data.startsAt);
   const earliestStart = new Date(Date.now() + arena.onlineBookingLeadTimeMinutes * 60_000);
   if (startsAt.getTime() < earliestStart.getTime()) throw new Error(`Este horário exige antecedência mínima de ${arena.onlineBookingLeadTimeMinutes} minutos.`);
@@ -188,6 +195,22 @@ export async function createPublicCourtBookingAction(formData: FormData) {
   revalidatePath(`/reservar/${arena.slug}`);
   revalidatePath(`/classificacao/${arena.slug}`);
   return { checkoutUrl };
+}
+
+export async function cancelPublicCourtBookingRequestAction(formData: FormData) {
+  const parsed = publicBookingCancellationSchema.safeParse({ arenaSlug: formData.get("arenaSlug"), occurrenceId: formData.get("occurrenceId") });
+  if (!parsed.success) throw new Error("Solicitação de reserva inválida.");
+  const playerAuth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
+  const arena = await prisma.arena.findUnique({ where: { slug: parsed.data.arenaSlug }, select: { id: true, slug: true } });
+  if (!arena) throw new Error("Arena não encontrada.");
+  const cancelled = await withArenaTransaction(arena.id, (tx) => tx.scheduleOccurrence.updateMany({
+    where: { id: parsed.data.occurrenceId, arenaId: arena.id, sourceType: "ONLINE_BOOKING", status: { in: ["PENDING_PAYMENT", "PENDING_CONFIRMATION"] }, participants: { some: { playerId: playerAuth.playerId } } },
+    data: { status: "CANCELED" }
+  }));
+  if (!cancelled.count) throw new Error("Esta solicitação não pode mais ser cancelada.");
+  refreshCalendar();
+  revalidatePath(`/reservar/${arena.slug}`);
+  revalidatePath(`/classificacao/${arena.slug}`);
 }
 
 export async function startPublicCourtBookingPaymentAction(formData: FormData) {

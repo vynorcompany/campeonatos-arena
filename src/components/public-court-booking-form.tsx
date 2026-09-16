@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { createPublicCourtBookingAction } from "@/lib/actions/calendar";
+import { cancelPublicCourtBookingRequestAction, createPublicCourtBookingAction } from "@/lib/actions/calendar";
 import { resolvePublicBookingSelection } from "@/lib/calendar/public-booking-selection";
 
 type Slot = { startsAt: string; label: string; priceCents: number; durations: number[]; availableMinutes: number[]; blockedMinutes: number[] };
@@ -13,7 +13,9 @@ function duration(minutes: number) { return minutes % 60 ? `${Math.floor(minutes
 function dateMinute(value: string) { const [, time = "00:00"] = value.split("T"); const [hour, minute] = time.split(":").map(Number); return hour * 60 + minute; }
 function endLabel(startsAt: string, minutes: number) { const value = dateMinute(startsAt) + minutes; return `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`; }
 
-export function PublicCourtBookingForm({ arenaSlug, courts, currentClient, layout, paymentOnlineEnabled, reservedSlots, pendingReservation }: { arenaSlug: string; courts: Court[]; currentClient: { name: string }; layout: string; paymentOnlineEnabled: boolean; reservedSlots: string[]; pendingReservation: string }) {
+type PendingReservation = { id: string; label: string; status: "PENDING_PAYMENT" | "PENDING_CONFIRMATION" };
+
+export function PublicCourtBookingForm({ arenaSlug, courts, currentClient, layout, paymentOnlineEnabled, reservedSlots, pendingReservation }: { arenaSlug: string; courts: Court[]; currentClient: { name: string }; layout: string; paymentOnlineEnabled: boolean; reservedSlots: string[]; pendingReservation: PendingReservation | null }) {
   const [courtId, setCourtId] = useState(courts[0]?.id ?? "");
   const court = courts.find((item) => item.id === courtId) ?? courts[0];
   const [startsAt, setStartsAt] = useState(court?.slots[0]?.startsAt ?? "");
@@ -31,14 +33,20 @@ export function PublicCourtBookingForm({ arenaSlug, courts, currentClient, layou
   const changeCourt = (nextCourtId: string) => { const nextCourt = courts.find((item) => item.id === nextCourtId); setCourtId(nextCourtId); setStartsAt(nextCourt?.slots[0]?.startsAt ?? ""); setDurationMinutes(nextCourt?.slots[0]?.durations[0] ?? 60); };
   const changeSlot = (nextStartsAt: string) => { setStartsAt(nextStartsAt); };
   const submit = (form: HTMLFormElement) => { const data = new FormData(form); data.set("arenaSlug", arenaSlug); data.set("courtId", courtId); data.set("startsAt", startsAt); data.set("durationMinutes", String(durationMinutes)); setMessage(""); startTransition(async () => { try { const result = await createPublicCourtBookingAction(data); if (result.checkoutUrl) { window.location.assign(result.checkoutUrl); return; } form.reset(); setMessage("Reserva enviada com sucesso. A arena confirmará seu horário em breve."); } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível enviar sua reserva."); } }); };
+  const cancelPendingReservation = () => { if (!pendingReservation) return; setMessage(""); startTransition(async () => { try { const data = new FormData(); data.set("arenaSlug", arenaSlug); data.set("occurrenceId", pendingReservation.id); await cancelPublicCourtBookingRequestAction(data); window.location.reload(); } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível cancelar a solicitação."); } }); };
 
   return <form className={layout === "LIST" ? "public-booking-form public-booking-form-list" : "public-booking-form"} onSubmit={(event) => { event.preventDefault(); submit(event.currentTarget); }}>
-    <label className="field">Quadra<select value={courtId} onChange={(event) => changeCourt(event.target.value)}>{courts.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
+    <section className="public-booking-court-picker" aria-label="Quadra">
+      <strong>Quadra</strong>
+      <div>
+        {courts.map((item) => <button type="button" key={item.id} className={`public-booking-court-card${item.id === courtId ? " is-active" : ""}`} onClick={() => changeCourt(item.id)} style={{ borderLeftColor: item.color }} aria-pressed={item.id === courtId}><i style={{ backgroundColor: item.color }} aria-hidden="true" /><span>{item.name}</span><small>{item.id === courtId ? "Selecionada" : "Selecionar"}</small></button>)}
+      </div>
+    </section>
     {layout === "LIST" ? <label className="field">Horário<select value={startsAt} onChange={(event) => changeSlot(event.target.value)}>{visibleSlots.map((item) => <option value={item.startsAt} key={item.startsAt}>{item.label} · {money(item.priceCents)}</option>)}</select></label> : <section className="public-booking-slot-blocks"><strong>Horários disponíveis</strong><div>{visibleSlots.map((item) => { const selected = selectedSlotMinutes.has(dateMinute(item.startsAt)); return <button type="button" className={`public-booking-slot-block${selected ? " public-booking-slot-block-selected" : ""}${startsAt === item.startsAt ? " public-booking-slot-block-active" : ""}`} onClick={() => changeSlot(item.startsAt)} key={item.startsAt}><b>{item.label}</b><small>{money(item.priceCents)}</small></button>; })}{selection.conflictingMinutes.map((minute) => <span className="public-booking-slot-block public-booking-slot-block-conflict" key={`conflict-${minute}`}><b>{endLabel(startsAt, minute - dateMinute(startsAt))}</b><small>Conflito</small></span>)}</div></section>}
-    <label className="field">Duração<select value={durationMinutes} onChange={(event) => setDurationMinutes(Number(event.target.value))}>{Array.from(new Set([durationMinutes, ...(slot?.durations ?? [])])).sort((first, second) => first - second).map((item) => <option value={item} key={item}>{duration(item)} · até {endLabel(startsAt, item)}</option>)}</select></label>
+    <label className="field public-booking-duration-field">Duração<select value={durationMinutes} onChange={(event) => setDurationMinutes(Number(event.target.value))}>{Array.from(new Set([durationMinutes, ...(slot?.durations ?? [])])).sort((first, second) => first - second).map((item) => <option value={item} key={item}>{duration(item)} · até {endLabel(startsAt, item)}</option>)}</select></label>
     {selection.hasConflict ? <p className="public-booking-conflict" role="alert">Há uma reserva conflitando com este período. Escolha outro horário ou uma duração menor.</p> : null}
     <section className="public-booking-client-summary"><div><span>RESERVA PARA</span><strong>{currentClient.name}</strong><small>Você está usando sua conta de cliente.</small></div><div className="public-booking-total"><span>Valor total</span><strong>{money(selectedTotalCents)}</strong></div></section>
-    {pendingReservation ? <section className="public-booking-pending"><strong>Aguardando confirmação</strong><span>{pendingReservation}</span><small>A arena avisará você assim que confirmar a reserva.</small></section> : null}
+    {pendingReservation ? <section className="public-booking-pending"><strong>{pendingReservation.status === "PENDING_PAYMENT" ? "Aguardando pagamento" : "Aguardando confirmação"}</strong><span>{pendingReservation.label}</span><small>{pendingReservation.status === "PENDING_PAYMENT" ? "Conclua o pagamento para confirmar sua reserva." : "A arena avisará você assim que confirmar a reserva."}</small><button type="button" className="button button-small" disabled={pending} onClick={cancelPendingReservation}>Cancelar solicitação</button></section> : null}
     <button className="button button-primary" disabled={pending || selection.hasConflict}>{pending ? "Abrindo pagamento..." : paymentOnlineEnabled ? "Ir para pagamento" : "Solicitar reserva"}</button>
     {reservedSlots.length ? <section className="public-booking-reserved-slots"><strong>Horários reservados</strong><span>{reservedSlots.join(" · ")}</span></section> : null}
     {message ? <p className="public-booking-message" role="status">{message}</p> : null}

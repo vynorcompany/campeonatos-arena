@@ -4,6 +4,8 @@ export const createTournamentSchema = z.object({
   creationMode: z.enum(["MANUAL", "PUBLIC"]).default("MANUAL"),
   name: z.string().trim().min(3, "Nome do campeonato muito curto."),
   description: z.string().trim().default(""),
+  responsibleName: z.string().trim().max(100).default(""),
+  responsiblePhone: z.string().trim().max(30).default(""),
   publicSlug: z
     .string()
     .trim()
@@ -30,5 +32,7 @@ export const updateTournamentEventSchema = z.object({
   tournamentId: z.string().min(1, "Torneio inválido."),
   name: z.string().trim().min(3, "Nome do campeonato muito curto."),
   description: z.string().trim().default(""),
+  responsibleName: z.string().trim().max(100).default(""),
+  responsiblePhone: z.string().trim().max(30).default(""),
   rules: z.string().trim().max(8000, "As regras podem ter no máximo 8000 caracteres.").default(""),
 });

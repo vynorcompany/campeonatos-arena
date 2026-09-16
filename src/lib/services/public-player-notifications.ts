@@ -20,7 +20,7 @@ export async function getAthletePortalNotifications(arenaSlug: string, playerId:
   const now = new Date();
   const [playerNotifications, announcements, entries, reads] = await withArenaTransaction(arena.id, (tx) => Promise.all([
     tx.playerNotification.findMany({ where: { playerId }, orderBy: { createdAt: "desc" }, take: 24, select: { id: true, title: true, message: true, href: true, readAt: true, createdAt: true } }),
-    tx.portalAnnouncement.findMany({ where: { arenaId: arena.id, active: true, AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }] }, orderBy: { createdAt: "desc" }, take: 6, select: { id: true, title: true, message: true, createdAt: true } }),
+    tx.portalAnnouncement.findMany({ where: { arenaId: arena.id, active: true, AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }] }, orderBy: [{ pinned: "desc" }, { createdAt: "desc" }], take: 6, select: { id: true, title: true, message: true, createdAt: true } }),
     tx.financialEntry.findMany({ where: { arenaId: arena.id, playerId, type: "REVENUE", status: { in: ["PENDING", "OVERDUE"] }, onlinePaymentUrl: { not: "" } }, orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }], take: 12, select: { id: true, description: true, amountCents: true, dueDate: true, createdAt: true, settlements: { select: { amountCents: true, interestCents: true } } } }),
     tx.playerPortalNotificationRead.findMany({ where: { playerId }, select: { notificationKey: true } }),
   ]));

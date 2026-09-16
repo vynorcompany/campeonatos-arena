@@ -88,6 +88,7 @@ model Arena {
   onlineBookingRequiresConfirmation Boolean                  @default(true)
   onlineBookingShowReserved         Boolean                  @default(false)
   onlineBookingPaymentEnabled       Boolean                  @default(false)
+  onlineBookingEnabled              Boolean                  @default(true)
   onlineBookingWhatsappMessage      String                   @default("")
   onlineBookingLeadTimeMinutes      Int                      @default(120)
   athletePortalShowLeagues          Boolean                  @default(true)
@@ -521,6 +522,8 @@ model Tournament {
   priceThirdCents     Int                            @default(0)
   blockCategoryGap    Boolean                        @default(false)
   maxCategoryGap      Int                            @default(1)
+  responsibleName     String                         @default("")
+  responsiblePhone    String                         @default("")
   createdAt           DateTime                       @default(now())
   updatedAt           DateTime                       @updatedAt
   arenaId             String
@@ -547,6 +550,8 @@ model TournamentCategory {
   level            Int
   class            String                         @default("")
   gender           String                         @default("")
+  standardKey      String                         @default("")
+  allowedRegistrationCategoryIds String[]          @default([])
   groupCount       Int                            @default(4)
   pairsPerGroup    Int                            @default(3)
   priceSecondCents Int                            @default(0)
@@ -1303,6 +1308,8 @@ model PortalAnnouncement {
   title     String
   message   String
   active    Boolean   @default(true)
+  pinned    Boolean   @default(false)
+  linkUrl   String    @default("")
   startsAt  DateTime?
   endsAt    DateTime?
   createdAt DateTime  @default(now())
@@ -1320,12 +1327,13 @@ model PortalEventPost {
   imageUrl  String
   linkUrl   String?
   active    Boolean  @default(true)
+  pinned    Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   arenaId   String
   arena     Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
 
-  @@index([arenaId, active, createdAt])
+  @@index([arenaId, active, pinned, createdAt])
 }
 
 model Court {

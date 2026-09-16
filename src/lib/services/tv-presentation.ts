@@ -625,7 +625,7 @@ export async function getTvPresentationPayload(arenaId: string) {
       showMatches: settings?.showMatches ?? true,
       showCalendar: settings?.showCalendar ?? true,
       showSponsors: settings?.showSponsors ?? false,
-      showRanking: false,
+      showRanking: settings?.showRanking ?? false,
       showMonthlyPrize: (settings?.showMonthlyPrize ?? false) && tournamentPrizeItems.length > 0,
       showNightWinner: settings?.showNightWinner ?? false,
       monthlyPrizeTitle: selectedTournament ? `Premiação • ${selectedTournament.name}` : selectedLeagueCycle ? `Premiação • Liga ${selectedLeagueCycle.competition.category.name}` : "Premiação do evento",
@@ -637,7 +637,7 @@ export async function getTvPresentationPayload(arenaId: string) {
     },
     sponsors: selectedSponsors,
     availableSponsors: sponsors,
-    ranking: [],
+    ranking,
     rankingSlides,
     calendar
   };

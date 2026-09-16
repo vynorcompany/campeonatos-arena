@@ -4,6 +4,8 @@ import { getFinancialEntryBalance } from "@/lib/finance/ledger";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 import { ensureTournamentPairFromRegistration } from "@/lib/services/registration-pair";
+import { env } from "@/lib/env";
+import { verifyMercadoPagoWebhookSignature } from "@/lib/payments/mercado-pago-webhook-signature";
 
 export async function POST(request: Request) {
   try {
@@ -12,6 +14,19 @@ export async function POST(request: Request) {
       String(body?.data?.id ?? "") ||
       new URL(request.url).searchParams.get("data.id") ||
       new URL(request.url).searchParams.get("id");
+
+    // Mercado Pago validates the payment again with the arena's authenticated
+    // connection below before any state changes. When the provider exposes a
+    // signature secret, validate the delivery too; this remains optional for
+    // legacy Checkout Bricks applications without the Webhooks dashboard.
+    if (env.mercadoPagoWebhookSecret && !verifyMercadoPagoWebhookSignature({
+      secret: env.mercadoPagoWebhookSecret,
+      signatureHeader: request.headers.get("x-signature"),
+      requestId: request.headers.get("x-request-id"),
+      dataId: paymentId ?? ""
+    })) {
+      return NextResponse.json({ ok: false, error: "invalid_webhook_signature" }, { status: 401 });
+    }
 
     if (!paymentId) {
       return NextResponse.json({ ok: true, ignored: "missing_payment_id" });

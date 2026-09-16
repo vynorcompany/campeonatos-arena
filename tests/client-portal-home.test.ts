@@ -16,7 +16,7 @@ test("client portal opens on Home with arena notices, client summary and feature
   assert.match(portal, /Início/);
   assert.match(portal, /ClientHomePanel/);
   assert.match(portal, /Resumo da sua situação/);
-  assert.match(portal, /Eventos próximos/);
+  assert.match(portal, /ClientPortalEventCarousel/);
   assert.match(home, /portalAnnouncement\.findMany/);
   assert.match(home, /featuredInPortal: true/);
   assert.match(schema, /model PortalAnnouncement \{/);
@@ -78,11 +78,11 @@ test("portal events preserve the image on mobile and can open an optional extern
 test("client home filters financial entries in the database for the signed-in athlete", () => {
   const home = read("src/lib/services/public-client-home.ts");
 
-  assert.match(home, /counterpartyName: player\.name/);
-  assert.doesNotMatch(home, /entries\.filter\(\(entry\) => entry\.counterpartyName === player\?\.name\)/);
+  assert.match(home, /playerId/);
+  assert.doesNotMatch(home, /entries\.filter\(\(entry\) => entry\.playerId === playerId\)/);
 });
 
-test("arena can edit and activate or deactivate an existing portal event without deleting it", () => {
+test("arena can fix, edit, activate, deactivate or delete portal notices and events", () => {
   const editor = read("src/components/portal-editor-panels.tsx");
   const actions = read("src/lib/actions/client-portal.ts");
 
@@ -91,8 +91,15 @@ test("arena can edit and activate or deactivate an existing portal event without
   assert.match(editor, /type="checkbox"/);
   assert.match(actions, /updatePortalEventPostAction/);
   assert.match(actions, /togglePortalEventPostAction/);
+  assert.match(actions, /togglePortalEventPostPinAction/);
+  assert.match(actions, /deletePortalEventPostAction/);
+  assert.match(actions, /deletePortalAnnouncementAction/);
+  assert.match(editor, /Excluir aviso/);
+  assert.match(editor, /Excluir evento/);
+  assert.match(editor, /Desafixar/);
   assert.match(actions, /where: \{ id, arenaId: auth\.arenaId \}/);
   assert.match(actions, /data: \{ active: !current\.active \}/);
+  assert.match(actions, /data: \{ pinned: !current\.pinned \}/);
 });
 
 test("client portal presents multiple featured events in an accessible carousel", () => {
@@ -114,11 +121,11 @@ test("portal only calculates league standings when the athlete opens Ligas", () 
   const standings = read("src/lib/services/public-standings.ts");
 
   assert.match(page, /getPublicArenaShell/);
-  assert.match(page, /section === "leagues" \? await getArenaPublicStandings/);
+  assert.match(page, /section === "leagues" && !isSuper12 \? await getArenaPublicStandings/);
   assert.doesNotMatch(page, /Promise\.all\(\[getArenaPublicStandings/);
   assert.match(standings, /export async function getPublicArenaShell/);
-  assert.match(page, /section !== "home" \? await getPublicLeaguePortal/);
-  assert.match(page, /section === "home" \? await getPublicClientHome/);
+  assert.match(page, /needsPortalData && !isSuper12 \? await getPublicLeaguePortal/);
+  assert.match(page, /section === "home" \|\| section === "announcements" \? await getPublicClientHome/);
 });
 
 test("league header no longer displays the isolated notification count tag", () => {

@@ -2236,6 +2236,8 @@ export async function updateTournamentSettings(
     creationMode: "MANUAL" | "PUBLIC";
     name: string;
     description: string;
+    responsibleName: string;
+    responsiblePhone: string;
     publicSlug: string;
     registrationPhase: string;
     showInEventRadar: boolean;
@@ -2253,6 +2255,8 @@ export async function updateTournamentSettings(
       pairsPerGroup: number;
       priceSecondCents: number;
       priceThirdCents: number;
+      standardKey: string;
+      allowedRegistrationCategoryNames: string[];
     }>;
     rankingId: string | null;
   }
@@ -2300,6 +2304,8 @@ export async function updateTournamentSettings(
       data: {
         name: input.name,
         description: input.description,
+        responsibleName: input.responsibleName,
+        responsiblePhone: input.responsiblePhone,
         publicSlug: input.publicSlug,
         creationMode: input.creationMode,
         registrationPhase: input.registrationPhase,
@@ -2339,6 +2345,7 @@ export async function updateTournamentSettings(
             pairsPerGroup: category.pairsPerGroup,
             priceSecondCents: category.priceSecondCents,
             priceThirdCents: category.priceThirdCents,
+            standardKey: category.standardKey,
             active: true
           }
         });
@@ -2352,10 +2359,19 @@ export async function updateTournamentSettings(
             pairsPerGroup: category.pairsPerGroup,
             priceSecondCents: category.priceSecondCents,
             priceThirdCents: category.priceThirdCents,
+            standardKey: category.standardKey,
             active: true
           }
         });
       }
+    }
+
+    const persistedCategories = await tx.tournamentCategory.findMany({ where: { tournamentId }, select: { id: true, name: true } });
+    const categoryIdsByName = new Map(persistedCategories.map((category) => [category.name, category.id]));
+    for (const category of input.categoryList) {
+      const id = categoryIdsByName.get(category.name);
+      if (!id) continue;
+      await tx.tournamentCategory.update({ where: { id }, data: { allowedRegistrationCategoryIds: category.allowedRegistrationCategoryNames.map((name) => categoryIdsByName.get(name)).filter((value): value is string => Boolean(value)) } });
     }
 
     const categoriesToRemove = existingCategories.filter((category) => !nextNames.has(category.name));
