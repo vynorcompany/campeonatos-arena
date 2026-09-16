@@ -45,7 +45,7 @@ type PortalSection =
 type LeagueTab = "games" | "pairs" | "ranking" | "rules" | "prizes";
 type EventTab = "leagues" | "super12" | "radar";
 
-function portalHref(
+function portalQuery(
   section: PortalSection,
   leagueTab?: LeagueTab,
   teacherId?: string,
@@ -130,6 +130,14 @@ export function PublicStandings({
   bookingDate?: string;
   teacherId?: string;
 }) {
+  const portalHref = (
+    section: PortalSection,
+    leagueTab?: LeagueTab,
+    teacherId?: string,
+    leagueCategoryId?: string,
+    eventTab?: EventTab,
+    super12Id?: string,
+  ) => `/home?arena=${encodeURIComponent(arena.slug)}&${portalQuery(section, leagueTab, teacherId, leagueCategoryId, eventTab, super12Id).slice(1)}`;
   const publicHeader = (
     <header className="athlete-portal-hero">
       <div className="athlete-portal-hero-inner">
@@ -365,7 +373,7 @@ export function PublicStandings({
       ) : requestedSection === "lessons" ? (
         <LessonsPanel portal={portal} />
       ) : requestedSection === "classes" ? (
-        <ClassesPanel portal={portal} teacherId={teacherId} />
+        <ClassesPanel portal={portal} teacherId={teacherId} arenaSlug={arena.slug} />
       ) : requestedSection === "teacher" && currentClient.isTeacher ? (
         <TeacherManagementPanel portal={portal} />
       ) : (
@@ -656,9 +664,11 @@ function LessonsPanel({ portal }: { portal: Portal }) {
 function ClassesPanel({
   portal,
   teacherId,
+  arenaSlug,
 }: {
   portal: Portal;
   teacherId?: string;
+  arenaSlug: string;
 }) {
   const teachers = portal?.teachers ?? [];
   const selectedTeacher = teachers.find((teacher) => teacher.id === teacherId);
@@ -698,7 +708,7 @@ function ClassesPanel({
             {teachers.map((teacher) => (
               <Link
                 className={selectedTeacher?.id === teacher.id ? "active" : ""}
-                href={portalHref("classes", undefined, teacher.id)}
+                href={`/home?arena=${encodeURIComponent(arenaSlug)}&section=classes&teacher=${encodeURIComponent(teacher.id)}`}
                 key={teacher.id}
               >
                 {teacher.name}
