@@ -15,6 +15,7 @@ import { AthletePortalPrefetch } from "@/components/athlete-portal-prefetch";
 import { PublicEventRadar } from "@/components/public-event-radar";
 import { RankingCategorySelect } from "@/components/ranking-category-select";
 import { TeacherPortalStudentList } from "@/components/teacher-portal-student-list";
+import { TeacherPortalMakeupPlanner } from "@/components/teacher-portal-makeup-planner";
 import {
   checkInPortalLessonAction,
   requestClassGroupAction,
@@ -791,11 +792,12 @@ function ClassesPanel({
   );
 }
 
-function TeacherManagementIcon({ name }: { name: "plans" | "students" | "classes" | "agenda" }) {
+function TeacherManagementIcon({ name }: { name: "plans" | "students" | "classes" | "makeups" | "agenda" }) {
   const paths = {
     plans: <><path d="M4 7h16M6 4h12v16H6z" /><path d="M9 11h6M9 14h4" /></>,
     students: <><circle cx="12" cy="8" r="3" /><path d="M5 20c.8-3.4 3.1-5 7-5s6.2 1.6 7 5" /></>,
     classes: <><rect x="4" y="5" width="16" height="14" rx="2" /><path d="M8 9h8M8 13h3M13 13h3" /></>,
+    makeups: <><rect x="6" y="6" width="12" height="12" rx="2" /><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M18 9h3M3 15h3M18 15h3" /></>,
     agenda: <><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4M16 3v4M4 10h16M8 14h3M8 17h5" /></>,
   }[name];
   return <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{paths}</svg>;
@@ -815,11 +817,13 @@ function TeacherManagementPanel({ portal }: { portal: Portal }) {
           <input className="teacher-portal-menu-control" type="radio" name="teacher-portal-menu" id="teacher-portal-plans" defaultChecked />
           <input className="teacher-portal-menu-control" type="radio" name="teacher-portal-menu" id="teacher-portal-students" />
           <input className="teacher-portal-menu-control" type="radio" name="teacher-portal-menu" id="teacher-portal-classes" />
+          <input className="teacher-portal-menu-control" type="radio" name="teacher-portal-menu" id="teacher-portal-makeups" />
           <input className="teacher-portal-menu-control" type="radio" name="teacher-portal-menu" id="teacher-portal-agenda" />
           <nav className="teacher-portal-submenu" aria-label="Área do Professor">
             <label htmlFor="teacher-portal-plans"><TeacherManagementIcon name="plans" /><span>Planos e preços</span></label>
             <label htmlFor="teacher-portal-students"><TeacherManagementIcon name="students" /><span>Alunos ativos</span></label>
             <label htmlFor="teacher-portal-classes"><TeacherManagementIcon name="classes" /><span>Turmas</span></label>
+            <label htmlFor="teacher-portal-makeups"><TeacherManagementIcon name="makeups" /><span>Reposições</span></label>
             <label htmlFor="teacher-portal-agenda"><TeacherManagementIcon name="agenda" /><span>Agenda</span></label>
           </nav>
           <div className="teacher-portal-submenu-panels">
@@ -861,6 +865,7 @@ function TeacherManagementPanel({ portal }: { portal: Portal }) {
               <p>Nenhuma turma vinculada.</p>
             )}
             </article>
+            <article className="teacher-portal-management-section" data-panel="makeups"><TeacherPortalMakeupPlanner arenaSlug={portal?.arenaSlug ?? ""} students={management.students} slots={management.makeupSlots} /></article>
             <article className="teacher-portal-management-section" data-panel="agenda">
             <header><h3>Agenda</h3><p>Visualize os próximos compromissos.</p></header>
             {management.agenda.length ? (

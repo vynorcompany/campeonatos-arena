@@ -218,3 +218,34 @@ export async function registerClassGroupMakeupAction(formData: FormData) {
   await prisma.classGroupMakeup.create({ data: { arenaId: auth.arenaId, studentId, sourceClassGroupId, destinationClassGroupId, scheduledFor, teacherId: auth.teacherId } });
   revalidatePath(`/classificacao/${arenaSlug}`);
 }
+
+export async function scheduleTeacherMakeupAction(formData: FormData) {
+  const arenaSlug = String(formData.get("arenaSlug") ?? "").trim();
+  const slot = String(formData.get("slot") ?? "").trim();
+  const attendanceIds = formData.getAll("attendanceIds").map(String).filter(Boolean);
+  const auth = await requireTeacherForClassGroups(arenaSlug);
+  const [courtId, startsAtInput, durationInput] = slot.split("|");
+  const startsAt = new Date(startsAtInput ?? "");
+  const durationMinutes = Number(durationInput ?? 60);
+  if (!courtId || !attendanceIds.length || Number.isNaN(startsAt.getTime()) || !Number.isInteger(durationMinutes) || durationMinutes < 30 || durationMinutes > 240) throw new Error("Selecione alunos e um horário disponível.");
+  const endsAt = new Date(startsAt.getTime() + durationMinutes * 60_000);
+  await withArenaTransaction(auth.arenaId, async (tx) => {
+    const [court, pendingAttendances, conflict] = await Promise.all([
+      tx.court.findFirst({ where: { id: courtId, arenaId: auth.arenaId, active: true }, include: { weeklyRules: true } }),
+      tx.lessonAttendance.findMany({ where: { id: { in: attendanceIds }, status: "ABSENT", makeupScheduledAt: null, student: { teacherAssignments: { some: { teacherId: auth.teacherId, active: true } } } }, include: { student: { select: { id: true, name: true, playerId: true } } } }),
+      tx.scheduleOccurrence.findFirst({ where: { arenaId: auth.arenaId, status: { not: "CANCELED" }, startsAt: { lt: endsAt }, endsAt: { gt: startsAt }, occurrenceCourts: { some: { courtId } } }, select: { id: true } }),
+    ]);
+    if (!court) throw new Error("Quadra não encontrada.");
+    const dayRule = court.weeklyRules.find((rule) => rule.weekday === startsAt.getDay() && rule.available);
+    const startMinute = startsAt.getHours() * 60 + startsAt.getMinutes();
+    if (!dayRule || startMinute < dayRule.startsAtMinute || startMinute + durationMinutes > dayRule.endsAtMinute) throw new Error("Este horário não está disponível na grade da arena.");
+    if (conflict) throw new Error("Este horário acabou de ser reservado. Escolha outro.");
+    if (pendingAttendances.length !== new Set(attendanceIds).size) throw new Error("Uma ou mais reposições já foram agendadas.");
+    const participantIds = [...new Set(pendingAttendances.flatMap((attendance) => attendance.student.playerId ? [attendance.student.playerId] : []))];
+    const occurrence = await tx.scheduleOccurrence.create({ data: { arenaId: auth.arenaId, sourceType: "LESSON_MAKEUP", title: `Reposição · ${auth.name}`, startsAt, endsAt, status: "SCHEDULED", bookingTypeName: "Reposição", teacherId: auth.teacherId, notes: pendingAttendances.map((attendance) => attendance.student.name).join(" · "), occurrenceCourts: { create: { courtId } }, participants: { create: participantIds.map((playerId) => ({ playerId })) } } });
+    await tx.lessonAttendance.updateMany({ where: { id: { in: pendingAttendances.map((attendance) => attendance.id) }, makeupScheduledAt: null }, data: { makeupScheduledAt: startsAt, makeupOccurrenceId: occurrence.id } });
+  });
+  revalidatePath(`/classificacao/${arenaSlug}`);
+  revalidatePath("/aulas");
+  revalidatePath("/professores");
+}
