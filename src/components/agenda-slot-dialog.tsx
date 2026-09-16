@@ -76,8 +76,8 @@ export function AgendaSlotDialog({ slot, players, courts, teachers, bookingTypes
   const removeParticipant = (index: number) => setParticipants((current) => current.filter((_, itemIndex) => itemIndex !== index));
   const toggleCourt = (courtId: string) => setCourtIds((current) => current.includes(courtId) ? current.filter((id) => id !== courtId) : [...current, courtId]);
   const splitEvenly = () => { if (!selectedParticipants.length) { setError("Selecione ao menos um atleta para dividir o valor."); return; } const part = Math.floor(courtAmountCents / selectedParticipants.length); const remainder = courtAmountCents % selectedParticipants.length; let position = 0; setParticipants((current) => current.map((participant) => !participant.playerId ? participant : { ...participant, amountCents: part + (position++ === selectedParticipants.length - 1 ? remainder : 0) })); };
-  const selectStartTime = (nextStart: string) => { const nextDurationOptions = durationMinutesForBookingStart({ startMinute: startMinute(nextStart), slotMinutes, availableMinutes }); const nextDuration = nextDurationOptions.includes(durationMinutes) ? durationMinutes : nextDurationOptions[0] ?? slotMinutes; setStartsAt(nextStart); setDurationMinutes(nextDuration); if (slot.state === "AVAILABLE" && !super12) { const nextAmount = automaticCourtAmount(nextStart, nextDuration); if (nextAmount !== null) setCourtAmountCents(nextAmount); } };
-  const selectDuration = (nextDuration: number) => { setDurationMinutes(nextDuration); if (slot.state === "AVAILABLE" && !super12) { const nextAmount = automaticCourtAmount(startsAt, nextDuration); if (nextAmount !== null) setCourtAmountCents(nextAmount); } };
+  const selectStartTime = (nextStart: string) => { const nextDurationOptions = durationMinutesForBookingStart({ startMinute: startMinute(nextStart), slotMinutes, availableMinutes }); const nextDuration = nextDurationOptions.includes(durationMinutes) ? durationMinutes : nextDurationOptions[0] ?? slotMinutes; setStartsAt(nextStart); setDurationMinutes(nextDuration); if (!super12) { const nextAmount = automaticCourtAmount(nextStart, nextDuration); if (nextAmount !== null) setCourtAmountCents(nextAmount); } };
+  const selectDuration = (nextDuration: number) => { setDurationMinutes(nextDuration); if (!super12) { const nextAmount = automaticCourtAmount(startsAt, nextDuration); if (nextAmount !== null) setCourtAmountCents(nextAmount); } };
 
   useEffect(() => {
     if (!open || slot.state === "UNAVAILABLE") return;
@@ -96,7 +96,7 @@ export function AgendaSlotDialog({ slot, players, courts, teachers, bookingTypes
   }, [dateValue, open, slot.courtId, slot.occurrenceId, slot.state]);
 
   useEffect(() => {
-    if (!open || slot.state !== "AVAILABLE" || super12) return;
+    if (!open || super12 || courtPriceEditing) return;
     const nextAmount = automaticCourtAmount(startsAt, durationMinutes);
     if (nextAmount !== null) setCourtAmountCents((current) => current === nextAmount ? current : nextAmount);
   }, [dateValue, durationMinutes, open, slot.state, slotMinutes, startsAt, super12]);
