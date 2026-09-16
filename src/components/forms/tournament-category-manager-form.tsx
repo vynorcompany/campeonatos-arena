@@ -29,6 +29,8 @@ type TournamentCategoryManagerFormProps = {
   tournamentId: string;
   defaultName: string;
   defaultDescription: string;
+  defaultResponsibleName: string;
+  defaultResponsiblePhone: string;
   defaultPublicSlug: string;
   defaultRegistrationPhase: string;
   defaultShowInEventRadar?: boolean;
@@ -111,6 +113,8 @@ export function TournamentCategoryManagerForm(
         name="description"
         value={props.defaultDescription}
       />
+      <input type="hidden" name="responsibleName" value={props.defaultResponsibleName} />
+      <input type="hidden" name="responsiblePhone" value={props.defaultResponsiblePhone} />
       <input type="hidden" name="publicSlug" value={props.defaultPublicSlug} />
       <input
         type="hidden"
@@ -159,7 +163,7 @@ export function TournamentCategoryManagerForm(
         <input type="hidden" name="blockCategoryGap" value="on" />
       ) : null}
 
-      <div className="field">
+      <div className="field tournament-category-add-field">
         <label htmlFor="newCategoryName">Nome da nova categoria</label>
         <div className="field-inline">
           <input
@@ -175,32 +179,25 @@ export function TournamentCategoryManagerForm(
       </div>
 
       {categories.length ? (
-        <div className="simple-list">
+        <div className="tournament-category-manager-list">
           {categories.map((category, index) => (
-            <div className="simple-item" key={category.name}>
-              <div className="match-copy">
-                <strong>
-                  {index + 1}. {category.name}
-                </strong>
-                <span>
+            <article className="tournament-category-manager-card" key={category.name}>
+              <div className="tournament-category-manager-card-header">
+                <div>
+                  <strong>{index + 1}. {category.name}</strong>
+                  <span>
                   {category.hasCompetition
                     ? "Competição configurada"
                     : "Aguardando classe, gênero e formato"}
-                </span>
-                <label>Categoria padrão<select value={category.standardKey ?? ""} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, standardKey: event.target.value } : item))}><option value="">Não vincular</option>{TOURNAMENT_CATEGORY_PRESETS.map((preset) => <option value={preset} key={preset}>{preset}</option>)}</select></label>
-                <label><input type="checkbox" checked={(category.allowedRegistrationCategoryNames ?? []).length > 0} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, allowedRegistrationCategoryNames: event.target.checked ? current.filter((candidate) => candidate.name !== item.name).map((candidate) => candidate.name) : [] } : item))} /> Vincular inscrição apenas às categorias marcadas</label>
-                {(category.allowedRegistrationCategoryNames ?? []).length ? <div>{categories.filter((candidate) => candidate.name !== category.name).map((candidate) => <label key={candidate.name}><input type="checkbox" checked={category.allowedRegistrationCategoryNames?.includes(candidate.name)} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, allowedRegistrationCategoryNames: event.target.checked ? [...(item.allowedRegistrationCategoryNames ?? []), candidate.name] : (item.allowedRegistrationCategoryNames ?? []).filter((name) => name !== candidate.name) } : item))} /> {candidate.name}</label>)}</div> : null}
+                  </span>
+                </div>
+                {!category.hasCompetition ? <button type="button" className="button button-small" onClick={() => removeCategory(category.name)}>Remover</button> : null}
               </div>
-              {!category.hasCompetition ? (
-                <button
-                  type="button"
-                  className="button"
-                  onClick={() => removeCategory(category.name)}
-                >
-                  Remover
-                </button>
-              ) : null}
-            </div>
+              <label className="tournament-category-standard">Categoria padrão<select value={category.standardKey ?? ""} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, standardKey: event.target.value } : item))}><option value="">Não vincular</option>{TOURNAMENT_CATEGORY_PRESETS.map((preset) => <option value={preset} key={preset}>{preset}</option>)}</select></label>
+              <label className="tournament-category-link-toggle"><input type="checkbox" disabled={categories.length < 2} checked={(category.allowedRegistrationCategoryNames ?? []).length > 0} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, allowedRegistrationCategoryNames: event.target.checked ? current.filter((candidate) => candidate.name !== item.name).map((candidate) => candidate.name) : [] } : item))} /><span>Vincular inscrição apenas às categorias marcadas</span></label>
+              {categories.length < 2 ? <small className="muted">Adicione outra categoria para configurar vínculos de inscrição.</small> : null}
+              {(category.allowedRegistrationCategoryNames ?? []).length ? <div className="tournament-category-link-options">{categories.filter((candidate) => candidate.name !== category.name).map((candidate) => <label key={candidate.name}><input type="checkbox" checked={category.allowedRegistrationCategoryNames?.includes(candidate.name)} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, allowedRegistrationCategoryNames: event.target.checked ? [...(item.allowedRegistrationCategoryNames ?? []), candidate.name] : (item.allowedRegistrationCategoryNames ?? []).filter((name) => name !== candidate.name) } : item))} /> {candidate.name}</label>)}</div> : null}
+            </article>
           ))}
         </div>
       ) : (
