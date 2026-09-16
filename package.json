@@ -2,6 +2,9 @@
   "name": "campeonatos-padel",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "scripts": {
     "test": "node --import tsx --test",
     "dev": "next dev",
