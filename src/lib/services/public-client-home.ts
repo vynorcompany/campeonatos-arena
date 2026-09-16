@@ -27,7 +27,7 @@ export async function getPublicClientHome(arenaSlug: string, playerId: string) {
   const due = currentEntries.reduce((total, entry) => total + entry.outstandingCents, 0);
   const future = futureEntries.reduce((total, entry) => total + entry.outstandingCents, 0);
   const overdue = currentEntries.some((entry) => entry.status === "OVERDUE" || (entry.dueDate && entry.dueDate < today));
-  const charges = balances.filter((entry) => entry.onlinePaymentUrl).map((entry) => ({ id: entry.id, description: entry.description, amount: money(entry.outstandingCents), dueDate: entry.dueDate ? new Intl.DateTimeFormat("pt-BR").format(entry.dueDate) : "Sem vencimento" }));
+  const charges = balances.filter((entry) => entry.onlinePaymentUrl).map((entry) => ({ id: entry.id, description: entry.description, amount: money(entry.outstandingCents), dueDate: entry.dueDate ? new Intl.DateTimeFormat("pt-BR").format(entry.dueDate) : "Sem vencimento", paymentUrl: entry.onlinePaymentUrl }));
   return { announcements, events: events.map((event) => ({ ...event, when: date(event.scheduledAt) })), eventPosts, charges, summary: { financial: due ? `${money(due)} ${overdue ? "em atraso" : "em aberto"}` : "Em dia", futureFinancial: future ? `${money(future)} em lançamentos futuros` : null, financialStatus: overdue ? "overdue" : due ? "pending" : "active", classes: student?.remainingClasses ?? 0, reservations, leagues: pairs } };
 }
 
@@ -46,7 +46,7 @@ export async function getPublicClientFinance(arenaSlug: string, playerId: string
     const outstandingCents = getOutstandingCents(entry.amountCents, entry.settlements);
     const overdue = outstandingCents > 0 && Boolean(entry.dueDate && entry.dueDate < today);
     const daysUntilDue = entry.dueDate ? Math.ceil((new Date(entry.dueDate).getTime() - today.getTime()) / 86_400_000) : null;
-    return { id: entry.id, description: entry.description || "Lançamento financeiro", amount: money(outstandingCents || entry.amountCents), dueDate: entry.dueDate ? new Intl.DateTimeFormat("pt-BR").format(entry.dueDate) : "Sem vencimento", paidAt: entry.paidAt ? new Intl.DateTimeFormat("pt-BR").format(entry.paidAt) : "", status: outstandingCents ? overdue ? "overdue" : "open" : "paid", urgency: overdue ? "overdue" : daysUntilDue !== null && daysUntilDue <= 5 ? "soon" : "normal", hasCharge: Boolean(entry.onlinePaymentUrl) };
+    return { id: entry.id, description: entry.description || "Lançamento financeiro", amount: money(outstandingCents || entry.amountCents), dueDate: entry.dueDate ? new Intl.DateTimeFormat("pt-BR").format(entry.dueDate) : "Sem vencimento", paidAt: entry.paidAt ? new Intl.DateTimeFormat("pt-BR").format(entry.paidAt) : "", status: outstandingCents ? overdue ? "overdue" : "open" : "paid", urgency: overdue ? "overdue" : daysUntilDue !== null && daysUntilDue <= 5 ? "soon" : "normal", hasCharge: Boolean(entry.onlinePaymentUrl), paymentUrl: entry.onlinePaymentUrl };
   });
   const open = rows.filter((entry) => entry.status === "open");
   const overdue = rows.filter((entry) => entry.status === "overdue");

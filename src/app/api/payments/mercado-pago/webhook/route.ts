@@ -92,7 +92,9 @@ export async function POST(request: Request) {
           where: { id: entry.id, arenaId: entry.arenaId },
           include: { settlements: { select: { amountCents: true, interestCents: true } } }
         });
-        if (!current || current.status !== "PENDING") return;
+        // A cobrança continua válida quando o vencimento já passou. O mesmo
+        // lançamento que gerou a cobrança é a única conta baixada aqui.
+        if (!current || !["PENDING", "OVERDUE"].includes(current.status)) return;
         if (!approved) {
           await tx.financialEntry.update({ where: { id: current.id }, data: { onlinePaymentId: String(payment.id ?? paymentId) } });
           return;
