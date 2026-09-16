@@ -2,6 +2,7 @@
 
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { resolveRankingPeriod } from "@/lib/ranking/period";
 import { isPrismaUnknownFieldError } from "@/lib/prisma-errors";
@@ -678,6 +679,32 @@ export async function createTournamentAction(_: ActionState, formData: FormData)
 
   refreshTournamentRoutes();
   return { error: null, success: "Torneio criado com sucesso.", tournamentId: created.id };
+}
+
+export async function createTournamentCategoryAction(formData: FormData) {
+  const auth = await requireModuleEdit("tournaments");
+  const tournamentId = String(formData.get("tournamentId") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  if (!tournamentId || name.length < 3) throw new Error("Informe um nome de categoria com pelo menos 3 caracteres.");
+  const tournament = await prisma.tournament.findFirst({
+    where: { id: tournamentId, arenaId: auth.arenaId },
+    select: { id: true, groupCount: true, pairsPerGroup: true, priceFirstCents: true, priceSecondCents: true, priceThirdCents: true, categories: { select: { level: true } } },
+  });
+  if (!tournament) throw new Error("Torneio não encontrado.");
+  const category = await prisma.tournamentCategory.create({
+    data: {
+      tournamentId: tournament.id,
+      name,
+      level: Math.max(0, ...tournament.categories.map((item) => item.level)) + 1,
+      groupCount: tournament.groupCount,
+      pairsPerGroup: tournament.pairsPerGroup,
+      priceFirstCents: tournament.priceFirstCents,
+      priceSecondCents: tournament.priceSecondCents,
+      priceThirdCents: tournament.priceThirdCents,
+    },
+  });
+  refreshTournamentRoutes();
+  redirect(`/torneios/${tournament.id}/categorias/${category.id}`);
 }
 
 export async function finishTournamentAction(formData: FormData) {
