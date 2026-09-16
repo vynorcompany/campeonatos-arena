@@ -147,6 +147,53 @@ export async function moveCategoryPairAction(formData: FormData) {
   return result;
 }
 
+export async function updateTournamentCategorySettingsAction(formData: FormData) {
+  const auth = await requireModuleEdit("tournaments");
+  const categoryId = String(formData.get("categoryId") ?? "");
+  const maxRegistrations = Number(formData.get("maxRegistrations") ?? "");
+  if (!categoryId || !Number.isInteger(maxRegistrations) || maxRegistrations < 0) {
+    throw new Error("Informe um limite de vagas válido.");
+  }
+
+  const [priceFirstCents, priceSecondCents, priceThirdCents] = [
+    formData.get("priceFirst"),
+    formData.get("priceSecond"),
+    formData.get("priceThird"),
+  ].map(parseReaisToCents);
+  const category = await prisma.tournamentCategory.findFirst({
+    where: { id: categoryId, tournament: { arenaId: auth.arenaId } },
+    select: { id: true, tournamentId: true },
+  });
+  if (!category) throw new Error("Categoria não encontrada.");
+
+  const allowedStandardKeys = formData
+    .getAll("allowedStandardKey")
+    .map((value) => String(value).trim())
+    .filter(Boolean);
+  const linkedCategories = await prisma.tournamentCategory.findMany({
+    where: {
+      tournamentId: category.tournamentId,
+      id: { not: category.id },
+      standardKey: { in: allowedStandardKeys },
+    },
+    select: { id: true },
+  });
+
+  await prisma.tournamentCategory.update({
+    where: { id: category.id },
+    data: {
+      maxRegistrations,
+      priceFirstCents,
+      priceSecondCents,
+      priceThirdCents,
+      active: formData.get("active") === "on",
+      allowedRegistrationCategoryIds: linkedCategories.map((item) => item.id),
+    },
+  });
+  refreshCategoryCompetitionRoutes();
+  revalidatePath(`/torneios/${category.tournamentId}/categorias/${category.id}`);
+}
+
 export async function replaceCategoryPairPlayerAction(formData: FormData) {
   const auth = await requireModuleEdit("tournaments");
   const parsed = replaceCategoryPairPlayerSchema.safeParse({

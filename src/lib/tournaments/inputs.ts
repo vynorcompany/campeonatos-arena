@@ -3,15 +3,18 @@ export type TournamentCategoryInput = {
   level: number;
   groupCount: number;
   pairsPerGroup: number;
+  priceFirstCents: number;
   priceSecondCents: number;
   priceThirdCents: number;
   standardKey: string;
   allowedRegistrationStandardKeys: string[];
   maxRegistrations: number;
+  active: boolean;
 };
 
 export function parseCategoryList(
   raw: string,
+  fallbackPriceFirstCents: number,
   fallbackPriceSecondCents: number,
   fallbackPriceThirdCents: number
 ): TournamentCategoryInput[] {
@@ -21,6 +24,7 @@ export function parseCategoryList(
       name: string;
       groupCount?: number;
       pairsPerGroup?: number;
+      priceFirstCents?: number | string;
       priceSecondCents?: number | string;
       priceThirdCents?: number | string;
       standardKey?: string;
@@ -29,12 +33,17 @@ export function parseCategoryList(
       // became the basis for the registration rule.
       allowedRegistrationCategoryNames?: string[];
       maxRegistrations?: number | string;
+      active?: boolean;
     }>;
     const normalized = parsed
       .map((item) => ({
         name: String(item.name ?? "").trim(),
         groupCount: Number(item.groupCount ?? 4),
         pairsPerGroup: Number(item.pairsPerGroup ?? 3),
+        priceFirstCents:
+          item.priceFirstCents === undefined
+            ? fallbackPriceFirstCents
+            : parseReaisToCents(item.priceFirstCents),
         priceSecondCents:
           item.priceSecondCents === undefined
             ? fallbackPriceSecondCents
@@ -47,7 +56,8 @@ export function parseCategoryList(
         allowedRegistrationStandardKeys: Array.isArray(item.allowedRegistrationStandardKeys)
           ? item.allowedRegistrationStandardKeys.map(String).map((key) => key.trim()).filter(Boolean)
           : [],
-        maxRegistrations: Number(item.maxRegistrations ?? 0)
+        maxRegistrations: Number(item.maxRegistrations ?? 0),
+        active: item.active !== false
       }))
       .filter((item) => item.name.length > 0);
 
@@ -60,11 +70,13 @@ export function parseCategoryList(
       level: index + 1,
       groupCount: Number.isFinite(item.groupCount) ? Math.min(8, Math.max(1, Math.trunc(item.groupCount))) : 4,
       pairsPerGroup: Number.isFinite(item.pairsPerGroup) ? Math.min(16, Math.max(2, Math.trunc(item.pairsPerGroup))) : 3,
+      priceFirstCents: Number.isFinite(item.priceFirstCents) ? Math.max(0, Math.trunc(item.priceFirstCents)) : fallbackPriceFirstCents,
       priceSecondCents: Number.isFinite(item.priceSecondCents) ? Math.max(0, Math.trunc(item.priceSecondCents)) : fallbackPriceSecondCents,
       priceThirdCents: Number.isFinite(item.priceThirdCents) ? Math.max(0, Math.trunc(item.priceThirdCents)) : fallbackPriceThirdCents,
       standardKey: item.standardKey,
       allowedRegistrationStandardKeys: item.allowedRegistrationStandardKeys,
-      maxRegistrations: Number.isFinite(item.maxRegistrations) ? Math.max(0, Math.trunc(item.maxRegistrations)) : 0
+      maxRegistrations: Number.isFinite(item.maxRegistrations) ? Math.max(0, Math.trunc(item.maxRegistrations)) : 0,
+      active: item.active
     }));
   }
 
@@ -82,8 +94,9 @@ export function parseCategoryList(
     level: index + 1,
     groupCount: 4,
     pairsPerGroup: 3,
+    priceFirstCents: fallbackPriceFirstCents,
     priceSecondCents: fallbackPriceSecondCents,
-    priceThirdCents: fallbackPriceThirdCents, standardKey: "", allowedRegistrationStandardKeys: [], maxRegistrations: 0
+    priceThirdCents: fallbackPriceThirdCents, standardKey: "", allowedRegistrationStandardKeys: [], maxRegistrations: 0, active: true
   }));
 }
 

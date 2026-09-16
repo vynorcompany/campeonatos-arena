@@ -18,12 +18,14 @@ type ManagedCategory = {
   name: string;
   groupCount: number;
   pairsPerGroup: number;
+  priceFirstCents: number;
   priceSecondCents: number;
   priceThirdCents: number;
   hasCompetition?: boolean;
   standardKey?: string;
   allowedRegistrationStandardKeys?: string[];
   maxRegistrations?: number;
+  active?: boolean;
 };
 
 type TournamentCategoryManagerFormProps = {
@@ -67,11 +69,13 @@ export function TournamentCategoryManagerForm(
           name: category.name,
           groupCount: category.groupCount,
           pairsPerGroup: category.pairsPerGroup,
+          priceFirstCents: Math.round(category.priceFirstCents / 100),
           priceSecondCents: Math.round(category.priceSecondCents / 100),
           priceThirdCents: Math.round(category.priceThirdCents / 100),
           standardKey: category.standardKey ?? "",
           allowedRegistrationStandardKeys: category.allowedRegistrationStandardKeys ?? [],
           maxRegistrations: category.maxRegistrations ?? 0,
+          active: category.active !== false,
         })),
       ),
     [categories],
@@ -89,11 +93,13 @@ export function TournamentCategoryManagerForm(
         name,
         groupCount: props.defaultGroupCount,
         pairsPerGroup: props.defaultPairsPerGroup,
+        priceFirstCents: props.defaultPriceFirstCents,
         priceSecondCents: props.defaultPriceSecondCents,
         priceThirdCents: props.defaultPriceThirdCents,
         standardKey: "",
         allowedRegistrationStandardKeys: [],
         maxRegistrations: 0,
+        active: true,
       },
     ]);
     setNewCategoryName("");
@@ -199,6 +205,10 @@ export function TournamentCategoryManagerForm(
               <div className="tournament-category-settings-grid">
                 <label className="tournament-category-standard">Categoria padrão<select value={category.standardKey ?? ""} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, standardKey: event.target.value, allowedRegistrationStandardKeys: [] } : item))}><option value="">Selecione</option>{TOURNAMENT_CATEGORY_PRESETS.map((preset) => <option value={preset} key={preset}>{preset}</option>)}</select></label>
                 <label className="tournament-category-standard">Limite máximo de duplas inscritas<input type="number" min="0" step="1" value={category.maxRegistrations ?? 0} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, maxRegistrations: Math.max(0, Number(event.target.value) || 0) } : item))} /><small>Use 0 para não limitar inscrições.</small></label>
+                <label className="tournament-category-standard">Valor por dupla<input type="number" min="0" step="0.01" value={(category.priceFirstCents / 100).toFixed(2)} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, priceFirstCents: Math.round(Math.max(0, Number(event.target.value) || 0) * 100) } : item))} /></label>
+                <label className="tournament-category-standard">Valor da 2ª inscrição<input type="number" min="0" step="0.01" value={(category.priceSecondCents / 100).toFixed(2)} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, priceSecondCents: Math.round(Math.max(0, Number(event.target.value) || 0) * 100) } : item))} /></label>
+                <label className="tournament-category-standard">Valor da 3ª inscrição<input type="number" min="0" step="0.01" value={(category.priceThirdCents / 100).toFixed(2)} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, priceThirdCents: Math.round(Math.max(0, Number(event.target.value) || 0) * 100) } : item))} /></label>
+                <label className="tournament-category-link-toggle"><input type="checkbox" checked={category.active !== false} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, active: event.target.checked } : item))} /><span>Categoria ativa</span></label>
               </div>
               {(() => {
                 const candidates = categories.filter((candidate) => candidate.name !== category.name && candidate.standardKey && candidate.standardKey !== category.standardKey);

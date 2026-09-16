@@ -141,7 +141,7 @@ export async function createPublicRegistrationAction(
       ).length;
 
       const categoryPricing = {
-        priceFirstCents: tournament.priceFirstCents,
+        priceFirstCents: selectedCategory.priceFirstCents,
         priceSecondCents: selectedCategory.priceSecondCents,
         priceThirdCents: selectedCategory.priceThirdCents
       };
@@ -180,6 +180,23 @@ export async function createPublicRegistrationAction(
       payerEmail: parsed.data.leadEmail,
       externalReference: result.registration.id
     };
+
+    if (result.amountCents === 0) {
+      await prisma.$transaction(async (tx) => {
+        await tx.publicTournamentRegistration.update({
+          where: { id: result.registration.id },
+          data: { paymentStatus: "PAID", paymentProvider: "FREE", paymentReference: "FREE", status: "CONFIRMED" }
+        });
+        await ensureTournamentPairFromRegistration(tx, {
+          arenaId: result.arenaId,
+          tournamentId: result.registration.tournamentId,
+          leadName: result.registration.leadName,
+          partnerName: result.registration.partnerName
+        });
+      });
+      revalidatePath(`/inscricao/${parsed.data.tournamentSlug}`);
+      return { error: null, success: "Inscrição gratuita confirmada com sucesso.", paymentReference: "FREE", amountCents: 0 };
+    }
 
     const payment =
       parsed.data.paymentMethod === "CARD"
