@@ -552,6 +552,7 @@ model TournamentCategory {
   gender           String                         @default("")
   standardKey      String                         @default("")
   allowedRegistrationCategoryIds String[]          @default([])
+  maxRegistrations Int                            @default(0)
   groupCount       Int                            @default(4)
   pairsPerGroup    Int                            @default(3)
   priceSecondCents Int                            @default(0)

@@ -57,7 +57,7 @@ export function TournamentForm({
   defaultResponsibleName = "",
   defaultResponsiblePhone = "",
   defaultPublicSlug = "",
-  defaultRegistrationPhase = "EDITING",
+  defaultRegistrationPhase = "REGISTRATIONS",
   defaultShowInEventRadar = false,
   defaultCreationMode = "MANUAL",
   defaultGroupCount = 4,

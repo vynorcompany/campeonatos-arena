@@ -2256,7 +2256,8 @@ export async function updateTournamentSettings(
       priceSecondCents: number;
       priceThirdCents: number;
       standardKey: string;
-      allowedRegistrationCategoryNames: string[];
+      allowedRegistrationStandardKeys: string[];
+      maxRegistrations: number;
     }>;
     rankingId: string | null;
   }
@@ -2346,6 +2347,7 @@ export async function updateTournamentSettings(
             priceSecondCents: category.priceSecondCents,
             priceThirdCents: category.priceThirdCents,
             standardKey: category.standardKey,
+            maxRegistrations: category.maxRegistrations,
             active: true
           }
         });
@@ -2360,18 +2362,26 @@ export async function updateTournamentSettings(
             priceSecondCents: category.priceSecondCents,
             priceThirdCents: category.priceThirdCents,
             standardKey: category.standardKey,
+            maxRegistrations: category.maxRegistrations,
             active: true
           }
         });
       }
     }
 
-    const persistedCategories = await tx.tournamentCategory.findMany({ where: { tournamentId }, select: { id: true, name: true } });
+    const persistedCategories = await tx.tournamentCategory.findMany({ where: { tournamentId }, select: { id: true, name: true, standardKey: true } });
     const categoryIdsByName = new Map(persistedCategories.map((category) => [category.name, category.id]));
     for (const category of input.categoryList) {
       const id = categoryIdsByName.get(category.name);
       if (!id) continue;
-      await tx.tournamentCategory.update({ where: { id }, data: { allowedRegistrationCategoryIds: category.allowedRegistrationCategoryNames.map((name) => categoryIdsByName.get(name)).filter((value): value is string => Boolean(value)) } });
+      await tx.tournamentCategory.update({
+        where: { id },
+        data: {
+          allowedRegistrationCategoryIds: persistedCategories
+            .filter((candidate) => candidate.id !== id && category.allowedRegistrationStandardKeys.includes(candidate.standardKey))
+            .map((candidate) => candidate.id)
+        }
+      });
     }
 
     const categoriesToRemove = existingCategories.filter((category) => !nextNames.has(category.name));
