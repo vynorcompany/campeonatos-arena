@@ -8211,7 +8211,7 @@ button {
 .teacher-student-group-move .button { min-height: 30px; padding-inline: 9px; font-size: .7rem; }
 .teacher-student-plan-remove { position: relative; display: inline-flex; align-items: center; gap: 6px; padding-top: 7px; }
 .teacher-student-plan-remove > .button { min-height: 30px; padding-inline: 9px; border-radius: 6px; font-size: .7rem; }
-.teacher-student-plan-remove .safe-action-confirmation { position: absolute; z-index: 20; right: 0; display: grid; width: min(300px, calc(100vw - 48px)); gap: 7px; padding: 10px; border: 1px solid #f0c5c5; border-radius: 8px; background: #fff; box-shadow: 0 12px 25px rgb(74 30 30 / .16); }
+.teacher-student-plan-remove .safe-action-confirmation { position: fixed; z-index: 100; top: 14vh; left: 50%; display: grid; width: min(520px, calc(100vw - 32px)); max-height: 72vh; overflow: auto; transform: translateX(-50%); gap: 10px; padding: 18px; border: 1px solid #f0c5c5; border-radius: 12px; background: #fff; box-shadow: 0 22px 50px rgb(74 30 30 / .22); }
 .teacher-student-plan-remove .safe-action-confirmation .muted { margin: 0; color: #6b5960; font-size: .7rem; }
 .teacher-student-plan-remove .safe-action-confirmation-actions { gap: 5px; }
 .teacher-student-plan-remove .safe-action-confirmation-actions input { min-height: 30px; padding: 5px 7px; font-size: .72rem; }
