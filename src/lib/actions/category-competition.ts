@@ -314,6 +314,7 @@ export async function updateCategoryMatchScheduleAction(formData: FormData) {
     matchId: formData.get("matchId"),
     scheduledDate: formData.get("scheduledDate"),
     scheduledTime: formData.get("scheduledTime"),
+    courtName: formData.get("courtName"),
   });
   if (!parsed.success) {
     throw new Error(invalidInputMessage(parsed.error));
@@ -324,6 +325,7 @@ export async function updateCategoryMatchScheduleAction(formData: FormData) {
     parsed.data.matchId,
     parsed.data.scheduledDate,
     parsed.data.scheduledTime,
+    parsed.data.courtName || null,
   );
   refreshCategoryCompetitionRoutes();
   return result;

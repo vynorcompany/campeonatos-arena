@@ -17,6 +17,7 @@ type CompetitionMatch = {
   label: string;
   stage: string;
   roundOrder: number;
+  courtName: string | null;
   scheduledDate: string | null;
   scheduledTime: string | null;
   homeScore: number | null;
@@ -308,6 +309,7 @@ export function CategoryResultsPanel({
                               name="matchId"
                               value={match.id}
                             />
+                            <input type="hidden" name="courtName" value={match.courtName ?? ""} />
                             <input
                               name="scheduledDate"
                               type="date"

@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { EventIcon } from "@/components/tournaments/event-icon";
 import { TournamentEventEditForm } from "@/components/tournaments/tournament-event-edit-form";
 
-type ActionKey = "categories" | "registrations" | "public" | "edit";
+type ActionKey = "categories" | "registrations" | "games" | "public" | "edit";
 
 type EventQuickActionsProps = {
   tournament: { id: string; name: string; description: string; rules: string };
@@ -14,9 +14,10 @@ type EventQuickActionsProps = {
   initialAction?: ActionKey | null;
 };
 
-const actionCopy: Record<ActionKey, { title: string; icon: "sliders" | "users" | "globe" | "edit"; tone?: "success" | "purple" }> = {
+const actionCopy: Record<ActionKey, { title: string; icon: "sliders" | "users" | "calendar" | "globe" | "edit"; tone?: "success" | "purple" }> = {
   categories: { title: "Configurar categorias", icon: "sliders" },
   registrations: { title: "Gerenciar inscrições", icon: "users", tone: "success" },
+  games: { title: "Programar jogos", icon: "calendar" },
   public: { title: "Página pública", icon: "globe", tone: "purple" },
   edit: { title: "Editar evento", icon: "edit" },
 };
@@ -46,6 +47,9 @@ export function EventQuickActions({ tournament, publicPageUrl, categories, initi
         <span className={`event-quick-action-icon${action.tone ? ` event-quick-action-icon-${action.tone}` : ""}`}><EventIcon name={action.icon} /></span><strong>{action.title}</strong><EventIcon name="chevron" />
       </Link>;
       if (key === "registrations") return <Link href={`/torneios/${tournament.id}/inscricoes`} className="event-quick-action-button" key={key}>
+        <span className={`event-quick-action-icon${action.tone ? ` event-quick-action-icon-${action.tone}` : ""}`}><EventIcon name={action.icon} /></span><strong>{action.title}</strong><EventIcon name="chevron" />
+      </Link>;
+      if (key === "games") return <Link href={`/torneios/${tournament.id}/jogos`} className="event-quick-action-button" key={key}>
         <span className={`event-quick-action-icon${action.tone ? ` event-quick-action-icon-${action.tone}` : ""}`}><EventIcon name={action.icon} /></span><strong>{action.title}</strong><EventIcon name="chevron" />
       </Link>;
       return <button type="button" className="event-quick-action-button" key={key} onClick={() => setActiveAction(key)}>

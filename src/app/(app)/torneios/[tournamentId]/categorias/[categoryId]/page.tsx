@@ -307,6 +307,7 @@ export default async function CategoryPage({
             label: match.label,
             stage: match.stage,
             roundOrder: match.roundOrder,
+            courtName: match.courtName,
             scheduledDate: match.scheduledDate,
             scheduledTime: match.scheduledTime,
             homeScore: match.homeScore,

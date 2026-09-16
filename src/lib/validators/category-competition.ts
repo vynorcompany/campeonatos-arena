@@ -179,6 +179,7 @@ export const updateCategoryMatchScheduleSchema = z
     matchId: z.string().trim().min(1, "Jogo inválido."),
     scheduledDate: scheduledDateSchema,
     scheduledTime: scheduledTimeSchema,
+    courtName: z.string().trim().max(80).optional().default(""),
   })
   .superRefine((value, context) => {
     if (Boolean(value.scheduledDate) !== Boolean(value.scheduledTime)) {

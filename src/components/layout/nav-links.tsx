@@ -224,7 +224,10 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
           children: [
             { href: "/financeiro/contas-a-receber", label: "Contas a Receber" },
             { href: "/financeiro/contas-a-pagar", label: "Contas a Pagar" },
-            { href: "/pdv", label: "Produtos e Serviços" },
+            { href: "/pdv", label: "Produtos e Serviços", children: [
+              { href: "/pdv/estoque", label: "Estoque" },
+              { href: "/pdv/balanco", label: "Criar balanço" }
+            ] },
             {
               href: "/financeiro/configuracoes",
               label: "Configurações Financeiras",
@@ -284,6 +287,7 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
     "/pdv": "pos",
     "/pdv/caixa": "pos",
     "/pdv/estoque": "stock",
+    "/pdv/balanco": "stock",
     "/pdv/vendas": "pos",
     "/financeiro": "finance",
     "/financeiro/planos": "finance",
