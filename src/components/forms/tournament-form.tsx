@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useFormState } from "react-dom";
 import { useRouter } from "next/navigation";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -15,6 +15,15 @@ const initialState: ActionState = {
   success: null,
 };
 
+function slugify(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
 type TournamentFormProps = {
   mode?: "create" | "update";
   tournamentId?: string;
@@ -22,6 +31,14 @@ type TournamentFormProps = {
   defaultDescription?: string;
   defaultResponsibleName?: string;
   defaultResponsiblePhone?: string;
+  defaultStartsAt?: string;
+  defaultEndsAt?: string;
+  defaultRegistrationOpensAt?: string;
+  defaultRegistrationClosesAt?: string;
+  defaultEarlyDiscountCents?: number;
+  defaultEarlyDiscountUntil?: string;
+  defaultFirstBonusLimit?: number;
+  defaultFirstBonusUntil?: string;
   defaultPublicSlug?: string;
   defaultRegistrationPhase?: string;
   defaultShowInEventRadar?: boolean;
@@ -47,8 +64,16 @@ export function TournamentForm({
   defaultDescription = "",
   defaultResponsibleName = "",
   defaultResponsiblePhone = "",
+  defaultStartsAt = "",
+  defaultEndsAt = "",
+  defaultRegistrationOpensAt = "",
+  defaultRegistrationClosesAt = "",
+  defaultEarlyDiscountCents = 0,
+  defaultEarlyDiscountUntil = "",
+  defaultFirstBonusLimit = 0,
+  defaultFirstBonusUntil = "",
   defaultPublicSlug = "",
-  defaultRegistrationPhase = "EDITING",
+  defaultRegistrationPhase = "REGISTRATIONS",
   defaultShowInEventRadar = false,
   defaultCreationMode = "MANUAL",
   defaultGroupCount = 4,
@@ -67,6 +92,8 @@ export function TournamentForm({
     mode === "update" ? updateTournamentAction : createTournamentAction;
   const [state, formAction] = useFormState(action, initialState);
   const router = useRouter();
+  const [publicSlug, setPublicSlug] = useState(defaultPublicSlug);
+  const [slugEdited, setSlugEdited] = useState(mode === "update");
 
   useEffect(() => {
     if (mode === "create" && state.success && state.tournamentId) {
@@ -75,81 +102,44 @@ export function TournamentForm({
   }, [mode, router, state.success, state.tournamentId]);
 
   return (
-    <form action={formAction} className="grid-form">
+    <form action={formAction} className="tournament-editor-form">
       {mode === "update" && tournamentId ? (
         <input type="hidden" name="tournamentId" value={tournamentId} />
       ) : null}
 
-      <div className="field">
-        <label htmlFor="name">Nome do evento</label>
-        <input
-          id="name"
-          name="name"
-          type="text"
-          placeholder="Ex.: Open da Arena — Agosto"
-          defaultValue={defaultName}
-          required
-        />
-      </div>
+      <section className="tournament-editor-section">
+        <header><span>01</span><div><h2>Dados do evento</h2><p>Informe o essencial. Categorias e chaveamento são configurados na próxima etapa.</p></div></header>
+        <div className="tournament-editor-grid">
+          <div className="field form-full"><label htmlFor="name">Nome do evento</label><input id="name" name="name" type="text" placeholder="Ex.: Open da Arena — Agosto" defaultValue={defaultName} onChange={(event) => { if (!slugEdited) setPublicSlug(slugify(event.target.value)); }} required /></div>
+          <div className="field form-full"><label htmlFor="description">Descrição</label><textarea id="description" name="description" placeholder="Datas, local, regras gerais e observações do evento." defaultValue={defaultDescription} rows={4} /></div>
+          <div className="field"><label htmlFor="responsibleName">Responsável pelo torneio</label><input id="responsibleName" name="responsibleName" defaultValue={defaultResponsibleName} placeholder="Nome para dúvidas" /></div>
+          <div className="field"><label htmlFor="responsiblePhone">Telefone do responsável</label><input id="responsiblePhone" name="responsiblePhone" inputMode="tel" defaultValue={defaultResponsiblePhone} placeholder="(00) 00000-0000" /></div>
+        </div>
+      </section>
 
-      <label className="field form-full tournament-radar-setting">
-        <span>Radar de Eventos</span>
-        <span className="tournament-radar-toggle"><input name="showInEventRadar" type="checkbox" defaultChecked={defaultShowInEventRadar} /><b>Exibir este torneio no Radar de Eventos</b></span>
-        <p className="muted">Atletas de outras arenas poderão encontrá-lo e abrir o link de inscrição.</p>
-      </label>
+      <section className="tournament-editor-section tournament-editor-publication">
+        <header><span>02</span><div><h2>Inscrições e divulgação</h2><p>Defina como os atletas entram no torneio e onde ele será exibido.</p></div></header>
+        <div className="tournament-editor-grid">
+          <div className="field"><label htmlFor="creationMode">Origem das inscrições</label><select id="creationMode" name="creationMode" defaultValue={defaultCreationMode}><option value="MANUAL">Somente inscrições manuais</option><option value="PUBLIC">Aceitar inscrições pelo link público</option></select></div>
+          <div className="field"><label htmlFor="registrationPhase">Fase do evento</label><select id="registrationPhase" name="registrationPhase" defaultValue={defaultRegistrationPhase}><option value="REGISTRATIONS">Inscrições abertas</option><option value="EDITING">Configuração</option><option value="LIVE">Em andamento</option><option value="FINISHED">Finalizado</option></select></div>
+          <div className="field form-full tournament-public-slug"><label htmlFor="publicSlug">Link público do torneio</label><div><span aria-hidden="true">/inscricao/</span><input id="publicSlug" name="publicSlug" type="text" placeholder="open-arena-agosto" value={publicSlug} onChange={(event) => { setSlugEdited(true); setPublicSlug(slugify(event.target.value)); }} pattern="[a-z0-9-]+" required /></div><p>Gerado a partir do nome; você pode personalizá-lo com letras minúsculas, números e hífens.</p></div>
+          <label className="tournament-radar-setting form-full"><input name="showInEventRadar" type="checkbox" defaultChecked={defaultShowInEventRadar} /><span aria-hidden="true" /><div><strong>Exibir no Radar de Eventos</strong><p>Atletas de outras arenas poderão encontrar este torneio e abrir a inscrição.</p></div></label>
+        </div>
+      </section>
 
-      <div className="field">
-        <label htmlFor="creationMode">Origem das inscrições</label>
-        <select
-          id="creationMode"
-          name="creationMode"
-          defaultValue={defaultCreationMode}
-        >
-          <option value="MANUAL">Somente inscrições manuais</option>
-          <option value="PUBLIC">Aceitar inscrições pelo link público</option>
-        </select>
-      </div>
-
-      <div className="field form-full">
-        <label htmlFor="description">Descrição</label>
-        <textarea
-          id="description"
-          name="description"
-          placeholder="Datas, local, regras gerais e observações do evento."
-          defaultValue={defaultDescription}
-          rows={4}
-        />
-      </div>
-      <div className="field"><label htmlFor="responsibleName">Responsável pelo torneio</label><input id="responsibleName" name="responsibleName" defaultValue={defaultResponsibleName} placeholder="Nome para dúvidas" /></div>
-      <div className="field"><label htmlFor="responsiblePhone">Telefone do responsável</label><input id="responsiblePhone" name="responsiblePhone" inputMode="tel" defaultValue={defaultResponsiblePhone} placeholder="(00) 00000-0000" /></div>
-
-      <div className="field">
-        <label htmlFor="publicSlug">Identificador do link público</label>
-        <input
-          id="publicSlug"
-          name="publicSlug"
-          type="text"
-          placeholder="open-arena-agosto"
-          defaultValue={defaultPublicSlug}
-          pattern="[a-z0-9-]+"
-          required
-        />
-        <p className="muted">Use letras minúsculas, números e hífens.</p>
-      </div>
-
-      <div className="field">
-        <label htmlFor="registrationPhase">Fase do evento</label>
-        <select
-          id="registrationPhase"
-          name="registrationPhase"
-          defaultValue={defaultRegistrationPhase}
-        >
-          <option value="REGISTRATIONS">Inscrições abertas</option>
-          <option value="EDITING">Configuração</option>
-          <option value="LIVE">Em andamento</option>
-          <option value="FINISHED">Finalizado</option>
-        </select>
-      </div>
+      <section className="tournament-editor-section">
+        <header><span>03</span><div><h2>Datas, desconto e bônus</h2><p>Defina o calendário comercial do torneio. O desconto é aplicado por dupla enquanto estiver vigente.</p></div></header>
+        <div className="tournament-editor-grid">
+          <div className="field"><label htmlFor="startsAt">Início do evento</label><input id="startsAt" name="startsAt" type="datetime-local" defaultValue={defaultStartsAt} /></div>
+          <div className="field"><label htmlFor="endsAt">Fim do evento</label><input id="endsAt" name="endsAt" type="datetime-local" defaultValue={defaultEndsAt} /></div>
+          <div className="field"><label htmlFor="registrationOpensAt">Abertura das inscrições</label><input id="registrationOpensAt" name="registrationOpensAt" type="datetime-local" defaultValue={defaultRegistrationOpensAt} /></div>
+          <div className="field"><label htmlFor="registrationClosesAt">Encerramento das inscrições</label><input id="registrationClosesAt" name="registrationClosesAt" type="datetime-local" defaultValue={defaultRegistrationClosesAt} /></div>
+          <div className="field"><label htmlFor="earlyDiscountReais">Desconto por dupla</label><div className="currency-input"><span>R$</span><input id="earlyDiscountReais" name="earlyDiscountReais" inputMode="decimal" defaultValue={(defaultEarlyDiscountCents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} /></div></div>
+          <div className="field"><label htmlFor="earlyDiscountUntil">Desconto válido até</label><input id="earlyDiscountUntil" name="earlyDiscountUntil" type="datetime-local" defaultValue={defaultEarlyDiscountUntil} /></div>
+          <div className="field"><label htmlFor="firstBonusLimit">Bônus para os primeiros confirmados</label><input id="firstBonusLimit" name="firstBonusLimit" type="number" min="0" step="1" defaultValue={defaultFirstBonusLimit} /><p>0 desativa a lista de bônus.</p></div>
+          <div className="field"><label htmlFor="firstBonusUntil">Bônus válido até</label><input id="firstBonusUntil" name="firstBonusUntil" type="datetime-local" defaultValue={defaultFirstBonusUntil} /></div>
+        </div>
+      </section>
 
       <input type="hidden" name="groupCount" value={String(defaultGroupCount)} />
       <input
@@ -183,13 +173,14 @@ export function TournamentForm({
         <input type="hidden" name="blockCategoryGap" value="on" />
       ) : null}
 
-      <div className="field field-submit form-full">
+      <footer className="tournament-editor-footer">
+        <p>Após criar, você poderá incluir e organizar as categorias do torneio.</p>
         <SubmitButton
           label={submitLabel}
           pendingLabel={pendingLabel}
           className="button button-primary"
         />
-      </div>
+      </footer>
 
       {state?.error ? (
         <p className="form-error form-full">{state.error}</p>

@@ -524,6 +524,14 @@ model Tournament {
   maxCategoryGap      Int                            @default(1)
   responsibleName     String                         @default("")
   responsiblePhone    String                         @default("")
+  startsAt            DateTime?
+  endsAt              DateTime?
+  registrationOpensAt DateTime?
+  registrationClosesAt DateTime?
+  earlyDiscountCents  Int                            @default(0)
+  earlyDiscountUntil  DateTime?
+  firstBonusLimit     Int                            @default(0)
+  firstBonusUntil     DateTime?
   createdAt           DateTime                       @default(now())
   updatedAt           DateTime                       @updatedAt
   arenaId             String
@@ -552,8 +560,10 @@ model TournamentCategory {
   gender           String                         @default("")
   standardKey      String                         @default("")
   allowedRegistrationCategoryIds String[]          @default([])
+  maxRegistrations Int                            @default(0)
   groupCount       Int                            @default(4)
   pairsPerGroup    Int                            @default(3)
+  priceFirstCents  Int                            @default(0)
   priceSecondCents Int                            @default(0)
   priceThirdCents  Int                            @default(0)
   active           Boolean                        @default(true)
@@ -582,6 +592,7 @@ model PublicTournamentRegistration {
   partnerBirthDate     DateTime
   registrationOrder    Int
   amountCents          Int
+  discountCents        Int                    @default(0)
   paymentStatus        String                 @default("PENDING")
   paymentProvider      String                 @default("")
   paymentReference     String                 @default("")

@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useFormState } from "react-dom";
 import { createPublicRegistrationAction } from "@/lib/actions/public-registration";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -13,7 +14,8 @@ const initialState = {
   paymentQrCode: undefined as string | undefined,
   paymentQrCodeBase64: undefined as string | undefined,
   paymentCheckoutUrl: undefined as string | undefined,
-  paymentMethod: undefined as "PIX" | "CARD" | undefined
+  paymentMethod: undefined as "PIX" | "CARD" | undefined,
+  registrationId: undefined as string | undefined
 };
 
 type Category = {
@@ -27,6 +29,12 @@ function formatCategoryName(input: string) {
     return `${trimmed}a`;
   }
   return trimmed;
+}
+
+function formatBirthDate(input: string) {
+  const digits = input.replace(/\D/g, "").slice(0, 8);
+  const parts = [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 8)].filter(Boolean);
+  return parts.join("/");
 }
 
 export function PublicRegistrationForm({
@@ -44,12 +52,16 @@ export function PublicRegistrationForm({
   responsiblePhone?: string;
 }) {
   const [state, formAction] = useFormState(createPublicRegistrationAction, initialState);
+  const router = useRouter();
 
   useEffect(() => {
-    if (state?.paymentCheckoutUrl) {
+    if (state?.paymentCheckoutUrl && state.paymentMethod === "CARD") {
       window.location.href = state.paymentCheckoutUrl;
     }
-  }, [state?.paymentCheckoutUrl]);
+    if (state?.registrationId && state.paymentMethod !== "CARD") {
+      router.push(`/inscricao/${tournamentSlug}/sucesso/${state.registrationId}`);
+    }
+  }, [router, state?.paymentCheckoutUrl, state?.paymentMethod, state?.registrationId, tournamentSlug]);
 
   return (
     <div className="public-reg-shell">
@@ -82,7 +94,7 @@ export function PublicRegistrationForm({
         <section className="public-reg-card">
           <header className="public-reg-card-head">
             <h3>Configuracao da inscricao</h3>
-            <p>Selecione a categoria. O pagamento esta desabilitado no modo de testes.</p>
+            <p>Selecione a categoria e a forma de pagamento. A vaga será confirmada automaticamente após a aprovação.</p>
           </header>
           <div className="public-reg-grid public-reg-grid-2">
             <div className="field">
@@ -115,7 +127,7 @@ export function PublicRegistrationForm({
             <div className="field"><label htmlFor="leadEmail">E-mail</label><input id="leadEmail" name="leadEmail" type="email" required /></div>
             <div className="field"><label htmlFor="leadPhone">Telefone</label><input id="leadPhone" name="leadPhone" required /></div>
             <div className="field"><label htmlFor="leadCpf">CPF</label><input id="leadCpf" name="leadCpf" required /></div>
-            <div className="field"><label htmlFor="leadBirthDate">Nascimento</label><input id="leadBirthDate" name="leadBirthDate" className="public-reg-date" type="text" inputMode="numeric" placeholder="dd/mm/aaaa" required /></div>
+            <div className="field"><label htmlFor="leadBirthDate">Nascimento</label><input id="leadBirthDate" name="leadBirthDate" className="public-reg-date" type="text" inputMode="numeric" placeholder="dd/mm/aaaa" maxLength={10} onChange={(event) => { event.currentTarget.value = formatBirthDate(event.currentTarget.value); }} required /></div>
           </div>
         </section>
 
@@ -128,19 +140,19 @@ export function PublicRegistrationForm({
             <div className="field"><label htmlFor="partnerName">Nome</label><input id="partnerName" name="partnerName" required /></div>
             <div className="field"><label htmlFor="partnerPhone">Telefone</label><input id="partnerPhone" name="partnerPhone" required /></div>
             <div className="field"><label htmlFor="partnerCpf">CPF</label><input id="partnerCpf" name="partnerCpf" required /></div>
-            <div className="field"><label htmlFor="partnerBirthDate">Nascimento</label><input id="partnerBirthDate" name="partnerBirthDate" className="public-reg-date" type="text" inputMode="numeric" placeholder="dd/mm/aaaa" required /></div>
+            <div className="field"><label htmlFor="partnerBirthDate">Nascimento</label><input id="partnerBirthDate" name="partnerBirthDate" className="public-reg-date" type="text" inputMode="numeric" placeholder="dd/mm/aaaa" maxLength={10} onChange={(event) => { event.currentTarget.value = formatBirthDate(event.currentTarget.value); }} required /></div>
           </div>
         </section>
 
         <div className="public-reg-submit">
-          <SubmitButton label="Inscrever e confirmar" pendingLabel="Confirmando..." className="button button-primary" />
+          <SubmitButton label="Ir para pagamento" pendingLabel="Criando inscrição..." className="button button-primary" />
         </div>
 
         {state?.error ? <p className="form-error form-full">{state.error}</p> : null}
         {state?.success ? (
           <div className="form-success form-full reveal-up" style={{ animationDelay: "180ms" }}>
             {state.success} Referencia: <strong>{state.paymentReference}</strong> · Valor: <strong>R$ {((state.amountCents ?? 0) / 100).toFixed(2)}</strong>
-            <br />Status: <strong>Confirmado</strong>
+            <br />Status: <strong>{state.registrationId ? "Pagamento pendente" : "Confirmado"}</strong>
           </div>
         ) : null}
       </form>

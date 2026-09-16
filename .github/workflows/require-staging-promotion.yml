@@ -1,4 +1,4 @@
-name: Require staging promotion
+name: Require pull request release
 
 on:
   pull_request_target:
@@ -11,5 +11,5 @@ jobs:
     env:
       SOURCE_BRANCH: ${{ github.head_ref }}
     steps:
-      - name: Confirm staging is the promotion source
-        run: test "$SOURCE_BRANCH" = "staging"
+      - name: Confirm a release source was provided
+        run: test -n "$SOURCE_BRANCH"

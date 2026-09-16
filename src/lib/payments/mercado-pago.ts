@@ -8,6 +8,7 @@ type CreatePixPaymentInput = {
   description: string;
   payerEmail: string;
   externalReference: string;
+  returnUrl?: string;
 };
 
 type CreateCardCheckoutInput = {
@@ -16,6 +17,7 @@ type CreateCardCheckoutInput = {
   description: string;
   payerEmail: string;
   externalReference: string;
+  returnUrl?: string;
 };
 
 export type BoletoPayerAddress = { addressZipCode: string; addressStreet: string; addressNumber: string; addressNeighborhood: string; addressCity: string; addressState: string };
@@ -123,6 +125,7 @@ async function createCheckoutPreference(input: CreateCardCheckoutInput, paymentM
   const accessToken = await mercadoPagoAccessTokenForArena(input.arenaId);
 
   const baseUrl = env.appUrl ?? "http://localhost:3000";
+  const returnUrl = input.returnUrl ?? `${baseUrl}/inscricao/status`;
   const response = await fetch("https://api.mercadopago.com/checkout/preferences", {
     method: "POST",
     headers: {
@@ -145,9 +148,9 @@ async function createCheckoutPreference(input: CreateCardCheckoutInput, paymentM
       ],
       ...(paymentMethods ? { payment_methods: paymentMethods } : {}),
       back_urls: {
-        success: `${baseUrl}/inscricao/status`,
-        pending: `${baseUrl}/inscricao/status`,
-        failure: `${baseUrl}/inscricao/status`
+        success: returnUrl,
+        pending: returnUrl,
+        failure: returnUrl
       },
       auto_return: "approved"
     })

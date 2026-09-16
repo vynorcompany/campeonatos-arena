@@ -18,11 +18,14 @@ type ManagedCategory = {
   name: string;
   groupCount: number;
   pairsPerGroup: number;
+  priceFirstCents: number;
   priceSecondCents: number;
   priceThirdCents: number;
   hasCompetition?: boolean;
   standardKey?: string;
-  allowedRegistrationCategoryNames?: string[];
+  allowedRegistrationStandardKeys?: string[];
+  maxRegistrations?: number;
+  active?: boolean;
 };
 
 type TournamentCategoryManagerFormProps = {
@@ -31,6 +34,14 @@ type TournamentCategoryManagerFormProps = {
   defaultDescription: string;
   defaultResponsibleName: string;
   defaultResponsiblePhone: string;
+  defaultStartsAt?: string;
+  defaultEndsAt?: string;
+  defaultRegistrationOpensAt?: string;
+  defaultRegistrationClosesAt?: string;
+  defaultEarlyDiscountCents?: number;
+  defaultEarlyDiscountUntil?: string;
+  defaultFirstBonusLimit?: number;
+  defaultFirstBonusUntil?: string;
   defaultPublicSlug: string;
   defaultRegistrationPhase: string;
   defaultShowInEventRadar?: boolean;
@@ -66,10 +77,13 @@ export function TournamentCategoryManagerForm(
           name: category.name,
           groupCount: category.groupCount,
           pairsPerGroup: category.pairsPerGroup,
+          priceFirstCents: Math.round(category.priceFirstCents / 100),
           priceSecondCents: Math.round(category.priceSecondCents / 100),
           priceThirdCents: Math.round(category.priceThirdCents / 100),
           standardKey: category.standardKey ?? "",
-          allowedRegistrationCategoryNames: category.allowedRegistrationCategoryNames ?? [],
+          allowedRegistrationStandardKeys: category.allowedRegistrationStandardKeys ?? [],
+          maxRegistrations: category.maxRegistrations ?? 0,
+          active: category.active !== false,
         })),
       ),
     [categories],
@@ -87,10 +101,13 @@ export function TournamentCategoryManagerForm(
         name,
         groupCount: props.defaultGroupCount,
         pairsPerGroup: props.defaultPairsPerGroup,
+        priceFirstCents: props.defaultPriceFirstCents,
         priceSecondCents: props.defaultPriceSecondCents,
         priceThirdCents: props.defaultPriceThirdCents,
         standardKey: "",
-        allowedRegistrationCategoryNames: [],
+        allowedRegistrationStandardKeys: [],
+        maxRegistrations: 0,
+        active: true,
       },
     ]);
     setNewCategoryName("");
@@ -115,6 +132,14 @@ export function TournamentCategoryManagerForm(
       />
       <input type="hidden" name="responsibleName" value={props.defaultResponsibleName} />
       <input type="hidden" name="responsiblePhone" value={props.defaultResponsiblePhone} />
+      <input type="hidden" name="startsAt" value={props.defaultStartsAt ?? ""} />
+      <input type="hidden" name="endsAt" value={props.defaultEndsAt ?? ""} />
+      <input type="hidden" name="registrationOpensAt" value={props.defaultRegistrationOpensAt ?? ""} />
+      <input type="hidden" name="registrationClosesAt" value={props.defaultRegistrationClosesAt ?? ""} />
+      <input type="hidden" name="earlyDiscountReais" value={String((props.defaultEarlyDiscountCents ?? 0) / 100)} />
+      <input type="hidden" name="earlyDiscountUntil" value={props.defaultEarlyDiscountUntil ?? ""} />
+      <input type="hidden" name="firstBonusLimit" value={String(props.defaultFirstBonusLimit ?? 0)} />
+      <input type="hidden" name="firstBonusUntil" value={props.defaultFirstBonusUntil ?? ""} />
       <input type="hidden" name="publicSlug" value={props.defaultPublicSlug} />
       <input
         type="hidden"
@@ -193,10 +218,24 @@ export function TournamentCategoryManagerForm(
                 </div>
                 {!category.hasCompetition ? <button type="button" className="button button-small" onClick={() => removeCategory(category.name)}>Remover</button> : null}
               </div>
-              <label className="tournament-category-standard">Categoria padrão<select value={category.standardKey ?? ""} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, standardKey: event.target.value } : item))}><option value="">Não vincular</option>{TOURNAMENT_CATEGORY_PRESETS.map((preset) => <option value={preset} key={preset}>{preset}</option>)}</select></label>
-              <label className="tournament-category-link-toggle"><input type="checkbox" disabled={categories.length < 2} checked={(category.allowedRegistrationCategoryNames ?? []).length > 0} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, allowedRegistrationCategoryNames: event.target.checked ? current.filter((candidate) => candidate.name !== item.name).map((candidate) => candidate.name) : [] } : item))} /><span>Vincular inscrição apenas às categorias marcadas</span></label>
-              {categories.length < 2 ? <small className="muted">Adicione outra categoria para configurar vínculos de inscrição.</small> : null}
-              {(category.allowedRegistrationCategoryNames ?? []).length ? <div className="tournament-category-link-options">{categories.filter((candidate) => candidate.name !== category.name).map((candidate) => <label key={candidate.name}><input type="checkbox" checked={category.allowedRegistrationCategoryNames?.includes(candidate.name)} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, allowedRegistrationCategoryNames: event.target.checked ? [...(item.allowedRegistrationCategoryNames ?? []), candidate.name] : (item.allowedRegistrationCategoryNames ?? []).filter((name) => name !== candidate.name) } : item))} /> {candidate.name}</label>)}</div> : null}
+              <div className="tournament-category-settings-grid">
+                <label className="tournament-category-standard">Categoria padrão<select value={category.standardKey ?? ""} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, standardKey: event.target.value, allowedRegistrationStandardKeys: [] } : item))}><option value="">Selecione</option>{TOURNAMENT_CATEGORY_PRESETS.map((preset) => <option value={preset} key={preset}>{preset}</option>)}</select></label>
+                <label className="tournament-category-standard">Limite máximo de duplas inscritas<input type="number" min="0" step="1" value={category.maxRegistrations ?? 0} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, maxRegistrations: Math.max(0, Number(event.target.value) || 0) } : item))} /><small>Use 0 para não limitar inscrições.</small></label>
+                <label className="tournament-category-standard">Valor por dupla<div className="currency-input"><span>R$</span><input inputMode="decimal" value={(category.priceFirstCents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, priceFirstCents: Math.round(Math.max(0, Number(event.target.value.replace(".", "").replace(",", ".")) || 0) * 100) } : item))} /></div></label>
+                <label className="tournament-category-standard">Valor da 2ª inscrição<div className="currency-input"><span>R$</span><input inputMode="decimal" value={(category.priceSecondCents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, priceSecondCents: Math.round(Math.max(0, Number(event.target.value.replace(".", "").replace(",", ".")) || 0) * 100) } : item))} /></div></label>
+                <label className="tournament-category-standard">Valor da 3ª inscrição<div className="currency-input"><span>R$</span><input inputMode="decimal" value={(category.priceThirdCents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, priceThirdCents: Math.round(Math.max(0, Number(event.target.value.replace(".", "").replace(",", ".")) || 0) * 100) } : item))} /></div></label>
+                <label className="tournament-category-link-toggle"><input type="checkbox" checked={category.active !== false} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, active: event.target.checked } : item))} /><span>Categoria ativa</span></label>
+              </div>
+              {(() => {
+                const candidates = categories.filter((candidate) => candidate.name !== category.name && candidate.standardKey && candidate.standardKey !== category.standardKey);
+                const allowedKeys = category.allowedRegistrationStandardKeys ?? [];
+                return <>
+                  <label className="tournament-category-link-toggle"><input type="checkbox" disabled={!category.standardKey || !candidates.length} checked={allowedKeys.length > 0} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, allowedRegistrationStandardKeys: event.target.checked ? candidates.map((candidate) => candidate.standardKey ?? "").filter(Boolean) : [] } : item))} /><span>Vincular inscrição apenas às categorias padrão marcadas</span></label>
+                  {!category.standardKey ? <small className="muted">Selecione a categoria padrão antes de definir os vínculos.</small> : null}
+                  {category.standardKey && !candidates.length ? <small className="muted">Defina categorias padrão nas demais categorias para criar vínculos.</small> : null}
+                  {allowedKeys.length ? <div className="tournament-category-link-options">{candidates.map((candidate) => <label key={candidate.name}><input type="checkbox" checked={allowedKeys.includes(candidate.standardKey ?? "")} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, allowedRegistrationStandardKeys: event.target.checked ? [...new Set([...(item.allowedRegistrationStandardKeys ?? []), candidate.standardKey ?? ""])].filter(Boolean) : (item.allowedRegistrationStandardKeys ?? []).filter((key) => key !== candidate.standardKey) } : item))} /> {candidate.standardKey}</label>)}</div> : null}
+                </>;
+              })()}
             </article>
           ))}
         </div>

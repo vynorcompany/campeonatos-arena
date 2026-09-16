@@ -42,9 +42,11 @@ export function EventQuickActions({ tournament, publicPageUrl, categories, initi
     <header><EventIcon name="bolt" /><h2>Ações rápidas</h2></header>
     {(Object.keys(actionCopy) as ActionKey[]).map((key) => {
       const action = actionCopy[key];
-      if (key === "categories") return <Link href="#category-list-title" className="event-quick-action-button" key={key}>
-        <span className={`event-quick-action-icon${action.tone ? ` event-quick-action-icon-${action.tone}` : ""}`}><EventIcon name={action.icon} /></span>
-        <strong>{action.title}</strong><EventIcon name="chevron" />
+      if (key === "categories") return <Link href={`/torneios/${tournament.id}/categorias`} className="event-quick-action-button" key={key}>
+        <span className={`event-quick-action-icon${action.tone ? ` event-quick-action-icon-${action.tone}` : ""}`}><EventIcon name={action.icon} /></span><strong>{action.title}</strong><EventIcon name="chevron" />
+      </Link>;
+      if (key === "registrations") return <Link href={`/torneios/${tournament.id}/inscricoes`} className="event-quick-action-button" key={key}>
+        <span className={`event-quick-action-icon${action.tone ? ` event-quick-action-icon-${action.tone}` : ""}`}><EventIcon name={action.icon} /></span><strong>{action.title}</strong><EventIcon name="chevron" />
       </Link>;
       return <button type="button" className="event-quick-action-button" key={key} onClick={() => setActiveAction(key)}>
         <span className={`event-quick-action-icon${action.tone ? ` event-quick-action-icon-${action.tone}` : ""}`}><EventIcon name={action.icon} /></span>
@@ -56,7 +58,6 @@ export function EventQuickActions({ tournament, publicPageUrl, categories, initi
       <section className="event-action-modal" role="dialog" aria-modal="true" aria-label={activeCopy.title} onMouseDown={(event) => event.stopPropagation()}>
         <header><div><p className="eyebrow">EVENTO</p><h2>{activeCopy.title}</h2></div><button type="button" className="button button-small" onClick={() => setActiveAction(null)}>Fechar</button></header>
         <div className="event-action-modal-content">
-          {activeAction === "registrations" ? <div className="event-action-category-list">{categories.length ? categories.map((category) => <article key={category.id}><div><strong>{category.name}</strong><span>{category.pairCount} dupla(s) inscrita(s)</span></div><Link className="button button-small" href={`/torneios/${tournament.id}/categorias/${category.id}?tab=registrations`} onClick={() => setActiveAction(null)}>Abrir inscrições</Link></article>) : <p className="muted">Nenhuma categoria cadastrada.</p>}</div> : null}
           {activeAction === "public" ? <div className="event-action-public-page"><p>Confira a visualização publicada para atletas e público.</p><Link href={publicPageUrl} target="_blank" rel="noreferrer" className="button button-primary"><EventIcon name="external" />Abrir página pública</Link></div> : null}
           {activeAction === "edit" ? <TournamentEventEditForm tournament={tournament} /> : null}
         </div>

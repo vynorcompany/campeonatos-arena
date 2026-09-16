@@ -97,6 +97,12 @@ function refreshTournamentRoutes() {
   revalidatePath("/torneios/inscricoes");
 }
 
+function parseOptionalDate(value: string) {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 async function runRankingSerializableTransaction<T>(
   operation: (tx: Prisma.TransactionClient) => Promise<T>,
 ) {
@@ -591,6 +597,14 @@ export async function createTournamentAction(_: ActionState, formData: FormData)
     description: formData.get("description"),
     responsibleName: formData.get("responsibleName"),
     responsiblePhone: formData.get("responsiblePhone"),
+    startsAt: formData.get("startsAt"),
+    endsAt: formData.get("endsAt"),
+    registrationOpensAt: formData.get("registrationOpensAt"),
+    registrationClosesAt: formData.get("registrationClosesAt"),
+    earlyDiscountReais: formData.get("earlyDiscountReais"),
+    earlyDiscountUntil: formData.get("earlyDiscountUntil"),
+    firstBonusLimit: formData.get("firstBonusLimit"),
+    firstBonusUntil: formData.get("firstBonusUntil"),
     publicSlug: formData.get("publicSlug"),
     registrationPhase: formData.get("registrationPhase"),
     showInEventRadar: formData.get("showInEventRadar") === "on",
@@ -612,8 +626,9 @@ export async function createTournamentAction(_: ActionState, formData: FormData)
   const priceFirstCents = parseReaisToCents(parsed.data.priceFirstCents);
   const priceSecondCents = parseReaisToCents(parsed.data.priceSecondCents);
   const priceThirdCents = parseReaisToCents(parsed.data.priceThirdCents);
+  const earlyDiscountCents = parseReaisToCents(parsed.data.earlyDiscountReais);
   const categories = parsed.data.categoryList
-    ? parseCategoryList(parsed.data.categoryList, priceSecondCents, priceThirdCents)
+    ? parseCategoryList(parsed.data.categoryList, priceFirstCents, priceSecondCents, priceThirdCents)
     : [];
   const created = await runRankingSerializableTransaction(async (tx) => {
     const rankingId = await ensureRankingBelongsToArena(
@@ -628,9 +643,18 @@ export async function createTournamentAction(_: ActionState, formData: FormData)
         description: parsed.data.description,
         responsibleName: parsed.data.responsibleName,
         responsiblePhone: parsed.data.responsiblePhone,
+        startsAt: parseOptionalDate(parsed.data.startsAt),
+        endsAt: parseOptionalDate(parsed.data.endsAt),
+        registrationOpensAt: parseOptionalDate(parsed.data.registrationOpensAt),
+        registrationClosesAt: parseOptionalDate(parsed.data.registrationClosesAt),
+        earlyDiscountCents,
+        earlyDiscountUntil: parseOptionalDate(parsed.data.earlyDiscountUntil),
+        firstBonusLimit: parsed.data.firstBonusLimit,
+        firstBonusUntil: parseOptionalDate(parsed.data.firstBonusUntil),
         publicSlug: parsed.data.publicSlug,
         creationMode: parsed.data.creationMode,
         registrationPhase: parsed.data.registrationPhase,
+        status: parsed.data.registrationPhase === "FINISHED" ? "FINISHED" : parsed.data.registrationPhase === "EDITING" ? "DRAFT" : "PUBLISHED",
         showInEventRadar: parsed.data.showInEventRadar,
         groupCount: categories[0]?.groupCount ?? parsed.data.groupCount,
         pairsPerGroup: categories[0]?.pairsPerGroup ?? parsed.data.pairsPerGroup,
@@ -754,6 +778,14 @@ export async function updateTournamentAction(_: ActionState, formData: FormData)
     description: formData.get("description"),
     responsibleName: formData.get("responsibleName"),
     responsiblePhone: formData.get("responsiblePhone"),
+    startsAt: formData.get("startsAt"),
+    endsAt: formData.get("endsAt"),
+    registrationOpensAt: formData.get("registrationOpensAt"),
+    registrationClosesAt: formData.get("registrationClosesAt"),
+    earlyDiscountReais: formData.get("earlyDiscountReais"),
+    earlyDiscountUntil: formData.get("earlyDiscountUntil"),
+    firstBonusLimit: formData.get("firstBonusLimit"),
+    firstBonusUntil: formData.get("firstBonusUntil"),
     publicSlug: formData.get("publicSlug"),
     registrationPhase: formData.get("registrationPhase"),
     showInEventRadar: formData.get("showInEventRadar") === "on",
@@ -776,12 +808,21 @@ export async function updateTournamentAction(_: ActionState, formData: FormData)
     const priceFirstCents = parseReaisToCents(parsed.data.priceFirstCents);
     const priceSecondCents = parseReaisToCents(parsed.data.priceSecondCents);
     const priceThirdCents = parseReaisToCents(parsed.data.priceThirdCents);
-    const categories = parseCategoryList(parsed.data.categoryList, priceSecondCents, priceThirdCents);
+    const earlyDiscountCents = parseReaisToCents(parsed.data.earlyDiscountReais);
+    const categories = parseCategoryList(parsed.data.categoryList, priceFirstCents, priceSecondCents, priceThirdCents);
     await updateTournamentSettings(parsed.data.tournamentId, auth.arenaId, {
       name: parsed.data.name,
       description: parsed.data.description,
       responsibleName: parsed.data.responsibleName,
       responsiblePhone: parsed.data.responsiblePhone,
+      startsAt: parseOptionalDate(parsed.data.startsAt),
+      endsAt: parseOptionalDate(parsed.data.endsAt),
+      registrationOpensAt: parseOptionalDate(parsed.data.registrationOpensAt),
+      registrationClosesAt: parseOptionalDate(parsed.data.registrationClosesAt),
+      earlyDiscountCents,
+      earlyDiscountUntil: parseOptionalDate(parsed.data.earlyDiscountUntil),
+      firstBonusLimit: parsed.data.firstBonusLimit,
+      firstBonusUntil: parseOptionalDate(parsed.data.firstBonusUntil),
       publicSlug: parsed.data.publicSlug,
       creationMode: parsed.data.creationMode,
       registrationPhase: parsed.data.registrationPhase,
@@ -1734,12 +1775,18 @@ export async function updateTournamentRegistrationPhaseAction(formData: FormData
     throw new Error("Dados inválidos para atualização da fase.");
   }
 
+  const statusByPhase: Record<string, string> = {
+    EDITING: "DRAFT",
+    REGISTRATIONS: "PUBLISHED",
+    LIVE: "PUBLISHED",
+    FINISHED: "FINISHED"
+  };
   const updated = await prisma.tournament.updateMany({
     where: {
       id: tournamentId,
       arenaId: auth.arenaId
     },
-    data: { registrationPhase }
+    data: { registrationPhase, status: statusByPhase[registrationPhase] }
   });
 
   if (!updated.count) {

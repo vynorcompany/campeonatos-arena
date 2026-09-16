@@ -2238,6 +2238,14 @@ export async function updateTournamentSettings(
     description: string;
     responsibleName: string;
     responsiblePhone: string;
+    startsAt: Date | null;
+    endsAt: Date | null;
+    registrationOpensAt: Date | null;
+    registrationClosesAt: Date | null;
+    earlyDiscountCents: number;
+    earlyDiscountUntil: Date | null;
+    firstBonusLimit: number;
+    firstBonusUntil: Date | null;
     publicSlug: string;
     registrationPhase: string;
     showInEventRadar: boolean;
@@ -2253,10 +2261,13 @@ export async function updateTournamentSettings(
       level: number;
       groupCount: number;
       pairsPerGroup: number;
+      priceFirstCents: number;
       priceSecondCents: number;
       priceThirdCents: number;
       standardKey: string;
-      allowedRegistrationCategoryNames: string[];
+      allowedRegistrationStandardKeys: string[];
+      maxRegistrations: number;
+      active: boolean;
     }>;
     rankingId: string | null;
   }
@@ -2306,6 +2317,14 @@ export async function updateTournamentSettings(
         description: input.description,
         responsibleName: input.responsibleName,
         responsiblePhone: input.responsiblePhone,
+        startsAt: input.startsAt,
+        endsAt: input.endsAt,
+        registrationOpensAt: input.registrationOpensAt,
+        registrationClosesAt: input.registrationClosesAt,
+        earlyDiscountCents: input.earlyDiscountCents,
+        earlyDiscountUntil: input.earlyDiscountUntil,
+        firstBonusLimit: input.firstBonusLimit,
+        firstBonusUntil: input.firstBonusUntil,
         publicSlug: input.publicSlug,
         creationMode: input.creationMode,
         registrationPhase: input.registrationPhase,
@@ -2343,10 +2362,12 @@ export async function updateTournamentSettings(
             level: category.level,
             groupCount: category.groupCount,
             pairsPerGroup: category.pairsPerGroup,
+            priceFirstCents: category.priceFirstCents,
             priceSecondCents: category.priceSecondCents,
             priceThirdCents: category.priceThirdCents,
             standardKey: category.standardKey,
-            active: true
+            maxRegistrations: category.maxRegistrations,
+            active: category.active
           }
         });
       } else {
@@ -2357,21 +2378,30 @@ export async function updateTournamentSettings(
             level: category.level,
             groupCount: category.groupCount,
             pairsPerGroup: category.pairsPerGroup,
+            priceFirstCents: category.priceFirstCents,
             priceSecondCents: category.priceSecondCents,
             priceThirdCents: category.priceThirdCents,
             standardKey: category.standardKey,
-            active: true
+            maxRegistrations: category.maxRegistrations,
+            active: category.active
           }
         });
       }
     }
 
-    const persistedCategories = await tx.tournamentCategory.findMany({ where: { tournamentId }, select: { id: true, name: true } });
+    const persistedCategories = await tx.tournamentCategory.findMany({ where: { tournamentId }, select: { id: true, name: true, standardKey: true } });
     const categoryIdsByName = new Map(persistedCategories.map((category) => [category.name, category.id]));
     for (const category of input.categoryList) {
       const id = categoryIdsByName.get(category.name);
       if (!id) continue;
-      await tx.tournamentCategory.update({ where: { id }, data: { allowedRegistrationCategoryIds: category.allowedRegistrationCategoryNames.map((name) => categoryIdsByName.get(name)).filter((value): value is string => Boolean(value)) } });
+      await tx.tournamentCategory.update({
+        where: { id },
+        data: {
+          allowedRegistrationCategoryIds: persistedCategories
+            .filter((candidate) => candidate.id !== id && category.allowedRegistrationStandardKeys.includes(candidate.standardKey))
+            .map((candidate) => candidate.id)
+        }
+      });
     }
 
     const categoriesToRemove = existingCategories.filter((category) => !nextNames.has(category.name));
