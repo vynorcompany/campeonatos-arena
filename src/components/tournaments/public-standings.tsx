@@ -813,9 +813,18 @@ function TeacherManagementPanel({ portal }: { portal: Portal }) {
       </header>
       {management ? (
         <div className="teacher-portal-management-menu">
-          <details open>
-            <summary><span aria-hidden="true"><TeacherManagementIcon name="plans" /></span><span><strong>Planos e preços</strong><small>Planos vinculados ao professor</small></span><i aria-hidden="true">⌄</i></summary>
-            <article className="teacher-portal-management-section">
+          <input className="teacher-portal-menu-control" type="radio" name="teacher-portal-menu" id="teacher-portal-plans" defaultChecked />
+          <input className="teacher-portal-menu-control" type="radio" name="teacher-portal-menu" id="teacher-portal-students" />
+          <input className="teacher-portal-menu-control" type="radio" name="teacher-portal-menu" id="teacher-portal-classes" />
+          <input className="teacher-portal-menu-control" type="radio" name="teacher-portal-menu" id="teacher-portal-agenda" />
+          <nav className="teacher-portal-submenu" aria-label="Área do Professor">
+            <label htmlFor="teacher-portal-plans"><TeacherManagementIcon name="plans" /><span>Planos e preços</span></label>
+            <label htmlFor="teacher-portal-students"><TeacherManagementIcon name="students" /><span>Alunos ativos</span></label>
+            <label htmlFor="teacher-portal-classes"><TeacherManagementIcon name="classes" /><span>Turmas</span></label>
+            <label htmlFor="teacher-portal-agenda"><TeacherManagementIcon name="agenda" /><span>Agenda</span></label>
+          </nav>
+          <div className="teacher-portal-submenu-panels">
+            <article className="teacher-portal-management-section" data-panel="plans">
             <header><h3>Planos e preços</h3><p>Consulte os planos usados pelos seus alunos.</p></header>
             {management.plans.length ? (
               management.plans.map((plan) => (
@@ -833,10 +842,7 @@ function TeacherManagementPanel({ portal }: { portal: Portal }) {
               <p>Nenhum plano vinculado.</p>
             )}
             </article>
-          </details>
-          <details>
-            <summary><span aria-hidden="true"><TeacherManagementIcon name="students" /></span><span><strong>Alunos ativos</strong><small>Saldo e avisos individuais</small></span><i aria-hidden="true">⌄</i></summary>
-            <article className="teacher-portal-management-section">
+            <article className="teacher-portal-management-section" data-panel="students">
             <header><h3>Alunos ativos</h3><p>Ajuste saldo de aulas ou envie avisos para cada aluno.</p></header>
             {management.students.length ? (
               management.students.map((student) => (
@@ -852,10 +858,7 @@ function TeacherManagementPanel({ portal }: { portal: Portal }) {
               <p>Nenhum aluno ativo.</p>
             )}
             </article>
-          </details>
-          <details>
-            <summary><span aria-hidden="true"><TeacherManagementIcon name="classes" /></span><span><strong>Turmas</strong><small>Organize os atletas e reposições</small></span><i aria-hidden="true">⌄</i></summary>
-            <article className="teacher-portal-management-section">
+            <article className="teacher-portal-management-section" data-panel="classes">
             <header><h3>Turmas</h3><p>Mova alunos entre as turmas e registre reposições.</p></header>
             {management.classGroups.length ? (
               management.classGroups.map((group) => (
@@ -949,10 +952,7 @@ function TeacherManagementPanel({ portal }: { portal: Portal }) {
               <p>Nenhuma turma vinculada.</p>
             )}
             </article>
-          </details>
-          <details>
-            <summary><span aria-hidden="true"><TeacherManagementIcon name="agenda" /></span><span><strong>Agenda</strong><small>Próximas atividades das turmas</small></span><i aria-hidden="true">⌄</i></summary>
-            <article className="teacher-portal-management-section">
+            <article className="teacher-portal-management-section" data-panel="agenda">
             <header><h3>Agenda</h3><p>Visualize os próximos compromissos.</p></header>
             {management.agenda.length ? (
               management.agenda.map((item) => (
@@ -967,7 +967,7 @@ function TeacherManagementPanel({ portal }: { portal: Portal }) {
               <p>Nenhuma atividade futura.</p>
             )}
             </article>
-          </details>
+          </div>
         </div>
       ) : (
         <PortalEmpty
