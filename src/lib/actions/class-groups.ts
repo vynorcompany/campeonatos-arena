@@ -120,20 +120,17 @@ async function requireTeacherForClassGroups(arenaSlug: string) {
 
 export async function moveClassGroupStudentAction(formData: FormData) {
   const arenaSlug = String(formData.get("arenaSlug") ?? "");
-  const sourceClassGroupId = String(formData.get("sourceClassGroupId") ?? "");
   const destinationClassGroupId = String(formData.get("destinationClassGroupId") ?? "");
   const studentId = String(formData.get("studentId") ?? "");
   const auth = await requireTeacherForClassGroups(arenaSlug);
-  if (!sourceClassGroupId || !destinationClassGroupId || !studentId || sourceClassGroupId === destinationClassGroupId) throw new Error("Selecione uma turma de destino diferente.");
-  const [source, destination] = await Promise.all([
-    prisma.classGroup.findFirst({ where: { id: sourceClassGroupId, arenaId: auth.arenaId, teacherId: auth.teacherId, active: true }, select: { id: true } }),
+  if (!destinationClassGroupId || !studentId) throw new Error("Selecione uma turma de destino.");
+  const [enrollment, destination] = await Promise.all([
+    prisma.classGroupEnrollment.findFirst({ where: { studentId, status: "ACTIVE", classGroup: { arenaId: auth.arenaId, teacherId: auth.teacherId, active: true } }, select: { id: true, classGroupId: true } }),
     prisma.classGroup.findFirst({ where: { id: destinationClassGroupId, arenaId: auth.arenaId, teacherId: auth.teacherId, active: true }, include: { schedules: true, enrollments: { where: { status: "ACTIVE" }, select: { id: true } } } })
   ]);
-  if (!source || !destination) throw new Error("Você só pode movimentar alunos entre suas turmas ativas.");
+  if (!enrollment || !destination || enrollment.classGroupId === destination.id) throw new Error("Selecione uma turma de destino diferente.");
   if (!destination.schedules.every((schedule) => destination.enrollments.length < schedule.capacity)) throw new Error("A turma de destino não possui vagas.");
   await prisma.$transaction(async (tx) => {
-    const enrollment = await tx.classGroupEnrollment.findFirst({ where: { classGroupId: source.id, studentId, status: "ACTIVE" }, select: { id: true } });
-    if (!enrollment) throw new Error("Aluno não encontrado nesta turma.");
     await tx.classGroupEnrollment.update({ where: { id: enrollment.id }, data: { status: "TRANSFERRED", endedAt: new Date() } });
     await tx.classGroupEnrollment.upsert({ where: { classGroupId_studentId: { classGroupId: destination.id, studentId } }, update: { status: "ACTIVE", endedAt: null, startedAt: new Date() }, create: { arenaId: auth.arenaId, classGroupId: destination.id, studentId } });
   });
