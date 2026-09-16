@@ -54,8 +54,8 @@ export default async function OverviewPage({ searchParams }: { searchParams: Das
   const [entries, previousEntries, reservations, previousReservations, saleItems, teachers, portalAccounts] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
     tx.financialEntry.findMany({ where: financialWhere, select: { type: true, status: true, amountCents: true, paidAt: true, dueDate: true } }),
     tx.financialEntry.findMany({ where: previousFinancialWhere, select: { type: true, amountCents: true } }),
-    tx.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, startsAt: { gte: from, lte: to }, status: { not: "CANCELLED" } }, include: { occurrenceCourts: { include: { court: { select: { name: true } } } } } }),
-    tx.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, startsAt: { gte: previousFrom, lte: previousTo }, status: { not: "CANCELLED" } }, select: { id: true } }),
+    tx.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, startsAt: { gte: from, lte: to }, status: { notIn: ["CANCELED", "CANCELLED"] } }, include: { occurrenceCourts: { include: { court: { select: { name: true } } } } } }),
+    tx.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, startsAt: { gte: previousFrom, lte: previousTo }, status: { notIn: ["CANCELED", "CANCELLED"] } }, select: { id: true } }),
     tx.saleItem.findMany({ where: { sale: { arenaId: auth.arenaId, createdAt: { gte: from, lte: to } } }, select: { quantity: true, totalCents: true, product: { select: { name: true } } } }),
     tx.teacher.findMany({ where: { arenaId: auth.arenaId, active: true }, include: { lessons: { where: { scheduledAt: { gte: from, lte: to } }, include: { attendances: true } } } }),
     tx.playerAccount.count({ where: { arenaId: auth.arenaId, createdAt: { gte: from, lte: to } } }),
