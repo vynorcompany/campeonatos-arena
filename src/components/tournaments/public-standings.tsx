@@ -224,6 +224,7 @@ export function PublicStandings({
     ...(portalVisibility.athletePortalShowDoublesRadar
       ? [{ label: "Radar de duplas", href: portalHref("radar"), icon: "players" as const }]
       : []),
+    ...(currentClient.isTeacher ? [{ label: "Área do Professor", href: portalHref("teacher"), icon: "graduation" as const }] : []),
   ];
 
   return (
@@ -788,7 +789,7 @@ function TeacherManagementPanel({ portal }: { portal: Portal }) {
     <section className="athlete-portal-content-panel teacher-portal-management">
       <header>
         <span>GESTÃO DO PROFESSOR</span>
-        <h2>Planos, alunos, turmas e agenda</h2>
+        <h2>Área do Professor</h2><p>Gerencie saldos, turmas e avisos dos seus alunos.</p>
       </header>
       {management ? (
         <div className="teacher-portal-management-grid">
