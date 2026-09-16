@@ -93,10 +93,12 @@ export function TournamentCategoriesTab({ tournament }: { tournament: NonNullabl
             name: category.name,
             groupCount: category.groupCount,
             pairsPerGroup: category.pairsPerGroup,
+            priceFirstCents: category.priceFirstCents ?? 0,
             priceSecondCents: category.priceSecondCents ?? 0,
             priceThirdCents: category.priceThirdCents ?? 0,
             standardKey: category.standardKey,
             maxRegistrations: category.maxRegistrations,
+            active: category.active,
             allowedRegistrationStandardKeys: category.allowedRegistrationCategoryIds.map((id) => tournament.categories.find((item) => item.id === id)?.standardKey).filter((key): key is string => Boolean(key))
           }))}
           compactMode

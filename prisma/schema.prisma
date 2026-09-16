@@ -555,6 +555,7 @@ model TournamentCategory {
   maxRegistrations Int                            @default(0)
   groupCount       Int                            @default(4)
   pairsPerGroup    Int                            @default(3)
+  priceFirstCents  Int                            @default(0)
   priceSecondCents Int                            @default(0)
   priceThirdCents  Int                            @default(0)
   active           Boolean                        @default(true)

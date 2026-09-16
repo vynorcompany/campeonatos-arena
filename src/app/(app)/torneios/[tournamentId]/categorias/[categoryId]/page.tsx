@@ -10,6 +10,7 @@ import { CategoryResultsPanel } from "@/components/tournaments/category-results-
 import { LeagueMedicalRequestsPanel } from "@/components/tournaments/league-medical-requests-panel";
 import { LeagueHistoryPanel } from "@/components/tournaments/league-history-panel";
 import { LeagueCategorySettingsDialog } from "@/components/tournaments/league-category-settings-dialog";
+import { TournamentCategorySettingsForm } from "@/components/tournaments/tournament-category-settings-form";
 import { LeagueIcon } from "@/components/tournaments/league-icon";
 import { StatusBadge } from "@/components/tournaments/status-badge";
 import { TournamentDetailLayout } from "@/components/tournaments/tournament-detail-layout";
@@ -63,7 +64,6 @@ export default async function CategoryPage({
       where: {
         id: params.categoryId,
         tournamentId: params.tournamentId,
-        active: true,
         tournament: { arenaId: auth.arenaId },
       },
       include: {
@@ -71,6 +71,10 @@ export default async function CategoryPage({
           select: {
             id: true,
             name: true,
+            creationMode: true,
+            categories: {
+              select: { id: true, name: true, standardKey: true },
+            },
           },
         },
         registrations: {
@@ -183,6 +187,10 @@ export default async function CategoryPage({
       ? searchParams.status
       : "ALL";
   const competition = category.competition;
+  const isPublicTournament = category.tournament.creationMode === "PUBLIC";
+  const standardCategories = category.tournament.categories.filter(
+    (item) => item.id !== category.id && Boolean(item.standardKey),
+  );
   const completedSportsMatches =
     competition?.matches.filter(
       (
@@ -501,7 +509,23 @@ export default async function CategoryPage({
                 )}
               </div>
             </article>
-            {!competition ? (
+            {!competition && isPublicTournament ? (
+              <article className="section-card">
+                <TournamentCategorySettingsForm
+                  category={{
+                    id: category.id,
+                    name: category.name,
+                    maxRegistrations: category.maxRegistrations,
+                    priceFirstCents: category.priceFirstCents,
+                    priceSecondCents: category.priceSecondCents,
+                    priceThirdCents: category.priceThirdCents,
+                    active: category.active,
+                    allowedRegistrationCategoryIds: category.allowedRegistrationCategoryIds,
+                  }}
+                  standardCategories={standardCategories}
+                />
+              </article>
+            ) : !competition ? (
               <article className="section-card">
                 <CategoryCompetitionForm
                   categoryId={category.id}

@@ -612,7 +612,7 @@ export async function createTournamentAction(_: ActionState, formData: FormData)
   const priceSecondCents = parseReaisToCents(parsed.data.priceSecondCents);
   const priceThirdCents = parseReaisToCents(parsed.data.priceThirdCents);
   const categories = parsed.data.categoryList
-    ? parseCategoryList(parsed.data.categoryList, priceSecondCents, priceThirdCents)
+    ? parseCategoryList(parsed.data.categoryList, priceFirstCents, priceSecondCents, priceThirdCents)
     : [];
   const created = await runRankingSerializableTransaction(async (tx) => {
     const rankingId = await ensureRankingBelongsToArena(
@@ -750,7 +750,7 @@ export async function updateTournamentAction(_: ActionState, formData: FormData)
     const priceFirstCents = parseReaisToCents(parsed.data.priceFirstCents);
     const priceSecondCents = parseReaisToCents(parsed.data.priceSecondCents);
     const priceThirdCents = parseReaisToCents(parsed.data.priceThirdCents);
-    const categories = parseCategoryList(parsed.data.categoryList, priceSecondCents, priceThirdCents);
+    const categories = parseCategoryList(parsed.data.categoryList, priceFirstCents, priceSecondCents, priceThirdCents);
     await updateTournamentSettings(parsed.data.tournamentId, auth.arenaId, {
       name: parsed.data.name,
       description: parsed.data.description,

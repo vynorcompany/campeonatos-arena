@@ -2253,11 +2253,13 @@ export async function updateTournamentSettings(
       level: number;
       groupCount: number;
       pairsPerGroup: number;
+      priceFirstCents: number;
       priceSecondCents: number;
       priceThirdCents: number;
       standardKey: string;
       allowedRegistrationStandardKeys: string[];
       maxRegistrations: number;
+      active: boolean;
     }>;
     rankingId: string | null;
   }
@@ -2344,11 +2346,12 @@ export async function updateTournamentSettings(
             level: category.level,
             groupCount: category.groupCount,
             pairsPerGroup: category.pairsPerGroup,
+            priceFirstCents: category.priceFirstCents,
             priceSecondCents: category.priceSecondCents,
             priceThirdCents: category.priceThirdCents,
             standardKey: category.standardKey,
             maxRegistrations: category.maxRegistrations,
-            active: true
+            active: category.active
           }
         });
       } else {
@@ -2359,11 +2362,12 @@ export async function updateTournamentSettings(
             level: category.level,
             groupCount: category.groupCount,
             pairsPerGroup: category.pairsPerGroup,
+            priceFirstCents: category.priceFirstCents,
             priceSecondCents: category.priceSecondCents,
             priceThirdCents: category.priceThirdCents,
             standardKey: category.standardKey,
             maxRegistrations: category.maxRegistrations,
-            active: true
+            active: category.active
           }
         });
       }
