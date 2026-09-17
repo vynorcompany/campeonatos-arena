@@ -22,6 +22,7 @@ export function PublicCourtBookingForm({ arenaSlug, courts, currentClient, layou
   const slot = court?.slots.find((item) => item.startsAt === startsAt) ?? court?.slots[0];
   const [durationMinutes, setDurationMinutes] = useState(slot?.durations[0] ?? 60);
   const [message, setMessage] = useState("");
+  const [calendarUrl, setCalendarUrl] = useState("");
   const [pending, startTransition] = useTransition();
   const visibleSlots = useMemo(() => court?.slots ?? [], [court]);
   const selection = useMemo(() => !court || !slot || !startsAt ? { selectedMinutes: [], conflictingMinutes: [], hasConflict: false } : resolvePublicBookingSelection({ startsAtMinute: dateMinute(startsAt), durationMinutes, slotMinutes: court.slotMinutes, availableMinutes: slot.availableMinutes, blockedMinutes: slot.blockedMinutes }), [court, durationMinutes, slot, startsAt]);
@@ -32,7 +33,7 @@ export function PublicCourtBookingForm({ arenaSlug, courts, currentClient, layou
 
   const changeCourt = (nextCourtId: string) => { const nextCourt = courts.find((item) => item.id === nextCourtId); setCourtId(nextCourtId); setStartsAt(nextCourt?.slots[0]?.startsAt ?? ""); setDurationMinutes(nextCourt?.slots[0]?.durations[0] ?? 60); };
   const changeSlot = (nextStartsAt: string) => { setStartsAt(nextStartsAt); };
-  const submit = (form: HTMLFormElement) => { const data = new FormData(form); data.set("arenaSlug", arenaSlug); data.set("courtId", courtId); data.set("startsAt", startsAt); data.set("durationMinutes", String(durationMinutes)); setMessage(""); startTransition(async () => { try { const result = await createPublicCourtBookingAction(data); if (result.checkoutUrl) { window.location.assign(result.checkoutUrl); return; } form.reset(); setMessage("Reserva enviada com sucesso. A arena confirmará seu horário em breve."); } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível enviar sua reserva."); } }); };
+  const submit = (form: HTMLFormElement) => { const data = new FormData(form); data.set("arenaSlug", arenaSlug); data.set("courtId", courtId); data.set("startsAt", startsAt); data.set("durationMinutes", String(durationMinutes)); setMessage(""); setCalendarUrl(""); startTransition(async () => { try { const result = await createPublicCourtBookingAction(data); if (result.checkoutUrl) { window.location.assign(result.checkoutUrl); return; } form.reset(); setCalendarUrl(result.reservationStatus === "SCHEDULED" ? result.calendarUrl : ""); setMessage(result.reservationStatus === "SCHEDULED" ? "Reserva confirmada com sucesso." : "Reserva enviada com sucesso. A arena confirmará seu horário em breve."); } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível enviar sua reserva."); } }); };
   const cancelPendingReservation = () => { if (!pendingReservation) return; setMessage(""); startTransition(async () => { try { const data = new FormData(); data.set("arenaSlug", arenaSlug); data.set("occurrenceId", pendingReservation.id); await cancelPublicCourtBookingRequestAction(data); window.location.reload(); } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível cancelar a solicitação."); } }); };
 
   return <form className={layout === "LIST" ? "public-booking-form public-booking-form-list" : "public-booking-form"} onSubmit={(event) => { event.preventDefault(); submit(event.currentTarget); }}>
@@ -49,6 +50,6 @@ export function PublicCourtBookingForm({ arenaSlug, courts, currentClient, layou
     {pendingReservation ? <section className="public-booking-pending"><strong>{pendingReservation.status === "PENDING_PAYMENT" ? "Aguardando pagamento" : "Aguardando confirmação"}</strong><span>{pendingReservation.label}</span><small>{pendingReservation.status === "PENDING_PAYMENT" ? "Conclua o pagamento para confirmar sua reserva." : "A arena avisará você assim que confirmar a reserva."}</small><button type="button" className="button button-small" disabled={pending} onClick={cancelPendingReservation}>Cancelar solicitação</button></section> : null}
     <button className="button button-primary" disabled={pending || selection.hasConflict}>{pending ? "Abrindo pagamento..." : paymentOnlineEnabled ? "Ir para pagamento" : "Solicitar reserva"}</button>
     {reservedSlots.length ? <section className="public-booking-reserved-slots"><strong>Horários reservados</strong><span>{reservedSlots.join(" · ")}</span></section> : null}
-    {message ? <p className="public-booking-message" role="status">{message}</p> : null}
+    {message ? <p className="public-booking-message" role="status">{message}{calendarUrl ? <> <a href={calendarUrl}>Adicionar ao meu calendário</a></> : null}</p> : null}
   </form>;
 }
