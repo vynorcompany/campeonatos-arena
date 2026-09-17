@@ -8894,6 +8894,13 @@ button {
 .athlete-portal-events-shell .portal-league-category-actions { display: none; }
 @media (max-width: 700px) { .athlete-portal-events-shell .portal-league-category-card, .athlete-portal-events-shell .portal-league-category-picker { width: 100%; max-width: none; } }
 
+/* Pendência financeira é global no Portal: destaque no sino, sem encobrir a tela. */
+.athlete-portal-notification-trigger b.is-attention { top: -5px; right: -5px; width: auto; min-width: 18px; height: 18px; padding: 1px 5px; border: 2px solid #123a56; border-radius: 999px; color: #fff; background: #dd3d45; box-shadow: 0 0 0 2px rgb(221 61 69 / .18); font-size: .72rem; line-height: 1.45; }
+.athlete-portal-notification-modal { border-color: #244a62; background: #f9fcff; box-shadow: 0 22px 54px rgb(0 13 27 / .44); }
+.athlete-portal-notification-modal > header { border-bottom-color: #c9dce8; background: #103149; }.athlete-portal-notification-modal header strong { color: #fff; }.athlete-portal-notification-modal header span { color: #c2d9e8; }.athlete-portal-notification-modal header > button { color: #fff; background: rgb(255 255 255 / .16); }
+.athlete-portal-notification-tabs { border-bottom-color: #cbdde8; background: #eaf3f8; }.athlete-portal-notification-tabs > button { color: #365a71; }.athlete-portal-notification-tabs > button.active { color: #064e3b; background: #ccefe1; }.athlete-portal-notification-tabs > .athlete-portal-notification-read-all { color: #075c91; }
+.athlete-portal-notification-modal a { border-bottom-color: #d7e5ed; background: #fff; }.athlete-portal-notification-modal a:hover { background: #eaf6f4; }.athlete-portal-notification-modal a strong { color: #123a56; }.athlete-portal-notification-modal a small { color: #45647a; }.athlete-portal-notification-modal a em { border-color: #aac7d8; color: #075c91; background: #f5fbff; }.athlete-portal-notification-modal a > i.is-overdue { color: #a81720; background: #ffe2e3; }.athlete-portal-notification-modal > p { color: #34566e; }
+
 /* Reserva online usa a mesma linguagem visual do Portal do Atleta. */
 .athlete-portal-booking .public-booking-shell { border-color: rgb(74 157 181 / .28); background: linear-gradient(145deg, #0d263b, #091a2d); box-shadow: inset 0 1px rgb(255 255 255 / .04), 0 18px 42px rgb(0 0 0 / .22); color: #eaf5fb; }
 .athlete-portal-booking .public-booking-shell > header { border-color: rgb(75 151 176 / .25); }
