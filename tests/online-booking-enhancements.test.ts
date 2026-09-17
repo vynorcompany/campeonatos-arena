@@ -43,7 +43,7 @@ test("each tournament stores rules and the public league page exposes them", () 
   const publicPage = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"), "utf8");
 
   assert.match(schema, /model Tournament \{[\s\S]*rules\s+String/);
-  assert.match(form, /Regras da liga/);
+  assert.match(form, /Regulamento/);
   assert.match(form, /name="rules"/);
   assert.match(service, /leagueRules/);
   assert.match(publicPage, /Regras/);

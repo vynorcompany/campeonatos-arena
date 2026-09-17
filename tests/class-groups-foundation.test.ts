@@ -119,10 +119,12 @@ test("teacher portal management includes the teacher class groups and their occu
     resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"),
     "utf8",
   );
+  const studentList = readFileSync(resolve(process.cwd(), "src/components/teacher-portal-student-list.tsx"), "utf8");
 
   assert.match(service, /classGroups:/);
-  assert.match(portal, /Minhas turmas/);
+  assert.match(portal, /<h3>Turmas<\/h3>/);
   assert.match(portal, /vagas/);
+  assert.match(studentList, /TeacherPortalStudentList/);
 });
 
 test("athlete portal presents classes as an internal lessons navigation", () => {
@@ -152,6 +154,14 @@ test("teacher class management supports moving students and logging make-up clas
     resolve(process.cwd(), "src/lib/actions/class-groups.ts"),
     "utf8",
   );
+  const studentList = readFileSync(
+    resolve(process.cwd(), "src/components/teacher-portal-student-list.tsx"),
+    "utf8",
+  );
+  const makeupPlanner = readFileSync(
+    resolve(process.cwd(), "src/components/teacher-portal-makeup-planner.tsx"),
+    "utf8",
+  );
   const portal = readFileSync(
     resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"),
     "utf8",
@@ -160,6 +170,9 @@ test("teacher class management supports moving students and logging make-up clas
   assert.match(schema, /model ClassGroupMakeup\s*\{/);
   assert.match(actions, /moveClassGroupStudentAction/);
   assert.match(actions, /registerClassGroupMakeupAction/);
-  assert.match(portal, /Mover aluno/);
-  assert.match(portal, /Registrar reposição/);
+  assert.match(studentList, /moveClassGroupStudentAction/);
+  assert.match(studentList, /Transferir/);
+  assert.match(makeupPlanner, /scheduleTeacherMakeupAction/);
+  assert.match(makeupPlanner, /Agendar reposição/);
+  assert.match(portal, /TeacherPortalMakeupPlanner/);
 });

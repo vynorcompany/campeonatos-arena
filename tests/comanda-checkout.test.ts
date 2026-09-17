@@ -110,7 +110,7 @@ test("closed commands are excluded from the active command grid without a duplic
   const card = readFileSync(resolve(process.cwd(), "src/components/comandas/command-card.tsx"), "utf8");
 
   assert.match(page, /const \[comandas[\s\S]{0,650}?where: \{\s*arenaId: auth\.arenaId,\s*status: "OPEN",/);
-  assert.doesNotMatch(card, /router\.refresh\(\)/);
+  assert.match(card, /setInterval\(\(\) => router\.refresh\(\), 2500\)/);
 });
 
 test("commands protect an open client tab and expose the complete checkout controls", () => {

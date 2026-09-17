@@ -52,7 +52,7 @@ test("event quick actions keep category management in the category list", async 
   assert.match(source, /EventQuickActions/);
   assert.match(quickActions, /role="dialog"/);
   assert.match(quickActions, /Configurar categorias/);
-  assert.match(quickActions, /href="#category-list-title"/);
+  assert.match(quickActions, /href=\{`\/torneios\/\$\{tournament\.id\}\/categorias`\}/);
   assert.doesNotMatch(quickActions, /TournamentCategoryManagerForm/);
   assert.match(quickActions, /Gerenciar inscrições/);
   assert.match(quickActions, /Página pública/);

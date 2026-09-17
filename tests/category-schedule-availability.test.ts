@@ -29,6 +29,7 @@ test("category match schedule accepts valid manual date and time and rejects inv
       matchId: "match-1",
       scheduledDate: "2026-07-30",
       scheduledTime: "19:45",
+      courtName: "",
     });
   }
 
