@@ -15,6 +15,7 @@ import {
 } from "@/lib/calendar/inputs";
 import { weeklyRangesOverlap } from "@/lib/scheduling/weekly-rule";
 import { calculateCourtIntervalPrice } from "@/lib/calendar/court-interval-pricing";
+import { sendEvolutionTextMessage } from "@/lib/integrations/evolution/client";
 import { expandWeeklyOccurrences } from "@/lib/scheduling/recurrence";
 import { createBoletoPayment, createCardCheckout, createPixPayment, getMissingBoletoPayerFields } from "@/lib/payments/mercado-pago";
 
@@ -235,15 +236,18 @@ export async function confirmOnlineBookingAction(formData: FormData) {
   const auth = await requireModuleEdit("calendar");
   const occurrenceId = z.string().trim().min(1).safeParse(formData.get("occurrenceId"));
   if (!occurrenceId.success) throw new Error("Reserva inválida.");
-  await withArenaTransaction(auth.arenaId, async (tx) => {
-    const occurrence = await tx.scheduleOccurrence.findFirst({ where: { id: occurrenceId.data, arenaId: auth.arenaId, sourceType: "ONLINE_BOOKING", status: "PENDING_CONFIRMATION" }, include: { arena: { select: { slug: true } }, participants: { select: { playerId: true } } } });
+  const message = await withArenaTransaction(auth.arenaId, async (tx) => {
+    const occurrence = await tx.scheduleOccurrence.findFirst({ where: { id: occurrenceId.data, arenaId: auth.arenaId, sourceType: "ONLINE_BOOKING", status: "PENDING_CONFIRMATION" }, include: { arena: { select: { slug: true, name: true } }, occurrenceCourts: { include: { court: { select: { name: true } } } }, participants: { select: { playerId: true, player: { select: { phone: true } } } } } });
     if (!occurrence) throw new Error("Esta reserva já foi confirmada ou não foi encontrada.");
     await tx.scheduleOccurrence.update({ where: { id: occurrence.id }, data: { status: "SCHEDULED" } });
     if (occurrence.participants.length) {
       const dateLabel = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(occurrence.startsAt);
       await tx.playerNotification.createMany({ data: occurrence.participants.map((participant) => ({ playerId: participant.playerId, type: "ONLINE_BOOKING_CONFIRMED", title: "Reserva confirmada", message: `Sua reserva para ${dateLabel} foi confirmada pela arena.`, href: `/reservar/${occurrence.arena.slug}` })) });
     }
+    const dateLabel = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(occurrence.startsAt);
+    return { dateLabel, arenaName: occurrence.arena.name, courtName: occurrence.occurrenceCourts[0]?.court.name ?? "Quadra", phones: occurrence.participants.map((item) => item.player.phone).filter(Boolean) };
   });
+  await Promise.allSettled(message.phones.map((phone) => sendEvolutionTextMessage(phone, `✅ ${message.arenaName}: sua reserva em ${message.courtName} para ${message.dateLabel} foi confirmada.`, auth.arenaId)));
   refreshCalendar();
 }
 

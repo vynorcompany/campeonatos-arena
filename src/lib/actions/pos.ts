@@ -370,6 +370,13 @@ async function createSaleFromProducts({
         totalCents
       }
     });
+    if (paymentMethod === "CASH") {
+      const register = await tx.cashRegister.findFirst({ where: { arenaId, status: "OPEN" }, orderBy: { openedAt: "desc" } });
+      if (register) {
+        await tx.cashMovement.create({ data: { arenaId, registerId: register.id, type: "SALE", amountCents: totalCents, description: `Venda ${sale.code}`, createdByName: "PDV" } });
+        await tx.cashRegister.update({ where: { id: register.id }, data: { expectedAmountCents: { increment: totalCents } } });
+      }
+    }
 
     for (const product of products) {
       const itemTotalCents = product.priceCents * product.quantity;
