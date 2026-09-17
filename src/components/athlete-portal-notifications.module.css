@@ -1,0 +1,36 @@
+.container { position: relative; width: 42px; height: 42px; }
+
+.trigger { position: relative; display: grid; width: 100%; height: 100%; place-items: center; border: 1px solid rgb(129 211 235 / .18); border-radius: 11px; color: #eafff6; background: linear-gradient(145deg, rgb(18 57 80 / .72), rgb(12 39 59 / .72)); box-shadow: 0 8px 18px rgb(0 0 0 / .13); cursor: pointer; }
+.trigger:hover { background: linear-gradient(145deg, rgb(25 72 98 / .9), rgb(14 48 70 / .9)); }
+.trigger svg { width: 19px; height: 19px; fill: #d8f7ff; stroke: #d8f7ff; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.3; }
+.trigger b { position: absolute; top: -5px; right: -5px; min-width: 16px; padding: 2px 4px; border: 2px solid #123a56; border-radius: 999px; color: #fff; background: #e0544e; font-size: .57rem; line-height: 1; }
+.trigger b.attention { width: auto; min-width: 18px; height: 18px; padding: 1px 5px; color: #fff; background: #dd3d45; box-shadow: 0 0 0 2px rgb(221 61 69 / .18); font-size: .72rem; line-height: 1.45; }
+
+.modal { position: absolute; z-index: 1001; top: calc(100% + 9px); right: 0; display: grid; width: min(370px, calc(100vw - 28px)); max-height: min(530px, calc(100vh - 90px)); overflow: auto; border: 1px solid #244a62; border-radius: 12px; color: #214963; background: #f9fcff; box-shadow: 0 22px 54px rgb(0 13 27 / .44); }
+.modal > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 13px; border-bottom: 1px solid #c9dce8; background: #103149; }
+.modal header div { display: grid; gap: 2px; }
+.modal header strong { color: #fff; font-size: .82rem; }
+.modal header span { color: #c2d9e8; font-size: .68rem; }
+.modal header > button { width: 25px; height: 25px; border: 0; border-radius: 6px; color: #fff; background: rgb(255 255 255 / .16); font-size: 1.1rem; cursor: pointer; }
+.modal > div { display: grid; }
+.modal a { display: grid; grid-template-columns: 25px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid #d7e5ed; color: inherit; background: #fff; text-decoration: none; }
+.modal a:hover { background: #eaf6f4; }
+.modal a > i { display: grid; width: 24px; height: 24px; place-items: center; border-radius: 50%; color: #177560; background: #e4f6ee; font-size: .62rem; font-style: normal; font-weight: 900; }
+.modal a > i.finance { color: #1765a2; background: #e7f1fd; font-size: .54rem; }
+.modal a > i.arena { color: #9a6814; background: #fff4d9; }
+.modal a > i.overdue { color: #a81720; background: #ffe2e3; }
+.modal a > span { display: grid; min-width: 0; gap: 2px; }
+.modal a strong { overflow: hidden; color: #123a56; font-size: .74rem; text-overflow: ellipsis; white-space: nowrap; }
+.modal a small { display: -webkit-box; overflow: hidden; color: #45647a; font-size: .66rem; line-height: 1.35; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.modal a em { padding: 4px 6px; border: 1px solid #aac7d8; border-radius: 5px; color: #075c91; background: #f5fbff; font-size: .62rem; font-style: normal; font-weight: 800; }
+.modal > p { margin: 0; padding: 20px 13px; color: #34566e; font-size: .75rem; }
+
+.tabs { display: flex; align-items: center; gap: 5px; padding: 7px 10px; border-bottom: 1px solid #cbdde8; background: #eaf3f8; }
+.tabs > button { border: 0; border-radius: 6px; color: #365a71; background: transparent; font-size: .68rem; font-weight: 800; cursor: pointer; }
+.tabs > button.active { color: #064e3b; background: #ccefe1; }
+.tabs > button:not(.readAll) { padding: 6px 8px; }
+.tabs b { margin-left: 4px; padding: 1px 4px; border-radius: 99px; color: #fff; background: #da4b4b; font-size: .58rem; }
+.tabs > .readAll { margin-left: auto; padding: 6px 4px; color: #075c91; }
+.tabs > button:disabled { cursor: wait; opacity: .6; }
+
+@media (max-width: 700px) { .container { width: 40px; height: 40px; } .trigger { border-radius: 10px; } .trigger svg { width: 18px; height: 18px; } .modal { right: -2px; } }
