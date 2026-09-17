@@ -26,7 +26,7 @@ async function sendVerificationCode(arenaId: string, phone: string, purpose: "RE
   const code = createCode();
   await prisma.playerVerificationCode.deleteMany({ where: { arenaId, phone, purpose, usedAt: null } });
   await prisma.playerVerificationCode.create({ data: { arenaId, phone, purpose, codeHash: hashCode(code), expiresAt: new Date(Date.now() + 10 * 60 * 1000) } });
-  await sendEvolutionTextMessage(phone, `Seu código de acesso da Arena é ${code}. Ele expira em 10 minutos.`);
+  await sendEvolutionTextMessage(phone, `Seu código de acesso da Arena é ${code}. Ele expira em 10 minutos.`, arenaId);
 }
 
 async function findPlayerByPhone(arenaId: string, phone: string) {

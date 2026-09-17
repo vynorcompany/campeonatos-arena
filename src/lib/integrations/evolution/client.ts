@@ -1,24 +1,25 @@
 import "server-only";
 
 import { env } from "@/lib/env";
-import { buildEvolutionTextPayload, resolveEvolutionConfig } from "@/lib/integrations/evolution";
+import { buildEvolutionTextPayload } from "@/lib/integrations/evolution";
+import { decryptConnectionSecrets } from "@/lib/payments/connection-secrets";
+import { prisma } from "@/lib/prisma";
 
 function getEvolutionConfig() {
-  const config = resolveEvolutionConfig({
-    apiUrl: env.evolutionApiUrl,
-    apiKey: env.evolutionApiKey,
-    instanceName: env.evolutionInstanceName,
-    webhookSecret: env.evolutionWebhookSecret
-  });
-  if (!config) throw new Error("A integração Evolution ainda não está configurada.");
-  return config;
+  if (!env.evolutionApiUrl || !env.evolutionApiKey) throw new Error("A integração Evolution ainda não está configurada.");
+  return { apiUrl: env.evolutionApiUrl.replace(/\/$/, ""), apiKey: env.evolutionApiKey, instanceName: env.evolutionInstanceName };
 }
 
-export async function sendEvolutionTextMessage(phone: string, text: string) {
+export async function sendEvolutionTextMessage(phone: string, text: string, arenaId?: string) {
+  const connection = arenaId ? await prisma.whatsAppConnection.findUnique({ where: { arenaId } }) : null;
+  if (arenaId && (!connection || connection.status !== "CONNECTED" || !connection.encryptedToken)) throw new Error("O WhatsApp desta arena ainda não está conectado.");
   const config = getEvolutionConfig();
-  const response = await fetch(`${config.apiUrl}/message/sendText/${encodeURIComponent(config.instanceName)}`, {
+  const instanceName = connection?.instanceName ?? config.instanceName;
+  if (!instanceName) throw new Error("Nenhuma instância Evolution foi definida.");
+  const apiKey = connection?.encryptedToken ? decryptConnectionSecrets(connection.encryptedToken).token : config.apiKey;
+  const response = await fetch(`${config.apiUrl}/message/sendText/${encodeURIComponent(instanceName)}`, {
     method: "POST",
-    headers: { apikey: config.apiKey, "content-type": "application/json" },
+    headers: { apikey: apiKey, "content-type": "application/json" },
     body: JSON.stringify(buildEvolutionTextPayload(phone, text)),
     cache: "no-store"
   });

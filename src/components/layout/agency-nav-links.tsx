@@ -26,6 +26,7 @@ const groups: Array<{ title: string; links: AgencyNavItem[] }> = [
           { href: "/agencia/arenas/usuarios", label: "Usuários das arenas" }
         ]
       }
+      , { href: "/agencia/conexoes", label: "Conexões" }
     ]
   },
   {
