@@ -13,17 +13,19 @@ export default async function StockPage() {
   const auth = await requireModuleView("stock");
   const products = await prisma.product.findMany({
     where: { arenaId: auth.arenaId },
+    include: { category: { select: { name: true } } },
     orderBy: [{ active: "desc" }, { name: "asc" }]
   });
+  const lowStockCount = products.filter((product) => product.stockQuantity <= product.minStock).length;
 
   return (
-    <div className="stack-md">
-      <header className="page-header">
+    <div className="stack-md stock-management-page">
+      <header className="page-header stock-management-header">
         <div className="stack-xs">
           <p className="eyebrow">PDV</p>
           <h1>Estoque</h1>
           <p className="muted">Cadastre produtos, acompanhe mínimo e ajuste entradas, saídas ou contagens.</p>
-        </div>
+        </div><div className="stock-management-metrics"><span><b>{products.length}</b> produtos</span><span className={lowStockCount ? "is-attention" : ""}><b>{lowStockCount}</b> no mínimo</span></div>
       </header>
 
       <SectionCard title="Cadastrar produto" description="Produtos cadastrados aparecem na frente de caixa.">
@@ -54,46 +56,8 @@ export default async function StockPage() {
         </SafeActionForm>
       </SectionCard>
 
-      <SectionCard title="Controle de estoque" description="Itens no mínimo aparecem destacados.">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Produto</th>
-              <th>Preço</th>
-              <th>Estoque</th>
-              <th>Mínimo</th>
-              <th>Ajuste</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map((product) => (
-              <tr key={product.id}>
-                <td>
-                  <strong>{product.name}</strong>
-                  <span className="table-subtext">{product.sku || "Sem SKU"}</span>
-                </td>
-                <td>{formatMoney(product.priceCents)}</td>
-                <td>
-                  <span className={product.stockQuantity <= product.minStock ? "stock-alert" : ""}>{product.stockQuantity}</span>
-                </td>
-                <td>{product.minStock}</td>
-                <td>
-                  <SafeActionForm action={adjustStockAction} className="inline-form stock-adjust-form" successMessage="Estoque ajustado.">
-                    <input type="hidden" name="productId" value={product.id} />
-                    <select name="type" defaultValue="IN" aria-label="Tipo de ajuste">
-                      <option value="IN">Entrada</option>
-                      <option value="OUT">Saída</option>
-                      <option value="ADJUST">Contagem</option>
-                    </select>
-                    <input name="quantity" type="number" min="0" defaultValue="1" />
-                    <input name="reason" type="text" placeholder="Motivo" />
-                    <SubmitButton label="Salvar" pendingLabel="..." className="button" />
-                  </SafeActionForm>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <SectionCard title="Controle de estoque" description="Itens no mínimo aparecem destacados. Ajustes ficam agrupados em cada linha.">
+        <div className="stock-operational-list"><div className="stock-operational-head"><span>Produto</span><span>Categoria</span><span>Preço</span><span>Estoque</span><span>Ajuste</span></div>{products.map((product) => <article className="stock-operational-row" key={product.id}><div><strong>{product.name}</strong><small>{product.sku || "Sem SKU"}</small></div><span>{product.category?.name || "Sem categoria"}</span><span>{formatMoney(product.priceCents)}</span><div><b className={product.stockQuantity <= product.minStock ? "stock-alert" : ""}>{product.stockQuantity}</b><small>mínimo: {product.minStock}</small></div><SafeActionForm action={adjustStockAction} className="stock-row-adjust" successMessage="Estoque ajustado."><input type="hidden" name="productId" value={product.id} /><select name="type" defaultValue="IN" aria-label="Tipo de ajuste"><option value="IN">Entrada</option><option value="OUT">Saída</option><option value="ADJUST">Contagem</option></select><input name="quantity" type="number" min="0" defaultValue="1" aria-label="Quantidade" /><input name="reason" type="text" placeholder="Motivo" /><SubmitButton label="Salvar" pendingLabel="..." className="button button-small" /></SafeActionForm></article>)}{!products.length ? <p className="client-empty">Nenhum produto cadastrado.</p> : null}</div>
       </SectionCard>
     </div>
   );
