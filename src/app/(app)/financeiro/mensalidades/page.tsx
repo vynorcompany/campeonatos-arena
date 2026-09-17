@@ -14,6 +14,10 @@ function formatMoney(cents: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
 }
 
+function renewalDate(startedAt: Date) {
+  return new Date(startedAt.getFullYear() + 1, startedAt.getMonth(), startedAt.getDate());
+}
+
 export default async function MonthlyPaymentsPage() {
   const auth = await requireModuleView("finance");
   const [students, plans, subscriptions] = await Promise.all([
@@ -31,6 +35,9 @@ export default async function MonthlyPaymentsPage() {
       orderBy: { dueDay: "asc" }
     })
   ]);
+  const today = new Date();
+  const renewalLimit = new Date(today); renewalLimit.setDate(renewalLimit.getDate() + 30);
+  const renewals = subscriptions.map((subscription) => ({ ...subscription, renewAt: renewalDate(subscription.startedAt) })).filter((subscription) => subscription.renewAt <= renewalLimit).sort((left, right) => left.renewAt.getTime() - right.renewAt.getTime());
 
   return (
     <div className="stack-md">
@@ -128,6 +135,10 @@ export default async function MonthlyPaymentsPage() {
         </SectionCard>
       </div>
 
+      <SectionCard title="Renovações de planos" description="Acompanhe os alunos cujo ciclo de 12 mensalidades está terminando. A renovação é sempre manual, evitando novas cobranças sem aprovação.">
+        {renewals.length ? <div className="simple-list settings-compact-list">{renewals.map((subscription) => <div className="simple-item" key={subscription.id}><strong>{subscription.student.name} · {subscription.plan.name}</strong><span>Renovação em {new Intl.DateTimeFormat("pt-BR").format(subscription.renewAt)} · {subscription.renewAt < today ? "renovação pendente" : "renovação próxima"}</span><small>Use “Ativar plano” para renovar o aluno, mantendo o novo ciclo registrado.</small></div>)}</div> : <p className="muted">Nenhuma renovação necessária nos próximos 30 dias.</p>}
+      </SectionCard>
+
       <SectionCard title="Assinaturas ativas" description="Alunos com planos ativos.">
         <table className="data-table">
           <thead>
@@ -137,6 +148,7 @@ export default async function MonthlyPaymentsPage() {
               <th>Valor</th>
               <th>Vencimento</th>
               <th>Aulas</th>
+              <th>Ciclo</th>
             </tr>
           </thead>
           <tbody>
@@ -147,6 +159,7 @@ export default async function MonthlyPaymentsPage() {
                 <td>{formatMoney(subscription.monthlyPriceCents)}</td>
                 <td>Dia {subscription.dueDay}</td>
                 <td>{subscription.classesPerMonth} por mês</td>
+                <td>{new Intl.DateTimeFormat("pt-BR").format(renewalDate(subscription.startedAt))}</td>
               </tr>
             ))}
           </tbody>
