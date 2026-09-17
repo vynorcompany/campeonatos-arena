@@ -1582,6 +1582,7 @@ model Product {
   category        ProductCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   saleItems       SaleItem[]
   comandaItems    ComandaItem[]
+  comandaRequests ComandaRequest[]
   stockMovements  StockMovement[]
   fiscalDocumentItems FiscalDocumentItem[]
 
@@ -1850,12 +1851,28 @@ model Comanda {
   arena     Arena         @relation(fields: [arenaId], references: [id], onDelete: Cascade)
   player    Player?       @relation(fields: [playerId], references: [id], onDelete: SetNull)
   items     ComandaItem[]
+  requests  ComandaRequest[]
   sale      Sale?
 
   @@index([arenaId, openedAt])
   @@index([arenaId, status])
   @@index([arenaId, status, openedAt])
   @@index([playerId])
+}
+
+model ComandaRequest {
+  id        String   @id @default(cuid())
+  quantity  Int      @default(1)
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  comandaId String
+  productId String
+  comanda   Comanda  @relation(fields: [comandaId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([comandaId, status, createdAt])
+  @@index([productId])
 }
 
 model ComandaItem {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { addComandaProductAction, deleteComandaAction, finishComandaAction, updateComandaItemQuantityAction } from "@/lib/actions/comanda";
 
 type Product = { id: string; name: string; priceCents: number; stockQuantity: number; category?: { name: string } | null };
@@ -11,7 +12,7 @@ const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "curren
 const cents = (value: string) => Math.round(Number(value.replace(",", ".")) * 100) || 0;
 const amountInput = (value: number) => (value / 100).toFixed(2).replace(".", ",");
 
-export function CommandCard({ canDelete, comanda, products, paymentMethods, debts, clientCreditCents }: { canDelete: boolean; comanda: { id: string; code: string; label: string; type: string; playerName?: string | null; items: CommandItem[] }; products: Product[]; paymentMethods: string[]; debts: Debt[]; clientCreditCents: number }) {
+export function CommandCard({ canDelete, comanda, products, paymentMethods, debts, clientCreditCents }: { canDelete: boolean; comanda: { id: string; code: string; label: string; type: string; playerName?: string | null; items: CommandItem[]; requests: { id: string; quantity: number; productName: string }[] }; products: Product[]; paymentMethods: string[]; debts: Debt[]; clientCreditCents: number }) {
   const [pending, startTransition] = useTransition();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [productModalOpen, setProductModalOpen] = useState(false);
@@ -28,6 +29,7 @@ export function CommandCard({ canDelete, comanda, products, paymentMethods, debt
   const [clientCreditAmount, setClientCreditAmount] = useState("");
   const [splitCount, setSplitCount] = useState(2);
   const [message, setMessage] = useState("");
+  const router = useRouter();
   const totalCents = comanda.items.reduce((total, item) => total + item.totalCents, 0);
   const openDebtTotalCents = debts.reduce((total, debt) => total + debt.amountCents, 0);
   const selectedDebtTotalCents = debts.filter((debt) => selectedDebtIds.includes(debt.id)).reduce((total, debt) => total + debt.amountCents, 0);
@@ -71,9 +73,11 @@ export function CommandCard({ canDelete, comanda, products, paymentMethods, debt
     document.addEventListener("keydown", closeOnEscape);
     return () => document.removeEventListener("keydown", closeOnEscape);
   }, [checkoutOpen, detailsOpen, divideOpen, productModalOpen, zeroConfirmOpen]);
+  useEffect(() => { const timer = window.setInterval(() => router.refresh(), 8000); return () => window.clearInterval(timer); }, [router]);
 
   return <article className="command-card command-card-clickable" onClick={openDetails}>
     <header><div><strong>{comanda.label}</strong><span>{comanda.type === "AVULSA" ? "Avulsa" : comanda.playerName ?? "Cliente"}</span></div><small>{comanda.code}</small></header>
+    {comanda.requests.length ? <div className="command-new-request-label"><strong>{comanda.requests.length} novo{comanda.requests.length === 1 ? "" : "s"} pedido{comanda.requests.length === 1 ? "" : "s"}</strong><span>{comanda.requests.map((request) => `${request.quantity}× ${request.productName}`).join(" · ")}</span></div> : null}
     <div className="command-items">{comanda.items.length ? comanda.items.map((item) => <div className="command-item" key={item.id}><span><b>{item.quantity}×</b> {item.product.name}</span><strong>{money(item.totalCents)}</strong><div className="command-item-controls" onClick={(event) => event.stopPropagation()}><button type="button" aria-label={`Diminuir ${item.product.name}`} onClick={() => run(() => updateComandaItemQuantityAction(form({ itemId: item.id, delta: "-1" })))} disabled={pending}>−</button><button type="button" aria-label={`Aumentar ${item.product.name}`} onClick={() => run(() => updateComandaItemQuantityAction(form({ itemId: item.id, delta: "1" })))} disabled={pending}>+</button></div></div>) : <p className="command-items-empty">Nenhum produto inserido.</p>}</div>
     <footer><div><span>Total atual</span><strong>{money(totalCents)}</strong></div><div className="command-card-actions"><button type="button" className="button" onClick={openProduct}>Inserir produtos</button><button type="button" className="button button-success" disabled={pending} onClick={openCheckout}>Finalizar comanda</button></div></footer>{message ? <p className="command-card-message">{message}</p> : null}
     {detailsOpen ? <div className="command-modal-backdrop" onMouseDown={() => setDetailsOpen(false)}><section className="command-details-modal" role="dialog" aria-modal="true" aria-label={`Comanda ${comanda.label}`} onMouseDown={(event) => event.stopPropagation()} onClick={(event) => event.stopPropagation()}><header><div><span>COMANDA ABERTA</span><h2>{comanda.label}</h2><p>Edite os itens abaixo ou adicione novos produtos.</p></div><button type="button" className="button button-small" onClick={(event) => { event.stopPropagation(); setDetailsOpen(false); }}>Fechar</button></header><section className="command-details-items"><div className="command-details-items-head"><h3>Itens da comanda</h3><button type="button" className="button button-small button-primary" onClick={openProduct}>+ Adicionar produtos</button></div>{comanda.items.length ? comanda.items.map((item) => <div className="command-item" key={item.id}><span><b>{item.quantity}×</b> {item.product.name}</span><strong>{money(item.totalCents)}</strong><div className="command-item-controls command-details-item-controls"><button type="button" aria-label={`Diminuir ${item.product.name}`} onClick={() => run(() => updateComandaItemQuantityAction(form({ itemId: item.id, delta: "-1" })))} disabled={pending}>−</button><button type="button" aria-label={`Aumentar ${item.product.name}`} onClick={() => run(() => updateComandaItemQuantityAction(form({ itemId: item.id, delta: "1" })))} disabled={pending}>+</button></div></div>) : <div className="command-details-empty"><p className="command-items-empty">Nenhum produto inserido.</p><button type="button" className="button button-primary" onClick={openProduct}>Adicionar o primeiro produto</button></div>}</section><footer onClick={(event) => event.stopPropagation()}><button type="button" className="button" onClick={(event) => { event.stopPropagation(); setDetailsOpen(false); }}>Fechar</button><button type="button" className="button button-success" onClick={(event) => { setDetailsOpen(false); openCheckout(event); }}>Finalizar comanda</button></footer></section></div> : null}
