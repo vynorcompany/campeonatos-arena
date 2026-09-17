@@ -151,6 +151,7 @@ export async function updateOnlineBookingSettingsAction(formData: FormData) {
       onlineBookingShowReserved: formData.get("showReserved") === "on",
       onlineBookingPaymentEnabled: formData.get("paymentOnlineEnabled") === "on",
       onlineBookingEnabled: formData.get("onlineBookingEnabled") === "on",
+      onlineBookingWhatsappConfirmationEnabled: formData.get("whatsappConfirmationEnabled") === "on",
       onlineBookingLeadTimeMinutes: parsed.data.leadTimeMinutes,
       onlineBookingWhatsappMessage: parsed.data.whatsappMessage
     },
@@ -197,7 +198,11 @@ export async function createPublicCourtBookingAction(formData: FormData) {
   revalidatePath("/agenda");
   revalidatePath(`/reservar/${arena.slug}`);
   revalidatePath(`/classificacao/${arena.slug}`);
-  return { checkoutUrl };
+  return {
+    checkoutUrl,
+    calendarUrl: `/api/reservar/${arena.slug}/${onlineBooking.occurrenceId}/calendario`,
+    reservationStatus: arena.onlineBookingPaymentEnabled ? "PENDING_PAYMENT" : arena.onlineBookingRequiresConfirmation ? "PENDING_CONFIRMATION" : "SCHEDULED"
+  };
 }
 
 export async function cancelPublicCourtBookingRequestAction(formData: FormData) {
@@ -237,15 +242,15 @@ export async function confirmOnlineBookingAction(formData: FormData) {
   const occurrenceId = z.string().trim().min(1).safeParse(formData.get("occurrenceId"));
   if (!occurrenceId.success) throw new Error("Reserva inválida.");
   const message = await withArenaTransaction(auth.arenaId, async (tx) => {
-    const occurrence = await tx.scheduleOccurrence.findFirst({ where: { id: occurrenceId.data, arenaId: auth.arenaId, sourceType: "ONLINE_BOOKING", status: "PENDING_CONFIRMATION" }, include: { arena: { select: { slug: true, name: true } }, occurrenceCourts: { include: { court: { select: { name: true } } } }, participants: { select: { playerId: true, player: { select: { phone: true } } } } } });
+    const occurrence = await tx.scheduleOccurrence.findFirst({ where: { id: occurrenceId.data, arenaId: auth.arenaId, sourceType: "ONLINE_BOOKING", status: "PENDING_CONFIRMATION" }, include: { arena: { select: { slug: true, name: true, onlineBookingWhatsappConfirmationEnabled: true } }, occurrenceCourts: { include: { court: { select: { name: true } } } }, participants: { select: { playerId: true, player: { select: { phone: true } } } } } });
     if (!occurrence) throw new Error("Esta reserva já foi confirmada ou não foi encontrada.");
     await tx.scheduleOccurrence.update({ where: { id: occurrence.id }, data: { status: "SCHEDULED" } });
     if (occurrence.participants.length) {
       const dateLabel = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(occurrence.startsAt);
-      await tx.playerNotification.createMany({ data: occurrence.participants.map((participant) => ({ playerId: participant.playerId, type: "ONLINE_BOOKING_CONFIRMED", title: "Reserva confirmada", message: `Sua reserva para ${dateLabel} foi confirmada pela arena.`, href: `/reservar/${occurrence.arena.slug}` })) });
+      await tx.playerNotification.createMany({ data: occurrence.participants.map((participant) => ({ playerId: participant.playerId, type: "ONLINE_BOOKING_CONFIRMED", title: "Reserva confirmada", message: `Sua reserva para ${dateLabel} foi confirmada pela arena. Toque para adicionar ao seu calendário.`, href: `/api/reservar/${occurrence.arena.slug}/${occurrence.id}/calendario` })) });
     }
     const dateLabel = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(occurrence.startsAt);
-    return { dateLabel, arenaName: occurrence.arena.name, courtName: occurrence.occurrenceCourts[0]?.court.name ?? "Quadra", phones: occurrence.participants.map((item) => item.player.phone).filter(Boolean) };
+    return { dateLabel, arenaName: occurrence.arena.name, courtName: occurrence.occurrenceCourts[0]?.court.name ?? "Quadra", phones: occurrence.arena.onlineBookingWhatsappConfirmationEnabled ? occurrence.participants.map((item) => item.player.phone).filter(Boolean) : [] };
   });
   await Promise.allSettled(message.phones.map((phone) => sendEvolutionTextMessage(phone, `✅ ${message.arenaName}: sua reserva em ${message.courtName} para ${message.dateLabel} foi confirmada.`, auth.arenaId)));
   refreshCalendar();

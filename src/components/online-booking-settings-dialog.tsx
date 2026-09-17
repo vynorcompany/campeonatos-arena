@@ -14,6 +14,7 @@ type OnlineBookingSettings = {
   enabled: boolean;
   leadTimeMinutes: number;
   whatsappMessage: string;
+  whatsappConfirmationEnabled: boolean;
 };
 
 export function OnlineBookingSettingsDialog({ settings }: { settings: OnlineBookingSettings }) {
@@ -41,6 +42,7 @@ export function OnlineBookingSettingsDialog({ settings }: { settings: OnlineBook
             <label className="control-toggle"><input name="requiresConfirmation" type="checkbox" defaultChecked={settings.requiresConfirmation} /><span aria-hidden="true" /><em>Confirmação de reserva</em></label>
             <label className="control-toggle"><input name="showReserved" type="checkbox" defaultChecked={settings.showReserved} /><span aria-hidden="true" /><em>Mostrar horários reservados</em></label>
             <label className="control-toggle"><input name="paymentOnlineEnabled" type="checkbox" defaultChecked={settings.paymentOnlineEnabled} /><span aria-hidden="true" /><em>Pagamento online</em></label>
+            <label className="control-toggle"><input name="whatsappConfirmationEnabled" type="checkbox" defaultChecked={settings.whatsappConfirmationEnabled} /><span aria-hidden="true" /><em>Enviar confirmação pelo WhatsApp</em></label>
           </div>
           <label className="field form-full">Mensagem de WhatsApp<textarea name="whatsappMessage" defaultValue={settings.whatsappMessage} placeholder="Ex.: Olá, {cliente}! Sua reserva foi recebida para {data} às {horario}." /></label>
           <div className="online-booking-settings-footer form-full"><SubmitButton label="Salvar configurações" pendingLabel="Salvando..." className="button button-primary" /></div>

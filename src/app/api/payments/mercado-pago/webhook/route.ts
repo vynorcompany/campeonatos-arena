@@ -102,7 +102,7 @@ export async function POST(request: Request) {
         const bookingMessage = await withArenaTransaction(arenaId, async (tx) => {
           const occurrence = await tx.scheduleOccurrence.findFirst({
             where: { id: occurrenceId, arenaId, sourceType: "ONLINE_BOOKING", status: "PENDING_PAYMENT" },
-            include: { occurrenceCourts: { include: { court: { select: { name: true } } } }, participants: { include: { player: { select: { id: true, name: true, phone: true } } } } }
+            include: { arena: { select: { onlineBookingWhatsappConfirmationEnabled: true } }, occurrenceCourts: { include: { court: { select: { name: true } } } }, participants: { include: { player: { select: { id: true, name: true, phone: true } } } } }
           });
           const participant = occurrence?.participants[0];
           if (!occurrence || !participant || participant.financialEntryId) return;
@@ -131,7 +131,7 @@ export async function POST(request: Request) {
           await tx.financialSettlement.create({ data: { arenaId, financialEntryId: financialEntry.id, amountCents: participant.amountCents, paymentMethod: "Mercado Pago online", paidAt, notes: `Pagamento online Mercado Pago confirmado (${String(payment.id ?? paymentId)}).` } });
           await tx.scheduleParticipant.update({ where: { id: participant.id }, data: { financialEntryId: financialEntry.id, paymentMethod: "Mercado Pago online" } });
           await tx.scheduleOccurrence.update({ where: { id: occurrence.id }, data: { status: "SCHEDULED" } });
-          return participant.player.phone ? { phone: participant.player.phone, text: `✅ Pagamento confirmado. Sua reserva em ${courtName} foi confirmada pela arena.` } : null;
+          return occurrence.arena.onlineBookingWhatsappConfirmationEnabled && participant.player.phone ? { phone: participant.player.phone, text: `✅ Pagamento confirmado. Sua reserva em ${courtName} foi confirmada pela arena.` } : null;
         });
         if (bookingMessage) await sendEvolutionTextMessage(bookingMessage.phone, bookingMessage.text, arenaId).catch(() => undefined);
         return NextResponse.json({ ok: true });

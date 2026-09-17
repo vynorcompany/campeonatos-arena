@@ -90,6 +90,7 @@ model Arena {
   onlineBookingPaymentEnabled       Boolean                  @default(false)
   onlineBookingEnabled              Boolean                  @default(true)
   onlineBookingWhatsappMessage      String                   @default("")
+  onlineBookingWhatsappConfirmationEnabled Boolean            @default(true)
   onlineBookingLeadTimeMinutes      Int                      @default(120)
   athletePortalShowLeagues          Boolean                  @default(true)
   athletePortalShowBooking          Boolean                  @default(true)
