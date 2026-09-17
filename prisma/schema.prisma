@@ -125,6 +125,7 @@ model Arena {
   fiscalDocuments                   FiscalDocument[]
   onlinePaymentSettings             OnlinePaymentSettings?
   paymentConnections                PaymentConnection[]
+  whatsappConnection                WhatsAppConnection?
   sales                             Sale[]
   comandas                          Comanda[]
   stockMovements                    StockMovement[]
@@ -1806,6 +1807,25 @@ model PaymentConnection {
 
   @@unique([arenaId, provider])
   @@index([arenaId, status])
+}
+
+model WhatsAppConnection {
+  id                String   @id @default(cuid())
+  provider          String   @default("EVOLUTION")
+  status            String   @default("DISCONNECTED")
+  instanceName      String   @unique
+  encryptedToken    String   @default("")
+  qrCodeDataUrl     String   @default("")
+  connectedPhone    String   @default("")
+  webhookSecretHash String   @default("")
+  lastError         String   @default("")
+  lastConnectedAt   DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  arenaId           String   @unique
+  arena             Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+
+  @@index([status])
 }
 
 model Sale {

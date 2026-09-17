@@ -1,31 +1,25 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { env } from "@/lib/env";
-import { resolveEvolutionConfig } from "@/lib/integrations/evolution";
+import { hashWebhookSecret } from "@/lib/payments/connection-secrets";
+import { prisma } from "@/lib/prisma";
 
-function hasValidWebhookSecret(receivedSecret: string | null, expectedSecret: string) {
-  if (!receivedSecret) return false;
-  const received = Buffer.from(receivedSecret);
-  const expected = Buffer.from(expectedSecret);
-  return received.length === expected.length && timingSafeEqual(received, expected);
+function safeEqual(left: string, right: string) {
+  const a = Buffer.from(left); const b = Buffer.from(right);
+  return a.length === b.length && timingSafeEqual(a, b);
 }
 
+function nestedValue(payload: Record<string, unknown>, key: string) { const data = payload.data; return payload[key] ?? (data && typeof data === "object" ? (data as Record<string, unknown>)[key] : undefined); }
+
 export async function POST(request: NextRequest) {
-  const config = resolveEvolutionConfig({
-    apiUrl: env.evolutionApiUrl,
-    apiKey: env.evolutionApiKey,
-    instanceName: env.evolutionInstanceName,
-    webhookSecret: env.evolutionWebhookSecret
-  });
-
-  if (!config) return NextResponse.json({ error: "Evolution não configurada." }, { status: 503 });
-  if (!hasValidWebhookSecret(request.headers.get("x-evolution-webhook-secret"), config.webhookSecret)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const payload = await request.json().catch(() => null);
   if (!payload || typeof payload !== "object") return NextResponse.json({ error: "Payload inválido." }, { status: 400 });
-
-  // O processamento de eventos será conectado gradualmente aos fluxos de reservas e cobranças.
-  return NextResponse.json({ received: true });
+  const record = payload as Record<string, unknown>;
+  const instanceName = String(request.nextUrl.searchParams.get("instance") ?? nestedValue(record, "instance") ?? nestedValue(record, "instanceName") ?? "");
+  const secret = request.nextUrl.searchParams.get("secret") ?? request.headers.get("x-evolution-webhook-secret") ?? "";
+  if (!instanceName || !secret) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const connection = await prisma.whatsAppConnection.findUnique({ where: { instanceName } });
+  if (!connection || !safeEqual(hashWebhookSecret(secret), connection.webhookSecretHash)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const event = String(record.event ?? record.type ?? "").toUpperCase(); const state = String(nestedValue(record, "state") ?? nestedValue(record, "status") ?? "").toUpperCase();
+  if (event.includes("CONNECTION") || state) { const connected = ["OPEN", "CONNECTED"].includes(state); const disconnected = ["CLOSE", "CLOSED", "DISCONNECTED"].includes(state); await prisma.whatsAppConnection.update({ where: { id: connection.id }, data: { status: connected ? "CONNECTED" : disconnected ? "DISCONNECTED" : connection.status, connectedPhone: String(nestedValue(record, "wuid") ?? nestedValue(record, "phone") ?? connection.connectedPhone), qrCodeDataUrl: connected ? "" : connection.qrCodeDataUrl, lastConnectedAt: connected ? new Date() : connection.lastConnectedAt } }); }
+  return NextResponse.json({ received: true, arenaId: connection.arenaId });
 }

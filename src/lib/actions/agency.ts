@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAgencyAccess } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
+import { createEvolutionInstance, createEvolutionInstanceName, createEvolutionInstanceToken, createEvolutionWebhookSecret, getEvolutionQrCode } from "@/lib/integrations/evolution/agency";
+import { decryptConnectionSecrets, encryptConnectionSecrets, hashWebhookSecret } from "@/lib/payments/connection-secrets";
 
 const systemRoleSchema = z.object({
   userId: z.string().min(1, "Usuário inválido."),
@@ -26,6 +28,34 @@ const arenaStatusSchema = z.object({
   arenaId: z.string().min(1, "Arena inválida."),
   accountStatus: z.enum(["ACTIVE", "PAUSED", "CANCELED"])
 });
+const whatsappConnectionSchema = z.object({ arenaId: z.string().min(1, "Arena inválida.") });
+
+export async function connectAgencyArenaWhatsAppAction(formData: FormData) {
+  await requireAgencyAccess();
+  const parsed = whatsappConnectionSchema.safeParse({ arenaId: formData.get("arenaId") });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  const arena = await prisma.arena.findUnique({ where: { id: parsed.data.arenaId }, select: { id: true } });
+  if (!arena) throw new Error("Arena não encontrada.");
+  const existing = await prisma.whatsAppConnection.findUnique({ where: { arenaId: arena.id } });
+  const instanceName = existing?.instanceName || createEvolutionInstanceName(arena.id);
+  const instanceToken = existing?.encryptedToken ? decryptConnectionSecrets(existing.encryptedToken).token : createEvolutionInstanceToken();
+  const webhookSecret = existing?.encryptedToken ? decryptConnectionSecrets(existing.encryptedToken).webhookSecret : createEvolutionWebhookSecret();
+  const qrCodeDataUrl = existing ? await getEvolutionQrCode(instanceName, instanceToken) : (await createEvolutionInstance({ instanceName, instanceToken, webhookSecret })).qrCodeDataUrl;
+  await prisma.whatsAppConnection.upsert({ where: { arenaId: arena.id }, create: { arenaId: arena.id, instanceName, encryptedToken: encryptConnectionSecrets({ token: instanceToken, webhookSecret }), webhookSecretHash: hashWebhookSecret(webhookSecret), qrCodeDataUrl, status: "AWAITING_SCAN", lastError: "" }, update: { encryptedToken: encryptConnectionSecrets({ token: instanceToken, webhookSecret }), webhookSecretHash: hashWebhookSecret(webhookSecret), qrCodeDataUrl, status: "AWAITING_SCAN", lastError: "" } });
+  revalidatePath("/agencia/conexoes");
+}
+
+export async function refreshAgencyArenaWhatsAppQrAction(formData: FormData) {
+  await requireAgencyAccess();
+  const parsed = whatsappConnectionSchema.safeParse({ arenaId: formData.get("arenaId") });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  const connection = await prisma.whatsAppConnection.findUnique({ where: { arenaId: parsed.data.arenaId } });
+  if (!connection?.encryptedToken) throw new Error("Conecte esta arena primeiro.");
+  const token = decryptConnectionSecrets(connection.encryptedToken).token;
+  const qrCodeDataUrl = await getEvolutionQrCode(connection.instanceName, token);
+  await prisma.whatsAppConnection.update({ where: { id: connection.id }, data: { qrCodeDataUrl, status: "AWAITING_SCAN", lastError: "" } });
+  revalidatePath("/agencia/conexoes");
+}
 
 export async function updateUserSystemRoleAction(formData: FormData) {
   const auth = await requireAgencyAccess();
