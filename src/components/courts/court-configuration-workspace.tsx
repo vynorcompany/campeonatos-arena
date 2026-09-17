@@ -5,5 +5,5 @@ type CourtConfigurationWorkspaceProps = {
 };
 
 export function CourtConfigurationWorkspace({ courtId }: CourtConfigurationWorkspaceProps) {
-  return <AgendaConfiguracaoPage searchParams={{ court: courtId }} />;
+  return <AgendaConfiguracaoPage searchParams={Promise.resolve({ court: courtId })} />;
 }

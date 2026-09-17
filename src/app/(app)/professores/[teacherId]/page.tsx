@@ -35,13 +35,14 @@ type DetailQuery = {
   percentual?: string;
 };
 
-export default async function TeacherDetailPage({
-  params,
-  searchParams,
-}: {
-  params: { teacherId: string };
-  searchParams?: DetailQuery;
-}) {
+export default async function TeacherDetailPage(
+  props: {
+    params: Promise<{ teacherId: string }>;
+    searchParams?: Promise<DetailQuery>;
+  }
+) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const auth = await requireModuleView("teachers");
   const tab =
     searchParams?.tab === "students" ||

@@ -9,7 +9,10 @@ import { prisma } from "@/lib/prisma";
 
 const asCurrency = (cents: number) => (cents / 100).toFixed(2).replace(".", ",");
 
-export default async function SponsorshipManagementPage({ searchParams }: { searchParams?: { q?: string; type?: string; sort?: string } }) {
+export default async function SponsorshipManagementPage(
+  props: { searchParams?: Promise<{ q?: string; type?: string; sort?: string }> }
+) {
+  const searchParams = await props.searchParams;
   const auth = await requireModuleView("tv");
   const query = String(searchParams?.q ?? "").trim();
   const type = String(searchParams?.type ?? "").trim();

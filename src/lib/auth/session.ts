@@ -48,8 +48,8 @@ async function getSessionWithUser(token: string) {
   });
 }
 
-function getSelectedArenaId() {
-  return cookies().get(arenaCookieName)?.value ?? null;
+async function getSelectedArenaId() {
+  return (await cookies()).get(arenaCookieName)?.value ?? null;
 }
 
 function getActiveMembership(memberships: ArenaMembership[], selectedArenaId: string | null) {
@@ -69,7 +69,7 @@ function isAgencyRole(systemRole: SystemRole) {
 }
 
 export async function setArenaContextCookie(arenaId: string) {
-  cookies().set(arenaCookieName, arenaId, {
+  (await cookies()).set(arenaCookieName, arenaId, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -78,7 +78,7 @@ export async function setArenaContextCookie(arenaId: string) {
 }
 
 export async function clearArenaContextCookie() {
-  cookies().delete(arenaCookieName);
+  (await cookies()).delete(arenaCookieName);
 }
 
 export async function createSession(userId: string) {
@@ -109,7 +109,7 @@ export async function createSession(userId: string) {
     }
   });
 
-  cookies().set(sessionCookieName, token, {
+  (await cookies()).set(sessionCookieName, token, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -125,7 +125,8 @@ export async function createSession(userId: string) {
 }
 
 export async function destroySession() {
-  const token = cookies().get(sessionCookieName)?.value;
+  const cookieStore = await cookies();
+  const token = cookieStore.get(sessionCookieName)?.value;
 
   if (token) {
     await prisma.session.deleteMany({
@@ -137,12 +138,12 @@ export async function destroySession() {
     });
   }
 
-  cookies().delete(sessionCookieName);
-  cookies().delete(arenaCookieName);
+  cookieStore.delete(sessionCookieName);
+  cookieStore.delete(arenaCookieName);
 }
 
 export async function getAuthContext(): Promise<AuthContext | null> {
-  const token = cookies().get(sessionCookieName)?.value;
+  const token = (await cookies()).get(sessionCookieName)?.value;
 
   if (!token) {
     return null;
@@ -209,7 +210,7 @@ export async function getAuthContext(): Promise<AuthContext | null> {
     );
   }
 
-  const activeMembership = getActiveMembership(memberships, getSelectedArenaId());
+  const activeMembership = getActiveMembership(memberships, await getSelectedArenaId());
 
   return {
     userId: session.user.id,

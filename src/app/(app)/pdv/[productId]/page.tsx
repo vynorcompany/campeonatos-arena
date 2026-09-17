@@ -9,7 +9,8 @@ import { adjustStockAction, updateProductAction } from "@/lib/actions/pos";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
-export default async function ProductDetailPage({ params }: { params: { productId: string } }) {
+export default async function ProductDetailPage(props: { params: Promise<{ productId: string }> }) {
+  const params = await props.params;
   const auth = await requireModuleView("pos");
   const [product, categories] = await Promise.all([
     prisma.product.findFirst({ where: { id: params.productId, arenaId: auth.arenaId }, include: { stockMovements: { orderBy: { createdAt: "desc" }, take: 8 } } }),

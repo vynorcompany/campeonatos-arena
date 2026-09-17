@@ -11,14 +11,12 @@ import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
 type TournamentDetailPageProps = {
-  params: { tournamentId: string };
-  searchParams?: { action?: string };
+  params: Promise<{ tournamentId: string }>;
+  searchParams?: Promise<{ action?: string }>;
 };
 
-export default async function TournamentDetailPage({
-  params,
-  searchParams,
-}: TournamentDetailPageProps) {
+export default async function TournamentDetailPage(props: TournamentDetailPageProps) {
+  const params = await props.params;
   const auth = await requireModuleView("tournaments");
   const [tournament] = await Promise.all([
     prisma.tournament.findFirst({

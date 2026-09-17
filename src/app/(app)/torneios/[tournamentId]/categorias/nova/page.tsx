@@ -4,7 +4,8 @@ import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 
-export default async function NewTournamentCategoryPage({ params }: { params: { tournamentId: string } }) {
+export default async function NewTournamentCategoryPage(props: { params: Promise<{ tournamentId: string }> }) {
+  const params = await props.params;
   const auth = await requireModuleView("tournaments");
   const tournament = await prisma.tournament.findFirst({ where: { id: params.tournamentId, arenaId: auth.arenaId }, select: { id: true, name: true } });
   if (!tournament) notFound();

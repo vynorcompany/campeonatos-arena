@@ -16,9 +16,13 @@ function Metric({ label, value, tone }: { label: string; value: string | number;
 function ReportRows({ headers, rows }: { headers: string[]; rows: { key: string; values: string[] }[] }) { return <div className="report-table"><div className="report-table-head">{headers.map((header) => <span key={header}>{header}</span>)}</div>{rows.map((row) => <article key={row.key}>{row.values.map((value, index) => <span key={`${row.key}-${index}`}>{value}</span>)}</article>)}{!rows.length ? <p className="client-empty">Nenhum registro no período selecionado.</p> : null}</div>; }
 function Summary({ title, rows }: { title: string; rows: { label: string; count: number; total: number }[] }) { return <section className="report-summary"><h3>{title}</h3><div>{rows.map((row) => <article key={row.label}><strong>{row.label}</strong><span>{row.count} lançamento{row.count === 1 ? "" : "s"}</span><b>{money(row.total)}</b></article>)}{!rows.length ? <p className="muted">Nenhum valor para consolidar neste período.</p> : null}</div></section>; }
 
-export default async function ReportPage({ params, searchParams }: { params: { relatorio: string }; searchParams?: { inicio?: string; fim?: string; tipo?: string; situacao?: string; categoria?: string; forma?: string; banco?: string; professor?: string; pagamento?: string } }) {
-  const auth = await requireModuleView("finance"); const report = reports[params.relatorio as keyof typeof reports]; if (!report) notFound(); const { start, end } = range(searchParams?.inicio, searchParams?.fim); const period = { gte: start, lte: end };
-  let metrics: React.ReactNode = null; let supplementary: React.ReactNode = null; let headers: string[] = []; let rows: { key: string; values: string[] }[] = [];
+export default async function ReportPage(
+  props: { params: Promise<{ relatorio: string }>; searchParams?: Promise<{ inicio?: string; fim?: string; tipo?: string; situacao?: string; categoria?: string; forma?: string; banco?: string; professor?: string; pagamento?: string }> }
+) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
+  const auth = await requireModuleView("finance");const report = reports[params.relatorio as keyof typeof reports];if (!report) notFound();const { start, end } = range(searchParams?.inicio, searchParams?.fim);const period = { gte: start, lte: end };
+  let metrics: React.ReactNode = null;let supplementary: React.ReactNode = null;let headers: string[] = [];let rows: { key: string; values: string[] }[] = [];
   if (params.relatorio === "caixa") {
     metrics = <div className="report-metrics"><Metric label="Caixas configurados" value="0" /><Metric label="Movimentos no período" value="0" /><Metric label="Saldo movimentado" value={money(0)} /></div>;
     supplementary = <section className="report-future-module"><strong>Controle de caixa em preparação</strong><p>Este relatório será alimentado por abertura, suprimentos, sangrias, recebimentos e fechamento de cada caixa. Lançamentos financeiros permanecem no Relatório de Lançamentos.</p></section>;

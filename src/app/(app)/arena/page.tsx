@@ -17,7 +17,7 @@ import { prisma } from "@/lib/prisma";
 type ArenaSection = "data" | "portal" | "courts" | "users" | "profiles" | "integrations";
 
 type ArenaPageProps = {
-  searchParams?: { section?: string; court?: string };
+  searchParams?: Promise<{ section?: string; court?: string }>;
 };
 
 function resolveSection(value?: string): ArenaSection {
@@ -28,7 +28,8 @@ function canManageUsers(auth: { arenaRole: string | null; systemRole: string }) 
   return auth.systemRole === "SUPER_ADMIN" || auth.systemRole === "ADMIN" || auth.arenaRole === "OWNER" || auth.arenaRole === "ADMIN";
 }
 
-export default async function ArenaPage({ searchParams }: ArenaPageProps) {
+export default async function ArenaPage(props: ArenaPageProps) {
+  const searchParams = await props.searchParams;
   const auth = await requireModuleView("arena");
   const activeSection = resolveSection(searchParams?.section);
   const userManagementAllowed = canManageUsers(auth);

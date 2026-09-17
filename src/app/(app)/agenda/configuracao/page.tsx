@@ -7,7 +7,7 @@ import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
-type Props = { searchParams?: { court?: string } };
+type Props = { searchParams?: Promise<{ court?: string }> };
 const weekDays = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
 const durations = [30, 60, 90, 120, 150, 180, 210, 240];
 const time = (value: number) => `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`;
@@ -15,7 +15,8 @@ const price = (value: number) => new Intl.NumberFormat("pt-BR", { style: "curren
 const priceInput = (value: number) => (value / 100).toFixed(2).replace(".", ",");
 const duration = (value: number) => `${Math.floor(value / 60) ? `${Math.floor(value / 60)}h` : ""}${value % 60 || !Math.floor(value / 60) ? `${value % 60 || ""}${value < 60 ? "min" : ""}` : ""}`;
 
-export default async function AgendaConfiguracaoPage({ searchParams }: Props) {
+export default async function AgendaConfiguracaoPage(props: Props) {
+  const searchParams = await props.searchParams;
   const auth = await requireModuleView("calendar");
   const [arena, courts] = await Promise.all([
     prisma.arena.findUniqueOrThrow({ where: { id: auth.arenaId }, select: { slug: true, onlineBookingLayout: true, onlineBookingRequiresConfirmation: true, onlineBookingShowReserved: true, onlineBookingPaymentEnabled: true, onlineBookingEnabled: true, onlineBookingLeadTimeMinutes: true, onlineBookingWhatsappMessage: true, onlineBookingWhatsappConfirmationEnabled: true } }),

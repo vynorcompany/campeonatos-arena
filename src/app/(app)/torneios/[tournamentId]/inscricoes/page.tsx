@@ -6,7 +6,11 @@ import { SubmitButton } from "@/components/forms/submit-button";
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
-export default async function TournamentRegistrationsPage({ params, searchParams }: { params: { tournamentId: string }; searchParams?: { q?: string; category?: string; status?: string } }) {
+export default async function TournamentRegistrationsPage(
+  props: { params: Promise<{ tournamentId: string }>; searchParams?: Promise<{ q?: string; category?: string; status?: string }> }
+) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const auth = await requireModuleView("tournaments");
   const tournament = await prisma.tournament.findFirst({
     where: { id: params.tournamentId, arenaId: auth.arenaId },

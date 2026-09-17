@@ -4,7 +4,8 @@ import { withArenaTransaction } from "@/lib/rls";
 
 export const dynamic = "force-dynamic";
 
-export default async function PublicBookingPaymentPage({ params }: { params: { arenaSlug: string; occurrenceId: string } }) {
+export default async function PublicBookingPaymentPage(props: { params: Promise<{ arenaSlug: string; occurrenceId: string }> }) {
+  const params = await props.params;
   const arena = await prisma.arena.findUnique({ where: { slug: params.arenaSlug }, select: { id: true } });
   const booking = arena ? await withArenaTransaction(arena.id, (tx) => tx.scheduleOccurrence.findFirst({
     where: { id: params.occurrenceId, arenaId: arena.id, sourceType: "ONLINE_BOOKING", status: "PENDING_PAYMENT" },

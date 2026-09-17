@@ -16,13 +16,14 @@ function pairName(registration: { leadName: string; partnerName: string } | null
   return registration ? `${registration.leadName} / ${registration.partnerName}` : "A definir";
 }
 
-export default async function PublicRegistrationPage({
-  params,
-  searchParams,
-}: {
-  params: { slug: string };
-  searchParams?: { tab?: string };
-}) {
+export default async function PublicRegistrationPage(
+  props: {
+    params: Promise<{ slug: string }>;
+    searchParams?: Promise<{ tab?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const activeTab = publicTabs.some((tab) => tab.id === searchParams?.tab)
     ? searchParams?.tab as PublicTournamentTab
     : "inscricao";

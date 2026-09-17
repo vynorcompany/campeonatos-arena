@@ -13,7 +13,11 @@ function icsDate(value: Date) {
   return value.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 }
 
-export async function GET(_: Request, { params }: { params: { arenaSlug: string; occurrenceId: string } }) {
+export async function GET(
+  _: Request,
+  props: { params: Promise<{ arenaSlug: string; occurrenceId: string }> }
+) {
+  const params = await props.params;
   try {
     const auth = await requirePublicPlayerAuth(params.arenaSlug);
     const arena = await prisma.arena.findUnique({ where: { slug: params.arenaSlug }, select: { id: true, name: true } });

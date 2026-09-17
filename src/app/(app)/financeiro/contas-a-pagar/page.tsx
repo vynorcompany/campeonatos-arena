@@ -4,7 +4,8 @@ import { canDeleteFinancialEntries } from "@/lib/permissions";
 import { getAccountsLedger } from "@/lib/finance/accounts";
 import { prisma } from "@/lib/prisma";
 
-export default async function AccountsPayablePage({ searchParams }: { searchParams?: Record<string, string | undefined> }) {
+export default async function AccountsPayablePage(props: { searchParams?: Promise<Record<string, string | undefined>> }) {
+  const searchParams = await props.searchParams;
   const auth = await requireModuleView("finance");
   const filters = { ...searchParams, includeEarlier: searchParams?.includeEarlier === "1", includeVoided: searchParams?.includeVoided === "1", dateField: searchParams?.dateField === "paidAt" ? "paidAt" as const : "dueDate" as const };
   const [entries, methods, categories, banks, plans, products, suppliers] = await Promise.all([

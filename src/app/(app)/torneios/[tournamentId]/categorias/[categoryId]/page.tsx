@@ -24,11 +24,11 @@ import { rankStandings } from "@/lib/tournament-category/standings";
 import { resolveLeagueTier } from "@/lib/league/tier";
 
 type CategoryPageProps = {
-  params: {
+  params: Promise<{
     tournamentId: string;
     categoryId: string;
-  };
-  searchParams?: { tab?: string; sort?: string; status?: string; player?: string };
+  }>;
+  searchParams?: Promise<{ tab?: string; sort?: string; status?: string; player?: string }>;
 };
 
 const validTabs: TournamentTabKey[] = [
@@ -54,10 +54,9 @@ const formatLabels = {
   SIMPLE: "Simples",
 } as const;
 
-export default async function CategoryPage({
-  params,
-  searchParams,
-}: CategoryPageProps) {
+export default async function CategoryPage(props: CategoryPageProps) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const auth = await requireModuleView("tournaments");
   const [category, athletes, pairRankings, medicalRequests] = await Promise.all([
     prisma.tournamentCategory.findFirst({

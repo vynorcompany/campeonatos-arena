@@ -19,14 +19,14 @@ import { formatRankingDateInput } from "@/lib/ranking/period";
 import { getRankingProfileLeaderboard } from "@/lib/services/ranking";
 
 type RankingDetailPageProps = {
-  params: { rankingId: string };
-  searchParams?: {
+  params: Promise<{ rankingId: string }>;
+  searchParams?: Promise<{
     tab?: string;
     period?: string;
     start?: string;
     end?: string;
     cycleId?: string;
-  };
+  }>;
 };
 
 const periodPresets = [
@@ -101,7 +101,9 @@ function RankingLeaderboard({
   );
 }
 
-export default async function RankingDetailPage({ params, searchParams }: RankingDetailPageProps) {
+export default async function RankingDetailPage(props: RankingDetailPageProps) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const auth = await requireModuleView("tournaments");
   const tab = isRankingWorkspaceTab(searchParams?.tab) ? searchParams.tab : "configuracao";
   const requestedPeriod = {

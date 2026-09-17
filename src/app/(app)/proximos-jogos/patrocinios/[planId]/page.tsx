@@ -8,7 +8,8 @@ import { prisma } from "@/lib/prisma";
 
 const money = (cents: number) => `R$ ${(cents / 100).toFixed(2).replace(".", ",")}`;
 
-export default async function SponsorshipPlanPage({ params }: { params: { planId: string } }) {
+export default async function SponsorshipPlanPage(props: { params: Promise<{ planId: string }> }) {
+  const params = await props.params;
   const auth = await requireModuleView("tv");
   const [plan, clients] = await Promise.all([
     prisma.sponsorshipPlan.findFirst({ where: { id: params.planId, arenaId: auth.arenaId }, include: { sponsors: { include: { player: { select: { name: true } } }, orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }] } } }),

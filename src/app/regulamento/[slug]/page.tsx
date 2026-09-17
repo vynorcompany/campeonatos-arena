@@ -9,7 +9,8 @@ function splitRegulationLines(content: string) {
     .filter(Boolean);
 }
 
-export default async function PublicRegulationPage({ params }: { params: { slug: string } }) {
+export default async function PublicRegulationPage(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const regulation = await prisma.regulationDocument.findUnique({
     where: {
       publicSlug: params.slug
