@@ -163,6 +163,8 @@ model Arena {
   playerAuthAttempts                PlayerAuthAttempt[]
   playerVerificationCodes           PlayerVerificationCode[]
   onlinePaymentCheckouts            OnlinePaymentCheckout[]
+  cashRegisters                     CashRegister[]
+  cashMovements                     CashMovement[]
 }
 
 model RegulationAcceptance {
@@ -1826,6 +1828,46 @@ model WhatsAppConnection {
   arena             Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
 
   @@index([status])
+}
+
+model CashRegister {
+  id                  String         @id @default(cuid())
+  referenceDate       DateTime
+  status              String         @default("OPEN")
+  openingAmountCents  Int            @default(0)
+  expectedAmountCents Int            @default(0)
+  countedAmountCents  Int?
+  differenceCents     Int?
+  openingNotes        String         @default("")
+  closingNotes        String         @default("")
+  openedAt            DateTime       @default(now())
+  closedAt            DateTime?
+  openedByName        String         @default("")
+  closedByName        String         @default("")
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  arenaId             String
+  arena               Arena          @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  movements           CashMovement[]
+
+  @@unique([arenaId, referenceDate])
+  @@index([arenaId, status, referenceDate])
+}
+
+model CashMovement {
+  id            String       @id @default(cuid())
+  type          String
+  amountCents   Int
+  description   String       @default("")
+  createdAt     DateTime     @default(now())
+  createdByName String       @default("")
+  arenaId       String
+  registerId    String
+  arena         Arena        @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  register      CashRegister @relation(fields: [registerId], references: [id], onDelete: Cascade)
+
+  @@index([registerId, createdAt])
+  @@index([arenaId, createdAt])
 }
 
 model Sale {

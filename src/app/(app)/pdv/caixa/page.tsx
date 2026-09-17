@@ -1,65 +1,17 @@
 import Link from "next/link";
-import { CheckoutRegister } from "@/components/pos/checkout-register";
+import { SafeActionForm } from "@/components/forms/safe-action-form";
+import { SubmitButton } from "@/components/forms/submit-button";
+import { SectionCard } from "@/components/section-card";
+import { closeCashRegisterAction, createCashMovementAction, openCashRegisterAction } from "@/lib/actions/cash-register";
 import { requireModuleView } from "@/lib/auth/guards";
 import { withArenaTransaction } from "@/lib/rls";
 
-function formatMoney(cents: number) {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL"
-  }).format(cents / 100);
-}
+const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value / 100);
+const localToday = () => { const date = new Date(); date.setHours(0, 0, 0, 0); return date; };
 
-export default async function CheckoutPage() {
+export default async function CashRegisterPage() {
   const auth = await requireModuleView("pos");
-  const [products, salesToday] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
-    tx.product.findMany({
-      where: {
-        arenaId: auth.arenaId,
-        active: true
-      },
-      orderBy: { name: "asc" }
-    }),
-    tx.sale.findMany({
-      where: {
-        arenaId: auth.arenaId,
-        createdAt: {
-          gte: new Date(new Date().setHours(0, 0, 0, 0))
-        }
-      },
-      orderBy: { createdAt: "desc" }
-    })
-  ]));
-  const totalToday = salesToday.reduce((total, sale) => total + sale.totalCents, 0);
-
-  return (
-    <div className="stack-md">
-      <header className="page-header checkout-header">
-        <div className="stack-xs">
-          <p className="eyebrow">PDV</p>
-          <h1>Caixa de venda</h1>
-          <p className="muted">Adicione os produtos comprados, confira o carrinho e finalize em uma única venda.</p>
-        </div>
-        <div className="checkout-header-actions">
-          <div className="checkout-day-total">
-            <span>Hoje</span>
-            <strong>{formatMoney(totalToday)}</strong>
-          </div>
-          <Link href="/pdv" className="button">
-            Voltar ao estoque
-          </Link>
-        </div>
-      </header>
-
-      <CheckoutRegister
-        products={products.map((product) => ({
-          id: product.id,
-          name: product.name,
-          sku: product.sku,
-          priceCents: product.priceCents,
-          stockQuantity: product.stockQuantity
-        }))}
-      />
-    </div>
-  );
+  const register = await withArenaTransaction(auth.arenaId, (tx) => tx.cashRegister.findUnique({ where: { arenaId_referenceDate: { arenaId: auth.arenaId, referenceDate: localToday() } }, include: { movements: { orderBy: { createdAt: "desc" } } } }));
+  if (!register || register.status !== "OPEN") return <div className="stack-md cash-register-page"><header className="page-header"><div><p className="eyebrow">PDV</p><h1>Controle de caixa</h1><p className="muted">Abertura diária, sangrias, suprimentos e conferência do valor físico.</p></div><Link className="button button-small" href="/pdv">Produtos e serviços</Link></header><SectionCard title={register ? "Caixa encerrado" : "Abrir caixa"} description={register ? `Fechado com ${money(register.countedAmountCents ?? 0)}. Abra novamente somente se a operação recomeçar.` : "Informe o fundo inicial para iniciar a operação de hoje."}><SafeActionForm action={openCashRegisterAction} className="grid-form" successMessage="Caixa aberto."><label className="field">Fundo de caixa<input name="openingAmount" inputMode="decimal" defaultValue="0,00" required /></label><label className="field form-full">Observação de abertura<input name="openingNotes" placeholder="Ex.: troco inicial" /></label><div className="field field-submit"><SubmitButton className="button button-primary button-small" label={register ? "Reabrir caixa" : "Abrir caixa"} pendingLabel="Abrindo..." /></div></SafeActionForm></SectionCard></div>;
+  return <div className="stack-md cash-register-page"><header className="page-header"><div><p className="eyebrow">PDV</p><h1>Controle de caixa</h1><p className="muted">Caixa aberto hoje. Registre cada retirada e entrada física.</p></div><Link className="button button-small" href="/pdv">Produtos e serviços</Link></header><section className="cash-summary-grid"><article><span>Fundo inicial</span><strong>{money(register.openingAmountCents)}</strong></article><article><span>Saldo esperado</span><strong>{money(register.expectedAmountCents)}</strong></article><article><span>Movimentos</span><strong>{register.movements.length}</strong></article></section><div className="cash-operation-grid"><SectionCard title="Sangria ou suprimento"><SafeActionForm action={createCashMovementAction} className="grid-form" resetOnSuccess successMessage="Movimentação registrada."><input type="hidden" name="registerId" value={register.id} /><label className="field">Tipo<select name="type"><option value="SUPPLY">Suprimento</option><option value="WITHDRAWAL">Sangria</option></select></label><label className="field">Valor<input name="amount" inputMode="decimal" placeholder="0,00" required /></label><label className="field form-full">Descrição<input name="description" placeholder="Ex.: retirada para depósito" /></label><div className="field field-submit"><SubmitButton className="button button-small button-primary" label="Registrar" pendingLabel="Registrando..." /></div></SafeActionForm></SectionCard><SectionCard title="Fechar caixa"><SafeActionForm action={closeCashRegisterAction} className="grid-form" successMessage="Caixa encerrado."><input type="hidden" name="registerId" value={register.id} /><label className="field">Valor contado<input name="countedAmount" inputMode="decimal" placeholder="0,00" required /></label><label className="field form-full">Observação de fechamento<input name="closingNotes" placeholder="Ex.: diferença justificada" /></label><div className="field field-submit"><SubmitButton className="button button-danger button-small" label="Fechar caixa" pendingLabel="Fechando..." /></div></SafeActionForm></SectionCard></div><SectionCard title="Movimentações de hoje"><div className="cash-movement-list">{register.movements.map((item) => <article key={item.id}><span><strong>{item.type === "SUPPLY" ? "Suprimento" : "Sangria"}</strong>{item.description || "Sem observação"}</span><b className={item.amountCents < 0 ? "cash-negative" : "cash-positive"}>{item.amountCents < 0 ? "−" : "+"}{money(Math.abs(item.amountCents))}</b></article>)}{!register.movements.length ? <p className="muted">Nenhuma movimentação manual registrada.</p> : null}</div></SectionCard></div>;
 }

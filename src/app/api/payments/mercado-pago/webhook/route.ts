@@ -6,6 +6,7 @@ import { withArenaTransaction } from "@/lib/rls";
 import { ensureTournamentPairFromRegistration } from "@/lib/services/registration-pair";
 import { env } from "@/lib/env";
 import { verifyMercadoPagoWebhookSignature } from "@/lib/payments/mercado-pago-webhook-signature";
+import { sendEvolutionTextMessage } from "@/lib/integrations/evolution/client";
 
 export async function POST(request: Request) {
   try {
@@ -98,10 +99,10 @@ export async function POST(request: Request) {
         const occurrenceId = reference.startsWith("online_booking:") ? reference.slice("online_booking:".length) : "";
         if (!occurrenceId || payment.status !== "approved") return NextResponse.json({ ok: true, ignored: occurrenceId ? "booking_not_approved" : "unknown_payment" });
 
-        await withArenaTransaction(arenaId, async (tx) => {
+        const bookingMessage = await withArenaTransaction(arenaId, async (tx) => {
           const occurrence = await tx.scheduleOccurrence.findFirst({
             where: { id: occurrenceId, arenaId, sourceType: "ONLINE_BOOKING", status: "PENDING_PAYMENT" },
-            include: { occurrenceCourts: { include: { court: { select: { name: true } } } }, participants: { include: { player: { select: { id: true, name: true } } } } }
+            include: { occurrenceCourts: { include: { court: { select: { name: true } } } }, participants: { include: { player: { select: { id: true, name: true, phone: true } } } } }
           });
           const participant = occurrence?.participants[0];
           if (!occurrence || !participant || participant.financialEntryId) return;
@@ -130,7 +131,9 @@ export async function POST(request: Request) {
           await tx.financialSettlement.create({ data: { arenaId, financialEntryId: financialEntry.id, amountCents: participant.amountCents, paymentMethod: "Mercado Pago online", paidAt, notes: `Pagamento online Mercado Pago confirmado (${String(payment.id ?? paymentId)}).` } });
           await tx.scheduleParticipant.update({ where: { id: participant.id }, data: { financialEntryId: financialEntry.id, paymentMethod: "Mercado Pago online" } });
           await tx.scheduleOccurrence.update({ where: { id: occurrence.id }, data: { status: "SCHEDULED" } });
+          return participant.player.phone ? { phone: participant.player.phone, text: `✅ Pagamento confirmado. Sua reserva em ${courtName} foi confirmada pela arena.` } : null;
         });
+        if (bookingMessage) await sendEvolutionTextMessage(bookingMessage.phone, bookingMessage.text, arenaId).catch(() => undefined);
         return NextResponse.json({ ok: true });
         }
       }
