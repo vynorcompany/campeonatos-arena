@@ -12,6 +12,7 @@ export type AthletePortalNotification = {
   href: string;
   createdAt: string;
   isRead: boolean;
+  persistent?: boolean;
 };
 
 export async function getAthletePortalNotifications(arenaSlug: string, playerId: string) {
@@ -21,11 +22,15 @@ export async function getAthletePortalNotifications(arenaSlug: string, playerId:
   const [playerNotifications, announcements, entries, reads] = await withArenaTransaction(arena.id, (tx) => Promise.all([
     tx.playerNotification.findMany({ where: { playerId }, orderBy: { createdAt: "desc" }, take: 24, select: { id: true, title: true, message: true, href: true, readAt: true, createdAt: true } }),
     tx.portalAnnouncement.findMany({ where: { arenaId: arena.id, active: true, AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }] }, orderBy: [{ pinned: "desc" }, { createdAt: "desc" }], take: 6, select: { id: true, title: true, message: true, createdAt: true } }),
-    tx.financialEntry.findMany({ where: { arenaId: arena.id, playerId, type: "REVENUE", status: { in: ["PENDING", "OVERDUE"] }, onlinePaymentUrl: { not: "" } }, orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }], take: 12, select: { id: true, description: true, amountCents: true, dueDate: true, createdAt: true, onlinePaymentUrl: true, settlements: { select: { amountCents: true, interestCents: true } } } }),
+    tx.financialEntry.findMany({ where: { arenaId: arena.id, playerId, type: "REVENUE", status: { in: ["PENDING", "OVERDUE"] } }, orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }], take: 12, select: { id: true, description: true, amountCents: true, dueDate: true, createdAt: true, onlinePaymentUrl: true, status: true, settlements: { select: { amountCents: true, interestCents: true } } } }),
     tx.playerPortalNotificationRead.findMany({ where: { playerId }, select: { notificationKey: true } }),
   ]));
   const readKeys = new Set(reads.map((item) => item.notificationKey));
-  const financial = entries.map((entry) => ({ entry, outstandingCents: getOutstandingCents(entry.amountCents, entry.settlements) })).filter(({ outstandingCents }) => outstandingCents > 0).map(({ entry, outstandingCents }) => ({ id: `finance-${entry.id}`, source: "FINANCE" as const, title: "Boleto disponível", message: `${entry.description || "Lançamento financeiro"} · ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(outstandingCents / 100)}`, href: entry.onlinePaymentUrl, createdAt: entry.createdAt.toISOString(), isRead: readKeys.has(`finance-${entry.id}`) }));
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const financial = entries.map((entry) => ({ entry, outstandingCents: getOutstandingCents(entry.amountCents, entry.settlements) })).filter(({ outstandingCents }) => outstandingCents > 0).map(({ entry, outstandingCents }) => {
+    const overdue = entry.status === "OVERDUE" || Boolean(entry.dueDate && entry.dueDate < today);
+    return { id: `finance-${entry.id}`, source: "FINANCE" as const, title: overdue ? "Pagamento em atraso" : "Pagamento pendente", message: `${entry.description || "Lançamento financeiro"} · ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(outstandingCents / 100)}`, href: entry.onlinePaymentUrl || `/home?arena=${encodeURIComponent(arenaSlug)}&section=finance`, createdAt: entry.createdAt.toISOString(), isRead: overdue ? false : readKeys.has(`finance-${entry.id}`), persistent: overdue };
+  });
   return [
     ...playerNotifications.map((notification) => ({ id: notification.id, source: "PLAYER" as const, title: notification.title, message: notification.message, href: notification.href || `/classificacao/${arenaSlug}`, createdAt: notification.createdAt.toISOString(), isRead: Boolean(notification.readAt) })),
     ...announcements.map((announcement) => ({ id: `arena-${announcement.id}`, source: "ARENA" as const, title: announcement.title, message: announcement.message, href: `/classificacao/${arenaSlug}?section=home`, createdAt: announcement.createdAt.toISOString(), isRead: readKeys.has(`arena-${announcement.id}`) })),

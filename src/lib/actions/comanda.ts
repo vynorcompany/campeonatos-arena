@@ -7,6 +7,7 @@ import { requirePublicPlayerAuth } from "@/lib/auth/player-session";
 import { allocatePaymentsToDebts, getOutstandingCents } from "@/lib/finance/settlements";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
+import { issueManualFiscalDocument, type FiscalDocumentType } from "@/lib/fiscal/manual-issuance";
 
 const comandaSchema = z.object({
   type: z.enum(["CLIENT", "AVULSA"]),
@@ -35,7 +36,8 @@ const finishComandaSchema = z.object({
   payments: paymentsSchema,
   debtIds: z.array(z.string().min(1)).max(30),
   creditCents: z.coerce.number().int().nonnegative(),
-  allowEmpty: z.coerce.boolean().default(false)
+  allowEmpty: z.coerce.boolean().default(false),
+  fiscalDocumentType: z.enum(["", "NFS_E", "NFC_E"]).default("")
 });
 
 function formatComandaCode() {
@@ -208,7 +210,7 @@ export async function finishComandaAction(formData: FormData) {
   if (typeof rawDebtIds === "string" && rawDebtIds.trim()) {
     try { debtIds = JSON.parse(rawDebtIds); } catch { throw new Error("Débitos inválidos."); }
   }
-  const parsed = finishComandaSchema.safeParse({ comandaId: formData.get("comandaId"), payments, debtIds, creditCents: formData.get("creditCents") ?? 0, allowEmpty: formData.get("allowEmpty") ?? false });
+  const parsed = finishComandaSchema.safeParse({ comandaId: formData.get("comandaId"), payments, debtIds, creditCents: formData.get("creditCents") ?? 0, allowEmpty: formData.get("allowEmpty") ?? false, fiscalDocumentType: formData.get("fiscalDocumentType") ?? "" });
   if (!parsed.success) throw new Error("Comanda inválida.");
 
   await withArenaTransaction(auth.arenaId, async (tx) => {
@@ -304,6 +306,16 @@ export async function finishComandaAction(formData: FormData) {
     }
     if (remainingCents) {
       await tx.financialEntry.create({ data: { arenaId: auth.arenaId, saleId: sale.id, type: "INCOME", category: "COMANDAS", description: `Conta a receber da comanda ${comanda.code}`, amountCents: remainingCents, status: "PENDING", dueDate: now } });
+    }
+    if (parsed.data.fiscalDocumentType) {
+      if (!parsed.data.payments.length && !creditAppliedCents) throw new Error("Informe um recebimento para emitir o documento fiscal da comanda.");
+      await issueManualFiscalDocument(tx, {
+        arenaId: auth.arenaId,
+        documentType: parsed.data.fiscalDocumentType as FiscalDocumentType,
+        totalCents,
+        customerName: comanda.label,
+        saleId: sale.id,
+      });
     }
     await tx.comanda.update({ where: { id: comanda.id }, data: { status: "CLOSED", closedAt: now } });
   });

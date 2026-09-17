@@ -151,7 +151,7 @@ export async function saveOptimizedPortalEventImageUpload(file: File | null, are
 
   const optimizedImage = await sharp(Buffer.from(await file.arrayBuffer()))
     .rotate()
-    .resize({ width: 1080, height: 1920, fit: "cover" })
+    .resize({ width: 1920, height: 1080, fit: "cover" })
     .webp({ quality: 82, effort: 4 })
     .toBuffer();
 

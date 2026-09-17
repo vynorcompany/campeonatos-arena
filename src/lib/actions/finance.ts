@@ -16,6 +16,7 @@ import { withArenaTransaction } from "@/lib/rls";
 import { encryptConnectionSecrets } from "@/lib/payments/connection-secrets";
 import { createBoletoPayment, createPixPayment, getMissingBoletoPayerFields } from "@/lib/payments/mercado-pago";
 import { issueRecurringOnlineChargeForEntry } from "@/lib/payments/recurring-online-charges";
+import { issueManualFiscalDocument, type FiscalDocumentType } from "@/lib/fiscal/manual-issuance";
 
 const optionalText = z.preprocess((value) => value ?? "", z.string().trim().default(""));
 
@@ -39,7 +40,8 @@ const paymentSchema = z.object({
   referenceMonth: z.string().trim().min(7, "Informe o mês de referência."),
   paidAt: z.string().optional().default(""),
   paymentMethod: optionalText,
-  amount: z.string().trim().optional().default("")
+  amount: z.string().trim().optional().default(""),
+  fiscalDocumentType: z.enum(["", "NFS_E", "NFC_E"]).default("")
 });
 
 const entrySchema = z.object({
@@ -321,6 +323,7 @@ export async function recordPlanPaymentAction(formData: FormData) {
     paidAt: formData.get("paidAt"),
     paymentMethod: formData.get("paymentMethod"),
     amount: formData.get("amount")
+    , fiscalDocumentType: formData.get("fiscalDocumentType")
   });
 
   if (!parsed.success) {
@@ -345,8 +348,8 @@ export async function recordPlanPaymentAction(formData: FormData) {
   const amountCents = parsed.data.amount ? parseMoneyToCents(parsed.data.amount) : subscription.monthlyPriceCents;
   const paidAt = parseDate(parsed.data.paidAt) ?? new Date();
 
-  await withArenaTransaction(auth.arenaId, (tx) => tx.financialEntry.create({
-    data: {
+  await withArenaTransaction(auth.arenaId, async (tx) => {
+    const entry = await tx.financialEntry.create({ data: {
       arenaId: auth.arenaId,
       type: "REVENUE",
       category: "Planos",
@@ -360,8 +363,15 @@ export async function recordPlanPaymentAction(formData: FormData) {
       dueDate: paidAt,
       paidAt,
       notes: "Pagamento mensal de aluno."
-    }
-  }));
+    } });
+    if (parsed.data.fiscalDocumentType) await issueManualFiscalDocument(tx, {
+      arenaId: auth.arenaId,
+      documentType: parsed.data.fiscalDocumentType as FiscalDocumentType,
+      totalCents: amountCents,
+      customerName: subscription.student.name,
+      financialEntryId: entry.id,
+    });
+  });
 
   refreshFinanceRoutes();
 }

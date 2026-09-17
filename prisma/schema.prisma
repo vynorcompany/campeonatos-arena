@@ -1657,7 +1657,11 @@ model FiscalDocument {
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
   arenaId          String
+  financialEntryId String?              @unique
+  saleId           String?              @unique
   arena            Arena                @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  financialEntry   FinancialEntry?      @relation(fields: [financialEntryId], references: [id], onDelete: SetNull)
+  sale             Sale?                @relation(fields: [saleId], references: [id], onDelete: SetNull)
   items            FiscalDocumentItem[]
 
   @@unique([arenaId, accessKey])
@@ -1820,6 +1824,7 @@ model Sale {
   payments         SalePayment[]
   financialEntries FinancialEntry[]
   debtSettlements  FinancialSettlement[]
+  fiscalDocument   FiscalDocument?
 
   @@index([arenaId, createdAt])
   @@index([arenaId, status, createdAt])
@@ -2009,6 +2014,7 @@ model FinancialEntry {
   scheduleParticipant      ScheduleParticipant?
   settlements              FinancialSettlement[]
   onlinePaymentItems       OnlinePaymentCheckoutItem[]
+  fiscalDocument           FiscalDocument?
 
   @@index([arenaId, type, status])
   @@index([arenaId, dueDate])
