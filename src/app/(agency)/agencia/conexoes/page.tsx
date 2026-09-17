@@ -1,5 +1,6 @@
 import { requireAgencyAccess } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
+import styles from "./page.module.css";
 
 export default async function AgencyConnectionsPage() {
   await requireAgencyAccess();
@@ -9,7 +10,7 @@ export default async function AgencyConnectionsPage() {
   });
 
   return (
-    <div className="stack-md agency-connections-page">
+    <div className={`stack-md ${styles.page}`}>
       <header className="page-header">
         <div>
           <p className="eyebrow">INTEGRAÇÕES</p>
@@ -17,12 +18,12 @@ export default async function AgencyConnectionsPage() {
           <p className="muted">Acompanhe as conexões isoladas. O QR Code e a conexão são configurados no painel de cada arena.</p>
         </div>
       </header>
-      <section className="agency-connection-list">
+      <section className={styles.list}>
         {arenas.map((arena) => {
           const connection = arena.whatsappConnection;
           const connected = connection?.status === "CONNECTED";
           return (
-            <article key={arena.id} className="agency-connection-card">
+            <article key={arena.id} className={styles.card}>
               <header>
                 <div>
                   <span className={`agency-connection-status ${connected ? "is-connected" : ""}`}><i />{connected ? "Conectado" : connection ? "Aguardando conexão" : "Não configurado"}</span>
