@@ -1,6 +1,3 @@
-import { SafeActionForm } from "@/components/forms/safe-action-form";
-import { SubmitButton } from "@/components/forms/submit-button";
-import { connectAgencyArenaWhatsAppAction, refreshAgencyArenaWhatsAppQrAction } from "@/lib/actions/agency";
 import { requireAgencyAccess } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
@@ -17,7 +14,7 @@ export default async function AgencyConnectionsPage() {
         <div>
           <p className="eyebrow">INTEGRAÇÕES</p>
           <h1>Conexões das arenas</h1>
-          <p className="muted">Cada arena conecta seu próprio WhatsApp Business em uma instância Evolution isolada.</p>
+          <p className="muted">Acompanhe as conexões isoladas. O QR Code e a conexão são configurados no painel de cada arena.</p>
         </div>
       </header>
       <section className="agency-connection-list">
@@ -34,27 +31,10 @@ export default async function AgencyConnectionsPage() {
                 </div>
                 {connection ? <code>{connection.instanceName}</code> : null}
               </header>
-              {connection?.qrCodeDataUrl && !connected ? (
-                <div className="agency-whatsapp-qr">
-                  <img src={connection.qrCodeDataUrl} alt={`QR Code para conectar o WhatsApp da ${arena.name}`} />
-                  <div>
-                    <strong>Escaneie o QR Code</strong>
-                    <p>No WhatsApp Business, abra Dispositivos conectados e toque em Conectar dispositivo.</p>
-                    <SafeActionForm action={refreshAgencyArenaWhatsAppQrAction} successMessage="QR Code atualizado.">
-                      <input type="hidden" name="arenaId" value={arena.id} />
-                      <SubmitButton label="Gerar novo QR Code" pendingLabel="Gerando..." className="button button-small" />
-                    </SafeActionForm>
-                  </div>
-                </div>
-              ) : (
-                <div className="agency-connection-actions">
-                  <SafeActionForm action={connectAgencyArenaWhatsAppAction} successMessage="Instância criada. Escaneie o QR Code para concluir.">
-                    <input type="hidden" name="arenaId" value={arena.id} />
-                    <SubmitButton label={connected ? "Reconectar WhatsApp" : "Conectar WhatsApp"} pendingLabel="Preparando conexão..." className="button button-primary button-small" />
-                  </SafeActionForm>
-                  {connection?.lastError ? <p className="form-error">{connection.lastError}</p> : null}
-                </div>
-              )}
+              <footer>
+                <span>{connection?.lastConnectedAt ? `Conectado em ${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(connection.lastConnectedAt)}` : "Configure pelo painel da arena"}</span>
+                {connection?.lastError ? <span className="form-error">{connection.lastError}</span> : null}
+              </footer>
             </article>
           );
         })}

@@ -7,18 +7,21 @@ import { PortalEditorPanels } from "@/components/portal-editor-panels";
 import { SectionCard } from "@/components/section-card";
 import { ArenaUsersManagement } from "@/components/users/arena-users-management";
 import { PermissionProfilesManagement } from "@/components/users/permission-profiles-management";
+import { SafeActionForm } from "@/components/forms/safe-action-form";
+import { SubmitButton } from "@/components/forms/submit-button";
+import { connectArenaWhatsAppAction, refreshArenaWhatsAppQrAction } from "@/lib/actions/agency";
 import { ensureArenaPermissionProfiles } from "@/lib/actions/permission-profile";
 import { requireRole, requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
-type ArenaSection = "data" | "portal" | "courts" | "users" | "profiles";
+type ArenaSection = "data" | "portal" | "courts" | "users" | "profiles" | "integrations";
 
 type ArenaPageProps = {
   searchParams?: { section?: string; court?: string };
 };
 
 function resolveSection(value?: string): ArenaSection {
-  return value === "portal" || value === "courts" || value === "users" || value === "profiles" ? value : "data";
+  return value === "portal" || value === "courts" || value === "users" || value === "profiles" || value === "integrations" ? value : "data";
 }
 
 function canManageUsers(auth: { arenaRole: string | null; systemRole: string }) {
@@ -34,7 +37,7 @@ export default async function ArenaPage({ searchParams }: ArenaPageProps) {
     await requireRole("ADMIN");
   }
 
-  const arena = await prisma.arena.findUniqueOrThrow({ where: { id: auth.arenaId } });
+  const arena = await prisma.arena.findUniqueOrThrow({ where: { id: auth.arenaId }, include: { whatsappConnection: true } });
   const [announcements, posts] = await Promise.all([
     prisma.portalAnnouncement.findMany({ where: { arenaId: auth.arenaId }, orderBy: [{ pinned: "desc" }, { createdAt: "desc" }] }),
     prisma.portalEventPost.findMany({ where: { arenaId: auth.arenaId }, orderBy: [{ pinned: "desc" }, { createdAt: "desc" }] })
@@ -53,6 +56,7 @@ export default async function ArenaPage({ searchParams }: ArenaPageProps) {
           <Link href="/arena?section=courts" className={activeSection === "courts" ? "arena-settings-nav-link is-active" : "arena-settings-nav-link"}>
             Quadras
           </Link>
+          {userManagementAllowed ? <Link href="/arena?section=integrations" className={activeSection === "integrations" ? "arena-settings-nav-link is-active" : "arena-settings-nav-link"}>Integrações</Link> : null}
           {userManagementAllowed ? (
             <>
               <Link href="/arena?section=users" className={activeSection === "users" ? "arena-settings-nav-link is-active" : "arena-settings-nav-link"}>Usuários</Link>
@@ -107,6 +111,8 @@ export default async function ArenaPage({ searchParams }: ArenaPageProps) {
 
           {activeSection === "courts" ? <CourtConfigurationWorkspace courtId={searchParams?.court} /> : null}
 
+          {activeSection === "integrations" && userManagementAllowed ? <WhatsAppConnectionSection arena={{ id: arena.id, name: arena.name, connection: arena.whatsappConnection }} /> : null}
+
           {activeSection === "users" && userManagementAllowed ? (
             <ArenaUsersManagement arenaId={auth.arenaId} currentUserId={auth.userId} />
           ) : null}
@@ -118,6 +124,11 @@ export default async function ArenaPage({ searchParams }: ArenaPageProps) {
       </div>
     </div>
   );
+}
+
+function WhatsAppConnectionSection({ arena }: { arena: { id: string; name: string; connection: { instanceName: string; status: string; qrCodeDataUrl: string; connectedPhone: string; lastError: string; lastConnectedAt: Date | null } | null } }) {
+  const connected = arena.connection?.status === "CONNECTED";
+  return <SectionCard title="WhatsApp Business" description="Conecte o WhatsApp desta arena. A instância é exclusiva e não compartilha mensagens, QR Code ou credenciais com outras arenas."><div className="arena-whatsapp-panel"><div className="arena-whatsapp-panel-header"><div><span className={`agency-connection-status ${connected ? "is-connected" : ""}`}><i />{connected ? "Conectado" : arena.connection ? "Aguardando conexão" : "Não configurado"}</span><strong>{connected ? arena.connection?.connectedPhone || "WhatsApp conectado" : "Conecte o número da arena"}</strong><p className="muted">{arena.connection ? `Instância ${arena.connection.instanceName}` : "Gere um QR Code para vincular o WhatsApp Business."}</p></div></div>{arena.connection?.qrCodeDataUrl && !connected ? <div className="agency-whatsapp-qr"><img src={arena.connection.qrCodeDataUrl} alt={`QR Code para conectar o WhatsApp da ${arena.name}`} /><div><strong>Escaneie o QR Code no WhatsApp Business</strong><p>Abra Dispositivos conectados e escolha Conectar dispositivo.</p><SafeActionForm action={refreshArenaWhatsAppQrAction} successMessage="QR Code atualizado."><input type="hidden" name="arenaId" value={arena.id} /><SubmitButton label="Gerar novo QR Code" pendingLabel="Gerando..." className="button button-small" /></SafeActionForm></div></div> : <SafeActionForm action={connectArenaWhatsAppAction} successMessage="Instância criada. Escaneie o QR Code para concluir."><input type="hidden" name="arenaId" value={arena.id} /><SubmitButton label={connected ? "Reconectar WhatsApp" : "Conectar WhatsApp"} pendingLabel="Preparando conexão..." className="button button-primary button-small" /></SafeActionForm>}{arena.connection?.lastError ? <p className="form-error">{arena.connection.lastError}</p> : null}</div></SectionCard>;
 }
 
 async function PermissionProfilesSection({ arenaId }: { arenaId: string }) {
