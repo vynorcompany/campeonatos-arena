@@ -2,7 +2,8 @@ import { notFound, redirect } from "next/navigation";
 import { getPublicPlayerAuth } from "@/lib/auth/player-session";
 import { withArenaTransaction } from "@/lib/rls";
 
-export default async function OpenPublicChargePage({ params }: { params: { arenaSlug: string; entryId: string } }) {
+export default async function OpenPublicChargePage(props: { params: Promise<{ arenaSlug: string; entryId: string }> }) {
+  const params = await props.params;
   const auth = await getPublicPlayerAuth(params.arenaSlug);
   if (!auth) redirect(`/classificacao/${encodeURIComponent(params.arenaSlug)}?section=finance`);
   const entry = await withArenaTransaction(auth.arenaId, async (tx) => {

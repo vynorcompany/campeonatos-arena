@@ -4,10 +4,11 @@ import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { normalizeBrazilianPhone } from "@/lib/phone";
 
-type PlayersPageProps = { searchParams?: { q?: string; phone?: string; financial?: string; planId?: string; active?: string; teacherId?: string } };
+type PlayersPageProps = { searchParams?: Promise<{ q?: string; phone?: string; financial?: string; planId?: string; active?: string; teacherId?: string }> };
 type Entry = { status: string; amountCents: number };
 
-export default async function PlayersPage({ searchParams }: PlayersPageProps) {
+export default async function PlayersPage(props: PlayersPageProps) {
+  const searchParams = await props.searchParams;
   const auth = await requireModuleView("players");
   const [players, plans, teachers] = await Promise.all([
     prisma.player.findMany({ where: { arenaId: auth.arenaId, mergedIntoPlayerId: null }, orderBy: { name: "asc" }, include: { teacher: { select: { id: true, active: true } }, leagueAthleteTiers: { where: { active: true, modality: "PADEL" }, orderBy: { changedAt: "desc" }, take: 1, select: { tier: true } }, student: { include: { subscriptions: { include: { plan: true }, orderBy: { startedAt: "desc" } } } }, scheduleParticipants: { include: { financialEntry: { select: { status: true, amountCents: true } }, occurrence: { select: { teacherId: true } } } }, comandas: { include: { sale: { include: { financialEntries: { select: { status: true, amountCents: true } } } } }, orderBy: { openedAt: "desc" }, take: 5 }, balanceMovements: { orderBy: { createdAt: "desc" }, take: 8 } } }),

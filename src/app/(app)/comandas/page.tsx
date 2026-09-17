@@ -10,7 +10,7 @@ import { getOutstandingCents } from "@/lib/finance/settlements";
 import { withArenaTransaction } from "@/lib/rls";
 
 type ComandasPageProps = {
-  searchParams?: { date?: string; search?: string; new?: "client" | "avulsa" };
+  searchParams?: Promise<{ date?: string; search?: string; new?: "client" | "avulsa" }>;
 };
 
 function CommandIcon({ name }: { name: "search" | "receipt" | "calendar" | "list" | "plus" }) {
@@ -45,7 +45,8 @@ function formatDate(value: Date) {
   return new Intl.DateTimeFormat("pt-BR", { weekday: "long", day: "2-digit", month: "long" }).format(value);
 }
 
-export default async function ComandasPage({ searchParams }: ComandasPageProps) {
+export default async function ComandasPage(props: ComandasPageProps) {
+  const searchParams = await props.searchParams;
   const auth = await requireModuleView("pos");
   const canDeleteComandas = auth.systemRole === "SUPER_ADMIN" || auth.systemRole === "ADMIN" || auth.arenaRole === "OWNER" || auth.arenaRole === "ADMIN";
   const selectedDate = startOfDay(parseDate(searchParams?.date));

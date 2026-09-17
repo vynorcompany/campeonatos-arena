@@ -76,12 +76,13 @@ function getOverallStandings(groups: Array<{ name: string; pairs: GroupPair[] }>
 }
 
 type GroupsPageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     tournamentId?: string;
-  };
+  }>;
 };
 
-export default async function GroupsPage({ searchParams }: GroupsPageProps) {
+export default async function GroupsPage(props: GroupsPageProps) {
+  const searchParams = await props.searchParams;
   const auth = await requireModuleView("groups");
   const { activeTournament, activeTournaments } = await getArenaDashboard(auth.arenaId, searchParams?.tournamentId);
   const isRoundRobinOnly = activeTournament?.groupCount === 1;

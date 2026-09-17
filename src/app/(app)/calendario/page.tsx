@@ -6,13 +6,13 @@ import { requireArenaAccess } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 
 type CalendarPageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     periodo?: string;
     tipo?: string;
     data?: string;
     inicio?: string;
     fim?: string;
-  };
+  }>;
 };
 
 type CalendarEvent = {
@@ -163,7 +163,8 @@ function getEventLayout(dayEvents: CalendarEvent[]) {
   return layout;
 }
 
-export default async function CalendarPage({ searchParams }: CalendarPageProps) {
+export default async function CalendarPage(props: CalendarPageProps) {
+  const searchParams = await props.searchParams;
   const auth = await requireArenaAccess();
   const allowedPeriods = new Set(Object.keys(periodLabels));
   const period = allowedPeriods.has(searchParams?.periodo ?? "") ? searchParams?.periodo ?? "week" : "week";

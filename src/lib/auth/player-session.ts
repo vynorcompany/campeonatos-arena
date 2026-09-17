@@ -20,13 +20,14 @@ export async function createPublicPlayerSession(playerAccountId: string, athlete
   const token = crypto.randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + PLAYER_SESSION_DAYS * 24 * 60 * 60 * 1000);
   await prisma.playerSession.create({ data: { token: hashToken(token), expiresAt, playerAccountId, athleteIdentityId: athleteIdentityId ?? undefined } });
-  cookies().set(PLAYER_SESSION_COOKIE, token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", expires: expiresAt, path: "/" });
+  (await cookies()).set(PLAYER_SESSION_COOKIE, token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", expires: expiresAt, path: "/" });
 }
 
 export async function destroyPublicPlayerSession() {
-  const token = cookies().get(PLAYER_SESSION_COOKIE)?.value;
+  const cookieStore = await cookies();
+  const token = cookieStore.get(PLAYER_SESSION_COOKIE)?.value;
   if (token) await prisma.playerSession.deleteMany({ where: { token: { in: [token, hashToken(token)] } } });
-  cookies().delete(PLAYER_SESSION_COOKIE);
+  cookieStore.delete(PLAYER_SESSION_COOKIE);
 }
 
 const membershipInclude = {
@@ -34,7 +35,7 @@ const membershipInclude = {
 } as const;
 
 async function getSession() {
-  const token = cookies().get(PLAYER_SESSION_COOKIE)?.value;
+  const token = (await cookies()).get(PLAYER_SESSION_COOKIE)?.value;
   if (!token) return null;
   const session = await prisma.playerSession.findFirst({
     where: { token: { in: [token, hashToken(token)] } },

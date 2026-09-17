@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
-export default async function RegistrationSuccessPage({ params }: { params: { slug: string; registrationId: string } }) {
+export default async function RegistrationSuccessPage(props: { params: Promise<{ slug: string; registrationId: string }> }) {
+  const params = await props.params;
   const registration = await prisma.publicTournamentRegistration.findFirst({
     where: { id: params.registrationId, tournament: { publicSlug: params.slug } },
     include: { tournament: { include: { arena: { select: { name: true, logoUrl: true } } } }, category: { select: { name: true } } },

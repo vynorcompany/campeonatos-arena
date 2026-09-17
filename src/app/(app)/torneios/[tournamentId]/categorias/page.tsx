@@ -4,7 +4,8 @@ import { CategoryList } from "@/components/tournaments/category-list";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
-export default async function TournamentCategoriesPage({ params }: { params: { tournamentId: string } }) {
+export default async function TournamentCategoriesPage(props: { params: Promise<{ tournamentId: string }> }) {
+  const params = await props.params;
   const auth = await requireModuleView("tournaments");
   const tournament = await prisma.tournament.findFirst({
     where: { id: params.tournamentId, arenaId: auth.arenaId },

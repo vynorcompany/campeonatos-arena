@@ -3,9 +3,10 @@ import { SectionCard } from "@/components/section-card";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
-type GamesPageProps = { searchParams?: { tournamentId?: string } };
+type GamesPageProps = { searchParams?: Promise<{ tournamentId?: string }> };
 
-export default async function GamesPage({ searchParams }: GamesPageProps) {
+export default async function GamesPage(props: GamesPageProps) {
+  const searchParams = await props.searchParams;
   const auth = await requireModuleView("tournaments");
   const activeTournaments = await prisma.tournament.findMany({
     where: { arenaId: auth.arenaId, registrationPhase: { not: "FINISHED" } },

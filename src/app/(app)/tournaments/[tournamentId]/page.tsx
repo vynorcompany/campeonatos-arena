@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation";
 
 type LegacyTournamentDetailsPageProps = {
-  params: {
+  params: Promise<{
     tournamentId: string;
-  };
+  }>;
 };
 
-export default function LegacyTournamentDetailsPage({ params }: LegacyTournamentDetailsPageProps) {
+export default async function LegacyTournamentDetailsPage(props: LegacyTournamentDetailsPageProps) {
+  const params = await props.params;
   redirect(`/torneios/${params.tournamentId}`);
 }

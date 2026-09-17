@@ -8,7 +8,7 @@ import { withArenaTransaction } from "@/lib/rls";
 
 export const dynamic = "force-dynamic";
 
-type AgendaPageProps = { searchParams?: { data?: string } };
+type AgendaPageProps = { searchParams?: Promise<{ data?: string }> };
 
 function parseDate(value?: string) { if (!value) return new Date(); const [year, month, day] = value.split("-").map(Number); const parsed = new Date(year, (month ?? 1) - 1, day ?? 1); return Number.isNaN(parsed.getTime()) ? new Date() : parsed; }
 function startOfDay(value: Date) { return new Date(value.getFullYear(), value.getMonth(), value.getDate()); }
@@ -41,7 +41,8 @@ function bookingTypeClass(bookingTypeName: string) {
   return "agenda-event-type-booking";
 }
 
-export default async function AgendaPage({ searchParams }: AgendaPageProps) {
+export default async function AgendaPage(props: AgendaPageProps) {
+  const searchParams = await props.searchParams;
   const auth = await requireModuleView("calendar");
   const selectedDate = startOfDay(parseDate(searchParams?.data));
   const nextDay = addDays(selectedDate, 1);

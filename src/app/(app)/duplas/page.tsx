@@ -8,12 +8,13 @@ import { requireModuleView } from "@/lib/auth/guards";
 import { getArenaDashboard } from "@/lib/services/tournament";
 
 type PairsPageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     tournamentId?: string;
-  };
+  }>;
 };
 
-export default async function PairsPage({ searchParams }: PairsPageProps) {
+export default async function PairsPage(props: PairsPageProps) {
+  const searchParams = await props.searchParams;
   const auth = await requireModuleView("pairs");
   const { activeTournament, activeTournaments } = await getArenaDashboard(auth.arenaId, searchParams?.tournamentId);
   const pairedPlayerIds = new Set(

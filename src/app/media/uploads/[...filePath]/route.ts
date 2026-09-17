@@ -12,7 +12,8 @@ const contentTypes: Record<string, string> = {
   ".svg": "image/svg+xml"
 };
 
-export async function GET(_: Request, { params }: { params: { filePath: string[] } }) {
+export async function GET(_: Request, props: { params: Promise<{ filePath: string[] }> }) {
+  const params = await props.params;
   const uploadDirectory = path.resolve(getPersistentUploadDirectory());
   const filePath = path.resolve(uploadDirectory, ...params.filePath);
   const relativePath = path.relative(uploadDirectory, filePath);

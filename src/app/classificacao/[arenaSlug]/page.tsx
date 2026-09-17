@@ -12,30 +12,31 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-export default async function PublicStandingsPage({
-  params,
-  searchParams,
-}: {
-  params: { arenaSlug: string };
-  searchParams?: {
-    view?: string;
-    tab?: string;
-    league?: string;
-    status?: string;
-    data?: string;
-    section?: string;
-    leagueTab?: string;
-    leagueCategory?: string;
-    teacher?: string;
-    financeTab?: string;
-    radarGender?: string;
-    radarCategory?: string;
-    athlete?: string;
-    eventTab?: string;
-    eventRadarView?: string;
-    super12?: string;
-  };
-}) {
+export default async function PublicStandingsPage(
+  props: {
+    params: Promise<{ arenaSlug: string }>;
+    searchParams?: Promise<{
+      view?: string;
+      tab?: string;
+      league?: string;
+      status?: string;
+      data?: string;
+      section?: string;
+      leagueTab?: string;
+      leagueCategory?: string;
+      teacher?: string;
+      financeTab?: string;
+      radarGender?: string;
+      radarCategory?: string;
+      athlete?: string;
+      eventTab?: string;
+      eventRadarView?: string;
+      super12?: string;
+    }>;
+  }
+) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const alias = await prisma.arenaPublicSlug.findUnique({ where: { slug: params.arenaSlug }, include: { arena: { select: { slug: true } } } });
   if (alias && alias.arena.slug !== params.arenaSlug) redirect(`/classificacao/${alias.arena.slug}`);
   const section = searchParams?.section === "home" || searchParams?.section === "announcements" || searchParams?.section === "finance" || searchParams?.section === "comandas" || searchParams?.section === "leagues" || searchParams?.section === "booking" || searchParams?.section === "reservations" || searchParams?.section === "lessons" || searchParams?.section === "classes" || searchParams?.section === "profile" || searchParams?.section === "teacher" || searchParams?.section === "radar" ? searchParams.section : "home";
@@ -45,7 +46,7 @@ export default async function PublicStandingsPage({
     getPublicPlayerAuth(params.arenaSlug),
     getPublicAthleteIdentity(),
   ]);
-  const arena = data?.arena ?? await getPublicArenaShell(params.arenaSlug);
+  const arena = data?.arena ?? (await getPublicArenaShell(params.arenaSlug));
   if (!arena) {
     notFound();
   }
