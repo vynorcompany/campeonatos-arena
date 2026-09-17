@@ -17,6 +17,7 @@ import { PublicFinanceEntryList } from "@/components/public-finance-entry-list";
 import { RankingCategorySelect } from "@/components/ranking-category-select";
 import { TeacherPortalStudentList } from "@/components/teacher-portal-student-list";
 import { TeacherPortalMakeupPlanner } from "@/components/teacher-portal-makeup-planner";
+import { PortalClientComandas } from "@/components/portal-client-comandas";
 import {
   checkInPortalLessonAction,
   requestPortalLessonMakeupAction,
@@ -36,6 +37,7 @@ type PortalSection =
   | "home"
   | "announcements"
   | "finance"
+  | "comandas"
   | "leagues"
   | "booking"
   | "reservations"
@@ -82,6 +84,7 @@ export function PublicStandings({
   portal,
   home,
   finance,
+  comandas,
   radar,
   radarGender,
   radarCategory,
@@ -116,6 +119,7 @@ export function PublicStandings({
   portal: Portal;
   home: ClientHome;
   finance: ClientFinance;
+  comandas: Awaited<ReturnType<typeof import("@/lib/services/public-client-home").getPublicClientComandas>>;
   radar: Awaited<ReturnType<typeof import("@/lib/services/public-doubles-radar").getPublicDoublesRadar>>;
   radarGender?: string;
   radarCategory?: string;
@@ -235,12 +239,13 @@ export function PublicStandings({
       ? [{ label: "Radar de duplas", href: portalHref("radar"), icon: "players" as const }]
       : []),
     ...(currentClient.isTeacher ? [{ label: "Área do Professor", href: portalHref("teacher"), icon: "graduation" as const }] : []),
+    { label: "Minhas comandas", href: portalHref("comandas"), icon: "players" },
   ];
 
   return (
     <main className="athlete-portal-page">
       {publicHeader}
-      <AthletePortalPrefetch hrefs={[portalHref("home"), portalHref("announcements"), portalHref("leagues", "games"), portalHref("lessons"), portalHref("profile"), portalHref("radar")]} />
+      <AthletePortalPrefetch hrefs={[portalHref("home"), portalHref("announcements"), portalHref("leagues", "games"), portalHref("lessons"), portalHref("profile"), portalHref("radar"), portalHref("comandas")]} />
       {requestedSection !== "home" ? <div className="athlete-portal-back"><Link href={portalHref("home")}>← Voltar ao início</Link></div> : null}
       {requestedSection === "lessons" || requestedSection === "classes" ? (
         <nav
@@ -265,10 +270,11 @@ export function PublicStandings({
           ) : null}
         </nav>
       ) : null}
-      {requestedSection === "profile" || requestedSection === "finance" ? (
+      {requestedSection === "profile" || requestedSection === "finance" || requestedSection === "comandas" ? (
         <nav className="athlete-portal-league-nav" aria-label="Menu do meu perfil">
           <Link className={requestedSection === "profile" ? "active" : ""} href={portalHref("profile")}>Dados pessoais</Link>
           <Link className={requestedSection === "finance" ? "active" : ""} href={portalHref("finance")}>Finanças</Link>
+          <Link className={requestedSection === "comandas" ? "active" : ""} href={portalHref("comandas")}>Minhas comandas</Link>
         </nav>
       ) : null}
       {requestedSection === "home" ? (
@@ -277,6 +283,8 @@ export function PublicStandings({
         <section className="athlete-portal-content-panel portal-announcements-feed"><header><span>AVISOS DA ARENA</span><h2>Feed de avisos</h2></header>{home!.announcements.length ? home!.announcements.map((announcement) => <article key={announcement.id}>{announcement.pinned ? <span className="portal-announcement-pinned">Fixado</span> : null}<strong>{announcement.title}</strong><p><PortalRichText text={announcement.message} /></p>{announcement.linkUrl ? <a className="portal-announcement-link" href={announcement.linkUrl} target="_blank" rel="noreferrer">Abrir link <span aria-hidden="true">↗</span></a> : null}</article>) : <p className="muted">A arena ainda não divulgou avisos.</p>}</section>
       ) : requestedSection === "finance" ? (
         <ClientFinancePanel finance={finance} arenaSlug={arena.slug} tab={financeTab} />
+      ) : requestedSection === "comandas" ? (
+        <PortalClientComandas data={comandas} arenaSlug={arena.slug} />
       ) : requestedSection === "radar" ? (
         <PublicDoublesRadar
           arenaSlug={arena.slug}
