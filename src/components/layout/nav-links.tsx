@@ -239,7 +239,9 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
                 { href: "/financeiro/configuracoes/cupons", label: "Cupons" },
                 { href: "/financeiro/configuracoes/fornecedores", label: "Fornecedores" },
                 { href: "/financeiro/configuracoes/formas-pagamento", label: "Formas de Pagamentos" },
-                { href: "/financeiro/configuracoes/notas-fiscais", label: "Notas Fiscais" }
+                { href: "/financeiro/configuracoes/notas-fiscais", label: "Notas Fiscais", children: [
+                  { href: "/financeiro/configuracoes/notas-fiscais?secao=emissao", label: "Configurações de Emissão" }
+                ] }
               ]
             }
           ]
