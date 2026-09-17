@@ -8988,7 +8988,8 @@ button {
 .dashboard-ranking-chart-financial > div { grid-template-columns: minmax(90px, 1fr) minmax(50px, 1.35fr) auto; }.dashboard-ranking-chart-financial strong { min-width: 64px; color: #216245; font-variant-numeric: tabular-nums; text-align: right; }
 .agency-connections-page { max-width: 1180px; }
 .agency-connection-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 16px; align-items: stretch; }
-.agency-connection-card { display: flex; min-height: 182px; flex-direction: column; gap: 14px; padding: 18px; border: 1px solid #d7e5ef; border-radius: 12px; background: #fff; }
+.agency-connection-card { display: flex; min-height: 182px; flex-direction: column; gap: 14px; padding: 18px; border: 1px solid #d7e5ef; border-radius: 12px; background: #fff; transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease; }
+.agency-connection-card:hover { transform: translateY(-3px); border-color: #93b8d4; box-shadow: 0 12px 24px rgba(22, 63, 96, .12); }
 .agency-connection-card > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
 .agency-connection-card h2, .agency-connection-card p { margin: 0; }
 .agency-connection-card h2 { margin-top: 5px; color: #17385f; font-size: 1rem; }
