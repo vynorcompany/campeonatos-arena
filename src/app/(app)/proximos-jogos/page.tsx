@@ -8,9 +8,9 @@ import {
   updateManualUpcomingMatchAction
 } from "@/lib/actions/upcoming-match";
 import { requireModuleView } from "@/lib/auth/guards";
+import { prisma } from "@/lib/prisma";
 import { getManualUpcomingMatchesPayload } from "@/lib/services/tv-presentation";
 
-const courtOptions = ["Agecon", "Elaine", "Origem"];
 const statusOptions = [
   { value: "SCHEDULED", label: "Agendado" },
   { value: "LIVE", label: "Em andamento" },
@@ -27,10 +27,11 @@ function formatMatchLine(match: { homePairName: string; awayPairName: string; co
   return `${statusLabel} - ${scheduledTime} - ${homePairName} VS ${awayPairName} - ${courtName}`;
 }
 
-function CourtSelect({ id, defaultValue }: { id: string; defaultValue?: string }) {
+function CourtSelect({ id, defaultValue, courts }: { id: string; defaultValue?: string; courts: string[] }) {
   return (
-    <select id={id} name="courtName" defaultValue={defaultValue && courtOptions.includes(defaultValue) ? defaultValue : "Agecon"}>
-      {courtOptions.map((courtName) => (
+    <select id={id} name="courtName" defaultValue={defaultValue && courts.includes(defaultValue) ? defaultValue : courts[0] ?? ""} required>
+      <option value="" disabled>Selecione a quadra</option>
+      {courts.map((courtName) => (
         <option key={courtName} value={courtName}>
           {courtName}
         </option>
@@ -53,7 +54,11 @@ function StatusSelect({ id, defaultValue }: { id: string; defaultValue?: string 
 
 export default async function UpcomingMatchesPage() {
   const auth = await requireModuleView("tv");
-  const manualMatches = await getManualUpcomingMatchesPayload(auth.arenaId);
+  const [manualMatches, courts] = await Promise.all([
+    getManualUpcomingMatchesPayload(auth.arenaId),
+    prisma.court.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { name: true }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }] })
+  ]);
+  const courtOptions = courts.map((court) => court.name);
 
   return (
     <div className="stack-md">
@@ -110,7 +115,7 @@ export default async function UpcomingMatchesPage() {
             </div>
             <div className="field">
               <label htmlFor="new-court">Quadra</label>
-              <CourtSelect id="new-court" />
+              <CourtSelect id="new-court" courts={courtOptions} />
             </div>
             <div className="field">
               <label htmlFor="new-status">Status</label>
@@ -144,7 +149,7 @@ export default async function UpcomingMatchesPage() {
                   </div>
                   <div className="field">
                     <label htmlFor={`${match.id}-court`}>Quadra</label>
-                    <CourtSelect id={`${match.id}-court`} defaultValue={match.courtName} />
+                    <CourtSelect id={`${match.id}-court`} defaultValue={match.courtName} courts={courtOptions} />
                   </div>
                   <div className="field">
                     <label htmlFor={`${match.id}-status`}>Status</label>
