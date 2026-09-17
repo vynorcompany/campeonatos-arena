@@ -7803,6 +7803,7 @@ button {
 .athlete-portal-user { display: grid; justify-items: center; gap: 5px; }
 .athlete-portal-user-avatar { display: grid; width: 64px; height: 64px; place-items: center; overflow: hidden; padding: 3px; border: 2px solid rgb(106 229 191 / .6); border-radius: 50%; color: #fff; background: rgb(1 57 75 / .58); box-shadow: 0 10px 22px rgb(0 24 41 / .3), inset 0 0 0 1px rgb(255 255 255 / .1); font-size: .8rem; font-weight: 850; }
 .athlete-portal-user-avatar img { width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
+.athlete-portal-user-avatar.is-overdue { border-color: #ff6363 !important; box-shadow: 0 0 0 4px rgb(232 75 75 / .22), 0 10px 22px rgb(104 14 14 / .28); }
 .athlete-portal-greeting { padding: 0; border: 0; background: transparent; box-shadow: none; white-space: nowrap; }
 .athlete-portal-hero { padding-block: 22px; }
 .athlete-portal-hero-inner { gap: 28px; }
@@ -8311,7 +8312,7 @@ button {
 .portal-event-post-list .button { justify-self: start; margin-top: 2px; }
 .client-portal-event-posts { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px !important; }
 .client-portal-event-posts article { display: grid; grid-template-columns: 1fr; gap: 0; overflow: hidden; padding: 0; border: 1px solid #dce7f0; border-radius: 9px; background: #fff; }
-.client-portal-event-posts img { width: 100%; aspect-ratio: 9 / 16; object-fit: cover; }
+.client-portal-event-posts img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
 .client-portal-event-posts article > div { padding: 10px; }
 .client-portal-event-posts p { white-space: pre-wrap; }
 @media (max-width: 620px) { .portal-editor-modal { padding: 12px; } .portal-editor-modal > section { max-height: calc(100vh - 24px); padding: 16px; } .portal-editor-form { grid-template-columns: 1fr; } .portal-editor-form .form-full, .portal-editor-form-footer { grid-column: auto; } .portal-editor-header { align-items: flex-start; } .portal-upload-control { align-items: flex-start; flex-direction: column; } }
@@ -8324,7 +8325,9 @@ button {
 .client-portal-event-carousel { display: grid; gap: 10px; min-width: 0; }
 .client-portal-event-carousel-track { display: grid; grid-auto-columns: minmax(220px, 280px); grid-auto-flow: column; gap: 12px; overflow-x: auto; padding: 1px 1px 8px; scroll-snap-type: x mandatory; scrollbar-width: thin; }
 .client-portal-event-carousel-track article { display: grid; grid-template-columns: 1fr; gap: 0; overflow: hidden; padding: 0; border: 1px solid #dce7f0; border-radius: 9px; background: #fff; scroll-snap-align: start; }
-.client-portal-event-carousel-track img { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: cover; }
+.client-portal-event-carousel-track img, .client-portal-event-image-fallback { display: grid; width: 100%; aspect-ratio: 16 / 9; place-items: center; object-fit: cover; }
+.client-portal-event-image-fallback { color: #dff8f3; background: linear-gradient(135deg, #0a5c61, #102b46); font-size: 1.35rem; font-weight: 850; }
+.command-fiscal-document { display: grid; gap: 5px; margin-top: 12px; color: #38556d; font-size: .74rem; font-weight: 800; }.command-fiscal-document select { min-height: 36px; padding: 0 9px; }.command-fiscal-document small { color: #71879a; font-size: .66rem; font-weight: 600; }
 .client-portal-event-carousel-track article > div { padding: 10px; }
 .client-portal-event-carousel-track p { margin-top: 3px; white-space: pre-wrap; }
 .client-portal-event-carousel-controls { display: flex; align-items: center; justify-content: flex-end; gap: 8px; color: #5d7188; font-size: .74rem; }

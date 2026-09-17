@@ -12,7 +12,8 @@ export type ClientPortalEvent = {
 };
 
 function EventCard({ event }: { event: ClientPortalEvent }) {
-  const image = <img src={event.imageUrl} alt={event.linkUrl ? `Abrir ${event.title}` : event.title} />;
+  const [imageFailed, setImageFailed] = useState(false);
+  const image = imageFailed ? <div className="client-portal-event-image-fallback" aria-label={`Imagem indisponível para ${event.title}`}>{event.title.slice(0, 2).toUpperCase()}</div> : <img src={event.imageUrl} alt={event.linkUrl ? `Abrir ${event.title}` : event.title} onError={() => setImageFailed(true)} />;
 
   return (
     <article>

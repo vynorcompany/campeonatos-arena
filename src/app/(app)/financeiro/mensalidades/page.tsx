@@ -128,6 +128,14 @@ export default async function MonthlyPaymentsPage() {
               <label htmlFor="payment-paid-at">Data do pagamento</label>
               <input id="payment-paid-at" name="paidAt" type="date" />
             </div>
+            <div className="field">
+              <label htmlFor="payment-fiscal-document">Documento fiscal</label>
+              <select id="payment-fiscal-document" name="fiscalDocumentType" defaultValue="">
+                <option value="">Não emitir agora</option>
+                <option value="NFS_E">Emitir nota de serviço</option>
+                <option value="NFC_E">Emitir cupom fiscal</option>
+              </select>
+            </div>
             <div className="field field-submit">
               <SubmitButton label="Registrar pagamento" pendingLabel="Registrando..." className="button button-primary" />
             </div>
