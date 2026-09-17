@@ -1,6 +1,4 @@
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import { SectionCard } from "@/components/section-card";
+import { notFound, redirect } from "next/navigation";
 import { requireModuleView } from "@/lib/auth/guards";
 
 const reports = {
@@ -18,5 +16,5 @@ export default async function ReportPage({ params }: { params: { relatorio: stri
   await requireModuleView("finance");
   const report = reports[params.relatorio as keyof typeof reports];
   if (!report) notFound();
-  return <div className="stack-md"><SectionCard title={report[0]} description={report[1]}><div className="empty-state"><strong>Painel-base do relatório criado.</strong><span>Os filtros e indicadores específicos desta visão serão organizados sobre a fonte de dados correspondente.</span><Link className="button button-primary" href={report[2]}>Abrir dados relacionados</Link></div></SectionCard></div>;
+  redirect(report[2]);
 }
