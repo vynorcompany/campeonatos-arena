@@ -22,7 +22,7 @@ test("financial setting workspaces persist product categories, coupons and integ
   assert.match(page, /createProductCategoryAction/);
   assert.match(page, /createCouponAction/);
   assert.match(page, /updateFiscalSettingsAction/);
-  assert.match(page, /updateOnlinePaymentSettingsAction/);
+  assert.match(page, /connectPaymentProviderAction/);
 });
 
 test("product create and edit forms allow selecting an arena product category", () => {

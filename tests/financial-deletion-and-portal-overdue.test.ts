@@ -8,6 +8,7 @@ const read = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8"
 test("client portal marks open receivables past their due date as overdue", () => {
   const home = read("src/lib/services/public-client-home.ts");
   const portal = read("src/components/tournaments/public-standings.tsx");
+  const financeEntries = read("src/components/public-finance-entry-list.tsx");
 
   assert.match(home, /settlements: \{ select: \{ amountCents: true, interestCents: true \} \}/);
   assert.match(home, /getOutstandingCents/);
@@ -16,7 +17,7 @@ test("client portal marks open receivables past their due date as overdue", () =
   assert.match(home, /em atraso/);
   assert.match(home, /financialStatus: overdue \? "overdue" : due \? "pending" : "active"/);
   assert.match(portal, /financialStatus === "overdue" \? "is-overdue"/);
-  assert.match(portal, /client-finance-entry is-\$\{entry\.status\}/);
+  assert.match(financeEntries, /client-finance-entry public-finance-entry is-\$\{entry\.status\}/);
   assert.match(portal, /futureFinancial/);
 });
 
