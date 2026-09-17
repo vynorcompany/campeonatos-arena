@@ -8713,6 +8713,18 @@ button {
 .nfe-import-reading { align-self: end; padding-bottom: 8px; color: #2b679e; font-size: .76rem; font-weight: 750; }
 @media (max-width: 900px) { .settings-operational-head { display: none; }.settings-operational-row { grid-template-columns: minmax(0, 1fr) minmax(120px, auto); gap: 7px 14px; }.settings-operational-row > :nth-child(n+3) { grid-column: 1 / -1; }.settings-coupon-row, .settings-invoice-row { grid-template-columns: minmax(0, 1fr) auto; }.stock-operational-head { display: none; }.stock-operational-row { grid-template-columns: minmax(0, 1fr) minmax(130px, auto); gap: 6px 12px; }.stock-operational-row > :nth-child(2), .stock-operational-row > :nth-child(3) { grid-column: 1 / -1; }.stock-row-adjust { grid-column: 1 / -1; grid-template-columns: 110px 58px minmax(100px, 1fr) auto; } }
 @media (max-width: 560px) { .settings-operational-row, .settings-coupon-row, .settings-invoice-row, .stock-operational-row { grid-template-columns: 1fr; }.settings-operational-row > :nth-child(n+2), .stock-operational-row > :nth-child(n+2) { grid-column: auto; }.settings-balance-form, .stock-row-adjust { grid-template-columns: 1fr 1fr; }.settings-balance-form input, .stock-row-adjust input { grid-column: 1 / -1; }.stock-row-adjust select { grid-column: 1; }.stock-row-adjust .button { grid-column: 2; }.stock-management-header { align-items: flex-start; }.stock-management-metrics { width: 100%; } }
+
+/* Portal no celular: atalhos quebram em linhas e eventos deixam de comprimir o carrossel. */
+@media (max-width: 700px) {
+  .client-portal-shortcuts { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: visible; margin: 0; padding: 0; }
+  .client-portal-shortcuts a, .client-portal-shortcuts a.is-graduation, .client-portal-shortcuts a.is-trophy, .client-portal-shortcuts a.is-players { min-width: 0; min-height: 96px; }
+  .client-portal-events { min-width: 0; overflow: hidden; }
+  .client-portal-event-carousel-track { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: 1fr; overflow: visible; padding: 0; scroll-snap-type: none; }
+  .client-portal-event-carousel-track article, .client-portal-event-posts article { width: 100%; }
+  .client-portal-event-carousel-track img, .client-portal-event-posts img { aspect-ratio: 16 / 9; max-height: none; object-fit: cover; }
+  .client-portal-event-carousel-controls { display: none; }
+}
+@media (max-width: 360px) { .client-portal-shortcuts { grid-template-columns: 1fr; } }
 .checkout-product.is-zero, .command-product-row.is-zero { border-color: #e7ad49; background: #fff9ec; }
 .checkout-product.is-negative, .command-product-row.is-negative { border-color: #dc6666; background: #fff2f2; }
 .checkout-product.is-zero small, .command-product-row.is-zero small { color: #98640b; font-weight: 800; }
