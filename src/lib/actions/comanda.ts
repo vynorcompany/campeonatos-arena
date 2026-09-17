@@ -156,6 +156,7 @@ export async function addComandaProductAction(formData: FormData) {
       update: { quantity: nextQuantity, unitPriceCents: product.priceCents, totalCents: product.priceCents * nextQuantity },
       create: { comandaId: comanda.id, productId: product.id, quantity: parsed.data.quantity, unitPriceCents: product.priceCents, totalCents: product.priceCents * parsed.data.quantity }
     });
+    await tx.comandaRequest.updateMany({ where: { comandaId: comanda.id, productId: product.id, status: "PENDING" }, data: { status: "CONFIRMED" } });
   });
   revalidatePath("/comandas");
 }
@@ -173,6 +174,7 @@ export async function requestPortalComandaProductAction(formData: FormData) {
     if (!comanda) throw new Error("Esta comanda não está mais aberta.");
     if (!product) throw new Error("Produto indisponível no momento.");
     const player = await tx.player.findFirst({ where: { id: auth.playerId, arenaId: auth.arenaId }, select: { name: true } });
+    await tx.comandaRequest.create({ data: { comandaId: comanda.id, productId: product.id, quantity: parsed.data.quantity } });
     await tx.arenaNotification.create({ data: { arenaId: auth.arenaId, type: "COMANDA_REQUEST", title: `Novo pedido na comanda ${comanda.id.slice(-6).toUpperCase()}`, message: `${player?.name ?? "Cliente"} solicitou ${parsed.data.quantity}× ${product.name}. Confirme e lance o item na comanda.`, href: "/comandas" } });
   });
   revalidatePath(`/classificacao/${arenaSlug.data}`);
