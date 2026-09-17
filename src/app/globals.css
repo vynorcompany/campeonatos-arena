@@ -8329,6 +8329,7 @@ button {
 .client-portal-event-image-fallback { color: #dff8f3; background: linear-gradient(135deg, #0a5c61, #102b46); font-size: 1.35rem; font-weight: 850; }
 .command-fiscal-document { display: grid; gap: 5px; margin-top: 12px; color: #38556d; font-size: .74rem; font-weight: 800; }.command-fiscal-document select { min-height: 36px; padding: 0 9px; }.command-fiscal-document small { color: #71879a; font-size: .66rem; font-weight: 600; }
 .client-portal-event-carousel-track img, .client-portal-event-posts img { aspect-ratio: 16 / 9; object-fit: contain; background: #0d2030; }
+.public-client-auth-forgot { width: fit-content; margin: -2px 0 4px; padding: 0; border: 0; color: #2479bc; background: transparent; font-size: .76rem; font-weight: 750; text-decoration: underline; cursor: pointer; }.public-client-auth-actions { display: flex; justify-content: space-between; gap: 8px; }.public-client-auth-actions .button { min-width: 0; }
 .client-portal-event-carousel-track article > div { padding: 10px; }
 .client-portal-event-carousel-track p { margin-top: 3px; white-space: pre-wrap; }
 .client-portal-event-carousel-controls { display: flex; align-items: center; justify-content: flex-end; gap: 8px; color: #5d7188; font-size: .74rem; }

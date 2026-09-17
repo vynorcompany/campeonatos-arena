@@ -109,6 +109,38 @@ export async function loginGlobalAthleteAction(_: PublicClientAuthState, formDat
   redirect("/portal");
 }
 
+export async function requestGlobalPublicPasswordResetAction(_: PublicClientAuthState, formData: FormData): Promise<PublicClientAuthState> {
+  const phone = normalizePhone(String(formData.get("phone") ?? ""));
+  if (phone.length < 10) return { error: "Informe um telefone válido." };
+  const account = await prisma.playerAccount.findFirst({ where: { phone }, select: { arenaId: true } });
+  if (account) await sendVerificationCode(account.arenaId, phone, "RESET");
+  return { error: "Se existir uma conta para este telefone, enviaremos um código pelo WhatsApp." };
+}
+
+export async function confirmGlobalPublicPasswordResetAction(_: PublicClientAuthState, formData: FormData): Promise<PublicClientAuthState> {
+  const phone = normalizePhone(String(formData.get("phone") ?? ""));
+  const code = String(formData.get("code") ?? "").trim();
+  const newPassword = String(formData.get("newPassword") ?? "");
+  const confirmPassword = String(formData.get("confirmPassword") ?? "");
+  if (phone.length < 10 || !/^\d{6}$/.test(code) || newPassword.length < 8 || newPassword !== confirmPassword) return { error: "Revise telefone, código e senha." };
+  const account = await prisma.playerAccount.findFirst({ where: { phone }, select: { id: true, arenaId: true, identityId: true } });
+  const resetCode = account ? await prisma.playerVerificationCode.findFirst({ where: { arenaId: account.arenaId, phone, purpose: "RESET", codeHash: hashCode(code), usedAt: null, expiresAt: { gt: new Date() } }, orderBy: { createdAt: "desc" } }) : null;
+  if (!account || !resetCode) return { error: "Código inválido ou expirado." };
+  const passwordHash = await bcrypt.hash(newPassword, 12);
+  await prisma.$transaction(async (tx) => {
+    if (account.identityId) {
+      await tx.athleteIdentity.update({ where: { id: account.identityId }, data: { passwordHash } });
+      await tx.playerAccount.updateMany({ where: { identityId: account.identityId }, data: { passwordHash } });
+      await tx.playerSession.deleteMany({ where: { athleteIdentityId: account.identityId } });
+    } else {
+      await tx.playerAccount.update({ where: { id: account.id }, data: { passwordHash } });
+      await tx.playerSession.deleteMany({ where: { playerAccountId: account.id } });
+    }
+    await tx.playerVerificationCode.update({ where: { id: resetCode.id }, data: { usedAt: new Date() } });
+  });
+  return { error: "Senha atualizada. Entre com sua nova senha." };
+}
+
 export async function requestPublicPasswordResetAction(_: PublicClientAuthState, formData: FormData): Promise<PublicClientAuthState> {
   const parsed = loginSchema.safeParse({ arenaSlug: formData.get("arenaSlug"), returnTo: "", phone: formData.get("phone"), password: "senha-segura" });
   if (!parsed.success) return { error: "Informe um telefone válido." };
