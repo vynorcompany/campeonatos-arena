@@ -8700,17 +8700,6 @@ button {
 .settings-page { max-width: 1320px; }
 .settings-page > .card { position: relative; padding-top: 62px; }
 .settings-page > .card > .button:last-child { position: absolute; top: 17px; left: 18px; width: fit-content; min-height: 32px; }
-.settings-submenu-list { display: grid; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow-sm); }
-.settings-submenu-list > a { display: grid; grid-template-columns: 34px minmax(0, 1fr) 20px; gap: 12px; align-items: center; min-height: 64px; padding: 11px 14px; border-bottom: 1px solid var(--line); color: var(--ink); text-decoration: none; transition: background .16s ease, color .16s ease; }
-.settings-submenu-list > a:last-child { border-bottom: 0; }
-.settings-submenu-list > a:hover { background: #f4f9fd; }
-.settings-submenu-list > a > span:nth-child(2) { display: grid; gap: 3px; min-width: 0; }
-.settings-submenu-list strong { font-size: .82rem; }
-.settings-submenu-list small { overflow: hidden; color: var(--muted); font-size: .72rem; text-overflow: ellipsis; white-space: nowrap; }
-.settings-submenu-icon { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 8px; color: var(--primary); background: #eaf3ff; }
-.settings-submenu-icon svg, .settings-submenu-arrow { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
-.settings-submenu-arrow { color: #5c7b91; }
-@media (max-width: 620px) { .settings-submenu-list { border-radius: 10px; } .settings-submenu-list > a { min-height: 58px; padding: 9px 11px; } .settings-submenu-list small { font-size: .68rem; } }
 .settings-emission-shell { position: relative; padding-top: 44px; }.settings-emission-shell > .button { position: absolute; top: 0; left: 0; width: fit-content; min-height: 32px; }
 .settings-operational-list, .stock-operational-list { overflow: hidden; border: 1px solid #d8e3ef; border-radius: 10px; background: #fff; }
 .settings-operational-head, .settings-operational-row { display: grid; grid-template-columns: minmax(220px, 1.15fr) minmax(150px, .8fr) minmax(120px, .55fr) minmax(120px, .55fr); gap: 14px; align-items: center; }
