@@ -51,7 +51,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Das
   const previousFinancialWhere = view === "caixa"
     ? { arenaId: auth.arenaId, status: "PAID", paidAt: { gte: previousFrom, lte: previousTo } }
     : { arenaId: auth.arenaId, status: { not: "VOIDED" }, dueDate: { gte: previousFrom, lte: previousTo } };
-  const [entries, previousEntries, reservations, previousReservations, saleItems, teachers, portalAccounts] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
+  const [entries, previousEntries, reservations, previousReservations, saleItems, teachers, portalAccounts, openDebts, paidByClient] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
     tx.financialEntry.findMany({ where: financialWhere, select: { id: true, type: true, status: true, amountCents: true, paidAt: true, dueDate: true, description: true, counterpartyName: true } }),
     tx.financialEntry.findMany({ where: previousFinancialWhere, select: { type: true, amountCents: true } }),
     tx.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, startsAt: { gte: from, lte: to }, status: { notIn: ["CANCELED", "CANCELLED"] } }, include: { occurrenceCourts: { include: { court: { select: { name: true } } } } } }),
@@ -59,6 +59,8 @@ export default async function OverviewPage({ searchParams }: { searchParams: Das
     tx.saleItem.findMany({ where: { sale: { arenaId: auth.arenaId, createdAt: { gte: from, lte: to } } }, select: { quantity: true, totalCents: true, product: { select: { name: true } } } }),
     tx.teacher.findMany({ where: { arenaId: auth.arenaId, active: true }, include: { lessons: { where: { scheduledAt: { gte: from, lte: to } }, include: { attendances: true } } } }),
     tx.playerAccount.findMany({ where: { arenaId: auth.arenaId, createdAt: { gte: from, lte: to } }, select: { id: true, phone: true, createdAt: true, player: { select: { name: true, email: true } } }, orderBy: { createdAt: "desc" } }),
+    tx.financialEntry.findMany({ where: { arenaId: auth.arenaId, type: "REVENUE", status: { in: ["PENDING", "OVERDUE"] } }, select: { id: true, counterpartyName: true, amountCents: true, dueDate: true } }),
+    tx.financialEntry.findMany({ where: { arenaId: auth.arenaId, type: "REVENUE", status: "PAID", paidAt: { gte: from, lte: to } }, select: { id: true, counterpartyName: true, amountCents: true, paidAt: true } }),
   ]));
   const received = entries.filter((entry) => entry.type === "REVENUE").reduce((total, entry) => total + entry.amountCents, 0);
   const paid = entries.filter((entry) => entry.type === "EXPENSE").reduce((total, entry) => total + entry.amountCents, 0);
@@ -75,6 +77,8 @@ export default async function OverviewPage({ searchParams }: { searchParams: Das
   const courts = ranking(reservations.flatMap((reservation) => reservation.occurrenceCourts.map((court) => ({ name: court.court.name, value: 1 }))));
   const products = ranking(saleItems.map((item) => ({ name: item.product.name, value: item.quantity })));
   const students = ranking(teachers.map((teacher) => ({ name: teacher.name, value: new Set(teacher.lessons.flatMap((lesson) => lesson.attendances.map((attendance) => attendance.studentId))).size })));
+  const debtors = ranking(openDebts.map((entry) => ({ name: entry.counterpartyName || "Cliente não identificado", value: entry.amountCents })));
+  const bestClients = ranking(paidByClient.map((entry) => ({ name: entry.counterpartyName || "Cliente não identificado", value: entry.amountCents })));
   const maxRanking = Math.max(1, ...courts.map((item) => item.value), ...products.map((item) => item.value), ...students.map((item) => item.value));
   const comparing = query.comparar === "previous-month" || query.comparar === "previous-year" || query.comparar === "custom";
   const metricCards = [
@@ -83,6 +87,8 @@ export default async function OverviewPage({ searchParams }: { searchParams: Das
     { id: "result", label: "Resultado", value: money(received - paid), caption: view === "caixa" ? "Saldo do período" : "Resultado por competência", comparison: comparing ? { percent: comparisonPercent(received - paid, previousReceived - previousPaid) } : undefined, title: "Composição do resultado", description: "Saldo obtido pela diferença entre entradas e saídas do período.", emptyMessage: "Não há movimentações no período.", items: [{ id: "income", title: "Entradas", subtitle: "Receitas do período", value: money(received) }, { id: "expense", title: "Saídas", subtitle: "Despesas do período", value: money(paid) }, { id: "balance", title: "Resultado", subtitle: "Entradas menos saídas", value: money(received - paid) }] },
     { id: "reservations", label: "Reservas", value: reservations.length, caption: "No período", comparison: comparing ? { percent: comparisonPercent(reservations.length, previousReservations.length) } : undefined, title: "Reservas no período", description: "Inclui somente reservas ativas; reservas canceladas ou excluídas não entram nesta lista.", emptyMessage: "Nenhuma reserva encontrada neste período.", items: reservations.map((reservation) => ({ id: reservation.id, title: reservation.title || reservation.bookingTypeName, subtitle: reservation.occurrenceCourts.map((court) => court.court.name).join(" · ") || "Quadra não informada", date: reservation.startsAt.toISOString() })) },
     { id: "portal-users", label: "Novos usuários do portal", value: portalAccounts.length, caption: "Cadastros no período selecionado", title: "Novos usuários do Portal", description: "Usuários que criaram acesso no período selecionado.", emptyMessage: "Nenhum usuário criou acesso ao Portal neste período.", items: portalAccounts.map((account) => ({ id: account.id, title: account.player.name, subtitle: account.phone || account.player.email || "Contato não informado", date: account.createdAt.toISOString() })) },
+    { id: "debtors", label: "Principais devedores", value: money(openDebts.reduce((total, entry) => total + entry.amountCents, 0)), caption: "Contas em aberto", title: "Principais devedores", description: "Clientes com maior valor pendente na arena.", emptyMessage: "Nenhuma conta em aberto encontrada.", items: debtors.map((entry) => ({ id: entry.name, title: entry.name, subtitle: "Saldo em aberto", value: money(entry.value) })) },
+    { id: "best-clients", label: "Clientes que mais gastam", value: money(paidByClient.reduce((total, entry) => total + entry.amountCents, 0)), caption: "Pagamentos no período", title: "Clientes que mais gastam", description: "Clientes com maior volume de pagamentos confirmados no período.", emptyMessage: "Nenhum pagamento confirmado no período.", items: bestClients.map((entry) => ({ id: entry.name, title: entry.name, subtitle: "Total pago", value: money(entry.value) })) },
   ];
 
   const presetHref = (start: Date, end: Date) => `/painel?dataInicial=${inputDate(start)}&dataFinal=${inputDate(end)}&visao=${view}${comparing ? `&comparar=${query.comparar}` : ""}`;

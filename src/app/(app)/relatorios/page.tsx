@@ -4,6 +4,7 @@ import { requireModuleView } from "@/lib/auth/guards";
 
 const reports = [
   ["Relatório de Caixa", "caixa"], ["Relatório de Lançamentos", "lancamentos"], ["Relatórios de Produtos", "produtos"], ["Movimentação de Estoque", "estoque"], ["Histórico de Comandas", "comandas"], ["DRE Gerencial", "dre"], ["Relatório de Planos", "planos"], ["Relatório de Reservas", "reservas"]
+  , ["Pagamentos Online", "pagamentos-online"]
 ] as const;
 
 export default async function ReportsPage() {
