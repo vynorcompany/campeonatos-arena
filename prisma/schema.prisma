@@ -122,6 +122,7 @@ model Arena {
   productCategories                 ProductCategory[]
   coupons                           Coupon[]
   fiscalSettings                    FiscalSettings?
+  fiscalDocuments                   FiscalDocument[]
   onlinePaymentSettings             OnlinePaymentSettings?
   paymentConnections                PaymentConnection[]
   sales                             Sale[]
@@ -1582,6 +1583,7 @@ model Product {
   saleItems       SaleItem[]
   comandaItems    ComandaItem[]
   stockMovements  StockMovement[]
+  fiscalDocumentItems FiscalDocumentItem[]
 
   @@unique([arenaId, name])
   @@index([arenaId, active])
@@ -1635,6 +1637,51 @@ model FiscalSettings {
   updatedAt   DateTime @updatedAt
   arenaId     String   @unique
   arena       Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+}
+
+model FiscalDocument {
+  id               String               @id @default(cuid())
+  direction        String               @default("INCOMING")
+  status           String               @default("IMPORTED")
+  documentType     String               @default("NFE")
+  accessKey        String
+  number           String               @default("")
+  series           String               @default("")
+  supplierName     String               @default("")
+  supplierDocument String               @default("")
+  issuedAt         DateTime?
+  totalCents       Int                  @default(0)
+  xmlDigest        String               @default("")
+  importedAt       DateTime             @default(now())
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  arenaId          String
+  arena            Arena                @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  items            FiscalDocumentItem[]
+
+  @@unique([arenaId, accessKey])
+  @@index([arenaId, direction, issuedAt])
+  @@index([arenaId, importedAt])
+}
+
+model FiscalDocumentItem {
+  id                String          @id @default(cuid())
+  code              String          @default("")
+  barcode           String          @default("")
+  description       String
+  ncm               String          @default("")
+  cfop              String          @default("")
+  unit              String          @default("")
+  quantity          Int
+  unitCostCents     Int             @default(0)
+  totalCents        Int             @default(0)
+  fiscalDocumentId  String
+  productId         String?
+  fiscalDocument    FiscalDocument  @relation(fields: [fiscalDocumentId], references: [id], onDelete: Cascade)
+  product           Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([fiscalDocumentId])
+  @@index([productId])
 }
 
 model OnlinePaymentSettings {

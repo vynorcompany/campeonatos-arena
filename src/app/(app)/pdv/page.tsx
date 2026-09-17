@@ -22,7 +22,7 @@ export default async function PosPage() {
       <header className="product-management-header">
         <h1>Produtos e Serviços</h1>
         <div className="product-management-actions">
-          <button type="button" className="button button-import" disabled title="Importação de nota será disponibilizada em breve">Importar nota de compra</button>
+          <Link href="/financeiro/configuracoes/notas-fiscais" className="button button-import">Importar XML/NF-e</Link>
           <button type="button" className="button button-import-csv" disabled title="Importação CSV será disponibilizada em breve">Importar CSV</button>
           <Link href="/pdv/novo" className="button button-primary">Criar produto/serviço</Link>
         </div>
