@@ -4,12 +4,12 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { requestPortalComandaProductAction } from "@/lib/actions/comanda";
 
-type Data = { comandas: { id: string; code: string; openedAt: string; totalCents: number; items: { id: string; name: string; quantity: number; totalCents: number }[] }[]; products: { id: string; name: string; priceCents: number; stockQuantity: number; category: string }[] } | null;
+type Data = { comandas: { id: string; code: string; openedAt: string; totalCents: number; items: { id: string; name: string; quantity: number; totalCents: number }[] }[]; categories: { id: string; name: string }[]; products: { id: string; name: string; priceCents: number; stockQuantity: number; category: string }[] } | null;
 const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value / 100);
 
 export function PortalClientComandas({ data, arenaSlug }: { data: Data; arenaSlug: string }) {
   const [pending, startTransition] = useTransition(); const [message, setMessage] = useState(""); const [search, setSearch] = useState(""); const [category, setCategory] = useState("Todos"); const router = useRouter();
-  const categories = useMemo(() => ["Todos", ...Array.from(new Set(data?.products.map((product) => product.category) ?? [])).sort((left, right) => left.localeCompare(right, "pt-BR"))], [data]);
+  const categories = useMemo(() => ["Todos", ...(data?.categories.map((entry) => entry.name) ?? []), ...(data?.products.some((product) => product.category === "Sem categoria") ? ["Sem categoria"] : [])], [data]);
   const products = useMemo(() => (data?.products ?? []).filter((product) => (category === "Todos" || product.category === category) && (!search.trim() || product.name.toLocaleLowerCase("pt-BR").includes(search.trim().toLocaleLowerCase("pt-BR")))).slice(0, 18), [category, data, search]);
   const order = (comandaId: string, productId: string) => { const form = new FormData(); form.set("arenaSlug", arenaSlug); form.set("comandaId", comandaId); form.set("productId", productId); form.set("quantity", "1"); setMessage(""); startTransition(async () => { try { await requestPortalComandaProductAction(form); setMessage("Pedido enviado ao balcão. O item será lançado após a confirmação."); router.refresh(); } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível enviar o pedido."); } }); };
   if (!data) return <section className="athlete-portal-content-panel"><h2>Comandas indisponíveis</h2><p className="muted">Não foi possível carregar suas comandas agora.</p></section>;

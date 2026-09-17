@@ -63,9 +63,10 @@ export async function getPublicClientComandas(arenaSlug: string, playerId: strin
   const arena = await prisma.arena.findUnique({ where: { slug: arenaSlug }, select: { id: true } });
   if (!arena) return null;
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  const [comandas, products] = await withArenaTransaction(arena.id, (tx) => Promise.all([
+  const [comandas, products, categories] = await withArenaTransaction(arena.id, (tx) => Promise.all([
     tx.comanda.findMany({ where: { arenaId: arena.id, playerId, status: "OPEN", openedAt: { gte: today } }, include: { items: { include: { product: { select: { name: true } } }, orderBy: { createdAt: "asc" } } }, orderBy: { openedAt: "desc" } }),
     tx.product.findMany({ where: { arenaId: arena.id, active: true, stockQuantity: { gt: 0 } }, select: { id: true, name: true, priceCents: true, stockQuantity: true, category: { select: { name: true } } }, orderBy: { name: "asc" }, take: 120 }),
+    tx.productCategory.findMany({ where: { arenaId: arena.id, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]));
-  return { comandas: comandas.map((comanda) => ({ id: comanda.id, code: comanda.code, openedAt: date(comanda.openedAt), totalCents: comanda.items.reduce((total, item) => total + item.totalCents, 0), items: comanda.items.map((item) => ({ id: item.id, name: item.product.name, quantity: item.quantity, totalCents: item.totalCents })) })), products: products.map((product) => ({ ...product, category: product.category?.name ?? "Bar" })) };
+  return { comandas: comandas.map((comanda) => ({ id: comanda.id, code: comanda.code, openedAt: date(comanda.openedAt), totalCents: comanda.items.reduce((total, item) => total + item.totalCents, 0), items: comanda.items.map((item) => ({ id: item.id, name: item.product.name, quantity: item.quantity, totalCents: item.totalCents })) })), categories, products: products.map((product) => ({ ...product, category: product.category?.name ?? "Sem categoria" })) };
 }
