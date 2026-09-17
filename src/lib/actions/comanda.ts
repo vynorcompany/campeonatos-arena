@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requirePermission, requireRole } from "@/lib/auth/guards";
+import { requirePublicPlayerAuth } from "@/lib/auth/player-session";
 import { allocatePaymentsToDebts, getOutstandingCents } from "@/lib/finance/settlements";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
@@ -156,6 +157,26 @@ export async function addComandaProductAction(formData: FormData) {
       create: { comandaId: comanda.id, productId: product.id, quantity: parsed.data.quantity, unitPriceCents: product.priceCents, totalCents: product.priceCents * parsed.data.quantity }
     });
   });
+  revalidatePath("/comandas");
+}
+
+export async function requestPortalComandaProductAction(formData: FormData) {
+  const arenaSlug = z.string().trim().min(1).safeParse(formData.get("arenaSlug"));
+  const parsed = comandaProductSchema.safeParse({ comandaId: formData.get("comandaId"), productId: formData.get("productId"), quantity: formData.get("quantity") || 1 });
+  if (!arenaSlug.success || !parsed.success) throw new Error("Pedido inválido.");
+  const auth = await requirePublicPlayerAuth(arenaSlug.data);
+  await withArenaTransaction(auth.arenaId, async (tx) => {
+    const [comanda, product] = await Promise.all([
+      tx.comanda.findFirst({ where: { id: parsed.data.comandaId, arenaId: auth.arenaId, playerId: auth.playerId, status: "OPEN" }, select: { id: true } }),
+      tx.product.findFirst({ where: { id: parsed.data.productId, arenaId: auth.arenaId, active: true, stockQuantity: { gt: 0 } }, select: { id: true, priceCents: true } }),
+    ]);
+    if (!comanda) throw new Error("Esta comanda não está mais aberta.");
+    if (!product) throw new Error("Produto indisponível no momento.");
+    const current = await tx.comandaItem.findUnique({ where: { comandaId_productId: { comandaId: comanda.id, productId: product.id } } });
+    const quantity = (current?.quantity ?? 0) + parsed.data.quantity;
+    await tx.comandaItem.upsert({ where: { comandaId_productId: { comandaId: comanda.id, productId: product.id } }, update: { quantity, unitPriceCents: product.priceCents, totalCents: product.priceCents * quantity }, create: { comandaId: comanda.id, productId: product.id, quantity: parsed.data.quantity, unitPriceCents: product.priceCents, totalCents: product.priceCents * parsed.data.quantity } });
+  });
+  revalidatePath(`/classificacao/${arenaSlug.data}`);
   revalidatePath("/comandas");
 }
 
