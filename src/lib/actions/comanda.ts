@@ -168,13 +168,12 @@ export async function requestPortalComandaProductAction(formData: FormData) {
   await withArenaTransaction(auth.arenaId, async (tx) => {
     const [comanda, product] = await Promise.all([
       tx.comanda.findFirst({ where: { id: parsed.data.comandaId, arenaId: auth.arenaId, playerId: auth.playerId, status: "OPEN" }, select: { id: true } }),
-      tx.product.findFirst({ where: { id: parsed.data.productId, arenaId: auth.arenaId, active: true, stockQuantity: { gt: 0 } }, select: { id: true, priceCents: true } }),
+      tx.product.findFirst({ where: { id: parsed.data.productId, arenaId: auth.arenaId, active: true, stockQuantity: { gt: 0 } }, select: { id: true, name: true, priceCents: true } }),
     ]);
     if (!comanda) throw new Error("Esta comanda não está mais aberta.");
     if (!product) throw new Error("Produto indisponível no momento.");
-    const current = await tx.comandaItem.findUnique({ where: { comandaId_productId: { comandaId: comanda.id, productId: product.id } } });
-    const quantity = (current?.quantity ?? 0) + parsed.data.quantity;
-    await tx.comandaItem.upsert({ where: { comandaId_productId: { comandaId: comanda.id, productId: product.id } }, update: { quantity, unitPriceCents: product.priceCents, totalCents: product.priceCents * quantity }, create: { comandaId: comanda.id, productId: product.id, quantity: parsed.data.quantity, unitPriceCents: product.priceCents, totalCents: product.priceCents * parsed.data.quantity } });
+    const player = await tx.player.findFirst({ where: { id: auth.playerId, arenaId: auth.arenaId }, select: { name: true } });
+    await tx.arenaNotification.create({ data: { arenaId: auth.arenaId, type: "COMANDA_REQUEST", title: `Novo pedido na comanda ${comanda.id.slice(-6).toUpperCase()}`, message: `${player?.name ?? "Cliente"} solicitou ${parsed.data.quantity}× ${product.name}. Confirme e lance o item na comanda.`, href: "/comandas" } });
   });
   revalidatePath(`/classificacao/${arenaSlug.data}`);
   revalidatePath("/comandas");
