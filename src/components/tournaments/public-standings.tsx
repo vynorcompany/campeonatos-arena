@@ -168,7 +168,7 @@ export function PublicStandings({
           <div className="athlete-portal-user-area">
             <div className="athlete-portal-user">
               <PlayerAvatar
-                className={`athlete-portal-user-avatar${finance?.overdue.length ? " is-overdue" : ""}`}
+                className={`athlete-portal-user-avatar${notifications.some((notification) => "persistent" in notification && notification.persistent) ? " is-overdue" : ""}`}
                 photoUrl={currentClient.photoUrl}
                 name={currentClient.name}
               />
