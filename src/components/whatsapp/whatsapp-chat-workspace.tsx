@@ -1,0 +1,15 @@
+"use client";
+
+import { useEffect, useState, useTransition } from "react";
+import { markWhatsAppConversationReadAction, sendWhatsAppChatMessageAction } from "@/lib/actions/whatsapp-chat";
+
+type Conversation = { id: string; contactName: string; contactPhone: string; unreadCount: number; lastMessageAt: string; messages: { id: string; direction: string; body: string; sentAt: string }[] };
+const time = (value: string) => new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+
+export function WhatsAppChatWorkspace({ conversations, connected }: { conversations: Conversation[]; connected: boolean }) {
+  const [activeId, setActiveId] = useState(conversations[0]?.id ?? ""); const [body, setBody] = useState(""); const [pending, startTransition] = useTransition();
+  const active = conversations.find((conversation) => conversation.id === activeId) ?? null;
+  useEffect(() => { if (active?.unreadCount) { const form = new FormData(); form.set("conversationId", active.id); void markWhatsAppConversationReadAction(form); } }, [active?.id, active?.unreadCount]);
+  if (!connected) return <section className="whatsapp-chat-empty"><strong>Conecte o WhatsApp da arena para começar.</strong><span>O QR Code fica em Configurações › Integrações.</span></section>;
+  return <section className="whatsapp-chat-workspace"><aside><header><strong>Conversas</strong><span>{conversations.length}</span></header><div className="whatsapp-conversation-list">{conversations.map((conversation) => <button key={conversation.id} type="button" className={conversation.id === activeId ? "is-active" : ""} onClick={() => setActiveId(conversation.id)}><span><strong>{conversation.contactName || conversation.contactPhone}</strong><small>{conversation.messages.at(-1)?.body || "Sem mensagens"}</small></span>{conversation.unreadCount ? <b>{conversation.unreadCount}</b> : <time>{time(conversation.lastMessageAt)}</time>}</button>)}{!conversations.length ? <p>Nenhuma conversa recebida.</p> : null}</div></aside><main>{active ? <><header><div><strong>{active.contactName || active.contactPhone}</strong><small>{active.contactPhone}</small></div></header><div className="whatsapp-message-thread">{active.messages.map((message) => <article key={message.id} className={message.direction === "OUTBOUND" ? "outbound" : "inbound"}><p>{message.body}</p><time>{time(message.sentAt)}</time></article>)}</div><form onSubmit={(event) => { event.preventDefault(); if (!body.trim()) return; const form = new FormData(); form.set("conversationId", active.id); form.set("body", body); startTransition(async () => { await sendWhatsAppChatMessageAction(form); setBody(""); }); }}><textarea value={body} onChange={(event) => setBody(event.target.value)} placeholder="Escreva uma resposta" rows={2} /><button className="button button-primary button-small" disabled={pending}>{pending ? "Enviando..." : "Enviar"}</button></form></> : <div className="whatsapp-chat-empty"><strong>Selecione uma conversa.</strong></div>}</main></section>;
+}

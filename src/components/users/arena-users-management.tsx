@@ -21,14 +21,11 @@ export async function ArenaUsersManagement({ arenaId, currentUserId }: ArenaUser
 
   return (
     <div className="stack-md">
-      <SectionCard title="Novo usuário" description="Crie um acesso novo ou vincule um usuário já existente à arena atual.">
-        <ArenaUserForm profiles={profiles.map((profile) => ({ id: profile.id, name: profile.name }))} />
-      </SectionCard>
-
-      <SectionCard
-        title="Usuários da arena"
-        description="Edite dados, papéis, senha temporária ou remova o acesso de quem não deve mais usar esta arena."
-      >
+      <SectionCard title="Usuários" description="Gerencie os acessos da arena e suas permissões.">
+        <details className="setting-create-panel">
+          <summary className="button button-primary button-small">Novo usuário</summary>
+          <div><ArenaUserForm profiles={profiles.map((profile) => ({ id: profile.id, name: profile.name }))} /></div>
+        </details>
         <table className="data-table">
           <thead>
             <tr>

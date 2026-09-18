@@ -120,6 +120,11 @@ const couponSchema = z.object({
   endsAt: z.string().trim().optional().default("")
 });
 
+const updateCouponSchema = couponSchema.extend({ couponId: z.string().min(1, "Cupom inválido."), active: z.preprocess((value) => value === "on" || value === true, z.boolean()) });
+const deleteCouponSchema = z.object({ couponId: z.string().min(1, "Cupom inválido.") });
+const supplierUpdateSchema = z.object({ supplierId: z.string().min(1, "Fornecedor inválido."), name: z.string().trim().min(2, "Informe o nome."), document: optionalText, phone: optionalText, email: optionalText, notes: optionalText, active: z.preprocess((value) => value === "on" || value === true, z.boolean()) });
+const deleteSupplierSchema = z.object({ supplierId: z.string().min(1, "Fornecedor inválido.") });
+
 const fiscalSettingsSchema = z.object({
   provider: z.enum(["NONE", "MANUAL"]),
   environment: z.enum(["SANDBOX", "PRODUCTION"]),
@@ -940,6 +945,46 @@ export async function createCouponAction(formData: FormData) {
     throw error;
   }
 
+  refreshFinancialSettings();
+}
+
+function couponValues(input: z.infer<typeof couponSchema>) {
+  if (input.discountType === "PERCENTAGE" && input.discountValue > 100) throw new Error("O desconto percentual não pode passar de 100%.");
+  const startsAt = input.startsAt ? parseDate(input.startsAt) : null;
+  const endsAt = input.endsAt ? parseDate(input.endsAt) : null;
+  if ((input.startsAt && !startsAt) || (input.endsAt && !endsAt)) throw new Error("Informe datas válidas para o cupom.");
+  if (startsAt && endsAt && endsAt < startsAt) throw new Error("A validade final deve ser posterior à inicial.");
+  const maxUses = input.maxUses ? Number(input.maxUses) : null;
+  if (maxUses !== null && (!Number.isInteger(maxUses) || maxUses < 1)) throw new Error("Informe um limite de uso válido.");
+  return { code: input.code.toUpperCase().replace(/\s+/g, ""), discountType: input.discountType, discountValue: input.discountValue, minimumAmountCents: parseMoneyToCents(input.minimumAmount), maxUses, startsAt, endsAt };
+}
+
+export async function updateCouponAction(formData: FormData) {
+  const auth = await requirePermission("finance:receivable:settle");
+  const parsed = updateCouponSchema.safeParse({ couponId: formData.get("couponId"), code: formData.get("code"), discountType: formData.get("discountType"), discountValue: formData.get("discountValue"), minimumAmount: formData.get("minimumAmount"), maxUses: formData.get("maxUses"), startsAt: formData.get("startsAt"), endsAt: formData.get("endsAt"), active: formData.get("active") });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  const values = couponValues(parsed.data);
+  try { await withArenaTransaction(auth.arenaId, (tx) => tx.coupon.updateMany({ where: { id: parsed.data.couponId, arenaId: auth.arenaId }, data: { ...values, active: parsed.data.active } })); } catch (error) { if (error instanceof Error && error.message.includes("Unique constraint")) throw new Error("Já existe um cupom com este código."); throw error; }
+  refreshFinancialSettings();
+}
+
+export async function deleteCouponAction(formData: FormData) {
+  const auth = await requirePermission("finance:receivable:settle"); const parsed = deleteCouponSchema.safeParse({ couponId: formData.get("couponId") });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  await withArenaTransaction(auth.arenaId, (tx) => tx.coupon.deleteMany({ where: { id: parsed.data.couponId, arenaId: auth.arenaId } })); refreshFinancialSettings();
+}
+
+export async function updateSupplierAction(formData: FormData) {
+  const auth = await requireModuleEdit("finance"); const parsed = supplierUpdateSchema.safeParse({ supplierId: formData.get("supplierId"), name: formData.get("name"), document: formData.get("document"), phone: formData.get("phone"), email: formData.get("email"), notes: formData.get("notes"), active: formData.get("active") });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  try { const updated = await withArenaTransaction(auth.arenaId, (tx) => tx.supplier.updateMany({ where: { id: parsed.data.supplierId, arenaId: auth.arenaId }, data: { name: parsed.data.name, document: parsed.data.document, phone: parsed.data.phone, email: parsed.data.email, notes: parsed.data.notes, active: parsed.data.active } })); if (!updated.count) throw new Error("Fornecedor não encontrado."); } catch (error) { if (error instanceof Error && error.message.includes("Unique constraint")) throw new Error("Já existe um fornecedor com este nome."); throw error; }
+  refreshFinancialSettings();
+}
+
+export async function deleteSupplierAction(formData: FormData) {
+  const auth = await requireModuleEdit("finance"); const parsed = deleteSupplierSchema.safeParse({ supplierId: formData.get("supplierId") });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  try { await withArenaTransaction(auth.arenaId, (tx) => tx.supplier.deleteMany({ where: { id: parsed.data.supplierId, arenaId: auth.arenaId } })); } catch { throw new Error("Este fornecedor possui lançamentos vinculados. Inative-o em vez de excluir."); }
   refreshFinancialSettings();
 }
 

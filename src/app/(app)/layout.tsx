@@ -14,7 +14,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     canViewModule(module, auth.arenaRole, auth.systemRole, auth.viewPermissions)
   );
   const canAccessAgency = auth.systemRole === "SUPER_ADMIN" || auth.systemRole === "ADMIN" || auth.systemRole === "MANAGER";
-  const notifications = await prisma.arenaNotification.findMany({ where: { arenaId: auth.arenaId, readAt: null }, select: { id: true, title: true, message: true, href: true, createdAt: true }, orderBy: { createdAt: "desc" }, take: 8 });
+  const [notifications, whatsappUnreadCount] = await Promise.all([prisma.arenaNotification.findMany({ where: { arenaId: auth.arenaId, readAt: null }, select: { id: true, title: true, message: true, href: true, createdAt: true }, orderBy: { createdAt: "desc" }, take: 8 }), prisma.whatsAppConversation.aggregate({ where: { arenaId: auth.arenaId }, _sum: { unreadCount: true } })]);
 
   return (
     <AppShell
@@ -27,6 +27,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
       canManageUsers={canManageUsers}
       visibleModules={visibleModules}
       canAccessAgency={canAccessAgency}
+      whatsappUnreadCount={whatsappUnreadCount._sum.unreadCount ?? 0}
       notifications={notifications}
     >
       {children}

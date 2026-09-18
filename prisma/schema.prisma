@@ -127,6 +127,7 @@ model Arena {
   onlinePaymentSettings             OnlinePaymentSettings?
   paymentConnections                PaymentConnection[]
   whatsappConnection                WhatsAppConnection?
+  whatsappConversations             WhatsAppConversation[]
   sales                             Sale[]
   comandas                          Comanda[]
   stockMovements                    StockMovement[]
@@ -1830,6 +1831,37 @@ model WhatsAppConnection {
   arena             Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
 
   @@index([status])
+}
+
+model WhatsAppConversation {
+  id            String            @id @default(cuid())
+  remoteJid     String
+  contactName   String            @default("")
+  contactPhone  String            @default("")
+  unreadCount   Int               @default(0)
+  lastMessageAt DateTime          @default(now())
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  arenaId       String
+  arena         Arena             @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  messages      WhatsAppMessage[]
+
+  @@unique([arenaId, remoteJid])
+  @@index([arenaId, unreadCount, lastMessageAt])
+}
+
+model WhatsAppMessage {
+  id             String               @id @default(cuid())
+  providerId     String               @unique
+  direction      String
+  body           String               @default("")
+  sentAt         DateTime             @default(now())
+  readAt         DateTime?
+  createdAt      DateTime             @default(now())
+  conversationId String
+  conversation   WhatsAppConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, sentAt])
 }
 
 model CashRegister {

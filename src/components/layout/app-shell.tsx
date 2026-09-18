@@ -16,6 +16,7 @@ type AppShellProps = {
   canManageUsers: boolean;
   visibleModules: string[];
   canAccessAgency: boolean;
+  whatsappUnreadCount: number;
   notifications: { id: string; title: string; message: string; href: string; createdAt: Date }[];
   children: React.ReactNode;
 };
@@ -30,6 +31,7 @@ export function AppShell({
   canManageUsers,
   visibleModules,
   canAccessAgency,
+  whatsappUnreadCount,
   notifications,
   children
 }: AppShellProps) {
@@ -63,7 +65,7 @@ export function AppShell({
               currentWorkspace="arena"
             />
 
-            <NavLinks canManageUsers={canManageUsers} visibleModules={visibleModules} />
+            <NavLinks canManageUsers={canManageUsers} visibleModules={visibleModules} whatsappUnreadCount={whatsappUnreadCount} />
           </div>
 
           <div className="sidebar-user sidebar-user-panel">
