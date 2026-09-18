@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getLeagueMonthBlocks } from "@/lib/league/monthly-schedule";
 import { withArenaTransaction } from "@/lib/rls";
+import { getPublicLinkedPlayerIds } from "@/lib/services/public-player-link";
 
 function dateTimeLabel(value: Date) {
   return new Intl.DateTimeFormat("pt-BR", {
@@ -49,10 +50,11 @@ export async function getPublicLeaguePortal(
     },
   });
   if (!arena) return null;
+  const linkedPlayerIds = await getPublicLinkedPlayerIds(arena.id, playerId);
   const ownPairs = await prisma.categoryPair.findMany({
     where: {
       active: true,
-      players: { some: { playerId } },
+      players: { some: { playerId: { in: linkedPlayerIds } } },
       competition: {
         format: "LEAGUE",
         status: { not: "FINISHED" },
@@ -326,7 +328,7 @@ export async function getPublicLeaguePortal(
       category: { active: true, tournament: { arenaId: arena.id } },
       OR: [
         { status: "PUBLISHED" },
-        { pairs: { some: { active: true, players: { some: { playerId } } } } },
+        { pairs: { some: { active: true, players: { some: { playerId: { in: linkedPlayerIds } } } } } },
       ],
     },
     orderBy: [

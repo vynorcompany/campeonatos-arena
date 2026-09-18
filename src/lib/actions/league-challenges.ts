@@ -6,6 +6,7 @@ import { requirePublicPlayerAuth } from "@/lib/auth/player-session";
 import { parseScheduledAt } from "@/lib/calendar/inputs";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
+import { getPublicLinkedPlayerIds } from "@/lib/services/public-player-link";
 import { recordCategoryLeagueMatchResult } from "@/lib/services/category-competition";
 import { parseLeagueMatchResultInput } from "@/lib/actions/league-match-result-input";
 
@@ -40,6 +41,7 @@ export async function createLeagueChallengeAction(formData: FormData) {
   const parsed = proposalSchema.safeParse({ arenaSlug: formData.get("arenaSlug"), proposerPairId: formData.get("proposerPairId"), opponentPairId: formData.get("opponentPairId"), courtId: formData.get("courtId"), startsAt: formData.get("startsAt"), durationMinutes: formData.get("durationMinutes") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados do desafio inválidos.");
   const auth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
+  const linkedPlayerIds = await getPublicLinkedPlayerIds(auth.arenaId, auth.playerId);
   const startsAt = parseScheduledAt(parsed.data.startsAt);
   const endsAt = new Date(startsAt.getTime() + parsed.data.durationMinutes * 60_000);
   const [proposer, opponent] = await Promise.all([
@@ -50,7 +52,7 @@ export async function createLeagueChallengeAction(formData: FormData) {
     prisma.categoryPair.findUnique({ where: { id: parsed.data.opponentPairId }, include: { players: { select: { playerId: true } } } }),
   ]);
   if (!proposer || !opponent || proposer.id === opponent.id || proposer.competition.category.tournament.arenaId !== auth.arenaId || proposer.competition.format !== "LEAGUE") throw new Error("Desafio de Liga inválido.");
-  if (!proposer.players.some((entry) => entry.playerId === auth.playerId)) throw new Error("Você não participa desta dupla.");
+  if (!proposer.players.some((entry) => linkedPlayerIds.includes(entry.playerId))) throw new Error("Você não participa desta dupla.");
   if (opponent.competitionId !== proposer.competitionId) throw new Error("A dupla convidada deve ser da mesma categoria.");
   if (proposer.groupId && proposer.groupId !== opponent.groupId) throw new Error("A dupla convidada deve ser do mesmo grupo.");
   const categoryMatch = await prisma.categoryMatch.findFirst({ where: { competitionId: proposer.competitionId, winnerPairId: null, OR: [{ homePairId: proposer.id, awayPairId: opponent.id }, { homePairId: opponent.id, awayPairId: proposer.id }] }, select: { id: true, homePairId: true, awayPairId: true, leagueBlock: true, leagueCycle: { select: { referenceMonth: true } } } });
@@ -78,9 +80,10 @@ export async function recordOwnLeagueMatchResultAction(formData: FormData) {
   const input = parseLeagueMatchResultInput(formData);
   if ("success" in input) throw new Error(input.error ?? "Dados do resultado inválidos.");
   const auth = await requirePublicPlayerAuth(arenaSlug);
+  const linkedPlayerIds = await getPublicLinkedPlayerIds(auth.arenaId, auth.playerId);
   const match = await prisma.categoryMatch.findFirst({ where: { id: input.matchId, competition: { format: "LEAGUE", status: "PUBLISHED", category: { tournament: { arenaId: auth.arenaId } } } }, include: { homePair: { include: { players: { select: { playerId: true } } } }, awayPair: { include: { players: { select: { playerId: true } } } }, competition: { select: { categoryId: true } } } });
   if (!match?.homePair || !match.awayPair) throw new Error("Jogo de Liga inválido.");
-  if (!match.homePair.players.some((entry) => entry.playerId === auth.playerId)) throw new Error("Somente a dupla mandante pode registrar este resultado.");
+  if (!match.homePair.players.some((entry) => linkedPlayerIds.includes(entry.playerId))) throw new Error("Somente a dupla mandante pode registrar este resultado.");
   await recordCategoryLeagueMatchResult(auth.arenaId, input);
   await withArenaTransaction(auth.arenaId, (tx) => tx.playerNotification.createMany({ data: match.awayPair!.players.map((entry) => ({ playerId: entry.playerId, type: "LEAGUE_MATCH", title: "Resultado lançado pela dupla mandante", message: "Confira o placar informado para o seu jogo de Liga.", href: publicPortalPath(arenaSlug, match.competition.categoryId) })) }));
   revalidatePath("/home");

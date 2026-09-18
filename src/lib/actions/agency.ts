@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAgencyAccess, requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
-import { configureEvolutionWebhook, createEvolutionInstance, createEvolutionInstanceName, createEvolutionInstanceToken, createEvolutionWebhookSecret, deleteEvolutionInstance, getEvolutionQrCode } from "@/lib/integrations/evolution/agency";
+import { configureEvolutionWebhook, createEvolutionInstance, createEvolutionInstanceName, createEvolutionInstanceToken, createEvolutionWebhookSecret, deleteEvolutionInstance, findEvolutionInstance, getEvolutionQrCode } from "@/lib/integrations/evolution/agency";
 import { decryptConnectionSecrets, encryptConnectionSecrets, hashWebhookSecret } from "@/lib/payments/connection-secrets";
 
 const systemRoleSchema = z.object({
@@ -38,6 +38,18 @@ async function requireWhatsAppConnectionAccess(arenaId: string) {
   return auth;
 }
 
+function isEvolutionConnected(state: string) {
+  return ["OPEN", "CONNECTED"].includes(state.toUpperCase());
+}
+
+function whatsAppConnectionError(error: unknown) {
+  const detail = error instanceof Error ? error.message : "";
+  if (detail.includes("Configure EVOLUTION")) {
+    return "A Evolution ainda não foi configurada pela agência. Informe a URL e a chave da API antes de conectar uma arena.";
+  }
+  return `Não foi possível preparar a conexão do WhatsApp.${detail ? ` ${detail}` : " Verifique a configuração da API e tente novamente."}`;
+}
+
 export async function connectArenaWhatsAppAction(formData: FormData) {
   const parsed = whatsappConnectionSchema.safeParse({ arenaId: formData.get("arenaId") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
@@ -46,28 +58,52 @@ export async function connectArenaWhatsAppAction(formData: FormData) {
   if (!arena) throw new Error("Arena não encontrada.");
   const existing = await prisma.whatsAppConnection.findUnique({ where: { arenaId: arena.id } });
   const instanceName = existing?.instanceName || createEvolutionInstanceName(arena.id);
-  // "Reconectar" deliberadamente inicia uma sessão nova. Isso recupera
-  // instâncias removidas ou presas em connecting pelo WhatsApp/Evolution.
-  const instanceToken = createEvolutionInstanceToken();
-  const webhookSecret = createEvolutionWebhookSecret();
+  const storedSecrets = existing?.encryptedToken ? decryptConnectionSecrets(existing.encryptedToken) : null;
+  const instanceToken = storedSecrets?.token || createEvolutionInstanceToken();
+  const webhookSecret = storedSecrets?.webhookSecret || createEvolutionWebhookSecret();
   try {
-    if (existing) await deleteEvolutionInstance(instanceName);
-    const createdQr = (await createEvolutionInstance({ instanceName, instanceToken, webhookSecret })).qrCodeDataUrl;
-    // Uma instalação antiga da Evolution pode recusar o formato atual de
-    // webhook. Isso não pode impedir a arena de parear o WhatsApp pelo QR.
-    // O webhook é refeito nas próximas tentativas e após a conexão.
-    await configureEvolutionWebhook({ instanceName, webhookSecret }).catch((error) => console.error("Webhook Evolution pendente", error));
-    const qrCodeDataUrl = await getEvolutionQrCode(instanceName, instanceToken).catch(() => createdQr);
-    if (!qrCodeDataUrl) throw new Error("A Evolution não retornou uma imagem QR válida.");
-    await prisma.whatsAppConnection.upsert({ where: { arenaId: arena.id }, create: { arenaId: arena.id, instanceName, encryptedToken: encryptConnectionSecrets({ token: instanceToken, webhookSecret }), webhookSecretHash: hashWebhookSecret(webhookSecret), qrCodeDataUrl, status: "AWAITING_SCAN", lastError: "" }, update: { encryptedToken: encryptConnectionSecrets({ token: instanceToken, webhookSecret }), webhookSecretHash: hashWebhookSecret(webhookSecret), qrCodeDataUrl, status: "AWAITING_SCAN", lastError: "" } });
+    // Conectar não destrói uma sessão já existente. Isso evita um novo QR e
+    // preserva o pareamento salvo no volume da Evolution entre deploys.
+    const providerInstance = existing ? await findEvolutionInstance(instanceName) : null;
+    const createdQr = providerInstance ? "" : (await createEvolutionInstance({ instanceName, instanceToken, webhookSecret })).qrCodeDataUrl;
+    await configureEvolutionWebhook({ instanceName, webhookSecret });
+    const connected = Boolean(providerInstance && isEvolutionConnected(providerInstance.state));
+    const qrCodeDataUrl = connected ? existing?.qrCodeDataUrl ?? "" : await getEvolutionQrCode(instanceName, instanceToken).catch(() => createdQr);
+    if (!connected && !qrCodeDataUrl) throw new Error("A Evolution não retornou uma imagem QR válida.");
+    const encryptedToken = existing?.encryptedToken || encryptConnectionSecrets({ token: instanceToken, webhookSecret });
+    const data = { encryptedToken, webhookSecretHash: existing?.webhookSecretHash || hashWebhookSecret(webhookSecret), qrCodeDataUrl, status: connected ? "CONNECTED" : "AWAITING_SCAN", lastError: "" };
+    await prisma.whatsAppConnection.upsert({ where: { arenaId: arena.id }, create: { arenaId: arena.id, instanceName, ...data }, update: data });
     revalidatePath("/arena");
     revalidatePath("/agencia/conexoes");
   } catch (error) {
-    const detail = error instanceof Error ? error.message : "";
-    const message = detail.includes("configurada")
-      ? "A Evolution ainda não foi configurada pela agência. Informe a URL e a chave da API antes de conectar uma arena."
-      : `Não foi possível preparar o QR Code na Evolution.${detail ? ` ${detail}` : " Verifique a configuração da API e tente novamente."}`;
+    const message = whatsAppConnectionError(error);
     if (existing) await prisma.whatsAppConnection.update({ where: { id: existing.id }, data: { lastError: message } });
+    return { error: message };
+  }
+}
+
+export async function resetArenaWhatsAppSessionAction(formData: FormData) {
+  const parsed = whatsappConnectionSchema.safeParse({ arenaId: formData.get("arenaId") });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  await requireWhatsAppConnectionAccess(parsed.data.arenaId);
+  const connection = await prisma.whatsAppConnection.findUnique({ where: { arenaId: parsed.data.arenaId } });
+  if (!connection) return connectArenaWhatsAppAction(formData);
+  const instanceToken = createEvolutionInstanceToken();
+  const webhookSecret = createEvolutionWebhookSecret();
+  try {
+    // Esta é a única ação que apaga a sessão pareada. Ela fica explícita na
+    // interface para não invalidar o dispositivo durante uma conexão normal.
+    await deleteEvolutionInstance(connection.instanceName);
+    const createdQr = (await createEvolutionInstance({ instanceName: connection.instanceName, instanceToken, webhookSecret })).qrCodeDataUrl;
+    await configureEvolutionWebhook({ instanceName: connection.instanceName, webhookSecret });
+    const qrCodeDataUrl = await getEvolutionQrCode(connection.instanceName, instanceToken).catch(() => createdQr);
+    if (!qrCodeDataUrl) throw new Error("A Evolution não retornou uma imagem QR válida.");
+    await prisma.whatsAppConnection.update({ where: { id: connection.id }, data: { encryptedToken: encryptConnectionSecrets({ token: instanceToken, webhookSecret }), webhookSecretHash: hashWebhookSecret(webhookSecret), qrCodeDataUrl, status: "AWAITING_SCAN", connectedPhone: "", lastConnectedAt: null, lastError: "" } });
+    revalidatePath("/arena");
+    revalidatePath("/agencia/conexoes");
+  } catch (error) {
+    const message = whatsAppConnectionError(error);
+    await prisma.whatsAppConnection.update({ where: { id: connection.id }, data: { lastError: message } });
     return { error: message };
   }
 }
@@ -86,7 +122,7 @@ export async function refreshArenaWhatsAppQrAction(formData: FormData) {
     revalidatePath("/agencia/conexoes");
   } catch (error) {
     console.error("Falha ao atualizar QR Code da Evolution", error);
-    const message = "Não foi possível gerar um novo QR Code agora. Aguarde alguns segundos e tente novamente; se persistir, use Reconectar WhatsApp para iniciar uma nova sessão.";
+    const message = "Não foi possível gerar um novo QR Code agora. Aguarde alguns segundos e tente novamente; use Resetar sessão somente se precisar parear outro aparelho.";
     await prisma.whatsAppConnection.update({ where: { id: connection.id }, data: { lastError: message } });
     return { error: message };
   }

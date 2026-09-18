@@ -6,6 +6,7 @@ import { requireModuleEdit } from "@/lib/auth/guards";
 import { requirePublicPlayerAuth } from "@/lib/auth/player-session";
 import { prisma } from "@/lib/prisma";
 import { replaceCategoryPairPlayer } from "@/lib/services/category-competition";
+import { getPublicLinkedPlayerIds } from "@/lib/services/public-player-link";
 
 const requestSchema = z.object({ arenaSlug: z.string().trim().min(1), pairId: z.string().trim().min(1), previousPlayerId: z.string().trim().min(1), replacementPlayerId: z.string().trim().min(1), reason: z.string().trim().min(10).max(1200) });
 
@@ -15,8 +16,9 @@ export async function requestLeagueMedicalSubstitutionAction(formData: FormData)
   const parsed = requestSchema.safeParse({ arenaSlug: formData.get("arenaSlug"), pairId: formData.get("pairId"), previousPlayerId: formData.get("previousPlayerId"), replacementPlayerId: formData.get("replacementPlayerId"), reason: formData.get("reason") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados da substituição inválidos.");
   const auth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
+  const linkedPlayerIds = await getPublicLinkedPlayerIds(auth.arenaId, auth.playerId);
   const pair = await prisma.categoryPair.findFirst({ where: { id: parsed.data.pairId, active: true, competition: { format: "LEAGUE", category: { tournament: { arenaId: auth.arenaId } } } }, include: { players: { select: { playerId: true } } } });
-  if (!pair || !pair.players.some((item) => item.playerId === auth.playerId)) throw new Error("Você não participa desta dupla.");
+  if (!pair || !pair.players.some((item) => linkedPlayerIds.includes(item.playerId))) throw new Error("Você não participa desta dupla.");
   if (!pair.players.some((item) => item.playerId === parsed.data.previousPlayerId)) throw new Error("O atleta afastado não pertence à dupla.");
   if (pair.players.some((item) => item.playerId === parsed.data.replacementPlayerId)) throw new Error("O substituto já está nesta dupla.");
   const replacement = await prisma.player.findFirst({ where: { id: parsed.data.replacementPlayerId, arenaId: auth.arenaId, active: true }, select: { id: true } });

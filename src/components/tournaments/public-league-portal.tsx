@@ -117,7 +117,7 @@ export function PublicLeaguePortal({
       {selectedCategory ? (
         <form
           method="get"
-          action="/home"
+          action={`/classificacao/${arenaSlug}`}
           className="portal-league-category-card"
         >
           <input type="hidden" name="arena" value={arenaSlug} />
@@ -173,7 +173,7 @@ export function PublicLeaguePortal({
       ) : (
         <form
           method="get"
-          action="/home"
+          action={`/classificacao/${arenaSlug}`}
           className="portal-league-category-picker"
         >
           <input type="hidden" name="arena" value={arenaSlug} />
