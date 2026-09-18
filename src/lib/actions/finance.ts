@@ -839,14 +839,14 @@ export async function createFinancialSettingAction(formData: FormData) {
   const parsed = financialSettingSchema.safeParse({
     area: formData.get("area"), name: formData.get("name"), type: formData.get("type"), bankName: formData.get("bankName"), openingBalance: formData.get("openingBalance"), document: formData.get("document"), phone: formData.get("phone"), email: formData.get("email"), notes: formData.get("notes")
   });
-  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
 
   let openingBalanceCents = 0;
   if (parsed.data.area === "contas-bancarias") {
     try {
       openingBalanceCents = parseMoneyToCents(parsed.data.openingBalance || "0");
     } catch {
-      throw new Error("Informe um saldo inicial válido, por exemplo 0,00.");
+      return { error: "Informe um saldo inicial válido, por exemplo 0,00." };
     }
   }
   try {
@@ -857,8 +857,9 @@ export async function createFinancialSettingAction(formData: FormData) {
       if (parsed.data.area === "fornecedores") await tx.supplier.create({ data: { arenaId: auth.arenaId, name: parsed.data.name, document: parsed.data.document, phone: parsed.data.phone, email: parsed.data.email, notes: parsed.data.notes } });
     });
   } catch (error) {
-    if (error instanceof Error && error.message.includes("Unique constraint")) throw new Error("Já existe um cadastro com este nome.");
-    throw new Error(error instanceof Error && error.message ? `Não foi possível salvar este cadastro: ${error.message}` : "Não foi possível salvar este cadastro. Tente novamente.");
+    if (error instanceof Error && error.message.includes("Unique constraint")) return { error: "Já existe uma conta, fornecedor ou categoria com este nome." };
+    console.error("Falha ao criar configuração financeira", error);
+    return { error: "Não foi possível criar este cadastro agora. Confirme os campos e tente novamente; se persistir, informe o nome da conta ao suporte." };
   }
 
   refreshFinancialSettings();

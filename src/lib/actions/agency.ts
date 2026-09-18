@@ -75,16 +75,14 @@ export async function refreshArenaWhatsAppQrAction(formData: FormData) {
   const connection = await prisma.whatsAppConnection.findUnique({ where: { arenaId: parsed.data.arenaId } });
   if (!connection?.encryptedToken) throw new Error("Conecte esta arena primeiro.");
   const token = decryptConnectionSecrets(connection.encryptedToken).token;
-  const webhookSecret = decryptConnectionSecrets(connection.encryptedToken).webhookSecret;
   try {
-    await configureEvolutionWebhook({ instanceName: connection.instanceName, webhookSecret });
     const qrCodeDataUrl = await getEvolutionQrCode(connection.instanceName, token);
     await prisma.whatsAppConnection.update({ where: { id: connection.id }, data: { qrCodeDataUrl, status: "AWAITING_SCAN", lastError: "" } });
     revalidatePath("/arena");
     revalidatePath("/agencia/conexoes");
   } catch (error) {
-    const detail = error instanceof Error ? error.message : "";
-    const message = `Não foi possível atualizar o QR Code na Evolution.${detail ? ` ${detail}` : " Verifique a conexão da API e tente novamente."}`;
+    console.error("Falha ao atualizar QR Code da Evolution", error);
+    const message = "Não foi possível gerar um novo QR Code agora. Aguarde alguns segundos e tente novamente; se persistir, use Reconectar WhatsApp para iniciar uma nova sessão.";
     await prisma.whatsAppConnection.update({ where: { id: connection.id }, data: { lastError: message } });
     return { error: message };
   }

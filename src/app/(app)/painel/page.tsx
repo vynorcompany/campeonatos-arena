@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { DashboardComparisonFilter } from "@/components/dashboard-comparison-filter";
 import { DashboardMetricCards } from "@/components/dashboard-metric-cards";
+import { DashboardSortablePanels } from "@/components/dashboard-sortable-panels";
 import { SectionCard } from "@/components/section-card";
 import { requireModuleView } from "@/lib/auth/guards";
 import { reservationInsights } from "@/lib/reports/reservation-insights";
@@ -104,12 +105,12 @@ export default async function OverviewPage({ searchParams }: { searchParams: Das
     <SectionCard title="Resumo financeiro" className="dashboard-financial-summary"><div className="stats-grid"><DashboardMetricCards cards={metricCards} /></div></SectionCard>
     <SectionCard title={view === "caixa" ? "Fluxo de caixa diário" : "Fluxo por competência diário"} className="dashboard-cash-flow"><div className="dashboard-chart-legend"><span><i className="dashboard-chart-income" />Entradas</span><span><i className="dashboard-chart-expense" />Saídas</span></div><div className="dashboard-cash-chart" role="img" aria-label={`Gráfico diário de entradas e saídas na visão de ${view}`}><div className="dashboard-cash-bars" style={{ gridTemplateColumns: `repeat(${cashDays.length}, minmax(0, 1fr))` }}>{cashDays.map((day) => <div className="dashboard-cash-day" key={day.label} title={`${day.label}: entradas ${money(day.income)}, saídas ${money(day.expense)}`}><div className="dashboard-cash-column"><span className="dashboard-cash-income" style={{ height: `${Math.max(day.income ? 7 : 0, (day.income / cashMax) * 100)}%` }} /><span className="dashboard-cash-expense" style={{ height: `${Math.max(day.expense ? 7 : 0, (day.expense / cashMax) * 100)}%` }} /></div><small>{day.label}</small></div>)}</div></div></SectionCard>
     <SectionCard title="Entradas por forma de pagamento" description="Valores recebidos no período selecionado" className="dashboard-payment-methods"><div className="dashboard-payment-towers">{paymentMethods.length ? paymentMethods.map((item) => <article key={item.name}><div title={`${item.name}: ${money(item.value)}`}><i style={{ height: `${Math.max(8, (item.value / maxPaymentMethod) * 100)}%` }} /></div><strong>{item.name}</strong><span>{money(item.value)}</span></article>) : <p className="muted">Nenhuma entrada recebida no período.</p>}</div></SectionCard>
-    <div className="dashboard-grid dashboard-chart-grid">
+    <DashboardSortablePanels>
       <SectionCard title="Quadras com mais reservas"><div className="dashboard-ranking-chart">{courts.map((item) => <div key={item.name}><span>{item.name}</span><i><b style={{ width: `${(item.value / maxRanking) * 100}%` }} /></i><strong>{item.value}</strong></div>)}</div></SectionCard>
       <SectionCard title="Produtos mais vendidos"><div className="dashboard-ranking-chart">{products.map((item) => <div key={item.name}><span>{item.name}</span><i><b style={{ width: `${(item.value / maxRanking) * 100}%` }} /></i><strong>{item.value}</strong></div>)}</div></SectionCard>
       <SectionCard title="Alunos por professor"><div className="dashboard-ranking-chart">{students.map((item) => <div key={item.name}><span>{item.name}</span><i><b style={{ width: `${(item.value / maxRanking) * 100}%` }} /></i><strong>{item.value}</strong></div>)}</div></SectionCard>
       <SectionCard title="Principais devedores" description="Contas em aberto"><div className="dashboard-ranking-chart dashboard-ranking-chart-financial">{debtors.length ? debtors.map((item) => <div key={item.name}><span>{item.name}</span><i><b style={{ width: `${(item.value / maxFinancialRanking) * 100}%` }} /></i><strong>{money(item.value)}</strong></div>) : <p className="muted">Nenhuma conta em aberto.</p>}</div></SectionCard>
       <SectionCard title="Clientes que mais gastam" description="Pagamentos confirmados no período"><div className="dashboard-ranking-chart dashboard-ranking-chart-financial">{bestClients.length ? bestClients.map((item) => <div key={item.name}><span>{item.name}</span><i><b style={{ width: `${(item.value / maxFinancialRanking) * 100}%` }} /></i><strong>{money(item.value)}</strong></div>) : <p className="muted">Nenhum pagamento confirmado no período.</p>}</div></SectionCard>
-    </div>
+    </DashboardSortablePanels>
   </div>;
 }
