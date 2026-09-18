@@ -115,7 +115,6 @@ export async function createEvolutionInstance(input: { instanceName: string; ins
 export async function configureEvolutionWebhook(input: { instanceName: string; webhookSecret: string }) {
   const config = requiredEnvironment();
   const endpoint = `${config.apiUrl}/webhook/set/${encodeURIComponent(input.instanceName)}`;
-  const webhook = webhookConfiguration(input.instanceName, input.webhookSecret);
   const legacyWebhook = legacyWebhookConfiguration(input.instanceName, input.webhookSecret);
   const request = (body: Record<string, unknown>) => fetch(endpoint, {
     method: "POST",
@@ -123,28 +122,28 @@ export async function configureEvolutionWebhook(input: { instanceName: string; w
     body: JSON.stringify(body),
     cache: "no-store",
   });
-  // A versão instalada aceita o objeto aninhado, mas recusa cabeçalhos
-  // personalizados. O segundo corpo mantém autenticação pelo segredo já
-  // persistido na URL somente para esse release legado.
-  let response = await request({ webhook });
-  if (!response.ok && [400, 403].includes(response.status)) response = await request({ webhook: legacyWebhook });
+  // A 2.3.7 aceita o payload com cabeçalhos, mas não repassa esses cabeçalhos
+  // ao destino. Configurá-lo assim parecia funcionar, porém toda notificação
+  // chegava sem segredo e recebia 401. Nesta versão, a URL assinada é a forma
+  // efetivamente suportada de autenticar o webhook.
+  let response = await request({ webhook: legacyWebhook });
   if (!response.ok && response.status === 400) response = await request({ enabled: true, url: legacyWebhook.url, webhookByEvents: false, webhookBase64: true, events: webhookEvents });
   const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
   if (!response.ok) throw new Error(`A Evolution não configurou o retorno da conexão (${response.status})${providerMessage(payload) ? `: ${providerMessage(payload)}` : "."}`);
 }
 
-export async function deleteEvolutionInstance(instanceName: string) {
+export async function logoutEvolutionInstance(instanceName: string) {
   const config = requiredEnvironment();
-  const response = await fetch(`${config.apiUrl}/instance/delete/${encodeURIComponent(instanceName)}`, {
+  const response = await fetch(`${config.apiUrl}/instance/logout/${encodeURIComponent(instanceName)}`, {
     method: "DELETE",
     headers: { apikey: config.apiKey },
     cache: "no-store",
   });
-  // A instância pode ter sido removida pela própria Evolution; nesse caso,
-  // seguimos com a criação limpa normalmente.
-  if (response.ok || response.status === 404) return;
+  // Uma sessão já desconectada pode retornar 400 na Evolution. Ela já está no
+  // estado desejado para gerar um novo QR e não deve bloquear o reset.
+  if (response.ok || [400, 404].includes(response.status)) return;
   const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
-  throw new Error(`A Evolution não reiniciou a instância (${response.status})${providerMessage(payload) ? `: ${providerMessage(payload)}` : "."}`);
+  throw new Error(`A Evolution não encerrou a sessão (${response.status})${providerMessage(payload) ? `: ${providerMessage(payload)}` : "."}`);
 }
 
 export async function getEvolutionQrCode(instanceName: string, instanceToken: string) {

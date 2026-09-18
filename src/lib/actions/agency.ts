@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAgencyAccess, requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
-import { configureEvolutionWebhook, createEvolutionInstance, createEvolutionInstanceName, createEvolutionInstanceToken, createEvolutionWebhookSecret, deleteEvolutionInstance, findEvolutionInstance, getEvolutionQrCode } from "@/lib/integrations/evolution/agency";
+import { configureEvolutionWebhook, createEvolutionInstance, createEvolutionInstanceName, createEvolutionInstanceToken, createEvolutionWebhookSecret, findEvolutionInstance, getEvolutionQrCode, logoutEvolutionInstance } from "@/lib/integrations/evolution/agency";
 import { decryptConnectionSecrets, encryptConnectionSecrets, hashWebhookSecret } from "@/lib/payments/connection-secrets";
 
 const systemRoleSchema = z.object({
@@ -88,17 +88,20 @@ export async function resetArenaWhatsAppSessionAction(formData: FormData) {
   await requireWhatsAppConnectionAccess(parsed.data.arenaId);
   const connection = await prisma.whatsAppConnection.findUnique({ where: { arenaId: parsed.data.arenaId } });
   if (!connection) return connectArenaWhatsAppAction(formData);
-  const instanceToken = createEvolutionInstanceToken();
-  const webhookSecret = createEvolutionWebhookSecret();
+  const storedSecrets = connection.encryptedToken ? decryptConnectionSecrets(connection.encryptedToken) : null;
+  const instanceToken = storedSecrets?.token || createEvolutionInstanceToken();
+  const webhookSecret = storedSecrets?.webhookSecret || createEvolutionWebhookSecret();
   try {
-    // Esta é a única ação que apaga a sessão pareada. Ela fica explícita na
-    // interface para não invalidar o dispositivo durante uma conexão normal.
-    await deleteEvolutionInstance(connection.instanceName);
-    const createdQr = (await createEvolutionInstance({ instanceName: connection.instanceName, instanceToken, webhookSecret })).qrCodeDataUrl;
+    // Resetar a sessão não apaga mais a instância: logout preserva a identidade,
+    // token, volume e webhook, e apenas pede um novo pareamento ao WhatsApp.
+    // Isso evita a corrida delete/create que deixava a arena sem instância.
+    const providerInstance = await findEvolutionInstance(connection.instanceName);
+    if (providerInstance) await logoutEvolutionInstance(connection.instanceName);
+    const createdQr = providerInstance ? "" : (await createEvolutionInstance({ instanceName: connection.instanceName, instanceToken, webhookSecret })).qrCodeDataUrl;
     await configureEvolutionWebhook({ instanceName: connection.instanceName, webhookSecret });
     const qrCodeDataUrl = await getEvolutionQrCode(connection.instanceName, instanceToken).catch(() => createdQr);
     if (!qrCodeDataUrl) throw new Error("A Evolution não retornou uma imagem QR válida.");
-    await prisma.whatsAppConnection.update({ where: { id: connection.id }, data: { encryptedToken: encryptConnectionSecrets({ token: instanceToken, webhookSecret }), webhookSecretHash: hashWebhookSecret(webhookSecret), qrCodeDataUrl, status: "AWAITING_SCAN", connectedPhone: "", lastConnectedAt: null, lastError: "" } });
+    await prisma.whatsAppConnection.update({ where: { id: connection.id }, data: { encryptedToken: storedSecrets ? connection.encryptedToken : encryptConnectionSecrets({ token: instanceToken, webhookSecret }), webhookSecretHash: storedSecrets ? connection.webhookSecretHash : hashWebhookSecret(webhookSecret), qrCodeDataUrl, status: "AWAITING_SCAN", connectedPhone: "", lastConnectedAt: null, lastError: "" } });
     revalidatePath("/arena");
     revalidatePath("/agencia/conexoes");
   } catch (error) {
