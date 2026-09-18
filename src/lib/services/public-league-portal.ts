@@ -532,7 +532,10 @@ export async function getPublicLeaguePortal(
         (request) => request.pairId === pair.id,
       ),
       opponents: pair.homeMatches
-        .filter((match) => !match.winnerPairId && match.leagueCycleId)
+        // O ciclo mensal organiza a tabela, mas não determina quem pode
+        // registrar placar. Todo mandante de um confronto pendente deve ver
+        // a ação, inclusive em jogos criados antes de um ciclo ser vinculado.
+        .filter((match) => !match.winnerPairId)
         .map((match) => ({
           matchId: match.id,
           pair: match.awayPair,
