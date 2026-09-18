@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
-import { defaultPermissionsForRole, normalizePermissionModules } from "@/lib/permissions";
+import { defaultArenaPermissionProfiles, defaultPermissionsForRole, normalizePermissionModules } from "@/lib/permissions";
 
 function profilePermissions(formData: FormData, name: "viewPermissions" | "editPermissions") {
   return normalizePermissionModules(formData.getAll(name).map(String));
@@ -56,6 +56,15 @@ export async function deletePermissionProfileAction(formData: FormData) {
 }
 
 export async function ensureArenaPermissionProfiles(arenaId: string) {
+  await prisma.permissionProfile.createMany({
+    data: defaultArenaPermissionProfiles.map((profile) => ({
+      arenaId,
+      ...profile,
+      viewPermissions: [...profile.viewPermissions],
+      editPermissions: [...profile.editPermissions]
+    })),
+    skipDuplicates: true
+  });
   const members = await prisma.arenaMember.findMany({ where: { arenaId, permissionProfileId: null } });
   for (const [index, member] of members.entries()) {
     const defaults = member.viewPermissions.length || member.editPermissions.length

@@ -23,6 +23,29 @@ export type PermissionModule = (typeof permissionModules)[number]["key"];
 export const allPermissionModules = permissionModules.map((module) => module.key);
 export const financialEntryDeletePermission = "finance:delete-entry";
 
+// Perfis entregues em toda arena. São dados iniciais — cada arena pode editar
+// as permissões posteriormente sem que uma atualização volte a sobrescrevê-las.
+export const defaultArenaPermissionProfiles = [
+  {
+    name: "Administrador",
+    description: "Acesso completo à operação e às configurações da arena.",
+    viewPermissions: allPermissionModules,
+    editPermissions: allPermissionModules
+  },
+  {
+    name: "Financeiro",
+    description: "Recebimentos, pagamentos, relatórios e configurações financeiras.",
+    viewPermissions: ["dashboard", "finance"],
+    editPermissions: ["finance"]
+  },
+  {
+    name: "Balcão",
+    description: "Atendimento diário, reservas, clientes e comandas.",
+    viewPermissions: ["dashboard", "calendar", "players", "pos"],
+    editPermissions: ["calendar", "players", "pos"]
+  }
+] as const;
+
 export const permissionAreas = [
   { title: "Agenda e reservas", module: "calendar", actions: [["calendar:view", "Visualizar grade"], ["calendar:booking:create", "Criar reserva"], ["calendar:booking:edit", "Editar reserva"], ["calendar:booking:cancel", "Cancelar reserva"], ["calendar:recurrence:release", "Liberar horário recorrente"], ["calendar:settings:manage", "Configurar quadras e preços"]] },
   { title: "Comandas", module: "pos", actions: [["pos:view", "Visualizar comandas"], ["pos:command:create", "Abrir comanda"], ["pos:command:items", "Inserir e alterar itens"], ["pos:command:finish", "Finalizar comanda"], ["pos:command:delete", "Excluir comanda"]] },
