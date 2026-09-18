@@ -327,9 +327,25 @@ export function PublicLeaguePortal({
                       {selectedWeek.results.map((result) => (
                         <article id={`jogo-${result.id}`} key={result.id}>
                           <strong className="portal-league-match-sides">
-                            <span>
+                            <span className="portal-league-match-home">
+                              <small
+                                className={`portal-league-match-home-status ${result.finished ? "is-finished" : result.scheduledAtLabel ? "is-scheduled" : "is-waiting"}`}
+                              >
+                                {result.finished
+                                  ? "Encerrado"
+                                  : result.scheduledAtLabel
+                                    ? "Agendado"
+                                    : "Aguardando"}
+                              </small>
                               <i>Mandante</i>
-                              {result.homePairName}
+                              <span className="portal-league-match-pair-name">
+                                {result.homePairName}
+                              </span>
+                              {result.scheduledAtLabel ? (
+                                <small className="portal-league-match-home-schedule">
+                                  {result.scheduledAtLabel}
+                                </small>
+                              ) : null}
                             </span>
                             <b className="portal-league-match-score">
                               {result.finished
@@ -343,27 +359,13 @@ export function PublicLeaguePortal({
                                 </small>
                               ) : null}
                             </b>
-                            <span>
+                            <span className="portal-league-match-away">
                               <i>Visitante</i>
-                              {result.awayPairName}
+                              <span className="portal-league-match-pair-name">
+                                {result.awayPairName}
+                              </span>
                             </span>
                           </strong>
-                          <div className="portal-league-match-meta">
-                            <span
-                              className={`portal-league-match-status ${result.finished ? "is-finished" : result.scheduledAtLabel ? "is-scheduled" : "is-waiting"}`}
-                            >
-                              {result.finished
-                                ? "Encerrado"
-                                : result.scheduledAtLabel
-                                  ? "Agendado"
-                                  : "Aguardando"}
-                            </span>
-                            {result.scheduledAtLabel ? (
-                              <small className="portal-league-match-schedule">
-                                {result.scheduledAtLabel}
-                              </small>
-                            ) : null}
-                          </div>
                         </article>
                       ))}
                     </div>

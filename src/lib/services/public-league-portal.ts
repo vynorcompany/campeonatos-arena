@@ -116,7 +116,7 @@ export async function getPublicLeaguePortal(
         where: { playerId, readAt: null, type: "LEAGUE_MATCH" },
         orderBy: { createdAt: "desc" },
         take: 8,
-        select: { id: true, title: true, message: true, href: true },
+        select: { id: true, title: true, message: true, href: true, createdAt: true },
       }),
       tx.leagueMedicalSubstitutionRequest.findMany({
         where: { requestedByPlayerId: playerId, status: "PENDING" },
@@ -404,6 +404,7 @@ export async function getPublicLeaguePortal(
       awayPairName: match.awayPair?.name ?? "Dupla a definir",
       homeScore: match.homeScore,
       awayScore: match.awayScore,
+      updatedAt: match.updatedAt,
       setScores: [
         [match.homeSet1, match.awaySet1],
         [match.homeSet2, match.awaySet2],
@@ -593,8 +594,21 @@ export async function getPublicLeaguePortal(
       const challenge = proposalId
         ? challenges.find((item) => item.id === proposalId)
         : null;
+      const historicResult =
+        notification.title === "Resultado lançado pela dupla mandante" &&
+        !notification.href.includes("#jogo-")
+          ? leagueResults.find(
+              (result) =>
+                result.finished &&
+                notification.createdAt.getTime() >= result.updatedAt.getTime() &&
+                notification.createdAt.getTime() - result.updatedAt.getTime() <
+                  5 * 60_000,
+            )
+          : null;
       const href = challenge
         ? `/classificacao/${arenaSlug}?section=leagues&tab=games&leagueTab=games&leagueCategory=${challenge.categoryMatch.competition.categoryId}#desafio-${challenge.id}`
+        : historicResult
+          ? `/home?arena=${encodeURIComponent(arenaSlug)}&section=leagues&tab=games&leagueTab=games&leagueCategory=${selectedLeagueCompetition?.categoryId ?? ""}#jogo-${historicResult.id}`
         : notification.href;
       return { ...notification, href };
     }),
