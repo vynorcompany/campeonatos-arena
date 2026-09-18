@@ -82,6 +82,9 @@ export function PublicLeaguePortal({
       }, new Map<number, { block: number; period: string; results: typeof portal.leagueResults }>())
       .values(),
   );
+  const completedLeagueResults = portal.leagueResults.filter(
+    (result) => result.finished,
+  );
 
   return (
     <section className="public-league-portal section-card stack-md">
@@ -252,6 +255,31 @@ export function PublicLeaguePortal({
                   </p>
                 </article>
               ))}
+            </section>
+          ) : null}
+          {completedLeagueResults.length ? (
+            <section className="portal-league-completed-results">
+              <header>
+                <div>
+                  <span>RESULTADOS DA LIGA</span>
+                  <h3>Placares lançados</h3>
+                </div>
+                <small>
+                  {completedLeagueResults.length} resultado
+                  {completedLeagueResults.length === 1 ? "" : "s"}
+                </small>
+              </header>
+              <div>
+                {completedLeagueResults.map((result) => (
+                  <article key={`placar-${result.id}`}>
+                    <span>{result.homePairName}</span>
+                    <strong>
+                      {result.homeScore ?? 0} × {result.awayScore ?? 0}
+                    </strong>
+                    <span>{result.awayPairName}</span>
+                  </article>
+                ))}
+              </div>
             </section>
           ) : null}
           <section className="portal-league-results">
