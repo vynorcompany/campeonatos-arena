@@ -13,6 +13,8 @@ test("dashboard renders a daily cash-flow chart and the requested operational ch
   assert.match(dashboard, /Quadras com mais reservas/);
   assert.match(dashboard, /Produtos mais vendidos/);
   assert.match(dashboard, /Alunos por professor/);
+  assert.match(dashboard, /Ocupação das quadras/);
+  assert.match(dashboard, /reservationInsights/);
   assert.match(dashboard, /paidAt/);
   assert.match(dashboard, /Visão de caixa/);
   assert.match(dashboard, /Visão de competência/);

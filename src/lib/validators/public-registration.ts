@@ -1,17 +1,18 @@
 import { z } from "zod";
 
 const cpfSchema = z.string().trim().regex(/^\d{11}$/, "CPF deve ter 11 dígitos numéricos.");
+const fullNameSchema = z.string().trim().min(3, "Informe nome e sobrenome.").refine((name) => name.split(/\s+/).filter(Boolean).length >= 2, "Informe nome e sobrenome.");
 
 export const createPublicRegistrationSchema = z.object({
   tournamentSlug: z.string().trim().min(1),
   categoryId: z.string().trim().min(1, "Selecione uma categoria."),
   paymentMethod: z.enum(["PIX", "CARD"]).default("PIX"),
-  leadName: z.string().trim().min(3, "Informe o nome do atleta."),
+  leadName: fullNameSchema,
   leadEmail: z.string().trim().email("Informe um e-mail válido do atleta."),
   leadPhone: z.string().trim().min(8, "Informe o telefone do atleta."),
   leadCpf: cpfSchema,
   leadBirthDate: z.coerce.date(),
-  partnerName: z.string().trim().min(3, "Informe o nome da dupla."),
+  partnerName: fullNameSchema,
   partnerPhone: z.string().trim().min(8, "Informe o telefone da dupla."),
   partnerCpf: cpfSchema,
   partnerBirthDate: z.coerce.date()
@@ -30,11 +31,11 @@ export const updateManualTournamentRegistrationSchema = z.object({
   registrationId: z.string().trim().min(1, "Inscricao invalida."),
   tournamentId: z.string().trim().min(1, "Torneio inválido."),
   categoryId: z.string().trim().min(1, "Selecione uma categoria."),
-  leadName: z.string().trim().min(3, "Informe o nome do atleta."),
+  leadName: fullNameSchema,
   leadPhone: z.string().trim().min(8, "Informe o telefone do atleta."),
   leadCpf: cpfSchema,
   leadBirthDate: z.coerce.date(),
-  partnerName: z.string().trim().min(3, "Informe o nome da dupla."),
+  partnerName: fullNameSchema,
   partnerPhone: z.string().trim().min(8, "Informe o telefone da dupla."),
   partnerCpf: cpfSchema,
   partnerBirthDate: z.coerce.date(),

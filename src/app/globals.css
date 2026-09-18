@@ -8473,6 +8473,10 @@ button {
   .client-portal-shortcuts b { display: none; }
 }
 
+/* Indicadores de ocupação no relatório de reservas. */
+.reservation-report-insights { display: grid; gap: 12px; }.reservation-report-highlights { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }.reservation-report-highlights article, .reservation-report-courts { padding: 14px; border: 1px solid #dce6f0; border-radius: 10px; background: #fff; }.reservation-report-highlights article { display: grid; gap: 4px; }.reservation-report-highlights span, .reservation-report-courts-head { color: #61768e; font-size: .67rem; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; }.reservation-report-highlights strong { color: #173b65; font-size: .94rem; }.reservation-report-highlights small { color: #61768e; font-size: .73rem; }.reservation-report-courts { padding: 0 14px; overflow: hidden; }.reservation-report-courts-head, .reservation-report-courts article { display: grid; grid-template-columns: minmax(140px, 1fr) 100px 180px; gap: 12px; align-items: center; min-height: 39px; border-bottom: 1px solid #e7eef5; }.reservation-report-courts article:last-of-type { border-bottom: 0; }.reservation-report-courts article { color: #536982; font-size: .76rem; }.reservation-report-courts article strong { color: #173b65; }.reservation-report-courts article > span:last-child { display: flex; align-items: center; justify-content: flex-end; gap: 8px; color: #284768; font-weight: 700; }.reservation-report-courts i { display: block; width: 100px; height: 6px; overflow: hidden; border-radius: 999px; background: #e7eef7; }.reservation-report-courts i b { display: block; height: 100%; border-radius: inherit; background: #1e7a56; }
+@media (max-width: 640px) { .reservation-report-highlights { grid-template-columns: 1fr; }.reservation-report-courts { overflow-x: auto; }.reservation-report-courts-head, .reservation-report-courts article { min-width: 410px; } }
+
 /* Aulas: no telefone os painéis seguem a mesma densidade dos demais menus. */
 @media (max-width: 700px) {
   .athlete-portal-learning-tabs { width: calc(100% - 22px); border-radius: 11px; }
