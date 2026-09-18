@@ -16,13 +16,19 @@ export async function sendEvolutionTextMessage(phone: string, text: string, aren
   const config = getEvolutionConfig();
   const instanceName = connection?.instanceName ?? config.instanceName;
   if (!instanceName) throw new Error("Nenhuma instância Evolution foi definida.");
-  const apiKey = connection?.encryptedToken ? decryptConnectionSecrets(connection.encryptedToken).token : config.apiKey;
-  const response = await fetch(`${config.apiUrl}/message/sendText/${encodeURIComponent(instanceName)}`, {
+  const legacyInstanceToken = connection?.encryptedToken ? decryptConnectionSecrets(connection.encryptedToken).token : "";
+  const send = (apiKey: string) => fetch(`${config.apiUrl}/message/sendText/${encodeURIComponent(instanceName)}`, {
     method: "POST",
     headers: { apikey: apiKey, "content-type": "application/json" },
     body: JSON.stringify(buildEvolutionTextPayload(phone, text)),
     cache: "no-store"
   });
+  // Evolution v2 usa a chave global da instalação; o fallback só ocorre em
+  // rejeição de autenticação para não duplicar mensagens em caso de falha.
+  let response = await send(config.apiKey);
+  if ((response.status === 401 || response.status === 403) && legacyInstanceToken && legacyInstanceToken !== config.apiKey) {
+    response = await send(legacyInstanceToken);
+  }
 
   if (!response.ok) {
     throw new Error(`A Evolution recusou o envio da mensagem (${response.status}).`);

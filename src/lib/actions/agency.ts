@@ -55,7 +55,10 @@ export async function connectArenaWhatsAppAction(formData: FormData) {
     revalidatePath("/arena");
     revalidatePath("/agencia/conexoes");
   } catch (error) {
-    const message = error instanceof Error && error.message.includes("configurada") ? "A Evolution ainda não foi configurada pela agência. Informe a URL e a chave da API antes de conectar uma arena." : "Não foi possível criar a instância na Evolution. Verifique a configuração da API e tente novamente.";
+    const detail = error instanceof Error ? error.message : "";
+    const message = detail.includes("configurada")
+      ? "A Evolution ainda não foi configurada pela agência. Informe a URL e a chave da API antes de conectar uma arena."
+      : `Não foi possível preparar o QR Code na Evolution.${detail ? ` ${detail}` : " Verifique a configuração da API e tente novamente."}`;
     if (existing) await prisma.whatsAppConnection.update({ where: { id: existing.id }, data: { lastError: message } });
     return { error: message };
   }
@@ -73,8 +76,9 @@ export async function refreshArenaWhatsAppQrAction(formData: FormData) {
     await prisma.whatsAppConnection.update({ where: { id: connection.id }, data: { qrCodeDataUrl, status: "AWAITING_SCAN", lastError: "" } });
     revalidatePath("/arena");
     revalidatePath("/agencia/conexoes");
-  } catch {
-    const message = "Não foi possível atualizar o QR Code na Evolution. Verifique a conexão da API e tente novamente.";
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : "";
+    const message = `Não foi possível atualizar o QR Code na Evolution.${detail ? ` ${detail}` : " Verifique a conexão da API e tente novamente."}`;
     await prisma.whatsAppConnection.update({ where: { id: connection.id }, data: { lastError: message } });
     return { error: message };
   }

@@ -120,9 +120,31 @@ export async function respondLeagueProposalAction(formData: FormData) {
   const parsed = z.object({ arenaSlug: z.string().trim().min(1), proposalId: z.string().trim().min(1), response: z.enum(["ACCEPTED", "REJECTED"]) }).safeParse({ arenaSlug: formData.get("arenaSlug"), proposalId: formData.get("proposalId"), response: formData.get("response") });
   if (!parsed.success) throw new Error("Resposta de horário inválida.");
   const auth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
-  const proposal = await prisma.leagueMatchProposal.findFirst({ where: { id: parsed.data.proposalId, status: "PENDING" }, include: { court: true, categoryMatch: { include: { homePair: { include: { players: { select: { playerId: true } } } }, awayPair: { include: { players: { select: { playerId: true } } } } } } } });
+  const proposal = await prisma.leagueMatchProposal.findFirst({
+    where: {
+      id: parsed.data.proposalId,
+      status: "PENDING",
+      categoryMatch: { competition: { category: { tournament: { arenaId: auth.arenaId } } } },
+    },
+    include: {
+      court: true,
+      categoryMatch: {
+        include: {
+          homePair: { include: { players: { select: { playerId: true } } } },
+          awayPair: { include: { players: { select: { playerId: true } } } },
+        },
+      },
+    },
+  });
   if (!proposal || !proposal.categoryMatch.homePair || !proposal.categoryMatch.awayPair) throw new Error("Esta sugestão não está mais disponível.");
-  if (!proposal.categoryMatch.awayPair.players.some((entry) => entry.playerId === auth.playerId)) throw new Error("Somente a dupla visitante pode responder.");
+  const opponentPair = await prisma.categoryPair.findFirst({
+    where: {
+      id: proposal.opponentPairId,
+      competitionId: proposal.categoryMatch.competitionId,
+    },
+    include: { players: { select: { playerId: true } } },
+  });
+  if (!opponentPair?.players.some((entry) => entry.playerId === auth.playerId)) throw new Error("Somente a dupla convidada pode responder.");
   if (proposal.responseDueAt <= new Date()) throw new Error("O prazo para responder esta sugestão expirou.");
   if (parsed.data.response === "REJECTED") {
     await prisma.$transaction([
