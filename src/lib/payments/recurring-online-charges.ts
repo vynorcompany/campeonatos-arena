@@ -1,4 +1,5 @@
 import { createBoletoPayment, getMissingBoletoPayerFields } from "@/lib/payments/mercado-pago";
+import { sendEvolutionTextMessage } from "@/lib/integrations/evolution/client";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 
@@ -18,7 +19,7 @@ export async function issueRecurringOnlineChargeForEntry(entryId: string): Promi
       playerId: { not: null },
       onlinePaymentId: ""
     },
-    include: { player: { select: { name: true, email: true, cpf: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } } }
+    include: { player: { select: { name: true, phone: true, email: true, cpf: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } } }
   });
 
   if (!entry) return { created: false, skipped: false };
@@ -48,6 +49,12 @@ export async function issueRecurringOnlineChargeForEntry(entryId: string): Promi
       onlinePaymentPublishedAt: new Date()
     }
   }));
+  // A emissão não depende do canal de WhatsApp. Quando a arena estiver
+  // conectada, o mesmo boleto é comunicado ao cliente imediatamente.
+  if (updated.count && player.phone) {
+    const dueDate = entry.dueDate ? new Intl.DateTimeFormat("pt-BR").format(entry.dueDate) : "a data de vencimento informada";
+    await sendEvolutionTextMessage(player.phone, `Olá, ${player.name}. Seu boleto de ${entry.description} já foi emitido, com vencimento em ${dueDate}. Pague por aqui: ${charge.checkoutUrl}`, entry.arenaId).catch(() => undefined);
+  }
   return { created: Boolean(updated.count), skipped: false };
 }
 

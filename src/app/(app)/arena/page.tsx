@@ -134,6 +134,6 @@ function WhatsAppConnectionSection({ arena }: { arena: { id: string; name: strin
 
 async function PermissionProfilesSection({ arenaId }: { arenaId: string }) {
   await ensureArenaPermissionProfiles(arenaId);
-  const profiles = await prisma.permissionProfile.findMany({ where: { arenaId, active: true }, select: { id: true, name: true, description: true, _count: { select: { members: true } } }, orderBy: { name: "asc" } });
+  const profiles = await prisma.permissionProfile.findMany({ where: { arenaId, active: true }, select: { id: true, name: true, description: true, members: { select: { user: { select: { name: true } } }, orderBy: { user: { name: "asc" } } } }, orderBy: { name: "asc" } });
   return <PermissionProfilesManagement profiles={profiles} />;
 }

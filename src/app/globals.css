@@ -4285,6 +4285,7 @@ button {
 .standard-list-row:last-of-type { border-bottom: 0; }
 .standard-list-row:hover { color: #183e68; background: #f7fbff; }
 .standard-list-row strong { color: #143b67; font-size: .8rem; }
+.permission-profile-members { min-width: 0; overflow: hidden; color: #365b7d; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
 .standard-list-action { justify-self: start; color: #1764b7; font-weight: 750; }.standard-list-action b { margin-left: 4px; font-size: 1rem; }
 .standard-list-empty { margin: 0; padding: 28px 14px; color: var(--muted); font-size: .8rem; text-align: center; }
 

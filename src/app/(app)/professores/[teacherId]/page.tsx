@@ -86,9 +86,6 @@ export default async function TeacherDetailPage(
                   },
                 },
                 financialEntries: {
-                  where: {
-                    status: { not: "VOIDED" },
-                  },
                   select: {
                     id: true,
                     counterpartyName: true,
@@ -450,12 +447,13 @@ export default async function TeacherDetailPage(
             {teacher.planAssignments.flatMap(({ plan }) =>
               plan.subscriptions.map((subscription) => {
                 const payment = plan.financialEntries.find((entry) =>
-                  subscription.student.playerId
-                    ? entry.playerId === subscription.student.playerId
-                    : entry.counterpartyName === subscription.student.name,
+                  entry.playerId === subscription.student.playerId ||
+                  entry.counterpartyName === subscription.student.name,
                 );
                 const financialStatus = !payment
                   ? "Sem lançamento atribuído"
+                  : payment.status === "VOIDED"
+                    ? "Lançamento estornado"
                   : payment.status === "PAID"
                     ? "Mensalidade paga"
                     : "Mensalidade em aberto";
