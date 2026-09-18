@@ -9122,4 +9122,5 @@ button {
 }
 .athlete-portal-events-shell .portal-league-results .portal-league-match-home-status.is-scheduled { color: #7be9bd; background: rgb(20 91 68 / .46); }
 .athlete-portal-events-shell .portal-league-results .portal-league-match-home-schedule { color: #8faabd; background: transparent; font-size: .62rem; font-weight: 650; line-height: 1.25; }
-.athlete-portal-events-shell .portal-league-results .portal-league-match-score small { background: transparent; }
+.athlete-portal-events-shell .portal-league-results .portal-league-match-score { display: grid; justify-items: center; gap: 3px; }
+.athlete-portal-events-shell .portal-league-results .portal-league-match-score small { display: block; background: transparent; }
