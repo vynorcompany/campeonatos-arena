@@ -82,9 +82,6 @@ export function PublicLeaguePortal({
       }, new Map<number, { block: number; period: string; results: typeof portal.leagueResults }>())
       .values(),
   );
-  const completedLeagueResults = portal.leagueResults.filter(
-    (result) => result.finished,
-  );
 
   return (
     <section className="public-league-portal section-card stack-md">
@@ -257,40 +254,6 @@ export function PublicLeaguePortal({
               ))}
             </section>
           ) : null}
-          {completedLeagueResults.length ? (
-            <section className="portal-league-completed-results">
-              <header>
-                <div>
-                  <span>RESULTADOS DA LIGA</span>
-                  <h3>Placares lançados</h3>
-                </div>
-                <small>
-                  {completedLeagueResults.length} resultado
-                  {completedLeagueResults.length === 1 ? "" : "s"}
-                </small>
-              </header>
-              <div>
-                {completedLeagueResults.map((result) => (
-                  <article key={`placar-${result.id}`}>
-                    <span>{result.homePairName}</span>
-                    <div className="portal-league-result-score">
-                      <strong>
-                        {result.homeScore ?? 0} × {result.awayScore ?? 0}
-                      </strong>
-                      {result.setScores.length ? (
-                        <small>
-                          {result.setScores
-                            .map(([home, away]) => `${home}–${away}`)
-                            .join(" · ")}
-                        </small>
-                      ) : null}
-                    </div>
-                    <span>{result.awayPairName}</span>
-                  </article>
-                ))}
-              </div>
-            </section>
-          ) : null}
           <section className="portal-league-results">
             <header>
               <div>
@@ -321,10 +284,17 @@ export function PublicLeaguePortal({
                               <i>Mandante</i>
                               {result.homePairName}
                             </span>
-                            <b>
+                            <b className="portal-league-match-score">
                               {result.finished
                                 ? `${result.homeScore ?? 0} × ${result.awayScore ?? 0}`
                                 : "×"}
+                              {result.finished && result.setScores.length ? (
+                                <small>
+                                  {result.setScores
+                                    .map(([home, away]) => `${home}–${away}`)
+                                    .join(" · ")}
+                                </small>
+                              ) : null}
                             </b>
                             <span>
                               <i>Visitante</i>
