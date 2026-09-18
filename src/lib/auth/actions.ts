@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { createSession, destroySession, getAuthContext, setArenaContextCookie } from "@/lib/auth/session";
 import { env } from "@/lib/env";
 import { loginSchema, registerArenaSchema } from "@/lib/validators/auth";
-import { defaultPermissionsForRole } from "@/lib/permissions";
+import { defaultArenaPermissionProfiles, defaultPermissionsForRole } from "@/lib/permissions";
 
 export type LoginState = {
   error: string | null;
@@ -203,13 +203,27 @@ export async function registerArenaAction(_: RegisterArenaState, formData: FormD
       }
     });
 
+    await tx.permissionProfile.createMany({
+      data: defaultArenaPermissionProfiles.map((profile) => ({
+        arenaId: arena.id,
+        ...profile,
+        viewPermissions: [...profile.viewPermissions],
+        editPermissions: [...profile.editPermissions]
+      }))
+    });
+    const administratorProfile = await tx.permissionProfile.findUniqueOrThrow({
+      where: { arenaId_name: { arenaId: arena.id, name: "Administrador" } },
+      select: { id: true }
+    });
+
     await tx.arenaMember.create({
       data: {
         userId: createdUser.id,
         arenaId: arena.id,
         role: "OWNER",
         viewPermissions: ownerPermissions.viewPermissions,
-        editPermissions: ownerPermissions.editPermissions
+        editPermissions: ownerPermissions.editPermissions,
+        permissionProfileId: administratorProfile.id
       }
     });
 

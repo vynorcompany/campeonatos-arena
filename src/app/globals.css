@@ -4274,6 +4274,19 @@ button {
 .profile-editor-actions { display: flex; justify-content: flex-end; gap: 9px; }
 .profile-delete-form { width: fit-content; }
 .permission-profile-create-form { display: grid; grid-template-columns: minmax(190px, .7fr) minmax(260px, 1.3fr) auto; align-items: end; gap: 12px; max-width: 880px; }
+.permission-profiles-card { gap: 16px; }
+.permission-profile-create-panel { width: fit-content; }
+.permission-profile-create-panel[open] { display: grid; width: min(100%, 760px); gap: 13px; }
+.permission-profiles-list { --profile-columns: minmax(150px, .8fr) minmax(260px, 1.7fr) minmax(95px, .45fr) minmax(110px, .45fr); }
+.standard-list { overflow: hidden; border: 1px solid #d9e4ef; border-radius: 9px; background: #fff; }
+.standard-list-head, .standard-list-row { display: grid; grid-template-columns: var(--profile-columns); align-items: center; gap: 18px; }
+.standard-list-head { min-height: 38px; padding: 8px 14px; border-bottom: 1px solid #d9e4ef; color: #58708b; background: #f5f8fc; font-size: .66rem; font-weight: 800; letter-spacing: .035em; text-transform: uppercase; }
+.standard-list-row { min-height: 58px; padding: 10px 14px; border-bottom: 1px solid #e5edf4; color: #48627d; font-size: .78rem; text-decoration: none; transition: background .15s ease, color .15s ease; }
+.standard-list-row:last-of-type { border-bottom: 0; }
+.standard-list-row:hover { color: #183e68; background: #f7fbff; }
+.standard-list-row strong { color: #143b67; font-size: .8rem; }
+.standard-list-action { justify-self: start; color: #1764b7; font-weight: 750; }.standard-list-action b { margin-left: 4px; font-size: 1rem; }
+.standard-list-empty { margin: 0; padding: 28px 14px; color: var(--muted); font-size: .8rem; text-align: center; }
 
 @media (max-width: 620px) {
   .permission-matrix {
@@ -4285,6 +4298,8 @@ button {
   .profile-editor-fields { grid-template-columns: 1fr; }
   .permission-profile-create-form { grid-template-columns: 1fr; }
   .permission-profile-create-form .button { width: 100%; }
+  .standard-list { overflow-x: auto; }
+  .standard-list-head, .standard-list-row { min-width: 610px; }
   .profile-editor-actions { align-items: stretch; flex-direction: column-reverse; }
   .profile-editor-actions .button { width: 100%; }
 }

@@ -81,7 +81,7 @@ export default async function TeacherDetailPage(
                   where: { status: "ACTIVE", student: { teacherAssignments: { some: { teacherId: params.teacherId, active: true } } } },
                   include: {
                     student: {
-                      select: { id: true, name: true, remainingClasses: true },
+                      select: { id: true, name: true, playerId: true, remainingClasses: true },
                     },
                   },
                 },
@@ -92,6 +92,7 @@ export default async function TeacherDetailPage(
                   select: {
                     id: true,
                     counterpartyName: true,
+                    playerId: true,
                     amountCents: true,
                     status: true,
                     paidAt: true,
@@ -448,9 +449,10 @@ export default async function TeacherDetailPage(
           <div className="teacher-student-plan-list">
             {teacher.planAssignments.flatMap(({ plan }) =>
               plan.subscriptions.map((subscription) => {
-                const payment = plan.financialEntries.find(
-                  (entry) =>
-                    entry.counterpartyName === subscription.student.name,
+                const payment = plan.financialEntries.find((entry) =>
+                  subscription.student.playerId
+                    ? entry.playerId === subscription.student.playerId
+                    : entry.counterpartyName === subscription.student.name,
                 );
                 const financialStatus = !payment
                   ? "Sem lançamento atribuído"
