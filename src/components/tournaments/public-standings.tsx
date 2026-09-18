@@ -568,16 +568,16 @@ function RankingPanel({ arenaSlug, data }: { arenaSlug: string; data: ArenaPubli
       ) : null}
       {data.selected?.kind === "CATEGORY" &&
       data.selected.format === "LEAGUE" ? (
-        <table className="portal-ranking-table">
+        <table className="portal-ranking-table portal-ranking-table-league">
           <thead>
             <tr>
               <th>Pos.</th>
               <th>Dupla</th>
               <th>Pts.</th>
-              <th>Jogos</th>
-              <th>Vitórias</th>
-              <th>Derrotas</th>
-              <th>Saldo</th>
+              <th><span className="ranking-table-label-wide">Jogos</span><abbr className="ranking-table-label-compact" title="Jogos">JG</abbr></th>
+              <th><span className="ranking-table-label-wide">Vitórias</span><abbr className="ranking-table-label-compact" title="Vitórias">V</abbr></th>
+              <th><span className="ranking-table-label-wide">Derrotas</span><abbr className="ranking-table-label-compact" title="Derrotas">D</abbr></th>
+              <th><span className="ranking-table-label-wide">Saldo</span><abbr className="ranking-table-label-compact" title="Saldo">SAL</abbr></th>
             </tr>
           </thead>
           <tbody>
