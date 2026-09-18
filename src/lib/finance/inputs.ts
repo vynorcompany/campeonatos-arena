@@ -1,6 +1,11 @@
 export function parseMoneyToCents(value: string) {
   const cleanValue = value.trim() || "0";
-  const normalized = cleanValue.replace(/\./g, "").replace(",", ".");
+  // Aceita tanto o valor técnico ("1200,50") quanto o valor exibido pelo
+  // campo monetário ("R$ 1.200,50").
+  const numericValue = cleanValue.replace(/[^\d,.-]/g, "");
+  const normalized = numericValue.includes(",")
+    ? numericValue.replace(/\./g, "").replace(",", ".")
+    : numericValue;
   const amount = Number(normalized);
 
   if (!Number.isFinite(amount) || amount < 0) {
