@@ -35,12 +35,16 @@ export function PublicLeaguePortal({
   const [pending, startTransition] = useTransition();
   const submit = (
     form: HTMLFormElement,
-    action: (data: FormData) => Promise<void>,
+    action: (data: FormData) => Promise<void | { error: string }>,
     success: string,
   ) =>
     startTransition(async () => {
       try {
-        await action(new FormData(form));
+        const result = await action(new FormData(form));
+        if (result && "error" in result) {
+          setMessage(result.error);
+          return;
+        }
         setMessage(success);
         // A resposta altera dados renderizados no servidor (status da proposta
         // e agenda). Sem o refresh o botão parece não ter funcionado até a

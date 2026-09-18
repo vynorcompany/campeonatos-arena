@@ -116,7 +116,17 @@ export async function respondLeagueChallengeAction(formData: FormData) {
   revalidatePath(publicPortalPath(parsed.data.arenaSlug));
 }
 
-export async function respondLeagueProposalAction(formData: FormData) {
+export async function respondLeagueProposalAction(formData: FormData): Promise<void | { error: string }> {
+  try {
+    await respondLeagueProposal(formData);
+  } catch (error) {
+    console.error("Falha ao responder sugestão de Liga", error);
+    const message = error instanceof Error ? error.message : "Não foi possível responder esta sugestão.";
+    return { error: message.includes("\n") ? "Não foi possível responder esta sugestão. Tente novamente." : message };
+  }
+}
+
+async function respondLeagueProposal(formData: FormData) {
   const parsed = z.object({ arenaSlug: z.string().trim().min(1), proposalId: z.string().trim().min(1), response: z.enum(["ACCEPTED", "REJECTED"]) }).safeParse({ arenaSlug: formData.get("arenaSlug"), proposalId: formData.get("proposalId"), response: formData.get("response") });
   if (!parsed.success) throw new Error("Resposta de horário inválida.");
   const auth = await requirePublicPlayerAuth(parsed.data.arenaSlug);

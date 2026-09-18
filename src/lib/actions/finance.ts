@@ -122,6 +122,9 @@ const couponSchema = z.object({
 
 const updateCouponSchema = couponSchema.extend({ couponId: z.string().min(1, "Cupom inválido."), active: z.preprocess((value) => value === "on" || value === true, z.boolean()) });
 const deleteCouponSchema = z.object({ couponId: z.string().min(1, "Cupom inválido.") });
+const couponToggleSchema = z.object({ couponId: z.string().min(1, "Cupom inválido."), active: z.preprocess((value) => value === "on" || value === true, z.boolean()) });
+const financialCategoryUpdateSchema = z.object({ categoryId: z.string().min(1, "Categoria inválida."), name: z.string().trim().min(2, "Informe o nome."), type: z.enum(["REVENUE", "EXPENSE", "BOTH"]) });
+const financialCategoryDeleteSchema = z.object({ categoryId: z.string().min(1, "Categoria inválida.") });
 const supplierUpdateSchema = z.object({ supplierId: z.string().min(1, "Fornecedor inválido."), name: z.string().trim().min(2, "Informe o nome."), document: optionalText, phone: optionalText, email: optionalText, notes: optionalText, active: z.preprocess((value) => value === "on" || value === true, z.boolean()) });
 const deleteSupplierSchema = z.object({ supplierId: z.string().min(1, "Fornecedor inválido.") });
 
@@ -838,16 +841,24 @@ export async function createFinancialSettingAction(formData: FormData) {
   });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
 
+  let openingBalanceCents = 0;
+  if (parsed.data.area === "contas-bancarias") {
+    try {
+      openingBalanceCents = parseMoneyToCents(parsed.data.openingBalance || "0");
+    } catch {
+      throw new Error("Informe um saldo inicial válido, por exemplo 0,00.");
+    }
+  }
   try {
     await withArenaTransaction(auth.arenaId, async (tx) => {
       if (parsed.data.area === "categorias-financeiras") await tx.financialCategory.create({ data: { arenaId: auth.arenaId, name: parsed.data.name, type: parsed.data.type } });
       if (parsed.data.area === "formas-pagamento") await tx.paymentMethodSetting.create({ data: { arenaId: auth.arenaId, name: parsed.data.name } });
-      if (parsed.data.area === "contas-bancarias") await tx.bankAccount.create({ data: { arenaId: auth.arenaId, name: parsed.data.name, bankName: parsed.data.bankName, openingBalanceCents: parseMoneyToCents(parsed.data.openingBalance) } });
+      if (parsed.data.area === "contas-bancarias") await tx.bankAccount.create({ data: { arenaId: auth.arenaId, name: parsed.data.name, bankName: parsed.data.bankName, openingBalanceCents } });
       if (parsed.data.area === "fornecedores") await tx.supplier.create({ data: { arenaId: auth.arenaId, name: parsed.data.name, document: parsed.data.document, phone: parsed.data.phone, email: parsed.data.email, notes: parsed.data.notes } });
     });
   } catch (error) {
     if (error instanceof Error && error.message.includes("Unique constraint")) throw new Error("Já existe um cadastro com este nome.");
-    throw error;
+    throw new Error(error instanceof Error && error.message ? `Não foi possível salvar este cadastro: ${error.message}` : "Não foi possível salvar este cadastro. Tente novamente.");
   }
 
   refreshFinancialSettings();
@@ -972,6 +983,38 @@ export async function deleteCouponAction(formData: FormData) {
   const auth = await requirePermission("finance:receivable:settle"); const parsed = deleteCouponSchema.safeParse({ couponId: formData.get("couponId") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   await withArenaTransaction(auth.arenaId, (tx) => tx.coupon.deleteMany({ where: { id: parsed.data.couponId, arenaId: auth.arenaId } })); refreshFinancialSettings();
+}
+
+export async function toggleCouponActiveAction(formData: FormData) {
+  const auth = await requirePermission("finance:receivable:settle");
+  const parsed = couponToggleSchema.safeParse({ couponId: formData.get("couponId"), active: formData.get("active") });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  const updated = await withArenaTransaction(auth.arenaId, (tx) => tx.coupon.updateMany({ where: { id: parsed.data.couponId, arenaId: auth.arenaId }, data: { active: parsed.data.active } }));
+  if (!updated.count) throw new Error("Cupom não encontrado.");
+  refreshFinancialSettings();
+}
+
+export async function updateFinancialCategoryAction(formData: FormData) {
+  const auth = await requireModuleEdit("finance");
+  const parsed = financialCategoryUpdateSchema.safeParse({ categoryId: formData.get("categoryId"), name: formData.get("name"), type: formData.get("type") });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  try {
+    const updated = await withArenaTransaction(auth.arenaId, (tx) => tx.financialCategory.updateMany({ where: { id: parsed.data.categoryId, arenaId: auth.arenaId }, data: { name: parsed.data.name, type: parsed.data.type } }));
+    if (!updated.count) throw new Error("Categoria não encontrada.");
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Unique constraint")) throw new Error("Já existe uma categoria com este nome.");
+    throw error;
+  }
+  refreshFinancialSettings();
+}
+
+export async function deleteFinancialCategoryAction(formData: FormData) {
+  const auth = await requireModuleEdit("finance");
+  const parsed = financialCategoryDeleteSchema.safeParse({ categoryId: formData.get("categoryId") });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  const deleted = await withArenaTransaction(auth.arenaId, (tx) => tx.financialCategory.deleteMany({ where: { id: parsed.data.categoryId, arenaId: auth.arenaId } }));
+  if (!deleted.count) throw new Error("Categoria não encontrada.");
+  refreshFinancialSettings();
 }
 
 export async function updateSupplierAction(formData: FormData) {
