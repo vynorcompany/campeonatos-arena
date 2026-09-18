@@ -19,7 +19,7 @@ export async function getPublicLinkedPlayerIds(arenaId: string, playerId: string
   const phone = normalizeBrazilianPhone(current.phone);
   if (!phone) return [playerId];
   const players = await prisma.player.findMany({
-    where: { arenaId, active: true, phone: { not: "" } },
+    where: { arenaId, phone: { not: "" } },
     select: { id: true, phone: true, account: { select: { id: true } } },
   });
   return players

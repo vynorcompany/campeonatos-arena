@@ -9,6 +9,7 @@ import { prisma } from "@/lib/prisma";
 import { resolvePublicClientPlayer } from "@/lib/services/public-client-registration";
 import { env } from "@/lib/env";
 import { sendEvolutionTextMessage } from "@/lib/integrations/evolution/client";
+import { normalizeBrazilianPhone } from "@/lib/phone";
 
 export type PublicClientAuthState = { error: string | null };
 
@@ -17,7 +18,7 @@ const globalLoginSchema = z.object({ phone: z.string().trim().min(8), password: 
 const registerSchema = loginSchema.extend({ name: z.string().trim().min(3, "Informe nome e sobrenome.").refine((name) => name.split(/\s+/).filter(Boolean).length >= 2, "Informe nome e sobrenome."), confirmPassword: z.string().min(8) }).refine((data) => data.password === data.confirmPassword, { path: ["confirmPassword"], message: "As senhas não coincidem." });
 const resetSchema = loginSchema.extend({ code: z.string().trim().length(6), newPassword: z.string().min(8), confirmPassword: z.string().min(8) }).refine((data) => data.newPassword === data.confirmPassword, { path: ["confirmPassword"], message: "As senhas não coincidem." });
 
-function normalizePhone(phone: string) { return phone.replace(/\D/g, ""); }
+function normalizePhone(phone: string) { return normalizeBrazilianPhone(phone); }
 function destination(arenaSlug: string, returnTo: string) { return returnTo.startsWith(`/classificacao/${arenaSlug}`) ? returnTo : `/reservar/${arenaSlug}`; }
 function hashCode(code: string) { return crypto.createHash("sha256").update(code).digest("hex"); }
 function createCode() { return crypto.randomInt(100000, 1000000).toString(); }
