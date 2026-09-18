@@ -57,6 +57,7 @@ export async function getPublicLeaguePortal(
       players: { some: { playerId: { in: linkedPlayerIds } } },
       competition: {
         format: "LEAGUE",
+        status: { not: "FINISHED" },
         category: { tournament: { arenaId: arena.id } },
       },
     },
@@ -323,6 +324,7 @@ export async function getPublicLeaguePortal(
   const leagueCompetitions = await prisma.categoryCompetition.findMany({
     where: {
       format: "LEAGUE",
+      status: { not: "FINISHED" },
       category: { active: true, tournament: { arenaId: arena.id } },
       OR: [
         { status: "PUBLISHED" },
