@@ -15,15 +15,21 @@ export type AthletePortalNotification = {
   persistent?: boolean;
 };
 
+function leagueMatchHref(arenaSlug: string, categoryId: string, matchId: string) {
+  const query = new URLSearchParams({ section: "leagues", tab: "games", leagueTab: "games", leagueCategory: categoryId });
+  return `/home?arena=${encodeURIComponent(arenaSlug)}&${query.toString()}#jogo-${matchId}`;
+}
+
 export async function getAthletePortalNotifications(arenaSlug: string, playerId: string) {
   const arena = await prisma.arena.findUnique({ where: { slug: arenaSlug }, select: { id: true } });
   if (!arena) return [] as AthletePortalNotification[];
   const now = new Date();
-  const [playerNotifications, announcements, entries, reads] = await withArenaTransaction(arena.id, (tx) => Promise.all([
-    tx.playerNotification.findMany({ where: { playerId }, orderBy: { createdAt: "desc" }, take: 24, select: { id: true, title: true, message: true, href: true, readAt: true, createdAt: true } }),
+  const [playerNotifications, announcements, entries, reads, recordedLeagueMatches] = await withArenaTransaction(arena.id, (tx) => Promise.all([
+    tx.playerNotification.findMany({ where: { playerId }, orderBy: { createdAt: "desc" }, take: 24, select: { id: true, type: true, title: true, message: true, href: true, readAt: true, createdAt: true } }),
     tx.portalAnnouncement.findMany({ where: { arenaId: arena.id, active: true, AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }] }, orderBy: [{ pinned: "desc" }, { createdAt: "desc" }], take: 6, select: { id: true, title: true, message: true, createdAt: true } }),
     tx.financialEntry.findMany({ where: { arenaId: arena.id, playerId, type: "REVENUE", status: { in: ["PENDING", "OVERDUE"] } }, orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }], take: 12, select: { id: true, description: true, amountCents: true, dueDate: true, createdAt: true, onlinePaymentUrl: true, status: true, settlements: { select: { amountCents: true, interestCents: true } } } }),
     tx.playerPortalNotificationRead.findMany({ where: { playerId }, select: { notificationKey: true } }),
+    tx.categoryMatch.findMany({ where: { competition: { format: "LEAGUE", category: { tournament: { arenaId: arena.id } } }, awayPair: { players: { some: { playerId } } }, homeScore: { not: null }, awayScore: { not: null } }, orderBy: { updatedAt: "desc" }, take: 24, select: { id: true, updatedAt: true, competition: { select: { categoryId: true } } } }),
   ]));
   const readKeys = new Set(reads.map((item) => item.notificationKey));
   const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -32,7 +38,12 @@ export async function getAthletePortalNotifications(arenaSlug: string, playerId:
     return { id: `finance-${entry.id}`, source: "FINANCE" as const, title: overdue ? "Pagamento em atraso" : "Pagamento pendente", message: `${entry.description || "Lançamento financeiro"} · ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(outstandingCents / 100)}`, href: entry.onlinePaymentUrl || `/home?arena=${encodeURIComponent(arenaSlug)}&section=finance`, createdAt: entry.createdAt.toISOString(), isRead: overdue ? false : readKeys.has(`finance-${entry.id}`), persistent: overdue };
   });
   return [
-    ...playerNotifications.map((notification) => ({ id: notification.id, source: "PLAYER" as const, title: notification.title, message: notification.message, href: notification.href || `/classificacao/${arenaSlug}`, createdAt: notification.createdAt.toISOString(), isRead: Boolean(notification.readAt) })),
+    ...playerNotifications.map((notification) => {
+      const historicResultMatch = notification.type === "LEAGUE_MATCH" && notification.title === "Resultado lançado pela dupla mandante" && !notification.href.includes("#jogo-")
+        ? recordedLeagueMatches.find((match) => notification.createdAt.getTime() >= match.updatedAt.getTime() && notification.createdAt.getTime() - match.updatedAt.getTime() < 5 * 60_000)
+        : null;
+      return { id: notification.id, source: "PLAYER" as const, title: notification.title, message: notification.message, href: historicResultMatch ? leagueMatchHref(arenaSlug, historicResultMatch.competition.categoryId, historicResultMatch.id) : notification.href || `/classificacao/${arenaSlug}`, createdAt: notification.createdAt.toISOString(), isRead: Boolean(notification.readAt) };
+    }),
     ...announcements.map((announcement) => ({ id: `arena-${announcement.id}`, source: "ARENA" as const, title: announcement.title, message: announcement.message, href: `/classificacao/${arenaSlug}?section=home`, createdAt: announcement.createdAt.toISOString(), isRead: readKeys.has(`arena-${announcement.id}`) })),
     ...financial,
   ].sort((left, right) => right.createdAt.localeCompare(left.createdAt)).slice(0, 20);

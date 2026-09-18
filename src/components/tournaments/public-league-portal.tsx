@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   recordOwnLeagueMatchResultAction,
@@ -82,6 +82,31 @@ export function PublicLeaguePortal({
       }, new Map<number, { block: number; period: string; results: typeof portal.leagueResults }>())
       .values(),
   );
+
+  useEffect(() => {
+    const focusNotifiedMatch = () => {
+      const matchId = window.location.hash.match(/^#jogo-([^?]+)/)?.[1];
+      if (!matchId) return;
+      const match = document.getElementById(`jogo-${matchId}`);
+      if (!match) return;
+
+      window.setTimeout(() => {
+        match.scrollIntoView({ behavior: "smooth", block: "center" });
+        match.classList.remove("is-notification-highlight");
+        window.requestAnimationFrame(() =>
+          match.classList.add("is-notification-highlight"),
+        );
+        window.setTimeout(
+          () => match.classList.remove("is-notification-highlight"),
+          2600,
+        );
+      }, 120);
+    };
+
+    focusNotifiedMatch();
+    window.addEventListener("hashchange", focusNotifiedMatch);
+    return () => window.removeEventListener("hashchange", focusNotifiedMatch);
+  }, [portal.leagueResults]);
 
   return (
     <section className="public-league-portal section-card stack-md">
@@ -278,7 +303,7 @@ export function PublicLeaguePortal({
                     </header>
                     <div>
                       {week.results.map((result) => (
-                        <article key={result.id}>
+                        <article id={`jogo-${result.id}`} key={result.id}>
                           <strong className="portal-league-match-sides">
                             <span>
                               <i>Mandante</i>
