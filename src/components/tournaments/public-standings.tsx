@@ -108,6 +108,7 @@ export function PublicStandings({
     phone: string;
     email: string;
     photoUrl: string;
+    bio: string;
     birthDate: string;
     padelCategories: string[];
     padelSide: string;

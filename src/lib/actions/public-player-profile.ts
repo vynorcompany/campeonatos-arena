@@ -11,6 +11,7 @@ const profileSchema = z.object({
   name: z.string().trim().min(3, "Informe seu nome completo."),
   phone: z.string().trim().min(8, "Informe um telefone válido."),
   email: z.preprocess((value) => value ?? "", z.string().trim().email("E-mail inválido.").or(z.literal(""))),
+  bio: z.string().trim().max(800, "A bio pode ter até 800 caracteres."),
   birthDate: z.preprocess((value) => value || null, z.coerce.date().nullable()),
   gender: z.enum(["", "Feminino", "Masculino", "Outro"]),
   padelCategories: z.array(z.string().trim().min(1).max(40)).max(1, "Selecione apenas uma categoria.").default([]),
@@ -86,6 +87,7 @@ export async function updatePublicPlayerProfileAction(_: PublicProfileActionStat
     name: formData.get("name"),
     phone: formData.get("phone"),
     email: formData.get("email"),
+    bio: formData.get("bio"),
     birthDate: formData.get("birthDate"),
     gender: formData.get("gender"),
     padelCategories: formData.get("padelCategory") ? [formData.get("padelCategory")] : [],
@@ -100,7 +102,7 @@ export async function updatePublicPlayerProfileAction(_: PublicProfileActionStat
   if (conflictingAccount) return { error: "Este telefone já está vinculado a outro cliente.", success: null };
 
   await prisma.$transaction(async (tx) => {
-    await tx.player.update({ where: { id: auth.playerId }, data: { name: parsed.data.name, phone, email: parsed.data.email, birthDate: parsed.data.birthDate, gender: parsed.data.gender, class: parsed.data.padelCategories[0] ?? "", padelCategories: JSON.stringify(parsed.data.padelCategories), padelSide: parsed.data.padelSide, ...(photoUrl ? { photoUrl } : {}) } });
+    await tx.player.update({ where: { id: auth.playerId }, data: { name: parsed.data.name, phone, email: parsed.data.email, bio: parsed.data.bio, birthDate: parsed.data.birthDate, gender: parsed.data.gender, class: parsed.data.padelCategories[0] ?? "", padelCategories: JSON.stringify(parsed.data.padelCategories), padelSide: parsed.data.padelSide, ...(photoUrl ? { photoUrl } : {}) } });
     await tx.playerAccount.update({ where: { id: auth.playerAccountId }, data: { phone } });
     const student = await tx.student.findFirst({ where: { playerId: auth.playerId }, select: { id: true } });
     if (student) await tx.student.update({ where: { id: student.id }, data: { name: parsed.data.name, phone, email: parsed.data.email } });
