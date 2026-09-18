@@ -49,7 +49,8 @@ export async function connectArenaWhatsAppAction(formData: FormData) {
   const instanceToken = existing?.encryptedToken ? decryptConnectionSecrets(existing.encryptedToken).token : createEvolutionInstanceToken();
   const webhookSecret = existing?.encryptedToken ? decryptConnectionSecrets(existing.encryptedToken).webhookSecret : createEvolutionWebhookSecret();
   try {
-    const qrCodeDataUrl = existing ? await getEvolutionQrCode(instanceName, instanceToken) : (await createEvolutionInstance({ instanceName, instanceToken, webhookSecret })).qrCodeDataUrl;
+    const createdQr = existing ? "" : (await createEvolutionInstance({ instanceName, instanceToken, webhookSecret })).qrCodeDataUrl;
+    const qrCodeDataUrl = createdQr || await getEvolutionQrCode(instanceName, instanceToken);
     await prisma.whatsAppConnection.upsert({ where: { arenaId: arena.id }, create: { arenaId: arena.id, instanceName, encryptedToken: encryptConnectionSecrets({ token: instanceToken, webhookSecret }), webhookSecretHash: hashWebhookSecret(webhookSecret), qrCodeDataUrl, status: "AWAITING_SCAN", lastError: "" }, update: { encryptedToken: encryptConnectionSecrets({ token: instanceToken, webhookSecret }), webhookSecretHash: hashWebhookSecret(webhookSecret), qrCodeDataUrl, status: "AWAITING_SCAN", lastError: "" } });
     revalidatePath("/arena");
     revalidatePath("/agencia/conexoes");

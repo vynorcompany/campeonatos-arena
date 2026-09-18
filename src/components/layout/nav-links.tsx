@@ -22,6 +22,7 @@ type NavItem = {
   href: string;
   label: string;
   icon?: IconName;
+  badge?: number;
   children?: NavItem[];
 };
 
@@ -33,6 +34,7 @@ type NavGroup = {
 type NavLinksProps = {
   canManageUsers: boolean;
   visibleModules: string[];
+  whatsappUnreadCount: number;
 };
 
 function isActivePath(pathname: string, href: string) {
@@ -149,7 +151,7 @@ function NavIcon({ name }: { name: IconName }) {
   return <svg {...common}>{paths[name]}</svg>;
 }
 
-export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
+export function NavLinks({ canManageUsers, visibleModules, whatsappUnreadCount }: NavLinksProps) {
   const pathname = usePathname() ?? "";
   const openItemsStorageKey = "arena:sidebar-open-items";
   const canSee = (module: string) => visibleModules.includes(module);
@@ -158,7 +160,7 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
       title: "Início",
       links: [
         { href: "/painel", label: "Dashboard", icon: "dashboard" },
-        ...(canManageUsers ? [{ href: "/assistente", label: "Assistente", icon: "support" as IconName }] : [])
+        ...(canManageUsers ? [{ href: "/assistente", label: "Assistente", icon: "support" as IconName }, { href: "/whatsapp", label: "WhatsApp", icon: "support" as IconName, badge: whatsappUnreadCount }] : [])
       ]
     },
     {
@@ -267,6 +269,7 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
   const moduleByHref: Record<string, string> = {
     "/painel": "dashboard",
     "/assistente": "dashboard",
+    "/whatsapp": "support",
     "/torneios": "tournaments",
     "/jogadores": "players",
     "/players": "players",
@@ -412,7 +415,7 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
                         onClick={() => toggleItem(item.href)}
                       >
                         <span className="nav-icon" aria-hidden="true">{item.icon ? <NavIcon name={item.icon} /> : null}</span>
-                        <span>{item.label}</span>
+                        <span>{item.label}</span>{item.badge ? <b className="nav-unread-badge">{item.badge > 99 ? "99+" : item.badge}</b> : null}
                             <span className={`nav-chevron${isOpen ? " nav-chevron-open" : ""}`} aria-hidden="true">
                               <NavIcon name="chevron" />
                             </span>
@@ -420,7 +423,7 @@ export function NavLinks({ canManageUsers, visibleModules }: NavLinksProps) {
                     ) : (
                       <Link href={item.href} className={`nav-link${isActive ? " nav-link-active" : ""}`}>
                         <span className="nav-icon" aria-hidden="true">{item.icon ? <NavIcon name={item.icon} /> : null}</span>
-                        <span>{item.label}</span>
+                        <span>{item.label}</span>{item.badge ? <b className="nav-unread-badge">{item.badge > 99 ? "99+" : item.badge}</b> : null}
                       </Link>
                     )}
                   </div>
