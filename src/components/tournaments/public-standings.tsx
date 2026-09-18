@@ -364,7 +364,7 @@ export function PublicStandings({
           ) : null}
           {selectedLeagueTab === "rules" && data ? <RulesPanel data={data} /> : null}
           {selectedLeagueTab === "ranking" ? (
-            data ? <RankingPanel data={data} /> : null
+            data ? <RankingPanel arenaSlug={arena.slug} data={data} /> : null
           ) : null}
           {selectedLeagueTab === "prizes" ? (
             <PrizePanel portal={portal} />
@@ -536,14 +536,14 @@ function RulesPanel({ data }: { data: ArenaPublicStandings }) {
   );
 }
 
-function RankingPanel({ data }: { data: ArenaPublicStandings }) {
+function RankingPanel({ arenaSlug, data }: { arenaSlug: string; data: ArenaPublicStandings }) {
   return (
     <section className="athlete-portal-content-panel stack-md portal-ranking-panel">
       <header className="portal-ranking-heading">
         <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V4M19 20v-7" /><path d="M3 20h18" /></svg>CLASSIFICAÇÃO</span>
         <h2>Ranking da Liga</h2>
       </header>
-      {data.options.length ? <RankingCategorySelect options={data.options} selectedOptionId={data.selectedOptionId} /> : null}
+      {data.options.length ? <RankingCategorySelect arenaSlug={arenaSlug} options={data.options} selectedOptionId={data.selectedOptionId} /> : null}
       {data.selected?.kind === "GENERAL_RANKING" ? (
         <table className="portal-ranking-table">
           <thead>

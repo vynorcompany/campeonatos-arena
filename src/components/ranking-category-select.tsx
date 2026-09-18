@@ -2,8 +2,9 @@
 
 type Option = { id: string; label: string };
 
-export function RankingCategorySelect({ options, selectedOptionId }: { options: Option[]; selectedOptionId: string | null }) {
+export function RankingCategorySelect({ arenaSlug, options, selectedOptionId }: { arenaSlug: string; options: Option[]; selectedOptionId: string | null }) {
   return <form method="get" className="portal-compact-filter">
+    <input type="hidden" name="arena" value={arenaSlug} />
     <input type="hidden" name="section" value="leagues" />
     <input type="hidden" name="leagueTab" value="ranking" />
     <input type="hidden" name="tab" value="ranking" />
