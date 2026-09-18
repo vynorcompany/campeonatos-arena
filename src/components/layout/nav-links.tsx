@@ -146,11 +146,16 @@ function NavIcon({ name }: { name: IconName }) {
         <path d="M9 12h4" />
       </>
     ),
-    whatsapp: <><path fill="#25D366" d="M12.02 2.5a9.48 9.48 0 0 0-8.06 14.47L2.5 21.5l4.68-1.42A9.5 9.5 0 1 0 12.02 2.5Zm0 17.25a7.7 7.7 0 0 1-3.92-1.07l-.28-.16-2.78.84.86-2.7-.18-.28a7.74 7.74 0 1 1 6.3 3.37Z" /><path fill="#fff" d="M16.53 14.2c-.25-.12-1.47-.73-1.7-.81-.23-.09-.4-.12-.57.12-.17.25-.65.81-.8.98-.15.17-.3.19-.55.06-1.48-.74-2.45-1.32-3.42-3-.26-.45.26-.42.74-1.4.08-.17.04-.32-.02-.44-.06-.12-.57-1.38-.78-1.89-.2-.49-.41-.42-.57-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1s.9 2.44 1.03 2.61c.12.17 1.76 2.69 4.27 3.77.6.26 1.06.41 1.42.52.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.08.15-1.18-.06-.1-.22-.16-.47-.28Z" /></>,
+    whatsapp: (
+      <>
+        <path d="M20.5 11.5a8.5 8.5 0 0 1-12.57 7.5L3.5 20.5 5 16.16A8.5 8.5 0 1 1 20.5 11.5Z" />
+        <path d="M8.48 7.9c.15-.36.3-.37.57-.37h.42c.14 0 .3.02.4.27l.63 1.5c.08.2.07.34-.04.49l-.38.48c-.12.14-.1.28 0 .42.38.67.98 1.28 1.66 1.66.14.08.28.1.42 0l.48-.38c.15-.12.3-.12.49-.04l1.5.63c.25.1.27.26.27.4v.42c0 .27-.01.42-.37.57-.36.15-1.15.19-2.25-.29-1.37-.6-2.91-2.14-3.5-3.5-.48-1.1-.44-1.89-.29-2.25Z" />
+      </>
+    ),
     chevron: <path d="m9 18 6-6-6-6" />
   };
 
-  return <svg {...common}>{paths[name]}</svg>;
+  return <svg {...common} className={name === "whatsapp" ? "nav-svg-whatsapp" : undefined}>{paths[name]}</svg>;
 }
 
 export function NavLinks({ canManageUsers, visibleModules, whatsappUnreadCount }: NavLinksProps) {
@@ -271,7 +276,7 @@ export function NavLinks({ canManageUsers, visibleModules, whatsappUnreadCount }
   const moduleByHref: Record<string, string> = {
     "/painel": "dashboard",
     "/assistente": "dashboard",
-    "/whatsapp": "support",
+    "/whatsapp": "whatsapp",
     "/torneios": "tournaments",
     "/jogadores": "players",
     "/players": "players",
