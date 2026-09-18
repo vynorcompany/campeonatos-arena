@@ -277,7 +277,9 @@ export function NavLinks({ canManageUsers, visibleModules, whatsappUnreadCount }
   const moduleByHref: Record<string, string> = {
     "/painel": "dashboard",
     "/assistente": "dashboard",
-    "/whatsapp": "whatsapp",
+    // WhatsApp é um canal de atendimento. O ícone tem o seu próprio nome,
+    // mas a permissão que libera a tela é o módulo de suporte.
+    "/whatsapp": "support",
     "/torneios": "tournaments",
     "/jogadores": "players",
     "/players": "players",

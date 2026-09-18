@@ -142,6 +142,29 @@ export default async function TeacherDetailPage(
     prisma.lessonAttendance.findMany({ where: { student: { arenaId: auth.arenaId, teacherAssignments: { some: { teacherId: params.teacherId, active: true } } }, makeupRequestedAt: { not: null } }, select: { makeupScheduledAt: true, makeupExpiresAt: true } }),
   ]);
   if (!teacher) notFound();
+  const activeStudentFinancialEntries = await prisma.financialEntry.findMany({
+    where: {
+      arenaId: auth.arenaId,
+      type: "REVENUE",
+      planId: { in: teacher.planAssignments.map(({ plan }) => plan.id) },
+      playerId: {
+        in: teacher.planAssignments.flatMap(({ plan }) =>
+          plan.subscriptions
+            .map((subscription) => subscription.student.playerId)
+            .filter((playerId): playerId is string => Boolean(playerId)),
+        ),
+      },
+    },
+    select: {
+      id: true,
+      planId: true,
+      playerId: true,
+      status: true,
+      dueDate: true,
+      paidAt: true,
+    },
+    orderBy: { dueDate: "desc" },
+  });
   const standardPlanOptions = uniqueStandardPlanOptions(standardPlans, [
     teacher.name,
     ...targetTeachers.map((targetTeacher) => targetTeacher.name),
@@ -446,9 +469,18 @@ export default async function TeacherDetailPage(
           <div className="teacher-student-plan-list">
             {teacher.planAssignments.flatMap(({ plan }) =>
               plan.subscriptions.map((subscription) => {
-                const payment = plan.financialEntries.find((entry) =>
-                  entry.playerId === subscription.student.playerId ||
-                  entry.counterpartyName === subscription.student.name,
+                // O lançamento nasce vinculado ao cliente e ao plano. Usar
+                // ambos os IDs evita depender do nome (que pode ser alterado
+                // no cadastro) e impede que um lançamento de outro plano
+                // apareça como a mensalidade deste aluno.
+                const payment = activeStudentFinancialEntries.find(
+                  (entry) =>
+                    entry.planId === plan.id &&
+                    entry.playerId === subscription.student.playerId,
+                ) ?? plan.financialEntries.find(
+                  (entry) =>
+                    entry.playerId === subscription.student.playerId ||
+                    entry.counterpartyName === subscription.student.name,
                 );
                 const financialStatus = !payment
                   ? "Sem lançamento atribuído"
