@@ -27,9 +27,16 @@ export function createEvolutionInstanceName(arenaId: string) {
 export function createEvolutionInstanceToken() { return crypto.randomUUID(); }
 export function createEvolutionWebhookSecret() { return crypto.randomBytes(24).toString("base64url"); }
 
+function webhookUrl(instanceName: string, webhookSecret: string) {
+  const config = requiredEnvironment();
+  return `${config.appUrl}/api/integrations/evolution/webhook?instance=${encodeURIComponent(instanceName)}&secret=${encodeURIComponent(webhookSecret)}`;
+}
+
+const webhookEvents = ["QRCODE_UPDATED", "CONNECTION_UPDATE", "MESSAGES_UPSERT"];
+
 export async function createEvolutionInstance(input: { instanceName: string; instanceToken: string; webhookSecret: string }) {
   const config = requiredEnvironment();
-  const webhookUrl = `${config.appUrl}/api/integrations/evolution/webhook?instance=${encodeURIComponent(input.instanceName)}&secret=${encodeURIComponent(input.webhookSecret)}`;
+  const callbackUrl = webhookUrl(input.instanceName, input.webhookSecret);
   const request = (body: Record<string, unknown>) => fetch(`${config.apiUrl}/instance/create`, {
     method: "POST",
     headers: { apikey: config.apiKey, "content-type": "application/json" },
@@ -43,13 +50,45 @@ export async function createEvolutionInstance(input: { instanceName: string; ins
       token: input.instanceToken,
       qrcode: true,
       integration: "WHATSAPP-BAILEYS",
-      webhook: { enabled: true, url: webhookUrl, byEvents: false, base64: true, events: ["QRCODE_UPDATED", "CONNECTION_UPDATE", "MESSAGES_UPSERT"] }
+      webhook: { enabled: true, url: callbackUrl, byEvents: false, base64: true, events: webhookEvents }
   });
-  if (!response.ok && response.status === 400) response = await request({ instanceName: input.instanceName, token: input.instanceToken, qrcode: true, integration: "WHATSAPP-BAILEYS", webhook: webhookUrl, webhook_by_events: false, events: ["QRCODE_UPDATED", "CONNECTION_UPDATE", "MESSAGES_UPSERT"] });
+  if (!response.ok && response.status === 400) response = await request({ instanceName: input.instanceName, token: input.instanceToken, qrcode: true, integration: "WHATSAPP-BAILEYS", webhook: callbackUrl, webhook_by_events: false, events: webhookEvents });
   const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
   if (!response.ok) throw new Error(`A Evolution não criou a instância (${response.status})${providerMessage(payload) ? `: ${providerMessage(payload)}` : "."}`);
   const qrcode = payload.qrcode as Record<string, unknown> | undefined;
   return { qrCodeDataUrl: qrDataUrl(qrcode?.base64 ?? payload.base64 ?? payload.qrcode) };
+}
+
+export async function configureEvolutionWebhook(input: { instanceName: string; webhookSecret: string }) {
+  const config = requiredEnvironment();
+  const response = await fetch(`${config.apiUrl}/webhook/set/${encodeURIComponent(input.instanceName)}`, {
+    method: "POST",
+    headers: { apikey: config.apiKey, "content-type": "application/json" },
+    body: JSON.stringify({
+      enabled: true,
+      url: webhookUrl(input.instanceName, input.webhookSecret),
+      webhookByEvents: false,
+      webhookBase64: true,
+      events: webhookEvents,
+    }),
+    cache: "no-store",
+  });
+  const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
+  if (!response.ok) throw new Error(`A Evolution não configurou o retorno da conexão (${response.status})${providerMessage(payload) ? `: ${providerMessage(payload)}` : "."}`);
+}
+
+export async function deleteEvolutionInstance(instanceName: string) {
+  const config = requiredEnvironment();
+  const response = await fetch(`${config.apiUrl}/instance/delete/${encodeURIComponent(instanceName)}`, {
+    method: "DELETE",
+    headers: { apikey: config.apiKey },
+    cache: "no-store",
+  });
+  // A instância pode ter sido removida pela própria Evolution; nesse caso,
+  // seguimos com a criação limpa normalmente.
+  if (response.ok || response.status === 404) return;
+  const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
+  throw new Error(`A Evolution não reiniciou a instância (${response.status})${providerMessage(payload) ? `: ${providerMessage(payload)}` : "."}`);
 }
 
 export async function getEvolutionQrCode(instanceName: string, instanceToken: string) {
