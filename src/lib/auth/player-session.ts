@@ -59,7 +59,7 @@ export async function getPublicPlayerAuth(arenaSlug: string) {
     ?? (session.playerAccount.player.active && session.playerAccount.player.arena.slug === arenaSlug ? session.playerAccount : null);
   if (!account) return null;
   const player = account.player;
-  return { playerId: player.id, playerAccountId: account.id, athleteIdentityId: identity?.id ?? null, name: player.name, phone: player.phone, email: player.email, photoUrl: player.photoUrl, birthDate: player.birthDate?.toISOString().slice(0, 10) ?? "", gender: player.gender, padelCategories: parsePadelCategories(player.padelCategories, player.class), padelSide: player.padelSide, tournamentAvailability: player.tournamentAvailability, isTeacher: Boolean(player.teacher?.active), arenaId: player.arenaId };
+  return { playerId: player.id, playerAccountId: account.id, athleteIdentityId: identity?.id ?? null, name: player.name, phone: player.phone, email: player.email, photoUrl: player.photoUrl, bio: player.bio, birthDate: player.birthDate?.toISOString().slice(0, 10) ?? "", gender: player.gender, padelCategories: parsePadelCategories(player.padelCategories, player.class), padelSide: player.padelSide, tournamentAvailability: player.tournamentAvailability, isTeacher: Boolean(player.teacher?.active), arenaId: player.arenaId };
 }
 
 export async function getPublicAthleteIdentity() {

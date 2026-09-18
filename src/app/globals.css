@@ -8682,8 +8682,14 @@ button {
 .public-player-profile .public-player-padel-profile,
 .public-player-profile .public-player-padel-profile legend { color: #eaf5fb; }
 .public-player-profile .grid-form input,
-.public-player-profile .grid-form select { border-color: rgb(101 154 194 / .42); color: #edf7ff; background: #102740; }
-.public-player-profile .grid-form input::placeholder { color: #98b0c1; }
+.public-player-profile .grid-form select,
+.public-player-profile .grid-form textarea { border-color: rgb(101 154 194 / .42); color: #edf7ff; background: #102740; }
+.public-player-profile .grid-form input::placeholder,
+.public-player-profile .grid-form textarea::placeholder { color: #98b0c1; }
+.public-player-bio { display: grid; gap: 5px; }
+.public-player-bio label { display: grid; gap: 6px; }
+.public-player-bio textarea { width: 100%; min-height: 118px; resize: vertical; line-height: 1.45; }
+.public-player-bio small { color: #9fb8c7; font-size: .72rem; line-height: 1.35; }
 .public-player-profile .public-player-padel-profile { border-color: rgb(65 211 162 / .34); background: linear-gradient(135deg, #0d2b35, #10243a); }
 .public-player-profile .public-player-padel-profile p { color: #a9c5cf; }
 .public-player-profile .public-player-padel-side { color: #dff5ef; font-weight: 800; }

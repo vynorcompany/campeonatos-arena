@@ -280,6 +280,7 @@ model Player {
   name                      String
   points                    Int                            @default(1000)
   photoUrl                  String                         @default("")
+  bio                       String                         @default("")
   class                     String                         @default("") @map("category")
   gender                    String                         @default("")
   phone                     String                         @default("")
