@@ -16,6 +16,7 @@ type IconName =
   | "account"
   | "calendar"
   | "support"
+  | "whatsapp"
   | "chevron";
 
 type NavItem = {
@@ -145,6 +146,7 @@ function NavIcon({ name }: { name: IconName }) {
         <path d="M9 12h4" />
       </>
     ),
+    whatsapp: <path d="M20.5 11.7A8.5 8.5 0 0 1 8 19.2L3.5 20.5 4.8 16A8.5 8.5 0 1 1 20.5 11.7ZM8.2 7.1c-.2-.5-.4-.5-.7-.5h-.6c-.2 0-.5.1-.7.4s-1 1-1 2.4 1 2.8 1.2 3 .2.3.5.5c1.7 1.6 3.2 2.1 4.4 2.4.4.1.8 0 1.1-.2.3-.2.9-.8 1-1.5.1-.6.1-1.2 0-1.3-.1-.1-.3-.2-.6-.3l-1.4-.7c-.3-.1-.5-.2-.7.2l-.4.5c-.2.2-.3.2-.6.1a5.7 5.7 0 0 1-1.7-1.1 6.4 6.4 0 0 1-1.2-1.5c-.1-.3 0-.4.1-.6l.3-.4c.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5l-.6-1.5Z" />,
     chevron: <path d="m9 18 6-6-6-6" />
   };
 
@@ -160,7 +162,7 @@ export function NavLinks({ canManageUsers, visibleModules, whatsappUnreadCount }
       title: "Início",
       links: [
         { href: "/painel", label: "Dashboard", icon: "dashboard" },
-        ...(canManageUsers ? [{ href: "/assistente", label: "Assistente", icon: "support" as IconName }, { href: "/whatsapp", label: "WhatsApp", icon: "support" as IconName, badge: whatsappUnreadCount }] : [])
+        ...(canManageUsers ? [{ href: "/assistente", label: "Assistente", icon: "support" as IconName }, { href: "/whatsapp", label: "WhatsApp", icon: "whatsapp" as IconName, badge: whatsappUnreadCount }] : [])
       ]
     },
     {
