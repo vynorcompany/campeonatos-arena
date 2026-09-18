@@ -57,7 +57,6 @@ export async function getPublicLeaguePortal(
       players: { some: { playerId: { in: linkedPlayerIds } } },
       competition: {
         format: "LEAGUE",
-        status: { not: "FINISHED" },
         category: { tournament: { arenaId: arena.id } },
       },
     },
@@ -324,7 +323,6 @@ export async function getPublicLeaguePortal(
   const leagueCompetitions = await prisma.categoryCompetition.findMany({
     where: {
       format: "LEAGUE",
-      status: { not: "FINISHED" },
       category: { active: true, tournament: { arenaId: arena.id } },
       OR: [
         { status: "PUBLISHED" },
@@ -410,7 +408,13 @@ export async function getPublicLeaguePortal(
         match.scheduledDate,
         match.scheduledTime,
       ),
-      finished: Boolean(match.winnerPairId),
+      // Resultados antigos podem ter sido registrados antes da definição do
+      // vencedor. Exibir o placar sempre que ele existir evita escondê-los
+      // do portal ao encerrar a competição.
+      finished:
+        Boolean(match.winnerPairId) ||
+        match.manualStatus === "FINISHED" ||
+        (match.homeScore !== null && match.awayScore !== null),
     })) ?? [];
   const slots = arena.courts
     .flatMap((court) =>
