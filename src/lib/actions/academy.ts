@@ -1117,6 +1117,7 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
     catch (error) { console.error("Could not issue the initial plan boleto", error); }
   }
   refreshAcademyRoutes();
+  revalidatePath(`/professores/${teacherId}`);
 }
 
 export async function copyTeacherPlansAction(formData: FormData) {
