@@ -96,6 +96,14 @@ export function PublicLeaguePortal({
       const result = portal.leagueResults.find((item) => item.id === matchId);
       if (result) setSelectedWeekBlock(result.block ?? 0);
 
+      // O hash é somente um comando pontual vindo do aviso. Após ler o alvo,
+      // limpamos a URL para que um refresh não dispare o foco novamente.
+      window.history.replaceState(
+        window.history.state,
+        "",
+        `${window.location.pathname}${window.location.search}`,
+      );
+
       window.setTimeout(() => {
         const visibleMatch = document.getElementById(`jogo-${matchId}`);
         if (!visibleMatch) return;
