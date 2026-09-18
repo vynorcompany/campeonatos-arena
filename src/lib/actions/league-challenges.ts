@@ -85,7 +85,7 @@ export async function recordOwnLeagueMatchResultAction(formData: FormData) {
   if (!match?.homePair || !match.awayPair) throw new Error("Jogo de Liga inválido.");
   if (!match.homePair.players.some((entry) => linkedPlayerIds.includes(entry.playerId))) throw new Error("Somente a dupla mandante pode registrar este resultado.");
   await recordCategoryLeagueMatchResult(auth.arenaId, input);
-  await withArenaTransaction(auth.arenaId, (tx) => tx.playerNotification.createMany({ data: match.awayPair!.players.map((entry) => ({ playerId: entry.playerId, type: "LEAGUE_MATCH", title: "Resultado lançado pela dupla mandante", message: "Confira o placar informado para o seu jogo de Liga.", href: publicPortalPath(arenaSlug, match.competition.categoryId) })) }));
+  await withArenaTransaction(auth.arenaId, (tx) => tx.playerNotification.createMany({ data: match.awayPair!.players.map((entry) => ({ playerId: entry.playerId, type: "LEAGUE_MATCH", title: "Resultado lançado pela dupla mandante", message: "Confira o placar informado para o seu jogo de Liga.", href: `${publicPortalPath(arenaSlug, match.competition.categoryId)}#jogo-${match.id}` })) }));
   revalidatePath("/home");
   revalidatePath(`/classificacao/${arenaSlug}`);
 }
