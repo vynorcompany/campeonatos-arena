@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAgencyAccess, requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
-import { createEvolutionInstance, createEvolutionInstanceName, createEvolutionInstanceToken, createEvolutionWebhookSecret, getEvolutionQrCode } from "@/lib/integrations/evolution/agency";
+import { configureEvolutionWebhook, createEvolutionInstance, createEvolutionInstanceName, createEvolutionInstanceToken, createEvolutionWebhookSecret, deleteEvolutionInstance, getEvolutionQrCode } from "@/lib/integrations/evolution/agency";
 import { decryptConnectionSecrets, encryptConnectionSecrets, hashWebhookSecret } from "@/lib/payments/connection-secrets";
 
 const systemRoleSchema = z.object({
@@ -46,10 +46,14 @@ export async function connectArenaWhatsAppAction(formData: FormData) {
   if (!arena) throw new Error("Arena não encontrada.");
   const existing = await prisma.whatsAppConnection.findUnique({ where: { arenaId: arena.id } });
   const instanceName = existing?.instanceName || createEvolutionInstanceName(arena.id);
-  const instanceToken = existing?.encryptedToken ? decryptConnectionSecrets(existing.encryptedToken).token : createEvolutionInstanceToken();
-  const webhookSecret = existing?.encryptedToken ? decryptConnectionSecrets(existing.encryptedToken).webhookSecret : createEvolutionWebhookSecret();
+  // "Reconectar" deliberadamente inicia uma sessão nova. Isso recupera
+  // instâncias removidas ou presas em connecting pelo WhatsApp/Evolution.
+  const instanceToken = createEvolutionInstanceToken();
+  const webhookSecret = createEvolutionWebhookSecret();
   try {
-    const createdQr = existing ? "" : (await createEvolutionInstance({ instanceName, instanceToken, webhookSecret })).qrCodeDataUrl;
+    if (existing) await deleteEvolutionInstance(instanceName);
+    const createdQr = (await createEvolutionInstance({ instanceName, instanceToken, webhookSecret })).qrCodeDataUrl;
+    await configureEvolutionWebhook({ instanceName, webhookSecret });
     const qrCodeDataUrl = createdQr || await getEvolutionQrCode(instanceName, instanceToken);
     await prisma.whatsAppConnection.upsert({ where: { arenaId: arena.id }, create: { arenaId: arena.id, instanceName, encryptedToken: encryptConnectionSecrets({ token: instanceToken, webhookSecret }), webhookSecretHash: hashWebhookSecret(webhookSecret), qrCodeDataUrl, status: "AWAITING_SCAN", lastError: "" }, update: { encryptedToken: encryptConnectionSecrets({ token: instanceToken, webhookSecret }), webhookSecretHash: hashWebhookSecret(webhookSecret), qrCodeDataUrl, status: "AWAITING_SCAN", lastError: "" } });
     revalidatePath("/arena");
@@ -71,7 +75,9 @@ export async function refreshArenaWhatsAppQrAction(formData: FormData) {
   const connection = await prisma.whatsAppConnection.findUnique({ where: { arenaId: parsed.data.arenaId } });
   if (!connection?.encryptedToken) throw new Error("Conecte esta arena primeiro.");
   const token = decryptConnectionSecrets(connection.encryptedToken).token;
+  const webhookSecret = decryptConnectionSecrets(connection.encryptedToken).webhookSecret;
   try {
+    await configureEvolutionWebhook({ instanceName: connection.instanceName, webhookSecret });
     const qrCodeDataUrl = await getEvolutionQrCode(connection.instanceName, token);
     await prisma.whatsAppConnection.update({ where: { id: connection.id }, data: { qrCodeDataUrl, status: "AWAITING_SCAN", lastError: "" } });
     revalidatePath("/arena");
