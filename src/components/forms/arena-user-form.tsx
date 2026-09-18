@@ -15,7 +15,7 @@ export function ArenaUserForm({ profiles }: { profiles: { id: string; name: stri
   return (
     <form action={formAction} className="grid-form">
       <div className="field">
-        <label htmlFor="name">Nome</label>
+        <label htmlFor="name">Nome e sobrenome</label>
         <input id="name" name="name" type="text" placeholder="Ex.: Marina Alves" required />
       </div>
 

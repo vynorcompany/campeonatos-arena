@@ -1,7 +1,12 @@
 import { z } from "zod";
 
+const fullNameSchema = z.string().trim().min(3, "Informe nome e sobrenome.").refine(
+  (name) => name.split(/\s+/).filter(Boolean).length >= 2,
+  "Informe nome e sobrenome."
+);
+
 export const createArenaUserSchema = z.object({
-  name: z.string().trim().min(2, "Informe o nome do usuário."),
+  name: fullNameSchema,
   email: z.string().trim().email("Informe um e-mail válido."),
   password: z.string().min(10, "A senha temporária deve ter no mínimo 10 caracteres."),
   arenaRole: z.enum(["OWNER", "ADMIN", "STAFF", "VIEWER"]),
@@ -17,7 +22,7 @@ export const updateArenaUserRoleSchema = z.object({
 
 export const updateArenaUserSchema = z.object({
   userId: z.string().min(1, "Usuário inválido."),
-  name: z.string().trim().min(2, "Informe o nome do usuário."),
+  name: fullNameSchema,
   email: z.string().trim().email("Informe um e-mail válido."),
   arenaRole: z.enum(["OWNER", "ADMIN", "STAFF", "VIEWER"]),
   permissionProfileId: z.string().min(1, "Selecione um perfil de usuário.").optional(),
@@ -35,7 +40,7 @@ export const resetArenaUserPasswordSchema = z.object({
 });
 
 export const updateOwnProfileSchema = z.object({
-  name: z.string().trim().min(2, "Informe seu nome.")
+  name: fullNameSchema
 });
 
 export const updateOwnPasswordSchema = z

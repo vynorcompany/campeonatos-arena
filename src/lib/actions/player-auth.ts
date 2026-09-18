@@ -14,7 +14,7 @@ export type PublicClientAuthState = { error: string | null };
 
 const loginSchema = z.object({ arenaSlug: z.string().trim().min(1), returnTo: z.string().trim().default(""), phone: z.string().trim().min(8), password: z.string().min(8, "A senha deve ter ao menos 8 caracteres.") });
 const globalLoginSchema = z.object({ phone: z.string().trim().min(8), password: z.string().min(8, "A senha deve ter ao menos 8 caracteres.") });
-const registerSchema = loginSchema.extend({ name: z.string().trim().min(3, "Informe seu nome."), confirmPassword: z.string().min(8) }).refine((data) => data.password === data.confirmPassword, { path: ["confirmPassword"], message: "As senhas não coincidem." });
+const registerSchema = loginSchema.extend({ name: z.string().trim().min(3, "Informe nome e sobrenome.").refine((name) => name.split(/\s+/).filter(Boolean).length >= 2, "Informe nome e sobrenome."), confirmPassword: z.string().min(8) }).refine((data) => data.password === data.confirmPassword, { path: ["confirmPassword"], message: "As senhas não coincidem." });
 const resetSchema = loginSchema.extend({ code: z.string().trim().length(6), newPassword: z.string().min(8), confirmPassword: z.string().min(8) }).refine((data) => data.newPassword === data.confirmPassword, { path: ["confirmPassword"], message: "As senhas não coincidem." });
 
 function normalizePhone(phone: string) { return phone.replace(/\D/g, ""); }

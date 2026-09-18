@@ -15,7 +15,7 @@ export function PlayerForm() {
   return (
     <form action={formAction} className="grid-form">
       <div className="field">
-        <label htmlFor="name">Nome do atleta</label>
+        <label htmlFor="name">Nome e sobrenome do atleta</label>
         <input id="name" name="name" type="text" placeholder="Ex.: Pedro Martins" required />
       </div>
 

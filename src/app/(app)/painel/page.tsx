@@ -3,6 +3,7 @@ import { DashboardComparisonFilter } from "@/components/dashboard-comparison-fil
 import { DashboardMetricCards } from "@/components/dashboard-metric-cards";
 import { SectionCard } from "@/components/section-card";
 import { requireModuleView } from "@/lib/auth/guards";
+import { reservationInsights } from "@/lib/reports/reservation-insights";
 import { withArenaTransaction } from "@/lib/rls";
 
 const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value / 100);
@@ -51,16 +52,17 @@ export default async function OverviewPage({ searchParams }: { searchParams: Das
   const previousFinancialWhere = view === "caixa"
     ? { arenaId: auth.arenaId, status: "PAID", paidAt: { gte: previousFrom, lte: previousTo } }
     : { arenaId: auth.arenaId, status: { not: "VOIDED" }, dueDate: { gte: previousFrom, lte: previousTo } };
-  const [entries, previousEntries, reservations, previousReservations, saleItems, teachers, portalAccounts, openDebts, paidByClient] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
+  const [entries, previousEntries, reservations, previousReservations, saleItems, teachers, portalAccounts, openDebts, paidByClient, arenaCourts] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
     tx.financialEntry.findMany({ where: financialWhere, select: { id: true, type: true, status: true, amountCents: true, paidAt: true, dueDate: true, description: true, counterpartyName: true } }),
     tx.financialEntry.findMany({ where: previousFinancialWhere, select: { type: true, amountCents: true } }),
-    tx.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, startsAt: { gte: from, lte: to }, status: { notIn: ["CANCELED", "CANCELLED"] } }, include: { occurrenceCourts: { include: { court: { select: { name: true } } } } } }),
-    tx.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, startsAt: { gte: previousFrom, lte: previousTo }, status: { notIn: ["CANCELED", "CANCELLED"] } }, select: { id: true } }),
+    tx.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, startsAt: { lte: to }, endsAt: { gte: from }, status: { notIn: ["CANCELED", "CANCELLED"] } }, include: { occurrenceCourts: { include: { court: { select: { name: true } } } } } }),
+    tx.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, startsAt: { lte: previousTo }, endsAt: { gte: previousFrom }, status: { notIn: ["CANCELED", "CANCELLED"] } }, select: { id: true } }),
     tx.saleItem.findMany({ where: { sale: { arenaId: auth.arenaId, createdAt: { gte: from, lte: to } } }, select: { quantity: true, totalCents: true, product: { select: { name: true } } } }),
     tx.teacher.findMany({ where: { arenaId: auth.arenaId, active: true }, include: { lessons: { where: { scheduledAt: { gte: from, lte: to } }, include: { attendances: true } } } }),
     tx.playerAccount.findMany({ where: { arenaId: auth.arenaId, createdAt: { gte: from, lte: to } }, select: { id: true, phone: true, createdAt: true, player: { select: { name: true, email: true } } }, orderBy: { createdAt: "desc" } }),
     tx.financialEntry.findMany({ where: { arenaId: auth.arenaId, type: "REVENUE", status: { in: ["PENDING", "OVERDUE"] } }, select: { id: true, counterpartyName: true, amountCents: true, dueDate: true } }),
     tx.financialEntry.findMany({ where: { arenaId: auth.arenaId, type: "REVENUE", status: "PAID", paidAt: { gte: from, lte: to } }, select: { id: true, counterpartyName: true, amountCents: true, paidAt: true } }),
+    tx.court.findMany({ where: { arenaId: auth.arenaId, active: true }, include: { weeklyRules: true }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }] }),
   ]));
   const received = entries.filter((entry) => entry.type === "REVENUE").reduce((total, entry) => total + entry.amountCents, 0);
   const paid = entries.filter((entry) => entry.type === "EXPENSE").reduce((total, entry) => total + entry.amountCents, 0);
@@ -75,6 +77,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Das
   });
   const cashMax = Math.max(1, ...cashDays.flatMap((day) => [day.income, day.expense]));
   const courts = ranking(reservations.flatMap((reservation) => reservation.occurrenceCourts.map((court) => ({ name: court.court.name, value: 1 }))));
+  const occupancy = reservationInsights(arenaCourts, reservations, from, to);
   const products = ranking(saleItems.map((item) => ({ name: item.product.name, value: item.quantity })));
   const students = ranking(teachers.map((teacher) => ({ name: teacher.name, value: new Set(teacher.lessons.flatMap((lesson) => lesson.attendances.map((attendance) => attendance.studentId))).size })));
   const debtors = ranking(openDebts.map((entry) => ({ name: entry.counterpartyName || "Cliente não identificado", value: entry.amountCents })));
@@ -87,6 +90,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Das
     { id: "expense", label: "Saídas", value: money(paid), caption: view === "caixa" ? "Valores pagos" : "Despesas previstas", comparison: comparing ? { percent: comparisonPercent(paid, previousPaid) } : undefined, title: "Saídas no período", description: "Despesas consideradas na visualização selecionada.", emptyMessage: "Nenhuma saída encontrada neste período.", items: entries.filter((entry) => entry.type === "EXPENSE").map((entry) => ({ id: entry.id, title: entry.description || "Despesa", subtitle: entry.counterpartyName || "Sem identificação", value: money(entry.amountCents), date: (entry[financialDateField] as Date | null)?.toISOString() })) },
     { id: "result", label: "Resultado", value: money(received - paid), caption: view === "caixa" ? "Saldo do período" : "Resultado por competência", comparison: comparing ? { percent: comparisonPercent(received - paid, previousReceived - previousPaid) } : undefined, title: "Composição do resultado", description: "Saldo obtido pela diferença entre entradas e saídas do período.", emptyMessage: "Não há movimentações no período.", items: [{ id: "income", title: "Entradas", subtitle: "Receitas do período", value: money(received) }, { id: "expense", title: "Saídas", subtitle: "Despesas do período", value: money(paid) }, { id: "balance", title: "Resultado", subtitle: "Entradas menos saídas", value: money(received - paid) }] },
     { id: "reservations", label: "Reservas", value: reservations.length, caption: "No período", comparison: comparing ? { percent: comparisonPercent(reservations.length, previousReservations.length) } : undefined, title: "Reservas no período", description: "Inclui somente reservas ativas; reservas canceladas ou excluídas não entram nesta lista.", emptyMessage: "Nenhuma reserva encontrada neste período.", items: reservations.map((reservation) => ({ id: reservation.id, title: reservation.title || reservation.bookingTypeName, subtitle: reservation.occurrenceCourts.map((court) => court.court.name).join(" · ") || "Quadra não informada", date: reservation.startsAt.toISOString() })) },
+    { id: "occupancy", label: "Ocupação das quadras", value: `${occupancy.occupancyPercent}%`, caption: occupancy.highestVolumeCourt ? `${occupancy.highestVolumeCourt.courtName}: ${occupancy.highestVolumeCourt.reservations} reservas` : "Sem reservas no período", title: "Carga de lotação das quadras", description: "Percentual das horas reservadas sobre os horários disponíveis na grade da arena.", emptyMessage: "Nenhuma disponibilidade configurada para calcular a ocupação.", items: occupancy.courtInsights.map((court) => ({ id: court.courtId, title: court.courtName, subtitle: `${court.reservations} reserva${court.reservations === 1 ? "" : "s"} · ${court.occupiedMinutes} min reservados`, value: `${court.occupancyPercent}%` })) },
     { id: "portal-users", label: "Novos usuários do portal", value: portalAccounts.length, caption: "Cadastros no período selecionado", title: "Novos usuários do Portal", description: "Usuários que criaram acesso no período selecionado.", emptyMessage: "Nenhum usuário criou acesso ao Portal neste período.", items: portalAccounts.map((account) => ({ id: account.id, title: account.player.name, subtitle: account.phone || account.player.email || "Contato não informado", date: account.createdAt.toISOString() })) },
   ];
 

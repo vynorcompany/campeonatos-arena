@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+export const fullNameSchema = z.string().trim().min(3, "Informe nome e sobrenome.").refine(
+  (name) => name.split(/\s+/).filter(Boolean).length >= 2,
+  "Informe nome e sobrenome."
+);
+
 const eligibilityFieldSchema = z.preprocess(
   (value) => value ?? "",
   z.string().trim().max(40)
@@ -23,7 +28,7 @@ const optionalAddressField = z.preprocess((value) => value ?? "", z.string().tri
 const optionalAddressUpdateField = z.preprocess((value) => value === null ? undefined : value, z.string().trim().max(120).optional());
 
 export const createPlayerSchema = z.object({
-  name: z.string().trim().min(3, "Informe ao menos 3 caracteres."),
+  name: fullNameSchema,
   points: z.coerce.number().int().min(0, "A pontuação deve ser positiva."),
   class: eligibilityFieldSchema,
   gender: eligibilityFieldSchema,
@@ -43,7 +48,7 @@ export const createPlayerSchema = z.object({
 
 export const updatePlayerSchema = z.object({
   playerId: z.string().min(1),
-  name: z.string().trim().min(3, "Informe ao menos 3 caracteres."),
+  name: fullNameSchema,
   points: z.coerce.number().int().min(0, "A pontuação deve ser positiva."),
   class: eligibilityFieldSchema,
   gender: eligibilityFieldSchema,
