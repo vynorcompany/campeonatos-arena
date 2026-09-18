@@ -51,8 +51,8 @@ export function DashboardSortablePanels({ children }: { children: ReactNode }) {
   }
 
   function startResize(event: PointerEvent<HTMLSpanElement>, id: string, axis: "horizontal" | "vertical") {
-    event.preventDefault();
     event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
     const panel = event.currentTarget.parentElement;
     const grid = panel?.parentElement;
     if (!panel || !grid) return;
@@ -79,8 +79,8 @@ export function DashboardSortablePanels({ children }: { children: ReactNode }) {
   }
 
   return <div className="dashboard-grid dashboard-chart-grid dashboard-sortable-grid" aria-label="Painéis reordenáveis do dashboard">
-    {order.map((id) => <div key={id} className={`dashboard-sortable-panel${draggedId === id ? " is-dragging" : ""}`} style={{ gridColumn: `span ${layouts[id]?.columns ?? 1}`, minHeight: layouts[id]?.minHeight }} draggable onDragStart={(event: DragEvent<HTMLDivElement>) => { if (event.target instanceof Element && event.target.closest(".dashboard-panel-resize-handle")) { event.preventDefault(); return; } setDraggedId(id); event.dataTransfer.effectAllowed = "move"; }} onDragOver={(event) => event.preventDefault()} onDrop={() => move(id)} onDragEnd={() => setDraggedId(null)}>
-      <span className="dashboard-drag-handle" aria-hidden="true" title="Arraste para reordenar">⠿</span>
+    {order.map((id) => <div key={id} className={`dashboard-sortable-panel${draggedId === id ? " is-dragging" : ""}`} style={{ gridColumn: `span ${layouts[id]?.columns ?? 1}`, minHeight: layouts[id]?.minHeight }} onDragOver={(event) => event.preventDefault()} onDrop={() => move(id)}>
+      <span className="dashboard-drag-handle" draggable onDragStart={(event: DragEvent<HTMLSpanElement>) => { setDraggedId(id); event.dataTransfer.effectAllowed = "move"; }} onDragEnd={() => setDraggedId(null)} aria-label="Arraste para reordenar" title="Arraste para reordenar">⠿</span>
       <span className="dashboard-panel-resize-handle dashboard-panel-resize-handle-right" role="separator" aria-orientation="vertical" aria-label="Arraste para alterar a largura" onPointerDown={(event) => startResize(event, id, "horizontal")} />
       <span className="dashboard-panel-resize-handle dashboard-panel-resize-handle-bottom" role="separator" aria-orientation="horizontal" aria-label="Arraste para alterar a altura" onPointerDown={(event) => startResize(event, id, "vertical")} />
       {initialPanels.current[Number(id)]}
