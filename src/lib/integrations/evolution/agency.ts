@@ -70,6 +70,10 @@ export async function findEvolutionInstance(instanceName: string) {
   const endpoint = `${config.apiUrl}/instance/fetchInstances?instanceName=${encodeURIComponent(instanceName)}`;
   const response = await fetch(endpoint, { headers: { apikey: config.apiKey }, cache: "no-store" });
   const payload = await response.json().catch(() => ({})) as unknown;
+  // A Evolution responde 404 quando a instância não existe (inclusive após
+  // um logout/removal feito pelo próprio WhatsApp). Isso não é uma falha de
+  // consulta: é exatamente o sinal para preparar a mesma instância novamente.
+  if (response.status === 404) return null;
   if (!response.ok) {
     const details = payload && typeof payload === "object" ? providerMessage(payload as Record<string, unknown>) : "";
     throw new Error(`A Evolution não confirmou a instância existente (${response.status})${details ? `: ${details}` : "."}`);
@@ -122,12 +126,19 @@ export async function configureEvolutionWebhook(input: { instanceName: string; w
     body: JSON.stringify(body),
     cache: "no-store",
   });
-  // A 2.3.7 aceita o payload com cabeçalhos, mas não repassa esses cabeçalhos
-  // ao destino. Configurá-lo assim parecia funcionar, porém toda notificação
-  // chegava sem segredo e recebia 401. Nesta versão, a URL assinada é a forma
-  // efetivamente suportada de autenticar o webhook.
-  let response = await request({ webhook: legacyWebhook });
-  if (!response.ok && response.status === 400) response = await request({ enabled: true, url: legacyWebhook.url, webhookByEvents: false, webhookBase64: true, events: webhookEvents });
+  // A versão instalada aceita o formato plano neste endpoint. O formato
+  // aninhado pode responder 201, mas ignora a URL e mantém a configuração
+  // antiga — deixando o webhook sem o segredo e retornando 401.
+  let response = await request({
+    enabled: true,
+    url: legacyWebhook.url,
+    webhook_by_events: false,
+    webhook_base64: true,
+    events: webhookEvents,
+  });
+  if (!response.ok && response.status === 400) {
+    response = await request({ webhook: legacyWebhook });
+  }
   const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
   if (!response.ok) throw new Error(`A Evolution não configurou o retorno da conexão (${response.status})${providerMessage(payload) ? `: ${providerMessage(payload)}` : "."}`);
 }
