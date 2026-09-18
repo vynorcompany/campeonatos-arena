@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createPermissionProfileAction } from "@/lib/actions/permission-profile";
 import { SectionCard } from "@/components/section-card";
 
-export function PermissionProfilesManagement({ profiles }: { profiles: { id: string; name: string; description: string; _count: { members: number } }[] }) {
+export function PermissionProfilesManagement({ profiles }: { profiles: { id: string; name: string; description: string; members: { user: { name: string } }[] }[] }) {
   const orderedProfiles = [...profiles].sort((a, b) => {
     const order = ["Administrador", "Financeiro", "Balcão"];
     const first = order.indexOf(a.name);
@@ -21,7 +21,7 @@ export function PermissionProfilesManagement({ profiles }: { profiles: { id: str
     </details>
     <div className="standard-list permission-profiles-list" role="table" aria-label="Perfis de usuário">
       <div className="standard-list-head" role="row"><span>Perfil</span><span>Descrição</span><span>Usuários</span><span>Ação</span></div>
-      {orderedProfiles.map((profile) => <Link key={profile.id} href={`/arena/perfis/${profile.id}`} className="standard-list-row permission-profile-row" role="row"><strong>{profile.name}</strong><span>{profile.description || "Sem descrição"}</span><span>{profile._count.members} usuário(s)</span><span className="standard-list-action">Configurar <b aria-hidden="true">›</b></span></Link>)}
+      {orderedProfiles.map((profile) => <Link key={profile.id} href={`/arena/perfis/${profile.id}`} className="standard-list-row permission-profile-row" role="row"><strong>{profile.name}</strong><span>{profile.description || "Sem descrição"}</span><span className="permission-profile-members">{profile.members.length ? profile.members.map(({ user }) => user.name).join(" · ") : "Nenhum usuário vinculado"}</span><span className="standard-list-action">Configurar <b aria-hidden="true">›</b></span></Link>)}
       {!orderedProfiles.length ? <p className="standard-list-empty">Nenhum perfil criado.</p> : null}
     </div>
   </SectionCard>;

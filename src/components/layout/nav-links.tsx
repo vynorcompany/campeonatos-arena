@@ -167,7 +167,8 @@ export function NavLinks({ canManageUsers, visibleModules, whatsappUnreadCount }
       title: "Início",
       links: [
         { href: "/painel", label: "Dashboard", icon: "dashboard" },
-        ...(canManageUsers ? [{ href: "/assistente", label: "Assistente", icon: "support" as IconName }, { href: "/whatsapp", label: "WhatsApp", icon: "whatsapp" as IconName, badge: whatsappUnreadCount }] : [])
+        ...(canManageUsers ? [{ href: "/assistente", label: "Assistente", icon: "support" as IconName }] : []),
+        ...(canSee("support") ? [{ href: "/whatsapp", label: "WhatsApp", icon: "whatsapp" as IconName, badge: whatsappUnreadCount }] : [])
       ]
     },
     {

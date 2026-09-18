@@ -41,8 +41,8 @@ export const defaultArenaPermissionProfiles = [
   {
     name: "Balcão",
     description: "Atendimento diário, reservas, clientes e comandas.",
-    viewPermissions: ["dashboard", "calendar", "players", "pos"],
-    editPermissions: ["calendar", "players", "pos"]
+    viewPermissions: ["dashboard", "calendar", "players", "pos", "support"],
+    editPermissions: ["calendar", "players", "pos", "support"]
   }
 ] as const;
 
