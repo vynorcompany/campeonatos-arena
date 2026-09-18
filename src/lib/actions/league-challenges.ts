@@ -6,6 +6,8 @@ import { requirePublicPlayerAuth } from "@/lib/auth/player-session";
 import { parseScheduledAt } from "@/lib/calendar/inputs";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
+import { recordCategoryLeagueMatchResult } from "@/lib/services/category-competition";
+import { parseLeagueMatchResultInput } from "@/lib/actions/league-match-result-input";
 
 const proposalSchema = z.object({
   arenaSlug: z.string().trim().min(1),
@@ -19,7 +21,7 @@ const proposalSchema = z.object({
 function publicPortalPath(arenaSlug: string, leagueCategoryId?: string) {
   const query = new URLSearchParams({ section: "leagues", tab: "games", leagueTab: "games" });
   if (leagueCategoryId) query.set("leagueCategory", leagueCategoryId);
-  return `/classificacao/${arenaSlug}?${query.toString()}`;
+  return `/home?arena=${encodeURIComponent(arenaSlug)}&${query.toString()}`;
 }
 
 async function validateCourtAvailability({ arenaId, courtId, startsAt, endsAt }: { arenaId: string; courtId: string; startsAt: Date; endsAt: Date }) {
@@ -68,6 +70,21 @@ export async function createLeagueChallengeAction(formData: FormData) {
   const proposal = await prisma.leagueMatchProposal.create({ data: { categoryMatchId: categoryMatch.id, courtId: parsed.data.courtId, proposerPairId: proposer.id, opponentPairId: opponent.id, startsAt, endsAt, responseDueAt } });
   await prisma.playerNotification.createMany({ data: opponent.players.map((entry) => ({ playerId: entry.playerId, type: "LEAGUE_MATCH", title: "Novo horário de Liga", message: "Sua dupla recebeu uma sugestão de horário para responder.", href: `${publicPortalPath(parsed.data.arenaSlug, proposer.competition.category.id)}#desafio-${proposal.id}` })) });
   revalidatePath(publicPortalPath(parsed.data.arenaSlug));
+}
+
+export async function recordOwnLeagueMatchResultAction(formData: FormData) {
+  const arenaSlug = String(formData.get("arenaSlug") ?? "").trim();
+  if (!arenaSlug) throw new Error("Arena inválida.");
+  const input = parseLeagueMatchResultInput(formData);
+  if ("success" in input) throw new Error(input.error ?? "Dados do resultado inválidos.");
+  const auth = await requirePublicPlayerAuth(arenaSlug);
+  const match = await prisma.categoryMatch.findFirst({ where: { id: input.matchId, competition: { format: "LEAGUE", status: "PUBLISHED", category: { tournament: { arenaId: auth.arenaId } } } }, include: { homePair: { include: { players: { select: { playerId: true } } } }, awayPair: { include: { players: { select: { playerId: true } } } }, competition: { select: { categoryId: true } } } });
+  if (!match?.homePair || !match.awayPair) throw new Error("Jogo de Liga inválido.");
+  if (!match.homePair.players.some((entry) => entry.playerId === auth.playerId)) throw new Error("Somente a dupla mandante pode registrar este resultado.");
+  await recordCategoryLeagueMatchResult(auth.arenaId, input);
+  await withArenaTransaction(auth.arenaId, (tx) => tx.playerNotification.createMany({ data: match.awayPair!.players.map((entry) => ({ playerId: entry.playerId, type: "LEAGUE_MATCH", title: "Resultado lançado pela dupla mandante", message: "Confira o placar informado para o seu jogo de Liga.", href: publicPortalPath(arenaSlug, match.competition.categoryId) })) }));
+  revalidatePath("/home");
+  revalidatePath(`/classificacao/${arenaSlug}`);
 }
 
 export async function respondLeagueChallengeAction(formData: FormData) {
