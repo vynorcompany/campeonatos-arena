@@ -53,8 +53,12 @@ export async function connectArenaWhatsAppAction(formData: FormData) {
   try {
     if (existing) await deleteEvolutionInstance(instanceName);
     const createdQr = (await createEvolutionInstance({ instanceName, instanceToken, webhookSecret })).qrCodeDataUrl;
-    await configureEvolutionWebhook({ instanceName, webhookSecret });
-    const qrCodeDataUrl = createdQr || await getEvolutionQrCode(instanceName, instanceToken);
+    // Uma instalação antiga da Evolution pode recusar o formato atual de
+    // webhook. Isso não pode impedir a arena de parear o WhatsApp pelo QR.
+    // O webhook é refeito nas próximas tentativas e após a conexão.
+    await configureEvolutionWebhook({ instanceName, webhookSecret }).catch((error) => console.error("Webhook Evolution pendente", error));
+    const qrCodeDataUrl = await getEvolutionQrCode(instanceName, instanceToken).catch(() => createdQr);
+    if (!qrCodeDataUrl) throw new Error("A Evolution não retornou uma imagem QR válida.");
     await prisma.whatsAppConnection.upsert({ where: { arenaId: arena.id }, create: { arenaId: arena.id, instanceName, encryptedToken: encryptConnectionSecrets({ token: instanceToken, webhookSecret }), webhookSecretHash: hashWebhookSecret(webhookSecret), qrCodeDataUrl, status: "AWAITING_SCAN", lastError: "" }, update: { encryptedToken: encryptConnectionSecrets({ token: instanceToken, webhookSecret }), webhookSecretHash: hashWebhookSecret(webhookSecret), qrCodeDataUrl, status: "AWAITING_SCAN", lastError: "" } });
     revalidatePath("/arena");
     revalidatePath("/agencia/conexoes");
