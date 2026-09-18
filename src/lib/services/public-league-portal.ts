@@ -404,6 +404,14 @@ export async function getPublicLeaguePortal(
       awayPairName: match.awayPair?.name ?? "Dupla a definir",
       homeScore: match.homeScore,
       awayScore: match.awayScore,
+      setScores: [
+        [match.homeSet1, match.awaySet1],
+        [match.homeSet2, match.awaySet2],
+        [match.homeSet3, match.awaySet3],
+      ].filter(
+        (score): score is [number, number] =>
+          score[0] !== null && score[1] !== null,
+      ),
       scheduledDate: match.scheduledDate,
       scheduledTime: match.scheduledTime,
       scheduledAtLabel: leagueMatchScheduleLabel(

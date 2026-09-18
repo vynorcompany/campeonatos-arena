@@ -273,9 +273,18 @@ export function PublicLeaguePortal({
                 {completedLeagueResults.map((result) => (
                   <article key={`placar-${result.id}`}>
                     <span>{result.homePairName}</span>
-                    <strong>
-                      {result.homeScore ?? 0} × {result.awayScore ?? 0}
-                    </strong>
+                    <div className="portal-league-result-score">
+                      <strong>
+                        {result.homeScore ?? 0} × {result.awayScore ?? 0}
+                      </strong>
+                      {result.setScores.length ? (
+                        <small>
+                          {result.setScores
+                            .map(([home, away]) => `${home}–${away}`)
+                            .join(" · ")}
+                        </small>
+                      ) : null}
+                    </div>
                     <span>{result.awayPairName}</span>
                   </article>
                 ))}
