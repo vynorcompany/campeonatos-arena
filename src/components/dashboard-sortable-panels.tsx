@@ -3,7 +3,9 @@
 import { Children, type DragEvent, type PointerEvent, type ReactNode, useEffect, useRef, useState } from "react";
 
 const storageKey = "arena-dashboard-panel-order-v1";
-const layoutStorageKey = "arena-dashboard-panel-layout-v2";
+// Uma versão nova evita reaproveitar dimensões experimentais gravadas pela
+// primeira implementação do redimensionamento.
+const layoutStorageKey = "arena-dashboard-panel-layout-v3";
 type PanelLayout = { columns: number; minHeight: number };
 
 export function DashboardSortablePanels({ children }: { children: ReactNode }) {
@@ -58,10 +60,13 @@ export function DashboardSortablePanels({ children }: { children: ReactNode }) {
     const gridRect = grid.getBoundingClientRect();
     const start = { x: event.clientX, y: event.clientY };
     const initial = layouts[id] ?? { columns: 1, minHeight: Math.round(panelRect.height) };
-    const columnWidth = Math.max(1, gridRect.width / 3);
+    const gridStyle = window.getComputedStyle(grid);
+    const columns = Math.max(1, gridStyle.gridTemplateColumns.split(" ").filter(Boolean).length);
+    const gap = Number.parseFloat(gridStyle.columnGap) || 0;
+    const columnWidth = Math.max(1, (gridRect.width - gap * (columns - 1)) / columns);
     const move = (moveEvent: globalThis.PointerEvent) => {
       const next = axis === "horizontal"
-        ? { ...initial, columns: Math.max(1, Math.min(3, Math.round((panelRect.width + moveEvent.clientX - start.x) / columnWidth))) }
+        ? { ...initial, columns: Math.max(1, Math.min(columns, Math.round((panelRect.width + moveEvent.clientX - start.x + gap) / (columnWidth + gap)))) }
         : { ...initial, minHeight: Math.max(160, Math.min(880, Math.round(panelRect.height + moveEvent.clientY - start.y))) };
       persistLayout(id, next);
     };
@@ -74,7 +79,7 @@ export function DashboardSortablePanels({ children }: { children: ReactNode }) {
   }
 
   return <div className="dashboard-grid dashboard-chart-grid dashboard-sortable-grid" aria-label="Painéis reordenáveis do dashboard">
-    {order.map((id) => <div key={id} className={`dashboard-sortable-panel${draggedId === id ? " is-dragging" : ""}`} style={{ gridColumn: `span ${layouts[id]?.columns ?? 1}`, minHeight: layouts[id]?.minHeight }} draggable onDragStart={(event: DragEvent<HTMLDivElement>) => { setDraggedId(id); event.dataTransfer.effectAllowed = "move"; }} onDragOver={(event) => event.preventDefault()} onDrop={() => move(id)} onDragEnd={() => setDraggedId(null)}>
+    {order.map((id) => <div key={id} className={`dashboard-sortable-panel${draggedId === id ? " is-dragging" : ""}`} style={{ gridColumn: `span ${layouts[id]?.columns ?? 1}`, minHeight: layouts[id]?.minHeight }} draggable onDragStart={(event: DragEvent<HTMLDivElement>) => { if (event.target instanceof Element && event.target.closest(".dashboard-panel-resize-handle")) { event.preventDefault(); return; } setDraggedId(id); event.dataTransfer.effectAllowed = "move"; }} onDragOver={(event) => event.preventDefault()} onDrop={() => move(id)} onDragEnd={() => setDraggedId(null)}>
       <span className="dashboard-drag-handle" aria-hidden="true" title="Arraste para reordenar">⠿</span>
       <span className="dashboard-panel-resize-handle dashboard-panel-resize-handle-right" role="separator" aria-orientation="vertical" aria-label="Arraste para alterar a largura" onPointerDown={(event) => startResize(event, id, "horizontal")} />
       <span className="dashboard-panel-resize-handle dashboard-panel-resize-handle-bottom" role="separator" aria-orientation="horizontal" aria-label="Arraste para alterar a altura" onPointerDown={(event) => startResize(event, id, "vertical")} />
