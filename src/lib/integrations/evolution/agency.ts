@@ -27,9 +27,11 @@ export function createEvolutionInstanceName(arenaId: string) {
 export function createEvolutionInstanceToken() { return crypto.randomUUID(); }
 export function createEvolutionWebhookSecret() { return crypto.randomBytes(24).toString("base64url"); }
 
-function webhookUrl(instanceName: string) {
+function webhookUrl(instanceName: string, webhookSecret = "") {
   const config = requiredEnvironment();
-  return `${config.appUrl}/api/integrations/evolution/webhook?instance=${encodeURIComponent(instanceName)}`;
+  const query = new URLSearchParams({ instance: instanceName });
+  if (webhookSecret) query.set("secret", webhookSecret);
+  return `${config.appUrl}/api/integrations/evolution/webhook?${query.toString()}`;
 }
 
 const webhookEvents = ["QRCODE_UPDATED", "CONNECTION_UPDATE", "MESSAGES_UPSERT"];
@@ -42,6 +44,16 @@ function webhookConfiguration(instanceName: string, webhookSecret: string) {
     base64: true,
     events: webhookEvents,
     headers: { "x-evolution-webhook-secret": webhookSecret },
+  };
+}
+
+function legacyWebhookConfiguration(instanceName: string, webhookSecret: string) {
+  return {
+    enabled: true,
+    url: webhookUrl(instanceName, webhookSecret),
+    byEvents: false,
+    base64: true,
+    events: webhookEvents,
   };
 }
 
@@ -75,14 +87,16 @@ export async function findEvolutionInstance(instanceName: string) {
 export async function createEvolutionInstance(input: { instanceName: string; instanceToken: string; webhookSecret: string }) {
   const config = requiredEnvironment();
   const webhook = webhookConfiguration(input.instanceName, input.webhookSecret);
+  const legacyWebhook = legacyWebhookConfiguration(input.instanceName, input.webhookSecret);
   const request = (body: Record<string, unknown>) => fetch(`${config.apiUrl}/instance/create`, {
     method: "POST",
     headers: { apikey: config.apiKey, "content-type": "application/json" },
     body: JSON.stringify(body),
     cache: "no-store"
   });
-  // Evolution v2 valida o webhook como objeto. Mantemos a tentativa legada
-  // apenas para instalações antigas que ainda usam a configuração plana.
+  // A Evolution 2.3.7 da arena não aceita cabeçalhos no momento da criação.
+  // Tentamos a integração atual primeiro e então o objeto compatível, sem
+  // descartar o token ou recriar a sessão.
   let response = await request({
       instanceName: input.instanceName,
       token: input.instanceToken,
@@ -90,7 +104,8 @@ export async function createEvolutionInstance(input: { instanceName: string; ins
       integration: "WHATSAPP-BAILEYS",
       webhook,
   });
-  if (!response.ok && response.status === 400) response = await request({ instanceName: input.instanceName, token: input.instanceToken, qrcode: true, integration: "WHATSAPP-BAILEYS", webhook: webhook.url, webhook_by_events: false, events: webhookEvents, webhook_headers: webhook.headers });
+  if (!response.ok && [400, 403].includes(response.status)) response = await request({ instanceName: input.instanceName, token: input.instanceToken, qrcode: true, integration: "WHATSAPP-BAILEYS", webhook: legacyWebhook });
+  if (!response.ok && response.status === 400) response = await request({ instanceName: input.instanceName, token: input.instanceToken, qrcode: true, integration: "WHATSAPP-BAILEYS", webhook: legacyWebhook.url, webhook_by_events: false, events: webhookEvents });
   const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
   if (!response.ok) throw new Error(`A Evolution não criou a instância (${response.status})${providerMessage(payload) ? `: ${providerMessage(payload)}` : "."}`);
   const qrcode = payload.qrcode as Record<string, unknown> | undefined;
@@ -101,17 +116,19 @@ export async function configureEvolutionWebhook(input: { instanceName: string; w
   const config = requiredEnvironment();
   const endpoint = `${config.apiUrl}/webhook/set/${encodeURIComponent(input.instanceName)}`;
   const webhook = webhookConfiguration(input.instanceName, input.webhookSecret);
+  const legacyWebhook = legacyWebhookConfiguration(input.instanceName, input.webhookSecret);
   const request = (body: Record<string, unknown>) => fetch(endpoint, {
     method: "POST",
     headers: { apikey: config.apiKey, "content-type": "application/json" },
     body: JSON.stringify(body),
     cache: "no-store",
   });
-  // A instalação atual da arena usa Evolution v2, que recebe o objeto
-  // `webhook`. O corpo plano abaixo é apenas compatibilidade para releases
-  // anteriores da API.
+  // A versão instalada aceita o objeto aninhado, mas recusa cabeçalhos
+  // personalizados. O segundo corpo mantém autenticação pelo segredo já
+  // persistido na URL somente para esse release legado.
   let response = await request({ webhook });
-  if (!response.ok && response.status === 400) response = await request({ enabled: true, url: webhook.url, webhookByEvents: false, webhookBase64: true, events: webhookEvents, headers: webhook.headers });
+  if (!response.ok && [400, 403].includes(response.status)) response = await request({ webhook: legacyWebhook });
+  if (!response.ok && response.status === 400) response = await request({ enabled: true, url: legacyWebhook.url, webhookByEvents: false, webhookBase64: true, events: webhookEvents });
   const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
   if (!response.ok) throw new Error(`A Evolution não configurou o retorno da conexão (${response.status})${providerMessage(payload) ? `: ${providerMessage(payload)}` : "."}`);
 }
