@@ -1,38 +1,567 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { createLeagueChallengeAction, recordOwnLeagueMatchResultAction, respondLeagueProposalAction } from "@/lib/actions/league-challenges";
+import {
+  recordOwnLeagueMatchResultAction,
+  respondLeagueProposalAction,
+} from "@/lib/actions/league-challenges";
 import { requestLeagueMedicalSubstitutionAction } from "@/lib/actions/league-medical-substitutions";
+import { LeagueMatchScheduleModal } from "@/components/tournaments/league-match-schedule-modal";
 
-type Portal = NonNullable<Awaited<ReturnType<typeof import("@/lib/services/public-league-portal").getPublicLeaguePortal>>>;
+type Portal = NonNullable<
+  Awaited<
+    ReturnType<
+      typeof import("@/lib/services/public-league-portal").getPublicLeaguePortal
+    >
+  >
+>;
 
-export function PublicLeaguePortal({ arenaSlug, playerName, portal, view = "games", showPrize = true }: { arenaSlug: string; playerName: string; portal: Portal; view?: "games" | "pairs"; showPrize?: boolean }) {
+export function PublicLeaguePortal({
+  arenaSlug,
+  playerName,
+  portal,
+  view = "games",
+  showPrize = true,
+}: {
+  arenaSlug: string;
+  playerName: string;
+  portal: Portal;
+  view?: "games" | "pairs";
+  showPrize?: boolean;
+}) {
   const [message, setMessage] = useState("");
   const [pending, startTransition] = useTransition();
-  const submit = (form: HTMLFormElement, action: (data: FormData) => Promise<void>, success: string) => startTransition(async () => {
-    try { await action(new FormData(form)); setMessage(success); } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível concluir a ação."); }
-  });
-  const ownPairs = portal.pairs.filter((pair) => pair.categoryId === portal.selectedLeagueCategoryId);
-  const challenges = portal.challenges.filter((challenge) => challenge.categoryId === portal.selectedLeagueCategoryId);
-  const selectedCategory = portal.leagueCategories.find((category) => category.id === portal.selectedLeagueCategoryId);
-  const leagueResultsByWeek = Array.from(portal.leagueResults.reduce((weeks, result) => {
-    const block = result.block ?? 0;
-    const current = weeks.get(block) ?? { block, period: result.period, results: [] as typeof portal.leagueResults };
-    current.results.push(result);
-    weeks.set(block, current);
-    return weeks;
-  }, new Map<number, { block: number; period: string; results: typeof portal.leagueResults }>()).values());
+  const submit = (
+    form: HTMLFormElement,
+    action: (data: FormData) => Promise<void>,
+    success: string,
+  ) =>
+    startTransition(async () => {
+      try {
+        await action(new FormData(form));
+        setMessage(success);
+      } catch (error) {
+        setMessage(
+          error instanceof Error
+            ? error.message
+            : "Não foi possível concluir a ação.",
+        );
+      }
+    });
+  const ownPairs = portal.pairs.filter(
+    (pair) => pair.categoryId === portal.selectedLeagueCategoryId,
+  );
+  const challenges = portal.challenges.filter(
+    (challenge) => challenge.categoryId === portal.selectedLeagueCategoryId,
+  );
+  const selectedCategory = portal.leagueCategories.find(
+    (category) => category.id === portal.selectedLeagueCategoryId,
+  );
+  const leagueResultsByWeek = Array.from(
+    portal.leagueResults
+      .reduce((weeks, result) => {
+        const block = result.block ?? 0;
+        const current = weeks.get(block) ?? {
+          block,
+          period: result.period,
+          results: [] as typeof portal.leagueResults,
+        };
+        current.results.push(result);
+        weeks.set(block, current);
+        return weeks;
+      }, new Map<number, { block: number; period: string; results: typeof portal.leagueResults }>())
+      .values(),
+  );
 
-  return <section className="public-league-portal section-card stack-md">
-    <header className={view === "pairs" ? "public-league-portal-header" : "public-league-portal-header public-league-portal-hero-card"}>{view === "pairs" ? <h2>Duplas da Liga</h2> : <><span>LIGAS DA ARENA</span><h2>Olá, {playerName}</h2><p>Confira os jogos e resultados da sua categoria. As ações da sua dupla aparecem aqui.</p><b aria-hidden="true">MAIS<br />JOGOS<br />MAIS<br />HISTÓRIAS</b></>}</header>
-    {selectedCategory ? <form method="get" action="/home" className="portal-league-category-card"><input type="hidden" name="arena" value={arenaSlug} /><input type="hidden" name="section" value="leagues" /><input type="hidden" name="leagueTab" value={view} /><input type="hidden" name="tab" value="games" /><header><strong><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 8 8-4 8 4-8 4-8-4ZM6.5 10.2V15c2.8 2 8.2 2 11 0v-4.8M20 8v7" /></svg>Categoria da liga</strong>{selectedCategory.member ? <b><span>✓</span>Você já está inscrito nesta categoria</b> : null}</header><label><span>Categoria</span><select name="leagueCategory" defaultValue={portal.selectedLeagueCategoryId ?? ""} onChange={(event) => event.currentTarget.form?.requestSubmit()}>{portal.leagueCategories.map((category) => <option value={category.id} key={category.id}>{category.label}{category.member ? " · Minha Liga" : ""}</option>)}</select></label><p className="portal-league-category-context">{selectedCategory.member ? "Você participa desta categoria. As ações da sua dupla aparecem abaixo." : "Visualização pública: acompanhe as duplas e os resultados desta categoria."}</p><div className="portal-league-category-actions"><p className="portal-league-registration-fee"><span>Inscrição</span><strong>{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(selectedCategory.registrationFeeCents / 100)}</strong><small>por atleta</small></p></div></form> : <form method="get" action="/home" className="portal-league-category-picker"><input type="hidden" name="arena" value={arenaSlug} /><input type="hidden" name="section" value="leagues" /><input type="hidden" name="leagueTab" value={view} /><input type="hidden" name="tab" value="games" /><label><span>Categoria da Liga</span><select name="leagueCategory" defaultValue={portal.selectedLeagueCategoryId ?? ""} onChange={(event) => event.currentTarget.form?.requestSubmit()}>{portal.leagueCategories.map((category) => <option value={category.id} key={category.id}>{category.label}</option>)}</select></label></form>}
-    {view === "pairs" ? <section className="portal-league-pairs"><h3>Duplas inscritas</h3>{portal.selectedLeaguePairs.length ? <div>{portal.selectedLeaguePairs.map((pair) => <article key={pair.id}><div><strong>{pair.name}</strong></div>{pair.groupName ? <small>{pair.groupName}</small> : null}</article>)}</div> : <p className="muted">Ainda não há duplas nesta categoria.</p>}</section> : <>
-      {portal.leagueNotifications.length ? <section className="public-portal-notifications">{portal.leagueNotifications.map((notification) => <a className="public-portal-notification-reservation" href={notification.href || "#"} key={notification.id}><span className="public-portal-notification-icon" aria-hidden="true">⌁</span><span className="public-portal-notification-copy"><strong>{notification.title}</strong><small>{notification.message}</small></span><span className="public-portal-notification-view">Ver</span></a>)}</section> : null}
-      {showPrize && portal.prizes.length ? <section className="public-league-prizes"><h3>Premiação da Liga</h3>{portal.prizes.map((prize) => <article key={prize.id}><strong>{prize.eventName} · {prize.categoryName}</strong><p className="public-league-prize-description">{prize.description}</p></article>)}</section> : null}
-      <section className="portal-league-results"><header><div><span>CALENDÁRIO DA LIGA</span><h3>Jogos e resultados</h3></div><small>Organizado por semana</small></header>{leagueResultsByWeek.length ? <div className="portal-league-week-list">{leagueResultsByWeek.map((week) => <section className="portal-league-week" key={week.block}><header><div><strong>Semana {week.block || "—"}</strong><span>Período: {week.period}</span></div><small>{week.results.length} jogo{week.results.length === 1 ? "" : "s"}</small></header><div>{week.results.map((result) => <article key={result.id}><strong className="portal-league-match-sides"><span><i>Mandante</i>{result.homePairName}</span><b>{result.finished ? `${result.homeScore ?? 0} × ${result.awayScore ?? 0}` : "×"}</b><span><i>Visitante</i>{result.awayPairName}</span></strong><div className="portal-league-match-meta"><span className={`portal-league-match-status ${result.finished ? "is-finished" : result.scheduledAtLabel ? "is-scheduled" : "is-waiting"}`}>{result.finished ? "Encerrado" : result.scheduledAtLabel ? "Agendado" : "Aguardando"}</span>{result.scheduledAtLabel ? <small className="portal-league-match-schedule">{result.scheduledAtLabel}</small> : null}</div></article>)}</div></section>)}</div> : <p className="muted">Ainda não há jogos para esta categoria.</p>}</section>
-      {ownPairs.length ? <section className="public-portal-pairs">{ownPairs.map((pair) => <article className="public-portal-pair" key={pair.id}><header><strong>{pair.name}</strong></header>{pair.opponents.length ? <form onSubmit={(event) => { event.preventDefault(); submit(event.currentTarget, createLeagueChallengeAction, "Sugestão enviada para a dupla."); }} className="public-challenge-form"><strong className="public-league-host-title">Sugerir horário para este jogo</strong><input type="hidden" name="arenaSlug" value={arenaSlug} /><input type="hidden" name="proposerPairId" value={pair.id} /><label>Confronto mandante<select name="opponentPairId" required>{pair.opponents.map((opponent) => <option value={opponent.id} key={opponent.matchId}>Semana {opponent.block} · {opponent.name}</option>)}</select></label><label>Horário disponível<select name="slot" required onChange={(event) => { const [courtId, startsAt, durationMinutes] = event.target.value.split("|"); const form = event.currentTarget.form!; (form.elements.namedItem("courtId") as HTMLInputElement).value = courtId; (form.elements.namedItem("startsAt") as HTMLInputElement).value = startsAt; (form.elements.namedItem("durationMinutes") as HTMLInputElement).value = durationMinutes; }}>{portal.slots.map((slot) => <option value={slot.value} key={slot.value}>{slot.label}</option>)}</select></label><input type="hidden" name="courtId" defaultValue={portal.slots[0]?.value.split("|")[0] ?? ""} /><input type="hidden" name="startsAt" defaultValue={portal.slots[0]?.value.split("|")[1] ?? ""} /><input type="hidden" name="durationMinutes" defaultValue={portal.slots[0]?.value.split("|")[2] ?? "60"} /><button type="submit" className="button button-primary" disabled={pending || !portal.slots.length}>{pending ? "Enviando..." : "Sugerir horário"}</button></form> : null}{pair.opponents.map((opponent) => <details className="public-league-result-entry" key={`resultado-${opponent.matchId}`}><summary>Registrar resultado · Semana {opponent.block ?? "—"} · {opponent.name}</summary><form onSubmit={(event) => { event.preventDefault(); submit(event.currentTarget, recordOwnLeagueMatchResultAction, "Resultado registrado e enviado à dupla visitante."); }} className="public-league-result-form"><input type="hidden" name="arenaSlug" value={arenaSlug} /><input type="hidden" name="matchId" value={opponent.matchId} /><span>Set</span><strong>{pair.name}</strong><strong>{opponent.name}</strong>{[["homeSet1", "awaySet1", "1"], ["homeSet2", "awaySet2", "2"], ["homeSet3", "awaySet3", "3"]].map(([home, away, set]) => <span className="public-league-result-score" key={set}><i>{set}</i><input name={home} type="number" min="0" aria-label={`Set ${set} de ${pair.name}`} /><input name={away} type="number" min="0" aria-label={`Set ${set} de ${opponent.name}`} /></span>)}<small>Informe os dois primeiros sets; o terceiro é apenas para desempate.</small><button type="submit" className="button button-primary" disabled={pending}>{pending ? "Salvando..." : "Salvar resultado"}</button></form></details>)}<details className="public-medical-request"><summary>Solicitar substituição médica</summary>{pair.medicalRequestPending ? <p className="muted">Solicitação já enviada para a arena.</p> : <form onSubmit={(event) => { event.preventDefault(); submit(event.currentTarget, requestLeagueMedicalSubstitutionAction, "Solicitação enviada para a arena."); }}><input type="hidden" name="arenaSlug" value={arenaSlug} /><input type="hidden" name="pairId" value={pair.id} /><label>Atleta afastado<select name="previousPlayerId">{pair.players.map((player) => <option value={player.id} key={player.id}>{player.name}</option>)}</select></label><label>Substituto<select name="replacementPlayerId">{portal.replacementPlayers.filter((player) => !pair.players.some((member) => member.id === player.id)).map((player) => <option value={player.id} key={player.id}>{player.name}</option>)}</select></label><label>Motivo médico<textarea name="reason" minLength={10} required /></label><button type="submit" className="button" disabled={pending}>Enviar solicitação</button></form>}</details></article>)}</section> : null}
-      <section className="public-challenge-list"><h3>Sugestões de horário</h3>{challenges.length ? challenges.map((challenge) => <article id={`desafio-${challenge.id}`} key={challenge.id}><div className="public-challenge-details"><div className="public-challenge-title-row"><strong>Semana {challenge.block ?? "—"} · {challenge.proposer} × {challenge.opponent}</strong>{challenge.status === "ACCEPTED" ? <span className="public-league-reservation-status"><b aria-hidden="true">✓</b> Reserva confirmada</span> : null}</div><span>{challenge.court} · {challenge.proposedAt}</span>{challenge.status === "PENDING" ? <small>Responder até {challenge.responseDueAt}</small> : challenge.status === "REJECTED" ? <small>Recusado</small> : null}</div>{challenge.incoming && challenge.status === "PENDING" ? <div className="public-challenge-actions"><form onSubmit={(event) => { event.preventDefault(); submit(event.currentTarget, respondLeagueProposalAction, "Sugestão aceita."); }}><input type="hidden" name="arenaSlug" value={arenaSlug} /><input type="hidden" name="proposalId" value={challenge.id} /><input type="hidden" name="response" value="ACCEPTED" /><button className="button button-primary" disabled={pending}>Aceitar</button></form><form onSubmit={(event) => { event.preventDefault(); submit(event.currentTarget, respondLeagueProposalAction, "Sugestão recusada."); }}><input type="hidden" name="arenaSlug" value={arenaSlug} /><input type="hidden" name="proposalId" value={challenge.id} /><input type="hidden" name="response" value="REJECTED" /><button className="button" disabled={pending}>Recusar</button></form></div> : null}</article>) : <p className="muted">Nenhuma sugestão nesta categoria.</p>}</section>
-    </>}
-    {message ? <p className="public-booking-message" role="status">{message}</p> : null}
-  </section>;
+  return (
+    <section className="public-league-portal section-card stack-md">
+      <header
+        className={
+          view === "pairs"
+            ? "public-league-portal-header"
+            : "public-league-portal-header public-league-portal-hero-card"
+        }
+      >
+        {view === "pairs" ? (
+          <h2>Duplas da Liga</h2>
+        ) : (
+          <>
+            <span>LIGAS DA ARENA</span>
+            <h2>Olá, {playerName}</h2>
+            <p>
+              Confira os jogos e resultados da sua categoria. As ações da sua
+              dupla aparecem aqui.
+            </p>
+            <b aria-hidden="true">
+              MAIS
+              <br />
+              JOGOS
+              <br />
+              MAIS
+              <br />
+              HISTÓRIAS
+            </b>
+          </>
+        )}
+      </header>
+      {selectedCategory ? (
+        <form
+          method="get"
+          action="/home"
+          className="portal-league-category-card"
+        >
+          <input type="hidden" name="arena" value={arenaSlug} />
+          <input type="hidden" name="section" value="leagues" />
+          <input type="hidden" name="leagueTab" value={view} />
+          <input type="hidden" name="tab" value="games" />
+          <header>
+            <strong>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m4 8 8-4 8 4-8 4-8-4ZM6.5 10.2V15c2.8 2 8.2 2 11 0v-4.8M20 8v7" />
+              </svg>
+              Categoria da liga
+            </strong>
+            {selectedCategory.member ? (
+              <b>
+                <span>✓</span>Você já está inscrito nesta categoria
+              </b>
+            ) : null}
+          </header>
+          <label>
+            <span>Categoria</span>
+            <select
+              name="leagueCategory"
+              defaultValue={portal.selectedLeagueCategoryId ?? ""}
+              onChange={(event) => event.currentTarget.form?.requestSubmit()}
+            >
+              {portal.leagueCategories.map((category) => (
+                <option value={category.id} key={category.id}>
+                  {category.label}
+                  {category.member ? " · Minha Liga" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="portal-league-category-context">
+            {selectedCategory.member
+              ? "Você participa desta categoria. As ações da sua dupla aparecem abaixo."
+              : "Visualização pública: acompanhe as duplas e os resultados desta categoria."}
+          </p>
+          <div className="portal-league-category-actions">
+            <p className="portal-league-registration-fee">
+              <span>Inscrição</span>
+              <strong>
+                {new Intl.NumberFormat("pt-BR", {
+                  style: "currency",
+                  currency: "BRL",
+                }).format(selectedCategory.registrationFeeCents / 100)}
+              </strong>
+              <small>por atleta</small>
+            </p>
+          </div>
+        </form>
+      ) : (
+        <form
+          method="get"
+          action="/home"
+          className="portal-league-category-picker"
+        >
+          <input type="hidden" name="arena" value={arenaSlug} />
+          <input type="hidden" name="section" value="leagues" />
+          <input type="hidden" name="leagueTab" value={view} />
+          <input type="hidden" name="tab" value="games" />
+          <label>
+            <span>Categoria da Liga</span>
+            <select
+              name="leagueCategory"
+              defaultValue={portal.selectedLeagueCategoryId ?? ""}
+              onChange={(event) => event.currentTarget.form?.requestSubmit()}
+            >
+              {portal.leagueCategories.map((category) => (
+                <option value={category.id} key={category.id}>
+                  {category.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </form>
+      )}
+      {view === "pairs" ? (
+        <section className="portal-league-pairs">
+          <h3>Duplas inscritas</h3>
+          {portal.selectedLeaguePairs.length ? (
+            <div>
+              {portal.selectedLeaguePairs.map((pair) => (
+                <article key={pair.id}>
+                  <div>
+                    <strong>{pair.name}</strong>
+                  </div>
+                  {pair.groupName ? <small>{pair.groupName}</small> : null}
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="muted">Ainda não há duplas nesta categoria.</p>
+          )}
+        </section>
+      ) : (
+        <>
+          {portal.leagueNotifications.length ? (
+            <section className="public-portal-notifications">
+              {portal.leagueNotifications.map((notification) => (
+                <a
+                  className="public-portal-notification-reservation"
+                  href={notification.href || "#"}
+                  key={notification.id}
+                >
+                  <span
+                    className="public-portal-notification-icon"
+                    aria-hidden="true"
+                  >
+                    ⌁
+                  </span>
+                  <span className="public-portal-notification-copy">
+                    <strong>{notification.title}</strong>
+                    <small>{notification.message}</small>
+                  </span>
+                  <span className="public-portal-notification-view">Ver</span>
+                </a>
+              ))}
+            </section>
+          ) : null}
+          {showPrize && portal.prizes.length ? (
+            <section className="public-league-prizes">
+              <h3>Premiação da Liga</h3>
+              {portal.prizes.map((prize) => (
+                <article key={prize.id}>
+                  <strong>
+                    {prize.eventName} · {prize.categoryName}
+                  </strong>
+                  <p className="public-league-prize-description">
+                    {prize.description}
+                  </p>
+                </article>
+              ))}
+            </section>
+          ) : null}
+          <section className="portal-league-results">
+            <header>
+              <div>
+                <span>CALENDÁRIO DA LIGA</span>
+                <h3>Jogos e resultados</h3>
+              </div>
+              <small>Organizado por semana</small>
+            </header>
+            {leagueResultsByWeek.length ? (
+              <div className="portal-league-week-list">
+                {leagueResultsByWeek.map((week) => (
+                  <section className="portal-league-week" key={week.block}>
+                    <header>
+                      <div>
+                        <strong>Semana {week.block || "—"}</strong>
+                        <span>Período: {week.period}</span>
+                      </div>
+                      <small>
+                        {week.results.length} jogo
+                        {week.results.length === 1 ? "" : "s"}
+                      </small>
+                    </header>
+                    <div>
+                      {week.results.map((result) => (
+                        <article key={result.id}>
+                          <strong className="portal-league-match-sides">
+                            <span>
+                              <i>Mandante</i>
+                              {result.homePairName}
+                            </span>
+                            <b>
+                              {result.finished
+                                ? `${result.homeScore ?? 0} × ${result.awayScore ?? 0}`
+                                : "×"}
+                            </b>
+                            <span>
+                              <i>Visitante</i>
+                              {result.awayPairName}
+                            </span>
+                          </strong>
+                          <div className="portal-league-match-meta">
+                            <span
+                              className={`portal-league-match-status ${result.finished ? "is-finished" : result.scheduledAtLabel ? "is-scheduled" : "is-waiting"}`}
+                            >
+                              {result.finished
+                                ? "Encerrado"
+                                : result.scheduledAtLabel
+                                  ? "Agendado"
+                                  : "Aguardando"}
+                            </span>
+                            {result.scheduledAtLabel ? (
+                              <small className="portal-league-match-schedule">
+                                {result.scheduledAtLabel}
+                              </small>
+                            ) : null}
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            ) : (
+              <p className="muted">Ainda não há jogos para esta categoria.</p>
+            )}
+          </section>
+          {ownPairs.length ? (
+            <section className="public-portal-pairs">
+              {ownPairs.map((pair) => (
+                <article className="public-portal-pair" key={pair.id}>
+                  <header>
+                    <strong>{pair.name}</strong>
+                  </header>
+                  {pair.opponents.length ? (
+                    <LeagueMatchScheduleModal
+                      arenaSlug={arenaSlug}
+                      proposerPairId={pair.id}
+                      proposerName={pair.name}
+                      opponents={pair.opponents}
+                      slots={portal.slots}
+                      onMessage={setMessage}
+                    />
+                  ) : null}
+                  {pair.opponents.map((opponent) => (
+                    <details
+                      className="public-league-result-entry"
+                      key={`resultado-${opponent.matchId}`}
+                    >
+                      <summary>
+                        Registrar resultado · Semana {opponent.block ?? "—"} ·{" "}
+                        {opponent.name}
+                      </summary>
+                      <form
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          submit(
+                            event.currentTarget,
+                            recordOwnLeagueMatchResultAction,
+                            "Resultado registrado e enviado à dupla visitante.",
+                          );
+                        }}
+                        className="public-league-result-form"
+                      >
+                        <input
+                          type="hidden"
+                          name="arenaSlug"
+                          value={arenaSlug}
+                        />
+                        <input
+                          type="hidden"
+                          name="matchId"
+                          value={opponent.matchId}
+                        />
+                        <span>Set</span>
+                        <strong>{pair.name}</strong>
+                        <strong>{opponent.name}</strong>
+                        {[
+                          ["homeSet1", "awaySet1", "1"],
+                          ["homeSet2", "awaySet2", "2"],
+                          ["homeSet3", "awaySet3", "3"],
+                        ].map(([home, away, set]) => (
+                          <span
+                            className="public-league-result-score"
+                            key={set}
+                          >
+                            <i>{set}</i>
+                            <input
+                              name={home}
+                              type="number"
+                              min="0"
+                              aria-label={`Set ${set} de ${pair.name}`}
+                            />
+                            <input
+                              name={away}
+                              type="number"
+                              min="0"
+                              aria-label={`Set ${set} de ${opponent.name}`}
+                            />
+                          </span>
+                        ))}
+                        <small>
+                          Informe os dois primeiros sets; o terceiro é apenas
+                          para desempate.
+                        </small>
+                        <button
+                          type="submit"
+                          className="button button-primary"
+                          disabled={pending}
+                        >
+                          {pending ? "Salvando..." : "Salvar resultado"}
+                        </button>
+                      </form>
+                    </details>
+                  ))}
+                  <details className="public-medical-request">
+                    <summary>Solicitar substituição médica</summary>
+                    {pair.medicalRequestPending ? (
+                      <p className="muted">
+                        Solicitação já enviada para a arena.
+                      </p>
+                    ) : (
+                      <form
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          submit(
+                            event.currentTarget,
+                            requestLeagueMedicalSubstitutionAction,
+                            "Solicitação enviada para a arena.",
+                          );
+                        }}
+                      >
+                        <input
+                          type="hidden"
+                          name="arenaSlug"
+                          value={arenaSlug}
+                        />
+                        <input type="hidden" name="pairId" value={pair.id} />
+                        <label>
+                          Atleta afastado
+                          <select name="previousPlayerId">
+                            {pair.players.map((player) => (
+                              <option value={player.id} key={player.id}>
+                                {player.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label>
+                          Substituto
+                          <select name="replacementPlayerId">
+                            {portal.replacementPlayers
+                              .filter(
+                                (player) =>
+                                  !pair.players.some(
+                                    (member) => member.id === player.id,
+                                  ),
+                              )
+                              .map((player) => (
+                                <option value={player.id} key={player.id}>
+                                  {player.name}
+                                </option>
+                              ))}
+                          </select>
+                        </label>
+                        <label>
+                          Motivo médico
+                          <textarea name="reason" minLength={10} required />
+                        </label>
+                        <button
+                          type="submit"
+                          className="button"
+                          disabled={pending}
+                        >
+                          Enviar solicitação
+                        </button>
+                      </form>
+                    )}
+                  </details>
+                </article>
+              ))}
+            </section>
+          ) : null}
+          <section className="public-challenge-list">
+            <h3>Sugestões de horário</h3>
+            {challenges.length ? (
+              challenges.map((challenge) => (
+                <article id={`desafio-${challenge.id}`} key={challenge.id}>
+                  <div className="public-challenge-details">
+                    <div className="public-challenge-title-row">
+                      <strong>
+                        Semana {challenge.block ?? "—"} · {challenge.proposer} ×{" "}
+                        {challenge.opponent}
+                      </strong>
+                      {challenge.status === "ACCEPTED" ? (
+                        <span className="public-league-reservation-status">
+                          <b aria-hidden="true">✓</b> Reserva confirmada
+                        </span>
+                      ) : null}
+                    </div>
+                    <span>
+                      {challenge.court} · {challenge.proposedAt}
+                    </span>
+                    {challenge.status === "PENDING" ? (
+                      <small>Responder até {challenge.responseDueAt}</small>
+                    ) : challenge.status === "REJECTED" ? (
+                      <small>Recusado</small>
+                    ) : null}
+                  </div>
+                  {challenge.incoming && challenge.status === "PENDING" ? (
+                    <div className="public-challenge-actions">
+                      <form
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          submit(
+                            event.currentTarget,
+                            respondLeagueProposalAction,
+                            "Sugestão aceita.",
+                          );
+                        }}
+                      >
+                        <input
+                          type="hidden"
+                          name="arenaSlug"
+                          value={arenaSlug}
+                        />
+                        <input
+                          type="hidden"
+                          name="proposalId"
+                          value={challenge.id}
+                        />
+                        <input type="hidden" name="response" value="ACCEPTED" />
+                        <button
+                          className="button button-primary"
+                          disabled={pending}
+                        >
+                          Aceitar
+                        </button>
+                      </form>
+                      <form
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          submit(
+                            event.currentTarget,
+                            respondLeagueProposalAction,
+                            "Sugestão recusada.",
+                          );
+                        }}
+                      >
+                        <input
+                          type="hidden"
+                          name="arenaSlug"
+                          value={arenaSlug}
+                        />
+                        <input
+                          type="hidden"
+                          name="proposalId"
+                          value={challenge.id}
+                        />
+                        <input type="hidden" name="response" value="REJECTED" />
+                        <button className="button" disabled={pending}>
+                          Recusar
+                        </button>
+                      </form>
+                    </div>
+                  ) : null}
+                </article>
+              ))
+            ) : (
+              <p className="muted">Nenhuma sugestão nesta categoria.</p>
+            )}
+          </section>
+        </>
+      )}
+      {message ? (
+        <p className="public-booking-message" role="status">
+          {message}
+        </p>
+      ) : null}
+    </section>
+  );
 }
