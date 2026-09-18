@@ -48,10 +48,16 @@ export async function connectArenaWhatsAppAction(formData: FormData) {
   const instanceName = existing?.instanceName || createEvolutionInstanceName(arena.id);
   const instanceToken = existing?.encryptedToken ? decryptConnectionSecrets(existing.encryptedToken).token : createEvolutionInstanceToken();
   const webhookSecret = existing?.encryptedToken ? decryptConnectionSecrets(existing.encryptedToken).webhookSecret : createEvolutionWebhookSecret();
-  const qrCodeDataUrl = existing ? await getEvolutionQrCode(instanceName, instanceToken) : (await createEvolutionInstance({ instanceName, instanceToken, webhookSecret })).qrCodeDataUrl;
-  await prisma.whatsAppConnection.upsert({ where: { arenaId: arena.id }, create: { arenaId: arena.id, instanceName, encryptedToken: encryptConnectionSecrets({ token: instanceToken, webhookSecret }), webhookSecretHash: hashWebhookSecret(webhookSecret), qrCodeDataUrl, status: "AWAITING_SCAN", lastError: "" }, update: { encryptedToken: encryptConnectionSecrets({ token: instanceToken, webhookSecret }), webhookSecretHash: hashWebhookSecret(webhookSecret), qrCodeDataUrl, status: "AWAITING_SCAN", lastError: "" } });
-  revalidatePath("/arena");
-  revalidatePath("/agencia/conexoes");
+  try {
+    const qrCodeDataUrl = existing ? await getEvolutionQrCode(instanceName, instanceToken) : (await createEvolutionInstance({ instanceName, instanceToken, webhookSecret })).qrCodeDataUrl;
+    await prisma.whatsAppConnection.upsert({ where: { arenaId: arena.id }, create: { arenaId: arena.id, instanceName, encryptedToken: encryptConnectionSecrets({ token: instanceToken, webhookSecret }), webhookSecretHash: hashWebhookSecret(webhookSecret), qrCodeDataUrl, status: "AWAITING_SCAN", lastError: "" }, update: { encryptedToken: encryptConnectionSecrets({ token: instanceToken, webhookSecret }), webhookSecretHash: hashWebhookSecret(webhookSecret), qrCodeDataUrl, status: "AWAITING_SCAN", lastError: "" } });
+    revalidatePath("/arena");
+    revalidatePath("/agencia/conexoes");
+  } catch (error) {
+    const message = error instanceof Error && error.message.includes("configurada") ? "A Evolution ainda não foi configurada pela agência. Informe a URL e a chave da API antes de conectar uma arena." : "Não foi possível criar a instância na Evolution. Verifique a configuração da API e tente novamente.";
+    if (existing) await prisma.whatsAppConnection.update({ where: { id: existing.id }, data: { lastError: message } });
+    return { error: message };
+  }
 }
 
 export async function refreshArenaWhatsAppQrAction(formData: FormData) {
@@ -61,10 +67,16 @@ export async function refreshArenaWhatsAppQrAction(formData: FormData) {
   const connection = await prisma.whatsAppConnection.findUnique({ where: { arenaId: parsed.data.arenaId } });
   if (!connection?.encryptedToken) throw new Error("Conecte esta arena primeiro.");
   const token = decryptConnectionSecrets(connection.encryptedToken).token;
-  const qrCodeDataUrl = await getEvolutionQrCode(connection.instanceName, token);
-  await prisma.whatsAppConnection.update({ where: { id: connection.id }, data: { qrCodeDataUrl, status: "AWAITING_SCAN", lastError: "" } });
-  revalidatePath("/arena");
-  revalidatePath("/agencia/conexoes");
+  try {
+    const qrCodeDataUrl = await getEvolutionQrCode(connection.instanceName, token);
+    await prisma.whatsAppConnection.update({ where: { id: connection.id }, data: { qrCodeDataUrl, status: "AWAITING_SCAN", lastError: "" } });
+    revalidatePath("/arena");
+    revalidatePath("/agencia/conexoes");
+  } catch {
+    const message = "Não foi possível atualizar o QR Code na Evolution. Verifique a conexão da API e tente novamente.";
+    await prisma.whatsAppConnection.update({ where: { id: connection.id }, data: { lastError: message } });
+    return { error: message };
+  }
 }
 
 export async function updateUserSystemRoleAction(formData: FormData) {
