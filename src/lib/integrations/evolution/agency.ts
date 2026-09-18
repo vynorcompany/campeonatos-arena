@@ -27,16 +27,54 @@ export function createEvolutionInstanceName(arenaId: string) {
 export function createEvolutionInstanceToken() { return crypto.randomUUID(); }
 export function createEvolutionWebhookSecret() { return crypto.randomBytes(24).toString("base64url"); }
 
-function webhookUrl(instanceName: string, webhookSecret: string) {
+function webhookUrl(instanceName: string) {
   const config = requiredEnvironment();
-  return `${config.appUrl}/api/integrations/evolution/webhook?instance=${encodeURIComponent(instanceName)}&secret=${encodeURIComponent(webhookSecret)}`;
+  return `${config.appUrl}/api/integrations/evolution/webhook?instance=${encodeURIComponent(instanceName)}`;
 }
 
 const webhookEvents = ["QRCODE_UPDATED", "CONNECTION_UPDATE", "MESSAGES_UPSERT"];
 
+function webhookConfiguration(instanceName: string, webhookSecret: string) {
+  return {
+    enabled: true,
+    url: webhookUrl(instanceName),
+    byEvents: false,
+    base64: true,
+    events: webhookEvents,
+    headers: { "x-evolution-webhook-secret": webhookSecret },
+  };
+}
+
+function normalizeInstance(value: unknown) {
+  const record = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  const instance = record.instance && typeof record.instance === "object" ? record.instance as Record<string, unknown> : record;
+  const name = String(instance.instanceName ?? instance.name ?? record.instanceName ?? record.name ?? "");
+  const state = String(instance.connectionStatus ?? instance.status ?? instance.state ?? record.connectionStatus ?? record.status ?? record.state ?? "").toUpperCase();
+  return name ? { name, state } : null;
+}
+
+export async function findEvolutionInstance(instanceName: string) {
+  const config = requiredEnvironment();
+  const endpoint = `${config.apiUrl}/instance/fetchInstances?instanceName=${encodeURIComponent(instanceName)}`;
+  const response = await fetch(endpoint, { headers: { apikey: config.apiKey }, cache: "no-store" });
+  const payload = await response.json().catch(() => ({})) as unknown;
+  if (!response.ok) {
+    const details = payload && typeof payload === "object" ? providerMessage(payload as Record<string, unknown>) : "";
+    throw new Error(`A Evolution não confirmou a instância existente (${response.status})${details ? `: ${details}` : "."}`);
+  }
+  const candidates = Array.isArray(payload)
+    ? payload
+    : payload && typeof payload === "object"
+      ? [payload, ...(Array.isArray((payload as Record<string, unknown>).instances) ? (payload as Record<string, unknown>).instances as unknown[] : [])]
+      : [];
+  return candidates
+    .map(normalizeInstance)
+    .find((instance): instance is { name: string; state: string } => Boolean(instance && instance.name === instanceName)) ?? null;
+}
+
 export async function createEvolutionInstance(input: { instanceName: string; instanceToken: string; webhookSecret: string }) {
   const config = requiredEnvironment();
-  const callbackUrl = webhookUrl(input.instanceName, input.webhookSecret);
+  const webhook = webhookConfiguration(input.instanceName, input.webhookSecret);
   const request = (body: Record<string, unknown>) => fetch(`${config.apiUrl}/instance/create`, {
     method: "POST",
     headers: { apikey: config.apiKey, "content-type": "application/json" },
@@ -50,9 +88,9 @@ export async function createEvolutionInstance(input: { instanceName: string; ins
       token: input.instanceToken,
       qrcode: true,
       integration: "WHATSAPP-BAILEYS",
-      webhook: { enabled: true, url: callbackUrl, byEvents: false, base64: true, events: webhookEvents }
+      webhook,
   });
-  if (!response.ok && response.status === 400) response = await request({ instanceName: input.instanceName, token: input.instanceToken, qrcode: true, integration: "WHATSAPP-BAILEYS", webhook: callbackUrl, webhook_by_events: false, events: webhookEvents });
+  if (!response.ok && response.status === 400) response = await request({ instanceName: input.instanceName, token: input.instanceToken, qrcode: true, integration: "WHATSAPP-BAILEYS", webhook: webhook.url, webhook_by_events: false, events: webhookEvents, webhook_headers: webhook.headers });
   const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
   if (!response.ok) throw new Error(`A Evolution não criou a instância (${response.status})${providerMessage(payload) ? `: ${providerMessage(payload)}` : "."}`);
   const qrcode = payload.qrcode as Record<string, unknown> | undefined;
@@ -61,18 +99,19 @@ export async function createEvolutionInstance(input: { instanceName: string; ins
 
 export async function configureEvolutionWebhook(input: { instanceName: string; webhookSecret: string }) {
   const config = requiredEnvironment();
-  const response = await fetch(`${config.apiUrl}/webhook/set/${encodeURIComponent(input.instanceName)}`, {
+  const endpoint = `${config.apiUrl}/webhook/set/${encodeURIComponent(input.instanceName)}`;
+  const webhook = webhookConfiguration(input.instanceName, input.webhookSecret);
+  const request = (body: Record<string, unknown>) => fetch(endpoint, {
     method: "POST",
     headers: { apikey: config.apiKey, "content-type": "application/json" },
-    body: JSON.stringify({
-      enabled: true,
-      url: webhookUrl(input.instanceName, input.webhookSecret),
-      webhookByEvents: false,
-      webhookBase64: true,
-      events: webhookEvents,
-    }),
+    body: JSON.stringify(body),
     cache: "no-store",
   });
+  // A instalação atual da arena usa Evolution v2, que recebe o objeto
+  // `webhook`. O corpo plano abaixo é apenas compatibilidade para releases
+  // anteriores da API.
+  let response = await request({ webhook });
+  if (!response.ok && response.status === 400) response = await request({ enabled: true, url: webhook.url, webhookByEvents: false, webhookBase64: true, events: webhookEvents, headers: webhook.headers });
   const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
   if (!response.ok) throw new Error(`A Evolution não configurou o retorno da conexão (${response.status})${providerMessage(payload) ? `: ${providerMessage(payload)}` : "."}`);
 }
