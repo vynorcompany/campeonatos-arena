@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   recordOwnLeagueMatchResultAction,
   respondLeagueProposalAction,
@@ -29,6 +30,7 @@ export function PublicLeaguePortal({
   view?: "games" | "pairs";
   showPrize?: boolean;
 }) {
+  const router = useRouter();
   const [message, setMessage] = useState("");
   const [pending, startTransition] = useTransition();
   const submit = (
@@ -40,6 +42,10 @@ export function PublicLeaguePortal({
       try {
         await action(new FormData(form));
         setMessage(success);
+        // A resposta altera dados renderizados no servidor (status da proposta
+        // e agenda). Sem o refresh o botão parece não ter funcionado até a
+        // pessoa atualizar o navegador manualmente.
+        router.refresh();
       } catch (error) {
         setMessage(
           error instanceof Error

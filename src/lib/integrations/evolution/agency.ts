@@ -14,6 +14,12 @@ function qrDataUrl(value: unknown) {
   return raw.startsWith("data:image/") ? raw : `data:image/png;base64,${raw}`;
 }
 
+function providerMessage(payload: Record<string, unknown>) {
+  const value = payload.message ?? payload.error ?? payload.response?.toString();
+  if (typeof value !== "string") return "";
+  return value.replace(/[\r\n]+/g, " ").trim().slice(0, 180);
+}
+
 export function createEvolutionInstanceName(arenaId: string) {
   return `arena-${arenaId.replace(/[^a-z0-9]/gi, "").slice(-18).toLowerCase()}`;
 }
@@ -41,16 +47,29 @@ export async function createEvolutionInstance(input: { instanceName: string; ins
   });
   if (!response.ok && response.status === 400) response = await request({ instanceName: input.instanceName, token: input.instanceToken, qrcode: true, integration: "WHATSAPP-BAILEYS", webhook: webhookUrl, webhook_by_events: false, events: ["QRCODE_UPDATED", "CONNECTION_UPDATE", "MESSAGES_UPSERT"] });
   const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
-  if (!response.ok) throw new Error(`A Evolution não criou a instância (${response.status}).`);
+  if (!response.ok) throw new Error(`A Evolution não criou a instância (${response.status})${providerMessage(payload) ? `: ${providerMessage(payload)}` : "."}`);
   const qrcode = payload.qrcode as Record<string, unknown> | undefined;
   return { qrCodeDataUrl: qrDataUrl(qrcode?.base64 ?? payload.base64 ?? payload.qrcode) };
 }
 
 export async function getEvolutionQrCode(instanceName: string, instanceToken: string) {
   const config = requiredEnvironment();
-  const response = await fetch(`${config.apiUrl}/instance/connect/${encodeURIComponent(instanceName)}`, { headers: { apikey: instanceToken }, cache: "no-store" });
-  const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
-  if (!response.ok) throw new Error(`A Evolution não disponibilizou o QR Code (${response.status}).`);
-  const qrcode = payload.qrcode as Record<string, unknown> | undefined;
-  return qrDataUrl(qrcode?.base64 ?? payload.base64 ?? payload.code);
+  // A API v2 autentica os endpoints de instância com a chave da instalação,
+  // não com o token interno salvo para a arena. O segundo valor mantém
+  // compatibilidade com instalações antigas que ainda aceitam token próprio.
+  const keys = [...new Set([config.apiKey, instanceToken].filter(Boolean))];
+  let failure = "";
+  for (const apiKey of keys) {
+    const response = await fetch(`${config.apiUrl}/instance/connect/${encodeURIComponent(instanceName)}`, { headers: { apikey: apiKey }, cache: "no-store" });
+    const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
+    if (!response.ok) {
+      failure = `${response.status}${providerMessage(payload) ? `: ${providerMessage(payload)}` : ""}`;
+      continue;
+    }
+    const qrcode = payload.qrcode as Record<string, unknown> | undefined;
+    const value = qrDataUrl(qrcode?.base64 ?? payload.base64);
+    if (value) return value;
+    failure = "a instância não retornou uma imagem QR válida";
+  }
+  throw new Error(`A Evolution não disponibilizou o QR Code (${failure || "erro desconhecido"}).`);
 }
