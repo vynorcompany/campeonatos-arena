@@ -8644,6 +8644,8 @@ button {
   .portal-ranking-panel .portal-ranking-table td:nth-child(n+3) { display: table-cell; width: 31px; }
 }
 
+.ranking-table-label-compact { display: none; text-decoration: none; }
+
 /* Controles do portal: sempre legíveis e sem competir com o conteúdo. */
 .athlete-portal-back { position: relative; z-index: 22; margin-bottom: 12px; }
 .athlete-portal-events-shell .portal-league-category-card { gap: 9px; padding: 13px 14px; }
@@ -9000,3 +9002,16 @@ button {
 .agency-whatsapp-qr { display: flex; align-items: center; gap: 18px; padding: 13px; border: 1px solid #cfe0ec; border-radius: 10px; background: #f8fbfd; }.agency-whatsapp-qr img { width: 170px; height: 170px; object-fit: contain; border-radius: 7px; background: #fff; }.agency-whatsapp-qr > div { display: grid; gap: 5px; }.agency-whatsapp-qr strong { color: #194166; font-size: .84rem; }.agency-whatsapp-qr .safe-action-form { margin-top: 5px; }
 .arena-whatsapp-panel { display: grid; gap: 16px; max-width: 720px; }.arena-whatsapp-panel-header strong { display: block; margin-top: 6px; color: #17385f; }.arena-whatsapp-panel-header p { margin: 4px 0 0; }
 @media (max-width: 620px) { .agency-whatsapp-qr { align-items: flex-start; flex-direction: column; }.agency-whatsapp-qr img { width: 150px; height: 150px; } }
+
+/* Ranking de liga: as métricas cabem em uma linha no aplicativo sem ocultar dados. */
+@media (max-width: 700px) {
+  .portal-ranking-panel .portal-ranking-table-league th { white-space: nowrap; letter-spacing: .02em; }
+  .portal-ranking-panel .portal-ranking-table-league th:nth-child(1),
+  .portal-ranking-panel .portal-ranking-table-league td:nth-child(1) { width: 7%; }
+  .portal-ranking-panel .portal-ranking-table-league th:nth-child(2),
+  .portal-ranking-panel .portal-ranking-table-league td:nth-child(2) { width: 40%; }
+  .portal-ranking-panel .portal-ranking-table-league th:nth-child(n+3),
+  .portal-ranking-panel .portal-ranking-table-league td:nth-child(n+3) { width: 10.6%; }
+  .portal-ranking-panel .ranking-table-label-wide { display: none; }
+  .portal-ranking-panel .ranking-table-label-compact { display: inline; }
+}
