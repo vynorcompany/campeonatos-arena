@@ -97,7 +97,11 @@ const updateEntrySchema = entrySchema.pick({
 const financialSettingSchema = z.object({
   area: z.enum(["categorias-financeiras", "formas-pagamento", "contas-bancarias", "fornecedores"]),
   name: z.string().trim().min(2, "Informe o nome."),
-  type: z.enum(["REVENUE", "EXPENSE", "BOTH"]).default("BOTH"),
+  // FormData.get retorna null quando o campo não existe. Contas bancárias e
+  // fornecedores não enviam tipo; categorias, por outro lado, continuam com
+  // o tipo explícito. Normalizar aqui evita que um cadastro bancário válido
+  // seja rejeitado como se fosse uma categoria financeira incompleta.
+  type: z.preprocess((value) => value ?? undefined, z.enum(["REVENUE", "EXPENSE", "BOTH"]).default("BOTH")),
   bankName: optionalText,
   openingBalance: z.preprocess((value) => value ?? "0", z.string().trim().default("0")),
   document: optionalText,

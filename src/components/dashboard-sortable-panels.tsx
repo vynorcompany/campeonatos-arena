@@ -1,17 +1,17 @@
 "use client";
 
-import { Children, type DragEvent, type ReactNode, useEffect, useRef, useState } from "react";
+import { Children, type DragEvent, type PointerEvent, type ReactNode, useEffect, useRef, useState } from "react";
 
 const storageKey = "arena-dashboard-panel-order-v1";
-const sizeStorageKey = "arena-dashboard-panel-size-v1";
-type PanelSize = "compact" | "normal" | "wide";
+const layoutStorageKey = "arena-dashboard-panel-layout-v2";
+type PanelLayout = { columns: number; minHeight: number };
 
 export function DashboardSortablePanels({ children }: { children: ReactNode }) {
   const initialPanels = useRef(Children.toArray(children));
   const defaultOrder = initialPanels.current.map((_, index) => String(index));
   const [order, setOrder] = useState(defaultOrder);
   const [draggedId, setDraggedId] = useState<string | null>(null);
-  const [sizes, setSizes] = useState<Record<string, PanelSize>>({});
+  const [layouts, setLayouts] = useState<Record<string, PanelLayout>>({});
 
   useEffect(() => {
     try {
@@ -21,9 +21,9 @@ export function DashboardSortablePanels({ children }: { children: ReactNode }) {
   }, [defaultOrder.length]);
   useEffect(() => {
     try {
-      const stored = JSON.parse(window.localStorage.getItem(sizeStorageKey) ?? "{}") as Record<string, PanelSize>;
-      setSizes(Object.fromEntries(Object.entries(stored).filter(([id, size]) => defaultOrder.includes(id) && ["compact", "normal", "wide"].includes(size))));
-    } catch { /* mantém o tamanho normal */ }
+      const stored = JSON.parse(window.localStorage.getItem(layoutStorageKey) ?? "{}") as Record<string, PanelLayout>;
+      setLayouts(Object.fromEntries(Object.entries(stored).filter(([id, layout]) => defaultOrder.includes(id) && Number.isFinite(layout?.columns) && Number.isFinite(layout?.minHeight))));
+    } catch { /* mantém o tamanho padrão */ }
   }, [defaultOrder.length]);
 
   function move(targetId: string) {
@@ -40,21 +40,44 @@ export function DashboardSortablePanels({ children }: { children: ReactNode }) {
     setDraggedId(null);
   }
 
-  function resize(id: string, direction: -1 | 1) {
-    const options: PanelSize[] = ["compact", "normal", "wide"];
-    setSizes((current) => {
-      const currentSize = current[id] ?? "normal";
-      const nextSize = options[Math.max(0, Math.min(options.length - 1, options.indexOf(currentSize) + direction))];
-      const next = { ...current, [id]: nextSize };
-      try { window.localStorage.setItem(sizeStorageKey, JSON.stringify(next)); } catch { /* armazenamento indisponível */ }
+  function persistLayout(id: string, layout: PanelLayout) {
+    setLayouts((current) => {
+      const next = { ...current, [id]: layout };
+      try { window.localStorage.setItem(layoutStorageKey, JSON.stringify(next)); } catch { /* sem persistência local */ }
       return next;
     });
   }
 
+  function startResize(event: PointerEvent<HTMLSpanElement>, id: string, axis: "horizontal" | "vertical") {
+    event.preventDefault();
+    event.stopPropagation();
+    const panel = event.currentTarget.parentElement;
+    const grid = panel?.parentElement;
+    if (!panel || !grid) return;
+    const panelRect = panel.getBoundingClientRect();
+    const gridRect = grid.getBoundingClientRect();
+    const start = { x: event.clientX, y: event.clientY };
+    const initial = layouts[id] ?? { columns: 1, minHeight: Math.round(panelRect.height) };
+    const columnWidth = Math.max(1, gridRect.width / 3);
+    const move = (moveEvent: globalThis.PointerEvent) => {
+      const next = axis === "horizontal"
+        ? { ...initial, columns: Math.max(1, Math.min(3, Math.round((panelRect.width + moveEvent.clientX - start.x) / columnWidth))) }
+        : { ...initial, minHeight: Math.max(160, Math.min(880, Math.round(panelRect.height + moveEvent.clientY - start.y))) };
+      persistLayout(id, next);
+    };
+    const end = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", end);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", end, { once: true });
+  }
+
   return <div className="dashboard-grid dashboard-chart-grid dashboard-sortable-grid" aria-label="Painéis reordenáveis do dashboard">
-    {order.map((id) => <div key={id} className={`dashboard-sortable-panel dashboard-panel-${sizes[id] ?? "normal"}${draggedId === id ? " is-dragging" : ""}`} draggable onDragStart={(event: DragEvent<HTMLDivElement>) => { setDraggedId(id); event.dataTransfer.effectAllowed = "move"; }} onDragOver={(event) => event.preventDefault()} onDrop={() => move(id)} onDragEnd={() => setDraggedId(null)}>
+    {order.map((id) => <div key={id} className={`dashboard-sortable-panel${draggedId === id ? " is-dragging" : ""}`} style={{ gridColumn: `span ${layouts[id]?.columns ?? 1}`, minHeight: layouts[id]?.minHeight }} draggable onDragStart={(event: DragEvent<HTMLDivElement>) => { setDraggedId(id); event.dataTransfer.effectAllowed = "move"; }} onDragOver={(event) => event.preventDefault()} onDrop={() => move(id)} onDragEnd={() => setDraggedId(null)}>
       <span className="dashboard-drag-handle" aria-hidden="true" title="Arraste para reordenar">⠿</span>
-      <span className="dashboard-panel-resize" onMouseDown={(event) => event.stopPropagation()}><button type="button" onClick={() => resize(id, -1)} aria-label="Diminuir cartão" title="Diminuir cartão">−</button><button type="button" onClick={() => resize(id, 1)} aria-label="Aumentar cartão" title="Aumentar cartão">+</button></span>
+      <span className="dashboard-panel-resize-handle dashboard-panel-resize-handle-right" role="separator" aria-orientation="vertical" aria-label="Arraste para alterar a largura" onPointerDown={(event) => startResize(event, id, "horizontal")} />
+      <span className="dashboard-panel-resize-handle dashboard-panel-resize-handle-bottom" role="separator" aria-orientation="horizontal" aria-label="Arraste para alterar a altura" onPointerDown={(event) => startResize(event, id, "vertical")} />
       {initialPanels.current[Number(id)]}
     </div>)}
   </div>;
