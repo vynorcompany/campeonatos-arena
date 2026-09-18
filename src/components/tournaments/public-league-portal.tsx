@@ -82,25 +82,33 @@ export function PublicLeaguePortal({
       }, new Map<number, { block: number; period: string; results: typeof portal.leagueResults }>())
       .values(),
   );
+  const [selectedWeekBlock, setSelectedWeekBlock] = useState<number | null>(
+    null,
+  );
+  const selectedWeek =
+    leagueResultsByWeek.find((week) => week.block === selectedWeekBlock) ??
+    leagueResultsByWeek[0];
 
   useEffect(() => {
     const focusNotifiedMatch = () => {
       const matchId = window.location.hash.match(/^#jogo-([^?]+)/)?.[1];
       if (!matchId) return;
-      const match = document.getElementById(`jogo-${matchId}`);
-      if (!match) return;
+      const result = portal.leagueResults.find((item) => item.id === matchId);
+      if (result) setSelectedWeekBlock(result.block ?? 0);
 
       window.setTimeout(() => {
-        match.scrollIntoView({ behavior: "smooth", block: "center" });
-        match.classList.remove("is-notification-highlight");
+        const visibleMatch = document.getElementById(`jogo-${matchId}`);
+        if (!visibleMatch) return;
+        visibleMatch.scrollIntoView({ behavior: "smooth", block: "center" });
+        visibleMatch.classList.remove("is-notification-highlight");
         window.requestAnimationFrame(() =>
-          match.classList.add("is-notification-highlight"),
+          visibleMatch.classList.add("is-notification-highlight"),
         );
         window.setTimeout(
-          () => match.classList.remove("is-notification-highlight"),
+          () => visibleMatch.classList.remove("is-notification-highlight"),
           2600,
         );
-      }, 120);
+      }, 180);
     };
 
     focusNotifiedMatch();
@@ -289,20 +297,34 @@ export function PublicLeaguePortal({
             </header>
             {leagueResultsByWeek.length ? (
               <div className="portal-league-week-list">
-                {leagueResultsByWeek.map((week) => (
-                  <section className="portal-league-week" key={week.block}>
+                <div className="portal-league-week-tabs" role="tablist" aria-label="Semana da Liga">
+                  {leagueResultsByWeek.map((week) => (
+                    <button
+                      aria-selected={selectedWeek?.block === week.block}
+                      className={selectedWeek?.block === week.block ? "active" : ""}
+                      key={week.block}
+                      onClick={() => setSelectedWeekBlock(week.block)}
+                      role="tab"
+                      type="button"
+                    >
+                      Sem. {week.block || "—"}
+                    </button>
+                  ))}
+                </div>
+                {selectedWeek ? (
+                  <section className="portal-league-week" key={selectedWeek.block}>
                     <header>
                       <div>
-                        <strong>Semana {week.block || "—"}</strong>
-                        <span>Período: {week.period}</span>
+                        <strong>Semana {selectedWeek.block || "—"}</strong>
+                        <span>Período: {selectedWeek.period}</span>
                       </div>
                       <small>
-                        {week.results.length} jogo
-                        {week.results.length === 1 ? "" : "s"}
+                        {selectedWeek.results.length} jogo
+                        {selectedWeek.results.length === 1 ? "" : "s"}
                       </small>
                     </header>
                     <div>
-                      {week.results.map((result) => (
+                      {selectedWeek.results.map((result) => (
                         <article id={`jogo-${result.id}`} key={result.id}>
                           <strong className="portal-league-match-sides">
                             <span>
@@ -346,7 +368,7 @@ export function PublicLeaguePortal({
                       ))}
                     </div>
                   </section>
-                ))}
+                ) : null}
               </div>
             ) : (
               <p className="muted">Ainda não há jogos para esta categoria.</p>
