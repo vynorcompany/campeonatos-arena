@@ -13,7 +13,7 @@ export function PlayerForm() {
   const [state, formAction] = useFormState(createPlayerAction, initialState);
 
   return (
-    <form action={formAction} className="grid-form">
+    <form action={formAction} className="grid-form client-create-form">
       <div className="field">
         <label htmlFor="name">Nome e sobrenome do atleta</label>
         <input id="name" name="name" type="text" placeholder="Ex.: Pedro Martins" required />
