@@ -13,10 +13,11 @@ export function PublicSuper12Create({ arenaSlug, athletes }: { arenaSlug: string
   const [pairs, setPairs] = useState<string[][]>([[]]);
   const [targetPair, setTargetPair] = useState(0);
   const [format, setFormat] = useState<"ROUND_ROBIN" | "GROUPS">("ROUND_ROBIN");
+  const [qualification, setQualification] = useState<"TOP_TWO" | "TOP_TWO_PLUS_BEST_THIRDS">("TOP_TWO");
   const [search, setSearch] = useState("");
   const selectedIds = useMemo(() => pairs.flat(), [pairs]);
   const pairCount = pairs.filter((pair) => pair.length === 2).length;
-  const maximumGroups = Math.max(2, Math.min(12, Math.floor(pairCount / 2)));
+  const groupCount = qualification === "TOP_TWO" ? 4 : 3;
   const available = search.trim() ? athletes.filter((athlete) => athlete.name.toLocaleLowerCase("pt-BR").includes(search.trim().toLocaleLowerCase("pt-BR")) && !selectedIds.includes(athlete.id)).slice(0, 8) : [];
 
   function addPair() {
@@ -55,8 +56,8 @@ export function PublicSuper12Create({ arenaSlug, athletes }: { arenaSlug: string
       <input type="hidden" name="pairs" value={JSON.stringify(pairs.filter((pair) => pair.length > 0))} />
       <label>Nome da rodada<input name="name" required minLength={3} placeholder="Ex.: Super 12 de sexta" /></label>
       <label>Formato<select name="format" value={format} onChange={(event) => setFormat(event.target.value as "ROUND_ROBIN" | "GROUPS")}><option value="ROUND_ROBIN">Todos contra todos</option><option value="GROUPS">Grupos + mata-mata</option></select></label>
-      {format === "GROUPS" ? <label>Quantidade de grupos<input name="groupCount" type="number" min="2" max={maximumGroups} defaultValue="2" /></label> : <input type="hidden" name="groupCount" value="1" />}
-      {format === "GROUPS" ? <label className="super12-knockout-rule">Classificação para o mata-mata<select name="knockoutQualification" defaultValue="TOP_TWO"><option value="TOP_TWO">Os 2 primeiros de cada grupo</option><option value="TOP_TWO_PLUS_BEST_THIRDS">2 primeiros + 2 melhores terceiros</option></select></label> : <input type="hidden" name="knockoutQualification" value="TOP_TWO" />}
+      {format === "GROUPS" ? <><input type="hidden" name="groupCount" value={groupCount} /><label>Quantidade de grupos<input value={groupCount} readOnly aria-label="Quantidade de grupos definida pelo formato" /></label></> : <input type="hidden" name="groupCount" value="1" />}
+      {format === "GROUPS" ? <label className="super12-knockout-rule">Classificação para o mata-mata<select name="knockoutQualification" value={qualification} onChange={(event) => setQualification(event.target.value as "TOP_TWO" | "TOP_TWO_PLUS_BEST_THIRDS")}><option value="TOP_TWO">4 grupos · os 2 primeiros de cada grupo</option><option value="TOP_TWO_PLUS_BEST_THIRDS">3 grupos · 2 primeiros + 2 melhores terceiros</option></select></label> : <input type="hidden" name="knockoutQualification" value="TOP_TWO" />}
       <section className="super12-selector">
         <header><div><strong>Monte as duplas</strong><span>{selectedIds.length}/24 atletas · {pairCount} dupla{pairCount === 1 ? "" : "s"} completa{pairCount === 1 ? "" : "s"}</span></div><button type="button" className="button button-small" onClick={addPair} disabled={pairs.length >= 12}>Nova dupla</button></header>
         <p>Escolha a dupla antes de buscar os atletas. Cada dupla deve ter duas pessoas para a rodada ser criada.</p>
