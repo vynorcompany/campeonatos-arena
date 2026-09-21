@@ -46,14 +46,25 @@ function buildStandings(event: NonNullable<EventWithBoard>) {
       home.played += 1; away.played += 1;
       home.pointsFor += match.homeScore; home.pointsAgainst += match.awayScore;
       away.pointsFor += match.awayScore; away.pointsAgainst += match.homeScore;
-      if (match.homeScore > match.awayScore) { home.wins += 1; home.points += 3; away.losses += 1; }
-      if (match.awayScore > match.homeScore) { away.wins += 1; away.points += 3; home.losses += 1; }
+      if (match.homeScore > match.awayScore) { home.wins += 1; home.points += 1; away.losses += 1; }
+      if (match.awayScore > match.homeScore) { away.wins += 1; away.points += 1; home.losses += 1; }
     }
 
     return {
       id: group.id,
       name: group.name,
-      rows: [...rows].sort((left, right) => right.points - left.points || right.wins - left.wins || (right.pointsFor - right.pointsAgainst) - (left.pointsFor - left.pointsAgainst) || right.pointsFor - left.pointsFor || left.name.localeCompare(right.name, "pt-BR")),
+      rows: [...rows].sort((left, right) => {
+        const wins = right.wins - left.wins;
+        if (wins) return wins;
+        const saldo = (right.pointsFor - right.pointsAgainst) - (left.pointsFor - left.pointsAgainst);
+        if (saldo) return saldo;
+        const directMatch = group.matches.find((match) => (match.homePairId === left.pairId && match.awayPairId === right.pairId) || (match.homePairId === right.pairId && match.awayPairId === left.pairId));
+        if (directMatch?.homeScore != null && directMatch.awayScore != null && directMatch.homeScore !== directMatch.awayScore) {
+          const leftWon = directMatch.homePairId === left.pairId ? directMatch.homeScore > directMatch.awayScore : directMatch.awayScore > directMatch.homeScore;
+          return leftWon ? -1 : 1;
+        }
+        return right.pointsFor - left.pointsFor || left.name.localeCompare(right.name, "pt-BR");
+      }),
     };
   });
 }
