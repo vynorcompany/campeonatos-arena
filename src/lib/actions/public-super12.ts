@@ -36,6 +36,7 @@ export async function createSuper12Action(formData: FormData) {
   const byId = new Map(players.map((player) => [player.id, player]));
   const pairCount = submittedPairs.length;
   const groupCount = parsed.data.format === "GROUPS" ? parsed.data.groupCount : 1;
+  if (parsed.data.format === "GROUPS" && ((parsed.data.knockoutQualification === "TOP_TWO" && groupCount !== 4) || (parsed.data.knockoutQualification === "TOP_TWO_PLUS_BEST_THIRDS" && groupCount !== 3))) return { error: "O mata-mata sempre classifica oito duplas: use 4 grupos com os dois primeiros, ou 3 grupos com os dois melhores terceiros." };
   if (groupCount > pairCount) return { error: "A quantidade de grupos não pode ser maior que a de duplas." };
   if (parsed.data.format === "GROUPS" && pairCount / groupCount < 2) return { error: "Escolha menos grupos ou mais atletas: cada grupo precisa ter pelo menos duas duplas." };
 
@@ -122,11 +123,7 @@ export async function advanceSuper12KnockoutAction(formData: FormData) {
     const rankings = event.groups.map(groupRows);
     entrants = rankings.flatMap((rows) => rows.slice(0, 2)).map((row) => ({ id: row.id, name: row.name, groupId: row.groupId! }));
     if (event.knockoutQualification === "TOP_TWO_PLUS_BEST_THIRDS") entrants.push(...rankings.map((rows) => rows[2]).filter(Boolean).sort((left, right) => right.wins - left.wins || right.saldo - left.saldo || right.pointsFor - left.pointsFor).slice(0, 2).map((row) => ({ id: row.id, name: row.name, groupId: row.groupId! })));
-    const target = 2 ** Math.floor(Math.log2(entrants.length));
-    const preliminaryMatches = entrants.length - target;
-    const byeCount = entrants.length - preliminaryMatches * 2;
-    state = { byes: preliminaryMatches ? entrants.slice(0, byeCount) : [], roundNumber };
-    entrants = preliminaryMatches ? entrants.slice(byeCount) : entrants;
+    if (entrants.length !== 8) return { error: "Esta configuração precisa classificar exatamente oito duplas para as quartas de final." };
   } else {
     const latestRound = event.matches[0].roundNumber;
     const currentMatches = event.matches.filter((match) => match.roundNumber === latestRound);
