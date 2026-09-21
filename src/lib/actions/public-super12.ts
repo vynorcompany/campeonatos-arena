@@ -66,6 +66,85 @@ export async function createSuper12Action(formData: FormData) {
 
 const scoreValue = z.string().trim().regex(/^\d+$/, "Informe o placar das duas duplas.").transform(Number).pipe(z.number().int().min(0).max(99));
 const scoreSchema = z.object({ arenaSlug: z.string().trim().min(1), matchId: z.string().trim().min(1), homeScore: scoreValue, awayScore: scoreValue });
+const knockoutSchema = z.object({ arenaSlug: z.string().trim().min(1), eventId: z.string().trim().min(1) });
+
+type KnockoutSeed = { id: string; name: string; groupId: string };
+type KnockoutState = { byes: KnockoutSeed[]; roundNumber: number };
+
+function stageName(size: number) {
+  if (size === 2) return "FINAL";
+  if (size === 4) return "SEMIFINAL";
+  if (size === 8) return "QUARTAS DE FINAL";
+  return "ELIMINATÓRIA";
+}
+
+function seededMatchups(seeds: KnockoutSeed[]) {
+  const remaining = [...seeds];
+  const result: Array<[KnockoutSeed, KnockoutSeed]> = [];
+  while (remaining.length > 1) {
+    const home = remaining.shift()!;
+    let awayIndex = remaining.length - 1;
+    const crossGroup = remaining.findIndex((candidate) => candidate.groupId !== home.groupId);
+    if (crossGroup >= 0) awayIndex = crossGroup;
+    const away = remaining.splice(awayIndex, 1)[0];
+    result.push([home, away]);
+  }
+  return result;
+}
+
+function groupRows(group: { pairs: Array<{ id: string; name: string; groupId: string | null }>; matches: Array<{ homePairId: string | null; awayPairId: string | null; homeScore: number | null; awayScore: number | null }> }) {
+  const rows = group.pairs.map((pair) => ({ ...pair, wins: 0, saldo: 0, pointsFor: 0 }));
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  for (const match of group.matches) {
+    if (match.homeScore == null || match.awayScore == null || !match.homePairId || !match.awayPairId) continue;
+    const home = byId.get(match.homePairId); const away = byId.get(match.awayPairId);
+    if (!home || !away) continue;
+    home.saldo += match.homeScore - match.awayScore; away.saldo += match.awayScore - match.homeScore;
+    home.pointsFor += match.homeScore; away.pointsFor += match.awayScore;
+    if (match.homeScore > match.awayScore) home.wins += 1;
+    if (match.awayScore > match.homeScore) away.wins += 1;
+  }
+  return rows.sort((left, right) => right.wins - left.wins || right.saldo - left.saldo || right.pointsFor - left.pointsFor || left.name.localeCompare(right.name, "pt-BR"));
+}
+
+export async function advanceSuper12KnockoutAction(formData: FormData) {
+  const parsed = knockoutSchema.safeParse({ arenaSlug: formData.get("arenaSlug"), eventId: formData.get("eventId") });
+  if (!parsed.success) return { error: "Não foi possível identificar a chave do Super 12." };
+  const auth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
+  const event = await prisma.super12Event.findFirst({ where: { id: parsed.data.eventId, arenaId: auth.arenaId, creatorId: auth.playerId, status: "ACTIVE", format: "GROUPS" }, include: { groups: { orderBy: { drawOrder: "asc" }, include: { pairs: { orderBy: { drawOrder: "asc" }, select: { id: true, name: true, groupId: true } }, matches: { where: { stage: "GROUP" }, select: { homePairId: true, awayPairId: true, homeScore: true, awayScore: true } } } }, matches: { where: { stage: { not: "GROUP" } }, orderBy: [{ roundNumber: "desc" }, { roundOrder: "asc" }], select: { id: true, roundNumber: true, homePairId: true, awayPairId: true, homeScore: true, awayScore: true, homePair: { select: { id: true, name: true, groupId: true } }, awayPair: { select: { id: true, name: true, groupId: true } } } } } });
+  if (!event) return { error: "Somente quem criou um Super 12 por grupos pode liberar a chave." };
+
+  let entrants: KnockoutSeed[];
+  let roundNumber = 1;
+  let state: KnockoutState = { byes: [], roundNumber: 0 };
+  if (!event.matches.length) {
+    if (event.groups.some((group) => group.matches.some((match) => match.homeScore == null || match.awayScore == null))) return { error: "Lance todos os resultados dos grupos antes de liberar o mata-mata." };
+    const rankings = event.groups.map(groupRows);
+    entrants = rankings.flatMap((rows) => rows.slice(0, 2)).map((row) => ({ id: row.id, name: row.name, groupId: row.groupId! }));
+    if (event.knockoutQualification === "TOP_TWO_PLUS_BEST_THIRDS") entrants.push(...rankings.map((rows) => rows[2]).filter(Boolean).sort((left, right) => right.wins - left.wins || right.saldo - left.saldo || right.pointsFor - left.pointsFor).slice(0, 2).map((row) => ({ id: row.id, name: row.name, groupId: row.groupId! })));
+    const target = 2 ** Math.floor(Math.log2(entrants.length));
+    const preliminaryMatches = entrants.length - target;
+    const byeCount = entrants.length - preliminaryMatches * 2;
+    state = { byes: preliminaryMatches ? entrants.slice(0, byeCount) : [], roundNumber };
+    entrants = preliminaryMatches ? entrants.slice(byeCount) : entrants;
+  } else {
+    const latestRound = event.matches[0].roundNumber;
+    const currentMatches = event.matches.filter((match) => match.roundNumber === latestRound);
+    if (currentMatches.some((match) => match.homeScore == null || match.awayScore == null || !match.homePair || !match.awayPair)) return { error: "Lance todos os resultados desta etapa antes de liberar a próxima." };
+    try { state = event.knockoutState ? JSON.parse(event.knockoutState) : state; } catch { state = { byes: [], roundNumber: latestRound }; }
+    entrants = [...state.byes, ...currentMatches.map((match) => (match.homeScore! > match.awayScore! ? match.homePair! : match.awayPair!)).map((pair) => ({ id: pair.id, name: pair.name, groupId: pair.groupId! }))];
+    roundNumber = latestRound + 1;
+    state = { byes: [], roundNumber };
+  }
+  if (entrants.length < 2) return { error: "A chave já foi concluída." };
+  const stage = state.byes.length ? "ELIMINATÓRIA" : stageName(entrants.length);
+  await prisma.$transaction(async (tx) => {
+    for (const [index, [home, away]] of seededMatchups(entrants).entries()) await tx.super12Match.create({ data: { eventId: event.id, stage, roundNumber, roundOrder: index + 1, homePairId: home.id, awayPairId: away.id } });
+    await tx.super12Event.update({ where: { id: event.id }, data: { knockoutState: JSON.stringify(state) } });
+  });
+  revalidatePath(portalPath(parsed.data.arenaSlug));
+  return { error: null };
+}
 
 export async function recordSuper12ScoreAction(formData: FormData) {
   const parsed = scoreSchema.safeParse({ arenaSlug: formData.get("arenaSlug"), matchId: formData.get("matchId"), homeScore: formData.get("homeScore"), awayScore: formData.get("awayScore") });

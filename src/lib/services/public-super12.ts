@@ -20,6 +20,11 @@ const eventBoardInclude = {
       },
     },
   },
+  matches: {
+    where: { stage: { not: "GROUP" } },
+    orderBy: [{ roundNumber: "asc" }, { roundOrder: "asc" }],
+    include: { homePair: { select: { name: true } }, awayPair: { select: { name: true } } },
+  },
 } satisfies Prisma.Super12EventInclude;
 
 type EventWithBoard = Prisma.Super12EventGetPayload<{ include: typeof eventBoardInclude }>;
@@ -40,6 +45,7 @@ function buildStandings(event: NonNullable<EventWithBoard>) {
 
     for (const match of group.matches) {
       if (match.homeScore == null || match.awayScore == null) continue;
+      if (!match.homePairId || !match.awayPairId) continue;
       const home = byPair.get(match.homePairId);
       const away = byPair.get(match.awayPairId);
       if (!home || !away) continue;
@@ -88,6 +94,13 @@ export async function getPublicSuper12(arenaSlug: string, playerId: string, even
   return {
     events,
     availablePlayers,
-    selectedEvent: selectedEvent ? { ...selectedEvent, standings: buildStandings(selectedEvent), isCreator: selectedEvent.creatorId === playerId } : null,
+    selectedEvent: selectedEvent ? {
+      ...selectedEvent,
+      standings: buildStandings(selectedEvent),
+      isCreator: selectedEvent.creatorId === playerId,
+      knockoutCanAdvance: selectedEvent.format === "GROUPS" && (selectedEvent.matches.length === 0
+        ? selectedEvent.groups.every((group) => group.matches.every((match) => match.homeScore != null && match.awayScore != null))
+        : (() => { const latest = Math.max(...selectedEvent.matches.map((match) => match.roundNumber)); return selectedEvent.matches.filter((match) => match.roundNumber === latest).every((match) => match.homeScore != null && match.awayScore != null); })()),
+    } : null,
   };
 }

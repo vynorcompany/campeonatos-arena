@@ -1718,6 +1718,7 @@ model Super12Event {
   status     String         @default("ACTIVE")
   groupCount Int            @default(1)
   knockoutQualification String @default("TOP_TWO")
+  knockoutState String      @default("")
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
   arenaId    String
@@ -1777,18 +1778,20 @@ model Super12Group {
 model Super12Match {
   id         String       @id @default(cuid())
   roundOrder Int
+  roundNumber Int         @default(0)
+  stage      String       @default("GROUP")
   homeScore  Int?
   awayScore  Int?
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
   eventId    String
-  groupId    String
-  homePairId String
-  awayPairId String
+  groupId    String?
+  homePairId String?
+  awayPairId String?
   event      Super12Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  group      Super12Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  homePair   Super12Pair  @relation("Super12HomePair", fields: [homePairId], references: [id], onDelete: Cascade)
-  awayPair   Super12Pair  @relation("Super12AwayPair", fields: [awayPairId], references: [id], onDelete: Cascade)
+  group      Super12Group? @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  homePair   Super12Pair?  @relation("Super12HomePair", fields: [homePairId], references: [id], onDelete: SetNull)
+  awayPair   Super12Pair?  @relation("Super12AwayPair", fields: [awayPairId], references: [id], onDelete: SetNull)
 
   @@index([eventId, roundOrder])
   @@index([groupId])
