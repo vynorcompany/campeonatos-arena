@@ -9,8 +9,9 @@ const createSchema = z.object({
   arenaSlug: z.string().trim().min(1),
   name: z.string().trim().min(3, "Dê um nome para o Super 12."),
   format: z.enum(["ROUND_ROBIN", "GROUPS"]),
-  groupCount: z.coerce.number().int().min(2).max(3),
-  playerIds: z.array(z.string().trim().min(1)),
+  groupCount: z.coerce.number().int().min(1).max(12),
+  knockoutQualification: z.enum(["TOP_TWO", "TOP_TWO_PLUS_BEST_THIRDS"]),
+  pairs: z.string().min(2),
 });
 
 function portalPath(arenaSlug: string) {
@@ -20,29 +21,32 @@ function portalPath(arenaSlug: string) {
 export async function createSuper12Action(formData: FormData) {
   const parsed = createSchema.safeParse({
     arenaSlug: formData.get("arenaSlug"), name: formData.get("name"), format: formData.get("format"),
-    groupCount: formData.get("groupCount"), playerIds: formData.getAll("playerIds"),
+    groupCount: formData.get("groupCount"), knockoutQualification: formData.get("knockoutQualification"), pairs: formData.get("pairs"),
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Revise os dados do Super 12." };
-  const selectedIds = [...new Set(parsed.data.playerIds)];
-  if (selectedIds.length < 4 || selectedIds.length > 24 || selectedIds.length % 2 !== 0) return { error: "Selecione de 4 a 24 atletas, sempre em número par, para formar até 12 duplas." };
+  let submittedPairs: string[][];
+  try { submittedPairs = JSON.parse(parsed.data.pairs); } catch { return { error: "Monte as duplas antes de criar a rodada." }; }
+  if (!Array.isArray(submittedPairs) || submittedPairs.length < 2 || submittedPairs.length > 12 || submittedPairs.some((pair) => !Array.isArray(pair) || pair.length !== 2 || pair.some((id) => typeof id !== "string" || !id.trim()))) return { error: "Monte de 2 a 12 duplas, sempre com dois atletas em cada uma." };
+  const selectedIds = submittedPairs.flat();
+  if (new Set(selectedIds).size !== selectedIds.length) return { error: "Um atleta não pode participar de duas duplas na mesma rodada." };
 
   const auth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
   const players = await prisma.player.findMany({ where: { arenaId: auth.arenaId, active: true, id: { in: selectedIds } }, select: { id: true, name: true } });
   if (players.length !== selectedIds.length) return { error: "Um dos atletas selecionados não está mais disponível." };
   const byId = new Map(players.map((player) => [player.id, player]));
-  const orderedPlayers = selectedIds.map((id) => byId.get(id)!);
-  const pairCount = orderedPlayers.length / 2;
-  const groupCount = parsed.data.format === "GROUPS" ? Math.min(parsed.data.groupCount, pairCount) : 1;
+  const pairCount = submittedPairs.length;
+  const groupCount = parsed.data.format === "GROUPS" ? parsed.data.groupCount : 1;
+  if (groupCount > pairCount) return { error: "A quantidade de grupos não pode ser maior que a de duplas." };
   if (parsed.data.format === "GROUPS" && pairCount / groupCount < 2) return { error: "Escolha menos grupos ou mais atletas: cada grupo precisa ter pelo menos duas duplas." };
 
   const event = await prisma.$transaction(async (tx) => {
-    const created = await tx.super12Event.create({ data: { arenaId: auth.arenaId, creatorId: auth.playerId, name: parsed.data.name, format: parsed.data.format, groupCount } });
+    const created = await tx.super12Event.create({ data: { arenaId: auth.arenaId, creatorId: auth.playerId, name: parsed.data.name, format: parsed.data.format, groupCount, knockoutQualification: parsed.data.knockoutQualification } });
     const groups = [];
     for (let index = 0; index < groupCount; index += 1) groups.push(await tx.super12Group.create({ data: { eventId: created.id, drawOrder: index + 1, name: groupCount === 1 ? "Todos contra todos" : `Grupo ${String.fromCharCode(65 + index)}` } }));
 
     const pairs = [];
     for (let index = 0; index < pairCount; index += 1) {
-      const first = orderedPlayers[index * 2]; const second = orderedPlayers[index * 2 + 1];
+      const [firstId, secondId] = submittedPairs[index]; const first = byId.get(firstId)!; const second = byId.get(secondId)!;
       pairs.push(await tx.super12Pair.create({ data: { eventId: created.id, groupId: groups[index % groupCount].id, drawOrder: index + 1, name: `${first.name} / ${second.name}`, players: { create: [{ playerId: first.id, slot: 1 }, { playerId: second.id, slot: 2 }] } } }));
     }
     let roundOrder = 1;
@@ -52,7 +56,7 @@ export async function createSuper12Action(formData: FormData) {
         await tx.super12Match.create({ data: { eventId: created.id, groupId: group.id, homePairId: groupPairs[home].id, awayPairId: groupPairs[away].id, roundOrder: roundOrder++ } });
       }
     }
-    const notificationPlayers = orderedPlayers.filter((player) => player.id !== auth.playerId);
+    const notificationPlayers = selectedIds.map((id) => byId.get(id)!).filter((player) => player.id !== auth.playerId);
     if (notificationPlayers.length) await tx.playerNotification.createMany({ data: notificationPlayers.map((player) => ({ playerId: player.id, type: "SUPER12", title: "Você entrou em um Super 12 🎾", message: `${auth.name} montou ${created.name}. Acompanhe os jogos e a classificação pelo Portal.`, href: `${portalPath(parsed.data.arenaSlug)}?section=leagues&eventTab=super12&super12=${created.id}` })) });
     return created;
   });

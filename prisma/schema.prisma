@@ -1717,6 +1717,7 @@ model Super12Event {
   format     String         @default("ROUND_ROBIN")
   status     String         @default("ACTIVE")
   groupCount Int            @default(1)
+  knockoutQualification String @default("TOP_TWO")
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
   arenaId    String

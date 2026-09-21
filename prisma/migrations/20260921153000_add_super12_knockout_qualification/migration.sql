@@ -1,0 +1,2 @@
+ALTER TABLE "Super12Event"
+ADD COLUMN "knockoutQualification" TEXT NOT NULL DEFAULT 'TOP_TWO';
