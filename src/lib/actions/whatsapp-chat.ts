@@ -5,10 +5,13 @@ import crypto from "node:crypto";
 import { z } from "zod";
 import { requireModuleEdit, requireModuleView } from "@/lib/auth/guards";
 import { sendEvolutionTextMessage } from "@/lib/integrations/evolution/client";
+import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 
 const sendSchema = z.object({ conversationId: z.string().min(1), body: z.string().trim().min(1, "Escreva uma mensagem.").max(4096, "A mensagem é muito longa.") });
 const readSchema = z.object({ conversationId: z.string().min(1) });
+const linkSchema = z.object({ conversationId: z.string().min(1), playerId: z.string().min(1) });
+const slaSchema = z.object({ minutes: z.coerce.number().int().min(5, "O SLA mínimo é de 5 minutos.").max(1_440, "O SLA máximo é de 24 horas.") });
 
 export async function sendWhatsAppChatMessageAction(formData: FormData) {
   const auth = await requireModuleEdit("support");
@@ -25,5 +28,26 @@ export async function markWhatsAppConversationReadAction(formData: FormData) {
   const auth = await requireModuleView("support"); const parsed = readSchema.safeParse({ conversationId: formData.get("conversationId") });
   if (!parsed.success) throw new Error("Conversa inválida.");
   await withArenaTransaction(auth.arenaId, (tx) => tx.whatsAppConversation.updateMany({ where: { id: parsed.data.conversationId, arenaId: auth.arenaId }, data: { unreadCount: 0 } }));
+  revalidatePath("/whatsapp");
+}
+
+export async function linkWhatsAppConversationToClientAction(formData: FormData) {
+  const auth = await requireModuleEdit("support");
+  const parsed = linkSchema.safeParse({ conversationId: formData.get("conversationId"), playerId: formData.get("playerId") });
+  if (!parsed.success) throw new Error("Selecione um cliente válido.");
+  const [conversation, player] = await Promise.all([
+    prisma.whatsAppConversation.findFirst({ where: { id: parsed.data.conversationId, arenaId: auth.arenaId }, select: { id: true } }),
+    prisma.player.findFirst({ where: { id: parsed.data.playerId, arenaId: auth.arenaId, active: true }, select: { id: true } })
+  ]);
+  if (!conversation || !player) throw new Error("Conversa ou cliente não encontrado.");
+  await prisma.whatsAppConversation.update({ where: { id: conversation.id }, data: { playerId: player.id } });
+  revalidatePath("/whatsapp");
+}
+
+export async function updateWhatsAppSlaAction(formData: FormData) {
+  const auth = await requireModuleEdit("support");
+  const parsed = slaSchema.safeParse({ minutes: formData.get("minutes") });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "SLA inválido.");
+  await prisma.arena.update({ where: { id: auth.arenaId }, data: { whatsappSlaMinutes: parsed.data.minutes } });
   revalidatePath("/whatsapp");
 }
