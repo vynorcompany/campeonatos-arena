@@ -91,6 +91,7 @@ model Arena {
   onlineBookingEnabled              Boolean                  @default(true)
   onlineBookingWhatsappMessage      String                   @default("")
   onlineBookingWhatsappConfirmationEnabled Boolean            @default(true)
+  whatsappSlaMinutes                Int                      @default(30)
   onlineBookingLeadTimeMinutes      Int                      @default(120)
   athletePortalShowLeagues          Boolean                  @default(true)
   athletePortalShowBooking          Boolean                  @default(true)
@@ -326,6 +327,7 @@ model Player {
   leagueAthleteTiers        LeagueAthleteTier[]
   createdSuper12Events      Super12Event[]                 @relation("Super12Creator")
   super12PairPlayers        Super12PairPlayer[]
+  whatsAppConversations     WhatsAppConversation[]
 
   @@index([arenaId, active])
   @@index([mergedIntoPlayerId])
@@ -1847,11 +1849,14 @@ model WhatsAppConversation {
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
   arenaId       String
+  playerId      String?
   arena         Arena             @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  player        Player?           @relation(fields: [playerId], references: [id], onDelete: SetNull)
   messages      WhatsAppMessage[]
 
   @@unique([arenaId, remoteJid])
   @@index([arenaId, unreadCount, lastMessageAt])
+  @@index([playerId])
 }
 
 model WhatsAppMessage {
