@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import crypto from "node:crypto";
 import { z } from "zod";
 import { requireModuleEdit, requireModuleView } from "@/lib/auth/guards";
-import { getEvolutionProfilePicture, sendEvolutionAudioMessage, sendEvolutionMediaMessage, sendEvolutionTextMessage } from "@/lib/integrations/evolution/client";
+import { getEvolutionGroupName, getEvolutionProfilePicture, sendEvolutionAudioMessage, sendEvolutionMediaMessage, sendEvolutionTextMessage } from "@/lib/integrations/evolution/client";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 
@@ -140,4 +140,14 @@ export async function refreshWhatsAppConversationProfilePhotoAction(formData: Fo
   const profilePhotoUrl = await getEvolutionProfilePicture(conversation.remoteJid, auth.arenaId);
   if (profilePhotoUrl && profilePhotoUrl !== conversation.profilePhotoUrl) await prisma.whatsAppConversation.update({ where: { id: conversation.id }, data: { profilePhotoUrl } });
   return { profilePhotoUrl: profilePhotoUrl || conversation.profilePhotoUrl };
+}
+
+export async function refreshWhatsAppGroupNameAction(formData: FormData) {
+  const auth = await requireModuleView("support"); const parsed = readSchema.safeParse({ conversationId: formData.get("conversationId") });
+  if (!parsed.success) throw new Error("Conversa inválida.");
+  const conversation = await prisma.whatsAppConversation.findFirst({ where: { id: parsed.data.conversationId, arenaId: auth.arenaId, remoteJid: { endsWith: "@g.us" } }, select: { id: true, remoteJid: true } });
+  if (!conversation) return { name: "" };
+  const name = await getEvolutionGroupName(conversation.remoteJid, auth.arenaId);
+  if (name) await prisma.whatsAppConversation.update({ where: { id: conversation.id }, data: { contactName: name } });
+  return { name };
 }
