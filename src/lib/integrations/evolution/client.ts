@@ -36,3 +36,15 @@ export async function sendEvolutionTextMessage(phone: string, text: string, aren
 
   return response.json() as Promise<unknown>;
 }
+
+export async function getEvolutionProfilePicture(remoteJid: string, arenaId: string) {
+  const connection = await prisma.whatsAppConnection.findUnique({ where: { arenaId }, select: { instanceName: true, status: true } });
+  if (!connection || connection.status !== "CONNECTED") return "";
+  const config = getEvolutionConfig();
+  const response = await fetch(`${config.apiUrl}/chat/fetchProfilePicture/${encodeURIComponent(connection.instanceName)}`, {
+    method: "POST", headers: { apikey: config.apiKey, "content-type": "application/json" }, body: JSON.stringify({ number: remoteJid }), cache: "no-store"
+  });
+  if (!response.ok) return "";
+  const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
+  return String(payload.profilePictureUrl ?? payload.profilePicUrl ?? payload.url ?? "");
+}

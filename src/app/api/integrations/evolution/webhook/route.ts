@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { hashWebhookSecret } from "@/lib/payments/connection-secrets";
 import { prisma } from "@/lib/prisma";
+import { getEvolutionProfilePicture } from "@/lib/integrations/evolution/client";
 
 function safeEqual(left: string, right: string) {
   const a = Buffer.from(left); const b = Buffer.from(right);
@@ -32,7 +33,12 @@ export async function POST(request: NextRequest) {
     const message = toRecord(data.message ?? record.message);
     if (remoteJid && providerId && !fromMe && !remoteJid.endsWith("@g.us") && !remoteJid.endsWith("@broadcast")) {
       const phone = remoteJid.replace(/@.*$/, ""); const body = messageBody(message);
-      const conversation = await prisma.whatsAppConversation.upsert({ where: { arenaId_remoteJid: { arenaId: connection.arenaId, remoteJid } }, create: { arenaId: connection.arenaId, remoteJid, contactPhone: phone, contactName: String(data.pushName ?? data.notifyName ?? phone), unreadCount: 1, lastMessageAt: new Date() }, update: { contactName: String(data.pushName ?? data.notifyName ?? phone), unreadCount: { increment: 1 }, lastMessageAt: new Date() } });
+      const photoFromEvent = String(data.profilePictureUrl ?? data.profilePicUrl ?? "");
+      const conversation = await prisma.whatsAppConversation.upsert({ where: { arenaId_remoteJid: { arenaId: connection.arenaId, remoteJid } }, create: { arenaId: connection.arenaId, remoteJid, contactPhone: phone, contactName: String(data.pushName ?? data.notifyName ?? phone), profilePhotoUrl: photoFromEvent, unreadCount: 1, lastMessageAt: new Date() }, update: { contactName: String(data.pushName ?? data.notifyName ?? phone), ...(photoFromEvent ? { profilePhotoUrl: photoFromEvent } : {}), unreadCount: { increment: 1 }, lastMessageAt: new Date() } });
+      if (!conversation.profilePhotoUrl) {
+        const profilePhotoUrl = await getEvolutionProfilePicture(remoteJid, connection.arenaId).catch(() => "");
+        if (profilePhotoUrl) await prisma.whatsAppConversation.update({ where: { id: conversation.id }, data: { profilePhotoUrl } });
+      }
       await prisma.whatsAppMessage.upsert({ where: { providerId }, create: { providerId, conversationId: conversation.id, direction: "INBOUND", body, sentAt: new Date() }, update: {} });
     }
   }
