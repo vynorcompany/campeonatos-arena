@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAgencyAccess, requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
-import { configureEvolutionWebhook, createEvolutionInstance, createEvolutionInstanceName, createEvolutionInstanceToken, createEvolutionWebhookSecret, findEvolutionInstance, getEvolutionQrCode, logoutEvolutionInstance } from "@/lib/integrations/evolution/agency";
+import { configureEvolutionWebhook, createEvolutionInstance, createEvolutionInstanceName, createEvolutionInstanceToken, createEvolutionWebhookSecret, enableEvolutionHistorySync, findEvolutionInstance, getEvolutionQrCode, logoutEvolutionInstance } from "@/lib/integrations/evolution/agency";
 import { decryptConnectionSecrets, encryptConnectionSecrets, hashWebhookSecret } from "@/lib/payments/connection-secrets";
 
 const systemRoleSchema = z.object({
@@ -84,6 +84,7 @@ export async function connectArenaWhatsAppAction(formData: FormData) {
     // Consultamos a Evolution mesmo sem registro local: assim, uma instância
     // sobrevivente também é reaproveitada após uma eventual restauração do DB.
     const { providerInstance, createdQr } = await ensureEvolutionInstance({ instanceName, instanceToken, webhookSecret });
+    await enableEvolutionHistorySync(instanceName);
     await configureEvolutionWebhook({ instanceName, webhookSecret });
     const connected = Boolean(providerInstance && isEvolutionConnected(providerInstance.state));
     const qrCodeDataUrl = connected ? existing?.qrCodeDataUrl ?? "" : await getEvolutionQrCode(instanceName, instanceToken).catch(() => createdQr);
@@ -123,6 +124,7 @@ export async function resetArenaWhatsAppSessionAction(formData: FormData) {
     if (!afterLogout) {
       createdQr = (await ensureEvolutionInstance({ instanceName: connection.instanceName, instanceToken, webhookSecret })).createdQr;
     }
+    await enableEvolutionHistorySync(connection.instanceName);
     await configureEvolutionWebhook({ instanceName: connection.instanceName, webhookSecret });
     let qrCodeDataUrl = await getEvolutionQrCode(connection.instanceName, instanceToken).catch(async (qrError) => {
       const instanceAfterQrFailure = await findEvolutionInstance(connection.instanceName);

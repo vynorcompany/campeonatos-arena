@@ -106,10 +106,11 @@ export async function createEvolutionInstance(input: { instanceName: string; ins
       token: input.instanceToken,
       qrcode: true,
       integration: "WHATSAPP-BAILEYS",
+      syncFullHistory: true,
       webhook,
   });
-  if (!response.ok && [400, 403].includes(response.status)) response = await request({ instanceName: input.instanceName, token: input.instanceToken, qrcode: true, integration: "WHATSAPP-BAILEYS", webhook: legacyWebhook });
-  if (!response.ok && response.status === 400) response = await request({ instanceName: input.instanceName, token: input.instanceToken, qrcode: true, integration: "WHATSAPP-BAILEYS", webhook: legacyWebhook.url, webhook_by_events: false, events: webhookEvents });
+  if (!response.ok && [400, 403].includes(response.status)) response = await request({ instanceName: input.instanceName, token: input.instanceToken, qrcode: true, integration: "WHATSAPP-BAILEYS", syncFullHistory: true, webhook: legacyWebhook });
+  if (!response.ok && response.status === 400) response = await request({ instanceName: input.instanceName, token: input.instanceToken, qrcode: true, integration: "WHATSAPP-BAILEYS", syncFullHistory: true, webhook: legacyWebhook.url, webhook_by_events: false, events: webhookEvents });
   const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
   if (!response.ok) throw new Error(`A Evolution não criou a instância (${response.status})${providerMessage(payload) ? `: ${providerMessage(payload)}` : "."}`);
   const qrcode = payload.qrcode as Record<string, unknown> | undefined;
@@ -149,6 +150,17 @@ export async function logoutEvolutionInstance(instanceName: string) {
   if (response.ok || [400, 404].includes(response.status)) return;
   const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
   throw new Error(`A Evolution não encerrou a sessão (${response.status})${providerMessage(payload) ? `: ${providerMessage(payload)}` : "."}`);
+}
+
+export async function enableEvolutionHistorySync(instanceName: string) {
+  const config = requiredEnvironment();
+  const headers = { apikey: config.apiKey, "content-type": "application/json" };
+  const currentResponse = await fetch(`${config.apiUrl}/settings/find/${encodeURIComponent(instanceName)}`, { headers, cache: "no-store" });
+  const current = await currentResponse.json().catch(() => ({})) as Record<string, unknown>;
+  if (!currentResponse.ok) throw new Error(`A Evolution não confirmou as configurações da instância (${currentResponse.status}).`);
+  if (current.syncFullHistory === true) return;
+  const response = await fetch(`${config.apiUrl}/settings/set/${encodeURIComponent(instanceName)}`, { method: "POST", headers, body: JSON.stringify({ ...current, syncFullHistory: true }), cache: "no-store" });
+  if (!response.ok) throw new Error(`A Evolution não ativou a sincronização de conversas (${response.status}).`);
 }
 
 export async function getEvolutionQrCode(instanceName: string, instanceToken: string) {
