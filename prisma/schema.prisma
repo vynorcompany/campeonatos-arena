@@ -1845,6 +1845,10 @@ model WhatsAppConversation {
   contactName   String            @default("")
   contactPhone  String            @default("")
   unreadCount   Int               @default(0)
+  archivedAt    DateTime?
+  pinned        Boolean           @default(false)
+  favorite      Boolean           @default(false)
+  listName      String            @default("")
   lastMessageAt DateTime          @default(now())
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
@@ -1856,6 +1860,7 @@ model WhatsAppConversation {
 
   @@unique([arenaId, remoteJid])
   @@index([arenaId, unreadCount, lastMessageAt])
+  @@index([arenaId, archivedAt, lastMessageAt])
   @@index([playerId])
 }
 
