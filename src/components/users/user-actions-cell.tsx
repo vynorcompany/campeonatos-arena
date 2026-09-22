@@ -90,18 +90,13 @@ export function UserActionsCell({
         </button>
 
         {!isCurrentUser ? (
-          <SafeActionForm action={removeArenaUserAction} successMessage="Usuário removido da arena.">
+          <SafeActionForm action={removeArenaUserAction} successMessage="Usuário removido da arena." confirmKeyword="REMOVER" confirmPrompt={`Remover ${name} desta arena? O usuário não será excluído do sistema. Digite REMOVER para continuar.`}>
             <input type="hidden" name="userId" value={userId} />
             <button
               type="submit"
               className="player-trash-button"
               aria-label={`Remover ${name}`}
               title="Remover acesso"
-              onClick={(event) => {
-                if (!window.confirm(`Remover ${name} desta arena? O usuário não será excluído do sistema.`)) {
-                  event.preventDefault();
-                }
-              }}
             >
               <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
                 <path d="M4.75 5.75H15.25" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />

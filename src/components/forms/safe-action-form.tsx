@@ -111,41 +111,30 @@ export function SafeActionForm({
     >
       {children}
       {confirmKeyword && isConfirming ? (
-        <div className="form-full stack-xs safe-action-confirmation">
-          <p className="muted">
-            {confirmPrompt ??
-              `Digite ${confirmKeyword} para confirmar esta ação.`}
-          </p>
-          {confirmationContent}
-          <div className="inline-form safe-action-confirmation-actions">
-            <input
-              name="confirmKeyword"
-              type="text"
-              value={confirmValue}
-              onChange={(event) => setConfirmValue(event.currentTarget.value)}
-              placeholder={`Digite ${confirmKeyword}`}
-              autoFocus
-            />
-            <button
-              type="submit"
-              className="button button-danger"
-              disabled={isPending}
-            >
-              Confirmar
-            </button>
-            <button
-              type="button"
-              className="button"
-              onClick={() => {
-                setIsConfirming(false);
-                setConfirmValue("");
-                setError(null);
-              }}
-              disabled={isPending}
-            >
-              Cancelar
-            </button>
-          </div>
+        <div className="safe-action-confirmation-backdrop" role="presentation">
+          <section className="safe-action-confirmation" role="dialog" aria-modal="true" aria-labelledby="safe-action-confirm-title">
+            <header>
+              <span className="safe-action-confirmation-icon" aria-hidden="true">!</span>
+              <div><strong id="safe-action-confirm-title">Confirmar exclusão</strong><span>Esta ação não poderá ser desfeita.</span></div>
+            </header>
+            <p>{confirmPrompt ?? `Digite ${confirmKeyword} para confirmar esta ação.`}</p>
+            {confirmationContent}
+            <label>
+              Confirmação
+              <input
+                name="confirmKeyword"
+                type="text"
+                value={confirmValue}
+                onChange={(event) => setConfirmValue(event.currentTarget.value)}
+                placeholder={`Digite ${confirmKeyword}`}
+                autoFocus
+              />
+            </label>
+            <footer>
+              <button type="button" className="button" onClick={() => { setIsConfirming(false); setConfirmValue(""); setError(null); }} disabled={isPending}>Cancelar</button>
+              <button type="submit" className="button button-danger" disabled={isPending}>{isPending ? "Excluindo..." : "Excluir"}</button>
+            </footer>
+          </section>
         </div>
       ) : null}
       {error ? (
