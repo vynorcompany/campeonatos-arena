@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createWhatsAppContactAction, linkWhatsAppConversationToClientAction, markWhatsAppConversationReadAction, refreshWhatsAppConversationProfilePhotoAction, sendWhatsAppAudioMessageAction, sendWhatsAppChatMessageAction, updateWhatsAppConversationAction, updateWhatsAppSlaAction } from "@/lib/actions/whatsapp-chat";
+import { createWhatsAppContactAction, linkWhatsAppConversationToClientAction, markWhatsAppConversationReadAction, refreshWhatsAppConversationProfilePhotoAction, sendWhatsAppAudioMessageAction, sendWhatsAppChatMessageAction, sendWhatsAppMediaMessageAction, updateWhatsAppConversationAction, updateWhatsAppSlaAction } from "@/lib/actions/whatsapp-chat";
 import { normalizeBrazilianPhone } from "@/lib/phone";
 
 type Client = { id: string; name: string; phone: string; email: string; photoUrl: string };
@@ -60,6 +60,7 @@ export function WhatsAppChatWorkspace({ conversations, connected, clients, slaMi
     document.addEventListener("click", intercept, true);
     return () => document.removeEventListener("click", intercept, true);
   }, []);
+  useEffect(() => { const upload = (event: Event) => { const input = event.target; if (!(input instanceof HTMLInputElement) || input.type !== "file" || !input.files?.[0] || !active) return; const form = new FormData(); form.set("conversationId", active.id); form.set("file", input.files[0]); startTransition(async () => { try { const message = await sendWhatsAppMediaMessageAction(form); setLocalMessages((current) => ({ ...current, [active.id]: [...(current[active.id] ?? []), message] })); } catch (error) { setNotice(error instanceof Error ? error.message : "Não foi possível enviar o anexo."); } finally { input.value = ""; } }); }; document.addEventListener("change", upload, true); return () => document.removeEventListener("change", upload, true); }, [active, startTransition]);
   useEffect(() => {
     const label = document.querySelector(".whatsapp-chat-main > header small");
     if (label && active) label.textContent = formatPhone(active.contactPhone);
