@@ -41,7 +41,7 @@ export async function getEvolutionProfilePicture(remoteJid: string, arenaId: str
   const connection = await prisma.whatsAppConnection.findUnique({ where: { arenaId }, select: { instanceName: true, status: true } });
   if (!connection || connection.status !== "CONNECTED") return "";
   const config = getEvolutionConfig();
-  const response = await fetch(`${config.apiUrl}/chat/fetchProfilePicture/${encodeURIComponent(connection.instanceName)}`, {
+  const response = await fetch(`${config.apiUrl}/chat/fetchProfilePictureUrl/${encodeURIComponent(connection.instanceName)}`, {
     method: "POST", headers: { apikey: config.apiKey, "content-type": "application/json" }, body: JSON.stringify({ number: remoteJid }), cache: "no-store"
   });
   if (!response.ok) return "";

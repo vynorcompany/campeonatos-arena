@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import crypto from "node:crypto";
 import { z } from "zod";
 import { requireModuleEdit, requireModuleView } from "@/lib/auth/guards";
-import { sendEvolutionTextMessage } from "@/lib/integrations/evolution/client";
+import { getEvolutionProfilePicture, sendEvolutionTextMessage } from "@/lib/integrations/evolution/client";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 
@@ -23,7 +23,6 @@ export async function sendWhatsAppChatMessageAction(formData: FormData) {
   if (!conversation) throw new Error("Conversa não encontrada.");
   await sendEvolutionTextMessage(conversation.contactPhone || conversation.remoteJid.replace(/@.*$/, ""), parsed.data.body, auth.arenaId);
   const message = await withArenaTransaction(auth.arenaId, (tx) => tx.whatsAppMessage.create({ data: { conversationId: conversation.id, providerId: `out-${crypto.randomUUID()}`, direction: "OUTBOUND", body: parsed.data.body, sentAt: new Date() } }).then(async (created) => { await tx.whatsAppConversation.update({ where: { id: conversation.id }, data: { lastMessageAt: new Date() } }); return created; }));
-  revalidatePath("/whatsapp");
   return { id: message.id, direction: message.direction, body: message.body, sentAt: message.sentAt.toISOString() };
 }
 
@@ -85,4 +84,15 @@ export async function createWhatsAppContactAction(formData: FormData) {
   const player = await prisma.player.create({ data: { arenaId: auth.arenaId, name: parsed.data.name, phone: parsed.data.phone } });
   revalidatePath("/whatsapp");
   return { id: player.id, name: player.name };
+}
+
+export async function refreshWhatsAppConversationProfilePhotoAction(formData: FormData) {
+  const auth = await requireModuleView("support");
+  const parsed = readSchema.safeParse({ conversationId: formData.get("conversationId") });
+  if (!parsed.success) throw new Error("Conversa inválida.");
+  const conversation = await prisma.whatsAppConversation.findFirst({ where: { id: parsed.data.conversationId, arenaId: auth.arenaId }, select: { id: true, remoteJid: true, profilePhotoUrl: true } });
+  if (!conversation) throw new Error("Conversa não encontrada.");
+  const profilePhotoUrl = await getEvolutionProfilePicture(conversation.remoteJid, auth.arenaId);
+  if (profilePhotoUrl && profilePhotoUrl !== conversation.profilePhotoUrl) await prisma.whatsAppConversation.update({ where: { id: conversation.id }, data: { profilePhotoUrl } });
+  return { profilePhotoUrl: profilePhotoUrl || conversation.profilePhotoUrl };
 }
