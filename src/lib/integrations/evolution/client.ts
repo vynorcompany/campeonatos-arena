@@ -77,12 +77,36 @@ export async function getEvolutionGroupName(remoteJid: string, arenaId: string) 
   const connection = await prisma.whatsAppConnection.findUnique({ where: { arenaId }, select: { instanceName: true, status: true } });
   if (!connection || connection.status !== "CONNECTED") return "";
   const config = getEvolutionConfig();
-  const response = await fetch(`${config.apiUrl}/group/fetchAllGroups/${encodeURIComponent(connection.instanceName)}`, { headers: { apikey: config.apiKey }, cache: "no-store" });
-  if (!response.ok) return "";
-  const payload = await response.json().catch(() => []);
-  const groups = Array.isArray(payload) ? payload : payload && typeof payload === "object" && Array.isArray((payload as Record<string, unknown>).groups) ? (payload as Record<string, unknown>).groups as unknown[] : [];
-  const group = groups.find((item) => item && typeof item === "object" && String((item as Record<string, unknown>).id ?? (item as Record<string, unknown>).jid ?? "") === remoteJid) as Record<string, unknown> | undefined;
-  return String(group?.subject ?? group?.name ?? "").trim();
+  const url = `${config.apiUrl}/group/fetchAllGroups/${encodeURIComponent(connection.instanceName)}`;
+  const request = (method: "GET" | "POST") => fetch(url, {
+    method,
+    headers: method === "POST" ? { apikey: config.apiKey, "content-type": "application/json" } : { apikey: config.apiKey },
+    body: method === "POST" ? "{}" : undefined,
+    cache: "no-store"
+  });
+  const normalizeJid = (value: unknown) => String(value ?? "").replace(/@g\.us$/i, "").trim();
+  const findName = (payload: unknown) => {
+    const root = payload && typeof payload === "object" ? payload as Record<string, unknown> : {};
+    const nested = root.data && typeof root.data === "object" ? root.data as Record<string, unknown> : {};
+    const candidates = [payload, root.groups, root.data, root.response, nested.groups, nested.data];
+    const groups = candidates.find(Array.isArray) as unknown[] | undefined;
+    const group = groups?.find((item) => {
+      if (!item || typeof item !== "object") return false;
+      const value = item as Record<string, unknown>;
+      return [value.id, value.jid, value.groupJid, value.remoteJid].some((jid) => normalizeJid(jid) === normalizeJid(remoteJid));
+    }) as Record<string, unknown> | undefined;
+    const metadata = group?.metadata && typeof group.metadata === "object" ? group.metadata as Record<string, unknown> : {};
+    return String(group?.subject ?? group?.subjectName ?? group?.groupName ?? group?.name ?? metadata.subject ?? "").trim();
+  };
+
+  // A Evolution v2 mudou este endpoint entre versões: algumas instalações
+  // aceitam GET e outras exigem POST. Tentamos ambos e aceitamos os envelopes
+  // usados nas duas respostas para nunca exibir o nome genérico do grupo.
+  const getResponse = await request("GET").catch(() => null);
+  const getName = getResponse?.ok ? findName(await getResponse.json().catch(() => null)) : "";
+  if (getName) return getName;
+  const postResponse = await request("POST").catch(() => null);
+  return postResponse?.ok ? findName(await postResponse.json().catch(() => null)) : "";
 }
 
 export async function getEvolutionMediaDataUrl(input: { providerId: string; providerPayload: unknown; mimeType: string; mediaUrl: string }, arenaId: string) {
