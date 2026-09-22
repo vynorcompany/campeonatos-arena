@@ -62,7 +62,9 @@ export async function getEvolutionMediaDataUrl(input: { providerId: string; prov
   if (response.ok) {
     const payload = await response.json().catch(() => null);
     const record = payload && typeof payload === "object" ? payload as Record<string, unknown> : {};
-    const raw = String(record.base64 ?? record.data ?? record.media ?? record.base64Data ?? "").trim();
+    const nested = record.data && typeof record.data === "object" ? record.data as Record<string, unknown> : {};
+    const rawValue = record.base64 ?? record.media ?? record.base64Data ?? (typeof record.data === "string" ? record.data : undefined) ?? nested.base64 ?? nested.media ?? nested.base64Data ?? "";
+    const raw = String(rawValue).trim();
     if (raw) return raw.startsWith("data:") ? raw : `data:${input.mimeType || "application/octet-stream"};base64,${raw}`;
   }
   return /^https?:\/\//i.test(input.mediaUrl) ? input.mediaUrl : "";
