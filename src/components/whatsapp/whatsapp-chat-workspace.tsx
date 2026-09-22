@@ -74,9 +74,31 @@ export function WhatsAppChatWorkspace({ conversations, connected, clients, slaMi
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const chunks: BlobPart[] = [];
       const mediaRecorder = new MediaRecorder(stream);
+      let meterFrame: number | null = null;
+      let audioContext: AudioContext | null = null;
+      if (window.AudioContext) {
+        audioContext = new window.AudioContext();
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 64;
+        audioContext.createMediaStreamSource(stream).connect(analyser);
+        const samples = new Uint8Array(analyser.frequencyBinCount);
+        const paintWaveform = () => {
+          analyser.getByteFrequencyData(samples);
+          const level = samples.reduce((total, sample) => total + sample, 0) / (samples.length * 255);
+          document.querySelectorAll<HTMLElement>(".whatsapp-recording-wave i").forEach((bar, index) => {
+            const variation = .58 + (Math.sin(index * 1.7 + performance.now() / 90) + 1) * .16;
+            bar.style.transform = `scaleY(${Math.max(.2, Math.min(1.9, .22 + level * 4.5 * variation))})`;
+          });
+          meterFrame = window.requestAnimationFrame(paintWaveform);
+        };
+        void audioContext.resume().catch(() => {});
+        paintWaveform();
+      }
       recorder.current = mediaRecorder;
       mediaRecorder.ondataavailable = (event) => { if (event.data.size) chunks.push(event.data); };
       mediaRecorder.onstop = () => {
+        if (meterFrame !== null) window.cancelAnimationFrame(meterFrame);
+        void audioContext?.close().catch(() => {});
         stream.getTracks().forEach((track) => track.stop()); setRecording(false);
         const file = new File([new Blob(chunks, { type: mediaRecorder.mimeType || "audio/webm" })], "audio.webm", { type: mediaRecorder.mimeType || "audio/webm" });
         const form = new FormData(); form.set("conversationId", active.id); form.set("audio", file);
@@ -105,7 +127,7 @@ export function WhatsAppChatWorkspace({ conversations, connected, clients, slaMi
     if (!recording || !thread || thread.querySelector(".whatsapp-recording-indicator")) return;
     const indicator = document.createElement("div");
     indicator.className = "whatsapp-recording-indicator";
-    indicator.innerHTML = "<span></span><strong>Gravando áudio</strong><small>Clique novamente no microfone para enviar</small>";
+    indicator.innerHTML = `<span></span><div class="whatsapp-recording-wave">${"<i></i>".repeat(18)}</div><strong>Gravando áudio</strong><small>Clique novamente no microfone para enviar</small>`;
     thread.append(indicator);
     thread.scrollTop = thread.scrollHeight;
     return () => indicator.remove();
