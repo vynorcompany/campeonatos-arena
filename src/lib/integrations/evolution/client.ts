@@ -48,3 +48,22 @@ export async function getEvolutionProfilePicture(remoteJid: string, arenaId: str
   const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
   return String(payload.profilePictureUrl ?? payload.profilePicUrl ?? payload.url ?? "");
 }
+
+export async function getEvolutionMediaDataUrl(input: { providerId: string; providerPayload: unknown; mimeType: string; mediaUrl: string }, arenaId: string) {
+  const connection = await prisma.whatsAppConnection.findUnique({ where: { arenaId }, select: { instanceName: true, status: true } });
+  if (!connection || connection.status !== "CONNECTED") return "";
+  const config = getEvolutionConfig();
+  const response = await fetch(`${config.apiUrl}/chat/getBase64FromMediaMessage/${encodeURIComponent(connection.instanceName)}`, {
+    method: "POST",
+    headers: { apikey: config.apiKey, "content-type": "application/json" },
+    body: JSON.stringify({ message: { key: { id: input.providerId }, message: input.providerPayload }, convertToMp4: false }),
+    cache: "no-store"
+  });
+  if (response.ok) {
+    const payload = await response.json().catch(() => null);
+    const record = payload && typeof payload === "object" ? payload as Record<string, unknown> : {};
+    const raw = String(record.base64 ?? record.data ?? record.media ?? record.base64Data ?? "").trim();
+    if (raw) return raw.startsWith("data:") ? raw : `data:${input.mimeType || "application/octet-stream"};base64,${raw}`;
+  }
+  return /^https?:\/\//i.test(input.mediaUrl) ? input.mediaUrl : "";
+}

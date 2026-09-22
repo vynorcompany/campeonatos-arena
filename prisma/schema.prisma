@@ -1870,6 +1870,10 @@ model WhatsAppMessage {
   providerId     String               @unique
   direction      String
   body           String               @default("")
+  mediaType      String               @default("")
+  mediaMimeType  String               @default("")
+  mediaUrl       String               @default("")
+  providerPayload Json?
   sentAt         DateTime             @default(now())
   readAt         DateTime?
   createdAt      DateTime             @default(now())
