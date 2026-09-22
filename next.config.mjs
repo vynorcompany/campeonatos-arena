@@ -25,7 +25,9 @@ const nextConfig = {
         { key: "X-Content-Type-Options", value: "nosniff" },
         { key: "X-Frame-Options", value: "DENY" },
         { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-        { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" }
+        // O gravador do canal WhatsApp usa getUserMedia no próprio domínio.
+        // Mantemos os demais recursos sensíveis bloqueados.
+        { key: "Permissions-Policy", value: "camera=(), microphone=(self), geolocation=(), payment=()" }
       ]
     }];
   },
