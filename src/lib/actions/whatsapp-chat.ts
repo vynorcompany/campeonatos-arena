@@ -12,6 +12,8 @@ const sendSchema = z.object({ conversationId: z.string().min(1), body: z.string(
 const readSchema = z.object({ conversationId: z.string().min(1) });
 const linkSchema = z.object({ conversationId: z.string().min(1), playerId: z.string().min(1) });
 const slaSchema = z.object({ minutes: z.coerce.number().int().min(5, "O SLA mínimo é de 5 minutos.").max(1_440, "O SLA máximo é de 24 horas.") });
+const conversationActionSchema = z.object({ conversationId: z.string().min(1), action: z.enum(["archive", "pin", "unread", "favorite", "list", "clear", "delete"]), listName: z.string().trim().max(80).optional() });
+const contactSchema = z.object({ name: z.string().trim().min(3, "Informe o nome do contato."), phone: z.string().trim().min(8, "Informe o telefone do contato.") });
 
 export async function sendWhatsAppChatMessageAction(formData: FormData) {
   const auth = await requireModuleEdit("support");
@@ -50,4 +52,36 @@ export async function updateWhatsAppSlaAction(formData: FormData) {
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "SLA inválido.");
   await prisma.arena.update({ where: { id: auth.arenaId }, data: { whatsappSlaMinutes: parsed.data.minutes } });
   revalidatePath("/whatsapp");
+}
+
+export async function updateWhatsAppConversationAction(formData: FormData) {
+  const auth = await requireModuleEdit("support");
+  const parsed = conversationActionSchema.safeParse({ conversationId: formData.get("conversationId"), action: formData.get("action"), listName: formData.get("listName") || undefined });
+  if (!parsed.success) throw new Error("Ação de conversa inválida.");
+  const where = { id: parsed.data.conversationId, arenaId: auth.arenaId };
+  if (parsed.data.action === "delete") {
+    const removed = await prisma.whatsAppConversation.deleteMany({ where });
+    if (!removed.count) throw new Error("Conversa não encontrada.");
+  } else if (parsed.data.action === "clear") {
+    await prisma.whatsAppMessage.deleteMany({ where: { conversation: where } });
+  } else {
+    const conversation = await prisma.whatsAppConversation.findFirst({ where, select: { pinned: true, favorite: true, archivedAt: true } });
+    if (!conversation) throw new Error("Conversa não encontrada.");
+    const data = parsed.data.action === "archive" ? { archivedAt: conversation.archivedAt ? null : new Date() }
+      : parsed.data.action === "pin" ? { pinned: !conversation.pinned }
+      : parsed.data.action === "favorite" ? { favorite: !conversation.favorite }
+      : parsed.data.action === "list" ? { listName: parsed.data.listName || "Lista de atendimento" }
+      : { unreadCount: 1 };
+    await prisma.whatsAppConversation.update({ where: { id: parsed.data.conversationId }, data });
+  }
+  revalidatePath("/whatsapp");
+}
+
+export async function createWhatsAppContactAction(formData: FormData) {
+  const auth = await requireModuleEdit("support");
+  const parsed = contactSchema.safeParse({ name: formData.get("name"), phone: formData.get("phone") });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Contato inválido.");
+  const player = await prisma.player.create({ data: { arenaId: auth.arenaId, name: parsed.data.name, phone: parsed.data.phone } });
+  revalidatePath("/whatsapp");
+  return { id: player.id, name: player.name };
 }
