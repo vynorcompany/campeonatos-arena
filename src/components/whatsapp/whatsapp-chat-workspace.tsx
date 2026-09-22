@@ -85,6 +85,31 @@ export function WhatsAppChatWorkspace({ conversations, connected, clients, slaMi
       mediaRecorder.start(); setRecording(true); setNotice("Gravando áudio. Clique novamente para enviar.");
     } catch (error) { const name = error instanceof DOMException ? error.name : ""; setNotice(name === "NotAllowedError" ? "O navegador bloqueou o microfone. Clique no cadeado ao lado do endereço, permita o Microfone e tente novamente." : "Não foi possível abrir o microfone. Verifique a permissão do navegador."); }
   };
+  useEffect(() => {
+    const form = document.querySelector(".whatsapp-chat-main form");
+    const field = form?.querySelector(".whatsapp-composer-field");
+    if (!form || !field || form.querySelector("[data-whatsapp-recorder]")) return;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.whatsappRecorder = "true";
+    button.className = "whatsapp-composer-icon whatsapp-record-button";
+    button.title = "Gravar áudio";
+    button.setAttribute("aria-label", "Gravar áudio");
+    button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0m5 5v4m-3 0h6"/></svg>';
+    button.onclick = () => { void toggleRecording(); };
+    form.insertBefore(button, field);
+    return () => button.remove();
+  });
+  useEffect(() => {
+    const thread = document.querySelector(".whatsapp-message-thread");
+    if (!recording || !thread || thread.querySelector(".whatsapp-recording-indicator")) return;
+    const indicator = document.createElement("div");
+    indicator.className = "whatsapp-recording-indicator";
+    indicator.innerHTML = "<span></span><strong>Gravando áudio</strong><small>Clique novamente no microfone para enviar</small>";
+    thread.append(indicator);
+    thread.scrollTop = thread.scrollHeight;
+    return () => indicator.remove();
+  }, [recording, active?.id]);
   if (!connected) return <section className="whatsapp-chat-empty"><strong>Conecte o WhatsApp da arena para começar.</strong><span>O QR Code fica em Configurações › Integrações.</span></section>;
   return <section className="whatsapp-chat-workspace whatsapp-inbox">
     <aside className="whatsapp-inbox-list"><header><div><span>CAIXA DE ENTRADA</span><strong>Conversas</strong></div><div className="whatsapp-header-actions"><button type="button" title="Configurar SLA" onClick={() => setShowSla((value) => !value)}><Icon name="clock" /></button><button type="button" title="Novo contato" onClick={() => { setLinkNewClient(false); setShowContact(true); }}><Icon name="plusUser" /></button>{showSla ? <div className="whatsapp-sla-popover"><label>Tempo de SLA <input value={slaValue} onChange={(event) => setSlaValue(event.target.value.replace(/\D/g, ""))} inputMode="numeric" /> min</label><button type="button" onClick={saveSla} disabled={pending}>Salvar</button></div> : null}</div></header>
