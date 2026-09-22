@@ -23,8 +23,8 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     where: { id: messageId, conversation: { arenaId: auth.arenaId } },
     select: { providerId: true, providerPayload: true, mediaMimeType: true, mediaUrl: true }
   });
-  if (!message || !message.providerPayload) return NextResponse.json({ error: "Mídia não encontrada." }, { status: 404 });
-  const dataUrl = await getEvolutionMediaDataUrl({ providerId: message.providerId, providerPayload: message.providerPayload, mimeType: message.mediaMimeType, mediaUrl: message.mediaUrl }, auth.arenaId);
+  if (!message) return NextResponse.json({ error: "Mídia não encontrada." }, { status: 404 });
+  const dataUrl = message.mediaUrl.startsWith("data:") ? message.mediaUrl : message.providerPayload ? await getEvolutionMediaDataUrl({ providerId: message.providerId, providerPayload: message.providerPayload, mimeType: message.mediaMimeType, mediaUrl: message.mediaUrl }, auth.arenaId) : "";
   if (!dataUrl) return NextResponse.json({ error: "Não foi possível carregar esta mídia." }, { status: 404 });
   if (/^https?:\/\//i.test(dataUrl)) return NextResponse.redirect(dataUrl);
   return dataUrlResponse(dataUrl, message.mediaMimeType) ?? NextResponse.json({ error: "Mídia inválida." }, { status: 422 });
