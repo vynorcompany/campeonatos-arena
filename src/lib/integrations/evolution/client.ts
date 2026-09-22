@@ -62,6 +62,18 @@ export async function getEvolutionProfilePicture(remoteJid: string, arenaId: str
   return String(payload.profilePictureUrl ?? payload.profilePicUrl ?? payload.url ?? "");
 }
 
+export async function getEvolutionGroupName(remoteJid: string, arenaId: string) {
+  const connection = await prisma.whatsAppConnection.findUnique({ where: { arenaId }, select: { instanceName: true, status: true } });
+  if (!connection || connection.status !== "CONNECTED") return "";
+  const config = getEvolutionConfig();
+  const response = await fetch(`${config.apiUrl}/group/fetchAllGroups/${encodeURIComponent(connection.instanceName)}`, { headers: { apikey: config.apiKey }, cache: "no-store" });
+  if (!response.ok) return "";
+  const payload = await response.json().catch(() => []);
+  const groups = Array.isArray(payload) ? payload : payload && typeof payload === "object" && Array.isArray((payload as Record<string, unknown>).groups) ? (payload as Record<string, unknown>).groups as unknown[] : [];
+  const group = groups.find((item) => item && typeof item === "object" && String((item as Record<string, unknown>).id ?? (item as Record<string, unknown>).jid ?? "") === remoteJid) as Record<string, unknown> | undefined;
+  return String(group?.subject ?? group?.name ?? "").trim();
+}
+
 export async function getEvolutionMediaDataUrl(input: { providerId: string; providerPayload: unknown; mimeType: string; mediaUrl: string }, arenaId: string) {
   const connection = await prisma.whatsAppConnection.findUnique({ where: { arenaId }, select: { instanceName: true, status: true } });
   if (!connection || connection.status !== "CONNECTED") return "";

@@ -35,7 +35,7 @@ export async function sendWhatsAppChatMessageAction(formData: FormData) {
     where: { providerId },
     create: { conversationId: conversation.id, providerId, direction: "OUTBOUND", body: parsed.data.body, sentAt: new Date() },
     update: { direction: "OUTBOUND", body: parsed.data.body }
-  }).then(async (created) => { await tx.whatsAppConversation.update({ where: { id: conversation.id }, data: { lastMessageAt: new Date() } }); return created; }));
+  }).then(async (created) => { await tx.whatsAppConversation.update({ where: { id: conversation.id }, data: { lastMessageAt: new Date(), unreadCount: 0 } }); return created; }));
   return { id: message.id, direction: message.direction, body: message.body, mediaType: message.mediaType, mediaMimeType: message.mediaMimeType, mediaUrl: message.mediaUrl, sentAt: message.sentAt.toISOString() };
 }
 
@@ -52,7 +52,7 @@ export async function sendWhatsAppAudioMessageAction(formData: FormData) {
   const delivery = await sendEvolutionAudioMessage(conversation.contactPhone || conversation.remoteJid.replace(/@.*$/, ""), dataUrl, auth.arenaId);
   const providerId = evolutionProviderId(delivery);
   const message = await prisma.whatsAppMessage.upsert({ where: { providerId }, create: { providerId, conversationId: conversation.id, direction: "OUTBOUND", body: "Áudio", mediaType: "AUDIO", mediaMimeType: mimeType, mediaUrl: dataUrl, sentAt: new Date() }, update: {} });
-  await prisma.whatsAppConversation.update({ where: { id: conversation.id }, data: { lastMessageAt: new Date() } });
+  await prisma.whatsAppConversation.update({ where: { id: conversation.id }, data: { lastMessageAt: new Date(), unreadCount: 0 } });
   return { id: message.id, direction: message.direction, body: message.body, mediaType: message.mediaType, mediaMimeType: message.mediaMimeType, mediaUrl: message.mediaUrl, sentAt: message.sentAt.toISOString() };
 }
 
