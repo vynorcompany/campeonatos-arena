@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { createWhatsAppContactAction, linkWhatsAppConversationToClientAction, markWhatsAppConversationReadAction, refreshWhatsAppConversationProfilePhotoAction, sendWhatsAppAudioMessageAction, sendWhatsAppChatMessageAction, updateWhatsAppConversationAction, updateWhatsAppSlaAction } from "@/lib/actions/whatsapp-chat";
 import { normalizeBrazilianPhone } from "@/lib/phone";
 
@@ -17,6 +18,7 @@ function Icon({ name, size = 16 }: { name: keyof typeof iconPaths; size?: number
 function Avatar({ conversation, size = "", photoOverride = "" }: { conversation: Conversation; size?: string; photoOverride?: string }) { const basePhoto = photoOverride || conversation.profilePhotoUrl || conversation.player?.photoUrl; const [photo, setPhoto] = useState(basePhoto); useEffect(() => { if (basePhoto || photo) return; const form = new FormData(); form.set("conversationId", conversation.id); void refreshWhatsAppConversationProfilePhotoAction(form).then((result) => { if (result.profilePhotoUrl) setPhoto(result.profilePhotoUrl); }).catch(() => {}); }, [basePhoto, conversation.id, photo]); return <i className={`whatsapp-contact-avatar ${size}`}>{photo ? <img src={photo} alt="" referrerPolicy="no-referrer" /> : initials(conversation.contactName || conversation.contactPhone)}</i>; }
 
 export function WhatsAppChatWorkspace({ conversations, connected, clients, slaMinutes }: { conversations: Conversation[]; connected: boolean; clients: Client[]; slaMinutes: number }) {
+  const router = useRouter();
   const [activeId, setActiveId] = useState(conversations.find((item) => !item.archivedAt)?.id ?? conversations[0]?.id ?? "");
   const [body, setBody] = useState(""); const [query, setQuery] = useState(""); const [clientQuery, setClientQuery] = useState(""); const [filter, setFilter] = useState<Filter>("all"); const [menuId, setMenuId] = useState(""); const [showSla, setShowSla] = useState(false); const [showContact, setShowContact] = useState(false); const [showEmoji, setShowEmoji] = useState(false); const [recording, setRecording] = useState(false); const [linkNewClient, setLinkNewClient] = useState(false); const [slaValue, setSlaValue] = useState(String(slaMinutes)); const [notice, setNotice] = useState(""); const [localMessages, setLocalMessages] = useState<Record<string, Message[]>>({}); const [pending, startTransition] = useTransition(); const fileInput = useRef<HTMLInputElement>(null); const recorder = useRef<MediaRecorder | null>(null);
   const active = conversations.find((conversation) => conversation.id === activeId) ?? conversations[0] ?? null;
@@ -32,7 +34,7 @@ export function WhatsAppChatWorkspace({ conversations, connected, clients, slaMi
     return !conversation.archivedAt;
   }), [conversations, filter, query]);
   const matchedClient = useMemo(() => active ? clients.find((client) => normalizeBrazilianPhone(client.phone) === normalizeBrazilianPhone(active.contactPhone)) ?? null : null, [active, clients]);
-  const clientOptions = useMemo(() => clients.filter((client) => `${client.name} ${client.phone}`.toLowerCase().includes(clientQuery.toLowerCase())).slice(0, 8), [clientQuery, clients]);
+  const clientOptions = useMemo(() => clientQuery.trim() ? clients.filter((client) => `${client.name} ${client.phone}`.toLowerCase().includes(clientQuery.toLowerCase())).slice(0, 8) : [], [clientQuery, clients]);
   const slaStatus = (conversation: Conversation) => {
     const last = messagesFor(conversation).at(-1);
     if (last?.direction !== "INBOUND" || (conversation.slaResolvedAt && new Date(conversation.slaResolvedAt).getTime() >= new Date(last.sentAt).getTime())) return "normal";
@@ -45,6 +47,7 @@ export function WhatsAppChatWorkspace({ conversations, connected, clients, slaMi
   const saveSla = () => { const form = new FormData(); form.set("minutes", slaValue); startTransition(async () => { try { await updateWhatsAppSlaAction(form); setShowSla(false); setNotice("SLA de atendimento atualizado."); } catch { setNotice("Informe um SLA entre 5 minutos e 24 horas."); } }); };
   useEffect(() => { if (active?.unreadCount) { const form = new FormData(); form.set("conversationId", active.id); void markWhatsAppConversationReadAction(form); } }, [active?.id, active?.unreadCount]);
   useEffect(() => { if (!activeId && visible[0]) setActiveId(visible[0].id); }, [activeId, visible]);
+  useEffect(() => { const refresh = () => { if (document.visibilityState === "visible" && !recording && !pending) router.refresh(); }; const timer = window.setInterval(refresh, 3_000); return () => window.clearInterval(timer); }, [pending, recording, router]);
   useEffect(() => { const close = (event: KeyboardEvent) => { if (event.key === "Escape") { setShowContact(false); setShowSla(false); setShowEmoji(false); setMenuId(""); } }; window.addEventListener("keydown", close); return () => window.removeEventListener("keydown", close); }, []);
   useEffect(() => {
     const intercept = (event: MouseEvent) => {

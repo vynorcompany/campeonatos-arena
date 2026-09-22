@@ -78,13 +78,18 @@ export async function POST(request: NextRequest) {
     const message = toRecord(data.message ?? record.message);
     if (remoteJid && providerId && !remoteJid.endsWith("@broadcast")) {
       const media = mediaDetails(message);
-      const body = messageBody(message, media);
+      const isGroup = remoteJid.endsWith("@g.us");
+      const senderName = String(data.pushName ?? data.notifyName ?? key.participant ?? data.participant ?? "").trim();
+      const groupMetadata = toRecord(data.groupMetadata);
+      const groupName = String(data.groupName ?? data.subject ?? data.groupSubject ?? groupMetadata.subject ?? "").trim();
+      const rawBody = messageBody(message, media);
+      const body = isGroup && !fromMe && senderName ? `${senderName}: ${rawBody}` : rawBody;
       const sentAt = sentAtFrom(data);
       const phone = remoteJid.replace(/@.*$/, "");
-      const contactName = String(data.pushName ?? data.notifyName ?? "").trim();
+      const contactName = isGroup ? groupName : senderName;
       const photoFromEvent = String(data.profilePictureUrl ?? data.profilePicUrl ?? "");
       const existing = await prisma.whatsAppConversation.findUnique({ where: { arenaId_remoteJid: { arenaId: connection.arenaId, remoteJid } } });
-      const conversation = await prisma.whatsAppConversation.upsert({ where: { arenaId_remoteJid: { arenaId: connection.arenaId, remoteJid } }, create: { arenaId: connection.arenaId, remoteJid, contactPhone: phone, contactName: contactName || phone, profilePhotoUrl: photoFromEvent, unreadCount: fromMe ? 0 : 1, lastMessageAt: sentAt }, update: { ...(contactName ? { contactName } : {}), ...(photoFromEvent ? { profilePhotoUrl: photoFromEvent } : {}), ...(fromMe ? {} : { unreadCount: { increment: 1 } }), lastMessageAt: sentAt } });
+      const conversation = await prisma.whatsAppConversation.upsert({ where: { arenaId_remoteJid: { arenaId: connection.arenaId, remoteJid } }, create: { arenaId: connection.arenaId, remoteJid, contactPhone: phone, contactName: contactName || (isGroup ? "Grupo do WhatsApp" : phone), profilePhotoUrl: photoFromEvent, unreadCount: fromMe ? 0 : 1, lastMessageAt: sentAt }, update: { ...(!fromMe && contactName ? { contactName } : {}), ...(!isGroup && photoFromEvent ? { profilePhotoUrl: photoFromEvent } : {}), ...(fromMe ? {} : { unreadCount: { increment: 1 } }), lastMessageAt: sentAt } });
       if (!conversation.profilePhotoUrl && !existing?.profilePhotoUrl && !remoteJid.endsWith("@g.us")) {
         const profilePhotoUrl = await getEvolutionProfilePicture(remoteJid, connection.arenaId).catch(() => "");
         if (profilePhotoUrl) await prisma.whatsAppConversation.update({ where: { id: conversation.id }, data: { profilePhotoUrl } });
