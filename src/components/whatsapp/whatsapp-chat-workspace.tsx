@@ -67,7 +67,7 @@ export function WhatsAppChatWorkspace({ conversations, connected, clients, slaMi
   }, [active?.contactPhone]);
   const toggleRecording = async () => {
     if (recording) { recorder.current?.stop(); return; }
-    if (!active || !navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") { setNotice("A gravação de áudio não é compatível com este navegador."); return; }
+    if (!active || !window.isSecureContext || !navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") { setNotice("Use uma conexão HTTPS e um navegador compatível para gravar áudio."); return; }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const chunks: BlobPart[] = [];
@@ -81,7 +81,7 @@ export function WhatsAppChatWorkspace({ conversations, connected, clients, slaMi
         startTransition(async () => { try { const message = await sendWhatsAppAudioMessageAction(form); setLocalMessages((current) => ({ ...current, [active.id]: [...(current[active.id] ?? []), message] })); } catch { setNotice("Não foi possível enviar o áudio."); } });
       };
       mediaRecorder.start(); setRecording(true); setNotice("Gravando áudio. Clique novamente para enviar.");
-    } catch { setNotice("Permita o uso do microfone para gravar um áudio."); }
+    } catch (error) { const name = error instanceof DOMException ? error.name : ""; setNotice(name === "NotAllowedError" ? "O microfone está bloqueado. Libere a permissão do site no navegador e tente novamente." : "Não foi possível abrir o microfone. Verifique a permissão do navegador."); }
   };
   if (!connected) return <section className="whatsapp-chat-empty"><strong>Conecte o WhatsApp da arena para começar.</strong><span>O QR Code fica em Configurações › Integrações.</span></section>;
   return <section className="whatsapp-chat-workspace whatsapp-inbox">
