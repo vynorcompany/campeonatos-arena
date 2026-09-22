@@ -12,7 +12,7 @@ const sendSchema = z.object({ conversationId: z.string().min(1), body: z.string(
 const readSchema = z.object({ conversationId: z.string().min(1) });
 const linkSchema = z.object({ conversationId: z.string().min(1), playerId: z.string().min(1) });
 const slaSchema = z.object({ minutes: z.coerce.number().int().min(5, "O SLA mínimo é de 5 minutos.").max(1_440, "O SLA máximo é de 24 horas.") });
-const conversationActionSchema = z.object({ conversationId: z.string().min(1), action: z.enum(["archive", "pin", "unread", "favorite", "list", "clear", "delete"]), listName: z.string().trim().max(80).optional() });
+const conversationActionSchema = z.object({ conversationId: z.string().min(1), action: z.enum(["archive", "pin", "unread", "favorite", "list", "clear", "delete", "resolve_sla"]), listName: z.string().trim().max(80).optional() });
 const contactSchema = z.object({ name: z.string().trim().min(3, "Informe o nome do contato."), phone: z.string().trim().min(8, "Informe o telefone do contato.") });
 
 export async function sendWhatsAppChatMessageAction(formData: FormData) {
@@ -73,6 +73,9 @@ export async function updateWhatsAppConversationAction(formData: FormData) {
     if (!removed.count) throw new Error("Conversa não encontrada.");
   } else if (parsed.data.action === "clear") {
     await prisma.whatsAppMessage.deleteMany({ where: { conversation: where } });
+  } else if (parsed.data.action === "resolve_sla") {
+    const updated = await prisma.whatsAppConversation.updateMany({ where, data: { slaResolvedAt: new Date(), unreadCount: 0 } });
+    if (!updated.count) throw new Error("Conversa não encontrada.");
   } else {
     const conversation = await prisma.whatsAppConversation.findFirst({ where, select: { pinned: true, favorite: true, archivedAt: true } });
     if (!conversation) throw new Error("Conversa não encontrada.");

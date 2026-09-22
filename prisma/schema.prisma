@@ -1846,6 +1846,7 @@ model WhatsAppConversation {
   contactPhone  String            @default("")
   profilePhotoUrl String           @default("")
   unreadCount   Int               @default(0)
+  slaResolvedAt DateTime?
   archivedAt    DateTime?
   pinned        Boolean           @default(false)
   favorite      Boolean           @default(false)
