@@ -83,7 +83,7 @@ export function WhatsAppChatWorkspace({ conversations, connected, clients, slaMi
         startTransition(async () => { try { const message = await sendWhatsAppAudioMessageAction(form); setLocalMessages((current) => ({ ...current, [active.id]: [...(current[active.id] ?? []), message] })); } catch { setNotice("Não foi possível enviar o áudio."); } });
       };
       mediaRecorder.start(); setRecording(true); setNotice("Gravando áudio. Clique novamente para enviar.");
-    } catch (error) { const name = error instanceof DOMException ? error.name : ""; setNotice(name === "NotAllowedError" ? "O microfone está bloqueado. Libere a permissão do site no navegador e tente novamente." : "Não foi possível abrir o microfone. Verifique a permissão do navegador."); }
+    } catch (error) { const name = error instanceof DOMException ? error.name : ""; setNotice(name === "NotAllowedError" ? "O navegador bloqueou o microfone. Clique no cadeado ao lado do endereço, permita o Microfone e tente novamente." : "Não foi possível abrir o microfone. Verifique a permissão do navegador."); }
   };
   if (!connected) return <section className="whatsapp-chat-empty"><strong>Conecte o WhatsApp da arena para começar.</strong><span>O QR Code fica em Configurações › Integrações.</span></section>;
   return <section className="whatsapp-chat-workspace whatsapp-inbox">
