@@ -22,6 +22,7 @@ export function WhatsAppChatWorkspace({ conversations, connected, clients, slaMi
   const router = useRouter();
   const [activeId, setActiveId] = useState(conversations.find((item) => !item.archivedAt)?.id ?? conversations[0]?.id ?? "");
   const [body, setBody] = useState(""); const [query, setQuery] = useState(""); const [clientQuery, setClientQuery] = useState(""); const [filter, setFilter] = useState<Filter>("all"); const [menuId, setMenuId] = useState(""); const [showSla, setShowSla] = useState(false); const [showContact, setShowContact] = useState(false); const [showEmoji, setShowEmoji] = useState(false); const [selectedImage, setSelectedImage] = useState(""); const [recording, setRecording] = useState(false); const [linkNewClient, setLinkNewClient] = useState(false); const [slaValue, setSlaValue] = useState(String(slaMinutes)); const [notice, setNotice] = useState(""); const [localMessages, setLocalMessages] = useState<Record<string, Message[]>>({}); const [pending, startTransition] = useTransition(); const fileInput = useRef<HTMLInputElement>(null); const recorder = useRef<MediaRecorder | null>(null);
+  const pendingAudio = useRef<File | null>(null);
   const active = conversations.find((conversation) => conversation.id === activeId) ?? conversations[0] ?? null;
   const messagesFor = (conversation: Conversation) => Array.from(new Map([...conversation.messages, ...(localMessages[conversation.id] ?? [])].map((message) => [message.id, message])).values()).sort((left, right) => new Date(left.sentAt).getTime() - new Date(right.sentAt).getTime());
   const activeMessages = active ? messagesFor(active) : [];
@@ -101,8 +102,23 @@ export function WhatsAppChatWorkspace({ conversations, connected, clients, slaMi
         void audioContext?.close().catch(() => {});
         stream.getTracks().forEach((track) => track.stop()); setRecording(false);
         const file = new File([new Blob(chunks, { type: mediaRecorder.mimeType || "audio/webm" })], "audio.webm", { type: mediaRecorder.mimeType || "audio/webm" });
-        const form = new FormData(); form.set("conversationId", active.id); form.set("audio", file);
-        startTransition(async () => { try { const message = await sendWhatsAppAudioMessageAction(form); setLocalMessages((current) => ({ ...current, [active.id]: [...(current[active.id] ?? []), message] })); } catch { setNotice("Não foi possível enviar o áudio."); } });
+        pendingAudio.current = file;
+        const field = document.querySelector(".whatsapp-composer-field");
+        const previous = field?.querySelector<HTMLElement>(".whatsapp-pending-audio");
+        if (previous?.dataset.objectUrl) URL.revokeObjectURL(previous.dataset.objectUrl);
+        previous?.remove();
+        if (field) {
+          const preview = document.createElement("div");
+          const objectUrl = URL.createObjectURL(file);
+          preview.className = "whatsapp-pending-audio";
+          preview.dataset.objectUrl = objectUrl;
+          preview.innerHTML = '<audio controls preload="metadata"></audio><button type="button" title="Remover áudio" aria-label="Remover áudio">×</button>';
+          const audio = preview.querySelector("audio");
+          if (audio) audio.src = objectUrl;
+          preview.querySelector("button")?.addEventListener("click", () => { pendingAudio.current = null; URL.revokeObjectURL(objectUrl); preview.remove(); setNotice("Áudio removido."); });
+          field.append(preview);
+        }
+        setNotice("Áudio anexado. Pressione Enter ou clique em Enviar para enviar.");
       };
       mediaRecorder.start(); setRecording(true); setNotice("Gravando áudio. Clique novamente para enviar.");
     } catch (error) { const name = error instanceof DOMException ? error.name : ""; setNotice(name === "NotAllowedError" ? "O navegador bloqueou o microfone. Clique no cadeado ao lado do endereço, permita o Microfone e tente novamente." : "Não foi possível abrir o microfone. Verifique a permissão do navegador."); }
@@ -123,15 +139,30 @@ export function WhatsAppChatWorkspace({ conversations, connected, clients, slaMi
     return () => button.remove();
   });
   useEffect(() => {
-    const thread = document.querySelector(".whatsapp-message-thread");
-    if (!recording || !thread || thread.querySelector(".whatsapp-recording-indicator")) return;
+    const field = document.querySelector(".whatsapp-composer-field");
+    if (!recording || !field || field.querySelector(".whatsapp-recording-indicator")) return;
     const indicator = document.createElement("div");
     indicator.className = "whatsapp-recording-indicator";
     indicator.innerHTML = `<span></span><div class="whatsapp-recording-wave">${"<i></i>".repeat(18)}</div><strong>Gravando áudio</strong><small>Clique novamente no microfone para enviar</small>`;
-    thread.append(indicator);
-    thread.scrollTop = thread.scrollHeight;
+    field.append(indicator);
     return () => indicator.remove();
   }, [recording, active?.id]);
+  useEffect(() => {
+    const submitAudio = (event: SubmitEvent) => {
+      const form = event.target;
+      const file = pendingAudio.current;
+      if (!(form instanceof HTMLFormElement) || !form.matches(".whatsapp-chat-main form") || !file || !active) return;
+      event.preventDefault(); event.stopImmediatePropagation();
+      pendingAudio.current = null;
+      const preview = form.querySelector<HTMLElement>(".whatsapp-pending-audio");
+      if (preview?.dataset.objectUrl) URL.revokeObjectURL(preview.dataset.objectUrl);
+      preview?.remove();
+      const payload = new FormData(); payload.set("conversationId", active.id); payload.set("audio", file);
+      startTransition(async () => { try { const message = await sendWhatsAppAudioMessageAction(payload); setLocalMessages((current) => ({ ...current, [active.id]: [...(current[active.id] ?? []), message] })); setNotice("Áudio enviado."); } catch { pendingAudio.current = file; setNotice("Não foi possível enviar o áudio."); } });
+    };
+    document.addEventListener("submit", submitAudio, true);
+    return () => document.removeEventListener("submit", submitAudio, true);
+  }, [active, startTransition]);
   if (!connected) return <section className="whatsapp-chat-empty"><strong>Conecte o WhatsApp da arena para começar.</strong><span>O QR Code fica em Configurações › Integrações.</span></section>;
   return <section className="whatsapp-chat-workspace whatsapp-inbox">
     <aside className="whatsapp-inbox-list"><header><div><span>CAIXA DE ENTRADA</span><strong>Conversas</strong></div><div className="whatsapp-header-actions"><button type="button" title="Configurar SLA" onClick={() => setShowSla((value) => !value)}><Icon name="clock" /></button><button type="button" title="Novo contato" onClick={() => { setLinkNewClient(false); setShowContact(true); }}><Icon name="plusUser" /></button>{showSla ? <div className="whatsapp-sla-popover"><label>Tempo de SLA <input value={slaValue} onChange={(event) => setSlaValue(event.target.value.replace(/\D/g, ""))} inputMode="numeric" /> min</label><button type="button" onClick={saveSla} disabled={pending}>Salvar</button></div> : null}</div></header>
