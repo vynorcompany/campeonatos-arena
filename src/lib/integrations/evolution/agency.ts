@@ -119,6 +119,7 @@ export async function createEvolutionInstance(input: { instanceName: string; ins
 export async function configureEvolutionWebhook(input: { instanceName: string; webhookSecret: string }) {
   const config = requiredEnvironment();
   const endpoint = `${config.apiUrl}/webhook/set/${encodeURIComponent(input.instanceName)}`;
+  const webhook = webhookConfiguration(input.instanceName, input.webhookSecret);
   const legacyWebhook = legacyWebhookConfiguration(input.instanceName, input.webhookSecret);
   const request = (body: Record<string, unknown>) => fetch(endpoint, {
     method: "POST",
@@ -126,19 +127,12 @@ export async function configureEvolutionWebhook(input: { instanceName: string; w
     body: JSON.stringify(body),
     cache: "no-store",
   });
-  // A versão instalada aceita o formato plano neste endpoint. O formato
-  // aninhado pode responder 201, mas ignora a URL e mantém a configuração
-  // antiga — deixando o webhook sem o segredo e retornando 401.
-  let response = await request({
-    enabled: true,
-    url: legacyWebhook.url,
-    webhook_by_events: false,
-    webhook_base64: true,
-    events: webhookEvents,
-  });
-  if (!response.ok && response.status === 400) {
-    response = await request({ webhook: legacyWebhook });
-  }
+  // Evolution v2 espera o payload aninhado. Além de ser o formato oficial,
+  // ele mantém o segredo fora da URL (evitando que apareça nos logs do
+  // provedor). A variante antiga fica apenas como compatibilidade para uma
+  // instalação legada que não aceite o formato atual.
+  let response = await request({ webhook });
+  if (!response.ok && [400, 404].includes(response.status)) response = await request({ webhook: legacyWebhook });
   const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
   if (!response.ok) throw new Error(`A Evolution não configurou o retorno da conexão (${response.status})${providerMessage(payload) ? `: ${providerMessage(payload)}` : "."}`);
 }
