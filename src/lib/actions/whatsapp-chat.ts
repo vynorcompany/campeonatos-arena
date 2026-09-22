@@ -21,9 +21,18 @@ export async function sendWhatsAppChatMessageAction(formData: FormData) {
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   const conversation = await withArenaTransaction(auth.arenaId, (tx) => tx.whatsAppConversation.findFirst({ where: { id: parsed.data.conversationId, arenaId: auth.arenaId } }));
   if (!conversation) throw new Error("Conversa não encontrada.");
-  await sendEvolutionTextMessage(conversation.contactPhone || conversation.remoteJid.replace(/@.*$/, ""), parsed.data.body, auth.arenaId);
-  const message = await withArenaTransaction(auth.arenaId, (tx) => tx.whatsAppMessage.create({ data: { conversationId: conversation.id, providerId: `out-${crypto.randomUUID()}`, direction: "OUTBOUND", body: parsed.data.body, sentAt: new Date() } }).then(async (created) => { await tx.whatsAppConversation.update({ where: { id: conversation.id }, data: { lastMessageAt: new Date() } }); return created; }));
-  return { id: message.id, direction: message.direction, body: message.body, sentAt: message.sentAt.toISOString() };
+  const delivery = await sendEvolutionTextMessage(conversation.contactPhone || conversation.remoteJid.replace(/@.*$/, ""), parsed.data.body, auth.arenaId);
+  const deliveryRecord = delivery && typeof delivery === "object" ? delivery as Record<string, unknown> : {};
+  const deliveryKey = deliveryRecord.key && typeof deliveryRecord.key === "object" ? deliveryRecord.key as Record<string, unknown> : {};
+  const dataRecord = deliveryRecord.data && typeof deliveryRecord.data === "object" ? deliveryRecord.data as Record<string, unknown> : {};
+  const dataKey = dataRecord.key && typeof dataRecord.key === "object" ? dataRecord.key as Record<string, unknown> : {};
+  const providerId = String(deliveryKey.id ?? dataKey.id ?? deliveryRecord.id ?? `out-${crypto.randomUUID()}`);
+  const message = await withArenaTransaction(auth.arenaId, (tx) => tx.whatsAppMessage.upsert({
+    where: { providerId },
+    create: { conversationId: conversation.id, providerId, direction: "OUTBOUND", body: parsed.data.body, sentAt: new Date() },
+    update: { direction: "OUTBOUND", body: parsed.data.body }
+  }).then(async (created) => { await tx.whatsAppConversation.update({ where: { id: conversation.id }, data: { lastMessageAt: new Date() } }); return created; }));
+  return { id: message.id, direction: message.direction, body: message.body, mediaType: message.mediaType, mediaMimeType: message.mediaMimeType, mediaUrl: message.mediaUrl, sentAt: message.sentAt.toISOString() };
 }
 
 export async function markWhatsAppConversationReadAction(formData: FormData) {

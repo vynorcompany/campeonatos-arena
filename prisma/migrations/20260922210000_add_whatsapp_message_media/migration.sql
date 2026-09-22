@@ -1,0 +1,5 @@
+ALTER TABLE "WhatsAppMessage"
+  ADD COLUMN "mediaType" TEXT NOT NULL DEFAULT '',
+  ADD COLUMN "mediaMimeType" TEXT NOT NULL DEFAULT '',
+  ADD COLUMN "mediaUrl" TEXT NOT NULL DEFAULT '',
+  ADD COLUMN "providerPayload" JSONB;
