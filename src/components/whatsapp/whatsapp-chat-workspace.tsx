@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createWhatsAppContactAction, linkWhatsAppConversationToClientAction, markWhatsAppConversationReadAction, refreshWhatsAppConversationProfilePhotoAction, sendWhatsAppAudioMessageAction, sendWhatsAppChatMessageAction, sendWhatsAppMediaMessageAction, updateWhatsAppConversationAction, updateWhatsAppSlaAction } from "@/lib/actions/whatsapp-chat";
+import { createWhatsAppContactAction, linkWhatsAppConversationToClientAction, markWhatsAppConversationReadAction, refreshWhatsAppConversationProfilePhotoAction, refreshWhatsAppGroupNameAction, sendWhatsAppAudioMessageAction, sendWhatsAppChatMessageAction, sendWhatsAppMediaMessageAction, updateWhatsAppConversationAction, updateWhatsAppSlaAction } from "@/lib/actions/whatsapp-chat";
 import { normalizeBrazilianPhone } from "@/lib/phone";
 
 type Client = { id: string; name: string; phone: string; email: string; photoUrl: string };
@@ -48,6 +48,7 @@ export function WhatsAppChatWorkspace({ conversations, connected, clients, slaMi
   useEffect(() => { if (active?.unreadCount) { const form = new FormData(); form.set("conversationId", active.id); void markWhatsAppConversationReadAction(form); } }, [active?.id, active?.unreadCount]);
   useEffect(() => { if (!activeId && visible[0]) setActiveId(visible[0].id); }, [activeId, visible]);
   useEffect(() => { const refresh = () => { if (document.visibilityState === "visible" && !recording && !pending) router.refresh(); }; const timer = window.setInterval(refresh, 3_000); return () => window.clearInterval(timer); }, [pending, recording, router]);
+  useEffect(() => { conversations.filter((item) => item.remoteJid.endsWith("@g.us")).forEach((conversation) => { const form = new FormData(); form.set("conversationId", conversation.id); void refreshWhatsAppGroupNameAction(form).then((result) => { if (result.name) router.refresh(); }); }); }, [conversations, router]);
   useEffect(() => { const close = (event: KeyboardEvent) => { if (event.key === "Escape") { setShowContact(false); setShowSla(false); setShowEmoji(false); setSelectedImage(""); setMenuId(""); } }; window.addEventListener("keydown", close); return () => window.removeEventListener("keydown", close); }, []);
   useEffect(() => {
     const intercept = (event: MouseEvent) => {
@@ -83,6 +84,7 @@ export function WhatsAppChatWorkspace({ conversations, connected, clients, slaMi
       mediaRecorder.start(); setRecording(true); setNotice("Gravando áudio. Clique novamente para enviar.");
     } catch (error) { const name = error instanceof DOMException ? error.name : ""; setNotice(name === "NotAllowedError" ? "O microfone está bloqueado. Libere a permissão do site no navegador e tente novamente." : "Não foi possível abrir o microfone. Verifique a permissão do navegador."); }
   };
+  useEffect(() => { const form = document.querySelector(".whatsapp-chat-main form"); if (!form || form.querySelector("[data-whatsapp-record]")) return; const button = document.createElement("button"); button.type = "button"; button.dataset.whatsappRecord = "true"; button.className = "whatsapp-composer-icon whatsapp-record-button"; button.title = "Gravar áudio"; button.textContent = "🎙"; button.onclick = () => { void toggleRecording(); }; form.insertBefore(button, form.children[1] ?? null); return () => button.remove(); });
   if (!connected) return <section className="whatsapp-chat-empty"><strong>Conecte o WhatsApp da arena para começar.</strong><span>O QR Code fica em Configurações › Integrações.</span></section>;
   return <section className="whatsapp-chat-workspace whatsapp-inbox">
     <aside className="whatsapp-inbox-list"><header><div><span>CAIXA DE ENTRADA</span><strong>Conversas</strong></div><div className="whatsapp-header-actions"><button type="button" title="Configurar SLA" onClick={() => setShowSla((value) => !value)}><Icon name="clock" /></button><button type="button" title="Novo contato" onClick={() => { setLinkNewClient(false); setShowContact(true); }}><Icon name="plusUser" /></button>{showSla ? <div className="whatsapp-sla-popover"><label>Tempo de SLA <input value={slaValue} onChange={(event) => setSlaValue(event.target.value.replace(/\D/g, ""))} inputMode="numeric" /> min</label><button type="button" onClick={saveSla} disabled={pending}>Salvar</button></div> : null}</div></header>
