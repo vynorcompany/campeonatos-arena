@@ -22,8 +22,9 @@ export async function sendWhatsAppChatMessageAction(formData: FormData) {
   const conversation = await withArenaTransaction(auth.arenaId, (tx) => tx.whatsAppConversation.findFirst({ where: { id: parsed.data.conversationId, arenaId: auth.arenaId } }));
   if (!conversation) throw new Error("Conversa não encontrada.");
   await sendEvolutionTextMessage(conversation.contactPhone || conversation.remoteJid.replace(/@.*$/, ""), parsed.data.body, auth.arenaId);
-  await withArenaTransaction(auth.arenaId, (tx) => tx.whatsAppMessage.create({ data: { conversationId: conversation.id, providerId: `out-${crypto.randomUUID()}`, direction: "OUTBOUND", body: parsed.data.body, sentAt: new Date() } }).then(() => tx.whatsAppConversation.update({ where: { id: conversation.id }, data: { lastMessageAt: new Date() } })));
+  const message = await withArenaTransaction(auth.arenaId, (tx) => tx.whatsAppMessage.create({ data: { conversationId: conversation.id, providerId: `out-${crypto.randomUUID()}`, direction: "OUTBOUND", body: parsed.data.body, sentAt: new Date() } }).then(async (created) => { await tx.whatsAppConversation.update({ where: { id: conversation.id }, data: { lastMessageAt: new Date() } }); return created; }));
   revalidatePath("/whatsapp");
+  return { id: message.id, direction: message.direction, body: message.body, sentAt: message.sentAt.toISOString() };
 }
 
 export async function markWhatsAppConversationReadAction(formData: FormData) {

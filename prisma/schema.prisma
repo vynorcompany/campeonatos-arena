@@ -1844,6 +1844,7 @@ model WhatsAppConversation {
   remoteJid     String
   contactName   String            @default("")
   contactPhone  String            @default("")
+  profilePhotoUrl String           @default("")
   unreadCount   Int               @default(0)
   archivedAt    DateTime?
   pinned        Boolean           @default(false)
