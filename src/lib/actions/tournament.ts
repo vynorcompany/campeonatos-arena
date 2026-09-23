@@ -74,29 +74,14 @@ import {
   parseReaisToCents
 } from "@/lib/tournaments/inputs";
 import { buildCategoryBracketSeeds } from "@/lib/tournament/bracket";
+import { refreshTournamentRoutes } from "@/lib/tournament/revalidation";
+import { buildRankingRuleValues, type RankingRuleValues } from "@/lib/ranking/rule-values";
 
 export type ActionState = {
   error: string | null;
   success: string | null;
   tournamentId?: string;
 };
-
-function refreshTournamentRoutes() {
-  revalidatePath("/painel");
-  revalidatePath("/torneios");
-  revalidatePath("/torneios/rankings");
-  revalidatePath("/jogadores");
-  revalidatePath("/duplas");
-  revalidatePath("/grupos");
-  revalidatePath("/jogos");
-  revalidatePath("/overview");
-  revalidatePath("/tournaments");
-  revalidatePath("/players");
-  revalidatePath("/pairs");
-  revalidatePath("/groups");
-  revalidatePath("/matches");
-  revalidatePath("/torneios/inscricoes");
-}
 
 function parseOptionalDate(value: string) {
   if (!value) return null;
@@ -197,18 +182,10 @@ async function ensureRankingBelongsToArena(
 async function syncRankingRules(
   tx: Prisma.TransactionClient,
   rankingId: string,
-  values: {
-    model: "LEAGUE" | "KNOCKOUT";
-    championPoints?: number;
-    runnerUpPoints?: number;
-    thirdPoints?: number;
-    semifinalPoints?: number;
-    quarterfinalPoints?: number;
-    participationPoints?: number;
-  }
+  values: RankingRuleValues
 ) {
-  const rankingRuleBlueprint = getRankingRuleBlueprint(values.model);
-  const stageKeys = rankingRuleBlueprint.map((rule) => rule.stageKey);
+  const rules = buildRankingRuleValues(values);
+  const stageKeys = rules.map((rule) => rule.stageKey);
 
   await tx.rankingRule.deleteMany({
     where: {
@@ -218,12 +195,7 @@ async function syncRankingRules(
   });
 
   await Promise.all(
-    rankingRuleBlueprint.map((rule) => {
-      const points = values[rule.field];
-      if (points === undefined) {
-        throw new Error(`Pontuação ausente para ${rule.label}.`);
-      }
-
+    rules.map((rule) => {
       return tx.rankingRule.upsert({
         where: {
           rankingId_stageKey: {
@@ -235,12 +207,12 @@ async function syncRankingRules(
           rankingId,
           stageKey: rule.stageKey,
           label: rule.label,
-          points,
+          points: rule.points,
           displayOrder: rule.displayOrder
         },
         update: {
           label: rule.label,
-          points,
+          points: rule.points,
           displayOrder: rule.displayOrder
         }
       });

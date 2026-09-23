@@ -61,6 +61,7 @@ test("command checkout can consume a client's available credit without treating 
 test("zero-value commands request explicit confirmation and schedule charges use receivable entries", () => {
   const commandActions = readFileSync(resolve(process.cwd(), "src/lib/actions/comanda.ts"), "utf8");
   const calendarActions = readFileSync(resolve(process.cwd(), "src/lib/actions/calendar.ts"), "utf8");
+  const calendarRevalidation = readFileSync(resolve(process.cwd(), "src/lib/calendar/revalidation.ts"), "utf8");
   const card = readFileSync(resolve(process.cwd(), "src/components/comandas/command-card.tsx"), "utf8");
   const page = readFileSync(resolve(process.cwd(), "src/app/(app)/comandas/page.tsx"), "utf8");
 
@@ -70,7 +71,8 @@ test("zero-value commands request explicit confirmation and schedule charges use
   assert.match(commandActions, /Confirme o encerramento da comanda zerada/);
   assert.match(calendarActions, /type: "REVENUE"/);
   assert.match(calendarActions, /counterpartyName: player\.name/);
-  assert.match(calendarActions, /revalidatePath\("\/comandas"\)/);
+  assert.match(calendarActions, /refreshCalendarRoutes\(\)/);
+  assert.match(calendarRevalidation, /revalidatePath\("\/comandas"\)/);
   assert.match(page, /\["PENDING", "OVERDUE"\]/);
   assert.ok(existsSync(resolve(process.cwd(), "prisma/migrations/20260910110000_normalize_schedule_financial_entries/migration.sql")));
 });
