@@ -1,12 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import crypto from "node:crypto";
 import { z } from "zod";
 import { requireModuleEdit, requireModuleView } from "@/lib/auth/guards";
 import { getEvolutionGroupName, getEvolutionProfilePicture, sendEvolutionAudioMessage, sendEvolutionMediaMessage, sendEvolutionTextMessage } from "@/lib/integrations/evolution/client";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
+import { getArenaWhatsAppConversation, getEvolutionProviderId, persistOutboundWhatsAppMessage } from "@/lib/services/whatsapp-conversation";
 
 const sendSchema = z.object({ conversationId: z.string().min(1), body: z.string().trim().min(1, "Escreva uma mensagem.").max(4096, "A mensagem é muito longa.") });
 const readSchema = z.object({ conversationId: z.string().min(1) });
@@ -15,28 +15,14 @@ const slaSchema = z.object({ minutes: z.coerce.number().int().min(5, "O SLA mín
 const conversationActionSchema = z.object({ conversationId: z.string().min(1), action: z.enum(["archive", "pin", "unread", "favorite", "list", "clear", "delete", "resolve_sla"]), listName: z.string().trim().max(80).optional() });
 const contactSchema = z.object({ name: z.string().trim().min(3, "Informe o nome do contato."), phone: z.string().trim().min(8, "Informe o telefone do contato.") });
 
-function evolutionProviderId(delivery: unknown) {
-  const record = delivery && typeof delivery === "object" ? delivery as Record<string, unknown> : {};
-  const key = record.key && typeof record.key === "object" ? record.key as Record<string, unknown> : {};
-  const data = record.data && typeof record.data === "object" ? record.data as Record<string, unknown> : {};
-  const dataKey = data.key && typeof data.key === "object" ? data.key as Record<string, unknown> : {};
-  return String(key.id ?? dataKey.id ?? record.id ?? `out-${crypto.randomUUID()}`);
-}
-
 export async function sendWhatsAppChatMessageAction(formData: FormData) {
   const auth = await requireModuleEdit("support");
   const parsed = sendSchema.safeParse({ conversationId: formData.get("conversationId"), body: formData.get("body") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
-  const conversation = await withArenaTransaction(auth.arenaId, (tx) => tx.whatsAppConversation.findFirst({ where: { id: parsed.data.conversationId, arenaId: auth.arenaId } }));
+  const conversation = await getArenaWhatsAppConversation(auth.arenaId, parsed.data.conversationId);
   if (!conversation) throw new Error("Conversa não encontrada.");
   const delivery = await sendEvolutionTextMessage(conversation.contactPhone || conversation.remoteJid.replace(/@.*$/, ""), parsed.data.body, auth.arenaId);
-  const providerId = evolutionProviderId(delivery);
-  const message = await withArenaTransaction(auth.arenaId, (tx) => tx.whatsAppMessage.upsert({
-    where: { providerId },
-    create: { conversationId: conversation.id, providerId, direction: "OUTBOUND", body: parsed.data.body, sentAt: new Date() },
-    update: { direction: "OUTBOUND", body: parsed.data.body }
-  }).then(async (created) => { await tx.whatsAppConversation.update({ where: { id: conversation.id }, data: { lastMessageAt: new Date(), unreadCount: 0 } }); return created; }));
-  return { id: message.id, direction: message.direction, body: message.body, mediaType: message.mediaType, mediaMimeType: message.mediaMimeType, mediaUrl: message.mediaUrl, sentAt: message.sentAt.toISOString() };
+  return persistOutboundWhatsAppMessage(auth.arenaId, conversation.id, { providerId: getEvolutionProviderId(delivery), body: parsed.data.body });
 }
 
 export async function sendWhatsAppAudioMessageAction(formData: FormData) {
@@ -45,15 +31,12 @@ export async function sendWhatsAppAudioMessageAction(formData: FormData) {
   const audio = formData.get("audio");
   if (!conversationId || !(audio instanceof File) || !audio.size) throw new Error("Gravação de áudio inválida.");
   if (audio.size > 16 * 1024 * 1024) throw new Error("O áudio pode ter no máximo 16 MB.");
-  const conversation = await prisma.whatsAppConversation.findFirst({ where: { id: conversationId, arenaId: auth.arenaId } });
+  const conversation = await getArenaWhatsAppConversation(auth.arenaId, conversationId);
   if (!conversation) throw new Error("Conversa não encontrada.");
   const mimeType = audio.type || "audio/webm";
   const dataUrl = `data:${mimeType};base64,${Buffer.from(await audio.arrayBuffer()).toString("base64")}`;
   const delivery = await sendEvolutionAudioMessage(conversation.contactPhone || conversation.remoteJid.replace(/@.*$/, ""), dataUrl, auth.arenaId);
-  const providerId = evolutionProviderId(delivery);
-  const message = await prisma.whatsAppMessage.upsert({ where: { providerId }, create: { providerId, conversationId: conversation.id, direction: "OUTBOUND", body: "Áudio", mediaType: "AUDIO", mediaMimeType: mimeType, mediaUrl: dataUrl, sentAt: new Date() }, update: {} });
-  await prisma.whatsAppConversation.update({ where: { id: conversation.id }, data: { lastMessageAt: new Date(), unreadCount: 0 } });
-  return { id: message.id, direction: message.direction, body: message.body, mediaType: message.mediaType, mediaMimeType: message.mediaMimeType, mediaUrl: message.mediaUrl, sentAt: message.sentAt.toISOString() };
+  return persistOutboundWhatsAppMessage(auth.arenaId, conversation.id, { providerId: getEvolutionProviderId(delivery), body: "Áudio", mediaType: "AUDIO", mediaMimeType: mimeType, mediaUrl: dataUrl });
 }
 
 export async function sendWhatsAppMediaMessageAction(formData: FormData) {
@@ -62,10 +45,9 @@ export async function sendWhatsAppMediaMessageAction(formData: FormData) {
   if (file.size > 16 * 1024 * 1024) throw new Error("O anexo pode ter no máximo 16 MB.");
   const mediaType = file.type.startsWith("image/") ? "image" : file.type === "application/pdf" ? "document" : null;
   if (!mediaType) throw new Error("Envie uma imagem ou PDF.");
-  const conversation = await prisma.whatsAppConversation.findFirst({ where: { id: conversationId, arenaId: auth.arenaId } }); if (!conversation) throw new Error("Conversa não encontrada.");
-  const dataUrl = `data:${file.type};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}`; const delivery = await sendEvolutionMediaMessage(conversation.contactPhone || conversation.remoteJid.replace(/@.*$/, ""), dataUrl, mediaType, file.name, file.type, auth.arenaId); const providerId = evolutionProviderId(delivery);
-  const message = await prisma.whatsAppMessage.create({ data: { providerId, conversationId, direction: "OUTBOUND", body: mediaType === "image" ? "Imagem" : "Documento", mediaType: mediaType === "image" ? "IMAGE" : "DOCUMENT", mediaMimeType: file.type, mediaUrl: dataUrl } });
-  await prisma.whatsAppConversation.update({ where: { id: conversationId }, data: { lastMessageAt: new Date(), unreadCount: 0 } }); return { id: message.id, direction: message.direction, body: message.body, mediaType: message.mediaType, mediaMimeType: message.mediaMimeType, mediaUrl: message.mediaUrl, sentAt: message.sentAt.toISOString() };
+  const conversation = await getArenaWhatsAppConversation(auth.arenaId, conversationId); if (!conversation) throw new Error("Conversa não encontrada.");
+  const dataUrl = `data:${file.type};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}`; const delivery = await sendEvolutionMediaMessage(conversation.contactPhone || conversation.remoteJid.replace(/@.*$/, ""), dataUrl, mediaType, file.name, file.type, auth.arenaId);
+  return persistOutboundWhatsAppMessage(auth.arenaId, conversation.id, { providerId: getEvolutionProviderId(delivery), body: mediaType === "image" ? "Imagem" : "Documento", mediaType: mediaType === "image" ? "IMAGE" : "DOCUMENT", mediaMimeType: file.type, mediaUrl: dataUrl });
 }
 
 export async function markWhatsAppConversationReadAction(formData: FormData) {

@@ -29,6 +29,16 @@ test("WhatsApp composer is state-driven instead of injecting controls into the D
   assert.match(recorder, /navigator\.mediaDevices\.getUserMedia/);
 });
 
+test("outbound WhatsApp deliveries share one idempotent persistence service", () => {
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/whatsapp-chat.ts"), "utf8");
+  const service = readFileSync(resolve(process.cwd(), "src/lib/services/whatsapp-conversation.ts"), "utf8");
+
+  assert.match(actions, /persistOutboundWhatsAppMessage/);
+  assert.match(actions, /getArenaWhatsAppConversation/);
+  assert.match(service, /where: \{ providerId: message\.providerId \}/);
+  assert.match(service, /withArenaTransaction/);
+});
+
 test("financial settings expose coupon and supplier maintenance", () => {
   const settings = readFileSync(resolve(process.cwd(), "src/app/(app)/financeiro/configuracoes/[area]/page.tsx"), "utf8");
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/finance.ts"), "utf8");
