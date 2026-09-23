@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requirePermission } from "@/lib/auth/guards";
+import { cashReferenceDate } from "@/lib/finance/cash-day";
 import { withArenaTransaction } from "@/lib/rls";
 
 const moneySchema = z.string().trim().min(1);
@@ -14,7 +15,7 @@ function cents(value: string) {
   return Math.round(amount * 100);
 }
 
-function today() { const date = new Date(); date.setHours(0, 0, 0, 0); return date; }
+function today() { return cashReferenceDate(); }
 function refresh() { revalidatePath("/pdv/caixa"); revalidatePath("/relatorios/caixa"); revalidatePath("/painel"); }
 
 export async function openCashRegisterAction(formData: FormData) {
@@ -26,9 +27,8 @@ export async function openCashRegisterAction(formData: FormData) {
   await withArenaTransaction(auth.arenaId, async (tx) => {
     const existing = await tx.cashRegister.findUnique({ where: { arenaId_referenceDate: { arenaId: auth.arenaId, referenceDate: today() } } });
     if (existing?.status === "OPEN") throw new Error("Já existe um caixa aberto para hoje.");
-    if (existing) {
-      await tx.cashRegister.update({ where: { id: existing.id }, data: { status: "OPEN", openingAmountCents, expectedAmountCents: openingAmountCents, countedAmountCents: null, differenceCents: null, openingNotes, closingNotes: "", openedAt: new Date(), closedAt: null, openedByName: auth.userName, closedByName: "" } });
-    } else await tx.cashRegister.create({ data: { arenaId: auth.arenaId, referenceDate: today(), openingAmountCents, expectedAmountCents: openingAmountCents, openingNotes, openedByName: auth.userName } });
+    if (existing) throw new Error("O caixa de hoje já foi encerrado. O próximo caixa poderá ser aberto amanhã.");
+    await tx.cashRegister.create({ data: { arenaId: auth.arenaId, referenceDate: today(), openingAmountCents, expectedAmountCents: openingAmountCents, openingNotes, openedByName: auth.userName } });
   });
   refresh();
 }

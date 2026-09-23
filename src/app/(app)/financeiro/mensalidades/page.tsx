@@ -41,13 +41,6 @@ export default async function MonthlyPaymentsPage() {
 
   return (
     <div className="stack-md">
-      <header className="page-header">
-        <div className="stack-xs">
-          <p className="eyebrow">Financeiro</p>
-          <h1>Mensalidades</h1>
-          <p className="muted">Vincule alunos a planos e registre pagamentos mensais.</p>
-        </div>
-      </header>
 
       <div className="two-column-grid">
         <SectionCard title="Ativar plano" description="Vincule um aluno a um plano mensal.">

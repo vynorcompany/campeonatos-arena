@@ -13,8 +13,8 @@ import { withArenaTransaction } from "@/lib/rls";
 const manualMatchStatusOptions = ["SCHEDULED", "LIVE", "FINISHED"] as const;
 
 const manualUpcomingMatchSchema = z.object({
-  homePairName: z.string().trim().max(80, "Dupla 1 deve ter no máximo 80 caracteres.").default(""),
-  awayPairName: z.string().trim().max(80, "Dupla 2 deve ter no máximo 80 caracteres.").default(""),
+  homePairName: z.string().trim().min(1, "Informe a dupla 1.").max(80, "Dupla 1 deve ter no máximo 80 caracteres."),
+  awayPairName: z.string().trim().min(1, "Informe a dupla 2.").max(80, "Dupla 2 deve ter no máximo 80 caracteres."),
   courtName: z.string().trim().min(1, "Informe a quadra.").max(80, "Nome da quadra muito longo."),
   scheduledTime: z
     .string()
@@ -104,7 +104,6 @@ function firstDueDate(startedAt: Date, dueDay: number) {
 }
 
 function refreshUpcomingMatches() {
-  revalidatePath("/proximos-jogos");
   revalidatePath("/proximos-jogos/apresentacao");
   revalidatePath("/proximos-jogos/tv");
 }
@@ -134,6 +133,8 @@ export async function createManualUpcomingMatchAction(formData: FormData) {
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
+  const matchCount = await prisma.manualUpcomingMatch.count({ where: { arenaId: auth.arenaId } });
+  if (matchCount >= 3) throw new Error("A TV permite até 3 jogos manuais. Remova um jogo antes de adicionar outro.");
   const lastMatch = await prisma.manualUpcomingMatch.findFirst({
     where: {
       arenaId: auth.arenaId

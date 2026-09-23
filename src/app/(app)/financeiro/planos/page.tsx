@@ -25,13 +25,6 @@ export default async function FinancePlansPage() {
 
   return (
     <div className="stack-md">
-      <header className="page-header">
-        <div className="stack-xs">
-          <p className="eyebrow">Financeiro</p>
-          <h1>Planos padrão</h1>
-          <p className="muted">Defina os modelos de frequência e as turmas compatíveis. O preço é configurado no vínculo de cada professor.</p>
-        </div>
-      </header>
 
       <SectionCard title="Cadastrar plano padrão" description="Defina o nome e a frequência que os professores poderão vincular aos seus preços.">
         <SafeActionForm action={createPlanAction} className="grid-form" resetOnSuccess successMessage="Plano salvo.">

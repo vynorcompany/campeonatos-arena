@@ -174,7 +174,6 @@ export function AccountsLedger({
     <div className="accounts-ledger stack-md">
       {onlineCharge ? <div className="command-modal-backdrop" role="presentation" onMouseDown={() => setOnlineCharge(null)}><section className="financial-entry-modal financial-entry-modal-small" role="dialog" aria-modal="true" aria-label="Cobrança online" onMouseDown={(event) => event.stopPropagation()}><header><div><span>COBRANÇA ONLINE</span><h2>{onlineCharge.method === "PIX" ? "PIX gerado" : "Boleto gerado"}</h2></div><button type="button" className="button button-small" onClick={() => setOnlineCharge(null)}>Fechar</button></header>{onlineCharge.code ? <p><strong>Código:</strong> {onlineCharge.code}</p> : null}{onlineCharge.url ? <a className="button button-primary" href={onlineCharge.url} target="_blank" rel="noreferrer">Abrir cobrança</a> : null}</section></div> : null}
       <header className="accounts-ledger-header">
-        <div><h1>{title}</h1><p className="muted">Lançamentos em ordem de vencimento.</p></div>
         <button type="button" className="button button-primary" onClick={() => { setMessage(""); setNotice(""); setSelectedClientId(""); setSelectedPlanTeacherId(""); setNewEntryAmountCents(undefined); setNewEntryOpen(true); }}>Novo lançamento</button>
       </header>
 

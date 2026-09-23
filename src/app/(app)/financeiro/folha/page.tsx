@@ -46,13 +46,6 @@ export default async function PayrollPage() {
 
   return (
     <div className="stack-md">
-      <header className="page-header">
-        <div className="stack-xs">
-          <p className="eyebrow">Financeiro</p>
-          <h1>Folha dos professores</h1>
-          <p className="muted">Monte salários com fixo, valor por aula, bônus e descontos por mês.</p>
-        </div>
-      </header>
 
       <SectionCard title="Salvar folha" description="Ao salvar, uma despesa de folha é criada ou atualizada no financeiro.">
         <SafeActionForm action={upsertPayrollEntryAction} className="grid-form" resetOnSuccess successMessage="Folha salva.">

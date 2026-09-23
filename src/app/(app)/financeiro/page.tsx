@@ -58,14 +58,6 @@ export default async function FinancePage() {
 
   return (
     <div className="stack-md">
-      <header className="page-header">
-        <div className="stack-xs">
-          <p className="eyebrow">Financeiro</p>
-          <h1>Dashboard financeiro</h1>
-          <p className="muted">Resumo da operação, com atalhos para cada área financeira em páginas separadas.</p>
-        </div>
-      </header>
-
       <div className="stats-grid finance-stats-grid">
         <div className="stat-card">
           <strong>{formatMoney(paidRevenue)}</strong>

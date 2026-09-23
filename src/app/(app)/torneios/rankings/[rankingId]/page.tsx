@@ -165,13 +165,7 @@ export default async function RankingDetailPage(props: RankingDetailPageProps) {
   return (
     <div className="stack-md">
       <header className="page-header">
-        <div className="stack-xs">
-          <p className="eyebrow">Rankings</p>
-          <h1>{ranking.name}</h1>
-          <p className="muted">
-            {ranking.type === "PAIR" ? "Duplas" : "Individual"} · {ranking.model === "LEAGUE" ? "Liga" : "Mata-mata"}
-          </p>
-        </div>
+        <span className="ranking-context-name">{ranking.name}</span>
         <div className="section-actions">
           <Link href="/torneios/rankings" className="button">Voltar aos rankings</Link>
         </div>

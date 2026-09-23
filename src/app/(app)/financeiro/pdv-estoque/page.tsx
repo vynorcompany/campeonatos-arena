@@ -32,13 +32,6 @@ export default async function FinancePdvStockPage() {
 
   return (
     <div className="stack-md">
-      <header className="page-header">
-        <div className="stack-xs">
-          <p className="eyebrow">Financeiro</p>
-          <h1>PDV e estoque</h1>
-          <p className="muted">Veja o impacto financeiro das vendas e do estoque parado.</p>
-        </div>
-      </header>
 
       <div className="stats-grid">
         <div className="stat-card">

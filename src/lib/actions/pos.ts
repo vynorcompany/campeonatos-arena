@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cashReferenceDate } from "@/lib/finance/cash-day";
 import { z } from "zod";
 import { requireModuleEdit } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
@@ -43,6 +44,7 @@ const cartSaleSchema = z.object({
 function refreshPosRoutes() {
   revalidatePath("/pdv");
   revalidatePath("/pdv/caixa");
+  revalidatePath("/relatorios/caixa");
   revalidatePath("/pdv/estoque");
   revalidatePath("/pdv/balanco");
   revalidatePath("/financeiro");
@@ -371,7 +373,7 @@ async function createSaleFromProducts({
       }
     });
     if (paymentMethod === "CASH") {
-      const register = await tx.cashRegister.findFirst({ where: { arenaId, status: "OPEN" }, orderBy: { openedAt: "desc" } });
+      const register = await tx.cashRegister.findFirst({ where: { arenaId, referenceDate: cashReferenceDate(), status: "OPEN" }, orderBy: { openedAt: "desc" } });
       if (register) {
         await tx.cashMovement.create({ data: { arenaId, registerId: register.id, type: "SALE", amountCents: totalCents, description: `Venda ${sale.code}`, createdByName: "PDV" } });
         await tx.cashRegister.update({ where: { id: register.id }, data: { expectedAmountCents: { increment: totalCents } } });
