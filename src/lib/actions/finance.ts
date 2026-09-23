@@ -10,6 +10,7 @@ import {
 } from "@/lib/finance/inputs";
 import { getFinancialEntryBalance } from "@/lib/finance/ledger";
 import { getDiscountedAmountCents } from "@/lib/finance/discounts";
+import { getCouponValues } from "@/lib/finance/coupons";
 import { getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
@@ -17,6 +18,7 @@ import { encryptConnectionSecrets } from "@/lib/payments/connection-secrets";
 import { createBoletoPayment, createPixPayment, getMissingBoletoPayerFields } from "@/lib/payments/mercado-pago";
 import { issueRecurringOnlineChargeForEntry } from "@/lib/payments/recurring-online-charges";
 import { issueManualFiscalDocument, type FiscalDocumentType } from "@/lib/fiscal/manual-issuance";
+import { refreshFinanceRoutes, refreshFinancialSettings } from "@/lib/finance/revalidation";
 
 const optionalText = z.preprocess((value) => value ?? "", z.string().trim().default(""));
 
@@ -208,29 +210,6 @@ const teacherMonthlyPayableSchema = z.object({
   referenceEnd: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe o fim do período."),
   dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe o vencimento.")
 });
-
-function refreshFinanceRoutes() {
-  revalidatePath("/financeiro");
-  revalidatePath("/financeiro/lancamentos");
-  revalidatePath("/financeiro/contas-a-receber");
-  revalidatePath("/financeiro/contas-a-pagar");
-  revalidatePath("/professores");
-}
-
-function refreshFinancialSettings() {
-  revalidatePath("/financeiro/configuracoes");
-  revalidatePath("/financeiro/configuracoes/categorias-financeiras");
-  revalidatePath("/financeiro/configuracoes/formas-pagamento");
-  revalidatePath("/financeiro/configuracoes/contas-bancarias");
-  revalidatePath("/financeiro/configuracoes/fornecedores");
-  revalidatePath("/financeiro/configuracoes/categorias-produtos");
-  revalidatePath("/financeiro/configuracoes/cupons");
-  revalidatePath("/financeiro/configuracoes/notas-fiscais");
-  revalidatePath("/financeiro/configuracoes/pagamentos-online");
-  revalidatePath("/pdv");
-  revalidatePath("/pdv/novo");
-  revalidatePath("/pdv/estoque");
-}
 
 export async function createPlanAction(formData: FormData) {
   const auth = await requireModuleEdit("finance");
@@ -964,22 +943,11 @@ export async function createCouponAction(formData: FormData) {
   refreshFinancialSettings();
 }
 
-function couponValues(input: z.infer<typeof couponSchema>) {
-  if (input.discountType === "PERCENTAGE" && input.discountValue > 100) throw new Error("O desconto percentual não pode passar de 100%.");
-  const startsAt = input.startsAt ? parseDate(input.startsAt) : null;
-  const endsAt = input.endsAt ? parseDate(input.endsAt) : null;
-  if ((input.startsAt && !startsAt) || (input.endsAt && !endsAt)) throw new Error("Informe datas válidas para o cupom.");
-  if (startsAt && endsAt && endsAt < startsAt) throw new Error("A validade final deve ser posterior à inicial.");
-  const maxUses = input.maxUses ? Number(input.maxUses) : null;
-  if (maxUses !== null && (!Number.isInteger(maxUses) || maxUses < 1)) throw new Error("Informe um limite de uso válido.");
-  return { code: input.code.toUpperCase().replace(/\s+/g, ""), discountType: input.discountType, discountValue: input.discountValue, minimumAmountCents: parseMoneyToCents(input.minimumAmount), maxUses, startsAt, endsAt };
-}
-
 export async function updateCouponAction(formData: FormData) {
   const auth = await requirePermission("finance:receivable:settle");
   const parsed = updateCouponSchema.safeParse({ couponId: formData.get("couponId"), code: formData.get("code"), discountType: formData.get("discountType"), discountValue: formData.get("discountValue"), minimumAmount: formData.get("minimumAmount"), maxUses: formData.get("maxUses"), startsAt: formData.get("startsAt"), endsAt: formData.get("endsAt"), active: formData.get("active") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
-  const values = couponValues(parsed.data);
+  const values = getCouponValues(parsed.data);
   try { await withArenaTransaction(auth.arenaId, (tx) => tx.coupon.updateMany({ where: { id: parsed.data.couponId, arenaId: auth.arenaId }, data: { ...values, active: parsed.data.active } })); } catch (error) { if (error instanceof Error && error.message.includes("Unique constraint")) throw new Error("Já existe um cupom com este código."); throw error; }
   refreshFinancialSettings();
 }

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
+import { getCouponValues } from "@/lib/finance/coupons";
 
 const read = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8");
 
@@ -33,4 +34,12 @@ test("product create and edit forms allow selecting an arena product category", 
   assert.match(actions, /categoryId/);
   assert.match(createPage, /name="categoryId"/);
   assert.match(editPage, /name="categoryId"/);
+});
+
+test("coupon values are normalized and validated outside the server action", () => {
+  const values = getCouponValues({ code: "  aula 10 ", discountType: "PERCENTAGE", discountValue: 10, minimumAmount: "25,00", maxUses: "", startsAt: "", endsAt: "" });
+
+  assert.equal(values.code, "AULA10");
+  assert.equal(values.minimumAmountCents, 2500);
+  assert.throws(() => getCouponValues({ ...values, discountType: "PERCENTAGE", discountValue: 101, minimumAmount: "0", maxUses: "", startsAt: "", endsAt: "" }), /não pode passar/);
 });
