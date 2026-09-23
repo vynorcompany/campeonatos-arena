@@ -20,12 +20,9 @@ export default async function StockPage() {
 
   return (
     <div className="stack-md stock-management-page">
+      <h1 className="sr-only">Estoque</h1>
       <header className="page-header stock-management-header">
-        <div className="stack-xs">
-          <p className="eyebrow">PDV</p>
-          <h1>Estoque</h1>
-          <p className="muted">Cadastre produtos, acompanhe mínimo e ajuste entradas, saídas ou contagens.</p>
-        </div><div className="stock-management-metrics"><span><b>{products.length}</b> produtos</span><span className={lowStockCount ? "is-attention" : ""}><b>{lowStockCount}</b> no mínimo</span></div>
+        <div className="stock-management-metrics"><span><b>{products.length}</b> produtos</span><span className={lowStockCount ? "is-attention" : ""}><b>{lowStockCount}</b> no mínimo</span></div>
       </header>
 
       <SectionCard title="Cadastrar produto" description="Produtos cadastrados aparecem na frente de caixa.">

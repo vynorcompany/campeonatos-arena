@@ -263,7 +263,7 @@ export async function upsertTvPresentationSettingsAction(formData: FormData) {
     tvMatchSource: formData.get("tvMatchSource"),
     selectedRankingIds: formData.getAll("selectedRankingIds").map(String).filter(Boolean),
     selectedSponsorIds: formData.getAll("selectedSponsorIds").map(String).filter(Boolean),
-    showMatches: true,
+    showMatches: formData.get("showMatches") === "on",
     showCalendar: true,
     showSponsors: formData.get("showSponsors") === "on",
     showRanking: formData.get("showRanking") === "on",

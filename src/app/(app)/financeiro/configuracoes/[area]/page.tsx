@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
-import { SectionCard } from "@/components/section-card";
+import { SectionCard as BaseSectionCard } from "@/components/section-card";
 import { NfeImportWorkspace } from "@/components/fiscal/nfe-import-workspace";
 import { CouponActiveToggle } from "@/components/finance/coupon-active-toggle";
 import { CurrencyInput } from "@/components/forms/currency-input";
@@ -14,6 +14,12 @@ import { prisma } from "@/lib/prisma";
 const areas = {
   "notas-fiscais": ["Notas Fiscais", "Importe NF-e de compra, acompanhe o histórico e configure a emissão."], fornecedores: ["Fornecedores", "Cadastre parceiros de compra e acompanhe informações de fornecimento."], "categorias-produtos": ["Categorias de Produtos", "Agrupe produtos e serviços para facilitar o PDV, estoque e relatórios."], "formas-pagamento": ["Formas de Pagamentos", "Defina os meios aceitos pela arena."], "contas-bancarias": ["Contas Bancárias", "Centralize contas e saldos bancários utilizados na operação."], cupons: ["Cupons", "Cadastre descontos com período de validade, valor mínimo e limite de uso."], "categorias-financeiras": ["Categorias Financeiras", "Padronize receitas e despesas para os relatórios gerenciais."], "pagamentos-online": ["Conectores de pagamento", "Conecte as contas da arena para receber cobranças no Portal do Atleta."]
 } as const;
+
+function SectionCard({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
+  // The breadcrumb already names each configuration area; keep the content panel compact.
+  if (Object.values(areas).some(([name]) => name === title)) return <section className="card stack-md"><h1 className="sr-only">{title}</h1>{children}</section>;
+  return <BaseSectionCard title={title} description={description}>{children}</BaseSectionCard>;
+}
 
 const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value / 100);
 const backLink = () => <Link className="button button-small" href="/financeiro/configuracoes">Voltar às configurações</Link>;

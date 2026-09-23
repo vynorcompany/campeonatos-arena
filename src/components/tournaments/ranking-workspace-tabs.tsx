@@ -29,7 +29,7 @@ export function RankingWorkspaceTabs({
   periodQuery?: Record<string, string>;
 }) {
   return (
-    <nav className="section-actions" aria-label="Áreas do ranking">
+    <nav className="section-actions ranking-detail-tabs" aria-label="Áreas do ranking">
       {tabs.map((tab) => {
         const searchParams = new URLSearchParams({ tab: tab.id });
         if (cycleId) searchParams.set("cycleId", cycleId);

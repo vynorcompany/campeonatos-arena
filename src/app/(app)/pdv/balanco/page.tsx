@@ -28,12 +28,8 @@ export default async function StockBalancePage() {
 
   return (
     <div className="stack-md workspace-page stock-balance-page">
+      <h1 className="sr-only">Balanço de estoque</h1>
       <header className="page-header">
-        <div className="stack-xs">
-          <p className="eyebrow">PRODUTOS E SERVIÇOS</p>
-          <h1>Criar balanço</h1>
-          <p className="muted">Informe apenas o que foi contado. Produtos sem preenchimento permanecem inalterados.</p>
-        </div>
         <Link href="/pdv/estoque" className="button">Voltar ao estoque</Link>
       </header>
 

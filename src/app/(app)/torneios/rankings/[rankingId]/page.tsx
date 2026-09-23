@@ -66,7 +66,7 @@ function RankingLeaderboard({
   }
 
   return (
-    <table className="data-table">
+    <table className="data-table ranking-detail-table">
       <thead>
         <tr>
           <th>Pos.</th>
@@ -163,9 +163,9 @@ export default async function RankingDetailPage(props: RankingDetailPageProps) {
   const today = formatRankingDateInput(new Date());
 
   return (
-    <div className="stack-md">
-      <header className="page-header">
-        <span className="ranking-context-name">{ranking.name}</span>
+    <div className="stack-md ranking-detail-page">
+      <header className="page-header ranking-detail-header">
+        <div className="ranking-detail-identity"><span>RANKING</span><h1>{ranking.name}</h1><p>{ranking.type === "PAIR" ? "Duplas" : "Individual"} · {ranking.model === "LEAGUE" ? "Liga" : "Mata-mata"}</p></div>
         <div className="section-actions">
           <Link href="/torneios/rankings" className="button">Voltar aos rankings</Link>
         </div>
@@ -178,7 +178,7 @@ export default async function RankingDetailPage(props: RankingDetailPageProps) {
         periodQuery={periodQuery}
       />
 
-      <section className="section-card stack-sm" aria-label="Período do ranking">
+      <section className="section-card stack-sm ranking-detail-period" aria-label="Período do ranking">
         <div className="stack-xs">
           <strong>Período</strong>
           <span className="muted">{ranking.period.label}</span>
