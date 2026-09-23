@@ -10,15 +10,12 @@ import { getDiscountedAmountCents } from "@/lib/finance/discounts";
 import { getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
 import { withArenaTransaction } from "@/lib/rls";
 
-const courtOptions = ["Agecon", "Elaine", "Origem"] as const;
 const manualMatchStatusOptions = ["SCHEDULED", "LIVE", "FINISHED"] as const;
 
 const manualUpcomingMatchSchema = z.object({
   homePairName: z.string().trim().max(80, "Dupla 1 deve ter no máximo 80 caracteres.").default(""),
   awayPairName: z.string().trim().max(80, "Dupla 2 deve ter no máximo 80 caracteres.").default(""),
-  courtName: z.enum(courtOptions, {
-    errorMap: () => ({ message: "Quadra inválida." })
-  }),
+  courtName: z.string().trim().min(1, "Informe a quadra.").max(80, "Nome da quadra muito longo."),
   scheduledTime: z
     .string()
     .trim()
@@ -37,6 +34,7 @@ const updateManualUpcomingMatchSchema = manualUpcomingMatchSchema.extend({
 const tvPresentationSettingsSchema = z.object({
   slideIntervalSeconds: z.coerce.number().int().min(5, "O intervalo mínimo é de 5 segundos.").max(120, "O intervalo máximo é de 120 segundos."),
   selectedTournamentId: z.string().trim().default(""),
+  tvSourceTournamentId: z.string().trim().default(""),
   tvMatchSource: z.enum(["MANUAL", "TOURNAMENT"]).default("MANUAL"),
   selectedRankingIds: z.array(z.string().trim()).default([]),
   selectedSponsorIds: z.array(z.string().trim()).default([]),
@@ -260,6 +258,7 @@ export async function upsertTvPresentationSettingsAction(formData: FormData) {
   const parsed = tvPresentationSettingsSchema.safeParse({
     slideIntervalSeconds: formData.get("slideIntervalSeconds"),
     selectedTournamentId: formData.get("selectedTournamentId"),
+    tvSourceTournamentId: String(formData.get("tvSourceTournamentId") ?? ""),
     tvMatchSource: formData.get("tvMatchSource"),
     selectedRankingIds: formData.getAll("selectedRankingIds").map(String).filter(Boolean),
     selectedSponsorIds: formData.getAll("selectedSponsorIds").map(String).filter(Boolean),
@@ -284,6 +283,12 @@ export async function upsertTvPresentationSettingsAction(formData: FormData) {
     throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
 
+  if (parsed.data.tvMatchSource === "TOURNAMENT") {
+    if (!parsed.data.tvSourceTournamentId) throw new Error("Selecione o torneio cujos jogos serão exibidos na TV.");
+    const source = await prisma.tournament.findFirst({ where: { id: parsed.data.tvSourceTournamentId, arenaId: auth.arenaId, status: { not: "FINISHED" } }, select: { id: true } });
+    if (!source) throw new Error("O torneio selecionado não está disponível para esta arena.");
+  }
+
   await withTvSchemaGuard(async () => {
     try {
       await prisma.tvPresentationSettings.upsert({
@@ -293,19 +298,21 @@ export async function upsertTvPresentationSettingsAction(formData: FormData) {
         create: {
           arenaId: auth.arenaId,
           ...parsed.data,
-          selectedTournamentId: parsed.data.selectedTournamentId || null
+          selectedTournamentId: parsed.data.selectedTournamentId || null,
+          tvSourceTournamentId: parsed.data.tvSourceTournamentId || null
         },
         update: {
           ...parsed.data,
-          selectedTournamentId: parsed.data.selectedTournamentId || null
+          selectedTournamentId: parsed.data.selectedTournamentId || null,
+          tvSourceTournamentId: parsed.data.tvSourceTournamentId || null
         }
       });
     } catch (error) {
-      if (!isPrismaUnknownFieldError(error, "tvMatchSource")) {
+      if (!isPrismaUnknownFieldError(error, "tvMatchSource") && !isPrismaUnknownFieldError(error, "tvSourceTournamentId")) {
         throw error;
       }
 
-      const { tvMatchSource: _ignored, ...legacyData } = parsed.data;
+      const { tvMatchSource: _ignored, tvSourceTournamentId: _ignoredTournament, ...legacyData } = parsed.data;
       await prisma.tvPresentationSettings.upsert({
         where: {
           arenaId: auth.arenaId

@@ -5,6 +5,7 @@ import type { ArenaMembership } from "@/types/auth";
 import { NavLinks } from "@/components/layout/nav-links";
 import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher";
 import { ArenaNotificationBell } from "@/components/layout/arena-notification-bell";
+import { WorkspaceBreadcrumb } from "@/components/layout/page-breadcrumb";
 
 type AppShellProps = {
   arenaName: string;
@@ -85,7 +86,7 @@ export function AppShell({
       </aside>
 
       <main className="app-main">
-        <div className="content-shell">{children}</div>
+        <div className="content-shell"><WorkspaceBreadcrumb />{children}</div>
       </main>
     </div>
   );

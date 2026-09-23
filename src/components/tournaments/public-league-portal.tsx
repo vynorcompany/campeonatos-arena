@@ -137,7 +137,7 @@ export function PublicLeaguePortal({
           <h2>Duplas da Liga</h2>
         ) : (
           <>
-            <span>LIGAS DA ARENA</span>
+            <span>TORNEIOS DA ARENA</span>
             <h2>Olá, {playerName}</h2>
             <p>
               Confira os jogos e resultados da sua categoria. As ações da sua

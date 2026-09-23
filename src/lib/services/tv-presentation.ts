@@ -4,6 +4,7 @@ import { isPrismaSchemaOutdatedError, isPrismaUnknownFieldError } from "@/lib/pr
 type TvSettingsPayload = {
   slideIntervalSeconds: number;
   selectedTournamentId: string | null;
+  tvSourceTournamentId: string | null;
   tvMatchSource: "MANUAL" | "TOURNAMENT";
   selectedRankingIds: string[];
   selectedSponsorIds: string[];
@@ -136,7 +137,8 @@ function getCourtPriority(courtName: string | null | undefined) {
   return 99;
 }
 
-async function getTournamentUpcomingMatchesPayload(arenaId: string) {
+async function getTournamentUpcomingMatchesPayload(arenaId: string, tournamentId: string) {
+  if (!tournamentId) return [];
   let matches: Array<{
     id: string;
     winnerPairId: string | null;
@@ -153,6 +155,7 @@ async function getTournamentUpcomingMatchesPayload(arenaId: string) {
     matches = await prisma.match.findMany({
       where: {
         tournament: {
+          id: tournamentId,
           arenaId,
           status: {
             not: "FINISHED"
@@ -188,6 +191,7 @@ async function getTournamentUpcomingMatchesPayload(arenaId: string) {
     const legacyMatches = await prisma.match.findMany({
       where: {
         tournament: {
+          id: tournamentId,
           arenaId,
           status: {
             not: "FINISHED"
@@ -222,6 +226,7 @@ async function getTournamentUpcomingMatchesPayload(arenaId: string) {
   }
 
   return matches
+    .filter((match) => getMatchDisplayStatus(match) !== "FINISHED")
     .sort((a, b) => {
       const statusDiff =
         getTournamentStatusPriority(getMatchDisplayStatus(a)) - getTournamentStatusPriority(getMatchDisplayStatus(b));
@@ -254,6 +259,7 @@ async function getTvSettings(arenaId: string) {
       select: {
         slideIntervalSeconds: true,
         selectedTournamentId: true,
+        tvSourceTournamentId: true,
         tvMatchSource: true,
         selectedRankingIds: true,
         selectedSponsorIds: true,
@@ -281,7 +287,7 @@ async function getTvSettings(arenaId: string) {
       tvMatchSource: normalizeTvMatchSource(settings.tvMatchSource)
     } satisfies TvSettingsPayload;
   } catch (error) {
-    if (!isPrismaSchemaOutdatedError(error) && !isPrismaUnknownFieldError(error, "tvMatchSource")) {
+    if (!isPrismaSchemaOutdatedError(error) && !isPrismaUnknownFieldError(error, "tvMatchSource") && !isPrismaUnknownFieldError(error, "tvSourceTournamentId")) {
       throw error;
     }
 
@@ -311,6 +317,7 @@ async function getTvSettings(arenaId: string) {
       return {
         ...legacySettings,
         tvMatchSource: "MANUAL",
+        tvSourceTournamentId: null,
         selectedRankingIds: [],
         selectedSponsorIds: [],
         showMatches: true,
@@ -534,7 +541,7 @@ export async function getTvPresentationPayload(arenaId: string) {
   ]);
 
   const matches = settings?.tvMatchSource === "TOURNAMENT"
-    ? await getTournamentUpcomingMatchesPayload(arenaId)
+    ? await getTournamentUpcomingMatchesPayload(arenaId, settings.tvSourceTournamentId ?? "")
     : manualMatches;
 
   const selectedSourceId = settings?.selectedTournamentId ?? "";
@@ -618,6 +625,7 @@ export async function getTvPresentationPayload(arenaId: string) {
     settings: {
       slideIntervalSeconds: settings?.slideIntervalSeconds ?? 12,
       selectedTournamentId: selectedSourceId,
+      tvSourceTournamentId: settings?.tvSourceTournamentId ?? "",
       tvMatchSource: settings?.tvMatchSource ?? "MANUAL",
       selectedRankingIds: settings?.selectedRankingIds ?? [],
       selectedSponsorIds,

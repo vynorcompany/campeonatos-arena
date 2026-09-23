@@ -9,7 +9,7 @@ type SettingKey = Exclude<keyof Settings, "portalLogoUrl">;
 
 export function AthletePortalSettingsForm({ settings }: { settings: Settings }) {
   const items: Array<[SettingKey, string, string]> = [
-    ["showLeagues", "Ligas", "Jogos, duplas, ranking, regras e premiação."],
+    ["showLeagues", "Torneios", "Jogos, duplas, ranking, regras e premiação."],
     ["showBooking", "Grade de horários", "Reservas online pela grade de quadras."],
     ["showReservations", "Minhas reservas", "Reservas futuras do atleta."],
     ["showLessons", "Aulas", "Aulas vinculadas ao atleta."],
