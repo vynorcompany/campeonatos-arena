@@ -2,6 +2,7 @@
 
 export type Account = {
   id: string;
+  source: string;
   counterpartyName: string;
   category: string;
   description: string;
@@ -75,4 +76,3 @@ export function PlanSelectOptions({ plans }: { plans: Option[] }) {
     </optgroup>
   ))}</>;
 }
-

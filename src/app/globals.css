@@ -9206,6 +9206,20 @@ button {
   .accounts-ledger-list { max-width: 100%; overflow-x: auto; }
 }
 
+.login-page { min-height: 100dvh; padding: 0; background: #f1f5fa; }
+.login-shell { display: grid; grid-template-columns: minmax(340px, .9fr) minmax(420px, 1.1fr); width: min(1080px, calc(100% - 48px)); min-height: min(660px, calc(100dvh - 72px)); overflow: hidden; border: 1px solid #d9e3ee; border-radius: 18px; background: #fff; box-shadow: 0 24px 70px rgb(18 51 86 / .12); }
+.login-brand-panel { display: flex; min-width: 0; flex-direction: column; justify-content: space-between; padding: clamp(28px, 4vw, 54px); color: #fff; background: radial-gradient(circle at 85% 16%, rgb(65 166 231 / .28), transparent 30%), linear-gradient(150deg, #103e77, #0a2955 72%); }
+.login-brand { display: flex; align-items: center; gap: 13px; color: #fff; }
+.login-brand-mark { display: grid; width: 42px; height: 42px; place-items: center; border: 1px solid rgb(255 255 255 / .45); border-radius: 10px; color: #fff; background: rgb(255 255 255 / .12); font-size: 1.4rem; font-weight: 850; }
+.login-brand strong, .login-brand small { display: block; letter-spacing: .13em; }
+.login-brand strong { font-size: .92rem; }.login-brand small { margin-top: 2px; color: #c8e2fa; font-size: .57rem; }
+.login-brand-message { max-width: 420px; }.login-kicker, .login-form-eyebrow { color: #69d6af; font-size: .69rem; font-weight: 800; letter-spacing: .14em; }
+.login-brand-message h2 { margin: 14px 0 16px; font-size: clamp(2rem, 3.4vw, 3.1rem); font-weight: 750; line-height: 1.08; letter-spacing: -.045em; }
+.login-brand-message p, .login-brand-footer { color: #d1e2f3; line-height: 1.6; }.login-brand-message p { max-width: 350px; margin: 0; font-size: .95rem; }.login-brand-footer { margin: 0; font-size: .75rem; }
+.login-form-panel { display: grid; min-width: 0; place-items: center; padding: clamp(28px, 5vw, 70px); }.login-form-content { width: min(100%, 390px); }.login-form-eyebrow { color: #197258; }.login-form-content h1 { margin: 12px 0 8px; color: #12345d; font-size: clamp(1.8rem, 2.7vw, 2.4rem); letter-spacing: -.04em; }.login-form-intro { margin: 0 0 30px; color: #667b91; font-size: .91rem; line-height: 1.5; }
+.login-form { gap: 19px; }.login-form .field { gap: 7px; }.login-form .field label { color: #233f5e; font-size: .8rem; font-weight: 750; }.login-form .field input { min-height: 48px; border-radius: 8px; background: #fbfdff; }.login-form .button-block { min-height: 46px; margin-top: 4px; border-radius: 8px; font-weight: 750; }.login-form-content .auth-switch { margin-top: 28px; padding-top: 22px; border-top: 1px solid #e4ebf2; font-size: .8rem; }
+@media (max-width: 760px) { .login-page { align-items: start; padding: 14px; }.login-shell { width: 100%; min-height: calc(100dvh - 28px); grid-template-columns: minmax(0, 1fr); border-radius: 13px; }.login-brand-panel { gap: 20px; padding: 24px; }.login-brand-message h2 { max-width: 360px; margin: 6px 0 0; font-size: 1.35rem; }.login-brand-message p, .login-brand-footer, .login-kicker { display: none; }.login-form-panel { align-items: start; padding: 40px 24px; }.login-form-content { margin: 0 auto; } }
+
 @media (max-width: 440px) {
   .accounts-ledger-totals { grid-template-columns: minmax(0, 1fr); }
 }
@@ -9361,3 +9375,24 @@ button {
 .ranking-context-name { color: #536b84; font-size: .85rem; }
 @media (max-width: 1020px) { .tv-config-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 620px) { .tv-config-fields, .tv-manual-match-form { grid-template-columns: minmax(0, 1fr); }.tv-manual-modal { padding: 16px; }.tv-manual-match-form footer { grid-column: 1; }.tv-manual-match-form footer .button { flex: 1 1 160px; justify-content: center; } }
+.agency-billing-section { display: grid; gap: 20px; padding: 24px; border: 1px solid #d4e1f2; border-radius: 14px; background: #fff; }
+.agency-billing-section h2 { margin: 0; font-size: 1.15rem; }
+.agency-billing-connect { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.agency-plan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 14px; }
+.agency-plan-card { display: grid; align-content: start; gap: 10px; padding: 18px; border: 1px solid #d4e1f2; border-radius: 12px; background: #f8fbff; }
+.agency-plan-card > strong { font-size: 1.05rem; }
+.agency-plan-edit { display: grid; gap: 10px; }
+.agency-plan-create { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; align-items: end; gap: 12px; }
+.agency-plan-create > .button { min-height: 42px; }
+.agency-subscription-list, .agency-invoice-list { display: grid; gap: 10px; }
+.agency-subscription-row, .agency-invoice-row { display: grid; align-items: center; gap: 12px; padding: 14px; border: 1px solid #dce6f3; border-radius: 10px; }
+.agency-subscription-row { grid-template-columns: minmax(180px, 1fr) minmax(240px, 1.2fr) minmax(210px, 1fr); }
+.agency-subscription-row > div:first-child { display: grid; gap: 4px; }
+.agency-subscription-form { display: flex; gap: 8px; align-items: center; min-width: 0; }
+.agency-subscription-form select { min-width: 0; flex: 1; }
+.agency-subscription-form .button { flex: none; }
+.agency-invoice-row { grid-template-columns: minmax(150px, 2fr) repeat(4, minmax(75px, 1fr)) minmax(110px, 1fr); }
+@media (max-width: 850px) { .agency-plan-create, .agency-subscription-row { grid-template-columns: 1fr; } .agency-invoice-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.access-unavailable-page { min-height: 100dvh; display: grid; place-items: center; padding: 24px; background: #f1f5fa; }
+.access-unavailable-card { display: flex; flex-wrap: wrap; gap: 16px; max-width: 560px; padding: 34px; border: 1px solid #d4e1f2; border-radius: 16px; background: #fff; box-shadow: 0 20px 50px #18396416; }
+.access-unavailable-card h1, .access-unavailable-card p, .access-unavailable-card .eyebrow { flex-basis: 100%; margin: 0; }

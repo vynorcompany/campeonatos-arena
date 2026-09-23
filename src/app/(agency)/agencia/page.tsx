@@ -32,7 +32,7 @@ export default async function AgencyDashboardPage() {
       <div className="agency-stats-grid">
         <div className="stat-card"><strong>{metrics.arenas.length}</strong><span>arenas cadastradas</span></div>
         <div className="stat-card"><strong>{activeArenas}</strong><span>arenas ativas</span></div>
-        <div className="stat-card"><strong>{formatCurrency(metrics.mrrCents)}</strong><span>MRR operacional</span></div>
+        <div className="stat-card"><strong>{formatCurrency(metrics.mrrCents)}</strong><span>MRR das assinaturas</span></div>
         <div className="stat-card"><strong>{metrics.openTickets}</strong><span>tickets em aberto</span></div>
       </div>
 

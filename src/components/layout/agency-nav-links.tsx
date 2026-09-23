@@ -18,6 +18,7 @@ const groups: Array<{ title: string; links: AgencyNavItem[] }> = [
   {
     title: "Operação",
     links: [
+      { href: "/agencia/planos", label: "Planos e assinaturas" },
       {
         href: "/agencia/arenas",
         label: "Arenas",
