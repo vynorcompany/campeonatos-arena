@@ -35,7 +35,7 @@ test("sidebar and dashboard share the new operational visual system", () => {
 
   assert.match(navigation, /nav-chevron/);
   assert.match(dashboard, /workspace-page/);
-    assert.match(styles, /\.sidebar,\s*\.agency-sidebar\s*\{[\s\S]*?background-color: #0d4f99 !important/s);
+  assert.match(styles, /\.sidebar,\s*\.agency-sidebar\s*\{[\s\S]*?background-color: #0a2955 !important/s);
   assert.match(styles, /\.workspace-page\s*\{/);
 });
 

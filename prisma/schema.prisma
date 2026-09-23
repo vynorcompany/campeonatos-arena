@@ -1880,6 +1880,7 @@ model AgencyInvoice {
 model AgencyPaymentConnection {
   id               String    @id @default("platform")
   status           String    @default("PENDING")
+  graceDays        Int?
   displayName      String    @default("")
   accountReference String    @default("")
   encryptedSecrets String    @default("")

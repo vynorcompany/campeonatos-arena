@@ -1,5 +1,9 @@
 const timeZone = "America/Sao_Paulo";
 
+export function agencyInvoiceDeadline(dueAt: Date, graceDays: number) {
+  return new Date(dueAt.getTime() + graceDays * 86_400_000);
+}
+
 function localParts(date: Date) {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"

@@ -85,3 +85,16 @@ export async function prepareAgencyInvoiceAction(formData: FormData) {
   if (!url) return { error: "Conecte o Mercado Pago da agência ou verifique se esta fatura já foi paga." };
   revalidatePath("/agencia/planos");
 }
+
+export async function saveAgencyBillingGraceAction(formData: FormData) {
+  await requireAgencyBillingAdmin();
+  const enabled = formData.get("enabled") === "on";
+  const parsed = z.coerce.number().int().min(0).max(60).safeParse(formData.get("graceDays"));
+  if (enabled && !parsed.success) throw new Error("Informe um prazo de 0 a 60 dias.");
+  await prisma.agencyPaymentConnection.upsert({
+    where: { id: "platform" },
+    create: { id: "platform", graceDays: enabled ? parsed.data : null },
+    update: { graceDays: enabled ? parsed.data : null }
+  });
+  revalidatePath("/agencia/planos");
+}

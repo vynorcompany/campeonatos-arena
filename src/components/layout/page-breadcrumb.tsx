@@ -35,3 +35,20 @@ export function WorkspaceBreadcrumb() {
   if (path.startsWith("/relatorios")) return <PageBreadcrumb section="Gestão" current={parts[1] ? readable(parts[1]) : "Relatórios"} />;
   return null;
 }
+
+export function AgencyBreadcrumb() {
+  const path = usePathname() ?? "";
+  const labels: Record<string, string> = {
+    "/agencia": "Visão geral",
+    "/agencia/planos": "Planos e assinaturas",
+    "/agencia/arenas": "Arenas",
+    "/agencia/arenas/usuarios": "Usuários das arenas",
+    "/agencia/conexoes": "Conexões",
+    "/agencia/financeiro": "Financeiro",
+    "/agencia/financeiro/mrr": "MRR",
+    "/agencia/financeiro/previsoes": "Previsões",
+    "/agencia/suporte": "Suporte",
+    "/agencia/suporte/historico": "Histórico de suporte"
+  };
+  return <PageBreadcrumb section="Agência" current={labels[path] ?? "Painel"} />;
+}

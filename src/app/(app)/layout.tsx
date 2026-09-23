@@ -2,6 +2,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { requireArenaAccess } from "@/lib/auth/session";
 import { allPermissionModules, canViewModule } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
+import { getAgencyDelinquency } from "@/lib/finance/agency-delinquency";
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const auth = await requireArenaAccess();
@@ -14,7 +15,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     canViewModule(module, auth.arenaRole, auth.systemRole, auth.viewPermissions)
   );
   const canAccessAgency = auth.systemRole === "SUPER_ADMIN" || auth.systemRole === "ADMIN" || auth.systemRole === "MANAGER";
-  const [notifications, whatsappUnreadCount] = await Promise.all([prisma.arenaNotification.findMany({ where: { arenaId: auth.arenaId, readAt: null }, select: { id: true, title: true, message: true, href: true, createdAt: true }, orderBy: { createdAt: "desc" }, take: 8 }), prisma.whatsAppConversation.aggregate({ where: { arenaId: auth.arenaId }, _sum: { unreadCount: true } })]);
+  const [notifications, whatsappUnreadCount, billingAlert] = await Promise.all([prisma.arenaNotification.findMany({ where: { arenaId: auth.arenaId, readAt: null }, select: { id: true, title: true, message: true, href: true, createdAt: true }, orderBy: { createdAt: "desc" }, take: 8 }), prisma.whatsAppConversation.aggregate({ where: { arenaId: auth.arenaId }, _sum: { unreadCount: true } }), getAgencyDelinquency(auth.arenaId)]);
 
   return (
     <AppShell
@@ -29,6 +30,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
       canAccessAgency={canAccessAgency}
       whatsappUnreadCount={whatsappUnreadCount._sum.unreadCount ?? 0}
       notifications={notifications}
+      billingAlert={billingAlert}
     >
       {children}
     </AppShell>

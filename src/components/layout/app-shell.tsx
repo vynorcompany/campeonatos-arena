@@ -5,6 +5,7 @@ import type { ArenaMembership } from "@/types/auth";
 import { NavLinks } from "@/components/layout/nav-links";
 import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher";
 import { ArenaNotificationBell } from "@/components/layout/arena-notification-bell";
+import { AgencyBillingNotice } from "@/components/layout/agency-billing-notice";
 import { WorkspaceBreadcrumb } from "@/components/layout/page-breadcrumb";
 
 type AppShellProps = {
@@ -19,6 +20,7 @@ type AppShellProps = {
   canAccessAgency: boolean;
   whatsappUnreadCount: number;
   notifications: { id: string; title: string; message: string; href: string; createdAt: Date }[];
+  billingAlert: { id: string; daysRemaining: number; deadline: Date; checkoutUrl: string } | null;
   children: React.ReactNode;
 };
 
@@ -34,6 +36,7 @@ export function AppShell({
   canAccessAgency,
   whatsappUnreadCount,
   notifications,
+  billingAlert,
   children
 }: AppShellProps) {
   return (
@@ -86,7 +89,7 @@ export function AppShell({
       </aside>
 
       <main className="app-main">
-        <div className="content-shell"><WorkspaceBreadcrumb />{children}</div>
+        <div className="content-shell">{billingAlert ? <><AgencyBillingNotice invoiceId={billingAlert.id} daysRemaining={billingAlert.daysRemaining} /><div className="agency-payment-alert" role="alert"><strong>Fatura do sistema em atraso.</strong><span>Regularize o pagamento para evitar a suspensão do acesso{billingAlert.daysRemaining ? ` em ${billingAlert.daysRemaining} dia${billingAlert.daysRemaining === 1 ? "" : "s"}` : " hoje"}.</span>{billingAlert.checkoutUrl ? <a href={billingAlert.checkoutUrl} target="_blank" rel="noopener noreferrer">Pagar fatura</a> : <span>Solicite o link de pagamento à agência.</span>}</div></> : null}<WorkspaceBreadcrumb />{children}</div>
       </main>
     </div>
   );

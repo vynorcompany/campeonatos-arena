@@ -1,6 +1,7 @@
 import { logoutAction } from "@/lib/auth/actions";
 import { AgencyNavLinks } from "@/components/layout/agency-nav-links";
 import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher";
+import { AgencyBreadcrumb } from "@/components/layout/page-breadcrumb";
 import type { ArenaMembership } from "@/types/auth";
 
 type AgencyShellProps = {
@@ -49,7 +50,7 @@ export function AgencyShell({ userName, userRole, activeArenaId, memberships, ch
         </div>
       </aside>
       <main className="agency-main">
-        <div className="agency-content">{children}</div>
+        <div className="agency-content"><AgencyBreadcrumb />{children}</div>
       </main>
     </div>
   );
