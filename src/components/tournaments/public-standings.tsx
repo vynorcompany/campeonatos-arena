@@ -19,6 +19,12 @@ import { TeacherPortalStudentList } from "@/components/teacher-portal-student-li
 import { TeacherPortalMakeupPlanner } from "@/components/teacher-portal-makeup-planner";
 import { PortalClientComandas } from "@/components/portal-client-comandas";
 import {
+  portalQuery,
+  type EventTab,
+  type LeagueTab,
+  type PortalSection,
+} from "@/lib/portal/navigation";
+import {
   checkInPortalLessonAction,
   requestPortalLessonMakeupAction,
   requestClassGroupAction,
@@ -33,48 +39,6 @@ type Portal = Awaited<
 type ClientHome = Awaited<ReturnType<typeof import("@/lib/services/public-client-home").getPublicClientHome>>;
 type ClientFinance = Awaited<ReturnType<typeof import("@/lib/services/public-client-home").getPublicClientFinance>>;
 type AthleteNotifications = Awaited<ReturnType<typeof import("@/lib/services/public-player-notifications").getAthletePortalNotifications>>;
-type PortalSection =
-  | "home"
-  | "announcements"
-  | "finance"
-  | "comandas"
-  | "leagues"
-  | "booking"
-  | "reservations"
-  | "lessons"
-  | "classes"
-  | "profile"
-  | "radar"
-  | "teacher";
-type LeagueTab = "games" | "pairs" | "ranking" | "rules" | "prizes";
-type EventTab = "leagues" | "super12" | "radar";
-
-function portalQuery(
-  section: PortalSection,
-  leagueTab?: LeagueTab,
-  teacherId?: string,
-  leagueCategoryId?: string,
-  eventTab?: EventTab,
-  super12Id?: string,
-) {
-  const query = new URLSearchParams({
-    section,
-    tab:
-      leagueTab === "ranking"
-        ? "ranking"
-        : leagueTab === "rules"
-          ? "rules"
-          : leagueTab === "prizes"
-            ? "portal"
-            : "games",
-  });
-  if (leagueTab) query.set("leagueTab", leagueTab);
-  if (eventTab) query.set("eventTab", eventTab);
-  if (super12Id) query.set("super12", super12Id);
-  if (teacherId) query.set("teacher", teacherId);
-  if (leagueCategoryId) query.set("leagueCategory", leagueCategoryId);
-  return `?${query.toString()}`;
-}
 
 export function PublicStandings({
   data,

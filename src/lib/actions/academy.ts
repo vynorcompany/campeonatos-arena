@@ -8,111 +8,16 @@ import { getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
 import { issueRecurringOnlineChargeForEntry } from "@/lib/payments/recurring-online-charges";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
+import { lessonSchema, studentSchema, teacherSchema } from "@/lib/academy/action-schemas";
+import {
+  getClassGroupName,
+  getFormValues,
+  parseMoneyToCents,
+  parseScheduledAt,
+} from "@/lib/academy/inputs";
+import { refreshAcademyRoutes } from "@/lib/academy/revalidation";
 
-const optionalText = z.string().trim().default("");
 const referenceMonth = (value: Date) => `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}`;
-
-const studentSchema = z.object({
-  name: z.string().trim().default(""),
-  playerId: z.string().trim().default(""),
-  phone: optionalText,
-  email: z
-    .string()
-    .trim()
-    .email("Informe um e-mail válido.")
-    .or(z.literal(""))
-    .default(""),
-  remainingClasses: z.coerce
-    .number()
-    .int()
-    .min(0, "Aulas restantes inválidas.")
-    .default(0),
-  notes: optionalText,
-});
-
-const teacherSchema = z.object({
-  name: z.string().trim().min(2, "Informe o nome do professor."),
-  phone: optionalText,
-  email: z
-    .string()
-    .trim()
-    .email("Informe um e-mail válido.")
-    .or(z.literal(""))
-    .default(""),
-  monthlyTarget: z.coerce
-    .number()
-    .int()
-    .min(0, "Meta mensal inválida.")
-    .default(0),
-  notes: optionalText,
-});
-
-const lessonSchema = z.object({
-  title: z.string().trim().min(2, "Informe o nome da aula."),
-  teacherId: z.string().optional().default(""),
-  scheduledAt: z.string().optional().default(""),
-  durationMinutes: z.coerce.number().int().min(15).max(240).default(60),
-  isPaid: z.string().optional().default(""),
-  price: z.string().trim().optional().default(""),
-  paymentMethod: z.string().trim().optional().default("PIX"),
-  notes: optionalText,
-});
-
-function refreshAcademyRoutes() {
-  revalidatePath("/aulas");
-  revalidatePath("/aulas/alunos");
-  revalidatePath("/professores");
-  revalidatePath("/financeiro");
-}
-
-function getFormValues(formData: FormData, name: string) {
-  return formData.getAll(name).map(String).filter(Boolean);
-}
-
-const classGroupWeekdayAbbreviations = [
-  "Dom",
-  "Seg",
-  "Ter",
-  "Qua",
-  "Qui",
-  "Sex",
-  "Sáb",
-];
-
-function getClassGroupName(
-  schedules: { weekday: number; startTime: string }[],
-) {
-  const firstSchedule = [...schedules].sort(
-    (first, second) =>
-      (first.weekday === 0 ? 7 : first.weekday) -
-        (second.weekday === 0 ? 7 : second.weekday) ||
-      first.startTime.localeCompare(second.startTime),
-  )[0];
-
-  if (!firstSchedule) throw new Error("Informe ao menos um horário da turma.");
-  return `${classGroupWeekdayAbbreviations[firstSchedule.weekday]} ${firstSchedule.startTime}`;
-}
-
-function parseScheduledAt(value: string) {
-  if (!value) {
-    return null;
-  }
-
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function parseMoneyToCents(value: string) {
-  const cleanValue = value.trim() || "0";
-  const normalized = cleanValue.replace(/\./g, "").replace(",", ".");
-  const amount = Number(normalized);
-
-  if (!Number.isFinite(amount) || amount < 0) {
-    throw new Error("Valor inválido.");
-  }
-
-  return Math.round(amount * 100);
-}
 
 export async function createStudentAction(formData: FormData) {
   const auth = await requireModuleEdit("students");
