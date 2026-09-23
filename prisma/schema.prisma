@@ -1053,6 +1053,7 @@ model TvPresentationSettings {
   id                      String   @id @default(cuid())
   slideIntervalSeconds    Int      @default(12)
   selectedTournamentId    String?
+  tvSourceTournamentId    String?
   selectedRankingIds      String[] @default([])
   selectedSponsorIds      String[] @default([])
   rankingTitle            String   @default("")

@@ -198,7 +198,7 @@ export function PublicStandings({
       ? [{ label: "Aulas", href: portalHref(portalVisibility.athletePortalShowLessons ? "lessons" : "classes"), icon: "graduation" as const }]
       : []),
     ...(portalVisibility.athletePortalShowLeagues
-      ? [{ label: "Ligas", href: portalHref("leagues", "games"), icon: "trophy" as const }]
+      ? [{ label: "Torneios", href: portalHref("leagues", "games"), icon: "trophy" as const }]
       : []),
     ...(portalVisibility.athletePortalShowDoublesRadar
       ? [{ label: "Radar de duplas", href: portalHref("radar"), icon: "players" as const }]
@@ -262,7 +262,7 @@ export function PublicStandings({
         <>
           <section className="athlete-portal-events-shell">
           <nav className="athlete-portal-events-nav" aria-label="Menu de Eventos">
-            <Link className={selectedEventTab === "leagues" ? "active" : ""} href={portalHref("leagues", "games", undefined, leagueCategoryId, "leagues")}><EventNavIcon icon="trophy" /><span><strong>Ligas</strong><small>Competições regulares</small></span></Link>
+            <Link className={selectedEventTab === "leagues" ? "active" : ""} href={portalHref("leagues", "games", undefined, leagueCategoryId, "leagues")}><EventNavIcon icon="trophy" /><span><strong>Torneios</strong><small>Competições regulares</small></span></Link>
             <Link className={selectedEventTab === "super12" ? "active" : ""} href={portalHref("leagues", undefined, undefined, undefined, "super12", super12Id)}><EventNavIcon icon="crown" /><span><strong>Super 12</strong><small>Os melhores no ano</small></span></Link>
             <Link className={selectedEventTab === "radar" ? "active" : ""} href={portalHref("leagues", undefined, undefined, undefined, "radar")}><EventNavIcon icon="target" /><span><strong>Radar de Torneios</strong><small>Torneios próximos</small></span></Link>
           </nav>
@@ -441,7 +441,7 @@ function ClientHomePanel({ home, name, arenaSlug, shortcuts }: { home: ClientHom
         </header>
         {home.announcements.length ? home.announcements.map((announcement) => <article key={announcement.id}><strong>{announcement.title}</strong><p><PortalRichText text={announcement.message} /></p></article>) : <p className="muted">A arena ainda não divulgou avisos.</p>}
       </Link>
-      <section className="client-portal-summary"><header><h3>Resumo da sua situação</h3><Link href={portalHref("finance")}>Ver detalhes <b>›</b></Link></header><div><Link className="client-portal-summary-link is-finance" href={portalHref("finance")}><PortalNavIcon icon="money" /><span>Financeiro</span><strong className={home.summary.financialStatus === "overdue" ? "is-overdue" : home.summary.financialStatus === "pending" ? "is-pending" : "is-active"}>{home.summary.financial}</strong>{home.summary.futureFinancial ? <small className="client-portal-future-financial">{home.summary.futureFinancial}</small> : null}</Link><Link className="client-portal-summary-link is-lessons" href={portalHref("lessons")}><PortalNavIcon icon="graduation" /><span>Aulas</span><strong>{home.summary.classes} disponíveis</strong></Link><Link className="client-portal-summary-link is-reservations" href={portalHref("reservations")}><PortalNavIcon icon="calendar" /><span>Reservas</span><strong>{home.summary.reservations} próxima{home.summary.reservations === 1 ? "" : "s"}</strong></Link><Link className="client-portal-summary-link is-leagues" href={portalHref("leagues")}><PortalNavIcon icon="trophy" /><span>Ligas</span><strong>{home.summary.leagues} ativa{home.summary.leagues === 1 ? "" : "s"}</strong></Link></div></section>
+      <section className="client-portal-summary"><header><h3>Resumo da sua situação</h3><Link href={portalHref("finance")}>Ver detalhes <b>›</b></Link></header><div><Link className="client-portal-summary-link is-finance" href={portalHref("finance")}><PortalNavIcon icon="money" /><span>Financeiro</span><strong className={home.summary.financialStatus === "overdue" ? "is-overdue" : home.summary.financialStatus === "pending" ? "is-pending" : "is-active"}>{home.summary.financial}</strong>{home.summary.futureFinancial ? <small className="client-portal-future-financial">{home.summary.futureFinancial}</small> : null}</Link><Link className="client-portal-summary-link is-lessons" href={portalHref("lessons")}><PortalNavIcon icon="graduation" /><span>Aulas</span><strong>{home.summary.classes} disponíveis</strong></Link><Link className="client-portal-summary-link is-reservations" href={portalHref("reservations")}><PortalNavIcon icon="calendar" /><span>Reservas</span><strong>{home.summary.reservations} próxima{home.summary.reservations === 1 ? "" : "s"}</strong></Link><Link className="client-portal-summary-link is-leagues" href={portalHref("leagues")}><PortalNavIcon icon="trophy" /><span>Torneios</span><strong>{home.summary.leagues} ativo{home.summary.leagues === 1 ? "" : "s"}</strong></Link></div></section>
     </div>
     {home.charges.length ? <section className="client-portal-events"><header><div><span>PAGAMENTOS</span><h3>Boletos disponíveis</h3></div></header>{home.charges.map((charge) => <article className="portal-payment-charge" key={charge.id}><div><strong>{charge.description}</strong><small>{charge.amount} · vence em {charge.dueDate}</small></div><a className="button button-primary button-small" href={charge.paymentUrl}>Pagar agora</a></article>)}</section> : null}
     <section className="client-portal-events"><header><div><span>EVENTOS DA ARENA</span><h3>Próximos eventos</h3></div><Link href="/portal/eventos">Ver todos <b>›</b></Link></header>{home.eventPosts.length ? <ClientPortalEventCarousel events={home.eventPosts} /> : <p className="muted">Nenhum evento próximo. Fique de olho: a arena pode abrir novas partidas em breve.</p>}</section>
@@ -457,7 +457,7 @@ function PrizePanel({ portal }: { portal: Portal }) {
       <div className="portal-league-prize-copy">
         <span>PREMIAÇÃO DA LIGA</span>
         <h2>O pódio está à sua espera</h2>
-        <p>Acompanhe a premiação das suas Ligas em tempo real.</p>
+        <p>Acompanhe a premiação dos seus torneios em tempo real.</p>
       </div>
       <div className="portal-league-prize-list">
         {portal?.prizes.length ? (
@@ -471,7 +471,7 @@ function PrizePanel({ portal }: { portal: Portal }) {
             </article>
           ))
         ) : (
-          <p>A arena ainda não divulgou a premiação das suas Ligas.</p>
+          <p>A arena ainda não divulgou a premiação dos seus torneios.</p>
         )}
       </div>
     </section>
@@ -483,7 +483,7 @@ function RulesPanel({ data }: { data: ArenaPublicStandings }) {
     <section className="athlete-portal-content-panel">
       <header>
         <span>REGULAMENTO</span>
-        <h2>Regras das Ligas</h2>
+        <h2>Regras dos Torneios</h2>
       </header>
       {data.leagueRules.length ? (
         data.leagueRules.map((league) => (
@@ -494,7 +494,7 @@ function RulesPanel({ data }: { data: ArenaPublicStandings }) {
         ))
       ) : (
         <p className="muted">
-          Nenhuma regra foi publicada para as Ligas ativas.
+          Nenhuma regra foi publicada para os torneios ativos.
         </p>
       )}
     </section>

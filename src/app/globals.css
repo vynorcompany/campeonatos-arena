@@ -9209,3 +9209,142 @@ button {
 @media (max-width: 440px) {
   .accounts-ledger-totals { grid-template-columns: minmax(0, 1fr); }
 }
+
+.whatsapp-inbox .whatsapp-chat-main > form.whatsapp-composer {
+  display: grid;
+  grid-template-columns: 40px 40px minmax(0, 1fr) 40px 40px;
+  align-items: center;
+  gap: 7px;
+  min-height: 74px;
+  padding: 10px 14px;
+  border-top: 1px solid #dce5e8;
+  background: #f7f9fa;
+}
+.whatsapp-composer .whatsapp-composer-icon,
+.whatsapp-composer .whatsapp-record-button {
+  display: grid !important;
+  width: 40px !important;
+  height: 40px !important;
+  place-items: center;
+  padding: 0;
+  border: 0 !important;
+  border-radius: 10px !important;
+  color: #526b78 !important;
+  background: transparent !important;
+}
+.whatsapp-composer .whatsapp-composer-icon:hover,
+.whatsapp-composer .whatsapp-composer-icon:focus-visible,
+.whatsapp-composer .whatsapp-record-button:hover,
+.whatsapp-composer .whatsapp-record-button:focus-visible {
+  color: #087e5b !important;
+  background: #e5f4ed !important;
+  outline: 0;
+}
+.whatsapp-composer .whatsapp-record-button.is-recording {
+  color: #b93333 !important;
+  background: #fce8e8 !important;
+}
+.whatsapp-composer .whatsapp-composer-field {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  align-items: center;
+  padding: 4px 14px;
+  border: 1px solid #d0dde1;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgb(23 55 63 / .05);
+}
+.whatsapp-composer .whatsapp-composer-field:focus-within {
+  border-color: #2b9878;
+  box-shadow: 0 0 0 3px rgb(43 152 120 / .13);
+}
+.whatsapp-composer .whatsapp-composer-field textarea {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 32px;
+  max-height: 104px;
+  padding: 6px 0;
+  border: 0;
+  outline: 0;
+  color: #223b47;
+  background: transparent;
+  font-size: .88rem;
+  line-height: 1.4;
+  resize: vertical;
+}
+.whatsapp-composer .whatsapp-composer-field textarea::placeholder { color: #82949b; }
+.whatsapp-composer .whatsapp-recording-indicator,
+.whatsapp-composer .whatsapp-pending-audio { min-width: 0; }
+.whatsapp-composer .whatsapp-recording-indicator > i {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 50%;
+  background: #d7433c;
+  animation: whatsapp-recording-pulse 1s ease-in-out infinite;
+}
+.whatsapp-composer .whatsapp-send-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #148c69;
+  box-shadow: 0 2px 6px rgb(16 109 81 / .18);
+}
+.whatsapp-composer .whatsapp-send-button:hover:not(:disabled) { background: #087a59; }
+.whatsapp-composer .whatsapp-send-button:disabled { opacity: .48; cursor: not-allowed; }
+.whatsapp-inbox .whatsapp-chat-main > form.whatsapp-composer .whatsapp-emoji-picker {
+  right: 60px;
+  bottom: 66px;
+}
+@media (max-width: 600px) {
+  .whatsapp-inbox .whatsapp-chat-main > form.whatsapp-composer {
+    grid-template-columns: 34px 34px minmax(0, 1fr) 34px 34px;
+    gap: 4px;
+    min-height: 62px;
+    padding: 8px 7px;
+  }
+  .whatsapp-composer .whatsapp-composer-icon,
+  .whatsapp-composer .whatsapp-record-button,
+  .whatsapp-composer .whatsapp-send-button { width: 34px !important; height: 34px !important; }
+  .whatsapp-composer .whatsapp-composer-field { min-height: 44px; padding-inline: 9px; }
+  .whatsapp-composer .whatsapp-recording-indicator small { display: none; }
+}
+@media (max-width: 420px) {
+  .whatsapp-composer .whatsapp-recording-wave b:nth-child(n + 11) { display: none; }
+}
+
+/* A área de conversa fica fixa, mas a navegação lateral conserva sua rolagem. */
+@media (min-width: 721px) {
+  .app-shell:has(.whatsapp-page) > .sidebar {
+    height: 100dvh;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .app-shell:has(.whatsapp-page) > .sidebar .sidebar-inner { min-height: 100%; }
+}
+
+.workspace-page-breadcrumb { min-height: 35px; margin: 0 0 16px; padding: 0 2px 12px; border-bottom: 1px solid #e1e9f2; }
+.tv-config-section-head h2 { margin: 0; color: #173961; font-size: 1.08rem; font-weight: 400; line-height: 1.35; }
+.tv-config-fields { grid-template-columns: minmax(140px, .55fr) minmax(170px, .8fr) minmax(220px, 1fr) minmax(250px, 1.15fr); }
+.tv-config-fields .field { min-width: 0; align-content: start; }
+.tv-config-fields .field > label { color: #455f7c; }
+.tv-config-fields .field > small { color: #6b8198; font-size: .68rem; font-weight: 400; line-height: 1.3; }
+.tv-source-edit-link { width: max-content; max-width: 100%; padding: 3px 0; border: 0; color: #1765ae; background: transparent; font: inherit; font-size: .7rem; text-align: left; text-decoration: underline; cursor: pointer; }
+.tv-source-tournament-field select:disabled { color: #8295a8; background: #f2f5f8; }
+.tv-manual-modal-backdrop { position: fixed; z-index: 100; inset: 0; display: grid; overflow-y: auto; place-items: center; padding: 20px; background: rgb(8 22 39 / .62); }
+.tv-manual-modal { width: min(100%, 680px); max-height: calc(100dvh - 40px); overflow-y: auto; padding: 22px; border: 1px solid #cbdbea; border-radius: 12px; background: #fff; box-shadow: 0 20px 60px rgb(9 28 52 / .24); }
+.tv-manual-modal > header { display: flex; align-items: start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.tv-manual-modal h2, .tv-manual-modal p { margin: 0; }
+.tv-manual-modal h2 { color: #173961; font-size: 1.2rem; }.tv-manual-modal p { margin-top: 4px; color: #60758b; font-size: .8rem; }
+.tv-manual-modal-close { display: grid; width: 34px; height: 34px; flex: 0 0 34px; place-items: center; border: 1px solid #dce6ef; border-radius: 7px; color: #455f78; background: #fff; font-size: 1.35rem; cursor: pointer; }
+.tv-manual-match-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
+.tv-manual-match-form > label { display: grid; min-width: 0; gap: 5px; color: #455f7c; font-size: .77rem; font-weight: 700; }
+.tv-manual-match-form input, .tv-manual-match-form select { width: 100%; min-width: 0; min-height: 39px; padding: 7px 10px; border: 1px solid #cbdbea; border-radius: 7px; color: #193957; background: #fff; font: inherit; font-weight: 400; }
+.tv-manual-match-form footer { display: flex; grid-column: 1 / -1; justify-content: flex-end; flex-wrap: wrap; gap: 9px; margin-top: 7px; padding-top: 15px; border-top: 1px solid #e5edf4; }
+@media (max-width: 1020px) { .tv-config-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 620px) { .tv-config-fields, .tv-manual-match-form { grid-template-columns: minmax(0, 1fr); }.tv-manual-modal { padding: 16px; }.tv-manual-match-form footer { grid-column: 1; }.tv-manual-match-form footer .button { flex: 1 1 160px; justify-content: center; } }
