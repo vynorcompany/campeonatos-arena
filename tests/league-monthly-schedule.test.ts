@@ -102,7 +102,7 @@ test("athlete portal exposes the main modules and League submenus", () => {
   assert.match(view, /PublicBookingContent/);
   assert.match(view, /Escolha um professor para ver as turmas disponíveis/);
   assert.match(view, /teacherId/);
-  assert.match(leaguePortal, /Sugerir horário para este jogo/);
+  assert.match(leaguePortal, /LeagueMatchScheduleModal/);
   assert.match(leaguePortal, /Reserva confirmada/);
 });
 
@@ -156,7 +156,7 @@ test("athlete portal groups League fixtures by week and shows the date range", (
   const service = readFileSync(resolve(process.cwd(), "src/lib/services/public-league-portal.ts"), "utf8");
 
   assert.match(portal, /leagueResultsByWeek/);
-  assert.match(portal, /Período: \{week\.period\}/);
+  assert.match(portal, /Período: \{selectedWeek\.period\}/);
   assert.match(service, /period:/);
 });
 

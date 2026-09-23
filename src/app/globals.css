@@ -8829,6 +8829,11 @@ button {
 .whatsapp-composer-field:focus-within { outline: 0; box-shadow: none; }
 @media (max-width: 720px) { .whatsapp-inbox .whatsapp-chat-main form { min-height: 72px; }.whatsapp-composer-field { min-height: 54px; } }
 
+/* State-driven composer: these controls live in the form, not as injected DOM. */
+.whatsapp-inbox .whatsapp-chat-main form { position: relative; }
+.whatsapp-recording-wave b { display: block; width: 3px; height: 15px; border-radius: 99px; background: #d7433c; transform-origin: center; transition: transform 55ms linear; }
+.whatsapp-inbox .whatsapp-chat-main form .whatsapp-emoji-picker { right: 46px; bottom: 54px; }
+
 /* Portal no celular: atalhos quebram em linhas e eventos deixam de comprimir o carrossel. */
 @media (max-width: 700px) {
   .client-portal-shortcuts { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: visible; margin: 0; padding: 0; }

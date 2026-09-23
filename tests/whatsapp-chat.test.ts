@@ -17,6 +17,18 @@ test("stores inbound Evolution messages and exposes the arena WhatsApp workspace
   assert.match(chat, /sendWhatsAppChatMessageAction/);
 });
 
+test("WhatsApp composer is state-driven instead of injecting controls into the DOM", () => {
+  const chat = readFileSync(resolve(process.cwd(), "src/components/whatsapp/whatsapp-chat-workspace.tsx"), "utf8");
+  const recorder = readFileSync(resolve(process.cwd(), "src/components/whatsapp/use-audio-recorder.ts"), "utf8");
+
+  assert.match(chat, /useAudioRecorder/);
+  assert.match(chat, /sendWhatsAppMediaMessageAction/);
+  assert.match(chat, /audioDraft/);
+  assert.doesNotMatch(chat, /document\.querySelector/);
+  assert.doesNotMatch(chat, /document\.createElement/);
+  assert.match(recorder, /navigator\.mediaDevices\.getUserMedia/);
+});
+
 test("financial settings expose coupon and supplier maintenance", () => {
   const settings = readFileSync(resolve(process.cwd(), "src/app/(app)/financeiro/configuracoes/[area]/page.tsx"), "utf8");
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/finance.ts"), "utf8");

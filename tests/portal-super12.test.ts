@@ -18,7 +18,7 @@ test("Super 12 permanece separado das estruturas oficiais de torneio", () => {
   assert.match(schema, /model Super12Event/);
   assert.match(schema, /model Super12Match/);
   assert.match(action, /SUPER12/);
-  assert.match(action, /Selecione de 4 a 24 atletas/);
+  assert.match(action, /Monte de 2 a 12 duplas/);
   assert.match(action, /status: "ACTIVE"/);
 });
 
