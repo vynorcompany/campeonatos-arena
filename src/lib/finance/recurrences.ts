@@ -19,3 +19,16 @@ export function getNextFinancialRecurrenceDate(current: Date, frequency: Financi
   next.setUTCDate(Math.min(day, daysInMonth(next.getUTCFullYear(), next.getUTCMonth())));
   return next;
 }
+
+/**
+ * Produces the dates to be materialized for a recurrence. Keeping this pure
+ * prevents the finance action from mixing calendar rules with persistence.
+ */
+export function getFinancialRecurrenceDates(startsAt: Date, frequency: FinancialRecurrenceFrequency, endsAt?: Date | null) {
+  const limit = endsAt ?? new Date(startsAt.getUTCFullYear() + 1, startsAt.getUTCMonth(), startsAt.getUTCDate());
+  const dates: Date[] = [];
+  for (let dueDate = startsAt; dueDate <= limit; dueDate = getNextFinancialRecurrenceDate(dueDate, frequency)) {
+    dates.push(dueDate);
+  }
+  return dates;
+}

@@ -11,7 +11,7 @@ import {
 import { getFinancialEntryBalance } from "@/lib/finance/ledger";
 import { getDiscountedAmountCents } from "@/lib/finance/discounts";
 import { getCouponValues } from "@/lib/finance/coupons";
-import { getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
+import { getFinancialRecurrenceDates, getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 import { encryptConnectionSecrets } from "@/lib/payments/connection-secrets";
@@ -547,9 +547,8 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
       startsAt, endsAt, nextDueDate: startsAt, bankAccountId: parsed.data.bankAccountId || null, planId: parsed.data.planId || null,
       playerId: parsed.data.type === "REVENUE" && clientId ? clientId : null, onlinePaymentMethod: parsed.data.onlinePaymentMethod, notes: parsed.data.notes
     } });
-    let dueDate = startsAt;
-    const limit = endsAt ?? new Date(startsAt.getFullYear() + 1, startsAt.getMonth(), startsAt.getDate());
-    while (dueDate <= limit) {
+    const dates = getFinancialRecurrenceDates(startsAt, parsed.data.frequency, endsAt);
+    for (const dueDate of dates) {
       const entry = await tx.financialEntry.create({ data: {
         arenaId: auth.arenaId, type: recurrence.type, counterpartyName: recurrence.counterpartyName, category: recurrence.category,
         description: recurrence.description, amountCents: recurrence.amountCents, dueDate, notes: recurrence.notes,
@@ -557,9 +556,9 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
         paymentMethod: recurrence.onlinePaymentMethod === "BOLETO" ? "Boleto" : ""
       } });
       if (!firstEntryId) firstEntryId = entry.id;
-      dueDate = getNextFinancialRecurrenceDate(dueDate, parsed.data.frequency);
     }
-    await tx.financialRecurrence.update({ where: { id: recurrence.id }, data: { nextDueDate: dueDate } });
+    const nextDueDate = getNextFinancialRecurrenceDate(dates.at(-1) ?? startsAt, parsed.data.frequency);
+    await tx.financialRecurrence.update({ where: { id: recurrence.id }, data: { nextDueDate } });
   });
   if (parsed.data.onlinePaymentMethod === "BOLETO" && firstEntryId) {
     try {
