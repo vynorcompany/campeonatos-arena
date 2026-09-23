@@ -21,6 +21,17 @@ test("client portal marks open receivables past their due date as overdue", () =
   assert.match(portal, /futureFinancial/);
 });
 
+test("client portal keeps the cash-flow horizon private and shows only the next 15 days", () => {
+  const home = read("src/lib/services/public-client-home.ts");
+
+  assert.match(home, /portalReceivableLookaheadDays = 15/);
+  assert.match(home, /portalReceivableDeadline/);
+  assert.match(home, /shouldShowPortalReceivable/);
+  assert.match(home, /const portalBalances = balances\.filter/);
+  assert.match(home, /entry\.dueDate <= deadline/);
+  assert.match(home, /const charges = portalBalances/);
+});
+
 test("financial ledger highlights pending entries that are past due", () => {
   const ledger = read("src/components/finance/accounts-ledger.tsx");
   const styles = read("src/app/globals.css");
