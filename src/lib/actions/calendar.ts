@@ -15,6 +15,9 @@ import {
 } from "@/lib/calendar/inputs";
 import { weeklyRangesOverlap } from "@/lib/scheduling/weekly-rule";
 import { isFixedBookingType } from "@/lib/calendar/booking-types";
+import { refreshCalendarRoutes } from "@/lib/calendar/revalidation";
+
+const refreshCalendar = refreshCalendarRoutes;
 import { calculateCourtIntervalPrice } from "@/lib/calendar/court-interval-pricing";
 import { sendEvolutionTextMessage } from "@/lib/integrations/evolution/client";
 import { expandWeeklyOccurrences } from "@/lib/scheduling/recurrence";
@@ -122,15 +125,6 @@ const publicCourtBookingSchema = z.object({
 
 const DEFAULT_BOOKING_TYPES = ["Aula", "Aula fixa", "Plano", "Super 12", "Liga", "Reserva"];
 
-function refreshCalendar() {
-  revalidatePath("/calendario");
-  revalidatePath("/agenda");
-  revalidatePath("/agenda/configuracao");
-  revalidatePath("/comandas");
-  revalidatePath("/financeiro/contas-a-receber");
-  revalidatePath("/financeiro/lancamentos");
-}
-
 export async function updateOnlineBookingSettingsAction(formData: FormData) {
   const auth = await requireModuleEdit("calendar");
   const parsed = onlineBookingSettingsSchema.safeParse({
@@ -154,7 +148,7 @@ export async function updateOnlineBookingSettingsAction(formData: FormData) {
     },
     select: { slug: true }
   }));
-  refreshCalendar();
+  refreshCalendarRoutes();
   revalidatePath(`/reservar/${arena.slug}`);
   revalidatePath(`/classificacao/${arena.slug}`);
 }
