@@ -11,6 +11,7 @@ type IconName =
   | "lesson"
   | "cart"
   | "finance"
+  | "cash"
   | "building"
   | "users"
   | "account"
@@ -102,6 +103,14 @@ function NavIcon({ name }: { name: IconName }) {
         <path d="M17 6.5c-.8-1-2.4-1.5-4.2-1.5-2.4 0-4.3 1-4.3 2.8 0 4.2 8.5 1.8 8.5 6.4 0 1.9-1.9 3.1-4.5 3.1-2 0-3.7-.6-4.7-1.8" />
       </>
     ),
+    cash: (
+      <>
+        <rect x="3" y="6" width="18" height="14" rx="2" />
+        <path d="M3 10h18M7 3h10" />
+        <circle cx="12" cy="15" r="2" />
+        <path d="M6 15h1m10 0h1" />
+      </>
+    ),
     building: (
       <>
         <path d="M4 21V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v16" />
@@ -169,7 +178,7 @@ export function NavLinks({ canManageUsers, visibleModules, whatsappUnreadCount }
         { href: "/painel", label: "Dashboard", icon: "dashboard" },
         ...(canManageUsers ? [{ href: "/assistente", label: "Assistente", icon: "support" as IconName }] : []),
         ...(canSee("support") ? [{ href: "/whatsapp", label: "WhatsApp", icon: "whatsapp" as IconName, badge: whatsappUnreadCount }] : []),
-        ...(canSee("pos") ? [{ href: "/pdv/caixa", label: "Gerenciar Caixa", icon: "finance" as IconName }] : [])
+        ...(canSee("pos") ? [{ href: "/pdv/caixa", label: "Gerenciar Caixa", icon: "cash" as IconName }] : [])
       ]
     },
     {

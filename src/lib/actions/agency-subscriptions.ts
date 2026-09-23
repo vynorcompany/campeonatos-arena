@@ -82,6 +82,6 @@ export async function prepareAgencyInvoiceAction(formData: FormData) {
   const invoiceId = String(formData.get("invoiceId") ?? "");
   if (!invoiceId) throw new Error("Fatura inválida.");
   const url = await ensureAgencyCheckout(invoiceId);
-  if (!url) throw new Error("Conecte o Mercado Pago da agência ou verifique se esta fatura já foi paga.");
+  if (!url) return { error: "Conecte o Mercado Pago da agência ou verifique se esta fatura já foi paga." };
   revalidatePath("/agencia/planos");
 }

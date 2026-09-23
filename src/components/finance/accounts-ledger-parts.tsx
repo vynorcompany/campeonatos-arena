@@ -61,7 +61,7 @@ export function OnlineChargeBadge({ entry }: { entry: Account }) {
   return entry.onlinePaymentMethod === "BOLETO" ? <small className="online-charge-status online-charge-pending">Boleto pendente de emissão</small> : null;
 }
 
-export function PlanSelectOptions({ plans }: { plans: Option[] }) {
+export function PlanSelectOptions({ plans, includeTeacherAll = false }: { plans: Option[]; includeTeacherAll?: boolean }) {
   const groups = new Map<string, { teacherName: string; plans: Option[] }>();
   for (const plan of plans) {
     const key = plan.teacherId || "unassigned";
@@ -72,6 +72,7 @@ export function PlanSelectOptions({ plans }: { plans: Option[] }) {
 
   return <>{[...groups.entries()].map(([key, group]) => (
     <optgroup key={key} label={`Professor: ${group.teacherName}`}>
+      {includeTeacherAll && key !== "unassigned" ? <option value={`teacher:${key}`}>Todos os planos de {group.teacherName}</option> : null}
       {group.plans.map((plan) => <option key={`${plan.id}-${plan.teacherId || "unassigned"}`} value={plan.id} data-monthly-price-cents={plan.monthlyPriceCents} data-teacher-id={plan.teacherId}>{plan.name}</option>)}
     </optgroup>
   ))}</>;

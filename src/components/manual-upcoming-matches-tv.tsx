@@ -325,7 +325,7 @@ export function ManualUpcomingMatchesTv({
 
         <div className="tv-slide-frame" key={activeSlide.id}>
           {activeSlide.type === "matches" ? (
-            <div className="tv-matches-grid">
+            <div className={`tv-matches-grid tv-matches-count-${Math.min(visibleMatches.length, visibleMatchCount)}`}>
               {visibleMatches.map((match, index) => {
                 const scheduledTime = match.scheduledTime.trim();
                 const displayNumber = getDisplayNumber(activeIndex, index, liveMatches.length);
@@ -361,23 +361,6 @@ export function ManualUpcomingMatchesTv({
                 );
               })}
 
-              {Array.from({ length: Math.max(0, visibleMatchCount - visibleMatches.length) }).map((_, index) => (
-                <article className="tv-match-card tv-empty-slot" key={`empty-${index}`}>
-                  <div className="tv-match-meta">
-                    <div className="tv-match-topline">
-                      <span>Em aberto</span>
-                      <span className="tv-match-separator">-</span>
-                      <span className="tv-court-name">Quadra</span>
-                    </div>
-                    <span className="tv-match-status">Aguardando</span>
-                  </div>
-                  <div className="tv-scoreboard">
-                    <div className="tv-score-row">
-                      <strong className="tv-team-name">Aguardando cadastro</strong>
-                    </div>
-                  </div>
-                </article>
-              ))}
             </div>
           ) : null}
 
