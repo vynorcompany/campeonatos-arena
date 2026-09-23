@@ -1,5 +1,6 @@
 import { getFinancialEntryBalance } from "@/lib/finance/ledger";
 import { classificationFilter } from "@/lib/finance/classification-filter";
+import { teacherPlanCondition } from "@/lib/finance/plan-filter";
 import { withArenaTransaction } from "@/lib/rls";
 
 export type LedgerFilters = { name?: string; start?: string; end?: string; status?: string; paymentMethod?: string; bankAccountId?: string; category?: string; description?: string; productId?: string; planId?: string; dateField?: "dueDate" | "paidAt"; includeEarlier?: boolean; includeVoided?: boolean; };
@@ -16,7 +17,10 @@ export async function getAccountsLedger(arenaId: string, type: "REVENUE" | "EXPE
   if (filters.bankAccountId) where.bankAccountId = filters.bankAccountId;
   if (filters.category) conditions.push(classificationFilter(filters.category));
   if (filters.description) where.description = { contains: filters.description, mode: "insensitive" };
-  if (filters.planId?.startsWith("teacher:")) conditions.push({ plan: { teacherAssignments: { some: { teacherId: filters.planId.slice(8), active: true } } } });
+  if (filters.planId?.startsWith("teacher:")) {
+    const teacherId = filters.planId.slice("teacher:".length);
+    if (teacherId) conditions.push(teacherPlanCondition(teacherId));
+  }
   else if (filters.planId) where.planId = filters.planId;
   if (filters.productId) conditions.push({ OR: [{ productId: filters.productId }, { sale: { items: { some: { productId: filters.productId } } } }] });
   if (filters.name) conditions.push({ OR: [{ counterpartyName: { contains: filters.name, mode: "insensitive" } }, { supplier: { name: { contains: filters.name, mode: "insensitive" } } }, { scheduleParticipant: { player: { name: { contains: filters.name, mode: "insensitive" } } } }, { sale: { customerName: { contains: filters.name, mode: "insensitive" } } }] });

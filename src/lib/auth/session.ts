@@ -247,6 +247,10 @@ export async function requireArenaAccess() {
     const arena = await prisma.arena.findUnique({ where: { id: auth.arenaId }, select: { accountStatus: true, agencySubscription: { select: { status: true, trialEndsAt: true, plan: { select: { isTrial: true } } } } } });
     const subscription = arena?.agencySubscription;
     if (arena?.accountStatus !== "ACTIVE" || (subscription && (subscription.status !== "ACTIVE" || (subscription.plan.isTrial && subscription.trialEndsAt && subscription.trialEndsAt <= new Date())))) redirect("/acesso-indisponivel");
+    if (subscription && !subscription.plan.isTrial) {
+      const { getAgencyDelinquency } = await import("@/lib/finance/agency-delinquency");
+      if ((await getAgencyDelinquency(auth.arenaId))?.blocked) redirect("/acesso-indisponivel");
+    }
   }
 
   return auth as AuthContext & { arenaId: string; arenaName: string | null };

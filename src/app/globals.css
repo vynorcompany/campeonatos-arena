@@ -7993,11 +7993,86 @@ button {
 .commands-modal-close:hover { border-color: #9bbad7; background: #f3f8fc; color: #1d5792; }
 @media (max-width: 760px) { .commands-date-trigger { min-height: 60px; } .commands-date-icon { width: 38px; height: 38px; } .commands-new-modal-backdrop { align-items: end; padding: 12px; } .commands-new-modal { width: 100%; padding: 18px; border-radius: 14px; } }
 
-/* Cor única de navegação: sem gradiente e sem variação entre módulos. */
+/* A navegação mantém o mesmo tema da marca do login em todos os módulos. */
 .sidebar,
 .agency-sidebar {
-  background-color: #0d4f99 !important;
-  background-image: none !important;
+  background-color: #0a2955 !important;
+  background-image: radial-gradient(circle at 85% 16%, rgb(65 166 231 / .28), transparent 30%), linear-gradient(150deg, #103e77, #0a2955 72%) !important;
+  background-attachment: fixed !important;
+}
+
+/* Agência: mesma hierarquia, espaçamentos e controles dos painéis operacionais. */
+.agency-shell { background: #fff; }
+.agency-main { min-width: 0; padding: 22px clamp(16px, 2vw, 30px) 42px; }
+.agency-content { min-width: 0; }
+.agency-content > .stack-md { gap: 16px; }
+.agency-content > .stack-md > .page-header {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0, 0, 0, 0); white-space: nowrap; clip-path: inset(50%);
+}
+.agency-content .section-card,
+.agency-content .agency-billing-section,
+.agency-content .agency-arena-card,
+.agency-content .agency-ticket-card,
+.agency-content .agency-plan-card,
+.agency-content .agency-subscription-row,
+.agency-content .agency-invoice-row,
+.agency-content .stat-card {
+  min-width: 0; border: 1px solid #dce7f1; border-radius: 10px;
+  background: #fff; box-shadow: 0 4px 16px rgb(23 60 102 / .035);
+}
+.agency-content .section-card,
+.agency-content .agency-billing-section { padding: 18px; }
+.agency-content .section-card h2,
+.agency-content .agency-billing-section h2 { color: #173961; font-size: 1rem; line-height: 1.4; }
+.agency-content .section-card .muted,
+.agency-content .agency-billing-section .muted { color: #62788e; font-size: .82rem; line-height: 1.45; }
+.agency-content .stat-card { padding: 16px; }
+.agency-content .stat-card strong { color: #12345a; }
+.agency-content :is(input, select, textarea) { box-sizing: border-box; min-width: 0; max-width: 100%; border-radius: 7px; }
+.agency-content :is(.agency-arena-edit-form, .agency-ticket-controls, .agency-ticket-message-form, .agency-subscription-form, .agency-user-role-form) { min-width: 0; }
+.agency-content .data-table { min-width: 620px; }
+.agency-content .section-card:has(.data-table) { overflow-x: auto; }
+.agency-content .agency-mini-row,
+.agency-content .agency-subscription-row,
+.agency-content .agency-invoice-row { border-color: #e1eaf3; }
+.agency-content .agency-plan-card { background: #f8fbff; }
+.agency-sidebar .agency-nav .nav-parent-row { display: flex; align-items: center; min-width: 0; }
+.agency-sidebar .agency-nav .nav-parent-row > .nav-link { min-width: 0; flex: 1; }
+.agency-sidebar .agency-nav .nav-toggle { width: 30px; height: 30px; flex: 0 0 30px; margin-left: 4px; border: 1px solid rgb(192 221 255 / .25); border-radius: 7px; background: rgb(255 255 255 / .08); cursor: pointer; }
+.agency-sidebar .agency-nav .nav-link-active, .agency-sidebar .agency-nav .nav-sub-link-active { border-radius: 7px; background: rgb(103 173 247 / .22); }
+.agency-mobile-menu-toggle { display: none; }
+.agency-content .agency-billing-section { gap: 16px; }
+.agency-content .agency-plan-create { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; }
+.agency-grace-form { display: flex; flex-wrap: wrap; gap: 14px; align-items: end; }
+.agency-grace-form .field { width: min(100%, 210px); }
+.agency-grace-toggle { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; color: #264968; font-size: .8rem; font-weight: 650; }
+.agency-grace-toggle input { width: 17px; height: 17px; }
+.agency-payment-alert { display: flex; align-items: center; flex-wrap: wrap; gap: 5px 9px; margin: 0 0 16px; padding: 12px 14px; border: 1px solid #e5c275; border-radius: 8px; color: #684611; background: #fff7df; font-size: .82rem; }
+.agency-payment-alert a { margin-left: auto; color: #165a9f; font-weight: 750; text-decoration: underline; }
+.agency-billing-toast { position: fixed; z-index: 100; top: 22px; right: 22px; display: grid; gap: 4px; width: min(340px, calc(100vw - 32px)); padding: 16px 40px 16px 17px; border: 1px solid #d7aa4d; border-radius: 10px; color: #553908; background: #fff6db; box-shadow: 0 14px 35px rgb(45 35 16 / .2); font-size: .82rem; }
+.agency-billing-toast strong { font-size: .88rem; }
+.agency-billing-toast button { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border: 0; color: #765418; background: transparent; font-size: 1.25rem; cursor: pointer; }
+@media (max-width: 1024px) {
+  .agency-main { padding: 16px 14px 32px; }
+  .agency-sidebar { min-height: 0; padding: 14px; }
+  .agency-sidebar .sidebar-inner { min-height: 0; gap: 12px; }
+  .agency-sidebar .sidebar-top { gap: 12px; }
+  .agency-sidebar .agency-nav { gap: 10px; }
+  .agency-sidebar .agency-nav .nav-group { display: none; }
+  .agency-sidebar .agency-nav-mobile-open .nav-group { display: grid; }
+  .agency-mobile-menu-toggle { display: block; width: 100%; min-height: 38px; padding: 8px 11px; border: 1px solid rgb(192 221 255 / .3); border-radius: 7px; color: #fff; background: rgb(255 255 255 / .1); font: inherit; font-size: .8rem; text-align: left; cursor: pointer; }
+  .agency-sidebar .sidebar-user { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 10px; border-top: 1px solid rgb(255 255 255 / .2); }
+  .agency-sidebar .sidebar-user .button { min-height: 32px; }
+  .agency-content .agency-plan-create { grid-template-columns: minmax(0, 1fr); }
+  .agency-content .agency-subscription-row { grid-template-columns: minmax(0, 1fr); }
+  .agency-content .agency-invoice-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .agency-content .section-card, .agency-content .agency-billing-section { padding: 14px; }
+  .agency-content .agency-invoice-row { grid-template-columns: minmax(0, 1fr); }
+  .agency-content .agency-subscription-form { flex-wrap: wrap; }
+  .agency-content .agency-subscription-form select { flex-basis: 100%; }
 }
 .app-shell .nav-link-active { border-color: rgb(83 158 255 / .56); background: linear-gradient(135deg, #0868e5, #0754c3); color: #fff; }
 

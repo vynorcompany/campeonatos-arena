@@ -65,6 +65,7 @@ function isActivePath(pathname: string, href: string) {
 
 export function AgencyNavLinks() {
   const pathname = usePathname() ?? "";
+  const [mobileOpen, setMobileOpen] = useState(false);
   const openItemsStorageKey = "arena:agency-sidebar-open-items";
   const initialOpenItems = groups.flatMap((group) =>
     group.links.filter((item) => isActivePath(pathname, item.href)).map((item) => item.href)
@@ -112,7 +113,8 @@ export function AgencyNavLinks() {
   }, [openItems]);
 
   return (
-    <nav className="agency-nav" aria-label="Agência">
+    <nav className={`agency-nav${mobileOpen ? " agency-nav-mobile-open" : ""}`} aria-label="Agência">
+      <button type="button" className="agency-mobile-menu-toggle" aria-expanded={mobileOpen} onClick={() => setMobileOpen((open) => !open)}>{mobileOpen ? "Fechar menu" : "Abrir menu da agência"}</button>
       {groups.map((group) => (
         <div className="nav-group" key={group.title}>
           <p className="nav-group-label">{group.title}</p>
@@ -124,7 +126,7 @@ export function AgencyNavLinks() {
               return (
                 <div className="nav-link-block" key={item.href}>
                   <div className="nav-parent-row">
-                    <Link href={item.href} className={`nav-link${isActive ? " nav-link-active" : ""}`}>
+                    <Link href={item.href} onClick={() => setMobileOpen(false)} className={`nav-link${isActive ? " nav-link-active" : ""}`}>
                       <span>{item.label}</span>
                     </Link>
                     {item.children?.length ? (
@@ -155,6 +157,7 @@ export function AgencyNavLinks() {
                         <Link
                           key={child.href}
                           href={child.href}
+                          onClick={() => setMobileOpen(false)}
                           className={`nav-sub-link${isActivePath(pathname, child.href) ? " nav-sub-link-active" : ""}`}
                         >
                           {child.label}
