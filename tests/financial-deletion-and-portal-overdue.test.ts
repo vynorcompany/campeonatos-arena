@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
+import { isOverdue, type Account } from "@/components/finance/accounts-ledger-parts";
 
 const read = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8");
 
@@ -36,7 +37,9 @@ test("financial ledger highlights pending entries that are past due", () => {
   const ledger = read("src/components/finance/accounts-ledger.tsx");
   const styles = read("src/app/globals.css");
 
-  assert.match(ledger, /function isOverdue\(entry: Account\)/);
+  assert.equal(isOverdue({ status: "PENDING", dueDate: "2000-01-01" } as Account), true);
+  assert.equal(isOverdue({ status: "PAID", dueDate: "2000-01-01" } as Account), false);
+  assert.equal(isOverdue({ status: "PENDING", dueDate: null } as Account), false);
   assert.match(ledger, /accounts-ledger-row-overdue/);
   assert.match(ledger, /EM ATRASO/);
   assert.match(styles, /\.accounts-ledger-row-overdue/);

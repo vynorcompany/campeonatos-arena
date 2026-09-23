@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
+import { entrySchema, financialSettingSchema } from "@/lib/finance/action-schemas";
 
 test("financial ledgers support recurrence, supplier selection and server-side filters", () => {
   const schema = readFileSync(resolve(process.cwd(), "prisma/schema.prisma"), "utf8");
@@ -26,7 +27,7 @@ test("payables keep only expense fields and create suppliers, categories, and re
   const ledger = readFileSync(resolve(process.cwd(), "src/components/finance/accounts-ledger.tsx"), "utf8");
   const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
 
-  assert.match(actions, /type: z\.enum\(\["REVENUE", "EXPENSE"\]\)/);
+  assert.deepEqual(entrySchema.shape.type.options, ["REVENUE", "EXPENSE"]);
   assert.match(actions, /type: parsed\.data\.type/);
   assert.match(ledger, /createFinancialSettingAction/);
   assert.match(ledger, /createQuickSetting\("fornecedores"/);
@@ -60,31 +61,36 @@ test("receivable plan selectors separate the same standard plan by professor", (
     resolve(process.cwd(), "src/components/finance/accounts-ledger.tsx"),
     "utf8",
   );
+  const ledgerParts = readFileSync(resolve(process.cwd(), "src/components/finance/accounts-ledger-parts.tsx"), "utf8");
 
   assert.match(page, /teacherAssignments/);
   assert.match(page, /teacherId/);
   assert.match(page, /teacherName/);
-  assert.match(ledger, /<optgroup/);
-  assert.match(ledger, /Professor: \$\{group\.teacherName\}/);
+  assert.match(ledger, /<PlanSelectOptions plans=\{plans\}/);
+  assert.match(ledgerParts, /<optgroup/);
+  assert.match(ledgerParts, /Professor: \$\{group\.teacherName\}/);
   assert.doesNotMatch(ledger, /Professores:/);
 });
 
 test("selecting a plan fills the entry value with its configured price", () => {
   const receivables = readFileSync(resolve(process.cwd(), "src/app/(app)/financeiro/contas-a-receber/page.tsx"), "utf8");
   const ledger = readFileSync(resolve(process.cwd(), "src/components/finance/accounts-ledger.tsx"), "utf8");
+  const ledgerParts = readFileSync(resolve(process.cwd(), "src/components/finance/accounts-ledger-parts.tsx"), "utf8");
 
   assert.match(receivables, /monthlyPriceCents: true/);
-  assert.match(ledger, /data-monthly-price-cents=\{plan\.monthlyPriceCents\}/);
+  assert.match(ledger, /<PlanSelectOptions plans=\{plans\}/);
+  assert.match(ledgerParts, /data-monthly-price-cents=\{plan\.monthlyPriceCents\}/);
   assert.match(ledger, /setNewEntryAmountCents\(priceCents\)/);
 });
 
 test("a receivable linked to a teacher plan enrolls the selected client and alerts about the class", () => {
   const ledger = readFileSync(resolve(process.cwd(), "src/components/finance/accounts-ledger.tsx"), "utf8");
+  const ledgerParts = readFileSync(resolve(process.cwd(), "src/components/finance/accounts-ledger-parts.tsx"), "utf8");
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/finance.ts"), "utf8");
 
   assert.match(ledger, /name="clientId" value=\{selectedClientId\}/);
   assert.match(ledger, /name="teacherId" value=\{selectedPlanTeacherId\}/);
-  assert.match(ledger, /data-teacher-id=\{plan\.teacherId\}/);
+  assert.match(ledgerParts, /data-teacher-id=\{plan\.teacherId\}/);
   assert.match(actions, /tx\.teacherStudent\.upsert/);
   assert.match(actions, /tx\.studentSubscription\.create/);
   assert.match(actions, /Agora atribua-o a uma turma em Alunos ativos/);
@@ -93,7 +99,9 @@ test("a receivable linked to a teacher plan enrolls the selected client and aler
 test("financial setting actions normalize missing optional FormData fields", () => {
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/finance.ts"), "utf8");
 
-  assert.match(actions, /const optionalText = z\.preprocess\(\(value\) => value \?\? "", z\.string\(\)\.trim\(\)\.default\(""\)\);/);
-  assert.match(actions, /openingBalance: z\.preprocess\(\(value\) => value \?\? "0", z\.string\(\)\.trim\(\)\.default\("0"\)\)/);
+  const bank = financialSettingSchema.parse({ area: "contas-bancarias", name: "Banco" });
+  assert.equal(bank.openingBalance, "0");
+  assert.equal(bank.document, "");
+  assert.equal(bank.phone, "");
   assert.match(actions, /createFinancialSettingAction[\s\S]*withArenaTransaction\(auth\.arenaId, async \(tx\) => \{[\s\S]*tx\.financialCategory\.create/);
 });
