@@ -243,5 +243,11 @@ export async function requireArenaAccess() {
     redirect("/login");
   }
 
+  if (auth.systemRole !== "SUPER_ADMIN" && auth.systemRole !== "ADMIN" && auth.systemRole !== "MANAGER") {
+    const arena = await prisma.arena.findUnique({ where: { id: auth.arenaId }, select: { accountStatus: true, agencySubscription: { select: { status: true, trialEndsAt: true, plan: { select: { isTrial: true } } } } } });
+    const subscription = arena?.agencySubscription;
+    if (arena?.accountStatus !== "ACTIVE" || (subscription && (subscription.status !== "ACTIVE" || (subscription.plan.isTrial && subscription.trialEndsAt && subscription.trialEndsAt <= new Date())))) redirect("/acesso-indisponivel");
+  }
+
   return auth as AuthContext & { arenaId: string; arenaName: string | null };
 }

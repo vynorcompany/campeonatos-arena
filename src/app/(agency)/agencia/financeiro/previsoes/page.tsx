@@ -26,8 +26,8 @@ export default async function AgencyForecastPage() {
         <div className="stat-card"><strong>{activeArenas}</strong><span>arenas ativas</span></div>
       </div>
 
-      <SectionCard title="Leitura rápida" description="Projeção inicial baseada na receita recorrente atual das mensalidades ativas.">
-        <p className="muted">Próximo passo natural: incluir planos comerciais da agência, contratos por arena, churn e inadimplência para uma previsão mais fiel.</p>
+      <SectionCard title="Leitura rápida" description="Projeção inicial baseada apenas nas assinaturas pagas das arenas.">
+        <p className="muted">O trial e as mensalidades de alunos não entram no MRR da agência. Os cenários de crescimento são estimativas, não faturas emitidas.</p>
       </SectionCard>
     </div>
   );

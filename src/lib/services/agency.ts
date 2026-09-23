@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import { withArenaTransaction } from "@/lib/rls";
 
 export function formatCurrency(cents: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -9,7 +8,7 @@ export function formatCurrency(cents: number) {
 }
 
 export async function getAgencyMetrics() {
-  const [arenas, usersCount, activeSubscriptions, openTickets] = await Promise.all([
+  const [arenas, usersCount, activeSubscriptions, openTickets, invoiceTotals] = await Promise.all([
     prisma.arena.findMany({
       include: {
         _count: {
@@ -24,9 +23,9 @@ export async function getAgencyMetrics() {
       orderBy: { createdAt: "desc" }
     }),
     prisma.user.count(),
-    prisma.studentSubscription.findMany({
-      where: { status: "ACTIVE" },
-      select: { monthlyPriceCents: true, arenaId: true }
+    prisma.agencySubscription.findMany({
+      where: { status: "ACTIVE", plan: { isTrial: false }, OR: [{ trialEndsAt: null }, { trialEndsAt: { lte: new Date() } }] },
+      select: { arenaId: true, plan: { select: { monthlyPriceCents: true } } }
     }),
     prisma.supportTicket.count({
       where: {
@@ -35,21 +34,17 @@ export async function getAgencyMetrics() {
         }
       }
     }),
+    prisma.agencyInvoice.groupBy({ by: ["status"], _sum: { amountCents: true } }),
   ]);
-  const paidEntries = (await Promise.all(arenas.map((arena) => withArenaTransaction(arena.id, (tx) => tx.financialEntry.findMany({
-    where: { arenaId: arena.id, status: "PAID" },
-    select: { type: true, amountCents: true, arenaId: true, paidAt: true },
-    orderBy: { paidAt: "desc" },
-    take: 300
-  }))))).flat().sort((first, second) => (second.paidAt?.getTime() ?? 0) - (first.paidAt?.getTime() ?? 0)).slice(0, 300);
-  const mrrCents = activeSubscriptions.reduce((total, subscription) => total + subscription.monthlyPriceCents, 0);
+  const mrrCents = activeSubscriptions.reduce((total, subscription) => total + subscription.plan.monthlyPriceCents, 0);
 
   return {
     arenas,
     usersCount,
     activeSubscriptions,
     openTickets,
-    paidEntries,
+    paidInvoiceCents: invoiceTotals.find((row) => row.status === "PAID")?._sum.amountCents ?? 0,
+    openInvoiceCents: invoiceTotals.find((row) => row.status === "PENDING")?._sum.amountCents ?? 0,
     mrrCents
   };
 }

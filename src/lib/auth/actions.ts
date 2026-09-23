@@ -7,6 +7,7 @@ import { createSession, destroySession, getAuthContext, setArenaContextCookie } 
 import { env } from "@/lib/env";
 import { loginSchema, registerArenaSchema } from "@/lib/validators/auth";
 import { defaultArenaPermissionProfiles, defaultPermissionsForRole } from "@/lib/permissions";
+import { agencyBillingDay } from "@/lib/finance/agency-billing-dates";
 
 export type LoginState = {
   error: string | null;
@@ -202,6 +203,18 @@ export async function registerArenaAction(_: RegisterArenaState, formData: FormD
         createdById: createdUser.id
       }
     });
+
+    const trialPlan = await tx.agencyPlan.findUnique({ where: { id: "agency-trial-7-days" } });
+    if (!trialPlan) throw new Error("O plano de avaliação não está configurado. Entre em contato com o suporte.");
+    const trialStartedAt = new Date();
+    await tx.agencySubscription.create({ data: {
+      arenaId: arena.id,
+      planId: trialPlan.id,
+      startsAt: trialStartedAt,
+      trialEndsAt: new Date(trialStartedAt.getTime() + 7 * 24 * 60 * 60 * 1000),
+      billingDay: agencyBillingDay(new Date(trialStartedAt.getTime() + 7 * 24 * 60 * 60 * 1000)),
+      status: "ACTIVE"
+    } });
 
     await tx.permissionProfile.createMany({
       data: defaultArenaPermissionProfiles.map((profile) => ({

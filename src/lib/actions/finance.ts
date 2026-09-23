@@ -330,6 +330,7 @@ export async function updateFinancialEntryAction(formData: FormData) {
       include: { settlements: { select: { amountCents: true } } },
     });
     if (!entry) throw new Error("Lançamento não encontrado ou estornado.");
+    if (entry.source === "AGENCY_SUBSCRIPTION") throw new Error("Esta fatura é gerenciada pela agência e não pode ser alterada aqui.");
 
     const paidCents = entry.settlements.reduce((total, settlement) => total + settlement.amountCents, 0);
     if (amountCents < paidCents) throw new Error("O valor não pode ser menor que o total já baixado.");
@@ -464,6 +465,7 @@ export async function settleFinancialEntryAction(formData: FormData) {
       include: { settlements: { select: { amountCents: true, interestCents: true } } }
     });
     if (!entry) throw new Error("Esta conta não está disponível para baixa.");
+    if (entry.source === "AGENCY_SUBSCRIPTION") throw new Error("Pague esta fatura pelo link do Mercado Pago. A baixa será automática.");
 
     const before = getFinancialEntryBalance(entry.amountCents, entry.settlements);
     const allowedCents = before.outstandingCents + interestCents;
@@ -506,7 +508,7 @@ export async function settleFinancialEntriesBulkAction(formData: FormData) {
   const paidAt = parseDate(parsed.data.paidAt) ?? new Date();
   const settledCount = await withArenaTransaction(auth.arenaId, async (tx) => {
     const entries = await tx.financialEntry.findMany({
-      where: { arenaId: auth.arenaId, id: { in: [...new Set(parsed.data.entryIds)] }, status: "PENDING" },
+      where: { arenaId: auth.arenaId, id: { in: [...new Set(parsed.data.entryIds)] }, status: "PENDING", source: { not: "AGENCY_SUBSCRIPTION" } },
       include: { settlements: { select: { amountCents: true, interestCents: true } } }
     });
     let count = 0;
@@ -621,7 +623,7 @@ export async function voidFinancialEntryAction(formData: FormData) {
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
 
   const updated = await withArenaTransaction(auth.arenaId, (tx) => tx.financialEntry.updateMany({
-    where: { id: parsed.data.entryId, arenaId: auth.arenaId, status: { not: "VOIDED" } },
+    where: { id: parsed.data.entryId, arenaId: auth.arenaId, status: { not: "VOIDED" }, source: { not: "AGENCY_SUBSCRIPTION" } },
     data: { status: "VOIDED", voidedAt: new Date(), voidReason: parsed.data.reason }
   }));
   if (!updated.count) throw new Error("Esta conta já foi estornada ou não está disponível.");
@@ -634,7 +636,7 @@ export async function deleteFinancialEntryAction(formData: FormData) {
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
 
   const updated = await withArenaTransaction(auth.arenaId, (tx) => tx.financialEntry.updateMany({
-    where: { id: parsed.data.entryId, arenaId: auth.arenaId, status: { not: "VOIDED" } },
+    where: { id: parsed.data.entryId, arenaId: auth.arenaId, status: { not: "VOIDED" }, source: { not: "AGENCY_SUBSCRIPTION" } },
     data: { status: "VOIDED", voidedAt: new Date(), voidReason: `Excluído por ${auth.userName} em ${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date())}.` }
   }));
   if (!updated.count) throw new Error("Este lançamento já foi excluído ou não está disponível.");
@@ -647,7 +649,7 @@ export async function deleteFinancialEntriesBulkAction(formData: FormData) {
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
 
   const updated = await withArenaTransaction(auth.arenaId, (tx) => tx.financialEntry.updateMany({
-    where: { id: { in: [...new Set(parsed.data.entryIds)] }, arenaId: auth.arenaId, status: { not: "VOIDED" } },
+    where: { id: { in: [...new Set(parsed.data.entryIds)] }, arenaId: auth.arenaId, status: { not: "VOIDED" }, source: { not: "AGENCY_SUBSCRIPTION" } },
     data: { status: "VOIDED", voidedAt: new Date(), voidReason: `Excluído em massa por ${auth.userName} em ${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date())}.` }
   }));
   if (!updated.count) throw new Error("Nenhum lançamento estava disponível para exclusão.");

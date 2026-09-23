@@ -127,6 +127,8 @@ model Arena {
   fiscalDocuments                   FiscalDocument[]
   onlinePaymentSettings             OnlinePaymentSettings?
   paymentConnections                PaymentConnection[]
+  agencySubscription                AgencySubscription?
+  agencyInvoices                    AgencyInvoice[]
   whatsappConnection                WhatsAppConnection?
   whatsappConversations             WhatsAppConversation[]
   sales                             Sale[]
@@ -1821,6 +1823,72 @@ model PaymentConnection {
   @@index([arenaId, status])
 }
 
+model AgencyPlan {
+  id                 String               @id @default(cuid())
+  name               String               @unique
+  monthlyPriceCents  Int
+  trialDays          Int                  @default(0)
+  isTrial            Boolean              @default(false)
+  isActive           Boolean              @default(true)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  subscriptions      AgencySubscription[]
+}
+
+model AgencySubscription {
+  id             String          @id @default(cuid())
+  arenaId        String          @unique
+  planId         String
+  status         String          @default("ACTIVE")
+  startsAt       DateTime        @default(now())
+  billingDay     Int             @default(1)
+  trialEndsAt    DateTime?
+  nextDueAt      DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  arena          Arena           @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  plan           AgencyPlan      @relation(fields: [planId], references: [id])
+  invoices       AgencyInvoice[]
+
+  @@index([status, nextDueAt])
+  @@index([planId, status])
+}
+
+model AgencyInvoice {
+  id               String             @id @default(cuid())
+  subscriptionId   String
+  arenaId          String
+  period           String
+  amountCents      Int
+  dueAt            DateTime
+  status           String             @default("PENDING")
+  checkoutUrl      String             @default("")
+  providerPaymentId String            @default("")
+  financialEntryId String?            @unique
+  paidAt           DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  subscription     AgencySubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  arena            Arena              @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  financialEntry   FinancialEntry?    @relation(fields: [financialEntryId], references: [id], onDelete: SetNull)
+
+  @@unique([subscriptionId, period])
+  @@index([arenaId, status, dueAt])
+  @@index([providerPaymentId])
+}
+
+model AgencyPaymentConnection {
+  id               String    @id @default("platform")
+  status           String    @default("PENDING")
+  displayName      String    @default("")
+  accountReference String    @default("")
+  encryptedSecrets String    @default("")
+  expiresAt        DateTime?
+  connectedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
 model WhatsAppConnection {
   id                String   @id @default(cuid())
   provider          String   @default("EVOLUTION")
@@ -2132,6 +2200,7 @@ model FinancialEntry {
   settlements              FinancialSettlement[]
   onlinePaymentItems       OnlinePaymentCheckoutItem[]
   fiscalDocument           FiscalDocument?
+  agencyInvoice            AgencyInvoice?
 
   @@index([arenaId, type, status])
   @@index([arenaId, dueDate])

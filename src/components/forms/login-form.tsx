@@ -12,15 +12,15 @@ export function LoginForm() {
   const [state, formAction] = useFormState(loginAction, initialState);
 
   return (
-    <form action={formAction} className="stack-md">
+    <form action={formAction} className="stack-md login-form">
       <div className="field">
-        <label htmlFor="email">Email</label>
-        <input id="email" name="email" type="email" placeholder="voce@suaarena.com" required />
+        <label htmlFor="email">E-mail</label>
+        <input id="email" name="email" type="email" autoComplete="username" placeholder="voce@suaarena.com" required />
       </div>
 
       <div className="field">
         <label htmlFor="password">Senha</label>
-        <input id="password" name="password" type="password" placeholder="Sua senha" required />
+        <input id="password" name="password" type="password" autoComplete="current-password" placeholder="Digite sua senha" required />
       </div>
 
       {state?.error ? <p className="form-error">{state.error}</p> : null}
