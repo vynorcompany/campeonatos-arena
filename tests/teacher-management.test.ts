@@ -792,7 +792,7 @@ test("class groups derive their name from weekday and time and cap capacity at f
     "utf8",
   );
 
-  assert.match(actions, /function getClassGroupName/);
+  assert.match(actions, /getClassGroupName\(schedules\)/);
   assert.match(actions, /\.max\(4\)/);
   assert.match(actions, /name: getClassGroupName\(schedules\)/);
   assert.doesNotMatch(panel, /name="name"/);
