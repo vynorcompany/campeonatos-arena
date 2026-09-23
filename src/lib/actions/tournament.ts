@@ -73,6 +73,7 @@ import {
   parseCategoryList,
   parseReaisToCents
 } from "@/lib/tournaments/inputs";
+import { buildCategoryBracketSeeds } from "@/lib/tournament/bracket";
 
 export type ActionState = {
   error: string | null;
@@ -1795,26 +1796,6 @@ export async function updateTournamentRegistrationPhaseAction(formData: FormData
 
   refreshTournamentRoutes();
   revalidatePath(`/torneios/${tournamentId}`);
-}
-
-function buildCategoryBracketSeeds(registrationIds: string[]) {
-  if (registrationIds.length < 2) {
-    throw new Error("É preciso ao menos 2 inscrições confirmadas para montar o chaveamento.");
-  }
-
-  const targetSize = 2 ** Math.ceil(Math.log2(registrationIds.length));
-  const padded = [...registrationIds];
-  while (padded.length < targetSize) {
-    padded.push("");
-  }
-
-  const firstRound: Array<{ home: string | null; away: string | null }> = [];
-  for (let i = 0; i < padded.length / 2; i += 1) {
-    const home = padded[i] || null;
-    const away = padded[padded.length - 1 - i] || null;
-    firstRound.push({ home, away });
-  }
-  return firstRound;
 }
 
 export async function generateCategoryBracketAction(formData: FormData) {
