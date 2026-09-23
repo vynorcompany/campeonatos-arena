@@ -1,31 +1,90 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { createWhatsAppContactAction, linkWhatsAppConversationToClientAction, markWhatsAppConversationReadAction, refreshWhatsAppConversationProfilePhotoAction, refreshWhatsAppGroupNameAction, sendWhatsAppAudioMessageAction, sendWhatsAppChatMessageAction, sendWhatsAppMediaMessageAction, updateWhatsAppConversationAction, updateWhatsAppSlaAction } from "@/lib/actions/whatsapp-chat";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import {
+  createWhatsAppContactAction,
+  linkWhatsAppConversationToClientAction,
+  markWhatsAppConversationReadAction,
+  refreshWhatsAppConversationProfilePhotoAction,
+  refreshWhatsAppGroupNameAction,
+  sendWhatsAppAudioMessageAction,
+  sendWhatsAppChatMessageAction,
+  sendWhatsAppMediaMessageAction,
+  updateWhatsAppConversationAction,
+  updateWhatsAppSlaAction,
+} from "@/lib/actions/whatsapp-chat";
 import { normalizeBrazilianPhone } from "@/lib/phone";
+import { WhatsAppIcon, type WhatsAppIconName } from "./whatsapp-icons";
+import { formatWhatsAppPhone, initials, type WhatsAppClient, type WhatsAppConversation, type WhatsAppFilter, type WhatsAppMessage } from "./types";
+import { useAudioRecorder } from "./use-audio-recorder";
+import { useWhatsAppRealtime } from "./use-whatsapp-realtime";
 
-type Client = { id: string; name: string; phone: string; email: string; photoUrl: string };
-type Message = { id: string; direction: string; body: string; mediaType: string; mediaMimeType: string; mediaUrl: string; sentAt: string };
-type Conversation = { id: string; contactName: string; contactPhone: string; profilePhotoUrl: string; unreadCount: number; lastMessageAt: string; slaResolvedAt: string | null; playerId: string | null; player: Client | null; archivedAt: string | null; pinned: boolean; favorite: boolean; listName: string; remoteJid: string; messages: Message[] };
-type Filter = "all" | "unread" | "groups" | "favorite" | "archived";
 const time = (value: string) => new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 const detailTime = (value: string) => new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
-const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]).join("").toUpperCase() || "WA";
-const formatPhone = (value: string) => { const digits = value.replace(/\D/g, ""); return digits.length >= 10 ? `(${digits.slice(-11, -9)}) ${digits.slice(-9, -4)}-${digits.slice(-4)}` : value || "Não informado"; };
-const iconPaths = { clock: "M12 6v6l4 2m6-2a10 10 0 1 1-20 0 10 10 0 0 1 20 0", plusUser: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m17-10V5m-3 3h6M9 7a4 4 0 1 0 0 8 4 4 0 0 0 0-8", chat: "M21 11.5a8.4 8.4 0 0 1-9 8.3A9.8 9.8 0 0 1 7.5 19L3 20l1.2-4.1A8.4 8.4 0 0 1 3 11.5a8.4 8.4 0 0 1 9-8.3 8.4 8.4 0 0 1 9 8.3Z", mail: "M3 6h18v12H3zM3 7l9 6 9-6", users: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m17-10a4 4 0 1 0-4-4m-6 4a4 4 0 1 0-4-4", heart: "M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.9-8.6a5.5 5.5 0 0 0-.1-7.8Z", archive: "M3 5h18v4H3zm2 4h14v10H5zM9 13h6", more: "M12 5.5h.01M12 12h.01M12 18.5h.01", pin: "m15 4-7 7m3-7 6 6m-9 1-3 3 5 5 3-3m-3-3 7-7", paperclip: "m21.4 11.6-8.5 8.5a6 6 0 0 1-8.5-8.5l8-8a4 4 0 0 1 5.7 5.7l-8 8a2 2 0 0 1-2.8-2.8l7.4-7.4", smile: "M8 14s1.4 2 4 2 4-2 4-2M9 9h.01M15 9h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0", send: "m22 2-7 20-4-9-9-4Z" } as const;
-function Icon({ name, size = 16 }: { name: keyof typeof iconPaths; size?: number }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={iconPaths[name]} /></svg>; }
-function MicrophoneIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0m5 5v4m-3 0h6" /></svg>; }
-function Avatar({ conversation, size = "", photoOverride = "" }: { conversation: Conversation; size?: string; photoOverride?: string }) { const basePhoto = photoOverride || conversation.profilePhotoUrl || conversation.player?.photoUrl; const [photo, setPhoto] = useState(basePhoto); useEffect(() => { setPhoto(basePhoto); if (basePhoto) return; const form = new FormData(); form.set("conversationId", conversation.id); void refreshWhatsAppConversationProfilePhotoAction(form).then((result) => { if (result.profilePhotoUrl) setPhoto(result.profilePhotoUrl); }).catch(() => {}); }, [basePhoto, conversation.id]); return <i className={`whatsapp-contact-avatar ${size}`}>{photo ? <img src={photo} alt="" referrerPolicy="no-referrer" /> : initials(conversation.contactName || conversation.contactPhone)}</i>; }
+const emojis = ["😀", "😁", "😂", "🥳", "😍", "😎", "🙏", "👍", "👋", "🎾", "🔥", "❤️"];
+const filterOptions: [WhatsAppFilter, string, WhatsAppIconName][] = [["all", "Conversas", "chat"], ["unread", "Não lidas", "mail"], ["groups", "Grupos", "users"], ["favorite", "Favoritas", "heart"], ["archived", "Arquivadas", "archive"]];
 
-export function WhatsAppChatWorkspace({ conversations, connected, clients, slaMinutes }: { conversations: Conversation[]; connected: boolean; clients: Client[]; slaMinutes: number }) {
-  const router = useRouter();
+type ConversationAction = "archive" | "pin" | "unread" | "favorite" | "list" | "clear" | "delete" | "resolve_sla";
+type AudioDraft = { file: File; previewUrl: string };
+
+function Avatar({ conversation, size = "" }: { conversation: WhatsAppConversation; size?: string }) {
+  const source = conversation.profilePhotoUrl || conversation.player?.photoUrl;
+  const [photo, setPhoto] = useState(source);
+
+  useEffect(() => {
+    setPhoto(source);
+    if (source) return;
+    const form = new FormData();
+    form.set("conversationId", conversation.id);
+    void refreshWhatsAppConversationProfilePhotoAction(form)
+      .then((result) => { if (result.profilePhotoUrl) setPhoto(result.profilePhotoUrl); })
+      .catch(() => {});
+  }, [conversation.id, source]);
+
+  return <i className={`whatsapp-contact-avatar ${size}`}>{photo ? <img src={photo} alt="" referrerPolicy="no-referrer" /> : initials(conversation.contactName || conversation.contactPhone)}</i>;
+}
+
+export function WhatsAppChatWorkspace({ conversations, connected, clients, slaMinutes }: { conversations: WhatsAppConversation[]; connected: boolean; clients: WhatsAppClient[]; slaMinutes: number }) {
   const [activeId, setActiveId] = useState(conversations.find((item) => !item.archivedAt)?.id ?? conversations[0]?.id ?? "");
-  const [body, setBody] = useState(""); const [query, setQuery] = useState(""); const [clientQuery, setClientQuery] = useState(""); const [filter, setFilter] = useState<Filter>("all"); const [menuId, setMenuId] = useState(""); const [showSla, setShowSla] = useState(false); const [showContact, setShowContact] = useState(false); const [showEmoji, setShowEmoji] = useState(false); const [selectedImage, setSelectedImage] = useState(""); const [recording, setRecording] = useState(false); const [linkNewClient, setLinkNewClient] = useState(false); const [slaValue, setSlaValue] = useState(String(slaMinutes)); const [notice, setNotice] = useState(""); const [localMessages, setLocalMessages] = useState<Record<string, Message[]>>({}); const [pending, startTransition] = useTransition(); const fileInput = useRef<HTMLInputElement>(null); const recorder = useRef<MediaRecorder | null>(null);
-  const pendingAudio = useRef<File | null>(null);
+  const [body, setBody] = useState("");
+  const [query, setQuery] = useState("");
+  const [clientQuery, setClientQuery] = useState("");
+  const [filter, setFilter] = useState<WhatsAppFilter>("all");
+  const [menuId, setMenuId] = useState("");
+  const [showSla, setShowSla] = useState(false);
+  const [showContact, setShowContact] = useState(false);
+  const [showEmoji, setShowEmoji] = useState(false);
+  const [selectedImage, setSelectedImage] = useState("");
+  const [linkNewClient, setLinkNewClient] = useState(false);
+  const [slaValue, setSlaValue] = useState(String(slaMinutes));
+  const [notice, setNotice] = useState("");
+  const [localMessages, setLocalMessages] = useState<Record<string, WhatsAppMessage[]>>({});
+  const [audioDraft, setAudioDraft] = useState<AudioDraft | null>(null);
+  const [pending, startTransition] = useTransition();
+  const fileInput = useRef<HTMLInputElement>(null);
+
   const active = conversations.find((conversation) => conversation.id === activeId) ?? conversations[0] ?? null;
-  const messagesFor = (conversation: Conversation) => Array.from(new Map([...conversation.messages, ...(localMessages[conversation.id] ?? [])].map((message) => [message.id, message])).values()).sort((left, right) => new Date(left.sentAt).getTime() - new Date(right.sentAt).getTime());
+  const messagesFor = useCallback((conversation: WhatsAppConversation) => Array.from(new Map([
+    ...conversation.messages,
+    ...(localMessages[conversation.id] ?? []),
+  ].map((message) => [message.id, message])).values()).sort((left, right) => new Date(left.sentAt).getTime() - new Date(right.sentAt).getTime()), [localMessages]);
   const activeMessages = active ? messagesFor(active) : [];
+
+  const discardAudioDraft = useCallback(() => {
+    setAudioDraft((draft) => {
+      if (draft) URL.revokeObjectURL(draft.previewUrl);
+      return null;
+    });
+  }, []);
+  const onRecorderError = useCallback((message: string) => setNotice(message), []);
+  const onRecorderReady = useCallback((draft: AudioDraft) => {
+    discardAudioDraft();
+    setAudioDraft(draft);
+    setNotice("Áudio anexado. Pressione Enter ou clique em Enviar para enviar.");
+  }, [discardAudioDraft]);
+  const { recording, level, start: startRecording, stop: stopRecording } = useAudioRecorder({ onReady: onRecorderReady, onError: onRecorderError });
+  useWhatsAppRealtime({ paused: pending || recording });
+
   const visible = useMemo(() => conversations.filter((conversation) => {
     const searchMatches = `${conversation.contactName} ${conversation.contactPhone} ${conversation.player?.name ?? ""}`.toLowerCase().includes(query.trim().toLowerCase());
     if (!searchMatches) return false;
@@ -37,142 +96,155 @@ export function WhatsAppChatWorkspace({ conversations, connected, clients, slaMi
   }), [conversations, filter, query]);
   const matchedClient = useMemo(() => active ? clients.find((client) => normalizeBrazilianPhone(client.phone) === normalizeBrazilianPhone(active.contactPhone)) ?? null : null, [active, clients]);
   const clientOptions = useMemo(() => clientQuery.trim() ? clients.filter((client) => `${client.name} ${client.phone}`.toLowerCase().includes(clientQuery.toLowerCase())).slice(0, 8) : [], [clientQuery, clients]);
-  const slaStatus = (conversation: Conversation) => {
+
+  const slaStatus = (conversation: WhatsAppConversation) => {
     const last = messagesFor(conversation).at(-1);
     if (last?.direction !== "INBOUND" || (conversation.slaResolvedAt && new Date(conversation.slaResolvedAt).getTime() >= new Date(last.sentAt).getTime())) return "normal";
     const elapsedMinutes = (Date.now() - new Date(last.sentAt || conversation.lastMessageAt).getTime()) / 60_000;
     const limit = Number(slaValue) || slaMinutes;
     return elapsedMinutes >= limit ? "overdue" : elapsedMinutes >= limit * .8 ? "warning" : "normal";
   };
-  const menuAction = (conversation: Conversation, action: "archive" | "pin" | "unread" | "favorite" | "list" | "clear" | "delete" | "resolve_sla") => { const form = new FormData(); form.set("conversationId", conversation.id); form.set("action", action); if (action === "list") form.set("listName", "Lista de atendimento"); startTransition(async () => { try { await updateWhatsAppConversationAction(form); setMenuId(""); setNotice(action === "delete" ? "Conversa excluída." : action === "clear" ? "Mensagens removidas da conversa." : action === "resolve_sla" ? "SLA encerrado para esta conversa." : "Conversa atualizada."); if (action === "delete") setActiveId(""); } catch { setNotice("Não foi possível atualizar a conversa."); } }); };
-  const linkClient = (playerId: string) => { if (!active || !playerId) return; const form = new FormData(); form.set("conversationId", active.id); form.set("playerId", playerId); startTransition(async () => { try { await linkWhatsAppConversationToClientAction(form); setClientQuery(""); setNotice("Cliente vinculado à conversa."); } catch { setNotice("Não foi possível vincular o cliente."); } }); };
-  const saveSla = () => { const form = new FormData(); form.set("minutes", slaValue); startTransition(async () => { try { await updateWhatsAppSlaAction(form); setShowSla(false); setNotice("SLA de atendimento atualizado."); } catch { setNotice("Informe um SLA entre 5 minutos e 24 horas."); } }); };
-  useEffect(() => { if (active?.unreadCount) { const form = new FormData(); form.set("conversationId", active.id); void markWhatsAppConversationReadAction(form); } }, [active?.id, active?.unreadCount]);
+
+  useEffect(() => {
+    if (active?.unreadCount) {
+      const form = new FormData();
+      form.set("conversationId", active.id);
+      void markWhatsAppConversationReadAction(form);
+    }
+  }, [active?.id, active?.unreadCount]);
   useEffect(() => { if (!activeId && visible[0]) setActiveId(visible[0].id); }, [activeId, visible]);
-  useEffect(() => { let version = ""; let lastReconcile = Date.now(); const refresh = async () => { if (document.visibilityState !== "visible" || recording || pending) return; const response = await fetch(`/api/whatsapp/pulse?t=${Date.now()}`, { cache: "no-store", headers: { "cache-control": "no-cache" } }).catch(() => null); const payload = response?.ok ? await response.json().catch(() => null) as { version?: string } | null : null; if (!payload?.version) return; const changed = Boolean(version && payload.version !== version); version = payload.version; if (changed || Date.now() - lastReconcile >= 12_000) { lastReconcile = Date.now(); router.refresh(); } }; void refresh(); const timer = window.setInterval(() => { void refresh(); }, 2_000); return () => window.clearInterval(timer); }, [pending, recording, router]);
-  useEffect(() => { conversations.filter((item) => item.remoteJid.endsWith("@g.us") && (!item.contactName || item.contactName === "Grupo do WhatsApp")).forEach((conversation) => { const form = new FormData(); form.set("conversationId", conversation.id); void refreshWhatsAppGroupNameAction(form).then((result) => { if (result.name) router.refresh(); }); }); }, [conversations, router]);
-  useEffect(() => { const close = (event: KeyboardEvent) => { if (event.key === "Escape") { setShowContact(false); setShowSla(false); setShowEmoji(false); setSelectedImage(""); setMenuId(""); } }; window.addEventListener("keydown", close); return () => window.removeEventListener("keydown", close); }, []);
+  useEffect(() => conversations
+    .filter((conversation) => conversation.remoteJid.endsWith("@g.us") && (!conversation.contactName || conversation.contactName === "Grupo do WhatsApp"))
+    .forEach((conversation) => {
+      const form = new FormData();
+      form.set("conversationId", conversation.id);
+      void refreshWhatsAppGroupNameAction(form).then((result) => { if (result.name) window.location.reload(); }).catch(() => {});
+    }), [conversations]);
+  useEffect(() => () => discardAudioDraft(), [discardAudioDraft]);
   useEffect(() => {
-    const intercept = (event: MouseEvent) => {
-      const target = event.target instanceof Element ? event.target : null;
-      if (target?.closest("button[title='Inserir emoji']")) { event.preventDefault(); event.stopPropagation(); setShowEmoji((value) => !value); }
-      const image = target?.closest("img.whatsapp-message-image") as HTMLImageElement | null;
-      if (image) { event.preventDefault(); event.stopPropagation(); setSelectedImage(image.currentSrc || image.src); }
-      if (target?.classList.contains("whatsapp-contact-modal") && !target.closest("form")) { setShowContact(false); setLinkNewClient(false); }
+    const close = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setShowContact(false); setShowSla(false); setShowEmoji(false); setSelectedImage(""); setMenuId("");
     };
-    document.addEventListener("click", intercept, true);
-    return () => document.removeEventListener("click", intercept, true);
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
   }, []);
-  useEffect(() => { const upload = (event: Event) => { const input = event.target; if (!(input instanceof HTMLInputElement) || input.type !== "file" || !input.files?.[0] || !active) return; const form = new FormData(); form.set("conversationId", active.id); form.set("file", input.files[0]); startTransition(async () => { try { const message = await sendWhatsAppMediaMessageAction(form); setLocalMessages((current) => ({ ...current, [active.id]: [...(current[active.id] ?? []), message] })); } catch (error) { setNotice(error instanceof Error ? error.message : "Não foi possível enviar o anexo."); } finally { input.value = ""; } }); }; document.addEventListener("change", upload, true); return () => document.removeEventListener("change", upload, true); }, [active, startTransition]);
-  useEffect(() => {
-    const label = document.querySelector(".whatsapp-chat-main > header small");
-    if (label && active) label.textContent = formatPhone(active.contactPhone);
-  }, [active?.contactPhone]);
-  const toggleRecording = async () => {
-    if (recording) { recorder.current?.stop(); return; }
-    if (!active || !window.isSecureContext || !navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") { setNotice("Use uma conexão HTTPS e um navegador compatível para gravar áudio."); return; }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const chunks: BlobPart[] = [];
-      const mediaRecorder = new MediaRecorder(stream);
-      let meterFrame: number | null = null;
-      let audioContext: AudioContext | null = null;
-      if (window.AudioContext) {
-        audioContext = new window.AudioContext();
-        const analyser = audioContext.createAnalyser();
-        analyser.fftSize = 64;
-        audioContext.createMediaStreamSource(stream).connect(analyser);
-        const samples = new Uint8Array(analyser.frequencyBinCount);
-        const paintWaveform = () => {
-          analyser.getByteFrequencyData(samples);
-          const level = samples.reduce((total, sample) => total + sample, 0) / (samples.length * 255);
-          document.querySelectorAll<HTMLElement>(".whatsapp-recording-wave i").forEach((bar, index) => {
-            const variation = .58 + (Math.sin(index * 1.7 + performance.now() / 90) + 1) * .16;
-            bar.style.transform = `scaleY(${Math.max(.2, Math.min(1.9, .22 + level * 4.5 * variation))})`;
-          });
-          meterFrame = window.requestAnimationFrame(paintWaveform);
-        };
-        void audioContext.resume().catch(() => {});
-        paintWaveform();
-      }
-      recorder.current = mediaRecorder;
-      mediaRecorder.ondataavailable = (event) => { if (event.data.size) chunks.push(event.data); };
-      mediaRecorder.onstop = () => {
-        if (meterFrame !== null) window.cancelAnimationFrame(meterFrame);
-        void audioContext?.close().catch(() => {});
-        stream.getTracks().forEach((track) => track.stop()); setRecording(false);
-        const file = new File([new Blob(chunks, { type: mediaRecorder.mimeType || "audio/webm" })], "audio.webm", { type: mediaRecorder.mimeType || "audio/webm" });
-        pendingAudio.current = file;
-        const field = document.querySelector(".whatsapp-composer-field");
-        const previous = field?.querySelector<HTMLElement>(".whatsapp-pending-audio");
-        if (previous?.dataset.objectUrl) URL.revokeObjectURL(previous.dataset.objectUrl);
-        previous?.remove();
-        if (field) {
-          const preview = document.createElement("div");
-          const objectUrl = URL.createObjectURL(file);
-          preview.className = "whatsapp-pending-audio";
-          preview.dataset.objectUrl = objectUrl;
-          preview.innerHTML = '<audio controls preload="metadata"></audio><button type="button" title="Remover áudio" aria-label="Remover áudio">×</button>';
-          const audio = preview.querySelector("audio");
-          if (audio) audio.src = objectUrl;
-          preview.querySelector("button")?.addEventListener("click", () => { pendingAudio.current = null; URL.revokeObjectURL(objectUrl); preview.remove(); setNotice("Áudio removido."); });
-          field.append(preview);
-        }
-        setNotice("Áudio anexado. Pressione Enter ou clique em Enviar para enviar.");
-      };
-      mediaRecorder.start(); setRecording(true); setNotice("Gravando áudio. Clique novamente para enviar.");
-    } catch (error) { const name = error instanceof DOMException ? error.name : ""; setNotice(name === "NotAllowedError" ? "O navegador bloqueou o microfone. Clique no cadeado ao lado do endereço, permita o Microfone e tente novamente." : "Não foi possível abrir o microfone. Verifique a permissão do navegador."); }
+
+  const runConversationAction = (conversation: WhatsAppConversation, action: ConversationAction) => {
+    const form = new FormData();
+    form.set("conversationId", conversation.id);
+    form.set("action", action);
+    if (action === "list") form.set("listName", "Lista de atendimento");
+    startTransition(async () => {
+      try {
+        await updateWhatsAppConversationAction(form);
+        setMenuId("");
+        setNotice(action === "delete" ? "Conversa excluída." : action === "clear" ? "Mensagens removidas da conversa." : action === "resolve_sla" ? "SLA encerrado para esta conversa." : "Conversa atualizada.");
+        if (action === "delete") setActiveId("");
+      } catch { setNotice("Não foi possível atualizar a conversa."); }
+    });
   };
-  useEffect(() => {
-    const form = document.querySelector(".whatsapp-chat-main form");
-    const field = form?.querySelector(".whatsapp-composer-field");
-    if (!form || !field || form.querySelector("[data-whatsapp-recorder]")) return;
-    const button = document.createElement("button");
-    button.type = "button";
-    button.dataset.whatsappRecorder = "true";
-    button.className = "whatsapp-composer-icon whatsapp-record-button";
-    button.title = "Gravar áudio";
-    button.setAttribute("aria-label", "Gravar áudio");
-    button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0m5 5v4m-3 0h6"/></svg>';
-    button.onclick = () => { void toggleRecording(); };
-    form.insertBefore(button, field);
-    return () => button.remove();
-  });
-  useEffect(() => {
-    const field = document.querySelector(".whatsapp-composer-field");
-    if (!recording || !field || field.querySelector(".whatsapp-recording-indicator")) return;
-    const indicator = document.createElement("div");
-    indicator.className = "whatsapp-recording-indicator";
-    indicator.innerHTML = `<span></span><div class="whatsapp-recording-wave">${"<i></i>".repeat(18)}</div><strong>Gravando áudio</strong><small>Clique novamente no microfone para enviar</small>`;
-    field.append(indicator);
-    return () => indicator.remove();
-  }, [recording, active?.id]);
-  useEffect(() => {
-    const submitAudio = (event: SubmitEvent) => {
-      const form = event.target;
-      const file = pendingAudio.current;
-      if (!(form instanceof HTMLFormElement) || !form.matches(".whatsapp-chat-main form") || !file || !active) return;
-      event.preventDefault(); event.stopImmediatePropagation();
-      pendingAudio.current = null;
-      const preview = form.querySelector<HTMLElement>(".whatsapp-pending-audio");
-      if (preview?.dataset.objectUrl) URL.revokeObjectURL(preview.dataset.objectUrl);
-      preview?.remove();
-      const payload = new FormData(); payload.set("conversationId", active.id); payload.set("audio", file);
-      startTransition(async () => { try { const message = await sendWhatsAppAudioMessageAction(payload); setLocalMessages((current) => ({ ...current, [active.id]: [...(current[active.id] ?? []), message] })); setNotice("Áudio enviado."); } catch { pendingAudio.current = file; setNotice("Não foi possível enviar o áudio."); } });
-    };
-    document.addEventListener("submit", submitAudio, true);
-    return () => document.removeEventListener("submit", submitAudio, true);
-  }, [active, startTransition]);
+  const linkClient = (playerId: string) => {
+    if (!active || !playerId) return;
+    const form = new FormData(); form.set("conversationId", active.id); form.set("playerId", playerId);
+    startTransition(async () => {
+      try { await linkWhatsAppConversationToClientAction(form); setClientQuery(""); setNotice("Cliente vinculado à conversa."); }
+      catch { setNotice("Não foi possível vincular o cliente."); }
+    });
+  };
+  const saveSla = () => {
+    const form = new FormData(); form.set("minutes", slaValue);
+    startTransition(async () => {
+      try { await updateWhatsAppSlaAction(form); setShowSla(false); setNotice("SLA de atendimento atualizado."); }
+      catch { setNotice("Informe um SLA entre 5 minutos e 24 horas."); }
+    });
+  };
+  const sendText = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (audioDraft) { void sendAudio(); return; }
+    if (!active || !body.trim()) return;
+    const text = body.trim();
+    const temporaryId = `local-${Date.now()}`;
+    const temporary: WhatsAppMessage = { id: temporaryId, direction: "OUTBOUND", body: text, mediaType: "", mediaMimeType: "", mediaUrl: "", sentAt: new Date().toISOString() };
+    const form = new FormData(); form.set("conversationId", active.id); form.set("body", text);
+    setLocalMessages((current) => ({ ...current, [active.id]: [...(current[active.id] ?? []), temporary] }));
+    setBody("");
+    startTransition(async () => {
+      try {
+        const message = await sendWhatsAppChatMessageAction(form);
+        setLocalMessages((current) => ({ ...current, [active.id]: (current[active.id] ?? []).map((item) => item.id === temporaryId ? message : item) }));
+      } catch {
+        setLocalMessages((current) => ({ ...current, [active.id]: (current[active.id] ?? []).filter((item) => item.id !== temporaryId) }));
+        setBody(text); setNotice("Não foi possível enviar a mensagem.");
+      }
+    });
+  };
+  const sendAudio = async () => {
+    if (!active || !audioDraft) return;
+    const draft = audioDraft;
+    // Keep the object URL alive until the delivery succeeds. If Evolution is
+    // temporarily unavailable, the person can retry the same recording.
+    setAudioDraft(null);
+    const form = new FormData(); form.set("conversationId", active.id); form.set("audio", draft.file);
+    startTransition(async () => {
+      try {
+        const message = await sendWhatsAppAudioMessageAction(form);
+        setLocalMessages((current) => ({ ...current, [active.id]: [...(current[active.id] ?? []), message] }));
+        URL.revokeObjectURL(draft.previewUrl);
+        setNotice("Áudio enviado.");
+      } catch {
+        setAudioDraft(draft);
+        setNotice("Não foi possível enviar o áudio.");
+      }
+    });
+  };
+  const uploadFile = (file: File) => {
+    if (!active) return;
+    const form = new FormData(); form.set("conversationId", active.id); form.set("file", file);
+    startTransition(async () => {
+      try {
+        const message = await sendWhatsAppMediaMessageAction(form);
+        setLocalMessages((current) => ({ ...current, [active.id]: [...(current[active.id] ?? []), message] }));
+      } catch (error) { setNotice(error instanceof Error ? error.message : "Não foi possível enviar o anexo."); }
+      finally { if (fileInput.current) fileInput.current.value = ""; }
+    });
+  };
+
   if (!connected) return <section className="whatsapp-chat-empty"><strong>Conecte o WhatsApp da arena para começar.</strong><span>O QR Code fica em Configurações › Integrações.</span></section>;
+
   return <section className="whatsapp-chat-workspace whatsapp-inbox">
-    <aside className="whatsapp-inbox-list"><header><div><span>CAIXA DE ENTRADA</span><strong>Conversas</strong></div><div className="whatsapp-header-actions"><button type="button" title="Configurar SLA" onClick={() => setShowSla((value) => !value)}><Icon name="clock" /></button><button type="button" title="Novo contato" onClick={() => { setLinkNewClient(false); setShowContact(true); }}><Icon name="plusUser" /></button>{showSla ? <div className="whatsapp-sla-popover"><label>Tempo de SLA <input value={slaValue} onChange={(event) => setSlaValue(event.target.value.replace(/\D/g, ""))} inputMode="numeric" /> min</label><button type="button" onClick={saveSla} disabled={pending}>Salvar</button></div> : null}</div></header>
-      <div className="whatsapp-filters" role="tablist" aria-label="Filtros de conversas">{([ ["all", "Conversas", "chat"], ["unread", "Não lidas", "mail"], ["groups", "Grupos", "users"], ["favorite", "Favoritas", "heart"], ["archived", "Arquivadas", "archive"] ] as [Filter, string, keyof typeof iconPaths][]).map(([id, label, icon]) => <button key={id} type="button" className={filter === id ? "is-active" : ""} onClick={() => setFilter(id)} title={label}><i><Icon name={icon} size={15} /></i><span>{label}</span></button>)}</div>
+    <aside className="whatsapp-inbox-list">
+      <header><div><span>CAIXA DE ENTRADA</span><strong>Conversas</strong></div><div className="whatsapp-header-actions">
+        <button type="button" title="Configurar SLA" onClick={() => setShowSla((value) => !value)}><WhatsAppIcon name="clock" /></button>
+        <button type="button" title="Novo contato" onClick={() => { setLinkNewClient(false); setShowContact(true); }}><WhatsAppIcon name="plusUser" /></button>
+        {showSla ? <div className="whatsapp-sla-popover"><label>Tempo de SLA <input value={slaValue} onChange={(event) => setSlaValue(event.target.value.replace(/\D/g, ""))} inputMode="numeric" /> min</label><button type="button" onClick={saveSla} disabled={pending}>Salvar</button></div> : null}
+      </div></header>
+      <div className="whatsapp-filters" role="tablist" aria-label="Filtros de conversas">{filterOptions.map(([id, label, icon]) => <button key={id} type="button" className={filter === id ? "is-active" : ""} onClick={() => setFilter(id)} title={label}><i><WhatsAppIcon name={icon} size={15} /></i><span>{label}</span></button>)}</div>
       <div className="whatsapp-list-tools"><label><span aria-hidden="true">⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Nome, telefone ou empresa" /></label></div>
-      <div className="whatsapp-conversation-list">{visible.map((conversation) => { const last = messagesFor(conversation).at(-1); const status = slaStatus(conversation); const mayResolveSla = conversation.unreadCount === 0 && last?.direction === "INBOUND"; return <div key={conversation.id} className="whatsapp-conversation-item"><button type="button" className={`${conversation.id === active?.id ? "is-active" : ""} ${status === "warning" ? "is-sla-warning" : ""} ${status === "overdue" ? "is-sla-overdue" : ""}`} onClick={() => { setActiveId(conversation.id); setMenuId(""); }}><Avatar conversation={conversation} /><span><strong>{conversation.contactName || conversation.player?.name || formatPhone(conversation.contactPhone)}{conversation.pinned ? <b className="whatsapp-pin"><Icon name="pin" size={12} /></b> : null}</strong><small>{last?.body || "Sem mensagens"}</small>{status !== "normal" ? <em>{status === "overdue" ? "SLA atrasado" : "SLA próximo do limite"}</em> : null}</span><time>{time(conversation.lastMessageAt)}{conversation.unreadCount ? <b>{conversation.unreadCount}</b> : null}</time></button><button className="whatsapp-menu-trigger" type="button" aria-label="Ações da conversa" onClick={() => { setActiveId(conversation.id); setMenuId(menuId === conversation.id ? "" : conversation.id); }}><Icon name="more" /></button>{menuId === conversation.id ? <div className="whatsapp-conversation-menu">{mayResolveSla ? <button onClick={() => menuAction(conversation, "resolve_sla")}>✓ Encerrar SLA</button> : null}<button onClick={() => menuAction(conversation, "archive")}><Icon name="archive" size={14} /> {conversation.archivedAt ? "Desarquivar conversa" : "Arquivar conversa"}</button><button onClick={() => menuAction(conversation, "pin")}><Icon name="pin" size={14} /> {conversation.pinned ? "Desafixar conversa" : "Fixar conversa"}</button><button onClick={() => menuAction(conversation, "unread")}><Icon name="mail" size={14} /> Marcar como não lida</button><button onClick={() => menuAction(conversation, "favorite")}><Icon name="heart" size={14} /> {conversation.favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}</button><button onClick={() => menuAction(conversation, "list")}><Icon name="chat" size={14} /> Adicionar à lista</button><hr /><button onClick={() => menuAction(conversation, "clear")}>◇ Limpar conversa</button><button className="is-danger" onClick={() => menuAction(conversation, "delete")}>× Excluir conversa</button></div> : null}</div>; })}{!visible.length ? <p>Nenhuma conversa encontrada.</p> : null}</div></aside>
-    <main className="whatsapp-chat-main">{active ? <><header><div><Avatar conversation={active} size="is-header" /><span><strong>{active.contactName || active.player?.name || formatPhone(active.contactPhone)}</strong><small>WhatsApp · {formatPhone(active.contactPhone)}</small></span></div><span className="whatsapp-chat-channel">WhatsApp</span></header><div className="whatsapp-message-thread">{activeMessages.map((message) => <article key={message.id} className={message.direction === "OUTBOUND" ? "outbound" : "inbound"}>{message.mediaType === "IMAGE" ? <img className="whatsapp-message-image" src={`/api/whatsapp/media/${message.id}`} alt={message.body === "Imagem" ? "Imagem enviada pelo WhatsApp" : message.body} /> : null}{message.mediaType === "AUDIO" ? <audio className="whatsapp-message-audio" controls preload="metadata"><source src={`/api/whatsapp/media/${message.id}`} type={message.mediaMimeType || "audio/ogg"} />Seu navegador não suporta áudio.</audio> : null}{message.mediaType === "VIDEO" ? <video className="whatsapp-message-video" controls preload="metadata"><source src={`/api/whatsapp/media/${message.id}`} type={message.mediaMimeType || "video/mp4"} /></video> : null}{message.mediaType === "DOCUMENT" ? <a className="whatsapp-message-document" href={`/api/whatsapp/media/${message.id}`} target="_blank" rel="noreferrer">Abrir documento</a> : null}{message.body && !["Imagem", "Áudio", "Vídeo", "Documento", "Figurinha"].includes(message.body) ? <p>{message.body}</p> : null}<time>{detailTime(message.sentAt)}</time></article>)}</div><form onSubmit={(event) => { event.preventDefault(); if (!body.trim()) return; const text = body.trim(); const temporaryId = `local-${Date.now()}`; const temporary: Message = { id: temporaryId, direction: "OUTBOUND", body: text, mediaType: "", mediaMimeType: "", mediaUrl: "", sentAt: new Date().toISOString() }; const form = new FormData(); form.set("conversationId", active.id); form.set("body", text); setLocalMessages((current) => ({ ...current, [active.id]: [...(current[active.id] ?? []), temporary] })); setBody(""); startTransition(async () => { try { const message = await sendWhatsAppChatMessageAction(form); setLocalMessages((current) => ({ ...current, [active.id]: (current[active.id] ?? []).map((item) => item.id === temporaryId ? message : item) })); } catch { setLocalMessages((current) => ({ ...current, [active.id]: (current[active.id] ?? []).filter((item) => item.id !== temporaryId) })); setBody(text); setNotice("Não foi possível enviar a mensagem."); } }); }}><input ref={fileInput} type="file" accept="image/*,audio/*,video/*,.pdf,.doc,.docx" hidden onChange={(event) => { if (event.target.files?.[0]) setNotice(`Anexo selecionado: ${event.target.files[0].name}. O envio de arquivos será liberado na próxima atualização do canal.`); }} /><button type="button" className="whatsapp-composer-icon" title="Anexar arquivo" onClick={() => fileInput.current?.click()}><Icon name="paperclip" /></button><button type="button" className="whatsapp-composer-icon" title="Novo contato" onClick={() => { setLinkNewClient(false); setShowContact(true); }}><Icon name="plusUser" /></button><label className="whatsapp-composer-field"><span>MENSAGEM OU LEGENDA</span><textarea value={body} onChange={(event) => setBody(event.target.value)} placeholder="Digite uma mensagem..." rows={1} /></label><button type="button" className="whatsapp-composer-icon" title="Inserir emoji" onClick={() => setBody((value) => `${value} 🙂`)}><Icon name="smile" /></button><button className="whatsapp-send-button" disabled={pending} title="Enviar mensagem"><Icon name="send" /></button></form></> : <div className="whatsapp-chat-empty"><strong>Selecione uma conversa.</strong></div>}</main>
-    <aside className="whatsapp-contact-panel">{active ? <><header><Avatar conversation={active} size="is-profile" /><strong>{active.contactName || active.player?.name || "Contato do WhatsApp"}</strong><span>Contato no WhatsApp</span></header><dl><div><dt>Telefone</dt><dd>{formatPhone(active.contactPhone)}</dd></div><div><dt>Cliente no sistema</dt><dd>{active.player ? active.player.name : "Não vinculado"}</dd></div>{active.player?.email ? <div><dt>E-mail</dt><dd>{active.player.email}</dd></div> : null}</dl>{!active.player ? <div className="whatsapp-link-client"><strong>{matchedClient ? "Cliente encontrado pelo telefone" : "Vincular a um cliente"}</strong><p>{matchedClient ? matchedClient.name : "Busque pelo nome ou telefone para vincular."}</p>{matchedClient ? <button type="button" className="button button-primary button-small" onClick={() => linkClient(matchedClient.id)} disabled={pending}>Vincular {matchedClient.name}</button> : <><input value={clientQuery} onChange={(event) => setClientQuery(event.target.value)} placeholder="Digite nome ou telefone" /><div className="whatsapp-client-options">{clientOptions.map((client) => <button key={client.id} type="button" onClick={() => linkClient(client.id)}>{client.name}<small>{formatPhone(client.phone)}</small></button>)}</div><button type="button" className="whatsapp-create-client" onClick={() => { setLinkNewClient(true); setShowContact(true); }}>Criar novo cliente</button></>}</div> : null}</> : null}</aside>
-    {showContact ? <div className="whatsapp-contact-modal" role="dialog" aria-modal="true"><form onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget); startTransition(async () => { try { const result = await createWhatsAppContactAction(form); if (linkNewClient && active) { const link = new FormData(); link.set("conversationId", active.id); link.set("playerId", result.id); await linkWhatsAppConversationToClientAction(link); } setShowContact(false); setLinkNewClient(false); setNotice(linkNewClient ? `${result.name} foi criado e vinculado à conversa.` : `${result.name} foi adicionado aos clientes.`); } catch (error) { setNotice(error instanceof Error ? error.message : "Não foi possível criar o contato."); } }); }}><header><strong>{linkNewClient ? "Criar e vincular cliente" : "Novo contato"}</strong><button type="button" onClick={() => { setShowContact(false); setLinkNewClient(false); }}>×</button></header><label>Nome<input name="name" required minLength={3} defaultValue={linkNewClient ? active?.contactName : ""} placeholder="Nome completo" /></label><label>Telefone<input name="phone" required defaultValue={linkNewClient ? active?.contactPhone : ""} placeholder="(00) 00000-0000" /></label><button className="button button-primary" disabled={pending}>{linkNewClient ? "Criar e vincular" : "Adicionar contato"}</button></form></div> : null}
-    <div className="whatsapp-extra-tools"><button type="button" className={recording ? "is-recording whatsapp-record-button" : "whatsapp-record-button"} title={recording ? "Parar e enviar áudio" : "Gravar áudio"} aria-label={recording ? "Parar e enviar áudio" : "Gravar áudio"} onClick={() => { void toggleRecording(); }}><MicrophoneIcon /></button>{showEmoji ? <div className="whatsapp-emoji-picker" role="dialog" aria-label="Escolha um emoji">{["😀", "😁", "😂", "🥳", "😍", "😎", "🙏", "👍", "👋", "🎾", "🔥", "❤️"].map((emoji) => <button key={emoji} type="button" onClick={() => { setBody((value) => `${value}${emoji}`); setShowEmoji(false); }}>{emoji}</button>)}</div> : null}</div>
+      <div className="whatsapp-conversation-list">{visible.map((conversation) => {
+        const last = messagesFor(conversation).at(-1); const status = slaStatus(conversation); const mayResolveSla = conversation.unreadCount === 0 && last?.direction === "INBOUND";
+        return <div key={conversation.id} className="whatsapp-conversation-item">
+          <button type="button" className={`${conversation.id === active?.id ? "is-active" : ""} ${status === "warning" ? "is-sla-warning" : ""} ${status === "overdue" ? "is-sla-overdue" : ""}`} onClick={() => { setActiveId(conversation.id); setMenuId(""); }}><Avatar conversation={conversation} /><span><strong>{conversation.contactName || conversation.player?.name || formatWhatsAppPhone(conversation.contactPhone)}{conversation.pinned ? <b className="whatsapp-pin"><WhatsAppIcon name="pin" size={12} /></b> : null}</strong><small>{last?.body || "Sem mensagens"}</small>{status !== "normal" ? <em>{status === "overdue" ? "SLA atrasado" : "SLA próximo do limite"}</em> : null}</span><time>{time(conversation.lastMessageAt)}{conversation.unreadCount ? <b>{conversation.unreadCount}</b> : null}</time></button>
+          <button className="whatsapp-menu-trigger" type="button" aria-label="Ações da conversa" onClick={() => { setActiveId(conversation.id); setMenuId(menuId === conversation.id ? "" : conversation.id); }}><WhatsAppIcon name="more" /></button>
+          {menuId === conversation.id ? <div className="whatsapp-conversation-menu">{mayResolveSla ? <button onClick={() => runConversationAction(conversation, "resolve_sla")}>✓ Encerrar SLA</button> : null}<button onClick={() => runConversationAction(conversation, "archive")}><WhatsAppIcon name="archive" size={14} /> {conversation.archivedAt ? "Desarquivar conversa" : "Arquivar conversa"}</button><button onClick={() => runConversationAction(conversation, "pin")}><WhatsAppIcon name="pin" size={14} /> {conversation.pinned ? "Desafixar conversa" : "Fixar conversa"}</button><button onClick={() => runConversationAction(conversation, "unread")}><WhatsAppIcon name="mail" size={14} /> Marcar como não lida</button><button onClick={() => runConversationAction(conversation, "favorite")}><WhatsAppIcon name="heart" size={14} /> {conversation.favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}</button><button onClick={() => runConversationAction(conversation, "list")}><WhatsAppIcon name="chat" size={14} /> Adicionar à lista</button><hr /><button onClick={() => runConversationAction(conversation, "clear")}>◇ Limpar conversa</button><button className="is-danger" onClick={() => runConversationAction(conversation, "delete")}>× Excluir conversa</button></div> : null}
+        </div>;
+      })}{!visible.length ? <p>Nenhuma conversa encontrada.</p> : null}</div>
+    </aside>
+    <main className="whatsapp-chat-main">{active ? <>
+      <header><div><Avatar conversation={active} size="is-header" /><span><strong>{active.contactName || active.player?.name || formatWhatsAppPhone(active.contactPhone)}</strong><small>{formatWhatsAppPhone(active.contactPhone)}</small></span></div></header>
+      <div className="whatsapp-message-thread">{activeMessages.map((message) => <article key={message.id} className={message.direction === "OUTBOUND" ? "outbound" : "inbound"}>{message.mediaType === "IMAGE" ? <img className="whatsapp-message-image" src={`/api/whatsapp/media/${message.id}`} alt={message.body === "Imagem" ? "Imagem enviada pelo WhatsApp" : message.body} onClick={(event) => setSelectedImage(event.currentTarget.currentSrc || event.currentTarget.src)} /> : null}{message.mediaType === "AUDIO" ? <audio className="whatsapp-message-audio" controls preload="metadata"><source src={`/api/whatsapp/media/${message.id}`} type={message.mediaMimeType || "audio/ogg"} />Seu navegador não suporta áudio.</audio> : null}{message.mediaType === "VIDEO" ? <video className="whatsapp-message-video" controls preload="metadata"><source src={`/api/whatsapp/media/${message.id}`} type={message.mediaMimeType || "video/mp4"} /></video> : null}{message.mediaType === "DOCUMENT" ? <a className="whatsapp-message-document" href={`/api/whatsapp/media/${message.id}`} target="_blank" rel="noreferrer">Abrir documento</a> : null}{message.body && !["Imagem", "Áudio", "Vídeo", "Documento", "Figurinha"].includes(message.body) ? <p>{message.body}</p> : null}<time>{detailTime(message.sentAt)}</time></article>)}</div>
+      <form onSubmit={sendText}>
+        <input ref={fileInput} type="file" accept="image/*,.pdf" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) uploadFile(file); }} />
+        <button type="button" className="whatsapp-composer-icon" title="Anexar imagem ou PDF" onClick={() => fileInput.current?.click()}><WhatsAppIcon name="paperclip" /></button>
+        <button type="button" className={`whatsapp-composer-icon whatsapp-record-button ${recording ? "is-recording" : ""}`} title={recording ? "Parar gravação" : "Gravar áudio"} aria-label={recording ? "Parar gravação" : "Gravar áudio"} onClick={() => recording ? stopRecording() : void startRecording()}><WhatsAppIcon name="microphone" /></button>
+        <label className="whatsapp-composer-field"><span>MENSAGEM OU LEGENDA</span>{recording ? <div className="whatsapp-recording-indicator"><i /><div className="whatsapp-recording-wave">{Array.from({ length: 18 }, (_, index) => <b key={index} style={{ transform: `scaleY(${Math.max(.22, Math.min(1.9, .22 + level * 4.5 * (.58 + (Math.sin(index * 1.7) + 1) * .16)))})` }} />)}</div><strong>Gravando áudio</strong><small>Clique no microfone para parar</small></div> : audioDraft ? <div className="whatsapp-pending-audio"><audio controls preload="metadata" src={audioDraft.previewUrl} /><button type="button" title="Remover áudio" aria-label="Remover áudio" onClick={discardAudioDraft}>×</button></div> : <textarea value={body} onChange={(event) => setBody(event.target.value)} placeholder="Digite uma mensagem..." rows={1} />}</label>
+        <button type="button" className="whatsapp-composer-icon" title="Inserir emoji" onClick={() => setShowEmoji((value) => !value)}><WhatsAppIcon name="smile" /></button>
+        <button className="whatsapp-send-button" disabled={pending || recording} title="Enviar mensagem"><WhatsAppIcon name="send" /></button>
+        {showEmoji ? <div className="whatsapp-emoji-picker" role="dialog" aria-label="Escolha um emoji">{emojis.map((emoji) => <button key={emoji} type="button" onClick={() => { setBody((value) => `${value}${emoji}`); setShowEmoji(false); }}>{emoji}</button>)}</div> : null}
+      </form>
+    </> : <div className="whatsapp-chat-empty"><strong>Selecione uma conversa.</strong></div>}</main>
+    <aside className="whatsapp-contact-panel">{active ? <><header><Avatar conversation={active} size="is-profile" /><strong>{active.contactName || active.player?.name || "Contato do WhatsApp"}</strong><span>Contato no WhatsApp</span></header><dl><div><dt>Telefone</dt><dd>{formatWhatsAppPhone(active.contactPhone)}</dd></div><div><dt>Cliente no sistema</dt><dd>{active.player ? active.player.name : "Não vinculado"}</dd></div>{active.player?.email ? <div><dt>E-mail</dt><dd>{active.player.email}</dd></div> : null}</dl>{!active.player ? <div className="whatsapp-link-client"><strong>{matchedClient ? "Cliente encontrado pelo telefone" : "Vincular a um cliente"}</strong><p>{matchedClient ? matchedClient.name : "Busque pelo nome ou telefone para vincular."}</p>{matchedClient ? <button type="button" className="button button-primary button-small" onClick={() => linkClient(matchedClient.id)} disabled={pending}>Vincular {matchedClient.name}</button> : <><input value={clientQuery} onChange={(event) => setClientQuery(event.target.value)} placeholder="Digite nome ou telefone" /><div className="whatsapp-client-options">{clientOptions.map((client) => <button key={client.id} type="button" onClick={() => linkClient(client.id)}>{client.name}<small>{formatWhatsAppPhone(client.phone)}</small></button>)}</div><button type="button" className="whatsapp-create-client" onClick={() => { setLinkNewClient(true); setShowContact(true); }}>Criar novo cliente</button></>}</div> : null}</> : null}</aside>
+    {showContact ? <div className="whatsapp-contact-modal" role="dialog" aria-modal="true" onMouseDown={(event) => { if (event.target === event.currentTarget) { setShowContact(false); setLinkNewClient(false); } }}><form onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget); startTransition(async () => { try { const result = await createWhatsAppContactAction(form); if (linkNewClient && active) { const link = new FormData(); link.set("conversationId", active.id); link.set("playerId", result.id); await linkWhatsAppConversationToClientAction(link); } setShowContact(false); setLinkNewClient(false); setNotice(linkNewClient ? `${result.name} foi criado e vinculado à conversa.` : `${result.name} foi adicionado aos clientes.`); } catch (error) { setNotice(error instanceof Error ? error.message : "Não foi possível criar o contato."); } }); }}><header><strong>{linkNewClient ? "Criar e vincular cliente" : "Novo contato"}</strong><button type="button" onClick={() => { setShowContact(false); setLinkNewClient(false); }}>×</button></header><label>Nome<input name="name" required minLength={3} defaultValue={linkNewClient ? active?.contactName : ""} placeholder="Nome completo" /></label><label>Telefone<input name="phone" required defaultValue={linkNewClient ? active?.contactPhone : ""} placeholder="(00) 00000-0000" /></label><button className="button button-primary" disabled={pending}>{linkNewClient ? "Criar e vincular" : "Adicionar contato"}</button></form></div> : null}
     {selectedImage ? <div className="whatsapp-image-lightbox" role="dialog" aria-modal="true" aria-label="Imagem ampliada" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedImage(""); }}><img src={selectedImage} alt="Imagem ampliada" /><button type="button" aria-label="Fechar imagem" onClick={() => setSelectedImage("")}>×</button></div> : null}
     {notice ? <p className="whatsapp-workspace-notice" role="status">{notice}</p> : null}
   </section>;

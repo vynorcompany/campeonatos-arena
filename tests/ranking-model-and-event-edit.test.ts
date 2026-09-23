@@ -250,9 +250,13 @@ test("ranking migration backfills exclusive League links and rejects ambiguous c
 });
 
 test("ranking actions and forms synchronize model-aware rules", async () => {
-  const [actions, form, createForm] = await Promise.all([
+  const [actions, ruleValues, form, createForm] = await Promise.all([
     readFile(
       path.join(workspaceRoot, "src", "lib", "actions", "tournament.ts"),
+      "utf8",
+    ),
+    readFile(
+      path.join(workspaceRoot, "src", "lib", "ranking", "rule-values.ts"),
       "utf8",
     ),
     readFile(
@@ -279,7 +283,8 @@ test("ranking actions and forms synchronize model-aware rules", async () => {
 
   assert.match(actions, /model:\s*formData\.get\("model"\)/);
   assert.match(actions, /isGeneral:\s*formData\.get\("isGeneral"\)\s*===\s*"on"/);
-  assert.match(actions, /getRankingRuleBlueprint\(values\.model\)/);
+  assert.match(actions, /buildRankingRuleValues\(values\)/);
+  assert.match(ruleValues, /getRankingRuleBlueprint\(values\.model\)/);
   assert.match(actions, /rankingRule\.deleteMany/);
   assert.match(form, /name="model"/);
   assert.match(form, /value="LEAGUE"/);

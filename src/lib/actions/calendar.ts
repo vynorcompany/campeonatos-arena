@@ -14,6 +14,10 @@ import {
   timeToMinutes
 } from "@/lib/calendar/inputs";
 import { weeklyRangesOverlap } from "@/lib/scheduling/weekly-rule";
+import { isFixedBookingType } from "@/lib/calendar/booking-types";
+import { refreshCalendarRoutes } from "@/lib/calendar/revalidation";
+
+const refreshCalendar = refreshCalendarRoutes;
 import { calculateCourtIntervalPrice } from "@/lib/calendar/court-interval-pricing";
 import { sendEvolutionTextMessage } from "@/lib/integrations/evolution/client";
 import { expandWeeklyOccurrences } from "@/lib/scheduling/recurrence";
@@ -121,19 +125,6 @@ const publicCourtBookingSchema = z.object({
 
 const DEFAULT_BOOKING_TYPES = ["Aula", "Aula fixa", "Plano", "Super 12", "Liga", "Reserva"];
 
-function isFixedBooking(bookingTypeName: string) {
-  return ["aula fixa", "reserva fixa"].includes(bookingTypeName.trim().toLowerCase());
-}
-
-function refreshCalendar() {
-  revalidatePath("/calendario");
-  revalidatePath("/agenda");
-  revalidatePath("/agenda/configuracao");
-  revalidatePath("/comandas");
-  revalidatePath("/financeiro/contas-a-receber");
-  revalidatePath("/financeiro/lancamentos");
-}
-
 export async function updateOnlineBookingSettingsAction(formData: FormData) {
   const auth = await requireModuleEdit("calendar");
   const parsed = onlineBookingSettingsSchema.safeParse({
@@ -157,7 +148,7 @@ export async function updateOnlineBookingSettingsAction(formData: FormData) {
     },
     select: { slug: true }
   }));
-  refreshCalendar();
+  refreshCalendarRoutes();
   revalidatePath(`/reservar/${arena.slug}`);
   revalidatePath(`/classificacao/${arena.slug}`);
 }
@@ -306,7 +297,7 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   const startsAt = parseScheduledAt(parsed.data.startsAt);
   const endsAt = new Date(startsAt.getTime() + parsed.data.durationMinutes * 60_000);
-  const fixedBooking = isFixedBooking(parsed.data.bookingTypeName);
+  const fixedBooking = isFixedBookingType(parsed.data.bookingTypeName);
   const repeatUntil = parsed.data.repeatUntil ? new Date(`${parsed.data.repeatUntil}T23:59:59`) : null;
   if (fixedBooking && !parsed.data.occurrenceId && !repeatUntil) throw new Error("Informe até quando a reserva fixa deve se repetir.");
   if (repeatUntil && (Number.isNaN(repeatUntil.getTime()) || repeatUntil < startsAt)) throw new Error("A data final da reserva fixa deve ser igual ou posterior ao primeiro horário.");

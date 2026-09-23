@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 import { requireFinancialEntryDelete, requireModuleEdit, requirePermission } from "@/lib/auth/guards";
 import {
   getReferenceMonthRange,
@@ -10,227 +9,45 @@ import {
 } from "@/lib/finance/inputs";
 import { getFinancialEntryBalance } from "@/lib/finance/ledger";
 import { getDiscountedAmountCents } from "@/lib/finance/discounts";
-import { getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
+import { getCouponValues } from "@/lib/finance/coupons";
+import { getFinancialRecurrenceDates, getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 import { encryptConnectionSecrets } from "@/lib/payments/connection-secrets";
 import { createBoletoPayment, createPixPayment, getMissingBoletoPayerFields } from "@/lib/payments/mercado-pago";
 import { issueRecurringOnlineChargeForEntry } from "@/lib/payments/recurring-online-charges";
 import { issueManualFiscalDocument, type FiscalDocumentType } from "@/lib/fiscal/manual-issuance";
+import { refreshFinanceRoutes, refreshFinancialSettings } from "@/lib/finance/revalidation";
+import {
+  bankBalanceSchema,
+  bulkDeleteEntrySchema,
+  bulkEntrySchema,
+  couponSchema,
+  couponToggleSchema,
+  deleteCouponSchema,
+  deleteSupplierSchema,
+  entrySchema,
+  financialCategoryDeleteSchema,
+  financialCategoryUpdateSchema,
+  financialSettingSchema,
+  fiscalSettingsSchema,
+  onlineChargeSchema,
+  onlinePaymentSettingsSchema,
+  paymentConnectionSchema,
+  paymentSchema,
+  payrollSchema,
+  planSchema,
+  productCategorySchema,
+  recurrenceSchema,
+  settlementSchema,
+  subscriptionSchema,
+  supplierUpdateSchema,
+  teacherMonthlyPayableSchema,
+  updateCouponSchema,
+  updateEntrySchema,
+  voidEntrySchema,
+} from "@/lib/finance/action-schemas";
 
-const optionalText = z.preprocess((value) => value ?? "", z.string().trim().default(""));
-
-const planSchema = z.object({
-  name: z.string().trim().min(2, "Informe o nome do plano."),
-  monthlyPrice: z.string().trim().min(1, "Informe o valor mensal."),
-  classesPerMonth: z.coerce.number().int().min(0, "Quantidade de aulas inválida.").default(0),
-  notes: optionalText
-});
-
-const subscriptionSchema = z.object({
-  studentId: z.string().min(1, "Selecione um aluno."),
-  planId: z.string().min(1, "Selecione um plano."),
-  dueDay: z.coerce.number().int().min(1).max(31).default(10),
-  startedAt: z.string().optional().default(""),
-  notes: optionalText
-});
-
-const paymentSchema = z.object({
-  subscriptionId: z.string().min(1, "Selecione uma assinatura."),
-  referenceMonth: z.string().trim().min(7, "Informe o mês de referência."),
-  paidAt: z.string().optional().default(""),
-  paymentMethod: optionalText,
-  amount: z.string().trim().optional().default(""),
-  fiscalDocumentType: z.enum(["", "NFS_E", "NFC_E"]).default("")
-});
-
-const entrySchema = z.object({
-  type: z.enum(["REVENUE", "EXPENSE"]),
-  category: z.string().trim().min(2, "Informe a categoria."),
-  description: z.string().trim().min(2, "Informe a descrição."),
-  counterpartyName: optionalText,
-  supplierId: z.string().optional().default(""),
-  bankAccountId: z.string().optional().default(""),
-  planId: z.string().optional().default(""),
-  productId: z.string().optional().default(""),
-  amount: z.string().trim().min(1, "Informe o valor."),
-  discount: z.string().trim().optional().default("0"),
-  discountMode: z.enum(["AMOUNT", "PERCENTAGE"]).default("AMOUNT"),
-  paymentMethod: optionalText,
-  status: z.enum(["PENDING", "PAID"]).default("PENDING"),
-  dueDate: z.string().optional().default(""),
-  paidAt: z.string().optional().default(""),
-  notes: optionalText
-});
-
-const recurrenceSchema = z.object({
-  type: z.enum(["REVENUE", "EXPENSE"]),
-  counterpartyName: z.string().trim().min(2, "Informe o cliente."),
-  category: z.string().trim().min(2, "Selecione a categoria."),
-  description: z.string().trim().min(2, "Informe a descrição."),
-  amount: z.string().trim().min(1, "Informe o valor."),
-  discount: z.string().trim().optional().default("0"),
-  discountMode: z.enum(["AMOUNT", "PERCENTAGE"]).default("AMOUNT"),
-  frequency: z.enum(["WEEKLY", "MONTHLY", "ANNUAL"]),
-  startsAt: z.string().min(1, "Informe a data inicial."),
-  endsAt: z.string().optional().default(""),
-  bankAccountId: z.string().optional().default(""),
-  planId: z.string().optional().default(""),
-  onlinePaymentMethod: z.enum(["", "BOLETO"]).default(""),
-  notes: optionalText
-});
-
-const updateEntrySchema = entrySchema.pick({
-  category: true,
-  description: true,
-  counterpartyName: true,
-  bankAccountId: true,
-  planId: true,
-  productId: true,
-  amount: true,
-  dueDate: true,
-  notes: true,
-}).extend({
-  entryId: z.string().min(1, "Lançamento inválido."),
-});
-
-const financialSettingSchema = z.object({
-  area: z.enum(["categorias-financeiras", "formas-pagamento", "contas-bancarias", "fornecedores"]),
-  name: z.string().trim().min(2, "Informe o nome."),
-  // FormData.get retorna null quando o campo não existe. Contas bancárias e
-  // fornecedores não enviam tipo; categorias, por outro lado, continuam com
-  // o tipo explícito. Normalizar aqui evita que um cadastro bancário válido
-  // seja rejeitado como se fosse uma categoria financeira incompleta.
-  type: z.preprocess((value) => value ?? undefined, z.enum(["REVENUE", "EXPENSE", "BOTH"]).default("BOTH")),
-  bankName: optionalText,
-  openingBalance: z.preprocess((value) => value ?? "0", z.string().trim().default("0")),
-  document: optionalText,
-  phone: optionalText,
-  email: optionalText,
-  notes: optionalText
-});
-
-const productCategorySchema = z.object({
-  name: z.string().trim().min(2, "Informe o nome da categoria.")
-});
-
-const couponSchema = z.object({
-  code: z.string().trim().min(3, "Informe um código com ao menos 3 caracteres.").max(32),
-  discountType: z.enum(["PERCENTAGE", "FIXED"]),
-  discountValue: z.coerce.number().int().positive("Informe um desconto maior que zero."),
-  minimumAmount: z.string().trim().optional().default("0"),
-  maxUses: z.string().trim().optional().default(""),
-  startsAt: z.string().trim().optional().default(""),
-  endsAt: z.string().trim().optional().default("")
-});
-
-const updateCouponSchema = couponSchema.extend({ couponId: z.string().min(1, "Cupom inválido."), active: z.preprocess((value) => value === "on" || value === true, z.boolean()) });
-const deleteCouponSchema = z.object({ couponId: z.string().min(1, "Cupom inválido.") });
-const couponToggleSchema = z.object({ couponId: z.string().min(1, "Cupom inválido."), active: z.preprocess((value) => value === "on" || value === true, z.boolean()) });
-const financialCategoryUpdateSchema = z.object({ categoryId: z.string().min(1, "Categoria inválida."), name: z.string().trim().min(2, "Informe o nome."), type: z.enum(["REVENUE", "EXPENSE", "BOTH"]) });
-const financialCategoryDeleteSchema = z.object({ categoryId: z.string().min(1, "Categoria inválida.") });
-const supplierUpdateSchema = z.object({ supplierId: z.string().min(1, "Fornecedor inválido."), name: z.string().trim().min(2, "Informe o nome."), document: optionalText, phone: optionalText, email: optionalText, notes: optionalText, active: z.preprocess((value) => value === "on" || value === true, z.boolean()) });
-const deleteSupplierSchema = z.object({ supplierId: z.string().min(1, "Fornecedor inválido.") });
-
-const fiscalSettingsSchema = z.object({
-  provider: z.enum(["NONE", "MANUAL"]),
-  environment: z.enum(["SANDBOX", "PRODUCTION"]),
-  series: z.string().trim().max(20).default(""),
-  nextNumber: z.coerce.number().int().min(1).max(999999999).default(1),
-  notes: optionalText
-});
-
-const onlinePaymentSettingsSchema = z.object({
-  provider: z.enum(["NONE", "MANUAL"]),
-  webhookUrl: z.string().trim().max(500).default(""),
-  instructions: optionalText
-});
-
-const settlementSchema = z.object({
-  entryId: z.string().min(1, "Conta inválida."),
-  amount: z.string().trim().min(1, "Informe o valor recebido."),
-  interest: z.string().trim().optional().default("0"),
-  paymentMethod: z.string().trim().min(1, "Selecione a forma de pagamento."),
-  paidAt: z.string().optional().default(""),
-  notes: optionalText
-});
-
-const bulkEntrySchema = z.object({
-  entryIds: z.array(z.string().min(1)).min(1, "Selecione ao menos um lançamento."),
-  paymentMethod: z.string().trim().min(1, "Selecione a forma de pagamento."),
-  paidAt: z.string().optional().default("")
-});
-
-const bulkDeleteEntrySchema = z.object({
-  entryIds: z.array(z.string().min(1)).min(1, "Selecione ao menos um lançamento.")
-});
-
-const voidEntrySchema = z.object({
-  entryId: z.string().min(1, "Conta inválida."),
-  reason: z.string().trim().min(3, "Informe o motivo do estorno.")
-});
-
-const payrollSchema = z.object({
-  teacherId: z.string().min(1, "Selecione um professor."),
-  referenceMonth: z.string().trim().min(7, "Informe o mês de referência."),
-  fixedSalary: z.string().trim().optional().default("0"),
-  classValue: z.string().trim().optional().default("0"),
-  bonus: z.string().trim().optional().default("0"),
-  discount: z.string().trim().optional().default("0"),
-  status: z.enum(["PENDING", "PAID"]).default("PENDING"),
-  notes: optionalText
-});
-
-const bankBalanceSchema = z.object({
-  bankAccountId: z.string().min(1, "Selecione a conta bancária."),
-  balance: z.string().trim().min(1, "Informe o saldo conferido.")
-});
-
-const onlineChargeSchema = z.object({ entryId: z.string().min(1), method: z.enum(["PIX", "BOLETO"]) });
-
-const paymentConnectionSchema = z.object({
-  provider: z.enum(["ASAAS", "SICOOB"]),
-  environment: z.enum(["SANDBOX", "PRODUCTION"]),
-  accessToken: z.string().trim().optional().default(""),
-  clientId: z.string().trim().optional().default(""),
-  clientSecret: z.string().trim().optional().default(""),
-  pixKey: z.string().trim().optional().default(""),
-  certificate: z.string().trim().optional().default(""),
-  privateKey: z.string().trim().optional().default(""),
-  certificatePassword: z.string().trim().optional().default("")
-});
-
-const teacherMonthlyPayableSchema = z.object({
-  teacherId: z.string().min(1, "Professor inválido."),
-  entryIds: z.array(z.string().min(1)).min(1, "Selecione ao menos um recebimento quitado."),
-  percentage: z.coerce.number().min(0, "Informe um percentual válido.").max(100, "O percentual não pode passar de 100%."),
-  referenceStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe o início do período."),
-  referenceEnd: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe o fim do período."),
-  dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe o vencimento.")
-});
-
-function refreshFinanceRoutes() {
-  revalidatePath("/financeiro");
-  revalidatePath("/financeiro/lancamentos");
-  revalidatePath("/financeiro/contas-a-receber");
-  revalidatePath("/financeiro/contas-a-pagar");
-  revalidatePath("/professores");
-}
-
-function refreshFinancialSettings() {
-  revalidatePath("/financeiro/configuracoes");
-  revalidatePath("/financeiro/configuracoes/categorias-financeiras");
-  revalidatePath("/financeiro/configuracoes/formas-pagamento");
-  revalidatePath("/financeiro/configuracoes/contas-bancarias");
-  revalidatePath("/financeiro/configuracoes/fornecedores");
-  revalidatePath("/financeiro/configuracoes/categorias-produtos");
-  revalidatePath("/financeiro/configuracoes/cupons");
-  revalidatePath("/financeiro/configuracoes/notas-fiscais");
-  revalidatePath("/financeiro/configuracoes/pagamentos-online");
-  revalidatePath("/pdv");
-  revalidatePath("/pdv/novo");
-  revalidatePath("/pdv/estoque");
-}
 
 export async function createPlanAction(formData: FormData) {
   const auth = await requireModuleEdit("finance");
@@ -568,9 +385,8 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
       startsAt, endsAt, nextDueDate: startsAt, bankAccountId: parsed.data.bankAccountId || null, planId: parsed.data.planId || null,
       playerId: parsed.data.type === "REVENUE" && clientId ? clientId : null, onlinePaymentMethod: parsed.data.onlinePaymentMethod, notes: parsed.data.notes
     } });
-    let dueDate = startsAt;
-    const limit = endsAt ?? new Date(startsAt.getFullYear() + 1, startsAt.getMonth(), startsAt.getDate());
-    while (dueDate <= limit) {
+    const dates = getFinancialRecurrenceDates(startsAt, parsed.data.frequency, endsAt);
+    for (const dueDate of dates) {
       const entry = await tx.financialEntry.create({ data: {
         arenaId: auth.arenaId, type: recurrence.type, counterpartyName: recurrence.counterpartyName, category: recurrence.category,
         description: recurrence.description, amountCents: recurrence.amountCents, dueDate, notes: recurrence.notes,
@@ -578,9 +394,9 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
         paymentMethod: recurrence.onlinePaymentMethod === "BOLETO" ? "Boleto" : ""
       } });
       if (!firstEntryId) firstEntryId = entry.id;
-      dueDate = getNextFinancialRecurrenceDate(dueDate, parsed.data.frequency);
     }
-    await tx.financialRecurrence.update({ where: { id: recurrence.id }, data: { nextDueDate: dueDate } });
+    const nextDueDate = getNextFinancialRecurrenceDate(dates.at(-1) ?? startsAt, parsed.data.frequency);
+    await tx.financialRecurrence.update({ where: { id: recurrence.id }, data: { nextDueDate } });
   });
   if (parsed.data.onlinePaymentMethod === "BOLETO" && firstEntryId) {
     try {
@@ -964,22 +780,11 @@ export async function createCouponAction(formData: FormData) {
   refreshFinancialSettings();
 }
 
-function couponValues(input: z.infer<typeof couponSchema>) {
-  if (input.discountType === "PERCENTAGE" && input.discountValue > 100) throw new Error("O desconto percentual não pode passar de 100%.");
-  const startsAt = input.startsAt ? parseDate(input.startsAt) : null;
-  const endsAt = input.endsAt ? parseDate(input.endsAt) : null;
-  if ((input.startsAt && !startsAt) || (input.endsAt && !endsAt)) throw new Error("Informe datas válidas para o cupom.");
-  if (startsAt && endsAt && endsAt < startsAt) throw new Error("A validade final deve ser posterior à inicial.");
-  const maxUses = input.maxUses ? Number(input.maxUses) : null;
-  if (maxUses !== null && (!Number.isInteger(maxUses) || maxUses < 1)) throw new Error("Informe um limite de uso válido.");
-  return { code: input.code.toUpperCase().replace(/\s+/g, ""), discountType: input.discountType, discountValue: input.discountValue, minimumAmountCents: parseMoneyToCents(input.minimumAmount), maxUses, startsAt, endsAt };
-}
-
 export async function updateCouponAction(formData: FormData) {
   const auth = await requirePermission("finance:receivable:settle");
   const parsed = updateCouponSchema.safeParse({ couponId: formData.get("couponId"), code: formData.get("code"), discountType: formData.get("discountType"), discountValue: formData.get("discountValue"), minimumAmount: formData.get("minimumAmount"), maxUses: formData.get("maxUses"), startsAt: formData.get("startsAt"), endsAt: formData.get("endsAt"), active: formData.get("active") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
-  const values = couponValues(parsed.data);
+  const values = getCouponValues(parsed.data);
   try { await withArenaTransaction(auth.arenaId, (tx) => tx.coupon.updateMany({ where: { id: parsed.data.couponId, arenaId: auth.arenaId }, data: { ...values, active: parsed.data.active } })); } catch (error) { if (error instanceof Error && error.message.includes("Unique constraint")) throw new Error("Já existe um cupom com este código."); throw error; }
   refreshFinancialSettings();
 }
