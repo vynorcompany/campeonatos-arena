@@ -8,11 +8,6 @@ export default async function NewRankingPage() {
   return (
     <div className="stack-md">
       <header className="page-header">
-        <div className="stack-xs">
-          <p className="eyebrow">Campeonatos</p>
-          <h1>Novo ranking</h1>
-          <p className="muted">Defina a identificação e o formato inicial. As regras de pontuação ficam no ranking criado.</p>
-        </div>
         <Link href="/torneios/rankings" className="button">Voltar aos rankings</Link>
       </header>
 

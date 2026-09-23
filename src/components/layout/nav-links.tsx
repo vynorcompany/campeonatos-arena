@@ -168,7 +168,8 @@ export function NavLinks({ canManageUsers, visibleModules, whatsappUnreadCount }
       links: [
         { href: "/painel", label: "Dashboard", icon: "dashboard" },
         ...(canManageUsers ? [{ href: "/assistente", label: "Assistente", icon: "support" as IconName }] : []),
-        ...(canSee("support") ? [{ href: "/whatsapp", label: "WhatsApp", icon: "whatsapp" as IconName, badge: whatsappUnreadCount }] : [])
+        ...(canSee("support") ? [{ href: "/whatsapp", label: "WhatsApp", icon: "whatsapp" as IconName, badge: whatsappUnreadCount }] : []),
+        ...(canSee("pos") ? [{ href: "/pdv/caixa", label: "Gerenciar Caixa", icon: "finance" as IconName }] : [])
       ]
     },
     {
@@ -194,7 +195,7 @@ export function NavLinks({ canManageUsers, visibleModules, whatsappUnreadCount }
           icon: "cart"
         },
         {
-          href: "/proximos-jogos",
+          href: "/proximos-jogos/apresentacao",
           label: "Tela da TV",
           icon: "tv",
           children: [
@@ -431,7 +432,7 @@ export function NavLinks({ canManageUsers, visibleModules, whatsappUnreadCount }
                             </span>
                       </button>
                     ) : (
-                      <Link href={item.href} className={`nav-link${isActive ? " nav-link-active" : ""}`}>
+                      <Link href={item.href} className={`nav-link${isActive ? " nav-link-active" : ""}${item.href === "/pdv/caixa" ? " nav-link-cash" : ""}`}>
                         <span className="nav-icon" aria-hidden="true">{item.icon ? <NavIcon name={item.icon} /> : null}</span>
                         <span>{item.label}</span>{item.badge ? <b className="nav-unread-badge">{item.badge > 99 ? "99+" : item.badge}</b> : null}
                       </Link>

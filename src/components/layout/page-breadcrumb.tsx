@@ -30,6 +30,7 @@ export function WorkspaceBreadcrumb() {
   if (path.startsWith("/torneios/rankings")) return <PageBreadcrumb section="Torneios" current="Rankings" />;
   if (path.startsWith("/jogos")) return <PageBreadcrumb section="Torneios" current="Eventos ativos" />;
   if (path.startsWith("/financeiro")) return <PageBreadcrumb section="Gestão" current={financeNames[parts[1] ?? ""] ?? readable(parts.at(-1) ?? "Financeiro")} />;
+  if (path === "/pdv/caixa") return <PageBreadcrumb section="Gestão" current="Caixa" />;
   if (path.startsWith("/pdv")) return <PageBreadcrumb section="Financeiro" current={readable(parts.at(-1) ?? "Produtos e serviços")} />;
   if (path.startsWith("/relatorios")) return <PageBreadcrumb section="Gestão" current={parts[1] ? readable(parts[1]) : "Relatórios"} />;
   return null;

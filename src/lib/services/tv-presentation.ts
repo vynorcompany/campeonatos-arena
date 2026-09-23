@@ -542,7 +542,7 @@ export async function getTvPresentationPayload(arenaId: string) {
 
   const matches = settings?.tvMatchSource === "TOURNAMENT"
     ? await getTournamentUpcomingMatchesPayload(arenaId, settings.tvSourceTournamentId ?? "")
-    : manualMatches;
+      : manualMatches.slice(0, 3);
 
   const selectedSourceId = settings?.selectedTournamentId ?? "";
   const selectedTournament = selectedSourceId && !selectedSourceId.startsWith("league:")
@@ -614,7 +614,7 @@ export async function getTvPresentationPayload(arenaId: string) {
 
   const rankingSlides: TvRankingSlide[] = [];
   const selectedSponsorIds = settings?.selectedSponsorIds ?? [];
-  const selectedSponsors = selectedSponsorIds.length ? sponsors.filter((sponsor) => selectedSponsorIds.includes(sponsor.id)) : [];
+  const selectedSponsors = sponsors;
   const formatPrize = (position: number, cents: number) => cents > 0 ? `${position}º lugar — ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100)}` : "";
   const tournamentPrizeItems = selectedTournament
     ? [formatPrize(1, selectedTournament.priceFirstCents), formatPrize(2, selectedTournament.priceSecondCents), formatPrize(3, selectedTournament.priceThirdCents)].filter(Boolean)

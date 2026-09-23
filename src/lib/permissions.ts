@@ -5,7 +5,7 @@ export const permissionModules = [
   { key: "pairs", label: "Duplas", href: "/duplas" },
   { key: "groups", label: "Grupos", href: "/grupos" },
   { key: "matches", label: "Jogos", href: "/jogos" },
-  { key: "tv", label: "Tela da TV", href: "/proximos-jogos" },
+    { key: "tv", label: "Tela da TV", href: "/proximos-jogos/apresentacao" },
   { key: "calendar", label: "Calendário", href: "/calendario" },
   { key: "lessons", label: "Aulas", href: "/aulas" },
   { key: "students", label: "Alunos", href: "/aulas/alunos" },

@@ -9332,6 +9332,9 @@ button {
 .tv-config-section-head h2 { margin: 0; color: #173961; font-size: 1.08rem; font-weight: 400; line-height: 1.35; }
 .tv-config-fields { grid-template-columns: minmax(140px, .55fr) minmax(170px, .8fr) minmax(220px, 1fr) minmax(250px, 1.15fr); }
 .tv-config-fields .field { min-width: 0; align-content: start; }
+.tv-config-fields .field { grid-template-rows: 18px 38px auto; gap: 6px; }
+.tv-config-fields .field > label { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 18px; }
+.tv-config-fields .field > input, .tv-config-fields .field > select { box-sizing: border-box; width: 100%; height: 38px; min-height: 38px; margin: 0; }
 .tv-config-fields .field > label { color: #455f7c; }
 .tv-config-fields .field > small { color: #6b8198; font-size: .68rem; font-weight: 400; line-height: 1.3; }
 .tv-source-edit-link { width: max-content; max-width: 100%; padding: 3px 0; border: 0; color: #1765ae; background: transparent; font: inherit; font-size: .7rem; text-align: left; text-decoration: underline; cursor: pointer; }
@@ -9346,5 +9349,15 @@ button {
 .tv-manual-match-form > label { display: grid; min-width: 0; gap: 5px; color: #455f7c; font-size: .77rem; font-weight: 700; }
 .tv-manual-match-form input, .tv-manual-match-form select { width: 100%; min-width: 0; min-height: 39px; padding: 7px 10px; border: 1px solid #cbdbea; border-radius: 7px; color: #193957; background: #fff; font: inherit; font-weight: 400; }
 .tv-manual-match-form footer { display: flex; grid-column: 1 / -1; justify-content: flex-end; flex-wrap: wrap; gap: 9px; margin-top: 7px; padding-top: 15px; border-top: 1px solid #e5edf4; }
+.tv-settings-toolbar { justify-content: flex-end; padding-top: 0; }
+.tv-manual-games { display: grid; gap: 14px; }
+.tv-manual-game, .tv-manual-new-game { padding: 14px; border: 1px solid #dce7f1; border-radius: 9px; background: #fbfdff; }
+.tv-manual-delete { display: flex; justify-content: flex-end; margin-top: 8px; }
+.tv-manual-warning { padding: 10px 12px; border: 1px solid #e2c78e; border-radius: 7px; background: #fff8e7; }
+.side-nav .nav-link-cash, .side-nav .nav-link-cash.nav-link-active { color: #fff; background: #118750; border-color: #118750; font-weight: 750; }
+.side-nav .nav-link-cash:hover, .side-nav .nav-link-cash:focus-visible { color: #fff; background: #0c7040; border-color: #0c7040; }
+.side-nav .nav-link-cash .nav-icon { color: #fff; background: rgb(255 255 255 / .14); border-color: rgb(255 255 255 / .22); }
+.cash-register-shortcut { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.ranking-context-name { color: #536b84; font-size: .85rem; }
 @media (max-width: 1020px) { .tv-config-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 620px) { .tv-config-fields, .tv-manual-match-form { grid-template-columns: minmax(0, 1fr); }.tv-manual-modal { padding: 16px; }.tv-manual-match-form footer { grid-column: 1; }.tv-manual-match-form footer .button { flex: 1 1 160px; justify-content: center; } }
