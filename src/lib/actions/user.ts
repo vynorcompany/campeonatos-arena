@@ -5,9 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireArenaAccess, requireAuth } from "@/lib/auth/session";
 import {
-  createArenaUserSchema,
   removeArenaUserSchema,
-  resetArenaUserPasswordSchema,
   updateArenaUserRoleSchema,
   updateArenaUserSchema,
   updateOwnPasswordSchema,
@@ -89,90 +87,6 @@ async function resolvePermissionProfile(arenaId: string, profileId: string | und
   const profile = await prisma.permissionProfile.findFirst({ where: { id: profileId, arenaId, active: true } });
   if (!profile) throw new Error("Perfil de usuário inválido ou inativo.");
   return { id: profile.id, viewPermissions: profile.viewPermissions, editPermissions: profile.editPermissions };
-}
-
-export async function createArenaUserAction(_: UserActionState, formData: FormData): Promise<UserActionState> {
-  const auth = await requireArenaAccess();
-
-  if (!canManageUsers(auth.arenaRole, auth.systemRole)) {
-    return { error: "Você não tem permissão para gerenciar usuários.", success: null };
-  }
-
-  const parsed = createArenaUserSchema.safeParse({
-    name: formData.get("name"),
-    email: formData.get("email"),
-    password: formData.get("password"),
-    arenaRole: formData.get("arenaRole"),
-    permissionProfileId: formData.get("permissionProfileId") || undefined,
-    viewPermissions: getPermissionValues(formData, "viewPermissions", formData.get("arenaRole") as ArenaRole),
-    editPermissions: getPermissionValues(formData, "editPermissions", formData.get("arenaRole") as ArenaRole)
-  });
-
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? initialErrorMessage, success: null };
-  }
-
-  if (parsed.data.arenaRole === "OWNER" && !canManageOwners(auth.arenaRole, auth.systemRole)) {
-    return { error: "Somente um owner pode cadastrar outro owner.", success: null };
-  }
-
-  const email = normalizeEmail(parsed.data.email);
-  const profile = await resolvePermissionProfile(auth.arenaId, parsed.data.permissionProfileId, parsed.data.arenaRole);
-  const existingUser = await prisma.user.findUnique({
-    where: { email }
-  });
-
-  if (existingUser) {
-    const existingMembership = await prisma.arenaMember.findUnique({
-      where: {
-        userId_arenaId: {
-          userId: existingUser.id,
-          arenaId: auth.arenaId
-        }
-      }
-    });
-
-    if (existingMembership) {
-      return { error: "Esse usuário já faz parte da arena atual.", success: null };
-    }
-
-    await prisma.arenaMember.create({
-      data: {
-        userId: existingUser.id,
-        arenaId: auth.arenaId,
-        role: parsed.data.arenaRole,
-        permissionProfileId: profile.id,
-        viewPermissions: profile.viewPermissions,
-        editPermissions: profile.editPermissions
-      }
-    });
-
-    revalidateUserRoutes();
-    return { error: null, success: "Usuário existente vinculado à arena com sucesso." };
-  }
-
-  const passwordHash = await bcrypt.hash(parsed.data.password, 12);
-
-  await prisma.user.create({
-    data: {
-      name: parsed.data.name,
-      email,
-      passwordHash,
-      systemRole: "VIEWER",
-      memberships: {
-        create: {
-          arenaId: auth.arenaId,
-          role: parsed.data.arenaRole,
-          permissionProfileId: profile.id,
-          viewPermissions: profile.viewPermissions,
-          editPermissions: profile.editPermissions
-        }
-      }
-    }
-  });
-
-  revalidateUserRoutes();
-  return { error: null, success: "Usuário criado com acesso liberado para a arena." };
 }
 
 export async function updateArenaUserRoleAction(formData: FormData) {
@@ -370,54 +284,6 @@ export async function removeArenaUserAction(formData: FormData) {
       }
     }
   });
-
-  revalidateUserRoutes();
-}
-
-export async function resetArenaUserPasswordAction(formData: FormData) {
-  const auth = await requireArenaAccess();
-
-  if (!canManageUsers(auth.arenaRole, auth.systemRole)) {
-    throw new Error("Você não tem permissão para gerenciar usuários.");
-  }
-
-  const parsed = resetArenaUserPasswordSchema.safeParse({
-    userId: formData.get("userId"),
-    password: formData.get("password")
-  });
-
-  if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? initialErrorMessage);
-  }
-
-  const membership = await prisma.arenaMember.findUnique({
-    where: {
-      userId_arenaId: {
-        userId: parsed.data.userId,
-        arenaId: auth.arenaId
-      }
-    }
-  });
-
-  if (!membership) {
-    throw new Error("Usuário não encontrado nesta arena.");
-  }
-
-  if (membership.role === "OWNER" && !canManageOwners(auth.arenaRole, auth.systemRole)) {
-    throw new Error("Somente um owner pode redefinir a senha de outro owner.");
-  }
-
-  const passwordHash = await bcrypt.hash(parsed.data.password, 12);
-
-  await prisma.user.update({
-    where: {
-      id: parsed.data.userId
-    },
-    data: {
-      passwordHash
-    }
-  });
-  await prisma.session.deleteMany({ where: { userId: parsed.data.userId } });
 
   revalidateUserRoutes();
 }

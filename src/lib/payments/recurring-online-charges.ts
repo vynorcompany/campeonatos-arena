@@ -15,7 +15,7 @@ export async function issueRecurringOnlineChargeForEntry(entryId: string): Promi
       type: "REVENUE",
       status: "PENDING",
       recurrenceId: { not: null },
-      recurrence: { onlinePaymentMethod: "BOLETO" },
+      recurrence: { active: true, onlinePaymentMethod: "BOLETO" },
       playerId: { not: null },
       onlinePaymentId: ""
     },
@@ -39,7 +39,7 @@ export async function issueRecurringOnlineChargeForEntry(entryId: string): Promi
     expiresAt: entry.dueDate ?? undefined
   });
   const updated = await withArenaTransaction(entry.arenaId, (tx) => tx.financialEntry.updateMany({
-    where: { id: entry.id, arenaId: entry.arenaId, status: "PENDING", onlinePaymentId: "" },
+    where: { id: entry.id, arenaId: entry.arenaId, status: "PENDING", onlinePaymentId: "", recurrence: { active: true, onlinePaymentMethod: "BOLETO" } },
     data: {
       onlineProvider: "MERCADO_PAGO",
       onlinePaymentId: charge.paymentId,
@@ -67,7 +67,7 @@ export async function issueRecurringOnlineCharges(now = new Date()) {
       type: "REVENUE",
       status: "PENDING",
       recurrenceId: { not: null },
-      recurrence: { onlinePaymentMethod: "BOLETO" },
+      recurrence: { active: true, onlinePaymentMethod: "BOLETO" },
       playerId: { not: null },
       onlinePaymentId: "",
       dueDate: { lte: limit }
