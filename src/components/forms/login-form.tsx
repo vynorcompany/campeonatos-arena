@@ -3,6 +3,7 @@
 import { useFormState } from "react-dom";
 import { loginAction, type LoginState } from "@/lib/auth/actions";
 import { SubmitButton } from "@/components/forms/submit-button";
+import Link from "next/link";
 
 const initialState: LoginState = {
   error: null
@@ -21,6 +22,7 @@ export function LoginForm() {
       <div className="field">
         <label htmlFor="password">Senha</label>
         <input id="password" name="password" type="password" autoComplete="current-password" placeholder="Digite sua senha" required />
+        <Link className="login-forgot-link" href="/recuperar-senha">Esqueci minha senha</Link>
       </div>
 
       {state?.error ? <p className="form-error">{state.error}</p> : null}

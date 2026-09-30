@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
-import { removeArenaUserAction, resetArenaUserPasswordAction, updateArenaUserAction } from "@/lib/actions/user";
+import { removeArenaUserAction, updateArenaUserAction } from "@/lib/actions/user";
+import { sendArenaUserRecoveryAction } from "@/lib/actions/account-access";
 import type { ArenaRole } from "@/types/auth";
 
 const roleLabels: Record<ArenaRole, string> = {
@@ -121,10 +122,9 @@ export function UserActionsCell({
           </SafeActionForm>
         ) : null}
       </div>
-      <SafeActionForm action={resetArenaUserPasswordAction} className="inline-form user-password-form" successMessage="Senha redefinida.">
+      <SafeActionForm action={sendArenaUserRecoveryAction} className="inline-form user-password-form" successMessage="Link de recuperação enviado ao e-mail do usuário.">
         <input type="hidden" name="userId" value={userId} />
-        <input name="password" type="password" minLength={10} placeholder="Nova senha temporária" required />
-        <SubmitButton label="Redefinir senha" pendingLabel="..." className="button" />
+        <SubmitButton label="Enviar recuperação" pendingLabel="Enviando..." className="button" />
       </SafeActionForm>
     </div>
   );

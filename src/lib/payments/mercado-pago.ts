@@ -1,6 +1,7 @@
 import { env } from "@/lib/env";
 import { decryptConnectionSecrets } from "@/lib/payments/connection-secrets";
 import { withArenaTransaction } from "@/lib/rls";
+import { boletoCancellationDisposition } from "@/lib/payments/boleto-cancellation";
 
 type CreatePixPaymentInput = {
   arenaId: string;
@@ -223,4 +224,28 @@ export async function getMercadoPagoPayment(arenaId: string, paymentId: string) 
   }
 
   return response.json();
+}
+
+export async function cancelMercadoPagoPayment(arenaId: string, paymentId: string) {
+  const payment = await getMercadoPagoPayment(arenaId, paymentId);
+  const status = String(payment.status ?? "");
+  if (boletoCancellationDisposition(status) === "closed") return;
+  if (boletoCancellationDisposition(status) !== "cancel") {
+    throw new Error(`O boleto ${paymentId} não pode ser cancelado porque seu status no Mercado Pago é ${status || "desconhecido"}.`);
+  }
+
+  const accessToken = await mercadoPagoAccessTokenForArena(arenaId);
+  const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ status: "cancelled" }),
+    cache: "no-store"
+  });
+  if (!response.ok) {
+    const latest = await getMercadoPagoPayment(arenaId, paymentId);
+    if (String(latest.status ?? "") === "cancelled") return;
+    throw new Error(`Não foi possível cancelar o boleto ${paymentId} no Mercado Pago (${response.status}). Tente novamente antes de concluir o plano.`);
+  }
+  const result = await response.json();
+  if (String(result.status ?? "") !== "cancelled") throw new Error(`O Mercado Pago não confirmou o cancelamento do boleto ${paymentId}.`);
 }

@@ -8053,6 +8053,17 @@ button {
 .agency-billing-toast { position: fixed; z-index: 100; top: 22px; right: 22px; display: grid; gap: 4px; width: min(340px, calc(100vw - 32px)); padding: 16px 40px 16px 17px; border: 1px solid #d7aa4d; border-radius: 10px; color: #553908; background: #fff6db; box-shadow: 0 14px 35px rgb(45 35 16 / .2); font-size: .82rem; }
 .agency-billing-toast strong { font-size: .88rem; }
 .agency-billing-toast button { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border: 0; color: #765418; background: transparent; font-size: 1.25rem; cursor: pointer; }
+.login-forgot-link { justify-self: end; margin-top: 2px; color: #1a64ad; font-size: .78rem; font-weight: 650; }
+.user-invites-list { display: grid; gap: 8px; }
+.user-invite-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 16px; padding: 12px; border: 1px solid #dce7f1; border-radius: 8px; background: #f8fbff; }
+.user-invite-row > div { display: grid; gap: 3px; min-width: min(100%, 230px); margin-right: auto; }
+.user-invite-row > div span, .user-invite-row > span { color: #64788c; font-size: .78rem; overflow-wrap: anywhere; }
+.user-search-form { display: grid; gap: 7px; max-width: 520px; }
+.user-search-form label { color: var(--muted); font-size: .78rem; font-weight: 700; }
+.user-search-form > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.user-search-form input { flex: 1 1 220px; min-width: 0; min-height: 34px; }
+.user-table-scroll { max-width: 100%; overflow-x: auto; }
+.user-table-scroll .data-table { min-width: 580px; }
 @media (max-width: 1024px) {
   .agency-main { padding: 16px 14px 32px; }
   .agency-sidebar { min-height: 0; padding: 14px; }
@@ -8344,6 +8355,7 @@ button {
 .teacher-student-financial-link .status-badge.status-active { border-color: #bce7cd; color: #147345; background: #edf9f1; }
 .teacher-student-financial-link .status-badge.status-pending { border-color: #f0c5c5; color: #b73939; background: #fff3f3; }
 .teacher-plan-removal-options { display: grid; gap: 7px; padding: 10px; border: 1px solid #efcfb8; border-radius: 8px; background: #fff8f3; }.teacher-plan-removal-options label { display: flex; align-items: flex-start; gap: 7px; color: #573719; font-size: .74rem; font-weight: 700; line-height: 1.35; }.teacher-plan-removal-options input { width: auto; margin-top: 2px; accent-color: #b45416; }.teacher-plan-removal-options small { color: #73583f; font-size: .68rem; line-height: 1.35; }
+.teacher-plan-removal-options > strong { color: #573719; font-size: .81rem; }
 .teacher-student-financial-link:hover .status-badge { filter: brightness(.97); box-shadow: 0 2px 7px rgb(13 50 96 / .12); }
 .teacher-group-generated-name { margin: 0; color: #5a7189; font-size: .74rem; }
 .teacher-group-generated-name strong { color: #173f6d; }

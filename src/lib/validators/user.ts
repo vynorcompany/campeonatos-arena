@@ -5,14 +5,10 @@ const fullNameSchema = z.string().trim().min(3, "Informe nome e sobrenome.").ref
   "Informe nome e sobrenome."
 );
 
-export const createArenaUserSchema = z.object({
+export const inviteArenaUserSchema = z.object({
   name: fullNameSchema,
   email: z.string().trim().email("Informe um e-mail válido."),
-  password: z.string().min(10, "A senha temporária deve ter no mínimo 10 caracteres."),
-  arenaRole: z.enum(["OWNER", "ADMIN", "STAFF", "VIEWER"]),
-  permissionProfileId: z.string().min(1, "Selecione um perfil de usuário.").optional(),
-  viewPermissions: z.array(z.string()).default([]),
-  editPermissions: z.array(z.string()).default([])
+  permissionProfileId: z.string().min(1, "Selecione um perfil de usuário.")
 });
 
 export const updateArenaUserRoleSchema = z.object({
@@ -32,11 +28,6 @@ export const updateArenaUserSchema = z.object({
 
 export const removeArenaUserSchema = z.object({
   userId: z.string().min(1, "Usuário inválido.")
-});
-
-export const resetArenaUserPasswordSchema = z.object({
-  userId: z.string().min(1, "Usuário inválido."),
-  password: z.string().min(10, "A nova senha deve ter no mínimo 10 caracteres.")
 });
 
 export const updateOwnProfileSchema = z.object({

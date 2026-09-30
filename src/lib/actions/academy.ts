@@ -5,7 +5,10 @@ import { z } from "zod";
 import { requireModuleEdit } from "@/lib/auth/guards";
 import { getDiscountedAmountCents } from "@/lib/finance/discounts";
 import { getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
+import { cashReferenceDate } from "@/lib/finance/cash-day";
 import { issueRecurringOnlineChargeForEntry } from "@/lib/payments/recurring-online-charges";
+import { cancelMercadoPagoPayment, getMercadoPagoPayment } from "@/lib/payments/mercado-pago";
+import { boletoCancellationDisposition } from "@/lib/payments/boleto-cancellation";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 import { lessonSchema, studentSchema, teacherSchema } from "@/lib/academy/action-schemas";
@@ -1097,24 +1100,72 @@ export async function removeTeacherPlanStudentAction(formData: FormData) {
   const planId = String(formData.get("planId") ?? "");
   const studentId = String(formData.get("studentId") ?? "");
   const clearRemainingClasses = formData.get("clearRemainingClasses") === "true";
-  const voidPendingEntries = formData.get("voidPendingEntries") === "true";
+  const cancelOpenBoletosChoice = formData.get("cancelOpenBoletos");
+  if (cancelOpenBoletosChoice !== "yes" && cancelOpenBoletosChoice !== "no") {
+    throw new Error("Escolha se deseja cancelar também os boletos em aberto.");
+  }
+  const cancelOpenBoletos = cancelOpenBoletosChoice === "yes";
+  const today = cashReferenceDate();
+  const [assignment, subscription] = await Promise.all([
+    prisma.teacherPlan.findFirst({ where: { teacherId, planId, arenaId: auth.arenaId, active: true }, select: { id: true } }),
+    prisma.studentSubscription.findFirst({ where: { arenaId: auth.arenaId, studentId, planId, status: "ACTIVE" }, include: { student: { select: { id: true, name: true, playerId: true, remainingClasses: true } } } }),
+  ]);
+  if (!assignment || !subscription) throw new Error("Vínculo de plano não encontrado.");
+  const studentFinancialOwner = subscription.student.playerId
+    ? { OR: [{ playerId: subscription.student.playerId }, { playerId: null, counterpartyName: subscription.student.name }] }
+    : { counterpartyName: subscription.student.name };
+  const recurrences = await prisma.financialRecurrence.findMany({
+    where: { arenaId: auth.arenaId, planId, active: true, ...studentFinancialOwner },
+    select: { id: true }
+  });
+  const recurrenceIds = recurrences.map(({ id }) => id);
+  const futureEntriesWhere = {
+    arenaId: auth.arenaId, recurrenceId: { in: recurrenceIds }, type: "REVENUE", status: "PENDING", dueDate: { gte: today }
+  } as const;
+  const handledPaymentIds = new Set<string>();
+  const protectedEntryIds = new Set<string>();
+
+  if (cancelOpenBoletos && recurrenceIds.length) {
+    const entries = await prisma.financialEntry.findMany({
+      where: futureEntriesWhere,
+      select: { id: true, onlineProvider: true, onlinePaymentId: true, settlements: { select: { amountCents: true } } }
+    });
+    for (const entry of entries) if (entry.settlements.some((settlement) => settlement.amountCents > 0)) protectedEntryIds.add(entry.id);
+    const issued = entries.filter((entry) => entry.onlinePaymentId);
+    if (issued.some((entry) => entry.onlineProvider !== "MERCADO_PAGO")) {
+      throw new Error("Há um boleto futuro cujo provedor não é o Mercado Pago. O plano não foi cancelado.");
+    }
+    const payments = await Promise.all(issued.map(async (entry) => ({
+      entryId: entry.id,
+      id: entry.onlinePaymentId,
+      status: String((await getMercadoPagoPayment(auth.arenaId, entry.onlinePaymentId)).status ?? "")
+    })));
+    const invalid = payments.find((payment) => boletoCancellationDisposition(payment.status) === "unsupported");
+    if (invalid) throw new Error(`O boleto ${invalid.id} está com status ${invalid.status || "desconhecido"} no Mercado Pago. O plano não foi cancelado; confira o pagamento antes de tentar novamente.`);
+    for (const payment of payments) {
+      if (boletoCancellationDisposition(payment.status) === "preserve") protectedEntryIds.add(payment.entryId);
+      else await cancelMercadoPagoPayment(auth.arenaId, payment.id);
+      handledPaymentIds.add(payment.id);
+    }
+  }
+
   await withArenaTransaction(auth.arenaId, async (tx) => {
-    const [assignment, subscription] = await Promise.all([
-      tx.teacherPlan.findFirst({ where: { teacherId, planId, arenaId: auth.arenaId, active: true }, select: { id: true } }),
-      tx.studentSubscription.findFirst({ where: { arenaId: auth.arenaId, studentId, planId, status: "ACTIVE" }, include: { student: { select: { id: true, name: true, playerId: true, remainingClasses: true } } } }),
-    ]);
-    if (!assignment || !subscription) throw new Error("Vínculo de plano não encontrado.");
+    const current = await tx.studentSubscription.findFirst({ where: { id: subscription.id, arenaId: auth.arenaId, status: "ACTIVE" } });
+    if (!current) throw new Error("O plano já foi encerrado. Atualize a página antes de tentar novamente.");
     const now = new Date();
-    await tx.studentSubscription.update({ where: { id: subscription.id }, data: { status: "CANCELED", endedAt: now } });
+    if (cancelOpenBoletos && recurrenceIds.length) {
+      const entries = await tx.financialEntry.findMany({ where: futureEntriesWhere, select: { onlinePaymentId: true } });
+      if (entries.some((entry) => entry.onlinePaymentId && !handledPaymentIds.has(entry.onlinePaymentId))) {
+        throw new Error("Um novo boleto foi emitido durante o cancelamento. O plano permanece ativo; tente novamente.");
+      }
+    }
+    await tx.studentSubscription.update({ where: { id: current.id }, data: { status: "CANCELED", endedAt: now } });
     if (clearRemainingClasses && subscription.student.remainingClasses > 0) {
       await tx.student.update({ where: { id: subscription.student.id }, data: { remainingClasses: 0 } });
       if (subscription.student.playerId) await tx.clientBalanceMovement.create({ data: { arenaId: auth.arenaId, playerId: subscription.student.playerId, kind: "CLASSES", classesDelta: -subscription.student.remainingClasses, reason: `Saldo removido ao encerrar o plano ${planId}.` } });
     }
-    const studentFinancialOwner = subscription.student.playerId
-      ? { OR: [{ playerId: subscription.student.playerId }, { playerId: null, counterpartyName: subscription.student.name }] }
-      : { counterpartyName: subscription.student.name };
-    await tx.financialRecurrence.updateMany({ where: { arenaId: auth.arenaId, planId, active: true, ...studentFinancialOwner }, data: { active: false } });
-    if (voidPendingEntries) await tx.financialEntry.updateMany({ where: { arenaId: auth.arenaId, planId, type: "REVENUE", status: "PENDING", dueDate: { gt: now }, ...studentFinancialOwner }, data: { status: "VOIDED", voidedAt: now, voidReason: "Estornado ao remover aluno do plano." } });
+    await tx.financialRecurrence.updateMany({ where: { id: { in: recurrenceIds }, arenaId: auth.arenaId, active: true }, data: { active: false } });
+    if (cancelOpenBoletos && recurrenceIds.length) await tx.financialEntry.updateMany({ where: { ...futureEntriesWhere, id: { notIn: [...protectedEntryIds] } }, data: { status: "VOIDED", voidedAt: now, voidReason: "Plano cancelado; boletos em aberto cancelados no Mercado Pago. Boletos vencidos preservados." } });
   });
   refreshAcademyRoutes();
 }

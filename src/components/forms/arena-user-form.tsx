@@ -2,15 +2,15 @@
 
 import { useFormState } from "react-dom";
 import { SubmitButton } from "@/components/forms/submit-button";
-import { createArenaUserAction, type UserActionState } from "@/lib/actions/user";
+import { inviteArenaUserAction, type AccountAccessState } from "@/lib/actions/account-access";
 
-const initialState: UserActionState = {
+const initialState: AccountAccessState = {
   error: null,
   success: null
 };
 
 export function ArenaUserForm({ profiles }: { profiles: { id: string; name: string }[] }) {
-  const [state, formAction] = useFormState(createArenaUserAction, initialState);
+  const [state, formAction] = useFormState(inviteArenaUserAction, initialState);
 
   return (
     <form action={formAction} className="grid-form">
@@ -25,13 +25,6 @@ export function ArenaUserForm({ profiles }: { profiles: { id: string; name: stri
       </div>
 
       <div className="field">
-        <label htmlFor="password">Senha temporária</label>
-        <input id="password" name="password" type="password" placeholder="Senha inicial" required />
-      </div>
-
-      <input type="hidden" name="arenaRole" value="STAFF" />
-
-      <div className="field">
         <label htmlFor="permissionProfileId">Perfil de usuário</label>
         <select id="permissionProfileId" name="permissionProfileId" required defaultValue="">
           <option value="" disabled>Selecione o perfil</option>
@@ -41,9 +34,9 @@ export function ArenaUserForm({ profiles }: { profiles: { id: string; name: stri
 
       <div className="field field-submit">
         <label className="sr-only" htmlFor="submit-user">
-          Criar usuário
+          Enviar convite
         </label>
-        <SubmitButton label="Salvar usuário" pendingLabel="Salvando..." className="button button-primary" />
+        <SubmitButton label="Enviar convite" pendingLabel="Enviando..." className="button button-primary" />
       </div>
 
       {state?.error ? <p className="form-error form-full">{state.error}</p> : null}

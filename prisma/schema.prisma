@@ -34,6 +34,7 @@ model User {
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   sessions              Session[]
+  accountActionTokens   AccountActionToken[]
   memberships           ArenaMember[]
   createdArenas         Arena[]                @relation("ArenaCreator")
   openedTickets         SupportTicket[]        @relation("TicketRequester")
@@ -41,6 +42,26 @@ model User {
   ticketMessages        SupportTicketMessage[]
   regulationAcceptances RegulationAcceptance[] @relation("RegulationAcceptedBy")
   regulationDocuments   RegulationDocument[]
+}
+
+model AccountActionToken {
+  id            String    @id @default(cuid())
+  tokenHash     String    @unique
+  kind          String
+  email         String
+  name          String    @default("")
+  arenaId       String?
+  userId        String?
+  arenaRole     String    @default("STAFF")
+  profileId     String?
+  expiresAt     DateTime
+  usedAt        DateTime?
+  createdAt     DateTime  @default(now())
+  user          User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([email, kind, createdAt])
+  @@index([arenaId, kind, usedAt])
+  @@index([expiresAt])
 }
 
 model Session {
