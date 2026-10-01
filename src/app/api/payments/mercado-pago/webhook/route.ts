@@ -59,6 +59,7 @@ export async function POST(request: Request) {
           return;
         }
         const paidAt = new Date();
+        const settledComandaSaleIds = new Set<string>();
         for (const item of current.items) {
           const entry = item.financialEntry;
           if (!["PENDING", "OVERDUE"].includes(entry.status)) continue;
@@ -66,8 +67,18 @@ export async function POST(request: Request) {
           const amountCents = Math.min(item.amountCents, balance.outstandingCents);
           if (!amountCents) continue;
           await tx.financialSettlement.create({ data: { arenaId: current.arenaId, financialEntryId: entry.id, amountCents, paymentMethod: "Mercado Pago online", paidAt, notes: `Pagamento agrupado Mercado Pago confirmado (${String(payment.id ?? paymentId)}).` } });
+          if (entry.category === "COMANDAS" && entry.saleId) {
+            await tx.salePayment.create({ data: { saleId: entry.saleId, amountCents, paymentMethod: "Mercado Pago online" } });
+            settledComandaSaleIds.add(entry.saleId);
+          }
           const remaining = balance.outstandingCents - amountCents;
           await tx.financialEntry.update({ where: { id: entry.id }, data: { status: remaining === 0 ? "PAID" : entry.status, paidAt: remaining === 0 ? paidAt : entry.paidAt, paymentMethod: "Mercado Pago online" } });
+        }
+        for (const saleId of settledComandaSaleIds) {
+          const sale = await tx.sale.findFirst({ where: { id: saleId, arenaId: current.arenaId }, select: { totalCents: true } });
+          if (!sale) continue;
+          const received = await tx.salePayment.aggregate({ where: { saleId }, _sum: { amountCents: true } });
+          await tx.sale.update({ where: { id: saleId }, data: { status: (received._sum.amountCents ?? 0) >= sale.totalCents ? "PAID" : "PARTIAL" } });
         }
         await tx.onlinePaymentCheckout.update({ where: { id: current.id }, data: { status: "PAID", paidAt, mercadoPagoPaymentId: String(payment.id ?? paymentId) } });
       });

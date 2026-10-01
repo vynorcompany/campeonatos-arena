@@ -365,10 +365,11 @@ export function PublicStandings({
 
 function ClientFinancePanel({ finance, arenaSlug, tab }: { finance: ClientFinance; arenaSlug: string; tab: "upcoming" | "history" }) {
   if (!finance) return <section className="athlete-portal-content-panel"><PortalEmpty title="Finanças indisponíveis" detail="Não foi possível carregar suas informações financeiras agora." /></section>;
+  const pendingCount = finance.overdue.length + finance.comandas.length;
   const message = finance.health === "healthy"
     ? { title: "Tudo certo por aqui, padelista! 🎾", detail: "Quadra livre, contas em ordem e foco no próximo voleio." }
     : finance.health === "upcoming"
-      ? { title: "Tudo certo por aqui, padelista! 🎾", detail: "Seus próximos pagamentos já estão na linha. Quem mantém as contas em ordem, acerta 85% mais voleios." }
+      ? { title: "Tudo certo por aqui, padelista! 🎾", detail: finance.open.length ? "Seus próximos pagamentos já estão na linha. Quem mantém as contas em ordem, acerta 85% mais voleios." : "Você tem comandas em andamento. Acompanhe seu consumo e feche-as no balcão quando terminar." }
       : { title: "Vamos virar esse jogo? 🎾", detail: "Tem uma pendência pedindo atenção. Resolva agora e volte para a quadra com a cabeça leve." };
   return <section className="client-finance-page">
     <header className={`client-finance-hero is-${finance.health}`}>
@@ -377,12 +378,12 @@ function ClientFinancePanel({ finance, arenaSlug, tab }: { finance: ClientFinanc
       <b className="client-finance-motto">DISCIPLINA<br />TAMBÉM<br />JOGA.</b>
     </header>
     <div className="client-finance-summary" aria-label="Resumo financeiro">
-      <article className={finance.overdue.length ? "is-attention" : "is-healthy"}><span><FinanceIcon icon={finance.overdue.length ? "receipt" : "check"} /></span><div><b>{finance.overdue.length ? "Pendências" : "Em dia"}</b><small>{finance.overdue.length ? `${finance.overdue.length} para resolver` : "Suas finanças organizadas"}</small></div></article>
-      <article><span><FinanceIcon icon="receipt" /></span><div><b>Pendências</b><strong>{finance.overdue.length}</strong></div></article>
+      <article className={pendingCount ? "is-attention" : "is-healthy"}><span><FinanceIcon icon={pendingCount ? "receipt" : "check"} /></span><div><b>{pendingCount ? "Em aberto" : "Em dia"}</b><small>{pendingCount ? `${pendingCount} ${pendingCount === 1 ? "item" : "itens"} para acompanhar` : "Suas finanças organizadas"}</small></div></article>
+      <article><span><FinanceIcon icon="receipt" /></span><div><b>Em aberto</b><strong>{pendingCount}</strong></div></article>
       <article><span><FinanceIcon icon="calendar" /></span><div><b>Próximos</b><strong>{finance.open.length}</strong></div></article>
     </div>
     <nav className="client-finance-tabs" aria-label="Navegação financeira"><Link className={tab === "upcoming" ? "active" : ""} href={`/home?arena=${encodeURIComponent(arenaSlug)}&section=finance`}>Lançamentos</Link><Link className={tab === "history" ? "active" : ""} href={`/home?arena=${encodeURIComponent(arenaSlug)}&section=finance&financeTab=history`}>Histórico</Link></nav>
-    {tab === "upcoming" ? <PublicFinanceEntryList arenaSlug={arenaSlug} overdue={finance.overdue} open={finance.open} /> : <section className="client-finance-section"><header><div><span className="client-finance-section-icon"><FinanceIcon icon="receipt" /></span><h3>Histórico de pagamentos</h3></div><span>{finance.paid.length}</span></header>{finance.paid.length ? finance.paid.map((entry) => <article className="client-finance-entry is-paid" key={entry.id}><div><strong>{entry.description}</strong><small>Pago em {entry.paidAt || entry.dueDate}</small></div><b>{entry.amount}</b><em>Pago</em></article>) : <p className="client-finance-empty">Quando houver pagamentos, eles aparecerão aqui.</p>}</section>}
+    {tab === "upcoming" ? <PublicFinanceEntryList arenaSlug={arenaSlug} overdue={finance.overdue} open={finance.open} comandas={finance.comandas} /> : <section className="client-finance-section"><header><div><span className="client-finance-section-icon"><FinanceIcon icon="receipt" /></span><h3>Histórico de pagamentos</h3></div><span>{finance.paid.length}</span></header>{finance.paid.length ? finance.paid.map((entry) => <article className="client-finance-entry is-paid" key={entry.id}><div><strong>{entry.description}</strong><small>Pago em {entry.paidAt || entry.dueDate}</small></div><b>{entry.amount}</b><em>Pago</em></article>) : <p className="client-finance-empty">Quando houver pagamentos, eles aparecerão aqui.</p>}</section>}
   </section>;
 }
 
