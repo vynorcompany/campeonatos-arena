@@ -9523,3 +9523,24 @@ button {
 .client-finance-comanda a { color: #8ed1ff; font-size: .74rem; font-weight: 750; text-decoration: none; white-space: nowrap; }
 .client-finance-comanda a:hover { text-decoration: underline; }
 @media (max-width: 640px) { .client-finance-entry.client-finance-comanda { grid-template-columns: minmax(0, 1fr) auto; }.client-finance-comanda a { grid-column: 1 / -1; } }
+
+/* Cabeçalho do atleta: marca vetorial e saída visível sem comprimir a conta. */
+.athlete-portal-brand { flex-wrap: wrap; }
+.athlete-portal-wordmark { display: block; width: min(260px, 100%); height: auto; filter: drop-shadow(0 5px 12px rgb(0 0 0 / .22)); }
+.athlete-portal-brand-copy { min-width: min(260px, 100%); }
+.athlete-portal-logout { flex: 0 0 auto; }
+.athlete-portal-logout button { display: inline-flex; min-height: 48px; align-items: center; justify-content: center; padding: 10px 16px; border: 1px solid rgb(133 184 205 / .3); border-radius: 12px; color: #d9f4f5; background: rgb(9 32 52 / .74); font: inherit; font-size: .82rem; font-weight: 800; cursor: pointer; }
+.athlete-portal-logout button:hover { border-color: #66e1bd; color: #fff; background: #134b5d; }
+.athlete-portal-logout button:focus-visible { outline: 2px solid #70f0c6; outline-offset: 3px; }
+.athlete-portal-global-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+@media (max-width: 700px) {
+  .athlete-portal-brand-copy { min-width: 0; }
+  .athlete-portal-wordmark { width: min(235px, calc(100vw - 32px)); }
+  .athlete-portal-user { display: grid; grid-template-columns: 50px minmax(0, 1fr) auto; gap: 8px; }
+  .athlete-portal-user-avatar { grid-column: 1; grid-row: 1; }
+  .athlete-portal-user-copy { grid-column: 2; grid-row: 1; }
+  .athlete-portal-arena-switcher { grid-column: 3; grid-row: 1; margin-left: 0; }
+  .athlete-portal-user .athlete-portal-profile-link { grid-column: 1 / 3; grid-row: 2; justify-content: center; min-height: 40px; }
+  .athlete-portal-user .athlete-portal-logout { grid-column: 3; grid-row: 2; }
+  .athlete-portal-logout button { min-height: 40px; padding: 8px 12px; }
+}
