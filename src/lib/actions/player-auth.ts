@@ -168,3 +168,9 @@ export async function logoutPublicClientAction(formData: FormData) {
   await destroyPublicPlayerSession();
   redirect(`/reservar/${arenaSlug.success ? arenaSlug.data : ""}`);
 }
+
+export async function logoutAthletePortalAction(formData: FormData) {
+  const arenaSlug = z.string().trim().min(1).safeParse(formData.get("arenaSlug"));
+  await destroyPublicPlayerSession();
+  redirect(arenaSlug.success ? `/classificacao/${encodeURIComponent(arenaSlug.data)}` : "/portal");
+}

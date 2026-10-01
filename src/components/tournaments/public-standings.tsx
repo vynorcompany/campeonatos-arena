@@ -13,6 +13,8 @@ import { PublicSuper12 } from "@/components/public-super12";
 import { AthletePortalNotifications } from "@/components/athlete-portal-notifications";
 import { AthletePortalPrefetch } from "@/components/athlete-portal-prefetch";
 import { AthletePortalLoginLayout } from "@/components/athlete-portal-login-layout";
+import { AthletePortalWordmark } from "@/components/athlete-portal-wordmark";
+import { logoutAthletePortalAction } from "@/lib/actions/player-auth";
 import { PublicEventRadar } from "@/components/public-event-radar";
 import { PublicFinanceEntryList } from "@/components/public-finance-entry-list";
 import { RankingCategorySelect } from "@/components/ranking-category-select";
@@ -127,7 +129,8 @@ export function PublicStandings({
           )}
           <div className="athlete-portal-brand-copy">
             <span className="athlete-portal-arena-name">{arena.name}</span>
-            <h1>Portal do Atleta</h1>
+            <h1 className="sr-only">Portal do Atleta</h1>
+            <AthletePortalWordmark />
           </div>
         </div>
         {currentClient ? (
@@ -151,6 +154,7 @@ export function PublicStandings({
               <Link className="athlete-portal-profile-link" href={portalHref("profile")}>
                 Meu perfil
               </Link>
+              <form action={logoutAthletePortalAction} className="athlete-portal-logout"><input type="hidden" name="arenaSlug" value={arena.slug} /><button type="submit">Sair</button></form>
             </div>
             <AthletePortalNotifications arenaSlug={arena.slug} notifications={notifications} />
           </div>
