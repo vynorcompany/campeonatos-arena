@@ -12,6 +12,7 @@ import { PublicDoublesRadar } from "@/components/public-doubles-radar";
 import { PublicSuper12 } from "@/components/public-super12";
 import { AthletePortalNotifications } from "@/components/athlete-portal-notifications";
 import { AthletePortalPrefetch } from "@/components/athlete-portal-prefetch";
+import { AthletePortalLoginLayout } from "@/components/athlete-portal-login-layout";
 import { PublicEventRadar } from "@/components/public-event-radar";
 import { PublicFinanceEntryList } from "@/components/public-finance-entry-list";
 import { RankingCategorySelect } from "@/components/ranking-category-select";
@@ -159,12 +160,7 @@ export function PublicStandings({
   );
 
   if (!currentClient)
-    return (
-      <main className="athlete-portal-page">
-        {publicHeader}
-        <section className="athlete-portal-auth">{authForm}</section>
-      </main>
-    );
+    return <AthletePortalLoginLayout arena={{ name: arena.name, logoUrl: arena.athletePortalLogoUrl || arena.logoUrl }}>{authForm}</AthletePortalLoginLayout>;
 
   const portalVisibility = arena;
   const requestedSection: string =
