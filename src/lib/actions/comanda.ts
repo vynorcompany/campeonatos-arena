@@ -305,7 +305,7 @@ export async function finishComandaAction(formData: FormData) {
       }
     }
     if (remainingCents) {
-      await tx.financialEntry.create({ data: { arenaId: auth.arenaId, saleId: sale.id, type: "INCOME", category: "COMANDAS", description: `Conta a receber da comanda ${comanda.code}`, amountCents: remainingCents, status: "PENDING", dueDate: now } });
+      await tx.financialEntry.create({ data: { arenaId: auth.arenaId, saleId: sale.id, playerId: comanda.playerId, type: "REVENUE", category: "COMANDAS", description: `Conta a receber da comanda ${comanda.code}`, amountCents: remainingCents, status: "PENDING", dueDate: now } });
     }
     if (parsed.data.fiscalDocumentType) {
       if (!parsed.data.payments.length && !creditAppliedCents) throw new Error("Informe um recebimento para emitir o documento fiscal da comanda.");

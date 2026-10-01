@@ -39,7 +39,10 @@ export async function getPublicClientHome(arenaSlug: string, playerId: string) {
     tx.student.findFirst({ where: { arenaId: arena.id, playerId }, select: { remainingClasses: true, subscriptions: { where: { status: "ACTIVE" }, orderBy: { startedAt: "desc" }, take: 1, select: { classesPerMonth: true } }, monthlyBalances: { where: { referenceMonth: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}` }, take: 1, select: { remainingClasses: true } } } }),
     tx.scheduleOccurrence.count({ where: { arenaId: arena.id, startsAt: { gte: now }, status: { not: "CANCELED" }, participants: { some: { playerId } } } }),
     tx.categoryPair.count({ where: { active: true, players: { some: { playerId } }, competition: { format: "LEAGUE", status: "PUBLISHED", category: { tournament: { arenaId: arena.id } } } } }),
-    tx.financialEntry.findMany({ where: { arenaId: arena.id, type: "REVENUE", status: { in: ["PENDING", "OVERDUE"] }, playerId }, select: { id: true, description: true, amountCents: true, dueDate: true, status: true, onlinePaymentUrl: true, onlinePaymentPublishedAt: true, settlements: { select: { amountCents: true, interestCents: true } } } })
+    tx.financialEntry.findMany({ where: { arenaId: arena.id, status: { in: ["PENDING", "OVERDUE"] }, OR: [
+      { playerId, type: "REVENUE" },
+      { type: { in: ["REVENUE", "INCOME"] }, sale: { comanda: { playerId } } },
+    ] }, select: { id: true, description: true, amountCents: true, dueDate: true, status: true, onlinePaymentUrl: true, onlinePaymentPublishedAt: true, settlements: { select: { amountCents: true, interestCents: true } } } })
   ]));
   const today = startOfDay(now);
   const deadline = portalReceivableDeadline(today);
@@ -62,25 +65,34 @@ export async function getPublicClientFinance(arenaSlug: string, playerId: string
   const now = new Date();
   const today = startOfDay(now);
   const deadline = portalReceivableDeadline(today);
-  const entries = await withArenaTransaction(arena.id, (tx) => tx.financialEntry.findMany({
-    where: { arenaId: arena.id, playerId, type: "REVENUE", status: { not: "VOIDED" } },
+  const [entries, openComandas] = await withArenaTransaction(arena.id, (tx) => Promise.all([tx.financialEntry.findMany({
+    where: { arenaId: arena.id, status: { not: "VOIDED" }, OR: [
+      { playerId, type: "REVENUE" },
+      { type: "REVENUE", sale: { comanda: { playerId } } },
+      { type: "INCOME", status: { in: ["PENDING", "OVERDUE"] }, sale: { comanda: { playerId } } },
+    ] },
     orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
     take: 100,
     select: { id: true, description: true, amountCents: true, dueDate: true, status: true, paidAt: true, onlinePaymentUrl: true, source: true, plan: { select: { name: true } }, sale: { select: { code: true, comanda: { select: { code: true, items: { select: { quantity: true, product: { select: { name: true } } } } } } } }, scheduleParticipant: { select: { occurrence: { select: { title: true, startsAt: true, occurrenceCourts: { select: { court: { select: { name: true } } } } } } } }, settlements: { select: { amountCents: true, interestCents: true } } }
-  }));
+  }), tx.comanda.findMany({
+    where: { arenaId: arena.id, playerId, status: "OPEN", items: { some: {} } },
+    orderBy: { openedAt: "desc" },
+    select: { id: true, code: true, items: { select: { totalCents: true } } },
+  })]));
   const rows = entries.map((entry) => {
     const outstandingCents = getOutstandingCents(entry.amountCents, entry.settlements);
-    const overdue = outstandingCents > 0 && (entry.status === "OVERDUE" || Boolean(entry.dueDate && entry.dueDate < today));
+    const overdue = entry.status !== "PAID" && outstandingCents > 0 && (entry.status === "OVERDUE" || Boolean(entry.dueDate && entry.dueDate < today));
     const daysUntilDue = entry.dueDate ? Math.ceil((new Date(entry.dueDate).getTime() - today.getTime()) / 86_400_000) : null;
     const commandItems = entry.sale?.comanda?.items.map((item) => `${item.quantity}× ${item.product.name}`).join(" · ") ?? "";
     const reservation = entry.scheduleParticipant?.occurrence;
     const detail = commandItems ? `Comanda ${entry.sale?.comanda?.code ?? entry.sale?.code ?? ""} · ${commandItems}` : reservation ? `Reserva ${reservation.title} · ${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(reservation.startsAt)}${reservation.occurrenceCourts.length ? ` · ${reservation.occurrenceCourts.map((court) => court.court.name).join(" · ")}` : ""}` : entry.plan?.name ? `Plano ${entry.plan.name}` : entry.description || "Lançamento financeiro";
-    return { id: entry.id, description: entry.description || "Lançamento financeiro", detail, amountCents: outstandingCents, amount: money(outstandingCents || entry.amountCents), dueDate: entry.dueDate ? new Intl.DateTimeFormat("pt-BR").format(entry.dueDate) : "Sem vencimento", paidAt: entry.paidAt ? new Intl.DateTimeFormat("pt-BR").format(entry.paidAt) : "", status: outstandingCents ? overdue ? "overdue" : "open" : "paid", urgency: overdue ? "overdue" : daysUntilDue !== null && daysUntilDue <= 5 ? "soon" : "normal", hasCharge: Boolean(entry.onlinePaymentUrl), paymentUrl: entry.onlinePaymentUrl };
+    return { id: entry.id, description: entry.description || "Lançamento financeiro", detail, amountCents: outstandingCents, amount: money(outstandingCents || entry.amountCents), dueDate: entry.dueDate ? new Intl.DateTimeFormat("pt-BR").format(entry.dueDate) : "Sem vencimento", paidAt: entry.paidAt ? new Intl.DateTimeFormat("pt-BR").format(entry.paidAt) : "", status: entry.status === "PAID" || !outstandingCents ? "paid" : overdue ? "overdue" : "open", urgency: overdue ? "overdue" : daysUntilDue !== null && daysUntilDue <= 5 ? "soon" : "normal", hasCharge: Boolean(entry.onlinePaymentUrl), paymentUrl: entry.onlinePaymentUrl };
   });
   const open = rows.filter((entry) => entry.status === "open" && shouldShowPortalReceivable({ status: entry.status, dueDate: entries.find((source) => source.id === entry.id)?.dueDate ?? null, outstandingCents: entry.amountCents }, today, deadline));
   const overdue = rows.filter((entry) => entry.status === "overdue");
   const paid = rows.filter((entry) => entry.status === "paid").slice(-12).reverse();
-  return { health: overdue.length ? "attention" : open.length ? "upcoming" : "healthy", headline: overdue.length ? "Há um pagamento em aberto para cuidar" : open.length ? "Tudo certo por aqui" : "Está tudo saudável", detail: overdue.length ? "Regularize quando puder para continuar aproveitando a arena sem pendências." : open.length ? "Você tem pagamentos futuros organizados e nenhum valor em atraso." : "Nenhuma pendência financeira no momento. Aproveite a arena!", overdue, open, paid };
+  const comandas = openComandas.map((comanda) => ({ id: comanda.id, code: comanda.code, amount: money(comanda.items.reduce((total, item) => total + item.totalCents, 0)) }));
+  return { health: overdue.length ? "attention" : open.length || comandas.length ? "upcoming" : "healthy", headline: overdue.length ? "Há um pagamento em aberto para cuidar" : open.length || comandas.length ? "Tudo certo por aqui" : "Está tudo saudável", detail: overdue.length ? "Regularize quando puder para continuar aproveitando a arena sem pendências." : open.length || comandas.length ? "Você tem pagamentos futuros organizados e nenhum valor em atraso." : "Nenhuma pendência financeira no momento. Aproveite a arena!", overdue, open, paid, comandas };
 }
 
 export async function getPublicClientComandas(arenaSlug: string, playerId: string) {

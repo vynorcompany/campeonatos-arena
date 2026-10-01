@@ -60,7 +60,7 @@ test("public league panels require a signed-in client", () => {
   const page = readFileSync(resolve(process.cwd(), "src/app/classificacao/[arenaSlug]/page.tsx"), "utf8");
 
   assert.match(standings, /if \(!currentClient\)\s*return/);
-  assert.match(standings, /athlete-portal-auth/);
+  assert.match(standings, /AthletePortalLoginLayout/);
   assert.match(page, /getPublicLeaguePortal\(params\.arenaSlug, currentClient\.playerId, searchParams\?\.leagueCategory\)/);
 });
 
