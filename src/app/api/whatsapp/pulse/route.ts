@@ -9,10 +9,10 @@ export async function GET() {
   const auth = await requireModuleView("support");
   const accountJid = await getActiveWhatsAppAccountJid(auth.arenaId);
   if (!accountJid) return NextResponse.json({ version: "empty" }, { headers: { "cache-control": "no-store" } });
-  const latest = await prisma.whatsAppMessage.findFirst({
-    where: { conversation: { arenaId: auth.arenaId, accountJid } },
-    orderBy: { createdAt: "desc" },
-    select: { id: true, conversationId: true, createdAt: true }
+  const latest = await prisma.whatsAppConversation.findFirst({
+    where: { arenaId: auth.arenaId, accountJid },
+    orderBy: { updatedAt: "desc" },
+    select: { id: true, updatedAt: true }
   });
-  return NextResponse.json({ version: latest ? `${latest.conversationId}:${latest.id}:${latest.createdAt.getTime()}` : "empty" }, { headers: { "cache-control": "no-store, no-cache, max-age=0, must-revalidate" } });
+  return NextResponse.json({ version: latest ? `${latest.id}:${latest.updatedAt.getTime()}` : "empty" }, { headers: { "cache-control": "no-store, no-cache, max-age=0, must-revalidate" } });
 }

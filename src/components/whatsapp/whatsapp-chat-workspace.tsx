@@ -44,7 +44,7 @@ function Avatar({ conversation, size = "" }: { conversation: WhatsAppConversatio
   return <i className={`whatsapp-contact-avatar ${size}`}>{photo ? <img src={photo} alt="" referrerPolicy="no-referrer" /> : initials(conversation.contactName || conversation.contactPhone)}</i>;
 }
 
-export function WhatsAppChatWorkspace({ conversations, connected, clients, slaMinutes }: { conversations: WhatsAppConversation[]; connected: boolean; clients: WhatsAppClient[]; slaMinutes: number }) {
+export function WhatsAppChatWorkspace({ conversations, connected, clients, slaMinutes, initialVersion }: { conversations: WhatsAppConversation[]; connected: boolean; clients: WhatsAppClient[]; slaMinutes: number; initialVersion: string }) {
   const [activeId, setActiveId] = useState(conversations.find((item) => !item.archivedAt)?.id ?? conversations[0]?.id ?? "");
   const [body, setBody] = useState("");
   const [query, setQuery] = useState("");
@@ -83,7 +83,7 @@ export function WhatsAppChatWorkspace({ conversations, connected, clients, slaMi
     setNotice("Áudio anexado. Pressione Enter ou clique em Enviar para enviar.");
   }, [discardAudioDraft]);
   const { recording, level, start: startRecording, stop: stopRecording } = useAudioRecorder({ onReady: onRecorderReady, onError: onRecorderError });
-  useWhatsAppRealtime({ paused: pending || recording });
+  useWhatsAppRealtime({ paused: !connected || pending || recording, initialVersion });
 
   const visible = useMemo(() => conversations.filter((conversation) => {
     const searchMatches = `${conversation.contactName} ${conversation.contactPhone} ${conversation.player?.name ?? ""}`.toLowerCase().includes(query.trim().toLowerCase());
