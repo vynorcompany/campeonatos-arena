@@ -52,3 +52,42 @@ test("sidebar counts only the connected account and clears when the session is r
   assert.equal(queries, queriesBeforeDisconnect);
   assert.equal(conversations[0].unreadCount, 30);
 });
+
+test("live sidebar pulse returns unread totals for the active arena and account, including zero after reset", async () => {
+  let accountJid = "account-a";
+  const rows = [
+    { arenaId: "arena", accountJid: "account-a", unreadCount: 2 },
+    { arenaId: "arena", accountJid: "account-a", unreadCount: 3 },
+    { arenaId: "arena", accountJid: "account-b", unreadCount: 30 },
+    { arenaId: "other", accountJid: "account-a", unreadCount: 90 },
+  ];
+  let queries = 0;
+  const prisma = { whatsAppConversation: {
+    findFirst: async ({ where }: any) => { queries++; assert.deepEqual({ ...where }, { arenaId: "arena", accountJid }); return { id: "latest", updatedAt: new Date(1000) }; },
+    aggregate: async ({ where }: any) => ({ _sum: { unreadCount: rows.filter(row => row.arenaId === where.arenaId && row.accountJid === where.accountJid).reduce((sum, row) => sum + row.unreadCount, 0) } }),
+  } };
+  const source = readFileSync(new URL("../src/app/api/whatsapp/pulse/route.ts", import.meta.url), "utf8");
+  const exports: { GET?: () => Promise<{ data: any; headers: any }> } = {};
+  vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, { exports, require: (name: string) => {
+    if (name === "next/server") return { NextResponse: { json: (data: any, options: any) => ({ data, headers: options.headers }) } };
+    if (name === "@/lib/auth/guards") return { requireModuleView: async (module: string) => { assert.equal(module, "support"); return { arenaId: "arena" }; } };
+    if (name === "@/lib/prisma") return { prisma };
+    if (name === "@/lib/whatsapp-active-account") return { getActiveWhatsAppAccountJid: async () => accountJid };
+    throw new Error(`Unexpected import: ${name}`);
+  } });
+  let result = await exports.GET!();
+  assert.equal(result.data.unreadCount, 5);
+  assert.match(result.headers["cache-control"], /no-store/);
+  rows[0].unreadCount++;
+  assert.equal((await exports.GET!()).data.unreadCount, 6);
+  rows[0].unreadCount = rows[1].unreadCount = 0;
+  assert.equal((await exports.GET!()).data.unreadCount, 0);
+  accountJid = "account-b";
+  result = await exports.GET!();
+  assert.equal(result.data.unreadCount, 30);
+  assert.match(result.data.version, /^account-b:/);
+  accountJid = "";
+  const before = queries;
+  assert.equal((await exports.GET!()).data.unreadCount, 0);
+  assert.equal(queries, before);
+});

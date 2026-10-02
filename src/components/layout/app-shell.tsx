@@ -69,7 +69,7 @@ export function AppShell({
               currentWorkspace="arena"
             />
 
-            <NavLinks canManageUsers={canManageUsers} visibleModules={visibleModules} whatsappUnreadCount={whatsappUnreadCount} />
+            <NavLinks key={activeArenaId} canManageUsers={canManageUsers} visibleModules={visibleModules} whatsappUnreadCount={whatsappUnreadCount} />
           </div>
 
           <div className="sidebar-user sidebar-user-panel">
