@@ -1,15 +1,17 @@
 import { WhatsAppChatWorkspace } from "@/components/whatsapp/whatsapp-chat-workspace";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
+import { normalizeWhatsAppAccountJid } from "@/lib/whatsapp-account";
 
 export default async function WhatsAppPage() {
   const auth = await requireModuleView("support");
-  const [arena, connection, conversations, clients] = await Promise.all([
+  const [arena, connection, clients] = await Promise.all([
     prisma.arena.findUniqueOrThrow({ where: { id: auth.arenaId }, select: { whatsappSlaMinutes: true } }),
-    prisma.whatsAppConnection.findUnique({ where: { arenaId: auth.arenaId }, select: { status: true } }),
-    prisma.whatsAppConversation.findMany({ where: { arenaId: auth.arenaId }, include: { player: { select: { id: true, name: true, phone: true, email: true, photoUrl: true } }, messages: { orderBy: { sentAt: "desc" }, take: 120 } }, orderBy: { lastMessageAt: "desc" }, take: 100 }),
+    prisma.whatsAppConnection.findUnique({ where: { arenaId: auth.arenaId }, select: { status: true, connectedPhone: true } }),
     prisma.player.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true, phone: true, email: true, photoUrl: true }, orderBy: { name: "asc" }, take: 500 })
   ]);
+  const accountJid = connection?.status === "CONNECTED" ? normalizeWhatsAppAccountJid(connection.connectedPhone) : "";
+  const conversations = accountJid ? await prisma.whatsAppConversation.findMany({ where: { arenaId: auth.arenaId, accountJid }, include: { player: { select: { id: true, name: true, phone: true, email: true, photoUrl: true } }, messages: { orderBy: { sentAt: "desc" }, take: 120 } }, orderBy: { lastMessageAt: "desc" }, take: 100 }) : [];
   const serializedConversations = conversations.map((conversation) => ({ ...conversation, contactName: !conversation.remoteJid.endsWith("@g.us") && conversation.player?.name ? conversation.player.name : conversation.contactName, lastMessageAt: conversation.lastMessageAt.toISOString(), archivedAt: conversation.archivedAt?.toISOString() ?? null, slaResolvedAt: conversation.slaResolvedAt?.toISOString() ?? null, messages: conversation.messages.map((message) => ({ ...message, sentAt: message.sentAt.toISOString() })) }));
   return <div className="whatsapp-page"><WhatsAppChatWorkspace connected={connection?.status === "CONNECTED"} slaMinutes={arena.whatsappSlaMinutes} clients={clients} conversations={serializedConversations} /></div>;
 }

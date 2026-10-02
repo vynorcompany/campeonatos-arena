@@ -1932,6 +1932,7 @@ model WhatsAppConnection {
 
 model WhatsAppConversation {
   id            String            @id @default(cuid())
+  accountJid    String            @default("")
   remoteJid     String
   contactName   String            @default("")
   contactPhone  String            @default("")
@@ -1951,7 +1952,7 @@ model WhatsAppConversation {
   player        Player?           @relation(fields: [playerId], references: [id], onDelete: SetNull)
   messages      WhatsAppMessage[]
 
-  @@unique([arenaId, remoteJid])
+  @@unique([arenaId, accountJid, remoteJid])
   @@index([arenaId, unreadCount, lastMessageAt])
   @@index([arenaId, archivedAt, lastMessageAt])
   @@index([playerId])

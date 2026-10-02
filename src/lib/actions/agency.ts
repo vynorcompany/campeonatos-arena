@@ -6,6 +6,7 @@ import { requireAgencyAccess, requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { configureEvolutionWebhook, createEvolutionInstance, createEvolutionInstanceName, createEvolutionInstanceToken, createEvolutionWebhookSecret, enableEvolutionHistorySync, findEvolutionInstance, getEvolutionQrCode, logoutEvolutionInstance } from "@/lib/integrations/evolution/agency";
 import { decryptConnectionSecrets, encryptConnectionSecrets, hashWebhookSecret } from "@/lib/payments/connection-secrets";
+import { normalizeWhatsAppAccountJid } from "@/lib/whatsapp-account";
 
 const systemRoleSchema = z.object({
   userId: z.string().min(1, "Usuário inválido."),
@@ -90,7 +91,8 @@ export async function connectArenaWhatsAppAction(formData: FormData) {
     const qrCodeDataUrl = connected ? existing?.qrCodeDataUrl ?? "" : await getEvolutionQrCode(instanceName, instanceToken).catch(() => createdQr);
     if (!connected && !qrCodeDataUrl) throw new Error("A Evolution não retornou uma imagem QR válida.");
     const encryptedToken = existing?.encryptedToken || encryptConnectionSecrets({ token: instanceToken, webhookSecret });
-    const data = { encryptedToken, webhookSecretHash: existing?.webhookSecretHash || hashWebhookSecret(webhookSecret), qrCodeDataUrl, status: connected ? "CONNECTED" : "AWAITING_SCAN", lastError: "" };
+    const connectedPhone = connected ? normalizeWhatsAppAccountJid(providerInstance?.ownerJid ?? "") : "";
+    const data = { encryptedToken, webhookSecretHash: existing?.webhookSecretHash || hashWebhookSecret(webhookSecret), qrCodeDataUrl, status: connected ? "CONNECTED" : "AWAITING_SCAN", connectedPhone, lastConnectedAt: connected ? (existing?.connectedPhone === connectedPhone ? existing.lastConnectedAt : null) ?? new Date() : existing?.lastConnectedAt ?? null, lastError: "" };
     await prisma.whatsAppConnection.upsert({ where: { arenaId: arena.id }, create: { arenaId: arena.id, instanceName, ...data }, update: data });
     revalidatePath("/arena");
     revalidatePath("/agencia/conexoes");
@@ -99,6 +101,23 @@ export async function connectArenaWhatsAppAction(formData: FormData) {
     if (existing) await prisma.whatsAppConnection.update({ where: { id: existing.id }, data: { lastError: message } });
     return { error: message };
   }
+}
+
+export async function refreshArenaWhatsAppConnectionStatusAction(formData: FormData) {
+  const parsed = whatsappConnectionSchema.safeParse({ arenaId: formData.get("arenaId") });
+  if (!parsed.success) throw new Error("Arena inválida.");
+  await requireWhatsAppConnectionAccess(parsed.data.arenaId);
+  const connection = await prisma.whatsAppConnection.findUnique({ where: { arenaId: parsed.data.arenaId } });
+  if (!connection) return { connected: false };
+  const instance = await findEvolutionInstance(connection.instanceName);
+  if (!instance || !isEvolutionConnected(instance.state)) return { connected: false };
+  const connectedPhone = normalizeWhatsAppAccountJid(instance.ownerJid);
+  if (!connectedPhone) return { connected: false };
+  if (connection.status !== "CONNECTED" || connection.connectedPhone !== connectedPhone) {
+    await prisma.whatsAppConnection.update({ where: { id: connection.id }, data: { status: "CONNECTED", connectedPhone, qrCodeDataUrl: "", lastConnectedAt: connection.connectedPhone === connectedPhone ? connection.lastConnectedAt ?? new Date() : new Date(), lastError: "" } });
+    revalidatePath("/arena");
+  }
+  return { connected: true };
 }
 
 export async function resetArenaWhatsAppSessionAction(formData: FormData) {

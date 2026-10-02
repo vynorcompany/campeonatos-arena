@@ -6,6 +6,7 @@ import { requireModuleEdit, requireModuleView } from "@/lib/auth/guards";
 import { getEvolutionGroupName, getEvolutionProfilePicture, sendEvolutionAudioMessage, sendEvolutionMediaMessage, sendEvolutionTextMessage } from "@/lib/integrations/evolution/client";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
+import { getActiveWhatsAppAccountJid } from "@/lib/whatsapp-active-account";
 import { getArenaWhatsAppConversation, getEvolutionProviderId, persistOutboundWhatsAppMessage } from "@/lib/services/whatsapp-conversation";
 
 const sendSchema = z.object({ conversationId: z.string().min(1), body: z.string().trim().min(1, "Escreva uma mensagem.").max(4096, "A mensagem é muito longa.") });
@@ -14,6 +15,12 @@ const linkSchema = z.object({ conversationId: z.string().min(1), playerId: z.str
 const slaSchema = z.object({ minutes: z.coerce.number().int().min(5, "O SLA mínimo é de 5 minutos.").max(1_440, "O SLA máximo é de 24 horas.") });
 const conversationActionSchema = z.object({ conversationId: z.string().min(1), action: z.enum(["archive", "pin", "unread", "favorite", "list", "clear", "delete", "resolve_sla"]), listName: z.string().trim().max(80).optional() });
 const contactSchema = z.object({ name: z.string().trim().min(3, "Informe o nome do contato."), phone: z.string().trim().min(8, "Informe o telefone do contato.") });
+
+async function activeConversationScope(arenaId: string, conversationId: string) {
+  const accountJid = await getActiveWhatsAppAccountJid(arenaId);
+  if (!accountJid) throw new Error("O WhatsApp da arena não está conectado.");
+  return { id: conversationId, arenaId, accountJid };
+}
 
 export async function sendWhatsAppChatMessageAction(formData: FormData) {
   const auth = await requireModuleEdit("support");
@@ -53,7 +60,8 @@ export async function sendWhatsAppMediaMessageAction(formData: FormData) {
 export async function markWhatsAppConversationReadAction(formData: FormData) {
   const auth = await requireModuleView("support"); const parsed = readSchema.safeParse({ conversationId: formData.get("conversationId") });
   if (!parsed.success) throw new Error("Conversa inválida.");
-  await withArenaTransaction(auth.arenaId, (tx) => tx.whatsAppConversation.updateMany({ where: { id: parsed.data.conversationId, arenaId: auth.arenaId }, data: { unreadCount: 0 } }));
+  const where = await activeConversationScope(auth.arenaId, parsed.data.conversationId);
+  await withArenaTransaction(auth.arenaId, (tx) => tx.whatsAppConversation.updateMany({ where, data: { unreadCount: 0 } }));
   revalidatePath("/whatsapp");
 }
 
@@ -61,8 +69,9 @@ export async function linkWhatsAppConversationToClientAction(formData: FormData)
   const auth = await requireModuleEdit("support");
   const parsed = linkSchema.safeParse({ conversationId: formData.get("conversationId"), playerId: formData.get("playerId") });
   if (!parsed.success) throw new Error("Selecione um cliente válido.");
+  const where = await activeConversationScope(auth.arenaId, parsed.data.conversationId);
   const [conversation, player] = await Promise.all([
-    prisma.whatsAppConversation.findFirst({ where: { id: parsed.data.conversationId, arenaId: auth.arenaId }, select: { id: true } }),
+    prisma.whatsAppConversation.findFirst({ where, select: { id: true } }),
     prisma.player.findFirst({ where: { id: parsed.data.playerId, arenaId: auth.arenaId, active: true }, select: { id: true } })
   ]);
   if (!conversation || !player) throw new Error("Conversa ou cliente não encontrado.");
@@ -82,7 +91,7 @@ export async function updateWhatsAppConversationAction(formData: FormData) {
   const auth = await requireModuleEdit("support");
   const parsed = conversationActionSchema.safeParse({ conversationId: formData.get("conversationId"), action: formData.get("action"), listName: formData.get("listName") || undefined });
   if (!parsed.success) throw new Error("Ação de conversa inválida.");
-  const where = { id: parsed.data.conversationId, arenaId: auth.arenaId };
+  const where = await activeConversationScope(auth.arenaId, parsed.data.conversationId);
   if (parsed.data.action === "delete") {
     const removed = await prisma.whatsAppConversation.deleteMany({ where });
     if (!removed.count) throw new Error("Conversa não encontrada.");
@@ -117,7 +126,8 @@ export async function refreshWhatsAppConversationProfilePhotoAction(formData: Fo
   const auth = await requireModuleView("support");
   const parsed = readSchema.safeParse({ conversationId: formData.get("conversationId") });
   if (!parsed.success) throw new Error("Conversa inválida.");
-  const conversation = await prisma.whatsAppConversation.findFirst({ where: { id: parsed.data.conversationId, arenaId: auth.arenaId }, select: { id: true, remoteJid: true, profilePhotoUrl: true } });
+  const where = await activeConversationScope(auth.arenaId, parsed.data.conversationId);
+  const conversation = await prisma.whatsAppConversation.findFirst({ where, select: { id: true, remoteJid: true, profilePhotoUrl: true } });
   if (!conversation) throw new Error("Conversa não encontrada.");
   const profilePhotoUrl = await getEvolutionProfilePicture(conversation.remoteJid, auth.arenaId);
   if (profilePhotoUrl && profilePhotoUrl !== conversation.profilePhotoUrl) await prisma.whatsAppConversation.update({ where: { id: conversation.id }, data: { profilePhotoUrl } });
@@ -127,7 +137,8 @@ export async function refreshWhatsAppConversationProfilePhotoAction(formData: Fo
 export async function refreshWhatsAppGroupNameAction(formData: FormData) {
   const auth = await requireModuleView("support"); const parsed = readSchema.safeParse({ conversationId: formData.get("conversationId") });
   if (!parsed.success) throw new Error("Conversa inválida.");
-  const conversation = await prisma.whatsAppConversation.findFirst({ where: { id: parsed.data.conversationId, arenaId: auth.arenaId, remoteJid: { endsWith: "@g.us" } }, select: { id: true, remoteJid: true } });
+  const where = await activeConversationScope(auth.arenaId, parsed.data.conversationId);
+  const conversation = await prisma.whatsAppConversation.findFirst({ where: { ...where, remoteJid: { endsWith: "@g.us" } }, select: { id: true, remoteJid: true } });
   if (!conversation) return { name: "" };
   const name = await getEvolutionGroupName(conversation.remoteJid, auth.arenaId);
   if (name) await prisma.whatsAppConversation.update({ where: { id: conversation.id }, data: { contactName: name } });

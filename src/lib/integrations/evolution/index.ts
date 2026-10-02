@@ -33,5 +33,5 @@ export function buildEvolutionTextPayload(phone: string, text: string) {
   const message = text.trim();
   if (!message) throw new Error("Mensagem vazia.");
 
-  return { number, textMessage: { text: message } };
+  return { number, text: message };
 }
