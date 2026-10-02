@@ -10,6 +10,7 @@ export type WhatsAppMessage = {
   id: string;
   direction: string;
   body: string;
+  senderName?: string;
   mediaType: string;
   mediaMimeType: string;
   mediaUrl: string;
