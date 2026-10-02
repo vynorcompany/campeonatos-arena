@@ -4,6 +4,8 @@ import { Prisma } from "@prisma/client";
 import { getEvolutionGroupName, getEvolutionProfilePicture } from "@/lib/integrations/evolution/client";
 import { hashWebhookSecret } from "@/lib/payments/connection-secrets";
 import { prisma } from "@/lib/prisma";
+import { normalizeWhatsAppAccountJid } from "@/lib/whatsapp-account";
+import { findEvolutionInstance } from "@/lib/integrations/evolution/agency";
 
 function safeEqual(left: string, right: string) {
   const a = Buffer.from(left);
@@ -66,10 +68,18 @@ export async function POST(request: NextRequest) {
   if (event.includes("CONNECTION") || state) {
     const connected = ["OPEN", "CONNECTED"].includes(state);
     const disconnected = ["CLOSE", "CLOSED", "DISCONNECTED"].includes(state);
-    await prisma.whatsAppConnection.update({ where: { id: connection.id }, data: { status: connected ? "CONNECTED" : disconnected ? "DISCONNECTED" : connection.status, connectedPhone: String(nestedValue(record, "wuid") ?? nestedValue(record, "phone") ?? connection.connectedPhone), qrCodeDataUrl: connected ? "" : connection.qrCodeDataUrl, lastConnectedAt: connected ? new Date() : connection.lastConnectedAt } });
+    const eventPhone = normalizeWhatsAppAccountJid(String(nestedValue(record, "wuid") ?? nestedValue(record, "phone") ?? ""));
+    const providerPhone = connected && !eventPhone ? normalizeWhatsAppAccountJid((await findEvolutionInstance(instanceName).catch(() => null))?.ownerJid ?? "") : "";
+    const connectedPhone = connected ? eventPhone || providerPhone : disconnected ? "" : connection.connectedPhone;
+    await prisma.whatsAppConnection.update({ where: { id: connection.id }, data: { status: connected ? "CONNECTED" : disconnected ? "DISCONNECTED" : connection.status, connectedPhone, qrCodeDataUrl: connected ? "" : connection.qrCodeDataUrl, lastConnectedAt: connected && connectedPhone !== connection.connectedPhone ? new Date() : connection.lastConnectedAt } });
   }
 
   if (event.includes("MESSAGE")) {
+    const currentConnection = await prisma.whatsAppConnection.findUnique({ where: { id: connection.id }, select: { connectedPhone: true, status: true } });
+    const accountJid = normalizeWhatsAppAccountJid(currentConnection?.connectedPhone ?? "");
+    // Never associate history with a tenant inbox until the linked WhatsApp
+    // account is known. A new phone must not inherit the previous phone's chats.
+    if (currentConnection?.status !== "CONNECTED" || !accountJid) return NextResponse.json({ received: true, ignored: "account-not-confirmed" });
     const data = toRecord(record.data ?? record);
     const key = toRecord(data.key ?? record.key);
     const remoteJid = String(key.remoteJid ?? data.remoteJid ?? "");
@@ -89,8 +99,9 @@ export async function POST(request: NextRequest) {
       const resolvedGroupName = isGroup ? await getEvolutionGroupName(remoteJid, connection.arenaId).catch(() => "") : "";
       const contactName = isGroup ? (resolvedGroupName || eventGroupName) : senderName;
       const photoFromEvent = String(data.profilePictureUrl ?? data.profilePicUrl ?? "");
-      const existing = await prisma.whatsAppConversation.findUnique({ where: { arenaId_remoteJid: { arenaId: connection.arenaId, remoteJid } } });
-      const conversation = await prisma.whatsAppConversation.upsert({ where: { arenaId_remoteJid: { arenaId: connection.arenaId, remoteJid } }, create: { arenaId: connection.arenaId, remoteJid, contactPhone: phone, contactName: contactName || (isGroup ? "Grupo do WhatsApp" : phone), profilePhotoUrl: photoFromEvent, unreadCount: fromMe ? 0 : 1, lastMessageAt: sentAt }, update: { ...(!fromMe && contactName ? { contactName } : {}), ...(!isGroup && photoFromEvent ? { profilePhotoUrl: photoFromEvent } : {}), ...(fromMe ? { unreadCount: 0 } : { unreadCount: { increment: 1 } }), lastMessageAt: sentAt } });
+      const conversationKey = { arenaId: connection.arenaId, accountJid, remoteJid };
+      const existing = await prisma.whatsAppConversation.findUnique({ where: { arenaId_accountJid_remoteJid: conversationKey } });
+      const conversation = await prisma.whatsAppConversation.upsert({ where: { arenaId_accountJid_remoteJid: conversationKey }, create: { ...conversationKey, contactPhone: phone, contactName: contactName || (isGroup ? "Grupo do WhatsApp" : phone), profilePhotoUrl: photoFromEvent, unreadCount: fromMe ? 0 : 1, lastMessageAt: sentAt }, update: { ...(!fromMe && contactName ? { contactName } : {}), ...(!isGroup && photoFromEvent ? { profilePhotoUrl: photoFromEvent } : {}), ...(fromMe ? { unreadCount: 0 } : { unreadCount: { increment: 1 } }), lastMessageAt: sentAt } });
       if (!conversation.profilePhotoUrl && !existing?.profilePhotoUrl && !remoteJid.endsWith("@g.us")) {
         const profilePhotoUrl = await getEvolutionProfilePicture(remoteJid, connection.arenaId).catch(() => "");
         if (profilePhotoUrl) await prisma.whatsAppConversation.update({ where: { id: conversation.id }, data: { profilePhotoUrl } });

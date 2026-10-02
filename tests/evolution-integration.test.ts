@@ -16,7 +16,7 @@ test("requires every Evolution setting before enabling the integration", () => {
 test("builds the official text-message payload using a normalized Brazilian phone", () => {
   assert.deepEqual(buildEvolutionTextPayload("(47) 99999-1234", "Reserva confirmada."), {
     number: "5547999991234",
-    textMessage: { text: "Reserva confirmada." }
+    text: "Reserva confirmada."
   });
 });
 

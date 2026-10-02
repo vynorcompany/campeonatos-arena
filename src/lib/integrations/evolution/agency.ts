@@ -62,7 +62,8 @@ function normalizeInstance(value: unknown) {
   const instance = record.instance && typeof record.instance === "object" ? record.instance as Record<string, unknown> : record;
   const name = String(instance.instanceName ?? instance.name ?? record.instanceName ?? record.name ?? "");
   const state = String(instance.connectionStatus ?? instance.status ?? instance.state ?? record.connectionStatus ?? record.status ?? record.state ?? "").toUpperCase();
-  return name ? { name, state } : null;
+  const ownerJid = String(instance.ownerJid ?? record.ownerJid ?? "");
+  return name ? { name, state, ownerJid } : null;
 }
 
 export async function findEvolutionInstance(instanceName: string) {
@@ -85,7 +86,7 @@ export async function findEvolutionInstance(instanceName: string) {
       : [];
   return candidates
     .map(normalizeInstance)
-    .find((instance): instance is { name: string; state: string } => Boolean(instance && instance.name === instanceName)) ?? null;
+    .find((instance): instance is { name: string; state: string; ownerJid: string } => Boolean(instance && instance.name === instanceName)) ?? null;
 }
 
 export async function createEvolutionInstance(input: { instanceName: string; instanceToken: string; webhookSecret: string }) {

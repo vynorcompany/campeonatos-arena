@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireModuleView } from "@/lib/auth/guards";
 import { getEvolutionMediaDataUrl } from "@/lib/integrations/evolution/client";
 import { prisma } from "@/lib/prisma";
+import { getActiveWhatsAppAccountJid } from "@/lib/whatsapp-active-account";
 
 function dataUrlResponse(dataUrl: string, mimeType: string) {
   const comma = dataUrl.indexOf(",");
@@ -18,9 +19,11 @@ function dataUrlResponse(dataUrl: string, mimeType: string) {
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ messageId: string }> }) {
   const auth = await requireModuleView("support");
+  const accountJid = await getActiveWhatsAppAccountJid(auth.arenaId);
+  if (!accountJid) return NextResponse.json({ error: "Mídia não encontrada." }, { status: 404 });
   const { messageId } = await params;
   const message = await prisma.whatsAppMessage.findFirst({
-    where: { id: messageId, conversation: { arenaId: auth.arenaId } },
+    where: { id: messageId, conversation: { arenaId: auth.arenaId, accountJid } },
     select: { providerId: true, providerPayload: true, mediaMimeType: true, mediaUrl: true }
   });
   if (!message) return NextResponse.json({ error: "Mídia não encontrada." }, { status: 404 });
