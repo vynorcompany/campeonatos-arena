@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 type IconName =
   | "dashboard"
@@ -427,19 +427,15 @@ export function NavLinks({ canManageUsers, visibleModules, whatsappUnreadCount }
                 <div className="nav-link-block" key={item.href}>
                   <div className="nav-parent-row">
                     {item.children?.length ? (
-                      <button
-                        className={`nav-link nav-link-parent${isActive ? " nav-link-active" : ""}`}
-                        type="button"
-                        aria-label={isOpen ? `Fechar ${item.label}` : `Abrir ${item.label}`}
-                        aria-expanded={isOpen}
-                        onClick={() => toggleItem(item.href)}
-                      >
-                        <span className="nav-icon" aria-hidden="true">{item.icon ? <NavIcon name={item.icon} /> : null}</span>
-                        <span>{item.label}</span>{item.badge ? <b className="nav-unread-badge">{item.badge > 99 ? "99+" : item.badge}</b> : null}
-                            <span className={`nav-chevron${isOpen ? " nav-chevron-open" : ""}`} aria-hidden="true">
-                              <NavIcon name="chevron" />
-                            </span>
-                      </button>
+                      <div className="nav-expandable-row">
+                        <Link href={item.href} className={`nav-link nav-link-destination${isActive ? " nav-link-active" : ""}`}>
+                          <span className="nav-icon" aria-hidden="true">{item.icon ? <NavIcon name={item.icon} /> : null}</span>
+                          <span>{item.label}</span>{item.badge ? <b className="nav-unread-badge">{item.badge > 99 ? "99+" : item.badge}</b> : null}
+                        </Link>
+                        <button className="nav-toggle nav-expand-toggle" type="button" aria-label={isOpen ? `Fechar submenu ${item.label}` : `Abrir submenu ${item.label}`} aria-expanded={isOpen} onClick={() => toggleItem(item.href)}>
+                          <span className={`nav-chevron${isOpen ? " nav-chevron-open" : ""}`} aria-hidden="true"><NavIcon name="chevron" /></span>
+                        </button>
+                      </div>
                     ) : (
                       <Link href={item.href} className={`nav-link${isActive ? " nav-link-active" : ""}${item.href === "/pdv/caixa" ? " nav-link-cash" : ""}`}>
                         <span className="nav-icon" aria-hidden="true">{item.icon ? <NavIcon name={item.icon} /> : null}</span>
@@ -451,9 +447,10 @@ export function NavLinks({ canManageUsers, visibleModules, whatsappUnreadCount }
                     <div className={`nav-submenu${isOpen ? " nav-submenu-open" : ""}`}>
                       {item.children.map((child) => (
                         child.children?.length ? <div className="nav-submenu-block" key={child.href}>
-                          <button type="button" className={`nav-sub-link nav-sub-link-parent${itemIsActive(child) ? " nav-sub-link-active" : ""}`} onClick={() => toggleItem(child.href)} aria-expanded={openItems.has(child.href)}>
-                                <span>{child.label}</span><span className={`nav-chevron${openItems.has(child.href) ? " nav-chevron-open" : ""}`} aria-hidden="true"><NavIcon name="chevron" /></span>
-                          </button>
+                          <div className="nav-expandable-row nav-expandable-row-nested">
+                            <Link href={child.href} className={`nav-sub-link nav-sub-link-destination${itemIsActive(child) ? " nav-sub-link-active" : ""}`}>{child.label}</Link>
+                            <button type="button" className="nav-toggle nav-expand-toggle" aria-label={openItems.has(child.href) ? `Fechar submenu ${child.label}` : `Abrir submenu ${child.label}`} onClick={() => toggleItem(child.href)} aria-expanded={openItems.has(child.href)}><span className={`nav-chevron${openItems.has(child.href) ? " nav-chevron-open" : ""}`} aria-hidden="true"><NavIcon name="chevron" /></span></button>
+                          </div>
                           <div className={`nav-submenu nav-submenu-nested${openItems.has(child.href) ? " nav-submenu-open" : ""}`}>
                             {child.children.map((grandchild) => <Link key={grandchild.href} href={grandchild.href} className={`nav-sub-link nav-sub-link-nested${isActivePath(pathname, grandchild.href) ? " nav-sub-link-active" : ""}`}>{grandchild.label}</Link>)}
                           </div>

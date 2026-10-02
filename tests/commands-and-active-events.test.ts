@@ -26,14 +26,14 @@ test("clients can be opened from the list and edited in a modal", () => {
   assert.match(workspace, /Salvar alterações/);
 });
 
-test("sidebar parent sections only expand their submenus", () => {
+test("sidebar parent sections navigate while their chevrons expand submenus", () => {
   const navigation = readFileSync(resolve(process.cwd(), "src/components/layout/nav-links.tsx"), "utf8");
   const shell = readFileSync(resolve(process.cwd(), "src/components/layout/app-shell.tsx"), "utf8");
   const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
 
-  assert.match(navigation, /className=\{`nav-link nav-link-parent/);
+  assert.match(navigation, /nav-link-destination/);
   assert.match(navigation, /onClick=\{\(\) => toggleItem\(item\.href\)\}/);
-  assert.match(navigation, /nav-link-parent/);
+  assert.match(navigation, /nav-expand-toggle/);
   assert.match(navigation, /const activeExpandableItems/);
   assert.match(navigation, /const isOpen = openItems\.has\(item\.href\)/);
   assert.match(navigation, /\}, \[pathname\]\);/);

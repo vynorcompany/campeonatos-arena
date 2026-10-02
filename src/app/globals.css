@@ -6716,6 +6716,13 @@ button {
   font-weight: 800;
 }
 
+.nav-expandable-row { display: flex; align-items: stretch; min-width: 0; gap: 2px; }
+.nav-link-destination, .nav-sub-link-destination { flex: 1 1 auto; min-width: 0; }
+.nav-expand-toggle { flex: 0 0 34px; width: 34px; min-height: 36px; padding: 0; cursor: pointer; }
+.nav-expand-toggle .nav-chevron { display: grid; place-items: center; transition: transform 160ms var(--ease-standard); }
+.nav-expand-toggle .nav-chevron-open { transform: rotate(90deg); }
+.nav-expandable-row-nested .nav-expand-toggle { flex-basis: 30px; width: 30px; min-height: 30px; }
+
 .agenda-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .agenda-day-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .agenda-day-controls form { display: flex; gap: 8px; margin-left: auto; }
