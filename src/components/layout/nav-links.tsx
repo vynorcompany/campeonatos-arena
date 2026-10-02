@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useEffect, useState } from "react";
+import { useWhatsAppUnreadCount } from "@/components/whatsapp/use-whatsapp-unread-count";
 
 type IconName =
   | "dashboard"
@@ -171,13 +172,14 @@ export function NavLinks({ canManageUsers, visibleModules, whatsappUnreadCount }
   const pathname = usePathname() ?? "";
   const openItemsStorageKey = "arena:sidebar-open-items";
   const canSee = (module: string) => visibleModules.includes(module);
+  const liveWhatsAppUnreadCount = useWhatsAppUnreadCount(whatsappUnreadCount, canSee("support"));
   const navigationGroups: NavGroup[] = [
     {
       title: "Início",
       links: [
         { href: "/painel", label: "Dashboard", icon: "dashboard" },
         ...(canManageUsers ? [{ href: "/assistente", label: "Assistente", icon: "support" as IconName }] : []),
-        ...(canSee("support") ? [{ href: "/whatsapp", label: "WhatsApp", icon: "whatsapp" as IconName, badge: whatsappUnreadCount }] : []),
+        ...(canSee("support") ? [{ href: "/whatsapp", label: "WhatsApp", icon: "whatsapp" as IconName, badge: liveWhatsAppUnreadCount }] : []),
         ...(canSee("pos") ? [{ href: "/pdv/caixa", label: "Gerenciar Caixa", icon: "cash" as IconName }] : [])
       ]
     },
@@ -430,7 +432,7 @@ export function NavLinks({ canManageUsers, visibleModules, whatsappUnreadCount }
                       <div className="nav-expandable-row">
                         <Link href={item.href} className={`nav-link nav-link-destination${isActive ? " nav-link-active" : ""}`}>
                           <span className="nav-icon" aria-hidden="true">{item.icon ? <NavIcon name={item.icon} /> : null}</span>
-                          <span>{item.label}</span>{item.badge ? <b className="nav-unread-badge">{item.badge > 99 ? "99+" : item.badge}</b> : null}
+                          <span>{item.label}</span>{item.badge ? <b className="nav-unread-badge tw:ml-auto tw:min-w-[17px] tw:rounded-full tw:bg-[#d83932] tw:px-[5px] tw:py-px tw:text-center tw:text-[.62rem] tw:leading-[1.45] tw:text-white" role="status" aria-label={`${item.badge} mensagens não lidas`}>{item.badge > 99 ? "99+" : item.badge}</b> : null}
                         </Link>
                         <button className="nav-toggle nav-expand-toggle" type="button" aria-label={isOpen ? `Fechar submenu ${item.label}` : `Abrir submenu ${item.label}`} aria-expanded={isOpen} onClick={() => toggleItem(item.href)}>
                           <span className={`nav-chevron${isOpen ? " nav-chevron-open" : ""}`} aria-hidden="true"><NavIcon name="chevron" /></span>
@@ -439,7 +441,7 @@ export function NavLinks({ canManageUsers, visibleModules, whatsappUnreadCount }
                     ) : (
                       <Link href={item.href} className={`nav-link${isActive ? " nav-link-active" : ""}${item.href === "/pdv/caixa" ? " nav-link-cash" : ""}`}>
                         <span className="nav-icon" aria-hidden="true">{item.icon ? <NavIcon name={item.icon} /> : null}</span>
-                        <span>{item.label}</span>{item.badge ? <b className="nav-unread-badge">{item.badge > 99 ? "99+" : item.badge}</b> : null}
+                        <span>{item.label}</span>{item.badge ? <b className="nav-unread-badge tw:ml-auto tw:min-w-[17px] tw:rounded-full tw:bg-[#d83932] tw:px-[5px] tw:py-px tw:text-center tw:text-[.62rem] tw:leading-[1.45] tw:text-white" role="status" aria-label={`${item.badge} mensagens não lidas`}>{item.badge > 99 ? "99+" : item.badge}</b> : null}
                       </Link>
                     )}
                   </div>
