@@ -97,6 +97,7 @@ export async function updateWhatsAppConversationAction(formData: FormData) {
     if (!removed.count) throw new Error("Conversa não encontrada.");
   } else if (parsed.data.action === "clear") {
     await prisma.whatsAppMessage.deleteMany({ where: { conversation: where } });
+    await prisma.whatsAppConversation.updateMany({ where, data: { updatedAt: new Date() } });
   } else if (parsed.data.action === "resolve_sla") {
     const updated = await prisma.whatsAppConversation.updateMany({ where, data: { slaResolvedAt: new Date(), unreadCount: 0 } });
     if (!updated.count) throw new Error("Conversa não encontrada.");
