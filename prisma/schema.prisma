@@ -1996,7 +1996,6 @@ model CashRegister {
   arena               Arena          @relation(fields: [arenaId], references: [id], onDelete: Cascade)
   movements           CashMovement[]
 
-  @@unique([arenaId, referenceDate])
   @@index([arenaId, status, referenceDate])
 }
 

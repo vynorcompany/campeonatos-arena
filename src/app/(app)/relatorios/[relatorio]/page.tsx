@@ -26,7 +26,7 @@ export default async function ReportPage(
   const auth = await requireModuleView("finance");const report = reports[params.relatorio as keyof typeof reports];if (!report) notFound();const { start, end } = range(searchParams?.inicio, searchParams?.fim);const period = { gte: start, lte: end };
   let metrics: React.ReactNode = null;let supplementary: React.ReactNode = null;let headers: string[] = [];let rows: { key: string; values: string[] }[] = [];
   if (params.relatorio === "caixa") {
-    const registers = await prisma.cashRegister.findMany({ where: { arenaId: auth.arenaId, referenceDate: period }, include: { movements: { orderBy: { createdAt: "asc" } } }, orderBy: { referenceDate: "desc" }, take: 250 });
+    const registers = await prisma.cashRegister.findMany({ where: { arenaId: auth.arenaId, referenceDate: period }, include: { movements: { orderBy: { createdAt: "asc" } } }, orderBy: [{ referenceDate: "desc" }, { openedAt: "desc" }, { id: "desc" }], take: 250 });
     const movements = registers.flatMap((register) => register.movements);
     const closed = registers.filter((register) => register.status === "CLOSED");
     metrics = <div className="report-metrics"><Metric label="Caixas no período" value={registers.length} /><Metric label="Movimentos no período" value={movements.length} /><Metric label="Diferença de fechamento" value={money(closed.reduce((sum, register) => sum + (register.differenceCents ?? 0), 0))} /></div>;
