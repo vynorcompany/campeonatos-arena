@@ -3,11 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireModuleEdit, requireModuleView } from "@/lib/auth/guards";
-import { getEvolutionGroupName, getEvolutionProfilePicture, sendEvolutionAudioMessage, sendEvolutionMediaMessage, sendEvolutionTextMessage } from "@/lib/integrations/evolution/client";
+import { getEvolutionGroupName, getEvolutionProfilePicture, sendEvolutionAudioMessage, sendEvolutionMediaMessage, sendEvolutionTextMessage, sendEvolutionReaction, type EvolutionQuotedMessage } from "@/lib/integrations/evolution/client";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 import { getActiveWhatsAppAccountJid } from "@/lib/whatsapp-active-account";
-import { getArenaWhatsAppConversation, getEvolutionProviderId, persistOutboundWhatsAppMessage } from "@/lib/services/whatsapp-conversation";
+import { getArenaWhatsAppConversation, getEvolutionProviderId, persistOutboundWhatsAppMessage, persistWhatsAppReaction } from "@/lib/services/whatsapp-conversation";
+import { reactionEmojis } from "@/lib/whatsapp-message-data";
 
 const sendSchema = z.object({ conversationId: z.string().min(1), body: z.string().trim().min(1, "Escreva uma mensagem.").max(4096, "A mensagem é muito longa.") });
 const readSchema = z.object({ conversationId: z.string().min(1) });
@@ -22,14 +23,42 @@ async function activeConversationScope(arenaId: string, conversationId: string) 
   return { id: conversationId, arenaId, accountJid };
 }
 
+async function replyContext(arenaId: string, conversationId: string, formData: FormData) {
+  const replyToId = String(formData.get("replyToId") ?? "");
+  if (!replyToId) return { quoted: undefined, metadata: {} };
+  const scope = await activeConversationScope(arenaId, conversationId);
+  const target = await prisma.whatsAppMessage.findFirst({ where: { id: replyToId, conversation: scope }, include: { conversation: { select: { remoteJid: true, contactName: true } } } });
+  if (!target) throw new Error("A mensagem respondida não pertence a esta conversa.");
+  const quoted: EvolutionQuotedMessage = {
+    key: { id: target.providerId, remoteJid: target.conversation.remoteJid, fromMe: target.direction === "OUTBOUND", ...(target.participantJid ? { participant: target.participantJid } : {}) },
+    message: target.providerPayload && typeof target.providerPayload === "object" && !Array.isArray(target.providerPayload) ? target.providerPayload as Record<string, unknown> : { conversation: target.body },
+  };
+  return { quoted, metadata: { quotedProviderId: target.providerId, quotedBody: target.body, quotedAuthor: target.direction === "OUTBOUND" ? target.senderName || "Você" : target.conversation.contactName || "Contato" } };
+}
+
+export async function reactToWhatsAppMessageAction(formData: FormData) {
+  const auth = await requireModuleEdit("support");
+  const parsed = z.object({ messageId: z.string().min(1), emoji: z.union([z.enum(reactionEmojis), z.literal("")]) }).safeParse({ messageId: formData.get("messageId"), emoji: formData.get("emoji") });
+  if (!parsed.success) throw new Error("Reação inválida.");
+  const accountJid = await getActiveWhatsAppAccountJid(auth.arenaId);
+  if (!accountJid) throw new Error("O WhatsApp da arena não está conectado.");
+  const target = await prisma.whatsAppMessage.findFirst({ where: { id: parsed.data.messageId, conversation: { arenaId: auth.arenaId, accountJid } }, include: { conversation: { select: { remoteJid: true } } } });
+  if (!target) throw new Error("Mensagem não encontrada nesta conta.");
+  await sendEvolutionReaction({ id: target.providerId, remoteJid: target.conversation.remoteJid, fromMe: target.direction === "OUTBOUND", ...(target.participantJid ? { participant: target.participantJid } : {}) }, parsed.data.emoji, auth.arenaId);
+  const reactions = await persistWhatsAppReaction(auth.arenaId, accountJid, target.providerId, accountJid, parsed.data.emoji);
+  revalidatePath("/whatsapp");
+  return { messageId: target.id, reactions: reactions ?? [] };
+}
+
 export async function sendWhatsAppChatMessageAction(formData: FormData) {
   const auth = await requireModuleEdit("support");
   const parsed = sendSchema.safeParse({ conversationId: formData.get("conversationId"), body: formData.get("body") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   const conversation = await getArenaWhatsAppConversation(auth.arenaId, parsed.data.conversationId);
   if (!conversation) throw new Error("Conversa não encontrada.");
-  const delivery = await sendEvolutionTextMessage(conversation.contactPhone || conversation.remoteJid.replace(/@.*$/, ""), parsed.data.body, auth.arenaId);
-  return persistOutboundWhatsAppMessage(auth.arenaId, conversation.id, { senderUserId: auth.userId, senderName: auth.userName, providerId: getEvolutionProviderId(delivery), body: parsed.data.body });
+  const reply = await replyContext(auth.arenaId, conversation.id, formData);
+  const delivery = await sendEvolutionTextMessage(conversation.remoteJid?.endsWith("@g.us") ? conversation.remoteJid : conversation.contactPhone || conversation.remoteJid.replace(/@.*$/, ""), parsed.data.body, auth.arenaId, reply.quoted);
+  return persistOutboundWhatsAppMessage(auth.arenaId, conversation.id, { ...reply.metadata, senderUserId: auth.userId, senderName: auth.userName, providerId: getEvolutionProviderId(delivery), body: parsed.data.body });
 }
 
 export async function sendWhatsAppAudioMessageAction(formData: FormData) {
@@ -42,8 +71,9 @@ export async function sendWhatsAppAudioMessageAction(formData: FormData) {
   if (!conversation) throw new Error("Conversa não encontrada.");
   const mimeType = audio.type || "audio/webm";
   const dataUrl = `data:${mimeType};base64,${Buffer.from(await audio.arrayBuffer()).toString("base64")}`;
-  const delivery = await sendEvolutionAudioMessage(conversation.contactPhone || conversation.remoteJid.replace(/@.*$/, ""), dataUrl, auth.arenaId);
-  return persistOutboundWhatsAppMessage(auth.arenaId, conversation.id, { senderUserId: auth.userId, senderName: auth.userName, providerId: getEvolutionProviderId(delivery), body: "Áudio", mediaType: "AUDIO", mediaMimeType: mimeType, mediaUrl: dataUrl });
+  const reply = await replyContext(auth.arenaId, conversation.id, formData);
+  const delivery = await sendEvolutionAudioMessage(conversation.remoteJid?.endsWith("@g.us") ? conversation.remoteJid : conversation.contactPhone || conversation.remoteJid.replace(/@.*$/, ""), dataUrl, auth.arenaId, reply.quoted);
+  return persistOutboundWhatsAppMessage(auth.arenaId, conversation.id, { ...reply.metadata, senderUserId: auth.userId, senderName: auth.userName, providerId: getEvolutionProviderId(delivery), body: "Áudio", mediaType: "AUDIO", mediaMimeType: mimeType, mediaUrl: dataUrl });
 }
 
 export async function sendWhatsAppMediaMessageAction(formData: FormData) {
@@ -53,8 +83,9 @@ export async function sendWhatsAppMediaMessageAction(formData: FormData) {
   const mediaType = file.type.startsWith("image/") ? "image" : file.type === "application/pdf" ? "document" : null;
   if (!mediaType) throw new Error("Envie uma imagem ou PDF.");
   const conversation = await getArenaWhatsAppConversation(auth.arenaId, conversationId); if (!conversation) throw new Error("Conversa não encontrada.");
-  const dataUrl = `data:${file.type};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}`; const delivery = await sendEvolutionMediaMessage(conversation.contactPhone || conversation.remoteJid.replace(/@.*$/, ""), dataUrl, mediaType, file.name, file.type, auth.arenaId);
-  return persistOutboundWhatsAppMessage(auth.arenaId, conversation.id, { senderUserId: auth.userId, senderName: auth.userName, providerId: getEvolutionProviderId(delivery), body: mediaType === "image" ? "Imagem" : "Documento", mediaType: mediaType === "image" ? "IMAGE" : "DOCUMENT", mediaMimeType: file.type, mediaUrl: dataUrl });
+  const reply = await replyContext(auth.arenaId, conversation.id, formData);
+  const dataUrl = `data:${file.type};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}`; const delivery = await sendEvolutionMediaMessage(conversation.remoteJid?.endsWith("@g.us") ? conversation.remoteJid : conversation.contactPhone || conversation.remoteJid.replace(/@.*$/, ""), dataUrl, mediaType, file.name, file.type, auth.arenaId, reply.quoted);
+  return persistOutboundWhatsAppMessage(auth.arenaId, conversation.id, { ...reply.metadata, senderUserId: auth.userId, senderName: auth.userName, providerId: getEvolutionProviderId(delivery), body: mediaType === "image" ? "Imagem" : "Documento", mediaType: mediaType === "image" ? "IMAGE" : "DOCUMENT", mediaMimeType: file.type, mediaUrl: dataUrl });
 }
 
 export async function markWhatsAppConversationReadAction(formData: FormData) {

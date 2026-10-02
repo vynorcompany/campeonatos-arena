@@ -1,12 +1,16 @@
 import crypto from "node:crypto";
 import { withArenaTransaction } from "@/lib/rls";
 import { getActiveWhatsAppAccountJid } from "@/lib/whatsapp-active-account";
+import { readWhatsAppReactions, withWhatsAppReaction } from "@/lib/whatsapp-message-data";
 
 export type OutboundWhatsAppMessage = {
   providerId: string;
   body: string;
   senderUserId: string;
   senderName: string;
+  quotedProviderId?: string;
+  quotedBody?: string;
+  quotedAuthor?: string;
   mediaType?: string;
   mediaMimeType?: string;
   mediaUrl?: string;
@@ -53,6 +57,9 @@ export async function persistOutboundWhatsAppMessage(
         body: message.body,
         senderUserId: message.senderUserId,
         senderName: message.senderName,
+        quotedProviderId: message.quotedProviderId ?? "",
+        quotedBody: message.quotedBody ?? "",
+        quotedAuthor: message.quotedAuthor ?? "",
         mediaType: message.mediaType ?? "",
         mediaMimeType: message.mediaMimeType ?? "",
         mediaUrl: message.mediaUrl ?? "",
@@ -63,6 +70,9 @@ export async function persistOutboundWhatsAppMessage(
         body: message.body,
         senderUserId: message.senderUserId,
         senderName: message.senderName,
+        quotedProviderId: message.quotedProviderId ?? "",
+        quotedBody: message.quotedBody ?? "",
+        quotedAuthor: message.quotedAuthor ?? "",
         mediaType: message.mediaType ?? "",
         mediaMimeType: message.mediaMimeType ?? "",
         mediaUrl: message.mediaUrl ?? "",
@@ -77,10 +87,27 @@ export async function persistOutboundWhatsAppMessage(
       direction: stored.direction,
       body: stored.body,
       senderName: stored.senderName,
+      quotedProviderId: stored.quotedProviderId,
+      quotedBody: stored.quotedBody,
+      quotedAuthor: stored.quotedAuthor,
+      reactions: readWhatsAppReactions(stored.reactions),
       mediaType: stored.mediaType,
       mediaMimeType: stored.mediaMimeType,
       mediaUrl: stored.mediaUrl,
       sentAt: stored.sentAt.toISOString(),
     };
+  });
+}
+
+export async function persistWhatsAppReaction(arenaId: string, accountJid: string, providerId: string, actorJid: string, emoji: string) {
+  return withArenaTransaction(arenaId, async (tx) => {
+    const target = await tx.whatsAppMessage.findFirst({ where: { providerId, conversation: { arenaId, accountJid } }, select: { id: true, conversationId: true } });
+    if (!target) return null;
+    await tx.$queryRaw`SELECT "id" FROM "WhatsAppMessage" WHERE "id" = ${target.id} FOR UPDATE`;
+    const message = await tx.whatsAppMessage.findUniqueOrThrow({ where: { id: target.id }, select: { reactions: true } });
+    const reactions = withWhatsAppReaction(message.reactions, actorJid, emoji);
+    await tx.whatsAppMessage.update({ where: { id: target.id }, data: { reactions } });
+    await tx.whatsAppConversation.update({ where: { id: target.conversationId }, data: { updatedAt: new Date() } });
+    return reactions;
   });
 }

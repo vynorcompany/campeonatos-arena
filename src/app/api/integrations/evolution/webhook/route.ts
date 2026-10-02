@@ -6,6 +6,7 @@ import { hashWebhookSecret } from "@/lib/payments/connection-secrets";
 import { prisma } from "@/lib/prisma";
 import { normalizeWhatsAppAccountJid } from "@/lib/whatsapp-account";
 import { findEvolutionInstance } from "@/lib/integrations/evolution/agency";
+import { persistWhatsAppReaction } from "@/lib/services/whatsapp-conversation";
 
 function safeEqual(left: string, right: string) {
   const a = Buffer.from(left);
@@ -86,6 +87,13 @@ export async function POST(request: NextRequest) {
     const fromMe = Boolean(key.fromMe ?? data.fromMe);
     const providerId = String(key.id ?? data.id ?? "");
     const message = toRecord(data.message ?? record.message);
+    const reaction = toRecord(message.reactionMessage);
+    if (Object.keys(reaction).length) {
+      const reactionKey = toRecord(reaction.key);
+      const actorJid = fromMe ? accountJid : String(key.participant ?? data.participant ?? remoteJid);
+      if (reactionKey.id && actorJid) await persistWhatsAppReaction(connection.arenaId, accountJid, String(reactionKey.id), actorJid, String(reaction.text ?? ""));
+      return NextResponse.json({ received: true });
+    }
     if (remoteJid && providerId && !remoteJid.endsWith("@broadcast")) {
       const media = mediaDetails(message);
       const isGroup = remoteJid.endsWith("@g.us");
@@ -100,13 +108,20 @@ export async function POST(request: NextRequest) {
       const contactName = isGroup ? (resolvedGroupName || eventGroupName) : senderName;
       const photoFromEvent = String(data.profilePictureUrl ?? data.profilePicUrl ?? "");
       const conversationKey = { arenaId: connection.arenaId, accountJid, remoteJid };
+      const content = [message.extendedTextMessage, message.imageMessage, message.audioMessage, message.videoMessage, message.documentMessage, message.stickerMessage].map(toRecord).find((value) => value.contextInfo);
+      const context = toRecord(content?.contextInfo);
+      const quotedProviderId = String(context.stanzaId ?? "");
+      const quotedMessage = toRecord(context.quotedMessage);
+      const original = quotedProviderId ? await prisma.whatsAppMessage.findFirst({ where: { providerId: quotedProviderId, conversation: conversationKey }, select: { body: true, direction: true, senderName: true } }) : null;
+      const quotedBody = original?.body ?? (Object.keys(quotedMessage).length ? messageBody(quotedMessage, mediaDetails(quotedMessage)) : "");
+      const quotedAuthor = original?.direction === "OUTBOUND" ? original.senderName || "Você" : quotedProviderId ? "Contato" : "";
       const existing = await prisma.whatsAppConversation.findUnique({ where: { arenaId_accountJid_remoteJid: conversationKey } });
       const conversation = await prisma.whatsAppConversation.upsert({ where: { arenaId_accountJid_remoteJid: conversationKey }, create: { ...conversationKey, contactPhone: phone, contactName: contactName || (isGroup ? "Grupo do WhatsApp" : phone), profilePhotoUrl: photoFromEvent, unreadCount: fromMe ? 0 : 1, lastMessageAt: sentAt }, update: { ...(!fromMe && contactName ? { contactName } : {}), ...(!isGroup && photoFromEvent ? { profilePhotoUrl: photoFromEvent } : {}), ...(fromMe ? { unreadCount: 0 } : { unreadCount: { increment: 1 } }), lastMessageAt: sentAt } });
       if (!conversation.profilePhotoUrl && !existing?.profilePhotoUrl && !remoteJid.endsWith("@g.us")) {
         const profilePhotoUrl = await getEvolutionProfilePicture(remoteJid, connection.arenaId).catch(() => "");
         if (profilePhotoUrl) await prisma.whatsAppConversation.update({ where: { id: conversation.id }, data: { profilePhotoUrl } });
       }
-      await prisma.whatsAppMessage.upsert({ where: { providerId }, create: { providerId, conversationId: conversation.id, direction: fromMe ? "OUTBOUND" : "INBOUND", body, mediaType: media.type, mediaMimeType: media.mimeType, mediaUrl: media.url, providerPayload: message as Prisma.InputJsonValue, sentAt }, update: {} });
+      await prisma.whatsAppMessage.upsert({ where: { providerId }, create: { providerId, conversationId: conversation.id, direction: fromMe ? "OUTBOUND" : "INBOUND", body, participantJid: String(key.participant ?? data.participant ?? ""), quotedProviderId, quotedBody, quotedAuthor, mediaType: media.type, mediaMimeType: media.mimeType, mediaUrl: media.url, providerPayload: message as Prisma.InputJsonValue, sentAt }, update: {} });
     }
   }
   return NextResponse.json({ received: true, arenaId: connection.arenaId });

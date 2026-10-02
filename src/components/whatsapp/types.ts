@@ -11,6 +11,10 @@ export type WhatsAppMessage = {
   direction: string;
   body: string;
   senderName?: string;
+  quotedProviderId?: string;
+  quotedBody?: string;
+  quotedAuthor?: string;
+  reactions?: { actorJid: string; emoji: string }[];
   mediaType: string;
   mediaMimeType: string;
   mediaUrl: string;

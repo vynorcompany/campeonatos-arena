@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { OperationalSubmenuList } from "@/components/operational-submenu-list";
 import { SectionCard } from "@/components/section-card";
 import { requireModuleView } from "@/lib/auth/guards";
 import { getReceivedRevenueCents } from "@/lib/finance/dashboard";
@@ -77,16 +77,7 @@ export default async function FinancePage() {
         </div>
       </div>
 
-      <SectionCard title="Áreas financeiras" description="Cada rotina financeira agora tem sua própria página.">
-        <div className="finance-shortcut-grid">
-          {shortcuts.map(([label, href, description]) => (
-            <Link href={href} className="finance-shortcut" key={href}>
-              <strong>{label}</strong>
-              <span>{description}</span>
-            </Link>
-          ))}
-        </div>
-      </SectionCard>
+      <OperationalSubmenuList ariaLabel="Áreas financeiras" items={shortcuts.map(([label, href, description]) => ({ label, href, description }))} />
 
       <SectionCard title="Últimos lançamentos" description="Movimentações financeiras mais recentes.">
         <div className="simple-list">

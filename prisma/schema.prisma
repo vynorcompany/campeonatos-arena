@@ -1969,6 +1969,11 @@ model WhatsAppMessage {
   providerPayload Json?
   senderUserId   String               @default("")
   senderName     String               @default("")
+  participantJid String               @default("")
+  quotedProviderId String             @default("")
+  quotedBody     String               @default("")
+  quotedAuthor   String               @default("")
+  reactions      Json                 @default("[]")
   sentAt         DateTime             @default(now())
   readAt         DateTime?
   createdAt      DateTime             @default(now())

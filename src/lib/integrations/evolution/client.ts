@@ -10,7 +10,10 @@ function getEvolutionConfig() {
   return { apiUrl: env.evolutionApiUrl.replace(/\/$/, ""), apiKey: env.evolutionApiKey, instanceName: env.evolutionInstanceName };
 }
 
-export async function sendEvolutionTextMessage(phone: string, text: string, arenaId?: string) {
+export type EvolutionMessageKey = { id: string; remoteJid: string; fromMe: boolean; participant?: string };
+export type EvolutionQuotedMessage = { key: EvolutionMessageKey; message: Record<string, unknown> };
+
+export async function sendEvolutionTextMessage(phone: string, text: string, arenaId?: string, quoted?: EvolutionQuotedMessage) {
   const connection = arenaId ? await prisma.whatsAppConnection.findUnique({ where: { arenaId } }) : null;
   if (arenaId && (!connection || connection.status !== "CONNECTED" || !connection.encryptedToken)) throw new Error("O WhatsApp desta arena ainda não está conectado.");
   const config = getEvolutionConfig();
@@ -20,7 +23,7 @@ export async function sendEvolutionTextMessage(phone: string, text: string, aren
   const send = (apiKey: string) => fetch(`${config.apiUrl}/message/sendText/${encodeURIComponent(instanceName)}`, {
     method: "POST",
     headers: { apikey: apiKey, "content-type": "application/json" },
-    body: JSON.stringify(buildEvolutionTextPayload(phone, text)),
+    body: JSON.stringify({ ...buildEvolutionTextPayload(phone, text), ...(phone.endsWith("@g.us") ? { number: phone } : {}), ...(quoted ? { quoted } : {}) }),
     cache: "no-store"
   });
   // Evolution v2 usa a chave global da instalação; o fallback só ocorre em
@@ -37,27 +40,39 @@ export async function sendEvolutionTextMessage(phone: string, text: string, aren
   return response.json() as Promise<unknown>;
 }
 
-export async function sendEvolutionAudioMessage(phone: string, audioDataUrl: string, arenaId: string) {
+export async function sendEvolutionAudioMessage(phone: string, audioDataUrl: string, arenaId: string, quoted?: EvolutionQuotedMessage) {
   const connection = await prisma.whatsAppConnection.findUnique({ where: { arenaId } });
   if (!connection || connection.status !== "CONNECTED") throw new Error("O WhatsApp desta arena ainda não está conectado.");
   const config = getEvolutionConfig();
   const digits = phone.replace(/\D/g, "");
   const number = digits.startsWith("55") ? digits : `55${digits}`;
   const response = await fetch(`${config.apiUrl}/message/sendWhatsAppAudio/${encodeURIComponent(connection.instanceName)}`, {
-    method: "POST", headers: { apikey: config.apiKey, "content-type": "application/json" }, body: JSON.stringify({ number, audio: audioDataUrl }), cache: "no-store"
+    method: "POST", headers: { apikey: config.apiKey, "content-type": "application/json" }, body: JSON.stringify({ number: phone.endsWith("@g.us") ? phone : number, audio: audioDataUrl, ...(quoted ? { quoted } : {}) }), cache: "no-store"
   });
   if (!response.ok) throw new Error(`A Evolution recusou o envio do áudio (${response.status}).`);
   return response.json().catch(() => ({})) as Promise<unknown>;
 }
 
-export async function sendEvolutionMediaMessage(phone: string, mediaDataUrl: string, mediaType: "image" | "document", fileName: string, mimeType: string, arenaId: string) {
+export async function sendEvolutionMediaMessage(phone: string, mediaDataUrl: string, mediaType: "image" | "document", fileName: string, mimeType: string, arenaId: string, quoted?: EvolutionQuotedMessage) {
   const connection = await prisma.whatsAppConnection.findUnique({ where: { arenaId } });
   if (!connection || connection.status !== "CONNECTED") throw new Error("O WhatsApp desta arena ainda não está conectado.");
   const config = getEvolutionConfig(); const digits = phone.replace(/\D/g, ""); const number = digits.startsWith("55") ? digits : `55${digits}`;
-  const send = (media: string) => fetch(`${config.apiUrl}/message/sendMedia/${encodeURIComponent(connection.instanceName)}`, { method: "POST", headers: { apikey: config.apiKey, "content-type": "application/json" }, body: JSON.stringify({ number, mediatype: mediaType, media, fileName, mimetype: mimeType, caption: "" }), cache: "no-store" });
+  const send = (media: string) => fetch(`${config.apiUrl}/message/sendMedia/${encodeURIComponent(connection.instanceName)}`, { method: "POST", headers: { apikey: config.apiKey, "content-type": "application/json" }, body: JSON.stringify({ number: phone.endsWith("@g.us") ? phone : number, mediatype: mediaType, media, fileName, mimetype: mimeType, caption: "", ...(quoted ? { quoted } : {}) }), cache: "no-store" });
   let response = await send(mediaDataUrl);
   if (!response.ok && mediaDataUrl.includes(",")) response = await send(mediaDataUrl.slice(mediaDataUrl.indexOf(",") + 1));
   if (!response.ok) { const detail = (await response.text().catch(() => "")).slice(0, 180); throw new Error(`A Evolution recusou o envio do anexo (${response.status})${detail ? `: ${detail}` : "."}`); }
+  return response.json().catch(() => ({})) as Promise<unknown>;
+}
+
+export async function sendEvolutionReaction(key: EvolutionMessageKey, reaction: string, arenaId: string) {
+  const connection = await prisma.whatsAppConnection.findUnique({ where: { arenaId } });
+  if (!connection || connection.status !== "CONNECTED") throw new Error("O WhatsApp desta arena ainda não está conectado.");
+  const config = getEvolutionConfig();
+  const response = await fetch(`${config.apiUrl}/message/sendReaction/${encodeURIComponent(connection.instanceName)}`, {
+    method: "POST", headers: { apikey: config.apiKey, "content-type": "application/json" },
+    body: JSON.stringify({ key, reaction }), cache: "no-store",
+  });
+  if (!response.ok) throw new Error(`A Evolution recusou a reação (${response.status}).`);
   return response.json().catch(() => ({})) as Promise<unknown>;
 }
 

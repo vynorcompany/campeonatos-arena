@@ -2,6 +2,7 @@ import { WhatsAppChatWorkspace } from "@/components/whatsapp/whatsapp-chat-works
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { normalizeWhatsAppAccountJid } from "@/lib/whatsapp-account";
+import { readWhatsAppReactions } from "@/lib/whatsapp-message-data";
 
 export default async function WhatsAppPage() {
   const auth = await requireModuleView("support");
@@ -22,7 +23,7 @@ export default async function WhatsAppPage() {
         player: { select: { id: true, name: true, phone: true, email: true, photoUrl: true } },
         messages: {
           orderBy: { sentAt: "desc" }, take: 120,
-          select: { id: true, direction: true, body: true, senderName: true, mediaType: true, mediaMimeType: true, mediaUrl: true, sentAt: true },
+          select: { id: true, direction: true, body: true, senderName: true, quotedProviderId: true, quotedBody: true, quotedAuthor: true, reactions: true, mediaType: true, mediaMimeType: true, mediaUrl: true, sentAt: true },
         },
       },
       orderBy: { lastMessageAt: "desc" }, take: 100,
@@ -33,7 +34,7 @@ export default async function WhatsAppPage() {
       select: { id: true, updatedAt: true },
     }),
   ]) : [[], null];
-  const serializedConversations = conversations.map((conversation) => ({ ...conversation, contactName: !conversation.remoteJid.endsWith("@g.us") && conversation.player?.name ? conversation.player.name : conversation.contactName, lastMessageAt: conversation.lastMessageAt.toISOString(), archivedAt: conversation.archivedAt?.toISOString() ?? null, slaResolvedAt: conversation.slaResolvedAt?.toISOString() ?? null, messages: conversation.messages.map((message) => ({ ...message, sentAt: message.sentAt.toISOString() })) }));
+  const serializedConversations = conversations.map((conversation) => ({ ...conversation, contactName: !conversation.remoteJid.endsWith("@g.us") && conversation.player?.name ? conversation.player.name : conversation.contactName, lastMessageAt: conversation.lastMessageAt.toISOString(), archivedAt: conversation.archivedAt?.toISOString() ?? null, slaResolvedAt: conversation.slaResolvedAt?.toISOString() ?? null, messages: conversation.messages.map((message) => ({ ...message, reactions: readWhatsAppReactions(message.reactions), sentAt: message.sentAt.toISOString() })) }));
   const initialVersion = latestUpdate ? `${latestUpdate.id}:${latestUpdate.updatedAt.getTime()}` : "empty";
-  return <div className="whatsapp-page"><WhatsAppChatWorkspace currentUserName={auth.userName} connected={connection?.status === "CONNECTED"} initialVersion={initialVersion} slaMinutes={arena.whatsappSlaMinutes} clients={clients} conversations={serializedConversations} /></div>;
+  return <div className="whatsapp-page"><WhatsAppChatWorkspace currentAccountJid={accountJid} currentUserName={auth.userName} connected={connection?.status === "CONNECTED"} initialVersion={initialVersion} slaMinutes={arena.whatsappSlaMinutes} clients={clients} conversations={serializedConversations} /></div>;
 }
