@@ -10,3 +10,13 @@ export async function getActiveWhatsAppAccountJid(arenaId: string) {
   });
   return connection?.status === "CONNECTED" ? normalizeWhatsAppAccountJid(connection.connectedPhone) : "";
 }
+
+export async function getActiveWhatsAppUnreadCount(arenaId: string) {
+  const accountJid = await getActiveWhatsAppAccountJid(arenaId);
+  if (!accountJid) return 0;
+  const result = await prisma.whatsAppConversation.aggregate({
+    where: { arenaId, accountJid },
+    _sum: { unreadCount: true },
+  });
+  return result._sum.unreadCount ?? 0;
+}

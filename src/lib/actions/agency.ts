@@ -94,6 +94,7 @@ export async function connectArenaWhatsAppAction(formData: FormData) {
     const connectedPhone = connected ? normalizeWhatsAppAccountJid(providerInstance?.ownerJid ?? "") : "";
     const data = { encryptedToken, webhookSecretHash: existing?.webhookSecretHash || hashWebhookSecret(webhookSecret), qrCodeDataUrl, status: connected ? "CONNECTED" : "AWAITING_SCAN", connectedPhone, lastConnectedAt: connected ? (existing?.connectedPhone === connectedPhone ? existing.lastConnectedAt : null) ?? new Date() : existing?.lastConnectedAt ?? null, lastError: "" };
     await prisma.whatsAppConnection.upsert({ where: { arenaId: arena.id }, create: { arenaId: arena.id, instanceName, ...data }, update: data });
+    revalidatePath("/", "layout");
     revalidatePath("/arena");
     revalidatePath("/agencia/conexoes");
   } catch (error) {
@@ -115,6 +116,7 @@ export async function refreshArenaWhatsAppConnectionStatusAction(formData: FormD
   if (!connectedPhone) return { connected: false };
   if (connection.status !== "CONNECTED" || connection.connectedPhone !== connectedPhone) {
     await prisma.whatsAppConnection.update({ where: { id: connection.id }, data: { status: "CONNECTED", connectedPhone, qrCodeDataUrl: "", lastConnectedAt: connection.connectedPhone === connectedPhone ? connection.lastConnectedAt ?? new Date() : new Date(), lastError: "" } });
+    revalidatePath("/", "layout");
     revalidatePath("/arena");
   }
   return { connected: true };
@@ -154,6 +156,7 @@ export async function resetArenaWhatsAppSessionAction(formData: FormData) {
     });
     if (!qrCodeDataUrl) throw new Error("A Evolution não retornou uma imagem QR válida.");
     await prisma.whatsAppConnection.update({ where: { id: connection.id }, data: { encryptedToken: storedSecrets ? connection.encryptedToken : encryptConnectionSecrets({ token: instanceToken, webhookSecret }), webhookSecretHash: storedSecrets ? connection.webhookSecretHash : hashWebhookSecret(webhookSecret), qrCodeDataUrl, status: "AWAITING_SCAN", connectedPhone: "", lastConnectedAt: null, lastError: "" } });
+    revalidatePath("/", "layout");
     revalidatePath("/arena");
     revalidatePath("/agencia/conexoes");
   } catch (error) {

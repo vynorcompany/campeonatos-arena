@@ -63,6 +63,7 @@ export async function markWhatsAppConversationReadAction(formData: FormData) {
   const where = await activeConversationScope(auth.arenaId, parsed.data.conversationId);
   await withArenaTransaction(auth.arenaId, (tx) => tx.whatsAppConversation.updateMany({ where, data: { unreadCount: 0 } }));
   revalidatePath("/whatsapp");
+  revalidatePath("/", "layout");
 }
 
 export async function linkWhatsAppConversationToClientAction(formData: FormData) {
@@ -112,6 +113,7 @@ export async function updateWhatsAppConversationAction(formData: FormData) {
     await prisma.whatsAppConversation.update({ where: { id: parsed.data.conversationId }, data });
   }
   revalidatePath("/whatsapp");
+  revalidatePath("/", "layout");
 }
 
 export async function createWhatsAppContactAction(formData: FormData) {
