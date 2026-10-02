@@ -7,10 +7,11 @@
 .overviewCopy p { margin: 0; color: #63778d; font-size: .83rem; line-height: 1.45; }
 .shortcuts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .shortcuts a { white-space: nowrap; }
-.status { display: inline-flex; align-items: center; gap: 7px; width: fit-content; padding: 5px 10px; border: 1px solid #dbe4ed; border-radius: 999px; color: #5c6c7d; background: #f3f6f9; font-size: .72rem; font-weight: 700; }
-.status > span { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: #91a2b3; }
-.open { border-color: #bde8d2; color: #087b50; background: #ebfaf1; }
-.open > span { background: #18ac70; }
+.status { display: inline-flex; align-items: center; gap: 9px; width: fit-content; min-height: 38px; padding: 8px 16px; border: 2px solid; border-radius: 999px; font-size: .9rem; font-weight: 800; line-height: 1.2; }
+.status > span { width: 10px; height: 10px; flex: 0 0 10px; border-radius: 50%; background: currentColor; }
+.open { border-color: #087b50; color: #fff; background: #087b50; }
+.closed { border-color: #b5362e; color: #fff; background: #b5362e; }
+.notOpened { border-color: #9a6500; color: #684300; background: #fff0c2; }
 .summaryGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
 .summaryGrid article { display: grid; align-content: center; gap: 8px; min-width: 0; min-height: 94px; padding: 16px 18px; border: 1px solid #dce7f1; border-radius: 11px; background: #f9fbfe; }
 .summaryGrid span { color: #60758a; font-size: .74rem; }

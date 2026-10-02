@@ -25,9 +25,8 @@ export async function openCashRegisterAction(formData: FormData) {
   const openingAmountCents = cents(opening.data);
   const openingNotes = String(formData.get("openingNotes") ?? "").trim().slice(0, 240);
   await withArenaTransaction(auth.arenaId, async (tx) => {
-    const existing = await tx.cashRegister.findUnique({ where: { arenaId_referenceDate: { arenaId: auth.arenaId, referenceDate: today() } } });
-    if (existing?.status === "OPEN") throw new Error("Já existe um caixa aberto para hoje.");
-    if (existing) throw new Error("O caixa de hoje já foi encerrado. O próximo caixa poderá ser aberto amanhã.");
+    const existing = await tx.cashRegister.findFirst({ where: { arenaId: auth.arenaId, referenceDate: today(), status: "OPEN" } });
+    if (existing) throw new Error("Já existe um caixa aberto para hoje.");
     await tx.cashRegister.create({ data: { arenaId: auth.arenaId, referenceDate: today(), openingAmountCents, expectedAmountCents: openingAmountCents, openingNotes, openedByName: auth.userName } });
   });
   refresh();
