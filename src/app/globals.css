@@ -1575,6 +1575,10 @@ button {
   min-height: 38px;
 }
 
+.whatsapp-message-meta { display: flex; align-items: baseline; justify-content: flex-end; flex-wrap: wrap; gap: 4px 10px; margin-top: 5px; }
+.whatsapp-message-meta > span { color: #526b60; font-size: .65rem; line-height: 1.4; overflow-wrap: anywhere; }
+.whatsapp-message-thread .whatsapp-message-meta time { margin-top: 0; flex-shrink: 0; }
+
 .pill {
   display: inline-flex;
   align-items: center;

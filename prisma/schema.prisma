@@ -1967,6 +1967,8 @@ model WhatsAppMessage {
   mediaMimeType  String               @default("")
   mediaUrl       String               @default("")
   providerPayload Json?
+  senderUserId   String               @default("")
+  senderName     String               @default("")
   sentAt         DateTime             @default(now())
   readAt         DateTime?
   createdAt      DateTime             @default(now())

@@ -29,7 +29,7 @@ export async function sendWhatsAppChatMessageAction(formData: FormData) {
   const conversation = await getArenaWhatsAppConversation(auth.arenaId, parsed.data.conversationId);
   if (!conversation) throw new Error("Conversa não encontrada.");
   const delivery = await sendEvolutionTextMessage(conversation.contactPhone || conversation.remoteJid.replace(/@.*$/, ""), parsed.data.body, auth.arenaId);
-  return persistOutboundWhatsAppMessage(auth.arenaId, conversation.id, { providerId: getEvolutionProviderId(delivery), body: parsed.data.body });
+  return persistOutboundWhatsAppMessage(auth.arenaId, conversation.id, { senderUserId: auth.userId, senderName: auth.userName, providerId: getEvolutionProviderId(delivery), body: parsed.data.body });
 }
 
 export async function sendWhatsAppAudioMessageAction(formData: FormData) {
@@ -43,7 +43,7 @@ export async function sendWhatsAppAudioMessageAction(formData: FormData) {
   const mimeType = audio.type || "audio/webm";
   const dataUrl = `data:${mimeType};base64,${Buffer.from(await audio.arrayBuffer()).toString("base64")}`;
   const delivery = await sendEvolutionAudioMessage(conversation.contactPhone || conversation.remoteJid.replace(/@.*$/, ""), dataUrl, auth.arenaId);
-  return persistOutboundWhatsAppMessage(auth.arenaId, conversation.id, { providerId: getEvolutionProviderId(delivery), body: "Áudio", mediaType: "AUDIO", mediaMimeType: mimeType, mediaUrl: dataUrl });
+  return persistOutboundWhatsAppMessage(auth.arenaId, conversation.id, { senderUserId: auth.userId, senderName: auth.userName, providerId: getEvolutionProviderId(delivery), body: "Áudio", mediaType: "AUDIO", mediaMimeType: mimeType, mediaUrl: dataUrl });
 }
 
 export async function sendWhatsAppMediaMessageAction(formData: FormData) {
@@ -54,7 +54,7 @@ export async function sendWhatsAppMediaMessageAction(formData: FormData) {
   if (!mediaType) throw new Error("Envie uma imagem ou PDF.");
   const conversation = await getArenaWhatsAppConversation(auth.arenaId, conversationId); if (!conversation) throw new Error("Conversa não encontrada.");
   const dataUrl = `data:${file.type};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}`; const delivery = await sendEvolutionMediaMessage(conversation.contactPhone || conversation.remoteJid.replace(/@.*$/, ""), dataUrl, mediaType, file.name, file.type, auth.arenaId);
-  return persistOutboundWhatsAppMessage(auth.arenaId, conversation.id, { providerId: getEvolutionProviderId(delivery), body: mediaType === "image" ? "Imagem" : "Documento", mediaType: mediaType === "image" ? "IMAGE" : "DOCUMENT", mediaMimeType: file.type, mediaUrl: dataUrl });
+  return persistOutboundWhatsAppMessage(auth.arenaId, conversation.id, { senderUserId: auth.userId, senderName: auth.userName, providerId: getEvolutionProviderId(delivery), body: mediaType === "image" ? "Imagem" : "Documento", mediaType: mediaType === "image" ? "IMAGE" : "DOCUMENT", mediaMimeType: file.type, mediaUrl: dataUrl });
 }
 
 export async function markWhatsAppConversationReadAction(formData: FormData) {

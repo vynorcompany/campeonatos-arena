@@ -1,0 +1,3 @@
+ALTER TABLE "WhatsAppMessage"
+ADD COLUMN "senderUserId" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "senderName" TEXT NOT NULL DEFAULT '';

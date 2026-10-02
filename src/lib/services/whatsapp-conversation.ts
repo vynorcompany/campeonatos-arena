@@ -5,6 +5,8 @@ import { getActiveWhatsAppAccountJid } from "@/lib/whatsapp-active-account";
 export type OutboundWhatsAppMessage = {
   providerId: string;
   body: string;
+  senderUserId: string;
+  senderName: string;
   mediaType?: string;
   mediaMimeType?: string;
   mediaUrl?: string;
@@ -49,6 +51,8 @@ export async function persistOutboundWhatsAppMessage(
         conversationId,
         direction: "OUTBOUND",
         body: message.body,
+        senderUserId: message.senderUserId,
+        senderName: message.senderName,
         mediaType: message.mediaType ?? "",
         mediaMimeType: message.mediaMimeType ?? "",
         mediaUrl: message.mediaUrl ?? "",
@@ -57,6 +61,8 @@ export async function persistOutboundWhatsAppMessage(
       update: {
         direction: "OUTBOUND",
         body: message.body,
+        senderUserId: message.senderUserId,
+        senderName: message.senderName,
         mediaType: message.mediaType ?? "",
         mediaMimeType: message.mediaMimeType ?? "",
         mediaUrl: message.mediaUrl ?? "",
@@ -70,6 +76,7 @@ export async function persistOutboundWhatsAppMessage(
       id: stored.id,
       direction: stored.direction,
       body: stored.body,
+      senderName: stored.senderName,
       mediaType: stored.mediaType,
       mediaMimeType: stored.mediaMimeType,
       mediaUrl: stored.mediaUrl,
