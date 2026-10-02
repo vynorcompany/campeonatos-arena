@@ -1,0 +1,6 @@
+ALTER TABLE "WhatsAppMessage"
+ADD COLUMN "participantJid" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "quotedProviderId" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "quotedBody" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "quotedAuthor" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "reactions" JSONB NOT NULL DEFAULT '[]';
