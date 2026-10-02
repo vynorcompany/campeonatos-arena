@@ -161,6 +161,7 @@ export function WhatsAppChatWorkspace({ conversations, connected, clients, slaMi
   };
   const sendText = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (pending || recording) return;
     if (audioDraft) { void sendAudio(); return; }
     if (!active || !body.trim()) return;
     const text = body.trim();
@@ -233,7 +234,12 @@ export function WhatsAppChatWorkspace({ conversations, connected, clients, slaMi
     <main className="whatsapp-chat-main">{active ? <>
       <header><div><Avatar conversation={active} size="is-header" /><span><strong>{active.contactName || active.player?.name || formatWhatsAppPhone(active.contactPhone)}</strong><small>{formatWhatsAppPhone(active.contactPhone)}</small></span></div></header>
       <div className="whatsapp-message-thread">{activeMessages.map((message) => <article key={message.id} className={message.direction === "OUTBOUND" ? "outbound" : "inbound"}>{message.mediaType === "IMAGE" ? <img className="whatsapp-message-image" src={`/api/whatsapp/media/${message.id}`} alt={message.body === "Imagem" ? "Imagem enviada pelo WhatsApp" : message.body} onClick={(event) => setSelectedImage(event.currentTarget.currentSrc || event.currentTarget.src)} /> : null}{message.mediaType === "AUDIO" ? <audio className="whatsapp-message-audio" controls preload="metadata"><source src={`/api/whatsapp/media/${message.id}`} type={message.mediaMimeType || "audio/ogg"} />Seu navegador não suporta áudio.</audio> : null}{message.mediaType === "VIDEO" ? <video className="whatsapp-message-video" controls preload="metadata"><source src={`/api/whatsapp/media/${message.id}`} type={message.mediaMimeType || "video/mp4"} /></video> : null}{message.mediaType === "DOCUMENT" ? <a className="whatsapp-message-document" href={`/api/whatsapp/media/${message.id}`} target="_blank" rel="noreferrer">Abrir documento</a> : null}{message.body && !["Imagem", "Áudio", "Vídeo", "Documento", "Figurinha"].includes(message.body) ? <p>{message.body}</p> : null}<time>{detailTime(message.sentAt)}</time></article>)}</div>
-      <form className="whatsapp-composer" onSubmit={sendText}>
+      <form className="whatsapp-composer" onSubmit={sendText} onKeyDown={(event) => {
+        if (event.target instanceof HTMLTextAreaElement && event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229) {
+          event.preventDefault();
+          if (!event.repeat) event.currentTarget.requestSubmit();
+        }
+      }}>
         <input ref={fileInput} type="file" accept="image/*,.pdf" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) uploadFile(file); }} />
         <button type="button" className="whatsapp-composer-icon" title="Anexar imagem ou PDF" aria-label="Anexar imagem ou PDF" onClick={() => fileInput.current?.click()}><WhatsAppIcon name="paperclip" size={20} /></button>
         <button type="button" className={`whatsapp-composer-icon whatsapp-record-button ${recording ? "is-recording" : ""}`} title={recording ? "Parar gravação" : "Gravar áudio"} aria-label={recording ? "Parar gravação" : "Gravar áudio"} onClick={() => recording ? stopRecording() : void startRecording()}><WhatsAppIcon name="microphone" /></button>
