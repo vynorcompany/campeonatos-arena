@@ -18,7 +18,7 @@ import {
 } from "@/lib/actions/whatsapp-chat";
 import { normalizeBrazilianPhone } from "@/lib/phone";
 import { WhatsAppIcon, type WhatsAppIconName } from "./whatsapp-icons";
-import { formatWhatsAppPhone, initials, type WhatsAppClient, type WhatsAppConversation, type WhatsAppFilter, type WhatsAppMessage } from "./types";
+import { formatWhatsAppPhone, whatsAppConversationName, initials, type WhatsAppClient, type WhatsAppConversation, type WhatsAppFilter, type WhatsAppMessage } from "./types";
 import { useAudioRecorder } from "./use-audio-recorder";
 import { useWhatsAppRealtime } from "./use-whatsapp-realtime";
 import { WhatsAppMessageBubble } from "./whatsapp-message-bubble";
@@ -47,7 +47,13 @@ function Avatar({ conversation, size = "", onExpand, withinButton = false }: { c
   return <i className={cx(`${viewStyles.whatsapp_contact_avatar} ${size}`)}>{photo ? <img className={cx(onExpand ? "whatsapp-photo-expandable" : undefined)} src={photo} alt={`Foto de ${conversation.contactName || "contato"}`} referrerPolicy="no-referrer" role={onExpand && !withinButton ? "button" : undefined} tabIndex={onExpand && !withinButton ? 0 : undefined} aria-label={onExpand && !withinButton ? "Ampliar foto do contato" : undefined} onClick={(event) => { event.stopPropagation(); onExpand?.(photo); }} onKeyDown={(event) => { if (onExpand && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); event.stopPropagation(); onExpand(photo); } }} /> : initials(conversation.contactName || conversation.contactPhone)}</i>;
 }
 
-export function WhatsAppChatWorkspace({ conversations, connected, clients, slaMinutes, initialVersion, currentUserName = "", currentAccountJid = "" }: { currentAccountJid?: string; currentUserName?: string; conversations: WhatsAppConversation[]; connected: boolean; clients: WhatsAppClient[]; slaMinutes: number; initialVersion: string }) {
+export function WhatsAppChatWorkspace({ conversations: initialConversations, connected, clients, slaMinutes, initialVersion, currentUserName = "", currentAccountJid = "" }: { currentAccountJid?: string; currentUserName?: string; conversations: WhatsAppConversation[]; connected: boolean; clients: WhatsAppClient[]; slaMinutes: number; initialVersion: string }) {
+  const [groupNames, setGroupNames] = useState<Record<string, { name: string; previous: string }>>({});
+  const requestedGroups = useRef(new Set<string>());
+  const conversations = useMemo(() => initialConversations.map(conversation => {
+    const resolved = groupNames[currentAccountJid + ':' + conversation.id];
+    return resolved && resolved.previous === conversation.contactName ? { ...conversation, contactName: resolved.name } : conversation;
+  }), [initialConversations, groupNames, currentAccountJid]);
   const [activeId, setActiveId] = useState(conversations.find((item) => !item.archivedAt)?.id ?? conversations[0]?.id ?? "");
   const [body, setBody] = useState("");
   const [query, setQuery] = useState("");
@@ -120,7 +126,7 @@ export function WhatsAppChatWorkspace({ conversations, connected, clients, slaMi
     if (filter === "archived") return Boolean(conversation.archivedAt);
     return !conversation.archivedAt;
   }), [conversations, filter, query]);
-  const matchedClient = useMemo(() => active ? clients.find((client) => normalizeBrazilianPhone(client.phone) === normalizeBrazilianPhone(active.contactPhone)) ?? null : null, [active, clients]);
+  const matchedClient = useMemo(() => active && !active.remoteJid.endsWith("@g.us") ? clients.find((client) => normalizeBrazilianPhone(client.phone) === normalizeBrazilianPhone(active.contactPhone)) ?? null : null, [active, clients]);
   const clientOptions = useMemo(() => clientQuery.trim() ? clients.filter((client) => `${client.name} ${client.phone}`.toLowerCase().includes(clientQuery.toLowerCase())).slice(0, 8) : [], [clientQuery, clients]);
 
   const slaStatus = (conversation: WhatsAppConversation) => {
@@ -139,13 +145,19 @@ export function WhatsAppChatWorkspace({ conversations, connected, clients, slaMi
     }
   }, [active?.id, active?.unreadCount]);
   useEffect(() => { if (!activeId && visible[0]) setActiveId(visible[0].id); }, [activeId, visible]);
-  useEffect(() => conversations
-    .filter((conversation) => conversation.remoteJid.endsWith("@g.us") && (!conversation.contactName || conversation.contactName === "Grupo do WhatsApp"))
-    .forEach((conversation) => {
-      const form = new FormData();
-      form.set("conversationId", conversation.id);
-      void refreshWhatsAppGroupNameAction(form).then((result) => { if (result.name) window.location.reload(); }).catch(() => {});
-    }), [conversations]);
+  useEffect(() => {
+    if (!connected) return;
+    const groups = initialConversations.filter(conversation => conversation.remoteJid.endsWith('@g.us') && !requestedGroups.current.has(currentAccountJid + ':' + conversation.id));
+    groups.forEach(conversation => requestedGroups.current.add(currentAccountJid + ':' + conversation.id));
+    void (async () => {
+      for (const conversation of groups) {
+        const form = new FormData();
+        form.set('conversationId', conversation.id);
+        const result = await refreshWhatsAppGroupNameAction(form).catch(() => null);
+        if (result?.name) setGroupNames(current => ({ ...current, [currentAccountJid + ':' + conversation.id]: { name: result.name, previous: conversation.contactName } }));
+      }
+    })();
+  }, [initialConversations, connected, currentAccountJid]);
   useEffect(() => () => discardAudioDraft(), [discardAudioDraft]);
   useEffect(() => {
     const close = (event: KeyboardEvent) => {
@@ -271,14 +283,14 @@ export function WhatsAppChatWorkspace({ conversations, connected, clients, slaMi
       <div className={viewStyles.whatsapp_conversation_list}>{visible.map((conversation) => {
         const last = messagesFor(conversation).at(-1); const status = slaStatus(conversation); const mayResolveSla = conversation.unreadCount === 0 && last?.direction === "INBOUND";
         return <div key={conversation.id} className={viewStyles.whatsapp_conversation_item}>
-          <button type="button" className={cx(`${conversation.id === active?.id ? "is-active" : ""} ${status === "warning" ? "is-sla-warning" : ""} ${status === "overdue" ? "is-sla-overdue" : ""}`)} onClick={() => { setActiveId(conversation.id); setMenuId(""); }}><Avatar conversation={conversation} withinButton onExpand={setSelectedImage} /><span><strong>{conversation.contactName || conversation.player?.name || formatWhatsAppPhone(conversation.contactPhone)}{conversation.pinned ? <b className={viewStyles.whatsapp_pin}><WhatsAppIcon name="pin" size={12} /></b> : null}</strong><small>{last?.body || "Sem mensagens"}</small>{status !== "normal" ? <em>{status === "overdue" ? "SLA atrasado" : "SLA próximo do limite"}</em> : null}</span><time>{time(conversation.lastMessageAt)}{conversation.unreadCount ? <b>{conversation.unreadCount}</b> : null}</time></button>
+          <button type="button" className={cx(`${conversation.id === active?.id ? "is-active" : ""} ${status === "warning" ? "is-sla-warning" : ""} ${status === "overdue" ? "is-sla-overdue" : ""}`)} onClick={() => { setActiveId(conversation.id); setMenuId(""); }}><Avatar conversation={conversation} withinButton onExpand={setSelectedImage} /><span><strong>{whatsAppConversationName(conversation)}{conversation.pinned ? <b className={viewStyles.whatsapp_pin}><WhatsAppIcon name="pin" size={12} /></b> : null}</strong><small>{last?.body || "Sem mensagens"}</small>{status !== "normal" ? <em>{status === "overdue" ? "SLA atrasado" : "SLA próximo do limite"}</em> : null}</span><time>{time(conversation.lastMessageAt)}{conversation.unreadCount ? <b>{conversation.unreadCount}</b> : null}</time></button>
           <button className={viewStyles.whatsapp_menu_trigger} type="button" aria-label="Ações da conversa" onClick={() => { setActiveId(conversation.id); setMenuId(menuId === conversation.id ? "" : conversation.id); }}><WhatsAppIcon name="more" /></button>
           {menuId === conversation.id ? <div className={viewStyles.whatsapp_conversation_menu}>{mayResolveSla ? <button onClick={() => runConversationAction(conversation, "resolve_sla")}>✓ Encerrar SLA</button> : null}<button onClick={() => runConversationAction(conversation, "archive")}><WhatsAppIcon name="archive" size={14} /> {conversation.archivedAt ? "Desarquivar conversa" : "Arquivar conversa"}</button><button onClick={() => runConversationAction(conversation, "pin")}><WhatsAppIcon name="pin" size={14} /> {conversation.pinned ? "Desafixar conversa" : "Fixar conversa"}</button><button onClick={() => runConversationAction(conversation, "unread")}><WhatsAppIcon name="mail" size={14} /> Marcar como não lida</button><button onClick={() => runConversationAction(conversation, "favorite")}><WhatsAppIcon name="heart" size={14} /> {conversation.favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}</button><button onClick={() => runConversationAction(conversation, "list")}><WhatsAppIcon name="chat" size={14} /> Adicionar à lista</button><hr /><button onClick={() => runConversationAction(conversation, "clear")}>◇ Limpar conversa</button><button className="is-danger" onClick={() => runConversationAction(conversation, "delete")}>× Excluir conversa</button></div> : null}
         </div>;
       })}{!visible.length ? <p>Nenhuma conversa encontrada.</p> : null}</div>
     </aside>
     <main className={viewStyles.whatsapp_chat_main}>{active ? <>
-      <header><div><Avatar conversation={active} size="is-header" onExpand={setSelectedImage} /><span><strong>{active.contactName || active.player?.name || formatWhatsAppPhone(active.contactPhone)}</strong><small>{formatWhatsAppPhone(active.contactPhone)}</small></span></div></header>
+      <header><div><Avatar conversation={active} size="is-header" onExpand={setSelectedImage} /><span><strong>{whatsAppConversationName(active)}</strong><small>{active.remoteJid.endsWith("@g.us") ? "Grupo do WhatsApp" : formatWhatsAppPhone(active.contactPhone)}</small></span></div></header>
       <div className={viewStyles.whatsapp_message_thread}>{activeMessages.map((message) => <WhatsAppMessageBubble key={message.id} message={message} accountJid={currentAccountJid} pending={pending} menuOpen={messageMenuId === message.id} onMenu={() => setMessageMenuId(messageMenuId === message.id ? "" : message.id)} onReply={() => { setReplyTo(message); setMessageMenuId(""); messageInput.current?.focus(); }} onReact={(emoji) => reactToMessage(message, emoji)} onImage={setSelectedImage} />)}</div>
       <form className={viewStyles.whatsapp_composer} onSubmit={sendText} onKeyDown={(event) => {
         if (event.target instanceof HTMLTextAreaElement && event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229) {
@@ -296,7 +308,7 @@ export function WhatsAppChatWorkspace({ conversations, connected, clients, slaMi
         {showEmoji ? <div className={viewStyles.whatsapp_emoji_picker} role="dialog" aria-label="Escolha um emoji">{emojis.map((emoji) => <button key={emoji} type="button" onClick={() => { setBody((value) => `${value}${emoji}`); setShowEmoji(false); }}>{emoji}</button>)}</div> : null}
       </form>
     </> : <div className={viewStyles.whatsapp_chat_empty}><strong>Selecione uma conversa.</strong></div>}</main>
-    <aside className={viewStyles.whatsapp_contact_panel}>{active ? <><header><Avatar conversation={active} size="is-profile" onExpand={setSelectedImage} /><strong>{active.contactName || active.player?.name || "Contato do WhatsApp"}</strong><span>Contato no WhatsApp</span></header><dl><div><dt>Telefone</dt><dd>{formatWhatsAppPhone(active.contactPhone)}</dd></div><div><dt>Cliente no sistema</dt><dd>{active.player ? active.player.name : "Não vinculado"}</dd></div>{active.player?.email ? <div><dt>E-mail</dt><dd>{active.player.email}</dd></div> : null}</dl>{!active.player ? <div className={viewStyles.whatsapp_link_client}><strong>{matchedClient ? "Cliente encontrado pelo telefone" : "Vincular a um cliente"}</strong><p>{matchedClient ? matchedClient.name : "Busque pelo nome ou telefone para vincular."}</p>{matchedClient ? <button type="button" className={viewStyles.button_button_primary_button_small} onClick={() => linkClient(matchedClient.id)} disabled={pending}>Vincular {matchedClient.name}</button> : <><input value={clientQuery} onChange={(event) => setClientQuery(event.target.value)} placeholder="Digite nome ou telefone" /><div className={viewStyles.whatsapp_client_options}>{clientOptions.map((client) => <button key={client.id} type="button" onClick={() => linkClient(client.id)}>{client.name}<small>{formatWhatsAppPhone(client.phone)}</small></button>)}</div><button type="button" className={viewStyles.whatsapp_create_client} onClick={() => { setLinkNewClient(true); setShowContact(true); }}>Criar novo cliente</button></>}</div> : null}</> : null}</aside>
+    <aside className={viewStyles.whatsapp_contact_panel}>{active ? <><header><Avatar conversation={active} size="is-profile" onExpand={setSelectedImage} /><strong>{whatsAppConversationName(active)}</strong><span>{active.remoteJid.endsWith("@g.us") ? "Grupo do WhatsApp" : "Contato no WhatsApp"}</span></header><dl>{active.remoteJid.endsWith("@g.us") ? <div><dt>Tipo de conversa</dt><dd>Grupo</dd></div> : <><div><dt>Telefone</dt><dd>{formatWhatsAppPhone(active.contactPhone)}</dd></div><div><dt>Cliente no sistema</dt><dd>{active.player ? active.player.name : "Não vinculado"}</dd></div>{active.player?.email ? <div><dt>E-mail</dt><dd>{active.player.email}</dd></div> : null}</>}</dl>{!active.remoteJid.endsWith("@g.us") && !active.player ? <div className={viewStyles.whatsapp_link_client}><strong>{matchedClient ? "Cliente encontrado pelo telefone" : "Vincular a um cliente"}</strong><p>{matchedClient ? matchedClient.name : "Busque pelo nome ou telefone para vincular."}</p>{matchedClient ? <button type="button" className={viewStyles.button_button_primary_button_small} onClick={() => linkClient(matchedClient.id)} disabled={pending}>Vincular {matchedClient.name}</button> : <><input value={clientQuery} onChange={(event) => setClientQuery(event.target.value)} placeholder="Digite nome ou telefone" /><div className={viewStyles.whatsapp_client_options}>{clientOptions.map((client) => <button key={client.id} type="button" onClick={() => linkClient(client.id)}>{client.name}<small>{formatWhatsAppPhone(client.phone)}</small></button>)}</div><button type="button" className={viewStyles.whatsapp_create_client} onClick={() => { setLinkNewClient(true); setShowContact(true); }}>Criar novo cliente</button></>}</div> : null}</> : null}</aside>
     {showContact ? <div className={viewStyles.whatsapp_contact_modal} role="dialog" aria-modal="true" onMouseDown={(event) => { if (event.target === event.currentTarget) { setShowContact(false); setLinkNewClient(false); } }}><form onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget); startTransition(async () => { try { const result = await createWhatsAppContactAction(form); if (linkNewClient && active) { const link = new FormData(); link.set("conversationId", active.id); link.set("playerId", result.id); await linkWhatsAppConversationToClientAction(link); } setShowContact(false); setLinkNewClient(false); setNotice(linkNewClient ? `${result.name} foi criado e vinculado à conversa.` : `${result.name} foi adicionado aos clientes.`); } catch (error) { setNotice(error instanceof Error ? error.message : "Não foi possível criar o contato."); } }); }}><header><strong>{linkNewClient ? "Criar e vincular cliente" : "Novo contato"}</strong><button type="button" onClick={() => { setShowContact(false); setLinkNewClient(false); }}>×</button></header><label>Nome<input name="name" required minLength={3} defaultValue={linkNewClient ? active?.contactName : ""} placeholder="Nome completo" /></label><label>Telefone<input name="phone" required defaultValue={linkNewClient ? active?.contactPhone : ""} placeholder="(00) 00000-0000" /></label><button className={viewStyles.button_button_primary} disabled={pending}>{linkNewClient ? "Criar e vincular" : "Adicionar contato"}</button></form></div> : null}
     {selectedImage ? <div className={viewStyles.whatsapp_image_lightbox} role="dialog" aria-modal="true" aria-label="Imagem ampliada" onKeyDown={(event) => { if (event.key === "Tab") { event.preventDefault(); imageClose.current?.focus(); } }} onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedImage(""); }}><img src={selectedImage} alt="Imagem ampliada" /><button ref={imageClose} type="button" aria-label="Fechar imagem" onClick={() => setSelectedImage("")}>×</button></div> : null}
     {notice ? <p className={viewStyles.whatsapp_workspace_notice} role="status">{notice}</p> : null}

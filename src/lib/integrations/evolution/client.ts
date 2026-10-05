@@ -1,9 +1,10 @@
 import "server-only";
 
 import { env } from "@/lib/env";
-import { buildEvolutionTextPayload } from "@/lib/integrations/evolution";
+import { buildEvolutionTextPayload, evolutionRecipientNumber } from "@/lib/integrations/evolution";
 import { decryptConnectionSecrets } from "@/lib/payments/connection-secrets";
 import { prisma } from "@/lib/prisma";
+import { readEvolutionGroupName } from "./groups";
 
 function getEvolutionConfig() {
   if (!env.evolutionApiUrl || !env.evolutionApiKey) throw new Error("A integração Evolution ainda não está configurada.");
@@ -44,8 +45,7 @@ export async function sendEvolutionAudioMessage(phone: string, audioDataUrl: str
   const connection = await prisma.whatsAppConnection.findUnique({ where: { arenaId } });
   if (!connection || connection.status !== "CONNECTED") throw new Error("O WhatsApp desta arena ainda não está conectado.");
   const config = getEvolutionConfig();
-  const digits = phone.replace(/\D/g, "");
-  const number = digits.startsWith("55") ? digits : `55${digits}`;
+  const number = evolutionRecipientNumber(phone);
   const response = await fetch(`${config.apiUrl}/message/sendWhatsAppAudio/${encodeURIComponent(connection.instanceName)}`, {
     method: "POST", headers: { apikey: config.apiKey, "content-type": "application/json" }, body: JSON.stringify({ number: phone.endsWith("@g.us") ? phone : number, audio: audioDataUrl, ...(quoted ? { quoted } : {}) }), cache: "no-store"
   });
@@ -56,7 +56,7 @@ export async function sendEvolutionAudioMessage(phone: string, audioDataUrl: str
 export async function sendEvolutionMediaMessage(phone: string, mediaDataUrl: string, mediaType: "image" | "document", fileName: string, mimeType: string, arenaId: string, quoted?: EvolutionQuotedMessage) {
   const connection = await prisma.whatsAppConnection.findUnique({ where: { arenaId } });
   if (!connection || connection.status !== "CONNECTED") throw new Error("O WhatsApp desta arena ainda não está conectado.");
-  const config = getEvolutionConfig(); const digits = phone.replace(/\D/g, ""); const number = digits.startsWith("55") ? digits : `55${digits}`;
+  const config = getEvolutionConfig(); const number = evolutionRecipientNumber(phone);
   const send = (media: string) => fetch(`${config.apiUrl}/message/sendMedia/${encodeURIComponent(connection.instanceName)}`, { method: "POST", headers: { apikey: config.apiKey, "content-type": "application/json" }, body: JSON.stringify({ number: phone.endsWith("@g.us") ? phone : number, mediatype: mediaType, media, fileName, mimetype: mimeType, caption: "", ...(quoted ? { quoted } : {}) }), cache: "no-store" });
   let response = await send(mediaDataUrl);
   if (!response.ok && mediaDataUrl.includes(",")) response = await send(mediaDataUrl.slice(mediaDataUrl.indexOf(",") + 1));
@@ -89,34 +89,26 @@ export async function getEvolutionProfilePicture(remoteJid: string, arenaId: str
 }
 
 export async function getEvolutionGroupName(remoteJid: string, arenaId: string) {
+  if (!remoteJid.endsWith("@g.us")) return "";
   const connection = await prisma.whatsAppConnection.findUnique({ where: { arenaId }, select: { instanceName: true, status: true } });
   if (!connection || connection.status !== "CONNECTED") return "";
   const config = getEvolutionConfig();
-  const url = `${config.apiUrl}/group/fetchAllGroups/${encodeURIComponent(connection.instanceName)}`;
+  const instance = encodeURIComponent(connection.instanceName);
+  const direct = await fetch(`${config.apiUrl}/group/findGroupInfos/${instance}?groupJid=${encodeURIComponent(remoteJid)}`, {
+    headers: { apikey: config.apiKey }, cache: "no-store", signal: AbortSignal.timeout(8000),
+  }).catch(() => null);
+  const directName = direct?.ok ? readEvolutionGroupName(await direct.json().catch(() => null), remoteJid) : "";
+  if (directName) return directName;
+  const url = `${config.apiUrl}/group/fetchAllGroups/${instance}?getParticipants=false`;
   const request = (method: "GET" | "POST") => fetch(url, {
     method,
     headers: method === "POST" ? { apikey: config.apiKey, "content-type": "application/json" } : { apikey: config.apiKey },
     body: method === "POST" ? "{}" : undefined,
-    cache: "no-store"
+    cache: "no-store", signal: AbortSignal.timeout(8000),
   });
-  const normalizeJid = (value: unknown) => String(value ?? "").replace(/@g\.us$/i, "").trim();
-  const findName = (payload: unknown) => {
-    const root = payload && typeof payload === "object" ? payload as Record<string, unknown> : {};
-    const nested = root.data && typeof root.data === "object" ? root.data as Record<string, unknown> : {};
-    const candidates = [payload, root.groups, root.data, root.response, nested.groups, nested.data];
-    const groups = candidates.find(Array.isArray) as unknown[] | undefined;
-    const group = groups?.find((item) => {
-      if (!item || typeof item !== "object") return false;
-      const value = item as Record<string, unknown>;
-      return [value.id, value.jid, value.groupJid, value.remoteJid].some((jid) => normalizeJid(jid) === normalizeJid(remoteJid));
-    }) as Record<string, unknown> | undefined;
-    const metadata = group?.metadata && typeof group.metadata === "object" ? group.metadata as Record<string, unknown> : {};
-    return String(group?.subject ?? group?.subjectName ?? group?.groupName ?? group?.name ?? metadata.subject ?? "").trim();
-  };
+  const findName = (payload: unknown) => readEvolutionGroupName(payload, remoteJid);
 
-  // A Evolution v2 mudou este endpoint entre versões: algumas instalações
-  // aceitam GET e outras exigem POST. Tentamos ambos e aceitamos os envelopes
-  // usados nas duas respostas para nunca exibir o nome genérico do grupo.
+  // Instalações antigas podem exigir POST para a listagem de grupos.
   const getResponse = await request("GET").catch(() => null);
   const getName = getResponse?.ok ? findName(await getResponse.json().catch(() => null)) : "";
   if (getName) return getName;
