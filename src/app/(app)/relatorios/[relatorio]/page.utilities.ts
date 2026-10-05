@@ -83,13 +83,13 @@ export const viewStyles = {
     "tw:[&_article_>_span:last-child]:font-[700]", "tw:[&_i]:block", "tw:[&_i]:w-[100px]", "tw:[&_i]:h-[6px]",
     "tw:[&_i]:[overflow-x:hidden]", "tw:[&_i]:[overflow-y:hidden]", "tw:[&_i]:rounded-[999px]", "tw:[&_i]:bg-[color:#e7eef7]",
     "tw:[&_i]:[background-image:none]", "tw:[&_i_b]:block", "tw:[&_i_b]:h-[100%]", "tw:[&_i_b]:rounded-[inherit]",
-    "tw:[&_i_b]:bg-[color:#1e7a56]", "tw:[&_i_b]:[background-image:none]", "tw:viewport-640:[&_article]:min-w-[410px]",
+    "tw:[&_i_b]:bg-[color:#1e7a56]", "tw:[&_i_b]:[background-image:none]", "tw:viewport-640:[&_article]:min-w-0", "tw:viewport-640:[&_article]:grid-cols-[minmax(0,_1fr)_60px_82px]", "tw:viewport-640:[&_article]:gap-x-2", "tw:viewport-640:[&_i]:hidden",
   ].join(" "),
   "reservation_report_courts_head": [
     "reservation-report-courts-head", "tw:text-[color:#61768e]", "tw:text-[.67rem]", "tw:font-[800]",
     "tw:tracking-[.03em]", "tw:uppercase", "tw:grid", "tw:grid-cols-[minmax(140px,_1fr)_100px_180px]",
     "tw:gap-y-[12px]", "tw:gap-x-[12px]", "tw:items-center", "tw:min-h-[39px]",
-    "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:#e7eef5]", "tw:viewport-640:min-w-[410px]",
+    "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:#e7eef5]", "tw:viewport-640:min-w-0", "tw:viewport-640:grid-cols-[minmax(0,_1fr)_60px_82px]", "tw:viewport-640:gap-x-2",
   ].join(" "),
   "report_metrics": [
     "report-metrics", "tw:grid", "tw:grid-cols-[repeat(3,_minmax(0,_1fr))]", "tw:viewport-800:grid-cols-[1fr]",
@@ -128,7 +128,7 @@ export const viewStyles = {
   "page_header": sharedUtilities.pageHeader,
   "button_button_small": sharedUtilities.buttonButtonSmall,
   "report_filter": [
-    "report-filter", "tw:flex", "tw:[align-items:end]", "tw:viewport-800:items-stretch",
+    "report-filter", "tw:flex", "tw:flex-wrap", "tw:viewport-800:flex-nowrap", "tw:[align-items:end]", "tw:viewport-800:items-stretch",
     "tw:gap-y-[10px]", "tw:gap-x-[10px]", "tw:[&_label]:grid", "tw:[&_label]:gap-y-[5px]",
     "tw:[&_label]:gap-x-[5px]", "tw:[&_label]:text-[color:#506783]", "tw:[&_label]:text-[.7rem]", "tw:[&_label]:font-[800]",
     "tw:[&_input]:min-h-[34px]", "tw:[&_input]:[padding-inline:9px]", "tw:viewport-800:flex-col", "tw:viewport-800:[&_.button]:w-[fit-content]",
