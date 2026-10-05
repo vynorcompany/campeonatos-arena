@@ -1,4 +1,6 @@
 "use client";
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./teacher-class-groups-panel.utilities";
 
 import { useEffect, useState } from "react";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
@@ -137,15 +139,15 @@ export function TeacherClassGroupsPanel({
     );
 
   return (
-    <div className="teacher-groups-panel teacher-class-directory">
+    <div className={viewStyles.teacher_groups_panel_teacher_class_directory}>
       {createOpen ? (
         <div
-          className="teacher-class-create-modal"
+          className={viewStyles.teacher_class_create_modal}
           role="presentation"
           onMouseDown={() => setCreateOpen(false)}
         >
           <section
-            className="section-card teacher-detail-section teacher-class-create-panel"
+            className={viewStyles.section_card_teacher_detail_section_teacher_class_create_panel}
             role="dialog"
             aria-modal="true"
             aria-labelledby="teacher-class-create-title"
@@ -153,12 +155,12 @@ export function TeacherClassGroupsPanel({
           >
             <header>
               <div>
-                <p className="eyebrow">NOVA TURMA</p>
+                <p className={viewStyles.eyebrow}>NOVA TURMA</p>
                 <h2 id="teacher-class-create-title">Horários fixos e vagas</h2>
               </div>
               <button
                 type="button"
-                className="teacher-class-create-close"
+                className={viewStyles.teacher_class_create_close}
                 onClick={() => setCreateOpen(false)}
                 aria-label="Fechar"
               >
@@ -166,14 +168,14 @@ export function TeacherClassGroupsPanel({
               </button>
             </header>
             {!plans.length ? (
-              <p className="muted">
+              <p className={viewStyles.muted}>
                 Crie ao menos um plano para este professor antes de montar uma
                 turma.
               </p>
             ) : (
               <SafeActionForm
                 action={createClassGroupAction}
-                className="teacher-group-create-form"
+                className={viewStyles.teacher_group_create_form}
                 resetOnSuccess
                 successMessage="Turma criada."
                 onSuccess={() => {
@@ -201,14 +203,14 @@ export function TeacherClassGroupsPanel({
                     </label>
                   ))}
                 </fieldset>
-                <div className="teacher-group-schedules">
+                <div className={viewStyles.teacher_group_schedules}>
                   <div>
                     <strong>Horários fixos</strong>
                     <span>Dia · Hora · Vagas</span>
                   </div>
                   {schedules.map((schedule, index) => (
                     <div
-                      className={`teacher-group-schedule-row${schedules.length > 1 ? " has-remove" : ""}`}
+                      className={cx(`${viewStyles.teacher_group_schedule_row}${schedules.length > 1 ? " has-remove" : ""}`)}
                       key={`${schedule.weekday}-${index}`}
                     >
                       <label>
@@ -262,7 +264,7 @@ export function TeacherClassGroupsPanel({
                       {schedules.length > 1 ? (
                         <button
                           type="button"
-                          className="button button-small"
+                          className={viewStyles.button_button_small}
                           onClick={() =>
                             setSchedules((current) =>
                               current.filter(
@@ -278,7 +280,7 @@ export function TeacherClassGroupsPanel({
                   ))}
                   <button
                     type="button"
-                    className="button button-secondary button-small"
+                    className={viewStyles.button_button_secondary_button_small}
                     onClick={() =>
                       setSchedules((current) => [
                         ...current,
@@ -288,11 +290,11 @@ export function TeacherClassGroupsPanel({
                   >
                   + Adicionar horário
                   </button>
-                  <p className="teacher-group-generated-name">
+                  <p className={viewStyles.teacher_group_generated_name}>
                     Nome gerado automaticamente: <strong>{getGeneratedClassGroupName(schedules)}</strong>
                   </p>
                 </div>
-                <label className="teacher-group-notes">
+                <label className={viewStyles.teacher_group_notes}>
                   Observações
                   <input
                     name="notes"
@@ -302,11 +304,11 @@ export function TeacherClassGroupsPanel({
                 <SubmitButton
                   label="Criar turma"
                   pendingLabel="Criando..."
-                  className="button button-primary"
+                  className={viewStyles.button_button_primary}
                 />
                 <button
                   type="button"
-                  className="button"
+                  className={viewStyles.button}
                   onClick={() => setCreateOpen(false)}
                 >
                   Cancelar
@@ -318,12 +320,12 @@ export function TeacherClassGroupsPanel({
       ) : null}
       {editingGroup ? (
         <div
-          className="teacher-class-create-modal"
+          className={viewStyles.teacher_class_create_modal}
           role="presentation"
           onMouseDown={() => setEditingGroupId(null)}
         >
           <section
-            className="section-card teacher-detail-section teacher-class-create-panel"
+            className={viewStyles.section_card_teacher_detail_section_teacher_class_create_panel}
             role="dialog"
             aria-modal="true"
             aria-labelledby="teacher-class-edit-title"
@@ -331,12 +333,12 @@ export function TeacherClassGroupsPanel({
           >
             <header>
               <div>
-                <p className="eyebrow">EDITAR TURMA</p>
+                <p className={viewStyles.eyebrow}>EDITAR TURMA</p>
                 <h2 id="teacher-class-edit-title">Horários, vagas e planos</h2>
               </div>
               <button
                 type="button"
-                className="teacher-class-create-close"
+                className={viewStyles.teacher_class_create_close}
                 onClick={() => setEditingGroupId(null)}
                 aria-label="Fechar"
               >
@@ -345,7 +347,7 @@ export function TeacherClassGroupsPanel({
             </header>
             <SafeActionForm
               action={updateTeacherClassGroupAction}
-              className="teacher-group-create-form"
+              className={viewStyles.teacher_group_create_form}
               successMessage="Turma atualizada."
               onSuccess={() => setEditingGroupId(null)}
               validate={(formData) =>
@@ -376,14 +378,14 @@ export function TeacherClassGroupsPanel({
                   </label>
                 ))}
               </fieldset>
-              <div className="teacher-group-schedules">
+              <div className={viewStyles.teacher_group_schedules}>
                 <div>
                   <strong>Horários fixos</strong>
                   <span>Dia · Hora · Vagas</span>
                 </div>
                 {editingSchedules.map((schedule, index) => (
                   <div
-                    className={`teacher-group-schedule-row${editingSchedules.length > 1 ? " has-remove" : ""}`}
+                    className={cx(`${viewStyles.teacher_group_schedule_row}${editingSchedules.length > 1 ? " has-remove" : ""}`)}
                     key={`${schedule.weekday}-${index}`}
                   >
                     <label>
@@ -437,7 +439,7 @@ export function TeacherClassGroupsPanel({
                     {editingSchedules.length > 1 ? (
                       <button
                         type="button"
-                        className="button button-small"
+                        className={viewStyles.button_button_small}
                         onClick={() =>
                           setEditingSchedules((current) =>
                             current.filter(
@@ -453,7 +455,7 @@ export function TeacherClassGroupsPanel({
                 ))}
                 <button
                   type="button"
-                  className="button button-secondary button-small"
+                  className={viewStyles.button_button_secondary_button_small}
                   onClick={() =>
                     setEditingSchedules((current) => [
                       ...current,
@@ -463,22 +465,22 @@ export function TeacherClassGroupsPanel({
                 >
                 + Adicionar horário
                 </button>
-                <p className="teacher-group-generated-name">
+                <p className={viewStyles.teacher_group_generated_name}>
                   Nome gerado automaticamente: <strong>{getGeneratedClassGroupName(editingSchedules)}</strong>
                 </p>
               </div>
-              <label className="teacher-group-notes">
+              <label className={viewStyles.teacher_group_notes}>
                 Observações
                 <input name="notes" defaultValue={editingGroup.notes} />
               </label>
               <SubmitButton
                 label="Salvar turma"
                 pendingLabel="Salvando..."
-                className="button button-primary"
+                className={viewStyles.button_button_primary}
               />
               <button
                 type="button"
-                className="button"
+                className={viewStyles.button}
                 onClick={() => setEditingGroupId(null)}
               >
                 Cancelar
@@ -487,51 +489,51 @@ export function TeacherClassGroupsPanel({
           </section>
         </div>
       ) : null}
-      <section className="section-card teacher-detail-section teacher-class-list-panel">
+      <section className={viewStyles.section_card_teacher_detail_section_teacher_class_list_panel}>
         <header>
           <div>
             <h2>Turmas do professor</h2>
-            <p className="muted">Gerencie os horários e vagas das turmas.</p>
+            <p className={viewStyles.muted}>Gerencie os horários e vagas das turmas.</p>
           </div>
           <button
             type="button"
-            className="button button-primary button-small teacher-class-create-trigger"
+            className={viewStyles.button_button_primary_button_small}
             onClick={openCreate}
           >
             <EventIcon name="user-plus" size={15} /> Nova turma
           </button>
         </header>
-        <div className="teacher-class-row-list">
-          <div className="teacher-class-list-heading" aria-hidden="true">
+        <div className={viewStyles.teacher_class_row_list}>
+          <div className={viewStyles.teacher_class_list_heading} aria-hidden="true">
             <span>Turma</span>
             <span>Dia e horário</span>
             <span>Vagas</span>
             <span>Ações</span>
           </div>
           {classRows.map(({ group, schedule }) => (
-            <article className="teacher-class-row" key={schedule.id}>
-              <span className="teacher-class-name">
+            <article className={viewStyles.teacher_class_row} key={schedule.id}>
+              <span className={viewStyles.teacher_class_name}>
                 <strong>{group.name}</strong>
                 <small>
                   {group.plans.length} plano
                   {group.plans.length === 1 ? "" : "s"}
                 </small>
               </span>
-              <span className="teacher-class-time">
+              <span className={viewStyles.teacher_class_time}>
                 <span
-                  className={`teacher-class-weekday weekday-${schedule.weekday}`}
+                  className={cx(`${viewStyles.teacher_class_weekday} weekday-${schedule.weekday}`)}
                 >
                   {weekdays[schedule.weekday].replace("-feira", "")}
                 </span>
                 {schedule.startTime}
               </span>
-              <span className="teacher-class-capacity">
+              <span className={viewStyles.teacher_class_capacity}>
                 <EventIcon name="users" size={14} />
                 <strong>
                   {group.enrollments.length} / {schedule.capacity} vagas
                 </strong>
               </span>
-              <details className="teacher-class-actions">
+              <details className={viewStyles.teacher_class_actions}>
                 <summary
                   aria-label={`Gerenciar ${group.name} em ${schedule.startTime}`}
                 >
@@ -541,21 +543,21 @@ export function TeacherClassGroupsPanel({
                   <strong>{group.name}</strong>
                   <button
                     type="button"
-                    className="button button-secondary button-small teacher-class-edit-trigger"
+                    className={viewStyles.button_button_secondary_button_small_2}
                     onClick={() => openEdit(group)}
                   >
                     Editar turma
                   </button>
                   <button
                     type="button"
-                    className="button button-secondary button-small teacher-class-edit-trigger"
+                    className={viewStyles.button_button_secondary_button_small_2}
                     onClick={() => duplicateGroup(group)}
                   >
                     Duplicar turma
                   </button>
                   <SafeActionForm
                     action={updateTeacherClassGroupCapacityAction}
-                    className="teacher-group-capacity"
+                    className={viewStyles.teacher_group_capacity}
                     successMessage="Vagas atualizadas."
                   >
                     <input type="hidden" name="teacherId" value={teacherId} />
@@ -578,17 +580,17 @@ export function TeacherClassGroupsPanel({
                     <SubmitButton
                       label="Salvar vagas"
                       pendingLabel="..."
-                      className="button button-secondary button-small"
+                      className={viewStyles.button_button_secondary_button_small}
                     />
                   </SafeActionForm>
-                  <div className="teacher-group-students">
+                  <div className={viewStyles.teacher_group_students}>
                     {group.enrollments.map(({ id, student }) => (
                       <div key={id}>
                         <strong>{student.name}</strong>
                         {groups.length > 1 ? (
                           <SafeActionForm
                             action={moveTeacherClassGroupStudentAction}
-                            className="teacher-group-move"
+                            className={viewStyles.teacher_group_move}
                             successMessage="Aluno movimentado."
                           >
                             <input
@@ -624,14 +626,14 @@ export function TeacherClassGroupsPanel({
                             <SubmitButton
                               label="Mover"
                               pendingLabel="..."
-                              className="button button-small"
+                              className={viewStyles.button_button_small}
                             />
                           </SafeActionForm>
                         ) : null}
                       </div>
                     ))}
                     {!group.enrollments.length ? (
-                      <p className="muted">Sem alunos nesta turma.</p>
+                      <p className={viewStyles.muted}>Sem alunos nesta turma.</p>
                     ) : null}
                   </div>
                 </div>
@@ -639,12 +641,12 @@ export function TeacherClassGroupsPanel({
             </article>
           ))}
           {!classRows.length ? (
-            <p className="muted teacher-class-empty">
+            <p className={viewStyles.muted_teacher_class_empty}>
               Nenhuma turma vinculada a este professor ainda.
             </p>
           ) : null}
         </div>
-        <footer className="teacher-class-footer">
+        <footer className={viewStyles.teacher_class_footer}>
           Mostrando {classRows.length} horário
           {classRows.length === 1 ? "" : "s"} em {groups.length} turma
           {groups.length === 1 ? "" : "s"}

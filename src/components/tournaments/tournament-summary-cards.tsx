@@ -1,3 +1,4 @@
+import { viewStyles } from "./tournament-summary-cards.utilities";
 import { MetricCard } from "@/components/tournaments/metric-card";
 
 type TournamentSummaryCardsProps = {
@@ -10,7 +11,7 @@ type TournamentSummaryCardsProps = {
 
 export function TournamentSummaryCards({ hasActive, activeName, players, matches, finished }: TournamentSummaryCardsProps) {
   return (
-    <section className="t-metric-grid">
+    <section className={viewStyles.t_metric_grid}>
       <MetricCard label="Torneio atual" value={hasActive ? "1" : "0"} caption={activeName || "Nenhum em andamento"} />
       <MetricCard label="Jogadores inscritos" value={players} caption="No torneio ativo" />
       <MetricCard label="Jogos programados" value={matches} caption="Fase de grupos e mata-mata" />

@@ -1,3 +1,4 @@
+import { viewStyles } from "./page.utilities";
 ﻿import { SectionCard } from "@/components/section-card";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { requireModuleView } from "@/lib/auth/guards";
@@ -83,24 +84,24 @@ export default async function TournamentRegistrationsPage() {
   }
 
   if (!tournament) {
-    return <SectionCard title="Inscrições"><p className="muted">Nenhum torneio ativo.</p></SectionCard>;
+    return <SectionCard title="Inscrições"><p className={viewStyles.muted}>Nenhum torneio ativo.</p></SectionCard>;
   }
 
   const conflicts = await getTournamentScheduleConflicts(tournament.id, auth.arenaId);
 
   return (
-    <div className="stack-md">
-      <header className="page-header">
-        <div className="stack-xs">
-          <p className="eyebrow">Torneios</p>
+    <div className={viewStyles.stack_md}>
+      <header className={viewStyles.page_header}>
+        <div className={viewStyles.stack_xs}>
+          <p className={viewStyles.eyebrow}>Torneios</p>
           <h1>Inscritos por categoria</h1>
-          <p className="muted">Gerencie inscrições e, após encerrar inscrições, defina formato e monte o chaveamento por categoria.</p>
+          <p className={viewStyles.muted}>Gerencie inscrições e, após encerrar inscrições, defina formato e monte o chaveamento por categoria.</p>
         </div>
       </header>
 
       {tournament.registrationPhase === "REGISTRATIONS" ? (
         <SectionCard title="Inscrições em andamento">
-          <p className="muted">
+          <p className={viewStyles.muted}>
             A montagem só é liberada após encerrar inscrições. Quando mudar a fase do torneio, você poderá definir grupos e duplas por grupo em cada categoria.
           </p>
         </SectionCard>
@@ -108,16 +109,16 @@ export default async function TournamentRegistrationsPage() {
 
       <SectionCard title="Conflitos de agenda (jogos gerais)" description="Validador para evitar atleta em dois jogos no mesmo horário.">
         {conflicts.length ? (
-          <ul className="simple-list">
+          <ul className={viewStyles.simple_list}>
             {conflicts.map((conflict) => (
-              <li key={`${conflict.playerId}-${conflict.scheduledTime}`} className="simple-item">
+              <li key={`${conflict.playerId}-${conflict.scheduledTime}`} className={viewStyles.simple_item}>
                 <strong>{conflict.scheduledTime}</strong>
                 <span>{conflict.labels.join(" | ")}</span>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="muted">Nenhum conflito detectado.</p>
+          <p className={viewStyles.muted}>Nenhum conflito detectado.</p>
         )}
       </SectionCard>
 
@@ -127,7 +128,7 @@ export default async function TournamentRegistrationsPage() {
         return (
           <SectionCard key={category.id} title={`${category.name} (${confirmedCount} confirmadas)`}>
             <div className="stack-sm tw:[margin-bottom:0.75rem]">
-              <form action={updateTournamentCategoryFormatAction} className="section-actions">
+              <form action={updateTournamentCategoryFormatAction} className={viewStyles.section_actions}>
                 <input type="hidden" name="tournamentId" value={tournament.id} />
                 <input type="hidden" name="categoryId" value={category.id} />
                 <select name="groupCount" defaultValue={String((category as any).groupCount ?? 4)} disabled={tournament.registrationPhase === "REGISTRATIONS"}>
@@ -140,37 +141,37 @@ export default async function TournamentRegistrationsPage() {
                     <option key={index + 2} value={index + 2}>{index + 2} duplas/grupo</option>
                   ))}
                 </select>
-                <SubmitButton label="Salvar formato" pendingLabel="Salvando..." className="button" />
+                <SubmitButton label="Salvar formato" pendingLabel="Salvando..." className={viewStyles.button} />
               </form>
               {tournament.registrationPhase === "REGISTRATIONS" ? (
-                <button type="button" className="button button-primary" disabled>
+                <button type="button" className={viewStyles.button_button_primary} disabled>
                   Montar chaveamento da categoria
                 </button>
               ) : (
-                <form action={generateCategoryBracketAction} className="section-actions">
+                <form action={generateCategoryBracketAction} className={viewStyles.section_actions}>
                   <input type="hidden" name="tournamentId" value={tournament.id} />
                   <input type="hidden" name="categoryId" value={category.id} />
                   <SubmitButton
                     label="Montar chaveamento da categoria"
                     pendingLabel="Montando..."
-                    className="button button-primary"
+                    className={viewStyles.button_button_primary}
                   />
                 </form>
               )}
             </div>
 
-            <div className="simple-list">
+            <div className={viewStyles.simple_list}>
               {category.registrations.map((registration: any) => (
-                <div key={registration.id} className="simple-item">
-                  <div className="stack-xs tw:[width:100%]">
+                <div key={registration.id} className={viewStyles.simple_item}>
+                  <div className={viewStyles.stack_xs_2}>
                     <strong>{registration.leadName} / {registration.partnerName}</strong>
                     <span>{registration.status} · {registration.paymentStatus} · R$ {(registration.amountCents / 100).toFixed(2)}</span>
                     <details>
                       <summary className="tw:[cursor:pointer] tw:[color:var(--brand)] tw:[font-weight:700]">Editar inscricao</summary>
-                      <form action={updateTournamentRegistrationAction} className="grid-form tw:[margin-top:0.75rem]">
+                      <form action={updateTournamentRegistrationAction} className={viewStyles.grid_form}>
                         <input type="hidden" name="registrationId" value={registration.id} />
                         <input type="hidden" name="tournamentId" value={tournament.id} />
-                        <div className="field">
+                        <div className={viewStyles.field}>
                           <label>Categoria</label>
                           <select name="categoryId" defaultValue={registration.categoryId} required>
                             {tournament.categories.map((item: any) => (
@@ -178,71 +179,71 @@ export default async function TournamentRegistrationsPage() {
                             ))}
                           </select>
                         </div>
-                        <div className="field">
+                        <div className={viewStyles.field}>
                           <label>Atleta 1</label>
                           <input name="leadName" defaultValue={registration.leadName} required />
                         </div>
-                        <div className="field">
+                        <div className={viewStyles.field}>
                           <label>Telefone atleta 1</label>
                           <input name="leadPhone" defaultValue={registration.leadPhone} required />
                         </div>
-                        <div className="field">
+                        <div className={viewStyles.field}>
                           <label>CPF atleta 1</label>
                           <input name="leadCpf" defaultValue={registration.leadCpf} required />
                         </div>
-                        <div className="field">
+                        <div className={viewStyles.field}>
                           <label>Nascimento atleta 1</label>
                           <input name="leadBirthDate" type="text" inputMode="numeric" placeholder="dd/mm/aaaa" defaultValue={new Date(registration.leadBirthDate).toLocaleDateString("pt-BR")} required />
                         </div>
-                        <div className="field">
+                        <div className={viewStyles.field}>
                           <label>Atleta 2</label>
                           <input name="partnerName" defaultValue={registration.partnerName} required />
                         </div>
-                        <div className="field">
+                        <div className={viewStyles.field}>
                           <label>Telefone atleta 2</label>
                           <input name="partnerPhone" defaultValue={registration.partnerPhone} required />
                         </div>
-                        <div className="field">
+                        <div className={viewStyles.field}>
                           <label>CPF atleta 2</label>
                           <input name="partnerCpf" defaultValue={registration.partnerCpf} required />
                         </div>
-                        <div className="field">
+                        <div className={viewStyles.field}>
                           <label>Nascimento atleta 2</label>
                           <input name="partnerBirthDate" type="text" inputMode="numeric" placeholder="dd/mm/aaaa" defaultValue={new Date(registration.partnerBirthDate).toLocaleDateString("pt-BR")} required />
                         </div>
-                        <div className="field">
+                        <div className={viewStyles.field}>
                           <label>Valor (R$)</label>
                           <input name="amountReais" defaultValue={(registration.amountCents / 100).toFixed(2).replace(".", ",")} required />
                         </div>
-                        <div className="field">
+                        <div className={viewStyles.field}>
                           <label>Pagamento</label>
                           <select name="paymentStatus" defaultValue={registration.paymentStatus} required>
                             <option value="PENDING">Pendente</option>
                             <option value="PAID">Pago</option>
                           </select>
                         </div>
-                        <div className="field field-submit">
-                          <SubmitButton label="Salvar alteracoes" pendingLabel="Salvando..." className="button button-primary" />
+                        <div className={viewStyles.field_field_submit}>
+                          <SubmitButton label="Salvar alteracoes" pendingLabel="Salvando..." className={viewStyles.button_button_primary} />
                         </div>
                       </form>
                     </details>
                   </div>
                 </div>
               ))}
-              {!category.registrations.length ? <p className="muted">Sem inscrições.</p> : null}
+              {!category.registrations.length ? <p className={viewStyles.muted}>Sem inscrições.</p> : null}
             </div>
 
             {bracket ? (
               <div className="stack-sm tw:[margin-top:1rem]">
                 <strong>Jogos da chave</strong>
                 {bracket.matches.map((match) => (
-                  <form key={match.id} action={updateCategoryBracketMatchScheduleAction} className="simple-item">
+                  <form key={match.id} action={updateCategoryBracketMatchScheduleAction} className={viewStyles.simple_item}>
                     <input type="hidden" name="matchId" value={match.id} />
                     <span>{match.label}: {match.homeRegistration?.leadName ?? "A definir"} / {match.homeRegistration?.partnerName ?? "-"} x {match.awayRegistration?.leadName ?? "A definir"} / {match.awayRegistration?.partnerName ?? "-"}</span>
-                    <div className="section-actions">
+                    <div className={viewStyles.section_actions}>
                       <input name="scheduledTime" defaultValue={match.scheduledTime} placeholder="18:00" />
                       <input name="courtName" defaultValue={match.courtName} placeholder="Quadra" />
-                      <SubmitButton label="Salvar" pendingLabel="..." className="button" />
+                      <SubmitButton label="Salvar" pendingLabel="..." className={viewStyles.button} />
                     </div>
                   </form>
                 ))}

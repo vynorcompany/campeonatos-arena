@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./teacher-plan-create-dialog.utilities";
 
 import { useState } from "react";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
@@ -13,19 +14,19 @@ export function TeacherPlanCreateDialog({ teacherId, plans }: { teacherId: strin
     <>
       <button
         type="button"
-        className="button button-primary button-small teacher-plan-create-trigger"
+        className={viewStyles.button_button_primary_button_small_teacher_plan_create_trigger}
         onClick={() => setOpen(true)}
       >
         <EventIcon name="user-plus" /> Novo plano
       </button>
       {open ? (
         <div
-          className="teacher-plan-edit-modal"
+          className={viewStyles.teacher_plan_edit_modal}
           role="presentation"
           onMouseDown={() => setOpen(false)}
         >
           <section
-            className="teacher-plan-edit-dialog"
+            className={viewStyles.teacher_plan_edit_dialog}
             role="dialog"
             aria-modal="true"
             aria-labelledby="teacher-plan-create-title"
@@ -33,12 +34,12 @@ export function TeacherPlanCreateDialog({ teacherId, plans }: { teacherId: strin
           >
             <header>
               <div>
-                <p className="eyebrow">NOVO PLANO</p>
+                <p className={viewStyles.eyebrow}>NOVO PLANO</p>
                 <h2 id="teacher-plan-create-title">Vincular plano e preço mensal</h2>
               </div>
               <button
                 type="button"
-                className="teacher-plan-edit-close"
+                className={viewStyles.teacher_plan_edit_close}
                 onClick={() => setOpen(false)}
                 aria-label="Fechar"
               >
@@ -47,7 +48,7 @@ export function TeacherPlanCreateDialog({ teacherId, plans }: { teacherId: strin
             </header>
             <SafeActionForm
               action={createTeacherPlanWithPriceAction}
-              className="teacher-plan-edit-form"
+              className={viewStyles.teacher_plan_edit_form}
               resetOnSuccess
               successMessage="Plano criado e vinculado ao professor."
               onSuccess={() => setOpen(false)}
@@ -69,10 +70,10 @@ export function TeacherPlanCreateDialog({ teacherId, plans }: { teacherId: strin
                   placeholder="0,00"
                 />
               </label>
-              <div className="teacher-plan-edit-actions">
+              <div className={viewStyles.teacher_plan_edit_actions}>
                 <button
                   type="button"
-                  className="button button-secondary button-small"
+                  className={viewStyles.button_button_secondary_button_small}
                   onClick={() => setOpen(false)}
                 >
                   Cancelar
@@ -80,7 +81,7 @@ export function TeacherPlanCreateDialog({ teacherId, plans }: { teacherId: strin
                 <SubmitButton
                   label="Vincular plano"
                   pendingLabel="Salvando..."
-                  className="button button-primary button-small"
+                  className={viewStyles.button_button_primary_button_small}
                 />
               </div>
             </SafeActionForm>

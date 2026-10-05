@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./ranking-configuration-form.utilities";
 
 import { useState } from "react";
 import { useFormState } from "react-dom";
@@ -34,20 +35,20 @@ export function RankingConfigurationForm({
   const [type, setType] = useState(ranking.type);
 
   return (
-    <div className="stack-md">
-      <form action={formAction} className="grid-form section-card ranking-configuration-form">
-        <div className="form-full ranking-configuration-heading"><h2>Dados do ranking</h2><p className="muted">Defina como o ranking identifica e pontua as competições.</p></div>
+    <div className={viewStyles.stack_md}>
+      <form action={formAction} className={viewStyles.grid_form_section_card_ranking_configuration_form}>
+        <div className={viewStyles.form_full_ranking_configuration_heading}><h2>Dados do ranking</h2><p className={viewStyles.muted}>Defina como o ranking identifica e pontua as competições.</p></div>
         <input type="hidden" name="rankingId" value={ranking.id} />
         <input type="hidden" name="generalSettingsPresent" value="on" />
-        <div className="field">
+        <div className={viewStyles.field}>
           <label htmlFor="ranking-name">Nome do ranking</label>
           <input id="ranking-name" name="name" defaultValue={ranking.name} required />
         </div>
-        <div className="field form-full">
+        <div className={viewStyles.field_form_full}>
           <label htmlFor="ranking-description">Descrição</label>
           <input id="ranking-description" name="description" defaultValue={ranking.description} />
         </div>
-        <div className="field">
+        <div className={viewStyles.field}>
           <label htmlFor="ranking-type">Tipo do ranking</label>
           <select
             id="ranking-type"
@@ -62,7 +63,7 @@ export function RankingConfigurationForm({
             <option value="INDIVIDUAL">Individual</option>
           </select>
         </div>
-        <div className="field">
+        <div className={viewStyles.field}>
           <label htmlFor="ranking-model">Modelo de pontuação</label>
           <select
             id="ranking-model"
@@ -74,47 +75,47 @@ export function RankingConfigurationForm({
             <option value="KNOCKOUT">Mata-mata</option>
           </select>
         </div>
-        <div className="ranking-general-options form-full">
-        <label className="ranking-general-control">
+        <div className={viewStyles.ranking_general_options_form_full}>
+        <label className={viewStyles.ranking_general_control}>
           <input
             name="isGeneral"
             type="checkbox"
             defaultChecked={ranking.isGeneral}
             disabled={type !== "INDIVIDUAL"}
           />
-          <span className="ranking-general-control-copy">
+          <span className={viewStyles.ranking_general_control_copy}>
             <strong>Ranking Geral da arena</strong>
             <small>Somente um ranking individual pode ser o Ranking Geral público.</small>
           </span>
         </label>
-        <label className="ranking-general-control">
+        <label className={viewStyles.ranking_general_control}>
           <input
             name="feedsGeneralRanking"
             type="checkbox"
             defaultChecked={ranking.feedsGeneralRanking}
             disabled={type !== "PAIR"}
           />
-          <span className="ranking-general-control-copy">
+          <span className={viewStyles.ranking_general_control_copy}>
             <strong>Alimentar o Ranking Geral</strong>
             <small>As categorias vinculadas também pontuam o Ranking Geral individual.</small>
           </span>
         </label>
         </div>
-        <p className="muted form-full">
+        <p className={viewStyles.muted_form_full}>
           {formatLocked
             ? "Tipo e modelo estão protegidos porque já existe uma competição de categoria iniciada. Nome, descrição e opções do Geral continuam editáveis."
             : "Tipo e modelo podem ser ajustados enquanto todas as categorias vinculadas estiverem em rascunho."}
         </p>
-        {state?.error ? <p className="form-error form-full" role="alert">{state.error}</p> : null}
-        {state?.success ? <p className="form-success form-full">{state.success}</p> : null}
-        <div className="section-actions form-full">
-          <SubmitButton label="Salvar configuração" pendingLabel="Salvando..." className="button button-primary" />
+        {state?.error ? <p className={viewStyles.form_error_form_full} role="alert">{state.error}</p> : null}
+        {state?.success ? <p className={viewStyles.form_success_form_full}>{state.success}</p> : null}
+        <div className={viewStyles.section_actions_form_full}>
+          <SubmitButton label="Salvar configuração" pendingLabel="Salvando..." className={viewStyles.button_button_primary} />
         </div>
       </form>
 
       <SafeActionForm
         action={deleteRankingProfileAction}
-        className="section-card stack-sm"
+        className={viewStyles.section_card}
         confirmKeyword="EXCLUIR"
         confirmPrompt="Digite EXCLUIR para apagar este ranking. Essa ação não pode ser desfeita."
         successMessage="Ranking excluído."
@@ -123,9 +124,9 @@ export function RankingConfigurationForm({
         <input type="hidden" name="rankingId" value={ranking.id} />
         <div>
           <h3>Excluir ranking</h3>
-          <p className="muted">Use apenas quando este ranking não será mais utilizado.</p>
+          <p className={viewStyles.muted}>Use apenas quando este ranking não será mais utilizado.</p>
         </div>
-        <div className="section-actions"><button type="submit" className="button button-danger">Excluir ranking</button></div>
+        <div className={viewStyles.section_actions}><button type="submit" className={viewStyles.button_button_danger}>Excluir ranking</button></div>
       </SafeActionForm>
     </div>
   );

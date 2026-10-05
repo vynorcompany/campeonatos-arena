@@ -1,4 +1,6 @@
 "use client";
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./event-quick-actions.utilities";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -39,30 +41,30 @@ export function EventQuickActions({ tournament, publicPageUrl, categories, initi
 
   const activeCopy = activeAction ? actionCopy[activeAction] : null;
 
-  return <section className="event-quick-actions" id="acoes-rapidas">
+  return <section className={viewStyles.event_quick_actions} id="acoes-rapidas">
     <header><EventIcon name="bolt" /><h2>Ações rápidas</h2></header>
     {(Object.keys(actionCopy) as ActionKey[]).map((key) => {
       const action = actionCopy[key];
-      if (key === "categories") return <Link href={`/torneios/${tournament.id}/categorias`} className="event-quick-action-button" key={key}>
-        <span className={`event-quick-action-icon${action.tone ? ` event-quick-action-icon-${action.tone}` : ""}`}><EventIcon name={action.icon} /></span><strong>{action.title}</strong><EventIcon name="chevron" />
+      if (key === "categories") return <Link href={`/torneios/${tournament.id}/categorias`} className={viewStyles.event_quick_action_button} key={key}>
+        <span className={cx(`${viewStyles.event_quick_action_icon}${action.tone ? ` event-quick-action-icon-${action.tone}` : ""}`)}><EventIcon name={action.icon} /></span><strong>{action.title}</strong><EventIcon name="chevron" />
       </Link>;
-      if (key === "registrations") return <Link href={`/torneios/${tournament.id}/inscricoes`} className="event-quick-action-button" key={key}>
-        <span className={`event-quick-action-icon${action.tone ? ` event-quick-action-icon-${action.tone}` : ""}`}><EventIcon name={action.icon} /></span><strong>{action.title}</strong><EventIcon name="chevron" />
+      if (key === "registrations") return <Link href={`/torneios/${tournament.id}/inscricoes`} className={viewStyles.event_quick_action_button} key={key}>
+        <span className={cx(`${viewStyles.event_quick_action_icon}${action.tone ? ` event-quick-action-icon-${action.tone}` : ""}`)}><EventIcon name={action.icon} /></span><strong>{action.title}</strong><EventIcon name="chevron" />
       </Link>;
-      if (key === "games") return <Link href={`/torneios/${tournament.id}/jogos`} className="event-quick-action-button" key={key}>
-        <span className={`event-quick-action-icon${action.tone ? ` event-quick-action-icon-${action.tone}` : ""}`}><EventIcon name={action.icon} /></span><strong>{action.title}</strong><EventIcon name="chevron" />
+      if (key === "games") return <Link href={`/torneios/${tournament.id}/jogos`} className={viewStyles.event_quick_action_button} key={key}>
+        <span className={cx(`${viewStyles.event_quick_action_icon}${action.tone ? ` event-quick-action-icon-${action.tone}` : ""}`)}><EventIcon name={action.icon} /></span><strong>{action.title}</strong><EventIcon name="chevron" />
       </Link>;
-      return <button type="button" className="event-quick-action-button" key={key} onClick={() => setActiveAction(key)}>
-        <span className={`event-quick-action-icon${action.tone ? ` event-quick-action-icon-${action.tone}` : ""}`}><EventIcon name={action.icon} /></span>
+      return <button type="button" className={viewStyles.event_quick_action_button} key={key} onClick={() => setActiveAction(key)}>
+        <span className={cx(`${viewStyles.event_quick_action_icon}${action.tone ? ` event-quick-action-icon-${action.tone}` : ""}`)}><EventIcon name={action.icon} /></span>
         <strong>{action.title}</strong><EventIcon name="chevron" />
       </button>;
     })}
 
-    {activeAction && activeCopy ? <div className="event-action-modal-backdrop" role="presentation" onMouseDown={() => setActiveAction(null)}>
-      <section className="event-action-modal" role="dialog" aria-modal="true" aria-label={activeCopy.title} onMouseDown={(event) => event.stopPropagation()}>
-        <header><div><p className="eyebrow">EVENTO</p><h2>{activeCopy.title}</h2></div><button type="button" className="button button-small" onClick={() => setActiveAction(null)}>Fechar</button></header>
-        <div className="event-action-modal-content">
-          {activeAction === "public" ? <div className="event-action-public-page"><p>Confira a visualização publicada para atletas e público.</p><Link href={publicPageUrl} target="_blank" rel="noreferrer" className="button button-primary"><EventIcon name="external" />Abrir página pública</Link></div> : null}
+    {activeAction && activeCopy ? <div className={viewStyles.event_action_modal_backdrop} role="presentation" onMouseDown={() => setActiveAction(null)}>
+      <section className={viewStyles.event_action_modal} role="dialog" aria-modal="true" aria-label={activeCopy.title} onMouseDown={(event) => event.stopPropagation()}>
+        <header><div><p className={viewStyles.eyebrow}>EVENTO</p><h2>{activeCopy.title}</h2></div><button type="button" className={viewStyles.button_button_small} onClick={() => setActiveAction(null)}>Fechar</button></header>
+        <div className={viewStyles.event_action_modal_content}>
+          {activeAction === "public" ? <div className={viewStyles.event_action_public_page}><p>Confira a visualização publicada para atletas e público.</p><Link href={publicPageUrl} target="_blank" rel="noreferrer" className={viewStyles.button_button_primary}><EventIcon name="external" />Abrir página pública</Link></div> : null}
           {activeAction === "edit" ? <TournamentEventEditForm tournament={tournament} /> : null}
         </div>
       </section>

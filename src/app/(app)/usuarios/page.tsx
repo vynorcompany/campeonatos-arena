@@ -1,3 +1,4 @@
+import { viewStyles } from "./page.utilities";
 import { ArenaUsersManagement } from "@/components/users/arena-users-management";
 import { requireRole } from "@/lib/auth/guards";
 
@@ -5,12 +6,12 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   const auth = await requireRole("ADMIN");
   const { q } = await searchParams;
   return (
-    <div className="stack-md">
-      <header className="page-header">
-        <div className="stack-xs">
-          <p className="eyebrow">Acesso</p>
+    <div className={viewStyles.stack_md}>
+      <header className={viewStyles.page_header}>
+        <div className={viewStyles.stack_xs}>
+          <p className={viewStyles.eyebrow}>Acesso</p>
           <h1>Usuários</h1>
-          <p className="muted">
+          <p className={viewStyles.muted}>
             Convide pessoas para esta arena, acompanhe acessos e gerencie os perfis de cada usuário.
           </p>
         </div>

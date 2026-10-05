@@ -1,3 +1,4 @@
+import { viewStyles } from "./page.utilities";
 import { PasswordForm } from "@/components/forms/password-form";
 import { ProfileForm } from "@/components/forms/profile-form";
 import { SectionCard } from "@/components/section-card";
@@ -7,12 +8,12 @@ export default async function MyAccountPage() {
   const auth = await requireAuth();
 
   return (
-    <div className="stack-md">
-      <header className="page-header">
-        <div className="stack-xs">
-          <p className="eyebrow">Conta</p>
+    <div className={viewStyles.stack_md}>
+      <header className={viewStyles.page_header}>
+        <div className={viewStyles.stack_xs}>
+          <p className={viewStyles.eyebrow}>Conta</p>
           <h1>Minha conta</h1>
-          <p className="muted">
+          <p className={viewStyles.muted}>
             Atualize seus dados de acesso e mantenha sua senha sob controle para uso online com segurança.
           </p>
         </div>

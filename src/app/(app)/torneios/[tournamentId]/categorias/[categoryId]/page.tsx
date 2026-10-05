@@ -1,3 +1,4 @@
+import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -363,10 +364,10 @@ export default async function CategoryPage(props: CategoryPageProps) {
               };
 
   return (
-      <div className="stack-md t-category-workspace category-detail-workspace">
+      <div className={viewStyles.stack_md_t_category_workspace_category_detail_workspace}>
       <Link
         href={`/torneios/${params.tournamentId}`}
-        className="t-category-back"
+        className={viewStyles.t_category_back}
       >
         <span aria-hidden="true">←</span> Categorias
       </Link>
@@ -378,76 +379,76 @@ export default async function CategoryPage(props: CategoryPageProps) {
       >
         {tab === "overview" ? (
           competition?.format === "LEAGUE" ? (
-          <div className="league-overview-dashboard">
-            <article id={`category-${category.id}`} className="league-overview-hero">
-              <header className="league-overview-header">
+          <div className={viewStyles.league_overview_dashboard}>
+            <article id={`category-${category.id}`} className={viewStyles.league_overview_hero}>
+              <header className={viewStyles.league_overview_header}>
                 <div>
-                  <p className="eyebrow">{category.tournament.name}</p>
-                  <div className="league-overview-title-row">
+                  <p className={viewStyles.eyebrow}>{category.tournament.name}</p>
+                  <div className={viewStyles.league_overview_title_row}>
                     <h1>{category.name}</h1>
                     <CategoryPublicVisibilityForm competitionId={competition.id} isPublic={competition.isPublic} />
                     <LeagueCategorySettingsDialog category={{ id: category.id, name: category.name, class: category.class, gender: category.gender, leagueTier: resolveLeagueTier(category.name, competition.leagueTier), registrationFeeCents: competition.registrationFeeCents }} />
                   </div>
                 </div>
-                <div className="league-overview-status"><StatusBadge status={competition.status} /></div>
+                <div className={viewStyles.league_overview_status}><StatusBadge status={competition.status} /></div>
               </header>
 
-              <p className="league-overview-context">
+              <p className={viewStyles.league_overview_context}>
                 {category.class || "Classe pendente"} · {category.gender || "Gênero pendente"}
                 {" · "}{formatLabels[competition.format]} · Ranking: {competition.ranking?.name ?? "Sem ranking"}
               </p>
 
-              <div className="league-overview-summary-row">
-                <article className="league-overview-metric">
-                  <span className="league-overview-metric-icon league-overview-metric-icon-blue"><LeagueIcon name="users" /></span>
+              <div className={viewStyles.league_overview_summary_row}>
+                <article className={viewStyles.league_overview_metric}>
+                  <span className={viewStyles.league_overview_metric_icon_league_overview_metric_icon_blue}><LeagueIcon name="users" /></span>
                   <div><span>Duplas</span><strong>{competition.pairs.length}</strong></div>
                 </article>
-                <article className="league-overview-metric">
-                  <span className="league-overview-metric-icon league-overview-metric-icon-green"><LeagueIcon name="calendar" /></span>
+                <article className={viewStyles.league_overview_metric}>
+                  <span className={viewStyles.league_overview_metric_icon_league_overview_metric_icon_green}><LeagueIcon name="calendar" /></span>
                   <div><span>Jogos</span><strong>{completedMatchCount}/{competition.matches.length}</strong></div>
                 </article>
-                <article className="league-overview-metric">
-                  <span className="league-overview-metric-icon league-overview-metric-icon-purple"><LeagueIcon name="ranking" /></span>
+                <article className={viewStyles.league_overview_metric}>
+                  <span className={viewStyles.league_overview_metric_icon_league_overview_metric_icon_purple}><LeagueIcon name="ranking" /></span>
                   <div><span>Ranking geral</span><strong>{competition.feedsGeneralRanking ? "Ativo" : "Inativo"}</strong></div>
                 </article>
-                <div className="league-overview-primary-action">
+                <div className={viewStyles.league_overview_primary_action}>
                   {nextStep ? (
-                    <Link href={nextStep.href} className="button button-primary">
+                    <Link href={nextStep.href} className={viewStyles.button_button_primary}>
                       <LeagueIcon name="trophy" /> {nextStep.label}
                     </Link>
-                  ) : <span className="pill">Categoria concluída</span>}
+                  ) : <span className={viewStyles.pill}>Categoria concluída</span>}
                 </div>
               </div>
             </article>
 
-            <div className="league-overview-bottom">
-              <section className="league-prize-card" aria-labelledby="league-prize-title">
-                <form action={updateLeaguePrizeAction} className="league-prize-form">
-                  <div className="league-prize-card-heading">
-                    <span className="league-overview-section-icon"><LeagueIcon name="trophy" /></span>
+            <div className={viewStyles.league_overview_bottom}>
+              <section className={viewStyles.league_prize_card} aria-labelledby="league-prize-title">
+                <form action={updateLeaguePrizeAction} className={viewStyles.league_prize_form}>
+                  <div className={viewStyles.league_prize_card_heading}>
+                    <span className={viewStyles.league_overview_section_icon}><LeagueIcon name="trophy" /></span>
                     <div><h2 id="league-prize-title">Premiação</h2><p>Prêmio do ciclo atual</p></div>
-                    <span className="league-prize-edit-icon"><LeagueIcon name="edit" /></span>
+                    <span className={viewStyles.league_prize_edit_icon}><LeagueIcon name="edit" /></span>
                   </div>
-                  <div className="league-prize-editor">
+                  <div className={viewStyles.league_prize_editor}>
                     <input type="hidden" name="competitionId" value={competition.id} />
                     <textarea
-                      className="league-prize-textarea"
+                      className={viewStyles.league_prize_textarea}
                       name="prizeDescription"
                       rows={4}
                       defaultValue={competition.leagueCycles.find((cycle) => cycle.status === "OPEN")?.prizeDescription ?? ""}
                       placeholder="Descreva a premiação da Liga. Ex.: campeãs recebem troféu, voucher e premiação em dinheiro."
                     />
-                    <div className="league-prize-actions"><button className="button button-primary" type="submit"><LeagueIcon name="save" /> Salvar premiação</button></div>
+                    <div className={viewStyles.league_prize_actions}><button className={viewStyles.button_button_primary} type="submit"><LeagueIcon name="save" /> Salvar premiação</button></div>
                   </div>
                 </form>
               </section>
 
-              <aside className="league-cycle-card">
-                <div className="league-cycle-card-heading"><span className="league-overview-section-icon"><LeagueIcon name="calendar" /></span><h2>Ciclo mensal</h2></div>
+              <aside className={viewStyles.league_cycle_card}>
+                <div className={viewStyles.league_cycle_card_heading}><span className={viewStyles.league_overview_section_icon}><LeagueIcon name="calendar" /></span><h2>Ciclo mensal</h2></div>
                 <p>Fecha o mês vigente, registra campeã e executa acesso ou rebaixamento.</p>
                 <form action={runLeagueLifecycleAction}>
                   <input type="hidden" name="competitionId" value={competition.id} />
-                  <button className="button button-secondary" type="submit"><LeagueIcon name="refresh" /> Processar ciclo da Liga</button>
+                  <button className={viewStyles.button_button_secondary} type="submit"><LeagueIcon name="refresh" /> Processar ciclo da Liga</button>
                 </form>
               </aside>
             </div>
@@ -463,16 +464,16 @@ export default async function CategoryPage(props: CategoryPageProps) {
           </div>
           ) : (
           <div className="stack-sm">
-                <article id={`category-${category.id}`} className="category-overview category-detail-hero">
-              <div className="category-overview-head">
-                <div className="stack-xs">
-                  <p className="eyebrow">{category.tournament.name}</p>
-                  <div className="category-overview-title-row"><h1>{category.name}</h1>{competition ? <CategoryPublicVisibilityForm competitionId={competition.id} isPublic={competition.isPublic} /> : null}</div>
+                <article id={`category-${category.id}`} className={viewStyles.category_overview_category_detail_hero}>
+              <div className={viewStyles.category_overview_head}>
+                <div className={viewStyles.stack_xs}>
+                  <p className={viewStyles.eyebrow}>{category.tournament.name}</p>
+                  <div className={viewStyles.category_overview_title_row}><h1>{category.name}</h1>{competition ? <CategoryPublicVisibilityForm competitionId={competition.id} isPublic={competition.isPublic} /> : null}</div>
                 </div>
                 <StatusBadge status={competition?.status ?? "DRAFT"} />
               </div>
 
-              <p className="category-overview-context muted">
+              <p className={viewStyles.category_overview_context_muted}>
                 {category.class || "Classe pendente"} · {category.gender || "Gênero pendente"}
                 {competition ? (
                   <>
@@ -482,7 +483,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
                 ) : null}
               </p>
 
-              <dl className="category-overview-metrics">
+              <dl className={viewStyles.category_overview_metrics}>
                 <div>
                   <dt>Duplas</dt>
                   <dd>{competition?.pairs.length ?? 0}</dd>
@@ -499,18 +500,18 @@ export default async function CategoryPage(props: CategoryPageProps) {
                 </div>
               </dl>
 
-              <div className="category-overview-action">
+              <div className={viewStyles.category_overview_action}>
                 {nextStep ? (
-                  <Link href={nextStep.href} className="button button-primary">
+                  <Link href={nextStep.href} className={viewStyles.button_button_primary}>
                     {nextStep.label}
                   </Link>
                 ) : (
-                  <span className="pill">Categoria concluída</span>
+                  <span className={viewStyles.pill}>Categoria concluída</span>
                 )}
               </div>
             </article>
             {!competition && isPublicTournament ? (
-              <article className="section-card">
+              <article className={viewStyles.section_card}>
                 <TournamentCategorySettingsForm
                   category={{
                     id: category.id,
@@ -526,7 +527,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
                 />
               </article>
             ) : !competition ? (
-              <article className="section-card">
+              <article className={viewStyles.section_card}>
                 <CategoryCompetitionForm
                   categoryId={category.id}
                   categoryName={category.name}

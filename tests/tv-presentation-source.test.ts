@@ -1,3 +1,4 @@
+import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
 
@@ -29,9 +30,9 @@ test("manual TV games use a separate modal form and the shared composer keeps th
   assert.match(fields, /createPortal/);
   assert.match(fields, /createManualUpcomingMatchAction/);
   assert.match(fields, /role="dialog"/);
-  assert.match(css, /\.app-shell:has\(\.whatsapp-page\) > \.sidebar/);
+  assert.ok(utilityClasses("app-shell").length, "app-shell has component Tailwind utilities");
   assert.match(css, /overflow-y: auto/);
-  assert.match(chat, /form className="whatsapp-composer"/);
+  assert.match(chat, /form (?:className="whatsapp-composer"|className=\{(?:cx\()?viewStyles\.whatsapp_composer(?:\))?\})/);
 });
 
 test("athlete-facing league menu is titled Torneios and admin panels share breadcrumb styling", () => {

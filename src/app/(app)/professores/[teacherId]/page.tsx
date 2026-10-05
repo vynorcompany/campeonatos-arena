@@ -1,3 +1,5 @@
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { TeacherMonthlyReport } from "@/components/teachers/teacher-monthly-report";
@@ -253,15 +255,15 @@ export default async function TeacherDetailPage(
 
   return (
     <div
-      className={`stack-md workspace-page teacher-detail-page ${tab === "students" ? "teacher-students-dashboard" : ""}`}
+      className={cx(`${viewStyles.stack_md_workspace_page_teacher_detail_page} ${tab === "students" ? "teacher-students-dashboard" : ""}`)}
     >
-      <header className="page-header teacher-detail-hero">
+      <header className={viewStyles.page_header_teacher_detail_hero}>
         <div>
-          <Link href="/professores" className="back-link">
+          <Link href="/professores" className={viewStyles.back_link}>
             ← Professores
           </Link>
-          <div className="teacher-detail-identity">
-            <span className="teacher-detail-avatar" aria-hidden="true">
+          <div className={viewStyles.teacher_detail_identity}>
+            <span className={viewStyles.teacher_detail_avatar} aria-hidden="true">
               {teacher.player?.photoUrl ? (
                 <img src={teacher.player.photoUrl} alt="" />
               ) : (
@@ -269,15 +271,15 @@ export default async function TeacherDetailPage(
               )}
             </span>
             <div>
-              <p className="eyebrow">PROFESSOR</p>
+              <p className={viewStyles.eyebrow}>PROFESSOR</p>
               <h1>{teacher.name}</h1>
             </div>
           </div>
         </div>
-        <div className="teacher-page-actions">
+        <div className={viewStyles.teacher_page_actions}>
           <span
             className={
-              teacher.active ? "status-badge status-active" : "status-badge"
+              cx(teacher.active ? "status-badge status-active" : "status-badge")
             }
           >
             {teacher.active ? (
@@ -288,23 +290,23 @@ export default async function TeacherDetailPage(
               "Inativo"
             )}
           </span>
-          <details className="teacher-actions-menu">
+          <details className={viewStyles.teacher_actions_menu}>
             <summary>
               Ações <EventIcon name="chevron-down" />
             </summary>
-            <div className="teacher-actions-menu-content">
+            <div className={viewStyles.teacher_actions_menu_content}>
               {teacher.active ? (
                 <SafeActionForm
                   action={archiveTeacherAction}
                   confirmKeyword="REMOVER"
                   confirmPrompt={`Desativar ${teacher.name}? O histórico de planos, aulas e turmas será preservado.`}
-                  className="teacher-archive-form"
+                  className={viewStyles.teacher_archive_form}
                 >
                   <input type="hidden" name="teacherId" value={teacher.id} />
                   <SubmitButton
                     label="Desativar professor"
                     pendingLabel="Desativando..."
-                    className="button button-small"
+                    className={viewStyles.button_button_small}
                   />
                 </SafeActionForm>
               ) : (
@@ -313,13 +315,13 @@ export default async function TeacherDetailPage(
                   successHref="/professores"
                   confirmKeyword="EXCLUIR"
                   confirmPrompt={`Excluir ${teacher.name} definitivamente? Os vínculos de planos sem histórico serão removidos.`}
-                  className="teacher-delete-form"
+                  className={viewStyles.teacher_delete_form}
                 >
                   <input type="hidden" name="teacherId" value={teacher.id} />
                   <SubmitButton
                     label="Excluir professor"
                     pendingLabel="Excluindo..."
-                    className="button button-danger button-small"
+                    className={viewStyles.button_button_danger_button_small}
                   />
                 </SafeActionForm>
               )}
@@ -327,36 +329,36 @@ export default async function TeacherDetailPage(
           </details>
         </div>
       </header>
-      <nav className="teacher-detail-tabs" aria-label="Painel do professor">
+      <nav className={viewStyles.teacher_detail_tabs} aria-label="Painel do professor">
         <Link
           href={tabHref("plans")}
-          className={tab === "plans" ? "is-active" : ""}
+          className={cx(tab === "plans" ? "is-active" : "")}
         >
           Planos e preços
         </Link>
         <Link
           href={tabHref("students")}
-          className={tab === "students" ? "is-active" : ""}
+          className={cx(tab === "students" ? "is-active" : "")}
         >
           Alunos ativos
         </Link>
         <Link
           href={tabHref("classes")}
-          className={tab === "classes" ? "is-active" : ""}
+          className={cx(tab === "classes" ? "is-active" : "")}
         >
           Turmas
         </Link>
         <Link
           href={tabHref("report")}
-          className={tab === "report" ? "is-active" : ""}
+          className={cx(tab === "report" ? "is-active" : "")}
         >
           Relatório
         </Link>
       </nav>
-      <section className="teacher-detail-metrics">
+      <section className={viewStyles.teacher_detail_metrics}>
         <article>
           <span
-            className="teacher-detail-metric-icon metric-blue"
+            className={viewStyles.teacher_detail_metric_icon}
             aria-hidden="true"
           >
             <EventIcon name="clipboard" />
@@ -367,16 +369,16 @@ export default async function TeacherDetailPage(
           </div>
         </article>
         <article>
-          <span className="teacher-detail-metric-icon metric-purple" aria-hidden="true"><EventIcon name="calendar" /></span>
+          <span className={viewStyles.teacher_detail_metric_icon_2} aria-hidden="true"><EventIcon name="calendar" /></span>
           <div><span>Reposições solicitadas</span><strong>{requestedMakeups}</strong></div>
         </article>
         <article>
-          <span className="teacher-detail-metric-icon metric-green" aria-hidden="true"><EventIcon name="check-circle" /></span>
+          <span className={viewStyles.teacher_detail_metric_icon_3} aria-hidden="true"><EventIcon name="check-circle" /></span>
           <div><span>Reposições concluídas</span><strong>{completedMakeups}</strong></div>
         </article>
         <article>
           <span
-            className="teacher-detail-metric-icon metric-blue"
+            className={viewStyles.teacher_detail_metric_icon}
             aria-hidden="true"
           >
             <EventIcon name="users" />
@@ -388,7 +390,7 @@ export default async function TeacherDetailPage(
         </article>
         <article>
           <span
-            className="teacher-detail-metric-icon metric-green"
+            className={viewStyles.teacher_detail_metric_icon_3}
             aria-hidden="true"
           >
             <EventIcon name="calendar" />
@@ -400,7 +402,7 @@ export default async function TeacherDetailPage(
         </article>
         <article>
           <span
-            className="teacher-detail-metric-icon metric-purple"
+            className={viewStyles.teacher_detail_metric_icon_2}
             aria-hidden="true"
           >
             <EventIcon name="check-circle" />
@@ -412,10 +414,10 @@ export default async function TeacherDetailPage(
         </article>
       </section>
       {tab === "plans" ? (
-        <section className="section-card teacher-detail-section teacher-plans-panel">
+        <section className={viewStyles.section_card_teacher_detail_section_teacher_plans_panel}>
             <header>
               <h2>Planos e preços</h2>
-              <div className="teacher-plan-panel-actions">
+              <div className={viewStyles.teacher_plan_panel_actions}>
                 <TeacherPlanCopyDialog
                   teacherId={teacher.id}
                   teachers={targetTeachers}
@@ -423,12 +425,12 @@ export default async function TeacherDetailPage(
                 <TeacherPlanCreateDialog teacherId={teacher.id} plans={standardPlanOptions} />
               </div>
             </header>
-            <div className="teacher-plan-cards">
+            <div className={viewStyles.teacher_plan_cards}>
               {teacher.planAssignments.map(({ plan, monthlyPriceCents }) => (
                 <article key={plan.id}>
                   <div>
                     <strong>{plan.name}</strong>
-                    <span className="teacher-plan-owner-tag">
+                    <span className={viewStyles.teacher_plan_owner_tag}>
                       Professor: {teacher.name}
                     </span>
                     <span>{plan.classesPerMonth} aulas/mês</span>
@@ -439,15 +441,15 @@ export default async function TeacherDetailPage(
                 </article>
               ))}
               {!teacher.planAssignments.length ? (
-                <p className="muted">Nenhum plano vinculado.</p>
+                <p className={viewStyles.muted}>Nenhum plano vinculado.</p>
               ) : null}
             </div>
         </section>
       ) : null}
       {tab === "students" ? (
-        <section className="section-card teacher-detail-section teacher-active-students-panel">
+        <section className={viewStyles.section_card_teacher_detail_section_teacher_active_students_panel}>
           <header>
-            <span className="teacher-active-students-icon" aria-hidden="true">
+            <span className={viewStyles.teacher_active_students_icon} aria-hidden="true">
               <EventIcon name="users" size={16} />
             </span>
             <h2>Alunos ativos</h2>
@@ -466,7 +468,7 @@ export default async function TeacherDetailPage(
               planIds: group.plans.map(({ planId }) => planId),
             }))}
           />
-          <div className="teacher-student-plan-list">
+          <div className={viewStyles.teacher_student_plan_list}>
             {teacher.planAssignments.flatMap(({ plan }) =>
               plan.subscriptions.map((subscription) => {
                 // O lançamento nasce vinculado ao cliente e ao plano. Usar
@@ -496,7 +498,7 @@ export default async function TeacherDetailPage(
                 );
                 return (
                   <article key={subscription.id}>
-                    <details className="teacher-student-row-link">
+                    <details className={viewStyles.teacher_student_row_link}>
                       <summary>
                         <span>
                           <strong>{subscription.student.name}</strong>
@@ -510,7 +512,7 @@ export default async function TeacherDetailPage(
                       </summary>
                       <SafeActionForm
                         action={moveTeacherClassGroupStudentAction}
-                        className="teacher-student-group-move"
+                        className={viewStyles.teacher_student_group_move}
                         successMessage="Turma do aluno atualizada."
                       >
                         <input type="hidden" name="teacherId" value={teacher.id} />
@@ -547,16 +549,16 @@ export default async function TeacherDetailPage(
                         <SubmitButton
                           label={studentGroup ? "Alterar" : "Atribuir"}
                           pendingLabel="Salvando..."
-                          className="button button-small"
+                          className={viewStyles.button_button_small}
                         />
                       </SafeActionForm>
-                      {targetTeachers.length ? <SafeActionForm action={transferTeacherStudentAction} className="teacher-student-group-move" successMessage="Aluno transferido. O plano e os lançamentos financeiros foram preservados."><input type="hidden" name="sourceTeacherId" value={teacher.id} /><input type="hidden" name="studentId" value={subscription.student.id} /><label>Professor<select name="targetTeacherId" defaultValue=""><option value="" disabled>Transferir para outro professor</option>{targetTeachers.map((target) => <option value={target.id} key={target.id}>{target.name}</option>)}</select></label><SubmitButton label="Transferir professor" pendingLabel="Transferindo..." className="button button-small" /></SafeActionForm> : null}
+                      {targetTeachers.length ? <SafeActionForm action={transferTeacherStudentAction} className={viewStyles.teacher_student_group_move} successMessage="Aluno transferido. O plano e os lançamentos financeiros foram preservados."><input type="hidden" name="sourceTeacherId" value={teacher.id} /><input type="hidden" name="studentId" value={subscription.student.id} /><label>Professor<select name="targetTeacherId" defaultValue=""><option value="" disabled>Transferir para outro professor</option>{targetTeachers.map((target) => <option value={target.id} key={target.id}>{target.name}</option>)}</select></label><SubmitButton label="Transferir professor" pendingLabel="Transferindo..." className={viewStyles.button_button_small} /></SafeActionForm> : null}
                       <SafeActionForm
                         action={removeTeacherPlanStudentAction}
-                        className="teacher-student-plan-remove"
+                        className={viewStyles.teacher_student_plan_remove}
                         confirmKeyword="REMOVER"
                         confirmPrompt={`Remover ${subscription.student.name} do plano ${plan.name}? O cadastro do cliente será preservado.`}
-                        confirmationContent={<div className="teacher-plan-removal-options"><strong>Deseja cancelar também os boletos em aberto?</strong><label><input type="radio" name="cancelOpenBoletos" value="yes" required />Sim, cancelar no Mercado Pago e estornar as mensalidades não vencidas.</label><label><input type="radio" name="cancelOpenBoletos" value="no" required />Não, manter os boletos e lançamentos já existentes.</label><small>Boletos em atraso, pagamentos confirmados e lançamentos parcialmente pagos serão preservados. Nenhum novo boleto será emitido após o encerramento do plano.</small><label><input type="checkbox" name="clearRemainingClasses" value="true" />Remover o saldo de {subscription.student.remainingClasses} aula{subscription.student.remainingClasses === 1 ? "" : "s"} restante{subscription.student.remainingClasses === 1 ? "" : "s"}</label></div>}
+                        confirmationContent={<div className={viewStyles.teacher_plan_removal_options}><strong>Deseja cancelar também os boletos em aberto?</strong><label><input type="radio" name="cancelOpenBoletos" value="yes" required />Sim, cancelar no Mercado Pago e estornar as mensalidades não vencidas.</label><label><input type="radio" name="cancelOpenBoletos" value="no" required />Não, manter os boletos e lançamentos já existentes.</label><small>Boletos em atraso, pagamentos confirmados e lançamentos parcialmente pagos serão preservados. Nenhum novo boleto será emitido após o encerramento do plano.</small><label><input type="checkbox" name="clearRemainingClasses" value="true" />Remover o saldo de {subscription.student.remainingClasses} aula{subscription.student.remainingClasses === 1 ? "" : "s"} restante{subscription.student.remainingClasses === 1 ? "" : "s"}</label></div>}
                         successMessage="Aluno removido do plano. A escolha sobre os boletos foi aplicada."
                         closeClosestDetailsOnSuccess
                       >
@@ -570,19 +572,19 @@ export default async function TeacherDetailPage(
                         <SubmitButton
                           label="Remover do plano"
                           pendingLabel="Removendo..."
-                          className="button button-danger button-small"
+                          className={viewStyles.button_button_danger_button_small}
                         />
                       </SafeActionForm>
                     </details>
                     <Link
-                      className="teacher-student-financial-link"
+                      className={viewStyles.teacher_student_financial_link}
                       href={`/financeiro/contas-a-receber?name=${encodeURIComponent(subscription.student.name)}`}
                     >
                       <span
                         className={
-                          payment?.status === "PAID"
+                          cx(payment?.status === "PAID"
                             ? "status-badge status-active"
-                            : "status-badge status-pending"
+                            : viewStyles.status_pending)
                         }
                       >
                         {financialStatus}
@@ -593,9 +595,9 @@ export default async function TeacherDetailPage(
               }),
             )}
             {!planStudentIds.size ? (
-              <div className="teacher-active-students-empty">
+              <div className={viewStyles.teacher_active_students_empty}>
                 <span aria-hidden="true">▤</span>
-                <p className="muted">
+                <p className={viewStyles.muted}>
                   Nenhum aluno ativo nos planos deste professor.
                 </p>
               </div>
@@ -614,11 +616,11 @@ export default async function TeacherDetailPage(
         />
       ) : null}
       {tab === "report" ? (
-        <section className="section-card teacher-detail-section">
+        <section className={viewStyles.section_card_teacher_detail_section}>
           <header>
             <h2>Relatório</h2>
           </header>
-          <form className="filter-bar-compact teacher-report-filters">
+          <form className={viewStyles.filter_bar_compact_teacher_report_filters}>
             <input type="hidden" name="tab" value="report" />
             <label>
               De
@@ -658,7 +660,7 @@ export default async function TeacherDetailPage(
                 defaultValue={percent}
               />
             </label>
-            <button type="submit" className="button button-primary">
+            <button type="submit" className={viewStyles.button_button_primary}>
               Aplicar
             </button>
           </form>

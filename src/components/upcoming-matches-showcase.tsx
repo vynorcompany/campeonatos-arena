@@ -1,4 +1,6 @@
 "use client";
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./upcoming-matches-showcase.utilities";
 
 import { useEffect, useState } from "react";
 
@@ -46,17 +48,17 @@ export function UpcomingMatchesShowcase({
 
   if (!matches.length) {
     return (
-      <section className="showcase-shell showcase-shell-empty">
-        <div className="showcase-hero">
-          <div className="showcase-kicker-row">
-            <span className="showcase-kicker">Próximos jogos</span>
-            <span className="showcase-badge">Aguardando agenda</span>
+      <section className={viewStyles.showcase_shell_showcase_shell_empty}>
+        <div className={viewStyles.showcase_hero}>
+          <div className={viewStyles.showcase_kicker_row}>
+            <span className={viewStyles.showcase_kicker}>Próximos jogos</span>
+            <span className={viewStyles.showcase_badge}>Aguardando agenda</span>
           </div>
           <h2>{tournamentName}</h2>
           <p>{stageDescription}</p>
         </div>
 
-        <article className="showcase-empty-card">
+        <article className={viewStyles.showcase_empty_card}>
           <strong>Nenhum confronto pendente no momento</strong>
           <p>Assim que a fase atual tiver partidas disponíveis, elas aparecem aqui em formato de apresentação.</p>
         </article>
@@ -67,11 +69,11 @@ export function UpcomingMatchesShowcase({
   const activeMatch = matches[activeIndex];
 
   return (
-    <section className="showcase-shell">
-      <div className="showcase-hero">
-        <div className="showcase-kicker-row">
-          <span className="showcase-kicker">Próximos jogos</span>
-          <span className="showcase-badge">
+    <section className={viewStyles.showcase_shell}>
+      <div className={viewStyles.showcase_hero}>
+        <div className={viewStyles.showcase_kicker_row}>
+          <span className={viewStyles.showcase_kicker}>Próximos jogos</span>
+          <span className={viewStyles.showcase_badge}>
             {activeIndex + 1}/{matches.length}
           </span>
         </div>
@@ -81,54 +83,54 @@ export function UpcomingMatchesShowcase({
         </p>
       </div>
 
-      <div className="showcase-stage">
-        <div className="showcase-stage-head">
+      <div className={viewStyles.showcase_stage}>
+        <div className={viewStyles.showcase_stage_head}>
           <div>
-            <span className="showcase-stage-label">{activeMatch.stageLabel}</span>
+            <span className={viewStyles.showcase_stage_label}>{activeMatch.stageLabel}</span>
             <h3>{activeMatch.label}</h3>
           </div>
-          <span className="showcase-order">{activeMatch.orderLabel}</span>
+          <span className={viewStyles.showcase_order}>{activeMatch.orderLabel}</span>
         </div>
 
-        <div className="showcase-versus">
-          <article className="showcase-team-card">
-            <span className="showcase-team-caption">Dupla 1</span>
+        <div className={viewStyles.showcase_versus}>
+          <article className={viewStyles.showcase_team_card}>
+            <span className={viewStyles.showcase_team_caption}>Dupla 1</span>
             <strong>{activeMatch.homePairName ?? "A definir"}</strong>
           </article>
 
-          <div className="showcase-versus-badge">VS</div>
+          <div className={viewStyles.showcase_versus_badge}>VS</div>
 
-          <article className="showcase-team-card">
-            <span className="showcase-team-caption">Dupla 2</span>
+          <article className={viewStyles.showcase_team_card}>
+            <span className={viewStyles.showcase_team_caption}>Dupla 2</span>
             <strong>{activeMatch.awayPairName ?? "A definir"}</strong>
           </article>
         </div>
 
-        <div className="showcase-meta-grid">
-          <div className="showcase-meta-card">
+        <div className={viewStyles.showcase_meta_grid}>
+          <div className={viewStyles.showcase_meta_card}>
             <span>Contexto</span>
             <strong>{activeMatch.groupName ?? activeMatch.stageLabel}</strong>
           </div>
-          <div className="showcase-meta-card">
+          <div className={viewStyles.showcase_meta_card}>
             <span>Quadra</span>
             <strong>{activeMatch.courtName ?? "A definir"}</strong>
           </div>
         </div>
 
-        <div className="showcase-controls">
+        <div className={viewStyles.showcase_controls}>
           <button
             type="button"
-            className="button"
+            className={viewStyles.button}
             onClick={() => setActiveIndex((current) => (current - 1 + matches.length) % matches.length)}
           >
             Anterior
           </button>
-          <div className="showcase-dots" aria-label="Slides dos próximos jogos">
+          <div className={viewStyles.showcase_dots} aria-label="Slides dos próximos jogos">
             {matches.map((match, index) => (
               <button
                 key={match.id}
                 type="button"
-                className={`showcase-dot${index === activeIndex ? " showcase-dot-active" : ""}`}
+                className={cx(`${viewStyles.showcase_dot}${index === activeIndex ? " " + viewStyles.showcase_dot_active : ""}`)}
                 onClick={() => setActiveIndex(index)}
                 aria-label={`Abrir slide ${index + 1}`}
               />
@@ -136,7 +138,7 @@ export function UpcomingMatchesShowcase({
           </div>
           <button
             type="button"
-            className="button button-primary"
+            className={viewStyles.button_button_primary}
             onClick={() => setActiveIndex((current) => (current + 1) % matches.length)}
           >
             Próximo
@@ -144,12 +146,12 @@ export function UpcomingMatchesShowcase({
         </div>
       </div>
 
-      <div className="showcase-filmstrip" aria-label="Fila de próximos jogos">
+      <div className={viewStyles.showcase_filmstrip} aria-label="Fila de próximos jogos">
         {matches.map((match, index) => (
           <button
             key={`${match.id}-thumb`}
             type="button"
-            className={`showcase-thumb${index === activeIndex ? " showcase-thumb-active" : ""}`}
+            className={cx(`${viewStyles.showcase_thumb}${index === activeIndex ? " " + viewStyles.showcase_thumb_active : ""}`)}
             onClick={() => setActiveIndex(index)}
           >
             <span>{match.stageLabel}</span>

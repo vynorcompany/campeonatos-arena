@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./arena-notification-bell.utilities";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -23,5 +24,5 @@ export function ArenaNotificationBell({ notifications }: { notifications: Notifi
     setUnread([]);
     startTransition(async () => { await markAllArenaNotificationsReadAction(); router.refresh(); });
   };
-  return <div ref={containerRef} className="arena-notification-bell"><button type="button" aria-label="Notificações" aria-expanded={open} onClick={() => setOpen((current) => !current)}>🔔{unread.length ? <b>{unread.length > 9 ? "9+" : unread.length}</b> : null}</button>{open ? <section className="arena-notification-panel"><header><div><strong>Notificações</strong><span>{pending ? "Atualizando..." : unread.length ? `${unread.length} não lida${unread.length === 1 ? "" : "s"}` : "Você está em dia"}</span></div>{unread.length ? <button type="button" onClick={markAllRead} disabled={pending}>Marcar todas como lidas</button> : null}</header>{unread.length ? unread.map((notification) => <Link href={notification.href || "/agenda"} key={notification.id} onClick={() => { markRead(notification.id); setOpen(false); }}><strong>{notification.title}</strong><span>{notification.message}</span></Link>) : <p>Você está em dia.</p>}</section> : null}</div>;
+  return <div ref={containerRef} className={viewStyles.arena_notification_bell}><button type="button" aria-label="Notificações" aria-expanded={open} onClick={() => setOpen((current) => !current)}>🔔{unread.length ? <b>{unread.length > 9 ? "9+" : unread.length}</b> : null}</button>{open ? <section className={viewStyles.arena_notification_panel}><header><div><strong>Notificações</strong><span>{pending ? "Atualizando..." : unread.length ? `${unread.length} não lida${unread.length === 1 ? "" : "s"}` : "Você está em dia"}</span></div>{unread.length ? <button type="button" onClick={markAllRead} disabled={pending}>Marcar todas como lidas</button> : null}</header>{unread.length ? unread.map((notification) => <Link href={notification.href || "/agenda"} key={notification.id} onClick={() => { markRead(notification.id); setOpen(false); }}><strong>{notification.title}</strong><span>{notification.message}</span></Link>) : <p>Você está em dia.</p>}</section> : null}</div>;
 }

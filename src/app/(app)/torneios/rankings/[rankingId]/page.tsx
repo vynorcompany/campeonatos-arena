@@ -1,3 +1,5 @@
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { RankingConfigurationForm } from "@/components/forms/ranking-configuration-form";
@@ -62,11 +64,11 @@ function RankingLeaderboard({
 }) {
   const rows = ranking.type === "PAIR" ? ranking.pairLeaderboard : ranking.leaderboard;
   if (!rows.length) {
-    return <p className="muted">Ainda não há participantes pontuados neste período.</p>;
+    return <p className={viewStyles.muted}>Ainda não há participantes pontuados neste período.</p>;
   }
 
   return (
-    <table className="data-table ranking-detail-table">
+    <table className={viewStyles.data_table}>
       <thead>
         <tr>
           <th>Pos.</th>
@@ -163,11 +165,11 @@ export default async function RankingDetailPage(props: RankingDetailPageProps) {
   const today = formatRankingDateInput(new Date());
 
   return (
-    <div className="stack-md ranking-detail-page">
-      <header className="page-header ranking-detail-header">
-        <div className="ranking-detail-identity"><span>RANKING</span><h1>{ranking.name}</h1><p>{ranking.type === "PAIR" ? "Duplas" : "Individual"} · {ranking.model === "LEAGUE" ? "Liga" : "Mata-mata"}</p></div>
-        <div className="section-actions">
-          <Link href="/torneios/rankings" className="button">Voltar aos rankings</Link>
+    <div className={viewStyles.stack_md_ranking_detail_page}>
+      <header className={viewStyles.page_header_ranking_detail_header}>
+        <div className={viewStyles.ranking_detail_identity}><span>RANKING</span><h1>{ranking.name}</h1><p>{ranking.type === "PAIR" ? "Duplas" : "Individual"} · {ranking.model === "LEAGUE" ? "Liga" : "Mata-mata"}</p></div>
+        <div className={viewStyles.section_actions}>
+          <Link href="/torneios/rankings" className={viewStyles.button}>Voltar aos rankings</Link>
         </div>
       </header>
 
@@ -178,17 +180,17 @@ export default async function RankingDetailPage(props: RankingDetailPageProps) {
         periodQuery={periodQuery}
       />
 
-      <section className="section-card stack-sm ranking-detail-period" aria-label="Período do ranking">
-        <div className="stack-xs">
+      <section className={viewStyles.section_card_ranking_detail_period} aria-label="Período do ranking">
+        <div className={viewStyles.stack_xs}>
           <strong>Período</strong>
-          <span className="muted">{ranking.period.label}</span>
+          <span className={viewStyles.muted}>{ranking.period.label}</span>
         </div>
-        <nav className="section-actions" aria-label="Atalhos de período">
+        <nav className={viewStyles.section_actions} aria-label="Atalhos de período">
           {periodPresets.map((preset) => (
             <Link
               key={preset.id}
               href={rankingHref(ranking.id, tab, { period: preset.id })}
-              className={`button${ranking.period.mode === preset.id ? " button-primary" : ""}`}
+              className={cx(`${viewStyles.button}${ranking.period.mode === preset.id ? " " + viewStyles.button_primary : ""}`)}
               aria-current={ranking.period.mode === preset.id ? "page" : undefined}
             >
               {preset.label}
@@ -196,7 +198,7 @@ export default async function RankingDetailPage(props: RankingDetailPageProps) {
           ))}
           <Link
             href={rankingHref(ranking.id, tab, { period: "custom" })}
-            className={`button${ranking.period.mode === "custom" ? " button-primary" : ""}`}
+            className={cx(`${viewStyles.button}${ranking.period.mode === "custom" ? " " + viewStyles.button_primary : ""}`)}
           >
             Personalizado
           </Link>
@@ -205,34 +207,34 @@ export default async function RankingDetailPage(props: RankingDetailPageProps) {
               period: "cycle",
               ...(ranking.cycles[0] ? { cycleId: ranking.cycles[0].id } : {}),
             })}
-            className={`button${ranking.period.mode === "cycle" ? " button-primary" : ""}`}
+            className={cx(`${viewStyles.button}${ranking.period.mode === "cycle" ? " " + viewStyles.button_primary : ""}`)}
           >
             Ciclos
           </Link>
         </nav>
 
         {ranking.period.mode === "custom" ? (
-          <form method="get" className="inline-form">
+          <form method="get" className={viewStyles.inline_form}>
             <input type="hidden" name="tab" value={tab} />
             <input type="hidden" name="period" value="custom" />
-            <div className="field">
+            <div className={viewStyles.field}>
               <label htmlFor="ranking-period-start">Data inicial</label>
               <input id="ranking-period-start" name="start" type="date" defaultValue={periodQuery.start ?? ""} required />
             </div>
-            <div className="field">
+            <div className={viewStyles.field}>
               <label htmlFor="ranking-period-end">Data final</label>
               <input id="ranking-period-end" name="end" type="date" defaultValue={periodQuery.end ?? ""} required />
             </div>
-            <button type="submit" className="button button-primary">Aplicar</button>
+            <button type="submit" className={viewStyles.button_button_primary}>Aplicar</button>
           </form>
         ) : null}
 
         {ranking.period.mode === "cycle" ? (
           <div className="stack-sm">
-            <form method="get" className="inline-form">
+            <form method="get" className={viewStyles.inline_form}>
               <input type="hidden" name="tab" value={tab} />
               <input type="hidden" name="period" value="cycle" />
-              <div className="field">
+              <div className={viewStyles.field}>
                 <label htmlFor="ranking-cycle">Ciclo</label>
                 <select id="ranking-cycle" name="cycleId" defaultValue={ranking.selectedCycleId} required>
                   <option value="" disabled>Selecione</option>
@@ -243,11 +245,11 @@ export default async function RankingDetailPage(props: RankingDetailPageProps) {
                   ))}
                 </select>
               </div>
-              <button type="submit" className="button button-primary">Aplicar</button>
+              <button type="submit" className={viewStyles.button_button_primary}>Aplicar</button>
             </form>
 
             <details>
-              <summary className="button">Novo ciclo</summary>
+              <summary className={viewStyles.button}>Novo ciclo</summary>
               <SafeActionForm
                 action={createRankingCycleAction}
                 className="form-grid compact-form"
@@ -255,27 +257,27 @@ export default async function RankingDetailPage(props: RankingDetailPageProps) {
                 successMessage="Ciclo criado com sucesso."
               >
                 <input type="hidden" name="rankingId" value={ranking.id} />
-                <div className="field">
+                <div className={viewStyles.field}>
                   <label htmlFor="ranking-cycle-label">Nome</label>
                   <input id="ranking-cycle-label" name="label" placeholder="Ex.: 2º semestre 2026" required />
                 </div>
-                <div className="field">
+                <div className={viewStyles.field}>
                   <label htmlFor="ranking-cycle-start">Data inicial</label>
                   <input id="ranking-cycle-start" name="startedAt" type="date" defaultValue={today} required />
                 </div>
-                <div className="field">
+                <div className={viewStyles.field}>
                   <label htmlFor="ranking-cycle-end">Data final (opcional)</label>
                   <input id="ranking-cycle-end" name="endedAt" type="date" />
                 </div>
-                <div className="section-actions form-full">
-                  <button type="submit" className="button button-primary">Criar ciclo</button>
+                <div className={viewStyles.section_actions_form_full}>
+                  <button type="submit" className={viewStyles.button_button_primary}>Criar ciclo</button>
                 </div>
               </SafeActionForm>
             </details>
           </div>
         ) : null}
 
-        {ranking.period.error ? <p className="form-error" role="alert">{ranking.period.error}</p> : null}
+        {ranking.period.error ? <p className={viewStyles.form_error} role="alert">{ranking.period.error}</p> : null}
       </section>
 
       {tab === "configuracao" ? (
@@ -283,7 +285,7 @@ export default async function RankingDetailPage(props: RankingDetailPageProps) {
       ) : null}
 
       {tab === "pontuacao" ? (
-        <div className="stack-md">
+        <div className={viewStyles.stack_md}>
           <SectionCard title="Regras de pontuação" description="Defina os pontos para cada posição compatível com o modelo deste ranking.">
             <RankingPointsForm ranking={ranking} />
           </SectionCard>
@@ -291,16 +293,16 @@ export default async function RankingDetailPage(props: RankingDetailPageProps) {
             action={resetRankingPointsAction}
             confirmKeyword="RESETAR"
             confirmPrompt="Digite RESETAR para iniciar um novo ciclo sem apagar o histórico."
-            className="section-card stack-sm"
+            className={viewStyles.section_card}
             successMessage="Novo ciclo iniciado com sucesso."
           >
             <input type="hidden" name="rankingId" value={ranking.id} />
             <div>
               <h3>Iniciar novo ciclo</h3>
-              <p className="muted">O ciclo atual será encerrado e a próxima pontuação começará do zero.</p>
+              <p className={viewStyles.muted}>O ciclo atual será encerrado e a próxima pontuação começará do zero.</p>
             </div>
-            <div className="section-actions">
-              <button type="submit" className="button button-danger">Resetar ranking</button>
+            <div className={viewStyles.section_actions}>
+              <button type="submit" className={viewStyles.button_button_danger}>Resetar ranking</button>
             </div>
           </SafeActionForm>
         </div>
@@ -313,36 +315,36 @@ export default async function RankingDetailPage(props: RankingDetailPageProps) {
       ) : null}
 
       {tab === "uso" ? (
-        <div className="stack-md">
+        <div className={viewStyles.stack_md}>
           <SectionCard title="Categorias vinculadas" description="Categorias que usaram este ranking no período selecionado.">
             {categoryCompetitions.length ? (
-              <div className="simple-list">
+              <div className={viewStyles.simple_list}>
                 {categoryCompetitions.map((competition) => (
-                  <div className="simple-item" key={competition.id}>
+                  <div className={viewStyles.simple_item} key={competition.id}>
                     <div>
                       <strong>{competition.category.tournament.name} · {competition.category.name}</strong>
                       <span>{competition.format === "LEAGUE" ? "Liga" : "Mata-mata"} · {competition.status}</span>
                     </div>
-                    <Link href={`/torneios/${competition.category.tournament.id}`} className="button">Ver torneio</Link>
+                    <Link href={`/torneios/${competition.category.tournament.id}`} className={viewStyles.button}>Ver torneio</Link>
                   </div>
                 ))}
               </div>
-            ) : <p className="muted">Nenhuma categoria vinculada neste período.</p>}
+            ) : <p className={viewStyles.muted}>Nenhuma categoria vinculada neste período.</p>}
           </SectionCard>
           <SectionCard title="Torneios do período" description="Eventos que contribuem para a classificação selecionada.">
             {ranking.tournaments.length ? (
-              <div className="simple-list">
+              <div className={viewStyles.simple_list}>
                 {ranking.tournaments.map((tournament) => (
-                  <div className="simple-item" key={tournament.id}>
+                  <div className={viewStyles.simple_item} key={tournament.id}>
                     <div>
                       <strong>{tournament.name}</strong>
                       <span>{formatTournamentStatus(tournament.status)}</span>
                     </div>
-                    <Link href={`/torneios/${tournament.id}`} className="button">Ver torneio</Link>
+                    <Link href={`/torneios/${tournament.id}`} className={viewStyles.button}>Ver torneio</Link>
                   </div>
                 ))}
               </div>
-            ) : <p className="muted">Nenhum torneio pontuado neste período.</p>}
+            ) : <p className={viewStyles.muted}>Nenhum torneio pontuado neste período.</p>}
           </SectionCard>
         </div>
       ) : null}

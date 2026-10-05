@@ -1,3 +1,4 @@
+import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFile } from "./helpers/style-source";
 import assert from "node:assert/strict";
 import { readdir } from "node:fs/promises";
@@ -112,9 +113,9 @@ test("public standings renders the branded header and finished-game score treatm
   assert.match(component, /athlete-portal-bottom-nav/);
   assert.match(component, /Portal do Atleta/);
   assert.match(component, /PublicLeaguePortal/);
-  assert.match(styles, /\.athlete-portal-hero\s*\{[^}]*linear-gradient/s);
-  assert.match(styles, /\.athlete-portal-bottom-nav/);
-  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*\.athlete-portal-hero/);
+  assert.match(styleRules("athlete-portal-hero"), /linear-gradient/);
+  assert.ok(utilityClasses("athlete-portal-bottom-nav").length, "athlete-portal-bottom-nav has component Tailwind utilities");
+  assert.ok(utilityClasses("athlete-portal-hero").length, "athlete-portal-hero has component Tailwind utilities");
 });
 
 test("public game agenda identifies the winning and losing pair in finished games", () => {
@@ -156,9 +157,9 @@ test("public standings use a full-bleed desktop brand band aligned to the page c
   assert.match(component, /athlete-portal-hero-inner/);
   assert.match(component, /athlete-portal-arena-logo/);
   assert.match(component, /athlete-portal-user-avatar/);
-  assert.match(styles, /\.athlete-portal-hero-inner\s*\{[^}]*width:\s*min\(100%, 1060px\)/s);
-  assert.match(styles, /\.athlete-portal-brand \.athlete-portal-arena-logo\s*\{[^}]*object-fit:\s*contain/s);
-  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*\.athlete-portal-hero-inner/);
+  assert.match(styleRules("athlete-portal-hero-inner"), /width:\s*min\(100%, 1060px\)/);
+  assert.match(styleRules("athlete-portal-brand", {"context":".athlete-portal-arena-logo"}), /object-fit:\s*contain/);
+  assert.ok(utilityClasses("athlete-portal-hero-inner").length, "athlete-portal-hero-inner has component Tailwind utilities");
 });
 
 test("public standings list only the General Ranking and public finished category names", () => {

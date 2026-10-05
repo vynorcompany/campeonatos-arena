@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./accounts-ledger-parts.utilities";
 
 export type Account = {
   id: string;
@@ -53,12 +54,12 @@ export function OnlineChargeBadge({ entry }: { entry: Account }) {
     const boleto = entry.onlinePaymentMethod === "BOLETO" || entry.paymentMethod === "Boleto";
     const viewed = Boolean(entry.onlinePaymentViewedAt);
     const label = boleto ? viewed ? "Boleto emitido e visualizado pelo cliente" : "Boleto emitido e disponível no Portal do Atleta" : "Cobrança online emitida";
-    return <span className="online-charge-icons">
-      <span className="online-charge-icon online-charge-icon-boleto" data-tooltip={label} aria-label={label} tabIndex={0}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6z" /><path d="M15 3v5h5M8.5 13h7M8.5 16h5" /></svg></span>
-      {viewed ? <span className="online-charge-icon online-charge-icon-viewed" data-tooltip="Boleto visualizado pelo cliente" aria-label="Boleto visualizado pelo cliente" tabIndex={0}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-5.5 9.5-5.5S21.5 12 21.5 12 18.1 17.5 12 17.5 2.5 12 2.5 12Z" /><circle cx="12" cy="12" r="2.3" /></svg></span> : null}
+    return <span className={viewStyles.online_charge_icons}>
+      <span className={viewStyles.online_charge_icon} data-tooltip={label} aria-label={label} tabIndex={0}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6z" /><path d="M15 3v5h5M8.5 13h7M8.5 16h5" /></svg></span>
+      {viewed ? <span className={viewStyles.online_charge_icon_online_charge_icon_viewed} data-tooltip="Boleto visualizado pelo cliente" aria-label="Boleto visualizado pelo cliente" tabIndex={0}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-5.5 9.5-5.5S21.5 12 21.5 12 18.1 17.5 12 17.5 2.5 12 2.5 12Z" /><circle cx="12" cy="12" r="2.3" /></svg></span> : null}
     </span>;
   }
-  return entry.onlinePaymentMethod === "BOLETO" ? <small className="online-charge-status online-charge-pending">Boleto pendente de emissão</small> : null;
+  return entry.onlinePaymentMethod === "BOLETO" ? <small className={viewStyles.online_charge_status_online_charge_pending}>Boleto pendente de emissão</small> : null;
 }
 
 export function PlanSelectOptions({ plans, includeTeacherAll = false }: { plans: Option[]; includeTeacherAll?: boolean }) {

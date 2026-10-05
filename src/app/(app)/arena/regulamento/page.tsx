@@ -1,3 +1,4 @@
+import { viewStyles } from "./page.utilities";
 import { RegulationDocumentForm } from "@/components/forms/regulation-document-form";
 import { SectionCard } from "@/components/section-card";
 import { requireModuleEdit } from "@/lib/auth/guards";
@@ -45,18 +46,18 @@ export default async function RegulationPage() {
   const latestPublicUrl = latestDocument ? buildPublicRegulationUrl(latestDocument.publicSlug) : "";
 
   return (
-    <div className="stack-md">
-      <header className="page-header">
-        <div className="stack-xs">
-          <p className="eyebrow">Arena</p>
+    <div className={viewStyles.stack_md}>
+      <header className={viewStyles.page_header}>
+        <div className={viewStyles.stack_xs}>
+          <p className={viewStyles.eyebrow}>Arena</p>
           <h1>Regulamento público</h1>
-          <p className="muted">
+          <p className={viewStyles.muted}>
             Escreva os termos uma vez, publique o link e acompanhe os aceites feitos pelos clientes na página pública.
           </p>
         </div>
       </header>
 
-      <div className="two-column-grid">
+      <div className={viewStyles.two_column_grid}>
         <SectionCard
           title="Novo regulamento"
           description="Publique uma nova versão. O sistema vai gerar um link público para compartilhar com o cliente."
@@ -66,37 +67,37 @@ export default async function RegulationPage() {
 
         <SectionCard title="Último link público" description="Copie e compartilhe a versão ativa do regulamento.">
           {latestDocument ? (
-            <div className="regulation-link-panel">
+            <div className={viewStyles.regulation_link_panel}>
               <strong>{latestDocument.createdBy?.name ?? "Sistema"}</strong>
-              <p className="muted">{formatDateTime(latestDocument.createdAt)}</p>
-              <a className="regulation-link" href={latestPublicUrl} target="_blank" rel="noreferrer">
+              <p className={viewStyles.muted}>{formatDateTime(latestDocument.createdAt)}</p>
+              <a className={viewStyles.regulation_link} href={latestPublicUrl} target="_blank" rel="noreferrer">
                 {latestPublicUrl}
               </a>
-              <p className="muted">{latestDocument._count.acceptances} aceite(s) registrados.</p>
+              <p className={viewStyles.muted}>{latestDocument._count.acceptances} aceite(s) registrados.</p>
             </div>
           ) : (
-            <p className="muted">Nenhum regulamento publicado ainda.</p>
+            <p className={viewStyles.muted}>Nenhum regulamento publicado ainda.</p>
           )}
 
-          <div className="regulation-history">
+          <div className={viewStyles.regulation_history}>
             {documents.length ? (
               documents.map((document) => {
                 const publicUrl = buildPublicRegulationUrl(document.publicSlug);
 
                 return (
-                  <article key={document.id} className="regulation-history-item">
-                    <div className="stack-xs">
+                  <article key={document.id} className={viewStyles.regulation_history_item}>
+                    <div className={viewStyles.stack_xs}>
                       <strong>{formatDateTime(document.createdAt)}</strong>
-                      <span className="muted">
+                      <span className={viewStyles.muted}>
                         {document.createdBy?.name ?? "Sistema"}
                         {document.createdBy?.email ? ` · ${document.createdBy.email}` : ""}
                       </span>
                     </div>
-                    <a className="regulation-link" href={publicUrl} target="_blank" rel="noreferrer">
+                    <a className={viewStyles.regulation_link} href={publicUrl} target="_blank" rel="noreferrer">
                       {publicUrl}
                     </a>
-                    <p className="regulation-history-content">{document.content}</p>
-                    <span className="muted">{document._count.acceptances} aceite(s)</span>
+                    <p className={viewStyles.regulation_history_content}>{document.content}</p>
+                    <span className={viewStyles.muted}>{document._count.acceptances} aceite(s)</span>
                   </article>
                 );
               })

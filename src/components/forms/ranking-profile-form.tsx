@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./ranking-profile-form.utilities";
 
 import { useState } from "react";
 
@@ -15,7 +16,7 @@ export function RankingTypeField({
   defaultType = "PAIR",
 }: RankingTypeFieldProps) {
   return (
-    <div className="field">
+    <div className={viewStyles.field}>
       <label htmlFor={id}>Tipo do ranking</label>
       <select id={id} name="type" defaultValue={defaultType}>
         <option value="PAIR">Duplas</option>
@@ -64,7 +65,7 @@ function RuleInput({
   defaultValue: number;
 }) {
   return (
-    <div className="field">
+    <div className={viewStyles.field}>
       <label htmlFor={id}>{label}</label>
       <input
         id={id}
@@ -99,7 +100,7 @@ export function RankingProfileFields({
 
   return (
     <>
-      <div className="field">
+      <div className={viewStyles.field}>
         <label htmlFor={`${idPrefix}-type`}>Tipo do ranking</label>
         <select
           id={`${idPrefix}-type`}
@@ -121,7 +122,7 @@ export function RankingProfileFields({
         </select>
       </div>
 
-      <div className="field">
+      <div className={viewStyles.field}>
         <label htmlFor={`${idPrefix}-model`}>Modelo de pontuação</label>
         <select
           id={`${idPrefix}-model`}
@@ -136,7 +137,7 @@ export function RankingProfileFields({
         </select>
       </div>
 
-      <label className="field field-inline form-full">
+      <label className={viewStyles.field_form_full}>
         <input
           name="feedsGeneralRanking"
           type="checkbox"
@@ -152,7 +153,7 @@ export function RankingProfileFields({
         </span>
       </label>
 
-      <label className="field field-inline form-full">
+      <label className={viewStyles.field_form_full}>
         <input
           name="isGeneral"
           type="checkbox"

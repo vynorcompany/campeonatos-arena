@@ -1,3 +1,4 @@
+import { viewStyles } from "./tournament-detail-layout.utilities";
 import { TournamentTabs, type TournamentTabKey } from "@/components/tournaments/tournament-tabs";
 
 export function TournamentDetailLayout({
@@ -12,7 +13,7 @@ export function TournamentDetailLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="stack-md category-detail-layout">
+    <div className={viewStyles.stack_md_category_detail_layout}>
       <TournamentTabs
         tournamentId={tournamentId}
         categoryId={categoryId}

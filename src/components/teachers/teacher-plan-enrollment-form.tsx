@@ -1,4 +1,6 @@
 "use client";
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./teacher-plan-enrollment-form.utilities";
 
 import { useMemo, useState } from "react";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
@@ -48,7 +50,7 @@ export function TeacherPlanEnrollmentForm({
   const form = (
     <SafeActionForm
       action={assignTeacherPlanStudentAction}
-      className={`teacher-enrollment-form ${variant === "students" ? "teacher-enrollment-students" : ""}`}
+      className={cx(`${viewStyles.teacher_enrollment_form} ${variant === "students" ? viewStyles.teacher_enrollment_students : ""}`)}
       resetOnSuccess
       successMessage="Aluno inserido e mensalidade recorrente criada."
       validate={() => {
@@ -64,7 +66,7 @@ export function TeacherPlanEnrollmentForm({
       <input type="hidden" name="teacherId" value={teacherId} />
       <input type="hidden" name="planId" value={planId} />
       <input type="hidden" name="clientId" value={clientId} />
-      <div className="teacher-enrollment-primary">
+      <div className={viewStyles.teacher_enrollment_primary}>
         {plans.length > 1 || variant === "students" ? (
           <label>
             Plano
@@ -102,7 +104,7 @@ export function TeacherPlanEnrollmentForm({
             </select>
           </label>
         ) : null}
-        <label className="teacher-client-search">
+        <label className={viewStyles.teacher_client_search}>
           Pesquisar cliente
           <input
             value={query}
@@ -117,7 +119,7 @@ export function TeacherPlanEnrollmentForm({
             required
           />
           {clientPickerOpen && matches.length ? (
-            <div className="teacher-client-options">
+            <div className={viewStyles.teacher_client_options}>
               {matches.map((client) => (
                 <button
                   key={client.id}
@@ -137,7 +139,7 @@ export function TeacherPlanEnrollmentForm({
           ) : null}
         </label>
       </div>
-      <div className="teacher-enrollment-financial">
+      <div className={viewStyles.teacher_enrollment_financial}>
         <label>
           Data de início
           <input type="date" name="startedAt" required />
@@ -178,9 +180,9 @@ export function TeacherPlanEnrollmentForm({
       <SubmitButton
         label="Inserir aluno"
         pendingLabel="Inserindo..."
-        className="button button-primary"
+        className={viewStyles.button_button_primary}
       />
-      {variant === "students" && !availableGroups.length ? <p className="form-note form-full">Não há turma ativa compatível com este plano. Cadastre ou vincule uma turma antes de inserir o aluno.</p> : null}
+      {variant === "students" && !availableGroups.length ? <p className={viewStyles.form_full}>Não há turma ativa compatível com este plano. Cadastre ou vincule uma turma antes de inserir o aluno.</p> : null}
     </SafeActionForm>
   );
   if (variant !== "students") return form;
@@ -188,14 +190,14 @@ export function TeacherPlanEnrollmentForm({
     <>
       <button
         type="button"
-        className="button button-primary button-small teacher-insert-student-trigger"
+        className={viewStyles.button_button_primary_button_small_teacher_insert_student_trigger}
         onClick={() => setModalOpen(true)}
       >
         <EventIcon name="user-plus" size={15} /> Inserir aluno
       </button>
       {modalOpen ? (
         <div
-          className="teacher-student-enrollment-modal"
+          className={viewStyles.teacher_student_enrollment_modal}
           role="presentation"
           onMouseDown={() => setModalOpen(false)}
         >
@@ -207,7 +209,7 @@ export function TeacherPlanEnrollmentForm({
           >
             <header>
               <div>
-                <p className="eyebrow">NOVO ALUNO</p>
+                <p className={viewStyles.eyebrow}>NOVO ALUNO</p>
                 <h2>Plano e turma</h2>
               </div>
               <button

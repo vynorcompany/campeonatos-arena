@@ -1,3 +1,4 @@
+import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
 
@@ -35,7 +36,7 @@ test("payables keep only expense fields and create suppliers, categories, and re
   assert.match(ledger, /Criar categoria/);
   assert.match(ledger, /type === "REVENUE" \? <>.*Plano\/pacote/s);
   assert.match(ledger, /<em>Pagamento recorrente<\/em>/);
-  assert.match(styles, /\.accounts-ledger \{ width: 100%; max-width: none; font-size: 90%/);
+  assert.match(styleRules("accounts-ledger"), /width: 100%[\s\S]*max-width: none[\s\S]*font-size: 90%/);
   assert.match(styles, /grid-template-columns: minmax\(0, 1fr\) 76px/);
 });
 
@@ -43,11 +44,11 @@ test("financial entry notes are readable and category controls stay compact", ()
   const ledger = readFileSync(resolve(process.cwd(), "src/components/finance/accounts-ledger.tsx"), "utf8");
   const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
 
-  assert.match(ledger, /<textarea className="financial-notes-field" name="notes" rows=\{4\}/);
-  assert.match(ledger, /simple-list financial-category-list/);
-  assert.match(styles, /\.financial-setting-quick-create \{[^}]*width: fit-content/);
-  assert.match(styles, /\.financial-category-list \{[^}]*flex-wrap: wrap/);
-  assert.match(styles, /\.financial-notes-field \{[^}]*min-height: 92px/);
+  assert.match(ledger, /<textarea (?:className="financial-notes-field"|className=\{(?:cx\()?viewStyles\.financial_notes_field(?:\))?\}) name="notes" rows=\{4\}/);
+  assert.match(ledger, /viewStyles\.simple_list_financial_category_list/);
+  assert.match(styleRules("financial-setting-quick-create"), /width: fit-content/);
+  assert.match(styleRules("financial-category-list"), /flex-wrap: wrap/);
+  assert.match(styleRules("financial-notes-field"), /min-height: 92px/);
 });
 
 test("receivable plan selectors separate the same standard plan by professor", () => {

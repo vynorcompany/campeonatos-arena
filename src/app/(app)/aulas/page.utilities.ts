@@ -1,0 +1,61 @@
+import { sharedUtilities } from "@/components/ui/shared.utilities";
+/** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
+export const viewStyles = {
+  "stack_md": sharedUtilities.stackMd,
+  "page_header": sharedUtilities.pageHeader,
+  "stack_xs": [
+    "stack-xs", "tw:grid", "tw:gap-y-[6px]", "tw:gap-x-[6px]",
+  ].join(" "),
+  "eyebrow": sharedUtilities.eyebrow,
+  "muted": sharedUtilities.muted,
+  "stats_grid": sharedUtilities.statsGrid,
+  "stat_card": sharedUtilities.statCard,
+  "grid_form": sharedUtilities.gridForm,
+  "field_form_full": sharedUtilities.fieldFormFull,
+  "field": sharedUtilities.field,
+  "field_field_submit": sharedUtilities.fieldFieldSubmit,
+  "button_button_primary": sharedUtilities.buttonButtonPrimary,
+  "check_option": [
+    "check-option", "lesson-paid-toggle", "tw:flex", "tw:items-center",
+    "tw:gap-y-[10px]", "tw:gap-x-[10px]", "tw:min-h-[44px]", "tw:pt-[10px]",
+    "tw:pr-[12px]", "tw:pb-[10px]", "tw:pl-[12px]", "tw:border-t-[length:1px]",
+    "tw:[border-top-style:solid]", "tw:border-t-[color:var(--line)]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]",
+    "tw:border-r-[color:var(--line)]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:var(--line)]",
+    "tw:border-l-[length:1px]", "tw:[border-left-style:solid]", "tw:border-l-[color:var(--line)]", "tw:rounded-[var(--radius-md)]",
+    "tw:bg-[color:var(--panel-muted)]", "tw:[background-image:none]", "tw:cursor-pointer", "tw:[transition:transform_180ms_var(--ease-standard),_border-color_180ms_var(--ease-standard),_background_180ms_var(--ease-standard)]",
+    "tw:hover:[transform:translateY(-1px)]", "tw:hover:border-t-[color:var(--line-strong)]", "tw:hover:border-r-[color:var(--line-strong)]", "tw:hover:border-b-[color:var(--line-strong)]",
+    "tw:hover:border-l-[color:var(--line-strong)]", "tw:hover:bg-[color:#ffffff]", "tw:hover:[background-image:none]", "tw:[&_input]:w-[18px]",
+    "tw:[&_input]:h-[18px]", "tw:[&_input]:mt-[0]", "tw:[&_input]:mr-[0]", "tw:[&_input]:mb-[0]",
+    "tw:[&_input]:ml-[0]", "tw:[&_input]:[accent-color:var(--brand)]", "tw:[&_input]:[flex-shrink:0]",
+  ].join(" "),
+  "check_grid": [
+    "check-grid", "tw:grid", "tw:gap-y-[10px]", "tw:gap-x-[10px]",
+    "tw:grid-cols-[repeat(auto-fit,_minmax(220px,_1fr))]",
+  ].join(" "),
+  "check_option_2": sharedUtilities.checkOption,
+  "data_table": sharedUtilities.dataTable,
+  "inline_form": sharedUtilities.inlineForm,
+  "button": sharedUtilities.button,
+  "lesson_list": [
+    "lesson-list", "tw:grid", "tw:gap-y-[14px]", "tw:gap-x-[14px]",
+  ].join(" "),
+  "lesson_item": [
+    "lesson-item", "tw:grid", "tw:gap-y-[14px]", "tw:gap-x-[14px]",
+    "tw:pt-[18px]", "tw:pr-[18px]", "tw:pb-[18px]", "tw:pl-[18px]",
+    "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:var(--line)]", "tw:border-r-[length:1px]",
+    "tw:[border-right-style:solid]", "tw:border-r-[color:var(--line)]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]",
+    "tw:border-b-[color:var(--line)]", "tw:border-l-[length:1px]", "tw:[border-left-style:solid]", "tw:border-l-[color:var(--line)]",
+    "tw:rounded-[var(--radius-md)]", "tw:bg-[color:var(--panel-muted)]", "tw:[background-image:none]", "tw:grid-cols-[minmax(0,_1fr)_minmax(280px,_0.72fr)]",
+    "tw:viewport-1120:grid-cols-[1fr]", "tw:[align-items:start]", "tw:[&_h3]:mt-[4px]", "tw:[&_h3]:mr-[0]",
+    "tw:[&_h3]:mb-[0]", "tw:[&_h3]:ml-[0]", "tw:[&_h3]:text-[1.12rem]", "tw:[&_h3]:leading-[1.25]",
+  ].join(" "),
+  "lesson_complete_form": [
+    "lesson-complete-form", "tw:grid", "tw:gap-y-[12px]", "tw:gap-x-[12px]",
+    "tw:[justify-items:start]",
+  ].join(" "),
+  "check_grid_check_grid_compact": [
+    "check-grid", "check-grid-compact", "tw:grid", "tw:gap-y-[10px]",
+    "tw:gap-x-[10px]", "tw:grid-cols-[repeat(auto-fit,_minmax(180px,_1fr))]",
+  ].join(" "),
+  "button_button_danger": sharedUtilities.buttonButtonDanger,
+} as const;

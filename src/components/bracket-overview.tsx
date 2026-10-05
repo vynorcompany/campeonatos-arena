@@ -1,3 +1,5 @@
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./bracket-overview.utilities";
 type BracketGroup = {
   id: string;
   name: string;
@@ -217,38 +219,38 @@ export function BracketOverview({ groupCount, groups, matches }: BracketOverview
         }));
 
   return (
-    <div className="bracket-shell">
-      <div className="bracket-stage">
-        <div className="bracket-stage-head">
-          <p className="eyebrow">Fase 1</p>
+    <div className={viewStyles.bracket_shell}>
+      <div className={viewStyles.bracket_stage}>
+        <div className={viewStyles.bracket_stage_head}>
+          <p className={viewStyles.eyebrow}>Fase 1</p>
           <h3>Grupos</h3>
         </div>
 
-        <div className="bracket-column">
+        <div className={viewStyles.bracket_column}>
           {groups.length ? (
             groups.map((group) => (
-              <article key={group.id} className="bracket-card bracket-card-group">
-                <div className="bracket-card-head">
+              <article key={group.id} className={viewStyles.bracket_card_bracket_card_group}>
+                <div className={viewStyles.bracket_card_head}>
                   <strong>{group.name}</strong>
                   <span>{group.pairs.length} duplas</span>
                 </div>
-                <div className="bracket-card-body">
+                <div className={viewStyles.bracket_card_body}>
                   {group.pairs.slice(0, 4).map((pair) => (
-                    <span key={pair.id} className="bracket-team bracket-team-ranked">
+                    <span key={pair.id} className={viewStyles.bracket_team_bracket_team_ranked}>
                       {pair.name}
                     </span>
                   ))}
-                  {group.pairs.length > 4 ? <span className="bracket-meta">+{group.pairs.length - 4} duplas</span> : null}
+                  {group.pairs.length > 4 ? <span className={viewStyles.bracket_meta}>+{group.pairs.length - 4} duplas</span> : null}
                 </div>
               </article>
             ))
           ) : (
-            <article className="bracket-card bracket-card-empty">
-              <div className="bracket-card-head">
+            <article className={viewStyles.bracket_card_bracket_card_empty}>
+              <div className={viewStyles.bracket_card_head}>
                 <strong>Grupos pendentes</strong>
               </div>
-              <div className="bracket-card-body">
-                <span className="bracket-meta">Monte as duplas e distribua os grupos para preencher a chave.</span>
+              <div className={viewStyles.bracket_card_body}>
+                <span className={viewStyles.bracket_meta}>Monte as duplas e distribua os grupos para preencher a chave.</span>
               </div>
             </article>
           )}
@@ -256,25 +258,25 @@ export function BracketOverview({ groupCount, groups, matches }: BracketOverview
       </div>
 
       {octofinals.length ? (
-        <div className="bracket-stage bracket-stage-linked">
-          <div className="bracket-stage-head">
-            <p className="eyebrow">Fase 2</p>
+        <div className={viewStyles.bracket_stage_bracket_stage_linked}>
+          <div className={viewStyles.bracket_stage_head}>
+            <p className={viewStyles.eyebrow}>Fase 2</p>
             <h3>Oitavas</h3>
           </div>
 
-          <div className="bracket-column bracket-column-spaced">
+          <div className={viewStyles.bracket_column_bracket_column_spaced}>
             {octofinals.map((match) => (
-              <article key={match.id} className="bracket-card">
-                <div className="bracket-card-head">
+              <article key={match.id} className={viewStyles.bracket_card}>
+                <div className={viewStyles.bracket_card_head}>
                   <strong>{match.title}</strong>
                 </div>
-                <div className="bracket-card-body">
+                <div className={viewStyles.bracket_card_body}>
                   {match.lines.map((line) => (
-                    <span key={line} className={`bracket-team${match.winner === line ? " bracket-team-winner" : ""}`}>
+                    <span key={line} className={cx(`${viewStyles.bracket_team}${match.winner === line ? " " + viewStyles.bracket_team_winner : ""}`)}>
                       {line}
                     </span>
                   ))}
-                  {match.scores[0] !== null && match.scores[1] !== null ? <span className="bracket-meta">Placar: {match.scores[0]} x {match.scores[1]}</span> : null}
+                  {match.scores[0] !== null && match.scores[1] !== null ? <span className={viewStyles.bracket_meta}>Placar: {match.scores[0]} x {match.scores[1]}</span> : null}
                 </div>
               </article>
             ))}
@@ -283,25 +285,25 @@ export function BracketOverview({ groupCount, groups, matches }: BracketOverview
       ) : null}
 
       {quarterfinals.length ? (
-        <div className="bracket-stage bracket-stage-linked">
-          <div className="bracket-stage-head">
-            <p className="eyebrow">{octofinals.length ? "Fase 3" : "Fase 2"}</p>
+        <div className={viewStyles.bracket_stage_bracket_stage_linked}>
+          <div className={viewStyles.bracket_stage_head}>
+            <p className={viewStyles.eyebrow}>{octofinals.length ? "Fase 3" : "Fase 2"}</p>
             <h3>Quartas</h3>
           </div>
 
-          <div className="bracket-column bracket-column-spaced">
+          <div className={viewStyles.bracket_column_bracket_column_spaced}>
             {quarterfinals.map((match) => (
-              <article key={match.id} className="bracket-card">
-                <div className="bracket-card-head">
+              <article key={match.id} className={viewStyles.bracket_card}>
+                <div className={viewStyles.bracket_card_head}>
                   <strong>{match.title}</strong>
                 </div>
-                <div className="bracket-card-body">
+                <div className={viewStyles.bracket_card_body}>
                   {match.lines.map((line) => (
-                    <span key={line} className={`bracket-team${match.winner === line ? " bracket-team-winner" : ""}`}>
+                    <span key={line} className={cx(`${viewStyles.bracket_team}${match.winner === line ? " " + viewStyles.bracket_team_winner : ""}`)}>
                       {line}
                     </span>
                   ))}
-                  {match.scores[0] !== null && match.scores[1] !== null ? <span className="bracket-meta">Placar: {match.scores[0]} x {match.scores[1]}</span> : null}
+                  {match.scores[0] !== null && match.scores[1] !== null ? <span className={viewStyles.bracket_meta}>Placar: {match.scores[0]} x {match.scores[1]}</span> : null}
                 </div>
               </article>
             ))}
@@ -310,25 +312,25 @@ export function BracketOverview({ groupCount, groups, matches }: BracketOverview
       ) : null}
 
       {semifinals.length ? (
-        <div className="bracket-stage bracket-stage-linked">
-          <div className="bracket-stage-head">
-            <p className="eyebrow">{octofinals.length ? "Fase 4" : "Fase 3"}</p>
+        <div className={viewStyles.bracket_stage_bracket_stage_linked}>
+          <div className={viewStyles.bracket_stage_head}>
+            <p className={viewStyles.eyebrow}>{octofinals.length ? "Fase 4" : "Fase 3"}</p>
             <h3>Semis</h3>
           </div>
 
-          <div className="bracket-column bracket-column-centered">
+          <div className={viewStyles.bracket_column_bracket_column_centered}>
             {semifinals.map((match) => (
-              <article key={match.id} className="bracket-card">
-                <div className="bracket-card-head">
+              <article key={match.id} className={viewStyles.bracket_card}>
+                <div className={viewStyles.bracket_card_head}>
                   <strong>{match.title}</strong>
                 </div>
-                <div className="bracket-card-body">
+                <div className={viewStyles.bracket_card_body}>
                   {match.lines.map((line) => (
-                    <span key={line} className={`bracket-team${match.winner === line ? " bracket-team-winner" : ""}`}>
+                    <span key={line} className={cx(`${viewStyles.bracket_team}${match.winner === line ? " " + viewStyles.bracket_team_winner : ""}`)}>
                       {line}
                     </span>
                   ))}
-                  {match.scores[0] !== null && match.scores[1] !== null ? <span className="bracket-meta">Placar: {match.scores[0]} x {match.scores[1]}</span> : null}
+                  {match.scores[0] !== null && match.scores[1] !== null ? <span className={viewStyles.bracket_meta}>Placar: {match.scores[0]} x {match.scores[1]}</span> : null}
                 </div>
               </article>
             ))}
@@ -337,25 +339,25 @@ export function BracketOverview({ groupCount, groups, matches }: BracketOverview
       ) : null}
 
       {final.length ? (
-        <div className="bracket-stage bracket-stage-linked">
-          <div className="bracket-stage-head">
-            <p className="eyebrow">Decisão</p>
+        <div className={viewStyles.bracket_stage_bracket_stage_linked}>
+          <div className={viewStyles.bracket_stage_head}>
+            <p className={viewStyles.eyebrow}>Decisão</p>
             <h3>Final</h3>
           </div>
 
-          <div className="bracket-column bracket-column-final">
+          <div className={viewStyles.bracket_column_bracket_column_final}>
             {final.map((match) => (
-              <article key={match.id} className="bracket-card bracket-card-final">
-                <div className="bracket-card-head">
+              <article key={match.id} className={viewStyles.bracket_card_bracket_card_final}>
+                <div className={viewStyles.bracket_card_head}>
                   <strong>{match.title}</strong>
                 </div>
-                <div className="bracket-card-body">
+                <div className={viewStyles.bracket_card_body}>
                   {match.lines.map((line) => (
-                    <span key={line} className={`bracket-team${match.winner === line ? " bracket-team-winner" : ""}`}>
+                    <span key={line} className={cx(`${viewStyles.bracket_team}${match.winner === line ? " " + viewStyles.bracket_team_winner : ""}`)}>
                       {line}
                     </span>
                   ))}
-                  {match.scores[0] !== null && match.scores[1] !== null ? <span className="bracket-meta">Placar: {match.scores[0]} x {match.scores[1]}</span> : null}
+                  {match.scores[0] !== null && match.scores[1] !== null ? <span className={viewStyles.bracket_meta}>Placar: {match.scores[0]} x {match.scores[1]}</span> : null}
                 </div>
               </article>
             ))}

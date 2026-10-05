@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./product-pricing-fields.utilities";
 
 import { useState } from "react";
 import { MoneyInput } from "@/components/forms/money-input";
@@ -12,5 +13,5 @@ export function ProductPricingFields({ priceCents = 0, costCents = 0 }: { priceC
     const percent = Number(value.replace(",", "."));
     if (cost > 0 && percent >= 0 && percent < 100) setPrice(Math.round(cost / (1 - percent / 100)));
   };
-  return <><div className="field"><label>Preço de custo<MoneyInput name="cost" valueCents={cost} onValueCentsChange={setCost} required /></label></div><div className="field"><label>Margem desejada (%)<input name="margin" inputMode="decimal" value={margin} onChange={(event) => changeMargin(event.target.value)} placeholder="Ex.: 35" /></label></div><div className="field"><label>Preço de venda<MoneyInput name="price" valueCents={price} onValueCentsChange={setPrice} required /></label></div></>;
+  return <><div className={viewStyles.field}><label>Preço de custo<MoneyInput name="cost" valueCents={cost} onValueCentsChange={setCost} required /></label></div><div className={viewStyles.field}><label>Margem desejada (%)<input name="margin" inputMode="decimal" value={margin} onChange={(event) => changeMargin(event.target.value)} placeholder="Ex.: 35" /></label></div><div className={viewStyles.field}><label>Preço de venda<MoneyInput name="price" valueCents={price} onValueCentsChange={setPrice} required /></label></div></>;
 }

@@ -1,3 +1,5 @@
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./category-list.utilities";
 import Link from "next/link";
 import { EventIcon } from "@/components/tournaments/event-icon";
 
@@ -28,41 +30,41 @@ export function CategoryList({
   categories: CategoryListItem[];
 }) {
   return (
-    <section className="t-category-index" aria-labelledby="category-list-title">
-      <div className="t-category-index-head">
+    <section className={viewStyles.t_category_index} aria-labelledby="category-list-title">
+      <div className={viewStyles.t_category_index_head}>
         <div>
           <h2 id="category-list-title">Categorias do evento</h2>
-          <p className="muted">Gerencie as categorias e acompanhe as inscrições.</p>
+          <p className={viewStyles.muted}>Gerencie as categorias e acompanhe as inscrições.</p>
         </div>
         <Link
-          className="button button-primary"
+          className={viewStyles.button_button_primary}
           href={`/torneios/${tournamentId}/categorias/nova`}
         >
-          <span className="category-add-symbol">＋</span>Adicionar categoria
+          <span className={viewStyles.category_add_symbol}>＋</span>Adicionar categoria
         </Link>
       </div>
 
       {categories.length ? (
-        <div className="t-category-list">
-          <div className="t-category-table-head"><span>Categoria</span><span>Tipo</span><span>Duplas inscritas</span><span>Status</span><span>Ações</span></div>
+        <div className={viewStyles.t_category_list}>
+          <div className={viewStyles.t_category_table_head}><span>Categoria</span><span>Tipo</span><span>Duplas inscritas</span><span>Status</span><span>Ações</span></div>
           {categories.map((category) => (
-            <div className="t-category-row" key={category.id}>
-              <span className="t-category-icon"><EventIcon name="users" /></span>
-              <div className="t-category-name"><strong>{category.name}</strong><small>{category.competition ? "Categoria configurada" : "Aguardando configuração"}</small></div>
-              <span className="t-category-format">
+            <div className={viewStyles.t_category_row} key={category.id}>
+              <span className={viewStyles.t_category_icon}><EventIcon name="users" /></span>
+              <div className={viewStyles.t_category_name}><strong>{category.name}</strong><small>{category.competition ? "Categoria configurada" : "Aguardando configuração"}</small></div>
+              <span className={viewStyles.t_category_format}>
                 {category.competition
                   ? formatLabels[category.competition.format]
                   : "Pendente"}
               </span>
-              <span className="t-category-pairs">
+              <span className={viewStyles.t_category_pairs}>
                 {category.competition
                   ? `${category.competition.pairCount} duplas`
                   : "—"}
               </span>
-              <span className={`t-category-status ${category.competition ? "active" : "pending"}`}>{category.competition ? "Ativa" : "Pendente"}</span>
+              <span className={cx(`${viewStyles.t_category_status} ${category.competition ? "active" : "pending"}`)}>{category.competition ? "Ativa" : "Pendente"}</span>
               <Link
                 href={`/torneios/${tournamentId}/categorias/${category.id}`}
-                className="t-category-enter"
+                className={viewStyles.t_category_enter}
               >
                 Entrar <span aria-hidden="true">›</span>
               </Link>
@@ -70,7 +72,7 @@ export function CategoryList({
           ))}
         </div>
       ) : (
-        <p className="t-category-empty">
+        <p className={viewStyles.t_category_empty}>
           Adicione a primeira categoria para iniciar a operação do evento.
         </p>
       )}

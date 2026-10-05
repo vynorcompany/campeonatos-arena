@@ -1,0 +1,55 @@
+import { sharedUtilities } from "@/components/ui/shared.utilities";
+/** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
+export const viewStyles = {
+  "entity_edit_form": [
+    "entity-edit-form", "tw:grid", "tw:gap-y-[10px]", "tw:gap-x-[10px]",
+    "tw:min-w-[min(100%,_720px)]",
+  ].join(" "),
+  "entity_edit_grid": [
+    "entity-edit-grid", "tw:grid", "tw:grid-cols-[minmax(180px,_1.2fr)_minmax(130px,_0.8fr)_minmax(170px,_1fr)_96px_minmax(160px,_1fr)]", "tw:viewport-1024:grid-cols-[1fr]",
+    "tw:gap-y-[8px]", "tw:gap-x-[8px]", "tw:items-center", "tw:[&_input]:w-[100%]",
+    "tw:[&_input]:min-h-[38px]", "tw:[&_input]:pt-[0]", "tw:[&_input]:pr-[12px]", "tw:[&_input]:pb-[0]",
+    "tw:[&_input]:pl-[12px]", "tw:[&_input]:border-t-[length:1px]", "tw:[&_input]:[border-top-style:solid]", "tw:[&_input]:border-t-[color:var(--line)]",
+    "tw:[&_input]:border-r-[length:1px]", "tw:[&_input]:[border-right-style:solid]", "tw:[&_input]:border-r-[color:var(--line)]", "tw:[&_input]:border-b-[length:1px]",
+    "tw:[&_input]:[border-bottom-style:solid]", "tw:[&_input]:border-b-[color:var(--line)]", "tw:[&_input]:border-l-[length:1px]", "tw:[&_input]:[border-left-style:solid]",
+    "tw:[&_input]:border-l-[color:var(--line)]", "tw:[&_input]:rounded-[12px]", "tw:[&_input]:bg-[color:var(--panel)]", "tw:[&_input]:[background-image:none]",
+    "tw:[&_input]:text-[color:var(--text)]", "tw:[&_select]:w-[100%]", "tw:[&_select]:min-h-[38px]", "tw:[&_select]:pt-[0]",
+    "tw:[&_select]:pr-[12px]", "tw:[&_select]:pb-[0]", "tw:[&_select]:pl-[12px]", "tw:[&_select]:border-t-[length:1px]",
+    "tw:[&_select]:[border-top-style:solid]", "tw:[&_select]:border-t-[color:var(--line)]", "tw:[&_select]:border-r-[length:1px]", "tw:[&_select]:[border-right-style:solid]",
+    "tw:[&_select]:border-r-[color:var(--line)]", "tw:[&_select]:border-b-[length:1px]", "tw:[&_select]:[border-bottom-style:solid]", "tw:[&_select]:border-b-[color:var(--line)]",
+    "tw:[&_select]:border-l-[length:1px]", "tw:[&_select]:[border-left-style:solid]", "tw:[&_select]:border-l-[color:var(--line)]", "tw:[&_select]:rounded-[12px]",
+    "tw:[&_select]:bg-[color:var(--panel)]", "tw:[&_select]:[background-image:none]", "tw:[&_select]:text-[color:var(--text)]", "tw:[&_input:focus]:[outline:none]",
+    "tw:[&_input:focus]:border-t-[color:rgba(18,_93,_156,_0.35)]", "tw:[&_input:focus]:border-r-[color:rgba(18,_93,_156,_0.35)]", "tw:[&_input:focus]:border-b-[color:rgba(18,_93,_156,_0.35)]", "tw:[&_input:focus]:border-l-[color:rgba(18,_93,_156,_0.35)]",
+    "tw:[&_input:focus]:[box-shadow:0_0_0_4px_rgba(18,_93,_156,_0.1)]", "tw:[&_select:focus]:[outline:none]", "tw:[&_select:focus]:border-t-[color:rgba(18,_93,_156,_0.35)]", "tw:[&_select:focus]:border-r-[color:rgba(18,_93,_156,_0.35)]",
+    "tw:[&_select:focus]:border-b-[color:rgba(18,_93,_156,_0.35)]", "tw:[&_select:focus]:border-l-[color:rgba(18,_93,_156,_0.35)]", "tw:[&_select:focus]:[box-shadow:0_0_0_4px_rgba(18,_93,_156,_0.1)]",
+  ].join(" "),
+  "player_inline_actions": sharedUtilities.playerInlineActions,
+  "player_inline_text_button_player_inline_text_button_save": sharedUtilities.playerInlineTextButtonPlayerInlineTextButtonSave,
+  "player_inline_text_button": sharedUtilities.playerInlineTextButton,
+  "entity_actions_cell": [
+    "entity-actions-cell", "tw:flex", "tw:min-w-[0]", "tw:items-center",
+    "tw:viewport-1024:items-start", "tw:justify-between", "tw:gap-y-[14px]", "tw:gap-x-[14px]",
+    "tw:viewport-1024:flex-col",
+  ].join(" "),
+  "entity_main_text": [
+    "entity-main-text", "tw:flex", "tw:min-w-[0]", "tw:flex-col",
+    "tw:gap-y-[2px]", "tw:gap-x-[2px]",
+  ].join(" "),
+  "table_subtext": sharedUtilities.tableSubtext,
+  "player_name_tools": [
+    "player-name-tools", "tw:inline-flex", "tw:items-center", "tw:gap-y-[6px]",
+    "tw:gap-x-[6px]", "tw:[flex-shrink:0]", "tw:relative",
+  ].join(" "),
+  "player_inline_icon_button": sharedUtilities.playerInlineIconButton,
+  "player_trash_button": [
+    "player-trash-button", "tw:inline-flex", "tw:items-center", "tw:justify-center",
+    "tw:w-[28px]", "tw:h-[28px]", "tw:pt-[0]", "tw:pr-[0]",
+    "tw:pb-[0]", "tw:pl-[0]", "tw:border-t-[length:medium]", "tw:[border-top-style:none]",
+    "tw:border-t-[color:currentColor]", "tw:border-r-[length:medium]", "tw:[border-right-style:none]", "tw:border-r-[color:currentColor]",
+    "tw:border-b-[length:medium]", "tw:[border-bottom-style:none]", "tw:border-b-[color:currentColor]", "tw:border-l-[length:medium]",
+    "tw:[border-left-style:none]", "tw:border-l-[color:currentColor]", "tw:rounded-[999px]", "tw:bg-[color:transparent]",
+    "tw:[background-image:none]", "tw:text-[color:var(--muted)]", "tw:cursor-pointer", "tw:[transition:color_160ms_ease,_background-color_160ms_ease,_transform_160ms_ease]",
+    "tw:hover:bg-[color:rgba(191,_63,_56,_0.08)]", "tw:hover:[background-image:none]", "tw:hover:text-[color:var(--danger)]", "tw:hover:[transform:translateY(-1px)]",
+    "tw:focus-visible:[outline:none]", "tw:focus-visible:[box-shadow:0_0_0_4px_rgba(18,_93,_156,_0.1)]", "tw:[&_svg]:w-[16px]", "tw:[&_svg]:h-[16px]",
+  ].join(" "),
+} as const;

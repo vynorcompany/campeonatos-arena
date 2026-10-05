@@ -1,0 +1,80 @@
+/** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
+export const viewStyles = {
+  "group_grid": [
+    "group-grid", "tw:grid", "tw:gap-y-[18px]", "tw:gap-x-[18px]",
+    "tw:grid-cols-[repeat(2,_minmax(0,_1fr))]", "tw:viewport-1120:grid-cols-[1fr]", "tw:[&_>_*:nth-child(1)]:[animation-delay:40ms]", "tw:[&_>_*:nth-child(2)]:[animation-delay:100ms]",
+    "tw:[&_>_*:nth-child(3)]:[animation-delay:160ms]", "tw:[&_>_*:nth-child(4)]:[animation-delay:220ms]",
+  ].join(" "),
+  "section_card_group_drop_zone": [
+    "section-card", "group-drop-zone", "tw:pt-[22px]", "tw:pr-[0]",
+    "tw:pb-[22px]", "tw:pl-[0]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]",
+    "tw:border-t-[color:var(--line)]", "tw:border-r-[length:0]", "tw:[border-right-style:none]", "tw:border-r-[color:currentColor]",
+    "tw:border-b-[length:0]", "tw:[border-bottom-style:none]", "tw:border-b-[color:currentColor]", "tw:border-l-[length:0]",
+    "tw:[border-left-style:none]", "tw:border-l-[color:currentColor]", "tw:rounded-[0]", "tw:bg-[color:transparent]",
+    "tw:[background-image:none]", "tw:[box-shadow:none]", "tw:[transition:border-color_180ms_var(--ease-standard),_box-shadow_180ms_var(--ease-standard),_background_180ms_var(--ease-standard)]",
+  ].join(" "),
+  "group_drop_zone_ready": [
+    "group-drop-zone-ready", "tw:border-t-[color:rgba(32,_91,_171,_0.32)]", "tw:border-r-[color:rgba(32,_91,_171,_0.32)]", "tw:border-b-[color:rgba(32,_91,_171,_0.32)]",
+    "tw:border-l-[color:rgba(32,_91,_171,_0.32)]",
+  ].join(" "),
+  "group_drop_zone_pending": [
+    "group-drop-zone-pending", "tw:border-t-[color:rgba(32,_91,_171,_0.58)]", "tw:border-r-[color:rgba(32,_91,_171,_0.58)]", "tw:border-b-[color:rgba(32,_91,_171,_0.58)]",
+    "tw:border-l-[color:rgba(32,_91,_171,_0.58)]", "tw:[box-shadow:0_12px_28px_rgba(32,_91,_171,_0.14)]", "tw:bg-[color:rgba(32,_91,_171,_0.03)]", "tw:[background-image:none]",
+  ].join(" "),
+  "group_drag_list": [
+    "group-drag-list", "tw:grid", "tw:gap-y-[10px]", "tw:gap-x-[10px]",
+    "tw:mb-[16px]",
+  ].join(" "),
+  "group_drag_card": [
+    "group-drag-card", "tw:flex", "tw:items-center", "tw:justify-between",
+    "tw:gap-y-[12px]", "tw:gap-x-[12px]", "tw:pt-[12px]", "tw:pr-[14px]",
+    "tw:pb-[12px]", "tw:pl-[14px]", "tw:border-t-[length:1px]", "tw:[border-top-style:dashed]",
+    "tw:border-t-[color:rgba(32,_91,_171,_0.24)]", "tw:border-r-[length:1px]", "tw:[border-right-style:dashed]", "tw:border-r-[color:rgba(32,_91,_171,_0.24)]",
+    "tw:border-b-[length:1px]", "tw:[border-bottom-style:dashed]", "tw:border-b-[color:rgba(32,_91,_171,_0.24)]", "tw:border-l-[length:1px]",
+    "tw:[border-left-style:dashed]", "tw:border-l-[color:rgba(32,_91,_171,_0.24)]", "tw:rounded-[12px]", "tw:bg-[color:#ffffff]",
+    "tw:[background-image:none]", "tw:cursor-grab", "tw:[&:active]:cursor-grabbing", "tw:[&_strong]:block",
+    "tw:[&_span]:block", "tw:[&_span]:text-[color:var(--muted)]", "tw:[&_small]:block", "tw:[&_small]:text-[color:var(--muted)]",
+    "tw:[&_small]:whitespace-nowrap", "tw:[&_small]:text-[0.78rem]", "tw:[&_small]:font-[800]", "tw:[&_small]:tracking-[0.04em]",
+    "tw:[&_small]:uppercase",
+  ].join(" "),
+  "group_drag_card_dragging": [
+    "group-drag-card-dragging", "tw:opacity-[0.44]", "tw:[transform:scale(0.98)]",
+  ].join(" "),
+  "group_standings": [
+    "group-standings", "tw:grid", "tw:gap-y-[8px]", "tw:gap-x-[8px]",
+  ].join(" "),
+  "group_results_title": [
+    "group-results-title", "tw:mt-[0]", "tw:mr-[0]", "tw:mb-[0]",
+    "tw:ml-[0]", "tw:text-[color:var(--muted)]", "tw:text-[0.78rem]", "tw:font-[800]",
+    "tw:tracking-[0.08em]", "tw:uppercase",
+  ].join(" "),
+  "group_standings_table": [
+    "group-standings-table", "tw:w-[100%]", "tw:[border-collapse:separate]", "tw:[border-spacing:0]",
+    "tw:[&_th]:pt-[0]", "tw:[&_th]:pr-[10px]", "tw:[&_th]:pb-[10px]", "tw:[&_th]:pl-[10px]",
+    "tw:[&_th]:text-[color:var(--muted)]", "tw:[&_th]:text-[0.72rem]", "tw:[&_th]:font-[800]", "tw:[&_th]:tracking-[0.08em]",
+    "tw:[&_th]:text-left", "tw:[&_th]:uppercase", "tw:[&_th]:whitespace-nowrap", "tw:[&_td]:pt-[10px]",
+    "tw:[&_td]:pr-[10px]", "tw:[&_td]:pb-[10px]", "tw:[&_td]:pl-[10px]", "tw:[&_td]:border-t-[length:1px]",
+    "tw:[&_td]:[border-top-style:solid]", "tw:[&_td]:border-t-[color:#edf2f7]", "tw:[&_td]:bg-[color:#ffffff]", "tw:[&_td]:[background-image:none]",
+    "tw:[&_td]:font-[700]", "tw:[&_td:first-child]:[border-top-left-radius:8px]", "tw:[&_td:first-child]:[border-bottom-left-radius:8px]", "tw:[&_td:last-child]:[border-top-right-radius:8px]",
+    "tw:[&_td:last-child]:[border-bottom-right-radius:8px]", "tw:[&_td:not(:first-child)]:text-center", "tw:[&_td_strong]:block", "tw:[&_td_span]:block",
+    "tw:[&_td_span]:mt-[3px]", "tw:[&_td_span]:text-[color:var(--muted)]", "tw:[&_td_span]:text-[0.82rem]", "tw:[&_td_span]:font-[600]",
+  ].join(" "),
+  "group_results": [
+    "group-results", "tw:grid", "tw:gap-y-[8px]", "tw:gap-x-[8px]",
+    "tw:mt-[14px]", "tw:pt-[14px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]",
+    "tw:border-t-[color:var(--line)]",
+  ].join(" "),
+  "group_result_item": [
+    "group-result-item", "tw:grid", "tw:grid-cols-[minmax(0,_1fr)_auto_minmax(0,_1fr)]", "tw:items-center",
+    "tw:gap-y-[10px]", "tw:gap-x-[10px]", "tw:pt-[10px]", "tw:pr-[12px]",
+    "tw:pb-[10px]", "tw:pl-[12px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]",
+    "tw:border-t-[color:var(--line)]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:var(--line)]",
+    "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:var(--line)]", "tw:border-l-[length:1px]",
+    "tw:[border-left-style:solid]", "tw:border-l-[color:var(--line)]", "tw:rounded-[8px]", "tw:bg-[color:#ffffff]",
+    "tw:[background-image:none]", "tw:[&_span]:min-w-[0]", "tw:[&_span]:text-[color:var(--text)]", "tw:[&_span]:text-[0.9rem]",
+    "tw:[&_span]:[overflow-wrap:anywhere]", "tw:[&_span:last-child]:text-right", "tw:[&_strong]:min-w-[64px]", "tw:[&_strong]:pt-[5px]",
+    "tw:[&_strong]:pr-[8px]", "tw:[&_strong]:pb-[5px]", "tw:[&_strong]:pl-[8px]", "tw:[&_strong]:rounded-[999px]",
+    "tw:[&_strong]:bg-[color:var(--brand-soft)]", "tw:[&_strong]:[background-image:none]", "tw:[&_strong]:text-[color:var(--brand-strong)]", "tw:[&_strong]:text-[0.86rem]",
+    "tw:[&_strong]:text-center",
+  ].join(" "),
+} as const;

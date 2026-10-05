@@ -1,4 +1,5 @@
 "use client";
+import { cx } from "@/lib/ui/classes";
 
 import { useRef, useState } from "react";
 
@@ -16,7 +17,7 @@ export function CalendarDragScroll({ children, className }: CalendarDragScrollPr
   return (
     <div
       ref={ref}
-      className={`${className ?? ""}${isDragging ? " calendar-dragging" : ""}`}
+      className={cx(`${className ?? ""}${isDragging ? " calendar-dragging" : ""}`)}
       onPointerDown={(event) => {
         const target = event.target as HTMLElement;
         if (target.closest("button,input,select,textarea,label,a")) return;

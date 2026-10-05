@@ -1,3 +1,4 @@
+import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
 
@@ -22,14 +23,14 @@ test("occupied agenda slots separate destructive actions and keep command access
   assert.match(dialog, /agenda-open-comandas-button/);
   assert.match(dialog, /agenda-slot-option-cancel/);
   assert.match(dialog, /agenda-slot-option-free/);
-  assert.match(styles, /\.agenda-slot-option-cancel/);
-  assert.match(styles, /\.agenda-slot-option-free/);
-  assert.match(styles, /\.agenda-slot-confirmation-indicator/);
+  assert.ok(utilityClasses("agenda-slot-option-cancel").length, "agenda-slot-option-cancel has component Tailwind utilities");
+  assert.ok(utilityClasses("agenda-slot-option-free").length, "agenda-slot-option-free has component Tailwind utilities");
+  assert.ok(utilityClasses("agenda-slot-confirmation-indicator").length, "agenda-slot-confirmation-indicator has component Tailwind utilities");
 });
 
 test("notification panel is anchored to the viewport instead of overflowing the sidebar", () => {
   const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
 
-  assert.match(styles, /\.sidebar \.arena-notification-panel \{ position: fixed/);
+  assert.match(styleRules("sidebar", {"context":".arena-notification-panel"}), / position: fixed/);
   assert.match(styles, /width: min\(360px, calc\(100vw - 32px\)\)/);
 });

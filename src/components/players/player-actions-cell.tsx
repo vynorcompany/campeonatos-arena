@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./player-actions-cell.utilities";
 
 import { useState } from "react";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
@@ -37,7 +38,7 @@ export function PlayerActionsCell({
 
   if (isEditing) {
     return (
-      <form action={updatePlayerAction} className="player-name-edit-form">
+      <form action={updatePlayerAction} className={viewStyles.player_name_edit_form}>
         <input type="hidden" name="playerId" value={playerId} />
         <input type="hidden" name="points" value={playerPoints} />
         <input
@@ -45,30 +46,30 @@ export function PlayerActionsCell({
           type="text"
           defaultValue={playerClass}
           aria-label={`Classe de ${playerName}`}
-          className="player-name-input"
+          className={viewStyles.player_name_input}
         />
         <input
           name="gender"
           type="text"
           defaultValue={playerGender}
           aria-label={`Gênero de ${playerName}`}
-          className="player-name-input"
+          className={viewStyles.player_name_input}
         />
         <input
           name="name"
           type="text"
           defaultValue={playerName}
           aria-label={`Nome de ${playerName}`}
-          className="player-name-input"
+          className={viewStyles.player_name_input}
           autoFocus
         />
         <input name="phone" type="tel" defaultValue={playerPhone} aria-label={`Telefone de ${playerName}`} required />
         <input name="cpf" inputMode="numeric" defaultValue={playerCpf} aria-label={`CPF de ${playerName}`} />
         <input name="birthDate" type="date" defaultValue={playerBirthDate ? playerBirthDate.slice(0, 10) : ""} aria-label={`Nascimento de ${playerName}`} />
         <input name="photo" type="file" accept="image/png,image/jpeg,image/webp" aria-label={`Foto de ${playerName}`} />
-        <div className="player-inline-actions">
-          <SubmitButton label="Salvar" pendingLabel="..." className="player-inline-text-button player-inline-text-button-save" />
-          <button type="button" className="player-inline-text-button" onClick={() => setIsEditing(false)}>
+        <div className={viewStyles.player_inline_actions}>
+          <SubmitButton label="Salvar" pendingLabel="..." className={viewStyles.player_inline_text_button_player_inline_text_button_save} />
+          <button type="button" className={viewStyles.player_inline_text_button} onClick={() => setIsEditing(false)}>
             Cancelar
           </button>
         </div>
@@ -77,16 +78,16 @@ export function PlayerActionsCell({
   }
 
   return (
-    <div className="player-name-cell">
-      <span className="player-avatar" aria-hidden="true">
+    <div className={viewStyles.player_name_cell}>
+      <span className={viewStyles.player_avatar} aria-hidden="true">
         {playerPhotoUrl ? <img src={playerPhotoUrl} alt="" /> : playerName.slice(0, 1).toUpperCase()}
       </span>
-      <span className="player-name-label">{playerName}</span>
+      <span className={viewStyles.player_name_label}>{playerName}</span>
 
-      <div className="player-name-tools">
+      <div className={viewStyles.player_name_tools}>
         <button
           type="button"
-          className="player-inline-icon-button"
+          className={viewStyles.player_inline_icon_button}
           onClick={() => setIsMenuOpen((current) => !current)}
           aria-label={`Ações de ${playerName}`}
           aria-expanded={isMenuOpen}
@@ -101,10 +102,10 @@ export function PlayerActionsCell({
         </button>
 
         {isMenuOpen ? (
-          <div className="player-action-menu" role="menu" aria-label={`Ações de ${playerName}`}>
+          <div className={viewStyles.player_action_menu} role="menu" aria-label={`Ações de ${playerName}`}>
             <button
               type="button"
-              className="player-action-menu-item"
+              className={viewStyles.player_action_menu_item}
               role="menuitem"
               onClick={() => {
                 setIsEditing(true);
@@ -118,7 +119,7 @@ export function PlayerActionsCell({
               <input type="hidden" name="playerId" value={playerId} />
               <button
                 type="submit"
-                className="player-action-menu-item"
+                className={viewStyles.player_action_menu_item}
                 role="menuitem"
                 disabled={!active}
                 title={active ? undefined : "Este atleta já está inativo."}
@@ -128,8 +129,8 @@ export function PlayerActionsCell({
             </form>
 
             {deletionRestriction ? (
-              <div className="player-action-menu-delete-block">
-                <button type="button" className="player-action-menu-item player-action-menu-danger" disabled aria-disabled="true">
+              <div className={viewStyles.player_action_menu_delete_block}>
+                <button type="button" className={viewStyles.player_action_menu_item_player_action_menu_danger} disabled aria-disabled="true">
                   Excluir
                 </button>
                 <p>{deletionRestriction}</p>
@@ -137,13 +138,13 @@ export function PlayerActionsCell({
             ) : (
               <SafeActionForm
                 action={deleteAthleteAction}
-                className="player-action-menu-form"
+                className={viewStyles.player_action_menu_form}
                 confirmKeyword="EXCLUIR"
                 confirmPrompt={`Digite EXCLUIR para remover ${playerName} permanentemente.`}
                 successMessage="Atleta excluído."
               >
                 <input type="hidden" name="playerId" value={playerId} />
-                <button type="submit" className="player-action-menu-item player-action-menu-danger" role="menuitem">
+                <button type="submit" className={viewStyles.player_action_menu_item_player_action_menu_danger} role="menuitem">
                   Excluir
                 </button>
               </SafeActionForm>

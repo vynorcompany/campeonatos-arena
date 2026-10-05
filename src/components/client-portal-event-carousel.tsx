@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./client-portal-event-carousel.utilities";
 
 import { useRef, useState } from "react";
 import { PortalRichText } from "@/components/portal-rich-text";
@@ -13,11 +14,11 @@ export type ClientPortalEvent = {
 
 function EventCard({ event }: { event: ClientPortalEvent }) {
   const [imageFailed, setImageFailed] = useState(false);
-  const image = imageFailed ? <div className="client-portal-event-image-fallback" aria-label={`Imagem indisponível para ${event.title}`}>{event.title.slice(0, 2).toUpperCase()}</div> : <img src={event.imageUrl} alt={event.linkUrl ? `Abrir ${event.title}` : event.title} onError={() => setImageFailed(true)} />;
+  const image = imageFailed ? <div className={viewStyles.client_portal_event_image_fallback} aria-label={`Imagem indisponível para ${event.title}`}>{event.title.slice(0, 2).toUpperCase()}</div> : <img src={event.imageUrl} alt={event.linkUrl ? `Abrir ${event.title}` : event.title} onError={() => setImageFailed(true)} />;
 
   return (
     <article>
-      {event.linkUrl ? <a className="client-portal-event-link" href={event.linkUrl} target="_blank" rel="noreferrer">{image}</a> : image}
+      {event.linkUrl ? <a className={viewStyles.client_portal_event_link} href={event.linkUrl} target="_blank" rel="noreferrer">{image}</a> : image}
       <div>
         <strong>{event.title}</strong>
         {event.caption ? <p><PortalRichText text={event.caption} /></p> : null}
@@ -31,7 +32,7 @@ export function ClientPortalEventCarousel({ events }: { events: ClientPortalEven
   const [current, setCurrent] = useState(0);
 
   if (events.length <= 1) {
-    return <div className="client-portal-event-posts">{events.map((event) => <EventCard key={event.id} event={event} />)}</div>;
+    return <div className={viewStyles.client_portal_event_posts}>{events.map((event) => <EventCard key={event.id} event={event} />)}</div>;
   }
 
   const move = (direction: -1 | 1) => {
@@ -41,9 +42,9 @@ export function ClientPortalEventCarousel({ events }: { events: ClientPortalEven
   };
 
   return (
-    <section className="client-portal-event-carousel" aria-label="Eventos em destaque">
+    <section className={viewStyles.client_portal_event_carousel} aria-label="Eventos em destaque">
       <div
-        className="client-portal-event-carousel-track"
+        className={viewStyles.client_portal_event_carousel_track}
         ref={trackRef}
         onScroll={(event) => {
           const track = event.currentTarget;
@@ -53,7 +54,7 @@ export function ClientPortalEventCarousel({ events }: { events: ClientPortalEven
       >
         {events.map((event) => <EventCard key={event.id} event={event} />)}
       </div>
-      <div className="client-portal-event-carousel-controls">
+      <div className={viewStyles.client_portal_event_carousel_controls}>
         <button type="button" onClick={() => move(-1)} aria-label="Evento anterior">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 5-7 7 7 7" /></svg>
         </button>

@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./time-picker-input.utilities";
 
 import { useRef } from "react";
 
@@ -22,7 +23,7 @@ export function TimePickerInput({ id, name, defaultValue }: TimePickerInputProps
       name={name}
       type="time"
       defaultValue={defaultValue}
-      className="time-picker-input"
+      className={viewStyles.time_picker_input}
       onClick={openPicker}
       onFocus={openPicker}
     />

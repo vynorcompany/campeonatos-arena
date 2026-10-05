@@ -1,4 +1,6 @@
 "use client";
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./submit-button.utilities";
 
 import { useFormStatus } from "react-dom";
 
@@ -13,7 +15,7 @@ export function SubmitButton({ label, pendingLabel, className, disabled = false 
   const { pending } = useFormStatus();
 
   return (
-    <button className={className ?? "button"} type="submit" disabled={pending || disabled}>
+    <button className={cx(className ?? viewStyles.button)} type="submit" disabled={pending || disabled}>
       {pending ? pendingLabel ?? "Processando..." : label}
     </button>
   );

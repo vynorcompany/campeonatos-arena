@@ -1,3 +1,5 @@
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./tournament-tabs.utilities";
 import Link from "next/link";
 import { LeagueIcon, type LeagueIconName } from "@/components/tournaments/league-icon";
 
@@ -22,12 +24,12 @@ export function TournamentTabs({
   activeTab: TournamentTabKey;
 }) {
   return (
-    <nav className="t-tabs" aria-label="Etapas da categoria">
+    <nav className={viewStyles.t_tabs} aria-label="Etapas da categoria">
       {tabs.map((tab) => (
         <Link
           key={tab.key}
           href={`/torneios/${tournamentId}/categorias/${categoryId}?tab=${tab.key}`}
-          className={`t-tab ${activeTab === tab.key ? "t-tab-active" : ""}`}
+          className={cx(`${viewStyles.t_tab} ${activeTab === tab.key ? viewStyles.t_tab_active : ""}`)}
         >
           <span className="t-tab-icon"><LeagueIcon name={tab.icon} /></span>
           {tab.label}

@@ -1,3 +1,5 @@
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./status-badge.utilities";
 type StatusBadgeProps = {
   status: string;
 };
@@ -20,5 +22,5 @@ const labels: Record<string, string> = {
 
 export function StatusBadge({ status }: StatusBadgeProps) {
   const normalized = status.toLowerCase().replace(/\s+/g, "-");
-  return <span className={`pill status-badge status-badge-${normalized}`}>{labels[status] ?? status}</span>;
+  return <span className={cx(`${viewStyles.pill} status-badge-${normalized}`)}>{labels[status] ?? status}</span>;
 }

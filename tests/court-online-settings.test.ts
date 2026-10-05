@@ -1,3 +1,4 @@
+import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
 
@@ -25,8 +26,8 @@ test("courts persist visual order, color and online reservation combinations", (
 test("primary action buttons use the shared subtle rounded control style", () => {
   const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
 
-  assert.match(styles, /\.button\s*\{[\s\S]*?border-radius:\s*var\(--radius-control\)/);
-  assert.match(styles, /\.button\s*\{[\s\S]*?min-height:\s*36px/);
+  assert.match(styleRules("button"), /border-radius:\s*var\(--radius-control\)/);
+  assert.match(styleRules("button"), /min-height:\s*36px/);
   assert.match(styles, /--radius-control:\s*8px/);
-  assert.match(styles, /\.court-copy-settings\s*>\s*\.button\s*\{[\s\S]*?justify-self:\s*start/);
+  assert.match(styleRules("court-copy-settings", {"context":"> .button"}), /justify-self:\s*start/);
 });

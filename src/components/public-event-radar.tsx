@@ -1,3 +1,5 @@
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./public-event-radar.utilities";
 import Link from "next/link";
 import { getPublicAthleteIdentity } from "@/lib/auth/player-session";
 import { getEventRadar } from "@/lib/services/event-radar";
@@ -25,17 +27,17 @@ export async function PublicEventRadar({
   const regionName = [location?.city, location?.state].filter(Boolean).join(" · ");
   const hrefFor = (nextView: "region" | "all") => embeddedHref?.(nextView) ?? (nextView === "all" ? "/portal/eventos?view=all" : "/portal/eventos");
 
-  return <section className={`athlete-portal-content-panel event-radar${embedded ? " event-radar-embedded" : ""}`}>
+  return <section className={cx(`${viewStyles.athlete_portal_content_panel_event_radar}${embedded ? " " + viewStyles.event_radar_embedded : ""}`)}>
     <header>
       <span>TORNEIOS ABERTOS</span>
       <h2>{!showingAll ? `Perto de você${regionName ? ` · ${regionName}` : ""}` : "Encontre sua próxima disputa"}</h2>
       <p>{!showingAll ? "Primeiro, mostramos torneios publicados na sua região." : "Eventos publicados pelas arenas da rede. Você entra pelo link oficial de cada organizadora."}</p>
-      {nearby.length ? <div className="event-radar-view-toggle"><Link className={!showingAll ? "active" : ""} href={hrefFor("region")}>Na minha região</Link><Link className={showingAll ? "active" : ""} href={hrefFor("all")}>Todo o Brasil</Link></div> : null}
+      {nearby.length ? <div className={viewStyles.event_radar_view_toggle}><Link className={cx(!showingAll ? "active" : "")} href={hrefFor("region")}>Na minha região</Link><Link className={cx(showingAll ? "active" : "")} href={hrefFor("all")}>Todo o Brasil</Link></div> : null}
     </header>
     {visibleEvents.length ? <div>{visibleEvents.map((event) => <article key={event.id}>
-      <div className="event-radar-arena">{event.arena.logoUrl ? <img src={event.arena.logoUrl} alt="" /> : <b>{event.arena.name.slice(0, 2).toUpperCase()}</b>}<span>{event.arena.name}<small>{[event.arena.city, event.arena.state].filter(Boolean).join(" · ") || "Localização não informada"}</small></span></div>
-      <div className="event-radar-copy"><strong>{event.name}</strong><p>{event.description || "Confira as categorias e participe pelo link de inscrição."}</p><div>{event.categories.slice(0, 5).map((category) => <em key={category.id}>{category.name}</em>)}</div></div>
-      {event.creationMode === "PUBLIC" && event.registrationPhase === "REGISTRATIONS" ? <Link className="button button-primary button-small" href={`/inscricao/${event.publicSlug}`}>Ver torneio</Link> : <span className="event-radar-status">Em andamento</span>}
-    </article>)}</div> : <div className="portal-empty"><strong>Nenhum torneio publicado nesta região.</strong><span>Veja os eventos das demais arenas da rede.</span><Link className="button button-small" href={hrefFor("all")}>Ver todo o Brasil</Link></div>}
+      <div className={viewStyles.event_radar_arena}>{event.arena.logoUrl ? <img src={event.arena.logoUrl} alt="" /> : <b>{event.arena.name.slice(0, 2).toUpperCase()}</b>}<span>{event.arena.name}<small>{[event.arena.city, event.arena.state].filter(Boolean).join(" · ") || "Localização não informada"}</small></span></div>
+      <div className={viewStyles.event_radar_copy}><strong>{event.name}</strong><p>{event.description || "Confira as categorias e participe pelo link de inscrição."}</p><div>{event.categories.slice(0, 5).map((category) => <em key={category.id}>{category.name}</em>)}</div></div>
+      {event.creationMode === "PUBLIC" && event.registrationPhase === "REGISTRATIONS" ? <Link className={viewStyles.button_button_primary_button_small} href={`/inscricao/${event.publicSlug}`}>Ver torneio</Link> : <span className={viewStyles.event_radar_status}>Em andamento</span>}
+    </article>)}</div> : <div className={viewStyles.portal_empty}><strong>Nenhum torneio publicado nesta região.</strong><span>Veja os eventos das demais arenas da rede.</span><Link className={viewStyles.button_button_small} href={hrefFor("all")}>Ver todo o Brasil</Link></div>}
   </section>;
 }

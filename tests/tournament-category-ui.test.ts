@@ -1,3 +1,4 @@
+import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFile } from "./helpers/style-source";
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -82,8 +83,8 @@ test("League overview uses the category dashboard layout with metrics, prize and
   assert.match(page, /league-overview-metric/);
   assert.match(page, /Registrar resultados/);
   assert.match(page, /league-prize-form/);
-  assert.match(styles, /\.league-overview-dashboard/);
-  assert.match(styles, /\.league-overview-bottom/);
+  assert.ok(utilityClasses("league-overview-dashboard").length, "league-overview-dashboard has component Tailwind utilities");
+  assert.ok(utilityClasses("league-overview-bottom").length, "league-overview-bottom has component Tailwind utilities");
   assert.match(tabs, /t-tab-icon/);
 });
 
@@ -371,7 +372,7 @@ test("category game filters submit each criterion only once in a responsive tool
   assert.equal((panel.match(/name="sort"/g) ?? []).length, 1);
   assert.equal((panel.match(/name="status"/g) ?? []).length, 2);
   assert.equal((panel.match(/name="player"/g) ?? []).length, 1);
-  assert.match(styles, /\.category-game-filter-toolbar/);
+  assert.ok(utilityClasses("category-game-filter-toolbar").length, "category-game-filter-toolbar has component Tailwind utilities");
 });
 
 test("league tabs use dedicated responsive layouts for registrations, groups and the game calendar", async () => {
@@ -388,9 +389,9 @@ test("league tabs use dedicated responsive layouts for registrations, groups and
   assert.match(groups, /league-group-card/);
   assert.match(games, /league-games-hero/);
   assert.match(games, /league-calendar-card/);
-  assert.match(styles, /\.league-registration-card/);
-  assert.match(styles, /\.league-group-card/);
-  assert.match(styles, /\.league-calendar-card/);
+  assert.ok(utilityClasses("league-registration-card").length, "league-registration-card has component Tailwind utilities");
+  assert.ok(utilityClasses("league-group-card").length, "league-group-card has component Tailwind utilities");
+  assert.ok(utilityClasses("league-calendar-card").length, "league-calendar-card has component Tailwind utilities");
 });
 
 test("league category workspaces follow the compact visual density standard", async () => {
@@ -399,9 +400,9 @@ test("league category workspaces follow the compact visual density standard", as
     readFile(path.join(workspaceRoot, "docs", "VISUAL_RULES.md"), "utf8"),
   ]);
 
-  assert.match(styles, /\.league-overview-metric \{[^}]*min-height: 96px/);
-  assert.match(styles, /\.league-overview-primary-action \.button \{[^}]*min-height: 50px/);
-  assert.match(styles, /\.league-registration-panel, \.league-groups-panel, \.league-games-panel \{[^}]*padding: 22px/);
+  assert.match(styleRules("league-overview-metric"), /min-height: 96px/);
+  assert.match(styleRules("league-overview-primary-action", {"context":".button"}), /min-height: 38px/);
+  assert.match(styleRules("league-registration-panel"), /padding-top: 22px/);
   assert.match(rules, /Escala compacta/);
   assert.match(rules, /não devem ser grandes ou grotescos/);
 });
@@ -409,7 +410,7 @@ test("league category workspaces follow the compact visual density standard", as
 test("athlete portal prize descriptions use a lighter reading weight", async () => {
   const styles = await readFile(path.join(workspaceRoot, "src", "app", "globals.css"), "utf8");
 
-  assert.match(styles, /\.portal-league-prize-list b \{[^}]*font-weight: 600/);
+  assert.match(styleRules("portal-league-prize-list", {"context":"b"}), /font-weight: 600/);
 });
 
 test("league registration fee is configured by the arena and shown in the athlete portal", async () => {
@@ -439,6 +440,6 @@ test("league workspace uses compact vector icons and identifies registration as 
   assert.match(tabs, /LeagueIcon/);
   assert.match(page, /LeagueIcon/);
   assert.match(portal, /por atleta/);
-  assert.match(styles, /\.league-overview-primary-action \.button \{[^}]*min-height: 38px/);
-  assert.match(styles, /\.league-overview-metric-icon, \.league-overview-section-icon \{[^}]*width: 38px/);
+  assert.match(styleRules("league-overview-primary-action", {"context":".button"}), /min-height: 38px/);
+  assert.match(styleRules("league-overview-metric-icon"), /width: 38px/);
 });

@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./arena-user-form.utilities";
 
 import { useFormState } from "react-dom";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -13,18 +14,18 @@ export function ArenaUserForm({ profiles }: { profiles: { id: string; name: stri
   const [state, formAction] = useFormState(inviteArenaUserAction, initialState);
 
   return (
-    <form action={formAction} className="grid-form">
-      <div className="field">
+    <form action={formAction} className={viewStyles.grid_form}>
+      <div className={viewStyles.field}>
         <label htmlFor="name">Nome e sobrenome</label>
         <input id="name" name="name" type="text" placeholder="Ex.: Marina Alves" required />
       </div>
 
-      <div className="field">
+      <div className={viewStyles.field}>
         <label htmlFor="email">E-mail</label>
         <input id="email" name="email" type="email" placeholder="marina@arena.com" required />
       </div>
 
-      <div className="field">
+      <div className={viewStyles.field}>
         <label htmlFor="permissionProfileId">Perfil de usuário</label>
         <select id="permissionProfileId" name="permissionProfileId" required defaultValue="">
           <option value="" disabled>Selecione o perfil</option>
@@ -32,15 +33,15 @@ export function ArenaUserForm({ profiles }: { profiles: { id: string; name: stri
         </select>
       </div>
 
-      <div className="field field-submit">
-        <label className="sr-only" htmlFor="submit-user">
+      <div className={viewStyles.field_field_submit}>
+        <label className={viewStyles.sr_only} htmlFor="submit-user">
           Enviar convite
         </label>
-        <SubmitButton label="Enviar convite" pendingLabel="Enviando..." className="button button-primary" />
+        <SubmitButton label="Enviar convite" pendingLabel="Enviando..." className={viewStyles.button_button_primary} />
       </div>
 
-      {state?.error ? <p className="form-error form-full">{state.error}</p> : null}
-      {state?.success ? <p className="form-success form-full">{state.success}</p> : null}
+      {state?.error ? <p className={viewStyles.form_error_form_full}>{state.error}</p> : null}
+      {state?.success ? <p className={viewStyles.form_success_form_full}>{state.success}</p> : null}
     </form>
   );
 }

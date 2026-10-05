@@ -1,3 +1,4 @@
+import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { RankingList } from "@/components/tournaments/ranking-list";
 import { requireModuleView } from "@/lib/auth/guards";
@@ -8,9 +9,9 @@ export default async function TournamentRankingsPage() {
   const rankings = await getRankingProfilesWithLeaderboard(auth.arenaId);
 
   return (
-    <div className="stack-md">
-      <header className="page-header">
-        <Link href="/torneios/rankings/novo" className="button button-primary">
+    <div className={viewStyles.stack_md}>
+      <header className={viewStyles.page_header}>
+        <Link href="/torneios/rankings/novo" className={viewStyles.button_button_primary}>
           Novo ranking
         </Link>
       </header>

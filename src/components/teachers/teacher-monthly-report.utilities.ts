@@ -1,0 +1,48 @@
+import { sharedUtilities } from "@/components/ui/shared.utilities";
+/** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
+export const viewStyles = {
+  "teacher_report_workspace": [
+    "teacher-report-workspace", "tw:grid", "tw:gap-y-[10px]", "tw:gap-x-[10px]",
+  ].join(" "),
+  "teacher_report_summary": [
+    "teacher-report-summary", "tw:flex", "tw:flex-wrap", "tw:[align-items:end]",
+    "tw:gap-y-[10px]", "tw:gap-x-[10px]", "tw:[&_>_label]:grid", "tw:[&_>_label]:gap-y-[4px]",
+    "tw:[&_>_label]:gap-x-[4px]", "tw:[&_>_label]:min-w-[145px]", "tw:[&_>_label]:pt-[9px]", "tw:[&_>_label]:pr-[11px]",
+    "tw:[&_>_label]:pb-[9px]", "tw:[&_>_label]:pl-[11px]", "tw:[&_>_label]:border-t-[length:1px]", "tw:[&_>_label]:[border-top-style:solid]",
+    "tw:[&_>_label]:border-t-[color:#dce7f1]", "tw:[&_>_label]:border-r-[length:1px]", "tw:[&_>_label]:[border-right-style:solid]", "tw:[&_>_label]:border-r-[color:#dce7f1]",
+    "tw:[&_>_label]:border-b-[length:1px]", "tw:[&_>_label]:[border-bottom-style:solid]", "tw:[&_>_label]:border-b-[color:#dce7f1]", "tw:[&_>_label]:border-l-[length:1px]",
+    "tw:[&_>_label]:[border-left-style:solid]", "tw:[&_>_label]:border-l-[color:#dce7f1]", "tw:[&_>_label]:bg-[color:#f9fcff]", "tw:[&_>_label]:[background-image:none]",
+    "tw:[&_>_label]:text-[color:#526781]", "tw:[&_>_label]:text-[.7rem]", "tw:[&_>_label]:relative", "tw:[&_>_label]:grid-cols-[1fr_auto]",
+    "tw:[&_>_label]:items-center", "tw:[&_article]:grid", "tw:[&_article]:gap-y-[4px]", "tw:[&_article]:gap-x-[4px]",
+    "tw:[&_article]:min-w-[145px]", "tw:[&_article]:pt-[9px]", "tw:[&_article]:pr-[11px]", "tw:[&_article]:pb-[9px]",
+    "tw:[&_article]:pl-[11px]", "tw:[&_article]:border-t-[length:1px]", "tw:[&_article]:[border-top-style:solid]", "tw:[&_article]:border-t-[color:#dce7f1]",
+    "tw:[&_article]:border-r-[length:1px]", "tw:[&_article]:[border-right-style:solid]", "tw:[&_article]:border-r-[color:#dce7f1]", "tw:[&_article]:border-b-[length:1px]",
+    "tw:[&_article]:[border-bottom-style:solid]", "tw:[&_article]:border-b-[color:#dce7f1]", "tw:[&_article]:border-l-[length:1px]", "tw:[&_article]:[border-left-style:solid]",
+    "tw:[&_article]:border-l-[color:#dce7f1]", "tw:[&_article]:bg-[color:#f9fcff]", "tw:[&_article]:[background-image:none]", "tw:[&_article]:text-[color:#526781]",
+    "tw:[&_article]:text-[.7rem]", "tw:[&_>_label_input]:[grid-column:1_/_-1]", "tw:[&_>_label_input]:pr-[25px]", "tw:[&_>_label_span]:absolute",
+    "tw:[&_>_label_span]:right-[18px]", "tw:[&_>_label_span]:bottom-[16px]", "tw:[&_strong]:text-[color:#146342]", "tw:[&_strong]:text-[1rem]",
+  ].join(" "),
+  "teacher_report_payable_form": [
+    "teacher-report-payable-form", "tw:flex", "tw:flex-wrap", "tw:[align-items:end]",
+    "tw:gap-y-[8px]", "tw:gap-x-[10px]", "tw:pt-[10px]", "tw:pr-[10px]",
+    "tw:pb-[10px]", "tw:pl-[10px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]",
+    "tw:border-t-[color:#cfe0ee]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:#cfe0ee]",
+    "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:#cfe0ee]", "tw:border-l-[length:1px]",
+    "tw:[border-left-style:solid]", "tw:border-l-[color:#cfe0ee]", "tw:rounded-[8px]", "tw:bg-[color:#f7fbff]",
+    "tw:[background-image:none]", "tw:[&_label]:grid", "tw:[&_label]:gap-y-[4px]", "tw:[&_label]:gap-x-[4px]",
+    "tw:[&_label]:text-[color:#50657f]", "tw:[&_label]:text-[.7rem]", "tw:[&_label]:font-[700]", "tw:[&_small]:[flex:1_1_260px]",
+    "tw:[&_small]:text-[color:#65788d]", "tw:[&_small]:text-[.72rem]", "tw:[&_small]:leading-[1.35]",
+  ].join(" "),
+  "button_button_primary": sharedUtilities.buttonButtonPrimary,
+  "teacher_report_list": [
+    "teacher-report-list", "tw:grid", "tw:[&_article]:grid", "tw:[&_article]:grid-cols-[1.3fr_.7fr_.55fr_auto]",
+    "tw:viewport-600:[&_article]:grid-cols-[1fr]", "tw:[&_article]:items-center", "tw:[&_article]:gap-y-[12px]", "tw:viewport-600:[&_article]:gap-y-[5px]",
+    "tw:[&_article]:gap-x-[12px]", "tw:viewport-600:[&_article]:gap-x-[5px]", "tw:[&_article]:pt-[10px]", "tw:[&_article]:pr-[2px]",
+    "tw:[&_article]:pb-[10px]", "tw:[&_article]:pl-[2px]", "tw:[&_article]:border-b-[length:1px]", "tw:[&_article]:[border-bottom-style:solid]",
+    "tw:[&_article]:border-b-[color:#edf1f6]", "tw:[&_article]:text-[.78rem]", "tw:[&_article_>_div]:grid", "tw:[&_article_>_div]:gap-y-[2px]",
+    "tw:[&_article_>_div]:gap-x-[2px]", "tw:[&_article_span]:text-[color:#687b91]", "tw:[&_article_span]:text-[.7rem]", "tw:[&_article.is-excluded]:opacity-[.52]",
+    "tw:[&_article.is-excluded_strong]:[text-decoration:line-through]",
+  ].join(" "),
+  "button_button_small": sharedUtilities.buttonButtonSmall,
+  "muted": sharedUtilities.muted,
+} as const;

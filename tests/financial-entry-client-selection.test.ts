@@ -1,3 +1,4 @@
+import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFile } from "./helpers/style-source";
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -22,6 +23,6 @@ test("a busca de cliente usa um painel expandido com identificação e rolagem",
   assert.match(page, /phone: true/);
   assert.match(ledger, /client-search-panel/);
   assert.match(ledger, /client\.phone/);
-  assert.match(styles, /\.client-search-panel/);
+  assert.ok(utilityClasses("client-search-panel").length, "client-search-panel has component Tailwind utilities");
   assert.match(styles, /max-height: 260px/);
 });

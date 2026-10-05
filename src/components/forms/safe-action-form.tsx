@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./safe-action-form.utilities";
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -111,10 +112,10 @@ export function SafeActionForm({
     >
       {children}
       {confirmKeyword && isConfirming ? (
-        <div className="safe-action-confirmation-backdrop" role="presentation">
-          <section className="safe-action-confirmation" role="dialog" aria-modal="true" aria-labelledby="safe-action-confirm-title">
+        <div className={viewStyles.safe_action_confirmation_backdrop} role="presentation">
+          <section className={viewStyles.safe_action_confirmation} role="dialog" aria-modal="true" aria-labelledby="safe-action-confirm-title">
             <header>
-              <span className="safe-action-confirmation-icon" aria-hidden="true">!</span>
+              <span className={viewStyles.safe_action_confirmation_icon} aria-hidden="true">!</span>
               <div><strong id="safe-action-confirm-title">Confirmar exclusão</strong><span>Esta ação não poderá ser desfeita.</span></div>
             </header>
             <p>{confirmPrompt ?? `Digite ${confirmKeyword} para confirmar esta ação.`}</p>
@@ -131,18 +132,18 @@ export function SafeActionForm({
               />
             </label>
             <footer>
-              <button type="button" className="button" onClick={() => { setIsConfirming(false); setConfirmValue(""); setError(null); }} disabled={isPending}>Cancelar</button>
-              <button type="submit" className="button button-danger" disabled={isPending}>{isPending ? "Excluindo..." : "Excluir"}</button>
+              <button type="button" className={viewStyles.button} onClick={() => { setIsConfirming(false); setConfirmValue(""); setError(null); }} disabled={isPending}>Cancelar</button>
+              <button type="submit" className={viewStyles.button_button_danger} disabled={isPending}>{isPending ? "Excluindo..." : "Excluir"}</button>
             </footer>
           </section>
         </div>
       ) : null}
       {error ? (
-        <p className="form-error form-full" role="alert">
+        <p className={viewStyles.form_error_form_full} role="alert">
           {error}
         </p>
       ) : null}
-      {success ? <p className="form-success form-full">{success}</p> : null}
+      {success ? <p className={viewStyles.form_success_form_full}>{success}</p> : null}
     </form>
   );
 }

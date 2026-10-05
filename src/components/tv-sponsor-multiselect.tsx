@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./tv-sponsor-multiselect.utilities";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -33,16 +34,16 @@ export function TvSponsorMultiselect({ sponsors, selectedSponsorIds }: { sponsor
     setOpen(true);
   }
 
-  return <div ref={containerRef} className="tv-sponsor-multiselect">
+  return <div ref={containerRef} className={viewStyles.tv_sponsor_multiselect}>
     {selectedIds.map((id) => <input key={id} type="hidden" name="selectedSponsorIds" value={id} />)}
-    <div className="tv-sponsor-multiselect-control" onClick={() => setOpen(true)}>
-      <div className="tv-sponsor-tags">
-        {selectedSponsors.map((sponsor) => <span key={sponsor.id} className="tv-sponsor-tag">{sponsor.name}<button type="button" aria-label={`Remover ${sponsor.name}`} onClick={(event) => { event.stopPropagation(); setSelectedIds((current) => current.filter((id) => id !== sponsor.id)); }}><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg></button></span>)}
+    <div className={viewStyles.tv_sponsor_multiselect_control} onClick={() => setOpen(true)}>
+      <div className={viewStyles.tv_sponsor_tags}>
+        {selectedSponsors.map((sponsor) => <span key={sponsor.id} className={viewStyles.tv_sponsor_tag}>{sponsor.name}<button type="button" aria-label={`Remover ${sponsor.name}`} onClick={(event) => { event.stopPropagation(); setSelectedIds((current) => current.filter((id) => id !== sponsor.id)); }}><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg></button></span>)}
         <input aria-label="Adicionar patrocinador" value={query} onFocus={() => setOpen(true)} onChange={(event) => { setQuery(event.target.value); setOpen(true); }} placeholder={selectedSponsors.length ? "Adicionar patrocinador" : "Buscar patrocinador"} />
       </div>
-      <button type="button" className="tv-sponsor-multiselect-arrow" aria-label={open ? "Fechar lista de patrocinadores" : "Abrir lista de patrocinadores"} aria-expanded={open} onClick={(event) => { event.stopPropagation(); setOpen((current) => !current); }}><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg></button>
+      <button type="button" className={viewStyles.tv_sponsor_multiselect_arrow} aria-label={open ? "Fechar lista de patrocinadores" : "Abrir lista de patrocinadores"} aria-expanded={open} onClick={(event) => { event.stopPropagation(); setOpen((current) => !current); }}><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg></button>
     </div>
-    {open ? <div className="tv-sponsor-multiselect-options" role="listbox" aria-label="Patrocinadores disponíveis">
+    {open ? <div className={viewStyles.tv_sponsor_multiselect_options} role="listbox" aria-label="Patrocinadores disponíveis">
       {suggestions.length ? suggestions.map((sponsor) => <button key={sponsor.id} type="button" role="option" onMouseDown={(event) => event.preventDefault()} onClick={() => addSponsor(sponsor.id)}><span>{sponsor.name}</span><small>Adicionar</small></button>) : <p>{sponsors.length === selectedIds.length ? "Todos os patrocinadores foram selecionados." : "Nenhum patrocinador encontrado."}</p>}
     </div> : null}
   </div>;

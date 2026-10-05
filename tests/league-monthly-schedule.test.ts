@@ -1,5 +1,6 @@
+import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+
 import { resolve } from "node:path";
 import test from "node:test";
 import { buildMonthlyLeagueSchedule, getLeagueMonthBlocks, getLeagueMatchBlock } from "@/lib/league/monthly-schedule";
@@ -118,7 +119,7 @@ test("event rules use a spacious editor and category management only lives in qu
   const editor = readFileSync(resolve(process.cwd(), "src/components/tournaments/tournament-event-edit-form.tsx"), "utf8");
   const eventPage = readFileSync(resolve(process.cwd(), "src/app/(app)/torneios/[tournamentId]/page.tsx"), "utf8");
   assert.match(editor, /id="event-rules"[\s\S]*rows=\{12\}/);
-  assert.match(editor, /className="event-rules-editor"/);
+  assert.match(editor, /(?:className="event-rules-editor"|className=\{(?:cx\()?viewStyles\.event_rules_editor(?:\))?\})/);
   assert.doesNotMatch(eventPage, /id="gerenciar-categorias"/);
 });
 

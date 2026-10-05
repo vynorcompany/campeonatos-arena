@@ -1,0 +1,67 @@
+import { sharedUtilities } from "@/components/ui/shared.utilities";
+/** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
+export const viewStyles = {
+  "stack_md": sharedUtilities.stackMd,
+  "page_header": sharedUtilities.pageHeader,
+  "stack_xs": [
+    "stack-xs", "tw:grid", "tw:gap-y-[6px]", "tw:gap-x-[6px]",
+  ].join(" "),
+  "eyebrow": sharedUtilities.eyebrow,
+  "muted": sharedUtilities.muted,
+  "agency_ticket_list": [
+    "agency-ticket-list", "tw:grid", "tw:gap-y-[12px]", "tw:gap-x-[12px]",
+  ].join(" "),
+  "agency_ticket_card": [
+    "agency-ticket-card", "tw:pt-[16px]", "tw:pr-[16px]", "tw:pb-[16px]",
+    "tw:pl-[16px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:var(--line)]",
+    "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:var(--line)]", "tw:border-b-[length:1px]",
+    "tw:[border-bottom-style:solid]", "tw:border-b-[color:var(--line)]", "tw:border-l-[length:1px]", "tw:[border-left-style:solid]",
+    "tw:border-l-[color:var(--line)]", "tw:rounded-[var(--radius-md)]", "tw:bg-[color:#ffffff]", "tw:[background-image:none]",
+    "tw:grid", "tw:gap-y-[14px]", "tw:gap-x-[14px]", "tw:[&_h3]:mt-[8px]",
+    "tw:[&_h3]:mr-[0]", "tw:[&_h3]:mb-[4px]", "tw:[&_h3]:ml-[0]", "tw:[&_h3]:text-[color:var(--text)]",
+    "tw:[&_h3]:text-[1.05rem]",
+  ].join(" "),
+  "agency_ticket_head": [
+    "agency-ticket-head", "tw:flex", "tw:items-start", "tw:justify-between",
+    "tw:gap-y-[14px]", "tw:gap-x-[14px]",
+  ].join(" "),
+  "ticket_status": sharedUtilities.ticketStatus,
+  "ticket_priority": [
+    "ticket-priority", "tw:inline-flex", "tw:items-center", "tw:min-h-[28px]",
+    "tw:pt-[0]", "tw:pr-[10px]", "tw:pb-[0]", "tw:pl-[10px]",
+    "tw:rounded-[999px]", "tw:text-[0.74rem]", "tw:font-[800]", "tw:uppercase",
+    "tw:tracking-[0.04em]", "tw:[&.ticket-priority-low]:bg-[color:#e7edf5]", "tw:[&.ticket-priority-low]:[background-image:none]", "tw:[&.ticket-priority-low]:text-[color:var(--muted)]",
+    "tw:[&.ticket-priority-medium]:bg-[color:var(--brand-soft)]", "tw:[&.ticket-priority-medium]:[background-image:none]", "tw:[&.ticket-priority-medium]:text-[color:var(--brand)]", "tw:[&.ticket-priority-high]:bg-[color:rgba(147,_100,_12,_0.12)]",
+    "tw:[&.ticket-priority-high]:[background-image:none]", "tw:[&.ticket-priority-high]:text-[color:#93640c]", "tw:[&.ticket-priority-urgent]:bg-[color:rgba(191,_63,_56,_0.12)]", "tw:[&.ticket-priority-urgent]:[background-image:none]",
+    "tw:[&.ticket-priority-urgent]:text-[color:var(--danger)]",
+  ].join(" "),
+  "table_subtext": sharedUtilities.tableSubtext,
+  "agency_ticket_controls": [
+    "agency-ticket-controls", "tw:grid", "tw:grid-cols-[minmax(140px,_0.8fr)_minmax(120px,_0.7fr)_minmax(180px,_1fr)_auto]", "tw:viewport-1024:grid-cols-[1fr]",
+    "tw:gap-y-[10px]", "tw:gap-x-[10px]", "tw:items-center", "tw:[&_select]:w-[100%]",
+    "tw:[&_select]:pt-[12px]", "tw:[&_select]:pr-[14px]", "tw:[&_select]:pb-[12px]", "tw:[&_select]:pl-[14px]",
+    "tw:[&_select]:border-t-[length:1px]", "tw:[&_select]:[border-top-style:solid]", "tw:[&_select]:border-t-[color:var(--line)]", "tw:[&_select]:border-r-[length:1px]",
+    "tw:[&_select]:[border-right-style:solid]", "tw:[&_select]:border-r-[color:var(--line)]", "tw:[&_select]:border-b-[length:1px]", "tw:[&_select]:[border-bottom-style:solid]",
+    "tw:[&_select]:border-b-[color:var(--line)]", "tw:[&_select]:border-l-[length:1px]", "tw:[&_select]:[border-left-style:solid]", "tw:[&_select]:border-l-[color:var(--line)]",
+    "tw:[&_select]:rounded-[var(--radius-md)]", "tw:[&_select]:bg-[color:var(--panel)]", "tw:[&_select]:[background-image:none]", "tw:[&_select]:text-[color:var(--text)]",
+  ].join(" "),
+  "button": sharedUtilities.button,
+  "agency_ticket_message_form": [
+    "agency-ticket-message-form", "tw:[&_textarea]:w-[100%]", "tw:[&_textarea]:pt-[12px]", "tw:[&_textarea]:pr-[14px]",
+    "tw:[&_textarea]:pb-[12px]", "tw:[&_textarea]:pl-[14px]", "tw:[&_textarea]:border-t-[length:1px]", "tw:[&_textarea]:[border-top-style:solid]",
+    "tw:[&_textarea]:border-t-[color:var(--line)]", "tw:[&_textarea]:border-r-[length:1px]", "tw:[&_textarea]:[border-right-style:solid]", "tw:[&_textarea]:border-r-[color:var(--line)]",
+    "tw:[&_textarea]:border-b-[length:1px]", "tw:[&_textarea]:[border-bottom-style:solid]", "tw:[&_textarea]:border-b-[color:var(--line)]", "tw:[&_textarea]:border-l-[length:1px]",
+    "tw:[&_textarea]:[border-left-style:solid]", "tw:[&_textarea]:border-l-[color:var(--line)]", "tw:[&_textarea]:rounded-[var(--radius-md)]", "tw:[&_textarea]:bg-[color:var(--panel)]",
+    "tw:[&_textarea]:[background-image:none]", "tw:[&_textarea]:text-[color:var(--text)]", "tw:grid", "tw:grid-cols-[minmax(0,_1fr)_auto_auto]",
+    "tw:viewport-1024:grid-cols-[1fr]", "tw:gap-y-[10px]", "tw:gap-x-[10px]", "tw:items-center",
+  ].join(" "),
+  "check_option": sharedUtilities.checkOption,
+  "button_button_secondary": sharedUtilities.buttonButtonSecondary,
+  "agency_ticket_messages": [
+    "agency-ticket-messages", "tw:grid", "tw:gap-y-[8px]", "tw:gap-x-[8px]",
+    "tw:pt-[12px]", "tw:pr-[12px]", "tw:pb-[12px]", "tw:pl-[12px]",
+    "tw:rounded-[var(--radius-md)]", "tw:bg-[color:var(--panel-muted)]", "tw:[background-image:none]", "tw:[&_p]:mt-[0]",
+    "tw:[&_p]:mr-[0]", "tw:[&_p]:mb-[0]", "tw:[&_p]:ml-[0]", "tw:[&_p]:text-[color:var(--muted)]",
+    "tw:[&_p]:text-[0.9rem]",
+  ].join(" "),
+} as const;

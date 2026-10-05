@@ -1,5 +1,6 @@
+import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+
 import { test } from "node:test";
 
 const page = readFileSync("src/app/(app)/whatsapp/page.tsx", "utf8");

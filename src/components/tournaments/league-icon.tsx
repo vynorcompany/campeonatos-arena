@@ -1,3 +1,5 @@
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./league-icon.utilities";
 import type { ReactNode, SVGProps } from "react";
 
 export type LeagueIconName = "grid" | "users" | "groups" | "ball" | "trophy" | "history" | "calendar" | "ranking" | "edit" | "save" | "refresh";
@@ -17,5 +19,5 @@ const paths: Record<LeagueIconName, ReactNode> = {
 };
 
 export function LeagueIcon({ name, ...props }: { name: LeagueIconName } & SVGProps<SVGSVGElement>) {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props} className={`league-icon ${props.className ?? ""}`.trim()}>{paths[name]}</svg>;
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props} className={cx(`${viewStyles.league_icon} ${props.className ?? ""}`.trim())}>{paths[name]}</svg>;
 }

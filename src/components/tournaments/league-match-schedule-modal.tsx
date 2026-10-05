@@ -1,4 +1,6 @@
 "use client";
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./league-match-schedule-modal.utilities";
 
 import { useMemo, useState, useTransition } from "react";
 import { createLeagueChallengeAction } from "@/lib/actions/league-challenges";
@@ -122,7 +124,7 @@ export function LeagueMatchScheduleModal({
     <>
       <button
         type="button"
-        className="button button-primary public-league-schedule-trigger"
+        className={viewStyles.button_button_primary_public_league_schedule_trigger}
         onClick={() => setOpen(true)}
         disabled={!slots.length}
       >
@@ -130,12 +132,12 @@ export function LeagueMatchScheduleModal({
       </button>
       {open ? (
         <div
-          className="public-league-schedule-modal-backdrop"
+          className={viewStyles.public_league_schedule_modal_backdrop}
           role="presentation"
           onMouseDown={() => !pending && setOpen(false)}
         >
           <section
-            className="public-league-schedule-modal"
+            className={viewStyles.public_league_schedule_modal}
             role="dialog"
             aria-modal="true"
             aria-labelledby={`league-schedule-${proposerPairId}`}
@@ -154,14 +156,14 @@ export function LeagueMatchScheduleModal({
               </div>
               <button
                 type="button"
-                className="button button-small"
+                className={viewStyles.button_button_small}
                 onClick={() => setOpen(false)}
                 disabled={pending}
               >
                 Fechar
               </button>
             </header>
-            <label className="field">
+            <label className={viewStyles.field}>
               <span>Confronto mandante</span>
               <select
                 value={opponentPairId}
@@ -175,7 +177,7 @@ export function LeagueMatchScheduleModal({
               </select>
             </label>
             <section
-              className="public-booking-court-picker"
+              className={viewStyles.public_booking_court_picker}
               aria-label="Quadra"
             >
               <strong>Quadra</strong>
@@ -184,7 +186,7 @@ export function LeagueMatchScheduleModal({
                   <button
                     type="button"
                     key={court.id}
-                    className={`public-booking-court-card${court.id === courtId ? " is-active" : ""}`}
+                    className={cx(`${viewStyles.public_booking_court_card}${court.id === courtId ? " is-active" : ""}`)}
                     onClick={() => chooseCourt(court.id)}
                     style={{ borderLeftColor: court.color }}
                     aria-pressed={court.id === courtId}
@@ -201,13 +203,13 @@ export function LeagueMatchScheduleModal({
                 ))}
               </div>
             </section>
-            <section className="public-league-schedule-dates" aria-label="Data">
+            <section className={viewStyles.public_league_schedule_dates} aria-label="Data">
               <strong>Data</strong>
               <div>
                 {dates.map((item) => (
                   <button
                     type="button"
-                    className={item === date ? "is-active" : ""}
+                    className={cx(item === date ? "is-active" : "")}
                     onClick={() => chooseDate(item)}
                     key={item}
                   >
@@ -217,7 +219,7 @@ export function LeagueMatchScheduleModal({
               </div>
             </section>
             <section
-              className="public-booking-slot-blocks"
+              className={viewStyles.public_booking_slot_blocks}
               aria-label="Horários disponíveis"
             >
               <strong>Horários disponíveis</strong>
@@ -226,7 +228,7 @@ export function LeagueMatchScheduleModal({
                   availableSlots.map((slot) => (
                     <button
                       type="button"
-                      className={`public-booking-slot-block${selectedSlot?.value === slot.value ? " public-booking-slot-block-active" : ""}`}
+                      className={cx(`${viewStyles.public_booking_slot_block}${selectedSlot?.value === slot.value ? " " + viewStyles.public_booking_slot_block_active : ""}`)}
                       onClick={() => setSlotValue(slot.value)}
                       key={slot.value}
                     >
@@ -254,7 +256,7 @@ export function LeagueMatchScheduleModal({
                 </div>
                 <button
                   type="button"
-                  className="button button-primary"
+                  className={viewStyles.button_button_primary}
                   onClick={submit}
                   disabled={pending}
                 >

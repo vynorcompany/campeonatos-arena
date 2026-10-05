@@ -1,3 +1,5 @@
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { MoneyInput } from "@/components/forms/money-input";
@@ -12,7 +14,7 @@ import { withArenaTransaction } from "@/lib/rls";
 const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value / 100);
 
 function CurrencyField({ label, name, defaultValue }: { label: string; name: string; defaultValue?: string }) {
-  return <label className="field"><span>{label}</span><span className={styles.currencyInput}><span>R$</span><MoneyInput name={name} defaultValue={defaultValue} placeholder="0,00" required aria-label={`${label} em reais`} /></span></label>;
+  return <label className={viewStyles.field}><span>{label}</span><span className={styles.currencyInput}><span>R$</span><MoneyInput name={name} defaultValue={defaultValue} placeholder="0,00" required aria-label={`${label} em reais`} /></span></label>;
 }
 
 export default async function CashRegisterPage() {
@@ -26,15 +28,15 @@ export default async function CashRegisterPage() {
   const isOpen = register?.status === "OPEN";
   const dayLabel = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "long", year: "numeric", timeZone: "UTC" }).format(referenceDate);
 
-  return <div className={`cash-register-page ${styles.page}`}>
-    <h1 className="sr-only">Gerenciar Caixa</h1>
+  return <div className={cx(`cash-register-page ${styles.page}`)}>
+    <h1 className={viewStyles.sr_only}>Gerenciar Caixa</h1>
     <header className={styles.overview}>
       <div className={styles.overviewCopy}>
         <span className={styles.eyebrow}>Operação diária</span>
-        <div className={styles.overviewTitle}><h2>Caixa de hoje</h2><span className={`${styles.status} ${isOpen ? styles.open : register ? styles.closed : styles.notOpened}`}><span aria-hidden="true" />{isOpen ? "Aberto" : register ? "Encerrado" : "Não aberto"}</span></div>
+        <div className={styles.overviewTitle}><h2>Caixa de hoje</h2><span className={cx(`${styles.status} ${isOpen ? styles.open : register ? styles.closed : styles.notOpened}`)}><span aria-hidden="true" />{isOpen ? "Aberto" : register ? "Encerrado" : "Não aberto"}</span></div>
         <p>{dayLabel} · Acompanhe entradas, retiradas e o fechamento do dia.</p>
       </div>
-      <div className={styles.shortcuts}><Link className="button button-small" href="/pdv">Produtos e serviços</Link><Link className="button button-small" href="/relatorios/caixa">Relatório de caixa</Link></div>
+      <div className={styles.shortcuts}><Link className={viewStyles.button_button_small} href="/pdv">Produtos e serviços</Link><Link className={viewStyles.button_button_small} href="/relatorios/caixa">Relatório de caixa</Link></div>
     </header>
 
     {register ? <section className={styles.summaryGrid} aria-label="Resumo do caixa">
@@ -47,38 +49,38 @@ export default async function CashRegisterPage() {
     {!isOpen ? <SectionCard className={styles.panel} title={register ? "Nova abertura de caixa" : "Abertura de caixa"} description="Informe o valor disponível no início desta operação.">
       <SafeActionForm action={openCashRegisterAction} className={styles.form} successMessage="Caixa aberto.">
         <CurrencyField name="openingAmount" label="Fundo inicial" defaultValue="0,00" />
-        <label className="field"><span>Observação de abertura</span><input name="openingNotes" placeholder="Ex.: troco inicial" /></label>
-        <div className={styles.formActions}><SubmitButton className="button button-primary" label="Abrir caixa" pendingLabel="Abrindo..." /></div>
+        <label className={viewStyles.field}><span>Observação de abertura</span><input name="openingNotes" placeholder="Ex.: troco inicial" /></label>
+        <div className={styles.formActions}><SubmitButton className={viewStyles.button_button_primary} label="Abrir caixa" pendingLabel="Abrindo..." /></div>
       </SafeActionForm>
     </SectionCard> : null}
 
-    {register && !isOpen ? <SectionCard className={styles.panel} title="Última operação encerrada" description="O fechamento anterior permanece no histórico. Você pode abrir um novo caixa hoje."><p className="muted">Consulte as movimentações e os valores no relatório de caixa.</p></SectionCard> : null}
+    {register && !isOpen ? <SectionCard className={styles.panel} title="Última operação encerrada" description="O fechamento anterior permanece no histórico. Você pode abrir um novo caixa hoje."><p className={viewStyles.muted}>Consulte as movimentações e os valores no relatório de caixa.</p></SectionCard> : null}
 
     {register && isOpen ? <>
       <div className={styles.operationGrid}>
         <SectionCard className={styles.panel} title="Registrar movimentação" description="Entradas de suprimento ou retiradas de sangria.">
           <SafeActionForm action={createCashMovementAction} className={styles.form} resetOnSuccess successMessage="Movimentação registrada.">
             <input type="hidden" name="registerId" value={register.id} />
-            <label className="field"><span>Tipo</span><select name="type"><option value="SUPPLY">Suprimento</option><option value="WITHDRAWAL">Sangria</option></select></label>
+            <label className={viewStyles.field}><span>Tipo</span><select name="type"><option value="SUPPLY">Suprimento</option><option value="WITHDRAWAL">Sangria</option></select></label>
             <CurrencyField name="amount" label="Valor" />
-            <label className={`field ${styles.fullWidth}`}><span>Descrição</span><input name="description" placeholder="Ex.: retirada para depósito" /></label>
-            <div className={styles.formActions}><SubmitButton className="button button-primary" label="Registrar" pendingLabel="Registrando..." /></div>
+            <label className={cx(`${viewStyles.field} ${styles.fullWidth}`)}><span>Descrição</span><input name="description" placeholder="Ex.: retirada para depósito" /></label>
+            <div className={styles.formActions}><SubmitButton className={viewStyles.button_button_primary} label="Registrar" pendingLabel="Registrando..." /></div>
           </SafeActionForm>
         </SectionCard>
         <SectionCard className={styles.panel} title="Fechamento de caixa" description="Confira o dinheiro contado antes de encerrar o dia.">
           <SafeActionForm action={closeCashRegisterAction} className={styles.form} successMessage="Caixa encerrado.">
             <input type="hidden" name="registerId" value={register.id} />
             <CurrencyField name="countedAmount" label="Valor contado" />
-            <label className="field"><span>Observação de fechamento</span><input name="closingNotes" placeholder="Ex.: diferença justificada" /></label>
-            <div className={styles.formActions}><SubmitButton className="button button-danger" label="Fechar caixa" pendingLabel="Fechando..." /></div>
+            <label className={viewStyles.field}><span>Observação de fechamento</span><input name="closingNotes" placeholder="Ex.: diferença justificada" /></label>
+            <div className={styles.formActions}><SubmitButton className={viewStyles.button_button_danger} label="Fechar caixa" pendingLabel="Fechando..." /></div>
           </SafeActionForm>
         </SectionCard>
       </div>
       <SectionCard className={styles.panel} title="Movimentações de hoje">
         <div className={styles.movementList}>{register.movements.map((item) => <article key={item.id}>
           <span><strong>{item.type === "SUPPLY" ? "Suprimento" : item.type === "SALE" ? "Venda" : "Sangria"}</strong><small>{item.description || "Sem observação"}</small></span>
-          <b className={item.amountCents < 0 ? styles.negative : styles.positive}>{item.amountCents < 0 ? "−" : "+"}{money(Math.abs(item.amountCents))}</b>
-        </article>)}{!register.movements.length ? <p className="muted">Nenhuma movimentação registrada.</p> : null}</div>
+          <b className={cx(item.amountCents < 0 ? styles.negative : styles.positive)}>{item.amountCents < 0 ? "−" : "+"}{money(Math.abs(item.amountCents))}</b>
+        </article>)}{!register.movements.length ? <p className={viewStyles.muted}>Nenhuma movimentação registrada.</p> : null}</div>
       </SectionCard>
     </> : null}
   </div>;

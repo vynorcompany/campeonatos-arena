@@ -1,3 +1,4 @@
+import { viewStyles } from "./_error.utilities";
 import type { NextPageContext } from "next";
 import Link from "next/link";
 
@@ -7,15 +8,15 @@ type ErrorPageProps = {
 
 function ErrorPage({ statusCode }: ErrorPageProps) {
   return (
-    <main className="auth-page">
-      <section className="auth-card">
-        <p className="eyebrow">Arena Padel</p>
+    <main className={viewStyles.auth_page}>
+      <section className={viewStyles.auth_card}>
+        <p className={viewStyles.eyebrow}>Arena Padel</p>
         <h1>{statusCode ? `Erro ${statusCode}` : "Erro inesperado"}</h1>
-        <p className="muted">
+        <p className={viewStyles.muted}>
           O servidor nao conseguiu carregar esta pagina no momento.
         </p>
-        <div className="section-actions">
-          <Link href="/login" className="button button-primary">
+        <div className={viewStyles.section_actions}>
+          <Link href="/login" className={viewStyles.button_button_primary}>
             Ir para o login
           </Link>
         </div>

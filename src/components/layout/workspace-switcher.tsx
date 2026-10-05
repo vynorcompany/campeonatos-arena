@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./workspace-switcher.utilities";
 
 import { setWorkspaceAction } from "@/lib/auth/actions";
 import type { ArenaMembership } from "@/types/auth";
@@ -21,8 +22,8 @@ export function WorkspaceSwitcher({
   }
 
   return (
-    <form action={setWorkspaceAction} className="workspace-switcher">
-      <label className="workspace-switcher-label" htmlFor="workspaceId">Ambiente</label>
+    <form action={setWorkspaceAction} className={viewStyles.workspace_switcher}>
+      <label className={viewStyles.workspace_switcher_label} htmlFor="workspaceId">Ambiente</label>
       <select
         id="workspaceId"
         name="workspaceId"

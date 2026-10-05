@@ -1,0 +1,42 @@
+/** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
+export const viewStyles = {
+  "agenda_month_picker": [
+    "agenda-month-picker", "tw:relative", "tw:grid", "tw:place-items-center",
+    "tw:[&_>_summary]:grid", "tw:[&_>_summary]:place-items-center", "tw:[&_>_summary]:w-[38px]", "tw:[&_>_summary]:min-w-[38px]",
+    "tw:[&_>_summary]:h-[38px]", "tw:[&_>_summary]:border-t-[length:1px]", "tw:[&_>_summary]:[border-top-style:solid]", "tw:[&_>_summary]:border-t-[color:var(--line)]",
+    "tw:[&_>_summary]:border-r-[length:1px]", "tw:[&_>_summary]:[border-right-style:solid]", "tw:[&_>_summary]:border-r-[color:var(--line)]", "tw:[&_>_summary]:border-b-[length:1px]",
+    "tw:[&_>_summary]:[border-bottom-style:solid]", "tw:[&_>_summary]:border-b-[color:var(--line)]", "tw:[&_>_summary]:border-l-[length:1px]", "tw:[&_>_summary]:[border-left-style:solid]",
+    "tw:[&_>_summary]:border-l-[color:var(--line)]", "tw:[&_>_summary]:rounded-[var(--radius-control)]", "tw:[&_>_summary]:text-[color:#185c96]", "tw:[&_>_summary]:bg-[color:#f7fbff]",
+    "tw:[&_>_summary]:[background-image:none]", "tw:[&_>_summary]:text-[1rem]", "tw:[&_>_summary]:cursor-pointer", "tw:[&_>_summary]:[list-style:none]",
+    "tw:[&_>_summary::-webkit-details-marker]:hidden", "tw:[&_>_summary:hover]:[box-shadow:0_4px_10px_rgb(19_89_143_/_.25)]", "tw:[&_>_summary:hover]:[transform:translateY(-1px)]",
+  ].join(" "),
+  "agenda_month_picker_panel": [
+    "agenda-month-picker-panel", "tw:absolute", "tw:z-[30]", "tw:top-[calc(100%_+_8px)]",
+    "tw:right-[0]", "tw:w-[248px]", "tw:pt-[11px]", "tw:pr-[11px]",
+    "tw:pb-[11px]", "tw:pl-[11px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]",
+    "tw:border-t-[color:#cddbeb]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:#cddbeb]",
+    "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:#cddbeb]", "tw:border-l-[length:1px]",
+    "tw:[border-left-style:solid]", "tw:border-l-[color:#cddbeb]", "tw:rounded-[10px]", "tw:bg-[color:#fff]",
+    "tw:[background-image:none]", "tw:[box-shadow:0_18px_40px_rgb(18_57_91_/_.2)]", "tw:[&_header]:grid", "tw:[&_header]:grid-cols-[28px_1fr_28px]",
+    "tw:[&_header]:items-center", "tw:[&_header]:gap-y-[4px]", "tw:[&_header]:gap-x-[4px]", "tw:[&_header]:mb-[8px]",
+    "tw:[&_header]:text-center", "tw:[&_header]:[text-transform:capitalize]", "tw:[&_header]:text-[.78rem]", "tw:[&_header_button]:w-[28px]",
+    "tw:[&_header_button]:h-[28px]", "tw:[&_header_button]:border-t-[length:0]", "tw:[&_header_button]:[border-top-style:none]", "tw:[&_header_button]:border-t-[color:currentColor]",
+    "tw:[&_header_button]:border-r-[length:0]", "tw:[&_header_button]:[border-right-style:none]", "tw:[&_header_button]:border-r-[color:currentColor]", "tw:[&_header_button]:border-b-[length:0]",
+    "tw:[&_header_button]:[border-bottom-style:none]", "tw:[&_header_button]:border-b-[color:currentColor]", "tw:[&_header_button]:border-l-[length:0]", "tw:[&_header_button]:[border-left-style:none]",
+    "tw:[&_header_button]:border-l-[color:currentColor]", "tw:[&_header_button]:rounded-[7px]", "tw:[&_header_button]:text-[color:#185c96]", "tw:[&_header_button]:bg-[color:#edf5fc]",
+    "tw:[&_header_button]:[background-image:none]", "tw:[&_header_button]:cursor-pointer", "tw:[&_header_button]:text-[1rem]",
+  ].join(" "),
+  "agenda_month_picker_weekdays": [
+    "agenda-month-picker-weekdays", "tw:grid", "tw:grid-cols-[repeat(7,_1fr)]", "tw:gap-y-[2px]",
+    "tw:gap-x-[2px]", "tw:text-center", "tw:mb-[3px]", "tw:text-[color:#73839a]",
+    "tw:text-[.65rem]", "tw:font-[700]",
+  ].join(" "),
+  "agenda_month_picker_days": [
+    "agenda-month-picker-days", "tw:grid", "tw:grid-cols-[repeat(7,_1fr)]", "tw:gap-y-[2px]",
+    "tw:gap-x-[2px]", "tw:text-center", "tw:[&_a]:grid", "tw:[&_a]:place-items-center",
+    "tw:[&_a]:min-h-[27px]", "tw:[&_a]:rounded-[6px]", "tw:[&_a]:text-[color:#223b57]", "tw:[&_a]:text-[.72rem]",
+    "tw:[&_a]:[text-decoration:none]", "tw:[&_a:hover]:bg-[color:#eaf3fc]", "tw:[&_a:hover]:[background-image:none]", "tw:[&_a:hover]:text-[color:#075da7]",
+    "tw:[&_a.is-outside]:text-[color:#b7c2d0]", "tw:[&_a.is-selected]:text-[color:#fff]", "tw:[&_a.is-selected]:bg-[color:#126eae]", "tw:[&_a.is-selected]:[background-image:none]",
+    "tw:[&_a.is-selected]:font-[800]",
+  ].join(" "),
+} as const;

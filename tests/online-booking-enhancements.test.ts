@@ -1,3 +1,4 @@
+import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
 
@@ -34,7 +35,7 @@ test("online booking enforces a configurable lead time and marks pending request
   assert.match(paymentChoice, /Cartão/);
   assert.match(paymentChoice, /Boleto/);
   assert.match(styles, /agenda-online-settings-trigger[\s\S]*background:/);
-  assert.match(styles, /daily-court-event-online/);
+  assert.ok(utilityClasses("daily-court-event-online").length);
 });
 
 test("each tournament stores rules and the public league page exposes them", () => {

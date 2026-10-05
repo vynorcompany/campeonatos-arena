@@ -1,3 +1,4 @@
+import { viewStyles } from "./app-shell.utilities";
 import Image from "next/image";
 import Link from "next/link";
 import { logoutAction } from "@/lib/auth/actions";
@@ -40,23 +41,23 @@ export function AppShell({
   children
 }: AppShellProps) {
   return (
-    <div className="app-shell">
-      <aside className="sidebar" aria-label="Menu lateral">
-        <div className="sidebar-inner">
-          <div className="sidebar-top">
-            <div className="brand-lockup sidebar-brand-lockup">
-              <div className="brand-logo-wrap">
+    <div className={viewStyles.app_shell}>
+      <aside className={viewStyles.sidebar} aria-label="Menu lateral">
+        <div className={viewStyles.sidebar_inner}>
+          <div className={viewStyles.sidebar_top}>
+            <div className={viewStyles.brand_lockup_sidebar_brand_lockup}>
+              <div className={viewStyles.brand_logo_wrap}>
                 <Image
                   src={arenaLogoUrl || "/arena-profile.jpg"}
                   alt="Logo da Arena Padel"
                   width={48}
                   height={48}
-                  className="brand-logo"
+                  className={viewStyles.brand_logo}
                   priority
                 />
               </div>
-              <div className="sidebar-brand-copy">
-                <p className="eyebrow">Arena Padel Manager</p>
+              <div className={viewStyles.sidebar_brand_copy}>
+                <p className={viewStyles.eyebrow}>Arena Padel Manager</p>
                 <strong>{arenaName}</strong>
               </div>
               <ArenaNotificationBell notifications={notifications} />
@@ -72,15 +73,15 @@ export function AppShell({
             <NavLinks key={activeArenaId} canManageUsers={canManageUsers} visibleModules={visibleModules} whatsappUnreadCount={whatsappUnreadCount} />
           </div>
 
-          <div className="sidebar-user sidebar-user-panel">
-            <div className="user-copy">
-              <p className="user-name">{userName}</p>
-              <p className="muted">{userRole}</p>
+          <div className={viewStyles.sidebar_user_sidebar_user_panel}>
+            <div className={viewStyles.user_copy}>
+              <p className={viewStyles.user_name}>{userName}</p>
+              <p className={viewStyles.muted}>{userRole}</p>
             </div>
 
-            {visibleModules.includes("arena") || visibleModules.includes("calendar") ? <nav className="sidebar-settings-menu" aria-label="Configurações"><Link href="/arena" className="sidebar-settings-link">Configurações</Link></nav> : null}
+            {visibleModules.includes("arena") || visibleModules.includes("calendar") ? <nav className={viewStyles.sidebar_settings_menu} aria-label="Configurações"><Link href="/arena" className={viewStyles.sidebar_settings_link}>Configurações</Link></nav> : null}
             <form action={logoutAction}>
-              <button className="button button-secondary" type="submit">
+              <button className={viewStyles.button_button_secondary} type="submit">
                 Sair
               </button>
             </form>
@@ -88,8 +89,8 @@ export function AppShell({
         </div>
       </aside>
 
-      <main className="app-main">
-        <div className="content-shell">{billingAlert ? <><AgencyBillingNotice invoiceId={billingAlert.id} daysRemaining={billingAlert.daysRemaining} /><div className="agency-payment-alert" role="alert"><strong>Fatura do sistema em atraso.</strong><span>Regularize o pagamento para evitar a suspensão do acesso{billingAlert.daysRemaining ? ` em ${billingAlert.daysRemaining} dia${billingAlert.daysRemaining === 1 ? "" : "s"}` : " hoje"}.</span>{billingAlert.checkoutUrl ? <a href={billingAlert.checkoutUrl} target="_blank" rel="noopener noreferrer">Pagar fatura</a> : <span>Solicite o link de pagamento à agência.</span>}</div></> : null}<WorkspaceBreadcrumb />{children}</div>
+      <main className={viewStyles.app_main}>
+        <div className={viewStyles.content_shell}>{billingAlert ? <><AgencyBillingNotice invoiceId={billingAlert.id} daysRemaining={billingAlert.daysRemaining} /><div className={viewStyles.agency_payment_alert} role="alert"><strong>Fatura do sistema em atraso.</strong><span>Regularize o pagamento para evitar a suspensão do acesso{billingAlert.daysRemaining ? ` em ${billingAlert.daysRemaining} dia${billingAlert.daysRemaining === 1 ? "" : "s"}` : " hoje"}.</span>{billingAlert.checkoutUrl ? <a href={billingAlert.checkoutUrl} target="_blank" rel="noopener noreferrer">Pagar fatura</a> : <span>Solicite o link de pagamento à agência.</span>}</div></> : null}<WorkspaceBreadcrumb />{children}</div>
       </main>
     </div>
   );

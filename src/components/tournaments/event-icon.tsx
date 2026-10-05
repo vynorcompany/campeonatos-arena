@@ -1,3 +1,4 @@
+import { viewStyles } from "./event-icon.utilities";
 import type { ReactNode } from "react";
 
 type EventIconName =
@@ -117,7 +118,7 @@ export function EventIcon({
 }) {
   return (
     <svg
-      className="event-icon"
+      className={viewStyles.event_icon}
       width={size}
       height={size}
       viewBox="0 0 24 24"

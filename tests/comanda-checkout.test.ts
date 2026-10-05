@@ -1,3 +1,4 @@
+import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
@@ -140,8 +141,8 @@ test("command products use a searchable compact catalog", () => {
   assert.match(card, /selectedProductCount/);
   assert.match(card, /command-product-kanban/);
   assert.match(card, /command-product-grid/);
-  assert.match(css, /\.command-product-kanban/);
-  assert.match(css, /\.command-product-stepper/);
+  assert.ok(utilityClasses("command-product-kanban").length, "command-product-kanban has component Tailwind utilities");
+  assert.ok(utilityClasses("command-product-stepper").length, "command-product-stepper has component Tailwind utilities");
 });
 
 test("command detail acts as an item editor and modals close with Escape", () => {
@@ -154,6 +155,6 @@ test("command detail acts as an item editor and modals close with Escape", () =>
   assert.match(card, /command-details-item-controls/);
   assert.match(card, /event\.key !== "Escape"/);
   assert.match(card, /setProductModalOpen\(false\)/);
-  assert.match(css, /command-checkout-grid > section:first-child \{ padding: 18px/);
-  assert.match(css, /\.command-details-item-controls/);
+  assert.match(styleRules("command-checkout-grid", {context: "> section:first-child"}), /padding-top: 18px/);
+  assert.ok(utilityClasses("command-details-item-controls").length, "command-details-item-controls has component Tailwind utilities");
 });

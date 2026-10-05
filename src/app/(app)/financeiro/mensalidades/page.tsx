@@ -1,3 +1,4 @@
+import { viewStyles } from "./page.utilities";
 import { SectionCard } from "@/components/section-card";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -40,12 +41,12 @@ export default async function MonthlyPaymentsPage() {
   const renewals = subscriptions.map((subscription) => ({ ...subscription, renewAt: renewalDate(subscription.startedAt) })).filter((subscription) => subscription.renewAt <= renewalLimit).sort((left, right) => left.renewAt.getTime() - right.renewAt.getTime());
 
   return (
-    <div className="stack-md">
+    <div className={viewStyles.stack_md}>
 
-      <div className="two-column-grid">
+      <div className={viewStyles.two_column_grid}>
         <SectionCard title="Ativar plano" description="Vincule um aluno a um plano mensal.">
-          <SafeActionForm action={createSubscriptionAction} className="grid-form finance-narrow-form" resetOnSuccess successMessage="Plano ativado.">
-            <div className="field">
+          <SafeActionForm action={createSubscriptionAction} className={viewStyles.grid_form_finance_narrow_form} resetOnSuccess successMessage="Plano ativado.">
+            <div className={viewStyles.field}>
               <label htmlFor="subscription-student">Aluno</label>
               <select id="subscription-student" name="studentId" required defaultValue="">
                 <option value="">Selecione o aluno</option>
@@ -56,7 +57,7 @@ export default async function MonthlyPaymentsPage() {
                 ))}
               </select>
             </div>
-            <div className="field">
+            <div className={viewStyles.field}>
               <label htmlFor="subscription-plan">Plano</label>
               <select id="subscription-plan" name="planId" required defaultValue="">
                 <option value="">Selecione o plano</option>
@@ -67,27 +68,27 @@ export default async function MonthlyPaymentsPage() {
                 ))}
               </select>
             </div>
-            <div className="field">
+            <div className={viewStyles.field}>
               <label htmlFor="subscription-due-day">Dia de vencimento</label>
               <input id="subscription-due-day" name="dueDay" type="number" min="1" max="31" defaultValue="10" />
             </div>
-            <div className="field">
+            <div className={viewStyles.field}>
               <label htmlFor="subscription-started-at">Início</label>
               <input id="subscription-started-at" name="startedAt" type="date" />
             </div>
-            <div className="field form-full">
+            <div className={viewStyles.field_form_full}>
               <label htmlFor="subscription-notes">Observações</label>
               <input id="subscription-notes" name="notes" type="text" />
             </div>
-            <div className="field field-submit">
-              <SubmitButton label="Ativar plano" pendingLabel="Salvando..." className="button button-primary" />
+            <div className={viewStyles.field_field_submit}>
+              <SubmitButton label="Ativar plano" pendingLabel="Salvando..." className={viewStyles.button_button_primary} />
             </div>
           </SafeActionForm>
         </SectionCard>
 
         <SectionCard title="Registrar pagamento" description="O pagamento entra como receita no financeiro.">
-          <SafeActionForm action={recordPlanPaymentAction} className="grid-form finance-narrow-form" resetOnSuccess successMessage="Pagamento registrado.">
-            <div className="field form-full">
+          <SafeActionForm action={recordPlanPaymentAction} className={viewStyles.grid_form_finance_narrow_form} resetOnSuccess successMessage="Pagamento registrado.">
+            <div className={viewStyles.field_form_full}>
               <label htmlFor="payment-subscription">Assinatura</label>
               <select id="payment-subscription" name="subscriptionId" required defaultValue="">
                 <option value="">Selecione a assinatura</option>
@@ -98,15 +99,15 @@ export default async function MonthlyPaymentsPage() {
                 ))}
               </select>
             </div>
-            <div className="field">
+            <div className={viewStyles.field}>
               <label htmlFor="payment-reference">Mês de referência</label>
               <input id="payment-reference" name="referenceMonth" type="month" defaultValue={getReferenceMonth()} required />
             </div>
-            <div className="field">
+            <div className={viewStyles.field}>
               <label htmlFor="payment-amount">Valor pago</label>
               <input id="payment-amount" name="amount" type="text" placeholder="Usa o valor do plano se vazio" />
             </div>
-            <div className="field">
+            <div className={viewStyles.field}>
               <label htmlFor="payment-method">Forma de pagamento</label>
               <select id="payment-method" name="paymentMethod" defaultValue="PIX">
                 <option value="PIX">Pix</option>
@@ -117,11 +118,11 @@ export default async function MonthlyPaymentsPage() {
                 <option value="OTHER">Outro</option>
               </select>
             </div>
-            <div className="field">
+            <div className={viewStyles.field}>
               <label htmlFor="payment-paid-at">Data do pagamento</label>
               <input id="payment-paid-at" name="paidAt" type="date" />
             </div>
-            <div className="field">
+            <div className={viewStyles.field}>
               <label htmlFor="payment-fiscal-document">Documento fiscal</label>
               <select id="payment-fiscal-document" name="fiscalDocumentType" defaultValue="">
                 <option value="">Não emitir agora</option>
@@ -129,19 +130,19 @@ export default async function MonthlyPaymentsPage() {
                 <option value="NFC_E">Emitir cupom fiscal</option>
               </select>
             </div>
-            <div className="field field-submit">
-              <SubmitButton label="Registrar pagamento" pendingLabel="Registrando..." className="button button-primary" />
+            <div className={viewStyles.field_field_submit}>
+              <SubmitButton label="Registrar pagamento" pendingLabel="Registrando..." className={viewStyles.button_button_primary} />
             </div>
           </SafeActionForm>
         </SectionCard>
       </div>
 
       <SectionCard title="Renovações de planos" description="Acompanhe os alunos cujo ciclo de 12 mensalidades está terminando. A renovação é sempre manual, evitando novas cobranças sem aprovação.">
-        {renewals.length ? <div className="simple-list settings-compact-list">{renewals.map((subscription) => <div className="simple-item" key={subscription.id}><strong>{subscription.student.name} · {subscription.plan.name}</strong><span>Renovação em {new Intl.DateTimeFormat("pt-BR").format(subscription.renewAt)} · {subscription.renewAt < today ? "renovação pendente" : "renovação próxima"}</span><small>Use “Ativar plano” para renovar o aluno, mantendo o novo ciclo registrado.</small></div>)}</div> : <p className="muted">Nenhuma renovação necessária nos próximos 30 dias.</p>}
+        {renewals.length ? <div className={viewStyles.simple_list_settings_compact_list}>{renewals.map((subscription) => <div className={viewStyles.simple_item} key={subscription.id}><strong>{subscription.student.name} · {subscription.plan.name}</strong><span>Renovação em {new Intl.DateTimeFormat("pt-BR").format(subscription.renewAt)} · {subscription.renewAt < today ? "renovação pendente" : "renovação próxima"}</span><small>Use “Ativar plano” para renovar o aluno, mantendo o novo ciclo registrado.</small></div>)}</div> : <p className={viewStyles.muted}>Nenhuma renovação necessária nos próximos 30 dias.</p>}
       </SectionCard>
 
       <SectionCard title="Assinaturas ativas" description="Alunos com planos ativos.">
-        <table className="data-table">
+        <table className={viewStyles.data_table}>
           <thead>
             <tr>
               <th>Aluno</th>

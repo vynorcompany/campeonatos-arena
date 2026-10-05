@@ -1,5 +1,6 @@
-﻿"use client";
+"use client";
 
+import { viewStyles } from "./tournament-wizard.utilities";
 import { useEffect, useMemo, useState } from "react";
 import { useFormState } from "react-dom";
 import { useRouter } from "next/navigation";
@@ -72,17 +73,17 @@ export function TournamentWizard({ rankings }: { rankings: { id: string; name: s
   }
 
   return (
-    <form action={action} className="t-wizard">
+    <form action={action} className={viewStyles.t_wizard}>
       <div className="t-wizard-progress">
-        <div className="t-progress-meta">
+        <div className={viewStyles.t_progress_meta}>
           <span>Etapa {stepIndex + 1} de {steps.length}</span>
           <strong>{labels[step]}</strong>
         </div>
-        <div className="t-progress-bar"><span style={{ width: `${progress}%` }} /></div>
+        <div className={viewStyles.t_progress_bar}><span style={{ width: `${progress}%` }} /></div>
       </div>
 
       <section className="stack-sm" hidden={step !== "basic"}>
-        <div className="field">
+        <div className={viewStyles.field}>
           <label htmlFor="creationMode">Modo de criação</label>
           <select
             id="creationMode"
@@ -93,16 +94,16 @@ export function TournamentWizard({ rankings }: { rankings: { id: string; name: s
             <option value="PUBLIC">Via inscrições públicas</option>
           </select>
         </div>
-        <div className="field">
+        <div className={viewStyles.field}>
           <label htmlFor="name">Nome do torneio</label>
           <input id="name" name="name" required placeholder="Ex.: Super 12 de Julho" value={name} onChange={(event) => setName(event.target.value)} />
         </div>
-        <div className="field">
+        <div className={viewStyles.field}>
           <label htmlFor="description">Descrição / Regras</label>
           <textarea id="description" name="description" rows={4} placeholder="Informe regras e instruções para atletas." />
         </div>
         {creationMode === "PUBLIC" ? (
-          <div className="field">
+          <div className={viewStyles.field}>
             <label htmlFor="publicSlug">Link público de inscrição</label>
             <input id="publicSlug" name="publicSlug" value={publicSlug} readOnly />
           </div>
@@ -110,13 +111,13 @@ export function TournamentWizard({ rankings }: { rankings: { id: string; name: s
         <input type="hidden" name="publicSlug" value={publicSlug} />
         <input type="hidden" name="creationMode" value={creationMode} />
         <input type="hidden" name="registrationPhase" value={creationMode === "PUBLIC" ? "REGISTRATIONS" : "EDITING"} />
-        <label className="tournament-radar-toggle"><input name="showInEventRadar" type="checkbox" defaultChecked={creationMode === "PUBLIC"} /><span><b>Exibir no Radar de Eventos</b><small>Divulga este torneio para atletas de outras arenas.</small></span></label>
+        <label className={viewStyles.tournament_radar_toggle}><input name="showInEventRadar" type="checkbox" defaultChecked={creationMode === "PUBLIC"} /><span><b>Exibir no Radar de Eventos</b><small>Divulga este torneio para atletas de outras arenas.</small></span></label>
       </section>
 
       <section className="stack-sm" hidden={step !== "structure"}>
         <input type="hidden" id="groupCount" name="groupCount" value="4" />
         <input type="hidden" id="pairsPerGroup" name="pairsPerGroup" value="3" />
-        <div className="field">
+        <div className={viewStyles.field}>
           <label htmlFor="maxCategoryGap">Diferença máxima entre categorias</label>
           <select id="maxCategoryGap" name="maxCategoryGap" defaultValue="1">
             <option value="1">1 nível</option>
@@ -124,12 +125,12 @@ export function TournamentWizard({ rankings }: { rankings: { id: string; name: s
             <option value="3">3 níveis</option>
           </select>
         </div>
-        <div className="field">
+        <div className={viewStyles.field}>
           <label>Categorias do torneio</label>
-          <div className="stack-xs">
+          <div className={viewStyles.stack_xs}>
             <div className="simple-grid simple-grid-2">
               {TOURNAMENT_CATEGORY_PRESETS.map((category) => (
-                <label key={category} className="category-option">
+                <label key={category} className={viewStyles.category_option}>
                   <input type="checkbox" checked={selectedCategories.includes(category)} onChange={() => toggleCategory(category)} />
                   <span>{category}</span>
                 </label>
@@ -141,11 +142,11 @@ export function TournamentWizard({ rankings }: { rankings: { id: string; name: s
                 onChange={(event) => setCustomCategory(event.target.value)}
                 placeholder="Adicionar categoria personalizada"
               />
-              <button type="button" className="button" onClick={addCustomCategory}>Adicionar</button>
+              <button type="button" className={viewStyles.button} onClick={addCustomCategory}>Adicionar</button>
             </div>
             <div className="field-inline tw:[flex-wrap:wrap] tw:[gap:8px]">
               {selectedCategories.map((category) => (
-                <button key={category} type="button" className="button" onClick={() => removeCategory(category)}>
+                <button key={category} type="button" className={viewStyles.button} onClick={() => removeCategory(category)}>
                   {category} ×
                 </button>
               ))}
@@ -156,19 +157,19 @@ export function TournamentWizard({ rankings }: { rankings: { id: string; name: s
       </section>
 
       <section className="stack-sm" hidden={step !== "pricing"}>
-        <div className="field">
+        <div className={viewStyles.field}>
           <label htmlFor="priceFirstCents">Valor 1ª inscrição</label>
           <input id="priceFirstCents" name="priceFirstCents" defaultValue="70" placeholder="R$ 70" required />
         </div>
-        <div className="field">
+        <div className={viewStyles.field}>
           <label htmlFor="priceSecondCents">Adicional da 2ª inscrição</label>
           <input id="priceSecondCents" name="priceSecondCents" defaultValue="30" placeholder="R$ 30" required />
         </div>
-        <div className="field">
+        <div className={viewStyles.field}>
           <label htmlFor="priceThirdCents">Adicional da 3ª inscrição+</label>
           <input id="priceThirdCents" name="priceThirdCents" defaultValue="20" placeholder="R$ 20" required />
         </div>
-        <div className="field">
+        <div className={viewStyles.field}>
           <label htmlFor="rankingId">Ranking vinculado</label>
           <select id="rankingId" name="rankingId" defaultValue="">
             <option value="">Nenhum ranking vinculado</option>
@@ -183,7 +184,7 @@ export function TournamentWizard({ rankings }: { rankings: { id: string; name: s
         </label>
       </section>
 
-      <section className="t-review-grid" hidden={step !== "review"}>
+      <section className={viewStyles.t_review_grid} hidden={step !== "review"}>
         <article><strong>Nome</strong><p>{name || "Sem nome ainda"}</p></article>
         <article><strong>Modo</strong><p>{creationMode === "PUBLIC" ? "Via inscrições públicas" : "Sem inscrições (modo antigo)"}</p></article>
         {creationMode === "PUBLIC" ? <article><strong>Link público</strong><p>/inscricao/{publicSlug}</p></article> : null}
@@ -191,24 +192,24 @@ export function TournamentWizard({ rankings }: { rankings: { id: string; name: s
         <article><strong>Valores</strong><p>Valores em R$ por faixa de inscrição.</p></article>
       </section>
 
-      <div className="section-actions">
-        {canBack ? <button type="button" className="button" onClick={() => setStep(steps[stepIndex - 1])}>Voltar</button> : null}
+      <div className={viewStyles.section_actions}>
+        {canBack ? <button type="button" className={viewStyles.button} onClick={() => setStep(steps[stepIndex - 1])}>Voltar</button> : null}
         {canNext ? (
           <button
             type="button"
-            className="button button-primary"
+            className={viewStyles.button_button_primary}
             onClick={() => setStep(steps[stepIndex + 1])}
             disabled={step === "structure" && !parseCategoryListInput(categoryList).length}
           >
             Próxima etapa
           </button>
         ) : (
-          <SubmitButton label="Criar torneio" pendingLabel="Criando..." className="button button-primary" />
+          <SubmitButton label="Criar torneio" pendingLabel="Criando..." className={viewStyles.button_button_primary} />
         )}
       </div>
 
-      {state.error ? <p className="form-error">{state.error}</p> : null}
-      {state.success ? <p className="form-success">{state.success}</p> : null}
+      {state.error ? <p className={viewStyles.form_error}>{state.error}</p> : null}
+      {state.success ? <p className={viewStyles.form_success}>{state.success}</p> : null}
     </form>
   );
 }

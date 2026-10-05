@@ -1,4 +1,6 @@
 "use client";
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./checkout-register.utilities";
 
 import { useMemo, useState } from "react";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
@@ -83,9 +85,9 @@ export function CheckoutRegister({ products }: { products: Product[] }) {
   }
 
   return (
-    <div className="checkout-shell">
-      <section className="checkout-products" aria-label="Produtos">
-        <div className="checkout-search field">
+    <div className={viewStyles.checkout_shell}>
+      <section className={viewStyles.checkout_products} aria-label="Produtos">
+        <div className={viewStyles.field}>
           <label htmlFor="checkout-search">Buscar produto</label>
           <input
             id="checkout-search"
@@ -95,13 +97,13 @@ export function CheckoutRegister({ products }: { products: Product[] }) {
             placeholder="Nome ou SKU"
           />
         </div>
-        <div className="checkout-product-grid">
+        <div className={viewStyles.checkout_product_grid}>
           {filteredProducts.map((product) => (
             <button
               key={product.id}
               type="button"
               onClick={() => addProduct(product.id)}
-              className={`checkout-product ${product.stockQuantity < 0 ? "is-negative" : product.stockQuantity === 0 ? "is-zero" : ""}`}
+              className={cx(`${viewStyles.checkout_product} ${product.stockQuantity < 0 ? "is-negative" : product.stockQuantity === 0 ? "is-zero" : ""}`)}
             >
               <strong>{product.name}</strong>
               <span>{product.sku || "Sem SKU"}</span>
@@ -109,14 +111,14 @@ export function CheckoutRegister({ products }: { products: Product[] }) {
               <small>{product.stockQuantity < 0 ? `Estoque negativo: ${product.stockQuantity}` : product.stockQuantity === 0 ? "Estoque zerado" : `Estoque: ${product.stockQuantity}`}</small>
             </button>
           ))}
-          {!filteredProducts.length ? <p className="muted">Nenhum produto encontrado.</p> : null}
+          {!filteredProducts.length ? <p className={viewStyles.muted}>Nenhum produto encontrado.</p> : null}
         </div>
       </section>
 
-      <SafeActionForm action={createCartSaleAction} className="checkout-cart" successMessage="Venda finalizada.">
-        <div className="checkout-cart-head">
+      <SafeActionForm action={createCartSaleAction} className={viewStyles.checkout_cart} successMessage="Venda finalizada.">
+        <div className={viewStyles.checkout_cart_head}>
           <div>
-            <p className="eyebrow">Venda atual</p>
+            <p className={viewStyles.eyebrow}>Venda atual</p>
             <h2>Caixa</h2>
           </div>
           <strong>{formatMoney(subtotal)}</strong>
@@ -124,7 +126,7 @@ export function CheckoutRegister({ products }: { products: Product[] }) {
 
         <input type="hidden" name="items" value={JSON.stringify(cart)} />
 
-        <div className="checkout-items">
+        <div className={viewStyles.checkout_items}>
           {cart.map((item) => {
             const product = productsById.get(item.productId);
             if (!product) {
@@ -132,12 +134,12 @@ export function CheckoutRegister({ products }: { products: Product[] }) {
             }
 
             return (
-              <div className="checkout-item" key={item.productId}>
+              <div className={viewStyles.checkout_item} key={item.productId}>
                 <div>
                   <strong>{product.name}</strong>
                   <span>{formatMoney(product.priceCents)} un.</span>
                 </div>
-                <div className="checkout-quantity">
+                <div className={viewStyles.checkout_quantity}>
                   <button type="button" onClick={() => updateQuantity(item.productId, item.quantity - 1)}>
                     -
                   </button>
@@ -156,15 +158,15 @@ export function CheckoutRegister({ products }: { products: Product[] }) {
               </div>
             );
           })}
-          {!cart.length ? <p className="muted">Adicione produtos para iniciar a venda.</p> : null}
+          {!cart.length ? <p className={viewStyles.muted}>Adicione produtos para iniciar a venda.</p> : null}
         </div>
 
-        <div className="checkout-fields">
-          <div className="field">
+        <div className={viewStyles.checkout_fields}>
+          <div className={viewStyles.field_2}>
             <label htmlFor="checkout-customer">Cliente</label>
             <input id="checkout-customer" name="customerName" type="text" placeholder="Opcional" />
           </div>
-          <div className="field">
+          <div className={viewStyles.field_2}>
             <label htmlFor="checkout-payment">Pagamento</label>
             <select id="checkout-payment" name="paymentMethod" defaultValue="PIX">
               {paymentLabels.map((method) => (
@@ -176,16 +178,16 @@ export function CheckoutRegister({ products }: { products: Product[] }) {
           </div>
         </div>
 
-        <div className="checkout-total">
+        <div className={viewStyles.checkout_total}>
           <span>Total</span>
           <strong>{formatMoney(subtotal)}</strong>
         </div>
 
-        <div className="checkout-actions">
-          <button className="button" type="button" onClick={() => setCart([])} disabled={!cart.length}>
+        <div className={viewStyles.checkout_actions}>
+          <button className={viewStyles.button} type="button" onClick={() => setCart([])} disabled={!cart.length}>
             Limpar
           </button>
-          <button className="button button-primary" type="submit" disabled={!cart.length}>
+          <button className={viewStyles.button_button_primary} type="submit" disabled={!cart.length}>
             Finalizar venda
           </button>
         </div>

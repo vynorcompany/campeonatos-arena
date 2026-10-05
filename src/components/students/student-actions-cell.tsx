@@ -1,5 +1,6 @@
-﻿"use client";
+"use client";
 
+import { viewStyles } from "./student-actions-cell.utilities";
 import { useState } from "react";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -29,9 +30,9 @@ export function StudentActionsCell({
 
   if (isEditing) {
     return (
-      <SafeActionForm action={updateStudentAction} className="entity-edit-form" successMessage="Aluno atualizado.">
+      <SafeActionForm action={updateStudentAction} className={viewStyles.entity_edit_form} successMessage="Aluno atualizado.">
         <input type="hidden" name="studentId" value={studentId} />
-        <div className="entity-edit-grid">
+        <div className={viewStyles.entity_edit_grid}>
           <input name="name" type="text" defaultValue={name} aria-label="Nome do aluno" autoFocus />
           <input name="phone" type="text" defaultValue={phone} aria-label="Telefone do aluno" placeholder="Telefone" />
           <input name="email" type="email" defaultValue={email} aria-label="E-mail do aluno" placeholder="E-mail" />
@@ -44,9 +45,9 @@ export function StudentActionsCell({
           />
           <input name="notes" type="text" defaultValue={notes} aria-label="ObservaÃ§Ãµes do aluno" placeholder="ObservaÃ§Ãµes" />
         </div>
-        <div className="player-inline-actions">
-          <SubmitButton label="Salvar" pendingLabel="..." className="player-inline-text-button player-inline-text-button-save" />
-          <button type="button" className="player-inline-text-button" onClick={() => setIsEditing(false)}>
+        <div className={viewStyles.player_inline_actions}>
+          <SubmitButton label="Salvar" pendingLabel="..." className={viewStyles.player_inline_text_button_player_inline_text_button_save} />
+          <button type="button" className={viewStyles.player_inline_text_button} onClick={() => setIsEditing(false)}>
             Cancelar
           </button>
         </div>
@@ -55,17 +56,17 @@ export function StudentActionsCell({
   }
 
   return (
-    <div className="entity-actions-cell">
-      <div className="entity-main-text">
+    <div className={viewStyles.entity_actions_cell}>
+      <div className={viewStyles.entity_main_text}>
         <strong>{name}</strong>
-        <span className="table-subtext">
+        <span className={viewStyles.table_subtext}>
           {linkedPlayerName ? `Vinculado ao jogador ${linkedPlayerName}` : contact}
         </span>
       </div>
-      <div className="player-name-tools">
+      <div className={viewStyles.player_name_tools}>
         <button
           type="button"
-          className="player-inline-icon-button"
+          className={viewStyles.player_inline_icon_button}
           onClick={() => setIsEditing(true)}
           aria-label={`Editar ${name}`}
           title="Editar aluno"
@@ -97,7 +98,7 @@ export function StudentActionsCell({
           <input type="hidden" name="studentId" value={studentId} />
           <button
             type="submit"
-            className="player-trash-button"
+            className={viewStyles.player_trash_button}
             aria-label={`Excluir ${name}`}
             title="Excluir aluno"
           >

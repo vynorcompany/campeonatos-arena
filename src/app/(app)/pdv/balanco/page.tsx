@@ -1,3 +1,5 @@
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -27,22 +29,22 @@ export default async function StockBalancePage() {
   ]);
 
   return (
-    <div className="stack-md workspace-page stock-balance-page">
-      <h1 className="sr-only">Balanço de estoque</h1>
-      <header className="page-header">
-        <Link href="/pdv/estoque" className="button">Voltar ao estoque</Link>
+    <div className={viewStyles.stack_md_workspace_page_stock_balance_page}>
+      <h1 className={viewStyles.sr_only}>Balanço de estoque</h1>
+      <header className={viewStyles.page_header}>
+        <Link href="/pdv/estoque" className={viewStyles.button}>Voltar ao estoque</Link>
       </header>
 
       <SectionCard title="Contagem física" description="Ao finalizar, o sistema ajusta somente as divergências e registra o furo de cada produto no histórico abaixo.">
-        <SafeActionForm action={createStockBalanceAction} className="stock-balance-form" successMessage="Balanço registrado. As divergências foram atualizadas no relatório abaixo.">
-          <label className="field stock-balance-reason">
+        <SafeActionForm action={createStockBalanceAction} className={viewStyles.stock_balance_form} successMessage="Balanço registrado. As divergências foram atualizadas no relatório abaixo.">
+          <label className={viewStyles.field_stock_balance_reason}>
             <span>Observação do balanço (opcional)</span>
             <input name="reason" maxLength={80} placeholder="Ex.: fechamento de turno" />
           </label>
-          <div className="stock-balance-table" role="table" aria-label="Produtos para balanço">
-            <div className="stock-balance-row stock-balance-head" role="row"><span>Produto</span><span>Sistema</span><span>Estoque mínimo</span><span>Contagem real</span></div>
+          <div className={viewStyles.stock_balance_table} role="table" aria-label="Produtos para balanço">
+            <div className={viewStyles.stock_balance_row_stock_balance_head} role="row"><span>Produto</span><span>Sistema</span><span>Estoque mínimo</span><span>Contagem real</span></div>
             {products.map((product) => (
-              <label className="stock-balance-row" key={product.id}>
+              <label className={viewStyles.stock_balance_row} key={product.id}>
                 <span><strong>{product.name}</strong><small>{product.sku || "Sem SKU"}</small></span>
                 <b>{product.stockQuantity}</b>
                 <span>{product.minStock}</span>
@@ -50,22 +52,22 @@ export default async function StockBalancePage() {
               </label>
             ))}
           </div>
-          {!products.length ? <p className="muted">Cadastre produtos ativos para iniciar o balanço.</p> : null}
-          <div className="stock-balance-actions"><SubmitButton label="Finalizar balanço" pendingLabel="Registrando balanço..." className="button button-primary" /></div>
+          {!products.length ? <p className={viewStyles.muted}>Cadastre produtos ativos para iniciar o balanço.</p> : null}
+          <div className={viewStyles.stock_balance_actions}><SubmitButton label="Finalizar balanço" pendingLabel="Registrando balanço..." className={viewStyles.button_button_primary} /></div>
         </SafeActionForm>
       </SectionCard>
 
       <SectionCard title="Relatório de divergências" description="Últimos ajustes originados por balanços de estoque.">
-        {movements.length ? <div className="stock-balance-report">
+        {movements.length ? <div className={viewStyles.stock_balance_report}>
           {movements.map((movement) => {
             const match = movement.reason.match(/sistema: (\d+) \| contado: (\d+) \| diferença: ([+-]?\d+)/);
             const difference = match ? Number(match[3]) : 0;
-            return <article key={movement.id} className={difference === 0 ? "" : difference < 0 ? "is-loss" : "is-surplus"}>
+            return <article key={movement.id} className={cx(difference === 0 ? "" : difference < 0 ? "is-loss" : "is-surplus")}>
               <div><strong>{movement.product.name}</strong><span>{movement.createdAt.toLocaleString("pt-BR")}</span><small>{movement.reason}</small></div>
               <b>{signed(difference)}</b>
             </article>;
           })}
-        </div> : <p className="muted">Nenhum balanço concluído ainda.</p>}
+        </div> : <p className={viewStyles.muted}>Nenhum balanço concluído ainda.</p>}
       </SectionCard>
     </div>
   );

@@ -1,0 +1,61 @@
+import { sharedUtilities } from "@/components/ui/shared.utilities";
+/** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
+export const viewStyles = {
+  "pair_photo_stack": [
+    "pair-photo-stack", "tw:inline-flex", "tw:items-center", "tw:mr-[10px]",
+    "tw:[vertical-align:middle]",
+  ].join(" "),
+  "pair_player_photo": [
+    "pair-player-photo", "tw:[display:inline-grid]", "tw:place-items-center", "tw:[flex:0_0_auto]",
+    "tw:[overflow-x:hidden]", "tw:[overflow-y:hidden]", "tw:rounded-[50%]", "tw:bg-[color:var(--brand-soft)]",
+    "tw:[background-image:none]", "tw:text-[color:var(--brand-strong)]", "tw:font-[800]", "tw:w-[30px]",
+    "tw:h-[30px]", "tw:border-t-[length:2px]", "tw:[border-top-style:solid]", "tw:border-t-[color:#ffffff]",
+    "tw:border-r-[length:2px]", "tw:[border-right-style:solid]", "tw:border-r-[color:#ffffff]", "tw:border-b-[length:2px]",
+    "tw:[border-bottom-style:solid]", "tw:border-b-[color:#ffffff]", "tw:border-l-[length:2px]", "tw:[border-left-style:solid]",
+    "tw:border-l-[color:#ffffff]", "tw:text-[0.72rem]", "tw:[box-shadow:0_8px_16px_rgba(28,_54,_89,_0.12)]", "tw:[&_img]:w-[100%]",
+    "tw:[&_img]:h-[100%]", "tw:[&_img]:[object-fit:cover]", "tw:[&_+_.pair-player-photo]:ml-[-8px]",
+  ].join(" "),
+  "stack_md": sharedUtilities.stackMd,
+  "page_header": sharedUtilities.pageHeader,
+  "stack_xs": [
+    "stack-xs", "tw:grid", "tw:gap-y-[6px]", "tw:gap-x-[6px]",
+  ].join(" "),
+  "eyebrow": sharedUtilities.eyebrow,
+  "muted": sharedUtilities.muted,
+  "section_actions": sharedUtilities.sectionActions,
+  "button": sharedUtilities.button,
+  "form_hint_box": [
+    "form-hint-box", "tw:pt-[16px]", "tw:pr-[16px]", "tw:pb-[16px]",
+    "tw:pl-[16px]", "tw:border-t-[length:1px]", "tw:[border-top-style:dashed]", "tw:border-t-[color:var(--line-strong)]",
+    "tw:border-r-[length:1px]", "tw:[border-right-style:dashed]", "tw:border-r-[color:var(--line-strong)]", "tw:border-b-[length:1px]",
+    "tw:[border-bottom-style:dashed]", "tw:border-b-[color:var(--line-strong)]", "tw:border-l-[length:1px]", "tw:[border-left-style:dashed]",
+    "tw:border-l-[color:var(--line-strong)]", "tw:rounded-[var(--radius-md)]", "tw:bg-[color:var(--panel-muted)]", "tw:[background-image:none]",
+    "tw:[&_strong]:block", "tw:[&_strong]:mb-[6px]",
+  ].join(" "),
+  "group_list": [
+    "group-list", "tw:grid", "tw:gap-y-[12px]", "tw:gap-x-[12px]",
+  ].join(" "),
+  "group_item": [
+    "group-item", "tw:flex", "tw:viewport-760:grid", "tw:items-center",
+    "tw:justify-between", "tw:gap-y-[14px]", "tw:gap-x-[14px]", "tw:pt-[16px]",
+    "tw:pr-[16px]", "tw:pb-[16px]", "tw:pl-[16px]", "tw:border-t-[length:1px]",
+    "tw:[border-top-style:solid]", "tw:border-t-[color:var(--line)]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]",
+    "tw:border-r-[color:var(--line)]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:var(--line)]",
+    "tw:border-l-[length:1px]", "tw:[border-left-style:solid]", "tw:border-l-[color:var(--line)]", "tw:rounded-[var(--radius-md)]",
+    "tw:bg-[color:var(--panel-muted)]", "tw:[background-image:none]", "tw:[transition:transform_200ms_var(--ease-standard),_border-color_200ms_var(--ease-standard),_box-shadow_200ms_var(--ease-standard),_background_200ms_var(--ease-standard)]", "tw:hover:[transform:translateY(-2px)]",
+    "tw:hover:border-t-[color:var(--line-strong)]", "tw:hover:border-r-[color:var(--line-strong)]", "tw:hover:border-b-[color:var(--line-strong)]", "tw:hover:border-l-[color:var(--line-strong)]",
+    "tw:hover:[box-shadow:0_12px_22px_rgba(31,_61,_95,_0.06)]", "tw:hover:bg-[color:#ffffff]", "tw:hover:[background-image:none]",
+  ].join(" "),
+  "data_table": sharedUtilities.dataTable,
+  "inline_pair_edit": [
+    "inline-pair-edit", "tw:flex", "tw:items-center", "tw:gap-y-[8px]",
+    "tw:gap-x-[8px]", "tw:flex-wrap", "tw:[&_select]:min-w-[180px]", "tw:[&_select]:min-h-[38px]",
+    "tw:[&_select]:pt-[0]", "tw:[&_select]:pr-[12px]", "tw:[&_select]:pb-[0]", "tw:[&_select]:pl-[12px]",
+    "tw:[&_select]:border-t-[length:1px]", "tw:[&_select]:[border-top-style:solid]", "tw:[&_select]:border-t-[color:var(--line)]", "tw:[&_select]:border-r-[length:1px]",
+    "tw:[&_select]:[border-right-style:solid]", "tw:[&_select]:border-r-[color:var(--line)]", "tw:[&_select]:border-b-[length:1px]", "tw:[&_select]:[border-bottom-style:solid]",
+    "tw:[&_select]:border-b-[color:var(--line)]", "tw:[&_select]:border-l-[length:1px]", "tw:[&_select]:[border-left-style:solid]", "tw:[&_select]:border-l-[color:var(--line)]",
+    "tw:[&_select]:rounded-[var(--radius-md)]", "tw:[&_select]:bg-[color:var(--panel)]", "tw:[&_select]:[background-image:none]", "tw:[&_select]:text-[color:var(--text)]",
+    "tw:[&_.button]:min-h-[38px]",
+  ].join(" "),
+  "inline_form": sharedUtilities.inlineForm,
+} as const;

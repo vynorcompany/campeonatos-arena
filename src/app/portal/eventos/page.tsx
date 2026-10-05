@@ -1,3 +1,4 @@
+import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getPublicAthleteIdentity } from "@/lib/auth/player-session";
@@ -9,5 +10,5 @@ export default async function EventRadarPage(props: { searchParams?: Promise<{ v
   const searchParams = await props.searchParams;
   const athlete = await getPublicAthleteIdentity();
   if (!athlete) redirect("/portal");
-  return <main className="athlete-portal-page"><section className="athlete-portal-hero"><div className="athlete-portal-hero-inner"><div className="athlete-portal-brand"><div className="athlete-portal-mark">⌁</div><div className="athlete-portal-brand-copy"><span>REDE DE ARENAS</span><h1>Radar de Eventos</h1></div></div><Link className="athlete-portal-profile-link athlete-portal-back-link" href="/portal">← Voltar</Link></div></section><PublicEventRadar view={searchParams?.view === "all" ? "all" : "region"} /></main>;
+  return <main className={viewStyles.athlete_portal_page}><section className={viewStyles.athlete_portal_hero}><div className={viewStyles.athlete_portal_hero_inner}><div className={viewStyles.athlete_portal_brand}><div className={viewStyles.athlete_portal_mark}>⌁</div><div className={viewStyles.athlete_portal_brand_copy}><span>REDE DE ARENAS</span><h1>Radar de Eventos</h1></div></div><Link className={viewStyles.athlete_portal_profile_link} href="/portal">← Voltar</Link></div></section><PublicEventRadar view={searchParams?.view === "all" ? "all" : "region"} /></main>;
 }

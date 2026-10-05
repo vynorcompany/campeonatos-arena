@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./sponsorship-filters.utilities";
 
 import { useMemo, useState } from "react";
 
@@ -10,11 +11,11 @@ function SearchableSelect({ label, name, value, options, placeholder }: { label:
   const [open, setOpen] = useState(false);
   const filteredOptions = useMemo(() => options.filter((option) => option.label.toLocaleLowerCase("pt-BR").includes(query.toLocaleLowerCase("pt-BR"))), [options, query]);
 
-  return <label className="sponsorship-searchable-select">
+  return <label className={viewStyles.sponsorship_searchable_select}>
     <span>{label}</span>
     <input type="hidden" name={name} value={selected} />
     <input value={query} placeholder={placeholder} autoComplete="off" role="combobox" aria-expanded={open} aria-controls={`${name}-options`} onFocus={() => setOpen(true)} onChange={(event) => { const nextQuery = event.currentTarget.value; setQuery(nextQuery); setSelected(options.find((option) => option.label.toLocaleLowerCase("pt-BR") === nextQuery.toLocaleLowerCase("pt-BR"))?.value ?? ""); setOpen(true); }} onBlur={() => window.setTimeout(() => setOpen(false), 120)} />
-    {open ? <div className="sponsorship-filter-options" id={`${name}-options`} role="listbox">
+    {open ? <div className={viewStyles.sponsorship_filter_options} id={`${name}-options`} role="listbox">
       {filteredOptions.map((option) => <button key={option.value || "all"} type="button" role="option" aria-selected={selected === option.value} onMouseDown={(event) => event.preventDefault()} onClick={() => { setSelected(option.value); setQuery(option.label); setOpen(false); }}>{option.label}</button>)}
       {!filteredOptions.length ? <span>Nenhuma opção encontrada.</span> : null}
     </div> : null}
@@ -22,10 +23,10 @@ function SearchableSelect({ label, name, value, options, placeholder }: { label:
 }
 
 export function SponsorshipFilters({ query, type, sort, planTypes }: { query: string; type: string; sort: string; planTypes: string[] }) {
-  return <form method="get" className="sponsorship-filter-form">
+  return <form method="get" className={viewStyles.sponsorship_filter_form}>
     <label>Pesquisa<input name="q" defaultValue={query} placeholder="Digite o nome do plano" /></label>
     <SearchableSelect label="Filtros" name="type" value={type} placeholder="Todos os tipos" options={[{ value: "", label: "Todos os tipos" }, ...planTypes.map((item) => ({ value: item, label: item }))]} />
     <SearchableSelect label="Classificação" name="sort" value={sort} placeholder="Nome do plano" options={[{ value: "name", label: "Nome do plano" }, { value: "value", label: "Maior valor mensal" }, { value: "companies", label: "Mais empresas" }]} />
-    <button className="button button-small" type="submit">Aplicar</button>
+    <button className={viewStyles.button_button_small} type="submit">Aplicar</button>
   </form>;
 }

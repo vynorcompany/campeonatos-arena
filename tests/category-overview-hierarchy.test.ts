@@ -1,6 +1,7 @@
+import { readFile } from "./helpers/style-source";
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFile } from "node:fs/promises";
+
 import path from "node:path";
 
 const workspaceRoot = process.cwd();
@@ -22,7 +23,7 @@ test("category workspace overview is a single compact summary", async () => {
   );
 
   assert.equal(
-    source.match(/className="league-overview-hero"/g)?.length,
+    source.match(/(?:className="league-overview-hero"|className=\{(?:cx\()?viewStyles\.league_overview_hero(?:\))?\})/g)?.length,
     1,
     "the overview must render one category-overview summary",
   );

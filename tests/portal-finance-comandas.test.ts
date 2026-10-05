@@ -1,3 +1,4 @@
+import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
 
@@ -34,6 +35,6 @@ test("closed comanda receivables remain payable and keep their sale in sync", ()
 
 test("soon-due portal payments retain contrast in the dark theme", () => {
   const styles = read("src/app/globals.css");
-  assert.match(styles, /\.client-finance-entry\.public-finance-entry\.is-due-soon \{[^}]*background: linear-gradient/);
-  assert.match(styles, /\.client-finance-entry\.public-finance-entry\.is-due-soon strong, \.client-finance-entry\.public-finance-entry\.is-due-soon b \{ color: #fff7e8/);
+  assert.match(styleRules("client-finance-entry", {"context":".public-finance-entry.is-due-soon"}), /background(?:-color|-image)?: linear-gradient/);
+  assert.match(styleRules("client-finance-entry", {"context":".public-finance-entry.is-due-soon strong"}), / color: #fff7e8/);
 });

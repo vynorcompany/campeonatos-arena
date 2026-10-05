@@ -1,3 +1,4 @@
+import { viewStyles } from "./page.utilities";
 import { SectionCard } from "@/components/section-card";
 import { requireModuleView } from "@/lib/auth/guards";
 import { withArenaTransaction } from "@/lib/rls";
@@ -31,34 +32,34 @@ export default async function FinancePdvStockPage() {
   const stockValue = products.reduce((total, product) => total + product.stockQuantity * product.priceCents, 0);
 
   return (
-    <div className="stack-md">
+    <div className={viewStyles.stack_md}>
 
-      <div className="stats-grid">
-        <div className="stat-card">
+      <div className={viewStyles.stats_grid}>
+        <div className={viewStyles.stat_card}>
           <strong>{formatMoney(pdvRevenue)}</strong>
           <span>vendas do mês no PDV</span>
         </div>
-        <div className="stat-card">
+        <div className={viewStyles.stat_card}>
           <strong>{formatMoney(stockValue)}</strong>
           <span>valor em estoque</span>
         </div>
-        <div className="stat-card">
+        <div className={viewStyles.stat_card}>
           <strong>{products.length}</strong>
           <span>produtos cadastrados</span>
         </div>
       </div>
 
       <SectionCard title="Movimentações do mês" description="Entradas, saídas, vendas e ajustes de estoque.">
-        <div className="simple-list">
+        <div className={viewStyles.simple_list}>
           {stockMovements.map((movement) => (
-            <div className="simple-item" key={movement.id}>
+            <div className={viewStyles.simple_item} key={movement.id}>
               <strong>{movement.product.name}</strong>
               <span>
                 {movement.type} de {movement.quantity} un. - {movement.reason || "Sem motivo"}
               </span>
             </div>
           ))}
-          {!stockMovements.length ? <p className="muted">Nenhuma movimentação de estoque neste mês.</p> : null}
+          {!stockMovements.length ? <p className={viewStyles.muted}>Nenhuma movimentação de estoque neste mês.</p> : null}
         </div>
       </SectionCard>
     </div>

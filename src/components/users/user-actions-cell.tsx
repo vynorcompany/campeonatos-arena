@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./user-actions-cell.utilities";
 
 import { useState } from "react";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
@@ -40,9 +41,9 @@ export function UserActionsCell({
   const [isEditing, setIsEditing] = useState(false);
   if (isEditing) {
     return (
-      <SafeActionForm action={updateArenaUserAction} className="entity-edit-form" successMessage="Usuário atualizado.">
+      <SafeActionForm action={updateArenaUserAction} className={viewStyles.entity_edit_form} successMessage="Usuário atualizado.">
         <input type="hidden" name="userId" value={userId} />
-        <div className="entity-edit-grid entity-edit-grid-user">
+        <div className={viewStyles.entity_edit_grid_entity_edit_grid_user}>
           <input name="name" type="text" defaultValue={name} aria-label="Nome do usuário" autoFocus />
           <input name="email" type="email" defaultValue={email} aria-label="E-mail do usuário" />
           <input type="hidden" name="arenaRole" value={role} />
@@ -51,9 +52,9 @@ export function UserActionsCell({
             {profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}
           </select>
         </div>
-        <div className="player-inline-actions">
-          <SubmitButton label="Salvar" pendingLabel="..." className="player-inline-text-button player-inline-text-button-save" />
-          <button type="button" className="player-inline-text-button" onClick={() => setIsEditing(false)}>
+        <div className={viewStyles.player_inline_actions}>
+          <SubmitButton label="Salvar" pendingLabel="..." className={viewStyles.player_inline_text_button_player_inline_text_button_save} />
+          <button type="button" className={viewStyles.player_inline_text_button} onClick={() => setIsEditing(false)}>
             Cancelar
           </button>
         </div>
@@ -62,12 +63,12 @@ export function UserActionsCell({
   }
 
   return (
-    <div className="entity-actions-cell">
-      <div className="user-row-actions">
-        <span className="pill">{roleLabels[role]}</span>
+    <div className={viewStyles.entity_actions_cell}>
+      <div className={viewStyles.user_row_actions}>
+        <span className={viewStyles.pill}>{roleLabels[role]}</span>
         <button
           type="button"
-          className="player-inline-icon-button"
+          className={viewStyles.player_inline_icon_button}
           onClick={() => setIsEditing(true)}
           aria-label={`Editar ${name}`}
           title="Editar usuário"
@@ -95,7 +96,7 @@ export function UserActionsCell({
             <input type="hidden" name="userId" value={userId} />
             <button
               type="submit"
-              className="player-trash-button"
+              className={viewStyles.player_trash_button}
               aria-label={`Remover ${name}`}
               title="Remover acesso"
             >
@@ -122,9 +123,9 @@ export function UserActionsCell({
           </SafeActionForm>
         ) : null}
       </div>
-      <SafeActionForm action={sendArenaUserRecoveryAction} className="inline-form user-password-form" successMessage="Link de recuperação enviado ao e-mail do usuário.">
+      <SafeActionForm action={sendArenaUserRecoveryAction} className={viewStyles.inline_form_user_password_form} successMessage="Link de recuperação enviado ao e-mail do usuário.">
         <input type="hidden" name="userId" value={userId} />
-        <SubmitButton label="Enviar recuperação" pendingLabel="Enviando..." className="button" />
+        <SubmitButton label="Enviar recuperação" pendingLabel="Enviando..." className={viewStyles.button} />
       </SafeActionForm>
     </div>
   );

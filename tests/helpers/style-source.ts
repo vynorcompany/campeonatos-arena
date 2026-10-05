@@ -1,4 +1,5 @@
 import * as fs from "node:fs";
+import ts from "typescript";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
@@ -6,6 +7,22 @@ import { resolve, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const memory = new Map<string, string>();
+let sharedSources: Map<string, string> | undefined;
+function scopedUtilitySource(file: string) {
+  if (!fs.existsSync(file)) return "";
+  const source = fs.readFileSync(file, "utf8");
+  const references = [...source.matchAll(/sharedUtilities\.(\w+)/g)].map(match => match[1]);
+  if (references.length && !sharedSources) {
+    sharedSources = new Map();
+    const tree = ts.createSourceFile("shared.utilities.ts", fs.readFileSync(resolve("src/components/ui/shared.utilities.ts"), "utf8"), ts.ScriptTarget.Latest, true);
+    const scan = (node: ts.Node) => {
+      if (ts.isPropertyAssignment(node)) sharedSources!.set(node.name.getText(tree), node.getText(tree));
+      ts.forEachChild(node, scan);
+    };
+    scan(tree);
+  }
+  return source + references.map(name => sharedSources?.get(name) ?? "").join("\n");
+}
 function sourceFingerprint(directory: string, hash: ReturnType<typeof createHash>) {
   for (const entry of fs.readdirSync(directory, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
     const file = join(directory, entry.name);
@@ -30,10 +47,16 @@ function compiledStyles(file: string, source: string) {
   return compiled;
 }
 
-/** Read source normally; CSS layout checks inspect Tailwind's compiled output. */
+/** Read component source together with colocated literal utilities; CSS checks inspect the actual Tailwind output. */
 export const readFileSync: typeof fs.readFileSync = ((file: fs.PathOrFileDescriptor, options?: any) => {
   const path = file instanceof URL ? fileURLToPath(file) : typeof file === "string" ? file : "";
-  if (!path.endsWith(".css")) return fs.readFileSync(file, options);
+  if (!path.endsWith(".css")) {
+    if (path.endsWith(".tsx") && (typeof options === "string" || options?.encoding)) {
+      const utilities = path.replace(/\.tsx$/, ".utilities.ts");
+      return fs.readFileSync(file, options) + (fs.existsSync(utilities) ? "\n" + scopedUtilitySource(utilities) : "");
+    }
+    return fs.readFileSync(file, options);
+  }
   const source = fs.readFileSync(file, "utf8");
   const result = /@apply|@import\s+["']tailwindcss/.test(source) ? compiledStyles(resolve(path), source) : source;
   return typeof options === "string" || options?.encoding ? result : Buffer.from(result);

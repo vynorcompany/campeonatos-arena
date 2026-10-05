@@ -1,4 +1,6 @@
 "use client";
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./dashboard-metric-cards.utilities";
 
 import { useEffect, useState, type DragEvent } from "react";
 import { createPortal } from "react-dom";
@@ -45,11 +47,11 @@ export function DashboardMetricCards({ cards }: { cards: DashboardMetricCard[] }
     setDraggedId(null);
   }
   const active = cards.find((card) => card.id === activeId) ?? null;
-  const modal = active ? <div className="dashboard-metric-modal-backdrop" role="presentation" onMouseDown={() => setActiveId(null)}>
-    <section className="dashboard-metric-modal" role="dialog" aria-modal="true" aria-labelledby={`dashboard-metric-${active.id}`} onMouseDown={(event) => event.stopPropagation()}>
-      <header><div><p className="eyebrow">DETALHAMENTO DO INDICADOR</p><h2 id={`dashboard-metric-${active.id}`}>{active.title}</h2><p>{active.description}</p></div><button type="button" className="button button-small" onClick={() => setActiveId(null)}>Fechar</button></header>
-      {active.items.length ? <div className="dashboard-metric-list">{active.items.map((item) => <article key={item.id}><span className="dashboard-metric-list-icon" aria-hidden="true">{item.title.slice(0, 1).toUpperCase()}</span><div><strong>{item.title}</strong>{item.subtitle ? <small>{item.subtitle}</small> : null}</div>{item.value ? <b>{item.value}</b> : null}{item.date ? <time dateTime={item.date}>{new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(new Date(item.date))}</time> : null}</article>)}</div> : <p className="dashboard-metric-empty">{active.emptyMessage}</p>}
+  const modal = active ? <div className={viewStyles.dashboard_metric_modal_backdrop} role="presentation" onMouseDown={() => setActiveId(null)}>
+    <section className={viewStyles.dashboard_metric_modal} role="dialog" aria-modal="true" aria-labelledby={`dashboard-metric-${active.id}`} onMouseDown={(event) => event.stopPropagation()}>
+      <header><div><p className={viewStyles.eyebrow}>DETALHAMENTO DO INDICADOR</p><h2 id={`dashboard-metric-${active.id}`}>{active.title}</h2><p>{active.description}</p></div><button type="button" className={viewStyles.button_button_small} onClick={() => setActiveId(null)}>Fechar</button></header>
+      {active.items.length ? <div className={viewStyles.dashboard_metric_list}>{active.items.map((item) => <article key={item.id}><span className={viewStyles.dashboard_metric_list_icon} aria-hidden="true">{item.title.slice(0, 1).toUpperCase()}</span><div><strong>{item.title}</strong>{item.subtitle ? <small>{item.subtitle}</small> : null}</div>{item.value ? <b>{item.value}</b> : null}{item.date ? <time dateTime={item.date}>{new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(new Date(item.date))}</time> : null}</article>)}</div> : <p className={viewStyles.dashboard_metric_empty}>{active.emptyMessage}</p>}
     </section>
   </div> : null;
-  return <>{orderedCards.map((card) => <button type="button" draggable className={`dashboard-stat-trigger${draggedId === card.id ? " is-dragging" : ""}`} key={card.id} onDragStart={(event: DragEvent<HTMLButtonElement>) => { setDraggedId(card.id); event.dataTransfer.effectAllowed = "move"; }} onDragOver={(event) => event.preventDefault()} onDrop={() => moveCard(card.id)} onDragEnd={() => setDraggedId(null)} onClick={() => setActiveId(card.id)} aria-haspopup="dialog" aria-label={`Ver detalhes de ${card.label}. Arraste para reordenar.`}><StatCard label={card.label} value={card.value} caption={card.caption} comparison={card.comparison} /><span className="dashboard-stat-trigger-hint">Ver detalhes · arraste para ordenar</span></button>)}{mounted && modal ? createPortal(modal, document.body) : null}</>;
+  return <>{orderedCards.map((card) => <button type="button" draggable className={cx(`${viewStyles.dashboard_stat_trigger}${draggedId === card.id ? " is-dragging" : ""}`)} key={card.id} onDragStart={(event: DragEvent<HTMLButtonElement>) => { setDraggedId(card.id); event.dataTransfer.effectAllowed = "move"; }} onDragOver={(event) => event.preventDefault()} onDrop={() => moveCard(card.id)} onDragEnd={() => setDraggedId(null)} onClick={() => setActiveId(card.id)} aria-haspopup="dialog" aria-label={`Ver detalhes de ${card.label}. Arraste para reordenar.`}><StatCard label={card.label} value={card.value} caption={card.caption} comparison={card.comparison} /><span className={viewStyles.dashboard_stat_trigger_hint}>Ver detalhes · arraste para ordenar</span></button>)}{mounted && modal ? createPortal(modal, document.body) : null}</>;
 }

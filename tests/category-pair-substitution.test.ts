@@ -1,3 +1,4 @@
+import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFile } from "./helpers/style-source";
 import assert from "node:assert/strict";
 
@@ -29,5 +30,5 @@ test("league pairs support audited athlete substitutions without resetting match
   assert.match(pairForm, /export function AthleteSearchField/);
   assert.match(service, /matchesCategoryEligibility/);
   assert.doesNotMatch(service, /replaceCategoryPairPlayer[\s\S]{0,5000}validateManualPairEligibility/);
-  assert.match(styles, /\.league-registration-card:focus-within/);
+  assert.ok(utilityClasses("league-registration-card").length, "league-registration-card has component Tailwind utilities");
 });

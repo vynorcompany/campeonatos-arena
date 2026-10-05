@@ -1,4 +1,6 @@
 "use client";
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./manual-upcoming-matches-tv.utilities";
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
@@ -298,63 +300,63 @@ export function ManualUpcomingMatchesTv({
 
   if (!activeSlide) {
     return (
-      <main className="tv-stage tv-stage-empty">
-        <div className="tv-shell">
-          <p className="tv-kicker">Tela da TV</p>
-          <Image src={arenaLogoUrl || "/arena-profile.jpg"} alt={arenaName} width={160} height={160} className="tv-arena-logo tv-arena-logo-empty" priority />
-          <p className="tv-empty-copy">Nenhum conteúdo selecionado para a TV no momento.</p>
+      <main className={viewStyles.tv_stage_tv_stage_empty}>
+        <div className={viewStyles.tv_shell}>
+          <p className={viewStyles.tv_kicker}>Tela da TV</p>
+          <Image src={arenaLogoUrl || "/arena-profile.jpg"} alt={arenaName} width={160} height={160} className={viewStyles.tv_arena_logo_tv_arena_logo_empty} priority />
+          <p className={viewStyles.tv_empty_copy}>Nenhum conteúdo selecionado para a TV no momento.</p>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="tv-stage">
-      <section className="tv-shell">
-        <header className="tv-header">
-          <div className="tv-brand">
-            <Image src={arenaLogoUrl || "/arena-profile.jpg"} alt={arenaName} width={140} height={140} className="tv-arena-logo" priority />
-            <div className="tv-brand-copy"><span>ARENA PADEL</span><strong>{arenaName}</strong></div>
+    <main className={viewStyles.tv_stage}>
+      <section className={viewStyles.tv_shell}>
+        <header className={viewStyles.tv_header}>
+          <div className={viewStyles.tv_brand}>
+            <Image src={arenaLogoUrl || "/arena-profile.jpg"} alt={arenaName} width={140} height={140} className={viewStyles.tv_arena_logo} priority />
+            <div className={viewStyles.tv_brand_copy}><span>ARENA PADEL</span><strong>{arenaName}</strong></div>
           </div>
-          <h1 className="tv-title">{activeSlide.title}</h1>
-          <div className="tv-counter">
+          <h1 className={viewStyles.tv_title}>{activeSlide.title}</h1>
+          <div className={viewStyles.tv_counter}>
             <span>{activeSlideIndex + 1}</span>
             <small>de {slides.length}</small>
           </div>
         </header>
 
-        <div className="tv-slide-frame" key={activeSlide.id}>
+        <div className={viewStyles.tv_slide_frame} key={activeSlide.id}>
           {activeSlide.type === "matches" ? (
-            <div className={`tv-matches-grid tv-matches-count-${Math.min(visibleMatches.length, visibleMatchCount)}`}>
+            <div className={cx(`${viewStyles.tv_matches_grid} tv-matches-count-${Math.min(visibleMatches.length, visibleMatchCount)}`)}>
               {visibleMatches.map((match, index) => {
                 const scheduledTime = match.scheduledTime.trim();
                 const displayNumber = getDisplayNumber(activeIndex, index, liveMatches.length);
 
                 return (
-                  <article className="tv-match-card" key={match.id}>
-                    <div className="tv-match-meta">
-                      <div className="tv-match-topline">
+                  <article className={viewStyles.tv_match_card} key={match.id}>
+                    <div className={viewStyles.tv_match_meta}>
+                      <div className={viewStyles.tv_match_topline}>
                         <span>Jogo {displayNumber}</span>
                         {scheduledTime ? (
                           <>
-                            <span className="tv-match-separator">-</span>
-                            <strong className="tv-match-time">{scheduledTime}</strong>
+                            <span className={viewStyles.tv_match_separator}>-</span>
+                            <strong className={viewStyles.tv_match_time}>{scheduledTime}</strong>
                           </>
                         ) : null}
-                        <span className="tv-match-separator">-</span>
-                        <span className="tv-court-name">{normalize(match.courtName, "Quadra a definir")}</span>
+                        <span className={viewStyles.tv_match_separator}>-</span>
+                        <span className={viewStyles.tv_court_name}>{normalize(match.courtName, "Quadra a definir")}</span>
                       </div>
-                      <span className={`tv-match-status tv-match-status-${match.status.toLowerCase()}`}>
+                      <span className={cx(`${viewStyles.tv_match_status} tv-match-status-${match.status.toLowerCase()}`)}>
                         {getMatchStatusLabel(match.status)}
                       </span>
                     </div>
-                    <div className="tv-scoreboard">
-                      <div className="tv-score-row">
-                        <span className="tv-team-side tv-team-side-home" />
-                        <strong className="tv-team-name">{normalize(match.homePairName, "Dupla 1")}</strong>
-                        <span className="tv-vs-line">v</span>
-                        <span className="tv-team-side tv-team-side-away" />
-                        <strong className="tv-team-name">{normalize(match.awayPairName, "Dupla 2")}</strong>
+                    <div className={viewStyles.tv_scoreboard}>
+                      <div className={viewStyles.tv_score_row}>
+                        <span className={viewStyles.tv_team_side_tv_team_side_home} />
+                        <strong className={viewStyles.tv_team_name}>{normalize(match.homePairName, "Dupla 1")}</strong>
+                        <span className={viewStyles.tv_vs_line}>v</span>
+                        <span className={viewStyles.tv_team_side_tv_team_side_away} />
+                        <strong className={viewStyles.tv_team_name}>{normalize(match.awayPairName, "Dupla 2")}</strong>
                       </div>
                     </div>
                   </article>
@@ -365,19 +367,19 @@ export function ManualUpcomingMatchesTv({
           ) : null}
 
           {activeSlide.type === "calendar" ? (
-            <div className="tv-calendar-stage">
-              <div className="tv-calendar-head">
-                <p className="tv-info-kicker">Agenda da arena</p>
+            <div className={viewStyles.tv_calendar_stage}>
+              <div className={viewStyles.tv_calendar_head}>
+                <p className={viewStyles.tv_info_kicker}>Agenda da arena</p>
                 <strong>{liveCalendar.rangeLabel}</strong>
               </div>
-              <div className="tv-calendar-list">
+              <div className={viewStyles.tv_calendar_list}>
                 {liveCalendar.items.map((item) => (
-                  <article className="tv-calendar-card" key={item.id}>
-                    <div className="tv-calendar-date">
+                  <article className={viewStyles.tv_calendar_card} key={item.id}>
+                    <div className={viewStyles.tv_calendar_date}>
                       <span>{item.dateLabel}</span>
                       <strong>{item.timeLabel}</strong>
                     </div>
-                    <div className="tv-calendar-copy">
+                    <div className={viewStyles.tv_calendar_copy}>
                       <small>{item.typeLabel}</small>
                       <strong>{item.title}</strong>
                       <span>{item.meta}</span>
@@ -389,27 +391,27 @@ export function ManualUpcomingMatchesTv({
           ) : null}
 
           {activeSlide.type === "sponsor" && activeSponsor ? (
-            <div className="tv-sponsor-stage">
-              <div className="tv-sponsor-panel">
-                <h2 className="tv-sponsor-section-title">PATROCINADORES</h2>
-                <p className="tv-info-kicker">{activeSponsor.subtitle.trim() || "Patrocinador"}</p>
-                <div className="tv-sponsor-logo-frame">
+            <div className={viewStyles.tv_sponsor_stage}>
+              <div className={viewStyles.tv_sponsor_panel}>
+                <h2 className={viewStyles.tv_sponsor_section_title}>PATROCINADORES</h2>
+                <p className={viewStyles.tv_info_kicker}>{activeSponsor.subtitle.trim() || "Patrocinador"}</p>
+                <div className={viewStyles.tv_sponsor_logo_frame}>
                   {activeSponsor.logoUrl ? (
-                    <img src={activeSponsor.logoUrl} alt={`Logo de ${activeSponsor.name}`} className="tv-sponsor-logo" />
+                    <img src={activeSponsor.logoUrl} alt={`Logo de ${activeSponsor.name}`} className={viewStyles.tv_sponsor_logo} />
                   ) : (
-                    <strong className="tv-sponsor-fallback">{activeSponsor.name}</strong>
+                    <strong className={viewStyles.tv_sponsor_fallback}>{activeSponsor.name}</strong>
                   )}
                 </div>
-                {activeSponsor.logoUrl ? <span className="tv-sponsor-name">{activeSponsor.name}</span> : null}
+                {activeSponsor.logoUrl ? <span className={viewStyles.tv_sponsor_name}>{activeSponsor.name}</span> : null}
               </div>
             </div>
           ) : null}
 
           {activeSlide.type === "ranking" ? (
-            <div className="tv-ranking-board">
+            <div className={viewStyles.tv_ranking_board}>
               {activeRankingEntries.map((player, index) => (
-                <article className="tv-ranking-card" key={player.id}>
-                  <span className="tv-ranking-position">#{index + 1}</span>
+                <article className={viewStyles.tv_ranking_card} key={player.id}>
+                  <span className={viewStyles.tv_ranking_position}>#{index + 1}</span>
                   <strong>{player.name}</strong>
                   <small>{player.points} pts</small>
                 </article>
@@ -418,13 +420,13 @@ export function ManualUpcomingMatchesTv({
           ) : null}
 
           {activeSlide.type === "monthlyPrize" ? (
-            <div className="tv-spotlight-card tv-prize-card">
-              <p className="tv-info-kicker">Campanha do mês</p>
+            <div className={viewStyles.tv_spotlight_card_tv_prize_card}>
+              <p className={viewStyles.tv_info_kicker}>Campanha do mês</p>
               <h2>{normalize(liveSettings.monthlyPrizeTitle, "Premiação mensal")}</h2>
-              <div className="tv-prize-cascade">
+              <div className={viewStyles.tv_prize_cascade}>
                 {monthlyPrizeItems.map((item, index) => (
-                  <article className={`tv-prize-tier tv-prize-tier-${index + 1}`} key={`${item}-${index}`}>
-                    <span className="tv-prize-tier-order">{index + 1}º</span>
+                  <article className={cx(`${viewStyles.tv_prize_tier} tv-prize-tier-${index + 1}`)} key={`${item}-${index}`}>
+                    <span className={viewStyles.tv_prize_tier_order}>{index + 1}º</span>
                     <strong>{item}</strong>
                   </article>
                 ))}
@@ -433,8 +435,8 @@ export function ManualUpcomingMatchesTv({
           ) : null}
 
           {activeSlide.type === "nightWinner" ? (
-            <div className="tv-spotlight-card tv-spotlight-card-winner">
-              <p className="tv-info-kicker">Resultado da noite</p>
+            <div className={viewStyles.tv_spotlight_card_tv_spotlight_card_winner}>
+              <p className={viewStyles.tv_info_kicker}>Resultado da noite</p>
               <h2>{normalize(liveSettings.nightWinnerTitle, "Vencedor da noite")}</h2>
               {liveSettings.nightWinnerName.trim() ? <strong>{liveSettings.nightWinnerName}</strong> : null}
               {liveSettings.nightWinnerDescription.trim() ? <p>{liveSettings.nightWinnerDescription}</p> : null}
@@ -442,7 +444,7 @@ export function ManualUpcomingMatchesTv({
           ) : null}
         </div>
 
-        {slides.length > 1 ? <div className="tv-progress" style={{ animationDuration: `${slideIntervalMs}ms` }} /> : null}
+        {slides.length > 1 ? <div className={viewStyles.tv_progress} style={{ animationDuration: `${slideIntervalMs}ms` }} /> : null}
       </section>
     </main>
   );

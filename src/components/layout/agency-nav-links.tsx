@@ -1,4 +1,6 @@
 "use client";
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./agency-nav-links.utilities";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -113,25 +115,25 @@ export function AgencyNavLinks() {
   }, [openItems]);
 
   return (
-    <nav className={`agency-nav${mobileOpen ? " agency-nav-mobile-open" : ""}`} aria-label="Agência">
-      <button type="button" className="agency-mobile-menu-toggle" aria-expanded={mobileOpen} onClick={() => setMobileOpen((open) => !open)}>{mobileOpen ? "Fechar menu" : "Abrir menu da agência"}</button>
+    <nav className={cx(`${viewStyles.agency_nav}${mobileOpen ? " agency-nav-mobile-open" : ""}`)} aria-label="Agência">
+      <button type="button" className={viewStyles.agency_mobile_menu_toggle} aria-expanded={mobileOpen} onClick={() => setMobileOpen((open) => !open)}>{mobileOpen ? "Fechar menu" : "Abrir menu da agência"}</button>
       {groups.map((group) => (
-        <div className="nav-group" key={group.title}>
-          <p className="nav-group-label">{group.title}</p>
-          <div className="nav-group-links">
+        <div className={viewStyles.nav_group} key={group.title}>
+          <p className={viewStyles.nav_group_label}>{group.title}</p>
+          <div className={viewStyles.nav_group_links}>
             {group.links.map((item) => {
               const isOpen = openItems.has(item.href) || isActivePath(pathname, item.href);
               const isActive = pathname === item.href;
 
               return (
-                <div className="nav-link-block" key={item.href}>
-                  <div className="nav-parent-row">
-                    <Link href={item.href} onClick={() => setMobileOpen(false)} className={`nav-link${isActive ? " nav-link-active" : ""}`}>
+                <div className={viewStyles.nav_link_block} key={item.href}>
+                  <div className={viewStyles.nav_parent_row}>
+                    <Link href={item.href} onClick={() => setMobileOpen(false)} className={cx(`${viewStyles.nav_link}${isActive ? " " + viewStyles.nav_link_active : ""}`)}>
                       <span>{item.label}</span>
                     </Link>
                     {item.children?.length ? (
                       <button
-                        className="nav-toggle"
+                        className={viewStyles.nav_toggle}
                         type="button"
                         aria-label={isOpen ? `Fechar ${item.label}` : `Abrir ${item.label}`}
                         aria-expanded={isOpen}
@@ -152,13 +154,13 @@ export function AgencyNavLinks() {
                     ) : null}
                   </div>
                   {item.children?.length ? (
-                    <div className={`nav-submenu${isOpen ? " nav-submenu-open" : ""}`}>
+                    <div className={cx(`${viewStyles.nav_submenu}${isOpen ? " " + viewStyles.nav_submenu_open : ""}`)}>
                       {item.children.map((child) => (
                         <Link
                           key={child.href}
                           href={child.href}
                           onClick={() => setMobileOpen(false)}
-                          className={`nav-sub-link${isActivePath(pathname, child.href) ? " nav-sub-link-active" : ""}`}
+                          className={cx(`${viewStyles.nav_sub_link}${isActivePath(pathname, child.href) ? " " + viewStyles.nav_sub_link_active : ""}`)}
                         >
                           {child.label}
                         </Link>

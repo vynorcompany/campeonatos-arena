@@ -1,3 +1,4 @@
+import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
 
@@ -43,6 +44,6 @@ test("command checkout keeps pending debts compact until the toggle is enabled",
   assert.match(card, /Dividir comanda/);
   assert.doesNotMatch(card, />DIVIDIR COMANDA</);
   assert.match(card, /event\.stopPropagation\(\); setCheckoutOpen\(false\)/);
-  assert.match(css, /\.command-open-debts \{ display: flex/);
-  assert.match(css, /\.command-open-debt-items/);
+  assert.match(styleRules("command-open-debts"), / display: flex/);
+  assert.ok(utilityClasses("command-open-debt-items").length, "command-open-debt-items has component Tailwind utilities");
 });

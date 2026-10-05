@@ -1,3 +1,5 @@
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./category-draw-panel.utilities";
 import Link from "next/link";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { StatusBadge } from "@/components/tournaments/status-badge";
@@ -78,7 +80,7 @@ export function CategoryDrawPanel({
         <p>Configure categorias e duplas antes de montar os grupos.</p>
         <Link
           href={`/torneios/${tournamentId}?tab=categories`}
-          className="button button-primary"
+          className={viewStyles.button_button_primary}
         >
           Configurar categorias
         </Link>
@@ -87,7 +89,7 @@ export function CategoryDrawPanel({
   }
 
   return (
-    <div className="stack-md">
+    <div className={viewStyles.stack_md}>
       {categories.map((category) => {
         const competition = category.competition;
         const canReopenLeague = competition?.format === "LEAGUE" && competition.status === "PUBLISHED" && competition.matches.every((match) => !match.winnerPairId && match.homeScore == null && match.awayScore == null && match.homeSet1 == null && match.awaySet1 == null && match.homeSet2 == null && match.awaySet2 == null && match.homeSet3 == null && match.awaySet3 == null && match.manualStatus !== "LIVE" && match.manualStatus !== "FINISHED");
@@ -95,13 +97,13 @@ export function CategoryDrawPanel({
         return (
           <article
             id={`category-${category.id}`}
-            className={`section-card stack-md category-operation-panel ${competition?.format === "LEAGUE" ? "league-groups-panel" : ""}`}
+            className={cx(`${viewStyles.section_card_stack_md_category_operation_panel} ${competition?.format === "LEAGUE" ? viewStyles.league_groups_panel : ""}`)}
             key={category.id}
           >
-            <div className={`page-header ${competition?.format === "LEAGUE" ? "league-groups-hero" : ""}`}>
-              <div className="stack-xs">
+            <div className={cx(`${viewStyles.page_header} ${competition?.format === "LEAGUE" ? viewStyles.league_groups_hero : ""}`)}>
+              <div className={viewStyles.stack_xs}>
                 <h3>{category.name}</h3>
-                <p className="muted">
+                <p className={viewStyles.muted}>
                   {competition?.pairs.length ?? 0} duplas ·{" "}
                   {competition?.groups.length ?? 0} grupos
                 </p>
@@ -110,13 +112,13 @@ export function CategoryDrawPanel({
             </div>
 
             {!competition ? (
-              <p className="muted">
+              <p className={viewStyles.muted}>
                 Configure a competição desta categoria antes do sorteio.
               </p>
             ) : (
               <>
                 {competition.status === "DRAFT" ? (
-                  <div className={`section-actions ${competition.format === "LEAGUE" ? "league-groups-actions" : ""}`}>
+                  <div className={cx(`${viewStyles.section_actions} ${competition.format === "LEAGUE" ? viewStyles.league_groups_actions : ""}`)}>
                     <form action={generateCategoryDrawAction}>
                       <input
                         type="hidden"
@@ -130,7 +132,7 @@ export function CategoryDrawPanel({
                             : "Gerar grupos"
                         }
                         pendingLabel="Gerando..."
-                        className="button"
+                        className={viewStyles.button}
                         disabled={
                           !canGenerateCategoryDraw(
                             competition.format,
@@ -150,31 +152,31 @@ export function CategoryDrawPanel({
                         <SubmitButton
                           label="Publicar tabela e jogos"
                           pendingLabel="Publicando..."
-                          className="button button-primary"
+                          className={viewStyles.button_button_primary}
                         />
                       </form>
                     ) : null}
                   </div>
-                ) : canReopenLeague ? <div className="section-actions league-groups-actions"><form action={reopenCategoryLeagueForEditingAction}><input type="hidden" name="competitionId" value={competition.id} /><SubmitButton label="Voltar para edição" pendingLabel="Reabrindo..." className="button button-secondary" /></form><p className="muted">Nenhum jogo foi iniciado. As duplas serão mantidas, mas a tabela atual será refeita.</p></div> : <p className="muted">A composição foi publicada e não recebe mais ajustes.</p>}
+                ) : canReopenLeague ? <div className={viewStyles.section_actions_league_groups_actions}><form action={reopenCategoryLeagueForEditingAction}><input type="hidden" name="competitionId" value={competition.id} /><SubmitButton label="Voltar para edição" pendingLabel="Reabrindo..." className={viewStyles.button_button_secondary} /></form><p className={viewStyles.muted}>Nenhum jogo foi iniciado. As duplas serão mantidas, mas a tabela atual será refeita.</p></div> : <p className={viewStyles.muted}>A composição foi publicada e não recebe mais ajustes.</p>}
 
                 {competition.groups.length ? (
-                  <div className={`simple-grid simple-grid-2 ${competition.format === "LEAGUE" ? "league-groups-list" : ""}`}>
+                  <div className={cx(`simple-grid simple-grid-2 ${competition.format === "LEAGUE" ? viewStyles.league_groups_list : ""}`)}>
                     {competition.groups.map((group) => (
-                      <section className={`section-card stack-sm ${competition.format === "LEAGUE" ? "league-group-card" : ""}`} key={group.id}>
-                        <div className={competition.format === "LEAGUE" ? "league-group-card-heading" : ""}>
-                          {competition.format === "LEAGUE" ? <span className="league-group-icon" aria-hidden="true"><LeagueTrophyIcon /></span> : null}
+                      <section className={cx(`${viewStyles.section_card} ${competition.format === "LEAGUE" ? viewStyles.league_group_card : ""}`)} key={group.id}>
+                        <div className={cx(competition.format === "LEAGUE" ? viewStyles.league_group_card_heading : "")}>
+                          {competition.format === "LEAGUE" ? <span className={viewStyles.league_group_icon} aria-hidden="true"><LeagueTrophyIcon /></span> : null}
                           <div>
                           <h4>{group.name}</h4>
-                          <p className="muted">
+                          <p className={viewStyles.muted}>
                             {group.pairs.length} duplas
                           </p>
                           </div>
                         </div>
                         {group.pairs.length ? (
-                          <div className={`simple-list ${competition.format === "LEAGUE" ? "league-group-pair-list" : ""}`}>
+                          <div className={cx(`${viewStyles.simple_list} ${competition.format === "LEAGUE" ? viewStyles.league_group_pair_list : ""}`)}>
                             {group.pairs.map((pair) => (
-                              <div className={`simple-item ${competition.format === "LEAGUE" ? "league-group-pair" : ""}`} key={pair.id}>
-                                {competition.format === "LEAGUE" ? <span className="league-group-pair-icon" aria-hidden="true"><PairPlayersIcon /></span> : null}
+                              <div className={cx(`${viewStyles.simple_item} ${competition.format === "LEAGUE" ? viewStyles.league_group_pair : ""}`)} key={pair.id}>
+                                {competition.format === "LEAGUE" ? <span className={viewStyles.league_group_pair_icon} aria-hidden="true"><PairPlayersIcon /></span> : null}
                                 <strong>{pair.name}</strong>
                                 {competition.status === "DRAFT" ? (
                                   <form
@@ -203,7 +205,7 @@ export function CategoryDrawPanel({
                                     <SubmitButton
                                       label="Mover"
                                       pendingLabel="..."
-                                      className="button"
+                                      className={viewStyles.button}
                                     />
                                   </form>
                                 ) : null}
@@ -211,22 +213,22 @@ export function CategoryDrawPanel({
                             ))}
                           </div>
                         ) : (
-                          <p className="muted">Grupo vazio.</p>
+                          <p className={viewStyles.muted}>Grupo vazio.</p>
                         )}
                       </section>
                     ))}
                   </div>
                 ) : competition.pairs.length ? (
-                  <div className="simple-list">
+                  <div className={viewStyles.simple_list}>
                     {competition.pairs.map((pair) => (
-                      <div className="simple-item" key={pair.id}>
+                      <div className={viewStyles.simple_item} key={pair.id}>
                         <strong>{pair.name}</strong>
                         <span>Aguardando sorteio</span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="muted">
+                  <p className={viewStyles.muted}>
                     Adicione duplas na etapa de inscrições para habilitar o
                     sorteio.
                   </p>

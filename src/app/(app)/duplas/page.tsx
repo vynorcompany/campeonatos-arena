@@ -1,3 +1,4 @@
+import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { ManualPairForm } from "@/components/forms/manual-pair-form";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
@@ -26,9 +27,9 @@ export default async function PairsPage(props: PairsPageProps) {
 
   function PlayerPhotoStack({ players }: { players: Array<{ player: { name: string; photoUrl: string } }> }) {
     return (
-      <div className="pair-photo-stack" aria-hidden="true">
+      <div className={viewStyles.pair_photo_stack} aria-hidden="true">
         {players.map(({ player }) => (
-          <span className="pair-player-photo" key={player.name}>
+          <span className={viewStyles.pair_player_photo} key={player.name}>
             {player.photoUrl ? <img src={player.photoUrl} alt="" /> : player.name.slice(0, 1).toUpperCase()}
           </span>
         ))}
@@ -37,46 +38,46 @@ export default async function PairsPage(props: PairsPageProps) {
   }
 
   return (
-    <div className="stack-md">
-      <header className="page-header">
-        <div className="stack-xs">
-          <p className="eyebrow">Duplas</p>
+    <div className={viewStyles.stack_md}>
+      <header className={viewStyles.page_header}>
+        <div className={viewStyles.stack_xs}>
+          <p className={viewStyles.eyebrow}>Duplas</p>
           <h1>Formação de duplas</h1>
-          <p className="muted">
+          <p className={viewStyles.muted}>
             Monte as duplas manualmente e use a pontuação delas como base para equilibrar os grupos.
           </p>
         </div>
         {activeTournaments.length ? (
-          <form method="get" className="section-actions">
-            <select name="tournamentId" defaultValue={activeTournament?.id ?? ""} className="button" aria-label="Selecionar torneio">
+          <form method="get" className={viewStyles.section_actions}>
+            <select name="tournamentId" defaultValue={activeTournament?.id ?? ""} className={viewStyles.button} aria-label="Selecionar torneio">
               {activeTournaments.map((tournament) => (
                 <option key={tournament.id} value={tournament.id}>
                   {tournament.name}
                 </option>
               ))}
             </select>
-            <SubmitButton label="Abrir torneio" pendingLabel="..." className="button" />
+            <SubmitButton label="Abrir torneio" pendingLabel="..." className={viewStyles.button} />
           </form>
         ) : null}
       </header>
 
       {!activeTournament ? (
         <SectionCard title="Nenhum torneio em andamento">
-          <p className="muted">Crie um torneio para começar a formar as duplas.</p>
+          <p className={viewStyles.muted}>Crie um torneio para começar a formar as duplas.</p>
         </SectionCard>
       ) : (
         <>
           <SectionCard title="Preparar duplas" description="Primeiro defina quem participa do torneio e depois selecione manualmente quem joga junto.">
-            <div className="section-actions">
-              <Link href={`/torneios/${activeTournament.id}?tab=participants`} className="button">
+            <div className={viewStyles.section_actions}>
+              <Link href={`/torneios/${activeTournament.id}?tab=participants`} className={viewStyles.button}>
                 Gerenciar inscritos do torneio
               </Link>
             </div>
 
             {!activeTournament.entries.length && activeTournament.publicRegistrations.length ? (
-              <div className="form-hint-box">
+              <div className={viewStyles.form_hint_box}>
                 <strong>Fluxo por inscrição pública detectado</strong>
-                <p className="muted">
+                <p className={viewStyles.muted}>
                   Este torneio já possui inscrições. Gerencie participantes e categorias direto na aba do torneio antes de formar duplas.
                 </p>
               </div>
@@ -94,22 +95,22 @@ export default async function PairsPage(props: PairsPageProps) {
 
           <SectionCard title="Jogadores livres" description="Participantes do torneio que ainda não foram associados a nenhuma dupla.">
             {availableEntries.length ? (
-              <div className="group-list">
+              <div className={viewStyles.group_list}>
                 {availableEntries.map((entry) => (
-                  <div key={entry.id} className="group-item">
+                  <div key={entry.id} className={viewStyles.group_item}>
                     <strong>{entry.player.name}</strong>
                     <span>{entry.seedPoints} pts</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="muted">Todos os jogadores selecionados para o torneio já estão alocados em duplas.</p>
+              <p className={viewStyles.muted}>Todos os jogadores selecionados para o torneio já estão alocados em duplas.</p>
             )}
           </SectionCard>
 
           <SectionCard title="Duplas cadastradas" description="A força de cada dupla define a distribuição automática dos grupos.">
             {activeTournament.pairs.length ? (
-              <table className="data-table">
+              <table className={viewStyles.data_table}>
                 <thead>
                   <tr>
                     <th>#</th>
@@ -128,7 +129,7 @@ export default async function PairsPage(props: PairsPageProps) {
                         <td>#{index + 1}</td>
                         <td>
                           <PlayerPhotoStack players={pair.players} />
-                          <form action={updateTournamentPairAction} className="inline-pair-edit">
+                          <form action={updateTournamentPairAction} className={viewStyles.inline_pair_edit}>
                             <input type="hidden" name="pairId" value={pair.id} />
                             {[1, 2].map((slot) => {
                               const currentPlayerId = pair.players.find((player) => player.slot === slot)?.playerId ?? "";
@@ -153,14 +154,14 @@ export default async function PairsPage(props: PairsPageProps) {
                                 </select>
                               );
                             })}
-                            <SubmitButton label="Salvar" pendingLabel="Salvando..." className="button" />
+                            <SubmitButton label="Salvar" pendingLabel="Salvando..." className={viewStyles.button} />
                           </form>
                         </td>
                         <td>
-                          <form action={updateTournamentPairPointsAction} className="inline-form">
+                          <form action={updateTournamentPairPointsAction} className={viewStyles.inline_form}>
                             <input type="hidden" name="pairId" value={pair.id} />
                             <input name="totalPoints" type="number" min="0" defaultValue={pair.totalPoints} aria-label={`Pontuação da dupla ${pair.name}`} />
-                            <SubmitButton label="Salvar" pendingLabel="..." className="button" />
+                            <SubmitButton label="Salvar" pendingLabel="..." className={viewStyles.button} />
                           </form>
                         </td>
                         <td>{pair.group?.name ?? "A definir"}</td>
@@ -172,7 +173,7 @@ export default async function PairsPage(props: PairsPageProps) {
                             successMessage="Dupla excluida."
                           >
                             <input type="hidden" name="pairId" value={pair.id} />
-                            <SubmitButton label="Excluir" pendingLabel="Excluindo..." className="button" />
+                            <SubmitButton label="Excluir" pendingLabel="Excluindo..." className={viewStyles.button} />
                           </SafeActionForm>
                         </td>
                       </tr>
@@ -181,7 +182,7 @@ export default async function PairsPage(props: PairsPageProps) {
                 </tbody>
               </table>
             ) : (
-              <p className="muted">Nenhuma dupla foi cadastrada ainda.</p>
+              <p className={viewStyles.muted}>Nenhuma dupla foi cadastrada ainda.</p>
             )}
           </SectionCard>
         </>
