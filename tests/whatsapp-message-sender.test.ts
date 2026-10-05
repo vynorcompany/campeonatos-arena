@@ -28,6 +28,7 @@ test("author is persisted even when the webhook records the outbound message fir
   assert.equal(stored.senderName, "Atendente");
   assert.equal(result.senderName, "Atendente");
   assert.equal(result.body, "Olá!");
+  assert.equal(result.mediaUrl, "");
 });
 
 test("text, audio and attachments store authenticated authors without sending their names to WhatsApp", async () => {

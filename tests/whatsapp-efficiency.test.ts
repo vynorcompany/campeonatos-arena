@@ -15,7 +15,8 @@ test("WhatsApp inbox sends only rendered message fields to the browser", () => {
 
 test("WhatsApp realtime refreshes on conversation version changes, not a timer", () => {
   assert.match(pulse, /orderBy:\s*\{ updatedAt: "desc" \}/);
-  assert.match(realtime, /if \(version\.current !== payload\.version\)/);
+  assert.match(realtime, /if \(version\.current !== pulse\.version\)/);
   assert.doesNotMatch(realtime, /lastReconcile|12_000/);
-  assert.match(realtime, /if \(disposed \|\| checking \|\| paused/);
+  assert.match(realtime, /if \(paused\)/);
+  assert.match(realtime, /subscribeWhatsAppPulse/);
 });
