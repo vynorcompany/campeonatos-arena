@@ -43,6 +43,6 @@ test("event row styling subdues categories and reuses the row treatment for hist
   assert.match(pageSource, /(?:className="t-event-list t-event-list-history"|className=\{(?:cx\()?viewStyles\.t_event_list(?:\))?\})/);
   assert.match(
     styleRules("t-event-row", {maxWidth: 1120}),
-    /grid-template-columns:\s*minmax\(0, 1fr\) auto;/,
+    /grid-template-columns:\s*minmax\(0,\s*1fr\) auto;/,
   );
 });

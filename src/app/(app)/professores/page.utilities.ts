@@ -1,11 +1,7 @@
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
-  "teacher_directory_page": [
-    "teacher-directory-page", "tw:grid", "tw:gap-y-[24px]", "tw:gap-x-[24px]",
-    "tw:w-[min(100%,_1412px)]", "tw:[margin-inline:auto]", "tw:pt-[18px]", "tw:pr-[22px]",
-    "tw:pb-[36px]", "tw:pl-[22px]", "tw:max-w-[1320px]",
-  ].join(" "),
+  "teacher_directory_page": "teacher-directory-page tw:grid tw:w-full tw:min-w-0 tw:gap-4 tw:pb-4",
   "teacher_directory_page_header": [
     "teacher-directory-page-header", "tw:grid", "tw:gap-y-[17px]", "tw:gap-x-[17px]",
     "tw:[&_nav]:flex", "tw:[&_nav]:items-center", "tw:[&_nav]:gap-y-[12px]", "tw:[&_nav]:gap-x-[12px]",

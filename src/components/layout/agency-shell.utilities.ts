@@ -46,20 +46,6 @@ export const viewStyles = {
     "tw:[&_strong]:block", "tw:[&_strong]:text-[color:#ffffff]",
   ].join(" "),
   "eyebrow": sharedUtilities.eyebrow,
-  "sidebar_user": [
-    "sidebar-user", "tw:grid", "tw:gap-y-[14px]", "tw:gap-x-[14px]",
-    "tw:pt-[18px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:rgba(255,_255,_255,_0.16)]",
-    "tw:[&_.button]:w-[100%]",
-  ].join(" "),
-  "user_copy": [
-    "user-copy", "tw:text-left",
-  ].join(" "),
-  "user_name": [
-    "user-name", "tw:mt-[0]", "tw:mr-[0]", "tw:mb-[0]",
-    "tw:ml-[0]", "tw:font-[700]",
-  ].join(" "),
-  "muted": sharedUtilities.muted,
-  "button_button_secondary": sharedUtilities.buttonButtonSecondary,
   "agency_main": [
     "agency-main", "tw:min-w-[0]", "tw:pt-[22px]", "tw:viewport-1024:pt-[16px]",
     "tw:pr-[clamp(16px,_2vw,_30px)]", "tw:viewport-1024:pr-[14px]", "tw:pb-[42px]", "tw:viewport-1024:pb-[32px]",

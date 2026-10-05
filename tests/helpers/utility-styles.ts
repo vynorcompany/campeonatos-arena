@@ -18,8 +18,8 @@ export function utilityClasses(marker: string): string[] {
         else if (/\.(utilities|styles)\.ts$/.test(file)) {
           const tree = ts.createSourceFile(file, readFileSync(file, "utf8"), ts.ScriptTarget.Latest, true);
           const scan = (node: ts.Node) => {
-            if (ts.isArrayLiteralExpression(node)) {
-              const words = node.elements.filter(ts.isStringLiteral).flatMap(value => value.text.split(/\s+/));
+            if (ts.isArrayLiteralExpression(node) || (ts.isStringLiteral(node) && ts.isPropertyAssignment(node.parent))) {
+              const words = ts.isStringLiteral(node) ? node.text.split(/\s+/) : node.elements.filter(ts.isStringLiteral).flatMap(value => value.text.split(/\s+/));
               const utilities = words.filter(word => word.startsWith("tw:"));
               const names = new Set(words.filter(word => !word.startsWith("tw:")));
               for (const name of names) {

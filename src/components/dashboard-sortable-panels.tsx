@@ -16,6 +16,17 @@ export function DashboardSortablePanels({ children }: { children: ReactNode }) {
   const [order, setOrder] = useState(defaultOrder);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [layouts, setLayouts] = useState<Record<string, PanelLayout>>({});
+  const grid = useRef<HTMLDivElement>(null);
+  const [gridColumns, setGridColumns] = useState(1);
+  useEffect(() => {
+    const element = grid.current;
+    if (!element) return;
+    const measure = () => setGridColumns(Math.max(1, window.getComputedStyle(element).gridTemplateColumns.split(" ").filter(Boolean).length));
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    measure();
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     try {
@@ -80,8 +91,8 @@ export function DashboardSortablePanels({ children }: { children: ReactNode }) {
     window.addEventListener("pointerup", end, { once: true });
   }
 
-  return <div className={viewStyles.dashboard_grid_dashboard_chart_grid_dashboard_sortable_grid} aria-label="Painéis reordenáveis do dashboard">
-    {order.map((id) => <div key={id} className={cx(`${viewStyles.dashboard_sortable_panel}${draggedId === id ? " is-dragging" : ""}`)} style={{ gridColumn: `span ${layouts[id]?.columns ?? 1}`, minHeight: layouts[id]?.minHeight }} onDragOver={(event) => event.preventDefault()} onDrop={() => move(id)}>
+  return <div ref={grid} className={viewStyles.dashboard_grid_dashboard_chart_grid_dashboard_sortable_grid} aria-label="Painéis reordenáveis do dashboard">
+    {order.map((id) => <div key={id} className={cx(`${viewStyles.dashboard_sortable_panel}${draggedId === id ? " is-dragging" : ""}`)} style={{ gridColumn: `span ${Math.max(1, Math.min(gridColumns, layouts[id]?.columns ?? 1))}`, minHeight: gridColumns > 1 ? layouts[id]?.minHeight : undefined }} onDragOver={(event) => event.preventDefault()} onDrop={() => move(id)}>
       <span className={viewStyles.dashboard_drag_handle} draggable onDragStart={(event: DragEvent<HTMLSpanElement>) => { setDraggedId(id); event.dataTransfer.effectAllowed = "move"; }} onDragEnd={() => setDraggedId(null)} aria-label="Arraste para reordenar" title="Arraste para reordenar">⠿</span>
       <span className={viewStyles.dashboard_panel_resize_handle_dashboard_panel_resize_handle_right} role="separator" aria-orientation="vertical" aria-label="Arraste para alterar a largura" onPointerDown={(event) => startResize(event, id, "horizontal")} />
       <span className={viewStyles.dashboard_panel_resize_handle_dashboard_panel_resize_handle_bottom} role="separator" aria-orientation="horizontal" aria-label="Arraste para alterar a altura" onPointerDown={(event) => startResize(event, id, "vertical")} />
