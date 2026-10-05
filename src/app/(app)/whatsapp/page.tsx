@@ -24,7 +24,7 @@ export default async function WhatsAppPage() {
         player: { select: { id: true, name: true, phone: true, email: true, photoUrl: true } },
         messages: {
           orderBy: { sentAt: "desc" }, take: 120,
-          select: { id: true, direction: true, body: true, senderName: true, quotedProviderId: true, quotedBody: true, quotedAuthor: true, reactions: true, mediaType: true, mediaMimeType: true, mediaUrl: true, sentAt: true },
+          select: { id: true, direction: true, body: true, senderName: true, participantJid: true, quotedProviderId: true, quotedBody: true, quotedAuthor: true, reactions: true, mediaType: true, mediaMimeType: true, mediaUrl: true, sentAt: true },
         },
       },
       orderBy: { lastMessageAt: "desc" }, take: 100,
