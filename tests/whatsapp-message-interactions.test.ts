@@ -1,3 +1,4 @@
+import { groupMessageContent } from "../src/lib/whatsapp-group-message";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -71,6 +72,7 @@ test("reply and reaction actions validate the account and send original provider
     "@/lib/auth/guards": { requireModuleEdit: async () => ({ arenaId: "arena", userId: "user", userName: "Atendente" }) },
     "@/lib/whatsapp-active-account": { getActiveWhatsAppAccountJid: async () => "current" },
     "@/lib/whatsapp-message-data": { reactionEmojis },
+    "@/lib/whatsapp-group-message": { groupMessageContent },
     "@/lib/prisma": { prisma: { whatsAppMessage: { findFirst: async ({ where }: any) => where.id === target.id && where.conversation.arenaId === "arena" && where.conversation.accountJid === "current" && (!where.conversation.id || where.conversation.id === "conversation") ? target : null } } },
     "@/lib/rls": {},
     "@/lib/integrations/evolution/client": { sendEvolutionTextMessage: deliver("text"), sendEvolutionAudioMessage: deliver("audio"), sendEvolutionMediaMessage: deliver("media"), sendEvolutionReaction: deliver("reaction") },
@@ -130,4 +132,43 @@ test("reaction webhooks update the original message without incrementing unread 
   assert.equal(persisted[0][2], "original-provider");
   assert.equal(persisted[0][3], "contact@s.whatsapp.net");
   assert.equal(persisted[0][4], "❤️");
+});
+
+test("resolve SLA excludes group conversations at the server boundary", async () => {
+  const writes: any[] = [];
+  const actions = load("../src/lib/actions/whatsapp-chat.ts", {
+    "next/cache": { revalidatePath() {} },
+    "@/lib/auth/guards": { requireModuleEdit: async () => ({ arenaId: "arena" }) },
+    "@/lib/whatsapp-active-account": { getActiveWhatsAppAccountJid: async () => "current" },
+    "@/lib/whatsapp-message-data": { reactionEmojis },
+    "@/lib/whatsapp-group-message": { groupMessageContent },
+    "@/lib/prisma": { prisma: { whatsAppConversation: { updateMany: async (request: any) => { writes.push(request); return { count: request.where.id === "group" ? 0 : 1 }; } } } },
+    "@/lib/rls": {}, "@/lib/integrations/evolution/client": {}, "@/lib/services/whatsapp-conversation": {},
+  });
+  const form = new FormData(); form.set("conversationId", "group"); form.set("action", "resolve_sla");
+  await assert.rejects(actions.updateWhatsAppConversationAction(form), /apenas para conversas individuais/);
+  assert.equal(writes[0].where.remoteJid.not.endsWith, "@g.us");
+  assert.equal(writes[0].where.arenaId, "arena"); assert.equal(writes[0].where.accountJid, "current");
+  form.set("conversationId", "individual"); await actions.updateWhatsAppConversationAction(form);
+});
+
+test("incoming group messages persist structured participant names without changing the message body", async () => {
+  const stored: any[] = [];
+  const webhook = load("../src/app/api/integrations/evolution/webhook/route.ts", {
+    "next/server": { NextResponse: { json: (value: unknown) => value } }, "@prisma/client": {},
+    "@/lib/integrations/evolution/client": {}, "@/lib/integrations/evolution/groups": { readEvolutionGroupName },
+    "@/lib/payments/connection-secrets": { hashWebhookSecret: () => "hash" },
+    "@/lib/prisma": { prisma: {
+      whatsAppConnection: { findUnique: async () => ({ id: "connection", arenaId: "arena", webhookSecretHash: "hash", status: "CONNECTED", connectedPhone: "5511000000001@s.whatsapp.net" }) },
+      whatsAppConversation: { findUnique: async () => null, upsert: async () => ({ id: "group", profilePhotoUrl: "" }) },
+      whatsAppMessage: { upsert: async (request: any) => { stored.push(request); } },
+    } },
+    "@/lib/whatsapp-account": { normalizeWhatsAppAccountJid: (value: string) => value },
+    "@/lib/integrations/evolution/agency": {}, "@/lib/services/whatsapp-conversation": {},
+  });
+  const request = { nextUrl: { searchParams: new URLSearchParams("instance=test&secret=secret") }, headers: new Headers(), json: async () => ({ event: "MESSAGES_UPSERT", data: { groupName: "Grupo", pushName: "Ana", key: { remoteJid: "123@g.us", participant: "111@s.whatsapp.net", fromMe: false, id: "group-message" }, message: { conversation: "Horário: 18:30" } } }) };
+  await webhook.POST(request);
+  assert.equal(stored[0].create.senderName, "Ana"); assert.equal(stored[0].create.body, "Horário: 18:30");
+  assert.equal(stored[0].create.participantJid, "111@s.whatsapp.net");
+  assert.equal(Object.keys(stored[0].update).length, 0, "provider echoes must preserve existing staff attribution");
 });

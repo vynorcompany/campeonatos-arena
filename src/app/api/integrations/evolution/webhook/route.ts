@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
       const senderName = String(data.pushName ?? data.notifyName ?? key.participant ?? data.participant ?? "").trim();
       const eventGroupName = readEvolutionGroupName({ groupName: data.groupName, subject: data.subject, groupSubject: data.groupSubject, groupMetadata: data.groupMetadata }, remoteJid);
       const rawBody = messageBody(message, media);
-      const body = isGroup && !fromMe && senderName ? `${senderName}: ${rawBody}` : rawBody;
+      const body = rawBody;
       const sentAt = sentAtFrom(data);
       const phone = remoteJid.replace(/@.*$/, "");
       const resolvedGroupName = isGroup && !eventGroupName ? await getEvolutionGroupName(remoteJid, connection.arenaId).catch(() => "") : "";
@@ -114,14 +114,14 @@ export async function POST(request: NextRequest) {
       const quotedMessage = toRecord(context.quotedMessage);
       const original = quotedProviderId ? await prisma.whatsAppMessage.findFirst({ where: { providerId: quotedProviderId, conversation: conversationKey }, select: { body: true, direction: true, senderName: true } }) : null;
       const quotedBody = original?.body ?? (Object.keys(quotedMessage).length ? messageBody(quotedMessage, mediaDetails(quotedMessage)) : "");
-      const quotedAuthor = original?.direction === "OUTBOUND" ? original.senderName || "Você" : quotedProviderId ? "Contato" : "";
+      const quotedAuthor = original?.senderName || (original?.direction === "OUTBOUND" ? "Você" : quotedProviderId ? "Contato" : "");
       const existing = await prisma.whatsAppConversation.findUnique({ where: { arenaId_accountJid_remoteJid: conversationKey } });
       const conversation = await prisma.whatsAppConversation.upsert({ where: { arenaId_accountJid_remoteJid: conversationKey }, create: { ...conversationKey, contactPhone: phone, contactName: contactName || (isGroup ? "Grupo do WhatsApp" : phone), profilePhotoUrl: photoFromEvent, unreadCount: fromMe ? 0 : 1, lastMessageAt: sentAt }, update: { ...((isGroup || !fromMe) && contactName ? { contactName } : {}), ...(!isGroup && photoFromEvent ? { profilePhotoUrl: photoFromEvent } : {}), ...(fromMe ? { unreadCount: 0 } : { unreadCount: { increment: 1 } }), lastMessageAt: sentAt } });
       if (!conversation.profilePhotoUrl && !existing?.profilePhotoUrl && !remoteJid.endsWith("@g.us")) {
         const profilePhotoUrl = await getEvolutionProfilePicture(remoteJid, connection.arenaId).catch(() => "");
         if (profilePhotoUrl) await prisma.whatsAppConversation.update({ where: { id: conversation.id }, data: { profilePhotoUrl } });
       }
-      await prisma.whatsAppMessage.upsert({ where: { providerId }, create: { providerId, conversationId: conversation.id, direction: fromMe ? "OUTBOUND" : "INBOUND", body, participantJid: String(key.participant ?? data.participant ?? ""), quotedProviderId, quotedBody, quotedAuthor, mediaType: media.type, mediaMimeType: media.mimeType, mediaUrl: media.url, providerPayload: message as Prisma.InputJsonValue, sentAt }, update: {} });
+      await prisma.whatsAppMessage.upsert({ where: { providerId }, create: { providerId, conversationId: conversation.id, direction: fromMe ? "OUTBOUND" : "INBOUND", body, senderName: isGroup && !fromMe ? senderName : "", participantJid: String(key.participant ?? data.participant ?? ""), quotedProviderId, quotedBody, quotedAuthor, mediaType: media.type, mediaMimeType: media.mimeType, mediaUrl: media.url, providerPayload: message as Prisma.InputJsonValue, sentAt }, update: {} });
     }
   }
   return NextResponse.json({ received: true, arenaId: connection.arenaId });

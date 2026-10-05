@@ -11,6 +11,7 @@ export type WhatsAppMessage = {
   direction: string;
   body: string;
   senderName?: string;
+  participantJid?: string;
   quotedProviderId?: string;
   quotedBody?: string;
   quotedAuthor?: string;

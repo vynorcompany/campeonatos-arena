@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 import { getActiveWhatsAppAccountJid } from "@/lib/whatsapp-active-account";
 import { getArenaWhatsAppConversation, getEvolutionProviderId, persistOutboundWhatsAppMessage, persistWhatsAppReaction } from "@/lib/services/whatsapp-conversation";
+import { groupMessageContent } from "@/lib/whatsapp-group-message";
 import { reactionEmojis } from "@/lib/whatsapp-message-data";
 
 const sendSchema = z.object({ conversationId: z.string().min(1), body: z.string().trim().min(1, "Escreva uma mensagem.").max(4096, "A mensagem é muito longa.") });
@@ -33,7 +34,8 @@ async function replyContext(arenaId: string, conversationId: string, formData: F
     key: { id: target.providerId, remoteJid: target.conversation.remoteJid, fromMe: target.direction === "OUTBOUND", ...(target.participantJid ? { participant: target.participantJid } : {}) },
     message: target.providerPayload && typeof target.providerPayload === "object" && !Array.isArray(target.providerPayload) ? target.providerPayload as Record<string, unknown> : { conversation: target.body },
   };
-  return { quoted, metadata: { quotedProviderId: target.providerId, quotedBody: target.body, quotedAuthor: target.direction === "OUTBOUND" ? target.senderName || "Você" : target.conversation.contactName || "Contato" } };
+  const content = target.conversation.remoteJid.endsWith("@g.us") ? groupMessageContent(target) : { name: target.direction === "OUTBOUND" ? target.senderName || "Você" : target.conversation.contactName || "Contato", body: target.body };
+  return { quoted, metadata: { quotedProviderId: target.providerId, quotedBody: content.body, quotedAuthor: content.name } };
 }
 
 export async function reactToWhatsAppMessageAction(formData: FormData) {
@@ -131,8 +133,8 @@ export async function updateWhatsAppConversationAction(formData: FormData) {
     await prisma.whatsAppMessage.deleteMany({ where: { conversation: where } });
     await prisma.whatsAppConversation.updateMany({ where, data: { updatedAt: new Date() } });
   } else if (parsed.data.action === "resolve_sla") {
-    const updated = await prisma.whatsAppConversation.updateMany({ where, data: { slaResolvedAt: new Date(), unreadCount: 0 } });
-    if (!updated.count) throw new Error("Conversa não encontrada.");
+    const updated = await prisma.whatsAppConversation.updateMany({ where: { ...where, remoteJid: { not: { endsWith: "@g.us" } } }, data: { slaResolvedAt: new Date(), unreadCount: 0 } });
+    if (!updated.count) throw new Error("SLA disponível apenas para conversas individuais desta conta.");
   } else {
     const conversation = await prisma.whatsAppConversation.findFirst({ where, select: { pinned: true, favorite: true, archivedAt: true } });
     if (!conversation) throw new Error("Conversa não encontrada.");

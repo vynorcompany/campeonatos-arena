@@ -23,6 +23,8 @@ import { useAudioRecorder } from "./use-audio-recorder";
 import { useWhatsAppRealtime } from "./use-whatsapp-realtime";
 import { WhatsAppMessageBubble } from "./whatsapp-message-bubble";
 
+import { groupMessageContent, whatsAppSlaStatus } from "@/lib/whatsapp-group-message";
+
 const time = (value: string) => new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 const emojis = ["😀", "😁", "😂", "🥳", "😍", "😎", "🙏", "👍", "👋", "🎾", "🔥", "❤️"];
 const filterOptions: [WhatsAppFilter, string, WhatsAppIconName][] = [["all", "Conversas", "chat"], ["unread", "Não lidas", "mail"], ["groups", "Grupos", "users"], ["favorite", "Favoritas", "heart"], ["archived", "Arquivadas", "archive"]];
@@ -134,13 +136,8 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, con
   const matchedClient = useMemo(() => active && !active.remoteJid.endsWith("@g.us") ? clients.find((client) => normalizeBrazilianPhone(client.phone) === normalizeBrazilianPhone(active.contactPhone)) ?? null : null, [active, clients]);
   const clientOptions = useMemo(() => clientQuery.trim() ? clients.filter((client) => `${client.name} ${client.phone}`.toLowerCase().includes(clientQuery.toLowerCase())).slice(0, 8) : [], [clientQuery, clients]);
 
-  const slaStatus = (conversation: WhatsAppConversation) => {
-    const last = messagesFor(conversation).at(-1);
-    if (last?.direction !== "INBOUND" || (conversation.slaResolvedAt && new Date(conversation.slaResolvedAt).getTime() >= new Date(last.sentAt).getTime())) return "normal";
-    const elapsedMinutes = (Date.now() - new Date(last.sentAt || conversation.lastMessageAt).getTime()) / 60_000;
-    const limit = Number(slaValue) || slaMinutes;
-    return elapsedMinutes >= limit ? "overdue" : elapsedMinutes >= limit * .8 ? "warning" : "normal";
-  };
+  const slaStatus = (conversation: WhatsAppConversation) => whatsAppSlaStatus(conversation, messagesFor(conversation).at(-1), Number(slaValue) || slaMinutes);
+  const replyContent = (message: WhatsAppMessage) => active?.remoteJid.endsWith("@g.us") ? groupMessageContent(message) : { name: message.direction === "OUTBOUND" ? message.senderName || "Você" : active?.contactName || "Contato", body: message.body };
 
   useEffect(() => {
     if (active?.unreadCount) {
@@ -236,7 +233,7 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, con
     const text = body.trim();
     const reply = replyTo;
     const temporaryId = `local-${Date.now()}`;
-    const temporary: WhatsAppMessage = { id: temporaryId, direction: "OUTBOUND", senderName: currentUserName, body: text, quotedProviderId: reply?.id, quotedBody: reply?.body, quotedAuthor: reply?.direction === "OUTBOUND" ? reply.senderName || "Você" : active.contactName || "Contato", mediaType: "", mediaMimeType: "", mediaUrl: "", sentAt: new Date().toISOString() };
+    const temporary: WhatsAppMessage = { id: temporaryId, direction: "OUTBOUND", senderName: currentUserName, body: text, quotedProviderId: reply?.id, quotedBody: reply ? replyContent(reply).body : undefined, quotedAuthor: reply ? replyContent(reply).name : undefined, mediaType: "", mediaMimeType: "", mediaUrl: "", sentAt: new Date().toISOString() };
     const form = new FormData(); form.set("conversationId", active.id); form.set("body", text);
     if (reply) form.set("replyToId", reply.id);
     setLocalMessages((current) => ({ ...current, [active.id]: [...(current[active.id] ?? []), temporary] }));
@@ -312,7 +309,7 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, con
       <div className={viewStyles.whatsapp_filters} role="tablist" aria-label="Filtros de conversas">{filterOptions.map(([id, label, icon]) => <button key={id} type="button" className={cx(filter === id ? "is-active" : "")} onClick={() => setFilter(id)} title={label}><i><WhatsAppIcon name={icon} size={15} /></i><span>{label}</span></button>)}</div>
       <div className={viewStyles.whatsapp_list_tools}><label><span aria-hidden="true">⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Nome, telefone ou empresa" /></label></div>
       <div className={viewStyles.whatsapp_conversation_list}>{visible.map((conversation) => {
-        const last = messagesFor(conversation).at(-1); const status = slaStatus(conversation); const mayResolveSla = conversation.unreadCount === 0 && last?.direction === "INBOUND";
+        const last = messagesFor(conversation).at(-1); const status = slaStatus(conversation); const mayResolveSla = !conversation.remoteJid.endsWith("@g.us") && conversation.unreadCount === 0 && last?.direction === "INBOUND";
         return <div key={conversation.id} className={viewStyles.whatsapp_conversation_item}>
           <button type="button" className={cx(`${conversation.id === active?.id ? "is-active" : ""} ${status === "warning" ? "is-sla-warning" : ""} ${status === "overdue" ? "is-sla-overdue" : ""}`)} onClick={() => { setActiveId(conversation.id); setMenuId(""); }}><Avatar conversation={conversation} withinButton onExpand={setSelectedImage} /><span><strong>{whatsAppConversationName(conversation)}{conversation.pinned ? <b className={viewStyles.whatsapp_pin}><WhatsAppIcon name="pin" size={12} /></b> : null}</strong><small>{last?.body || "Sem mensagens"}</small>{status !== "normal" ? <em>{status === "overdue" ? "SLA atrasado" : "SLA próximo do limite"}</em> : null}</span><time>{time(conversation.lastMessageAt)}{conversation.unreadCount ? <b>{conversation.unreadCount}</b> : null}</time></button>
           <button className={viewStyles.whatsapp_menu_trigger} type="button" aria-label="Ações da conversa" aria-expanded={menuId === conversation.id} ref={menuId === conversation.id ? conversationMenuTrigger : undefined} onClick={() => { setActiveId(conversation.id); setMenuId(menuId === conversation.id ? "" : conversation.id); }}><WhatsAppIcon name="more" /></button>
@@ -322,14 +319,14 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, con
     </aside>
     <main className={viewStyles.whatsapp_chat_main}>{active ? <>
       <header><div><Avatar conversation={active} size="is-header" onExpand={setSelectedImage} /><span><strong>{whatsAppConversationName(active)}</strong><small>{active.remoteJid.endsWith("@g.us") ? "Grupo do WhatsApp" : formatWhatsAppPhone(active.contactPhone)}</small></span></div></header>
-      <div className={viewStyles.whatsapp_message_thread}>{activeMessages.map((message) => <WhatsAppMessageBubble key={message.id} message={message} accountJid={currentAccountJid} pending={pending} menuOpen={messageMenuId === message.id} onMenu={() => setMessageMenuId(messageMenuId === message.id ? "" : message.id)} onReply={() => { setReplyTo(message); setMessageMenuId(""); messageInput.current?.focus(); }} onReact={(emoji) => reactToMessage(message, emoji)} onImage={setSelectedImage} />)}</div>
+      <div className={viewStyles.whatsapp_message_thread}>{activeMessages.map((message) => <WhatsAppMessageBubble key={message.id} message={message} isGroup={active.remoteJid.endsWith("@g.us")} accountJid={currentAccountJid} pending={pending} menuOpen={messageMenuId === message.id} onMenu={() => setMessageMenuId(messageMenuId === message.id ? "" : message.id)} onReply={() => { setReplyTo(message); setMessageMenuId(""); messageInput.current?.focus(); }} onReact={(emoji) => reactToMessage(message, emoji)} onImage={setSelectedImage} />)}</div>
       <form className={viewStyles.whatsapp_composer} onSubmit={sendText} onKeyDown={(event) => {
         if (event.target instanceof HTMLTextAreaElement && event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229) {
           event.preventDefault();
           if (!event.repeat) event.currentTarget.requestSubmit();
         }
       }}>
-        {replyTo ? <div className={viewStyles.whatsapp_reply_preview}><div><strong>Respondendo a {replyTo.direction === "OUTBOUND" ? replyTo.senderName || "você" : active.contactName || "contato"}</strong><span>{replyTo.body || "Mensagem"}</span></div><button type="button" aria-label="Cancelar resposta" onClick={() => setReplyTo(null)}>×</button></div> : null}
+        {replyTo ? <div className={viewStyles.whatsapp_reply_preview}><div><strong>Respondendo a {replyContent(replyTo).name}</strong><span>{replyContent(replyTo).body || "Mensagem"}</span></div><button type="button" aria-label="Cancelar resposta" onClick={() => setReplyTo(null)}>×</button></div> : null}
         <input ref={fileInput} type="file" accept="image/*,.pdf" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) uploadFile(file); }} />
         <button type="button" className={viewStyles.whatsapp_composer_icon} title="Anexar imagem ou PDF" aria-label="Anexar imagem ou PDF" onClick={() => fileInput.current?.click()}><WhatsAppIcon name="paperclip" size={20} /></button>
         <button type="button" className={cx(`${viewStyles.whatsapp_composer_icon_whatsapp_record_button} ${recording ? "is-recording" : ""}`)} title={recording ? "Parar gravação" : "Gravar áudio"} aria-label={recording ? "Parar gravação" : "Gravar áudio"} onClick={() => recording ? stopRecording() : void startRecording()}><WhatsAppIcon name="microphone" /></button>
