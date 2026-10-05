@@ -9,3 +9,7 @@ Estas instruções se aplicam a todo o frontend deste projeto, incluindo sistema
 - Estilos inline são permitidos apenas para valores efetivamente calculados em execução, como coordenadas, dimensões de recorte e cores vindas de dados; use variáveis CSS quando adequado.
 - Preserve a identidade visual, a acessibilidade e os comportamentos existentes. Valide o layout renderizado em desktop e em viewport estreito.
 - Mantenha um teste de contrato que impeça o retorno de folhas de apresentação e de @apply global.
+
+## Novos menus e páginas
+
+Todo novo menu ou página deve seguir o padrão visual existente do sistema: componentes compartilhados, escala compacta, cores, tipografia e espaçamentos consistentes, apresentação em Tailwind e validação renderizada em desktop e celular. Os acessos da página inicial de um módulo devem corresponder aos da barra lateral, respeitando as permissões.

@@ -7,6 +7,9 @@ import {
   parseDate,
   parseMoneyToCents
 } from "@/lib/finance/inputs";
+import { employeePayrollSchema } from "@/lib/finance/employee-payroll";
+import { saveEmployeePayroll } from "@/lib/finance/employee-payroll-service";
+import { Prisma } from "@prisma/client";
 import { getFinancialEntryBalance } from "@/lib/finance/ledger";
 import { getDiscountedAmountCents } from "@/lib/finance/discounts";
 import { getCouponValues } from "@/lib/finance/coupons";
@@ -35,7 +38,6 @@ import {
   onlinePaymentSettingsSchema,
   paymentConnectionSchema,
   paymentSchema,
-  payrollSchema,
   planSchema,
   productCategorySchema,
   recurrenceSchema,
@@ -460,6 +462,7 @@ export async function settleFinancialEntryAction(formData: FormData) {
   const paidAt = parseDate(parsed.data.paidAt) ?? new Date();
 
   await withArenaTransaction(auth.arenaId, async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "FinancialEntry" WHERE id = ${parsed.data.entryId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
     const entry = await tx.financialEntry.findFirst({
       where: { id: parsed.data.entryId, arenaId: auth.arenaId, status: "PENDING" },
       include: { settlements: { select: { amountCents: true, interestCents: true } } }
@@ -507,6 +510,7 @@ export async function settleFinancialEntriesBulkAction(formData: FormData) {
 
   const paidAt = parseDate(parsed.data.paidAt) ?? new Date();
   const settledCount = await withArenaTransaction(auth.arenaId, async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "FinancialEntry" WHERE "arenaId" = ${auth.arenaId} AND id IN (${Prisma.join([...new Set(parsed.data.entryIds)])}) ORDER BY id FOR UPDATE`;
     const entries = await tx.financialEntry.findMany({
       where: { arenaId: auth.arenaId, id: { in: [...new Set(parsed.data.entryIds)] }, status: "PENDING", source: { not: "AGENCY_SUBSCRIPTION" } },
       include: { settlements: { select: { amountCents: true, interestCents: true } } }
@@ -922,122 +926,8 @@ export async function connectPaymentProviderAction(formData: FormData) {
 
 export async function upsertPayrollEntryAction(formData: FormData) {
   const auth = await requireModuleEdit("finance");
-  const parsed = payrollSchema.safeParse({
-    teacherId: formData.get("teacherId"),
-    referenceMonth: formData.get("referenceMonth"),
-    fixedSalary: formData.get("fixedSalary"),
-    classValue: formData.get("classValue"),
-    bonus: formData.get("bonus"),
-    discount: formData.get("discount"),
-    status: formData.get("status"),
-    notes: formData.get("notes")
-  });
-
-  if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
-  }
-
-  const { start, end, dueDate } = getReferenceMonthRange(parsed.data.referenceMonth);
-  const teacher = await prisma.teacher.findFirst({
-    where: {
-      id: parsed.data.teacherId,
-      arenaId: auth.arenaId
-    },
-    include: {
-      lessons: {
-        where: {
-          scheduledAt: {
-            gte: start,
-            lt: end
-          },
-          status: "COMPLETED"
-        }
-      }
-    }
-  });
-
-  if (!teacher) {
-    throw new Error("Professor não encontrado.");
-  }
-
-  const fixedSalaryCents = parseMoneyToCents(parsed.data.fixedSalary);
-  const classValueCents = parseMoneyToCents(parsed.data.classValue);
-  const bonusCents = parseMoneyToCents(parsed.data.bonus);
-  const discountCents = parseMoneyToCents(parsed.data.discount);
-  const totalCents = Math.max(
-    0,
-    fixedSalaryCents + teacher.lessons.length * classValueCents + bonusCents - discountCents
-  );
-  const description = `Folha ${teacher.name} - ${parsed.data.referenceMonth}`;
-
-  await withArenaTransaction(auth.arenaId, async (tx) => {
-    await tx.teacherPayrollEntry.upsert({
-      where: {
-        teacherId_referenceMonth: {
-          teacherId: teacher.id,
-          referenceMonth: parsed.data.referenceMonth
-        }
-      },
-      update: {
-        fixedSalaryCents,
-        classValueCents,
-        bonusCents,
-        discountCents,
-        paidCents: parsed.data.status === "PAID" ? totalCents : 0,
-        status: parsed.data.status,
-        notes: parsed.data.notes
-      },
-      create: {
-        arenaId: auth.arenaId,
-        teacherId: teacher.id,
-        referenceMonth: parsed.data.referenceMonth,
-        fixedSalaryCents,
-        classValueCents,
-        bonusCents,
-        discountCents,
-        paidCents: parsed.data.status === "PAID" ? totalCents : 0,
-        status: parsed.data.status,
-        notes: parsed.data.notes
-      }
-    });
-
-    const existingEntry = await tx.financialEntry.findFirst({
-      where: {
-        arenaId: auth.arenaId,
-        type: "EXPENSE",
-        category: "Folha de pagamento",
-        description
-      }
-    });
-
-    const entryData = {
-      amountCents: totalCents,
-      paymentMethod: "",
-      status: parsed.data.status,
-      dueDate,
-      paidAt: parsed.data.status === "PAID" ? new Date() : null,
-      notes: `Gerado pela folha. Aulas concluídas no mês: ${teacher.lessons.length}.`
-    };
-
-    if (existingEntry) {
-      await tx.financialEntry.update({
-        where: {
-          id: existingEntry.id
-        },
-        data: entryData
-      });
-    } else {
-      await tx.financialEntry.create({
-        data: {
-          arenaId: auth.arenaId,
-          type: "EXPENSE",
-          category: "Folha de pagamento",
-          description,
-          ...entryData
-        }
-      });
-    }
-  });
-
+  const parsed = employeePayrollSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  await withArenaTransaction(auth.arenaId, tx => saveEmployeePayroll(tx, auth.arenaId, parsed.data));
   refreshFinanceRoutes();
 }

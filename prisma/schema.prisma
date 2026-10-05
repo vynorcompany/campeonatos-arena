@@ -33,6 +33,7 @@ model User {
   systemRole            String                 @default("ADMIN")
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
+  employeePayrollEntries EmployeePayrollEntry[]
   sessions              Session[]
   accountActionTokens   AccountActionToken[]
   memberships           ArenaMember[]
@@ -170,6 +171,7 @@ model Arena {
   paymentMethodSettings             PaymentMethodSetting[]
   bankAccounts                      BankAccount[]
   suppliers                         Supplier[]
+  employeePayrollEntries            EmployeePayrollEntry[]
   payrollEntries                    TeacherPayrollEntry[]
   studentAssignments                TeacherStudent[]
   planAssignments                   TeacherPlan[]
@@ -2230,6 +2232,7 @@ model FinancialEntry {
   onlinePaymentItems       OnlinePaymentCheckoutItem[]
   fiscalDocument           FiscalDocument?
   agencyInvoice            AgencyInvoice?
+  employeePayroll          EmployeePayrollEntry?
 
   @@index([arenaId, type, status])
   @@index([arenaId, dueDate])
@@ -2446,4 +2449,31 @@ model TeacherPayrollEntry {
   @@unique([teacherId, referenceMonth])
   @@index([arenaId, referenceMonth])
   @@index([arenaId, status])
+}
+
+model EmployeePayrollEntry {
+  id                  String @id @default(cuid())
+  arenaId             String
+  userId              String?
+  employeeName        String
+  referenceMonth      String
+  fixedSalaryCents    Int @default(0)
+  monthlyMinutes      Int
+  overtimeMinutes     Int @default(0)
+  overtimePercentage  Int @default(50)
+  overtimeCents       Int @default(0)
+  bonusCents          Int @default(0)
+  benefitsCents       Int @default(0)
+  discountCents       Int @default(0)
+  advanceCents        Int @default(0)
+  notes               String @default("")
+  financialEntryId    String? @unique
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  arena               Arena @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  user                User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  financialEntry      FinancialEntry? @relation(fields: [financialEntryId], references: [id], onDelete: SetNull)
+
+  @@unique([arenaId, userId, referenceMonth])
+  @@index([arenaId, referenceMonth])
 }

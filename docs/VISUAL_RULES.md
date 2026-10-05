@@ -18,3 +18,7 @@ Antes de concluir uma alteração visual, compare a escala entre cabeçalho, aç
 Toda apresentação usa utilitários Tailwind com o prefixo `tw:`, no JSX ou em constantes locais e primitivas compartilhadas. Variantes responsivas e de estado ficam junto aos componentes. Não introduza CSS Modules, folhas de apresentação ou seletores globais com `@apply`.
 
 Reserve `globals.css` para os imports e a configuração do Tailwind, tokens de tema e keyframes. Valores realmente calculados em execução podem usar variáveis CSS ou estilos dinâmicos. Valide os estados, os formulários e o layout renderizado em desktop e em viewport estreito antes de publicar.
+
+## Novos menus e páginas
+
+Todo novo menu ou página deve seguir o padrão visual existente do sistema: componentes compartilhados, escala compacta, cores, tipografia e espaçamentos consistentes, apresentação em Tailwind e validação renderizada em desktop e celular. Os acessos da página inicial de um módulo devem corresponder aos da barra lateral, respeitando as permissões.

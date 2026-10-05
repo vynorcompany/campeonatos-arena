@@ -4,7 +4,7 @@ import { requireModuleView } from "@/lib/auth/guards";
 const areas = [
   ["Planos", "/financeiro/planos", "Cadastre pacotes e mensalidades."],
   ["Mensalidades", "/financeiro/mensalidades", "Vincule alunos a planos e registre pagamentos."],
-  ["Folha", "/financeiro/folha", "Calcule salários e despesas de professores."],
+  ["Folha", "/financeiro/folha", "Calcule salários, horas extras e pagamentos de funcionários."],
   ["Contas a Receber", "/financeiro/contas-a-receber", "Receba aulas, comandas, planos e demais receitas."],
   ["Contas a Pagar", "/financeiro/contas-a-pagar", "Gerencie fornecedores, custos e despesas da arena."],
   ["PDV/estoque", "/financeiro/pdv-estoque", "Veja vendas, estoque e movimentações."]
