@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./category-competition-form.utilities";
 
 import { useRef } from "react";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -28,18 +29,18 @@ export function CategoryCompetitionForm({
   pairRankings,
 }: CategoryCompetitionFormProps) {
   return (
-    <form action={createCategoryCompetitionAction} className="grid-form">
+    <form action={createCategoryCompetitionAction} className={viewStyles.grid_form}>
       <input type="hidden" name="categoryId" value={categoryId} />
 
-      <div className="field form-full">
+      <div className={viewStyles.field_form_full}>
         <strong>Configurar {categoryName}</strong>
-        <p className="muted">
+        <p className={viewStyles.muted}>
           Classe, gênero e formato ficam congelados depois que a competição é
           criada.
         </p>
       </div>
 
-      <div className="field">
+      <div className={viewStyles.field}>
         <label htmlFor={`class-${categoryId}`}>Classe</label>
         <select id={`class-${categoryId}`} name="class" required defaultValue="">
           <option value="">Selecione</option>
@@ -51,7 +52,7 @@ export function CategoryCompetitionForm({
         </select>
       </div>
 
-      <div className="field">
+      <div className={viewStyles.field}>
         <label htmlFor={`gender-${categoryId}`}>Gênero</label>
         <select id={`gender-${categoryId}`} name="gender" required>
           <option value="">Selecione</option>
@@ -63,7 +64,7 @@ export function CategoryCompetitionForm({
         </select>
       </div>
 
-      <div className="field">
+      <div className={viewStyles.field}>
         <label htmlFor={`format-${categoryId}`}>Formato</label>
         <select id={`format-${categoryId}`} name="format" defaultValue="LEAGUE">
           <option value="LEAGUE">Liga</option>
@@ -73,7 +74,7 @@ export function CategoryCompetitionForm({
         </select>
       </div>
 
-      <div className="field">
+      <div className={viewStyles.field}>
         <label htmlFor={`league-tier-${categoryId}`}>Nível da Liga</label>
         <select id={`league-tier-${categoryId}`} name="leagueTier" defaultValue="A">
           <option value="A">Liga A</option>
@@ -81,7 +82,7 @@ export function CategoryCompetitionForm({
         </select>
       </div>
 
-      <div className="field">
+      <div className={viewStyles.field}>
         <label htmlFor={`ranking-${categoryId}`}>Ranking de duplas</label>
         <select id={`ranking-${categoryId}`} name="rankingId" defaultValue="">
           <option value="">Sem ranking</option>
@@ -93,20 +94,20 @@ export function CategoryCompetitionForm({
         </select>
       </div>
 
-      <p className="muted form-full">
+      <p className={viewStyles.muted_form_full}>
         O Ranking Geral será alimentado conforme a configuração do ranking selecionado.
       </p>
 
-      <label className="field field-inline form-full">
+      <label className={viewStyles.field_form_full_2}>
         <input type="checkbox" name="isPublic" />
         <span>Exibir na página pública</span>
       </label>
 
-      <div className="field field-submit form-full">
+      <div className={viewStyles.field_field_submit_form_full}>
         <SubmitButton
           label="Criar competição da categoria"
           pendingLabel="Criando..."
-          className="button button-primary"
+          className={viewStyles.button_button_primary}
         />
       </div>
     </form>
@@ -124,7 +125,7 @@ export function CategoryPublicVisibilityForm({
   return (
     <form
       action={updateCategoryPublicVisibilityAction}
-      className="public-visibility-switch"
+      className={viewStyles.public_visibility_switch}
       ref={formRef}
     >
       <input type="hidden" name="competitionId" value={competitionId} />
@@ -138,7 +139,7 @@ export function CategoryPublicVisibilityForm({
         <span aria-hidden="true" />
         Exibir no App
       </label>
-      <button className="sr-only" type="submit" tabIndex={-1}>Salvar visibilidade</button>
+      <button className={viewStyles.sr_only} type="submit" tabIndex={-1}>Salvar visibilidade</button>
     </form>
   );
 }

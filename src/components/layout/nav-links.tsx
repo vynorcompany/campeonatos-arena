@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./nav-links.utilities";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useEffect, useState } from "react";
@@ -165,7 +167,7 @@ function NavIcon({ name }: { name: IconName }) {
     chevron: <path d="m9 18 6-6-6-6" />
   };
 
-  return <svg {...common} className={name === "whatsapp" ? "nav-svg-whatsapp" : undefined}>{paths[name]}</svg>;
+  return <svg {...common} className={cx(name === "whatsapp" ? "nav-svg-whatsapp" : undefined)}>{paths[name]}</svg>;
 }
 
 export function NavLinks({ canManageUsers, visibleModules, whatsappUnreadCount }: NavLinksProps) {
@@ -416,50 +418,50 @@ export function NavLinks({ canManageUsers, visibleModules, whatsappUnreadCount }
   }
 
   return (
-    <nav className="side-nav" aria-label="Principal">
+    <nav className={viewStyles.side_nav} aria-label="Principal">
       {filteredGroups.map((group) => (
-        <div className="nav-group" key={group.title}>
-          <p className="nav-group-label">{group.title}</p>
-          <div className="nav-group-links">
+        <div className={viewStyles.nav_group} key={group.title}>
+          <p className={viewStyles.nav_group_label}>{group.title}</p>
+          <div className={viewStyles.nav_group_links}>
             {group.links.map((item) => {
               const isActive = itemIsActive(item);
               const isOpen = openItems.has(item.href);
 
               return (
-                <div className="nav-link-block" key={item.href}>
-                  <div className="nav-parent-row">
+                <div className={viewStyles.nav_link_block} key={item.href}>
+                  <div className={viewStyles.nav_parent_row}>
                     {item.children?.length ? (
-                      <div className="nav-expandable-row">
-                        <Link href={item.href} className={`nav-link nav-link-destination${isActive ? " nav-link-active" : ""}`}>
-                          <span className="nav-icon" aria-hidden="true">{item.icon ? <NavIcon name={item.icon} /> : null}</span>
+                      <div className={viewStyles.nav_expandable_row}>
+                        <Link href={item.href} className={cx(`${viewStyles.nav_link_nav_link_destination}${isActive ? " " + viewStyles.nav_link_active : ""}`)}>
+                          <span className={viewStyles.nav_icon} aria-hidden="true">{item.icon ? <NavIcon name={item.icon} /> : null}</span>
                           <span>{item.label}</span>{item.badge ? <b className="nav-unread-badge tw:ml-auto tw:min-w-[17px] tw:rounded-full tw:bg-[#d83932] tw:px-[5px] tw:py-px tw:text-center tw:text-[.62rem] tw:leading-[1.45] tw:text-white" role="status" aria-label={`${item.badge} mensagens não lidas`}>{item.badge > 99 ? "99+" : item.badge}</b> : null}
                         </Link>
-                        <button className="nav-toggle nav-expand-toggle" type="button" aria-label={isOpen ? `Fechar submenu ${item.label}` : `Abrir submenu ${item.label}`} aria-expanded={isOpen} onClick={() => toggleItem(item.href)}>
-                          <span className={`nav-chevron${isOpen ? " nav-chevron-open" : ""}`} aria-hidden="true"><NavIcon name="chevron" /></span>
+                        <button className={viewStyles.nav_toggle_nav_expand_toggle} type="button" aria-label={isOpen ? `Fechar submenu ${item.label}` : `Abrir submenu ${item.label}`} aria-expanded={isOpen} onClick={() => toggleItem(item.href)}>
+                          <span className={cx(`${viewStyles.nav_chevron}${isOpen ? " " + viewStyles.nav_chevron_open : ""}`)} aria-hidden="true"><NavIcon name="chevron" /></span>
                         </button>
                       </div>
                     ) : (
-                      <Link href={item.href} className={`nav-link${isActive ? " nav-link-active" : ""}${item.href === "/pdv/caixa" ? " nav-link-cash" : ""}`}>
-                        <span className="nav-icon" aria-hidden="true">{item.icon ? <NavIcon name={item.icon} /> : null}</span>
+                      <Link href={item.href} className={cx(`${viewStyles.nav_link}${isActive ? " " + viewStyles.nav_link_active : ""}${item.href === "/pdv/caixa" ? " nav-link-cash" : ""}`)}>
+                        <span className={viewStyles.nav_icon} aria-hidden="true">{item.icon ? <NavIcon name={item.icon} /> : null}</span>
                         <span>{item.label}</span>{item.badge ? <b className="nav-unread-badge tw:ml-auto tw:min-w-[17px] tw:rounded-full tw:bg-[#d83932] tw:px-[5px] tw:py-px tw:text-center tw:text-[.62rem] tw:leading-[1.45] tw:text-white" role="status" aria-label={`${item.badge} mensagens não lidas`}>{item.badge > 99 ? "99+" : item.badge}</b> : null}
                       </Link>
                     )}
                   </div>
                   {item.children?.length ? (
-                    <div className={`nav-submenu${isOpen ? " nav-submenu-open" : ""}`}>
+                    <div className={cx(`${viewStyles.nav_submenu}${isOpen ? " " + viewStyles.nav_submenu_open : ""}`)}>
                       {item.children.map((child) => (
                         child.children?.length ? <div className="nav-submenu-block" key={child.href}>
-                          <div className="nav-expandable-row nav-expandable-row-nested">
-                            <Link href={child.href} className={`nav-sub-link nav-sub-link-destination${itemIsActive(child) ? " nav-sub-link-active" : ""}`}>{child.label}</Link>
-                            <button type="button" className="nav-toggle nav-expand-toggle" aria-label={openItems.has(child.href) ? `Fechar submenu ${child.label}` : `Abrir submenu ${child.label}`} onClick={() => toggleItem(child.href)} aria-expanded={openItems.has(child.href)}><span className={`nav-chevron${openItems.has(child.href) ? " nav-chevron-open" : ""}`} aria-hidden="true"><NavIcon name="chevron" /></span></button>
+                          <div className={viewStyles.nav_expandable_row_nav_expandable_row_nested}>
+                            <Link href={child.href} className={cx(`${viewStyles.nav_sub_link_nav_sub_link_destination}${itemIsActive(child) ? " " + viewStyles.nav_sub_link_active : ""}`)}>{child.label}</Link>
+                            <button type="button" className={viewStyles.nav_toggle_nav_expand_toggle} aria-label={openItems.has(child.href) ? `Fechar submenu ${child.label}` : `Abrir submenu ${child.label}`} onClick={() => toggleItem(child.href)} aria-expanded={openItems.has(child.href)}><span className={cx(`${viewStyles.nav_chevron}${openItems.has(child.href) ? " " + viewStyles.nav_chevron_open : ""}`)} aria-hidden="true"><NavIcon name="chevron" /></span></button>
                           </div>
-                          <div className={`nav-submenu nav-submenu-nested${openItems.has(child.href) ? " nav-submenu-open" : ""}`}>
-                            {child.children.map((grandchild) => <Link key={grandchild.href} href={grandchild.href} className={`nav-sub-link nav-sub-link-nested${isActivePath(pathname, grandchild.href) ? " nav-sub-link-active" : ""}`}>{grandchild.label}</Link>)}
+                          <div className={cx(`${viewStyles.nav_submenu_nav_submenu_nested}${openItems.has(child.href) ? " " + viewStyles.nav_submenu_open : ""}`)}>
+                            {child.children.map((grandchild) => <Link key={grandchild.href} href={grandchild.href} className={cx(`${viewStyles.nav_sub_link_nav_sub_link_nested}${isActivePath(pathname, grandchild.href) ? " " + viewStyles.nav_sub_link_active : ""}`)}>{grandchild.label}</Link>)}
                           </div>
                         </div> : <Link
                           key={child.href}
                           href={child.href}
-                          className={`nav-sub-link${isActivePath(pathname, child.href) ? " nav-sub-link-active" : ""}`}
+                          className={cx(`${viewStyles.nav_sub_link}${isActivePath(pathname, child.href) ? " " + viewStyles.nav_sub_link_active : ""}`)}
                         >
                           {child.label}
                         </Link>

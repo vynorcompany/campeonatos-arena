@@ -1,3 +1,5 @@
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./public-doubles-radar.utilities";
 import Link from "next/link";
 import { PlayerAvatar } from "@/components/player-avatar";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
@@ -46,49 +48,49 @@ export function PublicDoublesRadar({
   const availableGenders = [...new Set([...radarGenders, ...radar.genders])];
   const availableCategories = [...new Set([...radarCategories, ...radar.categories])];
 
-  return <section className="athlete-portal-content-panel doubles-radar">
-    <header className="doubles-radar-hero">
+  return <section className={viewStyles.athlete_portal_content_panel_doubles_radar}>
+    <header className={viewStyles.doubles_radar_hero}>
       <span>RADAR DE DUPLAS</span>
       <h2>Encontre seu parceiro de torneio</h2>
       <p>Filtre atletas da arena e conheça o jogo de quem está pronto para entrar em quadra.</p>
       <RadarIcon icon="ball" />
     </header>
 
-    {radar.selectedAthlete ? <section className="doubles-radar-profile">
-      <Link href={href({ gender: selectedGender, category: selectedCategory })} className="doubles-radar-back">← Voltar ao Radar</Link>
-      <PlayerAvatar className="doubles-radar-profile-avatar" photoUrl={radar.selectedAthlete.photoUrl} name={radar.selectedAthlete.name} />
-      <div><span className="doubles-radar-availability">{radar.selectedAthlete.availability === "LOOKING_FOR_PARTNER" ? "Procurando dupla" : "Disponível para torneio"}</span><h3>{radar.selectedAthlete.name}</h3><p>Perfil esportivo disponível para atletas da {" "}arena.</p></div>
+    {radar.selectedAthlete ? <section className={viewStyles.doubles_radar_profile}>
+      <Link href={href({ gender: selectedGender, category: selectedCategory })} className={viewStyles.doubles_radar_back}>← Voltar ao Radar</Link>
+      <PlayerAvatar className={viewStyles.doubles_radar_profile_avatar} photoUrl={radar.selectedAthlete.photoUrl} name={radar.selectedAthlete.name} />
+      <div><span className={viewStyles.doubles_radar_availability}>{radar.selectedAthlete.availability === "LOOKING_FOR_PARTNER" ? "Procurando dupla" : "Disponível para torneio"}</span><h3>{radar.selectedAthlete.name}</h3><p>Perfil esportivo disponível para atletas da {" "}arena.</p></div>
       <dl><div><dt>Categorias</dt><dd>{radar.selectedAthlete.categories.join(" · ")}</dd></div><div><dt>Gênero</dt><dd>{radar.selectedAthlete.gender || "Não informado"}</dd></div><div><dt>Lado de jogo</dt><dd>{sideLabel[radar.selectedAthlete.padelSide] ?? "Ainda não informado"}</dd></div></dl>
-      <SafeActionForm action={requestDoublesPartnerAction} className="doubles-radar-request" successMessage="Solicitação enviada. O atleta verá o aviso no Portal."><input type="hidden" name="arenaSlug" value={arenaSlug} /><input type="hidden" name="targetPlayerId" value={radar.selectedAthlete.id} /><SubmitButton label="Convidar para formar dupla" pendingLabel="Enviando..." className="button button-primary button-small" /></SafeActionForm>
-      <p className="doubles-radar-profile-note">Os dados de contato continuam protegidos. O convite será entregue como notificação no Portal do atleta.</p>
+      <SafeActionForm action={requestDoublesPartnerAction} className={viewStyles.doubles_radar_request} successMessage="Solicitação enviada. O atleta verá o aviso no Portal."><input type="hidden" name="arenaSlug" value={arenaSlug} /><input type="hidden" name="targetPlayerId" value={radar.selectedAthlete.id} /><SubmitButton label="Convidar para formar dupla" pendingLabel="Enviando..." className={viewStyles.button_button_primary_button_small} /></SafeActionForm>
+      <p className={viewStyles.doubles_radar_profile_note}>Os dados de contato continuam protegidos. O convite será entregue como notificação no Portal do atleta.</p>
     </section> : <>
-      <section className={`doubles-radar-status is-${currentAvailability.toLowerCase()}`}>
+      <section className={cx(`${viewStyles.doubles_radar_status} is-${currentAvailability.toLowerCase()}`)}>
         <div><span aria-hidden="true"><RadarIcon icon="radar" /></span><div><strong>{current.title}</strong><p>{current.detail}</p></div></div>
         <SafeActionForm action={updateTournamentAvailabilityAction} successMessage="Seu status no Radar foi atualizado.">
           <input type="hidden" name="arenaSlug" value={arenaSlug} />
           <input type="hidden" name="tournamentAvailability" value={nextStatus} />
-          <SubmitButton label={current.action} pendingLabel="Atualizando..." className="button button-primary button-small" />
+          <SubmitButton label={current.action} pendingLabel="Atualizando..." className={viewStyles.button_button_primary_button_small} />
         </SafeActionForm>
       </section>
 
-      {radar.notifications.length ? <section className="doubles-radar-notifications" aria-label="Pedidos de dupla recebidos">
+      {radar.notifications.length ? <section className={viewStyles.doubles_radar_notifications} aria-label="Pedidos de dupla recebidos">
         <strong>Pedidos recebidos</strong>
         {radar.notifications.map((notification) => <article key={notification.id}><span aria-hidden="true"><RadarIcon icon="radar" /></span><div><b>{notification.title}</b><p>{notification.message}</p></div></article>)}
       </section> : null}
 
-      <form className="doubles-radar-filters" method="get">
+      <form className={viewStyles.doubles_radar_filters} method="get">
         <input type="hidden" name="section" value="radar" />
         <strong><RadarIcon icon="filter" /> Filtrar atletas</strong>
         <label>Sexo<select name="radarGender" defaultValue={selectedGender ?? ""}><option value="">Todos</option>{availableGenders.map((gender) => <option key={gender} value={gender}>{gender}</option>)}</select></label>
         <label>Categoria<select name="radarCategory" defaultValue={selectedCategory ?? ""}><option value="">Todas</option>{availableCategories.map((category) => <option key={category} value={category}>{category}</option>)}</select></label>
-        <div><button className="button button-primary button-small" type="submit">Filtrar</button>{selectedGender || selectedCategory ? <Link className="button button-small" href={href({})}>Limpar</Link> : null}</div>
+        <div><button className={viewStyles.button_button_primary_button_small} type="submit">Filtrar</button>{selectedGender || selectedCategory ? <Link className={viewStyles.button_button_small} href={href({})}>Limpar</Link> : null}</div>
       </form>
-      <div className="doubles-radar-list"><header><strong>Atletas encontrados</strong><span>{radar.athletes.length} atleta{radar.athletes.length === 1 ? "" : "s"}</span></header>
+      <div className={viewStyles.doubles_radar_list}><header><strong>Atletas encontrados</strong><span>{radar.athletes.length} atleta{radar.athletes.length === 1 ? "" : "s"}</span></header>
         {radar.athletes.length ? radar.athletes.map((athlete) => <article key={athlete.id}>
-          <PlayerAvatar className="doubles-radar-avatar" photoUrl={athlete.photoUrl} name={athlete.name} />
-          <div className="doubles-radar-athlete-copy"><div><strong>{athlete.name}</strong><span className="doubles-radar-availability">{athlete.availability === "LOOKING_FOR_PARTNER" ? "Procurando dupla" : "Disponível"}</span></div><p>{athlete.categories.join(" · ")} · {athlete.gender || "Gênero não informado"}</p><small>{sideLabel[athlete.padelSide] ?? "Lado de jogo não informado"}</small></div>
-          <Link className="button button-small" href={href({ gender: selectedGender, category: selectedCategory, athleteId: athlete.id })}>Ver perfil</Link>
-        </article>) : <div className="doubles-radar-empty"><strong>Nenhum atleta encontrado</strong><span>Tente ampliar os filtros ou aguarde novos atletas entrarem no radar.</span></div>}
+          <PlayerAvatar className={viewStyles.doubles_radar_avatar} photoUrl={athlete.photoUrl} name={athlete.name} />
+          <div className={viewStyles.doubles_radar_athlete_copy}><div><strong>{athlete.name}</strong><span className={viewStyles.doubles_radar_availability}>{athlete.availability === "LOOKING_FOR_PARTNER" ? "Procurando dupla" : "Disponível"}</span></div><p>{athlete.categories.join(" · ")} · {athlete.gender || "Gênero não informado"}</p><small>{sideLabel[athlete.padelSide] ?? "Lado de jogo não informado"}</small></div>
+          <Link className={viewStyles.button_button_small} href={href({ gender: selectedGender, category: selectedCategory, athleteId: athlete.id })}>Ver perfil</Link>
+        </article>) : <div className={viewStyles.doubles_radar_empty}><strong>Nenhum atleta encontrado</strong><span>Tente ampliar os filtros ou aguarde novos atletas entrarem no radar.</span></div>}
       </div>
     </>}
   </section>;
@@ -100,5 +102,5 @@ function RadarIcon({ icon }: { icon: "radar" | "ball" | "filter" }) {
     ball: <><circle cx="12" cy="12" r="8.5" /><path d="M5.2 6.8c2.4 1.1 4 3.1 4.4 5.5.4 2.4-.5 4.7-2.3 6.3M18.8 17.2c-2.4-1.1-4-3.1-4.4-5.5-.4-2.4.5-4.7 2.3-6.3" /></>,
     filter: <><path d="M3 5h18l-7 8v5l-4 2v-7L3 5Z" /></>,
   };
-  return <svg className={`doubles-radar-icon is-${icon}`} viewBox="0 0 24 24" aria-hidden="true">{shapes[icon]}</svg>;
+  return <svg className={cx(`${viewStyles.doubles_radar_icon} is-${icon}`)} viewBox="0 0 24 24" aria-hidden="true">{shapes[icon]}</svg>;
 }

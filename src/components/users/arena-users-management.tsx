@@ -1,3 +1,4 @@
+import { viewStyles } from "./arena-users-management.utilities";
 import { ArenaUserForm } from "@/components/forms/arena-user-form";
 import { SectionCard } from "@/components/section-card";
 import { UserActionsCell } from "@/components/users/user-actions-cell";
@@ -26,15 +27,15 @@ export async function ArenaUsersManagement({ arenaId, currentUserId, query = "" 
   ]);
 
   return (
-    <div className="stack-md">
+    <div className={viewStyles.stack_md}>
       <SectionCard title="Usuários" description="Cada acesso pertence a esta arena. Novos usuários definem a própria senha por um convite enviado ao e-mail.">
-        <details className="setting-create-panel">
-          <summary className="button button-primary button-small">Convidar usuário</summary>
+        <details className={viewStyles.setting_create_panel}>
+          <summary className={viewStyles.button_button_primary_button_small}>Convidar usuário</summary>
           <div><ArenaUserForm profiles={profiles.map((profile) => ({ id: profile.id, name: profile.name }))} /></div>
         </details>
-        <form method="GET" action="/usuarios" className="user-search-form" role="search"><label htmlFor="user-search">Buscar por nome ou e-mail</label><div><input id="user-search" name="q" type="search" defaultValue={query} placeholder="Nome ou e-mail" /><button className="button button-small" type="submit">Buscar</button>{query ? <a className="button button-small" href="/usuarios">Limpar</a> : null}</div></form>
-        <p className="muted">{members.length} {members.length === 1 ? "usuário encontrado" : "usuários encontrados"}</p>
-        <div className="user-table-scroll"><table className="data-table">
+        <form method="GET" action="/usuarios" className={viewStyles.user_search_form} role="search"><label htmlFor="user-search">Buscar por nome ou e-mail</label><div><input id="user-search" name="q" type="search" defaultValue={query} placeholder="Nome ou e-mail" /><button className={viewStyles.button_button_small} type="submit">Buscar</button>{query ? <a className={viewStyles.button_button_small} href="/usuarios">Limpar</a> : null}</div></form>
+        <p className={viewStyles.muted}>{members.length} {members.length === 1 ? "usuário encontrado" : "usuários encontrados"}</p>
+        <div className={viewStyles.user_table_scroll}><table className={viewStyles.data_table}>
           <thead>
             <tr>
               <th>Usuário</th>
@@ -47,7 +48,7 @@ export async function ArenaUsersManagement({ arenaId, currentUserId, query = "" 
               <tr key={member.id}>
                 <td>
                   <strong>{member.user.name}</strong>
-                  <span className="table-subtext">{member.user.email}</span>
+                  <span className={viewStyles.table_subtext}>{member.user.email}</span>
                 </td>
                 <td>{member.permissionProfile?.name ?? "Acesso legado"}</td>
                 <td>
@@ -67,9 +68,9 @@ export async function ArenaUsersManagement({ arenaId, currentUserId, query = "" 
             ))}
           </tbody>
         </table></div>
-        {!members.length ? <p className="muted">Nenhum usuário corresponde à busca nesta arena.</p> : null}
+        {!members.length ? <p className={viewStyles.muted}>Nenhum usuário corresponde à busca nesta arena.</p> : null}
       </SectionCard>
-      {invites.length ? <SectionCard title="Convites pendentes" description="O link de convite expira em 48 horas."><div className="user-invites-list">{invites.map((invite) => <article key={invite.id} className="user-invite-row"><div><strong>{invite.name}</strong><span>{invite.email}</span></div><span>Válido até {new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(invite.expiresAt)}</span><SafeActionForm action={revokeArenaInviteAction} successMessage="Convite revogado."><input type="hidden" name="inviteId" value={invite.id} /><button type="submit" className="button button-small">Revogar</button></SafeActionForm></article>)}</div></SectionCard> : null}
+      {invites.length ? <SectionCard title="Convites pendentes" description="O link de convite expira em 48 horas."><div className={viewStyles.user_invites_list}>{invites.map((invite) => <article key={invite.id} className={viewStyles.user_invite_row}><div><strong>{invite.name}</strong><span>{invite.email}</span></div><span>Válido até {new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(invite.expiresAt)}</span><SafeActionForm action={revokeArenaInviteAction} successMessage="Convite revogado."><input type="hidden" name="inviteId" value={invite.id} /><button type="submit" className={viewStyles.button_button_small}>Revogar</button></SafeActionForm></article>)}</div></SectionCard> : null}
     </div>
   );
 }

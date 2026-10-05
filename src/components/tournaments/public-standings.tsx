@@ -1,3 +1,5 @@
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./public-standings.utilities";
 import Link from "next/link";
 import { PublicBookingContent } from "@/components/public-booking-content";
 import type { ArenaPublicStandings, PublicArenaShell } from "@/lib/services/public-standings";
@@ -113,9 +115,9 @@ export function PublicStandings({
     super12Id?: string,
   ) => `/home?arena=${encodeURIComponent(arena.slug)}&${portalQuery(section, leagueTab, teacherId, leagueCategoryId, eventTab, super12Id).slice(1)}`;
   const publicHeader = (
-    <header className="athlete-portal-hero">
-      <div className="athlete-portal-hero-inner">
-        <div className="athlete-portal-brand">
+    <header className={viewStyles.athlete_portal_hero}>
+      <div className={viewStyles.athlete_portal_hero_inner}>
+        <div className={viewStyles.athlete_portal_brand}>
           {arena.athletePortalLogoUrl || arena.logoUrl ? (
             <img
               className="athlete-portal-arena-logo"
@@ -123,38 +125,38 @@ export function PublicStandings({
               alt={`Logo da arena ${arena.name}`}
             />
           ) : (
-            <span className="athlete-portal-mark" aria-hidden="true">
+            <span className={viewStyles.athlete_portal_mark} aria-hidden="true">
               {arena.name.slice(0, 2).toUpperCase()}
             </span>
           )}
-          <div className="athlete-portal-brand-copy">
-            <span className="athlete-portal-arena-name">{arena.name}</span>
-            <h1 className="sr-only">Portal do Atleta</h1>
+          <div className={viewStyles.athlete_portal_brand_copy}>
+            <span className={viewStyles.athlete_portal_arena_name}>{arena.name}</span>
+            <h1 className={viewStyles.sr_only}>Portal do Atleta</h1>
             <AthletePortalWordmark />
           </div>
         </div>
         {currentClient ? (
-          <div className="athlete-portal-user-area">
-            <div className="athlete-portal-user">
+          <div className={viewStyles.athlete_portal_user_area}>
+            <div className={viewStyles.athlete_portal_user}>
               <PlayerAvatar
-                className={`athlete-portal-user-avatar${notifications.some((notification) => "persistent" in notification && notification.persistent) ? " is-overdue" : ""}`}
+                className={cx(`${viewStyles.athlete_portal_user_avatar}${notifications.some((notification) => "persistent" in notification && notification.persistent) ? " is-overdue" : ""}`)}
                 photoUrl={currentClient.photoUrl}
                 name={currentClient.name}
               />
-              <div className="athlete-portal-user-copy">
+              <div className={viewStyles.athlete_portal_user_copy}>
                 <span>Área do atleta</span>
-                <strong className="athlete-portal-greeting">
+                <strong className={viewStyles.athlete_portal_greeting}>
                   {currentClient.name}
                 </strong>
               </div>
-              <details className="athlete-portal-arena-switcher">
+              <details className={viewStyles.athlete_portal_arena_switcher}>
                 <summary aria-label="Trocar de arena" title="Trocar de arena"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5" /><path d="M20 12a8 8 0 0 0-14.6-4.6L4 9" /><path d="M4 17v-5h5" /><path d="M4 12a8 8 0 0 0 14.6 4.6L20 15" /></svg></summary>
                 <div><Link href="/portal"><b>Minhas arenas</b></Link>{athleteArenas.filter((entry) => entry.slug !== arena.slug).map((entry) => <Link href={`/classificacao/${entry.slug}`} key={entry.slug}>{entry.logoUrl ? <img src={entry.logoUrl} alt="" /> : null}<span>{entry.name}</span></Link>)}</div>
               </details>
-              <Link className="athlete-portal-profile-link" href={portalHref("profile")}>
+              <Link className={viewStyles.athlete_portal_profile_link} href={portalHref("profile")}>
                 Meu perfil
               </Link>
-              <form action={logoutAthletePortalAction} className="athlete-portal-logout"><input type="hidden" name="arenaSlug" value={arena.slug} /><button type="submit">Sair</button></form>
+              <form action={logoutAthletePortalAction} className={viewStyles.athlete_portal_logout}><input type="hidden" name="arenaSlug" value={arena.slug} /><button type="submit">Sair</button></form>
             </div>
             <AthletePortalNotifications arenaSlug={arena.slug} notifications={notifications} />
           </div>
@@ -208,18 +210,18 @@ export function PublicStandings({
   ];
 
   return (
-    <main className="athlete-portal-page">
+    <main className={viewStyles.athlete_portal_page}>
       {publicHeader}
       <AthletePortalPrefetch hrefs={[portalHref("home"), portalHref("announcements"), portalHref("leagues", "games"), portalHref("lessons"), portalHref("profile"), portalHref("radar"), portalHref("comandas")]} />
-      {requestedSection !== "home" ? <div className="athlete-portal-back"><Link href={portalHref("home")}>← Voltar ao início</Link></div> : null}
+      {requestedSection !== "home" ? <div className={viewStyles.athlete_portal_back}><Link href={portalHref("home")}>← Voltar ao início</Link></div> : null}
       {requestedSection === "lessons" || requestedSection === "classes" ? (
         <nav
-          className="athlete-portal-league-nav athlete-portal-lessons-nav athlete-portal-learning-tabs"
+          className={viewStyles.athlete_portal_league_nav_athlete_portal_learning_tabs}
           aria-label="Menu de aulas"
         >
           {portalVisibility.athletePortalShowLessons ? (
             <Link
-              className={requestedSection === "lessons" ? "active" : ""}
+              className={cx(requestedSection === "lessons" ? "active" : "")}
               href={portalHref("lessons")}
             >
               <EventNavIcon icon="calendar" /><span>Minhas aulas</span>
@@ -227,7 +229,7 @@ export function PublicStandings({
           ) : null}
           {portalVisibility.athletePortalShowClasses ? (
             <Link
-              className={requestedSection === "classes" ? "active" : ""}
+              className={cx(requestedSection === "classes" ? "active" : "")}
               href={portalHref("classes")}
             >
               <EventNavIcon icon="players" /><span>Turmas</span>
@@ -236,16 +238,16 @@ export function PublicStandings({
         </nav>
       ) : null}
       {requestedSection === "profile" || requestedSection === "finance" || requestedSection === "comandas" ? (
-        <nav className="athlete-portal-league-nav" aria-label="Menu do meu perfil">
-          <Link className={requestedSection === "profile" ? "active" : ""} href={portalHref("profile")}>Dados pessoais</Link>
-          <Link className={requestedSection === "finance" ? "active" : ""} href={portalHref("finance")}>Finanças</Link>
-          <Link className={requestedSection === "comandas" ? "active" : ""} href={portalHref("comandas")}>Minhas comandas</Link>
+        <nav className={viewStyles.athlete_portal_league_nav} aria-label="Menu do meu perfil">
+          <Link className={cx(requestedSection === "profile" ? "active" : "")} href={portalHref("profile")}>Dados pessoais</Link>
+          <Link className={cx(requestedSection === "finance" ? "active" : "")} href={portalHref("finance")}>Finanças</Link>
+          <Link className={cx(requestedSection === "comandas" ? "active" : "")} href={portalHref("comandas")}>Minhas comandas</Link>
         </nav>
       ) : null}
       {requestedSection === "home" ? (
         <ClientHomePanel home={home} name={currentClient.name} arenaSlug={arena.slug} shortcuts={homeShortcuts} />
       ) : requestedSection === "announcements" ? (
-        <section className="athlete-portal-content-panel portal-announcements-feed"><header><span>AVISOS DA ARENA</span><h2>Feed de avisos</h2></header>{home!.announcements.length ? home!.announcements.map((announcement) => <article key={announcement.id}>{announcement.pinned ? <span className="portal-announcement-pinned">Fixado</span> : null}<strong>{announcement.title}</strong><p><PortalRichText text={announcement.message} /></p>{announcement.linkUrl ? <a className="portal-announcement-link" href={announcement.linkUrl} target="_blank" rel="noreferrer">Abrir link <span aria-hidden="true">↗</span></a> : null}</article>) : <p className="muted">A arena ainda não divulgou avisos.</p>}</section>
+        <section className={viewStyles.athlete_portal_content_panel_portal_announcements_feed}><header><span>AVISOS DA ARENA</span><h2>Feed de avisos</h2></header>{home!.announcements.length ? home!.announcements.map((announcement) => <article key={announcement.id}>{announcement.pinned ? <span className={viewStyles.portal_announcement_pinned}>Fixado</span> : null}<strong>{announcement.title}</strong><p><PortalRichText text={announcement.message} /></p>{announcement.linkUrl ? <a className={viewStyles.portal_announcement_link} href={announcement.linkUrl} target="_blank" rel="noreferrer">Abrir link <span aria-hidden="true">↗</span></a> : null}</article>) : <p className={viewStyles.muted}>A arena ainda não divulgou avisos.</p>}</section>
       ) : requestedSection === "finance" ? (
         <ClientFinancePanel finance={finance} arenaSlug={arena.slug} tab={financeTab} />
       ) : requestedSection === "comandas" ? (
@@ -260,28 +262,28 @@ export function PublicStandings({
         />
       ) : requestedSection === "leagues" ? (
         <>
-          <section className="athlete-portal-events-shell">
-          <nav className="athlete-portal-events-nav" aria-label="Menu de Eventos">
-            <Link className={selectedEventTab === "leagues" ? "active" : ""} href={portalHref("leagues", "games", undefined, leagueCategoryId, "leagues")}><EventNavIcon icon="trophy" /><span><strong>Torneios</strong><small>Competições regulares</small></span></Link>
-            <Link className={selectedEventTab === "super12" ? "active" : ""} href={portalHref("leagues", undefined, undefined, undefined, "super12", super12Id)}><EventNavIcon icon="crown" /><span><strong>Super 12</strong><small>Os melhores no ano</small></span></Link>
-            <Link className={selectedEventTab === "radar" ? "active" : ""} href={portalHref("leagues", undefined, undefined, undefined, "radar")}><EventNavIcon icon="target" /><span><strong>Radar de Torneios</strong><small>Torneios próximos</small></span></Link>
+          <section className={viewStyles.athlete_portal_events_shell}>
+          <nav className={viewStyles.athlete_portal_events_nav} aria-label="Menu de Eventos">
+            <Link className={cx(selectedEventTab === "leagues" ? "active" : "")} href={portalHref("leagues", "games", undefined, leagueCategoryId, "leagues")}><EventNavIcon icon="trophy" /><span><strong>Torneios</strong><small>Competições regulares</small></span></Link>
+            <Link className={cx(selectedEventTab === "super12" ? "active" : "")} href={portalHref("leagues", undefined, undefined, undefined, "super12", super12Id)}><EventNavIcon icon="crown" /><span><strong>Super 12</strong><small>Os melhores no ano</small></span></Link>
+            <Link className={cx(selectedEventTab === "radar" ? "active" : "")} href={portalHref("leagues", undefined, undefined, undefined, "radar")}><EventNavIcon icon="target" /><span><strong>Radar de Torneios</strong><small>Torneios próximos</small></span></Link>
           </nav>
           {selectedEventTab === "leagues" ? <>
-          <nav className="athlete-portal-event-tabs" aria-label="Menu da Liga">
+          <nav className={viewStyles.athlete_portal_event_tabs} aria-label="Menu da Liga">
             <Link
-              className={selectedLeagueTab === "games" ? "active" : ""}
+              className={cx(selectedLeagueTab === "games" ? "active" : "")}
               href={portalHref("leagues", "games", undefined, leagueCategoryId)}
             >
               <EventNavIcon icon="calendar" /><span>Jogos</span>
             </Link>
             <Link
-              className={selectedLeagueTab === "pairs" ? "active" : ""}
+              className={cx(selectedLeagueTab === "pairs" ? "active" : "")}
               href={portalHref("leagues", "pairs", undefined, leagueCategoryId)}
             >
               <EventNavIcon icon="players" /><span>Duplas</span>
             </Link>
             <Link
-              className={selectedLeagueTab === "ranking" ? "active" : ""}
+              className={cx(selectedLeagueTab === "ranking" ? "active" : "")}
               href={portalHref(
                 "leagues",
                 "ranking",
@@ -292,13 +294,13 @@ export function PublicStandings({
               <EventNavIcon icon="ranking" /><span>Ranking</span>
             </Link>
             <Link
-              className={selectedLeagueTab === "rules" ? "active" : ""}
+              className={cx(selectedLeagueTab === "rules" ? "active" : "")}
               href={portalHref("leagues", "rules", undefined, leagueCategoryId)}
             >
               <EventNavIcon icon="rules" /><span>Regras</span>
             </Link>
             <Link
-              className={selectedLeagueTab === "prizes" ? "active" : ""}
+              className={cx(selectedLeagueTab === "prizes" ? "active" : "")}
               href={portalHref(
                 "leagues",
                 "prizes",
@@ -319,7 +321,7 @@ export function PublicStandings({
                 showPrize={false}
               />
             ) : (
-              <section className="athlete-portal-content-panel">
+              <section className={viewStyles.athlete_portal_content_panel}>
                 <PortalEmpty
                   title="Portal indisponível"
                   detail="Não foi possível carregar os dados do atleta neste momento."
@@ -357,37 +359,37 @@ export function PublicStandings({
           player={currentClient}
         />
       )}
-      <nav className="athlete-portal-bottom-nav" aria-label="Atalhos principais">
-        <Link className={requestedSection === "home" ? "active" : ""} href={portalHref("home")}><PortalNavIcon icon="home" /><span>Início</span></Link>
-        <Link className={requestedSection === "leagues" ? "active" : ""} href={portalHref("leagues", "games")}><PortalNavIcon icon="calendar" /><span>Eventos</span></Link>
-        <Link className={requestedSection === "lessons" || requestedSection === "classes" ? "active" : ""} href={portalHref(portalVisibility.athletePortalShowLessons ? "lessons" : "classes")}><PortalNavIcon icon="graduation" /><span>Aulas</span></Link>
-        <Link className={requestedSection === "radar" ? "active" : ""} href={portalHref("radar")}><PortalNavIcon icon="players" /><span>Duplas</span></Link>
+      <nav className={viewStyles.athlete_portal_bottom_nav} aria-label="Atalhos principais">
+        <Link className={cx(requestedSection === "home" ? "active" : "")} href={portalHref("home")}><PortalNavIcon icon="home" /><span>Início</span></Link>
+        <Link className={cx(requestedSection === "leagues" ? "active" : "")} href={portalHref("leagues", "games")}><PortalNavIcon icon="calendar" /><span>Eventos</span></Link>
+        <Link className={cx(requestedSection === "lessons" || requestedSection === "classes" ? "active" : "")} href={portalHref(portalVisibility.athletePortalShowLessons ? "lessons" : "classes")}><PortalNavIcon icon="graduation" /><span>Aulas</span></Link>
+        <Link className={cx(requestedSection === "radar" ? "active" : "")} href={portalHref("radar")}><PortalNavIcon icon="players" /><span>Duplas</span></Link>
       </nav>
     </main>
   );
 }
 
 function ClientFinancePanel({ finance, arenaSlug, tab }: { finance: ClientFinance; arenaSlug: string; tab: "upcoming" | "history" }) {
-  if (!finance) return <section className="athlete-portal-content-panel"><PortalEmpty title="Finanças indisponíveis" detail="Não foi possível carregar suas informações financeiras agora." /></section>;
+  if (!finance) return <section className={viewStyles.athlete_portal_content_panel}><PortalEmpty title="Finanças indisponíveis" detail="Não foi possível carregar suas informações financeiras agora." /></section>;
   const pendingCount = finance.overdue.length + finance.comandas.length;
   const message = finance.health === "healthy"
     ? { title: "Tudo certo por aqui, padelista! 🎾", detail: "Quadra livre, contas em ordem e foco no próximo voleio." }
     : finance.health === "upcoming"
       ? { title: "Tudo certo por aqui, padelista! 🎾", detail: finance.open.length ? "Seus próximos pagamentos já estão na linha. Quem mantém as contas em ordem, acerta 85% mais voleios." : "Você tem comandas em andamento. Acompanhe seu consumo e feche-as no balcão quando terminar." }
       : { title: "Vamos virar esse jogo? 🎾", detail: "Tem uma pendência pedindo atenção. Resolva agora e volte para a quadra com a cabeça leve." };
-  return <section className="client-finance-page">
-    <header className={`client-finance-hero is-${finance.health}`}>
+  return <section className={viewStyles.client_finance_page}>
+    <header className={cx(`${viewStyles.client_finance_hero} is-${finance.health}`)}>
       <span>FINANÇAS</span>
-      <div><div className="client-finance-orb" aria-hidden="true"><FinanceIcon icon="wallet" /></div><div><h2>{message.title}</h2><p>{message.detail}</p></div></div>
-      <b className="client-finance-motto">DISCIPLINA<br />TAMBÉM<br />JOGA.</b>
+      <div><div className={viewStyles.client_finance_orb} aria-hidden="true"><FinanceIcon icon="wallet" /></div><div><h2>{message.title}</h2><p>{message.detail}</p></div></div>
+      <b className={viewStyles.client_finance_motto}>DISCIPLINA<br />TAMBÉM<br />JOGA.</b>
     </header>
-    <div className="client-finance-summary" aria-label="Resumo financeiro">
-      <article className={pendingCount ? "is-attention" : "is-healthy"}><span><FinanceIcon icon={pendingCount ? "receipt" : "check"} /></span><div><b>{pendingCount ? "Em aberto" : "Em dia"}</b><small>{pendingCount ? `${pendingCount} ${pendingCount === 1 ? "item" : "itens"} para acompanhar` : "Suas finanças organizadas"}</small></div></article>
+    <div className={viewStyles.client_finance_summary} aria-label="Resumo financeiro">
+      <article className={cx(pendingCount ? viewStyles.is_attention : "is-healthy")}><span><FinanceIcon icon={pendingCount ? "receipt" : "check"} /></span><div><b>{pendingCount ? "Em aberto" : "Em dia"}</b><small>{pendingCount ? `${pendingCount} ${pendingCount === 1 ? "item" : "itens"} para acompanhar` : "Suas finanças organizadas"}</small></div></article>
       <article><span><FinanceIcon icon="receipt" /></span><div><b>Em aberto</b><strong>{pendingCount}</strong></div></article>
       <article><span><FinanceIcon icon="calendar" /></span><div><b>Próximos</b><strong>{finance.open.length}</strong></div></article>
     </div>
-    <nav className="client-finance-tabs" aria-label="Navegação financeira"><Link className={tab === "upcoming" ? "active" : ""} href={`/home?arena=${encodeURIComponent(arenaSlug)}&section=finance`}>Lançamentos</Link><Link className={tab === "history" ? "active" : ""} href={`/home?arena=${encodeURIComponent(arenaSlug)}&section=finance&financeTab=history`}>Histórico</Link></nav>
-    {tab === "upcoming" ? <PublicFinanceEntryList arenaSlug={arenaSlug} overdue={finance.overdue} open={finance.open} comandas={finance.comandas} /> : <section className="client-finance-section"><header><div><span className="client-finance-section-icon"><FinanceIcon icon="receipt" /></span><h3>Histórico de pagamentos</h3></div><span>{finance.paid.length}</span></header>{finance.paid.length ? finance.paid.map((entry) => <article className="client-finance-entry is-paid" key={entry.id}><div><strong>{entry.description}</strong><small>Pago em {entry.paidAt || entry.dueDate}</small></div><b>{entry.amount}</b><em>Pago</em></article>) : <p className="client-finance-empty">Quando houver pagamentos, eles aparecerão aqui.</p>}</section>}
+    <nav className={viewStyles.client_finance_tabs} aria-label="Navegação financeira"><Link className={cx(tab === "upcoming" ? "active" : "")} href={`/home?arena=${encodeURIComponent(arenaSlug)}&section=finance`}>Lançamentos</Link><Link className={cx(tab === "history" ? "active" : "")} href={`/home?arena=${encodeURIComponent(arenaSlug)}&section=finance&financeTab=history`}>Histórico</Link></nav>
+    {tab === "upcoming" ? <PublicFinanceEntryList arenaSlug={arenaSlug} overdue={finance.overdue} open={finance.open} comandas={finance.comandas} /> : <section className={viewStyles.client_finance_section}><header><div><span className={viewStyles.client_finance_section_icon}><FinanceIcon icon="receipt" /></span><h3>Histórico de pagamentos</h3></div><span>{finance.paid.length}</span></header>{finance.paid.length ? finance.paid.map((entry) => <article className={viewStyles.client_finance_entry} key={entry.id}><div><strong>{entry.description}</strong><small>Pago em {entry.paidAt || entry.dueDate}</small></div><b>{entry.amount}</b><em>Pago</em></article>) : <p className={viewStyles.client_finance_empty}>Quando houver pagamentos, eles aparecerão aqui.</p>}</section>}
   </section>;
 }
 
@@ -399,7 +401,7 @@ function FinanceIcon({ icon }: { icon: "wallet" | "check" | "receipt" | "calenda
     calendar: <><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M7 3v4M17 3v4M3 10h18" /></>,
     clock: <><circle cx="12" cy="12" r="8.5" /><path d="M12 7v5l3 2" /></>,
   };
-  return <svg className="client-finance-icon" viewBox="0 0 24 24" aria-hidden="true">{shapes[icon]}</svg>;
+  return <svg className={viewStyles.client_finance_icon} viewBox="0 0 24 24" aria-hidden="true">{shapes[icon]}</svg>;
 }
 
 function PortalNavIcon({ icon }: { icon: "home" | "calendar" | "graduation" | "trophy" | "players" | "money" }) {
@@ -411,7 +413,7 @@ function PortalNavIcon({ icon }: { icon: "home" | "calendar" | "graduation" | "t
     players: <><circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2.5" /><path d="M3 20c.7-4 3-6 6-6s5.3 2 6 6M14.5 14.5c3 0 5.1 1.7 5.5 5.5" /></>,
     money: <><circle cx="12" cy="12" r="9" /><path d="M14.8 8.6c-.6-.5-1.5-.8-2.6-.8-1.6 0-2.8.8-2.8 2s1 1.8 2.8 2.2c1.8.4 2.8 1 2.8 2.2s-1.2 2-2.8 2c-1.1 0-2.1-.4-2.8-.9M12 6.2v11.6" /></>,
   };
-  return <svg className="portal-nav-icon" viewBox="0 0 24 24" aria-hidden="true">{paths[icon]}</svg>;
+  return <svg className={viewStyles.portal_nav_icon} viewBox="0 0 24 24" aria-hidden="true">{paths[icon]}</svg>;
 }
 
 function EventNavIcon({ icon }: { icon: "calendar" | "players" | "ranking" | "rules" | "trophy" | "crown" | "target" }) {
@@ -424,49 +426,49 @@ function EventNavIcon({ icon }: { icon: "calendar" | "players" | "ranking" | "ru
     crown: <><path d="m4 18 2-11 6 5 6-7 2 13H4Z" /><path d="M4 21h16" /><circle cx="6" cy="6" r="1" /><circle cx="18" cy="4" r="1" /></>,
     target: <><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="4.5" /><circle cx="12" cy="12" r="1" /><path d="M12 1v3M12 20v3M1 12h3M20 12h3" /></>,
   };
-  return <svg className="athlete-portal-event-icon" viewBox="0 0 24 24" aria-hidden="true">{shapes[icon]}</svg>;
+  return <svg className={viewStyles.athlete_portal_event_icon} viewBox="0 0 24 24" aria-hidden="true">{shapes[icon]}</svg>;
 }
 
 function ClientHomePanel({ home, name, arenaSlug, shortcuts }: { home: ClientHome; name: string; arenaSlug: string; shortcuts: { label: string; href: string; icon: "calendar" | "graduation" | "trophy" | "players" }[] }) {
-  if (!home) return <section className="athlete-portal-content-panel"><PortalEmpty title="Início indisponível" detail="Não foi possível carregar suas informações agora." /></section>;
+  if (!home) return <section className={viewStyles.athlete_portal_content_panel}><PortalEmpty title="Início indisponível" detail="Não foi possível carregar suas informações agora." /></section>;
   const firstName = name.trim().split(/\s+/)[0] || name;
   const portalHref = (section: PortalSection) => `/home?arena=${encodeURIComponent(arenaSlug)}&section=${section}`;
-  return <section className="client-portal-home">
-    <header className="client-portal-welcome"><span>OLÁ,</span><h2>{firstName}</h2></header>
-    <nav className="client-portal-shortcuts" aria-label="Atalhos do portal">{shortcuts.map((shortcut) => <Link href={shortcut.href} key={shortcut.label} className={`is-${shortcut.icon}`}><PortalNavIcon icon={shortcut.icon} /><span>{shortcut.label}</span><b aria-hidden="true">›</b></Link>)}</nav>
-    <div className="client-portal-home-grid">
-      <Link href={portalHref("announcements")} className="client-portal-announcements" aria-label="Abrir feed de avisos da arena">
+  return <section className={viewStyles.client_portal_home}>
+    <header className={viewStyles.client_portal_welcome}><span>OLÁ,</span><h2>{firstName}</h2></header>
+    <nav className={viewStyles.client_portal_shortcuts} aria-label="Atalhos do portal">{shortcuts.map((shortcut) => <Link href={shortcut.href} key={shortcut.label} className={cx(`is-${shortcut.icon}`)}><PortalNavIcon icon={shortcut.icon} /><span>{shortcut.label}</span><b aria-hidden="true">›</b></Link>)}</nav>
+    <div className={viewStyles.client_portal_home_grid}>
+      <Link href={portalHref("announcements")} className={viewStyles.client_portal_announcements} aria-label="Abrir feed de avisos da arena">
         <header>
-          <div className="client-portal-section-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5h4.2L16 5v14l-8.8-5.5H3v-3ZM7.2 10.5v3M7.2 13.5l1.7 5" /><path d="M19 9.5c1 .8 1.6 1.7 1.6 2.5s-.6 1.7-1.6 2.5" /></svg></div>
+          <div className={viewStyles.client_portal_section_icon}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5h4.2L16 5v14l-8.8-5.5H3v-3ZM7.2 10.5v3M7.2 13.5l1.7 5" /><path d="M19 9.5c1 .8 1.6 1.7 1.6 2.5s-.6 1.7-1.6 2.5" /></svg></div>
           <div><h3>Avisos da Arena</h3><small>Portal do atleta</small></div><b aria-hidden="true">›</b>
         </header>
-        {home.announcements.length ? home.announcements.map((announcement) => <article key={announcement.id}><strong>{announcement.title}</strong><p><PortalRichText text={announcement.message} /></p></article>) : <p className="muted">A arena ainda não divulgou avisos.</p>}
+        {home.announcements.length ? home.announcements.map((announcement) => <article key={announcement.id}><strong>{announcement.title}</strong><p><PortalRichText text={announcement.message} /></p></article>) : <p className={viewStyles.muted}>A arena ainda não divulgou avisos.</p>}
       </Link>
-      <section className="client-portal-summary"><header><h3>Resumo da sua situação</h3><Link href={portalHref("finance")}>Ver detalhes <b>›</b></Link></header><div><Link className="client-portal-summary-link is-finance" href={portalHref("finance")}><PortalNavIcon icon="money" /><span>Financeiro</span><strong className={home.summary.financialStatus === "overdue" ? "is-overdue" : home.summary.financialStatus === "pending" ? "is-pending" : "is-active"}>{home.summary.financial}</strong>{home.summary.futureFinancial ? <small className="client-portal-future-financial">{home.summary.futureFinancial}</small> : null}</Link><Link className="client-portal-summary-link is-lessons" href={portalHref("lessons")}><PortalNavIcon icon="graduation" /><span>Aulas</span><strong>{home.summary.classes} disponíveis</strong></Link><Link className="client-portal-summary-link is-reservations" href={portalHref("reservations")}><PortalNavIcon icon="calendar" /><span>Reservas</span><strong>{home.summary.reservations} próxima{home.summary.reservations === 1 ? "" : "s"}</strong></Link><Link className="client-portal-summary-link is-leagues" href={portalHref("leagues")}><PortalNavIcon icon="trophy" /><span>Torneios</span><strong>{home.summary.leagues} ativo{home.summary.leagues === 1 ? "" : "s"}</strong></Link></div></section>
+      <section className={viewStyles.client_portal_summary}><header><h3>Resumo da sua situação</h3><Link href={portalHref("finance")}>Ver detalhes <b>›</b></Link></header><div><Link className={viewStyles.client_portal_summary_link} href={portalHref("finance")}><PortalNavIcon icon="money" /><span>Financeiro</span><strong className={cx(home.summary.financialStatus === "overdue" ? "is-overdue" : home.summary.financialStatus === "pending" ? "is-pending" : "is-active")}>{home.summary.financial}</strong>{home.summary.futureFinancial ? <small className={viewStyles.client_portal_future_financial}>{home.summary.futureFinancial}</small> : null}</Link><Link className={viewStyles.client_portal_summary_link_2} href={portalHref("lessons")}><PortalNavIcon icon="graduation" /><span>Aulas</span><strong>{home.summary.classes} disponíveis</strong></Link><Link className={viewStyles.client_portal_summary_link_3} href={portalHref("reservations")}><PortalNavIcon icon="calendar" /><span>Reservas</span><strong>{home.summary.reservations} próxima{home.summary.reservations === 1 ? "" : "s"}</strong></Link><Link className={viewStyles.client_portal_summary_link_4} href={portalHref("leagues")}><PortalNavIcon icon="trophy" /><span>Torneios</span><strong>{home.summary.leagues} ativo{home.summary.leagues === 1 ? "" : "s"}</strong></Link></div></section>
     </div>
-    {home.charges.length ? <section className="client-portal-events"><header><div><span>PAGAMENTOS</span><h3>Boletos disponíveis</h3></div></header>{home.charges.map((charge) => <article className="portal-payment-charge" key={charge.id}><div><strong>{charge.description}</strong><small>{charge.amount} · vence em {charge.dueDate}</small></div><a className="button button-primary button-small" href={charge.paymentUrl}>Pagar agora</a></article>)}</section> : null}
-    <section className="client-portal-events"><header><div><span>EVENTOS DA ARENA</span><h3>Próximos eventos</h3></div><Link href="/portal/eventos">Ver todos <b>›</b></Link></header>{home.eventPosts.length ? <ClientPortalEventCarousel events={home.eventPosts} /> : <p className="muted">Nenhum evento próximo. Fique de olho: a arena pode abrir novas partidas em breve.</p>}</section>
+    {home.charges.length ? <section className={viewStyles.client_portal_events}><header><div><span>PAGAMENTOS</span><h3>Boletos disponíveis</h3></div></header>{home.charges.map((charge) => <article className={viewStyles.portal_payment_charge} key={charge.id}><div><strong>{charge.description}</strong><small>{charge.amount} · vence em {charge.dueDate}</small></div><a className={viewStyles.button_button_primary_button_small} href={charge.paymentUrl}>Pagar agora</a></article>)}</section> : null}
+    <section className={viewStyles.client_portal_events}><header><div><span>EVENTOS DA ARENA</span><h3>Próximos eventos</h3></div><Link href="/portal/eventos">Ver todos <b>›</b></Link></header>{home.eventPosts.length ? <ClientPortalEventCarousel events={home.eventPosts} /> : <p className={viewStyles.muted}>Nenhum evento próximo. Fique de olho: a arena pode abrir novas partidas em breve.</p>}</section>
   </section>;
 }
 
 function PrizePanel({ portal }: { portal: Portal }) {
   return (
-    <section className="portal-league-prize-podium">
-      <div className="portal-league-prize-cup" aria-hidden="true">
+    <section className={viewStyles.portal_league_prize_podium}>
+      <div className={viewStyles.portal_league_prize_cup} aria-hidden="true">
         🏆
       </div>
-      <div className="portal-league-prize-copy">
+      <div className={viewStyles.portal_league_prize_copy}>
         <span>PREMIAÇÃO DA LIGA</span>
         <h2>O pódio está à sua espera</h2>
         <p>Acompanhe a premiação dos seus torneios em tempo real.</p>
       </div>
-      <div className="portal-league-prize-list">
+      <div className={viewStyles.portal_league_prize_list}>
         {portal?.prizes.length ? (
           portal.prizes.map((prize) => (
             <article key={prize.id}>
               <strong>{prize.categoryName}</strong>
               <span>{prize.eventName}</span>
-              <b className="portal-league-prize-description">
+              <b className={viewStyles.portal_league_prize_description}>
                 {prize.description}
               </b>
             </article>
@@ -481,20 +483,20 @@ function PrizePanel({ portal }: { portal: Portal }) {
 
 function RulesPanel({ data }: { data: ArenaPublicStandings }) {
   return (
-    <section className="athlete-portal-content-panel">
+    <section className={viewStyles.athlete_portal_content_panel}>
       <header>
         <span>REGULAMENTO</span>
         <h2>Regras dos Torneios</h2>
       </header>
       {data.leagueRules.length ? (
         data.leagueRules.map((league) => (
-          <article className="portal-rule" key={league.id}>
+          <article className={viewStyles.portal_rule} key={league.id}>
             <strong>{league.categoryName}</strong>
             <p>{league.rules}</p>
           </article>
         ))
       ) : (
-        <p className="muted">
+        <p className={viewStyles.muted}>
           Nenhuma regra foi publicada para os torneios ativos.
         </p>
       )}
@@ -504,14 +506,14 @@ function RulesPanel({ data }: { data: ArenaPublicStandings }) {
 
 function RankingPanel({ arenaSlug, data }: { arenaSlug: string; data: ArenaPublicStandings }) {
   return (
-    <section className="athlete-portal-content-panel stack-md portal-ranking-panel">
-      <header className="portal-ranking-heading">
+    <section className={viewStyles.athlete_portal_content_panel_stack_md_portal_ranking_panel}>
+      <header className={viewStyles.portal_ranking_heading}>
         <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V4M19 20v-7" /><path d="M3 20h18" /></svg>CLASSIFICAÇÃO</span>
         <h2>Ranking da Liga</h2>
       </header>
       {data.options.length ? <RankingCategorySelect arenaSlug={arenaSlug} options={data.options} selectedOptionId={data.selectedOptionId} /> : null}
       {data.selected?.kind === "GENERAL_RANKING" ? (
-        <table className="portal-ranking-table">
+        <table className={viewStyles.portal_ranking_table}>
           <thead>
             <tr>
               <th>Pos.</th>
@@ -534,16 +536,16 @@ function RankingPanel({ arenaSlug, data }: { arenaSlug: string; data: ArenaPubli
       ) : null}
       {data.selected?.kind === "CATEGORY" &&
       data.selected.format === "LEAGUE" ? (
-        <table className="portal-ranking-table portal-ranking-table-league">
+        <table className={viewStyles.portal_ranking_table_2}>
           <thead>
             <tr>
               <th>Pos.</th>
               <th>Dupla</th>
               <th>Pts.</th>
-              <th><span className="ranking-table-label-wide">Jogos</span><abbr className="ranking-table-label-compact" title="Jogos">JG</abbr></th>
-              <th><span className="ranking-table-label-wide">Vitórias</span><abbr className="ranking-table-label-compact" title="Vitórias">V</abbr></th>
-              <th><span className="ranking-table-label-wide">Derrotas</span><abbr className="ranking-table-label-compact" title="Derrotas">D</abbr></th>
-              <th><span className="ranking-table-label-wide">Saldo</span><abbr className="ranking-table-label-compact" title="Saldo">SAL</abbr></th>
+              <th><span className="ranking-table-label-wide">Jogos</span><abbr className={viewStyles.ranking_table_label_compact} title="Jogos">JG</abbr></th>
+              <th><span className="ranking-table-label-wide">Vitórias</span><abbr className={viewStyles.ranking_table_label_compact} title="Vitórias">V</abbr></th>
+              <th><span className="ranking-table-label-wide">Derrotas</span><abbr className={viewStyles.ranking_table_label_compact} title="Derrotas">D</abbr></th>
+              <th><span className="ranking-table-label-wide">Saldo</span><abbr className={viewStyles.ranking_table_label_compact} title="Saldo">SAL</abbr></th>
             </tr>
           </thead>
           <tbody>
@@ -562,7 +564,7 @@ function RankingPanel({ arenaSlug, data }: { arenaSlug: string; data: ArenaPubli
         </table>
       ) : null}
       {!data.selected ? (
-        <p className="muted">Nenhuma classificação publicada neste momento.</p>
+        <p className={viewStyles.muted}>Nenhuma classificação publicada neste momento.</p>
       ) : null}
     </section>
   );
@@ -570,13 +572,13 @@ function RankingPanel({ arenaSlug, data }: { arenaSlug: string; data: ArenaPubli
 
 function ReservationsPanel({ portal }: { portal: Portal }) {
   return (
-    <section className="athlete-portal-content-panel">
+    <section className={viewStyles.athlete_portal_content_panel}>
       <header>
         <span>MINHAS RESERVAS</span>
         <h2>Próximos horários</h2>
       </header>
       {portal?.reservations.length ? (
-        <div className="portal-activity-list">
+        <div className={viewStyles.portal_activity_list}>
           {portal.reservations.map((reservation) => (
             <article key={reservation.id}>
               <div>
@@ -603,14 +605,14 @@ function ReservationsPanel({ portal }: { portal: Portal }) {
 
 function LessonsPanel({ portal }: { portal: Portal }) {
   return (
-    <section className="athlete-portal-content-panel athlete-portal-learning-panel is-lessons">
-      <header className="athlete-portal-learning-heading">
+    <section className={viewStyles.athlete_portal_content_panel_athlete_portal_learning_panel}>
+      <header className={viewStyles.athlete_portal_learning_heading}>
         <span>AULAS</span>
         <h2>Suas próximas aulas</h2>
         <p>Acompanhe aqui as aulas que você já agendou.</p>
       </header>
       {portal?.lessons.length ? (
-        <div className="portal-activity-list">
+        <div className={viewStyles.portal_activity_list}>
           {portal.lessons.map((lesson) => (
             <article key={lesson.id}>
               <div>
@@ -620,12 +622,12 @@ function LessonsPanel({ portal }: { portal: Portal }) {
                   {lesson.when}
                 </span>
               </div>
-              <div className="portal-lesson-actions"><b>{lesson.checkedIn ? "Check-in realizado" : lesson.makeupRequested ? "Reposição solicitada" : lesson.status}</b>{!lesson.checkedIn && lesson.status === "Agendada" ? <SafeActionForm action={checkInPortalLessonAction} successMessage="Check-in realizado. Uma aula foi descontada do saldo deste mês."><input type="hidden" name="arenaSlug" value={portal?.arenaSlug} /><input type="hidden" name="lessonId" value={lesson.id} /><SubmitButton label="Fazer check-in" pendingLabel="Registrando..." className="button button-primary button-small" /></SafeActionForm> : null}{!lesson.checkedIn && !lesson.makeupRequested && lesson.status === "Agendada" ? <SafeActionForm action={requestPortalLessonMakeupAction} successMessage="Reposição solicitada. Seu professor será notificado."><input type="hidden" name="arenaSlug" value={portal?.arenaSlug} /><input type="hidden" name="lessonId" value={lesson.id} /><SubmitButton label="Solicitar reposição" pendingLabel="Solicitando..." className="button button-small" /></SafeActionForm> : null}</div>
+              <div className={viewStyles.portal_lesson_actions}><b>{lesson.checkedIn ? "Check-in realizado" : lesson.makeupRequested ? "Reposição solicitada" : lesson.status}</b>{!lesson.checkedIn && lesson.status === "Agendada" ? <SafeActionForm action={checkInPortalLessonAction} successMessage="Check-in realizado. Uma aula foi descontada do saldo deste mês."><input type="hidden" name="arenaSlug" value={portal?.arenaSlug} /><input type="hidden" name="lessonId" value={lesson.id} /><SubmitButton label="Fazer check-in" pendingLabel="Registrando..." className={viewStyles.button_button_primary_button_small} /></SafeActionForm> : null}{!lesson.checkedIn && !lesson.makeupRequested && lesson.status === "Agendada" ? <SafeActionForm action={requestPortalLessonMakeupAction} successMessage="Reposição solicitada. Seu professor será notificado."><input type="hidden" name="arenaSlug" value={portal?.arenaSlug} /><input type="hidden" name="lessonId" value={lesson.id} /><SubmitButton label="Solicitar reposição" pendingLabel="Solicitando..." className={viewStyles.button_button_small} /></SafeActionForm> : null}</div>
             </article>
           ))}
         </div>
       ) : (
-        <div className="portal-learning-empty"><EventNavIcon icon="calendar" /><PortalEmpty title="Nenhuma aula programada" detail="Quando uma aula for agendada, ela aparecerá neste painel." /><b>EVOLUÇÃO TAMBÉM SE CONSTRÓI<br />COM PLANEJAMENTO</b></div>
+        <div className={viewStyles.portal_learning_empty}><EventNavIcon icon="calendar" /><PortalEmpty title="Nenhuma aula programada" detail="Quando uma aula for agendada, ela aparecerá neste painel." /><b>EVOLUÇÃO TAMBÉM SE CONSTRÓI<br />COM PLANEJAMENTO</b></div>
       )}
     </section>
   );
@@ -664,20 +666,20 @@ function ClassesPanel({
     : [];
   const weekdays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
   return (
-    <section className="athlete-portal-content-panel athlete-portal-learning-panel is-classes">
-      <header className="athlete-portal-learning-heading">
+    <section className={viewStyles.athlete_portal_content_panel_athlete_portal_learning_panel_2}>
+      <header className={viewStyles.athlete_portal_learning_heading}>
         <span>TURMAS</span>
         <h2>Encontre sua turma</h2>
         <p>Escolha um professor para ver as turmas disponíveis.</p>
         <EventNavIcon icon="players" />
       </header>
-      <div className="portal-teacher-picker">
+      <div className={viewStyles.portal_teacher_picker}>
         <strong>Professores</strong>
         {teachers.length ? (
           <div>
             {teachers.map((teacher) => (
               <Link
-                className={selectedTeacher?.id === teacher.id ? "active" : ""}
+                className={cx(selectedTeacher?.id === teacher.id ? "active" : "")}
                 href={`/home?arena=${encodeURIComponent(arenaSlug)}&section=classes&teacher=${encodeURIComponent(teacher.id)}`}
                 key={teacher.id}
               >
@@ -690,19 +692,19 @@ function ClassesPanel({
         )}
       </div>
       {selectedTeacher ? (
-        <section className="portal-selected-teacher-section">
-          <strong className="portal-selected-teacher">
+        <section className={viewStyles.portal_selected_teacher_section}>
+          <strong className={viewStyles.portal_selected_teacher}>
             Turmas de {selectedTeacher.name}
           </strong>
-          <div className="portal-class-group-list portal-selected-teacher-groups">
+          <div className={viewStyles.portal_class_group_list}>
             {selectedClassGroups.length ? (
               selectedClassGroups.map((group) => (
                 <article
                   key={group.id}
                   className={
-                    group.available
+                    cx(group.available
                       ? "portal-class-group-available"
-                      : "portal-class-group-full"
+                      : "portal-class-group-full")
                   }
                 >
                   <div>
@@ -738,7 +740,7 @@ function ClassesPanel({
                       <SubmitButton
                         label="Solicitar vaga"
                         pendingLabel="Enviando..."
-                        className="button button-primary button-small"
+                        className={viewStyles.button_button_primary_button_small}
                       />
                     </SafeActionForm>
                   ) : (
@@ -747,14 +749,14 @@ function ClassesPanel({
                 </article>
               ))
             ) : (
-              <p className="muted">
+              <p className={viewStyles.muted}>
                 Este professor não possui turmas disponíveis no momento.
               </p>
             )}
           </div>
         </section>
       ) : (
-        <p className="portal-teacher-hint">
+        <p className={viewStyles.portal_teacher_hint}>
           Escolha um professor para ver as turmas disponíveis.
         </p>
       )}
@@ -777,31 +779,31 @@ function TeacherManagementPanel({ portal }: { portal: Portal }) {
   const management = portal?.teacherManagement;
   const weekdays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
   return (
-    <section className="athlete-portal-content-panel teacher-portal-management">
+    <section className={viewStyles.athlete_portal_content_panel_teacher_portal_management}>
       <header>
         <span>GESTÃO DO PROFESSOR</span>
         <h2>Área do Professor</h2><p>Gerencie saldos, turmas e avisos dos seus alunos.</p>
       </header>
       {management ? (
-        <div className="teacher-portal-management-menu">
-          <input className="teacher-portal-menu-control" type="radio" name="teacher-portal-menu" id="teacher-portal-plans" defaultChecked />
-          <input className="teacher-portal-menu-control" type="radio" name="teacher-portal-menu" id="teacher-portal-students" />
-          <input className="teacher-portal-menu-control" type="radio" name="teacher-portal-menu" id="teacher-portal-classes" />
-          <input className="teacher-portal-menu-control" type="radio" name="teacher-portal-menu" id="teacher-portal-makeups" />
-          <input className="teacher-portal-menu-control" type="radio" name="teacher-portal-menu" id="teacher-portal-agenda" />
-          <nav className="teacher-portal-submenu" aria-label="Área do Professor">
+        <div className={viewStyles.teacher_portal_management_menu}>
+          <input className={viewStyles.teacher_portal_menu_control} type="radio" name="teacher-portal-menu" id="teacher-portal-plans" defaultChecked />
+          <input className={viewStyles.teacher_portal_menu_control} type="radio" name="teacher-portal-menu" id="teacher-portal-students" />
+          <input className={viewStyles.teacher_portal_menu_control} type="radio" name="teacher-portal-menu" id="teacher-portal-classes" />
+          <input className={viewStyles.teacher_portal_menu_control} type="radio" name="teacher-portal-menu" id="teacher-portal-makeups" />
+          <input className={viewStyles.teacher_portal_menu_control} type="radio" name="teacher-portal-menu" id="teacher-portal-agenda" />
+          <nav className={viewStyles.teacher_portal_submenu} aria-label="Área do Professor">
             <label htmlFor="teacher-portal-plans"><TeacherManagementIcon name="plans" /><span>Planos e preços</span></label>
             <label htmlFor="teacher-portal-students"><TeacherManagementIcon name="students" /><span>Alunos ativos</span></label>
             <label htmlFor="teacher-portal-classes"><TeacherManagementIcon name="classes" /><span>Turmas</span></label>
             <label htmlFor="teacher-portal-makeups"><TeacherManagementIcon name="makeups" /><span>Reposições</span></label>
             <label htmlFor="teacher-portal-agenda"><TeacherManagementIcon name="agenda" /><span>Agenda</span></label>
           </nav>
-          <div className="teacher-portal-submenu-panels">
-            <article className="teacher-portal-management-section" data-panel="plans">
+          <div className={viewStyles.teacher_portal_submenu_panels}>
+            <article className={viewStyles.teacher_portal_management_section} data-panel="plans">
             <header><h3>Planos e preços</h3><p>Consulte os planos usados pelos seus alunos.</p></header>
             {management.plans.length ? (
               management.plans.map((plan) => (
-                <div className="teacher-portal-plan-row" key={plan.id}>
+                <div className={viewStyles.teacher_portal_plan_row} key={plan.id}>
                   <span><strong>{plan.name}</strong><small>
                     {plan.classesPerMonth} aulas/mês ·{" "}
                     {(plan.monthlyPriceCents / 100).toLocaleString("pt-BR", {
@@ -815,7 +817,7 @@ function TeacherManagementPanel({ portal }: { portal: Portal }) {
               <p>Nenhum plano vinculado.</p>
             )}
             </article>
-            <article className="teacher-portal-management-section" data-panel="students">
+            <article className={viewStyles.teacher_portal_management_section} data-panel="students">
             <header><h3>Alunos ativos</h3><p>Selecione um aluno para gerenciar saldo, reposições, turma e avisos.</p></header>
             {management.students.length ? (
               <TeacherPortalStudentList arenaSlug={portal?.arenaSlug ?? ""} students={management.students} classGroups={management.classGroups.map((group) => ({ id: group.id, name: group.name }))} />
@@ -823,20 +825,20 @@ function TeacherManagementPanel({ portal }: { portal: Portal }) {
               <p>Nenhum aluno ativo.</p>
             )}
             </article>
-            <article className="teacher-portal-management-section" data-panel="classes">
+            <article className={viewStyles.teacher_portal_management_section} data-panel="classes">
             <header><h3>Turmas</h3><p>Consulte os grupos. Para ajustar um aluno, abra-o em Alunos ativos.</p></header>
             {management.classGroups.length ? (
-              management.classGroups.map((group) => <section className="teacher-portal-class-group" key={group.id}>
+              management.classGroups.map((group) => <section className={viewStyles.teacher_portal_class_group} key={group.id}>
                 <header><span><strong>{group.name}</strong><small>{group.enrolledCount} aluno(s) matriculado(s)</small></span></header>
-                <div className="teacher-portal-class-slots">{group.schedules.map((schedule) => <SafeActionForm action={updateTeacherPortalClassGroupCapacityAction} className="teacher-portal-class-slot" key={schedule.id}><input type="hidden" name="arenaSlug" value={portal?.arenaSlug} /><input type="hidden" name="classGroupId" value={group.id} /><input type="hidden" name="scheduleId" value={schedule.id} /><strong>{weekdays[schedule.weekday]} · {schedule.startTime}</strong><label><span>Vagas</span><input name="capacity" type="number" min={Math.max(1, group.enrolledCount)} max="99" defaultValue={schedule.capacity} /></label><SubmitButton label="Salvar" pendingLabel="..." className="button button-small" /></SafeActionForm>)}</div>
-                {group.students.length ? <div className="teacher-portal-class-members"><span>Alunos</span>{group.students.map((student) => <small key={student.id}>{student.name}</small>)}</div> : <small className="teacher-portal-class-empty">Nenhum aluno matriculado.</small>}
+                <div className={viewStyles.teacher_portal_class_slots}>{group.schedules.map((schedule) => <SafeActionForm action={updateTeacherPortalClassGroupCapacityAction} className={viewStyles.teacher_portal_class_slot} key={schedule.id}><input type="hidden" name="arenaSlug" value={portal?.arenaSlug} /><input type="hidden" name="classGroupId" value={group.id} /><input type="hidden" name="scheduleId" value={schedule.id} /><strong>{weekdays[schedule.weekday]} · {schedule.startTime}</strong><label><span>Vagas</span><input name="capacity" type="number" min={Math.max(1, group.enrolledCount)} max="99" defaultValue={schedule.capacity} /></label><SubmitButton label="Salvar" pendingLabel="..." className={viewStyles.button_button_small} /></SafeActionForm>)}</div>
+                {group.students.length ? <div className={viewStyles.teacher_portal_class_members}><span>Alunos</span>{group.students.map((student) => <small key={student.id}>{student.name}</small>)}</div> : <small className={viewStyles.teacher_portal_class_empty}>Nenhum aluno matriculado.</small>}
               </section>)
             ) : (
               <p>Nenhuma turma vinculada.</p>
             )}
             </article>
-            <article className="teacher-portal-management-section" data-panel="makeups"><TeacherPortalMakeupPlanner arenaSlug={portal?.arenaSlug ?? ""} students={management.students} slots={management.makeupSlots} /></article>
-            <article className="teacher-portal-management-section" data-panel="agenda">
+            <article className={viewStyles.teacher_portal_management_section} data-panel="makeups"><TeacherPortalMakeupPlanner arenaSlug={portal?.arenaSlug ?? ""} students={management.students} slots={management.makeupSlots} /></article>
+            <article className={viewStyles.teacher_portal_management_section} data-panel="agenda">
             <header><h3>Agenda</h3><p>Visualize os próximos compromissos.</p></header>
             {management.agenda.length ? (
               management.agenda.map((item) => (
@@ -875,11 +877,11 @@ function PortalEmpty({
   href?: string;
 }) {
   return (
-    <div className="portal-empty">
+    <div className={viewStyles.portal_empty}>
       <strong>{title}</strong>
       <span>{detail}</span>
       {action && href ? (
-        <Link className="button button-primary" href={href}>
+        <Link className={viewStyles.button_button_primary} href={href}>
           {action}
         </Link>
       ) : null}

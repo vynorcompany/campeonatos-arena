@@ -1,3 +1,5 @@
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./page.utilities";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard } from "@/components/section-card";
@@ -40,30 +42,30 @@ export default async function AgencySupportPage() {
   ]);
 
   return (
-    <div className="stack-md">
-      <header className="page-header">
-        <div className="stack-xs">
-          <p className="eyebrow">Agência</p>
+    <div className={viewStyles.stack_md}>
+      <header className={viewStyles.page_header}>
+        <div className={viewStyles.stack_xs}>
+          <p className={viewStyles.eyebrow}>Agência</p>
           <h1>Área de suporte</h1>
-          <p className="muted">Fila de tickets abertos pelas arenas para atendimento, ajuste e histórico de CS.</p>
+          <p className={viewStyles.muted}>Fila de tickets abertos pelas arenas para atendimento, ajuste e histórico de CS.</p>
         </div>
       </header>
 
       <SectionCard title="Tickets em aberto" description="Assuma, priorize, responda ou resolva os chamados.">
-        <div className="agency-ticket-list">
+        <div className={viewStyles.agency_ticket_list}>
           {tickets.map((ticket) => (
-            <article key={ticket.id} className="agency-ticket-card">
-              <div className="agency-ticket-head">
+            <article key={ticket.id} className={viewStyles.agency_ticket_card}>
+              <div className={viewStyles.agency_ticket_head}>
                 <div>
-                  <span className={`ticket-status ticket-status-${ticket.status.toLowerCase()}`}>{statusLabels[ticket.status] ?? ticket.status}</span>
+                  <span className={cx(`${viewStyles.ticket_status} ticket-status-${ticket.status.toLowerCase()}`)}>{statusLabels[ticket.status] ?? ticket.status}</span>
                   <h3>{ticket.title}</h3>
-                  <p className="muted">{ticket.code} · {ticket.arena.name} · {ticket.requester.name}</p>
+                  <p className={viewStyles.muted}>{ticket.code} · {ticket.arena.name} · {ticket.requester.name}</p>
                 </div>
-                <span className={`ticket-priority ticket-priority-${ticket.priority.toLowerCase()}`}>{priorityLabels[ticket.priority] ?? ticket.priority}</span>
+                <span className={cx(`${viewStyles.ticket_priority} ticket-priority-${ticket.priority.toLowerCase()}`)}>{priorityLabels[ticket.priority] ?? ticket.priority}</span>
               </div>
-              <p className="table-subtext">{ticket.description}</p>
+              <p className={viewStyles.table_subtext}>{ticket.description}</p>
 
-              <SafeActionForm action={updateAgencyTicketAction} className="agency-ticket-controls" successMessage="Ticket atualizado.">
+              <SafeActionForm action={updateAgencyTicketAction} className={viewStyles.agency_ticket_controls} successMessage="Ticket atualizado.">
                 <input type="hidden" name="ticketId" value={ticket.id} />
                 <select name="status" defaultValue={ticket.status}>
                   <option value="OPEN">Aberto</option>
@@ -82,18 +84,18 @@ export default async function AgencySupportPage() {
                   <option value="">Assumir automaticamente</option>
                   {agencyUsers.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}
                 </select>
-                <SubmitButton label="Atualizar" pendingLabel="..." className="button" />
+                <SubmitButton label="Atualizar" pendingLabel="..." className={viewStyles.button} />
               </SafeActionForm>
 
-              <SafeActionForm action={addSupportTicketMessageAction} className="agency-ticket-message-form" resetOnSuccess successMessage="Mensagem adicionada.">
+              <SafeActionForm action={addSupportTicketMessageAction} className={viewStyles.agency_ticket_message_form} resetOnSuccess successMessage="Mensagem adicionada.">
                 <input type="hidden" name="ticketId" value={ticket.id} />
                 <textarea name="body" rows={2} placeholder="Adicionar resposta ou nota interna..." />
-                <label className="check-option"><input type="checkbox" name="internal" /><span>Nota interna</span></label>
-                <SubmitButton label={ticket.assigneeId === auth.userId ? "Responder" : "Assumir e responder"} pendingLabel="..." className="button button-secondary" />
+                <label className={viewStyles.check_option}><input type="checkbox" name="internal" /><span>Nota interna</span></label>
+                <SubmitButton label={ticket.assigneeId === auth.userId ? "Responder" : "Assumir e responder"} pendingLabel="..." className={viewStyles.button_button_secondary} />
               </SafeActionForm>
 
               {ticket.messages.length ? (
-                <div className="agency-ticket-messages">
+                <div className={viewStyles.agency_ticket_messages}>
                   {ticket.messages.map((message) => (
                     <p key={message.id}><strong>{message.author.name}</strong>{message.internal ? " · nota interna" : ""}: {message.body}</p>
                   ))}
@@ -101,7 +103,7 @@ export default async function AgencySupportPage() {
               ) : null}
             </article>
           ))}
-          {!tickets.length ? <p className="muted">Nenhum ticket em aberto.</p> : null}
+          {!tickets.length ? <p className={viewStyles.muted}>Nenhum ticket em aberto.</p> : null}
         </div>
       </SectionCard>
     </div>

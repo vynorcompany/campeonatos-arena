@@ -1,0 +1,115 @@
+import { sharedUtilities } from "@/components/ui/shared.utilities";
+/** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
+export const viewStyles = {
+  "bracket_shell": [
+    "bracket-shell", "tw:grid", "tw:grid-cols-[repeat(4,_minmax(240px,_1fr))]", "tw:viewport-1120:grid-cols-[repeat(4,_minmax(220px,_1fr))]",
+    "tw:gap-y-[18px]", "tw:gap-x-[18px]", "tw:[overflow-x:auto]", "tw:pb-[6px]",
+  ].join(" "),
+  "bracket_stage": [
+    "bracket-stage", "tw:relative", "tw:grid", "tw:gap-y-[14px]",
+    "tw:gap-x-[14px]", "tw:min-w-[240px]",
+  ].join(" "),
+  "bracket_stage_head": [
+    "bracket-stage-head", "tw:[&_h3]:mt-[2px]", "tw:[&_h3]:mr-[0]", "tw:[&_h3]:mb-[0]",
+    "tw:[&_h3]:ml-[0]", "tw:[&_h3]:text-[1.05rem]", "tw:[&_h3]:tracking-[-0.03em]",
+  ].join(" "),
+  "eyebrow": sharedUtilities.eyebrow,
+  "bracket_column": [
+    "bracket-column", "tw:grid", "tw:gap-y-[14px]", "tw:gap-x-[14px]",
+  ].join(" "),
+  "bracket_card_bracket_card_group": [
+    "bracket-card", "bracket-card-group", "tw:relative", "tw:grid",
+    "tw:gap-y-[12px]", "tw:gap-x-[12px]", "tw:pt-[16px]", "tw:pr-[16px]",
+    "tw:pb-[16px]", "tw:pl-[16px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]",
+    "tw:border-t-[color:var(--line)]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:var(--line)]",
+    "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:var(--line)]", "tw:border-l-[length:1px]",
+    "tw:[border-left-style:solid]", "tw:border-l-[color:var(--line)]", "tw:rounded-[var(--radius-lg)]", "tw:bg-[color:transparent]",
+    "tw:[background-image:linear-gradient(180deg,_#ffffff,_#f4f8fd)]", "tw:[box-shadow:0_10px_24px_rgba(23,_47,_81,_0.06)]", "tw:[transition:transform_180ms_var(--ease-standard),_border-color_180ms_var(--ease-standard),_box-shadow_180ms_var(--ease-standard)]", "tw:hover:[transform:translateY(-2px)]",
+    "tw:hover:border-t-[color:var(--line-strong)]", "tw:hover:border-r-[color:var(--line-strong)]", "tw:hover:border-b-[color:var(--line-strong)]", "tw:hover:border-l-[color:var(--line-strong)]",
+    "tw:hover:[box-shadow:0_14px_28px_rgba(23,_47,_81,_0.1)]",
+  ].join(" "),
+  "bracket_card_head": [
+    "bracket-card-head", "tw:flex", "tw:justify-between", "tw:gap-y-[12px]",
+    "tw:gap-x-[12px]", "tw:items-center", "tw:[&_strong]:text-[0.95rem]", "tw:[&_strong]:leading-[1.3]",
+    "tw:[&_span]:text-[color:var(--muted)]", "tw:[&_span]:text-[0.86rem]", "tw:[&_span]:whitespace-nowrap",
+  ].join(" "),
+  "bracket_card_body": [
+    "bracket-card-body", "tw:grid", "tw:gap-y-[8px]", "tw:gap-x-[8px]",
+  ].join(" "),
+  "bracket_team_bracket_team_ranked": [
+    "bracket-team", "bracket-team-ranked", "tw:flex", "tw:items-center",
+    "tw:min-h-[38px]", "tw:pt-[0]", "tw:pr-[12px]", "tw:pb-[0]",
+    "tw:pl-[12px]", "tw:rounded-[12px]", "tw:bg-[color:rgba(30,_94,_168,_0.05)]", "tw:[background-image:none]",
+    "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:#e5edf6]", "tw:border-r-[length:1px]",
+    "tw:[border-right-style:solid]", "tw:border-r-[color:#e5edf6]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]",
+    "tw:border-b-[color:#e5edf6]", "tw:border-l-[length:1px]", "tw:[border-left-style:solid]", "tw:border-l-[color:#e5edf6]",
+    "tw:text-[color:var(--text)]", "tw:text-[0.92rem]",
+  ].join(" "),
+  "bracket_meta": [
+    "bracket-meta", "tw:text-[color:var(--muted)]", "tw:text-[0.9rem]",
+  ].join(" "),
+  "bracket_card_bracket_card_empty": [
+    "bracket-card", "bracket-card-empty", "tw:relative", "tw:grid",
+    "tw:gap-y-[12px]", "tw:gap-x-[12px]", "tw:pt-[16px]", "tw:pr-[16px]",
+    "tw:pb-[16px]", "tw:pl-[16px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]",
+    "tw:border-t-[color:var(--line)]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:var(--line)]",
+    "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:var(--line)]", "tw:border-l-[length:1px]",
+    "tw:[border-left-style:solid]", "tw:border-l-[color:var(--line)]", "tw:rounded-[var(--radius-lg)]", "tw:bg-[color:transparent]",
+    "tw:[background-image:linear-gradient(180deg,_#ffffff,_#f9fbfd)]", "tw:[box-shadow:0_10px_24px_rgba(23,_47,_81,_0.06)]", "tw:[transition:transform_180ms_var(--ease-standard),_border-color_180ms_var(--ease-standard),_box-shadow_180ms_var(--ease-standard)]", "tw:hover:[transform:translateY(-2px)]",
+    "tw:hover:border-t-[color:var(--line-strong)]", "tw:hover:border-r-[color:var(--line-strong)]", "tw:hover:border-b-[color:var(--line-strong)]", "tw:hover:border-l-[color:var(--line-strong)]",
+    "tw:hover:[box-shadow:0_14px_28px_rgba(23,_47,_81,_0.1)]", "tw:min-h-[180px]", "tw:[align-content:center]",
+  ].join(" "),
+  "bracket_stage_bracket_stage_linked": [
+    "bracket-stage", "bracket-stage-linked", "tw:relative", "tw:grid",
+    "tw:gap-y-[14px]", "tw:gap-x-[14px]", "tw:min-w-[240px]", "tw:[&::before]:[content:'']",
+    "tw:[&::before]:absolute", "tw:[&::before]:left-[-18px]", "tw:[&::before]:top-[50%]", "tw:[&::before]:w-[18px]",
+    "tw:[&::before]:h-[2px]", "tw:[&::before]:bg-[color:transparent]", "tw:[&::before]:[background-image:linear-gradient(90deg,_var(--brand-soft-strong),_var(--brand))]", "tw:[&::before]:opacity-[0.7]",
+  ].join(" "),
+  "bracket_column_bracket_column_spaced": [
+    "bracket-column", "bracket-column-spaced", "tw:grid", "tw:gap-y-[24px]",
+    "tw:gap-x-[24px]", "tw:[padding-block:18px]",
+  ].join(" "),
+  "bracket_card": [
+    "bracket-card", "tw:relative", "tw:grid", "tw:gap-y-[12px]",
+    "tw:gap-x-[12px]", "tw:pt-[16px]", "tw:pr-[16px]", "tw:pb-[16px]",
+    "tw:pl-[16px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:var(--line)]",
+    "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:var(--line)]", "tw:border-b-[length:1px]",
+    "tw:[border-bottom-style:solid]", "tw:border-b-[color:var(--line)]", "tw:border-l-[length:1px]", "tw:[border-left-style:solid]",
+    "tw:border-l-[color:var(--line)]", "tw:rounded-[var(--radius-lg)]", "tw:bg-[color:transparent]", "tw:[background-image:linear-gradient(180deg,_#ffffff,_#f9fbfd)]",
+    "tw:[box-shadow:0_10px_24px_rgba(23,_47,_81,_0.06)]", "tw:[transition:transform_180ms_var(--ease-standard),_border-color_180ms_var(--ease-standard),_box-shadow_180ms_var(--ease-standard)]", "tw:hover:[transform:translateY(-2px)]", "tw:hover:border-t-[color:var(--line-strong)]",
+    "tw:hover:border-r-[color:var(--line-strong)]", "tw:hover:border-b-[color:var(--line-strong)]", "tw:hover:border-l-[color:var(--line-strong)]", "tw:hover:[box-shadow:0_14px_28px_rgba(23,_47,_81,_0.1)]",
+  ].join(" "),
+  "bracket_team": [
+    "bracket-team", "tw:flex", "tw:items-center", "tw:min-h-[38px]",
+    "tw:pt-[0]", "tw:pr-[12px]", "tw:pb-[0]", "tw:pl-[12px]",
+    "tw:rounded-[12px]", "tw:bg-[color:#ffffff]", "tw:[background-image:none]", "tw:border-t-[length:1px]",
+    "tw:[border-top-style:solid]", "tw:border-t-[color:#e5edf6]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]",
+    "tw:border-r-[color:#e5edf6]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:#e5edf6]",
+    "tw:border-l-[length:1px]", "tw:[border-left-style:solid]", "tw:border-l-[color:#e5edf6]", "tw:text-[color:var(--text)]",
+    "tw:text-[0.92rem]",
+  ].join(" "),
+  "bracket_team_winner": [
+    "bracket-team-winner", "tw:border-t-[color:rgba(30,_94,_168,_0.28)]", "tw:border-r-[color:rgba(30,_94,_168,_0.28)]", "tw:border-b-[color:rgba(30,_94,_168,_0.28)]",
+    "tw:border-l-[color:rgba(30,_94,_168,_0.28)]", "tw:bg-[color:rgba(30,_94,_168,_0.08)]", "tw:[background-image:none]", "tw:text-[color:var(--brand-strong)]",
+    "tw:font-[700]",
+  ].join(" "),
+  "bracket_column_bracket_column_centered": [
+    "bracket-column", "bracket-column-centered", "tw:grid", "tw:gap-y-[48px]",
+    "tw:gap-x-[48px]", "tw:[align-content:center]", "tw:[padding-block:70px]",
+  ].join(" "),
+  "bracket_column_bracket_column_final": [
+    "bracket-column", "bracket-column-final", "tw:grid", "tw:gap-y-[14px]",
+    "tw:gap-x-[14px]", "tw:[align-content:center]", "tw:[padding-block:140px]",
+  ].join(" "),
+  "bracket_card_bracket_card_final": [
+    "bracket-card", "bracket-card-final", "tw:relative", "tw:grid",
+    "tw:gap-y-[12px]", "tw:gap-x-[12px]", "tw:pt-[16px]", "tw:pr-[16px]",
+    "tw:pb-[16px]", "tw:pl-[16px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]",
+    "tw:border-t-[color:rgba(30,_94,_168,_0.22)]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:rgba(30,_94,_168,_0.22)]",
+    "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:rgba(30,_94,_168,_0.22)]", "tw:border-l-[length:1px]",
+    "tw:[border-left-style:solid]", "tw:border-l-[color:rgba(30,_94,_168,_0.22)]", "tw:rounded-[var(--radius-lg)]", "tw:bg-[color:transparent]",
+    "tw:[background-image:linear-gradient(180deg,_#ffffff,_#eef5fd)]", "tw:[box-shadow:0_10px_24px_rgba(23,_47,_81,_0.06)]", "tw:[transition:transform_180ms_var(--ease-standard),_border-color_180ms_var(--ease-standard),_box-shadow_180ms_var(--ease-standard)]", "tw:hover:[transform:translateY(-2px)]",
+    "tw:hover:border-t-[color:var(--line-strong)]", "tw:hover:border-r-[color:var(--line-strong)]", "tw:hover:border-b-[color:var(--line-strong)]", "tw:hover:border-l-[color:var(--line-strong)]",
+    "tw:hover:[box-shadow:0_14px_28px_rgba(23,_47,_81,_0.1)]",
+  ].join(" "),
+} as const;

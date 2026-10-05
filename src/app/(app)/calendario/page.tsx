@@ -1,3 +1,5 @@
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { CalendarDragScroll } from "@/components/calendar-drag-scroll";
 import { CalendarQuickCreate } from "@/components/calendar-quick-create";
@@ -230,37 +232,37 @@ export default async function CalendarPage(props: CalendarPageProps) {
   const timeGridDays = period === "month" ? days : getCalendarDays(gridStart, gridEnd);
 
   return (
-    <div className="stack-md">
-      <header className="page-header"><div className="stack-xs"><p className="eyebrow">Calendario</p><h1>Agenda da arena</h1><p className="muted">Layout estilo agenda, sem sobreposicao visual de eventos.</p></div></header>
+    <div className={viewStyles.stack_md}>
+      <header className={viewStyles.page_header}><div className={viewStyles.stack_xs}><p className={viewStyles.eyebrow}>Calendario</p><h1>Agenda da arena</h1><p className={viewStyles.muted}>Layout estilo agenda, sem sobreposicao visual de eventos.</p></div></header>
 
-      <div className="calendar-workspace">
-        <aside className="calendar-side-panel">
-          <section className="calendar-mini-card">
-            <div className="calendar-mini-head"><strong>{new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(anchor)}</strong><div><Link href={navHref(period, type, addMonths(anchor, -1))} aria-label="Mes anterior">‹</Link><Link href={navHref(period, type, addMonths(anchor, 1))} aria-label="Proximo mes">›</Link></div></div>
-            <div className="calendar-mini-weekdays">{weekDays.map((day) => <span key={day}>{day}</span>)}</div>
-            <div className="calendar-mini-grid">{miniCalendarDays.map((day) => { const key = dateKey(day); return <Link key={key} href={navHref("day", type, day)} className={`calendar-mini-day${day.getMonth() !== anchor.getMonth() ? " calendar-mini-muted" : ""}${key === todayKey ? " calendar-mini-active" : ""}${eventsByDay[key]?.length ? " calendar-mini-has-events" : ""}`}>{day.getDate()}</Link>; })}</div>
+      <div className={viewStyles.calendar_workspace}>
+        <aside className={viewStyles.calendar_side_panel}>
+          <section className={viewStyles.calendar_mini_card}>
+            <div className={viewStyles.calendar_mini_head}><strong>{new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(anchor)}</strong><div><Link href={navHref(period, type, addMonths(anchor, -1))} aria-label="Mes anterior">‹</Link><Link href={navHref(period, type, addMonths(anchor, 1))} aria-label="Proximo mes">›</Link></div></div>
+            <div className={viewStyles.calendar_mini_weekdays}>{weekDays.map((day) => <span key={day}>{day}</span>)}</div>
+            <div className={viewStyles.calendar_mini_grid}>{miniCalendarDays.map((day) => { const key = dateKey(day); return <Link key={key} href={navHref("day", type, day)} className={cx(`${viewStyles.calendar_mini_day}${day.getMonth() !== anchor.getMonth() ? " " + viewStyles.calendar_mini_muted : ""}${key === todayKey ? " " + viewStyles.calendar_mini_active : ""}${eventsByDay[key]?.length ? " " + viewStyles.calendar_mini_has_events : ""}`)}>{day.getDate()}</Link>; })}</div>
           </section>
 
-          <section className="calendar-mini-card"><h2>Filtros</h2><form className="calendar-filter-stack"><div className="field"><label htmlFor="calendar-period">Periodo</label><select id="calendar-period" name="periodo" defaultValue={period}>{Object.entries(periodLabels).map(([value, optionLabel]) => <option key={value} value={value}>{optionLabel}</option>)}</select></div><div className="field"><label htmlFor="calendar-type">Tipo</label><select id="calendar-type" name="tipo" defaultValue={type}>{Object.entries(typeLabels).map(([value, optionLabel]) => <option key={value} value={value}>{optionLabel}</option>)}</select></div><div className="field"><label htmlFor="calendar-date">Data base</label><input id="calendar-date" name="data" type="date" defaultValue={getDateInputValue(anchor)} /></div><div className="field"><label htmlFor="calendar-start">Inicio</label><input id="calendar-start" name="inicio" type="date" defaultValue={customStart ? getDateInputValue(customStart) : ""} /></div><div className="field"><label htmlFor="calendar-end">Fim</label><input id="calendar-end" name="fim" type="date" defaultValue={customEnd ? getDateInputValue(customEnd) : ""} /></div><button className="button button-primary button-block" type="submit">Aplicar filtros</button><button className="button button-block" type="button" data-calendar-create>Criar</button></form></section>
+          <section className={viewStyles.calendar_mini_card}><h2>Filtros</h2><form className={viewStyles.calendar_filter_stack}><div className={viewStyles.field}><label htmlFor="calendar-period">Periodo</label><select id="calendar-period" name="periodo" defaultValue={period}>{Object.entries(periodLabels).map(([value, optionLabel]) => <option key={value} value={value}>{optionLabel}</option>)}</select></div><div className={viewStyles.field}><label htmlFor="calendar-type">Tipo</label><select id="calendar-type" name="tipo" defaultValue={type}>{Object.entries(typeLabels).map(([value, optionLabel]) => <option key={value} value={value}>{optionLabel}</option>)}</select></div><div className={viewStyles.field}><label htmlFor="calendar-date">Data base</label><input id="calendar-date" name="data" type="date" defaultValue={getDateInputValue(anchor)} /></div><div className={viewStyles.field}><label htmlFor="calendar-start">Inicio</label><input id="calendar-start" name="inicio" type="date" defaultValue={customStart ? getDateInputValue(customStart) : ""} /></div><div className={viewStyles.field}><label htmlFor="calendar-end">Fim</label><input id="calendar-end" name="fim" type="date" defaultValue={customEnd ? getDateInputValue(customEnd) : ""} /></div><button className={viewStyles.button_button_primary_button_block} type="submit">Aplicar filtros</button><button className={viewStyles.button_button_block} type="button" data-calendar-create>Criar</button></form></section>
         </aside>
 
         <SectionCard title={label} description={`${formatDateLong(start)} ate ${formatDateLong(addDays(end, -1))}.`}>
-          <CalendarDragScroll className="calendar-agenda-board calendar-drag-scroll">
-            <div className="calendar-agenda-days" style={{ gridTemplateColumns: `96px repeat(${timeGridDays.length}, minmax(132px, 1fr))` }}><span />{timeGridDays.map((day) => <div key={dateKey(day)} className={dateKey(day) === todayKey ? "calendar-agenda-day calendar-agenda-day-today" : "calendar-agenda-day"}><span>{weekDays[(day.getDay() + 6) % 7]}</span><strong>{day.getDate()}</strong></div>)}</div>
-            <div className="calendar-agenda-grid" style={{ gridTemplateColumns: `96px repeat(${timeGridDays.length}, minmax(132px, 1fr))` }}>
-              <div className="calendar-time-column">{timelineHours.map((hour) => <span key={hour}>{String(hour).padStart(2, "0")}:00</span>)}</div>
+          <CalendarDragScroll className={viewStyles.calendar_agenda_board_calendar_drag_scroll}>
+            <div className={viewStyles.calendar_agenda_days} style={{ gridTemplateColumns: `96px repeat(${timeGridDays.length}, minmax(132px, 1fr))` }}><span />{timeGridDays.map((day) => <div key={dateKey(day)} className={cx(dateKey(day) === todayKey ? viewStyles.calendar_agenda_day_calendar_agenda_day_today : viewStyles.calendar_agenda_day)}><span>{weekDays[(day.getDay() + 6) % 7]}</span><strong>{day.getDate()}</strong></div>)}</div>
+            <div className={viewStyles.calendar_agenda_grid} style={{ gridTemplateColumns: `96px repeat(${timeGridDays.length}, minmax(132px, 1fr))` }}>
+              <div className={viewStyles.calendar_time_column}>{timelineHours.map((hour) => <span key={hour}>{String(hour).padStart(2, "0")}:00</span>)}</div>
               {timeGridDays.map((day) => {
                 const key = dateKey(day);
                 const dayEvents = (eventsByDay[key] ?? []).filter((event) => event.date.getHours() >= 6 && event.date.getHours() <= 23);
                 const placements = getEventLayout(dayEvents);
                 return (
-                  <div key={key} className="calendar-time-day" data-day={key}>
-                    {timelineHours.map((hour) => <span key={hour} className="calendar-hour-line" />)}
+                  <div key={key} className={viewStyles.calendar_time_day} data-day={key}>
+                    {timelineHours.map((hour) => <span key={hour} className={viewStyles.calendar_hour_line} />)}
                     {dayEvents.map((event, index) => (
                       <button
                         type="button"
                         key={`${event.type}-${event.id}-${index}`}
-                        className={`calendar-time-event calendar-time-event-${event.type}`}
+                        className={cx(`${viewStyles.calendar_time_event} calendar-time-event-${event.type}`)}
                         data-calendar-event="1"
                         data-source-type={event.sourceType}
                         data-lesson-id={event.lessonId}

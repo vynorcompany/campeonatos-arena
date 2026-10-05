@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { readFileSync } from "./helpers/style-source";
+
 import { resolve } from "node:path";
 import test from "node:test";
 import assert from "node:assert/strict";

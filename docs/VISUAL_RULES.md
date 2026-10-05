@@ -12,3 +12,9 @@ Painéis operacionais devem ser confortáveis para leitura prolongada e uso diá
 - Em telas pequenas, reorganize o conteúdo em vez de ampliar controles ou criar blocos vazios.
 
 Antes de concluir uma alteração visual, compare a escala entre cabeçalho, ações, cartões e conteúdo. Se um único elemento parece chamar atenção apenas por ser grande, reduza-o.
+
+## Tailwind obrigatório no sistema e no Portal
+
+Toda apresentação usa utilitários Tailwind com o prefixo `tw:`, no JSX ou em constantes locais e primitivas compartilhadas. Variantes responsivas e de estado ficam junto aos componentes. Não introduza CSS Modules, folhas de apresentação ou seletores globais com `@apply`.
+
+Reserve `globals.css` para os imports e a configuração do Tailwind, tokens de tema e keyframes. Valores realmente calculados em execução podem usar variáveis CSS ou estilos dinâmicos. Valide os estados, os formulários e o layout renderizado em desktop e em viewport estreito antes de publicar.

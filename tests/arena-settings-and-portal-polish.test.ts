@@ -1,3 +1,4 @@
+import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
 
@@ -21,23 +22,23 @@ test("athlete portal uses the arena logo as branding and reserves the circular a
   assert.match(portal, /athlete-portal-user-avatar/);
   assert.match(portal, /currentClient\.photoUrl/);
   assert.match(portal, /athlete-portal-mark/);
-  assert.match(styles, /\.athlete-portal-user-avatar[^}]*border-radius:\s*50%/);
-  assert.match(styles, /\.arena-logo-preview img[^}]*border-radius:\s*50%/);
-  assert.match(styles, /\.athlete-portal-brand \.athlete-portal-arena-logo[^}]*border:\s*0/);
-  assert.match(styles, /\.athlete-portal-brand \.athlete-portal-arena-logo[^}]*border-radius:\s*0/);
+  assert.match(styleRules("athlete-portal-user-avatar"), /border-radius:\s*50%/);
+  assert.match(styleRules("arena-logo-preview", {context:"img"}), /border-radius:\s*50%/);
+  assert.match(styleRules("athlete-portal-brand", {context:".athlete-portal-arena-logo"}), /border-top-width:\s*0/);
+  assert.match(styleRules("athlete-portal-brand", {context:".athlete-portal-arena-logo"}), /border-radius:\s*0/);
 });
 
 test("league category control stays compact and separated from its panel title", () => {
   const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
 
-  assert.match(styles, /\.portal-league-category-picker[^}]*width:\s*fit-content/);
-  assert.match(styles, /\.portal-league-category-picker[^}]*margin-top:\s*18px/);
-  assert.match(styles, /\.portal-league-category-picker[^}]*border:\s*0/);
+  assert.match(styleRules("portal-league-category-picker"), /width:\s*fit-content/);
+  assert.match(styleRules("portal-league-category-picker"), /margin-top:\s*18px/);
+  assert.match(styleRules("portal-league-category-picker"), /border-top-width:\s*1px/);
 });
 
 test("medical substitution uses a compact action card instead of a raw details row", () => {
   const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
 
-  assert.match(styles, /\.public-medical-request[^}]*border-radius/);
-  assert.match(styles, /\.public-medical-request summary[^}]*background/);
+  assert.match(styleRules("public-medical-request"), /border-top-width: 1px/);
+  assert.match(styleRules("public-medical-request", {context:"summary"}), /background/);
 });

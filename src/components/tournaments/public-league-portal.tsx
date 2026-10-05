@@ -1,4 +1,6 @@
 "use client";
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./public-league-portal.utilities";
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -125,12 +127,12 @@ export function PublicLeaguePortal({
   }, [portal.leagueResults]);
 
   return (
-    <section className="public-league-portal section-card stack-md">
+    <section className={viewStyles.public_league_portal_section_card_stack_md}>
       <header
         className={
-          view === "pairs"
-            ? "public-league-portal-header"
-            : "public-league-portal-header public-league-portal-hero-card"
+          cx(view === "pairs"
+            ? viewStyles.public_league_portal_header
+            : viewStyles.public_league_portal_header_public_league_portal_hero_card)
         }
       >
         {view === "pairs" ? (
@@ -193,7 +195,7 @@ export function PublicLeaguePortal({
               ))}
             </select>
           </label>
-          <p className="portal-league-category-context">
+          <p className={viewStyles.portal_league_category_context}>
             {selectedCategory.member
               ? "Você participa desta categoria. As ações da sua dupla aparecem abaixo."
               : "Visualização pública: acompanhe as duplas e os resultados desta categoria."}
@@ -215,7 +217,7 @@ export function PublicLeaguePortal({
         <form
           method="get"
           action={`/classificacao/${arenaSlug}`}
-          className="portal-league-category-picker"
+          className={viewStyles.portal_league_category_picker}
         >
           <input type="hidden" name="arena" value={arenaSlug} />
           <input type="hidden" name="section" value="leagues" />
@@ -238,7 +240,7 @@ export function PublicLeaguePortal({
         </form>
       )}
       {view === "pairs" ? (
-        <section className="portal-league-pairs">
+        <section className={viewStyles.portal_league_pairs}>
           <h3>Duplas inscritas</h3>
           {portal.selectedLeaguePairs.length ? (
             <div>
@@ -252,50 +254,50 @@ export function PublicLeaguePortal({
               ))}
             </div>
           ) : (
-            <p className="muted">Ainda não há duplas nesta categoria.</p>
+            <p className={viewStyles.muted}>Ainda não há duplas nesta categoria.</p>
           )}
         </section>
       ) : (
         <>
           {portal.leagueNotifications.length ? (
-            <section className="public-portal-notifications">
+            <section className={viewStyles.public_portal_notifications}>
               {portal.leagueNotifications.map((notification) => (
                 <a
-                  className="public-portal-notification-reservation"
+                  className={viewStyles.public_portal_notification_reservation}
                   href={notification.href || "#"}
                   key={notification.id}
                 >
                   <span
-                    className="public-portal-notification-icon"
+                    className={viewStyles.public_portal_notification_icon}
                     aria-hidden="true"
                   >
                     ⌁
                   </span>
-                  <span className="public-portal-notification-copy">
+                  <span className={viewStyles.public_portal_notification_copy}>
                     <strong>{notification.title}</strong>
                     <small>{notification.message}</small>
                   </span>
-                  <span className="public-portal-notification-view">Ver</span>
+                  <span className={viewStyles.public_portal_notification_view}>Ver</span>
                 </a>
               ))}
             </section>
           ) : null}
           {showPrize && portal.prizes.length ? (
-            <section className="public-league-prizes">
+            <section className={viewStyles.public_league_prizes}>
               <h3>Premiação da Liga</h3>
               {portal.prizes.map((prize) => (
                 <article key={prize.id}>
                   <strong>
                     {prize.eventName} · {prize.categoryName}
                   </strong>
-                  <p className="public-league-prize-description">
+                  <p className={viewStyles.public_league_prize_description}>
                     {prize.description}
                   </p>
                 </article>
               ))}
             </section>
           ) : null}
-          <section className="portal-league-results">
+          <section className={viewStyles.portal_league_results}>
             <header>
               <div>
                 <span>CALENDÁRIO DA LIGA</span>
@@ -304,12 +306,12 @@ export function PublicLeaguePortal({
               <small>Organizado por semana</small>
             </header>
             {leagueResultsByWeek.length ? (
-              <div className="portal-league-week-list">
-                <div className="portal-league-week-tabs" role="tablist" aria-label="Semana da Liga">
+              <div className={viewStyles.portal_league_week_list}>
+                <div className={viewStyles.portal_league_week_tabs} role="tablist" aria-label="Semana da Liga">
                   {leagueResultsByWeek.map((week) => (
                     <button
                       aria-selected={selectedWeek?.block === week.block}
-                      className={selectedWeek?.block === week.block ? "active" : ""}
+                      className={cx(selectedWeek?.block === week.block ? "active" : "")}
                       key={week.block}
                       onClick={() => setSelectedWeekBlock(week.block)}
                       role="tab"
@@ -320,7 +322,7 @@ export function PublicLeaguePortal({
                   ))}
                 </div>
                 {selectedWeek ? (
-                  <section className="portal-league-week" key={selectedWeek.block}>
+                  <section className={viewStyles.portal_league_week} key={selectedWeek.block}>
                     <header>
                       <div>
                         <strong>Semana {selectedWeek.block || "—"}</strong>
@@ -334,10 +336,10 @@ export function PublicLeaguePortal({
                     <div>
                       {selectedWeek.results.map((result) => (
                         <article id={`jogo-${result.id}`} key={result.id}>
-                          <strong className="portal-league-match-sides">
+                          <strong className={viewStyles.portal_league_match_sides}>
                             <span className="portal-league-match-home">
                               <small
-                                className={`portal-league-match-home-status ${result.finished ? "is-finished" : result.scheduledAtLabel ? "is-scheduled" : "is-waiting"}`}
+                                className={cx(`portal-league-match-home-status ${result.finished ? "is-finished" : result.scheduledAtLabel ? "is-scheduled" : "is-waiting"}`)}
                               >
                                 {result.finished
                                   ? "Encerrado"
@@ -355,7 +357,7 @@ export function PublicLeaguePortal({
                                 </small>
                               ) : null}
                             </span>
-                            <b className="portal-league-match-score">
+                            <b className={viewStyles.portal_league_match_score}>
                               {result.finished
                                 ? `${result.homeScore ?? 0} × ${result.awayScore ?? 0}`
                                 : "×"}
@@ -381,13 +383,13 @@ export function PublicLeaguePortal({
                 ) : null}
               </div>
             ) : (
-              <p className="muted">Ainda não há jogos para esta categoria.</p>
+              <p className={viewStyles.muted}>Ainda não há jogos para esta categoria.</p>
             )}
           </section>
           {ownPairs.length ? (
-            <section className="public-portal-pairs">
+            <section className={viewStyles.public_portal_pairs}>
               {ownPairs.map((pair) => (
-                <article className="public-portal-pair" key={pair.id}>
+                <article className={viewStyles.public_portal_pair} key={pair.id}>
                   <header>
                     <strong>{pair.name}</strong>
                   </header>
@@ -403,7 +405,7 @@ export function PublicLeaguePortal({
                   ) : null}
                   {pair.opponents.map((opponent) => (
                     <details
-                      className="public-league-result-entry"
+                      className={viewStyles.public_league_result_entry}
                       key={`resultado-${opponent.matchId}`}
                     >
                       <summary>
@@ -419,7 +421,7 @@ export function PublicLeaguePortal({
                             "Resultado registrado e enviado à dupla visitante.",
                           );
                         }}
-                        className="public-league-result-form"
+                        className={viewStyles.public_league_result_form}
                       >
                         <input
                           type="hidden"
@@ -440,7 +442,7 @@ export function PublicLeaguePortal({
                           ["homeSet3", "awaySet3", "3"],
                         ].map(([home, away, set]) => (
                           <span
-                            className="public-league-result-score"
+                            className={viewStyles.public_league_result_score}
                             key={set}
                           >
                             <i>{set}</i>
@@ -464,7 +466,7 @@ export function PublicLeaguePortal({
                         </small>
                         <button
                           type="submit"
-                          className="button button-primary"
+                          className={viewStyles.button_button_primary}
                           disabled={pending}
                         >
                           {pending ? "Salvando..." : "Salvar resultado"}
@@ -472,10 +474,10 @@ export function PublicLeaguePortal({
                       </form>
                     </details>
                   ))}
-                  <details className="public-medical-request">
+                  <details className={viewStyles.public_medical_request}>
                     <summary>Solicitar substituição médica</summary>
                     {pair.medicalRequestPending ? (
-                      <p className="muted">
+                      <p className={viewStyles.muted}>
                         Solicitação já enviada para a arena.
                       </p>
                     ) : (
@@ -528,7 +530,7 @@ export function PublicLeaguePortal({
                         </label>
                         <button
                           type="submit"
-                          className="button"
+                          className={viewStyles.button}
                           disabled={pending}
                         >
                           Enviar solicitação
@@ -540,19 +542,19 @@ export function PublicLeaguePortal({
               ))}
             </section>
           ) : null}
-          <section className="public-challenge-list">
+          <section className={viewStyles.public_challenge_list}>
             <h3>Sugestões de horário</h3>
             {challenges.length ? (
               challenges.map((challenge) => (
                 <article id={`desafio-${challenge.id}`} key={challenge.id}>
-                  <div className="public-challenge-details">
-                    <div className="public-challenge-title-row">
+                  <div className={viewStyles.public_challenge_details}>
+                    <div className={viewStyles.public_challenge_title_row}>
                       <strong>
                         Semana {challenge.block ?? "—"} · {challenge.proposer} ×{" "}
                         {challenge.opponent}
                       </strong>
                       {challenge.status === "ACCEPTED" ? (
-                        <span className="public-league-reservation-status">
+                        <span className={viewStyles.public_league_reservation_status}>
                           <b aria-hidden="true">✓</b> Reserva confirmada
                         </span>
                       ) : null}
@@ -567,7 +569,7 @@ export function PublicLeaguePortal({
                     ) : null}
                   </div>
                   {challenge.incoming && challenge.status === "PENDING" ? (
-                    <div className="public-challenge-actions">
+                    <div className={viewStyles.public_challenge_actions}>
                       <form
                         onSubmit={(event) => {
                           event.preventDefault();
@@ -590,7 +592,7 @@ export function PublicLeaguePortal({
                         />
                         <input type="hidden" name="response" value="ACCEPTED" />
                         <button
-                          className="button button-primary"
+                          className={viewStyles.button_button_primary}
                           disabled={pending}
                         >
                           Aceitar
@@ -617,7 +619,7 @@ export function PublicLeaguePortal({
                           value={challenge.id}
                         />
                         <input type="hidden" name="response" value="REJECTED" />
-                        <button className="button" disabled={pending}>
+                        <button className={viewStyles.button} disabled={pending}>
                           Recusar
                         </button>
                       </form>
@@ -626,13 +628,13 @@ export function PublicLeaguePortal({
                 </article>
               ))
             ) : (
-              <p className="muted">Nenhuma sugestão nesta categoria.</p>
+              <p className={viewStyles.muted}>Nenhuma sugestão nesta categoria.</p>
             )}
           </section>
         </>
       )}
       {message ? (
-        <p className="public-booking-message" role="status">
+        <p className={viewStyles.public_booking_message} role="status">
           {message}
         </p>
       ) : null}

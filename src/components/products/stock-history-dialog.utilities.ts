@@ -1,0 +1,38 @@
+import { sharedUtilities } from "@/components/ui/shared.utilities";
+/** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
+export const viewStyles = {
+  "command_modal_backdrop": sharedUtilities.commandModalBackdrop,
+  "financial_entry_modal_financial_entry_modal_small": [
+    "financial-entry-modal", "financial-entry-modal-small", "tw:w-[min(100%,_1080px)]", "tw:max-h-[calc(100vh_-_44px)]",
+    "tw:[overflow-x:auto]", "tw:[overflow-y:auto]", "tw:pt-[20px]", "tw:viewport-600:pt-[16px]",
+    "tw:pr-[20px]", "tw:viewport-600:pr-[16px]", "tw:pb-[20px]", "tw:viewport-600:pb-[16px]",
+    "tw:pl-[20px]", "tw:viewport-600:pl-[16px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]",
+    "tw:border-t-[color:rgb(255_255_255_/_.7)]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:rgb(255_255_255_/_.7)]",
+    "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:rgb(255_255_255_/_.7)]", "tw:border-l-[length:1px]",
+    "tw:[border-left-style:solid]", "tw:border-l-[color:rgb(255_255_255_/_.7)]", "tw:rounded-[14px]", "tw:bg-[color:var(--panel)]",
+    "tw:[background-image:none]", "tw:[box-shadow:0_26px_80px_rgb(15_23_42_/_.34)]", "tw:[&_>_header]:flex", "tw:[&_>_header]:justify-between",
+    "tw:[&_>_header]:gap-y-[12px]", "tw:[&_>_header]:gap-x-[12px]", "tw:[&_>_header]:items-start", "tw:[&_>_header]:mb-[18px]",
+    "tw:[&_>_header]:pb-[14px]", "tw:[&_>_header]:border-b-[length:1px]", "tw:[&_>_header]:[border-bottom-style:solid]", "tw:[&_>_header]:border-b-[color:var(--line)]",
+    "tw:[&_header_span]:block", "tw:[&_header_span]:mb-[3px]", "tw:[&_header_span]:text-[color:var(--brand)]", "tw:[&_header_span]:text-[.68rem]",
+    "tw:[&_header_span]:font-[800]", "tw:[&_header_span]:tracking-[.1em]", "tw:[&_h2]:mt-[0]", "tw:[&_h2]:mr-[0]",
+    "tw:[&_h2]:mb-[0]", "tw:[&_h2]:ml-[0]", "tw:[&_p]:mt-[0]", "tw:[&_p]:mr-[0]",
+    "tw:[&_p]:mb-[0]", "tw:[&_p]:ml-[0]", "tw:[&_>_p]:mb-[16px]", "tw:[&_>_p]:text-[color:var(--muted)]",
+  ].join(" "),
+  "button_button_small": sharedUtilities.buttonButtonSmall,
+  "simple_list": sharedUtilities.simpleList,
+  "simple_item": sharedUtilities.simpleItem,
+  "muted": sharedUtilities.muted,
+  "button_button_small_product_history_trigger": [
+    "button", "button-small", "product-history-trigger", "tw:inline-flex",
+    "tw:items-center", "tw:justify-center", "tw:gap-y-[6px]", "tw:gap-x-[6px]",
+    "tw:min-h-[30px]", "tw:pt-[5px]", "tw:pr-[8px]", "tw:pb-[5px]",
+    "tw:pl-[8px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:var(--line)]",
+    "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:var(--line)]", "tw:border-b-[length:1px]",
+    "tw:[border-bottom-style:solid]", "tw:border-b-[color:var(--line)]", "tw:border-l-[length:1px]", "tw:[border-left-style:solid]",
+    "tw:border-l-[color:var(--line)]", "tw:rounded-[var(--radius-control)]", "tw:bg-[color:var(--panel)]", "tw:[background-image:none]",
+    "tw:text-[color:var(--text)]", "tw:text-[.72rem]", "tw:[transition:transform_180ms_var(--ease-standard),_border-color_180ms_var(--ease-standard),_background_180ms_var(--ease-standard),_box-shadow_180ms_var(--ease-standard),_color_180ms_var(--ease-standard)]", "tw:hover:border-t-[color:var(--line-strong)]",
+    "tw:hover:border-r-[color:var(--line-strong)]", "tw:hover:border-b-[color:var(--line-strong)]", "tw:hover:border-l-[color:var(--line-strong)]", "tw:hover:[transform:translateY(-1px)]",
+    "tw:hover:[box-shadow:0_10px_20px_rgba(28,_54,_89,_0.08)]", "tw:disabled:opacity-[0.72]", "tw:disabled:cursor-wait", "tw:[&:active]:[transform:translateY(0)]",
+    "tw:[&:active]:[box-shadow:none]", "tw:mt-[10px]",
+  ].join(" "),
+} as const;

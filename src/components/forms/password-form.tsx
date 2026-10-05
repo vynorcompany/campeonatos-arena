@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./password-form.utilities";
 
 import { useFormState } from "react-dom";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -13,31 +14,31 @@ export function PasswordForm() {
   const [state, formAction] = useFormState(updateOwnPasswordAction, initialState);
 
   return (
-    <form action={formAction} className="grid-form">
-      <div className="field">
+    <form action={formAction} className={viewStyles.grid_form}>
+      <div className={viewStyles.field}>
         <label htmlFor="currentPassword">Senha atual</label>
         <input id="currentPassword" name="currentPassword" type="password" required />
       </div>
 
-      <div className="field">
+      <div className={viewStyles.field}>
         <label htmlFor="newPassword">Nova senha</label>
         <input id="newPassword" name="newPassword" type="password" required />
       </div>
 
-      <div className="field">
+      <div className={viewStyles.field}>
         <label htmlFor="confirmPassword">Confirmar nova senha</label>
         <input id="confirmPassword" name="confirmPassword" type="password" required />
       </div>
 
-      <div className="field field-submit">
-        <label className="sr-only" htmlFor="submit-password">
+      <div className={viewStyles.field_field_submit}>
+        <label className={viewStyles.sr_only} htmlFor="submit-password">
           Alterar senha
         </label>
-        <SubmitButton label="Alterar senha" pendingLabel="Salvando..." className="button button-primary" />
+        <SubmitButton label="Alterar senha" pendingLabel="Salvando..." className={viewStyles.button_button_primary} />
       </div>
 
-      {state?.error ? <p className="form-error form-full">{state.error}</p> : null}
-      {state?.success ? <p className="form-success form-full">{state.success}</p> : null}
+      {state?.error ? <p className={viewStyles.form_error_form_full}>{state.error}</p> : null}
+      {state?.success ? <p className={viewStyles.form_success_form_full}>{state.success}</p> : null}
     </form>
   );
 }

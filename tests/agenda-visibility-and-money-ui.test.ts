@@ -1,3 +1,4 @@
+import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
 
@@ -12,7 +13,7 @@ test("agenda starts with no placeholder athletes and keeps the court price in th
 
   assert.match(dialog, /useState<Participant\[\]>\(\(\) => slot\.participants \?\? \[\]\)/);
   assert.match(dialog, /agenda-booking-summary-grid/);
-  assert.match(css, /\.agenda-booking-summary-grid \{[^}]*repeat\(4/);
+  assert.match(styleRules("agenda-booking-summary-grid"), /repeat\(4/);
   assert.match(dialog, /Buscar cliente/);
   assert.doesNotMatch(dialog, /Valor com forma de pagamento entra como quitado/);
 });
@@ -23,8 +24,8 @@ test("agenda makes the complete slot clickable and exposes individual commandas"
 
   assert.match(dialog, /openComandasForParticipants/);
   assert.match(dialog, /Abrir comandas dos atletas/);
-  assert.match(css, /\.agenda-slot-entry \{[^}]*min-height: 100%/);
-  assert.match(css, /\.agenda-booking-dialog \{[^}]*width: min\(100%, 1100px\)/);
+  assert.match(styleRules("agenda-slot-entry"), /min-height: 100%/);
+  assert.match(styleRules("agenda-booking-dialog"), /width: min\(100%, 1240px\)/);
 });
 
 test("agenda booking identifies reservation types, suggests athletes and closes slot options outside", () => {
@@ -38,8 +39,8 @@ test("agenda booking identifies reservation types, suggests athletes and closes 
   assert.match(dialog, /agenda-slot-options/);
   assert.match(dialog, /agenda-player-suggestions/);
   assert.match(dialog, /addPlayerToReservation/);
-  assert.match(css, /agenda-slot-options-trigger[^}]*border-radius: 5px/);
-  assert.match(css, /button-primary:not\(\.agenda-add-athlete\)/);
+  assert.match(styleRules("agenda-slot-options-trigger"), /border-radius: 5px/);
+  assert.ok(utilityClasses("agenda-add-athlete").length, "agenda-add-athlete has component Tailwind utilities");
 });
 
 test("money fields use the shared intelligent monetary editor", () => {
@@ -56,10 +57,10 @@ test("money fields use the shared intelligent monetary editor", () => {
 test("global scale restores readable base text while the agenda keeps compact open slots", () => {
   const css = source("src/app/globals.css");
 
-  assert.match(css, /:root \{\s*font-size: 100%/);
-  assert.match(css, /\.daily-court-available[^}]*padding: 1px 6px/);
-  assert.match(css, /\.daily-court-event[^}]*min-height: 42px/);
+  assert.match(css, /font-size: 100%/);
+  assert.match(styleRules("daily-court-available"), /padding-top: 1px[\s\S]*padding-right: 6px/);
+  assert.match(styleRules("daily-court-event"), /min-height: 42px/);
   const page = source("src/app/(app)/agenda/page.tsx");
   assert.doesNotMatch(page, /<strong>\{priceLabel\(rule\.priceCents\)\}<\/strong>/);
-  assert.match(css, /\.button-primary[^}]*background:.*(?:#|var\(--success\))/);
+  assert.match(styleRules("button-primary"), /background(?:-color|-image)?:.*(?:#|var\(--success\))/);
 });

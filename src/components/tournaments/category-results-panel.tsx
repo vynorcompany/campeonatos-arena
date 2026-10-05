@@ -1,3 +1,5 @@
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./category-results-panel.utilities";
 import Link from "next/link";
 import { Fragment } from "react";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -130,7 +132,7 @@ export function CategoryResultsPanel({
         <p>Configure uma categoria para iniciar a operação.</p>
         <Link
           href={`/torneios/${tournamentId}?tab=categories`}
-          className="button button-primary"
+          className={viewStyles.button_button_primary}
         >
           Configurar categorias
         </Link>
@@ -139,7 +141,7 @@ export function CategoryResultsPanel({
   }
 
   return (
-    <div className="stack-md">
+    <div className={viewStyles.stack_md}>
       {categories.map((category) => {
         const competition = category.competition;
         const completedMatchCount =
@@ -171,13 +173,13 @@ export function CategoryResultsPanel({
         return (
           <article
             id={`category-${category.id}`}
-            className={`section-card stack-md category-operation-panel ${competition?.format === "LEAGUE" && mode === "games" ? "league-games-panel" : ""}`}
+            className={cx(`${viewStyles.section_card_stack_md_category_operation_panel} ${competition?.format === "LEAGUE" && mode === "games" ? viewStyles.league_games_panel : ""}`)}
             key={category.id}
           >
-            <div className={`page-header ${competition?.format === "LEAGUE" && mode === "games" ? "league-games-hero" : ""}`}>
-              <div className="stack-xs">
+            <div className={cx(`${viewStyles.page_header} ${competition?.format === "LEAGUE" && mode === "games" ? viewStyles.league_games_hero : ""}`)}>
+              <div className={viewStyles.stack_xs}>
                 <h3>{category.name}</h3>
-                <p className="muted">
+                <p className={viewStyles.muted}>
                   {completedMatchCount}/{competition?.matches.length ?? 0} jogos
                   concluídos
                 </p>
@@ -186,13 +188,13 @@ export function CategoryResultsPanel({
             </div>
 
             {!competition ? (
-              <p className="muted">
+              <p className={viewStyles.muted}>
                 Configure a competição desta categoria primeiro.
               </p>
             ) : mode === "games" ? (
               <>
                 {competition.status === "DRAFT" ? (
-                  <p className="muted">
+                  <p className={viewStyles.muted}>
                     Publique a tabela na etapa Duplas e grupos para liberar os
                     placares.
                   </p>
@@ -200,29 +202,29 @@ export function CategoryResultsPanel({
 
                 {competition.matches.length ? (
                   <>
-                    <form method="get" className={`category-game-filter-toolbar ${competition.format === "LEAGUE" ? "league-games-filters" : ""}`}>
+                    <form method="get" className={cx(`${viewStyles.category_game_filter_toolbar} ${competition.format === "LEAGUE" ? viewStyles.league_games_filters : ""}`)}>
                       <input type="hidden" name="tab" value="games" />
-                      <div className="category-game-filter-field">
+                      <div className={viewStyles.category_game_filter_field}>
                         <label htmlFor={`game-sort-${category.id}`}>Ordenar jogos por</label>
                         <select id={`game-sort-${category.id}`} name="sort" defaultValue={sort}>
                           <option value="round">Rodada</option><option value="date">Data</option><option value="status">Status</option>
                         </select>
                       </div>
-                      <div className="category-game-filter-field">
+                      <div className={viewStyles.category_game_filter_field}>
                         <label htmlFor={`game-status-${category.id}`}>Exibir status</label>
                         <select id={`game-status-${category.id}`} name="status" defaultValue={statusFilter}>
                           <option value="ALL">Todos os status</option><option value="WAITING">Aguardando</option><option value="SCHEDULED">Agendados</option><option value="LIVE">Em andamento</option><option value="FINISHED">Finalizados</option>
                         </select>
                       </div>
-                      <div className="category-game-filter-field category-game-filter-search">
+                      <div className={viewStyles.category_game_filter_field_2}>
                         <label htmlFor={`game-player-${category.id}`}>Buscar jogador</label>
                         <input id={`game-player-${category.id}`} name="player" type="search" defaultValue={playerSearch} placeholder="Nome do atleta" />
                       </div>
-                      <button className="button" type="submit">
+                      <button className={viewStyles.button} type="submit">
                         Aplicar filtros
                       </button>
                     </form>
-                  <div className={`category-game-list ${competition.format === "LEAGUE" ? "league-calendar-list" : ""}`}>
+                  <div className={cx(`${viewStyles.category_game_list} ${competition.format === "LEAGUE" ? viewStyles.league_calendar_list : ""}`)}>
                     {orderedMatches.map((match, index) => {
                       const canRecord =
                         competition.status === "PUBLISHED" &&
@@ -236,7 +238,7 @@ export function CategoryResultsPanel({
                       return (
                         <Fragment key={match.id}>
                           {startsLeagueWeek ? (
-                            <div className="league-week-divider">
+                            <div className={viewStyles.league_week_divider}>
                               <div>
                                 <span>Calendário mensal</span>
                                 <strong>Semana {leagueBlock}</strong>
@@ -244,9 +246,9 @@ export function CategoryResultsPanel({
                               <small>{orderedMatches.filter((item) => getLeagueMatchBlock(item) === leagueBlock).length} jogos</small>
                             </div>
                           ) : null}
-                        <div className={`category-game-row ${competition.format === "LEAGUE" ? "league-calendar-card" : ""}`}>
-                          <div className="category-game-time">
-                            <span className="category-game-label">Data e horário</span>
+                        <div className={cx(`${viewStyles.category_game_row} ${competition.format === "LEAGUE" ? viewStyles.league_calendar_card : ""}`)}>
+                          <div className={viewStyles.category_game_time}>
+                            <span className={viewStyles.category_game_label}>Data e horário</span>
                             <strong>
                               {match.scheduledDate ?? "A definir"}
                               {match.scheduledTime
@@ -254,29 +256,29 @@ export function CategoryResultsPanel({
                                 : ""}
                             </strong>
                           </div>
-                          <div className="category-game-stage">
-                            <span className="category-game-label">Fase / grupo</span>
+                          <div className={viewStyles.category_game_stage}>
+                            <span className={viewStyles.category_game_label}>Fase / grupo</span>
                             <strong>{competition.format === "LEAGUE" ? `Semana ${leagueBlock}` : match.stage}</strong>
                             <span>{match.label}</span>
                           </div>
-                          <div className="category-game-pairs">
-                            <span className="category-game-label">Duplas</span>
-                            {competition.format === "LEAGUE" ? <span className="league-match-sides"><span><small>Mandante</small>{match.homePair?.name ?? "A definir"}</span><b>×</b><span><small>Visitante</small>{match.awayPair?.name ?? "A definir"}</span></span> : <span>{match.homePair?.name ?? "A definir"} × {match.awayPair?.name ?? "A definir"}</span>}
+                          <div className={viewStyles.category_game_pairs}>
+                            <span className={viewStyles.category_game_label}>Duplas</span>
+                            {competition.format === "LEAGUE" ? <span className={viewStyles.league_match_sides}><span><small>Mandante</small>{match.homePair?.name ?? "A definir"}</span><b>×</b><span><small>Visitante</small>{match.awayPair?.name ?? "A definir"}</span></span> : <span>{match.homePair?.name ?? "A definir"} × {match.awayPair?.name ?? "A definir"}</span>}
                           </div>
-                          <div className="category-game-result">
-                            <span className="category-game-label">Placar / status</span>
+                          <div className={viewStyles.category_game_result}>
+                            <span className={viewStyles.category_game_label}>Placar / status</span>
                             <strong>
                               {match.homeScore ?? "–"} × {match.awayScore ?? "–"}
                             </strong>
                             <StatusBadge status={matchStatus} />
-                            {match.woReason ? <small className="league-wo-badge">W.O.</small> : null}
+                            {match.woReason ? <small className={viewStyles.league_wo_badge}>W.O.</small> : null}
                             {competition.format === "LEAGUE" && canRecord ? <LeagueMatchResultDialog match={match} /> : null}
                           </div>
-                          <div className="category-game-actions">
+                          <div className={viewStyles.category_game_actions}>
                           {competition.status === "PUBLISHED" ? (
                             <form
                               action={updateCategoryMatchStatusAction}
-                              className="field-inline category-game-form"
+                              className={viewStyles.category_game_form}
                             >
                               <input
                                 type="hidden"
@@ -296,13 +298,13 @@ export function CategoryResultsPanel({
                               <SubmitButton
                                 label="Salvar status"
                                 pendingLabel="..."
-                                className="button"
+                                className={viewStyles.button}
                               />
                             </form>
                           ) : null}
                           <form
                             action={updateCategoryMatchScheduleAction}
-                            className="field-inline category-game-form"
+                            className={viewStyles.category_game_form}
                           >
                             <input
                               type="hidden"
@@ -327,12 +329,12 @@ export function CategoryResultsPanel({
                             <SubmitButton
                               label="Salvar horário"
                               pendingLabel="..."
-                              className="button"
+                              className={viewStyles.button}
                             />
                           </form>
                           <form
                             action={updateCategoryMatchScheduleAction}
-                            className="category-game-form"
+                            className={viewStyles.category_game_form_2}
                           >
                             <input type="hidden" name="matchId" value={match.id} />
                             <input type="hidden" name="scheduledDate" value="" />
@@ -340,13 +342,13 @@ export function CategoryResultsPanel({
                             <SubmitButton
                               label="Limpar agendamento"
                               pendingLabel="..."
-                              className="button"
+                              className={viewStyles.button}
                             />
                           </form>
                           {canRecord && competition.format !== "LEAGUE" ? (
                             <form
                               action={recordCategoryMatchResultAction}
-                              className="field-inline category-game-form"
+                              className={viewStyles.category_game_form}
                             >
                               <input
                                 type="hidden"
@@ -379,7 +381,7 @@ export function CategoryResultsPanel({
                                     : "Salvar resultado"
                                 }
                                 pendingLabel="..."
-                                className="button"
+                                className={viewStyles.button}
                               />
                             </form>
                           ) : (
@@ -389,9 +391,9 @@ export function CategoryResultsPanel({
                             </span>
                           )}
                           {competition.format === "LEAGUE" && match.winnerPair ? (
-                            <form action={resetCategoryLeagueMatchResultAction} className="category-game-form">
+                            <form action={resetCategoryLeagueMatchResultAction} className={viewStyles.category_game_form_2}>
                               <input type="hidden" name="matchId" value={match.id} />
-                              <SubmitButton label="Resetar resultado" pendingLabel="Resetando..." className="button" />
+                              <SubmitButton label="Resetar resultado" pendingLabel="Resetando..." className={viewStyles.button} />
                             </form>
                           ) : null}
                           </div>
@@ -402,19 +404,19 @@ export function CategoryResultsPanel({
                   </div>
                   </>
                 ) : (
-                  <p className="muted">Nenhum jogo publicado.</p>
+                  <p className={viewStyles.muted}>Nenhum jogo publicado.</p>
                 )}
                 {!visibleMatches.length && competition.matches.length ? (
-                  <p className="muted">Nenhum jogo encontrado para este status.</p>
+                  <p className={viewStyles.muted}>Nenhum jogo encontrado para este status.</p>
                 ) : null}
               </>
             ) : (
               <>
                 {competition.format === "LEAGUE" ? (
                   competition.sportsResults.leagueStandings.length ? (
-                    <div className="group-standings">
+                    <div className={viewStyles.group_standings}>
                       <h4>Classificação da Liga</h4>
-                      <table className="group-standings-table">
+                      <table className={viewStyles.group_standings_table}>
                         <thead>
                           <tr>
                             <th>Posição</th>
@@ -442,13 +444,13 @@ export function CategoryResultsPanel({
                       </table>
                     </div>
                   ) : (
-                    <p className="muted">Nenhum resultado registrado.</p>
+                    <p className={viewStyles.muted}>Nenhum resultado registrado.</p>
                   )
                 ) : competition.sportsResults.knockoutPlacement.length ? (
-                  <div className="simple-list">
+                  <div className={viewStyles.simple_list}>
                     {competition.sportsResults.knockoutPlacement.map(
                       (placement) => (
-                        <div className="simple-item" key={placement.position}>
+                        <div className={viewStyles.simple_item} key={placement.position}>
                           <strong>
                             {placement.position}. {placement.pairName}
                           </strong>
@@ -457,7 +459,7 @@ export function CategoryResultsPanel({
                     )}
                   </div>
                 ) : (
-                  <p className="muted">
+                  <p className={viewStyles.muted}>
                     A classificação final estará disponível após a final.
                   </p>
                 )}
@@ -473,11 +475,11 @@ export function CategoryResultsPanel({
                       <SubmitButton
                         label="Encerrar categoria"
                         pendingLabel="Encerrando..."
-                        className="button button-primary"
+                        className={viewStyles.button_button_primary}
                       />
                     </form>
                   ) : (
-                    <p className="muted">
+                    <p className={viewStyles.muted}>
                       Conclua todos os jogos para encerrar a categoria.
                     </p>
                   )

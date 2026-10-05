@@ -1,3 +1,4 @@
+import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -27,9 +28,9 @@ test("formulário de cliente remove cadastro redundante de aluno e oferece papel
   assert.doesNotMatch(form, /createStudent/);
   assert.match(form, /Classe[\s\S]*name="class"/);
   assert.match(form, /Gênero[\s\S]*<select/);
-  assert.match(form, /className="control-toggle"[\s\S]*name="isTeacher"[\s\S]*<span aria-hidden="true" \/>[\s\S]*<em>É professor<\/em>/);
-  assert.match(workspace, /className="control-toggle"[\s\S]*name="isTeacher"[\s\S]*<span aria-hidden="true" \/>[\s\S]*<em>É professor<\/em>/);
-  assert.match(styles, /\.control-toggle span::after/);
+  assert.match(form, /(?:className="control-toggle"|className=\{(?:cx\()?viewStyles\.control_toggle(?:\))?\})[\s\S]*name="isTeacher"[\s\S]*<span aria-hidden="true" \/>[\s\S]*<em>É professor<\/em>/);
+  assert.match(workspace, /(?:className="control-toggle"|className=\{(?:cx\()?viewStyles\.control_toggle(?:\))?\})[\s\S]*name="isTeacher"[\s\S]*<span aria-hidden="true" \/>[\s\S]*<em>É professor<\/em>/);
+  assert.ok(utilityClasses("control-toggle").length, "control-toggle has component Tailwind utilities");
   assert.doesNotMatch(styles, /\.teacher-role-switch/);
 });
 

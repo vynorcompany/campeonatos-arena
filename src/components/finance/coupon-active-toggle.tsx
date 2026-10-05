@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./coupon-active-toggle.utilities";
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -27,5 +28,5 @@ export function CouponActiveToggle({ couponId, active }: { couponId: string; act
     });
   }
 
-  return <div className="settings-coupon-status"><button type="button" className="control-toggle" role="switch" aria-checked={isActive} disabled={pending} onClick={toggle}><span aria-hidden="true" /><em>{isActive ? "Ativo" : "Inativo"}</em></button>{error ? <small className="form-error">{error}</small> : null}</div>;
+  return <div className={viewStyles.settings_coupon_status}><button type="button" className={viewStyles.control_toggle} role="switch" aria-checked={isActive} disabled={pending} onClick={toggle}><span aria-hidden="true" /><em>{isActive ? "Ativo" : "Inativo"}</em></button>{error ? <small className={viewStyles.form_error}>{error}</small> : null}</div>;
 }

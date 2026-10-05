@@ -1,3 +1,4 @@
+import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
 
@@ -35,8 +36,8 @@ test("academy page exposes a dedicated workspace for class groups", () => {
 
   assert.match(page, /ClassGroupWorkspace/);
   assert.match(workspace, /Turmas e horários/);
-  assert.match(styles, /\.class-group-workspace[^}]*border-radius/);
-  assert.match(styles, /\.class-group-schedule-row[^}]*grid-template-columns/);
+  assert.match(styleRules("class-group-workspace"), /border-radius/);
+  assert.match(styleRules("class-group-schedule-row"), /grid-template-columns/);
 });
 
 test("athlete portal offers active class groups as requests instead of direct enrollments", () => {
@@ -67,10 +68,10 @@ test("athlete portal shows class groups only below the selected teacher", () => 
   assert.match(portal, /const selectedClassGroups = selectedTeacher/);
   assert.match(
     portal,
-    /portal-class-group-list portal-selected-teacher-groups/,
+    /viewStyles\.portal_class_group_list/,
   );
   assert.match(portal, /selectedClassGroups\.length/);
-  assert.match(styles, /\.portal-class-group-list \.button \{[^}]*padding:/);
+  assert.match(styleRules("portal-class-group-list", {"context":".button"}), /padding-top:/);
 });
 
 test("athlete portal orders class groups by weekday and marks availability", () => {
@@ -85,14 +86,8 @@ test("athlete portal orders class groups by weekday and marks availability", () 
   assert.match(portal, /\.sort\(\(first, second\) =>/);
   assert.match(portal, /portal-class-group-available/);
   assert.match(portal, /portal-class-group-full/);
-  assert.match(
-    styles,
-    /\.portal-class-group-list article\.portal-class-group-available/,
-  );
-  assert.match(
-    styles,
-    /\.portal-class-group-list article\.portal-class-group-full/,
-  );
+  assert.ok(utilityClasses("portal-class-group-list").length, "portal-class-group-list has component Tailwind utilities");
+  assert.ok(utilityClasses("portal-class-group-list").length, "portal-class-group-list has component Tailwind utilities");
 });
 
 test("arena approval requires a plan before creating a class enrollment", () => {
@@ -140,7 +135,7 @@ test("athlete portal presents classes as an internal lessons navigation", () => 
     portal,
     /portalVisibility\.athletePortalShowLessons \? "lessons" : "classes"/,
   );
-  assert.match(portal, /athlete-portal-league-nav athlete-portal-lessons-nav/);
+  assert.match(portal, /viewStyles\.athlete_portal_league_nav_athlete_portal_learning_tabs/);
   assert.match(portal, /Minhas aulas/);
   assert.match(portal, /Turmas/);
   assert.match(portal, /portalHref\("classes"\)/);

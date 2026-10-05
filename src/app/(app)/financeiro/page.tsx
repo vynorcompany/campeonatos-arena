@@ -1,3 +1,4 @@
+import { viewStyles } from "./page.utilities";
 import { OperationalSubmenuList } from "@/components/operational-submenu-list";
 import { SectionCard } from "@/components/section-card";
 import { requireModuleView } from "@/lib/auth/guards";
@@ -57,21 +58,21 @@ export default async function FinancePage() {
   ] as const;
 
   return (
-    <div className="stack-md">
-      <div className="stats-grid finance-stats-grid">
-        <div className="stat-card">
+    <div className={viewStyles.stack_md}>
+      <div className={viewStyles.stats_grid_finance_stats_grid}>
+        <div className={viewStyles.stat_card}>
           <strong>{formatMoney(paidRevenue)}</strong>
           <span>receita recebida no mês</span>
         </div>
-        <div className="stat-card">
+        <div className={viewStyles.stat_card}>
           <strong>{formatMoney(projectedPlanRevenue)}</strong>
           <span>mensalidades previstas</span>
         </div>
-        <div className="stat-card">
+        <div className={viewStyles.stat_card}>
           <strong>{formatMoney(expenses + payrollTotal)}</strong>
           <span>custos e salários</span>
         </div>
-        <div className="stat-card">
+        <div className={viewStyles.stat_card}>
           <strong>{formatMoney(stockValue)}</strong>
           <span>valor em estoque</span>
         </div>
@@ -80,16 +81,16 @@ export default async function FinancePage() {
       <OperationalSubmenuList ariaLabel="Áreas financeiras" items={shortcuts.map(([label, href, description]) => ({ label, href, description }))} />
 
       <SectionCard title="Últimos lançamentos" description="Movimentações financeiras mais recentes.">
-        <div className="simple-list">
+        <div className={viewStyles.simple_list}>
           {recentEntries.map((entry) => (
-            <div className="simple-item" key={entry.id}>
+            <div className={viewStyles.simple_item} key={entry.id}>
               <strong>{entry.description}</strong>
               <span>
                 {entry.type === "REVENUE" ? "Receita" : "Despesa"} - {entry.category} - {formatMoney(entry.amountCents)}
               </span>
             </div>
           ))}
-          {!recentEntries.length ? <p className="muted">Nenhum lançamento financeiro cadastrado.</p> : null}
+          {!recentEntries.length ? <p className={viewStyles.muted}>Nenhum lançamento financeiro cadastrado.</p> : null}
         </div>
       </SectionCard>
     </div>

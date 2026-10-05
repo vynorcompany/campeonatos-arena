@@ -1,3 +1,4 @@
+import { viewStyles } from "./page.utilities";
 import { SectionCard } from "@/components/section-card";
 import { requireAgencyAccess } from "@/lib/auth/guards";
 import { formatCurrency, getAgencyMetrics } from "@/lib/services/agency";
@@ -10,24 +11,24 @@ export default async function AgencyForecastPage() {
   const target = Math.round(metrics.mrrCents * 1.15);
 
   return (
-    <div className="stack-md">
-      <header className="page-header">
-        <div className="stack-xs">
-          <p className="eyebrow">Agência</p>
+    <div className={viewStyles.stack_md}>
+      <header className={viewStyles.page_header}>
+        <div className={viewStyles.stack_xs}>
+          <p className={viewStyles.eyebrow}>Agência</p>
           <h1>Previsões financeiras</h1>
-          <p className="muted">Cenários simples para acompanhamento do crescimento da base.</p>
+          <p className={viewStyles.muted}>Cenários simples para acompanhamento do crescimento da base.</p>
         </div>
       </header>
 
-      <div className="agency-stats-grid">
-        <div className="stat-card"><strong>{formatCurrency(metrics.mrrCents)}</strong><span>MRR atual</span></div>
-        <div className="stat-card"><strong>{formatCurrency(conservative)}</strong><span>cenário conservador</span></div>
-        <div className="stat-card"><strong>{formatCurrency(target)}</strong><span>meta do mês</span></div>
-        <div className="stat-card"><strong>{activeArenas}</strong><span>arenas ativas</span></div>
+      <div className={viewStyles.agency_stats_grid}>
+        <div className={viewStyles.stat_card}><strong>{formatCurrency(metrics.mrrCents)}</strong><span>MRR atual</span></div>
+        <div className={viewStyles.stat_card}><strong>{formatCurrency(conservative)}</strong><span>cenário conservador</span></div>
+        <div className={viewStyles.stat_card}><strong>{formatCurrency(target)}</strong><span>meta do mês</span></div>
+        <div className={viewStyles.stat_card}><strong>{activeArenas}</strong><span>arenas ativas</span></div>
       </div>
 
       <SectionCard title="Leitura rápida" description="Projeção inicial baseada apenas nas assinaturas pagas das arenas.">
-        <p className="muted">O trial e as mensalidades de alunos não entram no MRR da agência. Os cenários de crescimento são estimativas, não faturas emitidas.</p>
+        <p className={viewStyles.muted}>O trial e as mensalidades de alunos não entram no MRR da agência. Os cenários de crescimento são estimativas, não faturas emitidas.</p>
       </SectionCard>
     </div>
   );

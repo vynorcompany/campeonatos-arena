@@ -1,3 +1,5 @@
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./ranking-workspace-tabs.utilities";
 import Link from "next/link";
 
 export type RankingWorkspaceTab =
@@ -29,7 +31,7 @@ export function RankingWorkspaceTabs({
   periodQuery?: Record<string, string>;
 }) {
   return (
-    <nav className="section-actions ranking-detail-tabs" aria-label="Áreas do ranking">
+    <nav className={viewStyles.section_actions_ranking_detail_tabs} aria-label="Áreas do ranking">
       {tabs.map((tab) => {
         const searchParams = new URLSearchParams({ tab: tab.id });
         if (cycleId) searchParams.set("cycleId", cycleId);
@@ -41,7 +43,7 @@ export function RankingWorkspaceTabs({
           <Link
             key={tab.id}
             href={`/torneios/rankings/${rankingId}?${searchParams.toString()}`}
-            className={`button${tab.id === activeTab ? " button-primary" : ""}`}
+            className={cx(`${viewStyles.button}${tab.id === activeTab ? " " + viewStyles.button_primary : ""}`)}
             aria-current={tab.id === activeTab ? "page" : undefined}
           >
             {tab.label}

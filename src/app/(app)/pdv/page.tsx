@@ -1,3 +1,5 @@
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { SectionCard } from "@/components/section-card";
 import { requireModuleView } from "@/lib/auth/guards";
@@ -36,18 +38,18 @@ export default async function PosPage(props: PosPageProps) {
   const filteredProducts = products.filter((product) => stock === "ALL" || (stock === "LOW" ? product.stockQuantity <= product.minStock : product.stockQuantity > product.minStock));
 
   return (
-    <div className="product-management stack-md">
-      <header className="product-management-header">
+    <div className={viewStyles.product_management_stack_md}>
+      <header className={viewStyles.product_management_header}>
         <h1>Produtos e Serviços</h1>
-        <div className="product-management-actions">
-          <Link href="/financeiro/configuracoes/notas-fiscais" className="button button-small button-import">Importar XML/NF-e</Link>
-          <button type="button" className="button button-small button-import-csv" disabled title="Importação CSV será disponibilizada em breve">Importar CSV</button>
-          <Link href="/pdv/novo" className="button button-small button-primary">Criar produto/serviço</Link>
+        <div className={viewStyles.product_management_actions}>
+          <Link href="/financeiro/configuracoes/notas-fiscais" className={viewStyles.button_button_small_button_import}>Importar XML/NF-e</Link>
+          <button type="button" className={viewStyles.button_button_small_button_import_csv} disabled title="Importação CSV será disponibilizada em breve">Importar CSV</button>
+          <Link href="/pdv/novo" className={viewStyles.button_button_small_button_primary}>Criar produto/serviço</Link>
         </div>
       </header>
 
-      <form className="product-management-filters" aria-label="Filtros de produtos">
-        <header><strong>Filtros</strong><div><button type="submit" className="button button-small button-primary">Aplicar</button><Link href="/pdv" className="button button-small">Limpar</Link></div></header>
+      <form className={viewStyles.product_management_filters} aria-label="Filtros de produtos">
+        <header><strong>Filtros</strong><div><button type="submit" className={viewStyles.button_button_small_button_primary}>Aplicar</button><Link href="/pdv" className={viewStyles.button_button_small}>Limpar</Link></div></header>
         <div>
           <label>Descrição<input name="q" defaultValue={query} placeholder="Nome do produto" /></label>
           <label>Código interno<input name="sku" defaultValue={sku} placeholder="SKU/código" /></label>
@@ -57,7 +59,7 @@ export default async function PosPage(props: PosPageProps) {
         </div>
       </form>
 
-      <SectionCard id="estoque" title="Listagem" description="Clique em um produto para configurar dados, estoque e NFC-e."><div className="product-list-head"><span>Produto</span><span>Preço de venda</span><span>Estoque</span><span>Mínimo</span><span>Ações</span></div><div className="product-list">{filteredProducts.map((product) => <article className="product-row" key={product.id}><Link href={`/pdv/${product.id}`} className="product-table-link"><strong>{product.name}</strong><span>{product.sku || "Sem SKU"}</span></Link><span>{formatMoney(product.priceCents)}</span><span className={product.stockQuantity <= product.minStock ? "stock-alert" : ""}>{product.stockQuantity}</span><span>{product.minStock}</span><Link href={`/pdv/${product.id}`} className="button button-small">Abrir</Link></article>)}{!filteredProducts.length ? <p className="client-empty">Nenhum produto corresponde aos filtros.</p> : null}</div></SectionCard>
+      <SectionCard id="estoque" title="Listagem" description="Clique em um produto para configurar dados, estoque e NFC-e."><div className={viewStyles.product_list_head}><span>Produto</span><span>Preço de venda</span><span>Estoque</span><span>Mínimo</span><span>Ações</span></div><div className={viewStyles.product_list}>{filteredProducts.map((product) => <article className={viewStyles.product_row} key={product.id}><Link href={`/pdv/${product.id}`} className={viewStyles.product_table_link}><strong>{product.name}</strong><span>{product.sku || "Sem SKU"}</span></Link><span>{formatMoney(product.priceCents)}</span><span className={cx(product.stockQuantity <= product.minStock ? viewStyles.stock_alert : "")}>{product.stockQuantity}</span><span>{product.minStock}</span><Link href={`/pdv/${product.id}`} className={viewStyles.button_button_small}>Abrir</Link></article>)}{!filteredProducts.length ? <p className={viewStyles.client_empty}>Nenhum produto corresponde aos filtros.</p> : null}</div></SectionCard>
     </div>
   );
 }

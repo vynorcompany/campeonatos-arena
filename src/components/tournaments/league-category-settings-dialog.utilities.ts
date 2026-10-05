@@ -1,0 +1,45 @@
+import { sharedUtilities } from "@/components/ui/shared.utilities";
+/** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
+export const viewStyles = {
+  "button_button_small_league_category_edit_trigger": [
+    "button", "button-small", "league-category-edit-trigger", "tw:inline-flex",
+    "tw:items-center", "tw:justify-center", "tw:gap-y-[6px]", "tw:gap-x-[6px]",
+    "tw:min-h-[30px]", "tw:pt-[5px]", "tw:pr-[8px]", "tw:pb-[5px]",
+    "tw:pl-[8px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:var(--line)]",
+    "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:var(--line)]", "tw:border-b-[length:1px]",
+    "tw:[border-bottom-style:solid]", "tw:border-b-[color:var(--line)]", "tw:border-l-[length:1px]", "tw:[border-left-style:solid]",
+    "tw:border-l-[color:var(--line)]", "tw:rounded-[var(--radius-control)]", "tw:bg-[color:var(--panel)]", "tw:[background-image:none]",
+    "tw:text-[color:var(--text)]", "tw:text-[.72rem]", "tw:[transition:transform_180ms_var(--ease-standard),_border-color_180ms_var(--ease-standard),_background_180ms_var(--ease-standard),_box-shadow_180ms_var(--ease-standard),_color_180ms_var(--ease-standard)]", "tw:hover:border-t-[color:var(--line-strong)]",
+    "tw:hover:border-r-[color:var(--line-strong)]", "tw:hover:border-b-[color:var(--line-strong)]", "tw:hover:border-l-[color:var(--line-strong)]", "tw:hover:[transform:translateY(-1px)]",
+    "tw:hover:[box-shadow:0_10px_20px_rgba(28,_54,_89,_0.08)]", "tw:disabled:opacity-[0.72]", "tw:disabled:cursor-wait", "tw:[&:active]:[transform:translateY(0)]",
+    "tw:[&:active]:[box-shadow:none]", "tw:ml-[4px]",
+  ].join(" "),
+  "league_settings_overlay": [
+    "league-settings-overlay", "tw:fixed", "tw:top-[0]", "tw:right-[0]",
+    "tw:bottom-[0]", "tw:left-[0]", "tw:z-[80]", "tw:grid",
+    "tw:place-items-center", "tw:pt-[24px]", "tw:viewport-760:pt-[12px]", "tw:pr-[24px]",
+    "tw:viewport-760:pr-[12px]", "tw:pb-[24px]", "tw:viewport-760:pb-[12px]", "tw:pl-[24px]",
+    "tw:viewport-760:pl-[12px]", "tw:bg-[color:rgba(11,24,45,.44)]", "tw:[background-image:none]", "tw:[backdrop-filter:blur(5px)]",
+  ].join(" "),
+  "league_settings_dialog": [
+    "league-settings-dialog", "tw:w-[min(620px,100%)]", "tw:grid", "tw:gap-y-[16px]",
+    "tw:gap-x-[16px]", "tw:pt-[24px]", "tw:pr-[24px]", "tw:pb-[24px]",
+    "tw:pl-[24px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:var(--border)]",
+    "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:var(--border)]", "tw:border-b-[length:1px]",
+    "tw:[border-bottom-style:solid]", "tw:border-b-[color:var(--border)]", "tw:border-l-[length:1px]", "tw:[border-left-style:solid]",
+    "tw:border-l-[color:var(--border)]", "tw:rounded-[16px]", "tw:bg-[color:#fff]", "tw:[background-image:none]",
+    "tw:[box-shadow:0_24px_72px_rgba(8,29,56,.28)]", "tw:[&_header]:flex", "tw:[&_header]:items-center", "tw:[&_header]:justify-between",
+    "tw:[&_header]:gap-y-[12px]", "tw:[&_header]:gap-x-[12px]", "tw:[&_footer]:flex", "tw:[&_footer]:items-center",
+    "tw:[&_footer]:justify-end", "tw:[&_footer]:gap-y-[12px]", "tw:[&_footer]:gap-x-[12px]", "tw:[&_h2]:mt-[2px]",
+    "tw:[&_h2]:mr-[0]", "tw:[&_h2]:mb-[0]", "tw:[&_h2]:ml-[0]",
+  ].join(" "),
+  "eyebrow": sharedUtilities.eyebrow,
+  "button_button_small": sharedUtilities.buttonButtonSmall,
+  "field": sharedUtilities.field,
+  "league_settings_grid": [
+    "league-settings-grid", "tw:grid", "tw:grid-cols-[repeat(3,minmax(0,1fr))]", "tw:viewport-760:grid-cols-[1fr]",
+    "tw:gap-y-[12px]", "tw:gap-x-[12px]",
+  ].join(" "),
+  "button": sharedUtilities.button,
+  "button_button_primary": sharedUtilities.buttonButtonPrimary,
+} as const;

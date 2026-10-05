@@ -1,3 +1,5 @@
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./category-registration-panel.utilities";
 import Link from "next/link";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -62,7 +64,7 @@ export function CategoryRegistrationPanel({
         <p>Crie uma categoria antes de incluir duplas.</p>
         <Link
           href={`/torneios/${tournamentId}?tab=categories`}
-          className="button button-primary"
+          className={viewStyles.button_button_primary}
         >
           Configurar categorias
         </Link>
@@ -71,7 +73,7 @@ export function CategoryRegistrationPanel({
   }
 
   return (
-    <div className="stack-md">
+    <div className={viewStyles.stack_md}>
       {categories.map((category) => {
         const eligibleAthletes = athletes.filter(
           (athlete) =>
@@ -97,13 +99,13 @@ export function CategoryRegistrationPanel({
         return (
           <article
             id={`category-${category.id}`}
-            className={`section-card stack-md category-operation-panel ${category.competition?.format === "LEAGUE" ? "league-registration-panel" : ""}`}
+            className={cx(`${viewStyles.section_card_stack_md_category_operation_panel} ${category.competition?.format === "LEAGUE" ? viewStyles.league_registration_panel : ""}`)}
             key={category.id}
           >
-            <div className={`page-header ${category.competition?.format === "LEAGUE" ? "league-registration-hero" : ""}`}>
-              <div className="stack-xs">
+            <div className={cx(`${viewStyles.page_header} ${category.competition?.format === "LEAGUE" ? viewStyles.league_registration_hero : ""}`)}>
+              <div className={viewStyles.stack_xs}>
                 <h3>{category.name}</h3>
-                <p className="muted">
+                <p className={viewStyles.muted}>
                   {category.class || "Classe pendente"} ·{" "}
                   {category.gender || "Gênero pendente"}
                 </p>
@@ -114,7 +116,7 @@ export function CategoryRegistrationPanel({
             </div>
 
             {!category.competition ? (
-              <p className="muted">
+              <p className={viewStyles.muted}>
                 Configure a competição desta categoria antes de adicionar
                 duplas.
               </p>
@@ -123,23 +125,23 @@ export function CategoryRegistrationPanel({
                 {canAcceptManualPair ? (
                   <CategoryPairForm competitionId={category.competition.id} athletes={availableAthletes} />
                 ) : category.competition.status !== "DRAFT" ? (
-                  <p className="muted">
+                  <p className={viewStyles.muted}>
                     As inscrições manuais ficam bloqueadas após a publicação.
                   </p>
                 ) : (
-                  <p className="muted">
+                  <p className={viewStyles.muted}>
                     O formato Simples atingiu o limite de 16 duplas. Gere os
                     grupos para continuar.
                   </p>
                 )}
 
-                <div className={`stack-sm ${category.competition.format === "LEAGUE" ? "league-registration-list-section" : ""}`}>
+                <div className={cx(`stack-sm ${category.competition.format === "LEAGUE" ? viewStyles.league_registration_list_section : ""}`)}>
                   <h4>Duplas confirmadas</h4>
                   {category.competition.pairs.length ? (
-                    <div className={`simple-list ${category.competition.format === "LEAGUE" ? "league-registration-list" : ""}`}>
+                    <div className={cx(`${viewStyles.simple_list} ${category.competition.format === "LEAGUE" ? viewStyles.league_registration_list : ""}`)}>
                       {category.competition.pairs.map((pair) => (
-                        <div className={`simple-item ${category.competition?.format === "LEAGUE" ? "league-registration-card" : ""}`} key={pair.id}>
-                          <div className={`match-copy ${category.competition?.format === "LEAGUE" ? "league-registration-pair-name" : ""}`}>
+                        <div className={cx(`${viewStyles.simple_item} ${category.competition?.format === "LEAGUE" ? viewStyles.league_registration_card : ""}`)} key={pair.id}>
+                          <div className={cx(`${viewStyles.match_copy} ${category.competition?.format === "LEAGUE" ? viewStyles.league_registration_pair_name : ""}`)}>
                             <strong>{pair.playerNames.length ? pair.playerNames.join(" / ") : pair.name}</strong>
                           </div>
                           {canRemovePair ? (
@@ -152,18 +154,18 @@ export function CategoryRegistrationPanel({
                               <SubmitButton
                                 label="Remover dupla"
                                 pendingLabel="Removendo..."
-                                className="button button-danger"
+                                className={viewStyles.button_button_danger}
                               />
                             </form>
                           ) : null}
                           {canReplacePairPlayer && availableAthletes.length ? (
-                            <div className="stack-xs league-registration-replacements">
+                            <div className={viewStyles.stack_xs_league_registration_replacements}>
                               {pair.playerIds.map((playerId, index) => (
-                                <SafeActionForm action={replaceCategoryPairPlayerAction} className="inline-pair-edit" successMessage="Atleta substituído." key={`${pair.id}-${playerId}`}>
+                                <SafeActionForm action={replaceCategoryPairPlayerAction} className={viewStyles.inline_pair_edit} successMessage="Atleta substituído." key={`${pair.id}-${playerId}`}>
                                   <input type="hidden" name="pairId" value={pair.id} />
                                   <input type="hidden" name="previousPlayerId" value={playerId} />
                                   <AthleteSearchField id={`replace-${pair.id}-${playerId}`} label={`Substituir ${pair.playerNames[index] ?? "atleta"}`} name="replacementPlayerId" athletes={availableAthletes} compact />
-                                  <SubmitButton label="Trocar" pendingLabel="Trocando..." className="button button-small" />
+                                  <SubmitButton label="Trocar" pendingLabel="Trocando..." className={viewStyles.button_button_small} />
                                 </SafeActionForm>
                               ))}
                             </div>
@@ -172,7 +174,7 @@ export function CategoryRegistrationPanel({
                       ))}
                     </div>
                   ) : (
-                    <p className="muted">Nenhuma dupla confirmada.</p>
+                    <p className={viewStyles.muted}>Nenhuma dupla confirmada.</p>
                   )}
                 </div>
               </>
@@ -181,14 +183,14 @@ export function CategoryRegistrationPanel({
             {category.registrations.length ? (
               <div className="stack-sm">
                 <h4>Inscrições recebidas pelo link público</h4>
-                <p className="muted">
+                <p className={viewStyles.muted}>
                   Nesta etapa, as inscrições públicas permanecem somente para
                   consulta.
                 </p>
-                <div className="simple-list">
+                <div className={viewStyles.simple_list}>
                   {category.registrations.map((registration) => (
-                    <div className="simple-item" key={registration.id}>
-                      <div className="match-copy">
+                    <div className={viewStyles.simple_item} key={registration.id}>
+                      <div className={viewStyles.match_copy}>
                         <strong>
                           {registration.leadName} / {registration.partnerName}
                         </strong>

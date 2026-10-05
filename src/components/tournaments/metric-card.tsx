@@ -1,3 +1,4 @@
+import { viewStyles } from "./metric-card.utilities";
 type MetricCardProps = {
   label: string;
   value: string | number;
@@ -6,7 +7,7 @@ type MetricCardProps = {
 
 export function MetricCard({ label, value, caption }: MetricCardProps) {
   return (
-    <article className="metric-card">
+    <article className={viewStyles.metric_card}>
       <span>{label}</span>
       <strong>{value}</strong>
       {caption ? <small>{caption}</small> : null}

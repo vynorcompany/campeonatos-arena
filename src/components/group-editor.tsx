@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./group-editor.utilities";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { moveTournamentPairGroupAction } from "@/lib/actions/tournament";
@@ -71,14 +73,14 @@ export function GroupEditor({ groups }: GroupEditorProps) {
   }
 
   return (
-    <div className="group-grid">
+    <div className={viewStyles.group_grid}>
       {groups.map((group) => {
         const isDropActive = pendingTarget === group.id && isPending;
 
         return (
           <section
             key={group.id}
-            className={`section-card group-drop-zone${draggingPairId ? " group-drop-zone-ready" : ""}${isDropActive ? " group-drop-zone-pending" : ""}`}
+            className={cx(`${viewStyles.section_card_group_drop_zone}${draggingPairId ? " " + viewStyles.group_drop_zone_ready : ""}${isDropActive ? " " + viewStyles.group_drop_zone_pending : ""}`)}
             onDragOver={(event) => event.preventDefault()}
             onDrop={(event) => {
               event.preventDefault();
@@ -92,11 +94,11 @@ export function GroupEditor({ groups }: GroupEditorProps) {
               </div>
             </div>
 
-            <div className="group-drag-list">
+            <div className={viewStyles.group_drag_list}>
               {group.pairs.map((pair) => (
                 <article
                   key={pair.id}
-                  className={`group-drag-card${draggingPairId === pair.id ? " group-drag-card-dragging" : ""}`}
+                  className={cx(`${viewStyles.group_drag_card}${draggingPairId === pair.id ? " " + viewStyles.group_drag_card_dragging : ""}`)}
                   draggable={!isPending}
                   onDragStart={() => setDraggingPairId(pair.id)}
                   onDragEnd={() => setDraggingPairId(null)}
@@ -110,9 +112,9 @@ export function GroupEditor({ groups }: GroupEditorProps) {
               ))}
             </div>
 
-            <div className="group-standings">
-              <p className="group-results-title">Classificação</p>
-              <table className="group-standings-table">
+            <div className={viewStyles.group_standings}>
+              <p className={viewStyles.group_results_title}>Classificação</p>
+              <table className={viewStyles.group_standings_table}>
                 <thead>
                   <tr>
                     <th>Dupla</th>
@@ -140,10 +142,10 @@ export function GroupEditor({ groups }: GroupEditorProps) {
             </div>
 
             {group.matches.length ? (
-              <div className="group-results">
-                <p className="group-results-title">Resultados</p>
+              <div className={viewStyles.group_results}>
+                <p className={viewStyles.group_results_title}>Resultados</p>
                 {group.matches.map((match) => (
-                  <div key={match.id} className="group-result-item">
+                  <div key={match.id} className={viewStyles.group_result_item}>
                     <span>{match.homePairName}</span>
                     <strong>{match.scoreLabel}</strong>
                     <span>{match.awayPairName}</span>

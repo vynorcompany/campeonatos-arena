@@ -1,3 +1,4 @@
+import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
 
@@ -31,5 +32,5 @@ test("online booking lists starts that fit the minimum duration and flags a conf
   assert.match(form, /public-booking-slot-block-conflict/);
   assert.match(form, /Você está usando sua conta de cliente/);
   assert.doesNotMatch(form, /Telefone final:/);
-  assert.match(styles, /\.public-booking-shell \{ width: min\(100%, 1020px\)/);
+  assert.match(styleRules("public-booking-shell"), / width: min\(100%, 1020px\)/);
 });

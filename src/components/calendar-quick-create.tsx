@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./calendar-quick-create.utilities";
 
 import { useEffect, useMemo, useState } from "react";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -126,20 +127,20 @@ export function CalendarQuickCreate() {
   if (!open) return null;
 
   return (
-    <div className="calendar-create-overlay" role="dialog" aria-modal="true" aria-label="Editar agendamento">
-      <div className="calendar-create-card">
-        <button type="button" className="calendar-create-close" onClick={close} aria-label="Fechar">×</button>
+    <div className={viewStyles.calendar_create_overlay} role="dialog" aria-modal="true" aria-label="Editar agendamento">
+      <div className={viewStyles.calendar_create_card}>
+        <button type="button" className={viewStyles.calendar_create_close} onClick={close} aria-label="Fechar">×</button>
         <h3>{isEditing ? "Editar evento" : "Adicionar titulo"}</h3>
         <form
           action={isEditing ? updateCalendarEventAction : createCalendarEventAction}
-          className="calendar-create-form"
+          className={viewStyles.calendar_create_form}
           onSubmit={close}
         >
           <input type="hidden" name="sourceType" value={state.sourceType} />
           <input type="hidden" name="lessonId" value={state.lessonId} />
           <input type="hidden" name="calendarEventId" value={state.calendarEventId} />
 
-          <div className="field">
+          <div className={viewStyles.field}>
             <label htmlFor="event-title">Titulo</label>
             <input
               id="event-title"
@@ -155,7 +156,7 @@ export function CalendarQuickCreate() {
             />
           </div>
 
-          <div className="field">
+          <div className={viewStyles.field}>
             <label htmlFor="event-type">Tipo</label>
             <select
               id="event-type"
@@ -175,7 +176,7 @@ export function CalendarQuickCreate() {
             </select>
           </div>
 
-          <div className="field">
+          <div className={viewStyles.field}>
             <label htmlFor="event-date">Data e hora</label>
             <input
               id="event-date"
@@ -188,10 +189,10 @@ export function CalendarQuickCreate() {
               }}
               required
             />
-            <small className="muted">{dateHint}</small>
+            <small className={viewStyles.muted}>{dateHint}</small>
           </div>
 
-          <div className="field">
+          <div className={viewStyles.field}>
             <label htmlFor="event-duration">Duracao (min)</label>
             <input
               id="event-duration"
@@ -207,7 +208,7 @@ export function CalendarQuickCreate() {
             />
           </div>
 
-          <div className="field">
+          <div className={viewStyles.field}>
             <label htmlFor="event-notes">Descricao</label>
             <input
               id="event-notes"
@@ -222,13 +223,13 @@ export function CalendarQuickCreate() {
             />
           </div>
 
-          <div className="calendar-create-actions">
-            <button type="button" className="button" onClick={close}>Cancelar</button>
+          <div className={viewStyles.calendar_create_actions}>
+            <button type="button" className={viewStyles.button} onClick={close}>Cancelar</button>
             {isEditing ? (
               <button
                 type="submit"
                 formAction={deleteCalendarEventAction}
-                className="button button-danger"
+                className={viewStyles.button_button_danger}
                 onClick={(event) => {
                   if (!window.confirm("Tem certeza que deseja excluir este evento?")) {
                     event.preventDefault();
@@ -241,7 +242,7 @@ export function CalendarQuickCreate() {
             <SubmitButton
               label={isEditing ? "Salvar alteracoes" : "Salvar"}
               pendingLabel="Salvando..."
-              className="button button-primary"
+              className={viewStyles.button_button_primary}
             />
           </div>
         </form>

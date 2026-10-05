@@ -1,5 +1,6 @@
+import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+
 import { resolve } from "node:path";
 import test from "node:test";
 
@@ -22,7 +23,7 @@ test("portal title is an accessible vector wordmark", () => {
   const portal = read("src/components/tournaments/public-standings.tsx");
   const mark = read("src/components/athlete-portal-wordmark.tsx");
 
-  assert.match(portal, /<h1 className="sr-only">Portal do Atleta<\/h1>/);
+  assert.match(portal, /<h1 (?:className="sr-only"|className=\{(?:cx\()?viewStyles\.sr_only(?:\))?\})>Portal do Atleta<\/h1>/);
   assert.match(portal, /<AthletePortalWordmark \/>/);
   assert.match(mark, /<svg[^>]*role="img" aria-label="Portal do Atleta"/);
 });

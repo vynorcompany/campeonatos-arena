@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./teacher-plan-editor.utilities";
 
 import { useState } from "react";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
@@ -28,7 +29,7 @@ export function TeacherPlanEditor({ teacherId, plan }: PlanEditorProps) {
     <>
       <button
         type="button"
-        className="teacher-plan-edit-trigger"
+        className={viewStyles.teacher_plan_edit_trigger}
         onClick={() => setOpen(true)}
       >
         <EventIcon name="edit" />
@@ -36,12 +37,12 @@ export function TeacherPlanEditor({ teacherId, plan }: PlanEditorProps) {
       </button>
       {open ? (
         <div
-          className="teacher-plan-edit-modal"
+          className={viewStyles.teacher_plan_edit_modal}
           role="presentation"
           onMouseDown={() => setOpen(false)}
         >
           <section
-            className="teacher-plan-edit-dialog"
+            className={viewStyles.teacher_plan_edit_dialog}
             role="dialog"
             aria-modal="true"
             aria-labelledby="teacher-plan-edit-title"
@@ -49,12 +50,12 @@ export function TeacherPlanEditor({ teacherId, plan }: PlanEditorProps) {
           >
             <header>
               <div>
-                <p className="eyebrow">EDITAR PLANO</p>
+                <p className={viewStyles.eyebrow}>EDITAR PLANO</p>
                 <h2 id="teacher-plan-edit-title">{plan.name}</h2>
               </div>
               <button
                 type="button"
-                className="teacher-plan-edit-close"
+                className={viewStyles.teacher_plan_edit_close}
                 onClick={() => setOpen(false)}
                 aria-label="Fechar"
               >
@@ -63,7 +64,7 @@ export function TeacherPlanEditor({ teacherId, plan }: PlanEditorProps) {
             </header>
             <SafeActionForm
               action={updateTeacherPlanWithPriceAction}
-              className="teacher-plan-edit-form"
+              className={viewStyles.teacher_plan_edit_form}
               successMessage="Plano atualizado. Os alunos atuais mantêm seus valores contratados."
               onSuccess={() => setOpen(false)}
             >
@@ -78,10 +79,10 @@ export function TeacherPlanEditor({ teacherId, plan }: PlanEditorProps) {
                   defaultValue={moneyInput(plan.monthlyPriceCents)}
                 />
               </label>
-              <div className="teacher-plan-edit-actions">
+              <div className={viewStyles.teacher_plan_edit_actions}>
                 <button
                   type="button"
-                  className="button button-secondary button-small"
+                  className={viewStyles.button_button_secondary_button_small}
                   onClick={() => setOpen(false)}
                 >
                   Cancelar
@@ -89,7 +90,7 @@ export function TeacherPlanEditor({ teacherId, plan }: PlanEditorProps) {
                 <SubmitButton
                   label="Salvar plano"
                   pendingLabel="Salvando..."
-                  className="button button-primary button-small"
+                  className={viewStyles.button_button_primary_button_small}
                 />
               </div>
             </SafeActionForm>

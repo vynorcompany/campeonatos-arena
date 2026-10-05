@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./tournament-category-manager-form.utilities";
 
 import { useMemo, useState } from "react";
 import { useFormState } from "react-dom";
@@ -188,7 +189,7 @@ export function TournamentCategoryManagerForm(
         <input type="hidden" name="blockCategoryGap" value="on" />
       ) : null}
 
-      <div className="field tournament-category-add-field">
+      <div className={viewStyles.field_tournament_category_add_field}>
         <label htmlFor="newCategoryName">Nome da nova categoria</label>
         <div className="field-inline">
           <input
@@ -197,17 +198,17 @@ export function TournamentCategoryManagerForm(
             onChange={(event) => setNewCategoryName(event.target.value)}
             placeholder="Ex.: 5ª Feminina"
           />
-          <button type="button" className="button" onClick={addCategory}>
+          <button type="button" className={viewStyles.button} onClick={addCategory}>
             Adicionar
           </button>
         </div>
       </div>
 
       {categories.length ? (
-        <div className="tournament-category-manager-list">
+        <div className={viewStyles.tournament_category_manager_list}>
           {categories.map((category, index) => (
-            <article className="tournament-category-manager-card" key={category.name}>
-              <div className="tournament-category-manager-card-header">
+            <article className={viewStyles.tournament_category_manager_card} key={category.name}>
+              <div className={viewStyles.tournament_category_manager_card_header}>
                 <div>
                   <strong>{index + 1}. {category.name}</strong>
                   <span>
@@ -216,43 +217,43 @@ export function TournamentCategoryManagerForm(
                     : "Aguardando classe, gênero e formato"}
                   </span>
                 </div>
-                {!category.hasCompetition ? <button type="button" className="button button-small" onClick={() => removeCategory(category.name)}>Remover</button> : null}
+                {!category.hasCompetition ? <button type="button" className={viewStyles.button_button_small} onClick={() => removeCategory(category.name)}>Remover</button> : null}
               </div>
               <div className="tournament-category-settings-grid">
-                <label className="tournament-category-standard">Categoria padrão<select value={category.standardKey ?? ""} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, standardKey: event.target.value, allowedRegistrationStandardKeys: [] } : item))}><option value="">Selecione</option>{TOURNAMENT_CATEGORY_PRESETS.map((preset) => <option value={preset} key={preset}>{preset}</option>)}</select></label>
-                <label className="tournament-category-standard">Limite máximo de duplas inscritas<input type="number" min="0" step="1" value={category.maxRegistrations ?? 0} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, maxRegistrations: Math.max(0, Number(event.target.value) || 0) } : item))} /><small>Use 0 para não limitar inscrições.</small></label>
-                <label className="tournament-category-standard">Valor por dupla<div className="currency-input"><span>R$</span><input inputMode="decimal" value={(category.priceFirstCents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, priceFirstCents: Math.round(Math.max(0, Number(event.target.value.replace(".", "").replace(",", ".")) || 0) * 100) } : item))} /></div></label>
-                <label className="tournament-category-standard">Valor da 2ª inscrição<div className="currency-input"><span>R$</span><input inputMode="decimal" value={(category.priceSecondCents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, priceSecondCents: Math.round(Math.max(0, Number(event.target.value.replace(".", "").replace(",", ".")) || 0) * 100) } : item))} /></div></label>
-                <label className="tournament-category-standard">Valor da 3ª inscrição<div className="currency-input"><span>R$</span><input inputMode="decimal" value={(category.priceThirdCents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, priceThirdCents: Math.round(Math.max(0, Number(event.target.value.replace(".", "").replace(",", ".")) || 0) * 100) } : item))} /></div></label>
-                <label className="tournament-category-link-toggle"><input type="checkbox" checked={category.active !== false} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, active: event.target.checked } : item))} /><span>Categoria ativa</span></label>
+                <label className={viewStyles.tournament_category_standard}>Categoria padrão<select value={category.standardKey ?? ""} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, standardKey: event.target.value, allowedRegistrationStandardKeys: [] } : item))}><option value="">Selecione</option>{TOURNAMENT_CATEGORY_PRESETS.map((preset) => <option value={preset} key={preset}>{preset}</option>)}</select></label>
+                <label className={viewStyles.tournament_category_standard}>Limite máximo de duplas inscritas<input type="number" min="0" step="1" value={category.maxRegistrations ?? 0} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, maxRegistrations: Math.max(0, Number(event.target.value) || 0) } : item))} /><small>Use 0 para não limitar inscrições.</small></label>
+                <label className={viewStyles.tournament_category_standard}>Valor por dupla<div className={viewStyles.currency_input}><span>R$</span><input inputMode="decimal" value={(category.priceFirstCents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, priceFirstCents: Math.round(Math.max(0, Number(event.target.value.replace(".", "").replace(",", ".")) || 0) * 100) } : item))} /></div></label>
+                <label className={viewStyles.tournament_category_standard}>Valor da 2ª inscrição<div className={viewStyles.currency_input}><span>R$</span><input inputMode="decimal" value={(category.priceSecondCents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, priceSecondCents: Math.round(Math.max(0, Number(event.target.value.replace(".", "").replace(",", ".")) || 0) * 100) } : item))} /></div></label>
+                <label className={viewStyles.tournament_category_standard}>Valor da 3ª inscrição<div className={viewStyles.currency_input}><span>R$</span><input inputMode="decimal" value={(category.priceThirdCents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, priceThirdCents: Math.round(Math.max(0, Number(event.target.value.replace(".", "").replace(",", ".")) || 0) * 100) } : item))} /></div></label>
+                <label className={viewStyles.tournament_category_link_toggle}><input type="checkbox" checked={category.active !== false} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, active: event.target.checked } : item))} /><span>Categoria ativa</span></label>
               </div>
               {(() => {
                 const candidates = categories.filter((candidate) => candidate.name !== category.name && candidate.standardKey && candidate.standardKey !== category.standardKey);
                 const allowedKeys = category.allowedRegistrationStandardKeys ?? [];
                 return <>
-                  <label className="tournament-category-link-toggle"><input type="checkbox" disabled={!category.standardKey || !candidates.length} checked={allowedKeys.length > 0} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, allowedRegistrationStandardKeys: event.target.checked ? candidates.map((candidate) => candidate.standardKey ?? "").filter(Boolean) : [] } : item))} /><span>Vincular inscrição apenas às categorias padrão marcadas</span></label>
-                  {!category.standardKey ? <small className="muted">Selecione a categoria padrão antes de definir os vínculos.</small> : null}
-                  {category.standardKey && !candidates.length ? <small className="muted">Defina categorias padrão nas demais categorias para criar vínculos.</small> : null}
-                  {allowedKeys.length ? <div className="tournament-category-link-options">{candidates.map((candidate) => <label key={candidate.name}><input type="checkbox" checked={allowedKeys.includes(candidate.standardKey ?? "")} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, allowedRegistrationStandardKeys: event.target.checked ? [...new Set([...(item.allowedRegistrationStandardKeys ?? []), candidate.standardKey ?? ""])].filter(Boolean) : (item.allowedRegistrationStandardKeys ?? []).filter((key) => key !== candidate.standardKey) } : item))} /> {candidate.standardKey}</label>)}</div> : null}
+                  <label className={viewStyles.tournament_category_link_toggle}><input type="checkbox" disabled={!category.standardKey || !candidates.length} checked={allowedKeys.length > 0} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, allowedRegistrationStandardKeys: event.target.checked ? candidates.map((candidate) => candidate.standardKey ?? "").filter(Boolean) : [] } : item))} /><span>Vincular inscrição apenas às categorias padrão marcadas</span></label>
+                  {!category.standardKey ? <small className={viewStyles.muted}>Selecione a categoria padrão antes de definir os vínculos.</small> : null}
+                  {category.standardKey && !candidates.length ? <small className={viewStyles.muted}>Defina categorias padrão nas demais categorias para criar vínculos.</small> : null}
+                  {allowedKeys.length ? <div className={viewStyles.tournament_category_link_options}>{candidates.map((candidate) => <label key={candidate.name}><input type="checkbox" checked={allowedKeys.includes(candidate.standardKey ?? "")} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, allowedRegistrationStandardKeys: event.target.checked ? [...new Set([...(item.allowedRegistrationStandardKeys ?? []), candidate.standardKey ?? ""])].filter(Boolean) : (item.allowedRegistrationStandardKeys ?? []).filter((key) => key !== candidate.standardKey) } : item))} /> {candidate.standardKey}</label>)}</div> : null}
                 </>;
               })()}
             </article>
           ))}
         </div>
       ) : (
-        <p className="muted">Adicione a primeira categoria do evento.</p>
+        <p className={viewStyles.muted}>Adicione a primeira categoria do evento.</p>
       )}
 
-      <div className="section-actions">
+      <div className={viewStyles.section_actions}>
         <SubmitButton
           label="Salvar categorias"
           pendingLabel="Salvando..."
-          className="button button-primary"
+          className={viewStyles.button_button_primary}
         />
       </div>
 
-      {state?.error ? <p className="form-error">{state.error}</p> : null}
-      {state?.success ? <p className="form-success">{state.success}</p> : null}
+      {state?.error ? <p className={viewStyles.form_error}>{state.error}</p> : null}
+      {state?.success ? <p className={viewStyles.form_success}>{state.success}</p> : null}
     </form>
   );
 }

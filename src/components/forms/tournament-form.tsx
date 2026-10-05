@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./tournament-form.utilities";
 
 import { useEffect, useState } from "react";
 import { useFormState } from "react-dom";
@@ -102,42 +103,42 @@ export function TournamentForm({
   }, [mode, router, state.success, state.tournamentId]);
 
   return (
-    <form action={formAction} className="tournament-editor-form">
+    <form action={formAction} className={viewStyles.tournament_editor_form}>
       {mode === "update" && tournamentId ? (
         <input type="hidden" name="tournamentId" value={tournamentId} />
       ) : null}
 
-      <section className="tournament-editor-section">
+      <section className={viewStyles.tournament_editor_section}>
         <header><span>01</span><div><h2>Dados do evento</h2><p>Informe o essencial. Categorias e chaveamento são configurados na próxima etapa.</p></div></header>
-        <div className="tournament-editor-grid">
-          <div className="field form-full"><label htmlFor="name">Nome do evento</label><input id="name" name="name" type="text" placeholder="Ex.: Open da Arena — Agosto" defaultValue={defaultName} onChange={(event) => { if (!slugEdited) setPublicSlug(slugify(event.target.value)); }} required /></div>
-          <div className="field form-full"><label htmlFor="description">Descrição</label><textarea id="description" name="description" placeholder="Datas, local, regras gerais e observações do evento." defaultValue={defaultDescription} rows={4} /></div>
-          <div className="field"><label htmlFor="responsibleName">Responsável pelo torneio</label><input id="responsibleName" name="responsibleName" defaultValue={defaultResponsibleName} placeholder="Nome para dúvidas" /></div>
-          <div className="field"><label htmlFor="responsiblePhone">Telefone do responsável</label><input id="responsiblePhone" name="responsiblePhone" inputMode="tel" defaultValue={defaultResponsiblePhone} placeholder="(00) 00000-0000" /></div>
+        <div className={viewStyles.tournament_editor_grid}>
+          <div className={viewStyles.field_form_full}><label htmlFor="name">Nome do evento</label><input id="name" name="name" type="text" placeholder="Ex.: Open da Arena — Agosto" defaultValue={defaultName} onChange={(event) => { if (!slugEdited) setPublicSlug(slugify(event.target.value)); }} required /></div>
+          <div className={viewStyles.field_form_full}><label htmlFor="description">Descrição</label><textarea id="description" name="description" placeholder="Datas, local, regras gerais e observações do evento." defaultValue={defaultDescription} rows={4} /></div>
+          <div className={viewStyles.field}><label htmlFor="responsibleName">Responsável pelo torneio</label><input id="responsibleName" name="responsibleName" defaultValue={defaultResponsibleName} placeholder="Nome para dúvidas" /></div>
+          <div className={viewStyles.field}><label htmlFor="responsiblePhone">Telefone do responsável</label><input id="responsiblePhone" name="responsiblePhone" inputMode="tel" defaultValue={defaultResponsiblePhone} placeholder="(00) 00000-0000" /></div>
         </div>
       </section>
 
-      <section className="tournament-editor-section tournament-editor-publication">
+      <section className={viewStyles.tournament_editor_section_tournament_editor_publication}>
         <header><span>02</span><div><h2>Inscrições e divulgação</h2><p>Defina como os atletas entram no torneio e onde ele será exibido.</p></div></header>
-        <div className="tournament-editor-grid">
-          <div className="field"><label htmlFor="creationMode">Origem das inscrições</label><select id="creationMode" name="creationMode" defaultValue={defaultCreationMode}><option value="MANUAL">Somente inscrições manuais</option><option value="PUBLIC">Aceitar inscrições pelo link público</option></select></div>
-          <div className="field"><label htmlFor="registrationPhase">Fase do evento</label><select id="registrationPhase" name="registrationPhase" defaultValue={defaultRegistrationPhase}><option value="REGISTRATIONS">Inscrições abertas</option><option value="EDITING">Configuração</option><option value="LIVE">Em andamento</option><option value="FINISHED">Finalizado</option></select></div>
-          <div className="field form-full tournament-public-slug"><label htmlFor="publicSlug">Link público do torneio</label><div><span aria-hidden="true">/inscricao/</span><input id="publicSlug" name="publicSlug" type="text" placeholder="open-arena-agosto" value={publicSlug} onChange={(event) => { setSlugEdited(true); setPublicSlug(slugify(event.target.value)); }} pattern="[a-z0-9-]+" required /></div><p>Gerado a partir do nome; você pode personalizá-lo com letras minúsculas, números e hífens.</p></div>
-          <label className="tournament-radar-setting form-full"><input name="showInEventRadar" type="checkbox" defaultChecked={defaultShowInEventRadar} /><span aria-hidden="true" /><div><strong>Exibir no Radar de Eventos</strong><p>Atletas de outras arenas poderão encontrar este torneio e abrir a inscrição.</p></div></label>
+        <div className={viewStyles.tournament_editor_grid}>
+          <div className={viewStyles.field}><label htmlFor="creationMode">Origem das inscrições</label><select id="creationMode" name="creationMode" defaultValue={defaultCreationMode}><option value="MANUAL">Somente inscrições manuais</option><option value="PUBLIC">Aceitar inscrições pelo link público</option></select></div>
+          <div className={viewStyles.field}><label htmlFor="registrationPhase">Fase do evento</label><select id="registrationPhase" name="registrationPhase" defaultValue={defaultRegistrationPhase}><option value="REGISTRATIONS">Inscrições abertas</option><option value="EDITING">Configuração</option><option value="LIVE">Em andamento</option><option value="FINISHED">Finalizado</option></select></div>
+          <div className={viewStyles.field_form_full_tournament_public_slug}><label htmlFor="publicSlug">Link público do torneio</label><div><span aria-hidden="true">/inscricao/</span><input id="publicSlug" name="publicSlug" type="text" placeholder="open-arena-agosto" value={publicSlug} onChange={(event) => { setSlugEdited(true); setPublicSlug(slugify(event.target.value)); }} pattern="[a-z0-9-]+" required /></div><p>Gerado a partir do nome; você pode personalizá-lo com letras minúsculas, números e hífens.</p></div>
+          <label className={viewStyles.tournament_radar_setting_form_full}><input name="showInEventRadar" type="checkbox" defaultChecked={defaultShowInEventRadar} /><span aria-hidden="true" /><div><strong>Exibir no Radar de Eventos</strong><p>Atletas de outras arenas poderão encontrar este torneio e abrir a inscrição.</p></div></label>
         </div>
       </section>
 
-      <section className="tournament-editor-section">
+      <section className={viewStyles.tournament_editor_section}>
         <header><span>03</span><div><h2>Datas, desconto e bônus</h2><p>Defina o calendário comercial do torneio. O desconto é aplicado por dupla enquanto estiver vigente.</p></div></header>
-        <div className="tournament-editor-grid">
-          <div className="field"><label htmlFor="startsAt">Início do evento</label><input id="startsAt" name="startsAt" type="datetime-local" defaultValue={defaultStartsAt} /></div>
-          <div className="field"><label htmlFor="endsAt">Fim do evento</label><input id="endsAt" name="endsAt" type="datetime-local" defaultValue={defaultEndsAt} /></div>
-          <div className="field"><label htmlFor="registrationOpensAt">Abertura das inscrições</label><input id="registrationOpensAt" name="registrationOpensAt" type="datetime-local" defaultValue={defaultRegistrationOpensAt} /></div>
-          <div className="field"><label htmlFor="registrationClosesAt">Encerramento das inscrições</label><input id="registrationClosesAt" name="registrationClosesAt" type="datetime-local" defaultValue={defaultRegistrationClosesAt} /></div>
-          <div className="field"><label htmlFor="earlyDiscountReais">Desconto por dupla</label><div className="currency-input"><span>R$</span><input id="earlyDiscountReais" name="earlyDiscountReais" inputMode="decimal" defaultValue={(defaultEarlyDiscountCents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} /></div></div>
-          <div className="field"><label htmlFor="earlyDiscountUntil">Desconto válido até</label><input id="earlyDiscountUntil" name="earlyDiscountUntil" type="datetime-local" defaultValue={defaultEarlyDiscountUntil} /></div>
-          <div className="field"><label htmlFor="firstBonusLimit">Bônus para os primeiros confirmados</label><input id="firstBonusLimit" name="firstBonusLimit" type="number" min="0" step="1" defaultValue={defaultFirstBonusLimit} /><p>0 desativa a lista de bônus.</p></div>
-          <div className="field"><label htmlFor="firstBonusUntil">Bônus válido até</label><input id="firstBonusUntil" name="firstBonusUntil" type="datetime-local" defaultValue={defaultFirstBonusUntil} /></div>
+        <div className={viewStyles.tournament_editor_grid}>
+          <div className={viewStyles.field}><label htmlFor="startsAt">Início do evento</label><input id="startsAt" name="startsAt" type="datetime-local" defaultValue={defaultStartsAt} /></div>
+          <div className={viewStyles.field}><label htmlFor="endsAt">Fim do evento</label><input id="endsAt" name="endsAt" type="datetime-local" defaultValue={defaultEndsAt} /></div>
+          <div className={viewStyles.field}><label htmlFor="registrationOpensAt">Abertura das inscrições</label><input id="registrationOpensAt" name="registrationOpensAt" type="datetime-local" defaultValue={defaultRegistrationOpensAt} /></div>
+          <div className={viewStyles.field}><label htmlFor="registrationClosesAt">Encerramento das inscrições</label><input id="registrationClosesAt" name="registrationClosesAt" type="datetime-local" defaultValue={defaultRegistrationClosesAt} /></div>
+          <div className={viewStyles.field}><label htmlFor="earlyDiscountReais">Desconto por dupla</label><div className={viewStyles.currency_input}><span>R$</span><input id="earlyDiscountReais" name="earlyDiscountReais" inputMode="decimal" defaultValue={(defaultEarlyDiscountCents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} /></div></div>
+          <div className={viewStyles.field}><label htmlFor="earlyDiscountUntil">Desconto válido até</label><input id="earlyDiscountUntil" name="earlyDiscountUntil" type="datetime-local" defaultValue={defaultEarlyDiscountUntil} /></div>
+          <div className={viewStyles.field}><label htmlFor="firstBonusLimit">Bônus para os primeiros confirmados</label><input id="firstBonusLimit" name="firstBonusLimit" type="number" min="0" step="1" defaultValue={defaultFirstBonusLimit} /><p>0 desativa a lista de bônus.</p></div>
+          <div className={viewStyles.field}><label htmlFor="firstBonusUntil">Bônus válido até</label><input id="firstBonusUntil" name="firstBonusUntil" type="datetime-local" defaultValue={defaultFirstBonusUntil} /></div>
         </div>
       </section>
 
@@ -173,20 +174,20 @@ export function TournamentForm({
         <input type="hidden" name="blockCategoryGap" value="on" />
       ) : null}
 
-      <footer className="tournament-editor-footer">
+      <footer className={viewStyles.tournament_editor_footer}>
         <p>Após criar, você poderá incluir e organizar as categorias do torneio.</p>
         <SubmitButton
           label={submitLabel}
           pendingLabel={pendingLabel}
-          className="button button-primary"
+          className={viewStyles.button_button_primary}
         />
       </footer>
 
       {state?.error ? (
-        <p className="form-error form-full">{state.error}</p>
+        <p className={viewStyles.form_error_form_full}>{state.error}</p>
       ) : null}
       {state?.success && mode === "update" ? (
-        <p className="form-success form-full">{state.success}</p>
+        <p className={viewStyles.form_success_form_full}>{state.success}</p>
       ) : null}
     </form>
   );

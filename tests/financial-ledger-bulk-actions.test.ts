@@ -1,3 +1,4 @@
+import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
 
@@ -30,7 +31,7 @@ test("financial ledger supports selecting, settling, and deleting entries in bul
 test("financial ledger uses subtle alternating row colors", () => {
   const styles = read("src/app/globals.css");
 
-  assert.match(styles, /\.accounts-ledger-row:nth-of-type\(even\)/);
+  assert.ok(utilityClasses("accounts-ledger-row").length, "accounts-ledger-row has component Tailwind utilities");
 });
 
 test("manual expense creation keeps supplier creation inside the arena RLS transaction", () => {

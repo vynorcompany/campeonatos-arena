@@ -1,4 +1,6 @@
 "use client";
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./arena-assistant-chat.utilities";
 
 import { FormEvent, useState, useTransition } from "react";
 import { runArenaAssistantCommandAction } from "@/lib/actions/arena-assistant";
@@ -31,20 +33,20 @@ export function ArenaAssistantChat({ initialMessages }: { initialMessages: ChatM
     });
   }
 
-  return <section className="assistant-chat" aria-label="Conversa com o Assistente da Arena">
-    <div className="assistant-chat-messages">
-      {messages.length ? messages.map((message) => <article className={`assistant-message assistant-message-${message.role.toLowerCase()}`} key={message.id}>
+  return <section className={viewStyles.assistant_chat} aria-label="Conversa com o Assistente da Arena">
+    <div className={viewStyles.assistant_chat_messages}>
+      {messages.length ? messages.map((message) => <article className={cx(`${viewStyles.assistant_message} assistant-message-${message.role.toLowerCase()}`)} key={message.id}>
         <span>{message.role === "USER" ? "Você" : "Assistente da Arena"}</span>
         <p>{message.content}</p>
-      </article>) : <div className="assistant-chat-empty"><strong>Olá! Sou o Assistente da Arena.</strong><span>Posso executar ações administrativas autorizadas e, futuramente, analisar os dados operacionais da arena.</span></div>}
+      </article>) : <div className={viewStyles.assistant_chat_empty}><strong>Olá! Sou o Assistente da Arena.</strong><span>Posso executar ações administrativas autorizadas e, futuramente, analisar os dados operacionais da arena.</span></div>}
     </div>
-    <form className="assistant-chat-form" onSubmit={submit}>
+    <form className={viewStyles.assistant_chat_form} onSubmit={submit}>
       <label htmlFor="assistant-command">O que você precisa?</label>
       <div>
         <input id="assistant-command" value={value} onChange={(event) => setValue(event.target.value)} placeholder="Ex.: Crie uma fatura no valor de 560,00 para o cliente Alexandre com a data de hoje." disabled={isPending} />
-        <button className="button button-primary" type="submit" disabled={isPending}>{isPending ? "Processando..." : "Enviar"}</button>
+        <button className={viewStyles.button_button_primary} type="submit" disabled={isPending}>{isPending ? "Processando..." : "Enviar"}</button>
       </div>
-      {error ? <p className="form-error" role="alert">{error}</p> : null}
+      {error ? <p className={viewStyles.form_error} role="alert">{error}</p> : null}
     </form>
   </section>;
 }

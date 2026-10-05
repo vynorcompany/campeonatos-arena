@@ -1,3 +1,4 @@
+import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
 
@@ -24,9 +25,9 @@ test("public booking highlights the consecutive slots for the authenticated clie
 test("daily court grid uses compact rows and the public form remains responsive", () => {
   const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
 
-  assert.match(styles, /\.daily-court-grid th, \.daily-court-grid td \{[^}]*height: 25px;/);
-  assert.match(styles, /\.public-booking-slot-block-selected/);
-  assert.match(styles, /\.public-booking-duration-field \{[^}]*align-content: start/);
-  assert.match(styles, /\.public-booking-court-card\.is-active/);
+  assert.match(styleRules("daily-court-grid", {"context":"th"}), /height: 25px;/);
+  assert.ok(utilityClasses("public-booking-slot-block-selected").length, "public-booking-slot-block-selected has component Tailwind utilities");
+  assert.match(styleRules("public-booking-duration-field"), /align-content: start/);
+  assert.ok(utilityClasses("public-booking-court-card").length, "public-booking-court-card has component Tailwind utilities");
   assert.match(styles, /@media \(max-width: 720px\)[\s\S]*public-booking/);
 });

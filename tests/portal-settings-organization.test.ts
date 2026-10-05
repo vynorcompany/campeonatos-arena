@@ -1,3 +1,4 @@
+import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
 
@@ -29,8 +30,8 @@ test("portal editorial dialogs use a responsive form and allow replacing a broke
   assert.match(editor, /portal-upload-field/);
   assert.match(editor, /Trocar imagem/);
   assert.match(actions, /replacePortalEventPostImageAction/);
-  assert.match(styles, /\.portal-editor-form \{[\s\S]*grid-template-columns: repeat\(2/);
-  assert.match(styles, /@media \(max-width: 620px\) \{[\s\S]*\.portal-editor-form/);
+  assert.match(styleRules("portal-editor-form"), /grid-template-columns: repeat\(2/);
+  assert.match(styleRules("portal-editor-form", {"maxWidth":620}), /grid-template-columns: 1fr/);
 });
 
 test("portal event images are normalized to a lightweight vertical WebP before R2 upload", () => {

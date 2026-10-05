@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./public-registration-link-actions.utilities";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -16,11 +17,11 @@ export function PublicRegistrationLinkActions({ slug }: { slug: string }) {
   }
 
   return (
-    <div className="section-actions">
-      <Link href={path} target="_blank" rel="noreferrer" className="button">
+    <div className={viewStyles.section_actions}>
+      <Link href={path} target="_blank" rel="noreferrer" className={viewStyles.button}>
         <EventIcon name="user-plus" />Abrir inscrição pública
       </Link>
-      <button type="button" className="button" onClick={handleCopy}>
+      <button type="button" className={viewStyles.button} onClick={handleCopy}>
         <EventIcon name="link" />{copied ? "Link copiado" : "Copiar link"}
       </button>
     </div>

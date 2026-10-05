@@ -1,3 +1,4 @@
+import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
 
@@ -73,7 +74,7 @@ test("portal events preserve the image on mobile and can open an optional extern
   assert.match(portal, /ClientPortalEventCarousel/);
   assert.match(carousel, /event\.linkUrl/);
   assert.match(carousel, /target="_blank"/);
-  assert.match(styles, /@media \(max-width: 620px\) \{[\s\S]*\.client-portal-event-posts img \{[^}]*object-fit: contain/);
+  assert.match(styleRules("client-portal-event-posts", {"maxWidth":620}), /background-color: #f2f6fa/);
 });
 
 test("client home filters financial entries in the database for the signed-in athlete", () => {
@@ -113,7 +114,7 @@ test("client portal presents multiple featured events in an accessible carousel"
   assert.match(carousel, /scrollBy/);
   assert.match(carousel, /Evento anterior/);
   assert.match(carousel, /Próximo evento/);
-  assert.match(styles, /\.client-portal-event-carousel-track/);
+  assert.ok(utilityClasses("client-portal-event-carousel-track").length, "client-portal-event-carousel-track has component Tailwind utilities");
   assert.match(styles, /scroll-snap-type: x mandatory/);
 });
 
@@ -141,6 +142,6 @@ test("portal header presents only the athlete name with an integrated larger ava
 
   assert.match(portal, /\{currentClient\.name\}/);
   assert.doesNotMatch(portal, /Olá, \{currentClient\.name\}/);
-  assert.match(styles, /\.athlete-portal-user-avatar \{[^}]*width: 64px[^}]*height: 64px/);
-  assert.match(styles, /\.athlete-portal-user-avatar \{[^}]*border: 2px solid rgb\(106 229 191 \/ \.6\)/);
+  assert.match(styleRules("athlete-portal-user-avatar"), /width: 56px !important[\s\S]*height: 56px !important/);
+  assert.match(styleRules("athlete-portal-user-avatar"), /border-top-width: 2px[\s\S]*border-top-color: #45dba9/);
 });

@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./ranking-create-form.utilities";
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -12,7 +13,7 @@ export function RankingCreateForm() {
 
   return (
     <form
-      className="grid-form"
+      className={viewStyles.grid_form}
       aria-busy={isPending}
       onSubmit={(event) => {
         event.preventDefault();
@@ -29,12 +30,12 @@ export function RankingCreateForm() {
         });
       }}
     >
-      <div className="field">
+      <div className={viewStyles.field}>
         <label htmlFor="ranking-name">Nome do ranking</label>
         <input id="ranking-name" name="name" type="text" placeholder="Ex.: Ranking oficial 2026" required />
       </div>
 
-      <div className="field">
+      <div className={viewStyles.field}>
         <label htmlFor="ranking-type">Tipo do ranking</label>
         <select id="ranking-type" name="type" defaultValue="PAIR">
           <option value="PAIR">Duplas</option>
@@ -42,7 +43,7 @@ export function RankingCreateForm() {
         </select>
       </div>
 
-      <div className="field">
+      <div className={viewStyles.field}>
         <label htmlFor="ranking-model">Modelo de pontuação</label>
         <select id="ranking-model" name="model" defaultValue="KNOCKOUT">
           <option value="LEAGUE">Liga</option>
@@ -50,15 +51,15 @@ export function RankingCreateForm() {
         </select>
       </div>
 
-      <div className="field form-full">
+      <div className={viewStyles.field_form_full}>
         <label htmlFor="ranking-description">Descrição</label>
         <input id="ranking-description" name="description" type="text" placeholder="Use para identificar o formato ou a temporada." />
       </div>
 
-      <div className="form-full section-actions">
-        <SubmitButton label="Criar ranking" pendingLabel="Criando..." className="button button-primary" />
+      <div className={viewStyles.form_full_section_actions}>
+        <SubmitButton label="Criar ranking" pendingLabel="Criando..." className={viewStyles.button_button_primary} />
       </div>
-      {error ? <p className="form-error form-full" role="alert">{error}</p> : null}
+      {error ? <p className={viewStyles.form_error_form_full} role="alert">{error}</p> : null}
     </form>
   );
 }

@@ -1,3 +1,4 @@
+import { viewStyles } from "./ranking-list.utilities";
 import Link from "next/link";
 import type { RankingProfileWithLeaderboard } from "@/lib/services/ranking";
 
@@ -21,13 +22,13 @@ function formatGeneralUsage(ranking: RankingProfileWithLeaderboard) {
 
 export function RankingList({ rankings }: RankingListProps) {
   if (!rankings.length) {
-    return <p className="muted">Nenhum ranking cadastrado ainda.</p>;
+    return <p className={viewStyles.muted}>Nenhum ranking cadastrado ainda.</p>;
   }
 
   return (
-    <section className="active-event-list ranking-active-list" aria-label="Rankings ativos">
+    <section className={viewStyles.active_event_list} aria-label="Rankings ativos">
       {rankings.map((ranking) => (
-        <article key={ranking.id} className="active-event-row ranking-active-row">
+        <article key={ranking.id} className={viewStyles.active_event_row}>
           <div>
             <strong>{ranking.name}</strong>
             <span>
@@ -35,7 +36,7 @@ export function RankingList({ rankings }: RankingListProps) {
             </span>
             <small>{ranking._count.tournaments} torneios vinculados</small>
           </div>
-          <Link href={`/torneios/rankings/${ranking.id}`} className="button">
+          <Link href={`/torneios/rankings/${ranking.id}`} className={viewStyles.button}>
             Abrir
           </Link>
         </article>

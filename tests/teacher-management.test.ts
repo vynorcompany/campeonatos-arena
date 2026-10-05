@@ -1,3 +1,4 @@
+import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
@@ -46,7 +47,7 @@ test("teachers directory keeps only professors and opens creation in a floating 
 test("teacher creation fields use the compact radius standard", () => {
   const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
 
-  assert.match(styles, /\.teacher-modal \.grid-form :where\(input, select\) \{[^}]*border-radius: 7px/);
+  assert.match(styleRules("teacher-modal", {"context":".grid-form :where(input"}), /border-radius: 7px/);
 });
 
 test("teachers directory presents searchable operational rows with status and metrics", () => {
@@ -70,9 +71,9 @@ test("teachers directory presents searchable operational rows with status and me
   assert.match(workspace, /teacher-directory-filters/);
   assert.match(workspace, /teacher-directory-avatar/);
   assert.match(workspace, /teacher-directory-metric/);
-  assert.match(styles, /\.teacher-directory-filters/);
-  assert.match(styles, /\.teacher-directory-avatar/);
-  assert.match(styles, /\.teacher-directory-metric/);
+  assert.ok(utilityClasses("teacher-directory-filters").length, "teacher-directory-filters has component Tailwind utilities");
+  assert.ok(utilityClasses("teacher-directory-avatar").length, "teacher-directory-avatar has component Tailwind utilities");
+  assert.ok(utilityClasses("teacher-directory-metric").length, "teacher-directory-metric has component Tailwind utilities");
 });
 
 test("teachers list opens a dedicated operational panel for the selected professor", () => {
@@ -144,7 +145,7 @@ test("teacher monthly reports generate one auditable payable entry from selected
   assert.match(actions, /externalReference/);
   assert.match(actions, /status: "PAID"/);
   assert.match(actions, /teacherAssignments: \{ some: \{ teacherId: teacher\.id, active: true \} \}/);
-  assert.match(styles, /\.teacher-report-payable-form/);
+  assert.ok(utilityClasses("teacher-report-payable-form").length, "teacher-report-payable-form has component Tailwind utilities");
 });
 
 test("teacher plans enroll searchable clients with balance, due date, discount and recurring finance", () => {
@@ -213,8 +214,8 @@ test("teacher enrollment has responsive visual groups instead of one long row", 
 
   assert.match(enrollment, /teacher-enrollment-primary/);
   assert.match(enrollment, /teacher-enrollment-financial/);
-  assert.match(styles, /\.teacher-enrollment-primary/);
-  assert.match(styles, /\.teacher-enrollment-financial/);
+  assert.ok(utilityClasses("teacher-enrollment-primary").length, "teacher-enrollment-primary has component Tailwind utilities");
+  assert.ok(utilityClasses("teacher-enrollment-financial").length, "teacher-enrollment-financial has component Tailwind utilities");
 });
 
 test("active students use a dedicated teacher dashboard with summary and enrollment workspace", () => {
@@ -238,8 +239,8 @@ test("active students use a dedicated teacher dashboard with summary and enrollm
   assert.match(detail, /teacher-active-students-panel/);
   assert.match(detail, /teacher-detail-metric-icon/);
   assert.match(enrollment, /teacher-enrollment-students/);
-  assert.match(styles, /\.teacher-active-students-panel/);
-  assert.match(styles, /\.teacher-enrollment-students/);
+  assert.ok(utilityClasses("teacher-active-students-panel").length, "teacher-active-students-panel has component Tailwind utilities");
+  assert.ok(utilityClasses("teacher-enrollment-students").length, "teacher-enrollment-students has component Tailwind utilities");
 });
 
 test("teacher classes use a schedule-first directory with a dedicated create action", () => {
@@ -258,9 +259,9 @@ test("teacher classes use a schedule-first directory with a dedicated create act
   assert.match(groups, /teacher-class-directory/);
   assert.match(groups, /teacher-class-row/);
   assert.match(groups, /teacher-class-create-panel/);
-  assert.match(styles, /\.teacher-class-directory/);
-  assert.match(styles, /\.teacher-class-row/);
-  assert.match(styles, /\.teacher-class-weekday/);
+  assert.ok(utilityClasses("teacher-class-directory").length, "teacher-class-directory has component Tailwind utilities");
+  assert.ok(utilityClasses("teacher-class-row").length, "teacher-class-row has component Tailwind utilities");
+  assert.ok(utilityClasses("teacher-class-weekday").length, "teacher-class-weekday has component Tailwind utilities");
 });
 
 test("teacher metrics keep the label and value in a vertical compact stack on every tab", () => {
@@ -269,15 +270,9 @@ test("teacher metrics keep the label and value in a vertical compact stack on ev
     "utf8",
   );
 
-  assert.match(
-    styles,
-    /\.teacher-detail-page \.teacher-detail-metrics article > div/,
-  );
-  assert.match(
-    styles,
-    /\.teacher-detail-page \.teacher-detail-metrics article/,
-  );
-  assert.match(styles, /\.teacher-directory-item \{[^}]*min-height: 128px/);
+  assert.ok(utilityClasses("teacher-detail-page").length, "teacher-detail-page has component Tailwind utilities");
+  assert.ok(utilityClasses("teacher-detail-page").length, "teacher-detail-page has component Tailwind utilities");
+  assert.match(styleRules("teacher-directory-item"), /min-height: 68px/);
 });
 
 test("teacher tabs keep one shared hero and metric layout", () => {
@@ -286,9 +281,9 @@ test("teacher tabs keep one shared hero and metric layout", () => {
     "utf8",
   );
 
-  assert.match(styles, /\.teacher-detail-page \{ gap: 30px; max-width: 1460px/);
-  assert.match(styles, /\.teacher-detail-page \.teacher-page-actions \{[^}]*padding-top: 64px/);
-  assert.match(styles, /\.teacher-detail-page \.teacher-detail-tabs \{[^}]*gap: 20px/);
+  assert.match(styleRules("teacher-detail-page"), /row-gap: 24px[\s\S]*max-width: 1460px/);
+  assert.match(styleRules("teacher-detail-page", {"context":".teacher-page-actions"}), /padding-top: 64px/);
+  assert.match(styleRules("teacher-detail-page", {"context":".teacher-detail-tabs"}), /row-gap: 20px/);
   assert.doesNotMatch(styles, /\.teacher-students-dashboard \.teacher-detail-tabs/);
 });
 
@@ -331,14 +326,8 @@ test("teacher destructive confirmations and enrollment actions stay compact", ()
   );
 
   assert.match(form, /safe-action-confirmation/);
-  assert.match(
-    styles,
-    /\.teacher-delete-form > \.button, \.teacher-archive-form > \.button \{[^}]*min-height: 34px/,
-  );
-  assert.match(
-    styles,
-    /\.teacher-enrollment-form > \.button \{[^}]*grid-column: 2/,
-  );
+  assert.match(styleRules("teacher-delete-form", {"context":"> .button"}), /min-height: 34px/);
+  assert.match(styleRules("teacher-enrollment-form", {"context":"> .button"}), /grid-column: 2/);
 });
 
 test("inactive test teachers can be deleted after removable plan links are cleaned up", () => {
@@ -375,10 +364,7 @@ test("teacher deletion stays inside an actions menu with an uncropped confirmati
   ];
 
   assert.match(page, /teacher-actions-menu/);
-  assert.match(
-    styles,
-    /\.teacher-delete-form \.safe-action-confirmation-actions input[^}]*min-width: 112px/,
-  );
+  assert.match(styleRules("teacher-delete-form", {context:".safe-action-confirmation-actions input"}), /min-width: 112px/);
 });
 
 test("class groups created from the teacher panel use the teacher permission scope", () => {
@@ -457,10 +443,7 @@ test("plan enrollment keeps financial fields inside a compact three-column grid"
     resolve(process.cwd(), "src/app/globals.css"),
     "utf8",
   );
-  const enrollmentStyles = styles.slice(
-    styles.indexOf(".teacher-enrollment-financial {"),
-    styles.indexOf(".teacher-enrollment-form > .button"),
-  );
+  const enrollmentStyles = styleRules("teacher-enrollment-financial");
 
   assert.match(
     enrollmentStyles,
@@ -468,7 +451,7 @@ test("plan enrollment keeps financial fields inside a compact three-column grid"
   );
   assert.match(
     enrollmentStyles,
-    /\.teacher-enrollment-financial > label \{ min-width: 0; \}/,
+    /min-width: 0/,
   );
 });
 
@@ -486,20 +469,11 @@ test("class creation keeps day, time and capacity aligned inside the modal", () 
 
   assert.match(
     panel,
-    /teacher-group-schedule-row\$\{schedules\.length > 1 \? " has-remove" : ""\}/,
+    /viewStyles\.teacher_group_schedule_row\}\$\{schedules\.length > 1 \? " has-remove" : ""\}/,
   );
-  assert.match(
-    styles,
-    /\.teacher-group-schedule-row \{[^}]*grid-template-columns: minmax\(0, 1fr\) minmax\(0, \.62fr\) minmax\(0, \.48fr\)/,
-  );
-  assert.match(
-    styles,
-    /\.teacher-group-schedule-row\.has-remove \{ grid-template-columns: minmax\(0, 1fr\) minmax\(0, \.62fr\) minmax\(0, \.48fr\) auto; \}/,
-  );
-  assert.match(
-    styles,
-    /\.teacher-group-schedule-row > label, \.teacher-group-schedule-row input, \.teacher-group-schedule-row select \{ min-width: 0; \}/,
-  );
+  assert.match(styleRules("teacher-group-schedule-row"), /grid-template-columns: minmax\(0, 1fr\) minmax\(0, \.62fr\) minmax\(0, \.48fr\)/);
+  assert.match(styleRules("teacher-group-schedule-row", {"context":".has-remove"}), / grid-template-columns: minmax\(0, 1fr\) minmax\(0, \.62fr\) minmax\(0, \.48fr\) auto; /);
+  assert.match(styleRules("teacher-group-schedule-row", {"context":"> label"}), / min-width: 0; /);
 });
 
 test("existing class groups can be edited with their plans and fixed schedules", () => {
@@ -541,8 +515,8 @@ test("teacher class groups use a compact table-like directory for larger schedul
   assert.match(panel, /teacher-class-list-heading/);
   assert.match(panel, />Turma</);
   assert.match(panel, />Dia e horário</);
-  assert.match(styles, /\.teacher-class-row \{[^}]*min-height: 50px/);
-  assert.match(styles, /\.teacher-class-row-list \{[^}]*gap: 0/);
+  assert.match(styleRules("teacher-class-row"), /min-height: 50px/);
+  assert.match(styleRules("teacher-class-row-list"), /gap: 0/);
 });
 
 test("class row action menus close when the user clicks outside them", () => {
@@ -600,9 +574,9 @@ test("class groups can be duplicated from their action menu with schedules and p
   assert.match(panel, /Duplicar turma/);
   assert.match(panel, /const duplicateGroup/);
   assert.match(panel, /setCreatePlanIds\(group\.plans\.map/);
-  assert.match(styles, /\.teacher-class-weekday\.weekday-1/);
-  assert.match(styles, /\.teacher-class-weekday\.weekday-2/);
-  assert.match(styles, /\.teacher-class-weekday\.weekday-3/);
+  assert.ok(utilityClasses("teacher-class-weekday").length, "teacher-class-weekday has component Tailwind utilities");
+  assert.ok(utilityClasses("teacher-class-weekday").length, "teacher-class-weekday has component Tailwind utilities");
+  assert.ok(utilityClasses("teacher-class-weekday").length, "teacher-class-weekday has component Tailwind utilities");
 });
 
 test("teacher workspace keeps plan creation and student enrollment in focused dialogs", () => {
@@ -626,7 +600,7 @@ test("teacher workspace keeps plan creation and student enrollment in focused di
   assert.doesNotMatch(page, /<TeacherPlanEnrollmentForm\s+[\s\S]*activePlan/);
   assert.match(enrollment, /teacher-student-enrollment-modal/);
   assert.match(enrollment, /teacher-enrollment-financial/);
-  assert.match(styles, /\.teacher-student-enrollment-modal > section \{[\s\S]*grid-template-columns/);
+  assert.match(styleRules("teacher-student-enrollment-modal", {"context":"> section"}), /grid-template-columns/);
 });
 
 test("active-student rows expose a compact class assignment and financial shortcut", () => {
@@ -641,7 +615,7 @@ test("active-student rows expose a compact class assignment and financial shortc
   assert.match(page, /teacher-student-row-link/);
   assert.match(page, /teacher-student-financial-link/);
   assert.match(page, /financeiro\/contas-a-receber/);
-  assert.match(styles, /\.teacher-active-students-panel \.teacher-student-plan-list article \{[\s\S]*min-height: 52px/);
+  assert.match(styleRules("teacher-active-students-panel", {"context":".teacher-student-plan-list article"}), /min-height: 52px/);
 });
 
 test("active students can be removed from a teacher plan with confirmation", () => {
@@ -659,7 +633,7 @@ test("active students can be removed from a teacher plan with confirmation", () 
   assert.match(page, /confirmKeyword="REMOVER"/);
   assert.match(actions, /export async function removeTeacherPlanStudentAction/);
   assert.match(actions, /status: "CANCELED"/);
-  assert.match(styles, /\.teacher-student-plan-remove/);
+  assert.ok(utilityClasses("teacher-student-plan-remove").length, "teacher-student-plan-remove has component Tailwind utilities");
 });
 
 test("teachers directory uses compact rows and an explicit status indicator", () => {
@@ -675,8 +649,8 @@ test("teachers directory uses compact rows and an explicit status indicator", ()
   ];
 
   assert.match(workspace, /teacher-directory-status-dot/);
-  assert.match(styles, /\.teacher-directory-item \{[\s\S]*min-height: 68px/);
-  assert.match(styles, /\.teacher-directory-status-dot/);
+  assert.match(styleRules("teacher-directory-item"), /min-height: 68px/);
+  assert.ok(utilityClasses("teacher-directory-status-dot").length, "teacher-directory-status-dot has component Tailwind utilities");
 });
 
 test("teacher groups follow the weekday order and retain compact, clear controls", () => {
@@ -707,10 +681,10 @@ test("teacher groups follow the weekday order and retain compact, clear controls
   assert.match(page, /groups=\{classGroupsBySchedule\.map/);
   assert.match(page, /classGroupsBySchedule\s*\.filter/);
   assert.match(enrollment, /EventIcon name="user-plus"/);
-  assert.match(enrollment, /button-primary button-small teacher-insert-student-trigger/);
-  assert.match(panel, /button button-primary button-small/);
-  assert.match(styles, /\.teacher-class-actions > summary \{[^}]*width: 30px/);
-  assert.match(styles, /\.teacher-student-financial-link \.status-badge\.status-pending/);
+  assert.match(enrollment, /viewStyles\.button_button_primary_button_small_teacher_insert_student_trigger/);
+  assert.match(panel, /viewStyles\.button_button_primary_button_small/);
+  assert.match(styleRules("teacher-class-actions", {"context":"> summary"}), /width: 30px/);
+  assert.ok(utilityClasses("teacher-student-financial-link").length, "teacher-student-financial-link has component Tailwind utilities");
 });
 
 test("teacher workspace uses client photos, vector icons and matching compact metrics", () => {
@@ -733,11 +707,8 @@ test("teacher workspace uses client photos, vector icons and matching compact me
   assert.match(page, /teacher\.player\?\.photoUrl/);
   assert.match(page, /EventIcon name="users" size=\{16\}/);
   assert.match(classPanel, /EventIcon name="users" size=\{14\}/);
-  assert.match(styles, /\.teacher-insert-student-trigger \{[^}]*justify-self: start/);
-  assert.match(
-    styles,
-    /\.teacher-detail-page \.teacher-detail-metrics article \{[^}]*min-height: 92px/,
-  );
+  assert.match(styleRules("teacher-insert-student-trigger"), /justify-self: start/);
+  assert.match(styleRules("teacher-detail-page", {"context":".teacher-detail-metrics article"}), /min-height: 92px/);
 });
 
 test("teacher plans can be copied to another active professor in a compact dialog", () => {

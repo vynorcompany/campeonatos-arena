@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./ranking-points-form.utilities";
 
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { updateRankingPointsAction } from "@/lib/actions/tournament";
@@ -39,21 +40,21 @@ export function RankingPointsForm({
   );
 
   return (
-    <SafeActionForm action={updateRankingPointsAction} className="grid-form" successMessage="Pontuação salva com sucesso.">
+    <SafeActionForm action={updateRankingPointsAction} className={viewStyles.grid_form} successMessage="Pontuação salva com sucesso.">
       <input type="hidden" name="rankingId" value={ranking.id} />
-      <p className="muted form-full">
+      <p className={viewStyles.muted_form_full}>
         {ranking.model === "LEAGUE" ? "Distribua os pontos da classificação da liga." : "Distribua os pontos por fase do mata-mata."}
       </p>
       {rules.map((rule) => {
         const stage = rule.stageKey as keyof typeof fieldByStage;
         return (
-          <div className="field" key={rule.stageKey}>
+          <div className={viewStyles.field} key={rule.stageKey}>
             <label htmlFor={`rule-${rule.stageKey}`}>{labelByStage[stage]}</label>
             <input id={`rule-${rule.stageKey}`} name={fieldByStage[stage]} type="number" min="0" max="5000" defaultValue={rule.points} required />
           </div>
         );
       })}
-      <div className="section-actions form-full"><button type="submit" className="button button-primary">Salvar pontuação</button></div>
+      <div className={viewStyles.section_actions_form_full}><button type="submit" className={viewStyles.button_button_primary}>Salvar pontuação</button></div>
     </SafeActionForm>
   );
 }

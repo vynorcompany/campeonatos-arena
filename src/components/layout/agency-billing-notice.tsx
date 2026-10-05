@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./agency-billing-notice.utilities";
 
 import { useEffect, useState } from "react";
 
@@ -10,5 +11,5 @@ export function AgencyBillingNotice({ invoiceId, daysRemaining }: { invoiceId: s
     window.sessionStorage.setItem(key, "1");
     setVisible(true);
   }, [invoiceId, daysRemaining]);
-  return visible ? <div className="agency-billing-toast" role="alertdialog" aria-label="Aviso de fatura do sistema"><strong>Fatura do sistema em atraso</strong><span>{daysRemaining ? `O acesso poderá ser suspenso em ${daysRemaining} dia${daysRemaining === 1 ? "" : "s"}.` : "O prazo para pagamento termina hoje."}</span><button type="button" onClick={() => setVisible(false)} aria-label="Fechar aviso">×</button></div> : null;
+  return visible ? <div className={viewStyles.agency_billing_toast} role="alertdialog" aria-label="Aviso de fatura do sistema"><strong>Fatura do sistema em atraso</strong><span>{daysRemaining ? `O acesso poderá ser suspenso em ${daysRemaining} dia${daysRemaining === 1 ? "" : "s"}.` : "O prazo para pagamento termina hoje."}</span><button type="button" onClick={() => setVisible(false)} aria-label="Fechar aviso">×</button></div> : null;
 }

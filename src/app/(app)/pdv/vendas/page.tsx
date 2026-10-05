@@ -1,3 +1,4 @@
+import { viewStyles } from "./page.utilities";
 import { SectionCard } from "@/components/section-card";
 import { requireModuleView } from "@/lib/auth/guards";
 import { withArenaTransaction } from "@/lib/rls";
@@ -41,20 +42,20 @@ export default async function SalesPage() {
   ]));
 
   return (
-    <div className="stack-md">
-      <header className="page-header">
-        <div className="stack-xs">
-          <p className="eyebrow">PDV</p>
+    <div className={viewStyles.stack_md}>
+      <header className={viewStyles.page_header}>
+        <div className={viewStyles.stack_xs}>
+          <p className={viewStyles.eyebrow}>PDV</p>
           <h1>Vendas</h1>
-          <p className="muted">Consulte o histórico de vendas e movimentações de estoque geradas pelo caixa.</p>
+          <p className={viewStyles.muted}>Consulte o histórico de vendas e movimentações de estoque geradas pelo caixa.</p>
         </div>
       </header>
 
-      <div className="two-column-grid">
+      <div className={viewStyles.two_column_grid}>
         <SectionCard title="Últimas vendas" description="Histórico recente da frente de caixa.">
-          <div className="simple-list">
+          <div className={viewStyles.simple_list}>
             {sales.map((sale) => (
-              <div className="simple-item" key={sale.id}>
+              <div className={viewStyles.simple_item} key={sale.id}>
                 <strong>{sale.code}</strong>
                 <span>
                   {formatMoney(sale.totalCents)} - {paymentLabels[sale.paymentMethod] ?? sale.paymentMethod} - {formatDate(sale.createdAt)}
@@ -62,21 +63,21 @@ export default async function SalesPage() {
                 <span>{sale.items.map((item) => `${item.quantity}x ${item.product.name}`).join(", ")}</span>
               </div>
             ))}
-            {!sales.length ? <p className="muted">Nenhuma venda registrada ainda.</p> : null}
+            {!sales.length ? <p className={viewStyles.muted}>Nenhuma venda registrada ainda.</p> : null}
           </div>
         </SectionCard>
 
         <SectionCard title="Movimentações de estoque" description="Entradas, saídas, vendas e ajustes manuais.">
-          <div className="simple-list">
+          <div className={viewStyles.simple_list}>
             {stockMovements.map((movement) => (
-              <div className="simple-item" key={movement.id}>
+              <div className={viewStyles.simple_item} key={movement.id}>
                 <strong>{movement.product.name}</strong>
                 <span>
                   {movement.type} {movement.quantity} un. - {movement.reason || "Sem motivo"} - {formatDate(movement.createdAt)}
                 </span>
               </div>
             ))}
-            {!stockMovements.length ? <p className="muted">Nenhuma movimentação registrada ainda.</p> : null}
+            {!stockMovements.length ? <p className={viewStyles.muted}>Nenhuma movimentação registrada ainda.</p> : null}
           </div>
         </SectionCard>
       </div>

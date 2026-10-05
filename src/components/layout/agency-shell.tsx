@@ -1,3 +1,4 @@
+import { viewStyles } from "./agency-shell.utilities";
 import { logoutAction } from "@/lib/auth/actions";
 import { AgencyNavLinks } from "@/components/layout/agency-nav-links";
 import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher";
@@ -14,14 +15,14 @@ type AgencyShellProps = {
 
 export function AgencyShell({ userName, userRole, activeArenaId, memberships, children }: AgencyShellProps) {
   return (
-    <div className="agency-shell">
-      <aside className="agency-sidebar" aria-label="Menu da agência">
-        <div className="sidebar-inner">
-          <div className="sidebar-top">
-            <div className="agency-brand">
+    <div className={viewStyles.agency_shell}>
+      <aside className={viewStyles.agency_sidebar} aria-label="Menu da agência">
+        <div className={viewStyles.sidebar_inner}>
+          <div className={viewStyles.sidebar_top}>
+            <div className={viewStyles.agency_brand}>
               <span>APM</span>
               <div>
-                <p className="eyebrow">Arena Padel Manager</p>
+                <p className={viewStyles.eyebrow}>Arena Padel Manager</p>
                 <strong>Agência</strong>
               </div>
             </div>
@@ -36,21 +37,21 @@ export function AgencyShell({ userName, userRole, activeArenaId, memberships, ch
             <AgencyNavLinks />
           </div>
 
-          <div className="sidebar-user">
-            <div className="user-copy">
-              <p className="user-name">{userName}</p>
-              <p className="muted">{userRole}</p>
+          <div className={viewStyles.sidebar_user}>
+            <div className={viewStyles.user_copy}>
+              <p className={viewStyles.user_name}>{userName}</p>
+              <p className={viewStyles.muted}>{userRole}</p>
             </div>
             <form action={logoutAction}>
-              <button className="button button-secondary" type="submit">
+              <button className={viewStyles.button_button_secondary} type="submit">
                 Sair
               </button>
             </form>
           </div>
         </div>
       </aside>
-      <main className="agency-main">
-        <div className="agency-content"><AgencyBreadcrumb />{children}</div>
+      <main className={viewStyles.agency_main}>
+        <div className={viewStyles.agency_content}><AgencyBreadcrumb />{children}</div>
       </main>
     </div>
   );

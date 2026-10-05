@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./public-finance-payment-button.utilities";
 
 import { useState, useTransition } from "react";
 import { startPublicFinancialEntryPaymentAction } from "@/lib/actions/public-finance-payment";
@@ -24,5 +25,5 @@ export function PublicFinancePaymentButton({ arenaSlug, entryId, paymentUrl }: {
       }
     });
   };
-  return <span className="public-finance-payment-action"><button type="button" className="button button-primary button-small" onClick={pay} disabled={pending}>{pending ? "Abrindo..." : "Pagar agora"}</button>{message ? <small role="alert">{message}</small> : null}</span>;
+  return <span className="public-finance-payment-action"><button type="button" className={viewStyles.button_button_primary_button_small} onClick={pay} disabled={pending}>{pending ? "Abrindo..." : "Pagar agora"}</button>{message ? <small role="alert">{message}</small> : null}</span>;
 }

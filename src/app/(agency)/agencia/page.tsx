@@ -1,3 +1,4 @@
+import { viewStyles } from "./page.utilities";
 import { SectionCard } from "@/components/section-card";
 import { requireAgencyAccess } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
@@ -20,30 +21,30 @@ export default async function AgencyDashboardPage() {
   const activeArenas = metrics.arenas.filter((arena) => arena.accountStatus === "ACTIVE").length;
 
   return (
-    <div className="stack-md">
-      <header className="page-header">
-        <div className="stack-xs">
-          <p className="eyebrow">Agência</p>
+    <div className={viewStyles.stack_md}>
+      <header className={viewStyles.page_header}>
+        <div className={viewStyles.stack_xs}>
+          <p className={viewStyles.eyebrow}>Agência</p>
           <h1>Dashboard da agência</h1>
-          <p className="muted">Visão executiva de arenas, receita recorrente, usuários e chamados.</p>
+          <p className={viewStyles.muted}>Visão executiva de arenas, receita recorrente, usuários e chamados.</p>
         </div>
       </header>
 
-      <div className="agency-stats-grid">
-        <div className="stat-card"><strong>{metrics.arenas.length}</strong><span>arenas cadastradas</span></div>
-        <div className="stat-card"><strong>{activeArenas}</strong><span>arenas ativas</span></div>
-        <div className="stat-card"><strong>{formatCurrency(metrics.mrrCents)}</strong><span>MRR das assinaturas</span></div>
-        <div className="stat-card"><strong>{metrics.openTickets}</strong><span>tickets em aberto</span></div>
+      <div className={viewStyles.agency_stats_grid}>
+        <div className={viewStyles.stat_card}><strong>{metrics.arenas.length}</strong><span>arenas cadastradas</span></div>
+        <div className={viewStyles.stat_card}><strong>{activeArenas}</strong><span>arenas ativas</span></div>
+        <div className={viewStyles.stat_card}><strong>{formatCurrency(metrics.mrrCents)}</strong><span>MRR das assinaturas</span></div>
+        <div className={viewStyles.stat_card}><strong>{metrics.openTickets}</strong><span>tickets em aberto</span></div>
       </div>
 
-      <div className="agency-grid">
+      <div className={viewStyles.agency_grid}>
         <SectionCard title="Arenas recentes" description="Últimas operações cadastradas no sistema.">
-          <div className="agency-arena-list">
+          <div className={viewStyles.agency_arena_list}>
             {metrics.arenas.slice(0, 8).map((arena) => (
-              <article key={arena.id} className="agency-mini-row">
+              <article key={arena.id} className={viewStyles.agency_mini_row}>
                 <div>
                   <strong>{arena.name}</strong>
-                  <span className="table-subtext">{arena.city || arena.email || arena.slug}</span>
+                  <span className={viewStyles.table_subtext}>{arena.city || arena.email || arena.slug}</span>
                 </div>
                 <span>{arena.accountStatus}</span>
                 <span>{arena._count.members} usuários</span>
@@ -53,17 +54,17 @@ export default async function AgencyDashboardPage() {
         </SectionCard>
 
         <SectionCard title="Tickets recentes" description="Fila curta para acompanhamento rápido do CS.">
-          <div className="agency-arena-list">
+          <div className={viewStyles.agency_arena_list}>
             {tickets.map((ticket) => (
-              <article key={ticket.id} className="agency-mini-row">
+              <article key={ticket.id} className={viewStyles.agency_mini_row}>
                 <div>
                   <strong>{ticket.title}</strong>
-                  <span className="table-subtext">{ticket.code} · {ticket.arena.name}</span>
+                  <span className={viewStyles.table_subtext}>{ticket.code} · {ticket.arena.name}</span>
                 </div>
                 <span>{ticket.status}</span>
               </article>
             ))}
-            {!tickets.length ? <p className="muted">Nenhum ticket recebido ainda.</p> : null}
+            {!tickets.length ? <p className={viewStyles.muted}>Nenhum ticket recebido ainda.</p> : null}
           </div>
         </SectionCard>
       </div>

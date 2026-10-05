@@ -1,3 +1,4 @@
+import { viewStyles } from "./page.utilities";
 import { ArenaAssistantChat } from "@/components/assistant/arena-assistant-chat";
 import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
@@ -10,8 +11,8 @@ export default async function ArenaAssistantPage() {
   });
   const messages = conversation?.messages.map((message) => ({ ...message, createdAt: message.createdAt.toISOString() })) ?? [];
 
-  return <div className="workspace-page assistant-page">
-    <nav className="page-breadcrumb" aria-label="Caminho de navegação"><span>Administração</span><i aria-hidden="true">›</i><strong>Assistente</strong></nav>
+  return <div className={viewStyles.workspace_page_assistant_page}>
+    <nav className={viewStyles.page_breadcrumb} aria-label="Caminho de navegação"><span>Administração</span><i aria-hidden="true">›</i><strong>Assistente</strong></nav>
     <ArenaAssistantChat initialMessages={messages} />
   </div>;
 }

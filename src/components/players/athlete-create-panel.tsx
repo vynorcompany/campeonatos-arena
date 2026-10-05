@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./athlete-create-panel.utilities";
 
 import { useState } from "react";
 import { PlayerForm } from "@/components/forms/player-form";
@@ -7,10 +8,10 @@ export function AthleteCreatePanel({ openLabel = "Adicionar novo atleta" }: { op
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="athlete-create-panel">
+    <div className={viewStyles.athlete_create_panel}>
       <button
         type="button"
-        className="button button-primary"
+        className={viewStyles.button_button_primary}
         aria-expanded={isOpen}
         aria-controls="athlete-create-form"
         onClick={() => setIsOpen((current) => !current)}

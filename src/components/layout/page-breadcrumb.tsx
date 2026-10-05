@@ -1,9 +1,10 @@
 "use client";
+import { viewStyles } from "./page-breadcrumb.utilities";
 
 import { usePathname } from "next/navigation";
 
 export function PageBreadcrumb({ section, current }: { section: string; current: string }) {
-  return <nav className="page-breadcrumb workspace-page-breadcrumb" aria-label="Caminho de navegação"><span>{section}</span><i aria-hidden="true">›</i><strong>{current}</strong></nav>;
+  return <nav className={viewStyles.page_breadcrumb_workspace_page_breadcrumb} aria-label="Caminho de navegação"><span>{section}</span><i aria-hidden="true">›</i><strong>{current}</strong></nav>;
 }
 
 const financeNames: Record<string, string> = {

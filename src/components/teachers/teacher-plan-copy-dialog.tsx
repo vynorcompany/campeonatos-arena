@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./teacher-plan-copy-dialog.utilities";
 
 import { useState } from "react";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
@@ -23,19 +24,19 @@ export function TeacherPlanCopyDialog({
     <>
       <button
         type="button"
-        className="button button-secondary button-small teacher-plan-copy-trigger"
+        className={viewStyles.button_button_secondary_button_small_teacher_plan_copy_trigger}
         onClick={() => setOpen(true)}
       >
         <EventIcon name="clipboard" size={15} /> Copiar planos
       </button>
       {open ? (
         <div
-          className="teacher-plan-edit-modal"
+          className={viewStyles.teacher_plan_edit_modal}
           role="presentation"
           onMouseDown={() => setOpen(false)}
         >
           <section
-            className="teacher-plan-edit-dialog"
+            className={viewStyles.teacher_plan_edit_dialog}
             role="dialog"
             aria-modal="true"
             aria-labelledby="teacher-plan-copy-title"
@@ -43,12 +44,12 @@ export function TeacherPlanCopyDialog({
           >
             <header>
               <div>
-                <p className="eyebrow">PLANOS DO PROFESSOR</p>
+                <p className={viewStyles.eyebrow}>PLANOS DO PROFESSOR</p>
                 <h2 id="teacher-plan-copy-title">Copiar planos</h2>
               </div>
               <button
                 type="button"
-                className="teacher-plan-edit-close"
+                className={viewStyles.teacher_plan_edit_close}
                 onClick={() => setOpen(false)}
                 aria-label="Fechar"
               >
@@ -57,7 +58,7 @@ export function TeacherPlanCopyDialog({
             </header>
             <SafeActionForm
               action={copyTeacherPlansAction}
-              className="teacher-plan-edit-form"
+              className={viewStyles.teacher_plan_edit_form}
               successMessage="Planos copiados para o professor selecionado."
               onSuccess={() => setOpen(false)}
             >
@@ -75,13 +76,13 @@ export function TeacherPlanCopyDialog({
                   ))}
                 </select>
               </label>
-              <p className="teacher-plan-copy-note">
+              <p className={viewStyles.teacher_plan_copy_note}>
                 Copia apenas os planos ativos. Alunos e turmas não são alterados.
               </p>
-              <div className="teacher-plan-edit-actions">
+              <div className={viewStyles.teacher_plan_edit_actions}>
                 <button
                   type="button"
-                  className="button button-secondary button-small"
+                  className={viewStyles.button_button_secondary_button_small}
                   onClick={() => setOpen(false)}
                 >
                   Cancelar
@@ -89,7 +90,7 @@ export function TeacherPlanCopyDialog({
                 <SubmitButton
                   label="Copiar planos"
                   pendingLabel="Copiando..."
-                  className="button button-primary button-small"
+                  className={viewStyles.button_button_primary_button_small}
                 />
               </div>
             </SafeActionForm>

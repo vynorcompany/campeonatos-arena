@@ -1,3 +1,4 @@
+import { viewStyles } from "./page.utilities";
 import { notFound } from "next/navigation";
 import { RegulationPublicAcceptanceForm } from "@/components/forms/regulation-public-acceptance-form";
 import { prisma } from "@/lib/prisma";
@@ -34,9 +35,9 @@ export default async function PublicRegulationPage(props: { params: Promise<{ sl
   const items = lines.slice(1);
 
   return (
-    <main className="regulation-public-shell">
-      <aside className="public-reg-aside reveal-up">
-        <div className="public-reg-brand">
+    <main className={viewStyles.regulation_public_shell}>
+      <aside className={viewStyles.public_reg_aside_reveal_up}>
+        <div className={viewStyles.public_reg_brand}>
           {regulation.arena.logoUrl ? (
             <img src={regulation.arena.logoUrl} alt={`Logo da arena ${regulation.arena.name}`} />
           ) : (
@@ -45,17 +46,17 @@ export default async function PublicRegulationPage(props: { params: Promise<{ sl
           <strong>{regulation.arena.name}</strong>
         </div>
 
-        <p className="public-reg-kicker">Regulamento público</p>
+        <p className={viewStyles.public_reg_kicker}>Regulamento público</p>
 
-        <div className="public-reg-steps">
-          <div className="public-reg-step public-reg-step-done">
+        <div className={viewStyles.public_reg_steps}>
+          <div className={viewStyles.public_reg_step_public_reg_step_done}>
             <span>1</span>
             <div>
               <strong>Leitura</strong>
               <small>Confira todos os termos antes de continuar</small>
             </div>
           </div>
-          <div className="public-reg-step public-reg-step-active">
+          <div className={viewStyles.public_reg_step_public_reg_step_active}>
             <span>2</span>
             <div>
               <strong>Aceite</strong>
@@ -64,8 +65,8 @@ export default async function PublicRegulationPage(props: { params: Promise<{ sl
           </div>
         </div>
 
-        <div className="public-reg-status-card">
-          <div className="public-reg-status-icon" aria-hidden="true">
+        <div className={viewStyles.public_reg_status_card}>
+          <div className={viewStyles.public_reg_status_icon} aria-hidden="true">
             <span>✓</span>
           </div>
           <div>
@@ -75,15 +76,15 @@ export default async function PublicRegulationPage(props: { params: Promise<{ sl
         </div>
       </aside>
 
-      <section className="regulation-public-main reveal-up tw:[animation-delay:120ms]">
-        <header className="regulation-public-hero">
-          <div className="stack-xs">
-            <p className="eyebrow">Regulamento</p>
+      <section className={viewStyles.regulation_public_main_reveal_up}>
+        <header className={viewStyles.regulation_public_hero}>
+          <div className={viewStyles.stack_xs}>
+            <p className={viewStyles.eyebrow}>Regulamento</p>
             <h1>Regulamento</h1>
-            <p className="muted">Leia com atenção e, se estiver de acordo, marque o aceite no final da página.</p>
+            <p className={viewStyles.muted}>Leia com atenção e, se estiver de acordo, marque o aceite no final da página.</p>
           </div>
 
-          <div className="public-reg-hero-badge">
+          <div className={viewStyles.public_reg_hero_badge}>
             <span aria-hidden="true">✓</span>
             <div>
               <strong>Leitura concluída</strong>
@@ -92,18 +93,18 @@ export default async function PublicRegulationPage(props: { params: Promise<{ sl
           </div>
         </header>
 
-        <article className="regulation-public-content">
-          <div className="regulation-public-content-head">
-            <div className="regulation-public-content-icon" aria-hidden="true">
+        <article className={viewStyles.regulation_public_content}>
+          <div className={viewStyles.regulation_public_content_head}>
+            <div className={viewStyles.regulation_public_content_icon} aria-hidden="true">
               <span>▣</span>
             </div>
-            <div className="stack-xs">
+            <div className={viewStyles.stack_xs}>
               <strong>{title}</strong>
-              <span className="muted">Versão pública publicada pela arena</span>
+              <span className={viewStyles.muted}>Versão pública publicada pela arena</span>
             </div>
           </div>
 
-          <ol className="regulation-public-list">
+          <ol className={viewStyles.regulation_public_list}>
             {items.map((line) => (
               <li key={line}>{line.replace(/^\d+[\.\)]?\s*/, "")}</li>
             ))}

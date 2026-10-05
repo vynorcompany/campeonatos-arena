@@ -1,3 +1,4 @@
+import { viewStyles } from "./page.utilities";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { GroupEditor } from "@/components/group-editor";
 import { SectionCard } from "@/components/section-card";
@@ -121,32 +122,32 @@ export default async function GroupsPage(props: GroupsPageProps) {
       : [];
 
   return (
-    <div className="stack-md">
-      <header className="page-header">
-        <div className="stack-xs">
-          <p className="eyebrow">Grupos</p>
+    <div className={viewStyles.stack_md}>
+      <header className={viewStyles.page_header}>
+        <div className={viewStyles.stack_xs}>
+          <p className={viewStyles.eyebrow}>Grupos</p>
           <h1>Organizacao dos grupos</h1>
-          <p className="muted">
+          <p className={viewStyles.muted}>
             Distribua as duplas por forca e, quando precisar, arraste manualmente uma dupla de um grupo para outro.
           </p>
         </div>
         {activeTournaments.length ? (
-          <form method="get" className="section-actions">
-            <select name="tournamentId" defaultValue={activeTournament?.id ?? ""} className="button" aria-label="Selecionar torneio">
+          <form method="get" className={viewStyles.section_actions}>
+            <select name="tournamentId" defaultValue={activeTournament?.id ?? ""} className={viewStyles.button} aria-label="Selecionar torneio">
               {activeTournaments.map((tournament) => (
                 <option key={tournament.id} value={tournament.id}>
                   {tournament.name}
                 </option>
               ))}
             </select>
-            <SubmitButton label="Abrir torneio" pendingLabel="..." className="button" />
+            <SubmitButton label="Abrir torneio" pendingLabel="..." className={viewStyles.button} />
           </form>
         ) : null}
       </header>
 
       {!activeTournament ? (
         <SectionCard title="Nenhum torneio em andamento">
-          <p className="muted">Crie um torneio e monte as duplas para comecar a organizar os grupos.</p>
+          <p className={viewStyles.muted}>Crie um torneio e monte as duplas para comecar a organizar os grupos.</p>
         </SectionCard>
       ) : (
         <>
@@ -160,21 +161,21 @@ export default async function GroupsPage(props: GroupsPageProps) {
           >
             <div className="stack-sm">
               {activeTournament.registrationPhase === "REGISTRATIONS" ? (
-                <div className="form-hint-box">
+                <div className={viewStyles.form_hint_box}>
                   <strong>Montagem bloqueada durante inscrições</strong>
-                  <p className="muted">
+                  <p className={viewStyles.muted}>
                     Encerre as inscrições no torneio para liberar a definição do formato e a montagem dos grupos.
                   </p>
                 </div>
               ) : (
                 <form action={generateGroupsAction}>
                   <input type="hidden" name="tournamentId" value={activeTournament.id} />
-                  <SubmitButton label="Distribuir duplas" pendingLabel="Distribuindo..." className="button button-primary" />
+                  <SubmitButton label="Distribuir duplas" pendingLabel="Distribuindo..." className={viewStyles.button_button_primary} />
                 </form>
               )}
-              <div className="form-hint-box">
+              <div className={viewStyles.form_hint_box}>
                 <strong>Ajuste manual liberado</strong>
-                <p className="muted">
+                <p className={viewStyles.muted}>
                   Voce pode arrastar uma dupla entre os grupos abaixo. Quando isso acontece, os jogos atuais do torneio sao limpos para voce regenerar a tabela com a nova organizacao.
                 </p>
               </div>
@@ -185,7 +186,7 @@ export default async function GroupsPage(props: GroupsPageProps) {
             <GroupEditor groups={groups} />
           ) : (
             <SectionCard title="Grupos ainda nao montados">
-              <p className="muted">Assim que as duplas forem distribuidas, os grupos aparecerao aqui.</p>
+              <p className={viewStyles.muted}>Assim que as duplas forem distribuidas, os grupos aparecerao aqui.</p>
             </SectionCard>
           )}
 
@@ -194,7 +195,7 @@ export default async function GroupsPage(props: GroupsPageProps) {
               title="Ranking geral da fase de grupos"
               description="Classificacao final considerando os resultados dos 3 grupos."
             >
-              <table className="data-table">
+              <table className={viewStyles.data_table}>
                 <thead>
                   <tr>
                     <th>Pos.</th>

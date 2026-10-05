@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./manual-pair-form.utilities";
 
 import { useFormState } from "react-dom";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -23,10 +24,10 @@ export function ManualPairForm({ tournamentId, players }: ManualPairFormProps) {
   const hasEnoughPlayers = players.length >= 2;
 
   return (
-    <form action={formAction} className="grid-form">
+    <form action={formAction} className={viewStyles.grid_form}>
       <input type="hidden" name="tournamentId" value={tournamentId} />
 
-      <div className="field">
+      <div className={viewStyles.field}>
         <label htmlFor="playerAId">Jogador 1</label>
         <select id="playerAId" name="playerAId" defaultValue="" disabled={!hasEnoughPlayers} required>
           <option value="">Selecione</option>
@@ -38,7 +39,7 @@ export function ManualPairForm({ tournamentId, players }: ManualPairFormProps) {
         </select>
       </div>
 
-      <div className="field">
+      <div className={viewStyles.field}>
         <label htmlFor="playerBId">Jogador 2</label>
         <select id="playerBId" name="playerBId" defaultValue="" disabled={!hasEnoughPlayers} required>
           <option value="">Selecione</option>
@@ -50,20 +51,20 @@ export function ManualPairForm({ tournamentId, players }: ManualPairFormProps) {
         </select>
       </div>
 
-      <div className="field field-submit">
-        <label className="sr-only" htmlFor="submit-pair">
+      <div className={viewStyles.field_field_submit}>
+        <label className={viewStyles.sr_only} htmlFor="submit-pair">
           Criar dupla
         </label>
         <SubmitButton
           label="Salvar dupla"
           pendingLabel="Salvando..."
-          className="button button-primary"
+          className={viewStyles.button_button_primary}
         />
       </div>
 
-      {!hasEnoughPlayers ? <p className="form-error form-full">É preciso ter pelo menos 2 jogadores livres para montar uma dupla.</p> : null}
-      {state?.error ? <p className="form-error form-full">{state.error}</p> : null}
-      {state?.success ? <p className="form-success form-full">{state.success}</p> : null}
+      {!hasEnoughPlayers ? <p className={viewStyles.form_error_form_full}>É preciso ter pelo menos 2 jogadores livres para montar uma dupla.</p> : null}
+      {state?.error ? <p className={viewStyles.form_error_form_full}>{state.error}</p> : null}
+      {state?.success ? <p className={viewStyles.form_success_form_full}>{state.success}</p> : null}
     </form>
   );
 }

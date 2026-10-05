@@ -1,3 +1,4 @@
+import { viewStyles } from "./page.utilities";
 import { WhatsAppChatWorkspace } from "@/components/whatsapp/whatsapp-chat-workspace";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
@@ -36,5 +37,5 @@ export default async function WhatsAppPage() {
   ]) : [[], null];
   const serializedConversations = conversations.map((conversation) => ({ ...conversation, contactName: !conversation.remoteJid.endsWith("@g.us") && conversation.player?.name ? conversation.player.name : conversation.contactName, lastMessageAt: conversation.lastMessageAt.toISOString(), archivedAt: conversation.archivedAt?.toISOString() ?? null, slaResolvedAt: conversation.slaResolvedAt?.toISOString() ?? null, messages: conversation.messages.map((message) => ({ ...message, reactions: readWhatsAppReactions(message.reactions), sentAt: message.sentAt.toISOString() })) }));
   const initialVersion = latestUpdate ? `${latestUpdate.id}:${latestUpdate.updatedAt.getTime()}` : "empty";
-  return <div className="whatsapp-page"><WhatsAppChatWorkspace currentAccountJid={accountJid} currentUserName={auth.userName} connected={connection?.status === "CONNECTED"} initialVersion={initialVersion} slaMinutes={arena.whatsappSlaMinutes} clients={clients} conversations={serializedConversations} /></div>;
+  return <div className={viewStyles.whatsapp_page}><WhatsAppChatWorkspace currentAccountJid={accountJid} currentUserName={auth.userName} connected={connection?.status === "CONNECTED"} initialVersion={initialVersion} slaMinutes={arena.whatsappSlaMinutes} clients={clients} conversations={serializedConversations} /></div>;
 }

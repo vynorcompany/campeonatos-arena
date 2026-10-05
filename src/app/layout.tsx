@@ -1,3 +1,4 @@
+import { documentUtilities } from "./document.utilities";
 import type { Metadata } from "next";
 import "@/app/globals.css";
 import { env } from "@/lib/env";
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" className={documentUtilities}>
       <body>{children}</body>
     </html>
   );

@@ -1,3 +1,4 @@
+import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFile } from "./helpers/style-source";
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -38,8 +39,8 @@ test("event detail uses the operational dashboard layout", async () => {
   assert.match(source, /event-quick-actions/);
   assert.match(source, /EventIcon/);
   assert.doesNotMatch(source, /event-metric-icon">✎/);
-  assert.match(styles, /\.event-metrics-grid\s*\{/);
-  assert.match(styles, /\.event-detail-grid\s*\{/);
+  assert.ok(utilityClasses("event-metrics-grid").length);
+  assert.ok(utilityClasses("event-detail-grid").length);
 });
 
 test("event quick actions keep category management in the category list", async () => {
@@ -135,7 +136,7 @@ test("category overview context names the selected pair ranking", async () => {
 
   assert.match(
     source,
-    /category-overview-context[\s\S]*?Ranking:\s*\{competition\.ranking\?\.name\s*\?\?\s*"Sem ranking"\}/,
+    /viewStyles\.category_overview_context[\s\S]*?Ranking:\s*\{competition\.ranking\?\.name\s*\?\?\s*"Sem ranking"\}/,
   );
 });
 
@@ -188,9 +189,9 @@ test("event category rows use the operational dashboard grid", async () => {
   const source = await readSource("src", "app", "globals.css");
 
   assert.match(
-    source,
-    /\.t-category-row\s*\{[^}]*grid-template-columns:\s*40px\s+minmax\(0,\s*1fr\)\s+6\.5rem\s+8\.5rem\s+6rem\s+7rem;/s,
+    styleRules("t-category-row"),
+    /grid-template-columns:\s*40px\s+minmax\(0,\s*1fr\)\s+6\.5rem\s+8\.5rem\s+6rem\s+7rem;/,
   );
-  assert.match(source, /\.t-category-row\s*\{[^}]*padding:\s*15px\s+0;/s);
-  assert.match(source, /\.t-category-enter\s*\{[^}]*text-align:\s*center;/s);
+  assert.match(styleRules("t-category-row"), /padding-top: 15px[\s\S]*padding-right: 0/);
+  assert.match(styleRules("t-category-enter"), /text-align: center/);
 });

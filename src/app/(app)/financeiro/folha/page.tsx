@@ -1,3 +1,4 @@
+import { viewStyles } from "./page.utilities";
 import { SectionCard } from "@/components/section-card";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -45,11 +46,11 @@ export default async function PayrollPage() {
   ]);
 
   return (
-    <div className="stack-md">
+    <div className={viewStyles.stack_md}>
 
       <SectionCard title="Salvar folha" description="Ao salvar, uma despesa de folha é criada ou atualizada no financeiro.">
-        <SafeActionForm action={upsertPayrollEntryAction} className="grid-form" resetOnSuccess successMessage="Folha salva.">
-          <div className="field">
+        <SafeActionForm action={upsertPayrollEntryAction} className={viewStyles.grid_form} resetOnSuccess successMessage="Folha salva.">
+          <div className={viewStyles.field}>
             <label htmlFor="payroll-teacher">Professor</label>
             <select id="payroll-teacher" name="teacherId" required defaultValue="">
               <option value="">Selecione o professor</option>
@@ -60,62 +61,62 @@ export default async function PayrollPage() {
               ))}
             </select>
           </div>
-          <div className="field">
+          <div className={viewStyles.field}>
             <label htmlFor="payroll-reference">Mês</label>
             <input id="payroll-reference" name="referenceMonth" type="month" defaultValue={referenceMonth} required />
           </div>
-          <div className="field">
+          <div className={viewStyles.field}>
             <label htmlFor="payroll-fixed">Salário fixo</label>
             <input id="payroll-fixed" name="fixedSalary" type="text" placeholder="0,00" />
           </div>
-          <div className="field">
+          <div className={viewStyles.field}>
             <label htmlFor="payroll-class-value">Valor por aula</label>
             <input id="payroll-class-value" name="classValue" type="text" placeholder="0,00" />
           </div>
-          <div className="field">
+          <div className={viewStyles.field}>
             <label htmlFor="payroll-bonus">Bônus</label>
             <input id="payroll-bonus" name="bonus" type="text" placeholder="0,00" />
           </div>
-          <div className="field">
+          <div className={viewStyles.field}>
             <label htmlFor="payroll-discount">Descontos</label>
             <input id="payroll-discount" name="discount" type="text" placeholder="0,00" />
           </div>
-          <div className="field">
+          <div className={viewStyles.field}>
             <label htmlFor="payroll-status">Status</label>
             <select id="payroll-status" name="status" defaultValue="PENDING">
               <option value="PENDING">Em aberto</option>
               <option value="PAID">Pago</option>
             </select>
           </div>
-          <div className="field form-full">
+          <div className={viewStyles.field_form_full}>
             <label htmlFor="payroll-notes">Observações</label>
             <input id="payroll-notes" name="notes" type="text" />
           </div>
-          <div className="field field-submit">
-            <SubmitButton label="Salvar folha" pendingLabel="Salvando..." className="button button-primary" />
+          <div className={viewStyles.field_field_submit}>
+            <SubmitButton label="Salvar folha" pendingLabel="Salvando..." className={viewStyles.button_button_primary} />
           </div>
         </SafeActionForm>
       </SectionCard>
 
       <SectionCard title="Folhas do mês" description="Resumo por professor.">
-        <div className="teacher-grid">
+        <div className={viewStyles.teacher_grid}>
           {payrollEntries.map((entry) => (
-            <article className="teacher-card" key={entry.id}>
-              <div className="match-card-top">
+            <article className={viewStyles.teacher_card} key={entry.id}>
+              <div className={viewStyles.match_card_top}>
                 <div>
-                  <span className="eyebrow">{entry.status === "PAID" ? "Pago" : "Em aberto"}</span>
+                  <span className={viewStyles.eyebrow}>{entry.status === "PAID" ? "Pago" : "Em aberto"}</span>
                   <h3>{entry.teacher.name}</h3>
                 </div>
                 <strong>{formatMoney(payrollTotal(entry))}</strong>
               </div>
-              <div className="teacher-metrics">
+              <div className={viewStyles.teacher_metrics}>
                 <span>{entry.teacher.lessons.filter((lesson) => lesson.status === "COMPLETED").length} aulas</span>
                 <span>{formatMoney(entry.fixedSalaryCents)} fixo</span>
                 <span>{formatMoney(entry.classValueCents)} por aula</span>
               </div>
             </article>
           ))}
-          {!payrollEntries.length ? <p className="muted">Nenhuma folha cadastrada para este mês.</p> : null}
+          {!payrollEntries.length ? <p className={viewStyles.muted}>Nenhuma folha cadastrada para este mês.</p> : null}
         </div>
       </SectionCard>
     </div>

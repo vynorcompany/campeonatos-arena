@@ -1,3 +1,4 @@
+import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
 
@@ -19,7 +20,7 @@ test("client portal marks open receivables past their due date as overdue", () =
   assert.match(home, /em atraso/);
   assert.match(home, /financialStatus: overdue \? "overdue" : due \? "pending" : "active"/);
   assert.match(portal, /financialStatus === "overdue" \? "is-overdue"/);
-  assert.match(financeEntries, /client-finance-entry public-finance-entry is-\$\{entry\.status\}/);
+  assert.match(financeEntries, /viewStyles\.client_finance_entry_public_finance_entry\} is-\$\{entry\.status\}/);
   assert.match(portal, /futureFinancial/);
 });
 
@@ -43,8 +44,8 @@ test("financial ledger highlights pending entries that are past due", () => {
   assert.equal(isOverdue({ status: "PENDING", dueDate: null } as Account), false);
   assert.match(ledger, /accounts-ledger-row-overdue/);
   assert.match(ledger, /EM ATRASO/);
-  assert.match(styles, /\.accounts-ledger-row-overdue/);
-  assert.match(styles, /\.account-status-overdue/);
+  assert.ok(utilityClasses("accounts-ledger-row-overdue").length, "accounts-ledger-row-overdue has component Tailwind utilities");
+  assert.ok(utilityClasses("account-status-overdue").length, "account-status-overdue has component Tailwind utilities");
 });
 
 test("financial deletion is an explicit user permission and remains auditable", () => {
@@ -74,7 +75,7 @@ test("financial ledger only exposes deletion to users with the explicit permissi
   assert.match(ledger, /Excluir/);
   assert.match(receivable, /canDeleteEntries=/);
   assert.match(payable, /canDeleteEntries=/);
-  assert.match(styles, /\.accounts-filters-submit/);
+  assert.ok(utilityClasses("accounts-filters-submit").length, "accounts-filters-submit has component Tailwind utilities");
 });
 
 test("financial ledger shows listed and selected totals", () => {
@@ -85,5 +86,5 @@ test("financial ledger shows listed and selected totals", () => {
   assert.match(ledger, /selectedTotalCents/);
   assert.match(ledger, /Total listado/);
   assert.match(ledger, /Total selecionado/);
-  assert.match(styles, /\.accounts-ledger-totals/);
+  assert.ok(utilityClasses("accounts-ledger-totals").length, "accounts-ledger-totals has component Tailwind utilities");
 });

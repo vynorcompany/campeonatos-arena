@@ -1,3 +1,4 @@
+import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -44,21 +45,21 @@ export default async function TournamentsPage() {
   );
 
   return (
-    <div className="stack-md">
-      <header className="page-header">
-        <div className="stack-xs">
-          <p className="eyebrow">Campeonatos</p>
+    <div className={viewStyles.stack_md}>
+      <header className={viewStyles.page_header}>
+        <div className={viewStyles.stack_xs}>
+          <p className={viewStyles.eyebrow}>Campeonatos</p>
           <h1>Eventos e categorias</h1>
-          <p className="muted">
+          <p className={viewStyles.muted}>
             Cada evento reúne categorias com formato, duplas, jogos e ranking
             próprios.
           </p>
         </div>
-        <div className="section-actions">
-          <Link href="/torneios/novo" className="button button-primary">
+        <div className={viewStyles.section_actions}>
+          <Link href="/torneios/novo" className={viewStyles.button_button_primary}>
             Novo evento
           </Link>
-          <Link href="/torneios/rankings" className="button">
+          <Link href="/torneios/rankings" className={viewStyles.button}>
             Rankings
           </Link>
         </div>
@@ -69,7 +70,7 @@ export default async function TournamentsPage() {
         description="Abra um evento para seguir a próxima ação de cada categoria."
       >
         {openEvents.length ? (
-          <div className="t-event-list">
+          <div className={viewStyles.t_event_list}>
             {openEvents.map((event) => {
               const configuredCount = event.categories.filter(
                 (category) => category.competition,
@@ -79,8 +80,8 @@ export default async function TournamentsPage() {
               ).length;
 
               return (
-                <article className="t-event-row" key={event.id}>
-                  <div className="t-event-identity">
+                <article className={viewStyles.t_event_row} key={event.id}>
+                  <div className={viewStyles.t_event_identity}>
                     <div>
                       <h3>{event.name}</h3>
                       <p>
@@ -88,19 +89,19 @@ export default async function TournamentsPage() {
                       </p>
                     </div>
                     {event.categories.length ? (
-                      <div className="t-event-categories">
+                      <div className={viewStyles.t_event_categories}>
                         {event.categories.map((category) => (
-                          <span className="t-event-category" key={category.id}>
+                          <span className={viewStyles.t_event_category} key={category.id}>
                             {category.name}
                           </span>
                         ))}
                       </div>
                     ) : (
-                      <p className="t-event-category">Nenhuma categoria adicionada.</p>
+                      <p className={viewStyles.t_event_category}>Nenhuma categoria adicionada.</p>
                     )}
                   </div>
 
-                  <div className="t-event-metadata">
+                  <div className={viewStyles.t_event_metadata}>
                     <StatusBadge status={event.registrationPhase} />
                     <dl>
                       <div>
@@ -122,10 +123,10 @@ export default async function TournamentsPage() {
                     </dl>
                   </div>
 
-                  <div className="t-event-action">
+                  <div className={viewStyles.t_event_action}>
                     <Link
                       href={`/torneios/${event.id}?tab=categories`}
-                      className="button button-primary"
+                      className={viewStyles.button_button_primary}
                     >
                       Abrir
                     </Link>
@@ -144,7 +145,7 @@ export default async function TournamentsPage() {
                       <SubmitButton
                         label="Excluir"
                         pendingLabel="Excluindo..."
-                        className="button button-danger"
+                        className={viewStyles.button_button_danger}
                       />
                     </SafeActionForm>
                   </div>
@@ -167,22 +168,22 @@ export default async function TournamentsPage() {
         description="Eventos marcados como finalizados."
       >
         {finishedEvents.length ? (
-          <div className="t-event-list t-event-list-history">
+          <div className={viewStyles.t_event_list_2}>
             {finishedEvents.map((event) => (
-              <article className="t-event-row t-event-row-history" key={event.id}>
-                <div className="t-event-identity">
+              <article className={viewStyles.t_event_row_t_event_row_history} key={event.id}>
+                <div className={viewStyles.t_event_identity}>
                   <strong>{event.name}</strong>
-                  <span className="t-event-category">
+                  <span className={viewStyles.t_event_category}>
                     {event.categories.length} categorias
                   </span>
                 </div>
-                <div className="t-event-metadata">
+                <div className={viewStyles.t_event_metadata}>
                   <span>Atualizado em {event.updatedAt.toLocaleDateString("pt-BR")}</span>
                 </div>
-                <div className="t-event-action">
+                <div className={viewStyles.t_event_action}>
                   <Link
                     href={`/torneios/${event.id}?tab=results`}
-                    className="button"
+                    className={viewStyles.button}
                   >
                     Ver resultados
                   </Link>
@@ -191,7 +192,7 @@ export default async function TournamentsPage() {
             ))}
           </div>
         ) : (
-          <p className="muted">Nenhum evento finalizado.</p>
+          <p className={viewStyles.muted}>Nenhum evento finalizado.</p>
         )}
       </SectionCard>
     </div>

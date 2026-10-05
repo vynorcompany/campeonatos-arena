@@ -1,3 +1,4 @@
+import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
 
@@ -42,7 +43,7 @@ test("agenda organiza a reserva em cards e mantém a busca de cliente discreta",
   assert.match(source, /Duração/);
   assert.doesNotMatch(source, /Horário de término/);
   assert.match(source, /<MoneyInput valueCents=\{participant\.amountCents\}/);
-  assert.match(css, /\.agenda-booking-summary-grid \{[^}]*grid-template-columns: repeat\(4,/);
-  assert.match(css, /\.agenda-client-search \{[^}]*max-width:/);
-  assert.match(css, /\.agenda-booking-dialog \{[^}]*1240px/);
+  assert.match(styleRules("agenda-booking-summary-grid"), /grid-template-columns: repeat\(4,/);
+  assert.match(styleRules("agenda-client-search"), /max-width:/);
+  assert.match(styleRules("agenda-booking-dialog"), /1240px/);
 });

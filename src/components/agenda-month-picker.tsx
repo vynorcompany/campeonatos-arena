@@ -1,4 +1,6 @@
 "use client";
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./agenda-month-picker.utilities";
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -23,15 +25,15 @@ export function AgendaMonthPicker({ selectedDate }: AgendaMonthPickerProps) {
   }, [month]);
   const title = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(month);
 
-  return <details className="agenda-month-picker">
+  return <details className={viewStyles.agenda_month_picker}>
     <summary aria-label="Abrir calendário mensal" title="Calendário mensal">▦</summary>
-    <div className="agenda-month-picker-panel" role="dialog" aria-label="Calendário mensal">
+    <div className={viewStyles.agenda_month_picker_panel} role="dialog" aria-label="Calendário mensal">
       <header><button type="button" onClick={() => setMonth((value) => new Date(value.getFullYear(), value.getMonth() - 1, 1))} aria-label="Mês anterior">‹</button><strong>{title}</strong><button type="button" onClick={() => setMonth((value) => new Date(value.getFullYear(), value.getMonth() + 1, 1))} aria-label="Próximo mês">›</button></header>
-      <div className="agenda-month-picker-weekdays">{["D", "S", "T", "Q", "Q", "S", "S"].map((day, index) => <span key={`${day}-${index}`}>{day}</span>)}</div>
-      <div className="agenda-month-picker-days">{days.map((day) => {
+      <div className={viewStyles.agenda_month_picker_weekdays}>{["D", "S", "T", "Q", "Q", "S", "S"].map((day, index) => <span key={`${day}-${index}`}>{day}</span>)}</div>
+      <div className={viewStyles.agenda_month_picker_days}>{days.map((day) => {
         const value = dateValue(day);
         const outsideMonth = day.getMonth() !== month.getMonth();
-        return <Link key={value} href={`/agenda?data=${value}`} className={`${outsideMonth ? "is-outside" : ""} ${value === selectedDate ? "is-selected" : ""}`}>{day.getDate()}</Link>;
+        return <Link key={value} href={`/agenda?data=${value}`} className={cx(`${outsideMonth ? "is-outside" : ""} ${value === selectedDate ? "is-selected" : ""}`)}>{day.getDate()}</Link>;
       })}</div>
     </div>
   </details>;

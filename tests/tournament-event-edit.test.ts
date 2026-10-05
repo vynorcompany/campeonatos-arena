@@ -1,5 +1,6 @@
+import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+
 import { test } from "node:test";
 
 test("edição de evento envia somente id, nome e descrição", () => {

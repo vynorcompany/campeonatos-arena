@@ -1,0 +1,92 @@
+import { sharedUtilities } from "@/components/ui/shared.utilities";
+/** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
+export const viewStyles = {
+  "commands_icon": [
+    "commands-icon", "tw:block", "tw:w-[1em]", "tw:h-[1em]",
+  ].join(" "),
+  "commands_date_trigger": [
+    "commands-date-trigger", "tw:[grid-column:auto]", "tw:[justify-self:start]", "tw:flex",
+    "tw:gap-y-[10px]", "tw:gap-x-[10px]", "tw:min-w-[272px]", "tw:min-h-[64px]",
+    "tw:viewport-760:min-h-[60px]", "tw:pt-[9px]", "tw:pr-[12px]", "tw:pb-[9px]",
+    "tw:pl-[12px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:#d6e2ee]",
+    "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:#d6e2ee]", "tw:border-b-[length:1px]",
+    "tw:[border-bottom-style:solid]", "tw:border-b-[color:#d6e2ee]", "tw:border-l-[length:1px]", "tw:[border-left-style:solid]",
+    "tw:border-l-[color:#d6e2ee]", "tw:rounded-[12px]", "tw:bg-[color:#fff]", "tw:[background-image:none]",
+    "tw:text-[color:var(--text)]", "tw:text-left", "tw:items-center", "tw:[box-shadow:none]",
+    "tw:hover:border-t-[color:#b6cfea]", "tw:hover:border-r-[color:#b6cfea]", "tw:hover:border-b-[color:#b6cfea]", "tw:hover:border-l-[color:#b6cfea]",
+    "tw:hover:bg-[color:#fff]", "tw:hover:[background-image:none]", "tw:[&_span]:text-[color:var(--muted)]", "tw:[&_span]:text-[.67rem]",
+    "tw:[&_span]:font-[700]", "tw:[&_span]:uppercase", "tw:[&_strong]:text-[.82rem]", "tw:[&_strong]:[text-transform:capitalize]",
+    "tw:viewport-760:w-[100%]", "tw:[&_.commands-date-copy_>_span]:text-[color:#315e8b]", "tw:[&_.commands-date-copy_>_span]:text-[.62rem]", "tw:[&_.commands-date-copy_>_span]:font-[850]",
+    "tw:[&_.commands-date-copy_>_span]:tracking-[.045em]", "tw:[&_.commands-date-copy_>_span]:uppercase", "tw:[&_.commands-date-copy_strong]:text-[color:#101d38]", "tw:[&_.commands-date-copy_strong]:text-[.9rem]",
+    "tw:[&_.commands-date-copy_strong]:tracking-[-.015em]", "tw:[&_.commands-date-copy_strong]:[text-transform:capitalize]", "tw:[&_.commands-date-icon]:w-[40px]", "tw:[&_.commands-date-icon]:h-[40px]",
+    "tw:[&_.commands-date-icon]:rounded-[10px]", "tw:[&_.commands-date-icon]:text-[color:#fff]", "tw:[&_.commands-date-icon]:bg-[color:transparent]", "tw:[&_.commands-date-icon]:[background-image:linear-gradient(145deg,_#1d73d4,_#1353a0)]",
+    "tw:[&_.commands-date-icon]:[box-shadow:0_5px_12px_rgb(18_79_155_/_.24)]", "tw:[&_.commands-date-icon_.commands-icon]:text-[color:#fff]", "tw:[&_.commands-date-icon_.commands-icon]:[stroke:#fff]",
+  ].join(" "),
+  "commands_date_icon": [
+    "commands-date-icon", "tw:grid", "tw:[flex:0_0_auto]", "tw:w-[48px]",
+    "tw:viewport-760:w-[38px]", "tw:h-[48px]", "tw:viewport-760:h-[38px]", "tw:place-items-center",
+    "tw:rounded-[13px]", "tw:text-[color:#1464cc]", "tw:bg-[color:transparent]", "tw:[background-image:linear-gradient(145deg,_#edf4ff,_#e5edfa)]",
+    "tw:text-[1rem]", "tw:font-[700]", "tw:[&_.commands-icon]:w-[19px]", "tw:[&_.commands-icon]:h-[19px]",
+  ].join(" "),
+  "commands_date_copy": [
+    "commands-date-copy", "tw:grid", "tw:gap-y-[3px]", "tw:gap-x-[3px]",
+    "tw:min-w-[0]",
+  ].join(" "),
+  "commands_date_chevron": [
+    "commands-date-chevron", "tw:ml-[auto]", "tw:text-[color:#6b7f95]", "tw:text-[1rem]",
+    "tw:grid", "tw:w-[22px]", "tw:h-[22px]", "tw:place-items-center",
+    "tw:[&_.commands-icon]:w-[14px]", "tw:[&_.commands-icon]:h-[14px]",
+  ].join(" "),
+  "commands_calendar_modal_overlay": [
+    "commands-calendar-modal-overlay", "tw:fixed", "tw:z-[80]", "tw:top-[0]",
+    "tw:right-[0]", "tw:bottom-[0]", "tw:left-[0]", "tw:grid",
+    "tw:place-items-center", "tw:pt-[20px]", "tw:pr-[20px]", "tw:pb-[20px]",
+    "tw:pl-[20px]", "tw:bg-[color:rgba(9,_24,_46,_.46)]", "tw:[background-image:none]", "tw:[backdrop-filter:blur(6px)]",
+  ].join(" "),
+  "commands_calendar_modal": [
+    "commands-calendar-modal", "tw:w-[min(440px,_100%)]", "tw:pt-[18px]", "tw:pr-[18px]",
+    "tw:pb-[18px]", "tw:pl-[18px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]",
+    "tw:border-t-[color:rgba(255,_255,_255,_.6)]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:rgba(255,_255,_255,_.6)]",
+    "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:rgba(255,_255,_255,_.6)]", "tw:border-l-[length:1px]",
+    "tw:[border-left-style:solid]", "tw:border-l-[color:rgba(255,_255,_255,_.6)]", "tw:rounded-[var(--radius-md)]", "tw:bg-[color:var(--panel)]",
+    "tw:[background-image:none]", "tw:[box-shadow:0_22px_60px_rgba(7,_24,_52,_.28)]", "tw:[animation:rise-in_180ms_var(--ease-standard)]", "tw:[&_>_p]:mt-[0]",
+    "tw:[&_>_p]:mr-[0]", "tw:[&_>_p]:mb-[14px]", "tw:[&_>_p]:ml-[0]", "tw:[&_>_p]:text-[color:var(--muted)]",
+    "tw:[&_>_p]:text-[.78rem]",
+  ].join(" "),
+  "commands_calendar_modal_head": [
+    "commands-calendar-modal-head", "tw:flex", "tw:items-start", "tw:justify-between",
+    "tw:gap-y-[12px]", "tw:gap-x-[12px]", "tw:mb-[8px]", "tw:[&_div]:grid",
+    "tw:[&_div]:gap-y-[2px]", "tw:[&_div]:gap-x-[2px]", "tw:[&_span]:text-[color:var(--brand)]", "tw:[&_span]:text-[.68rem]",
+    "tw:[&_span]:font-[800]", "tw:[&_span]:tracking-[.1em]", "tw:[&_span]:uppercase", "tw:[&_strong]:text-[1rem]",
+    "tw:[&_strong]:[text-transform:capitalize]",
+  ].join(" "),
+  "button_button_small": sharedUtilities.buttonButtonSmall,
+  "commands_calendar_grid": [
+    "commands-calendar-grid", "tw:grid", "tw:grid-cols-[repeat(7,_minmax(36px,_1fr))]", "tw:gap-y-[5px]",
+    "tw:gap-x-[5px]", "tw:[&_>_span]:pt-[0]", "tw:[&_>_span]:pr-[7px]", "tw:[&_>_span]:pb-[4px]",
+    "tw:[&_>_span]:pl-[7px]", "tw:[&_>_span]:text-[color:var(--muted)]", "tw:[&_>_span]:text-[.68rem]", "tw:[&_>_span]:font-[700]",
+    "tw:[&_>_span]:uppercase",
+  ].join(" "),
+  "commands_calendar_day": [
+    "commands-calendar-day", "tw:relative", "tw:grid", "tw:place-items-center",
+    "tw:min-h-[34px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:transparent]",
+    "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:transparent]", "tw:border-b-[length:1px]",
+    "tw:[border-bottom-style:solid]", "tw:border-b-[color:transparent]", "tw:border-l-[length:1px]", "tw:[border-left-style:solid]",
+    "tw:border-l-[color:transparent]", "tw:rounded-[var(--radius-control)]", "tw:bg-[color:transparent]", "tw:[background-image:none]",
+    "tw:text-[color:var(--text)]", "tw:text-[.82rem]", "tw:font-[700]", "tw:hover:border-t-[color:var(--line-strong)]",
+    "tw:hover:border-r-[color:var(--line-strong)]", "tw:hover:border-b-[color:var(--line-strong)]", "tw:hover:border-l-[color:var(--line-strong)]", "tw:hover:bg-[color:var(--panel-muted)]",
+    "tw:hover:[background-image:none]",
+  ].join(" "),
+  "commands_calendar_day_active": [
+    "commands-calendar-day-active", "tw:border-t-[color:var(--brand)]", "tw:border-r-[color:var(--brand)]", "tw:border-b-[color:var(--brand)]",
+    "tw:border-l-[color:var(--brand)]", "tw:bg-[color:var(--brand)]", "tw:[background-image:none]", "tw:text-[color:#fff]",
+  ].join(" "),
+  "commands_calendar_day_muted": [
+    "commands-calendar-day-muted", "tw:text-[color:var(--muted)]", "tw:opacity-[.52]",
+  ].join(" "),
+  "calendar_open_indicator": [
+    "calendar-open-indicator", "tw:absolute", "tw:top-[5px]", "tw:right-[5px]",
+    "tw:w-[5px]", "tw:h-[5px]", "tw:rounded-[50%]", "tw:bg-[color:var(--danger)]",
+    "tw:[background-image:none]", "tw:[box-shadow:0_0_0_2px_var(--panel)]",
+  ].join(" "),
+} as const;

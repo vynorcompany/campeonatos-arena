@@ -1,3 +1,4 @@
+import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
@@ -161,9 +162,9 @@ test("ranking configuration executes advisory locks and keeps General controls a
   assert.match(ensureGeneralRankingAvailable, /\$executeRaw/);
   assert.doesNotMatch(ensureGeneralRankingAvailable, /\$queryRaw/);
   assert.match(form, /ranking-general-control/);
-  assert.match(styles, /\.ranking-general-control\s*\{/);
-  assert.match(styles, /\.ranking-general-control input\s*\{[\s\S]*width:\s*18px/);
-  assert.match(styles, /\.ranking-general-control-copy\s*\{[\s\S]*gap:\s*4px/);
+  assert.ok(utilityClasses("ranking-general-control").length);
+  assert.match(styleRules("ranking-general-control", {"context":"input"}), /width:\s*18px/);
+  assert.match(styleRules("ranking-general-control-copy"), /gap:\s*4px/);
 });
 
 test("ranking format changes are rejected after a category competition starts", () => {

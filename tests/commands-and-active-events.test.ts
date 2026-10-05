@@ -1,3 +1,4 @@
+import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
 
@@ -38,11 +39,11 @@ test("sidebar parent sections navigate while their chevrons expand submenus", ()
   assert.match(navigation, /const activeExpandableItems/);
   assert.match(navigation, /const isOpen = openItems\.has\(item\.href\)/);
   assert.match(navigation, /\}, \[pathname\]\);/);
-  assert.match(styles, /\.sidebar,\s*\.agency-sidebar\s*\{[\s\S]*?background-color: #0a2955 !important/);
+  assert.match(styleRules("sidebar"), /background-color: #0a2955 !important/);
   assert.match(styles, /linear-gradient\(150deg, #103e77, #0a2955 72%\) !important/);
-  assert.match(styles, /\.app-shell \.nav-link-active \{[^}]*#0868e5/);
+  assert.match(styleRules("app-shell", {"context":".nav-link-active"}), /#0868e5/);
   assert.doesNotMatch(styles, /background: linear-gradient\(180deg, #061d46 0%, #062b63 48%, #073777 100%\)/);
-  assert.match(shell, /<aside className="sidebar" aria-label="Menu lateral">/);
+  assert.match(shell, /<aside (?:className="sidebar"|className=\{(?:cx\()?viewStyles\.sidebar(?:\))?\}) aria-label="Menu lateral">/);
 });
 
 test("comandas use a compact date trigger and a floating calendar modal", () => {

@@ -1,3 +1,4 @@
+import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { TournamentForm } from "@/components/forms/tournament-form";
 import { SectionCard } from "@/components/section-card";
@@ -17,17 +18,17 @@ export default async function NewTournamentPage() {
   });
 
   return (
-    <div className="stack-md">
-      <header className="page-header">
-        <div className="stack-xs">
-          <p className="eyebrow">Torneios</p>
+    <div className={viewStyles.stack_md}>
+      <header className={viewStyles.page_header}>
+        <div className={viewStyles.stack_xs}>
+          <p className={viewStyles.eyebrow}>Torneios</p>
           <h1>Novo evento</h1>
-          <p className="muted">
+          <p className={viewStyles.muted}>
             Cadastre os dados gerais agora. Categorias, formatos e rankings são
             configurados dentro do evento.
           </p>
         </div>
-        <Link href="/torneios" className="button">
+        <Link href="/torneios" className={viewStyles.button}>
           Voltar
         </Link>
       </header>

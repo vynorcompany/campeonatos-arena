@@ -1,0 +1,33 @@
+/** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
+export const viewStyles = {
+  "workspace_switcher": [
+    "workspace-switcher", "tw:grid", "tw:grid-cols-[minmax(0,_1fr)]", "tw:gap-y-[8px]",
+    "tw:gap-x-[8px]", "tw:[align-items:end]", "tw:pt-[10px]", "tw:pr-[10px]",
+    "tw:pb-[10px]", "tw:pl-[10px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]",
+    "tw:border-t-[color:rgba(255,_255,_255,_0.14)]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:rgba(255,_255,_255,_0.14)]",
+    "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:rgba(255,_255,_255,_0.14)]", "tw:border-l-[length:1px]",
+    "tw:[border-left-style:solid]", "tw:border-l-[color:rgba(255,_255,_255,_0.14)]", "tw:rounded-[10px]", "tw:bg-[color:transparent]",
+    "tw:[background-image:linear-gradient(180deg,_rgba(255,_255,_255,_0.12)_0%,_rgba(255,_255,_255,_0.08)_100%)]", "tw:[box-shadow:0_10px_24px_rgba(9,_28,_53,_0.18)]", "tw:[&_select]:w-[100%]", "tw:[&_select]:min-w-[0]",
+    "tw:[&_select]:h-[38px]", "tw:[&_select]:pt-[0]", "tw:[&_select]:pr-[34px]", "tw:[&_select]:pb-[0]",
+    "tw:[&_select]:pl-[12px]", "tw:[&_select]:border-t-[length:1px]", "tw:[&_select]:[border-top-style:solid]", "tw:[&_select]:border-t-[color:rgba(255,_255,_255,_0.16)]",
+    "tw:[&_select]:border-r-[length:1px]", "tw:[&_select]:[border-right-style:solid]", "tw:[&_select]:border-r-[color:rgba(255,_255,_255,_0.16)]", "tw:[&_select]:border-b-[length:1px]",
+    "tw:[&_select]:[border-bottom-style:solid]", "tw:[&_select]:border-b-[color:rgba(255,_255,_255,_0.16)]", "tw:[&_select]:border-l-[length:1px]", "tw:[&_select]:[border-left-style:solid]",
+    "tw:[&_select]:border-l-[color:rgba(255,_255,_255,_0.16)]", "tw:[&_select]:rounded-[8px]", "tw:[&_select]:bg-[color:rgba(255,_255,_255,_0.1)]", "tw:[&_select]:[background-image:linear-gradient(45deg,_transparent_50%,_rgba(255,_255,_255,_0.88)_50%)_calc(100%_-_16px)_15px_/_6px_6px_no-repeat,_linear-gradient(135deg,_rgba(255,_255,_255,_0.88)_50%,_transparent_50%)_calc(100%_-_12px)_15px_/_6px_6px_no-repeat]",
+    "tw:[&_select]:text-[color:#ffffff]", "tw:[&_select]:text-[0.86rem]", "tw:[&_select]:font-[700]", "tw:[&_select]:[appearance:none]",
+    "tw:[&_select]:[outline:none]", "tw:[&_select]:cursor-pointer", "tw:[&_select:focus-visible]:border-t-[color:rgba(255,_255,_255,_0.42)]", "tw:[&_select:focus-visible]:border-r-[color:rgba(255,_255,_255,_0.42)]",
+    "tw:[&_select:focus-visible]:border-b-[color:rgba(255,_255,_255,_0.42)]", "tw:[&_select:focus-visible]:border-l-[color:rgba(255,_255,_255,_0.42)]", "tw:[&_select:focus-visible]:[box-shadow:0_0_0_3px_rgba(255,_255,_255,_0.14)]", "tw:[&_option]:text-[color:#17202c]",
+    "tw:[&_option]:bg-[color:#ffffff]", "tw:[&_option]:[background-image:none]", "tw:[&_button]:hidden", "tw:[&_button]:place-items-center",
+    "tw:[&_button]:w-[38px]", "tw:[&_button]:h-[38px]", "tw:[&_button]:border-t-[length:1px]", "tw:[&_button]:[border-top-style:solid]",
+    "tw:[&_button]:border-t-[color:rgba(255,_255,_255,_0.18)]", "tw:[&_button]:border-r-[length:1px]", "tw:[&_button]:[border-right-style:solid]", "tw:[&_button]:border-r-[color:rgba(255,_255,_255,_0.18)]",
+    "tw:[&_button]:border-b-[length:1px]", "tw:[&_button]:[border-bottom-style:solid]", "tw:[&_button]:border-b-[color:rgba(255,_255,_255,_0.18)]", "tw:[&_button]:border-l-[length:1px]",
+    "tw:[&_button]:[border-left-style:solid]", "tw:[&_button]:border-l-[color:rgba(255,_255,_255,_0.18)]", "tw:[&_button]:rounded-[var(--radius-control)]", "tw:[&_button]:bg-[color:rgba(255,_255,_255,_0.18)]",
+    "tw:[&_button]:[background-image:none]", "tw:[&_button]:text-[color:#ffffff]", "tw:[&_button]:[box-shadow:0_10px_18px_rgba(9,_28,_53,_0.18)]", "tw:[&_button]:[transition:transform_160ms_var(--ease-standard),_background_160ms_var(--ease-standard),_border-color_160ms_var(--ease-standard),_box-shadow_160ms_var(--ease-standard)]",
+    "tw:[&_button:hover]:border-t-[color:rgba(255,_255,_255,_0.28)]", "tw:[&_button:hover]:border-r-[color:rgba(255,_255,_255,_0.28)]", "tw:[&_button:hover]:border-b-[color:rgba(255,_255,_255,_0.28)]", "tw:[&_button:hover]:border-l-[color:rgba(255,_255,_255,_0.28)]",
+    "tw:[&_button:hover]:bg-[color:rgba(255,_255,_255,_0.24)]", "tw:[&_button:hover]:[background-image:none]", "tw:[&_button:hover]:[box-shadow:0_12px_20px_rgba(9,_28,_53,_0.22)]", "tw:[&_button:hover]:[transform:translateY(-1px)]",
+  ].join(" "),
+  "workspace_switcher_label": [
+    "workspace-switcher-label", "tw:[grid-column:1_/_-1]", "tw:mt-[0]", "tw:mr-[0]",
+    "tw:mb-[0]", "tw:ml-[0]", "tw:text-[color:rgba(255,_255,_255,_0.76)]", "tw:text-[0.68rem]",
+    "tw:font-[700]", "tw:tracking-[0.1em]", "tw:uppercase",
+  ].join(" "),
+} as const;

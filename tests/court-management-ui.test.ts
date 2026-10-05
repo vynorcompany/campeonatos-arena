@@ -1,6 +1,7 @@
+import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
+
 import { resolve } from "node:path";
 
 const read = (file: string) => readFileSync(resolve(process.cwd(), file), "utf8");

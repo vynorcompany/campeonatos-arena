@@ -1,3 +1,5 @@
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./page.utilities";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard } from "@/components/section-card";
@@ -48,22 +50,22 @@ export default async function SupportPage() {
   });
 
   return (
-    <div className="stack-md">
-      <header className="page-header">
-        <div className="stack-xs">
-          <p className="eyebrow">Suporte</p>
+    <div className={viewStyles.stack_md}>
+      <header className={viewStyles.page_header}>
+        <div className={viewStyles.stack_xs}>
+          <p className={viewStyles.eyebrow}>Suporte</p>
           <h1>Suporte e ajuda</h1>
-          <p className="muted">Abra chamados para reportar erros, pedir ajustes ou falar com a equipe de suporte.</p>
+          <p className={viewStyles.muted}>Abra chamados para reportar erros, pedir ajustes ou falar com a equipe de suporte.</p>
         </div>
       </header>
 
       <SectionCard title="Abrir ticket" description="Descreva o que aconteceu e informe a prioridade para a equipe de CS priorizar corretamente.">
-        <SafeActionForm action={createSupportTicketAction} className="grid-form" resetOnSuccess successMessage="Ticket enviado ao suporte.">
-          <div className="field">
+        <SafeActionForm action={createSupportTicketAction} className={viewStyles.grid_form} resetOnSuccess successMessage="Ticket enviado ao suporte.">
+          <div className={viewStyles.field}>
             <label htmlFor="ticket-title">Título</label>
             <input id="ticket-title" name="title" type="text" placeholder="Ex.: erro ao salvar jogo" required />
           </div>
-          <div className="field">
+          <div className={viewStyles.field}>
             <label htmlFor="ticket-category">Categoria</label>
             <select id="ticket-category" name="category" defaultValue="BUG">
               <option value="BUG">Erro</option>
@@ -73,7 +75,7 @@ export default async function SupportPage() {
               <option value="OTHER">Outro</option>
             </select>
           </div>
-          <div className="field">
+          <div className={viewStyles.field}>
             <label htmlFor="ticket-priority">Prioridade</label>
             <select id="ticket-priority" name="priority" defaultValue="MEDIUM">
               <option value="LOW">Baixa</option>
@@ -82,36 +84,36 @@ export default async function SupportPage() {
               <option value="URGENT">Urgente</option>
             </select>
           </div>
-          <div className="field form-full">
+          <div className={viewStyles.field_form_full}>
             <label htmlFor="ticket-description">Descrição</label>
             <textarea id="ticket-description" name="description" rows={5} placeholder="Explique o que você tentou fazer, o que aconteceu e o que esperava que acontecesse." required />
           </div>
-          <div className="field field-submit">
-            <SubmitButton label="Enviar ticket" pendingLabel="Enviando..." className="button button-primary" />
+          <div className={viewStyles.field_field_submit}>
+            <SubmitButton label="Enviar ticket" pendingLabel="Enviando..." className={viewStyles.button_button_primary} />
           </div>
         </SafeActionForm>
       </SectionCard>
 
       <SectionCard title="Meus tickets" description="Acompanhe o status dos chamados abertos por esta arena.">
-        <div className="support-ticket-list">
+        <div className={viewStyles.support_ticket_list}>
           {tickets.map((ticket) => (
-            <article key={ticket.id} className="support-ticket-card">
+            <article key={ticket.id} className={viewStyles.support_ticket_card}>
               <div>
-                <span className={`ticket-status ticket-status-${ticket.status.toLowerCase()}`}>{statusLabels[ticket.status] ?? ticket.status}</span>
+                <span className={cx(`${viewStyles.ticket_status} ticket-status-${ticket.status.toLowerCase()}`)}>{statusLabels[ticket.status] ?? ticket.status}</span>
                 <h3>{ticket.title}</h3>
-                <p className="muted">{ticket.code} · {categoryLabels[ticket.category] ?? ticket.category} · Prioridade {priorityLabels[ticket.priority] ?? ticket.priority}</p>
-                <p className="table-subtext">
+                <p className={viewStyles.muted}>{ticket.code} · {categoryLabels[ticket.category] ?? ticket.category} · Prioridade {priorityLabels[ticket.priority] ?? ticket.priority}</p>
+                <p className={viewStyles.table_subtext}>
                   {ticket.messages[0]?.body ?? ticket.description}
                 </p>
               </div>
-              <div className="support-ticket-meta">
+              <div className={viewStyles.support_ticket_meta}>
                 <span>Solicitante: {ticket.requester.name}</span>
                 <span>Responsável: {ticket.assignee?.name ?? "Aguardando CS"}</span>
                 <span>Atualizado em {ticket.updatedAt.toLocaleDateString("pt-BR")}</span>
               </div>
             </article>
           ))}
-          {!tickets.length ? <p className="muted">Nenhum ticket aberto ainda.</p> : null}
+          {!tickets.length ? <p className={viewStyles.muted}>Nenhum ticket aberto ainda.</p> : null}
         </div>
       </SectionCard>
     </div>

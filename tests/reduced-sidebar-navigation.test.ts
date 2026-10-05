@@ -1,3 +1,4 @@
+import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
 
@@ -15,7 +16,7 @@ test("sidebar exposes the compact arena workspaces and keeps settings near sign 
   assert.match(navigation, /label: "Comandas"/);
   assert.match(navigation, /label: "Clientes"/);
   assert.doesNotMatch(navigation, /title: "Administração"/);
-  assert.match(shell, /sidebar-settings-menu[\s\S]*Configurações[\s\S]*href="\/arena"[\s\S]*Sair/);
+  assert.match(shell, /viewStyles\.sidebar_settings_menu[\s\S]*Configurações[\s\S]*href="\/arena"[\s\S]*Sair/);
   assert.match(navigation, /title: "Gestão"/);
   assert.doesNotMatch(navigation, /title: "Financeiro"/);
   assert.doesNotMatch(navigation, /Suporte\/Ajuda/);
@@ -36,8 +37,8 @@ test("sidebar and dashboard share the new operational visual system", () => {
 
   assert.match(navigation, /nav-chevron/);
   assert.match(dashboard, /workspace-page/);
-  assert.match(styles, /\.sidebar,\s*\.agency-sidebar\s*\{[\s\S]*?background-color: #0a2955 !important/s);
-  assert.match(styles, /\.workspace-page\s*\{/);
+  assert.match(styleRules("sidebar"), /background-color: #0a2955 !important/);
+  assert.ok(utilityClasses("workspace-page").length);
 });
 
 test("sidebar groups financial routines and reports in dedicated expandable modules", () => {

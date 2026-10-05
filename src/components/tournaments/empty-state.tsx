@@ -1,3 +1,4 @@
+import { viewStyles } from "./empty-state.utilities";
 import Link from "next/link";
 
 type EmptyStateProps = {
@@ -9,11 +10,11 @@ type EmptyStateProps = {
 
 export function EmptyState({ title, description, ctaLabel, ctaHref }: EmptyStateProps) {
   return (
-    <div className="t-empty-state">
+    <div className={viewStyles.t_empty_state}>
       <strong>{title}</strong>
       <p>{description}</p>
       {ctaLabel && ctaHref ? (
-        <Link href={ctaHref} className="button button-primary">
+        <Link href={ctaHref} className={viewStyles.button_button_primary}>
           {ctaLabel}
         </Link>
       ) : null}

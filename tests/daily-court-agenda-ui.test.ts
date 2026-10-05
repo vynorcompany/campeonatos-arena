@@ -1,5 +1,6 @@
+import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+
 import { resolve } from "node:path";
 import test from "node:test";
 
@@ -14,7 +15,7 @@ test("daily court agenda renders time rows and court columns without mixing in c
   assert.doesNotMatch(page, /href="\/agenda\/configuracao"/);
   assert.match(page, /priceCents/);
   assert.match(page, /daily-court-unavailable/);
-  assert.doesNotMatch(page, /<header className="page-header agenda-header">/);
+  assert.doesNotMatch(page, /<header (?:className="page-header agenda-header"|className=\{(?:cx\()?viewStyles\.page_header_agenda_header(?:\))?\})>/);
 });
 
 test("agenda configuration presents court selection and periods as one operational workspace", () => {

@@ -1,4 +1,6 @@
 "use client";
+import { cx } from "@/lib/ui/classes";
+import { viewStyles } from "./public-super12-create.utilities";
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -49,22 +51,22 @@ export function PublicSuper12Create({ arenaSlug, athletes }: { arenaSlug: string
     setTargetPair(Math.min(pairIndex, Math.max(pairs.length - 1, 0)));
   }
 
-  return <details className="super12-create" onToggle={(event) => { if (event.currentTarget.open) router.refresh(); }}>
+  return <details className={viewStyles.super12_create} onToggle={(event) => { if (event.currentTarget.open) router.refresh(); }}>
     <summary>Criar Super 12</summary>
-    <SafeActionForm action={createSuper12Action} successMessage="Super 12 criado. A rodada já está pronta para começar." className="super12-create-form" resetOnSuccess>
+    <SafeActionForm action={createSuper12Action} successMessage="Super 12 criado. A rodada já está pronta para começar." className={viewStyles.super12_create_form} resetOnSuccess>
       <input type="hidden" name="arenaSlug" value={arenaSlug} />
       <input type="hidden" name="pairs" value={JSON.stringify(pairs.filter((pair) => pair.length > 0))} />
       <label>Nome da rodada<input name="name" required minLength={3} placeholder="Ex.: Super 12 de sexta" /></label>
       <label>Formato<select name="format" value={format} onChange={(event) => setFormat(event.target.value as "ROUND_ROBIN" | "GROUPS")}><option value="ROUND_ROBIN">Todos contra todos</option><option value="GROUPS">Grupos + mata-mata</option></select></label>
       {format === "GROUPS" ? <><input type="hidden" name="groupCount" value={groupCount} /><label>Quantidade de grupos<input value={groupCount} readOnly aria-label="Quantidade de grupos definida pelo formato" /></label></> : <input type="hidden" name="groupCount" value="1" />}
       {format === "GROUPS" ? <label className="super12-knockout-rule">Classificação para o mata-mata<select name="knockoutQualification" value={qualification} onChange={(event) => setQualification(event.target.value as "TOP_TWO" | "TOP_TWO_PLUS_BEST_THIRDS")}><option value="TOP_TWO">4 grupos · os 2 primeiros de cada grupo</option><option value="TOP_TWO_PLUS_BEST_THIRDS">3 grupos · 2 primeiros + 2 melhores terceiros</option></select></label> : <input type="hidden" name="knockoutQualification" value="TOP_TWO" />}
-      <section className="super12-selector">
-        <header><div><strong>Monte as duplas</strong><span>{selectedIds.length}/24 atletas · {pairCount} dupla{pairCount === 1 ? "" : "s"} completa{pairCount === 1 ? "" : "s"}</span></div><button type="button" className="button button-small" onClick={addPair} disabled={pairs.length >= 12}>Nova dupla</button></header>
+      <section className={viewStyles.super12_selector}>
+        <header><div><strong>Monte as duplas</strong><span>{selectedIds.length}/24 atletas · {pairCount} dupla{pairCount === 1 ? "" : "s"} completa{pairCount === 1 ? "" : "s"}</span></div><button type="button" className={viewStyles.button_button_small} onClick={addPair} disabled={pairs.length >= 12}>Nova dupla</button></header>
         <p>Escolha a dupla antes de buscar os atletas. Cada dupla deve ter duas pessoas para a rodada ser criada.</p>
-        <label className="super12-player-search">Buscar atleta para a dupla selecionada<input value={search} onFocus={() => router.refresh()} onChange={(event) => setSearch(event.target.value)} placeholder="Digite o nome do atleta" autoComplete="off" />{available.length ? <div role="listbox">{available.map((athlete) => <button type="button" key={athlete.id} onClick={() => addAthlete(athlete.id)}><span>{athlete.photoUrl ? <img src={athlete.photoUrl} alt="" /> : athlete.name.slice(0, 2).toUpperCase()}</span>{athlete.name}<small>Adicionar</small></button>)}</div> : null}</label>
-        <div className="super12-pairs">{pairs.map((pair, pairIndex) => <section className={pairIndex === targetPair ? "is-target" : ""} key={`pair-${pairIndex}`}><button type="button" className="super12-pair-heading" onClick={() => setTargetPair(pairIndex)}><span>Dupla {pairIndex + 1}</span><small>{pair.length}/2 atletas</small></button><div>{[0, 1].map((slot) => { const athlete = pair[slot] ? athletes.find((item) => item.id === pair[slot]) : null; return athlete ? <button type="button" key={athlete.id} className="super12-pair-athlete" onClick={() => removeAthlete(pairIndex, athlete.id)} title="Remover da dupla"><span>{athlete.photoUrl ? <img src={athlete.photoUrl} alt="" /> : athlete.name.slice(0, 2).toUpperCase()}</span><b>{athlete.name}</b><small>Remover</small></button> : <button type="button" className="super12-pair-slot" key={`slot-${slot}`} onClick={() => setTargetPair(pairIndex)}>Adicionar atleta</button>; })}</div></section>)}</div>
+        <label className={viewStyles.super12_player_search}>Buscar atleta para a dupla selecionada<input value={search} onFocus={() => router.refresh()} onChange={(event) => setSearch(event.target.value)} placeholder="Digite o nome do atleta" autoComplete="off" />{available.length ? <div role="listbox">{available.map((athlete) => <button type="button" key={athlete.id} onClick={() => addAthlete(athlete.id)}><span>{athlete.photoUrl ? <img src={athlete.photoUrl} alt="" /> : athlete.name.slice(0, 2).toUpperCase()}</span>{athlete.name}<small>Adicionar</small></button>)}</div> : null}</label>
+        <div className="super12-pairs">{pairs.map((pair, pairIndex) => <section className={cx(pairIndex === targetPair ? "is-target" : "")} key={`pair-${pairIndex}`}><button type="button" className="super12-pair-heading" onClick={() => setTargetPair(pairIndex)}><span>Dupla {pairIndex + 1}</span><small>{pair.length}/2 atletas</small></button><div>{[0, 1].map((slot) => { const athlete = pair[slot] ? athletes.find((item) => item.id === pair[slot]) : null; return athlete ? <button type="button" key={athlete.id} className="super12-pair-athlete" onClick={() => removeAthlete(pairIndex, athlete.id)} title="Remover da dupla"><span>{athlete.photoUrl ? <img src={athlete.photoUrl} alt="" /> : athlete.name.slice(0, 2).toUpperCase()}</span><b>{athlete.name}</b><small>Remover</small></button> : <button type="button" className="super12-pair-slot" key={`slot-${slot}`} onClick={() => setTargetPair(pairIndex)}>Adicionar atleta</button>; })}</div></section>)}</div>
       </section>
-      <div className="super12-create-actions"><SubmitButton label="Montar jogos" pendingLabel="Montando rodada..." className="button button-primary" /><small>Os resultados desta rodada não entram no ranking ou no histórico da Liga.</small></div>
+      <div className={viewStyles.super12_create_actions}><SubmitButton label="Montar jogos" pendingLabel="Montando rodada..." className={viewStyles.button_button_primary} /><small>Os resultados desta rodada não entram no ranking ou no histórico da Liga.</small></div>
     </SafeActionForm>
   </details>;
 }

@@ -1,4 +1,5 @@
 "use client";
+import { viewStyles } from "./new-command-modal.utilities";
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
@@ -32,12 +33,12 @@ export function NewCommandModal({ players, closeHref, action }: { players: Playe
     });
   }
 
-  return <div className="commands-new-modal-backdrop" role="presentation" onMouseDown={() => !isPending && router.push(closeHref)}>
-    <section className="commands-new-modal" role="dialog" aria-modal="true" aria-labelledby="commands-new-modal-title" onMouseDown={(event) => event.stopPropagation()}>
-      <header><div><span>NOVA COMANDA</span><h2 id="commands-new-modal-title">Selecione o cliente</h2><p>A comanda será aberta ao selecionar um cliente.</p></div><button type="button" className="commands-modal-close" onClick={() => router.push(closeHref)} disabled={isPending} aria-label="Fechar">×</button></header>
-      <label className="field">Buscar cliente<input value={query} onChange={(event) => setQuery(event.currentTarget.value)} disabled={isPending} autoFocus placeholder="Digite o nome do cliente" /></label>
-      <div className="commands-client-results" role="listbox" aria-label="Clientes encontrados">{matchingPlayers.map((player) => <button key={player.id} type="button" onClick={() => selectClient(player.id)} disabled={isPending}><strong>{player.name}</strong><span>Selecionar cliente</span></button>)}{query.trim() && !matchingPlayers.length ? <p>Nenhum cliente encontrado.</p> : null}</div>
-      {error ? <p className="form-error" role="alert">{error}</p> : null}
+  return <div className={viewStyles.commands_new_modal_backdrop} role="presentation" onMouseDown={() => !isPending && router.push(closeHref)}>
+    <section className={viewStyles.commands_new_modal} role="dialog" aria-modal="true" aria-labelledby="commands-new-modal-title" onMouseDown={(event) => event.stopPropagation()}>
+      <header><div><span>NOVA COMANDA</span><h2 id="commands-new-modal-title">Selecione o cliente</h2><p>A comanda será aberta ao selecionar um cliente.</p></div><button type="button" className={viewStyles.commands_modal_close} onClick={() => router.push(closeHref)} disabled={isPending} aria-label="Fechar">×</button></header>
+      <label className={viewStyles.field}>Buscar cliente<input value={query} onChange={(event) => setQuery(event.currentTarget.value)} disabled={isPending} autoFocus placeholder="Digite o nome do cliente" /></label>
+      <div className={viewStyles.commands_client_results} role="listbox" aria-label="Clientes encontrados">{matchingPlayers.map((player) => <button key={player.id} type="button" onClick={() => selectClient(player.id)} disabled={isPending}><strong>{player.name}</strong><span>Selecionar cliente</span></button>)}{query.trim() && !matchingPlayers.length ? <p>Nenhum cliente encontrado.</p> : null}</div>
+      {error ? <p className={viewStyles.form_error} role="alert">{error}</p> : null}
     </section>
   </div>;
 }
