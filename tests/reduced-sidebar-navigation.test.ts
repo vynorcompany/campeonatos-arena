@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { resolve } from "node:path";
 import test from "node:test";
 
-test("sidebar exposes the compact arena workspaces and keeps settings near sign out", () => {
+test("sidebar exposes compact workspaces, a top user menu and separate settings", () => {
   const navigation = readFileSync(resolve(process.cwd(), "src/components/layout/nav-links.tsx"), "utf8");
   const shell = readFileSync(resolve(process.cwd(), "src/components/layout/app-shell.tsx"), "utf8");
   assert.match(navigation, /label: "Dashboard"/);
@@ -16,7 +16,11 @@ test("sidebar exposes the compact arena workspaces and keeps settings near sign 
   assert.match(navigation, /label: "Comandas"/);
   assert.match(navigation, /label: "Clientes"/);
   assert.doesNotMatch(navigation, /title: "Administração"/);
-  assert.match(shell, /viewStyles\.sidebar_settings_menu[\s\S]*Configurações[\s\S]*href="\/arena"[\s\S]*Sair/);
+  assert.match(shell, /<SidebarUserMenu[\s\S]*<WorkspaceSwitcher[\s\S]*<NavLinks/);
+  assert.match(shell, /viewStyles\.sidebar_settings_menu[\s\S]*href="\/arena"/);
+  assert.doesNotMatch(shell, /sidebar_user_sidebar_user_panel|form action=\{logoutAction\}/);
+  const userMenu = readFileSync(resolve(process.cwd(), "src/components/layout/sidebar-user-menu.tsx"), "utf8");
+  assert.match(userMenu, /SidebarPopover[\s\S]*form action=\{logoutAction\}[\s\S]*Sair/);
   assert.match(navigation, /title: "Gestão"/);
   assert.doesNotMatch(navigation, /title: "Financeiro"/);
   assert.doesNotMatch(navigation, /Suporte\/Ajuda/);
@@ -26,7 +30,7 @@ test("settings menu exposes only the consolidated configuration entry", () => {
   const shell = readFileSync(resolve(process.cwd(), "src/components/layout/app-shell.tsx"), "utf8");
 
   assert.match(shell, /sidebar-settings-menu/);
-  assert.match(shell, /href="\/arena"[^>]*>Configurações/);
+  assert.match(shell, /href="\/arena"[^>]*>[\s\S]*?Configurações<\/Link>/);
   assert.doesNotMatch(shell, /Configuração de quadras/);
 });
 

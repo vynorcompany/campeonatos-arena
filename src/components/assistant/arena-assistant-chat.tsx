@@ -2,7 +2,7 @@
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./arena-assistant-chat.utilities";
 
-import { FormEvent, useState, useTransition } from "react";
+import { FormEvent, useEffect, useRef, useState, useTransition } from "react";
 import { runArenaAssistantCommandAction } from "@/lib/actions/arena-assistant";
 
 type ChatMessage = { id: string; role: string; content: string; createdAt: string };
@@ -12,6 +12,8 @@ export function ArenaAssistantChat({ initialMessages }: { initialMessages: ChatM
   const [value, setValue] = useState("");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
+  const messageList = useRef<HTMLDivElement>(null);
+  useEffect(() => { const list = messageList.current; if (list) list.scrollTop = list.scrollHeight; }, [messages.length]);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -34,7 +36,7 @@ export function ArenaAssistantChat({ initialMessages }: { initialMessages: ChatM
   }
 
   return <section className={viewStyles.assistant_chat} aria-label="Conversa com o Assistente da Arena">
-    <div className={viewStyles.assistant_chat_messages}>
+    <div ref={messageList} className={viewStyles.assistant_chat_messages} role="log" aria-live="polite" aria-label="Mensagens do assistente">
       {messages.length ? messages.map((message) => <article className={cx(`${viewStyles.assistant_message} assistant-message-${message.role.toLowerCase()}`)} key={message.id}>
         <span>{message.role === "USER" ? "Você" : "Assistente da Arena"}</span>
         <p>{message.content}</p>
@@ -43,7 +45,7 @@ export function ArenaAssistantChat({ initialMessages }: { initialMessages: ChatM
     <form className={viewStyles.assistant_chat_form} onSubmit={submit}>
       <label htmlFor="assistant-command">O que você precisa?</label>
       <div>
-        <input id="assistant-command" value={value} onChange={(event) => setValue(event.target.value)} placeholder="Ex.: Crie uma fatura no valor de 560,00 para o cliente Alexandre com a data de hoje." disabled={isPending} />
+        <textarea id="assistant-command" rows={2} value={value} onChange={(event) => setValue(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} placeholder="Digite sua solicitação para a arena…" disabled={isPending} />
         <button className={viewStyles.button_button_primary} type="submit" disabled={isPending}>{isPending ? "Processando..." : "Enviar"}</button>
       </div>
       {error ? <p className={viewStyles.form_error} role="alert">{error}</p> : null}

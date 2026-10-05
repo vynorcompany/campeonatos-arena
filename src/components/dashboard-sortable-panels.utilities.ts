@@ -1,11 +1,6 @@
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
-  "dashboard_grid_dashboard_chart_grid_dashboard_sortable_grid": [
-    "dashboard-grid", "dashboard-chart-grid", "dashboard-sortable-grid", "tw:grid",
-    "tw:gap-y-[18px]", "tw:gap-x-[18px]", "tw:grid-cols-[repeat(3,_minmax(0,_1fr))]", "tw:viewport-900:grid-cols-[repeat(2,_minmax(0,_1fr))]",
-    "tw:viewport-620:grid-cols-[1fr]", "tw:[&_>_*:nth-child(1)]:[animation-delay:40ms]", "tw:[&_>_*:nth-child(2)]:[animation-delay:100ms]", "tw:[&_>_*:nth-child(3)]:[animation-delay:160ms]",
-    "tw:[&_>_*:nth-child(4)]:[animation-delay:220ms]", "tw:[align-items:start]", "tw:[grid-auto-flow:row_dense]",
-  ].join(" "),
+  "dashboard_grid_dashboard_chart_grid_dashboard_sortable_grid": "dashboard-grid dashboard-chart-grid dashboard-sortable-grid tw:grid tw:min-w-0 tw:grid-cols-3 tw:items-start tw:gap-3 tw:viewport-1180:grid-cols-2 tw:viewport-760:grid-cols-1",
   "dashboard_sortable_panel": [
     "dashboard-sortable-panel", "tw:relative", "tw:min-w-[0]", "tw:[align-self:start]",
     "tw:[&_>_.section-card]:h-[auto]", "tw:[&_>_.section-card]:min-h-[inherit]", "tw:[&.is-dragging]:opacity-[.45]", "tw:[&:hover_.dashboard-drag-handle]:text-[color:var(--brand)]",

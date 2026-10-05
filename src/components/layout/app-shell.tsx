@@ -1,7 +1,7 @@
 import { viewStyles } from "./app-shell.utilities";
 import Image from "next/image";
 import Link from "next/link";
-import { logoutAction } from "@/lib/auth/actions";
+import { SidebarUserMenu } from "./sidebar-user-menu";
 import type { ArenaMembership } from "@/types/auth";
 import { NavLinks } from "@/components/layout/nav-links";
 import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher";
@@ -63,6 +63,7 @@ export function AppShell({
               <ArenaNotificationBell notifications={notifications} />
             </div>
 
+            <SidebarUserMenu userName={userName} userRole={userRole} />
             <WorkspaceSwitcher
               activeArenaId={activeArenaId}
               memberships={memberships}
@@ -73,19 +74,7 @@ export function AppShell({
             <NavLinks key={activeArenaId} canManageUsers={canManageUsers} visibleModules={visibleModules} whatsappUnreadCount={whatsappUnreadCount} />
           </div>
 
-          <div className={viewStyles.sidebar_user_sidebar_user_panel}>
-            <div className={viewStyles.user_copy}>
-              <p className={viewStyles.user_name}>{userName}</p>
-              <p className={viewStyles.muted}>{userRole}</p>
-            </div>
-
-            {visibleModules.includes("arena") || visibleModules.includes("calendar") ? <nav className={viewStyles.sidebar_settings_menu} aria-label="Configurações"><Link href="/arena" className={viewStyles.sidebar_settings_link}>Configurações</Link></nav> : null}
-            <form action={logoutAction}>
-              <button className={viewStyles.button_button_secondary} type="submit">
-                Sair
-              </button>
-            </form>
-          </div>
+          {visibleModules.includes("arena") || visibleModules.includes("calendar") ? <nav className={viewStyles.sidebar_settings_menu} aria-label="Configurações"><Link href="/arena" className={viewStyles.sidebar_settings_link}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="m9 3-1 3-3 1v3l-2 2 2 2v3l3 1 1 3h6l1-3 3-1v-3l2-2-2-2V7l-3-1-1-3Z" /><circle cx="12" cy="12" r="3" /></svg>Configurações</Link></nav> : null}
         </div>
       </aside>
 

@@ -11,7 +11,7 @@ test("arena settings includes the complete court configuration as a dedicated se
 
   assert.match(arenaPage, /Quadras/);
   assert.match(arenaPage, /CourtConfigurationWorkspace/);
-  assert.match(navigation, /href="\/arena"[^>]*>Configurações/);
+  assert.match(navigation, /href="\/arena"[^>]*>[\s\S]*?Configurações<\/Link>/);
 });
 
 test("athlete portal uses the arena logo as branding and reserves the circular avatar for the athlete", () => {

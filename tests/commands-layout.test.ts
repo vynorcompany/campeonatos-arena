@@ -5,14 +5,14 @@ import assert from "node:assert/strict";
 import { resolve } from "node:path";
 import test from "node:test";
 
-test("commands centers the date picker and keeps search in the right toolbar", () => {
+test("commands keeps date, search and actions in a wrapping toolbar", () => {
   const page = readFileSync(resolve(process.cwd(), "src/app/(app)/comandas/page.tsx"), "utf8");
   const card = readFileSync(resolve(process.cwd(), "src/components/comandas/command-card.tsx"), "utf8");
   const css = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
 
   assert.match(page, /commands-toolbar-right/);
   assert.match(styleRules("commands-date-trigger"), /grid-column: auto/);
-  assert.match(styleRules("commands-toolbar-right"), /grid-column: auto/);
+  assert.match(styleRules("commands-toolbar-right"), /flex-wrap: wrap/);
   assert.ok(utilityClasses("content-shell").length, "content-shell has component Tailwind utilities");
   assert.match(styleRules("commands-list-items"), /grid-template-columns/);
   assert.match(styleRules("command-card"), /min-height/);
@@ -45,7 +45,7 @@ test("commands use compact controls and vector icons in the daily workspace", ()
   assert.match(page, /commands-icon/);
   assert.match(page, /M8 14h\.01M12 14h\.01M16 14h\.01/);
   assert.match(picker, /commands-icon/);
-  assert.match(styleRules("commands-day-panel"), /min-height: 620px/);
+  assert.doesNotMatch(styleRules("commands-day-panel"), /min-height: (620|500)px/);
   assert.match(styleRules("commands-actions", {"context":".button"}), /min-height: 46px/);
   assert.match(picker, /<svg (?:className="commands-icon"|className=\{(?:cx\()?viewStyles\.commands_icon(?:\))?\})/);
   assert.match(styleRules("commands-date-trigger", {"context":".commands-date-icon"}), /color: #fff/);

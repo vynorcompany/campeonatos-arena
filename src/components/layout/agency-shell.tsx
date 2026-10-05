@@ -1,5 +1,5 @@
 import { viewStyles } from "./agency-shell.utilities";
-import { logoutAction } from "@/lib/auth/actions";
+import { SidebarUserMenu } from "./sidebar-user-menu";
 import { AgencyNavLinks } from "@/components/layout/agency-nav-links";
 import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher";
 import { AgencyBreadcrumb } from "@/components/layout/page-breadcrumb";
@@ -27,6 +27,7 @@ export function AgencyShell({ userName, userRole, activeArenaId, memberships, ch
               </div>
             </div>
 
+            <SidebarUserMenu userName={userName} userRole={userRole} accountHref={null} />
             <WorkspaceSwitcher
               activeArenaId={activeArenaId}
               memberships={memberships}
@@ -37,17 +38,6 @@ export function AgencyShell({ userName, userRole, activeArenaId, memberships, ch
             <AgencyNavLinks />
           </div>
 
-          <div className={viewStyles.sidebar_user}>
-            <div className={viewStyles.user_copy}>
-              <p className={viewStyles.user_name}>{userName}</p>
-              <p className={viewStyles.muted}>{userRole}</p>
-            </div>
-            <form action={logoutAction}>
-              <button className={viewStyles.button_button_secondary} type="submit">
-                Sair
-              </button>
-            </form>
-          </div>
         </div>
       </aside>
       <main className={viewStyles.agency_main}>

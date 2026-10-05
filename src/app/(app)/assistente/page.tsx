@@ -13,6 +13,7 @@ export default async function ArenaAssistantPage() {
 
   return <div className={viewStyles.workspace_page_assistant_page}>
     <nav className={viewStyles.page_breadcrumb} aria-label="Caminho de navegação"><span>Administração</span><i aria-hidden="true">›</i><strong>Assistente</strong></nav>
+    <header className="tw:grid tw:gap-1"><h1 className="tw:m-0 tw:text-2xl tw:font-semibold">Assistente da Arena</h1><p className="tw:m-0 tw:text-sm tw:text-[var(--muted)]">Solicite ações administrativas e acompanhe a conversa.</p></header>
     <ArenaAssistantChat initialMessages={messages} />
   </div>;
 }
