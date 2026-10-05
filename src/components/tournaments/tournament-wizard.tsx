@@ -143,7 +143,7 @@ export function TournamentWizard({ rankings }: { rankings: { id: string; name: s
               />
               <button type="button" className="button" onClick={addCustomCategory}>Adicionar</button>
             </div>
-            <div className="field-inline" style={{ flexWrap: "wrap", gap: "8px" }}>
+            <div className="field-inline tw:[flex-wrap:wrap] tw:[gap:8px]">
               {selectedCategories.map((category) => (
                 <button key={category} type="button" className="button" onClick={() => removeCategory(category)}>
                   {category} ×

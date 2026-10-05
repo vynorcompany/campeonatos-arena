@@ -75,7 +75,7 @@ export default async function PublicRegulationPage(props: { params: Promise<{ sl
         </div>
       </aside>
 
-      <section className="regulation-public-main reveal-up" style={{ animationDelay: "120ms" }}>
+      <section className="regulation-public-main reveal-up tw:[animation-delay:120ms]">
         <header className="regulation-public-hero">
           <div className="stack-xs">
             <p className="eyebrow">Regulamento</p>

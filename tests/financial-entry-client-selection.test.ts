@@ -1,6 +1,7 @@
+import { readFile } from "./helpers/style-source";
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFile } from "node:fs/promises";
+
 
 test("contas a receber fornece clientes cadastrados para o editor de lançamento", async () => {
   const page = await readFile("src/app/(app)/financeiro/contas-a-receber/page.tsx", "utf8");

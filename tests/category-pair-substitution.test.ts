@@ -1,5 +1,6 @@
+import { readFile } from "./helpers/style-source";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+
 import { test } from "node:test";
 
 test("league pairs support audited athlete substitutions without resetting match results", async () => {

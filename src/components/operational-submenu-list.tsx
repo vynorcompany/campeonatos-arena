@@ -1,5 +1,5 @@
 import Link from "next/link";
-import styles from "./operational-submenu-list.module.css";
+import styles from "./operational-submenu-list.styles";
 
 type OperationalSubmenuItem = { label: string; description: string; href: string };
 

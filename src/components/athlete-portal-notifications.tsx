@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { markAllPublicPlayerNotificationsReadAction, markPublicPlayerNotificationReadAction } from "@/lib/actions/public-player-notifications";
 import type { AthletePortalNotification } from "@/lib/services/public-player-notifications";
-import styles from "./athlete-portal-notifications.module.css";
+import styles from "./athlete-portal-notifications.styles";
 
 const iconBySource = { PLAYER: "✦", ARENA: "▣", FINANCE: "R$" };
 

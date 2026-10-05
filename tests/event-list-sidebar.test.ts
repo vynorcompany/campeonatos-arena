@@ -1,6 +1,7 @@
+import { readFile } from "./helpers/style-source";
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFile } from "node:fs/promises";
+
 import path from "node:path";
 
 const workspaceRoot = process.cwd();

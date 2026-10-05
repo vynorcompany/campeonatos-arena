@@ -1,6 +1,6 @@
 import { requireAgencyAccess } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
-import styles from "./page.module.css";
+import styles from "./page.styles";
 
 export default async function AgencyConnectionsPage() {
   await requireAgencyAccess();

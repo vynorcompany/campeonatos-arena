@@ -145,13 +145,13 @@ export function TournamentParticipantsForm(props: TournamentParticipantsFormProp
             {safeFiltered.map((registration) => {
               const paid = registration.paymentStatus === "PAID";
               return (
-                <div key={registration.id} className="simple-item" style={{ alignItems: "flex-start", gap: "0.5rem" }}>
-                  <div className="stack-xs" style={{ width: "100%" }}>
+                <div key={registration.id} className="simple-item tw:[align-items:flex-start] tw:[gap:0.5rem]">
+                  <div className="stack-xs tw:[width:100%]">
                     <strong>{registration.leadName} / {registration.partnerName}</strong>
                     <span className="muted">
                       {registration.categoryName} · {formatCurrency(registration.amountCents)} · {new Date(registration.createdAt).toLocaleString("pt-BR")}
                     </span>
-                    <div className="section-actions" style={{ gap: "0.5rem", flexWrap: "wrap", justifyContent: "flex-start" }}>
+                    <div className="section-actions tw:[gap:0.5rem] tw:[flex-wrap:wrap] tw:[justify-content:flex-start]">
                       <span className={`player-status-pill${paid ? "" : " player-status-pill-inactive"}`}>
                         Pagamento: {getPaymentLabel(registration.paymentStatus)}
                       </span>
@@ -167,7 +167,7 @@ export function TournamentParticipantsForm(props: TournamentParticipantsFormProp
                       </button>
                     </div>
                     {editingRegistrationId === registration.id ? (
-                      <form action={updateAction} className="grid-form" style={{ marginTop: "0.75rem" }}>
+                      <form action={updateAction} className="grid-form tw:[margin-top:0.75rem]">
                         <input type="hidden" name="registrationId" value={registration.id} />
                         <input type="hidden" name="tournamentId" value={tournamentId} />
                         <div className="field">
