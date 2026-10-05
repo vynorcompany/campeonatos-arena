@@ -5,7 +5,8 @@ import vm from "node:vm";
 import test from "node:test";
 import ts from "typescript";
 import { reactionEmojis, readWhatsAppReactions, withWhatsAppReaction } from "../src/lib/whatsapp-message-data";
-import { buildEvolutionTextPayload } from "../src/lib/integrations/evolution";
+import { buildEvolutionTextPayload, evolutionRecipientNumber } from "../src/lib/integrations/evolution";
+import { readEvolutionGroupName } from "../src/lib/integrations/evolution/groups";
 
 const require = createRequire(import.meta.url);
 function load(path: string, mocks: Record<string, unknown>) {
@@ -36,7 +37,8 @@ test("Evolution requests carry quoted messages and native reactions, including g
     require: (name: string) => {
       if (name === "server-only") return {};
       if (name === "@/lib/env") return { env: { evolutionApiUrl: "https://provider.invalid", evolutionApiKey: "fixture" } };
-      if (name === "@/lib/integrations/evolution") return { buildEvolutionTextPayload };
+      if (name === "@/lib/integrations/evolution") return { buildEvolutionTextPayload, evolutionRecipientNumber };
+      if (name === "./groups") return { readEvolutionGroupName };
       if (name === "@/lib/payments/connection-secrets") return { decryptConnectionSecrets: () => ({ token: "" }) };
       if (name === "@/lib/prisma") return { prisma: { whatsAppConnection: { findUnique: async () => ({ status: "CONNECTED", instanceName: "test", encryptedToken: "fixture" }) } } };
       throw new Error(`Unexpected import: ${name}`);

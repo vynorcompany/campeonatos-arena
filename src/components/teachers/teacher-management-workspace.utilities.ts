@@ -33,7 +33,7 @@ export const viewStyles = {
   "teacher_directory": "teacher-directory tw:grid tw:min-w-0 tw:gap-3",
   "teacher_management_toolbar": "teacher-management-toolbar tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-3 tw:[&_h1]:m-0 tw:[&_h1]:text-[1.5rem] tw:[&_h1]:font-semibold",
   "button_button_primary_button_small": sharedUtilities.buttonButtonPrimaryButtonSmall,
-  "teacher_directory_filters": "teacher-directory-filters tw:grid tw:grid-cols-[minmax(0,1fr)_minmax(140px,0.45fr)_minmax(180px,0.55fr)] tw:gap-2 tw:rounded-xl tw:border tw:border-solid tw:border-[var(--line)] tw:bg-white tw:p-3 tw:viewport-1000:grid-cols-2 tw:viewport-620:grid-cols-1 tw:[&_label]:flex tw:[&_label]:min-w-0 tw:[&_label]:items-center tw:[&_label]:gap-2 tw:viewport-1000:[&_label]:col-span-2 tw:viewport-620:[&_label]:col-span-1 tw:[&_input]:min-w-0 tw:[&_input]:w-full tw:[&_select]:min-w-0 tw:[&_select]:w-full",
+  "teacher_directory_filters": "teacher-directory-filters tw:grid tw:grid-cols-[minmax(0,1fr)_minmax(140px,0.45fr)_minmax(180px,0.55fr)] tw:gap-2 tw:viewport-1000:grid-cols-2 tw:viewport-620:grid-cols-1 tw:[&_label]:flex tw:[&_label]:min-w-0 tw:[&_label]:items-center tw:[&_label]:gap-2 tw:viewport-1000:[&_label]:col-span-2 tw:viewport-620:[&_label]:col-span-1 tw:[&_input]:min-w-0 tw:[&_input]:w-full tw:[&_select]:min-w-0 tw:[&_select]:w-full",
   "teacher_directory_list": [
     "teacher-directory-list", "tw:grid", "tw:gap-y-[0]", "tw:gap-x-[0]",
     "tw:[overflow-x:hidden]", "tw:[overflow-y:hidden]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]",

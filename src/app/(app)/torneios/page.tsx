@@ -2,7 +2,6 @@ import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
-import { SectionCard } from "@/components/section-card";
 import { EmptyState } from "@/components/tournaments/empty-state";
 import { StatusBadge } from "@/components/tournaments/status-badge";
 import { deleteTournamentAction } from "@/lib/actions/tournament";
@@ -46,13 +45,12 @@ export default async function TournamentsPage() {
 
   return (
     <div className={viewStyles.stack_md}>
+      <nav className={viewStyles.page_breadcrumb} aria-label="Caminho de navegação"><span>Arena</span><i aria-hidden="true">›</i><strong>Torneios</strong></nav>
       <header className={viewStyles.page_header}>
         <div className={viewStyles.stack_xs}>
-          <p className={viewStyles.eyebrow}>Campeonatos</p>
-          <h1>Eventos e categorias</h1>
+          <h1>Torneios</h1>
           <p className={viewStyles.muted}>
-            Cada evento reúne categorias com formato, duplas, jogos e ranking
-            próprios.
+            Gerencie eventos, categorias, inscrições e resultados.
           </p>
         </div>
         <div className={viewStyles.section_actions}>
@@ -65,10 +63,8 @@ export default async function TournamentsPage() {
         </div>
       </header>
 
-      <SectionCard
-        title="Eventos em operação"
-        description="Abra um evento para seguir a próxima ação de cada categoria."
-      >
+      <section className={viewStyles.event_section} aria-label="Eventos em operação">
+        <h2>Eventos em operação <span>{openEvents.length}</span></h2>
         {openEvents.length ? (
           <div className={viewStyles.t_event_list}>
             {openEvents.map((event) => {
@@ -90,11 +86,12 @@ export default async function TournamentsPage() {
                     </div>
                     {event.categories.length ? (
                       <div className={viewStyles.t_event_categories}>
-                        {event.categories.map((category) => (
+                        {event.categories.slice(0, 3).map((category) => (
                           <span className={viewStyles.t_event_category} key={category.id}>
                             {category.name}
                           </span>
                         ))}
+                        {event.categories.length > 3 ? <span className={viewStyles.t_event_category}>+{event.categories.length - 3} categorias</span> : null}
                       </div>
                     ) : (
                       <p className={viewStyles.t_event_category}>Nenhuma categoria adicionada.</p>
@@ -161,12 +158,10 @@ export default async function TournamentsPage() {
             ctaHref="/torneios/novo"
           />
         )}
-      </SectionCard>
+      </section>
 
-      <SectionCard
-        title="Histórico"
-        description="Eventos marcados como finalizados."
-      >
+      <section className={viewStyles.event_section} aria-label="Histórico de torneios">
+        <h2>Histórico <span>{finishedEvents.length}</span></h2>
         {finishedEvents.length ? (
           <div className={viewStyles.t_event_list_2}>
             {finishedEvents.map((event) => (
@@ -192,9 +187,9 @@ export default async function TournamentsPage() {
             ))}
           </div>
         ) : (
-          <p className={viewStyles.muted}>Nenhum evento finalizado.</p>
+          <p className={viewStyles.empty_history}>Nenhum evento finalizado.</p>
         )}
-      </SectionCard>
+      </section>
     </div>
   );
 }

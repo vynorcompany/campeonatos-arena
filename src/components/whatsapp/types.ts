@@ -42,8 +42,18 @@ export type WhatsAppConversation = {
 export type WhatsAppFilter = "all" | "unread" | "groups" | "favorite" | "archived";
 
 export const formatWhatsAppPhone = (value: string) => {
-  const digits = value.replace(/\D/g, "");
-  return digits.length >= 10 ? `(${digits.slice(-11, -9)}) ${digits.slice(-9, -4)}-${digits.slice(-4)}` : value || "Não informado";
+  let digits = value.replace(/\D/g, "");
+  const international = digits.startsWith("55") && (digits.length === 12 || digits.length === 13);
+  if (value.trim().startsWith("+") && !international) return value;
+  if (international) digits = digits.slice(2);
+  if (digits.length !== 10 && digits.length !== 11) return value || "Não informado";
+  return `${international ? "+55 " : ""}(${digits.slice(0, 2)}) ${digits.slice(2, -4)}-${digits.slice(-4)}`;
 };
+
+export function whatsAppConversationName(conversation: WhatsAppConversation) {
+  if (conversation.remoteJid.endsWith("@g.us")) return conversation.contactName || "Grupo do WhatsApp";
+  const name = conversation.player?.name || conversation.contactName;
+  return name && !/^[+\d\s().-]+$/.test(name) ? name : formatWhatsAppPhone(conversation.contactPhone);
+}
 
 export const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]).join("").toUpperCase() || "WA";

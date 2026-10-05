@@ -26,10 +26,16 @@ export function resolveEvolutionConfig(settings: EvolutionEnvironment): Evolutio
   return { ...config, apiUrl: config.apiUrl.replace(/\/$/, "") };
 }
 
-export function buildEvolutionTextPayload(phone: string, text: string) {
+export function evolutionRecipientNumber(phone: string) {
+  if (phone.endsWith("@g.us")) return phone;
   const digits = phone.replace(/\D/g, "");
   if (digits.length < 10) throw new Error("Telefone inválido para envio pelo WhatsApp.");
-  const number = digits.startsWith("55") ? digits : `55${digits}`;
+  // DDD 55 is a domestic area code when the number has 10 or 11 digits.
+  return !phone.trim().startsWith("+") && !phone.includes("@") && (digits.length === 10 || digits.length === 11) ? `55${digits}` : digits;
+}
+
+export function buildEvolutionTextPayload(phone: string, text: string) {
+  const number = evolutionRecipientNumber(phone);
   const message = text.trim();
   if (!message) throw new Error("Mensagem vazia.");
 

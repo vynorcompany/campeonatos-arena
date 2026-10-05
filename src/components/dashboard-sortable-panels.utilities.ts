@@ -3,8 +3,8 @@ export const viewStyles = {
   "dashboard_grid_dashboard_chart_grid_dashboard_sortable_grid": "dashboard-grid dashboard-chart-grid dashboard-sortable-grid tw:grid tw:min-w-0 tw:grid-cols-3 tw:items-start tw:gap-3 tw:viewport-1180:grid-cols-2 tw:viewport-760:grid-cols-1",
   "dashboard_sortable_panel": [
     "dashboard-sortable-panel", "tw:relative", "tw:min-w-[0]", "tw:[align-self:start]",
-    "tw:[&_>_.section-card]:h-[auto]", "tw:[&_>_.section-card]:min-h-[inherit]", "tw:[&.is-dragging]:opacity-[.45]", "tw:[&:hover_.dashboard-drag-handle]:text-[color:var(--brand)]",
-    "tw:[&:hover_.dashboard-panel-resize-handle]:opacity-[1]", "tw:viewport-900:[grid-column:span_1]!",
+    "tw:[&_>_.card]:h-auto", "tw:[&_>_.card]:min-h-[inherit]", "tw:[&_>_.card]:content-start", "tw:[&_>_.card_>_div:first-child]:pr-12", "tw:[&.is-dragging]:opacity-[.45]", "tw:[&:hover_.dashboard-drag-handle]:text-[color:var(--brand)]",
+    "tw:[&:hover_.dashboard-panel-resize-handle]:opacity-[1]",
   ].join(" "),
   "dashboard_drag_handle": [
     "dashboard-drag-handle", "tw:absolute", "tw:z-[5]", "tw:top-[11px]",
