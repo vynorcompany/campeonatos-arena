@@ -246,6 +246,10 @@ export function NavLinks({ canManageUsers, visibleModules, whatsappUnreadCount }
           label: "Financeiro",
           icon: "finance",
           children: [
+            { href: "/financeiro/planos", label: "Planos" },
+            { href: "/financeiro/mensalidades", label: "Mensalidades" },
+            { href: "/financeiro/folha", label: "Folha" },
+            { href: "/financeiro/pdv-estoque", label: "PDV/estoque" },
             { href: "/financeiro/contas-a-receber", label: "Contas a Receber" },
             { href: "/financeiro/contas-a-pagar", label: "Contas a Pagar" },
             { href: "/pdv", label: "Produtos e Serviços", children: [
