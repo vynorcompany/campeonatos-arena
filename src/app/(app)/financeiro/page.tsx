@@ -1,98 +1,16 @@
-import { viewStyles } from "./page.utilities";
 import { OperationalSubmenuList } from "@/components/operational-submenu-list";
-import { SectionCard } from "@/components/section-card";
 import { requireModuleView } from "@/lib/auth/guards";
-import { getReceivedRevenueCents } from "@/lib/finance/dashboard";
-import { withArenaTransaction } from "@/lib/rls";
 
-function getMonthRange() {
-  const now = new Date();
-  return {
-    start: new Date(now.getFullYear(), now.getMonth(), 1),
-    end: new Date(now.getFullYear(), now.getMonth() + 1, 1)
-  };
-}
-
-function formatMoney(cents: number) {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
-}
+const areas = [
+  ["Planos", "/financeiro/planos", "Cadastre pacotes e mensalidades."],
+  ["Mensalidades", "/financeiro/mensalidades", "Vincule alunos a planos e registre pagamentos."],
+  ["Folha", "/financeiro/folha", "Calcule salários e despesas de professores."],
+  ["Contas a Receber", "/financeiro/contas-a-receber", "Receba aulas, comandas, planos e demais receitas."],
+  ["Contas a Pagar", "/financeiro/contas-a-pagar", "Gerencie fornecedores, custos e despesas da arena."],
+  ["PDV/estoque", "/financeiro/pdv-estoque", "Veja vendas, estoque e movimentações."]
+] as const;
 
 export default async function FinancePage() {
-  const auth = await requireModuleView("finance");
-  const { start, end } = getMonthRange();
-  const [subscriptions, products, financialEntries, payrollEntries, recentEntries] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
-    tx.studentSubscription.findMany({ where: { arenaId: auth.arenaId, status: "ACTIVE" } }),
-    tx.product.findMany({ where: { arenaId: auth.arenaId } }),
-    tx.financialEntry.findMany({
-      where: {
-        arenaId: auth.arenaId,
-        OR: [{ paidAt: { gte: start, lt: end } }, { settlements: { some: { paidAt: { gte: start, lt: end } } } }]
-      },
-      include: { settlements: { select: { amountCents: true, paidAt: true } } }
-    }),
-    tx.teacherPayrollEntry.findMany({ where: { arenaId: auth.arenaId } }),
-    tx.financialEntry.findMany({
-      where: { arenaId: auth.arenaId },
-      orderBy: [{ paidAt: "desc" }, { dueDate: "asc" }, { createdAt: "desc" }],
-      take: 8
-    })
-  ]));
-  const projectedPlanRevenue = subscriptions.reduce((total, subscription) => total + subscription.monthlyPriceCents, 0);
-  const paidRevenue = getReceivedRevenueCents(financialEntries, start, end);
-  const expenses = financialEntries
-    .filter((entry) => entry.type === "EXPENSE")
-    .reduce((total, entry) => total + entry.amountCents, 0);
-  const payrollTotal = payrollEntries.reduce(
-    (total, entry) => total + entry.fixedSalaryCents + entry.bonusCents - entry.discountCents,
-    0
-  );
-  const stockValue = products.reduce((total, product) => total + product.stockQuantity * product.priceCents, 0);
-
-  const shortcuts = [
-    ["Planos", "/financeiro/planos", "Cadastre pacotes e mensalidades."],
-    ["Mensalidades", "/financeiro/mensalidades", "Vincule alunos a planos e registre pagamentos."],
-    ["Folha", "/financeiro/folha", "Calcule salários e despesas de professores."],
-    ["Contas a Receber", "/financeiro/contas-a-receber", "Receba aulas, comandas, planos e demais receitas."],
-    ["Contas a Pagar", "/financeiro/contas-a-pagar", "Gerencie fornecedores, custos e despesas da arena."],
-    ["PDV/estoque", "/financeiro/pdv-estoque", "Veja vendas, estoque e movimentações."]
-  ] as const;
-
-  return (
-    <div className={viewStyles.stack_md}>
-      <div className={viewStyles.stats_grid_finance_stats_grid}>
-        <div className={viewStyles.stat_card}>
-          <strong>{formatMoney(paidRevenue)}</strong>
-          <span>receita recebida no mês</span>
-        </div>
-        <div className={viewStyles.stat_card}>
-          <strong>{formatMoney(projectedPlanRevenue)}</strong>
-          <span>mensalidades previstas</span>
-        </div>
-        <div className={viewStyles.stat_card}>
-          <strong>{formatMoney(expenses + payrollTotal)}</strong>
-          <span>custos e salários</span>
-        </div>
-        <div className={viewStyles.stat_card}>
-          <strong>{formatMoney(stockValue)}</strong>
-          <span>valor em estoque</span>
-        </div>
-      </div>
-
-      <OperationalSubmenuList ariaLabel="Áreas financeiras" items={shortcuts.map(([label, href, description]) => ({ label, href, description }))} />
-
-      <SectionCard title="Últimos lançamentos" description="Movimentações financeiras mais recentes.">
-        <div className={viewStyles.simple_list}>
-          {recentEntries.map((entry) => (
-            <div className={viewStyles.simple_item} key={entry.id}>
-              <strong>{entry.description}</strong>
-              <span>
-                {entry.type === "REVENUE" ? "Receita" : "Despesa"} - {entry.category} - {formatMoney(entry.amountCents)}
-              </span>
-            </div>
-          ))}
-          {!recentEntries.length ? <p className={viewStyles.muted}>Nenhum lançamento financeiro cadastrado.</p> : null}
-        </div>
-      </SectionCard>
-    </div>
-  );
+  await requireModuleView("finance");
+  return <OperationalSubmenuList ariaLabel="Áreas financeiras" items={areas.map(([label, href, description]) => ({ label, href, description }))} />;
 }
