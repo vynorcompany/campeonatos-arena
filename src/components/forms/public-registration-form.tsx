@@ -87,7 +87,7 @@ export function PublicRegistrationForm({
         </div>
       </aside>
 
-      <form action={formAction} className="public-reg-form reveal-up" style={{ animationDelay: "120ms" }}>
+      <form action={formAction} className="public-reg-form reveal-up tw:[animation-delay:120ms]">
         <input type="hidden" name="tournamentSlug" value={tournamentSlug} />
         {responsibleName ? <p className="public-reg-contact">Dúvidas? Fale com {responsibleName}{responsiblePhone ? ` · ${responsiblePhone}` : ""}.</p> : null}
 
@@ -150,7 +150,7 @@ export function PublicRegistrationForm({
 
         {state?.error ? <p className="form-error form-full">{state.error}</p> : null}
         {state?.success ? (
-          <div className="form-success form-full reveal-up" style={{ animationDelay: "180ms" }}>
+          <div className="form-success form-full reveal-up tw:[animation-delay:180ms]">
             {state.success} Referencia: <strong>{state.paymentReference}</strong> · Valor: <strong>R$ {((state.amountCents ?? 0) / 100).toFixed(2)}</strong>
             <br />Status: <strong>{state.registrationId ? "Pagamento pendente" : "Confirmado"}</strong>
           </div>

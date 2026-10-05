@@ -56,7 +56,7 @@ export default async function PublicRegistrationPage(
   if (!tournament) notFound();
 
   return (
-    <main className="stack-md" style={{ maxWidth: 1180, margin: "0 auto", padding: "24px" }}>
+    <main className="stack-md tw:[max-width:1180px] tw:[margin:0_auto] tw:[padding:24px]">
       <header className="page-header">
         <div className="stack-xs">
           <p className="eyebrow">Inscrição pública</p>

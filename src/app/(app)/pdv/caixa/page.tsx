@@ -3,7 +3,7 @@ import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { MoneyInput } from "@/components/forms/money-input";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard } from "@/components/section-card";
-import styles from "./page.module.css";
+import styles from "./page.styles";
 import { closeCashRegisterAction, createCashMovementAction, openCashRegisterAction } from "@/lib/actions/cash-register";
 import { requireModuleView } from "@/lib/auth/guards";
 import { cashReferenceDate } from "@/lib/finance/cash-day";

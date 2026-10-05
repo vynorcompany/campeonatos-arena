@@ -126,7 +126,7 @@ export default async function TournamentRegistrationsPage() {
         const confirmedCount = category.registrations.filter((reg: any) => reg.status === "CONFIRMED").length;
         return (
           <SectionCard key={category.id} title={`${category.name} (${confirmedCount} confirmadas)`}>
-            <div className="stack-sm" style={{ marginBottom: "0.75rem" }}>
+            <div className="stack-sm tw:[margin-bottom:0.75rem]">
               <form action={updateTournamentCategoryFormatAction} className="section-actions">
                 <input type="hidden" name="tournamentId" value={tournament.id} />
                 <input type="hidden" name="categoryId" value={category.id} />
@@ -162,12 +162,12 @@ export default async function TournamentRegistrationsPage() {
             <div className="simple-list">
               {category.registrations.map((registration: any) => (
                 <div key={registration.id} className="simple-item">
-                  <div className="stack-xs" style={{ width: "100%" }}>
+                  <div className="stack-xs tw:[width:100%]">
                     <strong>{registration.leadName} / {registration.partnerName}</strong>
                     <span>{registration.status} · {registration.paymentStatus} · R$ {(registration.amountCents / 100).toFixed(2)}</span>
                     <details>
-                      <summary style={{ cursor: "pointer", color: "var(--brand)", fontWeight: 700 }}>Editar inscricao</summary>
-                      <form action={updateTournamentRegistrationAction} className="grid-form" style={{ marginTop: "0.75rem" }}>
+                      <summary className="tw:[cursor:pointer] tw:[color:var(--brand)] tw:[font-weight:700]">Editar inscricao</summary>
+                      <form action={updateTournamentRegistrationAction} className="grid-form tw:[margin-top:0.75rem]">
                         <input type="hidden" name="registrationId" value={registration.id} />
                         <input type="hidden" name="tournamentId" value={tournament.id} />
                         <div className="field">
@@ -233,7 +233,7 @@ export default async function TournamentRegistrationsPage() {
             </div>
 
             {bracket ? (
-              <div className="stack-sm" style={{ marginTop: "1rem" }}>
+              <div className="stack-sm tw:[margin-top:1rem]">
                 <strong>Jogos da chave</strong>
                 {bracket.matches.map((match) => (
                   <form key={match.id} action={updateCategoryBracketMatchScheduleAction} className="simple-item">

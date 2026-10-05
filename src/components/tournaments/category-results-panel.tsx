@@ -360,7 +360,7 @@ export function CategoryResultsPanel({
                                 defaultValue={match.homeScore ?? ""}
                                 aria-label={`Placar de ${match.homePair?.name}`}
                                 required
-                                style={{ width: "76px" }}
+                                className="tw:[width:76px]"
                               />
                               <span aria-hidden="true">×</span>
                               <input
@@ -370,7 +370,7 @@ export function CategoryResultsPanel({
                                 defaultValue={match.awayScore ?? ""}
                                 aria-label={`Placar de ${match.awayPair?.name}`}
                                 required
-                                style={{ width: "76px" }}
+                                className="tw:[width:76px]"
                               />
                               <SubmitButton
                                 label={
