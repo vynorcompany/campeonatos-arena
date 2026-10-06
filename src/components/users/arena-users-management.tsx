@@ -28,7 +28,7 @@ export async function ArenaUsersManagement({ arenaId, currentUserId, query = "" 
 
   return (
     <div className={viewStyles.stack_md}>
-      <SectionCard title="Usuários" description="Cada acesso pertence a esta arena. Novos usuários definem a própria senha por um convite enviado ao e-mail.">
+      <SectionCard title="Usuários" description="Cada acesso pertence a esta arena. Novos usuários definem a própria senha por um convite enviado por e-mail ou compartilhado por link.">
         <details className={viewStyles.setting_create_panel}>
           <summary className={viewStyles.button_button_primary_button_small}>Convidar usuário</summary>
           <div><ArenaUserForm profiles={profiles.map((profile) => ({ id: profile.id, name: profile.name }))} /></div>

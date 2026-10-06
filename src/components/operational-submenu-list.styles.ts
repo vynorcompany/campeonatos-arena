@@ -14,7 +14,7 @@ const styles = {
     "tw:[&.arena-submenu-list_>_a]:[text-decoration:none]", "tw:[&.arena-submenu-list_>_a]:[transition:background_.16s_ease,_color_.16s_ease]", "tw:[&.arena-submenu-list_>_a:last-child]:border-b-[length:0]", "tw:[&.arena-submenu-list_>_a:last-child]:[border-bottom-style:none]",
     "tw:[&.arena-submenu-list_>_a:last-child]:border-b-[color:currentColor]", "tw:[&.arena-submenu-list_>_a:hover]:bg-[color:#f4f9fd]", "tw:[&.arena-submenu-list_>_a:hover]:[background-image:none]", "tw:[&.arena-submenu-list_strong]:text-[.82rem]",
     "tw:[&.arena-submenu-list_small]:[overflow-x:hidden]", "tw:[&.arena-submenu-list_small]:[overflow-y:hidden]", "tw:[&.arena-submenu-list_small]:text-[color:var(--muted)]", "tw:[&.arena-submenu-list_small]:text-[.72rem]",
-    "tw:viewport-620:[&.arena-submenu-list_small]:text-[.68rem]", "tw:[&.arena-submenu-list_small]:text-ellipsis", "tw:[&.arena-submenu-list_small]:whitespace-nowrap",
+    "tw:viewport-620:[&.arena-submenu-list_small]:whitespace-normal", "tw:viewport-620:[&.arena-submenu-list_small]:break-words", "tw:viewport-620:[&.arena-submenu-list_small]:text-[.72rem]", "tw:[&.arena-submenu-list_small]:text-ellipsis", "tw:[&.arena-submenu-list_small]:whitespace-nowrap",
   ].join(" "),
   "copy": [
     "arena-submenu-copy", "tw:grid", "tw:gap-y-[3px]", "tw:gap-x-[3px]",

@@ -10,13 +10,14 @@ import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 import { inviteArenaUserSchema } from "@/lib/validators/user";
 
-export type AccountAccessState = { error: string | null; success: string | null };
+export type AccountAccessState = { error: string | null; success: string | null; invitationUrl?: string };
 const emailSchema = z.string().trim().email("Informe um e-mail válido.");
 const passwordSchema = z.string().min(10, "A senha deve ter pelo menos 10 caracteres.");
 const tokenSchema = z.string().regex(/^[a-f0-9]{64}$/i);
 const genericResetMessage = "Se este e-mail estiver cadastrado, enviaremos um link de recuperação válido por 30 minutos.";
 
 function accountUrl(path: string, token: string) {
+  if (!env.appUrl) return `${path}?${new URLSearchParams({ token })}`;
   const url = new URL(path, env.appUrl);
   url.searchParams.set("token", token);
   return url.toString();
@@ -27,7 +28,6 @@ export async function inviteArenaUserAction(_: AccountAccessState, formData: For
   if (auth.arenaRole !== "OWNER" && auth.arenaRole !== "ADMIN" && !["ADMIN", "SUPER_ADMIN"].includes(auth.systemRole)) return { error: "Sem permissão para convidar usuários.", success: null };
   const parsed = inviteArenaUserSchema.safeParse({ email: formData.get("email"), name: formData.get("name"), permissionProfileId: formData.get("permissionProfileId") });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos.", success: null };
-  if (!accountEmailIsConfigured()) return { error: "O envio de e-mails ainda não foi configurado pela agência.", success: null };
   const email = parsed.data.email.toLowerCase();
   const [profile, existingUser, arena, recentInvites] = await Promise.all([
     prisma.permissionProfile.findFirst({ where: { id: parsed.data.permissionProfileId, arenaId: auth.arenaId, active: true } }),
@@ -38,12 +38,15 @@ export async function inviteArenaUserAction(_: AccountAccessState, formData: For
   if (!profile || !arena) return { error: "Perfil ou arena indisponível.", success: null };
   if (existingUser?.memberships.length) return { error: "Esse usuário já tem acesso à arena.", success: null };
   if (recentInvites >= 3) return { error: "Aguarde antes de enviar outro convite para este e-mail.", success: null };
-  const { token, record } = await createAccountToken({ kind: "INVITE", email, name: parsed.data.name, arenaId: auth.arenaId, profileId: profile.id, arenaRole: "STAFF", hoursValid: 48 });
+  const { token } = await createAccountToken({ kind: "INVITE", email, name: parsed.data.name, arenaId: auth.arenaId, profileId: profile.id, arenaRole: "STAFF", hoursValid: 48 });
+  const invitationUrl = accountUrl("/convite", token);
+  const manualInvite = (success: string): AccountAccessState => ({ error: null, success, invitationUrl });
+  revalidatePath("/usuarios");
+  if (!accountEmailIsConfigured()) return manualInvite("Convite criado. Copie o link e compartilhe com o usuário para ele definir a própria senha. O link expira em 48 horas.");
   try {
     await sendAccountEmail(email, `Convite para acessar ${arena.name}`, `Olá, ${parsed.data.name}. Você recebeu um convite para acessar ${arena.name} no Arena Padel Manager. Abra ${accountUrl("/convite", token)} em até 48 horas. Se não esperava este convite, ignore esta mensagem.`);
   } catch {
-    await prisma.accountActionToken.delete({ where: { id: record.id } });
-    return { error: "O convite não foi enviado. Confira a configuração de e-mail da agência.", success: null };
+    return manualInvite("O e-mail não pôde ser enviado, mas o convite foi criado. Copie o link e compartilhe com o usuário. O link expira em 48 horas.");
   }
   revalidatePath("/usuarios");
   return { error: null, success: "Convite enviado. O usuário receberá um link para criar o acesso à arena." };

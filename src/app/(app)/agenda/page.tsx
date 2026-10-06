@@ -63,6 +63,7 @@ export default async function AgendaPage(props: AgendaPageProps) {
   const weekday = selectedDate.getDay();
   const dayHref = (date: Date) => `/agenda?data=${dateInputValue(date)}`;
   const selectedDateLabel = new Intl.DateTimeFormat("pt-BR", { weekday: "long", day: "2-digit", month: "short" }).format(selectedDate);
+  const gridMinWidth = 64 + courts.length * 180;
 
   return <div className={viewStyles.agenda_page} aria-label="Agenda de quadras">
     <div className={viewStyles.agenda_date_strip}>
@@ -73,7 +74,8 @@ export default async function AgendaPage(props: AgendaPageProps) {
       <div className={viewStyles.agenda_calendar_controls}><AgendaMonthPicker selectedDate={dateInputValue(selectedDate)} /><OnlineBookingSettingsDialog settings={{ arenaSlug: arena.slug, layout: arena.onlineBookingLayout, requiresConfirmation: arena.onlineBookingRequiresConfirmation, showReserved: arena.onlineBookingShowReserved, paymentOnlineEnabled: arena.onlineBookingPaymentEnabled, enabled: arena.onlineBookingEnabled, leadTimeMinutes: arena.onlineBookingLeadTimeMinutes, whatsappMessage: arena.onlineBookingWhatsappMessage, whatsappConfirmationEnabled: arena.onlineBookingWhatsappConfirmationEnabled }} /></div>
     </div>
     <div className={viewStyles.agenda_grid_caption}><strong>{selectedDateLabel}</strong><span>Preço e disponibilidade por quadra</span></div>
-    {courts.length ? <div className={viewStyles.daily_court_grid_scroll}><table className={viewStyles.daily_court_grid}><thead><tr><th scope="col">Hora</th>{courts.map((court) => <th scope="col" className="daily-court-heading" style={{ "--court-color": court.color } as CSSProperties} key={court.id}>{court.name}</th>)}</tr></thead><tbody>{slots.map((slot) => <tr key={slot}><th scope="row">{minuteLabel(slot)}</th>{courts.map((court) => {
+    {courts.length > 1 ? <p className="tw:hidden tw:viewport-700:block tw:m-0 tw:text-xs tw:text-[#617991]">Deslize a grade para ver as outras quadras. A coluna de horários permanece visível.</p> : null}
+    {courts.length ? <div className={viewStyles.daily_court_grid_scroll} role="region" aria-label="Grade de horários por quadra" tabIndex={0}><table className={viewStyles.daily_court_grid} style={{ minWidth: gridMinWidth }}><thead><tr><th scope="col">Hora</th>{courts.map((court) => <th scope="col" className="daily-court-heading" style={{ "--court-color": court.color } as CSSProperties} key={court.id}>{court.name}</th>)}</tr></thead><tbody>{slots.map((slot) => <tr key={slot}><th scope="row">{minuteLabel(slot)}</th>{courts.map((court) => {
       const occurrence = scheduleOccurrences.find((item) => item.occurrenceCourts.some((entry) => entry.courtId === court.id) && minuteOfDay(item.startsAt) === slot);
       const isOccupied = scheduleOccurrences.some((item) => item.occurrenceCourts.some((entry) => entry.courtId === court.id) && minuteOfDay(item.startsAt) < slot && minuteOfDay(item.endsAt) > slot);
       if (isOccupied) return null;
