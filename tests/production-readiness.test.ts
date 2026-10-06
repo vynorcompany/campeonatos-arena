@@ -7,11 +7,15 @@ const read = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8"
 
 test("production deploy applies migrations without rerunning bootstrap data", () => {
   const packageJson = read("package.json");
-  const railway = read("railway.json");
+  const railway = JSON.parse(read("railway.json"));
 
   assert.match(packageJson, /"db:setup": "prisma migrate deploy"/);
   assert.match(packageJson, /"db:bootstrap": "tsx prisma\/seed\.ts"/);
-  assert.match(railway, /"preDeployCommand": "npm run db:setup"/);
+  assert.equal(railway.deploy.preDeployCommand, null);
+  assert.equal(
+    railway.deploy.startCommand,
+    "npm run db:setup && exec env HOSTNAME=0.0.0.0 node .next/standalone/server.js"
+  );
 });
 
 test("public uploads use R2 with an arena-scoped object key", () => {
