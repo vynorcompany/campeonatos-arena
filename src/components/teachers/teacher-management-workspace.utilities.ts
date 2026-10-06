@@ -6,6 +6,7 @@ export const viewStyles = {
     "tw:bottom-[0]", "tw:left-[0]", "tw:z-[80]", "tw:grid",
     "tw:pt-[24px]", "tw:pr-[24px]", "tw:pb-[24px]", "tw:pl-[24px]",
     "tw:place-items-center", "tw:bg-[color:rgb(15_23_42_/_.46)]", "tw:[background-image:none]", "tw:[backdrop-filter:blur(3px)]",
+    "tw:viewport-620:p-2",
   ].join(" "),
   "teacher_modal": [
     "teacher-modal", "tw:w-[min(100%,_700px)]", "tw:pt-[20px]", "tw:pr-[20px]",
@@ -18,6 +19,7 @@ export const viewStyles = {
     "tw:[&_>_header]:pb-[14px]", "tw:[&_>_header]:border-b-[length:1px]", "tw:[&_>_header]:[border-bottom-style:solid]", "tw:[&_>_header]:border-b-[color:var(--line)]",
     "tw:[&_h2]:mt-[3px]", "tw:[&_h2]:mr-[0]", "tw:[&_h2]:mb-[0]", "tw:[&_h2]:ml-[0]",
     "tw:[&_.grid-form_:where(input,_select)]:rounded-[7px]",
+    "tw:min-w-0 tw:max-h-[calc(100dvh_-_32px)] tw:overflow-y-auto tw:viewport-620:p-4 tw:[&_header]:flex-wrap tw:[&_input]:min-w-0 tw:[&_select]:min-w-0 tw:[&_footer]:flex-wrap",
   ].join(" "),
   "eyebrow": sharedUtilities.eyebrow,
   "button_button_small": sharedUtilities.buttonButtonSmall,
@@ -27,6 +29,7 @@ export const viewStyles = {
   "modal_actions_form_full": [
     "modal-actions", "form-full", "tw:flex", "tw:justify-end",
     "tw:gap-y-[8px]", "tw:gap-x-[8px]", "tw:mt-[8px]", "tw:[grid-column:1_/_-1]",
+    "tw:flex-wrap tw:viewport-620:[&>button]:flex-1 tw:viewport-620:[&>button]:min-h-10",
   ].join(" "),
   "button": sharedUtilities.button,
   "button_button_primary": sharedUtilities.buttonButtonPrimary,
@@ -77,6 +80,7 @@ export const viewStyles = {
     "tw:gap-x-[3px]!", "tw:min-w-[0]", "tw:[&_strong]:text-[color:#101d39]", "tw:[&_strong]:text-[.84rem]",
     "tw:[&_>_span]:text-[color:#60748f]", "tw:[&_>_span]:text-[.72rem]", "tw:[&_>_span]:[overflow-x:hidden]", "tw:[&_>_span]:[overflow-y:hidden]",
     "tw:[&_>_span]:text-ellipsis", "tw:[&_>_span]:whitespace-nowrap", "tw:[&_b]:text-[color:#135fc3]", "tw:[&_b]:text-[.9rem]",
+    "tw:break-words tw:viewport-760:[&>span]:whitespace-normal! tw:viewport-760:[&>span]:overflow-visible!",
   ].join(" "),
   "teacher_directory_status": [
     "teacher-directory-status", "is-active", "tw:inline-flex", "tw:[align-self:center]",
@@ -140,5 +144,6 @@ export const viewStyles = {
     "tw:[&_b]:grid", "tw:[&_b]:w-[30px]", "tw:[&_b]:h-[30px]", "tw:[&_b]:place-items-center",
     "tw:[&_b]:rounded-[10px]", "tw:[&_b]:text-[color:#1760bc]", "tw:[&_b]:bg-[color:#eaf2ff]", "tw:[&_b]:[background-image:none]",
     "tw:[&_b]:min-w-[30px]", "tw:[&_b]:min-h-[30px]", "tw:[&_b]:text-[.82rem]",
+    "tw:flex-wrap tw:gap-2 tw:mt-0!",
   ].join(" "),
 } as const;
