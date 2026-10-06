@@ -1955,6 +1955,8 @@ model WhatsAppConversation {
   messages      WhatsAppMessage[]
 
   @@unique([arenaId, accountJid, remoteJid])
+  @@index([arenaId, accountJid, updatedAt])
+  @@index([arenaId, accountJid, lastMessageAt])
   @@index([arenaId, unreadCount, lastMessageAt])
   @@index([arenaId, archivedAt, lastMessageAt])
   @@index([playerId])

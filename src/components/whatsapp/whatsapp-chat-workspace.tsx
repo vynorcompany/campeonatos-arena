@@ -21,6 +21,7 @@ import { WhatsAppIcon, type WhatsAppIconName } from "./whatsapp-icons";
 import { formatWhatsAppPhone, whatsAppConversationName, initials, type WhatsAppClient, type WhatsAppConversation, type WhatsAppFilter, type WhatsAppMessage } from "./types";
 import { useAudioRecorder } from "./use-audio-recorder";
 import { useWhatsAppRealtime } from "./use-whatsapp-realtime";
+import { useConversationMessages } from "./use-conversation-messages";
 import { WhatsAppMessageBubble } from "./whatsapp-message-bubble";
 
 const time = (value: string) => new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
@@ -47,7 +48,7 @@ function Avatar({ conversation, size = "", onExpand, withinButton = false }: { c
   return <i className={cx(`${viewStyles.whatsapp_contact_avatar} ${size}`)}>{photo ? <img className={cx(onExpand ? "whatsapp-photo-expandable" : undefined)} src={photo} alt={`Foto de ${conversation.contactName || "contato"}`} referrerPolicy="no-referrer" role={onExpand && !withinButton ? "button" : undefined} tabIndex={onExpand && !withinButton ? 0 : undefined} aria-label={onExpand && !withinButton ? "Ampliar foto do contato" : undefined} onClick={(event) => { event.stopPropagation(); onExpand?.(photo); }} onKeyDown={(event) => { if (onExpand && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); event.stopPropagation(); onExpand(photo); } }} /> : initials(conversation.contactName || conversation.contactPhone)}</i>;
 }
 
-export function WhatsAppChatWorkspace({ conversations: initialConversations, connected, clients, slaMinutes, initialVersion, currentUserName = "", currentAccountJid = "" }: { currentAccountJid?: string; currentUserName?: string; conversations: WhatsAppConversation[]; connected: boolean; clients: WhatsAppClient[]; slaMinutes: number; initialVersion: string }) {
+export function WhatsAppChatWorkspace({ conversations: initialConversations, pollingScope = "", connected, clients, slaMinutes, initialVersion, currentUserName = "", currentAccountJid = "" }: { pollingScope?: string; currentAccountJid?: string; currentUserName?: string; conversations: WhatsAppConversation[]; connected: boolean; clients: WhatsAppClient[]; slaMinutes: number; initialVersion: string }) {
   const [groupNames, setGroupNames] = useState<Record<string, { name: string; previous: string }>>({});
   const requestedGroups = useRef(new Set<string>());
   const conversations = useMemo(() => initialConversations.map(conversation => {
@@ -82,13 +83,16 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, con
   const contactDetailsClose = useRef<HTMLButtonElement>(null);
 
   const active = conversations.find((conversation) => conversation.id === activeId) ?? conversations[0] ?? null;
+  const messageHistory = useConversationMessages(active?.id, currentAccountJid, initialVersion);
+  const loadedMessages = messageHistory.messages;
   const messagesFor = useCallback((conversation: WhatsAppConversation) => Array.from(new Map([
+    ...(conversation.id === active?.id ? loadedMessages : []),
     ...conversation.messages,
     ...(localMessages[conversation.id] ?? []),
-  ].map((message) => [message.id, message])).values()).sort((left, right) => new Date(left.sentAt).getTime() - new Date(right.sentAt).getTime()), [localMessages]);
+  ].map((message) => [message.id, message])).values()).sort((left, right) => new Date(left.sentAt).getTime() - new Date(right.sentAt).getTime()), [localMessages, loadedMessages, active?.id]);
   const activeMessages = active ? messagesFor(active) : [];
   useEffect(() => {
-    const storedIds = new Set(conversations.flatMap((conversation) => conversation.messages.map((message) => message.id)));
+    const storedIds = new Set([...loadedMessages.map(message => message.id), ...conversations.flatMap((conversation) => conversation.messages.map((message) => message.id))]);
     setLocalMessages((current) => {
       let changed = false;
       const next = Object.fromEntries(Object.entries(current).map(([id, messages]) => {
@@ -98,7 +102,7 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, con
       }));
       return changed ? next : current;
     });
-  }, [conversations]);
+  }, [conversations, loadedMessages]);
   useEffect(() => { setReplyTo(null); setMessageMenuId(""); }, [active?.id]);
   useEffect(() => {
     if (!selectedImage) return;
@@ -120,7 +124,7 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, con
     setNotice("Áudio anexado. Pressione Enter ou clique em Enviar para enviar.");
   }, [discardAudioDraft]);
   const { recording, level, start: startRecording, stop: stopRecording } = useAudioRecorder({ onReady: onRecorderReady, onError: onRecorderError });
-  useWhatsAppRealtime({ paused: !connected || pending || recording, initialVersion });
+  useWhatsAppRealtime({ paused: !connected || pending || recording, initialVersion, scope: pollingScope });
 
   const visible = useMemo(() => conversations.filter((conversation) => {
     const searchMatches = `${conversation.contactName} ${conversation.contactPhone} ${conversation.player?.name ?? ""}`.toLowerCase().includes(query.trim().toLowerCase());
@@ -322,7 +326,7 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, con
     </aside>
     <main className={viewStyles.whatsapp_chat_main}>{active ? <>
       <header><div><Avatar conversation={active} size="is-header" onExpand={setSelectedImage} /><span><strong>{whatsAppConversationName(active)}</strong><small>{active.remoteJid.endsWith("@g.us") ? "Grupo do WhatsApp" : formatWhatsAppPhone(active.contactPhone)}</small></span></div></header>
-      <div className={viewStyles.whatsapp_message_thread}>{activeMessages.map((message) => <WhatsAppMessageBubble key={message.id} message={message} accountJid={currentAccountJid} pending={pending} menuOpen={messageMenuId === message.id} onMenu={() => setMessageMenuId(messageMenuId === message.id ? "" : message.id)} onReply={() => { setReplyTo(message); setMessageMenuId(""); messageInput.current?.focus(); }} onReact={(emoji) => reactToMessage(message, emoji)} onImage={setSelectedImage} />)}</div>
+      <div className={viewStyles.whatsapp_message_thread}>{messageHistory.loading ? <p role="status" className="tw:text-xs tw:text-slate-500">Carregando histórico…</p> : null}{messageHistory.failed ? <p role="status" className="tw:text-xs tw:text-slate-600">Não foi possível carregar o histórico. <button type="button" className="tw:underline" onClick={messageHistory.retry}>Tentar novamente</button></p> : null}{activeMessages.map((message) => <WhatsAppMessageBubble key={message.id} message={message} accountJid={currentAccountJid} pending={pending} menuOpen={messageMenuId === message.id} onMenu={() => setMessageMenuId(messageMenuId === message.id ? "" : message.id)} onReply={() => { setReplyTo(message); setMessageMenuId(""); messageInput.current?.focus(); }} onReact={(emoji) => reactToMessage(message, emoji)} onImage={setSelectedImage} />)}</div>
       <form className={viewStyles.whatsapp_composer} onSubmit={sendText} onKeyDown={(event) => {
         if (event.target instanceof HTMLTextAreaElement && event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229) {
           event.preventDefault();

@@ -11,7 +11,7 @@ export function WhatsAppConnectionStatusWatcher({ arenaId }: { arenaId: string }
     let active = true;
     let checking = false;
     const check = async () => {
-      if (checking || !active) return;
+      if (checking || !active || document.visibilityState !== "visible" || navigator.onLine === false) return;
       checking = true;
       try {
         const form = new FormData();
@@ -26,7 +26,9 @@ export function WhatsAppConnectionStatusWatcher({ arenaId }: { arenaId: string }
     };
     void check();
     const interval = window.setInterval(() => void check(), 4000);
-    return () => { active = false; window.clearInterval(interval); };
+    document.addEventListener("visibilitychange", check);
+    window.addEventListener("online", check);
+    return () => { active = false; window.clearInterval(interval); document.removeEventListener("visibilitychange", check); window.removeEventListener("online", check); };
   }, [arenaId, router]);
 
   return null;

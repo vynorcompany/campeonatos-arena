@@ -3,7 +3,6 @@ import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./command-card.utilities";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { addComandaProductAction, deleteComandaAction, finishComandaAction, updateComandaItemQuantityAction } from "@/lib/actions/comanda";
 
 type Product = { id: string; name: string; priceCents: number; stockQuantity: number; category?: { name: string } | null };
@@ -32,7 +31,6 @@ export function CommandCard({ canDelete, comanda, products, paymentMethods, debt
   const [clientCreditAmount, setClientCreditAmount] = useState("");
   const [splitCount, setSplitCount] = useState(2);
   const [message, setMessage] = useState("");
-  const router = useRouter();
   const totalCents = comanda.items.reduce((total, item) => total + item.totalCents, 0);
   const openDebtTotalCents = debts.reduce((total, debt) => total + debt.amountCents, 0);
   const selectedDebtTotalCents = debts.filter((debt) => selectedDebtIds.includes(debt.id)).reduce((total, debt) => total + debt.amountCents, 0);
@@ -77,7 +75,6 @@ export function CommandCard({ canDelete, comanda, products, paymentMethods, debt
     document.addEventListener("keydown", closeOnEscape);
     return () => document.removeEventListener("keydown", closeOnEscape);
   }, [checkoutOpen, detailsOpen, divideOpen, productModalOpen, zeroConfirmOpen]);
-  useEffect(() => { const timer = window.setInterval(() => router.refresh(), 2500); return () => window.clearInterval(timer); }, [router]);
 
   return <article className={viewStyles.command_card_command_card_clickable} onClick={openDetails}>
     <header><div><strong>{comanda.label}</strong><span>{comanda.type === "AVULSA" ? "Avulsa" : comanda.playerName ?? "Cliente"}</span></div><div className={viewStyles.command_card_header_meta}>{comanda.requests.length ? <span className={viewStyles.command_new_request_label} title={comanda.requests.map((request) => `${request.quantity}× ${request.productName}`).join(" · ")}>{comanda.requests.length} pedido novo</span> : null}<small>{comanda.code}</small></div></header>

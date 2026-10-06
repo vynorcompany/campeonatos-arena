@@ -242,17 +242,23 @@ export function ManualUpcomingMatchesTv({
 
   useEffect(() => {
     let isCurrent = true;
+    let checking = false;
+    let etag = "";
+    const controller = new AbortController();
 
     async function refreshPresentation() {
+      if (checking || document.visibilityState !== "visible" || navigator.onLine === false) return;
+      checking = true;
       try {
         const response = await fetch("/api/manual-upcoming-matches", {
-          cache: "no-store"
+          cache: "no-store", signal: controller.signal, headers: etag ? { "If-None-Match": etag } : {}
         });
 
         if (!response.ok) {
           return;
         }
 
+        etag = response.headers.get("etag") || "";
         const data = (await response.json()) as TvPresentationResponse;
         if (isCurrent) {
           setLiveMatches(data.matches);
@@ -264,12 +270,16 @@ export function ManualUpcomingMatchesTv({
         }
       } catch {
         // Keep the last known TV presentation if the network blips.
-      }
+      } finally { checking = false; }
     }
 
-    const timer = window.setInterval(refreshPresentation, 4000);
+    const timer = window.setInterval(refreshPresentation, 10_000);
+    document.addEventListener("visibilitychange", refreshPresentation);
+    window.addEventListener("online", refreshPresentation);
     return () => {
-      isCurrent = false;
+      isCurrent = false; controller.abort();
+      document.removeEventListener("visibilitychange", refreshPresentation);
+      window.removeEventListener("online", refreshPresentation);
       window.clearInterval(timer);
     };
   }, []);

@@ -50,6 +50,7 @@ export async function persistOutboundWhatsAppMessage(
     const sentAt = new Date();
     const stored = await tx.whatsAppMessage.upsert({
       where: { providerId: message.providerId },
+      select: { id: true, direction: true, body: true, senderName: true, quotedProviderId: true, quotedBody: true, quotedAuthor: true, reactions: true, mediaType: true, mediaMimeType: true, sentAt: true },
       create: {
         providerId: message.providerId,
         conversationId,
@@ -93,7 +94,7 @@ export async function persistOutboundWhatsAppMessage(
       reactions: readWhatsAppReactions(stored.reactions),
       mediaType: stored.mediaType,
       mediaMimeType: stored.mediaMimeType,
-      mediaUrl: stored.mediaUrl,
+      mediaUrl: "",
       sentAt: stored.sentAt.toISOString(),
     };
   });

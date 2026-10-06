@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import crypto from "node:crypto";
@@ -5,6 +6,9 @@ import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 import { allPermissionModules } from "@/lib/permissions";
 import type { ArenaMembership, ArenaRole, SystemRole } from "@/types/auth";
+
+// React provides a request-local cache in Server Components; route handlers use the uncached fallback.
+const cachePerRequest: typeof cache = typeof cache === "function" ? cache : (callback => callback);
 
 const SESSION_TTL_DAYS = env.sessionTtlDays;
 const sessionCookieName = env.sessionCookieName;
@@ -30,20 +34,17 @@ function hashSessionToken(token: string) {
 async function getSessionWithUser(token: string) {
   return prisma.session.findUnique({
     where: { token },
-    include: {
-      user: {
-        include: {
-          memberships: {
-            include: {
-              arena: true,
-              permissionProfile: true
-            },
-            orderBy: {
-              createdAt: "asc"
-            }
-          }
-        }
-      }
+    select: {
+      id: true, expiresAt: true,
+      user: { select: {
+        id: true, name: true, email: true, systemRole: true,
+        memberships: { select: {
+          role: true, viewPermissions: true, editPermissions: true,
+          arena: { select: { id: true, name: true, logoUrl: true } },
+          arenaId: true,
+          permissionProfile: { select: { viewPermissions: true, editPermissions: true } },
+        }, orderBy: { createdAt: "asc" } },
+      } },
     }
   });
 }
@@ -142,7 +143,7 @@ export async function destroySession() {
   cookieStore.delete(arenaCookieName);
 }
 
-export async function getAuthContext(): Promise<AuthContext | null> {
+export const getAuthContext = cachePerRequest(async (): Promise<AuthContext | null> => {
   const token = (await cookies()).get(sessionCookieName)?.value;
 
   if (!token) {
@@ -188,6 +189,7 @@ export async function getAuthContext(): Promise<AuthContext | null> {
 
   if (isAgencyRole(systemRole)) {
     const agencyArenas = await prisma.arena.findMany({
+      select: { id: true, name: true, logoUrl: true },
       where: {
         id: {
           notIn: [...membershipArenaIds]
@@ -224,7 +226,7 @@ export async function getAuthContext(): Promise<AuthContext | null> {
     editPermissions: activeMembership?.editPermissions ?? [],
     memberships
   };
-}
+});
 
 export async function requireAuth() {
   const auth = await getAuthContext();
