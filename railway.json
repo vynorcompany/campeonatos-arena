@@ -5,8 +5,8 @@
     "buildCommand": "npm run build"
   },
   "deploy": {
-    "preDeployCommand": "npm run db:setup",
-    "startCommand": "HOSTNAME=0.0.0.0 node .next/standalone/server.js",
+    "preDeployCommand": null,
+    "startCommand": "npm run db:setup && exec env HOSTNAME=0.0.0.0 node .next/standalone/server.js",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 120,
     "restartPolicyType": "on_failure"
