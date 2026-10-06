@@ -8,6 +8,7 @@ export const viewStyles = {
     "tw:[&_.nav-link-active]:[background-image:linear-gradient(135deg,_#0868e5,_#0754c3)]", "tw:[&_.nav-link-active]:text-[color:#fff]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)]:h-[100dvh]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)]:min-h-[0]",
     "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)]:[overflow-x:hidden]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)]:[overflow-y:hidden]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_>_.sidebar]:h-[100dvh]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_>_.sidebar]:min-h-[0]",
     "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_>_.sidebar]:[overflow-x:hidden]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_>_.sidebar]:[overflow-y:auto]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_>_.sidebar]:[overscroll-behavior:contain]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_>_.sidebar_.sidebar-inner]:min-h-[100%]",
+    "tw:viewport-760:[&.mobile-nav-open_>_.sidebar]:translate-x-0!", "tw:viewport-760:[&.mobile-nav-open_>_.sidebar]:visible!",
   ].join(" "),
   "sidebar": [
     "sidebar", "tw:z-[20]", "tw:min-h-[100vh]", "tw:viewport-760:min-h-[auto]",
@@ -26,11 +27,14 @@ export const viewStyles = {
     "tw:[&_.arena-notification-panel]:max-h-[min(420px,_calc(100vh_-_36px))]", "tw:[&_:where(button,_select,_a)]:[font-family:'Segoe_UI',_Tahoma,_sans-serif]", "tw:[&.sidebar_.nav-link]:font-[560]", "tw:[&.sidebar_.nav-link]:text-[color:#f8fbff]",
     "tw:[&_.nav-sub-link]:font-[560]", "tw:[&_.nav-sub-link]:text-[color:rgb(248_251_255_/_.9)]", "tw:[&_.nav-link-parent]:text-[color:#f8fbff]", "tw:[&_.nav-sub-link-parent]:text-[color:#f8fbff]",
     "tw:[&_.nav-group-label]:text-[color:#c8defd]",
+    "tw:viewport-760:fixed!", "tw:viewport-760:inset-y-0", "tw:viewport-760:left-0", "tw:viewport-760:z-[50]", "tw:viewport-760:h-[100dvh]!", "tw:viewport-760:w-[min(86vw,320px)]",
+    "tw:viewport-760:min-h-[0]!", "tw:viewport-760:-translate-x-full", "tw:viewport-760:invisible", "tw:viewport-760:overflow-x-hidden!", "tw:viewport-760:overflow-y-auto!",
+    "tw:viewport-760:[overscroll-behavior:contain]", "tw:viewport-760:[transition:transform_200ms_ease,visibility_200ms_ease]", "tw:viewport-760:[animation:none]!",
   ].join(" "),
   "sidebar_inner": [
     "sidebar-inner", "tw:min-h-[calc(100vh_-_44px)]", "tw:viewport-760:min-h-[auto]", "tw:flex",
     "tw:viewport-760:grid", "tw:justify-between", "tw:flex-col", "tw:gap-y-[18px]",
-    "tw:gap-x-[18px]",
+    "tw:gap-x-[18px]", "tw:viewport-760:flex!", "tw:viewport-760:min-h-[100dvh]!",
   ].join(" "),
   "sidebar_top": [
     "sidebar-top", "tw:grid", "tw:gap-y-[14px]", "tw:gap-x-[14px]",
@@ -86,7 +90,7 @@ export const viewStyles = {
     "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)]:[overflow-y:hidden]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)]:relative", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)]:min-h-[0]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_>_.content-shell]:absolute",
     "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_>_.content-shell]:top-[0]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_>_.content-shell]:right-[0]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_>_.content-shell]:bottom-[0]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_>_.content-shell]:left-[0]",
     "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_>_.content-shell]:h-[auto]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_>_.content-shell]:min-h-[0]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_.content-shell]:h-[100%]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_.content-shell]:min-h-[0]",
-    "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_.content-shell]:[overflow-x:hidden]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_.content-shell]:[overflow-y:hidden]",
+    "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_.content-shell]:[overflow-x:hidden]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_.content-shell]:[overflow-y:hidden]", "tw:viewport-760:[&:has(.whatsapp-page)]:h-[calc(100dvh_-_56px)]!",
   ].join(" "),
   "content_shell": [
     "content-shell", "tw:w-[100%]", "tw:max-w-[none]", "tw:mt-[0]",

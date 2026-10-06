@@ -3,7 +3,7 @@ export const viewStyles = {
   "agenda_page": [
     "agenda-page", "tw:grid", "tw:gap-y-[12px]", "tw:gap-x-[12px]",
     "tw:min-w-[0]", "tw:w-[100%]", "tw:max-w-[none]", "tw:pt-[4px]",
-    "tw:pr-[18px]", "tw:pb-[28px]", "tw:pl-[18px]",
+    "tw:pr-[18px]", "tw:pb-[28px]", "tw:pl-[18px]", "tw:viewport-700:pr-[0]", "tw:viewport-700:pl-[0]",
   ].join(" "),
   "agenda_date_strip": [
     "agenda-date-strip", "tw:flex", "tw:items-stretch", "tw:gap-y-[6px]",
@@ -12,9 +12,9 @@ export const viewStyles = {
     "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:var(--line)]", "tw:border-b-[length:1px]",
     "tw:[border-bottom-style:solid]", "tw:border-b-[color:var(--line)]", "tw:border-l-[length:1px]", "tw:[border-left-style:solid]",
     "tw:border-l-[color:var(--line)]", "tw:rounded-[14px]", "tw:bg-[color:var(--panel)]", "tw:[background-image:none]",
-    "tw:[box-shadow:var(--shadow)]", "tw:[&_.agenda-online-settings-trigger]:w-[38px]", "tw:[&_.agenda-online-settings-trigger]:min-w-[38px]", "tw:[&_.agenda-online-settings-trigger]:h-[38px]",
+    "tw:[box-shadow:var(--shadow)]", "tw:viewport-700:flex-wrap", "tw:viewport-700:[overflow-x:visible]", "tw:[&_.agenda-online-settings-trigger]:w-[38px]", "tw:[&_.agenda-online-settings-trigger]:min-w-[38px]", "tw:[&_.agenda-online-settings-trigger]:h-[38px]",
     "tw:[&_.agenda-online-settings-trigger]:pt-[0]", "tw:[&_.agenda-online-settings-trigger]:pr-[0]", "tw:[&_.agenda-online-settings-trigger]:pb-[0]", "tw:[&_.agenda-online-settings-trigger]:pl-[0]",
-    "tw:[&_.agenda-online-settings-trigger:hover]:[box-shadow:0_4px_10px_rgb(19_89_143_/_.25)]", "tw:[&_.agenda-online-settings-trigger:hover]:[transform:translateY(-1px)]", "tw:viewport-700:[overflow-x:auto]",
+    "tw:[&_.agenda-online-settings-trigger:hover]:[box-shadow:0_4px_10px_rgb(19_89_143_/_.25)]", "tw:[&_.agenda-online-settings-trigger:hover]:[transform:translateY(-1px)]",
   ].join(" "),
   "agenda_date_arrow": [
     "agenda-date-arrow", "tw:[transition:transform_150ms_var(--ease-standard),_background_150ms_var(--ease-standard),_box-shadow_150ms_var(--ease-standard)]", "tw:grid", "tw:place-items-center",
@@ -24,7 +24,8 @@ export const viewStyles = {
   ].join(" "),
   "agenda_date_list": [
     "agenda-date-list", "tw:grid", "tw:grid-cols-[repeat(7,_minmax(54px,_1fr))]", "tw:[flex:1]",
-    "tw:gap-y-[4px]", "tw:gap-x-[4px]", "tw:viewport-700:min-w-[420px]",
+    "tw:gap-y-[4px]", "tw:gap-x-[4px]", "tw:viewport-700:min-w-[0]", "tw:viewport-700:basis-[calc(100%_-_96px)]", "tw:viewport-700:grid-cols-[repeat(3,_minmax(0,_1fr))]",
+    "tw:viewport-700:[&>a:nth-child(-n+2)]:hidden", "tw:viewport-700:[&>a:nth-child(n+6)]:hidden",
   ].join(" "),
   "agenda_date_item_agenda_date_item_active_agenda_date_item_centered": [
     "agenda-date-item", "agenda-date-item-active", "agenda-date-item-centered", "tw:[transition:transform_150ms_var(--ease-standard),_background_150ms_var(--ease-standard),_box-shadow_150ms_var(--ease-standard)]",
@@ -48,7 +49,7 @@ export const viewStyles = {
     "tw:hover:[background-image:none]", "tw:hover:[box-shadow:inset_0_0_0_1px_#a9c9e6]", "tw:[&_strong]:text-[color:var(--ink)]", "tw:[&_strong]:text-[1.05rem]",
   ].join(" "),
   "agenda_today_link": [
-    "agenda-today-link", "tw:[transition:transform_150ms_var(--ease-standard),_background_150ms_var(--ease-standard),_box-shadow_150ms_var(--ease-standard)]", "tw:grid", "tw:viewport-700:hidden",
+    "agenda-today-link", "tw:[transition:transform_150ms_var(--ease-standard),_background_150ms_var(--ease-standard),_box-shadow_150ms_var(--ease-standard)]", "tw:grid", "tw:viewport-700:order-4",
     "tw:place-items-center", "tw:min-w-[42px]", "tw:rounded-[var(--radius-control)]", "tw:text-[color:var(--muted)]",
     "tw:[text-decoration:none]", "tw:font-[700]", "tw:pt-[0]", "tw:pr-[12px]",
     "tw:pb-[0]", "tw:pl-[12px]", "tw:bg-[color:var(--panel-muted)]", "tw:[background-image:none]",
@@ -57,7 +58,7 @@ export const viewStyles = {
   ].join(" "),
   "agenda_calendar_controls": [
     "agenda-calendar-controls", "tw:flex", "tw:items-center", "tw:gap-y-[6px]",
-    "tw:gap-x-[6px]",
+    "tw:gap-x-[6px]", "tw:viewport-700:order-5", "tw:viewport-700:ml-auto",
   ].join(" "),
   "agenda_grid_caption": [
     "agenda-grid-caption", "tw:flex", "tw:justify-between", "tw:items-center",
@@ -70,7 +71,7 @@ export const viewStyles = {
     "tw:[border-top-style:solid]", "tw:border-t-[color:var(--line)]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]",
     "tw:border-r-[color:var(--line)]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:var(--line)]",
     "tw:border-l-[length:1px]", "tw:[border-left-style:solid]", "tw:border-l-[color:var(--line)]", "tw:rounded-[12px]",
-    "tw:[box-shadow:var(--shadow)]",
+    "tw:[box-shadow:var(--shadow)]", "tw:max-w-[100%]", "tw:[overscroll-behavior-x:contain]",
   ].join(" "),
   "daily_court_grid": [
     "daily-court-grid", "tw:w-[100%]", "tw:min-w-[100%]", "tw:[border-collapse:separate]",
@@ -91,6 +92,9 @@ export const viewStyles = {
     "tw:[&_tbody_>_tr_>_th]:bg-[color:var(--panel-muted)]", "tw:[&_tbody_>_tr_>_th]:[background-image:none]", "tw:[&_tbody_>_tr_>_th]:text-[.7rem]", "tw:[&_tbody_>_tr_>_th]:text-right",
     "tw:[&_tbody_>_tr_>_th]:w-[60px]", "tw:[&_tbody_>_tr_>_th]:pt-[3px]", "tw:[&_thead_th.daily-court-heading]:text-[color:#fff]", "tw:[&_thead_th.daily-court-heading]:bg-[color:var(--court-color)]",
     "tw:[&_thead_th.daily-court-heading]:[background-image:none]", "tw:[&_td_>_.agenda-slot-entry]:h-[100%]",
+    "tw:viewport-700:[&_thead_th:first-child]:sticky", "tw:viewport-700:[&_thead_th:first-child]:left-[0]", "tw:viewport-700:[&_thead_th:first-child]:z-[4]",
+    "tw:viewport-700:[&_tbody_>_tr_>_th]:sticky", "tw:viewport-700:[&_tbody_>_tr_>_th]:left-[0]", "tw:viewport-700:[&_tbody_>_tr_>_th]:z-[3]",
+    "tw:viewport-700:[&_thead_th:first-child]:w-[64px]", "tw:viewport-700:[&_tbody_>_tr_>_th]:w-[64px]",
   ].join(" "),
   "daily_court_event_daily_court_event_online": [
     "daily-court-event", "daily-court-event-online", "tw:bg-[color:#e9faf0]!", "tw:[background-image:none]!",
