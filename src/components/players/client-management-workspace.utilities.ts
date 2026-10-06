@@ -26,6 +26,7 @@ export const viewStyles = {
     "tw:[&_select]:border-b-[length:1px]", "tw:[&_select]:[border-bottom-style:solid]", "tw:[&_select]:border-b-[color:#c9d8e9]", "tw:[&_select]:border-l-[length:1px]",
     "tw:[&_select]:[border-left-style:solid]", "tw:[&_select]:border-l-[color:#c9d8e9]", "tw:[&_select]:rounded-[6px]", "tw:[&_select]:bg-[color:#fbfdff]",
     "tw:[&_select]:[background-image:none]", "tw:[&_select]:text-[color:#203650]", "tw:[&_select]:[font:inherit]", "tw:[&_select]:text-[.76rem]",
+    "tw:min-w-0 tw:[&>*]:min-w-0 tw:[&_input]:min-w-0 tw:[&_select]:min-w-0",
   ].join(" "),
   "client_filter_actions": [
     "client-filter-actions", "tw:[grid-column:1_/_-1]", "tw:flex", "tw:flex-wrap",
@@ -67,7 +68,7 @@ export const viewStyles = {
   ].join(" "),
   "button_button_danger_button_small": sharedUtilities.buttonButtonDangerButtonSmall,
   "client_list_head": [
-    "client-list-head", "tw:grid", "tw:viewport-1000:hidden", "tw:grid-cols-[28px_minmax(200px,_1.3fr)_minmax(115px,_.8fr)_minmax(130px,_.9fr)_minmax(160px,_1fr)_minmax(140px,_.9fr)_minmax(130px,_.7fr)]",
+    "client-list-head", "tw:grid", "tw:viewport-1160:hidden", "tw:grid-cols-[28px_minmax(200px,_1.3fr)_minmax(115px,_.8fr)_minmax(130px,_.9fr)_minmax(160px,_1fr)_minmax(140px,_.9fr)_minmax(130px,_.7fr)]",
     "tw:gap-y-[12px]", "tw:gap-x-[12px]", "tw:items-center", "tw:pt-[0]",
     "tw:pr-[13px]", "tw:pb-[0]", "tw:pl-[13px]", "tw:text-[color:#5c7290]",
     "tw:text-[.62rem]", "tw:font-[800]", "tw:tracking-[.04em]", "tw:uppercase",
@@ -82,14 +83,15 @@ export const viewStyles = {
   ].join(" "),
   "client_row_client_row_clickable": [
     "client-row", "client-row-clickable", "tw:grid", "tw:grid-cols-[28px_minmax(200px,_1.3fr)_minmax(115px,_.8fr)_minmax(130px,_.9fr)_minmax(160px,_1fr)_minmax(140px,_.9fr)_minmax(130px,_.7fr)]",
-    "tw:viewport-1000:grid-cols-[28px_1fr_1fr]", "tw:viewport-620:grid-cols-[28px_1fr]", "tw:gap-y-[12px]", "tw:viewport-620:gap-y-[5px]",
+    "tw:viewport-1160:grid-cols-[28px_1fr_1fr]", "tw:viewport-620:grid-cols-[28px_1fr]", "tw:gap-y-[12px]", "tw:viewport-620:gap-y-[5px]",
     "tw:gap-x-[12px]", "tw:viewport-620:gap-x-[5px]", "tw:items-center", "tw:min-h-[61px]",
     "tw:pt-[10px]", "tw:pr-[13px]", "tw:pb-[10px]", "tw:pl-[13px]",
     "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:#edf1f6]", "tw:text-[color:#40546e]",
     "tw:text-[.75rem]", "tw:[&:last-child]:border-b-[length:0]", "tw:[&:last-child]:[border-bottom-style:none]", "tw:[&:last-child]:border-b-[color:currentColor]",
     "tw:[&_>_div:first-child]:grid", "tw:[&_>_div:first-child]:gap-y-[2px]", "tw:[&_>_div:first-child]:gap-x-[2px]", "tw:[&_strong]:text-[color:#14355e]",
-    "tw:[&_strong]:text-[.82rem]", "tw:[&_small]:text-[color:#76879c]", "tw:[&_small]:text-[.65rem]", "tw:viewport-1000:[&_>_*]:min-w-[0]",
+    "tw:[&_strong]:text-[.82rem]", "tw:[&_small]:text-[color:#76879c]", "tw:[&_small]:text-[.65rem]", "tw:viewport-1160:[&_>_*]:min-w-[0]",
     "tw:cursor-pointer", "tw:[transition:background_.15s_ease]", "tw:hover:bg-[color:#f5f9ff]", "tw:hover:[background-image:none]",
+    "tw:viewport-1160:grid-cols-[24px_minmax(0,1fr)]! tw:viewport-1160:items-start tw:viewport-1160:[&>_*:not(:first-child)]:col-start-2 tw:viewport-1160:[&>_*:first-child]:row-span-6 tw:viewport-1160:[&>_[data-label]]:before:content-[attr(data-label)] tw:viewport-1160:[&>_[data-label]]:before:block tw:viewport-1160:[&>_[data-label]]:before:text-[.65rem] tw:viewport-1160:[&>_[data-label]]:before:text-[var(--muted)] tw:viewport-1160:[&>_*]:break-words",
   ].join(" "),
   "client_row_select": [
     "client-row-select", "tw:grid", "tw:place-items-center", "tw:[&_input]:w-[16px]",
@@ -99,6 +101,7 @@ export const viewStyles = {
     "client-identity", "tw:flex!", "tw:items-center", "tw:gap-y-[8px]",
     "tw:gap-x-[8px]", "tw:min-w-[0]", "tw:[&_strong]:[overflow-x:hidden]", "tw:[&_strong]:[overflow-y:hidden]",
     "tw:[&_strong]:text-ellipsis", "tw:[&_strong]:whitespace-nowrap",
+    "tw:viewport-1160:[&_strong]:whitespace-normal! tw:viewport-1160:[&_strong]:overflow-visible!",
   ].join(" "),
   "client_status_dot": [
     "client-status-dot", "tw:inline-block", "tw:w-[9px]", "tw:h-[9px]",
@@ -125,6 +128,7 @@ export const viewStyles = {
   "client_row_actions": [
     "client-row-actions", "tw:flex", "tw:flex-wrap", "tw:gap-y-[5px]",
     "tw:gap-x-[5px]",
+    "tw:flex-wrap tw:viewport-620:[&_button]:min-h-10",
   ].join(" "),
   "button_button_small": sharedUtilities.buttonButtonSmall,
   "client_empty": sharedUtilities.clientEmpty,
@@ -160,6 +164,7 @@ export const viewStyles = {
     "tw:[&_h2]:mb-[0]", "tw:[&_h2]:ml-[0]", "tw:[&_h2]:text-[color:#12335a]", "tw:[&_h2]:text-[1.1rem]",
     "tw:[&_header_p]:mt-[0]", "tw:[&_header_p]:mr-[0]", "tw:[&_header_p]:mb-[0]", "tw:[&_header_p]:ml-[0]",
     "tw:[&_header_p]:text-[color:#697d93]", "tw:[&_header_p]:text-[.74rem]",
+    "tw:min-w-0 tw:viewport-620:[&_header]:flex-wrap tw:viewport-620:[&_header>div]:min-w-0 tw:viewport-620:[&_h2]:break-words tw:viewport-620:[&_footer]:flex-wrap tw:viewport-620:[&_footer>button]:min-h-10 tw:viewport-620:[&_footer>button]:flex-1 tw:[&_input]:min-w-0 tw:[&_select]:min-w-0",
   ].join(" "),
   "eyebrow": sharedUtilities.eyebrow,
   "client_plan_history": [
@@ -203,6 +208,7 @@ export const viewStyles = {
     "tw:[&_>_label]:text-[color:#51657d]", "tw:[&_>_label]:text-[.7rem]", "tw:[&_>_label]:font-[750]", "tw:grid",
     "tw:gap-y-[16px]", "tw:gap-x-[16px]", "tw:[&_footer]:flex", "tw:[&_footer]:justify-end",
     "tw:[&_footer]:gap-y-[7px]", "tw:[&_footer]:gap-x-[7px]",
+    "tw:min-w-0 tw:viewport-620:[&_header]:flex-wrap tw:viewport-620:[&_header>div]:min-w-0 tw:viewport-620:[&_h2]:break-words tw:viewport-620:[&_footer]:flex-wrap tw:viewport-620:[&_footer>button]:min-h-10 tw:viewport-620:[&_footer>button]:flex-1 tw:[&_input]:min-w-0 tw:[&_select]:min-w-0",
   ].join(" "),
   "client_merge_preview": [
     "client-merge-preview", "tw:mt-[0]", "tw:mr-[0]", "tw:mb-[0]",
@@ -236,13 +242,14 @@ export const viewStyles = {
     "tw:[&_h2]:mr-[0]", "tw:[&_h2]:mb-[0]", "tw:[&_h2]:ml-[0]", "tw:[&_h2]:text-[color:#12335a]",
     "tw:[&_h2]:text-[1.1rem]", "tw:[&_header_p]:mt-[0]", "tw:[&_header_p]:mr-[0]", "tw:[&_header_p]:mb-[0]",
     "tw:[&_header_p]:ml-[0]", "tw:[&_header_p]:text-[color:#697d93]", "tw:[&_header_p]:text-[.74rem]",
+    "tw:min-w-0 tw:viewport-620:[&_header]:flex-wrap tw:viewport-620:[&_header>div]:min-w-0 tw:viewport-620:[&_h2]:break-words tw:viewport-620:[&_footer]:flex-wrap tw:viewport-620:[&_footer>button]:min-h-10 tw:viewport-620:[&_footer>button]:flex-1 tw:[&_input]:min-w-0 tw:[&_select]:min-w-0",
   ].join(" "),
   "client_modal_heading": [
     "client-modal-heading", "tw:flex", "tw:items-center", "tw:gap-y-[10px]",
     "tw:gap-x-[10px]",
   ].join(" "),
   "client_avatar": [
-    "client-avatar", "tw:grid", "tw:w-[44px]", "tw:h-[44px]",
+    "client-avatar", "tw:shrink-0", "tw:grid", "tw:w-[44px]", "tw:h-[44px]",
     "tw:place-items-center", "tw:[overflow-x:hidden]", "tw:[overflow-y:hidden]", "tw:border-t-[length:2px]",
     "tw:[border-top-style:solid]", "tw:border-t-[color:#e2edf1]", "tw:border-r-[length:2px]", "tw:[border-right-style:solid]",
     "tw:border-r-[color:#e2edf1]", "tw:border-b-[length:2px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:#e2edf1]",
@@ -288,6 +295,7 @@ export const viewStyles = {
     "tw:[&_h2]:mr-[0]", "tw:[&_h2]:mb-[0]", "tw:[&_h2]:ml-[0]", "tw:[&_h2]:text-[color:#12335a]",
     "tw:[&_h2]:text-[1.1rem]", "tw:[&_header_p]:mt-[0]", "tw:[&_header_p]:mr-[0]", "tw:[&_header_p]:mb-[0]",
     "tw:[&_header_p]:ml-[0]", "tw:[&_header_p]:text-[color:#697d93]", "tw:[&_header_p]:text-[.74rem]",
+    "tw:min-w-0 tw:viewport-620:[&_header]:flex-wrap tw:viewport-620:[&_header>div]:min-w-0 tw:viewport-620:[&_h2]:break-words tw:viewport-620:[&_footer]:flex-wrap tw:viewport-620:[&_footer>button]:min-h-10 tw:viewport-620:[&_footer>button]:flex-1 tw:[&_input]:min-w-0 tw:[&_select]:min-w-0",
   ].join(" "),
   "client_balance_summary": [
     "client-balance-summary", "tw:grid", "tw:grid-cols-[repeat(2,_minmax(0,_1fr))]", "tw:viewport-620:grid-cols-[1fr]",

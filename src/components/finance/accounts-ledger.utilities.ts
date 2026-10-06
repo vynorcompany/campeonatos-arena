@@ -43,8 +43,9 @@ export const viewStyles = {
     "tw:rounded-[10px]", "tw:bg-[color:var(--panel-muted)]", "tw:[background-image:none]", "tw:[&_input]:w-[100%]",
     "tw:[&_input]:min-w-[0]", "tw:[&_select]:w-[100%]", "tw:[&_select]:min-w-[0]", "tw:[&_label]:flex",
     "tw:[&_label]:items-center", "tw:[&_label]:gap-y-[6px]", "tw:[&_label]:gap-x-[6px]", "tw:[&_label]:text-[color:var(--muted)]",
-    "tw:[&_label]:text-[.75rem]", "tw:[&_label]:whitespace-nowrap", "tw:viewport-700:[&_label]:[white-space:normal]", "tw:[&_label_input]:w-[auto]",
+    "tw:[&_label]:text-[.75rem]", "tw:[&_label]:whitespace-normal", "tw:[&_label]:min-w-0", "tw:[&_label_em]:whitespace-normal", "tw:viewport-700:[&_label]:[white-space:normal]", "tw:[&_label_input]:w-[auto]",
     "tw:[&_.accounts-filters-submit]:min-h-[38px]", "tw:[&_.accounts-filters-submit]:font-[800]", "tw:[&_.accounts-filters-submit]:[box-shadow:0_5px_12px_rgb(20_92_179_/_.2)]",
+    "tw:min-w-0 tw:[&>*]:min-w-0 tw:viewport-440:grid-cols-1!",
   ].join(" "),
   "accounts_client_filter": [
     "accounts-client-filter", "tw:relative", "tw:min-w-[0]",
@@ -122,11 +123,12 @@ export const viewStyles = {
   "button_button_primary_button_small": sharedUtilities.buttonButtonPrimaryButtonSmall,
   "button_button_danger_button_small": sharedUtilities.buttonButtonDangerButtonSmall,
   "accounts_ledger_list": [
-    "accounts-ledger-list", "tw:[overflow-x:hidden]", "tw:viewport-980:[overflow-x:auto]", "tw:[overflow-y:hidden]",
+    "accounts-ledger-list", "tw:[overflow-x:hidden]",  "tw:[overflow-y:hidden]",
     "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:var(--line)]", "tw:border-r-[length:1px]",
     "tw:[border-right-style:solid]", "tw:border-r-[color:var(--line)]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]",
     "tw:border-b-[color:var(--line)]", "tw:border-l-[length:1px]", "tw:[border-left-style:solid]", "tw:border-l-[color:var(--line)]",
     "tw:rounded-[12px]", "tw:bg-[color:var(--panel)]", "tw:[background-image:none]", "tw:viewport-700:max-w-[100%]",
+    "tw:min-w-0 tw:max-w-full tw:overflow-x-auto",
   ].join(" "),
   "accounts_ledger_columns": [
     "accounts-ledger-columns", "tw:grid", "tw:grid-cols-[30px_112px_minmax(130px,_.95fr)_minmax(100px,_.75fr)_minmax(180px,_1.4fr)_minmax(125px,_.8fr)_minmax(104px,_.72fr)_minmax(360px,_1.65fr)]", "tw:gap-y-[12px]",
@@ -134,7 +136,8 @@ export const viewStyles = {
     "tw:pb-[9px]", "tw:pl-[13px]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]",
     "tw:border-b-[color:var(--line)]", "tw:bg-[color:var(--panel-muted)]", "tw:[background-image:none]", "tw:text-[color:var(--muted)]",
     "tw:text-[.62rem]", "tw:font-[800]", "tw:tracking-[.02em]", "tw:uppercase",
-    "tw:[&_input]:w-[15px]", "tw:[&_input]:h-[15px]", "tw:[&_input]:[accent-color:var(--brand)]", "tw:viewport-980:min-w-[920px]",
+    "tw:[&_input]:w-[15px]", "tw:[&_input]:h-[15px]", "tw:[&_input]:[accent-color:var(--brand)]", "",
+    "tw:viewport-700:hidden tw:min-w-[1280px]",
   ].join(" "),
   "accounts_ledger_row_accounts_ledger_row_clickable": [
     "accounts-ledger-row", "accounts-ledger-row-clickable", "tw:grid", "tw:grid-cols-[30px_112px_minmax(130px,_.95fr)_minmax(100px,_.75fr)_minmax(180px,_1.4fr)_minmax(125px,_.8fr)_minmax(104px,_.72fr)_minmax(360px,_1.65fr)]",
@@ -145,9 +148,10 @@ export const viewStyles = {
     "tw:[&:last-child]:border-b-[color:currentColor]", "tw:[&_>_span]:grid", "tw:[&_>_span]:gap-y-[3px]", "tw:[&_>_span]:gap-x-[3px]",
     "tw:[&_>_span]:min-w-[0]", "tw:[&_>_strong]:min-w-[0]", "tw:[&_>_strong]:[overflow-x:hidden]", "tw:[&_>_strong]:[overflow-y:hidden]",
     "tw:[&_>_strong]:text-ellipsis", "tw:[&_>_strong]:whitespace-nowrap", "tw:[&_small]:text-[color:var(--muted)]", "tw:[&_small]:text-[.7rem]",
-    "tw:viewport-980:min-w-[920px]", "tw:cursor-pointer", "tw:[transition:background_150ms_var(--ease-standard)]", "tw:hover:bg-[color:color-mix(in_srgb,_var(--brand-soft)_52%,_var(--panel))]",
+    "", "tw:cursor-pointer", "tw:[transition:background_150ms_var(--ease-standard)]", "tw:hover:bg-[color:color-mix(in_srgb,_var(--brand-soft)_52%,_var(--panel))]",
     "tw:hover:[background-image:none]", "tw:[&_strong_a]:text-[color:var(--brand-strong)]", "tw:[&_strong_a]:[text-decoration:underline]", "tw:[&_strong_a]:[text-decoration-color:transparent]",
     "tw:[&_strong_a]:[text-underline-offset:3px]", "tw:[&_strong_a:hover]:[text-decoration-color:currentColor]",
+    "tw:min-w-[1280px] tw:viewport-700:min-w-0! tw:viewport-700:grid-cols-[24px_minmax(0,1fr)]! tw:viewport-700:items-start tw:viewport-700:gap-x-3 tw:viewport-700:gap-y-2 tw:viewport-700:py-3 tw:viewport-700:[&>_*:not(:first-child)]:col-start-2 tw:viewport-700:[&>_*:first-child]:row-span-7 tw:viewport-700:[&>_strong]:whitespace-normal! tw:viewport-700:[&>_strong]:overflow-visible! tw:viewport-700:[&>_*]:break-words tw:viewport-700:[&>_[data-label]]:before:content-[attr(data-label)] tw:viewport-700:[&>_[data-label]]:before:block tw:viewport-700:[&>_[data-label]]:before:text-[.65rem] tw:viewport-700:[&>_[data-label]]:before:font-normal tw:viewport-700:[&>_[data-label]]:before:text-[var(--muted)]",
   ].join(" "),
   "accounts_ledger_row_overdue": [
     "accounts-ledger-row-overdue", "tw:border-l-[length:4px]", "tw:[border-left-style:solid]", "tw:border-l-[color:#c92a2a]",
@@ -182,7 +186,7 @@ export const viewStyles = {
     "tw:font-[850]", "tw:tracking-[.03em]",
   ].join(" "),
   "accounts_ledger_actions": [
-    "accounts-ledger-actions", "tw:flex!", "tw:flex-nowrap", "tw:gap-y-[6px]",
+    "accounts-ledger-actions", "tw:viewport-700:flex-wrap!", "tw:viewport-700:justify-start!", "tw:viewport-700:col-span-full!", "tw:viewport-700:col-start-1!", "tw:viewport-700:[&>button]:min-h-10", "tw:flex!", "tw:flex-nowrap", "tw:gap-y-[6px]",
     "tw:gap-x-[6px]", "tw:justify-end", "tw:whitespace-nowrap",
   ].join(" "),
   "button_button_small_button_primary": sharedUtilities.buttonButtonSmallButtonPrimary,
@@ -275,6 +279,7 @@ export const viewStyles = {
   "modal_actions_form_full": [
     "modal-actions", "form-full", "tw:flex", "tw:justify-end",
     "tw:gap-y-[8px]", "tw:gap-x-[8px]", "tw:mt-[8px]", "tw:[grid-column:1_/_-1]",
+    "tw:flex-wrap tw:viewport-600:[&>button]:flex-1 tw:viewport-600:[&>button]:min-h-10",
   ].join(" "),
   "button": sharedUtilities.button,
   "button_button_success": [
@@ -326,6 +331,7 @@ export const viewStyles = {
   "modal_actions": [
     "modal-actions", "tw:flex", "tw:justify-end", "tw:gap-y-[8px]",
     "tw:gap-x-[8px]", "tw:mt-[8px]",
+    "tw:flex-wrap tw:viewport-600:[&>button]:flex-1 tw:viewport-600:[&>button]:min-h-10",
   ].join(" "),
   "button_button_danger": sharedUtilities.buttonButtonDanger,
 } as const;

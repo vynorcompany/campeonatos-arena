@@ -25,6 +25,7 @@ export const viewStyles = {
     "tw:[&_article:last-of-type]:border-b-[color:currentColor]", "tw:[&_article:hover]:bg-[color:#f8fbff]", "tw:[&_article:hover]:[background-image:none]", "tw:[&_article_span:nth-child(2)]:[overflow-x:hidden]",
     "tw:[&_article_span:nth-child(2)]:[overflow-y:hidden]", "tw:[&_article_span:nth-child(2)]:text-[color:#183a62]", "tw:[&_article_span:nth-child(2)]:font-[700]", "tw:[&_article_span:nth-child(2)]:text-ellipsis",
     "tw:[&_article_span:nth-child(2)]:whitespace-nowrap", "tw:viewport-800:[&_article_span:nth-child(2)]:[white-space:normal]", "tw:viewport-800:[&_article_span]:min-w-[0]",
+    "tw:min-w-0 tw:viewport-440:[&_article]:grid-cols-1! tw:viewport-800:[&_article_span]:break-words",
   ].join(" "),
   "report_table_head": [
     "report-table-head", "tw:grid", "tw:viewport-800:hidden", "tw:grid-cols-[repeat(6,_minmax(110px,_1fr))]",
@@ -132,5 +133,6 @@ export const viewStyles = {
     "tw:gap-y-[10px]", "tw:gap-x-[10px]", "tw:[&_label]:grid", "tw:[&_label]:gap-y-[5px]",
     "tw:[&_label]:gap-x-[5px]", "tw:[&_label]:text-[color:#506783]", "tw:[&_label]:text-[.7rem]", "tw:[&_label]:font-[800]",
     "tw:[&_input]:min-h-[34px]", "tw:[&_input]:[padding-inline:9px]", "tw:viewport-800:flex-col", "tw:viewport-800:[&_.button]:w-[fit-content]",
+    "tw:min-w-0 tw:[&_label]:min-w-0 tw:[&_input]:min-w-0 tw:[&_input]:w-full tw:viewport-800:[&_.button]:w-full!",
   ].join(" "),
 } as const;
