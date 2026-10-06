@@ -4,6 +4,9 @@ import Link from "next/link";
 import { SectionCard } from "@/components/section-card";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
+import { withArenaTransaction } from "@/lib/rls";
+import { standardServicePrices } from "@/lib/calendar/standard-services";
+import { StandardServicePriceSettings } from "@/components/products/standard-service-prices";
 
 function formatMoney(cents: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -22,7 +25,7 @@ export default async function PosPage(props: PosPageProps) {
   const categoryId = searchParams?.category?.trim() ?? "";
   const stock = searchParams?.stock === "LOW" || searchParams?.stock === "AVAILABLE" ? searchParams.stock : "ALL";
   const active = searchParams?.active === "ACTIVE" || searchParams?.active === "INACTIVE" ? searchParams.active : "ALL";
-  const [products, categories] = await Promise.all([
+  const [products, categories, servicePrices] = await Promise.all([
     prisma.product.findMany({
     where: {
       arenaId: auth.arenaId,
@@ -33,7 +36,8 @@ export default async function PosPage(props: PosPageProps) {
     },
     orderBy: [{ active: "desc" }, { name: "asc" }]
   }),
-    prisma.productCategory.findMany({ where: { arenaId: auth.arenaId, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } })
+    prisma.productCategory.findMany({ where: { arenaId: auth.arenaId, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    withArenaTransaction(auth.arenaId, (tx) => tx.arenaServicePrice.findMany({ where: { arenaId: auth.arenaId }, select: { serviceCode: true, priceCents: true } }))
   ]);
   const filteredProducts = products.filter((product) => stock === "ALL" || (stock === "LOW" ? product.stockQuantity <= product.minStock : product.stockQuantity > product.minStock));
 
@@ -47,6 +51,8 @@ export default async function PosPage(props: PosPageProps) {
           <Link href="/pdv/novo" className={viewStyles.button_button_small_button_primary}>Criar produto/serviço</Link>
         </div>
       </header>
+
+      <StandardServicePriceSettings prices={standardServicePrices(servicePrices)} />
 
       <form className={viewStyles.product_management_filters} aria-label="Filtros de produtos">
         <header><strong>Filtros</strong><div><button type="submit" className={viewStyles.button_button_small_button_primary}>Aplicar</button><Link href="/pdv" className={viewStyles.button_button_small}>Limpar</Link></div></header>

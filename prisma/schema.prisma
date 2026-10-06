@@ -143,6 +143,7 @@ model Arena {
   scheduleBookingSeries             ScheduleBookingSeries[]
   bookingTypes                      BookingType[]
   products                          Product[]
+  servicePrices                     ArenaServicePrice[]
   productCategories                 ProductCategory[]
   coupons                           Coupon[]
   fiscalSettings                    FiscalSettings?
@@ -1595,6 +1596,17 @@ model StudentMonthlyBalance {
 
   @@unique([studentId, referenceMonth])
   @@index([arenaId, referenceMonth])
+}
+
+model ArenaServicePrice {
+  arenaId         String
+  serviceCode     String
+  priceCents      Int
+  updatedAt       DateTime @updatedAt
+  updatedByUserId String?
+  arena           Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+
+  @@id([arenaId, serviceCode])
 }
 
 model Product {
