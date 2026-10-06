@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { cancelCourtBookingAction, createQuickPlayerAction, saveCourtBookingAction } from "@/lib/actions/calendar";
 import { durationMinutesForBookingStart } from "@/lib/calendar/booking-availability";
 import { calculateCourtIntervalPrice } from "@/lib/calendar/court-interval-pricing";
+import { standardServiceCode, type StandardServicePrices } from "@/lib/calendar/standard-services";
 import { openBookingComandasAction } from "@/lib/actions/comanda";
 import { OnlineBookingConfirmButton } from "@/components/online-booking-confirm-button";
 import { MoneyInput, formatMoneyInput } from "@/components/forms/money-input";
@@ -25,7 +26,7 @@ function isLessonType(value: string) { return ["aula", "aula fixa"].includes(val
 function isFixedBooking(value: string) { return ["aula fixa", "reserva fixa"].includes(value.trim().toLowerCase()); }
 function isSuper12(value: string) { return value.trim().toLowerCase() === "super 12"; }
 
-export function AgendaSlotDialog({ slot, players, courts, teachers, bookingTypes, children }: { slot: AgendaSlot; players: Player[]; courts: Court[]; teachers: Teacher[]; bookingTypes: string[]; children: React.ReactNode }) {
+export function AgendaSlotDialog({ slot, players, courts, teachers, bookingTypes, servicePrices = {}, children }: { slot: AgendaSlot; players: Player[]; courts: Court[]; teachers: Teacher[]; bookingTypes: string[]; servicePrices?: StandardServicePrices; children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -50,9 +51,11 @@ export function AgendaSlotDialog({ slot, players, courts, teachers, bookingTypes
   const [courtIds, setCourtIds] = useState<string[]>(slot.courtIds?.length ? slot.courtIds : [slot.courtId]);
   const [participants, setParticipants] = useState<Participant[]>(() => slot.participants ?? []);
   const [courtPriceEditing, setCourtPriceEditing] = useState(false);
-  const [courtAmountCents, setCourtAmountCents] = useState(slot.priceCents ?? (slot.participants ?? []).reduce((total, participant) => total + participant.amountCents, 0));
+  const [courtAmountCents, setCourtAmountCents] = useState(() => standardServiceCode(slot.bookingTypeName ?? "") ? slot.participants?.[0]?.amountCents ?? servicePrices[standardServiceCode(slot.bookingTypeName ?? "")!] ?? 0 : slot.priceCents ?? (slot.participants ?? []).reduce((total, participant) => total + participant.amountCents, 0));
   const [error, setError] = useState("");
   const super12 = isSuper12(bookingTypeName);
+  const serviceCode = standardServiceCode(bookingTypeName);
+  const perAthlete = Boolean(serviceCode);
   const lesson = isLessonType(bookingTypeName);
   const fixedBooking = isFixedBooking(bookingTypeName);
   const selectedParticipants = participants.filter((participant) => participant.playerId);
@@ -72,14 +75,15 @@ export function AgendaSlotDialog({ slot, players, courts, teachers, bookingTypes
     weekday: new Date(`${dateValue}T12:00:00`).getDay(),
     rules: slot.pricingRules ?? [],
   });
-  const setAmount = (amountCents: number) => { setCourtAmountCents(amountCents); if (super12) setParticipants((current) => current.map((participant) => participant.playerId ? { ...participant, amountCents } : participant)); };
-  const addPlayerToReservation = (playerId: string) => { if (selectedParticipants.some((participant) => participant.playerId === playerId)) return; setParticipants((current) => [...current, { playerId, amountCents: super12 ? courtAmountCents : 0, paymentMethod: "" }]); if (fixedBooking && !responsiblePlayerId) setResponsiblePlayerId(playerId); setPlayerSearch(""); };
+  const selectBookingType = (nextType: string) => { setBookingTypeName(nextType); const nextCode = standardServiceCode(nextType); if (nextCode) { const amountCents = servicePrices[nextCode] ?? 0; setCourtAmountCents(amountCents); setParticipants((current) => current.map((participant) => ({ ...participant, amountCents }))); } };
+  const setAmount = (amountCents: number) => { setCourtAmountCents(amountCents); if (perAthlete) setParticipants((current) => current.map((participant) => participant.playerId ? { ...participant, amountCents } : participant)); };
+  const addPlayerToReservation = (playerId: string) => { if (selectedParticipants.some((participant) => participant.playerId === playerId)) return; setParticipants((current) => [...current, { playerId, amountCents: perAthlete ? courtAmountCents : 0, paymentMethod: "" }]); if (fixedBooking && !responsiblePlayerId) setResponsiblePlayerId(playerId); setPlayerSearch(""); };
   const updateParticipant = (index: number, values: Partial<Participant>) => setParticipants((current) => current.map((participant, itemIndex) => itemIndex === index ? { ...participant, ...values } : participant));
   const removeParticipant = (index: number) => setParticipants((current) => current.filter((_, itemIndex) => itemIndex !== index));
   const toggleCourt = (courtId: string) => setCourtIds((current) => current.includes(courtId) ? current.filter((id) => id !== courtId) : [...current, courtId]);
   const splitEvenly = () => { if (!selectedParticipants.length) { setError("Selecione ao menos um atleta para dividir o valor."); return; } const part = Math.floor(courtAmountCents / selectedParticipants.length); const remainder = courtAmountCents % selectedParticipants.length; let position = 0; setParticipants((current) => current.map((participant) => !participant.playerId ? participant : { ...participant, amountCents: part + (position++ === selectedParticipants.length - 1 ? remainder : 0) })); };
-  const selectStartTime = (nextStart: string) => { const nextDurationOptions = durationMinutesForBookingStart({ startMinute: startMinute(nextStart), slotMinutes, availableMinutes }); const nextDuration = nextDurationOptions.includes(durationMinutes) ? durationMinutes : nextDurationOptions[0] ?? slotMinutes; setStartsAt(nextStart); setDurationMinutes(nextDuration); if (!super12) { const nextAmount = automaticCourtAmount(nextStart, nextDuration); if (nextAmount !== null) setCourtAmountCents(nextAmount); } };
-  const selectDuration = (nextDuration: number) => { setDurationMinutes(nextDuration); if (!super12) { const nextAmount = automaticCourtAmount(startsAt, nextDuration); if (nextAmount !== null) setCourtAmountCents(nextAmount); } };
+  const selectStartTime = (nextStart: string) => { const nextDurationOptions = durationMinutesForBookingStart({ startMinute: startMinute(nextStart), slotMinutes, availableMinutes }); const nextDuration = nextDurationOptions.includes(durationMinutes) ? durationMinutes : nextDurationOptions[0] ?? slotMinutes; setStartsAt(nextStart); setDurationMinutes(nextDuration); if (!perAthlete) { const nextAmount = automaticCourtAmount(nextStart, nextDuration); if (nextAmount !== null) setCourtAmountCents(nextAmount); } };
+  const selectDuration = (nextDuration: number) => { setDurationMinutes(nextDuration); if (!perAthlete) { const nextAmount = automaticCourtAmount(startsAt, nextDuration); if (nextAmount !== null) setCourtAmountCents(nextAmount); } };
 
   useEffect(() => {
     if (!open || slot.state === "UNAVAILABLE") return;
@@ -98,10 +102,10 @@ export function AgendaSlotDialog({ slot, players, courts, teachers, bookingTypes
   }, [dateValue, open, slot.courtId, slot.occurrenceId, slot.state]);
 
   useEffect(() => {
-    if (!open || super12 || courtPriceEditing) return;
+    if (!open || perAthlete || courtPriceEditing) return;
     const nextAmount = automaticCourtAmount(startsAt, durationMinutes);
     if (nextAmount !== null) setCourtAmountCents((current) => current === nextAmount ? current : nextAmount);
-  }, [dateValue, durationMinutes, open, slot.state, slotMinutes, startsAt, super12]);
+  }, [dateValue, durationMinutes, open, slot.state, slotMinutes, startsAt, perAthlete]);
 
   useEffect(() => { const closeWithEscape = (event: KeyboardEvent) => { if (event.key !== "Escape") return; if (quickCreateOpen) { setQuickCreateOpen(false); return; } if (optionsOpen) { setOptionsOpen(false); return; } if (open) setOpen(false); }; window.addEventListener("keydown", closeWithEscape); return () => window.removeEventListener("keydown", closeWithEscape); }, [open, optionsOpen, quickCreateOpen]);
   useEffect(() => { const closeOptionsOutside = (event: MouseEvent) => { if (!(event.target as HTMLElement).closest(".agenda-slot-options")) setOptionsOpen(false); }; document.addEventListener("mousedown", closeOptionsOutside); return () => document.removeEventListener("mousedown", closeOptionsOutside); }, []);
@@ -110,6 +114,7 @@ export function AgendaSlotDialog({ slot, players, courts, teachers, bookingTypes
     setError("");
     if (!canSaveTime) { setError("Selecione um período disponível para esta quadra."); return; }
     if (!selectedParticipants.length) { setError("Selecione pelo menos um cliente antes de salvar a reserva."); return; }
+    if (!slot.occurrenceId && serviceCode && servicePrices[serviceCode] === undefined) { setError(`Configure o valor de ${bookingTypeName} em Produtos e Serviços antes de criar o horário.`); return; }
     if (super12 && !courtIds.length) { setError("Selecione ao menos uma quadra para o Super 12."); return; }
     if (lesson && !teacherId) { setError("Selecione o professor responsável."); return; }
     const formData = new FormData(); if (slot.occurrenceId) formData.set("occurrenceId", slot.occurrenceId);
@@ -126,8 +131,8 @@ export function AgendaSlotDialog({ slot, players, courts, teachers, bookingTypes
       {slot.state === "UNAVAILABLE" ? <p className="form-note">Este horário está bloqueado pela configuração da quadra.</p> : <div className={viewStyles.agenda_booking_form}>
         <div className={viewStyles.agenda_booking_summary_grid}>
           <section className={viewStyles.agenda_booking_summary_card}><span>QUADRA</span><strong>{slot.courtName}</strong></section>
-          <section className={viewStyles.agenda_booking_summary_card}><span>TIPO DA RESERVA</span><select aria-label="Tipo da reserva" value={bookingTypeName} onChange={(event) => setBookingTypeName(event.target.value)}>{bookingTypes.map((type) => <option value={type} key={type}>{type}</option>)}</select></section>
-          <section className={viewStyles.agenda_booking_summary_card}><span>{super12 ? "VALOR POR ATLETA" : "VALOR DA QUADRA"}</span>{courtPriceEditing ? <MoneyInput valueCents={courtAmountCents} onValueCentsChange={setAmount} onBlur={() => setCourtPriceEditing(false)} autoFocus /> : <button type="button" className={viewStyles.agenda_price_editor} onClick={() => setCourtPriceEditing(true)}>R$ {formatMoneyInput(courtAmountCents)}</button>}{!super12 ? <button type="button" className={viewStyles.agenda_split_button} onClick={splitEvenly}>Dividir igualmente</button> : null}</section>
+          <section className={viewStyles.agenda_booking_summary_card}><span>TIPO DA RESERVA</span><select aria-label="Tipo da reserva" value={bookingTypeName} onChange={(event) => selectBookingType(event.target.value)}>{bookingTypes.map((type) => <option value={type} key={type}>{type}</option>)}</select></section>
+          <section className={viewStyles.agenda_booking_summary_card}><span>{perAthlete ? "VALOR POR ATLETA" : "VALOR DA QUADRA"}</span>{courtPriceEditing ? <MoneyInput valueCents={courtAmountCents} onValueCentsChange={setAmount} onBlur={() => setCourtPriceEditing(false)} autoFocus /> : <button type="button" className={viewStyles.agenda_price_editor} onClick={() => setCourtPriceEditing(true)}>R$ {formatMoneyInput(courtAmountCents)}</button>}{!perAthlete ? <button type="button" className={viewStyles.agenda_split_button} onClick={splitEvenly}>Dividir igualmente</button> : null}</section>
           <section className={viewStyles.agenda_booking_summary_card_agenda_booking_datetime_card}><span>DATA E HORÁRIO</span><div><label>Data<input type="date" value={dateValue} onChange={(event) => setDateValue(event.target.value)} /></label><label>Horário de início<select value={startsAt} onChange={(event) => selectStartTime(event.target.value)} disabled={availabilityLoading || !availableMinutes.length}>{availableMinutes.map((minute) => <option value={minuteLabel(minute)} key={minute}>{minuteLabel(minute)}</option>)}</select></label><label>Duração<select value={durationMinutes} onChange={(event) => selectDuration(Number(event.target.value))} disabled={availabilityLoading || !durationOptions.length}>{durationOptions.map((duration) => <option value={duration} key={duration}>{durationLabel(duration)}</option>)}</select></label></div>{availabilityLoading ? <small>Consultando disponibilidade…</small> : availabilityLoaded && !availableMinutes.length ? <small>Sem horários disponíveis nesta data.</small> : null}</section>
         </div>
         {fixedBooking && !slot.occurrenceId ? <label className={viewStyles.agenda_booking_extra}>Repetir semanalmente até<input type="date" min={dateValue} value={repeatUntil} onChange={(event) => setRepeatUntil(event.target.value)} required /></label> : null}
