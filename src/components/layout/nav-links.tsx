@@ -436,7 +436,7 @@ export function NavLinks({ canManageUsers, visibleModules, whatsappUnreadCount, 
                   <div className={viewStyles.nav_parent_row}>
                     {item.children?.length ? (
                       <div className={viewStyles.nav_expandable_row}>
-                        <Link prefetch={false} href={item.href} className={cx(`${viewStyles.nav_link_nav_link_destination}${isActive ? " " + viewStyles.nav_link_active : ""}`)}>
+                        <Link scroll={false} prefetch={false} href={item.href} className={cx(`${viewStyles.nav_link_nav_link_destination}${isActive ? " " + viewStyles.nav_link_active : ""}`)}>
                           <span className={viewStyles.nav_icon} aria-hidden="true">{item.icon ? <NavIcon name={item.icon} /> : null}</span>
                           <span>{item.label}</span>{item.badge ? <b className="nav-unread-badge tw:ml-auto tw:min-w-[17px] tw:rounded-full tw:bg-[#d83932] tw:px-[5px] tw:py-px tw:text-center tw:text-[.62rem] tw:leading-[1.45] tw:text-white" role="status" aria-label={`${item.badge} mensagens não lidas`}>{item.badge > 99 ? "99+" : item.badge}</b> : null}
                         </Link>
@@ -445,7 +445,7 @@ export function NavLinks({ canManageUsers, visibleModules, whatsappUnreadCount, 
                         </button>
                       </div>
                     ) : (
-                      <Link prefetch={false} href={item.href} className={cx(`${viewStyles.nav_link}${isActive ? " " + viewStyles.nav_link_active : ""}${item.href === "/pdv/caixa" ? " nav-link-cash" : ""}`)}>
+                      <Link scroll={false} prefetch={false} href={item.href} className={cx(`${viewStyles.nav_link}${isActive ? " " + viewStyles.nav_link_active : ""}${item.href === "/pdv/caixa" ? " nav-link-cash" : ""}`)}>
                         <span className={viewStyles.nav_icon} aria-hidden="true">{item.icon ? <NavIcon name={item.icon} /> : null}</span>
                         <span>{item.label}</span>{item.badge ? <b className="nav-unread-badge tw:ml-auto tw:min-w-[17px] tw:rounded-full tw:bg-[#d83932] tw:px-[5px] tw:py-px tw:text-center tw:text-[.62rem] tw:leading-[1.45] tw:text-white" role="status" aria-label={`${item.badge} mensagens não lidas`}>{item.badge > 99 ? "99+" : item.badge}</b> : null}
                       </Link>
@@ -456,13 +456,13 @@ export function NavLinks({ canManageUsers, visibleModules, whatsappUnreadCount, 
                       {item.children.map((child) => (
                         child.children?.length ? <div className="nav-submenu-block" key={child.href}>
                           <div className={viewStyles.nav_expandable_row_nav_expandable_row_nested}>
-                            <Link prefetch={false} href={child.href} className={cx(`${viewStyles.nav_sub_link_nav_sub_link_destination}${itemIsActive(child) ? " " + viewStyles.nav_sub_link_active : ""}`)}>{child.label}</Link>
+                            <Link scroll={false} prefetch={false} href={child.href} className={cx(`${viewStyles.nav_sub_link_nav_sub_link_destination}${itemIsActive(child) ? " " + viewStyles.nav_sub_link_active : ""}`)}>{child.label}</Link>
                             <button type="button" className={viewStyles.nav_toggle_nav_expand_toggle} aria-label={openItems.has(child.href) ? `Fechar submenu ${child.label}` : `Abrir submenu ${child.label}`} onClick={() => toggleItem(child.href)} aria-expanded={openItems.has(child.href)}><span className={cx(`${viewStyles.nav_chevron}${openItems.has(child.href) ? " " + viewStyles.nav_chevron_open : ""}`)} aria-hidden="true"><NavIcon name="chevron" /></span></button>
                           </div>
                           <div className={cx(`${viewStyles.nav_submenu_nav_submenu_nested}${openItems.has(child.href) ? " " + viewStyles.nav_submenu_open : ""}`)}>
-                            {child.children.map((grandchild) => <Link prefetch={false} key={grandchild.href} href={grandchild.href} className={cx(`${viewStyles.nav_sub_link_nav_sub_link_nested}${isActivePath(pathname, grandchild.href) ? " " + viewStyles.nav_sub_link_active : ""}`)}>{grandchild.label}</Link>)}
+                            {child.children.map((grandchild) => <Link scroll={false} prefetch={false} key={grandchild.href} href={grandchild.href} className={cx(`${viewStyles.nav_sub_link_nav_sub_link_nested}${isActivePath(pathname, grandchild.href) ? " " + viewStyles.nav_sub_link_active : ""}`)}>{grandchild.label}</Link>)}
                           </div>
-                        </div> : <Link prefetch={false}
+                        </div> : <Link scroll={false} prefetch={false}
                           key={child.href}
                           href={child.href}
                           className={cx(`${viewStyles.nav_sub_link}${isActivePath(pathname, child.href) ? " " + viewStyles.nav_sub_link_active : ""}`)}
