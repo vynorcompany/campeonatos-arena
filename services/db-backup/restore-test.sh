@@ -37,7 +37,7 @@ if [ "$target_tables" != "0" ]; then
 fi
 
 prefix="${BACKUP_PREFIX:-arena-padel}"
-latest_key="$(aws s3 ls "s3://${S3_BUCKET}/${prefix}/" --recursive --endpoint-url "$S3_ENDPOINT" --only-show-errors | awk '{print $4}' | sort | tail -n 1)"
+latest_key="$(aws s3 ls "s3://${S3_BUCKET}/${prefix}/" --recursive --endpoint-url "$S3_ENDPOINT" | awk '{print $4}' | sort | tail -n 1)"
 
 if [ -z "$latest_key" ]; then
   echo "No backup found under ${prefix}/" >&2
