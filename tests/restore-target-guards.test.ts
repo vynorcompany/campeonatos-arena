@@ -15,7 +15,7 @@ psql() {
   *'SELECT count(*) FROM pg_class'*) if [ "$PROBE_MODE" = occupied ]; then echo 2; else echo 0; fi ;;
  esac
 }
-aws() { if [ "$2" = ls ]; then echo '2026-01-01 01:00:00 100 arena/backup.dump'; else echo DOWNLOAD_CALLED; fi; }
+aws() { if [ "$2" = ls ]; then case "$*" in *--only-show-errors*) return 90;; esac; echo '2026-01-01 01:00:00 100 arena/backup.dump'; else echo DOWNLOAD_CALLED; fi; }
 pg_restore() { case "$*" in *--clean*|*--if-exists*) return 80;; esac; echo RESTORE_CALLED; }
 . '${script}'
 `],{encoding:'utf8',env:{...process.env,PROBE_MODE:mode,DATABASE_URL:'source',RESTORE_DATABASE_URL:'target',RESTORE_CONFIRM:'RESTORE_DISPOSABLE_DATABASE',S3_BUCKET:'fixture',S3_ENDPOINT:'fixture',AWS_ACCESS_KEY_ID:'fixture',AWS_SECRET_ACCESS_KEY:'fixture',AWS_DEFAULT_REGION:'fixture'}});
