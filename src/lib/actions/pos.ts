@@ -1,4 +1,5 @@
 "use server";
+import { arenaDatabase } from "@/lib/arena-database";
 
 import { revalidatePath } from "next/cache";
 import { cashReferenceDate } from "@/lib/finance/cash-day";
@@ -67,6 +68,7 @@ function formatSaleCode() {
 
 export async function createProductAction(formData: FormData) {
   const auth = await requireModuleEdit("stock");
+  const prisma = arenaDatabase(auth.arenaId);
   const parsed = productSchema.safeParse({
     name: formData.get("name"),
     sku: formData.get("sku"),
@@ -122,6 +124,7 @@ export async function createProductAction(formData: FormData) {
 
 export async function updateProductAction(formData: FormData) {
   const auth = await requireModuleEdit("stock");
+  const prisma = arenaDatabase(auth.arenaId);
   const productId = String(formData.get("productId") ?? "");
   const parsed = productSchema.safeParse({
     name: formData.get("name"), sku: formData.get("sku"), cost: formData.get("cost"), price: formData.get("price"),
@@ -139,6 +142,7 @@ export async function updateProductAction(formData: FormData) {
 
 export async function adjustStockAction(formData: FormData) {
   const auth = await requireModuleEdit("stock");
+  const prisma = arenaDatabase(auth.arenaId);
   const parsed = stockSchema.safeParse({
     productId: formData.get("productId"),
     type: formData.get("type"),
@@ -199,6 +203,7 @@ export async function adjustStockAction(formData: FormData) {
  */
 export async function createStockBalanceAction(formData: FormData) {
   const auth = await requireModuleEdit("stock");
+  const prisma = arenaDatabase(auth.arenaId);
   const reason = String(formData.get("reason") ?? "").trim().slice(0, 80);
   const requestedCounts = [...formData.entries()]
     .filter(([key, value]) => key.startsWith("count_") && String(value).trim() !== "")
@@ -254,6 +259,7 @@ export async function createStockBalanceAction(formData: FormData) {
 
 export async function createSaleAction(formData: FormData) {
   const auth = await requireModuleEdit("pos");
+  const prisma = arenaDatabase(auth.arenaId);
   const parsed = saleSchema.safeParse({
     productId: formData.get("productId"),
     quantity: formData.get("quantity"),
@@ -289,6 +295,7 @@ export async function createSaleAction(formData: FormData) {
 
 export async function createCartSaleAction(formData: FormData) {
   const auth = await requireModuleEdit("pos");
+  const prisma = arenaDatabase(auth.arenaId);
   const parsed = cartSaleSchema.safeParse({
     items: formData.get("items"),
     paymentMethod: formData.get("paymentMethod"),
@@ -360,6 +367,7 @@ async function createSaleFromProducts({
     quantity: number;
   }>;
 }) {
+  const prisma = arenaDatabase(arenaId);
   const totalCents = products.reduce((total, product) => total + product.priceCents * product.quantity, 0);
 
   await prisma.$transaction(async (tx) => {

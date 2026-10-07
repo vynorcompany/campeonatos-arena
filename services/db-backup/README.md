@@ -42,4 +42,6 @@ RESTORE_CONFIRM="RESTORE_DISPOSABLE_DATABASE" \
 sh restore-test.sh
 ```
 
-O script baixa o backup mais recente, apaga apenas o banco descartável informado e executa `pg_restore` com falha imediata em caso de erro. Agende esse teste periodicamente em ambiente separado e registre o resultado.
+O destino deve ter nome iniciado por `arena_restore_` e não conter tabelas. O script compara a identidade real do cluster e do banco, rejeita o banco de produção mesmo quando a URL usa outro alias, baixa o backup mais recente e executa `pg_restore` sem apagar tabelas existentes. Agende esse teste periodicamente em ambiente separado e registre o resultado.
+
+Para uma verificação pontual no próprio container do backup, execute `/restore-drill.sh` como comando de início em uma execução manual e restaure o comando normal `/backup.sh` após a conclusão. O teste inicia um cluster temporário limitado ao loopback, restaura nele o último arquivo do bucket e encerra esse cluster ao terminar. O banco da aplicação é usado somente para conferir a identidade de origem. O diretório temporário acompanha o ciclo de vida do container; nunca use um volume persistente para esse teste.

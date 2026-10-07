@@ -1,9 +1,10 @@
+import { arenaDatabase } from "@/lib/arena-database";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
-import { SectionCard } from "@/components/section-card";
+import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { requireModuleView } from "@/lib/auth/guards";
 import { createStockBalanceAction } from "@/lib/actions/pos";
 import { prisma } from "@/lib/prisma";
@@ -14,6 +15,7 @@ function signed(value: number) {
 
 export default async function StockBalancePage() {
   const auth = await requireModuleView("stock");
+  const prisma = arenaDatabase(auth.arenaId);
   const [products, movements] = await Promise.all([
     prisma.product.findMany({
       where: { arenaId: auth.arenaId, active: true },
@@ -35,7 +37,7 @@ export default async function StockBalancePage() {
         <Link href="/pdv/estoque" className={viewStyles.button}>Voltar ao estoque</Link>
       </header>
 
-      <SectionCard title="Contagem física" description="Ao finalizar, o sistema ajusta somente as divergências e registra o furo de cada produto no histórico abaixo.">
+      <section className={ui.page}><div className={ui.toolbar}><p>Informe a contagem física. As divergências são ajustadas e registradas no histórico.</p></div>
         <SafeActionForm action={createStockBalanceAction} className={viewStyles.stock_balance_form} successMessage="Balanço registrado. As divergências foram atualizadas no relatório abaixo.">
           <label className={viewStyles.field_stock_balance_reason}>
             <span>Observação do balanço (opcional)</span>
@@ -46,8 +48,8 @@ export default async function StockBalancePage() {
             {products.map((product) => (
               <label className={viewStyles.stock_balance_row} key={product.id}>
                 <span><strong>{product.name}</strong><small>{product.sku || "Sem SKU"}</small></span>
-                <b>{product.stockQuantity}</b>
-                <span>{product.minStock}</span>
+                <span><small><span className="tw:hidden tw:viewport-760:inline">Sistema</span></small><b>{product.stockQuantity}</b></span>
+                <span><small><span className="tw:hidden tw:viewport-760:inline">Estoque mínimo</span></small>{product.minStock}</span>
                 <input name={`count_${product.id}`} inputMode="numeric" type="number" min="0" step="1" placeholder="Não contado" aria-label={`Contagem real de ${product.name}`} />
               </label>
             ))}
@@ -55,9 +57,9 @@ export default async function StockBalancePage() {
           {!products.length ? <p className={viewStyles.muted}>Cadastre produtos ativos para iniciar o balanço.</p> : null}
           <div className={viewStyles.stock_balance_actions}><SubmitButton label="Finalizar balanço" pendingLabel="Registrando balanço..." className={viewStyles.button_button_primary} /></div>
         </SafeActionForm>
-      </SectionCard>
+      </section>
 
-      <SectionCard title="Relatório de divergências" description="Últimos ajustes originados por balanços de estoque.">
+      <section className={ui.page}><h2 className="tw:m-0 tw:text-sm tw:font-semibold">Relatório de divergências</h2>
         {movements.length ? <div className={viewStyles.stock_balance_report}>
           {movements.map((movement) => {
             const match = movement.reason.match(/sistema: (\d+) \| contado: (\d+) \| diferença: ([+-]?\d+)/);
@@ -68,7 +70,7 @@ export default async function StockBalancePage() {
             </article>;
           })}
         </div> : <p className={viewStyles.muted}>Nenhum balanço concluído ainda.</p>}
-      </SectionCard>
+      </section>
     </div>
   );
 }

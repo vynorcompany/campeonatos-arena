@@ -1,3 +1,4 @@
+import { arenaDatabase } from "@/lib/arena-database";
 import { AccountsLedger } from "@/components/finance/accounts-ledger";
 import { requireModuleView } from "@/lib/auth/guards";
 import { canDeleteFinancialEntries } from "@/lib/permissions";
@@ -7,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 export default async function AccountsReceivablePage(props: { searchParams?: Promise<Record<string, string | undefined>> }) {
   const searchParams = await props.searchParams;
   const auth = await requireModuleView("finance");
+  const prisma = arenaDatabase(auth.arenaId);
   const filters = { ...searchParams, includeEarlier: searchParams?.includeEarlier === "1", includeVoided: searchParams?.includeVoided === "1", dateField: searchParams?.dateField === "paidAt" ? "paidAt" as const : "dueDate" as const };
   const [entries, methods, categories, banks, plans, products, clients] = await Promise.all([
     getAccountsLedger(auth.arenaId, "REVENUE", filters), prisma.paymentMethodSetting.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { name: true }, orderBy: { name: "asc" } }),

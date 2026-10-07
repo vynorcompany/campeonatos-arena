@@ -33,7 +33,7 @@ test("standard service prices are scoped to the authorized arena and only update
   assert.equal(write.create.serviceCode, "LEAGUE");
   assert.equal(write.update.priceCents, 4050);
   assert.deepEqual(Object.keys(write.update).sort(), ["priceCents", "updatedByUserId"]);
-  assert.deepEqual(handler.refreshed, ["/pdv", "/agenda"]);
+  assert.deepEqual(handler.refreshed, ["/pdv", "/pdv/servicos", "/agenda"]);
 });
 
 test("zero is a configured free service, while an absent price remains unconfigured", async () => {

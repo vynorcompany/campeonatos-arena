@@ -1,3 +1,4 @@
+import { arenaDatabase } from "@/lib/arena-database";
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -13,6 +14,7 @@ import { prisma } from "@/lib/prisma";
 export default async function ProductDetailPage(props: { params: Promise<{ productId: string }> }) {
   const params = await props.params;
   const auth = await requireModuleView("pos");
+  const prisma = arenaDatabase(auth.arenaId);
   const [product, categories] = await Promise.all([
     prisma.product.findFirst({ where: { id: params.productId, arenaId: auth.arenaId }, include: { stockMovements: { orderBy: { createdAt: "desc" }, take: 8 } } }),
     prisma.productCategory.findMany({ where: { arenaId: auth.arenaId, active: true }, orderBy: { name: "asc" } })
