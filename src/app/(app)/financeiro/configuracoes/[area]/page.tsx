@@ -1,3 +1,4 @@
+import { arenaDatabase } from "@/lib/arena-database";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
@@ -6,7 +7,7 @@ import { notFound } from "next/navigation";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard as BaseSectionCard } from "@/components/section-card";
-import { NfeImportWorkspace } from "@/components/fiscal/nfe-import-workspace";
+import { InvoicesWorkspace } from "@/components/fiscal/invoices-workspace";
 import { CouponActiveToggle } from "@/components/finance/coupon-active-toggle";
 import { CurrencyInput } from "@/components/forms/currency-input";
 import { connectPaymentProviderAction, createCouponAction, createFinancialSettingAction, createProductCategoryAction, deleteCouponAction, deleteFinancialCategoryAction, deleteSupplierAction, reconcileBankAccountBalanceAction, updateCouponAction, updateFinancialCategoryAction, updateFiscalSettingsAction, updateSupplierAction } from "@/lib/actions/finance";
@@ -35,7 +36,8 @@ export default async function FinancialSettingAreaPage(
 ) {
   const searchParams = await props.searchParams;
   const params = await props.params;
-  const auth = await requireModuleView("finance");const item = areas[params.area as keyof typeof areas];if (!item) notFound();const area = params.area;
+  const auth = await requireModuleView("finance");
+  const prisma = arenaDatabase(auth.arenaId);const item = areas[params.area as keyof typeof areas];if (!item) notFound();const area = params.area;
   if (area === "categorias-produtos") {
     const categories = await prisma.productCategory.findMany({ where: { arenaId: auth.arenaId }, include: { _count: { select: { products: true } } }, orderBy: { name: "asc" } });
     return <div className={viewStyles.stack_md_settings_page}><SectionCard title={item[0]} description={item[1]}><CreatePanel label="Nova categoria"><SafeActionForm action={createProductCategoryAction} className={viewStyles.grid_form} resetOnSuccess successMessage="Categoria criada."><div className={viewStyles.field}><label>Nome<input name="name" required /></label></div><div className={viewStyles.field_field_submit}><SubmitButton label="Salvar categoria" pendingLabel="Salvando..." className={viewStyles.button_button_primary_button_small} /></div></SafeActionForm></CreatePanel><List columns={["Categoria", "Situação", "Produtos"]} empty={!categories.length}>{categories.map((entry) => <article className={viewStyles.settings_operational_row} key={entry.id}><strong>{entry.name}</strong><Status tone={entry.active ? "active" : "neutral"}>{entry.active ? "Ativa" : "Inativa"}</Status><span>{entry._count.products} produto(s)</span></article>)}</List>{backLink()}</SectionCard></div>;
@@ -47,7 +49,7 @@ export default async function FinancialSettingAreaPage(
   if (area === "notas-fiscais") {
     const [settings, documents] = await Promise.all([prisma.fiscalSettings.findUnique({ where: { arenaId: auth.arenaId } }), prisma.fiscalDocument.findMany({ where: { arenaId: auth.arenaId }, include: { _count: { select: { items: true } } }, orderBy: { importedAt: "desc" }, take: 30 })]);
     if (searchParams?.secao === "emissao") return <div className={viewStyles.stack_md_settings_page}><section className={viewStyles.settings_emission_shell}>{backLink()}<FiscalEmission settings={settings} /></section></div>;
-    return <div className={viewStyles.stack_md_settings_page}><SectionCard title="Importar NF-e de compra" description="Selecione o XML autorizado. A conciliação de produtos abre em seguida, antes da entrada no estoque."><NfeImportWorkspace /></SectionCard><SectionCard title="Notas importadas" description="Acompanhe todas as NF-e recebidas e conciliadas no estoque."><List columns={["Documento", "Emissão", "Itens", "Total"]} empty={!documents.length}>{documents.map((document) => <article className={viewStyles.settings_operational_row_settings_invoice_row} key={document.id}><div><strong>NF-e {document.number || "sem número"}</strong><small>{document.supplierName || "Fornecedor não informado"} · série {document.series || "—"}</small></div><span>{document.issuedAt ? new Intl.DateTimeFormat("pt-BR").format(document.issuedAt) : "Sem data"}</span><span>{document._count.items} item(ns)</span><span>{money(document.totalCents)}</span></article>)}</List><Link className={viewStyles.button_button_small} href="/financeiro/configuracoes/notas-fiscais?secao=emissao">Configurações de Emissão</Link>{backLink()}</SectionCard></div>;
+    return <InvoicesWorkspace documents={documents} />;
   }
   if (area === "pagamentos-online") {
     const connections = await prisma.paymentConnection.findMany({ where: { arenaId: auth.arenaId }, select: { provider: true, status: true, displayName: true, accountReference: true } }); const mercadoPago = connections.find((entry) => entry.provider === "MERCADO_PAGO"); const asaas = connections.find((entry) => entry.provider === "ASAAS"); const sicoob = connections.find((entry) => entry.provider === "SICOOB");

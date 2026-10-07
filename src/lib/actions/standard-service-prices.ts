@@ -22,5 +22,6 @@ export async function updateStandardServicePriceAction(formData: FormData) {
     update: { priceCents, updatedByUserId: auth.userId }
   }));
   revalidatePath("/pdv");
+  revalidatePath("/pdv/servicos");
   revalidatePath("/agenda");
 }

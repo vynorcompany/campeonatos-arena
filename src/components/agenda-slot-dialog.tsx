@@ -114,7 +114,7 @@ export function AgendaSlotDialog({ slot, players, courts, teachers, bookingTypes
     setError("");
     if (!canSaveTime) { setError("Selecione um período disponível para esta quadra."); return; }
     if (!selectedParticipants.length) { setError("Selecione pelo menos um cliente antes de salvar a reserva."); return; }
-    if (!slot.occurrenceId && serviceCode && servicePrices[serviceCode] === undefined) { setError(`Configure o valor de ${bookingTypeName} em Produtos e Serviços antes de criar o horário.`); return; }
+    if (!slot.occurrenceId && serviceCode && servicePrices[serviceCode] === undefined) { setError(`Configure o valor de ${bookingTypeName} em Produtos e Serviços → Serviços antes de criar o horário.`); return; }
     if (super12 && !courtIds.length) { setError("Selecione ao menos uma quadra para o Super 12."); return; }
     if (lesson && !teacherId) { setError("Selecione o professor responsável."); return; }
     const formData = new FormData(); if (slot.occurrenceId) formData.set("occurrenceId", slot.occurrenceId);

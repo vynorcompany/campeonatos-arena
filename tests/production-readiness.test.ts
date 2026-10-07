@@ -14,7 +14,7 @@ test("production deploy applies migrations without rerunning bootstrap data", ()
   assert.equal(railway.deploy.preDeployCommand, null);
   assert.equal(
     railway.deploy.startCommand,
-    "npm run db:setup && exec env HOSTNAME=0.0.0.0 node .next/standalone/server.js"
+    'npm run db:setup && exec node scripts/runtime-server.mjs'
   );
 });
 

@@ -1,71 +1,10 @@
-import { cx } from "@/lib/ui/classes";
-import { viewStyles } from "./page.utilities";
-import Link from "next/link";
-import { SectionCard } from "@/components/section-card";
+import { OperationalSubmenuList } from "@/components/operational-submenu-list";
 import { requireModuleView } from "@/lib/auth/guards";
-import { prisma } from "@/lib/prisma";
-import { withArenaTransaction } from "@/lib/rls";
-import { standardServicePrices } from "@/lib/calendar/standard-services";
-import { StandardServicePriceSettings } from "@/components/products/standard-service-prices";
-
-function formatMoney(cents: number) {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL"
-  }).format(cents / 100);
-}
-
-type PosPageProps = { searchParams?: Promise<{ q?: string; sku?: string; category?: string; stock?: string; active?: string }> };
-
-export default async function PosPage(props: PosPageProps) {
-  const searchParams = await props.searchParams;
-  const auth = await requireModuleView("pos");
-  const query = searchParams?.q?.trim() ?? "";
-  const sku = searchParams?.sku?.trim() ?? "";
-  const categoryId = searchParams?.category?.trim() ?? "";
-  const stock = searchParams?.stock === "LOW" || searchParams?.stock === "AVAILABLE" ? searchParams.stock : "ALL";
-  const active = searchParams?.active === "ACTIVE" || searchParams?.active === "INACTIVE" ? searchParams.active : "ALL";
-  const [products, categories, servicePrices] = await Promise.all([
-    prisma.product.findMany({
-    where: {
-      arenaId: auth.arenaId,
-      ...(active === "ALL" ? {} : { active: active === "ACTIVE" }),
-      ...(categoryId ? { categoryId } : {}),
-      ...(query ? { name: { contains: query, mode: "insensitive" } } : {}),
-      ...(sku ? { sku: { contains: sku, mode: "insensitive" } } : {})
-    },
-    orderBy: [{ active: "desc" }, { name: "asc" }]
-  }),
-    prisma.productCategory.findMany({ where: { arenaId: auth.arenaId, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    withArenaTransaction(auth.arenaId, (tx) => tx.arenaServicePrice.findMany({ where: { arenaId: auth.arenaId }, select: { serviceCode: true, priceCents: true } }))
-  ]);
-  const filteredProducts = products.filter((product) => stock === "ALL" || (stock === "LOW" ? product.stockQuantity <= product.minStock : product.stockQuantity > product.minStock));
-
-  return (
-    <div className={viewStyles.product_management_stack_md}>
-      <header className={viewStyles.product_management_header}>
-        <h1>Produtos e Serviços</h1>
-        <div className={viewStyles.product_management_actions}>
-          <Link href="/financeiro/configuracoes/notas-fiscais" className={viewStyles.button_button_small_button_import}>Importar XML/NF-e</Link>
-          <button type="button" className={viewStyles.button_button_small_button_import_csv} disabled title="Importação CSV será disponibilizada em breve">Importar CSV</button>
-          <Link href="/pdv/novo" className={viewStyles.button_button_small_button_primary}>Criar produto/serviço</Link>
-        </div>
-      </header>
-
-      <StandardServicePriceSettings prices={standardServicePrices(servicePrices)} />
-
-      <form className={viewStyles.product_management_filters} aria-label="Filtros de produtos">
-        <header><strong>Filtros</strong><div><button type="submit" className={viewStyles.button_button_small_button_primary}>Aplicar</button><Link href="/pdv" className={viewStyles.button_button_small}>Limpar</Link></div></header>
-        <div>
-          <label>Descrição<input name="q" defaultValue={query} placeholder="Nome do produto" /></label>
-          <label>Código interno<input name="sku" defaultValue={sku} placeholder="SKU/código" /></label>
-          <label>Categoria<select name="category" defaultValue={categoryId}><option value="">Todas as categorias</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
-          <label>Estoque<select name="stock" defaultValue={stock}><option value="ALL">Todos os níveis</option><option value="LOW">Abaixo do mínimo</option><option value="AVAILABLE">Disponível</option></select></label>
-          <label>Situação<select name="active" defaultValue={active}><option value="ALL">Todos</option><option value="ACTIVE">Ativos</option><option value="INACTIVE">Inativos</option></select></label>
-        </div>
-      </form>
-
-      <SectionCard id="estoque" title="Listagem" description="Clique em um produto para configurar dados, estoque e NFC-e."><div className={viewStyles.product_list_head}><span>Produto</span><span>Preço de venda</span><span>Estoque</span><span>Mínimo</span><span>Ações</span></div><div className={viewStyles.product_list}>{filteredProducts.map((product) => <article className={viewStyles.product_row} key={product.id}><Link href={`/pdv/${product.id}`} className={viewStyles.product_table_link}><strong>{product.name}</strong><span>{product.sku || "Sem SKU"}</span></Link><span>{formatMoney(product.priceCents)}</span><span className={cx(product.stockQuantity <= product.minStock ? viewStyles.stock_alert : "")}>{product.stockQuantity}</span><span>{product.minStock}</span><Link href={`/pdv/${product.id}`} className={viewStyles.button_button_small}>Abrir</Link></article>)}{!filteredProducts.length ? <p className={viewStyles.client_empty}>Nenhum produto corresponde aos filtros.</p> : null}</div></SectionCard>
-    </div>
-  );
+export default async function ProductsAndServicesPage() {
+  await requireModuleView("stock");
+  return <OperationalSubmenuList ariaLabel="Produtos e Serviços" items={[
+    { label: "Serviços", href: "/pdv/servicos", description: "Configure os valores por atleta de Liga e Super 12." },
+    { label: "Estoque", href: "/pdv/estoque", description: "Cadastre produtos, revise preços e acompanhe o estoque." },
+    { label: "Criar balanço", href: "/pdv/balanco", description: "Registre a contagem física e confira as divergências." }
+  ]} />;
 }

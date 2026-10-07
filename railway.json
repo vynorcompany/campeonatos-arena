@@ -6,7 +6,7 @@
   },
   "deploy": {
     "preDeployCommand": null,
-    "startCommand": "npm run db:setup && exec env HOSTNAME=0.0.0.0 node .next/standalone/server.js",
+    "startCommand": "npm run db:setup && exec node scripts/runtime-server.mjs",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 120,
     "restartPolicyType": "on_failure"

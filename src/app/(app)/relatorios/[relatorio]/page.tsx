@@ -1,3 +1,4 @@
+import { arenaDatabase } from "@/lib/arena-database";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
@@ -27,7 +28,8 @@ export default async function ReportPage(
 ) {
   const searchParams = await props.searchParams;
   const params = await props.params;
-  const auth = await requireModuleView("finance");const report = reports[params.relatorio as keyof typeof reports];if (!report) notFound();const { start, end } = range(searchParams?.inicio, searchParams?.fim);const period = { gte: start, lte: end };
+  const auth = await requireModuleView("finance");
+  const prisma = arenaDatabase(auth.arenaId);const report = reports[params.relatorio as keyof typeof reports];if (!report) notFound();const { start, end } = range(searchParams?.inicio, searchParams?.fim);const period = { gte: start, lte: end };
   let courtFilter: React.ReactNode = null;
   let metrics: React.ReactNode = null;let supplementary: React.ReactNode = null;let headers: string[] = [];let rows: { key: string; values: string[] }[] = [];
   if (params.relatorio === "caixa") {

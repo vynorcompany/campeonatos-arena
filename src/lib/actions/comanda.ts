@@ -1,4 +1,5 @@
 "use server";
+import { arenaDatabase } from "@/lib/arena-database";
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -46,6 +47,7 @@ function formatComandaCode() {
 
 export async function createComandaAction(formData: FormData) {
   const auth = await requirePermission("pos:command:create");
+  const prisma = arenaDatabase(auth.arenaId);
   const parsed = comandaSchema.safeParse({
     type: formData.get("type"),
     playerId: formData.get("playerId") || undefined,
