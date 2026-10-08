@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 import { getOutstandingCents } from "@/lib/finance/settlements";
+import { getPortalDueUrgency } from "@/lib/portal/financial-status";
 
 const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value / 100);
 const date = (value: Date) => new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(value);
@@ -53,10 +54,11 @@ export async function getPublicClientHome(arenaSlug: string, playerId: string) {
   const due = currentEntries.reduce((total, entry) => total + entry.outstandingCents, 0);
   const future = futureEntries.reduce((total, entry) => total + entry.outstandingCents, 0);
   const overdue = currentEntries.some((entry) => entry.status === "OVERDUE" || (entry.dueDate && entry.dueDate < today));
-  const charges = portalBalances.filter((entry) => entry.onlinePaymentUrl).map((entry) => ({ id: entry.id, description: entry.description, amount: money(entry.outstandingCents), dueDate: entry.dueDate ? new Intl.DateTimeFormat("pt-BR").format(entry.dueDate) : "Sem vencimento", paymentUrl: entry.onlinePaymentUrl }));
+  const dueSoon = futureEntries.some((entry) => getPortalDueUrgency(entry.dueDate, today, entry.status) === "soon");
+  const charges = portalBalances.filter((entry) => entry.onlinePaymentUrl).map((entry) => ({ id: entry.id, description: entry.description, amount: money(entry.outstandingCents), dueDate: entry.dueDate ? new Intl.DateTimeFormat("pt-BR").format(entry.dueDate) : "Sem vencimento", paymentUrl: entry.onlinePaymentUrl, urgency: getPortalDueUrgency(entry.dueDate, today, entry.status) }));
   const monthlyClasses = student?.subscriptions[0]?.classesPerMonth ?? student?.remainingClasses ?? 0;
   const availableClasses = Math.min(student?.monthlyBalances[0]?.remainingClasses ?? monthlyClasses, monthlyClasses);
-  return { announcements, events: events.map((event) => ({ ...event, when: date(event.scheduledAt) })), eventPosts, charges, summary: { financial: due ? `${money(due)} ${overdue ? "em atraso" : "em aberto"}` : "Em dia", futureFinancial: future ? `${money(future)} em lançamentos futuros` : null, financialStatus: overdue ? "overdue" : due ? "pending" : "active", classes: availableClasses, reservations, leagues: pairs } };
+  return { announcements, events: events.map((event) => ({ ...event, when: date(event.scheduledAt) })), eventPosts, charges, summary: { financial: due ? `${money(due)} ${overdue ? "em atraso" : "em aberto"}` : "Em dia", futureFinancial: future ? `${money(future)} em lançamentos futuros` : null, financialStatus: overdue ? "overdue" : due ? "pending" : "active", mobileFinancialStatus: overdue ? "overdue" as const : due || dueSoon ? "soon" as const : "healthy" as const, mobileFinancialLabel: overdue ? "Pagamento em atraso" : due || dueSoon ? "Vence em até 3 dias" : "Tudo em dia", classes: availableClasses, reservations, leagues: pairs } };
 }
 
 export async function getPublicClientFinance(arenaSlug: string, playerId: string) {
@@ -82,11 +84,10 @@ export async function getPublicClientFinance(arenaSlug: string, playerId: string
   const rows = entries.map((entry) => {
     const outstandingCents = getOutstandingCents(entry.amountCents, entry.settlements);
     const overdue = entry.status !== "PAID" && outstandingCents > 0 && (entry.status === "OVERDUE" || Boolean(entry.dueDate && entry.dueDate < today));
-    const daysUntilDue = entry.dueDate ? Math.ceil((new Date(entry.dueDate).getTime() - today.getTime()) / 86_400_000) : null;
     const commandItems = entry.sale?.comanda?.items.map((item) => `${item.quantity}× ${item.product.name}`).join(" · ") ?? "";
     const reservation = entry.scheduleParticipant?.occurrence;
     const detail = commandItems ? `Comanda ${entry.sale?.comanda?.code ?? entry.sale?.code ?? ""} · ${commandItems}` : reservation ? `Reserva ${reservation.title} · ${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(reservation.startsAt)}${reservation.occurrenceCourts.length ? ` · ${reservation.occurrenceCourts.map((court) => court.court.name).join(" · ")}` : ""}` : entry.plan?.name ? `Plano ${entry.plan.name}` : entry.description || "Lançamento financeiro";
-    return { id: entry.id, description: entry.description || "Lançamento financeiro", detail, amountCents: outstandingCents, amount: money(outstandingCents || entry.amountCents), dueDate: entry.dueDate ? new Intl.DateTimeFormat("pt-BR").format(entry.dueDate) : "Sem vencimento", paidAt: entry.paidAt ? new Intl.DateTimeFormat("pt-BR").format(entry.paidAt) : "", status: entry.status === "PAID" || !outstandingCents ? "paid" : overdue ? "overdue" : "open", urgency: overdue ? "overdue" : daysUntilDue !== null && daysUntilDue <= 5 ? "soon" : "normal", hasCharge: Boolean(entry.onlinePaymentUrl), paymentUrl: entry.onlinePaymentUrl };
+    return { id: entry.id, description: entry.description || "Lançamento financeiro", detail, amountCents: outstandingCents, amount: money(outstandingCents || entry.amountCents), dueDate: entry.dueDate ? new Intl.DateTimeFormat("pt-BR").format(entry.dueDate) : "Sem vencimento", paidAt: entry.paidAt ? new Intl.DateTimeFormat("pt-BR").format(entry.paidAt) : "", status: entry.status === "PAID" || !outstandingCents ? "paid" : overdue ? "overdue" : "open", urgency: entry.status === "PAID" || !outstandingCents ? "normal" : getPortalDueUrgency(entry.dueDate, today, entry.status), hasCharge: Boolean(entry.onlinePaymentUrl), paymentUrl: entry.onlinePaymentUrl };
   });
   const open = rows.filter((entry) => entry.status === "open" && shouldShowPortalReceivable({ status: entry.status, dueDate: entries.find((source) => source.id === entry.id)?.dueDate ?? null, outstandingCents: entry.amountCents }, today, deadline));
   const overdue = rows.filter((entry) => entry.status === "overdue");
