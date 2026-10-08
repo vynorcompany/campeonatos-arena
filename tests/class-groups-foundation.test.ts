@@ -55,7 +55,7 @@ test("athlete portal offers active class groups as requests instead of direct en
   assert.match(actions, /requirePublicPlayerAuth/);
 });
 
-test("athlete portal shows class groups only below the selected teacher", () => {
+test("athlete portal shows class groups only for the selected weekday", () => {
   const portal = readFileSync(
     resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"),
     "utf8",
@@ -65,7 +65,8 @@ test("athlete portal shows class groups only below the selected teacher", () => 
     "utf8",
   );
 
-  assert.match(portal, /const selectedClassGroups = selectedTeacher/);
+  assert.match(portal, /const selectedClassGroups = groups/);
+  assert.match(portal, /schedule\.weekday === selectedDay/);
   assert.match(
     portal,
     /viewStyles\.portal_class_group_list/,

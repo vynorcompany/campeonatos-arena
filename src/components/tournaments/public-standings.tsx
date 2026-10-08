@@ -182,7 +182,7 @@ export function PublicStandings({
   leagueTab = "games",
   leagueCategoryId,
   bookingDate,
-  teacherId,
+  weekday,
 }: {
   data: ArenaPublicStandings | null;
   arena: PublicArenaShell;
@@ -218,7 +218,7 @@ export function PublicStandings({
   leagueTab?: LeagueTab;
   leagueCategoryId?: string;
   bookingDate?: string;
-  teacherId?: string;
+  weekday?: string;
 }) {
   const portalHref = (
     section: PortalSection,
@@ -475,7 +475,7 @@ export function PublicStandings({
       ) : requestedSection === "lessons" ? (
         <LessonsPanel portal={portal} />
       ) : requestedSection === "classes" ? (
-        <ClassesPanel portal={portal} teacherId={teacherId} arenaSlug={arena.slug} />
+        <ClassesPanel portal={portal} weekday={weekday} arenaSlug={arena.slug} />
       ) : requestedSection === "teacher" && currentClient.isTeacher ? (
         <TeacherManagementPanel portal={portal} />
       ) : (
@@ -776,68 +776,67 @@ function LessonsPanel({ portal }: { portal: Portal }) {
   );
 }
 
+function classGroupRemainingSeats(group: NonNullable<Portal>["classGroups"][number]) {
+  return Math.max(0, Math.min(...group.schedules.map((schedule) => schedule.capacity)) - group.enrolledCount);
+}
+
+function classGroupSeatsLabel(group: NonNullable<Portal>["classGroups"][number]) {
+  const remaining = classGroupRemainingSeats(group);
+  return remaining === 0 ? "Sem vagas" : `${remaining} ${remaining === 1 ? "vaga restante" : "vagas restantes"}`;
+}
+
 function ClassesPanel({
   portal,
-  teacherId,
+  weekday,
   arenaSlug,
 }: {
   portal: Portal;
-  teacherId?: string;
+  weekday?: string;
   arenaSlug: string;
 }) {
-  const teachers = portal?.teachers ?? [];
-  const selectedTeacher = teachers.find((teacher) => teacher.id === teacherId);
-  const selectedClassGroups = selectedTeacher
-    ? (portal?.classGroups ?? [])
-        .filter((group) => group.teacherId === selectedTeacher.id)
-        .sort((first, second) => {
-          const firstSchedule = [...first.schedules].sort(
-            (a, b) =>
-              a.weekday - b.weekday || a.startTime.localeCompare(b.startTime),
-          )[0];
-          const secondSchedule = [...second.schedules].sort(
-            (a, b) =>
-              a.weekday - b.weekday || a.startTime.localeCompare(b.startTime),
-          )[0];
-          return (
-            (firstSchedule?.weekday ?? 7) - (secondSchedule?.weekday ?? 7) ||
-            (firstSchedule?.startTime ?? "").localeCompare(
-              secondSchedule?.startTime ?? "",
-            )
-          );
-        })
-    : [];
-  const weekdays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  const weekdays = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+  const groups = portal?.classGroups ?? [];
+  const selectedDay = weekday && /^[0-6]$/.test(weekday)
+    ? Number(weekday)
+    : [1, 2, 3, 4, 5, 6, 0].find((day) => groups.some((group) => group.schedules.some((schedule) => schedule.weekday === day))) ?? 1;
+  const selectedClassGroups = groups
+    .filter((group) => group.schedules.some((schedule) => schedule.weekday === selectedDay))
+    .sort((first, second) =>
+      first.schedules.find((schedule) => schedule.weekday === selectedDay)!.startTime.localeCompare(
+        second.schedules.find((schedule) => schedule.weekday === selectedDay)!.startTime,
+      ) || first.teacherName.localeCompare(second.teacherName, "pt-BR"),
+    );
   return <>
     <div className="tw:viewport-700:hidden"><section className={viewStyles.athlete_portal_content_panel_athlete_portal_learning_panel_2}>
       <header className={viewStyles.athlete_portal_learning_heading}>
         <span>TURMAS</span>
         <h2>Encontre sua turma</h2>
-        <p>Escolha um professor para ver as turmas disponíveis.</p>
+        <p>Escolha o dia para ver horários e vagas de cada professor.</p>
         <EventNavIcon icon="players" />
       </header>
       <div className={viewStyles.portal_teacher_picker}>
-        <strong>Professores</strong>
-        {teachers.length ? (
-          <div>
-            {teachers.map((teacher) => (
+        <strong>Dias da semana</strong>
+        {groups.length ? (
+          <div className="tw:grid! tw:grid-cols-7! tw:gap-2!">
+            {[1, 2, 3, 4, 5, 6, 0].map((day) => (
               <Link
-                className={cx(selectedTeacher?.id === teacher.id ? "active" : "")}
-                href={`/home?arena=${encodeURIComponent(arenaSlug)}&section=classes&teacher=${encodeURIComponent(teacher.id)}`}
-                key={teacher.id}
+                aria-label={weekdays[day]}
+                className={cx("tw:min-w-0! tw:justify-center! tw:px-1! tw:text-center! tw:after:hidden!", selectedDay === day ? "active" : "")}
+                href={`/home?arena=${encodeURIComponent(arenaSlug)}&section=classes&weekday=${day}`}
+                key={day}
               >
-                {teacher.name}
+                {weekdays[day].slice(0, 3)}
               </Link>
             ))}
           </div>
         ) : (
-          <span>Nenhum professor ativo cadastrado.</span>
+          <span>Nenhuma turma cadastrada.</span>
         )}
       </div>
-      {selectedTeacher ? (
+      {groups.length ? (
         <section className={viewStyles.portal_selected_teacher_section}>
           <strong className={viewStyles.portal_selected_teacher}>
-            Turmas de {selectedTeacher.name}
+            {weekdays[selectedDay]}
           </strong>
           <div className={viewStyles.portal_class_group_list}>
             {selectedClassGroups.length ? (
@@ -847,16 +846,17 @@ function ClassesPanel({
                   className={
                     cx(group.available
                       ? "portal-class-group-available"
-                      : "portal-class-group-full")
+                      : "portal-class-group-full tw:border-[#ae6b6b]! tw:bg-[#3d2a30]! tw:[&_strong]:text-white! tw:[&_small]:text-[#f0d9d9]!")
                   }
                 >
                   <div>
-                    <strong>{group.name}</strong>
+                    <strong>{group.teacherName} · {group.name}</strong>
                     <small>
                       {group.schedules
+                        .filter((schedule) => schedule.weekday === selectedDay)
                         .map(
                           (schedule) =>
-                            `${weekdays[schedule.weekday]} ${schedule.startTime} · ${schedule.capacity} vagas`,
+                            `${schedule.startTime} · ${classGroupSeatsLabel(group)}`,
                         )
                         .join("  |  ")}
                     </small>
@@ -893,23 +893,30 @@ function ClassesPanel({
               ))
             ) : (
               <p className={viewStyles.muted}>
-                Este professor não possui turmas disponíveis no momento.
+                Não há turmas neste dia.
               </p>
             )}
           </div>
         </section>
       ) : (
         <p className={viewStyles.portal_teacher_hint}>
-          Escolha um professor para ver as turmas disponíveis.
+          Nenhuma turma cadastrada.
         </p>
       )}
     </section></div>
     <section className="tw:mx-3 tw:mt-3 tw:mb-24 tw:hidden tw:grid-cols-1 tw:gap-3 tw:viewport-700:grid">
       <div className="tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-4 tw:dark:border-[#3e8b70] tw:dark:bg-[#104c3b]">
         <h2 className="tw:mt-0 tw:mb-3 tw:text-lg tw:font-semibold tw:text-[#133047] tw:dark:text-[#eafff3]">Turmas</h2>
-        {teachers.length ? <nav className="tw:flex tw:flex-wrap tw:gap-2" aria-label="Escolher professor">{teachers.map((teacher) => <Link key={teacher.id} href={`/home?arena=${encodeURIComponent(arenaSlug)}&section=classes&teacher=${encodeURIComponent(teacher.id)}`} className={cx("tw:rounded-full tw:border tw:px-3 tw:py-2 tw:text-xs tw:font-medium tw:no-underline", selectedTeacher?.id === teacher.id ? "tw:border-[#078f7c] tw:bg-[#def2ed] tw:text-[#087b63] tw:dark:border-[#5bdec1] tw:dark:bg-[#16483d] tw:dark:text-[#5bdec1]" : "tw:border-[#d8e5e9] tw:bg-[#f5f8f8] tw:text-[#133047] tw:dark:border-[#2a6155] tw:dark:bg-[#104138] tw:dark:text-[#eafff3]")}>{teacher.name}</Link>)}</nav> : <p className="tw:m-0 tw:text-sm tw:text-[#607e8d] tw:dark:text-[#a4c8b9]">Nenhum professor ativo cadastrado.</p>}
+        {groups.length ? <nav className="tw:grid tw:grid-cols-7 tw:gap-1" aria-label="Escolher dia da semana">{[1, 2, 3, 4, 5, 6, 0].map((day) => <Link key={day} aria-label={weekdays[day]} href={`/home?arena=${encodeURIComponent(arenaSlug)}&section=classes&weekday=${day}`} className={cx("tw:grid tw:min-h-11 tw:min-w-0 tw:place-items-center tw:rounded-xl tw:border tw:text-xs tw:font-semibold tw:no-underline", selectedDay === day ? "tw:border-[#078f7c] tw:bg-[#def2ed] tw:text-[#087b63] tw:dark:border-[#5bdec1] tw:dark:bg-[#16483d] tw:dark:text-[#5bdec1]" : "tw:border-[#d8e5e9] tw:bg-[#f5f8f8] tw:text-[#133047] tw:dark:border-[#2a6155] tw:dark:bg-[#104138] tw:dark:text-[#eafff3]")}>{weekdays[day].slice(0, 3)}</Link>)}</nav> : <p className="tw:m-0 tw:text-sm tw:text-[#607e8d] tw:dark:text-[#a4c8b9]">Nenhuma turma cadastrada.</p>}
       </div>
-      {selectedTeacher ? <div className="tw:grid tw:gap-2"><h3 className="tw:mt-1 tw:mb-0 tw:text-sm tw:font-semibold tw:text-[#133047] tw:dark:text-[#eafff3]">Turmas de {selectedTeacher.name}</h3>{selectedClassGroups.length ? selectedClassGroups.map((group) => <article key={group.id} className="tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-4 tw:text-[#133047] tw:dark:border-[#3e8b70] tw:dark:bg-[#104c3b] tw:dark:text-[#eafff3]"><div className="tw:flex tw:items-start tw:justify-between tw:gap-2"><strong className="tw:text-sm">{group.name}</strong><span className={cx("tw:shrink-0 tw:rounded-full tw:px-2 tw:py-1 tw:text-[.65rem] tw:font-semibold", group.available ? "tw:bg-[#def2ed] tw:text-[#087b63] tw:dark:bg-[#16483d] tw:dark:text-[#5bdec1]" : "tw:bg-[#f2f4f4] tw:text-[#607e8d] tw:dark:bg-[#104138] tw:dark:text-[#a4c8b9]")}>{group.available ? "Vagas abertas" : "Sem vagas"}</span></div><p className="tw:mt-2 tw:mb-3 tw:text-xs tw:text-[#607e8d] tw:dark:text-[#a4c8b9]">{group.schedules.map((schedule) => `${weekdays[schedule.weekday]} ${schedule.startTime} · ${schedule.capacity} vagas`).join(" · ")}</p>{group.enrolled ? <span className="tw:text-xs tw:font-semibold tw:text-[#087b63] tw:dark:text-[#5bdec1]">Você participa</span> : group.requestPending ? <span className="tw:text-xs tw:font-semibold tw:text-[#a86100] tw:dark:text-[#ffd18a]">Solicitação enviada</span> : group.available ? <SafeActionForm action={requestClassGroupAction} successMessage="Solicitação enviada para a arena."><input type="hidden" name="arenaSlug" value={portal?.arenaSlug ?? ""} /><input type="hidden" name="classGroupId" value={group.id} /><SubmitButton label="Solicitar vaga" pendingLabel="Enviando..." className="tw:w-full tw:rounded-xl tw:bg-[#078f7c] tw:px-3 tw:py-2 tw:text-sm tw:font-semibold tw:text-white tw:dark:bg-[#5bdec1] tw:dark:text-[#082b34]" /></SafeActionForm> : null}</article>) : <p className="tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-4 tw:text-sm tw:text-[#607e8d] tw:dark:border-[#3e8b70] tw:dark:bg-[#104c3b] tw:dark:text-[#a4c8b9]">Este professor não possui turmas disponíveis.</p>}</div> : teachers.length ? <p className="tw:m-0 tw:text-sm tw:text-[#607e8d] tw:dark:text-[#a4c8b9]">Escolha um professor para ver as turmas.</p> : null}
+      {groups.length ? <div className="tw:grid tw:gap-2">
+        <h3 className="tw:mt-1 tw:mb-0 tw:text-sm tw:font-semibold tw:text-[#133047] tw:dark:text-[#eafff3]">{weekdays[selectedDay]}</h3>
+        {selectedClassGroups.length ? selectedClassGroups.map((group) => <article key={group.id} className="tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-4 tw:text-[#133047] tw:dark:border-[#3e8b70] tw:dark:bg-[#104c3b] tw:dark:text-[#eafff3]">
+          <div className="tw:flex tw:items-start tw:justify-between tw:gap-2"><strong className="tw:text-sm">{group.teacherName} · {group.name}</strong>{group.enrolled ? <span className="tw:text-xs tw:font-semibold tw:text-[#087b63] tw:dark:text-[#5bdec1]">Você participa</span> : group.requestPending ? <span className="tw:text-xs tw:font-semibold tw:text-[#a86100] tw:dark:text-[#ffd18a]">Solicitação enviada</span> : null}</div>
+          <div className="tw:mt-3 tw:grid tw:gap-2">{group.schedules.filter((schedule) => schedule.weekday === selectedDay).map((schedule, index) => <div key={`${schedule.startTime}-${index}`} className="tw:flex tw:items-center tw:justify-between tw:gap-2 tw:rounded-xl tw:bg-[#f5f8f8] tw:px-3 tw:py-2 tw:text-sm tw:dark:bg-[#104138]"><span>{schedule.startTime}</span><span>{classGroupSeatsLabel(group)}</span></div>)}</div>
+          {!group.enrolled && !group.requestPending && group.available ? <SafeActionForm action={requestClassGroupAction} successMessage="Solicitação enviada para a arena." className="tw:mt-3"><input type="hidden" name="arenaSlug" value={portal?.arenaSlug ?? ""} /><input type="hidden" name="classGroupId" value={group.id} /><SubmitButton label="Solicitar vaga" pendingLabel="Enviando..." className="tw:w-full tw:rounded-xl tw:border-0! tw:bg-[#078f7c] tw:px-3 tw:py-2 tw:text-sm tw:font-semibold tw:text-white tw:dark:bg-[#5bdec1] tw:dark:text-[#082b34]" /></SafeActionForm> : null}
+        </article>) : <p className="tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-4 tw:text-sm tw:text-[#607e8d] tw:dark:border-[#3e8b70] tw:dark:bg-[#104c3b] tw:dark:text-[#a4c8b9]">Não há turmas neste dia.</p>}
+      </div> : null}
     </section>
   </>;
 }

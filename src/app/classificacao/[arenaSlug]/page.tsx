@@ -24,7 +24,7 @@ export default async function PublicStandingsPage(
       section?: string;
       leagueTab?: string;
       leagueCategory?: string;
-      teacher?: string;
+      weekday?: string;
       financeTab?: string;
       radarGender?: string;
       radarCategory?: string;
@@ -63,5 +63,5 @@ export default async function PublicStandingsPage(
   ]) : [null, null, null, null, null, null, []];
   const leagueTab = searchParams?.leagueTab === "pairs" || searchParams?.leagueTab === "ranking" || searchParams?.leagueTab === "rules" || searchParams?.leagueTab === "prizes" ? searchParams.leagueTab : "games";
   const authReturnTo = `/classificacao/${encodeURIComponent(params.arenaSlug)}?section=${section}${searchParams?.data ? `&data=${encodeURIComponent(searchParams.data)}` : ""}`;
-  return <PublicStandings data={data} arena={arena} currentClient={currentClient} athleteArenas={athleteIdentity?.arenas ?? []} portal={portal} home={home} finance={finance} comandas={comandas} radar={radar} radarGender={searchParams?.radarGender} radarCategory={searchParams?.radarCategory} super12={super12} notifications={notifications} eventTab={searchParams?.eventTab === "super12" ? "super12" : searchParams?.eventTab === "radar" ? "radar" : "leagues"} eventRadarView={searchParams?.eventRadarView === "all" ? "all" : "region"} super12Id={searchParams?.super12} financeTab={searchParams?.financeTab === "history" ? "history" : "upcoming"} section={section} leagueTab={leagueTab} leagueCategoryId={searchParams?.leagueCategory} bookingDate={searchParams?.data} teacherId={searchParams?.teacher} authForm={<PublicClientAuthForm arenaSlug={params.arenaSlug} returnTo={authReturnTo} />} />;
+  return <PublicStandings data={data} arena={arena} currentClient={currentClient} athleteArenas={athleteIdentity?.arenas ?? []} portal={portal} home={home} finance={finance} comandas={comandas} radar={radar} radarGender={searchParams?.radarGender} radarCategory={searchParams?.radarCategory} super12={super12} notifications={notifications} eventTab={searchParams?.eventTab === "super12" ? "super12" : searchParams?.eventTab === "radar" ? "radar" : "leagues"} eventRadarView={searchParams?.eventRadarView === "all" ? "all" : "region"} super12Id={searchParams?.super12} financeTab={searchParams?.financeTab === "history" ? "history" : "upcoming"} section={section} leagueTab={leagueTab} leagueCategoryId={searchParams?.leagueCategory} bookingDate={searchParams?.data} weekday={searchParams?.weekday} authForm={<PublicClientAuthForm arenaSlug={params.arenaSlug} returnTo={authReturnTo} />} />;
 }
