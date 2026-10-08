@@ -670,6 +670,7 @@ export async function getPublicLeaguePortal(
         startTime: schedule.startTime,
         capacity: schedule.capacity,
       })),
+      enrolledCount: group.enrollments.length,
       enrolled: group.enrollments.some(
         (enrollment) => enrollment.studentId === student?.id,
       ),

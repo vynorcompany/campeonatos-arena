@@ -101,17 +101,20 @@ test("athlete portal exposes the main modules and League submenus", () => {
   assert.match(view, /portal-league-prize-podium/);
   assert.match(view, /section === "booking"/);
   assert.match(view, /PublicBookingContent/);
-  assert.match(view, /Escolha um professor para ver as turmas disponíveis/);
-  assert.match(view, /teacherId/);
+  assert.match(view, /Escolha o dia para ver horários e vagas de cada professor/);
+  assert.match(view, /weekday=\$\{day\}/);
   assert.match(leaguePortal, /LeagueMatchScheduleModal/);
   assert.match(leaguePortal, /Reserva confirmada/);
 });
 
-test("portal classes are available by teacher instead of a student plan", () => {
+test("portal classes are selected by weekday and show each teacher's remaining seats", () => {
   const portal = readFileSync(resolve(process.cwd(), "src/lib/services/public-league-portal.ts"), "utf8");
   const view = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"), "utf8");
   assert.match(portal, /tx\.teacher\.findMany/);
   assert.match(view, /Encontre sua turma/);
+  assert.match(view, /group\.teacherName/);
+  assert.match(view, /classGroupRemainingSeats\(group\)/);
+  assert.match(portal, /enrolledCount: group\.enrollments\.length/);
   assert.doesNotMatch(view, /Seu plano de aulas/);
 });
 
