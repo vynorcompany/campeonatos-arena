@@ -21,29 +21,34 @@ const availabilityCopy = {
 const radarGenders = ["Feminino", "Masculino", "Outro"];
 const radarCategories = ["Iniciante", "7ª categoria", "6ª categoria", "5ª categoria", "4ª categoria", "3ª categoria", "2ª categoria", "1ª categoria", "Profissional"];
 const mobileRadarSkin = [
-  "tw:viewport-700:border-[#d8e5e9]! tw:viewport-700:bg-white! tw:viewport-700:p-0! tw:viewport-700:dark:border-[#244759]! tw:viewport-700:dark:bg-[#102f42]!",
+  "tw:viewport-700:border-[#d8e5e9]! tw:viewport-700:bg-white! tw:viewport-700:p-0! tw:viewport-700:dark:border-[#2a6155]! tw:viewport-700:dark:bg-[#0b302a]!",
   "tw:viewport-700:[&_.doubles-radar-hero]:min-h-0! tw:viewport-700:[&_.doubles-radar-hero]:bg-transparent! tw:viewport-700:[&_.doubles-radar-hero]:[background-image:none]! tw:viewport-700:[&_.doubles-radar-hero_>_span]:hidden!",
-  "tw:viewport-700:[&_.doubles-radar-hero_h2]:text-[#133047]! tw:viewport-700:[&_.doubles-radar-hero_p]:text-[#607e8d]! tw:viewport-700:dark:[&_.doubles-radar-hero_h2]:text-[#eff8f8]! tw:viewport-700:dark:[&_.doubles-radar-hero_p]:text-[#a1bccb]!",
+  "tw:viewport-700:[&_.doubles-radar-hero_h2]:text-[#133047]! tw:viewport-700:[&_.doubles-radar-hero_p]:text-[#607e8d]! tw:viewport-700:dark:[&_.doubles-radar-hero_h2]:text-[#eafff3]! tw:viewport-700:dark:[&_.doubles-radar-hero_p]:text-[#a4c8b9]!",
   "tw:viewport-700:[&_.doubles-radar-status]:border-[#d8e5e9]! tw:viewport-700:[&_.doubles-radar-status]:bg-[#f5f8f8]! tw:viewport-700:[&_.doubles-radar-status]:[background-image:none]! tw:viewport-700:[&_.doubles-radar-status_strong]:text-[#133047]! tw:viewport-700:[&_.doubles-radar-status_p]:text-[#607e8d]!",
-  "tw:viewport-700:dark:[&_.doubles-radar-status]:border-[#244759]! tw:viewport-700:dark:[&_.doubles-radar-status]:bg-[#14374a]! tw:viewport-700:dark:[&_.doubles-radar-status_strong]:text-[#eff8f8]! tw:viewport-700:dark:[&_.doubles-radar-status_p]:text-[#a1bccb]!",
+  "tw:viewport-700:dark:[&_.doubles-radar-status]:border-[#2a6155]! tw:viewport-700:dark:[&_.doubles-radar-status]:bg-[#104138]! tw:viewport-700:dark:[&_.doubles-radar-status_strong]:text-[#eafff3]! tw:viewport-700:dark:[&_.doubles-radar-status_p]:text-[#a4c8b9]!",
   "tw:viewport-700:[&_.doubles-radar-status_button]:bg-[#078f7c]! tw:viewport-700:[&_.doubles-radar-status_button]:[background-image:none]! tw:viewport-700:dark:[&_.doubles-radar-status_button]:bg-[#5bdec1]!",
   "tw:viewport-700:[&_.doubles-radar-filters]:border-[#d8e5e9]! tw:viewport-700:[&_.doubles-radar-filters]:bg-white! tw:viewport-700:[&_.doubles-radar-filters]:[background-image:none]! tw:viewport-700:[&_.doubles-radar-filters_strong]:text-[#133047]! tw:viewport-700:[&_.doubles-radar-filters_label]:text-[#133047]!",
   "tw:viewport-700:[&_.doubles-radar-filters_select]:border-[#c9dbe2]! tw:viewport-700:[&_.doubles-radar-filters_select]:bg-[#f5f8f8]! tw:viewport-700:[&_.doubles-radar-filters_select]:text-[#133047]!",
   "tw:viewport-700:[&_.doubles-radar-filters_select]:[background-image:none]!",
-  "tw:viewport-700:dark:[&_.doubles-radar-filters]:border-[#244759]! tw:viewport-700:dark:[&_.doubles-radar-filters]:bg-[#102f42]! tw:viewport-700:dark:[&_.doubles-radar-filters_strong]:text-[#eff8f8]! tw:viewport-700:dark:[&_.doubles-radar-filters_label]:text-[#eff8f8]!",
-  "tw:viewport-700:dark:[&_.doubles-radar-filters_select]:border-[#366075]! tw:viewport-700:dark:[&_.doubles-radar-filters_select]:bg-[#14374a]! tw:viewport-700:dark:[&_.doubles-radar-filters_select]:text-[#eff8f8]!",
+  "tw:viewport-700:dark:[&_.doubles-radar-filters]:border-[#2a6155]! tw:viewport-700:dark:[&_.doubles-radar-filters]:bg-[#0b302a]! tw:viewport-700:dark:[&_.doubles-radar-filters_strong]:text-[#eafff3]! tw:viewport-700:dark:[&_.doubles-radar-filters_label]:text-[#eafff3]!",
+  "tw:viewport-700:dark:[&_.doubles-radar-filters_select]:border-[#3b7164]! tw:viewport-700:dark:[&_.doubles-radar-filters_select]:bg-[#104138]! tw:viewport-700:dark:[&_.doubles-radar-filters_select]:text-[#eafff3]!",
   "tw:viewport-700:[&_.doubles-radar-filters_button]:bg-[#078f7c]! tw:viewport-700:dark:[&_.doubles-radar-filters_button]:bg-[#5bdec1]!",
-  "tw:viewport-700:[&_.doubles-radar-list_>_header_strong]:text-[#133047]! tw:viewport-700:dark:[&_.doubles-radar-list_>_header_strong]:text-[#eff8f8]!",
+  "tw:viewport-700:[&_.doubles-radar-list_>_header_strong]:text-[#133047]! tw:viewport-700:dark:[&_.doubles-radar-list_>_header_strong]:text-[#eafff3]!",
+  "tw:viewport-700:[&_.doubles-radar-list_article]:border-[#d8e5e9]! tw:viewport-700:[&_.doubles-radar-list_article]:bg-white! tw:viewport-700:[&_.doubles-radar-list_article]:[background-image:none]! tw:viewport-700:[&_.doubles-radar-list_article_strong]:text-[#133047]! tw:viewport-700:[&_.doubles-radar-list_article_p]:text-[#607e8d]! tw:viewport-700:[&_.doubles-radar-list_article_small]:text-[#607e8d]!",
+  "tw:viewport-700:dark:[&_.doubles-radar-list_article]:border-[#2a6155]! tw:viewport-700:dark:[&_.doubles-radar-list_article]:bg-[#0b302a]! tw:viewport-700:dark:[&_.doubles-radar-list_article_strong]:text-[#eafff3]! tw:viewport-700:dark:[&_.doubles-radar-list_article_p]:text-[#a4c8b9]! tw:viewport-700:dark:[&_.doubles-radar-list_article_small]:text-[#a4c8b9]!",
+  "tw:viewport-700:[&_.doubles-radar-list_article_a]:border-[#c9dbe2]! tw:viewport-700:[&_.doubles-radar-list_article_a]:bg-[#f5f8f8]! tw:viewport-700:[&_.doubles-radar-list_article_a]:text-[#087b63]! tw:viewport-700:dark:[&_.doubles-radar-list_article_a]:border-[#3b7164]! tw:viewport-700:dark:[&_.doubles-radar-list_article_a]:bg-[#104138]! tw:viewport-700:dark:[&_.doubles-radar-list_article_a]:text-[#5bdec1]!",
+  "tw:viewport-700:[&_.doubles-radar-availability]:bg-[#def2ed]! tw:viewport-700:[&_.doubles-radar-availability]:text-[#087b63]! tw:viewport-700:dark:[&_.doubles-radar-availability]:bg-[#16483d]! tw:viewport-700:dark:[&_.doubles-radar-availability]:text-[#5bdec1]!",
+  "tw:viewport-700:[&_.doubles-radar-profile]:border-[#d8e5e9]! tw:viewport-700:[&_.doubles-radar-profile]:bg-white! tw:viewport-700:[&_.doubles-radar-profile_h3]:text-[#133047]! tw:viewport-700:[&_.doubles-radar-profile_p]:text-[#607e8d]! tw:viewport-700:dark:[&_.doubles-radar-profile]:border-[#2a6155]! tw:viewport-700:dark:[&_.doubles-radar-profile]:bg-[#0b302a]! tw:viewport-700:dark:[&_.doubles-radar-profile_h3]:text-[#eafff3]! tw:viewport-700:dark:[&_.doubles-radar-profile_p]:text-[#a4c8b9]!",
   "tw:viewport-700:[&_.doubles-radar-empty]:bg-[#f5f8f8]! tw:viewport-700:[&_.doubles-radar-empty_strong]:text-[#133047]! tw:viewport-700:[&_.doubles-radar-empty_span]:text-[#607e8d]!",
-  "tw:viewport-700:dark:[&_.doubles-radar-empty]:bg-[#14374a]! tw:viewport-700:dark:[&_.doubles-radar-empty_strong]:text-[#eff8f8]! tw:viewport-700:dark:[&_.doubles-radar-empty_span]:text-[#a1bccb]!",
+  "tw:viewport-700:dark:[&_.doubles-radar-empty]:bg-[#104138]! tw:viewport-700:dark:[&_.doubles-radar-empty_strong]:text-[#eafff3]! tw:viewport-700:dark:[&_.doubles-radar-empty_span]:text-[#a4c8b9]!",
 ].join(" ");
 
-function href(filters: { gender?: string; category?: string; athleteId?: string }) {
-  const query = new URLSearchParams({ section: "radar" });
+function href(arenaSlug: string, filters: { gender?: string; category?: string; athleteId?: string }) {
+  const query = new URLSearchParams({ arena: arenaSlug, section: "radar" });
   if (filters.gender) query.set("radarGender", filters.gender);
   if (filters.category) query.set("radarCategory", filters.category);
   if (filters.athleteId) query.set("athlete", filters.athleteId);
-  return `?${query.toString()}`;
+  return `/home?${query.toString()}`;
 }
 
 export function PublicDoublesRadar({
@@ -74,7 +79,7 @@ export function PublicDoublesRadar({
     </header>
 
     {radar.selectedAthlete ? <section className={viewStyles.doubles_radar_profile}>
-      <Link href={href({ gender: selectedGender, category: selectedCategory })} className={viewStyles.doubles_radar_back}>← Voltar ao Radar</Link>
+      <Link href={href(arenaSlug, { gender: selectedGender, category: selectedCategory })} className={viewStyles.doubles_radar_back}>← Voltar ao Radar</Link>
       <PlayerAvatar className={viewStyles.doubles_radar_profile_avatar} photoUrl={radar.selectedAthlete.photoUrl} name={radar.selectedAthlete.name} />
       <div><span className={viewStyles.doubles_radar_availability}>{radar.selectedAthlete.availability === "LOOKING_FOR_PARTNER" ? "Procurando dupla" : "Disponível para torneio"}</span><h3>{radar.selectedAthlete.name}</h3><p>Perfil esportivo disponível para atletas da {" "}arena.</p></div>
       <dl><div><dt>Categorias</dt><dd>{radar.selectedAthlete.categories.join(" · ")}</dd></div><div><dt>Gênero</dt><dd>{radar.selectedAthlete.gender || "Não informado"}</dd></div><div><dt>Lado de jogo</dt><dd>{sideLabel[radar.selectedAthlete.padelSide] ?? "Ainda não informado"}</dd></div></dl>
@@ -95,18 +100,19 @@ export function PublicDoublesRadar({
         {radar.notifications.map((notification) => <article key={notification.id}><span aria-hidden="true"><RadarIcon icon="radar" /></span><div><b>{notification.title}</b><p>{notification.message}</p></div></article>)}
       </section> : null}
 
-      <form className={viewStyles.doubles_radar_filters} method="get">
+      <form className={viewStyles.doubles_radar_filters} method="get" action="/home">
+        <input type="hidden" name="arena" value={arenaSlug} />
         <input type="hidden" name="section" value="radar" />
         <strong><RadarIcon icon="filter" /> Filtrar atletas</strong>
         <label>Sexo<select name="radarGender" defaultValue={selectedGender ?? ""}><option value="">Todos</option>{availableGenders.map((gender) => <option key={gender} value={gender}>{gender}</option>)}</select></label>
         <label>Categoria<select name="radarCategory" defaultValue={selectedCategory ?? ""}><option value="">Todas</option>{availableCategories.map((category) => <option key={category} value={category}>{category}</option>)}</select></label>
-        <div><button className={viewStyles.button_button_primary_button_small} type="submit">Filtrar</button>{selectedGender || selectedCategory ? <Link className={viewStyles.button_button_small} href={href({})}>Limpar</Link> : null}</div>
+        <div><button className={viewStyles.button_button_primary_button_small} type="submit">Filtrar</button>{selectedGender || selectedCategory ? <Link className={viewStyles.button_button_small} href={href(arenaSlug, {})}>Limpar</Link> : null}</div>
       </form>
       <div className={viewStyles.doubles_radar_list}><header><strong>Atletas encontrados</strong><span>{radar.athletes.length} atleta{radar.athletes.length === 1 ? "" : "s"}</span></header>
         {radar.athletes.length ? radar.athletes.map((athlete) => <article key={athlete.id}>
           <PlayerAvatar className={viewStyles.doubles_radar_avatar} photoUrl={athlete.photoUrl} name={athlete.name} />
           <div className={viewStyles.doubles_radar_athlete_copy}><div><strong>{athlete.name}</strong><span className={viewStyles.doubles_radar_availability}>{athlete.availability === "LOOKING_FOR_PARTNER" ? "Procurando dupla" : "Disponível"}</span></div><p>{athlete.categories.join(" · ")} · {athlete.gender || "Gênero não informado"}</p><small>{sideLabel[athlete.padelSide] ?? "Lado de jogo não informado"}</small></div>
-          <Link className={viewStyles.button_button_small} href={href({ gender: selectedGender, category: selectedCategory, athleteId: athlete.id })}>Ver perfil</Link>
+          <Link className={viewStyles.button_button_small} href={href(arenaSlug, { gender: selectedGender, category: selectedCategory, athleteId: athlete.id })}>Ver perfil</Link>
         </article>) : <div className={viewStyles.doubles_radar_empty}><strong>Nenhum atleta encontrado</strong><span>Tente ampliar os filtros ou aguarde novos atletas entrarem no radar.</span></div>}
       </div>
     </>}
