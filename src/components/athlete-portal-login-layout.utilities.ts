@@ -5,6 +5,7 @@ export const viewStyles = {
     "tw:pt-[24px]", "tw:viewport-760:pt-[14px]", "tw:pr-[24px]", "tw:viewport-760:pr-[14px]",
     "tw:pb-[24px]", "tw:viewport-760:pb-[14px]", "tw:pl-[24px]", "tw:viewport-760:pl-[14px]",
     "tw:bg-[color:#f1f5fa]", "tw:[background-image:none]", "tw:viewport-760:[align-items:start]",
+    "tw:viewport-760:dark:bg-[#063629]!", "tw:viewport-760:dark:[background-image:linear-gradient(165deg,#126c4d_0%,#0a4736_38%,#063629_80%)]!",
   ].join(" "),
   "athlete_login_shell": [
     "athlete-login-shell", "tw:grid", "tw:viewport-760:block", "tw:grid-cols-[minmax(330px,_.9fr)_minmax(390px,_1.1fr)]",
@@ -14,6 +15,7 @@ export const viewStyles = {
     "tw:[border-bottom-style:solid]", "tw:border-b-[color:#d9e3ee]", "tw:border-l-[length:1px]", "tw:[border-left-style:solid]",
     "tw:border-l-[color:#d9e3ee]", "tw:rounded-[18px]", "tw:viewport-760:rounded-[13px]", "tw:bg-[color:#fff]",
     "tw:[background-image:none]", "tw:[box-shadow:0_24px_70px_rgb(18_51_86_/_.12)]",
+    "tw:viewport-760:dark:border-[#419378]!", "tw:viewport-760:dark:bg-[#104c3b]!", "tw:viewport-760:dark:[box-shadow:0_20px_50px_rgb(0_20_13_/_.28)]!",
   ].join(" "),
   "athlete_login_brand": [
     "athlete-login-brand", "tw:flex", "tw:min-w-[0]", "tw:flex-col",
@@ -22,6 +24,7 @@ export const viewStyles = {
     "tw:viewport-760:pr-[24px]", "tw:pb-[clamp(28px,_4vw,_54px)]", "tw:viewport-760:pb-[24px]", "tw:pl-[clamp(28px,_4vw,_54px)]",
     "tw:viewport-760:pl-[24px]", "tw:text-[color:#fff]", "tw:bg-[color:transparent]", "tw:[background-image:radial-gradient(circle_at_85%_16%,_rgb(65_166_231_/_.28),_transparent_30%),_linear-gradient(150deg,_#103e77,_#0a2955_72%)]",
     "tw:viewport-760:min-h-[200px]",
+    "tw:viewport-760:dark:[background-image:radial-gradient(circle_at_85%_16%,rgb(91_222_193_/_.23),transparent_35%),linear-gradient(150deg,#17674d,#0d4436_72%)]!",
   ].join(" "),
   "athlete_login_identity": [
     "athlete-login-identity", "tw:flex", "tw:min-w-[0]", "tw:items-center",
@@ -87,5 +90,19 @@ export const viewStyles = {
     "tw:[&_.public-client-auth-tabs_button]:text-[.82rem]", "tw:[&_.public-client-auth-tabs_button.active]:text-[color:#123e71]", "tw:[&_.public-client-auth_.muted]:pt-[17px]", "tw:[&_.public-client-auth_.muted]:border-t-[length:1px]",
     "tw:[&_.public-client-auth_.muted]:[border-top-style:solid]", "tw:[&_.public-client-auth_.muted]:border-t-[color:#e4ebf2]", "tw:[&_.public-client-auth_.muted]:text-[color:#667b91]", "tw:[&_.public-client-auth_.muted]:text-[.78rem]",
     "tw:[&_.public-client-auth_.muted]:leading-[1.5]", "tw:viewport-760:items-start",
+    "tw:viewport-760:dark:bg-[#104c3b]!", "tw:viewport-760:dark:text-[#eafff3]!",
+    "tw:viewport-760:dark:[&_.public-client-auth_header_>_span]:text-[#5bdec1]!",
+    "tw:viewport-760:dark:[&_.public-client-auth_h2]:text-[#eafff3]!",
+    "tw:viewport-760:dark:[&_.public-client-auth_header_p]:text-[#a4c8b9]!",
+    "tw:viewport-760:dark:[&_.public-client-auth_.field]:text-[#eafff3]!",
+    "tw:viewport-760:dark:[&_.public-client-auth_input]:border-[#3b7164]!",
+    "tw:viewport-760:dark:[&_.public-client-auth_input]:bg-[#104138]!",
+    "tw:viewport-760:dark:[&_.public-client-auth_input]:text-[#eafff3]!",
+    "tw:viewport-760:dark:[&_.public-client-auth_input:focus-visible]:[outline:2px_solid_#5bdec1]!",
+    "tw:viewport-760:dark:[&_.public-client-auth-forgot]:text-[#5bdec1]!",
+    "tw:viewport-760:dark:[&_.public-client-auth_.muted]:border-[#2a6155]!",
+    "tw:viewport-760:dark:[&_.public-client-auth_.muted]:text-[#a4c8b9]!",
+    "tw:viewport-760:dark:[&_.public-client-auth_form_>_.button]:bg-[#078f7c]!",
+    "tw:viewport-760:dark:[&_.public-client-auth-actions_.button-primary]:bg-[#078f7c]!",
   ].join(" "),
 } as const;

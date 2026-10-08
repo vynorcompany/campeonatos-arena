@@ -10,6 +10,7 @@ test("mobile dark portal keeps the green identity across its main surfaces", () 
   const finance = read("src/components/public-finance-entry-list.tsx");
   const comandas = read("src/components/portal-client-comandas.tsx");
   const league = read("src/components/tournaments/public-league-portal.tsx");
+  const login = read("src/components/athlete-portal-login-layout.utilities.ts");
 
   assert.match(portal, /tw:viewport-700:dark:\[background-image:linear-gradient\(165deg,#126c4d/);
   assert.match(portal, /tw:dark:\[background-image:radial-gradient\(circle_at_100%_0%,#2a9467/);
@@ -17,4 +18,7 @@ test("mobile dark portal keeps the green identity across its main surfaces", () 
   for (const source of [portal, finance, comandas, league]) {
     assert.match(source, /tw:dark:border-\[#3e8b70\] tw:dark:bg-\[#104c3b\]/);
   }
+  assert.match(login, /tw:viewport-760:dark:bg-\[#063629\]/);
+  assert.match(login, /tw:viewport-760:dark:\[&_.public-client-auth_h2\]:text-\[#eafff3\]/);
+  assert.match(login, /tw:viewport-760:dark:\[&_.public-client-auth_input\]:bg-\[#104138\]/);
 });
