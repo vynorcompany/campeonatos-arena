@@ -84,6 +84,25 @@ test("client home filters financial entries in the database for the signed-in at
   assert.doesNotMatch(home, /entries\.filter\(\(entry\) => entry\.playerId === playerId\)/);
 });
 
+test("mobile home shows the athlete's next reservations and links booking to this arena", () => {
+  const home = read("src/lib/services/public-client-home.ts");
+  const portal = read("src/components/tournaments/public-standings.tsx");
+
+  assert.match(home, /tx\.scheduleOccurrence\.findMany\(\{ where: \{ arenaId: arena\.id, startsAt: \{ gte: now \}/);
+  assert.match(home, /participants: \{ some: \{ playerId \} \}/);
+  assert.match(home, /take: 3/);
+  assert.match(portal, /home\.upcomingReservations\?\.map/);
+  assert.match(portal, /href=\{`\/reservar\/\$\{encodeURIComponent\(arenaSlug\)\}`\}/);
+});
+
+test("doubles radar filters preserve the selected arena", () => {
+  const radar = read("src/components/public-doubles-radar.tsx");
+
+  assert.match(radar, /function href\(arenaSlug: string/);
+  assert.match(radar, /action="\/home"/);
+  assert.match(radar, /name="arena" value=\{arenaSlug\}/);
+});
+
 test("arena can fix, edit, activate, deactivate or delete portal notices and events", () => {
   const editor = read("src/components/portal-editor-panels.tsx");
   const actions = read("src/lib/actions/client-portal.ts");

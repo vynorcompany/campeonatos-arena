@@ -52,84 +52,84 @@ const mobilePortalSkin = [
   "tw:viewport-700:[&_.athlete-portal-content-panel]:[background-image:none]!",
   "tw:viewport-700:[&_.athlete-portal-content-panel]:text-[#133047]!",
   "tw:viewport-700:[&_.athlete-portal-content-panel]:shadow-none!",
-  "tw:viewport-700:dark:[&_.athlete-portal-content-panel]:border-[#244759]!",
-  "tw:viewport-700:dark:[&_.athlete-portal-content-panel]:bg-[#102f42]!",
+  "tw:viewport-700:dark:[&_.athlete-portal-content-panel]:border-[#2a6155]!",
+  "tw:viewport-700:dark:[&_.athlete-portal-content-panel]:bg-[#0b302a]!",
   "tw:viewport-700:dark:[&_.athlete-portal-content-panel]:[background-image:none]!",
-  "tw:viewport-700:dark:[&_.athlete-portal-content-panel]:text-[#eff8f8]!",
+  "tw:viewport-700:dark:[&_.athlete-portal-content-panel]:text-[#eafff3]!",
   "tw:viewport-700:[&_.athlete-portal-content-panel_>_header_>_span]:hidden!",
   "tw:viewport-700:[&_.athlete-portal-content-panel_>_header_h2]:text-[#133047]!",
-  "tw:viewport-700:dark:[&_.athlete-portal-content-panel_>_header_h2]:text-[#eff8f8]!",
+  "tw:viewport-700:dark:[&_.athlete-portal-content-panel_>_header_h2]:text-[#eafff3]!",
   "tw:viewport-700:[&_.athlete-portal-content-panel_>_header_p]:text-[#607e8d]!",
-  "tw:viewport-700:dark:[&_.athlete-portal-content-panel_>_header_p]:text-[#a1bccb]!",
+  "tw:viewport-700:dark:[&_.athlete-portal-content-panel_>_header_p]:text-[#a4c8b9]!",
   "tw:viewport-700:[&_.portal-empty]:border-[#d8e5e9]!",
   "tw:viewport-700:[&_.portal-empty]:bg-[#f5f8f8]!",
   "tw:viewport-700:[&_.portal-empty_strong]:text-[#133047]!",
   "tw:viewport-700:[&_.portal-empty_span]:text-[#607e8d]!",
-  "tw:viewport-700:dark:[&_.portal-empty]:border-[#244759]!",
-  "tw:viewport-700:dark:[&_.portal-empty]:bg-[#14374a]!",
-  "tw:viewport-700:dark:[&_.portal-empty_strong]:text-[#eff8f8]!",
-  "tw:viewport-700:dark:[&_.portal-empty_span]:text-[#a1bccb]!",
+  "tw:viewport-700:dark:[&_.portal-empty]:border-[#2a6155]!",
+  "tw:viewport-700:dark:[&_.portal-empty]:bg-[#104138]!",
+  "tw:viewport-700:dark:[&_.portal-empty_strong]:text-[#eafff3]!",
+  "tw:viewport-700:dark:[&_.portal-empty_span]:text-[#a4c8b9]!",
   "tw:viewport-700:[&_.portal-announcements-feed_article]:border-[#d8e5e9]!",
   "tw:viewport-700:[&_.portal-announcements-feed_article]:bg-[#f5f8f8]!",
   "tw:viewport-700:[&_.portal-announcements-feed_article_strong]:text-[#133047]!",
   "tw:viewport-700:[&_.portal-announcements-feed_article_p]:text-[#607e8d]!",
-  "tw:viewport-700:dark:[&_.portal-announcements-feed_article]:border-[#244759]!",
-  "tw:viewport-700:dark:[&_.portal-announcements-feed_article]:bg-[#14374a]!",
-  "tw:viewport-700:dark:[&_.portal-announcements-feed_article_strong]:text-[#eff8f8]!",
-  "tw:viewport-700:dark:[&_.portal-announcements-feed_article_p]:text-[#a1bccb]!",
+  "tw:viewport-700:dark:[&_.portal-announcements-feed_article]:border-[#2a6155]!",
+  "tw:viewport-700:dark:[&_.portal-announcements-feed_article]:bg-[#104138]!",
+  "tw:viewport-700:dark:[&_.portal-announcements-feed_article_strong]:text-[#eafff3]!",
+  "tw:viewport-700:dark:[&_.portal-announcements-feed_article_p]:text-[#a4c8b9]!",
   "tw:viewport-700:[&_.portal-activity-list_article]:border-[#d8e5e9]!",
   "tw:viewport-700:[&_.portal-activity-list_article]:bg-[#f5f8f8]!",
-  "tw:viewport-700:dark:[&_.portal-activity-list_article]:border-[#244759]!",
-  "tw:viewport-700:dark:[&_.portal-activity-list_article]:bg-[#14374a]!",
+  "tw:viewport-700:dark:[&_.portal-activity-list_article]:border-[#2a6155]!",
+  "tw:viewport-700:dark:[&_.portal-activity-list_article]:bg-[#104138]!",
   "tw:viewport-700:[&_.portal-learning-empty_>_b]:hidden!",
   "tw:viewport-700:[&_.portal-learning-empty]:bg-[#f5f8f8]!",
-  "tw:viewport-700:dark:[&_.portal-learning-empty]:bg-[#14374a]!",
+  "tw:viewport-700:dark:[&_.portal-learning-empty]:bg-[#104138]!",
   "tw:viewport-700:[&_.portal-comanda-empty]:border-[#d8e5e9]!",
   "tw:viewport-700:[&_.portal-comanda-empty]:bg-[#f5f8f8]!",
   "tw:viewport-700:[&_.portal-comanda-empty_strong]:text-[#133047]!",
   "tw:viewport-700:[&_.portal-comanda-empty_p]:text-[#607e8d]!",
-  "tw:viewport-700:dark:[&_.portal-comanda-empty]:border-[#244759]!",
-  "tw:viewport-700:dark:[&_.portal-comanda-empty]:bg-[#14374a]!",
-  "tw:viewport-700:dark:[&_.portal-comanda-empty_strong]:text-[#eff8f8]!",
-  "tw:viewport-700:dark:[&_.portal-comanda-empty_p]:text-[#a1bccb]!",
+  "tw:viewport-700:dark:[&_.portal-comanda-empty]:border-[#2a6155]!",
+  "tw:viewport-700:dark:[&_.portal-comanda-empty]:bg-[#104138]!",
+  "tw:viewport-700:dark:[&_.portal-comanda-empty_strong]:text-[#eafff3]!",
+  "tw:viewport-700:dark:[&_.portal-comanda-empty_p]:text-[#a4c8b9]!",
   "tw:viewport-700:[&_.public-player-profile_label]:text-[#133047]!",
-  "tw:viewport-700:dark:[&_.public-player-profile_label]:text-[#eff8f8]!",
+  "tw:viewport-700:dark:[&_.public-player-profile_label]:text-[#eafff3]!",
   "tw:viewport-700:[&_.public-player-profile_input:not([type=radio])]:border-[#c9dbe2]!",
   "tw:viewport-700:[&_.public-player-profile_input:not([type=radio])]:bg-[#f5f8f8]!",
   "tw:viewport-700:[&_.public-player-profile_input:not([type=radio])]:text-[#133047]!",
-  "tw:viewport-700:dark:[&_.public-player-profile_input:not([type=radio])]:border-[#366075]!",
-  "tw:viewport-700:dark:[&_.public-player-profile_input:not([type=radio])]:bg-[#14374a]!",
-  "tw:viewport-700:dark:[&_.public-player-profile_input:not([type=radio])]:text-[#eff8f8]!",
+  "tw:viewport-700:dark:[&_.public-player-profile_input:not([type=radio])]:border-[#3b7164]!",
+  "tw:viewport-700:dark:[&_.public-player-profile_input:not([type=radio])]:bg-[#104138]!",
+  "tw:viewport-700:dark:[&_.public-player-profile_input:not([type=radio])]:text-[#eafff3]!",
   "tw:viewport-700:[&_.public-player-profile_textarea]:border-[#c9dbe2]!",
   "tw:viewport-700:[&_.public-player-profile_textarea]:bg-[#f5f8f8]!",
   "tw:viewport-700:[&_.public-player-profile_textarea]:text-[#133047]!",
-  "tw:viewport-700:dark:[&_.public-player-profile_textarea]:border-[#366075]!",
-  "tw:viewport-700:dark:[&_.public-player-profile_textarea]:bg-[#14374a]!",
-  "tw:viewport-700:dark:[&_.public-player-profile_textarea]:text-[#eff8f8]!",
+  "tw:viewport-700:dark:[&_.public-player-profile_textarea]:border-[#3b7164]!",
+  "tw:viewport-700:dark:[&_.public-player-profile_textarea]:bg-[#104138]!",
+  "tw:viewport-700:dark:[&_.public-player-profile_textarea]:text-[#eafff3]!",
   "tw:viewport-700:[&_.public-player-profile_textarea::placeholder]:text-[#607e8d]!",
-  "tw:viewport-700:dark:[&_.public-player-profile_textarea::placeholder]:text-[#a1bccb]!",
+  "tw:viewport-700:dark:[&_.public-player-profile_textarea::placeholder]:text-[#a4c8b9]!",
   "tw:viewport-700:[&_.public-player-profile_select]:border-[#c9dbe2]!",
   "tw:viewport-700:[&_.public-player-profile_select]:bg-[#f5f8f8]!",
   "tw:viewport-700:[&_.public-player-profile_select]:text-[#133047]!",
-  "tw:viewport-700:dark:[&_.public-player-profile_select]:border-[#366075]!",
-  "tw:viewport-700:dark:[&_.public-player-profile_select]:bg-[#14374a]!",
-  "tw:viewport-700:dark:[&_.public-player-profile_select]:text-[#eff8f8]!",
+  "tw:viewport-700:dark:[&_.public-player-profile_select]:border-[#3b7164]!",
+  "tw:viewport-700:dark:[&_.public-player-profile_select]:bg-[#104138]!",
+  "tw:viewport-700:dark:[&_.public-player-profile_select]:text-[#eafff3]!",
   "tw:viewport-700:[&_.avatar-crop-preview]:size-28!",
   "tw:viewport-700:[&_.public-player-padel-profile]:border-[#d8e5e9]!",
   "tw:viewport-700:[&_.public-player-padel-profile]:bg-[#f5f8f8]!",
   "tw:viewport-700:[&_.public-player-padel-profile]:[background-image:none]!",
   "tw:viewport-700:[&_.public-player-padel-profile_legend]:text-[#133047]!",
   "tw:viewport-700:[&_.public-player-padel-profile_p]:text-[#607e8d]!",
-  "tw:viewport-700:dark:[&_.public-player-padel-profile]:border-[#366075]!",
-  "tw:viewport-700:dark:[&_.public-player-padel-profile]:bg-[#14374a]!",
-  "tw:viewport-700:dark:[&_.public-player-padel-profile_legend]:text-[#eff8f8]!",
-  "tw:viewport-700:dark:[&_.public-player-padel-profile_p]:text-[#a1bccb]!",
+  "tw:viewport-700:dark:[&_.public-player-padel-profile]:border-[#3b7164]!",
+  "tw:viewport-700:dark:[&_.public-player-padel-profile]:bg-[#104138]!",
+  "tw:viewport-700:dark:[&_.public-player-padel-profile_legend]:text-[#eafff3]!",
+  "tw:viewport-700:dark:[&_.public-player-padel-profile_p]:text-[#a4c8b9]!",
   "tw:viewport-700:[&_.public-player-padel-categories_label]:border-[#d8e5e9]!",
   "tw:viewport-700:[&_.public-player-padel-categories_label]:bg-white!",
   "tw:viewport-700:[&_.public-player-padel-categories_label]:text-[#133047]!",
-  "tw:viewport-700:dark:[&_.public-player-padel-categories_label]:border-[#366075]!",
-  "tw:viewport-700:dark:[&_.public-player-padel-categories_label]:bg-[#102f42]!",
-  "tw:viewport-700:dark:[&_.public-player-padel-categories_label]:text-[#eff8f8]!",
+  "tw:viewport-700:dark:[&_.public-player-padel-categories_label]:border-[#3b7164]!",
+  "tw:viewport-700:dark:[&_.public-player-padel-categories_label]:bg-[#0b302a]!",
+  "tw:viewport-700:dark:[&_.public-player-padel-categories_label]:text-[#eafff3]!",
   "tw:viewport-700:[&_.public-player-profile_button[type=submit]]:bg-[#078f7c]!",
   "tw:viewport-700:dark:[&_.public-player-profile_button[type=submit]]:bg-[#5bdec1]!",
   "tw:viewport-700:[&_.portal-teacher-picker_strong]:text-[#133047]!",
@@ -137,27 +137,27 @@ const mobilePortalSkin = [
   "tw:viewport-700:[&_.portal-teacher-hint]:border-[#d8e5e9]!",
   "tw:viewport-700:[&_.portal-teacher-hint]:bg-[#f5f8f8]!",
   "tw:viewport-700:[&_.portal-teacher-hint]:text-[#607e8d]!",
-  "tw:viewport-700:dark:[&_.portal-teacher-picker_strong]:text-[#eff8f8]!",
-  "tw:viewport-700:dark:[&_.portal-teacher-picker_>_span]:text-[#a1bccb]!",
-  "tw:viewport-700:dark:[&_.portal-teacher-hint]:border-[#244759]!",
-  "tw:viewport-700:dark:[&_.portal-teacher-hint]:bg-[#14374a]!",
-  "tw:viewport-700:dark:[&_.portal-teacher-hint]:text-[#a1bccb]!",
+  "tw:viewport-700:dark:[&_.portal-teacher-picker_strong]:text-[#eafff3]!",
+  "tw:viewport-700:dark:[&_.portal-teacher-picker_>_span]:text-[#a4c8b9]!",
+  "tw:viewport-700:dark:[&_.portal-teacher-hint]:border-[#2a6155]!",
+  "tw:viewport-700:dark:[&_.portal-teacher-hint]:bg-[#104138]!",
+  "tw:viewport-700:dark:[&_.portal-teacher-hint]:text-[#a4c8b9]!",
   "tw:viewport-700:[&_.avatar-crop-controls_label.button]:border-[#c9dbe2]!",
   "tw:viewport-700:[&_.avatar-crop-controls_label.button]:bg-[#f5f8f8]!",
   "tw:viewport-700:[&_.avatar-crop-controls_label.button]:text-[#133047]!",
-  "tw:viewport-700:dark:[&_.avatar-crop-controls_label.button]:border-[#366075]!",
-  "tw:viewport-700:dark:[&_.avatar-crop-controls_label.button]:bg-[#14374a]!",
-  "tw:viewport-700:dark:[&_.avatar-crop-controls_label.button]:text-[#eff8f8]!",
+  "tw:viewport-700:dark:[&_.avatar-crop-controls_label.button]:border-[#3b7164]!",
+  "tw:viewport-700:dark:[&_.avatar-crop-controls_label.button]:bg-[#104138]!",
+  "tw:viewport-700:dark:[&_.avatar-crop-controls_label.button]:text-[#eafff3]!",
   "tw:viewport-700:[&_.portal-rule]:border-[#d8e5e9]!",
   "tw:viewport-700:[&_.portal-rule]:bg-[#f5f8f8]!",
   "tw:viewport-700:[&_.portal-rule_strong]:text-[#133047]!",
   "tw:viewport-700:[&_.portal-rule_p]:text-[#607e8d]!",
-  "tw:viewport-700:dark:[&_.portal-rule]:border-[#244759]!",
-  "tw:viewport-700:dark:[&_.portal-rule]:bg-[#14374a]!",
-  "tw:viewport-700:dark:[&_.portal-rule_strong]:text-[#eff8f8]!",
-  "tw:viewport-700:dark:[&_.portal-rule_p]:text-[#a1bccb]!",
+  "tw:viewport-700:dark:[&_.portal-rule]:border-[#2a6155]!",
+  "tw:viewport-700:dark:[&_.portal-rule]:bg-[#104138]!",
+  "tw:viewport-700:dark:[&_.portal-rule_strong]:text-[#eafff3]!",
+  "tw:viewport-700:dark:[&_.portal-rule_p]:text-[#a4c8b9]!",
 ].join(" ");
-const mobilePortalTabs = "tw:mx-4 tw:mt-3 tw:flex tw:gap-5 tw:overflow-x-auto tw:border-b tw:border-[#d8e5e9] tw:bg-transparent tw:dark:border-[#244759] tw:[&_a]:shrink-0 tw:[&_a]:border-b-2 tw:[&_a]:border-transparent tw:[&_a]:py-3 tw:[&_a]:text-xs tw:[&_a]:font-medium tw:[&_a]:text-[#607e8d] tw:[&_a]:no-underline tw:dark:[&_a]:text-[#a1bccb] tw:[&_a.active]:border-[#078f7c] tw:[&_a.active]:text-[#078f7c] tw:dark:[&_a.active]:border-[#5bdec1] tw:dark:[&_a.active]:text-[#5bdec1]";
+const mobilePortalTabs = "tw:mx-4 tw:mt-3 tw:flex tw:gap-5 tw:overflow-x-auto tw:border-b tw:border-[#d8e5e9] tw:bg-transparent tw:dark:border-[#2a6155] tw:[&_a]:shrink-0 tw:[&_a]:border-b-2 tw:[&_a]:border-transparent tw:[&_a]:py-3 tw:[&_a]:text-xs tw:[&_a]:font-medium tw:[&_a]:text-[#607e8d] tw:[&_a]:no-underline tw:dark:[&_a]:text-[#a4c8b9] tw:[&_a.active]:border-[#078f7c] tw:[&_a.active]:text-[#078f7c] tw:dark:[&_a.active]:border-[#5bdec1] tw:dark:[&_a.active]:text-[#5bdec1]";
 
 export function PublicStandings({
   data,
@@ -324,12 +324,12 @@ export function PublicStandings({
   ];
 
   return (
-    <main className={cx(viewStyles.athlete_portal_page, mobilePortalSkin, "tw:viewport-700:bg-[#f5f8f8]! tw:viewport-700:text-[#133047]! tw:viewport-700:dark:bg-[#061c2a]! tw:viewport-700:dark:text-[#eff8f8]!")}>
+    <main className={cx(viewStyles.athlete_portal_page, mobilePortalSkin, "tw:overflow-x-clip tw:viewport-700:bg-[#f5f8f8]! tw:viewport-700:text-[#133047]! tw:viewport-700:dark:bg-[#041f1b]! tw:viewport-700:dark:text-[#eafff3]!")}>
       {publicHeader}
       <header className="tw:hidden tw:viewport-700:flex tw:items-center tw:justify-between tw:gap-3 tw:px-4 tw:pt-3 tw:pb-2" aria-label="Cabeçalho do portal">
         <div className="tw:flex tw:min-w-0 tw:items-center tw:gap-2">
-          {requestedSection !== "home" ? <Link href={portalHref("home")} className="tw:grid tw:size-10 tw:shrink-0 tw:place-items-center tw:rounded-full tw:bg-white tw:text-[#133047] tw:dark:bg-[#102f42] tw:dark:text-[#eff8f8]" aria-label="Voltar ao início">←</Link> : null}
-          <div className="tw:min-w-0"><AthletePortalWordmark compact /><Link href="/portal" aria-label="Trocar arena" className="tw:block tw:max-w-[136px] tw:truncate tw:text-[.62rem] tw:text-[#607e8d] tw:no-underline tw:dark:text-[#a1bccb]">{arena.name}</Link></div>
+          {requestedSection !== "home" ? <Link href={portalHref("home")} className="tw:grid tw:size-10 tw:shrink-0 tw:place-items-center tw:rounded-full tw:bg-white tw:text-[#133047] tw:dark:bg-[#0b302a] tw:dark:text-[#eafff3]" aria-label="Voltar ao início">←</Link> : null}
+          <div className="tw:min-w-0"><AthletePortalWordmark compact /><Link href="/portal" aria-label="Trocar arena" className="tw:block tw:max-w-[136px] tw:truncate tw:text-[.62rem] tw:text-[#607e8d] tw:no-underline tw:dark:text-[#a4c8b9]">{arena.name}</Link></div>
         </div>
         <div className="tw:flex tw:shrink-0 tw:items-center tw:gap-2"><AthletePortalNotifications arenaSlug={arena.slug} notifications={notifications} /><Link href={portalHref("profile")} aria-label="Meu perfil" className="tw:grid tw:size-9 tw:place-items-center tw:rounded-full tw:bg-[#def2ed] tw:text-xs tw:font-semibold tw:text-[#078f7c] tw:dark:bg-[#144c4e] tw:dark:text-[#5bdec1]">{currentClient.name.trim().slice(0, 1).toUpperCase()}</Link></div>
       </header>
@@ -358,7 +358,7 @@ export function PublicStandings({
           ) : null}
         </nav>
       ) : null}
-      {requestedSection === "lessons" || requestedSection === "classes" ? <nav className={cx("tw:hidden tw:viewport-700:flex", mobilePortalTabs)} aria-label="Menu de aulas">{portalVisibility.athletePortalShowLessons ? <Link className={cx(requestedSection === "lessons" ? "active" : "")} href={portalHref("lessons")}>Minhas aulas</Link> : null}{portalVisibility.athletePortalShowClasses ? <Link className={cx(requestedSection === "classes" ? "active" : "")} href={portalHref("classes")}>Turmas</Link> : null}</nav> : null}
+      {requestedSection === "lessons" || requestedSection === "classes" ? <nav className={cx("tw:hidden! tw:viewport-700:flex!", mobilePortalTabs)} aria-label="Menu de aulas">{portalVisibility.athletePortalShowLessons ? <Link className={cx(requestedSection === "lessons" ? "active" : "")} href={portalHref("lessons")}>Minhas aulas</Link> : null}{portalVisibility.athletePortalShowClasses ? <Link className={cx(requestedSection === "classes" ? "active" : "")} href={portalHref("classes")}>Turmas</Link> : null}</nav> : null}
       {requestedSection === "profile" || requestedSection === "finance" || requestedSection === "comandas" ? (
         <nav className={cx(viewStyles.athlete_portal_league_nav, "tw:viewport-700:hidden!")} aria-label="Menu do meu perfil">
           <Link className={cx(requestedSection === "profile" ? "active" : "")} href={portalHref("profile")}>Dados pessoais</Link>
@@ -366,7 +366,7 @@ export function PublicStandings({
           <Link className={cx(requestedSection === "comandas" ? "active" : "")} href={portalHref("comandas")}>Minhas comandas</Link>
         </nav>
       ) : null}
-      {requestedSection === "profile" || requestedSection === "comandas" ? <nav className={cx("tw:hidden tw:viewport-700:flex", mobilePortalTabs)} aria-label="Menu do meu perfil"><Link className={cx(requestedSection === "profile" ? "active" : "")} href={portalHref("profile")}>Dados pessoais</Link><Link href={portalHref("finance")}>Finanças</Link><Link className={cx(requestedSection === "comandas" ? "active" : "")} href={portalHref("comandas")}>Comandas</Link></nav> : null}
+      {requestedSection === "profile" || requestedSection === "comandas" ? <nav className={cx("tw:hidden! tw:viewport-700:flex!", mobilePortalTabs)} aria-label="Menu do meu perfil"><Link className={cx(requestedSection === "profile" ? "active" : "")} href={portalHref("profile")}>Dados pessoais</Link><Link href={portalHref("finance")}>Finanças</Link><Link className={cx(requestedSection === "comandas" ? "active" : "")} href={portalHref("comandas")}>Comandas</Link></nav> : null}
       {requestedSection === "home" ? (
         <ClientHomePanel home={home} name={currentClient.name} arenaSlug={arena.slug} shortcuts={homeShortcuts} />
       ) : requestedSection === "announcements" ? (
@@ -385,15 +385,15 @@ export function PublicStandings({
         />
       ) : requestedSection === "leagues" ? (
         <>
-          <section className={cx(viewStyles.athlete_portal_events_shell, "tw:viewport-700:mx-3! tw:viewport-700:w-[calc(100%_-_24px)]! tw:viewport-700:pb-24! tw:viewport-700:text-[#133047] tw:viewport-700:dark:text-[#eff8f8]")}>
-          <details className="tw:relative tw:mb-3 tw:hidden tw:viewport-700:block"><summary className="tw:flex tw:min-h-10 tw:cursor-pointer tw:items-center tw:justify-between tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:px-3 tw:text-sm tw:font-semibold tw:text-[#133047] tw:dark:border-[#244759] tw:dark:bg-[#102f42] tw:dark:text-[#eff8f8]">{selectedEventTab === "super12" ? "Super 12" : selectedEventTab === "radar" ? "Radar de Torneios" : "Torneios"}<span aria-hidden="true">⌄</span></summary><nav className="tw:absolute tw:z-20 tw:mt-1 tw:grid tw:w-full tw:gap-1 tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-2 tw:shadow-lg tw:dark:border-[#244759] tw:dark:bg-[#102f42]" aria-label="Tipos de eventos"><Link className="tw:rounded-lg tw:p-2 tw:text-sm tw:text-[#133047] tw:no-underline tw:dark:text-[#eff8f8]" href={portalHref("leagues", "games", undefined, leagueCategoryId, "leagues")}>Torneios</Link><Link className="tw:rounded-lg tw:p-2 tw:text-sm tw:text-[#133047] tw:no-underline tw:dark:text-[#eff8f8]" href={portalHref("leagues", undefined, undefined, undefined, "super12", super12Id)}>Super 12</Link><Link className="tw:rounded-lg tw:p-2 tw:text-sm tw:text-[#133047] tw:no-underline tw:dark:text-[#eff8f8]" href={portalHref("leagues", undefined, undefined, undefined, "radar")}>Radar de Torneios</Link></nav></details>
+          <section className={cx(viewStyles.athlete_portal_events_shell, "tw:viewport-700:mx-3! tw:viewport-700:w-[calc(100%_-_24px)]! tw:viewport-700:pb-24! tw:viewport-700:text-[#133047] tw:viewport-700:dark:text-[#eafff3]")}>
+          <details className="tw:relative tw:mb-3 tw:hidden tw:viewport-700:block"><summary className="tw:flex tw:min-h-10 tw:cursor-pointer tw:items-center tw:justify-between tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:px-3 tw:text-sm tw:font-semibold tw:text-[#133047] tw:dark:border-[#2a6155] tw:dark:bg-[#0b302a] tw:dark:text-[#eafff3]">{selectedEventTab === "super12" ? "Super 12" : selectedEventTab === "radar" ? "Radar de Torneios" : "Torneios"}<span aria-hidden="true">⌄</span></summary><nav className="tw:absolute tw:z-20 tw:mt-1 tw:grid tw:w-full tw:gap-1 tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-2 tw:shadow-lg tw:dark:border-[#2a6155] tw:dark:bg-[#0b302a]" aria-label="Tipos de eventos"><Link className="tw:rounded-lg tw:p-2 tw:text-sm tw:text-[#133047] tw:no-underline tw:dark:text-[#eafff3]" href={portalHref("leagues", "games", undefined, leagueCategoryId, "leagues")}>Torneios</Link><Link className="tw:rounded-lg tw:p-2 tw:text-sm tw:text-[#133047] tw:no-underline tw:dark:text-[#eafff3]" href={portalHref("leagues", undefined, undefined, undefined, "super12", super12Id)}>Super 12</Link><Link className="tw:rounded-lg tw:p-2 tw:text-sm tw:text-[#133047] tw:no-underline tw:dark:text-[#eafff3]" href={portalHref("leagues", undefined, undefined, undefined, "radar")}>Radar de Torneios</Link></nav></details>
           <nav className={cx(viewStyles.athlete_portal_events_nav, "tw:viewport-700:hidden!")} aria-label="Menu de Eventos">
             <Link className={cx(selectedEventTab === "leagues" ? "active" : "")} href={portalHref("leagues", "games", undefined, leagueCategoryId, "leagues")}><EventNavIcon icon="trophy" /><span><strong>Torneios</strong><small>Competições regulares</small></span></Link>
             <Link className={cx(selectedEventTab === "super12" ? "active" : "")} href={portalHref("leagues", undefined, undefined, undefined, "super12", super12Id)}><EventNavIcon icon="crown" /><span><strong>Super 12</strong><small>Os melhores no ano</small></span></Link>
             <Link className={cx(selectedEventTab === "radar" ? "active" : "")} href={portalHref("leagues", undefined, undefined, undefined, "radar")}><EventNavIcon icon="target" /><span><strong>Radar de Torneios</strong><small>Torneios próximos</small></span></Link>
           </nav>
           {selectedEventTab === "leagues" ? <>
-          <nav className="tw:mb-3 tw:hidden tw:viewport-700:grid tw:grid-cols-4 tw:border-b tw:border-[#d8e5e9] tw:dark:border-[#244759]" aria-label="Menu da Liga"><Link href={portalHref("leagues", "games", undefined, leagueCategoryId)} className={cx("tw:py-3 tw:text-center tw:text-xs tw:font-medium tw:no-underline", selectedLeagueTab === "games" ? "tw:border-b-2 tw:border-[#078f7c] tw:text-[#078f7c] tw:dark:border-[#5bdec1] tw:dark:text-[#5bdec1]" : "tw:text-[#607e8d] tw:dark:text-[#a1bccb]")}>Jogos</Link><Link href={portalHref("leagues", "ranking", undefined, leagueCategoryId)} className={cx("tw:py-3 tw:text-center tw:text-xs tw:font-medium tw:no-underline", selectedLeagueTab === "ranking" ? "tw:border-b-2 tw:border-[#078f7c] tw:text-[#078f7c] tw:dark:border-[#5bdec1] tw:dark:text-[#5bdec1]" : "tw:text-[#607e8d] tw:dark:text-[#a1bccb]")}>Ranking</Link><Link href={portalHref("leagues", "pairs", undefined, leagueCategoryId)} className={cx("tw:py-3 tw:text-center tw:text-xs tw:font-medium tw:no-underline", selectedLeagueTab === "pairs" ? "tw:border-b-2 tw:border-[#078f7c] tw:text-[#078f7c] tw:dark:border-[#5bdec1] tw:dark:text-[#5bdec1]" : "tw:text-[#607e8d] tw:dark:text-[#a1bccb]")}>Duplas</Link><details className="tw:relative"><summary className="tw:grid tw:min-h-10 tw:cursor-pointer tw:place-items-center tw:text-xs tw:text-[#607e8d] tw:dark:text-[#a1bccb]" aria-label="Mais opções da Liga">•••</summary><div className="tw:absolute tw:right-0 tw:z-20 tw:grid tw:min-w-32 tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-2 tw:shadow-lg tw:dark:border-[#244759] tw:dark:bg-[#102f42]"><Link className="tw:p-2 tw:text-sm tw:text-[#133047] tw:no-underline tw:dark:text-[#eff8f8]" href={portalHref("leagues", "rules", undefined, leagueCategoryId)}>Regras</Link><Link className="tw:p-2 tw:text-sm tw:text-[#133047] tw:no-underline tw:dark:text-[#eff8f8]" href={portalHref("leagues", "prizes", undefined, leagueCategoryId)}>Premiação</Link></div></details></nav>
+          <nav className="tw:mb-3 tw:hidden tw:viewport-700:grid tw:grid-cols-4 tw:border-b tw:border-[#d8e5e9] tw:dark:border-[#2a6155]" aria-label="Menu da Liga"><Link href={portalHref("leagues", "games", undefined, leagueCategoryId)} className={cx("tw:py-3 tw:text-center tw:text-xs tw:font-medium tw:no-underline", selectedLeagueTab === "games" ? "tw:border-b-2 tw:border-[#078f7c] tw:text-[#078f7c] tw:dark:border-[#5bdec1] tw:dark:text-[#5bdec1]" : "tw:text-[#607e8d] tw:dark:text-[#a4c8b9]")}>Jogos</Link><Link href={portalHref("leagues", "ranking", undefined, leagueCategoryId)} className={cx("tw:py-3 tw:text-center tw:text-xs tw:font-medium tw:no-underline", selectedLeagueTab === "ranking" ? "tw:border-b-2 tw:border-[#078f7c] tw:text-[#078f7c] tw:dark:border-[#5bdec1] tw:dark:text-[#5bdec1]" : "tw:text-[#607e8d] tw:dark:text-[#a4c8b9]")}>Ranking</Link><Link href={portalHref("leagues", "pairs", undefined, leagueCategoryId)} className={cx("tw:py-3 tw:text-center tw:text-xs tw:font-medium tw:no-underline", selectedLeagueTab === "pairs" ? "tw:border-b-2 tw:border-[#078f7c] tw:text-[#078f7c] tw:dark:border-[#5bdec1] tw:dark:text-[#5bdec1]" : "tw:text-[#607e8d] tw:dark:text-[#a4c8b9]")}>Duplas</Link><details className="tw:relative"><summary className="tw:grid tw:min-h-10 tw:cursor-pointer tw:place-items-center tw:text-xs tw:text-[#607e8d] tw:dark:text-[#a4c8b9]" aria-label="Mais opções da Liga">•••</summary><div className="tw:absolute tw:right-0 tw:z-20 tw:grid tw:min-w-32 tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-2 tw:shadow-lg tw:dark:border-[#2a6155] tw:dark:bg-[#0b302a]"><Link className="tw:p-2 tw:text-sm tw:text-[#133047] tw:no-underline tw:dark:text-[#eafff3]" href={portalHref("leagues", "rules", undefined, leagueCategoryId)}>Regras</Link><Link className="tw:p-2 tw:text-sm tw:text-[#133047] tw:no-underline tw:dark:text-[#eafff3]" href={portalHref("leagues", "prizes", undefined, leagueCategoryId)}>Premiação</Link></div></details></nav>
           <nav className={cx(viewStyles.athlete_portal_event_tabs, "tw:viewport-700:hidden!")} aria-label="Menu da Liga">
             <Link
               className={cx(selectedLeagueTab === "games" ? "active" : "")}
@@ -479,9 +479,9 @@ export function PublicStandings({
       ) : requestedSection === "teacher" && currentClient.isTeacher ? (
         <TeacherManagementPanel portal={portal} />
       ) : (
-        <><PublicPlayerProfile arenaSlug={arena.slug} player={currentClient} /><form action={logoutAthletePortalAction} className="tw:mx-4 tw:mt-4 tw:hidden tw:pb-20 tw:viewport-700:block"><input type="hidden" name="arenaSlug" value={arena.slug} /><button type="submit" className="tw:w-full tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-3 tw:text-sm tw:font-medium tw:text-[#133047] tw:dark:border-[#244759] tw:dark:bg-[#102f42] tw:dark:text-[#eff8f8]">Sair do portal</button></form></>
+        <><PublicPlayerProfile arenaSlug={arena.slug} player={currentClient} /><form action={logoutAthletePortalAction} className="tw:mx-4 tw:mt-4 tw:hidden tw:pb-20 tw:viewport-700:block"><input type="hidden" name="arenaSlug" value={arena.slug} /><button type="submit" className="tw:w-full tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-3 tw:text-sm tw:font-medium tw:text-[#133047] tw:dark:border-[#2a6155] tw:dark:bg-[#0b302a] tw:dark:text-[#eafff3]">Sair do portal</button></form></>
       )}
-      <nav className={cx(viewStyles.athlete_portal_bottom_nav, "tw:viewport-700:bg-white! tw:viewport-700:dark:bg-[#102b3d]! tw:viewport-700:[&_a]:text-[#668492]! tw:viewport-700:dark:[&_a]:text-[#a1bccb]! tw:viewport-700:[&_a.active]:text-[#078f7c]! tw:viewport-700:dark:[&_a.active]:text-[#5bdec1]!")} aria-label="Atalhos principais">
+      <nav className={cx(viewStyles.athlete_portal_bottom_nav, "tw:viewport-700:bg-white! tw:viewport-700:dark:bg-[#082b25]! tw:viewport-700:[&_a]:text-[#668492]! tw:viewport-700:dark:[&_a]:text-[#a4c8b9]! tw:viewport-700:[&_a.active]:text-[#078f7c]! tw:viewport-700:dark:[&_a.active]:text-[#5bdec1]!")} aria-label="Atalhos principais">
         <Link className={cx(requestedSection === "home" ? "active" : "")} href={portalHref("home")}><PortalNavIcon icon="home" /><span>Início</span></Link>
         <Link className={cx(requestedSection === "leagues" ? "active" : "")} href={portalHref("leagues", "games")}><PortalNavIcon icon="calendar" /><span>Eventos</span></Link>
         <Link className={cx(requestedSection === "lessons" || requestedSection === "classes" ? "active" : "")} href={portalHref(portalVisibility.athletePortalShowLessons ? "lessons" : "classes")}><PortalNavIcon icon="graduation" /><span>Aulas</span></Link>
@@ -501,7 +501,7 @@ function ClientFinancePanel({ finance, arenaSlug, tab }: { finance: ClientFinanc
       : { title: "Vamos virar esse jogo? 🎾", detail: "Tem uma pendência pedindo atenção. Resolva agora e volte para a quadra com a cabeça leve." };
   const mobileAttention = finance.overdue.length ? "overdue" : finance.open.some((entry) => entry.urgency === "soon") ? "soon" : "healthy";
   return <section className={cx(viewStyles.client_finance_page, "tw:viewport-700:gap-3! tw:viewport-700:pb-24!")}>
-    <div className="tw:hidden tw:viewport-700:block"><h2 className="tw:mb-3 tw:text-[1.4rem] tw:font-semibold">Finanças</h2><div className="tw:grid tw:grid-cols-2 tw:gap-2"><div className="tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-3 tw:dark:border-[#244759] tw:dark:bg-[#102f42]"><small className="tw:block tw:text-[#607e8d] tw:dark:text-[#a1bccb]">Pendências</small><strong className="tw:mt-1 tw:block tw:text-xl">{pendingCount}</strong></div><div className="tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-3 tw:dark:border-[#244759] tw:dark:bg-[#102f42]"><small className="tw:block tw:text-[#607e8d] tw:dark:text-[#a1bccb]">Próximos 15 dias</small><strong className="tw:mt-1 tw:block tw:text-xl">{finance.open.length}</strong></div></div><p className={cx("tw:mt-3 tw:text-xs tw:font-medium", mobileAttention === "overdue" ? "tw:text-[#b42318] tw:dark:text-[#ff9e8f]" : mobileAttention === "soon" ? "tw:text-[#a86100] tw:dark:text-[#ffd18a]" : "tw:text-[#087b63] tw:dark:text-[#5bdec1]")}>{mobileAttention === "overdue" ? "Há pagamento em atraso" : mobileAttention === "soon" ? "Há pagamento vencendo em até 3 dias" : "Seus pagamentos estão em dia"}</p></div>
+    <div className="tw:hidden tw:viewport-700:block"><h2 className="tw:mb-3 tw:text-[1.4rem] tw:font-semibold">Finanças</h2><div className="tw:grid tw:grid-cols-2 tw:gap-2"><div className="tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-3 tw:dark:border-[#2a6155] tw:dark:bg-[#0b302a]"><small className="tw:block tw:text-[#607e8d] tw:dark:text-[#a4c8b9]">Pendências</small><strong className="tw:mt-1 tw:block tw:text-xl">{pendingCount}</strong></div><div className="tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-3 tw:dark:border-[#2a6155] tw:dark:bg-[#0b302a]"><small className="tw:block tw:text-[#607e8d] tw:dark:text-[#a4c8b9]">Próximos 15 dias</small><strong className="tw:mt-1 tw:block tw:text-xl">{finance.open.length}</strong></div></div><p className={cx("tw:mt-3 tw:text-xs tw:font-medium", mobileAttention === "overdue" ? "tw:text-[#b42318] tw:dark:text-[#ff9e8f]" : mobileAttention === "soon" ? "tw:text-[#a86100] tw:dark:text-[#ffd18a]" : "tw:text-[#087b63] tw:dark:text-[#5bdec1]")}>{mobileAttention === "overdue" ? "Há pagamento em atraso" : mobileAttention === "soon" ? "Há pagamento vencendo em até 3 dias" : "Seus pagamentos estão em dia"}</p></div>
     <header className={cx(`${viewStyles.client_finance_hero} is-${finance.health}`, "tw:viewport-700:hidden!")}>
       <span>FINANÇAS</span>
       <div><div className={viewStyles.client_finance_orb} aria-hidden="true"><FinanceIcon icon="wallet" /></div><div><h2>{message.title}</h2><p>{message.detail}</p></div></div>
@@ -512,8 +512,8 @@ function ClientFinancePanel({ finance, arenaSlug, tab }: { finance: ClientFinanc
       <article><span><FinanceIcon icon="receipt" /></span><div><b>Em aberto</b><strong>{pendingCount}</strong></div></article>
       <article><span><FinanceIcon icon="calendar" /></span><div><b>Próximos</b><strong>{finance.open.length}</strong></div></article>
     </div>
-    <nav className={cx(viewStyles.client_finance_tabs, "tw:viewport-700:border-0! tw:viewport-700:border-b! tw:viewport-700:border-[#d8e5e9]! tw:viewport-700:rounded-none! tw:viewport-700:bg-transparent! tw:viewport-700:p-0! tw:viewport-700:dark:border-[#244759]! tw:viewport-700:[&_a]:rounded-none! tw:viewport-700:[&_a]:bg-transparent! tw:viewport-700:[&_a]:text-[#607e8d]! tw:viewport-700:dark:[&_a]:text-[#a1bccb]! tw:viewport-700:[&_a.active]:border-b-2! tw:viewport-700:[&_a.active]:border-[#078f7c]! tw:viewport-700:[&_a.active]:bg-transparent! tw:viewport-700:[&_a.active]:[background-image:none]! tw:viewport-700:[&_a.active]:shadow-none! tw:viewport-700:[&_a.active]:text-[#078f7c]! tw:viewport-700:dark:[&_a.active]:border-[#5bdec1]! tw:viewport-700:dark:[&_a.active]:text-[#5bdec1]!")} aria-label="Navegação financeira"><Link className={cx(tab === "upcoming" ? "active" : "")} href={`/home?arena=${encodeURIComponent(arenaSlug)}&section=finance`}>Lançamentos</Link><Link className={cx(tab === "history" ? "active" : "")} href={`/home?arena=${encodeURIComponent(arenaSlug)}&section=finance&financeTab=history`}>Histórico</Link><Link className="tw:hidden tw:viewport-700:block" href={`/home?arena=${encodeURIComponent(arenaSlug)}&section=comandas`}>Comandas</Link></nav>
-    {tab === "upcoming" ? <PublicFinanceEntryList arenaSlug={arenaSlug} overdue={finance.overdue} open={finance.open} comandas={finance.comandas} /> : <section className={cx(viewStyles.client_finance_section, "tw:viewport-700:border-[#d8e5e9]! tw:viewport-700:bg-white! tw:viewport-700:[background-image:none]! tw:viewport-700:dark:border-[#244759]! tw:viewport-700:dark:bg-[#102f42]! tw:viewport-700:[&_h3]:text-[#133047]! tw:viewport-700:dark:[&_h3]:text-[#eff8f8]!")}><header><div><span className={viewStyles.client_finance_section_icon}><FinanceIcon icon="receipt" /></span><h3>Histórico de pagamentos</h3></div><span>{finance.paid.length}</span></header>{finance.paid.length ? finance.paid.map((entry) => <article className={cx(viewStyles.client_finance_entry, "tw:viewport-700:[&_strong]:text-[#133047]! tw:viewport-700:[&_b]:text-[#133047]! tw:viewport-700:[&_small]:text-[#607e8d]! tw:viewport-700:dark:[&_strong]:text-[#eff8f8]! tw:viewport-700:dark:[&_b]:text-[#eff8f8]! tw:viewport-700:dark:[&_small]:text-[#a1bccb]!")} key={entry.id}><div><strong>{entry.description}</strong><small>Pago em {entry.paidAt || entry.dueDate}</small></div><b>{entry.amount}</b><em>Pago</em></article>) : <p className={viewStyles.client_finance_empty}>Quando houver pagamentos, eles aparecerão aqui.</p>}</section>}
+    <nav className={cx(viewStyles.client_finance_tabs, "tw:viewport-700:border-0! tw:viewport-700:border-b! tw:viewport-700:border-[#d8e5e9]! tw:viewport-700:rounded-none! tw:viewport-700:bg-transparent! tw:viewport-700:p-0! tw:viewport-700:dark:border-[#2a6155]! tw:viewport-700:[&_a]:rounded-none! tw:viewport-700:[&_a]:bg-transparent! tw:viewport-700:[&_a]:text-[#607e8d]! tw:viewport-700:dark:[&_a]:text-[#a4c8b9]! tw:viewport-700:[&_a.active]:border-b-2! tw:viewport-700:[&_a.active]:border-[#078f7c]! tw:viewport-700:[&_a.active]:bg-transparent! tw:viewport-700:[&_a.active]:[background-image:none]! tw:viewport-700:[&_a.active]:shadow-none! tw:viewport-700:[&_a.active]:text-[#078f7c]! tw:viewport-700:dark:[&_a.active]:border-[#5bdec1]! tw:viewport-700:dark:[&_a.active]:text-[#5bdec1]!")} aria-label="Navegação financeira"><Link className={cx(tab === "upcoming" ? "active" : "")} href={`/home?arena=${encodeURIComponent(arenaSlug)}&section=finance`}>Lançamentos</Link><Link className={cx(tab === "history" ? "active" : "")} href={`/home?arena=${encodeURIComponent(arenaSlug)}&section=finance&financeTab=history`}>Histórico</Link><Link className="tw:hidden tw:viewport-700:block" href={`/home?arena=${encodeURIComponent(arenaSlug)}&section=comandas`}>Comandas</Link></nav>
+    {tab === "upcoming" ? <PublicFinanceEntryList arenaSlug={arenaSlug} overdue={finance.overdue} open={finance.open} comandas={finance.comandas} /> : <><section className={cx(viewStyles.client_finance_section, "tw:viewport-700:hidden!")}><header><div><span className={viewStyles.client_finance_section_icon}><FinanceIcon icon="receipt" /></span><h3>Histórico de pagamentos</h3></div><span>{finance.paid.length}</span></header>{finance.paid.length ? finance.paid.map((entry) => <article className={viewStyles.client_finance_entry} key={entry.id}><div><strong>{entry.description}</strong><small>Pago em {entry.paidAt || entry.dueDate}</small></div><b>{entry.amount}</b><em>Pago</em></article>) : <p className={viewStyles.client_finance_empty}>Quando houver pagamentos, eles aparecerão aqui.</p>}</section><section className="tw:hidden tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-4 tw:viewport-700:block tw:dark:border-[#2a6155] tw:dark:bg-[#0b302a]"><header className="tw:mb-3 tw:flex tw:items-center tw:justify-between"><h3 className="tw:m-0 tw:text-base tw:font-semibold">Pagamentos realizados</h3><span className="tw:text-xs tw:text-[#607e8d] tw:dark:text-[#a4c8b9]">{finance.paid.length}</span></header>{finance.paid.length ? <div className="tw:grid tw:gap-2">{finance.paid.map((entry) => <article key={entry.id} className="tw:flex tw:items-start tw:justify-between tw:gap-3 tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-[#f5f8f8] tw:p-3 tw:dark:border-[#2a6155] tw:dark:bg-[#104138]"><div className="tw:min-w-0"><strong className="tw:block tw:break-words tw:text-sm">{entry.description}</strong><small className="tw:mt-1 tw:block tw:text-xs tw:text-[#607e8d] tw:dark:text-[#a4c8b9]">Pago em {entry.paidAt || entry.dueDate}</small></div><b className="tw:shrink-0 tw:text-sm tw:text-[#087b63] tw:dark:text-[#5bdec1]">{entry.amount}</b></article>)}</div> : <p className="tw:m-0 tw:text-sm tw:text-[#607e8d] tw:dark:text-[#a4c8b9]">Ainda não há pagamentos no histórico.</p>}</section></>}
   </section>;
 }
 
@@ -562,19 +562,19 @@ function ClientHomePanel({ home, name, arenaSlug, shortcuts }: { home: ClientHom
   const financialSurface = financialStatus === "overdue" ? "tw:bg-[#fff0ed] tw:dark:bg-[#4a2927]" : financialStatus === "soon" ? "tw:bg-[#fff4de] tw:dark:bg-[#493921]" : "tw:bg-[#def2ed] tw:dark:bg-[#144c4e]";
   return <>
     <section className="tw:hidden tw:viewport-700:block tw:px-4 tw:pt-1 tw:pb-24">
-      <p className="tw:m-0 tw:text-xs tw:text-[#607e8d] tw:dark:text-[#a1bccb]">{new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeZone: "America/Sao_Paulo" }).format(new Date())}</p>
+      <p className="tw:m-0 tw:text-xs tw:text-[#607e8d] tw:dark:text-[#a4c8b9]">{new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeZone: "America/Sao_Paulo" }).format(new Date())}</p>
       <h2 className="tw:mt-1 tw:mb-4 tw:text-[1.45rem] tw:leading-tight tw:font-semibold">{getPortalGreeting(new Date())}, {firstName}</h2>
-      <div className="tw:rounded-[20px] tw:border tw:border-[#d8e5e9] tw:bg-[#ecf3f3] tw:p-4 tw:dark:border-[#244759] tw:dark:bg-[#102f42]">
-        <div className="tw:flex tw:items-center tw:justify-between tw:gap-2"><span className="tw:rounded-full tw:bg-[#def2ed] tw:px-2 tw:py-1 tw:text-[.65rem] tw:font-semibold tw:text-[#078f7c] tw:dark:bg-[#144c4e] tw:dark:text-[#5bdec1]">{home.summary.reservations ? "SUAS RESERVAS" : "PRÓXIMO NA QUADRA"}</span><span className="tw:text-xs tw:text-[#607e8d] tw:dark:text-[#a1bccb]">{home.summary.reservations ? `${home.summary.reservations} futura${home.summary.reservations === 1 ? "" : "s"}` : "Quadras disponíveis"}</span></div>
+      <div className="tw:rounded-[20px] tw:border tw:border-[#d8e5e9] tw:bg-[#ecf3f3] tw:p-4 tw:dark:border-[#2a6155] tw:dark:bg-[#0b302a]">
+        <div className="tw:flex tw:items-center tw:justify-between tw:gap-2"><span className="tw:rounded-full tw:bg-[#def2ed] tw:px-2 tw:py-1 tw:text-[.65rem] tw:font-semibold tw:text-[#078f7c] tw:dark:bg-[#144c4e] tw:dark:text-[#5bdec1]">{home.summary.reservations ? "SUAS RESERVAS" : "PRÓXIMO NA QUADRA"}</span><span className="tw:text-xs tw:text-[#607e8d] tw:dark:text-[#a4c8b9]">{home.summary.reservations ? `${home.summary.reservations} futura${home.summary.reservations === 1 ? "" : "s"}` : "Quadras disponíveis"}</span></div>
         <strong className="tw:mt-4 tw:block tw:text-base tw:font-semibold">{home.summary.reservations ? "Seus próximos horários" : "Reserve sua próxima quadra"}</strong>
-        <p className="tw:mt-1 tw:text-xs tw:text-[#607e8d] tw:dark:text-[#a1bccb]">{home.summary.reservations ? "Consulte os detalhes das suas reservas." : "Escolha a quadra e um horário disponível."}</p>
-        <Link href={portalHref(home.summary.reservations ? "reservations" : "booking")} className="tw:mt-4 tw:block tw:rounded-xl tw:bg-[#078f7c] tw:px-4 tw:py-3 tw:text-center tw:text-sm tw:font-semibold tw:text-white tw:no-underline tw:dark:bg-[#5bdec1] tw:dark:text-[#082b34]">{home.summary.reservations ? "Ver reservas" : "Reservar quadra"}</Link>
+        <p className="tw:mt-1 tw:text-xs tw:text-[#607e8d] tw:dark:text-[#a4c8b9]">{home.summary.reservations ? "Consulte os detalhes das suas reservas." : "Escolha a quadra e um horário disponível."}</p>
+        <Link href={home.summary.reservations ? portalHref("reservations") : `/reservar/${encodeURIComponent(arenaSlug)}`} className="tw:mt-4 tw:block tw:rounded-xl tw:bg-[#078f7c] tw:px-4 tw:py-3 tw:text-center tw:text-sm tw:font-semibold tw:text-white tw:no-underline tw:dark:bg-[#5bdec1] tw:dark:text-[#082b34]">{home.summary.reservations ? "Ver reservas" : "Reservar quadra"}</Link>
       </div>
       <h3 className="tw:mt-5 tw:mb-2 tw:text-sm tw:font-semibold">Acesso rápido</h3>
-      <nav className="tw:grid tw:grid-cols-3 tw:gap-2" aria-label="Acesso rápido"><Link href={portalHref("booking")} className="tw:flex tw:min-w-0 tw:flex-col tw:gap-3 tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-3 tw:text-xs tw:font-medium tw:text-[#133047] tw:no-underline tw:dark:border-[#244759] tw:dark:bg-[#102f42] tw:dark:text-[#eff8f8]"><PortalNavIcon icon="calendar" />Reservar</Link><Link href={portalHref("leagues")} className="tw:flex tw:min-w-0 tw:flex-col tw:gap-3 tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-3 tw:text-xs tw:font-medium tw:text-[#133047] tw:no-underline tw:dark:border-[#244759] tw:dark:bg-[#102f42] tw:dark:text-[#eff8f8]"><PortalNavIcon icon="trophy" />Torneios</Link><Link href={portalHref("finance")} className="tw:flex tw:min-w-0 tw:flex-col tw:gap-3 tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-3 tw:text-xs tw:font-medium tw:text-[#133047] tw:no-underline tw:dark:border-[#244759] tw:dark:bg-[#102f42] tw:dark:text-[#eff8f8]"><PortalNavIcon icon="money" />Finanças</Link></nav>
+      <nav className="tw:grid tw:grid-cols-3 tw:gap-2" aria-label="Acesso rápido"><Link href={`/reservar/${encodeURIComponent(arenaSlug)}`} className="tw:flex tw:min-w-0 tw:flex-col tw:gap-3 tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-3 tw:text-xs tw:font-medium tw:text-[#133047] tw:no-underline tw:dark:border-[#2a6155] tw:dark:bg-[#0b302a] tw:dark:text-[#eafff3]"><PortalNavIcon icon="calendar" />Reservar</Link><Link href={portalHref("leagues")} className="tw:flex tw:min-w-0 tw:flex-col tw:gap-3 tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-3 tw:text-xs tw:font-medium tw:text-[#133047] tw:no-underline tw:dark:border-[#2a6155] tw:dark:bg-[#0b302a] tw:dark:text-[#eafff3]"><PortalNavIcon icon="trophy" />Torneios</Link><Link href={portalHref("finance")} className="tw:flex tw:min-w-0 tw:flex-col tw:gap-3 tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-3 tw:text-xs tw:font-medium tw:text-[#133047] tw:no-underline tw:dark:border-[#2a6155] tw:dark:bg-[#0b302a] tw:dark:text-[#eafff3]"><PortalNavIcon icon="money" />Finanças</Link></nav>
       <h3 className="tw:mt-5 tw:mb-2 tw:text-sm tw:font-semibold">Para acompanhar</h3>
-      <div className="tw:overflow-hidden tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:dark:border-[#244759] tw:dark:bg-[#102f42]"><Link href={portalHref("finance")} className="tw:flex tw:items-center tw:justify-between tw:gap-3 tw:border-b tw:border-[#d8e5e9] tw:p-3 tw:no-underline tw:dark:border-[#244759]"><span><strong className="tw:block tw:text-sm tw:text-[#133047] tw:dark:text-[#eff8f8]">Finanças</strong><small className="tw:mt-1 tw:block tw:text-xs tw:text-[#607e8d] tw:dark:text-[#a1bccb]">Consulte seus pagamentos</small></span><span className={cx("tw:shrink-0 tw:rounded-full tw:px-2 tw:py-1 tw:text-[.65rem] tw:font-semibold", financialColor, financialSurface)}>{home.summary.mobileFinancialLabel}</span></Link><Link href={portalHref("leagues")} className="tw:flex tw:items-center tw:justify-between tw:gap-3 tw:p-3 tw:text-sm tw:text-[#133047] tw:no-underline tw:dark:text-[#eff8f8]"><span><strong className="tw:block tw:font-medium">Torneios</strong><small className="tw:mt-1 tw:block tw:text-xs tw:text-[#607e8d] tw:dark:text-[#a1bccb]">{home.summary.leagues} ativo{home.summary.leagues === 1 ? "" : "s"}</small></span><span aria-hidden="true">›</span></Link></div>
-      {home.announcements.length ? <Link href={portalHref("announcements")} className="tw:mt-3 tw:block tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-3 tw:text-[#133047] tw:no-underline tw:dark:border-[#244759] tw:dark:bg-[#102f42] tw:dark:text-[#eff8f8]"><strong className="tw:block tw:text-sm">Avisos da arena</strong><small className="tw:mt-1 tw:block tw:text-xs tw:text-[#607e8d] tw:dark:text-[#a1bccb]">{home.announcements[0].title}</small></Link> : null}
+      <div className="tw:overflow-hidden tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:dark:border-[#2a6155] tw:dark:bg-[#0b302a]"><Link href={portalHref("finance")} className="tw:flex tw:items-center tw:justify-between tw:gap-3 tw:border-b tw:border-[#d8e5e9] tw:p-3 tw:no-underline tw:dark:border-[#2a6155]"><span><strong className="tw:block tw:text-sm tw:text-[#133047] tw:dark:text-[#eafff3]">Finanças</strong><small className="tw:mt-1 tw:block tw:text-xs tw:text-[#607e8d] tw:dark:text-[#a4c8b9]">Consulte seus pagamentos</small></span><span className={cx("tw:shrink-0 tw:rounded-full tw:px-2 tw:py-1 tw:text-[.65rem] tw:font-semibold", financialColor, financialSurface)}>{home.summary.mobileFinancialLabel}</span></Link>{home.upcomingReservations?.map((reservation) => <Link href={portalHref("reservations")} key={reservation.id} className="tw:flex tw:items-center tw:justify-between tw:gap-3 tw:border-b tw:border-[#d8e5e9] tw:p-3 tw:text-[#133047] tw:no-underline tw:dark:border-[#2a6155] tw:dark:text-[#eafff3]"><span className="tw:min-w-0"><strong className="tw:block tw:text-sm">{reservation.title}</strong><small className="tw:mt-1 tw:block tw:text-xs tw:text-[#607e8d] tw:dark:text-[#a4c8b9]">{reservation.courtName} · {reservation.when}</small></span><span aria-hidden="true">›</span></Link>)}<Link href={portalHref("leagues")} className="tw:flex tw:items-center tw:justify-between tw:gap-3 tw:p-3 tw:text-sm tw:text-[#133047] tw:no-underline tw:dark:text-[#eafff3]"><span><strong className="tw:block tw:font-medium">Torneios</strong><small className="tw:mt-1 tw:block tw:text-xs tw:text-[#607e8d] tw:dark:text-[#a4c8b9]">{home.summary.leagues} ativo{home.summary.leagues === 1 ? "" : "s"}</small></span><span aria-hidden="true">›</span></Link></div>
+      {home.announcements.length ? <Link href={portalHref("announcements")} className="tw:mt-3 tw:block tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-3 tw:text-[#133047] tw:no-underline tw:dark:border-[#2a6155] tw:dark:bg-[#0b302a] tw:dark:text-[#eafff3]"><strong className="tw:block tw:text-sm">Avisos da arena</strong><small className="tw:mt-1 tw:block tw:text-xs tw:text-[#607e8d] tw:dark:text-[#a4c8b9]">{home.announcements[0].title}</small></Link> : null}
     </section>
   <section className={cx(viewStyles.client_portal_home, "tw:viewport-700:hidden!")}>
     <header className={viewStyles.client_portal_welcome}><span>OLÁ,</span><h2>{firstName}</h2></header>
@@ -596,7 +596,7 @@ function ClientHomePanel({ home, name, arenaSlug, shortcuts }: { home: ClientHom
 
 function PrizePanel({ portal }: { portal: Portal }) {
   return (
-    <><section className="tw:mx-3 tw:hidden tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-4 tw:viewport-700:block tw:dark:border-[#244759] tw:dark:bg-[#102f42]"><h2 className="tw:mb-3 tw:text-lg tw:font-semibold">Premiação</h2>{portal?.prizes.length ? <div className="tw:grid tw:gap-2">{portal.prizes.map((prize) => <article key={prize.id} className="tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-[#f5f8f8] tw:p-3 tw:dark:border-[#244759] tw:dark:bg-[#14374a]"><strong className="tw:block tw:text-sm">{prize.categoryName}</strong><small className="tw:block tw:text-xs tw:text-[#607e8d] tw:dark:text-[#a1bccb]">{prize.eventName}</small><p className="tw:mt-2 tw:text-sm">{prize.description}</p></article>)}</div> : <p className="tw:text-sm tw:text-[#607e8d] tw:dark:text-[#a1bccb]">A arena ainda não divulgou premiações.</p>}</section><section className={cx(viewStyles.portal_league_prize_podium, "tw:viewport-700:hidden!")}>
+    <><section className="tw:mx-3 tw:hidden tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-4 tw:viewport-700:block tw:dark:border-[#2a6155] tw:dark:bg-[#0b302a]"><h2 className="tw:mb-3 tw:text-lg tw:font-semibold">Premiação</h2>{portal?.prizes.length ? <div className="tw:grid tw:gap-2">{portal.prizes.map((prize) => <article key={prize.id} className="tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-[#f5f8f8] tw:p-3 tw:dark:border-[#2a6155] tw:dark:bg-[#104138]"><strong className="tw:block tw:text-sm">{prize.categoryName}</strong><small className="tw:block tw:text-xs tw:text-[#607e8d] tw:dark:text-[#a4c8b9]">{prize.eventName}</small><p className="tw:mt-2 tw:text-sm">{prize.description}</p></article>)}</div> : <p className="tw:text-sm tw:text-[#607e8d] tw:dark:text-[#a4c8b9]">A arena ainda não divulgou premiações.</p>}</section><section className={cx(viewStyles.portal_league_prize_podium, "tw:viewport-700:hidden!")}>
       <div className={viewStyles.portal_league_prize_cup} aria-hidden="true">
         🏆
       </div>
@@ -656,7 +656,7 @@ function RankingPanel({ arenaSlug, data }: { arenaSlug: string; data: ArenaPubli
       </header>
       {data.options.length ? <RankingCategorySelect arenaSlug={arenaSlug} options={data.options} selectedOptionId={data.selectedOptionId} /> : null}
       {data.selected?.kind === "GENERAL_RANKING" ? (
-        <><div className="tw:hidden tw:viewport-700:grid tw:gap-2">{data.selected.rows.map((row) => <article key={`${row.position}-${row.playerName}`} className="tw:flex tw:items-center tw:gap-3 tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-[#f5f8f8] tw:p-3 tw:dark:border-[#244759] tw:dark:bg-[#14374a]"><b className="tw:grid tw:size-8 tw:shrink-0 tw:place-items-center tw:rounded-full tw:bg-[#def2ed] tw:text-xs tw:text-[#078f7c] tw:dark:bg-[#1c625b] tw:dark:text-[#5bdec1]">{row.position}º</b><span className="tw:min-w-0 tw:flex-1"><strong className="tw:block tw:text-sm tw:text-[#133047] tw:dark:text-[#eff8f8]">{row.playerName}</strong><small className="tw:text-xs tw:text-[#607e8d] tw:dark:text-[#a1bccb]">{row.tournamentsPlayed} eventos</small></span><b className="tw:text-sm tw:text-[#078f7c] tw:dark:text-[#5bdec1]">{row.points} pts</b></article>)}</div><table className={cx(viewStyles.portal_ranking_table, "tw:viewport-700:hidden!")}>
+        <><div className="tw:hidden tw:viewport-700:grid tw:gap-2">{data.selected.rows.map((row) => <article key={`${row.position}-${row.playerName}`} className="tw:flex tw:items-center tw:gap-3 tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-[#f5f8f8] tw:p-3 tw:dark:border-[#2a6155] tw:dark:bg-[#104138]"><b className="tw:grid tw:size-8 tw:shrink-0 tw:place-items-center tw:rounded-full tw:bg-[#def2ed] tw:text-xs tw:text-[#078f7c] tw:dark:bg-[#1c625b] tw:dark:text-[#5bdec1]">{row.position}º</b><span className="tw:min-w-0 tw:flex-1"><strong className="tw:block tw:text-sm tw:text-[#133047] tw:dark:text-[#eafff3]">{row.playerName}</strong><small className="tw:text-xs tw:text-[#607e8d] tw:dark:text-[#a4c8b9]">{row.tournamentsPlayed} eventos</small></span><b className="tw:text-sm tw:text-[#078f7c] tw:dark:text-[#5bdec1]">{row.points} pts</b></article>)}</div><table className={cx(viewStyles.portal_ranking_table, "tw:viewport-700:hidden!")}>
           <thead>
             <tr>
               <th>Pos.</th>
@@ -679,7 +679,7 @@ function RankingPanel({ arenaSlug, data }: { arenaSlug: string; data: ArenaPubli
       ) : null}
       {data.selected?.kind === "CATEGORY" &&
       data.selected.format === "LEAGUE" ? (
-        <><div className="tw:hidden tw:viewport-700:grid tw:gap-2">{data.selected.leagueStandings.map((standing) => <article key={standing.position} className="tw:flex tw:items-center tw:gap-3 tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-[#f5f8f8] tw:p-3 tw:dark:border-[#244759] tw:dark:bg-[#14374a]"><b className="tw:grid tw:size-8 tw:shrink-0 tw:place-items-center tw:rounded-full tw:bg-[#def2ed] tw:text-xs tw:text-[#078f7c] tw:dark:bg-[#1c625b] tw:dark:text-[#5bdec1]">{standing.position}º</b><span className="tw:min-w-0 tw:flex-1"><strong className="tw:block tw:text-sm tw:text-[#133047] tw:dark:text-[#eff8f8]">{standing.pairName}</strong><small className="tw:text-xs tw:text-[#607e8d] tw:dark:text-[#a1bccb]">{standing.victories} vitórias · saldo {standing.differential}</small></span><b className="tw:text-sm tw:text-[#078f7c] tw:dark:text-[#5bdec1]">{standing.points} pts</b></article>)}</div><table className={cx(viewStyles.portal_ranking_table_2, "tw:viewport-700:hidden!")}>
+        <><div className="tw:hidden tw:viewport-700:grid tw:gap-2">{data.selected.leagueStandings.map((standing) => <article key={standing.position} className="tw:flex tw:items-center tw:gap-3 tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-[#f5f8f8] tw:p-3 tw:dark:border-[#2a6155] tw:dark:bg-[#104138]"><b className="tw:grid tw:size-8 tw:shrink-0 tw:place-items-center tw:rounded-full tw:bg-[#def2ed] tw:text-xs tw:text-[#078f7c] tw:dark:bg-[#1c625b] tw:dark:text-[#5bdec1]">{standing.position}º</b><span className="tw:min-w-0 tw:flex-1"><strong className="tw:block tw:text-sm tw:text-[#133047] tw:dark:text-[#eafff3]">{standing.pairName}</strong><small className="tw:text-xs tw:text-[#607e8d] tw:dark:text-[#a4c8b9]">{standing.victories} vitórias · saldo {standing.differential}</small></span><b className="tw:text-sm tw:text-[#078f7c] tw:dark:text-[#5bdec1]">{standing.points} pts</b></article>)}</div><table className={cx(viewStyles.portal_ranking_table_2, "tw:viewport-700:hidden!")}>
           <thead>
             <tr>
               <th>Pos.</th>
@@ -808,8 +808,8 @@ function ClassesPanel({
         })
     : [];
   const weekdays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-  return (
-    <section className={viewStyles.athlete_portal_content_panel_athlete_portal_learning_panel_2}>
+  return <>
+    <div className="tw:viewport-700:hidden"><section className={viewStyles.athlete_portal_content_panel_athlete_portal_learning_panel_2}>
       <header className={viewStyles.athlete_portal_learning_heading}>
         <span>TURMAS</span>
         <h2>Encontre sua turma</h2>
@@ -903,8 +903,15 @@ function ClassesPanel({
           Escolha um professor para ver as turmas disponíveis.
         </p>
       )}
+    </section></div>
+    <section className="tw:mx-3 tw:mt-3 tw:mb-24 tw:hidden tw:grid-cols-1 tw:gap-3 tw:viewport-700:grid">
+      <div className="tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-4 tw:dark:border-[#2a6155] tw:dark:bg-[#0b302a]">
+        <h2 className="tw:mt-0 tw:mb-3 tw:text-lg tw:font-semibold tw:text-[#133047] tw:dark:text-[#eafff3]">Turmas</h2>
+        {teachers.length ? <nav className="tw:flex tw:flex-wrap tw:gap-2" aria-label="Escolher professor">{teachers.map((teacher) => <Link key={teacher.id} href={`/home?arena=${encodeURIComponent(arenaSlug)}&section=classes&teacher=${encodeURIComponent(teacher.id)}`} className={cx("tw:rounded-full tw:border tw:px-3 tw:py-2 tw:text-xs tw:font-medium tw:no-underline", selectedTeacher?.id === teacher.id ? "tw:border-[#078f7c] tw:bg-[#def2ed] tw:text-[#087b63] tw:dark:border-[#5bdec1] tw:dark:bg-[#16483d] tw:dark:text-[#5bdec1]" : "tw:border-[#d8e5e9] tw:bg-[#f5f8f8] tw:text-[#133047] tw:dark:border-[#2a6155] tw:dark:bg-[#104138] tw:dark:text-[#eafff3]")}>{teacher.name}</Link>)}</nav> : <p className="tw:m-0 tw:text-sm tw:text-[#607e8d] tw:dark:text-[#a4c8b9]">Nenhum professor ativo cadastrado.</p>}
+      </div>
+      {selectedTeacher ? <div className="tw:grid tw:gap-2"><h3 className="tw:mt-1 tw:mb-0 tw:text-sm tw:font-semibold tw:text-[#133047] tw:dark:text-[#eafff3]">Turmas de {selectedTeacher.name}</h3>{selectedClassGroups.length ? selectedClassGroups.map((group) => <article key={group.id} className="tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-4 tw:text-[#133047] tw:dark:border-[#2a6155] tw:dark:bg-[#0b302a] tw:dark:text-[#eafff3]"><div className="tw:flex tw:items-start tw:justify-between tw:gap-2"><strong className="tw:text-sm">{group.name}</strong><span className={cx("tw:shrink-0 tw:rounded-full tw:px-2 tw:py-1 tw:text-[.65rem] tw:font-semibold", group.available ? "tw:bg-[#def2ed] tw:text-[#087b63] tw:dark:bg-[#16483d] tw:dark:text-[#5bdec1]" : "tw:bg-[#f2f4f4] tw:text-[#607e8d] tw:dark:bg-[#104138] tw:dark:text-[#a4c8b9]")}>{group.available ? "Vagas abertas" : "Sem vagas"}</span></div><p className="tw:mt-2 tw:mb-3 tw:text-xs tw:text-[#607e8d] tw:dark:text-[#a4c8b9]">{group.schedules.map((schedule) => `${weekdays[schedule.weekday]} ${schedule.startTime} · ${schedule.capacity} vagas`).join(" · ")}</p>{group.enrolled ? <span className="tw:text-xs tw:font-semibold tw:text-[#087b63] tw:dark:text-[#5bdec1]">Você participa</span> : group.requestPending ? <span className="tw:text-xs tw:font-semibold tw:text-[#a86100] tw:dark:text-[#ffd18a]">Solicitação enviada</span> : group.available ? <SafeActionForm action={requestClassGroupAction} successMessage="Solicitação enviada para a arena."><input type="hidden" name="arenaSlug" value={portal?.arenaSlug ?? ""} /><input type="hidden" name="classGroupId" value={group.id} /><SubmitButton label="Solicitar vaga" pendingLabel="Enviando..." className="tw:w-full tw:rounded-xl tw:bg-[#078f7c] tw:px-3 tw:py-2 tw:text-sm tw:font-semibold tw:text-white tw:dark:bg-[#5bdec1] tw:dark:text-[#082b34]" /></SafeActionForm> : null}</article>) : <p className="tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-4 tw:text-sm tw:text-[#607e8d] tw:dark:border-[#2a6155] tw:dark:bg-[#0b302a] tw:dark:text-[#a4c8b9]">Este professor não possui turmas disponíveis.</p>}</div> : teachers.length ? <p className="tw:m-0 tw:text-sm tw:text-[#607e8d] tw:dark:text-[#a4c8b9]">Escolha um professor para ver as turmas.</p> : null}
     </section>
-  );
+  </>;
 }
 
 function TeacherManagementIcon({ name }: { name: "plans" | "students" | "classes" | "makeups" | "agenda" }) {
