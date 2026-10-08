@@ -90,6 +90,7 @@ export function PublicLeaguePortal({
   const selectedWeek =
     leagueResultsByWeek.find((week) => week.block === selectedWeekBlock) ??
     leagueResultsByWeek[0];
+  const selectedWeekIndex = leagueResultsByWeek.findIndex((week) => week.block === selectedWeek?.block);
 
   useEffect(() => {
     const focusNotifiedMatch = () => {
@@ -127,12 +128,12 @@ export function PublicLeaguePortal({
   }, [portal.leagueResults]);
 
   return (
-    <section className={viewStyles.public_league_portal_section_card_stack_md}>
+    <section className={cx(viewStyles.public_league_portal_section_card_stack_md, "tw:viewport-700:mx-0! tw:viewport-700:mt-2! tw:viewport-700:w-full! tw:viewport-700:border-0! tw:viewport-700:bg-transparent! tw:viewport-700:p-0! tw:viewport-700:shadow-none! tw:viewport-700:text-[#133047]! tw:viewport-700:dark:text-[#eff8f8]!")}>
       <header
         className={
           cx(view === "pairs"
             ? viewStyles.public_league_portal_header
-            : viewStyles.public_league_portal_header_public_league_portal_hero_card)
+            : viewStyles.public_league_portal_header_public_league_portal_hero_card, "tw:viewport-700:hidden!")
         }
       >
         {view === "pairs" ? (
@@ -161,7 +162,7 @@ export function PublicLeaguePortal({
         <form
           method="get"
           action={`/classificacao/${arenaSlug}`}
-          className="portal-league-category-card"
+          className="portal-league-category-card tw:viewport-700:my-2! tw:viewport-700:rounded-xl! tw:viewport-700:border! tw:viewport-700:border-[#d8e5e9]! tw:viewport-700:bg-white! tw:viewport-700:[background-image:none]! tw:viewport-700:p-3! tw:viewport-700:shadow-none! tw:viewport-700:dark:border-[#244759]! tw:viewport-700:dark:bg-[#102f42]! tw:viewport-700:[&_>_header]:hidden! tw:viewport-700:[&_>_p]:hidden! tw:viewport-700:[&_.portal-league-category-actions]:hidden! tw:viewport-700:[&_label]:text-[#607e8d]! tw:viewport-700:dark:[&_label]:text-[#a1bccb]! tw:viewport-700:[&_select]:border-[#d8e5e9]! tw:viewport-700:[&_select]:bg-white! tw:viewport-700:[&_select]:[background-image:none]! tw:viewport-700:[&_select]:text-[#133047]! tw:viewport-700:dark:[&_select]:border-[#244759]! tw:viewport-700:dark:[&_select]:bg-[#102f42]! tw:viewport-700:dark:[&_select]:text-[#eff8f8]!"
         >
           <input type="hidden" name="arena" value={arenaSlug} />
           <input type="hidden" name="section" value="leagues" />
@@ -297,7 +298,7 @@ export function PublicLeaguePortal({
               ))}
             </section>
           ) : null}
-          <section className={viewStyles.portal_league_results}>
+          <section className={cx(viewStyles.portal_league_results, "tw:viewport-700:[&_h3]:text-[#133047]! tw:viewport-700:dark:[&_h3]:text-[#eff8f8]! tw:viewport-700:[&_>_header_>_small]:hidden! tw:viewport-700:[&_>_header_span]:hidden!")}>
             <header>
               <div>
                 <span>CALENDÁRIO DA LIGA</span>
@@ -307,7 +308,7 @@ export function PublicLeaguePortal({
             </header>
             {leagueResultsByWeek.length ? (
               <div className={viewStyles.portal_league_week_list}>
-                <div className={viewStyles.portal_league_week_tabs} role="tablist" aria-label="Semana da Liga">
+                <div className={cx(viewStyles.portal_league_week_tabs, "tw:viewport-700:hidden!")} role="tablist" aria-label="Semana da Liga">
                   {leagueResultsByWeek.map((week) => (
                     <button
                       aria-selected={selectedWeek?.block === week.block}
@@ -321,8 +322,9 @@ export function PublicLeaguePortal({
                     </button>
                   ))}
                 </div>
+                {selectedWeek ? <nav className="tw:hidden tw:viewport-700:flex tw:items-center tw:justify-between tw:gap-3 tw:py-2 tw:viewport-700:[&_strong]:text-[#133047]! tw:viewport-700:dark:[&_strong]:text-[#eff8f8]!" aria-label="Selecionar semana da Liga"><button type="button" onClick={() => setSelectedWeekBlock(leagueResultsByWeek[selectedWeekIndex - 1]?.block ?? selectedWeek.block)} disabled={selectedWeekIndex <= 0} aria-label="Semana anterior" className="tw:grid tw:size-9 tw:shrink-0 tw:place-items-center tw:rounded-full tw:border tw:border-[#d8e5e9] tw:bg-white tw:text-[#133047] tw:disabled:opacity-35 tw:dark:border-[#244759] tw:dark:bg-[#102f42] tw:dark:text-[#eff8f8]">‹</button><span className="tw:min-w-0 tw:text-center"><strong className="tw:block tw:text-sm tw:font-semibold tw:text-[#133047] tw:dark:text-[#eff8f8]">Semana {selectedWeek.block} de {leagueResultsByWeek.length}</strong><small className="tw:block tw:text-[.7rem] tw:text-[#607e8d] tw:dark:text-[#a1bccb]">{selectedWeek.period}</small></span><button type="button" onClick={() => setSelectedWeekBlock(leagueResultsByWeek[selectedWeekIndex + 1]?.block ?? selectedWeek.block)} disabled={selectedWeekIndex >= leagueResultsByWeek.length - 1} aria-label="Próxima semana" className="tw:grid tw:size-9 tw:shrink-0 tw:place-items-center tw:rounded-full tw:border tw:border-[#d8e5e9] tw:bg-white tw:text-[#133047] tw:disabled:opacity-35 tw:dark:border-[#244759] tw:dark:bg-[#102f42] tw:dark:text-[#eff8f8]">›</button></nav> : null}
                 {selectedWeek ? (
-                  <section className={viewStyles.portal_league_week} key={selectedWeek.block}>
+                  <section className={cx(viewStyles.portal_league_week, "tw:viewport-700:border-0! tw:viewport-700:bg-transparent! tw:viewport-700:[&_>_header]:hidden! tw:viewport-700:[&_>_div]:gap-2!")} key={selectedWeek.block}>
                     <header>
                       <div>
                         <strong>Semana {selectedWeek.block || "—"}</strong>
@@ -335,8 +337,9 @@ export function PublicLeaguePortal({
                     </header>
                     <div>
                       {selectedWeek.results.map((result) => (
-                        <article id={`jogo-${result.id}`} key={result.id}>
-                          <strong className={viewStyles.portal_league_match_sides}>
+                        <article id={`jogo-${result.id}`} key={result.id} className="tw:viewport-700:block! tw:viewport-700:rounded-2xl! tw:viewport-700:border! tw:viewport-700:border-[#d8e5e9]! tw:viewport-700:bg-white! tw:viewport-700:p-3! tw:viewport-700:dark:border-[#244759]! tw:viewport-700:dark:bg-[#102f42]! tw:viewport-700:[&_strong]:text-[#133047]! tw:viewport-700:dark:[&_strong]:text-[#eff8f8]!">
+                          <div className="tw:hidden tw:viewport-700:block"><div className="tw:mb-3 tw:flex tw:items-center tw:justify-between tw:gap-2 tw:text-[.67rem] tw:font-medium tw:text-[#607e8d] tw:dark:text-[#a1bccb]"><span>{result.scheduledAtLabel || "Horário a definir"}</span><span>{result.finished ? "Encerrado" : result.scheduledAtLabel ? "Agendado" : "Aguardando"}</span></div><div className="tw:grid tw:grid-cols-[minmax(0,1fr)_auto] tw:items-center tw:gap-x-3 tw:gap-y-2"><div className="tw:min-w-0"><span className="tw:block tw:text-[.64rem] tw:font-semibold tw:uppercase tw:text-[#078f7c] tw:dark:text-[#5bdec1]">Mandante</span><strong className="tw:mt-1 tw:block tw:text-sm tw:leading-snug tw:font-semibold tw:text-[#133047] tw:dark:text-[#eff8f8]">{result.homePairName}</strong></div><b className="tw:text-base tw:text-[#078f7c] tw:dark:text-[#5bdec1]">{result.finished ? result.homeScore ?? 0 : ""}</b><div className="tw:min-w-0"><span className="tw:block tw:text-[.64rem] tw:font-semibold tw:uppercase tw:text-[#607e8d] tw:dark:text-[#a1bccb]">Visitante</span><strong className="tw:mt-1 tw:block tw:text-sm tw:leading-snug tw:font-semibold tw:text-[#133047] tw:dark:text-[#eff8f8]">{result.awayPairName}</strong></div><b className="tw:text-base tw:text-[#607e8d] tw:dark:text-[#a1bccb]">{result.finished ? result.awayScore ?? 0 : ""}</b></div>{result.finished && result.setScores.length ? <div className="tw:mt-3 tw:flex tw:justify-between tw:border-t tw:border-[#d8e5e9] tw:pt-2 tw:text-[.7rem] tw:dark:border-[#244759]"><span className="tw:text-[#607e8d] tw:dark:text-[#a1bccb]">Games</span><strong className="tw:text-[#133047] tw:dark:text-[#eff8f8]">{result.setScores.map(([home, away]) => `${home}–${away}`).join(" · ")}</strong></div> : null}</div>
+                          <strong className={cx(viewStyles.portal_league_match_sides, "tw:viewport-700:hidden!")}>
                             <span className="portal-league-match-home">
                               <small
                                 className={cx(`portal-league-match-home-status ${result.finished ? "is-finished" : result.scheduledAtLabel ? "is-scheduled" : "is-waiting"}`)}
