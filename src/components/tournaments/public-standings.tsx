@@ -46,6 +46,119 @@ type ClientHome = Awaited<ReturnType<typeof import("@/lib/services/public-client
 type ClientFinance = Awaited<ReturnType<typeof import("@/lib/services/public-client-home").getPublicClientFinance>>;
 type AthleteNotifications = Awaited<ReturnType<typeof import("@/lib/services/public-player-notifications").getAthletePortalNotifications>>;
 
+const mobilePortalSkin = [
+  "tw:viewport-700:[&_.athlete-portal-content-panel]:border-[#d8e5e9]!",
+  "tw:viewport-700:[&_.athlete-portal-content-panel]:bg-white!",
+  "tw:viewport-700:[&_.athlete-portal-content-panel]:[background-image:none]!",
+  "tw:viewport-700:[&_.athlete-portal-content-panel]:text-[#133047]!",
+  "tw:viewport-700:[&_.athlete-portal-content-panel]:shadow-none!",
+  "tw:viewport-700:dark:[&_.athlete-portal-content-panel]:border-[#244759]!",
+  "tw:viewport-700:dark:[&_.athlete-portal-content-panel]:bg-[#102f42]!",
+  "tw:viewport-700:dark:[&_.athlete-portal-content-panel]:[background-image:none]!",
+  "tw:viewport-700:dark:[&_.athlete-portal-content-panel]:text-[#eff8f8]!",
+  "tw:viewport-700:[&_.athlete-portal-content-panel_>_header_>_span]:hidden!",
+  "tw:viewport-700:[&_.athlete-portal-content-panel_>_header_h2]:text-[#133047]!",
+  "tw:viewport-700:dark:[&_.athlete-portal-content-panel_>_header_h2]:text-[#eff8f8]!",
+  "tw:viewport-700:[&_.athlete-portal-content-panel_>_header_p]:text-[#607e8d]!",
+  "tw:viewport-700:dark:[&_.athlete-portal-content-panel_>_header_p]:text-[#a1bccb]!",
+  "tw:viewport-700:[&_.portal-empty]:border-[#d8e5e9]!",
+  "tw:viewport-700:[&_.portal-empty]:bg-[#f5f8f8]!",
+  "tw:viewport-700:[&_.portal-empty_strong]:text-[#133047]!",
+  "tw:viewport-700:[&_.portal-empty_span]:text-[#607e8d]!",
+  "tw:viewport-700:dark:[&_.portal-empty]:border-[#244759]!",
+  "tw:viewport-700:dark:[&_.portal-empty]:bg-[#14374a]!",
+  "tw:viewport-700:dark:[&_.portal-empty_strong]:text-[#eff8f8]!",
+  "tw:viewport-700:dark:[&_.portal-empty_span]:text-[#a1bccb]!",
+  "tw:viewport-700:[&_.portal-announcements-feed_article]:border-[#d8e5e9]!",
+  "tw:viewport-700:[&_.portal-announcements-feed_article]:bg-[#f5f8f8]!",
+  "tw:viewport-700:[&_.portal-announcements-feed_article_strong]:text-[#133047]!",
+  "tw:viewport-700:[&_.portal-announcements-feed_article_p]:text-[#607e8d]!",
+  "tw:viewport-700:dark:[&_.portal-announcements-feed_article]:border-[#244759]!",
+  "tw:viewport-700:dark:[&_.portal-announcements-feed_article]:bg-[#14374a]!",
+  "tw:viewport-700:dark:[&_.portal-announcements-feed_article_strong]:text-[#eff8f8]!",
+  "tw:viewport-700:dark:[&_.portal-announcements-feed_article_p]:text-[#a1bccb]!",
+  "tw:viewport-700:[&_.portal-activity-list_article]:border-[#d8e5e9]!",
+  "tw:viewport-700:[&_.portal-activity-list_article]:bg-[#f5f8f8]!",
+  "tw:viewport-700:dark:[&_.portal-activity-list_article]:border-[#244759]!",
+  "tw:viewport-700:dark:[&_.portal-activity-list_article]:bg-[#14374a]!",
+  "tw:viewport-700:[&_.portal-learning-empty_>_b]:hidden!",
+  "tw:viewport-700:[&_.portal-learning-empty]:bg-[#f5f8f8]!",
+  "tw:viewport-700:dark:[&_.portal-learning-empty]:bg-[#14374a]!",
+  "tw:viewport-700:[&_.portal-comanda-empty]:border-[#d8e5e9]!",
+  "tw:viewport-700:[&_.portal-comanda-empty]:bg-[#f5f8f8]!",
+  "tw:viewport-700:[&_.portal-comanda-empty_strong]:text-[#133047]!",
+  "tw:viewport-700:[&_.portal-comanda-empty_p]:text-[#607e8d]!",
+  "tw:viewport-700:dark:[&_.portal-comanda-empty]:border-[#244759]!",
+  "tw:viewport-700:dark:[&_.portal-comanda-empty]:bg-[#14374a]!",
+  "tw:viewport-700:dark:[&_.portal-comanda-empty_strong]:text-[#eff8f8]!",
+  "tw:viewport-700:dark:[&_.portal-comanda-empty_p]:text-[#a1bccb]!",
+  "tw:viewport-700:[&_.public-player-profile_label]:text-[#133047]!",
+  "tw:viewport-700:dark:[&_.public-player-profile_label]:text-[#eff8f8]!",
+  "tw:viewport-700:[&_.public-player-profile_input:not([type=radio])]:border-[#c9dbe2]!",
+  "tw:viewport-700:[&_.public-player-profile_input:not([type=radio])]:bg-[#f5f8f8]!",
+  "tw:viewport-700:[&_.public-player-profile_input:not([type=radio])]:text-[#133047]!",
+  "tw:viewport-700:dark:[&_.public-player-profile_input:not([type=radio])]:border-[#366075]!",
+  "tw:viewport-700:dark:[&_.public-player-profile_input:not([type=radio])]:bg-[#14374a]!",
+  "tw:viewport-700:dark:[&_.public-player-profile_input:not([type=radio])]:text-[#eff8f8]!",
+  "tw:viewport-700:[&_.public-player-profile_textarea]:border-[#c9dbe2]!",
+  "tw:viewport-700:[&_.public-player-profile_textarea]:bg-[#f5f8f8]!",
+  "tw:viewport-700:[&_.public-player-profile_textarea]:text-[#133047]!",
+  "tw:viewport-700:dark:[&_.public-player-profile_textarea]:border-[#366075]!",
+  "tw:viewport-700:dark:[&_.public-player-profile_textarea]:bg-[#14374a]!",
+  "tw:viewport-700:dark:[&_.public-player-profile_textarea]:text-[#eff8f8]!",
+  "tw:viewport-700:[&_.public-player-profile_textarea::placeholder]:text-[#607e8d]!",
+  "tw:viewport-700:dark:[&_.public-player-profile_textarea::placeholder]:text-[#a1bccb]!",
+  "tw:viewport-700:[&_.public-player-profile_select]:border-[#c9dbe2]!",
+  "tw:viewport-700:[&_.public-player-profile_select]:bg-[#f5f8f8]!",
+  "tw:viewport-700:[&_.public-player-profile_select]:text-[#133047]!",
+  "tw:viewport-700:dark:[&_.public-player-profile_select]:border-[#366075]!",
+  "tw:viewport-700:dark:[&_.public-player-profile_select]:bg-[#14374a]!",
+  "tw:viewport-700:dark:[&_.public-player-profile_select]:text-[#eff8f8]!",
+  "tw:viewport-700:[&_.avatar-crop-preview]:size-28!",
+  "tw:viewport-700:[&_.public-player-padel-profile]:border-[#d8e5e9]!",
+  "tw:viewport-700:[&_.public-player-padel-profile]:bg-[#f5f8f8]!",
+  "tw:viewport-700:[&_.public-player-padel-profile]:[background-image:none]!",
+  "tw:viewport-700:[&_.public-player-padel-profile_legend]:text-[#133047]!",
+  "tw:viewport-700:[&_.public-player-padel-profile_p]:text-[#607e8d]!",
+  "tw:viewport-700:dark:[&_.public-player-padel-profile]:border-[#366075]!",
+  "tw:viewport-700:dark:[&_.public-player-padel-profile]:bg-[#14374a]!",
+  "tw:viewport-700:dark:[&_.public-player-padel-profile_legend]:text-[#eff8f8]!",
+  "tw:viewport-700:dark:[&_.public-player-padel-profile_p]:text-[#a1bccb]!",
+  "tw:viewport-700:[&_.public-player-padel-categories_label]:border-[#d8e5e9]!",
+  "tw:viewport-700:[&_.public-player-padel-categories_label]:bg-white!",
+  "tw:viewport-700:[&_.public-player-padel-categories_label]:text-[#133047]!",
+  "tw:viewport-700:dark:[&_.public-player-padel-categories_label]:border-[#366075]!",
+  "tw:viewport-700:dark:[&_.public-player-padel-categories_label]:bg-[#102f42]!",
+  "tw:viewport-700:dark:[&_.public-player-padel-categories_label]:text-[#eff8f8]!",
+  "tw:viewport-700:[&_.public-player-profile_button[type=submit]]:bg-[#078f7c]!",
+  "tw:viewport-700:dark:[&_.public-player-profile_button[type=submit]]:bg-[#5bdec1]!",
+  "tw:viewport-700:[&_.portal-teacher-picker_strong]:text-[#133047]!",
+  "tw:viewport-700:[&_.portal-teacher-picker_>_span]:text-[#607e8d]!",
+  "tw:viewport-700:[&_.portal-teacher-hint]:border-[#d8e5e9]!",
+  "tw:viewport-700:[&_.portal-teacher-hint]:bg-[#f5f8f8]!",
+  "tw:viewport-700:[&_.portal-teacher-hint]:text-[#607e8d]!",
+  "tw:viewport-700:dark:[&_.portal-teacher-picker_strong]:text-[#eff8f8]!",
+  "tw:viewport-700:dark:[&_.portal-teacher-picker_>_span]:text-[#a1bccb]!",
+  "tw:viewport-700:dark:[&_.portal-teacher-hint]:border-[#244759]!",
+  "tw:viewport-700:dark:[&_.portal-teacher-hint]:bg-[#14374a]!",
+  "tw:viewport-700:dark:[&_.portal-teacher-hint]:text-[#a1bccb]!",
+  "tw:viewport-700:[&_.avatar-crop-controls_label.button]:border-[#c9dbe2]!",
+  "tw:viewport-700:[&_.avatar-crop-controls_label.button]:bg-[#f5f8f8]!",
+  "tw:viewport-700:[&_.avatar-crop-controls_label.button]:text-[#133047]!",
+  "tw:viewport-700:dark:[&_.avatar-crop-controls_label.button]:border-[#366075]!",
+  "tw:viewport-700:dark:[&_.avatar-crop-controls_label.button]:bg-[#14374a]!",
+  "tw:viewport-700:dark:[&_.avatar-crop-controls_label.button]:text-[#eff8f8]!",
+  "tw:viewport-700:[&_.portal-rule]:border-[#d8e5e9]!",
+  "tw:viewport-700:[&_.portal-rule]:bg-[#f5f8f8]!",
+  "tw:viewport-700:[&_.portal-rule_strong]:text-[#133047]!",
+  "tw:viewport-700:[&_.portal-rule_p]:text-[#607e8d]!",
+  "tw:viewport-700:dark:[&_.portal-rule]:border-[#244759]!",
+  "tw:viewport-700:dark:[&_.portal-rule]:bg-[#14374a]!",
+  "tw:viewport-700:dark:[&_.portal-rule_strong]:text-[#eff8f8]!",
+  "tw:viewport-700:dark:[&_.portal-rule_p]:text-[#a1bccb]!",
+].join(" ");
+const mobilePortalTabs = "tw:mx-4 tw:mt-3 tw:flex tw:gap-5 tw:overflow-x-auto tw:border-b tw:border-[#d8e5e9] tw:bg-transparent tw:dark:border-[#244759] tw:[&_a]:shrink-0 tw:[&_a]:border-b-2 tw:[&_a]:border-transparent tw:[&_a]:py-3 tw:[&_a]:text-xs tw:[&_a]:font-medium tw:[&_a]:text-[#607e8d] tw:[&_a]:no-underline tw:dark:[&_a]:text-[#a1bccb] tw:[&_a.active]:border-[#078f7c] tw:[&_a.active]:text-[#078f7c] tw:dark:[&_a.active]:border-[#5bdec1] tw:dark:[&_a.active]:text-[#5bdec1]";
+
 export function PublicStandings({
   data,
   arena,
@@ -211,13 +324,12 @@ export function PublicStandings({
   ];
 
   return (
-    <main className={cx(viewStyles.athlete_portal_page, "tw:viewport-700:bg-[#f5f8f8]! tw:viewport-700:text-[#133047]! tw:viewport-700:dark:bg-[#061c2a]! tw:viewport-700:dark:text-[#eff8f8]!")}>
+    <main className={cx(viewStyles.athlete_portal_page, mobilePortalSkin, "tw:viewport-700:bg-[#f5f8f8]! tw:viewport-700:text-[#133047]! tw:viewport-700:dark:bg-[#061c2a]! tw:viewport-700:dark:text-[#eff8f8]!")}>
       {publicHeader}
       <header className="tw:hidden tw:viewport-700:flex tw:items-center tw:justify-between tw:gap-3 tw:px-4 tw:pt-3 tw:pb-2" aria-label="Cabeçalho do portal">
         <div className="tw:flex tw:min-w-0 tw:items-center tw:gap-2">
           {requestedSection !== "home" ? <Link href={portalHref("home")} className="tw:grid tw:size-10 tw:shrink-0 tw:place-items-center tw:rounded-full tw:bg-white tw:text-[#133047] tw:dark:bg-[#102f42] tw:dark:text-[#eff8f8]" aria-label="Voltar ao início">←</Link> : null}
-          {arena.athletePortalLogoUrl || arena.logoUrl ? <img src={arena.athletePortalLogoUrl || arena.logoUrl} alt="" className="tw:size-9 tw:shrink-0 tw:rounded-lg tw:object-contain" /> : <span className="tw:grid tw:size-9 tw:shrink-0 tw:place-items-center tw:rounded-lg tw:bg-[#078f7c] tw:text-sm tw:text-white tw:dark:bg-[#5bdec1] tw:dark:text-[#082b34]">{arena.name.slice(0, 1).toUpperCase()}</span>}
-          <strong className="tw:truncate tw:text-sm tw:font-semibold">{arena.name}</strong>
+          <div className="tw:min-w-0"><AthletePortalWordmark compact /><Link href="/portal" aria-label="Trocar arena" className="tw:block tw:max-w-[136px] tw:truncate tw:text-[.62rem] tw:text-[#607e8d] tw:no-underline tw:dark:text-[#a1bccb]">{arena.name}</Link></div>
         </div>
         <div className="tw:flex tw:shrink-0 tw:items-center tw:gap-2"><AthletePortalNotifications arenaSlug={arena.slug} notifications={notifications} /><Link href={portalHref("profile")} aria-label="Meu perfil" className="tw:grid tw:size-9 tw:place-items-center tw:rounded-full tw:bg-[#def2ed] tw:text-xs tw:font-semibold tw:text-[#078f7c] tw:dark:bg-[#144c4e] tw:dark:text-[#5bdec1]">{currentClient.name.trim().slice(0, 1).toUpperCase()}</Link></div>
       </header>
@@ -225,7 +337,7 @@ export function PublicStandings({
       {requestedSection !== "home" ? <div className={cx(viewStyles.athlete_portal_back, "tw:viewport-700:hidden!")}><Link href={portalHref("home")}>← Voltar ao início</Link></div> : null}
       {requestedSection === "lessons" || requestedSection === "classes" ? (
         <nav
-          className={viewStyles.athlete_portal_league_nav_athlete_portal_learning_tabs}
+          className={cx(viewStyles.athlete_portal_league_nav_athlete_portal_learning_tabs, "tw:viewport-700:hidden!")}
           aria-label="Menu de aulas"
         >
           {portalVisibility.athletePortalShowLessons ? (
@@ -246,13 +358,15 @@ export function PublicStandings({
           ) : null}
         </nav>
       ) : null}
+      {requestedSection === "lessons" || requestedSection === "classes" ? <nav className={cx("tw:hidden tw:viewport-700:flex", mobilePortalTabs)} aria-label="Menu de aulas">{portalVisibility.athletePortalShowLessons ? <Link className={cx(requestedSection === "lessons" ? "active" : "")} href={portalHref("lessons")}>Minhas aulas</Link> : null}{portalVisibility.athletePortalShowClasses ? <Link className={cx(requestedSection === "classes" ? "active" : "")} href={portalHref("classes")}>Turmas</Link> : null}</nav> : null}
       {requestedSection === "profile" || requestedSection === "finance" || requestedSection === "comandas" ? (
-        <nav className={cx(viewStyles.athlete_portal_league_nav, requestedSection === "finance" ? "tw:viewport-700:hidden!" : "")} aria-label="Menu do meu perfil">
+        <nav className={cx(viewStyles.athlete_portal_league_nav, "tw:viewport-700:hidden!")} aria-label="Menu do meu perfil">
           <Link className={cx(requestedSection === "profile" ? "active" : "")} href={portalHref("profile")}>Dados pessoais</Link>
           <Link className={cx(requestedSection === "finance" ? "active" : "")} href={portalHref("finance")}>Finanças</Link>
           <Link className={cx(requestedSection === "comandas" ? "active" : "")} href={portalHref("comandas")}>Minhas comandas</Link>
         </nav>
       ) : null}
+      {requestedSection === "profile" || requestedSection === "comandas" ? <nav className={cx("tw:hidden tw:viewport-700:flex", mobilePortalTabs)} aria-label="Menu do meu perfil"><Link className={cx(requestedSection === "profile" ? "active" : "")} href={portalHref("profile")}>Dados pessoais</Link><Link href={portalHref("finance")}>Finanças</Link><Link className={cx(requestedSection === "comandas" ? "active" : "")} href={portalHref("comandas")}>Comandas</Link></nav> : null}
       {requestedSection === "home" ? (
         <ClientHomePanel home={home} name={currentClient.name} arenaSlug={arena.slug} shortcuts={homeShortcuts} />
       ) : requestedSection === "announcements" ? (
@@ -365,10 +479,7 @@ export function PublicStandings({
       ) : requestedSection === "teacher" && currentClient.isTeacher ? (
         <TeacherManagementPanel portal={portal} />
       ) : (
-        <PublicPlayerProfile
-          arenaSlug={arena.slug}
-          player={currentClient}
-        />
+        <><PublicPlayerProfile arenaSlug={arena.slug} player={currentClient} /><form action={logoutAthletePortalAction} className="tw:mx-4 tw:mt-4 tw:hidden tw:pb-20 tw:viewport-700:block"><input type="hidden" name="arenaSlug" value={arena.slug} /><button type="submit" className="tw:w-full tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-3 tw:text-sm tw:font-medium tw:text-[#133047] tw:dark:border-[#244759] tw:dark:bg-[#102f42] tw:dark:text-[#eff8f8]">Sair do portal</button></form></>
       )}
       <nav className={cx(viewStyles.athlete_portal_bottom_nav, "tw:viewport-700:bg-white! tw:viewport-700:dark:bg-[#102b3d]! tw:viewport-700:[&_a]:text-[#668492]! tw:viewport-700:dark:[&_a]:text-[#a1bccb]! tw:viewport-700:[&_a.active]:text-[#078f7c]! tw:viewport-700:dark:[&_a.active]:text-[#5bdec1]!")} aria-label="Atalhos principais">
         <Link className={cx(requestedSection === "home" ? "active" : "")} href={portalHref("home")}><PortalNavIcon icon="home" /><span>Início</span></Link>
@@ -485,7 +596,7 @@ function ClientHomePanel({ home, name, arenaSlug, shortcuts }: { home: ClientHom
 
 function PrizePanel({ portal }: { portal: Portal }) {
   return (
-    <section className={viewStyles.portal_league_prize_podium}>
+    <><section className="tw:mx-3 tw:hidden tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-4 tw:viewport-700:block tw:dark:border-[#244759] tw:dark:bg-[#102f42]"><h2 className="tw:mb-3 tw:text-lg tw:font-semibold">Premiação</h2>{portal?.prizes.length ? <div className="tw:grid tw:gap-2">{portal.prizes.map((prize) => <article key={prize.id} className="tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-[#f5f8f8] tw:p-3 tw:dark:border-[#244759] tw:dark:bg-[#14374a]"><strong className="tw:block tw:text-sm">{prize.categoryName}</strong><small className="tw:block tw:text-xs tw:text-[#607e8d] tw:dark:text-[#a1bccb]">{prize.eventName}</small><p className="tw:mt-2 tw:text-sm">{prize.description}</p></article>)}</div> : <p className="tw:text-sm tw:text-[#607e8d] tw:dark:text-[#a1bccb]">A arena ainda não divulgou premiações.</p>}</section><section className={cx(viewStyles.portal_league_prize_podium, "tw:viewport-700:hidden!")}>
       <div className={viewStyles.portal_league_prize_cup} aria-hidden="true">
         🏆
       </div>
@@ -509,7 +620,7 @@ function PrizePanel({ portal }: { portal: Portal }) {
           <p>A arena ainda não divulgou a premiação dos seus torneios.</p>
         )}
       </div>
-    </section>
+    </section></>
   );
 }
 
@@ -545,7 +656,7 @@ function RankingPanel({ arenaSlug, data }: { arenaSlug: string; data: ArenaPubli
       </header>
       {data.options.length ? <RankingCategorySelect arenaSlug={arenaSlug} options={data.options} selectedOptionId={data.selectedOptionId} /> : null}
       {data.selected?.kind === "GENERAL_RANKING" ? (
-        <table className={viewStyles.portal_ranking_table}>
+        <><div className="tw:hidden tw:viewport-700:grid tw:gap-2">{data.selected.rows.map((row) => <article key={`${row.position}-${row.playerName}`} className="tw:flex tw:items-center tw:gap-3 tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-[#f5f8f8] tw:p-3 tw:dark:border-[#244759] tw:dark:bg-[#14374a]"><b className="tw:grid tw:size-8 tw:shrink-0 tw:place-items-center tw:rounded-full tw:bg-[#def2ed] tw:text-xs tw:text-[#078f7c] tw:dark:bg-[#1c625b] tw:dark:text-[#5bdec1]">{row.position}º</b><span className="tw:min-w-0 tw:flex-1"><strong className="tw:block tw:text-sm tw:text-[#133047] tw:dark:text-[#eff8f8]">{row.playerName}</strong><small className="tw:text-xs tw:text-[#607e8d] tw:dark:text-[#a1bccb]">{row.tournamentsPlayed} eventos</small></span><b className="tw:text-sm tw:text-[#078f7c] tw:dark:text-[#5bdec1]">{row.points} pts</b></article>)}</div><table className={cx(viewStyles.portal_ranking_table, "tw:viewport-700:hidden!")}>
           <thead>
             <tr>
               <th>Pos.</th>
@@ -564,11 +675,11 @@ function RankingPanel({ arenaSlug, data }: { arenaSlug: string; data: ArenaPubli
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></>
       ) : null}
       {data.selected?.kind === "CATEGORY" &&
       data.selected.format === "LEAGUE" ? (
-        <table className={viewStyles.portal_ranking_table_2}>
+        <><div className="tw:hidden tw:viewport-700:grid tw:gap-2">{data.selected.leagueStandings.map((standing) => <article key={standing.position} className="tw:flex tw:items-center tw:gap-3 tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-[#f5f8f8] tw:p-3 tw:dark:border-[#244759] tw:dark:bg-[#14374a]"><b className="tw:grid tw:size-8 tw:shrink-0 tw:place-items-center tw:rounded-full tw:bg-[#def2ed] tw:text-xs tw:text-[#078f7c] tw:dark:bg-[#1c625b] tw:dark:text-[#5bdec1]">{standing.position}º</b><span className="tw:min-w-0 tw:flex-1"><strong className="tw:block tw:text-sm tw:text-[#133047] tw:dark:text-[#eff8f8]">{standing.pairName}</strong><small className="tw:text-xs tw:text-[#607e8d] tw:dark:text-[#a1bccb]">{standing.victories} vitórias · saldo {standing.differential}</small></span><b className="tw:text-sm tw:text-[#078f7c] tw:dark:text-[#5bdec1]">{standing.points} pts</b></article>)}</div><table className={cx(viewStyles.portal_ranking_table_2, "tw:viewport-700:hidden!")}>
           <thead>
             <tr>
               <th>Pos.</th>
@@ -593,7 +704,7 @@ function RankingPanel({ arenaSlug, data }: { arenaSlug: string; data: ArenaPubli
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></>
       ) : null}
       {!data.selected ? (
         <p className={viewStyles.muted}>Nenhuma classificação publicada neste momento.</p>

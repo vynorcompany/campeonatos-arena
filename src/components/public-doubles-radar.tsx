@@ -20,6 +20,23 @@ const availabilityCopy = {
 } as const;
 const radarGenders = ["Feminino", "Masculino", "Outro"];
 const radarCategories = ["Iniciante", "7ª categoria", "6ª categoria", "5ª categoria", "4ª categoria", "3ª categoria", "2ª categoria", "1ª categoria", "Profissional"];
+const mobileRadarSkin = [
+  "tw:viewport-700:border-[#d8e5e9]! tw:viewport-700:bg-white! tw:viewport-700:p-0! tw:viewport-700:dark:border-[#244759]! tw:viewport-700:dark:bg-[#102f42]!",
+  "tw:viewport-700:[&_.doubles-radar-hero]:min-h-0! tw:viewport-700:[&_.doubles-radar-hero]:bg-transparent! tw:viewport-700:[&_.doubles-radar-hero]:[background-image:none]! tw:viewport-700:[&_.doubles-radar-hero_>_span]:hidden!",
+  "tw:viewport-700:[&_.doubles-radar-hero_h2]:text-[#133047]! tw:viewport-700:[&_.doubles-radar-hero_p]:text-[#607e8d]! tw:viewport-700:dark:[&_.doubles-radar-hero_h2]:text-[#eff8f8]! tw:viewport-700:dark:[&_.doubles-radar-hero_p]:text-[#a1bccb]!",
+  "tw:viewport-700:[&_.doubles-radar-status]:border-[#d8e5e9]! tw:viewport-700:[&_.doubles-radar-status]:bg-[#f5f8f8]! tw:viewport-700:[&_.doubles-radar-status]:[background-image:none]! tw:viewport-700:[&_.doubles-radar-status_strong]:text-[#133047]! tw:viewport-700:[&_.doubles-radar-status_p]:text-[#607e8d]!",
+  "tw:viewport-700:dark:[&_.doubles-radar-status]:border-[#244759]! tw:viewport-700:dark:[&_.doubles-radar-status]:bg-[#14374a]! tw:viewport-700:dark:[&_.doubles-radar-status_strong]:text-[#eff8f8]! tw:viewport-700:dark:[&_.doubles-radar-status_p]:text-[#a1bccb]!",
+  "tw:viewport-700:[&_.doubles-radar-status_button]:bg-[#078f7c]! tw:viewport-700:[&_.doubles-radar-status_button]:[background-image:none]! tw:viewport-700:dark:[&_.doubles-radar-status_button]:bg-[#5bdec1]!",
+  "tw:viewport-700:[&_.doubles-radar-filters]:border-[#d8e5e9]! tw:viewport-700:[&_.doubles-radar-filters]:bg-white! tw:viewport-700:[&_.doubles-radar-filters]:[background-image:none]! tw:viewport-700:[&_.doubles-radar-filters_strong]:text-[#133047]! tw:viewport-700:[&_.doubles-radar-filters_label]:text-[#133047]!",
+  "tw:viewport-700:[&_.doubles-radar-filters_select]:border-[#c9dbe2]! tw:viewport-700:[&_.doubles-radar-filters_select]:bg-[#f5f8f8]! tw:viewport-700:[&_.doubles-radar-filters_select]:text-[#133047]!",
+  "tw:viewport-700:[&_.doubles-radar-filters_select]:[background-image:none]!",
+  "tw:viewport-700:dark:[&_.doubles-radar-filters]:border-[#244759]! tw:viewport-700:dark:[&_.doubles-radar-filters]:bg-[#102f42]! tw:viewport-700:dark:[&_.doubles-radar-filters_strong]:text-[#eff8f8]! tw:viewport-700:dark:[&_.doubles-radar-filters_label]:text-[#eff8f8]!",
+  "tw:viewport-700:dark:[&_.doubles-radar-filters_select]:border-[#366075]! tw:viewport-700:dark:[&_.doubles-radar-filters_select]:bg-[#14374a]! tw:viewport-700:dark:[&_.doubles-radar-filters_select]:text-[#eff8f8]!",
+  "tw:viewport-700:[&_.doubles-radar-filters_button]:bg-[#078f7c]! tw:viewport-700:dark:[&_.doubles-radar-filters_button]:bg-[#5bdec1]!",
+  "tw:viewport-700:[&_.doubles-radar-list_>_header_strong]:text-[#133047]! tw:viewport-700:dark:[&_.doubles-radar-list_>_header_strong]:text-[#eff8f8]!",
+  "tw:viewport-700:[&_.doubles-radar-empty]:bg-[#f5f8f8]! tw:viewport-700:[&_.doubles-radar-empty_strong]:text-[#133047]! tw:viewport-700:[&_.doubles-radar-empty_span]:text-[#607e8d]!",
+  "tw:viewport-700:dark:[&_.doubles-radar-empty]:bg-[#14374a]! tw:viewport-700:dark:[&_.doubles-radar-empty_strong]:text-[#eff8f8]! tw:viewport-700:dark:[&_.doubles-radar-empty_span]:text-[#a1bccb]!",
+].join(" ");
 
 function href(filters: { gender?: string; category?: string; athleteId?: string }) {
   const query = new URLSearchParams({ section: "radar" });
@@ -48,7 +65,7 @@ export function PublicDoublesRadar({
   const availableGenders = [...new Set([...radarGenders, ...radar.genders])];
   const availableCategories = [...new Set([...radarCategories, ...radar.categories])];
 
-  return <section className={viewStyles.athlete_portal_content_panel_doubles_radar}>
+  return <section className={cx(viewStyles.athlete_portal_content_panel_doubles_radar, mobileRadarSkin)}>
     <header className={viewStyles.doubles_radar_hero}>
       <span>RADAR DE DUPLAS</span>
       <h2>Encontre seu parceiro de torneio</h2>
