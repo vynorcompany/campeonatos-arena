@@ -1,4 +1,4 @@
-import { viewStyles } from "./_error.utilities";
+import { viewStyles } from "@/components/ui/error-page.utilities";
 import type { NextPageContext } from "next";
 import Link from "next/link";
 
