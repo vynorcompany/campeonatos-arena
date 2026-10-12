@@ -39,8 +39,14 @@ export const viewStyles = {
     "tw:[flex:0_0_32px]", "tw:place-items-center", "tw:rounded-[50%]", "tw:text-[color:#bc302a]",
     "tw:bg-[color:#fff1f0]", "tw:[background-image:none]", "tw:text-[1.05rem]", "tw:font-[900]",
   ].join(" "),
+  "safe_action_confirmation_icon_neutral": [
+    "safe-action-confirmation-icon", "tw:grid", "tw:w-[32px]", "tw:h-[32px]",
+    "tw:[flex:0_0_32px]", "tw:place-items-center", "tw:rounded-[50%]", "tw:text-[color:var(--brand)]",
+    "tw:bg-[color:color-mix(in_srgb,_var(--brand)_10%,_white)]", "tw:text-[1.05rem]", "tw:font-[900]",
+  ].join(" "),
   "button": sharedUtilities.button,
   "button_button_danger": sharedUtilities.buttonButtonDanger,
+  "button_button_primary": sharedUtilities.buttonButtonPrimary,
   "form_error_form_full": sharedUtilities.formErrorFormFull,
   "form_success_form_full": sharedUtilities.formSuccessFormFull,
 } as const;
