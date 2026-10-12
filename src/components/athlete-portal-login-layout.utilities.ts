@@ -9,7 +9,7 @@ export const viewStyles = {
   ].join(" "),
   "athlete_login_shell": [
     "athlete-login-shell", "tw:grid", "tw:viewport-760:block", "tw:grid-cols-[minmax(330px,_.9fr)_minmax(390px,_1.1fr)]",
-    "tw:w-[min(1080px,_100%)]", "tw:min-h-[min(660px,_calc(100dvh_-_48px))]", "tw:viewport-760:min-h-[calc(100dvh_-_28px)]", "tw:[overflow-x:hidden]",
+    "tw:w-[min(1080px,_100%)]", "tw:min-h-[min(660px,_calc(100dvh_-_48px))]", "tw:viewport-760:min-h-[0]", "tw:[overflow-x:hidden]",
     "tw:[overflow-y:hidden]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:#d9e3ee]",
     "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:#d9e3ee]", "tw:border-b-[length:1px]",
     "tw:[border-bottom-style:solid]", "tw:border-b-[color:#d9e3ee]", "tw:border-l-[length:1px]", "tw:[border-left-style:solid]",

@@ -21,7 +21,8 @@ export const viewStyles = {
     "tw:[&_input]:[border-right-style:solid]", "tw:[&_input]:border-r-[color:#cbd9e8]", "tw:[&_input]:border-b-[length:1px]", "tw:[&_input]:[border-bottom-style:solid]",
     "tw:[&_input]:border-b-[color:#cbd9e8]", "tw:[&_input]:border-l-[length:1px]", "tw:[&_input]:[border-left-style:solid]", "tw:[&_input]:border-l-[color:#cbd9e8]",
     "tw:[&_input]:rounded-[var(--radius-control)]", "tw:[&_input]:bg-[color:#fff]", "tw:[&_input]:[background-image:none]", "tw:[&_input]:text-[color:#172033]",
-    "tw:[&_input]:[font:inherit]",
+    "tw:[&_input]:[font:inherit]", "tw:[&_h2]:text-[color:#073d62]!", "tw:[&_header_p]:text-[color:#43536b]!",
+    "tw:[&_.form-error]:text-[color:#a32121]!", "tw:[&_.form-message-success]:text-[color:#075d48]!",
   ].join(" "),
   "public_client_auth_tabs": [
     "public-client-auth-tabs", "tw:grid", "tw:grid-cols-[repeat(2,_minmax(0,_1fr))]", "tw:gap-y-[6px]",

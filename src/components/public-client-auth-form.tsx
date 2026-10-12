@@ -2,7 +2,7 @@
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./public-client-auth-form.utilities";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useFormState } from "react-dom";
 import { confirmPublicPasswordResetAction, loginPublicClientAction, registerPublicClientAction, requestPublicPasswordResetAction, type PublicClientAuthState } from "@/lib/actions/player-auth";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -15,7 +15,41 @@ export function PublicClientAuthForm({ arenaSlug, returnTo }: { arenaSlug: strin
   const [registerState, registerAction] = useFormState(registerPublicClientAction, initialState);
   const [resetRequestState, resetRequestAction] = useFormState(requestPublicPasswordResetAction, initialState);
   const [resetConfirmState, resetConfirmAction] = useFormState(confirmPublicPasswordResetAction, initialState);
+  const [successNotice, setSuccessNotice] = useState<string | null>(null);
+  const [requestPhone, setRequestPhone] = useState("");
+  useEffect(() => { if (resetRequestState.requested) setMode("RESET_CONFIRM"); }, [resetRequestState]);
+  useEffect(() => { if (resetConfirmState.notice) { setSuccessNotice(resetConfirmState.notice); setMode("LOGIN"); } }, [resetConfirmState]);
   const state = mode === "LOGIN" ? loginState : mode === "REGISTER" ? registerState : mode === "RESET_REQUEST" ? resetRequestState : resetConfirmState;
+  const notice = mode === "RESET_CONFIRM" ? resetRequestState.notice : mode === "LOGIN" ? successNotice : resetRequestState.notice;
 
-  return <section className={viewStyles.public_client_auth}><header><span>ÁREA DO CLIENTE</span><h2>{mode === "LOGIN" ? "Entre para acessar" : mode === "REGISTER" ? "Crie sua conta" : mode === "RESET_REQUEST" ? "Recupere sua senha" : "Crie uma nova senha"}</h2><p>{mode.startsWith("RESET") ? "Enviaremos um código de confirmação para o WhatsApp cadastrado." : "Use seu telefone para manter suas reservas, aulas e pagamentos em um único cadastro."}</p></header>{!mode.startsWith("RESET") ? <div className={viewStyles.public_client_auth_tabs}><button type="button" className={cx(mode === "LOGIN" ? "active" : "")} onClick={() => setMode("LOGIN")}>Entrar</button><button type="button" className={cx(mode === "REGISTER" ? "active" : "")} onClick={() => setMode("REGISTER")}>Criar conta</button></div> : null}{mode === "LOGIN" ? <form action={loginAction}><input type="hidden" name="arenaSlug" value={arenaSlug} /><input type="hidden" name="returnTo" value={returnTo ?? ""} /><label className={viewStyles.field}>Telefone<input name="phone" inputMode="tel" autoComplete="tel" required /></label><label className={viewStyles.field}>Senha<input name="password" type="password" autoComplete="current-password" required /></label><button type="button" className={viewStyles.public_client_auth_forgot} onClick={() => setMode("RESET_REQUEST")}>Perdi minha senha</button><SubmitButton label="Entrar" pendingLabel="Entrando..." className={viewStyles.button_button_primary} /></form> : mode === "REGISTER" ? <form action={registerAction}><input type="hidden" name="arenaSlug" value={arenaSlug} /><input type="hidden" name="returnTo" value={returnTo ?? ""} /><label className={viewStyles.field}>Nome e sobrenome<input name="name" autoComplete="name" placeholder="Ex.: Maria Silva" required /></label><label className={viewStyles.field}>Telefone<input name="phone" inputMode="tel" autoComplete="tel" required /></label><label className={viewStyles.field}>Crie uma senha<input name="password" type="password" autoComplete="new-password" minLength={8} required /></label><label className={viewStyles.field}>Repita a senha<input name="confirmPassword" type="password" autoComplete="new-password" minLength={8} required /></label><SubmitButton label="Criar conta" pendingLabel="Criando conta..." className={viewStyles.button_button_primary} /></form> : mode === "RESET_REQUEST" ? <form action={async (formData) => { await resetRequestAction(formData); setMode("RESET_CONFIRM"); }}><input type="hidden" name="arenaSlug" value={arenaSlug} /><label className={viewStyles.field}>Telefone cadastrado<input name="phone" inputMode="tel" autoComplete="tel" required /></label><div className={viewStyles.public_client_auth_actions}><button type="button" className={viewStyles.button_button_small} onClick={() => setMode("LOGIN")}>Voltar</button><SubmitButton label="Enviar código" pendingLabel="Enviando..." className={viewStyles.button_button_primary} /></div></form> : <form action={resetConfirmAction}><input type="hidden" name="arenaSlug" value={arenaSlug} /><label className={viewStyles.field}>Telefone cadastrado<input name="phone" inputMode="tel" autoComplete="tel" required /></label><label className={viewStyles.field}>Código de 6 dígitos<input name="code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} required /></label><label className={viewStyles.field}>Nova senha<input name="newPassword" type="password" autoComplete="new-password" minLength={8} required /></label><label className={viewStyles.field}>Repita a nova senha<input name="confirmPassword" type="password" autoComplete="new-password" minLength={8} required /></label><div className={viewStyles.public_client_auth_actions}><button type="button" className={viewStyles.button_button_small} onClick={() => setMode("LOGIN")}>Voltar</button><SubmitButton label="Salvar nova senha" pendingLabel="Salvando..." className={viewStyles.button_button_primary} /></div></form>}{state?.error ? <p className={cx(mode.startsWith("RESET") && !state.error.includes("inválido") && !state.error.includes("expirado") ? "form-message form-message-success" : viewStyles.form_error)}>{state.error}</p> : null}</section>;
+  return <section className={viewStyles.public_client_auth}>
+    <header><span>ÁREA DO CLIENTE</span><h2>{mode === "LOGIN" ? "Entre para acessar" : mode === "REGISTER" ? "Crie sua conta" : mode === "RESET_REQUEST" ? "Recupere sua senha" : "Crie uma nova senha"}</h2><p>{mode.startsWith("RESET") ? "Enviaremos um código de confirmação para o WhatsApp cadastrado." : "Use seu telefone para manter suas reservas, aulas e pagamentos em um único cadastro."}</p></header>
+    {!mode.startsWith("RESET") ? <div className={viewStyles.public_client_auth_tabs}><button type="button" className={cx(mode === "LOGIN" ? "active" : "")} onClick={() => setMode("LOGIN")}>Entrar</button><button type="button" className={cx(mode === "REGISTER" ? "active" : "")} onClick={() => setMode("REGISTER")}>Criar conta</button></div> : null}
+    {mode === "LOGIN" ? <form action={loginAction}>
+      <input type="hidden" name="arenaSlug" value={arenaSlug} /><input type="hidden" name="returnTo" value={returnTo ?? ""} />
+      <label className={viewStyles.field}>Telefone<input name="phone" inputMode="tel" autoComplete="tel" required /></label>
+      <label className={viewStyles.field}>Senha<input name="password" type="password" autoComplete="current-password" required /></label>
+      <button type="button" className={viewStyles.public_client_auth_forgot} onClick={() => { setSuccessNotice(null); setMode("RESET_REQUEST"); }}>Perdi minha senha</button>
+      <SubmitButton label="Entrar" pendingLabel="Entrando..." className={viewStyles.button_button_primary} />
+    </form> : mode === "REGISTER" ? <form action={registerAction}>
+      <input type="hidden" name="arenaSlug" value={arenaSlug} /><input type="hidden" name="returnTo" value={returnTo ?? ""} />
+      <label className={viewStyles.field}>Nome e sobrenome<input name="name" autoComplete="name" placeholder="Ex.: Maria Silva" required /></label>
+      <label className={viewStyles.field}>Telefone<input name="phone" inputMode="tel" autoComplete="tel" required /></label>
+      <label className={viewStyles.field}>Crie uma senha<input name="password" type="password" autoComplete="new-password" minLength={8} required /></label>
+      <label className={viewStyles.field}>Repita a senha<input name="confirmPassword" type="password" autoComplete="new-password" minLength={8} required /></label>
+      <SubmitButton label="Criar conta" pendingLabel="Criando conta..." className={viewStyles.button_button_primary} />
+    </form> : mode === "RESET_REQUEST" ? <form action={resetRequestAction}>
+      <input type="hidden" name="arenaSlug" value={arenaSlug} />
+      <label className={viewStyles.field}>Telefone cadastrado<input name="phone" inputMode="tel" autoComplete="tel" value={requestPhone} onChange={(event) => setRequestPhone(event.currentTarget.value)} required /></label>
+      <div className={viewStyles.public_client_auth_actions}><button type="button" className={viewStyles.button_button_small} onClick={() => setMode("LOGIN")}>Voltar</button><SubmitButton label="Enviar código" pendingLabel="Enviando..." className={viewStyles.button_button_primary} /></div>
+    </form> : <form action={resetConfirmAction}>
+      <input type="hidden" name="arenaSlug" value={arenaSlug} />
+      <label className={viewStyles.field}>Telefone cadastrado<input name="phone" inputMode="tel" autoComplete="tel" defaultValue={resetRequestState.phone ?? ""} required /></label>
+      <label className={viewStyles.field}>Código de 6 dígitos<input name="code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} required /></label>
+      <label className={viewStyles.field}>Nova senha<input name="newPassword" type="password" autoComplete="new-password" minLength={8} required /></label>
+      <label className={viewStyles.field}>Repita a nova senha<input name="confirmPassword" type="password" autoComplete="new-password" minLength={8} required /></label>
+      <div className={viewStyles.public_client_auth_actions}><button type="button" className={viewStyles.button_button_small} onClick={() => setMode("LOGIN")}>Voltar</button><SubmitButton label="Salvar nova senha" pendingLabel="Salvando..." className={viewStyles.button_button_primary} /></div>
+    </form>}
+    {state.error ? <p className={viewStyles.form_error} role="alert">{state.error}</p> : notice ? <p className="form-message form-message-success" role="status">{notice}</p> : null}
+  </section>;
 }
