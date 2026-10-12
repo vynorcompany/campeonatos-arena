@@ -11,12 +11,12 @@ import { env } from "@/lib/env";
 import { sendEvolutionTextMessage } from "@/lib/integrations/evolution/client";
 import { normalizeBrazilianPhone } from "@/lib/phone";
 
-export type PublicClientAuthState = { error: string | null };
+export type PublicClientAuthState = { error: string | null; notice?: string; requested?: boolean; phone?: string };
 
 const loginSchema = z.object({ arenaSlug: z.string().trim().min(1), returnTo: z.string().trim().default(""), phone: z.string().trim().min(8), password: z.string().min(8, "A senha deve ter ao menos 8 caracteres.") });
 const globalLoginSchema = z.object({ phone: z.string().trim().min(8), password: z.string().min(8, "A senha deve ter ao menos 8 caracteres.") });
 const registerSchema = loginSchema.extend({ name: z.string().trim().min(3, "Informe nome e sobrenome.").refine((name) => name.split(/\s+/).filter(Boolean).length >= 2, "Informe nome e sobrenome."), confirmPassword: z.string().min(8) }).refine((data) => data.password === data.confirmPassword, { path: ["confirmPassword"], message: "As senhas não coincidem." });
-const resetSchema = loginSchema.extend({ code: z.string().trim().length(6), newPassword: z.string().min(8), confirmPassword: z.string().min(8) }).refine((data) => data.newPassword === data.confirmPassword, { path: ["confirmPassword"], message: "As senhas não coincidem." });
+const resetSchema = z.object({ arenaSlug: z.string().trim().min(1), phone: z.string().trim().min(8), code: z.string().trim().length(6), newPassword: z.string().min(8), confirmPassword: z.string().min(8) }).refine((data) => data.newPassword === data.confirmPassword, { path: ["confirmPassword"], message: "As senhas não coincidem." });
 
 function normalizePhone(phone: string) { return normalizeBrazilianPhone(phone); }
 function destination(arenaSlug: string, returnTo: string) { return returnTo.startsWith(`/classificacao/${arenaSlug}`) ? returnTo : `/reservar/${arenaSlug}`; }
@@ -24,10 +24,37 @@ function hashCode(code: string) { return crypto.createHash("sha256").update(code
 function createCode() { return crypto.randomInt(100000, 1000000).toString(); }
 
 async function sendVerificationCode(arenaId: string, phone: string, purpose: "REGISTER" | "RESET") {
+  if (purpose === "RESET") {
+    const recentCode = await prisma.playerVerificationCode.findFirst({ where: { arenaId, phone, purpose, usedAt: null, createdAt: { gte: new Date(Date.now() - 60_000) }, expiresAt: { gt: new Date() } }, select: { id: true } });
+    if (recentCode) return;
+  }
   const code = createCode();
   await prisma.playerVerificationCode.deleteMany({ where: { arenaId, phone, purpose, usedAt: null } });
-  await prisma.playerVerificationCode.create({ data: { arenaId, phone, purpose, codeHash: hashCode(code), expiresAt: new Date(Date.now() + 10 * 60 * 1000) } });
-  await sendEvolutionTextMessage(phone, `Seu código de acesso da Arena é ${code}. Ele expira em 10 minutos.`, arenaId);
+  const verification = await prisma.playerVerificationCode.create({ data: { arenaId, phone, purpose, codeHash: hashCode(code), expiresAt: new Date(Date.now() + 10 * 60 * 1000) } });
+  try {
+    await sendEvolutionTextMessage(phone, `Seu código de acesso da Arena é ${code}. Ele expira em 10 minutos.`, arenaId);
+  } catch (error) {
+    await prisma.playerVerificationCode.delete({ where: { id: verification.id } });
+    throw error;
+  }
+}
+
+const resetRequestNotice = "Se existir uma conta para este telefone, enviaremos um código pelo WhatsApp.";
+const resetDeliveryError = "Não foi possível enviar o código agora. Verifique a conexão do WhatsApp da arena e tente novamente.";
+
+async function finishPasswordReset(account: { id: string; identityId: string | null }, passwordHash: string, codeId: string) {
+  await prisma.$transaction(async (tx) => {
+    if (account.identityId) {
+      const linkedAccounts = await tx.playerAccount.findMany({ where: { identityId: account.identityId }, select: { id: true } });
+      await tx.athleteIdentity.update({ where: { id: account.identityId }, data: { passwordHash } });
+      await tx.playerAccount.updateMany({ where: { identityId: account.identityId }, data: { passwordHash } });
+      await tx.playerSession.deleteMany({ where: { OR: [{ athleteIdentityId: account.identityId }, { playerAccountId: { in: linkedAccounts.map((linked) => linked.id) } }] } });
+    } else {
+      await tx.playerAccount.update({ where: { id: account.id }, data: { passwordHash } });
+      await tx.playerSession.deleteMany({ where: { playerAccountId: account.id } });
+    }
+    await tx.playerVerificationCode.update({ where: { id: codeId }, data: { usedAt: new Date() } });
+  });
 }
 
 async function findPlayerByPhone(arenaId: string, phone: string) {
@@ -113,9 +140,16 @@ export async function loginGlobalAthleteAction(_: PublicClientAuthState, formDat
 export async function requestGlobalPublicPasswordResetAction(_: PublicClientAuthState, formData: FormData): Promise<PublicClientAuthState> {
   const phone = normalizePhone(String(formData.get("phone") ?? ""));
   if (phone.length < 10) return { error: "Informe um telefone válido." };
-  const account = await prisma.playerAccount.findFirst({ where: { phone }, select: { arenaId: true } });
-  if (account) await sendVerificationCode(account.arenaId, phone, "RESET");
-  return { error: "Se existir uma conta para este telefone, enviaremos um código pelo WhatsApp." };
+  const accounts = await prisma.playerAccount.findMany({ where: { phone }, select: { arenaId: true }, orderBy: { createdAt: "asc" } });
+  if (accounts.length) {
+    const connection = await prisma.whatsAppConnection.findFirst({ where: { arenaId: { in: accounts.map((account) => account.arenaId) }, status: "CONNECTED" }, orderBy: { updatedAt: "desc" } });
+    try {
+      await sendVerificationCode(connection?.arenaId ?? accounts[0].arenaId, phone, "RESET");
+    } catch {
+      return { error: resetDeliveryError };
+    }
+  }
+  return { error: null, notice: resetRequestNotice, requested: true, phone };
 }
 
 export async function confirmGlobalPublicPasswordResetAction(_: PublicClientAuthState, formData: FormData): Promise<PublicClientAuthState> {
@@ -124,22 +158,13 @@ export async function confirmGlobalPublicPasswordResetAction(_: PublicClientAuth
   const newPassword = String(formData.get("newPassword") ?? "");
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
   if (phone.length < 10 || !/^\d{6}$/.test(code) || newPassword.length < 8 || newPassword !== confirmPassword) return { error: "Revise telefone, código e senha." };
-  const account = await prisma.playerAccount.findFirst({ where: { phone }, select: { id: true, arenaId: true, identityId: true } });
-  const resetCode = account ? await prisma.playerVerificationCode.findFirst({ where: { arenaId: account.arenaId, phone, purpose: "RESET", codeHash: hashCode(code), usedAt: null, expiresAt: { gt: new Date() } }, orderBy: { createdAt: "desc" } }) : null;
+  const accounts = await prisma.playerAccount.findMany({ where: { phone }, select: { id: true, arenaId: true, identityId: true } });
+  const resetCode = accounts.length ? await prisma.playerVerificationCode.findFirst({ where: { arenaId: { in: accounts.map((account) => account.arenaId) }, phone, purpose: "RESET", codeHash: hashCode(code), usedAt: null, expiresAt: { gt: new Date() } }, orderBy: { createdAt: "desc" } }) : null;
+  const account = accounts.find((candidate) => candidate.arenaId === resetCode?.arenaId);
   if (!account || !resetCode) return { error: "Código inválido ou expirado." };
   const passwordHash = await bcrypt.hash(newPassword, 12);
-  await prisma.$transaction(async (tx) => {
-    if (account.identityId) {
-      await tx.athleteIdentity.update({ where: { id: account.identityId }, data: { passwordHash } });
-      await tx.playerAccount.updateMany({ where: { identityId: account.identityId }, data: { passwordHash } });
-      await tx.playerSession.deleteMany({ where: { athleteIdentityId: account.identityId } });
-    } else {
-      await tx.playerAccount.update({ where: { id: account.id }, data: { passwordHash } });
-      await tx.playerSession.deleteMany({ where: { playerAccountId: account.id } });
-    }
-    await tx.playerVerificationCode.update({ where: { id: resetCode.id }, data: { usedAt: new Date() } });
-  });
-  return { error: "Senha atualizada. Entre com sua nova senha." };
+  await finishPasswordReset(account, passwordHash, resetCode.id);
+  return { error: null, notice: "Senha atualizada. Entre com sua nova senha." };
 }
 
 export async function requestPublicPasswordResetAction(_: PublicClientAuthState, formData: FormData): Promise<PublicClientAuthState> {
@@ -147,20 +172,27 @@ export async function requestPublicPasswordResetAction(_: PublicClientAuthState,
   if (!parsed.success) return { error: "Informe um telefone válido." };
   const arena = await prisma.arena.findUnique({ where: { slug: parsed.data.arenaSlug }, select: { id: true } });
   const account = arena ? await findAccountByPhone(arena.id, normalizePhone(parsed.data.phone)) : null;
-  if (arena && account) await sendVerificationCode(arena.id, normalizePhone(parsed.data.phone), "RESET");
-  return { error: "Se existir uma conta para este telefone, enviaremos um código pelo WhatsApp." };
+  const phone = normalizePhone(parsed.data.phone);
+  if (arena && account) {
+    try {
+      await sendVerificationCode(arena.id, phone, "RESET");
+    } catch {
+      return { error: resetDeliveryError };
+    }
+  }
+  return { error: null, notice: resetRequestNotice, requested: true, phone };
 }
 
 export async function confirmPublicPasswordResetAction(_: PublicClientAuthState, formData: FormData): Promise<PublicClientAuthState> {
-  const parsed = resetSchema.safeParse({ arenaSlug: formData.get("arenaSlug"), returnTo: "", phone: formData.get("phone"), code: formData.get("code"), newPassword: formData.get("newPassword"), confirmPassword: formData.get("confirmPassword") });
+  const parsed = resetSchema.safeParse({ arenaSlug: formData.get("arenaSlug"), phone: formData.get("phone"), code: formData.get("code"), newPassword: formData.get("newPassword"), confirmPassword: formData.get("confirmPassword") });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   const arena = await prisma.arena.findUnique({ where: { slug: parsed.data.arenaSlug }, select: { id: true } });
   const phone = normalizePhone(parsed.data.phone);
   const code = arena ? await prisma.playerVerificationCode.findFirst({ where: { arenaId: arena.id, phone, purpose: "RESET", codeHash: hashCode(parsed.data.code), usedAt: null, expiresAt: { gt: new Date() } }, orderBy: { createdAt: "desc" } }) : null;
   const account = arena ? await findAccountByPhone(arena.id, phone) : null;
   if (!code || !account) return { error: "Código inválido ou expirado." };
-  await prisma.$transaction([prisma.playerAccount.update({ where: { id: account.id }, data: { passwordHash: await bcrypt.hash(parsed.data.newPassword, 12) } }), prisma.playerVerificationCode.update({ where: { id: code.id }, data: { usedAt: new Date() } }), prisma.playerSession.deleteMany({ where: { playerAccountId: account.id } })]);
-  return { error: "Senha atualizada. Entre com sua nova senha." };
+  await finishPasswordReset(account, await bcrypt.hash(parsed.data.newPassword, 12), code.id);
+  return { error: null, notice: "Senha atualizada. Entre com sua nova senha." };
 }
 
 export async function logoutPublicClientAction(formData: FormData) {
