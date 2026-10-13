@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -24,4 +25,11 @@ test("menus com submenu mantêm o destino clicável e um controle separado para 
     assert.match(markup, new RegExp(`aria-label="Abrir submenu ${name}"`));
   }
   assert.match(markup, /href="\/pdv\/caixa"/);
+});
+
+test("links da barra lateral voltam ao topo ao trocar de página", () => {
+  for (const path of ["nav-links.tsx", "app-shell.tsx", "sidebar-user-menu.tsx"]) {
+    const source = readFileSync(new URL(`../src/components/layout/${path}`, import.meta.url), "utf8");
+    assert.doesNotMatch(source, /<Link\b[^>]*scroll=\{false\}/, `${path} não deve preservar a rolagem da página anterior`);
+  }
 });

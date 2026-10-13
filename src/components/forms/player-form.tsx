@@ -67,7 +67,7 @@ export function PlayerForm() {
       <div className={viewStyles.field}><label htmlFor="addressCity">Cidade</label><input id="addressCity" name="addressCity" /></div>
       <div className={viewStyles.field}><label htmlFor="addressState">UF</label><input id="addressState" name="addressState" maxLength={2} placeholder="SP" /></div>
 
-      <div className={viewStyles.field}>
+      <div className={viewStyles.field_form_full}>
         <label htmlFor="photo">Foto do atleta</label>
         <input id="photo" name="photo" type="file" accept="image/png,image/jpeg,image/webp" />
       </div>
