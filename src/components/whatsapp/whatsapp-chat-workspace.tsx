@@ -26,6 +26,7 @@ import { shouldRefreshWhatsAppGroupName, WHATSAPP_GROUP_NAME_RETRY_MS } from "@/
 import { WhatsAppMessageBubble } from "./whatsapp-message-bubble";
 import { mergeWhatsAppMessages } from "./merge-messages";
 import { presentWhatsAppGroupMessage } from "@/lib/whatsapp-group-message";
+import { whatsAppSendFailureMessage } from "@/lib/whatsapp-send-feedback";
 
 const time = (value: string) => new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 const emojis = ["😀", "😁", "😂", "🥳", "😍", "😎", "🙏", "👍", "👋", "🎾", "🔥", "❤️"];
@@ -296,10 +297,10 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
       try {
         const message = await sendWhatsAppChatMessageAction(form);
         setLocalMessages((current) => ({ ...current, [active.id]: (current[active.id] ?? []).map((item) => item.id === temporaryId ? message : item) }));
-      } catch {
+      } catch (error) {
         setLocalMessages((current) => ({ ...current, [active.id]: (current[active.id] ?? []).filter((item) => item.id !== temporaryId) }));
         if (activeIdRef.current === active.id) { setBody(text); setReplyTo(reply); }
-        setNotice("Não foi possível enviar a mensagem.");
+        setNotice(whatsAppSendFailureMessage(error));
       }
     });
   };
@@ -376,6 +377,7 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
     <main className={viewStyles.whatsapp_chat_main}>{active ? <>
       <header><div><Avatar conversation={active} size="is-header" onExpand={setSelectedImage} /><span><strong>{whatsAppConversationName(active)}</strong><small>{active.remoteJid.endsWith("@g.us") ? "Grupo do WhatsApp" : formatWhatsAppPhone(active.contactPhone)}</small></span></div></header>
       <div className={viewStyles.whatsapp_message_thread}>{messageHistory.loading ? <p role="status" className="tw:text-xs tw:text-slate-500">Carregando histórico…</p> : null}{messageHistory.failed ? <p role="status" className="tw:text-xs tw:text-slate-600">Não foi possível carregar o histórico. <button type="button" className="tw:underline" onClick={messageHistory.retry}>Tentar novamente</button></p> : null}{activeMessages.map((message) => <WhatsAppMessageBubble key={message.id} message={message} isGroup={active.remoteJid.endsWith("@g.us")} accountJid={currentAccountJid} canEdit={canSend} pending={pending} menuOpen={canSend && messageMenuId === message.id} onMenu={() => setMessageMenuId(messageMenuId === message.id ? "" : message.id)} onReply={() => { setReplyTo(message); setMessageMenuId(""); messageInput.current?.focus(); }} onReact={(emoji) => reactToMessage(message, emoji)} onImage={setSelectedImage} />)}</div>
+      {notice ? <p className={viewStyles.whatsapp_workspace_notice} role="status">{notice}</p> : null}
       {canSend ? <form className={viewStyles.whatsapp_composer} onSubmit={sendText} onKeyDown={(event) => {
         if (event.target instanceof HTMLTextAreaElement && event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229) {
           event.preventDefault();
@@ -396,6 +398,6 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
     <nav className={viewStyles.whatsapp_support_toolbar} aria-label="Ferramentas da conversa"><button ref={contactDetailsTrigger} type="button" title="Detalhes do contato" aria-label="Detalhes do contato" aria-controls="whatsapp-contact-details" aria-expanded={showContactDetails && Boolean(active)} disabled={!active} onClick={() => setShowContactDetails(value => !value)}><WhatsAppIcon name="user" size={20} /></button></nav>
     {canEdit && showContact ? <div className={viewStyles.whatsapp_contact_modal} role="dialog" aria-modal="true" onMouseDown={(event) => { if (event.target === event.currentTarget) { setShowContact(false); setLinkNewClient(false); } }}><form onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget); startTransition(async () => { try { const result = await createWhatsAppContactAction(form); if (linkNewClient && active) { const link = new FormData(); link.set("conversationId", active.id); link.set("playerId", result.id); await linkWhatsAppConversationToClientAction(link); } setShowContact(false); setLinkNewClient(false); setNotice(linkNewClient ? `${result.name} foi criado e vinculado à conversa.` : `${result.name} foi adicionado aos clientes.`); } catch (error) { setNotice(error instanceof Error ? error.message : "Não foi possível criar o contato."); } }); }}><header><strong>{linkNewClient ? "Criar e vincular cliente" : "Novo contato"}</strong><button type="button" onClick={() => { setShowContact(false); setLinkNewClient(false); }}>×</button></header><label>Nome<input name="name" required minLength={3} defaultValue={linkNewClient ? active?.contactName : ""} placeholder="Nome completo" /></label><label>Telefone<input name="phone" required defaultValue={linkNewClient ? active?.contactPhone : ""} placeholder="(00) 00000-0000" /></label><button className={viewStyles.button_button_primary} disabled={pending}>{linkNewClient ? "Criar e vincular" : "Adicionar contato"}</button></form></div> : null}
     {selectedImage ? <div className={viewStyles.whatsapp_image_lightbox} role="dialog" aria-modal="true" aria-label="Imagem ampliada" onKeyDown={(event) => { if (event.key === "Tab") { event.preventDefault(); imageClose.current?.focus(); } }} onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedImage(""); }}><img src={selectedImage} alt="Imagem ampliada" /><button ref={imageClose} type="button" aria-label="Fechar imagem" onClick={() => setSelectedImage("")}>×</button></div> : null}
-    {notice ? <p className={viewStyles.whatsapp_workspace_notice} role="status">{notice}</p> : null}
+    {!active && notice ? <p className={viewStyles.whatsapp_workspace_notice} role="status">{notice}</p> : null}
   </section>;
 }

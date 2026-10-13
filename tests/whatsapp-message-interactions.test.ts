@@ -63,6 +63,27 @@ test("Evolution requests carry quoted messages and native reactions, including g
   assert.equal(requests[4].body.reaction, "");
 });
 
+test("an accepted Evolution text response without JSON is not treated as a failed send", async () => {
+  let requests = 0;
+  const exports: Record<string, (...args: any[]) => Promise<any>> = {};
+  const source = readFileSync(new URL("../src/lib/integrations/evolution/client.ts", import.meta.url), "utf8");
+  vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
+    exports,
+    fetch: async () => { requests += 1; return { ok: true, status: 200, json: async () => { throw new SyntaxError("empty response"); } }; },
+    require: (name: string) => {
+      if (name === "server-only") return {};
+      if (name === "@/lib/env") return { env: { evolutionApiUrl: "https://provider.invalid", evolutionApiKey: "fixture" } };
+      if (name === "@/lib/integrations/evolution") return { buildEvolutionTextPayload, evolutionRecipientNumber };
+      if (name === "./groups") return { readEvolutionGroupName };
+      if (name === "@/lib/payments/connection-secrets") return { decryptConnectionSecrets: () => ({ token: "" }) };
+      if (name === "@/lib/prisma") return { prisma: { whatsAppConnection: { findUnique: async () => ({ status: "CONNECTED", instanceName: "test", encryptedToken: "fixture" }) } } };
+      throw new Error(`Unexpected import: ${name}`);
+    },
+  });
+  assert.equal(Object.keys(await exports.sendEvolutionTextMessage("5511999999999", "Olá", "arena")).length, 0);
+  assert.equal(requests, 1);
+});
+
 test("reply and reaction actions validate the account and send original provider keys", async () => {
   const delivered: { kind: string; args: any[] }[] = [];
   const stored: any[] = [];
