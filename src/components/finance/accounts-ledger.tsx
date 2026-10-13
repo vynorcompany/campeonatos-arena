@@ -3,7 +3,7 @@ import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./accounts-ledger.utilities";
 
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   createFinancialEntryAction,
   createFinancialSettingAction,
@@ -86,6 +86,32 @@ export function AccountsLedger({
   const [clientFilterOpen, setClientFilterOpen] = useState(false);
   const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(new Set());
   const [bulkPaymentOpen, setBulkPaymentOpen] = useState(false);
+  const anyDialogOpen = Boolean(onlineCharge || newEntryOpen || bulkPaymentOpen || categoryModalOpen || selectedEntry || paymentEntry || voidEntry);
+
+  useEffect(() => {
+    if (!anyDialogOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      event.preventDefault();
+      if (categoryModalOpen) {
+        setCategoryModalOpen(false);
+        return;
+      }
+      setOnlineCharge(null);
+      setNewEntryOpen(false);
+      setBulkPaymentOpen(false);
+      setSelectedEntry(null);
+      setPaymentEntry(null);
+      setVoidEntry(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [anyDialogOpen, categoryModalOpen]);
 
   const actionLabel = type === "REVENUE" ? "Receber" : "Pagar";
   const partyLabel = type === "REVENUE" ? "Cliente" : "Fornecedor";
