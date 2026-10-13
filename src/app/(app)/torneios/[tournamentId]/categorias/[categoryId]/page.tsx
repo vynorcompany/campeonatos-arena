@@ -10,6 +10,7 @@ import { CategoryRegistrationPanel } from "@/components/tournaments/category-reg
 import { CategoryResultsPanel } from "@/components/tournaments/category-results-panel";
 import { LeagueMedicalRequestsPanel } from "@/components/tournaments/league-medical-requests-panel";
 import { LeagueHistoryPanel } from "@/components/tournaments/league-history-panel";
+import { historicalPairs, historicalStandings } from "@/lib/league/history";
 import { LeagueCategorySettingsDialog } from "@/components/tournaments/league-category-settings-dialog";
 import { TournamentCategorySettingsForm } from "@/components/tournaments/tournament-category-settings-form";
 import { LeagueIcon } from "@/components/tournaments/league-icon";
@@ -106,7 +107,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
                 name: true,
               },
             },
-            leagueCycles: { orderBy: { referenceMonth: "desc" }, select: { id: true, referenceMonth: true, status: true, prizeDescription: true, snapshot: true, championPairId: true, promotedPairId: true, relegatedPairId: true, matches: { select: { winnerPairId: true } } } },
+            leagueCycles: { orderBy: { referenceMonth: "desc" }, select: { id: true, referenceMonth: true, status: true, prizeDescription: true, snapshot: true, championPairId: true, promotedPairId: true, relegatedPairId: true, matches: { select: { homePairId: true, awayPairId: true, winnerPairId: true, homeScore: true, awayScore: true } } } },
             pairs: {
               where: { active: true },
               orderBy: { drawOrder: "asc" },
@@ -595,6 +596,8 @@ export default async function CategoryPage(props: CategoryPageProps) {
             successHref={`/torneios/${params.tournamentId}/categorias/${params.categoryId}?tab=overview&reopened=1`}
             cycles={competition.leagueCycles.map((cycle, index) => {
               const snapshot = snapshotMatchSummary(cycle.snapshot);
+              const archivedPairs = historicalPairs(cycle.snapshot);
+              const archivedName = (pairId: string | null) => archivedPairs.find((pair) => pair.id === pairId)?.name ?? null;
               const sections = cycle.snapshot && typeof cycle.snapshot === "object" && !Array.isArray(cycle.snapshot)
                 ? cycle.snapshot as Record<string, unknown> : null;
               const successor = competition.leagueCycles[0];
@@ -616,8 +619,11 @@ export default async function CategoryPage(props: CategoryPageProps) {
                 matchCount: cycle.matches.length || snapshot.matchCount,
                 championPairId: cycle.championPairId,
                 championName: snapshotChampionName(cycle.snapshot, cycle.championPairId),
+                promotedName: archivedName(cycle.promotedPairId),
+                relegatedName: archivedName(cycle.relegatedPairId),
                 promotedPairId: cycle.promotedPairId,
                 relegatedPairId: cycle.relegatedPairId,
+                standings: historicalStandings(cycle.snapshot, cycle.matches),
                 canReopen,
               };
             })}
