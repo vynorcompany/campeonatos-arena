@@ -12,7 +12,7 @@ import {
 import { canAddCategoryPair } from "@/lib/tournament-category/draw";
 import {
   getAvailableCategoryAthletes,
-  matchesCategoryEligibility,
+  matchesCompetitionAthleteEligibility,
 } from "@/lib/tournament-category/eligibility";
 
 type AthleteOption = {
@@ -21,6 +21,7 @@ type AthleteOption = {
   active: boolean;
   class: string;
   gender: string;
+  leagueTier: string;
 };
 
 type RegistrationCategory = {
@@ -31,6 +32,7 @@ type RegistrationCategory = {
   competition: {
     id: string;
     format: "LEAGUE" | "THREE_GROUPS" | "FOUR_GROUPS" | "SIMPLE";
+    leagueTier: string;
     status: string;
     pairs: Array<{
       id: string;
@@ -78,9 +80,9 @@ export function CategoryRegistrationPanel({
         const eligibleAthletes = athletes.filter(
           (athlete) =>
             athlete.active &&
-            matchesCategoryEligibility(
-              { className: category.class, gender: category.gender },
-              { className: athlete.class, gender: athlete.gender },
+            matchesCompetitionAthleteEligibility(
+              { className: category.class, gender: category.gender, format: category.competition?.format, leagueTier: category.competition?.leagueTier },
+              { className: athlete.class, gender: athlete.gender, leagueTier: athlete.leagueTier },
             ),
         );
         const availableAthletes = getAvailableCategoryAthletes(

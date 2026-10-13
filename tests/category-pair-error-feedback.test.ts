@@ -15,8 +15,10 @@ test("inserção manual de dupla exibe erros da ação sem derrubar a categoria"
 
 test("inserção manual de dupla permite localizar atletas digitando o nome", () => {
   const component = readFileSync(resolve(process.cwd(), "src/components/tournaments/category-pair-form.tsx"), "utf8");
+  const search = readFileSync(resolve(process.cwd(), "src/lib/tournament-category/athlete-search.ts"), "utf8");
 
   assert.match(component, /Pesquisar atleta/);
   assert.match(component, /category-athlete-search-input/);
-  assert.match(component, /normaliz/);
+  assert.match(component, /searchAthleteOptions/);
+  assert.match(search, /normaliz/);
 });

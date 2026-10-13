@@ -160,6 +160,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
         active: true,
         class: true,
         gender: true,
+        leagueAthleteTiers: { where: { active: true, modality: "PADEL" }, orderBy: { changedAt: "desc" }, take: 1, select: { tier: true } },
       },
     }),
     prisma.rankingProfile.findMany({
@@ -296,6 +297,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
       ? {
           id: competition.id,
           format: competition.format,
+          leagueTier: resolveLeagueTier(category.name, competition.leagueTier),
           status: competition.status,
           pairs: competition.pairs.map((pair) => ({
             id: pair.id,
@@ -558,7 +560,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
           <CategoryRegistrationPanel
             tournamentId={params.tournamentId}
             categories={[categoryView]}
-            athletes={athletes}
+            athletes={athletes.map((athlete) => ({ ...athlete, leagueTier: athlete.leagueAthleteTiers[0]?.tier ?? "" }))}
           />
         ) : null}
 

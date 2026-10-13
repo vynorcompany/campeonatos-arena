@@ -1,11 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import { buildMonthlyLeagueSchedule, getLeagueMonthBlocks } from "@/lib/league/monthly-schedule";
+import { leagueReferenceMonth } from "@/lib/league/reference-month";
 import { resolveLeagueTier } from "@/lib/league/tier";
 import { withArenaTransaction } from "@/lib/rls";
 import { arenaDatabase } from "@/lib/arena-database";
 
-const monthKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 const nextMonthKey = (referenceMonth: string) => {
   const [year, month] = referenceMonth.split("-").map(Number);
   const nextYear = month === 12 ? year + 1 : year;
@@ -259,7 +259,7 @@ async function applyPromotionAndRelegation(cycleId: string) {
 /** Finalizes all past open cycles, keeps their matches as history, and opens the next monthly cycle. */
 export async function closeExpiredLeagueCycles(now = new Date(), arenaId?: string) {
   await processLeagueDeadlines(now, arenaId);
-  const currentMonth = monthKey(now);
+  const currentMonth = leagueReferenceMonth(now);
   const cycles = await prisma.leagueCycle.findMany({ where: { status: "OPEN", referenceMonth: { lt: currentMonth }, ...(arenaId ? { competition: { category: { tournament: { arenaId } } } } : {}) }, select: { id: true, competitionId: true } });
   for (const cycle of cycles) {
     const unresolved = await prisma.categoryMatch.findMany({ where: { leagueCycleId: cycle.id, winnerPairId: null }, select: { id: true } });
@@ -275,7 +275,7 @@ export async function closeExpiredLeagueCycles(now = new Date(), arenaId?: strin
 
 /** Manually closes the current cycle of one League and opens its next monthly cycle. */
 export async function closeLeagueCycleManually(competitionId: string, now = new Date(), arenaId?: string) {
-  const referenceMonth = monthKey(now);
+  const referenceMonth = leagueReferenceMonth(now);
   const cycle = await prisma.leagueCycle.findFirst({
     where: {
       competitionId,
@@ -310,7 +310,7 @@ export async function reopenEmptyLeagueCycle(cycleId: string, arenaId: string, n
       },
     });
     if (!cycle) throw new Error("Ciclo encerrado não encontrado nesta arena.");
-    if (cycle.referenceMonth !== monthKey(now)) {
+    if (cycle.referenceMonth !== leagueReferenceMonth(now)) {
       throw new Error("Somente o ciclo do mês atual pode ser reaberto automaticamente.");
     }
     const snapshot = cycle.snapshot;

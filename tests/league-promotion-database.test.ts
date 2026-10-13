@@ -27,6 +27,7 @@ function loadPromotion(prisma: PrismaClient) {
     require: (name: string) => {
       if (name === "@/lib/prisma") return { prisma };
       if (name === "@/lib/league/monthly-schedule") return {};
+      if (name === "@/lib/league/reference-month") return {};
       if (name === "@/lib/league/tier") return { resolveLeagueTier: (_name: string, tier: string) => tier };
       if (name === "@/lib/arena-database") return {};
       if (name === "@/lib/rls") return {};
