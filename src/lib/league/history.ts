@@ -36,6 +36,20 @@ export function historicalPairs(snapshot: unknown): Array<{ id: string; name: st
   });
 }
 
+/** Counts matches resolved without a winner (for example, a double WO) as concluded. */
+export function historicalMatchSummary(snapshot: unknown, cycleMatches: unknown[]) {
+  const archivedMatches = record(snapshot)?.matches;
+  const matches = cycleMatches.length ? cycleMatches : Array.isArray(archivedMatches) ? archivedMatches : [];
+  return {
+    matchCount: matches.length,
+    completedMatches: matches.filter((value) => {
+      const match = record(value);
+      return Boolean(text(match?.winnerPairId) || text(match?.winnerPair))
+        || match?.woReason === "DOUBLE_WO" || match?.manualStatus === "FINISHED";
+    }).length,
+  };
+}
+
 function snapshotMatches(snapshot: unknown, pairs: Array<{ id: string; name: string }>): HistoricalMatch[] {
   const matches = record(snapshot)?.matches;
   if (!Array.isArray(matches)) return [];
