@@ -6,6 +6,7 @@ import vm from "node:vm";
 import { PrismaClient } from "@prisma/client";
 import ts from "typescript";
 import { buildMonthlyLeagueSchedule, getLeagueMonthBlocks } from "../src/lib/league/monthly-schedule";
+import { leagueReferenceMonth } from "../src/lib/league/reference-month";
 
 const testUrl = process.env.ARENA_GOAL_TEST_DATABASE_URL ?? "";
 const disposableDatabase = (() => {
@@ -28,6 +29,7 @@ function loadLifecycle(prisma: PrismaClient) {
     require: (name: string) => {
       if (name === "@/lib/prisma") return { prisma };
       if (name === "@/lib/league/monthly-schedule") return { buildMonthlyLeagueSchedule, getLeagueMonthBlocks };
+      if (name === "@/lib/league/reference-month") return { leagueReferenceMonth };
       if (name === "@/lib/league/tier") return { resolveLeagueTier: (_name: string, tier: string) => tier };
       if (name === "@/lib/arena-database") return { arenaDatabase: () => prisma };
       if (name === "@/lib/rls") return { withArenaTransaction: (_arenaId: string, operation: (tx: unknown) => Promise<unknown>) => prisma.$transaction(operation as Parameters<typeof prisma.$transaction>[0]) };

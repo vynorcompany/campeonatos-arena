@@ -23,6 +23,7 @@ function loadReset(arenaId: string | null) {
     require: (name: string) => {
       if (name === "@/lib/prisma") return { prisma: { categoryCompetition: { findUnique: async () => arenaId ? { category: { tournament: { arenaId } } } : null } } };
       if (name === "@/lib/league/monthly-schedule") return {};
+      if (name === "@/lib/league/reference-month") return {};
       if (name === "@/lib/league/tier") return {};
       if (name === "@/lib/arena-database") return { arenaDatabase: () => ({}) };
       if (name === "@/lib/rls") return { withArenaTransaction: async (scopedArenaId: string, operation: (client: typeof tx) => Promise<void>) => { events.push(`context:${scopedArenaId}`); return operation(tx); } };
