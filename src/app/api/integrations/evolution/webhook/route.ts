@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
       const senderName = String(data.pushName ?? data.notifyName ?? key.participant ?? data.participant ?? "").trim();
       const eventGroupName = readEvolutionGroupName({ groupName: data.groupName, subject: data.subject, groupSubject: data.groupSubject, groupMetadata: data.groupMetadata }, remoteJid);
       const rawBody = messageBody(message, media);
-      const body = isGroup && !fromMe && senderName ? `${senderName}: ${rawBody}` : rawBody;
+      const body = rawBody;
       const sentAt = sentAtFrom(data);
       const phone = remoteJid.replace(/@.*$/, "");
       const resolvedGroupName = isGroup && !eventGroupName ? await getEvolutionGroupName(remoteJid, connection.arenaId).catch(() => "") : "";
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
         const messageKey = { conversationId: current.id, providerId };
         const existingMessage = await tx.whatsAppMessage.findUnique({ where: { conversationId_providerId: messageKey }, select: { id: true } });
         if (!existingMessage) {
-          await tx.whatsAppMessage.upsert({ where: { conversationId_providerId: messageKey }, create: { providerId, conversationId: current.id, direction: fromMe ? "OUTBOUND" : "INBOUND", body, participantJid: String(key.participant ?? data.participant ?? ""), quotedProviderId, quotedBody, quotedAuthor, mediaType: media.type, mediaMimeType: media.mimeType, mediaUrl: media.url, providerPayload: message as Prisma.InputJsonValue, sentAt }, update: {} });
+          await tx.whatsAppMessage.upsert({ where: { conversationId_providerId: messageKey }, create: { providerId, conversationId: current.id, direction: fromMe ? "OUTBOUND" : "INBOUND", body, senderName: !fromMe ? senderName : "", participantJid: String(key.participant ?? data.participant ?? ""), quotedProviderId, quotedBody, quotedAuthor, mediaType: media.type, mediaMimeType: media.mimeType, mediaUrl: media.url, providerPayload: message as Prisma.InputJsonValue, sentAt }, update: {} });
           await tx.whatsAppConversation.update({ where: { id: current.id }, data: { ...(fromMe ? { unreadCount: 0 } : { unreadCount: { increment: 1 } }), lastMessageAt: sentAt } });
         }
         return current;
