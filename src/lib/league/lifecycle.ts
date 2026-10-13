@@ -40,14 +40,22 @@ async function applyWo(matchId: string, winnerPairId: string | null, reason: "HO
   if (!match?.homePairId || !match.awayPairId) return;
   const homeWins = winnerPairId === match.homePairId;
   await prisma.$transaction(async (tx) => {
-    await tx.categoryMatch.update({ where: { id: matchId }, data: {
+    const updated = await tx.categoryMatch.updateMany({ where: {
+      id: matchId,
+      OR: [
+        { manualStatus: null },
+        { woReason: null },
+        { manualStatus: { not: "FINISHED" } },
+        { woReason: { not: "DOUBLE_WO" } },
+      ],
+    }, data: {
       homeScore: winnerPairId ? (homeWins ? 2 : 0) : 0,
       awayScore: winnerPairId ? (homeWins ? 0 : 2) : 0,
       winnerPairId,
       manualStatus: "FINISHED",
       woReason: reason,
     } });
-    if (reason === "DOUBLE_WO") {
+    if (reason === "DOUBLE_WO" && updated.count > 0) {
       await tx.categoryPair.updateMany({ where: { id: { in: [match.homePairId!, match.awayPairId!] } }, data: { totalPoints: { decrement: 2 } } });
     }
   });
