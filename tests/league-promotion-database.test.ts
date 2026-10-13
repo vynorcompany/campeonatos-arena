@@ -15,8 +15,11 @@ const disposableDatabase = (() => {
 })();
 
 function loadPromotion(prisma: PrismaClient) {
-  const source = `${readFileSync(new URL("../src/lib/league/lifecycle.ts", import.meta.url), "utf8")}\nexports.__applyPromotionAndRelegation = applyPromotionAndRelegation;`;
-  const exports: Record<string, (cycleId: string) => Promise<void>> = {};
+  const source = `${readFileSync(new URL("../src/lib/league/lifecycle.ts", import.meta.url), "utf8")}\nexports.__applyPromotionAndRelegation = applyPromotionAndRelegation;\nexports.__applyWo = applyWo;`;
+  const exports: {
+    __applyPromotionAndRelegation?: (cycleId: string) => Promise<void>;
+    __applyWo?: (matchId: string, winnerPairId: string | null, reason: string) => Promise<void>;
+  } = {};
   vm.runInNewContext(ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText, {
@@ -30,10 +33,12 @@ function loadPromotion(prisma: PrismaClient) {
       throw new Error(`Unexpected import: ${name}`);
     },
   });
-  return exports.__applyPromotionAndRelegation;
+  assert.ok(exports.__applyPromotionAndRelegation);
+  assert.ok(exports.__applyWo);
+  return { promote: exports.__applyPromotionAndRelegation, applyWo: exports.__applyWo };
 }
 
-test("encerrar a Liga transfere a dupla rebaixada e seus atletas para a classe B", { skip: !disposableDatabase }, async () => {
+test("ciclo da Liga transfere a dupla rebaixada e não repete a penalidade de WO", { skip: !disposableDatabase }, async () => {
   const prisma = new PrismaClient({ datasources: { db: { url: testUrl } } });
   const token = randomUUID();
   let userId: string | undefined;
@@ -63,13 +68,27 @@ test("encerrar a Liga transfere a dupla rebaixada e seus atletas para a classe B
       homePairId: winningPair.id, awayPairId: losingPair.id, winnerPairId: winningPair.id, homeScore: 2, awayScore: 0,
     } });
 
-    await loadPromotion(prisma)(cycle.id);
+    const league = loadPromotion(prisma);
+    await league.promote(cycle.id);
 
     const moved = await prisma.categoryPair.findFirst({ where: { competitionId: competitionB.id, active: true }, include: { players: { orderBy: { slot: "asc" } } } });
     assert.equal(moved?.name, "Dupla rebaixada");
     assert.deepEqual(moved?.players.map((player) => player.playerId), [players[2].id, players[3].id]);
     assert.equal((await prisma.categoryPair.findUniqueOrThrow({ where: { id: losingPair.id } })).active, false);
     assert.equal((await prisma.leagueCycle.findUniqueOrThrow({ where: { id: cycle.id } })).relegatedPairId, losingPair.id);
+
+    const missed = await prisma.categoryMatch.create({ data: {
+      competitionId: competitionA.id, leagueCycleId: cycle.id, label: "WO descartável", stage: "LEAGUE", roundOrder: 2,
+      homePairId: winningPair.id, awayPairId: losingPair.id,
+    } });
+    await league.applyWo(missed.id, null, "DOUBLE_WO");
+    await league.applyWo(missed.id, null, "DOUBLE_WO");
+    await league.applyWo(missed.id, winningPair.id, "HOST_NO_PROPOSAL");
+    assert.equal((await prisma.categoryPair.findUniqueOrThrow({ where: { id: winningPair.id } })).totalPoints, -2);
+    assert.equal((await prisma.categoryPair.findUniqueOrThrow({ where: { id: losingPair.id } })).totalPoints, -2);
+    const finishedWo = await prisma.categoryMatch.findUniqueOrThrow({ where: { id: missed.id } });
+    assert.equal(finishedWo.woReason, "DOUBLE_WO");
+    assert.equal(finishedWo.winnerPairId, null);
   } finally {
     if (arenaId) {
       const inArena = { competition: { category: { tournament: { arenaId } } } };
