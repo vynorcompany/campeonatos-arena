@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { classificationFilter } from "@/lib/finance/classification-filter";
+import { classificationFilter, classificationFilterOptions } from "@/lib/finance/classification-filter";
+
+test("classificações de planos e vendas aparecem mesmo sem categorias cadastradas", () => {
+  assert.deepEqual(classificationFilterOptions([], "REVENUE"), ["Plano de Aulas", "Vendas"]);
+  assert.deepEqual(classificationFilterOptions(["Patrocínios", "VENDAS"], "REVENUE"), ["Plano de Aulas", "Vendas", "Patrocínios"]);
+  assert.deepEqual(classificationFilterOptions([], "EXPENSE"), []);
+});
 
 test("classificação de planos inclui categorias históricas e lançamentos vinculados", () => {
   assert.deepEqual(classificationFilter("Plano de Aulas"), {
