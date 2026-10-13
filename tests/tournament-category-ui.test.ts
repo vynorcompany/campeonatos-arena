@@ -9,7 +9,7 @@ import {
   canAddCategoryPair,
   canGenerateCategoryDraw,
 } from "../src/lib/tournament-category/draw";
-import { matchesCategoryEligibility } from "../src/lib/tournament-category/eligibility";
+import { matchesCategoryEligibility, matchesCompetitionAthleteEligibility } from "../src/lib/tournament-category/eligibility";
 
 const workspaceRoot = process.cwd();
 
@@ -187,6 +187,16 @@ test("category selectors keep legacy athletes without profile classification ava
     ),
     true,
   );
+});
+
+test("seletor da Liga A usa o nível cadastrado antes da classe legada", () => {
+  const category = { className: "5ª", gender: "MASCULINO", format: "LEAGUE", leagueTier: "A" };
+  assert.equal(matchesCompetitionAthleteEligibility(category, { className: "7", gender: "Masculino", leagueTier: "A" }), true);
+  assert.equal(matchesCompetitionAthleteEligibility(category, { className: "6ª categoria", gender: "Masculino", leagueTier: "A" }), true);
+  assert.equal(matchesCompetitionAthleteEligibility(category, { className: "5ª", gender: "Masculino", leagueTier: "B" }), false);
+  assert.equal(matchesCompetitionAthleteEligibility(category, { className: "7", gender: "Masculino", leagueTier: "" }), false);
+  assert.equal(matchesCompetitionAthleteEligibility(category, { className: "7", gender: "Feminino", leagueTier: "A" }), false);
+  assert.equal(matchesCompetitionAthleteEligibility({ ...category, format: "SIMPLE" }, { className: "7", gender: "Masculino", leagueTier: "A" }), false);
 });
 
 test("category configuration uses standard class and binary gender selectors", async () => {

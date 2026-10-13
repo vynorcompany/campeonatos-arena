@@ -8,7 +8,7 @@ import {
 } from "@/lib/tournament-category/draw";
 import { buildMonthlyLeagueSchedule, getLeagueMonthBlocks } from "@/lib/league/monthly-schedule";
 import { resolveLeagueTier } from "@/lib/league/tier";
-import { matchesCategoryEligibility, validateManualPairEligibility } from "@/lib/tournament-category/eligibility";
+import { matchesCompetitionAthleteEligibility, validateManualPairEligibility } from "@/lib/tournament-category/eligibility";
 import {
   buildPlacementAwards,
   buildPlacementStages,
@@ -602,11 +602,13 @@ export async function addManualPair(
         .filter((player): player is NonNullable<typeof player> => Boolean(player));
 
       const configuredTier = resolveLeagueTier(competition.category.name, competition.leagueTier);
-      if (competition.format === "LEAGUE" && (configuredTier === "A" || configuredTier === "B")) {
-        const memberships = await tx.leagueAthleteTier.findMany({
+      const memberships = competition.format === "LEAGUE" && (configuredTier === "A" || configuredTier === "B")
+        ? await tx.leagueAthleteTier.findMany({
           where: { arenaId, playerId: { in: requestedPlayerIds }, modality: "PADEL", active: true },
           select: { playerId: true, tier: true },
-        });
+        })
+        : [];
+      if (memberships.length) {
         const incompatible = memberships.find((membership) => membership.tier !== configuredTier);
         if (incompatible) {
           throw new Error(`Este atleta pertence atualmente à Liga ${incompatible.tier}. A inscrição deve respeitar a Liga ${configuredTier}.`);
@@ -618,6 +620,8 @@ export async function addManualPair(
           arenaId: competition.category.tournament.arenaId,
           className: competition.category.class,
           gender: competition.category.gender,
+          format: competition.format,
+          leagueTier: configuredTier,
         },
         orderedPlayers.map((player) => ({
           id: player.id,
@@ -625,6 +629,7 @@ export async function addManualPair(
           active: player.active,
           className: player.class,
           gender: player.gender,
+          leagueTier: competition.format === "LEAGUE" ? memberships.find((membership) => membership.playerId === player.id)?.tier : undefined,
         })),
         competition.pairs.map((pair) =>
           pair.players.map((pairPlayer) => pairPlayer.playerId),
@@ -876,8 +881,11 @@ export async function replaceCategoryPairPlayer(
         },
         competition: {
           select: {
+            format: true,
+            leagueTier: true,
             category: {
               select: {
+                name: true,
                 class: true,
                 gender: true,
                 tournament: { select: { arenaId: true } },
@@ -912,12 +920,21 @@ export async function replaceCategoryPairPlayer(
       throw new Error("A dupla precisa ter dois atletas para realizar a troca.");
     }
 
-    if (!matchesCategoryEligibility(
+    const replacementTier = pair.competition.format === "LEAGUE"
+      ? await tx.leagueAthleteTier.findFirst({
+          where: { arenaId, playerId: replacement.id, modality: "PADEL", active: true },
+          orderBy: { changedAt: "desc" },
+          select: { tier: true },
+        })
+      : null;
+    if (!matchesCompetitionAthleteEligibility(
       {
         className: pair.competition.category.class,
         gender: pair.competition.category.gender,
+        format: pair.competition.format,
+        leagueTier: resolveLeagueTier(pair.competition.category.name, pair.competition.leagueTier),
       },
-      { className: replacement.class, gender: replacement.gender },
+      { className: replacement.class, gender: replacement.gender, leagueTier: replacementTier?.tier },
     )) {
       throw new Error("O atleta substituto não é elegível para esta categoria.");
     }

@@ -104,6 +104,18 @@ test("manual pair eligibility is arena, activity, class and gender scoped", () =
   );
 });
 
+test("Liga A aceita atletas cadastrados na Liga A mesmo com classe antiga diferente", () => {
+  const category = { arenaId: "arena-1", className: "5ª", gender: "MASCULINO", format: "LEAGUE", leagueTier: "A" };
+  const players = [
+    { id: "player-1", arenaId: "arena-1", active: true, className: "7", gender: "Masculino", leagueTier: "A" },
+    { id: "player-2", arenaId: "arena-1", active: true, className: "Iniciante", gender: "Masculino", leagueTier: "A" },
+  ];
+  assert.doesNotThrow(() => validateManualPairEligibility(category, players, []));
+  assert.throws(() => validateManualPairEligibility(category, [{ ...players[0], active: false }, players[1]], []), /inativo/i);
+  assert.throws(() => validateManualPairEligibility(category, [players[0], { ...players[1], gender: "Feminino" }], []), /gênero/i);
+  assert.throws(() => validateManualPairEligibility(category, [players[0], { ...players[1], leagueTier: "" }], []), /classe/i);
+});
+
 test("manual pair eligibility rejects an existing pair regardless of slot order", () => {
   const players = [
     { id: "player-1", arenaId: "arena-1", active: true, className: "5ª", gender: "FEMININO" },

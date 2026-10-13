@@ -28,7 +28,7 @@ test("league pairs support audited athlete substitutions without resetting match
   assert.match(panel, /SafeActionForm/);
   assert.match(panel, /AthleteSearchField/);
   assert.match(pairForm, /export function AthleteSearchField/);
-  assert.match(service, /matchesCategoryEligibility/);
+  assert.match(service, /matchesCompetitionAthleteEligibility/);
   assert.doesNotMatch(service, /replaceCategoryPairPlayer[\s\S]{0,5000}validateManualPairEligibility/);
   assert.ok(utilityClasses("league-registration-card").length, "league-registration-card has component Tailwind utilities");
 });

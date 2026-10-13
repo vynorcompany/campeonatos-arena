@@ -2,6 +2,8 @@ type CategoryEligibility = {
   arenaId: string;
   className: string;
   gender: string;
+  format?: string;
+  leagueTier?: string;
 };
 
 type EligiblePlayer = {
@@ -10,6 +12,7 @@ type EligiblePlayer = {
   active: boolean;
   className: string;
   gender: string;
+  leagueTier?: string;
 };
 
 function normalizeEligibilityValue(value: string) {
@@ -35,6 +38,20 @@ export function matchesCategoryEligibility(
   const categoryGender = normalizeEligibilityValue(category.gender);
   const playerGender = normalizeEligibilityValue(player.gender);
   return !categoryGender || !playerGender || playerGender === categoryGender;
+}
+
+export function matchesCompetitionAthleteEligibility(
+  category: Pick<CategoryEligibility, "className" | "gender" | "format" | "leagueTier">,
+  player: Pick<EligiblePlayer, "className" | "gender" | "leagueTier">,
+) {
+  const categoryTier = category.leagueTier?.trim().toUpperCase();
+  const playerTier = player.leagueTier?.trim().toUpperCase();
+  if (category.format === "LEAGUE" && categoryTier && playerTier) {
+    if (playerTier !== categoryTier) return false;
+    // A league's tier, not the athlete's legacy class, determines their division.
+    return matchesCategoryEligibility({ className: "", gender: category.gender }, player);
+  }
+  return matchesCategoryEligibility(category, player);
 }
 
 export function getAvailableCategoryAthletes<Athlete extends { id: string }>(
@@ -67,15 +84,11 @@ export function validateManualPairEligibility(
   }
 
   const categoryClass = normalizeCategoryClass(category.className);
-  if (
-    categoryClass &&
-    players.some(
-      (player) => {
-        const playerClass = normalizeCategoryClass(player.className);
-        return playerClass && playerClass !== categoryClass;
-      },
-    )
-  ) {
+  if (categoryClass && players.some((player) => {
+    const playerClass = normalizeCategoryClass(player.className);
+    const matchingLeagueTier = category.format === "LEAGUE" && category.leagueTier && player.leagueTier === category.leagueTier;
+    return !matchingLeagueTier && playerClass && playerClass !== categoryClass;
+  })) {
     throw new Error("A classe do atleta não é elegível para esta categoria.");
   }
 
@@ -84,7 +97,7 @@ export function validateManualPairEligibility(
     categoryGender &&
     players.some((player) => {
       const playerGender = normalizeEligibilityValue(player.gender);
-      return playerGender && !matchesCategoryEligibility(category, player);
+      return playerGender && playerGender !== categoryGender;
     })
   ) {
     throw new Error("O gênero do atleta não é elegível para esta categoria.");
