@@ -25,6 +25,9 @@ test("menus com submenu mantêm o destino clicável e um controle separado para 
     assert.match(markup, new RegExp(`aria-label="Abrir submenu ${name}"`));
   }
   assert.match(markup, /href="\/pdv\/caixa"/);
+  assert.match(markup, /href="\/players"/);
+  assert.equal(isActivePath("/jogadores", "/players"), true);
+  assert.equal(isActivePath("/jogadores/arquivo", "/players"), true);
 });
 
 test("links da barra lateral voltam ao topo ao trocar de página", () => {
