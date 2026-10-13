@@ -7,20 +7,16 @@ import Link from "next/link";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { addManualPairAction } from "@/lib/actions/category-competition";
+import { searchAthleteOptions } from "@/lib/tournament-category/athlete-search";
 
 type AthleteOption = { id: string; name: string };
-
-function normalizeAthleteSearch(value: string) {
-  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase();
-}
 
 export function AthleteSearchField({ id, label, name, athletes, excludedId, onSelect, compact = false }: { id: string; label: string; name: string; athletes: AthleteOption[]; excludedId?: string; onSelect?: (id: string) => void; compact?: boolean }) {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<AthleteOption | null>(null);
   const [open, setOpen] = useState(false);
   const matches = useMemo(() => {
-    const term = normalizeAthleteSearch(query.trim());
-    return athletes.filter((athlete) => athlete.id !== excludedId && (!term || normalizeAthleteSearch(athlete.name).includes(term))).slice(0, 8);
+    return searchAthleteOptions(athletes, query, excludedId);
   }, [athletes, excludedId, query]);
 
   return <div className={cx(`${viewStyles.field_category_athlete_search}${compact ? " category-athlete-search-compact" : ""}`)}>
