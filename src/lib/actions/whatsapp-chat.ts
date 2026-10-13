@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireModuleEdit, requireModuleView } from "@/lib/auth/guards";
+import { requireModuleView, requireWhatsAppManage, requireWhatsAppSend } from "@/lib/auth/guards";
 import { getEvolutionGroupName, getEvolutionProfilePicture, sendEvolutionAudioMessage, sendEvolutionMediaMessage, sendEvolutionTextMessage, sendEvolutionReaction, type EvolutionQuotedMessage } from "@/lib/integrations/evolution/client";
 import { prisma } from "@/lib/prisma";
 import { arenaDatabase } from "@/lib/arena-database";
@@ -39,7 +39,7 @@ async function replyContext(arenaId: string, conversationId: string, formData: F
 }
 
 export async function reactToWhatsAppMessageAction(formData: FormData) {
-  const auth = await requireModuleEdit("support");
+  const auth = await requireWhatsAppSend();
   const parsed = z.object({ messageId: z.string().min(1), emoji: z.union([z.enum(reactionEmojis), z.literal("")]) }).safeParse({ messageId: formData.get("messageId"), emoji: formData.get("emoji") });
   if (!parsed.success) throw new Error("Reação inválida.");
   const accountJid = await getActiveWhatsAppAccountJid(auth.arenaId);
@@ -53,7 +53,7 @@ export async function reactToWhatsAppMessageAction(formData: FormData) {
 }
 
 export async function sendWhatsAppChatMessageAction(formData: FormData) {
-  const auth = await requireModuleEdit("support");
+  const auth = await requireWhatsAppSend();
   const parsed = sendSchema.safeParse({ conversationId: formData.get("conversationId"), body: formData.get("body") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   const conversation = await getArenaWhatsAppConversation(auth.arenaId, parsed.data.conversationId);
@@ -64,7 +64,7 @@ export async function sendWhatsAppChatMessageAction(formData: FormData) {
 }
 
 export async function sendWhatsAppAudioMessageAction(formData: FormData) {
-  const auth = await requireModuleEdit("support");
+  const auth = await requireWhatsAppSend();
   const conversationId = String(formData.get("conversationId") ?? "");
   const audio = formData.get("audio");
   if (!conversationId || !(audio instanceof File) || !audio.size) throw new Error("Gravação de áudio inválida.");
@@ -79,7 +79,7 @@ export async function sendWhatsAppAudioMessageAction(formData: FormData) {
 }
 
 export async function sendWhatsAppMediaMessageAction(formData: FormData) {
-  const auth = await requireModuleEdit("support"); const conversationId = String(formData.get("conversationId") ?? ""); const file = formData.get("file");
+  const auth = await requireWhatsAppSend(); const conversationId = String(formData.get("conversationId") ?? ""); const file = formData.get("file");
   if (!conversationId || !(file instanceof File) || !file.size) throw new Error("Anexo inválido.");
   if (file.size > 16 * 1024 * 1024) throw new Error("O anexo pode ter no máximo 16 MB.");
   const mediaType = outgoingWhatsAppMediaKind(file.type);
@@ -100,7 +100,7 @@ export async function markWhatsAppConversationReadAction(formData: FormData) {
 }
 
 export async function linkWhatsAppConversationToClientAction(formData: FormData) {
-  const auth = await requireModuleEdit("support");
+  const auth = await requireWhatsAppManage();
   const parsed = linkSchema.safeParse({ conversationId: formData.get("conversationId"), playerId: formData.get("playerId") });
   if (!parsed.success) throw new Error("Selecione um cliente válido.");
   const where = await activeConversationScope(auth.arenaId, parsed.data.conversationId);
@@ -114,7 +114,7 @@ export async function linkWhatsAppConversationToClientAction(formData: FormData)
 }
 
 export async function updateWhatsAppSlaAction(formData: FormData) {
-  const auth = await requireModuleEdit("support");
+  const auth = await requireWhatsAppManage();
   const parsed = slaSchema.safeParse({ minutes: formData.get("minutes") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "SLA inválido.");
   await prisma.arena.update({ where: { id: auth.arenaId }, data: { whatsappSlaMinutes: parsed.data.minutes } });
@@ -122,7 +122,7 @@ export async function updateWhatsAppSlaAction(formData: FormData) {
 }
 
 export async function updateWhatsAppConversationAction(formData: FormData) {
-  const auth = await requireModuleEdit("support");
+  const auth = await requireWhatsAppManage();
   const parsed = conversationActionSchema.safeParse({ conversationId: formData.get("conversationId"), action: formData.get("action"), listName: formData.get("listName") || undefined });
   if (!parsed.success) throw new Error("Ação de conversa inválida.");
   const where = await activeConversationScope(auth.arenaId, parsed.data.conversationId);
@@ -151,7 +151,7 @@ export async function updateWhatsAppConversationAction(formData: FormData) {
 }
 
 export async function createWhatsAppContactAction(formData: FormData) {
-  const auth = await requireModuleEdit("support");
+  const auth = await requireWhatsAppManage();
   const parsed = contactSchema.safeParse({ name: formData.get("name"), phone: formData.get("phone") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Contato inválido.");
   const player = await prisma.player.create({ data: { arenaId: auth.arenaId, name: parsed.data.name, phone: parsed.data.phone } });

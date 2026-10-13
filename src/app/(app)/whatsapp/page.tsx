@@ -1,7 +1,7 @@
 import { viewStyles } from "./page.utilities";
 import { WhatsAppChatWorkspace } from "@/components/whatsapp/whatsapp-chat-workspace";
 import { requireModuleView } from "@/lib/auth/guards";
-import { canEditModule } from "@/lib/permissions";
+import { canManageWhatsApp, canSendWhatsApp } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { arenaDatabase } from "@/lib/arena-database";
 import { normalizeWhatsAppAccountJid } from "@/lib/whatsapp-account";
@@ -39,5 +39,5 @@ export default async function WhatsAppPage() {
   ]) : [[], null];
   const serializedConversations = conversations.map((conversation) => ({ ...conversation, contactName: !conversation.remoteJid.endsWith("@g.us") && conversation.player?.name ? conversation.player.name : conversation.contactName, lastMessageAt: conversation.lastMessageAt.toISOString(), archivedAt: conversation.archivedAt?.toISOString() ?? null, slaResolvedAt: conversation.slaResolvedAt?.toISOString() ?? null, messages: conversation.messages.map((message) => ({ ...message, mediaUrl: "", reactions: readWhatsAppReactions(message.reactions), sentAt: message.sentAt.toISOString() })) }));
   const initialVersion = accountJid ? `${accountJid}:${latestUpdate ? `${latestUpdate.id}:${latestUpdate.updatedAt.getTime()}` : "empty"}` : "empty";
-  return <div className={viewStyles.whatsapp_page}><WhatsAppChatWorkspace pollingScope={auth.arenaId} currentAccountJid={accountJid} currentUserName={auth.userName} canEdit={canEditModule("support", auth.arenaRole, auth.systemRole, auth.editPermissions)} connected={connection?.status === "CONNECTED"} initialVersion={initialVersion} slaMinutes={arena.whatsappSlaMinutes} clients={clients} conversations={serializedConversations} /></div>;
+  return <div className={viewStyles.whatsapp_page}><WhatsAppChatWorkspace pollingScope={auth.arenaId} currentAccountJid={accountJid} currentUserName={auth.userName} canEdit={canManageWhatsApp(auth.arenaRole, auth.systemRole, auth.editPermissions)} canSend={canSendWhatsApp(auth.arenaRole, auth.systemRole, auth.editPermissions)} connected={connection?.status === "CONNECTED"} initialVersion={initialVersion} slaMinutes={arena.whatsappSlaMinutes} clients={clients} conversations={serializedConversations} /></div>;
 }

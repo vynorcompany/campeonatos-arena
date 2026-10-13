@@ -42,7 +42,7 @@ export const defaultArenaPermissionProfiles = [
     name: "Balcão",
     description: "Atendimento diário, reservas, clientes e comandas.",
     viewPermissions: ["dashboard", "calendar", "players", "pos", "support"],
-    editPermissions: ["calendar", "players", "pos", "support"]
+    editPermissions: ["calendar", "players", "pos", "support:whatsapp:send"]
   }
 ] as const;
 
@@ -54,7 +54,7 @@ export const permissionAreas = [
   { title: "Professores e aulas", module: "teachers", actions: [["teachers:view", "Visualizar professores"], ["teachers:manage", "Gerenciar professores"], ["teachers:plans", "Gerenciar planos"], ["teachers:classes", "Gerenciar turmas e alunos"], ["teachers:payable", "Gerar a pagar de professor"], ["lessons:manage", "Registrar aulas"]] },
   { title: "Torneios e ligas", module: "tournaments", actions: [["tournaments:view", "Visualizar torneios"], ["tournaments:manage", "Gerenciar torneios e ligas"], ["tournaments:publish", "Publicar eventos"], ["tournaments:results", "Lançar resultados"], ["tournaments:rankings", "Gerenciar rankings"]] },
   { title: "Produtos e estoque", module: "stock", actions: [["stock:view", "Visualizar produtos"], ["stock:manage", "Gerenciar produtos"], ["stock:adjust", "Ajustar estoque"]] },
-  { title: "Sistema", module: "arena", actions: [["arena:settings", "Configurações da arena"], ["arena:portal", "Configurar Portal do Atleta"], ["users:manage", "Gerenciar usuários e perfis"], ["support:view", "Ver suporte"]] }
+  { title: "Sistema", module: "arena", actions: [["arena:settings", "Configurações da arena"], ["arena:portal", "Configurar Portal do Atleta"], ["users:manage", "Gerenciar usuários e perfis"], ["support:view", "Ver suporte"], ["support:whatsapp:send", "Enviar mensagens no WhatsApp"], ["support:whatsapp:manage", "Gerenciar conversas e configurações do WhatsApp"]] }
 ] as const;
 
 const permissionModuleAliases: Record<string, PermissionModule> = { pos: "pos", players: "players", calendar: "calendar", finance: "finance", teachers: "teachers", lessons: "lessons", tournaments: "tournaments", stock: "stock", arena: "arena", users: "users", support: "support" };
@@ -110,6 +110,15 @@ export function canEditModule(module: PermissionModule, role: string | null, sys
   }
 
   return includesModulePermission(editPermissions, module);
+}
+
+export function canManageWhatsApp(role: string | null, systemRole: string, editPermissions: string[]) {
+  return systemRole === "SUPER_ADMIN" || systemRole === "ADMIN" || role === "OWNER"
+    || editPermissions.includes("support") || editPermissions.includes("support:whatsapp:manage");
+}
+
+export function canSendWhatsApp(role: string | null, systemRole: string, editPermissions: string[]) {
+  return canManageWhatsApp(role, systemRole, editPermissions) || editPermissions.includes("support:whatsapp:send");
 }
 
 export function canDeleteFinancialEntries(role: string | null, systemRole: string, editPermissions: string[]) {

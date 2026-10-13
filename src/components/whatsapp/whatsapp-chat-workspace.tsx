@@ -50,7 +50,7 @@ function Avatar({ conversation, size = "", onExpand, withinButton = false }: { c
   return <i className={cx(`${viewStyles.whatsapp_contact_avatar} ${size}`)}>{photo ? <img className={cx(onExpand ? "whatsapp-photo-expandable" : undefined)} src={photo} alt={`Foto de ${conversation.contactName || "contato"}`} referrerPolicy="no-referrer" role={onExpand && !withinButton ? "button" : undefined} tabIndex={onExpand && !withinButton ? 0 : undefined} aria-label={onExpand && !withinButton ? "Ampliar foto do contato" : undefined} onError={() => setPhoto("")} onClick={(event) => { event.stopPropagation(); onExpand?.(photo); }} onKeyDown={(event) => { if (onExpand && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); event.stopPropagation(); onExpand(photo); } }} /> : initials(conversation.contactName || conversation.contactPhone)}</i>;
 }
 
-export function WhatsAppChatWorkspace({ conversations: initialConversations, pollingScope = "", connected, canEdit, clients, slaMinutes, initialVersion, currentUserName = "", currentAccountJid = "" }: { pollingScope?: string; currentAccountJid?: string; currentUserName?: string; conversations: WhatsAppConversation[]; connected: boolean; canEdit: boolean; clients: WhatsAppClient[]; slaMinutes: number; initialVersion: string }) {
+export function WhatsAppChatWorkspace({ conversations: initialConversations, pollingScope = "", connected, canEdit, canSend, clients, slaMinutes, initialVersion, currentUserName = "", currentAccountJid = "" }: { pollingScope?: string; currentAccountJid?: string; currentUserName?: string; conversations: WhatsAppConversation[]; connected: boolean; canEdit: boolean; canSend: boolean; clients: WhatsAppClient[]; slaMinutes: number; initialVersion: string }) {
   const [groupNames, setGroupNames] = useState<Record<string, { name: string; previous: string }>>({});
   const requestedGroups = useRef(new Map<string, number>());
   const groupsInFlight = useRef(new Set<string>());
@@ -136,7 +136,7 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
   }, [discardAudioDraft]);
   const { recording, level, start: startRecording, stop: stopRecording } = useAudioRecorder({ onReady: onRecorderReady, onError: onRecorderError });
   const beginRecording = () => {
-    if (!canEdit || !active || recordingConversationId.current) return;
+    if (!canSend || !active || recordingConversationId.current) return;
     recordingConversationId.current = active.id;
     void startRecording();
   };
@@ -278,7 +278,7 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
   };
   const sendText = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!canEdit || pending || recording) return;
+    if (!canSend || pending || recording) return;
     if (audioDraft && audioDraft.conversationId === active?.id) { void sendAudio(); return; }
     if (!active || !body.trim()) return;
     const text = body.trim();
@@ -302,7 +302,7 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
     });
   };
   const sendAudio = async () => {
-    if (!canEdit || !active || !audioDraft) return;
+    if (!canSend || !active || !audioDraft) return;
     const draft = audioDraft;
     if (draft.conversationId !== active.id) { setNotice("Volte à conversa em que o áudio foi gravado para enviá-lo."); return; }
     const conversationId = draft.conversationId;
@@ -325,7 +325,7 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
     });
   };
   const uploadFile = (file: File) => {
-    if (!canEdit || !active) return;
+    if (!canSend || !active) return;
     const form = new FormData(); form.set("conversationId", active.id); form.set("file", file);
     if (replyTo) form.set("replyToId", replyTo.id);
     startTransition(async () => {
@@ -339,7 +339,7 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
   };
 
   const reactToMessage = (message: WhatsAppMessage, emoji: string) => {
-    if (!canEdit || !active || pending) return;
+    if (!canSend || !active || pending) return;
     const conversationId = active.id;
     const form = new FormData(); form.set("messageId", message.id); form.set("emoji", emoji);
     setMessageMenuId("");
@@ -373,8 +373,8 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
     </aside>
     <main className={viewStyles.whatsapp_chat_main}>{active ? <>
       <header><div><Avatar conversation={active} size="is-header" onExpand={setSelectedImage} /><span><strong>{whatsAppConversationName(active)}</strong><small>{active.remoteJid.endsWith("@g.us") ? "Grupo do WhatsApp" : formatWhatsAppPhone(active.contactPhone)}</small></span></div></header>
-      <div className={viewStyles.whatsapp_message_thread}>{messageHistory.loading ? <p role="status" className="tw:text-xs tw:text-slate-500">Carregando histórico…</p> : null}{messageHistory.failed ? <p role="status" className="tw:text-xs tw:text-slate-600">Não foi possível carregar o histórico. <button type="button" className="tw:underline" onClick={messageHistory.retry}>Tentar novamente</button></p> : null}{activeMessages.map((message) => <WhatsAppMessageBubble key={message.id} message={message} accountJid={currentAccountJid} canEdit={canEdit} pending={pending} menuOpen={canEdit && messageMenuId === message.id} onMenu={() => setMessageMenuId(messageMenuId === message.id ? "" : message.id)} onReply={() => { setReplyTo(message); setMessageMenuId(""); messageInput.current?.focus(); }} onReact={(emoji) => reactToMessage(message, emoji)} onImage={setSelectedImage} />)}</div>
-      {canEdit ? <form className={viewStyles.whatsapp_composer} onSubmit={sendText} onKeyDown={(event) => {
+      <div className={viewStyles.whatsapp_message_thread}>{messageHistory.loading ? <p role="status" className="tw:text-xs tw:text-slate-500">Carregando histórico…</p> : null}{messageHistory.failed ? <p role="status" className="tw:text-xs tw:text-slate-600">Não foi possível carregar o histórico. <button type="button" className="tw:underline" onClick={messageHistory.retry}>Tentar novamente</button></p> : null}{activeMessages.map((message) => <WhatsAppMessageBubble key={message.id} message={message} accountJid={currentAccountJid} canEdit={canSend} pending={pending} menuOpen={canSend && messageMenuId === message.id} onMenu={() => setMessageMenuId(messageMenuId === message.id ? "" : message.id)} onReply={() => { setReplyTo(message); setMessageMenuId(""); messageInput.current?.focus(); }} onReact={(emoji) => reactToMessage(message, emoji)} onImage={setSelectedImage} />)}</div>
+      {canSend ? <form className={viewStyles.whatsapp_composer} onSubmit={sendText} onKeyDown={(event) => {
         if (event.target instanceof HTMLTextAreaElement && event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229) {
           event.preventDefault();
           if (!event.repeat) event.currentTarget.requestSubmit();

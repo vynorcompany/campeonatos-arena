@@ -1,6 +1,6 @@
 import { requireArenaAccess, requireAuth } from "@/lib/auth/session";
 import { notFound } from "next/navigation";
-import { canDeleteFinancialEntries, canEditModule, canViewModule, hasPermissionKey, type PermissionModule } from "@/lib/permissions";
+import { canDeleteFinancialEntries, canEditModule, canManageWhatsApp, canSendWhatsApp, canViewModule, hasPermissionKey, type PermissionModule } from "@/lib/permissions";
 import type { ArenaRole, SystemRole } from "@/types/auth";
 
 const roleWeight: Record<ArenaRole, number> = {
@@ -53,6 +53,22 @@ export async function requireModuleEdit(module: PermissionModule) {
     throw new Error("Sem permissão para alterar este módulo.");
   }
 
+  return auth;
+}
+
+export async function requireWhatsAppSend() {
+  const auth = await requireArenaAccess();
+  if (!canSendWhatsApp(auth.arenaRole, auth.systemRole, auth.editPermissions)) {
+    throw new Error("Sem permissão para enviar mensagens no WhatsApp.");
+  }
+  return auth;
+}
+
+export async function requireWhatsAppManage() {
+  const auth = await requireArenaAccess();
+  if (!canManageWhatsApp(auth.arenaRole, auth.systemRole, auth.editPermissions)) {
+    throw new Error("Sem permissão para gerenciar o WhatsApp.");
+  }
   return auth;
 }
 

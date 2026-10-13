@@ -43,7 +43,7 @@ test("text, audio and attachments store authenticated authors without sending th
     exports, File, FormData, Buffer,
     require: (name: string) => {
       if (name === "next/cache") return { revalidatePath() {} };
-      if (name === "@/lib/auth/guards") return { requireModuleEdit: async () => ({ arenaId: "arena", userId: "authenticated-id", userName: "Atendente de teste" }) };
+      if (name === "@/lib/auth/guards") return { requireWhatsAppSend: async () => ({ arenaId: "arena", userId: "authenticated-id", userName: "Atendente de teste" }) };
       if (name === "@/lib/integrations/evolution/client") return { sendEvolutionTextMessage: deliver, sendEvolutionAudioMessage: deliver, sendEvolutionMediaMessage: deliver };
       if (name === "@/lib/whatsapp-media-types") return { outgoingWhatsAppMediaKind };
       if (name === "@/lib/services/whatsapp-conversation") return {

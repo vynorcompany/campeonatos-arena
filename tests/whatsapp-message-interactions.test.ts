@@ -69,7 +69,7 @@ test("reply and reaction actions validate the account and send original provider
   const deliver = (kind: string) => async (...args: any[]) => { delivered.push({ kind, args }); return { key: { id: "new-provider" } }; };
   const actions = load("../src/lib/actions/whatsapp-chat.ts", {
     "next/cache": { revalidatePath() {} },
-    "@/lib/auth/guards": { requireModuleEdit: async () => ({ arenaId: "arena", userId: "user", userName: "Atendente" }) },
+    "@/lib/auth/guards": { requireWhatsAppSend: async () => ({ arenaId: "arena", userId: "user", userName: "Atendente" }) },
     "@/lib/whatsapp-active-account": { getActiveWhatsAppAccountJid: async () => "current" },
     "@/lib/whatsapp-message-data": { reactionEmojis },
     "@/lib/prisma": { prisma: { whatsAppMessage: { findFirst: async ({ where }: any) => where.id === target.id && where.conversation.arenaId === "arena" && where.conversation.accountJid === "current" && (!where.conversation.id || where.conversation.id === "conversation") ? target : null } } },
