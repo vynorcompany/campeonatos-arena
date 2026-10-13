@@ -2,7 +2,7 @@
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./dashboard-sortable-panels.utilities";
 
-import { Children, type DragEvent, type PointerEvent, type ReactNode, useEffect, useRef, useState } from "react";
+import { Children, type DragEvent, type PointerEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
 const storageKey = "arena-dashboard-panel-order-v1";
 // Uma versão nova evita reaproveitar dimensões experimentais gravadas pela
@@ -11,8 +11,9 @@ const layoutStorageKey = "arena-dashboard-panel-layout-v3";
 type PanelLayout = { columns: number; minHeight: number };
 
 export function DashboardSortablePanels({ children }: { children: ReactNode }) {
-  const initialPanels = useRef(Children.toArray(children));
-  const defaultOrder = initialPanels.current.map((_, index) => String(index));
+  const panels = Children.toArray(children);
+  const panelCount = panels.length;
+  const defaultOrder = useMemo(() => Array.from({ length: panelCount }, (_, index) => String(index)), [panelCount]);
   const [order, setOrder] = useState(defaultOrder);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [layouts, setLayouts] = useState<Record<string, PanelLayout>>({});
@@ -31,17 +32,19 @@ export function DashboardSortablePanels({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    let nextOrder = defaultOrder;
     try {
       const stored = JSON.parse(window.localStorage.getItem(storageKey) ?? "[]") as string[];
-      if (stored.length === defaultOrder.length && new Set(stored).size === stored.length && stored.every((id) => defaultOrder.includes(id))) setOrder(stored);
+      if (stored.length === defaultOrder.length && new Set(stored).size === stored.length && stored.every((id) => defaultOrder.includes(id))) nextOrder = stored;
     } catch { /* A ordem padrão continua disponível se o navegador não puder ler o armazenamento. */ }
-  }, [defaultOrder.length]);
+    setOrder(nextOrder);
+  }, [defaultOrder]);
   useEffect(() => {
     try {
       const stored = JSON.parse(window.localStorage.getItem(layoutStorageKey) ?? "{}") as Record<string, PanelLayout>;
       setLayouts(Object.fromEntries(Object.entries(stored).filter(([id, layout]) => defaultOrder.includes(id) && Number.isFinite(layout?.columns) && Number.isFinite(layout?.minHeight)).map(([id, layout]) => [id, { columns: Math.max(1, Math.min(3, Math.round(layout.columns))), minHeight: Math.max(0, Math.min(880, layout.minHeight)) }])));
     } catch { /* mantém o tamanho padrão */ }
-  }, [defaultOrder.length]);
+  }, [defaultOrder]);
 
   function move(targetId: string) {
     if (!draggedId || draggedId === targetId) return;
@@ -123,7 +126,7 @@ export function DashboardSortablePanels({ children }: { children: ReactNode }) {
       {layouts[id] ? <button type="button" className="tw:absolute tw:top-2 tw:right-9 tw:z-10 tw:grid tw:size-6 tw:place-items-center tw:rounded tw:border-0 tw:bg-transparent tw:text-[var(--muted)] tw:hover:bg-[var(--panel-muted)]" aria-label="Restaurar tamanho do card" title="Restaurar tamanho do card" onClick={() => { resizeCleanup.current?.(); setLayouts(current => { const next = { ...current }; delete next[id]; try { window.localStorage.setItem(layoutStorageKey, JSON.stringify(next)); } catch { /* sem persistência local */ } return next; }); }}>↺</button> : null}
       {gridColumns > 1 ? <span className={viewStyles.dashboard_panel_resize_handle_dashboard_panel_resize_handle_right} role="separator" tabIndex={0} aria-orientation="vertical" aria-valuemin={1} aria-valuemax={gridColumns} aria-valuenow={Math.min(gridColumns, layouts[id]?.columns ?? 1)} aria-label="Arraste para alterar a largura" onPointerDown={(event) => startResize(event, id, "horizontal")} onKeyDown={event => { if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return; event.preventDefault(); const panel = event.currentTarget.parentElement!; persistLayout(id, { columns: Math.max(1, Math.min(gridColumns, (layouts[id]?.columns ?? 1) + (event.key === "ArrowRight" ? 1 : -1))), minHeight: layouts[id]?.minHeight ?? Math.round(panel.getBoundingClientRect().height) }); }} /> : null}
       <span className={viewStyles.dashboard_panel_resize_handle_dashboard_panel_resize_handle_bottom} role="separator" tabIndex={0} aria-orientation="horizontal" aria-valuemin={160} aria-valuemax={880} aria-valuenow={layouts[id]?.minHeight ?? 160} aria-label="Arraste para alterar a altura" onPointerDown={(event) => startResize(event, id, "vertical")} onKeyDown={event => { if (!["ArrowUp", "ArrowDown"].includes(event.key)) return; event.preventDefault(); const panel = event.currentTarget.parentElement!; persistLayout(id, { columns: Math.min(gridColumns, layouts[id]?.columns ?? 1), minHeight: Math.max(160, Math.min(880, Math.round(panel.getBoundingClientRect().height) + (event.key === "ArrowDown" ? 20 : -20))) }); }} />
-      {initialPanels.current[Number(id)]}
+      {panels[Number(id)]}
     </div>)}
   </div>;
 }
