@@ -10,7 +10,7 @@ import { CategoryRegistrationPanel } from "@/components/tournaments/category-reg
 import { CategoryResultsPanel } from "@/components/tournaments/category-results-panel";
 import { LeagueMedicalRequestsPanel } from "@/components/tournaments/league-medical-requests-panel";
 import { LeagueHistoryPanel } from "@/components/tournaments/league-history-panel";
-import { historicalPairs, historicalStandings } from "@/lib/league/history";
+import { historicalMatchSummary, historicalPairs, historicalStandings } from "@/lib/league/history";
 import { LeagueCategorySettingsDialog } from "@/components/tournaments/league-category-settings-dialog";
 import { TournamentCategorySettingsForm } from "@/components/tournaments/tournament-category-settings-form";
 import { LeagueIcon } from "@/components/tournaments/league-icon";
@@ -43,13 +43,6 @@ const validTabs: TournamentTabKey[] = [
   "results",
   "history",
 ];
-
-function snapshotMatchSummary(snapshot: unknown) {
-  if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) return { matchCount: 0, completedMatches: 0 };
-  const matches = (snapshot as { matches?: unknown }).matches;
-  if (!Array.isArray(matches)) return { matchCount: 0, completedMatches: 0 };
-  return { matchCount: matches.length, completedMatches: matches.filter((match) => Boolean(match && typeof match === "object" && "winnerPair" in match && (match as { winnerPair?: unknown }).winnerPair)).length };
-}
 
 function snapshotChampionName(snapshot: unknown, championPairId: string | null) {
   if (!championPairId || !snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) return null;
@@ -595,7 +588,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
           <LeagueHistoryPanel
             successHref={`/torneios/${params.tournamentId}/categorias/${params.categoryId}?tab=overview&reopened=1`}
             cycles={competition.leagueCycles.map((cycle, index) => {
-              const snapshot = snapshotMatchSummary(cycle.snapshot);
+              const summary = historicalMatchSummary(cycle.snapshot, cycle.matches);
               const archivedPairs = historicalPairs(cycle.snapshot);
               const archivedName = (pairId: string | null) => archivedPairs.find((pair) => pair.id === pairId)?.name ?? null;
               const sections = cycle.snapshot && typeof cycle.snapshot === "object" && !Array.isArray(cycle.snapshot)
@@ -613,10 +606,8 @@ export default async function CategoryPage(props: CategoryPageProps) {
                 id: cycle.id,
                 referenceMonth: cycle.referenceMonth,
                 status: cycle.status,
-                completedMatches: cycle.matches.length
-                  ? cycle.matches.filter((match) => Boolean(match.winnerPairId)).length
-                  : snapshot.completedMatches,
-                matchCount: cycle.matches.length || snapshot.matchCount,
+                completedMatches: summary.completedMatches,
+                matchCount: summary.matchCount,
                 championPairId: cycle.championPairId,
                 championName: snapshotChampionName(cycle.snapshot, cycle.championPairId),
                 promotedName: archivedName(cycle.promotedPairId),

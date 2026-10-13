@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { historicalPairs, historicalStandings } from "../src/lib/league/history";
+import { historicalMatchSummary, historicalPairs, historicalStandings } from "../src/lib/league/history";
 
 const snapshot = {
   pairs: [{ id: "a", name: "Dupla A" }, { id: "b", name: "Dupla B" }, { id: "c", name: "Dupla C" }, { id: "later", name: "Entrou depois" }],
@@ -30,4 +30,17 @@ test("legacy snapshots remain navigable without live matches", () => {
 test("missing or malformed snapshots do not fabricate results", () => {
   assert.deepEqual(historicalPairs(null), []);
   assert.deepEqual(historicalStandings({ pairs: [{ name: "No ID" }] }, []), []);
+});
+
+test("history counts a double WO as concluded even without a winning pair", () => {
+  const archived = { matches: [
+    { winnerPair: "Dupla A", woReason: null },
+    { winnerPair: null, woReason: "DOUBLE_WO" },
+    { winnerPair: null, woReason: null },
+  ] };
+  assert.deepEqual(historicalMatchSummary(archived, []), { matchCount: 3, completedMatches: 2 });
+  assert.deepEqual(historicalMatchSummary(archived, [
+    { winnerPairId: null, manualStatus: "FINISHED", woReason: "DOUBLE_WO" },
+    { winnerPairId: "a", manualStatus: "FINISHED", woReason: null },
+  ]), { matchCount: 2, completedMatches: 2 });
 });
