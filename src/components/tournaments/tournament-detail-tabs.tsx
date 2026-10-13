@@ -59,6 +59,10 @@ export function TournamentParticipantsTab({ tournament }: { tournament: NonNulla
         categoryName: registration.category.name,
         amountCents: registration.amountCents,
         paymentStatus: registration.paymentStatus,
+        paymentProvider: registration.paymentProvider,
+        paymentReference: registration.paymentReference,
+        mercadoPagoPaymentId: registration.mercadoPagoPaymentId,
+        paymentCheckoutUrl: registration.paymentCheckoutUrl,
         status: registration.status,
         createdAt: registration.createdAt.toISOString()
       }))}

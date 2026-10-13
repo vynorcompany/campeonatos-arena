@@ -2,6 +2,7 @@ import "server-only";
 
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { compareSuper12GroupPairs } from "@/lib/super12/ranking";
 
 const eventBoardInclude = {
   creator: { select: { id: true, name: true } },
@@ -32,6 +33,7 @@ type EventWithBoard = Prisma.Super12EventGetPayload<{ include: typeof eventBoard
 function buildStandings(event: NonNullable<EventWithBoard>) {
   return event.groups.map((group) => {
     const rows = group.pairs.map((pair) => ({
+      id: pair.id,
       pairId: pair.id,
       name: pair.name,
       played: 0,
@@ -59,18 +61,11 @@ function buildStandings(event: NonNullable<EventWithBoard>) {
     return {
       id: group.id,
       name: group.name,
-      rows: [...rows].sort((left, right) => {
-        const wins = right.wins - left.wins;
-        if (wins) return wins;
-        const saldo = (right.pointsFor - right.pointsAgainst) - (left.pointsFor - left.pointsAgainst);
-        if (saldo) return saldo;
-        const directMatch = group.matches.find((match) => (match.homePairId === left.pairId && match.awayPairId === right.pairId) || (match.homePairId === right.pairId && match.awayPairId === left.pairId));
-        if (directMatch?.homeScore != null && directMatch.awayScore != null && directMatch.homeScore !== directMatch.awayScore) {
-          const leftWon = directMatch.homePairId === left.pairId ? directMatch.homeScore > directMatch.awayScore : directMatch.awayScore > directMatch.homeScore;
-          return leftWon ? -1 : 1;
-        }
-        return right.pointsFor - left.pointsFor || left.name.localeCompare(right.name, "pt-BR");
-      }),
+      rows: [...rows].sort((left, right) => compareSuper12GroupPairs(
+        { ...left, saldo: left.pointsFor - left.pointsAgainst },
+        { ...right, saldo: right.pointsFor - right.pointsAgainst },
+        group.matches,
+      )),
     };
   });
 }
@@ -90,6 +85,7 @@ export async function getPublicSuper12(arenaSlug: string, playerId: string, even
     eventId ? prisma.super12Event.findFirst({ where: { id: eventId, ...visibleWhere }, include: eventBoardInclude }) : prisma.super12Event.findFirst({ where: { ...visibleWhere, status: "ACTIVE" }, include: eventBoardInclude, orderBy: { createdAt: "desc" } }),
     prisma.player.findMany({ where: { arenaId: arena.id, active: true }, select: { id: true, name: true, photoUrl: true }, orderBy: { name: "asc" } }),
   ]);
+  if (!availablePlayers.some((player) => player.id === playerId)) return null;
 
   return {
     events,

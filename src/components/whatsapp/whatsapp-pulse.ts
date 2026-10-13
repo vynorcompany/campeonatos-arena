@@ -2,7 +2,7 @@
 import { createSharedPolling } from "@/lib/client-polling";
 export type WhatsAppPulse = { version: string; unreadCount: number };
 const stores = new Map<string, { store: ReturnType<typeof createSharedPolling<WhatsAppPulse>>; users: number }>();
-export function subscribeWhatsAppPulse(scope: string, callback: (pulse: WhatsAppPulse) => void, interval: number) {
+export function subscribeWhatsAppPulse(scope: string, callback: (pulse: WhatsAppPulse) => void, interval: number, steady = false) {
   let entry = stores.get(scope);
   if (!entry) {
     entry = { users: 0, store: createSharedPolling<WhatsAppPulse>({
@@ -21,7 +21,7 @@ export function subscribeWhatsAppPulse(scope: string, callback: (pulse: WhatsApp
     window.addEventListener("online", entry.store.wake);
   }
   entry.users++;
-  const unsubscribe = entry.store.subscribe(callback, interval);
+  const unsubscribe = entry.store.subscribe(callback, interval, steady);
   return () => {
     unsubscribe();
     if (--entry.users === 0) {

@@ -77,6 +77,7 @@ test("monthly closing resolves deadlines, W.O. and opens the next cycle", () => 
   assert.match(lifecycle, /applyPromotionAndRelegation/);
   assert.match(lifecycle, /snapshotLeagueCycle/);
   assert.match(lifecycle, /resetLeagueCompetition/);
+  assert.match(lifecycle, /await withArenaTransaction\(arenaId, async \(tx\) => \{[\s\S]*tx\.publicTournamentRegistration\.updateMany/);
   assert.match(schema, /snapshot\s+Json\?/);
 });
 

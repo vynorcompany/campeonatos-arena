@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { ensureTournamentPairFromRegistration } from "@/lib/services/registration-pair";
 import { createPublicRegistrationSchema } from "@/lib/validators/public-registration";
 import { env } from "@/lib/env";
+import { lockTournamentRegistrations, nextTournamentRegistrationOrder } from "@/lib/tournaments/registration-order";
+import { setArenaRlsContext, withArenaTransaction } from "@/lib/rls";
 
 type PublicRegistrationState = {
   error: string | null;
@@ -72,8 +74,15 @@ export async function createPublicRegistrationAction(
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      const tournament = await tx.tournament.findUnique({
+      const target = await tx.tournament.findUnique({
         where: { publicSlug: parsed.data.tournamentSlug },
+        select: { id: true, arenaId: true }
+      });
+      if (!target) throw new Error("Torneio nao encontrado.");
+      await setArenaRlsContext(tx, target.arenaId);
+      await lockTournamentRegistrations(tx, target.id, target.arenaId);
+      const tournament = await tx.tournament.findUnique({
+        where: { id: target.id },
         include: {
           categories: {
             where: { active: true },
@@ -123,7 +132,7 @@ export async function createPublicRegistrationAction(
         }
       });
 
-      const registrationOrder = registrations.length + 1;
+      const registrationOrder = await nextTournamentRegistrationOrder(tx, tournament.id);
 
       if (selectedCategory.allowedRegistrationCategoryIds.length) {
         const incompatible = registrations.find((item) => !selectedCategory.allowedRegistrationCategoryIds.includes(item.categoryId));
@@ -174,7 +183,7 @@ export async function createPublicRegistrationAction(
           amountCents,
           discountCents,
           paymentStatus: "PENDING",
-          paymentProvider: "",
+          paymentProvider: amountCents > 0 ? "MERCADO_PAGO_PENDING" : "",
           paymentReference: "",
           status: "PENDING_PAYMENT"
         }
@@ -193,7 +202,7 @@ export async function createPublicRegistrationAction(
     };
 
     if (result.amountCents === 0) {
-      await prisma.$transaction(async (tx) => {
+      await withArenaTransaction(result.arenaId, async (tx) => {
         await tx.publicTournamentRegistration.update({
           where: { id: result.registration.id },
           data: { paymentStatus: "PAID", paymentProvider: "FREE", paymentReference: "FREE", status: "CONFIRMED" }
@@ -202,33 +211,52 @@ export async function createPublicRegistrationAction(
           arenaId: result.arenaId,
           tournamentId: result.registration.tournamentId,
           leadName: result.registration.leadName,
-          partnerName: result.registration.partnerName
+          partnerName: result.registration.partnerName,
+          leadCpf: result.registration.leadCpf,
+          partnerCpf: result.registration.partnerCpf
         });
       });
       revalidatePath(`/inscricao/${parsed.data.tournamentSlug}`);
       return { error: null, success: "Inscrição gratuita confirmada com sucesso.", paymentReference: "FREE", amountCents: 0, registrationId: result.registration.id };
     }
 
-    const payment =
-      parsed.data.paymentMethod === "CARD"
+    let payment;
+    try {
+      payment = parsed.data.paymentMethod === "CARD"
         ? await createCardCheckout(paymentPayload)
         : await createPixPayment(paymentPayload);
+      if (payment.provider !== "PIX_MOCK" && !payment.checkoutUrl && !payment.qrCode) throw new Error("O Mercado Pago não retornou um meio de pagamento para esta inscrição.");
+    } catch (error) {
+      // O provedor pode ter criado a cobrança antes de uma falha de rede.
+      // Guarde a inscrição cancelada: um callback tardio ainda poderá ser
+      // identificado pela referência e encaminhado para revisão/estorno.
+      await withArenaTransaction(result.arenaId, (tx) => tx.publicTournamentRegistration.updateMany({
+        where: { id: result.registration.id, tournamentId: result.registration.tournamentId, status: "PENDING_PAYMENT", paymentStatus: "PENDING", mercadoPagoPaymentId: "" },
+        data: { status: "CANCELED", paymentProvider: "MERCADO_PAGO_FAILED" }
+      }));
+      throw error;
+    }
 
-    await prisma.publicTournamentRegistration.update({
-      where: { id: result.registration.id },
+    const savedPayment = await withArenaTransaction(result.arenaId, (tx) => tx.publicTournamentRegistration.updateMany({
+      where: { id: result.registration.id, tournamentId: result.registration.tournamentId, status: "PENDING_PAYMENT", paymentStatus: "PENDING" },
       data: {
         paymentProvider: payment.provider,
         paymentReference: payment.reference,
-        mercadoPagoPaymentId: payment.paymentId,
+        // Checkout de cartão devolve o ID da preferência, não do pagamento.
+        mercadoPagoPaymentId: parsed.data.paymentMethod === "CARD" ? "" : payment.paymentId,
         paymentQrCode: payment.qrCode,
         paymentQrCodeBase64: payment.qrCodeBase64,
         paymentCheckoutUrl: payment.checkoutUrl,
         paymentExpiresAt: payment.expiresAt
       }
-    });
+    }));
+    if (savedPayment.count !== 1) {
+      revalidatePath(`/inscricao/${parsed.data.tournamentSlug}`);
+      return { error: null, success: "O pagamento desta inscrição já foi atualizado. Confira a situação antes de tentar novamente.", amountCents: result.amountCents, registrationId: result.registration.id };
+    }
 
     if (payment.provider === "PIX_MOCK") {
-      await prisma.$transaction(async (tx) => {
+      await withArenaTransaction(result.arenaId, async (tx) => {
         await tx.publicTournamentRegistration.update({
           where: { id: result.registration.id },
           data: {
@@ -241,7 +269,9 @@ export async function createPublicRegistrationAction(
           arenaId: result.arenaId,
           tournamentId: result.registration.tournamentId,
           leadName: result.registration.leadName,
-          partnerName: result.registration.partnerName
+          partnerName: result.registration.partnerName,
+          leadCpf: result.registration.leadCpf,
+          partnerCpf: result.registration.partnerCpf
         });
       });
     }

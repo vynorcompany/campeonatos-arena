@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getLeagueMonthBlocks } from "@/lib/league/monthly-schedule";
 import { withArenaTransaction } from "@/lib/rls";
 import { getPublicLinkedPlayerIds } from "@/lib/services/public-player-link";
+import { arenaWallClockToInstant, instantToArenaWallClock } from "@/lib/calendar/arena-wall-clock";
 
 function dateTimeLabel(value: Date) {
   return new Intl.DateTimeFormat("pt-BR", {
@@ -51,6 +52,7 @@ export async function getPublicLeaguePortal(
   });
   if (!arena) return null;
   const linkedPlayerIds = await getPublicLinkedPlayerIds(arena.id, playerId);
+  if (!linkedPlayerIds.length) return null;
   const ownPairs = await prisma.categoryPair.findMany({
     where: {
       active: true,
@@ -99,6 +101,9 @@ export async function getPublicLeaguePortal(
     orderBy: { createdAt: "desc" },
   });
   const now = new Date();
+  const arenaNow = instantToArenaWallClock(now);
+  const slotWindowEnd = new Date(arenaNow);
+  slotWindowEnd.setDate(slotWindowEnd.getDate() + 15);
   const [
     leagueNotifications,
     medicalRequests,
@@ -113,7 +118,7 @@ export async function getPublicLeaguePortal(
   ] = await withArenaTransaction(arena.id, (tx) =>
     Promise.all([
       tx.playerNotification.findMany({
-        where: { playerId, readAt: null, type: "LEAGUE_MATCH" },
+        where: { playerId, player: { arenaId: arena.id, active: true }, readAt: null, type: "LEAGUE_MATCH" },
         orderBy: { createdAt: "desc" },
         take: 8,
         select: { id: true, title: true, message: true, href: true, createdAt: true },
@@ -143,7 +148,7 @@ export async function getPublicLeaguePortal(
       tx.scheduleOccurrence.findMany({
         where: {
           arenaId: arena.id,
-          startsAt: { gte: now },
+          startsAt: { gte: arenaNow },
           status: { not: "CANCELED" },
           participants: { some: { playerId } },
         },
@@ -164,7 +169,7 @@ export async function getPublicLeaguePortal(
           },
           monthlyBalances: {
             where: {
-              referenceMonth: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`,
+              referenceMonth: `${arenaNow.getFullYear()}-${String(arenaNow.getMonth() + 1).padStart(2, "0")}`,
             },
             take: 1,
           },
@@ -174,7 +179,7 @@ export async function getPublicLeaguePortal(
             orderBy: { teacher: { name: "asc" } },
           },
           attendances: {
-            where: { lesson: { scheduledAt: { gte: now } } },
+            where: { lesson: { scheduledAt: { gte: arenaNow } } },
             include: {
               lesson: {
                 select: {
@@ -193,7 +198,7 @@ export async function getPublicLeaguePortal(
       tx.scheduleOccurrence.findMany({
         where: {
           arenaId: arena.id,
-          startsAt: { gte: now },
+          startsAt: { gte: arenaNow },
           status: { not: "CANCELED" },
           teacherId: { not: null },
         },
@@ -246,7 +251,7 @@ export async function getPublicLeaguePortal(
                   },
                   monthlyBalances: {
                     where: {
-                      referenceMonth: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`,
+                      referenceMonth: `${arenaNow.getFullYear()}-${String(arenaNow.getMonth() + 1).padStart(2, "0")}`,
                     },
                     take: 1,
                   },
@@ -254,7 +259,7 @@ export async function getPublicLeaguePortal(
                     where: {
                       makeupRequestedAt: { not: null },
                       makeupScheduledAt: null,
-                      makeupExpiresAt: { gte: now },
+                      makeupExpiresAt: { gte: arenaNow },
                     },
                     select: { id: true, status: true },
                   },
@@ -264,7 +269,7 @@ export async function getPublicLeaguePortal(
             orderBy: { student: { name: "asc" } },
           },
           scheduleOccurrences: {
-            where: { startsAt: { gte: now }, status: { not: "CANCELED" } },
+            where: { startsAt: { gte: arenaNow }, status: { not: "CANCELED" } },
             select: {
               id: true,
               title: true,
@@ -314,8 +319,8 @@ export async function getPublicLeaguePortal(
         arenaId: arena.id,
         status: { not: "CANCELED" },
         startsAt: {
-          gte: now,
-          lt: new Date(now.getTime() + 15 * 24 * 60 * 60_000),
+          gte: arenaNow,
+          lt: slotWindowEnd,
         },
       },
       include: { occurrenceCourts: true },
@@ -430,7 +435,7 @@ export async function getPublicLeaguePortal(
   const slots = arena.courts
     .flatMap((court) =>
       Array.from({ length: 7 }, (_, dayOffset) => {
-        const date = new Date(now);
+        const date = new Date(arenaNow);
         date.setHours(0, 0, 0, 0);
         date.setDate(date.getDate() + dayOffset);
         const rule = court.weeklyRules.find(
@@ -454,7 +459,7 @@ export async function getPublicLeaguePortal(
           startsAt.setHours(Math.floor(minute / 60), minute % 60, 0, 0);
           const endsAt = new Date(startsAt.getTime() + duration * 60_000);
           if (
-            startsAt <= now ||
+            arenaWallClockToInstant(startsAt) <= now ||
             occurrences.some(
               (occurrence) =>
                 occurrence.occurrenceCourts.some(
@@ -483,7 +488,7 @@ export async function getPublicLeaguePortal(
   const makeupSlots = arena.courts
     .flatMap((court) =>
       Array.from({ length: 14 }, (_, dayOffset) => {
-        const date = new Date(now);
+        const date = new Date(arenaNow);
         date.setHours(0, 0, 0, 0);
         date.setDate(date.getDate() + dayOffset);
         const rule = court.weeklyRules.find(
@@ -507,7 +512,7 @@ export async function getPublicLeaguePortal(
           startsAt.setHours(Math.floor(minute / 60), minute % 60, 0, 0);
           const endsAt = new Date(startsAt.getTime() + duration * 60_000);
           if (
-            startsAt <= now ||
+            arenaWallClockToInstant(startsAt) <= now ||
             occurrences.some(
               (occurrence) =>
                 occurrence.occurrenceCourts.some(
@@ -585,7 +590,7 @@ export async function getPublicLeaguePortal(
       proposer: challenge.categoryMatch.homePair?.name ?? "Dupla mandante",
       court: challenge.court.name,
       proposedAt: dateTimeLabel(challenge.startsAt),
-      responseDueAt: dateTimeLabel(challenge.responseDueAt),
+      responseDueAt: dateTimeLabel(instantToArenaWallClock(challenge.responseDueAt)),
       block: challenge.categoryMatch.leagueBlock,
       incoming: ownPairs.some((pair) => pair.id === challenge.opponentPairId),
     })),

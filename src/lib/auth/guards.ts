@@ -1,4 +1,5 @@
 import { requireArenaAccess, requireAuth } from "@/lib/auth/session";
+import { notFound } from "next/navigation";
 import { canDeleteFinancialEntries, canEditModule, canViewModule, hasPermissionKey, type PermissionModule } from "@/lib/permissions";
 import type { ArenaRole, SystemRole } from "@/types/auth";
 
@@ -15,6 +16,10 @@ const systemWeight: Record<SystemRole, number> = {
   ADMIN: 2,
   SUPER_ADMIN: 3
 };
+
+function isAgencyRole(role: SystemRole) {
+  return role === "SUPER_ADMIN" || role === "ADMIN" || role === "MANAGER";
+}
 
 export async function requireRole(minRole: ArenaRole = "STAFF") {
   const auth = await requireArenaAccess();
@@ -72,8 +77,18 @@ export async function requireFinancialEntryDelete() {
 export async function requireAgencyAccess() {
   const auth = await requireAuth();
 
-  if (auth.systemRole !== "SUPER_ADMIN" && auth.systemRole !== "ADMIN" && auth.systemRole !== "MANAGER") {
+  if (!isAgencyRole(auth.systemRole)) {
     throw new Error("Sem permissão para acessar o painel da agência.");
+  }
+
+  return auth;
+}
+
+export async function requireAgencyPageAccess() {
+  const auth = await requireAuth();
+
+  if (!isAgencyRole(auth.systemRole)) {
+    notFound();
   }
 
   return auth;

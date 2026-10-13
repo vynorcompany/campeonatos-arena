@@ -67,13 +67,17 @@ import {
   updateMatchResult
 } from "@/lib/services/tournament";
 import { ensureTournamentPairFromRegistration } from "@/lib/services/registration-pair";
+import { updateManualTournamentRegistration } from "@/lib/tournaments/manual-registration-update";
+import { canDeleteTournamentRegistration } from "@/lib/tournaments/registration-deletion";
+import { lockTournamentRegistrations, nextTournamentRegistrationOrder } from "@/lib/tournaments/registration-order";
+import { withArenaTransaction } from "@/lib/rls";
 import {
   normalizeCpf,
   normalizeDateInput,
   parseCategoryList,
   parseReaisToCents
 } from "@/lib/tournaments/inputs";
-import { buildCategoryBracketSeeds } from "@/lib/tournament/bracket";
+import { buildCategoryBracketSeeds, hasStartedCategoryBracket } from "@/lib/tournament/bracket";
 import { refreshTournamentRoutes } from "@/lib/tournament/revalidation";
 import { buildRankingRuleValues, type RankingRuleValues } from "@/lib/ranking/rule-values";
 
@@ -480,11 +484,13 @@ export async function deleteAthleteAction(formData: FormData) {
     throw new Error(restriction);
   }
 
-  await prisma.player.delete({
+  const deleted = await prisma.player.deleteMany({
     where: {
-      id: athlete.id
+      id: athlete.id,
+      arenaId: auth.arenaId
     }
   });
+  if (!deleted.count) throw new Error("Atleta não encontrado.");
 
   refreshTournamentRoutes();
 }
@@ -1779,24 +1785,38 @@ export async function generateCategoryBracketAction(formData: FormData) {
     throw new Error("Torneio ou categoria inválidos.");
   }
 
-  const tournament = await prisma.tournament.findFirst({
-    where: { id: tournamentId, arenaId: auth.arenaId },
-    select: { id: true }
-  });
-  if (!tournament) throw new Error("Torneio não encontrado.");
-
-  const registrations = await prisma.publicTournamentRegistration.findMany({
-    where: {
-      tournamentId,
-      categoryId,
-      status: "CONFIRMED"
-    },
-    orderBy: { createdAt: "asc" },
-    select: { id: true }
-  });
-
-  const firstRoundSeeds = buildCategoryBracketSeeds(registrations.map((item) => item.id));
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(auth.arenaId, async (tx) => {
+    // Public registration locks the tournament before writing. Read the
+    // confirmed field only after obtaining the same lock.
+    await lockTournamentRegistrations(tx, tournamentId, auth.arenaId);
+    const tournament = await tx.tournament.findFirst({
+      where: { id: tournamentId, arenaId: auth.arenaId },
+      select: { registrationPhase: true }
+    });
+    if (!tournament || tournament.registrationPhase === "REGISTRATIONS") {
+      throw new Error("Encerre as inscrições do torneio antes de montar o chaveamento.");
+    }
+    // Serialize generation and schedule edits on the same category row.
+    const categoryRows = await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT c."id" FROM "TournamentCategory" c
+      JOIN "Tournament" t ON t."id" = c."tournamentId"
+      WHERE c."id" = ${categoryId} AND c."tournamentId" = ${tournamentId} AND t."arenaId" = ${auth.arenaId}
+      FOR UPDATE OF c
+    `;
+    if (categoryRows.length !== 1) throw new Error("Torneio ou categoria não encontrados nesta arena.");
+    const registrations = await tx.publicTournamentRegistration.findMany({
+      where: { tournamentId, categoryId, status: "CONFIRMED" },
+      orderBy: { createdAt: "asc" },
+      select: { id: true }
+    });
+    const firstRoundSeeds = buildCategoryBracketSeeds(registrations.map((item) => item.id));
+    const existing = await tx.categoryBracket.findFirst({
+      where: { tournamentId, categoryId },
+      select: { id: true, matches: { select: { scheduledTime: true, courtName: true, status: true, winnerRegistrationId: true } } }
+    });
+    if (existing && hasStartedCategoryBracket(existing.matches)) {
+      throw new Error("Esta chave já possui jogos agendados ou em andamento. Não é possível remontá-la sem perder esses dados.");
+    }
     const bracket = await tx.categoryBracket.upsert({
       where: {
         tournamentId_categoryId: {
@@ -1858,18 +1878,29 @@ export async function generateCategoryBracketAction(formData: FormData) {
 }
 
 export async function updateCategoryBracketMatchScheduleAction(formData: FormData) {
-  await requireModuleEdit("matches");
+  const auth = await requireModuleEdit("matches");
   const matchId = String(formData.get("matchId") ?? "");
   const scheduledTime = String(formData.get("scheduledTime") ?? "");
   const courtName = String(formData.get("courtName") ?? "");
   if (!matchId) throw new Error("Jogo inválido.");
 
-  await prisma.categoryBracketMatch.update({
-    where: { id: matchId },
-    data: {
-      scheduledTime,
-      courtName
-    }
+  await prisma.$transaction(async (tx) => {
+    const match = await tx.categoryBracketMatch.findFirst({
+      where: { id: matchId, bracket: { tournament: { arenaId: auth.arenaId } } },
+      select: { bracket: { select: { categoryId: true } } }
+    });
+    if (!match) throw new Error("Jogo não encontrado nesta arena.");
+    await tx.$queryRaw`
+      SELECT c."id" FROM "TournamentCategory" c
+      JOIN "Tournament" t ON t."id" = c."tournamentId"
+      WHERE c."id" = ${match.bracket.categoryId} AND t."arenaId" = ${auth.arenaId}
+      FOR UPDATE OF c
+    `;
+    const updated = await tx.categoryBracketMatch.updateMany({
+      where: { id: matchId, bracket: { tournament: { arenaId: auth.arenaId } } },
+      data: { scheduledTime, courtName }
+    });
+    if (!updated.count) throw new Error("Jogo não encontrado nesta arena.");
   });
   revalidatePath("/torneios/inscricoes");
 }
@@ -1885,18 +1916,23 @@ export async function updateTournamentCategoryFormatAction(formData: FormData) {
     throw new Error("Dados inválidos para formato da categoria.");
   }
 
-  await prisma.tournamentCategory.updateMany({
-    where: {
-      id: categoryId,
-      tournamentId,
-      tournament: {
-        arenaId: auth.arenaId
-      }
-    },
-    data: {
-      groupCount: Math.min(8, Math.max(1, Math.trunc(groupCount))),
-      pairsPerGroup: Math.min(16, Math.max(2, Math.trunc(pairsPerGroup)))
+  await prisma.$transaction(async (tx) => {
+    await lockTournamentRegistrations(tx, tournamentId, auth.arenaId);
+    const tournament = await tx.tournament.findFirst({
+      where: { id: tournamentId, arenaId: auth.arenaId },
+      select: { registrationPhase: true }
+    });
+    if (!tournament || tournament.registrationPhase === "REGISTRATIONS") {
+      throw new Error("Encerre as inscrições do torneio antes de alterar o formato da categoria.");
     }
+    const updated = await tx.tournamentCategory.updateMany({
+      where: { id: categoryId, tournamentId, tournament: { arenaId: auth.arenaId } },
+      data: {
+        groupCount: Math.min(8, Math.max(1, Math.trunc(groupCount))),
+        pairsPerGroup: Math.min(16, Math.max(2, Math.trunc(pairsPerGroup)))
+      }
+    });
+    if (!updated.count) throw new Error("Categoria não encontrada nesta arena.");
   });
 
   revalidatePath("/torneios/inscricoes");
@@ -1944,90 +1980,78 @@ export async function createManualTournamentRegistrationAction(_: ActionState, f
     return { error: parsed.error.issues[0]?.message ?? "Dados inválidos.", success: null };
   }
 
-  const tournament = await prisma.tournament.findFirst({
-    where: {
-      id: parsed.data.tournamentId,
-      arenaId: auth.arenaId
-    },
-    select: {
-      id: true,
-      categories: {
-        where: { active: true },
-        select: { id: true }
-      }
-    }
-  });
-
-  if (!tournament) {
-    return { error: "Torneio não encontrado.", success: null };
-  }
-
-  if (!tournament.categories.some((category) => category.id === parsed.data.categoryId)) {
-    return { error: "Categoria inválida para este torneio.", success: null };
-  }
-
   if (parsed.data.leadPlayerId === parsed.data.partnerPlayerId) {
     return { error: "Os atletas da dupla devem ser diferentes.", success: null };
   }
 
-  const athletes = await prisma.player.findMany({
-    where: { arenaId: auth.arenaId, active: true, id: { in: [parsed.data.leadPlayerId, parsed.data.partnerPlayerId] } },
-    select: { id: true, name: true, phone: true, cpf: true, birthDate: true }
-  });
-  if (athletes.length !== 2 || athletes.some((athlete) => !athlete.phone || !/^\d{11}$/.test(athlete.cpf) || !athlete.birthDate)) {
-    return { error: "Atleta não encontrado, inativo ou sem cadastro completo.", success: null };
-  }
-  const athletesById = new Map(athletes.map((athlete) => [athlete.id, athlete]));
-  const lead = athletesById.get(parsed.data.leadPlayerId);
-  const partner = athletesById.get(parsed.data.partnerPlayerId);
-  if (!lead || !partner || !lead.birthDate || !partner.birthDate) {
-    return { error: "Atleta não encontrado, inativo ou sem cadastro completo.", success: null };
-  }
-
-  const leadBirthDate = lead.birthDate;
-  const partnerBirthDate = partner.birthDate;
-
-  const registrationCount = await prisma.publicTournamentRegistration.count({
-    where: {
-      tournamentId: tournament.id
-    }
-  });
-
   const amountCents = parseReaisToCents(parsed.data.amountReais);
+  let result: ActionState;
+  try {
+    result = await withArenaTransaction(auth.arenaId, async (tx): Promise<ActionState> => {
+      await lockTournamentRegistrations(tx, parsed.data.tournamentId, auth.arenaId);
+      const categories = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT "id" FROM "TournamentCategory"
+        WHERE "id" = ${parsed.data.categoryId} AND "tournamentId" = ${parsed.data.tournamentId} AND "active" = true
+        FOR UPDATE
+      `;
+      if (categories.length !== 1) return { error: "Categoria inválida ou desativada para este torneio.", success: null };
 
-  await prisma.$transaction(async (tx) => {
-    await tx.publicTournamentRegistration.create({
-      data: {
-        tournamentId: tournament.id,
-        categoryId: parsed.data.categoryId,
-        leadName: lead.name,
-        leadPhone: lead.phone,
-        leadCpf: lead.cpf,
-        leadBirthDate,
-        partnerName: partner.name,
-        partnerPhone: partner.phone,
-        partnerCpf: partner.cpf,
-        partnerBirthDate,
-        registrationOrder: registrationCount + 1,
-        amountCents,
-        paymentStatus: parsed.data.paymentStatus,
-        status: parsed.data.paymentStatus === "PAID" ? "CONFIRMED" : "PENDING_PAYMENT",
-        paymentProvider: "MANUAL",
-        paymentReference: ""
+      const athletes = await tx.player.findMany({
+        where: { arenaId: auth.arenaId, active: true, id: { in: [parsed.data.leadPlayerId, parsed.data.partnerPlayerId] } },
+        select: { id: true, name: true, phone: true, cpf: true, birthDate: true }
+      });
+      if (athletes.length !== 2 || athletes.some((athlete) => !athlete.phone || !/^\d{11}$/.test(athlete.cpf) || !athlete.birthDate)) {
+        return { error: "Atleta não encontrado, inativo ou sem cadastro completo.", success: null };
       }
-    });
+      const athletesById = new Map(athletes.map((athlete) => [athlete.id, athlete]));
+      const lead = athletesById.get(parsed.data.leadPlayerId);
+      const partner = athletesById.get(parsed.data.partnerPlayerId);
+      if (!lead || !partner || !lead.birthDate || !partner.birthDate) {
+        return { error: "Atleta não encontrado, inativo ou sem cadastro completo.", success: null };
+      }
 
-    await ensureTournamentPairFromRegistration(tx, {
-      arenaId: auth.arenaId,
-      tournamentId: tournament.id,
-      leadName: lead.name,
-      partnerName: partner.name
+      const registrationOrder = await nextTournamentRegistrationOrder(tx, parsed.data.tournamentId);
+      await tx.publicTournamentRegistration.create({
+        data: {
+          tournamentId: parsed.data.tournamentId,
+          categoryId: categories[0].id,
+          leadName: lead.name,
+          leadPhone: lead.phone,
+          leadCpf: lead.cpf,
+          leadBirthDate: lead.birthDate,
+          partnerName: partner.name,
+          partnerPhone: partner.phone,
+          partnerCpf: partner.cpf,
+          partnerBirthDate: partner.birthDate,
+          registrationOrder,
+          amountCents,
+          paymentStatus: parsed.data.paymentStatus,
+          status: parsed.data.paymentStatus === "PAID" ? "CONFIRMED" : "PENDING_PAYMENT",
+          paymentProvider: "MANUAL",
+          paymentReference: ""
+        }
+      });
+
+      if (parsed.data.paymentStatus === "PAID") {
+        await ensureTournamentPairFromRegistration(tx, {
+          arenaId: auth.arenaId,
+          tournamentId: parsed.data.tournamentId,
+          leadName: lead.name,
+          partnerName: partner.name,
+          leadPlayerId: lead.id,
+          partnerPlayerId: partner.id
+        });
+      }
+      return { error: null, success: "Inscrição manual criada com sucesso." };
     });
-  });
+  } catch {
+    return { error: "Não foi possível criar a inscrição. Nenhuma alteração foi aplicada.", success: null };
+  }
+  if (result.error) return result;
 
   refreshTournamentRoutes();
   revalidatePath(`/torneios/${parsed.data.tournamentId}`);
-  return { error: null, success: "Inscrição manual criada com sucesso." };
+  return result;
 }
 
 export async function deleteTournamentRegistrationAction(formData: FormData) {
@@ -2038,17 +2062,20 @@ export async function deleteTournamentRegistrationAction(formData: FormData) {
     throw new Error("Inscricao invalida.");
   }
 
-  const deleted = await prisma.publicTournamentRegistration.deleteMany({
-    where: {
-      id: registrationId,
-      tournament: {
-        arenaId: auth.arenaId
-      }
-    }
+  const deleted = await withArenaTransaction(auth.arenaId, async (tx) => {
+    await tx.$queryRaw`SELECT r."id" FROM "PublicTournamentRegistration" r JOIN "Tournament" t ON t."id" = r."tournamentId" WHERE r."id" = ${registrationId} AND t."arenaId" = ${auth.arenaId} FOR UPDATE OF r`;
+    const registration = await tx.publicTournamentRegistration.findFirst({
+      where: { id: registrationId, tournament: { arenaId: auth.arenaId } },
+      select: { status: true, paymentStatus: true, paymentProvider: true, paymentReference: true, mercadoPagoPaymentId: true, paymentCheckoutUrl: true }
+    });
+    if (!registration || !canDeleteTournamentRegistration(registration)) return { count: 0 };
+    return tx.publicTournamentRegistration.deleteMany({
+      where: { id: registrationId, tournament: { arenaId: auth.arenaId }, status: "PENDING_PAYMENT", paymentStatus: "PENDING", paymentProvider: "MANUAL", paymentReference: "", mercadoPagoPaymentId: "", paymentCheckoutUrl: "" }
+    });
   });
 
   if (!deleted.count) {
-    throw new Error("Inscricao nao encontrada.");
+    throw new Error("Somente inscrições manuais pendentes e sem cobrança podem ser excluídas. Pagamentos existentes precisam ser conciliados antes de qualquer remoção.");
   }
 
   refreshTournamentRoutes();
@@ -2084,62 +2111,18 @@ export async function updateTournamentRegistrationAction(
     return { error: parsed.error.issues[0]?.message ?? "Dados invalidos.", success: null };
   }
 
-  const registration = await prisma.publicTournamentRegistration.findFirst({
-    where: {
-      id: parsed.data.registrationId,
-      tournamentId: parsed.data.tournamentId,
-      tournament: { arenaId: auth.arenaId }
-    },
-    select: { id: true }
-  });
-
-  if (!registration) {
-    return { error: "Inscricao nao encontrada.", success: null };
-  }
-
   const amountCents = parseReaisToCents(parsed.data.amountReais);
-  await prisma.publicTournamentRegistration.update({
-    where: { id: registration.id },
-    data: {
-      categoryId: parsed.data.categoryId,
-      leadName: parsed.data.leadName,
-      leadPhone: parsed.data.leadPhone,
-      leadCpf: parsed.data.leadCpf,
-      leadBirthDate: parsed.data.leadBirthDate,
-      partnerName: parsed.data.partnerName,
-      partnerPhone: parsed.data.partnerPhone,
-      partnerCpf: parsed.data.partnerCpf,
-      partnerBirthDate: parsed.data.partnerBirthDate,
+  let updated: Awaited<ReturnType<typeof updateManualTournamentRegistration>>;
+  try {
+    updated = await withArenaTransaction(auth.arenaId, (tx) => updateManualTournamentRegistration(tx, {
+      ...parsed.data,
+      arenaId: auth.arenaId,
       amountCents,
-      paymentStatus: parsed.data.paymentStatus,
-      status: parsed.data.paymentStatus === "PAID" ? "CONFIRMED" : "PENDING_PAYMENT"
-    }
-  });
-
-  if (parsed.data.paymentStatus === "PAID") {
-    const refreshed = await prisma.publicTournamentRegistration.findUnique({
-      where: { id: registration.id },
-      include: {
-        tournament: {
-          select: {
-            id: true,
-            arenaId: true
-          }
-        }
-      }
-    });
-
-    if (refreshed) {
-      await prisma.$transaction(async (tx) => {
-        await ensureTournamentPairFromRegistration(tx, {
-          arenaId: refreshed.tournament.arenaId,
-          tournamentId: refreshed.tournament.id,
-          leadName: refreshed.leadName,
-          partnerName: refreshed.partnerName
-        });
-      });
-    }
+    }));
+  } catch {
+    return { error: "Não foi possível atualizar a inscrição. Nenhuma alteração foi aplicada.", success: null };
   }
+  if (!updated.ok) return { error: updated.error, success: null };
 
   refreshTournamentRoutes();
   revalidatePath(`/torneios/${parsed.data.tournamentId}`);

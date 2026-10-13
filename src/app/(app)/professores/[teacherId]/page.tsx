@@ -21,7 +21,8 @@ import {
 import { requireModuleView } from "@/lib/auth/guards";
 import { canEditModule } from "@/lib/permissions";
 import { uniqueStandardPlanOptions } from "@/lib/academy/standard-plans";
-import { prisma } from "@/lib/prisma";
+import { arenaDatabase } from "@/lib/arena-database";
+import { instantToArenaWallClock } from "@/lib/calendar/arena-wall-clock";
 
 const money = (value: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
@@ -46,13 +47,14 @@ export default async function TeacherDetailPage(
   const searchParams = await props.searchParams;
   const params = await props.params;
   const auth = await requireModuleView("teachers");
+  const prisma = arenaDatabase(auth.arenaId);
   const tab =
     searchParams?.tab === "students" ||
     searchParams?.tab === "classes" ||
     searchParams?.tab === "report"
       ? searchParams.tab
       : "plans";
-  const now = new Date();
+  const now = instantToArenaWallClock(new Date());
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthEnd = new Date(
     now.getFullYear(),

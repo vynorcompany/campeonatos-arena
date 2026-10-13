@@ -66,18 +66,16 @@ export async function ensureArenaPermissionProfiles(arenaId: string) {
     skipDuplicates: true
   });
   const members = await prisma.arenaMember.findMany({ where: { arenaId, permissionProfileId: null } });
-  for (const [index, member] of members.entries()) {
+  for (const member of members) {
     const defaults = member.viewPermissions.length || member.editPermissions.length
       ? { viewPermissions: member.viewPermissions, editPermissions: member.editPermissions }
       : defaultPermissionsForRole(member.role);
-    const profile = await prisma.permissionProfile.create({
-      data: {
-        arenaId,
-        name: `Migrado · ${member.role} ${index + 1}`,
-        description: "Perfil criado automaticamente para preservar o acesso existente.",
-        ...defaults
-      }
+    const name = `Migrado · ${member.role} ${member.id}`;
+    const profile = await prisma.permissionProfile.upsert({
+      where: { arenaId_name: { arenaId, name } },
+      create: { arenaId, name, description: "Perfil criado automaticamente para preservar o acesso existente.", ...defaults },
+      update: {}
     });
-    await prisma.arenaMember.update({ where: { id: member.id }, data: { permissionProfileId: profile.id } });
+    await prisma.arenaMember.updateMany({ where: { id: member.id, arenaId, permissionProfileId: null }, data: { permissionProfileId: profile.id } });
   }
 }

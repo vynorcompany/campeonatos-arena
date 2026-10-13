@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requirePermission } from "@/lib/auth/guards";
 import { normalizeBrazilianPhone } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
+import { withArenaTransaction } from "@/lib/rls";
 
 function refreshClients() {
   revalidatePath("/jogadores");
@@ -33,7 +34,7 @@ export async function adjustClientBalanceAction(formData: FormData) {
   if (!Number.isInteger(quantity) || quantity <= 0) throw new Error("Informe um valor maior que zero.");
   const direction = parsed.data.operation === "ADD" ? 1 : -1;
 
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(auth.arenaId, async (tx) => {
     const player = await tx.player.findFirst({ where: { id: parsed.data.playerId, arenaId: auth.arenaId }, include: { student: true } });
     if (!player) throw new Error("Cliente não encontrado.");
     if (parsed.data.kind === "CLASSES") {
@@ -50,7 +51,7 @@ export async function mergeClientsAction(formData: FormData) {
   const auth = await requirePermission("players:merge");
   const parsed = z.object({ primaryPlayerId: z.string().min(1), duplicatePlayerId: z.string().min(1) }).safeParse({ primaryPlayerId: formData.get("primaryPlayerId"), duplicatePlayerId: formData.get("duplicatePlayerId") });
   if (!parsed.success || parsed.data.primaryPlayerId === parsed.data.duplicatePlayerId) throw new Error("Selecione dois clientes diferentes.");
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(auth.arenaId, async (tx) => {
     const clients = await tx.player.findMany({ where: { arenaId: auth.arenaId, id: { in: [parsed.data.primaryPlayerId, parsed.data.duplicatePlayerId] } }, include: { student: { include: { subscriptions: true } }, account: true } });
     const primary = clients.find((item) => item.id === parsed.data.primaryPlayerId);
     const duplicate = clients.find((item) => item.id === parsed.data.duplicatePlayerId);

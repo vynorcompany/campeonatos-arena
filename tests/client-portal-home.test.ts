@@ -86,10 +86,14 @@ test("client home filters financial entries in the database for the signed-in at
 
 test("mobile home shows the athlete's next reservations and links booking to this arena", () => {
   const home = read("src/lib/services/public-client-home.ts");
+  const reservationFilter = read("src/lib/portal/upcoming-reservations.ts");
   const portal = read("src/components/tournaments/public-standings.tsx");
 
-  assert.match(home, /tx\.scheduleOccurrence\.findMany\(\{ where: \{ arenaId: arena\.id, startsAt: \{ gte: now \}/);
-  assert.match(home, /participants: \{ some: \{ playerId \} \}/);
+  assert.match(home, /upcomingPlayerReservationsWhere\(arena\.id, playerId, now\)/);
+  assert.match(home, /tx\.scheduleOccurrence\.findMany\(\{ where: reservationWhere/);
+  assert.match(reservationFilter, /startsAt: \{ gte: instantToArenaWallClock\(now\) \}/);
+  assert.match(reservationFilter, /activeCourtOccurrenceWhere\(now\)/);
+  assert.match(reservationFilter, /participants: \{ some: \{ playerId \} \}/);
   assert.match(home, /take: 3/);
   assert.match(portal, /home\.upcomingReservations\?\.map/);
   assert.match(portal, /href=\{`\/reservar\/\$\{encodeURIComponent\(arenaSlug\)\}`\}/);

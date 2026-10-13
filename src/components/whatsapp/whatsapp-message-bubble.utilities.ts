@@ -25,9 +25,9 @@ export const viewStyles = {
     "tw:mb-[6px]", "tw:ml-[0]", "tw:[cursor:zoom-in]",
   ].join(" "),
   "whatsapp_message_audio": [
-    "whatsapp-message-audio", "tw:block", "tw:w-[min(310px,_100%)]", "tw:mt-[0]",
+    "whatsapp-message-audio", "tw:block", "tw:w-full", "tw:max-w-full", "tw:min-w-0", "tw:mt-[0]",
     "tw:mr-[0]", "tw:mb-[6px]", "tw:ml-[0]", "tw:h-[42px]",
-    "tw:[accent-color:#128c7e]", "tw:min-w-[270px]", "tw:pt-[2px]", "tw:pr-[2px]",
+    "tw:[accent-color:#128c7e]", "tw:pt-[2px]", "tw:pr-[2px]",
     "tw:pb-[2px]", "tw:pl-[2px]", "tw:rounded-[999px]", "tw:bg-[color:#e7f4ee]",
     "tw:[background-image:none]",
   ].join(" "),

@@ -21,7 +21,7 @@ export const viewStyles = {
     "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:#dce7f3]", "tw:border-b-[length:1px]",
     "tw:[border-bottom-style:solid]", "tw:border-b-[color:#dce7f3]", "tw:border-l-[length:1px]", "tw:[border-left-style:solid]",
     "tw:border-l-[color:#dce7f3]", "tw:rounded-[12px]", "tw:bg-[color:#fff]", "tw:[background-image:none]",
-    "tw:[overflow-x:hidden]", "tw:[overflow-y:hidden]", "tw:[&_summary]:grid", "tw:[&_summary]:grid-cols-[34px_minmax(220px,_1fr)_120px_170px]",
+    "tw:[&_summary]:grid", "tw:[&_summary]:grid-cols-[34px_minmax(0,_1fr)_120px_170px]",
     "tw:viewport-760:[&_summary]:grid-cols-[30px_minmax(0,_1fr)]", "tw:[&_summary]:items-center", "tw:[&_summary]:gap-y-[16px]", "tw:[&_summary]:gap-x-[16px]",
     "tw:[&_summary]:pt-[16px]", "tw:[&_summary]:pr-[16px]", "tw:[&_summary]:pb-[16px]", "tw:[&_summary]:pl-[16px]",
     "tw:[&_summary]:cursor-pointer", "tw:[&_summary]:[list-style:none]", "tw:[&_summary::-webkit-details-marker]:hidden", "tw:[&_summary_small]:block",

@@ -28,6 +28,7 @@ test("sidebar counts only the connected account and clears when the session is r
     exports, require: (name: string) => {
       if (name === "server-only") return {};
       if (name === "@/lib/prisma") return { prisma };
+      if (name === "@/lib/arena-database") return { arenaDatabase: () => prisma };
       if (name === "@/lib/whatsapp-account") return { normalizeWhatsAppAccountJid };
       throw new Error(`Unexpected import: ${name}`);
     },
@@ -72,6 +73,7 @@ test("live sidebar pulse returns unread totals for the active arena and account,
     if (name === "next/server") return { NextResponse: { json: (data: any, options: any) => ({ data, headers: options.headers }) } };
     if (name === "@/lib/auth/guards") return { requireModuleView: async (module: string) => { assert.equal(module, "support"); return { arenaId: "arena" }; } };
     if (name === "@/lib/prisma") return { prisma };
+    if (name === "@/lib/arena-database") return { arenaDatabase: () => prisma };
     if (name === "@/lib/whatsapp-active-account") return { getActiveWhatsAppAccountJid: async () => accountJid };
     throw new Error(`Unexpected import: ${name}`);
   } });

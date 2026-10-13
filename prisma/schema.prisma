@@ -309,6 +309,7 @@ model Player {
   points                    Int                            @default(1000)
   photoUrl                  String                         @default("")
   bio                       String                         @default("")
+  notes                     String                         @default("") @ignore
   class                     String                         @default("") @map("category")
   gender                    String                         @default("")
   phone                     String                         @default("")
@@ -426,6 +427,7 @@ model PlayerVerificationCode {
   phone     String
   purpose   String
   codeHash  String
+  attempts  Int       @default(0)
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime  @default(now())
@@ -649,7 +651,7 @@ model PublicTournamentRegistration {
   competitionId        String?
   tournament           Tournament             @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   category             TournamentCategory     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  competition          CategoryCompetition?   @relation(fields: [competitionId, categoryId], references: [id, categoryId], onDelete: Cascade)
+  competition          CategoryCompetition?   @relation(fields: [competitionId, categoryId], references: [id, categoryId], onDelete: Cascade, map: "PublicTournamentRegistration_competitionId_fkey")
   homeBracketMatches   CategoryBracketMatch[] @relation("CategoryBracketHome")
   awayBracketMatches   CategoryBracketMatch[] @relation("CategoryBracketAway")
   winnerBracketMatches CategoryBracketMatch[] @relation("CategoryBracketWinner")
@@ -804,7 +806,7 @@ model CategoryPair {
   competitionId               String
   groupId                     String?
   competition                 CategoryCompetition                @relation(fields: [competitionId], references: [id], onDelete: Cascade)
-  group                       CategoryGroup?                     @relation(fields: [groupId, competitionId], references: [id, competitionId], onDelete: NoAction)
+  group                       CategoryGroup?                     @relation(fields: [groupId, competitionId], references: [id, competitionId], onDelete: NoAction, map: "CategoryPair_groupId_fkey")
   players                     CategoryPairPlayer[]
   homeMatches                 CategoryMatch[]                    @relation("CategoryHomePair")
   awayMatches                 CategoryMatch[]                    @relation("CategoryAwayPair")
@@ -816,6 +818,7 @@ model CategoryPair {
 
   @@unique([id, competitionId])
   @@index([competitionId, active, drawOrder])
+  @@index([competitionId, drawOrder])
   @@index([competitionId, totalPoints])
   @@index([groupId])
 }
@@ -877,10 +880,10 @@ model CategoryMatch {
   awayPairId           String?
   winnerPairId         String?
   competition          CategoryCompetition   @relation(fields: [competitionId], references: [id], onDelete: Cascade)
-  group                CategoryGroup?        @relation(fields: [groupId, competitionId], references: [id, competitionId], onDelete: NoAction)
-  homePair             CategoryPair?         @relation("CategoryHomePair", fields: [homePairId, competitionId], references: [id, competitionId], onDelete: NoAction)
-  awayPair             CategoryPair?         @relation("CategoryAwayPair", fields: [awayPairId, competitionId], references: [id, competitionId], onDelete: NoAction)
-  winnerPair           CategoryPair?         @relation("CategoryWinnerPair", fields: [winnerPairId, competitionId], references: [id, competitionId], onDelete: NoAction)
+  group                CategoryGroup?        @relation(fields: [groupId, competitionId], references: [id, competitionId], onDelete: NoAction, map: "CategoryMatch_groupId_fkey")
+  homePair             CategoryPair?         @relation("CategoryHomePair", fields: [homePairId, competitionId], references: [id, competitionId], onDelete: NoAction, map: "CategoryMatch_homePairId_fkey")
+  awayPair             CategoryPair?         @relation("CategoryAwayPair", fields: [awayPairId, competitionId], references: [id, competitionId], onDelete: NoAction, map: "CategoryMatch_awayPairId_fkey")
+  winnerPair           CategoryPair?         @relation("CategoryWinnerPair", fields: [winnerPairId, competitionId], references: [id, competitionId], onDelete: NoAction, map: "CategoryMatch_winnerPairId_fkey")
   challenge            LeagueChallenge?
   leagueCycleId        String?
   leagueBlock          Int?
@@ -1371,6 +1374,7 @@ model PortalAnnouncement {
   arena     Arena     @relation(fields: [arenaId], references: [id], onDelete: Cascade)
 
   @@index([arenaId, active, startsAt, endsAt])
+  @@index([arenaId, pinned, createdAt])
 }
 
 model PortalEventPost {
@@ -1407,6 +1411,7 @@ model Court {
   leagueMatchProposals  LeagueMatchProposal[]
 
   @@unique([arenaId, name])
+  @@index([arenaId, active])
   @@index([arenaId, active, displayOrder])
 }
 
@@ -1532,6 +1537,7 @@ model BookingType {
   arenaId   String
   arena     Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
 
+  @@unique([arenaId, name])
   @@index([arenaId, active])
 }
 
@@ -1579,7 +1585,7 @@ model LessonAttendance {
   @@unique([lessonId, studentId])
   @@index([studentId])
   @@index([studentId, status, makeupScheduledAt])
-  @@index([studentId, makeupRequestedAt, makeupExpiresAt])
+  @@index([studentId, makeupRequestedAt, makeupExpiresAt], map: "LessonAttendance_studentId_makeupRequestedAt_makeupExpiresAt_id")
 }
 
 model StudentMonthlyBalance {
@@ -1976,7 +1982,7 @@ model WhatsAppConversation {
 
 model WhatsAppMessage {
   id             String               @id @default(cuid())
-  providerId     String               @unique
+  providerId     String
   direction      String
   body           String               @default("")
   mediaType      String               @default("")
@@ -1997,6 +2003,7 @@ model WhatsAppMessage {
   conversation   WhatsAppConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([conversationId, sentAt])
+  @@unique([conversationId, providerId])
 }
 
 model CashRegister {
@@ -2220,6 +2227,8 @@ model FinancialEntry {
   onlineProvider           String                @default("")
   onlinePaymentId          String                @default("")
   onlinePaymentUrl         String                @default("")
+  onlinePaymentClaimMethod String                @default("")
+  onlinePaymentClaimedAt   DateTime?
   onlinePaymentQrCode      String                @default("")
   onlinePaymentExpiresAt   DateTime?
   onlinePaymentPublishedAt DateTime?
@@ -2249,6 +2258,8 @@ model FinancialEntry {
   employeePayroll          EmployeePayrollEntry?
 
   @@index([arenaId, type, status])
+  @@index([arenaId, type, status, counterpartyName])
+  @@index([arenaId, onlinePaymentId])
   @@index([arenaId, dueDate])
   @@index([arenaId, status, dueDate])
   @@index([arenaId, paidAt])
@@ -2358,6 +2369,7 @@ model FinancialRecurrence {
   entries             FinancialEntry[]
 
   @@index([arenaId, active, nextDueDate])
+  @@index([playerId])
 }
 
 model FinancialSettlement {

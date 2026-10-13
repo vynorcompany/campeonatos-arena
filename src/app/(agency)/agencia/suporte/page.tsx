@@ -4,7 +4,7 @@ import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard } from "@/components/section-card";
 import { addSupportTicketMessageAction, updateAgencyTicketAction } from "@/lib/actions/support";
-import { requireAgencyAccess } from "@/lib/auth/guards";
+import { requireAgencyPageAccess } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
 const statusLabels: Record<string, string> = {
@@ -23,7 +23,7 @@ const priorityLabels: Record<string, string> = {
 };
 
 export default async function AgencySupportPage() {
-  const auth = await requireAgencyAccess();
+  const auth = await requireAgencyPageAccess();
   const [tickets, agencyUsers] = await Promise.all([
     prisma.supportTicket.findMany({
       where: { status: { notIn: ["RESOLVED", "CLOSED"] } },

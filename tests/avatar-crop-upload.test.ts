@@ -13,6 +13,11 @@ test("avatar upload keeps the selected image available while crop rendering is s
   assert.match(pairForm, /SafeActionForm action=\{addManualPairAction\}/);
 });
 
+test("invisible avatar upload does not widen the athlete profile viewport", () => {
+  const utilities = readFileSync(resolve(process.cwd(), "src/components/avatar-crop-field.utilities.ts"), "utf8");
+  assert.match(utilities, /"avatar_crop_output": \[[\s\S]*?"tw:hidden!"/);
+});
+
 test("foto de atleta é persistida fora do filesystem efêmero do deploy", () => {
   const uploads = readFileSync(resolve(process.cwd(), "src/lib/uploads.ts"), "utf8");
   const profileAction = readFileSync(resolve(process.cwd(), "src/lib/actions/public-player-profile.ts"), "utf8");

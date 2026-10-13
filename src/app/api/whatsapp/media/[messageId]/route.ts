@@ -1,17 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireModuleView } from "@/lib/auth/guards";
 import { getEvolutionMediaDataUrl } from "@/lib/integrations/evolution/client";
-import { prisma } from "@/lib/prisma";
+import { arenaDatabase } from "@/lib/arena-database";
 import { getActiveWhatsAppAccountJid } from "@/lib/whatsapp-active-account";
+import { safeWhatsAppMediaType } from "@/lib/whatsapp-media-types";
 
 function dataUrlResponse(dataUrl: string, mimeType: string) {
   const comma = dataUrl.indexOf(",");
   if (comma < 0) return null;
   const encoded = dataUrl.slice(comma + 1);
   const bytes = Buffer.from(encoded, "base64");
+  const media = safeWhatsAppMediaType(mimeType || dataUrl.match(/^data:([^;,]+)/)?.[1] || "");
   return new NextResponse(bytes, {
     headers: {
-      "content-type": mimeType || dataUrl.match(/^data:([^;,]+)/)?.[1] || "application/octet-stream",
+      "content-type": media.mimeType,
+      "content-disposition": `${media.disposition}; filename="anexo"`,
+      "x-content-type-options": "nosniff",
+      ...(media.disposition === "attachment" ? { "content-security-policy": "sandbox" } : {}),
       "cache-control": "private, max-age=300"
     }
   });
@@ -22,7 +27,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   const accountJid = await getActiveWhatsAppAccountJid(auth.arenaId);
   if (!accountJid) return NextResponse.json({ error: "Mídia não encontrada." }, { status: 404 });
   const { messageId } = await params;
-  const message = await prisma.whatsAppMessage.findFirst({
+  const message = await arenaDatabase(auth.arenaId).whatsAppMessage.findFirst({
     where: { id: messageId, conversation: { arenaId: auth.arenaId, accountJid } },
     select: { providerId: true, providerPayload: true, mediaMimeType: true, mediaUrl: true }
   });

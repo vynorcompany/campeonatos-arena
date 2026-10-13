@@ -13,7 +13,7 @@ export default async function TournamentGamesPage({ params }: { params: Promise<
   const [tournament, courts, matches] = await Promise.all([
     prisma.tournament.findFirst({ where: { id: tournamentId, arenaId: auth.arenaId }, select: { id: true, name: true } }),
     prisma.court.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { name: true }, orderBy: { name: "asc" } }),
-    prisma.categoryMatch.findMany({ where: { competition: { category: { tournamentId } } }, include: { competition: { select: { category: { select: { name: true } } } }, homePair: { select: { name: true } }, awayPair: { select: { name: true } } }, orderBy: { roundOrder: "asc" } })
+    prisma.categoryMatch.findMany({ where: { competition: { category: { tournamentId, tournament: { arenaId: auth.arenaId } } } }, include: { competition: { select: { category: { select: { name: true } } } }, homePair: { select: { name: true } }, awayPair: { select: { name: true } } }, orderBy: { roundOrder: "asc" } })
   ]);
   if (!tournament) notFound();
   return <div className={viewStyles.stack_md_workspace_page_tournament_games_page}>

@@ -35,6 +35,7 @@ export function PublicLeaguePortal({
   const router = useRouter();
   const [message, setMessage] = useState("");
   const [pending, startTransition] = useTransition();
+  const mutedText = cx(viewStyles.muted, "tw:text-[#9bb5c5]! tw:viewport-700:text-[#607e8d]! tw:viewport-700:dark:text-[#a4c8b9]!");
   const submit = (
     form: HTMLFormElement,
     action: (data: FormData) => Promise<void | { error: string }>,
@@ -214,7 +215,7 @@ export function PublicLeaguePortal({
             </p>
           </div>
         </form>
-      ) : (
+      ) : portal.leagueCategories.length ? (
         <form
           method="get"
           action={`/classificacao/${arenaSlug}`}
@@ -239,7 +240,7 @@ export function PublicLeaguePortal({
             </select>
           </label>
         </form>
-      )}
+      ) : null}
       {view === "pairs" ? (
         <><section className={cx(viewStyles.portal_league_pairs, "tw:viewport-700:hidden!")}>
           <h3>Duplas inscritas</h3>
@@ -255,12 +256,12 @@ export function PublicLeaguePortal({
               ))}
             </div>
           ) : (
-            <p className={viewStyles.muted}>Ainda não há duplas nesta categoria.</p>
+            <p className={mutedText}>{portal.leagueCategories.length ? "Ainda não há duplas nesta categoria." : "Nenhuma categoria de liga ativa."}</p>
           )}
         </section>
         <section className="tw:mx-1 tw:mt-3 tw:mb-24 tw:hidden tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-4 tw:viewport-700:block tw:dark:border-[#3e8b70] tw:dark:bg-[#104c3b]">
           <div className="tw:mb-3 tw:flex tw:items-center tw:justify-between tw:gap-3"><h2 className="tw:m-0 tw:text-base tw:font-semibold tw:text-[#133047]! tw:dark:text-[#eafff3]!">Duplas inscritas</h2><span className="tw:text-xs tw:text-[#607e8d]! tw:dark:text-[#a4c8b9]!">{portal.selectedLeaguePairs.length}</span></div>
-          {portal.selectedLeaguePairs.length ? <div className="tw:grid tw:gap-2">{portal.selectedLeaguePairs.map((pair, index) => <article key={pair.id} className="tw:flex tw:items-start tw:gap-3 tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-[#f5f8f8] tw:p-3 tw:dark:border-[#2a6155] tw:dark:bg-[#104138]"><span className="tw:grid tw:size-8 tw:shrink-0 tw:place-items-center tw:rounded-full tw:bg-[#def2ed] tw:text-xs tw:font-semibold tw:text-[#087b63]! tw:dark:bg-[#16483d] tw:dark:text-[#5bdec1]!">{index + 1}</span><div className="tw:min-w-0"><strong className="tw:block tw:break-words tw:text-sm tw:leading-snug tw:text-[#133047]! tw:dark:text-[#eafff3]!">{pair.name}</strong>{pair.groupName ? <small className="tw:mt-1 tw:block tw:text-xs tw:text-[#607e8d]! tw:dark:text-[#a4c8b9]!">{pair.groupName}</small> : null}</div></article>)}</div> : <p className="tw:m-0 tw:text-sm tw:text-[#607e8d]! tw:dark:text-[#a4c8b9]!">Ainda não há duplas nesta categoria.</p>}
+          {portal.selectedLeaguePairs.length ? <div className="tw:grid tw:gap-2">{portal.selectedLeaguePairs.map((pair, index) => <article key={pair.id} className="tw:flex tw:items-start tw:gap-3 tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-[#f5f8f8] tw:p-3 tw:dark:border-[#2a6155] tw:dark:bg-[#104138]"><span className="tw:grid tw:size-8 tw:shrink-0 tw:place-items-center tw:rounded-full tw:bg-[#def2ed] tw:text-xs tw:font-semibold tw:text-[#087b63]! tw:dark:bg-[#16483d] tw:dark:text-[#5bdec1]!">{index + 1}</span><div className="tw:min-w-0"><strong className="tw:block tw:break-words tw:text-sm tw:leading-snug tw:text-[#133047]! tw:dark:text-[#eafff3]!">{pair.name}</strong>{pair.groupName ? <small className="tw:mt-1 tw:block tw:text-xs tw:text-[#607e8d]! tw:dark:text-[#a4c8b9]!">{pair.groupName}</small> : null}</div></article>)}</div> : <p className="tw:m-0 tw:text-sm tw:text-[#607e8d]! tw:dark:text-[#a4c8b9]!">{portal.leagueCategories.length ? "Ainda não há duplas nesta categoria." : "Nenhuma categoria de liga ativa."}</p>}
         </section></>
       ) : (
         <>
@@ -390,7 +391,7 @@ export function PublicLeaguePortal({
                 ) : null}
               </div>
             ) : (
-              <p className={viewStyles.muted}>Ainda não há jogos para esta categoria.</p>
+              <p className={mutedText}>{portal.leagueCategories.length ? "Ainda não há jogos para esta categoria." : "Nenhuma categoria de liga ativa."}</p>
             )}
           </section>
           {ownPairs.length ? (
@@ -484,7 +485,7 @@ export function PublicLeaguePortal({
                   <details className={viewStyles.public_medical_request}>
                     <summary>Solicitar substituição médica</summary>
                     {pair.medicalRequestPending ? (
-                      <p className={viewStyles.muted}>
+                      <p className={mutedText}>
                         Solicitação já enviada para a arena.
                       </p>
                     ) : (
@@ -635,7 +636,7 @@ export function PublicLeaguePortal({
                 </article>
               ))
             ) : (
-              <p className={viewStyles.muted}>Nenhuma sugestão nesta categoria.</p>
+              <p className={mutedText}>{portal.leagueCategories.length ? "Nenhuma sugestão nesta categoria." : "Nenhuma sugestão de horário."}</p>
             )}
           </section>
         </>

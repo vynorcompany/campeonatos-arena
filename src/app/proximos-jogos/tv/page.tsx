@@ -1,10 +1,10 @@
 import { ManualUpcomingMatchesTv } from "@/components/manual-upcoming-matches-tv";
-import { requireArenaAccess } from "@/lib/auth/session";
+import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { getTvPresentationPayload } from "@/lib/services/tv-presentation";
 
 export default async function UpcomingMatchesTvPage() {
-  const auth = await requireArenaAccess();
+  const auth = await requireModuleView("tv");
   const [arena, payload] = await Promise.all([
     prisma.arena.findUnique({
       where: {

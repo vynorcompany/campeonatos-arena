@@ -24,6 +24,15 @@ test("command checkout persists split payments and an open receivable for the un
   assert.match(card, /Conta a receber/);
 });
 
+test("cash received with a command updates the open daily register in the same transaction", () => {
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/comanda.ts"), "utf8");
+  const cashRegisterSales = readFileSync(resolve(process.cwd(), "src/lib/finance/cash-register-sales.ts"), "utf8");
+  assert.match(actions, /cashReceivedCents = parsed\.data\.payments/);
+  assert.match(actions, /recordCashSaleIfOpen\(tx, \{ arenaId: auth\.arenaId, referenceDate: cashReferenceDate\(now\), amountCents: cashReceivedCents/);
+  assert.match(cashRegisterSales, /cashRegister\.updateMany\([\s\S]*status: "OPEN"[\s\S]*cashMovement\.create/);
+  assert.match(actions, /revalidatePath\("\/relatorios\/caixa"\)/);
+});
+
 test("command checkout offers only the client's pending balances for joint settlement", () => {
   const page = readFileSync(resolve(process.cwd(), "src/app/(app)/comandas/page.tsx"), "utf8");
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/comanda.ts"), "utf8");

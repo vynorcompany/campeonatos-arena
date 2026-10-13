@@ -19,7 +19,10 @@ test("Mercado Pago charges use the encrypted connection of the owning arena", ()
 test("Mercado Pago webhooks resolve the arena before querying the provider", () => {
   const webhook = read("src/app/api/payments/mercado-pago/webhook/route.ts");
 
-  assert.match(webhook, /where: \{ mercadoPagoPaymentId: paymentId \}/);
+  assert.match(webhook, /arenaDatabase\(arenaId\)\.publicTournamentRegistration\.findFirst\(\{[\s\S]*where: \{ mercadoPagoPaymentId: paymentId, tournament: \{ arenaId \} \}/);
+  assert.doesNotMatch(webhook, /prisma\.publicTournamentRegistration\.findFirst/);
+  assert.match(webhook, /arenaDatabase\(arenaId\)\.onlinePaymentCheckout\.findFirst\(\{ where: \{ mercadoPagoPaymentId: paymentId, arenaId \}/);
+  assert.match(webhook, /arenaDatabase\(arenaId\)\.onlinePaymentCheckout\.findFirst\(\{ where: \{ id: checkoutId, arenaId \}/);
   assert.match(webhook, /getMercadoPagoPayment\(registration\.tournament\.arenaId, paymentId\)/);
   assert.match(webhook, /withArenaTransaction\(registration\.tournament\.arenaId/);
 });

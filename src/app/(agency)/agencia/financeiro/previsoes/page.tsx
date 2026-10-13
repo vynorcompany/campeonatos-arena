@@ -1,10 +1,10 @@
 import { viewStyles } from "./page.utilities";
 import { SectionCard } from "@/components/section-card";
-import { requireAgencyAccess } from "@/lib/auth/guards";
+import { requireAgencyPageAccess } from "@/lib/auth/guards";
 import { formatCurrency, getAgencyMetrics } from "@/lib/services/agency";
 
 export default async function AgencyForecastPage() {
-  await requireAgencyAccess();
+  await requireAgencyPageAccess();
   const metrics = await getAgencyMetrics();
   const activeArenas = metrics.arenas.filter((arena) => arena.accountStatus === "ACTIVE").length;
   const conservative = Math.round(metrics.mrrCents * 1.05);

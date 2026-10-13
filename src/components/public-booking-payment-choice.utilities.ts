@@ -2,13 +2,13 @@ import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
   "public_booking_payment_page": [
-    "public-booking-payment-page", "tw:grid", "tw:min-h-[100vh]", "tw:place-items-center",
+    "public-booking-payment-page", "tw:grid", "tw:grid-cols-[minmax(0,_1fr)]", "tw:min-h-[100vh]", "tw:place-items-center",
     "tw:pt-[28px]", "tw:viewport-520:pt-[18px]", "tw:pr-[28px]", "tw:viewport-520:pr-[18px]",
     "tw:pb-[28px]", "tw:viewport-520:pb-[18px]", "tw:pl-[28px]", "tw:viewport-520:pl-[18px]",
     "tw:text-[color:#e8f5fb]", "tw:bg-[color:transparent]", "tw:[background-image:radial-gradient(circle_at_18%_12%,_rgb(28_158_175_/_.28),_transparent_27%),_linear-gradient(135deg,_#061522,_#082b3a)]",
   ].join(" "),
   "public_booking_payment_choice": [
-    "public-booking-payment-choice", "tw:w-[min(100%,_680px)]", "tw:pt-[34px]", "tw:viewport-520:pt-[24px]",
+    "public-booking-payment-choice", "tw:w-full", "tw:min-w-0", "tw:max-w-[680px]", "tw:pt-[34px]", "tw:viewport-520:pt-[24px]",
     "tw:pr-[34px]", "tw:viewport-520:pr-[18px]", "tw:pb-[34px]", "tw:viewport-520:pb-[24px]",
     "tw:pl-[34px]", "tw:viewport-520:pl-[18px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]",
     "tw:border-t-[color:rgb(122_201_215_/_.3)]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:rgb(122_201_215_/_.3)]",

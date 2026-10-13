@@ -19,6 +19,7 @@ import { type TournamentTabKey } from "@/components/tournaments/tournament-tabs"
 import { requireModuleView } from "@/lib/auth/guards";
 import { runLeagueLifecycleAction, updateLeaguePrizeAction } from "@/lib/actions/category-competition";
 import { prisma } from "@/lib/prisma";
+import { arenaDatabase } from "@/lib/arena-database";
 import { canGenerateCategoryDraw } from "@/lib/tournament-category/draw";
 import { buildPlacementStages } from "@/lib/tournament-category/ranking";
 import { rankStandings } from "@/lib/tournament-category/standings";
@@ -60,7 +61,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
   const params = await props.params;
   const auth = await requireModuleView("tournaments");
   const [category, athletes, pairRankings, medicalRequests] = await Promise.all([
-    prisma.tournamentCategory.findFirst({
+    arenaDatabase(auth.arenaId).tournamentCategory.findFirst({
       where: {
         id: params.categoryId,
         tournamentId: params.tournamentId,
@@ -161,7 +162,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
       select: { id: true, name: true },
     }),
     prisma.leagueMedicalSubstitutionRequest.findMany({
-      where: { status: "PENDING", pair: { competition: { categoryId: params.categoryId } } },
+      where: { status: "PENDING", pair: { competition: { categoryId: params.categoryId, category: { tournamentId: params.tournamentId, tournament: { arenaId: auth.arenaId } } } } },
       include: { pair: { include: { players: { include: { player: { select: { id: true, name: true } } } } } } },
     }),
   ]);

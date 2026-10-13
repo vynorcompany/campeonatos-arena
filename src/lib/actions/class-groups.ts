@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { requirePublicPlayerAuth } from "@/lib/auth/player-session";
 import { requireModuleEdit } from "@/lib/auth/guards";
 import { getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
+import { isCourtSlotAvailable } from "@/lib/calendar/court-slot-availability";
+import { arenaWallClockToInstant, instantToArenaWallClock } from "@/lib/calendar/arena-wall-clock";
 import { issueRecurringOnlineChargeForEntry } from "@/lib/payments/recurring-online-charges";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
@@ -26,8 +28,9 @@ export async function checkInPortalLessonAction(formData: FormData) {
     if (!attendance || !attendance.lesson.scheduledAt || attendance.lesson.status === "CANCELED") throw new Error("Esta aula não está disponível para check-in.");
     if (attendance.checkedInAt) throw new Error("Seu check-in nesta aula já foi registrado.");
     const startsAt = attendance.lesson.scheduledAt;
-    const opensAt = new Date(startsAt.getTime() - 3 * 60 * 60_000);
-    const closesAt = new Date(startsAt.getTime() + 8 * 60 * 60_000);
+    const lessonInstant = arenaWallClockToInstant(startsAt);
+    const opensAt = new Date(lessonInstant.getTime() - 3 * 60 * 60_000);
+    const closesAt = new Date(lessonInstant.getTime() + 8 * 60 * 60_000);
     if (now < opensAt || now > closesAt) throw new Error("O check-in fica disponível três horas antes da aula e até oito horas após o início.");
     const month = referenceMonth(startsAt);
     const subscriptionCredits = attendance.student.subscriptions[0]?.classesPerMonth ?? 0;
@@ -54,7 +57,7 @@ export async function requestPortalLessonMakeupAction(formData: FormData) {
   const now = new Date();
   await withArenaTransaction(auth.arenaId, async (tx) => {
     const attendance = await tx.lessonAttendance.findFirst({ where: { lessonId, student: { arenaId: auth.arenaId, playerId: auth.playerId, active: true } }, include: { lesson: { select: { scheduledAt: true, status: true } } } });
-    if (!attendance?.lesson.scheduledAt || attendance.lesson.status === "CANCELED" || attendance.lesson.scheduledAt <= now) throw new Error("A reposição deve ser solicitada antes do início da aula.");
+    if (!attendance?.lesson.scheduledAt || attendance.lesson.status === "CANCELED" || arenaWallClockToInstant(attendance.lesson.scheduledAt) <= now) throw new Error("A reposição deve ser solicitada antes do início da aula.");
     if (attendance.makeupRequestedAt) throw new Error("A reposição desta aula já foi solicitada.");
     const lessonDate = attendance.lesson.scheduledAt;
     const monthEnd = new Date(lessonDate.getFullYear(), lessonDate.getMonth() + 1, 0, 23, 59, 59, 999);
@@ -123,7 +126,7 @@ export async function approveClassGroupRequestAction(formData: FormData) {
     await tx.classGroupRequest.update({ where: { id: request.id }, data: { status: "APPROVED" } });
   });
   if (firstEntryId) {
-    try { await issueRecurringOnlineChargeForEntry(firstEntryId); }
+    try { await issueRecurringOnlineChargeForEntry(auth.arenaId, firstEntryId); }
     catch (error) { console.error("Could not issue the initial class plan boleto", error); }
   }
   revalidatePath("/aulas");
@@ -149,7 +152,7 @@ export async function moveClassGroupStudentAction(formData: FormData) {
   ]);
   if (!enrollment || !destination || enrollment.classGroupId === destination.id) throw new Error("Selecione uma turma de destino diferente.");
   if (!destination.schedules.every((schedule) => destination.enrollments.length < schedule.capacity)) throw new Error("A turma de destino não possui vagas.");
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(auth.arenaId, async (tx) => {
     await tx.classGroupEnrollment.update({ where: { id: enrollment.id }, data: { status: "TRANSFERRED", endedAt: new Date() } });
     await tx.classGroupEnrollment.upsert({ where: { classGroupId_studentId: { classGroupId: destination.id, studentId } }, update: { status: "ACTIVE", endedAt: null, startedAt: new Date() }, create: { arenaId: auth.arenaId, classGroupId: destination.id, studentId } });
   });
@@ -187,8 +190,8 @@ export async function adjustTeacherStudentBalanceAction(formData: FormData) {
   if (!studentId || !Number.isInteger(classesDelta) || !classesDelta) throw new Error("Informe um ajuste válido de aulas.");
   const assignment = await prisma.teacherStudent.findFirst({ where: { teacherId: auth.teacherId, studentId, active: true }, include: { student: { select: { playerId: true, remainingClasses: true, subscriptions: { where: { status: "ACTIVE" }, orderBy: { startedAt: "desc" }, take: 1, select: { classesPerMonth: true } } } } } });
   if (!assignment) throw new Error("Você só pode ajustar o saldo dos seus alunos ativos.");
-  await prisma.$transaction(async (tx) => {
-    const month = referenceMonth(new Date());
+  await withArenaTransaction(auth.arenaId, async (tx) => {
+    const month = referenceMonth(instantToArenaWallClock(new Date()));
     const balance = await tx.studentMonthlyBalance.findUnique({ where: { studentId_referenceMonth: { studentId, referenceMonth: month } } });
     // O limite pertence ao plano. Um ajuste do professor recupera ou retira
     // aulas do saldo do ciclo, mas nunca aumenta o pacote contratado.
@@ -248,16 +251,15 @@ export async function scheduleTeacherMakeupAction(formData: FormData) {
   if (!courtId || !attendanceIds.length || Number.isNaN(startsAt.getTime()) || !Number.isInteger(durationMinutes) || durationMinutes < 30 || durationMinutes > 240) throw new Error("Selecione alunos e um horário disponível.");
   const endsAt = new Date(startsAt.getTime() + durationMinutes * 60_000);
   await withArenaTransaction(auth.arenaId, async (tx) => {
-    const [court, pendingAttendances, conflict] = await Promise.all([
+    const [court, pendingAttendances] = await Promise.all([
       tx.court.findFirst({ where: { id: courtId, arenaId: auth.arenaId, active: true }, include: { weeklyRules: true } }),
-      tx.lessonAttendance.findMany({ where: { id: { in: attendanceIds }, status: "ABSENT", makeupRequestedAt: { not: null }, makeupScheduledAt: null, makeupExpiresAt: { gte: new Date() }, student: { teacherAssignments: { some: { teacherId: auth.teacherId, active: true } } } }, include: { student: { select: { id: true, name: true, playerId: true } } } }),
-      tx.scheduleOccurrence.findFirst({ where: { arenaId: auth.arenaId, status: { not: "CANCELED" }, startsAt: { lt: endsAt }, endsAt: { gt: startsAt }, occurrenceCourts: { some: { courtId } } }, select: { id: true } }),
+      tx.lessonAttendance.findMany({ where: { id: { in: attendanceIds }, status: "ABSENT", makeupRequestedAt: { not: null }, makeupScheduledAt: null, makeupExpiresAt: { gte: instantToArenaWallClock(new Date()) }, student: { teacherAssignments: { some: { teacherId: auth.teacherId, active: true } } } }, include: { student: { select: { id: true, name: true, playerId: true } } } }),
     ]);
     if (!court) throw new Error("Quadra não encontrada.");
     const dayRule = court.weeklyRules.find((rule) => rule.weekday === startsAt.getDay() && rule.available);
     const startMinute = startsAt.getHours() * 60 + startsAt.getMinutes();
     if (!dayRule || startMinute < dayRule.startsAtMinute || startMinute + durationMinutes > dayRule.endsAtMinute) throw new Error("Este horário não está disponível na grade da arena.");
-    if (conflict) throw new Error("Este horário acabou de ser reservado. Escolha outro.");
+    if (!await isCourtSlotAvailable(tx, auth.arenaId, courtId, startsAt, endsAt)) throw new Error("Este horário acabou de ser reservado. Escolha outro.");
     if (pendingAttendances.length !== new Set(attendanceIds).size) throw new Error("Uma ou mais reposições já foram agendadas.");
     const participantIds = [...new Set(pendingAttendances.flatMap((attendance) => attendance.student.playerId ? [attendance.student.playerId] : []))];
     const occurrence = await tx.scheduleOccurrence.create({ data: { arenaId: auth.arenaId, sourceType: "LESSON_MAKEUP", title: `Reposição · ${auth.name}`, startsAt, endsAt, status: "SCHEDULED", bookingTypeName: "Reposição", teacherId: auth.teacherId, notes: pendingAttendances.map((attendance) => attendance.student.name).join(" · "), occurrenceCourts: { create: { courtId } }, participants: { create: participantIds.map((playerId) => ({ playerId })) } } });

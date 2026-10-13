@@ -16,6 +16,9 @@ export const createPublicRegistrationSchema = z.object({
   partnerPhone: z.string().trim().min(8, "Informe o telefone da dupla."),
   partnerCpf: cpfSchema,
   partnerBirthDate: z.coerce.date()
+}).refine((registration) => registration.leadCpf !== registration.partnerCpf, {
+  message: "Os dois atletas da dupla devem ter CPFs diferentes.",
+  path: ["partnerCpf"]
 });
 
 export const createManualTournamentRegistrationSchema = z.object({

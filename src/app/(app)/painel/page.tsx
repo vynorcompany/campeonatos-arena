@@ -7,6 +7,7 @@ import { DashboardSortablePanels } from "@/components/dashboard-sortable-panels"
 import { SectionCard } from "@/components/section-card";
 import { requireModuleView } from "@/lib/auth/guards";
 import { reservationInsights } from "@/lib/reports/reservation-insights";
+import { activeCourtOccurrenceWhere } from "@/lib/calendar/online-booking-hold";
 import { withArenaTransaction } from "@/lib/rls";
 
 const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value / 100);
@@ -58,8 +59,8 @@ export default async function OverviewPage({ searchParams }: { searchParams: Das
   const [entries, previousEntries, reservations, previousReservations, saleItems, teachers, portalAccounts, openDebts, paidByClient, arenaCourts] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
     tx.financialEntry.findMany({ where: financialWhere, select: { id: true, type: true, status: true, amountCents: true, paidAt: true, dueDate: true, description: true, counterpartyName: true, paymentMethod: true } }),
     tx.financialEntry.findMany({ where: previousFinancialWhere, select: { type: true, amountCents: true } }),
-    tx.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, startsAt: { lte: to }, endsAt: { gte: from }, status: { notIn: ["CANCELED", "CANCELLED"] } }, include: { occurrenceCourts: { include: { court: { select: { name: true } } } } } }),
-    tx.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, startsAt: { lte: previousTo }, endsAt: { gte: previousFrom }, status: { notIn: ["CANCELED", "CANCELLED"] } }, select: { id: true } }),
+    tx.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, startsAt: { lte: to }, endsAt: { gte: from }, ...activeCourtOccurrenceWhere() }, include: { occurrenceCourts: { include: { court: { select: { name: true } } } } } }),
+    tx.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, startsAt: { lte: previousTo }, endsAt: { gte: previousFrom }, ...activeCourtOccurrenceWhere() }, select: { id: true } }),
     tx.saleItem.findMany({ where: { sale: { arenaId: auth.arenaId, createdAt: { gte: from, lte: to } } }, select: { quantity: true, totalCents: true, product: { select: { name: true } } } }),
     tx.teacher.findMany({ where: { arenaId: auth.arenaId, active: true }, include: { lessons: { where: { scheduledAt: { gte: from, lte: to } }, include: { attendances: true } } } }),
     tx.playerAccount.findMany({ where: { arenaId: auth.arenaId, createdAt: { gte: from, lte: to } }, select: { id: true, phone: true, createdAt: true, player: { select: { name: true, email: true } } }, orderBy: { createdAt: "desc" } }),

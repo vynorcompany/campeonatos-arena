@@ -153,16 +153,12 @@ test("dedicated category route scopes category, athletes, and rankings to the ar
   );
 
   assert.match(source, /requireModuleView\("tournaments"\)/);
-  assert.match(source, /prisma\.tournamentCategory\.findFirst/);
+  assert.match(source, /arenaDatabase\(auth\.arenaId\)\.tournamentCategory\.findFirst/);
   assert.match(source, /id:\s*params\.categoryId/);
   assert.match(source, /tournamentId:\s*params\.tournamentId/);
   assert.match(source, /tournament:\s*\{\s*arenaId:\s*auth\.arenaId/);
-  assert.match(source, /prisma\.player\.findMany/);
-  assert.match(source, /prisma\.rankingProfile\.findMany/);
-  assert.ok(
-    source.match(/arenaId:\s*auth\.arenaId/g)?.length === 3,
-    "category, athletes, and rankings must all be arena-scoped",
-  );
+  assert.match(source, /prisma\.player\.findMany\(\{\s*where:\s*\{\s*arenaId:\s*auth\.arenaId/);
+  assert.match(source, /prisma\.rankingProfile\.findMany\(\{\s*where:\s*\{\s*arenaId:\s*auth\.arenaId/);
 });
 
 test("dedicated category route renders operational panels for the selected category only", async () => {

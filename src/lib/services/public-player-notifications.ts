@@ -3,6 +3,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 import { getOutstandingCents } from "@/lib/finance/settlements";
+import { arenaToday, instantToArenaWallClock } from "@/lib/calendar/arena-wall-clock";
 
 export type AthletePortalNotification = {
   id: string;
@@ -24,15 +25,16 @@ export async function getAthletePortalNotifications(arenaSlug: string, playerId:
   const arena = await prisma.arena.findUnique({ where: { slug: arenaSlug }, select: { id: true } });
   if (!arena) return [] as AthletePortalNotification[];
   const now = new Date();
+  const arenaNow = instantToArenaWallClock(now);
   const [playerNotifications, announcements, entries, reads, recordedLeagueMatches] = await withArenaTransaction(arena.id, (tx) => Promise.all([
-    tx.playerNotification.findMany({ where: { playerId }, orderBy: { createdAt: "desc" }, take: 24, select: { id: true, type: true, title: true, message: true, href: true, readAt: true, createdAt: true } }),
-    tx.portalAnnouncement.findMany({ where: { arenaId: arena.id, active: true, AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }] }, orderBy: [{ pinned: "desc" }, { createdAt: "desc" }], take: 6, select: { id: true, title: true, message: true, createdAt: true } }),
+    tx.playerNotification.findMany({ where: { playerId, player: { arenaId: arena.id, active: true } }, orderBy: { createdAt: "desc" }, take: 24, select: { id: true, type: true, title: true, message: true, href: true, readAt: true, createdAt: true } }),
+    tx.portalAnnouncement.findMany({ where: { arenaId: arena.id, active: true, AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: arenaNow } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: arenaNow } }] }] }, orderBy: [{ pinned: "desc" }, { createdAt: "desc" }], take: 6, select: { id: true, title: true, message: true, createdAt: true } }),
     tx.financialEntry.findMany({ where: { arenaId: arena.id, playerId, type: "REVENUE", status: { in: ["PENDING", "OVERDUE"] } }, orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }], take: 12, select: { id: true, description: true, amountCents: true, dueDate: true, createdAt: true, onlinePaymentUrl: true, status: true, settlements: { select: { amountCents: true, interestCents: true } } } }),
-    tx.playerPortalNotificationRead.findMany({ where: { playerId }, select: { notificationKey: true } }),
+    tx.playerPortalNotificationRead.findMany({ where: { playerId, player: { arenaId: arena.id, active: true } }, select: { notificationKey: true } }),
     tx.categoryMatch.findMany({ where: { competition: { format: "LEAGUE", category: { tournament: { arenaId: arena.id } } }, awayPair: { players: { some: { playerId } } }, homeScore: { not: null }, awayScore: { not: null } }, orderBy: { updatedAt: "desc" }, take: 24, select: { id: true, updatedAt: true, competition: { select: { categoryId: true } } } }),
   ]));
   const readKeys = new Set(reads.map((item) => item.notificationKey));
-  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const today = arenaToday(now);
   const financial = entries.map((entry) => ({ entry, outstandingCents: getOutstandingCents(entry.amountCents, entry.settlements) })).filter(({ outstandingCents }) => outstandingCents > 0).map(({ entry, outstandingCents }) => {
     const overdue = entry.status === "OVERDUE" || Boolean(entry.dueDate && entry.dueDate < today);
     return { id: `finance-${entry.id}`, source: "FINANCE" as const, title: overdue ? "Pagamento em atraso" : "Pagamento pendente", message: `${entry.description || "Lançamento financeiro"} · ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(outstandingCents / 100)}`, href: entry.onlinePaymentUrl || `/home?arena=${encodeURIComponent(arenaSlug)}&section=finance`, createdAt: entry.createdAt.toISOString(), isRead: overdue ? false : readKeys.has(`finance-${entry.id}`), persistent: overdue };

@@ -47,9 +47,11 @@ export async function persistOutboundWhatsAppMessage(
   return withArenaTransaction(arenaId, async (tx) => {
     const conversation = await tx.whatsAppConversation.findFirst({ where: { id: conversationId, arenaId, accountJid }, select: { id: true } });
     if (!conversation) throw new Error("Conversa não pertence ao WhatsApp conectado.");
+    // Mantém a mesma ordem de bloqueio do webhook: conversa antes da mensagem.
+    await tx.$queryRaw`SELECT "id" FROM "WhatsAppConversation" WHERE "id" = ${conversationId} AND "arenaId" = ${arenaId} FOR UPDATE`;
     const sentAt = new Date();
     const stored = await tx.whatsAppMessage.upsert({
-      where: { providerId: message.providerId },
+      where: { conversationId_providerId: { conversationId, providerId: message.providerId } },
       select: { id: true, direction: true, body: true, senderName: true, quotedProviderId: true, quotedBody: true, quotedAuthor: true, reactions: true, mediaType: true, mediaMimeType: true, sentAt: true },
       create: {
         providerId: message.providerId,

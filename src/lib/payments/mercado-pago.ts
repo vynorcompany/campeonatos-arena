@@ -2,6 +2,11 @@ import { env } from "@/lib/env";
 import { decryptConnectionSecrets } from "@/lib/payments/connection-secrets";
 import { withArenaTransaction } from "@/lib/rls";
 import { boletoCancellationDisposition } from "@/lib/payments/boleto-cancellation";
+import { pixPaymentExpiration } from "@/lib/payments/pix-expiration";
+import { mercadoPagoIdempotencyKey } from "@/lib/payments/mercado-pago-idempotency";
+import type { BoletoPayerAddress } from "@/lib/payments/boleto-payer";
+export { getMissingBoletoPayerFields } from "@/lib/payments/boleto-payer";
+export type { BoletoPayerAddress } from "@/lib/payments/boleto-payer";
 
 type CreatePixPaymentInput = {
   arenaId: string;
@@ -10,6 +15,7 @@ type CreatePixPaymentInput = {
   payerEmail: string;
   externalReference: string;
   returnUrl?: string;
+  expiresAt?: Date;
 };
 
 type CreateCardCheckoutInput = {
@@ -21,21 +27,7 @@ type CreateCardCheckoutInput = {
   returnUrl?: string;
 };
 
-export type BoletoPayerAddress = { addressZipCode: string; addressStreet: string; addressNumber: string; addressNeighborhood: string; addressCity: string; addressState: string };
 type CreateBoletoPaymentInput = CreatePixPaymentInput & { payerCpf: string; payerName: string; payerAddress: BoletoPayerAddress; expiresAt?: Date };
-
-export function getMissingBoletoPayerFields(payer: Partial<BoletoPayerAddress> & { email?: string; cpf?: string }) {
-  return [
-    !payer.email ? "e-mail" : "",
-    !/^\d{11}$/.test(payer.cpf ?? "") ? "CPF com 11 dígitos" : "",
-    !/^\d{8}$/.test((payer.addressZipCode ?? "").replace(/\D/g, "")) ? "CEP" : "",
-    !payer.addressStreet?.trim() ? "rua" : "",
-    !payer.addressNumber?.trim() ? "número" : "",
-    !payer.addressNeighborhood?.trim() ? "bairro" : "",
-    !payer.addressCity?.trim() ? "cidade" : "",
-    !/^[A-Za-z]{2}$/.test(payer.addressState?.trim() ?? "") ? "UF" : ""
-  ].filter(Boolean);
-}
 
 function paymentNotificationUrl(arenaId?: string) {
   if (!env.appUrl) return undefined;
@@ -84,13 +76,14 @@ type CreatePixPaymentResult = {
 export async function createPixPayment(input: CreatePixPaymentInput): Promise<CreatePixPaymentResult> {
   const accessToken = await mercadoPagoAccessTokenForArena(input.arenaId);
 
-  const dateOfExpiration = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+  const dateOfExpiration = pixPaymentExpiration(new Date(), input.expiresAt).toISOString();
   const response = await fetch("https://api.mercadopago.com/v1/payments", {
     method: "POST",
+    signal: AbortSignal.timeout(25_000),
     headers: {
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
-      "X-Idempotency-Key": `reg_${input.externalReference}`
+      "X-Idempotency-Key": mercadoPagoIdempotencyKey("pix", input.arenaId, input.externalReference)
     },
     body: JSON.stringify({
       transaction_amount: Number((input.amountCents / 100).toFixed(2)),
@@ -129,10 +122,11 @@ async function createCheckoutPreference(input: CreateCardCheckoutInput, paymentM
   const returnUrl = input.returnUrl ?? `${baseUrl}/inscricao/status`;
   const response = await fetch("https://api.mercadopago.com/checkout/preferences", {
     method: "POST",
+    signal: AbortSignal.timeout(25_000),
     headers: {
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
-      "X-Idempotency-Key": `card_${input.externalReference}`
+      "X-Idempotency-Key": mercadoPagoIdempotencyKey("card", input.arenaId, input.externalReference)
     },
     body: JSON.stringify({
       external_reference: input.externalReference,
@@ -195,7 +189,8 @@ export async function createBoletoPayment(input: CreateBoletoPaymentInput): Prom
   const expiresAt = input.expiresAt && input.expiresAt > minimumExpiration ? input.expiresAt : new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
   const response = await fetch("https://api.mercadopago.com/v1/payments", {
     method: "POST",
-    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json", "X-Idempotency-Key": `boleto_${input.externalReference}` },
+    signal: AbortSignal.timeout(25_000),
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json", "X-Idempotency-Key": mercadoPagoIdempotencyKey("boleto", input.arenaId, input.externalReference) },
     body: JSON.stringify({
       transaction_amount: Number((input.amountCents / 100).toFixed(2)), description, payment_method_id: "bolbradesco",
       date_of_expiration: expiresAt.toISOString(), external_reference: input.externalReference,

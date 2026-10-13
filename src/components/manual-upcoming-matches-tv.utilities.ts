@@ -45,12 +45,12 @@ export const viewStyles = {
   ].join(" "),
   "tv_header": [
     "tv-header", "tw:grid", "tw:grid-cols-[minmax(260px,_1fr)_minmax(260px,_2fr)_minmax(100px,_1fr)]", "tw:viewport-760:grid-cols-[1fr_auto]",
-    "tw:items-center", "tw:gap-y-[24px]", "tw:gap-x-[24px]", "tw:pb-[clamp(14px,_1.5vw,_22px)]",
+    "tw:items-center", "tw:gap-y-[24px]", "tw:viewport-760:gap-y-[12px]", "tw:gap-x-[24px]", "tw:pb-[clamp(14px,_1.5vw,_22px)]",
     "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:rgb(95_185_196_/_.2)]",
   ].join(" "),
   "tv_brand": [
     "tv-brand", "tw:flex", "tw:items-center", "tw:viewport-760:items-start",
-    "tw:gap-y-[clamp(16px,_2vw,_26px)]", "tw:gap-x-[clamp(16px,_2vw,_26px)]", "tw:viewport-760:[grid-column:1]", "tw:viewport-760:[grid-row:2]",
+    "tw:gap-y-[clamp(16px,_2vw,_26px)]", "tw:gap-x-[clamp(16px,_2vw,_26px)]", "tw:viewport-760:[grid-column:1]", "tw:viewport-760:[grid-row:1]",
   ].join(" "),
   "tv_arena_logo": [
     "tv-arena-logo", "tw:w-[clamp(54px,_4.4vw,_78px)]", "tw:h-[auto]", "tw:rounded-[0]",
@@ -82,7 +82,7 @@ export const viewStyles = {
     "tw:[border-left-style:solid]", "tw:border-l-[color:rgb(81_203_186_/_.32)]", "tw:rounded-[7px]", "tw:bg-[color:rgb(5_83_81_/_.42)]",
     "tw:[background-image:none]", "tw:[animation:tv-soft-pulse_3.8s_ease-in-out_infinite]", "tw:text-[color:#eafff8]", "tw:[&_span]:text-[clamp(1.45rem,_2.1vw,_2.2rem)]",
     "tw:[&_span]:font-[900]", "tw:[&_small]:text-[color:#a7d9d3]", "tw:[&_small]:text-[clamp(0.8rem,_0.98vw,_0.95rem)]", "tw:[&_small]:font-[800]",
-    "tw:[&_small]:uppercase", "tw:viewport-760:[grid-column:2]", "tw:viewport-760:[grid-row:2]",
+    "tw:[&_small]:uppercase", "tw:viewport-760:[grid-column:2]", "tw:viewport-760:[grid-row:1]",
   ].join(" "),
   "tv_slide_frame": [
     "tv-slide-frame", "tw:[animation:tv-slide-in_620ms_var(--ease-standard)]",

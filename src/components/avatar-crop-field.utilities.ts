@@ -8,8 +8,7 @@ export const viewStyles = {
     "tw:[&_>_small]:leading-[1.4]", "tw:viewport-620:[justify-items:start]",
   ].join(" "),
   "avatar_crop_output": [
-    "avatar-crop-output", "tw:absolute", "tw:w-[1px]", "tw:h-[1px]",
-    "tw:opacity-[0]", "tw:[pointer-events:none]",
+    "avatar-crop-output", "tw:hidden!",
   ].join(" "),
   "avatar_crop_preview": [
     "avatar-crop-preview", "tw:relative", "tw:grid", "tw:w-[224px]",

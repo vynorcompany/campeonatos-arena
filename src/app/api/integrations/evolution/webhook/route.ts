@@ -4,10 +4,12 @@ import { Prisma } from "@prisma/client";
 import { getEvolutionGroupName, getEvolutionProfilePicture } from "@/lib/integrations/evolution/client";
 import { hashWebhookSecret } from "@/lib/payments/connection-secrets";
 import { prisma } from "@/lib/prisma";
+import { arenaDatabase } from "@/lib/arena-database";
 import { normalizeWhatsAppAccountJid } from "@/lib/whatsapp-account";
 import { findEvolutionInstance } from "@/lib/integrations/evolution/agency";
 import { persistWhatsAppReaction } from "@/lib/services/whatsapp-conversation";
 import { readEvolutionGroupName } from "@/lib/integrations/evolution/groups";
+import { withArenaTransaction } from "@/lib/rls";
 
 function safeEqual(left: string, right: string) {
   const a = Buffer.from(left);
@@ -60,14 +62,15 @@ export async function POST(request: NextRequest) {
   if (!payload || typeof payload !== "object") return NextResponse.json({ error: "Payload inválido." }, { status: 400 });
   const record = payload as Record<string, unknown>;
   const instanceName = String(request.nextUrl.searchParams.get("instance") ?? nestedValue(record, "instance") ?? nestedValue(record, "instanceName") ?? "");
+  const payloadInstance = String(nestedValue(record, "instance") ?? nestedValue(record, "instanceName") ?? "").trim();
   const secret = request.nextUrl.searchParams.get("secret") ?? request.headers.get("x-evolution-webhook-secret") ?? "";
-  if (!instanceName || !secret) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!instanceName || !secret || (payloadInstance && payloadInstance !== instanceName)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const connection = await prisma.whatsAppConnection.findUnique({ where: { instanceName } });
   if (!connection || !safeEqual(hashWebhookSecret(secret), connection.webhookSecretHash)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const event = String(record.event ?? record.type ?? "").toUpperCase();
   const state = String(nestedValue(record, "state") ?? nestedValue(record, "status") ?? "").toUpperCase();
-  if (event.includes("CONNECTION") || state) {
+  if (event.includes("CONNECTION") || (!event && ["OPEN", "CONNECTED", "CLOSE", "CLOSED", "DISCONNECTED"].includes(state))) {
     const connected = ["OPEN", "CONNECTED"].includes(state);
     const disconnected = ["CLOSE", "CLOSED", "DISCONNECTED"].includes(state);
     const eventPhone = normalizeWhatsAppAccountJid(String(nestedValue(record, "wuid") ?? nestedValue(record, "phone") ?? ""));
@@ -76,13 +79,18 @@ export async function POST(request: NextRequest) {
     await prisma.whatsAppConnection.update({ where: { id: connection.id }, data: { status: connected ? "CONNECTED" : disconnected ? "DISCONNECTED" : connection.status, connectedPhone, qrCodeDataUrl: connected ? "" : connection.qrCodeDataUrl, lastConnectedAt: connected && connectedPhone !== connection.connectedPhone ? new Date() : connection.lastConnectedAt } });
   }
 
-  if (event.includes("MESSAGE")) {
+  // Eventos de entrega/leitura também contêm "MESSAGE", mas não trazem uma
+  // nova mensagem. Interpretá-los como upsert cria mensagens fantasma.
+  if (["MESSAGES_UPSERT", "MESSAGE_UPSERT"].includes(event.replace(/[.\s-]+/g, "_"))) {
     const currentConnection = await prisma.whatsAppConnection.findUnique({ where: { id: connection.id }, select: { connectedPhone: true, status: true } });
     const accountJid = normalizeWhatsAppAccountJid(currentConnection?.connectedPhone ?? "");
     // Never associate history with a tenant inbox until the linked WhatsApp
     // account is known. A new phone must not inherit the previous phone's chats.
     if (currentConnection?.status !== "CONNECTED" || !accountJid) return NextResponse.json({ received: true, ignored: "account-not-confirmed" });
     const data = toRecord(record.data ?? record);
+    const claimedOwner = String(data.owner || record.sender || "").trim();
+    const eventAccountJid = claimedOwner ? normalizeWhatsAppAccountJid(claimedOwner.includes("@") ? claimedOwner : `${claimedOwner}@s.whatsapp.net`) : "";
+    if (eventAccountJid && eventAccountJid !== accountJid) return NextResponse.json({ received: true, ignored: "account-mismatch" });
     const key = toRecord(data.key ?? record.key);
     const remoteJid = String(key.remoteJid ?? data.remoteJid ?? "");
     const fromMe = Boolean(key.fromMe ?? data.fromMe);
@@ -112,16 +120,29 @@ export async function POST(request: NextRequest) {
       const context = toRecord(content?.contextInfo);
       const quotedProviderId = String(context.stanzaId ?? "");
       const quotedMessage = toRecord(context.quotedMessage);
-      const original = quotedProviderId ? await prisma.whatsAppMessage.findFirst({ where: { providerId: quotedProviderId, conversation: conversationKey }, select: { body: true, direction: true, senderName: true } }) : null;
+      const original = quotedProviderId ? await arenaDatabase(connection.arenaId).whatsAppMessage.findFirst({ where: { providerId: quotedProviderId, conversation: conversationKey }, select: { body: true, direction: true, senderName: true } }) : null;
       const quotedBody = original?.body ?? (Object.keys(quotedMessage).length ? messageBody(quotedMessage, mediaDetails(quotedMessage)) : "");
       const quotedAuthor = original?.direction === "OUTBOUND" ? original.senderName || "Você" : quotedProviderId ? "Contato" : "";
-      const existing = await prisma.whatsAppConversation.findUnique({ where: { arenaId_accountJid_remoteJid: conversationKey } });
-      const conversation = await prisma.whatsAppConversation.upsert({ where: { arenaId_accountJid_remoteJid: conversationKey }, create: { ...conversationKey, contactPhone: phone, contactName: contactName || (isGroup ? "Grupo do WhatsApp" : phone), profilePhotoUrl: photoFromEvent, unreadCount: fromMe ? 0 : 1, lastMessageAt: sentAt }, update: { ...((isGroup || !fromMe) && contactName ? { contactName } : {}), ...(!isGroup && photoFromEvent ? { profilePhotoUrl: photoFromEvent } : {}), ...(fromMe ? { unreadCount: 0 } : { unreadCount: { increment: 1 } }), lastMessageAt: sentAt } });
-      if (!conversation.profilePhotoUrl && !existing?.profilePhotoUrl && !remoteJid.endsWith("@g.us")) {
+      const conversation = await withArenaTransaction(connection.arenaId, async (tx) => {
+        const current = await tx.whatsAppConversation.upsert({
+          where: { arenaId_accountJid_remoteJid: conversationKey },
+          create: { ...conversationKey, contactPhone: phone, contactName: contactName || (isGroup ? "Grupo do WhatsApp" : phone), profilePhotoUrl: photoFromEvent, unreadCount: 0, lastMessageAt: sentAt },
+          update: { ...((isGroup || !fromMe) && contactName ? { contactName } : {}), ...(!isGroup && photoFromEvent ? { profilePhotoUrl: photoFromEvent } : {}) }
+        });
+        // Serializa redeliveries desta conversa antes de contar não lidas.
+        await tx.$queryRaw`SELECT "id" FROM "WhatsAppConversation" WHERE "id" = ${current.id} AND "arenaId" = ${connection.arenaId} FOR UPDATE`;
+        const messageKey = { conversationId: current.id, providerId };
+        const existingMessage = await tx.whatsAppMessage.findUnique({ where: { conversationId_providerId: messageKey }, select: { id: true } });
+        if (!existingMessage) {
+          await tx.whatsAppMessage.upsert({ where: { conversationId_providerId: messageKey }, create: { providerId, conversationId: current.id, direction: fromMe ? "OUTBOUND" : "INBOUND", body, participantJid: String(key.participant ?? data.participant ?? ""), quotedProviderId, quotedBody, quotedAuthor, mediaType: media.type, mediaMimeType: media.mimeType, mediaUrl: media.url, providerPayload: message as Prisma.InputJsonValue, sentAt }, update: {} });
+          await tx.whatsAppConversation.update({ where: { id: current.id }, data: { ...(fromMe ? { unreadCount: 0 } : { unreadCount: { increment: 1 } }), lastMessageAt: sentAt } });
+        }
+        return current;
+      });
+      if (!conversation.profilePhotoUrl && !remoteJid.endsWith("@g.us")) {
         const profilePhotoUrl = await getEvolutionProfilePicture(remoteJid, connection.arenaId).catch(() => "");
-        if (profilePhotoUrl) await prisma.whatsAppConversation.update({ where: { id: conversation.id }, data: { profilePhotoUrl } });
+        if (profilePhotoUrl) await arenaDatabase(connection.arenaId).whatsAppConversation.update({ where: { id: conversation.id }, data: { profilePhotoUrl } });
       }
-      await prisma.whatsAppMessage.upsert({ where: { providerId }, create: { providerId, conversationId: conversation.id, direction: fromMe ? "OUTBOUND" : "INBOUND", body, participantJid: String(key.participant ?? data.participant ?? ""), quotedProviderId, quotedBody, quotedAuthor, mediaType: media.type, mediaMimeType: media.mimeType, mediaUrl: media.url, providerPayload: message as Prisma.InputJsonValue, sentAt }, update: {} });
     }
   }
   return NextResponse.json({ received: true, arenaId: connection.arenaId });

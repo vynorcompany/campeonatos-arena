@@ -33,6 +33,8 @@ export async function getPublicDoublesRadar(
 ): Promise<DoublesRadar | null> {
   const arena = await prisma.arena.findUnique({ where: { slug: arenaSlug }, select: { id: true } });
   if (!arena) return null;
+  const currentPlayer = await prisma.player.findFirst({ where: { id: currentPlayerId, arenaId: arena.id, active: true }, select: { id: true } });
+  if (!currentPlayer) return null;
 
   const [visiblePlayers, notifications] = await Promise.all([prisma.player.findMany({
     where: {
@@ -44,7 +46,7 @@ export async function getPublicDoublesRadar(
     select: { id: true, name: true, photoUrl: true, gender: true, class: true, padelCategories: true, padelSide: true, tournamentAvailability: true },
     orderBy: [{ class: "asc" }, { name: "asc" }],
   }), prisma.playerNotification.findMany({
-    where: { playerId: currentPlayerId, type: "DOUBLES_REQUEST", readAt: null },
+    where: { playerId: currentPlayerId, player: { arenaId: arena.id, active: true }, type: "DOUBLES_REQUEST", readAt: null },
     select: { id: true, title: true, message: true, href: true },
     orderBy: { createdAt: "desc" },
     take: 8,

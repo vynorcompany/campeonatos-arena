@@ -15,30 +15,35 @@ export function mercadoPagoCallbackUrl() {
   return new URL("/api/integrations/payments/mercado-pago/callback", env.appUrl).toString();
 }
 
-export function createMercadoPagoOAuthState(arenaId: string) {
-  const payload = `${arenaId}.${Date.now()}.${randomBytes(18).toString("base64url")}`;
+export function createMercadoPagoOAuthState(arenaId: string, userId: string) {
+  const payload = JSON.stringify({ arenaId, userId, issuedAt: Date.now(), nonce: randomBytes(18).toString("base64url") });
   const signature = createHmac("sha256", stateKey()).update(payload).digest("base64url");
   return `${Buffer.from(payload).toString("base64url")}.${signature}`;
 }
 
 export function readMercadoPagoOAuthState(state: string) {
-  const [encoded, signature] = state.split(".");
-  if (!encoded || !signature) throw new Error("Retorno de conexão inválido.");
-  const expected = createHmac("sha256", stateKey()).update(Buffer.from(encoded, "base64url").toString("utf8")).digest("base64url");
+  const parts = state.split(".");
+  if (parts.length !== 2 || !parts[0] || !parts[1]) throw new Error("Retorno de conexão inválido.");
+  const [encoded, signature] = parts;
+  const payload = Buffer.from(encoded, "base64url").toString("utf8");
+  const expected = createHmac("sha256", stateKey()).update(payload).digest("base64url");
   if (signature.length !== expected.length || !timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) throw new Error("Retorno de conexão não autorizado.");
-  const [arenaId, issuedAt] = Buffer.from(encoded, "base64url").toString("utf8").split(".");
-  if (!arenaId || !issuedAt || Date.now() - Number(issuedAt) > stateLifetimeMs) throw new Error("A solicitação de conexão expirou. Tente novamente.");
-  return arenaId;
+  let data: unknown;
+  try { data = JSON.parse(payload); } catch { throw new Error("Retorno de conexão inválido."); }
+  if (!data || typeof data !== "object") throw new Error("Retorno de conexão inválido.");
+  const { arenaId, userId, issuedAt, nonce } = data as Record<string, unknown>;
+  if (typeof arenaId !== "string" || !arenaId || typeof userId !== "string" || !userId || typeof nonce !== "string" || !nonce || typeof issuedAt !== "number" || !Number.isSafeInteger(issuedAt) || issuedAt > Date.now() || Date.now() - issuedAt > stateLifetimeMs) throw new Error("A solicitação de conexão expirou. Tente novamente.");
+  return { arenaId, userId };
 }
 
-export function mercadoPagoAuthorizationUrl(arenaId: string) {
+export function mercadoPagoAuthorizationUrl(arenaId: string, userId: string) {
   if (!env.mercadoPagoClientId) throw new Error("Mercado Pago não habilitado pela plataforma.");
   const url = new URL("https://auth.mercadopago.com/authorization");
   url.searchParams.set("client_id", env.mercadoPagoClientId);
   url.searchParams.set("response_type", "code");
   url.searchParams.set("platform_id", "mp");
   url.searchParams.set("redirect_uri", mercadoPagoCallbackUrl());
-  url.searchParams.set("state", createMercadoPagoOAuthState(arenaId));
+  url.searchParams.set("state", createMercadoPagoOAuthState(arenaId, userId));
   return url.toString();
 }
 

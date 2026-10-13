@@ -124,9 +124,10 @@ export async function getEvolutionMediaDataUrl(input: { providerId: string; prov
     method: "POST",
     headers: { apikey: config.apiKey, "content-type": "application/json" },
     body: JSON.stringify({ message: { key: { id: input.providerId }, message: input.providerPayload }, convertToMp4: false }),
-    cache: "no-store"
-  });
-  if (response.ok) {
+    cache: "no-store",
+    signal: AbortSignal.timeout(15_000),
+  }).catch(() => null);
+  if (response?.ok) {
     const payload = await response.json().catch(() => null);
     const record = payload && typeof payload === "object" ? payload as Record<string, unknown> : {};
     const nested = record.data && typeof record.data === "object" ? record.data as Record<string, unknown> : {};

@@ -6,6 +6,8 @@ import { z } from "zod";
 import { requirePermission, requireRole } from "@/lib/auth/guards";
 import { requirePublicPlayerAuth } from "@/lib/auth/player-session";
 import { allocatePaymentsToDebts, getOutstandingCents } from "@/lib/finance/settlements";
+import { cashReferenceDate } from "@/lib/finance/cash-day";
+import { recordCashSaleIfOpen } from "@/lib/finance/cash-register-sales";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 import { issueManualFiscalDocument, type FiscalDocumentType } from "@/lib/fiscal/manual-issuance";
@@ -268,6 +270,12 @@ export async function finishComandaAction(formData: FormData) {
         items: { create: comanda.items.map((item) => ({ productId: item.productId, quantity: item.quantity, unitPriceCents: item.unitPriceCents, totalCents: item.totalCents })) }
       }
     });
+    const cashReceivedCents = parsed.data.payments
+      .filter((payment) => ["dinheiro", "cash"].includes(payment.paymentMethod.trim().toLocaleLowerCase("pt-BR")))
+      .reduce((total, payment) => total + payment.amountCents, 0);
+    if (cashReceivedCents > 0) {
+      await recordCashSaleIfOpen(tx, { arenaId: auth.arenaId, referenceDate: cashReferenceDate(now), amountCents: cashReceivedCents, description: `Comanda ${comanda.code}`, createdByName: auth.userName });
+    }
     for (const item of comanda.items) {
       await tx.product.update({ where: { id: item.productId }, data: { stockQuantity: { decrement: item.quantity } } });
       await tx.stockMovement.create({ data: { arenaId: auth.arenaId, productId: item.productId, type: "OUT", quantity: item.quantity, reason: `Comanda ${comanda.code}` } });
@@ -323,4 +331,6 @@ export async function finishComandaAction(formData: FormData) {
   });
   revalidatePath("/comandas");
   revalidatePath("/financeiro/lancamentos");
+  revalidatePath("/pdv/caixa");
+  revalidatePath("/relatorios/caixa");
 }

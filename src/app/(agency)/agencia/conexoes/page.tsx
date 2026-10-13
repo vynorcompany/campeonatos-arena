@@ -1,11 +1,11 @@
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
-import { requireAgencyAccess } from "@/lib/auth/guards";
+import { requireAgencyPageAccess } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import styles from "./page.styles";
 
 export default async function AgencyConnectionsPage() {
-  await requireAgencyAccess();
+  await requireAgencyPageAccess();
   const arenas = await prisma.arena.findMany({
     orderBy: { name: "asc" },
     include: { whatsappConnection: true }

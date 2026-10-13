@@ -10,9 +10,23 @@ export function runtimeEnvironment(source) {
   if (!['postgres:', 'postgresql:'].includes(url.protocol) || decodeURIComponent(url.username) !== 'arena_runtime') {
     throw new Error('O servidor web exige a conexão arena_runtime.');
   }
-  const environment = { ...source, DATABASE_URL: source.APP_DATABASE_URL, HOSTNAME: '0.0.0.0' };
+  const port = Number(source.PORT || 3000);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('A porta do servidor web é inválida.');
+  // The custom Next server bypasses start-server, which normally sets this for
+  // the internal fetch performed after a Server Action redirects.
+  const environment = {
+    ...source,
+    DATABASE_URL: source.APP_DATABASE_URL,
+    HOSTNAME: '0.0.0.0',
+    __NEXT_PRIVATE_ORIGIN: `http://127.0.0.1:${port}`,
+  };
   for (const key of ['DIRECT_URL', 'PGPASSWORD', 'PGUSER', 'PGDATABASE', 'PGHOST', 'PGPORT']) delete environment[key];
   return environment;
+}
+
+export function runtimeWritableDirectories() {
+  // The generated server uses /app as its Next root, not .next/standalone.
+  return ['.next/cache', '.next/server/route-cache', '.next/standalone/public/uploads'];
 }
 
 function start() {
@@ -20,7 +34,7 @@ function start() {
   const root = process.getuid?.() === 0;
   if (process.platform === 'linux' && !root) throw new Error('O inicializador precisa separar o usuário web do usuário das migrações.');
   if (root) {
-    for (const directory of ['.next/standalone/.next/cache', '.next/standalone/public/uploads']) {
+    for (const directory of runtimeWritableDirectories()) {
       mkdirSync(directory, { recursive: true });
       chownSync(directory, 65534, 65534);
     }

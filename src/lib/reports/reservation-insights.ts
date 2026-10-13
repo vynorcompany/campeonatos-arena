@@ -1,3 +1,5 @@
+import { isActiveCourtOccurrence } from "@/lib/calendar/online-booking-hold";
+
 type WeeklyRule = {
   weekday: number;
   startsAtMinute: number;
@@ -13,6 +15,7 @@ type Court = {
 
 type Occurrence = {
   id: string;
+  createdAt: Date;
   startsAt: Date;
   endsAt: Date;
   status: string;
@@ -29,8 +32,6 @@ export type ReservationCourtInsight = {
   availableMinutes: number;
   occupancyPercent: number;
 };
-
-const cancelledStatuses = new Set(["CANCELED", "CANCELLED"]);
 
 function minutesBetween(start: Date, end: Date) {
   return Math.max(0, Math.round((end.getTime() - start.getTime()) / 60_000));
@@ -65,8 +66,16 @@ export function reservationServiceLabel(occurrence: Pick<Occurrence, "sourceType
   return occurrence.bookingTypeName?.trim() || "Reserva";
 }
 
-export function reservationInsights(courts: Court[], occurrences: Occurrence[], rangeStart: Date, rangeEnd: Date) {
-  const active = occurrences.filter((occurrence) => !cancelledStatuses.has(occurrence.status));
+export function reservationStatusLabel(occurrence: Pick<Occurrence, "status" | "createdAt">, now = new Date()) {
+  if (["CANCELED", "CANCELLED"].includes(occurrence.status)) return "Cancelada";
+  if (occurrence.status === "PENDING_PAYMENT") return isActiveCourtOccurrence(occurrence, now) ? "Aguardando pagamento" : "Prazo expirado";
+  if (occurrence.status === "PENDING_CONFIRMATION") return "Aguardando confirmação";
+  if (occurrence.status === "COMPLETED") return "Concluída";
+  return "Confirmada";
+}
+
+export function reservationInsights(courts: Court[], occurrences: Occurrence[], rangeStart: Date, rangeEnd: Date, now = new Date()) {
+  const active = occurrences.filter((occurrence) => isActiveCourtOccurrence(occurrence, now));
   const courtInsights = courts.map((court) => {
     const reservations = active.filter((occurrence) => occurrence.occurrenceCourts.some((relation) => relation.courtId === court.id));
     const occupiedMinutes = reservations.reduce((total, occurrence) => total + overlapMinutes(occurrence.startsAt, occurrence.endsAt, rangeStart, rangeEnd), 0);
@@ -92,7 +101,7 @@ export function reservationInsights(courts: Court[], occurrences: Occurrence[], 
   const availableMinutesTotal = courtInsights.reduce((total, court) => total + court.availableMinutes, 0);
   return {
     activeReservations: active.length,
-    cancelledReservations: occurrences.length - active.length,
+    cancelledReservations: occurrences.filter((occurrence) => ["CANCELED", "CANCELLED"].includes(occurrence.status)).length,
     courtInsights,
     highestVolumeCourt: courtInsights[0] ?? null,
     lowestVolumeCourt: [...courtInsights].sort((a, b) => a.reservations - b.reservations || a.occupiedMinutes - b.occupiedMinutes || a.courtName.localeCompare(b.courtName, "pt-BR"))[0] ?? null,

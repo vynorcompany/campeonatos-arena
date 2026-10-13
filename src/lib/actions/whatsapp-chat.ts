@@ -5,10 +5,12 @@ import { z } from "zod";
 import { requireModuleEdit, requireModuleView } from "@/lib/auth/guards";
 import { getEvolutionGroupName, getEvolutionProfilePicture, sendEvolutionAudioMessage, sendEvolutionMediaMessage, sendEvolutionTextMessage, sendEvolutionReaction, type EvolutionQuotedMessage } from "@/lib/integrations/evolution/client";
 import { prisma } from "@/lib/prisma";
+import { arenaDatabase } from "@/lib/arena-database";
 import { withArenaTransaction } from "@/lib/rls";
 import { getActiveWhatsAppAccountJid } from "@/lib/whatsapp-active-account";
 import { getArenaWhatsAppConversation, getEvolutionProviderId, persistOutboundWhatsAppMessage, persistWhatsAppReaction } from "@/lib/services/whatsapp-conversation";
 import { reactionEmojis } from "@/lib/whatsapp-message-data";
+import { outgoingWhatsAppMediaKind } from "@/lib/whatsapp-media-types";
 
 const sendSchema = z.object({ conversationId: z.string().min(1), body: z.string().trim().min(1, "Escreva uma mensagem.").max(4096, "A mensagem é muito longa.") });
 const readSchema = z.object({ conversationId: z.string().min(1) });
@@ -27,7 +29,7 @@ async function replyContext(arenaId: string, conversationId: string, formData: F
   const replyToId = String(formData.get("replyToId") ?? "");
   if (!replyToId) return { quoted: undefined, metadata: {} };
   const scope = await activeConversationScope(arenaId, conversationId);
-  const target = await prisma.whatsAppMessage.findFirst({ where: { id: replyToId, conversation: scope }, include: { conversation: { select: { remoteJid: true, contactName: true } } } });
+  const target = await arenaDatabase(arenaId).whatsAppMessage.findFirst({ where: { id: replyToId, conversation: scope }, include: { conversation: { select: { remoteJid: true, contactName: true } } } });
   if (!target) throw new Error("A mensagem respondida não pertence a esta conversa.");
   const quoted: EvolutionQuotedMessage = {
     key: { id: target.providerId, remoteJid: target.conversation.remoteJid, fromMe: target.direction === "OUTBOUND", ...(target.participantJid ? { participant: target.participantJid } : {}) },
@@ -42,7 +44,7 @@ export async function reactToWhatsAppMessageAction(formData: FormData) {
   if (!parsed.success) throw new Error("Reação inválida.");
   const accountJid = await getActiveWhatsAppAccountJid(auth.arenaId);
   if (!accountJid) throw new Error("O WhatsApp da arena não está conectado.");
-  const target = await prisma.whatsAppMessage.findFirst({ where: { id: parsed.data.messageId, conversation: { arenaId: auth.arenaId, accountJid } }, include: { conversation: { select: { remoteJid: true } } } });
+  const target = await arenaDatabase(auth.arenaId).whatsAppMessage.findFirst({ where: { id: parsed.data.messageId, conversation: { arenaId: auth.arenaId, accountJid } }, include: { conversation: { select: { remoteJid: true } } } });
   if (!target) throw new Error("Mensagem não encontrada nesta conta.");
   await sendEvolutionReaction({ id: target.providerId, remoteJid: target.conversation.remoteJid, fromMe: target.direction === "OUTBOUND", ...(target.participantJid ? { participant: target.participantJid } : {}) }, parsed.data.emoji, auth.arenaId);
   const reactions = await persistWhatsAppReaction(auth.arenaId, accountJid, target.providerId, accountJid, parsed.data.emoji);
@@ -80,7 +82,7 @@ export async function sendWhatsAppMediaMessageAction(formData: FormData) {
   const auth = await requireModuleEdit("support"); const conversationId = String(formData.get("conversationId") ?? ""); const file = formData.get("file");
   if (!conversationId || !(file instanceof File) || !file.size) throw new Error("Anexo inválido.");
   if (file.size > 16 * 1024 * 1024) throw new Error("O anexo pode ter no máximo 16 MB.");
-  const mediaType = file.type.startsWith("image/") ? "image" : file.type === "application/pdf" ? "document" : null;
+  const mediaType = outgoingWhatsAppMediaKind(file.type);
   if (!mediaType) throw new Error("Envie uma imagem ou PDF.");
   const conversation = await getArenaWhatsAppConversation(auth.arenaId, conversationId); if (!conversation) throw new Error("Conversa não encontrada.");
   const reply = await replyContext(auth.arenaId, conversation.id, formData);
@@ -103,11 +105,11 @@ export async function linkWhatsAppConversationToClientAction(formData: FormData)
   if (!parsed.success) throw new Error("Selecione um cliente válido.");
   const where = await activeConversationScope(auth.arenaId, parsed.data.conversationId);
   const [conversation, player] = await Promise.all([
-    prisma.whatsAppConversation.findFirst({ where, select: { id: true } }),
+    arenaDatabase(auth.arenaId).whatsAppConversation.findFirst({ where, select: { id: true } }),
     prisma.player.findFirst({ where: { id: parsed.data.playerId, arenaId: auth.arenaId, active: true }, select: { id: true } })
   ]);
   if (!conversation || !player) throw new Error("Conversa ou cliente não encontrado.");
-  await prisma.whatsAppConversation.update({ where: { id: conversation.id }, data: { playerId: player.id } });
+  await arenaDatabase(auth.arenaId).whatsAppConversation.update({ where: { id: conversation.id }, data: { playerId: player.id } });
   revalidatePath("/whatsapp");
 }
 
@@ -124,24 +126,25 @@ export async function updateWhatsAppConversationAction(formData: FormData) {
   const parsed = conversationActionSchema.safeParse({ conversationId: formData.get("conversationId"), action: formData.get("action"), listName: formData.get("listName") || undefined });
   if (!parsed.success) throw new Error("Ação de conversa inválida.");
   const where = await activeConversationScope(auth.arenaId, parsed.data.conversationId);
+  const db = arenaDatabase(auth.arenaId);
   if (parsed.data.action === "delete") {
-    const removed = await prisma.whatsAppConversation.deleteMany({ where });
+    const removed = await db.whatsAppConversation.deleteMany({ where });
     if (!removed.count) throw new Error("Conversa não encontrada.");
   } else if (parsed.data.action === "clear") {
-    await prisma.whatsAppMessage.deleteMany({ where: { conversation: where } });
-    await prisma.whatsAppConversation.updateMany({ where, data: { updatedAt: new Date() } });
+    await db.whatsAppMessage.deleteMany({ where: { conversation: where } });
+    await db.whatsAppConversation.updateMany({ where, data: { updatedAt: new Date() } });
   } else if (parsed.data.action === "resolve_sla") {
-    const updated = await prisma.whatsAppConversation.updateMany({ where, data: { slaResolvedAt: new Date(), unreadCount: 0 } });
+    const updated = await db.whatsAppConversation.updateMany({ where, data: { slaResolvedAt: new Date(), unreadCount: 0 } });
     if (!updated.count) throw new Error("Conversa não encontrada.");
   } else {
-    const conversation = await prisma.whatsAppConversation.findFirst({ where, select: { pinned: true, favorite: true, archivedAt: true } });
+    const conversation = await db.whatsAppConversation.findFirst({ where, select: { pinned: true, favorite: true, archivedAt: true } });
     if (!conversation) throw new Error("Conversa não encontrada.");
     const data = parsed.data.action === "archive" ? { archivedAt: conversation.archivedAt ? null : new Date() }
       : parsed.data.action === "pin" ? { pinned: !conversation.pinned }
       : parsed.data.action === "favorite" ? { favorite: !conversation.favorite }
       : parsed.data.action === "list" ? { listName: parsed.data.listName || "Lista de atendimento" }
       : { unreadCount: 1 };
-    await prisma.whatsAppConversation.update({ where: { id: parsed.data.conversationId }, data });
+    await db.whatsAppConversation.update({ where: { id: parsed.data.conversationId }, data });
   }
   revalidatePath("/whatsapp");
   revalidatePath("/", "layout");
@@ -161,10 +164,10 @@ export async function refreshWhatsAppConversationProfilePhotoAction(formData: Fo
   const parsed = readSchema.safeParse({ conversationId: formData.get("conversationId") });
   if (!parsed.success) throw new Error("Conversa inválida.");
   const where = await activeConversationScope(auth.arenaId, parsed.data.conversationId);
-  const conversation = await prisma.whatsAppConversation.findFirst({ where, select: { id: true, remoteJid: true, profilePhotoUrl: true } });
+  const conversation = await arenaDatabase(auth.arenaId).whatsAppConversation.findFirst({ where, select: { id: true, remoteJid: true, profilePhotoUrl: true } });
   if (!conversation) throw new Error("Conversa não encontrada.");
   const profilePhotoUrl = await getEvolutionProfilePicture(conversation.remoteJid, auth.arenaId);
-  if (profilePhotoUrl && profilePhotoUrl !== conversation.profilePhotoUrl) await prisma.whatsAppConversation.update({ where: { id: conversation.id }, data: { profilePhotoUrl } });
+  if (profilePhotoUrl && profilePhotoUrl !== conversation.profilePhotoUrl) await arenaDatabase(auth.arenaId).whatsAppConversation.update({ where: { id: conversation.id }, data: { profilePhotoUrl } });
   return { profilePhotoUrl: profilePhotoUrl || conversation.profilePhotoUrl };
 }
 
@@ -172,9 +175,9 @@ export async function refreshWhatsAppGroupNameAction(formData: FormData) {
   const auth = await requireModuleView("support"); const parsed = readSchema.safeParse({ conversationId: formData.get("conversationId") });
   if (!parsed.success) throw new Error("Conversa inválida.");
   const where = await activeConversationScope(auth.arenaId, parsed.data.conversationId);
-  const conversation = await prisma.whatsAppConversation.findFirst({ where: { ...where, remoteJid: { endsWith: "@g.us" } }, select: { id: true, remoteJid: true } });
+  const conversation = await arenaDatabase(auth.arenaId).whatsAppConversation.findFirst({ where: { ...where, remoteJid: { endsWith: "@g.us" } }, select: { id: true, remoteJid: true } });
   if (!conversation) return { name: "" };
   const name = await getEvolutionGroupName(conversation.remoteJid, auth.arenaId);
-  if (name) await prisma.whatsAppConversation.update({ where: { id: conversation.id }, data: { contactName: name } });
+  if (name) await arenaDatabase(auth.arenaId).whatsAppConversation.update({ where: { id: conversation.id }, data: { contactName: name } });
   return { name };
 }

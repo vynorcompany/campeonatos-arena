@@ -19,7 +19,7 @@ test("empty or unknown selections never silently expand to all courts", () => {
 test("a reservation spanning two selected courts counts once and occupancy uses selected capacity", () => {
   const start = new Date("2026-10-05T00:00:00"), end = new Date("2026-10-05T23:59:59");
   const courts = ["a", "b", "c"].map(id => ({ id, name: id, weeklyRules: [{ weekday: 1, startsAtMinute: 480, endsAtMinute: 1080, available: true }] }));
-  const occurrence = { id: "reservation", startsAt: new Date("2026-10-05T08:00:00"), endsAt: new Date("2026-10-05T09:00:00"), status: "SCHEDULED", sourceType: "MANUAL", bookingTypeName: "Reserva", occurrenceCourts: [{ courtId: "a" }, { courtId: "b" }] };
+  const occurrence = { id: "reservation", createdAt: start, startsAt: new Date("2026-10-05T08:00:00"), endsAt: new Date("2026-10-05T09:00:00"), status: "SCHEDULED", sourceType: "MANUAL", bookingTypeName: "Reserva", occurrenceCourts: [{ courtId: "a" }, { courtId: "b" }] };
   const one = reservationInsights(courts.slice(0, 1), [occurrence], start, end);
   const several = reservationInsights(courts.slice(0, 2), [occurrence], start, end);
   assert.equal(one.activeReservations, 1);

@@ -1,0 +1,55 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import test from "node:test";
+
+const read = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8");
+
+test("inscrição em revisão não oferece novo pagamento e mostra o motivo da espera", () => {
+  const page = read("src/app/inscricao/[slug]/sucesso/[registrationId]/page.tsx");
+  assert.match(page, /arenaDatabase\(tournament\.arenaId\)\.publicTournamentRegistration\.findFirst/);
+  assert.match(page, /where: \{ id: params\.registrationId, tournamentId: tournament\.id \}/);
+  assert.match(page, /registration\.paymentStatus === "REVIEW"/);
+  assert.match(page, /Não faça outro pagamento agora/);
+  assert.match(page, /!canceled && !confirmed && !needsReview && registration\.paymentCheckoutUrl/);
+  assert.match(page, /registration\.status === "CANCELED" \|\| registration\.paymentStatus === "REFUNDED"/);
+  const form = read("src/components/forms/tournament-participants-form.tsx");
+  assert.match(form, /paymentLocked = registration\.paymentStatus === "REVIEW" \|\| registration\.paymentStatus === "REFUNDED"/);
+  assert.doesNotMatch(form, /<option value="REVIEW">/);
+});
+
+test("portal bloqueia nova cobrança quando o pagamento anterior exige conciliação", () => {
+  const action = read("src/lib/actions/public-finance-payment.ts");
+  assert.match(action, /status: "REVIEW", items: \{ some: \{ financialEntryId: \{ in: entryIds \} \} \}/);
+  assert.match(action, /entry\.notes\.includes\("\[MP_REVIEW:"\)/);
+  const report = read("src/app/(app)/relatorios/[relatorio]/page.tsx");
+  assert.match(report, /label="Em análise" value=\{reviewCount \+ entryReviewCount \+ registrationReviewCount\}/);
+  assert.match(report, /checkoutStatusLabel\(item\.status\)/);
+  const checkoutStatus = read("src/lib/payments/checkout-status.ts");
+  assert.match(checkoutStatus, /normalized === "REVIEW"\) return "Em análise — conferir no Mercado Pago"/);
+  assert.match(report, /<ReviewedCheckoutRelease/);
+  assert.match(report, /kind="entry" recordId=\{item\.id\} paymentId=\{paymentId\}/);
+  assert.match(report, /kind="registration" recordId=\{item\.id\} paymentId=\{item\.mercadoPagoPaymentId\}/);
+  const webhook = read("src/app/api/payments/mercado-pago/webhook/route.ts");
+  assert.match(webhook, /\["PAID", "REVIEW", "REFUNDED"\]\.includes\(current\.paymentStatus\)/);
+  assert.match(webhook, /current\.status === "CANCELED"/);
+  assert.match(webhook, /Pagamento recebido após cancelamento/);
+  const tournament = read("src/lib/actions/tournament.ts");
+  assert.match(tournament, /canDeleteTournamentRegistration\(registration\)/);
+  assert.match(tournament, /paymentStatus: "PENDING", paymentProvider: "MANUAL", paymentReference: "", mercadoPagoPaymentId: "", paymentCheckoutUrl: ""/);
+  const publicRegistration = read("src/lib/actions/public-registration.ts");
+  assert.match(publicRegistration, /status: "PENDING_PAYMENT", paymentStatus: "PENDING" \}/);
+  assert.match(publicRegistration, /if \(savedPayment\.count !== 1\)/);
+  const registrations = read("src/app/(app)/torneios/[tournamentId]/inscricoes/page.tsx");
+  assert.match(registrations, /searchParams\?\.status === "REVIEW"/);
+  assert.match(registrations, /searchParams\?\.status === "PENDING"\) return item\.status === "PENDING_PAYMENT" && item\.paymentStatus !== "REVIEW"/);
+  assert.match(registrations, /underReview \? <ReviewedCheckoutRelease kind="registration"/);
+  assert.match(registrations, /canceled \? <p className=\{viewStyles\.muted\}>Pagamento estornado/);
+  const legacyRegistrations = read("src/app/(app)/torneios/inscricoes/page.tsx");
+  assert.match(legacyRegistrations, /registration\.paymentStatus === "REVIEW" \? <ReviewedCheckoutRelease kind="registration"/);
+  const editForm = read("src/components/tournaments/registration-edit-form.tsx");
+  assert.match(editForm, /useFormState\(updateTournamentRegistrationAction, initialState\)/);
+  assert.match(editForm, /role="alert"/);
+  assert.match(registrations, /<RegistrationEditForm className=\{viewStyles\.tournament_registration_edit\}>/);
+  assert.match(legacyRegistrations, /<RegistrationEditForm className=\{viewStyles\.grid_form\}>/);
+});

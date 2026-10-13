@@ -20,7 +20,10 @@ test("lazy WhatsApp history validates arena/account before reading messages and 
     "@/lib/auth/guards":{requireModuleView:async()=>{authChecks++;return{arenaId:"arena"}}},
     "@/lib/whatsapp-active-account":{getActiveWhatsAppAccountJid:async()=>account},
     "@/lib/whatsapp-message-data":{readWhatsAppReactions},
-    "@/lib/prisma":{prisma:{whatsAppConversation:{findFirst:async({where}:any)=>where.id==='owned'&&where.arenaId==='arena'&&where.accountJid==='current'?{id:'owned',updatedAt:new Date(123)}:null},whatsAppMessage:{findMany:async(query:any)=>{reads++;queries.push(query);return[{id:'message',sentAt:new Date(100),reactions:[],body:'Text'}]}}}},
+    "@/lib/arena-database": { arenaDatabase: () => ({
+      whatsAppConversation: { findFirst: async ({ where }: any) => where.id === "owned" && where.arenaId === "arena" && where.accountJid === "current" ? { id: "owned", updatedAt: new Date(123) } : null },
+      whatsAppMessage: { findMany: async (query: any) => { reads++; queries.push(query); return [{ id: "message", sentAt: new Date(100), reactions: [], body: "Text" }]; } },
+    }) },
   });
   const call=(id:string,etag="")=>api.GET({headers:new Headers(etag?{'if-none-match':etag}:{})},{params:Promise.resolve({conversationId:id})});
   const first=await call('owned');assert.equal(reads,1);assert.equal(queries[0].take,120);assert.equal(queries[0].select.mediaUrl,undefined);assert.equal(queries[0].select.providerPayload,undefined);assert.equal(first.body.messages[0].mediaUrl,'');
@@ -30,7 +33,7 @@ test("lazy WhatsApp history validates arena/account before reading messages and 
 test("TV snapshots share work by arena and reauthorize even for an unchanged response",async()=>{
   let arenaId='arena-a',allowed=true,loads=0,authChecks=0;
   const api=route('src/app/api/manual-upcoming-matches/route.ts',{
-    '@/lib/auth/session':{requireArenaAccess:async()=>{authChecks++;if(!allowed)throw Error('Denied');return{arenaId}}},
+    '@/lib/auth/guards':{requireModuleView:async(module:string)=>{assert.equal(module,'tv');authChecks++;if(!allowed)throw Error('Denied');return{arenaId}}},
     '@/lib/services/tv-presentation':{getTvPresentationPayload:async(arena:string)=>{loads++;return{arena,matches:[]}}},
     '@/lib/short-snapshot-cache':{createShortSnapshotCache},
   });

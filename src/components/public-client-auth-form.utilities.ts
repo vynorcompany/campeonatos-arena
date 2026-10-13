@@ -23,6 +23,7 @@ export const viewStyles = {
     "tw:[&_input]:rounded-[var(--radius-control)]", "tw:[&_input]:bg-[color:#fff]", "tw:[&_input]:[background-image:none]", "tw:[&_input]:text-[color:#172033]",
     "tw:[&_input]:[font:inherit]", "tw:[&_h2]:text-[color:#073d62]!", "tw:[&_header_p]:text-[color:#43536b]!",
     "tw:[&_.form-error]:text-[color:#a32121]!", "tw:[&_.form-message-success]:text-[color:#075d48]!",
+    "tw:dark:[&_.form-message-success]:text-[color:#b9ffe5]!", "tw:dark:[&_.form-error]:text-[color:#ffaaa3]!",
   ].join(" "),
   "public_client_auth_tabs": [
     "public-client-auth-tabs", "tw:grid", "tw:grid-cols-[repeat(2,_minmax(0,_1fr))]", "tw:gap-y-[6px]",

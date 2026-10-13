@@ -269,40 +269,38 @@ export async function archiveTeacherAction(formData: FormData) {
 export async function deleteTeacherAction(formData: FormData) {
   const auth = await requireModuleEdit("teachers");
   const teacherId = String(formData.get("teacherId") ?? "");
-  const teacher = await prisma.teacher.findFirst({
-    where: { id: teacherId, arenaId: auth.arenaId },
-    select: {
-      id: true,
-      active: true,
-      _count: {
-        select: {
-          lessons: true,
-          scheduleOccurrences: true,
-          payrollEntries: true,
-          studentAssignments: true,
-          planAssignments: true,
-          classGroups: true,
-          classGroupMakeups: true,
+  await withArenaTransaction(auth.arenaId, async (tx) => {
+    await tx.$queryRaw`SELECT "id" FROM "Teacher" WHERE "id" = ${teacherId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
+    const teacher = await tx.teacher.findFirst({
+      where: { id: teacherId, arenaId: auth.arenaId },
+      select: {
+        id: true,
+        active: true,
+        _count: {
+          select: {
+            lessons: true,
+            scheduleOccurrences: true,
+            payrollEntries: true,
+            studentAssignments: true,
+            planAssignments: true,
+            classGroups: true,
+            classGroupMakeups: true,
+          },
         },
       },
-    },
-  });
-  if (!teacher) throw new Error("Professor não encontrado.");
-  if (teacher.active)
-    throw new Error("Desative o professor antes de excluí-lo definitivamente.");
-  const historicalLinks = [
-    teacher._count.lessons,
-    teacher._count.scheduleOccurrences,
-    teacher._count.payrollEntries,
-    teacher._count.classGroups,
-    teacher._count.classGroupMakeups,
-  ];
-  if (historicalLinks.some(Boolean)) {
-    throw new Error(
-      "Este professor possui histórico operacional. Mantenha-o inativo para preservar os dados.",
-    );
-  }
-  await prisma.$transaction(async (tx) => {
+    });
+    if (!teacher) throw new Error("Professor não encontrado.");
+    if (teacher.active) throw new Error("Desative o professor antes de excluí-lo definitivamente.");
+    const historicalLinks = [
+      teacher._count.lessons,
+      teacher._count.scheduleOccurrences,
+      teacher._count.payrollEntries,
+      teacher._count.classGroups,
+      teacher._count.classGroupMakeups,
+    ];
+    if (historicalLinks.some(Boolean)) {
+      throw new Error("Este professor possui histórico operacional. Mantenha-o inativo para preservar os dados.");
+    }
     await tx.teacherPlan.deleteMany({ where: { teacherId: teacher.id } });
     await tx.teacherStudent.deleteMany({ where: { teacherId: teacher.id } });
     await tx.teacher.delete({ where: { id: teacher.id } });
@@ -1021,7 +1019,7 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
     });
   });
   if (firstEntryId) {
-    try { await issueRecurringOnlineChargeForEntry(firstEntryId); }
+    try { await issueRecurringOnlineChargeForEntry(auth.arenaId, firstEntryId); }
     catch (error) { console.error("Could not issue the initial plan boleto", error); }
   }
   refreshAcademyRoutes();
@@ -1114,10 +1112,10 @@ export async function removeTeacherPlanStudentAction(formData: FormData) {
   const studentFinancialOwner = subscription.student.playerId
     ? { OR: [{ playerId: subscription.student.playerId }, { playerId: null, counterpartyName: subscription.student.name }] }
     : { counterpartyName: subscription.student.name };
-  const recurrences = await prisma.financialRecurrence.findMany({
+  const recurrences = await withArenaTransaction(auth.arenaId, (tx) => tx.financialRecurrence.findMany({
     where: { arenaId: auth.arenaId, planId, active: true, ...studentFinancialOwner },
     select: { id: true }
-  });
+  }));
   const recurrenceIds = recurrences.map(({ id }) => id);
   const futureEntriesWhere = {
     arenaId: auth.arenaId, recurrenceId: { in: recurrenceIds }, type: "REVENUE", status: "PENDING", dueDate: { gte: today }
@@ -1126,10 +1124,10 @@ export async function removeTeacherPlanStudentAction(formData: FormData) {
   const protectedEntryIds = new Set<string>();
 
   if (cancelOpenBoletos && recurrenceIds.length) {
-    const entries = await prisma.financialEntry.findMany({
+    const entries = await withArenaTransaction(auth.arenaId, (tx) => tx.financialEntry.findMany({
       where: futureEntriesWhere,
       select: { id: true, onlineProvider: true, onlinePaymentId: true, settlements: { select: { amountCents: true } } }
-    });
+    }));
     for (const entry of entries) if (entry.settlements.some((settlement) => settlement.amountCents > 0)) protectedEntryIds.add(entry.id);
     const issued = entries.filter((entry) => entry.onlinePaymentId);
     if (issued.some((entry) => entry.onlineProvider !== "MERCADO_PAGO")) {

@@ -79,3 +79,12 @@ test("group metadata is not fetched for a disconnected account or individual con
   assert.equal(await groupClient(fetch, "DISCONNECTED").getEvolutionGroupName("120363000000@g.us", "arena"), "");
   assert.equal(await groupClient(fetch).getEvolutionGroupName("554233331234@s.whatsapp.net", "arena"), "");
 });
+
+test("mídia mantém o URL salvo quando a Evolution falha ou demora", async () => {
+  let hasDeadline = false;
+  const client = groupClient(async (_url, options) => { hasDeadline = options.signal instanceof AbortSignal; throw new Error("Evolution indisponível"); });
+  const input = { providerId: "message-a", providerPayload: { imageMessage: {} }, mimeType: "image/png", mediaUrl: "https://cdn.example.test/image.png" };
+  assert.equal(await client.getEvolutionMediaDataUrl(input, "arena-a"), input.mediaUrl);
+  assert.equal(hasDeadline, true);
+  assert.equal(await client.getEvolutionMediaDataUrl({ ...input, mediaUrl: "" }, "arena-a"), "");
+});

@@ -75,6 +75,7 @@ export function SafeActionForm({
       className={className}
       onSubmit={(event) => {
         event.preventDefault();
+        event.stopPropagation();
         const formData = new FormData(event.currentTarget);
         const validationError = validate?.(formData);
         if (validationError) {

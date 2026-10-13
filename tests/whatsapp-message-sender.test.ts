@@ -4,12 +4,14 @@ import { createRequire } from "node:module";
 import vm from "node:vm";
 import test from "node:test";
 import ts from "typescript";
+import { outgoingWhatsAppMediaKind } from "../src/lib/whatsapp-media-types";
 
 const require = createRequire(import.meta.url);
 
 test("author is persisted even when the webhook records the outbound message first", async () => {
   let stored: Record<string, unknown> = { id: "message", senderName: "", senderUserId: "", sentAt: new Date() };
   const tx = {
+    $queryRaw: async () => [{ id: "conversation" }],
     whatsAppConversation: { findFirst: async () => ({ id: "conversation" }), updateMany: async () => ({ count: 1 }) },
     whatsAppMessage: { upsert: async ({ update }: { update: Record<string, unknown> }) => { stored = { ...stored, ...update }; return stored; } },
   };
@@ -43,6 +45,7 @@ test("text, audio and attachments store authenticated authors without sending th
       if (name === "next/cache") return { revalidatePath() {} };
       if (name === "@/lib/auth/guards") return { requireModuleEdit: async () => ({ arenaId: "arena", userId: "authenticated-id", userName: "Atendente de teste" }) };
       if (name === "@/lib/integrations/evolution/client") return { sendEvolutionTextMessage: deliver, sendEvolutionAudioMessage: deliver, sendEvolutionMediaMessage: deliver };
+      if (name === "@/lib/whatsapp-media-types") return { outgoingWhatsAppMediaKind };
       if (name === "@/lib/services/whatsapp-conversation") return {
         getArenaWhatsAppConversation: async () => ({ id: "conversation", contactPhone: "11999999999" }),
         getEvolutionProviderId: () => "provider",

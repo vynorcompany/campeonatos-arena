@@ -1,10 +1,10 @@
 import { viewStyles } from "./page.utilities";
 import { SectionCard } from "@/components/section-card";
-import { requireAgencyAccess } from "@/lib/auth/guards";
+import { requireAgencyPageAccess } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
 export default async function AgencySupportHistoryPage() {
-  await requireAgencyAccess();
+  await requireAgencyPageAccess();
   const tickets = await prisma.supportTicket.findMany({
     where: { status: { in: ["RESOLVED", "CLOSED"] } },
     include: { arena: true, requester: true, assignee: true },

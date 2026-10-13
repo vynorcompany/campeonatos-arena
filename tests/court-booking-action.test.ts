@@ -27,3 +27,10 @@ test("new court bookings normalize an absent occurrence id before validation", (
 
   assert.match(source, /occurrenceId:\s*String\(formData\.get\("occurrenceId"\) \?\? ""\)/);
 });
+
+test("editing a court booking checks linked payments before changing the occurrence or receivables", () => {
+  const source = readFileSync(resolve(process.cwd(), "src/lib/actions/calendar.ts"), "utf8");
+  const action = source.split("export async function saveCourtBookingAction")[1]?.split("export async function ")[0] ?? "";
+  assert.match(action, /FOR UPDATE[\s\S]*assertCourtBookingMayBeEdited\(tx, auth\.arenaId, parsed\.data\.occurrenceId\)[\s\S]*tx\.scheduleOccurrence\.update/);
+  assert.match(source, /Esta reserva já tem pagamento ou cobrança online vinculada/);
+});

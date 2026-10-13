@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requirePublicPlayerAuth } from "@/lib/auth/player-session";
+import { compareSuper12CrossGroupPairs, compareSuper12GroupPairs } from "@/lib/super12/ranking";
+import { super12GroupSetupError } from "@/lib/super12/format";
 
 const createSchema = z.object({
   arenaSlug: z.string().trim().min(1),
@@ -36,7 +38,10 @@ export async function createSuper12Action(formData: FormData) {
   const byId = new Map(players.map((player) => [player.id, player]));
   const pairCount = submittedPairs.length;
   const groupCount = parsed.data.format === "GROUPS" ? parsed.data.groupCount : 1;
-  if (parsed.data.format === "GROUPS" && ((parsed.data.knockoutQualification === "TOP_TWO" && groupCount !== 4) || (parsed.data.knockoutQualification === "TOP_TWO_PLUS_BEST_THIRDS" && groupCount !== 3))) return { error: "O mata-mata sempre classifica oito duplas: use 4 grupos com os dois primeiros, ou 3 grupos com os dois melhores terceiros." };
+  if (parsed.data.format === "GROUPS") {
+    const setupError = super12GroupSetupError(pairCount, groupCount, parsed.data.knockoutQualification);
+    if (setupError) return { error: setupError };
+  }
   if (groupCount > pairCount) return { error: "A quantidade de grupos não pode ser maior que a de duplas." };
   if (parsed.data.format === "GROUPS" && pairCount / groupCount < 2) return { error: "Escolha menos grupos ou mais atletas: cada grupo precisa ter pelo menos duas duplas." };
 
@@ -105,42 +110,52 @@ function groupRows(group: { pairs: Array<{ id: string; name: string; groupId: st
     if (match.homeScore > match.awayScore) home.wins += 1;
     if (match.awayScore > match.homeScore) away.wins += 1;
   }
-  return rows.sort((left, right) => right.wins - left.wins || right.saldo - left.saldo || right.pointsFor - left.pointsFor || left.name.localeCompare(right.name, "pt-BR"));
+  return rows.sort((left, right) => compareSuper12GroupPairs(left, right, group.matches));
 }
 
 export async function advanceSuper12KnockoutAction(formData: FormData) {
   const parsed = knockoutSchema.safeParse({ arenaSlug: formData.get("arenaSlug"), eventId: formData.get("eventId") });
   if (!parsed.success) return { error: "Não foi possível identificar a chave do Super 12." };
   const auth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
-  const event = await prisma.super12Event.findFirst({ where: { id: parsed.data.eventId, arenaId: auth.arenaId, creatorId: auth.playerId, status: "ACTIVE", format: "GROUPS" }, include: { groups: { orderBy: { drawOrder: "asc" }, include: { pairs: { orderBy: { drawOrder: "asc" }, select: { id: true, name: true, groupId: true } }, matches: { where: { stage: "GROUP" }, select: { homePairId: true, awayPairId: true, homeScore: true, awayScore: true } } } }, matches: { where: { stage: { not: "GROUP" } }, orderBy: [{ roundNumber: "desc" }, { roundOrder: "asc" }], select: { id: true, roundNumber: true, homePairId: true, awayPairId: true, homeScore: true, awayScore: true, homePair: { select: { id: true, name: true, groupId: true } }, awayPair: { select: { id: true, name: true, groupId: true } } } } } });
-  if (!event) return { error: "Somente quem criou um Super 12 por grupos pode liberar a chave." };
+  const result = await prisma.$transaction(async (tx) => {
+    // Lock before reading the bracket so two clicks cannot both observe the
+    // previous round and create duplicate matches for the next one.
+    const locked = await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT "id" FROM "Super12Event"
+      WHERE "id" = ${parsed.data.eventId} AND "arenaId" = ${auth.arenaId}
+        AND "creatorId" = ${auth.playerId} AND "status" = 'ACTIVE' AND "format" = 'GROUPS'
+      FOR UPDATE
+    `;
+    if (!locked.length) return { error: "Somente quem criou um Super 12 por grupos pode liberar a chave." };
+    const event = await tx.super12Event.findFirst({ where: { id: parsed.data.eventId, arenaId: auth.arenaId, creatorId: auth.playerId, status: "ACTIVE", format: "GROUPS" }, include: { groups: { orderBy: { drawOrder: "asc" }, include: { pairs: { orderBy: { drawOrder: "asc" }, select: { id: true, name: true, groupId: true } }, matches: { where: { stage: "GROUP" }, select: { homePairId: true, awayPairId: true, homeScore: true, awayScore: true } } } }, matches: { where: { stage: { not: "GROUP" } }, orderBy: [{ roundNumber: "desc" }, { roundOrder: "asc" }], select: { id: true, roundNumber: true, homePairId: true, awayPairId: true, homeScore: true, awayScore: true, homePair: { select: { id: true, name: true, groupId: true } }, awayPair: { select: { id: true, name: true, groupId: true } } } } } });
+    if (!event) return { error: "Somente quem criou um Super 12 por grupos pode liberar a chave." };
 
-  let entrants: KnockoutSeed[];
-  let roundNumber = 1;
-  let state: KnockoutState = { byes: [], roundNumber: 0 };
-  if (!event.matches.length) {
-    if (event.groups.some((group) => group.matches.some((match) => match.homeScore == null || match.awayScore == null))) return { error: "Lance todos os resultados dos grupos antes de liberar o mata-mata." };
-    const rankings = event.groups.map(groupRows);
-    entrants = rankings.flatMap((rows) => rows.slice(0, 2)).map((row) => ({ id: row.id, name: row.name, groupId: row.groupId! }));
-    if (event.knockoutQualification === "TOP_TWO_PLUS_BEST_THIRDS") entrants.push(...rankings.map((rows) => rows[2]).filter(Boolean).sort((left, right) => right.wins - left.wins || right.saldo - left.saldo || right.pointsFor - left.pointsFor).slice(0, 2).map((row) => ({ id: row.id, name: row.name, groupId: row.groupId! })));
-    if (entrants.length !== 8) return { error: "Esta configuração precisa classificar exatamente oito duplas para as quartas de final." };
-  } else {
-    const latestRound = event.matches[0].roundNumber;
-    const currentMatches = event.matches.filter((match) => match.roundNumber === latestRound);
-    if (currentMatches.some((match) => match.homeScore == null || match.awayScore == null || !match.homePair || !match.awayPair)) return { error: "Lance todos os resultados desta etapa antes de liberar a próxima." };
-    try { state = event.knockoutState ? JSON.parse(event.knockoutState) : state; } catch { state = { byes: [], roundNumber: latestRound }; }
-    entrants = [...state.byes, ...currentMatches.map((match) => (match.homeScore! > match.awayScore! ? match.homePair! : match.awayPair!)).map((pair) => ({ id: pair.id, name: pair.name, groupId: pair.groupId! }))];
-    roundNumber = latestRound + 1;
-    state = { byes: [], roundNumber };
-  }
-  if (entrants.length < 2) return { error: "A chave já foi concluída." };
-  const stage = state.byes.length ? "ELIMINATÓRIA" : stageName(entrants.length);
-  await prisma.$transaction(async (tx) => {
+    let entrants: KnockoutSeed[];
+    let roundNumber = 1;
+    let state: KnockoutState = { byes: [], roundNumber: 0 };
+    if (!event.matches.length) {
+      if (event.groups.some((group) => group.matches.some((match) => match.homeScore == null || match.awayScore == null))) return { error: "Lance todos os resultados dos grupos antes de liberar o mata-mata." };
+      const rankings = event.groups.map(groupRows);
+      entrants = rankings.flatMap((rows) => rows.slice(0, 2)).map((row) => ({ id: row.id, name: row.name, groupId: row.groupId! }));
+      if (event.knockoutQualification === "TOP_TWO_PLUS_BEST_THIRDS") entrants.push(...rankings.map((rows) => rows[2]).filter(Boolean).sort(compareSuper12CrossGroupPairs).slice(0, 2).map((row) => ({ id: row.id, name: row.name, groupId: row.groupId! })));
+      if (entrants.length !== 8) return { error: "Esta configuração precisa classificar exatamente oito duplas para as quartas de final." };
+    } else {
+      const latestRound = event.matches[0].roundNumber;
+      const currentMatches = event.matches.filter((match) => match.roundNumber === latestRound);
+      if (currentMatches.some((match) => match.homeScore == null || match.awayScore == null || !match.homePair || !match.awayPair)) return { error: "Lance todos os resultados desta etapa antes de liberar a próxima." };
+      try { state = event.knockoutState ? JSON.parse(event.knockoutState) : state; } catch { state = { byes: [], roundNumber: latestRound }; }
+      entrants = [...state.byes, ...currentMatches.map((match) => (match.homeScore! > match.awayScore! ? match.homePair! : match.awayPair!)).map((pair) => ({ id: pair.id, name: pair.name, groupId: pair.groupId! }))];
+      roundNumber = latestRound + 1;
+      state = { byes: [], roundNumber };
+    }
+    if (entrants.length < 2) return { error: "A chave já foi concluída." };
+    const stage = state.byes.length ? "ELIMINATÓRIA" : stageName(entrants.length);
     for (const [index, [home, away]] of seededMatchups(entrants).entries()) await tx.super12Match.create({ data: { eventId: event.id, stage, roundNumber, roundOrder: index + 1, homePairId: home.id, awayPairId: away.id } });
     await tx.super12Event.update({ where: { id: event.id }, data: { knockoutState: JSON.stringify(state) } });
+    return { error: null };
   });
-  revalidatePath(portalPath(parsed.data.arenaSlug));
-  return { error: null };
+  if (!result.error) revalidatePath(portalPath(parsed.data.arenaSlug));
+  return result;
 }
 
 export async function recordSuper12ScoreAction(formData: FormData) {
@@ -148,20 +163,45 @@ export async function recordSuper12ScoreAction(formData: FormData) {
   if (!parsed.success) return { error: "Informe placares válidos." };
   if (parsed.data.homeScore === parsed.data.awayScore) return { error: "Uma partida de padel precisa ter uma dupla vencedora." };
   const auth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
-  const match = await prisma.super12Match.findFirst({ where: { id: parsed.data.matchId, event: { arenaId: auth.arenaId, creatorId: auth.playerId, status: "ACTIVE" } }, select: { id: true } });
-  if (!match) return { error: "Somente quem criou este Super 12 pode lançar placares." };
-  await prisma.super12Match.update({ where: { id: match.id }, data: { homeScore: parsed.data.homeScore, awayScore: parsed.data.awayScore } });
-  revalidatePath(portalPath(parsed.data.arenaSlug));
-  return { error: null };
+  const selected = await prisma.super12Match.findFirst({ where: { id: parsed.data.matchId, event: { arenaId: auth.arenaId, creatorId: auth.playerId, status: "ACTIVE" } }, select: { eventId: true } });
+  if (!selected) return { error: "Somente quem criou este Super 12 pode lançar placares." };
+  const result = await prisma.$transaction(async (tx) => {
+    const locked = await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT "id" FROM "Super12Event"
+      WHERE "id" = ${selected.eventId} AND "arenaId" = ${auth.arenaId}
+        AND "creatorId" = ${auth.playerId} AND "status" = 'ACTIVE'
+      FOR UPDATE
+    `;
+    if (!locked.length) return { error: "Esta rodada foi encerrada ou você não pode alterar o placar." };
+    const match = await tx.super12Match.findFirst({ where: { id: parsed.data.matchId, eventId: selected.eventId }, select: { id: true, stage: true, roundNumber: true, homePairId: true, awayPairId: true } });
+    if (!match?.homePairId || !match.awayPairId) return { error: "As duplas deste jogo não estão mais disponíveis." };
+    const laterRound = await tx.super12Match.findFirst({
+      where: { eventId: selected.eventId, ...(match.stage === "GROUP" ? { stage: { not: "GROUP" } } : { roundNumber: { gt: match.roundNumber } }) },
+      select: { id: true },
+    });
+    if (laterRound) return { error: "A próxima fase já foi liberada. Não é possível alterar um resultado que definiu a chave." };
+    await tx.super12Match.update({ where: { id: match.id }, data: { homeScore: parsed.data.homeScore, awayScore: parsed.data.awayScore } });
+    return { error: null };
+  });
+  if (!result.error) revalidatePath(portalPath(parsed.data.arenaSlug));
+  return result;
 }
 
 export async function finishSuper12Action(formData: FormData) {
   const arenaSlug = String(formData.get("arenaSlug") ?? ""); const eventId = String(formData.get("eventId") ?? "");
   if (!arenaSlug || !eventId) return { error: "Não foi possível identificar o Super 12." };
   const auth = await requirePublicPlayerAuth(arenaSlug);
-  const event = await prisma.super12Event.findFirst({ where: { id: eventId, arenaId: auth.arenaId, creatorId: auth.playerId, status: "ACTIVE" }, select: { id: true } });
-  if (!event) return { error: "Somente quem criou este Super 12 pode encerrá-lo." };
-  await prisma.super12Event.update({ where: { id: event.id }, data: { status: "FINISHED" } });
-  revalidatePath(portalPath(arenaSlug));
-  return { error: null };
+  const result = await prisma.$transaction(async (tx) => {
+    const locked = await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT "id" FROM "Super12Event"
+      WHERE "id" = ${eventId} AND "arenaId" = ${auth.arenaId}
+        AND "creatorId" = ${auth.playerId} AND "status" = 'ACTIVE'
+      FOR UPDATE
+    `;
+    if (!locked.length) return { error: "Somente quem criou este Super 12 pode encerrá-lo." };
+    await tx.super12Event.update({ where: { id: eventId }, data: { status: "FINISHED" } });
+    return { error: null };
+  });
+  if (!result.error) revalidatePath(portalPath(arenaSlug));
+  return result;
 }

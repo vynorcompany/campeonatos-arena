@@ -1,8 +1,8 @@
 import { AgencyShell } from "@/components/layout/agency-shell";
-import { requireAgencyAccess } from "@/lib/auth/guards";
+import { requireAgencyPageAccess } from "@/lib/auth/guards";
 
 export default async function AgencyLayout({ children }: { children: React.ReactNode }) {
-  const auth = await requireAgencyAccess();
+  const auth = await requireAgencyPageAccess();
 
   return (
     <AgencyShell
