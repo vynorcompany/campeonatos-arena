@@ -6,7 +6,7 @@ export const viewStyles = {
     "tw:pt-[16px]",
   ].join(" "),
   "client_filter_bar": [
-    "client-filter-bar", "tw:grid", "tw:grid-cols-[repeat(6,_minmax(130px,_1fr))]", "tw:viewport-1000:grid-cols-[repeat(3,_minmax(0,_1fr))]",
+    "client-filter-bar", "tw:grid", "tw:grid-cols-[repeat(6,_minmax(130px,_1fr))]", "tw:max-[1180px]:grid-cols-[repeat(3,_minmax(0,_1fr))]",
     "tw:viewport-620:grid-cols-[1fr]", "tw:gap-y-[9px]", "tw:gap-x-[9px]", "tw:pt-[13px]",
     "tw:pr-[13px]", "tw:pb-[13px]", "tw:pl-[13px]", "tw:border-t-[length:1px]",
     "tw:[border-top-style:solid]", "tw:border-t-[color:#d7e2ef]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]",
@@ -68,7 +68,7 @@ export const viewStyles = {
   ].join(" "),
   "button_button_danger_button_small": sharedUtilities.buttonButtonDangerButtonSmall,
   "client_list_head": [
-    "client-list-head", "tw:grid", "tw:viewport-1160:hidden", "tw:grid-cols-[28px_minmax(200px,_1.3fr)_minmax(115px,_.8fr)_minmax(130px,_.9fr)_minmax(160px,_1fr)_minmax(140px,_.9fr)_minmax(130px,_.7fr)]",
+    "client-list-head", "tw:grid", "tw:max-[1220px]:hidden", "tw:grid-cols-[28px_minmax(150px,_1.3fr)_minmax(100px,_.8fr)_minmax(125px,_.9fr)_minmax(130px,_1fr)_minmax(110px,_.9fr)_minmax(100px,_.7fr)]",
     "tw:gap-y-[12px]", "tw:gap-x-[12px]", "tw:items-center", "tw:pt-[0]",
     "tw:pr-[13px]", "tw:pb-[0]", "tw:pl-[13px]", "tw:text-[color:#5c7290]",
     "tw:text-[.62rem]", "tw:font-[800]", "tw:tracking-[.04em]", "tw:uppercase",
@@ -82,16 +82,16 @@ export const viewStyles = {
     "tw:bg-[color:#fff]", "tw:[background-image:none]",
   ].join(" "),
   "client_row_client_row_clickable": [
-    "client-row", "client-row-clickable", "tw:grid", "tw:grid-cols-[28px_minmax(200px,_1.3fr)_minmax(115px,_.8fr)_minmax(130px,_.9fr)_minmax(160px,_1fr)_minmax(140px,_.9fr)_minmax(130px,_.7fr)]",
-    "tw:viewport-1160:grid-cols-[28px_1fr_1fr]", "tw:viewport-620:grid-cols-[28px_1fr]", "tw:gap-y-[12px]", "tw:viewport-620:gap-y-[5px]",
+    "client-row", "client-row-clickable", "tw:grid", "tw:grid-cols-[28px_minmax(150px,_1.3fr)_minmax(100px,_.8fr)_minmax(125px,_.9fr)_minmax(130px,_1fr)_minmax(110px,_.9fr)_minmax(100px,_.7fr)]",
+    "tw:max-[1220px]:grid-cols-[28px_1fr_1fr]", "tw:viewport-620:grid-cols-[28px_1fr]", "tw:gap-y-[12px]", "tw:viewport-620:gap-y-[5px]",
     "tw:gap-x-[12px]", "tw:viewport-620:gap-x-[5px]", "tw:items-center", "tw:min-h-[61px]",
     "tw:pt-[10px]", "tw:pr-[13px]", "tw:pb-[10px]", "tw:pl-[13px]",
     "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:#edf1f6]", "tw:text-[color:#40546e]",
     "tw:text-[.75rem]", "tw:[&:last-child]:border-b-[length:0]", "tw:[&:last-child]:[border-bottom-style:none]", "tw:[&:last-child]:border-b-[color:currentColor]",
     "tw:[&_>_div:first-child]:grid", "tw:[&_>_div:first-child]:gap-y-[2px]", "tw:[&_>_div:first-child]:gap-x-[2px]", "tw:[&_strong]:text-[color:#14355e]",
-    "tw:[&_strong]:text-[.82rem]", "tw:[&_small]:text-[color:#76879c]", "tw:[&_small]:text-[.65rem]", "tw:viewport-1160:[&_>_*]:min-w-[0]",
+    "tw:[&_strong]:text-[.82rem]", "tw:[&_small]:text-[color:#76879c]", "tw:[&_small]:text-[.65rem]", "tw:max-[1220px]:[&_>_*]:min-w-[0]",
     "tw:cursor-pointer", "tw:[transition:background_.15s_ease]", "tw:hover:bg-[color:#f5f9ff]", "tw:hover:[background-image:none]",
-    "tw:viewport-1160:grid-cols-[24px_minmax(0,1fr)]! tw:viewport-1160:items-start tw:viewport-1160:[&>_*:not(:first-child)]:col-start-2 tw:viewport-1160:[&>_*:first-child]:row-span-6 tw:viewport-1160:[&>_[data-label]]:before:content-[attr(data-label)] tw:viewport-1160:[&>_[data-label]]:before:block tw:viewport-1160:[&>_[data-label]]:before:text-[.65rem] tw:viewport-1160:[&>_[data-label]]:before:text-[var(--muted)] tw:viewport-1160:[&>_*]:break-words",
+    "tw:max-[1220px]:grid-cols-[24px_minmax(0,1fr)]! tw:max-[1220px]:items-start tw:max-[1220px]:[&>_*:not(:first-child)]:col-start-2 tw:max-[1220px]:[&>_*:first-child]:row-span-6 tw:max-[1220px]:[&>_[data-label]]:before:content-[attr(data-label)] tw:max-[1220px]:[&>_[data-label]]:before:block tw:max-[1220px]:[&>_[data-label]]:before:text-[.65rem] tw:max-[1220px]:[&>_[data-label]]:before:text-[var(--muted)] tw:max-[1220px]:[&>_*]:break-words",
   ].join(" "),
   "client_row_select": [
     "client-row-select", "tw:grid", "tw:place-items-center", "tw:[&_input]:w-[16px]",
@@ -101,7 +101,7 @@ export const viewStyles = {
     "client-identity", "tw:flex!", "tw:items-center", "tw:gap-y-[8px]",
     "tw:gap-x-[8px]", "tw:min-w-[0]", "tw:[&_strong]:[overflow-x:hidden]", "tw:[&_strong]:[overflow-y:hidden]",
     "tw:[&_strong]:text-ellipsis", "tw:[&_strong]:whitespace-nowrap",
-    "tw:viewport-1160:[&_strong]:whitespace-normal! tw:viewport-1160:[&_strong]:overflow-visible!",
+    "tw:max-[1220px]:[&_strong]:whitespace-normal! tw:max-[1220px]:[&_strong]:overflow-visible!",
   ].join(" "),
   "client_status_dot": [
     "client-status-dot", "tw:inline-block", "tw:w-[9px]", "tw:h-[9px]",
