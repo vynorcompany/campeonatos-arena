@@ -211,10 +211,16 @@ test("client profile can set the athlete's Liga A or B eligibility", () => {
 test("Liga workspace exposes category editing and a monthly history tab", () => {
   const tabs = readFileSync(resolve(process.cwd(), "src/components/tournaments/tournament-tabs.tsx"), "utf8");
   const page = readFileSync(resolve(process.cwd(), "src/app/(app)/torneios/[tournamentId]/categorias/[categoryId]/page.tsx"), "utf8");
+  const history = readFileSync(resolve(process.cwd(), "src/components/tournaments/league-history-panel.tsx"), "utf8");
 
   assert.match(tabs, /Histórico/);
   assert.match(page, /LeagueCategorySettingsDialog/);
   assert.match(page, /LeagueHistoryPanel/);
+  assert.match(page, /snapshotChampionName\(cycle\.snapshot, cycle\.championPairId\)/);
+  assert.match(page, /Ciclo da Liga processado com sucesso/);
+  assert.match(page, /successHref=\{`\/torneios\/\$\{params\.tournamentId\}\/categorias\/\$\{params\.categoryId\}\?tab=overview&reopened=1`\}/);
+  assert.match(history, /Campeã: \{cycle\.championName/);
+  assert.match(history, /Reabrir ciclo/);
   assert.match(page, /league-overview-bottom/);
 });
 

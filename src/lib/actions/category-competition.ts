@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireModuleEdit } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
-import { closeLeagueCycleManually } from "@/lib/league/lifecycle";
+import { closeLeagueCycleManually, reopenEmptyLeagueCycle } from "@/lib/league/lifecycle";
 import { parseReaisToCents } from "@/lib/tournaments/inputs";
 import {
   leagueMatchResultErrorState,
@@ -430,6 +430,15 @@ export async function runLeagueLifecycleAction(formData: FormData) {
   const competitionId = String(formData.get("competitionId") ?? "").trim();
   if (!competitionId) throw new Error("Liga inválida.");
   const result = await closeLeagueCycleManually(competitionId, new Date(), auth.arenaId);
+  refreshCategoryCompetitionRoutes();
+  return result;
+}
+
+export async function reopenLeagueCycleAction(formData: FormData) {
+  const auth = await requireModuleEdit("tournaments");
+  const cycleId = String(formData.get("cycleId") ?? "").trim();
+  if (!cycleId) throw new Error("Ciclo da Liga inválido.");
+  const result = await reopenEmptyLeagueCycle(cycleId, auth.arenaId);
   refreshCategoryCompetitionRoutes();
   return result;
 }

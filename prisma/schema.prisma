@@ -800,6 +800,7 @@ model CategoryPair {
   name                        String
   totalPoints                 Int                                @default(0)
   active                      Boolean                            @default(true)
+  pendingLeagueTransfer       Boolean                            @default(false)
   drawOrder                   Int                                @default(0)
   createdAt                   DateTime                           @default(now())
   updatedAt                   DateTime                           @updatedAt

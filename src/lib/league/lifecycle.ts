@@ -123,7 +123,7 @@ async function snapshotLeagueCycle(competitionId: string, cycleId: string) {
     where: { id: competitionId },
     include: {
       category: { include: { registrations: { select: { id: true, leadName: true, partnerName: true, status: true, paymentStatus: true, createdAt: true } } } },
-      pairs: { include: { players: { include: { player: { select: { name: true } } } } } },
+      pairs: { where: { pendingLeagueTransfer: false }, include: { players: { include: { player: { select: { name: true } } } } } },
       groups: { include: { pairs: { select: { id: true, name: true } } } },
       matches: { include: { homePair: { select: { name: true } }, awayPair: { select: { name: true } }, winnerPair: { select: { name: true } } } },
       leagueCycles: { where: { id: cycleId }, include: { matches: { include: { homePair: { select: { name: true } }, awayPair: { select: { name: true } }, winnerPair: { select: { name: true } } } } } }
@@ -157,8 +157,12 @@ async function resetLeagueCompetition(competitionId: string) {
   await withArenaTransaction(arenaId, async (tx) => {
     await tx.publicTournamentRegistration.updateMany({ where: { competitionId }, data: { status: "CANCELED" } });
     await tx.categoryMatch.deleteMany({ where: { competitionId } });
-    await tx.categoryPair.deleteMany({ where: { competitionId } });
+    await tx.categoryPair.deleteMany({ where: { competitionId, pendingLeagueTransfer: false } });
     await tx.categoryGroup.deleteMany({ where: { competitionId } });
+    await tx.categoryPair.updateMany({
+      where: { competitionId, pendingLeagueTransfer: true },
+      data: { pendingLeagueTransfer: false, active: true },
+    });
     await tx.categoryCompetition.update({ where: { id: competitionId }, data: { status: "DRAFT" } });
   });
 }
@@ -224,8 +228,18 @@ async function applyPromotionAndRelegation(cycleId: string) {
     if (!pair || targetCompetitionId === cycle.competitionId) return;
     await prisma.$transaction(async (tx) => {
       await tx.categoryPair.update({ where: { id: pair.id }, data: { active: false } });
+      const destinationHasOpenCycle = await tx.leagueCycle.findFirst({
+        where: { competitionId: targetCompetitionId, status: "OPEN", referenceMonth: { lte: cycle.referenceMonth } },
+        select: { id: true },
+      });
       const movedPair = await tx.categoryPair.create({
-        data: { name: pair.name, totalPoints: 0, active: true, competitionId: targetCompetitionId },
+        data: {
+          name: pair.name,
+          totalPoints: 0,
+          active: !destinationHasOpenCycle,
+          pendingLeagueTransfer: Boolean(destinationHasOpenCycle),
+          competitionId: targetCompetitionId,
+        },
       });
       await tx.categoryPairPlayer.createMany({
         data: pair.players.map((player, slot) => ({
@@ -283,6 +297,74 @@ export async function closeLeagueCycleManually(competitionId: string, now = new 
   await resetLeagueCompetition(cycle.competitionId);
   await createMonthlyCycle(cycle.competitionId, nextMonthKey(cycle.referenceMonth));
   return { closedCycles: 1, nextReferenceMonth: nextMonthKey(cycle.referenceMonth) };
+}
+
+/** Reopens an accidentally closed empty month without rewriting historical games or player transfers. */
+export async function reopenEmptyLeagueCycle(cycleId: string, arenaId: string, now = new Date()) {
+  return withArenaTransaction(arenaId, async (tx) => {
+    const cycle = await tx.leagueCycle.findFirst({
+      where: { id: cycleId, status: "CLOSED", competition: { format: "LEAGUE", category: { tournament: { arenaId } } } },
+      select: {
+        id: true, competitionId: true, referenceMonth: true, snapshot: true,
+        championPairId: true, promotedPairId: true, relegatedPairId: true,
+      },
+    });
+    if (!cycle) throw new Error("Ciclo encerrado não encontrado nesta arena.");
+    if (cycle.referenceMonth !== monthKey(now)) {
+      throw new Error("Somente o ciclo do mês atual pode ser reaberto automaticamente.");
+    }
+    const snapshot = cycle.snapshot;
+    const sections = snapshot && typeof snapshot === "object" && !Array.isArray(snapshot)
+      ? snapshot as Record<string, unknown> : null;
+    if (!sections || ["pairs", "groups", "matches", "registrations"].some((key) => !Array.isArray(sections[key]) || (sections[key] as unknown[]).length > 0)
+      || cycle.championPairId || cycle.promotedPairId || cycle.relegatedPairId) {
+      throw new Error("Este ciclo contém dados históricos ou transferências e não pode ser reaberto automaticamente.");
+    }
+    const cycles = await tx.leagueCycle.findMany({
+      where: { competitionId: cycle.competitionId, referenceMonth: { gt: cycle.referenceMonth } },
+      orderBy: { referenceMonth: "asc" },
+      select: { id: true, referenceMonth: true, status: true, _count: { select: { matches: true } } },
+    });
+    if (cycles.length !== 1 || cycles[0].referenceMonth !== nextMonthKey(cycle.referenceMonth)
+      || cycles[0].status !== "OPEN" || cycles[0]._count.matches !== 0) {
+      throw new Error("O ciclo seguinte já possui atividade ou outros ciclos posteriores. Reabertura automática indisponível.");
+    }
+    const [currentMatches, activeRegistrations, tierChanges] = await Promise.all([
+      tx.categoryMatch.count({ where: { competitionId: cycle.competitionId } }),
+      tx.publicTournamentRegistration.count({ where: { competitionId: cycle.competitionId, status: { not: "CANCELED" } } }),
+      tx.leagueAthleteTier.count({ where: { leagueCycleId: cycle.id } }),
+    ]);
+    if (currentMatches || activeRegistrations || tierChanges) {
+      throw new Error("Há jogos, inscrições ou mudanças de nível após o fechamento. Reabertura automática indisponível.");
+    }
+    const pairs = await tx.categoryPair.findMany({
+      where: { competitionId: cycle.competitionId, active: true, pendingLeagueTransfer: false },
+      select: { id: true }, orderBy: { drawOrder: "asc" },
+    });
+    await tx.leagueCycle.delete({ where: { id: cycles[0].id } });
+    await tx.leagueCycle.update({ where: { id: cycle.id }, data: { status: "OPEN", closedAt: null } });
+    await tx.categoryCompetition.update({ where: { id: cycle.competitionId }, data: { status: "PUBLISHED" } });
+    let scheduledMatches = 0;
+    if (pairs.length >= 2) {
+      const [year, month] = cycle.referenceMonth.split("-").map(Number);
+      const blocks = getLeagueMonthBlocks(year, month);
+      const schedule = buildMonthlyLeagueSchedule(pairs.map((pair) => pair.id));
+      scheduledMatches = schedule.matches.length;
+      const graceDeadline = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      await tx.categoryMatch.createMany({ data: schedule.matches.map((match, index) => ({
+        competitionId: cycle.competitionId,
+        stage: "GROUP",
+        label: `Semana ${match.blockNumber} · Jogo ${index + 1}`,
+        roundOrder: index + 1,
+        homePairId: match.homePairId,
+        awayPairId: match.awayPairId,
+        leagueCycleId: cycle.id,
+        leagueBlock: match.blockNumber,
+        hostProposalDeadline: new Date(Math.max(new Date(`${blocks[match.blockNumber - 1].endsOn}T23:59:59.999`).getTime(), graceDeadline.getTime())),
+      })) });
+    }
+    return { reopenedCycleId: cycle.id, referenceMonth: cycle.referenceMonth, scheduledMatches };
+  });
 }
 
 export { createMonthlyCycle, monthBounds, syncLeagueAthleteTiers };

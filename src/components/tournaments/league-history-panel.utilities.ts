@@ -24,6 +24,7 @@ export const viewStyles = {
     "tw:[&>header>span]:text-[.78rem]", "tw:[&>header>span]:font-[700]",
   ].join(" "),
   "eyebrow": sharedUtilities.eyebrow,
+  "reopen_button": sharedUtilities.buttonButtonSecondaryButtonSmall,
   "league_history_list": [
     "league-history-list", "tw:grid", "tw:grid-cols-[repeat(auto-fit,minmax(220px,1fr))]", "tw:gap-y-[9px]",
     "tw:gap-x-[9px]", "tw:[&_article]:grid", "tw:[&_article]:gap-y-[5px]", "tw:[&_article]:gap-x-[5px]",
@@ -31,7 +32,7 @@ export const viewStyles = {
     "tw:[&_article]:border-t-[length:1px]", "tw:[&_article]:[border-top-style:solid]", "tw:[&_article]:border-t-[color:var(--border)]", "tw:[&_article]:border-r-[length:1px]",
     "tw:[&_article]:[border-right-style:solid]", "tw:[&_article]:border-r-[color:var(--border)]", "tw:[&_article]:border-b-[length:1px]", "tw:[&_article]:[border-bottom-style:solid]",
     "tw:[&_article]:border-b-[color:var(--border)]", "tw:[&_article]:border-l-[length:1px]", "tw:[&_article]:[border-left-style:solid]", "tw:[&_article]:border-l-[color:var(--border)]",
-    "tw:[&_article]:rounded-[10px]", "tw:[&_article]:bg-[color:#fbfdff]", "tw:[&_article]:[background-image:none]", "tw:[&_article_strong]:[text-transform:capitalize]",
-    "tw:[&_article_span]:text-[color:var(--muted)]", "tw:[&_article_span]:text-[.84rem]", "tw:[&_article_small]:text-[color:var(--muted)]", "tw:[&_article_small]:text-[.84rem]",
+    "tw:[&_article]:rounded-[10px]", "tw:[&_article]:bg-[color:#fbfdff]", "tw:[&_article]:[background-image:none]",
+    "tw:[&_article_span]:text-[color:var(--muted)]", "tw:[&_article_span]:text-[.84rem]", "tw:[&_article_small]:text-[color:var(--muted)]", "tw:[&_article_small]:text-[.84rem]", "tw:[&_article_small]:[overflow-wrap:anywhere]",
   ].join(" "),
 } as const;

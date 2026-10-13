@@ -58,7 +58,7 @@ export function CategoryList({
               </span>
               <span className={viewStyles.t_category_pairs}>
                 {category.competition
-                  ? `${category.competition.pairCount} duplas`
+                  ? `${category.competition.pairCount} ${category.competition.pairCount === 1 ? "dupla" : "duplas"}`
                   : "—"}
               </span>
               <span className={cx(`${viewStyles.t_category_status} ${category.competition ? "active" : "pending"}`)}>{category.competition ? "Ativa" : "Pendente"}</span>

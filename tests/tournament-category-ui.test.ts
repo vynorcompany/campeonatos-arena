@@ -316,7 +316,7 @@ test("category games can be ordered by round, date, or operational status", asyn
     ),
   ]);
 
-  assert.match(route, /searchParams\?: Promise<\{ tab\?: string; sort\?: string(?:; status\?: string)?(?:; player\?: string)? \}>/);
+  assert.match(route, /searchParams\?: Promise<\{ tab\?: string; sort\?: string(?:; status\?: string)?(?:; player\?: string)?(?:; reopened\?: string)? \}>/);
   assert.match(route, /sort=\{gameSort\}/);
   assert.match(panel, /name="sort"/);
   assert.match(panel, /value="round"/);
@@ -337,7 +337,7 @@ test("category games can be filtered by one selected status", async () => {
     ),
   ]);
 
-  assert.match(route, /searchParams\?: Promise<\{ tab\?: string; sort\?: string; status\?: string(?:; player\?: string)? \}>/);
+  assert.match(route, /searchParams\?: Promise<\{ tab\?: string; sort\?: string; status\?: string(?:; player\?: string)?(?:; reopened\?: string)? \}>/);
   assert.match(route, /statusFilter=\{gameStatusFilter\}/);
   assert.match(panel, /name="status"/);
   assert.match(panel, /value="ALL"/);

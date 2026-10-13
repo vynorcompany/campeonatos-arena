@@ -10,7 +10,7 @@ export default async function TournamentCategoriesPage(props: { params: Promise<
   const auth = await requireModuleView("tournaments");
   const tournament = await prisma.tournament.findFirst({
     where: { id: params.tournamentId, arenaId: auth.arenaId },
-    include: { categories: { orderBy: { level: "asc" }, include: { competition: { select: { format: true, _count: { select: { pairs: true } } } } } } },
+    include: { categories: { orderBy: { level: "asc" }, include: { competition: { select: { format: true, _count: { select: { pairs: { where: { active: true } } } } } } } } },
   });
   if (!tournament) notFound();
 

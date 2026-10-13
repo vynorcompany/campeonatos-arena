@@ -38,7 +38,7 @@ export default async function TournamentDetailPage(props: TournamentDetailPagePr
                 format: true,
                 status: true,
                 _count: {
-                  select: { pairs: true },
+                  select: { pairs: { where: { active: true } } },
                 },
               },
             },
