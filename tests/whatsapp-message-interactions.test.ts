@@ -84,6 +84,35 @@ test("an accepted Evolution text response without JSON is not treated as a faile
   assert.equal(requests, 1);
 });
 
+test("media retries only after format rejection, never after a server failure", async () => {
+  const source = readFileSync(new URL("../src/lib/integrations/evolution/client.ts", import.meta.url), "utf8");
+  for (const firstStatus of [400, 422, 500, 503]) {
+    const sentMedia: string[] = [];
+    const exports: Record<string, (...args: any[]) => Promise<any>> = {};
+    vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
+      exports,
+      fetch: async (_url: string, options: { body: string }) => {
+        sentMedia.push(JSON.parse(options.body).media);
+        const status = sentMedia.length === 1 ? firstStatus : 201;
+        return { ok: status === 201, status, json: async () => ({}), text: async () => "rejeitado" };
+      },
+      require: (name: string) => {
+        if (name === "server-only") return {};
+        if (name === "@/lib/env") return { env: { evolutionApiUrl: "https://provider.invalid", evolutionApiKey: "fixture" } };
+        if (name === "@/lib/integrations/evolution") return { buildEvolutionTextPayload, evolutionRecipientNumber };
+        if (name === "./groups") return { readEvolutionGroupName };
+        if (name === "@/lib/payments/connection-secrets") return { decryptConnectionSecrets: () => ({ token: "" }) };
+        if (name === "@/lib/prisma") return { prisma: { whatsAppConnection: { findUnique: async () => ({ status: "CONNECTED", instanceName: "test" }) } } };
+        throw new Error(`Unexpected import: ${name}`);
+      },
+    });
+    const sending = exports.sendEvolutionMediaMessage("5511999999999", "data:application/pdf;base64,AAAA", "document", "a.pdf", "application/pdf", "arena");
+    if (firstStatus >= 500) await assert.rejects(sending, new RegExp(`\\(${firstStatus}\\)`));
+    else await sending;
+    assert.deepEqual(sentMedia, firstStatus >= 500 ? ["data:application/pdf;base64,AAAA"] : ["data:application/pdf;base64,AAAA", "AAAA"]);
+  }
+});
+
 test("reply and reaction actions validate the account and send original provider keys", async () => {
   const delivered: { kind: string; args: any[] }[] = [];
   const stored: any[] = [];

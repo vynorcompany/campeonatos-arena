@@ -62,7 +62,12 @@ export async function sendEvolutionMediaMessage(phone: string, mediaDataUrl: str
   const config = getEvolutionConfig(); const number = evolutionRecipientNumber(phone);
   const send = (media: string) => fetch(`${config.apiUrl}/message/sendMedia/${encodeURIComponent(connection.instanceName)}`, { method: "POST", headers: { apikey: config.apiKey, "content-type": "application/json" }, body: JSON.stringify({ number: phone.endsWith("@g.us") ? phone : number, mediatype: mediaType, media, fileName, mimetype: mimeType, caption: "", ...(quoted ? { quoted } : {}) }), cache: "no-store" });
   let response = await send(mediaDataUrl);
-  if (!response.ok && mediaDataUrl.includes(",")) response = await send(mediaDataUrl.slice(mediaDataUrl.indexOf(",") + 1));
+  // Só tente o formato base64 puro se o provedor rejeitou a representação.
+  // Em falha de servidor/rede, ele pode já ter aceitado o arquivo; reenviar
+  // nesse caso cria mensagens duplicadas na conversa.
+  if ((response.status === 400 || response.status === 422) && mediaDataUrl.includes(",")) {
+    response = await send(mediaDataUrl.slice(mediaDataUrl.indexOf(",") + 1));
+  }
   if (!response.ok) { const detail = (await response.text().catch(() => "")).slice(0, 180); throw new Error(`A Evolution recusou o envio do anexo (${response.status})${detail ? `: ${detail}` : "."}`); }
   return response.json().catch(() => ({})) as Promise<unknown>;
 }
