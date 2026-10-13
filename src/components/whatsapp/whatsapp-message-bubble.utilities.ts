@@ -1,5 +1,6 @@
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
+  "whatsapp_group_sender": "tw:mb-[4px] tw:block tw:pr-[20px] tw:text-[.76rem] tw:font-[700] tw:text-[#177451] tw:[overflow-wrap:anywhere]",
   "whatsapp_message_menu_trigger": [
     "whatsapp-message-menu-trigger", "tw:absolute", "tw:top-[4px]", "tw:right-[4px]",
     "tw:grid", "tw:place-items-center", "tw:w-[22px]", "tw:h-[22px]",

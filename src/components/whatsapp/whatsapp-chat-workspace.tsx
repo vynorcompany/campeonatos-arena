@@ -25,6 +25,7 @@ import { useConversationMessages } from "./use-conversation-messages";
 import { shouldRefreshWhatsAppGroupName, WHATSAPP_GROUP_NAME_RETRY_MS } from "@/lib/whatsapp-group-name-retry";
 import { WhatsAppMessageBubble } from "./whatsapp-message-bubble";
 import { mergeWhatsAppMessages } from "./merge-messages";
+import { presentWhatsAppGroupMessage } from "@/lib/whatsapp-group-message";
 
 const time = (value: string) => new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 const emojis = ["😀", "😁", "😂", "🥳", "😍", "😎", "🙏", "👍", "👋", "🎾", "🔥", "❤️"];
@@ -90,6 +91,7 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
   const contactDetailsClose = useRef<HTMLButtonElement>(null);
 
   const active = conversations.find((conversation) => conversation.id === activeId) ?? conversations[0] ?? null;
+  const replyPresentation = replyTo && active ? presentWhatsAppGroupMessage({ isGroup: active.remoteJid.endsWith("@g.us"), direction: replyTo.direction, body: replyTo.body, senderName: replyTo.senderName }) : null;
   const messageHistory = useConversationMessages(active?.id, currentAccountJid, initialVersion);
   const loadedMessages = messageHistory.messages;
   const messagesFor = useCallback((conversation: WhatsAppConversation) => mergeWhatsAppMessages(
@@ -373,14 +375,14 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
     </aside>
     <main className={viewStyles.whatsapp_chat_main}>{active ? <>
       <header><div><Avatar conversation={active} size="is-header" onExpand={setSelectedImage} /><span><strong>{whatsAppConversationName(active)}</strong><small>{active.remoteJid.endsWith("@g.us") ? "Grupo do WhatsApp" : formatWhatsAppPhone(active.contactPhone)}</small></span></div></header>
-      <div className={viewStyles.whatsapp_message_thread}>{messageHistory.loading ? <p role="status" className="tw:text-xs tw:text-slate-500">Carregando histórico…</p> : null}{messageHistory.failed ? <p role="status" className="tw:text-xs tw:text-slate-600">Não foi possível carregar o histórico. <button type="button" className="tw:underline" onClick={messageHistory.retry}>Tentar novamente</button></p> : null}{activeMessages.map((message) => <WhatsAppMessageBubble key={message.id} message={message} accountJid={currentAccountJid} canEdit={canSend} pending={pending} menuOpen={canSend && messageMenuId === message.id} onMenu={() => setMessageMenuId(messageMenuId === message.id ? "" : message.id)} onReply={() => { setReplyTo(message); setMessageMenuId(""); messageInput.current?.focus(); }} onReact={(emoji) => reactToMessage(message, emoji)} onImage={setSelectedImage} />)}</div>
+      <div className={viewStyles.whatsapp_message_thread}>{messageHistory.loading ? <p role="status" className="tw:text-xs tw:text-slate-500">Carregando histórico…</p> : null}{messageHistory.failed ? <p role="status" className="tw:text-xs tw:text-slate-600">Não foi possível carregar o histórico. <button type="button" className="tw:underline" onClick={messageHistory.retry}>Tentar novamente</button></p> : null}{activeMessages.map((message) => <WhatsAppMessageBubble key={message.id} message={message} isGroup={active.remoteJid.endsWith("@g.us")} accountJid={currentAccountJid} canEdit={canSend} pending={pending} menuOpen={canSend && messageMenuId === message.id} onMenu={() => setMessageMenuId(messageMenuId === message.id ? "" : message.id)} onReply={() => { setReplyTo(message); setMessageMenuId(""); messageInput.current?.focus(); }} onReact={(emoji) => reactToMessage(message, emoji)} onImage={setSelectedImage} />)}</div>
       {canSend ? <form className={viewStyles.whatsapp_composer} onSubmit={sendText} onKeyDown={(event) => {
         if (event.target instanceof HTMLTextAreaElement && event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229) {
           event.preventDefault();
           if (!event.repeat) event.currentTarget.requestSubmit();
         }
       }}>
-        {replyTo ? <div className={viewStyles.whatsapp_reply_preview}><div><strong>Respondendo a {replyTo.direction === "OUTBOUND" ? replyTo.senderName || "você" : active.contactName || "contato"}</strong><span>{replyTo.body || "Mensagem"}</span></div><button type="button" aria-label="Cancelar resposta" onClick={() => setReplyTo(null)}>×</button></div> : null}
+        {replyTo ? <div className={viewStyles.whatsapp_reply_preview}><div><strong>Respondendo a {replyTo.direction === "OUTBOUND" ? replyTo.senderName || "você" : active.remoteJid.endsWith("@g.us") ? replyPresentation?.senderName || "participante" : active.contactName || "contato"}</strong><span>{replyPresentation?.body || "Mensagem"}</span></div><button type="button" aria-label="Cancelar resposta" onClick={() => setReplyTo(null)}>×</button></div> : null}
         <input ref={fileInput} type="file" accept="image/*,.pdf" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) uploadFile(file); }} />
         <button type="button" className={viewStyles.whatsapp_composer_icon} title="Anexar imagem ou PDF" aria-label="Anexar imagem ou PDF" onClick={() => fileInput.current?.click()}><WhatsAppIcon name="paperclip" size={20} /></button>
         <button type="button" className={cx(`${viewStyles.whatsapp_composer_icon_whatsapp_record_button} ${recording ? "is-recording" : ""}`)} title={recording ? "Parar gravação" : "Gravar áudio"} aria-label={recording ? "Parar gravação" : "Gravar áudio"} onClick={() => recording ? stopRecording() : beginRecording()}><WhatsAppIcon name="microphone" /></button>

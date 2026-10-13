@@ -8,6 +8,7 @@ import { reactionEmojis, readWhatsAppReactions, withWhatsAppReaction } from "../
 import { buildEvolutionTextPayload, evolutionRecipientNumber } from "../src/lib/integrations/evolution";
 import { readEvolutionGroupName } from "../src/lib/integrations/evolution/groups";
 import { normalizeWhatsAppAccountJid } from "../src/lib/whatsapp-account";
+import { presentWhatsAppGroupMessage } from "../src/lib/whatsapp-group-message";
 
 const require = createRequire(import.meta.url);
 function load(path: string, mocks: Record<string, unknown>) {
@@ -65,13 +66,14 @@ test("Evolution requests carry quoted messages and native reactions, including g
 test("reply and reaction actions validate the account and send original provider keys", async () => {
   const delivered: { kind: string; args: any[] }[] = [];
   const stored: any[] = [];
-  const target = { id: "message", providerId: "original-provider", direction: "INBOUND", body: "Pergunta original", senderName: "", participantJid: "participant@s.whatsapp.net", providerPayload: { conversation: "Pergunta original" }, conversation: { id: "conversation", arenaId: "arena", accountJid: "current", remoteJid: "123456789012@g.us", contactName: "Grupo" } };
+  const target = { id: "message", providerId: "original-provider", direction: "INBOUND", body: "Victor: Pergunta original", senderName: "", participantJid: "participant@s.whatsapp.net", providerPayload: { conversation: "Pergunta original" }, conversation: { id: "conversation", arenaId: "arena", accountJid: "current", remoteJid: "123456789012@g.us", contactName: "Grupo" } };
   const deliver = (kind: string) => async (...args: any[]) => { delivered.push({ kind, args }); return { key: { id: "new-provider" } }; };
   const actions = load("../src/lib/actions/whatsapp-chat.ts", {
     "next/cache": { revalidatePath() {} },
     "@/lib/auth/guards": { requireWhatsAppSend: async () => ({ arenaId: "arena", userId: "user", userName: "Atendente" }) },
     "@/lib/whatsapp-active-account": { getActiveWhatsAppAccountJid: async () => "current" },
     "@/lib/whatsapp-message-data": { reactionEmojis },
+    "@/lib/whatsapp-group-message": { presentWhatsAppGroupMessage },
     "@/lib/prisma": { prisma: { whatsAppMessage: { findFirst: async ({ where }: any) => where.id === target.id && where.conversation.arenaId === "arena" && where.conversation.accountJid === "current" && (!where.conversation.id || where.conversation.id === "conversation") ? target : null } } },
     "@/lib/rls": {},
     "@/lib/integrations/evolution/client": { sendEvolutionTextMessage: deliver("text"), sendEvolutionAudioMessage: deliver("audio"), sendEvolutionMediaMessage: deliver("media"), sendEvolutionReaction: deliver("reaction") },
@@ -97,6 +99,7 @@ test("reply and reaction actions validate the account and send original provider
     assert.equal(quote.message.conversation, "Pergunta original");
   }
   assert.equal(stored[0].quotedBody, "Pergunta original");
+  assert.equal(stored[0].quotedAuthor, "Victor");
   assert.equal(stored[0].body, "Resposta");
   form.set("replyToId", "other-account-message");
   await assert.rejects(actions.sendWhatsAppChatMessageAction(form), /não pertence/);
@@ -260,4 +263,42 @@ test("duplicate webhook messages count once and provider IDs remain scoped to ea
   assert.equal(conversations.size, 2);
   assert.equal(messages.size, 2);
   assert.deepEqual([...conversations.values()].map((item) => item.unreadCount), [1, 1]);
+});
+
+test("group webhook stores the participant name separately from the message body", async () => {
+  const created: Record<string, unknown>[] = [];
+  const tx = {
+    whatsAppConversation: {
+      upsert: async () => ({ id: "conversation", profilePhotoUrl: "" }),
+      update: async () => ({}),
+    },
+    whatsAppMessage: {
+      findUnique: async () => null,
+      upsert: async ({ create }: { create: Record<string, unknown> }) => { created.push(create); return { id: "message" }; },
+    },
+    $queryRaw: async () => [{ id: "conversation" }],
+  };
+  const webhook = load("../src/app/api/integrations/evolution/webhook/route.ts", {
+    "next/server": { NextResponse: { json: (value: unknown) => value } },
+    "@prisma/client": {},
+    "@/lib/integrations/evolution/client": { getEvolutionGroupName: async () => "Grupo de teste" },
+    "@/lib/payments/connection-secrets": { hashWebhookSecret: () => "hash" },
+    "@/lib/prisma": { prisma: { whatsAppConnection: { findUnique: async () => ({ id: "connection", arenaId: "arena", webhookSecretHash: "hash", status: "CONNECTED", connectedPhone: "111@s.whatsapp.net" }) } } },
+    "@/lib/whatsapp-account": { normalizeWhatsAppAccountJid },
+    "@/lib/integrations/evolution/agency": {},
+    "@/lib/integrations/evolution/groups": { readEvolutionGroupName: () => "" },
+    "@/lib/services/whatsapp-conversation": {},
+    "@/lib/rls": { withArenaTransaction: async (_arenaId: string, operation: (client: typeof tx) => unknown) => operation(tx) },
+  });
+  await webhook.POST({
+    nextUrl: { searchParams: new URLSearchParams("instance=group-instance&secret=secret") }, headers: new Headers(),
+    json: async () => ({ instance: "group-instance", event: "MESSAGES_UPSERT", data: {
+      owner: "111", key: { remoteJid: "123456789012@g.us", participant: "5511999991111@s.whatsapp.net", fromMe: false, id: "group-message" },
+      pushName: "Victor", message: { conversation: "Olá!" },
+    } }),
+  });
+  assert.equal(created.length, 1);
+  assert.equal(created[0].senderName, "Victor");
+  assert.equal(created[0].body, "Olá!");
+  assert.equal(created[0].participantJid, "5511999991111@s.whatsapp.net");
 });

@@ -11,6 +11,7 @@ import { getActiveWhatsAppAccountJid } from "@/lib/whatsapp-active-account";
 import { getArenaWhatsAppConversation, getEvolutionProviderId, persistOutboundWhatsAppMessage, persistWhatsAppReaction } from "@/lib/services/whatsapp-conversation";
 import { reactionEmojis } from "@/lib/whatsapp-message-data";
 import { outgoingWhatsAppMediaKind } from "@/lib/whatsapp-media-types";
+import { presentWhatsAppGroupMessage } from "@/lib/whatsapp-group-message";
 
 const sendSchema = z.object({ conversationId: z.string().min(1), body: z.string().trim().min(1, "Escreva uma mensagem.").max(4096, "A mensagem é muito longa.") });
 const readSchema = z.object({ conversationId: z.string().min(1) });
@@ -35,7 +36,9 @@ async function replyContext(arenaId: string, conversationId: string, formData: F
     key: { id: target.providerId, remoteJid: target.conversation.remoteJid, fromMe: target.direction === "OUTBOUND", ...(target.participantJid ? { participant: target.participantJid } : {}) },
     message: target.providerPayload && typeof target.providerPayload === "object" && !Array.isArray(target.providerPayload) ? target.providerPayload as Record<string, unknown> : { conversation: target.body },
   };
-  return { quoted, metadata: { quotedProviderId: target.providerId, quotedBody: target.body, quotedAuthor: target.direction === "OUTBOUND" ? target.senderName || "Você" : target.conversation.contactName || "Contato" } };
+  const isGroup = target.conversation.remoteJid.endsWith("@g.us");
+  const presented = presentWhatsAppGroupMessage({ isGroup, direction: target.direction, body: target.body, senderName: target.senderName });
+  return { quoted, metadata: { quotedProviderId: target.providerId, quotedBody: presented.body, quotedAuthor: target.direction === "OUTBOUND" ? target.senderName || "Você" : isGroup ? presented.senderName || "Participante" : target.conversation.contactName || "Contato" } };
 }
 
 export async function reactToWhatsAppMessageAction(formData: FormData) {
