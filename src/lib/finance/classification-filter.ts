@@ -8,3 +8,10 @@ export function classificationFilter(category: string): Record<string, unknown> 
   }
   return { category: { equals: category, mode: "insensitive" } };
 }
+
+export function classificationFilterOptions(categories: string[], type: "REVENUE" | "EXPENSE") {
+  const options = type === "REVENUE" ? ["Plano de Aulas", "Vendas", ...categories] : categories;
+  return options.filter((option, index) =>
+    options.findIndex((candidate) => candidate.toLocaleLowerCase("pt-BR") === option.toLocaleLowerCase("pt-BR")) === index,
+  );
+}

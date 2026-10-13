@@ -17,6 +17,7 @@ import {
   voidFinancialEntryAction,
 } from "@/lib/actions/finance";
 import { MoneyInput } from "@/components/forms/money-input";
+import { classificationFilterOptions } from "@/lib/finance/classification-filter";
 import {
   amountInput,
   date,
@@ -189,7 +190,7 @@ export function AccountsLedger({
         <select name="status" defaultValue={String(filters.status ?? "")}><option value="">Todos os status</option><option value="PENDING">Em aberto</option><option value="PAID">Quitada</option><option value="VOIDED">Estornada</option></select>
         <select name="paymentMethod" defaultValue={String(filters.paymentMethod ?? "")}><option value="">Forma de pagamento</option>{paymentMethods.map((method) => <option key={method} value={method}>{method}</option>)}</select>
         <select name="bankAccountId" defaultValue={String(filters.bankAccountId ?? "")}><option value="">Conta bancária</option>{bankAccounts.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
-        <select name="category" defaultValue={String(filters.category ?? "")}><option value="">Classificação</option>{categoryOptions.map((item) => <option key={item} value={item}>{item}</option>)}</select>
+        <select name="category" defaultValue={String(filters.category ?? "")}><option value="">Classificação</option>{classificationFilterOptions(categoryOptions, type).map((item) => <option key={item} value={item}>{item}</option>)}</select>
         <input name="description" placeholder="Descrição" defaultValue={String(filters.description ?? "")} />
         {type === "REVENUE" ? <><select name="productId" defaultValue={String(filters.productId ?? "")}><option value="">Produto</option>{products.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><select name="planId" defaultValue={String(filters.planId ?? "")} onChange={(event) => event.currentTarget.form?.requestSubmit()} aria-label="Filtrar por plano ou por todos os planos do professor"><option value="">Plano/pacote</option><PlanSelectOptions plans={plans} includeTeacherAll /></select></> : null}
         <select name="dateField" defaultValue={String(filters.dateField ?? "dueDate")}><option value="dueDate">Data de vencimento</option><option value="paidAt">Data de pagamento</option></select>
