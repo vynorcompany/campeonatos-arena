@@ -50,8 +50,8 @@ export async function ArenaUsersManagement({ arenaId, currentUserId, query = "" 
                   <strong>{member.user.name}</strong>
                   <span className={viewStyles.table_subtext}>{member.user.email}</span>
                 </td>
-                <td>{member.permissionProfile?.name ?? "Acesso legado"}</td>
-                <td>
+                <td><span className={viewStyles.user_mobile_label}>Perfil</span>{member.permissionProfile?.name ?? "Acesso legado"}</td>
+                <td><span className={viewStyles.user_mobile_label}>Ações</span>
                   <UserActionsCell
                     userId={member.userId}
                     name={member.user.name}

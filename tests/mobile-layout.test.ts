@@ -40,6 +40,16 @@ test("WhatsApp mobile keeps the composer inside the viewport and scrolls only it
   assert.match(workspace, /viewport-420:\[&_main_form_\.whatsapp-composer-field\]:\[grid-column:1\/-1\]/);
 });
 
+test("user management reflows rows and keeps actions visible on a narrow screen", () => {
+  const page = source("src/components/users/arena-users-management.tsx");
+  const styles = source("src/components/users/arena-users-management.utilities.ts");
+  assert.match(page, /user_mobile_label}>Perfil/);
+  assert.match(page, /user_mobile_label}>Ações/);
+  assert.match(styles, /viewport-760:\[&_\.data-table\]:min-w-0!/);
+  assert.match(styles, /viewport-760:\[&_\.data-table_tbody_tr\]:grid/);
+  assert.match(styles, /viewport-760:\[&_\.data-table_tbody_td\]:block/);
+});
+
 test("o player de áudio ocupa o balão sem criar rolagem horizontal no chat estreito", () => {
   const bubble = source("src/components/whatsapp/whatsapp-message-bubble.utilities.ts");
   const workspace = source("src/components/whatsapp/whatsapp-chat-workspace.utilities.ts");
