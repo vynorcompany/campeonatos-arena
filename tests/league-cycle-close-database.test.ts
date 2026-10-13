@@ -15,9 +15,12 @@ const disposableDatabase = (() => {
   } catch { return false; }
 })();
 
-function loadManualClose(prisma: PrismaClient) {
+function loadLifecycle(prisma: PrismaClient) {
   const source = readFileSync(new URL("../src/lib/league/lifecycle.ts", import.meta.url), "utf8");
-  const exports: { closeLeagueCycleManually?: (competitionId: string, now: Date, arenaId: string) => Promise<{ closedCycles: number; nextReferenceMonth: string }> } = {};
+  const exports: {
+    closeLeagueCycleManually?: (competitionId: string, now: Date, arenaId: string) => Promise<{ closedCycles: number; nextReferenceMonth: string }>;
+    reopenEmptyLeagueCycle?: (cycleId: string, arenaId: string, now: Date) => Promise<{ reopenedCycleId: string; scheduledMatches: number }>;
+  } = {};
   vm.runInNewContext(ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText, {
@@ -32,7 +35,8 @@ function loadManualClose(prisma: PrismaClient) {
     },
   });
   assert.ok(exports.closeLeagueCycleManually);
-  return exports.closeLeagueCycleManually;
+  assert.ok(exports.reopenEmptyLeagueCycle);
+  return { close: exports.closeLeagueCycleManually, reopen: exports.reopenEmptyLeagueCycle };
 }
 
 for (const order of [["A", "B"], ["B", "A"]] as const) {
@@ -68,7 +72,7 @@ for (const order of [["A", "B"], ["B", "A"]] as const) {
         } });
       }
 
-      const close = loadManualClose(prisma);
+      const { close, reopen } = loadLifecycle(prisma);
       await assert.rejects(close(competitions.A, new Date("2026-10-13T12:00:00Z"), "outra-arena"), /Não há um ciclo aberto/);
       assert.equal((await prisma.leagueCycle.findUniqueOrThrow({ where: { id: cycles.A } })).status, "OPEN");
       for (const [index, tier] of order.entries()) {
@@ -97,6 +101,7 @@ for (const order of [["A", "B"], ["B", "A"]] as const) {
       assert.equal(await prisma.categoryPairPlayer.count({ where: { pairId: relegated.id } }), 2);
       const destinationSnapshot = (await prisma.leagueCycle.findUniqueOrThrow({ where: { id: cycles[order[1]] } })).snapshot as { pairs: Array<{ name: string }> };
       assert.equal(destinationSnapshot.pairs.some((pair) => pair.name === (order[0] === "A" ? "A2" : "B1")), false);
+      await assert.rejects(reopen(cycles.A, arena.id, new Date("2026-09-13T12:00:00Z")), /dados históricos ou transferências/);
     } finally {
       if (arenaId) {
         const inArena = { competition: { category: { tournament: { arenaId } } } };
@@ -110,3 +115,49 @@ for (const order of [["A", "B"], ["B", "A"]] as const) {
     }
   });
 }
+
+test("reabre apenas o ciclo vazio mais recente e preserva a arena", { skip: !disposableDatabase }, async () => {
+  const prisma = new PrismaClient({ datasources: { db: { url: testUrl } } });
+  const token = randomUUID();
+  let userId: string | undefined;
+  let arenaId: string | undefined;
+  try {
+    const user = await prisma.user.create({ data: { name: "Teste Liga", email: `league-reopen-${token}@example.invalid`, passwordHash: "test-only" } });
+    userId = user.id;
+    const arena = await prisma.arena.create({ data: { name: "Arena descartável reabertura", slug: `league-reopen-${token}`, createdById: user.id } });
+    arenaId = arena.id;
+    const tournament = await prisma.tournament.create({ data: { name: "Liga descartável", arenaId: arena.id } });
+    const category = await prisma.tournamentCategory.create({ data: { name: "Liga A", level: 1, tournamentId: tournament.id } });
+    const competition = await prisma.categoryCompetition.create({ data: { categoryId: category.id, format: "LEAGUE", leagueTier: "A", status: "PUBLISHED" } });
+    const cycle = await prisma.leagueCycle.create({ data: { competitionId: competition.id, referenceMonth: "2026-10" } });
+    const { close, reopen } = loadLifecycle(prisma);
+    await close(competition.id, new Date("2026-10-13T12:00:00Z"), arena.id);
+    const successor = await prisma.leagueCycle.findUniqueOrThrow({ where: { competitionId_referenceMonth: { competitionId: competition.id, referenceMonth: "2026-11" } } });
+    for (const name of ["Dupla 1", "Dupla 2"]) await prisma.categoryPair.create({ data: { competitionId: competition.id, name } });
+
+    await assert.rejects(reopen(cycle.id, "outra-arena", new Date("2026-10-13T12:00:00Z")), /não encontrado nesta arena/);
+    await assert.rejects(reopen(cycle.id, arena.id, new Date("2026-11-02T12:00:00Z")), /mês atual/);
+    const blocker = await prisma.categoryMatch.create({ data: { competitionId: competition.id, leagueCycleId: successor.id, label: "Jogo novo", stage: "GROUP", roundOrder: 1 } });
+    await assert.rejects(reopen(cycle.id, arena.id, new Date("2026-10-13T12:00:00Z")), /ciclo seguinte já possui atividade/);
+    await prisma.categoryMatch.delete({ where: { id: blocker.id } });
+
+    const result = await reopen(cycle.id, arena.id, new Date("2026-10-13T12:00:00Z"));
+    assert.equal(result.reopenedCycleId, cycle.id);
+    assert.equal(result.scheduledMatches, 1);
+    assert.equal((await prisma.leagueCycle.findUniqueOrThrow({ where: { id: cycle.id } })).status, "OPEN");
+    assert.equal(await prisma.leagueCycle.count({ where: { id: successor.id } }), 0);
+    assert.equal((await prisma.categoryCompetition.findUniqueOrThrow({ where: { id: competition.id } })).status, "PUBLISHED");
+    const reopenedMatch = await prisma.categoryMatch.findFirstOrThrow({ where: { leagueCycleId: cycle.id } });
+    assert.ok(reopenedMatch.hostProposalDeadline && reopenedMatch.hostProposalDeadline > new Date("2026-10-20T11:00:00Z"));
+    await assert.rejects(reopen(cycle.id, arena.id, new Date("2026-10-13T12:00:00Z")), /Ciclo encerrado não encontrado/);
+  } finally {
+    if (arenaId) {
+      const inArena = { competition: { category: { tournament: { arenaId } } } };
+      await prisma.categoryMatch.deleteMany({ where: inArena });
+      await prisma.categoryPair.deleteMany({ where: inArena });
+      await prisma.arena.delete({ where: { id: arenaId } });
+    }
+    if (userId) await prisma.user.delete({ where: { id: userId } });
+    await prisma.$disconnect();
+  }
+});

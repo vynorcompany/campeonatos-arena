@@ -13,6 +13,7 @@ import { LeagueHistoryPanel } from "@/components/tournaments/league-history-pane
 import { LeagueCategorySettingsDialog } from "@/components/tournaments/league-category-settings-dialog";
 import { TournamentCategorySettingsForm } from "@/components/tournaments/tournament-category-settings-form";
 import { LeagueIcon } from "@/components/tournaments/league-icon";
+import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { StatusBadge } from "@/components/tournaments/status-badge";
 import { TournamentDetailLayout } from "@/components/tournaments/tournament-detail-layout";
 import { type TournamentTabKey } from "@/components/tournaments/tournament-tabs";
@@ -30,7 +31,7 @@ type CategoryPageProps = {
     tournamentId: string;
     categoryId: string;
   }>;
-  searchParams?: Promise<{ tab?: string; sort?: string; status?: string; player?: string }>;
+  searchParams?: Promise<{ tab?: string; sort?: string; status?: string; player?: string; reopened?: string }>;
 };
 
 const validTabs: TournamentTabKey[] = [
@@ -47,6 +48,14 @@ function snapshotMatchSummary(snapshot: unknown) {
   const matches = (snapshot as { matches?: unknown }).matches;
   if (!Array.isArray(matches)) return { matchCount: 0, completedMatches: 0 };
   return { matchCount: matches.length, completedMatches: matches.filter((match) => Boolean(match && typeof match === "object" && "winnerPair" in match && (match as { winnerPair?: unknown }).winnerPair)).length };
+}
+
+function snapshotChampionName(snapshot: unknown, championPairId: string | null) {
+  if (!championPairId || !snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) return null;
+  const pairs = (snapshot as { pairs?: unknown }).pairs;
+  if (!Array.isArray(pairs)) return null;
+  const champion = pairs.find((pair) => pair && typeof pair === "object" && "id" in pair && pair.id === championPairId);
+  return champion && typeof champion.name === "string" ? champion.name : null;
 }
 
 const formatLabels = {
@@ -382,6 +391,10 @@ export default async function CategoryPage(props: CategoryPageProps) {
         {tab === "overview" ? (
           competition?.format === "LEAGUE" ? (
           <div className={viewStyles.league_overview_dashboard}>
+            {searchParams?.reopened === "1" && competition.leagueCycles[0]?.status === "OPEN"
+              && competition.leagueCycles[0]?.referenceMonth === new Date().toISOString().slice(0, 7)
+              ? <p className={viewStyles.league_reopened_notice} role="status">Ciclo da Liga reaberto. Os jogos estão disponíveis novamente.</p>
+              : null}
             <article id={`category-${category.id}`} className={viewStyles.league_overview_hero}>
               <header className={viewStyles.league_overview_header}>
                 <div>
@@ -448,10 +461,10 @@ export default async function CategoryPage(props: CategoryPageProps) {
               <aside className={viewStyles.league_cycle_card}>
                 <div className={viewStyles.league_cycle_card_heading}><span className={viewStyles.league_overview_section_icon}><LeagueIcon name="calendar" /></span><h2>Ciclo mensal</h2></div>
                 <p>Fecha o mês vigente, registra campeã e executa acesso ou rebaixamento.</p>
-                <form action={runLeagueLifecycleAction}>
+                <SafeActionForm action={runLeagueLifecycleAction} successMessage="Ciclo da Liga processado com sucesso. Confira o histórico mensal." confirmKeyword="PROCESSAR" confirmPrompt="O ciclo será encerrado e as duplas poderão mudar de divisão. Digite PROCESSAR para confirmar.">
                   <input type="hidden" name="competitionId" value={competition.id} />
                   <button className={viewStyles.button_button_secondary} type="submit"><LeagueIcon name="refresh" /> Processar ciclo da Liga</button>
-                </form>
+                </SafeActionForm>
               </aside>
             </div>
 
@@ -576,7 +589,37 @@ export default async function CategoryPage(props: CategoryPageProps) {
         ) : null}
 
         {tab === "history" && competition?.format === "LEAGUE" ? (
-          <LeagueHistoryPanel cycles={competition.leagueCycles.map((cycle) => { const snapshot = snapshotMatchSummary(cycle.snapshot); return { id: cycle.id, referenceMonth: cycle.referenceMonth, status: cycle.status, completedMatches: cycle.matches.length ? cycle.matches.filter((match) => Boolean(match.winnerPairId)).length : snapshot.completedMatches, matchCount: cycle.matches.length || snapshot.matchCount, championPairId: cycle.championPairId, promotedPairId: cycle.promotedPairId, relegatedPairId: cycle.relegatedPairId }; })} />
+          <LeagueHistoryPanel
+            successHref={`/torneios/${params.tournamentId}/categorias/${params.categoryId}?tab=overview&reopened=1`}
+            cycles={competition.leagueCycles.map((cycle, index) => {
+              const snapshot = snapshotMatchSummary(cycle.snapshot);
+              const sections = cycle.snapshot && typeof cycle.snapshot === "object" && !Array.isArray(cycle.snapshot)
+                ? cycle.snapshot as Record<string, unknown> : null;
+              const successor = competition.leagueCycles[0];
+              const emptySnapshot = Boolean(sections) && ["pairs", "groups", "matches", "registrations"].every(
+                (key) => Array.isArray(sections?.[key]) && (sections?.[key] as unknown[]).length === 0,
+              );
+              const canReopen = index === 1 && cycle.status === "CLOSED"
+                && cycle.referenceMonth === new Date().toISOString().slice(0, 7)
+                && successor?.status === "OPEN"
+                && successor.matches.length === 0 && emptySnapshot && !cycle.championPairId
+                && !cycle.promotedPairId && !cycle.relegatedPairId;
+              return {
+                id: cycle.id,
+                referenceMonth: cycle.referenceMonth,
+                status: cycle.status,
+                completedMatches: cycle.matches.length
+                  ? cycle.matches.filter((match) => Boolean(match.winnerPairId)).length
+                  : snapshot.completedMatches,
+                matchCount: cycle.matches.length || snapshot.matchCount,
+                championPairId: cycle.championPairId,
+                championName: snapshotChampionName(cycle.snapshot, cycle.championPairId),
+                promotedPairId: cycle.promotedPairId,
+                relegatedPairId: cycle.relegatedPairId,
+                canReopen,
+              };
+            })}
+          />
         ) : null}
       </TournamentDetailLayout>
     </div>

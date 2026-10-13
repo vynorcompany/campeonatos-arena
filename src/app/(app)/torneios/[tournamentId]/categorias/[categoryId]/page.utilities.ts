@@ -15,6 +15,11 @@ export const viewStyles = {
   "league_overview_dashboard": [
     "league-overview-dashboard", "tw:grid", "tw:gap-y-[18px]", "tw:gap-x-[18px]",
   ].join(" "),
+  "league_reopened_notice": [
+    "tw:m-0", "tw:rounded-[10px]", "tw:border", "tw:border-[color:#a7e3bd]",
+    "tw:bg-[color:#eaf9ef]", "tw:px-[16px]", "tw:py-[12px]", "tw:text-[.88rem]",
+    "tw:font-[700]", "tw:text-[color:#17643a]",
+  ].join(" "),
   "league_overview_hero": [
     "league-overview-hero", "tw:pt-[26px]", "tw:viewport-760:pt-[18px]", "tw:pr-[26px]",
     "tw:viewport-760:pr-[18px]", "tw:pb-[26px]", "tw:viewport-760:pb-[18px]", "tw:pl-[26px]",
