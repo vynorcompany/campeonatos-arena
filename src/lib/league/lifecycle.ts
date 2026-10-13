@@ -216,7 +216,17 @@ async function applyPromotionAndRelegation(cycleId: string) {
     if (!pair || targetCompetitionId === cycle.competitionId) return;
     await prisma.$transaction(async (tx) => {
       await tx.categoryPair.update({ where: { id: pair.id }, data: { active: false } });
-      await tx.categoryPair.create({ data: { name: pair.name, totalPoints: 0, active: true, competitionId: targetCompetitionId, players: { create: pair.players.map((player, slot) => ({ playerId: player.playerId, competitionId: targetCompetitionId, slot: slot + 1 })) } } });
+      const movedPair = await tx.categoryPair.create({
+        data: { name: pair.name, totalPoints: 0, active: true, competitionId: targetCompetitionId },
+      });
+      await tx.categoryPairPlayer.createMany({
+        data: pair.players.map((player, slot) => ({
+          pairId: movedPair.id,
+          competitionId: targetCompetitionId,
+          playerId: player.playerId,
+          slot: slot + 1,
+        })),
+      });
       await syncLeagueAthleteTiers(tx, { arenaId: cycle.competition.category.tournament.arenaId, playerIds: pair.players.map((player) => player.playerId), tier: targetTier, cycleId: cycle.id });
     });
   };
