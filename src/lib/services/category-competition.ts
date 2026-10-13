@@ -1448,6 +1448,7 @@ export async function finishCategoryCompetition(
               },
             },
             pairs: {
+              where: { active: true },
               orderBy: { drawOrder: "asc" },
               select: {
                 id: true,

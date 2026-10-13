@@ -123,7 +123,7 @@ async function snapshotLeagueCycle(competitionId: string, cycleId: string) {
     where: { id: competitionId },
     include: {
       category: { include: { registrations: { select: { id: true, leadName: true, partnerName: true, status: true, paymentStatus: true, createdAt: true } } } },
-      pairs: { include: { players: { include: { player: { select: { name: true } } } } } },
+      pairs: { where: { pendingLeagueTransfer: false }, include: { players: { include: { player: { select: { name: true } } } } } },
       groups: { include: { pairs: { select: { id: true, name: true } } } },
       matches: { include: { homePair: { select: { name: true } }, awayPair: { select: { name: true } }, winnerPair: { select: { name: true } } } },
       leagueCycles: { where: { id: cycleId }, include: { matches: { include: { homePair: { select: { name: true } }, awayPair: { select: { name: true } }, winnerPair: { select: { name: true } } } } } }
@@ -157,8 +157,12 @@ async function resetLeagueCompetition(competitionId: string) {
   await withArenaTransaction(arenaId, async (tx) => {
     await tx.publicTournamentRegistration.updateMany({ where: { competitionId }, data: { status: "CANCELED" } });
     await tx.categoryMatch.deleteMany({ where: { competitionId } });
-    await tx.categoryPair.deleteMany({ where: { competitionId } });
+    await tx.categoryPair.deleteMany({ where: { competitionId, pendingLeagueTransfer: false } });
     await tx.categoryGroup.deleteMany({ where: { competitionId } });
+    await tx.categoryPair.updateMany({
+      where: { competitionId, pendingLeagueTransfer: true },
+      data: { pendingLeagueTransfer: false, active: true },
+    });
     await tx.categoryCompetition.update({ where: { id: competitionId }, data: { status: "DRAFT" } });
   });
 }
@@ -224,8 +228,18 @@ async function applyPromotionAndRelegation(cycleId: string) {
     if (!pair || targetCompetitionId === cycle.competitionId) return;
     await prisma.$transaction(async (tx) => {
       await tx.categoryPair.update({ where: { id: pair.id }, data: { active: false } });
+      const destinationHasOpenCycle = await tx.leagueCycle.findFirst({
+        where: { competitionId: targetCompetitionId, status: "OPEN", referenceMonth: { lte: cycle.referenceMonth } },
+        select: { id: true },
+      });
       const movedPair = await tx.categoryPair.create({
-        data: { name: pair.name, totalPoints: 0, active: true, competitionId: targetCompetitionId },
+        data: {
+          name: pair.name,
+          totalPoints: 0,
+          active: !destinationHasOpenCycle,
+          pendingLeagueTransfer: Boolean(destinationHasOpenCycle),
+          competitionId: targetCompetitionId,
+        },
       });
       await tx.categoryPairPlayer.createMany({
         data: pair.players.map((player, slot) => ({

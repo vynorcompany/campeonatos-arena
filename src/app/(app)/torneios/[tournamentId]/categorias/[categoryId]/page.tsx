@@ -99,6 +99,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
             },
             leagueCycles: { orderBy: { referenceMonth: "desc" }, select: { id: true, referenceMonth: true, status: true, prizeDescription: true, snapshot: true, championPairId: true, promotedPairId: true, relegatedPairId: true, matches: { select: { winnerPairId: true } } } },
             pairs: {
+              where: { active: true },
               orderBy: { drawOrder: "asc" },
               include: {
                 players: {

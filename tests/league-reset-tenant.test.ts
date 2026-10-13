@@ -9,7 +9,10 @@ function loadReset(arenaId: string | null) {
   const tx = {
     publicTournamentRegistration: { updateMany: async ({ where }: { where: { competitionId: string } }) => { events.push(`registrations:${where.competitionId}`); } },
     categoryMatch: { deleteMany: async () => { events.push("matches"); } },
-    categoryPair: { deleteMany: async () => { events.push("pairs"); } },
+    categoryPair: {
+      deleteMany: async () => { events.push("pairs"); },
+      updateMany: async () => { events.push("transfers"); },
+    },
     categoryGroup: { deleteMany: async () => { events.push("groups"); } },
     categoryCompetition: { update: async () => { events.push("competition"); } },
   };
@@ -32,7 +35,7 @@ function loadReset(arenaId: string | null) {
 test("encerramento mensal cancela inscrições no contexto da arena proprietária", async () => {
   const { reset, events } = loadReset("arena-a");
   await reset("competition-a");
-  assert.deepEqual(events, ["context:arena-a", "registrations:competition-a", "matches", "pairs", "groups", "competition"]);
+  assert.deepEqual(events, ["context:arena-a", "registrations:competition-a", "matches", "pairs", "groups", "transfers", "competition"]);
 });
 
 test("competição inexistente não abre transação nem cancela inscrições", async () => {
