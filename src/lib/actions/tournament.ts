@@ -297,7 +297,9 @@ export async function createPlayerAction(_: ActionState, formData: FormData): Pr
       });
 
       const existingStudent = await tx.student.findFirst({
-        where: { arenaId: auth.arenaId, name: player.name }
+        // Somente registros legados sem cliente podem ser vinculados; nunca
+        // transfira o histórico de aulas e cobranças de outro cliente homônimo.
+        where: { arenaId: auth.arenaId, name: player.name, playerId: null }
       });
       if (existingStudent) {
         await tx.student.update({ where: { id: existingStudent.id }, data: { playerId: player.id, phone, email: parsed.data.email ?? "", active: true } });

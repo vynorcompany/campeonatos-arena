@@ -60,6 +60,11 @@ test("keeps athlete creation collapsed until the add button is pressed", () => {
   assert.match(source, /isOpen \? <PlayerForm \/> : null/);
 });
 
+test("new clients cannot take a homonymous student's existing player link", () => {
+  const actionsSource = readFileSync(path.join(process.cwd(), "src", "lib", "actions", "tournament.ts"), "utf8");
+  assert.match(actionsSource, /const existingStudent = await tx\.student\.findFirst\(\{[\s\S]*?where: \{ arenaId: auth\.arenaId, name: player\.name, playerId: null \}/);
+});
+
 test("offers a single discreet action menu with a protected delete option", () => {
   const source = readFileSync(path.join(process.cwd(), "src", "components", "players", "player-actions-cell.tsx"), "utf8");
 

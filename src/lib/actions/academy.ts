@@ -45,6 +45,9 @@ export async function createStudentAction(formData: FormData) {
         },
       })
     : null;
+  if (parsed.data.playerId && !linkedPlayer) {
+    throw new Error("Cliente não encontrado nesta arena.");
+  }
   const studentName = linkedPlayer?.name ?? parsed.data.name;
 
   if (studentName.trim().length < 2) {
@@ -60,6 +63,9 @@ export async function createStudentAction(formData: FormData) {
     });
 
     if (existingStudent) {
+      if (existingStudent.playerId && existingStudent.playerId !== linkedPlayer.id) {
+        throw new Error("Este aluno já está vinculado a outro cliente com o mesmo nome.");
+      }
       await prisma.student.update({
         where: {
           id: existingStudent.id,
