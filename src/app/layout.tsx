@@ -6,7 +6,11 @@ import { env } from "@/lib/env";
 export const metadata: Metadata = {
   metadataBase: env.appUrl ? new URL(env.appUrl) : undefined,
   title: "Arena Padel Manager",
-  description: "Sistema online para gestão de campeonatos, duplas, grupos e jogos da arena."
+  description: "Sistema online para gestão de campeonatos, duplas, grupos e jogos da arena.",
+  icons: {
+    icon: [{ url: "/favicon.ico", type: "image/x-icon" }, { url: "/icon.svg", type: "image/svg+xml" }],
+    apple: "/apple-touch-icon.png"
+  }
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

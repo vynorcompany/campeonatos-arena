@@ -29,6 +29,12 @@ test("backup recovery requires a confirmed disposable database instead of restor
   assert.match(contents, /RESTORE_CONFIRM/);
   assert.match(contents, /RESTORE_DATABASE_URL must not match DATABASE_URL/);
   assert.match(contents, /pg_restore .*--exit-on-error/);
+  assert.match(contents, /pg_policies/);
+  assert.match(contents, /relrowsecurity/);
+  assert.match(contents, /restore-runtime-privileges\.sql/);
+  assert.match(contents, /has_table_privilege/);
+  assert.match(contents, /SET ROLE arena_runtime/);
+  assert.match(readFileSync(resolve(backupRoot, "Dockerfile"), "utf8"), /restore-runtime-privileges\.sql/);
   assert.match(contents, /FinancialEntry/);
   assert.match(contents, /Comanda/);
   assert.match(contents, /ScheduleOccurrence/);

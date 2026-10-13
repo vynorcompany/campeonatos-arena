@@ -9,6 +9,7 @@ export const viewStyles = {
     "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)]:[overflow-x:hidden]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)]:[overflow-y:hidden]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_>_.sidebar]:h-[100dvh]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_>_.sidebar]:min-h-[0]",
     "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_>_.sidebar]:[overflow-x:hidden]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_>_.sidebar]:[overflow-y:auto]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_>_.sidebar]:[overscroll-behavior:contain]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_>_.sidebar_.sidebar-inner]:min-h-[100%]",
     "tw:viewport-760:[&.mobile-nav-open_>_.sidebar]:translate-x-0!", "tw:viewport-760:[&.mobile-nav-open_>_.sidebar]:visible!",
+    "tw:viewport-720:[&:has(.whatsapp-page)]:h-[100dvh]", "tw:viewport-720:[&:has(.whatsapp-page)]:min-h-[0]", "tw:viewport-720:[&:has(.whatsapp-page)]:overflow-hidden",
   ].join(" "),
   "sidebar": [
     "sidebar", "tw:z-[20]", "tw:min-h-[100vh]", "tw:viewport-760:min-h-[auto]",
@@ -91,6 +92,7 @@ export const viewStyles = {
     "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_>_.content-shell]:top-[0]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_>_.content-shell]:right-[0]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_>_.content-shell]:bottom-[0]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_>_.content-shell]:left-[0]",
     "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_>_.content-shell]:h-[auto]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_>_.content-shell]:min-h-[0]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_.content-shell]:h-[100%]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_.content-shell]:min-h-[0]",
     "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_.content-shell]:[overflow-x:hidden]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)_.content-shell]:[overflow-y:hidden]", "tw:viewport-760:[&:has(.whatsapp-page)]:h-[calc(100dvh_-_56px)]!",
+    "tw:viewport-720:[&:has(.whatsapp-page)]:overflow-hidden",
   ].join(" "),
   "content_shell": [
     "content-shell", "tw:w-[100%]", "tw:max-w-[none]", "tw:mt-[0]",
@@ -101,6 +103,7 @@ export const viewStyles = {
     "tw:[&:has(.agenda-page)]:max-w-[none]", "tw:[&:has(.agenda-page)]:mt-[0]", "tw:[&:has(.agenda-page)]:mr-[0]", "tw:[&:has(.agenda-page)]:mb-[0]",
     "tw:[&:has(.agenda-page)]:ml-[0]", "tw:[&:has(.whatsapp-page)]:min-h-[calc(100vh_-_48px)]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)]:min-h-[0]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)]:h-[100%]",
     "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)]:[overflow-x:hidden]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)]:[overflow-y:hidden]",
+    "tw:viewport-720:[&:has(.whatsapp-page)]:h-[100%]", "tw:viewport-720:[&:has(.whatsapp-page)]:min-h-[0]", "tw:viewport-720:[&:has(.whatsapp-page)]:overflow-hidden",
   ].join(" "),
   "agency_payment_alert": [
     "agency-payment-alert", "tw:flex", "tw:items-center", "tw:flex-wrap",

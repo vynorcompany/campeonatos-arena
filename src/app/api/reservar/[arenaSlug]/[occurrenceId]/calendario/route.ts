@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requirePublicPlayerAuth } from "@/lib/auth/player-session";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
+import { arenaWallClockToInstant } from "@/lib/calendar/arena-wall-clock";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,7 @@ export async function GET(
     const courtName = booking.occurrenceCourts.map((item) => item.court.name).join(", ") || "Quadra";
     const content = [
       "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Arena Padel Manager//PT-BR", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "BEGIN:VEVENT",
-      `UID:arena-booking-${booking.id}@arena-padel-manager`, `DTSTAMP:${icsDate(new Date())}`, `DTSTART:${icsDate(booking.startsAt)}`, `DTEND:${icsDate(booking.endsAt)}`,
+      `UID:arena-booking-${booking.id}@arena-padel-manager`, `DTSTAMP:${icsDate(new Date())}`, `DTSTART:${icsDate(arenaWallClockToInstant(booking.startsAt))}`, `DTEND:${icsDate(arenaWallClockToInstant(booking.endsAt))}`,
       `SUMMARY:${escapeIcs(`Reserva · ${arena.name}`)}`, `LOCATION:${escapeIcs(courtName)}`, `DESCRIPTION:${escapeIcs(`Reserva confirmada em ${courtName}.`)}`, "END:VEVENT", "END:VCALENDAR", ""
     ].join("\r\n");
     return new NextResponse(content, { headers: { "Content-Type": "text/calendar; charset=utf-8", "Content-Disposition": `attachment; filename=reservacao-${booking.id}.ics`, "Cache-Control": "private, no-store" } });

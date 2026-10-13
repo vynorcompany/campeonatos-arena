@@ -9,7 +9,9 @@ export function useWhatsAppRealtime({ paused = false, initialVersion, scope = ""
   useEffect(() => {
     if (paused) return;
     return subscribeWhatsAppPulse(scope, pulse => {
-      if (version.current !== pulse.version) { version.current = pulse.version; router.refresh(); }
-    }, 3_000);
+      // Acknowledge only the version rendered by the server. A failed or stale
+      // refresh must not suppress the next attempt to load new messages.
+      if (version.current !== pulse.version) router.refresh();
+    }, 3_000, true);
   }, [paused, router, scope]);
 }

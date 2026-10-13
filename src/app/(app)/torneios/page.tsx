@@ -6,11 +6,11 @@ import { EmptyState } from "@/components/tournaments/empty-state";
 import { StatusBadge } from "@/components/tournaments/status-badge";
 import { deleteTournamentAction } from "@/lib/actions/tournament";
 import { requireModuleView } from "@/lib/auth/guards";
-import { prisma } from "@/lib/prisma";
+import { arenaDatabase } from "@/lib/arena-database";
 
 export default async function TournamentsPage() {
   const auth = await requireModuleView("tournaments");
-  const events = await prisma.tournament.findMany({
+  const events = await arenaDatabase(auth.arenaId).tournament.findMany({
     where: { arenaId: auth.arenaId },
     orderBy: { updatedAt: "desc" },
     include: {

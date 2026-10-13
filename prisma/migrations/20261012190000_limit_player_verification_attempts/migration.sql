@@ -1,0 +1,2 @@
+ALTER TABLE "PlayerVerificationCode"
+ADD COLUMN "attempts" INTEGER NOT NULL DEFAULT 0;

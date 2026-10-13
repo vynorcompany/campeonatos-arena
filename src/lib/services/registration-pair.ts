@@ -7,42 +7,35 @@ export async function ensureTournamentPairFromRegistration(
     tournamentId: string;
     leadName: string;
     partnerName: string;
+    leadCpf?: string;
+    partnerCpf?: string;
+    leadPlayerId?: string;
+    partnerPlayerId?: string;
   }
 ) {
   const leadName = input.leadName.trim();
   const partnerName = input.partnerName.trim();
 
-  if (!leadName || !partnerName || leadName === partnerName) {
+  if (!leadName || !partnerName) {
     return;
   }
 
-  const leadPlayer =
-    (await tx.player.findFirst({
-      where: {
-        arenaId: input.arenaId,
-        name: leadName
-      }
-    })) ??
-    (await tx.player.create({
-      data: {
-        arenaId: input.arenaId,
-        name: leadName
-      }
-    }));
+  async function resolvePlayer(name: string, cpfInput?: string, playerId?: string) {
+    if (playerId) {
+      const player = await tx.player.findFirst({ where: { id: playerId, arenaId: input.arenaId, mergedIntoPlayerId: null } });
+      if (!player) throw new Error("Atleta da inscrição não encontrado nesta arena.");
+      return player;
+    }
+    const cpf = (cpfInput ?? "").replace(/\D/g, "");
+    const player = cpf.length === 11
+      ? await tx.player.findFirst({ where: { arenaId: input.arenaId, cpf, mergedIntoPlayerId: null }, orderBy: [{ active: "desc" }, { createdAt: "asc" }, { id: "asc" }] })
+      : await tx.player.findFirst({ where: { arenaId: input.arenaId, name, cpf: "", mergedIntoPlayerId: null }, orderBy: [{ active: "desc" }, { createdAt: "asc" }, { id: "asc" }] });
+    return player ?? tx.player.create({ data: { arenaId: input.arenaId, name, cpf } });
+  }
 
-  const partnerPlayer =
-    (await tx.player.findFirst({
-      where: {
-        arenaId: input.arenaId,
-        name: partnerName
-      }
-    })) ??
-    (await tx.player.create({
-      data: {
-        arenaId: input.arenaId,
-        name: partnerName
-      }
-    }));
+  const leadPlayer = await resolvePlayer(leadName, input.leadCpf, input.leadPlayerId);
+  const partnerPlayer = await resolvePlayer(partnerName, input.partnerCpf, input.partnerPlayerId);
+  if (leadPlayer.id === partnerPlayer.id) return;
 
   await tx.tournamentPlayer.upsert({
     where: {

@@ -3,11 +3,11 @@ import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard } from "@/components/section-card";
 import { updateUserSystemRoleAction } from "@/lib/actions/agency";
-import { requireAgencyAccess } from "@/lib/auth/guards";
+import { requireAgencyPageAccess } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
 export default async function AgencyArenaUsersPage() {
-  const auth = await requireAgencyAccess();
+  const auth = await requireAgencyPageAccess();
   const users = await prisma.user.findMany({
     include: {
       memberships: {

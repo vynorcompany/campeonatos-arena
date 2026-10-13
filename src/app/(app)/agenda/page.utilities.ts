@@ -189,7 +189,7 @@ export const viewStyles = {
     "tw:[&_>_.agenda-booking-type-icon]:bg-[color:#d5e9fa]", "tw:[&_>_.agenda-booking-type-icon]:[background-image:none]", "tw:[&_>_div]:grid", "tw:[&_>_div]:min-w-[0]",
     "tw:[&_>_div]:gap-y-[2px]", "tw:[&_>_div]:gap-x-[2px]", "tw:[&_strong]:[overflow-x:hidden]", "tw:[&_strong]:[overflow-y:hidden]",
     "tw:[&_strong]:text-[color:#123e70]", "tw:[&_strong]:text-[.77rem]", "tw:[&_strong]:font-[850]", "tw:[&_strong]:leading-[1.15]",
-    "tw:[&_strong]:text-ellipsis", "tw:[&_strong]:whitespace-nowrap", "tw:[&_.agenda-booking-type-label]:block", "tw:[&_.agenda-booking-type-label]:mt-[0]",
+    "tw:[&_strong]:text-ellipsis", "tw:[&_strong]:whitespace-nowrap", "tw:viewport-700:[&_strong]:whitespace-normal!", "tw:viewport-700:[&_strong]:[display:-webkit-box]", "tw:viewport-700:[&_strong]:[-webkit-line-clamp:2]", "tw:viewport-700:[&_strong]:[-webkit-box-orient:vertical]", "tw:[&_.agenda-booking-type-label]:block", "tw:[&_.agenda-booking-type-label]:mt-[0]",
     "tw:[&_.agenda-booking-type-label]:mr-[0]", "tw:[&_.agenda-booking-type-label]:mb-[0]", "tw:[&_.agenda-booking-type-label]:ml-[0]", "tw:[&_.agenda-booking-type-label]:text-[color:#4d7295]!",
     "tw:[&_.agenda-booking-type-label]:text-[.61rem]!", "tw:[&_.agenda-booking-type-label]:font-[750]", "tw:[&_.agenda-booking-type-label]:tracking-[.035em]", "tw:[&_.agenda-booking-type-label]:uppercase",
     "tw:[&_.agenda-payment-indicator]:absolute", "tw:[&_.agenda-payment-indicator]:right-[7px]", "tw:[&_.agenda-payment-indicator]:bottom-[7px]", "tw:[&_.agenda-payment-indicator]:w-[15px]",

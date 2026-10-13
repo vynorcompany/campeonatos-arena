@@ -77,6 +77,7 @@ test("monthly closing resolves deadlines, W.O. and opens the next cycle", () => 
   assert.match(lifecycle, /applyPromotionAndRelegation/);
   assert.match(lifecycle, /snapshotLeagueCycle/);
   assert.match(lifecycle, /resetLeagueCompetition/);
+  assert.match(lifecycle, /await withArenaTransaction\(arenaId, async \(tx\) => \{[\s\S]*tx\.publicTournamentRegistration\.updateMany/);
   assert.match(schema, /snapshot\s+Json\?/);
 });
 
@@ -89,6 +90,15 @@ test("arena can close the current League cycle manually without waiting for the 
   assert.match(lifecycle, /export async function closeLeagueCycleManually/);
   assert.match(page, /Processar ciclo da Liga/);
   assert.match(page, /name="competitionId"/);
+});
+
+test("manual closing accepts the oldest open League cycle from a past month", () => {
+  const lifecycle = readFileSync(resolve(process.cwd(), "src/lib/league/lifecycle.ts"), "utf8");
+  const manualClosing = lifecycle.split("export async function closeLeagueCycleManually")[1];
+  assert.ok(manualClosing);
+  assert.match(manualClosing, /referenceMonth: \{ lte: referenceMonth \}/);
+  assert.match(manualClosing, /orderBy: \{ referenceMonth: "asc" \}/);
+  assert.match(manualClosing, /createMonthlyCycle\(cycle\.competitionId, nextMonthKey\(cycle\.referenceMonth\)\)/);
 });
 
 test("athlete portal exposes the main modules and League submenus", () => {

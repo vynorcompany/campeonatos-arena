@@ -193,9 +193,11 @@ export function AccountsLedger({
         <input name="description" placeholder="Descrição" defaultValue={String(filters.description ?? "")} />
         {type === "REVENUE" ? <><select name="productId" defaultValue={String(filters.productId ?? "")}><option value="">Produto</option>{products.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><select name="planId" defaultValue={String(filters.planId ?? "")} onChange={(event) => event.currentTarget.form?.requestSubmit()} aria-label="Filtrar por plano ou por todos os planos do professor"><option value="">Plano/pacote</option><PlanSelectOptions plans={plans} includeTeacherAll /></select></> : null}
         <select name="dateField" defaultValue={String(filters.dateField ?? "dueDate")}><option value="dueDate">Data de vencimento</option><option value="paidAt">Data de pagamento</option></select>
-        <label className={viewStyles.control_toggle}><input name="includeEarlier" type="checkbox" value="1" defaultChecked={filters.includeEarlier === true} /><span aria-hidden="true" /><em>Anteriores à data inicial</em></label>
-        <label className={viewStyles.control_toggle}><input name="includeVoided" type="checkbox" value="1" defaultChecked={filters.includeVoided === true} /><span aria-hidden="true" /><em>Incluir estornados/deletados</em></label>
-        <button className={viewStyles.button_button_primary_accounts_filters_submit}>Filtrar</button>
+        <div className="tw:col-span-full tw:flex tw:flex-wrap tw:items-center tw:gap-x-5 tw:gap-y-2 tw:viewport-700:flex-col tw:viewport-700:items-stretch">
+          <label className={viewStyles.control_toggle}><input name="includeEarlier" type="checkbox" value="1" defaultChecked={filters.includeEarlier === true} /><span aria-hidden="true" /><em>Anteriores à data inicial</em></label>
+          <label className={viewStyles.control_toggle}><input name="includeVoided" type="checkbox" value="1" defaultChecked={filters.includeVoided === true} /><span aria-hidden="true" /><em>Incluir estornados/deletados</em></label>
+          <button className={`${viewStyles.button_button_primary_accounts_filters_submit} tw:ml-auto tw:min-w-[144px] tw:viewport-700:ml-0 tw:viewport-700:w-full`}>Filtrar</button>
+        </div>
       </form>
 
       <section className={viewStyles.accounts_ledger_totals} aria-label="Totais dos lançamentos">

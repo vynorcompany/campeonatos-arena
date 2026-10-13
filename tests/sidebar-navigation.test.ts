@@ -2,7 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { NavLinks } from "../src/components/layout/nav-links";
+import { isActivePath, NavLinks } from "../src/components/layout/nav-links";
+
+test("destinos com parâmetros mantêm o item ativo na rota correta", () => {
+  assert.equal(isActivePath("/financeiro/configuracoes/notas-fiscais", "/financeiro/configuracoes/notas-fiscais?secao=emissao"), true);
+  assert.equal(isActivePath("/financeiro/configuracoes/notas-fiscais/arquivo", "/financeiro/configuracoes/notas-fiscais?secao=emissao"), true);
+  assert.equal(isActivePath("/financeiro/configuracoes/fornecedores", "/financeiro/configuracoes/notas-fiscais?secao=emissao"), false);
+});
 
 test("menus com submenu mantêm o destino clicável e um controle separado para expandir", () => {
   const markup = renderToStaticMarkup(React.createElement(NavLinks, {

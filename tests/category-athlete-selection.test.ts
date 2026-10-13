@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import path from "node:path";
 import test from "node:test";
+import { createManualTournamentRegistrationSchema } from "../src/lib/validators/public-registration";
 
 const root = process.cwd();
 const read = (...parts: string[]) => readFileSync(path.join(root, ...parts), "utf8");
@@ -38,4 +39,18 @@ test("manual category registration rejects the same athlete twice", () => {
   assert.match(action, /leadPlayerId === parsed\.data\.partnerPlayerId/);
   assert.match(action, /Os atletas da dupla devem ser diferentes/);
   assert.match(action, /active: true/);
+});
+
+test("inscrição manual pendente não entra na chave e não pode simular análise de pagamento", () => {
+  const action = read("src", "lib", "actions", "tournament.ts");
+  assert.match(action, /if \(parsed\.data\.paymentStatus === "PAID"\) \{\s*await ensureTournamentPairFromRegistration\(tx/);
+  const lockIndex = action.indexOf("await lockTournamentRegistrations(tx, parsed.data.tournamentId, auth.arenaId)");
+  const categoryIndex = action.indexOf('SELECT "id" FROM "TournamentCategory"', lockIndex);
+  const createIndex = action.indexOf("await tx.publicTournamentRegistration.create", categoryIndex);
+  assert.ok(lockIndex >= 0 && categoryIndex > lockIndex && createIndex > categoryIndex, "Categoria ativa deve ser revalidada depois do lock e antes da criação.");
+  assert.match(action.slice(categoryIndex, createIndex), /FOR UPDATE/);
+  const input = { tournamentId: "torneio", categoryId: "categoria", leadPlayerId: "atleta-a", partnerPlayerId: "atleta-b", amountReais: "150,00" };
+  assert.equal(createManualTournamentRegistrationSchema.safeParse({ ...input, paymentStatus: "PENDING" }).success, true);
+  assert.equal(createManualTournamentRegistrationSchema.safeParse({ ...input, paymentStatus: "PAID" }).success, true);
+  assert.equal(createManualTournamentRegistrationSchema.safeParse({ ...input, paymentStatus: "REVIEW" }).success, false);
 });

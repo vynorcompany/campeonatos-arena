@@ -18,7 +18,11 @@ import { isFixedBookingType } from "@/lib/calendar/booking-types";
 import { refreshCalendarRoutes } from "@/lib/calendar/revalidation";
 
 const refreshCalendar = refreshCalendarRoutes;
-import { calculateCourtIntervalPrice } from "@/lib/calendar/court-interval-pricing";
+import { calculateCourtIntervalPrice, isCourtBookingStartOnGrid } from "@/lib/calendar/court-interval-pricing";
+import { activeCourtOccurrenceWhere, onlineBookingHoldCutoff } from "@/lib/calendar/online-booking-hold";
+import { assertCourtBookingMayBeEdited } from "@/lib/calendar/court-booking-edit-safety";
+import { arenaWallClockToInstant } from "@/lib/calendar/arena-wall-clock";
+import { claimOnlineBookingPaymentMethod } from "@/lib/calendar/booking-payment-claim";
 import { sendEvolutionTextMessage } from "@/lib/integrations/evolution/client";
 import { expandWeeklyOccurrences } from "@/lib/scheduling/recurrence";
 import { createBoletoPayment, createCardCheckout, createPixPayment, getMissingBoletoPayerFields } from "@/lib/payments/mercado-pago";
@@ -113,7 +117,10 @@ const visibleCourtBookingErrors = new Set([
   "Informe até quando a reserva fixa deve se repetir.",
   "A data final da reserva fixa deve ser igual ou posterior ao primeiro horário.",
   "Um ou mais atletas não pertencem à arena.",
-  "Já existe um agendamento nessa quadra para este horário."
+  "Já existe um agendamento nessa quadra para este horário.",
+  "Reserva não encontrada nesta arena.",
+  "Esta reserva aguarda pagamento e não pode ser editada agora.",
+  "Esta reserva já tem pagamento ou cobrança online vinculada. Faça o ajuste financeiro antes de editá-la."
 ]);
 
 const publicCourtBookingSchema = z.object({
@@ -122,6 +129,10 @@ const publicCourtBookingSchema = z.object({
   startsAt: z.string().trim().min(1),
   durationMinutes: z.coerce.number().int().min(15).max(720)
 });
+type PublicCourtBookingActionResult =
+  | { ok: false; error: string }
+  | { ok: true; checkoutUrl: string; calendarUrl: string; reservationStatus: "PENDING_PAYMENT" | "PENDING_CONFIRMATION" | "SCHEDULED" };
+class PublicBookingConflictError extends Error {}
 
 const DEFAULT_BOOKING_TYPES = ["Aula", "Aula fixa", "Plano", "Super 12", "Liga", "Reserva"];
 
@@ -153,46 +164,58 @@ export async function updateOnlineBookingSettingsAction(formData: FormData) {
   revalidatePath(`/classificacao/${arena.slug}`);
 }
 
-export async function createPublicCourtBookingAction(formData: FormData) {
+export async function createPublicCourtBookingAction(formData: FormData): Promise<PublicCourtBookingActionResult> {
   const parsed = publicCourtBookingSchema.safeParse({
     arenaSlug: formData.get("arenaSlug"), courtId: formData.get("courtId"), startsAt: formData.get("startsAt"), durationMinutes: formData.get("durationMinutes")
   });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   const playerAuth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
-  const arena = await prisma.arena.findUnique({ where: { slug: parsed.data.arenaSlug }, select: { id: true, slug: true, onlineBookingEnabled: true, onlineBookingRequiresConfirmation: true, onlineBookingPaymentEnabled: true, onlineBookingLeadTimeMinutes: true } });
+  const arena = await prisma.arena.findUnique({ where: { slug: parsed.data.arenaSlug }, select: { id: true, slug: true, scheduleStartMinute: true, scheduleEndMinute: true, onlineBookingEnabled: true, onlineBookingRequiresConfirmation: true, onlineBookingPaymentEnabled: true, onlineBookingLeadTimeMinutes: true } });
   if (!arena) throw new Error("Arena não encontrada.");
   if (!arena.onlineBookingEnabled) throw new Error("A reserva online está desabilitada pela arena.");
   const startsAt = parseScheduledAt(parsed.data.startsAt);
   const earliestStart = new Date(Date.now() + arena.onlineBookingLeadTimeMinutes * 60_000);
-  if (startsAt.getTime() < earliestStart.getTime()) throw new Error(`Este horário exige antecedência mínima de ${arena.onlineBookingLeadTimeMinutes} minutos.`);
+  if (arenaWallClockToInstant(startsAt).getTime() < earliestStart.getTime()) throw new Error(`Este horário exige antecedência mínima de ${arena.onlineBookingLeadTimeMinutes} minutos.`);
   const endsAt = new Date(startsAt.getTime() + parsed.data.durationMinutes * 60_000);
   const startsAtMinute = startsAt.getHours() * 60 + startsAt.getMinutes();
   const endsAtMinute = endsAt.getHours() * 60 + endsAt.getMinutes();
   const court = await prisma.court.findFirst({ where: { id: parsed.data.courtId, arenaId: arena.id, active: true }, include: { weeklyRules: true } });
   if (!court) throw new Error("Quadra não encontrada.");
   if (!court.onlineDurationMinutes.includes(parsed.data.durationMinutes)) throw new Error("Esta duração não está disponível para reserva online.");
+  if (!isCourtBookingStartOnGrid(startsAtMinute, arena.scheduleStartMinute, arena.scheduleEndMinute, court.onlineSlotMinutes)) throw new Error("Este horário não pertence à grade de reservas da quadra.");
   if (parsed.data.durationMinutes % court.onlineSlotMinutes !== 0) throw new Error("A duração deve respeitar o intervalo configurado para a quadra.");
   const bookingAmountCents = calculateCourtIntervalPrice({ startsAtMinute, durationMinutes: parsed.data.durationMinutes, intervalMinutes: court.onlineSlotMinutes, weekday: startsAt.getDay(), rules: court.weeklyRules });
   if (bookingAmountCents === null) throw new Error("Este horário não está disponível para reserva online.");
-  const conflict = await withArenaTransaction(arena.id, (tx) => tx.scheduleOccurrence.findFirst({ where: { arenaId: arena.id, status: { notIn: ["CANCELED", "PENDING_PAYMENT"] }, startsAt: { lt: endsAt }, endsAt: { gt: startsAt }, occurrenceCourts: { some: { courtId: court.id } } }, select: { id: true } }));
-  if (conflict) throw new Error("Este horário acabou de ser reservado. Selecione outro horário.");
-  const onlineBooking = await withArenaTransaction(arena.id, async (tx) => {
-    const player = await tx.player.findFirst({ where: { id: playerAuth.playerId, arenaId: arena.id, active: true }, select: { id: true, name: true, email: true } });
-    if (!player) throw new Error("Cliente não encontrado.");
-    if (arena.onlineBookingPaymentEnabled && !player.email) throw new Error("Informe seu e-mail no perfil para continuar com o pagamento online.");
-    const occurrence = await tx.scheduleOccurrence.create({ data: { arenaId: arena.id, sourceType: "ONLINE_BOOKING", title: `${player.name} - Reserva`, startsAt, endsAt, status: arena.onlineBookingPaymentEnabled ? "PENDING_PAYMENT" : arena.onlineBookingRequiresConfirmation ? "PENDING_CONFIRMATION" : "SCHEDULED", bookingTypeName: "Reserva", occurrenceCourts: { create: { courtId: court.id } }, participants: { create: { playerId: player.id, amountCents: bookingAmountCents } } } });
-    const localDate = `${startsAt.getFullYear()}-${String(startsAt.getMonth() + 1).padStart(2, "0")}-${String(startsAt.getDate()).padStart(2, "0")}`;
-    await tx.arenaNotification.create({ data: { arenaId: arena.id, title: arena.onlineBookingRequiresConfirmation ? "Reserva aguardando confirmação" : "Nova reserva online", message: `${player.name} solicitou ${court.name} às ${String(startsAt.getHours()).padStart(2, "0")}:${String(startsAt.getMinutes()).padStart(2, "0")}.`, href: `/agenda?data=${localDate}`, type: "ONLINE_BOOKING" } });
-    return { occurrenceId: occurrence.id, playerEmail: player.email };
-  });
-  const checkoutUrl = arena.onlineBookingPaymentEnabled ? `/reservar/${arena.slug}/pagamento/${onlineBooking.occurrenceId}` : "";
+  const requiresPayment = arena.onlineBookingPaymentEnabled && bookingAmountCents > 0;
+  let onlineBooking: { occurrenceId: string; playerEmail: string | null };
+  try {
+    onlineBooking = await withArenaTransaction(arena.id, async (tx) => {
+      // Serializa reservas da mesma quadra antes de consultar a disponibilidade.
+      const lockedCourt = await tx.$queryRaw<{ id: string }[]>`SELECT "id" FROM "Court" WHERE "id" = ${court.id} AND "arenaId" = ${arena.id} FOR UPDATE`;
+      if (!lockedCourt.length) throw new PublicBookingConflictError("Quadra não encontrada.");
+      const conflict = await tx.scheduleOccurrence.findFirst({ where: { arenaId: arena.id, ...activeCourtOccurrenceWhere(), startsAt: { lt: endsAt }, endsAt: { gt: startsAt }, occurrenceCourts: { some: { courtId: court.id } } }, select: { id: true } });
+      if (conflict) throw new PublicBookingConflictError("Este horário acabou de ser reservado. Selecione outro horário.");
+      const player = await tx.player.findFirst({ where: { id: playerAuth.playerId, arenaId: arena.id, active: true }, select: { id: true, name: true, email: true } });
+      if (!player) throw new Error("Cliente não encontrado.");
+      if (requiresPayment && !player.email) throw new Error("Informe seu e-mail no perfil para continuar com o pagamento online.");
+      const occurrence = await tx.scheduleOccurrence.create({ data: { arenaId: arena.id, sourceType: "ONLINE_BOOKING", title: `${player.name} - Reserva`, startsAt, endsAt, status: requiresPayment ? "PENDING_PAYMENT" : arena.onlineBookingRequiresConfirmation ? "PENDING_CONFIRMATION" : "SCHEDULED", bookingTypeName: "Reserva", occurrenceCourts: { create: { courtId: court.id } }, participants: { create: { playerId: player.id, amountCents: bookingAmountCents } } } });
+      const localDate = `${startsAt.getFullYear()}-${String(startsAt.getMonth() + 1).padStart(2, "0")}-${String(startsAt.getDate()).padStart(2, "0")}`;
+      await tx.arenaNotification.create({ data: { arenaId: arena.id, title: requiresPayment ? "Reserva aguardando pagamento" : arena.onlineBookingRequiresConfirmation ? "Reserva aguardando confirmação" : "Nova reserva online", message: `${player.name} solicitou ${court.name} às ${String(startsAt.getHours()).padStart(2, "0")}:${String(startsAt.getMinutes()).padStart(2, "0")}.`, href: `/agenda?data=${localDate}`, type: "ONLINE_BOOKING" } });
+      return { occurrenceId: occurrence.id, playerEmail: player.email };
+    });
+  } catch (error) {
+    if (error instanceof PublicBookingConflictError) return { ok: false, error: error.message };
+    throw error;
+  }
+  const checkoutUrl = requiresPayment ? `/reservar/${arena.slug}/pagamento/${onlineBooking.occurrenceId}` : "";
   revalidatePath("/agenda");
   revalidatePath(`/reservar/${arena.slug}`);
   revalidatePath(`/classificacao/${arena.slug}`);
   return {
+    ok: true,
     checkoutUrl,
     calendarUrl: `/api/reservar/${arena.slug}/${onlineBooking.occurrenceId}/calendario`,
-    reservationStatus: arena.onlineBookingPaymentEnabled ? "PENDING_PAYMENT" : arena.onlineBookingRequiresConfirmation ? "PENDING_CONFIRMATION" : "SCHEDULED"
+    reservationStatus: requiresPayment ? "PENDING_PAYMENT" : arena.onlineBookingRequiresConfirmation ? "PENDING_CONFIRMATION" : "SCHEDULED"
   };
 }
 
@@ -218,12 +241,17 @@ export async function startPublicCourtBookingPaymentAction(formData: FormData) {
   const playerAuth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
   const arena = await prisma.arena.findUnique({ where: { slug: parsed.data.arenaSlug }, select: { id: true } });
   if (!arena) throw new Error("Arena não encontrada.");
-  const booking = await withArenaTransaction(arena.id, (tx) => tx.scheduleOccurrence.findFirst({ where: { id: parsed.data.occurrenceId, arenaId: arena.id, sourceType: "ONLINE_BOOKING", status: "PENDING_PAYMENT", participants: { some: { playerId: playerAuth.playerId } } }, include: { occurrenceCourts: { include: { court: { select: { name: true } } } }, participants: { where: { playerId: playerAuth.playerId }, include: { player: { select: { id: true, name: true, email: true, cpf: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } } } } } }));
+  const booking = await withArenaTransaction(arena.id, (tx) => claimOnlineBookingPaymentMethod(tx, {
+    arenaId: arena.id,
+    occurrenceId: parsed.data.occurrenceId,
+    playerId: playerAuth.playerId,
+    method: parsed.data.method,
+  }));
   const participant = booking?.participants[0];
-  if (!booking || !participant) throw new Error("Esta reserva não está mais aguardando pagamento.");
+  if (!booking || !participant) throw new Error("O prazo de 15 minutos desta reserva terminou. Escolha novamente o horário disponível.");
   if (!participant.player.email) throw new Error("Informe seu e-mail no perfil para continuar com o pagamento online.");
   const paymentInput = { arenaId: arena.id, amountCents: participant.amountCents, description: `Reserva de quadra · ${booking.occurrenceCourts[0]?.court.name ?? "Quadra"}`, payerEmail: participant.player.email, externalReference: `online_booking:${booking.id}` };
-  const payment = parsed.data.method === "PIX" ? await createPixPayment(paymentInput) : parsed.data.method === "CARD" ? await createCardCheckout(paymentInput) : await (async () => { const missing = getMissingBoletoPayerFields(participant.player); if (missing.length) throw new Error(`Para emitir boleto, complete no perfil: ${missing.join(", ")}.`); return createBoletoPayment({ ...paymentInput, payerCpf: participant.player.cpf, payerName: participant.player.name, payerAddress: participant.player }); })();
+  const payment = parsed.data.method === "PIX" ? await createPixPayment(paymentInput) : parsed.data.method === "CARD" ? await createCardCheckout(paymentInput) : await (async () => { const missing = getMissingBoletoPayerFields(participant.player); if (missing.length) throw new Error(`Para emitir boleto, complete no perfil: ${missing.join(", ")}.`); return createBoletoPayment({ ...paymentInput, payerCpf: participant.player.cpf, payerName: participant.player.name, payerAddress: participant.player, expiresAt: new Date(booking.createdAt.getTime() + 3 * 24 * 60 * 60_000) }); })();
   if (!payment.checkoutUrl) throw new Error("Não foi possível abrir o pagamento escolhido.");
   return { checkoutUrl: payment.checkoutUrl };
 }
@@ -327,17 +355,24 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
     const classGroup = await prisma.classGroup.findFirst({ where: { arenaId: auth.arenaId, teacherId: parsed.data.teacherId, active: true, schedules: { some: { weekday: startsAt.getDay(), startTime: `${String(startsAt.getHours()).padStart(2, "0")}:${String(startsAt.getMinutes()).padStart(2, "0")}` } } }, select: { name: true } });
     if (classGroup) bookingTitle = `${parsed.data.bookingTypeName} · ${classGroup.name}`;
   }
-  const conflicts = await withArenaTransaction(auth.arenaId, (tx) => tx.scheduleOccurrence.findFirst({ where: {
-    arenaId: auth.arenaId, id: parsed.data.occurrenceId ? { not: parsed.data.occurrenceId } : undefined,
-    status: { not: "CANCELED" }, OR: occurrenceTimes.map((occurrence) => ({ startsAt: { lt: occurrence.endsAt }, endsAt: { gt: occurrence.startsAt } })), occurrenceCourts: { some: { courtId: { in: courtIds } } }
-  } }));
-  if (conflicts) throw new Error("Já existe um agendamento nessa quadra para este horário.");
-
   const responsibleName = players.find((player) => player.id === responsiblePlayerId)?.name ?? "";
   const courtNames = courts.map((court) => court.name).join(" · ");
   const notificationDates: string[] = [];
   const unpaidParticipantNames = new Set<string>();
   await withArenaTransaction(auth.arenaId, async (tx) => {
+    for (const courtId of [...courtIds].sort()) {
+      const lockedCourt = await tx.$queryRaw<{ id: string }[]>`SELECT "id" FROM "Court" WHERE "id" = ${courtId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
+      if (!lockedCourt.length) throw new Error("Quadra não encontrada.");
+    }
+    if (parsed.data.occurrenceId) {
+      await assertCourtBookingMayBeEdited(tx, auth.arenaId, parsed.data.occurrenceId);
+    }
+    const conflict = await tx.scheduleOccurrence.findFirst({ where: {
+      arenaId: auth.arenaId, id: parsed.data.occurrenceId ? { not: parsed.data.occurrenceId } : undefined,
+      AND: [activeCourtOccurrenceWhere(), { OR: occurrenceTimes.map((occurrence) => ({ startsAt: { lt: occurrence.endsAt }, endsAt: { gt: occurrence.startsAt } })) }],
+      occurrenceCourts: { some: { courtId: { in: courtIds } } }
+    }, select: { id: true } });
+    if (conflict) throw new Error("Já existe um agendamento nessa quadra para este horário.");
     const occurrences = parsed.data.occurrenceId
       ? [await tx.scheduleOccurrence.update({ where: { id: parsed.data.occurrenceId, arenaId: auth.arenaId }, data: { title: bookingTitle, startsAt, endsAt, bookingTypeName: parsed.data.bookingTypeName, teacherId: parsed.data.teacherId || null, responsiblePlayerId: responsiblePlayerId || null, notes: parsed.data.notes, occurrenceCourts: { deleteMany: {}, create: courtIds.map((courtId) => ({ courtId })) } } })]
       : await (async () => {
@@ -574,14 +609,18 @@ export async function moveCourtAction(formData: FormData) {
   const auth = await requireModuleEdit("calendar");
   const parsed = z.object({ courtId: z.string().trim().min(1), direction: z.enum(["up", "down"]) }).safeParse({ courtId: formData.get("courtId"), direction: formData.get("direction") });
   if (!parsed.success) throw new Error("Movimentação inválida.");
-  const courts = await prisma.court.findMany({ where: { arenaId: auth.arenaId }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }] });
-  const currentIndex = courts.findIndex((court) => court.id === parsed.data.courtId);
-  const targetIndex = currentIndex + (parsed.data.direction === "up" ? -1 : 1);
-  if (currentIndex < 0 || targetIndex < 0 || targetIndex >= courts.length) return;
-  await prisma.$transaction([
-    prisma.court.update({ where: { id: courts[currentIndex].id }, data: { displayOrder: courts[targetIndex].displayOrder } }),
-    prisma.court.update({ where: { id: courts[targetIndex].id }, data: { displayOrder: courts[currentIndex].displayOrder } })
-  ]);
+  await withArenaTransaction(auth.arenaId, async (tx) => {
+    await tx.$queryRaw`SELECT "id" FROM "Court" WHERE "arenaId" = ${auth.arenaId} ORDER BY "id" FOR UPDATE`;
+    const courts = await tx.court.findMany({ where: { arenaId: auth.arenaId }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }] });
+    const currentIndex = courts.findIndex((court) => court.id === parsed.data.courtId);
+    const targetIndex = currentIndex + (parsed.data.direction === "up" ? -1 : 1);
+    if (currentIndex < 0 || targetIndex < 0 || targetIndex >= courts.length) return;
+    const current = courts[currentIndex];
+    const target = courts[targetIndex];
+    const first = await tx.court.updateMany({ where: { id: current.id, arenaId: auth.arenaId }, data: { displayOrder: target.displayOrder } });
+    const second = await tx.court.updateMany({ where: { id: target.id, arenaId: auth.arenaId }, data: { displayOrder: current.displayOrder } });
+    if (first.count !== 1 || second.count !== 1) throw new Error("Não foi possível reorganizar as quadras desta arena.");
+  });
   refreshCalendar();
 }
 
@@ -593,10 +632,11 @@ export async function copyCourtConfigurationAction(formData: FormData) {
   const source = await prisma.court.findFirst({ where: { id: sourceCourtId.data, arenaId: auth.arenaId }, include: { weeklyRules: true } });
   const targets = await prisma.court.findMany({ where: { arenaId: auth.arenaId, id: { in: targetCourtIds.filter((id) => id !== sourceCourtId.data) } }, select: { id: true } });
   if (!source || !targets.length) throw new Error("Quadras de origem ou destino inválidas.");
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(auth.arenaId, async (tx) => {
     for (const target of targets) {
-      await tx.court.update({ where: { id: target.id }, data: { onlineSlotMinutes: source.onlineSlotMinutes, onlineDurationMinutes: source.onlineDurationMinutes } });
-      await tx.courtWeeklyRule.deleteMany({ where: { courtId: target.id } });
+      const updated = await tx.court.updateMany({ where: { id: target.id, arenaId: auth.arenaId }, data: { onlineSlotMinutes: source.onlineSlotMinutes, onlineDurationMinutes: source.onlineDurationMinutes } });
+      if (updated.count !== 1) throw new Error("Quadra de destino não encontrada nesta arena.");
+      await tx.courtWeeklyRule.deleteMany({ where: { courtId: target.id, court: { arenaId: auth.arenaId } } });
       if (source.weeklyRules.length) await tx.courtWeeklyRule.createMany({ data: source.weeklyRules.map((rule) => ({ courtId: target.id, weekday: rule.weekday, startsAtMinute: rule.startsAtMinute, endsAtMinute: rule.endsAtMinute, priceCents: rule.priceCents, available: rule.available })) });
     }
   });

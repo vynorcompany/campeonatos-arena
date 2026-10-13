@@ -1,5 +1,7 @@
 ﻿import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { arenaDatabase } from "@/lib/arena-database";
+import { withArenaTransaction } from "@/lib/rls";
 import { buildRoundRobin, distributePairsIntoGroups, generateBalancedPairs } from "@/lib/services/balancing";
 import type { MatchStage, TournamentStatus } from "@/types/tournament";
 
@@ -974,7 +976,7 @@ export async function getArenaDashboard(arenaId: string, selectedTournamentId?: 
     }
   });
 
-  const activeTournament = await prisma.tournament.findFirst({
+  const activeTournament = await arenaDatabase(arenaId).tournament.findFirst({
     where: {
       ...activeWhere,
       ...(selectedTournamentId ? { id: selectedTournamentId } : {})
@@ -1118,7 +1120,7 @@ export async function getArenaDashboard(arenaId: string, selectedTournamentId?: 
 }
 
 export async function getFinishedTournamentDetails(tournamentId: string, arenaId: string) {
-  const tournament = await prisma.tournament.findFirst({
+  const tournament = await arenaDatabase(arenaId).tournament.findFirst({
     where: {
       id: tournamentId,
       arenaId,
@@ -1203,7 +1205,7 @@ export async function getFinishedTournamentDetails(tournamentId: string, arenaId
 }
 
 export async function getTournamentDetailsById(tournamentId: string, arenaId: string) {
-  return prisma.tournament.findFirst({
+  return arenaDatabase(arenaId).tournament.findFirst({
     where: {
       id: tournamentId,
       arenaId
@@ -2089,7 +2091,7 @@ export async function finishTournament(tournamentId: string, arenaId: string) {
 }
 
 export async function reopenTournament(tournamentId: string, arenaId: string) {
-  const tournament = await prisma.tournament.findFirst({
+  const tournament = await arenaDatabase(arenaId).tournament.findFirst({
     where: {
       id: tournamentId,
       arenaId,
@@ -2297,7 +2299,7 @@ export async function updateTournamentSettings(
     tournament.groupCount !== input.groupCount ||
     tournament.pairsPerGroup !== input.pairsPerGroup;
 
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(arenaId, async (tx) => {
     await lockIndividualRanking(tx, arenaId, input.rankingId);
 
     if (structureChanged) {

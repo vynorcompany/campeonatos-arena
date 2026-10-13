@@ -1,5 +1,6 @@
 import { requireArenaAccess, requireAuth } from "@/lib/auth/session";
-import { canDeleteFinancialEntries, canEditModule, canViewModule, hasPermissionKey, type PermissionModule } from "@/lib/permissions";
+import { notFound } from "next/navigation";
+import { canDeleteFinancialEntries, canEditModule, canManageWhatsApp, canSendWhatsApp, canViewModule, hasPermissionKey, type PermissionModule } from "@/lib/permissions";
 import type { ArenaRole, SystemRole } from "@/types/auth";
 
 const roleWeight: Record<ArenaRole, number> = {
@@ -15,6 +16,10 @@ const systemWeight: Record<SystemRole, number> = {
   ADMIN: 2,
   SUPER_ADMIN: 3
 };
+
+function isAgencyRole(role: SystemRole) {
+  return role === "SUPER_ADMIN" || role === "ADMIN" || role === "MANAGER";
+}
 
 export async function requireRole(minRole: ArenaRole = "STAFF") {
   const auth = await requireArenaAccess();
@@ -51,6 +56,22 @@ export async function requireModuleEdit(module: PermissionModule) {
   return auth;
 }
 
+export async function requireWhatsAppSend() {
+  const auth = await requireArenaAccess();
+  if (!canSendWhatsApp(auth.arenaRole, auth.systemRole, auth.editPermissions)) {
+    throw new Error("Sem permissão para enviar mensagens no WhatsApp.");
+  }
+  return auth;
+}
+
+export async function requireWhatsAppManage() {
+  const auth = await requireArenaAccess();
+  if (!canManageWhatsApp(auth.arenaRole, auth.systemRole, auth.editPermissions)) {
+    throw new Error("Sem permissão para gerenciar o WhatsApp.");
+  }
+  return auth;
+}
+
 export async function requirePermission(key: string, mode: "view" | "edit" = "edit") {
   const auth = await requireArenaAccess();
   if (systemWeight[auth.systemRole] >= systemWeight.ADMIN || auth.arenaRole === "OWNER") return auth;
@@ -72,8 +93,18 @@ export async function requireFinancialEntryDelete() {
 export async function requireAgencyAccess() {
   const auth = await requireAuth();
 
-  if (auth.systemRole !== "SUPER_ADMIN" && auth.systemRole !== "ADMIN" && auth.systemRole !== "MANAGER") {
+  if (!isAgencyRole(auth.systemRole)) {
     throw new Error("Sem permissão para acessar o painel da agência.");
+  }
+
+  return auth;
+}
+
+export async function requireAgencyPageAccess() {
+  const auth = await requireAuth();
+
+  if (!isAgencyRole(auth.systemRole)) {
+    notFound();
   }
 
   return auth;

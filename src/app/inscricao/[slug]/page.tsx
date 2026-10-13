@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PublicRegistrationForm } from "@/components/forms/public-registration-form";
 import { prisma } from "@/lib/prisma";
+import { arenaDatabase } from "@/lib/arena-database";
 
 type PublicTournamentTab = "inscricao" | "inscritos" | "chaveamento" | "jogos";
 
@@ -29,14 +30,19 @@ export default async function PublicRegistrationPage(
   const activeTab = publicTabs.some((tab) => tab.id === searchParams?.tab)
     ? searchParams?.tab as PublicTournamentTab
     : "inscricao";
-  const tournament = await prisma.tournament.findUnique({
+  const tournamentOwner = await prisma.tournament.findUnique({
     where: { publicSlug: params.slug },
+    select: { arenaId: true },
+  });
+  if (!tournamentOwner) notFound();
+  const tournament = await arenaDatabase(tournamentOwner.arenaId).tournament.findUnique({
+    where: { publicSlug: params.slug, arenaId: tournamentOwner.arenaId },
     include: {
       arena: { select: { name: true, logoUrl: true } },
       categories: { where: { active: true }, orderBy: { level: "asc" } },
       publicRegistrations: {
         where: { status: "CONFIRMED" },
-        orderBy: { registrationOrder: "asc" },
+        orderBy: [{ registrationOrder: "asc" }, { createdAt: "asc" }, { id: "asc" }],
         select: { id: true, leadName: true, partnerName: true, categoryId: true },
       },
       categoryBrackets: {

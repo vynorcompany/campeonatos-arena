@@ -19,7 +19,8 @@ function loadActions(deliveryFails: boolean) {
     whatsAppConnection: { findFirst: async () => ({ arenaId: "arena-a", status: "CONNECTED" }) },
     playerVerificationCode: {
       findFirst: async () => null,
-      deleteMany: async () => ({ count: 0 }),
+      count: async () => 0,
+      updateMany: async () => ({ count: 0 }),
       create: async () => { calls.created += 1; return { id: "code-a" }; },
       delete: async () => { calls.removed += 1; return { id: "code-a" }; },
     },
@@ -31,6 +32,7 @@ function loadActions(deliveryFails: boolean) {
       if (name === "next/navigation") return { redirect() {} };
       if (name === "@/lib/prisma") return { prisma };
       if (name === "@/lib/auth/player-session") return {};
+      if (name === "@/lib/auth/login-attempts") return {};
       if (name === "@/lib/services/public-client-registration") return {};
       if (name === "@/lib/env") return { env: {} };
       if (name === "@/lib/phone") return { normalizeBrazilianPhone: (phone: string) => phone.replace(/\D/g, "") };

@@ -5,6 +5,8 @@ import { exchangeMercadoPagoAuthorizationCode, getMercadoPagoAccount, readMercad
 import { withArenaTransaction } from "@/lib/rls";
 import { prisma } from "@/lib/prisma";
 import { issueDueAgencyInvoices } from "@/lib/services/agency-billing";
+import { getAuthContext } from "@/lib/auth/session";
+import { canEditModule } from "@/lib/permissions";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -13,7 +15,14 @@ export async function GET(request: Request) {
     const code = url.searchParams.get("code");
     const state = url.searchParams.get("state");
     if (!code || !state) throw new Error("O Mercado Pago não retornou a autorização esperada.");
-    const arenaId = readMercadoPagoOAuthState(state);
+    const { arenaId, userId } = readMercadoPagoOAuthState(state);
+    const auth = await getAuthContext();
+    if (!auth || auth.userId !== userId) throw new Error("Sua sessão mudou durante a conexão. Inicie novamente.");
+    if (arenaId === "agency-platform") {
+      if (auth.systemRole !== "ADMIN" && auth.systemRole !== "SUPER_ADMIN") throw new Error("Sem permissão para conectar o Mercado Pago da agência.");
+    } else if (auth.arenaId !== arenaId || !canEditModule("finance", auth.arenaRole, auth.systemRole, auth.editPermissions)) {
+      throw new Error("A arena ou a permissão mudou durante a conexão. Inicie novamente.");
+    }
     const token = await exchangeMercadoPagoAuthorizationCode(code);
     if (!token.access_token) throw new Error("O Mercado Pago não retornou um token de acesso.");
     const account = await getMercadoPagoAccount(token.access_token);
@@ -33,7 +42,7 @@ export async function GET(request: Request) {
     }));
     return NextResponse.redirect(new URL("/financeiro/configuracoes/pagamentos-online?connected=mercado-pago", applicationUrl));
   } catch (error) {
-    const agency = url.searchParams.get("state") ? (() => { try { return readMercadoPagoOAuthState(url.searchParams.get("state")!) === "agency-platform"; } catch { return false; } })() : false;
+    const agency = url.searchParams.get("state") ? (() => { try { return readMercadoPagoOAuthState(url.searchParams.get("state")!).arenaId === "agency-platform"; } catch { return false; } })() : false;
     const path = agency ? "/agencia/planos" : "/financeiro/configuracoes/pagamentos-online";
     return NextResponse.redirect(new URL(`${path}?connectionError=${encodeURIComponent(error instanceof Error ? error.message : "Não foi possível concluir a conexão.")}`, applicationUrl));
   }

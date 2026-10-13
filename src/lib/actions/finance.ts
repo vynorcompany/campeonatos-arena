@@ -18,6 +18,8 @@ import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 import { encryptConnectionSecrets } from "@/lib/payments/connection-secrets";
 import { createBoletoPayment, createPixPayment, getMissingBoletoPayerFields } from "@/lib/payments/mercado-pago";
+import { hasExistingOnlineCharge } from "@/lib/payments/existing-online-charge";
+import { claimFinancialOnlineCharge } from "@/lib/payments/financial-online-charge-claim";
 import { issueRecurringOnlineChargeForEntry } from "@/lib/payments/recurring-online-charges";
 import { issueManualFiscalDocument, type FiscalDocumentType } from "@/lib/fiscal/manual-issuance";
 import { refreshFinanceRoutes, refreshFinancialSettings } from "@/lib/finance/revalidation";
@@ -403,7 +405,7 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
   });
   if (parsed.data.onlinePaymentMethod === "BOLETO" && firstEntryId) {
     try {
-      const result = await issueRecurringOnlineChargeForEntry(firstEntryId);
+      const result = await issueRecurringOnlineChargeForEntry(auth.arenaId, firstEntryId);
       refreshFinanceRoutes();
       return result.created
         ? { notice: "Recorrência criada e primeiro boleto emitido. A cobrança já está disponível no Portal do Atleta." }
@@ -424,6 +426,7 @@ export async function generateFinancialEntryOnlineChargeAction(formData: FormDat
   if (!parsed.success) return { error: "Dados da cobrança inválidos." };
   const entry = await withArenaTransaction(auth.arenaId, (tx) => tx.financialEntry.findFirst({ where: { id: parsed.data.entryId, arenaId: auth.arenaId, type: "REVENUE", status: "PENDING" }, include: { settlements: { select: { amountCents: true, interestCents: true } } } }));
   if (!entry) return { error: "Lançamento a receber não encontrado ou já quitado." };
+  if (hasExistingOnlineCharge(entry)) return { error: "Este lançamento já possui uma cobrança online. Use ‘Ver cobrança’ no lançamento para consultá-la antes de emitir outra." };
   const playerId = entry.playerId;
   if (!playerId) return { error: "Associe este lançamento a um cliente cadastrado antes de gerar a cobrança online." };
   const player = await withArenaTransaction(auth.arenaId, (tx) => tx.player.findFirst({ where: { id: playerId, arenaId: auth.arenaId, active: true }, select: { name: true, email: true, cpf: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } }));
@@ -432,15 +435,36 @@ export async function generateFinancialEntryOnlineChargeAction(formData: FormDat
   const amountCents = getFinancialEntryBalance(entry.amountCents, entry.settlements).outstandingCents;
   if (!amountCents) return { error: "Este lançamento não possui saldo para cobrar." };
   if (parsed.data.method === "BOLETO" && amountCents < 500) return { error: "Boleto exige valor mínimo de R$ 5,00. Ajuste o lançamento antes de emitir." };
+  const claim = await withArenaTransaction(auth.arenaId, (tx) => claimFinancialOnlineCharge(tx, {
+    arenaId: auth.arenaId, entryId: entry.id, method: parsed.data.method, expectedAmountCents: amountCents,
+  }));
+  if (!claim.ok) return { error: claim.error };
   const input = { arenaId: auth.arenaId, amountCents, description: entry.description, payerEmail: player.email, externalReference: entry.id };
   let charge;
   try {
     charge = parsed.data.method === "BOLETO" ? await createBoletoPayment({ ...input, payerCpf: player.cpf, payerName: player.name, payerAddress: player, expiresAt: entry.dueDate ?? undefined }) : await createPixPayment(input);
+    if (!charge.paymentId || (!charge.checkoutUrl && !charge.qrCode)) throw new Error("O provedor não retornou um meio de pagamento utilizável.");
   } catch (error) {
     console.error("Could not create online financial charge", error);
+    await withArenaTransaction(auth.arenaId, (tx) => tx.financialEntry.updateMany({
+      where: { id: entry.id, arenaId: auth.arenaId, status: "PENDING", onlinePaymentId: "", onlinePaymentUrl: "", onlinePaymentClaimMethod: parsed.data.method, onlinePaymentClaimedAt: claim.claimedAt },
+      data: { onlinePaymentClaimedAt: null },
+    })).catch((releaseError) => console.error("Could not release failed online charge claim", releaseError));
     return { error: parsed.data.method === "BOLETO" ? "Não foi possível emitir o boleto agora. Verifique a conexão do Mercado Pago e tente novamente." : "Não foi possível gerar o PIX agora. Verifique a conexão do Mercado Pago e tente novamente." };
   }
-  await withArenaTransaction(auth.arenaId, (tx) => tx.financialEntry.update({ where: { id: entry.id }, data: { onlineProvider: "MERCADO_PAGO", onlinePaymentId: charge.paymentId, onlinePaymentUrl: charge.checkoutUrl, onlinePaymentQrCode: charge.qrCode, onlinePaymentExpiresAt: charge.expiresAt, onlinePaymentPublishedAt: new Date() } }));
+  const saved = await withArenaTransaction(auth.arenaId, async (tx) => {
+    const updated = await tx.financialEntry.updateMany({
+      where: { id: entry.id, arenaId: auth.arenaId, status: "PENDING", onlinePaymentId: { in: ["", charge.paymentId] }, onlinePaymentUrl: "", onlinePaymentClaimMethod: parsed.data.method, onlinePaymentClaimedAt: claim.claimedAt },
+      data: { onlineProvider: "MERCADO_PAGO", onlinePaymentId: charge.paymentId, onlinePaymentUrl: charge.checkoutUrl, onlinePaymentQrCode: charge.qrCode, onlinePaymentExpiresAt: charge.expiresAt, onlinePaymentPublishedAt: new Date(), onlinePaymentClaimedAt: null },
+    });
+    if (updated.count) return "saved" as const;
+    const current = await tx.financialEntry.findFirst({ where: { id: entry.id, arenaId: auth.arenaId }, select: { status: true, onlinePaymentId: true } });
+    if (current?.status === "PAID" && current.onlinePaymentId === charge.paymentId) return "paid" as const;
+    await tx.arenaNotification.create({ data: { arenaId: auth.arenaId, type: "ONLINE_CHARGE_PAYMENT_REVIEW", title: "Cobrança online requer conferência", message: "O Mercado Pago criou uma cobrança, mas o lançamento mudou antes de registrá-la. Confira o pagamento e evite emitir outra cobrança até conciliar.", href: "/financeiro/contas-a-receber" } });
+    return "review" as const;
+  });
+  if (saved === "paid") return { error: "O pagamento já foi confirmado. Atualize a página para consultar o lançamento." };
+  if (saved === "review") return { error: "A cobrança foi criada, mas o lançamento mudou antes de registrá-la. Confira no Mercado Pago e concilie com a arena antes de tentar novamente." };
   refreshFinanceRoutes();
   return { url: charge.checkoutUrl, code: charge.qrCode, method: parsed.data.method };
 }

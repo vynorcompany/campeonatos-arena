@@ -3,8 +3,10 @@
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./tournament-participants-form.utilities";
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useFormState } from "react-dom";
 import { SubmitButton } from "@/components/forms/submit-button";
+import { canDeleteTournamentRegistration, canEditManualTournamentRegistration } from "@/lib/tournaments/registration-deletion";
 import {
   createManualTournamentRegistrationAction,
   deleteTournamentRegistrationAction,
@@ -34,6 +36,10 @@ type TournamentParticipantsFormProps = {
     categoryName: string;
     amountCents: number;
     paymentStatus: string;
+    paymentProvider: string;
+    paymentReference: string;
+    mercadoPagoPaymentId: string;
+    paymentCheckoutUrl: string;
     status: string;
     createdAt: string;
   }>;
@@ -51,11 +57,11 @@ function formatCurrency(amountCents: number) {
 }
 
 function getPaymentLabel(paymentStatus: string) {
-  return paymentStatus === "PAID" ? "Pago" : "Nao pago";
+  return paymentStatus === "PAID" ? "Pago" : paymentStatus === "REVIEW" ? "Em análise" : paymentStatus === "REFUNDED" ? "Estornado" : "Não pago";
 }
 
 function getConfirmationLabel(paymentStatus: string) {
-  return paymentStatus === "PAID" ? "Confirmado" : "Nao confirmado";
+  return paymentStatus === "PAID" ? "Confirmado" : paymentStatus === "REVIEW" ? "Aguardando revisão" : paymentStatus === "REFUNDED" ? "Cancelada" : "Não confirmado";
 }
 
 export function TournamentParticipantsForm(props: TournamentParticipantsFormProps) {
@@ -146,6 +152,9 @@ export function TournamentParticipantsForm(props: TournamentParticipantsFormProp
           <div className={viewStyles.simple_list}>
             {safeFiltered.map((registration) => {
               const paid = registration.paymentStatus === "PAID";
+              const paymentLocked = registration.paymentStatus === "REVIEW" || registration.paymentStatus === "REFUNDED";
+              const canDelete = canDeleteTournamentRegistration(registration);
+              const canEdit = canEditManualTournamentRegistration(registration);
               return (
                 <div key={registration.id} className={viewStyles.simple_item}>
                   <div className={viewStyles.stack_xs}>
@@ -160,15 +169,15 @@ export function TournamentParticipantsForm(props: TournamentParticipantsFormProp
                       <span className={cx(`${viewStyles.player_status_pill}${paid ? "" : " " + viewStyles.player_status_pill_inactive}`)}>
                         Situacao: {getConfirmationLabel(registration.paymentStatus)}
                       </span>
-                      <form action={deleteTournamentRegistrationAction}>
+                      {canDelete ? <form action={deleteTournamentRegistrationAction}>
                         <input type="hidden" name="registrationId" value={registration.id} />
                         <SubmitButton label="Excluir participante" pendingLabel="Excluindo..." className={viewStyles.button} />
-                      </form>
-                      <button type="button" className={viewStyles.button_button_primary} onClick={() => setEditingRegistrationId((current) => current === registration.id ? null : registration.id)}>
+                      </form> : null}
+                      {canEdit ? <button type="button" className={viewStyles.button_button_primary} onClick={() => setEditingRegistrationId((current) => current === registration.id ? null : registration.id)}>
                         {editingRegistrationId === registration.id ? "Fechar edicao" : "Editar inscricao"}
-                      </button>
+                      </button> : registration.paymentStatus === "REVIEW" ? <Link className={viewStyles.button} href="/relatorios/pagamentos-online">Ver revisão do pagamento</Link> : <span className={viewStyles.muted}>{registration.paymentStatus === "PAID" ? "Edição bloqueada para preservar a dupla e os jogos" : paymentLocked ? "Pagamento estornado" : "Cobrança online protegida"}</span>}
                     </div>
-                    {editingRegistrationId === registration.id ? (
+                    {canEdit && editingRegistrationId === registration.id ? (
                       <form action={updateAction} className={viewStyles.grid_form_2}>
                         <input type="hidden" name="registrationId" value={registration.id} />
                         <input type="hidden" name="tournamentId" value={tournamentId} />

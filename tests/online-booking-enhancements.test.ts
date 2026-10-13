@@ -28,6 +28,10 @@ test("online booking enforces a configurable lead time and marks pending request
   assert.match(bookingPage, /PublicBookingContent/);
   assert.match(bookingForm, /Aguardando confirmação/);
   assert.match(bookingForm, /Ir para pagamento/);
+  assert.match(bookingForm, /pendingReservation\.status === "PENDING_PAYMENT" \? <a[^>]+href=\{`\/reservar\/\$\{encodeURIComponent\(arenaSlug\)\}\/pagamento\/\$\{encodeURIComponent\(pendingReservation\.id\)\}`\}/);
+  assert.match(bookingForm, /paymentOnlineEnabled && selectedTotalCents > 0/);
+  assert.match(actions, /const requiresPayment = arena\.onlineBookingPaymentEnabled && bookingAmountCents > 0/);
+  assert.match(actions, /status: requiresPayment \? "PENDING_PAYMENT"/);
   assert.match(actions, /createPixPayment/);
   assert.doesNotMatch(actions, /financialEntry\.create\(\{ data: \{ arenaId: arena\.id, type: "REVENUE", category: "Reserva"/);
   assert.match(actions, /startPublicCourtBookingPaymentAction/);
@@ -36,6 +40,24 @@ test("online booking enforces a configurable lead time and marks pending request
   assert.match(paymentChoice, /Boleto/);
   assert.match(styles, /agenda-online-settings-trigger[\s\S]*background:/);
   assert.ok(utilityClasses("daily-court-event-online").length);
+});
+
+test("online booking serializes same-court requests and reports a readable conflict", () => {
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/calendar.ts"), "utf8");
+  const form = readFileSync(resolve(process.cwd(), "src/components/public-court-booking-form.tsx"), "utf8");
+  assert.match(actions, /withArenaTransaction\(arena\.id, async \(tx\) => \{[\s\S]*FOR UPDATE[\s\S]*tx\.scheduleOccurrence\.findFirst[\s\S]*tx\.scheduleOccurrence\.create/);
+  assert.match(actions, /PublicBookingConflictError[\s\S]*ok: false, error: error\.message/);
+  assert.match(form, /if \(!result\.ok\) \{ setMessage\(result\.error\); return; \}/);
+});
+
+test("agenda interna respeita bloqueio de 15 minutos e serializa a gravação", () => {
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/calendar.ts"), "utf8");
+  const agenda = readFileSync(resolve(process.cwd(), "src/app/(app)/agenda/page.tsx"), "utf8");
+  const staffBooking = actions.split("export async function saveCourtBookingAction")[1]?.split("export async function ")[0] ?? "";
+  assert.match(staffBooking, /FOR UPDATE[\s\S]*activeCourtOccurrenceWhere\(\)/);
+  assert.match(staffBooking, /assertCourtBookingMayBeEdited\(tx, auth\.arenaId, parsed\.data\.occurrenceId\)/);
+  assert.match(agenda, /activeCourtOccurrenceWhere\(\)/);
+  assert.match(agenda, /Aguardando pagamento/);
 });
 
 test("each tournament stores rules and the public league page exposes them", () => {

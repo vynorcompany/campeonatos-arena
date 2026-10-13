@@ -10,6 +10,7 @@ import { PublicRegistrationLinkActions } from "@/components/tournaments/public-r
 import { deleteTournamentAction, updateTournamentRegistrationPhaseAction } from "@/lib/actions/tournament";
 import { requireModuleView } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
+import { arenaDatabase } from "@/lib/arena-database";
 
 type TournamentDetailPageProps = {
   params: Promise<{ tournamentId: string }>;
@@ -20,7 +21,7 @@ export default async function TournamentDetailPage(props: TournamentDetailPagePr
   const params = await props.params;
   const auth = await requireModuleView("tournaments");
   const [tournament] = await Promise.all([
-    prisma.tournament.findFirst({
+    arenaDatabase(auth.arenaId).tournament.findFirst({
       where: {
         id: params.tournamentId,
         arenaId: auth.arenaId,

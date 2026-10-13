@@ -6,6 +6,7 @@ import { test } from "node:test";
 const page = readFileSync("src/app/(app)/whatsapp/page.tsx", "utf8");
 const pulse = readFileSync("src/app/api/whatsapp/pulse/route.ts", "utf8");
 const realtime = readFileSync("src/components/whatsapp/use-whatsapp-realtime.ts", "utf8");
+const workspace = readFileSync("src/components/whatsapp/whatsapp-chat-workspace.tsx", "utf8");
 
 test("WhatsApp inbox sends only rendered message fields to the browser", () => {
   assert.match(page, /messages:\s*\{[\s\S]*?select:\s*\{\s*id: true, direction: true, body: true/);
@@ -19,4 +20,7 @@ test("WhatsApp realtime refreshes on conversation version changes, not a timer",
   assert.doesNotMatch(realtime, /lastReconcile|12_000/);
   assert.match(realtime, /if \(paused\)/);
   assert.match(realtime, /subscribeWhatsAppPulse/);
+  assert.match(realtime, /3_000, true/);
+  assert.doesNotMatch(realtime, /version\.current = pulse\.version/);
+  assert.match(workspace, /useWhatsAppRealtime\(\{ paused: !connected, initialVersion, scope: pollingScope \}\)/);
 });

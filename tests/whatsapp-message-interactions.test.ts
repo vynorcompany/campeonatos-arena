@@ -7,13 +7,14 @@ import ts from "typescript";
 import { reactionEmojis, readWhatsAppReactions, withWhatsAppReaction } from "../src/lib/whatsapp-message-data";
 import { buildEvolutionTextPayload, evolutionRecipientNumber } from "../src/lib/integrations/evolution";
 import { readEvolutionGroupName } from "../src/lib/integrations/evolution/groups";
+import { normalizeWhatsAppAccountJid } from "../src/lib/whatsapp-account";
 
 const require = createRequire(import.meta.url);
 function load(path: string, mocks: Record<string, unknown>) {
   const exports: Record<string, (...args: any[]) => Promise<any>> = {};
   vm.runInNewContext(ts.transpileModule(readFileSync(new URL(path, import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, {
     exports, Date, Buffer, File, FormData,
-    require: (name: string) => name in mocks ? mocks[name] : require(name),
+    require: (name: string) => name in mocks ? mocks[name] : name === "@/lib/arena-database" ? { arenaDatabase: () => (mocks["@/lib/prisma"] as { prisma: unknown }).prisma } : require(name),
   });
   return exports;
 }
@@ -68,7 +69,7 @@ test("reply and reaction actions validate the account and send original provider
   const deliver = (kind: string) => async (...args: any[]) => { delivered.push({ kind, args }); return { key: { id: "new-provider" } }; };
   const actions = load("../src/lib/actions/whatsapp-chat.ts", {
     "next/cache": { revalidatePath() {} },
-    "@/lib/auth/guards": { requireModuleEdit: async () => ({ arenaId: "arena", userId: "user", userName: "Atendente" }) },
+    "@/lib/auth/guards": { requireWhatsAppSend: async () => ({ arenaId: "arena", userId: "user", userName: "Atendente" }) },
     "@/lib/whatsapp-active-account": { getActiveWhatsAppAccountJid: async () => "current" },
     "@/lib/whatsapp-message-data": { reactionEmojis },
     "@/lib/prisma": { prisma: { whatsAppMessage: { findFirst: async ({ where }: any) => where.id === target.id && where.conversation.arenaId === "arena" && where.conversation.accountJid === "current" && (!where.conversation.id || where.conversation.id === "conversation") ? target : null } } },
@@ -122,6 +123,7 @@ test("reaction webhooks update the original message without incrementing unread 
     "@/lib/prisma": { prisma: { whatsAppConnection: { findUnique: async () => ({ id: "connection", arenaId: "arena", webhookSecretHash: "hash", status: "CONNECTED", connectedPhone: "5511000000001@s.whatsapp.net" }) } } },
     "@/lib/whatsapp-account": { normalizeWhatsAppAccountJid: (value: string) => value },
     "@/lib/integrations/evolution/agency": {},
+    "@/lib/rls": { withArenaTransaction: async (_arenaId: string, operation: (tx: unknown) => unknown) => operation({}) },
     "@/lib/services/whatsapp-conversation": { persistWhatsAppReaction: async (...args: any[]) => { persisted.push(args); } },
   });
   const request = { nextUrl: { searchParams: new URLSearchParams("instance=test&secret=secret") }, headers: new Headers(), json: async () => ({ event: "MESSAGES_UPSERT", data: { key: { remoteJid: "contact@s.whatsapp.net", fromMe: false, id: "reaction-provider" }, message: { reactionMessage: { key: { id: "original-provider" }, text: "❤️" } } } }) };
@@ -130,4 +132,132 @@ test("reaction webhooks update the original message without incrementing unread 
   assert.equal(persisted[0][2], "original-provider");
   assert.equal(persisted[0][3], "contact@s.whatsapp.net");
   assert.equal(persisted[0][4], "❤️");
+});
+
+test("webhook de status de entrega não cria mensagem fantasma", async () => {
+  let writes = 0;
+  const webhook = load("../src/app/api/integrations/evolution/webhook/route.ts", {
+    "next/server": { NextResponse: { json: (body: unknown) => body } },
+    "@prisma/client": {},
+    "@/lib/integrations/evolution/client": {},
+    "@/lib/payments/connection-secrets": { hashWebhookSecret: () => "hash" },
+    "@/lib/prisma": { prisma: { whatsAppConnection: { findUnique: async () => ({ id: "connection", arenaId: "arena-a", webhookSecretHash: "hash", status: "CONNECTED", connectedPhone: "5511999991111@s.whatsapp.net" }) } } },
+    "@/lib/whatsapp-account": { normalizeWhatsAppAccountJid },
+    "@/lib/integrations/evolution/agency": {},
+    "@/lib/rls": { withArenaTransaction: async () => { writes += 1; } },
+    "@/lib/services/whatsapp-conversation": {},
+  });
+  const request = {
+    nextUrl: { searchParams: new URLSearchParams("instance=arena-a&secret=fixture") },
+    headers: new Headers(),
+    json: async () => ({ instance: "arena-a", event: "MESSAGES_UPDATE", data: { key: { remoteJid: "5511888880000@s.whatsapp.net", id: "delivery-status" }, status: "READ" } }),
+  };
+  assert.equal((await webhook.POST(request)).received, true);
+  assert.equal(writes, 0);
+});
+
+test("webhook rejeita eventos cuja instância do payload difere da instância autenticada na URL", async () => {
+  let connectionReads = 0;
+  const webhook = load("../src/app/api/integrations/evolution/webhook/route.ts", {
+    "next/server": { NextResponse: { json: (body: unknown, options?: { status: number }) => ({ body, status: options?.status ?? 200 }) } },
+    "@prisma/client": {},
+    "@/lib/integrations/evolution/client": {},
+    "@/lib/payments/connection-secrets": {},
+    "@/lib/prisma": { prisma: { whatsAppConnection: { findUnique: async () => { connectionReads += 1; return null; } } } },
+    "@/lib/whatsapp-account": {},
+    "@/lib/integrations/evolution/agency": {},
+    "@/lib/rls": {},
+    "@/lib/services/whatsapp-conversation": {},
+  });
+  const request = {
+    nextUrl: { searchParams: new URLSearchParams("instance=arena-a&secret=fixture") },
+    headers: new Headers(),
+    json: async () => ({ instance: "arena-b", event: "MESSAGES_UPSERT", data: { key: { id: "message-a" } } }),
+  };
+  const response = await webhook.POST(request);
+  assert.equal(response.status, 401);
+  assert.equal(connectionReads, 0);
+});
+
+test("webhook ignora mensagem atrasada da conta anterior após conectar outro número", async () => {
+  let stored = false;
+  const webhook = load("../src/app/api/integrations/evolution/webhook/route.ts", {
+    "next/server": { NextResponse: { json: (body: unknown) => body } },
+    "@prisma/client": {},
+    "@/lib/integrations/evolution/client": {},
+    "@/lib/payments/connection-secrets": { hashWebhookSecret: () => "hash" },
+    "@/lib/prisma": { prisma: { whatsAppConnection: { findUnique: async () => ({ id: "connection", arenaId: "arena-a", webhookSecretHash: "hash", status: "CONNECTED", connectedPhone: "5511999992222@s.whatsapp.net" }) } } },
+    "@/lib/whatsapp-account": { normalizeWhatsAppAccountJid },
+    "@/lib/integrations/evolution/agency": {},
+    "@/lib/rls": { withArenaTransaction: async () => { stored = true; } },
+    "@/lib/services/whatsapp-conversation": {},
+  });
+  for (const owner of ["5511999991111", "5511999991111@s.whatsapp.net", "sender-fallback"]) {
+    const request = {
+      nextUrl: { searchParams: new URLSearchParams("instance=arena-a&secret=fixture") },
+      headers: new Headers(),
+      json: async () => ({ instance: "arena-a", sender: owner === "sender-fallback" ? "5511999991111@s.whatsapp.net" : undefined, event: "MESSAGES_UPSERT", data: { owner: owner === "sender-fallback" ? "" : owner, key: { id: "old-message", remoteJid: "5511888880000@s.whatsapp.net" }, message: { conversation: "Mensagem antiga" } } }),
+    };
+    const response = await webhook.POST(request);
+    assert.equal(response.ignored, "account-mismatch");
+  }
+  assert.equal(stored, false);
+});
+
+test("duplicate webhook messages count once and provider IDs remain scoped to each arena conversation", async () => {
+  const conversations = new Map<string, { id: string; arenaId: string; accountJid: string; remoteJid: string; profilePhotoUrl: string; unreadCount: number }>();
+  const messages = new Map<string, { id: string }>();
+  const connections = [
+    { id: "connection-a", instanceName: "instance-a", arenaId: "arena-a", connectedPhone: "111@s.whatsapp.net", status: "CONNECTED", webhookSecretHash: "hash" },
+    { id: "connection-b", instanceName: "instance-b", arenaId: "arena-b", connectedPhone: "222@s.whatsapp.net", status: "CONNECTED", webhookSecretHash: "hash" },
+  ];
+  const tx = {
+    whatsAppConversation: {
+      upsert: async ({ where, create }: any) => {
+        const key = JSON.stringify(where.arenaId_accountJid_remoteJid);
+        if (!conversations.has(key)) conversations.set(key, { id: `conversation-${conversations.size}`, ...create });
+        return conversations.get(key);
+      },
+      update: async ({ where, data }: any) => {
+        const conversation = [...conversations.values()].find((item) => item.id === where.id)!;
+        conversation.unreadCount += data.unreadCount.increment ?? 0;
+        return conversation;
+      },
+    },
+    whatsAppMessage: {
+      findUnique: async ({ where }: any) => messages.get(JSON.stringify(where.conversationId_providerId)) ?? null,
+      upsert: async ({ where }: any) => {
+        const key = JSON.stringify(where.conversationId_providerId);
+        const message = { id: `message-${messages.size}` };
+        messages.set(key, message);
+        return message;
+      },
+    },
+    $queryRaw: async () => [{ id: "locked" }],
+  };
+  const webhook = load("../src/app/api/integrations/evolution/webhook/route.ts", {
+    "next/server": { NextResponse: { json: (value: unknown) => value } },
+    "@prisma/client": {},
+    "@/lib/integrations/evolution/client": { getEvolutionGroupName: async () => "", getEvolutionProfilePicture: async () => "" },
+    "@/lib/payments/connection-secrets": { hashWebhookSecret: () => "hash" },
+    "@/lib/prisma": { prisma: {
+      whatsAppConnection: { findUnique: async ({ where }: any) => connections.find((item) => item.instanceName === where.instanceName || item.id === where.id) ?? null },
+      whatsAppMessage: { findFirst: async () => null },
+    } },
+    "@/lib/whatsapp-account": { normalizeWhatsAppAccountJid },
+    "@/lib/integrations/evolution/agency": {},
+    "@/lib/integrations/evolution/groups": { readEvolutionGroupName: () => "" },
+    "@/lib/services/whatsapp-conversation": {},
+    "@/lib/rls": { withArenaTransaction: async (_arenaId: string, operation: (client: typeof tx) => unknown) => operation(tx) },
+  });
+  for (const instance of ["instance-a", "instance-a", "instance-b"]) {
+    const request = {
+      nextUrl: { searchParams: new URLSearchParams(`instance=${instance}&secret=secret`) }, headers: new Headers(),
+      json: async () => ({ instance, event: "MESSAGES_UPSERT", data: { owner: instance === "instance-a" ? "111" : "222", key: { remoteJid: "contact@s.whatsapp.net", fromMe: false, id: "same-provider-id" }, message: { conversation: "Olá" }, pushName: "Contato", profilePictureUrl: "https://example.test/photo.png" } }),
+    };
+    await webhook.POST(request);
+  }
+  assert.equal(conversations.size, 2);
+  assert.equal(messages.size, 2);
+  assert.deepEqual([...conversations.values()].map((item) => item.unreadCount), [1, 1]);
 });

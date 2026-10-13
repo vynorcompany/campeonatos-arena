@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireModuleView } from "@/lib/auth/guards";
 import { buildCourtBookingAvailability } from "@/lib/calendar/booking-availability";
+import { activeCourtOccurrenceWhere } from "@/lib/calendar/online-booking-hold";
 import { withArenaTransaction } from "@/lib/rls";
 
 const querySchema = z.object({
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
       where: {
         arenaId: auth.arenaId,
         id: parsed.data.occurrenceId ? { not: parsed.data.occurrenceId } : undefined,
-        status: { notIn: ["CANCELED", "PENDING_PAYMENT"] },
+        ...activeCourtOccurrenceWhere(),
         startsAt: { lt: dayEnd },
         endsAt: { gt: dayStart },
         occurrenceCourts: { some: { courtId: court.id } },

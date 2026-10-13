@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import { buildMonthlyLeagueSchedule, getLeagueMonthBlocks } from "@/lib/league/monthly-schedule";
 import { resolveLeagueTier } from "@/lib/league/tier";
+import { withArenaTransaction } from "@/lib/rls";
+import { arenaDatabase } from "@/lib/arena-database";
 
 const monthKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 const nextMonthKey = (referenceMonth: string) => {
@@ -104,7 +106,12 @@ async function createMonthlyCycle(competitionId: string, referenceMonth: string)
 }
 
 async function snapshotLeagueCycle(competitionId: string, cycleId: string) {
-  const competition = await prisma.categoryCompetition.findUnique({
+  const owner = await prisma.categoryCompetition.findUnique({
+    where: { id: competitionId },
+    select: { category: { select: { tournament: { select: { arenaId: true } } } } },
+  });
+  if (!owner) return;
+  const competition = await arenaDatabase(owner.category.tournament.arenaId).categoryCompetition.findUnique({
     where: { id: competitionId },
     include: {
       category: { include: { registrations: { select: { id: true, leadName: true, partnerName: true, status: true, paymentStatus: true, createdAt: true } } } },
@@ -133,7 +140,13 @@ async function snapshotLeagueCycle(competitionId: string, cycleId: string) {
 }
 
 async function resetLeagueCompetition(competitionId: string) {
-  await prisma.$transaction(async (tx) => {
+  const competition = await prisma.categoryCompetition.findUnique({
+    where: { id: competitionId },
+    select: { category: { select: { tournament: { select: { arenaId: true } } } } },
+  });
+  if (!competition) throw new Error("Competição da Liga não encontrada.");
+  const arenaId = competition.category.tournament.arenaId;
+  await withArenaTransaction(arenaId, async (tx) => {
     await tx.publicTournamentRegistration.updateMany({ where: { competitionId }, data: { status: "CANCELED" } });
     await tx.categoryMatch.deleteMany({ where: { competitionId } });
     await tx.categoryPair.deleteMany({ where: { competitionId } });
@@ -234,10 +247,11 @@ export async function closeLeagueCycleManually(competitionId: string, now = new 
   const cycle = await prisma.leagueCycle.findFirst({
     where: {
       competitionId,
-      referenceMonth,
+      referenceMonth: { lte: referenceMonth },
       status: "OPEN",
       ...(arenaId ? { competition: { category: { tournament: { arenaId } } } } : {})
     },
+    orderBy: { referenceMonth: "asc" },
     select: { id: true, competitionId: true, referenceMonth: true }
   });
   if (!cycle) throw new Error("Não há um ciclo aberto desta Liga para encerrar.");

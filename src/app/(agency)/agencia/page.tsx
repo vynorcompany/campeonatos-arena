@@ -1,11 +1,11 @@
 import { viewStyles } from "./page.utilities";
 import { SectionCard } from "@/components/section-card";
-import { requireAgencyAccess } from "@/lib/auth/guards";
+import { requireAgencyPageAccess } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency, getAgencyMetrics } from "@/lib/services/agency";
 
 export default async function AgencyDashboardPage() {
-  await requireAgencyAccess();
+  await requireAgencyPageAccess();
   const [metrics, tickets] = await Promise.all([
     getAgencyMetrics(),
     prisma.supportTicket.findMany({

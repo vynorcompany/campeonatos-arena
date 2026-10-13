@@ -1,6 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import { arenaDatabase } from "@/lib/arena-database";
 import { normalizeWhatsAppAccountJid } from "@/lib/whatsapp-account";
 
 export async function getActiveWhatsAppAccountJid(arenaId: string) {
@@ -14,7 +15,7 @@ export async function getActiveWhatsAppAccountJid(arenaId: string) {
 export async function getActiveWhatsAppUnreadCount(arenaId: string) {
   const accountJid = await getActiveWhatsAppAccountJid(arenaId);
   if (!accountJid) return 0;
-  const result = await prisma.whatsAppConversation.aggregate({
+  const result = await arenaDatabase(arenaId).whatsAppConversation.aggregate({
     where: { arenaId, accountJid },
     _sum: { unreadCount: true },
   });

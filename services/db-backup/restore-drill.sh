@@ -17,6 +17,7 @@ su -s /bin/sh postgres -c "initdb -D '$cluster' --auth-local=trust --auth-host=t
 su -s /bin/sh postgres -c "pg_ctl -D '$cluster' -l '$cluster/server.log' -o '-h 127.0.0.1 -p 55432 -k $cluster' -w start" >/dev/null
 started=1
 createdb -h 127.0.0.1 -p 55432 -U postgres arena_restore_drill
+psql -h 127.0.0.1 -p 55432 -U postgres -d arena_restore_drill -X -v ON_ERROR_STOP=1 -c 'CREATE ROLE arena_runtime LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;' >/dev/null
 export RESTORE_DATABASE_URL="postgresql://postgres@127.0.0.1:55432/arena_restore_drill"
 export RESTORE_CONFIRM="RESTORE_DISPOSABLE_DATABASE"
 sh /restore-test.sh

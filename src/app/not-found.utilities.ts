@@ -2,10 +2,8 @@ import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
   "stack_md": [
-    "stack-md", "tw:[min-height:100vh]", "tw:[padding:1.5rem]", "tw:grid",
-    "tw:gap-y-[18px]", "tw:gap-x-[18px]", "tw:[&_>_*:nth-child(1)]:[animation-delay:40ms]", "tw:[&_>_*:nth-child(2)]:[animation-delay:100ms]",
-    "tw:[&_>_*:nth-child(3)]:[animation-delay:160ms]", "tw:[&_>_*:nth-child(4)]:[animation-delay:220ms]", "tw:[&_>_.section-card:last-child]:border-b-[length:1px]", "tw:[&_>_.section-card:last-child]:[border-bottom-style:solid]",
-    "tw:[&_>_.section-card:last-child]:border-b-[color:var(--line)]",
+    "tw:min-h-dvh", "tw:flex", "tw:items-start", "tw:justify-center", "tw:px-4", "tw:py-6",
+    "tw:viewport-700:px-6", "tw:viewport-700:py-10", "tw:[&_.section-card]:w-full", "tw:[&_.section-card]:max-w-[560px]",
   ].join(" "),
   "eyebrow": sharedUtilities.eyebrow,
   "section_actions": [

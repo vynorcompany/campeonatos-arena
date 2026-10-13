@@ -1,9 +1,9 @@
 import { AgencyPlansContent } from "@/components/agency/agency-plans-content";
-import { requireAgencyAccess } from "@/lib/auth/guards";
+import { requireAgencyPageAccess } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
 export default async function AgencyPlansPage({ searchParams }: { searchParams: Promise<{ connected?: string; connectionError?: string }> }) {
-  await requireAgencyAccess();
+  await requireAgencyPageAccess();
   const notice = await searchParams;
   const [plans, arenas, subscriptions, invoices, connection] = await Promise.all([
     prisma.agencyPlan.findMany({ orderBy: [{ isTrial: "desc" }, { name: "asc" }] }),

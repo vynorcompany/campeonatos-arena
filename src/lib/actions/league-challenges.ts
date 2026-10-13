@@ -4,8 +4,10 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requirePublicPlayerAuth } from "@/lib/auth/player-session";
 import { parseScheduledAt } from "@/lib/calendar/inputs";
+import { isCourtSlotAvailable } from "@/lib/calendar/court-slot-availability";
+import { leagueProposalResponseDueAt } from "@/lib/league/challenge-deadline";
 import { prisma } from "@/lib/prisma";
-import { withArenaTransaction } from "@/lib/rls";
+import { withArenaTransaction, type ArenaTransaction } from "@/lib/rls";
 import { getPublicLinkedPlayerIds } from "@/lib/services/public-player-link";
 import { recordCategoryLeagueMatchResult } from "@/lib/services/category-competition";
 import { parseLeagueMatchResultInput } from "@/lib/actions/league-match-result-input";
@@ -25,15 +27,17 @@ function publicPortalPath(arenaSlug: string, leagueCategoryId?: string) {
   return `/home?arena=${encodeURIComponent(arenaSlug)}&${query.toString()}`;
 }
 
-async function validateCourtAvailability({ arenaId, courtId, startsAt, endsAt }: { arenaId: string; courtId: string; startsAt: Date; endsAt: Date }) {
+async function validateCourtAvailability({ arenaId, courtId, startsAt, endsAt, tx }: { arenaId: string; courtId: string; startsAt: Date; endsAt: Date; tx?: ArenaTransaction }) {
   const court = await prisma.court.findFirst({ where: { id: courtId, arenaId, active: true }, include: { weeklyRules: true } });
   if (!court) throw new Error("Quadra não encontrada.");
   const startsAtMinute = startsAt.getHours() * 60 + startsAt.getMinutes();
   const endsAtMinute = endsAt.getHours() * 60 + endsAt.getMinutes();
   const available = court.weeklyRules.some((rule) => rule.weekday === startsAt.getDay() && rule.available && rule.startsAtMinute <= startsAtMinute && rule.endsAtMinute >= endsAtMinute);
   if (!available) throw new Error("Este horário não está disponível nesta quadra.");
-  const conflict = await withArenaTransaction(arenaId, (tx) => tx.scheduleOccurrence.findFirst({ where: { arenaId, status: { not: "CANCELED" }, startsAt: { lt: endsAt }, endsAt: { gt: startsAt }, occurrenceCourts: { some: { courtId } } }, select: { id: true } }));
-  if (conflict) throw new Error("Este horário não está mais disponível.");
+  const availableSlot = tx
+    ? await isCourtSlotAvailable(tx, arenaId, courtId, startsAt, endsAt)
+    : await withArenaTransaction(arenaId, (arenaTx) => isCourtSlotAvailable(arenaTx, arenaId, courtId, startsAt, endsAt));
+  if (!availableSlot) throw new Error("Este horário não está mais disponível.");
   return court;
 }
 
@@ -67,8 +71,7 @@ export async function createLeagueChallengeAction(formData: FormData) {
     if (startsAt.getFullYear() !== year || startsAt.getMonth() + 1 !== month || startsAt.getDate() < startDay || startsAt.getDate() > endDay) throw new Error("O horário deve estar dentro do bloco semanal deste confronto.");
   }
   await validateCourtAvailability({ arenaId: auth.arenaId, courtId: parsed.data.courtId, startsAt, endsAt });
-  const responseDueAt = new Date(Math.min(Date.now() + 48 * 60 * 60_000, startsAt.getTime() - 2 * 60 * 60_000));
-  if (responseDueAt <= new Date()) throw new Error("O horário sugerido não permite o prazo mínimo de resposta.");
+  const responseDueAt = leagueProposalResponseDueAt(startsAt);
   const proposal = await prisma.leagueMatchProposal.create({ data: { categoryMatchId: categoryMatch.id, courtId: parsed.data.courtId, proposerPairId: proposer.id, opponentPairId: opponent.id, startsAt, endsAt, responseDueAt } });
   await prisma.playerNotification.createMany({ data: opponent.players.map((entry) => ({ playerId: entry.playerId, type: "LEAGUE_MATCH", title: "Novo horário de Liga", message: "Sua dupla recebeu uma sugestão de horário para responder.", href: `${publicPortalPath(parsed.data.arenaSlug, proposer.competition.category.id)}#desafio-${proposal.id}` })) });
   revalidatePath(publicPortalPath(parsed.data.arenaSlug));
@@ -99,19 +102,21 @@ export async function respondLeagueChallengeAction(formData: FormData) {
   if (!challenge.opponentPair.players.some((entry) => entry.playerId === auth.playerId)) throw new Error("Somente a dupla convidada pode responder.");
   const proposerIds = challenge.proposerPair.players.map((entry) => entry.playerId);
   if (parsed.data.response === "REJECTED") {
-    await prisma.$transaction([
-      prisma.leagueChallenge.update({ where: { id: challenge.id }, data: { status: "REJECTED", responderId: auth.playerId, respondedAt: new Date() } }),
-      prisma.playerNotification.createMany({ data: proposerIds.map((playerId) => ({ playerId, type: "LEAGUE_MATCH", title: "Desafio recusado", message: "A dupla convidada recusou a proposta de jogo.", href: publicPortalPath(parsed.data.arenaSlug) })) }),
-    ]);
+    await withArenaTransaction(auth.arenaId, async (tx) => {
+      const rejected = await tx.leagueChallenge.updateMany({ where: { id: challenge.id, arenaId: auth.arenaId, status: "PENDING" }, data: { status: "REJECTED", responderId: auth.playerId, respondedAt: new Date() } });
+      if (!rejected.count) throw new Error("Este desafio não está mais disponível.");
+      await tx.playerNotification.createMany({ data: proposerIds.map((playerId) => ({ playerId, type: "LEAGUE_MATCH", title: "Desafio recusado", message: "A dupla convidada recusou a proposta de jogo.", href: publicPortalPath(parsed.data.arenaSlug) })) });
+    });
     revalidatePath(publicPortalPath(parsed.data.arenaSlug));
     return;
   }
-  await validateCourtAvailability({ arenaId: auth.arenaId, courtId: challenge.courtId, startsAt: challenge.proposedStartsAt, endsAt: challenge.proposedEndsAt });
   const participantIds = Array.from(new Set([...proposerIds, ...challenge.opponentPair.players.map((entry) => entry.playerId)]));
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(auth.arenaId, async (tx) => {
+    await validateCourtAvailability({ arenaId: auth.arenaId, courtId: challenge.courtId, startsAt: challenge.proposedStartsAt, endsAt: challenge.proposedEndsAt, tx });
+    const accepted = await tx.leagueChallenge.updateMany({ where: { id: challenge.id, arenaId: auth.arenaId, status: "PENDING" }, data: { status: "ACCEPTED", responderId: auth.playerId, respondedAt: new Date() } });
+    if (!accepted.count) throw new Error("Este desafio não está mais disponível.");
     await tx.scheduleOccurrence.create({ data: { arenaId: auth.arenaId, challengeId: challenge.id, sourceType: "LEAGUE_CHALLENGE", title: `${challenge.proposerPair.name} × ${challenge.opponentPair.name}`, startsAt: challenge.proposedStartsAt, endsAt: challenge.proposedEndsAt, status: "PENDING_CONFIRMATION", bookingTypeName: "Liga", notes: "Jogo criado por convite entre duplas.", occurrenceCourts: { create: { courtId: challenge.courtId } }, participants: { create: participantIds.map((playerId) => ({ playerId })) } } });
     await tx.categoryMatch.update({ where: { id: challenge.categoryMatchId }, data: { courtName: challenge.court.name, scheduledDate: `${challenge.proposedStartsAt.getFullYear()}-${String(challenge.proposedStartsAt.getMonth() + 1).padStart(2, "0")}-${String(challenge.proposedStartsAt.getDate()).padStart(2, "0")}`, scheduledTime: `${String(challenge.proposedStartsAt.getHours()).padStart(2, "0")}:${String(challenge.proposedStartsAt.getMinutes()).padStart(2, "0")}`, manualStatus: "PENDING_CONFIRMATION" } });
-    await tx.leagueChallenge.update({ where: { id: challenge.id }, data: { status: "ACCEPTED", responderId: auth.playerId, respondedAt: new Date() } });
     await tx.playerNotification.createMany({ data: proposerIds.map((playerId) => ({ playerId, type: "LEAGUE_MATCH", title: "Desafio aceito", message: "A partida aguarda a confirmação da arena.", href: publicPortalPath(parsed.data.arenaSlug) })) });
     await tx.arenaNotification.create({ data: { arenaId: auth.arenaId, type: "LEAGUE_CHALLENGE", title: "Desafio de Liga aceito", message: `${challenge.proposerPair.name} × ${challenge.opponentPair.name} aguarda confirmação da arena.`, href: `/agenda?data=${challenge.proposedStartsAt.getFullYear()}-${String(challenge.proposedStartsAt.getMonth() + 1).padStart(2, "0")}-${String(challenge.proposedStartsAt.getDate()).padStart(2, "0")}` } });
   });
@@ -160,19 +165,21 @@ async function respondLeagueProposal(formData: FormData) {
   if (!opponentPair?.players.some((entry) => entry.playerId === auth.playerId)) throw new Error("Somente a dupla convidada pode responder.");
   if (proposal.responseDueAt <= new Date()) throw new Error("O prazo para responder esta sugestão expirou.");
   if (parsed.data.response === "REJECTED") {
-    await prisma.$transaction([
-      prisma.leagueMatchProposal.update({ where: { id: proposal.id }, data: { status: "REJECTED", respondedAt: new Date() } }),
-      prisma.playerNotification.createMany({ data: proposal.categoryMatch.homePair.players.map((entry) => ({ playerId: entry.playerId, type: "LEAGUE_MATCH", title: "Sugestão de Liga recusada", message: "A dupla visitante recusou o horário sugerido.", href: publicPortalPath(parsed.data.arenaSlug) })) }),
-    ]);
+    await withArenaTransaction(auth.arenaId, async (tx) => {
+      const rejected = await tx.leagueMatchProposal.updateMany({ where: { id: proposal.id, status: "PENDING", categoryMatch: { competition: { category: { tournament: { arenaId: auth.arenaId } } } } }, data: { status: "REJECTED", respondedAt: new Date() } });
+      if (!rejected.count) throw new Error("Esta sugestão não está mais disponível.");
+      await tx.playerNotification.createMany({ data: proposal.categoryMatch.homePair!.players.map((entry) => ({ playerId: entry.playerId, type: "LEAGUE_MATCH", title: "Sugestão de Liga recusada", message: "A dupla visitante recusou o horário sugerido.", href: publicPortalPath(parsed.data.arenaSlug) })) });
+    });
     revalidatePath(publicPortalPath(parsed.data.arenaSlug));
     return;
   }
-  await validateCourtAvailability({ arenaId: auth.arenaId, courtId: proposal.courtId, startsAt: proposal.startsAt, endsAt: proposal.endsAt });
   const playerIds = Array.from(new Set([...proposal.categoryMatch.homePair.players, ...proposal.categoryMatch.awayPair.players].map((entry) => entry.playerId)));
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(auth.arenaId, async (tx) => {
+    await validateCourtAvailability({ arenaId: auth.arenaId, courtId: proposal.courtId, startsAt: proposal.startsAt, endsAt: proposal.endsAt, tx });
+    const accepted = await tx.leagueMatchProposal.updateMany({ where: { id: proposal.id, status: "PENDING", categoryMatch: { competition: { category: { tournament: { arenaId: auth.arenaId } } } } }, data: { status: "ACCEPTED", respondedAt: new Date() } });
+    if (!accepted.count) throw new Error("Esta sugestão não está mais disponível.");
     await tx.scheduleOccurrence.create({ data: { arenaId: auth.arenaId, sourceType: "LEAGUE_PROPOSAL", title: `${proposal.categoryMatch.homePair!.name} × ${proposal.categoryMatch.awayPair!.name}`, startsAt: proposal.startsAt, endsAt: proposal.endsAt, status: "PENDING_CONFIRMATION", bookingTypeName: "Liga", occurrenceCourts: { create: { courtId: proposal.courtId } }, participants: { create: playerIds.map((playerId) => ({ playerId })) } } });
     await tx.categoryMatch.update({ where: { id: proposal.categoryMatchId }, data: { courtName: proposal.court.name, scheduledDate: proposal.startsAt.toISOString().slice(0, 10), scheduledTime: proposal.startsAt.toISOString().slice(11, 16), manualStatus: "PENDING_CONFIRMATION" } });
-    await tx.leagueMatchProposal.update({ where: { id: proposal.id }, data: { status: "ACCEPTED", respondedAt: new Date() } });
     await tx.playerNotification.createMany({ data: proposal.categoryMatch.homePair!.players.map((entry) => ({ playerId: entry.playerId, type: "LEAGUE_MATCH", title: "Sugestão de Liga aceita", message: "A partida foi enviada para confirmação da arena.", href: publicPortalPath(parsed.data.arenaSlug) })) });
     await tx.arenaNotification.create({ data: { arenaId: auth.arenaId, type: "LEAGUE_PROPOSAL", title: "Jogo de Liga aguardando confirmação", message: `${proposal.categoryMatch.homePair!.name} × ${proposal.categoryMatch.awayPair!.name} aceitou um horário e aguarda a arena.`, href: "/agenda" } });
   });

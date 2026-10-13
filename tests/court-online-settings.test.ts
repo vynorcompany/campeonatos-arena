@@ -18,6 +18,9 @@ test("courts persist visual order, color and online reservation combinations", (
   assert.match(actions, /export async function updateCourtSettingsAction/);
   assert.match(actions, /export async function moveCourtAction/);
   assert.match(actions, /export async function copyCourtConfigurationAction/);
+  assert.match(actions, /await withArenaTransaction\(auth\.arenaId, async \(tx\) => \{[\s\S]*?await tx\.court\.updateMany\(\{ where: \{ id: current\.id, arenaId: auth\.arenaId \}/);
+  assert.match(actions, /const updated = await tx\.court\.updateMany\(\{ where: \{ id: target\.id, arenaId: auth\.arenaId \}/);
+  assert.match(actions, /tx\.courtWeeklyRule\.deleteMany\(\{ where: \{ courtId: target\.id, court: \{ arenaId: auth\.arenaId \} \} \}\)/);
   assert.match(page, /reserva online/i);
   assert.match(page, /Aplicar a outras quadras/);
   assert.match(agenda, /daily-court-heading/);

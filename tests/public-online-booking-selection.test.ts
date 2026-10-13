@@ -15,6 +15,8 @@ test("public booking highlights the consecutive slots for the authenticated clie
   assert.match(form, /currentClient/);
   assert.match(form, /Valor total/);
   assert.match(form, /selectedTotalCents/);
+  assert.match(form, /slot\?\.durationPrices\[durationMinutes\]/);
+  assert.match(page, /durationPrices = Object\.fromEntries/);
   assert.match(form, /public-booking-court-card/);
   assert.doesNotMatch(form, /Quadra<select/);
   assert.match(page, /getPublicPlayerAuth/);

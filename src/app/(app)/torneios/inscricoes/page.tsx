@@ -2,14 +2,17 @@ import { viewStyles } from "./page.utilities";
 ﻿import { SectionCard } from "@/components/section-card";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { requireModuleView } from "@/lib/auth/guards";
-import { prisma } from "@/lib/prisma";
+import { arenaDatabase } from "@/lib/arena-database";
 import {
   generateCategoryBracketAction,
   updateCategoryBracketMatchScheduleAction,
   updateTournamentCategoryFormatAction,
-  updateTournamentRegistrationAction
 } from "@/lib/actions/tournament";
+import { RegistrationEditForm } from "@/components/tournaments/registration-edit-form";
 import { getTournamentScheduleConflicts } from "@/lib/services/tournament";
+import { ReviewedCheckoutRelease } from "@/components/finance/reviewed-checkout-release";
+import { canEditModule } from "@/lib/permissions";
+import { canEditManualTournamentRegistration } from "@/lib/tournaments/registration-deletion";
 
 type BracketItem = {
   categoryId: string;
@@ -25,11 +28,13 @@ type BracketItem = {
 
 export default async function TournamentRegistrationsPage() {
   const auth = await requireModuleView("tournaments");
+  const tenantDb = arenaDatabase(auth.arenaId);
+  const canResolveReview = canEditModule("tournaments", auth.arenaRole, auth.systemRole, auth.editPermissions);
   let tournament: any = null;
   let categoryBrackets: BracketItem[] = [];
 
   try {
-    tournament = await prisma.tournament.findFirst({
+    tournament = await tenantDb.tournament.findFirst({
       where: {
         arenaId: auth.arenaId,
         status: {
@@ -62,7 +67,7 @@ export default async function TournamentRegistrationsPage() {
     });
     categoryBrackets = tournament?.categoryBrackets ?? [];
   } catch {
-    tournament = await prisma.tournament.findFirst({
+    tournament = await tenantDb.tournament.findFirst({
       where: {
         arenaId: auth.arenaId,
         status: {
@@ -165,10 +170,10 @@ export default async function TournamentRegistrationsPage() {
                 <div key={registration.id} className={viewStyles.simple_item}>
                   <div className={viewStyles.stack_xs_2}>
                     <strong>{registration.leadName} / {registration.partnerName}</strong>
-                    <span>{registration.status} · {registration.paymentStatus} · R$ {(registration.amountCents / 100).toFixed(2)}</span>
-                    <details>
+                    <span>{registration.paymentStatus === "REVIEW" ? "Pagamento em análise" : registration.paymentStatus === "REFUNDED" || registration.status === "CANCELED" ? "Inscrição cancelada" : registration.status === "CONFIRMED" ? "Confirmada" : "Pagamento pendente"} · R$ {(registration.amountCents / 100).toFixed(2)}</span>
+                    {registration.paymentStatus === "REVIEW" ? <ReviewedCheckoutRelease kind="registration" recordId={registration.id} paymentId={registration.mercadoPagoPaymentId} clientName={`${registration.leadName} / ${registration.partnerName}`} canResolve={canResolveReview} /> : registration.paymentStatus === "REFUNDED" || registration.status === "CANCELED" ? <p className={viewStyles.muted}>Pagamento estornado ou inscrição cancelada. A dupla pode fazer uma nova inscrição.</p> : !canEditManualTournamentRegistration(registration) ? <p className={viewStyles.muted}>{registration.status === "CONFIRMED" ? "Dupla confirmada: correções devem preservar seus vínculos com os jogos." : "Inscrição com cobrança online: confira o pagamento antes de alterar os dados."}</p> : <details>
                       <summary className="tw:[cursor:pointer] tw:[color:var(--brand)] tw:[font-weight:700]">Editar inscricao</summary>
-                      <form action={updateTournamentRegistrationAction} className={viewStyles.grid_form}>
+                      <RegistrationEditForm className={viewStyles.grid_form}>
                         <input type="hidden" name="registrationId" value={registration.id} />
                         <input type="hidden" name="tournamentId" value={tournament.id} />
                         <div className={viewStyles.field}>
@@ -225,8 +230,8 @@ export default async function TournamentRegistrationsPage() {
                         <div className={viewStyles.field_field_submit}>
                           <SubmitButton label="Salvar alteracoes" pendingLabel="Salvando..." className={viewStyles.button_button_primary} />
                         </div>
-                      </form>
-                    </details>
+                      </RegistrationEditForm>
+                    </details>}
                   </div>
                 </div>
               ))}

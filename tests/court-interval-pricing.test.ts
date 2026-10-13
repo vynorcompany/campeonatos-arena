@@ -3,7 +3,17 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { resolve } from "node:path";
-import { calculateCourtIntervalPrice } from "@/lib/calendar/court-interval-pricing";
+import { calculateCourtIntervalPrice, isCourtBookingStartOnGrid } from "@/lib/calendar/court-interval-pricing";
+
+test("reserva pública só aceita inícios alinhados à grade da quadra", () => {
+  assert.equal(isCourtBookingStartOnGrid(7 * 60, 7 * 60, 22 * 60, 30), true);
+  assert.equal(isCourtBookingStartOnGrid(7 * 60 + 30, 7 * 60, 22 * 60, 30), true);
+  assert.equal(isCourtBookingStartOnGrid(7 * 60 + 5, 7 * 60, 22 * 60, 30), false);
+  assert.equal(isCourtBookingStartOnGrid(6 * 60 + 30, 7 * 60, 22 * 60, 30), false);
+  assert.equal(isCourtBookingStartOnGrid(22 * 60, 7 * 60, 22 * 60, 30), false);
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/calendar.ts"), "utf8");
+  assert.match(actions, /isCourtBookingStartOnGrid\(startsAtMinute, arena\.scheduleStartMinute, arena\.scheduleEndMinute, court\.onlineSlotMinutes\)/);
+});
 
 test("court booking price sums the configured value of every selected interval", () => {
   const total = calculateCourtIntervalPrice({

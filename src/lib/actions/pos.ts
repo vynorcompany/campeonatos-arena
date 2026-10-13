@@ -3,6 +3,7 @@ import { arenaDatabase } from "@/lib/arena-database";
 
 import { revalidatePath } from "next/cache";
 import { cashReferenceDate } from "@/lib/finance/cash-day";
+import { recordCashSaleIfOpen } from "@/lib/finance/cash-register-sales";
 import { z } from "zod";
 import { requireModuleEdit } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
@@ -381,11 +382,7 @@ async function createSaleFromProducts({
       }
     });
     if (paymentMethod === "CASH") {
-      const register = await tx.cashRegister.findFirst({ where: { arenaId, referenceDate: cashReferenceDate(), status: "OPEN" }, orderBy: { openedAt: "desc" } });
-      if (register) {
-        await tx.cashMovement.create({ data: { arenaId, registerId: register.id, type: "SALE", amountCents: totalCents, description: `Venda ${sale.code}`, createdByName: "PDV" } });
-        await tx.cashRegister.update({ where: { id: register.id }, data: { expectedAmountCents: { increment: totalCents } } });
-      }
+      await recordCashSaleIfOpen(tx, { arenaId, referenceDate: cashReferenceDate(), amountCents: totalCents, description: `Venda ${sale.code}`, createdByName: "PDV" });
     }
 
     for (const product of products) {

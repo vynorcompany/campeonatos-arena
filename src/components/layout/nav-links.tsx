@@ -43,8 +43,9 @@ type NavLinksProps = {
   pollingScope?: string;
 };
 
-function isActivePath(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(`${href}/`);
+export function isActivePath(pathname: string, href: string) {
+  const targetPath = href.split("?", 1)[0];
+  return pathname === targetPath || pathname.startsWith(`${targetPath}/`);
 }
 
 function NavIcon({ name }: { name: IconName }) {
@@ -360,9 +361,9 @@ export function NavLinks({ canManageUsers, visibleModules, whatsappUnreadCount, 
       links: group.links
         .map((item) => ({
           ...item,
-          children: item.children?.filter((child) => canSee(moduleByHref[child.href] ?? "dashboard"))
+          children: item.children?.filter((child) => canSee(moduleByHref[child.href.split("?", 1)[0]] ?? "dashboard"))
         }))
-        .filter((item) => canSee(moduleByHref[item.href] ?? "dashboard") || (item.children?.length ?? 0) > 0)
+        .filter((item) => canSee(moduleByHref[item.href.split("?", 1)[0]] ?? "dashboard") || (item.children?.length ?? 0) > 0)
     }))
     .filter((group) => group.links.length);
   const itemIsActive = (item: NavItem): boolean => isActivePath(pathname, item.href) || Boolean(item.children?.some(itemIsActive));
