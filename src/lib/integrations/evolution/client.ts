@@ -38,7 +38,10 @@ export async function sendEvolutionTextMessage(phone: string, text: string, aren
     throw new Error(`A Evolution recusou o envio da mensagem (${response.status}).`);
   }
 
-  return response.json() as Promise<unknown>;
+  // A successful HTTP response means the provider accepted the message even
+  // when a proxy returns an empty or malformed JSON body. Do not invite a
+  // retry that could send the same WhatsApp message twice.
+  return response.json().catch(() => ({})) as Promise<unknown>;
 }
 
 export async function sendEvolutionAudioMessage(phone: string, audioDataUrl: string, arenaId: string, quoted?: EvolutionQuotedMessage) {
