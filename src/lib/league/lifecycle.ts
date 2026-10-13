@@ -247,10 +247,11 @@ export async function closeLeagueCycleManually(competitionId: string, now = new 
   const cycle = await prisma.leagueCycle.findFirst({
     where: {
       competitionId,
-      referenceMonth,
+      referenceMonth: { lte: referenceMonth },
       status: "OPEN",
       ...(arenaId ? { competition: { category: { tournament: { arenaId } } } } : {})
     },
+    orderBy: { referenceMonth: "asc" },
     select: { id: true, competitionId: true, referenceMonth: true }
   });
   if (!cycle) throw new Error("Não há um ciclo aberto desta Liga para encerrar.");

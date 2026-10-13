@@ -92,6 +92,15 @@ test("arena can close the current League cycle manually without waiting for the 
   assert.match(page, /name="competitionId"/);
 });
 
+test("manual closing accepts the oldest open League cycle from a past month", () => {
+  const lifecycle = readFileSync(resolve(process.cwd(), "src/lib/league/lifecycle.ts"), "utf8");
+  const manualClosing = lifecycle.split("export async function closeLeagueCycleManually")[1];
+  assert.ok(manualClosing);
+  assert.match(manualClosing, /referenceMonth: \{ lte: referenceMonth \}/);
+  assert.match(manualClosing, /orderBy: \{ referenceMonth: "asc" \}/);
+  assert.match(manualClosing, /createMonthlyCycle\(cycle\.competitionId, nextMonthKey\(cycle\.referenceMonth\)\)/);
+});
+
 test("athlete portal exposes the main modules and League submenus", () => {
   const view = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"), "utf8");
   const leaguePortal = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-league-portal.tsx"), "utf8");
