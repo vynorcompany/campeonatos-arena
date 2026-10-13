@@ -2,7 +2,7 @@
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./client-management-workspace.utilities";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ClientMergePicker } from "@/components/players/client-merge-picker";
 import { adjustClientBalanceAction, archiveClientsAction, importClientsAction, mergeClientsAction } from "@/lib/actions/client-management";
@@ -25,6 +25,25 @@ export function ClientManagementWorkspace({ clients, plans, teachers, filters }:
   const [selectedClientIds, setSelectedClientIds] = useState<Set<string>>(new Set());
   const [message, setMessage] = useState("");
   const [pending, startTransition] = useTransition();
+  const anyDialogOpen = Boolean(balanceClient || plansClient || editingClient || mergeOpen);
+  useEffect(() => {
+    if (!anyDialogOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented || pending) return;
+      event.preventDefault();
+      setBalanceClient(null);
+      setPlansClient(null);
+      setEditingClient(null);
+      setMergeOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [anyDialogOpen, pending]);
   const clientsById = useMemo(() => new Map(clients.map((client) => [client.id, client])), [clients]);
   const closeAll = () => { setBalanceClient(null); setPlansClient(null); setEditingClient(null); setMergeOpen(false); };
   const exportClients = () => {

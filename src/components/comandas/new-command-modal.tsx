@@ -2,7 +2,7 @@
 import { viewStyles } from "./new-command-modal.utilities";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 
 type PlayerOption = { id: string; name: string };
 
@@ -12,6 +12,21 @@ export function NewCommandModal({ players, closeHref, action }: { players: Playe
   const [isPending, startTransition] = useTransition();
   const [query, setQuery] = useState("");
   const matchingPlayers = useMemo(() => players.filter((player) => player.name.toLocaleLowerCase("pt-BR").includes(query.trim().toLocaleLowerCase("pt-BR"))).slice(0, 12), [players, query]);
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented || isPending) return;
+      event.preventDefault();
+      router.push(closeHref);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [closeHref, isPending, router]);
 
   function selectClient(playerId: string) {
     if (!playerId) return;
