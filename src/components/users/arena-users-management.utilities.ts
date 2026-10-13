@@ -17,9 +17,16 @@ export const viewStyles = {
   "muted": sharedUtilities.muted,
   "user_table_scroll": [
     "user-table-scroll", "tw:max-w-[100%]", "tw:[overflow-x:auto]", "tw:[&_.data-table]:min-w-[580px]",
+    "tw:viewport-760:[overflow-x:visible]", "tw:viewport-760:[&_.data-table]:min-w-0!", "tw:viewport-760:[&_.data-table]:w-full",
+    "tw:viewport-760:[&_.data-table_thead]:hidden", "tw:viewport-760:[&_.data-table_tbody]:grid", "tw:viewport-760:[&_.data-table_tbody]:gap-3",
+    "tw:viewport-760:[&_.data-table_tbody_tr]:grid", "tw:viewport-760:[&_.data-table_tbody_tr]:min-w-0", "tw:viewport-760:[&_.data-table_tbody_tr]:gap-3",
+    "tw:viewport-760:[&_.data-table_tbody_tr]:rounded-xl", "tw:viewport-760:[&_.data-table_tbody_tr]:border", "tw:viewport-760:[&_.data-table_tbody_tr]:border-[#dce7f1]", "tw:viewport-760:[&_.data-table_tbody_tr]:p-4",
+    "tw:viewport-760:[&_.data-table_tbody_td]:block", "tw:viewport-760:[&_.data-table_tbody_td]:min-w-0", "tw:viewport-760:[&_.data-table_tbody_td]:p-0!", "tw:viewport-760:[&_.data-table_tbody_td]:border-0!",
+    "tw:viewport-760:[&_.data-table_tbody_td:first-child]:[overflow-wrap:anywhere]", "tw:viewport-760:[&_.data-table_tbody_td:last-child]:border-t!", "tw:viewport-760:[&_.data-table_tbody_td:last-child]:border-[#e8eef4]!", "tw:viewport-760:[&_.data-table_tbody_td:last-child]:pt-3!",
   ].join(" "),
   "data_table": sharedUtilities.dataTable,
   "table_subtext": sharedUtilities.tableSubtext,
+  "user_mobile_label": "tw:hidden tw:viewport-760:block tw:viewport-760:mb-1 tw:viewport-760:text-[.7rem] tw:viewport-760:font-bold tw:viewport-760:uppercase tw:viewport-760:tracking-[.08em] tw:viewport-760:text-[color:var(--muted)]",
   "user_invites_list": [
     "user-invites-list", "tw:grid", "tw:gap-y-[8px]", "tw:gap-x-[8px]",
   ].join(" "),
