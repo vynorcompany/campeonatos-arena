@@ -9,6 +9,7 @@ const nextConfig = {
       "frame-ancestors 'none'",
       "form-action 'self'",
       "img-src 'self' data: blob: https:",
+      "media-src 'self' blob: https:",
       "font-src 'self' data: https:",
       "style-src 'self' 'unsafe-inline'",
       "script-src 'self' 'unsafe-inline' https://*.mercadopago.com",
