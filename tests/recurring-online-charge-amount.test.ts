@@ -53,7 +53,7 @@ function loadRecurring(createBoleto: (input: Record<string, unknown>) => Promise
     },
   };
   const exports: Record<string, (...args: never[]) => Promise<unknown>> = {};
-  vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
+  vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText, {
     exports, Date, Intl, console: { error: (...args: unknown[]) => errors.push(args) },
     require: (name: string) => {
       if (name === "@/lib/payments/mercado-pago") return { createBoletoPayment: createBoleto, getMissingBoletoPayerFields: scanEntries ? getMissingBoletoPayerFields : () => options.missingPayer ? ["CPF"] : [] };
@@ -63,6 +63,7 @@ function loadRecurring(createBoleto: (input: Record<string, unknown>) => Promise
         findFirst: async ({ where }: { where: { id: string } }) => ({ ...entry, id: where.id }),
         findMany: async (query: { cursor?: { id: string }; take: number }) => {
           if (scanFailures.includes("arena-a")) throw new Error("Falha simulada na consulta da arena");
+          if (query.cursor && scanFailures.includes("arena-a:after-first-page")) throw new Error("Falha simulada após a primeira página");
           queries.push(query);
           const start = query.cursor ? scanEntries!.findIndex((item) => item.id === query.cursor!.id) + 1 : 0;
           return scanEntries!.slice(start, start + query.take);
@@ -79,7 +80,7 @@ function loadRecurring(createBoleto: (input: Record<string, unknown>) => Promise
   return {
     issue: exports.issueRecurringOnlineChargeForEntry as (arenaId: string, entryId: string) => Promise<{ created: boolean; skipped: boolean }>,
     batch: exports.issueRecurringOnlineCharges as () => Promise<{ scanned: number; created: number; skipped: number; failed: number }>,
-    candidates: exports.recurringOnlineChargeCandidates as () => Promise<{ candidates: Array<{ id: string }>; failures: unknown[]; ineligible: number }>,
+    candidates: exports.recurringOnlineChargeCandidates as () => Promise<{ candidates: Array<{ id: string }>; failures: Array<{ arenaId: string }>; ineligible: number; ineligibleByArena: Record<string, number> }>,
     claims, updates, errors, queries, alerts,
   };
 }
@@ -165,7 +166,22 @@ test("agendador avisa a arena sobre cadastros inelegíveis sem gerar um alerta p
   scanFailures.length = 0;
   incomplete.length = 0;
   assert.deepEqual(JSON.parse(JSON.stringify(await service.batch())), { scanned: 0, created: 0, skipped: 0, failed: 0 });
-  assert.ok(service.alerts[0].data.readAt instanceof Date);
+  assert.equal(Object.prototype.toString.call(service.alerts[0].data.readAt), "[object Date]");
+});
+
+test("falha após uma página descarta contagem parcial e não reconcilia o alerta", async () => {
+  const dueDate = new Date("2026-10-15T12:00:00.000Z");
+  const incomplete = Array.from({ length: 251 }, (_, index) => ({
+    id: `incomplete-${index}`, arenaId: "arena-a", dueDate, amountCents: 5000,
+    settlements: [], player: { email: "", cpf: "" },
+  }));
+  const service = loadRecurring(async () => { throw new Error("O provedor não deveria ser chamado"); }, [], ["arena-a:after-first-page"], incomplete);
+  const candidates = await service.candidates();
+  assert.deepEqual(JSON.parse(JSON.stringify(candidates.failures.map((failure) => failure.arenaId))), ["arena-a"]);
+  assert.deepEqual(JSON.parse(JSON.stringify(candidates.ineligibleByArena)), {});
+  assert.deepEqual(JSON.parse(JSON.stringify(await service.batch())), { scanned: 0, created: 0, skipped: 0, failed: 1 });
+  assert.equal(service.alerts.length, 0);
+  assert.equal(service.queries.length, 2);
 });
 
 test("dados incompletos deixam alerta operacional sem tentar emitir boleto", async () => {
