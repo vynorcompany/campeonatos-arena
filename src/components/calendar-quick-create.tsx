@@ -2,7 +2,9 @@
 import { viewStyles } from "./calendar-quick-create.utilities";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { SubmitButton } from "@/components/forms/submit-button";
+import { useConfirmAction } from "@/components/forms/use-confirm-action";
 import {
   createCalendarEventAction,
   deleteCalendarEventAction,
@@ -48,6 +50,8 @@ const initialState: FormState = {
 };
 
 export function CalendarQuickCreate() {
+  const router = useRouter();
+  const { confirm, confirmationDialog } = useConfirmAction();
   const [open, setOpen] = useState(false);
   const [state, setState] = useState<FormState>(initialState);
   const isEditing = Boolean(state.lessonId || state.calendarEventId);
@@ -227,14 +231,17 @@ export function CalendarQuickCreate() {
             <button type="button" className={viewStyles.button} onClick={close}>Cancelar</button>
             {isEditing ? (
               <button
-                type="submit"
-                formAction={deleteCalendarEventAction}
+                type="button"
                 className={viewStyles.button_button_danger}
-                onClick={(event) => {
-                  if (!window.confirm("Tem certeza que deseja excluir este evento?")) {
-                    event.preventDefault();
-                  }
-                }}
+                onClick={() => confirm({ keyword: "EXCLUIR", message: "Excluir este evento? Digite EXCLUIR para confirmar.", onConfirm: async () => {
+                  const form = new FormData();
+                  form.set("sourceType", state.sourceType);
+                  form.set("lessonId", state.lessonId);
+                  form.set("calendarEventId", state.calendarEventId);
+                  await deleteCalendarEventAction(form);
+                  close();
+                  router.refresh();
+                } })}
               >
                 Excluir
               </button>
@@ -247,6 +254,7 @@ export function CalendarQuickCreate() {
           </div>
         </form>
       </div>
+      {confirmationDialog}
     </div>
   );
 }
