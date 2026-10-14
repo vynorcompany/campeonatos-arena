@@ -11,7 +11,8 @@ export const viewStyles = {
     "tw:viewport-1024:[border-bottom-style:solid]", "tw:viewport-1024:border-b-[color:rgb(192_221_255_/_.3)]", "tw:viewport-1024:border-l-[length:1px]", "tw:viewport-1024:[border-left-style:solid]",
     "tw:viewport-1024:border-l-[color:rgb(192_221_255_/_.3)]", "tw:viewport-1024:rounded-[7px]", "tw:viewport-1024:text-[color:#fff]", "tw:viewport-1024:bg-[color:rgb(255_255_255_/_.1)]",
     "tw:viewport-1024:[background-image:none]", "tw:viewport-1024:[font:inherit]", "tw:viewport-1024:text-[.8rem]", "tw:viewport-1024:text-left",
-    "tw:viewport-1024:cursor-pointer",
+    "tw:viewport-1024:cursor-pointer", "tw:viewport-1024:absolute", "tw:viewport-1024:top-[15px]", "tw:viewport-1024:right-[14px]", "tw:viewport-1024:grid", "tw:viewport-1024:place-items-center",
+    "tw:viewport-1024:size-[40px]", "tw:viewport-1024:w-[40px]!", "tw:viewport-1024:min-h-[40px]", "tw:viewport-1024:p-0", "tw:[&_svg]:hidden", "tw:viewport-1024:[&_svg]:block", "tw:viewport-1024:[&_span]:hidden",
   ].join(" "),
   "nav_group": [
     "nav-group", "tw:grid", "tw:gap-y-[7px]", "tw:gap-x-[7px]",
