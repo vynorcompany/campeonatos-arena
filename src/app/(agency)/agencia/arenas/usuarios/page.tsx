@@ -47,10 +47,12 @@ export default async function AgencyArenaUsersPage() {
             {users.map((user) => (
               <tr key={user.id}>
                 <td>
+                  <span className={viewStyles.mobile_label}>Usuário</span>
                   <strong>{user.name}</strong>
                   <span className={viewStyles.table_subtext}>{user.email}</span>
                 </td>
                 <td>
+                  <span className={viewStyles.mobile_label}>Nível de agência</span>
                   <SafeActionForm action={updateUserSystemRoleAction} className={viewStyles.agency_user_role_form} successMessage="Usuário atualizado.">
                     <input type="hidden" name="userId" value={user.id} />
                     <select name="systemRole" defaultValue={user.systemRole}>
@@ -63,6 +65,7 @@ export default async function AgencyArenaUsersPage() {
                   </SafeActionForm>
                 </td>
                 <td>
+                  <span className={viewStyles.mobile_label}>Arenas vinculadas</span>
                   {user.memberships.map((membership) => (
                     <span className={viewStyles.pill} key={membership.id}>{membership.arena.name}: {membership.role}</span>
                   ))}
