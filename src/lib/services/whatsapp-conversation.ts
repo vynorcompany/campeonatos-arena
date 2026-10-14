@@ -102,9 +102,10 @@ export async function persistOutboundWhatsAppMessage(
   });
 }
 
-export async function persistWhatsAppReaction(arenaId: string, accountJid: string, providerId: string, actorJid: string, emoji: string) {
+export async function persistWhatsAppReaction(arenaId: string, accountJid: string, remoteJid: string, providerId: string, actorJid: string, emoji: string) {
+  if (!remoteJid) return null;
   return withArenaTransaction(arenaId, async (tx) => {
-    const target = await tx.whatsAppMessage.findFirst({ where: { providerId, conversation: { arenaId, accountJid } }, select: { id: true, conversationId: true } });
+    const target = await tx.whatsAppMessage.findFirst({ where: { providerId, conversation: { arenaId, accountJid, remoteJid } }, select: { id: true, conversationId: true } });
     if (!target) return null;
     await tx.$queryRaw`SELECT "id" FROM "WhatsAppMessage" WHERE "id" = ${target.id} FOR UPDATE`;
     const message = await tx.whatsAppMessage.findUniqueOrThrow({ where: { id: target.id }, select: { reactions: true } });

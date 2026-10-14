@@ -50,7 +50,7 @@ export async function reactToWhatsAppMessageAction(formData: FormData) {
   const target = await arenaDatabase(auth.arenaId).whatsAppMessage.findFirst({ where: { id: parsed.data.messageId, conversation: { arenaId: auth.arenaId, accountJid } }, include: { conversation: { select: { remoteJid: true } } } });
   if (!target) throw new Error("Mensagem não encontrada nesta conta.");
   await sendEvolutionReaction({ id: target.providerId, remoteJid: target.conversation.remoteJid, fromMe: target.direction === "OUTBOUND", ...(target.participantJid ? { participant: target.participantJid } : {}) }, parsed.data.emoji, auth.arenaId);
-  const reactions = await persistWhatsAppReaction(auth.arenaId, accountJid, target.providerId, accountJid, parsed.data.emoji);
+  const reactions = await persistWhatsAppReaction(auth.arenaId, accountJid, target.conversation.remoteJid, target.providerId, accountJid, parsed.data.emoji);
   revalidatePath("/whatsapp");
   return { messageId: target.id, reactions: reactions ?? [] };
 }

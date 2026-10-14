@@ -161,6 +161,8 @@ test("reply and reaction actions validate the account and send original provider
   assert.equal(delivered[3].kind, "reaction");
   assert.equal(delivered[3].args[0].id, "original-provider");
   assert.equal(delivered[3].args[1], "👍");
+  assert.equal(stored[3][2], target.conversation.remoteJid);
+  assert.equal(stored[3][3], "original-provider");
   reaction.set("emoji", "");
   await actions.reactToWhatsAppMessageAction(reaction);
   assert.equal(delivered[4].args[1], "");
@@ -182,9 +184,59 @@ test("reaction webhooks update the original message without incrementing unread 
   const request = { nextUrl: { searchParams: new URLSearchParams("instance=test&secret=secret") }, headers: new Headers(), json: async () => ({ event: "MESSAGES_UPSERT", data: { key: { remoteJid: "contact@s.whatsapp.net", fromMe: false, id: "reaction-provider" }, message: { reactionMessage: { key: { id: "original-provider" }, text: "❤️" } } } }) };
   await webhook.POST(request);
   assert.equal(persisted.length, 1);
-  assert.equal(persisted[0][2], "original-provider");
-  assert.equal(persisted[0][3], "contact@s.whatsapp.net");
-  assert.equal(persisted[0][4], "❤️");
+  assert.equal(persisted[0][2], "contact@s.whatsapp.net");
+  assert.equal(persisted[0][3], "original-provider");
+  assert.equal(persisted[0][4], "contact@s.whatsapp.net");
+  assert.equal(persisted[0][5], "❤️");
+});
+
+test("reaction webhook ignores a target from another conversation", async () => {
+  let persisted = 0;
+  const webhook = load("../src/app/api/integrations/evolution/webhook/route.ts", {
+    "next/server": { NextResponse: { json: (value: unknown) => value } },
+    "@prisma/client": {},
+    "@/lib/integrations/evolution/client": {},
+    "@/lib/payments/connection-secrets": { hashWebhookSecret: () => "hash" },
+    "@/lib/prisma": { prisma: { whatsAppConnection: { findUnique: async () => ({ id: "connection", arenaId: "arena", webhookSecretHash: "hash", status: "CONNECTED", connectedPhone: "5511000000001@s.whatsapp.net" }) } } },
+    "@/lib/whatsapp-account": { normalizeWhatsAppAccountJid: (value: string) => value },
+    "@/lib/integrations/evolution/agency": {},
+    "@/lib/rls": {},
+    "@/lib/services/whatsapp-conversation": { persistWhatsAppReaction: async () => { persisted++; } },
+  });
+  const request = {
+    nextUrl: { searchParams: new URLSearchParams("instance=test&secret=secret") },
+    headers: new Headers(),
+    json: async () => ({ event: "MESSAGES_UPSERT", data: { key: { remoteJid: "a@s.whatsapp.net", id: "reaction-provider" }, message: { reactionMessage: { key: { remoteJid: "b@s.whatsapp.net", id: "shared-provider" }, text: "👍" } } } }),
+  };
+  assert.equal((await webhook.POST(request)).ignored, "conversation-mismatch");
+  assert.equal(persisted, 0);
+});
+
+test("reaction with repeated provider ID updates only its own conversation", async () => {
+  const touched: string[] = [];
+  const messages = [
+    { id: "message-a", conversationId: "conversation-a", providerId: "shared-provider", remoteJid: "a@s.whatsapp.net" },
+    { id: "message-b", conversationId: "conversation-b", providerId: "shared-provider", remoteJid: "b@s.whatsapp.net" },
+  ];
+  const tx = {
+    whatsAppMessage: {
+      findFirst: async ({ where }: any) => messages.find((message) => message.providerId === where.providerId && message.remoteJid === where.conversation.remoteJid) ?? null,
+      findUniqueOrThrow: async () => ({ reactions: [] }),
+      update: async ({ where }: any) => { touched.push(where.id); },
+    },
+    whatsAppConversation: { update: async ({ where }: any) => { touched.push(where.id); } },
+    $queryRaw: async () => [],
+  };
+  const service = load("../src/lib/services/whatsapp-conversation.ts", {
+    "@/lib/rls": { withArenaTransaction: async (_arenaId: string, operation: (tx: unknown) => unknown) => operation(tx) },
+    "@/lib/whatsapp-active-account": { getActiveWhatsAppAccountJid: async () => "account" },
+    "@/lib/whatsapp-message-data": { readWhatsAppReactions, withWhatsAppReaction },
+  });
+  const result = await service.persistWhatsAppReaction("arena", "account", "b@s.whatsapp.net", "shared-provider", "actor", "👍");
+  assert.deepEqual(JSON.parse(JSON.stringify(result)), [{ actorJid: "actor", emoji: "👍" }]);
+  assert.deepEqual(touched, ["message-b", "conversation-b"]);
+  assert.equal(await service.persistWhatsAppReaction("arena", "account", "unknown@s.whatsapp.net", "shared-provider", "actor", "👍"), null);
+  assert.deepEqual(touched, ["message-b", "conversation-b"]);
 });
 
 test("webhook de status de entrega não cria mensagem fantasma", async () => {
