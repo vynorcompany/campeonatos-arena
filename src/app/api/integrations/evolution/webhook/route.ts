@@ -100,7 +100,9 @@ export async function POST(request: NextRequest) {
     if (Object.keys(reaction).length) {
       const reactionKey = toRecord(reaction.key);
       const actorJid = fromMe ? accountJid : String(key.participant ?? data.participant ?? remoteJid);
-      if (reactionKey.id && actorJid) await persistWhatsAppReaction(connection.arenaId, accountJid, String(reactionKey.id), actorJid, String(reaction.text ?? ""));
+      if (remoteJid && reactionKey.remoteJid && reactionKey.remoteJid !== remoteJid) return NextResponse.json({ received: true, ignored: "conversation-mismatch" });
+      const reactionRemoteJid = remoteJid || String(reactionKey.remoteJid ?? "");
+      if (reactionKey.id && reactionRemoteJid && actorJid) await persistWhatsAppReaction(connection.arenaId, accountJid, reactionRemoteJid, String(reactionKey.id), actorJid, String(reaction.text ?? ""));
       return NextResponse.json({ received: true });
     }
     if (remoteJid && providerId && !remoteJid.endsWith("@broadcast")) {
