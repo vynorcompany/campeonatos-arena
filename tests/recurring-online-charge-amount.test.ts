@@ -6,11 +6,13 @@ import test from "node:test";
 import ts from "typescript";
 import { getFinancialEntryBalance } from "../src/lib/finance/ledger";
 import { recurringBoletoEntryWhere } from "../src/lib/payments/recurring-charge-eligibility";
+import { collectRecurringChargeCandidates, recurringChargeBatchLimit } from "../src/lib/payments/recurring-charge-selection";
+import { getMissingBoletoPayerFields } from "../src/lib/payments/boleto-payer";
 
 const require = createRequire(import.meta.url);
 const source = readFileSync(new URL("../src/lib/payments/recurring-online-charges.ts", import.meta.url), "utf8");
 
-function loadRecurring(createBoleto: (input: Record<string, unknown>) => Promise<Record<string, unknown>>, candidateIds: string[] = [], scanFailures: string[] = []) {
+function loadRecurring(createBoleto: (input: Record<string, unknown>) => Promise<Record<string, unknown>>, candidateIds: string[] = [], scanFailures: string[] = [], scanEntries?: Array<Record<string, unknown>>) {
   const entry = {
     id: "entry-a", arenaId: "arena-a", amountCents: 5000, description: "Mensalidade de teste",
     dueDate: new Date("2035-01-05T12:00:00.000Z"),
@@ -20,6 +22,7 @@ function loadRecurring(createBoleto: (input: Record<string, unknown>) => Promise
   const updates: Array<Record<string, unknown>> = [];
   const claims: Array<Record<string, unknown>> = [];
   const errors: unknown[][] = [];
+  const queries: Array<Record<string, unknown>> = [];
   const tx = {
     financialEntry: {
       updateMany: async (input: Record<string, unknown>) => { updates.push(input); return { count: 1 }; },
@@ -29,12 +32,19 @@ function loadRecurring(createBoleto: (input: Record<string, unknown>) => Promise
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
     exports, Date, Intl, console: { error: (...args: unknown[]) => errors.push(args) },
     require: (name: string) => {
-      if (name === "@/lib/payments/mercado-pago") return { createBoletoPayment: createBoleto, getMissingBoletoPayerFields: () => [] };
+      if (name === "@/lib/payments/mercado-pago") return { createBoletoPayment: createBoleto, getMissingBoletoPayerFields: scanEntries ? getMissingBoletoPayerFields : () => [] };
       if (name === "@/lib/integrations/evolution/client") return { sendEvolutionTextMessage: async () => undefined };
       if (name === "@/lib/prisma") return { prisma: { arena: { findMany: async () => [{ id: "arena-a" }] } } };
-      if (name === "@/lib/arena-database") return { arenaDatabase: () => ({ financialEntry: { findFirst: async ({ where }: { where: { id: string } }) => ({ ...entry, id: where.id }) } }) };
+      if (name === "@/lib/arena-database") return { arenaDatabase: () => ({ financialEntry: {
+        findFirst: async ({ where }: { where: { id: string } }) => ({ ...entry, id: where.id }),
+        findMany: async (query: { cursor?: { id: string }; take: number }) => {
+          queries.push(query);
+          const start = query.cursor ? scanEntries!.findIndex((item) => item.id === query.cursor!.id) + 1 : 0;
+          return scanEntries!.slice(start, start + query.take);
+        },
+      } }) };
       if (name === "@/lib/rls") return { withArenaTransaction: async (_arenaId: string, action: (client: unknown) => Promise<unknown>) => action(tx) };
-      if (name === "@/lib/payments/recurring-charge-selection") return { collectRecurringChargeCandidates: async () => ({ candidates: candidateIds.map((id) => ({ id, arenaId: "arena-a" })), failures: scanFailures.map((arenaId) => ({ arenaId, reason: new Error("Falha simulada na consulta") })) }) };
+      if (name === "@/lib/payments/recurring-charge-selection") return { recurringChargeBatchLimit, collectRecurringChargeCandidates: scanEntries ? collectRecurringChargeCandidates : async () => ({ candidates: candidateIds.map((id) => ({ id, arenaId: "arena-a" })), failures: scanFailures.map((arenaId) => ({ arenaId, reason: new Error("Falha simulada na consulta") })) }) };
       if (name === "@/lib/finance/ledger") return { getFinancialEntryBalance };
       if (name === "@/lib/payments/financial-online-charge-claim") return { claimFinancialOnlineCharge: async (_tx: unknown, input: Record<string, unknown>) => { claims.push(input); return { ok: true, claimedAt: new Date("2035-01-01T12:00:00.000Z") }; } };
       if (name === "@/lib/payments/recurring-charge-eligibility") return { recurringBoletoEntryWhere };
@@ -44,7 +54,8 @@ function loadRecurring(createBoleto: (input: Record<string, unknown>) => Promise
   return {
     issue: exports.issueRecurringOnlineChargeForEntry as (arenaId: string, entryId: string) => Promise<{ created: boolean; skipped: boolean }>,
     batch: exports.issueRecurringOnlineCharges as () => Promise<{ scanned: number; created: number; skipped: number; failed: number }>,
-    claims, updates, errors,
+    candidates: exports.recurringOnlineChargeCandidates as () => Promise<{ candidates: Array<{ id: string }>; failures: unknown[]; ineligible: number }>,
+    claims, updates, errors, queries,
   };
 }
 
@@ -85,4 +96,23 @@ test("falha na consulta de uma arena é reportada sem interromper boletos de out
   assert.equal(service.claims.length, 1);
   assert.equal(service.errors.length, 1);
   assert.equal(service.errors[0][0], "Recurring boleto arena scan failed");
+});
+
+test("paginação ultrapassa 250 cadastros incompletos e encontra o boleto válido", async () => {
+  const dueDate = new Date("2026-10-15T12:00:00.000Z");
+  const incomplete = Array.from({ length: 251 }, (_, index) => ({
+    id: `entry-${String(index).padStart(3, "0")}`, arenaId: "arena-a", dueDate, amountCents: 5000,
+    settlements: [], player: { email: "", cpf: "" },
+  }));
+  const valid = {
+    id: "entry-valid", arenaId: "arena-a", dueDate, amountCents: 5000, settlements: [],
+    player: { email: "atleta@example.test", cpf: "12345678901", addressZipCode: "12345678", addressStreet: "Rua Teste", addressNumber: "1", addressNeighborhood: "Centro", addressCity: "Cidade", addressState: "SP" },
+  };
+  const service = loadRecurring(async () => ({}), [], [], [...incomplete, valid]);
+  const result = await service.candidates();
+  assert.deepEqual(result.candidates.map((item) => item.id), ["entry-valid"]);
+  assert.equal(result.ineligible, 251);
+  assert.equal(result.failures.length, 0);
+  assert.equal(service.queries.length, 2);
+  assert.equal((service.queries[1].cursor as { id: string }).id, "entry-249");
 });

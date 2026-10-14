@@ -33,3 +33,38 @@ test("falha na consulta de uma arena não impede selecionar cobranças das demai
   assert.equal(result.failures[0].arenaId, "arena-b");
   assert.match(String(result.failures[0].reason), /Falha simulada/);
 });
+
+test("o limite diário distribui tentativas entre arenas mesmo com vencimentos mais antigos em uma delas", async () => {
+  const result = await collectRecurringChargeCandidates(["arena-a", "arena-b"], async (arenaId) =>
+    arenaId === "arena-a"
+      ? [1, 2, 3].map((day) => ({ id: `a-${day}`, arenaId, dueDate: new Date(`2026-10-0${day}T00:00:00.000Z`) }))
+      : [{ id: "b-1", arenaId, dueDate: new Date("2026-10-10T00:00:00.000Z") }],
+  3);
+
+  assert.deepEqual(result.candidates.map((entry) => entry.id), ["a-1", "b-1", "a-2"]);
+  assert.deepEqual(result.failures, []);
+});
+
+test("arena sem boletos elegíveis não é contada como falha", async () => {
+  const result = await collectRecurringChargeCandidates(["arena-vazia"], async () => []);
+  assert.deepEqual(result.candidates, []);
+  assert.deepEqual(result.failures, []);
+});
+
+test("cem arenas recebem ao menos uma tentativa antes da segunda rodada", async () => {
+  const ids = Array.from({ length: 100 }, (_, index) => `arena-${index}`);
+  let active = 0;
+  let peak = 0;
+  const result = await collectRecurringChargeCandidates(ids, async (arenaId) => {
+    active += 1;
+    peak = Math.max(peak, active);
+    await Promise.resolve();
+    active -= 1;
+    return [1, 2, 3].map((day) => ({ id: `${arenaId}-${day}`, arenaId, dueDate: new Date(`2026-10-0${day}T00:00:00.000Z`) }));
+  });
+
+  assert.equal(result.candidates.length, 250);
+  assert.equal(new Set(result.candidates.slice(0, 100).map((entry) => entry.arenaId)).size, 100);
+  assert.equal(peak, 8);
+  assert.deepEqual(result.failures, []);
+});
