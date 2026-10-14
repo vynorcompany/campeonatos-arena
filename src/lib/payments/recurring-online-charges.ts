@@ -24,6 +24,22 @@ async function alertRecurringBoleto(arenaId: string, entryId: string, type: stri
   }
 }
 
+async function alertIneligibleRecurringBoletos(arenaId: string, count: number) {
+  if (!count) return;
+  const type = "ONLINE_CHARGE_ISSUANCE_REVIEW";
+  const href = "/financeiro/contas-a-receber";
+  const message = `${count} lançamento(s) recorrente(s) com vencimento próximo não puderam entrar na fila de emissão de boletos por dados incompletos ou saldo inferior a R$ 5,00. Confira os cadastros e lançamentos em Contas a Receber.`;
+  try {
+    await withArenaTransaction(arenaId, async (tx) => {
+      const existing = await tx.arenaNotification.findFirst({ where: { arenaId, type, href, readAt: null }, select: { id: true } });
+      if (existing) await tx.arenaNotification.update({ where: { id: existing.id }, data: { message } });
+      else await tx.arenaNotification.create({ data: { arenaId, type, title: "Boletos recorrentes pendentes de emissão", message, href } });
+    });
+  } catch (error) {
+    console.error("Could not record recurring boleto eligibility alert", { arenaId, count, error });
+  }
+}
+
 /** Creates the boleto for one recurring entry. The external reference and Mercado Pago idempotency key make retries safe. */
 export async function issueRecurringOnlineChargeForEntry(arenaId: string, entryId: string): Promise<ChargeAttempt> {
   const entry = await arenaDatabase(arenaId).financialEntry.findFirst({
@@ -110,6 +126,7 @@ export async function recurringOnlineChargeCandidates(now = new Date()) {
   limit.setDate(limit.getDate() + daysFromNow);
   const arenas = await prisma.arena.findMany({ select: { id: true } });
   let ineligible = 0;
+  const ineligibleByArena: Record<string, number> = {};
   const selection = await collectRecurringChargeCandidates(arenas.map((arena) => arena.id), async (arenaId) => {
     const candidates: { id: string; arenaId: string; dueDate: Date | null }[] = [];
     let cursor: string | undefined;
@@ -131,18 +148,26 @@ export async function recurringOnlineChargeCandidates(now = new Date()) {
           && getFinancialEntryBalance(entry.amountCents, entry.settlements).outstandingCents >= 500) {
           candidates.push({ id: entry.id, arenaId: entry.arenaId, dueDate: entry.dueDate });
           if (candidates.length === recurringChargeBatchLimit) break;
-        } else ineligible += 1;
+        } else {
+          ineligible += 1;
+          ineligibleByArena[arenaId] = (ineligibleByArena[arenaId] ?? 0) + 1;
+        }
       }
       cursor = page[page.length - 1].id;
       if (page.length < recurringChargeBatchLimit) break;
     }
     return candidates;
   });
-  return { ...selection, ineligible };
+  return { ...selection, ineligible, ineligibleByArena };
 }
 
 export async function issueRecurringOnlineCharges(now = new Date()) {
-  const { candidates: entries, failures, ineligible } = await recurringOnlineChargeCandidates(now);
+  const { candidates: entries, failures, ineligible, ineligibleByArena } = await recurringOnlineChargeCandidates(now);
+
+  const ineligibleArenas = Object.entries(ineligibleByArena);
+  for (let index = 0; index < ineligibleArenas.length; index += 8) {
+    await Promise.all(ineligibleArenas.slice(index, index + 8).map(([arenaId, count]) => alertIneligibleRecurringBoletos(arenaId, count)));
+  }
 
   let created = 0;
   let skipped = ineligible;

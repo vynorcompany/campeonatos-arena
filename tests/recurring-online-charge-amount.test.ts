@@ -23,14 +23,23 @@ function loadRecurring(createBoleto: (input: Record<string, unknown>) => Promise
   const claims: Array<Record<string, unknown>> = [];
   const errors: unknown[][] = [];
   const queries: Array<Record<string, unknown>> = [];
-  const alerts: Array<{ data: { type: string; href: string } }> = [];
+  const alerts: Array<{ id: string; data: { type: string; href: string; message?: string } }> = [];
   const tx = {
     financialEntry: {
       updateMany: async (input: Record<string, unknown>) => { updates.push(input); return { count: 1 }; },
     },
     arenaNotification: {
       findFirst: async ({ where }: { where: { type: string; href: string } }) => alerts.find((alert) => alert.data.type === where.type && alert.data.href === where.href) ?? null,
-      create: async (input: { data: { type: string; href: string } }) => { alerts.push(input); return { id: `alert-${alerts.length}` }; },
+      create: async (input: { data: { type: string; href: string; message?: string } }) => {
+        const alert = { id: `alert-${alerts.length + 1}`, ...input };
+        alerts.push(alert);
+        return alert;
+      },
+      update: async ({ where, data }: { where: { id: string }; data: { message: string } }) => {
+        const alert = alerts[Number(where.id.replace("alert-", "")) - 1];
+        if (alert) Object.assign(alert.data, data);
+        return alert;
+      },
     },
   };
   const exports: Record<string, (...args: never[]) => Promise<unknown>> = {};
@@ -121,6 +130,23 @@ test("paginação ultrapassa 250 cadastros incompletos e encontra o boleto váli
   assert.equal(result.failures.length, 0);
   assert.equal(service.queries.length, 2);
   assert.equal((service.queries[1].cursor as { id: string }).id, "entry-249");
+});
+
+test("agendador avisa a arena sobre cadastros inelegíveis sem gerar um alerta por lançamento", async () => {
+  const dueDate = new Date("2026-10-15T12:00:00.000Z");
+  const incomplete = Array.from({ length: 3 }, (_, index) => ({
+    id: `incomplete-${index}`, arenaId: "arena-a", dueDate, amountCents: 5000,
+    settlements: [], player: { email: "", cpf: "" },
+  }));
+  const service = loadRecurring(async () => { throw new Error("O provedor não deveria ser chamado"); }, [], [], incomplete);
+  assert.deepEqual(JSON.parse(JSON.stringify(await service.batch())), { scanned: 0, created: 0, skipped: 3, failed: 0 });
+  assert.equal(service.alerts.length, 1);
+  assert.equal(service.alerts[0].data.type, "ONLINE_CHARGE_ISSUANCE_REVIEW");
+  assert.equal(service.alerts[0].data.href, "/financeiro/contas-a-receber");
+  assert.deepEqual(JSON.parse(JSON.stringify(await service.batch())), { scanned: 0, created: 0, skipped: 3, failed: 0 });
+  assert.equal(service.alerts.length, 1);
+  assert.equal(service.claims.length, 0);
+  assert.equal(service.errors.length, 0);
 });
 
 test("dados incompletos deixam alerta operacional sem tentar emitir boleto", async () => {
