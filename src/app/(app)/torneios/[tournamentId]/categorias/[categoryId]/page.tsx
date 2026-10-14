@@ -26,6 +26,7 @@ import { canGenerateCategoryDraw } from "@/lib/tournament-category/draw";
 import { buildPlacementStages } from "@/lib/tournament-category/ranking";
 import { rankStandings } from "@/lib/tournament-category/standings";
 import { resolveLeagueTier } from "@/lib/league/tier";
+import { leagueReferenceMonth } from "@/lib/league/reference-month";
 
 type CategoryPageProps = {
   params: Promise<{
@@ -62,6 +63,7 @@ const formatLabels = {
 export default async function CategoryPage(props: CategoryPageProps) {
   const searchParams = await props.searchParams;
   const params = await props.params;
+  const currentReferenceMonth = leagueReferenceMonth(new Date());
   const auth = await requireModuleView("tournaments");
   const [category, athletes, pairRankings, medicalRequests] = await Promise.all([
     arenaDatabase(auth.arenaId).tournamentCategory.findFirst({
@@ -388,7 +390,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
           competition?.format === "LEAGUE" ? (
           <div className={viewStyles.league_overview_dashboard}>
             {searchParams?.reopened === "1" && competition.leagueCycles[0]?.status === "OPEN"
-              && competition.leagueCycles[0]?.referenceMonth === new Date().toISOString().slice(0, 7)
+              && competition.leagueCycles[0]?.referenceMonth === currentReferenceMonth
               ? <p className={viewStyles.league_reopened_notice} role="status">Ciclo da Liga reaberto. Os jogos estão disponíveis novamente.</p>
               : null}
             <article id={`category-${category.id}`} className={viewStyles.league_overview_hero}>
@@ -598,7 +600,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
                 (key) => Array.isArray(sections?.[key]) && (sections?.[key] as unknown[]).length === 0,
               );
               const canReopen = index === 1 && cycle.status === "CLOSED"
-                && cycle.referenceMonth === new Date().toISOString().slice(0, 7)
+                && cycle.referenceMonth === currentReferenceMonth
                 && successor?.status === "OPEN"
                 && successor.matches.length === 0 && emptySnapshot && !cycle.championPairId
                 && !cycle.promotedPairId && !cycle.relegatedPairId;
