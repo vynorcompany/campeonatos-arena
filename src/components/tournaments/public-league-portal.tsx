@@ -551,7 +551,7 @@ export function PublicLeaguePortal({
             </section>
           ) : null}
           <section className={viewStyles.public_challenge_list}>
-            <h3>Sugestões de horário</h3>
+            <h3 className="tw:viewport-700:text-[#133047]! tw:viewport-700:dark:text-[#edf7fb]!">Sugestões de horário</h3>
             {challenges.length ? (
               challenges.map((challenge) => (
                 <article id={`desafio-${challenge.id}`} key={challenge.id}>
