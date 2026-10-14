@@ -4,7 +4,38 @@ import assert from "node:assert/strict";
 
 import { resolve } from "node:path";
 import test from "node:test";
-import { entrySchema, financialSettingSchema } from "@/lib/finance/action-schemas";
+import { entrySchema, financialSettingSchema, recurrenceSchema, updateEntrySchema } from "@/lib/finance/action-schemas";
+
+test("lançamentos aceitam campos opcionais ausentes no FormData", () => {
+  const entry = entrySchema.parse({
+    type: "EXPENSE", category: "Teste operacional", description: "Conta local", amount: "12,34",
+    counterpartyName: "Fornecedor Fictício", supplierId: null, bankAccountId: null,
+    planId: null, productId: null, discount: null, discountMode: null, status: null, dueDate: "2026-10-20",
+    paidAt: null, paymentMethod: null, notes: null,
+  });
+  assert.equal(entry.bankAccountId, "");
+  assert.equal(entry.planId, "");
+  assert.equal(entry.discount, "0");
+  assert.equal(entry.paidAt, "");
+
+  const updated = updateEntrySchema.parse({
+    entryId: "entry-1", category: "Teste operacional", description: "Conta editada",
+    amount: "12,34", counterpartyName: null, bankAccountId: null,
+    planId: null, productId: null, dueDate: null, notes: null,
+  });
+  assert.equal(updated.dueDate, "");
+  assert.equal(updated.productId, "");
+
+  const recurrence = recurrenceSchema.parse({
+    type: "EXPENSE", counterpartyName: "Fornecedor Fictício", category: "Teste operacional",
+    description: "Conta recorrente", amount: "12,34", discount: null, discountMode: null,
+    frequency: "MONTHLY", startsAt: "2026-10-20", endsAt: null,
+    bankAccountId: null, planId: null, onlinePaymentMethod: null, notes: null,
+  });
+  assert.equal(recurrence.endsAt, "");
+  assert.equal(recurrence.onlinePaymentMethod, "");
+  assert.equal(entrySchema.safeParse({ type: "EXPENSE", category: null, description: "Conta", amount: "12,34" }).success, false);
+});
 
 test("financial ledgers support recurrence, supplier selection and server-side filters", () => {
   const schema = readFileSync(resolve(process.cwd(), "prisma/schema.prisma"), "utf8");

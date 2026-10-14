@@ -1,6 +1,8 @@
 import { z } from "zod";
 
 const optionalText = z.preprocess((value) => value ?? "", z.string().trim().default(""));
+const optionalDiscount = z.preprocess((value) => value ?? "0", z.string().trim());
+const discountModeSchema = z.preprocess((value) => value ?? "AMOUNT", z.enum(["AMOUNT", "PERCENTAGE"]));
 
 export const planSchema = z.object({
   name: z.string().trim().min(2, "Informe o nome do plano."),
@@ -31,17 +33,17 @@ export const entrySchema = z.object({
   category: z.string().trim().min(2, "Informe a categoria."),
   description: z.string().trim().min(2, "Informe a descrição."),
   counterpartyName: optionalText,
-  supplierId: z.string().optional().default(""),
-  bankAccountId: z.string().optional().default(""),
-  planId: z.string().optional().default(""),
-  productId: z.string().optional().default(""),
+  supplierId: optionalText,
+  bankAccountId: optionalText,
+  planId: optionalText,
+  productId: optionalText,
   amount: z.string().trim().min(1, "Informe o valor."),
-  discount: z.string().trim().optional().default("0"),
-  discountMode: z.enum(["AMOUNT", "PERCENTAGE"]).default("AMOUNT"),
+  discount: optionalDiscount,
+  discountMode: discountModeSchema,
   paymentMethod: optionalText,
-  status: z.enum(["PENDING", "PAID"]).default("PENDING"),
-  dueDate: z.string().optional().default(""),
-  paidAt: z.string().optional().default(""),
+  status: z.preprocess((value) => value ?? "PENDING", z.enum(["PENDING", "PAID"])),
+  dueDate: optionalText,
+  paidAt: optionalText,
   notes: optionalText
 });
 
@@ -51,14 +53,14 @@ export const recurrenceSchema = z.object({
   category: z.string().trim().min(2, "Selecione a categoria."),
   description: z.string().trim().min(2, "Informe a descrição."),
   amount: z.string().trim().min(1, "Informe o valor."),
-  discount: z.string().trim().optional().default("0"),
-  discountMode: z.enum(["AMOUNT", "PERCENTAGE"]).default("AMOUNT"),
+  discount: optionalDiscount,
+  discountMode: discountModeSchema,
   frequency: z.enum(["WEEKLY", "MONTHLY", "ANNUAL"]),
   startsAt: z.string().min(1, "Informe a data inicial."),
-  endsAt: z.string().optional().default(""),
-  bankAccountId: z.string().optional().default(""),
-  planId: z.string().optional().default(""),
-  onlinePaymentMethod: z.enum(["", "BOLETO"]).default(""),
+  endsAt: optionalText,
+  bankAccountId: optionalText,
+  planId: optionalText,
+  onlinePaymentMethod: z.preprocess((value) => value ?? "", z.enum(["", "BOLETO"])),
   notes: optionalText
 });
 
