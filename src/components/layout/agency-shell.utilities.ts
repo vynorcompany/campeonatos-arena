@@ -30,9 +30,11 @@ export const viewStyles = {
     "tw:viewport-1024:[&_.agency-nav_.nav-group]:hidden", "tw:viewport-1024:[&_.agency-nav-mobile-open_.nav-group]:grid", "tw:viewport-1024:[&_.sidebar-user]:flex", "tw:viewport-1024:[&_.sidebar-user]:items-center",
     "tw:viewport-1024:[&_.sidebar-user]:justify-between", "tw:viewport-1024:[&_.sidebar-user]:gap-y-[12px]", "tw:viewport-1024:[&_.sidebar-user]:gap-x-[12px]", "tw:viewport-1024:[&_.sidebar-user]:pt-[10px]",
     "tw:viewport-1024:[&_.sidebar-user]:border-t-[length:1px]", "tw:viewport-1024:[&_.sidebar-user]:[border-top-style:solid]", "tw:viewport-1024:[&_.sidebar-user]:border-t-[color:rgb(255_255_255_/_.2)]", "tw:viewport-1024:[&_.sidebar-user_.button]:min-h-[32px]",
+    "tw:viewport-1024:relative", "tw:viewport-1024:pt-[12px]", "tw:viewport-1024:pb-[12px]", "tw:viewport-1024:[&:not(:has(.agency-nav-mobile-open))_.sidebar-top_>_.sidebar-popover]:hidden",
+    "tw:viewport-1024:[&:not(:has(.agency-nav-mobile-open))_.sidebar-top_>_.workspace-switcher]:hidden", "tw:viewport-1024:[&_.agency-brand_>_span]:size-[40px]", "tw:viewport-1024:[&_.agency-brand]:pr-[48px]",
   ].join(" "),
   "sidebar_inner": [
-    "sidebar-inner", "tw:min-h-[calc(100vh_-_44px)]", "tw:viewport-760:min-h-[auto]", "tw:flex",
+    "sidebar-inner", "tw:min-h-[calc(100vh_-_44px)]", "tw:viewport-1024:min-h-[auto]", "tw:flex",
     "tw:viewport-760:grid", "tw:justify-between", "tw:flex-col", "tw:gap-y-[18px]",
     "tw:gap-x-[18px]",
   ].join(" "),

@@ -97,7 +97,10 @@ export function AgencyNavLinks() {
 
   return (
     <nav className={cx(`${viewStyles.agency_nav}${mobileOpen ? " agency-nav-mobile-open" : ""}`)} aria-label="Agência">
-      <button type="button" className={viewStyles.agency_mobile_menu_toggle} aria-expanded={mobileOpen} onClick={() => setMobileOpen((open) => !open)}>{mobileOpen ? "Fechar menu" : "Abrir menu da agência"}</button>
+      <button type="button" className={viewStyles.agency_mobile_menu_toggle} aria-label={mobileOpen ? "Fechar menu da agência" : "Abrir menu da agência"} aria-expanded={mobileOpen} onClick={() => setMobileOpen((open) => !open)}>
+        <span>{mobileOpen ? "Fechar menu" : "Abrir menu da agência"}</span>
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={mobileOpen ? "M5 5l14 14M19 5 5 19" : "M4 7h16M4 12h16M4 17h16"} /></svg>
+      </button>
       {groups.map((group) => (
         <div className={viewStyles.nav_group} key={group.title}>
           <p className={viewStyles.nav_group_label}>{group.title}</p>
