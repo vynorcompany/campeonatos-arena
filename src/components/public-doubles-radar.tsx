@@ -22,7 +22,7 @@ const radarGenders = ["Feminino", "Masculino", "Outro"];
 const radarCategories = ["Iniciante", "7ª categoria", "6ª categoria", "5ª categoria", "4ª categoria", "3ª categoria", "2ª categoria", "1ª categoria", "Profissional"];
 const mobileRadarSkin = [
   "tw:viewport-700:border-[#d8e5e9]! tw:viewport-700:bg-white! tw:viewport-700:p-0! tw:viewport-700:dark:border-[#2a6155]! tw:viewport-700:dark:bg-[#0b302a]!",
-  "tw:viewport-700:[&_.doubles-radar-hero]:min-h-0! tw:viewport-700:[&_.doubles-radar-hero]:bg-transparent! tw:viewport-700:[&_.doubles-radar-hero]:[background-image:none]! tw:viewport-700:[&_.doubles-radar-hero_>_span]:hidden!",
+  "tw:viewport-700:[&_.doubles-radar-hero]:min-h-0! tw:viewport-700:[&_.doubles-radar-hero]:bg-transparent! tw:viewport-700:[&_.doubles-radar-hero]:[background-image:none]! tw:viewport-700:[&_.doubles-radar-hero_>_span]:hidden! tw:viewport-700:[&_.doubles-radar-hero_>_.doubles-radar-icon]:hidden!",
   "tw:viewport-700:[&_.doubles-radar-hero_h2]:text-[#133047]! tw:viewport-700:[&_.doubles-radar-hero_p]:text-[#607e8d]! tw:viewport-700:dark:[&_.doubles-radar-hero_h2]:text-[#eafff3]! tw:viewport-700:dark:[&_.doubles-radar-hero_p]:text-[#a4c8b9]!",
   "tw:viewport-700:[&_.doubles-radar-status]:border-[#d8e5e9]! tw:viewport-700:[&_.doubles-radar-status]:bg-[#f5f8f8]! tw:viewport-700:[&_.doubles-radar-status]:[background-image:none]! tw:viewport-700:[&_.doubles-radar-status_strong]:text-[#133047]! tw:viewport-700:[&_.doubles-radar-status_p]:text-[#607e8d]!",
   "tw:viewport-700:dark:[&_.doubles-radar-status]:border-[#2a6155]! tw:viewport-700:dark:[&_.doubles-radar-status]:bg-[#104138]! tw:viewport-700:dark:[&_.doubles-radar-status_strong]:text-[#eafff3]! tw:viewport-700:dark:[&_.doubles-radar-status_p]:text-[#a4c8b9]!",

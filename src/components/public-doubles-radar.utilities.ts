@@ -16,7 +16,7 @@ export const viewStyles = {
     "tw:[&_>_header_h2]:text-[color:#f2f9fc]", "tw:[&_>_header_h2]:text-[1.3rem]", "tw:grid", "tw:gap-y-[16px]",
     "tw:viewport-700:gap-y-[12px]", "tw:gap-x-[16px]", "tw:viewport-700:gap-x-[12px]", "tw:mr-[auto]",
     "tw:mb-[0]", "tw:ml-[auto]", "tw:[&_>_header_p]:mt-[0]", "tw:[&_>_header_p]:mr-[0]",
-    "tw:[&_>_header_p]:mb-[0]", "tw:[&_>_header_p]:ml-[0]", "tw:[&_>_header_p]:text-[color:#617b8d]", "tw:[&_>_header_p]:text-[.84rem]",
+    "tw:[&_>_header_p]:mb-[0]", "tw:[&_>_header_p]:ml-[0]", "tw:[&_>_header_p]:text-[color:#a9c0ce]", "tw:[&_>_header_p]:text-[.84rem]",
   ].join(" "),
   "doubles_radar_hero": [
     "doubles-radar-hero", "tw:relative", "tw:min-h-[154px]", "tw:viewport-700:min-h-[155px]",
@@ -100,7 +100,7 @@ export const viewStyles = {
     "tw:viewport-700:[&_>_div_>_span]:h-[47px]", "tw:[&_>_div_>_span]:place-items-center", "tw:[&_>_div_>_span]:rounded-[50%]", "tw:[&_>_div_>_span]:bg-[color:transparent]",
     "tw:[&_>_div_>_span]:[background-image:radial-gradient(circle,_rgb(6_44_39_/_.2),_rgb(5_27_37_/_.95))]", "tw:[&_>_div_>_span]:text-[1.05rem]", "tw:[&_>_div_>_span]:[box-shadow:inset_0_0_0_1px_rgb(66_255_180_/_.22),_0_0_20px_rgb(39_255_157_/_.14)]", "tw:[&_>_div_>_span]:text-[color:#43f2ab]",
     "tw:[&.is-off_>_div_>_span]:bg-[color:#dce9ee]", "tw:[&.is-off_>_div_>_span]:[background-image:none]", "tw:[&.is-off_>_div_>_span]:[filter:grayscale(1)]", "tw:[&_strong]:text-[color:#e9fff6]",
-    "tw:[&_strong]:text-[1rem]", "tw:viewport-700:[&_strong]:text-[.88rem]", "tw:[&.is-off_strong]:text-[color:#426174]", "tw:[&_p]:mt-[2px]",
+    "tw:[&_strong]:text-[1rem]", "tw:viewport-700:[&_strong]:text-[.88rem]", "tw:[&.is-off_strong]:text-[color:#d8e8f0]", "tw:[&_p]:mt-[2px]",
     "tw:[&_p]:mr-[0]", "tw:[&_p]:mb-[0]", "tw:[&_p]:ml-[0]", "tw:[&_p]:text-[color:#aec8c2]",
     "tw:[&_p]:text-[.8rem]", "tw:viewport-700:[&_p]:text-[.71rem]", "tw:[&_form]:mt-[0]", "tw:[&_form]:mr-[0]",
     "tw:[&_form]:mb-[0]", "tw:[&_form]:ml-[0]", "tw:[&_form]:[flex:0_0_auto]", "tw:viewport-700:flex-col",
@@ -198,8 +198,8 @@ export const viewStyles = {
     "tw:pl-[24px]", "tw:border-t-[length:1px]", "tw:[border-top-style:dashed]", "tw:border-t-[color:#bcd6e1]",
     "tw:border-r-[length:1px]", "tw:[border-right-style:dashed]", "tw:border-r-[color:#bcd6e1]", "tw:border-b-[length:1px]",
     "tw:[border-bottom-style:dashed]", "tw:border-b-[color:#bcd6e1]", "tw:border-l-[length:1px]", "tw:[border-left-style:dashed]",
-    "tw:border-l-[color:#bcd6e1]", "tw:rounded-[10px]", "tw:text-[color:#547184]", "tw:text-center",
-    "tw:[&_strong]:text-[color:#1a4966]", "tw:[&_span]:text-[.8rem]",
+    "tw:border-l-[color:#bcd6e1]", "tw:rounded-[10px]", "tw:text-[color:#a9c0ce]", "tw:text-center",
+    "tw:[&_strong]:text-[color:#e9f6ff]", "tw:[&_span]:text-[.8rem]",
   ].join(" "),
   "doubles_radar_icon": [
     "doubles-radar-icon", "tw:block", "tw:[fill:none]", "tw:[stroke:currentColor]",
