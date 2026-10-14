@@ -3,7 +3,8 @@ import { sharedUtilities } from "@/components/ui/shared.utilities";
 export const viewStyles = {
   "agency_shell": [
     "agency-shell", "tw:min-h-[100vh]", "tw:grid", "tw:grid-cols-[292px_minmax(0,_1fr)]",
-    "tw:viewport-1024:grid-cols-[1fr]", "tw:bg-[color:#fff]", "tw:[background-image:none]",
+    "tw:viewport-1024:grid-cols-[1fr]", "tw:viewport-1024:grid-rows-[max-content_minmax(0,1fr)]",
+    "tw:bg-[color:#fff]", "tw:[background-image:none]",
   ].join(" "),
   "agency_sidebar": [
     "agency-sidebar", "tw:min-h-[100vh]", "tw:viewport-1024:min-h-[0]", "tw:pt-[22px]",
