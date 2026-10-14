@@ -309,6 +309,58 @@ test("webhook ignora mensagem atrasada da conta anterior após conectar outro n�
   assert.equal(stored, false);
 });
 
+test("webhook fora de ordem não reabre não lidas nem recua a última mensagem", async () => {
+  const conversation = { id: "conversation", arenaId: "arena", accountJid: "111@s.whatsapp.net", remoteJid: "contact@s.whatsapp.net", profilePhotoUrl: "", unreadCount: 0, lastMessageAt: new Date(0) };
+  const messages = new Set<string>();
+  const tx = {
+    whatsAppConversation: {
+      upsert: async ({ create }: any) => {
+        if (conversation.lastMessageAt.getTime() === 0) conversation.lastMessageAt = create.lastMessageAt;
+        return { ...conversation };
+      },
+      update: async ({ data }: any) => {
+        conversation.unreadCount = typeof data.unreadCount === "number" ? data.unreadCount : conversation.unreadCount + data.unreadCount.increment;
+        conversation.lastMessageAt = data.lastMessageAt;
+        return { ...conversation };
+      },
+    },
+    whatsAppMessage: {
+      findUnique: async ({ where }: any) => messages.has(where.conversationId_providerId.providerId) ? { id: "stored" } : null,
+      upsert: async ({ create }: any) => { messages.add(create.providerId); return { id: create.providerId }; },
+    },
+    $queryRaw: async () => [{ id: conversation.id }],
+  };
+  const webhook = load("../src/app/api/integrations/evolution/webhook/route.ts", {
+    "next/server": { NextResponse: { json: (value: unknown) => value } },
+    "@prisma/client": {},
+    "@/lib/integrations/evolution/client": { getEvolutionProfilePicture: async () => "" },
+    "@/lib/payments/connection-secrets": { hashWebhookSecret: () => "hash" },
+    "@/lib/prisma": { prisma: { whatsAppConnection: { findUnique: async () => ({ id: "connection", arenaId: "arena", webhookSecretHash: "hash", status: "CONNECTED", connectedPhone: conversation.accountJid }) }, whatsAppMessage: { findFirst: async () => null } } },
+    "@/lib/whatsapp-account": { normalizeWhatsAppAccountJid },
+    "@/lib/integrations/evolution/agency": {},
+    "@/lib/integrations/evolution/groups": { readEvolutionGroupName: () => "" },
+    "@/lib/services/whatsapp-conversation": {},
+    "@/lib/rls": { withArenaTransaction: async (_arenaId: string, operation: (client: typeof tx) => unknown) => operation(tx) },
+  });
+  const sendEvent = (id: string, timestamp: number, fromMe: boolean) => webhook.POST({
+    nextUrl: { searchParams: new URLSearchParams("instance=arena&secret=secret") }, headers: new Headers(),
+    json: async () => ({ instance: "arena", event: "MESSAGES_UPSERT", data: { owner: "111", messageTimestamp: timestamp, key: { remoteJid: conversation.remoteJid, fromMe, id }, message: { conversation: id }, pushName: "Contato", profilePictureUrl: "https://example.test/photo.png" } }),
+  });
+  await sendEvent("received-first", 1_700_000_000, false);
+  assert.equal(conversation.unreadCount, 1);
+  await sendEvent("answered", 1_700_000_100, true);
+  assert.equal(conversation.unreadCount, 0);
+  await sendEvent("received-late", 1_700_000_050, false);
+  assert.equal(conversation.unreadCount, 0);
+  assert.equal(conversation.lastMessageAt.getTime(), 1_700_000_100_000);
+  await sendEvent("received-new", 1_700_000_200, false);
+  await sendEvent("answered-old", 1_700_000_150, true);
+  await sendEvent("received-new", 1_700_000_200, false);
+  assert.equal(conversation.unreadCount, 1);
+  assert.equal(conversation.lastMessageAt.getTime(), 1_700_000_200_000);
+  assert.equal(messages.size, 5);
+});
+
 test("duplicate webhook messages count once and provider IDs remain scoped to each arena conversation", async () => {
   const conversations = new Map<string, { id: string; arenaId: string; accountJid: string; remoteJid: string; profilePhotoUrl: string; unreadCount: number }>();
   const messages = new Map<string, { id: string }>();
@@ -371,7 +423,7 @@ test("group webhook stores the participant name separately from the message body
   const created: Record<string, unknown>[] = [];
   const tx = {
     whatsAppConversation: {
-      upsert: async () => ({ id: "conversation", profilePhotoUrl: "" }),
+      upsert: async () => ({ id: "conversation", profilePhotoUrl: "", lastMessageAt: new Date(0) }),
       update: async () => ({}),
     },
     whatsAppMessage: {

@@ -137,7 +137,11 @@ export async function POST(request: NextRequest) {
         const existingMessage = await tx.whatsAppMessage.findUnique({ where: { conversationId_providerId: messageKey }, select: { id: true } });
         if (!existingMessage) {
           await tx.whatsAppMessage.upsert({ where: { conversationId_providerId: messageKey }, create: { providerId, conversationId: current.id, direction: fromMe ? "OUTBOUND" : "INBOUND", body, senderName: !fromMe ? senderName : "", participantJid: String(key.participant ?? data.participant ?? ""), quotedProviderId, quotedBody, quotedAuthor, mediaType: media.type, mediaMimeType: media.mimeType, mediaUrl: media.url, providerPayload: message as Prisma.InputJsonValue, sentAt }, update: {} });
-          await tx.whatsAppConversation.update({ where: { id: current.id }, data: { ...(fromMe ? { unreadCount: 0 } : { unreadCount: { increment: 1 } }), lastMessageAt: sentAt } });
+          // A Evolution pode entregar o histórico fora de ordem. Uma mensagem
+          // anterior à última resposta não reabre o SLA nem recua a conversa.
+          if (sentAt >= current.lastMessageAt) {
+            await tx.whatsAppConversation.update({ where: { id: current.id }, data: { ...(fromMe ? { unreadCount: 0 } : { unreadCount: { increment: 1 } }), lastMessageAt: sentAt } });
+          }
         }
         return current;
       });
