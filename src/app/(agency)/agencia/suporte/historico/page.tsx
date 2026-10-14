@@ -1,3 +1,4 @@
+import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
 import { SectionCard } from "@/components/section-card";
 import { requireAgencyPageAccess } from "@/lib/auth/guards";
@@ -23,7 +24,7 @@ export default async function AgencySupportHistoryPage() {
       </header>
 
       <SectionCard title="Histórico" description="Base de chamados finalizados para auditoria e acompanhamento de CS.">
-        <table className={viewStyles.data_table}>
+        {tickets.length ? <table className={viewStyles.data_table}>
           <thead>
             <tr>
               <th>Ticket</th>
@@ -36,15 +37,15 @@ export default async function AgencySupportHistoryPage() {
           <tbody>
             {tickets.map((ticket) => (
               <tr key={ticket.id}>
-                <td><strong>{ticket.title}</strong><span className={viewStyles.table_subtext}>{ticket.code}</span></td>
-                <td>{ticket.arena.name}</td>
-                <td>{ticket.status}</td>
-                <td>{ticket.assignee?.name ?? "Sem responsável"}</td>
-                <td>{ticket.updatedAt.toLocaleDateString("pt-BR")}</td>
+                <td><span className={viewStyles.mobile_label}>Ticket</span><strong>{ticket.title}</strong><span className={viewStyles.table_subtext}>{ticket.code}</span></td>
+                <td><span className={viewStyles.mobile_label}>Arena</span>{ticket.arena.name}</td>
+                <td><span className={viewStyles.mobile_label}>Status</span><span className={cx(`${viewStyles.ticket_status} ticket-status-${ticket.status.toLowerCase()}`)}>{ticket.status === "RESOLVED" ? "Resolvido" : "Fechado"}</span></td>
+                <td><span className={viewStyles.mobile_label}>Responsável</span>{ticket.assignee?.name ?? "Sem responsável"}</td>
+                <td><span className={viewStyles.mobile_label}>Atualizado em</span>{new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo" }).format(ticket.updatedAt)}</td>
               </tr>
             ))}
           </tbody>
-        </table>
+        </table> : null}
         {!tickets.length ? <p className={viewStyles.muted}>Nenhum ticket finalizado ainda.</p> : null}
       </SectionCard>
     </div>
