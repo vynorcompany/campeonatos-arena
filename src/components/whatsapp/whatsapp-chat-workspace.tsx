@@ -38,18 +38,27 @@ type AudioDraft = { file: File; previewUrl: string; conversationId: string };
 function Avatar({ conversation, size = "", onExpand, withinButton = false }: { conversation: WhatsAppConversation; size?: string; onExpand?: (url: string) => void; withinButton?: boolean }) {
   const source = conversation.profilePhotoUrl || conversation.player?.photoUrl;
   const [photo, setPhoto] = useState(source);
+  const imageRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
+    let active = true;
     setPhoto(source);
-    if (source) return;
-    const form = new FormData();
-    form.set("conversationId", conversation.id);
-    void refreshWhatsAppConversationProfilePhotoAction(form)
-      .then((result) => { if (result.profilePhotoUrl) setPhoto(result.profilePhotoUrl); })
-      .catch(() => {});
+    if (!source) {
+      const form = new FormData();
+      form.set("conversationId", conversation.id);
+      void refreshWhatsAppConversationProfilePhotoAction(form)
+        .then((result) => { if (active && result.profilePhotoUrl) setPhoto(result.profilePhotoUrl); })
+        .catch(() => {});
+    }
+    return () => { active = false; };
   }, [conversation.id, source]);
 
-  return <i className={cx(`${viewStyles.whatsapp_contact_avatar} ${size}`)}>{photo ? <img className={cx(onExpand ? "whatsapp-photo-expandable" : undefined)} src={photo} alt={`Foto de ${conversation.contactName || "contato"}`} referrerPolicy="no-referrer" role={onExpand && !withinButton ? "button" : undefined} tabIndex={onExpand && !withinButton ? 0 : undefined} aria-label={onExpand && !withinButton ? "Ampliar foto do contato" : undefined} onError={() => setPhoto("")} onClick={(event) => { event.stopPropagation(); onExpand?.(photo); }} onKeyDown={(event) => { if (onExpand && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); event.stopPropagation(); onExpand(photo); } }} /> : initials(conversation.contactName || conversation.contactPhone)}</i>;
+  useEffect(() => {
+    const image = imageRef.current;
+    if (photo && image?.complete && image.naturalWidth === 0) setPhoto("");
+  }, [photo]);
+
+  return <i className={cx(`${viewStyles.whatsapp_contact_avatar} ${size}`)}>{photo ? <img ref={imageRef} className={cx(onExpand ? "whatsapp-photo-expandable" : undefined)} src={photo} alt={`Foto de ${conversation.contactName || "contato"}`} referrerPolicy="no-referrer" role={onExpand && !withinButton ? "button" : undefined} tabIndex={onExpand && !withinButton ? 0 : undefined} aria-label={onExpand && !withinButton ? "Ampliar foto do contato" : undefined} onError={() => setPhoto("")} onClick={(event) => { event.stopPropagation(); onExpand?.(photo); }} onKeyDown={(event) => { if (onExpand && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); event.stopPropagation(); onExpand(photo); } }} /> : initials(conversation.contactName || conversation.contactPhone)}</i>;
 }
 
 export function WhatsAppChatWorkspace({ conversations: initialConversations, pollingScope = "", connected, canEdit, canSend, clients, slaMinutes, initialVersion, currentUserName = "", currentAccountJid = "" }: { pollingScope?: string; currentAccountJid?: string; currentUserName?: string; conversations: WhatsAppConversation[]; connected: boolean; canEdit: boolean; canSend: boolean; clients: WhatsAppClient[]; slaMinutes: number; initialVersion: string }) {
