@@ -128,7 +128,6 @@ export async function recurringOnlineChargeCandidates(now = new Date()) {
   const limit = new Date(now);
   limit.setDate(limit.getDate() + daysFromNow);
   const arenas = await prisma.arena.findMany({ select: { id: true } });
-  let ineligible = 0;
   const ineligibleByArena: Record<string, number> = {};
   const selection = await collectRecurringChargeCandidates(arenas.map((arena) => arena.id), async (arenaId) => {
     const candidates: { id: string; arenaId: string; dueDate: Date | null }[] = [];
@@ -152,7 +151,6 @@ export async function recurringOnlineChargeCandidates(now = new Date()) {
           candidates.push({ id: entry.id, arenaId: entry.arenaId, dueDate: entry.dueDate });
           if (candidates.length === recurringChargeBatchLimit) break;
         } else {
-          ineligible += 1;
           ineligibleByArena[arenaId] = (ineligibleByArena[arenaId] ?? 0) + 1;
         }
       }
@@ -162,9 +160,11 @@ export async function recurringOnlineChargeCandidates(now = new Date()) {
     return candidates;
   });
   const failedArenaIds = new Set(selection.failures.map((failure) => failure.arenaId));
+  for (const arenaId of failedArenaIds) delete ineligibleByArena[arenaId];
   for (const arena of arenas) {
     if (!failedArenaIds.has(arena.id)) ineligibleByArena[arena.id] ??= 0;
   }
+  const ineligible = Object.values(ineligibleByArena).reduce((total, count) => total + count, 0);
   return { ...selection, ineligible, ineligibleByArena };
 }
 
