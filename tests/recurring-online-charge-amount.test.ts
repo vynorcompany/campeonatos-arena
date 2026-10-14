@@ -12,28 +12,33 @@ import { getMissingBoletoPayerFields } from "../src/lib/payments/boleto-payer";
 const require = createRequire(import.meta.url);
 const source = readFileSync(new URL("../src/lib/payments/recurring-online-charges.ts", import.meta.url), "utf8");
 
-function loadRecurring(createBoleto: (input: Record<string, unknown>) => Promise<Record<string, unknown>>, candidateIds: string[] = [], scanFailures: string[] = [], scanEntries?: Array<Record<string, unknown>>) {
+function loadRecurring(createBoleto: (input: Record<string, unknown>) => Promise<Record<string, unknown>>, candidateIds: string[] = [], scanFailures: string[] = [], scanEntries?: Array<Record<string, unknown>>, options: { phone?: string; missingPayer?: boolean; sendMessage?: () => Promise<void> } = {}) {
   const entry = {
     id: "entry-a", arenaId: "arena-a", amountCents: 5000, description: "Mensalidade de teste",
     dueDate: new Date("2035-01-05T12:00:00.000Z"),
     settlements: [{ amountCents: 2000, interestCents: 0 }],
-    player: { name: "Atleta de teste", phone: "", email: "athlete@example.test", cpf: "12345678901" },
+    player: { name: "Atleta de teste", phone: options.phone ?? "", email: "athlete@example.test", cpf: "12345678901" },
   };
   const updates: Array<Record<string, unknown>> = [];
   const claims: Array<Record<string, unknown>> = [];
   const errors: unknown[][] = [];
   const queries: Array<Record<string, unknown>> = [];
+  const alerts: Array<{ data: { type: string; href: string } }> = [];
   const tx = {
     financialEntry: {
       updateMany: async (input: Record<string, unknown>) => { updates.push(input); return { count: 1 }; },
+    },
+    arenaNotification: {
+      findFirst: async ({ where }: { where: { type: string; href: string } }) => alerts.find((alert) => alert.data.type === where.type && alert.data.href === where.href) ?? null,
+      create: async (input: { data: { type: string; href: string } }) => { alerts.push(input); return { id: `alert-${alerts.length}` }; },
     },
   };
   const exports: Record<string, (...args: never[]) => Promise<unknown>> = {};
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
     exports, Date, Intl, console: { error: (...args: unknown[]) => errors.push(args) },
     require: (name: string) => {
-      if (name === "@/lib/payments/mercado-pago") return { createBoletoPayment: createBoleto, getMissingBoletoPayerFields: scanEntries ? getMissingBoletoPayerFields : () => [] };
-      if (name === "@/lib/integrations/evolution/client") return { sendEvolutionTextMessage: async () => undefined };
+      if (name === "@/lib/payments/mercado-pago") return { createBoletoPayment: createBoleto, getMissingBoletoPayerFields: scanEntries ? getMissingBoletoPayerFields : () => options.missingPayer ? ["CPF"] : [] };
+      if (name === "@/lib/integrations/evolution/client") return { sendEvolutionTextMessage: options.sendMessage ?? (async () => undefined) };
       if (name === "@/lib/prisma") return { prisma: { arena: { findMany: async () => [{ id: "arena-a" }] } } };
       if (name === "@/lib/arena-database") return { arenaDatabase: () => ({ financialEntry: {
         findFirst: async ({ where }: { where: { id: string } }) => ({ ...entry, id: where.id }),
@@ -55,7 +60,7 @@ function loadRecurring(createBoleto: (input: Record<string, unknown>) => Promise
     issue: exports.issueRecurringOnlineChargeForEntry as (arenaId: string, entryId: string) => Promise<{ created: boolean; skipped: boolean }>,
     batch: exports.issueRecurringOnlineCharges as () => Promise<{ scanned: number; created: number; skipped: number; failed: number }>,
     candidates: exports.recurringOnlineChargeCandidates as () => Promise<{ candidates: Array<{ id: string }>; failures: unknown[]; ineligible: number }>,
-    claims, updates, errors, queries,
+    claims, updates, errors, queries, alerts,
   };
 }
 
@@ -78,6 +83,7 @@ test("falha do provedor libera a tentativa sem permitir troca automática de mé
   const update = service.updates[0] as { where: { onlinePaymentClaimMethod: string }; data: { onlinePaymentClaimedAt: Date | null } };
   assert.equal(update.where.onlinePaymentClaimMethod, "BOLETO");
   assert.equal(update.data.onlinePaymentClaimedAt, null);
+  assert.equal(service.alerts[0].data.type, "ONLINE_CHARGE_ISSUANCE_REVIEW");
 });
 
 test("falha de um boleto não impede a emissão dos demais no mesmo ciclo", async () => {
@@ -115,4 +121,30 @@ test("paginação ultrapassa 250 cadastros incompletos e encontra o boleto váli
   assert.equal(result.failures.length, 0);
   assert.equal(service.queries.length, 2);
   assert.equal((service.queries[1].cursor as { id: string }).id, "entry-249");
+});
+
+test("dados incompletos deixam alerta operacional sem tentar emitir boleto", async () => {
+  const service = loadRecurring(async () => { throw new Error("O provedor não deveria ser chamado"); }, [], [], undefined, { missingPayer: true });
+  assert.deepEqual(JSON.parse(JSON.stringify(await service.issue("arena-a", "entry-a"))), { created: false, skipped: true });
+  assert.equal(service.claims.length, 0);
+  assert.equal(service.alerts[0].data.type, "ONLINE_CHARGE_ISSUANCE_REVIEW");
+});
+
+test("falha no WhatsApp mantém o boleto emitido e deixa alerta sem reenviar", async () => {
+  const service = loadRecurring(async () => ({ paymentId: "payment-a", checkoutUrl: "https://example.test/pay", qrCode: "", expiresAt: null }), [], [], undefined, {
+    phone: "5511999999999",
+    sendMessage: async () => { throw new Error("Falha simulada no WhatsApp"); },
+  });
+  assert.deepEqual(JSON.parse(JSON.stringify(await service.issue("arena-a", "entry-a"))), { created: true, skipped: false });
+  assert.equal(service.updates.length, 1);
+  assert.equal(service.alerts[0].data.type, "ONLINE_CHARGE_DELIVERY_REVIEW");
+  assert.equal(service.errors[0][0], "Could not send recurring boleto by WhatsApp");
+});
+
+test("boleto emitido sem telefone gera um único alerta de entrega", async () => {
+  const service = loadRecurring(async () => ({ paymentId: "payment-a", checkoutUrl: "https://example.test/pay", qrCode: "", expiresAt: null }));
+  await service.issue("arena-a", "entry-a");
+  await service.issue("arena-a", "entry-a");
+  assert.equal(service.alerts.length, 1);
+  assert.equal(service.alerts[0].data.type, "ONLINE_CHARGE_DELIVERY_REVIEW");
 });

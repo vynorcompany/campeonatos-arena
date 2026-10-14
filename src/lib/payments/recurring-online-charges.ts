@@ -12,6 +12,18 @@ const daysFromNow = 15;
 
 type ChargeAttempt = { created: boolean; skipped: boolean };
 
+async function alertRecurringBoleto(arenaId: string, entryId: string, type: string, title: string, message: string) {
+  const href = `/financeiro/contas-a-receber?entryId=${encodeURIComponent(entryId)}`;
+  try {
+    await withArenaTransaction(arenaId, async (tx) => {
+      const existing = await tx.arenaNotification.findFirst({ where: { arenaId, type, href, readAt: null }, select: { id: true } });
+      if (!existing) await tx.arenaNotification.create({ data: { arenaId, type, title, message, href } });
+    });
+  } catch (error) {
+    console.error("Could not record recurring boleto alert", { arenaId, entryId, type, error });
+  }
+}
+
 /** Creates the boleto for one recurring entry. The external reference and Mercado Pago idempotency key make retries safe. */
 export async function issueRecurringOnlineChargeForEntry(arenaId: string, entryId: string): Promise<ChargeAttempt> {
   const entry = await arenaDatabase(arenaId).financialEntry.findFirst({
@@ -21,9 +33,15 @@ export async function issueRecurringOnlineChargeForEntry(arenaId: string, entryI
 
   if (!entry) return { created: false, skipped: false };
   const player = entry.player;
-  if (!player || getMissingBoletoPayerFields(player).length) return { created: false, skipped: true };
+  if (!player || getMissingBoletoPayerFields(player).length) {
+    await alertRecurringBoleto(arenaId, entry.id, "ONLINE_CHARGE_ISSUANCE_REVIEW", "Boleto pendente de emissão", "O lançamento recorrente foi criado, mas faltam dados do cliente para emitir o boleto. Revise o cadastro em Contas a Receber.");
+    return { created: false, skipped: true };
+  }
   const amountCents = getFinancialEntryBalance(entry.amountCents, entry.settlements).outstandingCents;
-  if (amountCents < 500) return { created: false, skipped: true };
+  if (amountCents < 500) {
+    await alertRecurringBoleto(arenaId, entry.id, "ONLINE_CHARGE_ISSUANCE_REVIEW", "Boleto não emitido", "O saldo do lançamento recorrente é inferior ao mínimo de R$ 5,00 para emissão de boleto. Revise a cobrança em Contas a Receber.");
+    return { created: false, skipped: true };
+  }
   const claim = await withArenaTransaction(arenaId, (tx) => claimFinancialOnlineCharge(tx, { arenaId, entryId: entry.id, method: "BOLETO", expectedAmountCents: amountCents }));
   if (!claim.ok) return { created: false, skipped: false };
 
@@ -46,6 +64,7 @@ export async function issueRecurringOnlineChargeForEntry(arenaId: string, entryI
       where: { id: entry.id, arenaId, status: "PENDING", onlinePaymentId: "", onlinePaymentUrl: "", onlinePaymentClaimMethod: "BOLETO", onlinePaymentClaimedAt: claim.claimedAt },
       data: { onlinePaymentClaimedAt: null },
     })).catch((releaseError) => console.error("Could not release recurring boleto claim", releaseError));
+    await alertRecurringBoleto(arenaId, entry.id, "ONLINE_CHARGE_ISSUANCE_REVIEW", "Emissão de boleto requer conferência", "A tentativa de emissão falhou ou teve resposta incompleta. Confira o lançamento e o Mercado Pago; o agendador poderá tentar novamente.");
     throw error;
   }
   const updated = await withArenaTransaction(arenaId, (tx) => tx.financialEntry.updateMany({
@@ -69,9 +88,18 @@ export async function issueRecurringOnlineChargeForEntry(arenaId: string, entryI
   }
   // A emissão não depende do canal de WhatsApp. Quando a arena estiver
   // conectada, o mesmo boleto é comunicado ao cliente imediatamente.
-  if (updated.count && player.phone) {
-    const dueDate = entry.dueDate ? new Intl.DateTimeFormat("pt-BR").format(entry.dueDate) : "a data de vencimento informada";
-    await sendEvolutionTextMessage(player.phone, `Olá, ${player.name}. Seu boleto de ${entry.description} já foi emitido, com vencimento em ${dueDate}. Pague por aqui: ${charge.checkoutUrl}`, entry.arenaId).catch(() => undefined);
+  if (updated.count) {
+    if (player.phone) {
+      const dueDate = entry.dueDate ? new Intl.DateTimeFormat("pt-BR").format(entry.dueDate) : "a data de vencimento informada";
+      try {
+        await sendEvolutionTextMessage(player.phone, `Olá, ${player.name}. Seu boleto de ${entry.description} já foi emitido, com vencimento em ${dueDate}. Pague por aqui: ${charge.checkoutUrl}`, entry.arenaId);
+      } catch (error) {
+        console.error("Could not send recurring boleto by WhatsApp", { arenaId, entryId: entry.id, error });
+        await alertRecurringBoleto(arenaId, entry.id, "ONLINE_CHARGE_DELIVERY_REVIEW", "Boleto emitido, envio pendente", "O boleto foi emitido, mas não foi possível confirmar o envio pelo WhatsApp. Confira a conversa antes de reenviar para evitar mensagem duplicada.");
+      }
+    } else {
+      await alertRecurringBoleto(arenaId, entry.id, "ONLINE_CHARGE_DELIVERY_REVIEW", "Boleto emitido, envio pendente", "O boleto foi emitido, mas o cliente não tem telefone para recebê-lo por WhatsApp. Confira a cobrança em Contas a Receber.");
+    }
   }
   return { created: Boolean(updated.count), skipped: false };
 }
