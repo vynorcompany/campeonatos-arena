@@ -4,8 +4,9 @@ import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./nav-links.utilities";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useWhatsAppUnreadCount } from "@/components/whatsapp/use-whatsapp-unread-count";
+import { usePersistedOpenItems } from "./use-persisted-open-items";
 
 type IconName =
   | "dashboard"
@@ -374,23 +375,7 @@ export function NavLinks({ canManageUsers, visibleModules, whatsappUnreadCount, 
       ...(item.children?.flatMap((child) => child.children?.length && itemIsActive(child) ? [child.href] : []) ?? [])
     ])
   );
-  const [openItems, setOpenItems] = useState<Set<string>>(() => {
-    if (typeof window === "undefined") {
-      return new Set(activeExpandableItems);
-    }
-
-    const stored = window.localStorage.getItem(openItemsStorageKey);
-    if (!stored) {
-      return new Set(activeExpandableItems);
-    }
-
-    try {
-      const parsed = JSON.parse(stored) as string[];
-      return new Set(parsed);
-    } catch {
-      return new Set(activeExpandableItems);
-    }
-  });
+  const [openItems, setOpenItems] = usePersistedOpenItems(openItemsStorageKey, activeExpandableItems);
 
   useEffect(() => {
     setOpenItems((current) => {
@@ -406,10 +391,6 @@ export function NavLinks({ canManageUsers, visibleModules, whatsappUnreadCount, 
   // Abertura automática ocorre somente ao mudar de página; depois disso o clique sempre prevalece.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
-
-  useEffect(() => {
-    window.localStorage.setItem(openItemsStorageKey, JSON.stringify([...openItems]));
-  }, [openItems]);
 
   function toggleItem(href: string) {
     setOpenItems((current) => {

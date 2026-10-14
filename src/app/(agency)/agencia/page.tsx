@@ -2,6 +2,7 @@ import { viewStyles } from "./page.utilities";
 import { SectionCard } from "@/components/section-card";
 import { requireAgencyPageAccess } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
+import { agencyStatusLabel } from "@/lib/agency/status-label";
 import { formatCurrency, getAgencyMetrics } from "@/lib/services/agency";
 
 export default async function AgencyDashboardPage() {
@@ -46,7 +47,7 @@ export default async function AgencyDashboardPage() {
                   <strong>{arena.name}</strong>
                   <span className={viewStyles.table_subtext}>{arena.city || arena.email || arena.slug}</span>
                 </div>
-                <span>{arena.accountStatus}</span>
+                <span>{agencyStatusLabel(arena.accountStatus)}</span>
                 <span>{arena._count.members} usuários</span>
               </article>
             ))}

@@ -2,6 +2,7 @@ import { viewStyles } from "./page.utilities";
 import { SectionCard } from "@/components/section-card";
 import { requireAgencyPageAccess } from "@/lib/auth/guards";
 import { formatCurrency, getAgencyMetrics } from "@/lib/services/agency";
+import { agencyStatusLabel } from "@/lib/agency/status-label";
 
 export default async function AgencyFinancePage() {
   await requireAgencyPageAccess();
@@ -32,7 +33,7 @@ export default async function AgencyFinancePage() {
               <article key={arena.id} className={viewStyles.agency_mini_row}>
                 <div>
                   <strong>{arena.name}</strong>
-                  <span className={viewStyles.table_subtext}>{arena.accountStatus}</span>
+                  <span className={viewStyles.table_subtext}>{agencyStatusLabel(arena.accountStatus)}</span>
                 </div>
                 <span>{formatCurrency(arenaMrr)} MRR</span>
                 <span>{arena._count.students} alunos</span>

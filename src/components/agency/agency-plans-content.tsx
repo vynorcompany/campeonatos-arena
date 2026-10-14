@@ -1,10 +1,10 @@
 import { viewStyles } from "./agency-plans-content.utilities";
-import Link from "next/link";
 import type { AgencyInvoice, AgencyPaymentConnection, AgencyPlan, AgencySubscription, Arena } from "@prisma/client";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { assignAgencyPlanAction, prepareAgencyInvoiceAction, saveAgencyBillingGraceAction, saveAgencyPlanAction, setAgencySubscriptionStatusAction } from "@/lib/actions/agency-subscriptions";
 import { formatCurrency } from "@/lib/services/agency";
+import { agencyStatusLabel } from "@/lib/agency/status-label";
 
 const date = (value: Date | null) => value ? new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo" }).format(value) : "—";
 
@@ -23,7 +23,7 @@ export function AgencyPlansContent({ plans, arenas, subscriptions, invoices, con
   return <div className={viewStyles.stack_md}>
     <header className={viewStyles.page_header}><div className={viewStyles.stack_xs}><p className={viewStyles.eyebrow}>Agência</p><h1>Planos e assinaturas</h1><p className={viewStyles.muted}>O catálogo e os preços são globais. Alterações valem para todas as arenas na próxima fatura; faturas emitidas mantêm o valor original.</p></div></header>
 
-    <section className={viewStyles.section_card_agency_billing_section}><div className={viewStyles.stack_xs}><h2>Mercado Pago da agência</h2><p className={viewStyles.muted}>Esta conta recebe apenas as assinaturas da plataforma; as conexões financeiras das arenas continuam isoladas.</p></div>{notice.connected ? <p className={viewStyles.form_success}>Mercado Pago da agência conectado com sucesso.</p> : null}{notice.connectionError ? <p className={viewStyles.form_error}>{notice.connectionError}</p> : null}<div className={viewStyles.agency_billing_connect}><strong>{connection?.status === "CONNECTED" ? `Conectado · ${connection.displayName || connection.accountReference}` : "Não conectado"}</strong><Link href="/api/integrations/payments/mercado-pago/agency/connect" className={viewStyles.button_button_primary}>{connection?.status === "CONNECTED" ? "Reconectar" : "Conectar Mercado Pago"}</Link></div></section>
+    <section className={viewStyles.section_card_agency_billing_section}><div className={viewStyles.stack_xs}><h2>Mercado Pago da agência</h2><p className={viewStyles.muted}>Esta conta recebe apenas as assinaturas da plataforma; as conexões financeiras das arenas continuam isoladas.</p></div>{notice.connected ? <p className={viewStyles.form_success}>Mercado Pago da agência conectado com sucesso.</p> : null}{notice.connectionError ? <p className={viewStyles.form_error}>{notice.connectionError}</p> : null}<div className={viewStyles.agency_billing_connect}><strong>{connection?.status === "CONNECTED" ? `Conectado · ${connection.displayName || connection.accountReference}` : "Não conectado"}</strong><a href="/api/integrations/payments/mercado-pago/agency/connect" className={viewStyles.button_button_primary}>{connection?.status === "CONNECTED" ? "Reconectar" : "Conectar Mercado Pago"}</a></div></section>
 
     <section className={viewStyles.section_card_agency_billing_section}><div className={viewStyles.stack_xs}><h2>Prazo para regularização</h2><p className={viewStyles.muted}>Faturas vencidas geram um aviso na arena. Após o prazo, o acesso é suspenso automaticamente até a confirmação do pagamento. A regra começa a valer quando você a ativar e se aplica também a faturas já vencidas.</p></div><SafeActionForm action={saveAgencyBillingGraceAction} successMessage="Prazo de pagamento atualizado." className={viewStyles.agency_grace_form}><label className={viewStyles.field}>Dias após o vencimento<input name="graceDays" type="number" min="0" max="60" defaultValue={connection?.graceDays ?? 7} required /></label><label className={viewStyles.agency_grace_toggle}><input name="enabled" type="checkbox" defaultChecked={connection?.graceDays != null} />Ativar avisos e bloqueio automático</label><SubmitButton label="Salvar prazo" pendingLabel="Salvando..." className={viewStyles.button_button_primary} /></SafeActionForm></section>
 
@@ -35,7 +35,7 @@ export function AgencyPlansContent({ plans, arenas, subscriptions, invoices, con
         const subscription = subscriptionByArena.get(arena.id);
         const trialExpired = Boolean(subscription?.plan.isTrial && subscription.trialEndsAt && subscription.trialEndsAt <= new Date());
         return <article key={arena.id} className={viewStyles.agency_subscription_row}>
-          <div><strong>{arena.name}</strong><span className={viewStyles.table_subtext}>{arena.accountStatus} · {subscription ? `${subscription.plan.name} · ${trialExpired ? "EXPIRED" : subscription.status}` : "Sem plano"}{subscription?.trialEndsAt ? ` · trial até ${date(subscription.trialEndsAt)}` : ""}</span></div>
+          <div><strong>{arena.name}</strong><span className={viewStyles.table_subtext}>{agencyStatusLabel(arena.accountStatus)} · {subscription ? `${subscription.plan.name} · ${agencyStatusLabel(trialExpired ? "EXPIRED" : subscription.status)}` : "Sem plano"}{subscription?.trialEndsAt ? ` · trial até ${date(subscription.trialEndsAt)}` : ""}</span></div>
           <SafeActionForm action={assignAgencyPlanAction} successMessage="Plano atribuído e financeiro atualizado." className={viewStyles.agency_subscription_form}>
             <input type="hidden" name="arenaId" value={arena.id} />
             <select name="planId" defaultValue={subscription?.planId ?? ""} aria-label={`Plano de ${arena.name}`} required><option value="">Selecionar plano</option>{plans.filter((plan) => plan.isActive && (!plan.isTrial || !subscription || subscription.planId === plan.id)).map((plan) => <option value={plan.id} key={plan.id}>{plan.name}</option>)}</select>

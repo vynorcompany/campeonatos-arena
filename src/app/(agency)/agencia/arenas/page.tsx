@@ -6,6 +6,7 @@ import { SectionCard } from "@/components/section-card";
 import { deleteAgencyArenaAction, updateAgencyArenaAction, updateAgencyArenaStatusAction } from "@/lib/actions/agency";
 import { requireAgencyPageAccess } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
+import { agencyStatusLabel } from "@/lib/agency/status-label";
 
 export default async function AgencyArenasPage() {
   await requireAgencyPageAccess();
@@ -39,7 +40,7 @@ export default async function AgencyArenasPage() {
             <article key={arena.id} className={viewStyles.agency_arena_card}>
               <div className={viewStyles.agency_ticket_head}>
                 <div>
-                  <span className={cx(`${viewStyles.ticket_status} ticket-status-${arena.accountStatus.toLowerCase()}`)}>{arena.accountStatus}</span>
+                  <span className={cx(`${viewStyles.ticket_status} ticket-status-${arena.accountStatus.toLowerCase()}`)}>{agencyStatusLabel(arena.accountStatus)}</span>
                   <h3>{arena.name}</h3>
                   <p className={viewStyles.muted}>{arena.slug} · {arena._count.members} usuário(s) · {arena._count.supportTickets} ticket(s)</p>
                 </div>
