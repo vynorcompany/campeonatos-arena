@@ -25,12 +25,15 @@ async function alertRecurringBoleto(arenaId: string, entryId: string, type: stri
 }
 
 async function alertIneligibleRecurringBoletos(arenaId: string, count: number) {
-  if (!count) return;
   const type = "ONLINE_CHARGE_ISSUANCE_REVIEW";
   const href = "/financeiro/contas-a-receber";
-  const message = `${count} lançamento(s) recorrente(s) com vencimento próximo não puderam entrar na fila de emissão de boletos por dados incompletos ou saldo inferior a R$ 5,00. Confira os cadastros e lançamentos em Contas a Receber.`;
   try {
     await withArenaTransaction(arenaId, async (tx) => {
+      if (!count) {
+        await tx.arenaNotification.updateMany({ where: { arenaId, type, href, readAt: null }, data: { readAt: new Date() } });
+        return;
+      }
+      const message = `${count} lançamento(s) recorrente(s) com vencimento próximo não puderam entrar na fila de emissão de boletos por dados incompletos ou saldo inferior a R$ 5,00. Confira os cadastros e lançamentos em Contas a Receber.`;
       const existing = await tx.arenaNotification.findFirst({ where: { arenaId, type, href, readAt: null }, select: { id: true } });
       if (existing) await tx.arenaNotification.update({ where: { id: existing.id }, data: { message } });
       else await tx.arenaNotification.create({ data: { arenaId, type, title: "Boletos recorrentes pendentes de emissão", message, href } });
@@ -158,6 +161,10 @@ export async function recurringOnlineChargeCandidates(now = new Date()) {
     }
     return candidates;
   });
+  const failedArenaIds = new Set(selection.failures.map((failure) => failure.arenaId));
+  for (const arena of arenas) {
+    if (!failedArenaIds.has(arena.id)) ineligibleByArena[arena.id] ??= 0;
+  }
   return { ...selection, ineligible, ineligibleByArena };
 }
 

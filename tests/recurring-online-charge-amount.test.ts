@@ -23,13 +23,13 @@ function loadRecurring(createBoleto: (input: Record<string, unknown>) => Promise
   const claims: Array<Record<string, unknown>> = [];
   const errors: unknown[][] = [];
   const queries: Array<Record<string, unknown>> = [];
-  const alerts: Array<{ id: string; data: { type: string; href: string; message?: string } }> = [];
+  const alerts: Array<{ id: string; data: { type: string; href: string; message?: string; readAt?: Date | null } }> = [];
   const tx = {
     financialEntry: {
       updateMany: async (input: Record<string, unknown>) => { updates.push(input); return { count: 1 }; },
     },
     arenaNotification: {
-      findFirst: async ({ where }: { where: { type: string; href: string } }) => alerts.find((alert) => alert.data.type === where.type && alert.data.href === where.href) ?? null,
+      findFirst: async ({ where }: { where: { type: string; href: string } }) => alerts.find((alert) => alert.data.type === where.type && alert.data.href === where.href && !alert.data.readAt) ?? null,
       create: async (input: { data: { type: string; href: string; message?: string } }) => {
         const alert = { id: `alert-${alerts.length + 1}`, ...input };
         alerts.push(alert);
@@ -39,6 +39,16 @@ function loadRecurring(createBoleto: (input: Record<string, unknown>) => Promise
         const alert = alerts[Number(where.id.replace("alert-", "")) - 1];
         if (alert) Object.assign(alert.data, data);
         return alert;
+      },
+      updateMany: async ({ where, data }: { where: { type: string; href: string }; data: { readAt: Date } }) => {
+        let count = 0;
+        for (const alert of alerts) {
+          if (alert.data.type === where.type && alert.data.href === where.href && !alert.data.readAt) {
+            alert.data.readAt = data.readAt;
+            count += 1;
+          }
+        }
+        return { count };
       },
     },
   };
@@ -52,6 +62,7 @@ function loadRecurring(createBoleto: (input: Record<string, unknown>) => Promise
       if (name === "@/lib/arena-database") return { arenaDatabase: () => ({ financialEntry: {
         findFirst: async ({ where }: { where: { id: string } }) => ({ ...entry, id: where.id }),
         findMany: async (query: { cursor?: { id: string }; take: number }) => {
+          if (scanFailures.includes("arena-a")) throw new Error("Falha simulada na consulta da arena");
           queries.push(query);
           const start = query.cursor ? scanEntries!.findIndex((item) => item.id === query.cursor!.id) + 1 : 0;
           return scanEntries!.slice(start, start + query.take);
@@ -138,7 +149,8 @@ test("agendador avisa a arena sobre cadastros inelegíveis sem gerar um alerta p
     id: `incomplete-${index}`, arenaId: "arena-a", dueDate, amountCents: 5000,
     settlements: [], player: { email: "", cpf: "" },
   }));
-  const service = loadRecurring(async () => { throw new Error("O provedor não deveria ser chamado"); }, [], [], incomplete);
+  const scanFailures: string[] = [];
+  const service = loadRecurring(async () => { throw new Error("O provedor não deveria ser chamado"); }, [], scanFailures, incomplete);
   assert.deepEqual(JSON.parse(JSON.stringify(await service.batch())), { scanned: 0, created: 0, skipped: 3, failed: 0 });
   assert.equal(service.alerts.length, 1);
   assert.equal(service.alerts[0].data.type, "ONLINE_CHARGE_ISSUANCE_REVIEW");
@@ -147,6 +159,13 @@ test("agendador avisa a arena sobre cadastros inelegíveis sem gerar um alerta p
   assert.equal(service.alerts.length, 1);
   assert.equal(service.claims.length, 0);
   assert.equal(service.errors.length, 0);
+  scanFailures.push("arena-a");
+  assert.deepEqual(JSON.parse(JSON.stringify(await service.batch())), { scanned: 0, created: 0, skipped: 0, failed: 1 });
+  assert.equal(service.alerts[0].data.readAt, undefined);
+  scanFailures.length = 0;
+  incomplete.length = 0;
+  assert.deepEqual(JSON.parse(JSON.stringify(await service.batch())), { scanned: 0, created: 0, skipped: 0, failed: 0 });
+  assert.ok(service.alerts[0].data.readAt instanceof Date);
 });
 
 test("dados incompletos deixam alerta operacional sem tentar emitir boleto", async () => {
