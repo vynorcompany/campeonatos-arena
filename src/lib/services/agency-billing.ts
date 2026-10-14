@@ -85,8 +85,24 @@ export async function issueDueAgencyInvoices(now = new Date()) {
   await prisma.agencySubscription.updateMany({ where: { status: "ACTIVE", trialEndsAt: { lte: now }, plan: { isTrial: true } }, data: { status: "EXPIRED" } });
   const subscriptions = await prisma.agencySubscription.findMany({ where: { status: "ACTIVE", nextDueAt: { lte: now }, plan: { isTrial: false } }, select: { id: true }, take: 200 });
   let issued = 0;
-  for (const subscription of subscriptions) if (await issueAgencyInvoice(subscription.id, now)) issued++;
+  let agencyInvoiceFailures = 0;
+  for (const subscription of subscriptions) {
+    try {
+      if (await issueAgencyInvoice(subscription.id, now)) issued++;
+    } catch (error) {
+      agencyInvoiceFailures++;
+      console.error("Agency invoice issuance failed", { subscriptionId: subscription.id, error });
+    }
+  }
   const pending = await prisma.agencyInvoice.findMany({ where: { status: "PENDING", checkoutUrl: "" }, select: { id: true }, take: 200 });
-  for (const invoice of pending) await ensureAgencyCheckout(invoice.id).catch((error) => console.error("Agency checkout retry failed", error));
-  return { agencyInvoicesIssued: issued, agencyCheckoutRetries: pending.length };
+  let agencyCheckoutFailures = 0;
+  for (const invoice of pending) {
+    try {
+      await ensureAgencyCheckout(invoice.id);
+    } catch (error) {
+      agencyCheckoutFailures++;
+      console.error("Agency checkout retry failed", { invoiceId: invoice.id, error });
+    }
+  }
+  return { agencyInvoicesIssued: issued, agencyCheckoutRetries: pending.length, agencyInvoiceFailures, agencyCheckoutFailures };
 }

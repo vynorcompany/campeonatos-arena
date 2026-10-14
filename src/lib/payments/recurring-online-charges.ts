@@ -96,10 +96,16 @@ export async function issueRecurringOnlineCharges(now = new Date()) {
 
   let created = 0;
   let skipped = 0;
+  let failed = 0;
   for (const entry of entries) {
-    const result = await issueRecurringOnlineChargeForEntry(entry.arenaId, entry.id);
-    if (result.created) created += 1;
-    if (result.skipped) skipped += 1;
+    try {
+      const result = await issueRecurringOnlineChargeForEntry(entry.arenaId, entry.id);
+      if (result.created) created += 1;
+      if (result.skipped) skipped += 1;
+    } catch (error) {
+      failed += 1;
+      console.error("Recurring boleto issuance failed", { arenaId: entry.arenaId, entryId: entry.id, error });
+    }
   }
-  return { scanned: entries.length, created, skipped };
+  return { scanned: entries.length, created, skipped, failed };
 }

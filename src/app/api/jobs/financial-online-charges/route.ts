@@ -12,11 +12,15 @@ function authorized(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  try {
-    const [arenaCharges, agencyCharges] = await Promise.all([issueRecurringOnlineCharges(), issueDueAgencyInvoices()]);
-    return NextResponse.json({ ok: true, ...arenaCharges, ...agencyCharges });
-  } catch (error) {
-    console.error("Financial recurring online charge job failed", error);
-    return NextResponse.json({ ok: false }, { status: 500 });
-  }
+  const [arenaCharges, agencyCharges] = await Promise.allSettled([issueRecurringOnlineCharges(), issueDueAgencyInvoices()]);
+  if (arenaCharges.status === "rejected") console.error("Arena recurring online charge job failed", arenaCharges.reason);
+  if (agencyCharges.status === "rejected") console.error("Agency recurring online charge job failed", agencyCharges.reason);
+  const ok = arenaCharges.status === "fulfilled" && agencyCharges.status === "fulfilled"
+    && arenaCharges.value.failed === 0 && agencyCharges.value.agencyInvoiceFailures === 0
+    && agencyCharges.value.agencyCheckoutFailures === 0;
+  return NextResponse.json({
+    ok,
+    ...(arenaCharges.status === "fulfilled" ? arenaCharges.value : {}),
+    ...(agencyCharges.status === "fulfilled" ? agencyCharges.value : {}),
+  }, { status: ok ? 200 : 500 });
 }
