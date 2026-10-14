@@ -16,6 +16,7 @@ import {
 import { weeklyRangesOverlap } from "@/lib/scheduling/weekly-rule";
 import { isFixedBookingType } from "@/lib/calendar/booking-types";
 import { refreshCalendarRoutes } from "@/lib/calendar/revalidation";
+import { refreshFinanceRoutes } from "@/lib/finance/revalidation";
 
 const refreshCalendar = refreshCalendarRoutes;
 import { calculateCourtIntervalPrice, isCourtBookingStartOnGrid } from "@/lib/calendar/court-interval-pricing";
@@ -25,7 +26,8 @@ import { arenaWallClockToInstant } from "@/lib/calendar/arena-wall-clock";
 import { claimOnlineBookingPaymentMethod } from "@/lib/calendar/booking-payment-claim";
 import { sendEvolutionTextMessage } from "@/lib/integrations/evolution/client";
 import { expandWeeklyOccurrences } from "@/lib/scheduling/recurrence";
-import { createBoletoPayment, createCardCheckout, createPixPayment, getMissingBoletoPayerFields } from "@/lib/payments/mercado-pago";
+import { cancelMercadoPagoPayment, createBoletoPayment, createCardCheckout, createPixPayment, getMercadoPagoPayment, getMissingBoletoPayerFields } from "@/lib/payments/mercado-pago";
+import { boletoCancellationDisposition } from "@/lib/payments/boleto-cancellation";
 
 const calendarSchema = z.object({
   sourceType: z.enum(["lesson", "calendar"]).default("calendar"),
@@ -277,11 +279,43 @@ export async function confirmOnlineBookingAction(formData: FormData) {
 
 export async function cancelCourtBookingAction(formData: FormData) {
   const auth = await requireModuleEdit("calendar");
-  const parsed = z.object({ occurrenceId: z.string().trim().min(1), mode: z.enum(["CANCEL", "FREE"]).default("CANCEL") }).safeParse({ occurrenceId: formData.get("occurrenceId"), mode: formData.get("mode") });
+  const parsed = z.object({ occurrenceId: z.string().trim().min(1), mode: z.enum(["CANCEL", "FREE"]).default("CANCEL"), cancelOpenCharges: z.enum(["yes", "no"]) }).safeParse({ occurrenceId: formData.get("occurrenceId"), mode: formData.get("mode"), cancelOpenCharges: formData.get("cancelOpenCharges") });
   if (!parsed.success) throw new Error("Horário inválido.");
+  const handledPayments = new Set<string>();
+  const preservedEntries = new Set<string>();
+  if (parsed.data.cancelOpenCharges === "yes") {
+    const charges = await withArenaTransaction(auth.arenaId, async (tx) => {
+      const occurrence = await tx.scheduleOccurrence.findFirst({ where: { id: parsed.data.occurrenceId, arenaId: auth.arenaId, status: { not: "CANCELED" } }, select: { id: true, startsAt: true, bookingSeriesId: true } });
+      if (!occurrence) throw new Error("Este horário já foi cancelado ou não foi encontrado.");
+      const occurrences = parsed.data.mode === "FREE" || !occurrence.bookingSeriesId
+        ? [occurrence.id]
+        : (await tx.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, bookingSeriesId: occurrence.bookingSeriesId, startsAt: { gte: occurrence.startsAt }, status: { not: "CANCELED" } }, select: { id: true } })).map((item) => item.id);
+      return tx.financialEntry.findMany({ where: { arenaId: auth.arenaId, source: "SCHEDULE_BOOKING", externalReference: { in: occurrences }, status: "PENDING", settlements: { none: { amountCents: { gt: 0 } } } }, select: { id: true, onlineProvider: true, onlinePaymentId: true, onlinePaymentUrl: true, onlinePaymentClaimMethod: true } });
+    });
+    if (charges.some((entry) => (entry.onlinePaymentUrl || entry.onlinePaymentClaimMethod) && !entry.onlinePaymentId)) throw new Error("Há uma cobrança online sendo emitida. Aguarde a confirmação antes de cancelar a reserva e a cobrança.");
+    for (const charge of charges) {
+      if (!charge.onlinePaymentId) continue;
+      if (charge.onlineProvider !== "MERCADO_PAGO") throw new Error("Há uma cobrança emitida por outro provedor. A reserva não foi cancelada.");
+      const status = String((await getMercadoPagoPayment(auth.arenaId, charge.onlinePaymentId)).status ?? "");
+      const disposition = boletoCancellationDisposition(status);
+      if (disposition === "unsupported") throw new Error("Não foi possível confirmar o status de uma cobrança online. A reserva não foi cancelada.");
+      if (disposition === "preserve") { preservedEntries.add(charge.id); continue; }
+      if (disposition === "cancel") await cancelMercadoPagoPayment(auth.arenaId, charge.onlinePaymentId);
+      handledPayments.add(charge.onlinePaymentId);
+    }
+  }
   const result = await withArenaTransaction(auth.arenaId, async (tx) => {
     const occurrence = await tx.scheduleOccurrence.findFirst({ where: { id: parsed.data.occurrenceId, arenaId: auth.arenaId, status: { not: "CANCELED" } }, select: { id: true, startsAt: true, bookingSeriesId: true } });
     if (!occurrence) return 0;
+    const occurrenceIds = parsed.data.mode === "FREE" || !occurrence.bookingSeriesId
+      ? [occurrence.id]
+      : (await tx.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, bookingSeriesId: occurrence.bookingSeriesId, startsAt: { gte: occurrence.startsAt }, status: { not: "CANCELED" } }, select: { id: true } })).map((item) => item.id);
+    if (parsed.data.cancelOpenCharges === "yes") {
+      const charges = await tx.financialEntry.findMany({ where: { arenaId: auth.arenaId, source: "SCHEDULE_BOOKING", externalReference: { in: occurrenceIds }, status: "PENDING", settlements: { none: { amountCents: { gt: 0 } } } }, select: { id: true, onlinePaymentId: true, onlinePaymentUrl: true, onlinePaymentClaimMethod: true } });
+      if (charges.some((entry) => (entry.onlinePaymentId && !handledPayments.has(entry.onlinePaymentId) && !preservedEntries.has(entry.id)) || ((!entry.onlinePaymentId && (entry.onlinePaymentUrl || entry.onlinePaymentClaimMethod))))) throw new Error("Uma cobrança online mudou durante o cancelamento. Atualize a página e tente novamente.");
+      const voidIds = charges.filter((entry) => !preservedEntries.has(entry.id)).map((entry) => entry.id);
+      if (voidIds.length) await tx.financialEntry.updateMany({ where: { id: { in: voidIds }, arenaId: auth.arenaId, status: "PENDING", settlements: { none: { amountCents: { gt: 0 } } } }, data: { status: "VOIDED", voidedAt: new Date(), voidReason: `Cobrança em aberto cancelada com a reserva ${occurrence.id}.` } });
+    }
     if (parsed.data.mode === "FREE" || !occurrence.bookingSeriesId) {
       return (await tx.scheduleOccurrence.updateMany({ where: { id: occurrence.id, arenaId: auth.arenaId, status: { not: "CANCELED" } }, data: { status: "CANCELED" } })).count;
     }
@@ -290,6 +324,7 @@ export async function cancelCourtBookingAction(formData: FormData) {
   });
   if (!result) throw new Error("Este horário já foi cancelado ou não foi encontrado.");
   refreshCalendar();
+  if (parsed.data.cancelOpenCharges === "yes") refreshFinanceRoutes();
 }
 
 async function ensureBookingTypes(arenaId: string) {
