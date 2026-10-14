@@ -3,7 +3,7 @@ import { sendEvolutionTextMessage } from "@/lib/integrations/evolution/client";
 import { prisma } from "@/lib/prisma";
 import { arenaDatabase } from "@/lib/arena-database";
 import { withArenaTransaction } from "@/lib/rls";
-import { collectRecurringChargeCandidates } from "@/lib/payments/recurring-charge-selection";
+import { collectRecurringChargeCandidates, recurringChargeBatchLimit } from "@/lib/payments/recurring-charge-selection";
 import { getFinancialEntryBalance } from "@/lib/finance/ledger";
 import { claimFinancialOnlineCharge } from "@/lib/payments/financial-online-charge-claim";
 import { recurringBoletoEntryWhere } from "@/lib/payments/recurring-charge-eligibility";
@@ -81,21 +81,43 @@ export async function recurringOnlineChargeCandidates(now = new Date()) {
   const limit = new Date(now);
   limit.setDate(limit.getDate() + daysFromNow);
   const arenas = await prisma.arena.findMany({ select: { id: true } });
-  return collectRecurringChargeCandidates(arenas.map((arena) => arena.id), (arenaId) =>
-    arenaDatabase(arenaId).financialEntry.findMany({
-      where: recurringBoletoEntryWhere(arenaId, limit),
-      select: { id: true, arenaId: true, dueDate: true },
-      orderBy: { dueDate: "asc" },
-      take: 250
-    })
-  );
+  let ineligible = 0;
+  const selection = await collectRecurringChargeCandidates(arenas.map((arena) => arena.id), async (arenaId) => {
+    const candidates: { id: string; arenaId: string; dueDate: Date | null }[] = [];
+    let cursor: string | undefined;
+    while (candidates.length < recurringChargeBatchLimit) {
+      const page = await arenaDatabase(arenaId).financialEntry.findMany({
+        where: recurringBoletoEntryWhere(arenaId, limit),
+        select: {
+          id: true, arenaId: true, dueDate: true, amountCents: true,
+          player: { select: { email: true, cpf: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } },
+          settlements: { select: { amountCents: true, interestCents: true } },
+        },
+        orderBy: [{ dueDate: "asc" }, { id: "asc" }],
+        take: recurringChargeBatchLimit,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      });
+      if (!page.length) break;
+      for (const entry of page) {
+        if (entry.player && !getMissingBoletoPayerFields(entry.player).length
+          && getFinancialEntryBalance(entry.amountCents, entry.settlements).outstandingCents >= 500) {
+          candidates.push({ id: entry.id, arenaId: entry.arenaId, dueDate: entry.dueDate });
+          if (candidates.length === recurringChargeBatchLimit) break;
+        } else ineligible += 1;
+      }
+      cursor = page[page.length - 1].id;
+      if (page.length < recurringChargeBatchLimit) break;
+    }
+    return candidates;
+  });
+  return { ...selection, ineligible };
 }
 
 export async function issueRecurringOnlineCharges(now = new Date()) {
-  const { candidates: entries, failures } = await recurringOnlineChargeCandidates(now);
+  const { candidates: entries, failures, ineligible } = await recurringOnlineChargeCandidates(now);
 
   let created = 0;
-  let skipped = 0;
+  let skipped = ineligible;
   let failed = failures.length;
   for (const failure of failures) {
     console.error("Recurring boleto arena scan failed", failure);
