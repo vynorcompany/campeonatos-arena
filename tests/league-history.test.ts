@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import { historicalMatchSummary, historicalPairs, historicalStandings } from "../src/lib/league/history";
 
@@ -43,4 +44,11 @@ test("history counts a double WO as concluded even without a winning pair", () =
     { winnerPairId: null, manualStatus: "FINISHED", woReason: "DOUBLE_WO" },
     { winnerPairId: "a", manualStatus: "FINISHED", woReason: null },
   ]), { matchCount: 2, completedMatches: 2 });
+});
+
+test("league history loads the live match fields required to count a double WO", () => {
+  const page = readFileSync(new URL("../src/app/(app)/torneios/[tournamentId]/categorias/[categoryId]/page.tsx", import.meta.url), "utf8");
+  const selectedMatchFields = page.match(/leagueCycles: \{[^\n]+matches: \{ select: \{([^}]+)\}/)?.[1] ?? "";
+  assert.match(selectedMatchFields, /manualStatus: true/);
+  assert.match(selectedMatchFields, /woReason: true/);
 });

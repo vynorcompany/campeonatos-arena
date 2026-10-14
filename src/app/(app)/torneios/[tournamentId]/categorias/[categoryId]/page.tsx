@@ -102,7 +102,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
                 name: true,
               },
             },
-            leagueCycles: { orderBy: { referenceMonth: "desc" }, select: { id: true, referenceMonth: true, status: true, prizeDescription: true, snapshot: true, championPairId: true, promotedPairId: true, relegatedPairId: true, matches: { select: { homePairId: true, awayPairId: true, winnerPairId: true, homeScore: true, awayScore: true } } } },
+            leagueCycles: { orderBy: { referenceMonth: "desc" }, select: { id: true, referenceMonth: true, status: true, prizeDescription: true, snapshot: true, championPairId: true, promotedPairId: true, relegatedPairId: true, matches: { select: { homePairId: true, awayPairId: true, winnerPairId: true, homeScore: true, awayScore: true, manualStatus: true, woReason: true } } } },
             pairs: {
               where: { active: true },
               orderBy: { drawOrder: "asc" },
