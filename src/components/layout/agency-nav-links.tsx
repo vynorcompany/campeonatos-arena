@@ -5,6 +5,7 @@ import { viewStyles } from "./agency-nav-links.utilities";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { usePersistedOpenItems } from "./use-persisted-open-items";
 
 type AgencyNavItem = {
   href: string;
@@ -72,23 +73,7 @@ export function AgencyNavLinks() {
   const initialOpenItems = groups.flatMap((group) =>
     group.links.filter((item) => isActivePath(pathname, item.href)).map((item) => item.href)
   );
-  const [openItems, setOpenItems] = useState<Set<string>>(() => {
-    if (typeof window === "undefined") {
-      return new Set(initialOpenItems);
-    }
-
-    const stored = window.localStorage.getItem(openItemsStorageKey);
-    if (!stored) {
-      return new Set(initialOpenItems);
-    }
-
-    try {
-      const parsed = JSON.parse(stored) as string[];
-      return new Set(parsed);
-    } catch {
-      return new Set(initialOpenItems);
-    }
-  });
+  const [openItems, setOpenItems] = usePersistedOpenItems(openItemsStorageKey, initialOpenItems);
 
   useEffect(() => {
     const activeParent = groups
@@ -109,10 +94,6 @@ export function AgencyNavLinks() {
       return next;
     });
   }, [pathname]);
-
-  useEffect(() => {
-    window.localStorage.setItem(openItemsStorageKey, JSON.stringify([...openItems]));
-  }, [openItems]);
 
   return (
     <nav className={cx(`${viewStyles.agency_nav}${mobileOpen ? " agency-nav-mobile-open" : ""}`)} aria-label="Agência">
