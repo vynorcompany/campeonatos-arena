@@ -10,7 +10,7 @@ import { recurringBoletoEntryWhere } from "../src/lib/payments/recurring-charge-
 const require = createRequire(import.meta.url);
 const source = readFileSync(new URL("../src/lib/payments/recurring-online-charges.ts", import.meta.url), "utf8");
 
-function loadRecurring(createBoleto: (input: Record<string, unknown>) => Promise<Record<string, unknown>>, candidateIds: string[] = []) {
+function loadRecurring(createBoleto: (input: Record<string, unknown>) => Promise<Record<string, unknown>>, candidateIds: string[] = [], scanFailures: string[] = []) {
   const entry = {
     id: "entry-a", arenaId: "arena-a", amountCents: 5000, description: "Mensalidade de teste",
     dueDate: new Date("2035-01-05T12:00:00.000Z"),
@@ -34,7 +34,7 @@ function loadRecurring(createBoleto: (input: Record<string, unknown>) => Promise
       if (name === "@/lib/prisma") return { prisma: { arena: { findMany: async () => [{ id: "arena-a" }] } } };
       if (name === "@/lib/arena-database") return { arenaDatabase: () => ({ financialEntry: { findFirst: async ({ where }: { where: { id: string } }) => ({ ...entry, id: where.id }) } }) };
       if (name === "@/lib/rls") return { withArenaTransaction: async (_arenaId: string, action: (client: unknown) => Promise<unknown>) => action(tx) };
-      if (name === "@/lib/payments/recurring-charge-selection") return { collectRecurringChargeCandidates: async () => candidateIds.map((id) => ({ id, arenaId: "arena-a" })) };
+      if (name === "@/lib/payments/recurring-charge-selection") return { collectRecurringChargeCandidates: async () => ({ candidates: candidateIds.map((id) => ({ id, arenaId: "arena-a" })), failures: scanFailures.map((arenaId) => ({ arenaId, reason: new Error("Falha simulada na consulta") })) }) };
       if (name === "@/lib/finance/ledger") return { getFinancialEntryBalance };
       if (name === "@/lib/payments/financial-online-charge-claim") return { claimFinancialOnlineCharge: async (_tx: unknown, input: Record<string, unknown>) => { claims.push(input); return { ok: true, claimedAt: new Date("2035-01-01T12:00:00.000Z") }; } };
       if (name === "@/lib/payments/recurring-charge-eligibility") return { recurringBoletoEntryWhere };
@@ -77,4 +77,12 @@ test("falha de um boleto não impede a emissão dos demais no mesmo ciclo", asyn
   assert.deepEqual(JSON.parse(JSON.stringify(await service.batch())), { scanned: 2, created: 1, skipped: 0, failed: 1 });
   assert.equal(service.claims.length, 2);
   assert.equal(service.errors.length, 1);
+});
+
+test("falha na consulta de uma arena é reportada sem interromper boletos de outra", async () => {
+  const service = loadRecurring(async () => ({ paymentId: "payment-good", checkoutUrl: "https://example.test/pay", qrCode: "", expiresAt: null }), ["entry-good"], ["arena-b"]);
+  assert.deepEqual(JSON.parse(JSON.stringify(await service.batch())), { scanned: 1, created: 1, skipped: 0, failed: 1 });
+  assert.equal(service.claims.length, 1);
+  assert.equal(service.errors.length, 1);
+  assert.equal(service.errors[0][0], "Recurring boleto arena scan failed");
 });

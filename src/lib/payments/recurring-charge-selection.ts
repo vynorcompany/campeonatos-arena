@@ -1,4 +1,5 @@
 export type RecurringChargeCandidate = { id: string; arenaId: string; dueDate: Date | null };
+export type RecurringChargeScanFailure = { arenaId: string; reason: unknown };
 
 /** Scans every arena with bounded concurrency, then applies the global issuance limit. */
 export async function collectRecurringChargeCandidates(
@@ -7,9 +8,17 @@ export async function collectRecurringChargeCandidates(
   limit = 250
 ) {
   const candidates: RecurringChargeCandidate[] = [];
+  const failures: RecurringChargeScanFailure[] = [];
   for (let index = 0; index < arenaIds.length; index += 8) {
-    const batch = await Promise.all(arenaIds.slice(index, index + 8).map(loadForArena));
-    candidates.push(...batch.flat());
+    const ids = arenaIds.slice(index, index + 8);
+    const batch = await Promise.allSettled(ids.map(loadForArena));
+    batch.forEach((result, position) => {
+      if (result.status === "fulfilled") candidates.push(...result.value);
+      else failures.push({ arenaId: ids[position], reason: result.reason });
+    });
   }
-  return candidates.sort((a, b) => (a.dueDate?.getTime() ?? 0) - (b.dueDate?.getTime() ?? 0)).slice(0, limit);
+  return {
+    candidates: candidates.sort((a, b) => (a.dueDate?.getTime() ?? 0) - (b.dueDate?.getTime() ?? 0)).slice(0, limit),
+    failures,
+  };
 }
