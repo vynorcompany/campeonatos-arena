@@ -11,4 +11,5 @@ test("production responses declare the baseline browser security headers", () =>
   }
   assert.match(config, /frame-ancestors 'none'/);
   assert.match(config, /object-src 'none'/);
+  assert.match(config, /media-src 'self' blob: https:/);
 });
