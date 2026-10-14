@@ -147,6 +147,7 @@ test("duas reservas simultâneas da mesma quadra produzem apenas um hold", { ski
       "@/lib/scheduling/weekly-rule": {},
       "@/lib/calendar/booking-types": {},
       "@/lib/calendar/revalidation": { refreshCalendarRoutes() {} },
+      "@/lib/finance/revalidation": { refreshFinanceRoutes() {} },
       "@/lib/calendar/court-interval-pricing": { calculateCourtIntervalPrice, isCourtBookingStartOnGrid },
       "@/lib/calendar/online-booking-hold": { activeCourtOccurrenceWhere, onlineBookingHoldCutoff },
       "@/lib/calendar/arena-wall-clock": { arenaWallClockToInstant },
@@ -155,6 +156,7 @@ test("duas reservas simultâneas da mesma quadra produzem apenas um hold", { ski
       "@/lib/integrations/evolution/client": {},
       "@/lib/scheduling/recurrence": {},
       "@/lib/payments/mercado-pago": {},
+      "@/lib/payments/boleto-cancellation": {},
     };
     vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText, {
       exports, Date, FormData, Set, console,
