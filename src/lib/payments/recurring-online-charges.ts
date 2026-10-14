@@ -92,11 +92,14 @@ export async function recurringOnlineChargeCandidates(now = new Date()) {
 }
 
 export async function issueRecurringOnlineCharges(now = new Date()) {
-  const entries = await recurringOnlineChargeCandidates(now);
+  const { candidates: entries, failures } = await recurringOnlineChargeCandidates(now);
 
   let created = 0;
   let skipped = 0;
-  let failed = 0;
+  let failed = failures.length;
+  for (const failure of failures) {
+    console.error("Recurring boleto arena scan failed", failure);
+  }
   for (const entry of entries) {
     try {
       const result = await issueRecurringOnlineChargeForEntry(entry.arenaId, entry.id);
