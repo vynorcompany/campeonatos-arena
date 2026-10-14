@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireModuleEdit } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { closeLeagueCycleManually, reopenEmptyLeagueCycle } from "@/lib/league/lifecycle";
+import { leagueReferenceMonth } from "@/lib/league/reference-month";
 import { parseReaisToCents } from "@/lib/tournaments/inputs";
 import {
   leagueMatchResultErrorState,
@@ -382,8 +383,7 @@ export async function updateLeaguePrizeAction(formData: FormData) {
   if (openCycle) {
     await prisma.leagueCycle.update({ where: { id: openCycle.id }, data: { prizeDescription } });
   } else {
-    const now = new Date();
-    const referenceMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const referenceMonth = leagueReferenceMonth(new Date());
     await prisma.leagueCycle.create({ data: { competitionId, referenceMonth, prizeDescription } });
   }
   refreshCategoryCompetitionRoutes();
