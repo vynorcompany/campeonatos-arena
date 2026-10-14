@@ -7,6 +7,7 @@ import {
   buildRoundRobin,
 } from "@/lib/tournament-category/draw";
 import { buildMonthlyLeagueSchedule, getLeagueMonthBlocks } from "@/lib/league/monthly-schedule";
+import { leagueReferenceMonth } from "@/lib/league/reference-month";
 import { resolveLeagueTier } from "@/lib/league/tier";
 import { matchesCompetitionAthleteEligibility, validateManualPairEligibility } from "@/lib/tournament-category/eligibility";
 import {
@@ -1048,10 +1049,10 @@ export async function publishCategoryDraw(
       where: { competitionId: competition.id },
     });
 
-    const now = new Date();
-    const referenceMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const referenceMonth = leagueReferenceMonth(new Date());
+    const [referenceYear, referenceMonthNumber] = referenceMonth.split("-").map(Number);
     const monthlySchedule = competition.format === "LEAGUE" ? buildMonthlyLeagueSchedule(competition.pairs.map((pair) => pair.id)) : null;
-    const leagueBlocks = getLeagueMonthBlocks(now.getFullYear(), now.getMonth() + 1);
+    const leagueBlocks = getLeagueMonthBlocks(referenceYear, referenceMonthNumber);
     const leagueCycle = monthlySchedule ? await tx.leagueCycle.upsert({
       where: { competitionId_referenceMonth: { competitionId: competition.id, referenceMonth } },
       update: { status: "OPEN", closedAt: null },
