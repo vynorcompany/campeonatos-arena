@@ -112,6 +112,14 @@ test("ranking player relations run with the active arena database context", () =
   assert.match(ranking, /getCategoryPairRankingSourceEntries\([\s\S]*?arenaDatabase\(arenaId\)\.categoryPair\.findMany/);
 });
 
+test("category competition serializable operations set tenant context before access", () => {
+  const competition = read("src/lib/services/category-competition.ts");
+  assert.match(competition, /runSerializableTransaction<T>\(\s*arenaId: string,/);
+  assert.match(competition, /prisma\.\$transaction\(async \(tx\) => \{\s*await setArenaRlsContext\(tx, arenaId\);\s*return operation\(tx\)/);
+  const callsites = competition.match(/runSerializableTransaction\(\s*arenaId\s*,/g) ?? [];
+  assert.equal(callsites.length, 15);
+});
+
 test("athlete portal notification queries enforce the player's arena", () => {
   const notifications = read("src/lib/services/public-player-notifications.ts");
   const radar = read("src/lib/services/public-doubles-radar.ts");
