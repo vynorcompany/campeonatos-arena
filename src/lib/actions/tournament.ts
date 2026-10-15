@@ -1033,7 +1033,7 @@ export async function updateRankingProfileAction(formData: FormData) {
     }
   });
 
-  await Promise.all(linkedTournaments.map((tournament) => recalculateTournamentRankingPoints(tournament.id)));
+  await Promise.all(linkedTournaments.map((tournament) => recalculateTournamentRankingPoints(tournament.id, auth.arenaId)));
   refreshTournamentRoutes();
   revalidatePath(`/torneios/rankings/${parsed.data.rankingId}`);
 }
@@ -1088,7 +1088,7 @@ export async function updateRankingPointsAction(formData: FormData) {
   });
   await Promise.all(
     linkedTournaments.map((tournament) =>
-      recalculateTournamentRankingPoints(tournament.id),
+      recalculateTournamentRankingPoints(tournament.id, auth.arenaId),
     ),
   );
 
