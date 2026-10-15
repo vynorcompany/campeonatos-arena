@@ -310,7 +310,7 @@ test("webhook ignora mensagem atrasada da conta anterior após conectar outro n�
 });
 
 test("webhook fora de ordem não reabre não lidas nem recua a última mensagem", async () => {
-  const conversation = { id: "conversation", arenaId: "arena", accountJid: "111@s.whatsapp.net", remoteJid: "contact@s.whatsapp.net", profilePhotoUrl: "", unreadCount: 0, lastMessageAt: new Date(0) };
+  const conversation = { id: "conversation", arenaId: "arena", accountJid: "111@s.whatsapp.net", remoteJid: "contact@s.whatsapp.net", profilePhotoUrl: "", unreadCount: 0, lastMessageAt: new Date(0), updatedAt: new Date(0) };
   const messages = new Set<string>();
   const tx = {
     whatsAppConversation: {
@@ -319,8 +319,9 @@ test("webhook fora de ordem não reabre não lidas nem recua a última mensagem"
         return { ...conversation };
       },
       update: async ({ data }: any) => {
-        conversation.unreadCount = typeof data.unreadCount === "number" ? data.unreadCount : conversation.unreadCount + data.unreadCount.increment;
-        conversation.lastMessageAt = data.lastMessageAt;
+        if (data.unreadCount !== undefined) conversation.unreadCount = typeof data.unreadCount === "number" ? data.unreadCount : conversation.unreadCount + data.unreadCount.increment;
+        if (data.lastMessageAt) conversation.lastMessageAt = data.lastMessageAt;
+        conversation.updatedAt = data.updatedAt;
         return { ...conversation };
       },
     },
@@ -350,9 +351,11 @@ test("webhook fora de ordem não reabre não lidas nem recua a última mensagem"
   assert.equal(conversation.unreadCount, 1);
   await sendEvent("answered", 1_700_000_100, true);
   assert.equal(conversation.unreadCount, 0);
+  const versionBeforeLateMessage = conversation.updatedAt.getTime();
   await sendEvent("received-late", 1_700_000_050, false);
   assert.equal(conversation.unreadCount, 0);
   assert.equal(conversation.lastMessageAt.getTime(), 1_700_000_100_000);
+  assert.ok(conversation.updatedAt.getTime() > versionBeforeLateMessage);
   await sendEvent("received-new", 1_700_000_200, false);
   await sendEvent("answered-old", 1_700_000_150, true);
   await sendEvent("received-new", 1_700_000_200, false);
@@ -362,7 +365,7 @@ test("webhook fora de ordem não reabre não lidas nem recua a última mensagem"
 });
 
 test("duplicate webhook messages count once and provider IDs remain scoped to each arena conversation", async () => {
-  const conversations = new Map<string, { id: string; arenaId: string; accountJid: string; remoteJid: string; profilePhotoUrl: string; unreadCount: number }>();
+  const conversations = new Map<string, { id: string; arenaId: string; accountJid: string; remoteJid: string; profilePhotoUrl: string; unreadCount: number; lastMessageAt: Date; updatedAt: Date }>();
   const messages = new Map<string, { id: string }>();
   const connections = [
     { id: "connection-a", instanceName: "instance-a", arenaId: "arena-a", connectedPhone: "111@s.whatsapp.net", status: "CONNECTED", webhookSecretHash: "hash" },
@@ -372,12 +375,14 @@ test("duplicate webhook messages count once and provider IDs remain scoped to ea
     whatsAppConversation: {
       upsert: async ({ where, create }: any) => {
         const key = JSON.stringify(where.arenaId_accountJid_remoteJid);
-        if (!conversations.has(key)) conversations.set(key, { id: `conversation-${conversations.size}`, ...create });
+        if (!conversations.has(key)) conversations.set(key, { id: `conversation-${conversations.size}`, ...create, updatedAt: new Date(0) });
         return conversations.get(key);
       },
       update: async ({ where, data }: any) => {
         const conversation = [...conversations.values()].find((item) => item.id === where.id)!;
-        conversation.unreadCount += data.unreadCount.increment ?? 0;
+        if (data.unreadCount !== undefined) conversation.unreadCount = typeof data.unreadCount === "number" ? data.unreadCount : conversation.unreadCount + (data.unreadCount.increment ?? 0);
+        if (data.lastMessageAt) conversation.lastMessageAt = data.lastMessageAt;
+        conversation.updatedAt = data.updatedAt;
         return conversation;
       },
     },
@@ -423,7 +428,7 @@ test("group webhook stores the participant name separately from the message body
   const created: Record<string, unknown>[] = [];
   const tx = {
     whatsAppConversation: {
-      upsert: async () => ({ id: "conversation", profilePhotoUrl: "", lastMessageAt: new Date(0) }),
+      upsert: async () => ({ id: "conversation", profilePhotoUrl: "", lastMessageAt: new Date(0), updatedAt: new Date(0) }),
       update: async () => ({}),
     },
     whatsAppMessage: {

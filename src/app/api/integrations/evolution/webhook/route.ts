@@ -8,6 +8,7 @@ import { arenaDatabase } from "@/lib/arena-database";
 import { normalizeWhatsAppAccountJid } from "@/lib/whatsapp-account";
 import { findEvolutionInstance } from "@/lib/integrations/evolution/agency";
 import { persistWhatsAppReaction } from "@/lib/services/whatsapp-conversation";
+import { nextWhatsAppConversationVersion } from "@/lib/whatsapp-conversation-version";
 import { readEvolutionGroupName } from "@/lib/integrations/evolution/groups";
 import { withArenaTransaction } from "@/lib/rls";
 
@@ -137,10 +138,14 @@ export async function POST(request: NextRequest) {
         const existingMessage = await tx.whatsAppMessage.findUnique({ where: { conversationId_providerId: messageKey }, select: { id: true } });
         if (!existingMessage) {
           await tx.whatsAppMessage.upsert({ where: { conversationId_providerId: messageKey }, create: { providerId, conversationId: current.id, direction: fromMe ? "OUTBOUND" : "INBOUND", body, senderName: !fromMe ? senderName : "", participantJid: String(key.participant ?? data.participant ?? ""), quotedProviderId, quotedBody, quotedAuthor, mediaType: media.type, mediaMimeType: media.mimeType, mediaUrl: media.url, providerPayload: message as Prisma.InputJsonValue, sentAt }, update: {} });
+          const updatedAt = nextWhatsAppConversationVersion(current.updatedAt);
           // A Evolution pode entregar o histórico fora de ordem. Uma mensagem
           // anterior à última resposta não reabre o SLA nem recua a conversa.
           if (sentAt >= current.lastMessageAt) {
-            await tx.whatsAppConversation.update({ where: { id: current.id }, data: { ...(fromMe ? { unreadCount: 0 } : { unreadCount: { increment: 1 } }), lastMessageAt: sentAt } });
+            await tx.whatsAppConversation.update({ where: { id: current.id }, data: { ...(fromMe ? { unreadCount: 0 } : { unreadCount: { increment: 1 } }), lastMessageAt: sentAt, updatedAt } });
+          } else {
+            // Ainda assim, o chat precisa recarregar essa mensagem histórica.
+            await tx.whatsAppConversation.update({ where: { id: current.id }, data: { updatedAt } });
           }
         }
         return current;
