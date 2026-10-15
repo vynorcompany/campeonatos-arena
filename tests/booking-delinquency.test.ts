@@ -40,6 +40,32 @@ test("bloqueio considera saldo em aberto e permanece isolado por arena", { skip:
       assert.deepEqual(await getBookingDelinquency(tx, arenaA.id, playerA.id, null, today), { blocked: false, count: 0, outstandingCents: 0 });
       assert.deepEqual(await getBookingDelinquency(tx, arenaA.id, playerA.id, 3, today), { blocked: true, count: 1, outstandingCents: 6000 });
       assert.deepEqual(await getBookingDelinquency(tx, arenaA.id, playerA.id, 4, today), { blocked: false, count: 0, outstandingCents: 0 });
+      const linkedEntry = async (amountCents: number) => tx.financialEntry.create({ data: {
+        arenaId: arenaA.id, type: "REVENUE", category: "Teste", description: "Cobrança vinculada sem playerId",
+        amountCents, status: "PENDING", dueDate: new Date(2030, 0, 7),
+      } });
+      const bookingCharge = await linkedEntry(2000);
+      const occurrence = await tx.scheduleOccurrence.create({ data: {
+        arenaId: arenaA.id, sourceType: "BOOKING", title: "Reserva de teste", status: "SCHEDULED",
+        startsAt: new Date(2030, 0, 7, 10), endsAt: new Date(2030, 0, 7, 11),
+      } });
+      await tx.scheduleParticipant.create({ data: { occurrenceId: occurrence.id, playerId: playerA.id, financialEntryId: bookingCharge.id } });
+      const recurrence = await tx.financialRecurrence.create({ data: {
+        arenaId: arenaA.id, playerId: playerA.id, type: "REVENUE", counterpartyName: "Atleta de teste",
+        category: "Teste", description: "Mensalidade de teste", amountCents: 3000, frequency: "MONTHLY",
+        startsAt: new Date(2030, 0, 1), nextDueDate: new Date(2030, 1, 1),
+      } });
+      await tx.financialEntry.create({ data: {
+        arenaId: arenaA.id, recurrenceId: recurrence.id, type: "REVENUE", category: "Teste",
+        description: "Mensalidade vinculada pela recorrência", amountCents: 3000, status: "PENDING",
+        dueDate: new Date(2030, 0, 7),
+      } });
+      const checkoutCharge = await linkedEntry(4000);
+      await tx.onlinePaymentCheckout.create({ data: {
+        arenaId: arenaA.id, playerId: playerA.id, amountCents: 4000,
+        items: { create: { financialEntryId: checkoutCharge.id, amountCents: 4000 } },
+      } });
+      assert.deepEqual(await getBookingDelinquency(tx, arenaA.id, playerA.id, 3, today), { blocked: true, count: 4, outstandingCents: 15000 });
       await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaB.id}, true)`;
       const playerB = await tx.player.findFirstOrThrow({ where: { arenaId: arenaB.id }, select: { id: true } });
       await tx.financialEntry.create({ data: {
