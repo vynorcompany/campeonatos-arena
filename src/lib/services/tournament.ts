@@ -1829,9 +1829,9 @@ export async function deleteTournamentPair(pairId: string, arenaId: string) {
   return true;
 }
 
-export async function distributeTournamentGroups(tournamentId: string) {
-  const tournament = await prisma.tournament.findUnique({
-    where: { id: tournamentId },
+export async function distributeTournamentGroups(tournamentId: string, arenaId: string) {
+  const tournament = await prisma.tournament.findFirst({
+    where: { id: tournamentId, arenaId },
     include: {
       pairs: {
         orderBy: {
@@ -1858,7 +1858,7 @@ export async function distributeTournamentGroups(tournamentId: string) {
 
   const groups = distributePairsIntoGroups(tournament.pairs, groupCount, effectivePairsPerGroup);
 
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(arenaId, async (tx) => {
     await resetTournamentStructure(tx, tournamentId);
 
     for (const [index, group] of groups.entries()) {
@@ -1994,9 +1994,9 @@ function buildKnockoutSkeleton(groupCount: number, pairCount: number) {
   return [{ stage: matchStage.FINAL, label: "Final", roundOrder: 1 }];
 }
 
-export async function generateTournamentMatches(tournamentId: string) {
-  const tournament = await prisma.tournament.findUnique({
-    where: { id: tournamentId },
+export async function generateTournamentMatches(tournamentId: string, arenaId: string) {
+  const tournament = await prisma.tournament.findFirst({
+    where: { id: tournamentId, arenaId },
     include: {
       groups: {
         include: {
@@ -2017,7 +2017,7 @@ export async function generateTournamentMatches(tournamentId: string) {
     throw new Error("Crie os grupos antes de gerar os jogos.");
   }
 
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(arenaId, async (tx) => {
     await tx.match.deleteMany({
       where: { tournamentId }
     });
