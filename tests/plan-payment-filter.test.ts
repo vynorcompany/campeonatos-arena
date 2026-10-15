@@ -26,6 +26,8 @@ test("cobrança legada sem playerId corresponde apenas ao nome do aluno", () => 
 
 test("relatório filtra cobranças pelo vencimento no período, não pela criação de todas as 12 parcelas", () => {
   const page = readFileSync(new URL("../src/app/(app)/relatorios/[relatorio]/page.tsx", import.meta.url), "utf8");
-  assert.match(page, /planId: \{ not: null \}, dueDate: period/);
-  assert.match(page, /matchesPlanPaymentFilter\(item, planEntries, searchParams\?\.pagamento\)/);
+  const reportData = readFileSync(new URL("../src/lib/reports/plan-report-data.ts", import.meta.url), "utf8");
+  assert.match(page, /loadPlanReportData\(tx, auth\.arenaId, period/);
+  assert.match(reportData, /planId: \{ not: null \}, dueDate: period/);
+  assert.match(reportData, /matchesPlanPaymentFilter\(subscription, entriesByPlan\.get\(subscription\.planId\)/);
 });

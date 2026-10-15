@@ -1110,10 +1110,10 @@ export async function removeTeacherPlanStudentAction(formData: FormData) {
   }
   const cancelOpenBoletos = cancelOpenBoletosChoice === "yes";
   const today = cashReferenceDate();
-  const [assignment, subscription] = await Promise.all([
-    prisma.teacherPlan.findFirst({ where: { teacherId, planId, arenaId: auth.arenaId, active: true }, select: { id: true } }),
-    prisma.studentSubscription.findFirst({ where: { arenaId: auth.arenaId, studentId, planId, status: "ACTIVE" }, include: { student: { select: { id: true, name: true, playerId: true, remainingClasses: true } } } }),
-  ]);
+  const [assignment, subscription] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
+    tx.teacherPlan.findFirst({ where: { teacherId, planId, arenaId: auth.arenaId, active: true }, select: { id: true } }),
+    tx.studentSubscription.findFirst({ where: { arenaId: auth.arenaId, studentId, planId, status: "ACTIVE" }, include: { student: { select: { id: true, name: true, playerId: true, remainingClasses: true } } } }),
+  ]));
   if (!assignment || !subscription) throw new Error("Vínculo de plano não encontrado.");
   const studentFinancialOwner = subscription.student.playerId
     ? { OR: [{ playerId: subscription.student.playerId }, { playerId: null, counterpartyName: subscription.student.name }] }
@@ -1245,7 +1245,7 @@ export async function completeLessonAction(formData: FormData) {
   const lessonId = String(formData.get("lessonId") ?? "");
   const absentStudentIds = new Set(getFormValues(formData, "absentStudentIds"));
 
-  const lesson = await prisma.lesson.findFirst({
+  const lesson = await withArenaTransaction(auth.arenaId, (tx) => tx.lesson.findFirst({
     where: {
       id: lessonId,
       arenaId: auth.arenaId,
@@ -1262,7 +1262,7 @@ export async function completeLessonAction(formData: FormData) {
         },
       },
     },
-  });
+  }));
 
   if (!lesson) {
     throw new Error("Aula não encontrada.");
