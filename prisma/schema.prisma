@@ -2207,6 +2207,7 @@ model StudentSubscription {
   plan              Plan      @relation(fields: [planId], references: [id], onDelete: Restrict)
 
   @@index([arenaId, status])
+  @@index([arenaId, createdAt, id])
   @@index([planId])
   @@index([studentId, status])
 }

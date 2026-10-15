@@ -163,7 +163,7 @@ export async function recordPlanPaymentAction(formData: FormData) {
     throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
 
-  const subscription = await prisma.studentSubscription.findFirst({
+  const subscription = await withArenaTransaction(auth.arenaId, (tx) => tx.studentSubscription.findFirst({
     where: {
       id: parsed.data.subscriptionId,
       arenaId: auth.arenaId
@@ -172,7 +172,7 @@ export async function recordPlanPaymentAction(formData: FormData) {
       student: true,
       plan: true
     }
-  });
+  }));
 
   if (!subscription) {
     throw new Error("Assinatura não encontrada.");

@@ -4,7 +4,7 @@ import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { createSubscriptionAction, recordPlanPaymentAction } from "@/lib/actions/finance";
 import { requireModuleView } from "@/lib/auth/guards";
-import { prisma } from "@/lib/prisma";
+import { withArenaTransaction } from "@/lib/rls";
 
 function getReferenceMonth() {
   const now = new Date();
@@ -21,21 +21,21 @@ function renewalDate(startedAt: Date) {
 
 export default async function MonthlyPaymentsPage() {
   const auth = await requireModuleView("finance");
-  const [students, plans, subscriptions] = await Promise.all([
-    prisma.student.findMany({
+  const [students, plans, subscriptions] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
+    tx.student.findMany({
       where: { arenaId: auth.arenaId, active: true },
       orderBy: { name: "asc" }
     }),
-    prisma.plan.findMany({
+    tx.plan.findMany({
       where: { arenaId: auth.arenaId, active: true },
       orderBy: { name: "asc" }
     }),
-    prisma.studentSubscription.findMany({
+    tx.studentSubscription.findMany({
       where: { arenaId: auth.arenaId, status: "ACTIVE" },
       include: { student: true, plan: true },
       orderBy: { dueDay: "asc" }
     })
-  ]);
+  ]));
   const today = new Date();
   const renewalLimit = new Date(today); renewalLimit.setDate(renewalLimit.getDate() + 30);
   const renewals = subscriptions.map((subscription) => ({ ...subscription, renewAt: renewalDate(subscription.startedAt) })).filter((subscription) => subscription.renewAt <= renewalLimit).sort((left, right) => left.renewAt.getTime() - right.renewAt.getTime());

@@ -188,7 +188,7 @@ export async function adjustTeacherStudentBalanceAction(formData: FormData) {
   const reason = String(formData.get("reason") ?? "Ajuste realizado pelo professor.").trim().slice(0, 240);
   const auth = await requireTeacherForClassGroups(arenaSlug);
   if (!studentId || !Number.isInteger(classesDelta) || !classesDelta) throw new Error("Informe um ajuste válido de aulas.");
-  const assignment = await prisma.teacherStudent.findFirst({ where: { teacherId: auth.teacherId, studentId, active: true }, include: { student: { select: { playerId: true, remainingClasses: true, subscriptions: { where: { status: "ACTIVE" }, orderBy: { startedAt: "desc" }, take: 1, select: { classesPerMonth: true } } } } } });
+  const assignment = await withArenaTransaction(auth.arenaId, (tx) => tx.teacherStudent.findFirst({ where: { arenaId: auth.arenaId, teacherId: auth.teacherId, studentId, active: true }, include: { student: { select: { playerId: true, remainingClasses: true, subscriptions: { where: { status: "ACTIVE" }, orderBy: { startedAt: "desc" }, take: 1, select: { classesPerMonth: true } } } } } }));
   if (!assignment) throw new Error("Você só pode ajustar o saldo dos seus alunos ativos.");
   await withArenaTransaction(auth.arenaId, async (tx) => {
     const month = referenceMonth(instantToArenaWallClock(new Date()));
