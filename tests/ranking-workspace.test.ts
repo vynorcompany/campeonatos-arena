@@ -51,6 +51,18 @@ test("ranking workspace exposes four operational tabs", () => {
   }
 });
 
+test("ranking classification shows every field without a clipped mobile table", () => {
+  const page = readFileSync(
+    path.join(workspaceRoot, "src", "app", "(app)", "torneios", "rankings", "[rankingId]", "page.tsx"),
+    "utf8",
+  );
+
+  assert.match(page, /tw:hidden tw:viewport-680:grid/);
+  assert.match(page, /tw:viewport-680:hidden!/);
+  assert.match(page, /Participações: <strong/);
+  assert.match(page, /Último torneio: <strong/);
+});
+
 test("configuration owns the name field", () => {
   const source = readFileSync(
     path.join(workspaceRoot, "src", "components", "forms", "ranking-configuration-form.tsx"),

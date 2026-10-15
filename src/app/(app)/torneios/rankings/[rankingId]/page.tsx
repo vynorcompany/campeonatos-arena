@@ -62,44 +62,67 @@ function RankingLeaderboard({
 }: {
   ranking: NonNullable<Awaited<ReturnType<typeof getRankingProfileLeaderboard>>>;
 }) {
-  const rows = ranking.type === "PAIR" ? ranking.pairLeaderboard : ranking.leaderboard;
+  const rows = ranking.type === "PAIR"
+    ? ranking.pairLeaderboard.map((pair, index) => ({
+        key: pair.pairKey,
+        position: index + 1,
+        name: pair.pairName,
+        points: pair.points,
+        participations: pair.competitionsPlayed,
+        lastTournament: pair.lastTournamentName ?? "—",
+      }))
+    : ranking.leaderboard.map((player, index) => ({
+        key: player.playerId,
+        position: index + 1,
+        name: player.playerName,
+        points: player.points,
+        participations: player.tournamentsPlayed,
+        lastTournament: player.lastTournamentName ?? "—",
+      }));
   if (!rows.length) {
     return <p className={viewStyles.muted}>Ainda não há participantes pontuados neste período.</p>;
   }
 
   return (
-    <table className={viewStyles.data_table}>
-      <thead>
-        <tr>
-          <th>Pos.</th>
-          <th>{ranking.type === "PAIR" ? "Dupla" : "Jogador"}</th>
-          <th>Pontos</th>
-          <th>Participações</th>
-          <th>Último torneio</th>
-        </tr>
-      </thead>
-      <tbody>
-        {ranking.type === "PAIR"
-          ? ranking.pairLeaderboard.map((pair, index) => (
-              <tr key={pair.pairKey}>
-                <td>#{index + 1}</td>
-                <td><strong>{pair.pairName}</strong></td>
-                <td>{pair.points}</td>
-                <td>{pair.competitionsPlayed}</td>
-                <td>{pair.lastTournamentName ?? "-"}</td>
-              </tr>
-            ))
-          : ranking.leaderboard.map((player, index) => (
-              <tr key={player.playerId}>
-                <td>#{index + 1}</td>
-                <td><strong>{player.playerName}</strong></td>
-                <td>{player.points}</td>
-                <td>{player.tournamentsPlayed}</td>
-                <td>{player.lastTournamentName ?? "-"}</td>
-              </tr>
-            ))}
-      </tbody>
-    </table>
+    <>
+      <div className="tw:hidden tw:viewport-680:grid tw:gap-3" aria-label="Classificação">
+        {rows.map((row) => (
+          <article key={row.key} className="tw:min-w-0 tw:rounded-xl tw:border tw:border-[#d9e5f1] tw:bg-[#f8fbff] tw:p-3">
+            <div className="tw:flex tw:min-w-0 tw:items-start tw:gap-3">
+              <span className="tw:grid tw:size-9 tw:shrink-0 tw:place-items-center tw:rounded-lg tw:bg-[#e8f1fc] tw:text-sm tw:font-bold tw:text-[#15599e]">#{row.position}</span>
+              <strong className="tw:min-w-0 tw:flex-1 tw:break-words tw:text-sm tw:leading-snug tw:text-[#102b50]">{row.name}</strong>
+              <span className="tw:shrink-0 tw:text-sm tw:font-bold tw:text-[#15599e]">{row.points} pts</span>
+            </div>
+            <div className="tw:mt-3 tw:grid tw:gap-1 tw:border-t tw:border-[#e2ebf3] tw:pt-2 tw:text-xs tw:text-[#60778e]">
+              <span>Participações: <strong className="tw:text-[#102b50]">{row.participations}</strong></span>
+              <span className="tw:break-words">Último torneio: <strong className="tw:text-[#102b50]">{row.lastTournament}</strong></span>
+            </div>
+          </article>
+        ))}
+      </div>
+      <table className={cx(viewStyles.data_table, "tw:viewport-680:hidden!")}>
+        <thead>
+          <tr>
+            <th>Pos.</th>
+            <th>{ranking.type === "PAIR" ? "Dupla" : "Jogador"}</th>
+            <th>Pontos</th>
+            <th>Participações</th>
+            <th>Último torneio</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.key}>
+              <td>#{row.position}</td>
+              <td><strong>{row.name}</strong></td>
+              <td>{row.points}</td>
+              <td>{row.participations}</td>
+              <td>{row.lastTournament}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
   );
 }
 
@@ -183,7 +206,9 @@ export default async function RankingDetailPage(props: RankingDetailPageProps) {
       <section className={viewStyles.section_card_ranking_detail_period} aria-label="Período do ranking">
         <div className={viewStyles.stack_xs}>
           <strong>Período</strong>
-          <span className={viewStyles.muted}>{ranking.period.label}</span>
+          {ranking.period.mode === "custom" || ranking.period.mode === "cycle"
+            ? <span className={viewStyles.muted}>{ranking.period.label}</span>
+            : null}
         </div>
         <nav className={viewStyles.section_actions} aria-label="Atalhos de período">
           {periodPresets.map((preset) => (
