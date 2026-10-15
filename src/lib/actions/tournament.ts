@@ -1553,26 +1553,26 @@ export async function moveTournamentPairGroupAction(formData: FormData) {
 }
 
 export async function generateGroupsAction(formData: FormData) {
-  await requireModuleEdit("groups");
+  const auth = await requireModuleEdit("groups");
   const tournamentId = String(formData.get("tournamentId") ?? "");
 
   if (!tournamentId) {
     throw new Error("Torneio inválido.");
   }
 
-  await distributeTournamentGroups(tournamentId);
+  await distributeTournamentGroups(tournamentId, auth.arenaId);
   refreshTournamentRoutes();
 }
 
 export async function generateMatchesAction(formData: FormData) {
-  await requireModuleEdit("matches");
+  const auth = await requireModuleEdit("matches");
   const tournamentId = String(formData.get("tournamentId") ?? "");
 
   if (!tournamentId) {
     throw new Error("Torneio inválido.");
   }
 
-  await generateTournamentMatches(tournamentId);
+  await generateTournamentMatches(tournamentId, auth.arenaId);
   refreshTournamentRoutes();
 }
 
