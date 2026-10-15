@@ -89,16 +89,31 @@ async function deliverPasswordReset(email: string, userId: string) {
   }
 }
 
-export async function sendArenaUserRecoveryAction(formData: FormData) {
+export async function sendArenaUserRecoveryAction(_: AccountAccessState, formData: FormData): Promise<AccountAccessState> {
   const auth = await requireArenaAccess();
-  if (auth.arenaRole !== "OWNER" && auth.arenaRole !== "ADMIN" && !["ADMIN", "SUPER_ADMIN"].includes(auth.systemRole)) throw new Error("Sem permissão.");
-  if (!accountEmailIsConfigured()) throw new Error("O envio de e-mails ainda não foi configurado pela agência.");
+  if (auth.arenaRole !== "OWNER" && auth.arenaRole !== "ADMIN" && !["ADMIN", "SUPER_ADMIN"].includes(auth.systemRole)) return { error: "Sem permissão.", success: null };
   const userId = String(formData.get("userId") ?? "");
   const member = await prisma.arenaMember.findUnique({ where: { userId_arenaId: { userId, arenaId: auth.arenaId } }, select: { user: { select: { id: true, email: true } } } });
-  if (!member) throw new Error("Usuário não pertence à arena atual.");
+  if (!member) return { error: "Usuário não pertence à arena atual.", success: null };
   const recent = await prisma.accountActionToken.count({ where: { email: member.user.email, kind: "RESET", createdAt: { gt: new Date(Date.now() - 15 * 60_000) } } });
-  if (recent >= 3) throw new Error("Aguarde antes de enviar outro link para este usuário.");
-  await deliverPasswordReset(member.user.email, member.user.id);
+  if (recent >= 3) return { error: "Aguarde antes de criar outro link para este usuário.", success: null };
+  if (accountEmailIsConfigured()) {
+    try {
+      await deliverPasswordReset(member.user.email, member.user.id);
+      return { error: null, success: "Link de recuperação enviado ao e-mail do usuário." };
+    } catch {
+      // A agência ainda pode compartilhar um link de uso único quando o provedor falha.
+    }
+  }
+  if (auth.arenaRole !== "OWNER" && auth.systemRole !== "SUPER_ADMIN") {
+    return { error: "Somente o proprietário da arena pode gerar um link de recuperação manual quando o e-mail está indisponível.", success: null };
+  }
+  const { token } = await createAccountToken({ kind: "RESET", email: member.user.email, userId: member.user.id, hoursValid: .5 });
+  return {
+    error: null,
+    success: "E-mail indisponível. Compartilhe este link de uso único somente com o usuário, por um canal privado. Ele expira em 30 minutos.",
+    invitationUrl: accountUrl("/redefinir-senha", token)
+  };
 }
 
 export async function completePasswordResetAction(_: AccountAccessState, formData: FormData): Promise<AccountAccessState> {
