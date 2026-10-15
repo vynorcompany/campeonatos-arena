@@ -23,6 +23,7 @@ test("TV presentation data is isolated by arena for the runtime role", { skip: !
       assert.equal(await tx.manualUpcomingMatch.count(), 0);
       assert.equal(await tx.tvPresentationSettings.count(), 0);
       assert.equal(await tx.tvSponsor.count(), 0);
+      assert.equal(await tx.sponsorshipPlan.count(), 0);
 
       await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaA.id}, true)`;
       const planA = await tx.sponsorshipPlan.create({ data: { arenaId: arenaA.id, name: "GOAL TV A" } });
@@ -45,9 +46,13 @@ test("TV presentation data is isolated by arena for the runtime role", { skip: !
       assert.deepEqual((await tx.tvSponsor.findMany({ select: { id: true } })).map((row) => row.id), [sponsorA.id]);
       assert.deepEqual((await tx.tvSponsor.findMany({ where: { arenaId: arenaA.id, sponsorshipPlanId: { not: null } }, select: { id: true } })).map((row) => row.id), [sponsorA.id]);
       assert.deepEqual((await tx.sponsorshipPlan.findUniqueOrThrow({ where: { id: planA.id }, include: { sponsors: { select: { id: true } } } })).sponsors.map((row) => row.id), [sponsorA.id]);
+      assert.equal(await tx.sponsorshipPlan.findUnique({ where: { id: planB.id } }), null);
       assert.equal((await tx.manualUpcomingMatch.updateMany({ where: { id: matchB.id }, data: { homePairName: "Invasão" } })).count, 0);
       assert.equal((await tx.tvSponsor.deleteMany({ where: { id: sponsorB.id } })).count, 0);
       assert.equal((await tx.tvPresentationSettings.updateMany({ where: { id: settingsB.id }, data: { slideIntervalSeconds: 20 } })).count, 0);
+      assert.equal((await tx.sponsorshipPlan.deleteMany({ where: { id: planB.id } })).count, 0);
+      assert.equal((await tx.sponsorshipPlan.deleteMany({ where: { id: planA.id } })).count, 1);
+      assert.equal((await tx.tvSponsor.findUniqueOrThrow({ where: { id: sponsorA.id } })).sponsorshipPlanId, null);
       throw rollback;
     }), (error: unknown) => error === rollback);
 
@@ -55,6 +60,11 @@ test("TV presentation data is isolated by arena for the runtime role", { skip: !
       await tx.$executeRawUnsafe("SET LOCAL ROLE arena_runtime");
       await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaA.id}, true)`;
       await tx.tvSponsor.create({ data: { arenaId: arenaB.id, name: "Cross-tenant" } });
+    }), /42501|row-level security|segurança no nível de linha/);
+    await assert.rejects(db.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe("SET LOCAL ROLE arena_runtime");
+      await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaA.id}, true)`;
+      await tx.sponsorshipPlan.create({ data: { arenaId: arenaB.id, name: "Cross-tenant" } });
     }), /42501|row-level security|segurança no nível de linha/);
   } finally {
     await db.$disconnect();
