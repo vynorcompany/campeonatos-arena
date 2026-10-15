@@ -157,7 +157,7 @@ test("dedicated category route scopes category, athletes, and rankings to the ar
   assert.match(source, /id:\s*params\.categoryId/);
   assert.match(source, /tournamentId:\s*params\.tournamentId/);
   assert.match(source, /tournament:\s*\{\s*arenaId:\s*auth\.arenaId/);
-  assert.match(source, /prisma\.player\.findMany\(\{\s*where:\s*\{\s*arenaId:\s*auth\.arenaId/);
+  assert.match(source, /arenaDatabase\(auth\.arenaId\)\.player\.findMany\(\{\s*where:\s*\{\s*arenaId:\s*auth\.arenaId/);
   assert.match(source, /prisma\.rankingProfile\.findMany\(\{\s*where:\s*\{\s*arenaId:\s*auth\.arenaId/);
 });
 

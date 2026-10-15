@@ -602,7 +602,7 @@ export async function getTvPresentationPayload(arenaId: string) {
         name: entry.player.name,
         points: entry.tournamentPoints
       }))
-    : await prisma.player.findMany({
+    : await arenaDatabase(arenaId).player.findMany({
         where: {
           arenaId,
           active: true

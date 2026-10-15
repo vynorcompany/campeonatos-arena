@@ -1075,7 +1075,7 @@ export async function getArenaDashboard(arenaId: string, selectedTournamentId?: 
     }
   });
 
-  const players = await prisma.player.findMany({
+  const players = await arenaDatabase(arenaId).player.findMany({
     where: { arenaId },
     orderBy: {
       points: "desc"
@@ -1333,7 +1333,7 @@ export async function getTournamentScheduleConflicts(tournamentId: string, arena
 export async function syncTournamentEntries(tournamentId: string, arenaId: string, selectedPlayerIds: string[]) {
   const uniquePlayerIds = [...new Set(selectedPlayerIds)];
   const selectedPlayerIdSet = new Set(uniquePlayerIds);
-  const players = await prisma.player.findMany({
+  const players = await arenaDatabase(arenaId).player.findMany({
     where: {
       arenaId,
       active: true,

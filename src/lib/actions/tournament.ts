@@ -275,11 +275,11 @@ export async function createPlayerAction(_: ActionState, formData: FormData): Pr
 
   try {
     const phone = normalizeBrazilianPhone(parsed.data.phone);
-    const existingPhones = await prisma.player.findMany({ where: { arenaId: auth.arenaId, mergedIntoPlayerId: null }, select: { phone: true } });
+    const existingPhones = await withArenaTransaction(auth.arenaId, (tx) => tx.player.findMany({ where: { arenaId: auth.arenaId, mergedIntoPlayerId: null }, select: { phone: true } }));
     if (phone && existingPhones.some((player) => normalizeBrazilianPhone(player.phone) === phone)) return { error: "Já existe um cliente cadastrado com este telefone.", success: null };
     const photoUrl = await toPersistentPlayerPhoto(formData.get("photo") as File | null);
 
-    await prisma.$transaction(async (tx) => {
+    await withArenaTransaction(auth.arenaId, async (tx) => {
       const player = await tx.player.create({
         data: {
           arenaId: auth.arenaId,
@@ -349,10 +349,10 @@ export async function updatePlayerAction(formData: FormData) {
 
   try {
     const phone = normalizeBrazilianPhone(parsed.data.phone);
-    const existingPhones = await prisma.player.findMany({ where: { arenaId: auth.arenaId, id: { not: parsed.data.playerId }, mergedIntoPlayerId: null }, select: { phone: true } });
+    const existingPhones = await withArenaTransaction(auth.arenaId, (tx) => tx.player.findMany({ where: { arenaId: auth.arenaId, id: { not: parsed.data.playerId }, mergedIntoPlayerId: null }, select: { phone: true } }));
     if (phone && existingPhones.some((player) => normalizeBrazilianPhone(player.phone) === phone)) throw new Error("Já existe um cliente cadastrado com este telefone.");
     const photoUrl = await toPersistentPlayerPhoto(formData.get("photo") as File | null);
-    await prisma.$transaction(async (tx) => {
+    await withArenaTransaction(auth.arenaId, async (tx) => {
       const updated = await tx.player.updateMany({
         where: { id: parsed.data.playerId, arenaId: auth.arenaId },
         data: { name: parsed.data.name, points: parsed.data.points, class: parsed.data.class, gender: parsed.data.gender, phone, ...(parsed.data.email !== undefined ? { email: parsed.data.email } : {}), cpf: parsed.data.cpf, birthDate: parsed.data.birthDate, ...(parsed.data.addressZipCode !== undefined ? { addressZipCode: parsed.data.addressZipCode.replace(/\D/g, ""), addressStreet: parsed.data.addressStreet ?? "", addressNumber: parsed.data.addressNumber ?? "", addressNeighborhood: parsed.data.addressNeighborhood ?? "", addressCity: parsed.data.addressCity ?? "", addressState: (parsed.data.addressState ?? "").toUpperCase() } : {}), ...(photoUrl ? { photoUrl } : {}) }
@@ -413,7 +413,7 @@ export async function archivePlayerAction(formData: FormData) {
     throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
 
-  const updated = await prisma.player.updateMany({
+  const updated = await withArenaTransaction(auth.arenaId, (tx) => tx.player.updateMany({
     where: {
       id: parsed.data.playerId,
       arenaId: auth.arenaId
@@ -421,7 +421,7 @@ export async function archivePlayerAction(formData: FormData) {
     data: {
       active: false
     }
-  });
+  }));
 
   if (!updated.count) {
     throw new Error("Jogador não encontrado.");
@@ -434,7 +434,7 @@ export async function reactivatePlayerAction(formData: FormData) {
   const auth = await requireModuleEdit("players");
   const parsed = archivePlayerSchema.safeParse({ playerId: formData.get("playerId") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
-  const updated = await prisma.player.updateMany({ where: { id: parsed.data.playerId, arenaId: auth.arenaId }, data: { active: true } });
+  const updated = await withArenaTransaction(auth.arenaId, (tx) => tx.player.updateMany({ where: { id: parsed.data.playerId, arenaId: auth.arenaId }, data: { active: true } }));
   if (!updated.count) throw new Error("Jogador não encontrado.");
   refreshTournamentRoutes();
 }
@@ -449,7 +449,7 @@ export async function deleteAthleteAction(formData: FormData) {
     throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
 
-  const athlete = await prisma.player.findFirst({
+  const athlete = await withArenaTransaction(auth.arenaId, (tx) => tx.player.findFirst({
     where: {
       id: parsed.data.playerId,
       arenaId: auth.arenaId
@@ -464,7 +464,7 @@ export async function deleteAthleteAction(formData: FormData) {
         }
       }
     }
-  });
+  }));
 
   if (!athlete) {
     throw new Error("Atleta não encontrado.");
@@ -480,12 +480,12 @@ export async function deleteAthleteAction(formData: FormData) {
     throw new Error(restriction);
   }
 
-  const deleted = await prisma.player.deleteMany({
+  const deleted = await withArenaTransaction(auth.arenaId, (tx) => tx.player.deleteMany({
     where: {
       id: athlete.id,
       arenaId: auth.arenaId
     }
-  });
+  }));
   if (!deleted.count) throw new Error("Atleta não encontrado.");
 
   refreshTournamentRoutes();
@@ -502,7 +502,7 @@ export async function updatePlayerPointsAction(formData: FormData) {
     throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
 
-  const updated = await prisma.player.updateMany({
+  const updated = await withArenaTransaction(auth.arenaId, (tx) => tx.player.updateMany({
     where: {
       id: parsed.data.playerId,
       arenaId: auth.arenaId
@@ -510,7 +510,7 @@ export async function updatePlayerPointsAction(formData: FormData) {
     data: {
       points: parsed.data.points
     }
-  });
+  }));
 
   if (!updated.count) {
     throw new Error("Jogador não encontrado.");
@@ -522,14 +522,14 @@ export async function updatePlayerPointsAction(formData: FormData) {
 export async function resetPlayerRankingAction() {
   const auth = await requireModuleEdit("players");
 
-  await prisma.player.updateMany({
+  await withArenaTransaction(auth.arenaId, (tx) => tx.player.updateMany({
     where: {
       arenaId: auth.arenaId
     },
     data: {
       points: 0
     }
-  });
+  }));
 
   refreshTournamentRoutes();
 }

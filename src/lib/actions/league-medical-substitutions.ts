@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireModuleEdit } from "@/lib/auth/guards";
 import { requirePublicPlayerAuth } from "@/lib/auth/player-session";
 import { prisma } from "@/lib/prisma";
+import { withArenaTransaction } from "@/lib/rls";
 import { replaceCategoryPairPlayer } from "@/lib/services/category-competition";
 import { getPublicLinkedPlayerIds } from "@/lib/services/public-player-link";
 
@@ -21,7 +22,7 @@ export async function requestLeagueMedicalSubstitutionAction(formData: FormData)
   if (!pair || !pair.players.some((item) => linkedPlayerIds.includes(item.playerId))) throw new Error("Você não participa desta dupla.");
   if (!pair.players.some((item) => item.playerId === parsed.data.previousPlayerId)) throw new Error("O atleta afastado não pertence à dupla.");
   if (pair.players.some((item) => item.playerId === parsed.data.replacementPlayerId)) throw new Error("O substituto já está nesta dupla.");
-  const replacement = await prisma.player.findFirst({ where: { id: parsed.data.replacementPlayerId, arenaId: auth.arenaId, active: true }, select: { id: true } });
+  const replacement = await withArenaTransaction(auth.arenaId, (tx) => tx.player.findFirst({ where: { id: parsed.data.replacementPlayerId, arenaId: auth.arenaId, active: true }, select: { id: true } }));
   if (!replacement) throw new Error("Atleta substituto não encontrado.");
   const existing = await prisma.leagueMedicalSubstitutionRequest.findFirst({ where: { pairId: pair.id, status: "PENDING" }, select: { id: true } });
   if (existing) throw new Error("Já existe uma solicitação pendente para esta dupla.");
