@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { reservationInsights, reservationServiceLabel, reservationStatusLabel } from "../src/lib/reports/reservation-insights";
+import { formatOccupancy, reservationInsights, reservationServiceLabel, reservationStatusLabel } from "../src/lib/reports/reservation-insights";
 
 const rangeStart = new Date("2026-09-14T00:00:00");
 const rangeEnd = new Date("2026-09-14T23:59:59");
@@ -44,4 +44,11 @@ test("uses recognizable labels for reservation sources", () => {
   assert.equal(reservationServiceLabel({ sourceType: "SUPER12", bookingTypeName: "Reserva" }), "Super 12");
   assert.equal(reservationServiceLabel({ sourceType: "LEAGUE_PROPOSAL", bookingTypeName: "Reserva" }), "Liga");
   assert.equal(reservationServiceLabel({ sourceType: "MANUAL", bookingTypeName: "Reserva fixa" }), "Reserva fixa");
+});
+
+test("occupancy labels distinguish a tiny nonzero rate from zero and unknown availability", () => {
+  assert.equal(formatOccupancy(60, 30_000), "<1%");
+  assert.equal(formatOccupancy(0, 30_000), "0%");
+  assert.equal(formatOccupancy(60, 0), "—");
+  assert.equal(formatOccupancy(300, 600), "50%");
 });

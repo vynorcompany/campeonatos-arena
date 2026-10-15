@@ -43,6 +43,13 @@ function overlapMinutes(start: Date, end: Date, rangeStart: Date, rangeEnd: Date
   return minutesBetween(clippedStart, clippedEnd);
 }
 
+export function formatOccupancy(occupiedMinutes: number, availableMinutes: number) {
+  if (availableMinutes <= 0) return "—";
+  const percent = (occupiedMinutes / availableMinutes) * 100;
+  if (percent > 0 && percent < 1) return "<1%";
+  return `${Math.min(100, Math.round(percent))}%`;
+}
+
 function availableMinutes(rules: WeeklyRule[], rangeStart: Date, rangeEnd: Date) {
   let total = 0;
   const cursor = new Date(rangeStart);
