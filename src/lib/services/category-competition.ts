@@ -1,5 +1,6 @@
 import { Prisma, type CompetitionFormat } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { setArenaRlsContext } from "@/lib/rls";
 import {
   canAddCategoryPair,
   buildGroups,
@@ -50,13 +51,17 @@ const categoryMatchStage = {
 } as const;
 
 async function runSerializableTransaction<T>(
+  arenaId: string,
   operation: (tx: Prisma.TransactionClient) => Promise<T>,
 ) {
   const maximumAttempts = 3;
 
   for (let attempt = 1; attempt <= maximumAttempts; attempt += 1) {
     try {
-      return await prisma.$transaction(operation, {
+      return await prisma.$transaction(async (tx) => {
+        await setArenaRlsContext(tx, arenaId);
+        return operation(tx);
+      }, {
         isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
       });
     } catch (error) {
@@ -426,7 +431,7 @@ export async function createCategoryCompetition(
   arenaId: string,
   input: CreateCategoryCompetitionInput,
 ) {
-  return runSerializableTransaction(async (tx) => {
+  return runSerializableTransaction(arenaId, async (tx) => {
     let rankingId: string | null = null;
     let feedsGeneralRanking = false;
 
@@ -508,7 +513,7 @@ export async function updateCategoryPublicVisibility(
   competitionId: string,
   isPublic: boolean,
 ) {
-  return runSerializableTransaction(async (tx) => {
+  return runSerializableTransaction(arenaId, async (tx) => {
     const competition = await tx.categoryCompetition.findFirst({
       where: {
         id: competitionId,
@@ -541,6 +546,7 @@ export async function addManualPair(
   secondPlayerId: string,
 ) {
   return runSerializableTransaction(
+    arenaId,
     async (tx) => {
       const competition = await tx.categoryCompetition.findFirst({
         where: {
@@ -685,7 +691,7 @@ export async function removeCategoryPair(
   arenaId: string,
   pairId: string,
 ) {
-  return runSerializableTransaction(async (tx) => {
+  return runSerializableTransaction(arenaId, async (tx) => {
     const pair = await tx.categoryPair.findFirst({
       where: {
         id: pairId,
@@ -727,7 +733,7 @@ export async function generateCategoryDraw(
   arenaId: string,
   competitionId: string,
 ) {
-  return runSerializableTransaction(async (tx) => {
+  return runSerializableTransaction(arenaId, async (tx) => {
     const competition = await tx.categoryCompetition.findFirst({
       where: {
         id: competitionId,
@@ -796,7 +802,7 @@ export async function moveCategoryPair(
   pairId: string,
   targetGroupId: string,
 ) {
-  return runSerializableTransaction(async (tx) => {
+  return runSerializableTransaction(arenaId, async (tx) => {
     const pair = await tx.categoryPair.findFirst({
       where: {
         id: pairId,
@@ -846,7 +852,7 @@ export async function replaceCategoryPairPlayer(
     replacementPlayerId: string;
   },
 ) {
-  return runSerializableTransaction(async (tx) => {
+  return runSerializableTransaction(arenaId, async (tx) => {
     const pair = await tx.categoryPair.findFirst({
       where: {
         id: input.pairId,
@@ -982,7 +988,7 @@ export async function publishCategoryDraw(
   arenaId: string,
   competitionId: string,
 ) {
-  return runSerializableTransaction(async (tx) => {
+  return runSerializableTransaction(arenaId, async (tx) => {
     const competition = await tx.categoryCompetition.findFirst({
       where: {
         id: competitionId,
@@ -1120,7 +1126,7 @@ export async function updateCategoryMatchSchedule(
   scheduledTime: string | null,
   courtName: string | null = null,
 ) {
-  return runSerializableTransaction(async (tx) => {
+  return runSerializableTransaction(arenaId, async (tx) => {
     const match = await tx.categoryMatch.findFirst({
       where: {
         id: matchId,
@@ -1159,7 +1165,7 @@ export async function updateCategoryMatchStatus(
   matchId: string,
   status: CategoryMatchManualStatus,
 ) {
-  return runSerializableTransaction(async (tx) => {
+  return runSerializableTransaction(arenaId, async (tx) => {
     const match = await tx.categoryMatch.findFirst({
       where: {
         id: matchId,
@@ -1246,7 +1252,7 @@ export async function recordCategoryMatchResult(
   homeScore: number,
   awayScore: number,
 ) {
-  return runSerializableTransaction(async (tx) => {
+  return runSerializableTransaction(arenaId, async (tx) => {
     const match = await tx.categoryMatch.findFirst({
       where: {
         id: matchId,
@@ -1330,7 +1336,7 @@ export async function recordCategoryLeagueMatchResult(
     homeSet3: number | null; awaySet3: number | null;
   },
 ) {
-  return runSerializableTransaction(async (tx) => {
+  return runSerializableTransaction(arenaId, async (tx) => {
     const { matchId, ...setScores } = input;
     const match = await tx.categoryMatch.findFirst({
       where: { id: matchId, competition: { status: categoryCompetitionStatus.PUBLISHED, format: "LEAGUE", category: { active: true, tournament: { arenaId } } } },
@@ -1355,7 +1361,7 @@ export async function resetCategoryLeagueMatchResult(
   arenaId: string,
   matchId: string,
 ) {
-  return runSerializableTransaction(async (tx) => {
+  return runSerializableTransaction(arenaId, async (tx) => {
     const match = await tx.categoryMatch.findFirst({
       where: {
         id: matchId,
@@ -1391,7 +1397,7 @@ export async function reopenCategoryLeagueForEditing(
   arenaId: string,
   competitionId: string,
 ) {
-  return runSerializableTransaction(async (tx) => {
+  return runSerializableTransaction(arenaId, async (tx) => {
     const competition = await tx.categoryCompetition.findFirst({
       where: {
         id: competitionId,
@@ -1436,6 +1442,7 @@ export async function finishCategoryCompetition(
 ) {
   try {
     return await runSerializableTransaction(
+      arenaId,
       async (tx) => {
         const competition = await tx.categoryCompetition.findFirst({
           where: {
