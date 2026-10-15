@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
+import { loadVisibleProductNames } from "@/lib/products/visible-product-names";
 
 type Period = { gte: Date; lte: Date };
 
@@ -13,24 +14,26 @@ export async function loadCashReportData(db: Pick<PrismaClient, "cashRegister" |
   return { registers, registerCount, movementCount, differenceCents: closedTotals._sum.differenceCents ?? 0 };
 }
 
-export async function loadProductReportData(db: Pick<PrismaClient, "saleItem">, arenaId: string, period: Period) {
+export async function loadProductReportData(db: Pick<PrismaClient, "saleItem" | "product">, arenaId: string, period: Period) {
   const where: Prisma.SaleItemWhereInput = { sale: { arenaId, createdAt: period } };
   const [items, totals, products] = await Promise.all([
-    db.saleItem.findMany({ where, include: { product: true, sale: { select: { createdAt: true } } }, orderBy: { sale: { createdAt: "desc" } }, take: 100 }),
+    db.saleItem.findMany({ where, include: { sale: { select: { createdAt: true } } }, orderBy: { sale: { createdAt: "desc" } }, take: 100 }),
     db.saleItem.aggregate({ where, _sum: { quantity: true, totalCents: true } }),
     db.saleItem.groupBy({ where, by: ["productId"] }),
   ]);
-  return { items, quantity: totals._sum.quantity ?? 0, totalCents: totals._sum.totalCents ?? 0, productCount: products.length };
+  const productNames = await loadVisibleProductNames(db, arenaId, items.map((item) => item.productId));
+  return { items, productNames, quantity: totals._sum.quantity ?? 0, totalCents: totals._sum.totalCents ?? 0, productCount: products.length };
 }
 
-export async function loadStockReportData(db: Pick<PrismaClient, "stockMovement">, arenaId: string, period: Period) {
+export async function loadStockReportData(db: Pick<PrismaClient, "stockMovement" | "product">, arenaId: string, period: Period) {
   const where = { arenaId, createdAt: period };
   const [movements, movementCount, byType] = await Promise.all([
-    db.stockMovement.findMany({ where, include: { product: true }, orderBy: { createdAt: "desc" }, take: 100 }),
+    db.stockMovement.findMany({ where, orderBy: { createdAt: "desc" }, take: 100 }),
     db.stockMovement.count({ where }),
     db.stockMovement.groupBy({ where, by: ["type"], _sum: { quantity: true } }),
   ]);
-  return { movements, movementCount, entries: byType.find((group) => group.type === "IN")?._sum.quantity ?? 0, exits: byType.find((group) => group.type === "OUT")?._sum.quantity ?? 0 };
+  const productNames = await loadVisibleProductNames(db, arenaId, movements.map((movement) => movement.productId));
+  return { movements, productNames, movementCount, entries: byType.find((group) => group.type === "IN")?._sum.quantity ?? 0, exits: byType.find((group) => group.type === "OUT")?._sum.quantity ?? 0 };
 }
 
 export async function loadComandaReportData(db: Pick<PrismaClient, "comanda" | "sale">, arenaId: string, period: Period) {

@@ -3,6 +3,8 @@ import test from "node:test";
 import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 import { loadDashboardProductSales } from "../src/lib/reports/dashboard-product-sales";
+import { loadProductReportData, loadStockReportData } from "../src/lib/reports/operational-report-data";
+import { loadVisibleProductNames, visibleProductName } from "../src/lib/products/visible-product-names";
 
 const testUrl = process.env.ARENA_GOAL_TEST_DATABASE_URL ?? "";
 const disposableDatabase = (() => {
@@ -30,12 +32,22 @@ test("dashboard product ranking survives a legacy sale linked to another arena's
         { saleId: sale.id, productId: ownProduct.id, quantity: 2, unitPriceCents: 1_000, totalCents: 2_000 },
         { saleId: sale.id, productId: otherProduct.id, quantity: 1, unitPriceCents: 1_000, totalCents: 1_000 }
       ] });
+      await tx.stockMovement.create({ data: { arenaId: ownArena.id, productId: otherProduct.id, type: "OUT", quantity: 1, createdAt: period.gte } });
 
       await tx.$executeRaw`SELECT set_config('app.arena_id', ${ownArena.id}, true)`;
       await tx.$executeRawUnsafe("SET LOCAL ROLE arena_runtime");
       const ranking = await loadDashboardProductSales(tx, ownArena.id, period);
       assert.deepEqual(ranking, [{ name: ownProduct.name, value: 2 }]);
       assert.ok(!JSON.stringify(ranking).includes(otherProduct.name));
+      const productReport = await loadProductReportData(tx, ownArena.id, period);
+      assert.equal(productReport.items.length, 2);
+      assert.equal(visibleProductName(productReport.productNames, otherProduct.id), "Produto indisponível");
+      const stockReport = await loadStockReportData(tx, ownArena.id, period);
+      assert.equal(stockReport.movements.length, 1);
+      assert.equal(visibleProductName(stockReport.productNames, otherProduct.id), "Produto indisponível");
+      const names = await loadVisibleProductNames(tx, ownArena.id, [ownProduct.id, otherProduct.id]);
+      assert.equal(names.get(ownProduct.id), ownProduct.name);
+      assert.equal(names.has(otherProduct.id), false);
       await tx.$executeRawUnsafe("SAVEPOINT cross_tenant_product");
       await assert.rejects(tx.saleItem.create({ data: { saleId: sale.id, productId: otherProduct.id, quantity: 1, unitPriceCents: 100, totalCents: 100 } }), /42501|row-level security|segurança no nível de linha/);
       await tx.$executeRawUnsafe("ROLLBACK TO SAVEPOINT cross_tenant_product");

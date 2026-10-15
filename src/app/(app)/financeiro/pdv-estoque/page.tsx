@@ -23,13 +23,13 @@ export default async function FinancePdvStockPage() {
     tx.sale.findMany({ where: { arenaId: auth.arenaId, createdAt: { gte: start, lt: end } } }),
     tx.stockMovement.findMany({
       where: { arenaId: auth.arenaId, createdAt: { gte: start, lt: end } },
-      include: { product: true },
       orderBy: { createdAt: "desc" },
       take: 30
     })
   ]));
   const pdvRevenue = sales.reduce((total, sale) => total + sale.totalCents, 0);
   const stockValue = products.reduce((total, product) => total + product.stockQuantity * product.priceCents, 0);
+  const productNames = new Map(products.map((product) => [product.id, product.name]));
 
   return (
     <div className={viewStyles.stack_md}>
@@ -53,7 +53,7 @@ export default async function FinancePdvStockPage() {
         <div className={viewStyles.simple_list}>
           {stockMovements.map((movement) => (
             <div className={viewStyles.simple_item} key={movement.id}>
-              <strong>{movement.product.name}</strong>
+              <strong>{productNames.get(movement.productId) ?? "Produto indisponível"}</strong>
               <span>
                 {movement.type} de {movement.quantity} un. - {movement.reason || "Sem motivo"}
               </span>
