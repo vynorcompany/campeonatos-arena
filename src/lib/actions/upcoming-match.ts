@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireModuleEdit } from "@/lib/auth/guards";
+import { arenaDatabase } from "@/lib/arena-database";
 import { prisma } from "@/lib/prisma";
 import { getMissingTvTablesMessage, isPrismaSchemaOutdatedError, isPrismaUnknownFieldError } from "@/lib/prisma-errors";
 import { savePublicImageUpload } from "@/lib/uploads";
@@ -122,6 +123,7 @@ async function withTvSchemaGuard<T>(callback: () => Promise<T>) {
 
 export async function createManualUpcomingMatchAction(formData: FormData) {
   const auth = await requireModuleEdit("tv");
+  const db = arenaDatabase(auth.arenaId);
   const parsed = manualUpcomingMatchSchema.safeParse({
     homePairName: formData.get("homePairName"),
     awayPairName: formData.get("awayPairName"),
@@ -133,9 +135,9 @@ export async function createManualUpcomingMatchAction(formData: FormData) {
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
-  const matchCount = await prisma.manualUpcomingMatch.count({ where: { arenaId: auth.arenaId } });
+  const matchCount = await db.manualUpcomingMatch.count({ where: { arenaId: auth.arenaId } });
   if (matchCount >= 3) throw new Error("A TV permite até 3 jogos manuais. Remova um jogo antes de adicionar outro.");
-  const lastMatch = await prisma.manualUpcomingMatch.findFirst({
+  const lastMatch = await db.manualUpcomingMatch.findFirst({
     where: {
       arenaId: auth.arenaId
     },
@@ -145,7 +147,7 @@ export async function createManualUpcomingMatchAction(formData: FormData) {
   });
 
   try {
-    await prisma.manualUpcomingMatch.create({
+    await db.manualUpcomingMatch.create({
       data: {
         arenaId: auth.arenaId,
         displayOrder: (lastMatch?.displayOrder ?? 0) + 1,
@@ -161,7 +163,7 @@ export async function createManualUpcomingMatchAction(formData: FormData) {
       throw error;
     }
 
-    await prisma.manualUpcomingMatch.create({
+    await db.manualUpcomingMatch.create({
       data: {
         arenaId: auth.arenaId,
         displayOrder: (lastMatch?.displayOrder ?? 0) + 1,
@@ -178,6 +180,7 @@ export async function createManualUpcomingMatchAction(formData: FormData) {
 
 export async function updateManualUpcomingMatchAction(formData: FormData) {
   const auth = await requireModuleEdit("tv");
+  const db = arenaDatabase(auth.arenaId);
   const parsed = updateManualUpcomingMatchSchema.safeParse({
     matchId: formData.get("matchId"),
     displayOrder: formData.get("displayOrder"),
@@ -195,7 +198,7 @@ export async function updateManualUpcomingMatchAction(formData: FormData) {
   let updated;
 
   try {
-    updated = await prisma.manualUpcomingMatch.updateMany({
+    updated = await db.manualUpcomingMatch.updateMany({
       where: {
         id: parsed.data.matchId,
         arenaId: auth.arenaId
@@ -214,7 +217,7 @@ export async function updateManualUpcomingMatchAction(formData: FormData) {
       throw error;
     }
 
-    updated = await prisma.manualUpcomingMatch.updateMany({
+    updated = await db.manualUpcomingMatch.updateMany({
       where: {
         id: parsed.data.matchId,
         arenaId: auth.arenaId
@@ -238,13 +241,14 @@ export async function updateManualUpcomingMatchAction(formData: FormData) {
 
 export async function deleteManualUpcomingMatchAction(formData: FormData) {
   const auth = await requireModuleEdit("tv");
+  const db = arenaDatabase(auth.arenaId);
   const matchId = String(formData.get("matchId") ?? "");
 
   if (!matchId) {
     throw new Error("Jogo inválido.");
   }
 
-  await prisma.manualUpcomingMatch.deleteMany({
+  await db.manualUpcomingMatch.deleteMany({
     where: {
       id: matchId,
       arenaId: auth.arenaId
@@ -256,6 +260,7 @@ export async function deleteManualUpcomingMatchAction(formData: FormData) {
 
 export async function upsertTvPresentationSettingsAction(formData: FormData) {
   const auth = await requireModuleEdit("tv");
+  const db = arenaDatabase(auth.arenaId);
   const parsed = tvPresentationSettingsSchema.safeParse({
     slideIntervalSeconds: formData.get("slideIntervalSeconds"),
     selectedTournamentId: formData.get("selectedTournamentId"),
@@ -292,7 +297,7 @@ export async function upsertTvPresentationSettingsAction(formData: FormData) {
 
   await withTvSchemaGuard(async () => {
     try {
-      await prisma.tvPresentationSettings.upsert({
+      await db.tvPresentationSettings.upsert({
         where: {
           arenaId: auth.arenaId
         },
@@ -314,7 +319,7 @@ export async function upsertTvPresentationSettingsAction(formData: FormData) {
       }
 
       const { tvMatchSource: _ignored, tvSourceTournamentId: _ignoredTournament, ...legacyData } = parsed.data;
-      await prisma.tvPresentationSettings.upsert({
+      await db.tvPresentationSettings.upsert({
         where: {
           arenaId: auth.arenaId
         },
@@ -336,6 +341,7 @@ export async function upsertTvPresentationSettingsAction(formData: FormData) {
 
 export async function createTvSponsorAction(formData: FormData) {
   const auth = await requireModuleEdit("tv");
+  const db = arenaDatabase(auth.arenaId);
   const parsed = tvSponsorSchema.safeParse({
     name: formData.get("name"),
     subtitle: formData.get("subtitle"),
@@ -360,7 +366,7 @@ export async function createTvSponsorAction(formData: FormData) {
   const logoUrl = inlineLogo ?? await savePublicImageUpload(logoFile, "tv-sponsor-logos", auth.arenaId, auth.arenaId);
 
   await withTvSchemaGuard(async () => {
-    await prisma.tvSponsor.create({
+    await db.tvSponsor.create({
       data: {
         arenaId: auth.arenaId,
         ...sponsorData,
@@ -389,6 +395,7 @@ export async function createSponsorshipPlanAction(formData: FormData) {
 
 export async function insertSponsorInPlanAction(formData: FormData) {
   const auth = await requireModuleEdit("tv");
+  const db = arenaDatabase(auth.arenaId);
   const planId = String(formData.get("sponsorshipPlanId") ?? "");
   const name = String(formData.get("name") ?? "").trim();
   const clientId = String(formData.get("clientId") ?? "");
@@ -404,7 +411,7 @@ export async function insertSponsorInPlanAction(formData: FormData) {
   const [plan, client, lastSponsor] = await Promise.all([
     prisma.sponsorshipPlan.findFirst({ where: { id: planId, arenaId: auth.arenaId } }),
     clientId ? prisma.player.findFirst({ where: { id: clientId, arenaId: auth.arenaId, active: true }, select: { id: true, name: true } }) : Promise.resolve(null),
-    prisma.tvSponsor.findFirst({ where: { arenaId: auth.arenaId, sponsorshipPlanId: planId }, orderBy: { displayOrder: "desc" }, select: { displayOrder: true } })
+    db.tvSponsor.findFirst({ where: { arenaId: auth.arenaId, sponsorshipPlanId: planId }, orderBy: { displayOrder: "desc" }, select: { displayOrder: true } })
   ]);
   if (!plan) throw new Error("Plano de patrocínio não encontrado.");
   if (clientId && !client) throw new Error("Cliente vinculado não encontrado.");
@@ -441,6 +448,7 @@ export async function deleteSponsorshipPlanAction(formData: FormData) {
 
 export async function updateTvSponsorAction(formData: FormData) {
   const auth = await requireModuleEdit("tv");
+  const db = arenaDatabase(auth.arenaId);
   const sponsorId = String(formData.get("sponsorId") ?? "");
   const parsed = tvSponsorSchema.safeParse({
     name: formData.get("name"),
@@ -466,7 +474,7 @@ export async function updateTvSponsorAction(formData: FormData) {
   const inlineLogo = await toInlineLogo(logoFile);
   const logoUrl = inlineLogo ?? await savePublicImageUpload(logoFile, "tv-sponsor-logos", auth.arenaId, auth.arenaId);
   const updated = await withTvSchemaGuard(async () =>
-    prisma.tvSponsor.updateMany({
+    db.tvSponsor.updateMany({
       where: {
         id: sponsorId,
         arenaId: auth.arenaId
@@ -488,6 +496,7 @@ export async function updateTvSponsorAction(formData: FormData) {
 
 export async function deleteTvSponsorAction(formData: FormData) {
   const auth = await requireModuleEdit("tv");
+  const db = arenaDatabase(auth.arenaId);
   const sponsorId = String(formData.get("sponsorId") ?? "");
 
   if (!sponsorId) {
@@ -495,7 +504,7 @@ export async function deleteTvSponsorAction(formData: FormData) {
   }
 
   await withTvSchemaGuard(async () => {
-    await prisma.tvSponsor.deleteMany({
+    await db.tvSponsor.deleteMany({
       where: {
         id: sponsorId,
         arenaId: auth.arenaId

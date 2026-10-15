@@ -6,7 +6,7 @@ import { SponsorshipFilters } from "@/components/sponsorship/sponsorship-filters
 import { CreateSponsorshipPlanButton } from "@/components/sponsorship/sponsorship-plan-dialogs";
 import { createSponsorshipPlanAction, deleteSponsorshipPlanAction, deleteTvSponsorAction } from "@/lib/actions/upcoming-match";
 import { requireModuleView } from "@/lib/auth/guards";
-import { prisma } from "@/lib/prisma";
+import { arenaDatabase } from "@/lib/arena-database";
 
 const asCurrency = (cents: number) => (cents / 100).toFixed(2).replace(".", ",");
 
@@ -15,12 +15,13 @@ export default async function SponsorshipManagementPage(
 ) {
   const searchParams = await props.searchParams;
   const auth = await requireModuleView("tv");
+  const db = arenaDatabase(auth.arenaId);
   const query = String(searchParams?.q ?? "").trim();
   const type = String(searchParams?.type ?? "").trim();
   const sort = String(searchParams?.sort ?? "name");
   const [plans, planTypeRows] = await Promise.all([
-    prisma.sponsorshipPlan.findMany({ where: { arenaId: auth.arenaId, ...(query ? { name: { contains: query, mode: "insensitive" } } : {}), ...(type ? { sponsorshipType: type } : {}) }, include: { sponsors: { orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }] } }, orderBy: { createdAt: "asc" } }),
-    prisma.sponsorshipPlan.findMany({ where: { arenaId: auth.arenaId }, select: { sponsorshipType: true }, distinct: ["sponsorshipType"] })
+    db.sponsorshipPlan.findMany({ where: { arenaId: auth.arenaId, ...(query ? { name: { contains: query, mode: "insensitive" } } : {}), ...(type ? { sponsorshipType: type } : {}) }, include: { sponsors: { orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }] } }, orderBy: { createdAt: "asc" } }),
+    db.sponsorshipPlan.findMany({ where: { arenaId: auth.arenaId }, select: { sponsorshipType: true }, distinct: ["sponsorshipType"] })
   ]);
   const orderedPlans = [...plans].sort((first, second) => sort === "value" ? second.monthlyAmountCents - first.monthlyAmountCents : sort === "companies" ? second.sponsors.length - first.sponsors.length : first.name.localeCompare(second.name, "pt-BR"));
   const planTypes = planTypeRows.map((plan) => plan.sponsorshipType).sort((first, second) => first.localeCompare(second, "pt-BR"));

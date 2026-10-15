@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { arenaDatabase } from "@/lib/arena-database";
 import { isPrismaSchemaOutdatedError, isPrismaUnknownFieldError } from "@/lib/prisma-errors";
 
 type TvSettingsPayload = {
@@ -69,8 +70,9 @@ function formatCalendarTime(value: Date) {
 }
 
 export async function getManualUpcomingMatchesPayload(arenaId: string) {
+  const db = arenaDatabase(arenaId);
   try {
-    return await prisma.manualUpcomingMatch.findMany({
+    return await db.manualUpcomingMatch.findMany({
       where: { arenaId },
       orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
       select: {
@@ -88,7 +90,7 @@ export async function getManualUpcomingMatchesPayload(arenaId: string) {
       throw error;
     }
 
-    const legacyMatches = await prisma.manualUpcomingMatch.findMany({
+    const legacyMatches = await db.manualUpcomingMatch.findMany({
       where: { arenaId },
       orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
       select: {
@@ -253,8 +255,9 @@ async function getTournamentUpcomingMatchesPayload(arenaId: string, tournamentId
 }
 
 async function getTvSettings(arenaId: string) {
+  const db = arenaDatabase(arenaId);
   try {
-    const settings = await prisma.tvPresentationSettings.findUnique({
+    const settings = await db.tvPresentationSettings.findUnique({
       where: { arenaId },
       select: {
         slideIntervalSeconds: true,
@@ -292,7 +295,7 @@ async function getTvSettings(arenaId: string) {
     }
 
     try {
-      const legacySettings = await prisma.tvPresentationSettings.findUnique({
+      const legacySettings = await db.tvPresentationSettings.findUnique({
         where: { arenaId },
         select: {
           slideIntervalSeconds: true,
@@ -334,8 +337,9 @@ async function getTvSettings(arenaId: string) {
 }
 
 async function getTvSponsors(arenaId: string) {
+  const db = arenaDatabase(arenaId);
   try {
-    const sponsors = await prisma.tvSponsor.findMany({
+    const sponsors = await db.tvSponsor.findMany({
       where: { arenaId, sponsorshipPlanId: { not: null } },
       orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
       select: {
@@ -354,7 +358,7 @@ async function getTvSponsors(arenaId: string) {
     }
 
     try {
-      const legacySponsors = await prisma.tvSponsor.findMany({
+      const legacySponsors = await db.tvSponsor.findMany({
         where: { arenaId, sponsorshipPlanId: { not: null } },
         orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
         select: {
