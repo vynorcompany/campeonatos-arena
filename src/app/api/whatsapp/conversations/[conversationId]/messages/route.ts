@@ -9,9 +9,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { conversationId } = await params;
   if (!accountJid) return NextResponse.json({ error: "Conversa indisponível." }, { status: 404 });
   const db = arenaDatabase(auth.arenaId);
-  const conversation = await db.whatsAppConversation.findFirst({ where: { id: conversationId, arenaId: auth.arenaId, accountJid }, select: { id: true, updatedAt: true } });
+  const conversation = await db.whatsAppConversation.findFirst({ where: { id: conversationId, arenaId: auth.arenaId, accountJid }, select: { id: true, revision: true } });
   if (!conversation) return NextResponse.json({ error: "Conversa indisponível." }, { status: 404 });
-  const etag = JSON.stringify("messages:" + conversation.id + ":" + conversation.updatedAt.getTime());
+  const etag = JSON.stringify("messages:" + conversation.id + ":" + conversation.revision.toString());
   const headers = { "cache-control": "private, no-cache", etag };
   if (request.headers.get("if-none-match") === etag) return new NextResponse(null, { status: 304, headers });
   const messages = await db.whatsAppMessage.findMany({ where: { conversationId: conversation.id }, orderBy: { sentAt: "desc" }, take: 120, select: { id: true, direction: true, body: true, senderName: true, participantJid: true, quotedProviderId: true, quotedBody: true, quotedAuthor: true, reactions: true, mediaType: true, mediaMimeType: true, sentAt: true } });

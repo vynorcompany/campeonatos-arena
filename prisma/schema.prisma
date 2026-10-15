@@ -1954,6 +1954,7 @@ model WhatsAppConnection {
 
 model WhatsAppConversation {
   id            String            @id @default(cuid())
+  revision      BigInt            @default(0)
   accountJid    String            @default("")
   remoteJid     String
   contactName   String            @default("")

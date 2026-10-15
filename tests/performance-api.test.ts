@@ -15,20 +15,22 @@ function route(path: string, mocks: Record<string, unknown>) {
   return exports;
 }
 test("lazy WhatsApp history validates arena/account before reading messages and returns 304 without loading the history", async () => {
-  let account="current",authChecks=0,reads=0;const queries:any[]=[];
+  let account="current",authChecks=0,reads=0,revision=0n;const queries:any[]=[];
   const api=route("src/app/api/whatsapp/conversations/[conversationId]/messages/route.ts",{
     "@/lib/auth/guards":{requireModuleView:async()=>{authChecks++;return{arenaId:"arena"}}},
     "@/lib/whatsapp-active-account":{getActiveWhatsAppAccountJid:async()=>account},
     "@/lib/whatsapp-message-data":{readWhatsAppReactions},
     "@/lib/arena-database": { arenaDatabase: () => ({
-      whatsAppConversation: { findFirst: async ({ where }: any) => where.id === "owned" && where.arenaId === "arena" && where.accountJid === "current" ? { id: "owned", updatedAt: new Date(123) } : null },
+      whatsAppConversation: { findFirst: async ({ where }: any) => where.id === "owned" && where.arenaId === "arena" && where.accountJid === "current" ? { id: "owned", revision } : null },
       whatsAppMessage: { findMany: async (query: any) => { reads++; queries.push(query); return [{ id: "message", sentAt: new Date(100), reactions: [], body: "Text" }]; } },
     }) },
   });
   const call=(id:string,etag="")=>api.GET({headers:new Headers(etag?{'if-none-match':etag}:{})},{params:Promise.resolve({conversationId:id})});
   const first=await call('owned');assert.equal(reads,1);assert.equal(queries[0].take,120);assert.equal(queries[0].select.mediaUrl,undefined);assert.equal(queries[0].select.providerPayload,undefined);assert.equal(first.body.messages[0].mediaUrl,'');
   const unchanged=await call('owned',first.options.headers.etag);assert.equal(unchanged.options.status,304);assert.equal(reads,1);assert.equal(authChecks,2);
-  assert.equal((await call('other-arena')).options.status,404);account='old-account';assert.equal((await call('owned')).options.status,404);assert.equal(reads,1);account='';assert.equal((await call('owned')).options.status,404);
+  revision++;
+  const changed=await call('owned',first.options.headers.etag);assert.equal(changed.options.status,undefined);assert.notEqual(changed.options.headers.etag,first.options.headers.etag);assert.equal(reads,2);
+  assert.equal((await call('other-arena')).options.status,404);account='old-account';assert.equal((await call('owned')).options.status,404);assert.equal(reads,2);account='';assert.equal((await call('owned')).options.status,404);
 });
 test("TV snapshots share work by arena and reauthorize even for an unchanged response",async()=>{
   let arenaId='arena-a',allowed=true,loads=0,authChecks=0;
