@@ -25,7 +25,13 @@ export async function getBookingDelinquency(
     type: { in: ["REVENUE", "INCOME"] },
     status: { in: ["PENDING", "OVERDUE"] },
     dueDate: { lt: bookingDelinquencyCutoff(blockAfterDays, today) },
-    OR: [{ playerId }, { sale: { comanda: { playerId } } }],
+    OR: [
+      { playerId },
+      { sale: { comanda: { playerId } } },
+      { scheduleParticipant: { playerId } },
+      { recurrence: { playerId } },
+      { onlinePaymentItems: { some: { checkout: { playerId } } } },
+    ],
   } satisfies Prisma.FinancialEntryWhereInput;
   const entries = await tx.financialEntry.findMany({
     where: ownedReceivable,
