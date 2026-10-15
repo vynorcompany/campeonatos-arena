@@ -2,20 +2,25 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
+import { createRailwayContext, project } from "railway/iac";
+import railwayConfig from "../.railway/railway";
 
 const read = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8");
 
-test("production deploy applies migrations without rerunning bootstrap data", () => {
+test("production deploy applies migrations without rerunning bootstrap data", async () => {
   const packageJson = read("package.json");
-  const railway = JSON.parse(read("railway.json"));
+  const configuration = await railwayConfig(createRailwayContext({ environment: "production" }), project);
+  const app = configuration.resources?.flat().find((resource) => resource.type === "service" && resource.name === "service-arena-padel-manager");
+  assert.ok(app && app.type === "service");
 
   assert.match(packageJson, /"db:setup": "prisma migrate deploy"/);
   assert.match(packageJson, /"db:bootstrap": "tsx prisma\/seed\.ts"/);
-  assert.equal(railway.deploy.preDeployCommand, null);
+  assert.equal(app.deploy?.preDeployCommand, undefined);
   assert.equal(
-    railway.deploy.startCommand,
+    app.deploy?.startCommand,
     'npm run db:setup && exec node scripts/runtime-server.mjs'
   );
+  assert.equal(app.deploy?.healthcheckPath, "/api/health");
 });
 
 test("public uploads use R2 with an arena-scoped object key", () => {
