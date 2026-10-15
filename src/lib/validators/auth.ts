@@ -2,7 +2,9 @@ import { z } from "zod";
 
 export const loginSchema = z.object({
   email: z.string().trim().email("E-mail inválido."),
-  password: z.string().min(8, "Senha inválida.")
+  // O tamanho mínimo vale para senhas novas; o login deve aceitar senhas
+  // legadas e conferir a credencial real pelo hash armazenado.
+  password: z.string().min(1, "Informe sua senha.")
 });
 
 export const registerArenaSchema = z
