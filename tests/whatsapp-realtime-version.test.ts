@@ -23,6 +23,8 @@ test("webhook sinaliza mensagem histórica ao chat sem alterar última resposta 
   const pulse = readFileSync(new URL("../src/app/api/whatsapp/pulse/route.ts", import.meta.url), "utf8");
   assert.match(webhook, /if \(sentAt >= current\.lastMessageAt\)[\s\S]*?else \{\s*\/\/ Ainda assim, o chat precisa recarregar essa mensagem histórica\.[\s\S]*?data: \{ updatedAt \}/);
   assert.match(pulse, /connection!\.inboxRevision\.toString\(\)/);
+  const history = readFileSync(new URL("../src/app/api/whatsapp/conversations/[conversationId]/messages/route.ts", import.meta.url), "utf8");
+  assert.match(history, /conversation\.revision\.toString\(\)/);
 });
 
 test("mensagem histórica altera a versão persistida sem recuar a conversa", { skip: !disposableDatabase }, async () => {
@@ -78,13 +80,17 @@ test("revisão da caixa avança entre conversas com datas iguais sem vazar entre
       const first = await tx.whatsAppConversation.create({ data: { arenaId: firstArena, accountJid: "goal@s.whatsapp.net", remoteJid: "revision-a@s.whatsapp.net", lastMessageAt: sentAt } });
       await tx.whatsAppConversation.create({ data: { arenaId: firstArena, accountJid: "goal@s.whatsapp.net", remoteJid: "revision-b@s.whatsapp.net", lastMessageAt: sentAt } });
       assert.equal(await revision(firstArena), firstRevision + 2n);
-      await tx.whatsAppConversation.update({ where: { id: first.id }, data: { updatedAt: new Date("2038-01-01T12:00:00.000Z") } });
-      assert.equal(await revision(firstArena), firstRevision + 3n);
+      const sameTimestamp = new Date("2038-01-01T12:00:00.000Z");
+      const firstUpdate = await tx.whatsAppConversation.update({ where: { id: first.id }, data: { updatedAt: sameTimestamp } });
+      const secondUpdate = await tx.whatsAppConversation.update({ where: { id: first.id }, data: { updatedAt: sameTimestamp } });
+      assert.equal(firstUpdate.updatedAt.getTime(), secondUpdate.updatedAt.getTime());
+      assert.equal(secondUpdate.revision, firstUpdate.revision + 1n);
+      assert.equal(await revision(firstArena), firstRevision + 4n);
       assert.equal(await revision(secondArena), secondRevision);
       await tx.$executeRawUnsafe("RESET ROLE");
       await tx.whatsAppConversation.create({ data: { arenaId: secondArena, accountJid: "goal@s.whatsapp.net", remoteJid: "revision-c@s.whatsapp.net", lastMessageAt: sentAt } });
       assert.equal(await revision(secondArena), secondRevision + 1n);
-      assert.equal(await revision(firstArena), firstRevision + 3n);
+      assert.equal(await revision(firstArena), firstRevision + 4n);
       throw rollback;
     }), (error: unknown) => error === rollback);
   } finally {
