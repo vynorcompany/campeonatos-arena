@@ -379,8 +379,10 @@ async function recalculateTournamentRankingPointsTx(tx: Prisma.TransactionClient
   );
 }
 
-export async function recalculateTournamentRankingPoints(tournamentId: string) {
-  await prisma.$transaction(async (tx) => {
+export async function recalculateTournamentRankingPoints(tournamentId: string, arenaId: string) {
+  const tournament = await prisma.tournament.findFirst({ where: { id: tournamentId, arenaId }, select: { id: true } });
+  if (!tournament) throw new Error("Torneio não encontrado.");
+  await withArenaTransaction(arenaId, async (tx) => {
     await recalculateTournamentRankingPointsTx(tx, tournamentId);
   });
 }
@@ -880,7 +882,7 @@ export async function repairTournamentKnockout(
     throw new Error("Torneio não encontrado.");
   }
 
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(arenaId, async (tx) => {
     await seedKnockoutFromGroupStandings(tx, tournamentId);
 
     if (options?.finishTournamentIfChampionDefined) {
@@ -1380,7 +1382,7 @@ export async function syncTournamentEntries(tournamentId: string, arenaId: strin
   );
   const shouldResetStructure = pairsToRemove.length > 0;
 
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(arenaId, async (tx) => {
     if (shouldResetStructure) {
       await resetTournamentStructure(tx, tournamentId);
     }
@@ -1761,7 +1763,7 @@ export async function updateTournamentPairPoints(pairId: string, arenaId: string
     throw new Error("Dupla não encontrada.");
   }
 
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(arenaId, async (tx) => {
     await resetTournamentStructure(tx, pair.tournamentId);
 
     await tx.pair.update({
@@ -1803,7 +1805,7 @@ export async function deleteTournamentPair(pairId: string, arenaId: string) {
     throw new Error("Dupla nÃ£o encontrada.");
   }
 
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(arenaId, async (tx) => {
     await resetTournamentStructure(tx, pair.tournamentId);
 
     await tx.pairPlayer.deleteMany({
@@ -2208,7 +2210,7 @@ export async function moveTournamentPairToGroup(pairId: string, targetGroupId: s
     return true;
   }
 
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(arenaId, async (tx) => {
     await tx.match.deleteMany({
       where: {
         tournamentId: pair.tournamentId
@@ -2454,7 +2456,7 @@ export async function updateMatchResult(matchId: string, arenaId: string, homeSc
 
   const winnerPairId = homeScore > awayScore ? match.homePairId : match.awayPairId;
 
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(arenaId, async (tx) => {
     await tx.match.update({
       where: { id: match.id },
       data: {
@@ -2505,7 +2507,7 @@ export async function updateKnockoutParticipants(
 
   const participantsChanged = match.homePairId !== homePairId || match.awayPairId !== awayPairId;
 
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(arenaId, async (tx) => {
     await tx.match.update({
       where: { id: match.id },
       data: {
