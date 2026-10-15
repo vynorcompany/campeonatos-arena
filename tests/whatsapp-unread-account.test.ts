@@ -56,6 +56,7 @@ test("sidebar counts only the connected account and clears when the session is r
 
 test("live sidebar pulse returns unread totals for the active arena and account, including zero after reset", async () => {
   let accountJid = "account-a";
+  let revision = 1n;
   const rows = [
     { arenaId: "arena", accountJid: "account-a", unreadCount: 2 },
     { arenaId: "arena", accountJid: "account-a", unreadCount: 3 },
@@ -63,9 +64,10 @@ test("live sidebar pulse returns unread totals for the active arena and account,
     { arenaId: "other", accountJid: "account-a", unreadCount: 90 },
   ];
   let queries = 0;
-  const prisma = { whatsAppConversation: {
-    findFirst: async ({ where }: any) => { queries++; assert.deepEqual({ ...where }, { arenaId: "arena", accountJid }); return { id: "latest", updatedAt: new Date(1000) }; },
-    aggregate: async ({ where }: any) => ({ _sum: { unreadCount: rows.filter(row => row.arenaId === where.arenaId && row.accountJid === where.accountJid).reduce((sum, row) => sum + row.unreadCount, 0) } }),
+  const prisma = { whatsAppConnection: {
+    findUnique: async ({ where }: any) => { assert.equal(where.arenaId, "arena"); return accountJid ? { status: "CONNECTED", connectedPhone: accountJid, inboxRevision: revision } : null; },
+  }, whatsAppConversation: {
+    aggregate: async ({ where }: any) => { queries++; return { _sum: { unreadCount: rows.filter(row => row.arenaId === where.arenaId && row.accountJid === where.accountJid).reduce((sum, row) => sum + row.unreadCount, 0) } }; },
   } };
   const source = readFileSync(new URL("../src/app/api/whatsapp/pulse/route.ts", import.meta.url), "utf8");
   const exports: { GET?: () => Promise<{ data: any; headers: any }> } = {};
@@ -74,15 +76,18 @@ test("live sidebar pulse returns unread totals for the active arena and account,
     if (name === "@/lib/auth/guards") return { requireModuleView: async (module: string) => { assert.equal(module, "support"); return { arenaId: "arena" }; } };
     if (name === "@/lib/prisma") return { prisma };
     if (name === "@/lib/arena-database") return { arenaDatabase: () => prisma };
-    if (name === "@/lib/whatsapp-active-account") return { getActiveWhatsAppAccountJid: async () => accountJid };
+    if (name === "@/lib/whatsapp-account") return { normalizeWhatsAppAccountJid: (value: string) => value };
     throw new Error(`Unexpected import: ${name}`);
   } });
   let result = await exports.GET!();
   assert.equal(result.data.unreadCount, 5);
+  assert.equal(result.data.version, "account-a:1");
   assert.match(result.headers["cache-control"], /no-store/);
   rows[0].unreadCount++;
+  revision++;
   assert.equal((await exports.GET!()).data.unreadCount, 6);
   rows[0].unreadCount = rows[1].unreadCount = 0;
+  revision++;
   assert.equal((await exports.GET!()).data.unreadCount, 0);
   accountJid = "account-b";
   result = await exports.GET!();

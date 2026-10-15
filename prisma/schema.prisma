@@ -1943,6 +1943,7 @@ model WhatsAppConnection {
   webhookSecretHash String   @default("")
   lastError         String   @default("")
   lastConnectedAt   DateTime?
+  inboxRevision     BigInt   @default(0)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   arenaId           String   @unique

@@ -22,7 +22,7 @@ test("webhook sinaliza mensagem histórica ao chat sem alterar última resposta 
   const webhook = readFileSync(new URL("../src/app/api/integrations/evolution/webhook/route.ts", import.meta.url), "utf8");
   const pulse = readFileSync(new URL("../src/app/api/whatsapp/pulse/route.ts", import.meta.url), "utf8");
   assert.match(webhook, /if \(sentAt >= current\.lastMessageAt\)[\s\S]*?else \{\s*\/\/ Ainda assim, o chat precisa recarregar essa mensagem histórica\.[\s\S]*?data: \{ updatedAt \}/);
-  assert.match(pulse, /latest\.updatedAt\.getTime\(\)/);
+  assert.match(pulse, /connection!\.inboxRevision\.toString\(\)/);
 });
 
 test("mensagem histórica altera a versão persistida sem recuar a conversa", { skip: !disposableDatabase }, async () => {
@@ -46,6 +46,45 @@ test("mensagem histórica altera a versão persistida sem recuar a conversa", { 
       assert.ok(updated.updatedAt.getTime() > conversation.updatedAt.getTime());
       assert.equal(updated.lastMessageAt.getTime(), lastMessageAt.getTime());
       assert.equal(updated.unreadCount, 0);
+      throw rollback;
+    }), (error: unknown) => error === rollback);
+  } finally {
+    await db.$disconnect();
+  }
+});
+
+test("revisão da caixa avança entre conversas com datas iguais sem vazar entre arenas", { skip: !disposableDatabase }, async () => {
+  const db = new PrismaClient({ datasources: { db: { url: testUrl } } });
+  const rollback = new Error("rollback da revisão da caixa descartável");
+  try {
+    await assert.rejects(db.$transaction(async (tx) => {
+      const arenas = await tx.arena.findMany({ select: { id: true }, take: 2, orderBy: { id: "asc" } });
+      assert.equal(arenas.length, 2, "O teste exige duas arenas fictícias.");
+      for (const arena of arenas) {
+        await tx.whatsAppConnection.upsert({
+          where: { arenaId: arena.id },
+          create: { arenaId: arena.id, instanceName: `goal-revision-${arena.id}`, status: "CONNECTED", connectedPhone: "goal@s.whatsapp.net" },
+          update: {},
+        });
+      }
+      const revision = async (arenaId: string) => (await tx.whatsAppConnection.findUniqueOrThrow({ where: { arenaId }, select: { inboxRevision: true } })).inboxRevision;
+      const firstArena = arenas[0].id;
+      const secondArena = arenas[1].id;
+      const firstRevision = await revision(firstArena);
+      const secondRevision = await revision(secondArena);
+      const sentAt = new Date("2038-01-02T12:00:00.000Z");
+      await tx.$executeRaw`SELECT set_config('app.arena_id', ${firstArena}, true)`;
+      await tx.$executeRawUnsafe("SET LOCAL ROLE arena_runtime");
+      const first = await tx.whatsAppConversation.create({ data: { arenaId: firstArena, accountJid: "goal@s.whatsapp.net", remoteJid: "revision-a@s.whatsapp.net", lastMessageAt: sentAt } });
+      await tx.whatsAppConversation.create({ data: { arenaId: firstArena, accountJid: "goal@s.whatsapp.net", remoteJid: "revision-b@s.whatsapp.net", lastMessageAt: sentAt } });
+      assert.equal(await revision(firstArena), firstRevision + 2n);
+      await tx.whatsAppConversation.update({ where: { id: first.id }, data: { updatedAt: new Date("2038-01-01T12:00:00.000Z") } });
+      assert.equal(await revision(firstArena), firstRevision + 3n);
+      assert.equal(await revision(secondArena), secondRevision);
+      await tx.$executeRawUnsafe("RESET ROLE");
+      await tx.whatsAppConversation.create({ data: { arenaId: secondArena, accountJid: "goal@s.whatsapp.net", remoteJid: "revision-c@s.whatsapp.net", lastMessageAt: sentAt } });
+      assert.equal(await revision(secondArena), secondRevision + 1n);
+      assert.equal(await revision(firstArena), firstRevision + 3n);
       throw rollback;
     }), (error: unknown) => error === rollback);
   } finally {

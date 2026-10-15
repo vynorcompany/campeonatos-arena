@@ -11,12 +11,11 @@ export default async function WhatsAppPage() {
   const auth = await requireModuleView("support");
   const [arena, connection, clients] = await Promise.all([
     prisma.arena.findUniqueOrThrow({ where: { id: auth.arenaId }, select: { whatsappSlaMinutes: true } }),
-    prisma.whatsAppConnection.findUnique({ where: { arenaId: auth.arenaId }, select: { status: true, connectedPhone: true } }),
+    prisma.whatsAppConnection.findUnique({ where: { arenaId: auth.arenaId }, select: { status: true, connectedPhone: true, inboxRevision: true } }),
     prisma.player.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true, phone: true, email: true, photoUrl: true }, orderBy: { name: "asc" }, take: 500 })
   ]);
   const accountJid = connection?.status === "CONNECTED" ? normalizeWhatsAppAccountJid(connection.connectedPhone) : "";
-  const [conversations, latestUpdate] = accountJid ? await Promise.all([
-    arenaDatabase(auth.arenaId).whatsAppConversation.findMany({
+  const conversations = accountJid ? await arenaDatabase(auth.arenaId).whatsAppConversation.findMany({
       where: { arenaId: auth.arenaId, accountJid },
       select: {
         id: true, contactName: true, contactPhone: true, profilePhotoUrl: true,
@@ -30,14 +29,8 @@ export default async function WhatsAppPage() {
         },
       },
       orderBy: { lastMessageAt: "desc" }, take: 100,
-    }),
-    arenaDatabase(auth.arenaId).whatsAppConversation.findFirst({
-      where: { arenaId: auth.arenaId, accountJid },
-      orderBy: { updatedAt: "desc" },
-      select: { id: true, updatedAt: true },
-    }),
-  ]) : [[], null];
+    }) : [];
   const serializedConversations = conversations.map((conversation) => ({ ...conversation, contactName: !conversation.remoteJid.endsWith("@g.us") && conversation.player?.name ? conversation.player.name : conversation.contactName, lastMessageAt: conversation.lastMessageAt.toISOString(), archivedAt: conversation.archivedAt?.toISOString() ?? null, slaResolvedAt: conversation.slaResolvedAt?.toISOString() ?? null, messages: conversation.messages.map((message) => ({ ...message, mediaUrl: "", reactions: readWhatsAppReactions(message.reactions), sentAt: message.sentAt.toISOString() })) }));
-  const initialVersion = accountJid ? `${accountJid}:${latestUpdate ? `${latestUpdate.id}:${latestUpdate.updatedAt.getTime()}` : "empty"}` : "empty";
+  const initialVersion = accountJid ? `${accountJid}:${connection!.inboxRevision.toString()}` : "empty";
   return <div className={viewStyles.whatsapp_page}><WhatsAppChatWorkspace pollingScope={auth.arenaId} currentAccountJid={accountJid} currentUserName={auth.userName} canEdit={canManageWhatsApp(auth.arenaRole, auth.systemRole, auth.editPermissions)} canSend={canSendWhatsApp(auth.arenaRole, auth.systemRole, auth.editPermissions)} connected={connection?.status === "CONNECTED"} initialVersion={initialVersion} slaMinutes={arena.whatsappSlaMinutes} clients={clients} conversations={serializedConversations} /></div>;
 }
