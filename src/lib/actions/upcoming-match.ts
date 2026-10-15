@@ -358,7 +358,7 @@ export async function createTvSponsorAction(formData: FormData) {
   }
   const { monthlyAmount, ...sponsorData } = parsed.data;
   const sponsorshipPlanId = String(formData.get("sponsorshipPlanId") ?? "");
-  const sponsorshipPlan = sponsorshipPlanId ? await prisma.sponsorshipPlan.findFirst({ where: { id: sponsorshipPlanId, arenaId: auth.arenaId } }) : null;
+  const sponsorshipPlan = sponsorshipPlanId ? await db.sponsorshipPlan.findFirst({ where: { id: sponsorshipPlanId, arenaId: auth.arenaId } }) : null;
   if (sponsorshipPlanId && !sponsorshipPlan) throw new Error("Plano de patrocínio inválido.");
 
   const logoFile = formData.get("logo") as File | null;
@@ -386,10 +386,11 @@ export async function createTvSponsorAction(formData: FormData) {
 
 export async function createSponsorshipPlanAction(formData: FormData) {
   const auth = await requireModuleEdit("tv");
+  const db = arenaDatabase(auth.arenaId);
   const parsed = sponsorshipPlanSchema.safeParse({ name: formData.get("name"), sponsorshipType: formData.get("sponsorshipType"), monthlyAmount: formData.get("monthlyAmount"), reservationCredits: formData.get("reservationCredits"), lessonCredits: formData.get("lessonCredits") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   const { monthlyAmount, ...data } = parsed.data;
-  await prisma.sponsorshipPlan.create({ data: { arenaId: auth.arenaId, ...data, monthlyAmountCents: parseMonthlyAmountToCents(monthlyAmount) } });
+  await db.sponsorshipPlan.create({ data: { arenaId: auth.arenaId, ...data, monthlyAmountCents: parseMonthlyAmountToCents(monthlyAmount) } });
   refreshUpcomingMatches();
 }
 
@@ -409,7 +410,7 @@ export async function insertSponsorInPlanAction(formData: FormData) {
   if (!planId || name.length < 2 || !startedAt) throw new Error("Informe empresa, plano e data de início.");
   if (!Number.isFinite(discountValue) || discountValue < 0 || (discountMode === "PERCENTAGE" && discountValue > 100)) throw new Error("Informe um desconto válido.");
   const [plan, client, lastSponsor] = await Promise.all([
-    prisma.sponsorshipPlan.findFirst({ where: { id: planId, arenaId: auth.arenaId } }),
+    db.sponsorshipPlan.findFirst({ where: { id: planId, arenaId: auth.arenaId } }),
     clientId ? prisma.player.findFirst({ where: { id: clientId, arenaId: auth.arenaId, active: true }, select: { id: true, name: true } }) : Promise.resolve(null),
     db.tvSponsor.findFirst({ where: { arenaId: auth.arenaId, sponsorshipPlanId: planId }, orderBy: { displayOrder: "desc" }, select: { displayOrder: true } })
   ]);
@@ -440,9 +441,10 @@ export async function insertSponsorInPlanAction(formData: FormData) {
 
 export async function deleteSponsorshipPlanAction(formData: FormData) {
   const auth = await requireModuleEdit("tv");
+  const db = arenaDatabase(auth.arenaId);
   const planId = z.string().trim().min(1).safeParse(formData.get("planId"));
   if (!planId.success) throw new Error("Plano de patrocínio inválido.");
-  await prisma.sponsorshipPlan.deleteMany({ where: { id: planId.data, arenaId: auth.arenaId } });
+  await db.sponsorshipPlan.deleteMany({ where: { id: planId.data, arenaId: auth.arenaId } });
   refreshUpcomingMatches();
 }
 
