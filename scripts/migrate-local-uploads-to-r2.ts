@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { prisma } from "@/lib/prisma";
+import { arenaDatabase } from "@/lib/arena-database";
 import { savePublicImageUpload } from "@/lib/uploads";
 
 const mimeTypes: Record<string, string> = {
@@ -38,9 +39,9 @@ async function uploadLegacyFile(url: string, arenaId: string, folder: string, pr
 
 async function main() {
   assertR2Configuration();
-  const [eventPosts, sponsors] = await Promise.all([
+  const [eventPosts, arenas] = await Promise.all([
     prisma.portalEventPost.findMany({ where: { imageUrl: { startsWith: "/uploads/" } }, select: { id: true, arenaId: true, imageUrl: true } }),
-    prisma.tvSponsor.findMany({ where: { logoUrl: { startsWith: "/uploads/" } }, select: { id: true, arenaId: true, logoUrl: true } })
+    prisma.arena.findMany({ select: { id: true } })
   ]);
 
   let migrated = 0;
@@ -50,10 +51,14 @@ async function main() {
     migrated += result.count;
   }
 
-  for (const sponsor of sponsors) {
-    const logoUrl = await uploadLegacyFile(sponsor.logoUrl, sponsor.arenaId, "tv-sponsor-logos", `sponsor-${sponsor.id}`);
-    const result = await prisma.tvSponsor.updateMany({ where: { id: sponsor.id, arenaId: sponsor.arenaId, logoUrl: sponsor.logoUrl }, data: { logoUrl } });
-    migrated += result.count;
+  for (const arena of arenas) {
+    const db = arenaDatabase(arena.id);
+    const sponsors = await db.tvSponsor.findMany({ where: { arenaId: arena.id, logoUrl: { startsWith: "/uploads/" } }, select: { id: true, arenaId: true, logoUrl: true } });
+    for (const sponsor of sponsors) {
+      const logoUrl = await uploadLegacyFile(sponsor.logoUrl, sponsor.arenaId, "tv-sponsor-logos", `sponsor-${sponsor.id}`);
+      const result = await db.tvSponsor.updateMany({ where: { id: sponsor.id, arenaId: sponsor.arenaId, logoUrl: sponsor.logoUrl }, data: { logoUrl } });
+      migrated += result.count;
+    }
   }
 
   console.log(`Migração de uploads concluída: ${migrated} arquivo(s) atualizado(s).`);

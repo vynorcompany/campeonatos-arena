@@ -5,16 +5,17 @@ import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { deleteTvSponsorAction, insertSponsorInPlanAction, updateTvSponsorAction } from "@/lib/actions/upcoming-match";
 import { requireModuleView } from "@/lib/auth/guards";
-import { prisma } from "@/lib/prisma";
+import { arenaDatabase } from "@/lib/arena-database";
 
 const money = (cents: number) => `R$ ${(cents / 100).toFixed(2).replace(".", ",")}`;
 
 export default async function SponsorshipPlanPage(props: { params: Promise<{ planId: string }> }) {
   const params = await props.params;
   const auth = await requireModuleView("tv");
+  const db = arenaDatabase(auth.arenaId);
   const [plan, clients] = await Promise.all([
-    prisma.sponsorshipPlan.findFirst({ where: { id: params.planId, arenaId: auth.arenaId }, include: { sponsors: { include: { player: { select: { name: true } } }, orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }] } } }),
-    prisma.player.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true, phone: true }, orderBy: { name: "asc" } })
+    db.sponsorshipPlan.findFirst({ where: { id: params.planId, arenaId: auth.arenaId }, include: { sponsors: { include: { player: { select: { name: true } } }, orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }] } } }),
+    db.player.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true, phone: true }, orderBy: { name: "asc" } })
   ]);
   if (!plan) return <section className={viewStyles.sponsor_empty_state}><strong>Plano não encontrado</strong><p>Ele pode ter sido removido.</p><Link href="/proximos-jogos/patrocinios" className={viewStyles.button_button_small}>Voltar aos planos</Link></section>;
   const planDetails = { name: plan.name, sponsorshipType: plan.sponsorshipType, monthlyAmount: (plan.monthlyAmountCents / 100).toFixed(2).replace(".", ","), reservationCredits: plan.reservationCredits, lessonCredits: plan.lessonCredits };
