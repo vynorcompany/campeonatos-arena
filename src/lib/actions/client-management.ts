@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requirePermission } from "@/lib/auth/guards";
 import { normalizeBrazilianPhone } from "@/lib/phone";
-import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 
 function refreshClients() {
@@ -81,7 +80,7 @@ export async function archiveClientsAction(formData: FormData) {
   const auth = await requirePermission("players:edit");
   const playerIds = [...new Set(formData.getAll("playerId").map(String).filter(Boolean))];
   if (!playerIds.length) throw new Error("Selecione ao menos um cliente.");
-  await prisma.player.updateMany({ where: { arenaId: auth.arenaId, id: { in: playerIds } }, data: { active: false } });
+  await withArenaTransaction(auth.arenaId, (tx) => tx.player.updateMany({ where: { arenaId: auth.arenaId, id: { in: playerIds } }, data: { active: false } }));
   refreshClients();
 }
 
@@ -92,10 +91,10 @@ export async function importClientsAction(formData: FormData) {
   const rows = (await file.text()).replace(/^\uFEFF/, "").split(/\r?\n/).slice(1).map((line) => line.split(";").map((value) => value.trim())).filter(([name]) => name);
   if (!rows.length) throw new Error("O CSV não possui clientes para importar.");
   let imported = 0;
-  const existingClients = await prisma.player.findMany({ where: { arenaId: auth.arenaId }, select: { phone: true, cpf: true } });
+  const existingClients = await withArenaTransaction(auth.arenaId, (tx) => tx.player.findMany({ where: { arenaId: auth.arenaId }, select: { phone: true, cpf: true } }));
   const knownPhones = new Set(existingClients.map((client) => normalizeBrazilianPhone(client.phone)).filter(Boolean));
   const knownCpfs = new Set(existingClients.map((client) => client.cpf.replace(/\D/g, "")).filter(Boolean));
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(auth.arenaId, async (tx) => {
     for (const [name, phone, cpf] of rows) {
       if (name.length < 2 || phone.replace(/\D/g, "").length < 8) continue;
       const normalizedPhone = normalizeBrazilianPhone(phone); const normalizedCpf = cpf.replace(/\D/g, "");
