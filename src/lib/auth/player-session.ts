@@ -3,6 +3,7 @@ import "server-only";
 import crypto from "node:crypto";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { arenaDatabase } from "@/lib/arena-database";
 
 const PLAYER_SESSION_COOKIE = "arena_player_session";
 const PLAYER_SESSION_DAYS = 14;
@@ -39,16 +40,39 @@ async function getSession() {
   if (!token) return null;
   const session = await prisma.playerSession.findFirst({
     where: { token: { in: [token, hashToken(token)] } },
-    include: {
-      athleteIdentity: { include: { accounts: { include: membershipInclude } } },
-      playerAccount: { include: { identity: { include: { accounts: { include: membershipInclude } } }, player: { include: membershipInclude.player.include } } },
+    select: {
+      id: true, expiresAt: true, athleteIdentityId: true,
+      playerAccount: { select: { id: true, arenaId: true, playerId: true, phone: true, identityId: true } },
     },
   });
   if (!session || session.expiresAt < new Date()) {
     if (session) await prisma.playerSession.delete({ where: { id: session.id } });
     return null;
   }
-  return session;
+  const identityId = session.athleteIdentityId ?? session.playerAccount.identityId;
+  const [identity, accountRows] = await Promise.all([
+    identityId ? prisma.athleteIdentity.findUnique({ where: { id: identityId }, select: { id: true, phone: true } }) : Promise.resolve(null),
+    identityId
+      ? prisma.playerAccount.findMany({ where: { identityId }, select: { id: true, arenaId: true, playerId: true, phone: true, identityId: true } })
+      : Promise.resolve([session.playerAccount]),
+  ]);
+  const membershipRows = accountRows.some((account) => account.id === session.playerAccount.id)
+    ? accountRows
+    : [session.playerAccount, ...accountRows];
+  const accounts = (await Promise.all(membershipRows.map(async (account) => {
+    const player = await arenaDatabase(account.arenaId).player.findFirst({
+      where: { id: account.playerId, arenaId: account.arenaId },
+      include: membershipInclude.player.include,
+    });
+    return player ? { ...account, player } : null;
+  }))).filter((account): account is NonNullable<typeof account> => account !== null);
+  const primary = accounts.find((account) => account.id === session.playerAccount.id);
+  if (!primary) return null;
+  const resolvedIdentity = identity ? { ...identity, accounts } : null;
+  return {
+    athleteIdentity: session.athleteIdentityId ? resolvedIdentity : null,
+    playerAccount: { ...primary, identity: resolvedIdentity },
+  };
 }
 
 export async function getPublicPlayerAuth(arenaSlug: string) {

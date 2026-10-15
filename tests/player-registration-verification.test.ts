@@ -46,6 +46,7 @@ function fixture(options: { existingAccount?: boolean } = {}) {
     "next/navigation": { redirect: (url: string) => { throw new Error(`redirect:${url}`); } },
     "@/lib/auth/player-session": { createPublicPlayerSession: async (id: string) => { sessions.push(id); }, destroyPublicPlayerSession: async () => {} },
     "@/lib/prisma": { prisma },
+    "@/lib/rls": { withArenaTransaction: async (_arenaId: string, callback: (tx: typeof prisma) => Promise<unknown>) => callback(prisma) },
     "@/lib/services/public-client-registration": { resolvePublicClientPlayer: () => null },
     "@/lib/env": { env: { playerPhoneVerificationRequired: true } },
     "@/lib/integrations/evolution/client": { sendEvolutionTextMessage: async (_phone: string, message: string) => { sent.push(message); } },

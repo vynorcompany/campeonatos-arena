@@ -11,6 +11,7 @@ import { env } from "@/lib/env";
 import { sendEvolutionTextMessage } from "@/lib/integrations/evolution/client";
 import { normalizeBrazilianPhone } from "@/lib/phone";
 import { activeLoginLock, clearLoginFailures, recordFailedLogin } from "@/lib/auth/login-attempts";
+import { withArenaTransaction } from "@/lib/rls";
 
 export type PublicClientAuthState = { error: string | null; notice?: string; requested?: boolean; phone?: string };
 
@@ -74,17 +75,18 @@ async function resetCodeMatches(code: { id: string; codeHash: string } | null, s
 }
 
 async function findPlayerByPhone(arenaId: string, phone: string) {
-  const players = await prisma.player.findMany({ where: { arenaId, active: true, phone: { not: "" } }, include: { account: true }, orderBy: { createdAt: "asc" } });
+  const players = await withArenaTransaction(arenaId, (tx) => tx.player.findMany({ where: { arenaId, active: true, phone: { not: "" } }, include: { account: true }, orderBy: { createdAt: "asc" } }));
   return resolvePublicClientPlayer(players, phone);
 }
 
 async function findAccountByPhone(arenaId: string, phone: string) {
   const canonicalPhone = normalizePhone(phone);
-  const account = await prisma.playerAccount.findUnique({ where: { arenaId_phone: { arenaId, phone: canonicalPhone } }, include: { player: true, identity: { include: { accounts: { select: { id: true, passwordHash: true } } } } } });
-  if (account) return account;
-
-  const legacyAccounts = await prisma.playerAccount.findMany({ where: { arenaId }, include: { player: true, identity: { include: { accounts: { select: { id: true, passwordHash: true } } } } }, orderBy: { createdAt: "asc" } });
-  return legacyAccounts.find((account) => normalizePhone(account.phone) === normalizePhone(phone)) ?? null;
+  return withArenaTransaction(arenaId, async (tx) => {
+    const account = await tx.playerAccount.findUnique({ where: { arenaId_phone: { arenaId, phone: canonicalPhone } }, include: { player: true, identity: { include: { accounts: { select: { id: true, passwordHash: true } } } } } });
+    if (account) return account;
+    const legacyAccounts = await tx.playerAccount.findMany({ where: { arenaId }, include: { player: true, identity: { include: { accounts: { select: { id: true, passwordHash: true } } } } }, orderBy: { createdAt: "asc" } });
+    return legacyAccounts.find((candidate) => normalizePhone(candidate.phone) === normalizePhone(phone)) ?? null;
+  });
 }
 
 async function findGlobalIdentityByPhone(phone: string) {
@@ -118,7 +120,7 @@ export async function registerPublicClientAction(_: PublicClientAuthState, formD
   }
   const player = await findPlayerByPhone(arena.id, phone);
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
-  const account = await prisma.$transaction(async (tx) => {
+  const account = await withArenaTransaction(arena.id, async (tx) => {
     const linkedPlayer = player ?? await tx.player.create({ data: { arenaId: arena.id, name: parsed.data.name, phone } });
     const athleteIdentity = identity ?? await tx.athleteIdentity.create({ data: { phone, passwordHash } });
     return tx.playerAccount.create({ data: { arenaId: arena.id, phone, playerId: linkedPlayer.id, passwordHash, identityId: athleteIdentity.id } });
@@ -148,7 +150,7 @@ export async function confirmPublicClientRegistrationAction(_: PublicClientAuthS
   }
   const player = await findPlayerByPhone(arena.id, phone);
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
-  const account = await prisma.$transaction(async (tx) => {
+  const account = await withArenaTransaction(arena.id, async (tx) => {
     const claim = await tx.playerVerificationCode.updateMany({ where: { id: verification.id, arenaId: arena.id, phone, purpose: "REGISTER", codeHash: verification.codeHash, usedAt: null, expiresAt: { gt: new Date() }, attempts: { lt: 5 } }, data: { usedAt: new Date() } });
     if (!claim.count) return null;
     if (await tx.playerAccount.findUnique({ where: { arenaId_phone: { arenaId: arena.id, phone } }, select: { id: true } })) return null;

@@ -2,6 +2,7 @@ import "server-only";
 
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { arenaDatabase } from "@/lib/arena-database";
 import { compareSuper12GroupPairs } from "@/lib/super12/ranking";
 
 const eventBoardInclude = {
@@ -73,6 +74,7 @@ function buildStandings(event: NonNullable<EventWithBoard>) {
 export async function getPublicSuper12(arenaSlug: string, playerId: string, eventId?: string) {
   const arena = await prisma.arena.findUnique({ where: { slug: arenaSlug }, select: { id: true } });
   if (!arena) return null;
+  const db = arenaDatabase(arena.id);
   const visibleWhere = {
     arenaId: arena.id,
     OR: [
@@ -81,9 +83,9 @@ export async function getPublicSuper12(arenaSlug: string, playerId: string, even
     ],
   };
   const [events, selectedEvent, availablePlayers] = await Promise.all([
-    prisma.super12Event.findMany({ where: { ...visibleWhere, status: "ACTIVE" }, select: { id: true, name: true, format: true, createdAt: true, creatorId: true, _count: { select: { pairs: true, matches: true } } }, orderBy: { createdAt: "desc" }, take: 12 }),
-    eventId ? prisma.super12Event.findFirst({ where: { id: eventId, ...visibleWhere }, include: eventBoardInclude }) : prisma.super12Event.findFirst({ where: { ...visibleWhere, status: "ACTIVE" }, include: eventBoardInclude, orderBy: { createdAt: "desc" } }),
-    prisma.player.findMany({ where: { arenaId: arena.id, active: true }, select: { id: true, name: true, photoUrl: true }, orderBy: { name: "asc" } }),
+    db.super12Event.findMany({ where: { ...visibleWhere, status: "ACTIVE" }, select: { id: true, name: true, format: true, createdAt: true, creatorId: true, _count: { select: { pairs: true, matches: true } } }, orderBy: { createdAt: "desc" }, take: 12 }),
+    eventId ? db.super12Event.findFirst({ where: { id: eventId, ...visibleWhere }, include: eventBoardInclude }) : db.super12Event.findFirst({ where: { ...visibleWhere, status: "ACTIVE" }, include: eventBoardInclude, orderBy: { createdAt: "desc" } }),
+    db.player.findMany({ where: { arenaId: arena.id, active: true }, select: { id: true, name: true, photoUrl: true }, orderBy: { name: "asc" } }),
   ]);
   if (!availablePlayers.some((player) => player.id === playerId)) return null;
 

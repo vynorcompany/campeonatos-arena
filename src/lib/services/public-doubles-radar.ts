@@ -1,6 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import { arenaDatabase } from "@/lib/arena-database";
 
 export type DoublesRadar = {
   athletes: Array<{
@@ -33,10 +34,11 @@ export async function getPublicDoublesRadar(
 ): Promise<DoublesRadar | null> {
   const arena = await prisma.arena.findUnique({ where: { slug: arenaSlug }, select: { id: true } });
   if (!arena) return null;
-  const currentPlayer = await prisma.player.findFirst({ where: { id: currentPlayerId, arenaId: arena.id, active: true }, select: { id: true } });
+  const db = arenaDatabase(arena.id);
+  const currentPlayer = await db.player.findFirst({ where: { id: currentPlayerId, arenaId: arena.id, active: true }, select: { id: true } });
   if (!currentPlayer) return null;
 
-  const [visiblePlayers, notifications] = await Promise.all([prisma.player.findMany({
+  const [visiblePlayers, notifications] = await Promise.all([db.player.findMany({
     where: {
       arenaId: arena.id,
       active: true,
@@ -45,7 +47,7 @@ export async function getPublicDoublesRadar(
     },
     select: { id: true, name: true, photoUrl: true, gender: true, class: true, padelCategories: true, padelSide: true, tournamentAvailability: true },
     orderBy: [{ class: "asc" }, { name: "asc" }],
-  }), prisma.playerNotification.findMany({
+  }), db.playerNotification.findMany({
     where: { playerId: currentPlayerId, player: { arenaId: arena.id, active: true }, type: "DOUBLES_REQUEST", readAt: null },
     select: { id: true, title: true, message: true, href: true },
     orderBy: { createdAt: "desc" },

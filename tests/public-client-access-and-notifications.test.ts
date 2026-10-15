@@ -53,7 +53,7 @@ test("public authentication also resolves legacy account phones by their digits"
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/player-auth.ts"), "utf8");
 
   assert.match(actions, /function findAccountByPhone[\s\S]*?findMany/);
-  assert.match(actions, /normalizePhone\(account\.phone\) === normalizePhone\(phone\)/);
+  assert.match(actions, /legacyAccounts\.find\(\(candidate\) => normalizePhone\(candidate\.phone\) === normalizePhone\(phone\)\)/);
 });
 
 test("public league panels require a signed-in client", () => {

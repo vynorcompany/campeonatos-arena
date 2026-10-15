@@ -40,6 +40,7 @@ test("Super 12 não duplica fases nem altera placares que já definiram a chave"
       "next/cache": { revalidatePath: () => {} },
       zod: require("zod"),
       "@/lib/prisma": { prisma: db },
+      "@/lib/arena-database": { arenaDatabase: () => db },
       "@/lib/auth/player-session": { requirePublicPlayerAuth: async () => ({ arenaId: arena.id, playerId: creator.id }) },
       "@/lib/super12/ranking": { compareSuper12CrossGroupPairs, compareSuper12GroupPairs },
       "@/lib/super12/format": { super12GroupSetupError },
