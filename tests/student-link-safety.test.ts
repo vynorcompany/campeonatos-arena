@@ -10,20 +10,22 @@ function createStudentActionForTest(existingStudent: Student | null, linkedPlaye
   const writes: Array<{ kind: string; data: Record<string, unknown> }> = [];
   const source = readFileSync(new URL("../src/lib/actions/academy.ts", import.meta.url), "utf8");
   const exports: Record<string, (formData: FormData) => Promise<void>> = {};
+  const prisma = {
+    player: { findFirst: async () => linkedPlayer },
+    student: {
+      findFirst: async () => existingStudent,
+      update: async ({ data }: { data: Record<string, unknown> }) => { writes.push({ kind: "update", data }); },
+      create: async ({ data }: { data: Record<string, unknown> }) => { writes.push({ kind: "create", data }); },
+    },
+  };
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, {
     exports,
     require: (name: string) => {
       if (name === "@/lib/auth/guards") return { requireModuleEdit: async () => ({ arenaId: "arena-a" }) };
       if (name === "@/lib/academy/action-schemas") return { studentSchema: { safeParse: () => ({ success: true, data: { playerId: "new-player", name: "Nome repetido", phone: "", email: "", remainingClasses: 0, notes: "" } }) } };
       if (name === "@/lib/academy/revalidation") return { refreshAcademyRoutes: () => undefined };
-      if (name === "@/lib/prisma") return { prisma: {
-        player: { findFirst: async () => linkedPlayer },
-        student: {
-          findFirst: async () => existingStudent,
-          update: async ({ data }: { data: Record<string, unknown> }) => { writes.push({ kind: "update", data }); },
-          create: async ({ data }: { data: Record<string, unknown> }) => { writes.push({ kind: "create", data }); },
-        },
-      } };
+      if (name === "@/lib/prisma") return { prisma };
+      if (name === "@/lib/rls") return { withArenaTransaction: async (_arenaId: string, callback: (tx: typeof prisma) => Promise<unknown>) => callback(prisma) };
       return {};
     },
   });

@@ -38,12 +38,12 @@ export async function createStudentAction(formData: FormData) {
   }
 
   const linkedPlayer = parsed.data.playerId
-    ? await prisma.player.findFirst({
+    ? await withArenaTransaction(auth.arenaId, (tx) => tx.player.findFirst({
         where: {
           id: parsed.data.playerId,
           arenaId: auth.arenaId,
         },
-      })
+      }))
     : null;
   if (parsed.data.playerId && !linkedPlayer) {
     throw new Error("Cliente não encontrado nesta arena.");
@@ -220,10 +220,10 @@ export async function createTeacherAction(formData: FormData) {
   const auth = await requireModuleEdit("teachers");
   const playerId = String(formData.get("playerId") ?? "").trim();
   const client = playerId
-    ? await prisma.player.findFirst({
+    ? await withArenaTransaction(auth.arenaId, (tx) => tx.player.findFirst({
         where: { id: playerId, arenaId: auth.arenaId, active: true, teacher: null },
         select: { id: true, name: true, phone: true, email: true },
-      })
+      }))
     : null;
 
   if (!client) {
@@ -824,10 +824,10 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
       where: { arenaId: auth.arenaId, teacherId, planId, active: true },
       select: { monthlyPriceCents: true },
     }),
-    prisma.player.findFirst({
+    withArenaTransaction(auth.arenaId, (tx) => tx.player.findFirst({
       where: { id: clientId, arenaId: auth.arenaId, active: true },
       select: { id: true, name: true, phone: true },
-    }),
+    })),
     classGroupId
       ? prisma.classGroup.findFirst({
           where: {
