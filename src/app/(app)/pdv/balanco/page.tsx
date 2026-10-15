@@ -8,6 +8,7 @@ import { operationalWorkspace as ui } from "@/components/ui/operational-workspac
 import { requireModuleView } from "@/lib/auth/guards";
 import { createStockBalanceAction } from "@/lib/actions/pos";
 import { prisma } from "@/lib/prisma";
+import { loadVisibleProductNames, visibleProductName } from "@/lib/products/visible-product-names";
 
 function signed(value: number) {
   return `${value > 0 ? "+" : ""}${value}`;
@@ -24,11 +25,11 @@ export default async function StockBalancePage() {
     }),
     prisma.stockMovement.findMany({
       where: { arenaId: auth.arenaId, type: "ADJUST", reason: { startsWith: "Balanço " } },
-      include: { product: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
       take: 40
     })
   ]);
+  const productNames = await loadVisibleProductNames(prisma, auth.arenaId, movements.map((movement) => movement.productId));
 
   return (
     <div className={viewStyles.stack_md_workspace_page_stock_balance_page}>
@@ -65,7 +66,7 @@ export default async function StockBalancePage() {
             const match = movement.reason.match(/sistema: (\d+) \| contado: (\d+) \| diferença: ([+-]?\d+)/);
             const difference = match ? Number(match[3]) : 0;
             return <article key={movement.id} className={cx(difference === 0 ? "" : difference < 0 ? "is-loss" : "is-surplus")}>
-              <div><strong>{movement.product.name}</strong><span>{movement.createdAt.toLocaleString("pt-BR")}</span><small>{movement.reason}</small></div>
+              <div><strong>{visibleProductName(productNames, movement.productId)}</strong><span>{movement.createdAt.toLocaleString("pt-BR")}</span><small>{movement.reason}</small></div>
               <b>{signed(difference)}</b>
             </article>;
           })}

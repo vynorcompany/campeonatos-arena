@@ -18,6 +18,7 @@ test("operational summaries are not limited by the displayed rows", async () => 
     cashRegister: { findMany: capture("cashRows", Array(250).fill({})), count: capture("cashCount", 251), aggregate: capture("cashSum", { _sum: { differenceCents: 75 } }) },
     cashMovement: { count: capture("cashMovementCount", 502) },
     saleItem: { findMany: capture("productRows", Array(100).fill({})), aggregate: capture("productSum", { _sum: { quantity: 202, totalCents: 10_100 } }), groupBy: capture("productGroups", [{ productId: "a" }, { productId: "b" }]) },
+    product: { findMany: capture("visibleProducts", []) },
     stockMovement: { findMany: capture("stockRows", Array(100).fill({})), count: capture("stockCount", 101), groupBy: capture("stockGroups", [{ type: "IN", _sum: { quantity: 50 } }, { type: "OUT", _sum: { quantity: 3 } }]) },
     comanda: { findMany: capture("commandRows", Array(100).fill({})), count: capture("commandCount", 101) },
     sale: { aggregate: capture("commandSum", { _sum: { totalCents: 9_900 } }) },
