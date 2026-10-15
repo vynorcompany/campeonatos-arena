@@ -37,6 +37,7 @@ test("cadastro por código usa a arena correta, não aceita código cruzado e n�
         "next/navigation": { redirect: (url: string) => { throw new Error(`redirect:${url}`); } },
         "@/lib/auth/player-session": { createPublicPlayerSession: async (id: string) => { sessions.push(id); }, destroyPublicPlayerSession: async () => {} },
         "@/lib/prisma": { prisma },
+        "@/lib/rls": { withArenaTransaction: async (_arenaId: string, callback: (client: typeof tx) => Promise<unknown>) => callback(tx) },
         "@/lib/services/public-client-registration": { resolvePublicClientPlayer: () => null },
         "@/lib/env": { env: { playerPhoneVerificationRequired: true } },
         "@/lib/integrations/evolution/client": { sendEvolutionTextMessage: async (_phone: string, message: string) => { sent.push(message); } },

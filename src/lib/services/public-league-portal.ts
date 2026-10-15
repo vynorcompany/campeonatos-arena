@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getLeagueMonthBlocks } from "@/lib/league/monthly-schedule";
 import { withArenaTransaction } from "@/lib/rls";
+import { arenaDatabase } from "@/lib/arena-database";
 import { getPublicLinkedPlayerIds } from "@/lib/services/public-player-link";
 import { arenaWallClockToInstant, instantToArenaWallClock } from "@/lib/calendar/arena-wall-clock";
 
@@ -51,9 +52,10 @@ export async function getPublicLeaguePortal(
     },
   });
   if (!arena) return null;
+  const db = arenaDatabase(arena.id);
   const linkedPlayerIds = await getPublicLinkedPlayerIds(arena.id, playerId);
   if (!linkedPlayerIds.length) return null;
-  const ownPairs = await prisma.categoryPair.findMany({
+  const ownPairs = await db.categoryPair.findMany({
     where: {
       active: true,
       players: { some: { playerId: { in: linkedPlayerIds } } },
@@ -81,7 +83,7 @@ export async function getPublicLeaguePortal(
     },
     orderBy: { createdAt: "asc" },
   });
-  const challenges = await prisma.leagueMatchProposal.findMany({
+  const challenges = await db.leagueMatchProposal.findMany({
     where: {
       OR: [
         { proposerPairId: { in: ownPairs.map((pair) => pair.id) } },
@@ -326,7 +328,7 @@ export async function getPublicLeaguePortal(
       include: { occurrenceCourts: true },
     }),
   );
-  const leagueCompetitions = await prisma.categoryCompetition.findMany({
+  const leagueCompetitions = await db.categoryCompetition.findMany({
     where: {
       format: "LEAGUE",
       status: { not: "FINISHED" },

@@ -31,6 +31,7 @@ function loadActions(deliveryFails: boolean) {
     require: (name: string) => {
       if (name === "next/navigation") return { redirect() {} };
       if (name === "@/lib/prisma") return { prisma };
+      if (name === "@/lib/rls") return { withArenaTransaction: async (_arenaId: string, callback: (tx: typeof prisma) => Promise<unknown>) => callback(prisma) };
       if (name === "@/lib/auth/player-session") return {};
       if (name === "@/lib/auth/login-attempts") return {};
       if (name === "@/lib/services/public-client-registration") return {};

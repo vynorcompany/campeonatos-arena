@@ -23,6 +23,7 @@ function fixture() {
       playerAccount: { findUnique: async () => ({ id: "account-goal", identityId: "identity-goal", passwordHash: "hash", player: { active: true } }) },
       athleteIdentity: { findUnique: async () => { lookups += 1; return { id: "identity-goal", passwordHash: "hash", accounts: [{ id: "account-goal", passwordHash: "hash" }] }; } },
     } },
+    "@/lib/rls": { withArenaTransaction: async (_arenaId: string, callback: (tx: any) => Promise<unknown>) => callback((mocks["@/lib/prisma"] as any).prisma) },
     "@/lib/services/public-client-registration": { resolvePublicClientPlayer: () => null },
     "@/lib/env": { env: {} },
     "@/lib/integrations/evolution/client": { sendEvolutionTextMessage: async () => {} },

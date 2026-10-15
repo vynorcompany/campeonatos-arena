@@ -29,7 +29,7 @@ function shouldShowPortalReceivable(entry: { status: string; dueDate: Date | nul
 export async function getPublicClientHome(arenaSlug: string, playerId: string) {
   const arena = await prisma.arena.findUnique({ where: { slug: arenaSlug }, select: { id: true } });
   if (!arena) return null;
-  const player = await prisma.player.findFirst({ where: { id: playerId, arenaId: arena.id }, select: { name: true } });
+  const player = await withArenaTransaction(arena.id, (tx) => tx.player.findFirst({ where: { id: playerId, arenaId: arena.id }, select: { name: true } }));
   if (!player) return null;
   const now = new Date();
   const arenaNow = instantToArenaWallClock(now);

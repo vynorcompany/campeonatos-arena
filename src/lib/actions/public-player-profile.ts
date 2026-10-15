@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { arenaDatabase } from "@/lib/arena-database";
 import { requirePublicPlayerAuth } from "@/lib/auth/player-session";
 import { toPersistentPlayerPhoto } from "@/lib/uploads";
 
@@ -35,14 +35,15 @@ export async function updateTournamentAvailabilityAction(formData: FormData) {
   if (!parsed.success) return { error: "Selecione uma disponibilidade válida." };
 
   const auth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
-  const player = await prisma.player.findFirst({ where: { id: auth.playerId, arenaId: auth.arenaId }, select: { gender: true, class: true, padelCategories: true } });
+  const db = arenaDatabase(auth.arenaId);
+  const player = await db.player.findFirst({ where: { id: auth.playerId, arenaId: auth.arenaId }, select: { gender: true, class: true, padelCategories: true } });
   let categories: string[] = [];
   try { const value = JSON.parse(player?.padelCategories ?? "[]"); if (Array.isArray(value)) categories = value.filter((item): item is string => typeof item === "string" && Boolean(item.trim())); } catch {}
   if (!categories.length && player?.class.trim()) categories = [player.class.trim()];
   if (parsed.data.tournamentAvailability !== "OFF" && (!player?.gender.trim() || !categories.length)) {
     return { error: "Complete seu sexo e ao menos uma categoria em Meu perfil antes de aparecer no Radar." };
   }
-  await prisma.player.update({ where: { id: auth.playerId }, data: { tournamentAvailability: parsed.data.tournamentAvailability } });
+  await db.player.update({ where: { id: auth.playerId }, data: { tournamentAvailability: parsed.data.tournamentAvailability } });
   revalidatePath(`/classificacao/${parsed.data.arenaSlug}`);
   return { error: null };
 }
@@ -60,21 +61,22 @@ export async function requestDoublesPartnerAction(formData: FormData) {
   if (!parsed.success) return { error: "Não foi possível identificar o atleta." };
   const auth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
   if (auth.playerId === parsed.data.targetPlayerId) return { error: "Você não pode enviar uma solicitação para si mesmo." };
+  const db = arenaDatabase(auth.arenaId);
 
-  const target = await prisma.player.findFirst({
+  const target = await db.player.findFirst({
     where: { id: parsed.data.targetPlayerId, arenaId: auth.arenaId, active: true, tournamentAvailability: { in: ["AVAILABLE", "LOOKING_FOR_PARTNER"] } },
     select: { id: true },
   });
   if (!target) return { error: "Este atleta não está mais disponível no Radar." };
 
   const message = `${auth.name} quer conversar sobre formar dupla para um torneio.`;
-  const alreadyRequested = await prisma.playerNotification.findFirst({
+  const alreadyRequested = await db.playerNotification.findFirst({
     where: { playerId: target.id, type: "DOUBLES_REQUEST", message, readAt: null },
     select: { id: true },
   });
   if (alreadyRequested) return { error: "Sua solicitação já está aguardando a visualização deste atleta." };
 
-  await prisma.playerNotification.create({
+  await db.playerNotification.create({
     data: { playerId: target.id, type: "DOUBLES_REQUEST", title: "Pedido para formar dupla 🎾", message, href: `/classificacao/${parsed.data.arenaSlug}?section=radar` },
   });
   revalidatePath(`/classificacao/${parsed.data.arenaSlug}`);
@@ -96,12 +98,13 @@ export async function updatePublicPlayerProfileAction(_: PublicProfileActionStat
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos.", success: null };
 
   const auth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
+  const db = arenaDatabase(auth.arenaId);
   const phone = normalizePhone(parsed.data.phone);
   const photoUrl = await toPersistentPlayerPhoto(formData.get("photo") as File | null);
-  const conflictingAccount = await prisma.playerAccount.findFirst({ where: { arenaId: auth.arenaId, phone, playerId: { not: auth.playerId } }, select: { id: true } });
+  const conflictingAccount = await db.playerAccount.findFirst({ where: { arenaId: auth.arenaId, phone, playerId: { not: auth.playerId } }, select: { id: true } });
   if (conflictingAccount) return { error: "Este telefone já está vinculado a outro cliente.", success: null };
 
-  await prisma.$transaction(async (tx) => {
+  await db.$transaction(async (tx) => {
     await tx.player.update({ where: { id: auth.playerId }, data: { name: parsed.data.name, phone, email: parsed.data.email, bio: parsed.data.bio, birthDate: parsed.data.birthDate, gender: parsed.data.gender, class: parsed.data.padelCategories[0] ?? "", padelCategories: JSON.stringify(parsed.data.padelCategories), padelSide: parsed.data.padelSide, ...(photoUrl ? { photoUrl } : {}) } });
     await tx.playerAccount.update({ where: { id: auth.playerAccountId }, data: { phone } });
     const student = await tx.student.findFirst({ where: { playerId: auth.playerId }, select: { id: true } });
