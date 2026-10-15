@@ -1450,9 +1450,9 @@ export async function syncTournamentEntries(tournamentId: string, arenaId: strin
   return players.length;
 }
 
-export async function generateTournamentPairs(tournamentId: string) {
-  const tournament = await prisma.tournament.findUnique({
-    where: { id: tournamentId },
+export async function generateTournamentPairs(tournamentId: string, arenaId: string) {
+  const tournament = await arenaDatabase(arenaId).tournament.findFirst({
+    where: { id: tournamentId, arenaId },
     include: {
       entries: {
         include: {
@@ -1469,6 +1469,10 @@ export async function generateTournamentPairs(tournamentId: string) {
     throw new Error("Torneio nÃ£o encontrado.");
   }
 
+  if (tournament.entries.length < 2) {
+    throw new Error("Inscreva ao menos dois atletas antes de gerar as duplas.");
+  }
+
   const { pairs, waitlist } = generateBalancedPairs(
     tournament.entries.map((entry) => ({
       id: entry.playerId,
@@ -1477,7 +1481,7 @@ export async function generateTournamentPairs(tournamentId: string) {
     }))
   );
 
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(arenaId, async (tx) => {
     await tx.match.deleteMany({
       where: { tournamentId }
     });
@@ -1540,13 +1544,13 @@ export async function generateTournamentPairs(tournamentId: string) {
   };
 }
 
-export async function createTournamentPair(tournamentId: string, playerAId: string, playerBId: string) {
+export async function createTournamentPair(tournamentId: string, arenaId: string, playerAId: string, playerBId: string) {
   if (playerAId === playerBId) {
     throw new Error("Selecione dois jogadores diferentes para montar a dupla.");
   }
 
-  const tournament = await prisma.tournament.findUnique({
-    where: { id: tournamentId },
+  const tournament = await arenaDatabase(arenaId).tournament.findFirst({
+    where: { id: tournamentId, arenaId },
     include: {
       entries: {
         include: {
@@ -1590,7 +1594,7 @@ export async function createTournamentPair(tournamentId: string, playerAId: stri
     throw new Error("Um dos jogadores selecionados jÃ¡ faz parte de outra dupla.");
   }
 
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(arenaId, async (tx) => {
     await resetTournamentStructure(tx, tournamentId);
 
     const createdPair = await tx.pair.create({
@@ -1637,7 +1641,7 @@ export async function updateTournamentPair(pairId: string, arenaId: string, play
     throw new Error("Selecione dois jogadores diferentes para montar a dupla.");
   }
 
-  const pair = await prisma.pair.findFirst({
+  const pair = await arenaDatabase(arenaId).pair.findFirst({
     where: {
       id: pairId,
       tournament: {
@@ -1693,7 +1697,7 @@ export async function updateTournamentPair(pairId: string, arenaId: string, play
     throw new Error("Um dos jogadores selecionados jÃ¡ faz parte de outra dupla.");
   }
 
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(arenaId, async (tx) => {
     await resetTournamentStructure(tx, pair.tournamentId);
 
     await tx.pair.update({

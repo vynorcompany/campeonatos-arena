@@ -94,6 +94,16 @@ test("athlete deletion keeps the arena predicate in the write", () => {
   assert.match(actions, /player\.deleteMany\(\{[\s\S]*?id: athlete\.id,[\s\S]*?arenaId: auth\.arenaId/);
 });
 
+test("tournament pair actions pass the authorized arena to reads and writes", () => {
+  const actions = read("src/lib/actions/tournament.ts");
+  const service = read("src/lib/services/tournament.ts");
+  assert.match(actions, /generateTournamentPairs\(tournamentId, auth\.arenaId\)/);
+  assert.match(actions, /createTournamentPair\(parsed\.data\.tournamentId, auth\.arenaId,/);
+  assert.match(service, /generateTournamentPairs\(tournamentId: string, arenaId: string\)[\s\S]*?arenaDatabase\(arenaId\)\.tournament\.findFirst\(\{\s*where: \{ id: tournamentId, arenaId \}/);
+  assert.match(service, /createTournamentPair\(tournamentId: string, arenaId: string,[\s\S]*?arenaDatabase\(arenaId\)\.tournament\.findFirst\(\{\s*where: \{ id: tournamentId, arenaId \}/);
+  assert.match(service, /if \(tournament\.entries\.length < 2\)[\s\S]*?Inscreva ao menos dois atletas/);
+});
+
 test("athlete portal notification queries enforce the player's arena", () => {
   const notifications = read("src/lib/services/public-player-notifications.ts");
   const radar = read("src/lib/services/public-doubles-radar.ts");
