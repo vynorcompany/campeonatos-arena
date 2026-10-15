@@ -50,6 +50,20 @@ test("online booking serializes same-court requests and reports a readable confl
   assert.match(form, /if \(!result\.ok\) \{ setMessage\(result\.error\); return; \}/);
 });
 
+test("bloqueio por inadimplência é configurável, validado no servidor e avisado no portal", () => {
+  const schema = readFileSync(resolve(process.cwd(), "prisma/schema.prisma"), "utf8");
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/calendar.ts"), "utf8");
+  const dialog = readFileSync(resolve(process.cwd(), "src/components/online-booking-settings-dialog.tsx"), "utf8");
+  const booking = readFileSync(resolve(process.cwd(), "src/components/public-booking-content.tsx"), "utf8");
+  const notifications = readFileSync(resolve(process.cwd(), "src/lib/services/public-player-notifications.ts"), "utf8");
+  assert.match(schema, /onlineBookingOverdueBlockDays\s+Int\?/);
+  assert.match(dialog, /overdueBlockEnabled/);
+  assert.match(dialog, /Bloquear reservas após/);
+  assert.match(actions, /getBookingDelinquency\(tx, arena\.id, player\.id, arena\.onlineBookingOverdueBlockDays\)/);
+  assert.match(booking, /bookingBlocked=\{delinquency\.blocked\}/);
+  assert.match(notifications, /Reservas temporariamente bloqueadas/);
+});
+
 test("agenda interna respeita bloqueio de 15 minutos e serializa a gravação", () => {
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/calendar.ts"), "utf8");
   const agenda = readFileSync(resolve(process.cwd(), "src/app/(app)/agenda/page.tsx"), "utf8");

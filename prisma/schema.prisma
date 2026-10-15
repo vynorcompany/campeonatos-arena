@@ -115,6 +115,7 @@ model Arena {
   onlineBookingWhatsappConfirmationEnabled Boolean            @default(true)
   whatsappSlaMinutes                Int                      @default(30)
   onlineBookingLeadTimeMinutes      Int                      @default(120)
+  onlineBookingOverdueBlockDays      Int?
   athletePortalShowLeagues          Boolean                  @default(true)
   athletePortalShowBooking          Boolean                  @default(true)
   athletePortalShowReservations     Boolean                  @default(true)
