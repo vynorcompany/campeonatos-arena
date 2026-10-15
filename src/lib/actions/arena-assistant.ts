@@ -66,7 +66,7 @@ export async function runArenaAssistantCommandAction(input: string): Promise<Ass
     }
   });
 
-  const clients = await prisma.player.findMany({
+  const clients = await withArenaTransaction(auth.arenaId, (tx) => tx.player.findMany({
     where: {
       arenaId: auth.arenaId,
       active: true,
@@ -74,7 +74,7 @@ export async function runArenaAssistantCommandAction(input: string): Promise<Ass
     },
     select: { id: true, name: true },
     take: 2
-  });
+  }));
 
   if (clients.length !== 1) {
     const reply = clients.length
