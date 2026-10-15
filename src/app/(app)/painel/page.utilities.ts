@@ -22,16 +22,16 @@ export const viewStyles = {
   "dashboard_chart_expense": [
     "dashboard-chart-expense", "tw:bg-[color:#d95b4f]", "tw:[background-image:none]",
   ].join(" "),
-  "dashboard_cash_chart": "dashboard-cash-chart tw:h-[190px] tw:overflow-x-auto tw:py-2",
+  "dashboard_cash_chart": "dashboard-cash-chart tw:h-[190px] tw:overflow-x-auto tw:overflow-y-hidden tw:py-2",
   "dashboard_cash_bars": [
-    "dashboard-cash-bars", "tw:grid", "tw:grid-cols-[repeat(30,_minmax(0,_1fr))]", "tw:h-[100%]",
+    "dashboard-cash-bars", "tw:grid", "tw:w-full", "tw:h-[100%]", "tw:px-5",
     "tw:gap-y-[4px]", "tw:viewport-620:gap-y-[2px]", "tw:gap-x-[4px]", "tw:viewport-620:gap-x-[2px]",
   ].join(" "),
   "dashboard_cash_day": [
     "dashboard-cash-day", "tw:grid", "tw:grid-rows-[1fr_auto]", "tw:min-w-[0]",
-    "tw:gap-y-[6px]", "tw:gap-x-[6px]", "tw:[&:hover_span]:opacity-[.72]", "tw:[&_small]:[overflow-x:hidden]",
-    "tw:[&_small]:[overflow-y:hidden]", "tw:[&_small]:text-[color:var(--muted)]", "tw:[&_small]:text-[.55rem]", "tw:[&_small]:text-center",
-    "tw:[&_small]:whitespace-nowrap", "tw:viewport-620:[&_small]:hidden",
+    "tw:gap-y-[6px]", "tw:gap-x-[6px]", "tw:[&:hover_span]:opacity-[.72]", "tw:[&_small]:justify-self-center",
+    "tw:[&_small]:w-max", "tw:[&_small]:text-[color:#52647d]", "tw:[&_small]:text-[.72rem]", "tw:[&_small]:text-center",
+    "tw:[&_small]:whitespace-nowrap",
   ].join(" "),
   "dashboard_cash_column": [
     "dashboard-cash-column", "tw:flex", "tw:[align-items:end]", "tw:justify-center",
