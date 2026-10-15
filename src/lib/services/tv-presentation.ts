@@ -478,7 +478,7 @@ async function getAdditionalRankingSlides(arenaId: string, rankingIds: string[])
     }
   });
 
-  const tournamentEntries = await prisma.tournamentPlayer.findMany({
+  const tournamentEntries = await arenaDatabase(arenaId).tournamentPlayer.findMany({
     where: {
       tournament: {
         arenaId,
@@ -582,7 +582,7 @@ export async function getTvPresentationPayload(arenaId: string) {
     : null;
 
   const ranking = selectedTournament
-    ? (await prisma.tournamentPlayer.findMany({
+    ? (await arenaDatabase(arenaId).tournamentPlayer.findMany({
         where: {
           tournamentId: selectedTournament.id
         },
