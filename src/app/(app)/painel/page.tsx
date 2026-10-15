@@ -10,6 +10,7 @@ import { formatOccupancy, reservationInsights } from "@/lib/reports/reservation-
 import { activeCourtOccurrenceWhere } from "@/lib/calendar/online-booking-hold";
 import { withArenaTransaction } from "@/lib/rls";
 import { DashboardCashChart } from "./dashboard-cash-chart";
+import { loadDashboardProductSales } from "@/lib/reports/dashboard-product-sales";
 
 const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value / 100);
 const dayKey = (value: Date) => `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
@@ -62,7 +63,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Das
     tx.financialEntry.findMany({ where: previousFinancialWhere, select: { type: true, amountCents: true } }),
     tx.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, startsAt: { lte: to }, endsAt: { gte: from }, ...activeCourtOccurrenceWhere() }, include: { occurrenceCourts: { include: { court: { select: { name: true } } } } } }),
     tx.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, startsAt: { lte: previousTo }, endsAt: { gte: previousFrom }, ...activeCourtOccurrenceWhere() }, select: { id: true } }),
-    tx.saleItem.findMany({ where: { sale: { arenaId: auth.arenaId, createdAt: { gte: from, lte: to } } }, select: { quantity: true, totalCents: true, product: { select: { name: true } } } }),
+    loadDashboardProductSales(tx, auth.arenaId, { gte: from, lte: to }),
     tx.teacher.findMany({ where: { arenaId: auth.arenaId, active: true }, include: { lessons: { where: { scheduledAt: { gte: from, lte: to } }, include: { attendances: true } } } }),
     tx.playerAccount.findMany({ where: { arenaId: auth.arenaId, createdAt: { gte: from, lte: to } }, select: { id: true, phone: true, createdAt: true, player: { select: { name: true, email: true } } }, orderBy: { createdAt: "desc" } }),
     tx.financialEntry.findMany({ where: { arenaId: auth.arenaId, type: "REVENUE", status: { in: ["PENDING", "OVERDUE"] } }, select: { id: true, counterpartyName: true, amountCents: true, dueDate: true } }),
@@ -82,7 +83,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Das
   });
   const courts = ranking(reservations.flatMap((reservation) => reservation.occurrenceCourts.map((court) => ({ name: court.court.name, value: 1 }))));
   const occupancy = reservationInsights(arenaCourts, reservations, from, to);
-  const products = ranking(saleItems.map((item) => ({ name: item.product.name, value: item.quantity })));
+  const products = ranking(saleItems);
   const students = ranking(teachers.map((teacher) => ({ name: teacher.name, value: new Set(teacher.lessons.flatMap((lesson) => lesson.attendances.map((attendance) => attendance.studentId))).size })));
   const debtors = ranking(openDebts.map((entry) => ({ name: entry.counterpartyName || "Cliente não identificado", value: entry.amountCents })));
   const bestClients = ranking(paidByClient.map((entry) => ({ name: entry.counterpartyName || "Cliente não identificado", value: entry.amountCents })));
