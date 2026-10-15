@@ -20,7 +20,6 @@ import { TournamentDetailLayout } from "@/components/tournaments/tournament-deta
 import { type TournamentTabKey } from "@/components/tournaments/tournament-tabs";
 import { requireModuleView } from "@/lib/auth/guards";
 import { runLeagueLifecycleAction, updateLeaguePrizeAction } from "@/lib/actions/category-competition";
-import { prisma } from "@/lib/prisma";
 import { arenaDatabase } from "@/lib/arena-database";
 import { canGenerateCategoryDraw } from "@/lib/tournament-category/draw";
 import { buildPlacementStages } from "@/lib/tournament-category/ranking";
@@ -159,7 +158,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
         leagueAthleteTiers: { where: { active: true, modality: "PADEL" }, orderBy: { changedAt: "desc" }, take: 1, select: { tier: true } },
       },
     }),
-    prisma.rankingProfile.findMany({
+    arenaDatabase(auth.arenaId).rankingProfile.findMany({
       where: {
         arenaId: auth.arenaId,
         active: true,
@@ -168,7 +167,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
-    prisma.leagueMedicalSubstitutionRequest.findMany({
+    arenaDatabase(auth.arenaId).leagueMedicalSubstitutionRequest.findMany({
       where: { status: "PENDING", pair: { competition: { categoryId: params.categoryId, category: { tournamentId: params.tournamentId, tournament: { arenaId: auth.arenaId } } } } },
       include: { pair: { include: { players: { include: { player: { select: { id: true, name: true } } } } } } },
     }),
