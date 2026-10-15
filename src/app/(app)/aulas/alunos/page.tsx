@@ -5,7 +5,7 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { StudentActionsCell } from "@/components/students/student-actions-cell";
 import { addStudentCreditsAction, createStudentAction } from "@/lib/actions/academy";
 import { requireModuleView } from "@/lib/auth/guards";
-import { prisma } from "@/lib/prisma";
+import { arenaDatabase } from "@/lib/arena-database";
 
 function attendanceRate(student: { attendedClasses: number; missedClasses: number }) {
   const total = student.attendedClasses + student.missedClasses;
@@ -14,6 +14,7 @@ function attendanceRate(student: { attendedClasses: number; missedClasses: numbe
 
 export default async function StudentsPage() {
   const auth = await requireModuleView("students");
+  const prisma = arenaDatabase(auth.arenaId);
   const [students, players] = await Promise.all([
     prisma.student.findMany({
       where: { arenaId: auth.arenaId },

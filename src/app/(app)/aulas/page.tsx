@@ -12,7 +12,7 @@ import {
   createStudentAction
 } from "@/lib/actions/academy";
 import { requireModuleView } from "@/lib/auth/guards";
-import { prisma } from "@/lib/prisma";
+import { arenaDatabase } from "@/lib/arena-database";
 
 function formatDate(value: Date | null) {
   if (!value) {
@@ -38,6 +38,7 @@ function attendanceRate(student: { attendedClasses: number; missedClasses: numbe
 
 export default async function LessonsPage() {
   const auth = await requireModuleView("lessons");
+  const prisma = arenaDatabase(auth.arenaId);
   const [students, teachers, lessons, players, plans, classGroups, classGroupRequests] = await Promise.all([
     prisma.student.findMany({
       where: { arenaId: auth.arenaId },
