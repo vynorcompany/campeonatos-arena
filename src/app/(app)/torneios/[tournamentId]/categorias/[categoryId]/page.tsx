@@ -144,7 +144,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
         },
       },
     }),
-    prisma.player.findMany({
+    arenaDatabase(auth.arenaId).player.findMany({
       where: {
         arenaId: auth.arenaId,
         active: true,
