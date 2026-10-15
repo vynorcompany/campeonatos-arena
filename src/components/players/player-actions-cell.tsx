@@ -38,7 +38,7 @@ export function PlayerActionsCell({
 
   if (isEditing) {
     return (
-      <form action={updatePlayerAction} className={viewStyles.player_name_edit_form}>
+      <SafeActionForm action={updatePlayerAction} className={viewStyles.player_name_edit_form} successMessage="Jogador atualizado." onSuccess={() => setIsEditing(false)}>
         <input type="hidden" name="playerId" value={playerId} />
         <input type="hidden" name="points" value={playerPoints} />
         <input
@@ -73,7 +73,7 @@ export function PlayerActionsCell({
             Cancelar
           </button>
         </div>
-      </form>
+      </SafeActionForm>
     );
   }
 
