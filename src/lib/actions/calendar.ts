@@ -23,6 +23,7 @@ import { calculateCourtIntervalPrice, isCourtBookingStartOnGrid } from "@/lib/ca
 import { activeCourtOccurrenceWhere, onlineBookingHoldCutoff } from "@/lib/calendar/online-booking-hold";
 import { assertCourtBookingMayBeEdited } from "@/lib/calendar/court-booking-edit-safety";
 import { arenaWallClockToInstant } from "@/lib/calendar/arena-wall-clock";
+import { getBookingDelinquency } from "@/lib/calendar/booking-delinquency";
 import { claimOnlineBookingPaymentMethod } from "@/lib/calendar/booking-payment-claim";
 import { sendEvolutionTextMessage } from "@/lib/integrations/evolution/client";
 import { expandWeeklyOccurrences } from "@/lib/scheduling/recurrence";
@@ -60,6 +61,7 @@ const scheduleSettingsSchema = z.object({
 const onlineBookingSettingsSchema = z.object({
   layout: z.enum(["BLOCKS", "LIST"]),
   leadTimeMinutes: z.coerce.number().int().min(0).max(10080, "O prazo máximo é de 7 dias."),
+  overdueBlockDays: z.coerce.number().int().min(1, "Informe ao menos 1 dia.").max(365, "O prazo máximo é de 365 dias."),
   whatsappMessage: z.string().trim().max(1000, "A mensagem pode ter no máximo 1000 caracteres.")
 });
 
@@ -143,6 +145,7 @@ export async function updateOnlineBookingSettingsAction(formData: FormData) {
   const parsed = onlineBookingSettingsSchema.safeParse({
     layout: formData.get("layout"),
     leadTimeMinutes: formData.get("leadTimeMinutes"),
+    overdueBlockDays: formData.get("overdueBlockDays"),
     whatsappMessage: formData.get("whatsappMessage")
   });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Configuração inválida.");
@@ -157,6 +160,7 @@ export async function updateOnlineBookingSettingsAction(formData: FormData) {
       onlineBookingEnabled: formData.get("onlineBookingEnabled") === "on",
       onlineBookingWhatsappConfirmationEnabled: formData.get("whatsappConfirmationEnabled") === "on",
       onlineBookingLeadTimeMinutes: parsed.data.leadTimeMinutes,
+      onlineBookingOverdueBlockDays: formData.get("overdueBlockEnabled") === "on" ? parsed.data.overdueBlockDays : null,
       onlineBookingWhatsappMessage: parsed.data.whatsappMessage
     },
     select: { slug: true }
@@ -172,7 +176,7 @@ export async function createPublicCourtBookingAction(formData: FormData): Promis
   });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   const playerAuth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
-  const arena = await prisma.arena.findUnique({ where: { slug: parsed.data.arenaSlug }, select: { id: true, slug: true, scheduleStartMinute: true, scheduleEndMinute: true, onlineBookingEnabled: true, onlineBookingRequiresConfirmation: true, onlineBookingPaymentEnabled: true, onlineBookingLeadTimeMinutes: true } });
+  const arena = await prisma.arena.findUnique({ where: { slug: parsed.data.arenaSlug }, select: { id: true, slug: true, scheduleStartMinute: true, scheduleEndMinute: true, onlineBookingEnabled: true, onlineBookingRequiresConfirmation: true, onlineBookingPaymentEnabled: true, onlineBookingLeadTimeMinutes: true, onlineBookingOverdueBlockDays: true } });
   if (!arena) throw new Error("Arena não encontrada.");
   if (!arena.onlineBookingEnabled) throw new Error("A reserva online está desabilitada pela arena.");
   const startsAt = parseScheduledAt(parsed.data.startsAt);
@@ -199,6 +203,8 @@ export async function createPublicCourtBookingAction(formData: FormData): Promis
       if (conflict) throw new PublicBookingConflictError("Este horário acabou de ser reservado. Selecione outro horário.");
       const player = await tx.player.findFirst({ where: { id: playerAuth.playerId, arenaId: arena.id, active: true }, select: { id: true, name: true, email: true } });
       if (!player) throw new Error("Cliente não encontrado.");
+      const delinquency = await getBookingDelinquency(tx, arena.id, player.id, arena.onlineBookingOverdueBlockDays);
+      if (delinquency.blocked) throw new PublicBookingConflictError("Há pagamentos em atraso. Regularize suas pendências na área financeira para voltar a reservar.");
       if (requiresPayment && !player.email) throw new Error("Informe seu e-mail no perfil para continuar com o pagamento online.");
       const occurrence = await tx.scheduleOccurrence.create({ data: { arenaId: arena.id, sourceType: "ONLINE_BOOKING", title: `${player.name} - Reserva`, startsAt, endsAt, status: requiresPayment ? "PENDING_PAYMENT" : arena.onlineBookingRequiresConfirmation ? "PENDING_CONFIRMATION" : "SCHEDULED", bookingTypeName: "Reserva", occurrenceCourts: { create: { courtId: court.id } }, participants: { create: { playerId: player.id, amountCents: bookingAmountCents } } } });
       const localDate = `${startsAt.getFullYear()}-${String(startsAt.getMonth() + 1).padStart(2, "0")}-${String(startsAt.getDate()).padStart(2, "0")}`;

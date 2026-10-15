@@ -17,7 +17,7 @@ function endLabel(startsAt: string, minutes: number) { const value = dateMinute(
 
 type PendingReservation = { id: string; label: string; status: "PENDING_PAYMENT" | "PENDING_CONFIRMATION" };
 
-export function PublicCourtBookingForm({ arenaSlug, courts, currentClient, layout, paymentOnlineEnabled, reservedSlots, pendingReservation, embedded = false }: { arenaSlug: string; courts: Court[]; currentClient: { name: string }; layout: string; paymentOnlineEnabled: boolean; reservedSlots: string[]; pendingReservation: PendingReservation | null; embedded?: boolean }) {
+export function PublicCourtBookingForm({ arenaSlug, courts, currentClient, layout, paymentOnlineEnabled, reservedSlots, pendingReservation, bookingBlocked = false, embedded = false }: { arenaSlug: string; courts: Court[]; currentClient: { name: string }; layout: string; paymentOnlineEnabled: boolean; reservedSlots: string[]; pendingReservation: PendingReservation | null; bookingBlocked?: boolean; embedded?: boolean }) {
   const [requestedCourtId, setCourtId] = useState(courts[0]?.id ?? "");
   const court = courts.find((item) => item.id === requestedCourtId) ?? courts[0];
   const courtId = court?.id ?? "";
@@ -56,7 +56,7 @@ export function PublicCourtBookingForm({ arenaSlug, courts, currentClient, layou
     {selection.hasConflict ? <p className={viewStyles.public_booking_conflict} role="alert">Há uma reserva conflitando com este período. Escolha outro horário ou uma duração menor.</p> : null}
     <section className={cx(viewStyles.public_booking_client_summary, embedded ? "tw:viewport-700:border-[#d8e5e9]! tw:viewport-700:bg-white! tw:viewport-700:dark:border-[#244759]! tw:viewport-700:dark:bg-[#102f42]! tw:viewport-700:[&_span]:text-[#607e8d]! tw:viewport-700:dark:[&_span]:text-[#a1bccb]! tw:viewport-700:[&_small]:text-[#607e8d]! tw:viewport-700:dark:[&_small]:text-[#a1bccb]!" : "")}><div><span>RESERVA PARA</span><strong>{currentClient.name}</strong><small>Você está usando sua conta de cliente.</small></div><div className={viewStyles.public_booking_total}><span>Valor total</span><strong>{money(selectedTotalCents)}</strong></div></section>
     {pendingNotice}
-    <button className={cx(viewStyles.button_button_primary, embedded ? "tw:viewport-700:bg-[#078f7c]! tw:viewport-700:[background-image:none]! tw:viewport-700:text-white! tw:viewport-700:dark:bg-[#5bdec1]! tw:viewport-700:dark:text-[#082b34]!" : "")} disabled={pending || selection.hasConflict}>{pending ? requiresPayment ? "Abrindo pagamento..." : "Enviando reserva..." : requiresPayment ? "Ir para pagamento" : "Solicitar reserva"}</button>
+    <button className={cx(viewStyles.button_button_primary, embedded ? "tw:viewport-700:bg-[#078f7c]! tw:viewport-700:[background-image:none]! tw:viewport-700:text-white! tw:viewport-700:dark:bg-[#5bdec1]! tw:viewport-700:dark:text-[#082b34]!" : "")} disabled={pending || selection.hasConflict || bookingBlocked}>{bookingBlocked ? "Reserva indisponível por pendência financeira" : pending ? requiresPayment ? "Abrindo pagamento..." : "Enviando reserva..." : requiresPayment ? "Ir para pagamento" : "Solicitar reserva"}</button>
     {reservedSlots.length ? <section className={viewStyles.public_booking_reserved_slots}><strong>Horários reservados</strong><span>{reservedSlots.join(" · ")}</span></section> : null}
     {message ? <p className={viewStyles.public_booking_message} role="status">{message}{calendarUrl ? <> <a href={calendarUrl}>Adicionar ao meu calendário</a></> : null}</p> : null}
   </form>;

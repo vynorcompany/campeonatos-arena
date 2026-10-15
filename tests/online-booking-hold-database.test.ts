@@ -13,6 +13,7 @@ import { calculateCourtIntervalPrice, isCourtBookingStartOnGrid } from "../src/l
 import { parseScheduledAt } from "../src/lib/calendar/inputs";
 import { claimOnlineBookingPaymentMethod, isConfirmedSchedulePaymentMethod } from "../src/lib/calendar/booking-payment-claim";
 import { upcomingPlayerReservationsWhere } from "../src/lib/portal/upcoming-reservations";
+import { getBookingDelinquency } from "../src/lib/calendar/booking-delinquency";
 
 const testUrl = process.env.ARENA_GOAL_TEST_DATABASE_URL ?? "";
 const disposableDatabase = (() => {
@@ -151,6 +152,7 @@ test("duas reservas simultâneas da mesma quadra produzem apenas um hold", { ski
       "@/lib/calendar/court-interval-pricing": { calculateCourtIntervalPrice, isCourtBookingStartOnGrid },
       "@/lib/calendar/online-booking-hold": { activeCourtOccurrenceWhere, onlineBookingHoldCutoff },
       "@/lib/calendar/arena-wall-clock": { arenaWallClockToInstant },
+      "@/lib/calendar/booking-delinquency": { getBookingDelinquency },
       "@/lib/calendar/booking-payment-claim": {},
       "@/lib/calendar/court-booking-edit-safety": {},
       "@/lib/integrations/evolution/client": {},
