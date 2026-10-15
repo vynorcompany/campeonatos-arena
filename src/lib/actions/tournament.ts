@@ -344,7 +344,7 @@ export async function updatePlayerAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+    return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   }
 
   try {
@@ -352,16 +352,12 @@ export async function updatePlayerAction(formData: FormData) {
     const existingPhones = await prisma.player.findMany({ where: { arenaId: auth.arenaId, id: { not: parsed.data.playerId }, mergedIntoPlayerId: null }, select: { phone: true } });
     if (phone && existingPhones.some((player) => normalizeBrazilianPhone(player.phone) === phone)) throw new Error("Já existe um cliente cadastrado com este telefone.");
     const photoUrl = await toPersistentPlayerPhoto(formData.get("photo") as File | null);
-    const updated = await prisma.player.updateMany({
-      where: { id: parsed.data.playerId, arenaId: auth.arenaId },
-      data: { name: parsed.data.name, points: parsed.data.points, class: parsed.data.class, gender: parsed.data.gender, phone, ...(parsed.data.email !== undefined ? { email: parsed.data.email } : {}), cpf: parsed.data.cpf, birthDate: parsed.data.birthDate, ...(parsed.data.addressZipCode !== undefined ? { addressZipCode: parsed.data.addressZipCode.replace(/\D/g, ""), addressStreet: parsed.data.addressStreet ?? "", addressNumber: parsed.data.addressNumber ?? "", addressNeighborhood: parsed.data.addressNeighborhood ?? "", addressCity: parsed.data.addressCity ?? "", addressState: (parsed.data.addressState ?? "").toUpperCase() } : {}), ...(photoUrl ? { photoUrl } : {}) }
-    });
-
-    if (!updated.count) {
-      throw new Error("Jogador não encontrado.");
-    }
-
     await prisma.$transaction(async (tx) => {
+      const updated = await tx.player.updateMany({
+        where: { id: parsed.data.playerId, arenaId: auth.arenaId },
+        data: { name: parsed.data.name, points: parsed.data.points, class: parsed.data.class, gender: parsed.data.gender, phone, ...(parsed.data.email !== undefined ? { email: parsed.data.email } : {}), cpf: parsed.data.cpf, birthDate: parsed.data.birthDate, ...(parsed.data.addressZipCode !== undefined ? { addressZipCode: parsed.data.addressZipCode.replace(/\D/g, ""), addressStreet: parsed.data.addressStreet ?? "", addressNumber: parsed.data.addressNumber ?? "", addressNeighborhood: parsed.data.addressNeighborhood ?? "", addressCity: parsed.data.addressCity ?? "", addressState: (parsed.data.addressState ?? "").toUpperCase() } : {}), ...(photoUrl ? { photoUrl } : {}) }
+      });
+      if (!updated.count) throw new Error("Jogador não encontrado.");
       const player = await tx.player.findFirst({ where: { id: parsed.data.playerId, arenaId: auth.arenaId }, select: { name: true, phone: true, email: true } });
       if (!player) throw new Error("Jogador não encontrado.");
       const student = await tx.student.findFirst({ where: { playerId: parsed.data.playerId, arenaId: auth.arenaId }, select: { id: true } });
@@ -385,28 +381,26 @@ export async function updatePlayerAction(formData: FormData) {
       } else if (parsed.data.isTeacher === false && teacher) {
         await tx.teacher.update({ where: { id: teacher.id }, data: { active: false, updatedByUserId: auth.userId } });
       }
+      const currentTier = await tx.leagueAthleteTier.findFirst({
+        where: { arenaId: auth.arenaId, playerId: parsed.data.playerId, modality: "PADEL", active: true },
+        orderBy: { changedAt: "desc" },
+        select: { id: true, tier: true }
+      });
+      if (parsed.data.leagueTier !== undefined && currentTier && currentTier.tier !== parsed.data.leagueTier) {
+        await tx.leagueAthleteTier.updateMany({ where: { id: currentTier.id, arenaId: auth.arenaId }, data: { active: false } });
+      }
+      if (parsed.data.leagueTier && currentTier?.tier !== parsed.data.leagueTier) {
+        await tx.leagueAthleteTier.create({ data: { arenaId: auth.arenaId, playerId: parsed.data.playerId, modality: "PADEL", tier: parsed.data.leagueTier } });
+      }
     });
-
-    const currentTier = await prisma.leagueAthleteTier.findFirst({
-      where: { arenaId: auth.arenaId, playerId: parsed.data.playerId, modality: "PADEL", active: true },
-      orderBy: { changedAt: "desc" },
-      select: { id: true, tier: true }
-    });
-    if (parsed.data.leagueTier !== undefined && currentTier && currentTier.tier !== parsed.data.leagueTier) {
-      await prisma.leagueAthleteTier.update({ where: { id: currentTier.id }, data: { active: false } });
-    }
-    if (parsed.data.leagueTier && currentTier?.tier !== parsed.data.leagueTier) {
-      await prisma.leagueAthleteTier.create({ data: { arenaId: auth.arenaId, playerId: parsed.data.playerId, modality: "PADEL", tier: parsed.data.leagueTier } });
-    }
   } catch (error) {
-    if (error instanceof Error && error.message === "Jogador não encontrado.") {
-      throw error;
-    }
-
-    throw new Error(getPrismaMessage(error, "Não foi possível atualizar o jogador."));
+    if (error instanceof Error && ["Jogador não encontrado.", "Já existe um cliente cadastrado com este telefone."].includes(error.message)) return { error: error.message };
+    console.error("updatePlayerAction failed", { code: error instanceof Prisma.PrismaClientKnownRequestError ? error.code : "unknown" });
+    return { error: getPrismaMessage(error, "Não foi possível atualizar o jogador.") };
   }
 
   refreshTournamentRoutes();
+  return { error: null };
 }
 
 export async function archivePlayerAction(formData: FormData) {
