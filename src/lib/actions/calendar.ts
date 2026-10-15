@@ -344,7 +344,7 @@ export async function createQuickPlayerAction(formData: FormData) {
   const auth = await requireModuleEdit("calendar");
   const parsed = z.object({ name: z.string().trim().min(3), phone: z.string().trim().min(8), cpf: z.string().trim().default(""), class: z.string().trim().default(""), gender: z.string().trim().default(""), birthDate: z.string().trim().default("") }).safeParse({ name: formData.get("name"), phone: formData.get("phone"), cpf: formData.get("cpf"), class: formData.get("class"), gender: formData.get("gender"), birthDate: formData.get("birthDate") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
-  const player = await prisma.player.create({ data: { arenaId: auth.arenaId, name: parsed.data.name, phone: parsed.data.phone, cpf: parsed.data.cpf.replace(/\D/g, ""), class: parsed.data.class, gender: parsed.data.gender, birthDate: parsed.data.birthDate ? new Date(parsed.data.birthDate) : null } });
+  const player = await withArenaTransaction(auth.arenaId, (tx) => tx.player.create({ data: { arenaId: auth.arenaId, name: parsed.data.name, phone: parsed.data.phone, cpf: parsed.data.cpf.replace(/\D/g, ""), class: parsed.data.class, gender: parsed.data.gender, birthDate: parsed.data.birthDate ? new Date(parsed.data.birthDate) : null } }));
   refreshCalendar(); return { id: player.id, name: player.name };
 }
 
@@ -381,7 +381,7 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
     if (!teacher) throw new Error("Professor não encontrado.");
   }
   const [players, arena] = await Promise.all([
-    participants.length ? prisma.player.findMany({ where: { arenaId: auth.arenaId, id: { in: participants.map((participant) => participant.playerId) } }, select: { id: true, name: true } }) : [],
+    participants.length ? withArenaTransaction(auth.arenaId, (tx) => tx.player.findMany({ where: { arenaId: auth.arenaId, id: { in: participants.map((participant) => participant.playerId) } }, select: { id: true, name: true } })) : [],
     prisma.arena.findUniqueOrThrow({ where: { id: auth.arenaId }, select: { slug: true } })
   ]);
   if (players.length !== participants.length) throw new Error("Um ou mais atletas não pertencem à arena.");

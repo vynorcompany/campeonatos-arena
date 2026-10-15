@@ -411,7 +411,7 @@ export async function insertSponsorInPlanAction(formData: FormData) {
   if (!Number.isFinite(discountValue) || discountValue < 0 || (discountMode === "PERCENTAGE" && discountValue > 100)) throw new Error("Informe um desconto válido.");
   const [plan, client, lastSponsor] = await Promise.all([
     db.sponsorshipPlan.findFirst({ where: { id: planId, arenaId: auth.arenaId } }),
-    clientId ? prisma.player.findFirst({ where: { id: clientId, arenaId: auth.arenaId, active: true }, select: { id: true, name: true } }) : Promise.resolve(null),
+    clientId ? db.player.findFirst({ where: { id: clientId, arenaId: auth.arenaId, active: true }, select: { id: true, name: true } }) : Promise.resolve(null),
     db.tvSponsor.findFirst({ where: { arenaId: auth.arenaId, sponsorshipPlanId: planId }, orderBy: { displayOrder: "desc" }, select: { displayOrder: true } })
   ]);
   if (!plan) throw new Error("Plano de patrocínio não encontrado.");

@@ -109,7 +109,7 @@ export async function linkWhatsAppConversationToClientAction(formData: FormData)
   const where = await activeConversationScope(auth.arenaId, parsed.data.conversationId);
   const [conversation, player] = await Promise.all([
     arenaDatabase(auth.arenaId).whatsAppConversation.findFirst({ where, select: { id: true } }),
-    prisma.player.findFirst({ where: { id: parsed.data.playerId, arenaId: auth.arenaId, active: true }, select: { id: true } })
+    arenaDatabase(auth.arenaId).player.findFirst({ where: { id: parsed.data.playerId, arenaId: auth.arenaId, active: true }, select: { id: true } })
   ]);
   if (!conversation || !player) throw new Error("Conversa ou cliente não encontrado.");
   await arenaDatabase(auth.arenaId).whatsAppConversation.update({ where: { id: conversation.id }, data: { playerId: player.id } });
@@ -157,7 +157,7 @@ export async function createWhatsAppContactAction(formData: FormData) {
   const auth = await requireWhatsAppManage();
   const parsed = contactSchema.safeParse({ name: formData.get("name"), phone: formData.get("phone") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Contato inválido.");
-  const player = await prisma.player.create({ data: { arenaId: auth.arenaId, name: parsed.data.name, phone: parsed.data.phone } });
+  const player = await arenaDatabase(auth.arenaId).player.create({ data: { arenaId: auth.arenaId, name: parsed.data.name, phone: parsed.data.phone } });
   revalidatePath("/whatsapp");
   return { id: player.id, name: player.name };
 }
