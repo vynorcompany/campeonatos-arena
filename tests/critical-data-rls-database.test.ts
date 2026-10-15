@@ -28,6 +28,38 @@ test("notificações do atleta podem ser filtradas pela arena proprietária", { 
   }
 });
 
+test("clientes exigem contexto de arena também para leitura e gravação direta", { skip: !disposableDatabase }, async () => {
+  const runtimeUrl = new URL(databaseUrl);
+  runtimeUrl.username = "arena_runtime";
+  runtimeUrl.password = "";
+  const admin = new PrismaClient({ datasources: { db: { url: databaseUrl } } });
+  const runtime = new PrismaClient({ datasources: { db: { url: runtimeUrl.toString() } } });
+  try {
+    const [arenaA, arenaB] = await Promise.all([
+      admin.arena.findUniqueOrThrow({ where: { slug: "arena-teste-goal" }, select: { id: true } }),
+      admin.arena.findUniqueOrThrow({ where: { slug: "arena-beta-goal" }, select: { id: true } }),
+    ]);
+    const [playerA, playerB] = await Promise.all([
+      admin.player.findFirstOrThrow({ where: { arenaId: arenaA.id }, select: { id: true } }),
+      admin.player.findFirstOrThrow({ where: { arenaId: arenaB.id }, select: { id: true } }),
+    ]);
+    assert.equal(await runtime.player.count(), 0);
+    await runtime.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaA.id}, true)`;
+      assert.equal((await tx.player.findUnique({ where: { id: playerA.id }, select: { id: true } }))?.id, playerA.id);
+      assert.equal(await tx.player.findUnique({ where: { id: playerB.id }, select: { id: true } }), null);
+      assert.equal((await tx.player.updateMany({ where: { id: playerB.id }, data: { active: true } })).count, 0);
+    });
+    await assert.rejects(runtime.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaA.id}, true)`;
+      await tx.player.create({ data: { arenaId: arenaB.id, name: "Cliente descartável fora da arena" } });
+    }));
+  } finally {
+    await runtime.$disconnect();
+    await admin.$disconnect();
+  }
+});
+
 test("o papel de execução não lê nem altera dados financeiros, comandas ou reservas de outra arena", { skip: !disposableDatabase }, async () => {
   const runtimeUrl = new URL(databaseUrl);
   runtimeUrl.username = "arena_runtime";
@@ -50,7 +82,8 @@ test("o papel de execução não lê nem altera dados financeiros, comandas ou r
       await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaB.id}, true)`;
       assert.equal(await tx.financialEntry.findFirst({ where: { id: entryA.id }, select: { id: true } }), null);
       const playerOutsideScope = await tx.player.findFirst({ where: { id: linkedEntryA.playerId! }, include: { financialEntries: { select: { id: true } } } });
-      assert.equal(playerOutsideScope?.financialEntries.some((entry) => entry.id === linkedEntryA.id) ?? false, false);
+      assert.equal(playerOutsideScope, null);
+      assert.equal((await tx.player.updateMany({ where: { id: linkedEntryA.playerId! }, data: { active: true } })).count, 0);
       assert.equal(await tx.comanda.findFirst({ where: { id: comandaA.id }, select: { id: true } }), null);
       assert.equal(await tx.scheduleOccurrence.findFirst({ where: { id: bookingA.id }, select: { id: true } }), null);
       assert.equal(await tx.comandaItem.findFirst({ where: { id: comandaItemA.id }, select: { id: true } }), null);
