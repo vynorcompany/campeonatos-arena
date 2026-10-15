@@ -16,8 +16,15 @@ test("30-day dashboard chart shows spaced date ticks while retaining every daily
   const dateTicks = [...html.matchAll(/<small>(\d{2}\/10)<\/small>/g)].map((match) => match[1]);
   assert.deepEqual(dateTicks, ["01/10", "07/10", "13/10", "19/10", "25/10", "30/10"]);
   assert.equal((html.match(/dashboard-cash-day/g) ?? []).length, 30);
-  assert.match(html, /min-width:580px/);
+  assert.doesNotMatch(html, /min-width:/);
   assert.match(html, /Total de entradas: R\$\s*1,00/);
+});
+
+test("long daily periods retain readable bars with horizontal scrolling", () => {
+  const days = Array.from({ length: 90 }, (_, index) => ({ label: `${index + 1}/10`, income: index === 89 ? 100 : 0, expense: 0 }));
+  const html = renderToStaticMarkup(React.createElement(DashboardCashChart, { view: "caixa", days }));
+  assert.match(html, /min-width:760px/);
+  assert.equal((html.match(/dashboard-cash-day/g) ?? []).length, 90);
 });
 
 test("short periods keep every daily label", () => {
