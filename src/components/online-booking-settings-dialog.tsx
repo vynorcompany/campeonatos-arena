@@ -1,7 +1,7 @@
 "use client";
 import { viewStyles } from "./online-booking-settings-dialog.utilities";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { updateOnlineBookingSettingsAction } from "@/lib/actions/calendar";
@@ -23,6 +23,13 @@ export function OnlineBookingSettingsDialog({ settings }: { settings: OnlineBook
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const publicPath = `/classificacao/${settings.arenaSlug}?section=booking`;
+
+  useEffect(() => {
+    if (!open) return;
+    const onEscape = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
+    window.addEventListener("keydown", onEscape);
+    return () => window.removeEventListener("keydown", onEscape);
+  }, [open]);
 
   const copyLink = async () => {
     await navigator.clipboard.writeText(`${window.location.origin}${publicPath}`);

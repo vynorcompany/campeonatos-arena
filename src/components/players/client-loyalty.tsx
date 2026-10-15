@@ -48,6 +48,11 @@ export function ClientLoyaltyDialog({ playerId, playerName, canEdit, onClose }: 
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
   useEffect(() => {
+    const onEscape = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onEscape);
+    return () => window.removeEventListener("keydown", onEscape);
+  }, [onClose]);
+  useEffect(() => {
     let active = true;
     getClientLoyaltyAction(playerId).then((result) => { if (active) setState(result); }).catch((reason) => { if (active) setError(reason instanceof Error ? reason.message : "Não foi possível carregar a fidelidade."); });
     return () => { active = false; };
