@@ -1456,19 +1456,19 @@ export async function syncEntriesStateAction(_: ActionState, formData: FormData)
 }
 
 export async function generatePairsAction(formData: FormData) {
-  await requireModuleEdit("pairs");
+  const auth = await requireModuleEdit("pairs");
   const tournamentId = String(formData.get("tournamentId") ?? "");
 
   if (!tournamentId) {
     throw new Error("Torneio inválido.");
   }
 
-  await generateTournamentPairs(tournamentId);
+  await generateTournamentPairs(tournamentId, auth.arenaId);
   refreshTournamentRoutes();
 }
 
 export async function createTournamentPairAction(_: ActionState, formData: FormData): Promise<ActionState> {
-  await requireModuleEdit("pairs");
+  const auth = await requireModuleEdit("pairs");
   const parsed = createTournamentPairSchema.safeParse({
     tournamentId: formData.get("tournamentId"),
     playerAId: formData.get("playerAId"),
@@ -1480,7 +1480,7 @@ export async function createTournamentPairAction(_: ActionState, formData: FormD
   }
 
   try {
-    await createTournamentPair(parsed.data.tournamentId, parsed.data.playerAId, parsed.data.playerBId);
+    await createTournamentPair(parsed.data.tournamentId, auth.arenaId, parsed.data.playerAId, parsed.data.playerBId);
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : "Não foi possível salvar a dupla.",
