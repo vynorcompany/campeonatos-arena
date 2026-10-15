@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { arenaDatabase } from "@/lib/arena-database";
 import {
   buildGeneralRankingSourceEntries,
   type GeneralRankingFeedPairSource,
@@ -430,7 +431,7 @@ function buildRankingView(
 }
 
 async function getRankingSourceEntries(arenaId: string, rankingId: string) {
-  return prisma.tournamentPlayer.findMany({
+  return arenaDatabase(arenaId).tournamentPlayer.findMany({
     where: {
       tournament: {
         arenaId,
@@ -460,7 +461,7 @@ async function getRankingSourceEntries(arenaId: string, rankingId: string) {
 }
 
 async function getRankingSourceEntriesByRankingIds(arenaId: string, rankingIds: string[]) {
-  return prisma.tournamentPlayer.findMany({
+  return arenaDatabase(arenaId).tournamentPlayer.findMany({
     where: {
       tournament: {
         arenaId,
@@ -495,7 +496,7 @@ async function getRankingSourceEntriesByRankingIds(arenaId: string, rankingIds: 
 async function getGeneralRankingSourceEntries(
   arenaId: string,
 ): Promise<RankingSourceEntry[]> {
-  const entries = await prisma.categoryPair.findMany({
+  const entries = await arenaDatabase(arenaId).categoryPair.findMany({
     where: {
       competition: {
         status: "FINISHED",
@@ -551,7 +552,7 @@ async function getCategoryPairRankingSourceEntries(
   arenaId: string,
   rankingIds: string[],
 ) {
-  return prisma.categoryPair.findMany({
+  return arenaDatabase(arenaId).categoryPair.findMany({
     where: {
       competition: {
         rankingId: { in: rankingIds },

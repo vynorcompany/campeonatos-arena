@@ -104,6 +104,14 @@ test("tournament pair actions pass the authorized arena to reads and writes", ()
   assert.match(service, /if \(tournament\.entries\.length < 2\)[\s\S]*?Inscreva ao menos dois atletas/);
 });
 
+test("ranking player relations run with the active arena database context", () => {
+  const ranking = read("src/lib/services/ranking.ts");
+  assert.match(ranking, /getRankingSourceEntries\(arenaId: string, rankingId: string\)[\s\S]*?arenaDatabase\(arenaId\)\.tournamentPlayer\.findMany/);
+  assert.match(ranking, /getRankingSourceEntriesByRankingIds\(arenaId: string, rankingIds: string\[\]\)[\s\S]*?arenaDatabase\(arenaId\)\.tournamentPlayer\.findMany/);
+  assert.match(ranking, /getGeneralRankingSourceEntries\([\s\S]*?arenaDatabase\(arenaId\)\.categoryPair\.findMany/);
+  assert.match(ranking, /getCategoryPairRankingSourceEntries\([\s\S]*?arenaDatabase\(arenaId\)\.categoryPair\.findMany/);
+});
+
 test("athlete portal notification queries enforce the player's arena", () => {
   const notifications = read("src/lib/services/public-player-notifications.ts");
   const radar = read("src/lib/services/public-doubles-radar.ts");
