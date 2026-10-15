@@ -6,12 +6,12 @@ import vm from "node:vm";
 import ts from "typescript";
 import { inviteArenaUserSchema } from "../src/lib/validators/user";
 const require = createRequire(import.meta.url);
-function fixture(options: { configured?: boolean; failEmail?: boolean; appUrl?: string; forbidden?: boolean; member?: boolean; invalidProfile?: boolean; recent?: number } = {}) {
+function fixture(options: { configured?: boolean; failEmail?: boolean; appUrl?: string; forbidden?: boolean; role?: "OWNER" | "ADMIN"; member?: boolean; invalidProfile?: boolean; recent?: number } = {}) {
   const tokens: any[] = [], deliveries: any[] = [];
   const exports: Record<string, (...args: any[]) => Promise<any>> = {};
   const mocks: Record<string, unknown> = {
     "next/cache": { revalidatePath() {} },
-    "@/lib/auth/session": { requireArenaAccess: async () => ({ arenaId: "arena", arenaRole: options.forbidden ? "STAFF" : "ADMIN", systemRole: "VIEWER" }) },
+    "@/lib/auth/session": { requireArenaAccess: async () => ({ arenaId: "arena", arenaRole: options.forbidden ? "STAFF" : options.role ?? "OWNER", systemRole: "VIEWER" }) },
     "@/lib/auth/account-email": { accountEmailIsConfigured: () => options.configured ?? false, sendAccountEmail: async (...args: any[]) => { deliveries.push(args); if (options.failEmail) throw new Error("Provider unavailable"); } },
     "@/lib/auth/account-tokens": { createAccountToken: async (data: any) => { tokens.push(data); return { token: "a".repeat(64), record: { id: "invite" } }; } },
     "@/lib/env": { env: { appUrl: options.appUrl } },
@@ -21,11 +21,13 @@ function fixture(options: { configured?: boolean; failEmail?: boolean; appUrl?: 
       user: { findUnique: async () => options.member ? { id: "user", memberships: [{ id: "membership" }] } : null },
       arena: { findUnique: async () => ({ name: "Arena de teste" }) },
       accountActionToken: { count: async () => options.recent ?? 0, delete: async () => { throw new Error("Invite must not be discarded"); } },
+      arenaMember: { findUnique: async ({ where }: any) => where.userId_arenaId.arenaId === "arena" && where.userId_arenaId.userId === "member" ? { user: { id: "member", email: "member@example.invalid" } } : null },
     } },
   };
   vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/lib/actions/account-access.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, { exports, Date, URL, URLSearchParams, require: (name: string) => name in mocks ? mocks[name] : require(name) });
   const form = new FormData(); form.set("name", "Pessoa de Teste"); form.set("email", "USER@example.invalid"); form.set("permissionProfileId", "profile");
-  return { invite: () => exports.inviteArenaUserAction({ error: null, success: null }, form), tokens, deliveries };
+  const recoveryForm = new FormData(); recoveryForm.set("userId", "member");
+  return { invite: () => exports.inviteArenaUserAction({ error: null, success: null }, form), recover: (userId = "member") => { recoveryForm.set("userId", userId); return exports.sendArenaUserRecoveryAction({ error: null, success: null }, recoveryForm); }, tokens, deliveries };
 }
 
 test("administrators generate scoped, expiring invitations without email or APP_URL", async () => {
@@ -47,4 +49,22 @@ test("manual invitations retain permission, tenant profile, duplicate and rate l
   for (const options of [{ forbidden: true }, { invalidProfile: true }, { member: true }, { recent: 3 }]) {
     const f = fixture(options); const result = await f.invite(); assert.ok(result.error); assert.equal(result.invitationUrl, undefined); assert.equal(f.tokens.length, 0);
   }
+});
+test("administrator can generate a scoped, short-lived recovery link when email is unavailable", async () => {
+  const f = fixture(); const result = await f.recover();
+  assert.equal(result.error, null);
+  assert.match(result.invitationUrl, /^\/redefinir-senha\?token=[a-f0-9]{64}$/);
+  assert.equal(f.tokens[0].kind, "RESET");
+  assert.equal(f.tokens[0].userId, "member");
+  assert.equal(f.tokens[0].hoursValid, .5);
+  assert.equal(f.deliveries.length, 0);
+});
+test("recovery fallback does not bypass tenant membership, permission, or rate limit", async () => {
+  for (const options of [{ forbidden: true }, { role: "ADMIN" as const }, { recent: 3 }]) {
+    const f = fixture(options); const result = await f.recover();
+    assert.ok(result.error); assert.equal(result.invitationUrl, undefined); assert.equal(f.tokens.length, 0);
+  }
+  const f = fixture(); const result = await f.recover("other");
+  assert.equal(result.error, "Usuário não pertence à arena atual.");
+  assert.equal(f.tokens.length, 0);
 });

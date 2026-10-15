@@ -5,7 +5,7 @@ import { useState } from "react";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { removeArenaUserAction, updateArenaUserAction } from "@/lib/actions/user";
-import { sendArenaUserRecoveryAction } from "@/lib/actions/account-access";
+import { UserRecoveryForm } from "@/components/users/user-recovery-form";
 import type { ArenaRole } from "@/types/auth";
 
 const roleLabels: Record<ArenaRole, string> = {
@@ -123,10 +123,7 @@ export function UserActionsCell({
           </SafeActionForm>
         ) : null}
       </div>
-      <SafeActionForm action={sendArenaUserRecoveryAction} className={viewStyles.inline_form_user_password_form} successMessage="Link de recuperação enviado ao e-mail do usuário.">
-        <input type="hidden" name="userId" value={userId} />
-        <SubmitButton label="Enviar recuperação" pendingLabel="Enviando..." className={viewStyles.button} />
-      </SafeActionForm>
+      <UserRecoveryForm userId={userId} />
     </div>
   );
 }
