@@ -59,6 +59,7 @@ export async function mergeClientsAction(formData: FormData) {
     if (!primary.account && duplicate.account) await tx.playerAccount.update({ where: { playerId: duplicate.id }, data: { playerId: primary.id } });
     await tx.comanda.updateMany({ where: { arenaId: auth.arenaId, playerId: duplicate.id }, data: { playerId: primary.id } });
     await tx.clientBalanceMovement.updateMany({ where: { arenaId: auth.arenaId, playerId: duplicate.id }, data: { playerId: primary.id } });
+    await tx.loyaltyActivity.updateMany({ where: { arenaId: auth.arenaId, playerId: duplicate.id }, data: { playerId: primary.id } });
     const duplicateParticipants = await tx.scheduleParticipant.findMany({ where: { playerId: duplicate.id }, select: { id: true, occurrenceId: true } });
     for (const participant of duplicateParticipants) {
       const alreadyPrimary = await tx.scheduleParticipant.findFirst({ where: { occurrenceId: participant.occurrenceId, playerId: primary.id }, select: { id: true } });

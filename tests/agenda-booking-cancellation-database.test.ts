@@ -51,6 +51,7 @@ test("cancelar reserva respeita a escolha sobre cobranças abertas sem afetar va
       "@/lib/calendar/court-booking-edit-safety": {},
       "@/lib/calendar/arena-wall-clock": {},
       "@/lib/calendar/booking-payment-claim": {},
+      "@/lib/calendar/booking-delinquency": {},
       "@/lib/integrations/evolution/client": {},
       "@/lib/scheduling/recurrence": {},
       "@/lib/payments/mercado-pago": {

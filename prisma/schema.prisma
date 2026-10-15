@@ -116,6 +116,10 @@ model Arena {
   whatsappSlaMinutes                Int                      @default(30)
   onlineBookingLeadTimeMinutes      Int                      @default(120)
   onlineBookingOverdueBlockDays      Int?
+  loyaltyEnabled                     Boolean                  @default(false)
+  loyaltyStartedAt                   DateTime?
+  loyaltyVisitsRequired              Int                      @default(10)
+  loyaltyRewardLabel                 String                   @default("Recompensa de fidelidade")
   athletePortalShowLeagues          Boolean                  @default(true)
   athletePortalShowBooking          Boolean                  @default(true)
   athletePortalShowReservations     Boolean                  @default(true)
@@ -185,6 +189,7 @@ model Arena {
   regulationDocuments               RegulationDocument[]
   notifications                     ArenaNotification[]
   balanceMovements                  ClientBalanceMovement[]
+  loyaltyActivities                 LoyaltyActivity[]
   leagueChallenges                  LeagueChallenge[]
   assistantConversations            AssistantConversation[]
   assistantCommands                 AssistantCommand[]
@@ -347,6 +352,7 @@ model Player {
   notifications             PlayerNotification[]
   portalNotificationReads   PlayerPortalNotificationRead[]
   balanceMovements          ClientBalanceMovement[]
+  loyaltyActivities         LoyaltyActivity[]
   financialEntries          FinancialEntry[]
   financialRecurrences      FinancialRecurrence[]
   onlinePaymentCheckouts    OnlinePaymentCheckout[]
@@ -360,6 +366,24 @@ model Player {
   @@index([arenaId, active])
   @@index([mergedIntoPlayerId])
   @@index([arenaId, points])
+}
+
+model LoyaltyActivity {
+  id              String   @id @default(cuid())
+  kind            String
+  visitsDelta     Int
+  rewardLabel     String   @default("")
+  notes           String   @default("")
+  fulfilledAt     DateTime?
+  createdByUserId String
+  fulfilledByUserId String @default("")
+  createdAt       DateTime @default(now())
+  arenaId         String
+  playerId        String
+  arena           Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  player          Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([arenaId, playerId, createdAt])
 }
 
 model PlayerAccount {

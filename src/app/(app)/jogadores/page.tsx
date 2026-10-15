@@ -1,7 +1,9 @@
 import { viewStyles } from "./page.utilities";
 import { AthleteCreatePanel } from "@/components/players/athlete-create-panel";
 import { ClientManagementWorkspace } from "@/components/players/client-management-workspace";
+import { LoyaltySettingsButton } from "@/components/players/client-loyalty";
 import { requireModuleView } from "@/lib/auth/guards";
+import { canEditModule } from "@/lib/permissions";
 import { arenaDatabase } from "@/lib/arena-database";
 import { normalizeBrazilianPhone } from "@/lib/phone";
 import { clientFinancialStatus, matchesClientFinancialFilter, type ClientFinancialEntry } from "@/lib/finance/client-financial-status";
@@ -13,10 +15,11 @@ export default async function PlayersPage(props: PlayersPageProps) {
   const searchParams = await props.searchParams;
   const auth = await requireModuleView("players");
   const prisma = arenaDatabase(auth.arenaId);
-  const [players, plans, teachers] = await Promise.all([
+  const [players, plans, teachers, loyaltySettings] = await Promise.all([
     prisma.player.findMany({ where: { arenaId: auth.arenaId, mergedIntoPlayerId: null }, orderBy: { name: "asc" }, include: { teacher: { select: { id: true, active: true } }, leagueAthleteTiers: { where: { active: true, modality: "PADEL" }, orderBy: { changedAt: "desc" }, take: 1, select: { tier: true } }, student: { include: { subscriptions: { include: { plan: true }, orderBy: { startedAt: "desc" } } } }, financialEntries: { where: { status: { in: ["PENDING", "OVERDUE"] }, type: { in: ["REVENUE", "INCOME"] } }, select: { id: true, status: true, dueDate: true } }, scheduleParticipants: { include: { financialEntry: { select: { id: true, status: true, dueDate: true } }, occurrence: { select: { teacherId: true } } } }, comandas: { include: { sale: { include: { financialEntries: { select: { id: true, status: true, dueDate: true } } } } }, orderBy: { openedAt: "desc" }, take: 5 }, balanceMovements: { orderBy: { createdAt: "desc" }, take: 8 } } }),
     prisma.plan.findMany({ where: { arenaId: auth.arenaId, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.teacher.findMany({ where: { arenaId: auth.arenaId, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } })
+    prisma.teacher.findMany({ where: { arenaId: auth.arenaId, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.arena.findUniqueOrThrow({ where: { id: auth.arenaId }, select: { loyaltyEnabled: true, loyaltyStartedAt: true, loyaltyVisitsRequired: true, loyaltyRewardLabel: true } })
   ]);
   const query = (searchParams?.q ?? "").trim().toLowerCase();
   const phone = normalizeBrazilianPhone(searchParams?.phone ?? "");
@@ -31,5 +34,6 @@ export default async function PlayersPage(props: PlayersPageProps) {
     return { id: player.id, name: player.name, photoUrl: player.photoUrl, phone: player.phone, email: player.email, cpf: player.cpf, addressZipCode: player.addressZipCode, addressStreet: player.addressStreet, addressNumber: player.addressNumber, addressNeighborhood: player.addressNeighborhood, addressCity: player.addressCity, addressState: player.addressState, birthDate: player.birthDate?.toISOString().slice(0, 10) ?? "", gender: player.gender, class: player.class, isTeacher: Boolean(player.teacher?.active), points: player.points, leagueTier: player.leagueAthleteTiers[0]?.tier ?? "", active: player.active, financialStatus: clientFinancialStatus(entriesFor(player)), moneyBalanceCents: player.balanceMovements.reduce((sum, movement) => sum + movement.amountCents, 0), classBalance: player.student?.remainingClasses ?? 0, plans: player.student?.subscriptions.map((subscription) => ({ id: subscription.id, name: subscription.plan.name, status: subscription.status, startedAt: subscription.startedAt.toISOString(), endedAt: subscription.endedAt?.toISOString() ?? null, classesPerMonth: subscription.classesPerMonth, dueDay: subscription.dueDay })) ?? [], balanceMovements: player.balanceMovements.map((movement) => ({ id: movement.id, kind: movement.kind, amountCents: movement.amountCents, classesDelta: movement.classesDelta, reason: movement.reason, createdAt: movement.createdAt.toISOString() })) };
   });
 
-  return <div className={viewStyles.client_management_page}><header className={viewStyles.client_management_header}><nav className={viewStyles.page_breadcrumb} aria-label="Caminho de navegação"><span>Arena</span><i aria-hidden="true">›</i><strong>Clientes</strong></nav><AthleteCreatePanel openLabel="Novo cliente" /></header><ClientManagementWorkspace clients={filtered} plans={plans} teachers={teachers} filters={{ q: searchParams?.q ?? "", phone: searchParams?.phone ?? "", financial: searchParams?.financial ?? "ALL", planId: searchParams?.planId ?? "", active: searchParams?.active ?? "ALL", teacherId: searchParams?.teacherId ?? "" }} /></div>;
+  const canEditLoyalty = canEditModule("players", auth.arenaRole, auth.systemRole, auth.editPermissions);
+  return <div className={viewStyles.client_management_page}><header className={viewStyles.client_management_header}><nav className={viewStyles.page_breadcrumb} aria-label="Caminho de navegação"><span>Arena</span><i aria-hidden="true">›</i><strong>Clientes</strong></nav><div className="tw:flex tw:flex-wrap tw:gap-2">{canEditLoyalty ? <LoyaltySettingsButton settings={{ ...loyaltySettings, loyaltyStartedAt: loyaltySettings.loyaltyStartedAt?.toISOString() ?? null }} /> : null}<AthleteCreatePanel openLabel="Novo cliente" /></div></header><ClientManagementWorkspace clients={filtered} plans={plans} teachers={teachers} canEditLoyalty={canEditLoyalty} filters={{ q: searchParams?.q ?? "", phone: searchParams?.phone ?? "", financial: searchParams?.financial ?? "ALL", planId: searchParams?.planId ?? "", active: searchParams?.active ?? "ALL", teacherId: searchParams?.teacherId ?? "" }} /></div>;
 }
