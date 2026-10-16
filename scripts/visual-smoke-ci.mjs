@@ -568,9 +568,25 @@ async function main() {
     }
     console.log("Portal do Atleta validado em desktop, celular claro/escuro e sem dados financeiros de outra arena.");
 
-    const league = await db.tournament.findFirstOrThrow({ where: { arenaId: arenaA.id, name: "Liga GOAL" }, select: { id: true, categories: { select: { id: true, competitions: { select: { id: true, leagueCycles: { select: { id: true, status: true } } } } } } } });
+    const league = await db.tournament.findFirstOrThrow({
+      where: { arenaId: arenaA.id, name: "Liga GOAL" },
+      select: {
+        id: true,
+        categories: {
+          select: {
+            id: true,
+            competition: {
+              select: {
+                id: true,
+                leagueCycles: { select: { id: true, status: true } },
+              },
+            },
+          },
+        },
+      },
+    });
     const category = league.categories[0];
-    const competition = category.competitions[0];
+    const competition = category.competition;
     const openCycle = competition.leagueCycles.find((cycle) => cycle.status === "OPEN");
     if (!openCycle) throw new Error("Ciclo fictício aberto não encontrado.");
     const categoryPath = `/torneios/${league.id}/categorias/${category.id}`;
