@@ -3,6 +3,7 @@
 node_modules
 dist
 coverage
+artifacts/visual-smoke/
 *.log
 .env
 .env.local
