@@ -614,8 +614,8 @@ async function main() {
             throw new Error(`${viewport.name}: ações do torneio estão quebradas ou comprimidas: ${JSON.stringify(controls.result.value)}`);
           }
           if (viewport.name === "desktop") {
-            const title = await send("Runtime.evaluate", { expression: "(() => { const heading=document.querySelector('.event-operation-title h1'); return {height:heading?.getBoundingClientRect().height ?? 0,lineHeight:parseFloat(getComputedStyle(heading).lineHeight)}; })()", returnByValue: true });
-            if (title.result.value.height > title.result.value.lineHeight * 1.2) throw new Error("O título curto do torneio quebrou por falta de espaço no cabeçalho desktop.");
+            const title = await send("Runtime.evaluate", { expression: "(() => { const heading=document.querySelector('.event-operation-title h1'); const range=document.createRange(); range.selectNodeContents(heading); return {lines:range.getClientRects().length,width:heading.getBoundingClientRect().width}; })()", returnByValue: true });
+            if (title.result.value.lines !== 1) throw new Error(`O título curto do torneio quebrou por falta de espaço no cabeçalho desktop: ${JSON.stringify(title.result.value)}`);
           }
         }
       }
