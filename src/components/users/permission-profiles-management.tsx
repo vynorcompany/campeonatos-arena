@@ -2,6 +2,7 @@ import { viewStyles } from "./permission-profiles-management.utilities";
 import Link from "next/link";
 import { createPermissionProfileAction } from "@/lib/actions/permission-profile";
 import { SectionCard } from "@/components/section-card";
+import { permissionProfileLabel } from "@/lib/permission-profile-label";
 
 export function PermissionProfilesManagement({ profiles }: { profiles: { id: string; name: string; description: string; members: { user: { name: string } }[] }[] }) {
   const orderedProfiles = [...profiles].sort((a, b) => {
@@ -22,7 +23,7 @@ export function PermissionProfilesManagement({ profiles }: { profiles: { id: str
     </details>
     <div className={viewStyles.standard_list_permission_profiles_list} role="table" aria-label="Perfis de usuário">
       <div className={viewStyles.standard_list_head} role="row"><span>Perfil</span><span>Descrição</span><span>Usuários</span><span>Ação</span></div>
-      {orderedProfiles.map((profile) => <Link key={profile.id} href={`/arena/perfis/${profile.id}`} className={viewStyles.standard_list_row} role="row"><strong>{profile.name}</strong><span>{profile.description || "Sem descrição"}</span><span className={viewStyles.permission_profile_members}>{profile.members.length ? profile.members.map(({ user }) => user.name).join(" · ") : "Nenhum usuário vinculado"}</span><span className={viewStyles.standard_list_action}>Configurar <b aria-hidden="true">›</b></span></Link>)}
+      {orderedProfiles.map((profile) => <Link key={profile.id} href={`/arena/perfis/${profile.id}`} className={viewStyles.standard_list_row} role="row"><strong>{permissionProfileLabel(profile.name)}</strong><span>{profile.description || "Sem descrição"}</span><span className={viewStyles.permission_profile_members}>{profile.members.length ? profile.members.map(({ user }) => user.name).join(" · ") : "Nenhum usuário vinculado"}</span><span className={viewStyles.standard_list_action}>Configurar <b aria-hidden="true">›</b></span></Link>)}
       {!orderedProfiles.length ? <p className={viewStyles.standard_list_empty}>Nenhum perfil criado.</p> : null}
     </div>
   </SectionCard>;

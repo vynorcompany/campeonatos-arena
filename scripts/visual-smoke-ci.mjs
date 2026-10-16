@@ -24,16 +24,19 @@ const viewports = [
   { name: "mobile", width: 390, height: 844 },
 ];
 
-async function browserSocket() {
-  for (let attempt = 0; attempt < 80; attempt += 1) {
+async function browserSocket(browser, startupDetails) {
+  for (let attempt = 0; attempt < 300; attempt += 1) {
+    if (browser.exitCode !== null || browser.signalCode !== null || startupDetails().error) {
+      throw new Error(`Edge encerrou antes de iniciar: ${JSON.stringify(startupDetails())}`);
+    }
     try {
-      const response = await fetch(`http://127.0.0.1:${browserPort}/json/list`);
+      const response = await fetch(`http://127.0.0.1:${browserPort}/json/list`, { signal: AbortSignal.timeout(2_000) });
       const target = (await response.json()).find((item) => item.type === "page");
       if (target?.webSocketDebuggerUrl) return target.webSocketDebuggerUrl;
     } catch {}
     await pause(200);
   }
-  throw new Error("Edge não iniciou na CI.");
+  throw new Error(`Edge não iniciou na CI em 60 segundos: ${JSON.stringify(startupDetails())}`);
 }
 
 async function connectCdp(url) {
@@ -73,10 +76,14 @@ async function main() {
     const arenaB = await db.arena.findUniqueOrThrow({ where: { slug: "arena-beta-goal" }, select: { id: true } });
     await mkdir(outputDir, { recursive: true });
     browser = spawn("microsoft-edge", [
-      "--headless=new", "--no-sandbox", "--disable-gpu", "--no-first-run", "--disable-extensions",
+      "--headless=new", "--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage", "--no-first-run", "--disable-extensions",
       `--remote-debugging-port=${browserPort}`, "--user-data-dir=/tmp/arena-goal-edge", "about:blank",
-    ], { stdio: "ignore" });
-    const connection = await connectCdp(await browserSocket());
+    ], { stdio: ["ignore", "ignore", "pipe"] });
+    let browserError = "";
+    let browserStderr = "";
+    browser.on("error", (error) => { browserError = error.message; });
+    browser.stderr?.on("data", (chunk) => { browserStderr = `${browserStderr}${chunk}`.slice(-2000); });
+    const connection = await connectCdp(await browserSocket(browser, () => ({ error: browserError, stderr: browserStderr, exitCode: browser.exitCode, signalCode: browser.signalCode })));
     socket = connection.socket;
     const { send } = connection;
     await send("Page.enable");
@@ -118,7 +125,29 @@ async function main() {
     for (const viewport of viewports) {
       for (const route of routes) {
         const label = `${viewport.name}-${route.replaceAll("/", "-").replace(/^-/, "")}`;
-        await visit(route, viewport, arenaA.id, label);
+        const body = await visit(route, viewport, arenaA.id, label);
+        if (route === "/usuarios" && (!body.includes("Acesso legado · Proprietário") || body.includes("Migrado · OWNER"))) {
+          throw new Error(`${label}: identificador interno do perfil legado exposto na lista de usuários.`);
+        }
+        if (route === "/usuarios") {
+          const clicked = await send("Runtime.evaluate", {
+            expression: "(() => { const button = document.querySelector('button[aria-label^=\"Editar \"]'); button?.click(); return Boolean(button); })()",
+            returnByValue: true,
+          });
+          if (!clicked.result.value) throw new Error(`${label}: botão de edição do usuário ausente.`);
+          await pause(400);
+          const editor = await send("Runtime.evaluate", {
+            expression: "(() => { const select = document.querySelector('.entity-edit-form select[name=\"permissionProfileId\"]'); const grid = select?.closest('.entity-edit-grid-user'); return { visible: Boolean(select), overflow: document.documentElement.scrollWidth > innerWidth + 1, widthRatio: select && grid ? select.getBoundingClientRect().width / grid.getBoundingClientRect().width : 0, options: [...(select?.options ?? [])].map(option => option.text) }; })()",
+            returnByValue: true,
+          });
+          if (!editor.result.value.visible || editor.result.value.overflow || editor.result.value.widthRatio < 0.85 ||
+              !editor.result.value.options.includes("Acesso legado · Proprietário") ||
+              editor.result.value.options.some((option) => option.includes("Migrado · OWNER"))) {
+            throw new Error(`${label}: edição do usuário inválida: ${JSON.stringify(editor.result.value)}`);
+          }
+          const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: true });
+          await writeFile(`${outputDir}/${label}-edit.png`, Buffer.from(shot.data, "base64"));
+        }
       }
     }
     const mobile = viewports[1];
