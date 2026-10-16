@@ -625,34 +625,36 @@ export async function createTeacherStudentAction(formData: FormData) {
   const studentId = String(formData.get("studentId") ?? "");
   const newStudentName = String(formData.get("newStudentName") ?? "").trim();
   const newStudentPhone = String(formData.get("newStudentPhone") ?? "").trim();
-  const teacher = await prisma.teacher.findFirst({
-    where: { id: teacherId, arenaId: auth.arenaId },
-    select: { id: true },
-  });
-  const student = studentId
-    ? await prisma.student.findFirst({
-        where: { id: studentId, arenaId: auth.arenaId },
-        select: { id: true },
-      })
-    : newStudentName.length >= 2
-      ? await prisma.student.upsert({
-          where: {
-            arenaId_name: { arenaId: auth.arenaId, name: newStudentName },
-          },
-          update: { active: true, phone: newStudentPhone },
-          create: {
-            arenaId: auth.arenaId,
-            name: newStudentName,
-            phone: newStudentPhone,
-          },
+  await withArenaTransaction(auth.arenaId, async (tx) => {
+    const teacher = await tx.teacher.findFirst({
+      where: { id: teacherId, arenaId: auth.arenaId },
+      select: { id: true },
+    });
+    if (!teacher) throw new Error("Professor não encontrado.");
+    const student = studentId
+      ? await tx.student.findFirst({
+          where: { id: studentId, arenaId: auth.arenaId },
+          select: { id: true },
         })
-      : null;
-  if (!teacher || !student)
-    throw new Error("Professor ou aluno não encontrado.");
-  await prisma.teacherStudent.upsert({
-    where: { teacherId_studentId: { teacherId, studentId } },
-    update: { active: true },
-    create: { arenaId: auth.arenaId, teacherId, studentId },
+      : newStudentName.length >= 2
+        ? await tx.student.upsert({
+            where: {
+              arenaId_name: { arenaId: auth.arenaId, name: newStudentName },
+            },
+            update: { active: true, phone: newStudentPhone },
+            create: {
+              arenaId: auth.arenaId,
+              name: newStudentName,
+              phone: newStudentPhone,
+            },
+          })
+        : null;
+    if (!student) throw new Error("Aluno não encontrado.");
+    await tx.teacherStudent.upsert({
+      where: { teacherId_studentId: { teacherId: teacher.id, studentId: student.id } },
+      update: { active: true },
+      create: { arenaId: auth.arenaId, teacherId: teacher.id, studentId: student.id },
+    });
   });
   refreshAcademyRoutes();
 }
