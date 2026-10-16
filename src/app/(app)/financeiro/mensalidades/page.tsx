@@ -44,8 +44,8 @@ export default async function MonthlyPaymentsPage() {
     <div className={viewStyles.stack_md}>
 
       <div className={viewStyles.two_column_grid}>
-        <SectionCard title="Ativar plano" description="Vincule um aluno a um plano mensal.">
-          <SafeActionForm action={createSubscriptionAction} className={viewStyles.grid_form_finance_narrow_form} resetOnSuccess successMessage="Plano ativado.">
+        <SectionCard title="Ativar ou renovar plano" description="Cria um ciclo de 12 mensalidades. A renovação fica disponível após completar 12 meses; as cobranças anteriores são preservadas.">
+          <SafeActionForm action={createSubscriptionAction} className={viewStyles.grid_form_finance_narrow_form} resetOnSuccess successMessage="Plano ativado ou renovado. Novo ciclo de 12 mensalidades criado.">
             <div className={viewStyles.field}>
               <label htmlFor="subscription-student">Aluno</label>
               <select id="subscription-student" name="studentId" required defaultValue="">
@@ -70,7 +70,7 @@ export default async function MonthlyPaymentsPage() {
             </div>
             <div className={viewStyles.field}>
               <label htmlFor="subscription-due-day">Dia de vencimento</label>
-              <input id="subscription-due-day" name="dueDay" type="number" min="1" max="31" defaultValue="10" />
+              <input id="subscription-due-day" name="dueDay" type="number" min="1" max="28" defaultValue="10" />
             </div>
             <div className={viewStyles.field}>
               <label htmlFor="subscription-started-at">Início</label>
@@ -81,7 +81,7 @@ export default async function MonthlyPaymentsPage() {
               <input id="subscription-notes" name="notes" type="text" />
             </div>
             <div className={viewStyles.field_field_submit}>
-              <SubmitButton label="Ativar plano" pendingLabel="Salvando..." className={viewStyles.button_button_primary} />
+              <SubmitButton label="Ativar ou renovar" pendingLabel="Salvando..." className={viewStyles.button_button_primary} />
             </div>
           </SafeActionForm>
         </SectionCard>
@@ -138,7 +138,7 @@ export default async function MonthlyPaymentsPage() {
       </div>
 
       <SectionCard title="Renovações de planos" description="Acompanhe os alunos cujo ciclo de 12 mensalidades está terminando. A renovação é sempre manual, evitando novas cobranças sem aprovação.">
-        {renewals.length ? <div className={viewStyles.simple_list_settings_compact_list}>{renewals.map((subscription) => <div className={viewStyles.simple_item} key={subscription.id}><strong>{subscription.student.name} · {subscription.plan.name}</strong><span>Renovação em {new Intl.DateTimeFormat("pt-BR").format(subscription.renewAt)} · {subscription.renewAt < today ? "renovação pendente" : "renovação próxima"}</span><small>Use “Ativar plano” para renovar o aluno, mantendo o novo ciclo registrado.</small></div>)}</div> : <p className={viewStyles.muted}>Nenhuma renovação necessária nos próximos 30 dias.</p>}
+        {renewals.length ? <div className={viewStyles.simple_list_settings_compact_list}>{renewals.map((subscription) => <div className={viewStyles.simple_item} key={subscription.id}><strong>{subscription.student.name} · {subscription.plan.name}</strong><span>Renovação em {new Intl.DateTimeFormat("pt-BR").format(subscription.renewAt)} · {subscription.renewAt < today ? "renovação disponível" : "renovação próxima"}</span><small>A partir dessa data, use “Ativar ou renovar” para criar as próximas 12 mensalidades sem cancelar as anteriores.</small></div>)}</div> : <p className={viewStyles.muted}>Nenhuma renovação necessária nos próximos 30 dias.</p>}
       </SectionCard>
 
       <SectionCard title="Assinaturas ativas" description="Alunos com planos ativos.">

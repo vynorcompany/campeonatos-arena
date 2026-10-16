@@ -14,7 +14,7 @@ export const planSchema = z.object({
 export const subscriptionSchema = z.object({
   studentId: z.string().min(1, "Selecione um aluno."),
   planId: z.string().min(1, "Selecione um plano."),
-  dueDay: z.coerce.number().int().min(1).max(31).default(10),
+  dueDay: z.coerce.number().int().min(1).max(28, "Use um dia de 1 a 28 para manter o mesmo vencimento em todos os meses.").default(10),
   startedAt: z.string().optional().default(""),
   notes: optionalText
 });
