@@ -12,6 +12,7 @@ import { boletoCancellationDisposition } from "@/lib/payments/boleto-cancellatio
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 import { lockClassGroupCapacity } from "@/lib/academy/class-group-capacity";
+import { lockStudentPlanSubscription } from "@/lib/academy/subscription-lock";
 import { lessonSchema, studentSchema, teacherSchema } from "@/lib/academy/action-schemas";
 import {
   getClassGroupName,
@@ -826,6 +827,7 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
   let firstEntryId = "";
   await withArenaTransaction(auth.arenaId, async (tx) => {
     await lockClassGroupCapacity(tx, auth.arenaId, classGroupId);
+    await lockStudentPlanSubscription(tx, auth.arenaId, client.id, planId);
     const currentGroup = await tx.classGroup.findFirst({
       where: { id: classGroupId, arenaId: auth.arenaId, teacherId, active: true },
       include: { plans: { select: { planId: true } }, schedules: true, enrollments: { where: { status: "ACTIVE" }, select: { id: true } } },
@@ -855,6 +857,7 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
       orderBy: { createdAt: "desc" },
       select: { id: true },
     });
+    if (subscription) throw new Error("Este aluno já possui uma assinatura ativa neste plano. Cancele ou altere o plano atual antes de inscrevê-lo novamente.");
     await tx.teacherStudent.upsert({
       where: { teacherId_studentId: { teacherId, studentId: student.id } },
       update: { active: true },
@@ -886,32 +889,18 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
       });
     }
     const note = `Desconto ${discountMode === "PERCENTAGE" ? `${discount}%` : `R$ ${(discount / 100).toFixed(2)}`} ${discountApplication === "RECURRING" ? "recorrente" : "na primeira mensalidade"}.`;
-    if (subscription)
-      await tx.studentSubscription.update({
-        where: { id: subscription.id },
-        data: {
-          status: "ACTIVE",
-          endedAt: null,
-          monthlyPriceCents: recurringAmountCents,
-          classesPerMonth: plan.classesPerMonth,
-          dueDay,
-          startedAt,
-          notes: note,
-        },
-      });
-    else
-      await tx.studentSubscription.create({
-        data: {
-          arenaId: auth.arenaId,
-          studentId: student.id,
-          planId,
-          monthlyPriceCents: recurringAmountCents,
-          classesPerMonth: plan.classesPerMonth,
-          dueDay,
-          startedAt,
-          notes: note,
-        },
-      });
+    await tx.studentSubscription.create({
+      data: {
+        arenaId: auth.arenaId,
+        studentId: student.id,
+        planId,
+        monthlyPriceCents: recurringAmountCents,
+        classesPerMonth: plan.classesPerMonth,
+        dueDay,
+        startedAt,
+        notes: note,
+      },
+    });
     await tx.financialRecurrence.updateMany({
       where: {
         arenaId: auth.arenaId,

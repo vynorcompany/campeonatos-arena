@@ -8,6 +8,7 @@ import { isCourtSlotAvailable } from "@/lib/calendar/court-slot-availability";
 import { arenaWallClockToInstant, instantToArenaWallClock } from "@/lib/calendar/arena-wall-clock";
 import { issueRecurringOnlineChargeForEntry } from "@/lib/payments/recurring-online-charges";
 import { lockClassGroupCapacity } from "@/lib/academy/class-group-capacity";
+import { lockStudentPlanSubscription } from "@/lib/academy/subscription-lock";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 
@@ -111,13 +112,12 @@ export async function approveClassGroupRequestAction(formData: FormData) {
   const firstDueDate = new Date(startedAt.getFullYear(), startedAt.getMonth(), dueDay, 12);
   if (firstDueDate < startedAt) firstDueDate.setMonth(firstDueDate.getMonth() + 1);
   const firstEntryId = await withArenaTransaction(auth.arenaId, async (tx) => {
-    const pending = await tx.classGroupRequest.findFirst({ where: { id: requestId, arenaId: auth.arenaId, status: "PENDING" }, select: { classGroupId: true, studentId: true } });
+    const pending = await tx.classGroupRequest.findFirst({ where: { id: requestId, arenaId: auth.arenaId, status: "PENDING" }, select: { classGroupId: true, studentId: true, student: { select: { playerId: true } } } });
     if (!pending) throw new Error("Solicitação não encontrada.");
     // Group capacity and the student's plan subscription are separate shared resources.
     // Always acquire the group lock before the subscription lock to avoid deadlocks.
     await lockClassGroupCapacity(tx, auth.arenaId, pending.classGroupId);
-    const subscriptionLockKey = `class-subscription:${auth.arenaId}:${pending.studentId}:${planId}`;
-    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${subscriptionLockKey}, 0))::text`;
+    await lockStudentPlanSubscription(tx, auth.arenaId, pending.student.playerId ?? pending.studentId, planId);
     const request = await tx.classGroupRequest.findFirst({ where: { id: requestId, arenaId: auth.arenaId, status: "PENDING" }, include: { classGroup: { include: { schedules: true, enrollments: { where: { status: "ACTIVE" }, select: { id: true } }, plans: { select: { planId: true } } } }, student: { select: { id: true, name: true, playerId: true } } } });
     if (!request || !request.classGroup.active || !request.classGroup.schedules.length) throw new Error("Solicitação não encontrada.");
     if (!request.classGroup.plans.some((item) => item.planId === planId)) throw new Error("Este plano não é aceito pela turma.");

@@ -7,6 +7,7 @@ import { PrismaClient } from "@prisma/client";
 import ts from "typescript";
 import { getNextFinancialRecurrenceDate } from "../src/lib/finance/recurrences";
 import { lockClassGroupCapacity } from "../src/lib/academy/class-group-capacity";
+import { lockStudentPlanSubscription } from "../src/lib/academy/subscription-lock";
 
 const testUrl = process.env.ARENA_GOAL_TEST_DATABASE_URL ?? "";
 const disposableDatabase = (() => {
@@ -60,6 +61,7 @@ test("aprovações simultâneas não duplicam matrícula nem cobrança e respeit
       "@/lib/calendar/arena-wall-clock": {},
       "@/lib/payments/recurring-online-charges": { issueRecurringOnlineChargeForEntry: async () => { issuedCharges += 1; } },
       "@/lib/academy/class-group-capacity": { lockClassGroupCapacity },
+      "@/lib/academy/subscription-lock": { lockStudentPlanSubscription },
       "@/lib/prisma": { prisma: admin },
       "@/lib/rls": { withArenaTransaction: (arenaId: string, operation: (tx: unknown) => Promise<unknown>) => runtime.$transaction(async (tx) => {
         await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`;
