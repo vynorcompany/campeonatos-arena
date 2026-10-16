@@ -227,6 +227,63 @@ async function main() {
       if (!closed.result.value) throw new Error(`${viewport.name}: Esc não fechou o agendamento.`);
       console.log(`${viewport.name}: modal de agendamento futuro abre, mantém campos/ações legíveis e fecha com Esc.`);
     }
+    for (const [index, choice] of ["keep", "void"].entries()) {
+      const viewport = viewports[index];
+      const occurrenceId = `goal-cancel-${choice}`;
+      const occurrence = await db.scheduleOccurrence.findUniqueOrThrow({ where: { id: occurrenceId }, select: { startsAt: true } });
+      const date = occurrence.startsAt.toISOString().slice(0, 10);
+      await send("Emulation.setDeviceMetricsOverride", { width: viewport.width, height: viewport.height, deviceScaleFactor: 1, mobile: viewport.name === "mobile" });
+      await selectArena(arenaA.id);
+      await send("Page.navigate", { url: `${baseUrl}/agenda?data=${date}` });
+      let bookingVisible = false;
+      for (let attempt = 0; attempt < 80; attempt += 1) {
+        const result = await send("Runtime.evaluate", {
+          expression: `Boolean([...document.querySelectorAll('button')].find((button) => button.textContent?.includes(${JSON.stringify(`Reserva cancelamento GOAL ${choice === "keep" ? "manter" : "cancelar"}`)})))`,
+          returnByValue: true,
+        });
+        bookingVisible = result.result.value;
+        if (bookingVisible) break;
+        await pause(250);
+      }
+      if (!bookingVisible) throw new Error(`${viewport.name}: reserva fictícia não apareceu na agenda para cancelar.`);
+      await pause(500);
+      await send("Runtime.evaluate", {
+        expression: `(() => { const button = [...document.querySelectorAll('button')].find((item) => item.textContent?.includes(${JSON.stringify(`Reserva cancelamento GOAL ${choice === "keep" ? "manter" : "cancelar"}`)})); button?.click(); })()`,
+      });
+      await pause(350);
+      const cancelTrigger = await send("Runtime.evaluate", {
+        expression: "(() => { const dialog = document.querySelector('[role=dialog][aria-label=\"Agendamento de horário\"]'); const button = [...(dialog?.querySelectorAll('button') ?? [])].find((item) => item.textContent?.trim() === 'Cancelar reserva'); button?.click(); return Boolean(button); })()",
+        returnByValue: true,
+      });
+      if (!cancelTrigger.result.value) throw new Error(`${viewport.name}: ação de cancelar reserva ausente.`);
+      await pause(250);
+      const confirm = await send("Runtime.evaluate", {
+        expression: "(() => { const dialog = document.querySelector('[role=dialog][aria-label=\"Cancelar reserva e cobranças\"]'); if (!dialog) return null; const rect = dialog.getBoundingClientRect(); const radios = [...dialog.querySelectorAll('input[name=\"booking-cancel-charge\"]')]; return { width: innerWidth, left: rect.left, right: rect.right, overflow: dialog.scrollWidth > dialog.clientWidth + 1 || document.documentElement.scrollWidth > innerWidth + 1, radios: radios.length, keepChecked: radios[0]?.checked, confirm: Boolean([...dialog.querySelectorAll('button')].find((button) => button.textContent?.includes('Confirmar cancelamento'))) }; })()",
+        returnByValue: true,
+      });
+      const modal = confirm.result.value;
+      if (!modal || modal.left < -1 || modal.right > modal.width + 1 || modal.overflow || modal.radios !== 2 || !modal.keepChecked || !modal.confirm) {
+        throw new Error(`${viewport.name}: escolha de cobranças não está legível ou completa: ${JSON.stringify(modal)}`);
+      }
+      if (choice === "void") await send("Runtime.evaluate", { expression: "document.querySelectorAll('[role=dialog][aria-label=\"Cancelar reserva e cobranças\"] input[name=\"booking-cancel-charge\"]')[1].click()" });
+      const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+      await writeFile(`${outputDir}/${viewport.name}-agenda-cancelamento-${choice}.png`, Buffer.from(shot.data, "base64"));
+      await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('[role=dialog][aria-label=\"Cancelar reserva e cobranças\"] button')].find((button) => button.textContent?.includes('Confirmar cancelamento'))?.click()" });
+      let resultingStatus;
+      for (let attempt = 0; attempt < 80; attempt += 1) {
+        const [booking, charge] = await Promise.all([
+          db.scheduleOccurrence.findUniqueOrThrow({ where: { id: occurrenceId }, select: { status: true } }),
+          db.financialEntry.findUniqueOrThrow({ where: { id: `${occurrenceId}-charge` }, select: { status: true } }),
+        ]);
+        resultingStatus = { booking: booking.status, charge: charge.status };
+        if (booking.status === "CANCELED" && charge.status === (choice === "keep" ? "PENDING" : "VOIDED")) break;
+        await pause(250);
+      }
+      if (resultingStatus?.booking !== "CANCELED" || resultingStatus.charge !== (choice === "keep" ? "PENDING" : "VOIDED")) {
+        throw new Error(`${viewport.name}: cancelamento não respeitou a escolha sobre a cobrança: ${JSON.stringify(resultingStatus)}`);
+      }
+      console.log(`${viewport.name}: reserva cancelada e cobrança ${choice === "keep" ? "mantida" : "cancelada"} conforme escolha explícita.`);
+    }
     const mobile = viewports[1];
     const betaBody = await visit("/jogadores", mobile, arenaB.id, "mobile-clients-arena-b");
     const alphaBody = await visit("/jogadores", mobile, arenaA.id, "mobile-clients-arena-a");
