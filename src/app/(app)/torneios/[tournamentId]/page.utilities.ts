@@ -11,7 +11,7 @@ export const viewStyles = {
     "tw:[border-bottom-style:solid]", "tw:border-b-[color:#dfe7f1]", "tw:min-h-[88px]", "tw:viewport-760:flex-col",
   ].join(" "),
   "event_operation_title": [
-    "event-operation-title", "tw:[&_h1]:mt-[5px]", "tw:[&_h1]:mr-[0]", "tw:[&_h1]:mb-[8px]",
+    "event-operation-title", "tw:min-w-[320px]", "tw:viewport-760:min-w-0", "tw:[&_h1]:mt-[5px]", "tw:[&_h1]:mr-[0]", "tw:[&_h1]:mb-[8px]",
     "tw:[&_h1]:ml-[0]", "tw:[&_h1]:text-[color:#0a2858]", "tw:[&_h1]:text-[clamp(2rem,_3vw,_2.7rem)]", "tw:[&_h1]:tracking-[-.055em]",
     "tw:[&_h1]:font-[750]", "tw:[&_.eyebrow]:text-[.76rem]", "tw:[&_.eyebrow]:tracking-[0]", "tw:[&_.eyebrow]:normal-case",
   ].join(" "),
@@ -23,7 +23,7 @@ export const viewStyles = {
     "tw:[&_.event-icon]:text-[color:#8495b1]",
   ].join(" "),
   "event_operation_actions": [
-    "event-operation-actions", "tw:flex", "tw:flex-wrap", "tw:justify-end",
+    "event-operation-actions", "tw:flex", "tw:flex-1", "tw:min-w-0", "tw:flex-wrap", "tw:justify-end", "tw:viewport-760:flex-none", "tw:viewport-760:w-full",
     "tw:viewport-760:justify-start", "tw:gap-y-[9px]", "tw:gap-x-[9px]", "tw:items-center",
     "tw:[&_.section-actions]:contents", "tw:[&_.button]:min-h-[40px]", "tw:[&_.button]:[padding-inline:15px]", "tw:[&_.button]:border-t-[color:#cfdaea]",
     "tw:[&_.button]:border-r-[color:#cfdaea]", "tw:[&_.button]:border-b-[color:#cfdaea]", "tw:[&_.button]:border-l-[color:#cfdaea]", "tw:[&_.button]:[box-shadow:none]",

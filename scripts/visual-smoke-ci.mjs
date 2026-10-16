@@ -613,6 +613,10 @@ async function main() {
           if (controls.result.value.length < 4 || controls.result.value.some(button => button.height > 48 || button.right > viewport.width + 1 || button.scrollWidth > button.clientWidth + 1)) {
             throw new Error(`${viewport.name}: ações do torneio estão quebradas ou comprimidas: ${JSON.stringify(controls.result.value)}`);
           }
+          if (viewport.name === "desktop") {
+            const title = await send("Runtime.evaluate", { expression: "(() => { const heading=document.querySelector('.event-operation-title h1'); return {height:heading?.getBoundingClientRect().height ?? 0,lineHeight:parseFloat(getComputedStyle(heading).lineHeight)}; })()", returnByValue: true });
+            if (title.result.value.height > title.result.value.lineHeight * 1.2) throw new Error("O título curto do torneio quebrou por falta de espaço no cabeçalho desktop.");
+          }
         }
       }
     }
