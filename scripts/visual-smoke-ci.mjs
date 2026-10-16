@@ -182,6 +182,28 @@ async function main() {
           const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: true });
           await writeFile(`${outputDir}/${label}-edit.png`, Buffer.from(shot.data, "base64"));
         }
+        if (route === "/jogadores") {
+          if (viewport.name === "mobile") {
+            await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('button')].find((item) => item.textContent?.trim() === 'Filtros e ferramentas')?.click()" });
+            await pause(200);
+          }
+          const opened = await send("Runtime.evaluate", {
+            expression: "(() => { const button = [...document.querySelectorAll('button')].find((item) => item.textContent?.trim() === 'Mesclar contatos' && item.getBoundingClientRect().width > 0); button?.click(); return Boolean(button); })()",
+            returnByValue: true,
+          });
+          if (!opened.result.value) throw new Error(`${label}: botão de mesclagem ausente.`);
+          await pause(350);
+          const modalResult = await send("Runtime.evaluate", {
+            expression: "(() => { const dialog = document.querySelector('[role=dialog][aria-label=\"Mesclar contatos\"]'); if (!dialog) return null; const rect = dialog.getBoundingClientRect(); return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, width: innerWidth, height: innerHeight, overflow: dialog.scrollWidth > dialog.clientWidth + 1 || document.documentElement.scrollWidth > innerWidth + 1, notice: dialog.textContent?.includes('Históricos e vínculos incompatíveis'), actions: Boolean([...dialog.querySelectorAll('button')].find((item) => item.textContent?.includes('Confirmar mesclagem'))) }; })()",
+            returnByValue: true,
+          });
+          const modal = modalResult.result.value;
+          if (!modal || modal.left < -1 || modal.right > modal.width + 1 || modal.top < -1 || modal.bottom > modal.height + 1 || modal.overflow || !modal.notice || !modal.actions) {
+            throw new Error(`${label}: modal de mesclagem cortado ou incompleto: ${JSON.stringify(modal)}`);
+          }
+          const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+          await writeFile(`${outputDir}/${label}-mesclar.png`, Buffer.from(shot.data, "base64"));
+        }
       }
       for (const route of agencyRoutes) {
         const label = `${viewport.name}-${route.replaceAll("/", "-").replace(/^-/, "")}`;

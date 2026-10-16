@@ -21,10 +21,10 @@ test("clientes inativos podem ser reativados pelo mesmo modal", () => {
   assert.match(workspace, /Reativar cliente/);
 });
 
-test("mesclagem mantém o acesso do cliente principal quando ambos possuem portal", () => {
+test("mesclagem preserva os dois acessos quando ambos possuem portal", () => {
   const managementActions = readFileSync(resolve(root, "src/lib/actions/client-management.ts"), "utf8");
-  assert.doesNotMatch(managementActions, /if \(primary\.account && duplicate\.account\) throw new Error/);
-  assert.match(managementActions, /playerAccount\.delete/);
+  assert.match(managementActions, /duplicate\.account && primary\.account/);
+  assert.doesNotMatch(managementActions, /playerAccount\.delete/);
 });
 
 test("cliente mesclado fica fora de todas as listas sem perder o histórico técnico", () => {
