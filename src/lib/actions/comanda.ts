@@ -6,6 +6,7 @@ import { z } from "zod";
 import { requirePermission, requireRole } from "@/lib/auth/guards";
 import { requirePublicPlayerAuth } from "@/lib/auth/player-session";
 import { allocatePaymentsToDebts, getOutstandingCents } from "@/lib/finance/settlements";
+import { comandaDebtOwnerId, selectedComandaDebtWhere } from "@/lib/finance/comanda-debts";
 import { cashReferenceDate } from "@/lib/finance/cash-day";
 import { recordCashSaleIfOpen } from "@/lib/finance/cash-register-sales";
 import { prisma } from "@/lib/prisma";
@@ -232,16 +233,10 @@ export async function finishComandaAction(formData: FormData) {
     const creditAppliedCents = Math.min(parsed.data.creditCents, totalCents);
     const paymentTotalCents = parsed.data.payments.reduce((total, payment) => total + payment.amountCents, 0);
     const selectedDebts = comanda.playerId && parsed.data.debtIds.length ? await tx.financialEntry.findMany({
-      where: {
-        id: { in: parsed.data.debtIds }, arenaId: auth.arenaId, status: "PENDING",
-        OR: [
-          { scheduleParticipant: { playerId: comanda.playerId } },
-          { sale: { comanda: { playerId: comanda.playerId } } }
-        ]
-      },
-      select: { id: true, amountCents: true, settlements: { select: { amountCents: true } } }
+      where: selectedComandaDebtWhere(auth.arenaId, parsed.data.debtIds),
+      select: { id: true, playerId: true, amountCents: true, settlements: { select: { amountCents: true } }, scheduleParticipant: { select: { playerId: true } }, sale: { select: { comanda: { select: { playerId: true } } } } }
     }) : [];
-    if (selectedDebts.length !== parsed.data.debtIds.length) throw new Error("Um dos débitos selecionados não está disponível para este cliente.");
+    if (selectedDebts.length !== parsed.data.debtIds.length || selectedDebts.some((debt) => comandaDebtOwnerId(debt) !== comanda.playerId)) throw new Error("Um dos débitos selecionados não está disponível para este cliente.");
     const selectedDebtBalances = selectedDebts
       .map((debt) => ({
         financialEntryId: debt.id,

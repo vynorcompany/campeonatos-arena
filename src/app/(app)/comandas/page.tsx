@@ -9,6 +9,7 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { createComandaAction } from "@/lib/actions/comanda";
 import { requireModuleView } from "@/lib/auth/guards";
 import { getOutstandingCents } from "@/lib/finance/settlements";
+import { comandaDebtOwnerId } from "@/lib/finance/comanda-debts";
 import { withArenaTransaction } from "@/lib/rls";
 
 type ComandasPageProps = {
@@ -82,9 +83,9 @@ export default async function ComandasPage(props: ComandasPageProps) {
     tx.product.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true, priceCents: true, stockQuantity: true, category: { select: { name: true } } }, orderBy: { name: "asc" } }),
     tx.paymentMethodSetting.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { name: true }, orderBy: { name: "asc" } }),
     tx.financialEntry.findMany({
-      where: { arenaId: auth.arenaId, status: { in: ["PENDING", "OVERDUE"] } },
+      where: { arenaId: auth.arenaId, type: { in: ["REVENUE", "INCOME"] }, status: { in: ["PENDING", "OVERDUE"] } },
       select: {
-        id: true, counterpartyName: true, description: true, amountCents: true, dueDate: true,
+        id: true, playerId: true, description: true, amountCents: true, dueDate: true,
         settlements: { select: { amountCents: true } },
         scheduleParticipant: { select: { playerId: true } },
         sale: { select: { comanda: { select: { playerId: true } } } }
@@ -98,9 +99,8 @@ export default async function ComandasPage(props: ComandasPageProps) {
   const baseParams = new URLSearchParams({ date: toDateInput(selectedDate) });
   if (search) baseParams.set("search", search);
   const paymentMethods = paymentMethodSettings.length ? paymentMethodSettings.map((method) => method.name) : ["Dinheiro", "PIX", "Cartão de crédito", "Cartão de débito", "Saldo de crédito"];
-  const commandPlayerIdsByName = new Map(comandas.flatMap((comanda) => comanda.playerId && comanda.player?.name ? [[comanda.player.name.trim().toLocaleLowerCase("pt-BR"), comanda.playerId] as const] : []));
   const debtsByPlayer = pendingDebts.reduce<Record<string, { id: string; description: string; amountCents: number; dueDate: Date | null }[]>>((current, debt) => {
-    const playerId = debt.scheduleParticipant?.playerId ?? debt.sale?.comanda?.playerId ?? commandPlayerIdsByName.get(debt.counterpartyName.trim().toLocaleLowerCase("pt-BR"));
+    const playerId = comandaDebtOwnerId(debt);
     const outstandingCents = getOutstandingCents(debt.amountCents, debt.settlements);
     if (playerId && outstandingCents > 0) (current[playerId] ??= []).push({ id: debt.id, description: debt.description, amountCents: outstandingCents, dueDate: debt.dueDate });
     return current;

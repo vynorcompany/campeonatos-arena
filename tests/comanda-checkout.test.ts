@@ -88,7 +88,7 @@ test("zero-value commands request explicit confirmation and schedule charges use
   assert.ok(existsSync(resolve(process.cwd(), "prisma/migrations/20260910110000_normalize_schedule_financial_entries/migration.sql")));
 });
 
-test("zero-value commands keep the checkout available for debts and match manual receivables by client", () => {
+test("zero-value commands keep the checkout available for debts linked to the client", () => {
   const commandActions = readFileSync(resolve(process.cwd(), "src/lib/actions/comanda.ts"), "utf8");
   const card = readFileSync(resolve(process.cwd(), "src/components/comandas/command-card.tsx"), "utf8");
   const page = readFileSync(resolve(process.cwd(), "src/app/(app)/comandas/page.tsx"), "utf8");
@@ -97,9 +97,8 @@ test("zero-value commands keep the checkout available for debts and match manual
   assert.match(card, /setCheckoutOpen\(true\)/);
   assert.match(card, /event\.stopPropagation\(\); setDetailsOpen\(false\)/);
   assert.match(commandActions, /!comanda\.items\.length && !parsed\.data\.debtIds\.length/);
-  assert.match(page, /counterpartyName/);
-  assert.match(page, /commandPlayerIdsByName/);
-  assert.match(page, /toLocaleLowerCase\("pt-BR"\)/);
+  assert.match(page, /comandaDebtOwnerId\(debt\)/);
+  assert.doesNotMatch(page, /commandPlayerIdsByName/);
 });
 
 test("command product picker offers a compact category-filtered quantity stepper", () => {
