@@ -54,6 +54,7 @@ test("duas transferências simultâneas respeitam a última vaga e preservam a o
       "@/lib/calendar/arena-wall-clock": {},
       "@/lib/payments/recurring-online-charges": {},
       "@/lib/academy/class-group-capacity": { lockClassGroupCapacity },
+      "@/lib/academy/subscription-lock": {},
       "@/lib/prisma": { prisma: admin },
       "@/lib/rls": { withArenaTransaction: (arenaId: string, operation: (tx: unknown) => Promise<unknown>) => runtime.$transaction(async (tx) => {
         await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`;
