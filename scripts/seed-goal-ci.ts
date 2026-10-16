@@ -107,6 +107,17 @@ async function main() {
     const futureReservation = await db.scheduleOccurrence.create({ data: { arenaId: arenaA.id, sourceType: "COURT_BOOKING", title: "Próxima reserva GOAL", startsAt: futureStartsAt, endsAt: new Date(futureStartsAt.getTime() + 60 * 60_000) } });
     await db.scheduleOccurrenceCourt.create({ data: { occurrenceId: futureReservation.id, courtId: bookingCourt.id } });
     await db.scheduleParticipant.create({ data: { occurrenceId: futureReservation.id, playerId: athlete.id } });
+    const cancellationDates = [5, 6].map((days, index) => {
+      const startsAt = new Date(Date.now() + days * 24 * 60 * 60_000);
+      startsAt.setUTCHours(16 + index, 0, 0, 0);
+      return { startsAt, endsAt: new Date(startsAt.getTime() + 60 * 60_000) };
+    });
+    for (const [index, booking] of cancellationDates.entries()) {
+      const id = index === 0 ? "goal-cancel-keep" : "goal-cancel-void";
+      await db.scheduleOccurrence.create({ data: { id, arenaId: arenaA.id, sourceType: "COURT_BOOKING", title: `Reserva cancelamento GOAL ${index === 0 ? "manter" : "cancelar"}`, ...booking } });
+      await db.scheduleOccurrenceCourt.create({ data: { occurrenceId: id, courtId: bookingCourt.id } });
+      await db.financialEntry.create({ data: { id: `${id}-charge`, arenaId: arenaA.id, playerId: athlete.id, type: "REVENUE", category: "Reserva", description: `Cobrança cancelamento GOAL ${index === 0 ? "manter" : "cancelar"}`, source: "SCHEDULE_BOOKING", externalReference: id, amountCents: 5000 } });
+    }
     await db.financialEntry.createMany({ data: [
       { arenaId: arenaA.id, playerId: athlete.id, type: "REVENUE", category: "Reserva", description: "Receita GOAL", amountCents: 1200 },
       { arenaId: arenaB.id, type: "REVENUE", category: "Reserva", description: "Receita beta GOAL", amountCents: 1200 },
