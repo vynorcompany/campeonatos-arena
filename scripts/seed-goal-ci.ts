@@ -72,11 +72,41 @@ async function main() {
     } });
     const court = await db.court.create({ data: { id: "goal-court-a", arenaId: arenaA.id, name: "Quadra GOAL 1" } });
     await db.courtWeeklyRule.create({ data: { courtId: court.id, weekday: 1, startsAtMinute: 420, endsAtMinute: 480, priceCents: 10000 } });
+    const bookingCourt = await db.court.create({ data: { arenaId: arenaA.id, name: "Quadra GOAL Agenda", displayOrder: 1 } });
+    await db.courtWeeklyRule.createMany({ data: Array.from({ length: 7 }, (_, weekday) => ({
+      courtId: bookingCourt.id, weekday, startsAtMinute: 420, endsAtMinute: 1320, priceCents: 10000,
+    })) });
+    const league = await db.tournament.create({ data: { arenaId: arenaA.id, name: "Liga GOAL", status: "PUBLISHED" } });
+    const category = await db.tournamentCategory.create({ data: { tournamentId: league.id, name: "Liga A GOAL", level: 1 } });
+    const competition = await db.categoryCompetition.create({ data: { categoryId: category.id, format: "LEAGUE", status: "PUBLISHED", isPublic: true, leagueTier: "A" } });
+    const partnerNames = ["Parceira de Nome Comprido GOAL", "Beatriz GOAL", "Carolina GOAL", "Daniela GOAL", "Ester GOAL", "Fernanda GOAL", "Gabriela GOAL"];
+    const partners = await Promise.all(partnerNames.map((name) => db.player.create({ data: { arenaId: arenaA.id, name } })));
+    const pairPlayers = [[athlete, partners[0]], [partners[1], partners[2]], [partners[3], partners[4]], [partners[5], partners[6]]];
+    const leaguePairs: { id: string }[] = [];
+    for (const [index, players] of pairPlayers.entries()) {
+      const pair = await db.categoryPair.create({ data: { competitionId: competition.id, name: players.map((player) => player.name).join(" / "), drawOrder: index + 1 } });
+      await db.categoryPairPlayer.createMany({ data: players.map((player, slot) => ({ competitionId: competition.id, pairId: pair.id, playerId: player.id, slot: slot + 1 })) });
+      leaguePairs.push(pair);
+    }
+    const referenceMonth = new Date().toISOString().slice(0, 7);
+    const cycle = await db.leagueCycle.create({ data: { competitionId: competition.id, referenceMonth } });
+    const matchPairs = [[0, 1], [0, 2], [3, 0], [1, 2]];
+    await db.categoryMatch.createMany({ data: matchPairs.map(([home, away], index) => ({
+      competitionId: competition.id, leagueCycleId: cycle.id, leagueBlock: index + 1,
+      label: `Semana ${index + 1}`, stage: "LEAGUE", roundOrder: index + 1,
+      homePairId: leaguePairs[home].id, awayPairId: leaguePairs[away].id,
+      scheduledDate: `${referenceMonth}-${String(3 + index * 7).padStart(2, "0")}`, scheduledTime: "19:00",
+      ...(index === 0 ? { homeScore: 2, awayScore: 0, homeSet1: 6, awaySet1: 2, homeSet2: 6, awaySet2: 3, manualStatus: "FINISHED", winnerPairId: leaguePairs[home].id } : {}),
+    })) });
     const product = await db.product.create({ data: { arenaId: arenaA.id, name: "Produto GOAL", priceCents: 1200, stockQuantity: 10 } });
     const comanda = await db.comanda.create({ data: { id: "goal-fixture-comanda", arenaId: arenaA.id, playerId: athlete.id, code: "GOAL-COMANDA", label: "Comanda GOAL" } });
     await db.comandaItem.create({ data: { comandaId: comanda.id, productId: product.id, unitPriceCents: 1200, totalCents: 1200 } });
     const booking = await db.scheduleOccurrence.create({ data: { id: "goal-fixture-occurrence", arenaId: arenaA.id, sourceType: "COURT_BOOKING", title: "Reserva GOAL", startsAt: new Date("2020-01-03T10:00:00.000Z"), endsAt: new Date("2020-01-03T11:00:00.000Z") } });
     await db.scheduleParticipant.create({ data: { occurrenceId: booking.id, playerId: athlete.id } });
+    const futureStartsAt = new Date(Date.now() + 3 * 24 * 60 * 60_000);
+    const futureReservation = await db.scheduleOccurrence.create({ data: { arenaId: arenaA.id, sourceType: "COURT_BOOKING", title: "Próxima reserva GOAL", startsAt: futureStartsAt, endsAt: new Date(futureStartsAt.getTime() + 60 * 60_000) } });
+    await db.scheduleOccurrenceCourt.create({ data: { occurrenceId: futureReservation.id, courtId: bookingCourt.id } });
+    await db.scheduleParticipant.create({ data: { occurrenceId: futureReservation.id, playerId: athlete.id } });
     await db.financialEntry.createMany({ data: [
       { arenaId: arenaA.id, playerId: athlete.id, type: "REVENUE", category: "Reserva", description: "Receita GOAL", amountCents: 1200 },
       { arenaId: arenaB.id, type: "REVENUE", category: "Reserva", description: "Receita beta GOAL", amountCents: 1200 },
