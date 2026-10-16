@@ -13,13 +13,14 @@ import { matchesCategoryEligibility, matchesCompetitionAthleteEligibility } from
 
 const workspaceRoot = process.cwd();
 
-test("tournament navigation does not expose the legacy players route", async () => {
+test("client navigation uses the canonical route without a legacy redirect", async () => {
   const source = await readFile(
     path.join(workspaceRoot, "src", "components", "layout", "nav-links.tsx"),
     "utf8",
   );
 
-  assert.doesNotMatch(source, /href:\s*"\/jogadores"/);
+  assert.match(source, /href:\s*"\/jogadores"/);
+  assert.doesNotMatch(source, /href:\s*"\/players"/);
 });
 
 test("category configuration lists every supported competition format", async () => {
