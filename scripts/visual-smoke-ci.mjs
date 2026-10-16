@@ -599,6 +599,27 @@ async function main() {
     if (!openCycle) throw new Error("Ciclo fictício aberto não encontrado.");
     const categoryPath = `/torneios/${league.id}/categorias/${category.id}`;
     await send("Network.clearBrowserCookies");
+    for (const viewport of viewports) {
+      for (const [section, path] of [
+        ["detalhe", `/torneios/${league.id}`],
+        ["categorias", `/torneios/${league.id}/categorias`],
+        ["inscricoes", `/torneios/${league.id}/inscricoes`],
+        ["jogos", `/torneios/${league.id}/jogos`],
+        ["liga", categoryPath],
+      ]) {
+        await visit(path, viewport, arenaA.id, `${viewport.name}-torneio-${section}`);
+        if (section === "detalhe") {
+          const controls = await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('.event-operation-actions .button')].map(button => ({text:button.textContent?.trim(),height:button.getBoundingClientRect().height,right:button.getBoundingClientRect().right,scrollWidth:button.scrollWidth,clientWidth:button.clientWidth}))", returnByValue: true });
+          if (controls.result.value.length < 4 || controls.result.value.some(button => button.height > 48 || button.right > viewport.width + 1 || button.scrollWidth > button.clientWidth + 1)) {
+            throw new Error(`${viewport.name}: ações do torneio estão quebradas ou comprimidas: ${JSON.stringify(controls.result.value)}`);
+          }
+          if (viewport.name === "desktop") {
+            const title = await send("Runtime.evaluate", { expression: "(() => { const heading=document.querySelector('.event-operation-title h1'); const range=document.createRange(); range.selectNodeContents(heading); return {lines:range.getClientRects().length,width:heading.getBoundingClientRect().width}; })()", returnByValue: true });
+            if (title.result.value.lines !== 1) throw new Error(`O título curto do torneio quebrou por falta de espaço no cabeçalho desktop: ${JSON.stringify(title.result.value)}`);
+          }
+        }
+      }
+    }
     await visit(categoryPath, viewports[0], arenaA.id, "liga-ciclo-antes");
     await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('button')].find(button => button.textContent?.includes('Processar ciclo da Liga'))?.click()" });
     let confirmation;
@@ -709,6 +730,9 @@ async function main() {
       { arenaId: arenaA.id, teacherId: teacherA.id, planId: sharedPlan.id, monthlyPriceCents: 16000 },
       { arenaId: arenaA.id, teacherId: teacherB.id, planId: sharedPlan.id, monthlyPriceCents: 16000 },
     ] });
+    for (const viewport of viewports) {
+      await visit(`/professores/${teacherA.id}`, viewport, arenaA.id, `${viewport.name}-professor-detalhe`);
+    }
     await db.financialEntry.createMany({ data: [
       { arenaId: arenaA.id, type: "REVENUE", category: "Planos de aulas", description: "Mensalidade GOAL A1", amountCents: 10000, planId: planA1.id, teacherId: teacherA.id },
       { arenaId: arenaA.id, type: "REVENUE", category: "Plano de Aulas", description: "Mensalidade GOAL A2", amountCents: 12000, planId: planA2.id, teacherId: teacherA.id },
