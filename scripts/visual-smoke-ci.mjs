@@ -456,7 +456,7 @@ async function main() {
     }
     const clickElement = async (selector) => {
       const evaluated = await send("Runtime.evaluate", {
-        expression: `(() => { const element = document.querySelector(${JSON.stringify(selector)}); if (!element) return null; element.scrollIntoView({ block: 'center' }); const rect = element.getBoundingClientRect(); return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, width: rect.width, height: rect.height }; })()`,
+        expression: `(() => { const element = Array.from(document.querySelectorAll(${JSON.stringify(selector)})).find((candidate) => { const rect = candidate.getBoundingClientRect(); return rect.width > 0 && rect.height > 0; }); if (!element) return null; element.scrollIntoView({ block: 'center' }); const rect = element.getBoundingClientRect(); return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, width: rect.width, height: rect.height }; })()`,
         returnByValue: true,
       });
       const point = evaluated.result.value;
