@@ -6,12 +6,13 @@ import ts from "typescript";
 
 const source = readFileSync(new URL("../src/app/api/health/route.ts", import.meta.url), "utf8");
 
-function healthRoute(databaseAvailable: boolean) {
+function healthRoute(databaseAvailable: boolean, commitSha = "a".repeat(40)) {
   const exports: Record<string, unknown> = {};
   let logged = 0;
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
     exports,
     Date,
+    process: { env: { RAILWAY_GIT_COMMIT_SHA: commitSha } },
     console: { error: () => { logged += 1; } },
     require: (name: string) => {
       if (name === "next/server") return { NextResponse: { json: (body: unknown, options: { status: number }) => ({ body, status: options.status }) } };
@@ -22,7 +23,7 @@ function healthRoute(databaseAvailable: boolean) {
       throw new Error(`Unexpected import: ${name}`);
     },
   });
-  return { GET: exports.GET as () => Promise<{ body: { ok: boolean; service: string }; status: number }>, dynamic: exports.dynamic, get logged() { return logged; } };
+  return { GET: exports.GET as () => Promise<{ body: { ok: boolean; service: string; revision: string | null }; status: number }>, dynamic: exports.dynamic, get logged() { return logged; } };
 }
 
 test("health sinaliza aplicação e banco disponíveis", async () => {
@@ -32,6 +33,7 @@ test("health sinaliza aplicação e banco disponíveis", async () => {
   assert.equal(response.status, 200);
   assert.equal(response.body.ok, true);
   assert.equal(response.body.service, "campeonatos-padel");
+  assert.equal(response.body.revision, "a".repeat(12));
   assert.equal(route.logged, 0);
 });
 
@@ -40,6 +42,12 @@ test("health devolve 503 sem expor detalhes quando o banco falha", async () => {
   const response = await route.GET();
   assert.equal(response.status, 503);
   assert.equal(response.body.ok, false);
+  assert.equal(response.body.revision, "a".repeat(12));
   assert.doesNotMatch(JSON.stringify(response.body), /connection string/);
   assert.equal(route.logged, 1);
+});
+
+test("health não exibe identificadores inesperados como revisão", async () => {
+  const response = await healthRoute(true, "not-a-commit-or-secret").GET();
+  assert.equal(response.body.revision, null);
 });
