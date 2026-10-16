@@ -443,6 +443,7 @@ test("group webhook stores the participant name separately from the message body
     "@/lib/integrations/evolution/client": { getEvolutionGroupName: async () => "Grupo de teste" },
     "@/lib/payments/connection-secrets": { hashWebhookSecret: () => "hash" },
     "@/lib/prisma": { prisma: { whatsAppConnection: { findUnique: async () => ({ id: "connection", arenaId: "arena", webhookSecretHash: "hash", status: "CONNECTED", connectedPhone: "111@s.whatsapp.net" }) } } },
+    "@/lib/arena-database": { arenaDatabase: () => ({ whatsAppConversation: { findUnique: async () => null } }) },
     "@/lib/whatsapp-account": { normalizeWhatsAppAccountJid },
     "@/lib/integrations/evolution/agency": {},
     "@/lib/integrations/evolution/groups": { readEvolutionGroupName: () => "" },
@@ -460,4 +461,61 @@ test("group webhook stores the participant name separately from the message body
   assert.equal(created[0].senderName, "Victor");
   assert.equal(created[0].body, "Olá!");
   assert.equal(created[0].participantJid, "5511999991111@s.whatsapp.net");
+});
+
+test("group webhook refreshes known names without requesting metadata on every message", async () => {
+  let providerCalls = 0;
+  let savedName = "Grupo Arena GOAL";
+  let messageNumber = 0;
+  const tx = {
+    whatsAppConversation: {
+      upsert: async ({ update }: any) => {
+        if (update.contactName) savedName = update.contactName;
+        return { id: "conversation", contactName: savedName, profilePhotoUrl: "", lastMessageAt: new Date(0), updatedAt: new Date(0) };
+      },
+      update: async () => ({}),
+    },
+    whatsAppMessage: { findUnique: async () => null, upsert: async () => ({ id: "message" }) },
+    $queryRaw: async () => [{ id: "conversation" }],
+  };
+  const webhook = load("../src/app/api/integrations/evolution/webhook/route.ts", {
+    "next/server": { NextResponse: { json: (value: unknown) => value } },
+    "@prisma/client": {},
+    "@/lib/integrations/evolution/client": { getEvolutionGroupName: async () => { providerCalls += 1; return "Grupo Arena atualizado"; } },
+    "@/lib/payments/connection-secrets": { hashWebhookSecret: () => "hash" },
+    "@/lib/prisma": { prisma: { whatsAppConnection: { findUnique: async () => ({ id: "connection", arenaId: "arena", webhookSecretHash: "hash", status: "CONNECTED", connectedPhone: "111@s.whatsapp.net" }) } } },
+    "@/lib/arena-database": { arenaDatabase: () => ({ whatsAppConversation: { findUnique: async () => ({ contactName: savedName }) } }) },
+    "@/lib/whatsapp-account": { normalizeWhatsAppAccountJid },
+    "@/lib/integrations/evolution/agency": {},
+    "@/lib/integrations/evolution/groups": { readEvolutionGroupName: (value: { groupName?: string }) => value.groupName ?? "" },
+    "@/lib/services/whatsapp-conversation": {},
+    "@/lib/rls": { withArenaTransaction: async (_arenaId: string, operation: (client: typeof tx) => unknown) => operation(tx) },
+  });
+  await webhook.POST({
+    nextUrl: { searchParams: new URLSearchParams("instance=group-instance&secret=secret") }, headers: new Headers(),
+    json: async () => ({ instance: "group-instance", event: "MESSAGES_UPSERT", data: {
+      owner: "111", key: { remoteJid: "123456789012@g.us", participant: "5511999991111@s.whatsapp.net", fromMe: false, id: `group-known-name-${++messageNumber}` },
+      pushName: "Victor", message: { conversation: "Olá!" },
+    } }),
+  });
+  assert.equal(savedName, "Grupo Arena atualizado");
+  assert.equal(providerCalls, 1);
+  await webhook.POST({
+    nextUrl: { searchParams: new URLSearchParams("instance=group-instance&secret=secret") }, headers: new Headers(),
+    json: async () => ({ instance: "group-instance", event: "MESSAGES_UPSERT", data: {
+      owner: "111", key: { remoteJid: "123456789012@g.us", participant: "5511999991111@s.whatsapp.net", fromMe: false, id: `group-known-name-${++messageNumber}` },
+      pushName: "Outro participante", message: { conversation: "Segunda mensagem" },
+    } }),
+  });
+  assert.equal(savedName, "Grupo Arena atualizado");
+  assert.equal(providerCalls, 1);
+  await webhook.POST({
+    nextUrl: { searchParams: new URLSearchParams("instance=group-instance&secret=secret") }, headers: new Headers(),
+    json: async () => ({ instance: "group-instance", event: "MESSAGES_UPSERT", data: {
+      owner: "111", groupName: "Novo nome do evento", key: { remoteJid: "123456789012@g.us", participant: "5511999991111@s.whatsapp.net", fromMe: false, id: `group-known-name-${++messageNumber}` },
+      pushName: "Victor", message: { conversation: "Terceira mensagem" },
+    } }),
+  });
+  assert.equal(savedName, "Novo nome do evento");
+  assert.equal(providerCalls, 1);
 });

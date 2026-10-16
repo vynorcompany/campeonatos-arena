@@ -12,6 +12,18 @@ import { nextWhatsAppConversationVersion } from "@/lib/whatsapp-conversation-ver
 import { readEvolutionGroupName } from "@/lib/integrations/evolution/groups";
 import { withArenaTransaction } from "@/lib/rls";
 
+const groupNameLookupAfter = new Map<string, number>();
+const maxGroupNameLookups = 2048;
+
+function reserveGroupNameLookup(key: string, hasName: boolean) {
+  const now = Date.now();
+  if ((groupNameLookupAfter.get(key) ?? 0) > now) return false;
+  if (groupNameLookupAfter.size >= maxGroupNameLookups) groupNameLookupAfter.delete(groupNameLookupAfter.keys().next().value!);
+  // Missing names retry sooner; known names refresh periodically for renames.
+  groupNameLookupAfter.set(key, now + (hasName ? 60 : 5) * 60_000);
+  return true;
+}
+
 function safeEqual(left: string, right: string) {
   const a = Buffer.from(left);
   const b = Buffer.from(right);
@@ -115,10 +127,15 @@ export async function POST(request: NextRequest) {
       const body = rawBody;
       const sentAt = sentAtFrom(data);
       const phone = remoteJid.replace(/@.*$/, "");
-      const resolvedGroupName = isGroup && !eventGroupName ? await getEvolutionGroupName(remoteJid, connection.arenaId).catch(() => "") : "";
-      const contactName = isGroup ? (resolvedGroupName || eventGroupName) : senderName;
-      const photoFromEvent = String(data.profilePictureUrl ?? data.profilePicUrl ?? "");
       const conversationKey = { arenaId: connection.arenaId, accountJid, remoteJid };
+      const existingGroup = isGroup && !eventGroupName ? await arenaDatabase(connection.arenaId).whatsAppConversation.findUnique({
+        where: { arenaId_accountJid_remoteJid: conversationKey }, select: { contactName: true },
+      }) : null;
+      const savedGroupName = existingGroup?.contactName && existingGroup.contactName !== "Grupo do WhatsApp" ? existingGroup.contactName : "";
+      const groupKey = `${connection.arenaId}:${accountJid}:${remoteJid}`;
+      const resolvedGroupName = isGroup && !eventGroupName && reserveGroupNameLookup(groupKey, Boolean(savedGroupName)) ? await getEvolutionGroupName(remoteJid, connection.arenaId).catch(() => "") : "";
+      const contactName = isGroup ? (eventGroupName || resolvedGroupName || savedGroupName) : senderName;
+      const photoFromEvent = String(data.profilePictureUrl ?? data.profilePicUrl ?? "");
       const content = [message.extendedTextMessage, message.imageMessage, message.audioMessage, message.videoMessage, message.documentMessage, message.stickerMessage].map(toRecord).find((value) => value.contextInfo);
       const context = toRecord(content?.contextInfo);
       const quotedProviderId = String(context.stanzaId ?? "");
