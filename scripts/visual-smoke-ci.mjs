@@ -567,6 +567,61 @@ async function main() {
       throw new Error("A sessão do atleta da arena A obteve conteúdo privado da arena B.");
     }
     console.log("Portal do Atleta validado em desktop, celular claro/escuro e sem dados financeiros de outra arena.");
+
+    const league = await db.tournament.findFirstOrThrow({ where: { arenaId: arenaA.id, name: "Liga GOAL" }, select: { id: true, categories: { select: { id: true, competitions: { select: { id: true, leagueCycles: { select: { id: true, status: true } } } } } } } });
+    const category = league.categories[0];
+    const competition = category.competitions[0];
+    const openCycle = competition.leagueCycles.find((cycle) => cycle.status === "OPEN");
+    if (!openCycle) throw new Error("Ciclo fictício aberto não encontrado.");
+    const categoryPath = `/torneios/${league.id}/categorias/${category.id}`;
+    await send("Network.clearBrowserCookies");
+    await visit(categoryPath, viewports[0], arenaA.id, "liga-ciclo-antes");
+    await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('button')].find(button => button.textContent?.includes('Processar ciclo da Liga'))?.click()" });
+    let confirmation;
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      const response = await send("Runtime.evaluate", { expression: "({dialog:document.querySelector('[role=dialog]')?.innerText ?? '',input:Boolean(document.querySelector('[role=dialog] input[name=confirmKeyword]'))})", returnByValue: true });
+      confirmation = response.result.value;
+      if (confirmation.input) break;
+      await pause(200);
+    }
+    if (!confirmation?.input || !confirmation.dialog.includes("PROCESSAR")) throw new Error("Confirmação do processamento da Liga não abriu.");
+    await send("Runtime.evaluate", { expression: "document.querySelector('[role=dialog] input[name=confirmKeyword]')?.focus()" });
+    await send("Input.insertText", { text: "PROCESSAR" });
+    await clickElement('[role=dialog] button[type=submit]');
+    let processed = false;
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      const cycle = await db.leagueCycle.findUniqueOrThrow({ where: { id: openCycle.id }, select: { status: true, championPairId: true } });
+      const feedback = await send("Runtime.evaluate", { expression: "document.body?.innerText ?? ''", returnByValue: true });
+      if (cycle.status === "CLOSED" && feedback.result.value.includes("Ciclo da Liga processado com sucesso")) { processed = true; break; }
+      if (/Algo saiu do fluxo|Não foi possível processar/.test(feedback.result.value)) throw new Error(`Processamento pela tela falhou: ${feedback.result.value.slice(-700)}`);
+      await pause(300);
+    }
+    if (!processed) throw new Error("A Liga não fechou ou não exibiu confirmação de sucesso.");
+    console.log("Ciclo fictício processado pela interface com confirmação de sucesso.");
+    for (const viewport of viewports) {
+      await send("Emulation.setDeviceMetricsOverride", { width: viewport.width, height: viewport.height, deviceScaleFactor: 1, mobile: viewport.name === "mobile" });
+      await selectArena(arenaA.id);
+      await send("Page.navigate", { url: `${baseUrl}${categoryPath}?tab=history` });
+      let history;
+      for (let attempt = 0; attempt < 80; attempt += 1) {
+        const response = await send("Runtime.evaluate", { expression: "({body:document.body?.innerText ?? '',button:Boolean(document.querySelector('button[aria-label^=\"Ver histórico de\"]')),width:innerWidth,scrollWidth:document.documentElement.scrollWidth})", returnByValue: true });
+        history = response.result.value;
+        if (history.button) break;
+        await pause(200);
+      }
+      if (!history?.button || history.scrollWidth > history.width + 1) throw new Error(`${viewport.name}: histórico da Liga ausente ou com overflow.`);
+      await clickElement('button[aria-label^="Ver histórico de"]');
+      const detail = await send("Runtime.evaluate", { expression: "({dialog:document.querySelector('[role=dialog]')?.innerText ?? '',width:innerWidth,scrollWidth:document.documentElement.scrollWidth})", returnByValue: true });
+      if (!detail.result.value.dialog.includes("Campeã") || !detail.result.value.dialog.includes("Parceira de Nome Comprido GOAL") || !detail.result.value.dialog.includes("Saldo") || detail.result.value.scrollWidth > detail.result.value.width + 1) {
+        throw new Error(`${viewport.name}: modal do histórico não mostrou campeã e classificação sem overflow.`);
+      }
+      const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+      await writeFile(`${outputDir}/liga-historico-${viewport.name}.png`, Buffer.from(shot.data, "base64"));
+      await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+      const closed = await send("Runtime.evaluate", { expression: "Boolean(document.querySelector('[role=dialog]'))", returnByValue: true });
+      if (closed.result.value) throw new Error(`${viewport.name}: histórico não fechou com Esc.`);
+      console.log(`${viewport.name}: histórico da Liga exibiu campeã, ranking e fechou com Esc.`);
+    }
   } finally {
     socket?.close();
     browser?.kill();
