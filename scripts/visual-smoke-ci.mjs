@@ -16,8 +16,20 @@ const outputDir = "artifacts/visual-smoke";
 const browserPort = 31991;
 const pause = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 const routes = [
-  "/painel", "/whatsapp", "/usuarios", "/agenda", "/torneios",
-  "/jogadores", "/financeiro/contas-a-receber", "/pdv/caixa", "/relatorios", "/arena",
+  "/painel", "/assistente", "/whatsapp", "/usuarios", "/minha-conta",
+  "/torneios", "/torneios/novo", "/torneios/inscricoes", "/torneios/rankings", "/torneios/rankings/novo",
+  "/jogos", "/grupos", "/duplas", "/agenda", "/agenda/configuracao", "/calendario", "/comandas",
+  "/proximos-jogos/apresentacao", "/proximos-jogos/patrocinios",
+  "/jogadores", "/professores", "/aulas", "/aulas/alunos", "/aulas/registrar",
+  "/pdv/caixa", "/pdv", "/pdv/novo", "/pdv/servicos", "/pdv/vendas", "/pdv/estoque", "/pdv/balanco",
+  "/financeiro", "/financeiro/folha", "/financeiro/contas-a-receber", "/financeiro/contas-a-pagar",
+  "/financeiro/mensalidades", "/financeiro/planos", "/financeiro/pdv-estoque", "/financeiro/configuracoes",
+  ...["categorias-financeiras", "categorias-produtos", "pagamentos-online", "contas-bancarias", "cupons", "fornecedores", "formas-pagamento", "notas-fiscais"]
+    .map((area) => `/financeiro/configuracoes/${area}`),
+  "/relatorios",
+  ...["caixa", "lancamentos", "produtos", "estoque", "comandas", "dre", "planos", "reservas", "pagamentos-online"]
+    .map((report) => `/relatorios/${report}`),
+  "/arena", "/arena/regulamento", "/suporte",
 ];
 const viewports = [
   { name: "desktop", width: 1366, height: 900 },
@@ -114,6 +126,11 @@ async function main() {
         await pause(200);
       }
       await pause(1200);
+      const settled = await send("Runtime.evaluate", {
+        expression: "({path:location.pathname,width:innerWidth,scrollWidth:document.documentElement.scrollWidth,body:document.body?.innerText ?? '',ready:document.readyState})",
+        returnByValue: true,
+      });
+      metrics = settled.result.value;
       const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
       await writeFile(`${outputDir}/${label}.png`, Buffer.from(shot.data, "base64"));
       if (metrics.path !== path || metrics.body.length < 80 || metrics.scrollWidth > metrics.width + 1 || /Algo saiu do fluxo|Application error|Internal Server Error/i.test(metrics.body)) {
