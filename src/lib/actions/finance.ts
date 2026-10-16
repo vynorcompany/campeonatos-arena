@@ -182,6 +182,10 @@ export async function recordPlanPaymentAction(formData: FormData) {
   const paidAt = parseDate(parsed.data.paidAt) ?? new Date();
 
   await withArenaTransaction(auth.arenaId, async (tx) => {
+    const teacherAssignments = await tx.teacherStudent.findMany({
+      where: { arenaId: auth.arenaId, studentId: subscription.student.id, active: true, teacher: { planAssignments: { some: { planId: subscription.plan.id, active: true } } } },
+      select: { teacherId: true }, take: 2,
+    });
     const entry = await tx.financialEntry.create({ data: {
       arenaId: auth.arenaId,
       type: "REVENUE",
@@ -189,6 +193,7 @@ export async function recordPlanPaymentAction(formData: FormData) {
       description: `${subscription.student.name} - ${subscription.plan.name} (${parsed.data.referenceMonth})`,
       counterpartyName: subscription.student.name,
       planId: subscription.plan.id,
+      teacherId: teacherAssignments.length === 1 ? teacherAssignments[0].teacherId : null,
       playerId: subscription.student.playerId,
       amountCents,
       paymentMethod: parsed.data.paymentMethod,
@@ -243,6 +248,12 @@ export async function createFinancialEntryAction(formData: FormData) {
   const paidAt = parsed.data.status === "PAID" ? parseDate(parsed.data.paidAt) ?? new Date() : parseDate(parsed.data.paidAt);
   let enrollmentNotice = "";
   await withArenaTransaction(auth.arenaId, async (tx) => {
+    const teacherPlan = parsed.data.type === "REVENUE" && parsed.data.planId && teacherId
+      ? await tx.teacherPlan.findFirst({ where: { arenaId: auth.arenaId, teacherId, planId: parsed.data.planId, active: true }, include: { plan: { select: { classesPerMonth: true } }, teacher: { select: { name: true } } } })
+      : null;
+    if (parsed.data.type === "REVENUE" && parsed.data.planId && teacherId && !teacherPlan) {
+      throw new Error("O plano selecionado não pertence a este professor nesta arena.");
+    }
     let supplierId = parsed.data.supplierId || null;
     if (parsed.data.type === "EXPENSE" && parsed.data.counterpartyName && !supplierId) {
       const supplier = await tx.supplier.upsert({
@@ -262,6 +273,7 @@ export async function createFinancialEntryAction(formData: FormData) {
         supplierId,
         bankAccountId: parsed.data.bankAccountId || null,
         planId: parsed.data.planId || null,
+        teacherId: teacherPlan?.teacherId ?? null,
         productId: parsed.data.productId || null,
         playerId: parsed.data.type === "REVENUE" && clientId ? clientId : null,
         amountCents,
@@ -283,12 +295,9 @@ export async function createFinancialEntryAction(formData: FormData) {
         notes: "Baixa registrada na criação do lançamento."
       } });
     }
-    if (parsed.data.type === "REVENUE" && parsed.data.planId && clientId && teacherId) {
-      const [client, teacherPlan] = await Promise.all([
-        tx.player.findFirst({ where: { id: clientId, arenaId: auth.arenaId, active: true }, select: { id: true, name: true, phone: true } }),
-        tx.teacherPlan.findFirst({ where: { arenaId: auth.arenaId, teacherId, planId: parsed.data.planId, active: true }, include: { plan: { select: { classesPerMonth: true } }, teacher: { select: { name: true } } } }),
-      ]);
-      if (client && teacherPlan) {
+    if (parsed.data.type === "REVENUE" && parsed.data.planId && clientId && teacherPlan) {
+      const client = await tx.player.findFirst({ where: { id: clientId, arenaId: auth.arenaId, active: true }, select: { id: true, name: true, phone: true } });
+      if (client) {
         const student = await tx.student.upsert({
           where: { playerId: client.id },
           update: { active: true, name: client.name, phone: client.phone },
@@ -338,6 +347,8 @@ export async function updateFinancialEntryAction(formData: FormData) {
 
     const paidCents = entry.settlements.reduce((total, settlement) => total + settlement.amountCents, 0);
     if (amountCents < paidCents) throw new Error("O valor não pode ser menor que o total já baixado.");
+    const nextPlanId = parsed.data.planId || null;
+    const keepsTeacher = entry.teacherId && nextPlanId && (entry.planId === nextPlanId || await tx.teacherPlan.findFirst({ where: { arenaId: auth.arenaId, teacherId: entry.teacherId, planId: nextPlanId, active: true }, select: { id: true } }));
 
     await tx.financialEntry.update({
       where: { id: entry.id },
@@ -349,7 +360,8 @@ export async function updateFinancialEntryAction(formData: FormData) {
         dueDate: parseDate(parsed.data.dueDate),
         notes: parsed.data.notes,
         bankAccountId: parsed.data.bankAccountId || null,
-        planId: parsed.data.planId || null,
+        planId: nextPlanId,
+        teacherId: keepsTeacher ? entry.teacherId : null,
         productId: parsed.data.productId || null,
       },
     });
@@ -360,6 +372,7 @@ export async function updateFinancialEntryAction(formData: FormData) {
 export async function createFinancialRecurrenceAction(formData: FormData) {
   const auth = await requirePermission("finance:receivable:create");
   const clientId = String(formData.get("clientId") ?? "");
+  const teacherId = String(formData.get("teacherId") ?? "");
   const parsed = recurrenceSchema.safeParse({
     type: formData.get("type"),
     counterpartyName: formData.get("counterpartyName"), category: formData.get("category"), description: formData.get("description"),
@@ -384,10 +397,16 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
 
   let firstEntryId = "";
   await withArenaTransaction(auth.arenaId, async (tx) => {
+    const teacherPlan = parsed.data.type === "REVENUE" && parsed.data.planId && teacherId
+      ? await tx.teacherPlan.findFirst({ where: { arenaId: auth.arenaId, teacherId, planId: parsed.data.planId, active: true }, select: { teacherId: true } })
+      : null;
+    if (parsed.data.type === "REVENUE" && parsed.data.planId && teacherId && !teacherPlan) {
+      throw new Error("O plano selecionado não pertence a este professor nesta arena.");
+    }
     const recurrence = await tx.financialRecurrence.create({ data: {
       arenaId: auth.arenaId, type: parsed.data.type, counterpartyName: parsed.data.counterpartyName, category: parsed.data.category,
       description: parsed.data.description, amountCents, frequency: parsed.data.frequency,
-      startsAt, endsAt, nextDueDate: startsAt, bankAccountId: parsed.data.bankAccountId || null, planId: parsed.data.planId || null,
+      startsAt, endsAt, nextDueDate: startsAt, bankAccountId: parsed.data.bankAccountId || null, planId: parsed.data.planId || null, teacherId: teacherPlan?.teacherId ?? null,
       playerId: parsed.data.type === "REVENUE" && clientId ? clientId : null, onlinePaymentMethod: parsed.data.onlinePaymentMethod, notes: parsed.data.notes
     } });
     const dates = getFinancialRecurrenceDates(startsAt, parsed.data.frequency, endsAt);
@@ -395,7 +414,7 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
       const entry = await tx.financialEntry.create({ data: {
         arenaId: auth.arenaId, type: recurrence.type, counterpartyName: recurrence.counterpartyName, category: recurrence.category,
         description: recurrence.description, amountCents: recurrence.amountCents, dueDate, notes: recurrence.notes,
-        recurrenceId: recurrence.id, bankAccountId: recurrence.bankAccountId, planId: recurrence.planId, playerId: recurrence.playerId,
+        recurrenceId: recurrence.id, bankAccountId: recurrence.bankAccountId, planId: recurrence.planId, teacherId: recurrence.teacherId, playerId: recurrence.playerId,
         paymentMethod: recurrence.onlinePaymentMethod === "BOLETO" ? "Boleto" : ""
       } });
       if (!firstEntryId) firstEntryId = entry.id;

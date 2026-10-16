@@ -2269,6 +2269,7 @@ model FinancialEntry {
   supplierId               String?
   bankAccountId            String?
   planId                   String?
+  teacherId                String?
   recurrenceId             String?
   productId                String?
   playerId                 String?
@@ -2296,6 +2297,7 @@ model FinancialEntry {
   @@index([supplierId])
   @@index([bankAccountId])
   @@index([planId])
+  @@index([arenaId, teacherId])
   @@index([recurrenceId])
   @@index([productId])
   @@index([arenaId, playerId, status])
@@ -2389,6 +2391,7 @@ model FinancialRecurrence {
   supplierId          String?
   bankAccountId       String?
   planId              String?
+  teacherId           String?
   playerId            String?
   arena               Arena            @relation(fields: [arenaId], references: [id], onDelete: Cascade)
   supplier            Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull)
@@ -2399,6 +2402,7 @@ model FinancialRecurrence {
 
   @@index([arenaId, active, nextDueDate])
   @@index([playerId])
+  @@index([arenaId, teacherId])
 }
 
 model FinancialSettlement {
