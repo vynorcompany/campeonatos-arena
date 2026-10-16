@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 
 const databaseUrl = process.env.ARENA_GOAL_TEST_DATABASE_URL ?? "";
@@ -285,6 +286,69 @@ async function main() {
       throw new Error("Troca indevida da arena por cookie expôs clientes alheios.");
     }
     console.log("Login real do administrador fictício, acesso ao WhatsApp e isolamento entre arenas validados.");
+
+    await send("Network.clearBrowserCookies");
+    const athleteToken = createHash("sha256").update(`goal-player:${sessionToken}`).digest("hex");
+    const portalCookie = `arena_player_session=${athleteToken}`;
+    const portalViews = [
+      { label: "inicio", query: "section=home" },
+      { label: "avisos", query: "section=announcements" },
+      { label: "financas", query: "section=finance" },
+      { label: "comandas", query: "section=comandas" },
+      { label: "torneios-jogos", query: "section=leagues&leagueTab=games" },
+      { label: "torneios-duplas", query: "section=leagues&leagueTab=pairs" },
+      { label: "torneios-ranking", query: "section=leagues&leagueTab=ranking" },
+      { label: "super12", query: "section=leagues&eventTab=super12" },
+      { label: "reservar", query: "section=booking" },
+      { label: "reservas", query: "section=reservations" },
+      { label: "aulas", query: "section=lessons" },
+      { label: "turmas", query: "section=classes" },
+      { label: "radar", query: "section=radar" },
+      { label: "perfil", query: "section=profile" },
+    ];
+    for (const viewport of viewports) {
+      for (const theme of viewport.name === "mobile" ? ["light", "dark"] : ["light"]) {
+        await send("Emulation.setDeviceMetricsOverride", { width: viewport.width, height: viewport.height, deviceScaleFactor: 1, mobile: viewport.name === "mobile" });
+        await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: theme }] });
+        await send("Network.setCookie", { name: "arena_player_session", value: athleteToken, url: baseUrl, httpOnly: true, sameSite: "Lax" });
+        for (const view of portalViews) {
+          const path = `/home?arena=arena-teste-goal&${view.query}`;
+          const label = `portal-${viewport.name}-${theme}-${view.label}`;
+          const response = await fetch(`${baseUrl}${path}`, { headers: { Cookie: portalCookie }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
+          await response.body?.cancel();
+          if (response.status !== 200) throw new Error(`${label}: HTTP ${response.status}`);
+          await send("Page.navigate", { url: `${baseUrl}${path}` });
+          let metrics;
+          for (let attempt = 0; attempt < 60; attempt += 1) {
+            const evaluated = await send("Runtime.evaluate", {
+              expression: "({path:location.pathname,section:new URLSearchParams(location.search).get('section'),width:innerWidth,scrollWidth:document.documentElement.scrollWidth,body:document.body?.innerText ?? '',main:document.querySelector('main')?.innerText ?? '',authenticated:Boolean(document.querySelector('nav[aria-label=\"Atalhos principais\"]')),ready:document.readyState})",
+              returnByValue: true,
+            });
+            metrics = evaluated.result.value;
+            if (metrics?.path === "/home" && metrics.section === view.query.split("&", 1)[0].split("=")[1] && metrics.ready === "complete" && metrics.authenticated && metrics.main.trim().length >= 40) break;
+            await pause(200);
+          }
+          await pause(500);
+          const settled = await send("Runtime.evaluate", {
+            expression: "({path:location.pathname,width:innerWidth,scrollWidth:document.documentElement.scrollWidth,body:document.body?.innerText ?? '',main:document.querySelector('main')?.innerText ?? '',authenticated:Boolean(document.querySelector('nav[aria-label=\"Atalhos principais\"]'))})",
+            returnByValue: true,
+          });
+          metrics = settled.result.value;
+          const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+          await writeFile(`${outputDir}/${label}.png`, Buffer.from(shot.data, "base64"));
+          if (metrics.path !== "/home" || !metrics.authenticated || metrics.main.trim().length < 40 || metrics.scrollWidth > metrics.width + 1 || /Algo saiu do fluxo|Application error|Internal Server Error/i.test(metrics.body) || metrics.body.includes("Receita beta GOAL")) {
+            throw new Error(`${label}: portal inválido: ${JSON.stringify({ path: metrics.path, authenticated: metrics.authenticated, mainLength: metrics.main.trim().length, width: metrics.width, scrollWidth: metrics.scrollWidth })}`);
+          }
+          console.log(`${label}: HTTP 200, sessão fictícia válida e sem overflow horizontal`);
+        }
+      }
+    }
+    const betaResponse = await fetch(`${baseUrl}/classificacao/arena-beta-goal?section=finance`, { headers: { Cookie: portalCookie }, signal: AbortSignal.timeout(20_000) });
+    const betaHtml = await betaResponse.text();
+    if (betaResponse.status !== 200 || !betaHtml.includes("Seu espaço dentro e fora da quadra.") || betaHtml.includes("Receita beta GOAL")) {
+      throw new Error("A sessão do atleta da arena A obteve conteúdo privado da arena B.");
+    }
+    console.log("Portal do Atleta validado em desktop, celular claro/escuro e sem dados financeiros de outra arena.");
   } finally {
     socket?.close();
     browser?.kill();

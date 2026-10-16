@@ -58,6 +58,18 @@ async function main() {
 
     const athlete = await db.player.create({ data: { id: "goal-athlete-a", arenaId: arenaA.id, name: "Atleta GOAL A" } });
     await db.player.create({ data: { arenaId: arenaB.id, name: "Atleta Exclusivo Outra Arena GOAL" } });
+    const athleteAccount = await db.playerAccount.create({ data: {
+      arenaId: arenaA.id,
+      playerId: athlete.id,
+      phone: "5500000000000",
+      passwordHash: "test-only",
+    } });
+    const athleteToken = createHash("sha256").update(`goal-player:${testSessionToken}`).digest("hex");
+    await db.playerSession.create({ data: {
+      playerAccountId: athleteAccount.id,
+      token: createHash("sha256").update(athleteToken).digest("hex"),
+      expiresAt: new Date(Date.now() + 60 * 60_000),
+    } });
     const court = await db.court.create({ data: { id: "goal-court-a", arenaId: arenaA.id, name: "Quadra GOAL 1" } });
     await db.courtWeeklyRule.create({ data: { courtId: court.id, weekday: 1, startsAtMinute: 420, endsAtMinute: 480, priceCents: 10000 } });
     const product = await db.product.create({ data: { arenaId: arenaA.id, name: "Produto GOAL", priceCents: 1200, stockQuantity: 10 } });
