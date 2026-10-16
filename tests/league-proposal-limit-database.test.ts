@@ -18,25 +18,23 @@ test("duas sugestões simultâneas não ultrapassam o limite de três nem cruzam
   runtimeUrl.username = "arena_runtime";
   runtimeUrl.password = "";
   const runtime = new PrismaClient({ datasources: { db: { url: runtimeUrl.toString() } } });
-  let matchId = "";
-  const pairIds: string[] = [];
+  let tournamentId = "";
   try {
     const arenaA = await admin.arena.findUniqueOrThrow({ where: { slug: "arena-teste-goal" }, select: { id: true } });
     const arenaB = await admin.arena.findUniqueOrThrow({ where: { slug: "arena-beta-goal" }, select: { id: true } });
-    const tournament = await admin.tournament.findFirstOrThrow({ where: { arenaId: arenaA.id, name: "Liga GOAL" }, select: { id: true } });
-    const category = await admin.tournamentCategory.findFirstOrThrow({ where: { tournamentId: tournament.id }, select: { id: true } });
-    const competition = await admin.categoryCompetition.findUniqueOrThrow({ where: { categoryId: category.id }, select: { id: true } });
+    const tournament = await admin.tournament.create({ data: { arenaId: arenaA.id, name: `Liga Propostas GOAL ${randomUUID()}`, status: "PUBLISHED" }, select: { id: true } });
+    tournamentId = tournament.id;
+    const category = await admin.tournamentCategory.create({ data: { tournamentId: tournament.id, name: "Liga de propostas", level: 1 }, select: { id: true } });
+    const competition = await admin.categoryCompetition.create({ data: { categoryId: category.id, format: "LEAGUE", status: "PUBLISHED", isPublic: true, leagueTier: "A" }, select: { id: true } });
     const pairSuffix = randomUUID();
     const pairs = await Promise.all(["Mandante", "Visitante"].map((label) => admin.categoryPair.create({
       data: { competitionId: competition.id, name: `${label} Proposta GOAL ${pairSuffix}` }, select: { id: true },
     })));
-    pairIds.push(...pairs.map((pair) => pair.id));
     const court = await admin.court.findUniqueOrThrow({ where: { id: "goal-court-a" }, select: { id: true } });
     const match = await admin.categoryMatch.create({ data: {
       competitionId: competition.id, label: `Sugestões GOAL ${randomUUID()}`, stage: "LEAGUE", roundOrder: 99,
       homePairId: pairs[0].id, awayPairId: pairs[1].id,
     }, select: { id: true } });
-    matchId = match.id;
     const startsAt = new Date(Date.now() + 7 * 24 * 60 * 60_000);
     const endsAt = new Date(startsAt.getTime() + 60 * 60_000);
     const responseDueAt = new Date(startsAt.getTime() - 24 * 60 * 60_000);
@@ -57,8 +55,7 @@ test("duas sugestões simultâneas não ultrapassam o limite de três nem cruzam
     await assert.rejects(propose(arenaB.id), /Não existe jogo pendente/);
     assert.equal(await admin.leagueMatchProposal.count({ where: { categoryMatchId: match.id } }), 3);
   } finally {
-    if (matchId) await admin.categoryMatch.delete({ where: { id: matchId } });
-    if (pairIds.length) await admin.categoryPair.deleteMany({ where: { id: { in: pairIds } } });
+    if (tournamentId) await admin.tournament.delete({ where: { id: tournamentId } });
     await runtime.$disconnect();
     await admin.$disconnect();
   }
