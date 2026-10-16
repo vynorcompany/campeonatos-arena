@@ -1,6 +1,8 @@
 import { PrismaClient } from "@prisma/client";
+import { createHash } from "node:crypto";
 
 const testUrl = process.env.ARENA_GOAL_TEST_DATABASE_URL ?? "";
+const testSessionToken = process.env.ARENA_GOAL_TEST_SESSION_TOKEN ?? "";
 const url = new URL(testUrl);
 if (
   url.hostname !== "127.0.0.1" ||
@@ -8,7 +10,8 @@ if (
   url.pathname !== "/arena_goal" ||
   url.username !== "postgres" ||
   process.env.DATABASE_URL !== testUrl ||
-  process.env.DIRECT_URL !== testUrl
+  process.env.DIRECT_URL !== testUrl ||
+  !/^[a-f0-9]{40}$/i.test(testSessionToken)
 ) {
   throw new Error("A carga de testes só pode usar o banco local descartável arena_goal.");
 }
@@ -24,6 +27,7 @@ async function main() {
     await db.$executeRawUnsafe("ALTER ROLE arena_runtime LOGIN");
 
     const owner = await db.user.create({ data: { id: "goal-test", name: "Operador GOAL", email: "goal-owner@example.test", passwordHash: "test-only", systemRole: "SUPER_ADMIN" } });
+    await db.session.create({ data: { userId: owner.id, token: createHash("sha256").update(testSessionToken).digest("hex"), expiresAt: new Date(Date.now() + 60 * 60_000) } });
     const arenaA = await db.arena.create({ data: { name: "Arena Teste GOAL", slug: "arena-teste-goal", createdById: owner.id } });
     const arenaB = await db.arena.create({ data: { name: "Arena Beta GOAL", slug: "arena-beta-goal", createdById: owner.id } });
     await db.arenaMember.createMany({ data: [
