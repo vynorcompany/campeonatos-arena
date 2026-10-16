@@ -29,7 +29,7 @@ export const viewStyles = {
     "tw:[&_.button]:border-r-[color:#cfdaea]", "tw:[&_.button]:border-b-[color:#cfdaea]", "tw:[&_.button]:border-l-[color:#cfdaea]", "tw:[&_.button]:[box-shadow:none]",
     "tw:[&_.button]:font-[700]", "tw:[&_.button]:pt-[0]", "tw:[&_.button]:pr-[15px]", "tw:[&_.button]:pb-[0]",
     "tw:[&_.button]:pl-[15px]", "tw:[&_.button]:rounded-[8px]", "tw:[&_.button]:text-[.8rem]", "tw:[&_.button]:leading-[1]",
-    "tw:viewport-760:[&_.button]:[flex:1]", "tw:[&_.section-actions_.button]:min-h-[40px]", "tw:[&_.section-actions_.button]:pt-[0]", "tw:[&_.section-actions_.button]:pr-[15px]",
+    "tw:viewport-760:[&_.button]:shrink-0", "tw:viewport-760:[&_.button]:whitespace-nowrap", "tw:[&_.section-actions_.button]:min-h-[40px]", "tw:[&_.section-actions_.button]:pt-[0]", "tw:[&_.section-actions_.button]:pr-[15px]",
     "tw:[&_.section-actions_.button]:pb-[0]", "tw:[&_.section-actions_.button]:pl-[15px]", "tw:[&_.section-actions_.button]:rounded-[8px]", "tw:[&_.section-actions_.button]:text-[.8rem]",
     "tw:[&_.section-actions_.button]:font-[700]", "tw:[&_.section-actions_.button]:leading-[1]", "tw:[&_.button_.event-icon]:w-[16px]", "tw:[&_.button_.event-icon]:h-[16px]",
     "tw:[&_.button-danger]:border-t-[color:#d9302c]", "tw:[&_.button-danger]:border-r-[color:#d9302c]", "tw:[&_.button-danger]:border-b-[color:#d9302c]", "tw:[&_.button-danger]:border-l-[color:#d9302c]",

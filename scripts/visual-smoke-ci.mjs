@@ -608,6 +608,12 @@ async function main() {
         ["liga", categoryPath],
       ]) {
         await visit(path, viewport, arenaA.id, `${viewport.name}-torneio-${section}`);
+        if (section === "detalhe") {
+          const controls = await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('.event-operation-actions .button')].map(button => ({text:button.textContent?.trim(),height:button.getBoundingClientRect().height,right:button.getBoundingClientRect().right,scrollWidth:button.scrollWidth,clientWidth:button.clientWidth}))", returnByValue: true });
+          if (controls.result.value.length < 4 || controls.result.value.some(button => button.height > 48 || button.right > viewport.width + 1 || button.scrollWidth > button.clientWidth + 1)) {
+            throw new Error(`${viewport.name}: ações do torneio estão quebradas ou comprimidas: ${JSON.stringify(controls.result.value)}`);
+          }
+        }
       }
     }
     await visit(categoryPath, viewports[0], arenaA.id, "liga-ciclo-antes");
