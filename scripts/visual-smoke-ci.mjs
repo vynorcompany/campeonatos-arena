@@ -124,6 +124,7 @@ async function main() {
       throw new Error("A animação de entrada da página não terminou antes da captura.");
     };
     const visit = async (path, viewport, arenaId, label) => {
+      const pathname = path.split("?", 1)[0];
       const response = await fetch(`${baseUrl}${path}`, { headers: { Cookie: cookie(arenaId) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
       await response.body?.cancel();
       if (response.status !== 200) throw new Error(`${label}: HTTP ${response.status} (${response.headers.get("location") ?? "sem destino"})`);
@@ -138,7 +139,7 @@ async function main() {
           returnByValue: true,
         });
         metrics = result.result.value;
-        if (metrics?.ready === "complete" && metrics.mainBody.trim().length >= 15 && metrics.path === path) break;
+        if (metrics?.ready === "complete" && metrics.mainBody.trim().length >= 15 && metrics.path === pathname) break;
         await pause(200);
       }
       await pause(1200);
@@ -149,7 +150,7 @@ async function main() {
       metrics = settled.result.value;
       const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
       await writeFile(`${outputDir}/${label}.png`, Buffer.from(shot.data, "base64"));
-      if (metrics.path !== path || metrics.mainBody.trim().length < 15 || metrics.scrollWidth > metrics.width + 1 || /Algo saiu do fluxo|Application error|Internal Server Error/i.test(metrics.body)) {
+      if (metrics.path !== pathname || metrics.mainBody.trim().length < 15 || metrics.scrollWidth > metrics.width + 1 || /Algo saiu do fluxo|Application error|Internal Server Error/i.test(metrics.body)) {
         throw new Error(`${label}: layout ou navegação inválida: ${JSON.stringify({ path: metrics.path, width: metrics.width, scrollWidth: metrics.scrollWidth, mainBodyLength: metrics.mainBody.trim().length })}`);
       }
       console.log(`${label}: HTTP 200, ${metrics.width}px, sem overflow horizontal`);
@@ -575,6 +576,18 @@ async function main() {
       throw new Error("A sessão do atleta da arena A obteve conteúdo privado da arena B.");
     }
     console.log("Portal do Atleta validado em desktop, celular claro/escuro e sem dados financeiros de outra arena.");
+
+    const ranking = await db.rankingProfile.create({ data: {
+      arenaId: arenaA.id, name: "Ranking GOAL Visual", type: "PAIR", model: "LEAGUE",
+      rules: { create: { stageKey: "WIN", label: "Vitória", points: 1, displayOrder: 1 } },
+      cycles: { create: { label: "Ciclo GOAL" } },
+    } });
+    for (const viewport of viewports) {
+      for (const tab of ["configuracao", "pontuacao", "classificacao", "uso"]) {
+        const body = await visit(`/torneios/rankings/${ranking.id}?tab=${tab}`, viewport, arenaA.id, `${viewport.name}-ranking-${tab}`);
+        if (!body.includes("Ranking GOAL Visual")) throw new Error(`${viewport.name}: detalhe do ranking ${tab} não exibiu o ranking fictício.`);
+      }
+    }
 
     const league = await db.tournament.findFirstOrThrow({
       where: { arenaId: arenaA.id, name: "Liga GOAL" },
