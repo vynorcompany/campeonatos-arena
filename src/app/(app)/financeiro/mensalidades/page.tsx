@@ -44,7 +44,7 @@ export default async function MonthlyPaymentsPage() {
     <div className={viewStyles.stack_md}>
 
       <div className={viewStyles.two_column_grid}>
-        <SectionCard title="Ativar ou renovar plano" description="Cria um ciclo de 12 mensalidades. A renovação fica disponível após completar 12 meses; as cobranças anteriores são preservadas.">
+        <SectionCard title="Ativar ou renovar plano" description="Cria um ciclo de 12 mensalidades. A renovação fica disponível após completar 12 meses; as cobranças anteriores são preservadas." className="tw:content-start">
           <SafeActionForm action={createSubscriptionAction} className={viewStyles.grid_form_finance_narrow_form} resetOnSuccess successMessage="Plano ativado ou renovado. Novo ciclo de 12 mensalidades criado.">
             <div className={viewStyles.field}>
               <label htmlFor="subscription-student">Aluno</label>
