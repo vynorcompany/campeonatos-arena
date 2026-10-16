@@ -107,26 +107,35 @@ export async function approveClassGroupRequestAction(formData: FormData) {
   const dueDay = Math.min(28, Math.max(1, Number(formData.get("dueDay") ?? 10) || 10));
   const startedAt = startedAtInput ? new Date(`${startedAtInput}T12:00:00`) : new Date();
   if (!requestId || !planId || Number.isNaN(startedAt.getTime())) throw new Error("Informe o plano e a data de início.");
-  const request = await prisma.classGroupRequest.findFirst({ where: { id: requestId, arenaId: auth.arenaId, status: "PENDING" }, include: { classGroup: { include: { schedules: true, enrollments: { where: { status: "ACTIVE" }, select: { id: true } }, plans: { select: { planId: true } } } }, student: { select: { id: true, name: true, playerId: true } } } });
-  if (!request) throw new Error("Solicitação não encontrada.");
-  if (!request.classGroup.plans.some((item) => item.planId === planId)) throw new Error("Este plano não é aceito pela turma.");
-  if (!request.classGroup.schedules.every((schedule) => request.classGroup.enrollments.length < schedule.capacity)) throw new Error("A turma não possui mais vagas.");
-  const plan = await prisma.plan.findFirst({ where: { id: planId, arenaId: auth.arenaId, active: true }, select: { id: true, name: true, monthlyPriceCents: true, classesPerMonth: true } });
-  if (!plan) throw new Error("Plano não encontrado.");
   const firstDueDate = new Date(startedAt.getFullYear(), startedAt.getMonth(), dueDay, 12);
   if (firstDueDate < startedAt) firstDueDate.setMonth(firstDueDate.getMonth() + 1);
-  let firstEntryId = "";
-  await withArenaTransaction(auth.arenaId, async (tx) => {
+  const firstEntryId = await withArenaTransaction(auth.arenaId, async (tx) => {
+    const pending = await tx.classGroupRequest.findFirst({ where: { id: requestId, arenaId: auth.arenaId, status: "PENDING" }, select: { classGroupId: true, studentId: true } });
+    if (!pending) throw new Error("Solicitação não encontrada.");
+    // Group capacity and the student's plan subscription are separate shared resources.
+    // Always acquire the group lock before the subscription lock to avoid deadlocks.
+    const groupLockKey = `class-approval:${auth.arenaId}:${pending.classGroupId}`;
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${groupLockKey}, 0))::text`;
+    const subscriptionLockKey = `class-subscription:${auth.arenaId}:${pending.studentId}:${planId}`;
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${subscriptionLockKey}, 0))::text`;
+    const request = await tx.classGroupRequest.findFirst({ where: { id: requestId, arenaId: auth.arenaId, status: "PENDING" }, include: { classGroup: { include: { schedules: true, enrollments: { where: { status: "ACTIVE" }, select: { id: true } }, plans: { select: { planId: true } } } }, student: { select: { id: true, name: true, playerId: true } } } });
+    if (!request || !request.classGroup.active || !request.classGroup.schedules.length) throw new Error("Solicitação não encontrada.");
+    if (!request.classGroup.plans.some((item) => item.planId === planId)) throw new Error("Este plano não é aceito pela turma.");
+    if (!request.classGroup.schedules.every((schedule) => request.classGroup.enrollments.length < schedule.capacity)) throw new Error("A turma não possui mais vagas.");
+    const plan = await tx.plan.findFirst({ where: { id: planId, arenaId: auth.arenaId, active: true }, select: { id: true, name: true, monthlyPriceCents: true, classesPerMonth: true } });
+    if (!plan) throw new Error("Plano não encontrado.");
     await tx.classGroupEnrollment.upsert({ where: { classGroupId_studentId: { classGroupId: request.classGroupId, studentId: request.studentId } }, update: { status: "ACTIVE", endedAt: null, startedAt }, create: { arenaId: auth.arenaId, classGroupId: request.classGroupId, studentId: request.studentId, startedAt } });
     const activeSubscription = await tx.studentSubscription.findFirst({ where: { arenaId: auth.arenaId, studentId: request.studentId, planId: plan.id, status: "ACTIVE" }, select: { id: true } });
+    let entryId = "";
     if (!activeSubscription) {
       await tx.studentSubscription.create({ data: { arenaId: auth.arenaId, studentId: request.studentId, planId: plan.id, monthlyPriceCents: plan.monthlyPriceCents, classesPerMonth: plan.classesPerMonth, dueDay, startedAt, notes: `Matrícula na turma ${request.classGroup.name}.` } });
       const recurrence = await tx.financialRecurrence.create({ data: { arenaId: auth.arenaId, type: "REVENUE", counterpartyName: request.student.name, playerId: request.student.playerId, category: "Planos de aulas", description: `${plan.name} · ${request.student.name}`, amountCents: plan.monthlyPriceCents, frequency: "MONTHLY", startsAt: startedAt, nextDueDate: firstDueDate, onlinePaymentMethod: "BOLETO", planId: plan.id, teacherId: request.classGroup.teacherId, notes: `Gerado pela matrícula na turma ${request.classGroup.name}.` } });
       const firstEntry = await tx.financialEntry.create({ data: { arenaId: auth.arenaId, type: "REVENUE", counterpartyName: request.student.name, playerId: request.student.playerId, category: "Planos de aulas", description: `${plan.name} · ${request.student.name}`, amountCents: plan.monthlyPriceCents, dueDate: firstDueDate, planId: plan.id, teacherId: request.classGroup.teacherId, recurrenceId: recurrence.id, paymentMethod: "Boleto" } });
-      firstEntryId = firstEntry.id;
+      entryId = firstEntry.id;
       await tx.financialRecurrence.update({ where: { id: recurrence.id }, data: { nextDueDate: getNextFinancialRecurrenceDate(firstDueDate, "MONTHLY") } });
     }
     await tx.classGroupRequest.update({ where: { id: request.id }, data: { status: "APPROVED" } });
+    return entryId;
   });
   if (firstEntryId) {
     try { await issueRecurringOnlineChargeForEntry(auth.arenaId, firstEntryId); }
