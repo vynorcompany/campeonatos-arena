@@ -22,6 +22,7 @@ import { createBoletoPayment, createPixPayment, getMissingBoletoPayerFields } fr
 import { hasExistingOnlineCharge } from "@/lib/payments/existing-online-charge";
 import { claimFinancialOnlineCharge } from "@/lib/payments/financial-online-charge-claim";
 import { issueRecurringOnlineChargeForEntry } from "@/lib/payments/recurring-online-charges";
+import { lockStudentPlanSubscription } from "@/lib/academy/subscription-lock";
 import { issueManualFiscalDocument, type FiscalDocumentType } from "@/lib/fiscal/manual-issuance";
 import { refreshFinanceRoutes, refreshFinancialSettings } from "@/lib/finance/revalidation";
 import {
@@ -304,6 +305,7 @@ export async function createFinancialEntryAction(formData: FormData) {
       } });
     }
     if (parsed.data.type === "REVENUE" && parsed.data.planId && clientId && teacherPlan) {
+      await lockStudentPlanSubscription(tx, auth.arenaId, clientId, parsed.data.planId);
       const client = await tx.player.findFirst({ where: { id: clientId, arenaId: auth.arenaId, active: true }, select: { id: true, name: true, phone: true } });
       if (client) {
         const student = await tx.student.upsert({
