@@ -3,10 +3,10 @@ import { sharedUtilities } from "@/components/ui/shared.utilities";
 export const viewStyles = {
   "entity_edit_form": [
     "entity-edit-form", "tw:grid", "tw:gap-y-[10px]", "tw:gap-x-[10px]",
-    "tw:min-w-[min(100%,_720px)]",
+    "tw:min-w-[0]", "tw:w-full",
   ].join(" "),
   "entity_edit_grid_entity_edit_grid_user": [
-    "entity-edit-grid", "entity-edit-grid-user", "tw:grid", "tw:grid-cols-[minmax(180px,_1fr)_minmax(220px,_1.2fr)_minmax(180px,_.8fr)]",
+    "entity-edit-grid", "entity-edit-grid-user", "tw:grid", "tw:grid-cols-[minmax(0,_1fr)_minmax(0,_1fr)]",
     "tw:viewport-1024:grid-cols-[1fr]", "tw:gap-y-[8px]", "tw:gap-x-[8px]", "tw:items-center",
     "tw:[&_input]:w-[100%]", "tw:[&_input]:min-h-[38px]", "tw:[&_input]:pt-[0]", "tw:[&_input]:pr-[12px]",
     "tw:[&_input]:pb-[0]", "tw:[&_input]:pl-[12px]", "tw:[&_input]:border-t-[length:1px]", "tw:[&_input]:[border-top-style:solid]",
@@ -18,7 +18,7 @@ export const viewStyles = {
     "tw:[&_select]:border-t-[length:1px]", "tw:[&_select]:[border-top-style:solid]", "tw:[&_select]:border-t-[color:var(--line)]", "tw:[&_select]:border-r-[length:1px]",
     "tw:[&_select]:[border-right-style:solid]", "tw:[&_select]:border-r-[color:var(--line)]", "tw:[&_select]:border-b-[length:1px]", "tw:[&_select]:[border-bottom-style:solid]",
     "tw:[&_select]:border-b-[color:var(--line)]", "tw:[&_select]:border-l-[length:1px]", "tw:[&_select]:[border-left-style:solid]", "tw:[&_select]:border-l-[color:var(--line)]",
-    "tw:[&_select]:rounded-[12px]", "tw:[&_select]:bg-[color:var(--panel)]", "tw:[&_select]:[background-image:none]", "tw:[&_select]:text-[color:var(--text)]",
+    "tw:[&_select]:rounded-[12px]", "tw:[&_select]:bg-[color:var(--panel)]", "tw:[&_select]:[background-image:none]", "tw:[&_select]:text-[color:var(--text)]", "tw:[&_select]:col-span-full",
     "tw:[&_input:focus]:[outline:none]", "tw:[&_input:focus]:border-t-[color:rgba(18,_93,_156,_0.35)]", "tw:[&_input:focus]:border-r-[color:rgba(18,_93,_156,_0.35)]", "tw:[&_input:focus]:border-b-[color:rgba(18,_93,_156,_0.35)]",
     "tw:[&_input:focus]:border-l-[color:rgba(18,_93,_156,_0.35)]", "tw:[&_input:focus]:[box-shadow:0_0_0_4px_rgba(18,_93,_156,_0.1)]", "tw:[&_select:focus]:[outline:none]", "tw:[&_select:focus]:border-t-[color:rgba(18,_93,_156,_0.35)]",
     "tw:[&_select:focus]:border-r-[color:rgba(18,_93,_156,_0.35)]", "tw:[&_select:focus]:border-b-[color:rgba(18,_93,_156,_0.35)]", "tw:[&_select:focus]:border-l-[color:rgba(18,_93,_156,_0.35)]", "tw:[&_select:focus]:[box-shadow:0_0_0_4px_rgba(18,_93,_156,_0.1)]",

@@ -26,28 +26,16 @@ export async function ArenaUsersManagement({ arenaId, currentUserId, query = "" 
     prisma.permissionProfile.findMany({ where: { arenaId, active: true }, orderBy: { name: "asc" } }),
     prisma.accountActionToken.findMany({ where: { arenaId, kind: "INVITE", usedAt: null, expiresAt: { gt: new Date() }, ...(query ? { OR: [{ name: { contains: query, mode: "insensitive" } }, { email: { contains: query, mode: "insensitive" } }] } : {}) }, select: { id: true, email: true, name: true, expiresAt: true }, orderBy: { createdAt: "desc" }, take: 50 })
   ]);
-  const profileMembers = new Map<string, string[]>();
-  for (const member of members) {
-    if (!member.permissionProfileId) continue;
-    const names = profileMembers.get(member.permissionProfileId) ?? [];
-    names.push(member.user.name);
-    profileMembers.set(member.permissionProfileId, names);
-  }
-  const profileOptions = profiles.map((profile) => {
-    const label = permissionProfileLabel(profile.name);
-    const linkedNames = profileMembers.get(profile.id);
-    return {
-      id: profile.id,
-      name: isMigratedPermissionProfile(profile.name) && linkedNames?.length ? `${label} · ${linkedNames.join(", ")}` : label
-    };
-  });
+  const assignableProfiles = profiles
+    .filter((profile) => !isMigratedPermissionProfile(profile.name))
+    .map((profile) => ({ id: profile.id, name: profile.name }));
 
   return (
     <div className={viewStyles.stack_md}>
       <SectionCard title="Usuários" description="Cada acesso pertence a esta arena. Novos usuários definem a própria senha por um convite enviado por e-mail ou compartilhado por link.">
         <details className={viewStyles.setting_create_panel}>
           <summary className={viewStyles.button_button_primary_button_small}>Convidar usuário</summary>
-          <div><ArenaUserForm profiles={profiles.filter((profile) => !isMigratedPermissionProfile(profile.name)).map((profile) => ({ id: profile.id, name: profile.name }))} /></div>
+          <div><ArenaUserForm profiles={assignableProfiles} /></div>
         </details>
         <form method="GET" action="/usuarios" className={viewStyles.user_search_form} role="search"><label htmlFor="user-search">Buscar por nome ou e-mail</label><div><input id="user-search" name="q" type="search" defaultValue={query} placeholder="Nome ou e-mail" /><button className={viewStyles.button_button_small} type="submit">Buscar</button>{query ? <a className={viewStyles.button_button_small} href="/usuarios">Limpar</a> : null}</div></form>
         <p className={viewStyles.muted}>{members.length} {members.length === 1 ? "usuário encontrado" : "usuários encontrados"}</p>
@@ -76,7 +64,9 @@ export async function ArenaUsersManagement({ arenaId, currentUserId, query = "" 
                     viewPermissions={member.viewPermissions}
                     editPermissions={member.editPermissions}
                     profileId={member.permissionProfileId}
-                    profiles={profileOptions}
+                    profiles={member.permissionProfile && isMigratedPermissionProfile(member.permissionProfile.name)
+                      ? [{ id: member.permissionProfile.id, name: permissionProfileLabel(member.permissionProfile.name) }, ...assignableProfiles]
+                      : assignableProfiles}
                     isCurrentUser={member.userId === currentUserId}
                   />
                 </td>
