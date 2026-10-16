@@ -35,6 +35,7 @@ const viewports = [
   { name: "desktop", width: 1366, height: 900 },
   { name: "mobile", width: 390, height: 844 },
 ];
+const pageMetricsExpression = "({path:location.pathname,width:innerWidth,scrollWidth:document.documentElement.scrollWidth,body:document.body?.innerText ?? '',mainBody:document.querySelector('main')?.innerText ?? '',ready:document.readyState})";
 
 async function browserSocket(browser, startupDetails) {
   for (let attempt = 0; attempt < 300; attempt += 1) {
@@ -118,23 +119,23 @@ async function main() {
       let metrics;
       for (let attempt = 0; attempt < 60; attempt += 1) {
         const result = await send("Runtime.evaluate", {
-          expression: "({path:location.pathname,width:innerWidth,scrollWidth:document.documentElement.scrollWidth,body:document.body?.innerText ?? '',ready:document.readyState})",
+          expression: pageMetricsExpression,
           returnByValue: true,
         });
         metrics = result.result.value;
-        if (metrics?.ready === "complete" && metrics.body.length >= 80 && metrics.path === path) break;
+        if (metrics?.ready === "complete" && metrics.mainBody.trim().length >= 15 && metrics.path === path) break;
         await pause(200);
       }
       await pause(1200);
       const settled = await send("Runtime.evaluate", {
-        expression: "({path:location.pathname,width:innerWidth,scrollWidth:document.documentElement.scrollWidth,body:document.body?.innerText ?? '',ready:document.readyState})",
+        expression: pageMetricsExpression,
         returnByValue: true,
       });
       metrics = settled.result.value;
       const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
       await writeFile(`${outputDir}/${label}.png`, Buffer.from(shot.data, "base64"));
-      if (metrics.path !== path || metrics.body.length < 80 || metrics.scrollWidth > metrics.width + 1 || /Algo saiu do fluxo|Application error|Internal Server Error/i.test(metrics.body)) {
-        throw new Error(`${label}: layout ou navegação inválida: ${JSON.stringify({ path: metrics.path, width: metrics.width, scrollWidth: metrics.scrollWidth, bodyLength: metrics.body.length })}`);
+      if (metrics.path !== path || metrics.mainBody.trim().length < 15 || metrics.scrollWidth > metrics.width + 1 || /Algo saiu do fluxo|Application error|Internal Server Error/i.test(metrics.body)) {
+        throw new Error(`${label}: layout ou navegação inválida: ${JSON.stringify({ path: metrics.path, width: metrics.width, scrollWidth: metrics.scrollWidth, mainBodyLength: metrics.mainBody.trim().length })}`);
       }
       console.log(`${label}: HTTP 200, ${metrics.width}px, sem overflow horizontal`);
       return metrics.body;
