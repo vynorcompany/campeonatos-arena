@@ -740,6 +740,26 @@ async function main() {
       await pause(200);
     }
     if (!mobileChat.includes("Mensagem ao vivo GOAL")) throw new Error("A conversa mobile não mostrou a mensagem recebida.");
+    const chatLayout = await send("Runtime.evaluate", {
+      expression: "({width:document.querySelector('.whatsapp-chat-main')?.getBoundingClientRect().width ?? 0, viewport:innerWidth, detailsButtonVisible:!!document.querySelector('.whatsapp-chat-main button[aria-label=\"Detalhes do contato\"]')?.getClientRects().length})",
+      returnByValue: true,
+    });
+    if (chatLayout.result.value.width < chatLayout.result.value.viewport - 50 || !chatLayout.result.value.detailsButtonVisible) {
+      throw new Error("O chat mobile não ocupou a largura disponível ou perdeu o acesso aos detalhes do contato.");
+    }
+    await send("Runtime.evaluate", { expression: "document.querySelector('.whatsapp-chat-main button[aria-label=\"Detalhes do contato\"]')?.click()" });
+    await pause(200);
+    const detailsOpen = await send("Runtime.evaluate", { expression: "!!document.querySelector('#whatsapp-contact-details')", returnByValue: true });
+    if (!detailsOpen.result.value) throw new Error("Os detalhes do contato não abriram no chat mobile.");
+    const detailsLayout = await send("Runtime.evaluate", {
+      expression: "({panel:document.querySelector('#whatsapp-contact-details')?.getBoundingClientRect().toJSON(), workspace:document.querySelector('.whatsapp-chat-workspace')?.getBoundingClientRect().toJSON()})",
+      returnByValue: true,
+    });
+    if (detailsLayout.result.value.panel?.width < detailsLayout.result.value.workspace?.width - 2 || Math.abs(detailsLayout.result.value.panel?.right - detailsLayout.result.value.workspace?.right) > 2) {
+      throw new Error("Os detalhes do contato não ocuparam corretamente a largura do chat mobile.");
+    }
+    await send("Runtime.evaluate", { expression: "document.querySelector('#whatsapp-contact-details button[aria-label=\"Fechar detalhes do contato\"]')?.click()" });
+    await pause(100);
     const whatsappMobileShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
     await writeFile(`${outputDir}/whatsapp-conversa-mobile-aberta.png`, Buffer.from(whatsappMobileShot.data, "base64"));
 

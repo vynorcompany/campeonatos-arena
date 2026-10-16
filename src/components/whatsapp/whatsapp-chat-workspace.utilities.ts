@@ -90,7 +90,7 @@ export const viewStyles = {
     "tw:viewport-600:[&_.whatsapp-chat-main_>_form.whatsapp-composer]:pr-[7px]", "tw:[&_.whatsapp-chat-main_>_form.whatsapp-composer]:pb-[10px]", "tw:viewport-600:[&_.whatsapp-chat-main_>_form.whatsapp-composer]:pb-[8px]", "tw:[&_.whatsapp-chat-main_>_form.whatsapp-composer]:pl-[14px]",
     "tw:viewport-600:[&_.whatsapp-chat-main_>_form.whatsapp-composer]:pl-[7px]", "tw:[&_.whatsapp-chat-main_>_form.whatsapp-composer]:border-t-[length:1px]", "tw:[&_.whatsapp-chat-main_>_form.whatsapp-composer]:[border-top-style:solid]", "tw:[&_.whatsapp-chat-main_>_form.whatsapp-composer]:border-t-[color:#dce5e8]",
     "tw:[&_.whatsapp-chat-main_>_form.whatsapp-composer]:bg-[color:#f7f9fa]", "tw:[&_.whatsapp-chat-main_>_form.whatsapp-composer]:[background-image:none]", "tw:[&_.whatsapp-chat-main_>_form.whatsapp-composer_.whatsapp-emoji-picker]:right-[60px]", "tw:[&_.whatsapp-chat-main_>_form.whatsapp-composer_.whatsapp-emoji-picker]:bottom-[66px]",
-    "tw:viewport-900:grid-cols-[minmax(0,_1fr)_48px]", "tw:viewport-900:grid-rows-[minmax(0,_1fr)]!", "tw:viewport-900:[&_.whatsapp-inbox-list]:col-span-2", "tw:viewport-420:grid-rows-[minmax(0,_1fr)]!",
+    "tw:viewport-900:grid-cols-[minmax(0,_1fr)_48px]", "tw:viewport-900:[&.is-mobile-chat-open]:grid-cols-[minmax(0,_1fr)]!", "tw:viewport-900:grid-rows-[minmax(0,_1fr)]!", "tw:viewport-900:[&_.whatsapp-inbox-list]:col-span-2", "tw:viewport-420:grid-rows-[minmax(0,_1fr)]!",
   ].join(" "),
   "whatsapp_inbox_list": [
     "whatsapp-inbox-list", "tw:bg-[color:#fff]", "tw:[background-image:none]", "tw:[&_>_header_>_div]:grid",
@@ -238,6 +238,7 @@ export const viewStyles = {
     "tw:[@media(min-width:721px)]:min-h-[0]",
   ].join(" "),
   "whatsapp_mobile_back": "tw:hidden tw:viewport-900:grid tw:viewport-900:size-9 tw:viewport-900:shrink-0 tw:viewport-900:place-items-center tw:viewport-900:rounded-lg tw:viewport-900:border-0 tw:viewport-900:bg-transparent tw:viewport-900:text-[#173b65] tw:viewport-900:focus-visible:outline-2 tw:viewport-900:focus-visible:outline-[#166a4b]",
+  "whatsapp_mobile_details": "tw:hidden tw:viewport-900:grid tw:viewport-900:size-10 tw:viewport-900:shrink-0 tw:viewport-900:place-items-center tw:viewport-900:rounded-lg tw:viewport-900:border-0 tw:viewport-900:bg-transparent tw:viewport-900:text-[#59728d] tw:viewport-900:[&[aria-expanded=true]]:bg-[#eaf7f1] tw:viewport-900:[&[aria-expanded=true]]:text-[#166a4b] tw:viewport-900:focus-visible:outline-2 tw:viewport-900:focus-visible:outline-[#166a4b]",
   "whatsapp_message_thread": [
     "whatsapp-message-thread", "tw:[&_article]:relative", "tw:[&_article]:[overflow-wrap:anywhere]", "tw:[&_article]:[align-self:flex-start]",
     "tw:[&_article]:max-w-[min(78%,_560px)]", "tw:viewport-720:[&_article]:max-w-[88%]", "tw:[&_article]:pt-[9px]", "tw:[&_article]:pr-[11px]",
@@ -402,7 +403,7 @@ export const viewStyles = {
   ].join(" "),
   "whatsapp_details_close": "tw:absolute tw:top-2 tw:right-2 tw:z-10 tw:grid tw:size-10 tw:place-items-center tw:rounded-lg tw:border-0 tw:bg-transparent tw:text-xl tw:text-[#59728d] tw:focus-visible:outline-2 tw:focus-visible:outline-[#166a4b]",
   "whatsapp_contact_panel": [
-    "whatsapp-contact-panel", "tw:relative", "tw:min-h-0", "tw:overflow-y-auto", "tw:[@media(max-width:1280px)]:absolute", "tw:[@media(max-width:1280px)]:inset-y-0", "tw:[@media(max-width:1280px)]:right-[48px]", "tw:[@media(max-width:1280px)]:w-[min(300px,calc(100%_-_48px))]", "tw:z-[7]", "tw:[@media(max-width:1280px)]:shadow-xl", "tw:grid", "tw:[align-content:start]",
+    "whatsapp-contact-panel", "tw:relative", "tw:min-h-0", "tw:overflow-y-auto", "tw:[@media(max-width:1280px)]:absolute", "tw:[@media(max-width:1280px)]:inset-y-0", "tw:[@media(max-width:1280px)]:right-[48px]", "tw:[@media(max-width:1280px)]:w-[min(300px,calc(100%_-_48px))]", "tw:viewport-900:right-0", "tw:viewport-600:w-full", "tw:z-[7]", "tw:[@media(max-width:1280px)]:shadow-xl", "tw:grid", "tw:[align-content:start]",
     "tw:bg-[color:#fff]", "tw:[background-image:none]", "tw:[&_>_header]:grid", "tw:[&_>_header]:[justify-items:center]",
     "tw:[&_>_header]:min-h-[175px]", "tw:[&_>_header]:gap-y-[7px]", "tw:[&_>_header]:gap-x-[7px]", "tw:[&_>_header]:pt-[24px]",
     "tw:[&_>_header]:pr-[14px]", "tw:[&_>_header]:pb-[18px]", "tw:[&_>_header]:pl-[14px]", "tw:[&_>_header]:text-center",
