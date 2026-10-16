@@ -179,6 +179,54 @@ async function main() {
         await visit(route, viewport, arenaA.id, label);
       }
     }
+    const futureAgendaDate = new Date(Date.now() + 3 * 24 * 60 * 60_000).toISOString().slice(0, 10);
+    for (const viewport of viewports) {
+      const agendaPath = `/agenda?data=${futureAgendaDate}`;
+      const response = await fetch(`${baseUrl}${agendaPath}`, { headers: { Cookie: cookie(arenaA.id) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
+      await response.body?.cancel();
+      if (response.status !== 200) throw new Error(`${viewport.name}: agenda futura indisponível (HTTP ${response.status}).`);
+      await send("Emulation.setDeviceMetricsOverride", { width: viewport.width, height: viewport.height, deviceScaleFactor: 1, mobile: viewport.name === "mobile" });
+      await selectArena(arenaA.id);
+      await send("Page.navigate", { url: `${baseUrl}${agendaPath}` });
+      let slotReady = false;
+      for (let attempt = 0; attempt < 80; attempt += 1) {
+        const result = await send("Runtime.evaluate", {
+          expression: "location.pathname === '/agenda' && [...document.querySelectorAll('td')].some((cell) => cell.textContent?.trim() === 'Livre' && cell.querySelector('button'))",
+          returnByValue: true,
+        });
+        slotReady = result.result.value;
+        if (slotReady) break;
+        await pause(250);
+      }
+      if (!slotReady) throw new Error(`${viewport.name}: horário livre não apareceu na grade futura.`);
+      await pause(500);
+      const opened = await send("Runtime.evaluate", {
+        expression: "(() => { const cell = [...document.querySelectorAll('td')].find((item) => item.textContent?.trim() === 'Livre' && item.querySelector('button')); cell?.querySelector('button')?.click(); return Boolean(cell); })()",
+        returnByValue: true,
+      });
+      if (!opened.result.value) throw new Error(`${viewport.name}: não foi possível abrir o agendamento.`);
+      await pause(700);
+      const dialogResult = await send("Runtime.evaluate", {
+        expression: "(() => { const dialog = document.querySelector('[role=dialog][aria-label=\"Agendamento de horário\"]'); if (!dialog) return null; const rect = dialog.getBoundingClientRect(); const footer = dialog.querySelector('footer'); return { width: innerWidth, pageOverflow: document.documentElement.scrollWidth > innerWidth + 1, left: rect.left, right: rect.right, dialogOverflow: dialog.scrollWidth > dialog.clientWidth + 1, hasFields: Boolean(dialog.querySelector('input[type=date]') && dialog.querySelector('input[placeholder=\"Digite o nome do cliente\"]')), hasSave: Boolean([...(footer?.querySelectorAll('button') ?? [])].find((button) => button.textContent?.includes('Salvar agendamento'))) }; })()",
+        returnByValue: true,
+      });
+      const dialog = dialogResult.result.value;
+      if (!dialog || dialog.pageOverflow || dialog.dialogOverflow || dialog.left < -1 || dialog.right > dialog.width + 1 || !dialog.hasFields || !dialog.hasSave) {
+        throw new Error(`${viewport.name}: modal de agendamento cortado ou incompleto: ${JSON.stringify(dialog)}`);
+      }
+      const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+      await writeFile(`${outputDir}/${viewport.name}-agenda-agendamento-modal.png`, Buffer.from(shot.data, "base64"));
+      await send("Runtime.evaluate", { expression: "document.querySelector('[role=dialog][aria-label=\"Agendamento de horário\"]').scrollTop = 100000" });
+      await pause(200);
+      const footerShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+      await writeFile(`${outputDir}/${viewport.name}-agenda-agendamento-acoes.png`, Buffer.from(footerShot.data, "base64"));
+      await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+      await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+      await pause(200);
+      const closed = await send("Runtime.evaluate", { expression: "!document.querySelector('[role=dialog][aria-label=\"Agendamento de horário\"]')", returnByValue: true });
+      if (!closed.result.value) throw new Error(`${viewport.name}: Esc não fechou o agendamento.`);
+      console.log(`${viewport.name}: modal de agendamento futuro abre, mantém campos/ações legíveis e fecha com Esc.`);
+    }
     const mobile = viewports[1];
     const betaBody = await visit("/jogadores", mobile, arenaB.id, "mobile-clients-arena-b");
     const alphaBody = await visit("/jogadores", mobile, arenaA.id, "mobile-clients-arena-a");
