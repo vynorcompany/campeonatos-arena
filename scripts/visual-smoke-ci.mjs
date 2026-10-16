@@ -158,6 +158,74 @@ async function main() {
       throw new Error("A lista de clientes não respeitou a arena selecionada.");
     }
     console.log("Isolamento entre arenas validado na lista de clientes.");
+
+    for (const viewport of viewports) {
+      await send("Network.clearBrowserCookies");
+      await send("Emulation.setDeviceMetricsOverride", { width: viewport.width, height: viewport.height, deviceScaleFactor: 1, mobile: viewport.name === "mobile" });
+      await send("Page.navigate", { url: `${baseUrl}/login` });
+      let loginPage;
+      for (let attempt = 0; attempt < 80; attempt += 1) {
+        const response = await send("Runtime.evaluate", {
+          expression: "({path:location.pathname,ready:document.readyState,form:Boolean(document.querySelector('#email') && document.querySelector('#password')),width:innerWidth,scrollWidth:document.documentElement.scrollWidth})",
+          returnByValue: true,
+        });
+        loginPage = response.result.value;
+        if (loginPage.path === "/login" && loginPage.ready === "complete" && loginPage.form) break;
+        await pause(250);
+      }
+      if (loginPage.path !== "/login" || !loginPage.form || loginPage.scrollWidth > loginPage.width + 1) {
+        throw new Error(`${viewport.name}: formulário de login indisponível ou com overflow: ${JSON.stringify(loginPage)}`);
+      }
+      await pause(600);
+      const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+      await writeFile(`${outputDir}/${viewport.name}-login.png`, Buffer.from(shot.data, "base64"));
+    }
+
+    await send("Runtime.evaluate", { expression: "document.querySelector('#email').focus()" });
+    await send("Input.insertText", { text: "goal-staff@example.test" });
+    await send("Runtime.evaluate", { expression: "document.querySelector('#password').focus()" });
+    await send("Input.insertText", { text: "SenhaDescartavelGOAL123!" });
+    await send("Runtime.evaluate", { expression: "document.querySelector('form button[type=submit]').click()" });
+    let staffLogin;
+    for (let attempt = 0; attempt < 120; attempt += 1) {
+      const response = await send("Runtime.evaluate", { expression: "({path:location.pathname,body:document.body?.innerText ?? ''})", returnByValue: true });
+      staffLogin = response.result.value;
+      if (staffLogin.path === "/painel") break;
+      await pause(250);
+    }
+    if (staffLogin.path !== "/painel" || !staffLogin.body.includes("Arena Teste GOAL")) {
+      throw new Error(`Login do administrador fictício falhou: ${JSON.stringify(staffLogin).slice(0, 500)}`);
+    }
+    const cookies = await send("Network.getCookies", { urls: [baseUrl] });
+    if (!cookies.cookies.some((item) => item.name === "padel_session")) throw new Error("Login não criou sessão.");
+
+    for (const path of ["/whatsapp", "/jogadores"]) {
+      await send("Page.navigate", { url: `${baseUrl}${path}` });
+      let page;
+      for (let attempt = 0; attempt < 80; attempt += 1) {
+        const response = await send("Runtime.evaluate", { expression: "({path:location.pathname,body:document.body?.innerText ?? '',ready:document.readyState})", returnByValue: true });
+        page = response.result.value;
+        if (page.path === path && page.ready === "complete" && page.body.length > 80) break;
+        await pause(250);
+      }
+      if (page.path !== path || page.body.length < 80) throw new Error(`Administrador fictício não acessou ${path}: ${JSON.stringify(page).slice(0, 500)}`);
+      if (path === "/jogadores" && (!page.body.includes("Atleta GOAL A") || page.body.includes("Atleta Exclusivo Outra Arena GOAL"))) {
+        throw new Error("Administrador fictício visualizou clientes de outra arena.");
+      }
+    }
+    await send("Network.setCookie", { name: "padel_arena", value: arenaB.id, url: baseUrl, httpOnly: true, sameSite: "Lax" });
+    await send("Page.navigate", { url: `${baseUrl}/jogadores` });
+    let switched;
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      const response = await send("Runtime.evaluate", { expression: "({path:location.pathname,body:document.body?.innerText ?? '',ready:document.readyState})", returnByValue: true });
+      switched = response.result.value;
+      if (switched.ready === "complete" && switched.body.length > 80) break;
+      await pause(250);
+    }
+    if (switched.body.includes("Atleta Exclusivo Outra Arena GOAL") || !switched.body.includes("Atleta GOAL A")) {
+      throw new Error("Troca indevida da arena por cookie expôs clientes alheios.");
+    }
+    console.log("Login real do administrador fictício, acesso ao WhatsApp e isolamento entre arenas validados.");
   } finally {
     socket?.close();
     browser?.kill();

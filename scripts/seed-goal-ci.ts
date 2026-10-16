@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { createHash } from "node:crypto";
+import bcrypt from "bcryptjs";
 
 const testUrl = process.env.ARENA_GOAL_TEST_DATABASE_URL ?? "";
 const testSessionToken = process.env.ARENA_GOAL_TEST_SESSION_TOKEN ?? "";
@@ -34,6 +35,26 @@ async function main() {
       { arenaId: arenaA.id, userId: owner.id, role: "OWNER" },
       { arenaId: arenaB.id, userId: owner.id, role: "OWNER" },
     ] });
+    const staff = await db.user.create({ data: {
+      name: "Administrador GOAL",
+      email: "goal-staff@example.test",
+      passwordHash: await bcrypt.hash("SenhaDescartavelGOAL123!", 10),
+      systemRole: "VIEWER"
+    } });
+    const staffProfile = await db.permissionProfile.create({ data: {
+      arenaId: arenaA.id,
+      name: "Administrador de teste",
+      viewPermissions: ["dashboard", "players", "support"],
+      editPermissions: ["support"]
+    } });
+    await db.arenaMember.create({ data: {
+      arenaId: arenaA.id,
+      userId: staff.id,
+      role: "ADMIN",
+      permissionProfileId: staffProfile.id,
+      viewPermissions: staffProfile.viewPermissions,
+      editPermissions: staffProfile.editPermissions
+    } });
 
     const athlete = await db.player.create({ data: { id: "goal-athlete-a", arenaId: arenaA.id, name: "Atleta GOAL A" } });
     await db.player.create({ data: { arenaId: arenaB.id, name: "Atleta Exclusivo Outra Arena GOAL" } });
