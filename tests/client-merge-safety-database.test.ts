@@ -51,6 +51,20 @@ test("mesclagem preserva clientes com histórico financeiro e aceita duplicata s
       const merged = await tx.player.findUniqueOrThrow({ where: { id: simple.id } });
       assert.equal(merged.active, false);
       assert.equal(merged.mergedIntoPlayerId, primary.id);
+
+      const [portalPrimary, portalDuplicate] = await Promise.all([
+        tx.player.create({ data: { arenaId: arena.id, name: `Portal principal ${suffix}` } }),
+        tx.player.create({ data: { arenaId: arena.id, name: `Portal duplicado ${suffix}` } }),
+      ]);
+      await Promise.all([
+        tx.playerAccount.create({ data: { arenaId: arena.id, playerId: portalPrimary.id, phone: `11${suffix}01`, passwordHash: "hash fictício" } }),
+        tx.playerAccount.create({ data: { arenaId: arena.id, playerId: portalDuplicate.id, phone: `11${suffix}02`, passwordHash: "hash fictício" } }),
+      ]);
+      form.set("primaryPlayerId", portalPrimary.id);
+      form.set("duplicatePlayerId", portalDuplicate.id);
+      await assert.rejects(exports.mergeClientsAction(form), /histórico ou vínculos/);
+      assert.equal(await tx.playerAccount.count({ where: { playerId: { in: [portalPrimary.id, portalDuplicate.id] } } }), 2);
+      assert.equal((await tx.player.findUniqueOrThrow({ where: { id: portalDuplicate.id } })).active, true);
       throw rollback;
     }), (error: unknown) => error === rollback);
   } finally {
