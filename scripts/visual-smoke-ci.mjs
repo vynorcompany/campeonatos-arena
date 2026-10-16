@@ -643,6 +643,50 @@ async function main() {
       if (closed.result.value) throw new Error(`${viewport.name}: histórico não fechou com Esc.`);
       console.log(`${viewport.name}: histórico da Liga exibiu campeã, ranking e fechou com Esc.`);
     }
+
+    const accountJid = "5599999000000@s.whatsapp.net";
+    await db.whatsAppConnection.create({ data: { arenaId: arenaA.id, instanceName: "goal-visual-whatsapp-a", status: "CONNECTED", connectedPhone: accountJid } });
+    await db.whatsAppConnection.create({ data: { arenaId: arenaB.id, instanceName: "goal-visual-whatsapp-b", status: "CONNECTED", connectedPhone: "5588888000000@s.whatsapp.net" } });
+    const conversation = await db.whatsAppConversation.create({ data: {
+      arenaId: arenaA.id, accountJid, remoteJid: "5577777000000@s.whatsapp.net",
+      contactName: "Contato atual GOAL", contactPhone: "5577777000000", unreadCount: 1,
+    } });
+    await db.whatsAppMessage.create({ data: { conversationId: conversation.id, providerId: "goal-initial", direction: "INBOUND", body: "Mensagem inicial GOAL" } });
+    await db.whatsAppConversation.create({ data: { arenaId: arenaA.id, accountJid: "5566666000000@s.whatsapp.net", remoteJid: "5555555000000@s.whatsapp.net", contactName: "Conversa antiga GOAL" } });
+    await db.whatsAppConversation.create({ data: { arenaId: arenaB.id, accountJid: "5588888000000@s.whatsapp.net", remoteJid: "5544444000000@s.whatsapp.net", contactName: "Contato beta WhatsApp GOAL" } });
+    const inboxBefore = await db.whatsAppConnection.findUniqueOrThrow({ where: { arenaId: arenaA.id }, select: { inboxRevision: true } });
+    const desktopWhatsapp = await visit("/whatsapp", viewports[0], arenaA.id, "whatsapp-conversa-antes");
+    if (!desktopWhatsapp.includes("Contato atual GOAL") || !desktopWhatsapp.includes("Mensagem inicial GOAL") || desktopWhatsapp.includes("Conversa antiga GOAL") || desktopWhatsapp.includes("Contato beta WhatsApp GOAL")) {
+      throw new Error("A caixa WhatsApp não respeitou a conta conectada e o isolamento entre arenas.");
+    }
+    await send("Runtime.evaluate", { expression: "window.__goalWhatsappPageStayedOpen = true" });
+    await db.whatsAppMessage.create({ data: { conversationId: conversation.id, providerId: "goal-live", direction: "INBOUND", body: "Mensagem ao vivo GOAL" } });
+    await db.whatsAppConversation.update({ where: { id: conversation.id }, data: { lastMessageAt: new Date(), unreadCount: 2 } });
+    const inboxAfter = await db.whatsAppConnection.findUniqueOrThrow({ where: { arenaId: arenaA.id }, select: { inboxRevision: true } });
+    if (inboxAfter.inboxRevision <= inboxBefore.inboxRevision) throw new Error("A revisão da caixa não avançou após a mensagem nova.");
+    let receivedLive = false;
+    for (let attempt = 0; attempt < 60; attempt += 1) {
+      const response = await send("Runtime.evaluate", { expression: "({open:window.__goalWhatsappPageStayedOpen === true,chat:[...document.querySelectorAll('main')].at(-1)?.innerText ?? ''})", returnByValue: true });
+      if (response.result.value.open && response.result.value.chat.includes("Mensagem ao vivo GOAL")) { receivedLive = true; break; }
+      await pause(300);
+    }
+    if (!receivedLive) throw new Error("A mensagem nova do WhatsApp não surgiu sem recarregar a página.");
+    console.log("WhatsApp: mensagem fictícia recebida na conversa aberta sem recarga, com conta e arena isoladas.");
+    const mobileWhatsapp = await visit("/whatsapp", viewports[1], arenaA.id, "whatsapp-conversa-mobile");
+    if (!mobileWhatsapp.includes("Contato atual GOAL") || mobileWhatsapp.includes("Conversa antiga GOAL") || mobileWhatsapp.includes("Contato beta WhatsApp GOAL")) {
+      throw new Error("A lista mobile do WhatsApp misturou conversas de contas ou arenas.");
+    }
+    await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('button')].find(button => button.textContent?.includes('Contato atual GOAL'))?.click()" });
+    let mobileChat = "";
+    for (let attempt = 0; attempt < 50; attempt += 1) {
+      const response = await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('main')].at(-1)?.innerText ?? ''", returnByValue: true });
+      mobileChat = response.result.value;
+      if (mobileChat.includes("Mensagem ao vivo GOAL")) break;
+      await pause(200);
+    }
+    if (!mobileChat.includes("Mensagem ao vivo GOAL")) throw new Error("A conversa mobile não mostrou a mensagem recebida.");
+    const whatsappMobileShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+    await writeFile(`${outputDir}/whatsapp-conversa-mobile-aberta.png`, Buffer.from(whatsappMobileShot.data, "base64"));
   } finally {
     socket?.close();
     browser?.kill();
