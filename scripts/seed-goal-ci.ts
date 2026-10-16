@@ -70,6 +70,22 @@ async function main() {
       token: createHash("sha256").update(athleteToken).digest("hex"),
       expiresAt: new Date(Date.now() + 60 * 60_000),
     } });
+    const teacher = await db.teacher.create({ data: { arenaId: arenaA.id, name: "Professora de Nome Comprido GOAL" } });
+    const classGroup = await db.classGroup.create({ data: {
+      arenaId: arenaA.id,
+      teacherId: teacher.id,
+      name: "Turma GOAL Iniciante - Manhã",
+    } });
+    await db.classGroupSchedule.createMany({ data: [
+      { arenaId: arenaA.id, classGroupId: classGroup.id, weekday: 1, startTime: "07:30", capacity: 4 },
+      { arenaId: arenaA.id, classGroupId: classGroup.id, weekday: 3, startTime: "07:30", capacity: 4 },
+    ] });
+    const otherTeacher = await db.teacher.create({ data: { arenaId: arenaB.id, name: "Professor Exclusivo Outra Arena GOAL" } });
+    await db.classGroup.create({ data: {
+      arenaId: arenaB.id,
+      teacherId: otherTeacher.id,
+      name: "Turma Exclusiva Outra Arena GOAL",
+    } });
     const court = await db.court.create({ data: { id: "goal-court-a", arenaId: arenaA.id, name: "Quadra GOAL 1" } });
     await db.courtWeeklyRule.create({ data: { courtId: court.id, weekday: 1, startsAtMinute: 420, endsAtMinute: 480, priceCents: 10000 } });
     const bookingCourt = await db.court.create({ data: { arenaId: arenaA.id, name: "Quadra GOAL Agenda", displayOrder: 1 } });

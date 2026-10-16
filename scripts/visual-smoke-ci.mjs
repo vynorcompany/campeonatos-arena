@@ -585,6 +585,19 @@ async function main() {
           if (view.label === "reservas" && !metrics.body.includes("Próxima reserva GOAL")) {
             throw new Error(`${label}: a reserva futura do atleta fictício não aparece.`);
           }
+          if (view.label === "turmas" && (!metrics.body.includes("Professora de Nome Comprido GOAL") || !metrics.body.includes("Turma GOAL Iniciante - Manhã") || !metrics.body.includes("07:30") || metrics.body.includes("Turma Exclusiva Outra Arena GOAL"))) {
+            throw new Error(`${label}: a turma e seus horários fictícios não aparecem corretamente ou houve vazamento entre arenas.`);
+          }
+          if (view.label === "turmas" && viewport.name === "mobile" && theme === "light") {
+            await clickElement('a[aria-label="Quarta"]');
+            await pause(300);
+            const wednesday = await send("Runtime.evaluate", { expression: "document.querySelector('main')?.innerText ?? ''", returnByValue: true });
+            if (!wednesday.result.value.includes("Quarta") || !wednesday.result.value.includes("Turma GOAL Iniciante - Manhã") || !wednesday.result.value.includes("07:30")) {
+              throw new Error(`${label}: a seleção de quarta-feira não mostrou a turma e seu horário.`);
+            }
+            const dayShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+            await writeFile(`${outputDir}/${label}-quarta.png`, Buffer.from(dayShot.data, "base64"));
+          }
           if (view.label === "torneios-jogos" && viewport.name === "mobile" && theme === "light") {
             await clickElement('button[aria-label="Próxima semana"]');
             await pause(300);
