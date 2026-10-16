@@ -625,6 +625,40 @@ async function main() {
     }
     console.log("Portal do Atleta validado em desktop, celular claro/escuro e sem dados financeiros de outra arena.");
 
+    await send("Emulation.setDeviceMetricsOverride", { width: viewports[1].width, height: viewports[1].height, deviceScaleFactor: 1, mobile: true });
+    await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: "light" }] });
+    await send("Network.setCookie", { name: "arena_player_session", value: athleteToken, url: baseUrl, httpOnly: true, sameSite: "Lax" });
+    await send("Page.navigate", { url: `${baseUrl}/home?arena=arena-teste-goal&section=classes&weekday=1` });
+    let classRequestReady = false;
+    for (let attempt = 0; attempt < 60; attempt += 1) {
+      const response = await send("Runtime.evaluate", { expression: "({body:document.body?.innerText ?? '',button:Array.from(document.querySelectorAll('form:has(input[name=\"classGroupId\"]) button[type=\"submit\"]')).some((element) => element.getBoundingClientRect().width > 0)})", returnByValue: true });
+      if (response.result.value.body.includes("Turma GOAL Iniciante - Manhã") && response.result.value.button) { classRequestReady = true; break; }
+      await pause(200);
+    }
+    if (!classRequestReady) throw new Error("O formulário para solicitar vaga não ficou interativo no portal fictício.");
+    await pause(500);
+    await clickElement('form:has(input[name="classGroupId"]) button[type="submit"]');
+    let classRequests = [];
+    for (let attempt = 0; attempt < 60; attempt += 1) {
+      classRequests = await db.classGroupRequest.findMany({ where: { arenaId: arenaA.id }, select: { id: true, status: true, classGroup: { select: { name: true } }, student: { select: { playerId: true } } } });
+      if (classRequests.length) break;
+      await pause(250);
+    }
+    if (classRequests.length !== 1 || classRequests[0].status !== "PENDING" || classRequests[0].classGroup.name !== "Turma GOAL Iniciante - Manhã" || classRequests[0].student.playerId !== "goal-athlete-a" || await db.classGroupRequest.count({ where: { arenaId: arenaB.id } }) !== 0) {
+      throw new Error(`Solicitação de turma criada incorretamente: ${JSON.stringify(classRequests)}`);
+    }
+    await send("Page.navigate", { url: `${baseUrl}/home?arena=arena-teste-goal&section=classes&weekday=1` });
+    let classRequestPending = false;
+    for (let attempt = 0; attempt < 60; attempt += 1) {
+      const response = await send("Runtime.evaluate", { expression: "document.querySelector('main')?.innerText ?? ''", returnByValue: true });
+      if (response.result.value.includes("Solicitação enviada")) { classRequestPending = true; break; }
+      await pause(200);
+    }
+    if (!classRequestPending || await db.classGroupRequest.count({ where: { arenaId: arenaA.id } }) !== 1) {
+      throw new Error("O portal não exibiu o pedido pendente ou criou uma segunda solicitação.");
+    }
+    console.log("Pedido real de vaga fictícia registrado uma vez na arena correta e exibido como pendente no portal.");
+
     const ranking = await db.rankingProfile.create({ data: {
       arenaId: arenaA.id, name: "Ranking GOAL Visual", type: "PAIR", model: "LEAGUE",
       rules: { create: { stageKey: "WIN", label: "Vitória", points: 1, displayOrder: 1 } },
