@@ -103,6 +103,7 @@ async function main() {
     await send("Page.enable");
     await send("Runtime.enable");
     await send("Network.enable");
+    await send("Emulation.setLocaleOverride", { locale: "pt-BR" });
     const cookie = (arenaId) => `padel_session=${sessionToken}; padel_arena=${arenaId}`;
     const selectArena = async (arenaId) => {
       const session = await send("Network.setCookie", { name: "padel_session", value: sessionToken, url: baseUrl, httpOnly: true, sameSite: "Lax" });
@@ -290,6 +291,8 @@ async function main() {
     await send("Network.clearBrowserCookies");
     const athleteToken = createHash("sha256").update(`goal-player:${sessionToken}`).digest("hex");
     const portalCookie = `arena_player_session=${athleteToken}`;
+    const bookingDateParts = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date(Date.now() + 2 * 24 * 60 * 60_000)).map((part) => [part.type, part.value]));
+    const bookingDate = `${bookingDateParts.year}-${bookingDateParts.month}-${bookingDateParts.day}`;
     const portalViews = [
       { label: "inicio", query: "section=home" },
       { label: "avisos", query: "section=announcements" },
@@ -299,7 +302,7 @@ async function main() {
       { label: "torneios-duplas", query: "section=leagues&leagueTab=pairs" },
       { label: "torneios-ranking", query: "section=leagues&leagueTab=ranking" },
       { label: "super12", query: "section=leagues&eventTab=super12" },
-      { label: "reservar", query: "section=booking" },
+      { label: "reservar", query: `section=booking&data=${bookingDate}` },
       { label: "reservas", query: "section=reservations" },
       { label: "aulas", query: "section=lessons" },
       { label: "turmas", query: "section=classes" },
@@ -334,10 +337,35 @@ async function main() {
             returnByValue: true,
           });
           metrics = settled.result.value;
-          const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+          const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: view.label === "torneios-jogos" && viewport.name === "desktop" });
           await writeFile(`${outputDir}/${label}.png`, Buffer.from(shot.data, "base64"));
           if (metrics.path !== "/home" || !metrics.authenticated || metrics.main.trim().length < 40 || metrics.scrollWidth > metrics.width + 1 || /Algo saiu do fluxo|Application error|Internal Server Error/i.test(metrics.body) || metrics.body.includes("Receita beta GOAL")) {
             throw new Error(`${label}: portal inválido: ${JSON.stringify({ path: metrics.path, authenticated: metrics.authenticated, mainLength: metrics.main.trim().length, width: metrics.width, scrollWidth: metrics.scrollWidth })}`);
+          }
+          if (view.label === "torneios-jogos" && (!metrics.body.includes("Parceira de Nome Comprido GOAL") || !metrics.body.includes("6–2 · 6–3"))) {
+            throw new Error(`${label}: placar e games da liga fictícia não aparecem juntos.`);
+          }
+          if (view.label === "reservar" && !metrics.body.includes("Quadra GOAL Agenda")) {
+            throw new Error(`${label}: os horários disponíveis da quadra fictícia não aparecem.`);
+          }
+          if (view.label === "reservas" && !metrics.body.includes("Próxima reserva GOAL")) {
+            throw new Error(`${label}: a reserva futura do atleta fictício não aparece.`);
+          }
+          if (view.label === "torneios-jogos" && viewport.name === "mobile" && theme === "light") {
+            await clickElement('button[aria-label="Próxima semana"]');
+            await pause(300);
+            const weekTwo = await send("Runtime.evaluate", { expression: "document.querySelector('main')?.innerText ?? ''", returnByValue: true });
+            if (!weekTwo.result.value.includes("Semana 2 de 4") || !weekTwo.result.value.includes("Daniela GOAL")) {
+              throw new Error(`${label}: o seletor da segunda semana não mostrou o jogo esperado.`);
+            }
+            const weekShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+            await writeFile(`${outputDir}/${label}-semana-2.png`, Buffer.from(weekShot.data, "base64"));
+            await clickElement('button[aria-label="Semana anterior"]');
+            await pause(300);
+            const weekOne = await send("Runtime.evaluate", { expression: "document.querySelector('main')?.innerText ?? ''", returnByValue: true });
+            if (!weekOne.result.value.includes("Semana 1 de 4") || !weekOne.result.value.includes("6–2 · 6–3")) {
+              throw new Error(`${label}: o seletor não voltou ao resultado da primeira semana.`);
+            }
           }
           console.log(`${label}: HTTP 200, sessão fictícia válida e sem overflow horizontal`);
         }
