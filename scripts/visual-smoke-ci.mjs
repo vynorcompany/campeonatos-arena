@@ -32,6 +32,11 @@ const routes = [
     .map((report) => `/relatorios/${report}`),
   "/arena", "/arena/regulamento", "/suporte",
 ];
+const agencyRoutes = [
+  "/agencia", "/agencia/planos", "/agencia/arenas", "/agencia/arenas/usuarios", "/agencia/conexoes",
+  "/agencia/financeiro", "/agencia/financeiro/mrr", "/agencia/financeiro/previsoes",
+  "/agencia/suporte", "/agencia/suporte/historico",
+];
 const viewports = [
   { name: "desktop", width: 1366, height: 900 },
   { name: "mobile", width: 390, height: 844 },
@@ -168,6 +173,10 @@ async function main() {
           const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: true });
           await writeFile(`${outputDir}/${label}-edit.png`, Buffer.from(shot.data, "base64"));
         }
+      }
+      for (const route of agencyRoutes) {
+        const label = `${viewport.name}-${route.replaceAll("/", "-").replace(/^-/, "")}`;
+        await visit(route, viewport, arenaA.id, label);
       }
     }
     const mobile = viewports[1];
