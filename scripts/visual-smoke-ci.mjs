@@ -701,20 +701,25 @@ async function main() {
       db.plan.create({ data: { arenaId: arenaA.id, name: "Plano Financeiro GOAL A2", monthlyPriceCents: 12000 } }),
       db.plan.create({ data: { arenaId: arenaA.id, name: "Plano Financeiro GOAL B", monthlyPriceCents: 14000 } }),
     ]);
+    const sharedPlan = await db.plan.create({ data: { arenaId: arenaA.id, name: "Plano Financeiro GOAL Compartilhado", monthlyPriceCents: 16000 } });
     await db.teacherPlan.createMany({ data: [
       { arenaId: arenaA.id, teacherId: teacherA.id, planId: planA1.id, monthlyPriceCents: 10000 },
       { arenaId: arenaA.id, teacherId: teacherA.id, planId: planA2.id, monthlyPriceCents: 12000 },
       { arenaId: arenaA.id, teacherId: teacherB.id, planId: planB.id, monthlyPriceCents: 14000 },
+      { arenaId: arenaA.id, teacherId: teacherA.id, planId: sharedPlan.id, monthlyPriceCents: 16000 },
+      { arenaId: arenaA.id, teacherId: teacherB.id, planId: sharedPlan.id, monthlyPriceCents: 16000 },
     ] });
     await db.financialEntry.createMany({ data: [
-      { arenaId: arenaA.id, type: "REVENUE", category: "Planos de aulas", description: "Mensalidade GOAL A1", amountCents: 10000, planId: planA1.id },
-      { arenaId: arenaA.id, type: "REVENUE", category: "Plano de Aulas", description: "Mensalidade GOAL A2", amountCents: 12000, planId: planA2.id },
-      { arenaId: arenaA.id, type: "REVENUE", category: "Planos de aulas", description: "Mensalidade GOAL B", amountCents: 14000, planId: planB.id },
+      { arenaId: arenaA.id, type: "REVENUE", category: "Planos de aulas", description: "Mensalidade GOAL A1", amountCents: 10000, planId: planA1.id, teacherId: teacherA.id },
+      { arenaId: arenaA.id, type: "REVENUE", category: "Plano de Aulas", description: "Mensalidade GOAL A2", amountCents: 12000, planId: planA2.id, teacherId: teacherA.id },
+      { arenaId: arenaA.id, type: "REVENUE", category: "Planos de aulas", description: "Mensalidade GOAL B", amountCents: 14000, planId: planB.id, teacherId: teacherB.id },
+      { arenaId: arenaA.id, type: "REVENUE", category: "Planos de aulas", description: "Mensalidade GOAL compartilhada A", amountCents: 16000, planId: sharedPlan.id, teacherId: teacherA.id },
+      { arenaId: arenaA.id, type: "REVENUE", category: "Planos de aulas", description: "Mensalidade GOAL compartilhada B", amountCents: 16000, planId: sharedPlan.id, teacherId: teacherB.id },
       { arenaId: arenaA.id, type: "REVENUE", category: "Venda", description: "Venda GOAL filtrada", amountCents: 2500 },
       { arenaId: arenaB.id, type: "REVENUE", category: "Venda", description: "Venda sigilosa GOAL B", amountCents: 9999 },
     ] });
     const receivables = await visit("/financeiro/contas-a-receber", viewports[0], arenaA.id, "recebiveis-filtros-antes");
-    if (!["Mensalidade GOAL A1", "Mensalidade GOAL A2", "Mensalidade GOAL B", "Venda GOAL filtrada"].every((label) => receivables.includes(label)) || receivables.includes("Venda sigilosa GOAL B")) {
+    if (!["Mensalidade GOAL A1", "Mensalidade GOAL A2", "Mensalidade GOAL B", "Mensalidade GOAL compartilhada A", "Mensalidade GOAL compartilhada B", "Venda GOAL filtrada"].every((label) => receivables.includes(label)) || receivables.includes("Venda sigilosa GOAL B")) {
       throw new Error("Contas a receber não exibiu os lançamentos próprios com isolamento entre arenas.");
     }
     const teacherOption = await send("Runtime.evaluate", { expression: `(() => { const select = document.querySelector('select[name="planId"]'); const value = 'teacher:${teacherA.id}'; if (!select || ![...select.options].some(option => option.value === value)) return false; select.value = value; select.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`, returnByValue: true });
@@ -723,17 +728,17 @@ async function main() {
     for (let attempt = 0; attempt < 80; attempt += 1) {
       const response = await send("Runtime.evaluate", { expression: "({search:location.search,body:document.querySelector('main')?.innerText ?? ''})", returnByValue: true });
       const { search, body } = response.result.value;
-      if (new URLSearchParams(search).get("planId") === `teacher:${teacherA.id}` && body.includes("Mensalidade GOAL A1") && body.includes("Mensalidade GOAL A2") && !body.includes("Mensalidade GOAL B")) { teacherFiltered = true; break; }
+      if (new URLSearchParams(search).get("planId") === `teacher:${teacherA.id}` && body.includes("Mensalidade GOAL A1") && body.includes("Mensalidade GOAL A2") && body.includes("Mensalidade GOAL compartilhada A") && !body.includes("Mensalidade GOAL B") && !body.includes("Mensalidade GOAL compartilhada B")) { teacherFiltered = true; break; }
       await pause(250);
     }
     if (!teacherFiltered) throw new Error("Todos os planos do professor não isolou os dois planos fictícios.");
-    console.log("Financeiro: Todos os planos mostrou apenas as duas mensalidades da professora selecionada.");
+    console.log("Financeiro: Todos os planos isolou a professora inclusive em um modelo compartilhado.");
     await send("Page.navigate", { url: `${baseUrl}/financeiro/contas-a-receber?category=Plano%20de%20Aulas` });
     let plansFiltered = false;
     for (let attempt = 0; attempt < 80; attempt += 1) {
       const response = await send("Runtime.evaluate", { expression: "({search:location.search,body:document.querySelector('main')?.innerText ?? ''})", returnByValue: true });
       const { search, body } = response.result.value;
-      if (new URLSearchParams(search).get("category") === "Plano de Aulas" && body.includes("Mensalidade GOAL A1") && body.includes("Mensalidade GOAL A2") && body.includes("Mensalidade GOAL B") && !body.includes("Venda GOAL filtrada")) { plansFiltered = true; break; }
+      if (new URLSearchParams(search).get("category") === "Plano de Aulas" && body.includes("Mensalidade GOAL A1") && body.includes("Mensalidade GOAL A2") && body.includes("Mensalidade GOAL B") && body.includes("Mensalidade GOAL compartilhada A") && body.includes("Mensalidade GOAL compartilhada B") && !body.includes("Venda GOAL filtrada")) { plansFiltered = true; break; }
       await pause(250);
     }
     if (!plansFiltered) throw new Error("Classificação Plano de Aulas não encontrou todas as mensalidades sem incluir vendas.");

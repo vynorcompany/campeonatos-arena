@@ -84,6 +84,9 @@ test("painel bloqueia arena inadimplente e libera após a fatura ser regularizad
 
 test("todos os planos do professor inclui lançamento direto e mensalidade recorrente", () => {
   const condition = teacherPlanCondition("teacher-1");
-  assert.deepEqual(condition.OR[0], { plan: { teacherAssignments: { some: { teacherId: "teacher-1", active: true } } } });
-  assert.deepEqual(condition.OR[1], { recurrence: { plan: { teacherAssignments: { some: { teacherId: "teacher-1", active: true } } } } });
+  assert.deepEqual(condition.OR[0], { teacherId: "teacher-1" });
+  assert.deepEqual(condition.OR[1], { teacherId: null, recurrence: { teacherId: "teacher-1" } });
+  assert.deepEqual(condition.OR[2], { teacherId: null, plan: { teacherAssignments: {
+    some: { teacherId: "teacher-1", active: true }, none: { active: true, teacherId: { not: "teacher-1" } },
+  } } });
 });
