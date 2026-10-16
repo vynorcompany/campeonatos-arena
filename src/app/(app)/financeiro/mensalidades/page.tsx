@@ -104,8 +104,8 @@ export default async function MonthlyPaymentsPage() {
               <input id="payment-reference" name="referenceMonth" type="month" defaultValue={getReferenceMonth()} required />
             </div>
             <div className={viewStyles.field}>
-              <label htmlFor="payment-amount">Valor pago</label>
-              <input id="payment-amount" name="amount" type="text" placeholder="Usa o valor do plano se vazio" />
+              <label htmlFor="payment-amount">Valor pago (opcional)</label>
+              <input id="payment-amount" name="amount" type="text" placeholder="Valor do plano" />
             </div>
             <div className={viewStyles.field}>
               <label htmlFor="payment-method">Forma de pagamento</label>
