@@ -183,8 +183,12 @@ async function main() {
           await writeFile(`${outputDir}/${label}-edit.png`, Buffer.from(shot.data, "base64"));
         }
         if (route === "/jogadores") {
+          if (viewport.name === "mobile") {
+            await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('button')].find((item) => item.textContent?.trim() === 'Filtros e ferramentas')?.click()" });
+            await pause(200);
+          }
           const opened = await send("Runtime.evaluate", {
-            expression: "(() => { const button = [...document.querySelectorAll('button')].find((item) => item.textContent?.trim() === 'Mesclar contatos'); button?.click(); return Boolean(button); })()",
+            expression: "(() => { const button = [...document.querySelectorAll('button')].find((item) => item.textContent?.trim() === 'Mesclar contatos' && item.getBoundingClientRect().width > 0); button?.click(); return Boolean(button); })()",
             returnByValue: true,
           });
           if (!opened.result.value) throw new Error(`${label}: botão de mesclagem ausente.`);
