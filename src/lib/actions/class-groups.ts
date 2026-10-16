@@ -7,6 +7,7 @@ import { getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
 import { isCourtSlotAvailable } from "@/lib/calendar/court-slot-availability";
 import { arenaWallClockToInstant, instantToArenaWallClock } from "@/lib/calendar/arena-wall-clock";
 import { issueRecurringOnlineChargeForEntry } from "@/lib/payments/recurring-online-charges";
+import { lockClassGroupCapacity } from "@/lib/academy/class-group-capacity";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 
@@ -114,8 +115,7 @@ export async function approveClassGroupRequestAction(formData: FormData) {
     if (!pending) throw new Error("Solicitação não encontrada.");
     // Group capacity and the student's plan subscription are separate shared resources.
     // Always acquire the group lock before the subscription lock to avoid deadlocks.
-    const groupLockKey = `class-approval:${auth.arenaId}:${pending.classGroupId}`;
-    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${groupLockKey}, 0))::text`;
+    await lockClassGroupCapacity(tx, auth.arenaId, pending.classGroupId);
     const subscriptionLockKey = `class-subscription:${auth.arenaId}:${pending.studentId}:${planId}`;
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${subscriptionLockKey}, 0))::text`;
     const request = await tx.classGroupRequest.findFirst({ where: { id: requestId, arenaId: auth.arenaId, status: "PENDING" }, include: { classGroup: { include: { schedules: true, enrollments: { where: { status: "ACTIVE" }, select: { id: true } }, plans: { select: { planId: true } } } }, student: { select: { id: true, name: true, playerId: true } } } });
@@ -158,13 +158,14 @@ export async function moveClassGroupStudentAction(formData: FormData) {
   const studentId = String(formData.get("studentId") ?? "");
   const auth = await requireTeacherForClassGroups(arenaSlug);
   if (!destinationClassGroupId || !studentId) throw new Error("Selecione uma turma de destino.");
-  const [enrollment, destination] = await Promise.all([
-    prisma.classGroupEnrollment.findFirst({ where: { studentId, status: "ACTIVE", classGroup: { arenaId: auth.arenaId, teacherId: auth.teacherId, active: true } }, select: { id: true, classGroupId: true } }),
-    prisma.classGroup.findFirst({ where: { id: destinationClassGroupId, arenaId: auth.arenaId, teacherId: auth.teacherId, active: true }, include: { schedules: true, enrollments: { where: { status: "ACTIVE" }, select: { id: true } } } })
-  ]);
-  if (!enrollment || !destination || enrollment.classGroupId === destination.id) throw new Error("Selecione uma turma de destino diferente.");
-  if (!destination.schedules.every((schedule) => destination.enrollments.length < schedule.capacity)) throw new Error("A turma de destino não possui vagas.");
   await withArenaTransaction(auth.arenaId, async (tx) => {
+    await lockClassGroupCapacity(tx, auth.arenaId, destinationClassGroupId);
+    const [enrollment, destination] = await Promise.all([
+      tx.classGroupEnrollment.findFirst({ where: { studentId, status: "ACTIVE", classGroup: { arenaId: auth.arenaId, teacherId: auth.teacherId, active: true } }, select: { id: true, classGroupId: true } }),
+      tx.classGroup.findFirst({ where: { id: destinationClassGroupId, arenaId: auth.arenaId, teacherId: auth.teacherId, active: true }, include: { schedules: true, enrollments: { where: { status: "ACTIVE" }, select: { id: true } } } })
+    ]);
+    if (!enrollment || !destination || enrollment.classGroupId === destination.id) throw new Error("Selecione uma turma de destino diferente.");
+    if (!destination.schedules.length || !destination.schedules.every((schedule) => destination.enrollments.length < schedule.capacity)) throw new Error("A turma de destino não possui vagas.");
     await tx.classGroupEnrollment.update({ where: { id: enrollment.id }, data: { status: "TRANSFERRED", endedAt: new Date() } });
     await tx.classGroupEnrollment.upsert({ where: { classGroupId_studentId: { classGroupId: destination.id, studentId } }, update: { status: "ACTIVE", endedAt: null, startedAt: new Date() }, create: { arenaId: auth.arenaId, classGroupId: destination.id, studentId } });
   });
@@ -180,6 +181,7 @@ export async function updateTeacherPortalClassGroupCapacityAction(formData: Form
   const auth = await requireTeacherForClassGroups(arenaSlug);
   if (!classGroupId || !scheduleId || !Number.isInteger(capacity) || capacity < 1 || capacity > 99) throw new Error("Informe entre 1 e 99 vagas.");
   await withArenaTransaction(auth.arenaId, async (tx) => {
+    await lockClassGroupCapacity(tx, auth.arenaId, classGroupId);
     const schedule = await tx.classGroupSchedule.findFirst({
       where: { id: scheduleId, classGroupId, arenaId: auth.arenaId, classGroup: { teacherId: auth.teacherId, active: true } },
       include: { classGroup: { include: { enrollments: { where: { status: "ACTIVE" }, select: { id: true } } } } },
