@@ -48,7 +48,8 @@ test("duas sugestões simultâneas não ultrapassam o limite de três nem cruzam
       return createLimitedLeagueProposal(tx, { ...input, arenaId });
     });
     const results = await Promise.allSettled([propose(arenaA.id), propose(arenaA.id)]);
-    assert.equal(results.filter((result) => result.status === "fulfilled").length, 1);
+    assert.equal(results.filter((result) => result.status === "fulfilled").length, 1,
+      results.map((result) => result.status === "rejected" ? String(result.reason) : "fulfilled").join(" | "));
     const rejected = results.find((result) => result.status === "rejected");
     assert.equal(rejected?.status, "rejected");
     assert.match(String(rejected.reason), /três sugestões/);
