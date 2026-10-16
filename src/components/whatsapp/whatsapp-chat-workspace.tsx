@@ -31,6 +31,7 @@ import { whatsAppSendFailureMessage } from "@/lib/whatsapp-send-feedback";
 const time = (value: string) => new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 const emojis = ["😀", "😁", "😂", "🥳", "😍", "😎", "🙏", "👍", "👋", "🎾", "🔥", "❤️"];
 const filterOptions: [WhatsAppFilter, string, WhatsAppIconName][] = [["all", "Conversas", "chat"], ["unread", "Não lidas", "mail"], ["groups", "Grupos", "users"], ["favorite", "Favoritas", "heart"], ["archived", "Arquivadas", "archive"]];
+const unsyncedSendNotice = "Envio aceito pelo WhatsApp, mas o histórico não atualizou. Não reenvie; atualize a conversa.";
 
 type ConversationAction = "archive" | "pin" | "unread" | "favorite" | "list" | "clear" | "delete" | "resolve_sla";
 type AudioDraft = { file: File; previewUrl: string; conversationId: string };
@@ -306,7 +307,12 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
     startTransition(async () => {
       try {
         const message = await sendWhatsAppChatMessageAction(form);
-        setLocalMessages((current) => ({ ...current, [active.id]: (current[active.id] ?? []).map((item) => item.id === temporaryId ? message : item) }));
+        if ("acceptedButUnsynced" in message) {
+          setLocalMessages((current) => ({ ...current, [active.id]: (current[active.id] ?? []).filter((item) => item.id !== temporaryId) }));
+          setNotice(unsyncedSendNotice);
+        } else {
+          setLocalMessages((current) => ({ ...current, [active.id]: (current[active.id] ?? []).map((item) => item.id === temporaryId ? message : item) }));
+        }
       } catch (error) {
         setLocalMessages((current) => ({ ...current, [active.id]: (current[active.id] ?? []).filter((item) => item.id !== temporaryId) }));
         if (activeIdRef.current === active.id) { setBody(text); setReplyTo(reply); }
@@ -327,10 +333,14 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
     startTransition(async () => {
       try {
         const message = await sendWhatsAppAudioMessageAction(form);
-        setLocalMessages((current) => ({ ...current, [conversationId]: [...(current[conversationId] ?? []), message] }));
         URL.revokeObjectURL(draft.previewUrl);
         setReplyTo(null);
-        setNotice("Áudio enviado.");
+        if ("acceptedButUnsynced" in message) {
+          setNotice(unsyncedSendNotice);
+        } else {
+          setLocalMessages((current) => ({ ...current, [conversationId]: [...(current[conversationId] ?? []), message] }));
+          setNotice("Áudio enviado.");
+        }
       } catch {
         setAudioDraft(draft);
         setNotice("Não foi possível enviar o áudio.");
@@ -345,7 +355,11 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
       try {
         const message = await sendWhatsAppMediaMessageAction(form);
         setReplyTo(null);
-        setLocalMessages((current) => ({ ...current, [active.id]: [...(current[active.id] ?? []), message] }));
+        if ("acceptedButUnsynced" in message) {
+          setNotice(unsyncedSendNotice);
+        } else {
+          setLocalMessages((current) => ({ ...current, [active.id]: [...(current[active.id] ?? []), message] }));
+        }
       } catch (error) { setNotice(error instanceof Error ? error.message : "Não foi possível enviar o anexo."); }
       finally { if (fileInput.current) fileInput.current.value = ""; }
     });

@@ -73,3 +73,38 @@ test("text, audio and attachments store authenticated authors without sending th
   assert.ok(!JSON.stringify(delivered).includes("Atendente de teste"));
   assert.ok(!JSON.stringify(delivered).includes("authenticated-id"));
 });
+
+test("a mensagem aceita pelo provedor não é tratada como falha de envio se a gravação local falhar", async () => {
+  let delivered = 0;
+  const source = readFileSync(new URL("../src/lib/actions/whatsapp-chat.ts", import.meta.url), "utf8");
+  const actions: Record<string, (form: FormData) => Promise<unknown>> = {};
+  const deliver = async () => { delivered++; return { key: { id: `provider-${delivered}` } }; };
+  vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
+    exports: actions, File, FormData, Buffer,
+    console: { error() {} },
+    require: (name: string) => {
+      if (name === "next/cache") return { revalidatePath() {} };
+      if (name === "@/lib/auth/guards") return { requireWhatsAppSend: async () => ({ arenaId: "arena", userId: "user", userName: "Atendente" }) };
+      if (name === "@/lib/integrations/evolution/client") return { sendEvolutionTextMessage: deliver, sendEvolutionAudioMessage: deliver, sendEvolutionMediaMessage: deliver };
+      if (name === "@/lib/whatsapp-media-types") return { outgoingWhatsAppMediaKind };
+      if (name === "@/lib/services/whatsapp-conversation") return {
+        getArenaWhatsAppConversation: async () => ({ id: "conversation", contactPhone: "11999999999" }),
+        getEvolutionProviderId: (delivery: { key: { id: string } }) => delivery.key.id,
+        persistOutboundWhatsAppMessage: async () => { throw new Error("database unavailable"); },
+      };
+      if (name.startsWith("@/")) return {};
+      return require(name);
+    },
+  });
+  const text = new FormData(); text.set("conversationId", "conversation"); text.set("body", "Olá!");
+  const audio = new FormData(); audio.set("conversationId", "conversation"); audio.set("audio", new File(["audio"], "audio.webm", { type: "audio/webm" }));
+  const attachment = new FormData(); attachment.set("conversationId", "conversation"); attachment.set("file", new File(["pdf"], "arquivo.pdf", { type: "application/pdf" }));
+  for (const [action, form] of [
+    ["sendWhatsAppChatMessageAction", text],
+    ["sendWhatsAppAudioMessageAction", audio],
+    ["sendWhatsAppMediaMessageAction", attachment],
+  ] as const) {
+    assert.equal((await actions[action](form) as { acceptedButUnsynced?: boolean }).acceptedButUnsynced, true);
+  }
+  assert.equal(delivered, 3);
+});
