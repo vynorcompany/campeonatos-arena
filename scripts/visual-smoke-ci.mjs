@@ -24,16 +24,19 @@ const viewports = [
   { name: "mobile", width: 390, height: 844 },
 ];
 
-async function browserSocket() {
-  for (let attempt = 0; attempt < 80; attempt += 1) {
+async function browserSocket(browser, startupDetails) {
+  for (let attempt = 0; attempt < 300; attempt += 1) {
+    if (browser.exitCode !== null || browser.signalCode !== null || startupDetails().error) {
+      throw new Error(`Edge encerrou antes de iniciar: ${JSON.stringify(startupDetails())}`);
+    }
     try {
-      const response = await fetch(`http://127.0.0.1:${browserPort}/json/list`);
+      const response = await fetch(`http://127.0.0.1:${browserPort}/json/list`, { signal: AbortSignal.timeout(2_000) });
       const target = (await response.json()).find((item) => item.type === "page");
       if (target?.webSocketDebuggerUrl) return target.webSocketDebuggerUrl;
     } catch {}
     await pause(200);
   }
-  throw new Error("Edge não iniciou na CI.");
+  throw new Error(`Edge não iniciou na CI em 60 segundos: ${JSON.stringify(startupDetails())}`);
 }
 
 async function connectCdp(url) {
@@ -73,10 +76,14 @@ async function main() {
     const arenaB = await db.arena.findUniqueOrThrow({ where: { slug: "arena-beta-goal" }, select: { id: true } });
     await mkdir(outputDir, { recursive: true });
     browser = spawn("microsoft-edge", [
-      "--headless=new", "--no-sandbox", "--disable-gpu", "--no-first-run", "--disable-extensions",
+      "--headless=new", "--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage", "--no-first-run", "--disable-extensions",
       `--remote-debugging-port=${browserPort}`, "--user-data-dir=/tmp/arena-goal-edge", "about:blank",
-    ], { stdio: "ignore" });
-    const connection = await connectCdp(await browserSocket());
+    ], { stdio: ["ignore", "ignore", "pipe"] });
+    let browserError = "";
+    let browserStderr = "";
+    browser.on("error", (error) => { browserError = error.message; });
+    browser.stderr?.on("data", (chunk) => { browserStderr = `${browserStderr}${chunk}`.slice(-2000); });
+    const connection = await connectCdp(await browserSocket(browser, () => ({ error: browserError, stderr: browserStderr, exitCode: browser.exitCode, signalCode: browser.signalCode })));
     socket = connection.socket;
     const { send } = connection;
     await send("Page.enable");
