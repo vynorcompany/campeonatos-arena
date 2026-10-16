@@ -19,14 +19,18 @@ test("duas sugestões simultâneas não ultrapassam o limite de três nem cruzam
   runtimeUrl.password = "";
   const runtime = new PrismaClient({ datasources: { db: { url: runtimeUrl.toString() } } });
   let matchId = "";
+  const pairIds: string[] = [];
   try {
     const arenaA = await admin.arena.findUniqueOrThrow({ where: { slug: "arena-teste-goal" }, select: { id: true } });
     const arenaB = await admin.arena.findUniqueOrThrow({ where: { slug: "arena-beta-goal" }, select: { id: true } });
     const tournament = await admin.tournament.findFirstOrThrow({ where: { arenaId: arenaA.id, name: "Liga GOAL" }, select: { id: true } });
     const category = await admin.tournamentCategory.findFirstOrThrow({ where: { tournamentId: tournament.id }, select: { id: true } });
     const competition = await admin.categoryCompetition.findUniqueOrThrow({ where: { categoryId: category.id }, select: { id: true } });
-    const pairs = await admin.categoryPair.findMany({ where: { competitionId: competition.id }, orderBy: { drawOrder: "asc" }, take: 2, select: { id: true } });
-    assert.equal(pairs.length, 2);
+    const pairSuffix = randomUUID();
+    const pairs = await Promise.all(["Mandante", "Visitante"].map((label) => admin.categoryPair.create({
+      data: { competitionId: competition.id, name: `${label} Proposta GOAL ${pairSuffix}` }, select: { id: true },
+    })));
+    pairIds.push(...pairs.map((pair) => pair.id));
     const court = await admin.court.findUniqueOrThrow({ where: { id: "goal-court-a" }, select: { id: true } });
     const match = await admin.categoryMatch.create({ data: {
       competitionId: competition.id, label: `Sugestões GOAL ${randomUUID()}`, stage: "LEAGUE", roundOrder: 99,
@@ -53,6 +57,7 @@ test("duas sugestões simultâneas não ultrapassam o limite de três nem cruzam
     assert.equal(await admin.leagueMatchProposal.count({ where: { categoryMatchId: match.id } }), 3);
   } finally {
     if (matchId) await admin.categoryMatch.delete({ where: { id: matchId } });
+    if (pairIds.length) await admin.categoryPair.deleteMany({ where: { id: { in: pairIds } } });
     await runtime.$disconnect();
     await admin.$disconnect();
   }
