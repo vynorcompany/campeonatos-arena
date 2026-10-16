@@ -87,7 +87,7 @@ export default async function MonthlyPaymentsPage() {
         </SectionCard>
 
         <SectionCard title="Registrar pagamento" description="O pagamento entra como receita no financeiro.">
-          <SafeActionForm action={recordPlanPaymentAction} className={viewStyles.grid_form_finance_narrow_form} resetOnSuccess successMessage="Pagamento registrado.">
+          <SafeActionForm action={recordPlanPaymentAction} className="grid-form tw:grid tw:grid-cols-1 tw:gap-3 tw:[align-content:start]" resetOnSuccess successMessage="Pagamento registrado.">
             <div className={viewStyles.field_form_full}>
               <label htmlFor="payment-subscription">Assinatura</label>
               <select id="payment-subscription" name="subscriptionId" required defaultValue="">
@@ -104,7 +104,7 @@ export default async function MonthlyPaymentsPage() {
               <input id="payment-reference" name="referenceMonth" type="month" defaultValue={getReferenceMonth()} required />
             </div>
             <div className={viewStyles.field}>
-              <label htmlFor="payment-amount">Valor (opcional)</label>
+              <label htmlFor="payment-amount">Valor pago (opcional)</label>
               <input id="payment-amount" name="amount" type="text" placeholder="Valor do plano" />
             </div>
             <div className={viewStyles.field}>
