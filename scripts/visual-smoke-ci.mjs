@@ -599,6 +599,17 @@ async function main() {
     if (!openCycle) throw new Error("Ciclo fictício aberto não encontrado.");
     const categoryPath = `/torneios/${league.id}/categorias/${category.id}`;
     await send("Network.clearBrowserCookies");
+    for (const viewport of viewports) {
+      for (const [section, path] of [
+        ["detalhe", `/torneios/${league.id}`],
+        ["categorias", `/torneios/${league.id}/categorias`],
+        ["inscricoes", `/torneios/${league.id}/inscricoes`],
+        ["jogos", `/torneios/${league.id}/jogos`],
+        ["liga", categoryPath],
+      ]) {
+        await visit(path, viewport, arenaA.id, `${viewport.name}-torneio-${section}`);
+      }
+    }
     await visit(categoryPath, viewports[0], arenaA.id, "liga-ciclo-antes");
     await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('button')].find(button => button.textContent?.includes('Processar ciclo da Liga'))?.click()" });
     let confirmation;
@@ -709,6 +720,9 @@ async function main() {
       { arenaId: arenaA.id, teacherId: teacherA.id, planId: sharedPlan.id, monthlyPriceCents: 16000 },
       { arenaId: arenaA.id, teacherId: teacherB.id, planId: sharedPlan.id, monthlyPriceCents: 16000 },
     ] });
+    for (const viewport of viewports) {
+      await visit(`/professores/${teacherA.id}`, viewport, arenaA.id, `${viewport.name}-professor-detalhe`);
+    }
     await db.financialEntry.createMany({ data: [
       { arenaId: arenaA.id, type: "REVENUE", category: "Planos de aulas", description: "Mensalidade GOAL A1", amountCents: 10000, planId: planA1.id, teacherId: teacherA.id },
       { arenaId: arenaA.id, type: "REVENUE", category: "Plano de Aulas", description: "Mensalidade GOAL A2", amountCents: 12000, planId: planA2.id, teacherId: teacherA.id },
