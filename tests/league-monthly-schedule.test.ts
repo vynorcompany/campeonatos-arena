@@ -60,10 +60,13 @@ test("publishing a Liga uses the monthly schedule engine and persists its cycle"
 
 test("league proposals enforce host ownership, three attempts and response deadlines", () => {
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/league-challenges.ts"), "utf8");
+  const proposalLimit = readFileSync(resolve(process.cwd(), "src/lib/league/proposal-limit.ts"), "utf8");
 
   assert.match(actions, /homePairId !== proposer\.id/);
-  assert.match(actions, /proposalCount >= 3/);
-  assert.match(actions, /leagueMatchProposal/);
+  assert.match(actions, /createLimitedLeagueProposal/);
+  assert.match(proposalLimit, /FOR UPDATE/);
+  assert.match(proposalLimit, /count >= 3/);
+  assert.match(proposalLimit, /leagueMatchProposal\.create/);
   assert.match(actions, /responseDueAt/);
 });
 
