@@ -631,6 +631,11 @@ async function main() {
       if (!detail.result.value.dialog.includes("Campeã") || !detail.result.value.dialog.includes("Parceira de Nome Comprido GOAL") || !detail.result.value.dialog.includes("Saldo") || detail.result.value.scrollWidth > detail.result.value.width + 1) {
         throw new Error(`${viewport.name}: modal do histórico não mostrou campeã e classificação sem overflow.`);
       }
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        const bodyOpacity = await send("Runtime.evaluate", { expression: "Number(getComputedStyle(document.body).opacity)", returnByValue: true });
+        if (bodyOpacity.result.value >= 0.99) break;
+        await pause(100);
+      }
       const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
       await writeFile(`${outputDir}/liga-historico-${viewport.name}.png`, Buffer.from(shot.data, "base64"));
       await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
