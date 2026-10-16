@@ -493,7 +493,8 @@ test("existing class groups can be edited with their plans and fixed schedules",
   ];
 
   assert.match(actions, /export async function updateTeacherClassGroupAction/);
-  assert.match(actions, /prisma\.classGroup\.update/);
+  assert.match(actions, /lockClassGroupCapacity\(tx, auth\.arenaId, classGroupId\)/);
+  assert.match(actions, /tx\.classGroup\.update/);
   assert.match(panel, /updateTeacherClassGroupAction/);
   assert.match(panel, /EDITAR TURMA/);
   assert.match(panel, /Editar turma/);

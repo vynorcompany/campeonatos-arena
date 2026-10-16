@@ -39,6 +39,7 @@ test("pedidos simultâneos de turma criam uma única solicitação na arena do a
       "@/lib/calendar/court-slot-availability": {},
       "@/lib/calendar/arena-wall-clock": {},
       "@/lib/payments/recurring-online-charges": {},
+      "@/lib/academy/class-group-capacity": {},
       "@/lib/prisma": { prisma: admin },
       "@/lib/rls": { withArenaTransaction: (arenaId: string, operation: (tx: unknown) => Promise<unknown>) => runtime.$transaction(async (tx) => {
         await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`;

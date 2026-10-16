@@ -11,6 +11,7 @@ import { cancelMercadoPagoPayment, getMercadoPagoPayment } from "@/lib/payments/
 import { boletoCancellationDisposition } from "@/lib/payments/boleto-cancellation";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
+import { lockClassGroupCapacity } from "@/lib/academy/class-group-capacity";
 import { lessonSchema, studentSchema, teacherSchema } from "@/lib/academy/action-schemas";
 import {
   getClassGroupName,
@@ -424,59 +425,27 @@ export async function updateTeacherClassGroupAction(formData: FormData) {
     throw new Error("Não repita o mesmo dia e horário na turma.");
   }
 
-  const [group, plans] = await Promise.all([
-    prisma.classGroup.findFirst({
-      where: {
-        id: classGroupId,
-        arenaId: auth.arenaId,
-        teacherId,
-        active: true,
+  await withArenaTransaction(auth.arenaId, async (tx) => {
+    await lockClassGroupCapacity(tx, auth.arenaId, classGroupId);
+    const [group, plans] = await Promise.all([
+      tx.classGroup.findFirst({
+        where: { id: classGroupId, arenaId: auth.arenaId, teacherId, active: true },
+        include: { enrollments: { where: { status: "ACTIVE" }, select: { id: true } } },
+      }),
+      tx.plan.findMany({ where: { id: { in: planIds }, arenaId: auth.arenaId, active: true }, select: { id: true } }),
+    ]);
+    if (!group) throw new Error("Turma não encontrada.");
+    if (plans.length !== new Set(planIds).size) throw new Error("Selecione apenas planos ativos desta arena.");
+    if (schedules.some((schedule) => schedule.capacity < group.enrollments.length)) throw new Error("As vagas não podem ser menores que os alunos já matriculados.");
+    await tx.classGroup.update({
+      where: { id: group.id },
+      data: {
+        name: getClassGroupName(schedules),
+        notes,
+        plans: { deleteMany: {}, create: [...new Set(planIds)].map((planId) => ({ planId })) },
+        schedules: { deleteMany: {}, create: schedules.map((schedule) => ({ ...schedule, arenaId: auth.arenaId })) },
       },
-      include: {
-        enrollments: {
-          where: { status: "ACTIVE" },
-          select: { id: true },
-        },
-      },
-    }),
-    prisma.plan.findMany({
-      where: {
-        id: { in: planIds },
-        arenaId: auth.arenaId,
-        active: true,
-      },
-      select: { id: true },
-    }),
-  ]);
-  if (!group) throw new Error("Turma não encontrada.");
-  if (plans.length !== new Set(planIds).size) {
-    throw new Error("Selecione apenas planos ativos desta arena.");
-  }
-  if (
-    schedules.some((schedule) => schedule.capacity < group.enrollments.length)
-  ) {
-    throw new Error(
-      "As vagas não podem ser menores que os alunos já matriculados.",
-    );
-  }
-
-  await prisma.classGroup.update({
-    where: { id: group.id },
-    data: {
-      name: getClassGroupName(schedules),
-      notes,
-      plans: {
-        deleteMany: {},
-        create: [...new Set(planIds)].map((planId) => ({ planId })),
-      },
-      schedules: {
-        deleteMany: {},
-        create: schedules.map((schedule) => ({
-          ...schedule,
-          arenaId: auth.arenaId,
-        })),
-      },
-    },
+    });
   });
   refreshAcademyRoutes();
 }
@@ -494,29 +463,27 @@ export async function updateTeacherClassGroupCapacityAction(
     .min(1)
     .max(4)
     .parse(formData.get("capacity"));
-  const schedule = await prisma.classGroupSchedule.findFirst({
-    where: {
-      id: scheduleId,
-      classGroupId,
-      arenaId: auth.arenaId,
-      classGroup: { teacherId, active: true },
-    },
-    include: {
-      classGroup: {
-        include: {
-          enrollments: { where: { status: "ACTIVE" }, select: { id: true } },
+  await withArenaTransaction(auth.arenaId, async (tx) => {
+    await lockClassGroupCapacity(tx, auth.arenaId, classGroupId);
+    const schedule = await tx.classGroupSchedule.findFirst({
+      where: {
+        id: scheduleId,
+        classGroupId,
+        arenaId: auth.arenaId,
+        classGroup: { teacherId, active: true },
+      },
+      include: {
+        classGroup: {
+          include: {
+            enrollments: { where: { status: "ACTIVE" }, select: { id: true } },
+          },
         },
       },
-    },
-  });
-  if (!schedule) throw new Error("Horário da turma não encontrado.");
-  if (capacity < schedule.classGroup.enrollments.length)
-    throw new Error(
-      "As vagas não podem ser menores que os alunos já matriculados.",
-    );
-  await prisma.classGroupSchedule.update({
-    where: { id: schedule.id },
-    data: { capacity },
+    });
+    if (!schedule) throw new Error("Horário da turma não encontrado.");
+    if (capacity < schedule.classGroup.enrollments.length)
+      throw new Error("As vagas não podem ser menores que os alunos já matriculados.");
+    await tx.classGroupSchedule.update({ where: { id: schedule.id }, data: { capacity } });
   });
   refreshAcademyRoutes();
 }
@@ -536,40 +503,20 @@ export async function moveTeacherClassGroupStudentAction(formData: FormData) {
     sourceClassGroupId === destinationClassGroupId
   )
     throw new Error("Selecione uma turma de destino diferente.");
-  const [source, destination] = await Promise.all([
-    sourceClassGroupId
-      ? prisma.classGroup.findFirst({
-          where: {
-            id: sourceClassGroupId,
-            arenaId: auth.arenaId,
-            teacherId,
-            active: true,
-          },
-          select: { id: true },
-        })
-      : Promise.resolve(null),
-    prisma.classGroup.findFirst({
-      where: {
-        id: destinationClassGroupId,
-        arenaId: auth.arenaId,
-        teacherId,
-        active: true,
-      },
-      include: {
-        schedules: true,
-        enrollments: { where: { status: "ACTIVE" }, select: { id: true } },
-      },
-    }),
-  ]);
-  if (!destination || (sourceClassGroupId && !source))
-    throw new Error("Selecione turmas ativas deste professor.");
-  if (
-    !destination.schedules.every(
-      (schedule) => destination.enrollments.length < schedule.capacity,
-    )
-  )
-    throw new Error("A turma de destino não possui vagas.");
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(auth.arenaId, async (tx) => {
+    await lockClassGroupCapacity(tx, auth.arenaId, destinationClassGroupId);
+    const [student, source, destination] = await Promise.all([
+      tx.student.findFirst({ where: { id: studentId, arenaId: auth.arenaId }, select: { id: true } }),
+      sourceClassGroupId
+        ? tx.classGroup.findFirst({ where: { id: sourceClassGroupId, arenaId: auth.arenaId, teacherId, active: true }, select: { id: true } })
+        : Promise.resolve(null),
+      tx.classGroup.findFirst({
+        where: { id: destinationClassGroupId, arenaId: auth.arenaId, teacherId, active: true },
+        include: { schedules: true, enrollments: { where: { status: "ACTIVE" }, select: { id: true } } },
+      }),
+    ]);
+    if (!student || !destination || (sourceClassGroupId && !source)) throw new Error("Selecione turmas e aluno ativos desta arena.");
+    if (!destination.schedules.length || !destination.schedules.every((schedule) => destination.enrollments.length < schedule.capacity)) throw new Error("A turma de destino não possui vagas.");
     if (source) {
       const enrollment = await tx.classGroupEnrollment.findFirst({
         where: { classGroupId: source.id, studentId, status: "ACTIVE" },
@@ -878,6 +825,13 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
   const firstDueDate = dueDateInput ?? getFirstDueDate(startedAt, dueDay);
   let firstEntryId = "";
   await withArenaTransaction(auth.arenaId, async (tx) => {
+    await lockClassGroupCapacity(tx, auth.arenaId, classGroupId);
+    const currentGroup = await tx.classGroup.findFirst({
+      where: { id: classGroupId, arenaId: auth.arenaId, teacherId, active: true },
+      include: { plans: { select: { planId: true } }, schedules: true, enrollments: { where: { status: "ACTIVE" }, select: { id: true } } },
+    });
+    if (!currentGroup || !currentGroup.plans.some((item) => item.planId === planId)) throw new Error("Selecione uma turma compatível com o plano.");
+    if (!currentGroup.schedules.length || !currentGroup.schedules.every((schedule) => currentGroup.enrollments.length < schedule.capacity)) throw new Error("A turma selecionada não possui vagas.");
     const student = await tx.student.upsert({
       where: { playerId: client.id },
       update: {
