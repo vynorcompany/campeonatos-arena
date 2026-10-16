@@ -46,7 +46,7 @@ export const viewStyles = {
   "button": sharedUtilities.button,
   "section_card_ranking_detail_period": [
     "section-card", "stack-sm", "ranking-detail-period", "tw:pt-[22px]",
-    "tw:pr-[0]", "tw:pb-[22px]", "tw:pl-[0]", "tw:border-t-[length:1px]",
+    "tw:pr-[24px]", "tw:pb-[22px]", "tw:pl-[24px]", "tw:border-t-[length:1px]",
     "tw:[border-top-style:solid]", "tw:border-t-[color:#dae6f1]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]",
     "tw:border-r-[color:#dae6f1]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:#dae6f1]",
     "tw:border-l-[length:1px]", "tw:[border-left-style:solid]", "tw:border-l-[color:#dae6f1]", "tw:rounded-[10px]",
