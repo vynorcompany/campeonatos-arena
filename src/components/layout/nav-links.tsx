@@ -46,7 +46,6 @@ type NavLinksProps = {
 
 export function isActivePath(pathname: string, href: string) {
   const targetPath = href.split("?", 1)[0];
-  if (targetPath === "/players" && (pathname === "/jogadores" || pathname.startsWith("/jogadores/"))) return true;
   return pathname === targetPath || pathname.startsWith(`${targetPath}/`);
 }
 
@@ -226,7 +225,7 @@ export function NavLinks({ canManageUsers, visibleModules, whatsappUnreadCount, 
       title: "Arena",
       links: [
         {
-          href: "/players",
+          href: "/jogadores",
           label: "Clientes",
           icon: "users"
         },

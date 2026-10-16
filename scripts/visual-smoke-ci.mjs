@@ -231,6 +231,47 @@ async function main() {
         throw new Error("Administrador fictício visualizou clientes de outra arena.");
       }
     }
+    const clickElement = async (selector) => {
+      const evaluated = await send("Runtime.evaluate", {
+        expression: `(() => { const element = document.querySelector(${JSON.stringify(selector)}); if (!element) return null; element.scrollIntoView({ block: 'center' }); const rect = element.getBoundingClientRect(); return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, width: rect.width, height: rect.height }; })()`,
+        returnByValue: true,
+      });
+      const point = evaluated.result.value;
+      if (!point || point.width < 1 || point.height < 1) throw new Error(`Controle de navegação ausente: ${selector}`);
+      await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: point.x, y: point.y });
+      await send("Input.dispatchMouseEvent", { type: "mousePressed", x: point.x, y: point.y, button: "left", clickCount: 1 });
+      await send("Input.dispatchMouseEvent", { type: "mouseReleased", x: point.x, y: point.y, button: "left", clickCount: 1 });
+    };
+    for (const viewport of viewports) {
+      await send("Emulation.setDeviceMetricsOverride", { width: viewport.width, height: viewport.height, deviceScaleFactor: 1, mobile: viewport.name === "mobile" });
+      await send("Page.navigate", { url: `${baseUrl}/painel` });
+      let start;
+      for (let attempt = 0; attempt < 80; attempt += 1) {
+        const response = await send("Runtime.evaluate", { expression: "({path:location.pathname,menu:Boolean(document.querySelector('#arena-mobile-navigation a[href=\"/jogadores\"]'))})", returnByValue: true });
+        start = response.result.value;
+        if (start.path === "/painel" && start.menu) break;
+        await pause(250);
+      }
+      if (start.path !== "/painel" || !start.menu) throw new Error(`${viewport.name}: menu lateral não carregou.`);
+      if (viewport.name === "mobile") {
+        await clickElement('button[aria-label="Abrir menu"]');
+        const menu = await send("Runtime.evaluate", { expression: "({open:document.querySelector('button[aria-label=\"Abrir menu\"]')?.getAttribute('aria-expanded'),sidebar:document.querySelector('#arena-mobile-navigation')?.getBoundingClientRect().width})", returnByValue: true });
+        if (menu.result.value.open !== "true" || menu.result.value.sidebar < 200) throw new Error(`Menu mobile não abriu: ${JSON.stringify(menu.result.value)}`);
+        await pause(300);
+      }
+      await clickElement('#arena-mobile-navigation a[href="/jogadores"]');
+      let navigated;
+      for (let attempt = 0; attempt < 80; attempt += 1) {
+        const response = await send("Runtime.evaluate", { expression: "({path:location.pathname,body:document.querySelector('main')?.innerText ?? '',menuOpen:document.querySelector('button[aria-label=\"Abrir menu\"]')?.getAttribute('aria-expanded'),bodyOverflow:document.body.style.overflow})", returnByValue: true });
+        navigated = response.result.value;
+        if (navigated.path === "/jogadores" && navigated.body.includes("Atleta GOAL A") && navigated.menuOpen !== "true" && navigated.bodyOverflow !== "hidden") break;
+        await pause(250);
+      }
+      if (navigated.path !== "/jogadores" || !navigated.body.includes("Atleta GOAL A") || navigated.menuOpen === "true" || navigated.bodyOverflow === "hidden") {
+        throw new Error(`${viewport.name}: navegação pelo menu lateral falhou: ${JSON.stringify(navigated).slice(0, 500)}`);
+      }
+      console.log(`${viewport.name}: clique real no menu lateral abriu Clientes e liberou a rolagem.`);
+    }
     await send("Network.setCookie", { name: "padel_arena", value: arenaB.id, url: baseUrl, httpOnly: true, sameSite: "Lax" });
     await send("Page.navigate", { url: `${baseUrl}/jogadores` });
     let switched;
