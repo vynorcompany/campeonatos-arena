@@ -74,24 +74,27 @@ export async function requestClassGroupAction(formData: FormData) {
   const message = String(formData.get("message") ?? "").trim().slice(0, 500);
   if (!arenaSlug || !classGroupId) throw new Error("Turma inválida.");
   const auth = await requirePublicPlayerAuth(arenaSlug);
-  const group = await prisma.classGroup.findFirst({
-    where: { id: classGroupId, arenaId: auth.arenaId, active: true },
-    include: { schedules: true, enrollments: { where: { status: "ACTIVE" }, select: { id: true } } }
+  await withArenaTransaction(auth.arenaId, async (tx) => {
+    // Serialize requests for the same athlete and class before checking or creating a student.
+    const lockKey = `class-request:${auth.arenaId}:${auth.playerId}:${classGroupId}`;
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))::text`;
+    const group = await tx.classGroup.findFirst({
+      where: { id: classGroupId, arenaId: auth.arenaId, active: true },
+      include: { schedules: true, enrollments: { where: { status: "ACTIVE" }, select: { id: true } } }
+    });
+    if (!group || !group.schedules.length) throw new Error("Esta turma não está disponível.");
+    if (!group.schedules.every((schedule) => group.enrollments.length < schedule.capacity)) throw new Error("Esta turma não possui vagas no momento.");
+    const student = await tx.student.upsert({
+      where: { playerId: auth.playerId },
+      update: { active: true, name: auth.name, phone: auth.phone, email: auth.email },
+      create: { arenaId: auth.arenaId, playerId: auth.playerId, name: auth.name, phone: auth.phone, email: auth.email }
+    });
+    const enrollment = await tx.classGroupEnrollment.findFirst({ where: { classGroupId, studentId: student.id, status: "ACTIVE" }, select: { id: true } });
+    if (enrollment) throw new Error("Você já participa desta turma.");
+    const request = await tx.classGroupRequest.findFirst({ where: { classGroupId, studentId: student.id, status: "PENDING" }, select: { id: true } });
+    if (request) throw new Error("Sua solicitação para esta turma já está em análise.");
+    await tx.classGroupRequest.create({ data: { arenaId: auth.arenaId, classGroupId, studentId: student.id, message } });
   });
-  if (!group || !group.schedules.length) throw new Error("Esta turma não está disponível.");
-  if (!group.schedules.every((schedule) => group.enrollments.length < schedule.capacity)) throw new Error("Esta turma não possui vagas no momento.");
-  const student = await prisma.student.upsert({
-    where: { playerId: auth.playerId },
-    update: { active: true, name: auth.name, phone: auth.phone, email: auth.email },
-    create: { arenaId: auth.arenaId, playerId: auth.playerId, name: auth.name, phone: auth.phone, email: auth.email }
-  });
-  const [enrollment, request] = await Promise.all([
-    prisma.classGroupEnrollment.findFirst({ where: { classGroupId, studentId: student.id, status: "ACTIVE" }, select: { id: true } }),
-    prisma.classGroupRequest.findFirst({ where: { classGroupId, studentId: student.id, status: "PENDING" }, select: { id: true } })
-  ]);
-  if (enrollment) throw new Error("Você já participa desta turma.");
-  if (request) throw new Error("Sua solicitação para esta turma já está em análise.");
-  await prisma.classGroupRequest.create({ data: { arenaId: auth.arenaId, classGroupId, studentId: student.id, message } });
   revalidatePath(`/classificacao/${arenaSlug}`);
   revalidatePath("/aulas");
 }
