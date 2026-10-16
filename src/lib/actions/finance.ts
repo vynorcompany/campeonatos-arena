@@ -11,6 +11,7 @@ import { employeePayrollSchema } from "@/lib/finance/employee-payroll";
 import { saveEmployeePayroll } from "@/lib/finance/employee-payroll-service";
 import { Prisma } from "@prisma/client";
 import { getFinancialEntryBalance } from "@/lib/finance/ledger";
+import { assertFinancialEntryRelationsBelongToArena } from "@/lib/finance/entry-relations";
 import { getDiscountedAmountCents } from "@/lib/finance/discounts";
 import { getCouponValues } from "@/lib/finance/coupons";
 import { getFinancialRecurrenceDates, getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
@@ -248,6 +249,13 @@ export async function createFinancialEntryAction(formData: FormData) {
   const paidAt = parsed.data.status === "PAID" ? parseDate(parsed.data.paidAt) ?? new Date() : parseDate(parsed.data.paidAt);
   let enrollmentNotice = "";
   await withArenaTransaction(auth.arenaId, async (tx) => {
+    await assertFinancialEntryRelationsBelongToArena(tx, auth.arenaId, {
+      supplierId: parsed.data.supplierId,
+      bankAccountId: parsed.data.bankAccountId,
+      planId: parsed.data.planId,
+      productId: parsed.data.productId,
+      playerId: parsed.data.type === "REVENUE" ? clientId : null,
+    });
     const teacherPlan = parsed.data.type === "REVENUE" && parsed.data.planId && teacherId
       ? await tx.teacherPlan.findFirst({ where: { arenaId: auth.arenaId, teacherId, planId: parsed.data.planId, active: true }, include: { plan: { select: { classesPerMonth: true } }, teacher: { select: { name: true } } } })
       : null;
@@ -344,6 +352,11 @@ export async function updateFinancialEntryAction(formData: FormData) {
     });
     if (!entry) throw new Error("Lançamento não encontrado ou estornado.");
     if (entry.source === "AGENCY_SUBSCRIPTION") throw new Error("Esta fatura é gerenciada pela agência e não pode ser alterada aqui.");
+    await assertFinancialEntryRelationsBelongToArena(tx, auth.arenaId, {
+      bankAccountId: parsed.data.bankAccountId,
+      planId: parsed.data.planId,
+      productId: parsed.data.productId,
+    });
 
     const paidCents = entry.settlements.reduce((total, settlement) => total + settlement.amountCents, 0);
     if (amountCents < paidCents) throw new Error("O valor não pode ser menor que o total já baixado.");
@@ -397,6 +410,11 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
 
   let firstEntryId = "";
   await withArenaTransaction(auth.arenaId, async (tx) => {
+    await assertFinancialEntryRelationsBelongToArena(tx, auth.arenaId, {
+      bankAccountId: parsed.data.bankAccountId,
+      planId: parsed.data.planId,
+      playerId: parsed.data.type === "REVENUE" ? clientId : null,
+    });
     const teacherPlan = parsed.data.type === "REVENUE" && parsed.data.planId && teacherId
       ? await tx.teacherPlan.findFirst({ where: { arenaId: auth.arenaId, teacherId, planId: parsed.data.planId, active: true }, select: { teacherId: true } })
       : null;
