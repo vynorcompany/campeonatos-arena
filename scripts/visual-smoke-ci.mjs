@@ -115,6 +115,14 @@ async function main() {
       const arena = await send("Network.setCookie", { name: "padel_arena", value: arenaId, url: baseUrl, httpOnly: true, sameSite: "Lax" });
       if (!session.success || !arena.success) throw new Error("Não foi possível configurar a sessão de teste.");
     };
+    const waitForPageFade = async () => {
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        const opacity = await send("Runtime.evaluate", { expression: "Number(getComputedStyle(document.body).opacity)", returnByValue: true });
+        if (opacity.result.value >= 0.99) return;
+        await pause(100);
+      }
+      throw new Error("A animação de entrada da página não terminou antes da captura.");
+    };
     const visit = async (path, viewport, arenaId, label) => {
       const response = await fetch(`${baseUrl}${path}`, { headers: { Cookie: cookie(arenaId) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
       await response.body?.cancel();
@@ -631,11 +639,7 @@ async function main() {
       if (!detail.result.value.dialog.includes("Campeã") || !detail.result.value.dialog.includes("Parceira de Nome Comprido GOAL") || !detail.result.value.dialog.includes("Saldo") || detail.result.value.scrollWidth > detail.result.value.width + 1) {
         throw new Error(`${viewport.name}: modal do histórico não mostrou campeã e classificação sem overflow.`);
       }
-      for (let attempt = 0; attempt < 10; attempt += 1) {
-        const bodyOpacity = await send("Runtime.evaluate", { expression: "Number(getComputedStyle(document.body).opacity)", returnByValue: true });
-        if (bodyOpacity.result.value >= 0.99) break;
-        await pause(100);
-      }
+      await waitForPageFade();
       const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
       await writeFile(`${outputDir}/liga-historico-${viewport.name}.png`, Buffer.from(shot.data, "base64"));
       await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
@@ -687,6 +691,78 @@ async function main() {
     if (!mobileChat.includes("Mensagem ao vivo GOAL")) throw new Error("A conversa mobile não mostrou a mensagem recebida.");
     const whatsappMobileShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
     await writeFile(`${outputDir}/whatsapp-conversa-mobile-aberta.png`, Buffer.from(whatsappMobileShot.data, "base64"));
+
+    const [teacherA, teacherB] = await Promise.all([
+      db.teacher.create({ data: { arenaId: arenaA.id, name: "Professora Financeiro GOAL A" } }),
+      db.teacher.create({ data: { arenaId: arenaA.id, name: "Professor Financeiro GOAL B" } }),
+    ]);
+    const [planA1, planA2, planB] = await Promise.all([
+      db.plan.create({ data: { arenaId: arenaA.id, name: "Plano Financeiro GOAL A1", monthlyPriceCents: 10000 } }),
+      db.plan.create({ data: { arenaId: arenaA.id, name: "Plano Financeiro GOAL A2", monthlyPriceCents: 12000 } }),
+      db.plan.create({ data: { arenaId: arenaA.id, name: "Plano Financeiro GOAL B", monthlyPriceCents: 14000 } }),
+    ]);
+    await db.teacherPlan.createMany({ data: [
+      { arenaId: arenaA.id, teacherId: teacherA.id, planId: planA1.id, monthlyPriceCents: 10000 },
+      { arenaId: arenaA.id, teacherId: teacherA.id, planId: planA2.id, monthlyPriceCents: 12000 },
+      { arenaId: arenaA.id, teacherId: teacherB.id, planId: planB.id, monthlyPriceCents: 14000 },
+    ] });
+    await db.financialEntry.createMany({ data: [
+      { arenaId: arenaA.id, type: "REVENUE", category: "Planos de aulas", description: "Mensalidade GOAL A1", amountCents: 10000, planId: planA1.id },
+      { arenaId: arenaA.id, type: "REVENUE", category: "Plano de Aulas", description: "Mensalidade GOAL A2", amountCents: 12000, planId: planA2.id },
+      { arenaId: arenaA.id, type: "REVENUE", category: "Planos de aulas", description: "Mensalidade GOAL B", amountCents: 14000, planId: planB.id },
+      { arenaId: arenaA.id, type: "REVENUE", category: "Venda", description: "Venda GOAL filtrada", amountCents: 2500 },
+      { arenaId: arenaB.id, type: "REVENUE", category: "Venda", description: "Venda sigilosa GOAL B", amountCents: 9999 },
+    ] });
+    const receivables = await visit("/financeiro/contas-a-receber", viewports[0], arenaA.id, "recebiveis-filtros-antes");
+    if (!["Mensalidade GOAL A1", "Mensalidade GOAL A2", "Mensalidade GOAL B", "Venda GOAL filtrada"].every((label) => receivables.includes(label)) || receivables.includes("Venda sigilosa GOAL B")) {
+      throw new Error("Contas a receber não exibiu os lançamentos próprios com isolamento entre arenas.");
+    }
+    const teacherOption = await send("Runtime.evaluate", { expression: `(() => { const select = document.querySelector('select[name="planId"]'); const value = 'teacher:${teacherA.id}'; if (!select || ![...select.options].some(option => option.value === value)) return false; select.value = value; select.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`, returnByValue: true });
+    if (!teacherOption.result.value) throw new Error("A opção Todos os planos da professora fictícia não apareceu.");
+    let teacherFiltered = false;
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      const response = await send("Runtime.evaluate", { expression: "({search:location.search,body:document.querySelector('main')?.innerText ?? ''})", returnByValue: true });
+      const { search, body } = response.result.value;
+      if (new URLSearchParams(search).get("planId") === `teacher:${teacherA.id}` && body.includes("Mensalidade GOAL A1") && body.includes("Mensalidade GOAL A2") && !body.includes("Mensalidade GOAL B")) { teacherFiltered = true; break; }
+      await pause(250);
+    }
+    if (!teacherFiltered) throw new Error("Todos os planos do professor não isolou os dois planos fictícios.");
+    console.log("Financeiro: Todos os planos mostrou apenas as duas mensalidades da professora selecionada.");
+    await send("Page.navigate", { url: `${baseUrl}/financeiro/contas-a-receber?category=Plano%20de%20Aulas` });
+    let plansFiltered = false;
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      const response = await send("Runtime.evaluate", { expression: "({search:location.search,body:document.querySelector('main')?.innerText ?? ''})", returnByValue: true });
+      const { search, body } = response.result.value;
+      if (new URLSearchParams(search).get("category") === "Plano de Aulas" && body.includes("Mensalidade GOAL A1") && body.includes("Mensalidade GOAL A2") && body.includes("Mensalidade GOAL B") && !body.includes("Venda GOAL filtrada")) { plansFiltered = true; break; }
+      await pause(250);
+    }
+    if (!plansFiltered) throw new Error("Classificação Plano de Aulas não encontrou todas as mensalidades sem incluir vendas.");
+    await send("Page.navigate", { url: `${baseUrl}/financeiro/contas-a-receber?category=Vendas` });
+    let salesFiltered = false;
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      const response = await send("Runtime.evaluate", { expression: "({search:location.search,body:document.querySelector('main')?.innerText ?? '',width:innerWidth,scrollWidth:document.documentElement.scrollWidth})", returnByValue: true });
+      const { search, body, width, scrollWidth } = response.result.value;
+      if (new URLSearchParams(search).get("category") === "Vendas" && body.includes("Venda GOAL filtrada") && !body.includes("Mensalidade GOAL A1") && !body.includes("Venda sigilosa GOAL B") && scrollWidth <= width + 1) { salesFiltered = true; break; }
+      await pause(250);
+    }
+    if (!salesFiltered) throw new Error("Classificação Vendas incluiu mensalidades, outra arena ou apresentou overflow.");
+    await waitForPageFade();
+    const salesShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+    await writeFile(`${outputDir}/recebiveis-vendas-desktop.png`, Buffer.from(salesShot.data, "base64"));
+    await send("Emulation.setDeviceMetricsOverride", { width: viewports[1].width, height: viewports[1].height, deviceScaleFactor: 1, mobile: true });
+    await send("Page.navigate", { url: `${baseUrl}/financeiro/contas-a-receber?category=Vendas` });
+    let mobileSales = false;
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      const response = await send("Runtime.evaluate", { expression: "({body:document.querySelector('main')?.innerText ?? '',width:innerWidth,scrollWidth:document.documentElement.scrollWidth})", returnByValue: true });
+      const { body, width, scrollWidth } = response.result.value;
+      if (body.includes("Venda GOAL filtrada") && !body.includes("Venda sigilosa GOAL B") && scrollWidth <= width + 1) { mobileSales = true; break; }
+      await pause(250);
+    }
+    if (!mobileSales) throw new Error("A lista filtrada de vendas falhou no celular.");
+    await waitForPageFade();
+    const mobileSalesShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+    await writeFile(`${outputDir}/recebiveis-vendas-mobile.png`, Buffer.from(mobileSalesShot.data, "base64"));
+    console.log("Financeiro: classificações de Planos e Vendas validadas em contas a receber, desktop e celular.");
   } finally {
     socket?.close();
     browser?.kill();
