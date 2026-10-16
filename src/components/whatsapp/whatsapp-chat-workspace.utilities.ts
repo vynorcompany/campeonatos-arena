@@ -403,7 +403,7 @@ export const viewStyles = {
   ].join(" "),
   "whatsapp_details_close": "tw:absolute tw:top-2 tw:right-2 tw:z-10 tw:grid tw:size-10 tw:place-items-center tw:rounded-lg tw:border-0 tw:bg-transparent tw:text-xl tw:text-[#59728d] tw:focus-visible:outline-2 tw:focus-visible:outline-[#166a4b]",
   "whatsapp_contact_panel": [
-    "whatsapp-contact-panel", "tw:relative", "tw:min-h-0", "tw:overflow-y-auto", "tw:[@media(max-width:1280px)]:absolute", "tw:[@media(max-width:1280px)]:inset-y-0", "tw:[@media(max-width:1280px)]:right-[48px]", "tw:[@media(max-width:1280px)]:w-[min(300px,calc(100%_-_48px))]", "tw:viewport-900:right-0", "tw:viewport-600:w-full", "tw:z-[7]", "tw:[@media(max-width:1280px)]:shadow-xl", "tw:grid", "tw:[align-content:start]",
+    "whatsapp-contact-panel", "tw:relative", "tw:min-h-0", "tw:overflow-y-auto", "tw:[@media(max-width:1280px)]:absolute", "tw:[@media(max-width:1280px)]:inset-y-0", "tw:[@media(max-width:1280px)]:right-[48px]", "tw:[@media(max-width:1280px)]:w-[min(300px,calc(100%_-_48px))]", "tw:viewport-900:right-0!", "tw:viewport-900:w-full!", "tw:z-[7]", "tw:[@media(max-width:1280px)]:shadow-xl", "tw:grid", "tw:[align-content:start]",
     "tw:bg-[color:#fff]", "tw:[background-image:none]", "tw:[&_>_header]:grid", "tw:[&_>_header]:[justify-items:center]",
     "tw:[&_>_header]:min-h-[175px]", "tw:[&_>_header]:gap-y-[7px]", "tw:[&_>_header]:gap-x-[7px]", "tw:[&_>_header]:pt-[24px]",
     "tw:[&_>_header]:pr-[14px]", "tw:[&_>_header]:pb-[18px]", "tw:[&_>_header]:pl-[14px]", "tw:[&_>_header]:text-center",

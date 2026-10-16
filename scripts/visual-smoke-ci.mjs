@@ -756,7 +756,7 @@ async function main() {
       returnByValue: true,
     });
     if (detailsLayout.result.value.panel?.width < detailsLayout.result.value.workspace?.width - 2 || Math.abs(detailsLayout.result.value.panel?.right - detailsLayout.result.value.workspace?.right) > 2) {
-      throw new Error("Os detalhes do contato não ocuparam corretamente a largura do chat mobile.");
+      throw new Error(`Os detalhes do contato não ocuparam corretamente a largura do chat mobile: ${JSON.stringify(detailsLayout.result.value)}`);
     }
     await send("Runtime.evaluate", { expression: "document.querySelector('#whatsapp-contact-details button[aria-label=\"Fechar detalhes do contato\"]')?.click()" });
     await pause(100);
