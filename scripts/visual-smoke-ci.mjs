@@ -870,7 +870,8 @@ async function main() {
     let teacherFiltered = false;
     for (let attempt = 0; attempt < 80; attempt += 1) {
       const response = await send("Runtime.evaluate", { expression: "({search:location.search,body:document.querySelector('main')?.innerText ?? ''})", returnByValue: true });
-      const { search, body } = response.result.value;
+      const { search, body } = response.result.value ?? {};
+      if (body === undefined) { await pause(250); continue; }
       if (new URLSearchParams(search).get("planId") === `teacher:${teacherA.id}` && body.includes("Mensalidade GOAL A1") && body.includes("Mensalidade GOAL A2") && body.includes("Mensalidade GOAL compartilhada A") && !body.includes("Mensalidade GOAL B") && !body.includes("Mensalidade GOAL compartilhada B")) { teacherFiltered = true; break; }
       await pause(250);
     }
@@ -880,7 +881,8 @@ async function main() {
     let plansFiltered = false;
     for (let attempt = 0; attempt < 80; attempt += 1) {
       const response = await send("Runtime.evaluate", { expression: "({search:location.search,body:document.querySelector('main')?.innerText ?? ''})", returnByValue: true });
-      const { search, body } = response.result.value;
+      const { search, body } = response.result.value ?? {};
+      if (body === undefined) { await pause(250); continue; }
       if (new URLSearchParams(search).get("category") === "Plano de Aulas" && body.includes("Mensalidade GOAL A1") && body.includes("Mensalidade GOAL A2") && body.includes("Mensalidade GOAL B") && body.includes("Mensalidade GOAL compartilhada A") && body.includes("Mensalidade GOAL compartilhada B") && !body.includes("Venda GOAL filtrada")) { plansFiltered = true; break; }
       await pause(250);
     }
@@ -889,7 +891,8 @@ async function main() {
     let salesFiltered = false;
     for (let attempt = 0; attempt < 80; attempt += 1) {
       const response = await send("Runtime.evaluate", { expression: "({search:location.search,body:document.querySelector('main')?.innerText ?? '',width:innerWidth,scrollWidth:document.documentElement.scrollWidth})", returnByValue: true });
-      const { search, body, width, scrollWidth } = response.result.value;
+      const { search, body, width, scrollWidth } = response.result.value ?? {};
+      if (body === undefined) { await pause(250); continue; }
       if (new URLSearchParams(search).get("category") === "Vendas" && body.includes("Venda GOAL filtrada") && !body.includes("Mensalidade GOAL A1") && !body.includes("Venda sigilosa GOAL B") && scrollWidth <= width + 1) { salesFiltered = true; break; }
       await pause(250);
     }
@@ -902,7 +905,8 @@ async function main() {
     let mobileSales = false;
     for (let attempt = 0; attempt < 80; attempt += 1) {
       const response = await send("Runtime.evaluate", { expression: "({body:document.querySelector('main')?.innerText ?? '',width:innerWidth,scrollWidth:document.documentElement.scrollWidth})", returnByValue: true });
-      const { body, width, scrollWidth } = response.result.value;
+      const { body, width, scrollWidth } = response.result.value ?? {};
+      if (body === undefined) { await pause(250); continue; }
       if (body.includes("Venda GOAL filtrada") && !body.includes("Venda sigilosa GOAL B") && scrollWidth <= width + 1) { mobileSales = true; break; }
       await pause(250);
     }
