@@ -115,6 +115,14 @@ async function main() {
       const arena = await send("Network.setCookie", { name: "padel_arena", value: arenaId, url: baseUrl, httpOnly: true, sameSite: "Lax" });
       if (!session.success || !arena.success) throw new Error("Não foi possível configurar a sessão de teste.");
     };
+    const waitForPageFade = async () => {
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        const opacity = await send("Runtime.evaluate", { expression: "Number(getComputedStyle(document.body).opacity)", returnByValue: true });
+        if (opacity.result.value >= 0.99) return;
+        await pause(100);
+      }
+      throw new Error("A animação de entrada da página não terminou antes da captura.");
+    };
     const visit = async (path, viewport, arenaId, label) => {
       const response = await fetch(`${baseUrl}${path}`, { headers: { Cookie: cookie(arenaId) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
       await response.body?.cancel();
@@ -631,11 +639,7 @@ async function main() {
       if (!detail.result.value.dialog.includes("Campeã") || !detail.result.value.dialog.includes("Parceira de Nome Comprido GOAL") || !detail.result.value.dialog.includes("Saldo") || detail.result.value.scrollWidth > detail.result.value.width + 1) {
         throw new Error(`${viewport.name}: modal do histórico não mostrou campeã e classificação sem overflow.`);
       }
-      for (let attempt = 0; attempt < 10; attempt += 1) {
-        const bodyOpacity = await send("Runtime.evaluate", { expression: "Number(getComputedStyle(document.body).opacity)", returnByValue: true });
-        if (bodyOpacity.result.value >= 0.99) break;
-        await pause(100);
-      }
+      await waitForPageFade();
       const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
       await writeFile(`${outputDir}/liga-historico-${viewport.name}.png`, Buffer.from(shot.data, "base64"));
       await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
@@ -742,6 +746,7 @@ async function main() {
       await pause(250);
     }
     if (!salesFiltered) throw new Error("Classificação Vendas incluiu mensalidades, outra arena ou apresentou overflow.");
+    await waitForPageFade();
     const salesShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
     await writeFile(`${outputDir}/recebiveis-vendas-desktop.png`, Buffer.from(salesShot.data, "base64"));
     await send("Emulation.setDeviceMetricsOverride", { width: viewports[1].width, height: viewports[1].height, deviceScaleFactor: 1, mobile: true });
@@ -754,6 +759,7 @@ async function main() {
       await pause(250);
     }
     if (!mobileSales) throw new Error("A lista filtrada de vendas falhou no celular.");
+    await waitForPageFade();
     const mobileSalesShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
     await writeFile(`${outputDir}/recebiveis-vendas-mobile.png`, Buffer.from(mobileSalesShot.data, "base64"));
     console.log("Financeiro: classificações de Planos e Vendas validadas em contas a receber, desktop e celular.");
