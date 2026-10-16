@@ -118,7 +118,27 @@ async function main() {
     for (const viewport of viewports) {
       for (const route of routes) {
         const label = `${viewport.name}-${route.replaceAll("/", "-").replace(/^-/, "")}`;
-        await visit(route, viewport, arenaA.id, label);
+        const body = await visit(route, viewport, arenaA.id, label);
+        if (route === "/usuarios" && (!body.includes("Acesso legado · Proprietário") || body.includes("Migrado · OWNER"))) {
+          throw new Error(`${label}: identificador interno do perfil legado exposto na lista de usuários.`);
+        }
+        if (route === "/usuarios") {
+          const clicked = await send("Runtime.evaluate", {
+            expression: "(() => { const button = document.querySelector('button[aria-label^=\"Editar \"]'); button?.click(); return Boolean(button); })()",
+            returnByValue: true,
+          });
+          if (!clicked.result.value) throw new Error(`${label}: botão de edição do usuário ausente.`);
+          await pause(400);
+          const editor = await send("Runtime.evaluate", {
+            expression: "({visible: Boolean(document.querySelector('select[name=\"permissionProfileId\"]')), overflow: document.documentElement.scrollWidth > innerWidth + 1, options: [...(document.querySelector('select[name=\"permissionProfileId\"]')?.options ?? [])].map(option => option.text)})",
+            returnByValue: true,
+          });
+          if (!editor.result.value.visible || editor.result.value.overflow || editor.result.value.options.some((option) => option.includes("Migrado · OWNER"))) {
+            throw new Error(`${label}: edição do usuário inválida: ${JSON.stringify(editor.result.value)}`);
+          }
+          const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+          await writeFile(`${outputDir}/${label}-edit.png`, Buffer.from(shot.data, "base64"));
+        }
       }
     }
     const mobile = viewports[1];
