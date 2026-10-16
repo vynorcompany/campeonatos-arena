@@ -33,11 +33,12 @@ async function main() {
 
     const athlete = await db.player.create({ data: { id: "goal-athlete-a", arenaId: arenaA.id, name: "Atleta GOAL A" } });
     await db.player.create({ data: { arenaId: arenaB.id, name: "Atleta Exclusivo Outra Arena GOAL" } });
-    await db.court.create({ data: { id: "goal-court-a", arenaId: arenaA.id, name: "Quadra GOAL 1" } });
+    const court = await db.court.create({ data: { id: "goal-court-a", arenaId: arenaA.id, name: "Quadra GOAL 1" } });
+    await db.courtWeeklyRule.create({ data: { courtId: court.id, weekday: 1, startsAtMinute: 420, endsAtMinute: 480, priceCents: 10000 } });
     const product = await db.product.create({ data: { arenaId: arenaA.id, name: "Produto GOAL", priceCents: 1200, stockQuantity: 10 } });
     const comanda = await db.comanda.create({ data: { id: "goal-fixture-comanda", arenaId: arenaA.id, playerId: athlete.id, code: "GOAL-COMANDA", label: "Comanda GOAL" } });
     await db.comandaItem.create({ data: { comandaId: comanda.id, productId: product.id, unitPriceCents: 1200, totalCents: 1200 } });
-    const booking = await db.scheduleOccurrence.create({ data: { id: "goal-fixture-occurrence", arenaId: arenaA.id, sourceType: "COURT_BOOKING", title: "Reserva GOAL", startsAt: new Date("2030-01-03T10:00:00.000Z"), endsAt: new Date("2030-01-03T11:00:00.000Z") } });
+    const booking = await db.scheduleOccurrence.create({ data: { id: "goal-fixture-occurrence", arenaId: arenaA.id, sourceType: "COURT_BOOKING", title: "Reserva GOAL", startsAt: new Date("2020-01-03T10:00:00.000Z"), endsAt: new Date("2020-01-03T11:00:00.000Z") } });
     await db.scheduleParticipant.create({ data: { occurrenceId: booking.id, playerId: athlete.id } });
     await db.financialEntry.createMany({ data: [
       { arenaId: arenaA.id, playerId: athlete.id, type: "REVENUE", category: "Reserva", description: "Receita GOAL", amountCents: 1200 },
