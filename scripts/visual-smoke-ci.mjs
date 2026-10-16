@@ -188,6 +188,56 @@ async function main() {
     }
     console.log("Isolamento entre arenas validado na lista de clientes.");
 
+    await visit("/usuarios", mobile, arenaA.id, "mobile-users-recovery");
+    const recoveryTrigger = await send("Runtime.evaluate", {
+      expression: "(() => { const row = [...document.querySelectorAll('tr')].find((item) => item.innerText.includes('goal-staff@example.test')); const button = [...(row?.querySelectorAll('button') ?? [])].find((item) => item.textContent?.trim() === 'Recuperar acesso'); button?.click(); return Boolean(button); })()",
+      returnByValue: true,
+    });
+    if (!recoveryTrigger.result.value) throw new Error("Proprietário não encontrou a recuperação do colaborador na lista de usuários.");
+    let recoveryUrl = "";
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      const response = await send("Runtime.evaluate", {
+        expression: "document.querySelector('input[id^=\"recovery-link-\"]')?.value ?? ''",
+        returnByValue: true,
+      });
+      recoveryUrl = response.result.value;
+      if (recoveryUrl) break;
+      await pause(250);
+    }
+    const recoveryToken = new URL(recoveryUrl || baseUrl).searchParams.get("token");
+    if (!recoveryUrl.startsWith(`${baseUrl}/redefinir-senha?`) || !/^[a-f0-9]{64}$/i.test(recoveryToken ?? "")) {
+      throw new Error("O link privado de recuperação não foi gerado pela interface.");
+    }
+    await send("Page.navigate", { url: recoveryUrl });
+    let resetReady = false;
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      const response = await send("Runtime.evaluate", {
+        expression: "location.pathname === '/redefinir-senha' && Boolean(document.querySelector('input[name=password]') && document.querySelector('input[name=confirmPassword]'))",
+        returnByValue: true,
+      });
+      resetReady = response.result.value;
+      if (resetReady) break;
+      await pause(250);
+    }
+    if (!resetReady) throw new Error("O link privado não abriu o formulário de nova senha.");
+    await send("Runtime.evaluate", { expression: "document.querySelector('input[name=password]').focus()" });
+    await send("Input.insertText", { text: "SenhaRecuperadaGOAL123!" });
+    await send("Runtime.evaluate", { expression: "document.querySelector('input[name=confirmPassword]').focus()" });
+    await send("Input.insertText", { text: "SenhaRecuperadaGOAL123!" });
+    await send("Runtime.evaluate", { expression: "document.querySelector('form button[type=submit]').click()" });
+    let resetSuccess = false;
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      const response = await send("Runtime.evaluate", {
+        expression: "document.body?.innerText.includes('Senha redefinida. Entre novamente com a nova senha.') ?? false",
+        returnByValue: true,
+      });
+      resetSuccess = response.result.value;
+      if (resetSuccess) break;
+      await pause(250);
+    }
+    if (!resetSuccess) throw new Error("A redefinição de senha não confirmou sucesso na interface.");
+    console.log("Recuperação manual do colaborador concluída no navegador com link privado descartável.");
+
     for (const viewport of viewports) {
       await send("Network.clearBrowserCookies");
       await send("Emulation.setDeviceMetricsOverride", { width: viewport.width, height: viewport.height, deviceScaleFactor: 1, mobile: viewport.name === "mobile" });
@@ -214,6 +264,32 @@ async function main() {
     await send("Input.insertText", { text: "goal-staff@example.test" });
     await send("Runtime.evaluate", { expression: "document.querySelector('#password').focus()" });
     await send("Input.insertText", { text: "SenhaDescartavelGOAL123!" });
+    await send("Runtime.evaluate", { expression: "document.querySelector('form button[type=submit]').click()" });
+    let oldPasswordRejected = false;
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      const response = await send("Runtime.evaluate", {
+        expression: "location.pathname === '/login' && (document.body?.innerText.includes('E-mail ou senha inválidos.') ?? false)",
+        returnByValue: true,
+      });
+      oldPasswordRejected = response.result.value;
+      if (oldPasswordRejected) break;
+      await pause(250);
+    }
+    if (!oldPasswordRejected) throw new Error("A senha antiga do colaborador continuou válida após a recuperação.");
+    await send("Page.navigate", { url: `${baseUrl}/login` });
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      const response = await send("Runtime.evaluate", {
+        expression: "location.pathname === '/login' && Boolean(document.querySelector('#email') && document.querySelector('#password'))",
+        returnByValue: true,
+      });
+      if (response.result.value) break;
+      await pause(250);
+    }
+    await pause(400);
+    await send("Runtime.evaluate", { expression: "document.querySelector('#email').focus()" });
+    await send("Input.insertText", { text: "goal-staff@example.test" });
+    await send("Runtime.evaluate", { expression: "document.querySelector('#password').focus()" });
+    await send("Input.insertText", { text: "SenhaRecuperadaGOAL123!" });
     await send("Runtime.evaluate", { expression: "document.querySelector('form button[type=submit]').click()" });
     let staffLogin;
     for (let attempt = 0; attempt < 120; attempt += 1) {
