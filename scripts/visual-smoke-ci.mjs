@@ -455,9 +455,22 @@ async function main() {
       }
       if (start.path !== "/painel" || !start.menu) throw new Error(`${viewport.name}: menu lateral não carregou.`);
       if (viewport.name === "mobile") {
+        let hydrated = false;
+        for (let attempt = 0; attempt < 40; attempt += 1) {
+          const response = await send("Runtime.evaluate", { expression: "(() => { const button=document.querySelector('button[aria-label=\"Abrir menu\"]'); return Boolean(button && Object.keys(button).some(key => key.startsWith('__reactProps$'))); })()", returnByValue: true });
+          if (response.result.value) { hydrated = true; break; }
+          await pause(100);
+        }
+        if (!hydrated) throw new Error("O menu mobile não ficou interativo após o carregamento.");
         await clickElement('button[aria-label="Abrir menu"]');
-        const menu = await send("Runtime.evaluate", { expression: "({open:document.querySelector('button[aria-label=\"Abrir menu\"]')?.getAttribute('aria-expanded'),sidebar:document.querySelector('#arena-mobile-navigation')?.getBoundingClientRect().width})", returnByValue: true });
-        if (menu.result.value.open !== "true" || menu.result.value.sidebar < 200) throw new Error(`Menu mobile não abriu: ${JSON.stringify(menu.result.value)}`);
+        let menu;
+        for (let attempt = 0; attempt < 20; attempt += 1) {
+          const response = await send("Runtime.evaluate", { expression: "({open:document.querySelector('button[aria-label=\"Abrir menu\"]')?.getAttribute('aria-expanded'),sidebar:document.querySelector('#arena-mobile-navigation')?.getBoundingClientRect().width})", returnByValue: true });
+          menu = response.result.value;
+          if (menu.open === "true") break;
+          await pause(100);
+        }
+        if (menu.open !== "true" || menu.sidebar < 200) throw new Error(`Menu mobile não abriu: ${JSON.stringify(menu)}`);
         await pause(300);
       }
       await clickElement('#arena-mobile-navigation a[href="/jogadores"]');
