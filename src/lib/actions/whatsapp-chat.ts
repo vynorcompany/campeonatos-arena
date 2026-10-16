@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { arenaDatabase } from "@/lib/arena-database";
 import { withArenaTransaction } from "@/lib/rls";
 import { getActiveWhatsAppAccountJid } from "@/lib/whatsapp-active-account";
-import { getArenaWhatsAppConversation, getEvolutionProviderId, persistOutboundWhatsAppMessage, persistWhatsAppReaction } from "@/lib/services/whatsapp-conversation";
+import { getArenaWhatsAppConversation, getEvolutionProviderId, persistOutboundWhatsAppMessage, persistWhatsAppReaction, type OutboundWhatsAppMessage } from "@/lib/services/whatsapp-conversation";
 import { reactionEmojis } from "@/lib/whatsapp-message-data";
 import { outgoingWhatsAppMediaKind } from "@/lib/whatsapp-media-types";
 import { presentWhatsAppGroupMessage } from "@/lib/whatsapp-group-message";
@@ -19,6 +19,18 @@ const linkSchema = z.object({ conversationId: z.string().min(1), playerId: z.str
 const slaSchema = z.object({ minutes: z.coerce.number().int().min(5, "O SLA mínimo é de 5 minutos.").max(1_440, "O SLA máximo é de 24 horas.") });
 const conversationActionSchema = z.object({ conversationId: z.string().min(1), action: z.enum(["archive", "pin", "unread", "favorite", "list", "clear", "delete", "resolve_sla"]), listName: z.string().trim().max(80).optional() });
 const contactSchema = z.object({ name: z.string().trim().min(3, "Informe o nome do contato."), phone: z.string().trim().min(8, "Informe o telefone do contato.") });
+
+async function persistAcceptedMessage(arenaId: string, conversationId: string, message: OutboundWhatsAppMessage) {
+  try {
+    return await persistOutboundWhatsAppMessage(arenaId, conversationId, message);
+  } catch (error) {
+    const code = error && typeof error === "object" && "code" in error ? String(error.code) : undefined;
+    console.error("whatsapp_outbound_persistence_failed", { arenaId, conversationId, providerId: message.providerId, code });
+    // The provider already accepted the message. A failed local write must not
+    // make the composer offer a retry that may send it to the client twice.
+    return { acceptedButUnsynced: true } as const;
+  }
+}
 
 async function activeConversationScope(arenaId: string, conversationId: string) {
   const accountJid = await getActiveWhatsAppAccountJid(arenaId);
@@ -63,7 +75,7 @@ export async function sendWhatsAppChatMessageAction(formData: FormData) {
   if (!conversation) throw new Error("Conversa não encontrada.");
   const reply = await replyContext(auth.arenaId, conversation.id, formData);
   const delivery = await sendEvolutionTextMessage(conversation.remoteJid?.endsWith("@g.us") ? conversation.remoteJid : conversation.contactPhone || conversation.remoteJid.replace(/@.*$/, ""), parsed.data.body, auth.arenaId, reply.quoted);
-  return persistOutboundWhatsAppMessage(auth.arenaId, conversation.id, { ...reply.metadata, senderUserId: auth.userId, senderName: auth.userName, providerId: getEvolutionProviderId(delivery), body: parsed.data.body });
+  return persistAcceptedMessage(auth.arenaId, conversation.id, { ...reply.metadata, senderUserId: auth.userId, senderName: auth.userName, providerId: getEvolutionProviderId(delivery), body: parsed.data.body });
 }
 
 export async function sendWhatsAppAudioMessageAction(formData: FormData) {
@@ -78,7 +90,7 @@ export async function sendWhatsAppAudioMessageAction(formData: FormData) {
   const dataUrl = `data:${mimeType};base64,${Buffer.from(await audio.arrayBuffer()).toString("base64")}`;
   const reply = await replyContext(auth.arenaId, conversation.id, formData);
   const delivery = await sendEvolutionAudioMessage(conversation.remoteJid?.endsWith("@g.us") ? conversation.remoteJid : conversation.contactPhone || conversation.remoteJid.replace(/@.*$/, ""), dataUrl, auth.arenaId, reply.quoted);
-  return persistOutboundWhatsAppMessage(auth.arenaId, conversation.id, { ...reply.metadata, senderUserId: auth.userId, senderName: auth.userName, providerId: getEvolutionProviderId(delivery), body: "Áudio", mediaType: "AUDIO", mediaMimeType: mimeType, mediaUrl: dataUrl });
+  return persistAcceptedMessage(auth.arenaId, conversation.id, { ...reply.metadata, senderUserId: auth.userId, senderName: auth.userName, providerId: getEvolutionProviderId(delivery), body: "Áudio", mediaType: "AUDIO", mediaMimeType: mimeType, mediaUrl: dataUrl });
 }
 
 export async function sendWhatsAppMediaMessageAction(formData: FormData) {
@@ -90,7 +102,7 @@ export async function sendWhatsAppMediaMessageAction(formData: FormData) {
   const conversation = await getArenaWhatsAppConversation(auth.arenaId, conversationId); if (!conversation) throw new Error("Conversa não encontrada.");
   const reply = await replyContext(auth.arenaId, conversation.id, formData);
   const dataUrl = `data:${file.type};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}`; const delivery = await sendEvolutionMediaMessage(conversation.remoteJid?.endsWith("@g.us") ? conversation.remoteJid : conversation.contactPhone || conversation.remoteJid.replace(/@.*$/, ""), dataUrl, mediaType, file.name, file.type, auth.arenaId, reply.quoted);
-  return persistOutboundWhatsAppMessage(auth.arenaId, conversation.id, { ...reply.metadata, senderUserId: auth.userId, senderName: auth.userName, providerId: getEvolutionProviderId(delivery), body: mediaType === "image" ? "Imagem" : "Documento", mediaType: mediaType === "image" ? "IMAGE" : "DOCUMENT", mediaMimeType: file.type, mediaUrl: dataUrl });
+  return persistAcceptedMessage(auth.arenaId, conversation.id, { ...reply.metadata, senderUserId: auth.userId, senderName: auth.userName, providerId: getEvolutionProviderId(delivery), body: mediaType === "image" ? "Imagem" : "Documento", mediaType: mediaType === "image" ? "IMAGE" : "DOCUMENT", mediaMimeType: file.type, mediaUrl: dataUrl });
 }
 
 export async function markWhatsAppConversationReadAction(formData: FormData) {
