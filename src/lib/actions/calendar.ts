@@ -141,7 +141,7 @@ class PublicBookingConflictError extends Error {}
 const DEFAULT_BOOKING_TYPES = ["Aula", "Aula fixa", "Plano", "Super 12", "Liga", "Reserva"];
 
 export async function updateOnlineBookingSettingsAction(formData: FormData) {
-  const auth = await requireModuleEdit("calendar");
+  const auth = await requirePermission("calendar:settings:manage");
   const parsed = onlineBookingSettingsSchema.safeParse({
     layout: formData.get("layout"),
     leadTimeMinutes: formData.get("leadTimeMinutes"),
@@ -337,7 +337,7 @@ async function ensureBookingTypes(arenaId: string) {
 }
 
 export async function createBookingTypeAction(formData: FormData) {
-  const auth = await requireModuleEdit("arena");
+  const auth = await requirePermission("arena:settings");
   const name = z.string().trim().min(2, "Informe o tipo de reserva.").safeParse(formData.get("name"));
   if (!name.success) throw new Error(name.error.issues[0]?.message ?? "Tipo inválido.");
   await ensureBookingTypes(auth.arenaId);
@@ -346,7 +346,7 @@ export async function createBookingTypeAction(formData: FormData) {
 }
 
 export async function createQuickPlayerAction(formData: FormData) {
-  const auth = await requireModuleEdit("calendar");
+  const auth = await requirePermission("players:create");
   const parsed = z.object({ name: z.string().trim().min(3), phone: z.string().trim().min(8), cpf: z.string().trim().default(""), class: z.string().trim().default(""), gender: z.string().trim().default(""), birthDate: z.string().trim().default("") }).safeParse({ name: formData.get("name"), phone: formData.get("phone"), cpf: formData.get("cpf"), class: formData.get("class"), gender: formData.get("gender"), birthDate: formData.get("birthDate") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   const player = await withArenaTransaction(auth.arenaId, (tx) => tx.player.create({ data: { arenaId: auth.arenaId, name: parsed.data.name, phone: parsed.data.phone, cpf: parsed.data.cpf.replace(/\D/g, ""), class: parsed.data.class, gender: parsed.data.gender, birthDate: parsed.data.birthDate ? new Date(parsed.data.birthDate) : null } }));
@@ -455,7 +455,7 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
 }
 
 export async function createCourtWeeklyRuleAction(formData: FormData) {
-  const auth = await requireModuleEdit("calendar");
+  const auth = await requirePermission("calendar:settings:manage");
   const parsed = courtWeeklyRuleSchema.safeParse({
     courtId: formData.get("courtId"),
     weekday: formData.get("weekday"),
@@ -504,7 +504,7 @@ export async function createCourtWeeklyRuleAction(formData: FormData) {
 }
 
 export async function updateCourtWeeklyRuleAction(formData: FormData) {
-  const auth = await requireModuleEdit("calendar");
+  const auth = await requirePermission("calendar:settings:manage");
   const parsed = updateCourtWeeklyRuleSchema.safeParse({
     ruleId: formData.get("ruleId"),
     startTime: formData.get("startTime"),
@@ -544,7 +544,7 @@ export async function updateCourtWeeklyRuleAction(formData: FormData) {
 }
 
 export async function deleteCourtWeeklyRuleAction(formData: FormData) {
-  const auth = await requireModuleEdit("calendar");
+  const auth = await requirePermission("calendar:settings:manage");
   const ruleId = z.string().trim().min(1).safeParse(formData.get("ruleId"));
   if (!ruleId.success) {
     throw new Error("Regra inválida.");
@@ -560,7 +560,7 @@ export async function deleteCourtWeeklyRuleAction(formData: FormData) {
 }
 
 export async function copyCourtWeeklyRuleAction(formData: FormData) {
-  const auth = await requireModuleEdit("calendar");
+  const auth = await requirePermission("calendar:settings:manage");
   const parsed = z.object({ ruleId: z.string().trim().min(1), targetWeekday: z.union([z.string().regex(/^[0-6]$/).transform(Number), z.literal("ALL")]) }).safeParse({
     ruleId: formData.get("ruleId"),
     targetWeekday: formData.get("targetWeekday")
@@ -590,7 +590,7 @@ export async function copyCourtWeeklyRuleAction(formData: FormData) {
 }
 
 export async function updateScheduleSettingsAction(formData: FormData) {
-  const auth = await requireModuleEdit("calendar");
+  const auth = await requirePermission("calendar:settings:manage");
   const parsed = scheduleSettingsSchema.safeParse({
     startTime: formData.get("startTime"),
     endTime: formData.get("endTime"),
@@ -616,7 +616,7 @@ export async function updateScheduleSettingsAction(formData: FormData) {
 }
 
 export async function createCourtAction(formData: FormData) {
-  const auth = await requireModuleEdit("calendar");
+  const auth = await requirePermission("calendar:settings:manage");
   const parsed = courtSchema.safeParse({ name: formData.get("name") });
 
   if (!parsed.success) {
@@ -630,7 +630,7 @@ export async function createCourtAction(formData: FormData) {
 }
 
 export async function updateCourtSettingsAction(formData: FormData) {
-  const auth = await requireModuleEdit("calendar");
+  const auth = await requirePermission("calendar:settings:manage");
   const parsed = courtSettingsSchema.safeParse({
     courtId: formData.get("courtId"), color: formData.get("color"), onlineSlotMinutes: formData.get("onlineSlotMinutes"),
     onlineDurationMinutes: formData.getAll("onlineDurationMinutes")
@@ -646,7 +646,7 @@ export async function updateCourtSettingsAction(formData: FormData) {
 }
 
 export async function moveCourtAction(formData: FormData) {
-  const auth = await requireModuleEdit("calendar");
+  const auth = await requirePermission("calendar:settings:manage");
   const parsed = z.object({ courtId: z.string().trim().min(1), direction: z.enum(["up", "down"]) }).safeParse({ courtId: formData.get("courtId"), direction: formData.get("direction") });
   if (!parsed.success) throw new Error("Movimentação inválida.");
   await withArenaTransaction(auth.arenaId, async (tx) => {
@@ -665,7 +665,7 @@ export async function moveCourtAction(formData: FormData) {
 }
 
 export async function copyCourtConfigurationAction(formData: FormData) {
-  const auth = await requireModuleEdit("calendar");
+  const auth = await requirePermission("calendar:settings:manage");
   const sourceCourtId = z.string().trim().min(1).safeParse(formData.get("sourceCourtId"));
   const targetCourtIds = Array.from(new Set(formData.getAll("targetCourtId").flatMap((value) => typeof value === "string" && value.length > 0 ? [value] : [])));
   if (!sourceCourtId.success || !targetCourtIds.length) throw new Error("Selecione ao menos uma quadra de destino.");

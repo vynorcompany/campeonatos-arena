@@ -1069,15 +1069,18 @@ async function main() {
       occurrenceCourts: { create: [{ courtId: restrictedCourt.id }] },
     } });
     try {
+      const settingsResponse = await fetch(`${baseUrl}/agenda/configuracao`, { headers: { Cookie: cookie(arenaA.id, restrictedToken) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
+      await settingsResponse.body?.cancel();
+      if (settingsResponse.status !== 404) throw new Error(`Perfil limitado acessou a configuração de quadras (HTTP ${settingsResponse.status}).`);
       for (const viewport of viewports) {
         const label = `${viewport.name}-agenda-permissao-criar`;
         const body = await visit(`/agenda?data=${futureAgendaDate}`, viewport, arenaA.id, label, restrictedToken);
         if (!body.includes("Reserva restrita GOAL") || (viewport.name === "desktop" && !body.includes("Operador restrito GOAL"))) throw new Error(`${label}: sessão limitada ou reserva fictícia não apareceu.`);
         const actions = await send("Runtime.evaluate", {
-          expression: "(() => { const cell = [...document.querySelectorAll('td')].find((item) => item.textContent?.includes('Reserva restrita GOAL')); if (!cell) return null; cell.scrollIntoView({ block: 'center', inline: 'center' }); const cancel = cell.querySelector('button[aria-label=\"Ações da reserva\"]'); cell.querySelector('button')?.click(); return { cancelVisible: Boolean(cancel), opened: Boolean(cell) }; })()",
+          expression: "(() => { const cell = [...document.querySelectorAll('td')].find((item) => item.textContent?.includes('Reserva restrita GOAL')); if (!cell) return null; cell.scrollIntoView({ block: 'center', inline: 'center' }); const cancel = cell.querySelector('button[aria-label=\"Ações da reserva\"]'); const settings = document.querySelector('button[aria-label=\"Configurações do agendamento online\"]'); cell.querySelector('button')?.click(); return { cancelVisible: Boolean(cancel), settingsVisible: Boolean(settings), opened: Boolean(cell) }; })()",
           returnByValue: true,
         });
-        if (!actions.result.value?.opened || actions.result.value.cancelVisible) throw new Error(`${label}: ação de cancelamento disponível para perfil que só pode criar reservas.`);
+        if (!actions.result.value?.opened || actions.result.value.cancelVisible || actions.result.value.settingsVisible) throw new Error(`${label}: ação de cancelamento ou configuração disponível para perfil que só pode criar reservas.`);
         await pause(300);
         const dialog = await send("Runtime.evaluate", {
           expression: "(() => { const el = document.querySelector('[role=dialog][aria-label=\"Agendamento de horário\"]'); if (!el) return null; const footer = el.querySelector('footer'); const rect = el.getBoundingClientRect(); return { canSave: [...(footer?.querySelectorAll('button') ?? [])].some((button) => button.textContent?.includes('Salvar agendamento')), canCancel: [...(footer?.querySelectorAll('button') ?? [])].some((button) => button.textContent?.includes('Cancelar reserva')), overflow: el.scrollWidth > el.clientWidth + 1 || document.documentElement.scrollWidth > innerWidth + 1, left: rect.left, right: rect.right, width: innerWidth }; })()",

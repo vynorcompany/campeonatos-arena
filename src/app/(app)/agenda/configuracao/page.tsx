@@ -1,11 +1,13 @@
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { OnlineBookingSettingsDialog } from "@/components/online-booking-settings-dialog";
 import { copyCourtConfigurationAction, copyCourtWeeklyRuleAction, createCourtAction, createCourtWeeklyRuleAction, deleteCourtWeeklyRuleAction, moveCourtAction, updateCourtSettingsAction, updateCourtWeeklyRuleAction } from "@/lib/actions/calendar";
 import { requireModuleView } from "@/lib/auth/guards";
+import { canPerformPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +22,7 @@ const duration = (value: number) => `${Math.floor(value / 60) ? `${Math.floor(va
 export default async function AgendaConfiguracaoPage(props: Props) {
   const searchParams = await props.searchParams;
   const auth = await requireModuleView("calendar");
+  if (!canPerformPermission("calendar:settings:manage", auth.arenaRole, auth.systemRole, auth.editPermissions)) notFound();
   const [arena, courts] = await Promise.all([
     prisma.arena.findUniqueOrThrow({ where: { id: auth.arenaId }, select: { slug: true, onlineBookingLayout: true, onlineBookingRequiresConfirmation: true, onlineBookingShowReserved: true, onlineBookingPaymentEnabled: true, onlineBookingEnabled: true, onlineBookingLeadTimeMinutes: true, onlineBookingOverdueBlockDays: true, onlineBookingWhatsappMessage: true, onlineBookingWhatsappConfirmationEnabled: true } }),
     prisma.court.findMany({ where: { arenaId: auth.arenaId }, include: { weeklyRules: { orderBy: [{ weekday: "asc" }, { startsAtMinute: "asc" }] } }, orderBy: [{ active: "desc" }, { displayOrder: "asc" }, { name: "asc" }] })

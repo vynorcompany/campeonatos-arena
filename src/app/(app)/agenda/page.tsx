@@ -76,8 +76,10 @@ export default async function AgendaPage(props: AgendaPageProps) {
   const canCancelBooking = canPerformPermission("calendar:booking:cancel", auth.arenaRole, auth.systemRole, auth.editPermissions);
   const canReleaseBooking = canPerformPermission("calendar:recurrence:release", auth.arenaRole, auth.systemRole, auth.editPermissions);
   const canOpenComandas = canPerformPermission("pos:command:create", auth.arenaRole, auth.systemRole, auth.editPermissions);
-  const AgendaSlotDialog = (dialogProps: Omit<ComponentProps<typeof BaseAgendaSlotDialog>, "canCreateBooking" | "canEditBooking" | "canCancelBooking" | "canReleaseBooking" | "canOpenComandas">) =>
-    <BaseAgendaSlotDialog {...dialogProps} canCreateBooking={canCreateBooking} canEditBooking={canEditBooking} canCancelBooking={canCancelBooking} canReleaseBooking={canReleaseBooking} canOpenComandas={canOpenComandas} />;
+  const canCreatePlayer = canPerformPermission("players:create", auth.arenaRole, auth.systemRole, auth.editPermissions);
+  const canManageSchedule = canPerformPermission("calendar:settings:manage", auth.arenaRole, auth.systemRole, auth.editPermissions);
+  const AgendaSlotDialog = (dialogProps: Omit<ComponentProps<typeof BaseAgendaSlotDialog>, "canCreateBooking" | "canEditBooking" | "canCancelBooking" | "canReleaseBooking" | "canOpenComandas" | "canCreatePlayer">) =>
+    <BaseAgendaSlotDialog {...dialogProps} canCreateBooking={canCreateBooking} canEditBooking={canEditBooking} canCancelBooking={canCancelBooking} canReleaseBooking={canReleaseBooking} canOpenComandas={canOpenComandas} canCreatePlayer={canCreatePlayer} />;
 
   return <div className={viewStyles.agenda_page} aria-label="Agenda de quadras">
     <div className={viewStyles.agenda_date_strip}>
@@ -85,7 +87,7 @@ export default async function AgendaPage(props: AgendaPageProps) {
       <div className={viewStyles.agenda_date_list}>{days.map((date) => { const selected = date.getTime() === selectedDate.getTime(); return <Link key={dateInputValue(date)} href={dayHref(date)} className={cx(selected ? viewStyles.agenda_date_item_agenda_date_item_active_agenda_date_item_centered : viewStyles.agenda_date_item)}><span>{new Intl.DateTimeFormat("pt-BR", { weekday: "short" }).format(date).replace(".", "")}</span><strong>{date.getDate()}</strong></Link>; })}</div>
       <Link href={dayHref(addDays(selectedDate, 1))} className={viewStyles.agenda_date_arrow} aria-label="Próximo dia">›</Link>
       <Link href={dayHref(arenaToday())} className={viewStyles.agenda_today_link}>Hoje</Link>
-      <div className={viewStyles.agenda_calendar_controls}><AgendaMonthPicker selectedDate={dateInputValue(selectedDate)} /><OnlineBookingSettingsDialog settings={{ arenaSlug: arena.slug, layout: arena.onlineBookingLayout, requiresConfirmation: arena.onlineBookingRequiresConfirmation, showReserved: arena.onlineBookingShowReserved, paymentOnlineEnabled: arena.onlineBookingPaymentEnabled, enabled: arena.onlineBookingEnabled, leadTimeMinutes: arena.onlineBookingLeadTimeMinutes, overdueBlockDays: arena.onlineBookingOverdueBlockDays, whatsappMessage: arena.onlineBookingWhatsappMessage, whatsappConfirmationEnabled: arena.onlineBookingWhatsappConfirmationEnabled }} /></div>
+      <div className={viewStyles.agenda_calendar_controls}><AgendaMonthPicker selectedDate={dateInputValue(selectedDate)} />{canManageSchedule ? <OnlineBookingSettingsDialog settings={{ arenaSlug: arena.slug, layout: arena.onlineBookingLayout, requiresConfirmation: arena.onlineBookingRequiresConfirmation, showReserved: arena.onlineBookingShowReserved, paymentOnlineEnabled: arena.onlineBookingPaymentEnabled, enabled: arena.onlineBookingEnabled, leadTimeMinutes: arena.onlineBookingLeadTimeMinutes, overdueBlockDays: arena.onlineBookingOverdueBlockDays, whatsappMessage: arena.onlineBookingWhatsappMessage, whatsappConfirmationEnabled: arena.onlineBookingWhatsappConfirmationEnabled }} /> : null}</div>
     </div>
     <div className={viewStyles.agenda_grid_caption}><strong>{selectedDateLabel}</strong><span>Preço e disponibilidade por quadra</span></div>
     {courts.length > 1 ? <p className="tw:hidden tw:viewport-700:block tw:m-0 tw:text-xs tw:text-[#617991]">Deslize a grade para ver as outras quadras. A coluna de horários permanece visível.</p> : null}
