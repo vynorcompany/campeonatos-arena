@@ -4,6 +4,7 @@ import { viewStyles } from "./calendar-quick-create.utilities";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SubmitButton } from "@/components/forms/submit-button";
+import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { useConfirmAction } from "@/components/forms/use-confirm-action";
 import {
   createCalendarEventAction,
@@ -55,6 +56,18 @@ export function CalendarQuickCreate() {
   const [open, setOpen] = useState(false);
   const [state, setState] = useState<FormState>(initialState);
   const isEditing = Boolean(state.lessonId || state.calendarEventId);
+  const confirmationOpen = Boolean(confirmationDialog);
+
+  useEffect(() => {
+    if (!open) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape" || confirmationOpen) return;
+      event.preventDefault();
+      setOpen(false);
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open, confirmationOpen]);
 
   useEffect(() => {
     function onDocClick(event: MouseEvent) {
@@ -131,14 +144,17 @@ export function CalendarQuickCreate() {
   if (!open) return null;
 
   return (
-    <div className={viewStyles.calendar_create_overlay} role="dialog" aria-modal="true" aria-label="Editar agendamento">
-      <div className={viewStyles.calendar_create_card}>
+    <div className={viewStyles.calendar_create_overlay} role="presentation" onMouseDown={(event) => {
+      if (event.target === event.currentTarget && !confirmationOpen) close();
+    }}>
+      <div className={viewStyles.calendar_create_card} role="dialog" aria-modal="true" aria-label={isEditing ? "Editar evento da agenda" : "Criar evento na agenda"}>
         <button type="button" className={viewStyles.calendar_create_close} onClick={close} aria-label="Fechar">×</button>
         <h3>{isEditing ? "Editar evento" : "Adicionar titulo"}</h3>
-        <form
+        <SafeActionForm
           action={isEditing ? updateCalendarEventAction : createCalendarEventAction}
           className={viewStyles.calendar_create_form}
-          onSubmit={close}
+          onSuccess={close}
+          successMessage={isEditing ? "Evento atualizado." : "Evento criado."}
         >
           <input type="hidden" name="sourceType" value={state.sourceType} />
           <input type="hidden" name="lessonId" value={state.lessonId} />
@@ -253,7 +269,7 @@ export function CalendarQuickCreate() {
               className={viewStyles.button_button_primary}
             />
           </div>
-        </form>
+        </SafeActionForm>
       </div>
       {confirmationDialog}
     </div>
