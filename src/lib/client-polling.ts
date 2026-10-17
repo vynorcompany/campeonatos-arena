@@ -27,7 +27,10 @@ export function createSharedPolling<T>(environment: { visible: () => boolean; fe
         repeats = next === fingerprint ? repeats + 1 : 0;
         failures = 0;
         fingerprint = next;
-        for (const callback of subscribers.keys()) callback(value);
+        for (const callback of subscribers.keys()) {
+          try { callback(value); }
+          catch (error) { console.error("Shared polling subscriber failed", error); }
+        }
       } else { repeats++; failures++; }
     } catch { if (epoch === generation) { repeats++; failures++; } }
     finally {
