@@ -736,6 +736,12 @@ async function main() {
         if (compact.path !== "/home" || compact.section !== view.query.split("&", 1)[0].split("=")[1] || !compact.authenticated || compact.main.trim().length < 40 || compact.scrollWidth > compact.width + 1) {
           throw new Error(`${label}: conteúdo cortado ou sessão inválida: ${JSON.stringify({ path: compact.path, section: compact.section, authenticated: compact.authenticated, width: compact.width, scrollWidth: compact.scrollWidth, mainLength: compact.main.trim().length })}`);
         }
+        if (view.label === "torneios-jogos") {
+          const leagueLayout = await send("Runtime.evaluate", { expression: "(() => { const selectors = ['.athlete-portal-events-shell', '.public-league-portal', '.portal-league-category-card', '.portal-league-category-card select', 'button[aria-label=\"Próxima semana\"]', 'article[id^=\"jogo-\"]']; return selectors.map(selector => { const element = document.querySelector(selector); const rect = element?.getBoundingClientRect(); const style = element && getComputedStyle(element); return {selector, left:rect?.left, right:rect?.right, boxSizing:style?.boxSizing, padding:style?.padding}; }); })()", returnByValue: true });
+          if (leagueLayout.result.value.some(({ left, right }) => left == null || right == null || left < 0 || right > compact.width - 4)) {
+            throw new Error(`${label}: seletor de semanas ou jogos ultrapassou a área visível: ${JSON.stringify(leagueLayout.result.value)}`);
+          }
+        }
         const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
         await writeFile(`${outputDir}/${label}.png`, Buffer.from(shot.data, "base64"));
       }

@@ -129,7 +129,7 @@ export function PublicLeaguePortal({
   }, [portal.leagueResults]);
 
   return (
-    <section className={cx(viewStyles.public_league_portal_section_card_stack_md, "tw:viewport-700:mx-0! tw:viewport-700:mt-2! tw:viewport-700:w-full! tw:viewport-700:border-0! tw:viewport-700:bg-transparent! tw:viewport-700:p-0! tw:viewport-700:shadow-none! tw:viewport-700:text-[#133047]! tw:viewport-700:dark:text-[#eafff3]!")}>
+    <section className={cx(viewStyles.public_league_portal_section_card_stack_md, "tw:viewport-700:mx-0! tw:viewport-700:mt-2! tw:viewport-700:w-full! tw:viewport-700:min-w-0! tw:viewport-700:grid-cols-[minmax(0,1fr)]! tw:viewport-700:border-0! tw:viewport-700:bg-transparent! tw:viewport-700:p-0! tw:viewport-700:shadow-none! tw:viewport-700:text-[#133047]! tw:viewport-700:dark:text-[#eafff3]!")}>
       <header
         className={
           cx(view === "pairs"
@@ -163,7 +163,7 @@ export function PublicLeaguePortal({
         <form
           method="get"
           action={`/classificacao/${arenaSlug}`}
-          className="portal-league-category-card tw:viewport-700:my-2! tw:viewport-700:rounded-xl! tw:viewport-700:border! tw:viewport-700:border-[#d8e5e9]! tw:viewport-700:bg-white! tw:viewport-700:[background-image:none]! tw:viewport-700:p-3! tw:viewport-700:shadow-none! tw:viewport-700:dark:border-[#2a6155]! tw:viewport-700:dark:bg-[#0b302a]! tw:viewport-700:[&_>_header]:hidden! tw:viewport-700:[&_>_p]:hidden! tw:viewport-700:[&_.portal-league-category-actions]:hidden! tw:viewport-700:[&_label]:text-[#607e8d]! tw:viewport-700:dark:[&_label]:text-[#a4c8b9]! tw:viewport-700:[&_select]:border-[#d8e5e9]! tw:viewport-700:[&_select]:bg-white! tw:viewport-700:[&_select]:[background-image:none]! tw:viewport-700:[&_select]:text-[#133047]! tw:viewport-700:dark:[&_select]:border-[#2a6155]! tw:viewport-700:dark:[&_select]:bg-[#0b302a]! tw:viewport-700:dark:[&_select]:text-[#eafff3]!"
+          className="portal-league-category-card tw:viewport-700:my-2! tw:viewport-700:box-border! tw:viewport-700:max-w-full! tw:viewport-700:rounded-xl! tw:viewport-700:border! tw:viewport-700:border-[#d8e5e9]! tw:viewport-700:bg-white! tw:viewport-700:[background-image:none]! tw:viewport-700:p-3! tw:viewport-700:shadow-none! tw:viewport-700:dark:border-[#2a6155]! tw:viewport-700:dark:bg-[#0b302a]! tw:viewport-700:[&_>_header]:hidden! tw:viewport-700:[&_>_p]:hidden! tw:viewport-700:[&_.portal-league-category-actions]:hidden! tw:viewport-700:[&_label]:text-[#607e8d]! tw:viewport-700:dark:[&_label]:text-[#a4c8b9]! tw:viewport-700:[&_select]:border-[#d8e5e9]! tw:viewport-700:[&_select]:bg-white! tw:viewport-700:[&_select]:[background-image:none]! tw:viewport-700:[&_select]:text-[#133047]! tw:viewport-700:dark:[&_select]:border-[#2a6155]! tw:viewport-700:dark:[&_select]:bg-[#0b302a]! tw:viewport-700:dark:[&_select]:text-[#eafff3]!"
         >
           <input type="hidden" name="arena" value={arenaSlug} />
           <input type="hidden" name="section" value="leagues" />
@@ -303,7 +303,7 @@ export function PublicLeaguePortal({
               ))}
             </section>
           ) : null}
-          <section className={cx(viewStyles.portal_league_results, "tw:viewport-700:[&_h3]:text-[#133047]! tw:viewport-700:dark:[&_h3]:text-[#eafff3]! tw:viewport-700:[&_>_header_>_small]:hidden! tw:viewport-700:[&_>_header_span]:hidden!")}>
+          <section className={cx(viewStyles.portal_league_results, "tw:viewport-700:min-w-0! tw:viewport-700:grid-cols-[minmax(0,1fr)]! tw:viewport-700:[&_h3]:text-[#133047]! tw:viewport-700:dark:[&_h3]:text-[#eafff3]! tw:viewport-700:[&_>_header_>_small]:hidden! tw:viewport-700:[&_>_header_span]:hidden!")}>
             <header>
               <div>
                 <span>CALENDÁRIO DA LIGA</span>
@@ -312,7 +312,7 @@ export function PublicLeaguePortal({
               <small>Organizado por semana</small>
             </header>
             {leagueResultsByWeek.length ? (
-              <div className={viewStyles.portal_league_week_list}>
+              <div className={cx(viewStyles.portal_league_week_list, "tw:viewport-700:min-w-0! tw:viewport-700:grid-cols-[minmax(0,1fr)]!")}>
                 <div className={cx(viewStyles.portal_league_week_tabs, "tw:viewport-700:hidden!")} role="tablist" aria-label="Semana da Liga">
                   {leagueResultsByWeek.map((week) => (
                     <button
