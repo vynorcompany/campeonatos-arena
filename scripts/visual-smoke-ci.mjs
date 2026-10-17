@@ -993,6 +993,13 @@ async function main() {
     if (chatLayout.result.value.width < chatLayout.result.value.viewport - 50 || !chatLayout.result.value.detailsButtonVisible) {
       throw new Error("O chat mobile não ocupou a largura disponível ou perdeu o acesso aos detalhes do contato.");
     }
+    const headerLayout = await send("Runtime.evaluate", {
+      expression: "(() => { const header=document.querySelector('.whatsapp-chat-main > header'); const details=header?.querySelector('button[aria-label=\"Detalhes do contato\"]')?.getBoundingClientRect(); const text=header?.querySelector('div > span'); return {details:details?.toJSON(),text:text?.getBoundingClientRect().toJSON(),nameOverflow:(text?.querySelector('strong')?.scrollWidth ?? 0)-(text?.querySelector('strong')?.clientWidth ?? 0),phoneOverflow:(text?.querySelector('small')?.scrollWidth ?? 0)-(text?.querySelector('small')?.clientWidth ?? 0)}; })()",
+      returnByValue: true,
+    });
+    if (!headerLayout.result.value.details || !headerLayout.result.value.text || headerLayout.result.value.text.right > headerLayout.result.value.details.left - 2 || headerLayout.result.value.nameOverflow > 1 || headerLayout.result.value.phoneOverflow > 1) {
+      throw new Error(`${mobileViewport.name}: nome ou telefone encoberto pelo botão do contato: ${JSON.stringify(headerLayout.result.value)}`);
+    }
     await send("Runtime.evaluate", { expression: "document.querySelector('.whatsapp-chat-main button[aria-label=\"Detalhes do contato\"]')?.click()" });
     await pause(200);
     const detailsOpen = await send("Runtime.evaluate", { expression: "!!document.querySelector('#whatsapp-contact-details')", returnByValue: true });
