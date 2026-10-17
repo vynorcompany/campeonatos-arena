@@ -8,6 +8,7 @@ import { PrismaClient } from "@prisma/client";
 import ts from "typescript";
 import { canSendWhatsApp } from "../src/lib/permissions";
 import { readWhatsAppReactions } from "../src/lib/whatsapp-message-data";
+import { outgoingWhatsAppMediaKind } from "../src/lib/whatsapp-media-types";
 
 const require = createRequire(import.meta.url);
 const testUrl = process.env.ARENA_GOAL_TEST_DATABASE_URL ?? "";
@@ -20,13 +21,13 @@ function loadActions(path: string, mocks: Record<string, unknown>) {
   const exports: Record<string, (...args: any[]) => Promise<any>> = {};
   const source = readFileSync(new URL(path, import.meta.url), "utf8");
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText, {
-    exports, Date, FormData, Buffer,
+    exports, Date, File, FormData, Buffer,
     require: (name: string) => name in mocks ? mocks[name] : require(name),
   });
   return exports;
 }
 
-test("colaborador autorizado envia e persiste mensagem só na arena conectada", { skip: !disposableDatabase }, async () => {
+test("colaborador autorizado envia texto, áudio e PDF só pela conta da arena conectada", { skip: !disposableDatabase }, async () => {
   const db = new PrismaClient({ datasources: { db: { url: testUrl } } });
   const rollback = new Error("rollback do WhatsApp descartável");
   const email = `goal-whatsapp-${randomBytes(6).toString("hex")}@example.test`;
@@ -46,6 +47,7 @@ test("colaborador autorizado envia e persiste mensagem só na arena conectada", 
       });
       const accountJid = "5511999990000@s.whatsapp.net";
       const own = await tx.whatsAppConversation.create({ data: { arenaId: arenaA.id, accountJid, remoteJid: "5511888880000@s.whatsapp.net", contactPhone: "5511888880000", contactName: "Contato de teste", unreadCount: 2 } });
+      const previousAccount = await tx.whatsAppConversation.create({ data: { arenaId: arenaA.id, accountJid: "5511999999999@s.whatsapp.net", remoteJid: "5511888880001@s.whatsapp.net", contactPhone: "5511888880001" } });
       const other = await tx.whatsAppConversation.create({ data: { arenaId: arenaB.id, accountJid, remoteJid: "5511777770000@s.whatsapp.net", contactPhone: "5511777770000" } });
 
       await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaA.id}, true)`;
@@ -56,37 +58,54 @@ test("colaborador autorizado envia e persiste mensagem só na arena conectada", 
         "@/lib/whatsapp-message-data": { readWhatsAppReactions },
       });
       let delivered = 0;
+      const deliver = async (arenaId: string) => {
+        assert.equal(arenaId, arenaA.id);
+        delivered += 1;
+        return { key: { id: `goal-provider-${delivered}` } };
+      };
       const actions = loadActions("../src/lib/actions/whatsapp-chat.ts", {
         "next/cache": { revalidatePath() {} },
         "@/lib/auth/guards": guards,
-        "@/lib/integrations/evolution/client": { sendEvolutionTextMessage: async (_phone: string, _body: string, arenaId: string) => {
-          assert.equal(arenaId, arenaA.id); delivered += 1; return { key: { id: "goal-provider-id" } };
-        } },
+        "@/lib/integrations/evolution/client": {
+          sendEvolutionTextMessage: async (_phone: string, _body: string, arenaId: string) => deliver(arenaId),
+          sendEvolutionAudioMessage: async (_phone: string, _audio: string, arenaId: string) => deliver(arenaId),
+          sendEvolutionMediaMessage: async (_phone: string, _media: string, _kind: string, _name: string, _mime: string, arenaId: string) => deliver(arenaId),
+        },
         "@/lib/services/whatsapp-conversation": service,
         "@/lib/whatsapp-active-account": { getActiveWhatsAppAccountJid: async () => accountJid },
         "@/lib/prisma": { prisma: tx },
         "@/lib/arena-database": { arenaDatabase: () => tx },
         "@/lib/rls": {},
         "@/lib/whatsapp-message-data": { reactionEmojis: [] },
-        "@/lib/whatsapp-media-types": {},
+        "@/lib/whatsapp-media-types": { outgoingWhatsAppMediaKind },
         "@/lib/whatsapp-group-message": {},
       });
       const form = new FormData(); form.set("conversationId", own.id); form.set("body", "Resposta descartável");
       const result = await actions.sendWhatsAppChatMessageAction(form);
       assert.equal(result.body, "Resposta descartável");
       assert.equal(result.senderName, user.name);
-      assert.equal(delivered, 1);
-      const stored = await tx.whatsAppMessage.findUniqueOrThrow({ where: { conversationId_providerId: { conversationId: own.id, providerId: "goal-provider-id" } } });
-      assert.equal(stored.senderUserId, user.id);
-      assert.equal(stored.direction, "OUTBOUND");
+      const audio = new FormData(); audio.set("conversationId", own.id); audio.set("audio", new File(["áudio descartável"], "teste.webm", { type: "audio/webm" }));
+      const attachment = new FormData(); attachment.set("conversationId", own.id); attachment.set("file", new File(["PDF descartável"], "teste.pdf", { type: "application/pdf" }));
+      assert.equal((await actions.sendWhatsAppAudioMessageAction(audio)).mediaType, "AUDIO");
+      assert.equal((await actions.sendWhatsAppMediaMessageAction(attachment)).mediaType, "DOCUMENT");
+      assert.equal(delivered, 3);
+      const stored = await tx.whatsAppMessage.findMany({ where: { conversationId: own.id }, orderBy: { providerId: "asc" } });
+      assert.deepEqual(stored.map((message) => message.providerId), ["goal-provider-1", "goal-provider-2", "goal-provider-3"]);
+      assert.ok(stored.every((message) => message.senderUserId === user.id && message.direction === "OUTBOUND"));
       assert.equal((await tx.whatsAppConversation.findUniqueOrThrow({ where: { id: own.id } })).unreadCount, 0);
       authContext.editPermissions = [];
-      await assert.rejects(actions.sendWhatsAppChatMessageAction(form), /Sem permissão para enviar/);
-      assert.equal(delivered, 1);
+      for (const [action, input] of [["sendWhatsAppChatMessageAction", form], ["sendWhatsAppAudioMessageAction", audio], ["sendWhatsAppMediaMessageAction", attachment]] as const) {
+        await assert.rejects(actions[action](input), /Sem permissão para enviar/);
+      }
+      assert.equal(delivered, 3);
       authContext.editPermissions = member.editPermissions;
-      form.set("conversationId", other.id);
-      await assert.rejects(actions.sendWhatsAppChatMessageAction(form), /Conversa não encontrada/);
-      assert.equal(delivered, 1);
+      for (const invalidConversation of [previousAccount.id, other.id]) {
+        for (const [action, input] of [["sendWhatsAppChatMessageAction", form], ["sendWhatsAppAudioMessageAction", audio], ["sendWhatsAppMediaMessageAction", attachment]] as const) {
+          input.set("conversationId", invalidConversation);
+          await assert.rejects(actions[action](input), /Conversa não encontrada/);
+        }
+      }
+      assert.equal(delivered, 3);
       throw rollback;
     }), (error: unknown) => error === rollback);
     assert.equal(await db.user.count({ where: { email } }), 0);
