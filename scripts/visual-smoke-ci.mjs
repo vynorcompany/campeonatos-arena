@@ -490,7 +490,7 @@ async function main() {
       let point;
       for (let attempt = 0; attempt < 40; attempt += 1) {
         const evaluated = await send("Runtime.evaluate", {
-          expression: `(() => { const element = Array.from(document.querySelectorAll(${JSON.stringify(selector)})).find((candidate) => { const rect = candidate.getBoundingClientRect(); return rect.width > 0 && rect.height > 0; }); if (!element) return null; element.scrollIntoView({ block: 'center' }); const rect = element.getBoundingClientRect(); return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, width: rect.width, height: rect.height }; })()`,
+          expression: `(() => { const element = Array.from(document.querySelectorAll(${JSON.stringify(selector)})).find((candidate) => { const rect = candidate.getBoundingClientRect(); return rect.width > 0 && rect.height > 0; }); if (!element) return null; element.scrollIntoView({ block: 'center' }); const rect = element.getBoundingClientRect(); const x = rect.left + rect.width / 2; const y = rect.top + rect.height / 2; return { x, y, width: rect.width, height: rect.height, hitHref: document.elementFromPoint(x, y)?.closest('a[href]')?.getAttribute('href') ?? null, viewport: [innerWidth, innerHeight], scrollY }; })()`,
           returnByValue: true,
         });
         point = evaluated.result.value;
@@ -498,9 +498,11 @@ async function main() {
         await pause(250);
       }
       if (!point || point.width < 1 || point.height < 1) throw new Error(`Controle de navegação ausente: ${selector}`);
+      await send("Runtime.evaluate", { expression: "window.__lastSyntheticClick = null; document.addEventListener('click', (event) => { const target = event.target; const href = target instanceof Element ? target.closest('a[href]')?.getAttribute('href') ?? null : null; setTimeout(() => { window.__lastSyntheticClick = { href, defaultPrevented: event.defaultPrevented }; }, 0); }, { once: true });" });
       await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: point.x, y: point.y });
       await send("Input.dispatchMouseEvent", { type: "mousePressed", x: point.x, y: point.y, button: "left", clickCount: 1 });
       await send("Input.dispatchMouseEvent", { type: "mouseReleased", x: point.x, y: point.y, button: "left", clickCount: 1 });
+      return point;
     };
     for (const viewport of viewports) {
       await selectArena(arenaA.id, staffSessionToken);
@@ -574,7 +576,7 @@ async function main() {
             await pause(200);
           }
         }
-        await clickElement(`#arena-mobile-navigation a[href="${destination}"]`);
+        const clickPoint = await clickElement(`#arena-mobile-navigation a[href="${destination}"]`);
         let result;
         for (let attempt = 0; attempt < 80; attempt += 1) {
           const response = await send("Runtime.evaluate", { expression: "({path:location.pathname,body:document.querySelector('main')?.innerText ?? '',menuOpen:document.querySelector('button[aria-label=\"Abrir menu\"]')?.getAttribute('aria-expanded'),bodyOverflow:document.body.style.overflow})", returnByValue: true });
@@ -583,7 +585,8 @@ async function main() {
           await pause(250);
         }
         if (result.path !== destination || result.body.length <= 100 || result.menuOpen === "true" || result.bodyOverflow === "hidden") {
-          throw new Error(`${viewport.name}: navegação para ${destination} falhou: ${JSON.stringify(result).slice(0, 500)}`);
+          const clickEvent = await send("Runtime.evaluate", { expression: "window.__lastSyntheticClick ?? null", returnByValue: true });
+          throw new Error(`${viewport.name}: navegação para ${destination} falhou: ${JSON.stringify({ clickPoint, clickEvent: clickEvent.result.value, result }).slice(0, 1000)}`);
         }
       }
       console.log(`${viewport.name}: navegação sucessiva por Grade, Torneios e Contas a Receber funcionou.`);
