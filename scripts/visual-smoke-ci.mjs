@@ -813,11 +813,11 @@ async function main() {
     }
     let desktopDetails;
     for (let attempt = 0; attempt < 25; attempt += 1) {
-      desktopDetails = await send("Runtime.evaluate", { expression: "({visible:!!document.querySelector('#whatsapp-contact-details')?.getClientRects().length,content:document.querySelector('#whatsapp-contact-details')?.innerText ?? '',width:document.documentElement.scrollWidth,viewport:innerWidth})", returnByValue: true });
+      desktopDetails = await send("Runtime.evaluate", { expression: "({visible:!!document.querySelector('#whatsapp-contact-details')?.getClientRects().length,content:document.querySelector('#whatsapp-contact-details')?.innerText ?? '',width:document.documentElement.scrollWidth,viewport:innerWidth,composerWidth:document.querySelector('.whatsapp-chat-main .whatsapp-composer-field')?.getBoundingClientRect().width ?? 0})", returnByValue: true });
       if (desktopDetails.result.value.visible) break;
       await pause(200);
     }
-    if (!desktopDetails.result.value.visible || !desktopDetails.result.value.content.includes("Contato atual GOAL") || !desktopDetails.result.value.content.includes("Não vinculado") || desktopDetails.result.value.width > desktopDetails.result.value.viewport + 1) {
+    if (!desktopDetails.result.value.visible || !desktopDetails.result.value.content.includes("Contato atual GOAL") || !desktopDetails.result.value.content.includes("Não vinculado") || desktopDetails.result.value.width > desktopDetails.result.value.viewport + 1 || desktopDetails.result.value.composerWidth < 240) {
       throw new Error(`O perfil do contato não abriu ao lado da conversa no desktop: ${JSON.stringify(desktopDetails.result.value)}`);
     }
     for (const [messageId, mimeType] of [[imageMessage.id, "image/png"], [audioMessage.id, "audio/wav"]]) {
