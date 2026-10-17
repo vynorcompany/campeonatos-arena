@@ -17,7 +17,7 @@ export const viewStyles = {
     "tw:[&_strong]:text-[color:#173b65]",
   ].join(" "),
   "whatsapp_chat_workspace_whatsapp_inbox": [
-    "whatsapp-chat-workspace", "whatsapp-inbox", "tw:[&_.whatsapp-contact-panel_>_header]:grid", "tw:[&_.whatsapp-contact-panel_>_header]:justify-items-center", "tw:[&_.whatsapp-contact-panel_>_header]:justify-center", "tw:[&_.whatsapp-contact-panel_>_header]:min-h-[175px]", "tw:[&_.whatsapp-contact-panel_>_header]:px-4", "tw:[&_.whatsapp-contact-panel_>_header]:pt-6", "tw:[&_.whatsapp-contact-panel_>_header]:pb-4", "tw:[&_.whatsapp-contact-panel_>_header]:gap-2", "tw:[@media(min-width:1281px)]:[&.has-contact-details]:grid-cols-[minmax(260px,_310px)_minmax(0,_1fr)_285px_48px]", "tw:viewport-720:[&_.whatsapp-inbox-list]:col-span-2", "tw:viewport-720:[&_.whatsapp-inbox-list]:row-start-1", "tw:viewport-720:[&_.whatsapp-chat-main]:row-start-2", "tw:grid", "tw:grid-cols-[minmax(260px,_310px)_minmax(0,_1fr)_48px]",
+    "whatsapp-chat-workspace", "whatsapp-inbox", "tw:[&_.whatsapp-contact-panel_>_header]:grid", "tw:[&_.whatsapp-contact-panel_>_header]:justify-items-center", "tw:[&_.whatsapp-contact-panel_>_header]:justify-center", "tw:[&_.whatsapp-contact-panel_>_header]:min-h-[175px]", "tw:[&_.whatsapp-contact-panel_>_header]:px-4", "tw:[&_.whatsapp-contact-panel_>_header]:pt-6", "tw:[&_.whatsapp-contact-panel_>_header]:pb-4", "tw:[&_.whatsapp-contact-panel_>_header]:gap-2", "tw:[@media(min-width:1281px)]:[&.has-contact-details]:grid-cols-[minmax(240px,_260px)_minmax(0,_1fr)_minmax(230px,_245px)_44px]", "tw:viewport-720:[&_.whatsapp-inbox-list]:col-span-2", "tw:viewport-720:[&_.whatsapp-inbox-list]:row-start-1", "tw:viewport-720:[&_.whatsapp-chat-main]:row-start-2", "tw:grid", "tw:grid-cols-[minmax(260px,_310px)_minmax(0,_1fr)_48px]",
     "tw:viewport-1100:grid-cols-[minmax(240px,_290px)_minmax(0,_1fr)_48px]", "tw:viewport-720:grid-cols-[minmax(0,_1fr)_48px]", "tw:viewport-720:grid-rows-[minmax(0,_min(220px,_35%))_minmax(0,_1fr)]", "tw:viewport-420:grid-rows-[minmax(0,_min(200px,_42%))_minmax(0,_1fr)]!", "tw:min-h-[min(760px,_calc(100vh_-_150px))]", "tw:viewport-720:min-h-[0]",
     "tw:[@media(min-width:721px)]:min-h-[0]", "tw:[overflow-x:hidden]", "tw:[overflow-y:hidden]", "tw:border-t-[length:1px]",
     "tw:[border-top-style:solid]", "tw:border-t-[color:#d8e4ee]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]",
@@ -403,7 +403,7 @@ export const viewStyles = {
   ].join(" "),
   "whatsapp_details_close": "tw:absolute tw:top-2 tw:right-2 tw:z-10 tw:grid tw:size-10 tw:place-items-center tw:rounded-lg tw:border-0 tw:bg-transparent tw:text-xl tw:text-[#59728d] tw:focus-visible:outline-2 tw:focus-visible:outline-[#166a4b]",
   "whatsapp_contact_panel": [
-    "whatsapp-contact-panel", "tw:relative", "tw:min-h-0", "tw:overflow-y-auto", "tw:[@media(max-width:1280px)]:absolute", "tw:[@media(max-width:1280px)]:inset-y-0", "tw:[@media(max-width:1280px)]:right-[48px]", "tw:[@media(max-width:1280px)]:w-[min(300px,calc(100%_-_48px))]", "tw:viewport-900:right-0!", "tw:viewport-900:w-full!", "tw:z-[7]", "tw:[@media(max-width:1280px)]:shadow-xl", "tw:grid", "tw:[align-content:start]",
+    "whatsapp-contact-panel", "tw:relative", "tw:min-w-0", "tw:min-h-0", "tw:overflow-y-auto", "tw:[@media(max-width:1280px)]:absolute", "tw:[@media(max-width:1280px)]:inset-y-0", "tw:[@media(max-width:1280px)]:right-[48px]", "tw:[@media(max-width:1280px)]:w-[min(300px,calc(100%_-_48px))]", "tw:viewport-900:right-0!", "tw:viewport-900:w-full!", "tw:z-[7]", "tw:[@media(max-width:1280px)]:shadow-xl", "tw:grid", "tw:grid-cols-[minmax(0,_1fr)]", "tw:[align-content:start]",
     "tw:bg-[color:#fff]", "tw:[background-image:none]", "tw:[&_>_header]:grid", "tw:[&_>_header]:[justify-items:center]",
     "tw:[&_>_header]:min-h-[175px]", "tw:[&_>_header]:gap-y-[7px]", "tw:[&_>_header]:gap-x-[7px]", "tw:[&_>_header]:pt-[24px]",
     "tw:[&_>_header]:pr-[14px]", "tw:[&_>_header]:pb-[18px]", "tw:[&_>_header]:pl-[14px]", "tw:[&_>_header]:text-center",
@@ -420,7 +420,7 @@ export const viewStyles = {
     "tw:[@media(min-width:721px)]:min-h-[0]", "tw:[@media(min-width:721px)]:[overflow-y:auto]",
   ].join(" "),
   "whatsapp_link_client": [
-    "whatsapp-link-client", "tw:grid", "tw:gap-y-[7px]", "tw:gap-x-[7px]",
+    "whatsapp-link-client", "tw:grid", "tw:min-w-0", "tw:grid-cols-[minmax(0,_1fr)]", "tw:gap-y-[7px]", "tw:gap-x-[7px]",
     "tw:pt-[15px]", "tw:pr-[15px]", "tw:pb-[15px]", "tw:pl-[15px]",
     "tw:[&_strong]:text-[color:#1b405f]", "tw:[&_strong]:text-[.78rem]", "tw:[&_p]:mt-[0]", "tw:[&_p]:mr-[0]",
     "tw:[&_p]:mb-[0]", "tw:[&_p]:ml-[0]", "tw:[&_p]:text-[color:#72869a]", "tw:[&_p]:text-[.7rem]",
@@ -434,7 +434,7 @@ export const viewStyles = {
     "tw:[&_input]:border-t-[length:1px]", "tw:[&_input]:[border-top-style:solid]", "tw:[&_input]:border-t-[color:#d4e0e9]", "tw:[&_input]:border-r-[length:1px]",
     "tw:[&_input]:[border-right-style:solid]", "tw:[&_input]:border-r-[color:#d4e0e9]", "tw:[&_input]:border-b-[length:1px]", "tw:[&_input]:[border-bottom-style:solid]",
     "tw:[&_input]:border-b-[color:#d4e0e9]", "tw:[&_input]:border-l-[length:1px]", "tw:[&_input]:[border-left-style:solid]", "tw:[&_input]:border-l-[color:#d4e0e9]",
-    "tw:[&_input]:rounded-[6px]", "tw:[&_input]:[font:inherit]", "tw:[&_input]:text-[.72rem]",
+    "tw:[&_input]:rounded-[6px]", "tw:[&_input]:min-w-0", "tw:[&_input]:w-full", "tw:[&_input]:box-border", "tw:[&_input]:[font:inherit]", "tw:[&_input]:text-[.72rem]",
   ].join(" "),
   "button_button_primary_button_small": sharedUtilities.buttonButtonPrimaryButtonSmall,
   "whatsapp_client_options": [

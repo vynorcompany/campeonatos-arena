@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
+import sharp from "sharp";
 
 const databaseUrl = process.env.ARENA_GOAL_TEST_DATABASE_URL ?? "";
 const sessionToken = process.env.ARENA_GOAL_TEST_SESSION_TOKEN ?? "";
@@ -16,7 +17,6 @@ const baseUrl = "http://127.0.0.1:3011";
 const outputDir = "artifacts/visual-smoke";
 const browserPort = 31991;
 const pause = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
-const tinyPng = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6+QAAAABJRU5ErkJggg==";
 function testAudioDataUrl() {
   const sampleRate = 8_000;
   const bytes = Buffer.alloc(44 + sampleRate * 2);
@@ -773,8 +773,8 @@ async function main() {
       let history;
       for (let attempt = 0; attempt < 80; attempt += 1) {
         const response = await send("Runtime.evaluate", { expression: "({body:document.body?.innerText ?? '',button:Boolean(document.querySelector('button[aria-label^=\"Ver histórico de\"]')),width:innerWidth,scrollWidth:document.documentElement.scrollWidth})", returnByValue: true });
-        history = response.result.value;
-        if (history.button) break;
+        history = response.result?.value;
+        if (history?.button) break;
         await pause(200);
       }
       if (!history?.button || history.scrollWidth > history.width + 1) throw new Error(`${viewport.name}: histórico da Liga ausente ou com overflow.`);
@@ -793,6 +793,7 @@ async function main() {
     }
 
     const accountJid = "5599999000000@s.whatsapp.net";
+    const syntheticPng = `data:image/png;base64,${(await sharp({ create: { width: 96, height: 64, channels: 3, background: { r: 27, g: 153, b: 145 } } }).png().toBuffer()).toString("base64")}`;
     await db.whatsAppConnection.create({ data: { arenaId: arenaA.id, instanceName: "goal-visual-whatsapp-a", status: "CONNECTED", connectedPhone: accountJid } });
     await db.whatsAppConnection.create({ data: { arenaId: arenaB.id, instanceName: "goal-visual-whatsapp-b", status: "CONNECTED", connectedPhone: "5588888000000@s.whatsapp.net" } });
     const conversation = await db.whatsAppConversation.create({ data: {
@@ -801,7 +802,7 @@ async function main() {
     } });
     await db.whatsAppMessage.create({ data: { conversationId: conversation.id, providerId: "goal-initial", direction: "INBOUND", body: "Mensagem inicial GOAL" } });
     await db.whatsAppMessage.create({ data: { conversationId: conversation.id, providerId: "goal-outbound", direction: "OUTBOUND", senderName: "Equipe GOAL", body: "Resposta enviada GOAL" } });
-    const imageMessage = await db.whatsAppMessage.create({ data: { conversationId: conversation.id, providerId: "goal-image", direction: "INBOUND", body: "Imagem", mediaType: "IMAGE", mediaMimeType: "image/png", mediaUrl: tinyPng } });
+    const imageMessage = await db.whatsAppMessage.create({ data: { conversationId: conversation.id, providerId: "goal-image", direction: "INBOUND", body: "Imagem", mediaType: "IMAGE", mediaMimeType: "image/png", mediaUrl: syntheticPng } });
     const audioMessage = await db.whatsAppMessage.create({ data: { conversationId: conversation.id, providerId: "goal-audio", direction: "INBOUND", body: "Áudio", mediaType: "AUDIO", mediaMimeType: "audio/wav", mediaUrl: testAudioDataUrl() } });
     await db.whatsAppConversation.create({ data: { arenaId: arenaA.id, accountJid: "5566666000000@s.whatsapp.net", remoteJid: "5555555000000@s.whatsapp.net", contactName: "Conversa antiga GOAL" } });
     await db.whatsAppConversation.create({ data: { arenaId: arenaB.id, accountJid: "5588888000000@s.whatsapp.net", remoteJid: "5544444000000@s.whatsapp.net", contactName: "Contato beta WhatsApp GOAL" } });
@@ -809,6 +810,15 @@ async function main() {
     const desktopWhatsapp = await visit("/whatsapp", viewports[0], arenaA.id, "whatsapp-conversa-antes");
     if (!desktopWhatsapp.includes("Contato atual GOAL") || !desktopWhatsapp.includes("Mensagem inicial GOAL") || !desktopWhatsapp.includes("Resposta enviada GOAL") || desktopWhatsapp.includes("Conversa antiga GOAL") || desktopWhatsapp.includes("Contato beta WhatsApp GOAL")) {
       throw new Error("A caixa WhatsApp não respeitou a conta conectada e o isolamento entre arenas.");
+    }
+    let desktopDetails;
+    for (let attempt = 0; attempt < 25; attempt += 1) {
+      desktopDetails = await send("Runtime.evaluate", { expression: "({visible:!!document.querySelector('#whatsapp-contact-details')?.getClientRects().length,content:document.querySelector('#whatsapp-contact-details')?.innerText ?? '',width:document.documentElement.scrollWidth,viewport:innerWidth,composerWidth:document.querySelector('.whatsapp-chat-main .whatsapp-composer-field')?.getBoundingClientRect().width ?? 0,profileOverflow:(document.querySelector('#whatsapp-contact-details')?.scrollWidth ?? 0)-(document.querySelector('#whatsapp-contact-details')?.clientWidth ?? 0)})", returnByValue: true });
+      if (desktopDetails.result.value.visible) break;
+      await pause(200);
+    }
+    if (!desktopDetails.result.value.visible || !desktopDetails.result.value.content.includes("Contato atual GOAL") || !desktopDetails.result.value.content.includes("Não vinculado") || desktopDetails.result.value.width > desktopDetails.result.value.viewport + 1 || desktopDetails.result.value.composerWidth < 240 || desktopDetails.result.value.profileOverflow > 1) {
+      throw new Error(`O perfil do contato não abriu ao lado da conversa no desktop: ${JSON.stringify(desktopDetails.result.value)}`);
     }
     for (const [messageId, mimeType] of [[imageMessage.id, "image/png"], [audioMessage.id, "audio/wav"]]) {
       const response = await fetch(`${baseUrl}/api/whatsapp/media/${messageId}`, { headers: { Cookie: cookie(arenaA.id) }, signal: AbortSignal.timeout(20_000) });
@@ -826,6 +836,8 @@ async function main() {
       await pause(200);
     }
     if (!desktopMedia.result.value.image || !(desktopMedia.result.value.audio > 0) || !desktopMedia.result.value.composer) throw new Error(`Imagem, áudio ou compositor ausente no chat desktop: ${JSON.stringify(desktopMedia.result.value)}`);
+    const loadedDesktopShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+    await writeFile(`${outputDir}/whatsapp-conversa-desktop-carregada.png`, Buffer.from(loadedDesktopShot.data, "base64"));
     await send("Runtime.evaluate", { expression: "document.querySelector('.whatsapp-chat-main .whatsapp-message-image')?.click()" });
     const imageDialog = await send("Runtime.evaluate", { expression: "!!document.querySelector('[role=dialog][aria-label=\"Imagem ampliada\"]')", returnByValue: true });
     if (!imageDialog.result.value) throw new Error("A imagem do WhatsApp não abriu ampliada.");
