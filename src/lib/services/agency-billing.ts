@@ -83,26 +83,46 @@ export async function ensureAgencyCheckout(invoiceId: string) {
 
 export async function issueDueAgencyInvoices(now = new Date()) {
   await prisma.agencySubscription.updateMany({ where: { status: "ACTIVE", trialEndsAt: { lte: now }, plan: { isTrial: true } }, data: { status: "EXPIRED" } });
-  const subscriptions = await prisma.agencySubscription.findMany({ where: { status: "ACTIVE", nextDueAt: { lte: now }, plan: { isTrial: false } }, select: { id: true }, take: 200 });
   let issued = 0;
   let agencyInvoiceFailures = 0;
-  for (const subscription of subscriptions) {
-    try {
-      if (await issueAgencyInvoice(subscription.id, now)) issued++;
-    } catch (error) {
-      agencyInvoiceFailures++;
-      console.error("Agency invoice issuance failed", { subscriptionId: subscription.id, error });
+  let subscriptionCursor = "";
+  while (true) {
+    const subscriptions = await prisma.agencySubscription.findMany({
+      where: { status: "ACTIVE", nextDueAt: { lte: now }, plan: { isTrial: false }, ...(subscriptionCursor ? { id: { gt: subscriptionCursor } } : {}) },
+      select: { id: true }, orderBy: { id: "asc" }, take: 200,
+    });
+    if (!subscriptions.length) break;
+    for (const subscription of subscriptions) {
+      try {
+        if (await issueAgencyInvoice(subscription.id, now)) issued++;
+      } catch (error) {
+        agencyInvoiceFailures++;
+        console.error("Agency invoice issuance failed", { subscriptionId: subscription.id, error });
+      }
     }
+    subscriptionCursor = subscriptions[subscriptions.length - 1].id;
+    if (subscriptions.length < 200) break;
   }
-  const pending = await prisma.agencyInvoice.findMany({ where: { status: "PENDING", checkoutUrl: "" }, select: { id: true }, take: 200 });
+  let agencyCheckoutRetries = 0;
   let agencyCheckoutFailures = 0;
-  for (const invoice of pending) {
-    try {
-      await ensureAgencyCheckout(invoice.id);
-    } catch (error) {
-      agencyCheckoutFailures++;
-      console.error("Agency checkout retry failed", { invoiceId: invoice.id, error });
+  let invoiceCursor = "";
+  while (true) {
+    const pending = await prisma.agencyInvoice.findMany({
+      where: { status: "PENDING", checkoutUrl: "", ...(invoiceCursor ? { id: { gt: invoiceCursor } } : {}) },
+      select: { id: true }, orderBy: { id: "asc" }, take: 200,
+    });
+    if (!pending.length) break;
+    agencyCheckoutRetries += pending.length;
+    for (const invoice of pending) {
+      try {
+        await ensureAgencyCheckout(invoice.id);
+      } catch (error) {
+        agencyCheckoutFailures++;
+        console.error("Agency checkout retry failed", { invoiceId: invoice.id, error });
+      }
     }
+    invoiceCursor = pending[pending.length - 1].id;
+    if (pending.length < 200) break;
   }
-  return { agencyInvoicesIssued: issued, agencyCheckoutRetries: pending.length, agencyInvoiceFailures, agencyCheckoutFailures };
+  return { agencyInvoicesIssued: issued, agencyCheckoutRetries, agencyInvoiceFailures, agencyCheckoutFailures };
 }
