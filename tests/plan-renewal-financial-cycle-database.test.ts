@@ -90,6 +90,9 @@ test("renovação cria novo ciclo de 12 sem apagar mensalidades anteriores nem c
     await activate(ids.student, ids.plans[1], newStart);
     const oldEntries = await admin.financialEntry.findMany({ where: { arenaId: arenaA.id, planId: ids.plans[0], playerId: ids.player }, select: { id: true, recurrenceId: true, dueDate: true }, orderBy: { dueDate: "asc" } });
     assert.equal(oldEntries.length, 12);
+    const oldRecurrence = await admin.financialRecurrence.findUniqueOrThrow({ where: { id: oldEntries[0].recurrenceId! } });
+    assert.equal(oldRecurrence.endsAt?.getTime(), oldEntries[11].dueDate?.getTime());
+    assert.ok(oldRecurrence.nextDueDate > oldRecurrence.endsAt!);
     const oldSubscription = await admin.studentSubscription.findFirstOrThrow({ where: { arenaId: arenaA.id, studentId: ids.student, planId: ids.plans[0], status: "ACTIVE" } });
     const referenceMonth = oldEntries[0].dueDate!.toISOString().slice(0, 7);
     await assert.rejects(recordPayment(oldSubscription.id, "2099-01"), /Não foi encontrada uma mensalidade única/);
@@ -129,6 +132,10 @@ test("renovação cria novo ciclo de 12 sem apagar mensalidades anteriores nem c
     assert.equal(await admin.financialRecurrence.count({ where: { arenaId: arenaA.id, planId: ids.plans[0], playerId: ids.player, active: true } }), 1);
     assert.equal(await admin.financialRecurrence.count({ where: { arenaId: arenaA.id, planId: ids.plans[0], playerId: ids.player, active: false } }), 1);
     assert.equal(await admin.financialRecurrence.count({ where: { arenaId: arenaA.id, planId: ids.plans[0], studentId: ids.student } }), 2);
+    const renewedRecurrence = await admin.financialRecurrence.findFirstOrThrow({ where: { arenaId: arenaA.id, planId: ids.plans[0], studentId: ids.student, active: true } });
+    const newestEntry = await admin.financialEntry.findFirstOrThrow({ where: { recurrenceId: renewedRecurrence.id }, orderBy: { dueDate: "desc" }, select: { dueDate: true } });
+    assert.equal(renewedRecurrence.endsAt?.getTime(), newestEntry.dueDate?.getTime());
+    assert.ok(renewedRecurrence.nextDueDate > renewedRecurrence.endsAt!);
     assert.equal(chargeAttempts, 3);
     await assert.rejects(recordPayment(oldSubscription.id, referenceMonth), /Assinatura não encontrada/);
 

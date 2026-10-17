@@ -944,6 +944,7 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
     });
     firstEntryId = firstEntry.id;
     let nextDueDate = getNextFinancialRecurrenceDate(firstDueDate, "MONTHLY");
+    let lastDueDate = firstDueDate;
     for (let month = 0; month < 11; month += 1) {
       await tx.financialEntry.create({
         data: {
@@ -962,11 +963,12 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
           notes: `Mensalidade recorrente gerada pelo plano do professor. ${note}`,
         },
       });
+      lastDueDate = nextDueDate;
       nextDueDate = getNextFinancialRecurrenceDate(nextDueDate, "MONTHLY");
     }
     await tx.financialRecurrence.update({
       where: { id: recurrence.id },
-      data: { nextDueDate },
+      data: { endsAt: lastDueDate, nextDueDate },
     });
   });
   if (firstEntryId) {
