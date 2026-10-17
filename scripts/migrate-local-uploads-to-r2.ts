@@ -2,7 +2,8 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { prisma } from "@/lib/prisma";
 import { arenaDatabase } from "@/lib/arena-database";
-import { savePublicImageUpload } from "@/lib/uploads";
+import { getPersistentUploadDirectory, savePublicImageUpload } from "@/lib/uploads";
+import { isLocalUploadUrl, resolveLocalUploadPath } from "./local-upload-path";
 
 const mimeTypes: Record<string, string> = {
   ".jpg": "image/jpeg",
@@ -12,10 +13,6 @@ const mimeTypes: Record<string, string> = {
   ".svg": "image/svg+xml"
 };
 
-function isLegacyUpload(url: string) {
-  return url.startsWith("/uploads/");
-}
-
 function assertR2Configuration() {
   const required = ["R2_ENDPOINT", "R2_BUCKET", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_PUBLIC_BASE_URL"];
   if (required.some((name) => !process.env[name]?.trim())) {
@@ -24,8 +21,8 @@ function assertR2Configuration() {
 }
 
 async function uploadLegacyFile(url: string, arenaId: string, folder: string, prefix: string) {
-  const relativePath = url.replace(/^\/+/, "");
-  const absolutePath = path.join(process.cwd(), "public", relativePath);
+  const absolutePath = resolveLocalUploadPath(url, path.join(process.cwd(), "public", "uploads"), getPersistentUploadDirectory());
+  if (!absolutePath) throw new Error(`O arquivo não é um upload local: ${url}`);
   const extension = path.extname(absolutePath).toLowerCase();
   const type = mimeTypes[extension];
   if (!type) throw new Error(`Tipo de arquivo não suportado: ${url}`);
@@ -33,14 +30,14 @@ async function uploadLegacyFile(url: string, arenaId: string, folder: string, pr
   const source = await readFile(absolutePath);
   const file = new File([new Uint8Array(source)], path.basename(absolutePath), { type });
   const uploadedUrl = await savePublicImageUpload(file, folder, prefix, arenaId);
-  if (!uploadedUrl || isLegacyUpload(uploadedUrl)) throw new Error("O upload não foi enviado ao R2.");
+  if (!uploadedUrl || isLocalUploadUrl(uploadedUrl)) throw new Error("O upload não foi enviado ao R2.");
   return uploadedUrl;
 }
 
 async function main() {
   assertR2Configuration();
   const [eventPosts, arenas] = await Promise.all([
-    prisma.portalEventPost.findMany({ where: { imageUrl: { startsWith: "/uploads/" } }, select: { id: true, arenaId: true, imageUrl: true } }),
+    prisma.portalEventPost.findMany({ where: { OR: [{ imageUrl: { startsWith: "/uploads/" } }, { imageUrl: { startsWith: "/media/uploads/" } }] }, select: { id: true, arenaId: true, imageUrl: true } }),
     prisma.arena.findMany({ select: { id: true } })
   ]);
 
@@ -53,7 +50,7 @@ async function main() {
 
   for (const arena of arenas) {
     const db = arenaDatabase(arena.id);
-    const sponsors = await db.tvSponsor.findMany({ where: { arenaId: arena.id, logoUrl: { startsWith: "/uploads/" } }, select: { id: true, arenaId: true, logoUrl: true } });
+    const sponsors = await db.tvSponsor.findMany({ where: { arenaId: arena.id, OR: [{ logoUrl: { startsWith: "/uploads/" } }, { logoUrl: { startsWith: "/media/uploads/" } }] }, select: { id: true, arenaId: true, logoUrl: true } });
     for (const sponsor of sponsors) {
       const logoUrl = await uploadLegacyFile(sponsor.logoUrl, sponsor.arenaId, "tv-sponsor-logos", `sponsor-${sponsor.id}`);
       const result = await db.tvSponsor.updateMany({ where: { id: sponsor.id, arenaId: sponsor.arenaId, logoUrl: sponsor.logoUrl }, data: { logoUrl } });

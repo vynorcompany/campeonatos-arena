@@ -52,6 +52,8 @@ test("legacy local uploads have an explicit, idempotent migration path to R2", (
   assert.match(migration, /portalEventPost\.findMany/);
   assert.match(migration, /tvSponsor\.findMany/);
   assert.match(migration, /savePublicImageUpload/);
-  assert.match(migration, /startsWith\("\/uploads\/"\)/);
+  assert.match(migration, /startsWith: "\/uploads\/"/);
+  assert.match(migration, /startsWith: "\/media\/uploads\/"/);
+  assert.match(migration, /getPersistentUploadDirectory/);
   assert.match(migration, /Cloudflare R2 não está configurado/);
 });
