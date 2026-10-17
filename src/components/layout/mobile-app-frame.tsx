@@ -31,7 +31,7 @@ export function MobileAppFrame({ arenaName, sidebar, children }: { arenaName: st
     };
   }, [menuOpen]);
 
-  return <div className={`${viewStyles.app_shell}${menuOpen ? " mobile-nav-open" : ""}`} onClickCapture={(event) => {
+  return <div className={`${viewStyles.app_shell}${menuOpen ? " mobile-nav-open" : ""}`} onClick={(event) => {
     if (menuOpen && event.target instanceof Element && event.target.closest("#arena-mobile-navigation a[href]")) setMenuOpen(false);
   }}>
     <header className="tw:sticky tw:top-0 tw:z-[30] tw:hidden tw:min-h-14 tw:items-center tw:gap-3 tw:border-b tw:border-solid tw:border-[#dce7f2] tw:bg-white tw:px-4 tw:viewport-760:flex">

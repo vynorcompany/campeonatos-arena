@@ -469,7 +469,8 @@ async function main() {
       throw new Error(`Login do administrador fictício falhou: ${JSON.stringify(staffLogin).slice(0, 500)}`);
     }
     const cookies = await send("Network.getCookies", { urls: [baseUrl] });
-    if (!cookies.cookies.some((item) => item.name === "padel_session")) throw new Error("Login não criou sessão.");
+    const staffSessionToken = cookies.cookies.find((item) => item.name === "padel_session")?.value;
+    if (!staffSessionToken) throw new Error("Login não criou sessão.");
 
     for (const path of ["/whatsapp", "/jogadores"]) {
       await send("Page.navigate", { url: `${baseUrl}${path}` });
@@ -486,17 +487,25 @@ async function main() {
       }
     }
     const clickElement = async (selector) => {
-      const evaluated = await send("Runtime.evaluate", {
-        expression: `(() => { const element = Array.from(document.querySelectorAll(${JSON.stringify(selector)})).find((candidate) => { const rect = candidate.getBoundingClientRect(); return rect.width > 0 && rect.height > 0; }); if (!element) return null; element.scrollIntoView({ block: 'center' }); const rect = element.getBoundingClientRect(); return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, width: rect.width, height: rect.height }; })()`,
-        returnByValue: true,
-      });
-      const point = evaluated.result.value;
-      if (!point || point.width < 1 || point.height < 1) throw new Error(`Controle de navegação ausente: ${selector}`);
+      let point;
+      for (let attempt = 0; attempt < 40; attempt += 1) {
+        const evaluated = await send("Runtime.evaluate", {
+          expression: `(() => { const element = Array.from(document.querySelectorAll(${JSON.stringify(selector)})).find((candidate) => { const rect = candidate.getBoundingClientRect(); return rect.width > 0 && rect.height > 0; }); if (!element) return null; element.scrollIntoView({ block: 'center' }); const rect = element.getBoundingClientRect(); const x = rect.left + rect.width / 2; const y = rect.top + rect.height / 2; const hit = document.elementFromPoint(x, y); return { x, y, width: rect.width, height: rect.height, hitMatches: Boolean(hit && element.contains(hit)), hitHref: hit?.closest('a[href]')?.getAttribute('href') ?? null, viewport: [innerWidth, innerHeight], scrollY }; })()`,
+          returnByValue: true,
+        });
+        point = evaluated.result.value;
+        if (point?.width > 0 && point?.height > 0 && point.hitMatches) break;
+        await pause(250);
+      }
+      if (!point || point.width < 1 || point.height < 1 || !point.hitMatches) throw new Error(`Controle de navegação não clicável: ${selector}: ${JSON.stringify(point)}`);
+      await send("Runtime.evaluate", { expression: "window.__lastSyntheticClick = null; document.addEventListener('click', (event) => { const target = event.target; const href = target instanceof Element ? target.closest('a[href]')?.getAttribute('href') ?? null : null; setTimeout(() => { window.__lastSyntheticClick = { href, defaultPrevented: event.defaultPrevented }; }, 0); }, { once: true });" });
       await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: point.x, y: point.y });
       await send("Input.dispatchMouseEvent", { type: "mousePressed", x: point.x, y: point.y, button: "left", clickCount: 1 });
       await send("Input.dispatchMouseEvent", { type: "mouseReleased", x: point.x, y: point.y, button: "left", clickCount: 1 });
+      return point;
     };
     for (const viewport of viewports) {
+      await selectArena(arenaA.id, staffSessionToken);
       await send("Emulation.setDeviceMetricsOverride", { width: viewport.width, height: viewport.height, deviceScaleFactor: 1, mobile: viewport.name === "mobile" });
       await send("Page.navigate", { url: `${baseUrl}/painel` });
       let start;
@@ -537,9 +546,46 @@ async function main() {
       if (navigated.path !== "/jogadores" || !navigated.body.includes("Atleta GOAL A") || navigated.menuOpen === "true" || navigated.bodyOverflow === "hidden") {
         throw new Error(`${viewport.name}: navegação pelo menu lateral falhou: ${JSON.stringify(navigated).slice(0, 500)}`);
       }
-      console.log(`${viewport.name}: clique real no menu lateral abriu Clientes e liberou a rolagem.`);
+      console.log(`${viewport.name}: colaborador abriu Clientes pelo menu lateral e liberou a rolagem.`);
+      await visit("/jogadores", viewport, arenaA.id, `${viewport.name}-owner-navigation-ready`);
+      const ownerMenu = await send("Runtime.evaluate", { expression: "Boolean(document.querySelector('#arena-mobile-navigation a[href=\"/agenda\"]'))", returnByValue: true });
+      if (!ownerMenu.result.value) throw new Error(`${viewport.name}: menu completo do proprietário não carregou.`);
+      for (const destination of ["/agenda", "/torneios", "/financeiro/contas-a-receber"]) {
+        if (viewport.name === "mobile") {
+          await clickElement('button[aria-label="Abrir menu"]');
+          let menuOpen = false;
+          for (let attempt = 0; attempt < 20; attempt += 1) {
+            const response = await send("Runtime.evaluate", { expression: "document.querySelector('button[aria-label=\"Abrir menu\"]')?.getAttribute('aria-expanded') === 'true'", returnByValue: true });
+            menuOpen = response.result.value;
+            if (menuOpen) break;
+            await pause(100);
+          }
+          if (!menuOpen) throw new Error(`${viewport.name}: menu não reabriu antes de ${destination}.`);
+        }
+        if (destination.startsWith("/financeiro/")) {
+          const response = await send("Runtime.evaluate", { expression: "document.querySelector('#arena-mobile-navigation button[aria-label=\"Abrir submenu Financeiro\"]') !== null", returnByValue: true });
+          if (response.result.value) {
+            await clickElement('#arena-mobile-navigation button[aria-label="Abrir submenu Financeiro"]');
+            await pause(200);
+          }
+        }
+        const clickPoint = await clickElement(`#arena-mobile-navigation a[href="${destination}"]`);
+        let result;
+        for (let attempt = 0; attempt < 80; attempt += 1) {
+          const response = await send("Runtime.evaluate", { expression: "({path:location.pathname,body:document.querySelector('main')?.innerText ?? '',menuOpen:document.querySelector('button[aria-label=\"Abrir menu\"]')?.getAttribute('aria-expanded'),bodyOverflow:document.body.style.overflow})", returnByValue: true });
+          result = response.result.value;
+          if (result.path === destination && result.body.length > 100 && result.menuOpen !== "true" && result.bodyOverflow !== "hidden") break;
+          await pause(250);
+        }
+        if (result.path !== destination || result.body.length <= 100 || result.menuOpen === "true" || result.bodyOverflow === "hidden") {
+          const clickEvent = await send("Runtime.evaluate", { expression: "window.__lastSyntheticClick ?? null", returnByValue: true });
+          throw new Error(`${viewport.name}: navegação para ${destination} falhou: ${JSON.stringify({ clickPoint, clickEvent: clickEvent.result.value, result }).slice(0, 1000)}`);
+        }
+        await pause(500);
+      }
+      console.log(`${viewport.name}: navegação sucessiva por Grade, Torneios e Contas a Receber funcionou.`);
     }
-    await send("Network.setCookie", { name: "padel_arena", value: arenaB.id, url: baseUrl, httpOnly: true, sameSite: "Lax" });
+    await selectArena(arenaB.id, staffSessionToken);
     await send("Page.navigate", { url: `${baseUrl}/jogadores` });
     let switched;
     for (let attempt = 0; attempt < 80; attempt += 1) {
