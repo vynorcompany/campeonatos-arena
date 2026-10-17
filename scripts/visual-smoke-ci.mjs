@@ -717,7 +717,7 @@ async function main() {
     await send("Emulation.setDeviceMetricsOverride", { width: 320, height: 700, deviceScaleFactor: 1, mobile: true });
     for (const theme of ["light", "dark"]) {
       await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: theme }] });
-      for (const view of portalViews.filter(({ label }) => ["inicio", "financas", "torneios-jogos", "turmas", "reservar"].includes(label))) {
+      for (const view of portalViews) {
         const label = `portal-mobile-320-${theme}-${view.label}`;
         await send("Page.navigate", { url: `${baseUrl}/home?arena=arena-teste-goal&${view.query}` });
         let compact;
