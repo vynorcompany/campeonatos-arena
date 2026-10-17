@@ -12,7 +12,25 @@ export default defineRailway(() => {
   });
   const app = service("service-arena-padel-manager", {
     source: github("vynorcompany/campeonatos-arena", { branch: "main", checkSuites: false }),
-    build: { builder: "NIXPACKS", buildCommand: "npm run build" },
+    build: {
+      builder: "NIXPACKS",
+      buildCommand: "npm run build",
+      // Keep production deploys for application, migration, dependency, and runtime changes.
+      // Tests, CI-only scripts, and documentation do not change the running service.
+      watchPatterns: [
+        "**",
+        "!/tests/**",
+        "!/docs/**",
+        "!/.github/**",
+        "!/scripts/*-ci.*",
+        "!/scripts/compile-styles-for-tests.mjs",
+        "!/**/*.test.*",
+        "!/**/*.spec.*",
+        "!/*.md",
+        "!/**/*.md",
+        "!/.railway/**",
+      ],
+    },
     deploy: {
       startCommand: "npm run db:setup && exec node scripts/runtime-server.mjs",
       healthcheckPath: "/api/health",
