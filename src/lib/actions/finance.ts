@@ -2,6 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { requireFinancialEntryDelete, requireModuleEdit, requirePermission } from "@/lib/auth/guards";
+import { requireArenaAccess } from "@/lib/auth/session";
+import { canPerformPermission } from "@/lib/permissions";
+import { financialEntryPermission, type FinancialEntryOperation } from "@/lib/finance/entry-permissions";
 import {
   getReferenceMonthRange,
   parseDate,
@@ -54,6 +57,13 @@ import {
   updateEntrySchema,
   voidEntrySchema,
 } from "@/lib/finance/action-schemas";
+
+function assertFinancialEntryPermission(auth: Awaited<ReturnType<typeof requireArenaAccess>>, type: string, operation: FinancialEntryOperation) {
+  const key = financialEntryPermission(type, operation);
+  if (!canPerformPermission(key, auth.arenaRole, auth.systemRole, auth.editPermissions)) {
+    throw new Error("Sem permissão para executar esta ação financeira.");
+  }
+}
 
 
 export async function createPlanAction(formData: FormData) {
@@ -315,7 +325,7 @@ export async function recordPlanPaymentAction(formData: FormData) {
 }
 
 export async function createFinancialEntryAction(formData: FormData) {
-  const auth = await requirePermission("finance:settings:manage");
+  const auth = await requireArenaAccess();
   const clientId = String(formData.get("clientId") ?? "");
   const teacherId = String(formData.get("teacherId") ?? "");
   const parsed = entrySchema.safeParse({
@@ -340,6 +350,8 @@ export async function createFinancialEntryAction(formData: FormData) {
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
+  assertFinancialEntryPermission(auth, parsed.data.type, "create");
+  if (parsed.data.status === "PAID") assertFinancialEntryPermission(auth, parsed.data.type, "settle");
 
   const discount = parsed.data.discountMode === "PERCENTAGE" ? Number(parsed.data.discount.replace(",", ".")) : parseMoneyToCents(parsed.data.discount);
   if (!Number.isFinite(discount)) throw new Error("Informe um desconto válido.");
@@ -429,7 +441,7 @@ export async function createFinancialEntryAction(formData: FormData) {
 }
 
 export async function updateFinancialEntryAction(formData: FormData) {
-  const auth = await requireModuleEdit("finance");
+  const auth = await requireArenaAccess();
   const parsed = updateEntrySchema.safeParse({
     entryId: formData.get("entryId"),
     category: formData.get("category"),
@@ -451,6 +463,7 @@ export async function updateFinancialEntryAction(formData: FormData) {
       include: { settlements: { select: { amountCents: true } } },
     });
     if (!entry) throw new Error("Lançamento não encontrado ou estornado.");
+    assertFinancialEntryPermission(auth, entry.type, "edit");
     if (entry.source === "AGENCY_SUBSCRIPTION") throw new Error("Esta fatura é gerenciada pela agência e não pode ser alterada aqui.");
     await assertFinancialEntryRelationsBelongToArena(tx, auth.arenaId, {
       bankAccountId: parsed.data.bankAccountId,
@@ -483,7 +496,7 @@ export async function updateFinancialEntryAction(formData: FormData) {
 }
 
 export async function createFinancialRecurrenceAction(formData: FormData) {
-  const auth = await requirePermission("finance:receivable:create");
+  const auth = await requireArenaAccess();
   const clientId = String(formData.get("clientId") ?? "");
   const teacherId = String(formData.get("teacherId") ?? "");
   const parsed = recurrenceSchema.safeParse({
@@ -493,6 +506,7 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
     endsAt: formData.get("endsAt"), bankAccountId: formData.get("bankAccountId"), planId: formData.get("planId"), onlinePaymentMethod: formData.get("onlinePaymentMethod"), notes: formData.get("notes")
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  assertFinancialEntryPermission(auth, parsed.data.type, "create");
   const startsAt = parseDate(parsed.data.startsAt);
   const endsAt = parseDate(parsed.data.endsAt);
   if (!startsAt) return { error: "Data inicial inválida." };
@@ -607,7 +621,7 @@ export async function generateFinancialEntryOnlineChargeAction(formData: FormDat
 }
 
 export async function settleFinancialEntryAction(formData: FormData) {
-  const auth = await requireModuleEdit("finance");
+  const auth = await requireArenaAccess();
   const parsed = settlementSchema.safeParse({
     entryId: formData.get("entryId"),
     amount: formData.get("amount"),
@@ -633,6 +647,7 @@ export async function settleFinancialEntryAction(formData: FormData) {
       }
     });
     if (!entry) throw new Error("Esta conta não está disponível para baixa.");
+    assertFinancialEntryPermission(auth, entry.type, "settle");
     if (entry.source === "AGENCY_SUBSCRIPTION") throw new Error("Pague esta fatura pelo link do Mercado Pago. A baixa será automática.");
     if (hasUnresolvedOnlinePayment(entry)) throw new Error("Esta conta possui cobrança online emitida, em emissão ou em análise. Confira e concilie o pagamento antes da baixa manual.");
 
@@ -666,7 +681,7 @@ export async function settleFinancialEntryAction(formData: FormData) {
 }
 
 export async function settleFinancialEntriesBulkAction(formData: FormData) {
-  const auth = await requireModuleEdit("finance");
+  const auth = await requireArenaAccess();
   const parsed = bulkEntrySchema.safeParse({
     entryIds: formData.getAll("entryIds"),
     paymentMethod: formData.get("paymentMethod"),
@@ -686,6 +701,7 @@ export async function settleFinancialEntriesBulkAction(formData: FormData) {
       }
     });
     if (entries.length !== entryIds.length) throw new Error("Uma ou mais contas não estão disponíveis para quitação. Atualize a lista antes de tentar novamente.");
+    for (const type of new Set(entries.map((entry) => entry.type))) assertFinancialEntryPermission(auth, type, "settle");
     if (entries.some(hasUnresolvedOnlinePayment)) throw new Error("Uma ou mais contas possuem cobrança online emitida, em emissão ou em análise. Confira e concilie antes da baixa em lote.");
     let count = 0;
     for (const entry of entries) {
@@ -794,14 +810,19 @@ export async function createTeacherMonthlyPayableAction(formData: FormData) {
 }
 
 export async function voidFinancialEntryAction(formData: FormData) {
-  const auth = await requirePermission(String(formData.get("type")) === "PAYABLE" ? "finance:payable:create" : "finance:receivable:create");
+  const auth = await requireArenaAccess();
   const parsed = voidEntrySchema.safeParse({ entryId: formData.get("entryId"), reason: formData.get("reason") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
 
-  const updated = await withArenaTransaction(auth.arenaId, (tx) => tx.financialEntry.updateMany({
-    where: { id: parsed.data.entryId, arenaId: auth.arenaId, status: { not: "VOIDED" }, source: { not: "AGENCY_SUBSCRIPTION" } },
-    data: { status: "VOIDED", voidedAt: new Date(), voidReason: parsed.data.reason }
-  }));
+  const updated = await withArenaTransaction(auth.arenaId, async (tx) => {
+    const entry = await tx.financialEntry.findFirst({ where: { id: parsed.data.entryId, arenaId: auth.arenaId, status: { not: "VOIDED" }, source: { not: "AGENCY_SUBSCRIPTION" } }, select: { type: true } });
+    if (!entry) throw new Error("Esta conta já foi estornada ou não está disponível.");
+    assertFinancialEntryPermission(auth, entry.type, "edit");
+    return tx.financialEntry.updateMany({
+      where: { id: parsed.data.entryId, arenaId: auth.arenaId, status: { not: "VOIDED" }, source: { not: "AGENCY_SUBSCRIPTION" } },
+      data: { status: "VOIDED", voidedAt: new Date(), voidReason: parsed.data.reason }
+    });
+  });
   if (!updated.count) throw new Error("Esta conta já foi estornada ou não está disponível.");
   refreshFinanceRoutes();
 }

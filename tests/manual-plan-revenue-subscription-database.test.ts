@@ -7,6 +7,7 @@ import { PrismaClient } from "@prisma/client";
 import ts from "typescript";
 import { lockStudentPlanSubscription } from "../src/lib/academy/subscription-lock";
 import { assertFinancialEntryRelationsBelongToArena } from "../src/lib/finance/entry-relations";
+import { financialEntryPermission } from "../src/lib/finance/entry-permissions";
 
 const testUrl = process.env.ARENA_GOAL_TEST_DATABASE_URL ?? "";
 const disposableDatabase = (() => {
@@ -42,6 +43,9 @@ test("receitas manuais simultâneas do mesmo plano criam apenas uma assinatura n
     };
     const mocks: Record<string, unknown> = {
       "@/lib/auth/guards": { requirePermission: async () => ({ arenaId: arenaA.id }) },
+      "@/lib/auth/session": { requireArenaAccess: async () => ({ arenaId: arenaA.id }) },
+      "@/lib/permissions": { canPerformPermission: () => true },
+      "@/lib/finance/entry-permissions": { financialEntryPermission },
       "@/lib/finance/action-schemas": { entrySchema: { safeParse: () => ({ success: true, data }) } },
       "@/lib/finance/inputs": { parseMoneyToCents: () => 30000, parseDate: (value: string) => value ? new Date(`${value}T12:00:00Z`) : null },
       "@/lib/finance/discounts": { getDiscountedAmountCents: () => 30000 },

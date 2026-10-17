@@ -7,6 +7,7 @@ import ts from "typescript";
 import { bulkEntrySchema, settlementSchema } from "../src/lib/finance/action-schemas";
 import { parseDate, parseMoneyToCents } from "../src/lib/finance/inputs";
 import { getFinancialEntryBalance } from "../src/lib/finance/ledger";
+import { financialEntryPermission } from "../src/lib/finance/entry-permissions";
 
 const testUrl = process.env.ARENA_GOAL_TEST_DATABASE_URL ?? "";
 const disposableDatabase = (() => {
@@ -44,6 +45,9 @@ test("baixa manual exige valor real, quita vencidos e não aceita lote parcialme
     const mocks: Record<string, unknown> = {
       "@prisma/client": { Prisma },
       "@/lib/auth/guards": { requireModuleEdit: async () => ({ arenaId: arenaA.id }) },
+      "@/lib/auth/session": { requireArenaAccess: async () => ({ arenaId: arenaA.id }) },
+      "@/lib/permissions": { canPerformPermission: () => true },
+      "@/lib/finance/entry-permissions": { financialEntryPermission },
       "@/lib/finance/action-schemas": { settlementSchema, bulkEntrySchema },
       "@/lib/finance/inputs": { parseDate, parseMoneyToCents },
       "@/lib/finance/ledger": { getFinancialEntryBalance },
