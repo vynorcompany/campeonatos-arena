@@ -44,13 +44,16 @@ async function alertIneligibleRecurringBoletos(arenaId: string, count: number) {
 }
 
 /** Creates the boleto for one recurring entry. The external reference and Mercado Pago idempotency key make retries safe. */
-export async function issueRecurringOnlineChargeForEntry(arenaId: string, entryId: string): Promise<ChargeAttempt> {
+export async function issueRecurringOnlineChargeForEntry(arenaId: string, entryId: string, now = new Date()): Promise<ChargeAttempt> {
   const entry = await arenaDatabase(arenaId).financialEntry.findFirst({
     where: { id: entryId, ...recurringBoletoEntryWhere(arenaId) },
     include: { player: { select: { name: true, phone: true, email: true, cpf: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } }, settlements: { select: { amountCents: true, interestCents: true } } }
   });
 
   if (!entry) return { created: false, skipped: false };
+  const issueUntil = new Date(now);
+  issueUntil.setDate(issueUntil.getDate() + daysFromNow);
+  if (!entry.dueDate || entry.dueDate > issueUntil) return { created: false, skipped: false };
   const player = entry.player;
   if (!player || getMissingBoletoPayerFields(player).length) {
     await alertRecurringBoleto(arenaId, entry.id, "ONLINE_CHARGE_ISSUANCE_REVIEW", "Boleto pendente de emissão", "O lançamento recorrente foi criado, mas faltam dados do cliente para emitir o boleto. Revise o cadastro em Contas a Receber.");
@@ -184,7 +187,7 @@ export async function issueRecurringOnlineCharges(now = new Date()) {
   }
   for (const entry of entries) {
     try {
-      const result = await issueRecurringOnlineChargeForEntry(entry.arenaId, entry.id);
+      const result = await issueRecurringOnlineChargeForEntry(entry.arenaId, entry.id, now);
       if (result.created) created += 1;
       if (result.skipped) skipped += 1;
     } catch (error) {
