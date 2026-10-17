@@ -20,7 +20,7 @@ import { refreshFinanceRoutes } from "@/lib/finance/revalidation";
 
 const refreshCalendar = refreshCalendarRoutes;
 import { calculateCourtIntervalPrice, isCourtBookingStartOnGrid } from "@/lib/calendar/court-interval-pricing";
-import { activeCourtOccurrenceWhere, onlineBookingHoldCutoff } from "@/lib/calendar/online-booking-hold";
+import { activeCourtOccurrenceWhere, onlineBookingHoldCutoff, onlineBookingPixExpiration } from "@/lib/calendar/online-booking-hold";
 import { assertCourtBookingMayBeEdited } from "@/lib/calendar/court-booking-edit-safety";
 import { isAgendaManagedBooking } from "@/lib/calendar/agenda-managed-booking";
 import { arenaWallClockToInstant } from "@/lib/calendar/arena-wall-clock";
@@ -268,7 +268,7 @@ export async function startPublicCourtBookingPaymentAction(formData: FormData) {
   if (!booking || !participant) throw new Error("O prazo de 15 minutos desta reserva terminou. Escolha novamente o horário disponível.");
   if (!participant.player.email) throw new Error("Informe seu e-mail no perfil para continuar com o pagamento online.");
   const paymentInput = { arenaId: arena.id, amountCents: participant.amountCents, description: `Reserva de quadra · ${booking.occurrenceCourts[0]?.court.name ?? "Quadra"}`, payerEmail: participant.player.email, externalReference: `online_booking:${booking.id}` };
-  const payment = parsed.data.method === "PIX" ? await createPixPayment(paymentInput) : parsed.data.method === "CARD" ? await createCardCheckout(paymentInput) : await (async () => { const missing = getMissingBoletoPayerFields(participant.player); if (missing.length) throw new Error(`Para emitir boleto, complete no perfil: ${missing.join(", ")}.`); return createBoletoPayment({ ...paymentInput, payerCpf: participant.player.cpf, payerName: participant.player.name, payerAddress: participant.player, expiresAt: new Date(booking.createdAt.getTime() + 3 * 24 * 60 * 60_000) }); })();
+  const payment = parsed.data.method === "PIX" ? await createPixPayment({ ...paymentInput, expiresAt: onlineBookingPixExpiration(booking.createdAt) }) : parsed.data.method === "CARD" ? await createCardCheckout(paymentInput) : await (async () => { const missing = getMissingBoletoPayerFields(participant.player); if (missing.length) throw new Error(`Para emitir boleto, complete no perfil: ${missing.join(", ")}.`); return createBoletoPayment({ ...paymentInput, payerCpf: participant.player.cpf, payerName: participant.player.name, payerAddress: participant.player, expiresAt: new Date(booking.createdAt.getTime() + 3 * 24 * 60 * 60_000) }); })();
   if (!payment.checkoutUrl) throw new Error("Não foi possível abrir o pagamento escolhido.");
   return { checkoutUrl: payment.checkoutUrl };
 }
