@@ -23,13 +23,21 @@ test("baixa manual exige valor real, quita vencidos e não aceita lote parcialme
   runtimeUrl.password = "";
   const runtime = new PrismaClient({ datasources: { db: { url: runtimeUrl.toString() } } });
   const entryIds: string[] = [];
+  let checkoutId = "";
   try {
     const arenaA = await admin.arena.findUniqueOrThrow({ where: { slug: "arena-teste-goal" }, select: { id: true } });
     const arenaB = await admin.arena.findUniqueOrThrow({ where: { slug: "arena-beta-goal" }, select: { id: true } });
     const pending = await admin.financialEntry.create({ data: { arenaId: arenaA.id, type: "REVENUE", category: "GOAL", description: "Conta fictícia pendente", amountCents: 1000 }, select: { id: true } });
     const overdue = await admin.financialEntry.create({ data: { arenaId: arenaA.id, type: "REVENUE", category: "GOAL", description: "Conta fictícia vencida", amountCents: 2000, status: "OVERDUE" }, select: { id: true } });
     const foreign = await admin.financialEntry.create({ data: { arenaId: arenaB.id, type: "REVENUE", category: "GOAL", description: "Conta fictícia de outra arena", amountCents: 3000 }, select: { id: true } });
-    entryIds.push(pending.id, overdue.id, foreign.id);
+    const online = await admin.financialEntry.create({ data: { arenaId: arenaA.id, type: "REVENUE", category: "GOAL", description: "Cobrança online fictícia", amountCents: 1000, onlinePaymentId: "goal-provider-payment" }, select: { id: true } });
+    const grouped = await admin.financialEntry.create({ data: { arenaId: arenaA.id, type: "REVENUE", category: "GOAL", description: "Checkout agrupado fictício", amountCents: 1000 }, select: { id: true } });
+    const claimed = await admin.financialEntry.create({ data: { arenaId: arenaA.id, type: "REVENUE", category: "GOAL", description: "Emissão incerta fictícia", amountCents: 1000, onlinePaymentClaimMethod: "BOLETO" }, select: { id: true } });
+    entryIds.push(pending.id, overdue.id, foreign.id, online.id, grouped.id, claimed.id);
+    checkoutId = (await admin.onlinePaymentCheckout.create({ data: {
+      arenaId: arenaA.id, playerId: "goal-athlete-a", amountCents: 1000,
+      items: { create: [{ financialEntryId: grouped.id, amountCents: 1000 }] },
+    }, select: { id: true } })).id;
 
     const source = readFileSync(new URL("../src/lib/actions/finance.ts", import.meta.url), "utf8");
     const actions: Record<string, (form: FormData) => Promise<unknown>> = {};
@@ -69,8 +77,18 @@ test("baixa manual exige valor real, quita vencidos e não aceita lote parcialme
     await assert.rejects(settle(pending.id, "0"), /maior que zero/);
     await assert.rejects(settle(foreign.id, "10,00"), /não está disponível/);
     await assert.rejects(settleBulk([pending.id, foreign.id]), /Uma ou mais contas não estão disponíveis/);
+    await assert.rejects(settle(online.id, "10,00"), /cobrança online/);
+    await assert.rejects(settle(claimed.id, "10,00"), /cobrança online/);
+    await assert.rejects(settle(grouped.id, "10,00"), /cobrança online/);
+    await assert.rejects(settleBulk([pending.id, grouped.id]), /cobrança online/);
     assert.equal(await admin.financialSettlement.count({ where: { financialEntryId: pending.id } }), 0);
+    assert.equal(await admin.financialSettlement.count({ where: { financialEntryId: grouped.id } }), 0);
     assert.equal((await admin.financialEntry.findUniqueOrThrow({ where: { id: pending.id } })).status, "PENDING");
+    await admin.onlinePaymentCheckout.update({ where: { id: checkoutId }, data: { status: "FAILED", mercadoPagoPaymentId: "goal-failed-payment" } });
+    await assert.rejects(settle(grouped.id, "10,00"), /cobrança online/);
+    await admin.onlinePaymentCheckout.update({ where: { id: checkoutId }, data: { mercadoPagoPaymentId: "" } });
+    await settle(grouped.id, "10,00");
+    assert.equal((await admin.financialEntry.findUniqueOrThrow({ where: { id: grouped.id } })).status, "PAID");
 
     await settle(overdue.id, "5,00");
     const partlyPaid = await admin.financialEntry.findUniqueOrThrow({ where: { id: overdue.id }, include: { settlements: true } });
@@ -82,6 +100,7 @@ test("baixa manual exige valor real, quita vencidos e não aceita lote parcialme
     assert.equal(await admin.financialSettlement.count({ where: { financialEntryId: { in: [overdue.id, pending.id] } } }), 3);
     await assert.rejects(settleBulk([pending.id, foreign.id]), /Uma ou mais contas não estão disponíveis/);
   } finally {
+    if (checkoutId) await admin.onlinePaymentCheckout.delete({ where: { id: checkoutId } });
     if (entryIds.length) await admin.financialEntry.deleteMany({ where: { id: { in: entryIds } } });
     await runtime.$disconnect();
     await admin.$disconnect();

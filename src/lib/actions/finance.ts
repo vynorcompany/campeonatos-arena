@@ -84,6 +84,22 @@ export async function createPlanAction(formData: FormData) {
   refreshFinanceRoutes();
 }
 
+function hasUnresolvedOnlinePayment(entry: {
+  onlinePaymentId: string;
+  onlinePaymentUrl: string;
+  onlinePaymentClaimMethod: string;
+  onlinePaymentClaimedAt: Date | null;
+  notes: string;
+  onlinePaymentItems: { checkout: { status: string; mercadoPagoPaymentId: string; checkoutUrl: string } }[];
+}) {
+  return Boolean(entry.onlinePaymentId || entry.onlinePaymentUrl || entry.onlinePaymentClaimMethod || entry.onlinePaymentClaimedAt)
+    || entry.notes.includes("[MP_REVIEW:")
+    || entry.onlinePaymentItems.some(({ checkout }) =>
+      ["PENDING", "REVIEW", "PAID"].includes(checkout.status)
+      || (checkout.status === "FAILED" && Boolean(checkout.mercadoPagoPaymentId || checkout.checkoutUrl))
+    );
+}
+
 export async function createSubscriptionAction(formData: FormData) {
   const auth = await requireModuleEdit("finance");
   const parsed = subscriptionSchema.safeParse({
@@ -260,10 +276,7 @@ export async function recordPlanPaymentAction(formData: FormData) {
       },
     });
     if (!entry) throw new Error("Esta mensalidade já foi quitada ou não está disponível para baixa.");
-    const groupedPaymentInProgress = entry.onlinePaymentItems.some(({ checkout }) =>
-      checkout.status === "REVIEW" || (checkout.status === "PENDING" && Boolean(checkout.mercadoPagoPaymentId || checkout.checkoutUrl))
-    );
-    if (entry.onlinePaymentId || entry.onlinePaymentUrl || entry.onlinePaymentClaimedAt || groupedPaymentInProgress) {
+    if (hasUnresolvedOnlinePayment(entry)) {
       throw new Error("Esta mensalidade já possui cobrança online emitida ou em emissão. Confira e concilie o pagamento em Contas a Receber.");
     }
     const before = getFinancialEntryBalance(entry.amountCents, entry.settlements);
@@ -612,10 +625,14 @@ export async function settleFinancialEntryAction(formData: FormData) {
     await tx.$queryRaw`SELECT id FROM "FinancialEntry" WHERE id = ${parsed.data.entryId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
     const entry = await tx.financialEntry.findFirst({
       where: { id: parsed.data.entryId, arenaId: auth.arenaId, status: { in: ["PENDING", "OVERDUE"] } },
-      include: { settlements: { select: { amountCents: true, interestCents: true } } }
+      include: {
+        settlements: { select: { amountCents: true, interestCents: true } },
+        onlinePaymentItems: { select: { checkout: { select: { status: true, mercadoPagoPaymentId: true, checkoutUrl: true } } } },
+      }
     });
     if (!entry) throw new Error("Esta conta não está disponível para baixa.");
     if (entry.source === "AGENCY_SUBSCRIPTION") throw new Error("Pague esta fatura pelo link do Mercado Pago. A baixa será automática.");
+    if (hasUnresolvedOnlinePayment(entry)) throw new Error("Esta conta possui cobrança online emitida, em emissão ou em análise. Confira e concilie o pagamento antes da baixa manual.");
 
     const before = getFinancialEntryBalance(entry.amountCents, entry.settlements);
     const allowedCents = before.outstandingCents + interestCents;
@@ -661,9 +678,13 @@ export async function settleFinancialEntriesBulkAction(formData: FormData) {
     await tx.$queryRaw`SELECT id FROM "FinancialEntry" WHERE "arenaId" = ${auth.arenaId} AND id IN (${Prisma.join(entryIds)}) ORDER BY id FOR UPDATE`;
     const entries = await tx.financialEntry.findMany({
       where: { arenaId: auth.arenaId, id: { in: entryIds }, status: { in: ["PENDING", "OVERDUE"] }, source: { not: "AGENCY_SUBSCRIPTION" } },
-      include: { settlements: { select: { amountCents: true, interestCents: true } } }
+      include: {
+        settlements: { select: { amountCents: true, interestCents: true } },
+        onlinePaymentItems: { select: { checkout: { select: { status: true, mercadoPagoPaymentId: true, checkoutUrl: true } } } },
+      }
     });
     if (entries.length !== entryIds.length) throw new Error("Uma ou mais contas não estão disponíveis para quitação. Atualize a lista antes de tentar novamente.");
+    if (entries.some(hasUnresolvedOnlinePayment)) throw new Error("Uma ou mais contas possuem cobrança online emitida, em emissão ou em análise. Confira e concilie antes da baixa em lote.");
     let count = 0;
     for (const entry of entries) {
       const balance = getFinancialEntryBalance(entry.amountCents, entry.settlements);
