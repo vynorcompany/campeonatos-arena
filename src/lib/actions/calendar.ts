@@ -22,6 +22,7 @@ const refreshCalendar = refreshCalendarRoutes;
 import { calculateCourtIntervalPrice, isCourtBookingStartOnGrid } from "@/lib/calendar/court-interval-pricing";
 import { activeCourtOccurrenceWhere, onlineBookingHoldCutoff } from "@/lib/calendar/online-booking-hold";
 import { assertCourtBookingMayBeEdited } from "@/lib/calendar/court-booking-edit-safety";
+import { isAgendaManagedBooking } from "@/lib/calendar/agenda-managed-booking";
 import { arenaWallClockToInstant } from "@/lib/calendar/arena-wall-clock";
 import { getBookingDelinquency } from "@/lib/calendar/booking-delinquency";
 import { cancelUnpaidOnlineBooking, claimOnlineBookingPaymentMethod } from "@/lib/calendar/booking-payment-claim";
@@ -132,7 +133,8 @@ const visibleCourtBookingErrors = new Set([
   "Já existe um agendamento nessa quadra para este horário.",
   "Reserva não encontrada nesta arena.",
   "Esta reserva aguarda pagamento e não pode ser editada agora.",
-  "Esta reserva já tem pagamento ou cobrança online vinculada. Faça o ajuste financeiro antes de editá-la."
+  "Esta reserva já tem pagamento ou cobrança online vinculada. Faça o ajuste financeiro antes de editá-la.",
+  "Este horário é gerenciado pela origem e não pode ser editado pela agenda."
 ]);
 
 const publicCourtBookingSchema = z.object({
@@ -298,8 +300,9 @@ export async function cancelCourtBookingAction(formData: FormData) {
   const preservedEntries = new Set<string>();
   if (parsed.data.cancelOpenCharges === "yes") {
     const charges = await withArenaTransaction(auth.arenaId, async (tx) => {
-      const occurrence = await tx.scheduleOccurrence.findFirst({ where: { id: parsed.data.occurrenceId, arenaId: auth.arenaId, status: { not: "CANCELED" } }, select: { id: true, startsAt: true, bookingSeriesId: true } });
+      const occurrence = await tx.scheduleOccurrence.findFirst({ where: { id: parsed.data.occurrenceId, arenaId: auth.arenaId, status: { not: "CANCELED" } }, select: { id: true, startsAt: true, bookingSeriesId: true, sourceType: true } });
       if (!occurrence) throw new Error("Este horário já foi cancelado ou não foi encontrado.");
+      if (!isAgendaManagedBooking(occurrence.sourceType)) throw new Error("Este horário é gerenciado pela origem e não pode ser cancelado pela agenda.");
       const occurrences = parsed.data.mode === "FREE" || !occurrence.bookingSeriesId
         ? [occurrence.id]
         : (await tx.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, bookingSeriesId: occurrence.bookingSeriesId, startsAt: { gte: occurrence.startsAt }, status: { not: "CANCELED" } }, select: { id: true } })).map((item) => item.id);
@@ -318,8 +321,9 @@ export async function cancelCourtBookingAction(formData: FormData) {
     }
   }
   const result = await withArenaTransaction(auth.arenaId, async (tx) => {
-    const occurrence = await tx.scheduleOccurrence.findFirst({ where: { id: parsed.data.occurrenceId, arenaId: auth.arenaId, status: { not: "CANCELED" } }, select: { id: true, startsAt: true, bookingSeriesId: true } });
+    const occurrence = await tx.scheduleOccurrence.findFirst({ where: { id: parsed.data.occurrenceId, arenaId: auth.arenaId, status: { not: "CANCELED" } }, select: { id: true, startsAt: true, bookingSeriesId: true, sourceType: true } });
     if (!occurrence) return 0;
+    if (!isAgendaManagedBooking(occurrence.sourceType)) throw new Error("Este horário é gerenciado pela origem e não pode ser cancelado pela agenda.");
     const occurrenceIds = parsed.data.mode === "FREE" || !occurrence.bookingSeriesId
       ? [occurrence.id]
       : (await tx.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, bookingSeriesId: occurrence.bookingSeriesId, startsAt: { gte: occurrence.startsAt }, status: { not: "CANCELED" } }, select: { id: true } })).map((item) => item.id);
