@@ -638,6 +638,34 @@ async function main() {
           if (view.label === "inicio" && (!metrics.main.includes(viewport.name === "mobile" ? "Comanda em aberto" : "em aberto") || metrics.main.includes("Tudo em dia"))) {
             throw new Error(`${label}: a tela inicial ignora a comanda aberta do atleta fictício.`);
           }
+          if (view.label === "inicio" && viewport.name === "mobile") {
+            await clickElement('button[aria-label="Notificações"]');
+            let notificationPanel;
+            for (let attempt = 0; attempt < 30; attempt += 1) {
+              const evaluated = await send("Runtime.evaluate", {
+                expression: "(() => { const panel=document.querySelector('[role=dialog][aria-label=\"Notificações\"]'); if(!panel) return null; const rect=panel.getBoundingClientRect(); return {left:rect.left,right:rect.right,top:rect.top,bottom:rect.bottom,width:rect.width,height:rect.height,viewportWidth:innerWidth,viewportHeight:innerHeight,content:panel.innerText}; })()",
+                returnByValue: true,
+              });
+              notificationPanel = evaluated.result.value;
+              if (notificationPanel?.width > 200) break;
+              await pause(100);
+            }
+            if (!notificationPanel || notificationPanel.left < 0 || notificationPanel.right > notificationPanel.viewportWidth + 1 || notificationPanel.top < 0 || notificationPanel.bottom > notificationPanel.viewportHeight + 1 || notificationPanel.height < 120 || !notificationPanel.content.includes("Notificações")) {
+              throw new Error(`${label}: notificações cortadas ou ausentes: ${JSON.stringify(notificationPanel)}`);
+            }
+            const notificationShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+            await writeFile(`${outputDir}/${label}-notificacoes.png`, Buffer.from(notificationShot.data, "base64"));
+            await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+            await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+            let closed = false;
+            for (let attempt = 0; attempt < 20; attempt += 1) {
+              const evaluated = await send("Runtime.evaluate", { expression: "!document.querySelector('[role=dialog][aria-label=\"Notificações\"]')", returnByValue: true });
+              closed = Boolean(evaluated.result.value);
+              if (closed) break;
+              await pause(100);
+            }
+            if (!closed) throw new Error(`${label}: notificações não fecharam ao pressionar Esc.`);
+          }
           if (view.label === "financas" && viewport.name === "mobile" && (!metrics.main.includes("Itens em aberto") || !metrics.main.includes("Você tem uma comanda aberta para acompanhar") || metrics.main.includes("Seus pagamentos estão em dia"))) {
             throw new Error(`${label}: resumo financeiro contradiz a comanda aberta do atleta fictício.`);
           }
