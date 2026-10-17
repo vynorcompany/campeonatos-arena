@@ -5,7 +5,7 @@ import vm from "node:vm";
 import test from "node:test";
 import ts from "typescript";
 import { getFinancialEntryBalance } from "../src/lib/finance/ledger";
-import { recurringBoletoEntryWhere } from "../src/lib/payments/recurring-charge-eligibility";
+import { recurringBoletoEntryWhere, recurringBoletoIssueDeadline } from "../src/lib/payments/recurring-charge-eligibility";
 import { collectRecurringChargeCandidates, recurringChargeBatchLimit } from "../src/lib/payments/recurring-charge-selection";
 import { getMissingBoletoPayerFields } from "../src/lib/payments/boleto-payer";
 
@@ -73,14 +73,14 @@ function loadRecurring(createBoleto: (input: Record<string, unknown>) => Promise
       if (name === "@/lib/payments/recurring-charge-selection") return { recurringChargeBatchLimit, collectRecurringChargeCandidates: scanEntries ? collectRecurringChargeCandidates : async () => ({ candidates: candidateIds.map((id) => ({ id, arenaId: "arena-a" })), failures: scanFailures.map((arenaId) => ({ arenaId, reason: new Error("Falha simulada na consulta") })) }) };
       if (name === "@/lib/finance/ledger") return { getFinancialEntryBalance };
       if (name === "@/lib/payments/financial-online-charge-claim") return { claimFinancialOnlineCharge: async (_tx: unknown, input: Record<string, unknown>) => { claims.push(input); return { ok: true, claimedAt: new Date("2035-01-01T12:00:00.000Z") }; } };
-      if (name === "@/lib/payments/recurring-charge-eligibility") return { recurringBoletoEntryWhere };
+      if (name === "@/lib/payments/recurring-charge-eligibility") return { recurringBoletoEntryWhere, recurringBoletoIssueDeadline };
       return require(name);
     },
   });
   return {
     issue: (arenaId: string, entryId: string, now = new Date("2034-12-25T12:00:00.000Z")) => (exports.issueRecurringOnlineChargeForEntry as (arenaId: string, entryId: string, now: Date) => Promise<{ created: boolean; skipped: boolean }>)(arenaId, entryId, now),
     batch: (now = new Date("2034-12-25T12:00:00.000Z")) => (exports.issueRecurringOnlineCharges as (now: Date) => Promise<{ scanned: number; created: number; skipped: number; failed: number }>)(now),
-    candidates: exports.recurringOnlineChargeCandidates as () => Promise<{ candidates: Array<{ id: string }>; failures: Array<{ arenaId: string }>; ineligible: number; ineligibleByArena: Record<string, number> }>,
+    candidates: (now = new Date()) => (exports.recurringOnlineChargeCandidates as (now: Date) => Promise<{ candidates: Array<{ id: string }>; failures: Array<{ arenaId: string }>; ineligible: number; ineligibleByArena: Record<string, number> }>)(now),
     claims, updates, errors, queries, alerts,
   };
 }
@@ -95,6 +95,32 @@ test("primeiro boleto aguarda a janela de 15 dias antes de chamar o provedor", a
   assert.equal(service.claims.length, 0);
   assert.equal(calls.length, 0);
   assert.deepEqual(JSON.parse(JSON.stringify(await service.issue("arena-a", "entry-a", new Date("2034-12-21T12:00:00.000Z")))), { created: true, skipped: false });
+  assert.equal(calls.length, 1);
+});
+
+test("janela de emissão inclui todo o 15º dia no filtro e antes de chamar o provedor", async () => {
+  const calls: Array<Record<string, unknown>> = [];
+  const scanEntries = [{
+    id: "entry-a", arenaId: "arena-a", dueDate: new Date("2035-01-05T12:00:00.000Z"), amountCents: 5000,
+    player: { email: "athlete@example.test", cpf: "12345678901", addressZipCode: "12345678", addressStreet: "Rua Teste", addressNumber: "1", addressNeighborhood: "Centro", addressCity: "Teste", addressState: "SP" },
+    settlements: [],
+  }];
+  const service = loadRecurring(async (input) => {
+    calls.push(input);
+    return { paymentId: "payment-a", checkoutUrl: "https://example.test/pay", qrCode: "", expiresAt: null };
+  }, [], [], scanEntries);
+  const issueService = loadRecurring(async (input) => {
+    calls.push(input);
+    return { paymentId: "payment-a", checkoutUrl: "https://example.test/pay", qrCode: "", expiresAt: null };
+  });
+  const beforeWindow = new Date("2034-12-20T23:59:00.000Z");
+  const firstEligibleMorning = new Date("2034-12-21T06:00:00.000Z");
+  assert.deepEqual(JSON.parse(JSON.stringify(await issueService.issue("arena-a", "entry-a", beforeWindow))), { created: false, skipped: false });
+  assert.equal(calls.length, 0);
+  await service.candidates(firstEligibleMorning);
+  const where = service.queries[0].where as { dueDate: { lte: Date } };
+  assert.equal(where.dueDate.lte.toISOString(), "2035-01-05T23:59:59.999Z");
+  assert.deepEqual(JSON.parse(JSON.stringify(await issueService.issue("arena-a", "entry-a", firstEligibleMorning))), { created: true, skipped: false });
   assert.equal(calls.length, 1);
 });
 
