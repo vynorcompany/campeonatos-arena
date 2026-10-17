@@ -573,6 +573,12 @@ async function main() {
       { label: "radar", query: "section=radar" },
       { label: "perfil", query: "section=profile" },
     ];
+    const expectedDarkText = {
+      avisos: { ".portal-announcements-feed > p.muted": "rgb(164, 200, 185)" },
+      super12: { ".super12-empty strong": "rgb(234, 255, 243)", ".super12-empty p": "rgb(164, 200, 185)" },
+      reservas: { ".portal-activity-list article span": "rgb(164, 200, 185)", ".portal-activity-list article b": "rgb(94, 229, 189)" },
+      perfil: { ".avatar-crop-field > small": "rgb(164, 200, 185)" },
+    };
     for (const viewport of viewports) {
       for (const theme of viewport.name === "mobile" ? ["light", "dark"] : ["light"]) {
         await send("Emulation.setDeviceMetricsOverride", { width: viewport.width, height: viewport.height, deviceScaleFactor: 1, mobile: viewport.name === "mobile" });
@@ -605,6 +611,18 @@ async function main() {
           await writeFile(`${outputDir}/${label}.png`, Buffer.from(shot.data, "base64"));
           if (metrics.path !== "/home" || !metrics.authenticated || metrics.main.trim().length < 40 || metrics.scrollWidth > metrics.width + 1 || /Algo saiu do fluxo|Application error|Internal Server Error/i.test(metrics.body) || metrics.body.includes("Receita beta GOAL")) {
             throw new Error(`${label}: portal inválido: ${JSON.stringify({ path: metrics.path, authenticated: metrics.authenticated, mainLength: metrics.main.trim().length, width: metrics.width, scrollWidth: metrics.scrollWidth })}`);
+          }
+          if (viewport.name === "mobile" && theme === "dark" && expectedDarkText[view.label]) {
+            const expected = expectedDarkText[view.label];
+            const rendered = await send("Runtime.evaluate", {
+              expression: `Object.fromEntries(${JSON.stringify(Object.keys(expected))}.map((selector) => [selector, document.querySelector(selector) ? getComputedStyle(document.querySelector(selector)).color : null]))`,
+              returnByValue: true,
+            });
+            for (const [selector, color] of Object.entries(expected)) {
+              if (rendered.result.value?.[selector] !== color) {
+                throw new Error(`${label}: contraste insuficiente em ${selector}: ${rendered.result.value?.[selector] ?? "ausente"}; esperado ${color}.`);
+              }
+            }
           }
           if (view.label === "inicio" && (!metrics.main.includes(viewport.name === "mobile" ? "Comanda em aberto" : "em aberto") || metrics.main.includes("Tudo em dia"))) {
             throw new Error(`${label}: a tela inicial ignora a comanda aberta do atleta fictício.`);
