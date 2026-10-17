@@ -13,6 +13,7 @@ import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 import { lockClassGroupCapacity } from "@/lib/academy/class-group-capacity";
 import { lockStudentPlanSubscription } from "@/lib/academy/subscription-lock";
+import { planRecurrenceOwnerWhere } from "@/lib/academy/plan-recurrence-owner";
 import { lessonSchema, studentSchema, teacherSchema } from "@/lib/academy/action-schemas";
 import {
   getClassGroupName,
@@ -902,12 +903,7 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
       },
     });
     await tx.financialRecurrence.updateMany({
-      where: {
-        arenaId: auth.arenaId,
-        planId,
-        counterpartyName: client.name,
-        active: true,
-      },
+      where: planRecurrenceOwnerWhere({ arenaId: auth.arenaId, planId, studentId: student.id, studentName: student.name, playerId: client.id }),
       data: { active: false },
     });
     const recurrence = await tx.financialRecurrence.create({
@@ -925,6 +921,7 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
         planId,
         teacherId,
         playerId: client.id,
+        studentId: student.id,
         notes: `Gerado pelo plano do professor. ${note}`,
       },
     });
@@ -1063,11 +1060,8 @@ export async function removeTeacherPlanStudentAction(formData: FormData) {
     tx.studentSubscription.findFirst({ where: { arenaId: auth.arenaId, studentId, planId, status: "ACTIVE" }, include: { student: { select: { id: true, name: true, playerId: true, remainingClasses: true } } } }),
   ]));
   if (!assignment || !subscription) throw new Error("Vínculo de plano não encontrado.");
-  const studentFinancialOwner = subscription.student.playerId
-    ? { OR: [{ playerId: subscription.student.playerId }, { playerId: null, counterpartyName: subscription.student.name }] }
-    : { counterpartyName: subscription.student.name };
   const recurrences = await withArenaTransaction(auth.arenaId, (tx) => tx.financialRecurrence.findMany({
-    where: { arenaId: auth.arenaId, planId, active: true, ...studentFinancialOwner },
+    where: planRecurrenceOwnerWhere({ arenaId: auth.arenaId, planId, studentId: subscription.student.id, studentName: subscription.student.name, playerId: subscription.student.playerId, startedAt: subscription.startedAt }),
     select: { id: true }
   }));
   const recurrenceIds = recurrences.map(({ id }) => id);

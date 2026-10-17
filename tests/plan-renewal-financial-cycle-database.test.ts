@@ -6,6 +6,7 @@ import vm from "node:vm";
 import { PrismaClient } from "@prisma/client";
 import ts from "typescript";
 import { lockStudentPlanSubscription } from "../src/lib/academy/subscription-lock";
+import { planRecurrenceOwnerWhere } from "../src/lib/academy/plan-recurrence-owner";
 import { subscriptionSchema } from "../src/lib/finance/action-schemas";
 import { getNextFinancialRecurrenceDate } from "../src/lib/finance/recurrences";
 
@@ -45,6 +46,7 @@ test("renovação cria novo ciclo de 12 sem apagar mensalidades anteriores nem c
       "@/lib/finance/action-schemas": { subscriptionSchema },
       "@/lib/finance/recurrences": { getNextFinancialRecurrenceDate },
       "@/lib/academy/subscription-lock": { lockStudentPlanSubscription },
+      "@/lib/academy/plan-recurrence-owner": { planRecurrenceOwnerWhere },
       "@/lib/payments/recurring-online-charges": { issueRecurringOnlineChargeForEntry: async () => { chargeAttempts += 1; } },
       "@/lib/finance/revalidation": { refreshFinanceRoutes() {} },
       "@/lib/prisma": { prisma: admin },
@@ -84,6 +86,7 @@ test("renovação cria novo ciclo de 12 sem apagar mensalidades anteriores nem c
     assert.equal(await admin.financialEntry.count({ where: { arenaId: arenaA.id, planId: ids.plans[1], playerId: ids.player } }), 12);
     assert.equal(await admin.financialRecurrence.count({ where: { arenaId: arenaA.id, planId: ids.plans[0], playerId: ids.player, active: true } }), 1);
     assert.equal(await admin.financialRecurrence.count({ where: { arenaId: arenaA.id, planId: ids.plans[0], playerId: ids.player, active: false } }), 1);
+    assert.equal(await admin.financialRecurrence.count({ where: { arenaId: arenaA.id, planId: ids.plans[0], studentId: ids.student } }), 2);
     assert.equal(chargeAttempts, 3);
 
     await assert.rejects(activate(ids.student, ids.plans[0]), /a partir do aniversário de 12 meses/);

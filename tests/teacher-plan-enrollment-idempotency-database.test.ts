@@ -8,6 +8,7 @@ import { PrismaClient } from "@prisma/client";
 import ts from "typescript";
 import { lockClassGroupCapacity } from "../src/lib/academy/class-group-capacity";
 import { lockStudentPlanSubscription } from "../src/lib/academy/subscription-lock";
+import { planRecurrenceOwnerWhere } from "../src/lib/academy/plan-recurrence-owner";
 import { getDiscountedAmountCents } from "../src/lib/finance/discounts";
 import { getNextFinancialRecurrenceDate } from "../src/lib/finance/recurrences";
 
@@ -56,6 +57,7 @@ test("duas inscrições no mesmo plano geram uma assinatura e doze lançamentos,
       "@/lib/payments/recurring-online-charges": { issueRecurringOnlineChargeForEntry: async () => { issuedCharges += 1; } },
       "@/lib/academy/class-group-capacity": { lockClassGroupCapacity },
       "@/lib/academy/subscription-lock": { lockStudentPlanSubscription },
+      "@/lib/academy/plan-recurrence-owner": { planRecurrenceOwnerWhere },
       "@/lib/academy/inputs": { parseMoneyToCents: () => 0 },
       "@/lib/academy/revalidation": { refreshAcademyRoutes() {} },
       "@/lib/prisma": { prisma: admin },
