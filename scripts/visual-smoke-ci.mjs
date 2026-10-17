@@ -1056,6 +1056,48 @@ async function main() {
       if (agencySubscription) await db.agencySubscription.delete({ where: { id: agencySubscription.id } });
       await db.agencyPlan.delete({ where: { id: agencyPlan.id } });
     }
+
+    const owner = await db.user.findUniqueOrThrow({ where: { id: "goal-test" }, select: { systemRole: true } });
+    const membership = await db.arenaMember.findFirstOrThrow({ where: { arenaId: arenaA.id, userId: "goal-test" }, select: { id: true, role: true, viewPermissions: true, editPermissions: true } });
+    const restrictedCourt = await db.court.findFirstOrThrow({ where: { arenaId: arenaA.id, name: "Quadra GOAL Agenda" }, select: { id: true } });
+    const restrictedStart = new Date(`${futureAgendaDate}T10:00:00.000Z`);
+    const restrictedBooking = await db.scheduleOccurrence.create({ data: {
+      arenaId: arenaA.id, sourceType: "BOOKING", status: "SCHEDULED", title: "Reserva restrita GOAL",
+      startsAt: restrictedStart, endsAt: new Date(restrictedStart.getTime() + 60 * 60_000),
+      occurrenceCourts: { create: [{ courtId: restrictedCourt.id }] },
+    } });
+    try {
+      await db.user.update({ where: { id: "goal-test" }, data: { systemRole: "VIEWER" } });
+      await db.arenaMember.update({ where: { id: membership.id }, data: {
+        role: "STAFF", viewPermissions: ["calendar"], editPermissions: ["calendar:booking:create"],
+      } });
+      for (const viewport of viewports) {
+        const label = `${viewport.name}-agenda-permissao-criar`;
+        const body = await visit(`/agenda?data=${futureAgendaDate}`, viewport, arenaA.id, label);
+        if (!body.includes("Reserva restrita GOAL")) throw new Error(`${label}: reserva fictícia não apareceu.`);
+        const actions = await send("Runtime.evaluate", {
+          expression: "(() => { const cell = [...document.querySelectorAll('td')].find((item) => item.textContent?.includes('Reserva restrita GOAL')); if (!cell) return null; const cancel = cell.querySelector('button[aria-label=\"Ações da reserva\"]'); cell.querySelector('button')?.click(); return { cancelVisible: Boolean(cancel), opened: Boolean(cell) }; })()",
+          returnByValue: true,
+        });
+        if (!actions.result.value?.opened || actions.result.value.cancelVisible) throw new Error(`${label}: ação de cancelamento disponível para perfil que só pode criar reservas.`);
+        await pause(300);
+        const dialog = await send("Runtime.evaluate", {
+          expression: "(() => { const el = document.querySelector('[role=dialog][aria-label=\"Agendamento de horário\"]'); if (!el) return null; const footer = el.querySelector('footer'); const rect = el.getBoundingClientRect(); return { canSave: [...(footer?.querySelectorAll('button') ?? [])].some((button) => button.textContent?.includes('Salvar agendamento')), canCancel: [...(footer?.querySelectorAll('button') ?? [])].some((button) => button.textContent?.includes('Cancelar reserva')), overflow: el.scrollWidth > el.clientWidth + 1 || document.documentElement.scrollWidth > innerWidth + 1, left: rect.left, right: rect.right, width: innerWidth }; })()",
+          returnByValue: true,
+        });
+        if (!dialog.result.value || dialog.result.value.canSave || dialog.result.value.canCancel || dialog.result.value.overflow || dialog.result.value.left < -1 || dialog.result.value.right > dialog.result.value.width + 1) {
+          throw new Error(`${label}: o modal de leitura ficou cortado ou permitiu editar/cancelar: ${JSON.stringify(dialog.result.value)}`);
+        }
+        const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+        await writeFile(`${outputDir}/${label}-modal.png`, Buffer.from(shot.data, "base64"));
+      }
+      console.log("Agenda: perfil limitado a criar não edita ou cancela reservas existentes em desktop e celular.");
+    } finally {
+      await db.arenaMember.update({ where: { id: membership.id }, data: { role: membership.role, viewPermissions: membership.viewPermissions, editPermissions: membership.editPermissions } });
+      await db.user.update({ where: { id: "goal-test" }, data: { systemRole: owner.systemRole } });
+      await db.scheduleOccurrenceCourt.deleteMany({ where: { occurrenceId: restrictedBooking.id } });
+      await db.scheduleOccurrence.delete({ where: { id: restrictedBooking.id } });
+    }
   } finally {
     socket?.close();
     browser?.kill();

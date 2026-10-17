@@ -1,9 +1,9 @@
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
-import type { CSSProperties } from "react";
+import type { ComponentProps, CSSProperties } from "react";
 import { AgendaMonthPicker } from "@/components/agenda-month-picker";
-import { AgendaSlotDialog } from "@/components/agenda-slot-dialog";
+import { AgendaSlotDialog as BaseAgendaSlotDialog } from "@/components/agenda-slot-dialog";
 import { OnlineBookingSettingsDialog } from "@/components/online-booking-settings-dialog";
 import { requireModuleView } from "@/lib/auth/guards";
 import { withArenaTransaction } from "@/lib/rls";
@@ -11,6 +11,7 @@ import { standardServicePrices } from "@/lib/calendar/standard-services";
 import { activeCourtOccurrenceWhere } from "@/lib/calendar/online-booking-hold";
 import { arenaToday } from "@/lib/calendar/arena-wall-clock";
 import { isConfirmedSchedulePaymentMethod } from "@/lib/calendar/booking-payment-claim";
+import { canPerformPermission } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -70,6 +71,12 @@ export default async function AgendaPage(props: AgendaPageProps) {
   const dayHref = (date: Date) => `/agenda?data=${dateInputValue(date)}`;
   const selectedDateLabel = new Intl.DateTimeFormat("pt-BR", { weekday: "long", day: "2-digit", month: "short" }).format(selectedDate);
   const gridMinWidth = 64 + courts.length * 220;
+  const canCreateBooking = canPerformPermission("calendar:booking:create", auth.arenaRole, auth.systemRole, auth.editPermissions);
+  const canEditBooking = canPerformPermission("calendar:booking:edit", auth.arenaRole, auth.systemRole, auth.editPermissions);
+  const canCancelBooking = canPerformPermission("calendar:booking:cancel", auth.arenaRole, auth.systemRole, auth.editPermissions);
+  const canReleaseBooking = canPerformPermission("calendar:recurrence:release", auth.arenaRole, auth.systemRole, auth.editPermissions);
+  const AgendaSlotDialog = (dialogProps: Omit<ComponentProps<typeof BaseAgendaSlotDialog>, "canCreateBooking" | "canEditBooking" | "canCancelBooking" | "canReleaseBooking">) =>
+    <BaseAgendaSlotDialog {...dialogProps} canCreateBooking={canCreateBooking} canEditBooking={canEditBooking} canCancelBooking={canCancelBooking} canReleaseBooking={canReleaseBooking} />;
 
   return <div className={viewStyles.agenda_page} aria-label="Agenda de quadras">
     <div className={viewStyles.agenda_date_strip}>
