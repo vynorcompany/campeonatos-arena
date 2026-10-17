@@ -11,7 +11,7 @@ import { finalizePaidCourtBooking } from "../src/lib/calendar/paid-booking-final
 import { arenaWallClockToInstant, instantToArenaWallClock } from "../src/lib/calendar/arena-wall-clock";
 import { calculateCourtIntervalPrice, isCourtBookingStartOnGrid } from "../src/lib/calendar/court-interval-pricing";
 import { parseScheduledAt } from "../src/lib/calendar/inputs";
-import { claimOnlineBookingPaymentMethod, isConfirmedSchedulePaymentMethod } from "../src/lib/calendar/booking-payment-claim";
+import { cancelUnpaidOnlineBooking, claimOnlineBookingPaymentMethod, isConfirmedSchedulePaymentMethod } from "../src/lib/calendar/booking-payment-claim";
 import { upcomingPlayerReservationsWhere } from "../src/lib/portal/upcoming-reservations";
 import { getBookingDelinquency } from "../src/lib/calendar/booking-delinquency";
 
@@ -303,6 +303,34 @@ test("uma reserva só inicia um método de pagamento durante o bloqueio", { skip
       assert.equal((await claimOnlineBookingPaymentMethod(tx, input))?.id, booking.id);
       assert.equal((await tx.scheduleParticipant.findFirstOrThrow({ where: { occurrenceId: booking.id, playerId }, select: { paymentMethod: true } })).paymentMethod, "MERCADO_PAGO_PENDING:PIX");
       await assert.rejects(claimOnlineBookingPaymentMethod(tx, { ...input, method: "CARD" }), /Já existe uma cobrança iniciada/);
+      throw rollback;
+    }), (error: unknown) => error === rollback);
+  } finally {
+    await db.$disconnect();
+  }
+});
+
+test("atleta não cancela reserva após iniciar pagamento nem alcança outra arena", { skip: !disposableDatabase }, async () => {
+  const db = new PrismaClient({ datasources: { db: { url: runtimeUrl } } });
+  const rollback = new Error("rollback do cancelamento online descartável");
+  try {
+    await assert.rejects(db.$transaction(async (tx) => {
+      const arenaA = await tx.arena.findUniqueOrThrow({ where: { slug: "arena-teste-goal" }, select: { id: true } });
+      const arenaB = await tx.arena.findUniqueOrThrow({ where: { slug: "arena-beta-goal" }, select: { id: true } });
+      const playerId = "goal-athlete-a";
+      await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaA.id}, true)`;
+      const createBooking = (paymentMethod: string) => tx.scheduleOccurrence.create({ data: {
+        arenaId: arenaA.id, sourceType: "ONLINE_BOOKING", title: "Cancelamento descartável GOAL",
+        startsAt: new Date("2036-08-02T14:00:00.000Z"), endsAt: new Date("2036-08-02T15:00:00.000Z"),
+        status: "PENDING_PAYMENT", participants: { create: { playerId, paymentMethod } },
+      }, select: { id: true } });
+      const unpaid = await createBooking("");
+      const initiated = await createBooking("MERCADO_PAGO_PENDING:PIX");
+      assert.equal((await cancelUnpaidOnlineBooking(tx, { arenaId: arenaA.id, occurrenceId: unpaid.id, playerId })).count, 1);
+      assert.equal((await cancelUnpaidOnlineBooking(tx, { arenaId: arenaA.id, occurrenceId: initiated.id, playerId })).count, 0);
+      assert.equal((await tx.scheduleOccurrence.findUniqueOrThrow({ where: { id: initiated.id }, select: { status: true } })).status, "PENDING_PAYMENT");
+      await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaB.id}, true)`;
+      assert.equal((await cancelUnpaidOnlineBooking(tx, { arenaId: arenaB.id, occurrenceId: initiated.id, playerId })).count, 0);
       throw rollback;
     }), (error: unknown) => error === rollback);
   } finally {

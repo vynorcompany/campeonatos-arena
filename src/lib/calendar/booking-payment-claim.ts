@@ -10,6 +10,22 @@ export function isConfirmedSchedulePaymentMethod(paymentMethod: string) {
   return Boolean(paymentMethod) && !paymentMethod.startsWith(pendingMethodPrefix);
 }
 
+export async function cancelUnpaidOnlineBooking(
+  tx: ArenaTransaction,
+  input: { arenaId: string; occurrenceId: string; playerId: string },
+) {
+  return tx.scheduleOccurrence.updateMany({
+    where: {
+      id: input.occurrenceId,
+      arenaId: input.arenaId,
+      sourceType: "ONLINE_BOOKING",
+      status: { in: ["PENDING_PAYMENT", "PENDING_CONFIRMATION"] },
+      participants: { some: { playerId: input.playerId, paymentMethod: "" } },
+    },
+    data: { status: "CANCELED" },
+  });
+}
+
 export async function claimOnlineBookingPaymentMethod(
   tx: ArenaTransaction,
   input: { arenaId: string; occurrenceId: string; playerId: string; method: BookingPaymentMethod },

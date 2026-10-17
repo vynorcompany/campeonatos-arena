@@ -50,6 +50,12 @@ test("online booking serializes same-court requests and reports a readable confl
   assert.match(form, /if \(!result\.ok\) \{ setMessage\(result\.error\); return; \}/);
 });
 
+test("portal só cancela solicitação sem pagamento iniciado", () => {
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/calendar.ts"), "utf8");
+  assert.match(actions, /cancelPublicCourtBookingRequestAction[\s\S]*cancelUnpaidOnlineBooking\(tx,/);
+  assert.match(actions, /Se você iniciou o pagamento, aguarde a confirmação/);
+});
+
 test("bloqueio por inadimplência é configurável, validado no servidor e avisado no portal", () => {
   const schema = readFileSync(resolve(process.cwd(), "prisma/schema.prisma"), "utf8");
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/calendar.ts"), "utf8");
