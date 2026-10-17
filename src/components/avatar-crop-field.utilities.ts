@@ -4,7 +4,7 @@ export const viewStyles = {
   "avatar_crop_field": [
     "avatar-crop-field", "tw:grid", "tw:grid-cols-[auto_minmax(0,_1fr)]", "tw:viewport-620:grid-cols-[1fr]",
     "tw:items-center", "tw:gap-y-[12px]", "tw:gap-x-[16px]", "tw:[&_>_small]:[grid-column:2]",
-    "tw:viewport-620:[&_>_small]:[grid-column:auto]", "tw:[&_>_small]:mt-[-7px]", "tw:[&_>_small]:text-[color:#6b8291]", "tw:dark:[&_>_small]:text-[color:#a4c8b9]", "tw:[&_>_small]:text-[.72rem]",
+    "tw:viewport-620:[&_>_small]:[grid-column:auto]", "tw:[&_>_small]:mt-[-7px]", "tw:[&_>_small]:text-[color:#6b8291]", "tw:[&_>_small]:text-[.72rem]",
     "tw:[&_>_small]:leading-[1.4]", "tw:viewport-620:[justify-items:start]",
   ].join(" "),
   "avatar_crop_output": [

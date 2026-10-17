@@ -1078,7 +1078,7 @@ export const viewStyles = {
     "tw:[&_article]:border-r-[length:1px]", "tw:[&_article]:[border-right-style:solid]", "tw:[&_article]:border-r-[color:#d4e5eb]", "tw:[&_article]:border-b-[length:1px]",
     "tw:[&_article]:[border-bottom-style:solid]", "tw:[&_article]:border-b-[color:#d4e5eb]", "tw:[&_article]:border-l-[length:1px]", "tw:[&_article]:[border-left-style:solid]",
     "tw:[&_article]:border-l-[color:#d4e5eb]", "tw:[&_article]:rounded-[9px]", "tw:[&_article]:bg-[color:#fbfeff]", "tw:[&_article]:[background-image:none]",
-    "tw:[&_article_div]:grid", "tw:[&_article_div]:gap-y-[3px]", "tw:[&_article_div]:gap-x-[3px]", "tw:[&_span]:text-[color:#607a8d]",
+    "tw:[&_article_div]:grid", "tw:[&_article_div]:gap-y-[3px]", "tw:[&_article_div]:gap-x-[3px]", "tw:[&_article_strong]:text-[color:#133047]", "tw:[&_span]:text-[color:#607a8d]",
     "tw:[&_span]:text-[.78rem]", "tw:[&_b]:[align-self:center]", "tw:[&_b]:text-[color:#087b63]", "tw:[&_b]:text-[.7rem]",
   ].join(" "),
   "athlete_portal_content_panel_athlete_portal_learning_panel": [

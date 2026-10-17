@@ -143,8 +143,8 @@ export const viewStyles = {
     "tw:pl-[24px]", "tw:border-t-[length:1px]", "tw:[border-top-style:dashed]", "tw:border-t-[color:#bad4e0]",
     "tw:border-r-[length:1px]", "tw:[border-right-style:dashed]", "tw:border-r-[color:#bad4e0]", "tw:border-b-[length:1px]",
     "tw:[border-bottom-style:dashed]", "tw:border-b-[color:#bad4e0]", "tw:border-l-[length:1px]", "tw:[border-left-style:dashed]",
-    "tw:border-l-[color:#bad4e0]", "tw:rounded-[10px]", "tw:text-[color:#547386]", "tw:dark:text-[color:#a4c8b9]!", "tw:text-center",
-    "tw:[&_strong]:text-[color:#164b66]", "tw:dark:[&_strong]:text-[color:#eafff3]!", "tw:[&_p]:mt-[4px]", "tw:[&_p]:mr-[0]", "tw:[&_p]:mb-[0]",
+    "tw:border-l-[color:#bad4e0]", "tw:rounded-[10px]", "tw:text-[color:#a4c8b9]", "tw:text-center",
+    "tw:[&_strong]:text-[color:#eafff3]", "tw:[&_p]:mt-[4px]", "tw:[&_p]:mr-[0]", "tw:[&_p]:mb-[0]",
     "tw:[&_p]:ml-[0]", "tw:[&_p]:text-[.78rem]",
   ].join(" "),
 } as const;

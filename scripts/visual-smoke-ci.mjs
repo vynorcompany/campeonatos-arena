@@ -576,8 +576,19 @@ async function main() {
     const expectedDarkText = {
       avisos: { ".portal-announcements-feed > p.muted": "rgb(164, 200, 185)" },
       super12: { ".super12-empty strong": "rgb(234, 255, 243)", ".super12-empty p": "rgb(164, 200, 185)" },
-      reservas: { ".portal-activity-list article span": "rgb(164, 200, 185)", ".portal-activity-list article b": "rgb(94, 229, 189)" },
+      reservas: { ".portal-activity-list article strong": "rgb(234, 255, 243)", ".portal-activity-list article span": "rgb(164, 200, 185)", ".portal-activity-list article b": "rgb(94, 229, 189)" },
       perfil: { ".avatar-crop-field > small": "rgb(164, 200, 185)" },
+    };
+    const expectedDesktopText = {
+      avisos: { ".portal-announcements-feed > p.muted": "rgb(164, 200, 185)" },
+      super12: { ".super12-empty strong": "rgb(234, 255, 243)", ".super12-empty p": "rgb(164, 200, 185)" },
+      reservas: { ".portal-activity-list article strong": "rgb(19, 48, 71)" },
+      perfil: { ".avatar-crop-field > small": "rgb(164, 200, 185)" },
+    };
+    const expectedMobileLightText = {
+      avisos: { ".portal-announcements-feed > p.muted": "rgb(96, 126, 141)" },
+      super12: { ".super12-empty strong": "rgb(19, 48, 71)" },
+      perfil: { ".avatar-crop-field > small": "rgb(96, 126, 141)" },
     };
     for (const viewport of viewports) {
       for (const theme of viewport.name === "mobile" ? ["light", "dark"] : ["light"]) {
@@ -612,8 +623,8 @@ async function main() {
           if (metrics.path !== "/home" || !metrics.authenticated || metrics.main.trim().length < 40 || metrics.scrollWidth > metrics.width + 1 || /Algo saiu do fluxo|Application error|Internal Server Error/i.test(metrics.body) || metrics.body.includes("Receita beta GOAL")) {
             throw new Error(`${label}: portal inválido: ${JSON.stringify({ path: metrics.path, authenticated: metrics.authenticated, mainLength: metrics.main.trim().length, width: metrics.width, scrollWidth: metrics.scrollWidth })}`);
           }
-          if (viewport.name === "mobile" && theme === "dark" && expectedDarkText[view.label]) {
-            const expected = expectedDarkText[view.label];
+          const expected = viewport.name === "desktop" ? expectedDesktopText[view.label] : theme === "dark" ? expectedDarkText[view.label] : expectedMobileLightText[view.label];
+          if (expected) {
             const rendered = await send("Runtime.evaluate", {
               expression: `Object.fromEntries(${JSON.stringify(Object.keys(expected))}.map((selector) => [selector, document.querySelector(selector) ? getComputedStyle(document.querySelector(selector)).color : null]))`,
               returnByValue: true,
