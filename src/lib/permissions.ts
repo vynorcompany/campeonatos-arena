@@ -75,6 +75,11 @@ export function hasPermissionKey(permissions: string[], key: string) {
   return permissions.includes(key) || (permissionModule ? permissions.includes(permissionModule) : false);
 }
 
+export function canPerformPermission(key: string, role: string | null, systemRole: string, editPermissions: string[]) {
+  return systemRole === "SUPER_ADMIN" || systemRole === "ADMIN" || role === "OWNER"
+    || hasPermissionKey(editPermissions, key);
+}
+
 export function defaultPermissionsForRole(role: string) {
   if (role === "OWNER" || role === "ADMIN") {
     return {

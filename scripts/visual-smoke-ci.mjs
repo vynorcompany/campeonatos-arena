@@ -130,9 +130,9 @@ async function main() {
     await send("Runtime.enable");
     await send("Network.enable");
     await send("Emulation.setLocaleOverride", { locale: "pt-BR" });
-    const cookie = (arenaId) => `padel_session=${sessionToken}; padel_arena=${arenaId}`;
-    const selectArena = async (arenaId) => {
-      const session = await send("Network.setCookie", { name: "padel_session", value: sessionToken, url: baseUrl, httpOnly: true, sameSite: "Lax" });
+    const cookie = (arenaId, token = sessionToken) => `padel_session=${token}; padel_arena=${arenaId}`;
+    const selectArena = async (arenaId, token = sessionToken) => {
+      const session = await send("Network.setCookie", { name: "padel_session", value: token, url: baseUrl, httpOnly: true, sameSite: "Lax" });
       const arena = await send("Network.setCookie", { name: "padel_arena", value: arenaId, url: baseUrl, httpOnly: true, sameSite: "Lax" });
       if (!session.success || !arena.success) throw new Error("Não foi possível configurar a sessão de teste.");
     };
@@ -144,14 +144,14 @@ async function main() {
       }
       throw new Error("A animação de entrada da página não terminou antes da captura.");
     };
-    const visit = async (path, viewport, arenaId, label) => {
+    const visit = async (path, viewport, arenaId, label, token = sessionToken) => {
       const pathname = path.split("?", 1)[0];
-      const response = await fetch(`${baseUrl}${path}`, { headers: { Cookie: cookie(arenaId) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
+      const response = await fetch(`${baseUrl}${path}`, { headers: { Cookie: cookie(arenaId, token) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
       await response.body?.cancel();
       if (response.status !== 200) throw new Error(`${label}: HTTP ${response.status} (${response.headers.get("location") ?? "sem destino"})`);
       await send("Emulation.setDeviceMetricsOverride", { width: viewport.width, height: viewport.height, deviceScaleFactor: 1, mobile: viewport.name === "mobile" });
       await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: "light" }] });
-      await selectArena(arenaId);
+      await selectArena(arenaId, token);
       await send("Page.navigate", { url: `${baseUrl}${path}` });
       let metrics;
       for (let attempt = 0; attempt < 60; attempt += 1) {
@@ -1055,6 +1055,47 @@ async function main() {
       if (agencyEntry) await db.financialEntry.delete({ where: { id: agencyEntry.id } });
       if (agencySubscription) await db.agencySubscription.delete({ where: { id: agencySubscription.id } });
       await db.agencyPlan.delete({ where: { id: agencyPlan.id } });
+    }
+
+    const restrictedToken = createHash("sha256").update(`restricted:${sessionToken}`).digest("hex");
+    const restrictedUser = await db.user.create({ data: { name: "Operador restrito GOAL", email: "goal-restricted@example.test", passwordHash: "test-only", systemRole: "VIEWER" } });
+    await db.arenaMember.create({ data: { arenaId: arenaA.id, userId: restrictedUser.id, role: "STAFF", viewPermissions: ["calendar"], editPermissions: ["calendar:booking:create"] } });
+    await db.session.create({ data: { userId: restrictedUser.id, token: createHash("sha256").update(restrictedToken).digest("hex"), expiresAt: new Date(Date.now() + 60 * 60_000) } });
+    const restrictedCourt = await db.court.findFirstOrThrow({ where: { arenaId: arenaA.id, name: "Quadra GOAL Agenda" }, select: { id: true } });
+    const restrictedStart = new Date(`${futureAgendaDate}T10:00:00.000Z`);
+    const restrictedBooking = await db.scheduleOccurrence.create({ data: {
+      arenaId: arenaA.id, sourceType: "BOOKING", status: "SCHEDULED", title: "Reserva restrita GOAL",
+      startsAt: restrictedStart, endsAt: new Date(restrictedStart.getTime() + 60 * 60_000),
+      occurrenceCourts: { create: [{ courtId: restrictedCourt.id }] },
+    } });
+    try {
+      for (const viewport of viewports) {
+        const label = `${viewport.name}-agenda-permissao-criar`;
+        const body = await visit(`/agenda?data=${futureAgendaDate}`, viewport, arenaA.id, label, restrictedToken);
+        if (!body.includes("Reserva restrita GOAL") || (viewport.name === "desktop" && !body.includes("Operador restrito GOAL"))) throw new Error(`${label}: sessão limitada ou reserva fictícia não apareceu.`);
+        const actions = await send("Runtime.evaluate", {
+          expression: "(() => { const cell = [...document.querySelectorAll('td')].find((item) => item.textContent?.includes('Reserva restrita GOAL')); if (!cell) return null; cell.scrollIntoView({ block: 'center', inline: 'center' }); const cancel = cell.querySelector('button[aria-label=\"Ações da reserva\"]'); cell.querySelector('button')?.click(); return { cancelVisible: Boolean(cancel), opened: Boolean(cell) }; })()",
+          returnByValue: true,
+        });
+        if (!actions.result.value?.opened || actions.result.value.cancelVisible) throw new Error(`${label}: ação de cancelamento disponível para perfil que só pode criar reservas.`);
+        await pause(300);
+        const dialog = await send("Runtime.evaluate", {
+          expression: "(() => { const el = document.querySelector('[role=dialog][aria-label=\"Agendamento de horário\"]'); if (!el) return null; const footer = el.querySelector('footer'); const rect = el.getBoundingClientRect(); return { canSave: [...(footer?.querySelectorAll('button') ?? [])].some((button) => button.textContent?.includes('Salvar agendamento')), canCancel: [...(footer?.querySelectorAll('button') ?? [])].some((button) => button.textContent?.includes('Cancelar reserva')), overflow: el.scrollWidth > el.clientWidth + 1 || document.documentElement.scrollWidth > innerWidth + 1, left: rect.left, right: rect.right, width: innerWidth }; })()",
+          returnByValue: true,
+        });
+        if (!dialog.result.value || dialog.result.value.canSave || dialog.result.value.canCancel || dialog.result.value.overflow || dialog.result.value.left < -1 || dialog.result.value.right > dialog.result.value.width + 1) {
+          throw new Error(`${label}: o modal de leitura ficou cortado ou permitiu editar/cancelar: ${JSON.stringify(dialog.result.value)}`);
+        }
+        const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+        await writeFile(`${outputDir}/${label}-modal.png`, Buffer.from(shot.data, "base64"));
+      }
+      console.log("Agenda: perfil limitado a criar não edita ou cancela reservas existentes em desktop e celular.");
+    } finally {
+      await db.scheduleOccurrenceCourt.deleteMany({ where: { occurrenceId: restrictedBooking.id } });
+      await db.scheduleOccurrence.delete({ where: { id: restrictedBooking.id } });
+      await db.session.deleteMany({ where: { userId: restrictedUser.id } });
+      await db.arenaMember.deleteMany({ where: { userId: restrictedUser.id } });
+      await db.user.delete({ where: { id: restrictedUser.id } });
     }
   } finally {
     socket?.close();

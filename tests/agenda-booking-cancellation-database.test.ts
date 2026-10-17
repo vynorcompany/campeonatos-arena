@@ -6,6 +6,7 @@ import vm from "node:vm";
 import { PrismaClient } from "@prisma/client";
 import ts from "typescript";
 import { boletoCancellationDisposition } from "../src/lib/payments/boleto-cancellation";
+import { canPerformPermission } from "../src/lib/permissions";
 
 const testUrl = process.env.ARENA_GOAL_TEST_DATABASE_URL ?? "";
 const disposableDatabase = (() => {
@@ -25,6 +26,7 @@ test("cancelar reserva respeita a escolha sobre cobranças abertas sem afetar va
   const entryIds: string[] = [];
   const settlementIds: string[] = [];
   const canceledPaymentIds: string[] = [];
+  let editPermissions = ["calendar"];
   try {
     const arenaA = await admin.arena.findUniqueOrThrow({ where: { slug: "arena-teste-goal" }, select: { id: true } });
     const arenaB = await admin.arena.findUniqueOrThrow({ where: { slug: "arena-beta-goal" }, select: { id: true } });
@@ -34,7 +36,13 @@ test("cancelar reserva respeita a escolha sobre cobranças abertas sem afetar va
     const mocks: Record<string, unknown> = {
       "next/cache": { revalidatePath() {} },
       zod: require("zod"),
-      "@/lib/auth/guards": { requireModuleEdit: async () => ({ arenaId: arenaA.id }) },
+      "@/lib/auth/guards": {
+        requireModuleEdit: async () => ({ arenaId: arenaA.id }),
+        requirePermission: async (key: string) => {
+          if (!canPerformPermission(key, "STAFF", "VIEWER", editPermissions)) throw new Error("Sem permissão para executar esta ação.");
+          return { arenaId: arenaA.id };
+        },
+      },
       "@/lib/auth/player-session": {},
       "@/lib/prisma": { prisma: admin },
       "@/lib/rls": { withArenaTransaction: (arenaId: string, operation: (tx: unknown) => Promise<unknown>) => runtime.$transaction(async (tx) => {
@@ -90,6 +98,18 @@ test("cancelar reserva respeita a escolha sobre cobranças abertas sem afetar va
 
     const keptOccurrence = await createOccurrence(arenaA.id);
     const keptEntry = await createEntry(arenaA.id, keptOccurrence, "PENDING");
+    editPermissions = ["calendar:booking:create"];
+    await assert.rejects(cancel(keptOccurrence, "yes"), /Sem permissão/);
+    assert.equal((await admin.scheduleOccurrence.findUniqueOrThrow({ where: { id: keptOccurrence } })).status, "SCHEDULED");
+    editPermissions = ["calendar:booking:cancel"];
+    const releaseForm = new FormData();
+    releaseForm.set("occurrenceId", keptOccurrence);
+    releaseForm.set("mode", "FREE");
+    releaseForm.set("cancelOpenCharges", "no");
+    await assert.rejects(exports.cancelCourtBookingAction(releaseForm), /Sem permissão/);
+    editPermissions = ["calendar:recurrence:release"];
+    await assert.rejects(cancel(keptOccurrence, "yes"), /Sem permissão/);
+    editPermissions = ["calendar"];
     await cancel(keptOccurrence, "no");
     assert.equal((await admin.scheduleOccurrence.findUniqueOrThrow({ where: { id: keptOccurrence } })).status, "CANCELED");
     assert.equal((await admin.financialEntry.findUniqueOrThrow({ where: { id: keptEntry } })).status, "PENDING");

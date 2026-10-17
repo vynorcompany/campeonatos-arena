@@ -1,6 +1,6 @@
 import { requireArenaAccess, requireAuth } from "@/lib/auth/session";
 import { notFound } from "next/navigation";
-import { canDeleteFinancialEntries, canEditModule, canManageWhatsApp, canSendWhatsApp, canViewModule, hasPermissionKey, type PermissionModule } from "@/lib/permissions";
+import { canDeleteFinancialEntries, canEditModule, canManageWhatsApp, canPerformPermission, canSendWhatsApp, canViewModule, type PermissionModule } from "@/lib/permissions";
 import type { ArenaRole, SystemRole } from "@/types/auth";
 
 const roleWeight: Record<ArenaRole, number> = {
@@ -74,9 +74,8 @@ export async function requireWhatsAppManage() {
 
 export async function requirePermission(key: string, mode: "view" | "edit" = "edit") {
   const auth = await requireArenaAccess();
-  if (systemWeight[auth.systemRole] >= systemWeight.ADMIN || auth.arenaRole === "OWNER") return auth;
   const permissions = mode === "view" ? auth.viewPermissions : auth.editPermissions;
-  if (!hasPermissionKey(permissions, key)) throw new Error("Sem permissão para executar esta ação.");
+  if (!canPerformPermission(key, auth.arenaRole, auth.systemRole, permissions)) throw new Error("Sem permissão para executar esta ação.");
   return auth;
 }
 

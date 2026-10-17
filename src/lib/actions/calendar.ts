@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireModuleEdit } from "@/lib/auth/guards";
+import { requireModuleEdit, requirePermission } from "@/lib/auth/guards";
 import { requirePublicPlayerAuth } from "@/lib/auth/player-session";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
@@ -264,7 +264,7 @@ export async function startPublicCourtBookingPaymentAction(formData: FormData) {
 }
 
 export async function confirmOnlineBookingAction(formData: FormData) {
-  const auth = await requireModuleEdit("calendar");
+  const auth = await requirePermission("calendar:booking:edit");
   const occurrenceId = z.string().trim().min(1).safeParse(formData.get("occurrenceId"));
   if (!occurrenceId.success) throw new Error("Reserva inválida.");
   const message = await withArenaTransaction(auth.arenaId, async (tx) => {
@@ -283,9 +283,9 @@ export async function confirmOnlineBookingAction(formData: FormData) {
 }
 
 export async function cancelCourtBookingAction(formData: FormData) {
-  const auth = await requireModuleEdit("calendar");
   const parsed = z.object({ occurrenceId: z.string().trim().min(1), mode: z.enum(["CANCEL", "FREE"]).default("CANCEL"), cancelOpenCharges: z.enum(["yes", "no"]) }).safeParse({ occurrenceId: formData.get("occurrenceId"), mode: formData.get("mode"), cancelOpenCharges: formData.get("cancelOpenCharges") });
   if (!parsed.success) throw new Error("Horário inválido.");
+  const auth = await requirePermission(parsed.data.mode === "FREE" ? "calendar:recurrence:release" : "calendar:booking:cancel");
   const handledPayments = new Set<string>();
   const preservedEntries = new Set<string>();
   if (parsed.data.cancelOpenCharges === "yes") {
@@ -355,7 +355,6 @@ export async function createQuickPlayerAction(formData: FormData) {
 
 export async function saveCourtBookingAction(formData: FormData): Promise<CourtBookingActionResult> {
   try {
-  const auth = await requireModuleEdit("calendar");
   const parsed = courtBookingSchema.safeParse({
     occurrenceId: String(formData.get("occurrenceId") ?? ""), courtId: formData.get("courtId"), courtIds: formData.get("courtIds"), title: formData.get("title"),
     startsAt: formData.get("startsAt"), durationMinutes: formData.get("durationMinutes"), bookingTypeName: formData.get("bookingTypeName"),
@@ -363,6 +362,7 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
     teacherId: formData.get("teacherId"), responsiblePlayerId: formData.get("responsiblePlayerId"), notes: formData.get("notes"), participants: formData.get("participants")
   });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  const auth = await requirePermission(parsed.data.occurrenceId ? "calendar:booking:edit" : "calendar:booking:create");
   const startsAt = parseScheduledAt(parsed.data.startsAt);
   const endsAt = new Date(startsAt.getTime() + parsed.data.durationMinutes * 60_000);
   const fixedBooking = isFixedBookingType(parsed.data.bookingTypeName);
