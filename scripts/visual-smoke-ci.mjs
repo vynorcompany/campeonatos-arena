@@ -547,16 +547,9 @@ async function main() {
         throw new Error(`${viewport.name}: navegação pelo menu lateral falhou: ${JSON.stringify(navigated).slice(0, 500)}`);
       }
       console.log(`${viewport.name}: colaborador abriu Clientes pelo menu lateral e liberou a rolagem.`);
-      await selectArena(arenaA.id);
-      await send("Page.navigate", { url: `${baseUrl}/jogadores` });
-      let ownerMenuReady = false;
-      for (let attempt = 0; attempt < 80; attempt += 1) {
-        const response = await send("Runtime.evaluate", { expression: "location.pathname === '/jogadores' && Boolean(document.querySelector('#arena-mobile-navigation a[href=\"/agenda\"]'))", returnByValue: true });
-        ownerMenuReady = response.result.value;
-        if (ownerMenuReady) break;
-        await pause(250);
-      }
-      if (!ownerMenuReady) throw new Error(`${viewport.name}: menu completo do proprietário não carregou.`);
+      await visit("/jogadores", viewport, arenaA.id, `${viewport.name}-owner-navigation-ready`);
+      const ownerMenu = await send("Runtime.evaluate", { expression: "Boolean(document.querySelector('#arena-mobile-navigation a[href=\"/agenda\"]'))", returnByValue: true });
+      if (!ownerMenu.result.value) throw new Error(`${viewport.name}: menu completo do proprietário não carregou.`);
       for (const destination of ["/agenda", "/torneios", "/financeiro/contas-a-receber"]) {
         if (viewport.name === "mobile") {
           await clickElement('button[aria-label="Abrir menu"]');
@@ -588,6 +581,7 @@ async function main() {
           const clickEvent = await send("Runtime.evaluate", { expression: "window.__lastSyntheticClick ?? null", returnByValue: true });
           throw new Error(`${viewport.name}: navegação para ${destination} falhou: ${JSON.stringify({ clickPoint, clickEvent: clickEvent.result.value, result }).slice(0, 1000)}`);
         }
+        await pause(500);
       }
       console.log(`${viewport.name}: navegação sucessiva por Grade, Torneios e Contas a Receber funcionou.`);
     }
