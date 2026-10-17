@@ -122,7 +122,7 @@ export default async function LessonsPage() {
           <div className={viewStyles.field_form_full}>
             <label htmlFor="student-player">Vincular a um jogador existente</label>
             <select id="student-player" name="playerId" defaultValue="">
-              <option value="">Cadastrar aluno sem vínculo com jogador</option>
+              <option value="">Sem vínculo com jogador</option>
               {availablePlayers.map((player) => (
                 <option key={player.id} value={player.id}>
                   {player.name}
@@ -148,7 +148,7 @@ export default async function LessonsPage() {
           </div>
           <div className={viewStyles.field_form_full}>
             <label htmlFor="student-notes">Observações</label>
-            <input id="student-notes" name="notes" type="text" placeholder="Preferências, nível, restrições..." />
+            <textarea id="student-notes" name="notes" rows={2} placeholder="Preferências, nível, restrições..." />
           </div>
           <div className={viewStyles.field_field_submit}>
             <SubmitButton label="Cadastrar aluno" pendingLabel="Salvando..." className={viewStyles.button_button_primary} />

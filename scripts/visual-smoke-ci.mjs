@@ -181,6 +181,15 @@ async function main() {
       for (const route of routes) {
         const label = `${viewport.name}-${route.replaceAll("/", "-").replace(/^-/, "")}`;
         const body = await visit(route, viewport, arenaA.id, label);
+        if (["/aulas", "/aulas/alunos", "/financeiro/planos"].includes(route)) {
+          const form = await send("Runtime.evaluate", {
+            expression: "(() => ({ notes: document.querySelector('#plan-notes, #student-notes')?.tagName, emptyPlayerOption: document.querySelector('#student-player option[value=\"\"]')?.textContent?.trim() ?? null }))()",
+            returnByValue: true,
+          });
+          if (form.result.value.notes !== "TEXTAREA" || (route !== "/financeiro/planos" && form.result.value.emptyPlayerOption !== "Sem vínculo com jogador")) {
+            throw new Error(`${label}: campo de observações ou seletor de aluno não se adapta à largura disponível.`);
+          }
+        }
         if (route === "/usuarios" && (!body.includes("Acesso legado · Proprietário") || body.includes("Migrado · OWNER"))) {
           throw new Error(`${label}: identificador interno do perfil legado exposto na lista de usuários.`);
         }
