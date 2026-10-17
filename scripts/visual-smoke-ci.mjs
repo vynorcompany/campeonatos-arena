@@ -61,8 +61,8 @@ const agencyRoutes = [
 const viewports = [
   { name: "desktop", width: 1366, height: 900 },
   { name: "mobile", width: 390, height: 844 },
-  { name: "mobile-320", width: 320, height: 700 },
 ];
+const adminViewports = [...viewports, { name: "mobile-320", width: 320, height: 700 }];
 const pageMetricsExpression = "({path:location.pathname,width:innerWidth,scrollWidth:document.documentElement.scrollWidth,body:document.body?.innerText ?? '',mainBody:document.querySelector('main')?.innerText ?? '',ready:document.readyState})";
 
 async function browserSocket(browser, startupDetails) {
@@ -150,7 +150,7 @@ async function main() {
       const response = await fetch(`${baseUrl}${path}`, { headers: { Cookie: cookie(arenaId, token) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
       await response.body?.cancel();
       if (response.status !== 200) throw new Error(`${label}: HTTP ${response.status} (${response.headers.get("location") ?? "sem destino"})`);
-      await send("Emulation.setDeviceMetricsOverride", { width: viewport.width, height: viewport.height, deviceScaleFactor: 1, mobile: viewport.name === "mobile" });
+      await send("Emulation.setDeviceMetricsOverride", { width: viewport.width, height: viewport.height, deviceScaleFactor: 1, mobile: viewport.name !== "desktop" });
       await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: "light" }] });
       await selectArena(arenaId, token);
       await send("Page.navigate", { url: `${baseUrl}${path}` });
@@ -178,7 +178,7 @@ async function main() {
       console.log(`${label}: HTTP 200, ${metrics.width}px, sem overflow horizontal`);
       return metrics.body;
     };
-    for (const viewport of viewports) {
+    for (const viewport of adminViewports) {
       for (const route of routes) {
         const label = `${viewport.name}-${route.replaceAll("/", "-").replace(/^-/, "")}`;
         const body = await visit(route, viewport, arenaA.id, label);
@@ -214,7 +214,7 @@ async function main() {
           await writeFile(`${outputDir}/${label}-edit.png`, Buffer.from(shot.data, "base64"));
         }
         if (route === "/jogadores") {
-          if (viewport.name === "mobile") {
+          if (viewport.name !== "desktop") {
             await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('button')].find((item) => item.textContent?.trim() === 'Filtros e ferramentas')?.click()" });
             await pause(200);
           }
