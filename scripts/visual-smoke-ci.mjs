@@ -773,8 +773,8 @@ async function main() {
       let history;
       for (let attempt = 0; attempt < 80; attempt += 1) {
         const response = await send("Runtime.evaluate", { expression: "({body:document.body?.innerText ?? '',button:Boolean(document.querySelector('button[aria-label^=\"Ver histórico de\"]')),width:innerWidth,scrollWidth:document.documentElement.scrollWidth})", returnByValue: true });
-        history = response.result.value;
-        if (history.button) break;
+        history = response.result?.value;
+        if (history?.button) break;
         await pause(200);
       }
       if (!history?.button || history.scrollWidth > history.width + 1) throw new Error(`${viewport.name}: histórico da Liga ausente ou com overflow.`);
