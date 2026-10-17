@@ -16,6 +16,27 @@ const baseUrl = "http://127.0.0.1:3011";
 const outputDir = "artifacts/visual-smoke";
 const browserPort = 31991;
 const pause = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+const tinyPng = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6+QAAAABJRU5ErkJggg==";
+function testAudioDataUrl() {
+  const sampleRate = 8_000;
+  const bytes = Buffer.alloc(44 + sampleRate * 2);
+  bytes.write("RIFF", 0);
+  bytes.writeUInt32LE(bytes.length - 8, 4);
+  bytes.write("WAVEfmt ", 8);
+  bytes.writeUInt32LE(16, 16);
+  bytes.writeUInt16LE(1, 20);
+  bytes.writeUInt16LE(1, 22);
+  bytes.writeUInt32LE(sampleRate, 24);
+  bytes.writeUInt32LE(sampleRate * 2, 28);
+  bytes.writeUInt16LE(2, 32);
+  bytes.writeUInt16LE(16, 34);
+  bytes.write("data", 36);
+  bytes.writeUInt32LE(sampleRate * 2, 40);
+  for (let index = 0; index < sampleRate; index += 1) {
+    bytes.writeInt16LE(Math.round(Math.sin(index * 2 * Math.PI * 440 / sampleRate) * 4000), 44 + index * 2);
+  }
+  return `data:audio/wav;base64,${bytes.toString("base64")}`;
+}
 const routes = [
   "/painel", "/assistente", "/whatsapp", "/usuarios", "/minha-conta",
   "/torneios", "/torneios/novo", "/torneios/inscricoes", "/torneios/rankings", "/torneios/rankings/novo",
@@ -776,13 +797,38 @@ async function main() {
       contactName: "Contato atual GOAL", contactPhone: "5577777000000", unreadCount: 1,
     } });
     await db.whatsAppMessage.create({ data: { conversationId: conversation.id, providerId: "goal-initial", direction: "INBOUND", body: "Mensagem inicial GOAL" } });
+    await db.whatsAppMessage.create({ data: { conversationId: conversation.id, providerId: "goal-outbound", direction: "OUTBOUND", senderName: "Equipe GOAL", body: "Resposta enviada GOAL" } });
+    const imageMessage = await db.whatsAppMessage.create({ data: { conversationId: conversation.id, providerId: "goal-image", direction: "INBOUND", body: "Imagem", mediaType: "IMAGE", mediaMimeType: "image/png", mediaUrl: tinyPng } });
+    const audioMessage = await db.whatsAppMessage.create({ data: { conversationId: conversation.id, providerId: "goal-audio", direction: "INBOUND", body: "Áudio", mediaType: "AUDIO", mediaMimeType: "audio/wav", mediaUrl: testAudioDataUrl() } });
     await db.whatsAppConversation.create({ data: { arenaId: arenaA.id, accountJid: "5566666000000@s.whatsapp.net", remoteJid: "5555555000000@s.whatsapp.net", contactName: "Conversa antiga GOAL" } });
     await db.whatsAppConversation.create({ data: { arenaId: arenaB.id, accountJid: "5588888000000@s.whatsapp.net", remoteJid: "5544444000000@s.whatsapp.net", contactName: "Contato beta WhatsApp GOAL" } });
     const inboxBefore = await db.whatsAppConnection.findUniqueOrThrow({ where: { arenaId: arenaA.id }, select: { inboxRevision: true } });
     const desktopWhatsapp = await visit("/whatsapp", viewports[0], arenaA.id, "whatsapp-conversa-antes");
-    if (!desktopWhatsapp.includes("Contato atual GOAL") || !desktopWhatsapp.includes("Mensagem inicial GOAL") || desktopWhatsapp.includes("Conversa antiga GOAL") || desktopWhatsapp.includes("Contato beta WhatsApp GOAL")) {
+    if (!desktopWhatsapp.includes("Contato atual GOAL") || !desktopWhatsapp.includes("Mensagem inicial GOAL") || !desktopWhatsapp.includes("Resposta enviada GOAL") || desktopWhatsapp.includes("Conversa antiga GOAL") || desktopWhatsapp.includes("Contato beta WhatsApp GOAL")) {
       throw new Error("A caixa WhatsApp não respeitou a conta conectada e o isolamento entre arenas.");
     }
+    for (const [messageId, mimeType] of [[imageMessage.id, "image/png"], [audioMessage.id, "audio/wav"]]) {
+      const response = await fetch(`${baseUrl}/api/whatsapp/media/${messageId}`, { headers: { Cookie: cookie(arenaA.id) }, signal: AbortSignal.timeout(20_000) });
+      if (response.status !== 200 || !response.headers.get("content-type")?.includes(mimeType) || !(await response.arrayBuffer()).byteLength) {
+        throw new Error(`Mídia fictícia do WhatsApp não carregou: ${messageId} (${response.status}).`);
+      }
+      const isolated = await fetch(`${baseUrl}/api/whatsapp/media/${messageId}`, { headers: { Cookie: cookie(arenaB.id) }, signal: AbortSignal.timeout(20_000) });
+      if (isolated.status !== 404) throw new Error("Mídia do WhatsApp ficou acessível para outra arena.");
+      await isolated.body?.cancel();
+    }
+    let desktopMedia;
+    for (let attempt = 0; attempt < 25; attempt += 1) {
+      desktopMedia = await send("Runtime.evaluate", { expression: "({image:document.querySelector('.whatsapp-chat-main .whatsapp-message-image')?.naturalWidth ?? 0,audio:document.querySelector('.whatsapp-chat-main audio[controls]')?.duration ?? 0,composer:!!document.querySelector('.whatsapp-chat-main textarea[aria-label=\"Mensagem ou legenda\"]')})", returnByValue: true });
+      if (desktopMedia.result.value.image && desktopMedia.result.value.audio > 0 && desktopMedia.result.value.composer) break;
+      await pause(200);
+    }
+    if (!desktopMedia.result.value.image || !(desktopMedia.result.value.audio > 0) || !desktopMedia.result.value.composer) throw new Error(`Imagem, áudio ou compositor ausente no chat desktop: ${JSON.stringify(desktopMedia.result.value)}`);
+    await send("Runtime.evaluate", { expression: "document.querySelector('.whatsapp-chat-main .whatsapp-message-image')?.click()" });
+    const imageDialog = await send("Runtime.evaluate", { expression: "!!document.querySelector('[role=dialog][aria-label=\"Imagem ampliada\"]')", returnByValue: true });
+    if (!imageDialog.result.value) throw new Error("A imagem do WhatsApp não abriu ampliada.");
+    await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+    const imageClosed = await send("Runtime.evaluate", { expression: "!document.querySelector('[role=dialog][aria-label=\"Imagem ampliada\"]')", returnByValue: true });
+    if (!imageClosed.result.value) throw new Error("A imagem ampliada não fechou com Esc.");
     await send("Runtime.evaluate", { expression: "window.__goalWhatsappPageStayedOpen = true" });
     await db.whatsAppMessage.create({ data: { conversationId: conversation.id, providerId: "goal-live", direction: "INBOUND", body: "Mensagem ao vivo GOAL" } });
     await db.whatsAppConversation.update({ where: { id: conversation.id }, data: { lastMessageAt: new Date(), unreadCount: 2 } });
@@ -809,6 +855,15 @@ async function main() {
       await pause(200);
     }
     if (!mobileChat.includes("Mensagem ao vivo GOAL")) throw new Error("A conversa mobile não mostrou a mensagem recebida.");
+    let mobileMedia;
+    for (let attempt = 0; attempt < 25; attempt += 1) {
+      mobileMedia = await send("Runtime.evaluate", { expression: "({image:document.querySelector('.whatsapp-chat-main .whatsapp-message-image')?.naturalWidth ?? 0,audio:document.querySelector('.whatsapp-chat-main audio[controls]')?.duration ?? 0,composer:document.querySelector('.whatsapp-chat-main .whatsapp-composer')?.getBoundingClientRect().toJSON(),viewport:innerWidth})", returnByValue: true });
+      if (mobileMedia.result.value.image && mobileMedia.result.value.audio > 0 && mobileMedia.result.value.composer) break;
+      await pause(200);
+    }
+    if (!mobileMedia.result.value.image || !(mobileMedia.result.value.audio > 0) || !mobileMedia.result.value.composer || mobileMedia.result.value.composer.left < -1 || mobileMedia.result.value.composer.right > mobileMedia.result.value.viewport + 1) {
+      throw new Error(`Mídias ou compositor cortados no chat mobile: ${JSON.stringify(mobileMedia.result.value)}`);
+    }
     const chatLayout = await send("Runtime.evaluate", {
       expression: "({width:document.querySelector('.whatsapp-chat-main')?.getBoundingClientRect().width ?? 0, viewport:innerWidth, detailsButtonVisible:!!document.querySelector('.whatsapp-chat-main button[aria-label=\"Detalhes do contato\"]')?.getClientRects().length})",
       returnByValue: true,
