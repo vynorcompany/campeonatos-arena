@@ -57,6 +57,8 @@ jobs:
       - name: Visual smoke in Edge
         run: node scripts/visual-smoke-ci.mjs
       - run: npm test
+      - name: Load 100 synthetic arenas and verify isolation
+        run: node scripts/load-100-arenas-ci.mjs
       - name: Save synthetic screenshots
         if: always()
         uses: actions/upload-artifact@v4
