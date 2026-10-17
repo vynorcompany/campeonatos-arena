@@ -7,7 +7,7 @@ export const viewStyles = {
     "tw:place-items-center", "tw:bg-[color:rgba(14,_24,_38,_0.28)]", "tw:[background-image:none]", "tw:[backdrop-filter:blur(2px)]",
   ].join(" "),
   "calendar_create_card": [
-    "calendar-create-card", "tw:relative", "tw:w-[min(520px,_calc(100vw_-_24px))]", "tw:pt-[20px]",
+    "calendar-create-card", "tw:relative", "tw:w-[min(520px,_calc(100vw_-_24px))]", "tw:max-h-[calc(100dvh-24px)]", "tw:overflow-y-auto", "tw:pt-[20px]",
     "tw:pr-[20px]", "tw:pb-[20px]", "tw:pl-[20px]", "tw:border-t-[length:1px]",
     "tw:[border-top-style:solid]", "tw:border-t-[color:var(--line)]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]",
     "tw:border-r-[color:var(--line)]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:var(--line)]",
@@ -30,7 +30,7 @@ export const viewStyles = {
   "field": sharedUtilities.field,
   "muted": sharedUtilities.muted,
   "calendar_create_actions": [
-    "calendar-create-actions", "tw:flex", "tw:justify-end", "tw:gap-y-[10px]",
+    "calendar-create-actions", "tw:flex", "tw:flex-wrap", "tw:justify-end", "tw:gap-y-[10px]",
     "tw:gap-x-[10px]", "tw:mt-[4px]",
   ].join(" "),
   "button": sharedUtilities.button,

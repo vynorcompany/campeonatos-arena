@@ -1057,6 +1057,58 @@ async function main() {
       await db.agencyPlan.delete({ where: { id: agencyPlan.id } });
     }
 
+    for (const viewport of viewports) {
+      const label = `${viewport.name}-calendario-modal-erro`;
+      await visit(`/calendario?periodo=day&data=${futureAgendaDate}`, viewport, arenaA.id, label);
+      await send("Runtime.evaluate", { expression: "document.querySelector('[data-calendar-create]')?.click()" });
+      await pause(200);
+      await send("Runtime.evaluate", { expression: "document.querySelector('[role=dialog][aria-label=\"Criar evento na agenda\"] input[name=title]')?.focus()" });
+      await send("Input.insertText", { text: "X" });
+      await send("Runtime.evaluate", { expression: "document.querySelector('[role=dialog][aria-label=\"Criar evento na agenda\"] form')?.requestSubmit()" });
+      let errorState;
+      for (let attempt = 0; attempt < 35; attempt += 1) {
+        const result = await send("Runtime.evaluate", { expression: "(() => { const modal = document.querySelector('[role=dialog][aria-label=\"Criar evento na agenda\"]'); const rect = modal?.getBoundingClientRect(); return { open: Boolean(modal), error: modal?.querySelector('[role=alert]')?.textContent?.trim() ?? '', title: modal?.querySelector('input[name=title]')?.value ?? '', overflow: Boolean(modal && modal.scrollWidth > modal.clientWidth + 1), left: rect?.left, right: rect?.right, bottom: rect?.bottom, width: innerWidth, height: innerHeight }; })()", returnByValue: true });
+        errorState = result.result.value;
+        if (errorState?.error) break;
+        await pause(200);
+      }
+      if (!errorState?.open || !errorState.error.includes("Informe um título com pelo menos 2 caracteres.") || errorState.title !== "X" || errorState.overflow || errorState.left < -1 || errorState.right > errorState.width + 1 || errorState.bottom > errorState.height + 1) {
+        throw new Error(`${label}: erro de gravação fechou ou cortou o modal: ${JSON.stringify(errorState)}`);
+      }
+      const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+      await writeFile(`${outputDir}/${label}-aberto.png`, Buffer.from(shot.data, "base64"));
+      await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+      await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+      await pause(120);
+      const afterEscape = await send("Runtime.evaluate", { expression: "Boolean(document.querySelector('[role=dialog][aria-label=\"Criar evento na agenda\"]'))", returnByValue: true });
+      if (afterEscape.result.value) throw new Error(`${label}: Esc não fechou o modal.`);
+      await send("Runtime.evaluate", { expression: "document.querySelector('[data-calendar-create]')?.click()" });
+      await pause(120);
+      await send("Runtime.evaluate", { expression: "document.querySelector('.calendar-create-overlay')?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))" });
+      await pause(120);
+      const afterBackdrop = await send("Runtime.evaluate", { expression: "Boolean(document.querySelector('[role=dialog][aria-label=\"Criar evento na agenda\"]'))", returnByValue: true });
+      if (afterBackdrop.result.value) throw new Error(`${label}: clique fora não fechou o modal.`);
+      const createdTitle = `Evento criado GOAL ${viewport.name}`;
+      try {
+        await send("Runtime.evaluate", { expression: "document.querySelector('[data-calendar-create]')?.click()" });
+        await pause(120);
+        await send("Runtime.evaluate", { expression: "document.querySelector('[role=dialog][aria-label=\"Criar evento na agenda\"] input[name=title]')?.focus()" });
+        await send("Input.insertText", { text: createdTitle });
+        await send("Runtime.evaluate", { expression: "document.querySelector('[role=dialog][aria-label=\"Criar evento na agenda\"] form')?.requestSubmit()" });
+        let saved = false;
+        for (let attempt = 0; attempt < 35; attempt += 1) {
+          const stored = await db.calendarEvent.count({ where: { arenaId: arenaA.id, title: createdTitle } });
+          const dialog = await send("Runtime.evaluate", { expression: "Boolean(document.querySelector('[role=dialog][aria-label=\"Criar evento na agenda\"]'))", returnByValue: true });
+          if (stored === 1 && !dialog.result.value) { saved = true; break; }
+          await pause(200);
+        }
+        if (!saved) throw new Error(`${label}: gravação válida não criou o evento ou não fechou o modal.`);
+      } finally {
+        await db.calendarEvent.deleteMany({ where: { arenaId: arenaA.id, title: createdTitle } });
+      }
+    }
+    console.log("Calendário: erro preserva o modal, sucesso fecha após gravar; Esc e clique fora funcionam em desktop e celular.");
+
     const restrictedToken = createHash("sha256").update(`restricted:${sessionToken}`).digest("hex");
     const restrictedUser = await db.user.create({ data: { name: "Operador restrito GOAL", email: "goal-restricted@example.test", passwordHash: "test-only", systemRole: "VIEWER" } });
     await db.arenaMember.create({ data: { arenaId: arenaA.id, userId: restrictedUser.id, role: "STAFF", viewPermissions: ["calendar"], editPermissions: ["calendar:booking:create"] } });
