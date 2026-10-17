@@ -5,6 +5,7 @@ import { requireFinancialEntryDelete, requireModuleEdit, requirePermission } fro
 import { requireArenaAccess } from "@/lib/auth/session";
 import { canPerformPermission } from "@/lib/permissions";
 import { financialEntryPermission, type FinancialEntryOperation } from "@/lib/finance/entry-permissions";
+import { calculateBankAccountBalanceCents } from "@/lib/finance/bank-balance";
 import {
   getReferenceMonthRange,
   parseDate,
@@ -854,7 +855,7 @@ export async function deleteFinancialEntriesBulkAction(formData: FormData) {
 }
 
 export async function createFinancialSettingAction(formData: FormData) {
-  const auth = await requireModuleEdit("finance");
+  const auth = await requirePermission("finance:settings:manage");
   const parsed = financialSettingSchema.safeParse({
     area: formData.get("area"), name: formData.get("name"), type: formData.get("type"), bankName: formData.get("bankName"), openingBalance: formData.get("openingBalance"), document: formData.get("document"), phone: formData.get("phone"), email: formData.get("email"), notes: formData.get("notes")
   });
@@ -885,25 +886,22 @@ export async function createFinancialSettingAction(formData: FormData) {
 }
 
 export async function reconcileBankAccountBalanceAction(formData: FormData) {
-  const auth = await requireModuleEdit("finance");
+  const auth = await requirePermission("finance:settings:manage");
   const parsed = bankBalanceSchema.safeParse({ bankAccountId: formData.get("bankAccountId"), balance: formData.get("balance") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   const expectedBalanceCents = parseMoneyToCents(parsed.data.balance);
 
   await withArenaTransaction(auth.arenaId, async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "BankAccount" WHERE id = ${parsed.data.bankAccountId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
     const account = await tx.bankAccount.findFirst({ where: { id: parsed.data.bankAccountId, arenaId: auth.arenaId }, select: { id: true, name: true, openingBalanceCents: true } });
     if (!account) throw new Error("Conta bancária não encontrada.");
-    const [income, expense] = await Promise.all([
-      tx.financialEntry.aggregate({ where: { arenaId: auth.arenaId, bankAccountId: account.id, status: "PAID", type: "INCOME" }, _sum: { amountCents: true } }),
-      tx.financialEntry.aggregate({ where: { arenaId: auth.arenaId, bankAccountId: account.id, status: "PAID", type: "EXPENSE" }, _sum: { amountCents: true } })
-    ]);
-    const calculatedBalanceCents = account.openingBalanceCents + (income._sum.amountCents ?? 0) - (expense._sum.amountCents ?? 0);
+    const calculatedBalanceCents = await calculateBankAccountBalanceCents(tx, auth.arenaId, account.id, account.openingBalanceCents);
     const differenceCents = expectedBalanceCents - calculatedBalanceCents;
     if (!differenceCents) throw new Error("O saldo informado já confere com o saldo calculado.");
     await tx.financialEntry.create({ data: {
       arenaId: auth.arenaId,
       bankAccountId: account.id,
-      type: differenceCents > 0 ? "INCOME" : "EXPENSE",
+      type: differenceCents > 0 ? "REVENUE" : "EXPENSE",
       category: "AJUSTE DE SALDO BANCÁRIO",
       description: `Balanço de saldo · ${account.name}`,
       amountCents: Math.abs(differenceCents),
@@ -919,7 +917,7 @@ export async function reconcileBankAccountBalanceAction(formData: FormData) {
 }
 
 export async function createProductCategoryAction(formData: FormData) {
-  const auth = await requirePermission(String(formData.get("type")) === "PAYABLE" ? "finance:payable:create" : "finance:receivable:create");
+  const auth = await requirePermission("finance:settings:manage");
   const parsed = productCategorySchema.safeParse({ name: formData.get("name") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
 
@@ -936,7 +934,7 @@ export async function createProductCategoryAction(formData: FormData) {
 }
 
 export async function createCouponAction(formData: FormData) {
-  const auth = await requirePermission("finance:receivable:settle");
+  const auth = await requirePermission("finance:settings:manage");
   const parsed = couponSchema.safeParse({
     code: formData.get("code"),
     discountType: formData.get("discountType"),
@@ -980,7 +978,7 @@ export async function createCouponAction(formData: FormData) {
 }
 
 export async function updateCouponAction(formData: FormData) {
-  const auth = await requirePermission("finance:receivable:settle");
+  const auth = await requirePermission("finance:settings:manage");
   const parsed = updateCouponSchema.safeParse({ couponId: formData.get("couponId"), code: formData.get("code"), discountType: formData.get("discountType"), discountValue: formData.get("discountValue"), minimumAmount: formData.get("minimumAmount"), maxUses: formData.get("maxUses"), startsAt: formData.get("startsAt"), endsAt: formData.get("endsAt"), active: formData.get("active") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   const values = getCouponValues(parsed.data);
@@ -989,13 +987,13 @@ export async function updateCouponAction(formData: FormData) {
 }
 
 export async function deleteCouponAction(formData: FormData) {
-  const auth = await requirePermission("finance:receivable:settle"); const parsed = deleteCouponSchema.safeParse({ couponId: formData.get("couponId") });
+  const auth = await requirePermission("finance:settings:manage"); const parsed = deleteCouponSchema.safeParse({ couponId: formData.get("couponId") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   await withArenaTransaction(auth.arenaId, (tx) => tx.coupon.deleteMany({ where: { id: parsed.data.couponId, arenaId: auth.arenaId } })); refreshFinancialSettings();
 }
 
 export async function toggleCouponActiveAction(formData: FormData) {
-  const auth = await requirePermission("finance:receivable:settle");
+  const auth = await requirePermission("finance:settings:manage");
   const parsed = couponToggleSchema.safeParse({ couponId: formData.get("couponId"), active: formData.get("active") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   const updated = await withArenaTransaction(auth.arenaId, (tx) => tx.coupon.updateMany({ where: { id: parsed.data.couponId, arenaId: auth.arenaId }, data: { active: parsed.data.active } }));
@@ -1004,7 +1002,7 @@ export async function toggleCouponActiveAction(formData: FormData) {
 }
 
 export async function updateFinancialCategoryAction(formData: FormData) {
-  const auth = await requireModuleEdit("finance");
+  const auth = await requirePermission("finance:settings:manage");
   const parsed = financialCategoryUpdateSchema.safeParse({ categoryId: formData.get("categoryId"), name: formData.get("name"), type: formData.get("type") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   try {
@@ -1018,7 +1016,7 @@ export async function updateFinancialCategoryAction(formData: FormData) {
 }
 
 export async function deleteFinancialCategoryAction(formData: FormData) {
-  const auth = await requireModuleEdit("finance");
+  const auth = await requirePermission("finance:settings:manage");
   const parsed = financialCategoryDeleteSchema.safeParse({ categoryId: formData.get("categoryId") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   const deleted = await withArenaTransaction(auth.arenaId, (tx) => tx.financialCategory.deleteMany({ where: { id: parsed.data.categoryId, arenaId: auth.arenaId } }));
@@ -1027,21 +1025,21 @@ export async function deleteFinancialCategoryAction(formData: FormData) {
 }
 
 export async function updateSupplierAction(formData: FormData) {
-  const auth = await requireModuleEdit("finance"); const parsed = supplierUpdateSchema.safeParse({ supplierId: formData.get("supplierId"), name: formData.get("name"), document: formData.get("document"), phone: formData.get("phone"), email: formData.get("email"), notes: formData.get("notes"), active: formData.get("active") });
+  const auth = await requirePermission("finance:settings:manage"); const parsed = supplierUpdateSchema.safeParse({ supplierId: formData.get("supplierId"), name: formData.get("name"), document: formData.get("document"), phone: formData.get("phone"), email: formData.get("email"), notes: formData.get("notes"), active: formData.get("active") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   try { const updated = await withArenaTransaction(auth.arenaId, (tx) => tx.supplier.updateMany({ where: { id: parsed.data.supplierId, arenaId: auth.arenaId }, data: { name: parsed.data.name, document: parsed.data.document, phone: parsed.data.phone, email: parsed.data.email, notes: parsed.data.notes, active: parsed.data.active } })); if (!updated.count) throw new Error("Fornecedor não encontrado."); } catch (error) { if (error instanceof Error && error.message.includes("Unique constraint")) throw new Error("Já existe um fornecedor com este nome."); throw error; }
   refreshFinancialSettings();
 }
 
 export async function deleteSupplierAction(formData: FormData) {
-  const auth = await requireModuleEdit("finance"); const parsed = deleteSupplierSchema.safeParse({ supplierId: formData.get("supplierId") });
+  const auth = await requirePermission("finance:settings:manage"); const parsed = deleteSupplierSchema.safeParse({ supplierId: formData.get("supplierId") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   try { await withArenaTransaction(auth.arenaId, (tx) => tx.supplier.deleteMany({ where: { id: parsed.data.supplierId, arenaId: auth.arenaId } })); } catch { throw new Error("Este fornecedor possui lançamentos vinculados. Inative-o em vez de excluir."); }
   refreshFinancialSettings();
 }
 
 export async function updateFiscalSettingsAction(formData: FormData) {
-  const auth = await requirePermission("finance:receivable:settle");
+  const auth = await requirePermission("finance:settings:manage");
   const parsed = fiscalSettingsSchema.safeParse({
     provider: formData.get("provider"),
     environment: formData.get("environment"),
@@ -1063,7 +1061,7 @@ export async function updateFiscalSettingsAction(formData: FormData) {
 }
 
 export async function updateOnlinePaymentSettingsAction(formData: FormData) {
-  const auth = await requirePermission("finance:payable:create");
+  const auth = await requirePermission("finance:settings:manage");
   const parsed = onlinePaymentSettingsSchema.safeParse({
     provider: formData.get("provider"),
     webhookUrl: formData.get("webhookUrl"),
@@ -1094,7 +1092,7 @@ export async function updateOnlinePaymentSettingsAction(formData: FormData) {
 }
 
 export async function connectPaymentProviderAction(formData: FormData) {
-  const auth = await requireModuleEdit("finance");
+  const auth = await requirePermission("finance:settings:manage");
   const parsed = paymentConnectionSchema.safeParse({
     provider: formData.get("provider"), environment: formData.get("environment"), accessToken: formData.get("accessToken"),
     clientId: formData.get("clientId"), clientSecret: formData.get("clientSecret"), pixKey: formData.get("pixKey"),
