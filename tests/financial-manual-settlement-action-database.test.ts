@@ -55,12 +55,14 @@ test("baixa manual exige valor real, quita vencidos e não aceita lote parcialme
       form.set("amount", amount);
       form.set("interest", "0");
       form.set("paymentMethod", "PIX");
+      form.set("paidAt", "");
       return actions.settleFinancialEntryAction(form);
     };
     const settleBulk = (ids: string[]) => {
       const form = new FormData();
       ids.forEach((id) => form.append("entryIds", id));
       form.set("paymentMethod", "PIX");
+      form.set("paidAt", "");
       return actions.settleFinancialEntriesBulkAction(form);
     };
 
