@@ -58,6 +58,8 @@ jobs:
           done
           cat /tmp/arena-goal-server.log
           exit 1
+      - name: Reject unauthenticated API access
+        run: node scripts/unauthenticated-api-smoke-ci.mjs
       - name: Visual smoke in Edge
         run: node scripts/visual-smoke-ci.mjs
       - run: npm test
