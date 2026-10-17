@@ -6,3 +6,8 @@ export function boletoCancellationDisposition(status: string): BoletoCancellatio
   if (["approved", "refunded", "charged_back"].includes(status)) return "preserve";
   return "unsupported";
 }
+
+export function selectFuturePlanBoletos<T extends { id: string; onlinePaymentId: string; settlements: { amountCents: number }[] }>(entries: T[]) {
+  const protectedEntryIds = new Set(entries.filter((entry) => entry.settlements.some((settlement) => settlement.amountCents > 0)).map((entry) => entry.id));
+  return { protectedEntryIds, issued: entries.filter((entry) => entry.onlinePaymentId && !protectedEntryIds.has(entry.id)) };
+}
