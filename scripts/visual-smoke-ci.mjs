@@ -1029,6 +1029,33 @@ async function main() {
     const mobileSalesShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
     await writeFile(`${outputDir}/recebiveis-vendas-mobile.png`, Buffer.from(mobileSalesShot.data, "base64"));
     console.log("Financeiro: classificações de Planos e Vendas validadas em contas a receber, desktop e celular.");
+
+    const agencyPlan = await db.agencyPlan.create({ data: { name: "Plano de conciliação GOAL", monthlyPriceCents: 14900 } });
+    let agencySubscription;
+    let agencyEntry;
+    let agencyInvoice;
+    try {
+      agencySubscription = await db.agencySubscription.create({ data: { arenaId: arenaA.id, planId: agencyPlan.id, nextDueAt: new Date("2035-11-10T12:00:00Z"), billingDay: 10 } });
+      agencyEntry = await db.financialEntry.create({ data: { arenaId: arenaA.id, type: "EXPENSE", category: "Assinatura do sistema", description: "Assinatura GOAL em conciliação", amountCents: 14900, status: "PAID", source: "AGENCY_SUBSCRIPTION" } });
+      agencyInvoice = await db.agencyInvoice.create({ data: { subscriptionId: agencySubscription.id, arenaId: arenaA.id, period: "2035-10", amountCents: 14900, dueAt: new Date("2035-10-10T12:00:00Z"), status: "PAID", financialEntryId: agencyEntry.id, providerPaymentId: "goal-review-payment", paymentReviewStatus: "refunded", paymentReviewAt: new Date() } });
+      for (const viewport of viewports) {
+        const plans = await visit("/agencia/planos", viewport, arenaA.id, `${viewport.name}-agencia-revisao-planos`);
+        if (!plans.includes("Conciliação pendente") || !plans.includes("Reembolso informado")) throw new Error(`${viewport.name}: a fatura em revisão não apareceu na visão da agência.`);
+        await send("Runtime.evaluate", { expression: "document.querySelector('.agency-invoice-row')?.scrollIntoView({ block: 'center' })" });
+        await pause(180);
+        const row = await send("Runtime.evaluate", { expression: "(() => { const el = document.querySelector('.agency-invoice-row'); if (!el) return null; const rect = el.getBoundingClientRect(); return { visible: rect.top < innerHeight && rect.bottom > 0, overflow: el.scrollWidth > el.clientWidth + 1, width: innerWidth, scrollWidth: document.documentElement.scrollWidth }; })()", returnByValue: true });
+        if (!row.result.value?.visible || row.result.value.overflow || row.result.value.scrollWidth > row.result.value.width + 1) throw new Error(`${viewport.name}: fatura em revisão ficou cortada: ${JSON.stringify(row.result.value)}`);
+        const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+        await writeFile(`${outputDir}/${viewport.name}-agencia-revisao-fatura.png`, Buffer.from(shot.data, "base64"));
+        const finance = await visit("/agencia/financeiro", viewport, arenaA.id, `${viewport.name}-agencia-revisao-financeiro`);
+        if (!finance.includes("149,00 em faturas com estorno ou contestação informada")) throw new Error(`${viewport.name}: o financeiro da agência não destacou a fatura em revisão.`);
+      }
+    } finally {
+      if (agencyInvoice) await db.agencyInvoice.delete({ where: { id: agencyInvoice.id } });
+      if (agencyEntry) await db.financialEntry.delete({ where: { id: agencyEntry.id } });
+      if (agencySubscription) await db.agencySubscription.delete({ where: { id: agencySubscription.id } });
+      await db.agencyPlan.delete({ where: { id: agencyPlan.id } });
+    }
   } finally {
     socket?.close();
     browser?.kill();

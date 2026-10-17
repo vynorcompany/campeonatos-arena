@@ -50,6 +50,22 @@ export function AgencyPlansContent({ plans, arenas, subscriptions, invoices, con
       })}</div>
     </section>
 
-    <section className={viewStyles.section_card_agency_billing_section}><div className={viewStyles.stack_xs}><h2>Faturas da agência</h2><p className={viewStyles.muted}>Cada fatura está vinculada ao lançamento correspondente no contas a pagar da arena.</p></div><div className={viewStyles.agency_invoice_list}>{invoices.length ? invoices.map((invoice) => <article key={invoice.id} className={viewStyles.agency_invoice_row}><strong>{invoice.arena.name}</strong><span>{invoice.period}</span><span>{formatCurrency(invoice.amountCents)}</span><span>{date(invoice.dueAt)}</span><span>{invoice.status === "PAID" ? "Paga" : "Em aberto"}</span>{invoice.checkoutUrl ? <a href={invoice.checkoutUrl} target="_blank" rel="noopener noreferrer">Abrir cobrança</a> : invoice.status === "PAID" ? <span>Concluída</span> : connection?.status !== "CONNECTED" ? <span>Conecte o Mercado Pago para gerar o link</span> : <SafeActionForm action={prepareAgencyInvoiceAction} successMessage="Link de pagamento gerado."><input type="hidden" name="invoiceId" value={invoice.id} /><SubmitButton label="Gerar link" pendingLabel="..." className={viewStyles.button_button_small} /></SafeActionForm>}</article>) : <p className={viewStyles.muted}>Nenhuma fatura emitida.</p>}</div></section>
+    <section className={viewStyles.section_card_agency_billing_section}>
+      <div className={viewStyles.stack_xs}><h2>Faturas da agência</h2><p className={viewStyles.muted}>Cada fatura está vinculada ao lançamento correspondente no contas a pagar da arena.</p></div>
+      <div className={viewStyles.agency_invoice_list}>{invoices.length ? invoices.map((invoice) =>
+        <article key={invoice.id} className={viewStyles.agency_invoice_row}>
+          <strong>{invoice.arena.name}</strong>
+          <span>{invoice.period}</span>
+          <span>{formatCurrency(invoice.amountCents)}</span>
+          <span>{date(invoice.dueAt)}</span>
+          <span className={invoice.paymentReviewStatus ? viewStyles.agency_invoice_review : undefined}>{invoice.paymentReviewStatus ? "Conciliação pendente" : invoice.status === "PAID" ? "Paga" : "Em aberto"}</span>
+          {invoice.paymentReviewStatus ? <span className={viewStyles.agency_invoice_review} title={`Pagamento ${invoice.providerPaymentId}`}>{invoice.paymentReviewStatus === "refunded" ? "Reembolso informado" : invoice.paymentReviewStatus === "partially_refunded" ? "Reembolso parcial informado" : "Contestação informada"}</span>
+            : invoice.checkoutUrl ? <a href={invoice.checkoutUrl} target="_blank" rel="noopener noreferrer">Abrir cobrança</a>
+            : invoice.status === "PAID" ? <span>Concluída</span>
+            : connection?.status !== "CONNECTED" ? <span>Conecte o Mercado Pago para gerar o link</span>
+            : <SafeActionForm action={prepareAgencyInvoiceAction} successMessage="Link de pagamento gerado."><input type="hidden" name="invoiceId" value={invoice.id} /><SubmitButton label="Gerar link" pendingLabel="..." className={viewStyles.button_button_small} /></SafeActionForm>}
+        </article>
+      ) : <p className={viewStyles.muted}>Nenhuma fatura emitida.</p>}</div>
+    </section>
   </div>;
 }

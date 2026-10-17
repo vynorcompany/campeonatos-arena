@@ -6,8 +6,8 @@ import ts from "typescript";
 
 const source = readFileSync(new URL("../src/app/api/payments/mercado-pago/agency/webhook/route.ts", import.meta.url), "utf8");
 
-function webhookFor(payment: { id: string; status: string; external_reference: string; transaction_amount: number; currency_id: string }) {
-  const invoice = { id: "invoice-a", arenaId: "arena-a", amountCents: 5000, status: "PENDING", financialEntryId: "entry-a", period: "2026-10", providerPaymentId: "" };
+function webhookFor(payment: { id: string; status: string; status_detail?: string; external_reference: string; transaction_amount: number; currency_id: string }) {
+  const invoice = { id: "invoice-a", arenaId: "arena-a", amountCents: 5000, status: "PENDING", financialEntryId: "entry-a", period: "2026-10", providerPaymentId: "", paymentReviewStatus: "", paymentReviewAt: null as Date | null };
   const notifications: { id: string; arenaId: string; type: string; title: string; message: string; href: string }[] = [];
   const writes = { settlements: 0, entries: 0, invoices: 0, arenaIds: [] as string[], notifications };
   const exports: Record<string, (request: Request) => Promise<{ status: number; body: Record<string, unknown> }>> = {};
@@ -22,9 +22,13 @@ function webhookFor(payment: { id: string; status: string; external_reference: s
         return action({
           agencyInvoice: {
             findUnique: async () => ({ ...invoice }),
-            updateMany: async ({ where, data }: { where: { id: string; status: string }; data: { status: string } }) => {
+            updateMany: async ({ where, data }: { where: { id: string; status: string; providerPaymentId?: string; paymentReviewStatus?: { not: string } }; data: { status?: string; paymentReviewStatus?: string; paymentReviewAt?: Date } }) => {
               if (where.id !== invoice.id || where.status !== invoice.status) return { count: 0 };
-              invoice.status = data.status;
+              if (where.providerPaymentId && where.providerPaymentId !== invoice.providerPaymentId) return { count: 0 };
+              if (where.paymentReviewStatus && where.paymentReviewStatus.not === invoice.paymentReviewStatus) return { count: 0 };
+              if (data.status) invoice.status = data.status;
+              if (data.paymentReviewStatus) invoice.paymentReviewStatus = data.paymentReviewStatus;
+              if (data.paymentReviewAt) invoice.paymentReviewAt = data.paymentReviewAt;
               return { count: 1 };
             },
             update: async ({ data }: { data: { status: string; providerPaymentId: string } }) => { invoice.status = data.status; invoice.providerPaymentId = data.providerPaymentId; writes.invoices++; },
@@ -93,6 +97,8 @@ test("estorno de fatura paga alerta para conciliação sem desfazer a baixa nem 
   assert.equal(webhook.writes.settlements, 1);
   assert.equal(webhook.writes.entries, 1);
   assert.equal(webhook.writes.notifications.length, 1);
+  assert.equal(webhook.invoice.paymentReviewStatus, "refunded");
+  assert.ok(webhook.invoice.paymentReviewAt instanceof Date);
   assert.equal(webhook.writes.notifications[0].arenaId, "arena-a");
   assert.equal(webhook.writes.notifications[0].type, "AGENCY_PAYMENT_REVIEW");
   assert.equal(webhook.writes.notifications[0].href, "/financeiro/contas-a-pagar");
@@ -107,4 +113,29 @@ test("estorno de outro pagamento não altera a fatura quitada", async () => {
   assert.equal((await webhook.post()).status, 200);
   assert.equal(webhook.writes.notifications.length, 0);
   assert.equal(webhook.invoice.status, "PAID");
+  assert.equal(webhook.invoice.paymentReviewStatus, "");
+});
+
+test("reembolso parcial informado após a baixa exige conciliação sem segunda baixa", async () => {
+  const payment = { id: "payment-a", status: "approved", status_detail: "accredited", external_reference: "invoice-a", transaction_amount: 50, currency_id: "BRL" };
+  const webhook = webhookFor(payment);
+  await webhook.post();
+  payment.status_detail = "partially_refunded";
+  assert.equal((await webhook.post()).status, 200);
+  assert.equal(webhook.invoice.paymentReviewStatus, "partially_refunded");
+  assert.equal(webhook.writes.settlements, 1);
+  assert.equal(webhook.writes.notifications.length, 1);
+});
+
+test("contestação da fatura paga permanece em revisão sem bloquear nem rebaixar duas vezes", async () => {
+  const payment = { id: "payment-a", status: "approved", external_reference: "invoice-a", transaction_amount: 50, currency_id: "BRL" };
+  const webhook = webhookFor(payment);
+  await webhook.post();
+  payment.status = "charged_back";
+  await webhook.post();
+  await webhook.post();
+  assert.equal(webhook.invoice.status, "PAID");
+  assert.equal(webhook.invoice.paymentReviewStatus, "charged_back");
+  assert.equal(webhook.writes.settlements, 1);
+  assert.equal(webhook.writes.notifications.length, 1);
 });

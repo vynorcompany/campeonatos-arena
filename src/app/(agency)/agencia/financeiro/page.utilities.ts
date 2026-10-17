@@ -10,6 +10,7 @@ export const viewStyles = {
   "muted": sharedUtilities.muted,
   "agency_stats_grid": sharedUtilities.agencyStatsGrid,
   "stat_card": sharedUtilities.statCard,
+  "payment_review_notice": "tw:m-0 tw:rounded-[10px] tw:border tw:border-[#e9b87b] tw:bg-[#fff7e9] tw:p-[14px] tw:text-[#81420c] tw:leading-[1.45]",
   "agency_arena_list": [
     "agency-arena-list", "tw:grid", "tw:gap-y-[12px]", "tw:gap-x-[12px]",
   ].join(" "),

@@ -15,18 +15,24 @@ export async function POST(request: Request) {
   if (!accessToken) return NextResponse.json({ ok: false }, { status: 503 });
   const response = await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`, { headers: { Authorization: `Bearer ${accessToken}` }, cache: "no-store" });
   if (!response.ok) return NextResponse.json({ ok: false }, { status: 502 });
-  const payment = await response.json() as { id?: string | number; status?: string; external_reference?: string; transaction_amount?: number; currency_id?: string };
+  const payment = await response.json() as { id?: string | number; status?: string; status_detail?: string; external_reference?: string; transaction_amount?: number; currency_id?: string };
   const invoice = await prisma.agencyInvoice.findUnique({ where: { id: String(payment.external_reference ?? "") } });
   if (!invoice) return NextResponse.json({ ok: true, ignored: "unknown_invoice" });
   if (payment.currency_id !== "BRL" || Math.round(Number(payment.transaction_amount ?? 0) * 100) !== invoice.amountCents) return NextResponse.json({ ok: false, error: "amount_mismatch" }, { status: 409 });
-  if (["refunded", "charged_back"].includes(payment.status ?? "")) {
+  const reviewStatus = payment.status === "approved" && payment.status_detail === "partially_refunded" ? "partially_refunded"
+    : ["refunded", "charged_back"].includes(payment.status ?? "") ? payment.status! : "";
+  if (reviewStatus) {
     await withArenaTransaction(invoice.arenaId, async (tx) => {
       const current = await tx.agencyInvoice.findUnique({ where: { id: invoice.id } });
       if (current?.status !== "PAID" || current.providerPaymentId !== String(payment.id ?? paymentId)) return;
-      const message = `O pagamento ${current.providerPaymentId} da fatura da agência ${current.period} foi informado pelo Mercado Pago como ${payment.status}. Confira o estorno e concilie a fatura antes de qualquer nova cobrança.`;
-      await tx.arenaNotification.createMany({ data: [{ id: `agency-payment-review:${current.id}:${current.providerPaymentId}:${payment.status}`, arenaId: current.arenaId, type: "AGENCY_PAYMENT_REVIEW", title: "Estorno da assinatura exige conciliação", message, href: "/financeiro/contas-a-pagar" }], skipDuplicates: true });
+      await tx.agencyInvoice.updateMany({
+        where: { id: current.id, status: "PAID", providerPaymentId: current.providerPaymentId, paymentReviewStatus: { not: reviewStatus } },
+        data: { paymentReviewStatus: reviewStatus, paymentReviewAt: new Date() },
+      });
+      const message = `O pagamento ${current.providerPaymentId} da fatura da agência ${current.period} foi informado pelo Mercado Pago como ${reviewStatus}. Confira o estorno e concilie a fatura antes de qualquer nova cobrança.`;
+      await tx.arenaNotification.createMany({ data: [{ id: `agency-payment-review:${current.id}:${current.providerPaymentId}:${reviewStatus}`, arenaId: current.arenaId, type: "AGENCY_PAYMENT_REVIEW", title: "Estorno da assinatura exige conciliação", message, href: "/financeiro/contas-a-pagar" }], skipDuplicates: true });
     });
-    return NextResponse.json({ ok: true, review: "refund_or_chargeback" });
+    return NextResponse.json({ ok: true, review: "payment_reversal" });
   }
   if (payment.status !== "approved") return NextResponse.json({ ok: true, ignored: "not_approved" });
   await withArenaTransaction(invoice.arenaId, async (tx) => {
