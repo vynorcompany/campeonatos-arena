@@ -192,11 +192,11 @@ export function PublicLeaguePortal({
               {portal.leagueCategories.map((category) => (
                 <option value={category.id} key={category.id}>
                   {category.label}
-                  {category.member ? " · Minha Liga" : ""}
                 </option>
               ))}
             </select>
           </label>
+          {selectedCategory.member ? <small className="tw:hidden tw:viewport-700:block tw:mt-1 tw:text-xs tw:font-semibold tw:text-[#087f69] tw:dark:text-[#70dec1]">Sua categoria</small> : null}
           <p className={viewStyles.portal_league_category_context}>
             {selectedCategory.member
               ? "Você participa desta categoria. As ações da sua dupla aparecem abaixo."
