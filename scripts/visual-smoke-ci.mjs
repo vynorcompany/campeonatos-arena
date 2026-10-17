@@ -490,14 +490,14 @@ async function main() {
       let point;
       for (let attempt = 0; attempt < 40; attempt += 1) {
         const evaluated = await send("Runtime.evaluate", {
-          expression: `(() => { const element = Array.from(document.querySelectorAll(${JSON.stringify(selector)})).find((candidate) => { const rect = candidate.getBoundingClientRect(); return rect.width > 0 && rect.height > 0; }); if (!element) return null; element.scrollIntoView({ block: 'center' }); const rect = element.getBoundingClientRect(); const x = rect.left + rect.width / 2; const y = rect.top + rect.height / 2; return { x, y, width: rect.width, height: rect.height, hitHref: document.elementFromPoint(x, y)?.closest('a[href]')?.getAttribute('href') ?? null, viewport: [innerWidth, innerHeight], scrollY }; })()`,
+          expression: `(() => { const element = Array.from(document.querySelectorAll(${JSON.stringify(selector)})).find((candidate) => { const rect = candidate.getBoundingClientRect(); return rect.width > 0 && rect.height > 0; }); if (!element) return null; element.scrollIntoView({ block: 'center' }); const rect = element.getBoundingClientRect(); const x = rect.left + rect.width / 2; const y = rect.top + rect.height / 2; const hit = document.elementFromPoint(x, y); return { x, y, width: rect.width, height: rect.height, hitMatches: Boolean(hit && element.contains(hit)), hitHref: hit?.closest('a[href]')?.getAttribute('href') ?? null, viewport: [innerWidth, innerHeight], scrollY }; })()`,
           returnByValue: true,
         });
         point = evaluated.result.value;
-        if (point?.width > 0 && point?.height > 0) break;
+        if (point?.width > 0 && point?.height > 0 && point.hitMatches) break;
         await pause(250);
       }
-      if (!point || point.width < 1 || point.height < 1) throw new Error(`Controle de navegação ausente: ${selector}`);
+      if (!point || point.width < 1 || point.height < 1 || !point.hitMatches) throw new Error(`Controle de navegação não clicável: ${selector}: ${JSON.stringify(point)}`);
       await send("Runtime.evaluate", { expression: "window.__lastSyntheticClick = null; document.addEventListener('click', (event) => { const target = event.target; const href = target instanceof Element ? target.closest('a[href]')?.getAttribute('href') ?? null : null; setTimeout(() => { window.__lastSyntheticClick = { href, defaultPrevented: event.defaultPrevented }; }, 0); }, { once: true });" });
       await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: point.x, y: point.y });
       await send("Input.dispatchMouseEvent", { type: "mousePressed", x: point.x, y: point.y, button: "left", clickCount: 1 });
