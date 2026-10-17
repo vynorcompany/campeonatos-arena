@@ -241,12 +241,12 @@ async function main() {
       }
     }
     const futureAgendaDate = new Date(Date.now() + 3 * 24 * 60 * 60_000).toISOString().slice(0, 10);
-    for (const viewport of viewports) {
+    for (const viewport of [...viewports, { name: "mobile-320", width: 320, height: 700 }]) {
       const agendaPath = `/agenda?data=${futureAgendaDate}`;
       const response = await fetch(`${baseUrl}${agendaPath}`, { headers: { Cookie: cookie(arenaA.id) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
       await response.body?.cancel();
       if (response.status !== 200) throw new Error(`${viewport.name}: agenda futura indisponível (HTTP ${response.status}).`);
-      await send("Emulation.setDeviceMetricsOverride", { width: viewport.width, height: viewport.height, deviceScaleFactor: 1, mobile: viewport.name === "mobile" });
+      await send("Emulation.setDeviceMetricsOverride", { width: viewport.width, height: viewport.height, deviceScaleFactor: 1, mobile: viewport.name !== "desktop" });
       await selectArena(arenaA.id);
       await send("Page.navigate", { url: `${baseUrl}${agendaPath}` });
       let slotReady = false;
@@ -712,6 +712,32 @@ async function main() {
           }
           console.log(`${label}: HTTP 200, sessão fictícia válida e sem overflow horizontal`);
         }
+      }
+    }
+    await send("Emulation.setDeviceMetricsOverride", { width: 320, height: 700, deviceScaleFactor: 1, mobile: true });
+    for (const theme of ["light", "dark"]) {
+      await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: theme }] });
+      for (const view of portalViews.filter(({ label }) => ["inicio", "financas", "torneios-jogos", "turmas", "reservar"].includes(label))) {
+        const label = `portal-mobile-320-${theme}-${view.label}`;
+        await send("Page.navigate", { url: `${baseUrl}/home?arena=arena-teste-goal&${view.query}` });
+        let compact;
+        for (let attempt = 0; attempt < 60; attempt += 1) {
+          const evaluated = await send("Runtime.evaluate", {
+            expression: "({path:location.pathname,section:new URLSearchParams(location.search).get('section'),width:innerWidth,scrollWidth:document.documentElement.scrollWidth,main:document.querySelector('main')?.innerText ?? '',authenticated:Boolean(document.querySelector('nav[aria-label=\"Atalhos principais\"]')),ready:document.readyState})",
+            returnByValue: true,
+          });
+          compact = evaluated.result.value;
+          if (compact?.path === "/home" && compact.section === view.query.split("&", 1)[0].split("=")[1] && compact.ready === "complete" && compact.authenticated && compact.main.trim().length >= 40) break;
+          await pause(200);
+        }
+        await pause(300);
+        const measured = await send("Runtime.evaluate", { expression: "({width:innerWidth,scrollWidth:document.documentElement.scrollWidth,main:document.querySelector('main')?.innerText ?? ''})", returnByValue: true });
+        compact = { ...compact, ...measured.result.value };
+        if (compact.path !== "/home" || compact.section !== view.query.split("&", 1)[0].split("=")[1] || !compact.authenticated || compact.main.trim().length < 40 || compact.scrollWidth > compact.width + 1) {
+          throw new Error(`${label}: conteúdo cortado ou sessão inválida: ${JSON.stringify({ path: compact.path, section: compact.section, authenticated: compact.authenticated, width: compact.width, scrollWidth: compact.scrollWidth, mainLength: compact.main.trim().length })}`);
+        }
+        const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+        await writeFile(`${outputDir}/${label}.png`, Buffer.from(shot.data, "base64"));
       }
     }
     const betaResponse = await fetch(`${baseUrl}/classificacao/arena-beta-goal?section=finance`, { headers: { Cookie: portalCookie }, signal: AbortSignal.timeout(20_000) });
