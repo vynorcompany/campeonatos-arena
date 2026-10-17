@@ -1,7 +1,7 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { requireArenaAccess } from "@/lib/auth/session";
 import { allPermissionModules, canViewModule } from "@/lib/permissions";
-import { prisma } from "@/lib/prisma";
+import { arenaDatabase } from "@/lib/arena-database";
 import { getAgencyDelinquency } from "@/lib/finance/agency-delinquency";
 import { getActiveWhatsAppUnreadCount } from "@/lib/whatsapp-active-account";
 
@@ -16,7 +16,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     canViewModule(module, auth.arenaRole, auth.systemRole, auth.viewPermissions)
   );
   const canAccessAgency = auth.systemRole === "SUPER_ADMIN" || auth.systemRole === "ADMIN" || auth.systemRole === "MANAGER";
-  const [notifications, whatsappUnreadCount, billingAlert] = await Promise.all([prisma.arenaNotification.findMany({ where: { arenaId: auth.arenaId, readAt: null }, select: { id: true, title: true, message: true, href: true, createdAt: true }, orderBy: { createdAt: "desc" }, take: 8 }), getActiveWhatsAppUnreadCount(auth.arenaId), getAgencyDelinquency(auth.arenaId)]);
+  const [notifications, whatsappUnreadCount, billingAlert] = await Promise.all([arenaDatabase(auth.arenaId).arenaNotification.findMany({ where: { arenaId: auth.arenaId, readAt: null }, select: { id: true, title: true, message: true, href: true, createdAt: true }, orderBy: { createdAt: "desc" }, take: 8 }), getActiveWhatsAppUnreadCount(auth.arenaId), getAgencyDelinquency(auth.arenaId)]);
 
   return (
     <AppShell
