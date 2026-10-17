@@ -399,7 +399,7 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
         {showSla ? <div className={viewStyles.whatsapp_sla_popover}><label>Tempo de SLA <input value={slaValue} onChange={(event) => setSlaValue(event.target.value.replace(/\D/g, ""))} inputMode="numeric" /> min</label><button type="button" onClick={saveSla} disabled={pending}>Salvar</button></div> : null}
       </div> : null}</header>
       <div className={viewStyles.whatsapp_filters} role="tablist" aria-label="Filtros de conversas">{filterOptions.map(([id, label, icon]) => <button key={id} type="button" className={cx(filter === id ? "is-active" : "")} onClick={() => setFilter(id)} title={label}><i><WhatsAppIcon name={icon} size={15} /></i><span>{label}</span></button>)}</div>
-      <div className={viewStyles.whatsapp_list_tools}><label><span aria-hidden="true">⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Nome, telefone ou empresa" /></label></div>
+      <div className={viewStyles.whatsapp_list_tools}><label><span aria-hidden="true">⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Nome ou telefone" /></label></div>
       <div className={viewStyles.whatsapp_conversation_list}>{visible.map((conversation) => {
         const last = messagesFor(conversation).at(-1); const status = slaStatus(conversation); const mayResolveSla = conversation.unreadCount === 0 && last?.direction === "INBOUND";
         return <div key={conversation.id} className={viewStyles.whatsapp_conversation_item}>
