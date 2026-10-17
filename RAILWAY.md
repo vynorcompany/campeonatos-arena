@@ -16,6 +16,8 @@ Configure estas variaveis no servico web:
 ```env
 DATABASE_URL=${{Postgres.DATABASE_URL}}
 DIRECT_URL=${{Postgres.DATABASE_URL}}
+# Conexão PostgreSQL com o papel arena_runtime e permissões limitadas.
+APP_DATABASE_URL=<url-do-papel-arena_runtime>
 APP_URL=https://seu-dominio-publico.up.railway.app
 SESSION_COOKIE_NAME=padel_session
 ARENA_COOKIE_NAME=padel_arena
@@ -37,32 +39,19 @@ Use uma senha forte em `INITIAL_ADMIN_PASSWORD`. O seed é apenas para bootstrap
 
 ## Banco e bootstrap
 
-Nao precisa rodar comandos em terminal no Railway. Tambem nao precisa preencher Custom Build Command, Custom Start Command ou Pre-deploy Command manualmente se o servico estiver usando este repositorio: o arquivo `railway.json` incluido no projeto ja configura isso.
+As configurações versionadas dos serviços estão em `.railway/railway.ts`. Antes de aplicar alterações dessa infraestrutura, execute `railway config plan` e revise o resultado; a presença do arquivo no Git não substitui a configuração já aplicada no Railway.
 
-Ele define:
+O serviço da aplicação usa:
 
 - Build Command: `npm run build`;
-- Pre-deploy Command: `npm run db:setup`;
-- Start Command: `npm run start`;
+- Start Command: `npm run db:setup && exec node scripts/runtime-server.mjs`;
 - Healthcheck Path: `/api/health`.
 
-Durante o pre-deploy, o `db:setup` executa somente `prisma migrate deploy`, para criar/atualizar as tabelas sem reexecutar cadastros de bootstrap.
+No início do deploy, `db:setup` executa somente `prisma migrate deploy`, sem reexecutar cadastros de bootstrap. O servidor web usa `APP_DATABASE_URL` com o papel limitado `arena_runtime`; a credencial administrativa fica restrita às migrações.
 
 O seed de bootstrap **não** roda durante atualizações. Execute `npm run db:bootstrap` apenas uma vez, na criação controlada do ambiente, com `SEED_DEMO_DATA=false`. Isso impede que um deploy altere o administrador ou a arena inicial.
 
-Isso acontece pelo `preDeployCommand`:
-
-```json
-{
-  "deploy": {
-    "preDeployCommand": "npm run db:setup"
-  }
-}
-```
-
-No Railway, basta configurar as variaveis de ambiente e fazer o deploy pelo GitHub. Se o pre-deploy falhar, o deploy nao entra em producao; veja os logs do deploy para descobrir qual variavel ou conexao de banco esta faltando.
-
-Se voce preferir configurar pela UI em vez de usar `railway.json`, use exatamente os mesmos valores acima e remova o `railway.json` para evitar configuracoes duplicadas.
+Se a migração ou o início falhar, confira os logs do deploy antes de liberar a versão. O serviço também monta um volume persistente para os uploads.
 
 ## Dominio publico
 
@@ -78,9 +67,15 @@ Se voce preferir configurar pela UI em vez de usar `railway.json`, use exatament
 - A aplicacao usa cookies `httpOnly`; em producao, eles sao marcados como `secure`.
 - O servico opcional `services/db-backup` cria um dump diario do PostgreSQL em um bucket S3 externo. Consulte `services/db-backup/README.md` para configura-lo como um cron separado no Railway.
 
-## Uploads no Cloudflare R2
+## Uploads no volume do Railway
 
-Imagens enviadas pelo sistema usam armazenamento durável no R2 em produção. Configure no serviço web:
+O padrão atual de produção é o volume persistente montado em `/app/.next/standalone/public/uploads`. O Railway disponibiliza o caminho em `RAILWAY_VOLUME_MOUNT_PATH`; sem ele nem uma configuração R2 completa, uploads são recusados em produção para não gravar em disco efêmero. Novos arquivos ficam em `arenas/<arena-id>/<categoria>/` dentro do volume e são servidos por `/media/uploads/...`; URLs locais anteriores continuam legíveis.
+
+Não é necessário contratar R2 para operar a aplicação. O volume evita perda dos uploads entre deploys, mas pode causar uma breve interrupção na troca de versão; monitore `/api/health` durante a publicação.
+
+## R2 opcional
+
+Uma migração futura para R2 exigiria decisão explícita, bucket, domínio público, credenciais e conferência das cópias antes de retirar o volume. Apenas nesse caso, configure:
 
 ```env
 R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
@@ -90,6 +85,6 @@ R2_SECRET_ACCESS_KEY=<secret-key>
 R2_PUBLIC_BASE_URL=https://assets.seudominio.com
 ```
 
-`R2_PUBLIC_BASE_URL` deve apontar para um domínio público configurado no bucket. Sem todas essas variáveis, o envio de imagens é bloqueado em produção; nunca use o disco local como armazenamento produtivo.
+`R2_PUBLIC_BASE_URL` deve apontar para um domínio público configurado no bucket. Não preencha apenas parte dessas variáveis: a configuração parcial é rejeitada.
 
-Depois de configurar o R2, transfira arquivos antigos que ainda estejam em `public/uploads` executando `npm run storage:migrate-local` em um ambiente que possua os arquivos e a conexão do banco. O script só processa URLs locais (`/uploads/...`) e atualiza os registros depois que o arquivo chega ao R2.
+Se a migração for autorizada no futuro, `npm run storage:migrate-local` processa URLs locais (`/uploads/...` e `/media/uploads/...`) e atualiza os registros somente depois de verificar a cópia pública no R2. Não remova o volume antes dessa validação.

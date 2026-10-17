@@ -1,4 +1,5 @@
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
@@ -91,16 +92,16 @@ export function getPersistentUploadDirectory() {
 
 async function storePublicImage(
   content: Buffer,
-  { folder, prefix, extension, contentType, arenaId }: { folder: string; prefix: string; extension: string; contentType: string; arenaId?: string }
+  { folder, prefix, extension, contentType, arenaId }: { folder: string; prefix: string; extension: string; contentType: string; arenaId: string }
 ) {
   const safeFolder = sanitizeName(folder) || "uploads";
   const safePrefix = sanitizeName(prefix) || "imagem";
-  const fileName = `${safePrefix}-${Date.now()}.${extension}`;
+  const safeArenaId = sanitizeName(arenaId);
+  if (!safeArenaId) throw new Error("Não foi possível identificar a arena do upload.");
+  const fileName = `${safePrefix}-${randomUUID()}.${extension}`;
   const r2 = getR2Configuration();
 
   if (r2) {
-    const safeArenaId = sanitizeName(arenaId ?? "");
-    if (!safeArenaId) throw new Error("Não foi possível identificar a arena do upload.");
     const key = `arenas/${safeArenaId}/${safeFolder}/${fileName}`;
     await getR2Client(r2).send(
       new PutObjectCommand({
@@ -118,15 +119,15 @@ async function storePublicImage(
     throw new Error("Configure um Volume da Railway ou o Cloudflare R2 antes de enviar imagens em produção.");
   }
 
-  const uploadDir = path.join(getPersistentUploadDirectory(), safeFolder);
+  const uploadDir = path.join(getPersistentUploadDirectory(), "arenas", safeArenaId, safeFolder);
 
   await mkdir(uploadDir, { recursive: true });
   await writeFile(path.join(uploadDir, fileName), content);
 
-  return `/media/uploads/${safeFolder}/${fileName}`;
+  return `/media/uploads/arenas/${safeArenaId}/${safeFolder}/${fileName}`;
 }
 
-export async function savePublicImageUpload(file: File | null, folder: string, prefix: string, arenaId?: string) {
+export async function savePublicImageUpload(file: File | null, folder: string, prefix: string, arenaId: string) {
   if (!file || file.size === 0) return null;
 
   const extension = allowedImageTypes.get(file.type);
