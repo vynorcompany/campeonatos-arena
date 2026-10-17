@@ -585,7 +585,7 @@ async function main() {
       }
       console.log(`${viewport.name}: navegação sucessiva por Grade, Torneios e Contas a Receber funcionou.`);
     }
-    await send("Network.setCookie", { name: "padel_arena", value: arenaB.id, url: baseUrl, httpOnly: true, sameSite: "Lax" });
+    await selectArena(arenaB.id, staffSessionToken);
     await send("Page.navigate", { url: `${baseUrl}/jogadores` });
     let switched;
     for (let attempt = 0; attempt < 80; attempt += 1) {
