@@ -14,6 +14,7 @@ import { parseScheduledAt } from "../src/lib/calendar/inputs";
 import { cancelUnpaidOnlineBooking, claimOnlineBookingPaymentMethod, isConfirmedSchedulePaymentMethod } from "../src/lib/calendar/booking-payment-claim";
 import { upcomingPlayerReservationsWhere } from "../src/lib/portal/upcoming-reservations";
 import { getBookingDelinquency } from "../src/lib/calendar/booking-delinquency";
+import { isAgendaManagedBooking } from "../src/lib/calendar/agenda-managed-booking";
 
 const testUrl = process.env.ARENA_GOAL_TEST_DATABASE_URL ?? "";
 const disposableDatabase = (() => {
@@ -155,6 +156,7 @@ test("duas reservas simultâneas da mesma quadra produzem apenas um hold", { ski
       "@/lib/calendar/booking-delinquency": { getBookingDelinquency },
       "@/lib/calendar/booking-payment-claim": {},
       "@/lib/calendar/court-booking-edit-safety": {},
+      "@/lib/calendar/agenda-managed-booking": { isAgendaManagedBooking },
       "@/lib/integrations/evolution/client": {},
       "@/lib/scheduling/recurrence": {},
       "@/lib/payments/mercado-pago": {},
