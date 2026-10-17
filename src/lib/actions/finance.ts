@@ -253,10 +253,17 @@ export async function recordPlanPaymentAction(formData: FormData) {
     await tx.$queryRaw`SELECT id FROM "FinancialEntry" WHERE id = ${entryIds[0].id} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
     const entry = await tx.financialEntry.findFirst({
       where: { ...where, id: entryIds[0].id, status: "PENDING" },
-      include: { settlements: { select: { amountCents: true, interestCents: true } }, fiscalDocument: { select: { id: true } } },
+      include: {
+        settlements: { select: { amountCents: true, interestCents: true } },
+        fiscalDocument: { select: { id: true } },
+        onlinePaymentItems: { select: { checkout: { select: { status: true, mercadoPagoPaymentId: true, checkoutUrl: true } } } },
+      },
     });
     if (!entry) throw new Error("Esta mensalidade já foi quitada ou não está disponível para baixa.");
-    if (entry.onlinePaymentId || entry.onlinePaymentUrl || entry.onlinePaymentClaimedAt) {
+    const groupedPaymentInProgress = entry.onlinePaymentItems.some(({ checkout }) =>
+      checkout.status === "REVIEW" || (checkout.status === "PENDING" && Boolean(checkout.mercadoPagoPaymentId || checkout.checkoutUrl))
+    );
+    if (entry.onlinePaymentId || entry.onlinePaymentUrl || entry.onlinePaymentClaimedAt || groupedPaymentInProgress) {
       throw new Error("Esta mensalidade já possui cobrança online emitida ou em emissão. Confira e concilie o pagamento em Contas a Receber.");
     }
     const before = getFinancialEntryBalance(entry.amountCents, entry.settlements);

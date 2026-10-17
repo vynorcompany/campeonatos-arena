@@ -26,7 +26,7 @@ test("renovação cria novo ciclo de 12 sem apagar mensalidades anteriores nem c
   runtimeUrl.username = "arena_runtime";
   runtimeUrl.password = "";
   const runtime = new PrismaClient({ datasources: { db: { url: runtimeUrl.toString() } } });
-  const ids: { plans: string[]; player?: string; student?: string; betaStudent?: string; betaPlayer?: string } = { plans: [] };
+  const ids: { plans: string[]; checkout?: string; player?: string; student?: string; betaStudent?: string; betaPlayer?: string } = { plans: [] };
   let chargeAttempts = 0;
   try {
     const arenaA = await admin.arena.findUniqueOrThrow({ where: { slug: "arena-teste-goal" }, select: { id: true } });
@@ -97,6 +97,13 @@ test("renovação cria novo ciclo de 12 sem apagar mensalidades anteriores nem c
     await admin.financialEntry.update({ where: { id: oldEntries[0].id }, data: { onlinePaymentId: "boleto-ficticio" } });
     await assert.rejects(recordPayment(oldSubscription.id, referenceMonth), /cobrança online emitida/);
     await admin.financialEntry.update({ where: { id: oldEntries[0].id }, data: { onlinePaymentId: "" } });
+    ids.checkout = (await admin.onlinePaymentCheckout.create({ data: {
+      arenaId: arenaA.id, playerId: ids.player!, amountCents: 30000,
+      mercadoPagoPaymentId: "checkout-ficticio", checkoutUrl: "https://example.invalid/checkout",
+      items: { create: [{ financialEntryId: oldEntries[0].id, amountCents: 30000 }] },
+    }, select: { id: true } })).id;
+    await assert.rejects(recordPayment(oldSubscription.id, referenceMonth), /cobrança online emitida/);
+    await admin.onlinePaymentCheckout.update({ where: { id: ids.checkout }, data: { status: "FAILED" } });
     await recordPayment(oldSubscription.id, referenceMonth, "100,00");
     let paidEntry = await admin.financialEntry.findUniqueOrThrow({ where: { id: oldEntries[0].id }, include: { settlements: true } });
     assert.equal(paidEntry.status, "PENDING");
@@ -127,6 +134,7 @@ test("renovação cria novo ciclo de 12 sem apagar mensalidades anteriores nem c
     await assert.rejects(activate(ids.betaStudent, ids.plans[0]), /Aluno não encontrado/);
     assert.equal(await admin.studentSubscription.count({ where: { arenaId: arenaB.id, studentId: ids.betaStudent } }), 0);
   } finally {
+    if (ids.checkout) await admin.onlinePaymentCheckout.delete({ where: { id: ids.checkout } });
     if (ids.plans.length) {
       await admin.financialEntry.deleteMany({ where: { planId: { in: ids.plans } } });
       await admin.financialRecurrence.deleteMany({ where: { planId: { in: ids.plans } } });
