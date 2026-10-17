@@ -486,11 +486,16 @@ async function main() {
       }
     }
     const clickElement = async (selector) => {
-      const evaluated = await send("Runtime.evaluate", {
-        expression: `(() => { const element = Array.from(document.querySelectorAll(${JSON.stringify(selector)})).find((candidate) => { const rect = candidate.getBoundingClientRect(); return rect.width > 0 && rect.height > 0; }); if (!element) return null; element.scrollIntoView({ block: 'center' }); const rect = element.getBoundingClientRect(); return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, width: rect.width, height: rect.height }; })()`,
-        returnByValue: true,
-      });
-      const point = evaluated.result.value;
+      let point;
+      for (let attempt = 0; attempt < 40; attempt += 1) {
+        const evaluated = await send("Runtime.evaluate", {
+          expression: `(() => { const element = Array.from(document.querySelectorAll(${JSON.stringify(selector)})).find((candidate) => { const rect = candidate.getBoundingClientRect(); return rect.width > 0 && rect.height > 0; }); if (!element) return null; element.scrollIntoView({ block: 'center' }); const rect = element.getBoundingClientRect(); return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, width: rect.width, height: rect.height }; })()`,
+          returnByValue: true,
+        });
+        point = evaluated.result.value;
+        if (point?.width > 0 && point?.height > 0) break;
+        await pause(250);
+      }
       if (!point || point.width < 1 || point.height < 1) throw new Error(`Controle de navegação ausente: ${selector}`);
       await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: point.x, y: point.y });
       await send("Input.dispatchMouseEvent", { type: "mousePressed", x: point.x, y: point.y, button: "left", clickCount: 1 });
