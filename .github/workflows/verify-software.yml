@@ -40,6 +40,8 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
       - run: npm run db:generate
       - run: npm run db:setup
       - run: npx tsx scripts/seed-goal-ci.ts
