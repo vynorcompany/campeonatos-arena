@@ -6,9 +6,8 @@ import { withArenaTransaction } from "@/lib/rls";
 import { collectRecurringChargeCandidates, recurringChargeBatchLimit } from "@/lib/payments/recurring-charge-selection";
 import { getFinancialEntryBalance } from "@/lib/finance/ledger";
 import { claimFinancialOnlineCharge } from "@/lib/payments/financial-online-charge-claim";
-import { recurringBoletoEntryWhere } from "@/lib/payments/recurring-charge-eligibility";
+import { recurringBoletoEntryWhere, recurringBoletoIssueDeadline } from "@/lib/payments/recurring-charge-eligibility";
 
-const daysFromNow = 15;
 const issuanceConcurrency = 4;
 
 type ChargeAttempt = { created: boolean; skipped: boolean };
@@ -52,8 +51,7 @@ export async function issueRecurringOnlineChargeForEntry(arenaId: string, entryI
   });
 
   if (!entry) return { created: false, skipped: false };
-  const issueUntil = new Date(now);
-  issueUntil.setDate(issueUntil.getDate() + daysFromNow);
+  const issueUntil = recurringBoletoIssueDeadline(now);
   if (!entry.dueDate || entry.dueDate > issueUntil) return { created: false, skipped: false };
   const player = entry.player;
   if (!player || getMissingBoletoPayerFields(player).length) {
@@ -129,8 +127,7 @@ export async function issueRecurringOnlineChargeForEntry(arenaId: string, entryI
 
 /** Issues only the next due boleto for recurring receivables. It is safe to run more than once. */
 export async function recurringOnlineChargeCandidates(now = new Date()) {
-  const limit = new Date(now);
-  limit.setDate(limit.getDate() + daysFromNow);
+  const limit = recurringBoletoIssueDeadline(now);
   const arenas = await prisma.arena.findMany({ select: { id: true } });
   const ineligibleByArena: Record<string, number> = {};
   const selection = await collectRecurringChargeCandidates(arenas.map((arena) => arena.id), async (arenaId) => {
