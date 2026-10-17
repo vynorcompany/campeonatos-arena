@@ -191,6 +191,7 @@ export async function createSubscriptionAction(formData: FormData) {
       startsAt: startedAt, nextDueDate: dueDate, onlinePaymentMethod: "BOLETO", planId: plan.id,
       teacherId, playerId: student.playerId, studentId: student.id, notes: current ? "Renovação anual do plano de aulas." : "Ativação do plano de aulas.",
     } });
+    let lastDueDate = dueDate;
     for (let month = 0; month < 12; month += 1) {
       const entry = await tx.financialEntry.create({ data: {
         arenaId: auth.arenaId, type: "REVENUE", category: "Planos de aulas", description: `${plan.name} · ${student.name}`,
@@ -199,9 +200,10 @@ export async function createSubscriptionAction(formData: FormData) {
         notes: current ? "Mensalidade do novo ciclo anual." : "Mensalidade do primeiro ciclo anual.",
       } });
       if (month === 0) firstEntryId = entry.id;
+      lastDueDate = dueDate;
       dueDate = getNextFinancialRecurrenceDate(dueDate, "MONTHLY");
     }
-    await tx.financialRecurrence.update({ where: { id: recurrence.id }, data: { nextDueDate: dueDate } });
+    await tx.financialRecurrence.update({ where: { id: recurrence.id }, data: { endsAt: lastDueDate, nextDueDate: dueDate } });
   });
 
   if (firstEntryId) {

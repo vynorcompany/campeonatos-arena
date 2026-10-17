@@ -133,6 +133,7 @@ export async function approveClassGroupRequestAction(formData: FormData) {
       const firstEntry = await tx.financialEntry.create({ data: { arenaId: auth.arenaId, type: "REVENUE", counterpartyName: request.student.name, playerId: request.student.playerId, category: "Planos de aulas", description: `${plan.name} · ${request.student.name}`, amountCents: plan.monthlyPriceCents, dueDate: firstDueDate, planId: plan.id, teacherId: request.classGroup.teacherId, recurrenceId: recurrence.id, paymentMethod: "Boleto" } });
       entryId = firstEntry.id;
       let nextDueDate = getNextFinancialRecurrenceDate(firstDueDate, "MONTHLY");
+      let lastDueDate = firstDueDate;
       for (let month = 1; month < 12; month += 1) {
         await tx.financialEntry.create({ data: {
           arenaId: auth.arenaId, type: "REVENUE", counterpartyName: request.student.name,
@@ -141,9 +142,10 @@ export async function approveClassGroupRequestAction(formData: FormData) {
           dueDate: nextDueDate, planId: plan.id, teacherId: request.classGroup.teacherId,
           recurrenceId: recurrence.id, paymentMethod: "Boleto",
         } });
+        lastDueDate = nextDueDate;
         nextDueDate = getNextFinancialRecurrenceDate(nextDueDate, "MONTHLY");
       }
-      await tx.financialRecurrence.update({ where: { id: recurrence.id }, data: { nextDueDate } });
+      await tx.financialRecurrence.update({ where: { id: recurrence.id }, data: { endsAt: lastDueDate, nextDueDate } });
     }
     await tx.classGroupRequest.update({ where: { id: request.id }, data: { status: "APPROVED" } });
     return entryId;

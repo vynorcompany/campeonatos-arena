@@ -98,6 +98,7 @@ test("aprovações simultâneas não duplicam matrícula nem cobrança e respeit
     assert.ok(entries.every(({ recurrenceId }) => recurrenceId === recurrence.id));
     assert.equal(entries[0].dueDate?.toISOString().slice(0, 10), "2030-01-10");
     assert.equal(entries[11].dueDate?.toISOString().slice(0, 10), "2030-12-10");
+    assert.equal(recurrence.endsAt?.getTime(), entries[11].dueDate?.getTime());
     assert.equal(recurrence.nextDueDate.toISOString().slice(0, 10), "2031-01-10");
     assert.equal(issuedCharges, 1);
 

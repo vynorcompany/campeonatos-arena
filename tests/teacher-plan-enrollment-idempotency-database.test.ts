@@ -94,6 +94,10 @@ test("duas inscrições no mesmo plano geram uma assinatura e doze lançamentos,
     assert.equal(await admin.classGroupEnrollment.count({ where: { studentId: student.id, classGroupId: group.id, status: "ACTIVE" } }), 1);
     assert.equal(await admin.financialRecurrence.count({ where: { arenaId: arenaA.id, planId: plan.id, playerId: client.id, active: true } }), 1);
     assert.equal(await admin.financialEntry.count({ where: { arenaId: arenaA.id, planId: plan.id, playerId: client.id } }), 12);
+    const recurrence = await admin.financialRecurrence.findFirstOrThrow({ where: { arenaId: arenaA.id, planId: plan.id, playerId: client.id, active: true } });
+    const lastEntry = await admin.financialEntry.findFirstOrThrow({ where: { recurrenceId: recurrence.id }, orderBy: { dueDate: "desc" }, select: { dueDate: true } });
+    assert.equal(recurrence.endsAt?.getTime(), lastEntry.dueDate?.getTime());
+    assert.ok(recurrence.nextDueDate > recurrence.endsAt!);
     assert.equal(issuedCharges, 1);
 
     await assert.rejects(enroll(betaClient.id), /Professor, plano ou cliente não encontrado/);
