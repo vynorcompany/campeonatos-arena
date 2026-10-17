@@ -1,4 +1,4 @@
-import { defineRailway, github, preserve, project, service, volume } from "railway/iac";
+import { defineRailway, fn, github, preserve, project, service, volume } from "railway/iac";
 
 // This repository owns only its application and backup services in the shared project.
 export const partial = "campeonatos-arena";
@@ -59,5 +59,14 @@ export default defineRailway(() => {
     },
   });
 
-  return project("Arena Padel Manager", { resources: [app, backup, uploads] });
+  const financialCharges = fn("financial-online-charges", {
+    codeFile: "functions/financial-online-charges.ts",
+    deploy: { cronSchedule: "0 9 * * *", restartPolicyType: "NEVER" },
+    env: {
+      APP_URL: app.env.APP_URL,
+      CRON_SECRET: app.env.CRON_SECRET,
+    },
+  });
+
+  return project("Arena Padel Manager", { resources: [app, backup, financialCharges, uploads] });
 });
