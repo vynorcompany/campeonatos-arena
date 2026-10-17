@@ -1,12 +1,14 @@
 import type { ArenaTransaction } from "@/lib/rls";
+import { isAgendaManagedBooking } from "./agenda-managed-booking";
 
 export async function assertCourtBookingMayBeEdited(tx: ArenaTransaction, arenaId: string, occurrenceId: string) {
-  const [booking] = await tx.$queryRaw<{ status: string }[]>`
-    SELECT "status" FROM "ScheduleOccurrence"
+  const [booking] = await tx.$queryRaw<{ status: string; sourceType: string }[]>`
+    SELECT "status", "sourceType" FROM "ScheduleOccurrence"
     WHERE "id" = ${occurrenceId} AND "arenaId" = ${arenaId}
     FOR UPDATE
   `;
   if (!booking) throw new Error("Reserva não encontrada nesta arena.");
+  if (!isAgendaManagedBooking(booking.sourceType)) throw new Error("Este horário é gerenciado pela origem e não pode ser editado pela agenda.");
   if (booking.status === "PENDING_PAYMENT") throw new Error("Esta reserva aguarda pagamento e não pode ser editada agora.");
 
   const linkedEntries = await tx.scheduleParticipant.findMany({

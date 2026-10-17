@@ -7,6 +7,7 @@ import { PrismaClient } from "@prisma/client";
 import ts from "typescript";
 import { boletoCancellationDisposition } from "../src/lib/payments/boleto-cancellation";
 import { canPerformPermission } from "../src/lib/permissions";
+import { isAgendaManagedBooking } from "../src/lib/calendar/agenda-managed-booking";
 
 const testUrl = process.env.ARENA_GOAL_TEST_DATABASE_URL ?? "";
 const disposableDatabase = (() => {
@@ -57,6 +58,7 @@ test("cancelar reserva respeita a escolha sobre cobranças abertas sem afetar va
       "@/lib/calendar/court-interval-pricing": {},
       "@/lib/calendar/online-booking-hold": {},
       "@/lib/calendar/court-booking-edit-safety": {},
+      "@/lib/calendar/agenda-managed-booking": { isAgendaManagedBooking },
       "@/lib/calendar/arena-wall-clock": {},
       "@/lib/calendar/booking-payment-claim": {},
       "@/lib/calendar/booking-delinquency": {},
@@ -72,9 +74,9 @@ test("cancelar reserva respeita a escolha sobre cobranças abertas sem afetar va
       exports, Date, FormData, Set, console,
       require: (name: string) => { if (!(name in mocks)) throw new Error(`Import inesperado: ${name}`); return mocks[name]; },
     });
-    const createOccurrence = async (arenaId: string) => {
+    const createOccurrence = async (arenaId: string, sourceType = "BOOKING") => {
       const occurrence = await admin.scheduleOccurrence.create({ data: {
-        arenaId, sourceType: "BOOKING", title: "Reserva descartável GOAL", status: "SCHEDULED",
+        arenaId, sourceType, title: "Reserva descartável GOAL", status: "SCHEDULED",
         startsAt: new Date("2038-04-10T14:00:00Z"), endsAt: new Date("2038-04-10T15:00:00Z"),
       }, select: { id: true } });
       occurrenceIds.push(occurrence.id);
@@ -132,6 +134,13 @@ test("cancelar reserva respeita a escolha sobre cobranças abertas sem afetar va
     assert.equal((await admin.financialEntry.findUniqueOrThrow({ where: { id: onlinePendingEntry } })).status, "VOIDED");
     assert.equal((await admin.financialEntry.findUniqueOrThrow({ where: { id: onlineApprovedEntry } })).status, "PENDING");
     assert.deepEqual(canceledPaymentIds, ["goal-payment-pending"]);
+
+    const leagueOccurrence = await createOccurrence(arenaA.id, "LEAGUE_PROPOSAL");
+    const leagueEntry = await createEntry(arenaA.id, leagueOccurrence, "PENDING");
+    await assert.rejects(cancel(leagueOccurrence, "no"), /gerenciado pela origem/);
+    await assert.rejects(cancel(leagueOccurrence, "yes"), /gerenciado pela origem/);
+    assert.equal((await admin.scheduleOccurrence.findUniqueOrThrow({ where: { id: leagueOccurrence } })).status, "SCHEDULED");
+    assert.equal((await admin.financialEntry.findUniqueOrThrow({ where: { id: leagueEntry } })).status, "PENDING");
 
     const otherOccurrence = await createOccurrence(arenaB.id);
     const otherEntry = await createEntry(arenaB.id, otherOccurrence, "PENDING");

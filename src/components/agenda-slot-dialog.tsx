@@ -16,7 +16,7 @@ type Court = { id: string; name: string };
 type Teacher = { id: string; name: string };
 type Participant = { playerId: string; amountCents: number; paymentMethod: string };
 type CourtPricingRule = { weekday: number; startsAtMinute: number; endsAtMinute: number; priceCents: number; available: boolean };
-type AgendaSlot = { occurrenceId?: string; courtId: string; courtIds?: string[]; courtName: string; dateLabel: string; dateValue: string; startsAt: string; endsAt: string; state: "AVAILABLE" | "UNAVAILABLE" | "OCCUPIED"; pendingConfirmation?: boolean; priceCents?: number; pricingRules?: CourtPricingRule[]; bookingTypeName?: string; notes?: string; teacherId?: string; responsiblePlayerId?: string; participants?: Participant[] };
+type AgendaSlot = { occurrenceId?: string; sourceType?: string; courtId: string; courtIds?: string[]; courtName: string; dateLabel: string; dateValue: string; startsAt: string; endsAt: string; state: "AVAILABLE" | "UNAVAILABLE" | "OCCUPIED"; pendingConfirmation?: boolean; priceCents?: number; pricingRules?: CourtPricingRule[]; bookingTypeName?: string; notes?: string; teacherId?: string; responsiblePlayerId?: string; participants?: Participant[] };
 
 const paymentOptions = [["", "Em aberto"], ["PIX", "PIX"], ["CASH", "Dinheiro"], ["CREDIT_CARD", "Cartão de crédito"], ["DEBIT_CARD", "Cartão de débito"], ["CREDIT_BALANCE", "Saldo de crédito"], ["TRANSFER", "Transferência"]] as const;
 function minuteLabel(value: number) { return `${String(Math.floor(value / 60) % 24).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`; }

@@ -39,6 +39,13 @@ test("edição da reserva não apaga nem reescreve cobrança paga, parcial ou in
       await tx.scheduleOccurrence.update({ where: { id: booking.id }, data: { status: "PENDING_PAYMENT" } });
       await assert.rejects(assertCourtBookingMayBeEdited(tx, arena.id, booking.id), /aguarda pagamento/);
 
+      const leagueGame = await tx.scheduleOccurrence.create({ data: {
+        arenaId: arena.id, sourceType: "LEAGUE_PROPOSAL", title: "Jogo descartável da Liga",
+        startsAt: new Date("2036-06-02T14:00:00Z"), endsAt: new Date("2036-06-02T15:00:00Z"),
+        status: "SCHEDULED",
+      } });
+      await assert.rejects(assertCourtBookingMayBeEdited(tx, arena.id, leagueGame.id), /gerenciado pela origem/);
+
       await tx.$executeRaw`SELECT set_config('app.arena_id', ${otherArena.id}, true)`;
       await assert.rejects(assertCourtBookingMayBeEdited(tx, otherArena.id, booking.id), /não encontrada nesta arena/);
       throw rollback;
