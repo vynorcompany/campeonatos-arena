@@ -668,6 +668,7 @@ model PublicTournamentRegistration {
   paymentQrCodeBase64  String                 @default("")
   paymentCheckoutUrl   String                 @default("")
   paymentExpiresAt     DateTime?
+  holdExpiresAt        DateTime?
   status               String                 @default("PENDING_PAYMENT")
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
@@ -686,6 +687,7 @@ model PublicTournamentRegistration {
   @@index([leadCpf, createdAt])
   @@index([partnerCpf, createdAt])
   @@index([competitionId, createdAt])
+  @@index([tournamentId, status, holdExpiresAt], map: "PubReg_tournament_status_hold_idx")
 }
 
 model CategoryBracket {

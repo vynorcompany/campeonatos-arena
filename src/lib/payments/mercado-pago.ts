@@ -25,6 +25,8 @@ type CreateCardCheckoutInput = {
   payerEmail: string;
   externalReference: string;
   returnUrl?: string;
+  validFrom?: Date;
+  expiresAt?: Date;
 };
 
 type CreateBoletoPaymentInput = CreatePixPaymentInput & { payerCpf: string; payerName: string; payerAddress: BoletoPayerAddress; expiresAt?: Date };
@@ -76,7 +78,9 @@ type CreatePixPaymentResult = {
 export async function createPixPayment(input: CreatePixPaymentInput): Promise<CreatePixPaymentResult> {
   const accessToken = await mercadoPagoAccessTokenForArena(input.arenaId);
 
-  const dateOfExpiration = pixPaymentExpiration(new Date(), input.expiresAt).toISOString();
+  // Without a fixed expiry, let Mercado Pago apply its default. A freshly
+  // calculated timestamp would change the body on retries using the same key.
+  const dateOfExpiration = input.expiresAt ? pixPaymentExpiration(new Date(), input.expiresAt).toISOString() : null;
   const response = await fetch("https://api.mercadopago.com/v1/payments", {
     method: "POST",
     signal: AbortSignal.timeout(25_000),
@@ -89,7 +93,7 @@ export async function createPixPayment(input: CreatePixPaymentInput): Promise<Cr
       transaction_amount: Number((input.amountCents / 100).toFixed(2)),
       description: input.description,
       payment_method_id: "pix",
-      date_of_expiration: dateOfExpiration,
+      ...(dateOfExpiration ? { date_of_expiration: dateOfExpiration } : {}),
       external_reference: input.externalReference,
       ...(paymentNotificationUrl(input.arenaId) ? { notification_url: paymentNotificationUrl(input.arenaId) } : {}),
       payer: {
@@ -148,7 +152,12 @@ async function createCheckoutPreference(input: CreateCardCheckoutInput, paymentM
         pending: returnUrl,
         failure: returnUrl
       },
-      auto_return: "approved"
+      auto_return: "approved",
+      ...(input.validFrom && input.expiresAt ? {
+        expires: true,
+        expiration_date_from: input.validFrom.toISOString(),
+        expiration_date_to: input.expiresAt.toISOString()
+      } : {})
     })
   });
 
@@ -165,7 +174,7 @@ async function createCheckoutPreference(input: CreateCardCheckoutInput, paymentM
     qrCode: "",
     qrCodeBase64: "",
     checkoutUrl: String(payload.init_point ?? ""),
-    expiresAt: null
+    expiresAt: input.expiresAt ?? null
   };
 }
 

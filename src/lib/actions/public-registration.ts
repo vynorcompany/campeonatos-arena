@@ -7,6 +7,7 @@ import { ensureTournamentPairFromRegistration } from "@/lib/services/registratio
 import { createPublicRegistrationSchema } from "@/lib/validators/public-registration";
 import { env } from "@/lib/env";
 import { lockTournamentRegistrations, nextTournamentRegistrationOrder } from "@/lib/tournaments/registration-order";
+import { publicRegistrationPaymentExpiresAt, publicRegistrationPixExpiresAt, releaseExpiredPublicRegistrationHolds } from "@/lib/tournaments/registration-payment-hold";
 import { setArenaRlsContext, withArenaTransaction } from "@/lib/rls";
 
 type PublicRegistrationState = {
@@ -102,6 +103,8 @@ export async function createPublicRegistrationAction(
       const selectedCategory = tournament.categories.find((category) => category.id === parsed.data.categoryId);
       if (!selectedCategory) throw new Error("Categoria invalida.");
 
+      await releaseExpiredPublicRegistrationHolds(tx, tournament.id, now);
+
       const occupiedSlots = await tx.publicTournamentRegistration.count({
         where: {
           tournamentId: tournament.id,
@@ -185,6 +188,7 @@ export async function createPublicRegistrationAction(
           paymentStatus: "PENDING",
           paymentProvider: amountCents > 0 ? "MERCADO_PAGO_PENDING" : "",
           paymentReference: "",
+          holdExpiresAt: amountCents > 0 ? publicRegistrationPaymentExpiresAt(now) : null,
           status: "PENDING_PAYMENT"
         }
       });
@@ -199,6 +203,10 @@ export async function createPublicRegistrationAction(
       payerEmail: parsed.data.leadEmail,
       externalReference: result.registration.id,
       returnUrl: `${env.appUrl ?? ""}/inscricao/${parsed.data.tournamentSlug}/sucesso/${result.registration.id}`,
+      expiresAt: parsed.data.paymentMethod === "PIX"
+        ? publicRegistrationPixExpiresAt(result.registration.createdAt)
+        : result.registration.holdExpiresAt ?? undefined,
+      validFrom: result.registration.createdAt,
     };
 
     if (result.amountCents === 0) {
