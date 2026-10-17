@@ -19,7 +19,8 @@ export async function loadClientLoyalty(tx: ArenaTransaction, arenaId: string, p
       playerId,
       occurrence: {
         arenaId,
-        bookingTypeName: "Reserva",
+        sourceType: { in: ["BOOKING", "ONLINE_BOOKING", "COURT_BOOKING"] },
+        bookingTypeName: { in: ["Reserva", "Reserva fixa"], mode: "insensitive" },
         status: "SCHEDULED",
         endsAt: { gte: instantToArenaWallClock(startedAt), lt: instantToArenaWallClock(now) },
       },
