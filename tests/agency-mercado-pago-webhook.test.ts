@@ -7,8 +7,9 @@ import ts from "typescript";
 const source = readFileSync(new URL("../src/app/api/payments/mercado-pago/agency/webhook/route.ts", import.meta.url), "utf8");
 
 function webhookFor(payment: { id: string; status: string; external_reference: string; transaction_amount: number; currency_id: string }) {
-  const invoice = { id: "invoice-a", arenaId: "arena-a", amountCents: 5000, status: "PENDING", financialEntryId: "entry-a", period: "2026-10" };
-  const writes = { settlements: 0, entries: 0, invoices: 0, arenaIds: [] as string[] };
+  const invoice = { id: "invoice-a", arenaId: "arena-a", amountCents: 5000, status: "PENDING", financialEntryId: "entry-a", period: "2026-10", providerPaymentId: "" };
+  const notifications: { id: string; arenaId: string; type: string; title: string; message: string; href: string }[] = [];
+  const writes = { settlements: 0, entries: 0, invoices: 0, arenaIds: [] as string[], notifications };
   const exports: Record<string, (request: Request) => Promise<{ status: number; body: Record<string, unknown> }>> = {};
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, {
     exports, URL, Date, Math, Number, String, console,
@@ -26,7 +27,12 @@ function webhookFor(payment: { id: string; status: string; external_reference: s
               invoice.status = data.status;
               return { count: 1 };
             },
-            update: async ({ data }: { data: { status: string } }) => { invoice.status = data.status; writes.invoices++; },
+            update: async ({ data }: { data: { status: string; providerPaymentId: string } }) => { invoice.status = data.status; invoice.providerPaymentId = data.providerPaymentId; writes.invoices++; },
+          },
+          arenaNotification: {
+            createMany: async ({ data }: { data: { id: string; arenaId: string; type: string; title: string; message: string; href: string }[] }) => {
+              for (const item of data) if (!notifications.some((existing) => existing.id === item.id)) notifications.push(item);
+            },
           },
           financialSettlement: { create: async ({ data }: { data: { arenaId: string; financialEntryId: string; amountCents: number } }) => {
             assert.equal(data.arenaId, invoice.arenaId);
@@ -74,4 +80,31 @@ test("webhook da agência não baixa pagamento com referência, valor ou moeda d
     assert.equal(webhook.writes.settlements, 0);
     assert.equal(webhook.invoice.status, "PENDING");
   }
+});
+
+test("estorno de fatura paga alerta para conciliação sem desfazer a baixa nem duplicar avisos", async () => {
+  const payment = { id: "payment-a", status: "approved", external_reference: "invoice-a", transaction_amount: 50, currency_id: "BRL" };
+  const webhook = webhookFor(payment);
+  assert.equal((await webhook.post()).status, 200);
+  payment.status = "refunded";
+  assert.equal((await webhook.post()).status, 200);
+  assert.equal((await webhook.post()).status, 200);
+  assert.equal(webhook.invoice.status, "PAID");
+  assert.equal(webhook.writes.settlements, 1);
+  assert.equal(webhook.writes.entries, 1);
+  assert.equal(webhook.writes.notifications.length, 1);
+  assert.equal(webhook.writes.notifications[0].arenaId, "arena-a");
+  assert.equal(webhook.writes.notifications[0].type, "AGENCY_PAYMENT_REVIEW");
+  assert.equal(webhook.writes.notifications[0].href, "/financeiro/contas-a-pagar");
+});
+
+test("estorno de outro pagamento não altera a fatura quitada", async () => {
+  const payment = { id: "payment-a", status: "approved", external_reference: "invoice-a", transaction_amount: 50, currency_id: "BRL" };
+  const webhook = webhookFor(payment);
+  await webhook.post();
+  payment.id = "payment-b";
+  payment.status = "charged_back";
+  assert.equal((await webhook.post()).status, 200);
+  assert.equal(webhook.writes.notifications.length, 0);
+  assert.equal(webhook.invoice.status, "PAID");
 });
