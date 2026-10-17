@@ -43,7 +43,7 @@ export default async function FinancePlansPage() {
           </div>
           <div className={viewStyles.field_form_full}>
             <label htmlFor="plan-notes">Observações</label>
-            <input id="plan-notes" name="notes" type="text" placeholder="Regras, benefícios ou restrições do plano." />
+            <textarea id="plan-notes" name="notes" rows={2} placeholder="Regras, benefícios ou restrições do plano." />
           </div>
           <div className={viewStyles.field_field_submit}>
             <SubmitButton label="Cadastrar plano" pendingLabel="Salvando..." className={viewStyles.button_button_primary} />
