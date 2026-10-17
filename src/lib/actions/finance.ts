@@ -213,7 +213,8 @@ export async function recordPlanPaymentAction(formData: FormData) {
   const subscription = await withArenaTransaction(auth.arenaId, (tx) => tx.studentSubscription.findFirst({
     where: {
       id: parsed.data.subscriptionId,
-      arenaId: auth.arenaId
+      arenaId: auth.arenaId,
+      status: "ACTIVE"
     },
     include: {
       student: true,
@@ -225,29 +226,59 @@ export async function recordPlanPaymentAction(formData: FormData) {
     throw new Error("Assinatura não encontrada.");
   }
 
-  const amountCents = parsed.data.amount ? parseMoneyToCents(parsed.data.amount) : subscription.monthlyPriceCents;
   const paidAt = parseDate(parsed.data.paidAt) ?? new Date();
+  const referenceMonth = getReferenceMonthRange(parsed.data.referenceMonth);
 
   await withArenaTransaction(auth.arenaId, async (tx) => {
-    const teacherAssignments = await tx.teacherStudent.findMany({
-      where: { arenaId: auth.arenaId, studentId: subscription.student.id, active: true, teacher: { planAssignments: { some: { planId: subscription.plan.id, active: true } } } },
-      select: { teacherId: true }, take: 2,
+    const recurrences = await tx.financialRecurrence.findMany({
+      where: planRecurrenceOwnerWhere({
+        arenaId: auth.arenaId,
+        planId: subscription.planId,
+        studentId: subscription.studentId,
+        studentName: subscription.student.name,
+        playerId: subscription.student.playerId,
+        startedAt: subscription.startedAt,
+      }),
+      select: { id: true },
     });
-    const entry = await tx.financialEntry.create({ data: {
+    if (!recurrences.length) throw new Error("Não há mensalidades deste ciclo para quitar. Confira a assinatura selecionada.");
+    const where = {
       arenaId: auth.arenaId,
       type: "REVENUE",
-      category: "Planos",
-      description: `${subscription.student.name} - ${subscription.plan.name} (${parsed.data.referenceMonth})`,
-      counterpartyName: subscription.student.name,
-      planId: subscription.plan.id,
-      teacherId: teacherAssignments.length === 1 ? teacherAssignments[0].teacherId : null,
-      playerId: subscription.student.playerId,
+      recurrenceId: { in: recurrences.map(({ id }) => id) },
+      dueDate: { gte: referenceMonth.start, lt: referenceMonth.end },
+    } as const;
+    const entryIds = await tx.financialEntry.findMany({ where, select: { id: true } });
+    if (entryIds.length !== 1) throw new Error("Não foi encontrada uma mensalidade única para este mês neste ciclo. Confira em Contas a Receber.");
+    await tx.$queryRaw`SELECT id FROM "FinancialEntry" WHERE id = ${entryIds[0].id} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
+    const entry = await tx.financialEntry.findFirst({
+      where: { ...where, id: entryIds[0].id, status: "PENDING" },
+      include: { settlements: { select: { amountCents: true, interestCents: true } }, fiscalDocument: { select: { id: true } } },
+    });
+    if (!entry) throw new Error("Esta mensalidade já foi quitada ou não está disponível para baixa.");
+    if (entry.onlinePaymentId || entry.onlinePaymentUrl || entry.onlinePaymentClaimedAt) {
+      throw new Error("Esta mensalidade já possui cobrança online emitida ou em emissão. Confira e concilie o pagamento em Contas a Receber.");
+    }
+    const before = getFinancialEntryBalance(entry.amountCents, entry.settlements);
+    const amountCents = parsed.data.amount ? parseMoneyToCents(parsed.data.amount) : before.outstandingCents;
+    if (amountCents <= 0 || amountCents > before.outstandingCents) throw new Error("Informe um valor maior que zero e até o saldo pendente da mensalidade.");
+    if (parsed.data.fiscalDocumentType && (before.paidCents > 0 || amountCents !== before.outstandingCents || entry.fiscalDocument)) {
+      throw new Error("Para emitir documento fiscal por este formulário, quite o valor integral da mensalidade ainda sem baixas. Confira as baixas parciais em Contas a Receber.");
+    }
+    const after = getFinancialEntryBalance(entry.amountCents, [...entry.settlements, { amountCents, interestCents: 0 }]);
+    await tx.financialSettlement.create({ data: {
+      arenaId: auth.arenaId,
+      financialEntryId: entry.id,
       amountCents,
-      paymentMethod: parsed.data.paymentMethod,
-      status: "PAID",
-      dueDate: paidAt,
+      interestCents: 0,
+      paymentMethod: parsed.data.paymentMethod || "Não informado",
       paidAt,
-      notes: "Pagamento mensal de aluno."
+      notes: `Pagamento da mensalidade de ${parsed.data.referenceMonth}.`,
+    } });
+    await tx.financialEntry.update({ where: { id: entry.id }, data: {
+      status: after.settled ? "PAID" : "PENDING",
+      paidAt: after.settled ? paidAt : null,
+      paymentMethod: parsed.data.paymentMethod || "Não informado",
     } });
     if (parsed.data.fiscalDocumentType) await issueManualFiscalDocument(tx, {
       arenaId: auth.arenaId,
