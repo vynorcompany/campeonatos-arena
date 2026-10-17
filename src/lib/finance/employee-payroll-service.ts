@@ -2,7 +2,7 @@ import type { ArenaTransaction } from "@/lib/rls";
 import { calculateEmployeePayroll, employeePayrollAmounts, type EmployeePayrollInput } from "./employee-payroll";
 import { getFinancialEntryBalance } from "./ledger";
 
-export async function saveEmployeePayroll(tx: ArenaTransaction, arenaId: string, input: EmployeePayrollInput) {
+export async function saveEmployeePayroll(tx: ArenaTransaction, arenaId: string, input: EmployeePayrollInput, authorize?: (state: { exists: boolean; hasFinancialEntry: boolean; paid: boolean }) => void) {
   const values = employeePayrollAmounts(input);
   const totals = calculateEmployeePayroll(values);
   if (!Number.isSafeInteger(totals.totalCents) || totals.totalCents <= 0 || totals.totalCents > 2_000_000_000 || totals.overtimeCents > 2_000_000_000) throw new Error("O total líquido deve ser positivo e os valores devem estar dentro do limite.");
@@ -19,6 +19,7 @@ export async function saveEmployeePayroll(tx: ArenaTransaction, arenaId: string,
   // Lock the financial row too: payments in Contas a Pagar must not race a payroll update.
   if (linked) await tx.$queryRaw`SELECT id FROM "FinancialEntry" WHERE id = ${linked.id} AND "arenaId" = ${arenaId} FOR UPDATE`;
   const entry = linked ? await tx.financialEntry.findUnique({ where: { id: linked.id }, include: { settlements: true } }) : null;
+  authorize?.({ exists: Boolean(existing), hasFinancialEntry: Boolean(entry), paid: entry?.status === "PAID" });
   if (entry?.status === "VOIDED") throw new Error("Esta folha tem um lançamento cancelado. Revise-o em Contas a Pagar.");
   if (entry && (entry.settlements.length || entry.status === "PAID") && entry.amountCents !== totals.totalCents) throw new Error("Uma folha com pagamentos registrados não pode ter o total alterado.");
   if (entry?.status === "PAID" && input.status !== "PAID") throw new Error("Esta folha já foi paga. Revise o pagamento em Contas a Pagar.");

@@ -4,6 +4,7 @@ import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { createSubscriptionAction, recordPlanPaymentAction } from "@/lib/actions/finance";
 import { requireModuleView } from "@/lib/auth/guards";
+import { canPerformPermission } from "@/lib/permissions";
 import { withArenaTransaction } from "@/lib/rls";
 
 function getReferenceMonth() {
@@ -21,6 +22,8 @@ function renewalDate(startedAt: Date) {
 
 export default async function MonthlyPaymentsPage() {
   const auth = await requireModuleView("finance");
+  const canCreate = canPerformPermission("finance:receivable:create", auth.arenaRole, auth.systemRole, auth.editPermissions);
+  const canSettle = canPerformPermission("finance:receivable:settle", auth.arenaRole, auth.systemRole, auth.editPermissions);
   const [students, plans, subscriptions] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
     tx.student.findMany({
       where: { arenaId: auth.arenaId, active: true },
@@ -43,8 +46,8 @@ export default async function MonthlyPaymentsPage() {
   return (
     <div className={viewStyles.stack_md}>
 
-      <div className={viewStyles.two_column_grid}>
-        <SectionCard title="Ativar ou renovar plano" description="Cria um ciclo de 12 mensalidades. A renovação fica disponível após completar 12 meses; as cobranças anteriores são preservadas." className="tw:content-start">
+      {canCreate || canSettle ? <div className={viewStyles.two_column_grid}>
+        {canCreate ? <SectionCard title="Ativar ou renovar plano" description="Cria um ciclo de 12 mensalidades. A renovação fica disponível após completar 12 meses; as cobranças anteriores são preservadas." className="tw:content-start">
           <SafeActionForm action={createSubscriptionAction} className={viewStyles.grid_form_finance_narrow_form} resetOnSuccess successMessage="Plano ativado ou renovado. Novo ciclo de 12 mensalidades criado.">
             <div className={viewStyles.field}>
               <label htmlFor="subscription-student">Aluno</label>
@@ -84,9 +87,9 @@ export default async function MonthlyPaymentsPage() {
               <SubmitButton label="Ativar ou renovar" pendingLabel="Salvando..." className={viewStyles.button_button_primary} />
             </div>
           </SafeActionForm>
-        </SectionCard>
+        </SectionCard> : null}
 
-        <SectionCard title="Registrar pagamento" description="O pagamento entra como receita no financeiro.">
+        {canSettle ? <SectionCard title="Registrar pagamento" description="O pagamento entra como receita no financeiro.">
           <SafeActionForm action={recordPlanPaymentAction} className="grid-form tw:grid tw:grid-cols-1 tw:gap-3 tw:[align-content:start]" resetOnSuccess successMessage="Pagamento registrado.">
             <div className={viewStyles.field_form_full}>
               <label htmlFor="payment-subscription">Assinatura</label>
@@ -134,8 +137,8 @@ export default async function MonthlyPaymentsPage() {
               <SubmitButton label="Registrar pagamento" pendingLabel="Registrando..." className={viewStyles.button_button_primary} />
             </div>
           </SafeActionForm>
-        </SectionCard>
-      </div>
+        </SectionCard> : null}
+      </div> : null}
 
       <SectionCard title="Renovações de planos" description="Acompanhe os alunos cujo ciclo de 12 mensalidades está terminando. A renovação é sempre manual, evitando novas cobranças sem aprovação.">
         {renewals.length ? <div className={viewStyles.simple_list_settings_compact_list}>{renewals.map((subscription) => <div className={viewStyles.simple_item} key={subscription.id}><strong>{subscription.student.name} · {subscription.plan.name}</strong><span>Renovação em {new Intl.DateTimeFormat("pt-BR").format(subscription.renewAt)} · {subscription.renewAt < today ? "renovação disponível" : "renovação próxima"}</span><small>A partir dessa data, use “Ativar ou renovar” para criar as próximas 12 mensalidades sem cancelar as anteriores.</small></div>)}</div> : <p className={viewStyles.muted}>Nenhuma renovação necessária nos próximos 30 dias.</p>}

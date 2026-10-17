@@ -44,7 +44,7 @@ test("renovação cria novo ciclo de 12 sem apagar mensalidades anteriores nem c
     const source = readFileSync(new URL("../src/lib/actions/finance.ts", import.meta.url), "utf8");
     const exports: Record<string, (form: FormData) => Promise<unknown>> = {};
     const mocks: Record<string, unknown> = {
-      "@/lib/auth/guards": { requireModuleEdit: async () => ({ arenaId: arenaA.id }) },
+      "@/lib/auth/guards": { requirePermission: async () => ({ arenaId: arenaA.id }) },
       "@/lib/finance/action-schemas": { paymentSchema, subscriptionSchema },
       "@/lib/finance/inputs": { getReferenceMonthRange, parseDate, parseMoneyToCents },
       "@/lib/finance/ledger": { getFinancialEntryBalance },
