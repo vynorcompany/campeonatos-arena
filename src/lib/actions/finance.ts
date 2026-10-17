@@ -605,12 +605,13 @@ export async function settleFinancialEntryAction(formData: FormData) {
 
   const amountCents = parseMoneyToCents(parsed.data.amount);
   const interestCents = parseMoneyToCents(parsed.data.interest);
+  if (amountCents <= 0) throw new Error("Informe um valor recebido maior que zero.");
   const paidAt = parseDate(parsed.data.paidAt) ?? new Date();
 
   await withArenaTransaction(auth.arenaId, async (tx) => {
     await tx.$queryRaw`SELECT id FROM "FinancialEntry" WHERE id = ${parsed.data.entryId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
     const entry = await tx.financialEntry.findFirst({
-      where: { id: parsed.data.entryId, arenaId: auth.arenaId, status: "PENDING" },
+      where: { id: parsed.data.entryId, arenaId: auth.arenaId, status: { in: ["PENDING", "OVERDUE"] } },
       include: { settlements: { select: { amountCents: true, interestCents: true } } }
     });
     if (!entry) throw new Error("Esta conta não está disponível para baixa.");
@@ -635,7 +636,7 @@ export async function settleFinancialEntryAction(formData: FormData) {
     await tx.financialEntry.update({
       where: { id: entry.id },
       data: {
-        status: after.settled ? "PAID" : "PENDING",
+        status: after.settled ? "PAID" : entry.status,
         paidAt: after.settled ? paidAt : null,
         paymentMethod: parsed.data.paymentMethod
       }
@@ -656,15 +657,17 @@ export async function settleFinancialEntriesBulkAction(formData: FormData) {
 
   const paidAt = parseDate(parsed.data.paidAt) ?? new Date();
   const settledCount = await withArenaTransaction(auth.arenaId, async (tx) => {
-    await tx.$queryRaw`SELECT id FROM "FinancialEntry" WHERE "arenaId" = ${auth.arenaId} AND id IN (${Prisma.join([...new Set(parsed.data.entryIds)])}) ORDER BY id FOR UPDATE`;
+    const entryIds = [...new Set(parsed.data.entryIds)];
+    await tx.$queryRaw`SELECT id FROM "FinancialEntry" WHERE "arenaId" = ${auth.arenaId} AND id IN (${Prisma.join(entryIds)}) ORDER BY id FOR UPDATE`;
     const entries = await tx.financialEntry.findMany({
-      where: { arenaId: auth.arenaId, id: { in: [...new Set(parsed.data.entryIds)] }, status: "PENDING", source: { not: "AGENCY_SUBSCRIPTION" } },
+      where: { arenaId: auth.arenaId, id: { in: entryIds }, status: { in: ["PENDING", "OVERDUE"] }, source: { not: "AGENCY_SUBSCRIPTION" } },
       include: { settlements: { select: { amountCents: true, interestCents: true } } }
     });
+    if (entries.length !== entryIds.length) throw new Error("Uma ou mais contas não estão disponíveis para quitação. Atualize a lista antes de tentar novamente.");
     let count = 0;
     for (const entry of entries) {
       const balance = getFinancialEntryBalance(entry.amountCents, entry.settlements);
-      if (balance.outstandingCents <= 0) continue;
+      if (balance.outstandingCents <= 0) throw new Error("Uma ou mais contas já estão quitadas. Atualize a lista antes de tentar novamente.");
       await tx.financialSettlement.create({ data: {
         arenaId: auth.arenaId,
         financialEntryId: entry.id,
