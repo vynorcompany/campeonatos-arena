@@ -104,6 +104,8 @@ test("renovação cria novo ciclo de 12 sem apagar mensalidades anteriores nem c
     }, select: { id: true } })).id;
     await assert.rejects(recordPayment(oldSubscription.id, referenceMonth), /cobrança online emitida/);
     await admin.onlinePaymentCheckout.update({ where: { id: ids.checkout }, data: { status: "FAILED" } });
+    await assert.rejects(recordPayment(oldSubscription.id, referenceMonth), /cobrança online emitida/);
+    await admin.onlinePaymentCheckout.update({ where: { id: ids.checkout }, data: { mercadoPagoPaymentId: "", checkoutUrl: "" } });
     await recordPayment(oldSubscription.id, referenceMonth, "100,00");
     let paidEntry = await admin.financialEntry.findUniqueOrThrow({ where: { id: oldEntries[0].id }, include: { settlements: true } });
     assert.equal(paidEntry.status, "PENDING");
