@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireFinancialEntryDelete, requireModuleEdit, requirePermission } from "@/lib/auth/guards";
+import { requireFinancialEntryDelete, requirePermission } from "@/lib/auth/guards";
 import { requireArenaAccess } from "@/lib/auth/session";
 import { canPerformPermission } from "@/lib/permissions";
 import { financialEntryPermission, type FinancialEntryOperation } from "@/lib/finance/entry-permissions";
@@ -68,7 +68,7 @@ function assertFinancialEntryPermission(auth: Awaited<ReturnType<typeof requireA
 
 
 export async function createPlanAction(formData: FormData) {
-  const auth = await requireModuleEdit("finance");
+  const auth = await requirePermission("finance:settings:manage");
   const parsed = planSchema.safeParse({
     name: formData.get("name"),
     monthlyPrice: formData.get("monthlyPrice"),
@@ -80,7 +80,7 @@ export async function createPlanAction(formData: FormData) {
     throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
 
-  await prisma.plan.create({
+  await withArenaTransaction(auth.arenaId, (tx) => tx.plan.create({
     data: {
       arenaId: auth.arenaId,
       createdByUserId: auth.userId,
@@ -90,7 +90,7 @@ export async function createPlanAction(formData: FormData) {
       classesPerMonth: parsed.data.classesPerMonth,
       notes: parsed.data.notes
     }
-  });
+  }));
 
   refreshFinanceRoutes();
 }
@@ -112,7 +112,7 @@ function hasUnresolvedOnlinePayment(entry: {
 }
 
 export async function createSubscriptionAction(formData: FormData) {
-  const auth = await requireModuleEdit("finance");
+  const auth = await requirePermission("finance:receivable:create");
   const parsed = subscriptionSchema.safeParse({
     studentId: formData.get("studentId"),
     planId: formData.get("planId"),
@@ -225,7 +225,7 @@ export async function createSubscriptionAction(formData: FormData) {
 }
 
 export async function recordPlanPaymentAction(formData: FormData) {
-  const auth = await requireModuleEdit("finance");
+  const auth = await requirePermission("finance:receivable:settle");
   const parsed = paymentSchema.safeParse({
     subscriptionId: formData.get("subscriptionId"),
     referenceMonth: formData.get("referenceMonth"),
@@ -727,7 +727,11 @@ export async function settleFinancialEntriesBulkAction(formData: FormData) {
 }
 
 export async function createTeacherMonthlyPayableAction(formData: FormData) {
-  const auth = await requirePermission("finance:receivable:settle");
+  const auth = await requireArenaAccess();
+  if (!canPerformPermission("teachers:payable", auth.arenaRole, auth.systemRole, auth.editPermissions)
+    && !canPerformPermission("finance:payable:create", auth.arenaRole, auth.systemRole, auth.editPermissions)) {
+    throw new Error("Sem permissão para gerar repasse de professor.");
+  }
   const parsed = teacherMonthlyPayableSchema.safeParse({
     teacherId: formData.get("teacherId"),
     entryIds: formData.getAll("entryIds"),
@@ -1116,9 +1120,13 @@ export async function connectPaymentProviderAction(formData: FormData) {
 }
 
 export async function upsertPayrollEntryAction(formData: FormData) {
-  const auth = await requireModuleEdit("finance");
+  const auth = await requireArenaAccess();
   const parsed = employeePayrollSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
-  await withArenaTransaction(auth.arenaId, tx => saveEmployeePayroll(tx, auth.arenaId, parsed.data));
+  await withArenaTransaction(auth.arenaId, tx => saveEmployeePayroll(tx, auth.arenaId, parsed.data, (state) => {
+    assertFinancialEntryPermission(auth, "EXPENSE", state.exists ? "edit" : "create");
+    if (state.exists && !state.hasFinancialEntry) assertFinancialEntryPermission(auth, "EXPENSE", "create");
+    if (parsed.data.status === "PAID" && !state.paid) assertFinancialEntryPermission(auth, "EXPENSE", "settle");
+  }));
   refreshFinanceRoutes();
 }

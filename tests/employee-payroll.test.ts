@@ -87,6 +87,24 @@ test("payroll cannot use users outside the arena or edit a voided payable", asyn
   await assert.rejects(saveEmployeePayroll(tx, "arena", employeePayrollSchema.parse(payload)), /cancelado/);
 });
 
+test("payroll authorization runs under the employee lock before any financial write", async () => {
+  const { tx, state } = fixture();
+  const checked: { exists: boolean; hasFinancialEntry: boolean; paid: boolean }[] = [];
+  const deny = (access: { exists: boolean; hasFinancialEntry: boolean; paid: boolean }) => {
+    checked.push(access);
+    throw new Error("Sem permissão financeira.");
+  };
+  await assert.rejects(saveEmployeePayroll(tx, "arena", employeePayrollSchema.parse(payload), deny), /Sem permissão/);
+  assert.deepEqual(checked, [{ exists: false, hasFinancialEntry: false, paid: false }]);
+  assert.equal(state.writes, 0);
+  await saveEmployeePayroll(tx, "arena", employeePayrollSchema.parse(payload));
+  const writes = state.writes;
+  await assert.rejects(saveEmployeePayroll(tx, "arena", employeePayrollSchema.parse({ ...payload, status: "PAID", paidAt: "2026-10-30" }), deny), /Sem permissão/);
+  assert.deepEqual(checked[1], { exists: true, hasFinancialEntry: true, paid: false });
+  assert.equal(state.writes, writes);
+  assert.equal(state.payments.length, 0);
+});
+
 test("net salary must stay positive and a deleted payable can be recreated without duplicating the payroll", async () => {
   const { tx, state } = fixture();
   await assert.rejects(saveEmployeePayroll(tx, "arena", employeePayrollSchema.parse({ ...payload, discount: "9999" })), /total líquido/);

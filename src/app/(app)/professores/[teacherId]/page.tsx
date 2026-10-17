@@ -19,7 +19,7 @@ import {
   transferTeacherStudentAction,
 } from "@/lib/actions/academy";
 import { requireModuleView } from "@/lib/auth/guards";
-import { canEditModule } from "@/lib/permissions";
+import { canPerformPermission } from "@/lib/permissions";
 import { uniqueStandardPlanOptions } from "@/lib/academy/standard-plans";
 import { arenaDatabase } from "@/lib/arena-database";
 import { instantToArenaWallClock } from "@/lib/calendar/arena-wall-clock";
@@ -666,7 +666,7 @@ export default async function TeacherDetailPage(
               Aplicar
             </button>
           </form>
-          <TeacherMonthlyReport rows={reportRows} initialPercent={percent} teacherId={teacher.id} referenceStart={inputDate(reportStart)} referenceEnd={inputDate(reportEnd)} defaultDueDate={inputDate(now)} canGeneratePayable={canEditModule("finance", auth.arenaRole, auth.systemRole, auth.editPermissions)} />
+          <TeacherMonthlyReport rows={reportRows} initialPercent={percent} teacherId={teacher.id} referenceStart={inputDate(reportStart)} referenceEnd={inputDate(reportEnd)} defaultDueDate={inputDate(now)} canGeneratePayable={canPerformPermission("teachers:payable", auth.arenaRole, auth.systemRole, auth.editPermissions) || canPerformPermission("finance:payable:create", auth.arenaRole, auth.systemRole, auth.editPermissions)} />
         </section>
       ) : null}
     </div>

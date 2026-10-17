@@ -4,6 +4,7 @@ import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { createPlanAction } from "@/lib/actions/finance";
 import { requireModuleView } from "@/lib/auth/guards";
+import { canPerformPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 
 function formatMoney(cents: number) {
@@ -12,6 +13,7 @@ function formatMoney(cents: number) {
 
 export default async function FinancePlansPage() {
   const auth = await requireModuleView("finance");
+  const canManagePlans = canPerformPermission("finance:settings:manage", auth.arenaRole, auth.systemRole, auth.editPermissions);
   const plans = await prisma.plan.findMany({
     where: { arenaId: auth.arenaId },
     include: {
@@ -27,7 +29,7 @@ export default async function FinancePlansPage() {
   return (
     <div className={viewStyles.stack_md}>
 
-      <SectionCard title="Cadastrar plano padrão" description="Defina o nome e a frequência que os professores poderão vincular aos seus preços.">
+      {canManagePlans ? <SectionCard title="Cadastrar plano padrão" description="Defina o nome e a frequência que os professores poderão vincular aos seus preços.">
         <SafeActionForm action={createPlanAction} className={viewStyles.grid_form} resetOnSuccess successMessage="Plano salvo.">
           <div className={viewStyles.field}>
             <label htmlFor="plan-name">Nome do plano</label>
@@ -49,7 +51,7 @@ export default async function FinancePlansPage() {
             <SubmitButton label="Cadastrar plano" pendingLabel="Salvando..." className={viewStyles.button_button_primary} />
           </div>
         </SafeActionForm>
-      </SectionCard>
+      </SectionCard> : null}
 
       <SectionCard title="Planos padrão cadastrados" description="Os professores vinculam estes modelos e definem seu preço mensal individualmente.">
         <div className={viewStyles.simple_list}>
