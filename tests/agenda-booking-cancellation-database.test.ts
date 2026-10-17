@@ -24,6 +24,7 @@ test("cancelar reserva respeita a escolha sobre cobranças abertas sem afetar va
   runtimeUrl.password = "";
   const runtime = new PrismaClient({ datasources: { db: { url: runtimeUrl.toString() } } });
   const occurrenceIds: string[] = [];
+  const seriesIds: string[] = [];
   const entryIds: string[] = [];
   const settlementIds: string[] = [];
   const canceledPaymentIds: string[] = [];
@@ -74,13 +75,21 @@ test("cancelar reserva respeita a escolha sobre cobranças abertas sem afetar va
       exports, Date, FormData, Set, console,
       require: (name: string) => { if (!(name in mocks)) throw new Error(`Import inesperado: ${name}`); return mocks[name]; },
     });
-    const createOccurrence = async (arenaId: string, sourceType = "BOOKING") => {
+    const createOccurrence = async (arenaId: string, sourceType = "BOOKING", startsAt = new Date("2038-04-10T14:00:00Z"), bookingSeriesId?: string) => {
       const occurrence = await admin.scheduleOccurrence.create({ data: {
         arenaId, sourceType, title: "Reserva descartável GOAL", status: "SCHEDULED",
-        startsAt: new Date("2038-04-10T14:00:00Z"), endsAt: new Date("2038-04-10T15:00:00Z"),
+        startsAt, endsAt: new Date(startsAt.getTime() + 60 * 60_000), bookingSeriesId,
       }, select: { id: true } });
       occurrenceIds.push(occurrence.id);
       return occurrence.id;
+    };
+    const createSeries = async (arenaId: string) => {
+      const series = await admin.scheduleBookingSeries.create({ data: {
+        arenaId, title: "Série descartável GOAL", bookingTypeName: "Reserva",
+        startsAt: new Date("2038-04-10T14:00:00Z"), endsAt: new Date("2038-04-24T15:00:00Z"),
+      }, select: { id: true } });
+      seriesIds.push(series.id);
+      return series.id;
     };
     const createEntry = async (arenaId: string, occurrenceId: string, status: "PENDING" | "PAID") => {
       const entry = await admin.financialEntry.create({ data: {
@@ -135,6 +144,40 @@ test("cancelar reserva respeita a escolha sobre cobranças abertas sem afetar va
     assert.equal((await admin.financialEntry.findUniqueOrThrow({ where: { id: onlineApprovedEntry } })).status, "PENDING");
     assert.deepEqual(canceledPaymentIds, ["goal-payment-pending"]);
 
+    const freeSeriesId = await createSeries(arenaA.id);
+    const freeBefore = await createOccurrence(arenaA.id, "BOOKING", new Date("2038-04-10T14:00:00Z"), freeSeriesId);
+    const freeMiddle = await createOccurrence(arenaA.id, "BOOKING", new Date("2038-04-17T14:00:00Z"), freeSeriesId);
+    const freeAfter = await createOccurrence(arenaA.id, "BOOKING", new Date("2038-04-24T14:00:00Z"), freeSeriesId);
+    const freeMiddleEntry = await createEntry(arenaA.id, freeMiddle, "PENDING");
+    const freeAfterEntry = await createEntry(arenaA.id, freeAfter, "PENDING");
+    const free = new FormData();
+    free.set("occurrenceId", freeMiddle);
+    free.set("mode", "FREE");
+    free.set("cancelOpenCharges", "yes");
+    await exports.cancelCourtBookingAction(free);
+    assert.equal((await admin.scheduleBookingSeries.findUniqueOrThrow({ where: { id: freeSeriesId } })).status, "ACTIVE");
+    assert.equal((await admin.scheduleOccurrence.findUniqueOrThrow({ where: { id: freeBefore } })).status, "SCHEDULED");
+    assert.equal((await admin.scheduleOccurrence.findUniqueOrThrow({ where: { id: freeMiddle } })).status, "CANCELED");
+    assert.equal((await admin.scheduleOccurrence.findUniqueOrThrow({ where: { id: freeAfter } })).status, "SCHEDULED");
+    assert.equal((await admin.financialEntry.findUniqueOrThrow({ where: { id: freeMiddleEntry } })).status, "VOIDED");
+    assert.equal((await admin.financialEntry.findUniqueOrThrow({ where: { id: freeAfterEntry } })).status, "PENDING");
+
+    const cancelSeriesId = await createSeries(arenaA.id);
+    const cancelBefore = await createOccurrence(arenaA.id, "BOOKING", new Date("2038-04-10T14:00:00Z"), cancelSeriesId);
+    const cancelMiddle = await createOccurrence(arenaA.id, "BOOKING", new Date("2038-04-17T14:00:00Z"), cancelSeriesId);
+    const cancelAfter = await createOccurrence(arenaA.id, "BOOKING", new Date("2038-04-24T14:00:00Z"), cancelSeriesId);
+    const cancelBeforeEntry = await createEntry(arenaA.id, cancelBefore, "PENDING");
+    const cancelMiddleEntry = await createEntry(arenaA.id, cancelMiddle, "PENDING");
+    const cancelAfterEntry = await createEntry(arenaA.id, cancelAfter, "PENDING");
+    await cancel(cancelMiddle, "yes");
+    assert.equal((await admin.scheduleBookingSeries.findUniqueOrThrow({ where: { id: cancelSeriesId } })).status, "CANCELED");
+    assert.equal((await admin.scheduleOccurrence.findUniqueOrThrow({ where: { id: cancelBefore } })).status, "SCHEDULED");
+    assert.equal((await admin.scheduleOccurrence.findUniqueOrThrow({ where: { id: cancelMiddle } })).status, "CANCELED");
+    assert.equal((await admin.scheduleOccurrence.findUniqueOrThrow({ where: { id: cancelAfter } })).status, "CANCELED");
+    assert.equal((await admin.financialEntry.findUniqueOrThrow({ where: { id: cancelBeforeEntry } })).status, "PENDING");
+    assert.equal((await admin.financialEntry.findUniqueOrThrow({ where: { id: cancelMiddleEntry } })).status, "VOIDED");
+    assert.equal((await admin.financialEntry.findUniqueOrThrow({ where: { id: cancelAfterEntry } })).status, "VOIDED");
+
     const leagueOccurrence = await createOccurrence(arenaA.id, "LEAGUE_PROPOSAL");
     const leagueEntry = await createEntry(arenaA.id, leagueOccurrence, "PENDING");
     await assert.rejects(cancel(leagueOccurrence, "no"), /gerenciado pela origem/);
@@ -151,6 +194,7 @@ test("cancelar reserva respeita a escolha sobre cobranças abertas sem afetar va
     if (settlementIds.length) await admin.financialSettlement.deleteMany({ where: { id: { in: settlementIds } } });
     if (entryIds.length) await admin.financialEntry.deleteMany({ where: { id: { in: entryIds } } });
     if (occurrenceIds.length) await admin.scheduleOccurrence.deleteMany({ where: { id: { in: occurrenceIds } } });
+    if (seriesIds.length) await admin.scheduleBookingSeries.deleteMany({ where: { id: { in: seriesIds } } });
     await runtime.$disconnect();
     await admin.$disconnect();
   }
