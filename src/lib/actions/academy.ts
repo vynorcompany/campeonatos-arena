@@ -8,7 +8,7 @@ import { getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
 import { cashReferenceDate } from "@/lib/finance/cash-day";
 import { issueRecurringOnlineChargeForEntry } from "@/lib/payments/recurring-online-charges";
 import { cancelMercadoPagoPayment, getMercadoPagoPayment } from "@/lib/payments/mercado-pago";
-import { boletoCancellationDisposition } from "@/lib/payments/boleto-cancellation";
+import { boletoCancellationDisposition, selectFuturePlanBoletos } from "@/lib/payments/boleto-cancellation";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 import { lockClassGroupCapacity } from "@/lib/academy/class-group-capacity";
@@ -1082,8 +1082,9 @@ export async function removeTeacherPlanStudentAction(formData: FormData) {
       where: futureEntriesWhere,
       select: { id: true, onlineProvider: true, onlinePaymentId: true, settlements: { select: { amountCents: true } } }
     }));
-    for (const entry of entries) if (entry.settlements.some((settlement) => settlement.amountCents > 0)) protectedEntryIds.add(entry.id);
-    const issued = entries.filter((entry) => entry.onlinePaymentId);
+    const selection = selectFuturePlanBoletos(entries);
+    for (const entryId of selection.protectedEntryIds) protectedEntryIds.add(entryId);
+    const issued = selection.issued;
     if (issued.some((entry) => entry.onlineProvider !== "MERCADO_PAGO")) {
       throw new Error("Há um boleto futuro cujo provedor não é o Mercado Pago. O plano não foi cancelado.");
     }
@@ -1106,8 +1107,10 @@ export async function removeTeacherPlanStudentAction(formData: FormData) {
     if (!current) throw new Error("O plano já foi encerrado. Atualize a página antes de tentar novamente.");
     const now = new Date();
     if (cancelOpenBoletos && recurrenceIds.length) {
-      const entries = await tx.financialEntry.findMany({ where: futureEntriesWhere, select: { onlinePaymentId: true } });
-      if (entries.some((entry) => entry.onlinePaymentId && !handledPaymentIds.has(entry.onlinePaymentId))) {
+      const entries = await tx.financialEntry.findMany({ where: futureEntriesWhere, select: { id: true, onlinePaymentId: true, settlements: { select: { amountCents: true } } } });
+      const currentSelection = selectFuturePlanBoletos(entries);
+      for (const entryId of currentSelection.protectedEntryIds) protectedEntryIds.add(entryId);
+      if (currentSelection.issued.some((entry) => !handledPaymentIds.has(entry.onlinePaymentId))) {
         throw new Error("Um novo boleto foi emitido durante o cancelamento. O plano permanece ativo; tente novamente.");
       }
     }
