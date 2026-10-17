@@ -21,7 +21,7 @@ export const subscriptionSchema = z.object({
 
 export const paymentSchema = z.object({
   subscriptionId: z.string().min(1, "Selecione uma assinatura."),
-  referenceMonth: z.string().trim().min(7, "Informe o mês de referência."),
+  referenceMonth: z.string().trim().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Informe um mês de referência válido."),
   paidAt: z.string().optional().default(""),
   paymentMethod: optionalText,
   amount: z.string().trim().optional().default(""),
