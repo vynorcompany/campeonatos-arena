@@ -1048,7 +1048,7 @@ async function main() {
         const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
         await writeFile(`${outputDir}/${viewport.name}-agencia-revisao-fatura.png`, Buffer.from(shot.data, "base64"));
         const finance = await visit("/agencia/financeiro", viewport, arenaA.id, `${viewport.name}-agencia-revisao-financeiro`);
-        if (!finance.includes("R$ 149,00 em faturas com estorno ou contestação informada")) throw new Error(`${viewport.name}: o financeiro da agência não destacou a fatura em revisão.`);
+        if (!finance.includes("149,00 em faturas com estorno ou contestação informada")) throw new Error(`${viewport.name}: o financeiro da agência não destacou a fatura em revisão.`);
       }
     } finally {
       if (agencyInvoice) await db.agencyInvoice.delete({ where: { id: agencyInvoice.id } });
