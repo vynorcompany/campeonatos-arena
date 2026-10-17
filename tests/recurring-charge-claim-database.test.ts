@@ -41,6 +41,14 @@ test("emissão automática de boleto não disputa lançamento já reivindicado p
       return tx.financialEntry.findMany({ where: recurringBoletoEntryWhere(arena.id, dueBefore), select: { id: true } });
     });
     assert.ok((await eligible()).some((entry) => entry.id === entryId));
+    await admin.financialRecurrence.update({ where: { id: recurrenceId }, data: { active: false } });
+    const canceledClaim = await runtime.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.arena_id', ${arena.id}, true)`;
+      return claimFinancialOnlineCharge(tx, { arenaId: arena.id, entryId, method: "BOLETO", expectedAmountCents: 5000, requireActiveBoletoRecurrence: true });
+    });
+    assert.equal(canceledClaim.ok, false);
+    assert.equal((await admin.financialEntry.findUniqueOrThrow({ where: { id: entryId } })).onlinePaymentClaimedAt, null);
+    await admin.financialRecurrence.update({ where: { id: recurrenceId }, data: { active: true } });
     const claim = await runtime.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT set_config('app.arena_id', ${arena.id}, true)`;
       return claimFinancialOnlineCharge(tx, { arenaId: arena.id, entryId, method: "PIX", expectedAmountCents: 5000 });

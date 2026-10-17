@@ -31,5 +31,7 @@ test("cancelamento consulta boletos futuros dentro do escopo da arena antes de c
   assert.match(removePlan, /await cancelMercadoPagoPayment\(auth\.arenaId, payment\.id\)/);
   assert.match(removePlan, /const selection = selectFuturePlanBoletos\(entries\)/);
   assert.match(removePlan, /const currentSelection = selectFuturePlanBoletos\(entries\)/);
+  assert.match(removePlan, /onlinePaymentClaimedAt: \{ not: null \}/);
+  assert.match(removePlan, /if \(recurrenceIds\.length\) await assertNoIssuanceInProgress\(tx\)/);
   assert.match(removePlan, /currentSelection\.issued\.some\(\(entry\) => !handledPaymentIds\.has/);
 });

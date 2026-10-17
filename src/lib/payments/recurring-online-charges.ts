@@ -65,7 +65,7 @@ export async function issueRecurringOnlineChargeForEntry(arenaId: string, entryI
     await alertRecurringBoleto(arenaId, entry.id, "ONLINE_CHARGE_ISSUANCE_REVIEW", "Boleto não emitido", "O saldo do lançamento recorrente é inferior ao mínimo de R$ 5,00 para emissão de boleto. Revise a cobrança em Contas a Receber.");
     return { created: false, skipped: true };
   }
-  const claim = await withArenaTransaction(arenaId, (tx) => claimFinancialOnlineCharge(tx, { arenaId, entryId: entry.id, method: "BOLETO", expectedAmountCents: amountCents }));
+  const claim = await withArenaTransaction(arenaId, (tx) => claimFinancialOnlineCharge(tx, { arenaId, entryId: entry.id, method: "BOLETO", expectedAmountCents: amountCents, requireActiveBoletoRecurrence: true }));
   if (!claim.ok) return { created: false, skipped: false };
 
   let charge;

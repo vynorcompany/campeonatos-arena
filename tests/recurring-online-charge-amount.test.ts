@@ -107,6 +107,7 @@ test("boleto recorrente cobra só o saldo após pagamento parcial", async () => 
   assert.deepEqual(JSON.parse(JSON.stringify(await service.issue("arena-a", "entry-a"))), { created: true, skipped: false });
   assert.equal(calls[0].amountCents, 3000);
   assert.equal(service.claims[0].expectedAmountCents, 3000);
+  assert.equal(service.claims[0].requireActiveBoletoRecurrence, true);
   assert.equal(service.updates.length, 1);
 });
 

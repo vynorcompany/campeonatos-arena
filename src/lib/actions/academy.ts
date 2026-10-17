@@ -10,7 +10,7 @@ import { issueRecurringOnlineChargeForEntry } from "@/lib/payments/recurring-onl
 import { cancelMercadoPagoPayment, getMercadoPagoPayment } from "@/lib/payments/mercado-pago";
 import { boletoCancellationDisposition, selectFuturePlanBoletos } from "@/lib/payments/boleto-cancellation";
 import { prisma } from "@/lib/prisma";
-import { withArenaTransaction } from "@/lib/rls";
+import { withArenaTransaction, type ArenaTransaction } from "@/lib/rls";
 import { lockClassGroupCapacity } from "@/lib/academy/class-group-capacity";
 import { lockStudentPlanSubscription } from "@/lib/academy/subscription-lock";
 import { planRecurrenceOwnerWhere } from "@/lib/academy/plan-recurrence-owner";
@@ -1068,6 +1068,14 @@ export async function removeTeacherPlanStudentAction(formData: FormData) {
   const futureEntriesWhere = {
     arenaId: auth.arenaId, recurrenceId: { in: recurrenceIds }, type: "REVENUE", status: "PENDING", dueDate: { gte: today }
   } as const;
+  const assertNoIssuanceInProgress = async (tx: ArenaTransaction) => {
+    const issuing = await tx.financialEntry.findFirst({
+      where: { ...futureEntriesWhere, onlinePaymentClaimedAt: { not: null }, onlinePaymentId: "" },
+      select: { id: true },
+    });
+    if (issuing) throw new Error("Há um boleto em emissão para este plano. Aguarde a conclusão ou confira a cobrança antes de cancelar.");
+  };
+  if (recurrenceIds.length) await withArenaTransaction(auth.arenaId, assertNoIssuanceInProgress);
   const handledPaymentIds = new Set<string>();
   const protectedEntryIds = new Set<string>();
 
@@ -1099,6 +1107,7 @@ export async function removeTeacherPlanStudentAction(formData: FormData) {
   await withArenaTransaction(auth.arenaId, async (tx) => {
     const current = await tx.studentSubscription.findFirst({ where: { id: subscription.id, arenaId: auth.arenaId, status: "ACTIVE" } });
     if (!current) throw new Error("O plano já foi encerrado. Atualize a página antes de tentar novamente.");
+    if (recurrenceIds.length) await assertNoIssuanceInProgress(tx);
     const now = new Date();
     if (cancelOpenBoletos && recurrenceIds.length) {
       const entries = await tx.financialEntry.findMany({ where: futureEntriesWhere, select: { id: true, onlinePaymentId: true, settlements: { select: { amountCents: true } } } });
