@@ -11,6 +11,7 @@ export async function claimFinancialOnlineCharge(tx: ArenaTransaction, input: {
   method: Method;
   expectedAmountCents: number;
   now?: Date;
+  requireActiveBoletoRecurrence?: boolean;
 }): Promise<{ ok: true; claimedAt: Date } | { ok: false; error: string }> {
   const locked = await tx.$queryRaw<{ id: string }[]>`
     SELECT "id" FROM "FinancialEntry"
@@ -19,10 +20,15 @@ export async function claimFinancialOnlineCharge(tx: ArenaTransaction, input: {
   `;
   if (!locked.length) return { ok: false, error: "Lançamento a receber não encontrado." };
   const entry = await tx.financialEntry.findFirst({
-    where: { id: input.entryId, arenaId: input.arenaId, type: "REVENUE", status: "PENDING" },
+    where: {
+      id: input.entryId, arenaId: input.arenaId, type: "REVENUE", status: "PENDING",
+      ...(input.requireActiveBoletoRecurrence ? { recurrence: { active: true, onlinePaymentMethod: "BOLETO" } } : {}),
+    },
     include: { settlements: { select: { amountCents: true, interestCents: true } } },
   });
-  if (!entry) return { ok: false, error: "O lançamento não está mais pendente." };
+  if (!entry) return { ok: false, error: input.requireActiveBoletoRecurrence
+    ? "O lançamento não está mais pendente ou a recorrência foi encerrada."
+    : "O lançamento não está mais pendente." };
   if (hasExistingOnlineCharge(entry)) return { ok: false, error: "Este lançamento já possui uma cobrança online. Use ‘Ver cobrança’ para consultá-la." };
   if (getFinancialEntryBalance(entry.amountCents, entry.settlements).outstandingCents !== input.expectedAmountCents) {
     return { ok: false, error: "O saldo do lançamento mudou. Atualize a página antes de gerar a cobrança." };
