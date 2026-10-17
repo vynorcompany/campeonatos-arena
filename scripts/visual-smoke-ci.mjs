@@ -61,6 +61,7 @@ const agencyRoutes = [
 const viewports = [
   { name: "desktop", width: 1366, height: 900 },
   { name: "mobile", width: 390, height: 844 },
+  { name: "mobile-320", width: 320, height: 700 },
 ];
 const pageMetricsExpression = "({path:location.pathname,width:innerWidth,scrollWidth:document.documentElement.scrollWidth,body:document.body?.innerText ?? '',mainBody:document.querySelector('main')?.innerText ?? '',ready:document.readyState})";
 
