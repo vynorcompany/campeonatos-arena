@@ -1,6 +1,9 @@
-import { arenaDatabase } from "@/lib/arena-database";
-import { prisma } from "@/lib/prisma";
+import { PrismaClient } from "@prisma/client";
 import { recurringBoletoEntryWhere, recurringBoletoIssueDeadline } from "@/lib/payments/recurring-charge-eligibility";
+
+const databaseUrl = process.env.APP_DATABASE_URL || process.env.DATABASE_URL;
+if (!databaseUrl) throw new Error("O endereço do banco não está configurado.");
+const prisma = new PrismaClient({ datasources: { db: { url: databaseUrl } } });
 
 // Read-only preview before enabling the daily cron. Counts are an upper bound:
 // payer details and the remaining balance are checked again during issuance.
@@ -18,11 +21,13 @@ async function main() {
 
   for (let index = 0; index < arenas.length; index += 8) {
     const batch = await Promise.allSettled(arenas.slice(index, index + 8).map(async ({ id }) => {
-      const entries = arenaDatabase(id).financialEntry;
-      return Promise.all([
-        entries.count({ where: { ...recurringBoletoEntryWhere(id), dueDate: { lt: today } } }),
-        entries.count({ where: { ...recurringBoletoEntryWhere(id), dueDate: { gte: today, lte: deadline } } }),
-      ]);
+      return prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT set_config('app.arena_id', ${id}, true)`;
+        return Promise.all([
+          tx.financialEntry.count({ where: { ...recurringBoletoEntryWhere(id), dueDate: { lt: today } } }),
+          tx.financialEntry.count({ where: { ...recurringBoletoEntryWhere(id), dueDate: { gte: today, lte: deadline } } }),
+        ]);
+      });
     }));
     for (const result of batch) {
       if (result.status === "fulfilled") {
