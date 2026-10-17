@@ -78,12 +78,25 @@ function loadRecurring(createBoleto: (input: Record<string, unknown>) => Promise
     },
   });
   return {
-    issue: exports.issueRecurringOnlineChargeForEntry as (arenaId: string, entryId: string) => Promise<{ created: boolean; skipped: boolean }>,
-    batch: exports.issueRecurringOnlineCharges as () => Promise<{ scanned: number; created: number; skipped: number; failed: number }>,
+    issue: (arenaId: string, entryId: string, now = new Date("2034-12-25T12:00:00.000Z")) => (exports.issueRecurringOnlineChargeForEntry as (arenaId: string, entryId: string, now: Date) => Promise<{ created: boolean; skipped: boolean }>)(arenaId, entryId, now),
+    batch: (now = new Date("2034-12-25T12:00:00.000Z")) => (exports.issueRecurringOnlineCharges as (now: Date) => Promise<{ scanned: number; created: number; skipped: number; failed: number }>)(now),
     candidates: exports.recurringOnlineChargeCandidates as () => Promise<{ candidates: Array<{ id: string }>; failures: Array<{ arenaId: string }>; ineligible: number; ineligibleByArena: Record<string, number> }>,
     claims, updates, errors, queries, alerts,
   };
 }
+
+test("primeiro boleto aguarda a janela de 15 dias antes de chamar o provedor", async () => {
+  const calls: Array<Record<string, unknown>> = [];
+  const service = loadRecurring(async (input) => {
+    calls.push(input);
+    return { paymentId: "payment-a", checkoutUrl: "https://example.test/pay", qrCode: "", expiresAt: null };
+  });
+  assert.deepEqual(JSON.parse(JSON.stringify(await service.issue("arena-a", "entry-a", new Date("2034-12-20T12:00:00.000Z")))), { created: false, skipped: false });
+  assert.equal(service.claims.length, 0);
+  assert.equal(calls.length, 0);
+  assert.deepEqual(JSON.parse(JSON.stringify(await service.issue("arena-a", "entry-a", new Date("2034-12-21T12:00:00.000Z")))), { created: true, skipped: false });
+  assert.equal(calls.length, 1);
+});
 
 test("boleto recorrente cobra só o saldo após pagamento parcial", async () => {
   const calls: Array<Record<string, unknown>> = [];
