@@ -538,6 +538,38 @@ async function main() {
         throw new Error(`${viewport.name}: navegação pelo menu lateral falhou: ${JSON.stringify(navigated).slice(0, 500)}`);
       }
       console.log(`${viewport.name}: clique real no menu lateral abriu Clientes e liberou a rolagem.`);
+      for (const destination of ["/agenda", "/torneios", "/financeiro/contas-a-receber"]) {
+        if (viewport.name === "mobile") {
+          await clickElement('button[aria-label="Abrir menu"]');
+          let menuOpen = false;
+          for (let attempt = 0; attempt < 20; attempt += 1) {
+            const response = await send("Runtime.evaluate", { expression: "document.querySelector('button[aria-label=\"Abrir menu\"]')?.getAttribute('aria-expanded') === 'true'", returnByValue: true });
+            menuOpen = response.result.value;
+            if (menuOpen) break;
+            await pause(100);
+          }
+          if (!menuOpen) throw new Error(`${viewport.name}: menu não reabriu antes de ${destination}.`);
+        }
+        if (destination.startsWith("/financeiro/")) {
+          const response = await send("Runtime.evaluate", { expression: "document.querySelector('#arena-mobile-navigation button[aria-label=\"Abrir submenu Financeiro\"]') !== null", returnByValue: true });
+          if (response.result.value) {
+            await clickElement('#arena-mobile-navigation button[aria-label="Abrir submenu Financeiro"]');
+            await pause(200);
+          }
+        }
+        await clickElement(`#arena-mobile-navigation a[href="${destination}"]`);
+        let result;
+        for (let attempt = 0; attempt < 80; attempt += 1) {
+          const response = await send("Runtime.evaluate", { expression: "({path:location.pathname,body:document.querySelector('main')?.innerText ?? '',menuOpen:document.querySelector('button[aria-label=\"Abrir menu\"]')?.getAttribute('aria-expanded'),bodyOverflow:document.body.style.overflow})", returnByValue: true });
+          result = response.result.value;
+          if (result.path === destination && result.body.length > 100 && result.menuOpen !== "true" && result.bodyOverflow !== "hidden") break;
+          await pause(250);
+        }
+        if (result.path !== destination || result.body.length <= 100 || result.menuOpen === "true" || result.bodyOverflow === "hidden") {
+          throw new Error(`${viewport.name}: navegação para ${destination} falhou: ${JSON.stringify(result).slice(0, 500)}`);
+        }
+      }
+      console.log(`${viewport.name}: navegação sucessiva por Grade, Torneios e Contas a Receber funcionou.`);
     }
     await send("Network.setCookie", { name: "padel_arena", value: arenaB.id, url: baseUrl, httpOnly: true, sameSite: "Lax" });
     await send("Page.navigate", { url: `${baseUrl}/jogadores` });
