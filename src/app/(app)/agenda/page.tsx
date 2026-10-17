@@ -75,8 +75,9 @@ export default async function AgendaPage(props: AgendaPageProps) {
   const canEditBooking = canPerformPermission("calendar:booking:edit", auth.arenaRole, auth.systemRole, auth.editPermissions);
   const canCancelBooking = canPerformPermission("calendar:booking:cancel", auth.arenaRole, auth.systemRole, auth.editPermissions);
   const canReleaseBooking = canPerformPermission("calendar:recurrence:release", auth.arenaRole, auth.systemRole, auth.editPermissions);
-  const AgendaSlotDialog = (dialogProps: Omit<ComponentProps<typeof BaseAgendaSlotDialog>, "canCreateBooking" | "canEditBooking" | "canCancelBooking" | "canReleaseBooking">) =>
-    <BaseAgendaSlotDialog {...dialogProps} canCreateBooking={canCreateBooking} canEditBooking={canEditBooking} canCancelBooking={canCancelBooking} canReleaseBooking={canReleaseBooking} />;
+  const canOpenComandas = canPerformPermission("pos:command:create", auth.arenaRole, auth.systemRole, auth.editPermissions);
+  const AgendaSlotDialog = (dialogProps: Omit<ComponentProps<typeof BaseAgendaSlotDialog>, "canCreateBooking" | "canEditBooking" | "canCancelBooking" | "canReleaseBooking" | "canOpenComandas">) =>
+    <BaseAgendaSlotDialog {...dialogProps} canCreateBooking={canCreateBooking} canEditBooking={canEditBooking} canCancelBooking={canCancelBooking} canReleaseBooking={canReleaseBooking} canOpenComandas={canOpenComandas} />;
 
   return <div className={viewStyles.agenda_page} aria-label="Agenda de quadras">
     <div className={viewStyles.agenda_date_strip}>

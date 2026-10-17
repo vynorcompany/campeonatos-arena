@@ -264,7 +264,7 @@ export async function startPublicCourtBookingPaymentAction(formData: FormData) {
 }
 
 export async function confirmOnlineBookingAction(formData: FormData) {
-  const auth = await requireModuleEdit("calendar");
+  const auth = await requirePermission("calendar:booking:edit");
   const occurrenceId = z.string().trim().min(1).safeParse(formData.get("occurrenceId"));
   if (!occurrenceId.success) throw new Error("Reserva inválida.");
   const message = await withArenaTransaction(auth.arenaId, async (tx) => {

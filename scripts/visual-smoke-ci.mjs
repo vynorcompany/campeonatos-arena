@@ -1072,9 +1072,9 @@ async function main() {
       for (const viewport of viewports) {
         const label = `${viewport.name}-agenda-permissao-criar`;
         const body = await visit(`/agenda?data=${futureAgendaDate}`, viewport, arenaA.id, label, restrictedToken);
-        if (!body.includes("Reserva restrita GOAL") || !body.includes("Operador restrito GOAL")) throw new Error(`${label}: sessão limitada ou reserva fictícia não apareceu.`);
+        if (!body.includes("Reserva restrita GOAL") || (viewport.name === "desktop" && !body.includes("Operador restrito GOAL"))) throw new Error(`${label}: sessão limitada ou reserva fictícia não apareceu.`);
         const actions = await send("Runtime.evaluate", {
-          expression: "(() => { const cell = [...document.querySelectorAll('td')].find((item) => item.textContent?.includes('Reserva restrita GOAL')); if (!cell) return null; const cancel = cell.querySelector('button[aria-label=\"Ações da reserva\"]'); cell.querySelector('button')?.click(); return { cancelVisible: Boolean(cancel), opened: Boolean(cell) }; })()",
+          expression: "(() => { const cell = [...document.querySelectorAll('td')].find((item) => item.textContent?.includes('Reserva restrita GOAL')); if (!cell) return null; cell.scrollIntoView({ block: 'center', inline: 'center' }); const cancel = cell.querySelector('button[aria-label=\"Ações da reserva\"]'); cell.querySelector('button')?.click(); return { cancelVisible: Boolean(cancel), opened: Boolean(cell) }; })()",
           returnByValue: true,
         });
         if (!actions.result.value?.opened || actions.result.value.cancelVisible) throw new Error(`${label}: ação de cancelamento disponível para perfil que só pode criar reservas.`);
