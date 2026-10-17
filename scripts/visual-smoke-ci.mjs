@@ -597,6 +597,9 @@ async function main() {
           if (metrics.path !== "/home" || !metrics.authenticated || metrics.main.trim().length < 40 || metrics.scrollWidth > metrics.width + 1 || /Algo saiu do fluxo|Application error|Internal Server Error/i.test(metrics.body) || metrics.body.includes("Receita beta GOAL")) {
             throw new Error(`${label}: portal inválido: ${JSON.stringify({ path: metrics.path, authenticated: metrics.authenticated, mainLength: metrics.main.trim().length, width: metrics.width, scrollWidth: metrics.scrollWidth })}`);
           }
+          if (view.label === "inicio" && (!metrics.main.includes(viewport.name === "mobile" ? "Comanda em aberto" : "em aberto") || metrics.main.includes("Tudo em dia"))) {
+            throw new Error(`${label}: a tela inicial ignora a comanda aberta do atleta fictício.`);
+          }
           if (view.label === "financas" && viewport.name === "mobile" && (!metrics.main.includes("Itens em aberto") || !metrics.main.includes("Você tem uma comanda aberta para acompanhar") || metrics.main.includes("Seus pagamentos estão em dia"))) {
             throw new Error(`${label}: resumo financeiro contradiz a comanda aberta do atleta fictício.`);
           }
