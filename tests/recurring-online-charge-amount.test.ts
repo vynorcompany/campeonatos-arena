@@ -130,6 +130,30 @@ test("falha de um boleto não impede a emissão dos demais no mesmo ciclo", asyn
   assert.equal(service.errors.length, 1);
 });
 
+test("emissão usa no máximo quatro chamadas simultâneas ao provedor", async () => {
+  let releaseProvider: (() => void) | undefined;
+  const providerGate = new Promise<void>((resolve) => { releaseProvider = resolve; });
+  let active = 0;
+  let peak = 0;
+  const service = loadRecurring(async (input) => {
+    active += 1;
+    peak = Math.max(peak, active);
+    await providerGate;
+    active -= 1;
+    return { paymentId: `payment-${input.externalReference}`, checkoutUrl: "https://example.test/pay", qrCode: "", expiresAt: null };
+  }, Array.from({ length: 12 }, (_, index) => `entry-${index}`));
+  const batch = service.batch();
+  try {
+    for (let attempt = 0; attempt < 100 && active < 4; attempt += 1) await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(active, 4);
+    assert.equal(peak, 4);
+  } finally {
+    releaseProvider?.();
+  }
+  assert.deepEqual(JSON.parse(JSON.stringify(await batch)), { scanned: 12, created: 12, skipped: 0, failed: 0 });
+  assert.equal(peak, 4);
+});
+
 test("falha na consulta de uma arena é reportada sem interromper boletos de outra", async () => {
   const service = loadRecurring(async () => ({ paymentId: "payment-good", checkoutUrl: "https://example.test/pay", qrCode: "", expiresAt: null }), ["entry-good"], ["arena-b"]);
   assert.deepEqual(JSON.parse(JSON.stringify(await service.batch())), { scanned: 1, created: 1, skipped: 0, failed: 1 });
