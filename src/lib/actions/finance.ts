@@ -18,7 +18,7 @@ import { getFinancialEntryBalance } from "@/lib/finance/ledger";
 import { assertFinancialEntryRelationsBelongToArena } from "@/lib/finance/entry-relations";
 import { getDiscountedAmountCents } from "@/lib/finance/discounts";
 import { getCouponValues } from "@/lib/finance/coupons";
-import { getFinancialRecurrenceDates, getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
+import { getFinancialRecurrenceDateAt, getFinancialRecurrenceDates, getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 import { encryptConnectionSecrets } from "@/lib/payments/connection-secrets";
@@ -552,7 +552,7 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
       } });
       if (!firstEntryId) firstEntryId = entry.id;
     }
-    const nextDueDate = getNextFinancialRecurrenceDate(dates.at(-1) ?? startsAt, parsed.data.frequency);
+    const nextDueDate = getFinancialRecurrenceDateAt(startsAt, parsed.data.frequency, dates.length);
     await tx.financialRecurrence.update({ where: { id: recurrence.id }, data: { nextDueDate } });
   });
   if (parsed.data.onlinePaymentMethod === "BOLETO" && firstEntryId) {
