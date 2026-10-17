@@ -40,6 +40,28 @@ test("open WhatsApp chat keeps a short interval after idle responses while failu
   assert.equal(timers.at(-1)?.delay, 3_000, "success restores the responsive interval");
   offChat(); offSidebar();
 });
+test("one failing WhatsApp subscriber does not prevent the others from receiving updates", async () => {
+  const f = polling();
+  const received: string[] = [];
+  const originalError = console.error;
+  const logged: unknown[][] = [];
+  console.error = (...values: unknown[]) => { logged.push(values); };
+  try {
+    const offBroken = f.store.subscribe(() => { throw new Error("render failed"); }, 3_000, true);
+    const offInbox = f.store.subscribe((value) => received.push(value.version), 3_000, true);
+    await flush();
+    assert.deepEqual(received, ["same"]);
+    assert.equal(f.timers.at(-1)?.delay, 3_000);
+    f.timers.at(-1)!.callback();
+    await flush();
+    assert.deepEqual(received, ["same", "same"]);
+    assert.equal(f.timers.at(-1)?.delay, 3_000, "a subscriber error must not slow successful polling");
+    assert.equal(logged.length, 2);
+    offInbox(); offBroken();
+  } finally {
+    console.error = originalError;
+  }
+});
 test("hidden tabs issue no requests and visibility resumes immediately", async () => {
   const f=polling();const off=f.store.subscribe(()=>{},3000);await flush();f.hide();f.timers.at(-1)!.callback();await flush();assert.equal(f.requests,1);
   f.show();f.store.wake();await flush();assert.equal(f.requests,2);off();
