@@ -129,10 +129,21 @@ export async function approveClassGroupRequestAction(formData: FormData) {
     let entryId = "";
     if (!activeSubscription) {
       await tx.studentSubscription.create({ data: { arenaId: auth.arenaId, studentId: request.studentId, planId: plan.id, monthlyPriceCents: plan.monthlyPriceCents, classesPerMonth: plan.classesPerMonth, dueDay, startedAt, notes: `Matrícula na turma ${request.classGroup.name}.` } });
-      const recurrence = await tx.financialRecurrence.create({ data: { arenaId: auth.arenaId, type: "REVENUE", counterpartyName: request.student.name, playerId: request.student.playerId, category: "Planos de aulas", description: `${plan.name} · ${request.student.name}`, amountCents: plan.monthlyPriceCents, frequency: "MONTHLY", startsAt: startedAt, nextDueDate: firstDueDate, onlinePaymentMethod: "BOLETO", planId: plan.id, teacherId: request.classGroup.teacherId, notes: `Gerado pela matrícula na turma ${request.classGroup.name}.` } });
+      const recurrence = await tx.financialRecurrence.create({ data: { arenaId: auth.arenaId, type: "REVENUE", counterpartyName: request.student.name, playerId: request.student.playerId, studentId: request.student.id, category: "Planos de aulas", description: `${plan.name} · ${request.student.name}`, amountCents: plan.monthlyPriceCents, frequency: "MONTHLY", startsAt: startedAt, nextDueDate: firstDueDate, onlinePaymentMethod: "BOLETO", planId: plan.id, teacherId: request.classGroup.teacherId, notes: `Gerado pela matrícula na turma ${request.classGroup.name}.` } });
       const firstEntry = await tx.financialEntry.create({ data: { arenaId: auth.arenaId, type: "REVENUE", counterpartyName: request.student.name, playerId: request.student.playerId, category: "Planos de aulas", description: `${plan.name} · ${request.student.name}`, amountCents: plan.monthlyPriceCents, dueDate: firstDueDate, planId: plan.id, teacherId: request.classGroup.teacherId, recurrenceId: recurrence.id, paymentMethod: "Boleto" } });
       entryId = firstEntry.id;
-      await tx.financialRecurrence.update({ where: { id: recurrence.id }, data: { nextDueDate: getNextFinancialRecurrenceDate(firstDueDate, "MONTHLY") } });
+      let nextDueDate = getNextFinancialRecurrenceDate(firstDueDate, "MONTHLY");
+      for (let month = 1; month < 12; month += 1) {
+        await tx.financialEntry.create({ data: {
+          arenaId: auth.arenaId, type: "REVENUE", counterpartyName: request.student.name,
+          playerId: request.student.playerId, category: "Planos de aulas",
+          description: `${plan.name} · ${request.student.name}`, amountCents: plan.monthlyPriceCents,
+          dueDate: nextDueDate, planId: plan.id, teacherId: request.classGroup.teacherId,
+          recurrenceId: recurrence.id, paymentMethod: "Boleto",
+        } });
+        nextDueDate = getNextFinancialRecurrenceDate(nextDueDate, "MONTHLY");
+      }
+      await tx.financialRecurrence.update({ where: { id: recurrence.id }, data: { nextDueDate } });
     }
     await tx.classGroupRequest.update({ where: { id: request.id }, data: { status: "APPROVED" } });
     return entryId;

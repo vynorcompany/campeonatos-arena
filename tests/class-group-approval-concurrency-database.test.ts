@@ -8,6 +8,7 @@ import ts from "typescript";
 import { getNextFinancialRecurrenceDate } from "../src/lib/finance/recurrences";
 import { lockClassGroupCapacity } from "../src/lib/academy/class-group-capacity";
 import { lockStudentPlanSubscription } from "../src/lib/academy/subscription-lock";
+import { planRecurrenceOwnerWhere } from "../src/lib/academy/plan-recurrence-owner";
 
 const testUrl = process.env.ARENA_GOAL_TEST_DATABASE_URL ?? "";
 const disposableDatabase = (() => {
@@ -89,8 +90,15 @@ test("aprovações simultâneas não duplicam matrícula nem cobrança e respeit
     assert.equal((await admin.classGroupRequest.findUniqueOrThrow({ where: { id: request.id }, select: { status: true } })).status, "APPROVED");
     assert.equal(await admin.classGroupEnrollment.count({ where: { classGroupId: group.id, studentId: student.id, status: "ACTIVE" } }), 1);
     assert.equal(await admin.studentSubscription.count({ where: { arenaId: arenaA.id, studentId: student.id, planId: plan.id, status: "ACTIVE" } }), 1);
-    assert.equal(await admin.financialRecurrence.count({ where: { arenaId: arenaA.id, planId: plan.id, playerId: player.id } }), 1);
-    assert.equal(await admin.financialEntry.count({ where: { arenaId: arenaA.id, planId: plan.id, playerId: player.id } }), 1);
+    const recurrence = await admin.financialRecurrence.findFirstOrThrow({ where: { arenaId: arenaA.id, planId: plan.id, playerId: player.id } });
+    assert.equal(recurrence.studentId, student.id);
+    assert.equal(await admin.financialRecurrence.count({ where: planRecurrenceOwnerWhere({ arenaId: arenaA.id, planId: plan.id, studentId: student.id, studentName: player.name, playerId: player.id }) }), 1);
+    const entries = await admin.financialEntry.findMany({ where: { arenaId: arenaA.id, planId: plan.id, playerId: player.id }, orderBy: { dueDate: "asc" }, select: { dueDate: true, recurrenceId: true } });
+    assert.equal(entries.length, 12);
+    assert.ok(entries.every(({ recurrenceId }) => recurrenceId === recurrence.id));
+    assert.equal(entries[0].dueDate?.toISOString().slice(0, 10), "2030-01-10");
+    assert.equal(entries[11].dueDate?.toISOString().slice(0, 10), "2030-12-10");
+    assert.equal(recurrence.nextDueDate.toISOString().slice(0, 10), "2031-01-10");
     assert.equal(issuedCharges, 1);
 
     const secondPlayer = await admin.player.create({ data: { arenaId: arenaA.id, name: `Atleta Duas Turmas GOAL ${suffix}` }, select: { id: true, name: true } });
@@ -112,7 +120,7 @@ test("aprovações simultâneas não duplicam matrícula nem cobrança e respeit
     assert.equal(await admin.classGroupEnrollment.count({ where: { studentId: secondStudent.id, status: "ACTIVE" } }), 2);
     assert.equal(await admin.studentSubscription.count({ where: { studentId: secondStudent.id, planId: plan.id, status: "ACTIVE" } }), 1);
     assert.equal(await admin.financialRecurrence.count({ where: { planId: plan.id, playerId: secondPlayer.id } }), 1);
-    assert.equal(await admin.financialEntry.count({ where: { planId: plan.id, playerId: secondPlayer.id } }), 1);
+    assert.equal(await admin.financialEntry.count({ where: { planId: plan.id, playerId: secondPlayer.id } }), 12);
     assert.equal(issuedCharges, 2);
 
     await assert.rejects(approve(betaRequest.id), /Solicitação não encontrada/);
