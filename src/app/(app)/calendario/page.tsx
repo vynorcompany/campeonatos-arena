@@ -4,7 +4,8 @@ import Link from "next/link";
 import { CalendarDragScroll } from "@/components/calendar-drag-scroll";
 import { CalendarQuickCreate } from "@/components/calendar-quick-create";
 import { SectionCard } from "@/components/section-card";
-import { requireArenaAccess } from "@/lib/auth/session";
+import { requireModuleView } from "@/lib/auth/guards";
+import { canPerformPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 
 type CalendarPageProps = {
@@ -167,7 +168,8 @@ function getEventLayout(dayEvents: CalendarEvent[]) {
 
 export default async function CalendarPage(props: CalendarPageProps) {
   const searchParams = await props.searchParams;
-  const auth = await requireArenaAccess();
+  const auth = await requireModuleView("calendar");
+  const canManageEvents = canPerformPermission("calendar:event:manage", auth.arenaRole, auth.systemRole, auth.editPermissions);
   const allowedPeriods = new Set(Object.keys(periodLabels));
   const period = allowedPeriods.has(searchParams?.periodo ?? "") ? searchParams?.periodo ?? "week" : "week";
   const type = searchParams?.tipo ?? "all";
@@ -243,7 +245,7 @@ export default async function CalendarPage(props: CalendarPageProps) {
             <div className={viewStyles.calendar_mini_grid}>{miniCalendarDays.map((day) => { const key = dateKey(day); return <Link key={key} href={navHref("day", type, day)} className={cx(`${viewStyles.calendar_mini_day}${day.getMonth() !== anchor.getMonth() ? " " + viewStyles.calendar_mini_muted : ""}${key === todayKey ? " " + viewStyles.calendar_mini_active : ""}${eventsByDay[key]?.length ? " " + viewStyles.calendar_mini_has_events : ""}`)}>{day.getDate()}</Link>; })}</div>
           </section>
 
-          <section className={viewStyles.calendar_mini_card}><h2>Filtros</h2><form className={viewStyles.calendar_filter_stack}><div className={viewStyles.field}><label htmlFor="calendar-period">Periodo</label><select id="calendar-period" name="periodo" defaultValue={period}>{Object.entries(periodLabels).map(([value, optionLabel]) => <option key={value} value={value}>{optionLabel}</option>)}</select></div><div className={viewStyles.field}><label htmlFor="calendar-type">Tipo</label><select id="calendar-type" name="tipo" defaultValue={type}>{Object.entries(typeLabels).map(([value, optionLabel]) => <option key={value} value={value}>{optionLabel}</option>)}</select></div><div className={viewStyles.field}><label htmlFor="calendar-date">Data base</label><input id="calendar-date" name="data" type="date" defaultValue={getDateInputValue(anchor)} /></div><div className={viewStyles.field}><label htmlFor="calendar-start">Inicio</label><input id="calendar-start" name="inicio" type="date" defaultValue={customStart ? getDateInputValue(customStart) : ""} /></div><div className={viewStyles.field}><label htmlFor="calendar-end">Fim</label><input id="calendar-end" name="fim" type="date" defaultValue={customEnd ? getDateInputValue(customEnd) : ""} /></div><button className={viewStyles.button_button_primary_button_block} type="submit">Aplicar filtros</button><button className={viewStyles.button_button_block} type="button" data-calendar-create>Criar</button></form></section>
+          <section className={viewStyles.calendar_mini_card}><h2>Filtros</h2><form className={viewStyles.calendar_filter_stack}><div className={viewStyles.field}><label htmlFor="calendar-period">Periodo</label><select id="calendar-period" name="periodo" defaultValue={period}>{Object.entries(periodLabels).map(([value, optionLabel]) => <option key={value} value={value}>{optionLabel}</option>)}</select></div><div className={viewStyles.field}><label htmlFor="calendar-type">Tipo</label><select id="calendar-type" name="tipo" defaultValue={type}>{Object.entries(typeLabels).map(([value, optionLabel]) => <option key={value} value={value}>{optionLabel}</option>)}</select></div><div className={viewStyles.field}><label htmlFor="calendar-date">Data base</label><input id="calendar-date" name="data" type="date" defaultValue={getDateInputValue(anchor)} /></div><div className={viewStyles.field}><label htmlFor="calendar-start">Inicio</label><input id="calendar-start" name="inicio" type="date" defaultValue={customStart ? getDateInputValue(customStart) : ""} /></div><div className={viewStyles.field}><label htmlFor="calendar-end">Fim</label><input id="calendar-end" name="fim" type="date" defaultValue={customEnd ? getDateInputValue(customEnd) : ""} /></div><button className={viewStyles.button_button_primary_button_block} type="submit">Aplicar filtros</button>{canManageEvents ? <button className={viewStyles.button_button_block} type="button" data-calendar-create>Criar</button> : null}</form></section>
         </aside>
 
         <SectionCard title={label} description={`${formatDateLong(start)} ate ${formatDateLong(addDays(end, -1))}.`}>
@@ -261,9 +263,10 @@ export default async function CalendarPage(props: CalendarPageProps) {
                     {dayEvents.map((event, index) => (
                       <button
                         type="button"
+                        disabled={!canManageEvents}
                         key={`${event.type}-${event.id}-${index}`}
                         className={cx(`${viewStyles.calendar_time_event} calendar-time-event-${event.type}`)}
-                        data-calendar-event="1"
+                        data-calendar-event={canManageEvents ? "1" : undefined}
                         data-source-type={event.sourceType}
                         data-lesson-id={event.lessonId}
                         data-calendar-event-id={event.calendarEventId}
@@ -290,7 +293,7 @@ export default async function CalendarPage(props: CalendarPageProps) {
           </CalendarDragScroll>
         </SectionCard>
       </div>
-      <CalendarQuickCreate />
+      {canManageEvents ? <CalendarQuickCreate /> : null}
     </div>
   );
 }

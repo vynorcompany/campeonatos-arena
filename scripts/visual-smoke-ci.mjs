@@ -1068,11 +1068,25 @@ async function main() {
       startsAt: restrictedStart, endsAt: new Date(restrictedStart.getTime() + 60 * 60_000),
       occurrenceCourts: { create: [{ courtId: restrictedCourt.id }] },
     } });
+    const restrictedCalendarEvent = await db.calendarEvent.create({ data: {
+      arenaId: arenaA.id, eventType: "EVENTO", title: "Evento restrito GOAL",
+      scheduledAt: restrictedStart, durationMinutes: 60,
+    } });
     try {
       const settingsResponse = await fetch(`${baseUrl}/agenda/configuracao`, { headers: { Cookie: cookie(arenaA.id, restrictedToken) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
       await settingsResponse.body?.cancel();
       if (settingsResponse.status !== 404) throw new Error(`Perfil limitado acessou a configuração de quadras (HTTP ${settingsResponse.status}).`);
       for (const viewport of viewports) {
+        const calendarLabel = `${viewport.name}-calendario-permissao-leitura`;
+        const calendarBody = await visit(`/calendario?periodo=day&data=${futureAgendaDate}`, viewport, arenaA.id, calendarLabel, restrictedToken);
+        if (!calendarBody.includes("Evento restrito GOAL")) throw new Error(`${calendarLabel}: evento fictício não apareceu.`);
+        const calendarControls = await send("Runtime.evaluate", {
+          expression: "(() => { const event = [...document.querySelectorAll('button')].find((item) => item.textContent?.includes('Evento restrito GOAL')); return { create: Boolean(document.querySelector('[data-calendar-create]')), editable: Boolean(event?.dataset.calendarEvent), disabled: Boolean(event?.disabled), width: innerWidth, scrollWidth: document.documentElement.scrollWidth }; })()",
+          returnByValue: true,
+        });
+        if (calendarControls.result.value?.create || calendarControls.result.value?.editable || !calendarControls.result.value?.disabled || calendarControls.result.value?.scrollWidth > calendarControls.result.value?.width + 1) {
+          throw new Error(`${calendarLabel}: calendário de leitura permitiu editar ou ficou cortado: ${JSON.stringify(calendarControls.result.value)}`);
+        }
         const label = `${viewport.name}-agenda-permissao-criar`;
         const body = await visit(`/agenda?data=${futureAgendaDate}`, viewport, arenaA.id, label, restrictedToken);
         if (!body.includes("Reserva restrita GOAL") || (viewport.name === "desktop" && !body.includes("Operador restrito GOAL"))) throw new Error(`${label}: sessão limitada ou reserva fictícia não apareceu.`);
@@ -1094,6 +1108,7 @@ async function main() {
       }
       console.log("Agenda: perfil limitado a criar não edita ou cancela reservas existentes em desktop e celular.");
     } finally {
+      await db.calendarEvent.delete({ where: { id: restrictedCalendarEvent.id } });
       await db.scheduleOccurrenceCourt.deleteMany({ where: { occurrenceId: restrictedBooking.id } });
       await db.scheduleOccurrence.delete({ where: { id: restrictedBooking.id } });
       await db.session.deleteMany({ where: { userId: restrictedUser.id } });
