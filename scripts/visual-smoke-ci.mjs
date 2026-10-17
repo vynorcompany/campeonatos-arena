@@ -955,7 +955,8 @@ async function main() {
     }
     if (!receivedLive) throw new Error("A mensagem nova do WhatsApp não surgiu sem recarregar a página.");
     console.log("WhatsApp: mensagem fictícia recebida na conversa aberta sem recarga, com conta e arena isoladas.");
-    const mobileWhatsapp = await visit("/whatsapp", viewports[1], arenaA.id, "whatsapp-conversa-mobile");
+    for (const mobileViewport of [viewports[1], { name: "mobile-320", width: 320, height: 700 }]) {
+    const mobileWhatsapp = await visit("/whatsapp", mobileViewport, arenaA.id, `whatsapp-conversa-${mobileViewport.name}`);
     if (!mobileWhatsapp.includes("Contato atual GOAL") || mobileWhatsapp.includes("Conversa antiga GOAL") || mobileWhatsapp.includes("Contato beta WhatsApp GOAL")) {
       throw new Error("A lista mobile do WhatsApp misturou conversas de contas ou arenas.");
     }
@@ -976,6 +977,14 @@ async function main() {
     }
     if (!mobileMedia.result.value.image || !(mobileMedia.result.value.audio > 0) || !mobileMedia.result.value.composer || mobileMedia.result.value.composer.left < -1 || mobileMedia.result.value.composer.right > mobileMedia.result.value.viewport + 1) {
       throw new Error(`Mídias ou compositor cortados no chat mobile: ${JSON.stringify(mobileMedia.result.value)}`);
+    }
+    const composerControls = await send("Runtime.evaluate", {
+      expression: "[...document.querySelector('.whatsapp-chat-main .whatsapp-composer')?.children ?? []].filter(element => (element.tagName === 'BUTTON' || element.classList.contains('whatsapp-composer-field')) && element.getClientRects().length).map(element => ({name:element.getAttribute('aria-label') || element.className,rect:element.getBoundingClientRect().toJSON()}))",
+      returnByValue: true,
+    });
+    const controls = composerControls.result.value;
+    if (controls.length < 5 || controls.some(({ rect }) => rect.left < -1 || rect.right > mobileViewport.width + 1 || rect.width < 28) || controls.some((item, index) => controls.slice(index + 1).some((other) => item.rect.left < other.rect.right - 1 && item.rect.right > other.rect.left + 1 && item.rect.top < other.rect.bottom - 1 && item.rect.bottom > other.rect.top + 1))) {
+      throw new Error(`${mobileViewport.name}: controles do compositor sobrepostos ou cortados: ${JSON.stringify(controls)}`);
     }
     const chatLayout = await send("Runtime.evaluate", {
       expression: "({width:document.querySelector('.whatsapp-chat-main')?.getBoundingClientRect().width ?? 0, viewport:innerWidth, detailsButtonVisible:!!document.querySelector('.whatsapp-chat-main button[aria-label=\"Detalhes do contato\"]')?.getClientRects().length})",
@@ -998,7 +1007,8 @@ async function main() {
     await send("Runtime.evaluate", { expression: "document.querySelector('#whatsapp-contact-details button[aria-label=\"Fechar detalhes do contato\"]')?.click()" });
     await pause(100);
     const whatsappMobileShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
-    await writeFile(`${outputDir}/whatsapp-conversa-mobile-aberta.png`, Buffer.from(whatsappMobileShot.data, "base64"));
+    await writeFile(`${outputDir}/whatsapp-conversa-${mobileViewport.name}-aberta.png`, Buffer.from(whatsappMobileShot.data, "base64"));
+    }
 
     const [teacherA, teacherB] = await Promise.all([
       db.teacher.create({ data: { arenaId: arenaA.id, name: "Professora Financeiro GOAL A" } }),
