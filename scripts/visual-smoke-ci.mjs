@@ -469,7 +469,8 @@ async function main() {
       throw new Error(`Login do administrador fictício falhou: ${JSON.stringify(staffLogin).slice(0, 500)}`);
     }
     const cookies = await send("Network.getCookies", { urls: [baseUrl] });
-    if (!cookies.cookies.some((item) => item.name === "padel_session")) throw new Error("Login não criou sessão.");
+    const staffSessionToken = cookies.cookies.find((item) => item.name === "padel_session")?.value;
+    if (!staffSessionToken) throw new Error("Login não criou sessão.");
 
     for (const path of ["/whatsapp", "/jogadores"]) {
       await send("Page.navigate", { url: `${baseUrl}${path}` });
@@ -502,6 +503,7 @@ async function main() {
       await send("Input.dispatchMouseEvent", { type: "mouseReleased", x: point.x, y: point.y, button: "left", clickCount: 1 });
     };
     for (const viewport of viewports) {
+      await selectArena(arenaA.id, staffSessionToken);
       await send("Emulation.setDeviceMetricsOverride", { width: viewport.width, height: viewport.height, deviceScaleFactor: 1, mobile: viewport.name === "mobile" });
       await send("Page.navigate", { url: `${baseUrl}/painel` });
       let start;
@@ -542,7 +544,17 @@ async function main() {
       if (navigated.path !== "/jogadores" || !navigated.body.includes("Atleta GOAL A") || navigated.menuOpen === "true" || navigated.bodyOverflow === "hidden") {
         throw new Error(`${viewport.name}: navegação pelo menu lateral falhou: ${JSON.stringify(navigated).slice(0, 500)}`);
       }
-      console.log(`${viewport.name}: clique real no menu lateral abriu Clientes e liberou a rolagem.`);
+      console.log(`${viewport.name}: colaborador abriu Clientes pelo menu lateral e liberou a rolagem.`);
+      await selectArena(arenaA.id);
+      await send("Page.navigate", { url: `${baseUrl}/jogadores` });
+      let ownerMenuReady = false;
+      for (let attempt = 0; attempt < 80; attempt += 1) {
+        const response = await send("Runtime.evaluate", { expression: "location.pathname === '/jogadores' && Boolean(document.querySelector('#arena-mobile-navigation a[href=\"/agenda\"]'))", returnByValue: true });
+        ownerMenuReady = response.result.value;
+        if (ownerMenuReady) break;
+        await pause(250);
+      }
+      if (!ownerMenuReady) throw new Error(`${viewport.name}: menu completo do proprietário não carregou.`);
       for (const destination of ["/agenda", "/torneios", "/financeiro/contas-a-receber"]) {
         if (viewport.name === "mobile") {
           await clickElement('button[aria-label="Abrir menu"]');
