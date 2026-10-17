@@ -1203,6 +1203,7 @@ model Student {
   classGroupRequests    ClassGroupRequest[]
   classGroupMakeups     ClassGroupMakeup[]
   monthlyBalances       StudentMonthlyBalance[]
+  financialRecurrences  FinancialRecurrence[]
 
   @@unique([arenaId, name])
   @@unique([playerId])
@@ -2393,16 +2394,19 @@ model FinancialRecurrence {
   planId              String?
   teacherId           String?
   playerId            String?
+  studentId           String?
   arena               Arena            @relation(fields: [arenaId], references: [id], onDelete: Cascade)
   supplier            Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull)
   bankAccount         BankAccount?     @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
   plan                Plan?            @relation(fields: [planId], references: [id], onDelete: SetNull)
   player              Player?          @relation(fields: [playerId], references: [id], onDelete: SetNull)
+  student             Student?         @relation(fields: [studentId], references: [id], onDelete: SetNull)
   entries             FinancialEntry[]
 
   @@index([arenaId, active, nextDueDate])
   @@index([playerId])
   @@index([arenaId, teacherId])
+  @@index([arenaId, studentId, planId, active])
 }
 
 model FinancialSettlement {

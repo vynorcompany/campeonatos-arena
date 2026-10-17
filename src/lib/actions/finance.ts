@@ -23,6 +23,7 @@ import { hasExistingOnlineCharge } from "@/lib/payments/existing-online-charge";
 import { claimFinancialOnlineCharge } from "@/lib/payments/financial-online-charge-claim";
 import { issueRecurringOnlineChargeForEntry } from "@/lib/payments/recurring-online-charges";
 import { lockStudentPlanSubscription } from "@/lib/academy/subscription-lock";
+import { planRecurrenceOwnerWhere } from "@/lib/academy/plan-recurrence-owner";
 import { issueManualFiscalDocument, type FiscalDocumentType } from "@/lib/fiscal/manual-issuance";
 import { refreshFinanceRoutes, refreshFinancialSettings } from "@/lib/finance/revalidation";
 import {
@@ -144,7 +145,7 @@ export async function createSubscriptionAction(formData: FormData) {
     if (current) {
       await tx.studentSubscription.update({ where: { id: current.id }, data: { status: "RENEWED", endedAt: startedAt } });
       await tx.financialRecurrence.updateMany({
-        where: { arenaId: auth.arenaId, planId: plan.id, startsAt: current.startedAt, active: true, ...(student.playerId ? { playerId: student.playerId } : { playerId: null, counterpartyName: student.name }) },
+        where: planRecurrenceOwnerWhere({ arenaId: auth.arenaId, planId: plan.id, studentId: student.id, studentName: student.name, playerId: student.playerId, startedAt: current.startedAt }),
         data: { active: false },
       });
     }
@@ -172,7 +173,7 @@ export async function createSubscriptionAction(formData: FormData) {
       arenaId: auth.arenaId, type: "REVENUE", counterpartyName: student.name, category: "Planos de aulas",
       description: `${plan.name} · ${student.name}`, amountCents: plan.monthlyPriceCents, frequency: "MONTHLY",
       startsAt: startedAt, nextDueDate: dueDate, onlinePaymentMethod: "BOLETO", planId: plan.id,
-      teacherId, playerId: student.playerId, notes: current ? "Renovação anual do plano de aulas." : "Ativação do plano de aulas.",
+      teacherId, playerId: student.playerId, studentId: student.id, notes: current ? "Renovação anual do plano de aulas." : "Ativação do plano de aulas.",
     } });
     for (let month = 0; month < 12; month += 1) {
       const entry = await tx.financialEntry.create({ data: {
