@@ -603,6 +603,9 @@ async function main() {
           if (view.label === "financas" && viewport.name === "mobile" && (!metrics.main.includes("Itens em aberto") || !metrics.main.includes("Você tem uma comanda aberta para acompanhar") || metrics.main.includes("Seus pagamentos estão em dia"))) {
             throw new Error(`${label}: resumo financeiro contradiz a comanda aberta do atleta fictício.`);
           }
+          if (view.label === "financas" && viewport.name === "desktop" && (!metrics.main.includes("Comanda em aberto") || metrics.main.includes("Tudo certo por aqui"))) {
+            throw new Error(`${label}: destaque financeiro contradiz a comanda aberta do atleta fictício.`);
+          }
           if (view.label === "torneios-jogos" && (!metrics.body.includes("Parceira de Nome Comprido GOAL") || !metrics.body.includes("6–2 · 6–3"))) {
             throw new Error(`${label}: placar e games da liga fictícia não aparecem juntos.`);
           }

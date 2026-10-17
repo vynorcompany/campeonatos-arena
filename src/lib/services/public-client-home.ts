@@ -93,7 +93,23 @@ export async function getPublicClientFinance(arenaSlug: string, playerId: string
   const overdue = rows.filter((entry) => entry.status === "overdue");
   const paid = rows.filter((entry) => entry.status === "paid");
   const comandas = openComandas.map((comanda) => ({ id: comanda.id, code: comanda.code, amount: money(comanda.items.reduce((total, item) => total + item.totalCents, 0)) }));
-  return { health: overdue.length ? "attention" : open.length || comandas.length ? "upcoming" : "healthy", headline: overdue.length ? "Há um pagamento em aberto para cuidar" : open.length || comandas.length ? "Tudo certo por aqui" : "Está tudo saudável", detail: overdue.length ? "Regularize quando puder para continuar aproveitando a arena sem pendências." : open.length || comandas.length ? "Você tem pagamentos futuros organizados e nenhum valor em atraso." : "Nenhuma pendência financeira no momento. Aproveite a arena!", overdue, open, paid, comandas };
+  const health = overdue.length ? "attention" : open.length || comandas.length ? "upcoming" : "healthy";
+  let headline = "Tudo em dia";
+  let detail = "Nenhum pagamento pendente no momento.";
+  if (overdue.length) {
+    headline = "Pagamento em atraso";
+    detail = "Confira os lançamentos vencidos abaixo.";
+  } else if (open.length && comandas.length) {
+    headline = "Pagamentos e comandas em aberto";
+    detail = "Acompanhe os vencimentos e as comandas em andamento.";
+  } else if (comandas.length) {
+    headline = comandas.length === 1 ? "Comanda em aberto" : "Comandas em aberto";
+    detail = "Acompanhe o consumo e feche a comanda no balcão.";
+  } else if (open.length) {
+    headline = "Próximos pagamentos";
+    detail = "Confira os lançamentos dos próximos 15 dias.";
+  }
+  return { health, headline, detail, overdue, open, paid, comandas };
 }
 
 export async function getPublicClientComandas(arenaSlug: string, playerId: string) {

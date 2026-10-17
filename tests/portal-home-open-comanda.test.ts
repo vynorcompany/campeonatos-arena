@@ -8,7 +8,7 @@ test("a tela inicial não diz que está tudo em dia quando há comanda aberta", 
   const source = readFileSync(new URL("../src/lib/services/public-client-home.ts", import.meta.url), "utf8");
   const exports: Record<string, (...args: string[]) => Promise<unknown>> = {};
   const comandaQueries: Array<Record<string, unknown>> = [];
-  let openComandas = [{ items: [{ totalCents: 1200 }] }];
+  let openComandas = [{ id: "comanda-a", code: "GOAL-1", items: [{ totalCents: 1200 }] }];
   const tx = {
     player: { findFirst: async () => ({ name: "Atleta GOAL" }) },
     portalAnnouncement: { findMany: async () => [] },
@@ -39,6 +39,12 @@ test("a tela inicial não diz que está tudo em dia quando há comanda aberta", 
     mobileFinancialStatus: "soon", mobileFinancialLabel: "Comanda em aberto", classes: 0, reservations: 0, leagues: 0,
   });
   assert.deepEqual(JSON.parse(JSON.stringify(comandaQueries[0].where)), { arenaId: "arena-a", playerId: "player-a", status: "OPEN", items: { some: {} } });
+
+  const finance = await exports.getPublicClientFinance("arena-a", "player-a") as { health: string; headline: string; detail: string; comandas: unknown[] };
+  assert.equal(finance.health, "upcoming");
+  assert.equal(finance.headline, "Comanda em aberto");
+  assert.match(finance.detail, /Acompanhe o consumo/);
+  assert.equal(finance.comandas.length, 1);
 
   openComandas = [];
   const empty = await exports.getPublicClientHome("arena-a", "player-a") as { summary: { financial: string; financialStatus: string; mobileFinancialStatus: string; mobileFinancialLabel: string } };

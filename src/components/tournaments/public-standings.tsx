@@ -495,17 +495,12 @@ export function PublicStandings({
 function ClientFinancePanel({ finance, arenaSlug, tab }: { finance: ClientFinance; arenaSlug: string; tab: "upcoming" | "history" }) {
   if (!finance) return <section className={viewStyles.athlete_portal_content_panel}><PortalEmpty title="Finanças indisponíveis" detail="Não foi possível carregar suas informações financeiras agora." /></section>;
   const pendingCount = finance.overdue.length + finance.comandas.length;
-  const message = finance.health === "healthy"
-    ? { title: "Tudo certo por aqui, padelista! 🎾", detail: "Quadra livre, contas em ordem e foco no próximo voleio." }
-    : finance.health === "upcoming"
-      ? { title: "Tudo certo por aqui, padelista! 🎾", detail: finance.open.length ? "Seus próximos pagamentos já estão na linha. Quem mantém as contas em ordem, acerta 85% mais voleios." : "Você tem comandas em andamento. Acompanhe seu consumo e feche-as no balcão quando terminar." }
-      : { title: "Vamos virar esse jogo? 🎾", detail: "Tem uma pendência pedindo atenção. Resolva agora e volte para a quadra com a cabeça leve." };
   const mobileAttention = mobileFinanceAttention({ overdueCount: finance.overdue.length, hasSoonPayment: finance.open.some((entry) => entry.urgency === "soon"), openComandaCount: finance.comandas.length });
   return <section className={cx(viewStyles.client_finance_page, "tw:viewport-700:gap-3! tw:viewport-700:pb-24!")}>
     <div className="tw:hidden tw:viewport-700:block"><h2 className="tw:mb-3 tw:text-[1.4rem] tw:font-semibold">Finanças</h2><div className="tw:grid tw:grid-cols-2 tw:gap-2"><div className="tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-3 tw:dark:border-[#3e8b70] tw:dark:bg-[#104c3b]"><small className="tw:block tw:text-[#607e8d] tw:dark:text-[#a4c8b9]">Itens em aberto</small><strong className="tw:mt-1 tw:block tw:text-xl">{pendingCount}</strong></div><div className="tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-3 tw:dark:border-[#3e8b70] tw:dark:bg-[#104c3b]"><small className="tw:block tw:text-[#607e8d] tw:dark:text-[#a4c8b9]">Próximos 15 dias</small><strong className="tw:mt-1 tw:block tw:text-xl">{finance.open.length}</strong></div></div><p className={cx("tw:mt-3 tw:text-xs tw:font-medium", mobileAttention.kind === "overdue" ? "tw:text-[#b42318] tw:dark:text-[#ff9e8f]" : mobileAttention.kind === "soon" ? "tw:text-[#a86100] tw:dark:text-[#ffd18a]" : "tw:text-[#087b63] tw:dark:text-[#5bdec1]")}>{mobileAttention.message}</p></div>
     <header className={cx(`${viewStyles.client_finance_hero} is-${finance.health}`, "tw:viewport-700:hidden!")}>
       <span>FINANÇAS</span>
-      <div><div className={viewStyles.client_finance_orb} aria-hidden="true"><FinanceIcon icon="wallet" /></div><div><h2>{message.title}</h2><p>{message.detail}</p></div></div>
+      <div><div className={viewStyles.client_finance_orb} aria-hidden="true"><FinanceIcon icon="wallet" /></div><div><h2>{finance.headline}</h2><p>{finance.detail}</p></div></div>
       <b className={viewStyles.client_finance_motto}>DISCIPLINA<br />TAMBÉM<br />JOGA.</b>
     </header>
     <div className={cx(viewStyles.client_finance_summary, "tw:viewport-700:hidden!")} aria-label="Resumo financeiro">
