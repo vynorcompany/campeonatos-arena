@@ -12,6 +12,7 @@ import { CouponActiveToggle } from "@/components/finance/coupon-active-toggle";
 import { CurrencyInput } from "@/components/forms/currency-input";
 import { connectPaymentProviderAction, createCouponAction, createFinancialSettingAction, createProductCategoryAction, deleteCouponAction, deleteFinancialCategoryAction, deleteSupplierAction, reconcileBankAccountBalanceAction, updateCouponAction, updateFinancialCategoryAction, updateFiscalSettingsAction, updateSupplierAction } from "@/lib/actions/finance";
 import { requireModuleView } from "@/lib/auth/guards";
+import { canPerformPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 
 const areas = {
@@ -37,6 +38,7 @@ export default async function FinancialSettingAreaPage(
   const searchParams = await props.searchParams;
   const params = await props.params;
   const auth = await requireModuleView("finance");
+  if (!canPerformPermission("finance:settings:manage", auth.arenaRole, auth.systemRole, auth.editPermissions)) notFound();
   const prisma = arenaDatabase(auth.arenaId);const item = areas[params.area as keyof typeof areas];if (!item) notFound();const area = params.area;
   if (area === "categorias-produtos") {
     const categories = await prisma.productCategory.findMany({ where: { arenaId: auth.arenaId }, include: { _count: { select: { products: true } } }, orderBy: { name: "asc" } });

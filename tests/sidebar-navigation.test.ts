@@ -14,6 +14,7 @@ test("destinos com parâmetros mantêm o item ativo na rota correta", () => {
 test("menus com submenu mantêm o destino clicável e um controle separado para expandir", () => {
   const markup = renderToStaticMarkup(React.createElement(NavLinks, {
     canManageUsers: true,
+    canManageFinancialSettings: true,
     visibleModules: ["dashboard", "support", "pos", "tournaments", "calendar", "tv", "players", "teachers", "finance", "stock", "matches"],
     whatsappUnreadCount: 0
   }));
@@ -35,4 +36,15 @@ test("links da barra lateral voltam ao topo ao trocar de página", () => {
     const source = readFileSync(new URL(`../src/components/layout/${path}`, import.meta.url), "utf8");
     assert.doesNotMatch(source, /<Link\b[^>]*scroll=\{false\}/, `${path} não deve preservar a rolagem da página anterior`);
   }
+});
+
+test("sem permissão de gestão financeira, a barra lateral não oferece configurações", () => {
+  const markup = renderToStaticMarkup(React.createElement(NavLinks, {
+    canManageUsers: false,
+    canManageFinancialSettings: false,
+    visibleModules: ["dashboard", "finance"],
+    whatsappUnreadCount: 0,
+  }));
+  assert.match(markup, /href="\/financeiro\/contas-a-receber"/);
+  assert.doesNotMatch(markup, /href="\/financeiro\/configuracoes"/);
 });

@@ -1111,7 +1111,7 @@ async function main() {
 
     const restrictedToken = createHash("sha256").update(`restricted:${sessionToken}`).digest("hex");
     const restrictedUser = await db.user.create({ data: { name: "Operador restrito GOAL", email: "goal-restricted@example.test", passwordHash: "test-only", systemRole: "VIEWER" } });
-    await db.arenaMember.create({ data: { arenaId: arenaA.id, userId: restrictedUser.id, role: "STAFF", viewPermissions: ["calendar"], editPermissions: ["calendar:booking:create"] } });
+    await db.arenaMember.create({ data: { arenaId: arenaA.id, userId: restrictedUser.id, role: "STAFF", viewPermissions: ["calendar", "finance:receivable:view"], editPermissions: ["calendar:booking:create"] } });
     await db.session.create({ data: { userId: restrictedUser.id, token: createHash("sha256").update(restrictedToken).digest("hex"), expiresAt: new Date(Date.now() + 60 * 60_000) } });
     const restrictedCourt = await db.court.findFirstOrThrow({ where: { arenaId: arenaA.id, name: "Quadra GOAL Agenda" }, select: { id: true } });
     const restrictedStart = new Date(`${futureAgendaDate}T10:00:00.000Z`);
@@ -1128,7 +1128,23 @@ async function main() {
       const settingsResponse = await fetch(`${baseUrl}/agenda/configuracao`, { headers: { Cookie: cookie(arenaA.id, restrictedToken) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
       await settingsResponse.body?.cancel();
       if (settingsResponse.status !== 404) throw new Error(`Perfil limitado acessou a configuração de quadras (HTTP ${settingsResponse.status}).`);
+      const financeSettingsResponse = await fetch(`${baseUrl}/financeiro/configuracoes`, { headers: { Cookie: cookie(arenaA.id, restrictedToken) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
+      await financeSettingsResponse.body?.cancel();
+      if (financeSettingsResponse.status !== 404) throw new Error(`Perfil limitado acessou configurações financeiras (HTTP ${financeSettingsResponse.status}).`);
+      const financeCategoryResponse = await fetch(`${baseUrl}/financeiro/configuracoes/categorias-financeiras`, { headers: { Cookie: cookie(arenaA.id, restrictedToken) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
+      await financeCategoryResponse.body?.cancel();
+      if (financeCategoryResponse.status !== 404) throw new Error(`Perfil limitado acessou categorias financeiras (HTTP ${financeCategoryResponse.status}).`);
       for (const viewport of viewports) {
+        await visit("/financeiro/contas-a-receber", viewport, arenaA.id, `${viewport.name}-financeiro-somente-leitura`, restrictedToken);
+        const financeControls = await send("Runtime.evaluate", {
+          expression: "({settings:Boolean(document.querySelector('a[href=\"/financeiro/configuracoes\"]')),create:[...document.querySelectorAll('button')].some(button=>button.textContent?.trim()==='Novo lançamento'),settle:[...document.querySelectorAll('button')].some(button=>button.textContent?.trim()==='Receber'),width:innerWidth,scrollWidth:document.documentElement.scrollWidth})",
+          returnByValue: true,
+        });
+        if (financeControls.result.value?.settings || financeControls.result.value?.create || financeControls.result.value?.settle || financeControls.result.value?.scrollWidth > financeControls.result.value?.width + 1) {
+          throw new Error(`${viewport.name}: perfil financeiro somente leitura exibiu controles de edição ou ficou cortado: ${JSON.stringify(financeControls.result.value)}`);
+        }
+        const financeShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+        await writeFile(`${outputDir}/${viewport.name}-financeiro-somente-leitura.png`, Buffer.from(financeShot.data, "base64"));
         const calendarLabel = `${viewport.name}-calendario-permissao-leitura`;
         const calendarBody = await visit(`/calendario?periodo=day&data=${futureAgendaDate}`, viewport, arenaA.id, calendarLabel, restrictedToken);
         if (!calendarBody.includes("Evento restrito GOAL")) throw new Error(`${calendarLabel}: evento fictício não apareceu.`);

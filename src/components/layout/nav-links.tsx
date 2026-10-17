@@ -39,6 +39,7 @@ type NavGroup = {
 
 type NavLinksProps = {
   canManageUsers: boolean;
+  canManageFinancialSettings: boolean;
   visibleModules: string[];
   whatsappUnreadCount: number;
   pollingScope?: string;
@@ -173,7 +174,7 @@ function NavIcon({ name }: { name: IconName }) {
   return <svg {...common} className={cx(name === "whatsapp" ? "nav-svg-whatsapp" : undefined)}>{paths[name]}</svg>;
 }
 
-export function NavLinks({ canManageUsers, visibleModules, whatsappUnreadCount, pollingScope = "" }: NavLinksProps) {
+export function NavLinks({ canManageUsers, canManageFinancialSettings, visibleModules, whatsappUnreadCount, pollingScope = "" }: NavLinksProps) {
   const pathname = usePathname() ?? "";
   const openItemsStorageKey = "arena:sidebar-open-items";
   const canSee = (module: string) => visibleModules.includes(module);
@@ -362,7 +363,7 @@ export function NavLinks({ canManageUsers, visibleModules, whatsappUnreadCount, 
       links: group.links
         .map((item) => ({
           ...item,
-          children: item.children?.filter((child) => canSee(moduleByHref[child.href.split("?", 1)[0]] ?? "dashboard"))
+          children: item.children?.filter((child) => (canManageFinancialSettings || child.href !== "/financeiro/configuracoes") && canSee(moduleByHref[child.href.split("?", 1)[0]] ?? "dashboard"))
         }))
         .filter((item) => canSee(moduleByHref[item.href.split("?", 1)[0]] ?? "dashboard") || (item.children?.length ?? 0) > 0)
     }))

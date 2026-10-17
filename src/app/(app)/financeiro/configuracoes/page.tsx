@@ -1,5 +1,7 @@
 import { OperationalSubmenuList } from "@/components/operational-submenu-list";
 import { requireModuleView } from "@/lib/auth/guards";
+import { canPerformPermission } from "@/lib/permissions";
+import { notFound } from "next/navigation";
 
 const settings = [
   ["Categorias Financeiras", "Padronize receitas e despesas", "categorias-financeiras"],
@@ -13,6 +15,7 @@ const settings = [
 ] as const;
 
 export default async function FinancialSettingsPage() {
-  await requireModuleView("finance");
+  const auth = await requireModuleView("finance");
+  if (!canPerformPermission("finance:settings:manage", auth.arenaRole, auth.systemRole, auth.editPermissions)) notFound();
   return <OperationalSubmenuList ariaLabel="Configurações financeiras" items={settings.map(([label, description, slug]) => ({ label, description, href: `/financeiro/configuracoes/${slug}` }))} />;
 }
