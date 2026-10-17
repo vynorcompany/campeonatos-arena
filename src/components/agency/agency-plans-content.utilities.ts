@@ -89,5 +89,6 @@ export const viewStyles = {
     "tw:[border-bottom-style:solid]", "tw:border-b-[color:#dce6f3]", "tw:border-l-[length:1px]", "tw:[border-left-style:solid]",
     "tw:border-l-[color:#dce6f3]", "tw:rounded-[10px]", "tw:grid-cols-[minmax(150px,_2fr)_repeat(4,_minmax(75px,_1fr))_minmax(110px,_1fr)]", "tw:viewport-850:grid-cols-[repeat(2,_minmax(0,_1fr))]",
   ].join(" "),
+  "agency_invoice_review": "tw:text-[#a75511] tw:font-[700] tw:break-words",
   "button_button_small": sharedUtilities.buttonButtonSmall,
 } as const;

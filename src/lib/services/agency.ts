@@ -34,7 +34,7 @@ export async function getAgencyMetrics() {
         }
       }
     }),
-    prisma.agencyInvoice.groupBy({ by: ["status"], _sum: { amountCents: true } }),
+    prisma.agencyInvoice.groupBy({ by: ["status", "paymentReviewStatus"], _sum: { amountCents: true } }),
   ]);
   const mrrCents = activeSubscriptions.reduce((total, subscription) => total + subscription.plan.monthlyPriceCents, 0);
 
@@ -43,8 +43,9 @@ export async function getAgencyMetrics() {
     usersCount,
     activeSubscriptions,
     openTickets,
-    paidInvoiceCents: invoiceTotals.find((row) => row.status === "PAID")?._sum.amountCents ?? 0,
-    openInvoiceCents: invoiceTotals.find((row) => row.status === "PENDING")?._sum.amountCents ?? 0,
+    paidInvoiceCents: invoiceTotals.filter((row) => row.status === "PAID" && !row.paymentReviewStatus).reduce((total, row) => total + (row._sum.amountCents ?? 0), 0),
+    openInvoiceCents: invoiceTotals.filter((row) => row.status === "PENDING").reduce((total, row) => total + (row._sum.amountCents ?? 0), 0),
+    reviewInvoiceCents: invoiceTotals.filter((row) => Boolean(row.paymentReviewStatus)).reduce((total, row) => total + (row._sum.amountCents ?? 0), 0),
     mrrCents
   };
 }

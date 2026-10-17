@@ -24,6 +24,7 @@ export default async function AgencyFinancePage() {
         <div className={viewStyles.stat_card}><strong>{formatCurrency(metrics.paidInvoiceCents)}</strong><span>faturas pagas</span></div>
         <div className={viewStyles.stat_card}><strong>{formatCurrency(metrics.openInvoiceCents)}</strong><span>faturas em aberto</span></div>
       </div>
+      {metrics.reviewInvoiceCents > 0 ? <p className={viewStyles.payment_review_notice}>{formatCurrency(metrics.reviewInvoiceCents)} em faturas com estorno ou contestação informada. Confira os pagamentos no Mercado Pago e concilie antes de emitir outra cobrança.</p> : null}
 
       <SectionCard title="Resumo por arena" description="Apenas assinaturas da plataforma entram neste MRR.">
         <div className={viewStyles.agency_arena_list}>

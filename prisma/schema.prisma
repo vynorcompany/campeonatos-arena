@@ -1932,6 +1932,8 @@ model AgencyInvoice {
   status           String             @default("PENDING")
   checkoutUrl      String             @default("")
   providerPaymentId String            @default("")
+  paymentReviewStatus String           @default("")
+  paymentReviewAt DateTime?
   financialEntryId String?            @unique
   paidAt           DateTime?
   createdAt        DateTime           @default(now())
