@@ -45,6 +45,8 @@ jobs:
       - run: npm run db:generate
       - run: npm run db:setup
       - run: npx tsx scripts/seed-goal-ci.ts
+      - name: Preview recurring charges without issuing payments
+        run: npx tsx scripts/preview-financial-online-charges.ts --preview
       - run: npm run typecheck
       - run: npm run build
       - name: Start isolated app
