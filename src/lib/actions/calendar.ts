@@ -684,7 +684,7 @@ export async function copyCourtConfigurationAction(formData: FormData) {
 }
 
 export async function createCalendarEventAction(formData: FormData) {
-  const auth = await requireModuleEdit("calendar");
+  const auth = await requirePermission("calendar:event:manage");
   const parsed = calendarSchema.safeParse({
     sourceType: "calendar",
     lessonId: "",
@@ -731,12 +731,13 @@ export async function createCalendarEventAction(formData: FormData) {
 }
 
 export async function updateCalendarEventAction(formData: FormData) {
-  const auth = await requireModuleEdit("calendar");
+  const auth = await requirePermission("calendar:event:manage");
+  const sourceType = formData.get("sourceType");
   const parsed = calendarSchema.safeParse({
-    sourceType: formData.get("sourceType"),
+    sourceType,
     lessonId: formData.get("lessonId"),
     calendarEventId: formData.get("calendarEventId"),
-    eventType: formData.get("eventType"),
+    eventType: sourceType === "lesson" ? "AULA" : formData.get("eventType"),
     title: formData.get("title"),
     scheduledAt: formData.get("scheduledAt"),
     durationMinutes: formData.get("durationMinutes"),
@@ -781,6 +782,14 @@ export async function updateCalendarEventAction(formData: FormData) {
 
   if (normalizedType === "AULA") {
     await prisma.$transaction(async (tx) => {
+      const removed = await tx.calendarEvent.deleteMany({
+        where: {
+          id: parsed.data.calendarEventId,
+          arenaId: auth.arenaId
+        }
+      });
+      if (!removed.count) throw new Error("Evento nao encontrado.");
+
       await tx.lesson.create({
         data: {
           arenaId: auth.arenaId,
@@ -789,13 +798,6 @@ export async function updateCalendarEventAction(formData: FormData) {
           durationMinutes: parsed.data.durationMinutes,
           notes: parsed.data.notes,
           status: "SCHEDULED"
-        }
-      });
-
-      await tx.calendarEvent.deleteMany({
-        where: {
-          id: parsed.data.calendarEventId,
-          arenaId: auth.arenaId
         }
       });
     });
@@ -826,7 +828,7 @@ export async function updateCalendarEventAction(formData: FormData) {
 }
 
 export async function deleteCalendarEventAction(formData: FormData) {
-  const auth = await requireModuleEdit("calendar");
+  const auth = await requirePermission("calendar:event:manage");
   const parsed = z
     .object({
       sourceType: z.enum(["lesson", "calendar"]).default("calendar"),

@@ -162,6 +162,7 @@ export function CalendarQuickCreate() {
 
           <div className={viewStyles.field}>
             <label htmlFor="event-type">Tipo</label>
+            {state.sourceType === "lesson" ? <input type="hidden" name="eventType" value="AULA" /> : null}
             <select
               id="event-type"
               name="eventType"
