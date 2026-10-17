@@ -20,6 +20,7 @@ function loadLifecycle(prisma: PrismaClient) {
   const source = readFileSync(new URL("../src/lib/league/lifecycle.ts", import.meta.url), "utf8");
   const exports: {
     closeLeagueCycleManually?: (competitionId: string, now: Date, arenaId: string) => Promise<{ closedCycles: number; nextReferenceMonth: string }>;
+    closeExpiredLeagueCycles?: (now: Date, arenaId: string) => Promise<{ closedCycles: number }>;
     reopenEmptyLeagueCycle?: (cycleId: string, arenaId: string, now: Date) => Promise<{ reopenedCycleId: string; scheduledMatches: number }>;
   } = {};
   vm.runInNewContext(ts.transpileModule(source, {
@@ -37,9 +38,56 @@ function loadLifecycle(prisma: PrismaClient) {
     },
   });
   assert.ok(exports.closeLeagueCycleManually);
+  assert.ok(exports.closeExpiredLeagueCycles);
   assert.ok(exports.reopenEmptyLeagueCycle);
-  return { close: exports.closeLeagueCycleManually, reopen: exports.reopenEmptyLeagueCycle };
+  return { close: exports.closeLeagueCycleManually, closeExpired: exports.closeExpiredLeagueCycles, reopen: exports.reopenEmptyLeagueCycle };
 }
+
+test("mês sem vitórias não fecha manualmente nem produz campeã ou rebaixamento automático", { skip: !disposableDatabase }, async () => {
+  const prisma = new PrismaClient({ datasources: { db: { url: testUrl } } });
+  const token = randomUUID();
+  let userId: string | undefined;
+  let arenaId: string | undefined;
+  try {
+    const user = await prisma.user.create({ data: { name: "Teste Liga", email: `league-no-winner-${token}@example.invalid`, passwordHash: "test-only" } });
+    userId = user.id;
+    const arena = await prisma.arena.create({ data: { name: "Arena descartável sem vitória", slug: `league-no-winner-${token}`, createdById: user.id } });
+    arenaId = arena.id;
+    const tournament = await prisma.tournament.create({ data: { name: "Liga descartável", arenaId: arena.id } });
+    const categoryA = await prisma.tournamentCategory.create({ data: { name: "Liga A", level: 1, tournamentId: tournament.id } });
+    const categoryB = await prisma.tournamentCategory.create({ data: { name: "Liga B", level: 2, tournamentId: tournament.id } });
+    const leagueA = await prisma.categoryCompetition.create({ data: { categoryId: categoryA.id, format: "LEAGUE", leagueTier: "A", status: "PUBLISHED" } });
+    const leagueB = await prisma.categoryCompetition.create({ data: { categoryId: categoryB.id, format: "LEAGUE", leagueTier: "B", status: "PUBLISHED" } });
+    const cycle = await prisma.leagueCycle.create({ data: { competitionId: leagueA.id, referenceMonth: "2026-09" } });
+    const first = await prisma.categoryPair.create({ data: { competitionId: leagueA.id, name: "Primeira dupla", drawOrder: 1 } });
+    const second = await prisma.categoryPair.create({ data: { competitionId: leagueA.id, name: "Segunda dupla", drawOrder: 2 } });
+    const match = await prisma.categoryMatch.create({ data: { competitionId: leagueA.id, leagueCycleId: cycle.id, label: "Jogo agendado", stage: "GROUP", roundOrder: 1, homePairId: first.id, awayPairId: second.id } });
+    const { close, closeExpired } = loadLifecycle(prisma);
+    const now = new Date("2026-10-13T12:00:00Z");
+    await assert.rejects(close(leagueA.id, now, arena.id), /ainda não tem vitórias registradas/);
+    assert.equal((await prisma.leagueCycle.findUniqueOrThrow({ where: { id: cycle.id } })).status, "OPEN");
+    assert.equal((await prisma.categoryMatch.findUniqueOrThrow({ where: { id: match.id } })).woReason, null);
+    assert.equal(await prisma.categoryPair.count({ where: { competitionId: leagueA.id } }), 2);
+    assert.equal(await prisma.leagueCycle.count({ where: { competitionId: leagueA.id } }), 1);
+
+    assert.equal((await closeExpired(now, arena.id)).closedCycles, 1);
+    const closed = await prisma.leagueCycle.findUniqueOrThrow({ where: { id: cycle.id } });
+    assert.equal(closed.status, "CLOSED");
+    assert.equal(closed.championPairId, null);
+    assert.equal(closed.relegatedPairId, null);
+    assert.equal(closed.promotedPairId, null);
+    assert.equal(await prisma.categoryPair.count({ where: { competitionId: leagueB.id } }), 0);
+  } finally {
+    if (arenaId) {
+      const inArena = { competition: { category: { tournament: { arenaId } } } };
+      await prisma.categoryMatch.deleteMany({ where: inArena });
+      await prisma.categoryPair.deleteMany({ where: inArena });
+      await prisma.arena.delete({ where: { id: arenaId } });
+    }
+    if (userId) await prisma.user.delete({ where: { id: userId } });
+    await prisma.$disconnect();
+  }
+});
 
 for (const order of [["A", "B"], ["B", "A"]] as const) {
   test(`fechar Liga ${order.join("→")} preserva as duplas transferidas para o próximo mês`, { skip: !disposableDatabase }, async () => {
@@ -130,11 +178,13 @@ test("reabre apenas o ciclo vazio mais recente e preserva a arena", { skip: !dis
     arenaId = arena.id;
     const tournament = await prisma.tournament.create({ data: { name: "Liga descartável", arenaId: arena.id } });
     const category = await prisma.tournamentCategory.create({ data: { name: "Liga A", level: 1, tournamentId: tournament.id } });
-    const competition = await prisma.categoryCompetition.create({ data: { categoryId: category.id, format: "LEAGUE", leagueTier: "A", status: "PUBLISHED" } });
-    const cycle = await prisma.leagueCycle.create({ data: { competitionId: competition.id, referenceMonth: "2026-10" } });
-    const { close, reopen } = loadLifecycle(prisma);
-    await close(competition.id, new Date("2026-10-13T12:00:00Z"), arena.id);
-    const successor = await prisma.leagueCycle.findUniqueOrThrow({ where: { competitionId_referenceMonth: { competitionId: competition.id, referenceMonth: "2026-11" } } });
+    const competition = await prisma.categoryCompetition.create({ data: { categoryId: category.id, format: "LEAGUE", leagueTier: "A", status: "DRAFT" } });
+    const cycle = await prisma.leagueCycle.create({ data: {
+      competitionId: competition.id, referenceMonth: "2026-10", status: "CLOSED", closedAt: new Date("2026-10-13T12:00:00Z"),
+      snapshot: { pairs: [], groups: [], matches: [], registrations: [] },
+    } });
+    const successor = await prisma.leagueCycle.create({ data: { competitionId: competition.id, referenceMonth: "2026-11" } });
+    const { reopen } = loadLifecycle(prisma);
     for (const name of ["Dupla 1", "Dupla 2"]) await prisma.categoryPair.create({ data: { competitionId: competition.id, name } });
 
     await assert.rejects(reopen(cycle.id, "outra-arena", new Date("2026-10-13T12:00:00Z")), /não encontrado nesta arena/);

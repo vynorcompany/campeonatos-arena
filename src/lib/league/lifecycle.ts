@@ -214,8 +214,11 @@ async function applyPromotionAndRelegation(cycleId: string) {
     }));
   }
   const table = standings(cycle.matches);
-  const championPairId = table[0]?.pairId ?? null;
-  const relegatedPairId = tier === "A" ? table.at(-1)?.pairId ?? null : null;
+  // A month with only unresolved/double-W.O. games has no sporting result.
+  // Never pick an arbitrary champion or relegated pair from the ID fallback.
+  const hasVictory = table.some((row) => row.wins > 0);
+  const championPairId = hasVictory ? table[0]?.pairId ?? null : null;
+  const relegatedPairId = hasVictory && tier === "A" ? table.at(-1)?.pairId ?? null : null;
   const updates: { championPairId: string | null; promotedPairId?: string | null; relegatedPairId?: string | null } = { championPairId, ...(tier === "A" ? { relegatedPairId } : {}) };
   if (tier === "B" && championPairId) updates.promotedPairId = championPairId;
   await prisma.leagueCycle.update({ where: { id: cycle.id }, data: updates });
@@ -287,6 +290,12 @@ export async function closeLeagueCycleManually(competitionId: string, now = new 
     select: { id: true, competitionId: true, referenceMonth: true }
   });
   if (!cycle) throw new Error("Não há um ciclo aberto desta Liga para encerrar.");
+
+  const decidedMatch = await prisma.categoryMatch.findFirst({
+    where: { leagueCycleId: cycle.id, winnerPairId: { not: null } },
+    select: { id: true },
+  });
+  if (!decidedMatch) throw new Error("Esta Liga ainda não tem vitórias registradas. O ciclo não foi encerrado nem houve movimentação de duplas.");
 
   await processLeagueDeadlines(now, arenaId);
   const unresolved = await prisma.categoryMatch.findMany({ where: { leagueCycleId: cycle.id, winnerPairId: null }, select: { id: true } });
