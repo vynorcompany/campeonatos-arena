@@ -45,6 +45,10 @@ jobs:
       - run: npm run db:generate
       - run: npm run db:setup
       - run: npx tsx scripts/seed-goal-ci.ts
+      - name: Drill synthetic backup restore in disposable PostgreSQL 18
+        env:
+          PG_CONTAINER_ID: ${{ job.services.postgres.id }}
+        run: sh scripts/verify-synthetic-restore-ci.sh
       - name: Preview recurring charges without issuing payments
         run: npx tsx scripts/preview-financial-online-charges.ts --preview
       - run: npm run typecheck
