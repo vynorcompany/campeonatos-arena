@@ -24,7 +24,7 @@ import { activeCourtOccurrenceWhere, onlineBookingHoldCutoff } from "@/lib/calen
 import { assertCourtBookingMayBeEdited } from "@/lib/calendar/court-booking-edit-safety";
 import { arenaWallClockToInstant } from "@/lib/calendar/arena-wall-clock";
 import { getBookingDelinquency } from "@/lib/calendar/booking-delinquency";
-import { claimOnlineBookingPaymentMethod } from "@/lib/calendar/booking-payment-claim";
+import { cancelUnpaidOnlineBooking, claimOnlineBookingPaymentMethod } from "@/lib/calendar/booking-payment-claim";
 import { sendEvolutionTextMessage } from "@/lib/integrations/evolution/client";
 import { expandWeeklyOccurrences } from "@/lib/scheduling/recurrence";
 import { cancelMercadoPagoPayment, createBoletoPayment, createCardCheckout, createPixPayment, getMercadoPagoPayment, getMissingBoletoPayerFields } from "@/lib/payments/mercado-pago";
@@ -233,11 +233,10 @@ export async function cancelPublicCourtBookingRequestAction(formData: FormData) 
   const playerAuth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
   const arena = await prisma.arena.findUnique({ where: { slug: parsed.data.arenaSlug }, select: { id: true, slug: true } });
   if (!arena) throw new Error("Arena não encontrada.");
-  const cancelled = await withArenaTransaction(arena.id, (tx) => tx.scheduleOccurrence.updateMany({
-    where: { id: parsed.data.occurrenceId, arenaId: arena.id, sourceType: "ONLINE_BOOKING", status: { in: ["PENDING_PAYMENT", "PENDING_CONFIRMATION"] }, participants: { some: { playerId: playerAuth.playerId } } },
-    data: { status: "CANCELED" }
+  const cancelled = await withArenaTransaction(arena.id, (tx) => cancelUnpaidOnlineBooking(tx, {
+    arenaId: arena.id, occurrenceId: parsed.data.occurrenceId, playerId: playerAuth.playerId,
   }));
-  if (!cancelled.count) throw new Error("Esta solicitação não pode mais ser cancelada.");
+  if (!cancelled.count) throw new Error("Esta solicitação não pode mais ser cancelada. Se você iniciou o pagamento, aguarde a confirmação ou o fim do prazo de 15 minutos.");
   refreshCalendar();
   revalidatePath(`/reservar/${arena.slug}`);
   revalidatePath(`/classificacao/${arena.slug}`);
