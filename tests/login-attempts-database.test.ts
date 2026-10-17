@@ -38,6 +38,12 @@ test("falhas paralelas de login são contadas e bloqueadas atomicamente", { skip
     const afterExpiry = await db.loginAttempt.findUniqueOrThrow({ where: { email: key } });
     assert.equal(afterExpiry.failedCount, 1);
     assert.equal(afterExpiry.lockedUntil, null);
+
+    await db.loginAttempt.update({ where: { email: key }, data: { failedCount: 4, updatedAt: new Date(Date.now() - 16 * 60_000) } });
+    assert.equal(await exports.recordFailedLogin(key), null);
+    const afterQuietPeriod = await db.loginAttempt.findUniqueOrThrow({ where: { email: key } });
+    assert.equal(afterQuietPeriod.failedCount, 1, "tentativas antigas não devem bloquear um login isolado");
+    assert.equal(afterQuietPeriod.lockedUntil, null);
     await exports.clearLoginFailures(key);
     assert.equal(await db.loginAttempt.count({ where: { email: key } }), 0);
   } finally {
