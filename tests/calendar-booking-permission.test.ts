@@ -93,6 +93,13 @@ test("converter evento em aula não cria registro se o evento não pertence à a
   assert.equal(createdLessons, 0);
   assert.equal(refreshes, 0);
 
+  const invalidForm = new FormData();
+  for (const [key, value] of Object.entries({ eventType: "EVENTO", title: "X", scheduledAt: "2026-10-20T10:00", durationMinutes: "60", notes: "" })) invalidForm.set(key, value);
+  const invalidResult = await exports.createCalendarEventAction(invalidForm) as { error?: string };
+  assert.equal(invalidResult.error, "Informe um título com pelo menos 2 caracteres.");
+  assert.equal(createdLessons, 0);
+  assert.equal(refreshes, 0);
+
   const lessonForm = new FormData();
   for (const [key, value] of Object.entries({ sourceType: "lesson", lessonId: "own-lesson", calendarEventId: "", title: "Aula atualizada", scheduledAt: "2026-10-20T11:00", durationMinutes: "60", notes: "" })) lessonForm.set(key, value);
   await exports.updateCalendarEventAction(lessonForm);

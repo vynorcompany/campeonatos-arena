@@ -41,6 +41,14 @@ const calendarSchema = z.object({
   notes: z.string().trim().default("")
 });
 
+function calendarFormValidationMessage(issue: z.ZodIssue | undefined) {
+  if (issue?.path[0] === "title") return "Informe um título com pelo menos 2 caracteres.";
+  if (issue?.path[0] === "eventType") return "Selecione o tipo do evento.";
+  if (issue?.path[0] === "scheduledAt") return "Informe a data e a hora do evento.";
+  if (issue?.path[0] === "durationMinutes") return "Informe uma duração entre 15 e 720 minutos.";
+  return "Revise os dados do evento e tente novamente.";
+}
+
 const courtSchema = z.object({
   name: z.string().trim().min(2, "Informe o nome da quadra.")
 });
@@ -697,10 +705,12 @@ export async function createCalendarEventAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Dados invalidos.");
+    return { error: calendarFormValidationMessage(parsed.error.issues[0]) };
   }
 
-  const scheduledAt = parseScheduledAt(parsed.data.scheduledAt);
+  let scheduledAt: Date;
+  try { scheduledAt = parseScheduledAt(parsed.data.scheduledAt); }
+  catch { return { error: "Informe uma data e hora válidas." }; }
   const normalizedType = parsed.data.eventType.toUpperCase();
 
   if (normalizedType === "AULA") {
@@ -745,10 +755,12 @@ export async function updateCalendarEventAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Dados invalidos.");
+    return { error: calendarFormValidationMessage(parsed.error.issues[0]) };
   }
 
-  const scheduledAt = parseScheduledAt(parsed.data.scheduledAt);
+  let scheduledAt: Date;
+  try { scheduledAt = parseScheduledAt(parsed.data.scheduledAt); }
+  catch { return { error: "Informe uma data e hora válidas." }; }
   const normalizedType = parsed.data.eventType.toUpperCase();
 
   if (parsed.data.sourceType === "lesson") {

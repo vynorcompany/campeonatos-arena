@@ -1072,7 +1072,7 @@ async function main() {
         if (errorState?.error) break;
         await pause(200);
       }
-      if (!errorState?.open || !errorState.error || errorState.title !== "X" || errorState.overflow || errorState.left < -1 || errorState.right > errorState.width + 1 || errorState.bottom > errorState.height + 1) {
+      if (!errorState?.open || !errorState.error.includes("Informe um título com pelo menos 2 caracteres.") || errorState.title !== "X" || errorState.overflow || errorState.left < -1 || errorState.right > errorState.width + 1 || errorState.bottom > errorState.height + 1) {
         throw new Error(`${label}: erro de gravação fechou ou cortou o modal: ${JSON.stringify(errorState)}`);
       }
       const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
