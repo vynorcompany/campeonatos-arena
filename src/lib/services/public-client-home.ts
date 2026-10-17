@@ -34,7 +34,7 @@ export async function getPublicClientHome(arenaSlug: string, playerId: string) {
   const now = new Date();
   const arenaNow = instantToArenaWallClock(now);
   const reservationWhere = upcomingPlayerReservationsWhere(arena.id, playerId, now);
-  const [announcements, events, eventPosts, student, reservations, upcomingReservations, pairs, entries] = await withArenaTransaction(arena.id, (tx) => Promise.all([
+  const [announcements, events, eventPosts, student, reservations, upcomingReservations, pairs, entries, openComandas] = await withArenaTransaction(arena.id, (tx) => Promise.all([
     tx.portalAnnouncement.findMany({ where: { arenaId: arena.id, active: true, AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: arenaNow } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: arenaNow } }] }] }, orderBy: [{ pinned: "desc" }, { createdAt: "desc" }], take: 12, select: { id: true, title: true, message: true, pinned: true, linkUrl: true } }),
     tx.calendarEvent.findMany({ where: { arenaId: arena.id, featuredInPortal: true, scheduledAt: { gte: arenaNow } }, orderBy: { scheduledAt: "asc" }, take: 4, select: { id: true, title: true, notes: true, scheduledAt: true } }),
     tx.portalEventPost.findMany({ where: { arenaId: arena.id, active: true }, orderBy: [{ pinned: "desc" }, { createdAt: "desc" }], take: 6, select: { id: true, title: true, caption: true, imageUrl: true, linkUrl: true, pinned: true } }),
@@ -45,7 +45,8 @@ export async function getPublicClientHome(arenaSlug: string, playerId: string) {
     tx.financialEntry.findMany({ where: { arenaId: arena.id, status: { in: ["PENDING", "OVERDUE"] }, OR: [
       { playerId, type: "REVENUE" },
       { type: { in: ["REVENUE", "INCOME"] }, sale: { comanda: { playerId } } },
-    ] }, select: { id: true, description: true, amountCents: true, dueDate: true, status: true, onlinePaymentUrl: true, onlinePaymentPublishedAt: true, settlements: { select: { amountCents: true, interestCents: true } } } })
+    ] }, select: { id: true, description: true, amountCents: true, dueDate: true, status: true, onlinePaymentUrl: true, onlinePaymentPublishedAt: true, settlements: { select: { amountCents: true, interestCents: true } } } }),
+    tx.comanda.findMany({ where: { arenaId: arena.id, playerId, status: "OPEN", items: { some: {} } }, select: { items: { select: { totalCents: true } } } }),
   ]));
   const today = arenaToday(now);
   const deadline = portalReceivableDeadline(today);
@@ -54,13 +55,15 @@ export async function getPublicClientHome(arenaSlug: string, playerId: string) {
   const currentEntries = portalBalances.filter((entry) => entry.status === "OVERDUE" || Boolean(entry.dueDate && entry.dueDate <= today));
   const futureEntries = portalBalances.filter((entry) => entry.status !== "OVERDUE" && entry.dueDate && entry.dueDate > today && entry.dueDate <= deadline);
   const due = currentEntries.reduce((total, entry) => total + entry.outstandingCents, 0);
+  const openComandaTotal = openComandas.reduce((total, comanda) => total + comanda.items.reduce((itemTotal, item) => itemTotal + item.totalCents, 0), 0);
+  const hasOpenComanda = openComandas.length > 0;
   const future = futureEntries.reduce((total, entry) => total + entry.outstandingCents, 0);
   const overdue = currentEntries.some((entry) => entry.status === "OVERDUE" || (entry.dueDate && entry.dueDate < today));
   const dueSoon = futureEntries.some((entry) => getPortalDueUrgency(entry.dueDate, today, entry.status) === "soon");
   const charges = portalBalances.filter((entry) => entry.onlinePaymentUrl).map((entry) => ({ id: entry.id, description: entry.description, amount: money(entry.outstandingCents), dueDate: entry.dueDate ? new Intl.DateTimeFormat("pt-BR").format(entry.dueDate) : "Sem vencimento", paymentUrl: entry.onlinePaymentUrl, urgency: getPortalDueUrgency(entry.dueDate, today, entry.status) }));
   const monthlyClasses = student?.subscriptions[0]?.classesPerMonth ?? student?.remainingClasses ?? 0;
   const availableClasses = Math.min(student?.monthlyBalances[0]?.remainingClasses ?? monthlyClasses, monthlyClasses);
-  return { announcements, events: events.map((event) => ({ ...event, when: date(event.scheduledAt) })), eventPosts, charges, upcomingReservations: upcomingReservations.map((reservation) => ({ id: reservation.id, title: reservation.title, when: date(reservation.startsAt), courtName: reservation.occurrenceCourts.map((entry) => entry.court.name).join(" · ") || "Quadra a definir" })), summary: { financial: due ? `${money(due)} ${overdue ? "em atraso" : "em aberto"}` : "Em dia", futureFinancial: future ? `${money(future)} em lançamentos futuros` : null, financialStatus: overdue ? "overdue" : due ? "pending" : "active", mobileFinancialStatus: overdue ? "overdue" as const : due || dueSoon ? "soon" as const : "healthy" as const, mobileFinancialLabel: overdue ? "Pagamento em atraso" : due || dueSoon ? "Vence em até 3 dias" : "Tudo em dia", classes: availableClasses, reservations, leagues: pairs } };
+  return { announcements, events: events.map((event) => ({ ...event, when: date(event.scheduledAt) })), eventPosts, charges, upcomingReservations: upcomingReservations.map((reservation) => ({ id: reservation.id, title: reservation.title, when: date(reservation.startsAt), courtName: reservation.occurrenceCourts.map((entry) => entry.court.name).join(" · ") || "Quadra a definir" })), summary: { financial: overdue ? `${money(due)} em atraso` : due || hasOpenComanda ? `${money(due + openComandaTotal)} em aberto` : "Em dia", futureFinancial: future ? `${money(future)} em lançamentos futuros` : null, financialStatus: overdue ? "overdue" : due || hasOpenComanda ? "pending" : "active", mobileFinancialStatus: overdue ? "overdue" as const : due || hasOpenComanda || dueSoon ? "soon" as const : "healthy" as const, mobileFinancialLabel: overdue ? "Pagamento em atraso" : due ? "Pagamento em aberto" : hasOpenComanda ? "Comanda em aberto" : dueSoon ? "Vence em até 3 dias" : "Tudo em dia", classes: availableClasses, reservations, leagues: pairs } };
 }
 
 export async function getPublicClientFinance(arenaSlug: string, playerId: string) {
