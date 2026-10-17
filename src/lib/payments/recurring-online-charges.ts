@@ -9,6 +9,7 @@ import { claimFinancialOnlineCharge } from "@/lib/payments/financial-online-char
 import { recurringBoletoEntryWhere } from "@/lib/payments/recurring-charge-eligibility";
 
 const daysFromNow = 15;
+const issuanceConcurrency = 4;
 
 type ChargeAttempt = { created: boolean; skipped: boolean };
 
@@ -185,15 +186,19 @@ export async function issueRecurringOnlineCharges(now = new Date()) {
   for (const failure of failures) {
     console.error("Recurring boleto arena scan failed", failure);
   }
-  for (const entry of entries) {
-    try {
-      const result = await issueRecurringOnlineChargeForEntry(entry.arenaId, entry.id, now);
-      if (result.created) created += 1;
-      if (result.skipped) skipped += 1;
-    } catch (error) {
-      failed += 1;
-      console.error("Recurring boleto issuance failed", { arenaId: entry.arenaId, entryId: entry.id, error });
+  let nextEntry = 0;
+  await Promise.all(Array.from({ length: Math.min(issuanceConcurrency, entries.length) }, async () => {
+    while (nextEntry < entries.length) {
+      const entry = entries[nextEntry++];
+      try {
+        const result = await issueRecurringOnlineChargeForEntry(entry.arenaId, entry.id, now);
+        if (result.created) created += 1;
+        if (result.skipped) skipped += 1;
+      } catch (error) {
+        failed += 1;
+        console.error("Recurring boleto issuance failed", { arenaId: entry.arenaId, entryId: entry.id, error });
+      }
     }
-  }
+  }));
   return { scanned: entries.length, created, skipped, failed };
 }
