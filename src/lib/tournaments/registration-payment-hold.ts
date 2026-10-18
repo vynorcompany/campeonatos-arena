@@ -6,10 +6,22 @@ export function publicRegistrationPaymentExpiresAt(createdAt: Date) {
   return new Date(createdAt.getTime() + PUBLIC_REGISTRATION_PAYMENT_HOLD_MINUTES * 60_000);
 }
 
-// Mercado Pago requires at least 30 minutes of Pix validity when the request
-// reaches it, including when payment starts near the end of the one-hour hold.
+// The Pix and the reserved slot must have the same deadline. Payment creation
+// starts immediately after the registration transaction, leaving well over
+// Mercado Pago's 30-minute minimum validity within the one-hour hold.
 export function publicRegistrationPixExpiresAt(createdAt: Date) {
-  return new Date(createdAt.getTime() + (PUBLIC_REGISTRATION_PAYMENT_HOLD_MINUTES + 35) * 60_000);
+  return publicRegistrationPaymentExpiresAt(createdAt);
+}
+
+export function publicRegistrationApprovalAfterHold(
+  holdExpiresAt: Date | null,
+  providerApprovedAt: unknown,
+  observedAt = new Date(),
+) {
+  if (!holdExpiresAt) return false; // Legacy registrations did not reserve a timed slot.
+  const parsed = typeof providerApprovedAt === "string" ? new Date(providerApprovedAt) : null;
+  const approvedAt = parsed && !Number.isNaN(parsed.getTime()) ? parsed : observedAt;
+  return approvedAt >= holdExpiresAt;
 }
 
 /** Release only unpaid, timed-out registrations; paid or review records remain untouched. */

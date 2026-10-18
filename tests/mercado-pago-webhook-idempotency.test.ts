@@ -7,6 +7,7 @@ import test from "node:test";
 import ts from "typescript";
 import { Prisma, PrismaClient } from "@prisma/client";
 import { verifyApprovedMercadoPagoPayment } from "../src/lib/payments/verified-payment";
+import { publicRegistrationApprovalAfterHold } from "../src/lib/tournaments/registration-payment-hold";
 
 const require = createRequire(import.meta.url);
 const source = readFileSync(new URL("../src/app/api/payments/mercado-pago/webhook/route.ts", import.meta.url), "utf8");
@@ -40,6 +41,7 @@ function loadWebhook(prisma: unknown, tx: unknown, getPayment: () => Promise<unk
       if (name === "@/lib/env") return { env: {} };
       if (name === "@/lib/payments/mercado-pago-webhook-signature") return { verifyMercadoPagoWebhookSignature: () => true };
       if (name === "@/lib/payments/verified-payment") return { verifyApprovedMercadoPagoPayment };
+      if (name === "@/lib/tournaments/registration-payment-hold") return { publicRegistrationApprovalAfterHold };
       if (name === "@/lib/integrations/evolution/client") return { sendEvolutionTextMessage: async () => ({}) };
       return require(name);
     },
@@ -175,6 +177,29 @@ test("pagamento que chega após falha da API permanece cancelado e vai para revi
     onlinePaymentCheckout: { findFirst: async () => null },
   };
   const webhook = loadWebhook(prisma, tx, async () => ({ id: "synthetic-payment", status: "approved", currency_id: "BRL", transaction_amount: 5, external_reference: registration.id }), async () => { pairCalls += 1; });
+  const hinted = new Request("https://example.test/api/payments/mercado-pago/webhook?arenaId=arena-a", { method: "POST", body: JSON.stringify({ data: { id: "synthetic-payment" } }) });
+  assert.equal((await webhook(hinted)).status, 200);
+  assert.equal(current.status, "CANCELED");
+  assert.equal(current.paymentStatus, "REVIEW");
+  assert.equal(alerts, 1);
+  assert.equal(pairCalls, 0);
+});
+
+test("pagamento aprovado depois do prazo não confirma uma vaga expirada", async () => {
+  const current = { paymentStatus: "PENDING", status: "PENDING_PAYMENT", mercadoPagoPaymentId: "synthetic-payment", paymentProvider: "MERCADO_PAGO", amountCents: 500, holdExpiresAt: new Date("2035-01-02T13:00:00Z") };
+  const registration = { id: "registration-expired", tournament: { id: "tournament-a", arenaId: "arena-a" }, leadName: "Atleta Um", partnerName: "Atleta Dois" };
+  let pairCalls = 0;
+  let alerts = 0;
+  const tx = {
+    $queryRaw: async () => [{ id: registration.id }],
+    publicTournamentRegistration: { findFirst: async () => current, update: async ({ data }: { data: Record<string, unknown> }) => Object.assign(current, data) },
+    arenaNotification: { create: async () => { alerts += 1; } },
+  };
+  const prisma = {
+    publicTournamentRegistration: { findFirst: async ({ where }: { where: { id?: string } }) => where.id === registration.id ? registration : null },
+    onlinePaymentCheckout: { findFirst: async () => null },
+  };
+  const webhook = loadWebhook(prisma, tx, async () => ({ id: "synthetic-payment", status: "approved", date_approved: "2035-01-02T13:01:00Z", currency_id: "BRL", transaction_amount: 5, external_reference: registration.id }), async () => { pairCalls += 1; });
   const hinted = new Request("https://example.test/api/payments/mercado-pago/webhook?arenaId=arena-a", { method: "POST", body: JSON.stringify({ data: { id: "synthetic-payment" } }) });
   assert.equal((await webhook(hinted)).status, 200);
   assert.equal(current.status, "CANCELED");

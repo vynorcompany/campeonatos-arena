@@ -11,6 +11,7 @@ import { env } from "@/lib/env";
 import { verifyMercadoPagoWebhookSignature } from "@/lib/payments/mercado-pago-webhook-signature";
 import { verifyApprovedMercadoPagoPayment } from "@/lib/payments/verified-payment";
 import { sendEvolutionTextMessage } from "@/lib/integrations/evolution/client";
+import { publicRegistrationApprovalAfterHold } from "@/lib/tournaments/registration-payment-hold";
 
 export async function POST(request: Request) {
   try {
@@ -323,7 +324,7 @@ export async function POST(request: Request) {
     const approved = payment.status === "approved";
     await withArenaTransaction(registration.tournament.arenaId, async (tx) => {
       await tx.$queryRaw`SELECT "id" FROM "PublicTournamentRegistration" WHERE "id" = ${registration.id} AND "tournamentId" = ${registration.tournament.id} FOR UPDATE`;
-      const current = await tx.publicTournamentRegistration.findFirst({ where: { id: registration.id, tournamentId: registration.tournament.id }, select: { paymentStatus: true, status: true, amountCents: true, mercadoPagoPaymentId: true, paymentProvider: true, paymentReference: true, paymentQrCode: true, paymentCheckoutUrl: true } });
+      const current = await tx.publicTournamentRegistration.findFirst({ where: { id: registration.id, tournamentId: registration.tournament.id }, select: { paymentStatus: true, status: true, amountCents: true, holdExpiresAt: true, mercadoPagoPaymentId: true, paymentProvider: true, paymentReference: true, paymentQrCode: true, paymentCheckoutUrl: true } });
       const legacyCheckoutPreference = current?.paymentStatus === "PENDING"
         && current.paymentProvider === "MERCADO_PAGO"
         && current.paymentReference === current.mercadoPagoPaymentId
@@ -350,6 +351,14 @@ export async function POST(request: Request) {
           await tx.publicTournamentRegistration.update({ where: { id: registration.id }, data: { paymentStatus: "REVIEW", mercadoPagoPaymentId: String(payment.id ?? paymentId), paymentReference: String(payment.id ?? paymentId) } });
           await tx.arenaNotification.create({ data: { arenaId: registration.tournament.arenaId, type: "ONLINE_PAYMENT_REVIEW", title: "Pagamento recebido após cancelamento", message: `O pagamento ${String(payment.id ?? paymentId)} chegou após o cancelamento da inscrição ${registration.id}. A dupla não foi confirmada; confira o estorno no Mercado Pago.`, href: "/relatorios/pagamentos-online" } });
         }
+        return;
+      }
+      if (approved && publicRegistrationApprovalAfterHold(current.holdExpiresAt, payment.date_approved)) {
+        await tx.publicTournamentRegistration.update({
+          where: { id: registration.id },
+          data: { status: "CANCELED", paymentStatus: "REVIEW", mercadoPagoPaymentId: String(payment.id ?? paymentId), paymentReference: String(payment.id ?? paymentId) }
+        });
+        await tx.arenaNotification.create({ data: { arenaId: registration.tournament.arenaId, type: "ONLINE_PAYMENT_REVIEW", title: "Pagamento após o prazo da inscrição", message: `O pagamento ${String(payment.id ?? paymentId)} foi aprovado após o prazo da inscrição ${registration.id}. A dupla não foi confirmada; confira a cobrança e o estorno no Mercado Pago.`, href: `/torneios/${registration.tournament.id}/inscricoes` } });
         return;
       }
       if (approved) {

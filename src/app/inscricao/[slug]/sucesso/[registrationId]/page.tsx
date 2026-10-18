@@ -19,21 +19,27 @@ export default async function RegistrationSuccessPage(props: { params: Promise<{
   const confirmed = registration.status === "CONFIRMED" || registration.paymentStatus === "PAID";
   const needsReview = registration.paymentStatus === "REVIEW";
   const canceled = registration.status === "CANCELED" || registration.paymentStatus === "REFUNDED";
+  const expired = !confirmed && !needsReview && !canceled && Boolean(registration.holdExpiresAt && registration.holdExpiresAt <= new Date());
 
   return <main className={viewStyles.public_reg_success_page}>
     <section className={viewStyles.public_reg_success_card}>
-      <p className={viewStyles.eyebrow}>{canceled ? "INSCRIÇÃO CANCELADA" : confirmed ? "INSCRIÇÃO CONCLUÍDA" : needsReview ? "PAGAMENTO EM ANÁLISE" : "PAGAMENTO PENDENTE"}</p>
-      <h1>{canceled ? "Esta inscrição foi cancelada" : confirmed ? "Inscrição concluída com sucesso!" : needsReview ? "Estamos conferindo seu pagamento" : "Sua vaga está aguardando pagamento"}</h1>
-      <p>{canceled ? "O pagamento anterior foi estornado ou cancelado. Para participar, faça uma nova inscrição." : confirmed ? "A dupla já está confirmada no torneio." : needsReview ? "A arena verificará o pagamento antes de confirmar a inscrição. Não faça outro pagamento agora." : "Conclua o pagamento para confirmar automaticamente a inscrição da dupla."}</p>
+      <p className={viewStyles.eyebrow}>{confirmed ? "INSCRIÇÃO CONCLUÍDA" : needsReview ? "PAGAMENTO EM ANÁLISE" : canceled ? "INSCRIÇÃO CANCELADA" : expired ? "PRAZO ENCERRADO" : "PAGAMENTO PENDENTE"}</p>
+      <h1>{confirmed ? "Inscrição concluída com sucesso!" : needsReview ? "Estamos conferindo seu pagamento" : canceled ? "Esta inscrição foi cancelada" : expired ? "O prazo desta vaga terminou" : "Sua vaga está aguardando pagamento"}</h1>
+      <p>{confirmed ? "A dupla já está confirmada no torneio." : needsReview ? "A arena verificará o pagamento antes de confirmar a inscrição. Não faça outro pagamento agora." : canceled ? "O pagamento anterior foi estornado ou cancelado. Para participar, faça uma nova inscrição." : expired ? "Não pague esta cobrança. Faça uma nova inscrição se ainda houver vagas; pagamentos tardios exigem conferência pela arena." : "Conclua o pagamento para confirmar automaticamente a inscrição da dupla."}</p>
       <div className={viewStyles.public_reg_success_summary}>
         <div><span>Torneio</span><strong>{registration.tournament.name}</strong></div>
         <div><span>Categoria</span><strong>{registration.category.name}</strong></div>
         <div><span>Dupla</span><strong>{registration.leadName} / {registration.partnerName}</strong></div>
         <div><span>Valor</span><strong>{money.format(registration.amountCents / 100)}</strong></div>
         {registration.discountCents ? <div><span>Desconto aplicado</span><strong>{money.format(registration.discountCents / 100)}</strong></div> : null}
-        <div><span>Status</span><strong className={cx(confirmed ? viewStyles.status_confirmed : viewStyles.status_pending)}>{canceled ? "Cancelada após estorno" : confirmed ? "Confirmada" : needsReview ? "Em análise" : "Pagamento pendente"}</strong></div>
+        <div><span>Status</span><strong className={cx(confirmed ? viewStyles.status_confirmed : canceled || expired ? viewStyles.status_expired : viewStyles.status_pending)}>{confirmed ? "Confirmada" : needsReview ? "Em análise" : canceled ? "Cancelada" : expired ? "Prazo encerrado" : "Pagamento pendente"}</strong></div>
       </div>
-      {!canceled && !confirmed && !needsReview && registration.paymentCheckoutUrl ? <a className={viewStyles.button_button_primary} href={registration.paymentCheckoutUrl} target="_blank" rel="noreferrer">Pagar agora</a> : null}
+      {!canceled && !confirmed && !needsReview && !expired && (registration.paymentQrCodeBase64 || registration.paymentQrCode) ? <div className={viewStyles.pix_payment}>
+        <strong>Pague com Pix</strong>
+        {registration.paymentQrCodeBase64 ? <img src={`data:image/png;base64,${registration.paymentQrCodeBase64}`} alt="QR Code para pagamento da inscrição por Pix" /> : null}
+        {registration.paymentQrCode ? <div><span>Pix copia e cola</span><code>{registration.paymentQrCode}</code></div> : null}
+      </div> : null}
+      {!canceled && !confirmed && !needsReview && !expired && registration.paymentCheckoutUrl ? <a className={viewStyles.button_button_primary} href={registration.paymentCheckoutUrl} target="_blank" rel="noreferrer">Pagar agora</a> : null}
       <Link className={viewStyles.button} href={`/inscricao/${params.slug}`}>Voltar para o torneio</Link>
     </section>
   </main>;

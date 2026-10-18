@@ -29,6 +29,8 @@ export const viewStyles = {
     "tw:[&_div]:gap-y-[5px]", "tw:[&_div]:gap-x-[5px]", "tw:[&_div]:pt-[15px]", "tw:[&_div]:pr-[15px]",
     "tw:[&_div]:pb-[15px]", "tw:[&_div]:pl-[15px]", "tw:[&_div]:bg-[color:rgba(7,_48,_64,_.97)]", "tw:[&_div]:[background-image:none]",
     "tw:[&_span]:text-[color:#9fc2d1]", "tw:[&_span]:text-[.78rem]", "tw:[&_strong]:text-[color:#fff]",
+    "tw:[&>div:last-child:nth-child(odd)]:col-span-2", "tw:viewport-760:[&>div:last-child:nth-child(odd)]:col-span-1",
+    "tw:[&_strong.status-confirmed]:text-[#087a46]", "tw:[&_strong.status-pending]:text-[#996200]", "tw:[&_strong.status-expired]:text-[#a3261d]",
   ].join(" "),
   "status_confirmed": [
     "status-confirmed", "tw:inline-flex", "tw:w-[fit-content]", "tw:pt-[5px]",
@@ -41,6 +43,18 @@ export const viewStyles = {
     "tw:pr-[9px]", "tw:pb-[5px]", "tw:pl-[9px]", "tw:rounded-[999px]",
     "tw:text-[.78rem]", "tw:font-[800]", "tw:text-[color:#996200]", "tw:bg-[color:#fff3db]",
     "tw:[background-image:none]",
+  ].join(" "),
+  "status_expired": [
+    "status-expired", "tw:inline-flex", "tw:w-fit", "tw:rounded-full", "tw:px-[9px]", "tw:py-[5px]",
+    "tw:text-[.78rem]", "tw:font-extrabold", "tw:text-[#a3261d]", "tw:bg-[#ffebe9]",
+  ].join(" "),
+  "pix_payment": [
+    "tw:mb-[20px]", "tw:grid", "tw:justify-items-start", "tw:gap-[12px]", "tw:rounded-[12px]",
+    "tw:border", "tw:border-[#2f6e83]", "tw:bg-[#073040]", "tw:p-[16px]",
+    "tw:[&_img]:w-[min(100%,_200px)]", "tw:[&_img]:rounded-[8px]",
+    "tw:[&_div]:grid", "tw:[&_div]:min-w-0", "tw:[&_div]:gap-[6px]",
+    "tw:[&_span]:text-[.78rem]", "tw:[&_span]:text-[#9fc2d1]",
+    "tw:[&_code]:max-w-full", "tw:[&_code]:break-all", "tw:[&_code]:text-[.8rem]", "tw:[&_code]:text-white",
   ].join(" "),
   "button_button_primary": sharedUtilities.buttonButtonPrimary,
   "button": sharedUtilities.button,
