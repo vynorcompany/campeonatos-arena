@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { spawn } from "node:child_process";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import sharp from "sharp";
 
@@ -833,6 +833,39 @@ async function main() {
       throw new Error("O portal não exibiu o pedido pendente ou criou uma segunda solicitação.");
     }
     console.log("Pedido real de vaga fictícia registrado uma vez na arena correta e exibido como pendente no portal.");
+
+    const publicTournament = await db.tournament.create({ data: {
+      arenaId: arenaA.id, name: "Torneio público GOAL", publicSlug: `goal-public-${randomUUID()}`,
+    } });
+    const publicCategory = await db.tournamentCategory.create({ data: { tournamentId: publicTournament.id, name: "Categoria GOAL", level: 1 } });
+    const registrationData = (order, status, paymentStatus, holdExpiresAt) => ({
+      tournamentId: publicTournament.id, categoryId: publicCategory.id, registrationOrder: order,
+      leadName: `Atleta GOAL ${order}`, leadPhone: "559999999999", leadCpf: `1111111111${order}`,
+      leadBirthDate: new Date("1990-01-01"), partnerName: "Parceiro GOAL", partnerPhone: "558888888888",
+      partnerCpf: `2222222222${order}`, partnerBirthDate: new Date("1991-01-01"), amountCents: 500,
+      status, paymentStatus, holdExpiresAt, paymentCheckoutUrl: "https://checkout.example.test/payment",
+    });
+    const activeRegistration = await db.publicTournamentRegistration.create({ data: registrationData(1, "PENDING_PAYMENT", "PENDING", new Date(Date.now() + 60 * 60_000)) });
+    const expiredRegistration = await db.publicTournamentRegistration.create({ data: registrationData(2, "PENDING_PAYMENT", "PENDING", new Date(Date.now() - 60_000)) });
+    const reviewRegistration = await db.publicTournamentRegistration.create({ data: registrationData(3, "CANCELED", "REVIEW", new Date(Date.now() - 60_000)) });
+    const pixRegistration = await db.publicTournamentRegistration.create({ data: {
+      ...registrationData(4, "PENDING_PAYMENT", "PENDING", new Date(Date.now() + 60 * 60_000)),
+      paymentCheckoutUrl: "", paymentQrCode: "PIX-GOAL-COPIA-E-COLA-1234567890",
+    } });
+    for (const viewport of viewports) {
+      for (const [state, registration, expectedText, hasPayButton, hasPixCode] of [
+        ["active", activeRegistration, "Sua vaga está aguardando pagamento", true, false],
+        ["expired", expiredRegistration, "O prazo desta vaga terminou", false, false],
+        ["review", reviewRegistration, "Estamos conferindo seu pagamento", false, false],
+        ["pix", pixRegistration, "Sua vaga está aguardando pagamento", false, true],
+      ]) {
+        const body = await visit(`/inscricao/${publicTournament.publicSlug}/sucesso/${registration.id}`, viewport, arenaA.id, `${viewport.name}-public-registration-${state}`);
+        if (!body.includes(expectedText) || body.includes("Pagar agora") !== hasPayButton || body.includes("PIX-GOAL-COPIA-E-COLA-1234567890") !== hasPixCode) {
+          throw new Error(`${viewport.name}: estado ${state} da inscrição pública não corresponde ao prazo ou à revisão.`);
+        }
+      }
+    }
+    console.log("Inscrições públicas ativa, expirada, em revisão e Pix sem link renderizadas no desktop e celular.");
 
     const ranking = await db.rankingProfile.create({ data: {
       arenaId: arenaA.id, name: "Ranking GOAL Visual", type: "PAIR", model: "LEAGUE",

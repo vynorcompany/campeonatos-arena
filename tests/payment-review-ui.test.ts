@@ -11,7 +11,11 @@ test("inscrição em revisão não oferece novo pagamento e mostra o motivo da e
   assert.match(page, /where: \{ id: params\.registrationId, tournamentId: tournament\.id \}/);
   assert.match(page, /registration\.paymentStatus === "REVIEW"/);
   assert.match(page, /Não faça outro pagamento agora/);
-  assert.match(page, /!canceled && !confirmed && !needsReview && registration\.paymentCheckoutUrl/);
+  assert.match(page, /!canceled && !confirmed && !needsReview && !expired && registration\.paymentCheckoutUrl/);
+  assert.match(page, /registration\.holdExpiresAt && registration\.holdExpiresAt <= new Date\(\)/);
+  assert.match(page, /Não pague esta cobrança/);
+  assert.match(page, /registration\.paymentQrCodeBase64 \|\| registration\.paymentQrCode/);
+  assert.match(page, /Pix copia e cola/);
   assert.match(page, /registration\.status === "CANCELED" \|\| registration\.paymentStatus === "REFUNDED"/);
   const form = read("src/components/forms/tournament-participants-form.tsx");
   assert.match(form, /paymentLocked = registration\.paymentStatus === "REVIEW" \|\| registration\.paymentStatus === "REFUNDED"/);
