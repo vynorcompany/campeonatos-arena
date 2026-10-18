@@ -247,6 +247,8 @@ async function main() {
       if (!comanda.includes("Comanda GOAL") || !comanda.includes("Produto GOAL")) throw new Error(`${viewport.name}: detalhe da comanda fictícia incompleto.`);
       const product = await visit(`/pdv/${detailProduct.id}`, viewport, arenaA.id, `${viewport.name}-produto-detalhe`);
       if (!product.includes("Produto GOAL") || !product.includes("Ajuste de estoque")) throw new Error(`${viewport.name}: detalhe do produto fictício incompleto.`);
+      const productBreadcrumb = await send("Runtime.evaluate", { expression: "document.querySelector('.workspace-page-breadcrumb strong')?.textContent?.trim() ?? ''", returnByValue: true });
+      if (productBreadcrumb.result.value !== "Produto") throw new Error(`${viewport.name}: breadcrumb do produto exibe ID técnico ou rota incorreta: ${productBreadcrumb.result.value}`);
     }
     for (const [path, ownName] of [["/comandas/goal-fixture-comanda", "Comanda GOAL"], [`/pdv/${detailProduct.id}`, "Produto GOAL"]]) {
       const response = await fetch(`${baseUrl}${path}`, { headers: { Cookie: cookie(arenaB.id) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });

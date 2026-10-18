@@ -19,6 +19,15 @@ const financeNames: Record<string, string> = {
   "configuracoes": "Configurações financeiras",
 };
 
+const pdvNames: Record<string, string> = {
+  "": "Produtos e Serviços",
+  "novo": "Novo produto",
+  "servicos": "Serviços",
+  "vendas": "Vendas",
+  "estoque": "Estoque",
+  "balanco": "Criar balanço",
+};
+
 function readable(value: string) {
   return value.replaceAll("-", " ").replace(/\b\p{L}/gu, (letter) => letter.toLocaleUpperCase("pt-BR"));
 }
@@ -32,7 +41,7 @@ export function WorkspaceBreadcrumb() {
   if (path.startsWith("/jogos")) return <PageBreadcrumb section="Torneios" current="Eventos ativos" />;
   if (path.startsWith("/financeiro")) return <PageBreadcrumb section="Gestão" current={financeNames[parts[1] ?? ""] ?? readable(parts.at(-1) ?? "Financeiro")} />;
   if (path === "/pdv/caixa") return <PageBreadcrumb section="Gestão" current="Caixa" />;
-  if (path.startsWith("/pdv")) return <PageBreadcrumb section="Financeiro" current={path === "/pdv" ? "Produtos e Serviços" : parts[1] === "balanco" ? "Criar balanço" : parts[1] === "novo" ? "Novo Produto" : readable(parts.at(-1) ?? "Estoque")} />;
+  if (path.startsWith("/pdv")) return <PageBreadcrumb section="Financeiro" current={pdvNames[parts[1] ?? ""] ?? "Produto"} />;
   if (path.startsWith("/relatorios")) return <PageBreadcrumb section="Gestão" current={parts[1] ? readable(parts[1]) : "Relatórios"} />;
   return null;
 }
