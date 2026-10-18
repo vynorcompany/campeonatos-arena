@@ -52,6 +52,15 @@ export const viewStyles = {
     "tw:[&_svg]:w-[20px]", "tw:[&_svg]:h-[20px]", "tw:[&_svg]:[fill:none]", "tw:[&_svg]:[stroke:#91bbcb]",
     "tw:[&_svg]:[stroke-width:1.9]", "tw:[&_svg]:[stroke-linecap:round]", "tw:[&_svg]:[stroke-linejoin:round]",
   ].join(" "),
+  "public_booking_payment_deadline": [
+    "tw:mb-[14px]", "tw:rounded-[10px]", "tw:border", "tw:border-[#2f817c]",
+    "tw:bg-[#0b4145]", "tw:px-[14px]", "tw:py-[10px]", "tw:text-[.88rem]",
+    "tw:font-semibold", "tw:text-[#c9f6e6]",
+  ].join(" "),
+  "public_booking_payment_return": [
+    "tw:inline-flex", "tw:min-h-11", "tw:items-center", "tw:rounded-xl", "tw:bg-[#49e4b1]",
+    "tw:px-5", "tw:font-semibold", "tw:text-[#082b3a]!", "tw:no-underline",
+  ].join(" "),
   "public_booking_payment_note": [
     "public-booking-payment-note", "tw:mt-[19px]", "tw:mr-[0]", "tw:mb-[0]",
     "tw:ml-[0]", "tw:text-[color:#a7c0cd]", "tw:leading-[1.5]", "tw:text-[.8rem]",

@@ -800,6 +800,54 @@ async function main() {
     }
     console.log("Portal do Atleta validado em desktop, celular claro/escuro e sem dados financeiros de outra arena.");
 
+    const bookingCourt = await db.court.findFirstOrThrow({ where: { arenaId: arenaA.id }, select: { id: true } });
+    const bookingPlayer = await db.player.findFirstOrThrow({ where: { id: "goal-athlete-a", arenaId: arenaA.id }, select: { id: true } });
+    const bookingStartsAt = new Date(Date.now() + 4 * 24 * 60 * 60_000);
+    const bookingFixture = (createdAt) => ({
+      arenaId: arenaA.id, sourceType: "ONLINE_BOOKING", title: "Reserva online GOAL",
+      status: "PENDING_PAYMENT", createdAt, startsAt: bookingStartsAt,
+      endsAt: new Date(bookingStartsAt.getTime() + 60 * 60_000),
+      occurrenceCourts: { create: { courtId: bookingCourt.id } },
+      participants: { create: { playerId: bookingPlayer.id, amountCents: 5000 } },
+    });
+    const activeBooking = await db.scheduleOccurrence.create({ data: bookingFixture(new Date(Date.now() - 10 * 60_000)) });
+    const visitBookingPayment = async (booking, viewport, label) => {
+      const path = `/reservar/arena-teste-goal/pagamento/${booking.id}`;
+      const response = await fetch(`${baseUrl}${path}`, { headers: { Cookie: portalCookie }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
+      await response.body?.cancel();
+      if (response.status !== 200) throw new Error(`${label}: HTTP ${response.status} na página da reserva.`);
+      await send("Emulation.setDeviceMetricsOverride", { width: viewport.width, height: viewport.height, deviceScaleFactor: 1, mobile: viewport.name !== "desktop" });
+      await send("Network.setCookie", { name: "arena_player_session", value: athleteToken, url: baseUrl, httpOnly: true, sameSite: "Lax" });
+      await send("Page.navigate", { url: `${baseUrl}${path}` });
+      let state;
+      for (let attempt = 0; attempt < 60; attempt += 1) {
+        const result = await send("Runtime.evaluate", { expression: "({path:location.pathname,body:document.body?.innerText ?? '',width:innerWidth,scrollWidth:document.documentElement.scrollWidth,buttons:[...document.querySelectorAll('.public-booking-payment-options button')].length})", returnByValue: true });
+        state = result.result.value;
+        if (state.path === path && state.buttons === 3 && state.body.includes("Tempo restante para pagar:")) break;
+        await pause(200);
+      }
+      if (state.path !== path || state.buttons !== 3 || !state.body.includes("Tempo restante para pagar:") || state.scrollWidth > state.width + 1) {
+        throw new Error(`${label}: formas de pagamento, prazo ou layout da reserva inválidos: ${JSON.stringify(state)}`);
+      }
+      const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+      await writeFile(`${outputDir}/${label}.png`, Buffer.from(shot.data, "base64"));
+    };
+    for (const viewport of viewports) await visitBookingPayment(activeBooking, viewport, `${viewport.name}-public-booking-payment-active`);
+    const expiringBooking = await db.scheduleOccurrence.create({ data: bookingFixture(new Date(Date.now() - 14 * 60_000 - 35_000)) });
+    await visitBookingPayment(expiringBooking, viewports[0], "desktop-public-booking-payment-expiring");
+    await pause(25_000);
+    let expiredBookingState;
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      const result = await send("Runtime.evaluate", { expression: "({body:document.body?.innerText ?? '',buttons:[...document.querySelectorAll('.public-booking-payment-options button')].length})", returnByValue: true });
+      expiredBookingState = result.result.value;
+      if (expiredBookingState.body.includes("Reserva indisponível")) break;
+      await pause(300);
+    }
+    if (!expiredBookingState.body.includes("Reserva indisponível") || expiredBookingState.buttons !== 0) {
+      throw new Error(`A reserva aberta não bloqueou as formas de pagamento após 15 minutos: ${JSON.stringify(expiredBookingState)}`);
+    }
+    console.log("Pagamento de reserva fictícia validado em desktop/celular e após o fim do prazo sem recarregar a aba.");
+
     await send("Emulation.setDeviceMetricsOverride", { width: viewports[1].width, height: viewports[1].height, deviceScaleFactor: 1, mobile: true });
     await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: "light" }] });
     await send("Network.setCookie", { name: "arena_player_session", value: athleteToken, url: baseUrl, httpOnly: true, sameSite: "Lax" });
