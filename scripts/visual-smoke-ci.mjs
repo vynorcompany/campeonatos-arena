@@ -880,6 +880,26 @@ async function main() {
       }
     }
     console.log("Inscrições públicas ativa, expirada, em revisão e Pix sem link renderizadas no desktop e celular.");
+    const expiringRegistration = await db.publicTournamentRegistration.create({ data: registrationData(5, "PENDING_PAYMENT", "PENDING", new Date(Date.now() + 25_000)) });
+    const expiringPath = `/inscricao/${publicTournament.publicSlug}/sucesso/${expiringRegistration.id}`;
+    const beforeExpiry = await visit(expiringPath, viewports[0], arenaA.id, "desktop-public-registration-expiring");
+    if (!beforeExpiry.includes("Pagar agora") || !beforeExpiry.includes("Tempo restante para pagar:")) {
+      throw new Error("A inscrição prestes a expirar não mostrou cobrança e tempo restante antes do prazo.");
+    }
+    await pause(25_000);
+    let afterExpiry;
+    for (let attempt = 0; attempt < 15; attempt += 1) {
+      afterExpiry = await send("Runtime.evaluate", {
+        expression: "({body:document.body.innerText,payVisible:[...document.querySelectorAll('a')].some(link=>link.textContent?.trim()==='Pagar agora'),status:document.querySelector('.public-reg-success-summary strong[class*=status-]')?.textContent?.trim() ?? ''})",
+        returnByValue: true,
+      });
+      if (afterExpiry.result.value.status === "Prazo encerrado") break;
+      await pause(300);
+    }
+    if (afterExpiry.result.value.payVisible || !afterExpiry.result.value.body.includes("O prazo desta vaga terminou") || afterExpiry.result.value.status !== "Prazo encerrado") {
+      throw new Error(`A inscrição aberta não atualizou o estado após vencer: ${JSON.stringify({ payVisible: afterExpiry.result.value.payVisible, status: afterExpiry.result.value.status })}`);
+    }
+    console.log("Inscrição aberta no navegador expirou sem manter link de pagamento ou status pendente.");
 
     const ranking = await db.rankingProfile.create({ data: {
       arenaId: arenaA.id, name: "Ranking GOAL Visual", type: "PAIR", model: "LEAGUE",
