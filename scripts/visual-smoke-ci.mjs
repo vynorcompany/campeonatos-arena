@@ -863,12 +863,18 @@ async function main() {
         if (!body.includes(expectedText) || body.includes("Pagar agora") !== hasPayButton || body.includes("PIX-GOAL-COPIA-E-COLA-1234567890") !== hasPixCode) {
           throw new Error(`${viewport.name}: estado ${state} da inscrição pública não corresponde ao prazo ou à revisão.`);
         }
+        if (["active", "pix"].includes(state) && (!body.includes("Tempo restante para pagar:") || !body.includes("Atualizar situação"))) {
+          throw new Error(`${viewport.name}: inscrição ${state} sem prazo visível ou atualização manual do status.`);
+        }
+        if (state === "pix" && !body.includes("Copiar código Pix")) {
+          throw new Error(`${viewport.name}: inscrição Pix sem ação de copiar o código.`);
+        }
         const summary = await send("Runtime.evaluate", {
-          expression: "(() => { const grid = document.querySelector('.public-reg-success-summary'); const cells = [...(grid?.children ?? [])]; const badge = grid?.querySelector('strong[class*=status-]'); return { badgeColor: badge ? getComputedStyle(badge).color : null, gridWidth: grid?.getBoundingClientRect().width ?? 0, lastWidth: cells.at(-1)?.getBoundingClientRect().width ?? 0 }; })()",
+          expression: "(() => { const grid = document.querySelector('.public-reg-success-summary'); const cells = [...(grid?.children ?? [])]; const badge = grid?.querySelector('strong[class*=status-]'); return { badgeColor: badge ? getComputedStyle(badge).color : null, gridWidth: grid?.getBoundingClientRect().width ?? 0, lastWidth: cells.at(-1)?.getBoundingClientRect().width ?? 0, overflow: document.documentElement.scrollWidth - window.innerWidth }; })()",
           returnByValue: true,
         });
         const layout = summary.result.value;
-        if (!layout.badgeColor || layout.badgeColor === "rgb(255, 255, 255)" || (viewport.name === "desktop" && layout.gridWidth - layout.lastWidth > 4)) {
+        if (!layout.badgeColor || layout.badgeColor === "rgb(255, 255, 255)" || layout.overflow > 2 || (viewport.name === "desktop" && layout.gridWidth - layout.lastWidth > 4)) {
           throw new Error(`${viewport.name}: etiqueta ilegível ou última célula vazia na inscrição ${state}: ${JSON.stringify(layout)}`);
         }
       }

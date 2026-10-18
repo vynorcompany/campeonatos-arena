@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { arenaDatabase } from "@/lib/arena-database";
+import { RegistrationPaymentControls } from "./payment-controls";
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -34,12 +35,12 @@ export default async function RegistrationSuccessPage(props: { params: Promise<{
         {registration.discountCents ? <div><span>Desconto aplicado</span><strong>{money.format(registration.discountCents / 100)}</strong></div> : null}
         <div><span>Status</span><strong className={cx(confirmed ? viewStyles.status_confirmed : canceled || expired ? viewStyles.status_expired : viewStyles.status_pending)}>{confirmed ? "Confirmada" : needsReview ? "Em análise" : canceled ? "Cancelada" : expired ? "Prazo encerrado" : "Pagamento pendente"}</strong></div>
       </div>
-      {!canceled && !confirmed && !needsReview && !expired && (registration.paymentQrCodeBase64 || registration.paymentQrCode) ? <div className={viewStyles.pix_payment}>
-        <strong>Pague com Pix</strong>
-        {registration.paymentQrCodeBase64 ? <img src={`data:image/png;base64,${registration.paymentQrCodeBase64}`} alt="QR Code para pagamento da inscrição por Pix" /> : null}
-        {registration.paymentQrCode ? <div><span>Pix copia e cola</span><code>{registration.paymentQrCode}</code></div> : null}
-      </div> : null}
-      {!canceled && !confirmed && !needsReview && !expired && registration.paymentCheckoutUrl ? <a className={viewStyles.button_button_primary} href={registration.paymentCheckoutUrl} target="_blank" rel="noreferrer">Pagar agora</a> : null}
+      {!canceled && !confirmed && !needsReview && !expired ? <RegistrationPaymentControls
+        holdExpiresAt={registration.holdExpiresAt?.toISOString() ?? null}
+        checkoutUrl={registration.paymentCheckoutUrl}
+        qrCode={registration.paymentQrCode}
+        qrCodeBase64={registration.paymentQrCodeBase64}
+      /> : null}
       <Link className={viewStyles.button} href={`/inscricao/${params.slug}`}>Voltar para o torneio</Link>
     </section>
   </main>;

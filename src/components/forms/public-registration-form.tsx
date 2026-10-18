@@ -84,7 +84,7 @@ export function PublicRegistrationForm({
           </div>
           <div className={cx(`${viewStyles.public_reg_step} ${state?.success ? viewStyles.public_reg_step_active : ""}`)}>
             <span>3</span>
-            <div><strong>Confirmacao</strong><small>Inscricao confirmada automaticamente (modo teste)</small></div>
+            <div><strong>Confirmação</strong><small>Após a aprovação do pagamento, sua dupla é confirmada</small></div>
           </div>
         </div>
       </aside>
@@ -96,7 +96,7 @@ export function PublicRegistrationForm({
         <section className={viewStyles.public_reg_card}>
           <header className={viewStyles.public_reg_card_head}>
             <h3>Configuracao da inscricao</h3>
-            <p>Selecione a categoria e a forma de pagamento. A vaga será confirmada automaticamente após a aprovação.</p>
+            <p>Selecione a categoria e a forma de pagamento. Se houver cobrança, a vaga ficará reservada por 1 hora e será confirmada após a aprovação.</p>
           </header>
           <div className={viewStyles.public_reg_grid_public_reg_grid_2}>
             <div className={viewStyles.field}>
