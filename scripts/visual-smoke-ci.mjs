@@ -863,6 +863,14 @@ async function main() {
         if (!body.includes(expectedText) || body.includes("Pagar agora") !== hasPayButton || body.includes("PIX-GOAL-COPIA-E-COLA-1234567890") !== hasPixCode) {
           throw new Error(`${viewport.name}: estado ${state} da inscrição pública não corresponde ao prazo ou à revisão.`);
         }
+        const summary = await send("Runtime.evaluate", {
+          expression: "(() => { const grid = document.querySelector('.public-reg-success-summary'); const cells = [...(grid?.children ?? [])]; const badge = grid?.querySelector('strong[class*=status-]'); return { badgeColor: badge ? getComputedStyle(badge).color : null, gridWidth: grid?.getBoundingClientRect().width ?? 0, lastWidth: cells.at(-1)?.getBoundingClientRect().width ?? 0 }; })()",
+          returnByValue: true,
+        });
+        const layout = summary.result.value;
+        if (!layout.badgeColor || layout.badgeColor === "rgb(255, 255, 255)" || (viewport.name === "desktop" && layout.gridWidth - layout.lastWidth > 4)) {
+          throw new Error(`${viewport.name}: etiqueta ilegível ou última célula vazia na inscrição ${state}: ${JSON.stringify(layout)}`);
+        }
       }
     }
     console.log("Inscrições públicas ativa, expirada, em revisão e Pix sem link renderizadas no desktop e celular.");
