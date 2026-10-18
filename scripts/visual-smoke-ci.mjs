@@ -823,16 +823,16 @@ async function main() {
       for (let attempt = 0; attempt < 60; attempt += 1) {
         const result = await send("Runtime.evaluate", { expression: "({path:location.pathname,body:document.body?.innerText ?? '',width:innerWidth,scrollWidth:document.documentElement.scrollWidth,buttons:[...document.querySelectorAll('.public-booking-payment-options button')].length})", returnByValue: true });
         state = result.result.value;
-        if (state.path === path && state.buttons === 3 && state.body.includes("Tempo restante para pagar:")) break;
+        if (state.path === path && state.buttons === 3 && state.body.includes("Tempo para pagar:")) break;
         await pause(200);
       }
-      if (state.path !== path || state.buttons !== 3 || !state.body.includes("Tempo restante para pagar:") || state.scrollWidth > state.width + 1) {
+      if (state.path !== path || state.buttons !== 3 || !state.body.includes("Tempo para pagar:") || state.scrollWidth > state.width + 1) {
         throw new Error(`${label}: formas de pagamento, prazo ou layout da reserva inválidos: ${JSON.stringify(state)}`);
       }
       const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
       await writeFile(`${outputDir}/${label}.png`, Buffer.from(shot.data, "base64"));
     };
-    for (const viewport of viewports) await visitBookingPayment(activeBooking, viewport, `${viewport.name}-public-booking-payment-active`);
+    for (const viewport of [...viewports, { name: "mobile-320", width: 320, height: 700 }]) await visitBookingPayment(activeBooking, viewport, `${viewport.name}-public-booking-payment-active`);
     const expiringBooking = await db.scheduleOccurrence.create({ data: bookingFixture(new Date(Date.now() - 14 * 60_000 - 35_000)) });
     await visitBookingPayment(expiringBooking, viewports[0], "desktop-public-booking-payment-expiring");
     await pause(25_000);
