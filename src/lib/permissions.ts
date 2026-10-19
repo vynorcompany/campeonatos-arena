@@ -117,6 +117,11 @@ export function canEditModule(module: PermissionModule, role: string | null, sys
   return includesModulePermission(editPermissions, module);
 }
 
+export function canManageTournamentMatches(role: string | null, systemRole: string, viewPermissions: string[], editPermissions: string[]) {
+  return canViewModule("tournaments", role, systemRole, viewPermissions)
+    && canEditModule("matches", role, systemRole, editPermissions);
+}
+
 export function canManageWhatsApp(role: string | null, systemRole: string, editPermissions: string[]) {
   return systemRole === "SUPER_ADMIN" || systemRole === "ADMIN" || role === "OWNER"
     || editPermissions.includes("support") || editPermissions.includes("support:whatsapp:manage");

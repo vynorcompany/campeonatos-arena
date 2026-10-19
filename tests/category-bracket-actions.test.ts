@@ -14,7 +14,7 @@ function loadActions(tx: Record<string, unknown>) {
     "next/cache": { revalidatePath: () => events.push("revalidate") },
     "@/lib/prisma": { prisma: { $transaction: async (run: (client: typeof tx) => Promise<unknown>) => run(tx) } },
     "@/lib/rls": { withArenaTransaction: async (arenaId: string, run: (client: typeof tx) => Promise<unknown>) => { events.push(`context:${arenaId}`); return run(tx); } },
-    "@/lib/auth/guards": { requireModuleEdit: async () => ({ arenaId: "arena-a" }) },
+    "@/lib/auth/guards": { requireModuleEdit: async () => ({ arenaId: "arena-a" }), requireTournamentMatchEdit: async () => ({ arenaId: "arena-a" }) },
     "@/lib/tournaments/registration-order": { lockTournamentRegistrations: async () => { events.push("lock-tournament"); } },
     "@/lib/tournament/bracket": { buildCategoryBracketSeeds, hasStartedCategoryBracket },
     "@/lib/tournament/revalidation": { refreshTournamentRoutes: () => events.push("refresh") },
