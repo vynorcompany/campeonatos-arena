@@ -6,8 +6,8 @@ import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { requireModuleView } from "@/lib/auth/guards";
+import { canEditModule } from "@/lib/permissions";
 import { createStockBalanceAction } from "@/lib/actions/pos";
-import { prisma } from "@/lib/prisma";
 import { loadVisibleProductNames, visibleProductName } from "@/lib/products/visible-product-names";
 
 function signed(value: number) {
@@ -16,6 +16,7 @@ function signed(value: number) {
 
 export default async function StockBalancePage() {
   const auth = await requireModuleView("stock");
+  const canEdit = canEditModule("stock", auth.arenaRole, auth.systemRole, auth.editPermissions);
   const prisma = arenaDatabase(auth.arenaId);
   const [products, movements] = await Promise.all([
     prisma.product.findMany({
@@ -38,7 +39,7 @@ export default async function StockBalancePage() {
         <Link href="/pdv/estoque" className={viewStyles.button}>Voltar ao estoque</Link>
       </header>
 
-      <section className={ui.page}><div className={ui.toolbar}><p>Informe a contagem física. As divergências são ajustadas e registradas no histórico.</p></div>
+      {canEdit ? <section className={ui.page}><div className={ui.toolbar}><p>Informe a contagem física. As divergências são ajustadas e registradas no histórico.</p></div>
         <SafeActionForm action={createStockBalanceAction} className={viewStyles.stock_balance_form} successMessage="Balanço registrado. As divergências foram atualizadas no relatório abaixo.">
           <label className={viewStyles.field_stock_balance_reason}>
             <span>Observação do balanço (opcional)</span>
@@ -58,7 +59,7 @@ export default async function StockBalancePage() {
           {!products.length ? <p className={viewStyles.muted}>Cadastre produtos ativos para iniciar o balanço.</p> : null}
           <div className={viewStyles.stock_balance_actions}><SubmitButton label="Finalizar balanço" pendingLabel="Registrando balanço..." className={viewStyles.button_button_primary} /></div>
         </SafeActionForm>
-      </section>
+      </section> : null}
 
       <section className={ui.page}><h2 className="tw:m-0 tw:text-sm tw:font-semibold">Relatório de divergências</h2>
         {movements.length ? <div className={viewStyles.stock_balance_report}>

@@ -41,6 +41,7 @@ type NavGroup = {
 type NavLinksProps = {
   canManageUsers: boolean;
   canManageFinancialSettings: boolean;
+  canEditStock: boolean;
   visibleModules: string[];
   whatsappUnreadCount: number;
   pollingScope?: string;
@@ -175,7 +176,7 @@ function NavIcon({ name }: { name: IconName }) {
   return <svg {...common} className={cx(name === "whatsapp" ? "nav-svg-whatsapp" : undefined)}>{paths[name]}</svg>;
 }
 
-export function NavLinks({ canManageUsers, canManageFinancialSettings, visibleModules, whatsappUnreadCount, pollingScope = "" }: NavLinksProps) {
+export function NavLinks({ canManageUsers, canManageFinancialSettings, canEditStock, visibleModules, whatsappUnreadCount, pollingScope = "" }: NavLinksProps) {
   const pathname = usePathname() ?? "";
   const openItemsStorageKey = "arena:sidebar-open-items";
   const canSee = (module: string) => visibleModules.includes(module);
@@ -342,15 +343,16 @@ export function NavLinks({ canManageUsers, canManageFinancialSettings, visibleMo
     "/usuarios": "users",
     "/minha-conta": "dashboard"
   };
+  const filterNavItem = (item: NavItem): NavItem | null => {
+    if ((!canManageFinancialSettings && item.href === "/financeiro/configuracoes") || (!canEditStock && item.href === "/pdv/balanco")) return null;
+    const children = item.children?.map(filterNavItem).filter((child): child is NavItem => child !== null);
+    if (!canSee(moduleByHref[item.href.split("?", 1)[0]] ?? "dashboard") && !children?.length) return null;
+    return { ...item, children };
+  };
   const filteredGroups = navigationGroups
     .map((group) => ({
       ...group,
-      links: group.links
-        .map((item) => ({
-          ...item,
-          children: item.children?.filter((child) => (canManageFinancialSettings || child.href !== "/financeiro/configuracoes") && canSee(moduleByHref[child.href.split("?", 1)[0]] ?? "dashboard"))
-        }))
-        .filter((item) => canSee(moduleByHref[item.href.split("?", 1)[0]] ?? "dashboard") || (item.children?.length ?? 0) > 0)
+      links: group.links.map(filterNavItem).filter((item): item is NavItem => item !== null)
     }))
     .filter((group) => group.links.length);
   const itemIsActive = (item: NavItem): boolean => isActivePath(pathname, item.href) || Boolean(item.children?.some(itemIsActive));
@@ -404,7 +406,7 @@ export function NavLinks({ canManageUsers, canManageFinancialSettings, visibleMo
                   <div className={viewStyles.nav_parent_row}>
                     {item.children?.length ? (
                       <div className={viewStyles.nav_expandable_row}>
-                        <Link prefetch={false} href={item.href === "/torneios" && !canSee("tournaments") ? "/jogos" : item.href} className={cx(`${viewStyles.nav_link_nav_link_destination}${isActive ? " " + viewStyles.nav_link_active : ""}`)}>
+                        <Link prefetch={false} href={item.href === "/torneios" && !canSee("tournaments") ? "/jogos" : item.href === "/financeiro" && !canSee("finance") ? "/pdv" : item.href} className={cx(`${viewStyles.nav_link_nav_link_destination}${isActive ? " " + viewStyles.nav_link_active : ""}`)}>
                           <span className={viewStyles.nav_icon} aria-hidden="true">{item.icon ? <NavIcon name={item.icon} /> : null}</span>
                           <span>{item.label}</span>{item.badge ? <b className="nav-unread-badge tw:ml-auto tw:min-w-[17px] tw:rounded-full tw:bg-[#d83932] tw:px-[5px] tw:py-px tw:text-center tw:text-[.62rem] tw:leading-[1.45] tw:text-white" role="status" aria-label={`${item.badge} mensagens não lidas`}>{item.badge > 99 ? "99+" : item.badge}</b> : null}
                         </Link>
