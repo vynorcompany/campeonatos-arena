@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 
 import { resolve } from "node:path";
 import test from "node:test";
+import { reportLinks } from "../src/lib/navigation/report-links";
 
 test("sidebar exposes compact workspaces, a top user menu and separate settings", () => {
   const navigation = readFileSync(resolve(process.cwd(), "src/components/layout/nav-links.tsx"), "utf8");
@@ -57,20 +58,23 @@ test("sidebar groups financial routines and reports in dedicated expandable modu
   assert.match(navigation, /label: "Contas Bancárias"/);
   assert.match(navigation, /label: "Pagamentos Online"/);
   assert.match(navigation, /label: "Relatórios"/);
-  assert.match(navigation, /label: "DRE Gerencial"/);
-  assert.match(navigation, /label: "Relatório de Reservas"/);
+  assert.match(navigation, /reportLinks\.map/);
+  assert.ok(reportLinks.some((link) => link.label === "DRE Gerencial"));
+  assert.ok(reportLinks.some((link) => link.label === "Relatório de Reservas"));
 });
 
 test("financial configuration and report routes have dedicated base pages", () => {
   const financeConfig = readFileSync(resolve(process.cwd(), "src/app/(app)/financeiro/configuracoes/[area]/page.tsx"), "utf8");
+  const reportsHome = readFileSync(resolve(process.cwd(), "src/app/(app)/relatorios/page.tsx"), "utf8");
   const reports = readFileSync(resolve(process.cwd(), "src/app/(app)/relatorios/[relatorio]/page.tsx"), "utf8");
   const schema = readFileSync(resolve(process.cwd(), "prisma/schema.prisma"), "utf8");
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/finance.ts"), "utf8");
 
   assert.match(financeConfig, /requireModuleView\("finance"\)/);
   assert.match(reports, /requireModuleView\("finance"\)/);
-  assert.match(reports, /Relatório de Planos/);
-  assert.match(reports, /Relatório de Reservas/);
+  assert.match(reportsHome, /items=\{reportLinks\}/);
+  assert.ok(reportLinks.some((link) => link.label === "Relatório de Planos"));
+  assert.ok(reportLinks.some((link) => link.label === "Relatório de Reservas"));
   assert.match(schema, /model FinancialCategory/);
   assert.match(schema, /model PaymentMethodSetting/);
   assert.match(schema, /model BankAccount/);

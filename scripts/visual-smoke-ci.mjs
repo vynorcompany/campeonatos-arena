@@ -182,6 +182,22 @@ async function main() {
       for (const route of routes) {
         const label = `${viewport.name}-${route.replaceAll("/", "-").replace(/^-/, "")}`;
         const body = await visit(route, viewport, arenaA.id, label);
+        if (route === "/relatorios" && viewport.name === "mobile-320") {
+          await send("Runtime.evaluate", { expression: "document.querySelector('button[aria-label=\"Abrir menu\"]')?.click()" });
+          await pause(200);
+          await send("Runtime.evaluate", { expression: "document.querySelector('button[aria-label=\"Abrir submenu Relatórios\"]')?.click()" });
+          await pause(200);
+          const reportNavigation = await send("Runtime.evaluate", {
+            expression: "(() => { const link = document.querySelector('#arena-mobile-navigation a[href=\"/relatorios/pagamentos-online\"]'); link?.scrollIntoView({ block: 'center' }); const rect = link?.getBoundingClientRect(); const sidebar = document.querySelector('#arena-mobile-navigation')?.getBoundingClientRect(); return rect && sidebar ? { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, sidebarLeft: sidebar.left, sidebarRight: sidebar.right, width: innerWidth, height: innerHeight, visible: rect.width > 0 && rect.height > 0 } : null; })()",
+            returnByValue: true,
+          });
+          const item = reportNavigation.result.value;
+          if (!item?.visible || item.left < item.sidebarLeft - 1 || item.right > item.sidebarRight + 1 || item.left < -1 || item.right > item.width + 1 || item.top < -1 || item.bottom > item.height + 1) {
+            throw new Error(`${label}: Pagamentos Online cortado no menu móvel: ${JSON.stringify(item)}`);
+          }
+          const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+          await writeFile(`${outputDir}/${label}-menu.png`, Buffer.from(shot.data, "base64"));
+        }
         if (route === "/financeiro") {
           const navigation = await send("Runtime.evaluate", {
             expression: "(() => { const nav = document.querySelector('nav[aria-label=\"Áreas financeiras\"]'); return nav ? [...nav.querySelectorAll('a')].map((link) => ({ path: new URL(link.href).pathname, clipped: link.scrollWidth > link.clientWidth + 1 })) : null; })()",

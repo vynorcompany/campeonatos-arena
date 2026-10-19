@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useEffect } from "react";
 import { useWhatsAppUnreadCount } from "@/components/whatsapp/use-whatsapp-unread-count";
+import { reportLinks } from "@/lib/navigation/report-links";
 import { usePersistedOpenItems } from "./use-persisted-open-items";
 
 type IconName =
@@ -280,16 +281,7 @@ export function NavLinks({ canManageUsers, canManageFinancialSettings, visibleMo
           href: "/relatorios",
           label: "Relatórios",
           icon: "building",
-          children: [
-            { href: "/relatorios/caixa", label: "Relatório de Caixa" },
-            { href: "/relatorios/lancamentos", label: "Relatório de Lançamentos" },
-            { href: "/relatorios/produtos", label: "Relatórios de Produtos" },
-            { href: "/relatorios/estoque", label: "Movimentação de Estoque" },
-            { href: "/relatorios/comandas", label: "Histórico de Comandas" },
-            { href: "/relatorios/dre", label: "DRE Gerencial" },
-            { href: "/relatorios/planos", label: "Relatório de Planos" },
-            { href: "/relatorios/reservas", label: "Relatório de Reservas" }
-          ]
+          children: reportLinks.map(({ href, label }) => ({ href, label }))
         }
       ]
     }
@@ -343,14 +335,7 @@ export function NavLinks({ canManageUsers, canManageFinancialSettings, visibleMo
     "/financeiro/configuracoes/categorias-financeiras": "finance",
     "/financeiro/configuracoes/pagamentos-online": "finance",
     "/relatorios": "finance",
-    "/relatorios/caixa": "finance",
-    "/relatorios/lancamentos": "finance",
-    "/relatorios/produtos": "finance",
-    "/relatorios/estoque": "finance",
-    "/relatorios/comandas": "finance",
-    "/relatorios/dre": "finance",
-    "/relatorios/planos": "finance",
-    "/relatorios/reservas": "finance",
+    ...Object.fromEntries(reportLinks.map(({ href }) => [href, "finance"])),
     "/arena": "arena",
     "/arena/regulamento": "arena",
     "/suporte": "support",
