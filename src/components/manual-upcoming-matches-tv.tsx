@@ -337,7 +337,7 @@ export function ManualUpcomingMatchesTv({
 
         <div className={viewStyles.tv_slide_frame} key={activeSlide.id}>
           {activeSlide.type === "matches" ? (
-            <div className={cx(`${viewStyles.tv_matches_grid} tv-matches-count-${Math.min(visibleMatches.length, visibleMatchCount)}`)}>
+            <div className={cx(`${viewStyles.tv_matches_grid} tv-matches-count-${Math.min(visibleMatches.length, visibleMatchCount)} ${visibleMatches.length === 1 ? "tw:max-w-[840px] tw:mx-auto" : "tw:min-[1121px]:grid-cols-[repeat(2,_minmax(0,_1fr))]"} ${visibleMatches.length > 1 && visibleMatches.length % 2 === 1 ? "tw:min-[1121px]:[&_.tv-match-card:last-child]:[grid-column:1/-1] tw:min-[1121px]:[&_.tv-match-card:last-child]:w-full tw:min-[1121px]:[&_.tv-match-card:last-child]:max-w-[640px] tw:min-[1121px]:[&_.tv-match-card:last-child]:justify-self-center" : ""}`)}>
               {visibleMatches.map((match, index) => {
                 const scheduledTime = match.scheduledTime.trim();
                 const displayNumber = getDisplayNumber(activeIndex, index, liveMatches.length);

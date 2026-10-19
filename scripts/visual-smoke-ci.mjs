@@ -275,6 +275,48 @@ async function main() {
       }
     }
     console.log("Exclusão da arena exige modal padrão legível em desktop e 320 px, e Esc cancela sem apagar.");
+    const previousTvSettings = await db.tvPresentationSettings.findUnique({ where: { arenaId: arenaA.id } });
+    const tvFixture = await db.manualUpcomingMatch.createManyAndReturn({
+      data: [1, 2, 3].map((index) => ({ arenaId: arenaA.id, displayOrder: index, homePairName: `Mandante TV GOAL ${index}`, awayPairName: `Visitante TV GOAL ${index}`, courtName: "Quadra GOAL", scheduledTime: `19:0${index}`, status: "SCHEDULED" })),
+      select: { id: true, displayOrder: true },
+    });
+    await db.tvPresentationSettings.upsert({
+      where: { arenaId: arenaA.id },
+      create: { arenaId: arenaA.id, tvMatchSource: "MANUAL", showMatches: true, showCalendar: false, showSponsors: false, showRanking: false, showMonthlyPrize: false, showNightWinner: false },
+      update: { tvMatchSource: "MANUAL", showMatches: true, showCalendar: false, showSponsors: false, showRanking: false, showMonthlyPrize: false, showNightWinner: false },
+    });
+    for (const viewport of viewports) {
+      const body = await visit("/proximos-jogos/tv", viewport, arenaA.id, `${viewport.name}-tv-tres-jogos`);
+      const cards = await send("Runtime.evaluate", { expression: "document.querySelectorAll('.tv-match-card').length", returnByValue: true });
+      if (cards.result.value !== 3 || !body.includes("Mandante TV GOAL 1") || !body.includes("Mandante TV GOAL 3")) throw new Error(`${viewport.name}: TV não exibiu exatamente os três jogos cadastrados.`);
+      if (viewport.name === "desktop") {
+        const lastCard = await send("Runtime.evaluate", { expression: "(() => { const grid = document.querySelector('.tv-matches-grid')?.getBoundingClientRect(); const card = document.querySelector('.tv-match-card:last-child')?.getBoundingClientRect(); return grid && card ? { left: card.left - grid.left, right: grid.right - card.right } : null; })()", returnByValue: true });
+        if (!lastCard.result.value || Math.abs(lastCard.result.value.left - lastCard.result.value.right) > 12) throw new Error(`TV não centralizou o terceiro jogo: ${JSON.stringify(lastCard.result.value)}`);
+      }
+    }
+    await db.manualUpcomingMatch.deleteMany({ where: { id: { in: tvFixture.filter((match) => match.displayOrder > 1).map((match) => match.id) }, arenaId: arenaA.id } });
+    const singleGame = await visit("/proximos-jogos/tv", viewports[0], arenaA.id, "desktop-tv-um-jogo");
+    const singleCard = await send("Runtime.evaluate", { expression: "document.querySelectorAll('.tv-match-card').length", returnByValue: true });
+    if (singleCard.result.value !== 1 || !singleGame.includes("Mandante TV GOAL 1") || singleGame.includes("Mandante TV GOAL 2")) throw new Error("TV não se adaptou à redução para um jogo cadastrado.");
+    const singleLayout = await send("Runtime.evaluate", { expression: "(() => { const grid = document.querySelector('.tv-matches-grid')?.getBoundingClientRect(); const card = document.querySelector('.tv-match-card')?.getBoundingClientRect(); return grid && card ? { left: grid.left, right: document.documentElement.clientWidth - grid.right, cardRatio: card.width / grid.width, width: grid.width } : null; })()", returnByValue: true });
+    if (!singleLayout.result.value || Math.abs(singleLayout.result.value.left - singleLayout.result.value.right) > 12 || singleLayout.result.value.cardRatio < 0.95 || singleLayout.result.value.width < 650) throw new Error(`TV não centralizou nem ampliou o único jogo: ${JSON.stringify(singleLayout.result.value)}`);
+    const otherArenaTv = await visit("/proximos-jogos/tv", viewports[0], arenaB.id, "desktop-tv-outra-arena");
+    if (otherArenaTv.includes("Mandante TV GOAL")) throw new Error("TV exibiu jogo de outra arena.");
+    await db.manualUpcomingMatch.deleteMany({ where: { id: { in: tvFixture.map((match) => match.id) }, arenaId: arenaA.id } });
+    if (previousTvSettings) {
+      await db.tvPresentationSettings.update({
+        where: { arenaId: arenaA.id },
+        data: {
+          tvMatchSource: previousTvSettings.tvMatchSource, showMatches: previousTvSettings.showMatches,
+          showCalendar: previousTvSettings.showCalendar, showSponsors: previousTvSettings.showSponsors,
+          showRanking: previousTvSettings.showRanking, showMonthlyPrize: previousTvSettings.showMonthlyPrize,
+          showNightWinner: previousTvSettings.showNightWinner,
+        },
+      });
+    } else {
+      await db.tvPresentationSettings.delete({ where: { arenaId: arenaA.id } });
+    }
+    console.log("TV exibe somente 3 ou 1 jogos cadastrados, adapta a grade e isola arenas em desktop e celular.");
     const cashOpening = await visit("/pdv/caixa", viewports[0], arenaA.id, "desktop-caixa-antes-da-abertura");
     if (!cashOpening.includes("Abertura de caixa")) throw new Error("O caixa fictício não iniciou fechado.");
     await send("Runtime.evaluate", { expression: "document.querySelector('input[name=openingAmount]')?.focus()" });

@@ -88,7 +88,7 @@ export const viewStyles = {
     "tv-slide-frame", "tw:[animation:tv-slide-in_620ms_var(--ease-standard)]",
   ].join(" "),
   "tv_matches_grid": [
-    "tv-matches-grid", "tw:grid", "tw:grid-cols-[repeat(2,_minmax(0,_1fr))]", "tw:viewport-1120:grid-cols-[1fr]",
+    "tv-matches-grid", "tw:grid", "tw:grid-cols-[minmax(0,_1fr)]",
     "tw:[align-content:center]", "tw:gap-y-[clamp(14px,_1.65vw,_24px)]", "tw:gap-x-[clamp(14px,_1.65vw,_24px)]", "tw:viewport-760:[&_.tv-match-card:last-child]:[grid-column:auto]",
   ].join(" "),
   "tv_match_card": [
