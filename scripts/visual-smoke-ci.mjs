@@ -241,6 +241,21 @@ async function main() {
         await visit(route, viewport, arenaA.id, label);
       }
     }
+    const detailProduct = await db.product.findFirstOrThrow({ where: { arenaId: arenaA.id, name: "Produto GOAL" }, select: { id: true } });
+    for (const viewport of adminViewports) {
+      const comanda = await visit("/comandas/goal-fixture-comanda", viewport, arenaA.id, `${viewport.name}-comanda-detalhe`);
+      if (!comanda.includes("Comanda GOAL") || !comanda.includes("Produto GOAL")) throw new Error(`${viewport.name}: detalhe da comanda fictícia incompleto.`);
+      const product = await visit(`/pdv/${detailProduct.id}`, viewport, arenaA.id, `${viewport.name}-produto-detalhe`);
+      if (!product.includes("Produto GOAL") || !product.includes("Ajuste de estoque")) throw new Error(`${viewport.name}: detalhe do produto fictício incompleto.`);
+      const productBreadcrumb = await send("Runtime.evaluate", { expression: "document.querySelector('.workspace-page-breadcrumb strong')?.textContent?.trim() ?? ''", returnByValue: true });
+      if (productBreadcrumb.result.value !== "Produto") throw new Error(`${viewport.name}: breadcrumb do produto exibe ID técnico ou rota incorreta: ${productBreadcrumb.result.value}`);
+    }
+    for (const [path, ownName] of [["/comandas/goal-fixture-comanda", "Comanda GOAL"], [`/pdv/${detailProduct.id}`, "Produto GOAL"]]) {
+      const response = await fetch(`${baseUrl}${path}`, { headers: { Cookie: cookie(arenaB.id) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
+      const body = await response.text();
+      if (response.status === 200 || body.includes(ownName)) throw new Error(`A arena B conseguiu abrir o detalhe privado ${path} da arena A.`);
+    }
+    console.log("Detalhes de comanda e produto verificados em três larguras e isolados entre arenas.");
     const futureAgendaDate = new Date(Date.now() + 3 * 24 * 60 * 60_000).toISOString().slice(0, 10);
     for (const viewport of [...viewports, { name: "mobile-320", width: 320, height: 700 }]) {
       const agendaPath = `/agenda?data=${futureAgendaDate}`;
@@ -886,6 +901,22 @@ async function main() {
       arenaId: arenaA.id, name: "Torneio público GOAL", publicSlug: `goal-public-${randomUUID()}`,
     } });
     const publicCategory = await db.tournamentCategory.create({ data: { tournamentId: publicTournament.id, name: "Categoria GOAL", level: 1 } });
+    for (const viewport of adminViewports) {
+      for (const [path, label] of [
+        [`/torneios/${publicTournament.id}`, "detalhe"],
+        [`/torneios/${publicTournament.id}/categorias`, "categorias"],
+        [`/torneios/${publicTournament.id}/jogos`, "jogos"],
+        [`/torneios/${publicTournament.id}/inscricoes`, "inscricoes"],
+        [`/torneios/${publicTournament.id}/categorias/${publicCategory.id}`, "categoria-detalhe"],
+      ]) {
+        const body = await visit(path, viewport, arenaA.id, `${viewport.name}-torneio-${label}`);
+        if (!body.includes("Torneio público GOAL") && !body.includes("Categoria GOAL")) throw new Error(`${viewport.name}: ${label} do torneio fictício não mostrou seus dados.`);
+      }
+    }
+    const foreignTournament = await fetch(`${baseUrl}/torneios/${publicTournament.id}`, { headers: { Cookie: cookie(arenaB.id) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
+    const foreignTournamentBody = await foreignTournament.text();
+    if (foreignTournament.status === 200 || foreignTournamentBody.includes("Torneio público GOAL")) throw new Error("A arena B conseguiu abrir o torneio privado da arena A.");
+    console.log("Torneio e categoria detalhados verificados em três larguras e isolados entre arenas.");
     const registrationData = (order, status, paymentStatus, holdExpiresAt) => ({
       tournamentId: publicTournament.id, categoryId: publicCategory.id, registrationOrder: order,
       leadName: `Atleta GOAL ${order}`, leadPhone: "559999999999", leadCpf: `1111111111${order}`,
