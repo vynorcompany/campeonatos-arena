@@ -1,7 +1,7 @@
-import { requireModuleView } from "@/lib/auth/guards";
+import { requirePermission } from "@/lib/auth/guards";
 import { redirect } from "next/navigation";
 
 export default async function ClientPortalSettingsPage() {
-  await requireModuleView("arena");
+  await requirePermission("arena:portal", "view");
   redirect("/arena?section=portal");
 }

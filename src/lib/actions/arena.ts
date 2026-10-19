@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireModuleEdit } from "@/lib/auth/guards";
+import { requirePermission } from "@/lib/auth/guards";
 import { buildArenaProfileUpdateData, slugifyArenaName } from "@/lib/arena-profile";
 import { prisma } from "@/lib/prisma";
 import { toPersistentArenaLogo } from "@/lib/uploads";
@@ -27,7 +27,7 @@ function refreshArenaRoutes() {
 }
 
 export async function updateAthletePortalSettingsAction(formData: FormData) {
-  const auth = await requireModuleEdit("arena");
+  const auth = await requirePermission("arena:portal");
   const portalLogoUrl = await toPersistentArenaLogo(formData.get("athletePortalLogo") as File | null);
   const updated = await prisma.arena.update({
     where: { id: auth.arenaId },
@@ -58,7 +58,7 @@ async function createUniqueArenaSlug(name: string, arenaId: string) {
 }
 
 export async function updateArenaProfileAction(_: ActionState, formData: FormData): Promise<ActionState> {
-  const auth = await requireModuleEdit("arena");
+  const auth = await requirePermission("arena:settings");
   const parsed = arenaProfileSchema.safeParse({
     name: formData.get("name"),
     legalName: formData.get("legalName"),
