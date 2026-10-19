@@ -19,6 +19,7 @@ type AppShellProps = {
   userRole: string;
   canManageUsers: boolean;
   canManageFinancialSettings: boolean;
+  canEditStock: boolean;
   visibleModules: string[];
   canAccessAgency: boolean;
   whatsappUnreadCount: number;
@@ -36,6 +37,7 @@ export function AppShell({
   userRole,
   canManageUsers,
   canManageFinancialSettings,
+  canEditStock,
   visibleModules,
   canAccessAgency,
   whatsappUnreadCount,
@@ -73,7 +75,7 @@ export function AppShell({
               currentWorkspace="arena"
             />
 
-            <NavLinks pollingScope={activeArenaId ?? ""} key={activeArenaId} canManageUsers={canManageUsers} canManageFinancialSettings={canManageFinancialSettings} visibleModules={visibleModules} whatsappUnreadCount={whatsappUnreadCount} />
+            <NavLinks pollingScope={activeArenaId ?? ""} key={activeArenaId} canManageUsers={canManageUsers} canManageFinancialSettings={canManageFinancialSettings} canEditStock={canEditStock} visibleModules={visibleModules} whatsappUnreadCount={whatsappUnreadCount} />
           </div>
 
           {visibleModules.includes("arena") || visibleModules.includes("calendar") ? <nav className={viewStyles.sidebar_settings_menu} aria-label="Configurações"><Link href="/arena" className={viewStyles.sidebar_settings_link}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="m9 3-1 3-3 1v3l-2 2 2 2v3l3 1 1 3h6l1-3 3-1v-3l2-2-2-2V7l-3-1-1-3Z" /><circle cx="12" cy="12" r="3" /></svg>Configurações</Link></nav> : null}

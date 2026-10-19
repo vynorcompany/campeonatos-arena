@@ -16,6 +16,7 @@ test("menus com submenu mantêm o destino clicável e um controle separado para 
   const markup = renderToStaticMarkup(React.createElement(NavLinks, {
     canManageUsers: true,
     canManageFinancialSettings: true,
+    canEditStock: true,
     visibleModules: ["dashboard", "support", "pos", "tournaments", "calendar", "tv", "players", "teachers", "finance", "stock", "matches"],
     whatsappUnreadCount: 0
   }));
@@ -43,6 +44,7 @@ test("sem permissão de gestão financeira, a barra lateral não oferece configu
   const markup = renderToStaticMarkup(React.createElement(NavLinks, {
     canManageUsers: false,
     canManageFinancialSettings: false,
+    canEditStock: false,
     visibleModules: ["dashboard", "finance"],
     whatsappUnreadCount: 0,
   }));
@@ -51,11 +53,26 @@ test("sem permissão de gestão financeira, a barra lateral não oferece configu
 });
 
 test("submenu de relatórios coincide com todos os destinos da página inicial e exige Financeiro", () => {
-  const props = { canManageUsers: false, canManageFinancialSettings: false, whatsappUnreadCount: 0 };
+  const props = { canManageUsers: false, canManageFinancialSettings: false, canEditStock: false, whatsappUnreadCount: 0 };
   const allowed = renderToStaticMarkup(React.createElement(NavLinks, { ...props, visibleModules: ["dashboard", "finance"] }));
   const restricted = renderToStaticMarkup(React.createElement(NavLinks, { ...props, visibleModules: ["dashboard"] }));
   for (const { href } of reportLinks) {
     assert.match(allowed, new RegExp(`href="${href}"`));
     assert.doesNotMatch(restricted, new RegExp(`href="${href}"`));
   }
+});
+
+test("stock-only navigation leads to readable pages without balance creation", () => {
+  const markup = renderToStaticMarkup(React.createElement(NavLinks, {
+    canManageUsers: false,
+    canManageFinancialSettings: false,
+    canEditStock: false,
+    visibleModules: ["dashboard", "stock"],
+    whatsappUnreadCount: 0,
+  }));
+  assert.match(markup, /href="\/pdv"[^>]*>[\s\S]*?Financeiro/);
+  assert.match(markup, /href="\/pdv\/estoque"/);
+  assert.match(markup, /href="\/pdv\/servicos"/);
+  assert.doesNotMatch(markup, /href="\/pdv\/balanco"/);
+  assert.doesNotMatch(markup, /href="\/financeiro\/configuracoes"/);
 });

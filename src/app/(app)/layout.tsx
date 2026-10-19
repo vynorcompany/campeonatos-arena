@@ -1,6 +1,6 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { requireArenaAccess } from "@/lib/auth/session";
-import { allPermissionModules, canPerformPermission, canViewModule } from "@/lib/permissions";
+import { allPermissionModules, canEditModule, canPerformPermission, canViewModule } from "@/lib/permissions";
 import { arenaDatabase } from "@/lib/arena-database";
 import { getAgencyDelinquency } from "@/lib/finance/agency-delinquency";
 import { getActiveWhatsAppUnreadCount } from "@/lib/whatsapp-active-account";
@@ -28,6 +28,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
       userRole={auth.arenaRole ?? auth.systemRole}
       canManageUsers={canManageUsers}
       canManageFinancialSettings={canPerformPermission("finance:settings:manage", auth.arenaRole, auth.systemRole, auth.editPermissions)}
+      canEditStock={canEditModule("stock", auth.arenaRole, auth.systemRole, auth.editPermissions)}
       visibleModules={visibleModules}
       canAccessAgency={canAccessAgency}
       whatsappUnreadCount={whatsappUnreadCount}
