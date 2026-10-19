@@ -13,6 +13,10 @@ test("TV exposes the games slide toggle and persists its value", () => {
 
 test("TV renders registered games only and sizes the grid by their count", () => {
   const tv = source("src/components/manual-upcoming-matches-tv.tsx");
+  const styles = source("src/components/manual-upcoming-matches-tv.utilities.ts");
   assert.match(tv, /tv-matches-count-\$\{Math\.min\(visibleMatches\.length, visibleMatchCount\)\}/);
+  assert.match(tv, /visibleMatches\.length === 1 \? "tw:max-w-\[840px\] tw:mx-auto"/);
+  assert.match(tv, /visibleMatches\.length > 1 && visibleMatches\.length % 2 === 1/);
+  assert.match(styles, /"tv-matches-grid", "tw:grid", "tw:grid-cols-\[minmax\(0,_1fr\)\]"/);
   assert.doesNotMatch(tv, /tv-empty-slot|Aguardando cadastro/);
 });
