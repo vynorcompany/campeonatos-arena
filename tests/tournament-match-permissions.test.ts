@@ -3,7 +3,14 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
-import { canManageTournamentMatches } from "../src/lib/permissions";
+import { canManageTournamentMatches, canPerformPermission, canViewModule } from "../src/lib/permissions";
+
+test("visualizar torneios não autoriza gerenciar categorias", () => {
+  assert.equal(canViewModule("tournaments", "STAFF", "VIEWER", ["tournaments:view"]), true);
+  assert.equal(canPerformPermission("tournaments:manage", "STAFF", "VIEWER", []), false);
+  assert.equal(canPerformPermission("tournaments:manage", "STAFF", "VIEWER", ["tournaments:results"]), false);
+  assert.equal(canPerformPermission("tournaments:manage", "STAFF", "VIEWER", ["tournaments:manage"]), true);
+});
 
 test("permissão Jogos isolada permite consulta, não edição de torneio", () => {
   assert.equal(canManageTournamentMatches("STAFF", "VIEWER", ["matches"], ["matches"]), false);

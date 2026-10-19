@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SectionCard } from "@/components/section-card";
 import { requireArenaAccess } from "@/lib/auth/session";
-import { canViewModule } from "@/lib/permissions";
+import { canPerformPermission, canViewModule } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { viewStyles } from "./page.utilities";
 
@@ -17,9 +17,10 @@ function setScores(match: { homeSet1: number | null; awaySet1: number | null; ho
 export default async function GamesPage(props: GamesPageProps) {
   const searchParams = await props.searchParams;
   const auth = await requireArenaAccess();
-  const canManageTournaments = canViewModule("tournaments", auth.arenaRole, auth.systemRole, auth.viewPermissions);
+  const canViewTournaments = canViewModule("tournaments", auth.arenaRole, auth.systemRole, auth.viewPermissions);
+  const canManageTournaments = canViewTournaments && canPerformPermission("tournaments:manage", auth.arenaRole, auth.systemRole, auth.editPermissions);
   const canReadMatches = canViewModule("matches", auth.arenaRole, auth.systemRole, auth.viewPermissions);
-  if (!canManageTournaments && !canReadMatches) notFound();
+  if (!canViewTournaments && !canReadMatches) notFound();
 
   const activeTournaments = await prisma.tournament.findMany({
     where: { arenaId: auth.arenaId, registrationPhase: { not: "FINISHED" } },
