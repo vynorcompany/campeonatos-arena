@@ -1596,7 +1596,7 @@ async function main() {
 
     const restrictedToken = createHash("sha256").update(`restricted:${sessionToken}`).digest("hex");
     const restrictedUser = await db.user.create({ data: { name: "Operador restrito GOAL", email: "goal-restricted@example.test", passwordHash: "test-only", systemRole: "VIEWER" } });
-    await db.arenaMember.create({ data: { arenaId: arenaA.id, userId: restrictedUser.id, role: "STAFF", viewPermissions: ["calendar", "finance:receivable:view"], editPermissions: ["calendar:booking:create"] } });
+    await db.arenaMember.create({ data: { arenaId: arenaA.id, userId: restrictedUser.id, role: "STAFF", viewPermissions: ["calendar", "finance:receivable:view", "matches"], editPermissions: ["calendar:booking:create"] } });
     await db.session.create({ data: { userId: restrictedUser.id, token: createHash("sha256").update(restrictedToken).digest("hex"), expiresAt: new Date(Date.now() + 60 * 60_000) } });
     const restrictedCourt = await db.court.findFirstOrThrow({ where: { arenaId: arenaA.id, name: "Quadra GOAL Agenda" }, select: { id: true } });
     const restrictedStart = new Date(`${futureAgendaDate}T10:00:00.000Z`);
@@ -1609,7 +1609,25 @@ async function main() {
       arenaId: arenaA.id, eventType: "EVENTO", title: "Evento restrito GOAL",
       scheduledAt: restrictedStart, durationMinutes: 60,
     } });
+    const restrictedMatch = await db.categoryMatch.create({ data: {
+      competitionId: competition.id, label: "Jogo consulta GOAL", stage: "GROUP", roundOrder: 999,
+      homeScore: 2, awayScore: 0, homeSet1: 6, awaySet1: 2, homeSet2: 6, awaySet2: 3,
+    } });
     try {
+      const forbiddenTournament = await fetch(`${baseUrl}/torneios/${league.id}`, { headers: { Cookie: cookie(arenaA.id, restrictedToken) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
+      await forbiddenTournament.body?.cancel();
+      if (forbiddenTournament.status === 200) throw new Error("Perfil Jogos consultou gestão do torneio sem permissão.");
+      for (const viewport of adminViewports) {
+        const matchBody = await visit(`/jogos?tournamentId=${league.id}`, viewport, arenaA.id, `${viewport.name}-jogos-somente-leitura`, restrictedToken);
+        if (!matchBody.includes("Jogo consulta GOAL") || !matchBody.includes("2 × 0") || !matchBody.includes("6–2 · 6–3")) throw new Error(`${viewport.name}: Jogos não exibiu partida e placar para permissão somente leitura.`);
+        const matchControls = await send("Runtime.evaluate", {
+          expression: "({manage:Boolean(document.querySelector('a[href^=\"/torneios/\"]')),create:document.body.innerText.includes('Novo evento'),tournamentLink:[...document.querySelectorAll('nav[aria-label=\"Principal\"] a')].find((link)=>link.textContent?.trim()==='Torneios')?.getAttribute('href'),width:innerWidth,scrollWidth:document.documentElement.scrollWidth})",
+          returnByValue: true,
+        });
+        if (matchControls.result.value?.manage || matchControls.result.value?.create || matchControls.result.value?.tournamentLink !== "/jogos" || matchControls.result.value?.scrollWidth > matchControls.result.value?.width + 1) throw new Error(`${viewport.name}: Jogos exibiu gestão, menu inválido ou ficou cortado: ${JSON.stringify(matchControls.result.value)}`);
+        const matchShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+        await writeFile(`${outputDir}/${viewport.name}-jogos-somente-leitura.png`, Buffer.from(matchShot.data, "base64"));
+      }
       const settingsResponse = await fetch(`${baseUrl}/agenda/configuracao`, { headers: { Cookie: cookie(arenaA.id, restrictedToken) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
       await settingsResponse.body?.cancel();
       if (settingsResponse.status !== 404) throw new Error(`Perfil limitado acessou a configuração de quadras (HTTP ${settingsResponse.status}).`);
@@ -1661,6 +1679,7 @@ async function main() {
       }
       console.log("Agenda: perfil limitado a criar não edita ou cancela reservas existentes em desktop e celular.");
     } finally {
+      await db.categoryMatch.delete({ where: { id: restrictedMatch.id } });
       await db.calendarEvent.delete({ where: { id: restrictedCalendarEvent.id } });
       await db.scheduleOccurrenceCourt.deleteMany({ where: { occurrenceId: restrictedBooking.id } });
       await db.scheduleOccurrence.delete({ where: { id: restrictedBooking.id } });

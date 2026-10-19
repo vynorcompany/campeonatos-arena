@@ -404,7 +404,7 @@ export function NavLinks({ canManageUsers, canManageFinancialSettings, visibleMo
                   <div className={viewStyles.nav_parent_row}>
                     {item.children?.length ? (
                       <div className={viewStyles.nav_expandable_row}>
-                        <Link prefetch={false} href={item.href} className={cx(`${viewStyles.nav_link_nav_link_destination}${isActive ? " " + viewStyles.nav_link_active : ""}`)}>
+                        <Link prefetch={false} href={item.href === "/torneios" && !canSee("tournaments") ? "/jogos" : item.href} className={cx(`${viewStyles.nav_link_nav_link_destination}${isActive ? " " + viewStyles.nav_link_active : ""}`)}>
                           <span className={viewStyles.nav_icon} aria-hidden="true">{item.icon ? <NavIcon name={item.icon} /> : null}</span>
                           <span>{item.label}</span>{item.badge ? <b className="nav-unread-badge tw:ml-auto tw:min-w-[17px] tw:rounded-full tw:bg-[#d83932] tw:px-[5px] tw:py-px tw:text-center tw:text-[.62rem] tw:leading-[1.45] tw:text-white" role="status" aria-label={`${item.badge} mensagens não lidas`}>{item.badge > 99 ? "99+" : item.badge}</b> : null}
                         </Link>

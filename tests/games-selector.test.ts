@@ -36,10 +36,15 @@ test("games routes the selected category to its workspace", async () => {
   assert.match(source, /Abrir categoria/);
 });
 
-test("games requires the same tournament permission as its score workspace", async () => {
+test("games permits match consultation without granting tournament management", async () => {
   const source = await readSource("src", "app", "(app)", "jogos", "page.tsx");
 
-  assert.match(source, /requireModuleView\("tournaments"\)/);
+  assert.match(source, /canViewModule\("tournaments"/);
+  assert.match(source, /canViewModule\("matches"/);
+  assert.match(source, /if \(!canManageTournaments && !canReadMatches\) notFound\(\)/);
+  assert.match(source, /tournament: \{ arenaId: auth\.arenaId \}/);
+  assert.match(source, /Programação e placares/);
+  assert.match(source, /canManageTournaments \? <Link href=\{`\/torneios\/\$\{selectedTournament\.id\}`\}/);
   assert.doesNotMatch(source, /requireModuleView\("matches"\)/);
 });
 
@@ -61,4 +66,9 @@ test("tournaments keeps only games and rankings as sidebar children", async () =
   assert.match(tournamentChildren, /href: "\/torneios\/rankings", label: "Rankings"/);
   assert.doesNotMatch(tournamentChildren, /label: "Duplas"/);
   assert.doesNotMatch(tournamentChildren, /label: "Grupos"/);
+});
+
+test("tournament parent opens games for a matches-only profile", async () => {
+  const source = await readSource("src", "components", "layout", "nav-links.tsx");
+  assert.match(source, /item\.href === "\/torneios" && !canSee\("tournaments"\) \? "\/jogos" : item\.href/);
 });
