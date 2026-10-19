@@ -10,7 +10,7 @@ test("sidebar exposes compact workspaces, a top user menu and separate settings"
   const navigation = readFileSync(resolve(process.cwd(), "src/components/layout/nav-links.tsx"), "utf8");
   const shell = readFileSync(resolve(process.cwd(), "src/components/layout/app-shell.tsx"), "utf8");
   assert.match(navigation, /label: "Dashboard"/);
-  assert.match(navigation, /label: "Torneios"/);
+  assert.match(navigation, /label: canSee\("tournaments"\) \? "Torneios" : "Jogos"/);
   assert.match(navigation, /label: "Grade de Horários"/);
   assert.doesNotMatch(navigation, /href: "\/agenda\/configuracao", label: "Configuração"/);
   assert.match(navigation, /label: "Tela da TV"/);
@@ -71,7 +71,8 @@ test("financial configuration and report routes have dedicated base pages", () =
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/finance.ts"), "utf8");
 
   assert.match(financeConfig, /requireModuleView\("finance"\)/);
-  assert.match(reports, /requireModuleView\("finance"\)/);
+  assert.match(reports, /requireFinanceView\("reports"\)/);
+  assert.match(reportsHome, /requireFinanceView\("reports"\)/);
   assert.match(reportsHome, /items=\{reportLinks\}/);
   assert.ok(reportLinks.some((link) => link.label === "Relatório de Planos"));
   assert.ok(reportLinks.some((link) => link.label === "Relatório de Reservas"));

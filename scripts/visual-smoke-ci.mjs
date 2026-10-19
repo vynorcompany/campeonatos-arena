@@ -1653,10 +1653,10 @@ async function main() {
         const matchBody = await visit(`/jogos?tournamentId=${league.id}`, viewport, arenaA.id, `${viewport.name}-jogos-somente-leitura`, restrictedToken);
         if (!matchBody.includes("Jogo consulta GOAL") || !matchBody.includes("2 × 0") || !matchBody.includes("6–2 · 6–3")) throw new Error(`${viewport.name}: Jogos não exibiu partida e placar para permissão somente leitura.`);
         const matchControls = await send("Runtime.evaluate", {
-          expression: "({manage:Boolean(document.querySelector('a[href^=\"/torneios/\"]')),create:document.body.innerText.includes('Novo evento'),tournamentLink:[...document.querySelectorAll('nav[aria-label=\"Principal\"] a')].find((link)=>link.textContent?.trim()==='Torneios')?.getAttribute('href'),width:innerWidth,scrollWidth:document.documentElement.scrollWidth})",
+          expression: "({manage:Boolean(document.querySelector('a[href^=\"/torneios/\"]')),create:document.body.innerText.includes('Novo evento'),gamesLink:[...document.querySelectorAll('nav[aria-label=\"Principal\"] a')].find((link)=>link.textContent?.trim()==='Jogos')?.getAttribute('href'),width:innerWidth,scrollWidth:document.documentElement.scrollWidth})",
           returnByValue: true,
         });
-        if (matchControls.result.value?.manage || matchControls.result.value?.create || matchControls.result.value?.tournamentLink !== "/jogos" || matchControls.result.value?.scrollWidth > matchControls.result.value?.width + 1) throw new Error(`${viewport.name}: Jogos exibiu gestão, menu inválido ou ficou cortado: ${JSON.stringify(matchControls.result.value)}`);
+        if (matchControls.result.value?.manage || matchControls.result.value?.create || matchControls.result.value?.gamesLink !== "/jogos" || matchControls.result.value?.scrollWidth > matchControls.result.value?.width + 1) throw new Error(`${viewport.name}: Jogos exibiu gestão, menu inválido ou ficou cortado: ${JSON.stringify(matchControls.result.value)}`);
         const matchShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
         await writeFile(`${outputDir}/${viewport.name}-jogos-somente-leitura.png`, Buffer.from(matchShot.data, "base64"));
       }
@@ -1669,13 +1669,18 @@ async function main() {
       const financeCategoryResponse = await fetch(`${baseUrl}/financeiro/configuracoes/categorias-financeiras`, { headers: { Cookie: cookie(arenaA.id, restrictedToken) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
       await financeCategoryResponse.body?.cancel();
       if (financeCategoryResponse.status !== 404) throw new Error(`Perfil limitado acessou categorias financeiras (HTTP ${financeCategoryResponse.status}).`);
+      for (const path of ["/financeiro/contas-a-pagar", "/financeiro/folha", "/relatorios", "/relatorios/caixa", "/financeiro/planos"]) {
+        const response = await fetch(`${baseUrl}${path}`, { headers: { Cookie: cookie(arenaA.id, restrictedToken) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
+        await response.body?.cancel();
+        if (response.status !== 404) throw new Error(`Perfil limitado acessou ${path} sem permissão (HTTP ${response.status}).`);
+      }
       for (const viewport of viewports) {
         await visit("/financeiro/contas-a-receber", viewport, arenaA.id, `${viewport.name}-financeiro-somente-leitura`, restrictedToken);
         const financeControls = await send("Runtime.evaluate", {
-          expression: "({settings:Boolean(document.querySelector('a[href=\"/financeiro/configuracoes\"]')),create:[...document.querySelectorAll('button')].some(button=>button.textContent?.trim()==='Novo lançamento'),settle:[...document.querySelectorAll('button')].some(button=>button.textContent?.trim()==='Receber'),width:innerWidth,scrollWidth:document.documentElement.scrollWidth})",
+          expression: "({settings:Boolean(document.querySelector('a[href=\"/financeiro/configuracoes\"]')),payable:Boolean(document.querySelector('a[href=\"/financeiro/contas-a-pagar\"]')),payroll:Boolean(document.querySelector('a[href=\"/financeiro/folha\"]')),reports:Boolean(document.querySelector('a[href=\"/relatorios\"]')),create:[...document.querySelectorAll('button')].some(button=>button.textContent?.trim()==='Novo lançamento'),settle:[...document.querySelectorAll('button')].some(button=>button.textContent?.trim()==='Receber'),width:innerWidth,scrollWidth:document.documentElement.scrollWidth})",
           returnByValue: true,
         });
-        if (financeControls.result.value?.settings || financeControls.result.value?.create || financeControls.result.value?.settle || financeControls.result.value?.scrollWidth > financeControls.result.value?.width + 1) {
+        if (financeControls.result.value?.settings || financeControls.result.value?.payable || financeControls.result.value?.payroll || financeControls.result.value?.reports || financeControls.result.value?.create || financeControls.result.value?.settle || financeControls.result.value?.scrollWidth > financeControls.result.value?.width + 1) {
           throw new Error(`${viewport.name}: perfil financeiro somente leitura exibiu controles de edição ou ficou cortado: ${JSON.stringify(financeControls.result.value)}`);
         }
         const financeShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });

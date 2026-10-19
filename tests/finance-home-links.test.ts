@@ -24,3 +24,7 @@ test("perfil somente estoque consegue abrir o início sem ver rotinas financeira
   assert.deepEqual(hrefs({ arenaRole: "STAFF", systemRole: "VIEWER", viewPermissions: ["stock"], editPermissions: [] }), ["/pdv"]);
   assert.deepEqual(hrefs({ arenaRole: "STAFF", systemRole: "VIEWER", viewPermissions: [], editPermissions: [] }), []);
 });
+
+test("permissão somente de recebíveis não expõe folha nem contas a pagar", () => {
+  assert.deepEqual(hrefs({ arenaRole: "STAFF", systemRole: "VIEWER", viewPermissions: ["finance:receivable:view"], editPermissions: [] }), ["/financeiro/contas-a-receber"]);
+});

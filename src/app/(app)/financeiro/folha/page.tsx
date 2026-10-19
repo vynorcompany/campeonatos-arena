@@ -1,10 +1,10 @@
 import { EmployeePayrollWorkspace } from "@/components/finance/employee-payroll-workspace";
-import { requireModuleView } from "@/lib/auth/guards";
+import { requireFinanceView } from "@/lib/auth/guards";
 import { canPerformPermission } from "@/lib/permissions";
 import { withArenaTransaction } from "@/lib/rls";
 
 export default async function PayrollPage({ searchParams }: { searchParams?: Promise<Record<string, string | undefined>> }) {
-  const auth = await requireModuleView("finance");
+  const auth = await requireFinanceView("payable");
   const requested = (await searchParams)?.mes;
   const current = new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Sao_Paulo" }).format(new Date()).slice(0, 7);
   const referenceMonth = requested && /^(?:20|21)\d{2}-(?:0[1-9]|1[0-2])$/.test(requested) ? requested : current;

@@ -14,7 +14,7 @@ async function readSource(...segments: string[]) {
 test("tournament sidebar keeps active events and rankings children", async () => {
   const source = await readSource("src", "components", "layout", "nav-links.tsx");
 
-  assert.match(source, /href: "\/jogos", label: "Eventos ativos"/);
+  assert.match(source, /href: "\/jogos", label: canSee\("tournaments"\) \? "Eventos ativos" : "Programação e placares"/);
   assert.match(source, /href: "\/torneios\/rankings", label: "Rankings"/);
   assert.doesNotMatch(source, /label: "Duplas"/);
   assert.doesNotMatch(source, /label: "Grupos"/);
