@@ -147,7 +147,7 @@ export function CategoryRegistrationPanel({
                             <strong>{pair.playerNames.length ? pair.playerNames.join(" / ") : pair.name}</strong>
                           </div>
                           {canRemovePair ? (
-                            <form action={removeCategoryPairAction}>
+                            <SafeActionForm action={removeCategoryPairAction} successMessage="Dupla removida." confirmKeyword="REMOVER" confirmPrompt={`Remover a dupla ${pair.playerNames.length ? pair.playerNames.join(" / ") : pair.name} desta categoria? Digite REMOVER para confirmar.`}>
                               <input
                                 type="hidden"
                                 name="pairId"
@@ -158,7 +158,7 @@ export function CategoryRegistrationPanel({
                                 pendingLabel="Removendo..."
                                 className={viewStyles.button_button_danger}
                               />
-                            </form>
+                            </SafeActionForm>
                           ) : null}
                           {canReplacePairPlayer && availableAthletes.length ? (
                             <div className={viewStyles.stack_xs_league_registration_replacements}>

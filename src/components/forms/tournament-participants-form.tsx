@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useFormState } from "react-dom";
 import { SubmitButton } from "@/components/forms/submit-button";
+import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { canDeleteTournamentRegistration, canEditManualTournamentRegistration } from "@/lib/tournaments/registration-deletion";
 import {
   createManualTournamentRegistrationAction,
@@ -169,10 +170,10 @@ export function TournamentParticipantsForm(props: TournamentParticipantsFormProp
                       <span className={cx(`${viewStyles.player_status_pill}${paid ? "" : " " + viewStyles.player_status_pill_inactive}`)}>
                         Situacao: {getConfirmationLabel(registration.paymentStatus)}
                       </span>
-                      {canDelete ? <form action={deleteTournamentRegistrationAction}>
+                      {canDelete ? <SafeActionForm action={deleteTournamentRegistrationAction} successMessage="Inscrição excluída." confirmKeyword="EXCLUIR" confirmPrompt={`Excluir a inscrição de ${registration.leadName} / ${registration.partnerName}? Digite EXCLUIR para confirmar.`}>
                         <input type="hidden" name="registrationId" value={registration.id} />
                         <SubmitButton label="Excluir participante" pendingLabel="Excluindo..." className={viewStyles.button} />
-                      </form> : null}
+                      </SafeActionForm> : null}
                       {canEdit ? <button type="button" className={viewStyles.button_button_primary} onClick={() => setEditingRegistrationId((current) => current === registration.id ? null : registration.id)}>
                         {editingRegistrationId === registration.id ? "Fechar edicao" : "Editar inscricao"}
                       </button> : registration.paymentStatus === "REVIEW" ? <Link className={viewStyles.button} href="/relatorios/pagamentos-online">Ver revisão do pagamento</Link> : <span className={viewStyles.muted}>{registration.paymentStatus === "PAID" ? "Edição bloqueada para preservar a dupla e os jogos" : paymentLocked ? "Pagamento estornado" : "Cobrança online protegida"}</span>}

@@ -68,7 +68,7 @@ export default async function AgencyArenasPage() {
                 <SubmitButton label="Salvar arena" pendingLabel="Salvando..." className={viewStyles.button_button_primary} />
               </SafeActionForm>
 
-              <SafeActionForm action={deleteAgencyArenaAction} className={viewStyles.agency_danger_form} successMessage="Arena removida.">
+              <SafeActionForm action={deleteAgencyArenaAction} className={viewStyles.agency_danger_form} successMessage="Arena removida." confirmKeyword="EXCLUIR" confirmPrompt={`Excluir definitivamente a arena ${arena.name}? Digite EXCLUIR para confirmar.`}>
                 <input type="hidden" name="arenaId" value={arena.id} />
                 <button
                   type="submit"
