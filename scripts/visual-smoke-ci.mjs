@@ -1669,11 +1669,14 @@ async function main() {
       const financeCategoryResponse = await fetch(`${baseUrl}/financeiro/configuracoes/categorias-financeiras`, { headers: { Cookie: cookie(arenaA.id, restrictedToken) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
       await financeCategoryResponse.body?.cancel();
       if (financeCategoryResponse.status !== 404) throw new Error(`Perfil limitado acessou categorias financeiras (HTTP ${financeCategoryResponse.status}).`);
-      for (const path of ["/financeiro/contas-a-pagar", "/financeiro/folha", "/relatorios", "/relatorios/caixa", "/financeiro/planos"]) {
+      for (const path of ["/financeiro/contas-a-pagar", "/financeiro/folha", "/relatorios", "/relatorios/caixa"]) {
         const response = await fetch(`${baseUrl}${path}`, { headers: { Cookie: cookie(arenaA.id, restrictedToken) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
         await response.body?.cancel();
         if (response.status !== 404) throw new Error(`Perfil limitado acessou ${path} sem permissão (HTTP ${response.status}).`);
       }
+      const plansResponse = await fetch(`${baseUrl}/financeiro/planos`, { headers: { Cookie: cookie(arenaA.id, restrictedToken) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
+      await plansResponse.body?.cancel();
+      if (plansResponse.status !== 200) throw new Error(`Perfil de recebíveis não conseguiu consultar os planos (HTTP ${plansResponse.status}).`);
       for (const viewport of viewports) {
         await visit("/financeiro/contas-a-receber", viewport, arenaA.id, `${viewport.name}-financeiro-somente-leitura`, restrictedToken);
         const financeControls = await send("Runtime.evaluate", {
