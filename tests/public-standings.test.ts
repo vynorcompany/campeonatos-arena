@@ -372,7 +372,7 @@ test("category visibility is persisted and wired through its guarded admin actio
     "category public visibility migration is missing",
   );
   assert.match(validator, /updateCategoryPublicVisibilitySchema/);
-  assert.match(action, /requireModuleEdit\("tournaments"\)/);
+  assert.match(action, /requirePermission\("tournaments:publish"\)/);
   assert.match(action, /updateCategoryPublicVisibilityAction/);
   assert.match(service, /export async function updateCategoryPublicVisibility/);
   assert.match(form, /name="isPublic"/);

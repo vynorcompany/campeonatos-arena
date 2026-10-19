@@ -231,7 +231,7 @@ test("draft category pairs can be removed through a guarded service and action",
   );
   assert.match(
     actions,
-    /export async function removeCategoryPairAction\([^]*requireModuleEdit\("tournaments"\)/,
+    /export async function removeCategoryPairAction\([^]*requirePermission\("tournaments:manage"\)/,
   );
   assert.match(registrationPanel, /action=\{removeCategoryPairAction\}/);
   assert.match(
@@ -327,7 +327,7 @@ test("category schedule and availability are wired through schema, service, acti
   );
   assert.match(
     actions,
-    /export async function updateCategoryMatchScheduleAction\([^]*requireModuleEdit\("tournaments"\)/,
+    /export async function updateCategoryMatchScheduleAction\([^]*requirePermission\("tournaments:manage"\)/,
   );
   assert.match(resultsPanel, /action=\{updateCategoryMatchScheduleAction\}/);
   assert.match(resultsPanel, /label="Limpar agendamento"/);

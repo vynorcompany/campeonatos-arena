@@ -26,30 +26,41 @@ test("manual pairs reject the same athlete in both slots", () => {
   assert.match(parsed.error?.issues[0]?.message ?? "", /atletas diferentes/i);
 });
 
-test("every category competition lifecycle action requires tournament edit access", async () => {
+test("every category competition action requires its specific permission", async () => {
   const source = await readFile(actionsPath, "utf8");
-  const actionNames = [
-    "createCategoryCompetitionAction",
-    "addManualPairAction",
-    "removeCategoryPairAction",
-    "generateCategoryDrawAction",
-    "moveCategoryPairAction",
-    "publishCategoryDrawAction",
-    "reopenCategoryLeagueForEditingAction",
-    "recordCategoryMatchResultAction",
-    "updateCategoryMatchStatusAction",
-    "finishCategoryCompetitionAction",
-  ];
+  const actionPermissions: Record<string, string> = {
+    createCategoryCompetitionAction: "manage",
+    addManualPairAction: "manage",
+    removeCategoryPairAction: "manage",
+    generateCategoryDrawAction: "manage",
+    moveCategoryPairAction: "manage",
+    updateTournamentCategorySettingsAction: "manage",
+    replaceCategoryPairPlayerAction: "manage",
+    publishCategoryDrawAction: "publish",
+    recordCategoryMatchResultAction: "results",
+    recordCategoryLeagueMatchResultAction: "results",
+    resetCategoryLeagueMatchResultAction: "results",
+    reopenCategoryLeagueForEditingAction: "manage",
+    updateCategoryMatchStatusAction: "results",
+    updateCategoryMatchScheduleAction: "manage",
+    finishCategoryCompetitionAction: "manage",
+    updateCategoryPublicVisibilityAction: "publish",
+    updateLeaguePrizeAction: "manage",
+    updateLeagueCategoryAction: "manage",
+    runLeagueLifecycleAction: "manage",
+    reopenLeagueCycleAction: "manage",
+  };
 
-  for (const actionName of actionNames) {
+  for (const [actionName, permission] of Object.entries(actionPermissions)) {
     assert.match(
       source,
       new RegExp(
-        `export async function ${actionName}\\([^]*?requireModuleEdit\\(\"tournaments\"\\)`,
+        `export async function ${actionName}\\([^]*?requirePermission\\(\"tournaments:${permission}\"\\)`,
       ),
-      `${actionName} must require tournament edit access`,
+      `${actionName} must require tournaments:${permission}`,
     );
   }
+  assert.doesNotMatch(source, /requireModuleEdit\("tournaments"\)/);
 });
 
 test("manual pair eligibility is arena, activity, class and gender scoped", () => {
