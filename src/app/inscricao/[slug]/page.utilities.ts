@@ -14,7 +14,7 @@ export const viewStyles = {
   "eyebrow": sharedUtilities.eyebrow,
   "muted": sharedUtilities.muted,
   "public_tournament_tabs": [
-    "public-tournament-tabs", "tw:flex", "tw:flex-wrap", "tw:viewport-600:flex-nowrap",
+    "public-tournament-tabs", "tw:flex", "tw:flex-wrap", "tw:viewport-600:grid", "tw:viewport-600:grid-cols-2",
     "tw:gap-y-[8px]", "tw:gap-x-[8px]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]",
     "tw:border-b-[color:#dbe5f1]", "tw:pb-[12px]", "tw:viewport-600:pb-[10px]", "tw:[&_a]:inline-flex",
     "tw:[&_a]:items-center", "tw:[&_a]:min-h-[38px]", "tw:[&_a]:pt-[0]", "tw:[&_a]:pr-[14px]",
@@ -26,7 +26,8 @@ export const viewStyles = {
     "tw:[&_a:hover]:border-r-[color:var(--brand)]", "tw:[&_a:hover]:border-b-[color:var(--brand)]", "tw:[&_a:hover]:border-l-[color:var(--brand)]", "tw:[&_a:hover]:bg-[color:#edf5ff]",
     "tw:[&_a:hover]:[background-image:none]", "tw:[&_a:hover]:text-[color:var(--brand)]", "tw:[&_a.is-active]:border-t-[color:var(--brand)]", "tw:[&_a.is-active]:border-r-[color:var(--brand)]",
     "tw:[&_a.is-active]:border-b-[color:var(--brand)]", "tw:[&_a.is-active]:border-l-[color:var(--brand)]", "tw:[&_a.is-active]:bg-[color:#edf5ff]", "tw:[&_a.is-active]:[background-image:none]",
-    "tw:[&_a.is-active]:text-[color:var(--brand)]", "tw:viewport-600:[overflow-x:auto]", "tw:viewport-600:[&_a]:[flex:0_0_auto]",
+    "tw:[&_a.is-active]:text-[color:var(--brand)]", "tw:viewport-600:[&_a]:justify-center", "tw:viewport-600:[&_a]:min-w-0",
+    "tw:viewport-600:[&_a]:pr-[8px]", "tw:viewport-600:[&_a]:pl-[8px]", "tw:viewport-600:[&_a]:text-[.8rem]",
   ].join(" "),
   "section_card_public_tournament_content": [
     "section-card", "public-tournament-content", "tw:pt-[22px]", "tw:pr-[0]",

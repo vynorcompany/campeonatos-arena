@@ -968,6 +968,16 @@ async function main() {
       if (formLayout.result.value.controls.length !== 12 || formLayout.result.value.controls.some((control) => control.width < 40 || control.left < -1 || control.right > formLayout.result.value.width + 1)) {
         throw new Error(`${viewport.name}: campos da inscrição pública cortados: ${JSON.stringify(formLayout.result.value)}`);
       }
+      const tabsLayout = await send("Runtime.evaluate", {
+        expression: "(() => { const tabs = [...document.querySelectorAll('.public-tournament-tabs a')]; return { width: innerWidth, links: tabs.map(tab => { const rect = tab.getBoundingClientRect(); return { text: tab.textContent?.trim(), left: rect.left, right: rect.right, top: rect.top, width: rect.width }; }) }; })()",
+        returnByValue: true,
+      });
+      const tabRects = tabsLayout.result.value.links;
+      const rows = new Set(tabRects.map((tab) => Math.round(tab.top)));
+      if (tabRects.length !== 4 || tabRects.some((tab) => tab.width < 70 || tab.left < -1 || tab.right > viewport.width + 1) ||
+          rows.size !== (viewport.name === "desktop" ? 1 : 2)) {
+        throw new Error(`${viewport.name}: abas públicas cortadas ou sem hierarquia responsiva: ${JSON.stringify(tabsLayout.result.value)}`);
+      }
       for (const tab of ["inscritos", "chaveamento", "jogos"]) {
         const tabBody = await visit(`${publicPath}?tab=${tab}`, viewport, arenaA.id, `${viewport.name}-inscricao-publica-${tab}`);
         if (!tabBody.includes("Torneio público GOAL") || (tab === "inscritos" && !tabBody.includes("Categoria GOAL"))) throw new Error(`${viewport.name}: aba pública ${tab} incompleta.`);

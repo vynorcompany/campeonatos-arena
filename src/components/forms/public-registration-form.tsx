@@ -72,7 +72,7 @@ export function PublicRegistrationForm({
           {arenaLogoUrl ? <img src={arenaLogoUrl} alt={`Logo da arena ${arenaName}`} /> : <span>{arenaName.slice(0, 1)}</span>}
           <strong>{arenaName}</strong>
         </div>
-        <p className={viewStyles.public_reg_kicker}>Fluxo de inscricao</p>
+        <p className={viewStyles.public_reg_kicker}>Fluxo de inscrição</p>
         <div className={viewStyles.public_reg_steps}>
           <div className={viewStyles.public_reg_step_public_reg_step_done}>
             <span>1</span>
@@ -95,7 +95,7 @@ export function PublicRegistrationForm({
 
         <section className={viewStyles.public_reg_card}>
           <header className={viewStyles.public_reg_card_head}>
-            <h3>Configuracao da inscricao</h3>
+            <h3>Configuração da inscrição</h3>
             <p>Selecione a categoria e a forma de pagamento. Se houver cobrança, a vaga ficará reservada por 1 hora e será confirmada após a aprovação.</p>
           </header>
           <div className={viewStyles.public_reg_grid_public_reg_grid_2}>
@@ -113,7 +113,7 @@ export function PublicRegistrationForm({
               <label htmlFor="paymentMethod">Pagamento</label>
               <select id="paymentMethod" name="paymentMethod" className={viewStyles.public_reg_select} defaultValue="PIX" required>
                 <option value="PIX">PIX</option>
-                <option value="CARD">Cartao</option>
+                <option value="CARD">Cartão</option>
               </select>
             </div>
           </div>
@@ -122,7 +122,7 @@ export function PublicRegistrationForm({
         <section className={viewStyles.public_reg_card}>
           <header className={viewStyles.public_reg_card_head}>
             <h3>Atleta 1</h3>
-            <p>Dados do titular da inscricao.</p>
+            <p>Dados do titular da inscrição.</p>
           </header>
           <div className={viewStyles.public_reg_grid_public_reg_grid_2}>
             <div className={viewStyles.field}><label htmlFor="leadName">Nome</label><input id="leadName" name="leadName" required /></div>
@@ -153,7 +153,7 @@ export function PublicRegistrationForm({
         {state?.error ? <p className={viewStyles.form_error_form_full}>{state.error}</p> : null}
         {state?.success ? (
           <div className={viewStyles.form_success_form_full_reveal_up}>
-            {state.success} Referencia: <strong>{state.paymentReference}</strong> · Valor: <strong>R$ {((state.amountCents ?? 0) / 100).toFixed(2)}</strong>
+            {state.success} Referência: <strong>{state.paymentReference}</strong> · Valor: <strong>R$ {((state.amountCents ?? 0) / 100).toFixed(2)}</strong>
             <br />Status: <strong>{state.registrationId ? "Pagamento pendente" : "Confirmado"}</strong>
           </div>
         ) : null}
