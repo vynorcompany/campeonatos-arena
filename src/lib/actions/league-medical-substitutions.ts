@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireModuleEdit } from "@/lib/auth/guards";
+import { requirePermission } from "@/lib/auth/guards";
 import { requirePublicPlayerAuth } from "@/lib/auth/player-session";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
@@ -36,7 +36,7 @@ export async function requestLeagueMedicalSubstitutionAction(formData: FormData)
 export async function reviewLeagueMedicalSubstitutionAction(formData: FormData) {
   const parsed = z.object({ requestId: z.string().trim().min(1), decision: z.enum(["APPROVED", "REJECTED"]), reviewNotes: z.string().trim().max(1200).optional() }).safeParse({ requestId: formData.get("requestId"), decision: formData.get("decision"), reviewNotes: formData.get("reviewNotes") });
   if (!parsed.success) throw new Error("Dados da análise inválidos.");
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
   const request = await prisma.leagueMedicalSubstitutionRequest.findFirst({
     where: { id: parsed.data.requestId, status: "PENDING", pair: { competition: { category: { tournament: { arenaId: auth.arenaId } } } } },
     include: {

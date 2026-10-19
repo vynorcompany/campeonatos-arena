@@ -8,7 +8,7 @@ import { resolveRankingPeriod } from "@/lib/ranking/period";
 import { isPrismaUnknownFieldError } from "@/lib/prisma-errors";
 import { getAthleteDeletionRestriction } from "@/lib/athlete-management";
 import { toPersistentPlayerPhoto } from "@/lib/uploads";
-import { requireModuleEdit, requireTournamentMatchEdit } from "@/lib/auth/guards";
+import { requireModuleEdit, requirePermission, requireTournamentMatchEdit } from "@/lib/auth/guards";
 import { normalizeBrazilianPhone } from "@/lib/phone";
 import {
   archivePlayerSchema,
@@ -535,7 +535,7 @@ export async function resetPlayerRankingAction() {
 }
 
 export async function updateTournamentEntryPointsAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
   const parsed = updateTournamentEntryPointsSchema.safeParse({
     entryId: formData.get("entryId"),
     points: formData.get("points")
@@ -565,7 +565,7 @@ export async function updateTournamentEntryPointsAction(formData: FormData) {
 }
 
 export async function createTournamentAction(_: ActionState, formData: FormData): Promise<ActionState> {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
   const parsed = createTournamentSchema.safeParse({
     creationMode: formData.get("creationMode"),
     name: formData.get("name"),
@@ -657,7 +657,7 @@ export async function createTournamentAction(_: ActionState, formData: FormData)
 }
 
 export async function createTournamentCategoryAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
   const tournamentId = String(formData.get("tournamentId") ?? "");
   const name = String(formData.get("name") ?? "").trim();
   if (!tournamentId || name.length < 3) throw new Error("Informe um nome de categoria com pelo menos 3 caracteres.");
@@ -683,7 +683,7 @@ export async function createTournamentCategoryAction(formData: FormData) {
 }
 
 export async function finishTournamentAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
   const tournamentId = String(formData.get("tournamentId") ?? "");
 
   if (!tournamentId) {
@@ -695,7 +695,7 @@ export async function finishTournamentAction(formData: FormData) {
 }
 
 export async function reopenTournamentAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
   const tournamentId = String(formData.get("tournamentId") ?? "");
 
   if (!tournamentId) {
@@ -708,7 +708,7 @@ export async function reopenTournamentAction(formData: FormData) {
 }
 
 export async function updateTournamentAction(_: ActionState, formData: FormData): Promise<ActionState> {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
 
   if (!formData.has("publicSlug")) {
     const eventParsed = updateTournamentEventSchema.safeParse({
@@ -825,7 +825,7 @@ export async function updateTournamentAction(_: ActionState, formData: FormData)
 }
 
 export async function createRankingProfileAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:rankings");
   const parsed = createRankingProfileSchema.safeParse({
     name: formData.get("name"),
     description: formData.get("description"),
@@ -879,7 +879,7 @@ export async function createRankingProfileAction(formData: FormData) {
 }
 
 export async function updateRankingProfileAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:rankings");
   const parsed = updateRankingProfileSchema.safeParse({
     rankingId: formData.get("rankingId"),
     name: formData.get("name"),
@@ -1039,7 +1039,7 @@ export async function updateRankingProfileAction(formData: FormData) {
 }
 
 export async function updateRankingPointsAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:rankings");
   const parsed = updateRankingPointsSchema.safeParse({
     rankingId: formData.get("rankingId"),
     championPoints: formData.get("championPoints"),
@@ -1100,7 +1100,7 @@ export async function updateRankingConfigurationAction(
   _: RankingActionState,
   formData: FormData,
 ): Promise<RankingActionState> {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:rankings");
   const parsed = updateRankingConfigurationSchema.safeParse({
     rankingId: formData.get("rankingId"),
     name: formData.get("name"),
@@ -1271,7 +1271,7 @@ export async function updateRankingConfigurationAction(
 }
 
 export async function resetRankingPointsAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:rankings");
   const rankingId = String(formData.get("rankingId") ?? "");
 
   if (!rankingId) {
@@ -1355,7 +1355,7 @@ export async function resetRankingPointsAction(formData: FormData) {
 }
 
 export async function createRankingCycleAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:rankings");
   const parsed = createRankingCycleSchema.safeParse({
     rankingId: formData.get("rankingId"),
     label: formData.get("label"),
@@ -1397,7 +1397,7 @@ export async function createRankingCycleAction(formData: FormData) {
 }
 
 export async function deleteRankingProfileAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:rankings");
   const parsed = deleteRankingProfileSchema.safeParse({
     rankingId: formData.get("rankingId")
   });
@@ -1417,7 +1417,7 @@ export async function deleteRankingProfileAction(formData: FormData) {
 }
 
 export async function deleteTournamentAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
   const tournamentId = String(formData.get("tournamentId") ?? "");
 
   if (!tournamentId) {
@@ -1429,7 +1429,7 @@ export async function deleteTournamentAction(formData: FormData) {
 }
 
 export async function syncEntriesAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
   const parsed = updateTournamentParticipantsSchema.safeParse({
     tournamentId: formData.get("tournamentId"),
     playerIds: formData.getAll("playerIds").map(String)
@@ -1741,7 +1741,7 @@ export async function updateMatchTvVisibilityAction(formData: FormData) {
 }
 
 export async function updateTournamentRegistrationPhaseAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
   const tournamentId = String(formData.get("tournamentId") ?? "");
   const registrationPhase = String(formData.get("registrationPhase") ?? "");
   const allowed = new Set(["REGISTRATIONS", "EDITING", "LIVE", "FINISHED"]);
@@ -1773,7 +1773,7 @@ export async function updateTournamentRegistrationPhaseAction(formData: FormData
 }
 
 export async function generateCategoryBracketAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
   const tournamentId = String(formData.get("tournamentId") ?? "");
   const categoryId = String(formData.get("categoryId") ?? "");
 
@@ -1902,7 +1902,7 @@ export async function updateCategoryBracketMatchScheduleAction(formData: FormDat
 }
 
 export async function updateTournamentCategoryFormatAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
   const tournamentId = String(formData.get("tournamentId") ?? "");
   const categoryId = String(formData.get("categoryId") ?? "");
   const groupCount = Number(formData.get("groupCount") ?? 0);
@@ -1936,7 +1936,7 @@ export async function updateTournamentCategoryFormatAction(formData: FormData) {
 }
 
 export async function updateTournamentStatusAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
   const tournamentId = String(formData.get("tournamentId") ?? "");
   const status = String(formData.get("status") ?? "");
   const allowed = new Set(["DRAFT", "READY_FOR_DRAW", "GROUPS_DEFINED", "MATCHES_DEFINED", "FINISHED"]);
@@ -1962,7 +1962,7 @@ export async function updateTournamentStatusAction(formData: FormData) {
 }
 
 export async function createManualTournamentRegistrationAction(_: ActionState, formData: FormData): Promise<ActionState> {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
   const parsed = createManualTournamentRegistrationSchema.safeParse({
     tournamentId: formData.get("tournamentId"),
     categoryId: formData.get("categoryId"),
@@ -2051,7 +2051,7 @@ export async function createManualTournamentRegistrationAction(_: ActionState, f
 }
 
 export async function deleteTournamentRegistrationAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
   const registrationId = String(formData.get("registrationId") ?? "");
 
   if (!registrationId) {
@@ -2086,7 +2086,7 @@ export async function updateTournamentRegistrationAction(
     return { error: "Dados invalidos.", success: null };
   }
 
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
   const parsed = updateManualTournamentRegistrationSchema.safeParse({
     registrationId: formData.get("registrationId"),
     tournamentId: formData.get("tournamentId"),

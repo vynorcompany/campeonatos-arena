@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireModuleEdit } from "@/lib/auth/guards";
+import { requirePermission } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { closeLeagueCycleManually, reopenEmptyLeagueCycle } from "@/lib/league/lifecycle";
 import { leagueReferenceMonth } from "@/lib/league/reference-month";
@@ -58,7 +58,7 @@ function refreshCategoryCompetitionRoutes() {
 }
 
 export async function createCategoryCompetitionAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
   const parsed = createCategoryCompetitionSchema.safeParse({
     categoryId: formData.get("categoryId"),
     class: formData.get("class"),
@@ -78,7 +78,7 @@ export async function createCategoryCompetitionAction(formData: FormData) {
 }
 
 export async function addManualPairAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
   const parsed = addManualPairSchema.safeParse({
     competitionId: formData.get("competitionId"),
     firstPlayerId: formData.get("firstPlayerId"),
@@ -99,7 +99,7 @@ export async function addManualPairAction(formData: FormData) {
 }
 
 export async function removeCategoryPairAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
   const parsed = removeCategoryPairSchema.safeParse({
     pairId: formData.get("pairId"),
   });
@@ -113,7 +113,7 @@ export async function removeCategoryPairAction(formData: FormData) {
 }
 
 export async function generateCategoryDrawAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
   const parsed = generateCategoryDrawSchema.safeParse({
     competitionId: formData.get("competitionId"),
   });
@@ -130,7 +130,7 @@ export async function generateCategoryDrawAction(formData: FormData) {
 }
 
 export async function moveCategoryPairAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
   const parsed = moveCategoryPairSchema.safeParse({
     pairId: formData.get("pairId"),
     targetGroupId: formData.get("targetGroupId"),
@@ -149,7 +149,7 @@ export async function moveCategoryPairAction(formData: FormData) {
 }
 
 export async function updateTournamentCategorySettingsAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
   const categoryId = String(formData.get("categoryId") ?? "");
   const maxRegistrations = Number(formData.get("maxRegistrations") ?? "");
   if (!categoryId || !Number.isInteger(maxRegistrations) || maxRegistrations < 0) {
@@ -196,7 +196,7 @@ export async function updateTournamentCategorySettingsAction(formData: FormData)
 }
 
 export async function replaceCategoryPairPlayerAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
   const parsed = replaceCategoryPairPlayerSchema.safeParse({
     pairId: formData.get("pairId"),
     previousPlayerId: formData.get("previousPlayerId"),
@@ -212,7 +212,7 @@ export async function replaceCategoryPairPlayerAction(formData: FormData) {
 }
 
 export async function publishCategoryDrawAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:publish");
   const parsed = publishCategoryDrawSchema.safeParse({
     competitionId: formData.get("competitionId"),
   });
@@ -229,7 +229,7 @@ export async function publishCategoryDrawAction(formData: FormData) {
 }
 
 export async function recordCategoryMatchResultAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:results");
   const parsed = recordCategoryMatchResultSchema.safeParse({
     matchId: formData.get("matchId"),
     homeScore: formData.get("homeScore"),
@@ -253,7 +253,7 @@ export async function recordCategoryLeagueMatchResultAction(
   _: LeagueMatchResultActionState,
   formData: FormData,
 ): Promise<LeagueMatchResultActionState> {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:results");
   const input = parseLeagueMatchResultInput(formData);
   if ("success" in input) {
     return input;
@@ -270,7 +270,7 @@ export async function recordCategoryLeagueMatchResultAction(
 }
 
 export async function resetCategoryLeagueMatchResultAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:results");
   const parsed = resetCategoryLeagueMatchResultSchema.safeParse({
     matchId: formData.get("matchId"),
   });
@@ -282,7 +282,7 @@ export async function resetCategoryLeagueMatchResultAction(formData: FormData) {
 }
 
 export async function reopenCategoryLeagueForEditingAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
   const parsed = publishCategoryDrawSchema.safeParse({ competitionId: formData.get("competitionId") });
   if (!parsed.success) throw new Error(invalidInputMessage(parsed.error));
   const result = await reopenCategoryLeagueForEditing(auth.arenaId, parsed.data.competitionId);
@@ -291,7 +291,7 @@ export async function reopenCategoryLeagueForEditingAction(formData: FormData) {
 }
 
 export async function updateCategoryMatchStatusAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:results");
   const parsed = updateCategoryMatchStatusSchema.safeParse({
     matchId: formData.get("matchId"),
     status: formData.get("status"),
@@ -310,7 +310,7 @@ export async function updateCategoryMatchStatusAction(formData: FormData) {
 }
 
 export async function updateCategoryMatchScheduleAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
   const parsed = updateCategoryMatchScheduleSchema.safeParse({
     matchId: formData.get("matchId"),
     scheduledDate: formData.get("scheduledDate"),
@@ -333,7 +333,7 @@ export async function updateCategoryMatchScheduleAction(formData: FormData) {
 }
 
 export async function finishCategoryCompetitionAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
   const parsed = finishCategoryCompetitionSchema.safeParse({
     competitionId: formData.get("competitionId"),
   });
@@ -350,7 +350,7 @@ export async function finishCategoryCompetitionAction(formData: FormData) {
 }
 
 export async function updateCategoryPublicVisibilityAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:publish");
   const parsed = updateCategoryPublicVisibilitySchema.safeParse({
     competitionId: formData.get("competitionId"),
     isPublic: formData.get("isPublic"),
@@ -369,7 +369,7 @@ export async function updateCategoryPublicVisibilityAction(formData: FormData) {
 }
 
 export async function updateLeaguePrizeAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
   const competitionId = String(formData.get("competitionId") ?? "").trim();
   const prizeDescription = String(formData.get("prizeDescription") ?? "").trim().slice(0, 1600);
   if (!competitionId) throw new Error("Liga inválida.");
@@ -390,7 +390,7 @@ export async function updateLeaguePrizeAction(formData: FormData) {
 }
 
 export async function updateLeagueCategoryAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
   const categoryId = String(formData.get("categoryId") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim().slice(0, 120);
   const className = String(formData.get("class") ?? "").trim();
@@ -426,7 +426,7 @@ export async function updateLeagueCategoryAction(formData: FormData) {
 }
 
 export async function runLeagueLifecycleAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
   const competitionId = String(formData.get("competitionId") ?? "").trim();
   if (!competitionId) throw new Error("Liga inválida.");
   const result = await closeLeagueCycleManually(competitionId, new Date(), auth.arenaId);
@@ -435,7 +435,7 @@ export async function runLeagueLifecycleAction(formData: FormData) {
 }
 
 export async function reopenLeagueCycleAction(formData: FormData) {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
   const cycleId = String(formData.get("cycleId") ?? "").trim();
   if (!cycleId) throw new Error("Ciclo da Liga inválido.");
   const result = await reopenEmptyLeagueCycle(cycleId, auth.arenaId);
