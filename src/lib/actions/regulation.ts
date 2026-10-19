@@ -3,7 +3,7 @@
 import crypto from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireModuleEdit } from "@/lib/auth/guards";
+import { requirePermission } from "@/lib/auth/guards";
 import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 
@@ -48,7 +48,7 @@ function createPublicSlug() {
 }
 
 export async function createRegulationDocumentAction(_: RegulationActionState, formData: FormData): Promise<RegulationActionState> {
-  const auth = await requireModuleEdit("arena");
+  const auth = await requirePermission("arena:settings");
   const parsed = documentSchema.safeParse({
     content: formData.get("content")
   });

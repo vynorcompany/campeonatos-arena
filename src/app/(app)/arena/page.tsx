@@ -2,6 +2,7 @@ import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
 import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { CourtConfigurationWorkspace } from "@/components/courts/court-configuration-workspace";
 import { ArenaProfileForm } from "@/components/forms/arena-profile-form";
 import { AthletePortalSettingsForm } from "@/components/forms/athlete-portal-settings-form";
@@ -13,7 +14,8 @@ import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { connectArenaWhatsAppAction, refreshArenaWhatsAppQrAction, resetArenaWhatsAppSessionAction } from "@/lib/actions/agency";
 import { ensureArenaPermissionProfiles } from "@/lib/actions/permission-profile";
-import { requireRole, requireModuleView } from "@/lib/auth/guards";
+import { requireRole, requireModuleView, requirePermission } from "@/lib/auth/guards";
+import { canPerformPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { WhatsAppConnectionStatusWatcher } from "@/components/whatsapp/whatsapp-connection-status-watcher";
 
@@ -36,6 +38,12 @@ export default async function ArenaPage(props: ArenaPageProps) {
   const auth = await requireModuleView("arena");
   const activeSection = resolveSection(searchParams?.section);
   const userManagementAllowed = canManageUsers(auth);
+  const canViewSettings = canPerformPermission("arena:settings", auth.arenaRole, auth.systemRole, auth.viewPermissions);
+  const canViewPortal = canPerformPermission("arena:portal", auth.arenaRole, auth.systemRole, auth.viewPermissions);
+
+  if (activeSection === "data" && !canViewSettings && canViewPortal) redirect("/arena?section=portal");
+  if (activeSection === "portal") await requirePermission("arena:portal", "view");
+  if (activeSection === "data" || activeSection === "courts") await requirePermission("arena:settings", "view");
 
   if ((activeSection === "users" || activeSection === "profiles") && !userManagementAllowed) {
     await requireRole("ADMIN");
@@ -51,15 +59,15 @@ export default async function ArenaPage(props: ArenaPageProps) {
     <div className={viewStyles.stack_md}>
       <div className={viewStyles.arena_settings_layout}>
         <aside className={viewStyles.arena_settings_nav} aria-label="Seções de Dados da Arena">
-          <Link href="/arena" className={cx(activeSection === "data" ? viewStyles.arena_settings_nav_link : viewStyles.arena_settings_nav_link_2)}>
+          {canViewSettings ? <Link href="/arena" className={cx(activeSection === "data" ? viewStyles.arena_settings_nav_link : viewStyles.arena_settings_nav_link_2)}>
             Dados da Arena
-          </Link>
-          <Link href="/arena?section=portal" className={cx(activeSection === "portal" ? viewStyles.arena_settings_nav_link : viewStyles.arena_settings_nav_link_2)}>
+          </Link> : null}
+          {canViewPortal ? <Link href="/arena?section=portal" className={cx(activeSection === "portal" ? viewStyles.arena_settings_nav_link : viewStyles.arena_settings_nav_link_2)}>
             Portal do Atleta
-          </Link>
-          <Link href="/arena?section=courts" className={cx(activeSection === "courts" ? viewStyles.arena_settings_nav_link : viewStyles.arena_settings_nav_link_2)}>
+          </Link> : null}
+          {canViewSettings ? <Link href="/arena?section=courts" className={cx(activeSection === "courts" ? viewStyles.arena_settings_nav_link : viewStyles.arena_settings_nav_link_2)}>
             Quadras
-          </Link>
+          </Link> : null}
           {userManagementAllowed ? <Link href="/arena?section=integrations" className={cx(activeSection === "integrations" ? viewStyles.arena_settings_nav_link : viewStyles.arena_settings_nav_link_2)}>Integrações</Link> : null}
           {userManagementAllowed ? (
             <>

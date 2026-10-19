@@ -1,7 +1,7 @@
 import { viewStyles } from "./page.utilities";
 import { RegulationDocumentForm } from "@/components/forms/regulation-document-form";
 import { SectionCard } from "@/components/section-card";
-import { requireModuleEdit } from "@/lib/auth/guards";
+import { requirePermission } from "@/lib/auth/guards";
 import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 
@@ -18,7 +18,7 @@ function buildPublicRegulationUrl(slug: string) {
 }
 
 export default async function RegulationPage() {
-  const auth = await requireModuleEdit("arena");
+  const auth = await requirePermission("arena:settings");
   const documents = await prisma.regulationDocument.findMany({
     where: {
       arenaId: auth.arenaId
