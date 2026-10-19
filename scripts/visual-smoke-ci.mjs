@@ -241,6 +241,40 @@ async function main() {
         await visit(route, viewport, arenaA.id, label);
       }
     }
+    for (const viewport of [viewports[0], adminViewports[2]]) {
+      await visit("/agencia/arenas", viewport, arenaA.id, `${viewport.name}-agencia-exclusao-antes`);
+      const opened = await send("Runtime.evaluate", {
+        expression: "(() => { const button = [...document.querySelectorAll('button')].find(item => item.textContent?.trim() === 'Excluir arena'); button?.click(); return Boolean(button); })()",
+        returnByValue: true,
+      });
+      if (!opened.result.value) throw new Error(`${viewport.name}: exclusão da arena sem botão de confirmação.`);
+      await pause(300);
+      const confirmation = await send("Runtime.evaluate", {
+        expression: "(() => { const dialog = document.querySelector('[role=dialog]'); const rect = dialog?.getBoundingClientRect(); return { title: dialog?.textContent?.includes('Confirmar exclusão'), keyword: Boolean(dialog?.querySelector('input[name=confirmKeyword]')), left: rect?.left, right: rect?.right, top: rect?.top, bottom: rect?.bottom, width: innerWidth, height: innerHeight, overflow: Boolean(dialog && dialog.scrollWidth > dialog.clientWidth + 1) || document.documentElement.scrollWidth > innerWidth + 1 }; })()",
+        returnByValue: true,
+      });
+      const modal = confirmation.result.value;
+      if (!modal.title || !modal.keyword || modal.left < -1 || modal.right > modal.width + 1 || modal.top < -1 || modal.bottom > modal.height + 1 || modal.overflow) {
+        throw new Error(`${viewport.name}: modal padrão de exclusão cortado ou incompleto: ${JSON.stringify(modal)}`);
+      }
+      const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+      await writeFile(`${outputDir}/${viewport.name}-agencia-exclusao-modal.png`, Buffer.from(shot.data, "base64"));
+      await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+      await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+      await pause(200);
+      const closed = await send("Runtime.evaluate", { expression: "!document.querySelector('[role=dialog]')", returnByValue: true });
+      if (!closed.result.value || !await db.arena.findUnique({ where: { id: arenaA.id } })) throw new Error(`${viewport.name}: Esc não fechou a confirmação sem excluir a arena.`);
+      if (viewport.name === "mobile-320") {
+        await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('button')].find(item => item.textContent?.trim() === 'Excluir arena')?.click()" });
+        await pause(200);
+        await send("Input.dispatchMouseEvent", { type: "mousePressed", x: 2, y: 2, button: "left", clickCount: 1 });
+        await send("Input.dispatchMouseEvent", { type: "mouseReleased", x: 2, y: 2, button: "left", clickCount: 1 });
+        await pause(200);
+        const outsideClosed = await send("Runtime.evaluate", { expression: "!document.querySelector('[role=dialog]')", returnByValue: true });
+        if (!outsideClosed.result.value) throw new Error("Clicar fora não fechou o modal de exclusão.");
+      }
+    }
+    console.log("Exclusão da arena exige modal padrão legível em desktop e 320 px, e Esc cancela sem apagar.");
     const cashOpening = await visit("/pdv/caixa", viewports[0], arenaA.id, "desktop-caixa-antes-da-abertura");
     if (!cashOpening.includes("Abertura de caixa")) throw new Error("O caixa fictício não iniciou fechado.");
     await send("Runtime.evaluate", { expression: "document.querySelector('input[name=openingAmount]')?.focus()" });
