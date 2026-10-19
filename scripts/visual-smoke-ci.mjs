@@ -1630,8 +1630,10 @@ async function main() {
         await writeFile(`${outputDir}/${viewport.name}-produto-somente-leitura.png`, Buffer.from(detailShot.data, "base64"));
         await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('button')].find((button)=>button.textContent?.trim()==='Ver histórico')?.click()" });
         await pause(150);
-        const historyOpen = await send("Runtime.evaluate", { expression: "Boolean(document.querySelector('[role=dialog][aria-label=\"Histórico de estoque\"]'))", returnByValue: true });
-        if (!historyOpen.result.value) throw new Error(`${viewport.name}: histórico de estoque não abriu.`);
+        const historyOpen = await send("Runtime.evaluate", { expression: "(() => { const dialog=document.querySelector('[role=dialog][aria-label=\"Histórico de estoque\"]'); const rect=dialog?.getBoundingClientRect(); return {open:Boolean(dialog),left:rect?.left,right:rect?.right,width:rect?.width,viewport:innerWidth}; })()", returnByValue: true });
+        if (!historyOpen.result.value?.open || historyOpen.result.value.left < -1 || historyOpen.result.value.right > historyOpen.result.value.viewport + 1 || historyOpen.result.value.width > 522) throw new Error(`${viewport.name}: histórico de estoque não abriu em largura adequada: ${JSON.stringify(historyOpen.result.value)}`);
+        const historyShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+        await writeFile(`${outputDir}/${viewport.name}-historico-estoque-somente-leitura.png`, Buffer.from(historyShot.data, "base64"));
         await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
         await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
         await pause(150);
