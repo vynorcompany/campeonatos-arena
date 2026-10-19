@@ -241,6 +241,60 @@ async function main() {
         await visit(route, viewport, arenaA.id, label);
       }
     }
+    const cashOpening = await visit("/pdv/caixa", viewports[0], arenaA.id, "desktop-caixa-antes-da-abertura");
+    if (!cashOpening.includes("Abertura de caixa")) throw new Error("O caixa fictício não iniciou fechado.");
+    await send("Runtime.evaluate", { expression: "document.querySelector('input[name=openingAmount]')?.focus()" });
+    await send("Input.insertText", { text: "120,50" });
+    await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('button')].find(button => button.textContent?.trim() === 'Abrir caixa')?.click()" });
+    let cashRegister;
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      cashRegister = await db.cashRegister.findFirst({ where: { arenaId: arenaA.id, status: "OPEN", openingAmountCents: 12050 }, orderBy: { openedAt: "desc" } });
+      if (cashRegister) break;
+      await pause(250);
+    }
+    if (!cashRegister) throw new Error("A abertura de caixa pela interface não persistiu o fundo inicial.");
+    for (const viewport of adminViewports) {
+      const body = await visit("/pdv/caixa", viewport, arenaA.id, `${viewport.name}-caixa-aberto`);
+      if (!body.includes("Saldo esperado") || !/R\$\s*120,50/.test(body) || !body.includes("Registrar movimentação") || !body.includes("Fechamento de caixa")) {
+        throw new Error(`${viewport.name}: operação de caixa aberta incompleta.`);
+      }
+      const fields = await send("Runtime.evaluate", {
+        expression: "(() => { const forms = [...document.querySelectorAll('form')]; const movement = forms.find(form => form.querySelector('select[name=type]')); const closing = forms.find(form => form.querySelector('input[name=countedAmount]')); const controls = [movement?.querySelector('input[name=amount]'), closing?.querySelector('input[name=countedAmount]'), movement?.querySelector('button[type=submit]'), closing?.querySelector('button[type=submit]')]; return { width: innerWidth, controls: controls.map(control => { const rect = control?.getBoundingClientRect(); return { left: rect?.left, right: rect?.right, width: rect?.width }; }) }; })()",
+        returnByValue: true,
+      });
+      if (fields.result.value.controls.some((control) => !control.width || control.left < -1 || control.right > fields.result.value.width + 1)) {
+        throw new Error(`${viewport.name}: campos ou ações do caixa cortados: ${JSON.stringify(fields.result.value)}`);
+      }
+    }
+    await send("Runtime.evaluate", { expression: "document.querySelector('input[name=amount]')?.focus()" });
+    await send("Input.insertText", { text: "5,00" });
+    await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('form')].find(form => form.querySelector('select[name=type]'))?.querySelector('button[type=submit]')?.click()" });
+    let cashMovement;
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      cashMovement = await db.cashMovement.findFirst({ where: { arenaId: arenaA.id, registerId: cashRegister.id, type: "SUPPLY", amountCents: 500 } });
+      if (cashMovement) break;
+      await pause(250);
+    }
+    if (!cashMovement) throw new Error("A movimentação de R$ 5,00 não foi registrada pela interface.");
+    const cashAfterMovement = await visit("/pdv/caixa", adminViewports[2], arenaA.id, "mobile-320-caixa-movimentado");
+    if (!/R\$\s*125,50/.test(cashAfterMovement) || !/R\$\s*5,00/.test(cashAfterMovement)) throw new Error("O saldo do caixa não refletiu a movimentação.");
+    await send("Runtime.evaluate", { expression: "document.querySelector('input[name=countedAmount]')?.focus()" });
+    await send("Input.insertText", { text: "125,50" });
+    await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('form')].find(form => form.querySelector('input[name=countedAmount]'))?.querySelector('button[type=submit]')?.click()" });
+    let closedCash;
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      closedCash = await db.cashRegister.findUniqueOrThrow({ where: { id: cashRegister.id }, select: { status: true, countedAmountCents: true, differenceCents: true } });
+      if (closedCash.status === "CLOSED") break;
+      await pause(250);
+    }
+    if (closedCash?.status !== "CLOSED" || closedCash.countedAmountCents !== 12550 || closedCash.differenceCents !== 0) {
+      throw new Error(`O fechamento de caixa não conciliou o valor contado: ${JSON.stringify(closedCash)}`);
+    }
+    const cashClosed = await visit("/pdv/caixa", viewports[1], arenaA.id, "mobile-caixa-encerrado");
+    if (!cashClosed.includes("Encerrado") || !cashClosed.includes("Diferença") || !/R\$\s*0,00/.test(cashClosed)) throw new Error("O resumo do caixa fechado está incompleto.");
+    const cashReport = await visit("/relatorios/caixa", viewports[0], arenaA.id, "desktop-relatorio-caixa-apos-fechamento");
+    if (!/R\$\s*125,50/.test(cashReport)) throw new Error("O relatório de caixa não refletiu o fechamento fictício.");
+    console.log("Caixa fictício aberto, movimentado e fechado pela interface, com conciliação no relatório.");
     const detailProduct = await db.product.findFirstOrThrow({ where: { arenaId: arenaA.id, name: "Produto GOAL" }, select: { id: true } });
     for (const viewport of adminViewports) {
       const comanda = await visit("/comandas/goal-fixture-comanda", viewport, arenaA.id, `${viewport.name}-comanda-detalhe`);
