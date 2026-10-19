@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import { notFound } from "next/navigation";
 import { SectionCard } from "@/components/section-card";
-import { requireModuleView } from "@/lib/auth/guards";
+import { requireFinanceView } from "@/lib/auth/guards";
 import { canEditModule } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { ReservationReportCourtFilter } from "@/components/reservation-report-court-filter";
@@ -41,7 +41,7 @@ export default async function ReportPage(
 ) {
   const searchParams = await props.searchParams;
   const params = await props.params;
-  const auth = await requireModuleView("finance");
+  const auth = await requireFinanceView("reports");
   const prisma = arenaDatabase(auth.arenaId);const report = reports[params.relatorio as keyof typeof reports];if (!report) notFound();const { start, end } = range(searchParams?.inicio, searchParams?.fim);const period = { gte: start, lte: end };
   let courtFilter: React.ReactNode = null;
   let metrics: React.ReactNode = null;let supplementary: React.ReactNode = null;let headers: string[] = [];let rows: { key: string; values: string[] }[] = [];

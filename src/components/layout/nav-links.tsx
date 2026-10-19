@@ -41,6 +41,7 @@ type NavGroup = {
 type NavLinksProps = {
   canManageUsers: boolean;
   canManageFinancialSettings: boolean;
+  financeView: { receivable: boolean; payable: boolean; reports: boolean };
   canEditStock: boolean;
   visibleModules: string[];
   whatsappUnreadCount: number;
@@ -176,7 +177,7 @@ function NavIcon({ name }: { name: IconName }) {
   return <svg {...common} className={cx(name === "whatsapp" ? "nav-svg-whatsapp" : undefined)}>{paths[name]}</svg>;
 }
 
-export function NavLinks({ canManageUsers, canManageFinancialSettings, canEditStock, visibleModules, whatsappUnreadCount, pollingScope = "" }: NavLinksProps) {
+export function NavLinks({ canManageUsers, canManageFinancialSettings, financeView, canEditStock, visibleModules, whatsappUnreadCount, pollingScope = "" }: NavLinksProps) {
   const pathname = usePathname() ?? "";
   const openItemsStorageKey = "arena:sidebar-open-items";
   const canSee = (module: string) => visibleModules.includes(module);
@@ -196,10 +197,10 @@ export function NavLinks({ canManageUsers, canManageFinancialSettings, canEditSt
       links: [
         {
           href: "/torneios",
-          label: "Torneios",
+          label: canSee("tournaments") ? "Torneios" : "Jogos",
           icon: "trophy",
           children: [
-            { href: "/jogos", label: "Eventos ativos" },
+            { href: "/jogos", label: canSee("tournaments") ? "Eventos ativos" : "Programação e placares" },
             { href: "/torneios/rankings", label: "Rankings" }
           ]
         },
@@ -345,6 +346,11 @@ export function NavLinks({ canManageUsers, canManageFinancialSettings, canEditSt
   };
   const filterNavItem = (item: NavItem): NavItem | null => {
     if ((!canManageFinancialSettings && item.href === "/financeiro/configuracoes") || (!canEditStock && item.href === "/pdv/balanco")) return null;
+    if (item.href === "/financeiro/folha" || item.href === "/financeiro/contas-a-pagar") {
+      if (!financeView.payable) return null;
+    }
+    if (item.href === "/financeiro/contas-a-receber" && !financeView.receivable) return null;
+    if ((item.href === "/relatorios" || item.href.startsWith("/relatorios/")) && !financeView.reports) return null;
     const children = item.children?.map(filterNavItem).filter((child): child is NavItem => child !== null);
     if (!canSee(moduleByHref[item.href.split("?", 1)[0]] ?? "dashboard") && !children?.length) return null;
     return { ...item, children };

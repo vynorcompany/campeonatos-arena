@@ -46,6 +46,14 @@ export async function requireModuleView(module: PermissionModule) {
   return auth;
 }
 
+export async function requireFinanceView(area: "receivable" | "payable" | "reports") {
+  const auth = await requireArenaAccess();
+  if (!canPerformPermission(`finance:${area}:view`, auth.arenaRole, auth.systemRole, auth.viewPermissions)) {
+    notFound();
+  }
+  return auth;
+}
+
 export async function requireModuleEdit(module: PermissionModule) {
   const auth = await requireArenaAccess();
 

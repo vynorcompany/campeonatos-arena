@@ -1,6 +1,6 @@
 import { arenaDatabase } from "@/lib/arena-database";
 import { AccountsLedger } from "@/components/finance/accounts-ledger";
-import { requireModuleView } from "@/lib/auth/guards";
+import { requireFinanceView } from "@/lib/auth/guards";
 import { canDeleteFinancialEntries, canPerformPermission } from "@/lib/permissions";
 import { financialEntryPermission } from "@/lib/finance/entry-permissions";
 import { getAccountsLedger } from "@/lib/finance/accounts";
@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 
 export default async function AccountsPayablePage(props: { searchParams?: Promise<Record<string, string | undefined>> }) {
   const searchParams = await props.searchParams;
-  const auth = await requireModuleView("finance");
+  const auth = await requireFinanceView("payable");
   const prisma = arenaDatabase(auth.arenaId);
   const filters = { ...searchParams, includeEarlier: searchParams?.includeEarlier === "1", includeVoided: searchParams?.includeVoided === "1", dateField: searchParams?.dateField === "paidAt" ? "paidAt" as const : "dueDate" as const };
   const [entries, methods, categories, banks, plans, products, suppliers] = await Promise.all([

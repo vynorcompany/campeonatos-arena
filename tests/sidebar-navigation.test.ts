@@ -16,6 +16,7 @@ test("menus com submenu mantêm o destino clicável e um controle separado para 
   const markup = renderToStaticMarkup(React.createElement(NavLinks, {
     canManageUsers: true,
     canManageFinancialSettings: true,
+    financeView: { receivable: true, payable: true, reports: true },
     canEditStock: true,
     visibleModules: ["dashboard", "support", "pos", "tournaments", "calendar", "tv", "players", "teachers", "finance", "stock", "matches"],
     whatsappUnreadCount: 0
@@ -44,6 +45,7 @@ test("sem permissão de gestão financeira, a barra lateral não oferece configu
   const markup = renderToStaticMarkup(React.createElement(NavLinks, {
     canManageUsers: false,
     canManageFinancialSettings: false,
+    financeView: { receivable: true, payable: false, reports: false },
     canEditStock: false,
     visibleModules: ["dashboard", "finance"],
     whatsappUnreadCount: 0,
@@ -53,7 +55,7 @@ test("sem permissão de gestão financeira, a barra lateral não oferece configu
 });
 
 test("submenu de relatórios coincide com todos os destinos da página inicial e exige Financeiro", () => {
-  const props = { canManageUsers: false, canManageFinancialSettings: false, canEditStock: false, whatsappUnreadCount: 0 };
+  const props = { canManageUsers: false, canManageFinancialSettings: false, financeView: { receivable: true, payable: true, reports: true }, canEditStock: false, whatsappUnreadCount: 0 };
   const allowed = renderToStaticMarkup(React.createElement(NavLinks, { ...props, visibleModules: ["dashboard", "finance"] }));
   const restricted = renderToStaticMarkup(React.createElement(NavLinks, { ...props, visibleModules: ["dashboard"] }));
   for (const { href } of reportLinks) {
@@ -66,6 +68,7 @@ test("stock-only navigation leads to readable pages without balance creation", (
   const markup = renderToStaticMarkup(React.createElement(NavLinks, {
     canManageUsers: false,
     canManageFinancialSettings: false,
+    financeView: { receivable: false, payable: false, reports: false },
     canEditStock: false,
     visibleModules: ["dashboard", "stock"],
     whatsappUnreadCount: 0,
@@ -75,4 +78,34 @@ test("stock-only navigation leads to readable pages without balance creation", (
   assert.match(markup, /href="\/pdv\/servicos"/);
   assert.doesNotMatch(markup, /href="\/pdv\/balanco"/);
   assert.doesNotMatch(markup, /href="\/financeiro\/configuracoes"/);
+});
+
+test("acesso somente a recebíveis oculta contas a pagar, folha e relatórios", () => {
+  const markup = renderToStaticMarkup(React.createElement(NavLinks, {
+    canManageUsers: false,
+    canManageFinancialSettings: false,
+    financeView: { receivable: true, payable: false, reports: false },
+    canEditStock: false,
+    visibleModules: ["dashboard", "finance"],
+    whatsappUnreadCount: 0,
+  }));
+  assert.match(markup, /href="\/financeiro\/contas-a-receber"/);
+  for (const href of ["/financeiro/folha", "/financeiro/contas-a-pagar", "/relatorios", ...reportLinks.map((item) => item.href)]) {
+    assert.doesNotMatch(markup, new RegExp(`href="${href}"`));
+  }
+});
+
+test("perfil somente Jogos encontra programação e placares sem acesso à gestão", () => {
+  const markup = renderToStaticMarkup(React.createElement(NavLinks, {
+    canManageUsers: false,
+    canManageFinancialSettings: false,
+    financeView: { receivable: false, payable: false, reports: false },
+    canEditStock: false,
+    visibleModules: ["dashboard", "matches"],
+    whatsappUnreadCount: 0,
+  }));
+  assert.match(markup, /href="\/jogos"[^>]*>[\s\S]*?Jogos/);
+  assert.match(markup, /Programação e placares/);
+  assert.doesNotMatch(markup, /href="\/torneios"/);
+  assert.doesNotMatch(markup, /href="\/torneios\/rankings"/);
 });

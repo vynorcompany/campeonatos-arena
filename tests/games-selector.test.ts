@@ -62,7 +62,7 @@ test("tournaments keeps only games and rankings as sidebar children", async () =
     /href: "\/torneios",[\s\S]*?children: \[([\s\S]*?)\]/,
   )?.[1] ?? "";
 
-  assert.match(tournamentChildren, /href: "\/jogos", label: "Eventos ativos"/);
+  assert.match(tournamentChildren, /href: "\/jogos", label: canSee\("tournaments"\) \? "Eventos ativos" : "Programação e placares"/);
   assert.match(tournamentChildren, /href: "\/torneios\/rankings", label: "Rankings"/);
   assert.doesNotMatch(tournamentChildren, /label: "Duplas"/);
   assert.doesNotMatch(tournamentChildren, /label: "Grupos"/);

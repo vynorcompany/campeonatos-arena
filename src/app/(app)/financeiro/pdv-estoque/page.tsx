@@ -16,7 +16,7 @@ function formatMoney(cents: number) {
 }
 
 export default async function FinancePdvStockPage() {
-  const auth = await requireModuleView("finance");
+  const auth = await requireModuleView("stock");
   const { start, end } = getMonthRange();
   const [products, sales, stockMovements] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
     tx.product.findMany({ where: { arenaId: auth.arenaId }, orderBy: { name: "asc" } }),

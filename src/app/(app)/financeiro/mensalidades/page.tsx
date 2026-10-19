@@ -3,7 +3,7 @@ import { SectionCard } from "@/components/section-card";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { createSubscriptionAction, recordPlanPaymentAction } from "@/lib/actions/finance";
-import { requireModuleView } from "@/lib/auth/guards";
+import { requireFinanceView } from "@/lib/auth/guards";
 import { canPerformPermission } from "@/lib/permissions";
 import { withArenaTransaction } from "@/lib/rls";
 
@@ -21,7 +21,7 @@ function renewalDate(startedAt: Date) {
 }
 
 export default async function MonthlyPaymentsPage() {
-  const auth = await requireModuleView("finance");
+  const auth = await requireFinanceView("receivable");
   const canCreate = canPerformPermission("finance:receivable:create", auth.arenaRole, auth.systemRole, auth.editPermissions);
   const canSettle = canPerformPermission("finance:receivable:settle", auth.arenaRole, auth.systemRole, auth.editPermissions);
   const [students, plans, subscriptions] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
