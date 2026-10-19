@@ -40,8 +40,9 @@ test("games permits match consultation without granting tournament management", 
   const source = await readSource("src", "app", "(app)", "jogos", "page.tsx");
 
   assert.match(source, /canViewModule\("tournaments"/);
+  assert.match(source, /canPerformPermission\("tournaments:manage", auth\.arenaRole, auth\.systemRole, auth\.editPermissions\)/);
   assert.match(source, /canViewModule\("matches"/);
-  assert.match(source, /if \(!canManageTournaments && !canReadMatches\) notFound\(\)/);
+  assert.match(source, /if \(!canViewTournaments && !canReadMatches\) notFound\(\)/);
   assert.match(source, /tournament: \{ arenaId: auth\.arenaId \}/);
   assert.match(source, /Programação e placares/);
   assert.match(source, /canManageTournaments \? <Link href=\{`\/torneios\/\$\{selectedTournament\.id\}`\}/);
