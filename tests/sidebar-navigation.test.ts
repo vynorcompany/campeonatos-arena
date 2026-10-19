@@ -4,6 +4,7 @@ import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { isActivePath, NavLinks } from "../src/components/layout/nav-links";
+import { reportLinks } from "../src/lib/navigation/report-links";
 
 test("destinos com parâmetros mantêm o item ativo na rota correta", () => {
   assert.equal(isActivePath("/financeiro/configuracoes/notas-fiscais", "/financeiro/configuracoes/notas-fiscais?secao=emissao"), true);
@@ -47,4 +48,14 @@ test("sem permissão de gestão financeira, a barra lateral não oferece configu
   }));
   assert.match(markup, /href="\/financeiro\/contas-a-receber"/);
   assert.doesNotMatch(markup, /href="\/financeiro\/configuracoes"/);
+});
+
+test("submenu de relatórios coincide com todos os destinos da página inicial e exige Financeiro", () => {
+  const props = { canManageUsers: false, canManageFinancialSettings: false, whatsappUnreadCount: 0 };
+  const allowed = renderToStaticMarkup(React.createElement(NavLinks, { ...props, visibleModules: ["dashboard", "finance"] }));
+  const restricted = renderToStaticMarkup(React.createElement(NavLinks, { ...props, visibleModules: ["dashboard"] }));
+  for (const { href } of reportLinks) {
+    assert.match(allowed, new RegExp(`href="${href}"`));
+    assert.doesNotMatch(restricted, new RegExp(`href="${href}"`));
+  }
 });
