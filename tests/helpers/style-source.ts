@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import ts from "typescript";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
@@ -33,7 +33,7 @@ function sourceFingerprint(directory: string, hash: ReturnType<typeof createHash
 
 function compiledStyles(file: string, source: string) {
   if (memory.has(file)) return memory.get(file)!;
-  const hash = createHash("sha256").update(process.cwd()).update(source).update(fs.readFileSync(resolve("package-lock.json"))).update(fs.readFileSync(resolve("scripts/compile-styles-for-tests.mjs")));
+  const hash = createHash("sha256").update(process.cwd()).update(source).update(fs.readFileSync(resolve("package-lock.json"))).update(fs.readFileSync(resolve("scripts/compile-styles-for-tests.mjs"))).update(fs.readFileSync(fileURLToPath(import.meta.url)));
   sourceFingerprint(resolve("src"), hash);
   const key = hash.digest("hex");
   const cache = join(tmpdir(), `arena-tailwind-tests-${key}.css`);
@@ -41,7 +41,16 @@ function compiledStyles(file: string, source: string) {
   if (fs.existsSync(cache)) compiled = fs.readFileSync(cache, "utf8");
   else {
     compiled = execFileSync(process.execPath, [resolve("scripts/compile-styles-for-tests.mjs"), file], { encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
-    fs.writeFileSync(cache, compiled);
+    const temporary = `${cache}.${process.pid}.${randomUUID()}.tmp`;
+    try {
+      fs.writeFileSync(temporary, compiled);
+      fs.renameSync(temporary, cache);
+    } catch (error) {
+      if (!fs.existsSync(cache)) throw error;
+      compiled = fs.readFileSync(cache, "utf8");
+    } finally {
+      if (fs.existsSync(temporary)) fs.unlinkSync(temporary);
+    }
   }
   memory.set(file, compiled);
   return compiled;
