@@ -182,6 +182,16 @@ async function main() {
       for (const route of routes) {
         const label = `${viewport.name}-${route.replaceAll("/", "-").replace(/^-/, "")}`;
         const body = await visit(route, viewport, arenaA.id, label);
+        if (route === "/financeiro") {
+          const navigation = await send("Runtime.evaluate", {
+            expression: "(() => { const nav = document.querySelector('nav[aria-label=\"Áreas financeiras\"]'); return nav ? [...nav.querySelectorAll('a')].map((link) => ({ path: new URL(link.href).pathname, clipped: link.scrollWidth > link.clientWidth + 1 })) : null; })()",
+            returnByValue: true,
+          });
+          const expected = ["/financeiro/folha", "/financeiro/contas-a-receber", "/financeiro/contas-a-pagar", "/pdv", "/financeiro/configuracoes"];
+          if (!navigation.result.value || JSON.stringify(navigation.result.value.map((link) => link.path)) !== JSON.stringify(expected) || navigation.result.value.some((link) => link.clipped)) {
+            throw new Error(`${label}: destinos do Financeiro faltando ou cortados: ${JSON.stringify(navigation.result.value)}`);
+          }
+        }
         if (["/aulas", "/aulas/alunos", "/financeiro/planos"].includes(route)) {
           const form = await send("Runtime.evaluate", {
             expression: "(() => ({ notes: document.querySelector('#plan-notes, #student-notes')?.tagName, emptyPlayerOption: document.querySelector('#student-player option[value=\"\"]')?.textContent?.trim() ?? null }))()",
