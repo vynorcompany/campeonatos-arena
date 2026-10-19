@@ -6,6 +6,7 @@ import test from "node:test";
 import ts from "typescript";
 import { PrismaClient } from "@prisma/client";
 import { isProviderPaymentFullyReversed, markReviewedPaymentReversed, reviewedPaymentIdsFromNotes } from "../src/lib/payments/review-status";
+import { canPerformPermission } from "../src/lib/permissions";
 
 const require = createRequire(import.meta.url);
 const source = readFileSync(new URL("../src/lib/actions/online-payment-review.ts", import.meta.url), "utf8");
@@ -18,20 +19,42 @@ const disposableDatabase = (() => {
 function loadAction(tx: unknown, providerStatus: string, arenaId = "arena-a") {
   let providerCalls = 0;
   let revalidations = 0;
+  const permissions: string[] = [];
   const exports: Record<string, (id: string, confirmed: boolean) => Promise<{ ok: boolean; error?: string }>> = {};
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
     exports,
     require: (name: string) => {
       if (name === "next/cache") return { revalidatePath: () => { revalidations += 1; } };
-      if (name === "@/lib/auth/guards") return { requireModuleEdit: async () => ({ arenaId }) };
+      if (name === "@/lib/auth/guards") return { requirePermission: async (key: string) => { permissions.push(key); return { arenaId }; } };
       if (name === "@/lib/payments/mercado-pago") return { getMercadoPagoPayment: async () => { providerCalls += 1; return { status: providerStatus }; } };
       if (name === "@/lib/payments/review-status") return { isProviderPaymentFullyReversed, markReviewedPaymentReversed };
       if (name === "@/lib/rls") return { withArenaTransaction: async (_id: string, operation: (client: unknown) => unknown) => operation(tx) };
       return require(name);
     },
   });
-  return { release: exports.releaseReviewedCheckoutAction, releaseEntry: exports.releaseReviewedFinancialEntryAction as unknown as (id: string, paymentId: string, confirmed: boolean) => Promise<{ ok: boolean; error?: string }>, cancelRegistration: exports.cancelReviewedRegistrationAction, providerCalls: () => providerCalls, revalidations: () => revalidations };
+  return { release: exports.releaseReviewedCheckoutAction, releaseEntry: exports.releaseReviewedFinancialEntryAction as unknown as (id: string, paymentId: string, confirmed: boolean) => Promise<{ ok: boolean; error?: string }>, cancelRegistration: exports.cancelReviewedRegistrationAction, providerCalls: () => providerCalls, revalidations: () => revalidations, permissions: () => permissions };
 }
+
+test("revisão de estornos exige quitação de recebíveis ou gestão de torneios, não uma edição financeira qualquer", async () => {
+  assert.equal(canPerformPermission("finance:receivable:settle", "STAFF", "VIEWER", ["finance:receivable:create"]), false);
+  assert.equal(canPerformPermission("finance:settings:manage", "STAFF", "VIEWER", ["finance:receivable:create"]), false);
+  assert.equal(canPerformPermission("tournaments:manage", "STAFF", "VIEWER", ["tournaments:publish"]), false);
+  const action = loadAction({}, "refunded");
+  await action.release("", false);
+  await action.releaseEntry("", "", false);
+  await action.cancelRegistration("", false);
+  assert.deepEqual(action.permissions(), ["finance:receivable:settle", "finance:receivable:settle", "tournaments:manage"]);
+  assert.equal(action.providerCalls(), 0);
+  for (const file of [
+    "../src/app/(app)/relatorios/[relatorio]/page.tsx",
+    "../src/app/(app)/torneios/inscricoes/page.tsx",
+    "../src/app/(app)/torneios/[tournamentId]/inscricoes/page.tsx",
+  ]) {
+    const page = readFileSync(new URL(file, import.meta.url), "utf8");
+    assert.match(page, /canPerformPermission\(/);
+    assert.doesNotMatch(page, /canEditModule\("(?:finance|tournaments)"/);
+  }
+});
 
 test("somente estorno integral ou cancelamento liberam nova tentativa", () => {
   assert.equal(isProviderPaymentFullyReversed("refunded"), true);

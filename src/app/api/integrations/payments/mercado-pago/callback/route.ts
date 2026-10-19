@@ -6,7 +6,7 @@ import { withArenaTransaction } from "@/lib/rls";
 import { prisma } from "@/lib/prisma";
 import { issueDueAgencyInvoices } from "@/lib/services/agency-billing";
 import { getAuthContext } from "@/lib/auth/session";
-import { canEditModule } from "@/lib/permissions";
+import { canPerformPermission } from "@/lib/permissions";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     if (!auth || auth.userId !== userId) throw new Error("Sua sessão mudou durante a conexão. Inicie novamente.");
     if (arenaId === "agency-platform") {
       if (auth.systemRole !== "ADMIN" && auth.systemRole !== "SUPER_ADMIN") throw new Error("Sem permissão para conectar o Mercado Pago da agência.");
-    } else if (auth.arenaId !== arenaId || !canEditModule("finance", auth.arenaRole, auth.systemRole, auth.editPermissions)) {
+    } else if (auth.arenaId !== arenaId || !canPerformPermission("finance:settings:manage", auth.arenaRole, auth.systemRole, auth.editPermissions)) {
       throw new Error("A arena ou a permissão mudou durante a conexão. Inicie novamente.");
     }
     const token = await exchangeMercadoPagoAuthorizationCode(code);

@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import test from "node:test";
 import ts from "typescript";
+import { canPerformPermission } from "../src/lib/permissions";
 
 const require = createRequire(import.meta.url);
 const oauthSource = readFileSync(new URL("../src/lib/payments/mercado-pago-oauth.ts", import.meta.url), "utf8");
@@ -45,7 +46,7 @@ function loadCallback(auth: { userId: string; arenaId: string | null; arenaRole:
         getMercadoPagoAccount: async () => ({ displayName: "Conta de teste", reference: "synthetic" }),
       };
       if (name === "@/lib/auth/session") return { getAuthContext: async () => auth };
-      if (name === "@/lib/permissions") return { canEditModule: (_module: string, role: string | null, systemRole: string, permissions: string[]) => systemRole === "ADMIN" || role === "OWNER" || permissions.includes("finance") };
+      if (name === "@/lib/permissions") return { canPerformPermission };
       if (name === "@/lib/rls") return { withArenaTransaction: async (_arenaId: string, operation: (tx: unknown) => Promise<unknown>) => operation({ paymentConnection: { upsert: async () => { writes++; } } }) };
       if (name === "@/lib/prisma") return { prisma: { agencyPaymentConnection: { upsert: async () => { writes++; } } } };
       if (name === "@/lib/services/agency-billing") return { issueDueAgencyInvoices: async () => undefined };
@@ -89,6 +90,16 @@ test("callback accepts the same authorized user and arena", async () => {
   const response = await loaded.callback(callbackRequest(state));
   assert.match(response.url, /connected=mercado-pago/);
   assert.deepEqual(loaded.counters(), { exchanges: 1, writes: 1 });
+});
+
+test("callback só aceita gestão financeira da arena mesmo após OAuth iniciado", async () => {
+  const denied = loadCallback(user({ arenaRole: "STAFF", editPermissions: ["finance:receivable:create"] }));
+  const state = denied.oauth.createMercadoPagoOAuthState("arena-a", "operator-a");
+  assert.match((await denied.callback(callbackRequest(state))).url, /connectionError=/);
+  assert.deepEqual(denied.counters(), { exchanges: 0, writes: 0 });
+  const allowed = loadCallback(user({ arenaRole: "STAFF", editPermissions: ["finance:settings:manage"] }));
+  assert.match((await allowed.callback(callbackRequest(allowed.oauth.createMercadoPagoOAuthState("arena-a", "operator-a")))).url, /connected=mercado-pago/);
+  assert.deepEqual(allowed.counters(), { exchanges: 1, writes: 1 });
 });
 
 test("agency callback requires an agency administrator", async () => {
