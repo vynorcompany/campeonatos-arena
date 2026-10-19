@@ -1596,7 +1596,7 @@ async function main() {
 
     const restrictedToken = createHash("sha256").update(`restricted:${sessionToken}`).digest("hex");
     const restrictedUser = await db.user.create({ data: { name: "Operador restrito GOAL", email: "goal-restricted@example.test", passwordHash: "test-only", systemRole: "VIEWER" } });
-    await db.arenaMember.create({ data: { arenaId: arenaA.id, userId: restrictedUser.id, role: "STAFF", viewPermissions: ["calendar", "finance:receivable:view", "matches"], editPermissions: ["calendar:booking:create"] } });
+    await db.arenaMember.create({ data: { arenaId: arenaA.id, userId: restrictedUser.id, role: "STAFF", viewPermissions: ["calendar", "finance:receivable:view", "matches", "stock"], editPermissions: ["calendar:booking:create"] } });
     await db.session.create({ data: { userId: restrictedUser.id, token: createHash("sha256").update(restrictedToken).digest("hex"), expiresAt: new Date(Date.now() + 60 * 60_000) } });
     const restrictedCourt = await db.court.findFirstOrThrow({ where: { arenaId: arenaA.id, name: "Quadra GOAL Agenda" }, select: { id: true } });
     const restrictedStart = new Date(`${futureAgendaDate}T10:00:00.000Z`);
@@ -1614,6 +1614,36 @@ async function main() {
       homeScore: 2, awayScore: 0, homeSet1: 6, awaySet1: 2, homeSet2: 6, awaySet2: 3,
     } });
     try {
+      const forbiddenNewProduct = await fetch(`${baseUrl}/pdv/novo`, { headers: { Cookie: cookie(arenaA.id, restrictedToken) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
+      await forbiddenNewProduct.body?.cancel();
+      if (forbiddenNewProduct.status !== 404) throw new Error(`Perfil Estoque somente leitura abriu cadastro de produto (HTTP ${forbiddenNewProduct.status}).`);
+      for (const viewport of adminViewports) {
+        const stockBody = await visit("/pdv/estoque", viewport, arenaA.id, `${viewport.name}-estoque-somente-leitura`, restrictedToken);
+        if (!stockBody.includes("Produto GOAL")) throw new Error(`${viewport.name}: estoque não exibiu produto fictício para perfil somente leitura.`);
+        const stockControls = await send("Runtime.evaluate", { expression: "({create:document.body.innerText.includes('Novo Produto'),adjust:document.body.innerText.includes('Salvar ajuste'),balance:document.body.innerText.includes('Criar balanço'),view:[...document.querySelectorAll('a')].some((link)=>link.textContent?.trim()==='Ver' && link.getAttribute('href')?.startsWith('/pdv/')),width:innerWidth,scrollWidth:document.documentElement.scrollWidth})", returnByValue: true });
+        if (stockControls.result.value?.create || stockControls.result.value?.adjust || stockControls.result.value?.balance || !stockControls.result.value?.view || stockControls.result.value?.scrollWidth > stockControls.result.value?.width + 1) throw new Error(`${viewport.name}: estoque somente leitura exibiu edição ou ficou cortado: ${JSON.stringify(stockControls.result.value)}`);
+        const detailBody = await visit(`/pdv/${detailProduct.id}`, viewport, arenaA.id, `${viewport.name}-produto-somente-leitura`, restrictedToken);
+        if (!detailBody.includes("Produto GOAL") || !detailBody.includes("Histórico de estoque")) throw new Error(`${viewport.name}: detalhe do produto não abriu em modo de consulta.`);
+        const detailControls = await send("Runtime.evaluate", { expression: "({save:document.body.innerText.includes('Salvar alterações'),adjust:document.body.innerText.includes('Registrar ajuste'),width:innerWidth,scrollWidth:document.documentElement.scrollWidth})", returnByValue: true });
+        if (detailControls.result.value?.save || detailControls.result.value?.adjust || detailControls.result.value?.scrollWidth > detailControls.result.value?.width + 1) throw new Error(`${viewport.name}: detalhe somente leitura exibiu ações ou ficou cortado: ${JSON.stringify(detailControls.result.value)}`);
+        const detailShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+        await writeFile(`${outputDir}/${viewport.name}-produto-somente-leitura.png`, Buffer.from(detailShot.data, "base64"));
+        await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('button')].find((button)=>button.textContent?.trim()==='Ver histórico')?.click()" });
+        await pause(150);
+        const historyOpen = await send("Runtime.evaluate", { expression: "Boolean(document.querySelector('[role=dialog][aria-label=\"Histórico de estoque\"]'))", returnByValue: true });
+        if (!historyOpen.result.value) throw new Error(`${viewport.name}: histórico de estoque não abriu.`);
+        await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+        await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+        await pause(150);
+        const historyClosed = await send("Runtime.evaluate", { expression: "!document.querySelector('[role=dialog][aria-label=\"Histórico de estoque\"]')", returnByValue: true });
+        if (!historyClosed.result.value) throw new Error(`${viewport.name}: Esc não fechou o histórico de estoque.`);
+        const servicesBody = await visit("/pdv/servicos", viewport, arenaA.id, `${viewport.name}-servicos-somente-leitura`, restrictedToken);
+        if (!servicesBody.includes("Valores por atleta") || servicesBody.includes("Salvar valor")) throw new Error(`${viewport.name}: serviços não abriu em modo de consulta.`);
+        const balanceBody = await visit("/pdv/balanco", viewport, arenaA.id, `${viewport.name}-balanco-somente-leitura`, restrictedToken);
+        if (!balanceBody.includes("Relatório de divergências") || balanceBody.includes("Finalizar balanço")) throw new Error(`${viewport.name}: balanço expôs formulário a perfil somente leitura.`);
+        const stockShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+        await writeFile(`${outputDir}/${viewport.name}-balanco-somente-leitura.png`, Buffer.from(stockShot.data, "base64"));
+      }
       const forbiddenTournament = await fetch(`${baseUrl}/torneios/${league.id}`, { headers: { Cookie: cookie(arenaA.id, restrictedToken) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
       await forbiddenTournament.body?.cancel();
       if (forbiddenTournament.status === 200) throw new Error("Perfil Jogos consultou gestão do torneio sem permissão.");
