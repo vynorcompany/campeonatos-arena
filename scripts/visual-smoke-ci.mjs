@@ -275,6 +275,7 @@ async function main() {
       }
     }
     console.log("Exclusão da arena exige modal padrão legível em desktop e 320 px, e Esc cancela sem apagar.");
+    const previousTvSettings = await db.tvPresentationSettings.findUnique({ where: { arenaId: arenaA.id } });
     const tvFixture = await db.manualUpcomingMatch.createManyAndReturn({
       data: [1, 2, 3].map((index) => ({ arenaId: arenaA.id, displayOrder: index, homePairName: `Mandante TV GOAL ${index}`, awayPairName: `Visitante TV GOAL ${index}`, courtName: "Quadra GOAL", scheduledTime: `19:0${index}`, status: "SCHEDULED" })),
       select: { id: true, displayOrder: true },
@@ -295,6 +296,20 @@ async function main() {
     if (singleCard.result.value !== 1 || !singleGame.includes("Mandante TV GOAL 1") || singleGame.includes("Mandante TV GOAL 2")) throw new Error("TV não se adaptou à redução para um jogo cadastrado.");
     const otherArenaTv = await visit("/proximos-jogos/tv", viewports[0], arenaB.id, "desktop-tv-outra-arena");
     if (otherArenaTv.includes("Mandante TV GOAL")) throw new Error("TV exibiu jogo de outra arena.");
+    await db.manualUpcomingMatch.deleteMany({ where: { id: { in: tvFixture.map((match) => match.id) }, arenaId: arenaA.id } });
+    if (previousTvSettings) {
+      await db.tvPresentationSettings.update({
+        where: { arenaId: arenaA.id },
+        data: {
+          tvMatchSource: previousTvSettings.tvMatchSource, showMatches: previousTvSettings.showMatches,
+          showCalendar: previousTvSettings.showCalendar, showSponsors: previousTvSettings.showSponsors,
+          showRanking: previousTvSettings.showRanking, showMonthlyPrize: previousTvSettings.showMonthlyPrize,
+          showNightWinner: previousTvSettings.showNightWinner,
+        },
+      });
+    } else {
+      await db.tvPresentationSettings.delete({ where: { arenaId: arenaA.id } });
+    }
     console.log("TV exibe somente 3 ou 1 jogos cadastrados, adapta a grade e isola arenas em desktop e celular.");
     const cashOpening = await visit("/pdv/caixa", viewports[0], arenaA.id, "desktop-caixa-antes-da-abertura");
     if (!cashOpening.includes("Abertura de caixa")) throw new Error("O caixa fictício não iniciou fechado.");
