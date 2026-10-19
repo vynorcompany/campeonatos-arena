@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { requireModuleEdit } from "@/lib/auth/guards";
+import { requirePermission } from "@/lib/auth/guards";
 import { mercadoPagoAuthorizationUrl } from "@/lib/payments/mercado-pago-oauth";
 
 export async function GET(request: Request) {
   try {
-    const auth = await requireModuleEdit("finance");
+    const auth = await requirePermission("finance:settings:manage");
     return NextResponse.redirect(mercadoPagoAuthorizationUrl(auth.arenaId, auth.userId));
   } catch (error) {
     const url = new URL("/financeiro/configuracoes/pagamentos-online", request.url);

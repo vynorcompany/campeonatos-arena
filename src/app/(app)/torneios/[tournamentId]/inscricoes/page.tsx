@@ -7,7 +7,7 @@ import { requireModuleView } from "@/lib/auth/guards";
 import { arenaDatabase } from "@/lib/arena-database";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { ReviewedCheckoutRelease } from "@/components/finance/reviewed-checkout-release";
-import { canEditModule } from "@/lib/permissions";
+import { canPerformPermission } from "@/lib/permissions";
 import { canEditManualTournamentRegistration } from "@/lib/tournaments/registration-deletion";
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -33,7 +33,7 @@ export default async function TournamentRegistrationsPage(
     if (searchParams?.status === "PENDING") return item.status === "PENDING_PAYMENT" && item.paymentStatus !== "REVIEW";
     return true;
   });
-  const canResolveReview = canEditModule("tournaments", auth.arenaRole, auth.systemRole, auth.editPermissions);
+  const canResolveReview = canPerformPermission("tournaments:manage", auth.arenaRole, auth.systemRole, auth.editPermissions);
 
   return <main className={viewStyles.tournament_management_page_stack_md}>
     <header className={viewStyles.page_header_tournament_management_header}><div><p className={viewStyles.eyebrow}>Torneio</p><h1>Inscrições</h1><p className={viewStyles.muted}>{tournament.name} · lista única por ordem de inscrição.</p></div><Link href={`/torneios/${tournament.id}`} className={viewStyles.button}>Voltar ao torneio</Link></header>

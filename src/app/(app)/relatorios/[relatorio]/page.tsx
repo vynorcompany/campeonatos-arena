@@ -6,7 +6,7 @@ import type { CSSProperties } from "react";
 import { notFound } from "next/navigation";
 import { SectionCard } from "@/components/section-card";
 import { requireFinanceView } from "@/lib/auth/guards";
-import { canEditModule } from "@/lib/permissions";
+import { canPerformPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { ReservationReportCourtFilter } from "@/components/reservation-report-court-filter";
 import { reservationCourtIds } from "@/lib/reports/reservation-court-filter";
@@ -91,8 +91,8 @@ export default async function ReportPage(
       prisma.publicTournamentRegistration.count({ where: { tournament: { arenaId: auth.arenaId }, updatedAt: period, status: { in: ["PENDING_PAYMENT", "CANCELED"] }, paymentStatus: "REVIEW" } }),
     ]);
     metrics = <div className={viewStyles.report_metrics}><Metric label="Confirmados" value={money(checkout.confirmedCents)} tone="positive" /><Metric label="Em análise" value={reviewCount + entryReviewCount + registrationReviewCount} tone="negative" /><Metric label="Pendentes" value={money(checkout.pendingCents)} /></div>; headers = ["Data", "Cliente", "Itens", "Provedor", "Valor", "Situação"]; rows = checkout.payments.map((item) => ({ key: item.id, values: [date(item.createdAt), item.player.name, String(item.items.length), item.provider, money(item.amountCents), checkoutStatusLabel(item.status)] }));
-    const canResolve = canEditModule("finance", auth.arenaRole, auth.systemRole, auth.editPermissions);
-    const canResolveRegistration = canEditModule("tournaments", auth.arenaRole, auth.systemRole, auth.editPermissions);
+    const canResolve = canPerformPermission("finance:receivable:settle", auth.arenaRole, auth.systemRole, auth.editPermissions);
+    const canResolveRegistration = canPerformPermission("tournaments:manage", auth.arenaRole, auth.systemRole, auth.editPermissions);
     supplementary = reviewCount || entryReviewCount || registrationReviewCount ? <SectionCard title="Pagamentos em análise" description={reviewCount > review.length || entryReviewCount > entryReview.length || registrationReviewCount > registrationReview.length ? "Exibindo até 100 casos de cada tipo atualizados no período. Ajuste as datas para localizar os demais." : "Confira o estorno integral ou cancelamento no Mercado Pago antes de liberar outra tentativa."}><div className="tw:grid tw:gap-3">{review.map((item) => <ReviewedCheckoutRelease key={item.id} kind="checkout" recordId={item.id} paymentId={item.mercadoPagoPaymentId} clientName={item.player.name} canResolve={canResolve} />)}{entryReview.flatMap((item) => reviewedPaymentIdsFromNotes(item.notes).map((paymentId) => <ReviewedCheckoutRelease key={`${item.id}:${paymentId}`} kind="entry" recordId={item.id} paymentId={paymentId} clientName={`${item.counterpartyName || "Cliente"} · ${item.description}`} canResolve={canResolve} />))}{registrationReview.map((item) => <ReviewedCheckoutRelease key={item.id} kind="registration" recordId={item.id} paymentId={item.mercadoPagoPaymentId} clientName={`${item.leadName} / ${item.partnerName}`} canResolve={canResolveRegistration} />)}</div></SectionCard> : null;
   } else {
     const courts = await prisma.court.findMany({ where: { arenaId: auth.arenaId }, include: { weeklyRules: true }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }] });

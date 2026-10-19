@@ -11,7 +11,7 @@ import {
 import { RegistrationEditForm } from "@/components/tournaments/registration-edit-form";
 import { getTournamentScheduleConflicts } from "@/lib/services/tournament";
 import { ReviewedCheckoutRelease } from "@/components/finance/reviewed-checkout-release";
-import { canEditModule } from "@/lib/permissions";
+import { canPerformPermission } from "@/lib/permissions";
 import { canEditManualTournamentRegistration } from "@/lib/tournaments/registration-deletion";
 
 type BracketItem = {
@@ -29,7 +29,7 @@ type BracketItem = {
 export default async function TournamentRegistrationsPage() {
   const auth = await requireModuleView("tournaments");
   const tenantDb = arenaDatabase(auth.arenaId);
-  const canResolveReview = canEditModule("tournaments", auth.arenaRole, auth.systemRole, auth.editPermissions);
+  const canResolveReview = canPerformPermission("tournaments:manage", auth.arenaRole, auth.systemRole, auth.editPermissions);
   let tournament: any = null;
   let categoryBrackets: BracketItem[] = [];
 

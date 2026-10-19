@@ -2,13 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireModuleEdit } from "@/lib/auth/guards";
+import { requirePermission } from "@/lib/auth/guards";
 import { getMercadoPagoPayment } from "@/lib/payments/mercado-pago";
 import { isProviderPaymentFullyReversed, markReviewedPaymentReversed } from "@/lib/payments/review-status";
 import { withArenaTransaction } from "@/lib/rls";
 
 export async function releaseReviewedCheckoutAction(checkoutIdInput: string, confirmed: boolean): Promise<{ ok: boolean; error?: string }> {
-  const auth = await requireModuleEdit("finance");
+  const auth = await requirePermission("finance:receivable:settle");
   const checkoutId = z.string().trim().min(1).safeParse(checkoutIdInput);
   if (!checkoutId.success || !confirmed) return { ok: false, error: "Confirme a conferência do estorno antes de liberar outra tentativa." };
 
@@ -40,7 +40,7 @@ export async function releaseReviewedCheckoutAction(checkoutIdInput: string, con
 }
 
 export async function releaseReviewedFinancialEntryAction(entryIdInput: string, paymentIdInput: string, confirmed: boolean): Promise<{ ok: boolean; error?: string }> {
-  const auth = await requireModuleEdit("finance");
+  const auth = await requirePermission("finance:receivable:settle");
   const entryId = z.string().trim().min(1).safeParse(entryIdInput);
   const paymentId = z.string().trim().min(1).max(120).safeParse(paymentIdInput);
   if (!entryId.success || !paymentId.success || !confirmed) return { ok: false, error: "Confirme o estorno e selecione um pagamento válido." };
@@ -75,7 +75,7 @@ export async function releaseReviewedFinancialEntryAction(entryIdInput: string, 
 }
 
 export async function cancelReviewedRegistrationAction(registrationIdInput: string, confirmed: boolean): Promise<{ ok: boolean; error?: string }> {
-  const auth = await requireModuleEdit("tournaments");
+  const auth = await requirePermission("tournaments:manage");
   const registrationId = z.string().trim().min(1).safeParse(registrationIdInput);
   if (!registrationId.success || !confirmed) return { ok: false, error: "Confirme o estorno antes de cancelar a inscrição em análise." };
 
