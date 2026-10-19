@@ -8,7 +8,7 @@ import { resolveRankingPeriod } from "@/lib/ranking/period";
 import { isPrismaUnknownFieldError } from "@/lib/prisma-errors";
 import { getAthleteDeletionRestriction } from "@/lib/athlete-management";
 import { toPersistentPlayerPhoto } from "@/lib/uploads";
-import { requireModuleEdit } from "@/lib/auth/guards";
+import { requireModuleEdit, requireTournamentMatchEdit } from "@/lib/auth/guards";
 import { normalizeBrazilianPhone } from "@/lib/phone";
 import {
   archivePlayerSchema,
@@ -1565,7 +1565,7 @@ export async function generateGroupsAction(formData: FormData) {
 }
 
 export async function generateMatchesAction(formData: FormData) {
-  const auth = await requireModuleEdit("matches");
+  const auth = await requireTournamentMatchEdit();
   const tournamentId = String(formData.get("tournamentId") ?? "");
 
   if (!tournamentId) {
@@ -1577,7 +1577,7 @@ export async function generateMatchesAction(formData: FormData) {
 }
 
 export async function updateMatchCourtAction(formData: FormData) {
-  const auth = await requireModuleEdit("matches");
+  const auth = await requireTournamentMatchEdit();
   const parsed = updateMatchCourtSchema.safeParse({
     matchId: formData.get("matchId"),
     courtName: formData.get("courtName")
@@ -1606,7 +1606,7 @@ export async function updateMatchCourtAction(formData: FormData) {
 }
 
 export async function updateMatchScheduleAction(formData: FormData) {
-  const auth = await requireModuleEdit("matches");
+  const auth = await requireTournamentMatchEdit();
   const parsed = updateMatchScheduleSchema.safeParse({
     matchId: formData.get("matchId"),
     scheduledTime: formData.get("scheduledTime")
@@ -1635,7 +1635,7 @@ export async function updateMatchScheduleAction(formData: FormData) {
 }
 
 export async function updateMatchResultAction(formData: FormData) {
-  const auth = await requireModuleEdit("matches");
+  const auth = await requireTournamentMatchEdit();
   const parsed = updateMatchResultSchema.safeParse({
     matchId: formData.get("matchId"),
     homeScore: formData.get("homeScore"),
@@ -1651,7 +1651,7 @@ export async function updateMatchResultAction(formData: FormData) {
 }
 
 export async function updateMatchParticipantsAction(formData: FormData) {
-  const auth = await requireModuleEdit("matches");
+  const auth = await requireTournamentMatchEdit();
   const parsed = updateMatchParticipantsSchema.safeParse({
     matchId: formData.get("matchId"),
     homePairId: formData.get("homePairId"),
@@ -1672,7 +1672,7 @@ export async function updateMatchParticipantsAction(formData: FormData) {
 }
 
 export async function updateMatchManualStatusAction(formData: FormData) {
-  const auth = await requireModuleEdit("matches");
+  const auth = await requireTournamentMatchEdit();
   const parsed = updateMatchManualStatusSchema.safeParse({
     matchId: formData.get("matchId"),
     manualStatus: formData.get("manualStatus")
@@ -1702,7 +1702,7 @@ export async function updateMatchManualStatusAction(formData: FormData) {
 }
 
 export async function updateMatchTvVisibilityAction(formData: FormData) {
-  const auth = await requireModuleEdit("matches");
+  const auth = await requireTournamentMatchEdit();
   const parsed = updateMatchTvVisibilitySchema.safeParse({
     matchId: formData.get("matchId"),
     showOnTv: formData.get("showOnTv") === "on"
@@ -1874,7 +1874,7 @@ export async function generateCategoryBracketAction(formData: FormData) {
 }
 
 export async function updateCategoryBracketMatchScheduleAction(formData: FormData) {
-  const auth = await requireModuleEdit("matches");
+  const auth = await requireTournamentMatchEdit();
   const matchId = String(formData.get("matchId") ?? "");
   const scheduledTime = String(formData.get("scheduledTime") ?? "");
   const courtName = String(formData.get("courtName") ?? "");
