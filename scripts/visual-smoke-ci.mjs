@@ -955,6 +955,55 @@ async function main() {
       arenaId: arenaA.id, name: "Torneio público GOAL", publicSlug: `goal-public-${randomUUID()}`,
     } });
     const publicCategory = await db.tournamentCategory.create({ data: { tournamentId: publicTournament.id, name: "Categoria GOAL", level: 1 } });
+    const publicPath = `/inscricao/${publicTournament.publicSlug}`;
+    for (const viewport of adminViewports) {
+      const formBody = await visit(publicPath, viewport, arenaA.id, `${viewport.name}-inscricao-publica-formulario`);
+      if (!formBody.includes("Torneio público GOAL") || !formBody.includes("Categoria GOAL") || !formBody.includes("Ir para pagamento")) {
+        throw new Error(`${viewport.name}: formulário público do torneio fictício incompleto.`);
+      }
+      const formLayout = await send("Runtime.evaluate", {
+        expression: "(() => { const form = document.querySelector('form:has(input[name=tournamentSlug])'); const controls = [...(form?.querySelectorAll('input:not([type=hidden]), select, button[type=submit]') ?? [])]; return { width: innerWidth, controls: controls.map(control => { const rect = control.getBoundingClientRect(); return { name: control.getAttribute('name'), left: rect.left, right: rect.right, width: rect.width }; }) }; })()",
+        returnByValue: true,
+      });
+      if (formLayout.result.value.controls.length !== 12 || formLayout.result.value.controls.some((control) => control.width < 40 || control.left < -1 || control.right > formLayout.result.value.width + 1)) {
+        throw new Error(`${viewport.name}: campos da inscrição pública cortados: ${JSON.stringify(formLayout.result.value)}`);
+      }
+      for (const tab of ["inscritos", "chaveamento", "jogos"]) {
+        const tabBody = await visit(`${publicPath}?tab=${tab}`, viewport, arenaA.id, `${viewport.name}-inscricao-publica-${tab}`);
+        if (!tabBody.includes("Torneio público GOAL") || (tab === "inscritos" && !tabBody.includes("Categoria GOAL"))) throw new Error(`${viewport.name}: aba pública ${tab} incompleta.`);
+      }
+    }
+    await visit(publicPath, adminViewports[2], arenaA.id, "mobile-320-inscricao-publica-preenchimento");
+    const publicFormValues = {
+      leadName: "Atleta Público GOAL", leadEmail: "atleta-goal@example.test", leadPhone: "11999999999",
+      leadCpf: "98765432100", leadBirthDate: "01/01/1990", partnerName: "Parceiro Público GOAL",
+      partnerPhone: "11988888888", partnerCpf: "98765432101", partnerBirthDate: "02/02/1991",
+    };
+    const publicFormPrepared = await send("Runtime.evaluate", {
+      expression: `(() => { const form = document.querySelector('form:has(input[name=tournamentSlug])'); if (!form) return false; form.querySelector('select[name=categoryId]').value = ${JSON.stringify(publicCategory.id)}; for (const [name, value] of Object.entries(${JSON.stringify(publicFormValues)})) { const input = form.querySelector('input[name=' + name + ']'); if (!input) return false; input.value = value; input.dispatchEvent(new Event('input', { bubbles: true })); } return new FormData(form).get('categoryId') === ${JSON.stringify(publicCategory.id)} && form.checkValidity(); })()`,
+      returnByValue: true,
+    });
+    if (!publicFormPrepared.result.value) throw new Error("O formulário público fictício não aceitou os dados da dupla.");
+    await send("Runtime.evaluate", { expression: "document.querySelector('form:has(input[name=tournamentSlug]) button[type=submit]')?.click()" });
+    let confirmedPublicRegistration;
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      confirmedPublicRegistration = await db.publicTournamentRegistration.findFirst({ where: { tournamentId: publicTournament.id, leadCpf: publicFormValues.leadCpf } });
+      if (confirmedPublicRegistration?.status === "CONFIRMED") break;
+      await pause(250);
+    }
+    if (confirmedPublicRegistration?.status !== "CONFIRMED" || confirmedPublicRegistration.paymentStatus !== "PAID" || confirmedPublicRegistration.amountCents !== 0) {
+      throw new Error(`A inscrição gratuita pela interface não foi confirmada: ${JSON.stringify(confirmedPublicRegistration)}`);
+    }
+    const publicPair = await db.pair.findFirst({ where: { tournamentId: publicTournament.id, name: "Atleta Público GOAL / Parceiro Público GOAL" } });
+    if (!publicPair || await db.publicTournamentRegistration.count({ where: { tournamentId: publicTournament.id, leadCpf: publicFormValues.leadCpf } }) !== 1 ||
+        await db.player.count({ where: { arenaId: arenaB.id, cpf: { in: [publicFormValues.leadCpf, publicFormValues.partnerCpf] } } }) !== 0) {
+      throw new Error("A inscrição pública criou duplicidade ou não montou a dupla no torneio.");
+    }
+    const confirmedTab = await visit(`${publicPath}?tab=inscritos`, adminViewports[2], arenaA.id, "mobile-320-inscricao-publica-confirmada");
+    if (!confirmedTab.includes("Atleta Público GOAL / Parceiro Público GOAL") || await db.publicTournamentRegistration.count({ where: { tournamentId: publicTournament.id, categoryId: publicCategory.id } }) !== 1) {
+      throw new Error("A dupla confirmada não apareceu na aba pública de inscritos.");
+    }
+    console.log("Inscrição pública gratuita concluída no celular fictício, sem duplicidade e com dupla visível no torneio.");
     for (const viewport of adminViewports) {
       for (const [path, label] of [
         [`/torneios/${publicTournament.id}`, "detalhe"],
