@@ -146,11 +146,11 @@ test("portal only calculates league standings when the athlete opens Ligas", () 
   const standings = read("src/lib/services/public-standings.ts");
 
   assert.match(page, /getPublicArenaShell/);
-  assert.match(page, /section === "leagues" && !isSuper12 \? await getArenaPublicStandings/);
+  assert.match(page, /section === "leagues" && !isSuper12 \? getArenaPublicStandings/);
   assert.doesNotMatch(page, /Promise\.all\(\[getArenaPublicStandings/);
   assert.match(standings, /export async function getPublicArenaShell/);
-  assert.match(page, /needsPortalData && !isSuper12 \? await getPublicLeaguePortal/);
-  assert.match(page, /section === "home" \|\| section === "announcements" \? await getPublicClientHome/);
+  assert.match(page, /needsPortalData && !isSuper12 \? getPublicLeaguePortal/);
+  assert.match(page, /section === "home" \|\| section === "announcements" \? getPublicClientHome/);
 });
 
 test("league header no longer displays the isolated notification count tag", () => {

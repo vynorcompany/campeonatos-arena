@@ -30,6 +30,14 @@ const arenas = Array.from({ length: arenaCount }, (_, index) => ({
   slug: `goal-load-${runId}-${index + 1}`,
   createdById: users[index].id,
 }));
+const players = arenas.map((arena, index) => ({
+  id: randomUUID(), arenaId: arena.id, name: `Atleta isolado GOAL ${runId}-${index + 1}`,
+}));
+const playerAccounts = players.map((player, index) => ({
+  id: randomUUID(), arenaId: player.arenaId, playerId: player.id,
+  phone: `119${String(index + 1).padStart(8, "0")}`, passwordHash: "test-only",
+  sessionToken: randomBytes(32).toString("hex"),
+}));
 const marker = (index) => `Receita isolada GOAL ${runId}-${index + 1}`;
 const courtMarker = (index) => `Quadra isolada GOAL ${runId}-${index + 1}`;
 const percentile = (values, percent) => values[Math.ceil(values.length * percent) - 1];
@@ -44,6 +52,13 @@ async function main() {
     await db.session.createMany({ data: users.map((user) => ({
       userId: user.id,
       token: createHash("sha256").update(user.sessionToken).digest("hex"),
+      expiresAt: new Date(Date.now() + 60 * 60_000),
+    })) });
+    await db.player.createMany({ data: players });
+    await db.playerAccount.createMany({ data: playerAccounts.map(({ sessionToken: _sessionToken, ...account }) => account) });
+    await db.playerSession.createMany({ data: playerAccounts.map((account) => ({
+      playerAccountId: account.id,
+      token: createHash("sha256").update(account.sessionToken).digest("hex"),
       expiresAt: new Date(Date.now() + 60 * 60_000),
     })) });
     await db.financialEntry.createMany({ data: arenas.map((arena, index) => ({
@@ -69,6 +84,7 @@ async function main() {
       { path: "/painel", label: "dashboard", prefix: "Receita isolada" },
       { path: "/financeiro/contas-a-receber", label: "contas-a-receber", prefix: "Receita isolada" },
       { path: "/agenda?data=2026-10-17", label: "agenda", prefix: "Quadra isolada" },
+      { path: "/home", label: "portal", prefix: "Atleta isolado" },
     ];
     for (const concurrency of concurrencyLevels) {
       const durations = Object.fromEntries(probes.map((probe) => [probe.label, []]));
@@ -80,8 +96,9 @@ async function main() {
           for (const probe of probes) {
             const started = performance.now();
             try {
-              const response = await fetch(`${baseUrl}${probe.path}`, {
-                headers: { Cookie: `padel_session=${users[index].sessionToken}; padel_arena=${arenas[index].id}` },
+              const path = probe.label === "portal" ? `${probe.path}?arena=${encodeURIComponent(arenas[index].slug)}` : probe.path;
+              const response = await fetch(`${baseUrl}${path}`, {
+                headers: { Cookie: `padel_session=${users[index].sessionToken}; padel_arena=${arenas[index].id}; arena_player_session=${playerAccounts[index].sessionToken}` },
                 signal: AbortSignal.timeout(15_000),
               });
               const html = await response.text();
