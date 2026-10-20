@@ -1665,14 +1665,17 @@ async function main() {
         where: { arenaId: arenaA.id, userId: restrictedUser.id },
         data: { viewPermissions: ["tournaments:view", "matches"], editPermissions: ["tournaments:results"] },
       });
+      const resultPairIds = [];
       try {
         // O teste anterior encerra o ciclo fictício e deixa a competição em rascunho.
-        // Reabrimos apenas o estado sintético necessário para validar o editor de placar.
-        const resultPairs = await db.categoryPair.findMany({ where: { competitionId: competition.id, active: true }, select: { id: true }, orderBy: { drawOrder: "asc" }, take: 2 });
-        if (resultPairs.length !== 2) throw new Error("Duplas fictícias para o teste de resultados não encontradas.");
+        // Preparamos novas duplas fictícias sem restaurar dados do ciclo encerrado.
+        for (const [index, name] of ["Dupla mandante GOAL", "Dupla visitante GOAL"].entries()) {
+          const pair = await db.categoryPair.create({ data: { competitionId: competition.id, name, drawOrder: index + 1 } });
+          resultPairIds.push(pair.id);
+        }
         await db.categoryCompetition.update({ where: { id: competition.id }, data: { status: "PUBLISHED" } });
         await db.categoryMatch.update({ where: { id: restrictedMatch.id }, data: {
-          homePairId: resultPairs[0].id, awayPairId: resultPairs[1].id,
+          homePairId: resultPairIds[0], awayPairId: resultPairIds[1],
           homeScore: null, awayScore: null, homeSet1: null, awaySet1: null, homeSet2: null, awaySet2: null,
         } });
         for (const viewport of adminViewports) {
@@ -1704,6 +1707,8 @@ async function main() {
         if (otherArena.status === 200) throw new Error("Perfil de resultados acessou a categoria pela arena errada.");
       } finally {
         try {
+          await db.categoryMatch.update({ where: { id: restrictedMatch.id }, data: { homePairId: null, awayPairId: null } });
+          await db.categoryPair.deleteMany({ where: { id: { in: resultPairIds }, competitionId: competition.id } });
           await db.categoryCompetition.update({ where: { id: competition.id }, data: { status: previousCompetition.status } });
         } finally {
           await db.arenaMember.updateMany({
