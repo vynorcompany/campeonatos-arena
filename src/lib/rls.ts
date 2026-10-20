@@ -9,9 +9,9 @@ export async function setArenaRlsContext(tx: ArenaTransaction, arenaId: string) 
   await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`;
 }
 
-export async function withArenaTransaction<T>(arenaId: string, operation: (tx: ArenaTransaction) => Promise<T>) {
+export async function withArenaTransaction<T>(arenaId: string, operation: (tx: ArenaTransaction) => Promise<T>, options?: { maxWait?: number; timeout?: number }) {
   return prisma.$transaction(async (tx) => {
     await setArenaRlsContext(tx, arenaId);
     return operation(tx);
-  });
+  }, options);
 }
