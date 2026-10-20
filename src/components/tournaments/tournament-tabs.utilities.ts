@@ -1,7 +1,7 @@
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
   "t_tabs": [
-    "t-tabs", "tw:flex", "tw:flex-nowrap", "tw:[overflow-x:auto]",
+    "t-tabs", "tw:flex", "tw:flex-nowrap", "tw:[overflow-x:auto]", "tw:viewport-360:flex-wrap", "tw:viewport-360:[overflow-x:visible]",
     "tw:gap-y-[24px]", "tw:gap-x-[24px]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]",
     "tw:border-b-[color:var(--line)]",
   ].join(" "),

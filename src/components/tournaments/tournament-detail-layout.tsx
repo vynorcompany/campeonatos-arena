@@ -5,11 +5,13 @@ export function TournamentDetailLayout({
   tournamentId,
   categoryId,
   activeTab,
+  availableTabs,
   children
 }: {
   tournamentId: string;
   categoryId: string;
   activeTab: TournamentTabKey;
+  availableTabs?: readonly TournamentTabKey[];
   children: React.ReactNode;
 }) {
   return (
@@ -18,6 +20,7 @@ export function TournamentDetailLayout({
         tournamentId={tournamentId}
         categoryId={categoryId}
         activeTab={activeTab}
+        availableTabs={availableTabs}
       />
       {children}
     </div>

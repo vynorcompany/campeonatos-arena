@@ -1,6 +1,6 @@
 import { requireArenaAccess, requireAuth } from "@/lib/auth/session";
 import { notFound } from "next/navigation";
-import { canDeleteFinancialEntries, canEditModule, canManageTournamentMatches, canManageWhatsApp, canPerformPermission, canSendWhatsApp, canViewModule, type PermissionModule } from "@/lib/permissions";
+import { canDeleteFinancialEntries, canEditModule, canManageTournamentMatches, canManageWhatsApp, canPerformPermission, canRecordTournamentMatchResult, canSendWhatsApp, canViewModule, type PermissionModule } from "@/lib/permissions";
 import type { ArenaRole, SystemRole } from "@/types/auth";
 
 const roleWeight: Record<ArenaRole, number> = {
@@ -68,6 +68,14 @@ export async function requireTournamentMatchEdit() {
   const auth = await requireArenaAccess();
   if (!canManageTournamentMatches(auth.arenaRole, auth.systemRole, auth.viewPermissions, auth.editPermissions)) {
     throw new Error("Sem permissão para gerenciar jogos de torneios.");
+  }
+  return auth;
+}
+
+export async function requireTournamentResultEdit() {
+  const auth = await requireArenaAccess();
+  if (!canRecordTournamentMatchResult(auth.arenaRole, auth.systemRole, auth.viewPermissions, auth.editPermissions)) {
+    throw new Error("Sem permissão para lançar resultados de torneios.");
   }
   return auth;
 }

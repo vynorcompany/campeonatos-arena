@@ -117,6 +117,8 @@ export function CategoryResultsPanel({
   sort = "round",
   statusFilter = "ALL",
   playerSearch = "",
+  canManage,
+  canRecordResults,
 }: {
   tournamentId: string;
   categories: ResultCategory[];
@@ -124,18 +126,20 @@ export function CategoryResultsPanel({
   sort?: GameSort;
   statusFilter?: GameStatusFilter;
   playerSearch?: string;
+  canManage: boolean;
+  canRecordResults: boolean;
 }) {
   if (!categories.length) {
     return (
       <div className="empty-state">
         <h3>Nenhuma categoria disponível</h3>
         <p>Configure uma categoria para iniciar a operação.</p>
-        <Link
+        {canManage ? <Link
           href={`/torneios/${tournamentId}?tab=categories`}
           className={viewStyles.button_button_primary}
         >
           Configurar categorias
-        </Link>
+        </Link> : null}
       </div>
     );
   }
@@ -272,10 +276,10 @@ export function CategoryResultsPanel({
                             </strong>
                             <StatusBadge status={matchStatus} />
                             {match.woReason ? <small className={viewStyles.league_wo_badge}>W.O.</small> : null}
-                            {competition.format === "LEAGUE" && canRecord ? <LeagueMatchResultDialog match={match} /> : null}
+                            {canRecordResults && competition.format === "LEAGUE" && canRecord ? <LeagueMatchResultDialog match={match} /> : null}
                           </div>
                           <div className={viewStyles.category_game_actions}>
-                          {competition.status === "PUBLISHED" ? (
+                          {canRecordResults && competition.status === "PUBLISHED" ? (
                             <form
                               action={updateCategoryMatchStatusAction}
                               className={viewStyles.category_game_form}
@@ -302,7 +306,7 @@ export function CategoryResultsPanel({
                               />
                             </form>
                           ) : null}
-                          <form
+                          {canManage ? <form
                             action={updateCategoryMatchScheduleAction}
                             className={viewStyles.category_game_form}
                           >
@@ -331,8 +335,8 @@ export function CategoryResultsPanel({
                               pendingLabel="..."
                               className={viewStyles.button}
                             />
-                          </form>
-                          <form
+                          </form> : null}
+                          {canManage ? <form
                             action={updateCategoryMatchScheduleAction}
                             className={viewStyles.category_game_form_2}
                           >
@@ -344,8 +348,8 @@ export function CategoryResultsPanel({
                               pendingLabel="..."
                               className={viewStyles.button}
                             />
-                          </form>
-                          {canRecord && competition.format !== "LEAGUE" ? (
+                          </form> : null}
+                          {canRecordResults && canRecord && competition.format !== "LEAGUE" ? (
                             <form
                               action={recordCategoryMatchResultAction}
                               className={viewStyles.category_game_form}
@@ -390,7 +394,7 @@ export function CategoryResultsPanel({
                               {match.awayScore ?? "–"}
                             </span>
                           )}
-                          {competition.format === "LEAGUE" && match.winnerPair ? (
+                          {canRecordResults && competition.format === "LEAGUE" && match.winnerPair ? (
                             <form action={resetCategoryLeagueMatchResultAction} className={viewStyles.category_game_form_2}>
                               <input type="hidden" name="matchId" value={match.id} />
                               <SubmitButton label="Resetar resultado" pendingLabel="Resetando..." className={viewStyles.button} />
@@ -464,7 +468,7 @@ export function CategoryResultsPanel({
                   </p>
                 )}
 
-                {competition.status === "PUBLISHED" ? (
+                {canManage && competition.status === "PUBLISHED" ? (
                   allMatchesCompleted ? (
                     <form action={finishCategoryCompetitionAction}>
                       <input

@@ -1,7 +1,7 @@
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { RegistrationEditForm } from "@/components/tournaments/registration-edit-form";
 import { requireModuleView } from "@/lib/auth/guards";
 import { arenaDatabase } from "@/lib/arena-database";
@@ -18,6 +18,7 @@ export default async function TournamentRegistrationsPage(
   const searchParams = await props.searchParams;
   const params = await props.params;
   const auth = await requireModuleView("tournaments");
+  if (!canPerformPermission("tournaments:manage", auth.arenaRole, auth.systemRole, auth.editPermissions)) redirect(`/jogos?tournamentId=${encodeURIComponent(params.tournamentId)}`);
   const tournament = await arenaDatabase(auth.arenaId).tournament.findFirst({
     where: { id: params.tournamentId, arenaId: auth.arenaId },
     include: { categories: { orderBy: { level: "asc" }, select: { id: true, name: true } }, publicRegistrations: { orderBy: { createdAt: "asc" }, include: { category: { select: { id: true, name: true } } } } },

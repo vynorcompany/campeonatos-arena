@@ -1,6 +1,6 @@
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { CategoryList } from "@/components/tournaments/category-list";
@@ -9,6 +9,7 @@ import { EventQuickActions } from "@/components/tournaments/event-quick-actions"
 import { PublicRegistrationLinkActions } from "@/components/tournaments/public-registration-link-actions";
 import { deleteTournamentAction, updateTournamentRegistrationPhaseAction } from "@/lib/actions/tournament";
 import { requireModuleView } from "@/lib/auth/guards";
+import { canPerformPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { arenaDatabase } from "@/lib/arena-database";
 
@@ -20,6 +21,7 @@ type TournamentDetailPageProps = {
 export default async function TournamentDetailPage(props: TournamentDetailPageProps) {
   const params = await props.params;
   const auth = await requireModuleView("tournaments");
+  if (!canPerformPermission("tournaments:manage", auth.arenaRole, auth.systemRole, auth.editPermissions)) redirect(`/jogos?tournamentId=${encodeURIComponent(params.tournamentId)}`);
   const [tournament] = await Promise.all([
     arenaDatabase(auth.arenaId).tournament.findFirst({
       where: {

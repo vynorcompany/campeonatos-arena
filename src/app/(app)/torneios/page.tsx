@@ -1,15 +1,18 @@
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { EmptyState } from "@/components/tournaments/empty-state";
 import { StatusBadge } from "@/components/tournaments/status-badge";
 import { deleteTournamentAction } from "@/lib/actions/tournament";
 import { requireModuleView } from "@/lib/auth/guards";
+import { canPerformPermission } from "@/lib/permissions";
 import { arenaDatabase } from "@/lib/arena-database";
 
 export default async function TournamentsPage() {
   const auth = await requireModuleView("tournaments");
+  if (!canPerformPermission("tournaments:manage", auth.arenaRole, auth.systemRole, auth.editPermissions)) redirect("/jogos");
   const events = await arenaDatabase(auth.arenaId).tournament.findMany({
     where: { arenaId: auth.arenaId },
     orderBy: { updatedAt: "desc" },

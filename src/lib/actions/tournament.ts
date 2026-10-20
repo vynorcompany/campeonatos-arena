@@ -8,7 +8,7 @@ import { resolveRankingPeriod } from "@/lib/ranking/period";
 import { isPrismaUnknownFieldError } from "@/lib/prisma-errors";
 import { getAthleteDeletionRestriction } from "@/lib/athlete-management";
 import { toPersistentPlayerPhoto } from "@/lib/uploads";
-import { requireModuleEdit, requirePermission, requireTournamentMatchEdit } from "@/lib/auth/guards";
+import { requireModuleEdit, requirePermission, requireTournamentMatchEdit, requireTournamentResultEdit } from "@/lib/auth/guards";
 import { normalizeBrazilianPhone } from "@/lib/phone";
 import {
   archivePlayerSchema,
@@ -1635,7 +1635,7 @@ export async function updateMatchScheduleAction(formData: FormData) {
 }
 
 export async function updateMatchResultAction(formData: FormData) {
-  const auth = await requireTournamentMatchEdit();
+  const auth = await requireTournamentResultEdit();
   const parsed = updateMatchResultSchema.safeParse({
     matchId: formData.get("matchId"),
     homeScore: formData.get("homeScore"),

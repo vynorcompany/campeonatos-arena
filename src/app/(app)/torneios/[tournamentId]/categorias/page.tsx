@@ -1,13 +1,15 @@
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { CategoryList } from "@/components/tournaments/category-list";
 import { requireModuleView } from "@/lib/auth/guards";
+import { canPerformPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 
 export default async function TournamentCategoriesPage(props: { params: Promise<{ tournamentId: string }> }) {
   const params = await props.params;
   const auth = await requireModuleView("tournaments");
+  if (!canPerformPermission("tournaments:manage", auth.arenaRole, auth.systemRole, auth.editPermissions)) redirect(`/jogos?tournamentId=${encodeURIComponent(params.tournamentId)}`);
   const tournament = await prisma.tournament.findFirst({
     where: { id: params.tournamentId, arenaId: auth.arenaId },
     include: { categories: { orderBy: { level: "asc" }, include: { competition: { select: { format: true, _count: { select: { pairs: { where: { active: true } } } } } } } } },
