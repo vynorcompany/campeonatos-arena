@@ -14,7 +14,7 @@ if (process.env.GITHUB_ACTIONS !== "true" ||
 const db = new PrismaClient();
 const baseUrl = "http://127.0.0.1:3011";
 const arenaCount = 100;
-const concurrency = 20;
+const concurrencyLevels = [20, 100];
 const runId = randomUUID().slice(0, 8);
 const users = Array.from({ length: arenaCount }, (_, index) => ({
   id: randomUUID(),
@@ -70,43 +70,45 @@ async function main() {
       { path: "/financeiro/contas-a-receber", label: "contas-a-receber", prefix: "Receita isolada" },
       { path: "/agenda?data=2026-10-17", label: "agenda", prefix: "Quadra isolada" },
     ];
-    const durations = Object.fromEntries(probes.map((probe) => [probe.label, []]));
-    let nextIndex = 0;
-    const errors = [];
-    const worker = async () => {
-      while (nextIndex < arenaCount) {
-        const index = nextIndex++;
-        for (const probe of probes) {
-          const started = performance.now();
-          try {
-            const response = await fetch(`${baseUrl}${probe.path}`, {
-              headers: { Cookie: `padel_session=${users[index].sessionToken}; padel_arena=${arenas[index].id}` },
-              signal: AbortSignal.timeout(15_000),
-            });
-            const html = await response.text();
-            const visibleMarkers = new Set([...html.matchAll(new RegExp(`${probe.prefix} GOAL ${runId}-(\\d+)`, "g"))].map((match) => Number(match[1])));
-            if (response.status !== 200 || visibleMarkers.size !== 1 || !visibleMarkers.has(index + 1)) {
-              throw new Error(`HTTP ${response.status}; marcadores visíveis=${[...visibleMarkers].join(",") || "nenhum"}`);
+    for (const concurrency of concurrencyLevels) {
+      const durations = Object.fromEntries(probes.map((probe) => [probe.label, []]));
+      let nextIndex = 0;
+      const errors = [];
+      const worker = async () => {
+        while (nextIndex < arenaCount) {
+          const index = nextIndex++;
+          for (const probe of probes) {
+            const started = performance.now();
+            try {
+              const response = await fetch(`${baseUrl}${probe.path}`, {
+                headers: { Cookie: `padel_session=${users[index].sessionToken}; padel_arena=${arenas[index].id}` },
+                signal: AbortSignal.timeout(15_000),
+              });
+              const html = await response.text();
+              const visibleMarkers = new Set([...html.matchAll(new RegExp(`${probe.prefix} GOAL ${runId}-(\\d+)`, "g"))].map((match) => Number(match[1])));
+              if (response.status !== 200 || visibleMarkers.size !== 1 || !visibleMarkers.has(index + 1)) {
+                throw new Error(`HTTP ${response.status}; marcadores visíveis=${[...visibleMarkers].join(",") || "nenhum"}`);
+              }
+              durations[probe.label].push(performance.now() - started);
+            } catch (error) {
+              errors.push({ arena: index + 1, route: probe.label, message: error instanceof Error ? error.message : String(error) });
             }
-            durations[probe.label].push(performance.now() - started);
-          } catch (error) {
-            errors.push({ arena: index + 1, route: probe.label, message: error instanceof Error ? error.message : String(error) });
           }
         }
-      }
-    };
-    await Promise.all(Array.from({ length: concurrency }, () => worker()));
-    const summary = {
-      arenas: arenaCount,
-      concurrentRequests: concurrency,
-      routes: Object.fromEntries(Object.entries(durations).map(([label, values]) => {
-        values.sort((left, right) => left - right);
-        return [label, { succeeded: values.length, p50Ms: Math.round(percentile(values, 0.5) ?? 0), p95Ms: Math.round(percentile(values, 0.95) ?? 0), maxMs: Math.round(values.at(-1) ?? 0) }];
-      })),
-      failed: errors.length,
-    };
-    console.log(`Carga multiarena: ${JSON.stringify(summary)}`);
-    if (errors.length) throw new Error(`Falhas na carga ou no isolamento: ${JSON.stringify(errors.slice(0, 5))}`);
+      };
+      await Promise.all(Array.from({ length: concurrency }, () => worker()));
+      const summary = {
+        arenas: arenaCount,
+        concurrentRequests: concurrency,
+        routes: Object.fromEntries(Object.entries(durations).map(([label, values]) => {
+          values.sort((left, right) => left - right);
+          return [label, { succeeded: values.length, p50Ms: Math.round(percentile(values, 0.5) ?? 0), p95Ms: Math.round(percentile(values, 0.95) ?? 0), maxMs: Math.round(values.at(-1) ?? 0) }];
+        })),
+        failed: errors.length,
+      };
+      console.log(`Carga multiarena: ${JSON.stringify(summary)}`);
+      if (errors.length) throw new Error(`Falhas na carga ou no isolamento: ${JSON.stringify(errors.slice(0, 5))}`);
+    }
   } finally {
     await db.$disconnect();
   }
