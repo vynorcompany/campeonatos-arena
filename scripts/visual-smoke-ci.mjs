@@ -267,6 +267,49 @@ async function main() {
         await visit(route, viewport, arenaA.id, label);
       }
     }
+    const previousLoyalty = await db.arena.findUniqueOrThrow({
+      where: { id: arenaA.id },
+      select: { loyaltyEnabled: true, loyaltyStartedAt: true, loyaltyVisitsRequired: true, loyaltyRewardLabel: true },
+    });
+    try {
+      await db.arena.update({ where: { id: arenaA.id }, data: {
+        loyaltyEnabled: true, loyaltyStartedAt: new Date(), loyaltyVisitsRequired: 4, loyaltyRewardLabel: "Uma reserva cortesia GOAL",
+      } });
+      for (const viewport of [viewports[0], adminViewports[2]]) {
+        const label = `${viewport.name}-fidelidade`;
+        await visit("/jogadores", viewport, arenaA.id, label);
+        const settingsButton = await send("Runtime.evaluate", { expression: "(() => { const button=[...document.querySelectorAll('button')].find(item=>item.textContent?.trim()==='Configurar fidelidade'); button?.click(); return Boolean(button); })()", returnByValue: true });
+        if (!settingsButton.result.value) throw new Error(`${label}: configuração de fidelidade indisponível.`);
+        await pause(200);
+        const settings = await send("Runtime.evaluate", { expression: "(() => { const dialog=document.querySelector('[role=dialog][aria-label=\"Configurar fidelidade\"]'); if (!dialog) return null; const rect=dialog.getBoundingClientRect(), fields=[...dialog.querySelectorAll('input[name=visitsRequired],input[name=rewardLabel]')].map(item=>item.getBoundingClientRect()); return {left:rect.left,right:rect.right,top:rect.top,bottom:rect.bottom,width:innerWidth,height:innerHeight,overflow:dialog.scrollWidth>dialog.clientWidth+1||document.documentElement.scrollWidth>innerWidth+1,fields:fields.map(item=>({top:item.top,bottom:item.bottom}))}; })()", returnByValue: true });
+        const config = settings.result.value;
+        if (!config || config.left < -1 || config.right > config.width + 1 || config.top < -1 || config.bottom > config.height + 1 || config.overflow || config.fields.length !== 2 ||
+            (viewport.name !== "desktop" && config.fields[1].top < config.fields[0].bottom - 1)) {
+          throw new Error(`${label}: configuração de fidelidade cortada ou sem reflow: ${JSON.stringify(config)}`);
+        }
+        const settingsShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+        await writeFile(`${outputDir}/${label}-configuracao.png`, Buffer.from(settingsShot.data, "base64"));
+        await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+        await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+        await pause(200);
+        const clientButton = await send("Runtime.evaluate", { expression: "(() => { if (document.querySelector('[role=dialog]')) return false; const button=[...document.querySelectorAll('button')].find(item=>item.textContent?.trim()==='Fidelidade'); button?.click(); return Boolean(button); })()", returnByValue: true });
+        if (!clientButton.result.value) throw new Error(`${label}: fidelidade do cliente indisponível ou modal anterior não fechou com Esc.`);
+        let clientDialog;
+        for (let attempt = 0; attempt < 25; attempt += 1) {
+          clientDialog = await send("Runtime.evaluate", { expression: "(() => { const dialog=document.querySelector('[role=dialog][aria-label^=\"Fidelidade de \" ]'); if (!dialog || !dialog.textContent?.includes('Reservas concluídas')) return null; const rect=dialog.getBoundingClientRect(); return {left:rect.left,right:rect.right,top:rect.top,bottom:rect.bottom,width:innerWidth,height:innerHeight,overflow:dialog.scrollWidth>dialog.clientWidth+1||document.documentElement.scrollWidth>innerWidth+1,visit:dialog.textContent.includes('Registrar visita avulsa'),reward:dialog.textContent.includes('Resgatar recompensa')}; })()", returnByValue: true });
+          if (clientDialog.result.value) break;
+          await pause(200);
+        }
+        const client = clientDialog?.result.value;
+        if (!client || client.left < -1 || client.right > client.width + 1 || client.top < -1 || client.bottom > client.height + 1 || client.overflow || !client.visit || !client.reward) {
+          throw new Error(`${label}: fidelidade do cliente cortada ou incompleta: ${JSON.stringify(client)}`);
+        }
+        const clientShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+        await writeFile(`${outputDir}/${label}-cliente.png`, Buffer.from(clientShot.data, "base64"));
+      }
+    } finally {
+      await db.arena.update({ where: { id: arenaA.id }, data: previousLoyalty });
+    }
     for (const viewport of [viewports[0], adminViewports[2]]) {
       await visit("/agencia/arenas", viewport, arenaA.id, `${viewport.name}-agencia-exclusao-antes`);
       const opened = await send("Runtime.evaluate", {
