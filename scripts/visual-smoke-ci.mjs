@@ -1637,8 +1637,14 @@ async function main() {
       arenaId: arenaA.id, eventType: "EVENTO", title: "Evento restrito GOAL",
       scheduledAt: restrictedStart, durationMinutes: 60,
     } });
+    const restrictedPairNames = ["Dupla mandante com nome comprido GOAL", "Dupla visitante com nome comprido GOAL"];
+    const restrictedPairs = [];
+    for (const [index, name] of restrictedPairNames.entries()) {
+      restrictedPairs.push(await db.categoryPair.create({ data: { competitionId: competition.id, name, drawOrder: index + 1 } }));
+    }
     const restrictedMatch = await db.categoryMatch.create({ data: {
       competitionId: competition.id, label: "Jogo consulta GOAL", stage: "GROUP", roundOrder: 999,
+      homePairId: restrictedPairs[0].id, awayPairId: restrictedPairs[1].id,
       homeScore: 2, awayScore: 0, homeSet1: 6, awaySet1: 2, homeSet2: 6, awaySet2: 3,
     } });
     try {
@@ -1681,7 +1687,18 @@ async function main() {
       }
       for (const viewport of adminViewports) {
         const matchBody = await visit(`/jogos?tournamentId=${league.id}`, viewport, arenaA.id, `${viewport.name}-jogos-somente-leitura`, restrictedToken);
-        if (!matchBody.includes("Jogo consulta GOAL") || !matchBody.includes("2 × 0") || !matchBody.includes("6–2 · 6–3")) throw new Error(`${viewport.name}: Jogos não exibiu partida e placar para permissão somente leitura.`);
+        if (!matchBody.includes("Jogo consulta GOAL") || !matchBody.includes("2 × 0") || !matchBody.includes("6–2 · 6–3") ||
+            restrictedPairNames.some((name) => !matchBody.includes(name))) {
+          throw new Error(`${viewport.name}: Jogos não exibiu as duplas e o placar para permissão somente leitura.`);
+        }
+        const matchLayout = await send("Runtime.evaluate", {
+          expression: "(() => { const card=[...document.querySelectorAll('article')].find(item=>item.textContent?.includes('Jogo consulta GOAL')); const row=[...(card?.querySelectorAll('div') ?? [])].find(item=>item.children.length===3 && item.children[0].tagName==='STRONG' && item.children[1].tagName==='DIV' && item.children[2].tagName==='STRONG'); if (!row) return null; const [home,score,away]=[...row.children].map(item=>item.getBoundingClientRect()); return {homeRight:home.right,scoreLeft:score.left,scoreRight:score.right,awayLeft:away.left,cardRight:card.getBoundingClientRect().right,viewport:innerWidth}; })()",
+          returnByValue: true,
+        });
+        const positions = matchLayout.result.value;
+        if (!positions || positions.homeRight > positions.scoreLeft + 1 || positions.scoreRight > positions.awayLeft + 1 || positions.cardRight > positions.viewport + 1) {
+          throw new Error(`${viewport.name}: nomes das duplas e placar se sobrepõem: ${JSON.stringify(positions)}`);
+        }
         const matchControls = await send("Runtime.evaluate", {
           expression: "({manage:Boolean(document.querySelector('a[href^=\"/torneios/\"]')),create:document.body.innerText.includes('Novo evento'),gamesLink:[...document.querySelectorAll('nav[aria-label=\"Principal\"] a')].find((link)=>link.textContent?.trim()==='Jogos')?.getAttribute('href'),width:innerWidth,scrollWidth:document.documentElement.scrollWidth})",
           returnByValue: true,
@@ -1695,14 +1712,10 @@ async function main() {
         where: { arenaId: arenaA.id, userId: restrictedUser.id },
         data: { viewPermissions: ["tournaments:view", "matches"], editPermissions: ["tournaments:results"] },
       });
-      const resultPairIds = [];
+      const resultPairIds = restrictedPairs.map((pair) => pair.id);
       try {
         // O teste anterior encerra o ciclo fictício e deixa a competição em rascunho.
-        // Preparamos novas duplas fictícias sem restaurar dados do ciclo encerrado.
-        for (const [index, name] of ["Dupla mandante GOAL", "Dupla visitante GOAL"].entries()) {
-          const pair = await db.categoryPair.create({ data: { competitionId: competition.id, name, drawOrder: index + 1 } });
-          resultPairIds.push(pair.id);
-        }
+        // Reusamos as duplas fictícias da consulta sem restaurar dados do ciclo encerrado.
         await db.categoryCompetition.update({ where: { id: competition.id }, data: { status: "PUBLISHED" } });
         await db.categoryMatch.update({ where: { id: restrictedMatch.id }, data: {
           homePairId: resultPairIds[0], awayPairId: resultPairIds[1],
@@ -1746,7 +1759,6 @@ async function main() {
       } finally {
         try {
           await db.categoryMatch.update({ where: { id: restrictedMatch.id }, data: { homePairId: null, awayPairId: null } });
-          await db.categoryPair.deleteMany({ where: { id: { in: resultPairIds }, competitionId: competition.id } });
           await db.categoryCompetition.update({ where: { id: competition.id }, data: { status: previousCompetition.status } });
         } finally {
           await db.arenaMember.updateMany({
@@ -1815,6 +1827,7 @@ async function main() {
       console.log("Agenda: perfil limitado a criar não edita ou cancela reservas existentes em desktop e celular.");
     } finally {
       await db.categoryMatch.delete({ where: { id: restrictedMatch.id } });
+      await db.categoryPair.deleteMany({ where: { id: { in: restrictedPairs.map((pair) => pair.id) }, competitionId: competition.id } });
       await db.calendarEvent.delete({ where: { id: restrictedCalendarEvent.id } });
       await db.scheduleOccurrenceCourt.deleteMany({ where: { occurrenceId: restrictedBooking.id } });
       await db.scheduleOccurrence.delete({ where: { id: restrictedBooking.id } });
