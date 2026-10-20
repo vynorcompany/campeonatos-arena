@@ -6,6 +6,7 @@ import { readWhatsAppReactions, withWhatsAppReaction } from "@/lib/whatsapp-mess
 export type OutboundWhatsAppMessage = {
   providerId: string;
   body: string;
+  sentAt: Date;
   senderUserId: string;
   senderName: string;
   quotedProviderId?: string;
@@ -45,11 +46,11 @@ export async function persistOutboundWhatsAppMessage(
   const accountJid = await getActiveWhatsAppAccountJid(arenaId);
   if (!accountJid) throw new Error("O WhatsApp da arena não está conectado.");
   return withArenaTransaction(arenaId, async (tx) => {
-    const conversation = await tx.whatsAppConversation.findFirst({ where: { id: conversationId, arenaId, accountJid }, select: { id: true } });
-    if (!conversation) throw new Error("Conversa não pertence ao WhatsApp conectado.");
     // Mantém a mesma ordem de bloqueio do webhook: conversa antes da mensagem.
-    await tx.$queryRaw`SELECT "id" FROM "WhatsAppConversation" WHERE "id" = ${conversationId} AND "arenaId" = ${arenaId} FOR UPDATE`;
-    const sentAt = new Date();
+    const locked = await tx.$queryRaw<{ id: string }[]>`SELECT "id" FROM "WhatsAppConversation" WHERE "id" = ${conversationId} AND "arenaId" = ${arenaId} AND "accountJid" = ${accountJid} FOR UPDATE`;
+    if (!locked.length) throw new Error("Conversa não pertence ao WhatsApp conectado.");
+    const conversation = await tx.whatsAppConversation.findFirst({ where: { id: conversationId, arenaId, accountJid }, select: { lastMessageAt: true } });
+    if (!conversation) throw new Error("Conversa não pertence ao WhatsApp conectado.");
     const stored = await tx.whatsAppMessage.upsert({
       where: { conversationId_providerId: { conversationId, providerId: message.providerId } },
       select: { id: true, direction: true, body: true, senderName: true, quotedProviderId: true, quotedBody: true, quotedAuthor: true, reactions: true, mediaType: true, mediaMimeType: true, sentAt: true },
@@ -66,7 +67,7 @@ export async function persistOutboundWhatsAppMessage(
         mediaType: message.mediaType ?? "",
         mediaMimeType: message.mediaMimeType ?? "",
         mediaUrl: message.mediaUrl ?? "",
-        sentAt,
+        sentAt: message.sentAt,
       },
       update: {
         direction: "OUTBOUND",
@@ -79,11 +80,23 @@ export async function persistOutboundWhatsAppMessage(
         mediaType: message.mediaType ?? "",
         mediaMimeType: message.mediaMimeType ?? "",
         mediaUrl: message.mediaUrl ?? "",
+        sentAt: message.sentAt,
       },
+    });
+    // Uma resposta pode chegar pelo webhook enquanto a Evolution confirma o
+    // envio. Nesse caso, não apague a mensagem não lida nem a coloque atrás
+    // da resposta só porque a gravação local terminou depois.
+    const newerInbound = await tx.whatsAppMessage.findFirst({
+      where: { conversationId, direction: "INBOUND", createdAt: { gte: message.sentAt } },
+      select: { id: true },
     });
     await tx.whatsAppConversation.updateMany({
       where: { id: conversationId, arenaId, accountJid },
-      data: { lastMessageAt: sentAt, unreadCount: 0 },
+      data: {
+        updatedAt: new Date(),
+        ...(!newerInbound ? { unreadCount: 0 } : {}),
+        ...(!newerInbound && stored.sentAt > conversation.lastMessageAt ? { lastMessageAt: stored.sentAt } : {}),
+      },
     });
     return {
       id: stored.id,
