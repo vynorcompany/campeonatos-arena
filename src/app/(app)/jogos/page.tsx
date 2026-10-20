@@ -59,10 +59,10 @@ export default async function GamesPage(props: GamesPageProps) {
           const games = setScores(match);
           return <article key={match.id} className="tw:min-w-0 tw:rounded-xl tw:border tw:border-[#dce7f2] tw:bg-white tw:p-4">
             <div className="tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-2 tw:text-xs tw:text-[#607898]"><span>{match.competition.category.name} · {match.label}</span><span>{[match.scheduledDate, match.scheduledTime, match.courtName].filter(Boolean).join(" · ") || "Horário a definir"}</span></div>
-            <div className="tw:mt-3 tw:grid tw:min-w-0 tw:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] tw:items-center tw:gap-3 tw:text-sm tw:text-[#132d58]">
-              <strong className="tw:min-w-0 tw:break-words">{match.homePair?.name ?? "A definir"}</strong>
-              <div className="tw:text-center"><strong className="tw:block tw:whitespace-nowrap tw:text-[#078f7c]">{score}</strong>{games ? <span className="tw:block tw:whitespace-nowrap tw:text-xs tw:font-normal tw:text-[#607898]">{games}</span> : null}</div>
-              <strong className="tw:min-w-0 tw:break-words tw:text-right">{match.awayPair?.name ?? "A definir"}</strong>
+            <div data-match-teams className="tw:mt-3 tw:flex tw:min-w-0 tw:flex-col tw:gap-2 tw:text-sm tw:text-[#132d58] tw:sm:grid tw:sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] tw:sm:items-center tw:sm:gap-3">
+              <div data-match-home className="tw:min-w-0"><span className="tw:mb-0.5 tw:block tw:text-[10px] tw:font-semibold tw:uppercase tw:tracking-wide tw:text-[#607898] tw:sm:hidden">Mandante</span><strong className="tw:block tw:break-words">{match.homePair?.name ?? "A definir"}</strong></div>
+              <div data-match-score className="tw:border-y tw:border-[#e4edf4] tw:py-2 tw:text-center tw:sm:border-0 tw:sm:py-0"><strong className="tw:block tw:whitespace-nowrap tw:text-[#078f7c]">{score}</strong>{games ? <span className="tw:block tw:whitespace-nowrap tw:text-xs tw:font-normal tw:text-[#607898]">{games}</span> : null}</div>
+              <div data-match-away className="tw:min-w-0 tw:sm:text-right"><span className="tw:mb-0.5 tw:block tw:text-[10px] tw:font-semibold tw:uppercase tw:tracking-wide tw:text-[#607898] tw:sm:hidden">Visitante</span><strong className="tw:block tw:break-words">{match.awayPair?.name ?? "A definir"}</strong></div>
             </div>
           </article>;
         })}</div> : <p className={viewStyles.muted}>Nenhum jogo gerado para as categorias ativas deste evento.</p>}
