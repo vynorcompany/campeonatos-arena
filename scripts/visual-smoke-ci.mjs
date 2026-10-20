@@ -1702,9 +1702,17 @@ async function main() {
           await management.body?.cancel();
           if (management.status === 200 || !management.headers.get("location")?.includes("/jogos")) throw new Error(`Perfil de resultados abriu gestão em ${path} (HTTP ${management.status}).`);
         }
-        const otherArena = await fetch(`${baseUrl}/torneios/${league.id}/categorias/${category.id}?tab=games`, { headers: { Cookie: cookie(arenaB.id, restrictedToken) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
-        await otherArena.body?.cancel();
-        if (otherArena.status === 200) throw new Error("Perfil de resultados acessou a categoria pela arena errada.");
+        await db.arenaMember.create({ data: {
+          arenaId: arenaB.id, userId: restrictedUser.id, role: "STAFF",
+          viewPermissions: ["tournaments:view", "matches"], editPermissions: ["tournaments:results"],
+        } });
+        try {
+          const otherArena = await fetch(`${baseUrl}/torneios/${league.id}/categorias/${category.id}?tab=games`, { headers: { Cookie: cookie(arenaB.id, restrictedToken) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
+          await otherArena.body?.cancel();
+          if (otherArena.status !== 404) throw new Error(`Categoria da Arena A não ficou isolada para a Arena B (HTTP ${otherArena.status}).`);
+        } finally {
+          await db.arenaMember.deleteMany({ where: { arenaId: arenaB.id, userId: restrictedUser.id } });
+        }
       } finally {
         try {
           await db.categoryMatch.update({ where: { id: restrictedMatch.id }, data: { homePairId: null, awayPairId: null } });
