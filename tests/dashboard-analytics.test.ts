@@ -33,6 +33,14 @@ test("dashboard renders a daily cash-flow chart and the requested operational ch
   assert.match(comparison, /Personalizado/);
 });
 
+test("dashboard only reads prior-period totals when comparison is enabled", () => {
+  const dashboard = readFileSync(resolve(process.cwd(), "src/app/(app)/painel/page.tsx"), "utf8");
+  assert.match(dashboard, /comparing \? tx\.financialEntry\.findMany\(\{ where: previousFinancialWhere/);
+  assert.match(dashboard, /comparing \? tx\.scheduleOccurrence\.count\(\{ where:/);
+  assert.match(dashboard, /comparisonPercent\(received, previousReceived\)/);
+  assert.match(dashboard, /comparisonPercent\(reservations\.length, previousReservations\)/);
+});
+
 test("command checkout keeps pending debts compact until the toggle is enabled", () => {
   const card = readFileSync(resolve(process.cwd(), "src/components/comandas/command-card.tsx"), "utf8");
   const css = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
