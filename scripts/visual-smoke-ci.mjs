@@ -1674,9 +1674,11 @@ async function main() {
         const stockShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
         await writeFile(`${outputDir}/${viewport.name}-balanco-somente-leitura.png`, Buffer.from(stockShot.data, "base64"));
       }
-      const forbiddenTournament = await fetch(`${baseUrl}/torneios/${league.id}`, { headers: { Cookie: cookie(arenaA.id, restrictedToken) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
-      await forbiddenTournament.body?.cancel();
-      if (forbiddenTournament.status === 200) throw new Error("Perfil Jogos consultou gestão do torneio sem permissão.");
+      for (const path of ["/torneios", `/torneios/${league.id}`, `/torneios/${league.id}/categorias/${category.id}`]) {
+        const denied = await fetch(`${baseUrl}${path}`, { headers: { Cookie: cookie(arenaA.id, restrictedToken) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
+        await denied.body?.cancel();
+        if (denied.status !== 404) throw new Error(`Perfil Jogos recebeu HTTP ${denied.status} ao abrir gestão em ${path}; esperado 404.`);
+      }
       for (const viewport of adminViewports) {
         const matchBody = await visit(`/jogos?tournamentId=${league.id}`, viewport, arenaA.id, `${viewport.name}-jogos-somente-leitura`, restrictedToken);
         if (!matchBody.includes("Jogo consulta GOAL") || !matchBody.includes("2 × 0") || !matchBody.includes("6–2 · 6–3")) throw new Error(`${viewport.name}: Jogos não exibiu partida e placar para permissão somente leitura.`);

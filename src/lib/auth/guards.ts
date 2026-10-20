@@ -40,7 +40,7 @@ export async function requireModuleView(module: PermissionModule) {
   const auth = await requireArenaAccess();
 
   if (!canViewModule(module, auth.arenaRole, auth.systemRole, auth.viewPermissions)) {
-    throw new Error("Sem permissão para visualizar este módulo.");
+    notFound();
   }
 
   return auth;
