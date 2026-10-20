@@ -1660,11 +1660,21 @@ async function main() {
         const matchShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
         await writeFile(`${outputDir}/${viewport.name}-jogos-somente-leitura.png`, Buffer.from(matchShot.data, "base64"));
       }
+      const previousCompetition = await db.categoryCompetition.findUniqueOrThrow({ where: { id: competition.id }, select: { status: true } });
       await db.arenaMember.updateMany({
         where: { arenaId: arenaA.id, userId: restrictedUser.id },
         data: { viewPermissions: ["tournaments:view", "matches"], editPermissions: ["tournaments:results"] },
       });
       try {
+        // O teste anterior encerra o ciclo fictício e deixa a competição em rascunho.
+        // Reabrimos apenas o estado sintético necessário para validar o editor de placar.
+        const resultPairs = await db.categoryPair.findMany({ where: { competitionId: competition.id, active: true }, select: { id: true }, orderBy: { drawOrder: "asc" }, take: 2 });
+        if (resultPairs.length !== 2) throw new Error("Duplas fictícias para o teste de resultados não encontradas.");
+        await db.categoryCompetition.update({ where: { id: competition.id }, data: { status: "PUBLISHED" } });
+        await db.categoryMatch.update({ where: { id: restrictedMatch.id }, data: {
+          homePairId: resultPairs[0].id, awayPairId: resultPairs[1].id,
+          homeScore: null, awayScore: null, homeSet1: null, awaySet1: null, homeSet2: null, awaySet2: null,
+        } });
         for (const viewport of adminViewports) {
           const selector = await visit(`/jogos?tournamentId=${league.id}`, viewport, arenaA.id, `${viewport.name}-jogos-permissao-resultados`, restrictedToken);
           if (!selector.includes("Liga A GOAL") || !selector.includes("Lançar resultados")) throw new Error(`${viewport.name}: perfil de resultados não alcançou a categoria.`);
@@ -1693,10 +1703,14 @@ async function main() {
         await otherArena.body?.cancel();
         if (otherArena.status === 200) throw new Error("Perfil de resultados acessou a categoria pela arena errada.");
       } finally {
-        await db.arenaMember.updateMany({
-          where: { arenaId: arenaA.id, userId: restrictedUser.id },
-          data: { viewPermissions: ["calendar", "finance:receivable:view", "matches", "stock"], editPermissions: ["calendar:booking:create"] },
-        });
+        try {
+          await db.categoryCompetition.update({ where: { id: competition.id }, data: { status: previousCompetition.status } });
+        } finally {
+          await db.arenaMember.updateMany({
+            where: { arenaId: arenaA.id, userId: restrictedUser.id },
+            data: { viewPermissions: ["calendar", "finance:receivable:view", "matches", "stock"], editPermissions: ["calendar:booking:create"] },
+          });
+        }
       }
       const settingsResponse = await fetch(`${baseUrl}/agenda/configuracao`, { headers: { Cookie: cookie(arenaA.id, restrictedToken) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
       await settingsResponse.body?.cancel();
