@@ -60,3 +60,26 @@ test("volume uploads stay distinct across arenas and existing URLs remain readab
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test("uploaded SVGs are sandboxed when opened as documents", async () => {
+  const root = await mkdtemp(join(tmpdir(), "arena-svg-uploads-"));
+  const previous = process.env.RAILWAY_VOLUME_MOUNT_PATH;
+  try {
+    process.env.RAILWAY_VOLUME_MOUNT_PATH = root;
+    const filePath = ["arenas", "arena-a", "sponsors", "logo.svg"];
+    await mkdir(join(root, ...filePath.slice(0, -1)), { recursive: true });
+    await writeFile(join(root, ...filePath), '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
+
+    const response = await GET(new Request("http://localhost/media/uploads/" + filePath.join("/")), {
+      params: Promise.resolve({ filePath })
+    });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("Content-Type"), "image/svg+xml");
+    assert.equal(response.headers.get("Content-Security-Policy"), "sandbox");
+    assert.equal(response.headers.get("X-Content-Type-Options"), "nosniff");
+  } finally {
+    if (previous === undefined) delete process.env.RAILWAY_VOLUME_MOUNT_PATH;
+    else process.env.RAILWAY_VOLUME_MOUNT_PATH = previous;
+    await rm(root, { recursive: true, force: true });
+  }
+});

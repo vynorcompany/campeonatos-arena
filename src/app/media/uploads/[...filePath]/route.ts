@@ -28,7 +28,9 @@ export async function GET(_: Request, props: { params: Promise<{ filePath: strin
     return new Response(content, {
       headers: {
         "Content-Type": contentType,
-        "Cache-Control": "public, max-age=31536000, immutable"
+        "Cache-Control": "public, max-age=31536000, immutable",
+        "X-Content-Type-Options": "nosniff",
+        ...(contentType === "image/svg+xml" ? { "Content-Security-Policy": "sandbox" } : {})
       }
     });
   } catch {
