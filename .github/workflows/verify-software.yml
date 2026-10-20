@@ -71,7 +71,7 @@ jobs:
         run: node scripts/load-100-arenas-ci.mjs
       - name: Show isolated server errors when load fails
         if: failure()
-        run: tail -n 80 /tmp/arena-goal-server.log
+        run: grep -E 'PrismaClient|P2028|P2024|Transaction API|timed out' /tmp/arena-goal-server.log | tail -n 40 || true
       - name: Save synthetic screenshots
         if: always()
         uses: actions/upload-artifact@v4

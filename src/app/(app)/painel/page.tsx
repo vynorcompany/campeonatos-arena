@@ -70,7 +70,9 @@ export default async function OverviewPage({ searchParams }: { searchParams: Das
     tx.financialEntry.findMany({ where: { arenaId: auth.arenaId, type: "REVENUE", status: { in: ["PENDING", "OVERDUE"] } }, select: { id: true, counterpartyName: true, amountCents: true, dueDate: true } }),
     view === "caixa" ? Promise.resolve([]) : tx.financialEntry.findMany({ where: { arenaId: auth.arenaId, type: "REVENUE", status: "PAID", paidAt: { gte: from, lte: to } }, select: { id: true, counterpartyName: true, amountCents: true, paidAt: true } }),
     tx.court.findMany({ where: { arenaId: auth.arenaId, active: true }, include: { weeklyRules: true }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }] }),
-  ]), { maxWait: 10_000, timeout: 10_000 });
+  // Um pico de arenas distintas pode enfileirar leituras no pool do Prisma.
+  // A espera não prolonga a transação em si; ela evita HTTP 500 antes de obter conexão.
+  ]), { maxWait: 20_000, timeout: 10_000 });
   const received = entries.filter((entry) => entry.type === "REVENUE").reduce((total, entry) => total + entry.amountCents, 0);
   const paid = entries.filter((entry) => entry.type === "EXPENSE").reduce((total, entry) => total + entry.amountCents, 0);
   const previousReceived = previousEntries.filter((entry) => entry.type === "REVENUE").reduce((total, entry) => total + entry.amountCents, 0);

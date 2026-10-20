@@ -91,7 +91,7 @@ async function main() {
               }
               durations[probe.label].push(performance.now() - started);
             } catch (error) {
-              errors.push({ arena: index + 1, route: probe.label, message: error instanceof Error ? error.message : String(error) });
+              errors.push({ arena: index + 1, route: probe.label, elapsedMs: Math.round(performance.now() - started), message: error instanceof Error ? error.message : String(error) });
             }
           }
         }
