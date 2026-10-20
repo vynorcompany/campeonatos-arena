@@ -756,6 +756,25 @@ async function main() {
       }
       console.log(`${viewport.name}: navegação sucessiva por Grade, Torneios e Contas a Receber funcionou.`);
     }
+    const staffMembership = await db.arenaMember.findFirstOrThrow({ where: { arenaId: arenaA.id, userId: (await db.user.findUniqueOrThrow({ where: { email: "goal-staff@example.test" }, select: { id: true } })).id }, select: { permissionProfileId: true } });
+    if (!staffMembership.permissionProfileId) throw new Error("Colaborador fictício sem perfil para testar acesso somente a Jogos.");
+    await db.permissionProfile.update({ where: { id: staffMembership.permissionProfileId }, data: { viewPermissions: ["matches"], editPermissions: [] } });
+    const leagueForReadOnly = await db.tournament.findFirstOrThrow({ where: { arenaId: arenaA.id, name: "Liga GOAL" }, select: { id: true, categories: { select: { id: true }, take: 1 } } });
+    for (const viewport of adminViewports) {
+      const list = await visit("/jogos", viewport, arenaA.id, `${viewport.name}-jogos-somente-leitura`, staffSessionToken);
+      const matches = await visit(`/jogos?tournamentId=${leagueForReadOnly.id}`, viewport, arenaA.id, `${viewport.name}-placares-somente-leitura`, staffSessionToken);
+      if (!list.includes("Liga GOAL") || !matches.includes("Programação e placares") || !matches.includes("2 × 0") ||
+          [list, matches].some((body) => /Novo evento|Gerenciar evento|Lançar resultados/.test(body))) {
+        throw new Error(`${viewport.name}: perfil Jogos não ficou restrito à consulta de programação e placares.`);
+      }
+      for (const path of ["/torneios", `/torneios/${leagueForReadOnly.id}/categorias/${leagueForReadOnly.categories[0]?.id ?? "missing"}`]) {
+        const denied = await fetch(`${baseUrl}${path}`, { headers: { Cookie: cookie(arenaA.id, staffSessionToken) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
+        await denied.body?.cancel();
+        if (denied.status !== 404) throw new Error(`${viewport.name}: perfil Jogos acessou gestão em ${path} (HTTP ${denied.status}).`);
+      }
+    }
+    console.log("Perfil Jogos consultou placares sem acesso à gestão de torneios em desktop e mobile.");
+    await db.permissionProfile.update({ where: { id: staffMembership.permissionProfileId }, data: { viewPermissions: ["dashboard", "players", "support"], editPermissions: ["support"] } });
     await selectArena(arenaB.id, staffSessionToken);
     await send("Page.navigate", { url: `${baseUrl}/jogadores` });
     let switched;
