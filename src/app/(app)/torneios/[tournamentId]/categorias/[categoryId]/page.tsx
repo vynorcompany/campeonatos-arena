@@ -1,6 +1,6 @@
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import {
   CategoryCompetitionForm,
   CategoryPublicVisibilityForm,
@@ -19,6 +19,7 @@ import { StatusBadge } from "@/components/tournaments/status-badge";
 import { TournamentDetailLayout } from "@/components/tournaments/tournament-detail-layout";
 import { type TournamentTabKey } from "@/components/tournaments/tournament-tabs";
 import { requireModuleView } from "@/lib/auth/guards";
+import { canPerformPermission } from "@/lib/permissions";
 import { runLeagueLifecycleAction, updateLeaguePrizeAction } from "@/lib/actions/category-competition";
 import { arenaDatabase } from "@/lib/arena-database";
 import { canGenerateCategoryDraw } from "@/lib/tournament-category/draw";
@@ -64,6 +65,9 @@ export default async function CategoryPage(props: CategoryPageProps) {
   const params = await props.params;
   const currentReferenceMonth = leagueReferenceMonth(new Date());
   const auth = await requireModuleView("tournaments");
+  const canManage = canPerformPermission("tournaments:manage", auth.arenaRole, auth.systemRole, auth.editPermissions);
+  const canRecordResults = canPerformPermission("tournaments:results", auth.arenaRole, auth.systemRole, auth.editPermissions);
+  if (!canManage && !canRecordResults) redirect(`/jogos?tournamentId=${encodeURIComponent(params.tournamentId)}`);
   const [category, athletes, pairRankings, medicalRequests] = await Promise.all([
     arenaDatabase(auth.arenaId).tournamentCategory.findFirst({
       where: {
@@ -177,11 +181,12 @@ export default async function CategoryPage(props: CategoryPageProps) {
     notFound();
   }
 
+  const competition = category.competition;
   const requestedTab = searchParams?.tab as TournamentTabKey | undefined;
-  const tab =
-    requestedTab && validTabs.includes(requestedTab)
-      ? requestedTab
-      : "overview";
+  const availableTabs: TournamentTabKey[] = canManage ? validTabs : competition?.format === "LEAGUE" ? ["games", "results", "history"] : ["games", "results"];
+  const tab = requestedTab && availableTabs.includes(requestedTab)
+    ? requestedTab
+    : canManage ? "overview" : "games";
   const gameSort =
     searchParams?.sort === "date" || searchParams?.sort === "status"
       ? searchParams.sort
@@ -193,7 +198,6 @@ export default async function CategoryPage(props: CategoryPageProps) {
     searchParams?.status === "FINISHED"
       ? searchParams.status
       : "ALL";
-  const competition = category.competition;
   const isPublicTournament = category.tournament.creationMode === "PUBLIC";
   const standardCategories = category.tournament.categories.filter(
     (item) => item.id !== category.id && Boolean(item.standardKey),
@@ -374,7 +378,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
   return (
       <div className={viewStyles.stack_md_t_category_workspace_category_detail_workspace}>
       <Link
-        href={`/torneios/${params.tournamentId}`}
+        href={canManage ? `/torneios/${params.tournamentId}` : `/jogos?tournamentId=${params.tournamentId}`}
         className={viewStyles.t_category_back}
       >
         <span aria-hidden="true">←</span> Categorias
@@ -384,6 +388,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
         tournamentId={params.tournamentId}
         categoryId={category.id}
         activeTab={tab}
+        availableTabs={availableTabs}
       >
         {tab === "overview" ? (
           competition?.format === "LEAGUE" ? (
@@ -574,6 +579,8 @@ export default async function CategoryPage(props: CategoryPageProps) {
             sort={gameSort}
             statusFilter={gameStatusFilter}
             playerSearch={searchParams?.player?.trim() ?? ""}
+            canManage={canManage}
+            canRecordResults={canRecordResults}
           />
         ) : null}
 
@@ -582,6 +589,8 @@ export default async function CategoryPage(props: CategoryPageProps) {
             tournamentId={params.tournamentId}
             categories={[categoryView]}
             mode="summary"
+            canManage={canManage}
+            canRecordResults={canRecordResults}
           />
         ) : null}
 
@@ -616,7 +625,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
                 promotedPairId: cycle.promotedPairId,
                 relegatedPairId: cycle.relegatedPairId,
                 standings: historicalStandings(cycle.snapshot, cycle.matches),
-                canReopen,
+                canReopen: canManage && canReopen,
               };
             })}
           />

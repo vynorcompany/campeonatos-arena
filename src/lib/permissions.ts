@@ -122,6 +122,12 @@ export function canManageTournamentMatches(role: string | null, systemRole: stri
     && canEditModule("matches", role, systemRole, editPermissions);
 }
 
+export function canRecordTournamentMatchResult(role: string | null, systemRole: string, viewPermissions: string[], editPermissions: string[]) {
+  return canViewModule("tournaments", role, systemRole, viewPermissions)
+    && (canPerformPermission("tournaments:results", role, systemRole, editPermissions)
+      || canManageTournamentMatches(role, systemRole, viewPermissions, editPermissions));
+}
+
 export function canManageWhatsApp(role: string | null, systemRole: string, editPermissions: string[]) {
   return systemRole === "SUPER_ADMIN" || systemRole === "ADMIN" || role === "OWNER"
     || editPermissions.includes("support") || editPermissions.includes("support:whatsapp:manage");

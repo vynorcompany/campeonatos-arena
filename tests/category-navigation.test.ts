@@ -174,7 +174,7 @@ test("dedicated category route renders operational panels for the selected categ
     "page.tsx",
   );
 
-  assert.match(source, /href=\{`\/torneios\/\$\{params\.tournamentId\}`\}/);
+  assert.match(source, /href=\{canManage \? `\/torneios\/\$\{params\.tournamentId\}` : `\/jogos\?tournamentId=\$\{params\.tournamentId\}`\}/);
   assert.equal(
     source.match(/categories=\{\[categoryView\]\}/g)?.length,
     4,

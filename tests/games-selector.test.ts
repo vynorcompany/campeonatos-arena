@@ -32,8 +32,9 @@ test("games offers categories only after selecting an active event", async () =>
 test("games routes the selected category to its workspace", async () => {
   const source = await readSource("src", "app", "(app)", "jogos", "page.tsx");
 
-  assert.match(source, /href=\{`\/torneios\/\$\{selectedTournament\.id\}\/categorias\/\$\{category\.id\}`\}/);
+  assert.match(source, /href=\{`\/torneios\/\$\{selectedTournament\.id\}\/categorias\/\$\{category\.id\}\$\{canManageTournaments \? "" : "\?tab=games"\}`\}/);
   assert.match(source, /Abrir categoria/);
+  assert.match(source, /Lançar resultados/);
 });
 
 test("games permits match consultation without granting tournament management", async () => {

@@ -1,15 +1,19 @@
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { updateCategoryMatchScheduleAction } from "@/lib/actions/category-competition";
 import { requireModuleView } from "@/lib/auth/guards";
+import { canPerformPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 
 export default async function TournamentGamesPage({ params }: { params: Promise<{ tournamentId: string }> }) {
   const auth = await requireModuleView("tournaments");
   const { tournamentId } = await params;
+  if (!canPerformPermission("tournaments:manage", auth.arenaRole, auth.systemRole, auth.editPermissions)) {
+    redirect(`/jogos?tournamentId=${encodeURIComponent(tournamentId)}`);
+  }
   const [tournament, courts, matches] = await Promise.all([
     prisma.tournament.findFirst({ where: { id: tournamentId, arenaId: auth.arenaId }, select: { id: true, name: true } }),
     prisma.court.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { name: true }, orderBy: { name: "asc" } }),

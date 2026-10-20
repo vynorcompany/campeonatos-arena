@@ -19,6 +19,7 @@ export default async function GamesPage(props: GamesPageProps) {
   const auth = await requireArenaAccess();
   const canViewTournaments = canViewModule("tournaments", auth.arenaRole, auth.systemRole, auth.viewPermissions);
   const canManageTournaments = canViewTournaments && canPerformPermission("tournaments:manage", auth.arenaRole, auth.systemRole, auth.editPermissions);
+  const canRecordResults = canViewTournaments && canPerformPermission("tournaments:results", auth.arenaRole, auth.systemRole, auth.editPermissions);
   const canReadMatches = canViewModule("matches", auth.arenaRole, auth.systemRole, auth.viewPermissions);
   if (!canViewTournaments && !canReadMatches) notFound();
 
@@ -28,7 +29,7 @@ export default async function GamesPage(props: GamesPageProps) {
     include: { categories: { where: { active: true }, orderBy: { level: "asc" }, select: { id: true, name: true, competition: { select: { status: true } } } } }
   });
   const selectedTournament = activeTournaments.find((event) => event.id === searchParams?.tournamentId);
-  const matches = selectedTournament && !canManageTournaments ? await prisma.categoryMatch.findMany({
+  const matches = selectedTournament && !canManageTournaments && !canRecordResults ? await prisma.categoryMatch.findMany({
     where: { competition: { category: { tournamentId: selectedTournament.id, active: true, tournament: { arenaId: auth.arenaId } } } },
     select: {
       id: true, label: true, scheduledDate: true, scheduledTime: true, courtName: true,
@@ -41,15 +42,15 @@ export default async function GamesPage(props: GamesPageProps) {
 
   return <div className={viewStyles.stack_md}>
     {canManageTournaments ? <header className={viewStyles.page_header}><Link href="/torneios/novo" className={viewStyles.button_button_primary}>Novo evento</Link></header> : null}
-    {selectedTournament ? <SectionCard title={selectedTournament.name} description={canManageTournaments ? "Escolha uma categoria para navegar até o espaço operacional." : undefined}>
+    {selectedTournament ? <SectionCard title={selectedTournament.name} description={canManageTournaments || canRecordResults ? "Escolha uma categoria para acessar os jogos." : undefined}>
       <div className={viewStyles.active_event_back}>
         <Link href="/jogos" className={viewStyles.button}>Voltar aos eventos</Link>
         {canManageTournaments ? <Link href={`/torneios/${selectedTournament.id}`} className={viewStyles.button}>Gerenciar evento</Link> : null}
       </div>
-      {canManageTournaments ? <>
+      {canManageTournaments || canRecordResults ? <>
         <h3 className={viewStyles.active_event_category_heading}>Escolha uma categoria</h3>
         {selectedTournament.categories.length ? <div className={viewStyles.active_event_category_list}>{selectedTournament.categories.map((category) =>
-          <article className={viewStyles.active_event_category} key={category.id}><div><strong>{category.name}</strong><span>{category.competition?.status === "FINISHED" ? "Concluída" : "Em operação"}</span></div><Link href={`/torneios/${selectedTournament.id}/categorias/${category.id}`} className={viewStyles.button_button_primary}>Abrir categoria</Link></article>
+          <article className={viewStyles.active_event_category} key={category.id}><div><strong>{category.name}</strong><span>{category.competition?.status === "FINISHED" ? "Concluída" : "Em operação"}</span></div><Link href={`/torneios/${selectedTournament.id}/categorias/${category.id}${canManageTournaments ? "" : "?tab=games"}`} className={viewStyles.button_button_primary}>{canManageTournaments ? "Abrir categoria" : "Lançar resultados"}</Link></article>
         )}</div> : <p className={viewStyles.muted}>Este evento ainda não possui categorias ativas.</p>}
       </> : <>
         <h3 className="tw:m-0 tw:text-base tw:font-semibold tw:text-[#132d58]">Programação e placares</h3>

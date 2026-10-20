@@ -18,14 +18,16 @@ export function TournamentTabs({
   tournamentId,
   categoryId,
   activeTab,
+  availableTabs,
 }: {
   tournamentId: string;
   categoryId: string;
   activeTab: TournamentTabKey;
+  availableTabs?: readonly TournamentTabKey[];
 }) {
   return (
     <nav className={viewStyles.t_tabs} aria-label="Etapas da categoria">
-      {tabs.map((tab) => (
+      {tabs.filter((tab) => !availableTabs || availableTabs.includes(tab.key)).map((tab) => (
         <Link
           key={tab.key}
           href={`/torneios/${tournamentId}/categorias/${categoryId}?tab=${tab.key}`}
