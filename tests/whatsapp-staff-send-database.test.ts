@@ -58,9 +58,16 @@ test("colaborador autorizado envia texto, áudio e PDF só pela conta da arena c
         "@/lib/whatsapp-message-data": { readWhatsAppReactions },
       });
       let delivered = 0;
+      let replyDuringDelivery = false;
       const deliver = async (arenaId: string) => {
         assert.equal(arenaId, arenaA.id);
         delivered += 1;
+        if (replyDuringDelivery) {
+          await new Promise((resolve) => setTimeout(resolve, 5));
+          const inboundAt = new Date();
+          await tx.whatsAppMessage.create({ data: { conversationId: own.id, providerId: "goal-inbound-during-send", direction: "INBOUND", body: "Resposta recebida durante envio", sentAt: inboundAt, createdAt: inboundAt } });
+          await tx.whatsAppConversation.update({ where: { id: own.id }, data: { lastMessageAt: inboundAt, unreadCount: { increment: 1 } } });
+        }
         return { key: { id: `goal-provider-${delivered}` } };
       };
       const actions = loadActions("../src/lib/actions/whatsapp-chat.ts", {
@@ -93,11 +100,19 @@ test("colaborador autorizado envia texto, áudio e PDF só pela conta da arena c
       assert.deepEqual(stored.map((message) => message.providerId), ["goal-provider-1", "goal-provider-2", "goal-provider-3"]);
       assert.ok(stored.every((message) => message.senderUserId === user.id && message.direction === "OUTBOUND"));
       assert.equal((await tx.whatsAppConversation.findUniqueOrThrow({ where: { id: own.id } })).unreadCount, 0);
+      replyDuringDelivery = true;
+      const delayed = await actions.sendWhatsAppChatMessageAction(form);
+      assert.equal(delayed.body, "Resposta descartável");
+      const afterReply = await tx.whatsAppConversation.findUniqueOrThrow({ where: { id: own.id } });
+      const inbound = await tx.whatsAppMessage.findUniqueOrThrow({ where: { conversationId_providerId: { conversationId: own.id, providerId: "goal-inbound-during-send" } } });
+      assert.equal(afterReply.unreadCount, 1, "a resposta recebida durante o envio continua não lida");
+      assert.equal(afterReply.lastMessageAt.getTime(), inbound.sentAt.getTime(), "a resposta recebida permanece a última mensagem");
+      assert.equal((await tx.whatsAppMessage.findUniqueOrThrow({ where: { conversationId_providerId: { conversationId: own.id, providerId: "goal-provider-4" } } })).direction, "OUTBOUND");
       authContext.editPermissions = [];
       for (const [action, input] of [["sendWhatsAppChatMessageAction", form], ["sendWhatsAppAudioMessageAction", audio], ["sendWhatsAppMediaMessageAction", attachment]] as const) {
         await assert.rejects(actions[action](input), /Sem permissão para enviar/);
       }
-      assert.equal(delivered, 3);
+      assert.equal(delivered, 4);
       authContext.editPermissions = member.editPermissions;
       for (const invalidConversation of [previousAccount.id, other.id]) {
         for (const [action, input] of [["sendWhatsAppChatMessageAction", form], ["sendWhatsAppAudioMessageAction", audio], ["sendWhatsAppMediaMessageAction", attachment]] as const) {
@@ -105,7 +120,7 @@ test("colaborador autorizado envia texto, áudio e PDF só pela conta da arena c
           await assert.rejects(actions[action](input), /Conversa não encontrada/);
         }
       }
-      assert.equal(delivered, 3);
+      assert.equal(delivered, 4);
       throw rollback;
     }), (error: unknown) => error === rollback);
     assert.equal(await db.user.count({ where: { email } }), 0);

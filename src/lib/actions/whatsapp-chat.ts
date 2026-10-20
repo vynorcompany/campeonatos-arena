@@ -74,8 +74,9 @@ export async function sendWhatsAppChatMessageAction(formData: FormData) {
   const conversation = await getArenaWhatsAppConversation(auth.arenaId, parsed.data.conversationId);
   if (!conversation) throw new Error("Conversa não encontrada.");
   const reply = await replyContext(auth.arenaId, conversation.id, formData);
+  const sentAt = new Date();
   const delivery = await sendEvolutionTextMessage(conversation.remoteJid?.endsWith("@g.us") ? conversation.remoteJid : conversation.contactPhone || conversation.remoteJid.replace(/@.*$/, ""), parsed.data.body, auth.arenaId, reply.quoted);
-  return persistAcceptedMessage(auth.arenaId, conversation.id, { ...reply.metadata, senderUserId: auth.userId, senderName: auth.userName, providerId: getEvolutionProviderId(delivery), body: parsed.data.body });
+  return persistAcceptedMessage(auth.arenaId, conversation.id, { ...reply.metadata, senderUserId: auth.userId, senderName: auth.userName, providerId: getEvolutionProviderId(delivery), body: parsed.data.body, sentAt });
 }
 
 export async function sendWhatsAppAudioMessageAction(formData: FormData) {
@@ -89,8 +90,9 @@ export async function sendWhatsAppAudioMessageAction(formData: FormData) {
   const mimeType = audio.type || "audio/webm";
   const dataUrl = `data:${mimeType};base64,${Buffer.from(await audio.arrayBuffer()).toString("base64")}`;
   const reply = await replyContext(auth.arenaId, conversation.id, formData);
+  const sentAt = new Date();
   const delivery = await sendEvolutionAudioMessage(conversation.remoteJid?.endsWith("@g.us") ? conversation.remoteJid : conversation.contactPhone || conversation.remoteJid.replace(/@.*$/, ""), dataUrl, auth.arenaId, reply.quoted);
-  return persistAcceptedMessage(auth.arenaId, conversation.id, { ...reply.metadata, senderUserId: auth.userId, senderName: auth.userName, providerId: getEvolutionProviderId(delivery), body: "Áudio", mediaType: "AUDIO", mediaMimeType: mimeType, mediaUrl: dataUrl });
+  return persistAcceptedMessage(auth.arenaId, conversation.id, { ...reply.metadata, senderUserId: auth.userId, senderName: auth.userName, providerId: getEvolutionProviderId(delivery), body: "Áudio", mediaType: "AUDIO", mediaMimeType: mimeType, mediaUrl: dataUrl, sentAt });
 }
 
 export async function sendWhatsAppMediaMessageAction(formData: FormData) {
@@ -101,8 +103,8 @@ export async function sendWhatsAppMediaMessageAction(formData: FormData) {
   if (!mediaType) throw new Error("Envie uma imagem ou PDF.");
   const conversation = await getArenaWhatsAppConversation(auth.arenaId, conversationId); if (!conversation) throw new Error("Conversa não encontrada.");
   const reply = await replyContext(auth.arenaId, conversation.id, formData);
-  const dataUrl = `data:${file.type};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}`; const delivery = await sendEvolutionMediaMessage(conversation.remoteJid?.endsWith("@g.us") ? conversation.remoteJid : conversation.contactPhone || conversation.remoteJid.replace(/@.*$/, ""), dataUrl, mediaType, file.name, file.type, auth.arenaId, reply.quoted);
-  return persistAcceptedMessage(auth.arenaId, conversation.id, { ...reply.metadata, senderUserId: auth.userId, senderName: auth.userName, providerId: getEvolutionProviderId(delivery), body: mediaType === "image" ? "Imagem" : "Documento", mediaType: mediaType === "image" ? "IMAGE" : "DOCUMENT", mediaMimeType: file.type, mediaUrl: dataUrl });
+  const dataUrl = `data:${file.type};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}`; const sentAt = new Date(); const delivery = await sendEvolutionMediaMessage(conversation.remoteJid?.endsWith("@g.us") ? conversation.remoteJid : conversation.contactPhone || conversation.remoteJid.replace(/@.*$/, ""), dataUrl, mediaType, file.name, file.type, auth.arenaId, reply.quoted);
+  return persistAcceptedMessage(auth.arenaId, conversation.id, { ...reply.metadata, senderUserId: auth.userId, senderName: auth.userName, providerId: getEvolutionProviderId(delivery), body: mediaType === "image" ? "Imagem" : "Documento", mediaType: mediaType === "image" ? "IMAGE" : "DOCUMENT", mediaMimeType: file.type, mediaUrl: dataUrl, sentAt });
 }
 
 export async function markWhatsAppConversationReadAction(formData: FormData) {

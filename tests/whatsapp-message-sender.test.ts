@@ -9,11 +9,13 @@ import { outgoingWhatsAppMediaKind } from "../src/lib/whatsapp-media-types";
 const require = createRequire(import.meta.url);
 
 test("author is persisted even when the webhook records the outbound message first", async () => {
-  let stored: Record<string, unknown> = { id: "message", senderName: "", senderUserId: "", sentAt: new Date() };
+  const sentAt = new Date();
+  let stored: Record<string, unknown> = { id: "message", senderName: "", senderUserId: "", sentAt };
+  let conversationUpdate: Record<string, unknown> = {};
   const tx = {
     $queryRaw: async () => [{ id: "conversation" }],
-    whatsAppConversation: { findFirst: async () => ({ id: "conversation" }), updateMany: async () => ({ count: 1 }) },
-    whatsAppMessage: { upsert: async ({ update }: { update: Record<string, unknown> }) => { stored = { ...stored, ...update }; return stored; } },
+    whatsAppConversation: { findFirst: async () => ({ lastMessageAt: new Date(0) }), updateMany: async ({ data }: { data: Record<string, unknown> }) => { conversationUpdate = data; return { count: 1 }; } },
+    whatsAppMessage: { findFirst: async () => null, upsert: async ({ update }: { update: Record<string, unknown> }) => { stored = { ...stored, ...update }; return stored; } },
   };
   const source = readFileSync(new URL("../src/lib/services/whatsapp-conversation.ts", import.meta.url), "utf8");
   const exports: Record<string, (...args: unknown[]) => Promise<Record<string, unknown>>> = {};
@@ -25,12 +27,45 @@ test("author is persisted even when the webhook records the outbound message fir
       return require(name);
     },
   });
-  const result = await exports.persistOutboundWhatsAppMessage("arena", "conversation", { providerId: "provider", body: "Olá!", senderUserId: "user", senderName: "Atendente" });
+  const result = await exports.persistOutboundWhatsAppMessage("arena", "conversation", { providerId: "provider", body: "Olá!", senderUserId: "user", senderName: "Atendente", sentAt });
   assert.equal(stored.senderUserId, "user");
   assert.equal(stored.senderName, "Atendente");
   assert.equal(result.senderName, "Atendente");
   assert.equal(result.body, "Olá!");
   assert.equal(result.mediaUrl, "");
+  assert.equal(conversationUpdate.unreadCount, 0);
+  assert.equal(conversationUpdate.lastMessageAt, sentAt);
+});
+
+test("an inbound reply received during delivery stays unread and most recent", async () => {
+  const sentAt = new Date("2026-10-20T12:00:00.000Z");
+  const inboundAt = new Date(sentAt.getTime() + 1000);
+  let conversationUpdate: Record<string, unknown> = {};
+  const tx = {
+    $queryRaw: async () => [{ id: "conversation" }],
+    whatsAppConversation: {
+      findFirst: async () => ({ lastMessageAt: inboundAt }),
+      updateMany: async ({ data }: { data: Record<string, unknown> }) => { conversationUpdate = data; return { count: 1 }; },
+    },
+    whatsAppMessage: {
+      findFirst: async () => ({ id: "inbound" }),
+      upsert: async () => ({ id: "outbound", direction: "OUTBOUND", body: "Olá!", senderName: "Atendente", quotedProviderId: "", quotedBody: "", quotedAuthor: "", reactions: "[]", mediaType: "", mediaMimeType: "", sentAt }),
+    },
+  };
+  const source = readFileSync(new URL("../src/lib/services/whatsapp-conversation.ts", import.meta.url), "utf8");
+  const exports: Record<string, (...args: unknown[]) => Promise<Record<string, unknown>>> = {};
+  vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, {
+    exports, Date,
+    require: (name: string) => {
+      if (name === "@/lib/rls") return { withArenaTransaction: async (_id: string, operation: (transaction: typeof tx) => unknown) => operation(tx) };
+      if (name === "@/lib/whatsapp-active-account") return { getActiveWhatsAppAccountJid: async () => "account" };
+      return require(name);
+    },
+  });
+  await exports.persistOutboundWhatsAppMessage("arena", "conversation", { providerId: "provider", body: "Olá!", senderUserId: "user", senderName: "Atendente", sentAt });
+  assert.equal(conversationUpdate.unreadCount, undefined);
+  assert.equal(conversationUpdate.lastMessageAt, undefined);
+  assert.ok(conversationUpdate.updatedAt instanceof Date);
 });
 
 test("text, audio and attachments store authenticated authors without sending their names to WhatsApp", async () => {
