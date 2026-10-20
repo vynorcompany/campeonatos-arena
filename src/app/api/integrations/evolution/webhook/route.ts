@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
       const eventGroupName = readEvolutionGroupName({ groupName: data.groupName, subject: data.subject, groupSubject: data.groupSubject, groupMetadata: data.groupMetadata }, remoteJid);
       const rawBody = messageBody(message, media);
       const body = rawBody;
-      const sentAt = sentAtFrom(data);
+      const providerSentAt = sentAtFrom(data);
       const phone = remoteJid.replace(/@.*$/, "");
       const conversationKey = { arenaId: connection.arenaId, accountJid, remoteJid };
       const existingGroup = isGroup && !eventGroupName ? await arenaDatabase(connection.arenaId).whatsAppConversation.findUnique({
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
       const conversation = await withArenaTransaction(connection.arenaId, async (tx) => {
         const current = await tx.whatsAppConversation.upsert({
           where: { arenaId_accountJid_remoteJid: conversationKey },
-          create: { ...conversationKey, contactPhone: phone, contactName: contactName || (isGroup ? "Grupo do WhatsApp" : phone), profilePhotoUrl: photoFromEvent, unreadCount: 0, lastMessageAt: sentAt },
+          create: { ...conversationKey, contactPhone: phone, contactName: contactName || (isGroup ? "Grupo do WhatsApp" : phone), profilePhotoUrl: photoFromEvent, unreadCount: 0, lastMessageAt: providerSentAt },
           update: { ...((isGroup || !fromMe) && contactName ? { contactName } : {}), ...(!isGroup && photoFromEvent ? { profilePhotoUrl: photoFromEvent } : {}) }
         });
         // Serializa redeliveries desta conversa antes de contar não lidas.
@@ -154,6 +154,13 @@ export async function POST(request: NextRequest) {
         const messageKey = { conversationId: current.id, providerId };
         const existingMessage = await tx.whatsAppMessage.findUnique({ where: { conversationId_providerId: messageKey }, select: { id: true } });
         if (!existingMessage) {
+          // A Evolution arredonda para segundos. Uma resposta recebida no mesmo
+          // segundo de um envio local (com milissegundos) não é histórico antigo.
+          const sameSecondAsLatest = Math.floor(providerSentAt.getTime() / 1000) === Math.floor(current.lastMessageAt.getTime() / 1000);
+          const liveMessage = Math.abs(Date.now() - providerSentAt.getTime()) <= 60_000;
+          const sentAt = !fromMe && sameSecondAsLatest && liveMessage && providerSentAt <= current.lastMessageAt
+            ? new Date(current.lastMessageAt.getTime() + 1)
+            : providerSentAt;
           await tx.whatsAppMessage.upsert({ where: { conversationId_providerId: messageKey }, create: { providerId, conversationId: current.id, direction: fromMe ? "OUTBOUND" : "INBOUND", body, senderName: !fromMe ? senderName : "", participantJid: String(key.participant ?? data.participant ?? ""), quotedProviderId, quotedBody, quotedAuthor, mediaType: media.type, mediaMimeType: media.mimeType, mediaUrl: media.url, providerPayload: message as Prisma.InputJsonValue, sentAt }, update: {} });
           const updatedAt = nextWhatsAppConversationVersion(current.updatedAt);
           // A Evolution pode entregar o histórico fora de ordem. Uma mensagem

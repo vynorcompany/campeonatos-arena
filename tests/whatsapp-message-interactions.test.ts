@@ -362,6 +362,18 @@ test("webhook fora de ordem não reabre não lidas nem recua a última mensagem"
   assert.equal(conversation.unreadCount, 1);
   assert.equal(conversation.lastMessageAt.getTime(), 1_700_000_200_000);
   assert.equal(messages.size, 5);
+  const liveSecond = Math.floor(Date.now() / 1000);
+  await sendEvent("answered-now", liveSecond, true);
+  conversation.lastMessageAt = new Date(liveSecond * 1000 + 700); // envio local tem precisão de milissegundos
+  await sendEvent("received-same-second", liveSecond, false);
+  assert.equal(conversation.unreadCount, 1, "a resposta no mesmo segundo do envio local não vira histórico");
+  assert.equal(conversation.lastMessageAt.getTime(), liveSecond * 1000 + 701);
+  await sendEvent("received-again-same-second", liveSecond, false);
+  assert.equal(conversation.unreadCount, 2);
+  assert.equal(conversation.lastMessageAt.getTime(), liveSecond * 1000 + 702);
+  await sendEvent("late-outbound-echo", liveSecond, true);
+  assert.equal(conversation.unreadCount, 2, "o eco atrasado do envio não apaga respostas mais recentes");
+  assert.equal(messages.size, 9);
 });
 
 test("duplicate webhook messages count once and provider IDs remain scoped to each arena conversation", async () => {
