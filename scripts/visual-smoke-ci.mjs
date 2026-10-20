@@ -1692,11 +1692,14 @@ async function main() {
           throw new Error(`${viewport.name}: Jogos não exibiu as duplas e o placar para permissão somente leitura.`);
         }
         const matchLayout = await send("Runtime.evaluate", {
-          expression: "(() => { const card=[...document.querySelectorAll('article')].find(item=>item.textContent?.includes('Jogo consulta GOAL')); const row=[...(card?.querySelectorAll('div') ?? [])].find(item=>item.children.length===3 && item.children[0].tagName==='STRONG' && item.children[1].tagName==='DIV' && item.children[2].tagName==='STRONG'); if (!row) return null; const [home,score,away]=[...row.children].map(item=>item.getBoundingClientRect()); return {homeRight:home.right,scoreLeft:score.left,scoreRight:score.right,awayLeft:away.left,cardRight:card.getBoundingClientRect().right,viewport:innerWidth}; })()",
+          expression: "(() => { const card=[...document.querySelectorAll('article')].find(item=>item.textContent?.includes('Jogo consulta GOAL')); const row=card?.querySelector('[data-match-teams]'); if (!row) return null; const home=row.querySelector('[data-match-home]').getBoundingClientRect(),score=row.querySelector('[data-match-score]').getBoundingClientRect(),away=row.querySelector('[data-match-away]').getBoundingClientRect(); return {homeRight:home.right,homeWidth:home.width,homeBottom:home.bottom,scoreLeft:score.left,scoreRight:score.right,scoreTop:score.top,scoreBottom:score.bottom,awayLeft:away.left,awayTop:away.top,awayWidth:away.width,cardRight:card.getBoundingClientRect().right,viewport:innerWidth}; })()",
           returnByValue: true,
         });
         const positions = matchLayout.result.value;
-        if (!positions || positions.homeRight > positions.scoreLeft + 1 || positions.scoreRight > positions.awayLeft + 1 || positions.cardRight > positions.viewport + 1) {
+        const legible = positions && (viewport.name === "desktop"
+          ? positions.homeRight <= positions.scoreLeft + 1 && positions.scoreRight <= positions.awayLeft + 1
+          : positions.homeBottom <= positions.scoreTop + 1 && positions.scoreBottom <= positions.awayTop + 1 && positions.homeWidth >= 180 && positions.awayWidth >= 180);
+        if (!legible || positions.cardRight > positions.viewport + 1) {
           throw new Error(`${viewport.name}: nomes das duplas e placar se sobrepõem: ${JSON.stringify(positions)}`);
         }
         const matchControls = await send("Runtime.evaluate", {
