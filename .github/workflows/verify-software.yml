@@ -69,6 +69,9 @@ jobs:
       - run: npm test
       - name: Load 100 synthetic arenas and verify isolation
         run: node scripts/load-100-arenas-ci.mjs
+      - name: Show isolated server errors when load fails
+        if: failure()
+        run: tail -n 80 /tmp/arena-goal-server.log
       - name: Save synthetic screenshots
         if: always()
         uses: actions/upload-artifact@v4
