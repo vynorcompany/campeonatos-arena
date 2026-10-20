@@ -61,10 +61,10 @@ test("games no longer loads the legacy global match workspace", async () => {
 test("tournaments keeps only games and rankings as sidebar children", async () => {
   const source = await readSource("src", "components", "layout", "nav-links.tsx");
   const tournamentChildren = source.match(
-    /href: "\/torneios",[\s\S]*?children: \[([\s\S]*?)\]/,
+    /href: canSee\("tournaments"\) \? "\/torneios" : "\/jogos",[\s\S]*?children: canSee\("tournaments"\) \? \[([\s\S]*?)\]/,
   )?.[1] ?? "";
 
-  assert.match(tournamentChildren, /href: "\/jogos", label: canSee\("tournaments"\) \? "Eventos ativos" : "Programação e placares"/);
+  assert.match(tournamentChildren, /href: "\/jogos", label: "Eventos ativos"/);
   assert.match(tournamentChildren, /href: "\/torneios\/rankings", label: "Rankings"/);
   assert.doesNotMatch(tournamentChildren, /label: "Duplas"/);
   assert.doesNotMatch(tournamentChildren, /label: "Grupos"/);
@@ -72,5 +72,6 @@ test("tournaments keeps only games and rankings as sidebar children", async () =
 
 test("tournament parent opens games for a matches-only profile", async () => {
   const source = await readSource("src", "components", "layout", "nav-links.tsx");
-  assert.match(source, /item\.href === "\/torneios" && !canSee\("tournaments"\) \? "\/jogos" : item\.href/);
+  assert.match(source, /href: canSee\("tournaments"\) \? "\/torneios" : "\/jogos"/);
+  assert.match(source, /children: canSee\("tournaments"\) \? \[[\s\S]*?\] : undefined/);
 });

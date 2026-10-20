@@ -105,7 +105,7 @@ test("perfil somente Jogos encontra programação e placares sem acesso à gest�
     whatsappUnreadCount: 0,
   }));
   assert.match(markup, /href="\/jogos"[^>]*>[\s\S]*?Jogos/);
-  assert.match(markup, /Programação e placares/);
+  assert.equal((markup.match(/href="\/jogos"/g) ?? []).length, 1);
   assert.doesNotMatch(markup, /href="\/torneios"/);
   assert.doesNotMatch(markup, /href="\/torneios\/rankings"/);
 });
