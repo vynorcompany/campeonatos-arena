@@ -33,6 +33,21 @@ test("dashboard renders a daily cash-flow chart and the requested operational ch
   assert.match(comparison, /Personalizado/);
 });
 
+test("dashboard only reads prior-period totals when comparison is enabled", () => {
+  const dashboard = readFileSync(resolve(process.cwd(), "src/app/(app)/painel/page.tsx"), "utf8");
+  assert.match(dashboard, /comparing \? tx\.financialEntry\.findMany\(\{ where: previousFinancialWhere/);
+  assert.match(dashboard, /comparing \? tx\.scheduleOccurrence\.count\(\{ where:/);
+  assert.match(dashboard, /comparisonPercent\(received, previousReceived\)/);
+  assert.match(dashboard, /comparisonPercent\(reservations\.length, previousReservations\)/);
+});
+
+test("shared layout waits for tenant-scoped notifications during a connection spike", () => {
+  const layout = readFileSync(resolve(process.cwd(), "src/app/(app)/layout.tsx"), "utf8");
+  assert.match(layout, /arenaDatabase\(auth\.arenaId\)\.\$transaction\(/);
+  assert.match(layout, /tx\.arenaNotification\.findMany\(\{ where: \{ arenaId: auth\.arenaId/);
+  assert.match(layout, /maxWait: 20_000, timeout: 10_000/);
+});
+
 test("command checkout keeps pending debts compact until the toggle is enabled", () => {
   const card = readFileSync(resolve(process.cwd(), "src/components/comandas/command-card.tsx"), "utf8");
   const css = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");

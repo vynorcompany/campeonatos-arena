@@ -58,18 +58,21 @@ export default async function OverviewPage({ searchParams }: { searchParams: Das
   const previousFinancialWhere = view === "caixa"
     ? { arenaId: auth.arenaId, status: "PAID", paidAt: { gte: previousFrom, lte: previousTo } }
     : { arenaId: auth.arenaId, status: { not: "VOIDED" }, dueDate: { gte: previousFrom, lte: previousTo } };
+  const comparing = query.comparar === "previous-month" || query.comparar === "previous-year" || query.comparar === "custom";
   const [entries, previousEntries, reservations, previousReservations, saleItems, teachers, portalAccounts, openDebts, paidByClient, arenaCourts] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
     tx.financialEntry.findMany({ where: financialWhere, select: { id: true, type: true, status: true, amountCents: true, paidAt: true, dueDate: true, description: true, counterpartyName: true, paymentMethod: true } }),
-    tx.financialEntry.findMany({ where: previousFinancialWhere, select: { type: true, amountCents: true } }),
+    comparing ? tx.financialEntry.findMany({ where: previousFinancialWhere, select: { type: true, amountCents: true } }) : Promise.resolve([]),
     tx.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, startsAt: { lte: to }, endsAt: { gte: from }, ...activeCourtOccurrenceWhere() }, include: { occurrenceCourts: { include: { court: { select: { name: true } } } } } }),
-    tx.scheduleOccurrence.count({ where: { arenaId: auth.arenaId, startsAt: { lte: previousTo }, endsAt: { gte: previousFrom }, ...activeCourtOccurrenceWhere() } }),
+    comparing ? tx.scheduleOccurrence.count({ where: { arenaId: auth.arenaId, startsAt: { lte: previousTo }, endsAt: { gte: previousFrom }, ...activeCourtOccurrenceWhere() } }) : Promise.resolve(0),
     loadDashboardProductSales(tx, auth.arenaId, { gte: from, lte: to }),
     tx.teacher.findMany({ where: { arenaId: auth.arenaId, active: true }, include: { lessons: { where: { scheduledAt: { gte: from, lte: to } }, include: { attendances: true } } } }),
     tx.playerAccount.findMany({ where: { arenaId: auth.arenaId, createdAt: { gte: from, lte: to } }, select: { id: true, phone: true, createdAt: true, player: { select: { name: true, email: true } } }, orderBy: { createdAt: "desc" } }),
     tx.financialEntry.findMany({ where: { arenaId: auth.arenaId, type: "REVENUE", status: { in: ["PENDING", "OVERDUE"] } }, select: { id: true, counterpartyName: true, amountCents: true, dueDate: true } }),
     view === "caixa" ? Promise.resolve([]) : tx.financialEntry.findMany({ where: { arenaId: auth.arenaId, type: "REVENUE", status: "PAID", paidAt: { gte: from, lte: to } }, select: { id: true, counterpartyName: true, amountCents: true, paidAt: true } }),
     tx.court.findMany({ where: { arenaId: auth.arenaId, active: true }, include: { weeklyRules: true }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }] }),
-  ]), { maxWait: 10_000, timeout: 10_000 });
+  // Um pico de arenas distintas pode enfileirar leituras no pool do Prisma.
+  // A espera não prolonga a transação em si; ela evita HTTP 500 antes de obter conexão.
+  ]), { maxWait: 20_000, timeout: 10_000 });
   const received = entries.filter((entry) => entry.type === "REVENUE").reduce((total, entry) => total + entry.amountCents, 0);
   const paid = entries.filter((entry) => entry.type === "EXPENSE").reduce((total, entry) => total + entry.amountCents, 0);
   const previousReceived = previousEntries.filter((entry) => entry.type === "REVENUE").reduce((total, entry) => total + entry.amountCents, 0);
@@ -91,7 +94,6 @@ export default async function OverviewPage({ searchParams }: { searchParams: Das
   const maxPaymentMethod = Math.max(1, ...paymentMethods.map((item) => item.value));
   const maxRanking = Math.max(1, ...courts.map((item) => item.value), ...products.map((item) => item.value), ...students.map((item) => item.value));
   const maxFinancialRanking = Math.max(1, ...debtors.map((item) => item.value), ...bestClients.map((item) => item.value));
-  const comparing = query.comparar === "previous-month" || query.comparar === "previous-year" || query.comparar === "custom";
   const metricCards = [
     { id: "income", label: "Entradas", value: money(received), caption: view === "caixa" ? "Valores recebidos" : "Receitas previstas", comparison: comparing ? { percent: comparisonPercent(received, previousReceived) } : undefined, title: "Entradas no período", description: "Receitas consideradas na visualização selecionada.", emptyMessage: "Nenhuma entrada encontrada neste período.", items: entries.filter((entry) => entry.type === "REVENUE").map((entry) => ({ id: entry.id, title: entry.description || "Receita", subtitle: entry.counterpartyName || "Sem identificação", value: money(entry.amountCents), date: (entry[financialDateField] as Date | null)?.toISOString() })) },
     { id: "expense", label: "Saídas", value: money(paid), caption: view === "caixa" ? "Valores pagos" : "Despesas previstas", comparison: comparing ? { percent: comparisonPercent(paid, previousPaid) } : undefined, title: "Saídas no período", description: "Despesas consideradas na visualização selecionada.", emptyMessage: "Nenhuma saída encontrada neste período.", items: entries.filter((entry) => entry.type === "EXPENSE").map((entry) => ({ id: entry.id, title: entry.description || "Despesa", subtitle: entry.counterpartyName || "Sem identificação", value: money(entry.amountCents), date: (entry[financialDateField] as Date | null)?.toISOString() })) },
