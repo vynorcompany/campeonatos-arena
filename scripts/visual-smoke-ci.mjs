@@ -960,6 +960,34 @@ async function main() {
             throw new Error(`${label}: seletor de semanas ou jogos ultrapassou a área visível: ${JSON.stringify(leagueLayout.result.value)}`);
           }
         }
+        if (view.label === "inicio") {
+          await clickElement('button[aria-label="Notificações"]');
+          let panel;
+          for (let attempt = 0; attempt < 30; attempt += 1) {
+            const evaluated = await send("Runtime.evaluate", {
+              expression: "(() => { const dialog = document.querySelector('[role=dialog][aria-label=\"Notificações\"]'); if (!dialog) return null; const rect = dialog.getBoundingClientRect(); const buttons = [...dialog.querySelectorAll('button')].filter(button => button.getClientRects().length).map(button => { const box = button.getBoundingClientRect(); return { left: box.left, right: box.right, top: box.top, bottom: box.bottom }; }); return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, width: rect.width, height: rect.height, viewportHeight: innerHeight, scrollWidth: dialog.scrollWidth, clientWidth: dialog.clientWidth, buttons, text: dialog.innerText }; })()",
+              returnByValue: true,
+            });
+            panel = evaluated.result.value;
+            if (panel?.width > 200) break;
+            await pause(100);
+          }
+          if (!panel || panel.left < 0 || panel.right > compact.width + 1 || panel.top < 0 || panel.bottom > panel.viewportHeight + 1 || panel.scrollWidth > panel.clientWidth + 1 || !panel.text.includes("Notificações") || panel.buttons.some((button) => button.left < panel.left - 1 || button.right > panel.right + 1)) {
+            throw new Error(`${label}: notificações ou ações cortadas em 320 px: ${JSON.stringify(panel)}`);
+          }
+          const notificationShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+          await writeFile(`${outputDir}/${label}-notificacoes.png`, Buffer.from(notificationShot.data, "base64"));
+          await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+          await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+          let closed = false;
+          for (let attempt = 0; attempt < 20; attempt += 1) {
+            const evaluated = await send("Runtime.evaluate", { expression: "!document.querySelector('[role=dialog][aria-label=\"Notificações\"]')", returnByValue: true });
+            closed = Boolean(evaluated.result.value);
+            if (closed) break;
+            await pause(100);
+          }
+          if (!closed) throw new Error(`${label}: Esc não fechou notificações em 320 px.`);
+        }
         const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
         await writeFile(`${outputDir}/${label}.png`, Buffer.from(shot.data, "base64"));
       }
