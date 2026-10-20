@@ -196,13 +196,13 @@ export function NavLinks({ canManageUsers, canManageFinancialSettings, financeVi
       title: "Painéis",
       links: [
         {
-          href: "/torneios",
+          href: canSee("tournaments") ? "/torneios" : "/jogos",
           label: canSee("tournaments") ? "Torneios" : "Jogos",
           icon: "trophy",
-          children: [
-            { href: "/jogos", label: canSee("tournaments") ? "Eventos ativos" : "Programação e placares" },
+          children: canSee("tournaments") ? [
+            { href: "/jogos", label: "Eventos ativos" },
             { href: "/torneios/rankings", label: "Rankings" }
-          ]
+          ] : undefined
         },
         {
           href: "/agenda",

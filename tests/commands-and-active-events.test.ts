@@ -9,7 +9,10 @@ test("active events are listed before their categories are selected", () => {
   const page = readFileSync(resolve(process.cwd(), "src/app/(app)/jogos/page.tsx"), "utf8");
   const navigation = readFileSync(resolve(process.cwd(), "src/components/layout/nav-links.tsx"), "utf8");
 
-  assert.match(navigation, /label: canSee\("tournaments"\) \? "Eventos ativos" : "Programação e placares"/);
+  assert.match(navigation, /href: canSee\("tournaments"\) \? "\/torneios" : "\/jogos"/);
+  assert.match(navigation, /children: canSee\("tournaments"\) \? \[/);
+  assert.match(page, /if \(!canViewTournaments && !canReadMatches\) notFound\(\)/);
+  assert.match(page, /selectedTournament && !canManageTournaments && !canRecordResults/);
   assert.match(page, /Entrar no evento/);
   assert.match(page, /Novo evento/);
   assert.match(page, /Gerenciar evento/);
