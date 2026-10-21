@@ -285,7 +285,7 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
           setLocalMessages((current) => ({ ...current, [conversation.id]: [] }));
           if (activeIdRef.current === conversation.id) {
             setReplyTo(null);
-            messageHistory.retry();
+            messageHistory.clearAndRetry();
           }
         }
         if (action === "delete") setActiveId("");
