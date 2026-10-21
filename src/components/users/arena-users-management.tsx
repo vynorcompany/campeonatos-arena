@@ -6,7 +6,7 @@ import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { revokeArenaInviteAction } from "@/lib/actions/account-access";
 import { ensureArenaPermissionProfiles } from "@/lib/actions/permission-profile";
 import { prisma } from "@/lib/prisma";
-import { isMigratedPermissionProfile, permissionProfileLabel } from "@/lib/permission-profile-label";
+import { isMigratedPermissionProfile, permissionProfileLabel, permissionProfileOptionLabel } from "@/lib/permission-profile-label";
 import type { ArenaRole } from "@/types/auth";
 
 type ArenaUsersManagementProps = {
@@ -65,7 +65,7 @@ export async function ArenaUsersManagement({ arenaId, currentUserId, query = "" 
                     editPermissions={member.editPermissions}
                     profileId={member.permissionProfileId}
                     profiles={member.permissionProfile && isMigratedPermissionProfile(member.permissionProfile.name)
-                      ? [{ id: member.permissionProfile.id, name: permissionProfileLabel(member.permissionProfile.name) }, ...assignableProfiles]
+                      ? [{ id: member.permissionProfile.id, name: permissionProfileLabel(member.permissionProfile.name), optionLabel: permissionProfileOptionLabel(member.permissionProfile.name) }, ...assignableProfiles]
                       : assignableProfiles}
                     isCurrentUser={member.userId === currentUserId}
                   />

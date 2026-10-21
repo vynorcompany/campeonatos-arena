@@ -13,6 +13,12 @@ export function permissionProfileLabel(name: string) {
   return `Acesso legado · ${roleLabels[match[1] as keyof typeof roleLabels]}`;
 }
 
+export function permissionProfileOptionLabel(name: string) {
+  const match = migratedProfile.exec(name);
+  if (!match) return name;
+  return `Legado · ${roleLabels[match[1] as keyof typeof roleLabels]}`;
+}
+
 export function isMigratedPermissionProfile(name: string) {
   return migratedProfile.test(name);
 }
