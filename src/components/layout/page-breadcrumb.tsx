@@ -32,13 +32,15 @@ function readable(value: string) {
   return value.replaceAll("-", " ").replace(/\b\p{L}/gu, (letter) => letter.toLocaleUpperCase("pt-BR"));
 }
 
-export function WorkspaceBreadcrumb() {
+export function WorkspaceBreadcrumb({ canViewTournaments = true }: { canViewTournaments?: boolean }) {
   const path = usePathname() ?? "";
   const parts = path.split("/").filter(Boolean);
   if (path.startsWith("/proximos-jogos/patrocinios")) return <PageBreadcrumb section="Gestão" current="Gestão de patrocínios" />;
   if (path.startsWith("/proximos-jogos")) return <PageBreadcrumb section="Painéis" current="Tela da TV" />;
   if (path.startsWith("/torneios/rankings")) return <PageBreadcrumb section="Torneios" current="Rankings" />;
-  if (path.startsWith("/jogos")) return <PageBreadcrumb section="Torneios" current="Eventos ativos" />;
+  if (path.startsWith("/jogos")) return canViewTournaments
+    ? <PageBreadcrumb section="Torneios" current="Eventos ativos" />
+    : <PageBreadcrumb section="Jogos" current="Programação e placares" />;
   if (path.startsWith("/financeiro")) return <PageBreadcrumb section="Gestão" current={financeNames[parts[1] ?? ""] ?? readable(parts.at(-1) ?? "Financeiro")} />;
   if (path === "/pdv/caixa") return <PageBreadcrumb section="Gestão" current="Caixa" />;
   if (path.startsWith("/pdv")) return <PageBreadcrumb section="Financeiro" current={pdvNames[parts[1] ?? ""] ?? "Produto"} />;

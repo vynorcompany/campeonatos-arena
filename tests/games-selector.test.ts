@@ -75,3 +75,10 @@ test("tournament parent opens games for a matches-only profile", async () => {
   assert.match(source, /href: canSee\("tournaments"\) \? "\/torneios" : "\/jogos"/);
   assert.match(source, /children: canSee\("tournaments"\) \? \[[\s\S]*?\] : undefined/);
 });
+
+test("games breadcrumb follows the visible permission, not an inaccessible tournament module", async () => {
+  const shell = await readSource("src", "components", "layout", "app-shell.tsx");
+  const breadcrumb = await readSource("src", "components", "layout", "page-breadcrumb.tsx");
+  assert.match(shell, /WorkspaceBreadcrumb canViewTournaments=\{visibleModules\.includes\("tournaments"\)\}/);
+  assert.match(breadcrumb, /path\.startsWith\("\/jogos"\)[\s\S]*?canViewTournaments[\s\S]*?section="Jogos" current="Programação e placares"/);
+});
