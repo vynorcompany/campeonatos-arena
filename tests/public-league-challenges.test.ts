@@ -13,7 +13,7 @@ test("authenticated public portal exposes league challenges scoped to the player
   assert.match(schema, /model PlayerNotification/);
   assert.match(schema, /challengeId\s+String\?\s+@unique/);
   assert.match(standings, /PublicLeaguePortal/);
-  assert.match(page, /getPublicPlayerAuth/);
+  assert.match(page, /getPublicPlayerContext\(params\.arenaSlug\)/);
   assert.ok(existsSync(resolve(process.cwd(), "src/components/tournaments/public-league-portal.tsx")));
 });
 
