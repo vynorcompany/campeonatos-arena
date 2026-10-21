@@ -60,7 +60,7 @@ export const permissionAreas = [
 const permissionModuleAliases: Record<string, PermissionModule> = { pos: "pos", players: "players", calendar: "calendar", finance: "finance", teachers: "teachers", lessons: "lessons", tournaments: "tournaments", stock: "stock", arena: "arena", users: "users", support: "support" };
 const allPermissionKeys: Set<string> = new Set([...allPermissionModules, ...permissionAreas.flatMap((area) => area.actions.map(([key]) => key))]);
 
-const alwaysVisibleModules: PermissionModule[] = ["dashboard", "support"];
+const alwaysVisibleModules: PermissionModule[] = ["dashboard"];
 
 export function normalizePermissionModules(values: string[]) {
   return Array.from(new Set(values.filter((value) => allPermissionKeys.has(value))));

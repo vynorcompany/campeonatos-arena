@@ -1728,6 +1728,9 @@ async function main() {
         await denied.body?.cancel();
         if (denied.status !== 404) throw new Error(`Perfil Jogos recebeu HTTP ${denied.status} ao abrir gestão em ${path}; esperado 404.`);
       }
+      const deniedWhatsapp = await fetch(`${baseUrl}/whatsapp`, { headers: { Cookie: cookie(arenaA.id, restrictedToken) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
+      await deniedWhatsapp.body?.cancel();
+      if (deniedWhatsapp.status !== 404) throw new Error(`Perfil Jogos recebeu HTTP ${deniedWhatsapp.status} ao abrir conversas do WhatsApp; esperado 404.`);
       for (const viewport of adminViewports) {
         const matchBody = await visit(`/jogos?tournamentId=${league.id}`, viewport, arenaA.id, `${viewport.name}-jogos-somente-leitura`, restrictedToken);
         if (!matchBody.includes("Jogo consulta GOAL") || !matchBody.includes("2 × 0") || !matchBody.includes("6–2 · 6–3") ||
@@ -1746,10 +1749,10 @@ async function main() {
           throw new Error(`${viewport.name}: nomes das duplas e placar se sobrepõem: ${JSON.stringify(positions)}`);
         }
         const matchControls = await send("Runtime.evaluate", {
-          expression: "({manage:Boolean(document.querySelector('a[href^=\"/torneios/\"]')),create:document.body.innerText.includes('Novo evento'),gamesLink:[...document.querySelectorAll('nav[aria-label=\"Principal\"] a')].find((link)=>link.textContent?.trim()==='Jogos')?.getAttribute('href'),width:innerWidth,scrollWidth:document.documentElement.scrollWidth})",
+          expression: "({manage:Boolean(document.querySelector('a[href^=\"/torneios/\"]')),create:document.body.innerText.includes('Novo evento'),whatsapp: Boolean(document.querySelector('a[href=\"/whatsapp\"]')),gamesLink:[...document.querySelectorAll('nav[aria-label=\"Principal\"] a')].find((link)=>link.textContent?.trim()==='Jogos')?.getAttribute('href'),width:innerWidth,scrollWidth:document.documentElement.scrollWidth})",
           returnByValue: true,
         });
-        if (matchControls.result.value?.manage || matchControls.result.value?.create || matchControls.result.value?.gamesLink !== "/jogos" || matchControls.result.value?.scrollWidth > matchControls.result.value?.width + 1) throw new Error(`${viewport.name}: Jogos exibiu gestão, menu inválido ou ficou cortado: ${JSON.stringify(matchControls.result.value)}`);
+        if (matchControls.result.value?.manage || matchControls.result.value?.create || matchControls.result.value?.whatsapp || matchControls.result.value?.gamesLink !== "/jogos" || matchControls.result.value?.scrollWidth > matchControls.result.value?.width + 1) throw new Error(`${viewport.name}: Jogos exibiu gestão, WhatsApp sem permissão, menu inválido ou ficou cortado: ${JSON.stringify(matchControls.result.value)}`);
         const matchShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
         await writeFile(`${outputDir}/${viewport.name}-jogos-somente-leitura.png`, Buffer.from(matchShot.data, "base64"));
       }
