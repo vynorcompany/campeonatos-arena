@@ -23,7 +23,7 @@ type UserActionsCellProps = {
   viewPermissions: string[];
   editPermissions: string[];
   profileId: string | null;
-  profiles: { id: string; name: string }[];
+  profiles: { id: string; name: string; optionLabel?: string }[];
   isCurrentUser: boolean;
 };
 
@@ -49,7 +49,7 @@ export function UserActionsCell({
           <input type="hidden" name="arenaRole" value={role} />
           <select name="permissionProfileId" defaultValue={profileId ?? ""} aria-label="Perfil de usuário" required>
             <option value="" disabled>Selecione o perfil</option>
-            {profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}
+            {profiles.map((profile) => <option key={profile.id} value={profile.id} title={profile.name}>{profile.optionLabel ?? profile.name}</option>)}
           </select>
         </div>
         <div className={viewStyles.player_inline_actions}>

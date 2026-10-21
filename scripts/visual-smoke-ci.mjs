@@ -228,11 +228,11 @@ async function main() {
           if (!clicked.result.value) throw new Error(`${label}: botão de edição do usuário ausente.`);
           await pause(400);
           const editor = await send("Runtime.evaluate", {
-            expression: "(() => { const select = document.querySelector('.entity-edit-form select[name=\"permissionProfileId\"]'); const grid = select?.closest('.entity-edit-grid-user'); return { visible: Boolean(select), overflow: document.documentElement.scrollWidth > innerWidth + 1, widthRatio: select && grid ? select.getBoundingClientRect().width / grid.getBoundingClientRect().width : 0, options: [...(select?.options ?? [])].map(option => option.text) }; })()",
+            expression: "(() => { const select = document.querySelector('.entity-edit-form select[name=\"permissionProfileId\"]'); const grid = select?.closest('.entity-edit-grid-user'); const style = select && getComputedStyle(select); const canvas = document.createElement('canvas'); const context = canvas.getContext('2d'); if (style && context) context.font = style.font; const selectedWidth = context && select ? context.measureText(select.selectedOptions[0]?.text ?? '').width : 0; const availableWidth = select && style ? select.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - 22 : 0; return { visible: Boolean(select), overflow: document.documentElement.scrollWidth > innerWidth + 1, widthRatio: select && grid ? select.getBoundingClientRect().width / grid.getBoundingClientRect().width : 0, labelFits: selectedWidth <= availableWidth, options: [...(select?.options ?? [])].map(option => option.text) }; })()",
             returnByValue: true,
           });
-          if (!editor.result.value.visible || editor.result.value.overflow || editor.result.value.widthRatio < 0.85 ||
-              !editor.result.value.options.includes("Acesso legado · Proprietário") ||
+          if (!editor.result.value.visible || editor.result.value.overflow || editor.result.value.widthRatio < 0.85 || !editor.result.value.labelFits ||
+              !editor.result.value.options.includes("Proprietário") ||
               editor.result.value.options.some((option) => option.includes("Migrado · OWNER"))) {
             throw new Error(`${label}: edição do usuário inválida: ${JSON.stringify(editor.result.value)}`);
           }
