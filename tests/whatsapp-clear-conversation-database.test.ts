@@ -17,8 +17,11 @@ const disposableDatabase = (() => {
 
 test("limpeza atualiza o histórico aberto e remove mensagens locais imediatamente", () => {
   const workspace = readFileSync(new URL("../src/components/whatsapp/whatsapp-chat-workspace.tsx", import.meta.url), "utf8");
+  const history = readFileSync(new URL("../src/components/whatsapp/use-conversation-messages.ts", import.meta.url), "utf8");
   assert.match(workspace, /action === "clear"[\s\S]*?setLocalMessages\(\(current\) => \(\{ \.\.\.current, \[conversation\.id\]: \[\] \}\)\)/);
-  assert.match(workspace, /action === "clear"[\s\S]*?messageHistory\.retry\(\)/);
+  assert.match(workspace, /action === "clear"[\s\S]*?messageHistory\.clearAndRetry\(\)/);
+  assert.match(history, /setHistory\(\{ key, version, messages: \[\] \}\)/);
+  assert.match(history, /requestGeneration === generation\.current/);
 });
 
 test("limpar conversa zera mensagens, não lidas e SLA sem tocar em outra conta ou arena", { skip: !disposableDatabase }, async () => {

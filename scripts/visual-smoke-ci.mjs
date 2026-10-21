@@ -1502,6 +1502,27 @@ async function main() {
     await writeFile(`${outputDir}/whatsapp-conversa-${mobileViewport.name}-aberta.png`, Buffer.from(whatsappMobileShot.data, "base64"));
     }
 
+    await visit("/whatsapp", viewports[0], arenaA.id, "whatsapp-conversa-limpeza");
+    await send("Runtime.evaluate", { expression: "document.querySelector('button[aria-label=\"Ações da conversa\"]')?.click()" });
+    let clearOptionClicked = false;
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      const clearOption = await send("Runtime.evaluate", { expression: "(() => { const option = [...document.querySelectorAll('button')].find(button => button.textContent?.includes('Limpar conversa')); if (!option) return false; option.click(); return true; })()", returnByValue: true });
+      if (clearOption.result.value) { clearOptionClicked = true; break; }
+      await pause(100);
+    }
+    if (!clearOptionClicked) throw new Error("A opção de limpar conversa não pôde ser acionada.");
+    let clearedOnScreen = false;
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      const state = await send("Runtime.evaluate", { expression: "({notice:document.body.innerText.includes('Mensagens removidas da conversa.'),history:document.querySelector('.whatsapp-message-thread')?.innerText ?? ''})", returnByValue: true });
+      if (state.result.value.notice && !state.result.value.history.includes("Mensagem inicial GOAL") && !state.result.value.history.includes("Resposta enviada GOAL")) { clearedOnScreen = true; break; }
+      await pause(200);
+    }
+    const clearedConversation = await db.whatsAppConversation.findUniqueOrThrow({ where: { id: conversation.id }, select: { unreadCount: true, slaResolvedAt: true } });
+    if (!clearedOnScreen || clearedConversation.unreadCount !== 0 || !clearedConversation.slaResolvedAt || await db.whatsAppMessage.count({ where: { conversationId: conversation.id } }) !== 0) {
+      throw new Error("Limpar conversa não removeu o histórico aberto ou não encerrou o alerta de SLA.");
+    }
+    console.log("WhatsApp: limpeza da conversa aberta removeu mensagens e zerou não lidas e SLA.");
+
     const [teacherA, teacherB] = await Promise.all([
       db.teacher.create({ data: { arenaId: arenaA.id, name: "Professora Financeiro GOAL A" } }),
       db.teacher.create({ data: { arenaId: arenaA.id, name: "Professor Financeiro GOAL B" } }),

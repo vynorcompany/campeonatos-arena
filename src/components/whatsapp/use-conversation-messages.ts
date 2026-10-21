@@ -11,9 +11,11 @@ export function useConversationMessages(conversationId: string | undefined, acco
   const [failedKey, setFailedKey] = useState("");
   const [attempt, setAttempt] = useState(0);
   const validator = useRef({ key: "", etag: "" });
+  const generation = useRef(0);
   const key = accountJid + ":" + (conversationId || "");
   useEffect(() => {
     if (!conversationId || !accountJid) return;
+    const requestGeneration = generation.current;
     const controller = new AbortController();
     let active = true;
     const timeout = window.setTimeout(() => controller.abort(), 10_000);
@@ -21,17 +23,17 @@ export function useConversationMessages(conversationId: string | undefined, acco
     void fetch("/api/whatsapp/conversations/" + encodeURIComponent(conversationId) + "/messages", { cache: "no-store", signal: controller.signal, headers: validator.current.key === key && validator.current.etag ? { "If-None-Match": validator.current.etag } : {} })
       .then(async response => {
         if (response.status === 304) {
-          if (!controller.signal.aborted) setHistory((current) => current?.key === key ? { ...current, version } : current);
+          if (!controller.signal.aborted && requestGeneration === generation.current) setHistory((current) => current?.key === key ? { ...current, version } : current);
           return;
         }
         if (!response.ok) throw new Error("History unavailable");
         const payload = await response.json();
         if (!Array.isArray(payload.messages)) throw new Error("Invalid history");
-        if (!controller.signal.aborted) {
+        if (!controller.signal.aborted && requestGeneration === generation.current) {
           validator.current = { key, etag: response.headers.get("etag") || "" };
           setHistory({ key, version, messages: payload.messages });
         }
-    }).catch(() => { if (active) setFailedKey(key); })
+    }).catch(() => { if (active && requestGeneration === generation.current) setFailedKey(key); })
       .finally(() => window.clearTimeout(timeout));
     return () => { active = false; window.clearTimeout(timeout); controller.abort(); };
   }, [conversationId, accountJid, version, key, attempt]);
@@ -58,5 +60,12 @@ export function useConversationMessages(conversationId: string | undefined, acco
     };
   }, [failedKey, key, conversationId, accountJid, attempt]);
   const ready = history?.key === key && history.version === version;
-  return { messages: history?.key === key ? history.messages : emptyMessages, ready, failed: failedKey === key, loading: Boolean(conversationId && accountJid && !ready && failedKey !== key), retry: () => setAttempt(value => value + 1) };
+  const clearAndRetry = () => {
+    generation.current += 1;
+    validator.current = { key: "", etag: "" };
+    setHistory({ key, version, messages: [] });
+    setFailedKey("");
+    setAttempt(value => value + 1);
+  };
+  return { messages: history?.key === key ? history.messages : emptyMessages, ready, failed: failedKey === key, loading: Boolean(conversationId && accountJid && !ready && failedKey !== key), retry: () => setAttempt(value => value + 1), clearAndRetry };
 }
