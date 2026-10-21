@@ -232,7 +232,7 @@ async function main() {
             returnByValue: true,
           });
           if (!editor.result.value.visible || editor.result.value.overflow || editor.result.value.widthRatio < 0.85 || !editor.result.value.labelFits ||
-              !editor.result.value.options.includes("Legado · Proprietário") ||
+              !editor.result.value.options.includes("Proprietário") ||
               editor.result.value.options.some((option) => option.includes("Migrado · OWNER"))) {
             throw new Error(`${label}: edição do usuário inválida: ${JSON.stringify(editor.result.value)}`);
           }
