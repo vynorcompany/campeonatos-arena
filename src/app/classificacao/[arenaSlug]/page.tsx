@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { PublicClientAuthForm } from "@/components/public-client-auth-form";
-import { getPublicAthleteIdentity, getPublicPlayerAuth } from "@/lib/auth/player-session";
+import { getPublicPlayerContext } from "@/lib/auth/player-session";
 import { getPublicLeaguePortal } from "@/lib/services/public-league-portal";
 import { getPublicClientComandas, getPublicClientFinance, getPublicClientHome } from "@/lib/services/public-client-home";
 import { getPublicDoublesRadar } from "@/lib/services/public-doubles-radar";
@@ -41,10 +41,9 @@ export default async function PublicStandingsPage(
   if (alias && alias.arena.slug !== params.arenaSlug) redirect(`/classificacao/${alias.arena.slug}`);
   const section = searchParams?.section === "home" || searchParams?.section === "announcements" || searchParams?.section === "finance" || searchParams?.section === "comandas" || searchParams?.section === "leagues" || searchParams?.section === "booking" || searchParams?.section === "reservations" || searchParams?.section === "lessons" || searchParams?.section === "classes" || searchParams?.section === "profile" || searchParams?.section === "teacher" || searchParams?.section === "radar" ? searchParams.section : "home";
   const isSuper12 = section === "leagues" && searchParams?.eventTab === "super12";
-  const [data, currentClient, athleteIdentity] = await Promise.all([
+  const [data, { currentClient, athleteIdentity }] = await Promise.all([
     section === "leagues" && !isSuper12 ? getArenaPublicStandings(params.arenaSlug, { ...searchParams, league: searchParams?.leagueCategory ?? searchParams?.league }) : null,
-    getPublicPlayerAuth(params.arenaSlug),
-    getPublicAthleteIdentity(),
+    getPublicPlayerContext(params.arenaSlug),
   ]);
   const arena = data?.arena ?? (await getPublicArenaShell(params.arenaSlug));
   if (!arena) {

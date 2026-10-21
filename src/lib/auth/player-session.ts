@@ -46,7 +46,7 @@ async function getSession() {
     },
   });
   if (!session || session.expiresAt < new Date()) {
-    if (session) await prisma.playerSession.delete({ where: { id: session.id } });
+    if (session) await prisma.playerSession.deleteMany({ where: { id: session.id } });
     return null;
   }
   const identityId = session.athleteIdentityId ?? session.playerAccount.identityId;
@@ -75,8 +75,9 @@ async function getSession() {
   };
 }
 
-export async function getPublicPlayerAuth(arenaSlug: string) {
-  const session = await getSession();
+type PublicPlayerSession = Awaited<ReturnType<typeof getSession>>;
+
+function resolvePublicPlayerAuth(session: PublicPlayerSession, arenaSlug: string) {
   if (!session) return null;
   const identity = session.athleteIdentity ?? session.playerAccount.identity;
   const account = identity?.accounts.find((entry) => entry.player.active && entry.player.arena.slug === arenaSlug)
@@ -86,12 +87,27 @@ export async function getPublicPlayerAuth(arenaSlug: string) {
   return { playerId: player.id, playerAccountId: account.id, athleteIdentityId: identity?.id ?? null, name: player.name, phone: player.phone, email: player.email, photoUrl: player.photoUrl, bio: player.bio, birthDate: player.birthDate?.toISOString().slice(0, 10) ?? "", gender: player.gender, padelCategories: parsePadelCategories(player.padelCategories, player.class), padelSide: player.padelSide, tournamentAvailability: player.tournamentAvailability, isTeacher: Boolean(player.teacher?.active), arenaId: player.arenaId };
 }
 
-export async function getPublicAthleteIdentity() {
-  const session = await getSession();
+function resolvePublicAthleteIdentity(session: PublicPlayerSession) {
   if (!session) return null;
   const identity = session.athleteIdentity ?? session.playerAccount.identity;
   const accounts = identity?.accounts ?? [session.playerAccount];
   return { id: identity?.id ?? null, phone: identity?.phone ?? session.playerAccount.phone, arenas: accounts.filter((account) => account.player.active).map((account) => ({ slug: account.player.arena.slug, name: account.player.arena.name, logoUrl: account.player.arena.logoUrl, playerName: account.player.name, city: account.player.addressCity || account.player.arena.city, state: account.player.addressState || account.player.arena.state })) };
+}
+
+export async function getPublicPlayerContext(arenaSlug: string) {
+  const session = await getSession();
+  return {
+    currentClient: resolvePublicPlayerAuth(session, arenaSlug),
+    athleteIdentity: resolvePublicAthleteIdentity(session),
+  };
+}
+
+export async function getPublicPlayerAuth(arenaSlug: string) {
+  return resolvePublicPlayerAuth(await getSession(), arenaSlug);
+}
+
+export async function getPublicAthleteIdentity() {
+  return resolvePublicAthleteIdentity(await getSession());
 }
 
 export async function requirePublicPlayerAuth(arenaSlug: string) {
