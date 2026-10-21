@@ -148,8 +148,12 @@ export async function updateWhatsAppConversationAction(formData: FormData) {
     const removed = await db.whatsAppConversation.deleteMany({ where });
     if (!removed.count) throw new Error("Conversa não encontrada.");
   } else if (parsed.data.action === "clear") {
-    await db.whatsAppMessage.deleteMany({ where: { conversation: where } });
-    await db.whatsAppConversation.updateMany({ where, data: { updatedAt: new Date() } });
+    await withArenaTransaction(auth.arenaId, async (tx) => {
+      const locked = await tx.$queryRaw<{ id: string }[]>`SELECT "id" FROM "WhatsAppConversation" WHERE "id" = ${where.id} AND "arenaId" = ${auth.arenaId} AND "accountJid" = ${where.accountJid} FOR UPDATE`;
+      if (!locked.length) throw new Error("Conversa não encontrada.");
+      await tx.whatsAppMessage.deleteMany({ where: { conversation: where } });
+      await tx.whatsAppConversation.updateMany({ where, data: { unreadCount: 0, slaResolvedAt: new Date(), updatedAt: new Date() } });
+    });
   } else if (parsed.data.action === "resolve_sla") {
     const updated = await db.whatsAppConversation.updateMany({ where, data: { slaResolvedAt: new Date(), unreadCount: 0 } });
     if (!updated.count) throw new Error("Conversa não encontrada.");
