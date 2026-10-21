@@ -28,6 +28,7 @@ test("cancelar reserva respeita a escolha sobre cobranças abertas sem afetar va
   const entryIds: string[] = [];
   const settlementIds: string[] = [];
   const canceledPaymentIds: string[] = [];
+  const queriedPaymentIds: string[] = [];
   let editPermissions = ["calendar"];
   try {
     const arenaA = await admin.arena.findUniqueOrThrow({ where: { slug: "arena-teste-goal" }, select: { id: true } });
@@ -66,7 +67,10 @@ test("cancelar reserva respeita a escolha sobre cobranças abertas sem afetar va
       "@/lib/integrations/evolution/client": {},
       "@/lib/scheduling/recurrence": {},
       "@/lib/payments/mercado-pago": {
-        getMercadoPagoPayment: async (_arenaId: string, paymentId: string) => ({ status: paymentId === "goal-payment-pending" ? "pending" : "approved" }),
+        getMercadoPagoPayment: async (_arenaId: string, paymentId: string) => {
+          queriedPaymentIds.push(paymentId);
+          return { status: paymentId === "goal-payment-pending" ? "pending" : paymentId === "goal-payment-unsupported" ? "unknown" : "approved" };
+        },
         cancelMercadoPagoPayment: async (_arenaId: string, paymentId: string) => { canceledPaymentIds.push(paymentId); },
       },
       "@/lib/payments/boleto-cancellation": { boletoCancellationDisposition },
@@ -143,6 +147,20 @@ test("cancelar reserva respeita a escolha sobre cobranças abertas sem afetar va
     assert.equal((await admin.financialEntry.findUniqueOrThrow({ where: { id: onlinePendingEntry } })).status, "VOIDED");
     assert.equal((await admin.financialEntry.findUniqueOrThrow({ where: { id: onlineApprovedEntry } })).status, "PENDING");
     assert.deepEqual(canceledPaymentIds, ["goal-payment-pending"]);
+
+    const unsupportedOccurrence = await createOccurrence(arenaA.id);
+    const cancellableEntry = await createEntry(arenaA.id, unsupportedOccurrence, "PENDING");
+    const unsupportedEntry = await createEntry(arenaA.id, unsupportedOccurrence, "PENDING");
+    await admin.financialEntry.update({ where: { id: cancellableEntry }, data: { onlineProvider: "MERCADO_PAGO", onlinePaymentId: "goal-payment-pending" } });
+    await admin.financialEntry.update({ where: { id: unsupportedEntry }, data: { onlineProvider: "MERCADO_PAGO", onlinePaymentId: "goal-payment-unsupported" } });
+    const canceledBefore = canceledPaymentIds.length;
+    const queriedBefore = queriedPaymentIds.length;
+    await assert.rejects(cancel(unsupportedOccurrence, "yes"), /Não foi possível confirmar o status/);
+    assert.deepEqual(new Set(queriedPaymentIds.slice(queriedBefore)), new Set(["goal-payment-pending", "goal-payment-unsupported"]));
+    assert.equal(canceledPaymentIds.length, canceledBefore);
+    assert.equal((await admin.scheduleOccurrence.findUniqueOrThrow({ where: { id: unsupportedOccurrence } })).status, "SCHEDULED");
+    assert.equal((await admin.financialEntry.findUniqueOrThrow({ where: { id: cancellableEntry } })).status, "PENDING");
+    assert.equal((await admin.financialEntry.findUniqueOrThrow({ where: { id: unsupportedEntry } })).status, "PENDING");
 
     const freeSeriesId = await createSeries(arenaA.id);
     const freeBefore = await createOccurrence(arenaA.id, "BOOKING", new Date("2038-04-10T14:00:00Z"), freeSeriesId);

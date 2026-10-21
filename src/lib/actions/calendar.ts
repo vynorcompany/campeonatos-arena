@@ -309,12 +309,18 @@ export async function cancelCourtBookingAction(formData: FormData) {
       return tx.financialEntry.findMany({ where: { arenaId: auth.arenaId, source: "SCHEDULE_BOOKING", externalReference: { in: occurrences }, status: "PENDING", settlements: { none: { amountCents: { gt: 0 } } } }, select: { id: true, onlineProvider: true, onlinePaymentId: true, onlinePaymentUrl: true, onlinePaymentClaimMethod: true } });
     });
     if (charges.some((entry) => (entry.onlinePaymentUrl || entry.onlinePaymentClaimMethod) && !entry.onlinePaymentId)) throw new Error("Há uma cobrança online sendo emitida. Aguarde a confirmação antes de cancelar a reserva e a cobrança.");
+    const dispositions = new Map<string, ReturnType<typeof boletoCancellationDisposition>>();
     for (const charge of charges) {
       if (!charge.onlinePaymentId) continue;
       if (charge.onlineProvider !== "MERCADO_PAGO") throw new Error("Há uma cobrança emitida por outro provedor. A reserva não foi cancelada.");
       const status = String((await getMercadoPagoPayment(auth.arenaId, charge.onlinePaymentId)).status ?? "");
       const disposition = boletoCancellationDisposition(status);
       if (disposition === "unsupported") throw new Error("Não foi possível confirmar o status de uma cobrança online. A reserva não foi cancelada.");
+      dispositions.set(charge.id, disposition);
+    }
+    for (const charge of charges) {
+      if (!charge.onlinePaymentId) continue;
+      const disposition = dispositions.get(charge.id);
       if (disposition === "preserve") { preservedEntries.add(charge.id); continue; }
       if (disposition === "cancel") await cancelMercadoPagoPayment(auth.arenaId, charge.onlinePaymentId);
       handledPayments.add(charge.onlinePaymentId);
