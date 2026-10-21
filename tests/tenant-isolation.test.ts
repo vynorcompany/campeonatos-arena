@@ -73,6 +73,34 @@ test("cookie de arena inválido não altera o contexto para outra subconta", asy
   assert.equal(fallback.arenaName, "Arena A");
 });
 
+test("requisições simultâneas descartam sessão expirada sem erro concorrente", async () => {
+  const source = read("src/lib/auth/session.ts");
+  const session = { id: "expired-session", expiresAt: new Date(Date.now() - 60_000), user: { memberships: [] } };
+  let cleanups = 0;
+  const exports: Record<string, () => Promise<unknown>> = {};
+  vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, {
+    exports,
+    Date,
+    require: (name: string) => {
+      if (name === "react") return { cache: (callback: unknown) => callback };
+      if (name === "next/headers") return { cookies: async () => ({ get: () => ({ value: "expired-token" }) }) };
+      if (name === "next/navigation") return { redirect: () => { throw new Error("unexpected redirect"); } };
+      if (name === "@/lib/env") return { env: { sessionTtlDays: 30, sessionCookieName: "session", arenaCookieName: "arena" } };
+      if (name === "@/lib/prisma") return { prisma: { session: {
+        findUnique: async () => session,
+        deleteMany: async () => ({ count: ++cleanups === 1 ? 1 : 0 }),
+      } } };
+      if (name === "@/lib/permissions") return { allPermissionModules: [] };
+      if (name === "node:crypto") return { createHash: () => ({ update: () => ({ digest: () => "hash" }) }) };
+      throw new Error(`Unexpected import: ${name}`);
+    },
+  });
+
+  const results = await Promise.all([exports.getAuthContext(), exports.getAuthContext()]);
+  assert.deepEqual(results, [null, null]);
+  assert.equal(cleanups, 2);
+});
+
 test("portal writes always enforce the active arena in their database predicates", () => {
   const actions = read("src/lib/actions/client-portal.ts");
 
