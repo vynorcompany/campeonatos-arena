@@ -168,7 +168,7 @@ export const getAuthContext = cachePerRequest(async (): Promise<AuthContext | nu
 
   if (!session || session.expiresAt < new Date()) {
     if (session) {
-      await prisma.session.delete({
+      await prisma.session.deleteMany({
         where: { id: session.id }
       });
     }
