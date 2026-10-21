@@ -281,6 +281,13 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
         await updateWhatsAppConversationAction(form);
         setMenuId("");
         setNotice(action === "delete" ? "Conversa excluída." : action === "clear" ? "Mensagens removidas da conversa." : action === "resolve_sla" ? "SLA encerrado para esta conversa." : "Conversa atualizada.");
+        if (action === "clear") {
+          setLocalMessages((current) => ({ ...current, [conversation.id]: [] }));
+          if (activeIdRef.current === conversation.id) {
+            setReplyTo(null);
+            messageHistory.retry();
+          }
+        }
         if (action === "delete") setActiveId("");
       } catch { setNotice("Não foi possível atualizar a conversa."); }
     });
