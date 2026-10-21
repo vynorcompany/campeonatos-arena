@@ -11,7 +11,7 @@ test("falhas transitórias do histórico usam espera progressiva limitada", () =
 test("histórico interrompido tenta de novo quando a aba ou rede retorna", () => {
   const source = readFileSync(new URL("../src/components/whatsapp/use-conversation-messages.ts", import.meta.url), "utf8");
   assert.match(source, /const timeout = window\.setTimeout\(\(\) => controller\.abort\(\), 10_000\)/);
-  assert.match(source, /if \(active\) setFailedKey\(key\)/);
+  assert.match(source, /if \(active && requestGeneration === generation\.current\) setFailedKey\(key\)/);
   assert.match(source, /document\.addEventListener\("visibilitychange", scheduleRetry\)/);
   assert.match(source, /window\.addEventListener\("online", scheduleRetry\)/);
   assert.match(source, /if \(visible\(\)\) setAttempt\(value => value \+ 1\)/);
