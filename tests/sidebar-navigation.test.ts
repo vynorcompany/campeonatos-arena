@@ -41,6 +41,15 @@ test("links da barra lateral voltam ao topo ao trocar de página", () => {
   }
 });
 
+test("atalho de configurações só aponta para uma página autorizada", () => {
+  const shell = readFileSync(new URL("../src/components/layout/app-shell.tsx", import.meta.url), "utf8");
+  const layout = readFileSync(new URL("../src/app/(app)/layout.tsx", import.meta.url), "utf8");
+  assert.match(layout, /canManageCourtSettings=\{canPerformPermission\("calendar:settings:manage"/);
+  assert.match(shell, /visibleModules\.includes\("arena"\) \? "\/arena" : visibleModules\.includes\("calendar"\) && canManageCourtSettings \? "\/agenda\/configuracao" : null/);
+  assert.match(shell, /settingsHref \? <nav/);
+  assert.match(shell, /<Link href=\{settingsHref\}/);
+});
+
 test("sem permissão de gestão financeira, a barra lateral não oferece configurações", () => {
   const markup = renderToStaticMarkup(React.createElement(NavLinks, {
     canManageUsers: false,
