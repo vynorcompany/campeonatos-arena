@@ -1754,10 +1754,10 @@ async function main() {
           throw new Error(`${viewport.name}: nomes das duplas e placar se sobrepõem: ${JSON.stringify(positions)}`);
         }
         const matchControls = await send("Runtime.evaluate", {
-          expression: "({manage:Boolean(document.querySelector('a[href^=\"/torneios/\"]')),create:document.body.innerText.includes('Novo evento'),whatsapp: Boolean(document.querySelector('a[href=\"/whatsapp\"]')),dashboard: Boolean(document.querySelector('a[href=\"/painel\"]')),breadcrumb:[...document.querySelector('nav[aria-label=\"Caminho de navegação\"]')?.querySelectorAll('span,strong') ?? []].map(item=>item.textContent?.trim()),gamesLink:[...document.querySelectorAll('nav[aria-label=\"Principal\"] a')].find((link)=>link.textContent?.trim()==='Jogos')?.getAttribute('href'),width:innerWidth,scrollWidth:document.documentElement.scrollWidth})",
+          expression: "({manage:Boolean(document.querySelector('a[href^=\"/torneios/\"]')),create:document.body.innerText.includes('Novo evento'),whatsapp: Boolean(document.querySelector('a[href=\"/whatsapp\"]')),dashboard: Boolean(document.querySelector('a[href=\"/painel\"]')),settings:document.querySelector('nav[aria-label=\"Configurações\"] a')?.getAttribute('href') ?? null,breadcrumb:[...document.querySelector('nav[aria-label=\"Caminho de navegação\"]')?.querySelectorAll('span,strong') ?? []].map(item=>item.textContent?.trim()),gamesLink:[...document.querySelectorAll('nav[aria-label=\"Principal\"] a')].find((link)=>link.textContent?.trim()==='Jogos')?.getAttribute('href'),width:innerWidth,scrollWidth:document.documentElement.scrollWidth})",
           returnByValue: true,
         });
-        if (matchControls.result.value?.manage || matchControls.result.value?.create || matchControls.result.value?.whatsapp || matchControls.result.value?.dashboard || JSON.stringify(matchControls.result.value?.breadcrumb) !== JSON.stringify(["Jogos", "Programação e placares"]) || matchControls.result.value?.gamesLink !== "/jogos" || matchControls.result.value?.scrollWidth > matchControls.result.value?.width + 1) throw new Error(`${viewport.name}: Jogos exibiu gestão, caminho incoerente, acesso sem permissão ou layout cortado: ${JSON.stringify(matchControls.result.value)}`);
+        if (matchControls.result.value?.manage || matchControls.result.value?.create || matchControls.result.value?.whatsapp || matchControls.result.value?.dashboard || matchControls.result.value?.settings || JSON.stringify(matchControls.result.value?.breadcrumb) !== JSON.stringify(["Jogos", "Programação e placares"]) || matchControls.result.value?.gamesLink !== "/jogos" || matchControls.result.value?.scrollWidth > matchControls.result.value?.width + 1) throw new Error(`${viewport.name}: Jogos exibiu gestão, configurações, caminho incoerente, acesso sem permissão ou layout cortado: ${JSON.stringify(matchControls.result.value)}`);
         const matchShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
         await writeFile(`${outputDir}/${viewport.name}-jogos-somente-leitura.png`, Buffer.from(matchShot.data, "base64"));
       }
@@ -1824,6 +1824,17 @@ async function main() {
       const settingsResponse = await fetch(`${baseUrl}/agenda/configuracao`, { headers: { Cookie: cookie(arenaA.id, restrictedToken) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
       await settingsResponse.body?.cancel();
       if (settingsResponse.status !== 404) throw new Error(`Perfil limitado acessou a configuração de quadras (HTTP ${settingsResponse.status}).`);
+      await db.arenaMember.updateMany({ where: { arenaId: arenaA.id, userId: restrictedUser.id }, data: { editPermissions: ["calendar:booking:create", "calendar:settings:manage"] } });
+      try {
+        for (const viewport of [viewports[0], adminViewports[2]]) {
+          await visit("/agenda", viewport, arenaA.id, `${viewport.name}-agenda-configuracao-permitida`, restrictedToken);
+          const settingsLink = await send("Runtime.evaluate", { expression: "document.querySelector('nav[aria-label=\"Configurações\"] a')?.getAttribute('href') ?? null", returnByValue: true });
+          if (settingsLink.result.value !== "/agenda/configuracao") throw new Error(`${viewport.name}: gestor da grade recebeu destino de configurações incorreto: ${settingsLink.result.value}`);
+          await visit("/agenda/configuracao", viewport, arenaA.id, `${viewport.name}-configuracao-grade-permitida`, restrictedToken);
+        }
+      } finally {
+        await db.arenaMember.updateMany({ where: { arenaId: arenaA.id, userId: restrictedUser.id }, data: { editPermissions: ["calendar:booking:create"] } });
+      }
       const financeSettingsResponse = await fetch(`${baseUrl}/financeiro/configuracoes`, { headers: { Cookie: cookie(arenaA.id, restrictedToken) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
       await financeSettingsResponse.body?.cancel();
       if (financeSettingsResponse.status !== 404) throw new Error(`Perfil limitado acessou configurações financeiras (HTTP ${financeSettingsResponse.status}).`);
