@@ -60,8 +60,6 @@ export const permissionAreas = [
 const permissionModuleAliases: Record<string, PermissionModule> = { pos: "pos", players: "players", calendar: "calendar", finance: "finance", teachers: "teachers", lessons: "lessons", tournaments: "tournaments", stock: "stock", arena: "arena", users: "users", support: "support" };
 const allPermissionKeys: Set<string> = new Set([...allPermissionModules, ...permissionAreas.flatMap((area) => area.actions.map(([key]) => key))]);
 
-const alwaysVisibleModules: PermissionModule[] = ["dashboard"];
-
 export function normalizePermissionModules(values: string[]) {
   return Array.from(new Set(values.filter((value) => allPermissionKeys.has(value))));
 }
@@ -106,7 +104,11 @@ export function canViewModule(module: PermissionModule, role: string | null, sys
     return true;
   }
 
-  return alwaysVisibleModules.includes(module) || includesModulePermission(viewPermissions, module);
+  return includesModulePermission(viewPermissions, module);
+}
+
+export function firstVisibleModuleHref(role: string | null, systemRole: string, viewPermissions: string[]) {
+  return permissionModules.find(({ key }) => canViewModule(key, role, systemRole, viewPermissions))?.href ?? "/minha-conta";
 }
 
 export function canEditModule(module: PermissionModule, role: string | null, systemRole: string, editPermissions: string[]) {

@@ -21,7 +21,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
       (tx) => tx.arenaNotification.findMany({ where: { arenaId: auth.arenaId, readAt: null }, select: { id: true, title: true, message: true, href: true, createdAt: true }, orderBy: { createdAt: "desc" }, take: 8 }),
       { maxWait: 20_000, timeout: 10_000 }
     ),
-    getActiveWhatsAppUnreadCount(auth.arenaId),
+    visibleModules.includes("support") ? getActiveWhatsAppUnreadCount(auth.arenaId) : Promise.resolve(0),
     getAgencyDelinquency(auth.arenaId),
   ]);
 

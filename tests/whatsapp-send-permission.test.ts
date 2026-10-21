@@ -1,12 +1,19 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { canManageWhatsApp, canSendWhatsApp, canViewModule, defaultArenaPermissionProfiles } from "@/lib/permissions";
+import { canManageWhatsApp, canSendWhatsApp, canViewModule, defaultArenaPermissionProfiles, firstVisibleModuleHref } from "@/lib/permissions";
 
 test("permissão Jogos isolada não expõe conversas do WhatsApp", () => {
   assert.equal(canViewModule("support", "STAFF", "VIEWER", ["matches"]), false);
   assert.equal(canViewModule("support", "STAFF", "VIEWER", ["support:view"]), true);
   assert.equal(canViewModule("support", "STAFF", "VIEWER", [...defaultArenaPermissionProfiles[2].viewPermissions]), true);
+});
+
+test("perfil Jogos isolado não recebe dados do Dashboard e entra em sua tela autorizada", () => {
+  assert.equal(canViewModule("dashboard", "STAFF", "VIEWER", ["matches"]), false);
+  assert.equal(firstVisibleModuleHref("STAFF", "VIEWER", ["matches"]), "/jogos");
+  assert.equal(firstVisibleModuleHref("STAFF", "VIEWER", []), "/minha-conta");
+  assert.equal(firstVisibleModuleHref("STAFF", "VIEWER", ["dashboard", "matches"]), "/painel");
 });
 
 test("WhatsApp reply permission does not grant conversation administration", () => {

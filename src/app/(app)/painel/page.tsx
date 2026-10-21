@@ -1,11 +1,13 @@
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { DashboardComparisonFilter } from "@/components/dashboard-comparison-filter";
 import { DashboardMetricCards } from "@/components/dashboard-metric-cards";
 import { DashboardSortablePanels } from "@/components/dashboard-sortable-panels";
 import { SectionCard } from "@/components/section-card";
-import { requireModuleView } from "@/lib/auth/guards";
+import { requireArenaAccess } from "@/lib/auth/session";
+import { canViewModule, firstVisibleModuleHref } from "@/lib/permissions";
 import { formatOccupancy, reservationInsights } from "@/lib/reports/reservation-insights";
 import { activeCourtOccurrenceWhere } from "@/lib/calendar/online-booking-hold";
 import { withArenaTransaction } from "@/lib/rls";
@@ -38,7 +40,10 @@ function comparisonPercent(current: number, previous: number) {
 type DashboardSearchParams = Promise<{ dataInicial?: string; dataFinal?: string; visao?: string; comparar?: string; compararDataInicial?: string; compararDataFinal?: string }>;
 
 export default async function OverviewPage({ searchParams }: { searchParams: DashboardSearchParams }) {
-  const auth = await requireModuleView("dashboard");
+  const auth = await requireArenaAccess();
+  if (!canViewModule("dashboard", auth.arenaRole, auth.systemRole, auth.viewPermissions)) {
+    redirect(firstVisibleModuleHref(auth.arenaRole, auth.systemRole, auth.viewPermissions));
+  }
   const query = await searchParams;
   const defaultEnd = new Date(); defaultEnd.setHours(23, 59, 59, 999);
   const defaultStart = new Date(defaultEnd); defaultStart.setDate(defaultStart.getDate() - 29); defaultStart.setHours(0, 0, 0, 0);
