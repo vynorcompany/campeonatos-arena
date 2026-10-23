@@ -1,4 +1,5 @@
 "use server";
+import { deleteComandaWithAudit } from "@/lib/comandas/delete-with-audit";
 import { arenaDatabase } from "@/lib/arena-database";
 
 import { revalidatePath } from "next/cache";
@@ -84,6 +85,7 @@ export async function createComandaAction(formData: FormData) {
 
   const result = await withArenaTransaction(auth.arenaId, async (tx) => {
     if (player) {
+      await tx.$queryRaw`SELECT id FROM "Player" WHERE id = ${player.id} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
       const existing = await tx.comanda.findFirst({
         where: { arenaId: auth.arenaId, playerId: player.id, status: "OPEN" },
         select: { id: true, openedAt: true }
@@ -115,10 +117,8 @@ export async function deleteComandaAction(formData: FormData) {
   const comandaId = z.string().trim().min(1).safeParse(formData.get("comandaId"));
   if (!comandaId.success) throw new Error("Comanda inválida.");
 
-  const deleted = await withArenaTransaction(auth.arenaId, (tx) => tx.comanda.deleteMany({
-    where: { id: comandaId.data, arenaId: auth.arenaId, status: "OPEN" }
-  }));
-  if (!deleted.count) throw new Error("A comanda não está disponível para exclusão.");
+  await withArenaTransaction(auth.arenaId, (tx) => deleteComandaWithAudit(tx, auth, comandaId.data));
+  revalidatePath("/auditoria");
   revalidatePath("/comandas");
 }
 
@@ -132,6 +132,9 @@ export async function openBookingComandasAction(formData: FormData): Promise<{ e
       const occurrence = await tx.scheduleOccurrence.findFirst({ where: { id: occurrenceId.data, arenaId: auth.arenaId, status: { not: "CANCELED" } }, include: { participants: { select: { playerId: true, player: { select: { name: true } } } } } });
       if (!occurrence) throw new Error("Horário não encontrado.");
       if (!occurrence.participants.length) throw new Error("Não é possível abrir comandas: esta reserva não possui cliente atribuído.");
+      for (const playerId of occurrence.participants.map(participant => participant.playerId).sort()) {
+        await tx.$queryRaw`SELECT id FROM "Player" WHERE id = ${playerId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
+      }
       for (const participant of occurrence.participants) {
         const existing = await tx.comanda.findFirst({ where: { arenaId: auth.arenaId, playerId: participant.playerId, status: "OPEN" }, select: { id: true } });
         if (!existing) await tx.comanda.create({ data: { arenaId: auth.arenaId, playerId: participant.playerId, label: participant.player.name, type: "CLIENT", code: formatComandaCode() } });

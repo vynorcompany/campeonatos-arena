@@ -1,0 +1,56 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { randomBytes } from "node:crypto";
+import { PrismaClient, type Prisma } from "@prisma/client";
+import { instantToArenaWallClock } from "../src/lib/calendar/arena-wall-clock";
+import { registerCourtCheckin } from "../src/lib/checkin/register";
+const databaseUrl = process.env.ARENA_GOAL_TEST_DATABASE_URL ?? "";
+const disposable = (() => { try { const url = new URL(databaseUrl); return url.hostname === "127.0.0.1" && url.port === "55433" && url.pathname === "/arena_goal"; } catch { return false; } })();
+test("check-in persiste presença e valor, é idempotente, valida horário e isola arenas", { skip: !disposable }, async () => {
+  const admin = new PrismaClient({ datasources: { db: { url: databaseUrl } } });
+  const runtimeUrl = new URL(databaseUrl); runtimeUrl.username = "arena_runtime";
+  const runtime = new PrismaClient({ datasources: { db: { url: runtimeUrl.toString() } } });
+  const ids: string[] = []; let courtId = ""; let arenaId = ""; let tokenBefore: string | null = null; let enabledBefore = false; let newPlayerId = "";
+  try {
+    const arena = await admin.arena.findUniqueOrThrow({ where: { slug: "arena-teste-goal" } }); arenaId = arena.id; tokenBefore = arena.checkinToken; enabledBefore = arena.checkinEnabled;
+    const other = await admin.arena.findUniqueOrThrow({ where: { slug: "arena-beta-goal" } });
+    const player = await admin.player.findFirstOrThrow({ where: { arenaId, active: true } });
+    const token = randomBytes(32).toString("hex");
+    await admin.arena.update({ where: { id: arenaId }, data: { checkinEnabled: true, checkinToken: token } });
+    courtId = (await admin.court.create({ data: { arenaId, name: "Quadra check-in teste" } })).id;
+    const now = new Date(); const wallNow = instantToArenaWallClock(now);
+    const create = async (offset = 0) => { const row = await admin.scheduleOccurrence.create({ data: { arenaId, sourceType: "BOOKING", title: "Reserva teste", startsAt: new Date(wallNow.getTime() + offset), endsAt: new Date(wallNow.getTime() + offset + 3600000), occurrenceCourts: { create: { courtId } }, participants: { create: { playerId: player.id, amountCents: 5500 } } } }); ids.push(row.id); return row; };
+    const row = await create();
+    const input = { arenaId, token, playerId: player.id, occurrenceId: row.id, courtId };
+    const run = (operation: (tx: Prisma.TransactionClient) => Promise<unknown>, tenant = arenaId) => runtime.$transaction(async tx => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${tenant}, true)`; return operation(tx); });
+    await assert.rejects(run(tx => registerCourtCheckin(tx, { ...input, token: "wrong" }, now)), /QR Code/);
+    await assert.rejects(run(tx => registerCourtCheckin(tx, { ...input, arenaId: other.id }, now), other.id), /QR Code/);
+    const results = await Promise.all([run(tx => registerCourtCheckin(tx, input, now)), run(tx => registerCourtCheckin(tx, input, now))]);
+    assert.equal((results[0] as { id: string }).id, (results[1] as { id: string }).id);
+    const receipt = await admin.checkinRecord.findUniqueOrThrow({ where: { occurrenceId_playerId: { occurrenceId: row.id, playerId: player.id } } });
+    assert.equal(receipt.amountCents, 5500); assert.equal(receipt.courtId, courtId);
+    assert.ok((await admin.scheduleParticipant.findFirstOrThrow({ where: { occurrenceId: row.id, playerId: player.id } })).checkedInAt);
+    assert.equal((await admin.scheduleOccurrence.findUniqueOrThrow({ where: { id: row.id } })).responsiblePlayerId, player.id);
+    const overlap = await create(60000);
+    await assert.rejects(run(tx => registerCourtCheckin(tx, { ...input, occurrenceId: overlap.id }, now)), /coincide/);
+    const future = await create(3 * 3600000);
+    await assert.rejects(run(tx => registerCourtCheckin(tx, { ...input, occurrenceId: future.id }, now)), /uma hora/);
+    newPlayerId = (await admin.player.create({ data: { arenaId, name: "Atleta novo no horário" } })).id;
+    await run(tx => registerCourtCheckin(tx, { ...input, playerId: newPlayerId }, now));
+    const joined = await admin.scheduleParticipant.findFirstOrThrow({ where: { occurrenceId: row.id, playerId: newPlayerId } });
+    assert.ok(joined.checkedInAt); assert.equal(joined.amountCents, 0); assert.equal(joined.financialEntryId, null);
+    assert.equal(await admin.checkinRecord.count({ where: { occurrenceId: { in: ids } } }), 2);
+    await admin.scheduleParticipant.deleteMany({ where: { occurrenceId: row.id } });
+    assert.equal(await admin.checkinRecord.count({ where: { occurrenceId: row.id } }), 2);
+    await admin.arena.update({ where: { id: arenaId }, data: { checkinEnabled: false } });
+    await assert.rejects(run(tx => registerCourtCheckin(tx, input, now)), /QR Code/);
+  } finally {
+    await admin.auditEvent.deleteMany({ where: { entityId: { in: ids } } });
+    await admin.checkinRecord.deleteMany({ where: { occurrenceId: { in: ids } } });
+    await admin.scheduleOccurrence.deleteMany({ where: { id: { in: ids } } });
+    if (newPlayerId) await admin.player.delete({ where: { id: newPlayerId } });
+    if (courtId) await admin.court.delete({ where: { id: courtId } });
+    if (arenaId) await admin.arena.update({ where: { id: arenaId }, data: { checkinToken: tokenBefore, checkinEnabled: enabledBefore } });
+    await runtime.$disconnect(); await admin.$disconnect();
+  }
+});

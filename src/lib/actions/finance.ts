@@ -5,7 +5,7 @@ import { requireFinancialEntryDelete, requirePermission } from "@/lib/auth/guard
 import { requireArenaAccess } from "@/lib/auth/session";
 import { canPerformPermission } from "@/lib/permissions";
 import { financialEntryPermission, type FinancialEntryOperation } from "@/lib/finance/entry-permissions";
-import { calculateBankAccountBalanceCents } from "@/lib/finance/bank-balance";
+import { calculateBankAccountBalanceCents, parseBankBalanceCents } from "@/lib/finance/bank-balance";
 import {
   getReferenceMonthRange,
   parseDate,
@@ -892,16 +892,18 @@ export async function createFinancialSettingAction(formData: FormData) {
 export async function reconcileBankAccountBalanceAction(formData: FormData) {
   const auth = await requirePermission("finance:settings:manage");
   const parsed = bankBalanceSchema.safeParse({ bankAccountId: formData.get("bankAccountId"), balance: formData.get("balance") });
-  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
-  const expectedBalanceCents = parseMoneyToCents(parsed.data.balance);
+  if (!parsed.success) return { error: "Selecione a conta bancária e informe o saldo que deseja conferir." };
+  let expectedBalanceCents: number;
+  try { expectedBalanceCents = parseBankBalanceCents(parsed.data.balance); } catch (error) { return { error: error instanceof Error ? error.message : "Informe um saldo válido." }; }
 
+  try {
   await withArenaTransaction(auth.arenaId, async (tx) => {
     await tx.$queryRaw`SELECT id FROM "BankAccount" WHERE id = ${parsed.data.bankAccountId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
     const account = await tx.bankAccount.findFirst({ where: { id: parsed.data.bankAccountId, arenaId: auth.arenaId }, select: { id: true, name: true, openingBalanceCents: true } });
-    if (!account) throw new Error("Conta bancária não encontrada.");
+    if (!account) throw new Error("Conta bancária não encontrada. Atualize a página e selecione a conta novamente.");
     const calculatedBalanceCents = await calculateBankAccountBalanceCents(tx, auth.arenaId, account.id, account.openingBalanceCents);
     const differenceCents = expectedBalanceCents - calculatedBalanceCents;
-    if (!differenceCents) throw new Error("O saldo informado já confere com o saldo calculado.");
+    if (!differenceCents) return;
     await tx.financialEntry.create({ data: {
       arenaId: auth.arenaId,
       bankAccountId: account.id,
@@ -915,6 +917,12 @@ export async function reconcileBankAccountBalanceAction(formData: FormData) {
       notes: `Saldo conferido: ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(expectedBalanceCents / 100)}.`
     } });
   });
+
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith("Conta bancária não encontrada")) return { error: error.message };
+    console.error("Falha ao conferir saldo bancário", error instanceof Error ? error.name : "Erro desconhecido");
+    return { error: "Não foi possível conferir o saldo agora. Tente novamente. Se o problema persistir, contate o suporte informando a conta selecionada." };
+  }
 
   refreshFinanceRoutes();
   refreshFinancialSettings();

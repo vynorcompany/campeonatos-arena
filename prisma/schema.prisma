@@ -103,6 +103,9 @@ model Arena {
   athletePortalLogoUrl              String                   @default("")
   accountStatus                     String                   @default("ACTIVE")
   agencyNotes                       String                   @default("")
+  checkinEnabled                    Boolean                  @default(false)
+  checkinToken                      String?                  @unique
+  checkinRecords                    CheckinRecord[]
   scheduleStartMinute               Int                      @default(360)
   scheduleEndMinute                 Int                      @default(1380)
   scheduleSlotMinutes               Int                      @default(30)
@@ -130,6 +133,8 @@ model Arena {
   updatedAt                         DateTime                 @updatedAt
   createdById                       String
   createdBy                         User                     @relation("ArenaCreator", fields: [createdById], references: [id])
+  agentApiKeys                      AgentApiKey[]
+  auditEvents                       AuditEvent[]
   members                           ArenaMember[]
   permissionProfiles                PermissionProfile[]
   players                           Player[]
@@ -1571,6 +1576,7 @@ model BookingType {
 }
 
 model ScheduleParticipant {
+  checkedInAt      DateTime?
   id               String             @id @default(cuid())
   amountCents      Int                @default(0)
   paymentMethod    String             @default("")
@@ -2543,4 +2549,53 @@ model EmployeePayrollEntry {
 
   @@unique([arenaId, userId, referenceMonth])
   @@index([arenaId, referenceMonth])
+}
+
+model AuditEvent {
+  id         String   @id @default(cuid())
+  arenaId    String
+  actorId    String
+  actorName  String
+  action     String
+  entityId   String
+  details    Json
+  createdAt  DateTime @default(now())
+  arena      Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+
+  @@index([arenaId, createdAt])
+}
+
+model CheckinRecord {
+  id             String   @id @default(cuid())
+  arenaId        String
+  occurrenceId   String
+  playerId       String
+  playerName     String
+  courtId        String
+  courtName      String
+  startsAt       DateTime
+  endsAt         DateTime
+  amountCents    Int
+  financialEntryId String?
+  createdAt      DateTime @default(now())
+  arena          Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+
+  @@unique([occurrenceId, playerId])
+  @@index([arenaId, createdAt])
+  @@index([arenaId, playerId, startsAt])
+}
+
+model AgentApiKey {
+  id         String   @id @default(cuid())
+  arenaId    String
+  name       String
+  prefix     String
+  tokenHash  String   @unique
+  scopes     String[]
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  lastUsedAt DateTime?
+  arena      Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  @@index([arenaId, createdAt])
 }

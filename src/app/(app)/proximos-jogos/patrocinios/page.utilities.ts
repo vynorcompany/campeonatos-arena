@@ -8,7 +8,7 @@ export const viewStyles = {
     "tw:max-w-[1120px]",
   ].join(" "),
   "sponsorship_management_toolbar": [
-    "sponsorship-management-toolbar", "tw:flex", "tw:items-end", "tw:viewport-760:items-stretch",
+    "sponsorship-management-toolbar", "tw:flex-wrap", "tw:[&_input]:min-h-11", "tw:[&_select]:min-h-11", "tw:[&_form]:min-w-0", "tw:flex", "tw:items-end", "tw:viewport-760:items-stretch",
     "tw:justify-between", "tw:gap-y-[16px]", "tw:gap-x-[16px]", "tw:pt-[14px]",
     "tw:pr-[14px]", "tw:pb-[14px]", "tw:pl-[14px]", "tw:border-t-[length:1px]",
     "tw:[border-top-style:solid]", "tw:border-t-[color:#dce7f2]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]",
@@ -18,7 +18,7 @@ export const viewStyles = {
     "tw:viewport-760:[&_>_.button]:justify-center",
   ].join(" "),
   "active_event_list_sponsor_plan_list": [
-    "active-event-list", "sponsor-plan-list", "tw:grid", "tw:grid-cols-[repeat(auto-fit,_minmax(290px,_360px))]",
+    "active-event-list", "sponsor-plan-list", "tw:grid", "tw:grid-cols-[repeat(auto-fit,_minmax(min(100%,320px),1fr))]",
     "tw:viewport-640:grid-cols-[1fr]", "tw:gap-y-[14px]", "tw:gap-x-[14px]", "tw:[justify-content:start]",
   ].join(" "),
   "active_event_row_sponsor_plan_row": [

@@ -11,7 +11,7 @@ export const viewStyles = {
   ].join(" "),
   "commands_new_modal": [
     "commands-new-modal", "tw:grid", "tw:gap-y-[18px]", "tw:gap-x-[18px]",
-    "tw:w-[min(100%,_440px)]", "tw:viewport-760:w-[100%]", "tw:pt-[22px]", "tw:viewport-760:pt-[18px]",
+    "tw:w-[min(100%,_560px)]", "tw:max-h-[calc(100dvh_-_32px)]", "tw:overflow-y-auto", "tw:[&_input]:min-h-11", "tw:[&_select]:min-h-11", "tw:viewport-760:w-[100%]", "tw:pt-[22px]", "tw:viewport-760:pt-[18px]",
     "tw:pr-[22px]", "tw:viewport-760:pr-[18px]", "tw:pb-[22px]", "tw:viewport-760:pb-[18px]",
     "tw:pl-[22px]", "tw:viewport-760:pl-[18px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]",
     "tw:border-t-[color:#d9e5f0]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:#d9e5f0]",

@@ -1,3 +1,4 @@
+import { eventDirectoryStyles } from "@/components/ui/event-directory";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
@@ -14,8 +15,8 @@ export const viewStyles = {
   "section_actions": sharedUtilities.sectionActions,
   "button_button_primary": sharedUtilities.buttonButtonPrimary,
   "button": sharedUtilities.button,
-  "t_event_list": "t-event-list tw:grid tw:min-w-0 tw:rounded-xl tw:border tw:border-solid tw:border-[var(--line)] tw:bg-white tw:shadow-[var(--shadow-sm)]",
-  "t_event_row": "t-event-row tw:grid tw:min-w-0 tw:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto] tw:items-center tw:gap-3 tw:border-0 tw:border-b tw:border-solid tw:border-[var(--line)] tw:px-4 tw:py-3 tw:last:border-b-0 tw:viewport-1120:grid-cols-[minmax(0,1fr)_auto] tw:viewport-620:grid-cols-1",
+  "t_event_list": eventDirectoryStyles.list,
+  "t_event_row": eventDirectoryStyles.row + " t-event-row tw:grid-cols-[minmax(180px,1fr)_minmax(240px,1fr)_auto] tw:viewport-1120:grid-cols-1",
   "t_event_identity": "t-event-identity tw:grid tw:min-w-0 tw:gap-2 tw:[overflow-wrap:anywhere] tw:[&_h3]:m-0 tw:[&_h3]:text-sm tw:[&_h3]:font-semibold tw:[&_p]:m-0 tw:[&_p]:text-xs tw:[&_p]:line-clamp-2 tw:[&_p]:text-[var(--muted)]",
   "t_event_categories": [
     "t-event-categories", "tw:flex", "tw:flex-wrap", "tw:gap-y-[6px]",

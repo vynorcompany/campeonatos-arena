@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
+import { parseBankBalanceCents } from "../src/lib/finance/bank-balance";
 import ts from "typescript";
 
 const source = readFileSync(new URL("../src/lib/actions/finance.ts", import.meta.url), "utf8");
@@ -41,7 +42,7 @@ test("conciliação cria receita atual e não repete ajuste quando o saldo já c
     "@/lib/auth/guards": { requirePermission: async (key: string) => { assert.equal(key, "finance:settings:manage"); return { arenaId: "arena-a" }; } },
     "@/lib/finance/action-schemas": { bankBalanceSchema: { safeParse: (data: { balance: string }) => ({ success: true, data: { bankAccountId: "bank-a", balance: data.balance } }) } },
     "@/lib/finance/inputs": { parseMoneyToCents: (value: string) => Number(value) * 100 },
-    "@/lib/finance/bank-balance": { calculateBankAccountBalanceCents: async () => calculatedBalance },
+    "@/lib/finance/bank-balance": { parseBankBalanceCents, calculateBankAccountBalanceCents: async () => calculatedBalance },
     "@/lib/rls": { withArenaTransaction: async (_arenaId: string, callback: (client: typeof tx) => Promise<unknown>) => callback(tx) },
     "@/lib/finance/revalidation": { refreshFinanceRoutes() {}, refreshFinancialSettings() {} },
   };
@@ -52,6 +53,6 @@ test("conciliação cria receita atual e não repete ajuste quando o saldo já c
   assert.equal(created.length, 1);
   assert.equal(created[0].type, "REVENUE");
   assert.equal(created[0].amountCents, 1000);
-  await assert.rejects(actions.reconcileBankAccountBalanceAction(form), /já confere/);
+  assert.equal(await actions.reconcileBankAccountBalanceAction(form), undefined);
   assert.equal(created.length, 1);
 });

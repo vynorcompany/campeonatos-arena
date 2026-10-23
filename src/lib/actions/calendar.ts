@@ -216,7 +216,7 @@ export async function createPublicCourtBookingAction(formData: FormData): Promis
       const delinquency = await getBookingDelinquency(tx, arena.id, player.id, arena.onlineBookingOverdueBlockDays);
       if (delinquency.blocked) throw new PublicBookingConflictError("Há pagamentos em atraso. Regularize suas pendências na área financeira para voltar a reservar.");
       if (requiresPayment && !player.email) throw new Error("Informe seu e-mail no perfil para continuar com o pagamento online.");
-      const occurrence = await tx.scheduleOccurrence.create({ data: { arenaId: arena.id, sourceType: "ONLINE_BOOKING", title: `${player.name} - Reserva`, startsAt, endsAt, status: requiresPayment ? "PENDING_PAYMENT" : arena.onlineBookingRequiresConfirmation ? "PENDING_CONFIRMATION" : "SCHEDULED", bookingTypeName: "Reserva", occurrenceCourts: { create: { courtId: court.id } }, participants: { create: { playerId: player.id, amountCents: bookingAmountCents } } } });
+      const occurrence = await tx.scheduleOccurrence.create({ data: { arenaId: arena.id, sourceType: "ONLINE_BOOKING", responsiblePlayerId: player.id, title: `${player.name} - Reserva`, startsAt, endsAt, status: requiresPayment ? "PENDING_PAYMENT" : arena.onlineBookingRequiresConfirmation ? "PENDING_CONFIRMATION" : "SCHEDULED", bookingTypeName: "Reserva", occurrenceCourts: { create: { courtId: court.id } }, participants: { create: { playerId: player.id, amountCents: bookingAmountCents } } } });
       const localDate = `${startsAt.getFullYear()}-${String(startsAt.getMonth() + 1).padStart(2, "0")}-${String(startsAt.getDate()).padStart(2, "0")}`;
       await tx.arenaNotification.create({ data: { arenaId: arena.id, title: requiresPayment ? "Reserva aguardando pagamento" : arena.onlineBookingRequiresConfirmation ? "Reserva aguardando confirmação" : "Nova reserva online", message: `${player.name} solicitou ${court.name} às ${String(startsAt.getHours()).padStart(2, "0")}:${String(startsAt.getMinutes()).padStart(2, "0")}.`, href: `/agenda?data=${localDate}`, type: "ONLINE_BOOKING" } });
       return { occurrenceId: occurrence.id, playerEmail: player.email };
@@ -392,8 +392,8 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
     : [{ startsAt, endsAt }];
   const participants = parseBookingParticipants(parsed.data.participants);
   if (!participants.length) throw new Error("Selecione pelo menos um cliente antes de salvar a reserva.");
-  const responsiblePlayerId = fixedBooking ? parsed.data.responsiblePlayerId || participants[0]?.playerId || "" : "";
-  if (fixedBooking && !participants.some((participant) => participant.playerId === responsiblePlayerId)) throw new Error("Selecione o responsável pela reserva fixa.");
+  const responsiblePlayerId = parsed.data.responsiblePlayerId || participants[0]?.playerId || "";
+  if (!participants.some((participant) => participant.playerId === responsiblePlayerId)) throw new Error("Selecione um participante como responsável pela reserva.");
   const courtIds = parseCourtIds(parsed.data.courtIds, parsed.data.courtId);
   const courts = await prisma.court.findMany({ where: { arenaId: auth.arenaId, id: { in: courtIds } }, select: { id: true, name: true } });
   if (courts.length !== courtIds.length) throw new Error("Uma ou mais quadras não pertencem à arena.");

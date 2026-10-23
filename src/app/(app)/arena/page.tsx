@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CourtConfigurationWorkspace } from "@/components/courts/court-configuration-workspace";
+import { AgentIntegrations } from "@/components/agent-integrations";
 import { ArenaProfileForm } from "@/components/forms/arena-profile-form";
 import { AthletePortalSettingsForm } from "@/components/forms/athlete-portal-settings-form";
 import { PortalEditorPanels } from "@/components/portal-editor-panels";
@@ -78,6 +79,7 @@ export default async function ArenaPage(props: ArenaPageProps) {
         </aside>
 
         <section className={viewStyles.arena_settings_content}>
+          {activeSection === "integrations" && userManagementAllowed ? <AgentIntegrations arenaId={auth.arenaId} /> : null}
           {activeSection === "data" ? (
             <SectionCard title="Identidade da arena" description="Essas informações aparecem no sistema e nas telas de apresentação.">
               <div className={viewStyles.arena_profile_layout}>

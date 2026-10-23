@@ -54,7 +54,7 @@ export const viewStyles = {
     "tw:pl-[20px]", "tw:viewport-680:p-[8px]", "tw:bg-[color:rgb(15_23_42_/_.36)]", "tw:[background-image:none]", "tw:[backdrop-filter:blur(6px)]",
   ].join(" "),
   "agenda_slot_dialog_agenda_booking_dialog": [
-    "agenda-slot-dialog", "agenda-booking-dialog", "tw:w-[min(100%,_1240px)]", "tw:viewport-680:w-full",
+    "agenda-slot-dialog", "agenda-booking-dialog", "tw:w-[min(100%,_1240px)]", "tw:min-w-0", "tw:[&>header]:flex-wrap", "tw:[&_input]:min-w-0", "tw:[&_select]:min-w-0", "tw:[&_label]:min-w-0", "tw:viewport-760:[&_.agenda-participant-row]:grid-cols-1!", "tw:viewport-680:w-full",
     "tw:grid", "tw:gap-y-[20px]", "tw:gap-x-[20px]", "tw:pt-[28px]",
     "tw:viewport-680:pt-[18px]", "tw:pr-[32px]", "tw:viewport-680:pr-[14px]", "tw:pb-[28px]",
     "tw:viewport-680:pb-[18px]", "tw:pl-[32px]", "tw:viewport-680:pl-[14px]", "tw:border-t-[length:1px]",

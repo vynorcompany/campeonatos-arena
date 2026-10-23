@@ -2,6 +2,7 @@
 import { viewStyles } from "./arena-notification-bell.utilities";
 
 import Link from "next/link";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { markAllArenaNotificationsReadAction, markArenaNotificationReadAction } from "@/lib/actions/notifications";
@@ -14,8 +15,9 @@ export function ArenaNotificationBell({ notifications }: { notifications: Notifi
   const router = useRouter();
   const [unread, setUnread] = useState(notifications);
   const containerRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
   useEffect(() => setUnread(notifications), [notifications]);
-  useEffect(() => { if (!open) return; const close = (event: PointerEvent) => { if (!containerRef.current?.contains(event.target as Node)) setOpen(false); }; document.addEventListener("pointerdown", close); return () => document.removeEventListener("pointerdown", close); }, [open]);
+  useEffect(() => { if (!open) return; const close = (event: PointerEvent) => { if (!containerRef.current?.contains(event.target as Node) && !panelRef.current?.contains(event.target as Node)) setOpen(false); }; const escape = (event: KeyboardEvent) => { if (event.key === "Escape") { setOpen(false); containerRef.current?.querySelector("button")?.focus(); } }; document.addEventListener("pointerdown", close); document.addEventListener("keydown", escape); return () => { document.removeEventListener("pointerdown", close); document.removeEventListener("keydown", escape); }; }, [open]);
   const markRead = (notificationId: string) => {
     setUnread((current) => current.filter((notification) => notification.id !== notificationId));
     startTransition(async () => { await markArenaNotificationReadAction(notificationId); router.refresh(); });
@@ -24,5 +26,5 @@ export function ArenaNotificationBell({ notifications }: { notifications: Notifi
     setUnread([]);
     startTransition(async () => { await markAllArenaNotificationsReadAction(); router.refresh(); });
   };
-  return <div ref={containerRef} className={viewStyles.arena_notification_bell}><button type="button" aria-label="Notificações" aria-expanded={open} onClick={() => setOpen((current) => !current)}>🔔{unread.length ? <b>{unread.length > 9 ? "9+" : unread.length}</b> : null}</button>{open ? <section className={viewStyles.arena_notification_panel}><header><div><strong>Notificações</strong><span>{pending ? "Atualizando..." : unread.length ? `${unread.length} não lida${unread.length === 1 ? "" : "s"}` : "Você está em dia"}</span></div>{unread.length ? <button type="button" onClick={markAllRead} disabled={pending}>Marcar todas como lidas</button> : null}</header>{unread.length ? unread.map((notification) => <Link href={notification.href || "/agenda"} key={notification.id} onClick={() => { markRead(notification.id); setOpen(false); }}><strong>{notification.title}</strong><span>{notification.message}</span></Link>) : <p>Você está em dia.</p>}</section> : null}</div>;
+  return <div ref={containerRef} className={viewStyles.arena_notification_bell}><button type="button" aria-label="Notificações" aria-expanded={open} onClick={() => setOpen((current) => !current)}>🔔{unread.length ? <b>{unread.length > 9 ? "9+" : unread.length}</b> : null}</button>{open && typeof document !== "undefined" ? createPortal(<section ref={panelRef} aria-label="Notificações da arena" className={viewStyles.arena_notification_panel}><header><div><strong>Notificações</strong><span>{pending ? "Atualizando..." : unread.length ? `${unread.length} não lida${unread.length === 1 ? "" : "s"}` : "Você está em dia"}</span></div>{unread.length ? <button type="button" onClick={markAllRead} disabled={pending}>Marcar todas como lidas</button> : null}</header>{unread.length ? unread.map((notification) => <Link href={notification.href || "/agenda"} key={notification.id} onClick={() => { markRead(notification.id); setOpen(false); }}><strong>{notification.title}</strong><span>{notification.message}</span></Link>) : <p>Você está em dia.</p>}</section>, document.body) : null}</div>;
 }

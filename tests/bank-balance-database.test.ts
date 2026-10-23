@@ -5,7 +5,7 @@ import test from "node:test";
 import vm from "node:vm";
 import { PrismaClient } from "@prisma/client";
 import ts from "typescript";
-import { calculateBankAccountBalanceCents } from "../src/lib/finance/bank-balance";
+import { calculateBankAccountBalanceCents, parseBankBalanceCents } from "../src/lib/finance/bank-balance";
 import { bankBalanceSchema } from "../src/lib/finance/action-schemas";
 import { parseMoneyToCents } from "../src/lib/finance/inputs";
 
@@ -75,7 +75,7 @@ test("duas conciliações simultâneas não criam ajustes bancários duplicados"
       "@/lib/auth/guards": { requirePermission: async (key: string) => { assert.equal(key, "finance:settings:manage"); return { arenaId: arena.id }; } },
       "@/lib/finance/action-schemas": { bankBalanceSchema },
       "@/lib/finance/inputs": { parseMoneyToCents },
-      "@/lib/finance/bank-balance": { calculateBankAccountBalanceCents },
+      "@/lib/finance/bank-balance": { calculateBankAccountBalanceCents, parseBankBalanceCents },
       "@/lib/rls": { withArenaTransaction: (arenaId: string, operation: (tx: unknown) => Promise<unknown>) => runtime.$transaction(async (tx) => {
         await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`;
         return operation(tx);
@@ -92,8 +92,8 @@ test("duas conciliações simultâneas não criam ajustes bancários duplicados"
       return actions.reconcileBankAccountBalanceAction(form);
     };
     const outcomes = await Promise.allSettled([reconcile(), reconcile()]);
-    assert.equal(outcomes.filter((outcome) => outcome.status === "fulfilled").length, 1);
-    assert.equal(outcomes.filter((outcome) => outcome.status === "rejected" && /já confere/.test(String(outcome.reason))).length, 1);
+    assert.equal(outcomes.filter((outcome) => outcome.status === "fulfilled").length, 2);
+    assert.equal(outcomes.filter((outcome) => outcome.status === "rejected").length, 0);
     const adjustments = await admin.financialEntry.findMany({ where: { arenaId: arena.id, bankAccountId: accountId }, select: { type: true, amountCents: true } });
     assert.deepEqual(adjustments, [{ type: "REVENUE", amountCents: 1000 }]);
   } finally {

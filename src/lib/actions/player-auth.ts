@@ -1,4 +1,5 @@
 "use server";
+import { playerReturnPath } from "@/lib/auth/player-return-path";
 
 import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
@@ -22,7 +23,7 @@ const registrationCodeSchema = z.string().trim().regex(/^\d{6}$/, "Informe o có
 const resetSchema = z.object({ arenaSlug: z.string().trim().min(1), phone: z.string().trim().min(8), code: z.string().trim().length(6), newPassword: z.string().min(8), confirmPassword: z.string().min(8) }).refine((data) => data.newPassword === data.confirmPassword, { path: ["confirmPassword"], message: "As senhas não coincidem." });
 
 function normalizePhone(phone: string) { return normalizeBrazilianPhone(phone); }
-function destination(arenaSlug: string, returnTo: string) { return returnTo.startsWith(`/classificacao/${arenaSlug}`) ? returnTo : `/reservar/${arenaSlug}`; }
+function destination(arenaSlug: string, returnTo: string) { return playerReturnPath(arenaSlug, returnTo); }
 function hashCode(code: string) { return crypto.createHash("sha256").update(code).digest("hex"); }
 function createCode() { return crypto.randomInt(100000, 1000000).toString(); }
 

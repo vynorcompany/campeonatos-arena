@@ -55,11 +55,11 @@ export const viewStyles = {
     "tw:[&_h2]:text-[1.08rem]", "tw:[&_h2]:font-[400]", "tw:[&_h2]:leading-[1.35]",
   ].join(" "),
   "tv_config_fields": [
-    "tv-config-fields", "tw:grid", "tw:grid-cols-[minmax(190px,_.7fr)_minmax(170px,_.8fr)_minmax(200px,_1fr)_minmax(220px,_1.15fr)]", "tw:viewport-1160:grid-cols-[repeat(2,_minmax(0,_1fr))]",
+    "tv-config-fields", "tw:grid", "tw:grid-cols-[repeat(2,_minmax(0,_1fr))]", "tw:viewport-1160:grid-cols-[repeat(2,_minmax(0,_1fr))]",
     "tw:viewport-620:grid-cols-[minmax(0,_1fr)]", "tw:gap-y-[12px]", "tw:gap-x-[12px]", "tw:[&_.field]:grid",
     "tw:[&_.field]:gap-y-[6px]", "tw:[&_.field]:gap-x-[6px]", "tw:[&_.field]:text-[color:#455f7c]", "tw:[&_.field]:text-[.72rem]",
-    "tw:[&_.field]:font-[750]", "tw:[&_.field]:min-w-[0]", "tw:[&_.field]:[align-content:start]", "tw:[&_.field]:grid-rows-[auto_38px_auto]",
-    "tw:[&_input]:min-h-[36px]", "tw:[&_input]:pt-[6px]", "tw:[&_input]:pr-[9px]", "tw:[&_input]:pb-[6px]",
+    "tw:[&_.field]:font-[750]", "tw:[&_.field]:min-w-[0]", "tw:[&_.field]:[align-content:start]", "tw:[&_.field]:grid-rows-[auto_44px_auto]",
+    "tw:[&_input]:min-h-[44px]", "tw:[&_input]:pt-[6px]", "tw:[&_input]:pr-[9px]", "tw:[&_input]:pb-[6px]",
     "tw:[&_input]:pl-[9px]", "tw:[&_input]:border-t-[length:1px]", "tw:[&_input]:[border-top-style:solid]", "tw:[&_input]:border-t-[color:#cddbea]",
     "tw:[&_input]:border-r-[length:1px]", "tw:[&_input]:[border-right-style:solid]", "tw:[&_input]:border-r-[color:#cddbea]", "tw:[&_input]:border-b-[length:1px]",
     "tw:[&_input]:[border-bottom-style:solid]", "tw:[&_input]:border-b-[color:#cddbea]", "tw:[&_input]:border-l-[length:1px]", "tw:[&_input]:[border-left-style:solid]",
@@ -111,7 +111,7 @@ export const viewStyles = {
     "tw:rounded-[11px]", "tw:bg-[color:#fff]", "tw:[background-image:none]", "tw:[box-shadow:0_6px_18px_rgb(24_57_93_/_.04)]",
   ].join(" "),
   "tv_slide_options": [
-    "tv-slide-options", "tw:grid", "tw:grid-cols-[repeat(3,_minmax(0,_1fr))]", "tw:viewport-820:grid-cols-[1fr]",
+    "tv-slide-options", "tw:grid", "tw:grid-cols-[repeat(2,_minmax(0,_1fr))]", "tw:viewport-820:grid-cols-[1fr]",
     "tw:gap-y-[9px]", "tw:gap-x-[9px]",
   ].join(" "),
   "tv_slide_option": [

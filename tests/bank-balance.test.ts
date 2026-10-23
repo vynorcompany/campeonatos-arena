@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { Prisma } from "@prisma/client";
-import { calculateBankAccountBalanceCents } from "../src/lib/finance/bank-balance";
+import { calculateBankAccountBalanceCents, parseBankBalanceCents } from "../src/lib/finance/bank-balance";
 
 test("saldo bancário inclui receitas atuais, legadas e baixas parciais sem duplicar contas quitadas", async () => {
   const queries: { kind: string; where: Record<string, unknown> }[] = [];
@@ -35,4 +35,14 @@ test("saldo bancário inclui receitas atuais, legadas e baixas parciais sem dupl
   }
   assert.deepEqual((queries[0].where.financialEntry as { type: unknown }).type, { in: ["REVENUE", "INCOME"] });
   assert.equal((queries[1].where.financialEntry as { type: unknown }).type, "EXPENSE");
+});
+
+test("conferência aceita saldo negativo e rejeita texto que viraria ajuste indevido", () => {
+  assert.equal(parseBankBalanceCents("R$ 1.250,50"), 125050);
+  assert.equal(parseBankBalanceCents("-250,00"), -25000);
+  assert.equal(parseBankBalanceCents("-R$ 250,00"), -25000);
+  assert.equal(parseBankBalanceCents("10.50"), 1050);
+  assert.equal(parseBankBalanceCents("0,00"), 0);
+  assert.equal(parseBankBalanceCents("1.000"), 100000);
+  for (const value of ["abc", "", "1,2,3", "--1", "99999999999999", "1.23,00"]) assert.throws(() => parseBankBalanceCents(value));
 });
