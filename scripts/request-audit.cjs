@@ -1,6 +1,8 @@
 const { createHash, randomUUID } = require('node:crypto');
 const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
+const { AsyncLocalStorage } = require('node:async_hooks');
+const requestContext = globalThis[Symbol.for('arena.http-audit.context')] ||= new AsyncLocalStorage();
 
 const digest = value => createHash('sha256').update(value).digest('hex');
 function cookiesOf(value) {
@@ -32,6 +34,15 @@ async function scoped(db, arenaId, operation, requestId) {
     if (requestId) await tx.$executeRaw`SELECT set_config('app.audit_request_id', ${requestId}, true)`;
     return operation(tx);
   });
+}
+function publicArenaSlug(url) {
+  const segments = url.pathname.split('/').filter(Boolean);
+  const queryArena = url.searchParams.get('arena');
+  if (queryArena) return queryArena;
+  const value = (['classificacao', 'reservar', 'checkin'].includes(segments[0]) ? segments[1] :
+      segments[0] === 'api' && ['reservar', 'checkin'].includes(segments[1]) ? segments[2] :
+      segments[1] === 'portaldoatleta' ? segments[0] : null);
+  try { return value ? decodeURIComponent(value) : null; } catch { return null; }
 }
 async function resolveActor(db, req, source = process.env, responseCookies = [], publicAction = false) {
   const cookies = cookiesOf(req.headers.cookie);
@@ -79,15 +90,16 @@ async function resolveActor(db, req, source = process.env, responseCookies = [],
     if (session) {
       const identityId = session.athleteIdentityId || session.playerAccount.identityId;
       const accounts = identityId ? await db.playerAccount.findMany({ where: { identityId }, select: { id: true, arenaId: true, playerId: true } }) : [session.playerAccount];
-      const segments = url.pathname.split('/').filter(Boolean);
-      const slug = url.searchParams.get('arena') || (['classificacao', 'reservar', 'checkin'].includes(segments[0]) ? segments[1] : segments[1] === 'portaldoatleta' ? segments[0] : null);
+      const slug = publicArenaSlug(url);
       const arena = slug ? await db.arena.findUnique({ where: { slug }, select: { id: true } }) : null;
       const account = accounts.find(item => item.arenaId === arena?.id) || session.playerAccount;
       const player = await scoped(db, account.arenaId, tx => tx.player.findUnique({ where: { id: account.playerId }, select: { name: true } }));
       return { arenaId: account.arenaId, actorId: account.playerId, actorName: player?.name || 'Cliente do portal' };
     }
   }
-  return { arenaId: null, actorId: 'ANONYMOUS', actorName: 'Não autenticado' };
+  const publicSlug = publicRoute ? publicArenaSlug(url) : null;
+  const publicArena = publicSlug ? await db.arena.findUnique({ where: { slug: publicSlug }, select: { id: true } }) : null;
+  return { arenaId: publicArena?.id || null, actorId: 'ANONYMOUS', actorName: 'Não autenticado' };
 }
 
 /** Audit every application request centrally, without inspecting its body or query string. */
@@ -111,6 +123,7 @@ function createAuditedHandler(handle, { db, manifest = {}, source = process.env,
       onError();
       return;
     }
+    const scope = { arenaIds: new Set() };
     let finished = false;
     const complete = async aborted => {
       if (finished) return;
@@ -119,13 +132,16 @@ function createAuditedHandler(handle, { db, manifest = {}, source = process.env,
         const setCookie = res.getHeader('set-cookie');
         const responseCookies = Array.isArray(setCookie) ? setCookie : setCookie ? [String(setCookie)] : [];
         const identified = actor.actorId === 'ANONYMOUS' && responseCookies.length ? await resolveActor(db, req, source, responseCookies, publicAction) : actor;
-        const attribution = actor.actorId === 'ANONYMOUS' ? identified : { actorId: identified.actorId, actorName: identified.actorName };
-        await scoped(db, identified.arenaId, tx => tx.auditEvent.update({ where: { id }, data: { ...attribution, details: { ...details, stage: aborted ? 'INTERRUPTED' : 'RESPONDED', statusCode: res.statusCode, elapsedMs: Date.now() - started, attachment: /attachment/i.test(String(res.getHeader('content-disposition') || '')) } } }), id);
+        const observed = [...scope.arenaIds];
+        const agencyRequest = /^\/agencia(?:\/|$)/.test(path) || path.includes('/mercado-pago/agency/');
+        const targetArenaId = identified.arenaId || (!agencyRequest && observed.length === 1 ? observed[0] : null);
+        const attribution = !actor.arenaId ? { ...identified, arenaId: targetArenaId } : { actorId: identified.actorId, actorName: identified.actorName };
+        await scoped(db, identified.arenaId, tx => tx.auditEvent.update({ where: { id }, data: { ...attribution, details: { ...details, stage: aborted ? 'INTERRUPTED' : 'RESPONDED', affectedArenaCount: observed.length, statusCode: res.statusCode, elapsedMs: Date.now() - started, attachment: /attachment/i.test(String(res.getHeader('content-disposition') || '')) } } }), id);
       } catch { onError(); }
     };
     res.once('finish', () => { void complete(false); });
     res.once('close', () => { if (!res.writableFinished) void complete(true); });
-    try { return await handle(req, res); }
+    try { return await requestContext.run(scope, () => handle(req, res)); }
     catch {
       if (!res.headersSent) {
         res.statusCode = 500;

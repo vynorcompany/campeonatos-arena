@@ -3,6 +3,7 @@ import { createServer } from "node:http";
 import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 import test from "node:test";
+import { noteAuditArena } from "../src/lib/audit/request-context";
 const { createAuditedHandler, shouldAudit, operationOf } = createRequire(import.meta.url)("../scripts/request-audit.cjs");
 const token = "synthetic-session-token";
 const digest = (value: string) => createHash("sha256").update(value).digest("hex");
@@ -150,4 +151,18 @@ test("conclusão de uma exclusão de arena preserva o evento que perdeu o víncu
   assert.equal(record.arenaId, null);
   assert.equal(record.actorId, "operator");
   assert.equal(record.details.stage, "RESPONDED");
+});
+
+test("requisições de integração usam as arenas observadas sem misturar contextos concorrentes", async () => {
+  const state = fixture();
+  await server(createAuditedHandler(async (req: any, res: any) => {
+    noteAuditArena(req.url === "/api/integration/a" ? "arena-a" : "arena-b");
+    await new Promise(resolve => setTimeout(resolve, req.url.endsWith("a") ? 10 : 2));
+    res.end("ok");
+  }, { db: state.db }), async url => {
+    await Promise.all([fetch(`${url}/api/integration/a`), fetch(`${url}/api/integration/b`)]);
+    await settled(state.records);
+  });
+  assert.deepEqual(new Map([...state.records.values()].map(row => [row.details.path, row.arenaId])), new Map([["/api/integration/a", "arena-a"], ["/api/integration/b", "arena-b"]]));
+  for (const row of state.records.values()) assert.equal(row.details.affectedArenaCount, 1);
 });

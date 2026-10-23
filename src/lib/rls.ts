@@ -1,3 +1,4 @@
+import { noteAuditArena } from "@/lib/audit/request-context";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
@@ -6,6 +7,7 @@ export type ArenaTransaction = Prisma.TransactionClient;
 export async function setArenaRlsContext(tx: ArenaTransaction, arenaId: string) {
   if (!arenaId.trim()) throw new Error("A arena ativa é obrigatória para acessar dados operacionais.");
 
+  noteAuditArena(arenaId);
   await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`;
 }
 

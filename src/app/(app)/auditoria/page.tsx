@@ -45,7 +45,7 @@ export default async function AuditPage({ searchParams }: { searchParams?: Promi
       <label className={`${ui.field} tw:w-[240px]`}>Pesquisar<input name="q" defaultValue={q} placeholder="Pessoa, ação ou página" /></label>
       <label className={ui.field}>Registros<select name="kind" defaultValue={filters.kind ?? ""}><option value="">Todos</option><option value="actions">Ações</option><option value="access">Acessos</option><option value="api">API</option></select></label>
       <label className={ui.field}>De<input name="from" type="date" defaultValue={filters.from} /></label><label className={ui.field}>Até<input name="until" type="date" defaultValue={filters.until} /></label>
-      {["SUPER_ADMIN", "ADMIN"].includes(auth.systemRole) ? <label className={ui.field}>Escopo<select name="scope" defaultValue={global ? "system" : "arena"}><option value="arena">Arena atual</option><option value="system">Agência e não autenticados</option></select></label> : null}
+      {["SUPER_ADMIN", "ADMIN"].includes(auth.systemRole) ? <label className={ui.field}>Escopo<select name="scope" defaultValue={global ? "system" : "arena"}><option value="arena">Arena atual</option><option value="system">Agência e sistema</option></select></label> : null}
       <button className={ui.secondary}>Filtrar</button>
     </form>
     <p className="tw:m-0 tw:text-xs tw:text-[var(--muted)]">{total} registro{total === 1 ? "" : "s"}</p>
@@ -53,7 +53,7 @@ export default async function AuditPage({ searchParams }: { searchParams?: Promi
       const details = event.details && typeof event.details === "object" && !Array.isArray(event.details) ? event.details : {};
       return <article key={event.id} className={`${ui.row} tw:grid-cols-[170px_minmax(0,1fr)_160px] tw:viewport-760:grid-cols-1`}>
         <time dateTime={event.createdAt.toISOString()} className="tw:text-xs tw:text-[var(--muted)]">{new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "medium" }).format(event.createdAt)}</time>
-        <div><strong>{actionLabel(event.action)}</strong><small className="tw:break-words">{String(details.path ?? details.code ?? details.name ?? details.description ?? event.entityId)}</small>{typeof details.statusCode === "number" ? <small>HTTP {details.statusCode}{details.stage === "INTERRUPTED" ? " · conexão interrompida" : ""}</small> : details.stage === "REQUESTED" ? <small>Solicitação registrada</small> : null}{typeof details.totalCents === "number" ? <small>{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(details.totalCents / 100)}</small> : null}</div>
+        <div><strong>{actionLabel(event.action)}</strong><small className="tw:break-words">{String(details.path ?? details.code ?? details.name ?? details.description ?? event.entityId)}</small>{typeof details.statusCode === "number" ? <small>HTTP {details.statusCode}{details.stage === "INTERRUPTED" ? " · conexão interrompida" : ""}</small> : details.stage === "REQUESTED" ? <small>Solicitação registrada</small> : null}{global && typeof details.affectedArenaCount === "number" && details.affectedArenaCount > 1 ? <small>{details.affectedArenaCount} arenas envolvidas</small> : null}{typeof details.totalCents === "number" ? <small>{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(details.totalCents / 100)}</small> : null}</div>
         <span className="tw:break-words tw:text-xs">{event.actorName}</span>
       </article>;
     })}</div>
