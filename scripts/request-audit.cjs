@@ -49,13 +49,16 @@ async function resolveActor(db, req, source = process.env, responseCookies = [],
   }
   const sessionToken = cookies.get(source.SESSION_COOKIE_NAME || 'padel_session');
   if (sessionToken && !publicRoute && !agentRoute) {
-    const session = await db.session.findUnique({ where: { token: digest(sessionToken) }, select: { expiresAt: true, user: { select: { id: true, name: true, systemRole: true, memberships: { select: { arenaId: true } } } } } });
+    const session = await db.session.findUnique({ where: { token: digest(sessionToken) }, select: { expiresAt: true, user: { select: { id: true, name: true, systemRole: true, memberships: { select: { arenaId: true }, orderBy: { createdAt: 'asc' } } } } } });
     if (session && session.expiresAt > now) {
       const user = session.user;
       const selected = cookies.get(source.ARENA_COOKIE_NAME || 'padel_arena');
       let arenaId = user.memberships.find(member => member.arenaId === selected)?.arenaId || user.memberships[0]?.arenaId || null;
       if (selected && ['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(user.systemRole)) {
         arenaId = (await db.arena.findUnique({ where: { id: selected }, select: { id: true } }))?.id || arenaId;
+      }
+      if (!arenaId && ['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(user.systemRole)) {
+        arenaId = (await db.arena.findFirst({ orderBy: { name: 'asc' }, select: { id: true } }))?.id || null;
       }
       if (/^\/(?:agencia|api\/integrations\/payments\/mercado-pago\/agency)(?:\/|$)/.test(url.pathname)) arenaId = null;
       return { arenaId, actorId: user.id, actorName: user.name };

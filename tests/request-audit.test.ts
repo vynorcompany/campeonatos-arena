@@ -125,3 +125,14 @@ test("erro inesperado do handler preserva a tentativa e registra interrupção s
   assert.equal(record.details.stage, "INTERRUPTED");
   assert.equal(record.details.statusCode, 500);
 });
+
+test("administrador da agência sem vínculo explícito usa a arena padrão e separa ações da agência", async () => {
+  const state = fixture(); const db: any = state.db;
+  db.session.findUnique = async () => ({ expiresAt: new Date(Date.now() + 60000), user: { id: "agency", name: "Administrador", systemRole: "ADMIN", memberships: [] } });
+  db.arena = { findFirst: async () => ({ id: "first-arena" }) };
+  await server(createAuditedHandler((_req: any, res: any) => { res.end("ok"); }, { db }), async url => {
+    for (const path of ["/agenda", "/agencia/arenas"]) await fetch(url + path, { headers: { cookie: `padel_session=${token}` } });
+    await settled(state.records);
+  });
+  assert.deepEqual([...state.records.values()].map(row => [row.actorId, row.arenaId]), [["agency", "first-arena"], ["agency", null]]);
+});
