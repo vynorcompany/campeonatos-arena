@@ -11,17 +11,17 @@ async function readSource(...segments: string[]) {
 }
 
 test("games starts with arena-scoped active events in a list", async () => {
-  const source = await readSource("src", "app", "(app)", "jogos", "page.tsx");
+  const source = await readSource("src", "app", "(app)", "torneios", "page.tsx");
 
   assert.match(source, /prisma\.tournament\.findMany/);
   assert.match(source, /arenaId:\s*auth\.arenaId/);
-  assert.match(source, /registrationPhase:\s*\{\s*not:\s*"FINISHED"\s*\}/);
+  assert.match(source, /registrationPhase:[^\n]*not:\s*"FINISHED"/);
   assert.match(source, /Entrar no evento/);
   assert.doesNotMatch(source, /aria-label="Selecionar evento"/);
 });
 
 test("games offers categories only after selecting an active event", async () => {
-  const source = await readSource("src", "app", "(app)", "jogos", "page.tsx");
+  const source = await readSource("src", "app", "(app)", "torneios", "page.tsx");
 
   assert.match(source, /selectedTournament\.categories/);
   assert.match(source, /active:\s*true/);
@@ -30,7 +30,7 @@ test("games offers categories only after selecting an active event", async () =>
 });
 
 test("games routes the selected category to its workspace", async () => {
-  const source = await readSource("src", "app", "(app)", "jogos", "page.tsx");
+  const source = await readSource("src", "app", "(app)", "torneios", "page.tsx");
 
   assert.match(source, /href=\{`\/torneios\/\$\{selectedTournament\.id\}\/categorias\/\$\{category\.id\}\$\{canManageTournaments \? "" : "\?tab=games"\}`\}/);
   assert.match(source, /Abrir categoria/);
@@ -38,7 +38,7 @@ test("games routes the selected category to its workspace", async () => {
 });
 
 test("games permits match consultation without granting tournament management", async () => {
-  const source = await readSource("src", "app", "(app)", "jogos", "page.tsx");
+  const source = await readSource("src", "app", "(app)", "torneios", "page.tsx");
 
   assert.match(source, /canViewModule\("tournaments"/);
   assert.match(source, /canPerformPermission\("tournaments:manage", auth\.arenaRole, auth\.systemRole, auth\.editPermissions\)/);
@@ -51,7 +51,7 @@ test("games permits match consultation without granting tournament management", 
 });
 
 test("games no longer loads the legacy global match workspace", async () => {
-  const source = await readSource("src", "app", "(app)", "jogos", "page.tsx");
+  const source = await readSource("src", "app", "(app)", "torneios", "page.tsx");
 
   assert.doesNotMatch(source, /getArenaDashboard/);
   assert.doesNotMatch(source, /generateMatchesAction/);
@@ -61,10 +61,10 @@ test("games no longer loads the legacy global match workspace", async () => {
 test("tournaments keeps only games and rankings as sidebar children", async () => {
   const source = await readSource("src", "components", "layout", "nav-links.tsx");
   const tournamentChildren = source.match(
-    /href: canSee\("tournaments"\) \? "\/torneios" : "\/jogos",[\s\S]*?children: canSee\("tournaments"\) \? \[([\s\S]*?)\]/,
+    /href: "\/torneios",[\s\S]*?children: canSee\("tournaments"\) \? \[([\s\S]*?)\]/,
   )?.[1] ?? "";
 
-  assert.match(tournamentChildren, /href: "\/jogos", label: "Eventos ativos"/);
+  assert.match(tournamentChildren, /href: "\/torneios", label: "Eventos ativos"/);
   assert.match(tournamentChildren, /href: "\/torneios\/rankings", label: "Rankings"/);
   assert.doesNotMatch(tournamentChildren, /label: "Duplas"/);
   assert.doesNotMatch(tournamentChildren, /label: "Grupos"/);
@@ -72,7 +72,7 @@ test("tournaments keeps only games and rankings as sidebar children", async () =
 
 test("tournament parent opens games for a matches-only profile", async () => {
   const source = await readSource("src", "components", "layout", "nav-links.tsx");
-  assert.match(source, /href: canSee\("tournaments"\) \? "\/torneios" : "\/jogos"/);
+  assert.match(source, /href: "\/torneios"/);
   assert.match(source, /children: canSee\("tournaments"\) \? \[[\s\S]*?\] : undefined/);
 });
 

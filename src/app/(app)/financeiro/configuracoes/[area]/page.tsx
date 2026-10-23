@@ -24,7 +24,7 @@ const areas = {
 
 function SectionCard({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
   // Keep the area title and context visible above its controls.
-  if (Object.values(areas).some(([name]) => name === title)) return <section className={viewStyles.card_stack_md}><WorkspaceHeading eyebrow="FINANCEIRO · CONFIGURAÇÕES" title={title} description={description ?? "Organize os cadastros e parâmetros financeiros da arena."} />{children}</section>;
+  if (Object.values(areas).some(([name]) => name === title)) return <section className="tw:grid tw:min-w-0 tw:gap-3"><WorkspaceHeading eyebrow="FINANCEIRO · CONFIGURAÇÕES" title={title} description={description ?? "Organize os cadastros e parâmetros financeiros da arena."} />{children}</section>;
   return <BaseSectionCard title={title} description={description}>{children}</BaseSectionCard>;
 }
 

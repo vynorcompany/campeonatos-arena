@@ -59,6 +59,6 @@ test("command checkout keeps pending debts compact until the toggle is enabled",
   assert.match(card, /Dividir comanda/);
   assert.doesNotMatch(card, />DIVIDIR COMANDA</);
   assert.match(card, /event\.stopPropagation\(\); setCheckoutOpen\(false\)/);
-  assert.match(styleRules("command-open-debts"), / display: flex/);
+  assert.match(styleRules("command-open-debts"), / display: grid/);
   assert.ok(utilityClasses("command-open-debt-items").length, "command-open-debt-items has component Tailwind utilities");
 });

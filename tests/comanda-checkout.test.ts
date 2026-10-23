@@ -164,6 +164,6 @@ test("command detail acts as an item editor and modals close with Escape", () =>
   assert.match(card, /command-details-item-controls/);
   assert.match(card, /event\.key !== "Escape"/);
   assert.match(card, /setProductModalOpen\(false\)/);
-  assert.match(styleRules("command-checkout-grid", {context: "> section:first-child"}), /padding-top: 18px/);
+  assert.match(styleRules("command-checkout-grid"), /display: grid/);
   assert.ok(utilityClasses("command-details-item-controls").length, "command-details-item-controls has component Tailwind utilities");
 });

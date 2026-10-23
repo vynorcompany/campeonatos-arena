@@ -1,188 +1,75 @@
 import { WorkspaceHeading } from "@/components/ui/workspace-heading";
-import { viewStyles } from "./page.utilities";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { SafeActionForm } from "@/components/forms/safe-action-form";
-import { SubmitButton } from "@/components/forms/submit-button";
-import { EmptyState } from "@/components/tournaments/empty-state";
-import { StatusBadge } from "@/components/tournaments/status-badge";
-import { deleteTournamentAction } from "@/lib/actions/tournament";
-import { requireModuleView } from "@/lib/auth/guards";
-import { canPerformPermission } from "@/lib/permissions";
-import { arenaDatabase } from "@/lib/arena-database";
+import { notFound } from "next/navigation";
+import { SectionCard } from "@/components/section-card";
+import { requireArenaAccess } from "@/lib/auth/session";
+import { canPerformPermission, canViewModule } from "@/lib/permissions";
+import { prisma } from "@/lib/prisma";
+import { viewStyles } from "../jogos/page.utilities";
 
-export default async function TournamentsPage() {
-  const auth = await requireModuleView("tournaments");
-  if (!canPerformPermission("tournaments:manage", auth.arenaRole, auth.systemRole, auth.editPermissions)) redirect("/jogos");
-  const events = await arenaDatabase(auth.arenaId).tournament.findMany({
-    where: { arenaId: auth.arenaId },
+type GamesPageProps = { searchParams?: Promise<{ tournamentId?: string; status?: string }> };
+
+function setScores(match: { homeSet1: number | null; awaySet1: number | null; homeSet2: number | null; awaySet2: number | null; homeSet3: number | null; awaySet3: number | null }) {
+  return [[match.homeSet1, match.awaySet1], [match.homeSet2, match.awaySet2], [match.homeSet3, match.awaySet3]]
+    .filter(([home, away]) => home !== null && away !== null)
+    .map(([home, away]) => `${home}–${away}`).join(" · ");
+}
+
+export default async function GamesPage(props: GamesPageProps) {
+  const searchParams = await props.searchParams;
+  const eventDirectoryPath = searchParams?.status === "finished" ? "/torneios?status=finished" : "/torneios";
+  const auth = await requireArenaAccess();
+  const canViewTournaments = canViewModule("tournaments", auth.arenaRole, auth.systemRole, auth.viewPermissions);
+  const canManageTournaments = canViewTournaments && canPerformPermission("tournaments:manage", auth.arenaRole, auth.systemRole, auth.editPermissions);
+  const canRecordResults = canViewTournaments && canPerformPermission("tournaments:results", auth.arenaRole, auth.systemRole, auth.editPermissions);
+  const canReadMatches = canViewModule("matches", auth.arenaRole, auth.systemRole, auth.viewPermissions);
+  if (!canViewTournaments && !canReadMatches) notFound();
+
+  const activeTournaments = await prisma.tournament.findMany({
+    where: { arenaId: auth.arenaId, registrationPhase: searchParams?.status === "finished" ? "FINISHED" : { not: "FINISHED" } },
     orderBy: { updatedAt: "desc" },
-    include: {
-      categories: {
-        where: { active: true },
-        orderBy: { level: "asc" },
-        select: {
-          id: true,
-          name: true,
-          competition: {
-            select: {
-              id: true,
-              status: true,
-            },
-          },
-        },
-      },
-      _count: {
-        select: {
-          publicRegistrations: true,
-        },
-      },
-    },
+    include: { categories: { where: { active: true }, orderBy: { level: "asc" }, select: { id: true, name: true, competition: { select: { status: true } } } } }
   });
+  const selectedTournament = activeTournaments.find((event) => event.id === searchParams?.tournamentId);
+  const matches = selectedTournament && !canManageTournaments && !canRecordResults ? await prisma.categoryMatch.findMany({
+    where: { competition: { category: { tournamentId: selectedTournament.id, active: true, tournament: { arenaId: auth.arenaId } } } },
+    select: {
+      id: true, label: true, scheduledDate: true, scheduledTime: true, courtName: true,
+      homeScore: true, awayScore: true, homeSet1: true, awaySet1: true, homeSet2: true, awaySet2: true, homeSet3: true, awaySet3: true,
+      competition: { select: { category: { select: { name: true } } } },
+      homePair: { select: { name: true } }, awayPair: { select: { name: true } }
+    },
+    orderBy: [{ scheduledDate: "asc" }, { scheduledTime: "asc" }, { roundOrder: "asc" }]
+  }) : [];
 
-  const openEvents = events.filter(
-    (event) => event.registrationPhase !== "FINISHED",
-  );
-  const finishedEvents = events.filter(
-    (event) => event.registrationPhase === "FINISHED",
-  );
-
-  return (
-    <div className={viewStyles.stack_md}>
-      <nav className={viewStyles.page_breadcrumb} aria-label="Caminho de navegação"><span>Arena</span><i aria-hidden="true">›</i><strong>Torneios</strong></nav>
-      <WorkspaceHeading eyebrow="COMPETIÇÕES · GESTÃO" title="Torneios da arena" description="Da primeira inscrição ao último resultado. Todos os seus eventos em um só lugar.">
-        <Link href="/torneios/rankings" className={viewStyles.button}>Rankings</Link>
-        <Link href="/torneios/novo" className={viewStyles.button_button_primary}>Novo evento</Link>
-      </WorkspaceHeading>
-      <div className="tw:grid tw:grid-cols-3 tw:gap-3 tw:viewport-620:grid-cols-1">{[{ label: "Em operação", value: openEvents.length }, { label: "Finalizados", value: finishedEvents.length }, { label: "Inscrições recebidas", value: events.reduce((total, event) => total + event._count.publicRegistrations, 0) }].map((metric) => <div key={metric.label} className="tw:flex tw:items-center tw:justify-between tw:gap-3 tw:rounded-xl tw:border tw:border-[#dce7f2] tw:bg-white tw:px-5 tw:py-4"><span className="tw:text-xs tw:font-medium tw:text-[#607898]">{metric.label}</span><strong className="tw:text-2xl tw:font-semibold tw:tabular-nums tw:text-[#132d58]">{metric.value}</strong></div>)}</div>
-
-      <section className={viewStyles.event_section} aria-label="Eventos em operação">
-        <h2>Eventos em operação <span>{openEvents.length}</span></h2>
-        {openEvents.length ? (
-          <div className={viewStyles.t_event_list}>
-            {openEvents.map((event) => {
-              const configuredCount = event.categories.filter(
-                (category) => category.competition,
-              ).length;
-              const finishedCount = event.categories.filter(
-                (category) => category.competition?.status === "FINISHED",
-              ).length;
-
-              return (
-                <article className={viewStyles.t_event_row} key={event.id}>
-                  <div className={viewStyles.t_event_identity}>
-                    <div>
-                      <h3>{event.name}</h3>
-                      <p>
-                        {event.description || "Sem descrição"}
-                      </p>
-                    </div>
-                    {event.categories.length ? (
-                      <div className={viewStyles.t_event_categories}>
-                        {event.categories.slice(0, 3).map((category) => (
-                          <span className={viewStyles.t_event_category} key={category.id}>
-                            {category.name}
-                          </span>
-                        ))}
-                        {event.categories.length > 3 ? <span className={viewStyles.t_event_category}>+{event.categories.length - 3} categorias</span> : null}
-                      </div>
-                    ) : (
-                      <p className={viewStyles.t_event_category}>Nenhuma categoria adicionada.</p>
-                    )}
-                  </div>
-
-                  <div className={viewStyles.t_event_metadata}>
-                    <StatusBadge status={event.registrationPhase} />
-                    <dl>
-                      <div>
-                        <dt>Categorias</dt>
-                        <dd>
-                          {configuredCount}/{event.categories.length} configuradas
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>Concluídas</dt>
-                        <dd>
-                          {finishedCount}/{event.categories.length}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>Inscrições recebidas</dt>
-                        <dd>{event._count.publicRegistrations}</dd>
-                      </div>
-                    </dl>
-                  </div>
-
-                  <div className={viewStyles.t_event_action}>
-                    <Link
-                      href={`/torneios/${event.id}?tab=categories`}
-                      className={viewStyles.button_button_primary}
-                    >
-                      Abrir
-                    </Link>
-                    <SafeActionForm
-                      action={deleteTournamentAction}
-                      confirmKeyword="EXCLUIR"
-                      confirmPrompt="Digite EXCLUIR para remover este evento permanentemente."
-                      successMessage="Evento excluído."
-                      successHref="/painel"
-                    >
-                      <input
-                        type="hidden"
-                        name="tournamentId"
-                        value={event.id}
-                      />
-                      <SubmitButton
-                        label="Excluir"
-                        pendingLabel="Excluindo..."
-                        className={viewStyles.button_button_danger}
-                      />
-                    </SafeActionForm>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        ) : (
-          <EmptyState
-            title="Nenhum evento em operação"
-            description="Crie um evento e adicione as categorias depois."
-            ctaLabel="Criar evento"
-            ctaHref="/torneios/novo"
-          />
-        )}
-      </section>
-
-      <section className={viewStyles.event_section} aria-label="Histórico de torneios">
-        <h2>Histórico <span>{finishedEvents.length}</span></h2>
-        {finishedEvents.length ? (
-          <div className={viewStyles.t_event_list_2}>
-            {finishedEvents.map((event) => (
-              <article className={viewStyles.t_event_row_t_event_row_history} key={event.id}>
-                <div className={viewStyles.t_event_identity}>
-                  <strong>{event.name}</strong>
-                  <span className={viewStyles.t_event_category}>
-                    {event.categories.length} categorias
-                  </span>
-                </div>
-                <div className={viewStyles.t_event_metadata}>
-                  <span>Atualizado em {event.updatedAt.toLocaleDateString("pt-BR")}</span>
-                </div>
-                <div className={viewStyles.t_event_action}>
-                  <Link
-                    href={`/torneios/${event.id}?tab=results`}
-                    className={viewStyles.button}
-                  >
-                    Ver resultados
-                  </Link>
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <p className={viewStyles.empty_history}>Nenhum evento finalizado.</p>
-        )}
-      </section>
-    </div>
-  );
+  return <div className={viewStyles.stack_md}>
+    <WorkspaceHeading eyebrow="COMPETIÇÕES · EM ANDAMENTO" title="Torneios">{canManageTournaments ? <Link href="/torneios/novo" className={viewStyles.button_button_primary}>Novo evento</Link> : null}</WorkspaceHeading>
+    <nav className="tw:flex tw:gap-2 tw:border-b tw:border-[var(--line)] tw:pb-2" aria-label="Situação dos eventos"><Link href="/torneios" aria-current={searchParams?.status !== "finished" ? "page" : undefined} className={viewStyles.button}>Eventos ativos</Link><Link href="/torneios?status=finished" aria-current={searchParams?.status === "finished" ? "page" : undefined} className={viewStyles.button}>Finalizados</Link>{canViewTournaments ? <Link href="/torneios/rankings" className={viewStyles.button}>Rankings</Link> : null}</nav>
+    {selectedTournament ? <SectionCard title={selectedTournament.name} description={canManageTournaments || canRecordResults ? "Escolha uma categoria para acessar os jogos." : undefined}>
+      <div className={viewStyles.active_event_back}>
+        <Link href={eventDirectoryPath} className={viewStyles.button}>Voltar aos eventos</Link>
+        {canManageTournaments ? <Link href={`/torneios/${selectedTournament.id}`} className={viewStyles.button}>Gerenciar evento</Link> : null}
+      </div>
+      {canManageTournaments || canRecordResults ? <>
+        <h3 className={viewStyles.active_event_category_heading}>Escolha uma categoria</h3>
+        {selectedTournament.categories.length ? <div className={viewStyles.active_event_category_list}>{selectedTournament.categories.map((category) =>
+          <article className={viewStyles.active_event_category} key={category.id}><div><strong>{category.name}</strong><span>{category.competition?.status === "FINISHED" ? "Concluída" : "Em operação"}</span></div><Link href={`/torneios/${selectedTournament.id}/categorias/${category.id}${canManageTournaments ? "" : "?tab=games"}`} className={viewStyles.button_button_primary}>{canManageTournaments ? "Abrir categoria" : "Lançar resultados"}</Link></article>
+        )}</div> : <p className={viewStyles.muted}>Este evento ainda não possui categorias ativas.</p>}
+      </> : <>
+        <h3 className="tw:m-0 tw:text-base tw:font-semibold tw:text-[#132d58]">Programação e placares</h3>
+        {matches.length ? <div className="tw:grid tw:gap-3">{matches.map((match) => {
+          const score = match.homeScore !== null && match.awayScore !== null ? `${match.homeScore} × ${match.awayScore}` : "Aguardando";
+          const games = setScores(match);
+          return <article key={match.id} className="tw:min-w-0 tw:rounded-xl tw:border tw:border-[#dce7f2] tw:bg-white tw:p-4">
+            <div className="tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-2 tw:text-xs tw:text-[#607898]"><span>{match.competition.category.name} · {match.label}</span><span>{[match.scheduledDate, match.scheduledTime, match.courtName].filter(Boolean).join(" · ") || "Horário a definir"}</span></div>
+            <div data-match-teams className="tw:mt-3 tw:flex tw:min-w-0 tw:flex-col tw:gap-2 tw:text-sm tw:text-[#132d58] tw:sm:grid tw:sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] tw:sm:items-center tw:sm:gap-3">
+              <div data-match-home className="tw:min-w-0"><span className="tw:mb-0.5 tw:block tw:text-[10px] tw:font-semibold tw:uppercase tw:tracking-wide tw:text-[#607898] tw:sm:hidden">Mandante</span><strong className="tw:block tw:break-words">{match.homePair?.name ?? "A definir"}</strong></div>
+              <div data-match-score className="tw:border-y tw:border-[#e4edf4] tw:py-2 tw:text-center tw:sm:border-0 tw:sm:py-0"><strong className="tw:block tw:whitespace-nowrap tw:text-[#078f7c]">{score}</strong>{games ? <span className="tw:block tw:whitespace-nowrap tw:text-xs tw:font-normal tw:text-[#607898]">{games}</span> : null}</div>
+              <div data-match-away className="tw:min-w-0 tw:sm:text-right"><span className="tw:mb-0.5 tw:block tw:text-[10px] tw:font-semibold tw:uppercase tw:tracking-wide tw:text-[#607898] tw:sm:hidden">Visitante</span><strong className="tw:block tw:break-words">{match.awayPair?.name ?? "A definir"}</strong></div>
+            </div>
+          </article>;
+        })}</div> : <p className={viewStyles.muted}>Nenhum jogo gerado para as categorias ativas deste evento.</p>}
+      </>}
+    </SectionCard> : activeTournaments.length ? <section className={viewStyles.active_event_list} aria-label="Eventos em operação">{activeTournaments.map((event) => <article className={viewStyles.active_event_row} key={event.id}><div><strong>{event.name}</strong><span>{event.categories.length} categoria{event.categories.length === 1 ? "" : "s"} ativa{event.categories.length === 1 ? "" : "s"}</span></div><div className={viewStyles.active_event_actions}><Link href={`${eventDirectoryPath}${eventDirectoryPath.includes("?") ? "&" : "?"}tournamentId=${encodeURIComponent(event.id)}`} className={viewStyles.button_button_primary}>{canManageTournaments ? "Entrar no evento" : "Ver jogos"}</Link>{canManageTournaments ? <Link href={`/torneios/${event.id}`} className={viewStyles.button}>Gerenciar evento</Link> : null}</div></article>)}</section> : <SectionCard title="Nenhum evento em operação"><p className={viewStyles.muted}>{canManageTournaments ? "Crie um evento e adicione categorias para começar a registrar jogos." : "Ainda não há jogos de eventos em operação."}</p>{canManageTournaments ? <Link href="/torneios/novo" className={viewStyles.button_button_primary}>Criar evento</Link> : null}</SectionCard>}
+  </div>;
 }

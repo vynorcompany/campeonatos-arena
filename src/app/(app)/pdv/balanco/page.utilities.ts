@@ -1,16 +1,16 @@
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
-const columns = "tw:grid-cols-[minmax(0,1fr)_100px_120px_200px] tw:viewport-760:grid-cols-[minmax(0,1fr)_100px] tw:viewport-440:grid-cols-1";
+const columns = "tw:grid-cols-[minmax(0,1fr)_90px_100px_130px] tw:viewport-760:grid-cols-[minmax(0,1fr)_100px] tw:viewport-440:grid-cols-2 tw:viewport-440:gap-y-2 tw:viewport-440:[&>span:first-child]:col-span-full tw:viewport-440:[&>input]:col-span-full";
 export const viewStyles = {
  stack_md_workspace_page_stock_balance_page: ui.page,
  sr_only: sharedUtilities.srOnly,
  page_header: ui.toolbar,
  button: ui.secondary,
  field_stock_balance_reason: ui.field,
- stock_balance_form: "tw:grid tw:min-w-0 tw:gap-5 tw:rounded-xl tw:border tw:border-[var(--line)] tw:bg-white tw:p-5 tw:viewport-620:p-3",
+ stock_balance_form: "tw:grid tw:min-w-0 tw:gap-3 tw:rounded-lg tw:border tw:border-[var(--line)] tw:bg-white tw:p-3",
  stock_balance_table: ui.list,
  stock_balance_row_stock_balance_head: ui.head + " " + columns,
- stock_balance_row: ui.row + " " + columns + " tw:[&_input]:w-full tw:[&_input]:min-w-0 tw:[&_input]:rounded-[var(--radius-control)] tw:[&_input]:border tw:[&_input]:border-[var(--line)] tw:[&_input]:px-3 tw:[&_input]:py-3 tw:[&_input]:text-sm",
+ stock_balance_row: ui.row + " " + columns + " tw:[&_input]:w-full tw:[&_input]:min-w-0 tw:[&_input]:rounded-[var(--radius-control)] tw:[&_input]:border tw:[&_input]:border-[var(--line)] tw:[&_input]:h-9 tw:[&_input]:px-2 tw:[&_input]:py-1 tw:[&_input]:text-xs",
  muted: sharedUtilities.muted,
  stock_balance_actions: "tw:flex tw:justify-end",
  button_button_primary: ui.primary,

@@ -29,7 +29,8 @@ test("online booking settings are persisted in the agenda configuration workspac
   assert.match(dialog, /Mostrar horários reservados/);
   assert.match(dialog, /Pagamento online/);
   assert.match(dialog, /Mensagem de WhatsApp/);
-  assert.match(dialog, /classificacao\/\$\{settings\.arenaSlug\}\?section=booking/);
+  assert.match(dialog, /arenaBookingPath\(settings\.arenaSlug\)/);
+  assert.ok(existsSync(resolve(process.cwd(), "src/app/[arenaSlug]/portaldoatleta/agendamento/page.tsx")));
   assert.doesNotMatch(dialog, /const publicPath = `\/reservar\//);
   assert.doesNotMatch(dialog, /Configurar combinações por quadra/);
 });

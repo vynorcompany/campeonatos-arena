@@ -26,7 +26,7 @@ test("closed comanda receivables remain payable and keep their sale in sync", ()
   const payment = read("src/lib/actions/public-finance-payment.ts");
   const webhook = read("src/app/api/payments/mercado-pago/webhook/route.ts");
 
-  assert.match(comanda, /saleId: sale\.id, playerId: comanda\.playerId, type: "REVENUE", category: "COMANDAS"/);
+  assert.match(comanda, /saleId: sale\.id, playerId: allocation\.playerId, type: "REVENUE", category: "COMANDAS"/);
   assert.match(payment, /sale: \{ comanda: \{ playerId: auth\.playerId \} \}/);
   assert.match(webhook, /settledComandaSaleIds/);
   assert.match(webhook, /tx\.salePayment\.create/);

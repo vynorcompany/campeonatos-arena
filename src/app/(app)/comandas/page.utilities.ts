@@ -38,9 +38,9 @@ export const viewStyles = {
     "tw:viewport-760:flex-col",
   ].join(" "),
   "field": sharedUtilities.field,
-  "commands_list_commands_day_panel": "commands-list commands-day-panel tw:rounded-xl tw:border tw:border-solid tw:border-[var(--line)] tw:bg-white tw:shadow-[var(--shadow)]",
-  "commands_list_head": "commands-list-head commands-list-head-compact tw:flex tw:items-center tw:justify-between tw:border-0 tw:border-b tw:border-solid tw:border-[var(--line)] tw:px-4 tw:py-3 tw:text-sm tw:text-[var(--muted)] tw:[&_>_span]:inline-flex tw:[&_>_span]:items-center tw:[&_>_span]:gap-2 tw:[&_i]:not-italic",
-  "commands_list_items": "commands-list-items tw:grid tw:grid-cols-[repeat(auto-fill,minmax(min(220px,100%),1fr))] tw:items-start tw:gap-3 tw:p-4",
+  "commands_list_commands_day_panel": "commands-list commands-day-panel tw:min-w-0",
+  "commands_list_head": "commands-list-head commands-list-head-compact tw:flex tw:items-center tw:justify-between tw:pb-2 tw:text-xs tw:text-[var(--muted)] tw:[&_>_span]:inline-flex tw:[&_>_span]:items-center tw:[&_>_span]:gap-2 tw:[&_i]:not-italic",
+  "commands_list_items": "commands-list-items tw:grid tw:grid-cols-[repeat(auto-fill,minmax(210px,280px))] tw:viewport-440:grid-cols-1 tw:items-start tw:gap-3",
   "commands_empty": "commands-empty tw:grid tw:justify-items-center tw:content-center tw:gap-2 tw:px-4 tw:py-10 tw:text-center tw:text-sm tw:text-[var(--muted)] tw:[&_strong]:text-[var(--text)] tw:[&_strong]:text-base",
   "commands_empty_illustration": "commands-empty-illustration tw:grid tw:size-12 tw:place-items-center tw:rounded-xl tw:bg-[var(--brand-soft)] tw:text-[var(--brand)] tw:[&_svg]:size-6",
   "button_button_primary_commands_empty_action": [

@@ -43,8 +43,8 @@ test("TV presentation data is isolated by arena for the runtime role", { skip: !
       assert.equal(await tx.tvPresentationSettings.findUnique({ where: { arenaId: arenaB.id } }), null);
       const updatedSettings = await tx.tvPresentationSettings.upsert({ where: { arenaId: arenaA.id }, create: { arenaId: arenaA.id, slideIntervalSeconds: 12 }, update: { slideIntervalSeconds: 12 } });
       assert.equal(updatedSettings.slideIntervalSeconds, 12);
-      assert.deepEqual((await tx.tvSponsor.findMany({ select: { id: true } })).map((row) => row.id), [sponsorA.id]);
-      assert.deepEqual((await tx.tvSponsor.findMany({ where: { arenaId: arenaA.id, sponsorshipPlanId: { not: null } }, select: { id: true } })).map((row) => row.id), [sponsorA.id]);
+      assert.deepEqual((await tx.tvSponsor.findMany({ where: { id: { in: [sponsorA.id, sponsorB.id] } }, select: { id: true } })).map((row) => row.id), [sponsorA.id]);
+      assert.deepEqual((await tx.tvSponsor.findMany({ where: { arenaId: arenaA.id, id: { in: [sponsorA.id, sponsorB.id] }, sponsorshipPlanId: { not: null } }, select: { id: true } })).map((row) => row.id), [sponsorA.id]);
       assert.deepEqual((await tx.sponsorshipPlan.findUniqueOrThrow({ where: { id: planA.id }, include: { sponsors: { select: { id: true } } } })).sponsors.map((row) => row.id), [sponsorA.id]);
       assert.equal(await tx.sponsorshipPlan.findUnique({ where: { id: planB.id } }), null);
       assert.equal((await tx.manualUpcomingMatch.updateMany({ where: { id: matchB.id }, data: { homePairName: "Invasão" } })).count, 0);

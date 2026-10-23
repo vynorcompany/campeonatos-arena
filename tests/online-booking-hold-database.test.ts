@@ -1,3 +1,4 @@
+import { arenaBookingPath } from "../src/lib/arena-booking-path";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -139,6 +140,8 @@ test("duas reservas simultâneas da mesma quadra produzem apenas um hold", { ski
     courtId = court.id;
     assert.equal(await isCourtSlotAvailable(admin, arenaId, courtId, startsAt, endsAt), true);
     const mocks: Record<string, unknown> = {
+      "@/lib/calendar/booking-confirmation-whatsapp": { sendBookingConfirmationForOccurrence: async () => ({ sent: 0, failed: 0 }) },
+      "@/lib/arena-booking-path": { arenaBookingPath },
       "next/cache": { revalidatePath() {} },
       zod: require("zod"),
       "@/lib/auth/guards": { requireModuleEdit: async () => { throw new Error("Não usar acesso interno neste teste."); } },

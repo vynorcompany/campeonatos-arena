@@ -10,7 +10,7 @@ import { ensureTournamentPairFromRegistration } from "@/lib/services/registratio
 import { env } from "@/lib/env";
 import { verifyMercadoPagoWebhookSignature } from "@/lib/payments/mercado-pago-webhook-signature";
 import { verifyApprovedMercadoPagoPayment } from "@/lib/payments/verified-payment";
-import { sendEvolutionTextMessage } from "@/lib/integrations/evolution/client";
+import { sendBookingConfirmationForOccurrence } from "@/lib/calendar/booking-confirmation-whatsapp";
 import { publicRegistrationApprovalAfterHold } from "@/lib/tournaments/registration-payment-hold";
 
 export async function POST(request: Request) {
@@ -243,16 +243,16 @@ export async function POST(request: Request) {
           }
           await tx.scheduleParticipant.update({ where: { id: participant.id }, data: { financialEntryId: financialEntry.id, paymentMethod: "Mercado Pago online" } });
           const confirmed = await finalizePaidCourtBooking(tx, arenaId, occurrence.id);
-          return confirmed && occurrence.arena.onlineBookingWhatsappConfirmationEnabled && participant.player.phone ? { phone: participant.player.phone, text: `✅ Pagamento confirmado. Sua reserva em ${courtName} foi confirmada pela arena.` } : null;
+          return confirmed ? { occurrenceId: occurrence.id } : null;
         });
-        if (bookingMessage) await sendEvolutionTextMessage(bookingMessage.phone, bookingMessage.text, arenaId).catch(() => undefined);
+        if (bookingMessage) await sendBookingConfirmationForOccurrence(arenaId, bookingMessage.occurrenceId);
         return NextResponse.json({ ok: true });
         }
       }
 
       const payment = resolvedPayment ?? await getMercadoPagoPayment(entry.arenaId, paymentId);
       const approved = payment.status === "approved";
-      await withArenaTransaction(entry.arenaId, async (tx) => {
+      const confirmedBooking = await withArenaTransaction(entry.arenaId, async (tx) => {
         if (entry.source === "ONLINE_BOOKING" && entry.externalReference) {
           // A agenda bloqueia a quadra antes de alterar a reserva. Siga essa
           // ordem antes de bloquear o lançamento para evitar espera circular.
@@ -312,9 +312,11 @@ export async function POST(request: Request) {
           data: { status: "PAID", paidAt: new Date(), paymentMethod: "Mercado Pago online", onlinePaymentId: String(payment.id ?? paymentId) }
         });
         if (current.source === "ONLINE_BOOKING" && current.externalReference) {
-          await finalizePaidCourtBooking(tx, entry.arenaId, current.externalReference);
+          const confirmed = await finalizePaidCourtBooking(tx, entry.arenaId, current.externalReference);
+          if (confirmed) return current.externalReference;
         }
       });
+      if (confirmedBooking) await sendBookingConfirmationForOccurrence(entry.arenaId, confirmedBooking);
       return NextResponse.json({ ok: true });
     }
 

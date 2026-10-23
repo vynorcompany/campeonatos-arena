@@ -40,7 +40,7 @@ function testAudioDataUrl() {
 const routes = [
   "/painel", "/assistente", "/whatsapp", "/usuarios", "/minha-conta",
   "/torneios", "/torneios/novo", "/torneios/inscricoes", "/torneios/rankings", "/torneios/rankings/novo",
-  "/jogos", "/grupos", "/duplas", "/agenda", "/agenda/configuracao", "/calendario", "/comandas",
+  "/torneios?status=finished", "/grupos", "/duplas", "/agenda", "/agenda/configuracao", "/calendario", "/comandas",
   "/proximos-jogos/apresentacao", "/proximos-jogos/patrocinios",
   "/jogadores", "/professores", "/aulas", "/aulas/alunos", "/aulas/registrar",
   "/pdv/caixa", "/pdv", "/pdv/novo", "/pdv/servicos", "/pdv/vendas", "/pdv/estoque", "/pdv/balanco",
@@ -178,6 +178,10 @@ async function main() {
       console.log(`${label}: HTTP 200, ${metrics.width}px, sem overflow horizontal`);
       return metrics.body;
     };
+    const legacyGames = await fetch(`${baseUrl}/jogos?tournamentId=legacy-event&status=finished`, { headers: { Cookie: cookie(arenaA.id, sessionToken) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
+    await legacyGames.body?.cancel();
+    const gamesDestination = new URL(legacyGames.headers.get("location") ?? "/", baseUrl);
+    if (![307, 308].includes(legacyGames.status) || gamesDestination.pathname !== "/torneios" || gamesDestination.searchParams.get("tournamentId") !== "legacy-event" || gamesDestination.searchParams.get("status") !== "finished") throw new Error("O acesso legado aos jogos não preservou o evento e o histórico na tela unificada.");
     for (const viewport of adminViewports) {
       for (const route of routes) {
         const label = `${viewport.name}-${route.replaceAll("/", "-").replace(/^-/, "")}`;
