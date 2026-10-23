@@ -94,6 +94,6 @@ test("agenda generates reservation labels without a manual name field", () => {
 
   assert.match(dialog, /\$\{bookingTypeName\} ·/);
   assert.doesNotMatch(dialog, /Nome da reserva/);
-  assert.match(actions, /let bookingTitle/);
-  assert.match(actions, /classGroup\.name/);
+  assert.match(actions, /const bookingTitle/);
+  assert.match(actions, /players\.find\(player => player\.id === responsiblePlayerId\)/);
 });

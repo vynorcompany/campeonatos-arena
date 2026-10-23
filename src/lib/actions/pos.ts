@@ -158,7 +158,7 @@ export async function adjustStockAction(formData: FormData) {
   const product = await prisma.product.findFirst({
     where: {
       id: parsed.data.productId,
-      arenaId: auth.arenaId
+      arenaId: auth.arenaId, isService: false
     }
   });
 
@@ -223,7 +223,7 @@ export async function createStockBalanceAction(formData: FormData) {
   }
 
   const products = await prisma.product.findMany({
-    where: { arenaId: auth.arenaId, id: { in: productIds } },
+    where: { arenaId: auth.arenaId, isService: false, id: { in: productIds } },
     select: { id: true, name: true, stockQuantity: true }
   });
   if (products.length !== productIds.length) {
@@ -366,6 +366,7 @@ async function createSaleFromProducts({
     name: string;
     priceCents: number;
     quantity: number;
+    isService?: boolean;
   }>;
 }) {
   const prisma = arenaDatabase(arenaId);
@@ -398,6 +399,7 @@ async function createSaleFromProducts({
         }
       });
 
+      if (product.isService) continue;
       await tx.product.update({
         where: {
           id: product.id

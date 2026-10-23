@@ -30,7 +30,7 @@ export async function importNfeXmlAction(formData: FormData) {
     const result = await withArenaTransaction(auth.arenaId, async (tx) => {
       const existing = await tx.fiscalDocument.findFirst({ where: { arenaId: auth.arenaId, accessKey: invoice.accessKey }, select: { id: true } });
       if (existing) throw new Error("Esta NF-e já foi importada anteriormente.");
-      const existingProducts = await tx.product.findMany({ where: { arenaId: auth.arenaId }, select: { id: true, sku: true, name: true } });
+      const existingProducts = await tx.product.findMany({ where: { arenaId: auth.arenaId, isService: false }, select: { id: true, sku: true, name: true } });
       const productBySku = new Map(existingProducts.map((product) => [product.sku, product]));
       const productByName = new Map(existingProducts.map((product) => [product.name.toLocaleLowerCase("pt-BR"), product]));
       let createdProducts = 0;
@@ -81,7 +81,7 @@ export async function previewNfeXmlAction(formData: FormData) {
   const invoice = parseNfeXml(await file.text());
   const [duplicate, products] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
     tx.fiscalDocument.findFirst({ where: { arenaId: auth.arenaId, accessKey: invoice.accessKey }, select: { id: true } }),
-    tx.product.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true, sku: true, costCents: true, priceCents: true }, orderBy: { name: "asc" }, take: 1000 }),
+    tx.product.findMany({ where: { arenaId: auth.arenaId, active: true, isService: false }, select: { id: true, name: true, sku: true, costCents: true, priceCents: true }, orderBy: { name: "asc" }, take: 1000 }),
   ]));
   if (duplicate) throw new Error("Esta NF-e já foi importada anteriormente.");
   return { invoice: { ...invoice, issuedAt: invoice.issuedAt?.toISOString() ?? null }, products };

@@ -7,7 +7,7 @@ export default async function StockPage({ searchParams }: { searchParams?: Promi
   const prisma = arenaDatabase(auth.arenaId);
   const filters = await searchParams;
   const [products, categories] = await Promise.all([
-    prisma.product.findMany({ where: { arenaId: auth.arenaId }, include: { category: { select: { name: true } } }, orderBy: [{ active: "desc" }, { name: "asc" }] }),
+    prisma.product.findMany({ where: { arenaId: auth.arenaId, isService: false }, include: { category: { select: { name: true } } }, orderBy: [{ active: "desc" }, { name: "asc" }] }),
     prisma.productCategory.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } })
   ]);
   return <StockWorkspace products={products} categories={categories} query={filters?.q?.trim()} stock={filters?.stock} canEdit={canEditModule("stock", auth.arenaRole, auth.systemRole, auth.editPermissions)} />;

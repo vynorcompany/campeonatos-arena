@@ -414,11 +414,7 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
     prisma.arena.findUniqueOrThrow({ where: { id: auth.arenaId }, select: { slug: true } })
   ]);
   if (players.length !== participants.length) throw new Error("Um ou mais atletas não pertencem à arena.");
-  let bookingTitle = parsed.data.bookingTypeName === "Super 12" ? "Super 12" : `${parsed.data.bookingTypeName} · ${players[0]?.name ?? "Cliente"}`;
-  if (parsed.data.bookingTypeName.trim().toLowerCase() === "aula fixa" && parsed.data.teacherId) {
-    const classGroup = await prisma.classGroup.findFirst({ where: { arenaId: auth.arenaId, teacherId: parsed.data.teacherId, active: true, schedules: { some: { weekday: startsAt.getDay(), startTime: `${String(startsAt.getHours()).padStart(2, "0")}:${String(startsAt.getMinutes()).padStart(2, "0")}` } } }, select: { name: true } });
-    if (classGroup) bookingTitle = `${parsed.data.bookingTypeName} · ${classGroup.name}`;
-  }
+  const bookingTitle = `${parsed.data.bookingTypeName} · ${players.find(player => player.id === responsiblePlayerId)?.name ?? "Cliente"}`;
   const responsibleName = players.find((player) => player.id === responsiblePlayerId)?.name ?? "";
   const courtNames = courts.map((court) => court.name).join(" · ");
   const notificationDates: string[] = [];

@@ -21,7 +21,7 @@ export default async function StockBalancePage() {
   const prisma = arenaDatabase(auth.arenaId);
   const [products, movements] = await Promise.all([
     prisma.product.findMany({
-      where: { arenaId: auth.arenaId, active: true },
+      where: { arenaId: auth.arenaId, active: true, isService: false },
       select: { id: true, name: true, sku: true, stockQuantity: true, minStock: true },
       orderBy: { name: "asc" }
     }),

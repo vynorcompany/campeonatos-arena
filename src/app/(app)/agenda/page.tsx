@@ -55,17 +55,18 @@ export default async function AgendaPage(props: AgendaPageProps) {
   const auth = await requireModuleView("calendar");
   const selectedDate = startOfDay(parseDate(searchParams?.data));
   const nextDay = addDays(selectedDate, 1);
-  const [arena, courts, scheduleOccurrences, players, teachers, storedBookingTypes, servicePrices] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
+  const [arena, courts, scheduleOccurrences, players, teachers, storedBookingTypes, servicePrices, customServices] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
     tx.arena.findUniqueOrThrow({ where: { id: auth.arenaId }, select: { slug: true, scheduleStartMinute: true, scheduleEndMinute: true, scheduleSlotMinutes: true, onlineBookingLayout: true, onlineBookingRequiresConfirmation: true, onlineBookingShowReserved: true, onlineBookingPaymentEnabled: true, onlineBookingEnabled: true, onlineBookingLeadTimeMinutes: true, onlineBookingOverdueBlockDays: true, onlineBookingWhatsappMessage: true, onlineBookingWhatsappConfirmationEnabled: true } }),
     tx.court.findMany({ where: { arenaId: auth.arenaId, active: true, weeklyRules: { some: {} } }, include: { weeklyRules: true }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }] }),
     tx.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, ...activeCourtOccurrenceWhere(), startsAt: { lt: nextDay }, endsAt: { gt: selectedDate } }, include: { occurrenceCourts: true, participants: true }, orderBy: { startsAt: "asc" } }),
     tx.player.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     tx.teacher.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     tx.bookingType.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { name: true }, orderBy: { name: "asc" } }),
-    tx.arenaServicePrice.findMany({ where: { arenaId: auth.arenaId }, select: { serviceCode: true, priceCents: true } })
+    tx.arenaServicePrice.findMany({ where: { arenaId: auth.arenaId }, select: { serviceCode: true, priceCents: true } }),
+    tx.product.findMany({ where: { arenaId: auth.arenaId, active: true, isService: true }, select: { name: true, priceCents: true, showOnAgenda: true } })
   ]));
-  const bookingTypes = Array.from(new Set(["Aula", "Aula fixa", "Plano", "Super 12", "Liga", "Reserva", ...storedBookingTypes.map((item) => item.name)]));
-  const servicePriceValues = standardServicePrices(servicePrices);
+  const bookingTypes = Array.from(new Set(["Aula", "Aula fixa", "Plano", "Super 12", "Liga", "Reserva", ...storedBookingTypes.map((item) => item.name), ...customServices.filter(service => service.showOnAgenda).map(service => service.name)]));
+  const servicePriceValues = { ...standardServicePrices(servicePrices), ...Object.fromEntries(customServices.map(service => [service.name, service.priceCents])) };
   const courtOptions = courts.map((court) => ({ id: court.id, name: court.name }));
   const slots = Array.from({ length: Math.max(0, Math.ceil((arena.scheduleEndMinute - arena.scheduleStartMinute) / arena.scheduleSlotMinutes)) }, (_, index) => arena.scheduleStartMinute + index * arena.scheduleSlotMinutes);
   const { byCourtAndSlot: occurrencesByCourtAndSlot, occupiedCourtSlots } = buildAgendaOccurrenceIndex(scheduleOccurrences, slots);

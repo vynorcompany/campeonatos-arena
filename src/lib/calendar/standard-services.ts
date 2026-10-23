@@ -4,9 +4,10 @@ export const STANDARD_SERVICES = [
 ] as const;
 
 export type StandardServiceCode = typeof STANDARD_SERVICES[number]["code"];
-export type StandardServicePrices = Partial<Record<StandardServiceCode, number>>;
+export type StandardServicePrices = Partial<Record<string, number>>;
 
-export function standardServiceCode(bookingTypeName: string): StandardServiceCode | undefined {
+export function standardServiceCode(bookingTypeName: string, prices: StandardServicePrices = {}): string | undefined {
+  if (Object.hasOwn(prices, bookingTypeName)) return bookingTypeName;
   return STANDARD_SERVICES.find((service) => service.name.toLowerCase() === bookingTypeName.trim().toLowerCase())?.code;
 }
 
