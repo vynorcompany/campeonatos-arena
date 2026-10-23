@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import ts from "typescript";
 import test from "node:test";
+import { noteAuditArena } from "../src/lib/audit/request-context";
 
 function fixture() {
   const events: string[] = [];
@@ -18,7 +19,7 @@ function fixture() {
   const source = readFileSync(new URL("../src/lib/arena-database.ts", import.meta.url), "utf8");
   const output = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
   const exports: {arenaDatabase?: (arenaId: string) => any} = {};
-  vm.runInNewContext(output, { exports, require: () => ({ prisma: base }), WeakMap, Map, Proxy, Reflect, Symbol, Promise });
+  vm.runInNewContext(output, { exports, require: (name: string) => name === "@/lib/audit/request-context" ? { noteAuditArena } : { prisma: base }, WeakMap, Map, Proxy, Reflect, Symbol, Promise });
   return { db: exports.arenaDatabase!, events, rows };
 }
 

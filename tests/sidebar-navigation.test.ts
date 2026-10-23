@@ -28,6 +28,8 @@ test("menus com submenu mantêm o destino clicável e um controle separado para 
     assert.match(link[1], new RegExp(name));
     assert.match(markup, new RegExp(`aria-label="Abrir submenu ${name}"`));
   }
+  assert.match(markup, /href="\/auditoria"/);
+  assert.ok(markup.indexOf('href="/auditoria"') > markup.indexOf('href="/relatorios"'), "Auditoria deve aparecer depois de Relatórios");
   assert.match(markup, /href="\/pdv\/caixa"/);
   assert.match(markup, /href="\/jogadores"/);
   assert.equal(isActivePath("/jogadores", "/jogadores"), true);

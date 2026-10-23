@@ -18,7 +18,8 @@ const app = next({
   dir: rootDir
 });
 
-const handle = app.getRequestHandler();
+const { productionAuditHandler } = require(path.join(rootDir, "scripts", "request-audit.cjs"));
+const handle = productionAuditHandler(app.getRequestHandler(), rootDir);
 
 app.prepare().then(() => {
   http.createServer((req, res) => handle(req, res)).listen(port, hostname, () => {

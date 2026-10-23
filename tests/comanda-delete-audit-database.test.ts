@@ -25,16 +25,16 @@ test("exclusão é isolada por arena, registra recibo e reverte se a auditoria f
     assert.ok(await admin.comanda.findUnique({ where: { id: first.id } }));
     await run(arena.id, tx => deleteComandaWithAudit(tx, auth, first.id));
     assert.equal(await admin.comanda.findUnique({ where: { id: first.id } }), null);
-    const event = await admin.auditEvent.findFirstOrThrow({ where: { entityId: first.id } });
+    const event = await admin.auditEvent.findFirstOrThrow({ where: { entityId: first.id, action: "COMANDA_DELETED" } });
     assert.equal(event.action, "COMANDA_DELETED"); assert.equal(event.actorId, auth.userId); assert.equal(event.arenaId, arena.id);
     const second = await create();
     await assert.rejects(run(arena.id, tx => deleteComandaWithAudit(new Proxy(tx, { get(target, key) { if (key === "auditEvent") return { create: async () => { throw new Error("audit unavailable"); } }; return Reflect.get(target, key); } }), auth, second.id)), /audit unavailable/);
     assert.ok(await admin.comanda.findUnique({ where: { id: second.id } }));
-    assert.equal(await admin.auditEvent.count({ where: { entityId: second.id } }), 0);
+    assert.equal(await admin.auditEvent.count({ where: { entityId: second.id, action: { in: ["COMANDA_DELETED", "DB:DELETE:Comanda"] } } }), 0);
     await assert.rejects(run(arena.id, tx => tx.auditEvent.delete({ where: { id: event.id } })), /permission denied|row-level security|Record to delete does not exist/i);
   } finally {
-    await admin.auditEvent.deleteMany({ where: { entityId: { in: ids } } });
     await admin.comanda.deleteMany({ where: { id: { in: ids } } });
+    await admin.auditEvent.deleteMany({ where: { entityId: { in: ids } } });
     await runtime.$disconnect(); await admin.$disconnect();
   }
 });

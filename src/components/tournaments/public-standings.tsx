@@ -193,6 +193,7 @@ export function PublicStandings({
   financeTab = "upcoming",
   authForm,
   section = "leagues",
+  directBooking = false,
   leagueTab = "games",
   leagueCategoryId,
   bookingDate,
@@ -229,6 +230,7 @@ export function PublicStandings({
   financeTab?: "upcoming" | "history";
   authForm: React.ReactNode;
   section?: PortalSection;
+  directBooking?: boolean;
   leagueTab?: LeagueTab;
   leagueCategoryId?: string;
   bookingDate?: string;
@@ -300,7 +302,7 @@ export function PublicStandings({
   const requestedSection: string =
     section === "leagues" && !portalVisibility.athletePortalShowLeagues
       ? "profile"
-      : section === "booking" && !portalVisibility.athletePortalShowBooking
+      : section === "booking" && !directBooking && !portalVisibility.athletePortalShowBooking
         ? "profile"
         : section === "reservations" &&
             !portalVisibility.athletePortalShowReservations

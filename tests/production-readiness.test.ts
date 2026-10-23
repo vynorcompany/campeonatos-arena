@@ -13,7 +13,11 @@ test("production deploy applies migrations without rerunning bootstrap data", as
   const app = configuration.resources?.flat().find((resource) => resource.type === "service" && resource.name === "service-arena-padel-manager");
   assert.ok(app && app.type === "service");
 
-  assert.match(packageJson, /"db:setup": "prisma migrate deploy"/);
+  assert.match(packageJson, /"db:setup": "node scripts\/migrate-and-audit\.mjs"/);
+  const migration = read("scripts/migrate-and-audit.mjs");
+  assert.match(migration, /migrate.*,.*deploy/);
+  assert.match(migration, /install_change_audit_triggers/);
+  assert.doesNotMatch(migration, /seed|bootstrap/);
   assert.match(packageJson, /"db:bootstrap": "tsx prisma\/seed\.ts"/);
   assert.equal(app.deploy?.preDeployCommand, undefined);
   assert.equal(

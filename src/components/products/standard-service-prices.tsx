@@ -15,7 +15,7 @@ export function StandardServicePriceSettings({ prices, canEdit }: { prices: Stan
         <input type="hidden" name="serviceCode" value={service.code} />
         <div className="tw:min-w-0 tw:self-center"><strong className="tw:text-sm">{service.name}</strong><p className="tw:mt-1 tw:text-xs tw:text-[color:var(--muted)]">{prices[service.code] === undefined ? "Valor ainda não configurado" : "Serviço fixo · por atleta"}</p></div>
         <label className={`${ui.field} tw:min-w-0`}>Valor por atleta (R$)<MoneyInput name="price" required aria-label={`Valor de ${service.name}`} defaultValue={prices[service.code] === undefined ? "" : formatMoneyInput(prices[service.code]!)} className="tw:h-9! tw:min-h-9! tw:w-full tw:min-w-0 tw:text-[13px]!" /></label>
-        <SubmitButton label="Salvar valor" pendingLabel="Salvando..." className={ui.primary} />
+        <SubmitButton label="Salvar valor" pendingLabel="Salvando..." className={`${ui.primary} tw:self-end tw:h-9!`} />
       </SafeActionForm> : <div key={service.code} className={`${ui.row} tw:grid-cols-[minmax(0,1fr)_180px] tw:viewport-620:grid-cols-1`}><div className="tw:min-w-0"><strong className="tw:text-sm">{service.name}</strong></div><span className="tw:text-sm">{prices[service.code] === undefined ? "Não configurado" : new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(prices[service.code]! / 100)}</span></div>)}
     </div>
   </div>;

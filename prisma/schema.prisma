@@ -2553,16 +2553,17 @@ model EmployeePayrollEntry {
 
 model AuditEvent {
   id         String   @id @default(cuid())
-  arenaId    String
+  arenaId    String?
   actorId    String
   actorName  String
   action     String
   entityId   String
   details    Json
   createdAt  DateTime @default(now())
-  arena      Arena    @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  arena      Arena?   @relation(fields: [arenaId], references: [id], onDelete: SetNull)
 
   @@index([arenaId, createdAt])
+  @@index([action, createdAt])
 }
 
 model CheckinRecord {

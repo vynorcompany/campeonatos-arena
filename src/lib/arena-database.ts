@@ -1,3 +1,4 @@
+import { noteAuditArena } from "@/lib/audit/request-context";
 import { Prisma, type PrismaClient } from "@prisma/client";
 import { prisma as base } from "@/lib/prisma";
 
@@ -9,6 +10,7 @@ export function arenaDatabase(arenaId: string): PrismaClient {
   if (!arenaId.trim()) throw new Error("A arena ativa é obrigatória.");
   const operations = new WeakMap<object, Operation>();
   const scoped = <T>(run: (tx: Transaction) => Promise<T>, options?: object) => base.$transaction(async tx => {
+    noteAuditArena(arenaId);
     await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`;
     return run(tx);
   }, options);

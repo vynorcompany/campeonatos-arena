@@ -62,7 +62,10 @@ test("financial settings expose coupon and supplier maintenance", () => {
   const settings = readFileSync(resolve(process.cwd(), "src/app/(app)/financeiro/configuracoes/[area]/page.tsx"), "utf8");
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/finance.ts"), "utf8");
   assert.match(settings, /updateCouponAction/);
-  assert.match(settings, /updateSupplierAction/);
+  const supplierDialog = readFileSync(resolve(process.cwd(), "src/components/finance/supplier-dialog.tsx"), "utf8");
+  assert.match(settings, /SupplierDialog/);
+  assert.match(supplierDialog, /updateSupplierAction/);
+  assert.match(supplierDialog, /<Modal /);
   assert.match(settings, /Cartão de débito/);
   assert.match(actions, /deleteCouponAction/);
   assert.match(actions, /deleteSupplierAction/);
