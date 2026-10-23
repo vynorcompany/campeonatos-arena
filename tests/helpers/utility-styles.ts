@@ -15,11 +15,26 @@ export function utilityClasses(marker: string): string[] {
       for (const entry of readdirSync(directory, { withFileTypes: true })) {
         const file = join(directory, entry.name);
         if (entry.isDirectory()) collect(file);
-        else if (/\.(utilities|styles)\.ts$/.test(file)) {
+        else if (/(?:\.(?:utilities|styles)|\/(?:event-directory|operational-workspace))\.ts$/.test(file)) {
           const tree = ts.createSourceFile(file, readFileSync(file, "utf8"), ts.ScriptTarget.Latest, true);
+          const bindings = new Map<string, ts.Expression>();
+          const collectBindings = (node: ts.Node) => {
+            if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) bindings.set(node.name.text, node.initializer);
+            ts.forEachChild(node, collectBindings);
+          };
+          collectBindings(tree);
+          const wordsOf = (node: ts.Node, seen = new Set<string>()): string[] => {
+            if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text.split(/\s+/);
+            if (ts.isArrayLiteralExpression(node)) return node.elements.flatMap(value => wordsOf(value, seen));
+            if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken) return [...wordsOf(node.left, seen), ...wordsOf(node.right, seen)];
+            if (ts.isAsExpression(node) || ts.isParenthesizedExpression(node)) return wordsOf(node.expression, seen);
+            if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && node.expression.name.text === "join") return wordsOf(node.expression.expression, seen);
+            if (ts.isIdentifier(node) && !seen.has(node.text) && bindings.has(node.text)) return wordsOf(bindings.get(node.text)!, new Set([...seen, node.text]));
+            return [];
+          };
           const scan = (node: ts.Node) => {
-            if (ts.isArrayLiteralExpression(node) || (ts.isStringLiteral(node) && ts.isPropertyAssignment(node.parent))) {
-              const words = ts.isStringLiteral(node) ? node.text.split(/\s+/) : node.elements.filter(ts.isStringLiteral).flatMap(value => value.text.split(/\s+/));
+            if (ts.isPropertyAssignment(node) || ts.isArrayLiteralExpression(node)) {
+              const words = wordsOf(ts.isPropertyAssignment(node) ? node.initializer : node);
               const utilities = words.filter(word => word.startsWith("tw:"));
               const names = new Set(words.filter(word => !word.startsWith("tw:")));
               for (const name of names) {

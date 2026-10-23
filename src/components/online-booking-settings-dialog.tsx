@@ -2,6 +2,8 @@
 import { viewStyles } from "./online-booking-settings-dialog.utilities";
 
 import Link from "next/link";
+import { arenaBookingPath } from "@/lib/arena-booking-path";
+import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { useEffect, useState } from "react";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -23,7 +25,9 @@ type OnlineBookingSettings = {
 export function OnlineBookingSettingsDialog({ settings }: { settings: OnlineBookingSettings }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const publicPath = `/classificacao/${settings.arenaSlug}?section=booking`;
+  const publicPath = arenaBookingPath(settings.arenaSlug);
+  const [blockOverdue, setBlockOverdue] = useState(settings.overdueBlockDays !== null);
+  const [whatsappEnabled, setWhatsappEnabled] = useState(settings.whatsappConfirmationEnabled);
 
   useEffect(() => {
     if (!open) return;
@@ -44,20 +48,20 @@ export function OnlineBookingSettingsDialog({ settings }: { settings: OnlineBook
       <section className={`${viewStyles.online_booking_settings_modal} tw:max-h-[calc(100dvh-24px)] tw:overflow-y-auto`} role="dialog" aria-modal="true" aria-label="Configurações do agendamento online" onMouseDown={(event) => event.stopPropagation()}>
         <header><div><span>AGENDAMENTO ONLINE</span><h2>Configurações</h2></div><button type="button" className={viewStyles.button_button_small} onClick={() => setOpen(false)}>Fechar</button></header>
         <div className={viewStyles.online_booking_link}><div><strong>Link do Portal do Atleta</strong><code>{publicPath}</code></div><button type="button" className={viewStyles.button_button_small} onClick={copyLink}>{copied ? "Link copiado" : "Copiar link"}</button></div>
-        <Link href="/agenda/configuracao#checkin" className="tw:mb-4 tw:block tw:rounded-lg tw:border tw:border-[#dce7f2] tw:bg-[#f7faff] tw:p-4 tw:text-sm tw:font-semibold tw:text-[#0868e5]">Check-in nas quadras · Configurar e gerar QR Code</Link>
+        <Link href="/agenda/configuracao#checkin" className="tw:block tw:text-xs tw:font-medium tw:text-[var(--primary)]">Check-in nas quadras · Configurar e gerar QR Code</Link>
         <SafeActionForm action={updateOnlineBookingSettingsAction} className={viewStyles.online_booking_settings_form} successMessage="Configurações do agendamento online salvas.">
-          <label className={viewStyles.field}>Disposição dos horários<select name="layout" defaultValue={settings.layout}><option value="BLOCKS">Blocos</option><option value="LIST">Lista</option></select></label>
-          <label className={viewStyles.field}>Prazo mínimo para agendamento<input name="leadTimeMinutes" type="number" min="0" max="10080" step="15" defaultValue={settings.leadTimeMinutes} /><small>Em minutos antes do horário escolhido.</small></label>
-          <label className={viewStyles.field}>Bloquear reservas após<input name="overdueBlockDays" type="number" min="1" max="365" step="1" defaultValue={settings.overdueBlockDays ?? 7} /><small>Dias de atraso em qualquer cobrança do cliente.</small></label>
+          <label className={ui.field}>Disposição dos horários<select name="layout" defaultValue={settings.layout}><option value="BLOCKS">Blocos</option><option value="LIST">Lista</option></select></label>
+          <label className={ui.field}>Prazo mínimo para agendamento<input name="leadTimeMinutes" type="number" min="0" max="10080" step="15" defaultValue={settings.leadTimeMinutes} /><small>Em minutos antes do horário escolhido.</small></label>
+          {blockOverdue ? <label className={ui.field}>Bloquear reservas após<input name="overdueBlockDays" type="number" min="1" max="365" step="1" defaultValue={settings.overdueBlockDays ?? 7} /><small>Dias de atraso em qualquer cobrança do cliente.</small></label> : <input type="hidden" name="overdueBlockDays" value={settings.overdueBlockDays ?? 7} />}
           <div className={viewStyles.online_booking_settings_toggles_form_full}>
             <label className={viewStyles.control_toggle}><input name="onlineBookingEnabled" type="checkbox" defaultChecked={settings.enabled} /><span aria-hidden="true" /><em>Reserva online disponível</em></label>
             <label className={viewStyles.control_toggle}><input name="requiresConfirmation" type="checkbox" defaultChecked={settings.requiresConfirmation} /><span aria-hidden="true" /><em>Confirmação de reserva</em></label>
             <label className={viewStyles.control_toggle}><input name="showReserved" type="checkbox" defaultChecked={settings.showReserved} /><span aria-hidden="true" /><em>Mostrar horários reservados</em></label>
             <label className={viewStyles.control_toggle}><input name="paymentOnlineEnabled" type="checkbox" defaultChecked={settings.paymentOnlineEnabled} /><span aria-hidden="true" /><em>Pagamento online</em></label>
-            <label className={viewStyles.control_toggle}><input name="overdueBlockEnabled" type="checkbox" defaultChecked={settings.overdueBlockDays !== null} /><span aria-hidden="true" /><em>Bloquear reserva de cliente inadimplente</em></label>
-            <label className={viewStyles.control_toggle}><input name="whatsappConfirmationEnabled" type="checkbox" defaultChecked={settings.whatsappConfirmationEnabled} /><span aria-hidden="true" /><em>Enviar confirmação pelo WhatsApp</em></label>
+            <label className={viewStyles.control_toggle}><input name="overdueBlockEnabled" type="checkbox" checked={blockOverdue} onChange={event => setBlockOverdue(event.target.checked)} /><span aria-hidden="true" /><em>Bloquear reserva de cliente inadimplente</em></label>
+            <label className={viewStyles.control_toggle}><input name="whatsappConfirmationEnabled" type="checkbox" checked={whatsappEnabled} onChange={event => setWhatsappEnabled(event.target.checked)} /><span aria-hidden="true" /><em>Enviar confirmação pelo WhatsApp</em></label>
           </div>
-          <label className={viewStyles.field_form_full}>Mensagem de WhatsApp<textarea name="whatsappMessage" defaultValue={settings.whatsappMessage} placeholder="Ex.: Olá, {cliente}! Sua reserva foi recebida para {data} às {horario}." /></label>
+          {whatsappEnabled ? <label className={viewStyles.field_form_full}>Mensagem de WhatsApp<textarea name="whatsappMessage" defaultValue={settings.whatsappMessage} placeholder="Ex.: Olá, {cliente}! Sua reserva foi recebida para {data} às {horario}." /><small>Variáveis: {"{cliente}, {data}, {horario}, {quadra}, {arena}"}.</small></label> : <input type="hidden" name="whatsappMessage" value={settings.whatsappMessage} />}
           <div className={viewStyles.online_booking_settings_footer_form_full}><SubmitButton label="Salvar configurações" pendingLabel="Salvando..." className={viewStyles.button_button_primary} /></div>
         </SafeActionForm>
       </section>

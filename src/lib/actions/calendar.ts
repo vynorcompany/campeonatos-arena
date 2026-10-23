@@ -26,7 +26,8 @@ import { isAgendaManagedBooking } from "@/lib/calendar/agenda-managed-booking";
 import { arenaWallClockToInstant } from "@/lib/calendar/arena-wall-clock";
 import { getBookingDelinquency } from "@/lib/calendar/booking-delinquency";
 import { cancelUnpaidOnlineBooking, claimOnlineBookingPaymentMethod } from "@/lib/calendar/booking-payment-claim";
-import { sendEvolutionTextMessage } from "@/lib/integrations/evolution/client";
+import { sendBookingConfirmationForOccurrence } from "@/lib/calendar/booking-confirmation-whatsapp";
+import { arenaBookingPath } from "@/lib/arena-booking-path";
 import { expandWeeklyOccurrences } from "@/lib/scheduling/recurrence";
 import { cancelMercadoPagoPayment, createBoletoPayment, createCardCheckout, createPixPayment, getMercadoPagoPayment, getMissingBoletoPayerFields } from "@/lib/payments/mercado-pago";
 import { boletoCancellationDisposition } from "@/lib/payments/boleto-cancellation";
@@ -178,6 +179,7 @@ export async function updateOnlineBookingSettingsAction(formData: FormData) {
   refreshCalendarRoutes();
   revalidatePath(`/reservar/${arena.slug}`);
   revalidatePath(`/classificacao/${arena.slug}`);
+  revalidatePath(arenaBookingPath(arena.slug));
 }
 
 export async function createPublicCourtBookingAction(formData: FormData): Promise<PublicCourtBookingActionResult> {
@@ -225,10 +227,12 @@ export async function createPublicCourtBookingAction(formData: FormData): Promis
     if (error instanceof PublicBookingConflictError) return { ok: false, error: error.message };
     throw error;
   }
+  if (!requiresPayment && !arena.onlineBookingRequiresConfirmation) await sendBookingConfirmationForOccurrence(arena.id, onlineBooking.occurrenceId);
   const checkoutUrl = requiresPayment ? `/reservar/${arena.slug}/pagamento/${onlineBooking.occurrenceId}` : "";
   revalidatePath("/agenda");
   revalidatePath(`/reservar/${arena.slug}`);
   revalidatePath(`/classificacao/${arena.slug}`);
+  revalidatePath(arenaBookingPath(arena.slug));
   return {
     ok: true,
     checkoutUrl,
@@ -250,6 +254,7 @@ export async function cancelPublicCourtBookingRequestAction(formData: FormData) 
   refreshCalendar();
   revalidatePath(`/reservar/${arena.slug}`);
   revalidatePath(`/classificacao/${arena.slug}`);
+  revalidatePath(arenaBookingPath(arena.slug));
 }
 
 export async function startPublicCourtBookingPaymentAction(formData: FormData) {
@@ -278,6 +283,7 @@ export async function confirmOnlineBookingAction(formData: FormData) {
   const occurrenceId = z.string().trim().min(1).safeParse(formData.get("occurrenceId"));
   if (!occurrenceId.success) throw new Error("Reserva inválida.");
   const message = await withArenaTransaction(auth.arenaId, async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "ScheduleOccurrence" WHERE id = ${occurrenceId.data} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
     const occurrence = await tx.scheduleOccurrence.findFirst({ where: { id: occurrenceId.data, arenaId: auth.arenaId, sourceType: "ONLINE_BOOKING", status: "PENDING_CONFIRMATION" }, include: { arena: { select: { slug: true, name: true, onlineBookingWhatsappConfirmationEnabled: true } }, occurrenceCourts: { include: { court: { select: { name: true } } } }, participants: { select: { playerId: true, player: { select: { phone: true } } } } } });
     if (!occurrence) throw new Error("Esta reserva já foi confirmada ou não foi encontrada.");
     await tx.scheduleOccurrence.update({ where: { id: occurrence.id }, data: { status: "SCHEDULED" } });
@@ -286,9 +292,9 @@ export async function confirmOnlineBookingAction(formData: FormData) {
       await tx.playerNotification.createMany({ data: occurrence.participants.map((participant) => ({ playerId: participant.playerId, type: "ONLINE_BOOKING_CONFIRMED", title: "Reserva confirmada", message: `Sua reserva para ${dateLabel} foi confirmada pela arena. Toque para adicionar ao seu calendário.`, href: `/api/reservar/${occurrence.arena.slug}/${occurrence.id}/calendario` })) });
     }
     const dateLabel = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(occurrence.startsAt);
-    return { dateLabel, arenaName: occurrence.arena.name, courtName: occurrence.occurrenceCourts[0]?.court.name ?? "Quadra", phones: occurrence.arena.onlineBookingWhatsappConfirmationEnabled ? occurrence.participants.map((item) => item.player.phone).filter(Boolean) : [] };
+    return { occurrenceId: occurrence.id, dateLabel, arenaName: occurrence.arena.name, courtName: occurrence.occurrenceCourts[0]?.court.name ?? "Quadra", phones: occurrence.arena.onlineBookingWhatsappConfirmationEnabled ? occurrence.participants.map((item) => item.player.phone).filter(Boolean) : [] };
   });
-  await Promise.allSettled(message.phones.map((phone) => sendEvolutionTextMessage(phone, `✅ ${message.arenaName}: sua reserva em ${message.courtName} para ${message.dateLabel} foi confirmada.`, auth.arenaId)));
+  await sendBookingConfirmationForOccurrence(auth.arenaId, message.occurrenceId);
   refreshCalendar();
 }
 

@@ -26,7 +26,7 @@ test("bloqueio considera saldo em aberto e permanece isolado por arena", { skip:
       const arenaA = await tx.arena.findUniqueOrThrow({ where: { slug: "arena-teste-goal" }, select: { id: true } });
       const arenaB = await tx.arena.findUniqueOrThrow({ where: { slug: "arena-beta-goal" }, select: { id: true } });
       await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaA.id}, true)`;
-      const playerA = await tx.player.findFirstOrThrow({ where: { arenaId: arenaA.id, id: "goal-athlete-a" }, select: { id: true } });
+      const playerA = await tx.player.create({ data: { arenaId: arenaA.id, name: "Cliente descartável do bloqueio" }, select: { id: true } });
       const today = new Date(2030, 0, 10);
       await tx.financialEntry.create({ data: {
         arenaId: arenaA.id, playerId: playerA.id, type: "REVENUE", category: "Teste", description: "Cobrança descartável atrasada",
@@ -67,7 +67,7 @@ test("bloqueio considera saldo em aberto e permanece isolado por arena", { skip:
       } });
       assert.deepEqual(await getBookingDelinquency(tx, arenaA.id, playerA.id, 3, today), { blocked: true, count: 4, outstandingCents: 15000 });
       await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaB.id}, true)`;
-      const playerB = await tx.player.findFirstOrThrow({ where: { arenaId: arenaB.id }, select: { id: true } });
+      const playerB = await tx.player.create({ data: { arenaId: arenaB.id, name: "Cliente descartável de outra arena" }, select: { id: true } });
       await tx.financialEntry.create({ data: {
         arenaId: arenaB.id, playerId: playerB.id, type: "REVENUE", category: "Teste", description: "Cobrança descartável de outra arena",
         amountCents: 9000, status: "PENDING", dueDate: new Date(2030, 0, 1),

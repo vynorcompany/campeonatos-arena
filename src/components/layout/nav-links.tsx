@@ -196,11 +196,11 @@ export function NavLinks({ canManageUsers, canManageFinancialSettings, financeVi
       title: "Painéis",
       links: [
         {
-          href: canSee("tournaments") ? "/torneios" : "/jogos",
+          href: "/torneios",
           label: canSee("tournaments") ? "Torneios" : "Jogos",
           icon: "trophy",
           children: canSee("tournaments") ? [
-            { href: "/jogos", label: "Eventos ativos" },
+            { href: "/torneios", label: "Eventos ativos" },
             { href: "/torneios/rankings", label: "Rankings" }
           ] : undefined
         },
@@ -294,7 +294,7 @@ export function NavLinks({ canManageUsers, canManageFinancialSettings, financeVi
     // WhatsApp é um canal de atendimento. O ícone tem o seu próprio nome,
     // mas a permissão que libera a tela é o módulo de suporte.
     "/whatsapp": "support",
-    "/torneios": "tournaments",
+    "/torneios": canSee("tournaments") ? "tournaments" : "matches",
     "/jogadores": "players",
     "/players": "players",
     "/duplas": "pairs",

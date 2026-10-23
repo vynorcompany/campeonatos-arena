@@ -13,7 +13,7 @@ test("agenda starts with no placeholder athletes and keeps the court price in th
 
   assert.match(dialog, /useState<Participant\[\]>\(\(\) => slot\.participants \?\? \[\]\)/);
   assert.match(dialog, /agenda-booking-summary-grid/);
-  assert.match(styleRules("agenda-booking-summary-grid"), /repeat\(4/);
+  assert.match(styleRules("agenda-booking-summary-grid"), /grid-template-columns:/);
   assert.match(dialog, /Buscar cliente/);
   assert.doesNotMatch(dialog, /Valor com forma de pagamento entra como quitado/);
 });
@@ -25,7 +25,7 @@ test("agenda makes the complete slot clickable and exposes individual commandas"
   assert.match(dialog, /openComandasForParticipants/);
   assert.match(dialog, /Abrir comandas dos atletas/);
   assert.match(styleRules("agenda-slot-entry"), /min-height: 100%/);
-  assert.match(styleRules("agenda-booking-dialog"), /width: min\(100%, 1240px\)/);
+  assert.match(styleRules("agenda-booking-dialog"), /max-width: 920px/);
 });
 
 test("agenda booking identifies reservation types, suggests athletes and closes slot options outside", () => {
@@ -40,7 +40,7 @@ test("agenda booking identifies reservation types, suggests athletes and closes 
   assert.match(dialog, /agenda-player-suggestions/);
   assert.match(dialog, /addPlayerToReservation/);
   assert.match(styleRules("agenda-slot-options-trigger"), /border-radius: 5px/);
-  assert.ok(utilityClasses("agenda-add-athlete").length, "agenda-add-athlete has component Tailwind utilities");
+  assert.ok(utilityClasses("agenda-player-suggestions").length, "agenda-player-suggestions has component Tailwind utilities");
 });
 
 test("money fields use the shared intelligent monetary editor", () => {

@@ -113,8 +113,8 @@ test("perfil somente Jogos encontra programação e placares sem acesso à gest�
     visibleModules: ["dashboard", "matches"],
     whatsappUnreadCount: 0,
   }));
-  assert.match(markup, /href="\/jogos"[^>]*>[\s\S]*?Jogos/);
-  assert.equal((markup.match(/href="\/jogos"/g) ?? []).length, 1);
-  assert.doesNotMatch(markup, /href="\/torneios"/);
+  assert.match(markup, /href="\/torneios"[^>]*>[\s\S]*?Jogos/);
+  assert.equal((markup.match(/href="\/torneios"/g) ?? []).length, 1);
+
   assert.doesNotMatch(markup, /href="\/torneios\/rankings"/);
 });

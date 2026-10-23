@@ -1,3 +1,4 @@
+import { arenaBookingPath } from "../src/lib/arena-booking-path";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -37,6 +38,8 @@ test("cancelar reserva respeita a escolha sobre cobranças abertas sem afetar va
     const source = readFileSync(new URL("../src/lib/actions/calendar.ts", import.meta.url), "utf8");
     const exports: Record<string, (form: FormData) => Promise<void>> = {};
     const mocks: Record<string, unknown> = {
+      "@/lib/calendar/booking-confirmation-whatsapp": { sendBookingConfirmationForOccurrence: async () => ({ sent: 0, failed: 0 }) },
+      "@/lib/arena-booking-path": { arenaBookingPath },
       "next/cache": { revalidatePath() {} },
       zod: require("zod"),
       "@/lib/auth/guards": {

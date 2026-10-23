@@ -1,4 +1,5 @@
 "use server";
+import { allocateComandaShares } from "@/lib/comandas/split";
 import { deleteComandaWithAudit } from "@/lib/comandas/delete-with-audit";
 import { arenaDatabase } from "@/lib/arena-database";
 
@@ -38,6 +39,7 @@ const paymentsSchema = z.array(z.object({
 
 const finishComandaSchema = z.object({
   comandaId: z.string().min(1),
+  shares: z.array(z.object({ playerId: z.string().min(1).nullable(), amountCents: z.coerce.number().int().nonnegative() })).max(20).default([]),
   payments: paymentsSchema,
   debtIds: z.array(z.string().min(1)).max(30),
   creditCents: z.coerce.number().int().nonnegative(),
@@ -210,6 +212,9 @@ export async function finishComandaAction(formData: FormData) {
   const auth = await requirePermission("pos:command:finish");
   let payments: unknown = [];
   let debtIds: unknown = [];
+  let shares: unknown = [];
+  const rawShares = formData.get("shares");
+  if (typeof rawShares === "string" && rawShares.trim()) { try { shares = JSON.parse(rawShares); } catch { throw new Error("Divisão inválida."); } }
   const rawPayments = formData.get("payments");
   const rawDebtIds = formData.get("debtIds");
   if (typeof rawPayments === "string" && rawPayments.trim()) {
@@ -218,10 +223,11 @@ export async function finishComandaAction(formData: FormData) {
   if (typeof rawDebtIds === "string" && rawDebtIds.trim()) {
     try { debtIds = JSON.parse(rawDebtIds); } catch { throw new Error("Débitos inválidos."); }
   }
-  const parsed = finishComandaSchema.safeParse({ comandaId: formData.get("comandaId"), payments, debtIds, creditCents: formData.get("creditCents") ?? 0, allowEmpty: formData.get("allowEmpty") ?? false, fiscalDocumentType: formData.get("fiscalDocumentType") ?? "" });
+  const parsed = finishComandaSchema.safeParse({ comandaId: formData.get("comandaId"), shares, payments, debtIds, creditCents: formData.get("creditCents") ?? 0, allowEmpty: formData.get("allowEmpty") ?? false, fiscalDocumentType: formData.get("fiscalDocumentType") ?? "" });
   if (!parsed.success) throw new Error("Comanda inválida.");
 
   await withArenaTransaction(auth.arenaId, async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "Comanda" WHERE id = ${parsed.data.comandaId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
     const comanda = await tx.comanda.findFirst({ where: { id: parsed.data.comandaId, arenaId: auth.arenaId, status: "OPEN" }, include: { items: { include: { product: true } } } });
     if (!comanda) throw new Error("Comanda não está disponível.");
     if (!comanda.items.length && !parsed.data.debtIds.length) {
@@ -255,6 +261,12 @@ export async function finishComandaAction(formData: FormData) {
     const settleSelectedDebts = Boolean(selectedDebts.length) && partialDebtPaymentCents >= selectedDebtTotalCents;
     const comandaPaymentCents = debtPaymentAllocation.remainingPayments.reduce((total, payment) => total + payment.amountCents, 0);
     const remainingCents = totalCents - comandaPaymentCents - creditAppliedCents;
+    const sharedParts = parsed.data.shares.length ? parsed.data.shares : [{ playerId: comanda.playerId, amountCents: totalCents }];
+    if (sharedParts[0].playerId !== comanda.playerId || sharedParts.slice(1).some(part => !part.playerId || part.amountCents <= 0)) throw new Error("A divisão deve manter o titular e identificar cada outra pessoa.");
+    const otherIds = sharedParts.slice(1).map(part => part.playerId!);
+    const otherPlayers = otherIds.length ? await tx.player.findMany({ where: { arenaId: auth.arenaId, id: { in: otherIds }, active: true }, select: { id: true, name: true } }) : [];
+    if (otherPlayers.length !== otherIds.length) throw new Error("Uma das pessoas selecionadas não está disponível nesta arena.");
+    const allocations = allocateComandaShares(sharedParts, totalCents, comandaPaymentCents, creditAppliedCents);
     const now = new Date();
     const sale = await tx.sale.create({
       data: {
@@ -312,9 +324,12 @@ export async function finishComandaAction(formData: FormData) {
         await tx.financialEntry.update({ where: { id: debt.id }, data: { status: "PAID", paidAt: now } });
       }
     }
-    if (remainingCents) {
-      await tx.financialEntry.create({ data: { arenaId: auth.arenaId, saleId: sale.id, playerId: comanda.playerId, type: "REVENUE", category: "COMANDAS", description: `Conta a receber da comanda ${comanda.code}`, amountCents: remainingCents, status: "PENDING", dueDate: now } });
+    for (const allocation of allocations.filter(part => part.outstandingCents > 0)) {
+      const payer = allocation.playerId === comanda.playerId ? comanda.label : otherPlayers.find(player => player.id === allocation.playerId)!.name;
+      await tx.financialEntry.create({ data: { arenaId: auth.arenaId, saleId: sale.id, playerId: allocation.playerId, type: "REVENUE", category: "COMANDAS", description: parsed.data.shares.length ? `Parte da comanda ${comanda.code} · ${payer}` : `Conta a receber da comanda ${comanda.code}`, amountCents: allocation.outstandingCents, status: "PENDING", dueDate: now } });
     }
+    if (parsed.data.shares.length) await tx.auditEvent.create({ data: { arenaId: auth.arenaId, actorId: auth.userId, actorName: auth.userName, action: "COMANDA_SPLIT", entityId: comanda.id, details: { saleId: sale.id, allocations } } });
+
     if (parsed.data.fiscalDocumentType) {
       if (!parsed.data.payments.length && !creditAppliedCents) throw new Error("Informe um recebimento para emitir o documento fiscal da comanda.");
       await issueManualFiscalDocument(tx, {

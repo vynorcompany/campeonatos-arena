@@ -1,3 +1,4 @@
+import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { WorkspaceHeading } from "@/components/ui/workspace-heading";
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
@@ -27,15 +28,17 @@ export default async function SponsorshipManagementPage(
   const orderedPlans = [...plans].sort((first, second) => sort === "value" ? second.monthlyAmountCents - first.monthlyAmountCents : sort === "companies" ? second.sponsors.length - first.sponsors.length : first.name.localeCompare(second.name, "pt-BR"));
   const planTypes = planTypeRows.map((plan) => plan.sponsorshipType).sort((first, second) => first.localeCompare(second, "pt-BR"));
 
-  return <div className={viewStyles.stack_md_sponsorship_management_page}>
-    <WorkspaceHeading eyebrow="PARCERIAS · PATROCÍNIOS" title="Marcas que jogam junto" description="Organize os planos, benefícios e empresas que fazem parte da arena." />
-    <section className={viewStyles.sponsorship_management_toolbar}><SponsorshipFilters query={query} type={type} sort={sort} planTypes={planTypes} /><CreateSponsorshipPlanButton action={createSponsorshipPlanAction} /></section>
-    {orderedPlans.length ? <div className={viewStyles.active_event_list_sponsor_plan_list}>
-      {orderedPlans.map((plan) => <article className={viewStyles.active_event_row_sponsor_plan_row} key={plan.id}>
-        <div className="tw:rounded-xl tw:bg-[#edf4ff] tw:p-4"><span className="tw:text-[10px]! tw:font-bold tw:uppercase tw:tracking-wider tw:text-[#0868e5]!">{plan.sponsorshipType || "Plano de patrocínio"}</span><strong className="tw:mt-1 tw:text-lg!">{plan.name}</strong><p className="tw:m-0 tw:my-3 tw:text-2xl tw:font-bold tw:tracking-tight tw:text-[#132d58]">R$ {asCurrency(plan.monthlyAmountCents)}<small className="tw:ml-1 tw:text-xs tw:font-normal tw:text-[#607898]">/mês</small></p><div className={viewStyles.sponsor_benefit_tags}>{plan.reservationCredits ? <span>{plan.reservationCredits} reserva(s) por ciclo</span> : null}{plan.lessonCredits ? <span>{plan.lessonCredits} aula(s) por ciclo</span> : null}{!plan.reservationCredits && !plan.lessonCredits ? <span>Sem saldo incluído</span> : null}</div></div>
-        <section className={viewStyles.sponsor_company_list}><strong>Empresas · {plan.sponsors.length}</strong>{plan.sponsors.length ? plan.sponsors.map((sponsor) => <div className={viewStyles.sponsor_company_row} key={sponsor.id}>{sponsor.logoUrl ? <img src={sponsor.logoUrl} alt="" /> : <span>{sponsor.name.slice(0, 1)}</span>}<b>{sponsor.name}</b><SafeActionForm action={deleteTvSponsorAction} confirmKeyword="EXCLUIR" confirmPrompt={`Excluir o patrocinador ${sponsor.name}? Digite EXCLUIR para confirmar.`}><input type="hidden" name="sponsorId" value={sponsor.id} /><SubmitButton label="Excluir" pendingLabel="..." className={viewStyles.button_button_danger_button_small_sponsor_delete_button} /></SafeActionForm></div>) : <p className={viewStyles.muted}>Ainda não há empresa vinculada.</p>}</section>
-        <div className={viewStyles.active_event_actions}><Link href={`/proximos-jogos/patrocinios/${plan.id}`} className={viewStyles.button_button_primary_button_small}>Entrar no plano</Link><SafeActionForm action={deleteSponsorshipPlanAction} confirmKeyword="EXCLUIR" confirmPrompt={`Excluir o plano ${plan.name}? Digite EXCLUIR para confirmar.`}><input type="hidden" name="planId" value={plan.id} /><SubmitButton label="Excluir plano" pendingLabel="Excluindo..." className={viewStyles.button_button_secondary_button_small} /></SafeActionForm></div>
-      </article>)}
-    </div> : <section className={viewStyles.sponsor_empty_state}><strong>Nenhum plano encontrado</strong><p>{query || type ? "Ajuste a pesquisa ou os filtros para localizar um plano." : "Crie um plano e inclua as empresas que fazem parte dele."}</p></section>}
+  const columns = "tw:grid-cols-[minmax(180px,1fr)_150px_minmax(150px,1fr)_80px_auto] tw:viewport-1120:grid-cols-[minmax(0,1fr)_auto]";
+  return <div className={ui.page}>
+    <WorkspaceHeading title="Patrocínios"><CreateSponsorshipPlanButton action={createSponsorshipPlanAction} /></WorkspaceHeading>
+    <div className="tw:[&_input]:h-9! tw:[&_input]:min-h-9! tw:[&_select]:h-9! tw:[&_select]:min-h-9! tw:[&_form]:gap-2! tw:[&_label]:text-xs!"><SponsorshipFilters query={query} type={type} sort={sort} planTypes={planTypes} /></div>
+    <div className={ui.list}><div className={`${ui.head} ${columns}`}><span>Plano</span><span>Mensalidade</span><span>Benefícios por ciclo</span><span>Empresas</span><span>Ações</span></div>
+    {orderedPlans.map(plan => <article className={`${ui.row} ${columns}`} key={plan.id}>
+      <div><strong>{plan.name}</strong><small>{plan.sponsorshipType}</small></div>
+      <span className="tw:text-[13px] tw:font-semibold tw:tabular-nums">R$ {asCurrency(plan.monthlyAmountCents)}<small className="tw:font-normal">por mês</small></span>
+      <div className="tw:flex tw:flex-wrap tw:gap-1 tw:text-[11px]">{plan.reservationCredits ? <span>{plan.reservationCredits} reservas</span> : null}{plan.lessonCredits ? <span>{plan.reservationCredits ? "· " : ""}{plan.lessonCredits} aulas</span> : null}{!plan.reservationCredits && !plan.lessonCredits ? <span className="tw:inline-flex tw:rounded tw:bg-slate-100 tw:px-1.5 tw:py-0.5 tw:text-[var(--muted)]">Sem saldo incluído</span> : null}</div>
+      <span className="tw:text-xs tw:text-[var(--muted)]">{plan.sponsors.length} empresa{plan.sponsors.length === 1 ? "" : "s"}</span>
+      <div className="tw:flex tw:flex-wrap tw:gap-2 tw:viewport-1120:col-span-full"><Link href={`/proximos-jogos/patrocinios/${plan.id}`} className={ui.secondary}>Abrir plano</Link><SafeActionForm action={deleteSponsorshipPlanAction} confirmKeyword="EXCLUIR" confirmPrompt={`Excluir o plano ${plan.name}? Digite EXCLUIR para confirmar.`}><input type="hidden" name="planId" value={plan.id} /><SubmitButton label="Excluir" pendingLabel="Excluindo..." className={ui.secondary} /></SafeActionForm></div>
+    </article>)}{!orderedPlans.length ? <p className={ui.empty}>Nenhum plano encontrado. Ajuste os filtros ou cadastre um plano.</p> : null}</div>
   </div>;
 }

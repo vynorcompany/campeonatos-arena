@@ -6,10 +6,12 @@ import { resolve } from "node:path";
 import test from "node:test";
 
 test("active events are listed before their categories are selected", () => {
-  const page = readFileSync(resolve(process.cwd(), "src/app/(app)/jogos/page.tsx"), "utf8");
+  const page = readFileSync(resolve(process.cwd(), "src/app/(app)/torneios/page.tsx"), "utf8");
   const navigation = readFileSync(resolve(process.cwd(), "src/components/layout/nav-links.tsx"), "utf8");
 
-  assert.match(navigation, /href: canSee\("tournaments"\) \? "\/torneios" : "\/jogos"/);
+  assert.match(navigation, /href: "\/torneios"/);
+  const legacy = readFileSync(resolve(process.cwd(), "src/app/(app)/jogos/page.tsx"), "utf8");
+  assert.match(legacy, /redirect\(`/);
   assert.match(navigation, /children: canSee\("tournaments"\) \? \[/);
   assert.match(page, /if \(!canViewTournaments && !canReadMatches\) notFound\(\)/);
   assert.match(page, /selectedTournament && !canManageTournaments && !canRecordResults/);
@@ -80,7 +82,7 @@ test("comanda editing opens before checkout and client selection supports typing
   assert.match(card, /setDetailsOpen\(true\)/);
   assert.match(card, /Itens da comanda/);
   assert.match(card, /Finalizar comanda/);
-  assert.match(styles, /grid-template-columns: repeat\(auto-fill, minmax\(210px, 280px\)\)/);
+  assert.match(styleRules("commands-list-items"), /grid-template-columns: repeat\(auto-fill,\s*minmax\(210px,\s*280px\)\)/);
   assert.match(modal, /Buscar cliente/);
   assert.match(modal, /matchingPlayers/);
   assert.doesNotMatch(modal, /<select name="playerId"/);

@@ -40,7 +40,7 @@ function testAudioDataUrl() {
 const routes = [
   "/painel", "/assistente", "/whatsapp", "/usuarios", "/minha-conta",
   "/torneios", "/torneios/novo", "/torneios/inscricoes", "/torneios/rankings", "/torneios/rankings/novo",
-  "/jogos", "/grupos", "/duplas", "/agenda", "/agenda/configuracao", "/calendario", "/comandas",
+  "/torneios?status=finished", "/grupos", "/duplas", "/agenda", "/agenda/configuracao", "/calendario", "/comandas",
   "/proximos-jogos/apresentacao", "/proximos-jogos/patrocinios",
   "/jogadores", "/professores", "/aulas", "/aulas/alunos", "/aulas/registrar",
   "/pdv/caixa", "/pdv", "/pdv/novo", "/pdv/servicos", "/pdv/vendas", "/pdv/estoque", "/pdv/balanco",
@@ -178,9 +178,13 @@ async function main() {
       console.log(`${label}: HTTP 200, ${metrics.width}px, sem overflow horizontal`);
       return metrics.body;
     };
+    const legacyGames = await fetch(`${baseUrl}/jogos?tournamentId=legacy-event&status=finished`, { headers: { Cookie: cookie(arenaA.id, sessionToken) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
+    await legacyGames.body?.cancel();
+    const gamesDestination = new URL(legacyGames.headers.get("location") ?? "/", baseUrl);
+    if (![307, 308].includes(legacyGames.status) || gamesDestination.pathname !== "/torneios" || gamesDestination.searchParams.get("tournamentId") !== "legacy-event" || gamesDestination.searchParams.get("status") !== "finished") throw new Error("O acesso legado aos jogos não preservou o evento e o histórico na tela unificada.");
     for (const viewport of adminViewports) {
       for (const route of routes) {
-        const label = `${viewport.name}-${route.replaceAll("/", "-").replace(/^-/, "")}`;
+        const label = `${viewport.name}-${route.replace(/[^a-zA-Z0-9_-]/g, "-").replace(/^-/, "")}`;
         const body = await visit(route, viewport, arenaA.id, label);
         if (route === "/relatorios" && viewport.name === "mobile-320") {
           await send("Runtime.evaluate", { expression: "document.querySelector('button[aria-label=\"Abrir menu\"]')?.click()" });
@@ -263,7 +267,7 @@ async function main() {
         }
       }
       for (const route of agencyRoutes) {
-        const label = `${viewport.name}-${route.replaceAll("/", "-").replace(/^-/, "")}`;
+        const label = `${viewport.name}-${route.replace(/[^a-zA-Z0-9_-]/g, "-").replace(/^-/, "")}`;
         await visit(route, viewport, arenaA.id, label);
       }
     }
@@ -1744,7 +1748,7 @@ async function main() {
         const stockShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
         await writeFile(`${outputDir}/${viewport.name}-balanco-somente-leitura.png`, Buffer.from(stockShot.data, "base64"));
       }
-      for (const path of ["/torneios", `/torneios/${league.id}`, `/torneios/${league.id}/categorias/${category.id}`]) {
+      for (const path of [`/torneios/${league.id}`, `/torneios/${league.id}/categorias/${category.id}`]) {
         const denied = await fetch(`${baseUrl}${path}`, { headers: { Cookie: cookie(arenaA.id, restrictedToken) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
         await denied.body?.cancel();
         if (denied.status !== 404) throw new Error(`Perfil Jogos recebeu HTTP ${denied.status} ao abrir gestão em ${path}; esperado 404.`);
@@ -1758,7 +1762,7 @@ async function main() {
         throw new Error(`Perfil Jogos recebeu Dashboard financeiro ou destino inválido (HTTP ${restrictedHome.status}).`);
       }
       for (const viewport of adminViewports) {
-        const matchBody = await visit(`/jogos?tournamentId=${league.id}`, viewport, arenaA.id, `${viewport.name}-jogos-somente-leitura`, restrictedToken);
+        const matchBody = await visit(`/torneios?tournamentId=${league.id}`, viewport, arenaA.id, `${viewport.name}-jogos-somente-leitura`, restrictedToken);
         if (!matchBody.includes("Jogo consulta GOAL") || !matchBody.includes("2 × 0") || !matchBody.includes("6–2 · 6–3") ||
             restrictedPairNames.some((name) => !matchBody.includes(name))) {
           throw new Error(`${viewport.name}: Jogos não exibiu as duplas e o placar para permissão somente leitura.`);
@@ -1778,7 +1782,7 @@ async function main() {
           expression: "({manage:Boolean(document.querySelector('a[href^=\"/torneios/\"]')),create:document.body.innerText.includes('Novo evento'),whatsapp: Boolean(document.querySelector('a[href=\"/whatsapp\"]')),dashboard: Boolean(document.querySelector('a[href=\"/painel\"]')),settings:document.querySelector('nav[aria-label=\"Configurações\"] a')?.getAttribute('href') ?? null,breadcrumb:[...document.querySelector('nav[aria-label=\"Caminho de navegação\"]')?.querySelectorAll('span,strong') ?? []].map(item=>item.textContent?.trim()),gamesLink:[...document.querySelectorAll('nav[aria-label=\"Principal\"] a')].find((link)=>link.textContent?.trim()==='Jogos')?.getAttribute('href'),width:innerWidth,scrollWidth:document.documentElement.scrollWidth})",
           returnByValue: true,
         });
-        if (matchControls.result.value?.manage || matchControls.result.value?.create || matchControls.result.value?.whatsapp || matchControls.result.value?.dashboard || matchControls.result.value?.settings || JSON.stringify(matchControls.result.value?.breadcrumb) !== JSON.stringify(["Jogos", "Programação e placares"]) || matchControls.result.value?.gamesLink !== "/jogos" || matchControls.result.value?.scrollWidth > matchControls.result.value?.width + 1) throw new Error(`${viewport.name}: Jogos exibiu gestão, configurações, caminho incoerente, acesso sem permissão ou layout cortado: ${JSON.stringify(matchControls.result.value)}`);
+        if (matchControls.result.value?.manage || matchControls.result.value?.create || matchControls.result.value?.whatsapp || matchControls.result.value?.dashboard || matchControls.result.value?.settings || JSON.stringify(matchControls.result.value?.breadcrumb) !== JSON.stringify([]) || matchControls.result.value?.gamesLink !== "/torneios" || matchControls.result.value?.scrollWidth > matchControls.result.value?.width + 1) throw new Error(`${viewport.name}: Jogos exibiu gestão, configurações, caminho incoerente, acesso sem permissão ou layout cortado: ${JSON.stringify(matchControls.result.value)}`);
         const matchShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
         await writeFile(`${outputDir}/${viewport.name}-jogos-somente-leitura.png`, Buffer.from(matchShot.data, "base64"));
       }
@@ -1797,7 +1801,7 @@ async function main() {
           homeScore: null, awayScore: null, homeSet1: null, awaySet1: null, homeSet2: null, awaySet2: null,
         } });
         for (const viewport of adminViewports) {
-          const selector = await visit(`/jogos?tournamentId=${league.id}`, viewport, arenaA.id, `${viewport.name}-jogos-permissao-resultados`, restrictedToken);
+          const selector = await visit(`/torneios?tournamentId=${league.id}`, viewport, arenaA.id, `${viewport.name}-jogos-permissao-resultados`, restrictedToken);
           if (!selector.includes("Liga A GOAL") || !selector.includes("Lançar resultados")) throw new Error(`${viewport.name}: perfil de resultados não alcançou a categoria.`);
           const body = await visit(`/torneios/${league.id}/categorias/${category.id}?tab=games`, viewport, arenaA.id, `${viewport.name}-categoria-permissao-resultados`, restrictedToken);
           if (!body.includes("Liga A GOAL") || !body.includes("Registrar sets")) throw new Error(`${viewport.name}: jogos da categoria indisponíveis para lançar resultados.`);

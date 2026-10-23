@@ -20,7 +20,10 @@ test("forms use the shared visual control and active-state switch patterns", asy
   assert.match(ledger, /Incluir estornados\/deletados/);
   assert.match(products, /Filtros de estoque/);
   assert.match(products, /<details/);
-  assert.match(products, /Novo Produto/);
+  assert.match(products, /NewProductDialog/);
+  const productDialog = await readFile("src/components/products/new-product-dialog.tsx", "utf8");
+  assert.match(productDialog, /Novo Produto/);
+  assert.match(productDialog, /<Modal/);
 });
 
 test("financial launches and product management use dedicated spacious work areas", async () => {
@@ -33,7 +36,8 @@ test("financial launches and product management use dedicated spacious work area
   ]);
 
   assert.match(styleRules("financial-entry-modal"), / width: min\(100%, 1080px\)/);
-  assert.match(products, /ProductPricingFields/);
+  const productDialog = await readFile("src/components/products/new-product-dialog.tsx", "utf8");
+  assert.match(productDialog, /ProductPricingFields/);
   assert.match(products, /href=\{`\/pdv\/\$\{product\.id\}`\}/);
   assert.match(productDetail, /Ajuste de estoque/);
   assert.match(productDetail, /Configurações NFC-e/);

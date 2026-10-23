@@ -42,6 +42,7 @@ function loadWebhook(prisma: unknown, tx: unknown, getPayment: () => Promise<unk
       if (name === "@/lib/payments/mercado-pago-webhook-signature") return { verifyMercadoPagoWebhookSignature: () => true };
       if (name === "@/lib/payments/verified-payment") return { verifyApprovedMercadoPagoPayment };
       if (name === "@/lib/tournaments/registration-payment-hold") return { publicRegistrationApprovalAfterHold };
+      if (name === "@/lib/calendar/booking-confirmation-whatsapp") return { sendBookingConfirmationForOccurrence: async () => ({ sent: 0, failed: 0 }) };
       if (name === "@/lib/integrations/evolution/client") return { sendEvolutionTextMessage: async () => ({}) };
       return require(name);
     },
