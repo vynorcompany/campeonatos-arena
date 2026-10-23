@@ -49,13 +49,13 @@ const styles = {
     "arena-cash-notOpened", "tw:border-t-[color:#ebd5a1]", "tw:border-r-[color:#ebd5a1]", "tw:border-b-[color:#ebd5a1]",
     "tw:border-l-[color:#ebd5a1]", "tw:text-[color:#8a651a]", "tw:bg-[color:#fff8e8]", "tw:[background-image:none]",
   ].join(" "),
-  "summaryGrid": "arena-cash-summaryGrid tw:grid tw:grid-cols-[repeat(auto-fit,minmax(150px,1fr))] tw:gap-2 tw:[&_article]:grid tw:[&_article]:gap-1 tw:[&_article]:rounded-lg tw:[&_article]:border tw:[&_article]:border-[var(--line)] tw:[&_article]:bg-white tw:[&_article]:px-3 tw:[&_article]:py-2 tw:[&_span]:text-[11px] tw:[&_span]:text-[var(--muted)] tw:[&_strong]:text-base tw:[&_strong]:tabular-nums tw:viewport-440:grid-cols-2",
+  "summaryGrid": "arena-cash-summaryGrid tw:flex tw:flex-wrap tw:gap-x-6 tw:gap-y-2 tw:border-y tw:border-[var(--line)] tw:py-3 tw:[&_article]:grid tw:[&_article]:gap-1 tw:[&_span]:text-[11px] tw:[&_span]:text-[var(--muted)] tw:[&_strong]:text-sm tw:[&_strong]:tabular-nums",
   "operationGrid": [
-    "arena-cash-operationGrid", "tw:grid", "tw:grid-cols-[repeat(2,_minmax(0,_1fr))]", "tw:viewport-1000:grid-cols-[1fr]",
-    "tw:items-stretch", "tw:gap-y-[16px]", "tw:gap-x-[16px]",
+    "arena-cash-operationGrid", "tw:grid", "tw:items-start", "tw:grid-cols-[repeat(2,_minmax(0,_1fr))]", "tw:viewport-1000:grid-cols-[1fr]",
+    "tw:gap-y-[16px]", "tw:gap-x-[16px]",
   ].join(" "),
-  "panel": "arena-cash-panel tw:grid tw:gap-3 tw:rounded-lg tw:border tw:border-[var(--line)] tw:bg-white tw:p-3 tw:[&_h2]:m-0 tw:[&_h2]:text-sm tw:[&_p]:m-0 tw:[&_p]:text-xs tw:[&_p]:text-[var(--muted)]",
-  "form": "arena-cash-form tw:grid tw:grid-cols-[minmax(140px,200px)_minmax(200px,360px)] tw:items-start tw:gap-3 tw:viewport-620:grid-cols-1 tw:[&_label]:text-xs tw:[&_input]:h-9! tw:[&_input]:min-h-9! tw:[&_input]:text-xs! tw:[&_label]:gap-1",
+  "panel": "arena-cash-panel tw:grid tw:content-start tw:gap-3 tw:rounded-lg tw:border tw:border-[var(--line)] tw:bg-white tw:p-3 tw:[&_h2]:m-0 tw:[&_h2]:text-sm tw:[&_p]:m-0 tw:[&_p]:text-xs tw:[&_p]:text-[var(--muted)]",
+  "form": "arena-cash-form tw:[&_input]:rounded-md! tw:[&_select]:rounded-md! tw:[&_select]:h-9! tw:[&_select]:min-h-9! tw:grid tw:grid-cols-[minmax(140px,200px)_minmax(200px,360px)] tw:items-start tw:gap-3 tw:viewport-620:grid-cols-1 tw:[&_label]:text-xs tw:[&_input]:h-9! tw:[&_input]:min-h-9! tw:[&_input]:text-xs! tw:[&_label]:gap-1",
   "fullWidth": [
     "arena-cash-fullWidth", "tw:[grid-column:1_/_-1]", "tw:viewport-480:[grid-column:1]",
   ].join(" "),

@@ -1,22 +1,22 @@
 "use client";
 import { viewStyles } from "./sponsorship-plan-dialogs.utilities";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { CurrencyInput } from "@/components/forms/currency-input";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
+
+import { Modal } from "@/components/ui/modal";
 
 type Action = (formData: FormData) => Promise<unknown>;
 
 const planTypes = ["Mensal", "Evento", "Liga", "Permuta"];
 
 function Dialog({ title, children, close }: { title: string; children: React.ReactNode; close: () => void }) {
-  return <div className={viewStyles.sponsorship_dialog_backdrop} onMouseDown={close}>
-    <section className={viewStyles.sponsorship_dialog} role="dialog" aria-modal="true" aria-label={title} onMouseDown={(event) => event.stopPropagation()}>
-      <header><h2>{title}</h2><button type="button" className={viewStyles.button_button_small} onClick={close}>Fechar</button></header>
-      {children}
-    </section>
-  </div>;
+  const closeRef = useRef(close);
+  closeRef.current = close;
+  const onClose = useCallback(() => closeRef.current(), []);
+  return <Modal open title={title} onClose={onClose} width="tw:max-w-[640px]">{children}</Modal>;
 }
 
 export function CreateSponsorshipPlanButton({ action }: { action: Action }) {
@@ -42,7 +42,7 @@ export function AddSponsorToPlanButton({ action, planId, clients = [], monthlyAm
   const matchingClients = useMemo(() => clientQuery.trim() ? clients.filter((client) => `${client.name} ${client.phone}`.toLocaleLowerCase("pt-BR").includes(clientQuery.toLocaleLowerCase("pt-BR"))).slice(0, 8) : [], [clientQuery, clients]);
   return <>
     <button type="button" className={viewStyles.button_button_primary_button_small} onClick={() => setOpen(true)}>Inserir empresa</button>
-    {open ? <Dialog title="Inserir empresa no plano" close={() => setOpen(false)}>
+    {open ? <Dialog title="Inserir empresa" close={() => setOpen(false)}>
       <SafeActionForm action={action} className={viewStyles.grid_form_sponsorship_dialog_form} resetOnSuccess successMessage="Empresa inserida e lançamentos a receber gerados." onSuccess={() => setOpen(false)}>
         <input type="hidden" name="sponsorshipPlanId" value={planId} />
         <label className={viewStyles.field_form_full}>Empresa<input name="name" required placeholder="Nome da empresa" autoFocus /></label>
@@ -54,7 +54,7 @@ export function AddSponsorToPlanButton({ action, planId, clients = [], monthlyAm
         <label className={viewStyles.field}>Valor mensal<CurrencyInput name="monthlyAmount" defaultValue={monthlyAmount} required /></label>
         <label className={viewStyles.field}>Desconto<input name="discount" inputMode="decimal" defaultValue="0" /></label>
         <label className={viewStyles.field}>Desconto em<select name="discountMode" defaultValue="AMOUNT"><option value="AMOUNT">R$</option><option value="PERCENTAGE">%</option></select></label>
-        <label className={viewStyles.field_form_full}>Aplicar desconto<select name="discountApplication" defaultValue="ONE_TIME"><option value="ONE_TIME">Somente na primeira mensalidade</option><option value="RECURRING">Em todas as mensalidades</option></select></label>
+        <label className={viewStyles.field_form_full}>Aplicar desconto<select name="discountApplication" defaultValue="ONE_TIME"><option value="ONE_TIME">Primeira mensalidade</option><option value="RECURRING">Todas as mensalidades</option></select></label>
         <footer className={viewStyles.sponsorship_dialog_actions_form_full}><button type="button" className={viewStyles.button} onClick={() => setOpen(false)}>Cancelar</button><SubmitButton label="Adicionar empresa" pendingLabel="Adicionando..." className={viewStyles.button_button_primary} /></footer>
       </SafeActionForm>
     </Dialog> : null}

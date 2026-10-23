@@ -6,16 +6,17 @@ import { useFormStatus } from "react-dom";
 
 type SubmitButtonProps = {
   label: string;
+  ariaLabel?: string;
   pendingLabel?: string;
   className?: string;
   disabled?: boolean;
 };
 
-export function SubmitButton({ label, pendingLabel, className, disabled = false }: SubmitButtonProps) {
+export function SubmitButton({ label, ariaLabel, pendingLabel, className, disabled = false }: SubmitButtonProps) {
   const { pending } = useFormStatus();
 
   return (
-    <button className={cx(className ?? viewStyles.button)} type="submit" disabled={pending || disabled}>
+    <button aria-label={ariaLabel} className={cx(className ?? viewStyles.button)} type="submit" disabled={pending || disabled}>
       {pending ? pendingLabel ?? "Processando..." : label}
     </button>
   );

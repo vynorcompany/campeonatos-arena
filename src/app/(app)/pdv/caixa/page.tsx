@@ -20,11 +20,12 @@ function CurrencyField({ label, name, defaultValue }: { label: string; name: str
 export default async function CashRegisterPage() {
   const auth = await requireModuleView("pos");
   const referenceDate = cashReferenceDate();
-  const register = await withArenaTransaction(auth.arenaId, (tx) => tx.cashRegister.findFirst({
+  const [register, previousClosing] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([tx.cashRegister.findFirst({
     where: { arenaId: auth.arenaId, referenceDate },
     orderBy: [{ openedAt: "desc" }, { id: "desc" }],
     include: { movements: { orderBy: { createdAt: "desc" } } }
-  }));
+  }), tx.cashRegister.findFirst({ where: { arenaId: auth.arenaId, status: "CLOSED" }, orderBy: [{ closedAt: "desc" }, { id: "desc" }], select: { countedAmountCents: true, expectedAmountCents: true, closedAt: true } })]));
+  const suggestedOpeningCents = previousClosing?.countedAmountCents ?? previousClosing?.expectedAmountCents ?? 0;
   const isOpen = register?.status === "OPEN";
   const dayLabel = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "long", year: "numeric", timeZone: "UTC" }).format(referenceDate);
 
@@ -34,7 +35,7 @@ export default async function CashRegisterPage() {
       <div className={styles.overviewCopy}>
         <span className={styles.eyebrow}>Operação diária</span>
         <div className={styles.overviewTitle}><h1 className="tw:m-0 tw:text-lg tw:font-semibold tw:text-[#132d58]">Caixa de hoje</h1><span className={cx(`${styles.status} ${isOpen ? styles.open : register ? styles.closed : styles.notOpened}`)}><span aria-hidden="true" />{isOpen ? "Aberto" : register ? "Encerrado" : "Não aberto"}</span></div>
-        <p>{dayLabel} · Acompanhe entradas, retiradas e o fechamento do dia.</p>
+        <p>{dayLabel}</p>
       </div>
       <div className={styles.shortcuts}><Link className={viewStyles.button_button_small} href="/pdv">Produtos e serviços</Link><Link className={viewStyles.button_button_small} href="/relatorios/caixa">Relatório de caixa</Link></div>
     </header>
@@ -48,7 +49,7 @@ export default async function CashRegisterPage() {
 
     {!isOpen ? <SectionCard className={styles.panel} title={register ? "Nova abertura de caixa" : "Abertura de caixa"} description="Informe o valor disponível no início desta operação.">
       <SafeActionForm action={openCashRegisterAction} className={styles.form} successMessage="Caixa aberto.">
-        <CurrencyField name="openingAmount" label="Fundo inicial" defaultValue="0,00" />
+        <div className="tw:grid tw:gap-1"><CurrencyField name="openingAmount" label="Fundo inicial" defaultValue={(suggestedOpeningCents / 100).toFixed(2).replace(".", ",")} /><p className="tw:text-[11px]! tw:text-[var(--muted)]">Esperado na abertura: {money(suggestedOpeningCents)}{previousClosing ? " · último fechamento" : " · sem fechamento anterior"}</p></div>
         <label className={viewStyles.field}><span>Observação de abertura</span><input name="openingNotes" placeholder="Ex.: troco inicial" /></label>
         <div className={styles.formActions}><SubmitButton className={viewStyles.button_button_primary} label="Abrir caixa" pendingLabel="Abrindo..." /></div>
       </SafeActionForm>
