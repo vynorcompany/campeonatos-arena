@@ -1,3 +1,4 @@
+import { WorkspaceHeading } from "@/components/ui/workspace-heading";
 import { withArenaTransaction } from "@/lib/rls";
 import { calculateBankAccountBalanceCents } from "@/lib/finance/bank-balance";
 import { arenaDatabase } from "@/lib/arena-database";
@@ -22,8 +23,8 @@ const areas = {
 } as const;
 
 function SectionCard({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
-  // The breadcrumb already names each configuration area; keep the content panel compact.
-  if (Object.values(areas).some(([name]) => name === title)) return <section className={viewStyles.card_stack_md}><h1 className={viewStyles.sr_only}>{title}</h1>{children}</section>;
+  // Keep the area title and context visible above its controls.
+  if (Object.values(areas).some(([name]) => name === title)) return <section className={viewStyles.card_stack_md}><WorkspaceHeading eyebrow="FINANCEIRO · CONFIGURAÇÕES" title={title} description={description ?? "Organize os cadastros e parâmetros financeiros da arena."} />{children}</section>;
   return <BaseSectionCard title={title} description={description}>{children}</BaseSectionCard>;
 }
 

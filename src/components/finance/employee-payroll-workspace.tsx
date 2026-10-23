@@ -1,4 +1,5 @@
 "use client";
+import { WorkspaceHeading } from "@/components/ui/workspace-heading";
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -90,7 +91,7 @@ export function EmployeePayrollWorkspace({ employees, entries, referenceMonth, c
     return { total: totals.total + entry.amountCents, paid: totals.paid + balance.paidCents, pending: totals.pending + balance.outstandingCents };
   }, { total: 0, paid: 0, pending: 0 });
   return <section className={styles.page}>
-    <header className={styles.toolbar}><div><h1>Folha de pagamento</h1><p>Funcionários da arena e seus pagamentos mensais.</p></div>{canCreate ? <button type="button" className={styles.button} disabled={!employees.length} onClick={() => setForm({ entry: null })}>Nova folha</button> : null}</header>
+    <WorkspaceHeading eyebrow="FINANCEIRO · EQUIPE" title="Folha de pagamento" description="Acompanhe a competência, os valores e a situação dos pagamentos da equipe.">{canCreate ? <button type="button" className={styles.button} disabled={!employees.length} onClick={() => setForm({ entry: null })}>Nova folha</button> : null}</WorkspaceHeading>
     <div className={styles.filters}><form method="get" action="/financeiro/folha" className="tw:flex tw:flex-wrap tw:items-center tw:gap-2"><label htmlFor="payroll-month" className="tw:text-sm">Mês</label><input id="payroll-month" name="mes" type="month" defaultValue={referenceMonth} required /><button className={styles.secondary}>Filtrar</button></form><input type="search" aria-label="Buscar funcionário" placeholder="Buscar funcionário..." value={query} onChange={event => setQuery(event.target.value)} /><Link href="/financeiro/contas-a-pagar" className={styles.secondary}>Contas a Pagar</Link></div>
     <div className={styles.summary}><div><span>Total da folha</span><strong>{money(summary.total)}</strong></div><div><span>Pago</span><strong>{money(summary.paid)}</strong></div><div><span>A pagar</span><strong>{money(summary.pending)}</strong></div></div>
     <div className={styles.list}>{visible.map(row => {

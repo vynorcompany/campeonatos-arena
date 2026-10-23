@@ -1,3 +1,4 @@
+import { WorkspaceHeading } from "@/components/ui/workspace-heading";
 import { arenaDatabase } from "@/lib/arena-database";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
@@ -34,10 +35,9 @@ export default async function StockBalancePage() {
 
   return (
     <div className={viewStyles.stack_md_workspace_page_stock_balance_page}>
-      <h1 className={viewStyles.sr_only}>Balanço de estoque</h1>
-      <header className={viewStyles.page_header}>
+      <WorkspaceHeading eyebrow="ESTOQUE · CONFERÊNCIA" title="Balanço de estoque" description="Compare a contagem física com o sistema e acompanhe cada ajuste.">
         <Link href="/pdv/estoque" className={viewStyles.button}>Voltar ao estoque</Link>
-      </header>
+      </WorkspaceHeading>
 
       {canEdit ? <section className={ui.page}><div className={ui.toolbar}><p>Informe a contagem física. As divergências são ajustadas e registradas no histórico.</p></div>
         <SafeActionForm action={createStockBalanceAction} className={viewStyles.stock_balance_form} successMessage="Balanço registrado. As divergências foram atualizadas no relatório abaixo.">

@@ -106,7 +106,7 @@ export default async function ComandasPage(props: ComandasPageProps) {
     return current;
   }, {});
 
-  return <div className={viewStyles.commands_page}><VisiblePageRefresh />
+  return <div className={viewStyles.commands_page}><VisiblePageRefresh /><h1 className="tw:sr-only">Comandas</h1>
     <header className={viewStyles.commands_toolbar}>
       <CommandsDatePicker selectedDate={toDateInput(selectedDate)} search={search} openDays={[...openDays]} today={toDateInput(today)} />
       <div className={viewStyles.commands_toolbar_right}><form method="get" className={viewStyles.commands_search}><input type="hidden" name="date" value={toDateInput(selectedDate)} /><span aria-hidden="true"><CommandIcon name="search" /></span><input name="search" defaultValue={search} placeholder="Buscar comanda" aria-label="Buscar comanda pelo nome" /><button className={viewStyles.button} type="submit">Buscar</button></form><div className={viewStyles.commands_actions}><Link href={`/comandas?${new URLSearchParams({ ...Object.fromEntries(baseParams), new: "client" })}`} className={viewStyles.button_button_primary}><CommandIcon name="plus" /> Nova Comanda</Link><Link href={`/comandas?${new URLSearchParams({ ...Object.fromEntries(baseParams), new: "avulsa" })}`} className={viewStyles.button}><CommandIcon name="receipt" /> Nova Comanda Avulsa</Link></div></div>

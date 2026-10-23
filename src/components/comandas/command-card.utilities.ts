@@ -91,7 +91,7 @@ export const viewStyles = {
   ].join(" "),
   "command_modal_backdrop": sharedUtilities.commandModalBackdrop,
   "command_details_modal": [
-    "command-details-modal", "tw:[&>header]:flex-wrap", "tw:[&>footer]:flex-wrap", "tw:[&_h2]:break-words", "tw:viewport-760:[&_.command-item]:grid-cols-[minmax(0,1fr)_auto]!", "tw:viewport-760:[&_.command-item-controls]:col-span-full", "tw:viewport-760:[&_.command-item-controls]:justify-self-end", "tw:w-[min(100%,_780px)]", "tw:grid", "tw:gap-y-[16px]",
+    "command-details-modal", "tw:viewport-760:[&>footer]:grid", "tw:viewport-760:[&>footer]:grid-cols-1", "tw:viewport-760:[&>footer>button]:w-full", "tw:[&>header]:flex-wrap", "tw:[&>footer]:flex-wrap", "tw:[&_h2]:break-words", "tw:viewport-760:[&_.command-item]:grid-cols-[minmax(0,1fr)_auto]!", "tw:viewport-760:[&_.command-item-controls]:col-span-full", "tw:viewport-760:[&_.command-item-controls]:justify-self-end", "tw:w-[min(100%,_780px)]", "tw:grid", "tw:gap-y-[16px]",
     "tw:gap-x-[16px]", "tw:max-h-[calc(100dvh_-_32px)]", "tw:[overflow-x:auto]", "tw:[overflow-y:auto]",
     "tw:pt-[20px]", "tw:pr-[20px]", "tw:pb-[20px]", "tw:pl-[20px]",
     "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:rgb(255_255_255_/_.7)]", "tw:border-r-[length:1px]",

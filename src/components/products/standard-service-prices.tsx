@@ -1,13 +1,15 @@
+import { WorkspaceHeading } from "@/components/ui/workspace-heading";
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
-import { MoneyInput, formatMoneyInput } from "@/components/forms/money-input";
+import { MoneyInput } from "@/components/forms/money-input";
+import { formatMoneyInput } from "@/lib/format-money-input";
 import { updateStandardServicePriceAction } from "@/lib/actions/standard-service-prices";
 import { STANDARD_SERVICES, type StandardServicePrices } from "@/lib/calendar/standard-services";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 
 export function StandardServicePriceSettings({ prices, canEdit }: { prices: StandardServicePrices; canEdit: boolean }) {
-  return <div className={ui.page}><div className={ui.toolbar}><p>Valores por atleta usados na grade de horários.</p></div>
+  return <div className={ui.page}><WorkspaceHeading eyebrow="SERVIÇOS · TABELA DE VALORES" title="Preços dos serviços" description="Valores por atleta utilizados nas reservas da grade de horários." />
     <div className={ui.list}><div className={`${ui.head} ${canEdit ? "tw:grid-cols-[minmax(0,1fr)_minmax(180px,240px)_140px]" : "tw:grid-cols-[minmax(0,1fr)_180px]"}`}><span>Serviço</span><span>Valor por atleta</span>{canEdit ? <span>Ações</span> : null}</div>
       {STANDARD_SERVICES.map((service) => canEdit ? <SafeActionForm key={service.code} action={updateStandardServicePriceAction} successMessage={`Valor de ${service.name} atualizado.`} className={`${ui.row} tw:grid-cols-[minmax(0,1fr)_minmax(180px,240px)_140px] tw:items-center tw:viewport-1120:grid-cols-[minmax(0,1fr)_180px] tw:viewport-1120:[&>button]:col-start-2 tw:viewport-620:grid-cols-1 tw:viewport-620:[&>button]:col-start-1`}>
         <input type="hidden" name="serviceCode" value={service.code} />
