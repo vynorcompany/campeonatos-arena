@@ -10,17 +10,17 @@ if (typeof process.loadEnvFile === "function" && existsSync(".env")) {
 const prisma = new PrismaClient();
 
 const seedEnvSchema = z.object({
-  INITIAL_ADMIN_NAME: z.string({ required_error: "INITIAL_ADMIN_NAME obrigatorio." }).trim().min(2, "INITIAL_ADMIN_NAME obrigatorio."),
+  INITIAL_ADMIN_NAME: z.string({ error: "INITIAL_ADMIN_NAME obrigatorio." }).trim().min(2, "INITIAL_ADMIN_NAME obrigatorio."),
   INITIAL_ADMIN_EMAIL: z
-    .string({ required_error: "INITIAL_ADMIN_EMAIL obrigatorio." })
+    .string({ error: "INITIAL_ADMIN_EMAIL obrigatorio." })
     .trim()
     .email("INITIAL_ADMIN_EMAIL inválido."),
   INITIAL_ADMIN_PASSWORD: z
-    .string({ required_error: "INITIAL_ADMIN_PASSWORD obrigatorio." })
+    .string({ error: "INITIAL_ADMIN_PASSWORD obrigatorio." })
     .min(10, "INITIAL_ADMIN_PASSWORD deve ter no minimo 10 caracteres."),
-  INITIAL_ARENA_NAME: z.string({ required_error: "INITIAL_ARENA_NAME obrigatorio." }).trim().min(2, "INITIAL_ARENA_NAME obrigatorio."),
+  INITIAL_ARENA_NAME: z.string({ error: "INITIAL_ARENA_NAME obrigatorio." }).trim().min(2, "INITIAL_ARENA_NAME obrigatorio."),
   INITIAL_ARENA_SLUG: z
-    .string({ required_error: "INITIAL_ARENA_SLUG obrigatorio." })
+    .string({ error: "INITIAL_ARENA_SLUG obrigatorio." })
     .trim()
     .min(2, "INITIAL_ARENA_SLUG obrigatorio.")
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "INITIAL_ARENA_SLUG deve usar apenas letras minusculas, numeros e hifens."),

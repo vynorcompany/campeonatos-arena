@@ -29,7 +29,7 @@ export const viewStyles = {
   command_product_modal: "command-product-modal tw:max-w-[840px] " + modal,
   command_product_toolbar: "tw:flex tw:flex-wrap tw:gap-2",
   command_product_search: "tw:w-full tw:max-w-[280px]",
-  command_product_categories: "tw:flex tw:flex-wrap tw:gap-1 tw:[&_button]:rounded-md tw:[&_button]:border tw:[&_button]:border-[var(--line)] tw:[&_button]:bg-white tw:[&_button]:px-2 tw:[&_button]:py-1 tw:[&_button]:text-xs",
+  command_product_categories: "tw:[&_button]:h-7! tw:[&_button]:min-h-7! tw:[&_button]:py-0! tw:[&_button]:px-2! tw:[&_button]:text-[11px]! tw:flex tw:flex-wrap tw:gap-1 tw:[&_button]:rounded-md tw:[&_button]:border tw:[&_button]:border-[var(--line)] tw:[&_button]:bg-white tw:[&_button]:px-2 tw:[&_button]:py-1 tw:[&_button]:text-xs",
   command_product_kanban_command_product_grid: "command-product-kanban command-product-grid tw:grid tw:grid-cols-[repeat(auto-fit,minmax(210px,1fr))] tw:gap-2 tw:[&_h3]:text-xs",
   command_product_row: "tw:grid tw:min-w-0 tw:gap-2 tw:rounded-lg tw:border tw:border-[var(--line)] tw:p-3 tw:text-xs tw:[&>div:first-child]:grid tw:[&>div:first-child]:gap-0.5 tw:[&>div:first-child>span]:text-[11px] tw:[&>div:first-child>span]:text-[var(--muted)] tw:[&>div:first-child>b]:text-[13px] tw:[&>div:first-child>b]:tabular-nums tw:[&_strong]:block tw:[&_small]:block tw:[&_small]:text-[var(--muted)] tw:[&_img]:size-12 tw:[&_img]:object-contain",
   command_product_stepper: "command-product-stepper tw:flex tw:items-center tw:justify-between tw:gap-2 " + stepper,

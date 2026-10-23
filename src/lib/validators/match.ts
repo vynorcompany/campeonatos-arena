@@ -6,7 +6,7 @@ const manualStatusOptions = ["WAITING", "LIVE", "FINISHED"] as const;
 export const updateMatchCourtSchema = z.object({
   matchId: z.string().min(1),
   courtName: z.enum(courtNames, {
-    errorMap: () => ({ message: "Selecione uma quadra válida." })
+    error: "Selecione uma quadra válida."
   })
 });
 
@@ -51,7 +51,7 @@ export const updateMatchParticipantsSchema = z
 export const updateMatchManualStatusSchema = z.object({
   matchId: z.string().min(1),
   manualStatus: z.enum(manualStatusOptions, {
-    errorMap: () => ({ message: "Selecione um status valido." })
+    error: "Selecione um status valido."
   })
 });
 

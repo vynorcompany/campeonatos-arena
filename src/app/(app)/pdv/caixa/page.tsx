@@ -49,7 +49,7 @@ export default async function CashRegisterPage() {
 
     {!isOpen ? <SectionCard className={styles.panel} title={register ? "Nova abertura de caixa" : "Abertura de caixa"} description="Informe o valor disponível no início desta operação.">
       <SafeActionForm action={openCashRegisterAction} className={styles.form} successMessage="Caixa aberto.">
-        <div className="tw:grid tw:gap-1"><CurrencyField name="openingAmount" label="Fundo inicial" defaultValue={(suggestedOpeningCents / 100).toFixed(2).replace(".", ",")} /><p className="tw:text-[11px]! tw:text-[var(--muted)]">Esperado na abertura: {money(suggestedOpeningCents)}{previousClosing ? " · último fechamento" : " · sem fechamento anterior"}</p></div>
+        <div className="tw:grid tw:gap-1"><CurrencyField name="openingAmount" label="Fundo inicial" defaultValue={(suggestedOpeningCents / 100).toFixed(2).replace(".", ",")} /><p className={`tw:text-[11px]! ${suggestedOpeningCents > 0 ? "tw:text-emerald-700!" : "tw:text-[var(--muted)]!"}`}>Esperado na abertura: {money(suggestedOpeningCents)}{previousClosing ? " · último fechamento" : " · sem fechamento anterior"}</p></div>
         <label className={viewStyles.field}><span>Observação de abertura</span><input name="openingNotes" placeholder="Ex.: troco inicial" /></label>
         <div className={styles.formActions}><SubmitButton className={viewStyles.button_button_primary} label="Abrir caixa" pendingLabel="Abrindo..." /></div>
       </SafeActionForm>

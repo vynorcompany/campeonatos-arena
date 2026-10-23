@@ -1651,6 +1651,9 @@ model ArenaServicePrice {
 }
 
 model Product {
+  isService       Boolean          @default(false)
+  showOnAgenda    Boolean          @default(false)
+  showOnComandas  Boolean          @default(true)
   id              String           @id @default(cuid())
   name            String
   sku             String           @default("")
@@ -2118,6 +2121,8 @@ model SalePayment {
 }
 
 model Comanda {
+  openedByUserId   String?
+  openedByUserName String          @default("")
   id        String        @id @default(cuid())
   code      String        @unique
   label     String

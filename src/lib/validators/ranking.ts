@@ -84,9 +84,7 @@ export function getRankingRuleBlueprint(model: RankingModel) {
 }
 
 export const generalRankingTypeSchema = z.literal("INDIVIDUAL", {
-  errorMap: () => ({
-    message: "O Ranking Geral precisa ser individual.",
-  }),
+  error: "O Ranking Geral precisa ser individual.",
 });
 
 export const createRankingProfileSchema = z

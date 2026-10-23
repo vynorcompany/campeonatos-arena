@@ -102,6 +102,7 @@ export async function createComandaAction(formData: FormData) {
       data: {
         arenaId: auth.arenaId,
         playerId: player?.id,
+        openedByUserId: auth.userId, openedByUserName: auth.userName,
         code: formatComandaCode(),
         label,
         type: parsed.data.type
@@ -139,7 +140,7 @@ export async function openBookingComandasAction(formData: FormData): Promise<{ e
       }
       for (const participant of occurrence.participants) {
         const existing = await tx.comanda.findFirst({ where: { arenaId: auth.arenaId, playerId: participant.playerId, status: "OPEN" }, select: { id: true } });
-        if (!existing) await tx.comanda.create({ data: { arenaId: auth.arenaId, playerId: participant.playerId, label: participant.player.name, type: "CLIENT", code: formatComandaCode() } });
+        if (!existing) await tx.comanda.create({ data: { arenaId: auth.arenaId, playerId: participant.playerId, openedByUserId: auth.userId, openedByUserName: auth.userName, label: participant.player.name, type: "CLIENT", code: formatComandaCode() } });
       }
     });
     revalidatePath("/comandas");
@@ -157,7 +158,7 @@ export async function addComandaProductAction(formData: FormData) {
   await withArenaTransaction(auth.arenaId, async (tx) => {
     const [comanda, product] = await Promise.all([
       tx.comanda.findFirst({ where: { id: parsed.data.comandaId, arenaId: auth.arenaId, status: "OPEN" }, select: { id: true } }),
-      tx.product.findFirst({ where: { id: parsed.data.productId, arenaId: auth.arenaId, active: true }, select: { id: true, priceCents: true, stockQuantity: true } })
+      tx.product.findFirst({ where: { id: parsed.data.productId, arenaId: auth.arenaId, active: true, OR: [{ isService: false }, { showOnComandas: true }] }, select: { id: true, priceCents: true, stockQuantity: true } })
     ]);
     if (!comanda) throw new Error("Comanda não está disponível.");
     if (!product) throw new Error("Produto não encontrado.");
@@ -287,6 +288,7 @@ export async function finishComandaAction(formData: FormData) {
       await recordCashSaleIfOpen(tx, { arenaId: auth.arenaId, referenceDate: cashReferenceDate(now), amountCents: cashReceivedCents, description: `Comanda ${comanda.code}`, createdByName: auth.userName });
     }
     for (const item of comanda.items) {
+      if (item.product.isService) continue;
       await tx.product.update({ where: { id: item.productId }, data: { stockQuantity: { decrement: item.quantity } } });
       await tx.stockMovement.create({ data: { arenaId: auth.arenaId, productId: item.productId, type: "OUT", quantity: item.quantity, reason: `Comanda ${comanda.code}` } });
     }

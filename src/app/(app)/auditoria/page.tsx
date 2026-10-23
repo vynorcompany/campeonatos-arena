@@ -7,8 +7,12 @@ import { WorkspaceHeading } from "@/components/ui/workspace-heading";
 
 const labels: Record<string, string> = { COURT_CHECKIN: "Check-in confirmado", COMANDA_DELETED: "Comanda excluída", COMANDA_SPLIT: "Comanda dividida", AGENT_KEY_CREATED: "Chave de agente criada", AGENT_KEY_REVOKED: "Chave de agente revogada", FINANCIAL_ENTRY_CREATED: "Lançamento financeiro criado", PAGE_VIEW: "Acesso à página" };
 const verbs: Record<string, string> = { create: "Criar", update: "Atualizar", save: "Salvar", delete: "Excluir", remove: "Remover", add: "Adicionar", insert: "Inserir", open: "Abrir", close: "Fechar", finish: "Finalizar", cancel: "Cancelar", confirm: "Confirmar", login: "Entrar", logout: "Sair", register: "Cadastrar", send: "Enviar", request: "Solicitar", toggle: "Alterar", connect: "Conectar", revoke: "Revogar", reconcile: "Conciliar", upsert: "Salvar" };
-const targets: Record<string, string> = { Supplier: "fornecedor", FinancialSetting: "cadastro financeiro", CashRegister: "caixa", CashMovement: "movimentação de caixa", StandardServicePrice: "preço de serviço", OnlineBookingSettings: "agendamento online", CourtBooking: "reserva de quadra", BookingComandas: "comandas da reserva", PublicClient: "cliente do portal", PublicPlayerProfile: "perfil do atleta", PublicCourtBooking: "reserva online", PublicCourtBookingRequest: "solicitação de reserva online", SponsorInPlan: "empresa no plano", TvSponsor: "empresa patrocinadora", TvPresentationSettings: "configuração da TV", Comanda: "comanda", ComandaItem: "item da comanda", Player: "cliente", Tournament: "torneio", Category: "categoria", Product: "produto", ProductCategory: "categoria de produto", FinancialCategory: "categoria financeira", Coupon: "cupom", User: "usuário", PermissionProfile: "perfil de permissões", Teacher: "professor", Lesson: "aula", Notification: "notificação", AgentApiKey: "chave de agente" };
-function actionLabel(action: string) {
+const targets: Record<string, string> = { FinancialEntry: "lançamento financeiro", ScheduleOccurrence: "reserva de horário", ScheduleBookingSeries: "reserva fixa", ArenaServicePrice: "serviço", PaymentMethodSetting: "forma de pagamento", Court: "quadra", Supplier: "fornecedor", FinancialSetting: "cadastro financeiro", CashRegister: "caixa", CashMovement: "movimentação de caixa", StandardServicePrice: "preço de serviço", OnlineBookingSettings: "agendamento online", CourtBooking: "reserva de quadra", BookingComandas: "comandas da reserva", PublicClient: "cliente do portal", PublicPlayerProfile: "perfil do atleta", PublicCourtBooking: "reserva online", PublicCourtBookingRequest: "solicitação de reserva online", SponsorInPlan: "empresa no plano", TvSponsor: "empresa patrocinadora", TvPresentationSettings: "configuração da TV", Comanda: "comanda", ComandaItem: "item da comanda", Player: "cliente", Tournament: "torneio", Category: "categoria", Product: "produto", ProductCategory: "categoria de produto", FinancialCategory: "categoria financeira", Coupon: "cupom", User: "usuário", PermissionProfile: "perfil de permissões", Teacher: "professor", Lesson: "aula", Notification: "notificação", AgentApiKey: "chave de agente" };
+function actionLabel(action: string, details: Record<string, unknown> = {}) {
+  if (action === "DB:CREATE:Comanda") return "Comanda aberta";
+  if (action === "DB:DELETE:Comanda") return "Comanda excluída";
+  if (action === "DB:UPDATE:Comanda" && details.after && typeof details.after === "object" && "status" in details.after && details.after.status === "CLOSED") return "Comanda fechada";
+  if (action === "DB:DELETE:ScheduleOccurrence") return "Horário excluído";
   if (labels[action]) return labels[action];
   if (action.startsWith("DB:")) {
     const [, operation, model] = action.split(":");
@@ -33,23 +37,23 @@ export default async function AuditPage({ searchParams }: { searchParams?: Promi
   const q = (filters.q ?? "").trim().slice(0, 120);
   const where: Prisma.AuditEventWhereInput = { arenaId: global ? null : auth.arenaId };
   if (q) where.OR = [{ actorName: { contains: q, mode: "insensitive" } }, { action: { contains: q, mode: "insensitive" } }, { details: { path: ["path"], string_contains: q } }, { entityId: { contains: q } }];
-  if (filters.kind === "changes") where.action = { startsWith: "DB:" };
-  if (filters.kind === "access") where.action = "PAGE_VIEW";
-  if (filters.kind === "api") where.action = { startsWith: "API:" };
-  if (filters.kind === "actions") where.NOT = [{ action: "PAGE_VIEW" }, { action: { startsWith: "API:" } }];
+  const businessModels = ["Comanda", "ComandaItem", "ScheduleOccurrence", "ScheduleBookingSeries", "Product", "Player", "Teacher", "Court", "FinancialEntry", "Supplier", "ProductCategory", "FinancialCategory", "PaymentMethodSetting", "ArenaServicePrice", "CashRegister", "CashMovement", "Tournament", "Coupon", "PermissionProfile"];
+  where.action = { in: businessModels.flatMap(model => ["CREATE", "UPDATE", "DELETE"].map(operation => `DB:${operation}:${model}`)) };
   const since = /^\d{4}-\d{2}-\d{2}$/.test(filters.from ?? "") ? new Date(`${filters.from}T00:00:00-03:00`) : null;
   const until = /^\d{4}-\d{2}-\d{2}$/.test(filters.until ?? "") ? new Date(new Date(`${filters.until}T00:00:00-03:00`).getTime() + 86400000) : null;
   if (since || until) where.createdAt = { ...(since && !Number.isNaN(since.getTime()) ? { gte: since } : {}), ...(until && !Number.isNaN(until.getTime()) ? { lt: until } : {}) };
   const [events, total] = await withArenaTransaction(auth.arenaId, async tx => {
     if (global) await tx.$executeRaw`SELECT set_config('app.audit_agency', 'true', true)`;
+    const users = await tx.user.findMany({ select: { id: true } });
+    where.actorId = { in: users.map(user => user.id) };
     return Promise.all([tx.auditEvent.findMany({ where, orderBy: [{ createdAt: "desc" }, { id: "desc" }], skip: (page - 1) * 50, take: 50 }), tx.auditEvent.count({ where })]);
   });
   const href = (next: number) => { const params = new URLSearchParams(); for (const [key, value] of Object.entries(filters)) if (value && key !== "page") params.set(key, value); params.set("page", String(next)); return `/auditoria?${params}`; };
   return <section className={ui.page}>
     <WorkspaceHeading title="Auditoria" description="Horários de Brasília." />
     <form method="get" className={ui.filters}>
-      <label className={`${ui.field} tw:w-[240px]`}>Pesquisar<input name="q" defaultValue={q} placeholder="Pessoa, ação ou página" /></label>
-      <label className={ui.field}>Registros<select name="kind" defaultValue={filters.kind ?? ""}><option value="">Todos</option><option value="actions">Ações</option><option value="changes">Alterações gravadas</option><option value="access">Acessos</option><option value="api">API</option></select></label>
+      <label className={`${ui.field} tw:w-[240px]`}>Pesquisar<input name="q" defaultValue={q} placeholder="Pessoa ou ação" /></label>
+
       <label className={ui.field}>De<input name="from" type="date" defaultValue={filters.from} /></label><label className={ui.field}>Até<input name="until" type="date" defaultValue={filters.until} /></label>
       {["SUPER_ADMIN", "ADMIN"].includes(auth.systemRole) ? <label className={ui.field}>Escopo<select name="scope" defaultValue={global ? "system" : "arena"}><option value="arena">Arena atual</option><option value="system">Agência e sistema</option></select></label> : null}
       <button className={ui.secondary}>Filtrar</button>
@@ -57,9 +61,11 @@ export default async function AuditPage({ searchParams }: { searchParams?: Promi
     <p className="tw:m-0 tw:text-xs tw:text-[var(--muted)]">{total} registro{total === 1 ? "" : "s"}</p>
     <div className={ui.list}>{!events.length ? <p className={ui.empty}>Nenhum registro encontrado.</p> : events.map(event => {
       const details = event.details && typeof event.details === "object" && !Array.isArray(event.details) ? event.details : {};
+      const snapshot = details.after && typeof details.after === "object" && !Array.isArray(details.after) ? details.after : details.before && typeof details.before === "object" && !Array.isArray(details.before) ? details.before : {};
+      const recordName = snapshot.name ?? snapshot.label ?? snapshot.title;
       return <article key={event.id} className={`${ui.row} tw:grid-cols-[170px_minmax(0,1fr)_160px] tw:viewport-760:grid-cols-1`}>
         <time dateTime={event.createdAt.toISOString()} className="tw:text-xs tw:text-[var(--muted)]">{new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "medium" }).format(event.createdAt)}</time>
-        <div><strong>{actionLabel(event.action)}</strong><small className="tw:break-words">{String(details.path ?? details.code ?? details.name ?? details.description ?? event.entityId)}</small>{typeof details.statusCode === "number" ? <small>HTTP {details.statusCode}{details.stage === "INTERRUPTED" ? " · conexão interrompida" : ""}</small> : details.stage === "REQUESTED" ? <small>Solicitação registrada</small> : null}{global && typeof details.affectedArenaCount === "number" && details.affectedArenaCount > 1 ? <small>{details.affectedArenaCount} arenas envolvidas</small> : null}{typeof details.totalCents === "number" ? <small>{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(details.totalCents / 100)}</small> : null}</div>
+        <div><strong>{actionLabel(event.action, details)}</strong><small className="tw:break-words">{String(recordName ?? details.code ?? details.name ?? details.description ?? "")}</small>{typeof details.statusCode === "number" ? <small>HTTP {details.statusCode}{details.stage === "INTERRUPTED" ? " · conexão interrompida" : ""}</small> : details.stage === "REQUESTED" ? <small>Solicitação registrada</small> : null}{global && typeof details.affectedArenaCount === "number" && details.affectedArenaCount > 1 ? <small>{details.affectedArenaCount} arenas envolvidas</small> : null}{typeof details.totalCents === "number" ? <small>{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(details.totalCents / 100)}</small> : null}</div>
         <span className="tw:break-words tw:text-xs">{event.actorName}</span>
       </article>;
     })}</div>
