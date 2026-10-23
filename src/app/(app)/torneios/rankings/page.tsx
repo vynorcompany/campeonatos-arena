@@ -1,3 +1,4 @@
+import { WorkspaceHeading } from "@/components/ui/workspace-heading";
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { RankingList } from "@/components/tournaments/ranking-list";
@@ -10,11 +11,9 @@ export default async function TournamentRankingsPage() {
 
   return (
     <div className={viewStyles.stack_md}>
-      <header className={viewStyles.page_header}>
-        <Link href="/torneios/rankings/novo" className={viewStyles.button_button_primary}>
-          Novo ranking
-        </Link>
-      </header>
+      <WorkspaceHeading eyebrow="COMPETIÇÕES · RANKINGS" title="Rankings da arena" description="Organize os rankings da arena e acompanhe a evolução das competições.">
+        <Link href="/torneios/rankings/novo" className={viewStyles.button_button_primary}>Novo ranking</Link>
+      </WorkspaceHeading>
 
       <RankingList rankings={rankings} />
     </div>

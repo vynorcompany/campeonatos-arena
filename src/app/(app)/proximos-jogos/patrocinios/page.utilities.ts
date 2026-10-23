@@ -58,9 +58,9 @@ export const viewStyles = {
     "tw:[background-image:none]", "tw:[&_img]:w-[32px]", "tw:[&_img]:h-[32px]", "tw:[&_img]:[object-fit:contain]",
     "tw:[&_img]:rounded-[7px]", "tw:[&_img]:bg-[color:var(--surface)]", "tw:[&_img]:[background-image:none]", "tw:[&_>_span]:w-[32px]",
     "tw:[&_>_span]:h-[32px]", "tw:[&_>_span]:[object-fit:contain]", "tw:[&_>_span]:rounded-[7px]", "tw:[&_>_span]:bg-[color:var(--surface)]",
-    "tw:[&_>_span]:[background-image:none]", "tw:[&_>_span]:grid", "tw:[&_>_span]:place-items-center", "tw:[&_>_span]:text-[.72rem]",
-    "tw:[&_>_span]:font-[800]", "tw:[&_b]:[overflow-x:hidden]", "tw:[&_b]:[overflow-y:hidden]", "tw:[&_b]:text-ellipsis",
-    "tw:[&_b]:whitespace-nowrap", "tw:[&_b]:text-[.82rem]", "tw:[&_.button]:min-w-[30px]", "tw:[&_.button]:[padding-inline:7px]",
+    "tw:[&_>_span]:[background-image:none]", "tw:[&_>_span]:grid!", "tw:[&_>_span]:place-items-center", "tw:[&_>_span]:text-[.72rem]",
+    "tw:[&_>_span]:font-[800]", "tw:[&_b]:min-w-0", "tw:[&_b]:break-words",
+    "tw:[&_b]:whitespace-normal", "tw:[&_b]:text-[.82rem]", "tw:[&_.button]:min-w-[30px]", "tw:[&_.button]:[padding-inline:7px]",
   ].join(" "),
   "button_button_danger_button_small_sponsor_delete_button": [
     "button", "button-danger", "button-small", "sponsor-delete-button",

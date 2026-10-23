@@ -1,3 +1,4 @@
+import { WorkspaceHeading } from "@/components/ui/workspace-heading";
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -49,22 +50,11 @@ export default async function TournamentsPage() {
   return (
     <div className={viewStyles.stack_md}>
       <nav className={viewStyles.page_breadcrumb} aria-label="Caminho de navegação"><span>Arena</span><i aria-hidden="true">›</i><strong>Torneios</strong></nav>
-      <header className={viewStyles.page_header}>
-        <div className={viewStyles.stack_xs}>
-          <h1>Torneios</h1>
-          <p className={viewStyles.muted}>
-            Gerencie eventos, categorias, inscrições e resultados.
-          </p>
-        </div>
-        <div className={viewStyles.section_actions}>
-          <Link href="/torneios/novo" className={viewStyles.button_button_primary}>
-            Novo evento
-          </Link>
-          <Link href="/torneios/rankings" className={viewStyles.button}>
-            Rankings
-          </Link>
-        </div>
-      </header>
+      <WorkspaceHeading eyebrow="COMPETIÇÕES · GESTÃO" title="Torneios da arena" description="Da primeira inscrição ao último resultado. Todos os seus eventos em um só lugar.">
+        <Link href="/torneios/rankings" className={viewStyles.button}>Rankings</Link>
+        <Link href="/torneios/novo" className={viewStyles.button_button_primary}>Novo evento</Link>
+      </WorkspaceHeading>
+      <div className="tw:grid tw:grid-cols-3 tw:gap-3 tw:viewport-620:grid-cols-1">{[{ label: "Em operação", value: openEvents.length }, { label: "Finalizados", value: finishedEvents.length }, { label: "Inscrições recebidas", value: events.reduce((total, event) => total + event._count.publicRegistrations, 0) }].map((metric) => <div key={metric.label} className="tw:flex tw:items-center tw:justify-between tw:gap-3 tw:rounded-xl tw:border tw:border-[#dce7f2] tw:bg-white tw:px-5 tw:py-4"><span className="tw:text-xs tw:font-medium tw:text-[#607898]">{metric.label}</span><strong className="tw:text-2xl tw:font-semibold tw:tabular-nums tw:text-[#132d58]">{metric.value}</strong></div>)}</div>
 
       <section className={viewStyles.event_section} aria-label="Eventos em operação">
         <h2>Eventos em operação <span>{openEvents.length}</span></h2>

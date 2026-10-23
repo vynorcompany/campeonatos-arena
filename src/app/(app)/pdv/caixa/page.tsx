@@ -29,11 +29,11 @@ export default async function CashRegisterPage() {
   const dayLabel = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "long", year: "numeric", timeZone: "UTC" }).format(referenceDate);
 
   return <div className={cx(`cash-register-page ${styles.page}`)}>
-    <h1 className={viewStyles.sr_only}>Gerenciar Caixa</h1>
-    <header className={styles.overview}>
+
+    <header className={styles.overview + " tw:rounded-2xl tw:border tw:border-[#dce7f2] tw:bg-[linear-gradient(110deg,#edf4ff,#fff)] tw:p-6! tw:viewport-680:p-4!"}>
       <div className={styles.overviewCopy}>
         <span className={styles.eyebrow}>Operação diária</span>
-        <div className={styles.overviewTitle}><h2>Caixa de hoje</h2><span className={cx(`${styles.status} ${isOpen ? styles.open : register ? styles.closed : styles.notOpened}`)}><span aria-hidden="true" />{isOpen ? "Aberto" : register ? "Encerrado" : "Não aberto"}</span></div>
+        <div className={styles.overviewTitle}><h1 className="tw:m-0 tw:text-2xl tw:font-bold tw:tracking-tight tw:text-[#132d58]">Caixa de hoje</h1><span className={cx(`${styles.status} ${isOpen ? styles.open : register ? styles.closed : styles.notOpened}`)}><span aria-hidden="true" />{isOpen ? "Aberto" : register ? "Encerrado" : "Não aberto"}</span></div>
         <p>{dayLabel} · Acompanhe entradas, retiradas e o fechamento do dia.</p>
       </div>
       <div className={styles.shortcuts}><Link className={viewStyles.button_button_small} href="/pdv">Produtos e serviços</Link><Link className={viewStyles.button_button_small} href="/relatorios/caixa">Relatório de caixa</Link></div>

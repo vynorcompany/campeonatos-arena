@@ -1,3 +1,4 @@
+import { WorkspaceHeading } from "@/components/ui/workspace-heading";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SectionCard } from "@/components/section-card";
@@ -41,7 +42,7 @@ export default async function GamesPage(props: GamesPageProps) {
   }) : [];
 
   return <div className={viewStyles.stack_md}>
-    {canManageTournaments ? <header className={viewStyles.page_header}><Link href="/torneios/novo" className={viewStyles.button_button_primary}>Novo evento</Link></header> : null}
+    <WorkspaceHeading eyebrow="COMPETIÇÕES · EM ANDAMENTO" title="Eventos ativos" description="Escolha um evento para acompanhar categorias, programação e resultados.">{canManageTournaments ? <Link href="/torneios/novo" className={viewStyles.button_button_primary}>Novo evento</Link> : null}</WorkspaceHeading>
     {selectedTournament ? <SectionCard title={selectedTournament.name} description={canManageTournaments || canRecordResults ? "Escolha uma categoria para acessar os jogos." : undefined}>
       <div className={viewStyles.active_event_back}>
         <Link href="/jogos" className={viewStyles.button}>Voltar aos eventos</Link>

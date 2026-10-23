@@ -7,7 +7,7 @@ export const payrollStyles = {
   button: sharedUtilities.buttonButtonPrimaryButtonSmall,
   secondary: sharedUtilities.buttonButtonSmall,
   filters: "tw:[&_label]:min-w-0 tw:[&_input]:max-w-full tw:flex tw:flex-wrap tw:items-center tw:gap-3 tw:[&_input]:h-11 tw:[&_input]:min-w-0 tw:[&_input]:rounded-lg tw:[&_input]:border tw:[&_input]:border-[var(--line)] tw:[&_input]:bg-white tw:[&_input]:px-3 tw:[&_input]:text-sm",
-  summary: "tw:grid tw:grid-cols-3 tw:gap-3 tw:viewport-620:grid-cols-1 tw:[&>div]:rounded-xl tw:[&>div]:border tw:[&>div]:border-[var(--line)] tw:[&>div]:bg-[#f7faff] tw:[&>div]:p-4 tw:[&_span]:block tw:[&_span]:text-xs tw:[&_span]:text-[var(--muted)] tw:[&_strong]:text-lg",
+  summary: "tw:grid tw:grid-cols-3 tw:gap-3 tw:viewport-620:grid-cols-1 tw:[&>div]:rounded-xl tw:[&>div]:border tw:[&>div]:border-[var(--line)] tw:[&>div]:bg-white tw:[&>div:first-child]:bg-[#132d58] tw:[&>div:first-child_span]:text-[#c4d6ed] tw:[&>div:first-child_strong]:text-white tw:[&>div]:p-4 tw:[&_span]:block tw:[&_span]:text-xs tw:[&_span]:text-[var(--muted)] tw:[&_strong]:mt-2 tw:[&_strong]:block tw:[&_strong]:text-2xl tw:[&_strong]:tabular-nums",
   list: ui.list,
   row: "employee-payroll-row tw:[&>*]:min-w-0 tw:[&_strong]:break-words tw:grid tw:grid-cols-[minmax(0,1fr)_140px_100px_90px] tw:items-center tw:gap-3 tw:border-b tw:border-[var(--line)] tw:px-4 tw:py-3 tw:last:border-b-0 tw:viewport-760:grid-cols-[minmax(0,1fr)_auto] tw:viewport-440:grid-cols-1 tw:viewport-440:[&>button]:justify-self-start tw:[&_strong]:text-sm tw:[&_small]:block tw:[&_small]:text-xs tw:[&_small]:text-[var(--muted)]",
   overlay: "tw:fixed tw:inset-0 tw:z-[1000] tw:flex tw:items-center tw:justify-center tw:bg-black/30 tw:p-4 tw:viewport-620:p-2",
