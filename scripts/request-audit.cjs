@@ -123,7 +123,7 @@ function createAuditedHandler(handle, { db, manifest = {}, source = process.env,
       onError();
       return;
     }
-    const scope = { arenaIds: new Set() };
+    const scope = { arenaIds: new Set(), requestId: id, ...actor };
     let finished = false;
     const complete = async aborted => {
       if (finished) return;

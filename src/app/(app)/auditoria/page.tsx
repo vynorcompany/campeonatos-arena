@@ -10,6 +10,11 @@ const verbs: Record<string, string> = { create: "Criar", update: "Atualizar", sa
 const targets: Record<string, string> = { Supplier: "fornecedor", FinancialSetting: "cadastro financeiro", CashRegister: "caixa", CashMovement: "movimentação de caixa", StandardServicePrice: "preço de serviço", OnlineBookingSettings: "agendamento online", CourtBooking: "reserva de quadra", BookingComandas: "comandas da reserva", PublicClient: "cliente do portal", PublicPlayerProfile: "perfil do atleta", PublicCourtBooking: "reserva online", PublicCourtBookingRequest: "solicitação de reserva online", SponsorInPlan: "empresa no plano", TvSponsor: "empresa patrocinadora", TvPresentationSettings: "configuração da TV", Comanda: "comanda", ComandaItem: "item da comanda", Player: "cliente", Tournament: "torneio", Category: "categoria", Product: "produto", ProductCategory: "categoria de produto", FinancialCategory: "categoria financeira", Coupon: "cupom", User: "usuário", PermissionProfile: "perfil de permissões", Teacher: "professor", Lesson: "aula", Notification: "notificação", AgentApiKey: "chave de agente" };
 function actionLabel(action: string) {
   if (labels[action]) return labels[action];
+  if (action.startsWith("DB:")) {
+    const [, operation, model] = action.split(":");
+    const verb = ({ CREATE: "Inclusão", UPDATE: "Alteração", DELETE: "Exclusão" } as Record<string, string>)[operation] ?? operation;
+    return `${verb} · ${targets[model] ?? model}`;
+  }
   if (action.startsWith("API:")) return `Requisição à API · ${action.slice(4)}`;
   if (action.startsWith("REQUEST:")) return `Requisição · ${action.slice(8)}`;
   if (action.startsWith("ACTION:")) {
@@ -28,6 +33,7 @@ export default async function AuditPage({ searchParams }: { searchParams?: Promi
   const q = (filters.q ?? "").trim().slice(0, 120);
   const where: Prisma.AuditEventWhereInput = { arenaId: global ? null : auth.arenaId };
   if (q) where.OR = [{ actorName: { contains: q, mode: "insensitive" } }, { action: { contains: q, mode: "insensitive" } }, { details: { path: ["path"], string_contains: q } }, { entityId: { contains: q } }];
+  if (filters.kind === "changes") where.action = { startsWith: "DB:" };
   if (filters.kind === "access") where.action = "PAGE_VIEW";
   if (filters.kind === "api") where.action = { startsWith: "API:" };
   if (filters.kind === "actions") where.NOT = [{ action: "PAGE_VIEW" }, { action: { startsWith: "API:" } }];
@@ -43,7 +49,7 @@ export default async function AuditPage({ searchParams }: { searchParams?: Promi
     <WorkspaceHeading title="Auditoria" description="Horários de Brasília." />
     <form method="get" className={ui.filters}>
       <label className={`${ui.field} tw:w-[240px]`}>Pesquisar<input name="q" defaultValue={q} placeholder="Pessoa, ação ou página" /></label>
-      <label className={ui.field}>Registros<select name="kind" defaultValue={filters.kind ?? ""}><option value="">Todos</option><option value="actions">Ações</option><option value="access">Acessos</option><option value="api">API</option></select></label>
+      <label className={ui.field}>Registros<select name="kind" defaultValue={filters.kind ?? ""}><option value="">Todos</option><option value="actions">Ações</option><option value="changes">Alterações gravadas</option><option value="access">Acessos</option><option value="api">API</option></select></label>
       <label className={ui.field}>De<input name="from" type="date" defaultValue={filters.from} /></label><label className={ui.field}>Até<input name="until" type="date" defaultValue={filters.until} /></label>
       {["SUPER_ADMIN", "ADMIN"].includes(auth.systemRole) ? <label className={ui.field}>Escopo<select name="scope" defaultValue={global ? "system" : "arena"}><option value="arena">Arena atual</option><option value="system">Agência e sistema</option></select></label> : null}
       <button className={ui.secondary}>Filtrar</button>

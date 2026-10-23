@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { auditedDatabase } from "@/lib/audit/database-client";
 import { env } from "@/lib/env";
 
 declare global {
@@ -7,7 +8,7 @@ declare global {
 
 void env;
 
-export const prisma =
+const base =
   global.prisma ??
   new PrismaClient({
     datasources: {
@@ -19,5 +20,7 @@ export const prisma =
   });
 
 if (process.env.NODE_ENV !== "production") {
-  global.prisma = prisma;
+  global.prisma = base;
 }
+
+export const prisma = auditedDatabase(base);
