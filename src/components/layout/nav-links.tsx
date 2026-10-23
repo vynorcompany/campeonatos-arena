@@ -187,7 +187,7 @@ export function NavLinks({ canManageUsers, canManageFinancialSettings, financeVi
       title: "Início",
       links: [
         { href: "/painel", label: "Dashboard", icon: "dashboard" },
-        ...(canManageUsers ? [{ href: "/assistente", label: "Assistente", icon: "support" as IconName }] : []),
+        ...(canManageUsers ? [{ href: "/assistente", label: "Assistente", icon: "support" as IconName }, { href: "/auditoria", label: "Auditoria", icon: "support" as IconName }] : []),
         ...(canSee("support") ? [{ href: "/whatsapp", label: "WhatsApp", icon: "whatsapp" as IconName, badge: liveWhatsAppUnreadCount }] : []),
         ...(canSee("pos") ? [{ href: "/pdv/caixa", label: "Gerenciar Caixa", icon: "cash" as IconName }] : [])
       ]

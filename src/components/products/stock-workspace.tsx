@@ -11,7 +11,7 @@ const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "curren
 
 export function StockWorkspace({ products, categories, query = "", stock = "", canEdit }: { products: StockProduct[]; categories: { id: string; name: string }[]; query?: string; stock?: string; canEdit: boolean }) {
   const visible = products.filter(product => (!query || product.name.toLocaleLowerCase("pt-BR").includes(query.toLocaleLowerCase("pt-BR")) || product.sku.toLocaleLowerCase("pt-BR").includes(query.toLocaleLowerCase("pt-BR"))) && (stock !== "LOW" || product.stockQuantity <= product.minStock));
-  return <div className={ui.page}><h1 className="tw:sr-only">Estoque</h1>
+  return <div className={`${ui.page} tw:[&_input]:min-h-11 tw:[&_select]:min-h-11`}><h1 className="tw:sr-only">Estoque</h1>
     {canEdit ? <details className={`stock-create-panel ${ui.panel} tw:open:[&_summary]:mb-4`}>
       <summary className={`${ui.primary} tw:w-fit tw:cursor-pointer tw:list-none tw:[&::-webkit-details-marker]:hidden`}>Novo Produto</summary>
       <SafeActionForm action={createProductAction} className={ui.form} resetOnSuccess closeClosestDetailsOnSuccess successMessage="Produto salvo.">
@@ -24,7 +24,7 @@ export function StockWorkspace({ products, categories, query = "", stock = "", c
       </SafeActionForm>
     </details> : null}
     <div className={ui.toolbar}><p>{products.length} produtos · {products.filter(product => product.stockQuantity <= product.minStock).length} no estoque mínimo</p>{canEdit ? <Link href="/pdv/balanco" className={ui.secondary}>Criar balanço</Link> : null}</div>
-    <form method="get" className={`${ui.filters} tw:grid tw:grid-cols-[minmax(0,1fr)_auto_auto_auto] tw:viewport-760:grid-cols-2 tw:viewport-440:grid-cols-1`} aria-label="Filtros de estoque"><label className={ui.field}>Pesquisar<input type="search" name="q" defaultValue={query} placeholder="Nome ou SKU" /></label><label className={ui.field}>Estoque<select name="stock" defaultValue={stock}><option value="">Todos os produtos</option><option value="LOW">No estoque mínimo</option></select></label><button className={ui.secondary}>Filtrar</button><Link href="/pdv/estoque" className={ui.secondary}>Limpar</Link></form>
+    <form method="get" className={`${ui.filters} tw:grid tw:grid-cols-[minmax(200px,1fr)_220px_auto_auto] tw:rounded-xl tw:border tw:border-[var(--line)] tw:bg-[#f7faff] tw:p-4 tw:viewport-1120:grid-cols-2 tw:viewport-440:grid-cols-1`} aria-label="Filtros de estoque"><label className={ui.field}>Pesquisar<input type="search" name="q" defaultValue={query} placeholder="Nome ou SKU" /></label><label className={ui.field}>Estoque<select name="stock" defaultValue={stock}><option value="">Todos os produtos</option><option value="LOW">No estoque mínimo</option></select></label><button className={ui.secondary}>Filtrar</button><Link href="/pdv/estoque" className={ui.secondary}>Limpar</Link></form>
     <div className={ui.list}>
       <div className={`${ui.head} ${columns}`}><span>Produto</span><span>Preço de venda</span><span>Estoque</span><span>Ações</span></div>
       {visible.map(product => {

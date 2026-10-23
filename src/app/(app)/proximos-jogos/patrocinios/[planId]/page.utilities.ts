@@ -13,7 +13,7 @@ export const viewStyles = {
   ].join(" "),
   "button_button_small": sharedUtilities.buttonButtonSmall,
   "stack_md": [
-    "stack-md", "sponsorship-plan-workspace", "tw:grid", "tw:gap-y-[18px]",
+    "stack-md", "sponsorship-plan-workspace", "tw:min-w-0", "tw:[&_h1]:break-words", "tw:[&_article]:min-w-0", "tw:[&_strong]:break-words", "tw:grid", "tw:gap-y-[18px]",
     "tw:gap-x-[18px]", "tw:[&_>_*:nth-child(1)]:[animation-delay:40ms]", "tw:[&_>_*:nth-child(2)]:[animation-delay:100ms]", "tw:[&_>_*:nth-child(3)]:[animation-delay:160ms]",
     "tw:[&_>_*:nth-child(4)]:[animation-delay:220ms]", "tw:[&_>_.section-card:last-child]:border-b-[length:1px]", "tw:[&_>_.section-card:last-child]:[border-bottom-style:solid]", "tw:[&_>_.section-card:last-child]:border-b-[color:var(--line)]",
   ].join(" "),
@@ -76,7 +76,7 @@ export const viewStyles = {
     "tw:[&_small]:text-[color:#6b819e]", "tw:[&_small]:text-[.74rem]",
   ].join(" "),
   "sponsorship_company_actions": [
-    "sponsorship-company-actions", "tw:flex", "tw:flex-wrap", "tw:gap-y-[7px]",
+    "sponsorship-company-actions", "tw:flex-wrap", "tw:viewport-760:w-full", "tw:viewport-760:[&_button]:min-h-10", "tw:flex", "tw:flex-wrap", "tw:gap-y-[7px]",
     "tw:gap-x-[7px]", "tw:viewport-680:[&_.button]:[flex:1]", "tw:viewport-680:[&_.button]:justify-center",
   ].join(" "),
   "button_button_danger_button_small_sponsor_delete_button": [

@@ -20,6 +20,7 @@ export function useConfirmAction() {
   const [error, setError] = useState("");
   const titleId = useId();
   const trigger = useRef<HTMLElement | null>(null);
+  const dialog = useRef<HTMLElement | null>(null);
 
   const close = useCallback(() => {
     if (pending) return;
@@ -39,11 +40,17 @@ export function useConfirmAction() {
         event.stopImmediatePropagation();
         close();
       }
+      if (event.key === "Tab") {
+        const fields = Array.from(dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), [tabindex="0"]') ?? []);
+        const first = fields[0], last = fields.at(-1);
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+      }
     };
-    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("keydown", onKeyDown, true);
     return () => {
       document.body.style.overflow = previousOverflow;
-      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("keydown", onKeyDown, true);
     };
   }, [confirmation, pending, close]);
 
@@ -75,8 +82,8 @@ export function useConfirmAction() {
   };
 
   const confirmationDialog = confirmation && typeof document !== "undefined" ? createPortal(
-    <div className={viewStyles.safe_action_confirmation_backdrop} role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}>
-      <section className={viewStyles.safe_action_confirmation} role="dialog" aria-modal="true" aria-labelledby={titleId}>
+    <div className={viewStyles.safe_action_confirmation_backdrop} role="presentation" onClick={event => event.stopPropagation()} onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}>
+      <section ref={dialog} className={viewStyles.safe_action_confirmation} role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <header>
           <span className={viewStyles.safe_action_confirmation_icon} aria-hidden="true">!</span>
           <div><strong id={titleId}>{confirmation.title ?? "Confirmar exclusão"}</strong><span>Esta ação pode ser irreversível.</span></div>

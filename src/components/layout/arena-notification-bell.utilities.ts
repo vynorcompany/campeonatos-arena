@@ -17,8 +17,8 @@ export const viewStyles = {
     "tw:[&_>_button_b]:text-[.6rem]", "tw:[&_>_button_b]:leading-[1.15]",
   ].join(" "),
   "arena_notification_panel": [
-    "arena-notification-panel", "tw:absolute", "tw:top-[38px]", "tw:right-[0]",
-    "tw:grid", "tw:w-[min(330px,_calc(100vw_-_34px))]", "tw:max-h-[380px]", "tw:[overflow-x:auto]",
+    "arena-notification-panel", "tw:fixed", "tw:z-[100]", "tw:top-[18px]", "tw:left-[296px]", "tw:viewport-1120:left-[264px]", "tw:viewport-760:left-[16px]", "tw:viewport-760:top-[72px]",
+    "tw:grid", "tw:w-[min(330px,_calc(100vw_-_34px))]", "tw:max-h-[min(420px,calc(100dvh-100px))]", "tw:[overflow-x:auto]",
     "tw:[overflow-y:auto]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:#b7d4e6]",
     "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:#b7d4e6]", "tw:border-b-[length:1px]",
     "tw:[border-bottom-style:solid]", "tw:border-b-[color:#b7d4e6]", "tw:border-l-[length:1px]", "tw:[border-left-style:solid]",

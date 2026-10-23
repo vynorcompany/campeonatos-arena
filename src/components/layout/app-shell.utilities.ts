@@ -2,7 +2,7 @@ import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
   "app_shell": [
-    "app-shell", "tw:min-h-[100vh]", "tw:[overflow-x:hidden]", "tw:grid",
+    "app-shell", "tw:min-h-[100vh]", "tw:[overflow-x:clip]", "tw:grid",
     "tw:viewport-760:block", "tw:grid-cols-[280px_minmax(0,_1fr)]", "tw:viewport-1120:grid-cols-[248px_minmax(0,_1fr)]", "tw:[&_.nav-link-active]:border-t-[color:rgb(83_158_255_/_.56)]",
     "tw:[&_.nav-link-active]:border-r-[color:rgb(83_158_255_/_.56)]", "tw:[&_.nav-link-active]:border-b-[color:rgb(83_158_255_/_.56)]", "tw:[&_.nav-link-active]:border-l-[color:rgb(83_158_255_/_.56)]", "tw:[&_.nav-link-active]:bg-[color:transparent]",
     "tw:[&_.nav-link-active]:[background-image:linear-gradient(135deg,_#0868e5,_#0754c3)]", "tw:[&_.nav-link-active]:text-[color:#fff]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)]:h-[100dvh]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)]:min-h-[0]",
@@ -12,11 +12,11 @@ export const viewStyles = {
     "tw:viewport-720:[&:has(.whatsapp-page)]:h-[100dvh]", "tw:viewport-720:[&:has(.whatsapp-page)]:min-h-[0]", "tw:viewport-720:[&:has(.whatsapp-page)]:overflow-hidden",
   ].join(" "),
   "sidebar": [
-    "sidebar", "tw:z-[20]", "tw:min-h-[100vh]", "tw:viewport-760:min-h-[auto]",
+    "sidebar", "tw:sticky", "tw:top-0", "tw:self-start", "tw:h-[100dvh]", "tw:overflow-y-auto", "tw:overscroll-contain", "tw:[scrollbar-width:thin]", "tw:[scrollbar-color:#7296bd_transparent]", "tw:[&::-webkit-scrollbar]:w-1.5", "tw:[&::-webkit-scrollbar-thumb]:rounded-full", "tw:[&::-webkit-scrollbar-thumb]:bg-[#7296bd]", "tw:z-[20]", "tw:min-h-0", "tw:viewport-760:min-h-[auto]",
     "tw:pt-[18px]", "tw:viewport-720:pt-[14px]", "tw:pr-[14px]", "tw:viewport-720:pr-[10px]",
     "tw:pb-[18px]", "tw:viewport-720:pb-[14px]", "tw:pl-[14px]", "tw:viewport-720:pl-[10px]",
     "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:rgb(96_163_255_/_.22)]", "tw:bg-[color:#0a2955]!",
-    "tw:[background-image:radial-gradient(circle_at_85%_16%,_rgb(65_166_231_/_.28),_transparent_30%),_linear-gradient(150deg,_#103e77,_#0a2955_72%)]!", "tw:[backdrop-filter:blur(16px)]", "tw:[overflow-x:visible]", "tw:[overflow-y:visible]",
+    "tw:[background-image:radial-gradient(circle_at_85%_16%,_rgb(65_166_231_/_.28),_transparent_30%),_linear-gradient(150deg,_#103e77,_#0a2955_72%)]!", "tw:[backdrop-filter:blur(16px)]", "tw:overflow-x-hidden",
     "tw:[animation:slide-right_480ms_var(--ease-standard)]", "tw:[box-shadow:inset_-1px_0_rgb(255_255_255_/_.04)]", "tw:[background-attachment:fixed]!", "tw:[font-family:'Segoe_UI',_Tahoma,_sans-serif]",
     "tw:[&_.eyebrow]:text-[color:rgba(245,_250,_255,_0.88)]", "tw:[&_.muted]:text-[color:rgba(245,_250,_255,_0.88)]", "tw:[&_.user-name]:text-[color:rgba(245,_250,_255,_0.88)]", "tw:[&_.button-secondary]:border-t-[color:rgba(255,_255,_255,_0.24)]",
     "tw:[&_.button-secondary]:border-r-[color:rgba(255,_255,_255,_0.24)]", "tw:[&_.button-secondary]:border-b-[color:rgba(255,_255,_255,_0.24)]", "tw:[&_.button-secondary]:border-l-[color:rgba(255,_255,_255,_0.24)]", "tw:[&_.button-secondary]:text-[color:#ffffff]",

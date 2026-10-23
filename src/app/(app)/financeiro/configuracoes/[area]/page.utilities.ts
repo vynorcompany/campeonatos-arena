@@ -119,7 +119,7 @@ export const viewStyles = {
     "payment-connectors-list", "tw:grid", "tw:gap-y-[10px]", "tw:gap-x-[10px]",
   ].join(" "),
   "payment_connector_card": [
-    "payment-connector-card", "tw:grid", "tw:grid-cols-[minmax(0,_1fr)_auto]", "tw:viewport-680:grid-cols-[1fr]",
+    "payment-connector-card", "tw:min-w-0", "tw:[&_h2]:text-base", "tw:[&_p]:leading-relaxed", "tw:grid", "tw:grid-cols-[minmax(0,_1fr)_auto]", "tw:viewport-680:grid-cols-[1fr]",
     "tw:items-center", "tw:gap-y-[18px]", "tw:viewport-680:gap-y-[12px]", "tw:gap-x-[18px]",
     "tw:viewport-680:gap-x-[12px]", "tw:min-h-[82px]", "tw:pt-[14px]", "tw:pr-[18px]",
     "tw:viewport-680:pr-[14px]", "tw:pb-[14px]", "tw:pl-[18px]", "tw:viewport-680:pl-[14px]",
@@ -143,7 +143,7 @@ export const viewStyles = {
     "tw:[background-image:none]", "tw:text-[color:#1c63b7]", "tw:text-[.85rem]", "tw:font-[900]",
   ].join(" "),
   "payment_connector_card_payment_connector_expand": [
-    "payment-connector-card", "payment-connector-expand", "tw:block", "tw:grid-cols-[minmax(0,_1fr)_auto]",
+    "payment-connector-card", "payment-connector-expand", "tw:min-w-0", "tw:[&_summary]:min-h-11", "tw:[&_summary]:cursor-pointer", "tw:block", "tw:grid-cols-[minmax(0,_1fr)_auto]",
     "tw:viewport-680:grid-cols-[1fr]", "tw:items-center", "tw:gap-y-[18px]", "tw:viewport-680:gap-y-[12px]",
     "tw:gap-x-[18px]", "tw:viewport-680:gap-x-[12px]", "tw:min-h-[82px]", "tw:pt-[0]",
     "tw:pr-[0]", "tw:pb-[0]", "tw:pl-[0]", "tw:border-t-[length:1px]",
@@ -159,7 +159,7 @@ export const viewStyles = {
     "tw:viewport-760:[&_summary_>_.connector-status]:[justify-self:start]",
   ].join(" "),
   "payment_connector_form": [
-    "payment-connector-form", "tw:grid", "tw:grid-cols-[145px_minmax(0,_1fr)_auto]", "tw:viewport-760:grid-cols-[1fr]",
+    "payment-connector-form", "tw:[&_input]:min-w-0", "tw:[&_input]:min-h-11", "tw:[&_select]:min-h-11", "tw:[&>button]:justify-self-start", "tw:grid", "tw:grid-cols-[minmax(140px,.6fr)_minmax(200px,1fr)] tw:[&>button]:col-span-full", "tw:viewport-760:grid-cols-[1fr]",
     "tw:[align-items:end]", "tw:viewport-760:items-stretch", "tw:gap-y-[12px]", "tw:gap-x-[12px]",
     "tw:pt-[14px]", "tw:pr-[18px]", "tw:pb-[16px]", "tw:pl-[18px]",
     "tw:bg-[color:#fbfdff]", "tw:[background-image:none]", "tw:[&_label]:grid", "tw:[&_label]:gap-y-[5px]",

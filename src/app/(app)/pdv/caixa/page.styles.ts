@@ -6,7 +6,7 @@ const styles = {
     "tw:pb-[32px]",
   ].join(" "),
   "overview": [
-    "arena-cash-overview", "tw:flex", "tw:items-end", "tw:viewport-680:items-start",
+    "arena-cash-overview", "tw:flex-wrap", "tw:flex", "tw:items-end", "tw:viewport-680:items-start",
     "tw:justify-between", "tw:gap-y-[24px]", "tw:viewport-680:gap-y-[14px]", "tw:gap-x-[24px]",
     "tw:viewport-680:gap-x-[14px]", "tw:pt-[16px]", "tw:pr-[0]", "tw:pb-[21px]",
     "tw:pl-[0]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:var(--line)]",
@@ -86,7 +86,7 @@ const styles = {
     "tw:[&.arena-cash-panel_p]:leading-[1.45]",
   ].join(" "),
   "form": [
-    "arena-cash-form", "tw:grid", "tw:grid-cols-[repeat(2,_minmax(0,_1fr))]", "tw:viewport-480:grid-cols-[1fr]",
+    "arena-cash-form", "tw:[&_label]:min-w-0", "tw:[&_input]:min-h-11", "tw:[&_select]:min-h-11", "tw:grid", "tw:grid-cols-[repeat(2,_minmax(0,_1fr))]", "tw:viewport-680:grid-cols-[1fr]",
     "tw:[align-items:end]", "tw:gap-y-[14px]", "tw:gap-x-[14px]", "tw:min-w-[0]",
     "tw:[&.arena-cash-form_>_label]:min-w-[0]", "tw:[&.arena-cash-form_>_label_:is(input,_select)]:w-[100%]", "tw:[&.arena-cash-form_>_label_:is(input,_select)]:min-w-[0]",
   ].join(" "),

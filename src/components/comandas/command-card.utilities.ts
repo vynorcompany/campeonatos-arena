@@ -91,8 +91,8 @@ export const viewStyles = {
   ].join(" "),
   "command_modal_backdrop": sharedUtilities.commandModalBackdrop,
   "command_details_modal": [
-    "command-details-modal", "tw:w-[min(100%,_620px)]", "tw:grid", "tw:gap-y-[16px]",
-    "tw:gap-x-[16px]", "tw:max-h-[calc(100vh_-_44px)]", "tw:[overflow-x:auto]", "tw:[overflow-y:auto]",
+    "command-details-modal", "tw:[&>header]:flex-wrap", "tw:[&>footer]:flex-wrap", "tw:[&_h2]:break-words", "tw:viewport-760:[&_.command-item]:grid-cols-[minmax(0,1fr)_auto]!", "tw:viewport-760:[&_.command-item-controls]:col-span-full", "tw:viewport-760:[&_.command-item-controls]:justify-self-end", "tw:w-[min(100%,_780px)]", "tw:grid", "tw:gap-y-[16px]",
+    "tw:gap-x-[16px]", "tw:max-h-[calc(100dvh_-_32px)]", "tw:[overflow-x:auto]", "tw:[overflow-y:auto]",
     "tw:pt-[20px]", "tw:pr-[20px]", "tw:pb-[20px]", "tw:pl-[20px]",
     "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:rgb(255_255_255_/_.7)]", "tw:border-r-[length:1px]",
     "tw:[border-right-style:solid]", "tw:border-r-[color:rgb(255_255_255_/_.7)]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]",
@@ -167,7 +167,7 @@ export const viewStyles = {
     "tw:[&_>_p]:text-[color:#75551d]", "tw:[&_>_p]:leading-[1.5]",
   ].join(" "),
   "command_product_modal": [
-    "command-product-modal", "tw:w-[min(calc(100vw_-_44px),_1080px)]", "tw:viewport-760:w-[100%]", "tw:max-h-[calc(100vh_-_44px)]",
+    "command-product-modal", "tw:w-[min(calc(100vw_-_44px),_1080px)]", "tw:viewport-760:w-[100%]", "tw:max-h-[calc(100dvh_-_32px)]",
     "tw:[overflow-x:auto]", "tw:[overflow-y:auto]", "tw:pt-[20px]", "tw:viewport-760:pt-[15px]",
     "tw:pr-[20px]", "tw:viewport-760:pr-[15px]", "tw:pb-[20px]", "tw:viewport-760:pb-[15px]",
     "tw:pl-[20px]", "tw:viewport-760:pl-[15px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]",
@@ -258,7 +258,7 @@ export const viewStyles = {
     "tw:[&_strong]:text-[.82rem]", "tw:[&_span]:text-[color:var(--brand-strong)]", "tw:[&_span]:text-[.8rem]", "tw:[&_span]:font-[800]",
   ].join(" "),
   "command_checkout_modal": [
-    "command-checkout-modal", "tw:w-[min(calc(100vw_-_44px),_1120px)]", "tw:viewport-760:w-[100%]", "tw:max-h-[calc(100vh_-_44px)]",
+    "command-checkout-modal", "tw:w-[min(calc(100vw_-_44px),_1120px)]", "tw:viewport-760:w-[100%]", "tw:max-h-[calc(100dvh_-_32px)]",
     "tw:[overflow-x:auto]", "tw:[overflow-y:auto]", "tw:pt-[20px]", "tw:viewport-760:pt-[15px]",
     "tw:pr-[20px]", "tw:viewport-760:pr-[15px]", "tw:pb-[20px]", "tw:viewport-760:pb-[15px]",
     "tw:pl-[20px]", "tw:viewport-760:pl-[15px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]",

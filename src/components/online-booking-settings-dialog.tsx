@@ -1,6 +1,7 @@
 "use client";
 import { viewStyles } from "./online-booking-settings-dialog.utilities";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -43,6 +44,7 @@ export function OnlineBookingSettingsDialog({ settings }: { settings: OnlineBook
       <section className={`${viewStyles.online_booking_settings_modal} tw:max-h-[calc(100dvh-24px)] tw:overflow-y-auto`} role="dialog" aria-modal="true" aria-label="Configurações do agendamento online" onMouseDown={(event) => event.stopPropagation()}>
         <header><div><span>AGENDAMENTO ONLINE</span><h2>Configurações</h2></div><button type="button" className={viewStyles.button_button_small} onClick={() => setOpen(false)}>Fechar</button></header>
         <div className={viewStyles.online_booking_link}><div><strong>Link do Portal do Atleta</strong><code>{publicPath}</code></div><button type="button" className={viewStyles.button_button_small} onClick={copyLink}>{copied ? "Link copiado" : "Copiar link"}</button></div>
+        <Link href="/agenda/configuracao#checkin" className="tw:mb-4 tw:block tw:rounded-lg tw:border tw:border-[#dce7f2] tw:bg-[#f7faff] tw:p-4 tw:text-sm tw:font-semibold tw:text-[#0868e5]">Check-in nas quadras · Configurar e gerar QR Code</Link>
         <SafeActionForm action={updateOnlineBookingSettingsAction} className={viewStyles.online_booking_settings_form} successMessage="Configurações do agendamento online salvas.">
           <label className={viewStyles.field}>Disposição dos horários<select name="layout" defaultValue={settings.layout}><option value="BLOCKS">Blocos</option><option value="LIST">Lista</option></select></label>
           <label className={viewStyles.field}>Prazo mínimo para agendamento<input name="leadTimeMinutes" type="number" min="0" max="10080" step="15" defaultValue={settings.leadTimeMinutes} /><small>Em minutos antes do horário escolhido.</small></label>
