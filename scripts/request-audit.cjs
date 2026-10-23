@@ -119,7 +119,8 @@ function createAuditedHandler(handle, { db, manifest = {}, source = process.env,
         const setCookie = res.getHeader('set-cookie');
         const responseCookies = Array.isArray(setCookie) ? setCookie : setCookie ? [String(setCookie)] : [];
         const identified = actor.actorId === 'ANONYMOUS' && responseCookies.length ? await resolveActor(db, req, source, responseCookies, publicAction) : actor;
-        await scoped(db, identified.arenaId, tx => tx.auditEvent.update({ where: { id }, data: { ...identified, details: { ...details, stage: aborted ? 'INTERRUPTED' : 'RESPONDED', statusCode: res.statusCode, elapsedMs: Date.now() - started, attachment: /attachment/i.test(String(res.getHeader('content-disposition') || '')) } } }), id);
+        const attribution = actor.actorId === 'ANONYMOUS' ? identified : { actorId: identified.actorId, actorName: identified.actorName };
+        await scoped(db, identified.arenaId, tx => tx.auditEvent.update({ where: { id }, data: { ...attribution, details: { ...details, stage: aborted ? 'INTERRUPTED' : 'RESPONDED', statusCode: res.statusCode, elapsedMs: Date.now() - started, attachment: /attachment/i.test(String(res.getHeader('content-disposition') || '')) } } }), id);
       } catch { onError(); }
     };
     res.once('finish', () => { void complete(false); });

@@ -136,3 +136,18 @@ test("administrador da agência sem vínculo explícito usa a arena padrão e se
   });
   assert.deepEqual([...state.records.values()].map(row => [row.actorId, row.arenaId]), [["agency", "first-arena"], ["agency", null]]);
 });
+
+test("conclusão de uma exclusão de arena preserva o evento que perdeu o vínculo por SET NULL", async () => {
+  const state = fixture();
+  await server(createAuditedHandler((_req: any, res: any) => {
+    for (const [id, record] of state.records) state.records.set(id, { ...record, arenaId: null });
+    res.end("arena excluída");
+  }, { db: state.db }), async url => {
+    await fetch(`${url}/arena`, { method: "POST", headers: { cookie: `padel_session=${token}` } });
+    await settled(state.records);
+  });
+  const [record] = [...state.records.values()];
+  assert.equal(record.arenaId, null);
+  assert.equal(record.actorId, "operator");
+  assert.equal(record.details.stage, "RESPONDED");
+});
