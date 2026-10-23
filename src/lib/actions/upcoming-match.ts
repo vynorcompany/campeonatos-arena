@@ -23,7 +23,7 @@ const manualUpcomingMatchSchema = z.object({
     .regex(/^$|^([01]\d|2[0-3]):[0-5]\d$/, "Horário inválido.")
     .default(""),
   status: z.enum(manualMatchStatusOptions, {
-    errorMap: () => ({ message: "Status inválido." })
+    error: "Status inválido."
   }).default("SCHEDULED")
 });
 
