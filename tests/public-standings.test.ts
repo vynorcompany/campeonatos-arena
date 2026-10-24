@@ -108,14 +108,10 @@ test("public standings renders the branded header and finished-game score treatm
     readFile(path.join(workspaceRoot, "src", "app", "globals.css"), "utf8"),
   ]);
 
-  assert.match(component, /athlete-portal-hero/);
-  assert.match(component, /athlete-portal-brand/);
-  assert.match(component, /athlete-portal-bottom-nav/);
-  assert.match(component, /Portal do Atleta/);
+  assert.match(component, /PortalSidebar/);
+  assert.match(component, /PortalBottomNav/);
+  assert.match(component, /AthletePortalWordmark compact/);
   assert.match(component, /PublicLeaguePortal/);
-  assert.match(styleRules("athlete-portal-hero"), /linear-gradient/);
-  assert.ok(utilityClasses("athlete-portal-bottom-nav").length, "athlete-portal-bottom-nav has component Tailwind utilities");
-  assert.ok(utilityClasses("athlete-portal-hero").length, "athlete-portal-hero has component Tailwind utilities");
 });
 
 test("public game agenda identifies the winning and losing pair in finished games", () => {
@@ -139,27 +135,15 @@ test("public game agenda identifies the winning and losing pair in finished game
   assert.equal(day.games[0].winnerSide, "home");
 });
 
-test("public standings use a full-bleed desktop brand band aligned to the page column", async () => {
-  const [component, styles] = await Promise.all([
-    readFile(
-      path.join(
-        workspaceRoot,
-        "src",
-        "components",
-        "tournaments",
-        "public-standings.tsx",
-      ),
-      "utf8",
-    ),
-    readFile(path.join(workspaceRoot, "src", "app", "globals.css"), "utf8"),
-  ]);
-
-  assert.match(component, /athlete-portal-hero-inner/);
-  assert.match(component, /athlete-portal-arena-logo/);
-  assert.match(component, /athlete-portal-user-avatar/);
-  assert.match(styleRules("athlete-portal-hero-inner"), /width:\s*min\(100%, 1060px\)/);
-  assert.match(styleRules("athlete-portal-brand", {"context":".athlete-portal-arena-logo"}), /object-fit:\s*contain/);
-  assert.ok(utilityClasses("athlete-portal-hero-inner").length, "athlete-portal-hero-inner has component Tailwind utilities");
+test("portal app aligns a persistent desktop sidebar with a responsive content column", async () => {
+  const component=await readFile(path.join(workspaceRoot,"src/components/tournaments/public-standings.tsx"),"utf8");
+  const navigation=await readFile(path.join(workspaceRoot,"src/components/portal/portal-navigation.tsx"),"utf8");
+  assert.match(component, /portal-workspace/);
+  assert.match(component, /tw:max-w-\[1240px\] tw:min-w-0/);
+  assert.match(navigation, /tw:sticky tw:top-0/);
+  assert.match(navigation, /aria-current=\{current===item.section/);
+  assert.match(navigation, /aria-label="Atalhos principais"/);
+  assert.doesNotMatch(component, /tw:overflow-x-clip/);
 });
 
 test("public standings list only the General Ranking and public finished category names", () => {

@@ -1,3 +1,4 @@
+import { readPortalSources } from "./helpers/portal-source";
 import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
 
@@ -105,13 +106,13 @@ test("manual closing accepts the oldest open League cycle from a past month", ()
 });
 
 test("athlete portal exposes the main modules and League submenus", () => {
-  const view = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"), "utf8");
+  const view = readPortalSources();
   const leaguePortal = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-league-portal.tsx"), "utf8");
   assert.match(view, /Portal do Atleta/);
   assert.match(view, /PublicBookingContent/);
-  assert.match(view, /Reservas/);
+  assert.match(view, /Minhas reservas/);
   assert.match(view, /Premiação/);
-  assert.match(view, /portal-league-prize-podium/);
+  assert.match(view, /viewStyles\.portal_league_prize_podium/);
   assert.match(view, /section === "booking"/);
   assert.match(view, /PublicBookingContent/);
   assert.match(view, /Escolha o dia para ver horários e vagas de cada professor/);
@@ -122,7 +123,7 @@ test("athlete portal exposes the main modules and League submenus", () => {
 
 test("portal classes are selected by weekday and show each teacher's remaining seats", () => {
   const portal = readFileSync(resolve(process.cwd(), "src/lib/services/public-league-portal.ts"), "utf8");
-  const view = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"), "utf8");
+  const view = readPortalSources();
   assert.match(portal, /tx\.teacher\.findMany/);
   assert.match(view, /Encontre sua turma/);
   assert.match(view, /group\.teacherName/);

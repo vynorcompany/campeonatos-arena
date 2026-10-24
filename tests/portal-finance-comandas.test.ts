@@ -35,6 +35,6 @@ test("closed comanda receivables remain payable and keep their sale in sync", ()
 
 test("soon-due portal payments retain contrast in the dark theme", () => {
   const styles = read("src/app/globals.css");
-  assert.match(styleRules("client-finance-entry", {"context":".public-finance-entry.is-due-soon"}), /background(?:-color|-image)?: linear-gradient/);
-  assert.match(styleRules("client-finance-entry", {"context":".public-finance-entry.is-due-soon strong"}), / color: #fff7e8/);
+  assert.match(styleRules("client-finance-entry", {"context":".public-finance-entry.is-due-soon"}), /background(?:-color|-image)?: var\(--portal-panel-image,linear-gradient/);
+  assert.match(styleRules("client-finance-entry", {"context":".public-finance-entry.is-due-soon strong"}), /color: var\(--portal-ink,#fff7e8\)/);
 });

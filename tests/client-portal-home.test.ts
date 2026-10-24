@@ -1,3 +1,4 @@
+import { readPortalSources } from "./helpers/portal-source";
 import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
@@ -9,15 +10,15 @@ const read = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8"
 
 test("client portal opens on Home with arena notices, client summary and featured events", () => {
   const page = read("src/app/classificacao/[arenaSlug]/page.tsx");
-  const portal = read("src/components/tournaments/public-standings.tsx");
+  const portal = readPortalSources();
   const home = read("src/lib/services/public-client-home.ts");
   const schema = read("prisma/schema.prisma");
 
   assert.match(page, /getPublicClientHome/);
   assert.match(page, /: "home"/);
   assert.match(portal, /Início/);
-  assert.match(portal, /ClientHomePanel/);
-  assert.match(portal, /Resumo da sua situação/);
+  assert.match(portal, /PortalHome/);
+  assert.match(portal, /Resumo financeiro/);
   assert.match(portal, /ClientPortalEventCarousel/);
   assert.match(home, /portalAnnouncement\.findMany/);
   assert.match(home, /featuredInPortal: true/);
@@ -47,7 +48,7 @@ test("portal management keeps editorial forms in dialogs and publishes vertical 
   const actions = read("src/lib/actions/client-portal.ts");
   const schema = read("prisma/schema.prisma");
   const home = read("src/lib/services/public-client-home.ts");
-  const portal = read("src/components/tournaments/public-standings.tsx");
+  const portal = readPortalSources();
 
   assert.match(editor, /Novo aviso/);
   assert.match(editor, /Novo evento/);
@@ -63,7 +64,7 @@ test("portal events preserve the image on mobile and can open an optional extern
   const actions = read("src/lib/actions/client-portal.ts");
   const schema = read("prisma/schema.prisma");
   const home = read("src/lib/services/public-client-home.ts");
-  const portal = read("src/components/tournaments/public-standings.tsx");
+  const portal = readPortalSources();
   const carousel = read("src/components/client-portal-event-carousel.tsx");
   const styles = read("src/app/globals.css");
 
@@ -87,7 +88,7 @@ test("client home filters financial entries in the database for the signed-in at
 test("mobile home shows the athlete's next reservations and links booking to this arena", () => {
   const home = read("src/lib/services/public-client-home.ts");
   const reservationFilter = read("src/lib/portal/upcoming-reservations.ts");
-  const portal = read("src/components/tournaments/public-standings.tsx");
+  const portal = readPortalSources();
 
   assert.match(home, /upcomingPlayerReservationsWhere\(arena\.id, playerId, now\)/);
   assert.match(home, /tx\.scheduleOccurrence\.findMany\(\{ where: reservationWhere/);
@@ -95,8 +96,10 @@ test("mobile home shows the athlete's next reservations and links booking to thi
   assert.match(reservationFilter, /activeCourtOccurrenceWhere\(now\)/);
   assert.match(reservationFilter, /participants: \{ some: \{ playerId \} \}/);
   assert.match(home, /take: 3/);
-  assert.match(portal, /home\.upcomingReservations\?\.map/);
-  assert.match(portal, /href=\{`\/reservar\/\$\{encodeURIComponent\(arenaSlug\)\}`\}/);
+  assert.match(portal, /home\.upcomingReservations\.map/);
+  assert.match(portal, /primary===\"booking\"|primary===\"reservations\"/);
+  assert.match(portal, /href=\{href\(primary\)\}/);
+  assert.match(portal, /encodeURIComponent\(arena\.slug\)/);
 });
 
 test("doubles radar filters preserve the selected arena", () => {
@@ -128,7 +131,7 @@ test("arena can fix, edit, activate, deactivate or delete portal notices and eve
 });
 
 test("client portal presents multiple featured events in an accessible carousel", () => {
-  const portal = read("src/components/tournaments/public-standings.tsx");
+  const portal = readPortalSources();
   const carousel = read("src/components/client-portal-event-carousel.tsx");
   const styles = read("src/app/globals.css");
 
@@ -159,12 +162,11 @@ test("league header no longer displays the isolated notification count tag", () 
   assert.doesNotMatch(portal, /notificação\{portal\.leagueNotifications\.length/);
 });
 
-test("portal header presents only the athlete name with an integrated larger avatar", () => {
-  const portal = read("src/components/tournaments/public-standings.tsx");
-  const styles = read("src/app/globals.css");
-
-  assert.match(portal, /\{currentClient\.name\}/);
-  assert.doesNotMatch(portal, /Olá, \{currentClient\.name\}/);
-  assert.match(styleRules("athlete-portal-user-avatar"), /width: 56px !important[\s\S]*height: 56px !important/);
-  assert.match(styleRules("athlete-portal-user-avatar"), /border-top-width: 2px[\s\S]*border-top-color: #45dba9/);
+test("portal header keeps the athlete photo and profile accessible with compact app navigation", () => {
+  const portal=readPortalSources();
+  assert.match(portal, /<PlayerAvatar photoUrl=\{currentClient.photoUrl\} name=\{currentClient.name\}/);
+  assert.match(portal, /aria-label="Meu perfil"/);
+  assert.match(portal, /PortalSidebar items=\{menuItems\}/);
+  assert.match(portal, /PortalBottomNav items=\{menuItems\}/);
+  assert.match(portal, /Sair da conta/);
 });

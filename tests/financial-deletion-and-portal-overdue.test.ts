@@ -1,3 +1,4 @@
+import { readPortalSources } from "./helpers/portal-source";
 import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
@@ -10,7 +11,7 @@ const read = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8"
 
 test("client portal marks open receivables past their due date as overdue", () => {
   const home = read("src/lib/services/public-client-home.ts");
-  const portal = read("src/components/tournaments/public-standings.tsx");
+  const portal = readPortalSources();
   const financeEntries = read("src/components/public-finance-entry-list.tsx");
 
   assert.match(home, /settlements: \{ select: \{ amountCents: true, interestCents: true \} \}/);
@@ -19,7 +20,7 @@ test("client portal marks open receivables past their due date as overdue", () =
   assert.match(home, /entry\.dueDate && entry\.dueDate < today/);
   assert.match(home, /em atraso/);
   assert.match(home, /financialStatus: overdue \? "overdue" : due \|\| hasOpenComanda \? "pending" : "active"/);
-  assert.match(portal, /financialStatus === "overdue" \? "is-overdue"/);
+  assert.match(portal, /status===\"overdue\"/);
   assert.match(financeEntries, /viewStyles\.client_finance_entry_public_finance_entry\} is-\$\{entry\.status\}/);
   assert.match(portal, /futureFinancial/);
 });

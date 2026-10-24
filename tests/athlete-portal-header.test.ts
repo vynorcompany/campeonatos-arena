@@ -1,3 +1,4 @@
+import { readPortalSources } from "./helpers/portal-source";
 import { readFileSync } from "./helpers/style-source";
 import assert from "node:assert/strict";
 
@@ -7,7 +8,7 @@ import test from "node:test";
 const read = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8");
 
 test("athlete portal exposes logout in arena and global headers", () => {
-  const arena = read("src/components/tournaments/public-standings.tsx");
+  const arena = readPortalSources();
   const global = read("src/app/portal/page.tsx");
   const actions = read("src/lib/actions/player-auth.ts");
 
@@ -20,10 +21,10 @@ test("athlete portal exposes logout in arena and global headers", () => {
 });
 
 test("portal title is an accessible vector wordmark", () => {
-  const portal = read("src/components/tournaments/public-standings.tsx");
+  const portal = readPortalSources();
   const mark = read("src/components/athlete-portal-wordmark.tsx");
 
-  assert.match(portal, /<h1 (?:className="sr-only"|className=\{(?:cx\()?viewStyles\.sr_only(?:\))?\})>Portal do Atleta<\/h1>/);
-  assert.match(portal, /<AthletePortalWordmark \/>/);
+  assert.match(portal, /<AthletePortalWordmark compact/);
+  assert.match(portal, /<h1 className=/);
   assert.match(mark, /<svg[^>]*role="img" aria-label="Portal do Atleta"/);
 });
