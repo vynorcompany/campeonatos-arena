@@ -6,6 +6,7 @@ import vm from "node:vm";
 import test from "node:test";
 import ts from "typescript";
 import { PrismaClient, type Prisma } from "@prisma/client";
+import { STANDARD_SERVICES } from "../src/lib/calendar/standard-services";
 import { allocateComandaShares } from "../src/lib/comandas/split";
 import { allocatePaymentsToDebts, getOutstandingCents } from "../src/lib/finance/settlements";
 const require = createRequire(import.meta.url);
@@ -28,7 +29,7 @@ test("serviços respeitam as duas visibilidades, isolamento e permissões; coman
     const actor = await admin.user.findUniqueOrThrow({ where: { id: "goal-test" } });
     const auth = { arenaId: arena.id, userId: actor.id, userName: actor.name };
     const transact = (arenaId: string, operation: (tx: Prisma.TransactionClient) => Promise<unknown>) => runtime.$transaction(async tx => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`; return operation(tx); });
-    const mocks = { "next/cache": { revalidatePath() {} }, "@/lib/auth/guards": { requireModuleEdit: async () => { if (!allowed) throw new Error("Sem permissão"); return auth; }, requirePermission: async () => auth }, "@/lib/rls": { withArenaTransaction: transact }, "@/lib/arena-database": { arenaDatabase: () => ({}) }, "@/lib/comandas/split": { allocateComandaShares }, "@/lib/finance/settlements": { allocatePaymentsToDebts, getOutstandingCents } };
+    const mocks = { "@/lib/calendar/standard-services": { STANDARD_SERVICES }, "next/cache": { revalidatePath() {} }, "@/lib/auth/guards": { requireModuleEdit: async () => { if (!allowed) throw new Error("Sem permissão"); return auth; }, requirePermission: async () => auth }, "@/lib/rls": { withArenaTransaction: transact }, "@/lib/arena-database": { arenaDatabase: () => ({}) }, "@/lib/comandas/split": { allocateComandaShares }, "@/lib/finance/settlements": { allocatePaymentsToDebts, getOutstandingCents } };
     const services = load("../src/lib/actions/services.ts", mocks);
     for (const agenda of [false, true]) for (const commands of [false, true]) {
       const name = `Serviço QA ${randomUUID()}`;

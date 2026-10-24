@@ -16,18 +16,20 @@ test("abrir comandas da reserva simultaneamente reutiliza uma comanda por atleta
   try {
     const arena = await admin.arena.findUniqueOrThrow({ where: { slug: "arena-teste-goal" } });
     for (let index = 0; index < 2; index++) playerIds.push((await admin.player.create({ data: { arenaId: arena.id, name: `Comanda concorrente ${randomUUID()}` } })).id);
+    const previous = await admin.comanda.create({ data: { arenaId: arena.id, playerId: playerIds[0], label: "Conta de ontem", code: randomUUID(), openedAt: new Date(Date.now() - 86400000), openedByUserId: "goal-test", openedByUserName: "Autor original" } });
     const occurrence = await admin.scheduleOccurrence.create({ data: { arenaId: arena.id, sourceType: "BOOKING", title: "Reserva de teste", startsAt: new Date(), endsAt: new Date(Date.now() + 3600000), responsiblePlayerId: playerIds[0], participants: { create: playerIds.map(playerId => ({ playerId })) } } }); occurrenceId = occurrence.id;
     const transact = (arenaId: string, run: (tx: Prisma.TransactionClient) => Promise<unknown>) => runtime.$transaction(async tx => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`; return run(tx); });
-    const actions: Record<string, (form: FormData) => Promise<{ error?: string }>> = {};
+    const actions: Record<string, (form: FormData) => Promise<{ error?: string; comandaIds?: string[] }>> = {};
     const mocks: Record<string, unknown> = {
       zod: { z }, "next/cache": { revalidatePath() {} },
-      "@/lib/auth/guards": { requirePermission: async () => ({ arenaId: arena.id }) },
+      "@/lib/auth/guards": { requirePermission: async () => ({ arenaId: arena.id, userId: "goal-test", userName: "Operador GOAL" }) },
       "@/lib/rls": { withArenaTransaction: transact },
     };
     vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/lib/actions/comanda.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports: actions, FormData, Date, crypto: globalThis.crypto, require: (name: string) => mocks[name] ?? {} });
     const open = () => { const form = new FormData(); form.set("occurrenceId", occurrenceId); return actions.openBookingComandasAction(form); };
     const outcomes = await Promise.all([open(), open()]);
-    for (const result of outcomes) assert.equal(result.error, undefined);
+    for (const result of outcomes) { assert.equal(result.error, undefined); assert.equal(result.comandaIds?.length, 2); assert(result.comandaIds?.includes(previous.id)); }
+    assert.equal((await admin.comanda.findUniqueOrThrow({ where: { id: previous.id } })).openedByUserName, "Autor original");
     await open();
     for (const playerId of playerIds) assert.equal(await admin.comanda.count({ where: { arenaId: arena.id, playerId, status: "OPEN" } }), 1);
     const missing = new FormData(); missing.set("occurrenceId", "missing-booking");
