@@ -102,7 +102,7 @@ export const viewStyles = {
     "tw:dark:[&_.public-client-auth-forgot]:text-[#5bdec1]!",
     "tw:dark:[&_.public-client-auth_.muted]:border-[#2a6155]!",
     "tw:dark:[&_.public-client-auth_.muted]:text-[#a4c8b9]!",
-    "tw:dark:[&_.public-client-auth_form_>_.button]:bg-[#078f7c]!",
-    "tw:dark:[&_.public-client-auth-actions_.button-primary]:bg-[#078f7c]!",
+    "tw:dark:[&_.public-client-auth_form_>_.button]:bg-[#087b63]!",
+    "tw:dark:[&_.public-client-auth-actions_.button-primary]:bg-[#087b63]!",
   ].join(" "),
 } as const;
