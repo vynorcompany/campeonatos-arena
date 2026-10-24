@@ -276,7 +276,9 @@ export function PublicStandings({
       : "games";
   const selectedEventTab: EventTab = eventTab === "super12" || eventTab === "radar" ? eventTab : "leagues";
   const menuItems = portalMenu(portalVisibility, currentClient.isTeacher);
-  const sectionTitle = menuItems.find(item => item.section === requestedSection)?.label ?? "Portal do atleta";
+  const sectionTitle = requestedSection === "booking"
+    ? "Reservar quadra"
+    : menuItems.find(item => item.section === requestedSection)?.label ?? "Portal do atleta";
 
   return (
     <div className="portal-app tw:[--panel:#fff] tw:[--text:#203c2e] tw:[--muted:#607467] tw:[--line:#e1e9e6] tw:[--line-strong:#91c4af] tw:[--brand:#247f5a] tw:[--brand-strong:#185f43] tw:dark:[--panel:#102d25] tw:dark:[--text:#eaf3e9] tw:dark:[--muted:#aac2b5] tw:dark:[--line:#29483f] tw:[--portal-ink:#203c2e] tw:[--portal-muted:#607467] tw:[--portal-accent:#247f5a] tw:[--portal-surface:#fff] tw:[--portal-soft:#f4f7f3] tw:[--portal-line:#e1e9e6] tw:[--portal-selection-surface:#d6f1dd] tw:[--portal-selection-ink:#133d2c] tw:dark:[--portal-selection-surface:#b6f36c] tw:dark:[--portal-selection-ink:#163429] tw:[--portal-warning-ink:#b64733] tw:[--portal-warning-surface:#fff3ed] tw:[--portal-panel-image:linear-gradient(135deg,#fff,#f7faf6)] tw:[--portal-shadow:0_3px_16px_rgba(21,60,44,.04)] tw:dark:[--portal-ink:#eaf3e9] tw:dark:[--portal-muted:#aac2b5] tw:dark:[--portal-accent:#a5dcaf] tw:dark:[--portal-surface:#102d25] tw:dark:[--portal-soft:#21483d] tw:dark:[--portal-line:#29483f] tw:dark:[--portal-warning-ink:#ffb49a] tw:dark:[--portal-warning-surface:#422d24] tw:dark:[--portal-panel-image:linear-gradient(135deg,#102d25,#14382b)] tw:[&_*]:box-border tw:flex tw:min-h-dvh tw:min-w-0 tw:bg-[#f4f7f3] tw:text-[#203c2e] tw:dark:bg-[#09251d] tw:dark:text-[#eaf3e9]">
