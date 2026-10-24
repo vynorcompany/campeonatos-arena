@@ -13,6 +13,6 @@ export function selectedComandaDebtWhere(arenaId: string, ids: string[]) {
     id: { in: ids },
     arenaId,
     type: { in: ["REVENUE", "INCOME"] },
-    status: { in: ["PENDING", "OVERDUE"] },
+    status: { in: ["PENDING", "OVERDUE", "PARTIAL"] },
   };
 }

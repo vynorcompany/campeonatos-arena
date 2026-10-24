@@ -132,16 +132,28 @@ export async function openBookingComandasAction(formData: FormData): Promise<{ e
     if (!occurrenceId.success) throw new Error("Horário inválido.");
 
     const comandaIds = await withArenaTransaction(auth.arenaId, async (tx) => {
-      const occurrence = await tx.scheduleOccurrence.findFirst({ where: { id: occurrenceId.data, arenaId: auth.arenaId, status: { not: "CANCELED" } }, include: { participants: { select: { playerId: true, player: { select: { name: true } } } } } });
+      await tx.$queryRaw`SELECT id FROM "ScheduleOccurrence" WHERE id = ${occurrenceId.data} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
+      const occurrence = await tx.scheduleOccurrence.findFirst({ where: { id: occurrenceId.data, arenaId: auth.arenaId, status: { not: "CANCELED" } }, include: { participants: { include: { player: { select: { name: true } }, financialEntry: { select: { arenaId: true, playerId: true, type: true } } } } } });
       if (!occurrence) throw new Error("Horário não encontrado.");
+      if (occurrence.status === "PENDING_PAYMENT") throw new Error("Esta reserva aguarda confirmação do pagamento online.");
       if (!occurrence.participants.length) throw new Error("Não é possível abrir comandas: esta reserva não possui cliente atribuído.");
       for (const playerId of occurrence.participants.map(participant => participant.playerId).sort()) {
         await tx.$queryRaw`SELECT id FROM "Player" WHERE id = ${playerId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
       }
       const ids: string[] = [];
       for (const participant of occurrence.participants) {
-        const existing = await tx.comanda.findFirst({ where: { arenaId: auth.arenaId, playerId: participant.playerId, status: "OPEN" }, select: { id: true } });
+        if (participant.financialEntryId && (!participant.financialEntry || participant.financialEntry.arenaId !== auth.arenaId || (participant.financialEntry.playerId && participant.financialEntry.playerId !== participant.playerId) || !["REVENUE", "INCOME"].includes(participant.financialEntry.type))) throw new Error("A cobrança da reserva não está disponível para este atleta. Revise o lançamento financeiro.");
+        let existing = await tx.comanda.findFirst({ where: { arenaId: auth.arenaId, playerId: participant.playerId, status: "OPEN" }, select: { id: true } });
+        if (existing) {
+          await tx.$queryRaw`SELECT id FROM "Comanda" WHERE id = ${existing.id} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
+          existing = await tx.comanda.findFirst({ where: { id: existing.id, arenaId: auth.arenaId, status: "OPEN" }, select: { id: true } });
+        }
         const command = existing ?? await tx.comanda.create({ data: { arenaId: auth.arenaId, playerId: participant.playerId, openedByUserId: auth.userId, openedByUserName: auth.userName, label: participant.player.name, type: "CLIENT", code: formatComandaCode() } });
+        if (!participant.financialEntryId && participant.amountCents > 0 && !participant.paymentMethod) {
+          const entry = await tx.financialEntry.create({ data: { arenaId: auth.arenaId, playerId: participant.playerId, counterpartyName: participant.player.name, type: "REVENUE", category: "Reserva", source: "SCHEDULE_BOOKING", externalReference: occurrence.id, description: `${occurrence.bookingTypeName} · ${participant.player.name}`, amountCents: participant.amountCents, status: "PENDING", dueDate: occurrence.startsAt } });
+          await tx.scheduleParticipant.update({ where: { id: participant.id }, data: { financialEntryId: entry.id } });
+        }
+        await tx.comandaBookingService.upsert({ where: { comandaId_participantId: { comandaId: command.id, participantId: participant.id } }, create: { comandaId: command.id, participantId: participant.id }, update: {} });
         ids.push(command.id);
       }
       return ids;
@@ -232,9 +244,12 @@ export async function finishComandaAction(formData: FormData) {
 
   await withArenaTransaction(auth.arenaId, async (tx) => {
     await tx.$queryRaw`SELECT id FROM "Comanda" WHERE id = ${parsed.data.comandaId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
-    const comanda = await tx.comanda.findFirst({ where: { id: parsed.data.comandaId, arenaId: auth.arenaId, status: "OPEN" }, include: { items: { include: { product: true } } } });
+    const comanda = await tx.comanda.findFirst({ where: { id: parsed.data.comandaId, arenaId: auth.arenaId, status: "OPEN" }, include: { items: { include: { product: true } }, bookingServices: { include: { participant: { select: { financialEntryId: true, financialEntry: { select: { status: true } }, occurrence: { select: { status: true } } } } } } } });
     if (!comanda) throw new Error("Comanda não está disponível.");
-    if (!comanda.items.length && !parsed.data.debtIds.length) {
+    const automaticDebtIds = (comanda.bookingServices ?? []).flatMap(({ participant }) => participant.financialEntryId && ["PENDING", "OVERDUE", "PARTIAL"].includes(participant.financialEntry?.status ?? "") ? [participant.financialEntryId] : []);
+    const debtIdsToSettle = [...new Set([...parsed.data.debtIds, ...automaticDebtIds])];
+    for (const debtId of [...debtIdsToSettle].sort()) await tx.$queryRaw`SELECT id FROM "FinancialEntry" WHERE id = ${debtId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
+    if (!comanda.items.length && !debtIdsToSettle.length) {
       if (!parsed.data.allowEmpty) throw new Error("Confirme o encerramento da comanda zerada.");
       await tx.comanda.update({ where: { id: comanda.id }, data: { status: "CLOSED", closedAt: new Date() } });
       return;
@@ -245,11 +260,11 @@ export async function finishComandaAction(formData: FormData) {
     if (parsed.data.creditCents > clientCreditCents) throw new Error("O saldo disponível do cliente foi alterado. Atualize a comanda e tente novamente.");
     const creditAppliedCents = Math.min(parsed.data.creditCents, totalCents);
     const paymentTotalCents = parsed.data.payments.reduce((total, payment) => total + payment.amountCents, 0);
-    const selectedDebts = comanda.playerId && parsed.data.debtIds.length ? await tx.financialEntry.findMany({
-      where: selectedComandaDebtWhere(auth.arenaId, parsed.data.debtIds),
+    const selectedDebts = comanda.playerId && debtIdsToSettle.length ? await tx.financialEntry.findMany({
+      where: selectedComandaDebtWhere(auth.arenaId, debtIdsToSettle),
       select: { id: true, playerId: true, amountCents: true, settlements: { select: { amountCents: true } }, scheduleParticipant: { select: { playerId: true } }, sale: { select: { comanda: { select: { playerId: true } } } } }
     }) : [];
-    if (selectedDebts.length !== parsed.data.debtIds.length || selectedDebts.some((debt) => comandaDebtOwnerId(debt) !== comanda.playerId)) throw new Error("Um dos débitos selecionados não está disponível para este cliente.");
+    if (selectedDebts.length !== debtIdsToSettle.length || selectedDebts.some((debt) => comandaDebtOwnerId(debt) !== comanda.playerId)) throw new Error("Um dos débitos selecionados não está disponível para este cliente.");
     const selectedDebtBalances = selectedDebts
       .map((debt) => ({
         financialEntryId: debt.id,

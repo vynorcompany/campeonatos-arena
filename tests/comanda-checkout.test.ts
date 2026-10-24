@@ -47,7 +47,7 @@ test("command checkout offers only the client's pending balances for joint settl
   assert.match(actions, /partialDebtPaymentCents/);
   assert.match(actions, /financialSettlement\.create/);
   assert.match(actions, /getOutstandingCents/);
-  assert.match(card, /Débitos em aberto/);
+  assert.match(card, /Outros débitos em aberto/);
   assert.match(card, /Selecionar para quitar junto/);
   assert.match(card, /baixa parcial/);
   assert.match(page, /settlements/);
@@ -84,7 +84,7 @@ test("zero-value commands request explicit confirmation and schedule charges use
   assert.match(calendarActions, /counterpartyName: player\.name/);
   assert.match(calendarActions, /refreshCalendarRoutes\(\)/);
   assert.match(calendarRevalidation, /revalidatePath\("\/comandas"\)/);
-  assert.match(page, /\["PENDING", "OVERDUE"\]/);
+  assert.match(page, /\["PENDING", "OVERDUE", "PARTIAL"\]/);
   assert.ok(existsSync(resolve(process.cwd(), "prisma/migrations/20260910110000_normalize_schedule_financial_entries/migration.sql")));
 });
 
@@ -93,10 +93,10 @@ test("zero-value commands keep the checkout available for debts linked to the cl
   const card = readFileSync(resolve(process.cwd(), "src/components/comandas/command-card.tsx"), "utf8");
   const page = readFileSync(resolve(process.cwd(), "src/app/(app)/comandas/page.tsx"), "utf8");
 
-  assert.match(card, /!totalCents && !selectedDebtIds\.length/);
+  assert.match(card, /!totalCents && !bookingTotalCents && !selectedDebtIds\.length/);
   assert.match(card, /setCheckoutOpen\(true\)/);
   assert.match(card, /event\.stopPropagation\(\); setDetailsOpen\(false\)/);
-  assert.match(commandActions, /!comanda\.items\.length && !parsed\.data\.debtIds\.length/);
+  assert.match(commandActions, /!comanda\.items\.length && !debtIdsToSettle\.length/);
   assert.match(page, /comandaDebtOwnerId\(debt\)/);
   assert.doesNotMatch(page, /commandPlayerIdsByName/);
 });

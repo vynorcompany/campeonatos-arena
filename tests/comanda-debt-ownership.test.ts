@@ -15,7 +15,7 @@ test("baixa conjunta aceita vencidos mas restringe arena e receita antes de conf
     id: { in: ["debito-a"] },
     arenaId: "arena-a",
     type: { in: ["REVENUE", "INCOME"] },
-    status: { in: ["PENDING", "OVERDUE"] },
+    status: { in: ["PENDING", "OVERDUE", "PARTIAL"] },
   });
   const actions = readFileSync(new URL("../src/lib/actions/comanda.ts", import.meta.url), "utf8");
   assert.match(actions, /selectedDebts\.some\(\(debt\) => comandaDebtOwnerId\(debt\) !== comanda\.playerId\)/);
