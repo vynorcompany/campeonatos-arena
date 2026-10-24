@@ -97,8 +97,8 @@ test("mobile home shows the athlete's next reservations and links booking to thi
   assert.match(reservationFilter, /participants: \{ some: \{ playerId \} \}/);
   assert.match(home, /take: 3/);
   assert.match(portal, /home\.upcomingReservations\.map/);
-  assert.match(portal, /primary===\"booking\"|primary===\"reservations\"/);
-  assert.match(portal, /href=\{href\(primary\)\}/);
+  assert.match(portal, /data-portal-booking-cta="true"/);
+  assert.match(portal, /href=\{bookingHref\}/);
   assert.match(portal, /encodeURIComponent\(arena\.slug\)/);
 });
 

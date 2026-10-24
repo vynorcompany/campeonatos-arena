@@ -39,7 +39,7 @@ export async function getAthletePortalNotifications(arenaSlug: string, playerId:
   const today = arenaToday(now);
   const financial = entries.map((entry) => ({ entry, outstandingCents: getOutstandingCents(entry.amountCents, entry.settlements) })).filter(({ outstandingCents }) => outstandingCents > 0).map(({ entry, outstandingCents }) => {
     const overdue = entry.status === "OVERDUE" || Boolean(entry.dueDate && entry.dueDate < today);
-    return { id: `finance-${entry.id}`, source: "FINANCE" as const, title: overdue ? "Pagamento em atraso" : "Pagamento pendente", message: `${entry.description || "Lançamento financeiro"} · ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(outstandingCents / 100)}`, href: entry.onlinePaymentUrl || `/home?arena=${encodeURIComponent(arenaSlug)}&section=finance`, createdAt: entry.createdAt.toISOString(), isRead: overdue ? false : readKeys.has(`finance-${entry.id}`), persistent: overdue };
+    return { id: `finance-${entry.id}`, source: "FINANCE" as const, title: overdue ? "Pagamento em atraso" : "Pagamento pendente", message: `${entry.description || "Lançamento financeiro"} · ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(outstandingCents / 100)}`, href: entry.onlinePaymentUrl || `/home?arena=${encodeURIComponent(arenaSlug)}&section=finance`, createdAt: entry.createdAt.toISOString(), isRead: readKeys.has(`finance-${entry.id}`), persistent: overdue };
   });
   return [
     ...playerNotifications.map((notification) => {
@@ -50,6 +50,6 @@ export async function getAthletePortalNotifications(arenaSlug: string, playerId:
     }),
     ...announcements.map((announcement) => ({ id: `arena-${announcement.id}`, source: "ARENA" as const, title: announcement.title, message: announcement.message, href: `/classificacao/${arenaSlug}?section=home`, createdAt: announcement.createdAt.toISOString(), isRead: readKeys.has(`arena-${announcement.id}`) })),
     ...financial,
-    ...(bookingDelinquency.blocked ? [{ id: "booking-delinquency", source: "FINANCE" as const, title: "Reservas temporariamente bloqueadas", message: "Existem pagamentos em atraso. Regularize as pendências para voltar a reservar quadras.", href: `/home?arena=${encodeURIComponent(arenaSlug)}&section=finance`, createdAt: now.toISOString(), isRead: false, persistent: true }] : []),
+    ...(bookingDelinquency.blocked ? [{ id: "booking-delinquency", source: "FINANCE" as const, title: "Reservas temporariamente bloqueadas", message: "Existem pagamentos em atraso. Regularize as pendências para voltar a reservar quadras.", href: `/home?arena=${encodeURIComponent(arenaSlug)}&section=finance`, createdAt: now.toISOString(), isRead: readKeys.has("booking-delinquency"), persistent: true }] : []),
   ].sort((left, right) => right.createdAt.localeCompare(left.createdAt)).slice(0, 20);
 }
