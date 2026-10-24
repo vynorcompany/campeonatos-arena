@@ -134,7 +134,7 @@ test("athlete portal presents classes as an internal lessons navigation", () => 
   assert.doesNotMatch(portal, /athlete-portal-nav-menu/);
   assert.match(
     portal,
-    /portalVisibility\.athletePortalShowLessons \? "lessons" : "classes"/,
+    /portalMenu\(portalVisibility, currentClient\.isTeacher\)/,
   );
   assert.match(portal, /viewStyles\.athlete_portal_league_nav_athlete_portal_learning_tabs/);
   assert.match(portal, /Minhas aulas/);

@@ -8,6 +8,6 @@ export function AthletePortalWordmark({ compact = false }: { compact?: boolean }
       <circle cx="51" cy="8" r="4" fill={compact ? "#078f7c" : "#54dca9"} />
     </g>
     <text x="69" y="28" className={compact ? "tw:fill-[#133047] tw:dark:fill-[#f2fbff]" : ""} fill={compact ? undefined : "#f2fbff"} fontFamily="Arial, sans-serif" fontSize="23" fontWeight="800" letterSpacing="2.8">PORTAL</text>
-    <text x="69" y="52" fill={compact ? "#078f7c" : "#69e3b9"} fontFamily="Arial, sans-serif" fontSize="18" fontWeight="700" letterSpacing="2">DO ATLETA</text>
+    <text x="69" y="52" className={compact ? "tw:fill-[#087b63] tw:dark:fill-[#8de1b7]" : ""} fill={compact ? undefined : "#69e3b9"} fontFamily="Arial, sans-serif" fontSize="18" fontWeight="700" letterSpacing="2">DO ATLETA</text>
   </svg>;
 }

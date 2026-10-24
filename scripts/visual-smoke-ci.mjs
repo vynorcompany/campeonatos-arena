@@ -838,22 +838,32 @@ async function main() {
       { label: "radar", query: "section=radar" },
       { label: "perfil", query: "section=profile" },
     ];
-    const expectedDarkText = {
-      avisos: { ".portal-announcements-feed > p.muted": "rgb(164, 200, 185)" },
-      super12: { ".super12-empty strong": "rgb(234, 255, 243)", ".super12-empty p": "rgb(164, 200, 185)" },
-      reservas: { ".portal-activity-list article strong": "rgb(234, 255, 243)", ".portal-activity-list article span": "rgb(164, 200, 185)", ".portal-activity-list article b": "rgb(94, 229, 189)" },
-      perfil: { ".avatar-crop-field > small": "rgb(164, 200, 185)" },
+    const portalContrastSelectors = {
+      avisos: [".portal-announcements-feed > p.muted"],
+      super12: [".super12-empty strong", ".super12-empty p"],
+      reservas: [".portal-activity-list article strong", ".portal-activity-list article span", ".portal-activity-list article b"],
+      perfil: [".avatar-crop-field > small"],
     };
-    const expectedDesktopText = {
-      avisos: { ".portal-announcements-feed > p.muted": "rgb(164, 200, 185)" },
-      super12: { ".super12-empty strong": "rgb(234, 255, 243)", ".super12-empty p": "rgb(164, 200, 185)" },
-      reservas: { ".portal-activity-list article strong": "rgb(19, 48, 71)" },
-      perfil: { ".avatar-crop-field > small": "rgb(164, 200, 185)" },
-    };
-    const expectedMobileLightText = {
-      avisos: { ".portal-announcements-feed > p.muted": "rgb(96, 126, 141)" },
-      super12: { ".super12-empty strong": "rgb(19, 48, 71)" },
-      perfil: { ".avatar-crop-field > small": "rgb(96, 126, 141)" },
+    // Check readable text against the rendered surface rather than pinning the old theme's RGB values.
+    const measurePortalContrast = (selectors) => {
+      const parse = value => { const parts=value.match(/[\d.]+/g)?.map(Number); return parts?.length>=3 ? parts : null; };
+      const luminance = color => { const c=color.slice(0,3).map(value=>{const v=value/255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4;});return .2126*c[0]+.7152*c[1]+.0722*c[2]; };
+      const backgrounds = element => {
+        for(let node=element;node;node=node.parentElement){
+          const style=getComputedStyle(node);
+          const gradient=(style.backgroundImage.match(/rgba?\([^)]*\)/g)??[]).map(parse).filter(color=>color&&(color.length===3||color[3]===1));
+          if(gradient.length)return gradient;
+          const color=parse(style.backgroundColor);if(color&&(color.length===3||color[3]===1))return [color];
+        }
+        return [[255,255,255]];
+      };
+      return selectors.map(selector=>{
+        const element=[...document.querySelectorAll(selector)].find(node=>node.getBoundingClientRect().width>0&&node.getBoundingClientRect().height>0);
+        if(!element)return {selector,missing:true};
+        const style=getComputedStyle(element);const fg=parse(style.color);const size=parseFloat(style.fontSize);const threshold=size>=24||(size>=18.66&&Number(style.fontWeight)>=700)?3:4.5;
+        const ratios=backgrounds(element).map(bg=>{const a=luminance(fg),b=luminance(bg);return (Math.max(a,b)+.05)/(Math.min(a,b)+.05);});
+        return {selector,color:style.color,contrast:Math.min(...ratios),threshold};
+      });
     };
     for (const viewport of viewports) {
       for (const theme of viewport.name === "mobile" ? ["light", "dark"] : ["light"]) {
@@ -888,17 +898,10 @@ async function main() {
           if (metrics.path !== "/home" || !metrics.authenticated || metrics.main.trim().length < 40 || metrics.scrollWidth > metrics.width + 1 || /Algo saiu do fluxo|Application error|Internal Server Error/i.test(metrics.body) || metrics.body.includes("Receita beta GOAL")) {
             throw new Error(`${label}: portal inválido: ${JSON.stringify({ path: metrics.path, authenticated: metrics.authenticated, mainLength: metrics.main.trim().length, width: metrics.width, scrollWidth: metrics.scrollWidth })}`);
           }
-          const expected = viewport.name === "desktop" ? expectedDesktopText[view.label] : theme === "dark" ? expectedDarkText[view.label] : expectedMobileLightText[view.label];
-          if (expected) {
-            const rendered = await send("Runtime.evaluate", {
-              expression: `Object.fromEntries(${JSON.stringify(Object.keys(expected))}.map((selector) => [selector, document.querySelector(selector) ? getComputedStyle(document.querySelector(selector)).color : null]))`,
-              returnByValue: true,
-            });
-            for (const [selector, color] of Object.entries(expected)) {
-              if (rendered.result.value?.[selector] !== color) {
-                throw new Error(`${label}: contraste insuficiente em ${selector}: ${rendered.result.value?.[selector] ?? "ausente"}; esperado ${color}.`);
-              }
-            }
+          const contrastSelectors=portalContrastSelectors[view.label];
+          if(contrastSelectors){
+            const rendered=await send("Runtime.evaluate",{expression:`(${measurePortalContrast.toString()})(${JSON.stringify(contrastSelectors)})`,returnByValue:true});
+            for(const check of rendered.result.value??[]) if(check.missing||check.contrast<check.threshold) throw new Error(`${label}: contraste insuficiente: ${JSON.stringify(check)}`);
           }
           if (view.label === "inicio" && (!metrics.main.includes(viewport.name === "mobile" ? "Comanda em aberto" : "em aberto") || metrics.main.includes("Tudo em dia"))) {
             throw new Error(`${label}: a tela inicial ignora a comanda aberta do atleta fictício.`);

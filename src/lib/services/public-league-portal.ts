@@ -638,9 +638,9 @@ export async function getPublicLeaguePortal(
       status:
         reservation.status === "CONFIRMED"
           ? "Confirmada"
-          : reservation.status === "PENDING"
+          : ["PENDING", "PENDING_CONFIRMATION"].includes(reservation.status)
             ? "Aguardando confirmação"
-            : "Agendada",
+            : reservation.status === "PENDING_PAYMENT" ? "Aguardando pagamento" : "Agendada",
     })),
     lessons:
       student?.attendances.map((attendance) => ({

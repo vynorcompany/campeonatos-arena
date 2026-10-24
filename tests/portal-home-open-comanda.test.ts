@@ -8,8 +8,10 @@ test("a tela inicial não diz que está tudo em dia quando há comanda aberta", 
   const source = readFileSync(new URL("../src/lib/services/public-client-home.ts", import.meta.url), "utf8");
   const exports: Record<string, (...args: string[]) => Promise<unknown>> = {};
   const comandaQueries: Array<Record<string, unknown>> = [];
-  let openComandas = [{ id: "comanda-a", code: "GOAL-1", items: [{ totalCents: 1200 }] }];
+  let openComandas: Array<{ id: string; code: string; openedAt?: Date; openedByUserName?: string; bookingServices?: { id: string; amountCents: number }[]; items: { totalCents: number; id?: string; quantity?: number; product?: { name: string } }[] }> = [{ id: "comanda-a", code: "GOAL-1", items: [{ totalCents: 1200 }] }];
   const tx = {
+    product: { findMany: async () => [] },
+    productCategory: { findMany: async () => [] },
     player: { findFirst: async () => ({ name: "Atleta GOAL" }) },
     portalAnnouncement: { findMany: async () => [] },
     calendarEvent: { findMany: async () => [] },
@@ -21,6 +23,7 @@ test("a tela inicial não diz que está tudo em dia quando há comanda aberta", 
     comanda: { findMany: async (query: Record<string, unknown>) => { comandaQueries.push(query); return openComandas; } },
   };
   const mocks: Record<string, unknown> = {
+    "@/lib/comandas/booking-service": { bookingServicesInclude: { include: { participant: true } }, bookingServiceRows: (rows: unknown[]) => rows },
     "@/lib/prisma": { prisma: { arena: { findUnique: async () => ({ id: "arena-a" }) } } },
     "@/lib/rls": { withArenaTransaction: async (_arenaId: string, action: (client: typeof tx) => Promise<unknown>) => action(tx) },
     "@/lib/finance/settlements": { getOutstandingCents: (amount: number) => amount },
@@ -45,6 +48,15 @@ test("a tela inicial não diz que está tudo em dia quando há comanda aberta", 
   assert.equal(finance.headline, "Comanda em aberto");
   assert.match(finance.detail, /Acompanhe o consumo/);
   assert.equal(finance.comandas.length, 1);
+
+  // The reservation receivable remains separate in Finance; its linked service
+  // must still be visible in the comanda alongside products, exactly once.
+  openComandas = [{ id: "comanda-a", code: "GOAL-1", openedAt: new Date(), openedByUserName: "Recepção QA", bookingServices: [{ id: "service-a", amountCents: 2500 }], items: [{ id: "item-a", quantity: 1, totalCents: 500, product: { name: "Água" } }] }];
+  const commands = await exports.getPublicClientComandas("arena-a", "player-a") as { comandas: { totalCents: number; openedBy: string; bookingServices: unknown[] }[] };
+  assert.equal(commands.comandas[0].totalCents, 3000);
+  assert.equal(commands.comandas[0].openedBy, "Recepção QA");
+  assert.equal(commands.comandas[0].bookingServices.length, 1);
+  assert.equal((comandaQueries.at(-1)?.include as { bookingServices: unknown }).bookingServices !== undefined, true);
 
   openComandas = [];
   const empty = await exports.getPublicClientHome("arena-a", "player-a") as { summary: { financial: string; financialStatus: string; mobileFinancialStatus: string; mobileFinancialLabel: string } };

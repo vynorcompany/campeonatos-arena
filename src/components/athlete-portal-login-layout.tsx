@@ -1,27 +1,9 @@
 import { viewStyles } from "./athlete-portal-login-layout.utilities";
 import type { ReactNode } from "react";
-
-type Props = {
-  children: ReactNode;
-  arena?: { name: string; logoUrl?: string | null };
-};
-
+type Props = { children: ReactNode; arena?: { name: string; logoUrl?: string | null } };
 export function AthletePortalLoginLayout({ children, arena }: Props) {
-  return <main className={viewStyles.athlete_login_page}>
-    <div className={viewStyles.athlete_login_shell}>
-      <aside className={viewStyles.athlete_login_brand} aria-label="Portal do Atleta">
-        <div className={viewStyles.athlete_login_identity}>
-          {arena?.logoUrl ? <img src={arena.logoUrl} alt="" /> : <span className={viewStyles.athlete_login_mark} aria-hidden="true">{arena ? arena.name.slice(0, 2).toUpperCase() : "AP"}</span>}
-          <span><strong>{arena?.name ?? "ARENA"}</strong><small>PORTAL DO ATLETA</small></span>
-        </div>
-        <div className={viewStyles.athlete_login_message}>
-          <span>SEU JOGO COMEÇA AQUI</span>
-          <h1>Seu espaço dentro e fora da quadra.</h1>
-          <p>Acompanhe torneios, aulas, reservas e pagamentos em um único lugar.</p>
-        </div>
-        <p className={viewStyles.athlete_login_footer}>Tudo o que você precisa para viver a arena.</p>
-      </aside>
-      <div className={viewStyles.athlete_login_form_panel}>{children}</div>
-    </div>
-  </main>;
+  return <main className="athlete-login-page tw:grid tw:min-h-dvh tw:place-items-center tw:bg-[#f4f7f3] tw:p-4 tw:text-[#203c2e] tw:dark:bg-[#09251d] tw:dark:text-[#eaf3e9] tw:[&_*]:box-border tw:min-[760px]:p-8"><div className="athlete-login-shell tw:grid tw:w-full tw:max-w-[1000px] tw:min-w-0 tw:rounded-3xl tw:border tw:border-[#dce7df] tw:bg-white tw:shadow-[0_20px_70px_rgba(20,57,39,.09)] tw:dark:border-[#29483f] tw:dark:bg-[#102d25] tw:min-[760px]:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)]">
+    <aside className="athlete-login-brand tw:flex tw:min-w-0 tw:flex-col tw:justify-between tw:gap-7 tw:rounded-t-3xl tw:bg-[#134f3b] tw:bg-[radial-gradient(ellipse_at_top_right,rgba(123,204,133,.24),transparent_70%)] tw:p-6 tw:text-white tw:min-[760px]:min-h-[620px] tw:min-[760px]:rounded-tr-none tw:min-[760px]:rounded-bl-3xl tw:min-[760px]:p-10" aria-label="Portal do Atleta"><div className="tw:flex tw:items-center tw:gap-3">{arena?.logoUrl ? <img src={arena.logoUrl} alt="" className="tw:size-11 tw:shrink-0 tw:rounded-xl tw:object-contain"/> : <span className="tw:grid tw:size-11 tw:shrink-0 tw:place-items-center tw:rounded-xl tw:border tw:border-white/20 tw:font-bold tw:text-[#d3ed9d]">{arena ? arena.name.slice(0,2).toUpperCase() : "AP"}</span>}<span className="tw:min-w-0"><strong className="tw:block tw:break-words tw:text-sm">{arena?.name ?? "ARENA"}</strong><small className="tw:mt-1 tw:block tw:text-[9px] tw:font-medium tw:tracking-[.15em] tw:text-[#c5dfcf]">PORTAL DO ATLETA</small></span></div><div><span className="tw:text-[10px] tw:font-semibold tw:tracking-[.14em] tw:text-[#c5dfcf]">SEU JOGO COMEÇA AQUI</span><h1 className="tw:mt-3 tw:mb-3 tw:text-[clamp(1.5rem,3.2vw,2.6rem)] tw:leading-[1.12] tw:font-semibold tw:tracking-[-.04em]">Seu espaço dentro e fora da quadra.</h1><p className="tw:m-0 tw:max-w-sm tw:text-sm tw:leading-relaxed tw:text-[#c5dfcf]">Acompanhe torneios, aulas, reservas e pagamentos em um único lugar.</p></div><p className="tw:m-0 tw:hidden tw:border-t tw:border-white/15 tw:pt-6 tw:text-xs tw:text-[#c5dfcf] tw:min-[760px]:block">Conectado ao seu jogo. Perto da sua arena.</p></aside>
+    <div className={`${viewStyles.athlete_login_form_panel} tw:w-full! tw:min-w-0! tw:p-6! tw:min-[760px]:p-10!`}>{children}</div>
+  </div></main>;
 }
