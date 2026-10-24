@@ -1576,6 +1576,7 @@ model BookingType {
 }
 
 model ScheduleParticipant {
+  comandaServices ComandaBookingService[]
   checkedInAt      DateTime?
   id               String             @id @default(cuid())
   amountCents      Int                @default(0)
@@ -2121,6 +2122,7 @@ model SalePayment {
 }
 
 model Comanda {
+  bookingServices ComandaBookingService[]
   openedByUserId   String?
   openedByUserName String          @default("")
   id        String        @id @default(cuid())
@@ -2159,6 +2161,17 @@ model ComandaRequest {
 
   @@index([comandaId, status, createdAt])
   @@index([productId])
+}
+
+model ComandaBookingService {
+  id            String @id @default(cuid())
+  comandaId     String
+  participantId String
+  comanda       Comanda @relation(fields: [comandaId], references: [id], onDelete: Cascade)
+  participant   ScheduleParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@unique([comandaId, participantId])
+  @@index([participantId])
 }
 
 model ComandaItem {
