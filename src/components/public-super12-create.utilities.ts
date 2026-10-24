@@ -3,7 +3,7 @@ import { sharedUtilities } from "@/components/ui/shared.utilities";
 export const viewStyles = {
   "super12_create": [
     "super12-create", "tw:[&_summary_>_span]:text-[color:var(--portal-accent,#1264a5)]", "tw:[&_summary_>_span]:text-[.64rem]", "tw:[&_summary_>_span]:font-[900]",
-    "tw:[&_summary_>_span]:tracking-[.09em]", "tw:[overflow-x:hidden]", "tw:[overflow-y:hidden]", "tw:border-t-[length:1px]",
+    "tw:[&_summary_>_span]:tracking-[.09em]", "tw:overflow-visible", "tw:border-t-[length:1px]",
     "tw:[border-top-style:solid]", "tw:border-t-[color:var(--portal-line,#cfe2ed)]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]",
     "tw:border-r-[color:var(--portal-line,#cfe2ed)]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:var(--portal-line,#cfe2ed)]",
     "tw:border-l-[length:1px]", "tw:[border-left-style:solid]", "tw:border-l-[color:var(--portal-line,#cfe2ed)]", "tw:rounded-[12px]",
@@ -36,12 +36,12 @@ export const viewStyles = {
     "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:var(--portal-line,#d5e5ed)]", "tw:border-b-[length:1px]",
     "tw:[border-bottom-style:solid]", "tw:border-b-[color:var(--portal-line,#d5e5ed)]", "tw:border-l-[length:1px]", "tw:[border-left-style:solid]",
     "tw:border-l-[color:var(--portal-line,#d5e5ed)]", "tw:rounded-[9px]", "tw:bg-[color:var(--portal-soft,#fff)]", "tw:[background-image:none]",
-    "tw:[&_>_div:first-child]:flex", "tw:[&_>_div:first-child]:items-baseline", "tw:viewport-700:[&_>_div:first-child]:items-start", "tw:[&_>_div:first-child]:justify-between",
-    "tw:[&_>_div:first-child]:gap-y-[8px]", "tw:[&_>_div:first-child]:gap-x-[8px]", "tw:[&_strong]:text-[color:var(--portal-accent,#17455f)]", "tw:[&_strong]:text-[.82rem]",
+    "tw:[&_>_header]:flex", "tw:[&_>_header]:items-baseline", "tw:viewport-700:[&_>_header]:items-start", "tw:[&_>_header]:justify-between",
+    "tw:[&_>_header]:gap-y-[8px]", "tw:[&_>_header]:gap-x-[8px]", "tw:[&_strong]:text-[color:var(--portal-accent,#17455f)]", "tw:[&_strong]:text-[.82rem]",
     "tw:[&_span]:mt-[0]", "tw:[&_span]:mr-[0]", "tw:[&_span]:mb-[0]", "tw:[&_span]:ml-[0]",
     "tw:[&_span]:text-[color:var(--portal-accent,#688195)]", "tw:[&_span]:text-[.72rem]", "tw:[&_p]:mt-[0]", "tw:[&_p]:mr-[0]",
     "tw:[&_p]:mb-[0]", "tw:[&_p]:ml-[0]", "tw:[&_p]:text-[color:var(--portal-accent,#688195)]", "tw:[&_p]:text-[.72rem]",
-    "tw:viewport-700:[&_>_div:first-child]:flex-col",
+    "tw:viewport-700:[&_>_header]:flex-col",
   ].join(" "),
   "button_button_small": sharedUtilities.buttonButtonSmall,
   "super12_player_search": [
