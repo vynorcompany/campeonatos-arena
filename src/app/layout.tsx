@@ -8,8 +8,8 @@ export const metadata: Metadata = {
   title: "Arena Padel Manager",
   description: "Sistema online para gestão de campeonatos, duplas, grupos e jogos da arena.",
   icons: {
-    icon: [{ url: "/favicon.ico", type: "image/x-icon" }, { url: "/icon.svg", type: "image/svg+xml" }],
-    apple: "/apple-touch-icon.png"
+    icon: [{ url: "/favicon.ico?v=padel-2", type: "image/x-icon" }, { url: "/icon.svg?v=padel-2", type: "image/svg+xml" }],
+    apple: "/apple-touch-icon.png?v=padel-2"
   }
 };
 
