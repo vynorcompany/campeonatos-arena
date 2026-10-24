@@ -1,3 +1,4 @@
+import { registerLessonCheckin } from "../src/lib/checkin/lesson";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -54,6 +55,7 @@ test("aprovações simultâneas não duplicam matrícula nem cobrança e respeit
     const source = readFileSync(new URL("../src/lib/actions/class-groups.ts", import.meta.url), "utf8");
     const exports: Record<string, (form: FormData) => Promise<void>> = {};
     const mocks: Record<string, unknown> = {
+      "@/lib/checkin/lesson": { registerLessonCheckin },
       "next/cache": { revalidatePath() {} },
       "@/lib/auth/player-session": {},
       "@/lib/auth/guards": { requireModuleEdit: async () => ({ arenaId: arenaA.id }) },

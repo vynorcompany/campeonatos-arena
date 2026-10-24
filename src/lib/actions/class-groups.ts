@@ -9,6 +9,7 @@ import { arenaWallClockToInstant, instantToArenaWallClock } from "@/lib/calendar
 import { issueRecurringOnlineChargeForEntry } from "@/lib/payments/recurring-online-charges";
 import { lockClassGroupCapacity } from "@/lib/academy/class-group-capacity";
 import { lockStudentPlanSubscription } from "@/lib/academy/subscription-lock";
+import { registerLessonCheckin } from "@/lib/checkin/lesson";
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
 
@@ -21,32 +22,9 @@ export async function checkInPortalLessonAction(formData: FormData) {
   const lessonId = String(formData.get("lessonId") ?? "").trim();
   if (!arenaSlug || !lessonId) throw new Error("Aula inválida.");
   const auth = await requirePublicPlayerAuth(arenaSlug);
-  const now = new Date();
-  await withArenaTransaction(auth.arenaId, async (tx) => {
-    const attendance = await tx.lessonAttendance.findFirst({
-      where: { lessonId, student: { arenaId: auth.arenaId, playerId: auth.playerId, active: true } },
-      include: { lesson: { select: { id: true, scheduledAt: true, status: true } }, student: { include: { subscriptions: { where: { status: "ACTIVE" }, orderBy: { startedAt: "desc" }, take: 1 } } } }
-    });
-    if (!attendance || !attendance.lesson.scheduledAt || attendance.lesson.status === "CANCELED") throw new Error("Esta aula não está disponível para check-in.");
-    if (attendance.checkedInAt) throw new Error("Seu check-in nesta aula já foi registrado.");
-    const startsAt = attendance.lesson.scheduledAt;
-    const lessonInstant = arenaWallClockToInstant(startsAt);
-    const opensAt = new Date(lessonInstant.getTime() - 3 * 60 * 60_000);
-    const closesAt = new Date(lessonInstant.getTime() + 8 * 60 * 60_000);
-    if (now < opensAt || now > closesAt) throw new Error("O check-in fica disponível três horas antes da aula e até oito horas após o início.");
-    const month = referenceMonth(startsAt);
-    const subscriptionCredits = attendance.student.subscriptions[0]?.classesPerMonth ?? 0;
-    const existing = await tx.studentMonthlyBalance.findUnique({ where: { studentId_referenceMonth: { studentId: attendance.studentId, referenceMonth: month } } });
-    const initialCredits = existing ? existing.remainingClasses : subscriptionCredits || attendance.student.remainingClasses;
-    if (initialCredits <= 0) throw new Error("Não há saldo de aulas disponível para este mês.");
-    if (existing) {
-      await tx.studentMonthlyBalance.update({ where: { id: existing.id }, data: { remainingClasses: { decrement: 1 } } });
-    } else {
-      await tx.studentMonthlyBalance.create({ data: { arenaId: auth.arenaId, studentId: attendance.studentId, referenceMonth: month, totalClasses: initialCredits, remainingClasses: initialCredits - 1 } });
-    }
-    await tx.lessonAttendance.update({ where: { id: attendance.id }, data: { status: "PRESENT", checkedInAt: now } });
-    await tx.student.update({ where: { id: attendance.studentId }, data: { remainingClasses: Math.max(0, initialCredits - 1), attendedClasses: { increment: 1 } } });
-  });
+  await withArenaTransaction(auth.arenaId, tx => registerLessonCheckin(tx, { arenaId: auth.arenaId, playerId: auth.playerId, lessonId }));
+  revalidatePath("/home");
+  revalidatePath(`/checkin/${arenaSlug}`);
   revalidatePath(`/classificacao/${arenaSlug}`);
   revalidatePath("/aulas");
 }

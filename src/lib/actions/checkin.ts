@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/lib/auth/guards";
 import { requirePublicPlayerAuth } from "@/lib/auth/player-session";
 import { withArenaTransaction } from "@/lib/rls";
+import { registerQrLessonCheckin } from "@/lib/checkin/lesson";
 import { registerCourtCheckin } from "@/lib/checkin/register";
 
 export async function configureCourtCheckinAction(form: FormData) {
@@ -30,4 +31,17 @@ export async function registerCourtCheckinAction(form: FormData) {
   }
   revalidatePath("/agenda");
   revalidatePath(`/checkin/${parsed.data.arenaSlug}`);
+}
+
+export async function registerLessonQrCheckinAction(form: FormData) {
+  const parsed = z.object({ arenaSlug: z.string().min(1), token: z.string().length(64), lessonId: z.string().min(1) }).safeParse(Object.fromEntries(form));
+  if (!parsed.success) return { error: "Escolha uma aula válida usando o QR Code da arena." };
+  try {
+    const auth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
+    await withArenaTransaction(auth.arenaId, tx => registerQrLessonCheckin(tx, { ...parsed.data, arenaId: auth.arenaId, playerId: auth.playerId }));
+  } catch (error) { return { error: error instanceof Error ? error.message : "Não foi possível confirmar sua presença na aula." }; }
+  revalidatePath(`/checkin/${parsed.data.arenaSlug}`);
+  revalidatePath(`/classificacao/${parsed.data.arenaSlug}`);
+  revalidatePath("/home");
+  revalidatePath("/aulas");
 }
