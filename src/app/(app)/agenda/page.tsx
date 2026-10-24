@@ -7,7 +7,7 @@ import { AgendaSlotDialog as BaseAgendaSlotDialog } from "@/components/agenda-sl
 import { OnlineBookingSettingsDialog } from "@/components/online-booking-settings-dialog";
 import { requireModuleView } from "@/lib/auth/guards";
 import { withArenaTransaction } from "@/lib/rls";
-import { standardServicePrices } from "@/lib/calendar/standard-services";
+import { standardServicePrices, serviceBookingName } from "@/lib/calendar/standard-services";
 import { activeCourtOccurrenceWhere } from "@/lib/calendar/online-booking-hold";
 import { arenaToday } from "@/lib/calendar/arena-wall-clock";
 import { isConfirmedSchedulePaymentMethod } from "@/lib/calendar/booking-payment-claim";
@@ -63,10 +63,11 @@ export default async function AgendaPage(props: AgendaPageProps) {
     tx.teacher.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     tx.bookingType.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { name: true }, orderBy: { name: "asc" } }),
     tx.arenaServicePrice.findMany({ where: { arenaId: auth.arenaId }, select: { serviceCode: true, priceCents: true } }),
-    tx.product.findMany({ where: { arenaId: auth.arenaId, active: true, isService: true }, select: { name: true, priceCents: true, showOnAgenda: true } })
+    tx.product.findMany({ where: { arenaId: auth.arenaId, active: true, isService: true }, select: { name: true, sku: true, priceCents: true, showOnAgenda: true } })
   ]));
-  const bookingTypes = Array.from(new Set(["Aula", "Aula fixa", "Plano", "Super 12", "Liga", "Reserva", ...storedBookingTypes.map((item) => item.name), ...customServices.filter(service => service.showOnAgenda).map(service => service.name)]));
-  const servicePriceValues = { ...standardServicePrices(servicePrices), ...Object.fromEntries(customServices.map(service => [service.name, service.priceCents])) };
+  const hiddenServices = new Set(customServices.filter(service => !service.showOnAgenda).map(serviceBookingName));
+  const bookingTypes = Array.from(new Set(["Aula", "Aula fixa", "Plano", "Super 12", "Liga", "Reserva", ...storedBookingTypes.map((item) => item.name), ...customServices.filter(service => service.showOnAgenda).map(serviceBookingName)])).filter(name => !hiddenServices.has(name));
+  const servicePriceValues = { ...standardServicePrices(servicePrices), ...Object.fromEntries(customServices.map(service => [serviceBookingName(service), service.priceCents])) };
   const courtOptions = courts.map((court) => ({ id: court.id, name: court.name }));
   const slots = Array.from({ length: Math.max(0, Math.ceil((arena.scheduleEndMinute - arena.scheduleStartMinute) / arena.scheduleSlotMinutes)) }, (_, index) => arena.scheduleStartMinute + index * arena.scheduleSlotMinutes);
   const { byCourtAndSlot: occurrencesByCourtAndSlot, occupiedCourtSlots } = buildAgendaOccurrenceIndex(scheduleOccurrences, slots);

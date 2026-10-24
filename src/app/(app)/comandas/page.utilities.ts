@@ -6,7 +6,7 @@ export const viewStyles = {
   ].join(" "),
   "commands_page": "commands-page tw:grid tw:w-full tw:min-w-0 tw:gap-4",
   "commands_toolbar": "commands-toolbar tw:flex tw:flex-wrap tw:items-center tw:gap-3",
-  "commands_toolbar_right": "commands-toolbar-right tw:flex tw:min-w-0 tw:flex-1 tw:flex-wrap tw:items-center tw:justify-end tw:gap-3 tw:viewport-760:justify-start",
+  "commands_toolbar_right": "commands-toolbar-right tw:flex tw:min-w-0 tw:grow tw:basis-[360px] tw:flex-wrap tw:items-center tw:justify-end tw:gap-3 tw:viewport-760:justify-start",
   "commands_search": "commands-search tw:flex tw:w-[min(100%,360px)] tw:min-w-0 tw:items-center tw:gap-2 tw:viewport-760:w-full tw:[&_>_span]:shrink-0 tw:[&_>_span]:text-[var(--muted)] tw:[&_input:not([type=hidden])]:min-w-0 tw:[&_input:not([type=hidden])]:w-full tw:[&_input:not([type=hidden])]:flex-1 tw:[&_button]:shrink-0 tw:[&_button]:min-h-[40px]",
   "button": sharedUtilities.button,
   "commands_actions": [

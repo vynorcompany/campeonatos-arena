@@ -10,10 +10,11 @@ import { createComandaAction } from "@/lib/actions/comanda";
 import { requireModuleView } from "@/lib/auth/guards";
 import { getOutstandingCents } from "@/lib/finance/settlements";
 import { comandaDebtOwnerId } from "@/lib/finance/comanda-debts";
+import { arenaToday, arenaWallClockToInstant, instantToArenaWallClock } from "@/lib/calendar/arena-wall-clock";
 import { withArenaTransaction } from "@/lib/rls";
 
 type ComandasPageProps = {
-  searchParams?: Promise<{ date?: string; search?: string; new?: "client" | "avulsa" }>;
+  searchParams?: Promise<{ date?: string; search?: string; ids?: string; new?: "client" | "avulsa" }>;
 };
 
 function CommandIcon({ name }: { name: "search" | "receipt" | "calendar" | "list" | "plus" }) {
@@ -35,7 +36,7 @@ function toDateInput(value: Date) {
 }
 
 function parseDate(value?: string) {
-  return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00`) : new Date();
+  return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00`) : arenaToday();
 }
 
 function startOfDay(value: Date) {
@@ -52,6 +53,7 @@ export default async function ComandasPage(props: ComandasPageProps) {
   const searchParams = await props.searchParams;
   const auth = await requireModuleView("pos");
   const canDeleteComandas = auth.systemRole === "SUPER_ADMIN" || auth.systemRole === "ADMIN" || auth.arenaRole === "OWNER" || auth.arenaRole === "ADMIN";
+  const requestedIds = [...new Set((searchParams?.ids ?? "").split(",").map(id => id.trim()).filter(Boolean))];
   const selectedDate = startOfDay(parseDate(searchParams?.date));
   const nextDate = new Date(selectedDate);
   nextDate.setDate(nextDate.getDate() + 1);
@@ -67,14 +69,14 @@ export default async function ComandasPage(props: ComandasPageProps) {
       where: {
         arenaId: auth.arenaId,
         status: "OPEN",
-        openedAt: { gte: selectedDate, lt: nextDate },
+        ...(requestedIds.length ? { id: { in: requestedIds } } : { openedAt: { gte: arenaWallClockToInstant(selectedDate), lt: arenaWallClockToInstant(nextDate) } }),
         ...(search ? { label: { contains: search, mode: "insensitive" } } : {})
       },
       orderBy: { openedAt: "desc" },
       include: { player: { select: { name: true, balanceMovements: { select: { amountCents: true } } } }, items: { include: { product: { select: { name: true } } }, orderBy: { createdAt: "asc" } }, requests: { where: { status: "PENDING" }, include: { product: { select: { name: true } }, }, orderBy: { createdAt: "desc" } } }
     }),
     tx.comanda.findMany({
-      where: { arenaId: auth.arenaId, status: "OPEN", openedAt: { gte: calendarStart, lt: calendarEnd } },
+      where: { arenaId: auth.arenaId, status: "OPEN", openedAt: { gte: arenaWallClockToInstant(calendarStart), lt: arenaWallClockToInstant(calendarEnd) } },
       select: { openedAt: true, playerId: true, code: true }
     }),
     tx.player.findMany({ where: { arenaId: auth.arenaId, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
@@ -92,9 +94,10 @@ export default async function ComandasPage(props: ComandasPageProps) {
     })
   ]));
 
-  const openDays = new Set(openComandas.map((comanda) => toDateInput(comanda.openedAt)));
-  const today = startOfDay(new Date());
+  const openDays = new Set(openComandas.map((comanda) => toDateInput(instantToArenaWallClock(comanda.openedAt))));
+  const today = arenaToday();
   const baseParams = new URLSearchParams({ date: toDateInput(selectedDate) });
+  if (requestedIds.length) baseParams.set("ids", requestedIds.join(","));
   if (search) baseParams.set("search", search);
   const paymentMethods = paymentMethodSettings.length ? paymentMethodSettings.map((method) => method.name) : ["Dinheiro", "PIX", "Cartão de crédito", "Cartão de débito", "Saldo de crédito"];
   const debtsByPlayer = pendingDebts.reduce<Record<string, { id: string; description: string; amountCents: number; dueDate: Date | null }[]>>((current, debt) => {
@@ -106,13 +109,13 @@ export default async function ComandasPage(props: ComandasPageProps) {
 
   return <div className={viewStyles.commands_page}><VisiblePageRefresh /><h1 className="tw:sr-only">Comandas</h1>
     <header className={viewStyles.commands_toolbar}>
-      <CommandsDatePicker selectedDate={toDateInput(selectedDate)} search={search} openDays={[...openDays]} today={toDateInput(today)} />
-      <div className={viewStyles.commands_toolbar_right}><form method="get" className={viewStyles.commands_search}><input type="hidden" name="date" value={toDateInput(selectedDate)} /><span aria-hidden="true"><CommandIcon name="search" /></span><input name="search" defaultValue={search} placeholder="Buscar comanda" aria-label="Buscar comanda pelo nome" /><button className={viewStyles.button} type="submit">Buscar</button></form><div className={viewStyles.commands_actions}><Link href={`/comandas?${new URLSearchParams({ ...Object.fromEntries(baseParams), new: "client" })}`} className={viewStyles.button_button_primary}><CommandIcon name="plus" /> Nova Comanda</Link><Link href={`/comandas?${new URLSearchParams({ ...Object.fromEntries(baseParams), new: "avulsa" })}`} className={viewStyles.button}><CommandIcon name="receipt" /> Nova Comanda Avulsa</Link></div></div>
+      {requestedIds.length ? <div className="tw:grid tw:gap-1"><strong className="tw:text-sm">Comandas dos atletas da reserva</strong><Link href="/comandas" className="tw:text-xs tw:text-[var(--brand)]">Ver comandas do dia</Link></div> : <CommandsDatePicker selectedDate={toDateInput(selectedDate)} search={search} openDays={[...openDays]} today={toDateInput(today)} />}
+      <div className={viewStyles.commands_toolbar_right}><form method="get" className={viewStyles.commands_search}><input type="hidden" name="date" value={toDateInput(selectedDate)} />{requestedIds.length ? <input type="hidden" name="ids" value={requestedIds.join(",")} /> : null}<span aria-hidden="true"><CommandIcon name="search" /></span><input name="search" defaultValue={search} placeholder="Buscar comanda" aria-label="Buscar comanda pelo nome" /><button className={viewStyles.button} type="submit">Buscar</button></form><div className={viewStyles.commands_actions}><Link href={`/comandas?${new URLSearchParams({ date: toDateInput(selectedDate), new: "client" })}`} className={viewStyles.button_button_primary}><CommandIcon name="plus" /> Nova Comanda</Link><Link href={`/comandas?${new URLSearchParams({ date: toDateInput(selectedDate), new: "avulsa" })}`} className={viewStyles.button}><CommandIcon name="receipt" /> Nova Comanda Avulsa</Link></div></div>
     </header>
 
     {searchParams?.new === "client" ? <NewCommandModal players={players} closeHref={`/comandas?${baseParams}`} action={createComandaAction} /> : null}
     {searchParams?.new === "avulsa" ? <section className={viewStyles.commands_create_panel}><SafeActionForm action={createComandaAction} className={viewStyles.commands_create_form} successMessage="Comanda avulsa aberta."><input type="hidden" name="type" value="AVULSA" /><label className={viewStyles.field}>Nome da comanda<input name="label" placeholder="Ex.: Mesa 4" required /></label><SubmitButton label="Abrir comanda" pendingLabel="Abrindo..." className={viewStyles.button_button_primary} /><Link href={`/comandas?${baseParams}`} className={viewStyles.button}>Cancelar</Link></SafeActionForm></section> : null}
 
-    <section className={viewStyles.commands_list_commands_day_panel}><div className={viewStyles.commands_list_head}><span><i aria-hidden="true"><CommandIcon name="list" /></i> {comandas.length} comanda{comandas.length === 1 ? "" : "s"}</span></div>{comandas.length ? <div className={viewStyles.commands_list_items}>{comandas.map((comanda) => <CommandCard key={comanda.id} canDelete={canDeleteComandas} people={players.map(player => ({ ...player, openComanda: openComandas.find(command => command.playerId === player.id)?.code }))} products={products.map(product => product.isService ? { ...product, category: { name: "Serviços" } } : product)} paymentMethods={paymentMethods} debts={comanda.playerId ? debtsByPlayer[comanda.playerId] ?? [] : []} clientCreditCents={Math.max(0, comanda.player?.balanceMovements.reduce((total, movement) => total + movement.amountCents, 0) ?? 0)} comanda={{ id: comanda.id, playerId: comanda.playerId, code: comanda.code, label: comanda.label, type: comanda.type, openedByUserName: comanda.openedByUserName, playerName: comanda.player?.name, items: comanda.items, requests: comanda.requests.map((request) => ({ id: request.id, quantity: request.quantity, productName: request.product.name })) }} />)}</div> : <div className={viewStyles.commands_empty}><div className={viewStyles.commands_empty_illustration} aria-hidden="true"><CommandIcon name="receipt" /></div><strong>Nenhuma comanda neste dia.</strong><span>Crie uma nova comanda para iniciar o atendimento.</span><Link href={`/comandas?${new URLSearchParams({ ...Object.fromEntries(baseParams), new: "client" })}`} className={viewStyles.button_button_primary_commands_empty_action}><CommandIcon name="plus" /> Nova Comanda</Link></div>}</section>
+    <section className={viewStyles.commands_list_commands_day_panel}><div className={viewStyles.commands_list_head}><span><i aria-hidden="true"><CommandIcon name="list" /></i> {comandas.length} comanda{comandas.length === 1 ? "" : "s"}</span></div>{comandas.length ? <div className={viewStyles.commands_list_items}>{comandas.map((comanda) => <CommandCard key={comanda.id} canDelete={canDeleteComandas} people={players.map(player => ({ ...player, openComanda: openComandas.find(command => command.playerId === player.id)?.code }))} products={products.map(product => product.isService ? { ...product, category: { name: "Serviços" } } : product)} paymentMethods={paymentMethods} debts={comanda.playerId ? debtsByPlayer[comanda.playerId] ?? [] : []} clientCreditCents={Math.max(0, comanda.player?.balanceMovements.reduce((total, movement) => total + movement.amountCents, 0) ?? 0)} comanda={{ id: comanda.id, playerId: comanda.playerId, code: comanda.code, label: comanda.label, type: comanda.type, openedByUserName: comanda.openedByUserName, playerName: comanda.player?.name, items: comanda.items, requests: comanda.requests.map((request) => ({ id: request.id, quantity: request.quantity, productName: request.product.name })) }} />)}</div> : <div className={viewStyles.commands_empty}><div className={viewStyles.commands_empty_illustration} aria-hidden="true"><CommandIcon name="receipt" /></div><strong>Nenhuma comanda neste dia.</strong><span>Crie uma nova comanda para iniciar o atendimento.</span><Link href={`/comandas?${new URLSearchParams({ date: toDateInput(selectedDate), new: "client" })}`} className={viewStyles.button_button_primary_commands_empty_action}><CommandIcon name="plus" /> Nova Comanda</Link></div>}</section>
   </div>;
 }

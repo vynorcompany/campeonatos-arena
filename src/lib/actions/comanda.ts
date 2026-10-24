@@ -125,26 +125,29 @@ export async function deleteComandaAction(formData: FormData) {
   revalidatePath("/comandas");
 }
 
-export async function openBookingComandasAction(formData: FormData): Promise<{ error?: string }> {
+export async function openBookingComandasAction(formData: FormData): Promise<{ error?: string; comandaIds?: string[] }> {
   try {
     const auth = await requirePermission("pos:command:create");
     const occurrenceId = z.string().trim().min(1).safeParse(formData.get("occurrenceId"));
     if (!occurrenceId.success) throw new Error("Horário inválido.");
 
-    await withArenaTransaction(auth.arenaId, async (tx) => {
+    const comandaIds = await withArenaTransaction(auth.arenaId, async (tx) => {
       const occurrence = await tx.scheduleOccurrence.findFirst({ where: { id: occurrenceId.data, arenaId: auth.arenaId, status: { not: "CANCELED" } }, include: { participants: { select: { playerId: true, player: { select: { name: true } } } } } });
       if (!occurrence) throw new Error("Horário não encontrado.");
       if (!occurrence.participants.length) throw new Error("Não é possível abrir comandas: esta reserva não possui cliente atribuído.");
       for (const playerId of occurrence.participants.map(participant => participant.playerId).sort()) {
         await tx.$queryRaw`SELECT id FROM "Player" WHERE id = ${playerId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
       }
+      const ids: string[] = [];
       for (const participant of occurrence.participants) {
         const existing = await tx.comanda.findFirst({ where: { arenaId: auth.arenaId, playerId: participant.playerId, status: "OPEN" }, select: { id: true } });
-        if (!existing) await tx.comanda.create({ data: { arenaId: auth.arenaId, playerId: participant.playerId, openedByUserId: auth.userId, openedByUserName: auth.userName, label: participant.player.name, type: "CLIENT", code: formatComandaCode() } });
+        const command = existing ?? await tx.comanda.create({ data: { arenaId: auth.arenaId, playerId: participant.playerId, openedByUserId: auth.userId, openedByUserName: auth.userName, label: participant.player.name, type: "CLIENT", code: formatComandaCode() } });
+        ids.push(command.id);
       }
+      return ids;
     });
     revalidatePath("/comandas");
-    return {};
+    return { comandaIds };
   } catch (reason) {
     return { error: reason instanceof Error ? reason.message : "Não foi possível abrir as comandas." };
   }

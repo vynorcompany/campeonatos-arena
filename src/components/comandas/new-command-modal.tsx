@@ -1,4 +1,5 @@
 "use client";
+import { arenaDateInput } from "@/lib/calendar/arena-wall-clock";
 import { viewStyles } from "./new-command-modal.utilities";
 
 import { useRouter } from "next/navigation";
@@ -39,7 +40,9 @@ export function NewCommandModal({ players, closeHref, action }: { players: Playe
         const result = await action(formData);
         const openedAt = result && typeof result === "object" && "openedAt" in result && typeof result.openedAt === "string" ? result.openedAt : null;
         const destination = new URL(closeHref, window.location.origin);
-        if (openedAt) destination.searchParams.set("date", openedAt.slice(0, 10));
+        destination.searchParams.delete("ids");
+        destination.searchParams.delete("search");
+        if (openedAt) destination.searchParams.set("date", arenaDateInput(new Date(openedAt)));
         router.push(`${destination.pathname}${destination.search}`);
         router.refresh();
       } catch (caughtError) {
