@@ -246,7 +246,7 @@ export async function finishComandaAction(formData: FormData) {
     await tx.$queryRaw`SELECT id FROM "Comanda" WHERE id = ${parsed.data.comandaId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
     const comanda = await tx.comanda.findFirst({ where: { id: parsed.data.comandaId, arenaId: auth.arenaId, status: "OPEN" }, include: { items: { include: { product: true } }, bookingServices: { include: { participant: { select: { financialEntryId: true, financialEntry: { select: { status: true } }, occurrence: { select: { status: true } } } } } } } });
     if (!comanda) throw new Error("Comanda não está disponível.");
-    const automaticDebtIds = (comanda.bookingServices ?? []).flatMap(({ participant }) => participant.financialEntryId && participant.occurrence.status !== "CANCELED" && ["PENDING", "OVERDUE", "PARTIAL"].includes(participant.financialEntry?.status ?? "") ? [participant.financialEntryId] : []);
+    const automaticDebtIds = (comanda.bookingServices ?? []).flatMap(({ participant }) => participant.financialEntryId && ["PENDING", "OVERDUE", "PARTIAL"].includes(participant.financialEntry?.status ?? "") ? [participant.financialEntryId] : []);
     const debtIdsToSettle = [...new Set([...parsed.data.debtIds, ...automaticDebtIds])];
     for (const debtId of [...debtIdsToSettle].sort()) await tx.$queryRaw`SELECT id FROM "FinancialEntry" WHERE id = ${debtId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
     if (!comanda.items.length && !debtIdsToSettle.length) {

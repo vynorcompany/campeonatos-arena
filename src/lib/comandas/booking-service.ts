@@ -8,7 +8,7 @@ export function bookingServiceRows(rows: Source[]): BookingService[] {
     const entry = p.financialEntry;
     const pending = entry && ["PENDING", "OVERDUE", "PARTIAL"].includes(entry.status);
     const balance = pending ? getOutstandingCents(entry.amountCents, entry.settlements) : 0;
-    const canceled = entry?.status === "CANCELED" || p.occurrence.status === "CANCELED";
-    return { id, name: p.occurrence.bookingTypeName, date: new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(p.occurrence.startsAt), amountCents: canceled ? 0 : balance, chargedAmountCents: canceled ? 0 : (entry?.amountCents ?? p.amountCents), state: canceled ? "Cancelado" : balance > 0 ? "Da reserva" : p.amountCents > 0 ? (entry?.status === "PAID" || p.paymentMethod ? "Pago" : "Cobrança indisponível") : "Sem cobrança", financialEntryId: entry?.id ?? null };
+    const canceled = ["VOIDED", "CANCELED"].includes(entry?.status ?? "") || (!entry && p.occurrence.status === "CANCELED");
+    return { id, name: p.occurrence.bookingTypeName, date: new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(p.occurrence.startsAt), amountCents: canceled ? 0 : balance, chargedAmountCents: canceled ? 0 : (entry?.amountCents ?? p.amountCents), state: canceled ? "Cancelado" : balance > 0 ? (p.occurrence.status === "CANCELED" ? "Cobrança mantida" : "Da reserva") : p.amountCents > 0 ? (entry?.status === "PAID" || p.paymentMethod ? "Pago" : "Cobrança indisponível") : "Sem cobrança", financialEntryId: entry?.id ?? null };
   });
 }
