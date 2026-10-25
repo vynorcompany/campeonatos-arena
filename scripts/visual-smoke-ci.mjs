@@ -6,9 +6,10 @@ import sharp from "sharp";
 
 const databaseUrl = process.env.ARENA_GOAL_TEST_DATABASE_URL ?? "";
 const sessionToken = process.env.ARENA_GOAL_TEST_SESSION_TOKEN ?? "";
-if (process.env.GITHUB_ACTIONS !== "true" ||
+const localVisual = process.env.ARENA_VISUAL_LOCAL === "true";
+if ((process.env.GITHUB_ACTIONS !== "true" && !localVisual) ||
     process.env.DATABASE_URL !== databaseUrl ||
-    !databaseUrl.startsWith("postgresql://postgres@127.0.0.1:55433/arena_goal?") ||
+    !(databaseUrl.startsWith("postgresql://postgres@127.0.0.1:55433/arena_goal?") || (localVisual && databaseUrl.startsWith("postgresql://postgres@127.0.0.1:55433/arena_goal_visual?"))) ||
     !/^[a-f0-9]{40}$/i.test(sessionToken)) {
   throw new Error("O teste visual exige o banco fictício e isolado da CI.");
 }
@@ -51,6 +52,7 @@ const routes = [
   "/relatorios",
   ...["caixa", "lancamentos", "produtos", "estoque", "comandas", "dre", "planos", "reservas", "pagamentos-online"]
     .map((report) => `/relatorios/${report}`),
+  "/configuracoes", "/configuracoes/checkin", "/configuracoes/impressora", "/configuracoes/dispositivos", "/configuracoes/politicas", "/configuracoes/privacidade",
   "/arena", "/arena/regulamento", "/suporte",
 ];
 const agencyRoutes = [
@@ -207,9 +209,19 @@ async function main() {
             expression: "(() => { const nav = document.querySelector('nav[aria-label=\"Áreas financeiras\"]'); return nav ? [...nav.querySelectorAll('a')].map((link) => ({ path: new URL(link.href).pathname, clipped: link.scrollWidth > link.clientWidth + 1 })) : null; })()",
             returnByValue: true,
           });
-          const expected = ["/financeiro/folha", "/financeiro/contas-a-receber", "/financeiro/contas-a-pagar", "/pdv", "/financeiro/configuracoes"];
+          const expected = ["/financeiro/folha", "/financeiro/contas-a-receber", "/financeiro/contas-a-pagar", "/pdv"];
           if (!navigation.result.value || JSON.stringify(navigation.result.value.map((link) => link.path)) !== JSON.stringify(expected) || navigation.result.value.some((link) => link.clipped)) {
             throw new Error(`${label}: destinos do Financeiro faltando ou cortados: ${JSON.stringify(navigation.result.value)}`);
+          }
+        }
+        if (route === "/configuracoes") {
+          const settings = await send("Runtime.evaluate", {
+            expression: "(() => { const nav = document.querySelector('nav[aria-label=\"Configurações\"]'); return nav ? [...nav.querySelectorAll('a')].map(link => ({ href: new URL(link.href).pathname + new URL(link.href).search, clipped: link.scrollWidth > link.clientWidth + 1 })) : null; })()",
+            returnByValue: true,
+          });
+          const expected = ["/configuracoes/dispositivos", "/configuracoes/impressora", "/configuracoes/politicas", "/configuracoes/privacidade", "/arena", "/arena?section=portal", "/financeiro/configuracoes", "/configuracoes/checkin", "/agenda/configuracao"];
+          if (!settings.result.value || JSON.stringify(settings.result.value.map(link => link.href)) !== JSON.stringify(expected) || settings.result.value.some(link => link.clipped)) {
+            throw new Error(`${label}: destinos das Configurações faltando ou cortados: ${JSON.stringify(settings.result.value)}`);
           }
         }
         if (["/aulas", "/aulas/alunos", "/financeiro/planos"].includes(route)) {
