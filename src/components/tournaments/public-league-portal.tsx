@@ -1,4 +1,5 @@
 "use client";
+import { PortalChoice } from "@/components/portal/portal-choice";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./public-league-portal.utilities";
 
@@ -35,7 +36,7 @@ export function PublicLeaguePortal({
   const router = useRouter();
   const [message, setMessage] = useState("");
   const [pending, startTransition] = useTransition();
-  const mutedText = cx(viewStyles.muted, "tw:text-[#9bb5c5]! tw:viewport-700:text-[#607467]! tw:viewport-700:dark:text-[#a4c8b9]!");
+  const mutedText = cx(viewStyles.muted, "tw:text-[#607467]! tw:dark:text-[#a4c8b9]!");
   const submit = (
     form: HTMLFormElement,
     action: (data: FormData) => Promise<void | { error: string }>,
@@ -182,20 +183,9 @@ export function PublicLeaguePortal({
               </b>
             ) : null}
           </header>
-          <label>
-            <span>Categoria</span>
-            <select
-              name="leagueCategory"
-              defaultValue={portal.selectedLeagueCategoryId ?? ""}
-              onChange={(event) => event.currentTarget.form?.requestSubmit()}
-            >
-              {portal.leagueCategories.map((category) => (
-                <option value={category.id} key={category.id}>
-                  {category.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div>
+            <PortalChoice label="Categoria" name="leagueCategory" defaultValue={portal.selectedLeagueCategoryId ?? ""} options={portal.leagueCategories.map(category => ({ value: category.id, label: category.label }))} />
+          </div>
           {selectedCategory.member ? <small className="tw:hidden tw:viewport-700:block tw:mt-1 tw:text-xs tw:font-semibold tw:text-[#087f69] tw:dark:text-[#70dec1]">Sua categoria</small> : null}
           <p className={viewStyles.portal_league_category_context}>
             {selectedCategory.member
@@ -225,20 +215,9 @@ export function PublicLeaguePortal({
           <input type="hidden" name="section" value="leagues" />
           <input type="hidden" name="leagueTab" value={view} />
           <input type="hidden" name="tab" value="games" />
-          <label>
-            <span>Categoria da Liga</span>
-            <select
-              name="leagueCategory"
-              defaultValue={portal.selectedLeagueCategoryId ?? ""}
-              onChange={(event) => event.currentTarget.form?.requestSubmit()}
-            >
-              {portal.leagueCategories.map((category) => (
-                <option value={category.id} key={category.id}>
-                  {category.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div>
+            <PortalChoice label="Categoria" name="leagueCategory" defaultValue={portal.selectedLeagueCategoryId ?? ""} options={portal.leagueCategories.map(category => ({ value: category.id, label: category.label }))} />
+          </div>
         </form>
       ) : null}
       {view === "pairs" ? (

@@ -1,3 +1,4 @@
+import { arenaDatabase } from "@/lib/arena-database";
 import { viewStyles } from "./page.utilities";
 import { SectionCard } from "@/components/section-card";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
@@ -13,6 +14,7 @@ function formatMoney(cents: number) {
 
 export default async function FinancePlansPage() {
   const auth = await requireFinanceView("receivable");
+  const prisma = arenaDatabase(auth.arenaId);
   const canManagePlans = canPerformPermission("finance:settings:manage", auth.arenaRole, auth.systemRole, auth.editPermissions);
   const plans = await prisma.plan.findMany({
     where: { arenaId: auth.arenaId },

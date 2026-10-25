@@ -1,0 +1,17 @@
+import Link from "next/link";
+import { getPublicLegalArena } from "@/lib/legal/arena-context";
+import { getPublicPlayerAuth } from "@/lib/auth/player-session";
+import { arenaDatabase } from "@/lib/arena-database";
+import { LegalLayout } from "@/components/legal/legal-layout";
+import { ArenaLegalLinks } from "@/components/legal/arena-legal-links";
+import { PrivacyControls } from "@/components/legal/privacy-controls";
+export const dynamic = "force-dynamic";
+export const metadata = { title: "Meus dados e privacidade" };
+const kinds: Record<string, string> = { ERASURE: "Exclusão", ACCESS: "Acesso", CORRECTION: "Correção", OTHER: "Outros direitos" };
+export default async function PersonalDataPage({ params }: { params: Promise<{ arenaSlug: string }> }) {
+  const { arenaSlug } = await params;
+  const arena = await getPublicLegalArena(arenaSlug, "dados");
+  const auth = await getPublicPlayerAuth(arena.slug);
+  const requests = auth ? await arenaDatabase(auth.arenaId).privacyRequest.findMany({ where: { arenaId: auth.arenaId, playerId: auth.playerId }, orderBy: { createdAt: "desc" }, take: 100, select: { id: true, kind: true, status: true, createdAt: true, response: true, resolvedAt: true } }) : [];
+  return <LegalLayout><Link href={`/classificacao/${encodeURIComponent(arena.slug)}`} className="tw:min-h-11 tw:py-2 tw:text-sm">← Portal de {arena.name}</Link><header><p className="tw:text-sm tw:text-[var(--muted)]">{arena.name}</p><h1 className="tw:text-3xl tw:font-semibold">Meus dados e privacidade</h1><p className="tw:text-sm tw:leading-relaxed tw:text-[var(--muted)]">Estes controles se aplicam somente ao seu vínculo com esta arena. Seus vínculos com outras arenas são independentes.</p></header>{auth ? <><PrivacyControls arenaSlug={arena.slug}/><section aria-labelledby="requests-title" className="tw:grid tw:min-w-0 tw:gap-3"><h2 id="requests-title" className="tw:text-xl tw:font-semibold">Minhas solicitações</h2>{requests.length ? requests.map(request => <article key={request.id} className="tw:rounded-2xl tw:border tw:border-[var(--line)] tw:bg-[var(--panel)] tw:p-5"><h3 className="tw:m-0 tw:text-base tw:font-semibold">{kinds[request.kind]} · {request.status === "OPEN" ? "Em análise" : "Respondida"}</h3><p className="tw:break-all tw:text-xs tw:text-[var(--muted)]">Protocolo {request.id}</p><p className="tw:text-xs tw:text-[var(--muted)]">{new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium", timeZone: "America/Sao_Paulo" }).format(request.createdAt)}</p>{request.response ? <p className="tw:whitespace-pre-wrap tw:break-words tw:text-sm tw:leading-relaxed">{request.response}</p> : <p className="tw:text-sm tw:text-[var(--muted)]">Aguardando atendimento da arena.</p>}</article>) : <p className="tw:text-sm tw:text-[var(--muted)]">Você ainda não enviou solicitações.</p>}</section></> : <section className="tw:rounded-2xl tw:border tw:border-[var(--line)] tw:bg-[var(--panel)] tw:p-5"><h2 className="tw:text-xl tw:font-semibold">Confirme seu acesso</h2><p className="tw:text-sm tw:leading-relaxed">Entre na conta desta arena para acessar seus dados. Caso não tenha acesso, use o contato da arena na página de privacidade para solicitar atendimento e verificação de identidade.</p><Link href={`/classificacao/${encodeURIComponent(arena.slug)}`} className="tw:inline-flex tw:min-h-11 tw:items-center tw:underline">Entrar no Portal</Link></section>}<ArenaLegalLinks arenaSlug={arena.slug}/></LegalLayout>;
+}

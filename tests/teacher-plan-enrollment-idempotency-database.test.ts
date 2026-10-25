@@ -1,3 +1,4 @@
+import { arenaDatabaseForTest } from "./helpers/arena-database";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -60,6 +61,7 @@ test("duas inscrições no mesmo plano geram uma assinatura e doze lançamentos,
       "@/lib/academy/plan-recurrence-owner": { planRecurrenceOwnerWhere },
       "@/lib/academy/inputs": { parseMoneyToCents: () => 0 },
       "@/lib/academy/revalidation": { refreshAcademyRoutes() {} },
+      "@/lib/arena-database": { arenaDatabase: (arenaId: string) => arenaDatabaseForTest(runtime, arenaId) },
       "@/lib/prisma": { prisma: admin },
       "@/lib/rls": { withArenaTransaction: (arenaId: string, operation: (tx: unknown) => Promise<unknown>) => runtime.$transaction(async (tx) => {
         await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`;

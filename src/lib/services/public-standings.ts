@@ -1,3 +1,4 @@
+import { arenaDatabase } from "@/lib/arena-database";
 import { prisma } from "@/lib/prisma";
 import {
   buildPublicGameAgenda,
@@ -108,7 +109,7 @@ export async function getArenaPublicStandings(
   }
 
   const [generalRanking, categoryRecords, gameCategoryRecords, leagueRuleRecords] = await Promise.all([
-    prisma.rankingProfile.findFirst({
+    arenaDatabase(arena.id).rankingProfile.findFirst({
       where: {
         arenaId: arena.id,
         active: true,

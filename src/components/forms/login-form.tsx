@@ -3,6 +3,7 @@ import { viewStyles } from "./login-form.utilities";
 
 import { useFormState } from "react-dom";
 import { loginAction, type LoginState } from "@/lib/auth/actions";
+import { BotTrap } from "@/components/forms/bot-trap";
 import { SubmitButton } from "@/components/forms/submit-button";
 import Link from "next/link";
 
@@ -14,7 +15,7 @@ export function LoginForm() {
   const [state, formAction] = useFormState(loginAction, initialState);
 
   return (
-    <form action={formAction} className={viewStyles.stack_md_login_form}>
+    <form action={formAction} className={viewStyles.stack_md_login_form}><BotTrap/>
       <div className={viewStyles.field}>
         <label htmlFor="email">E-mail</label>
         <input id="email" name="email" type="email" autoComplete="username" placeholder="voce@suaarena.com" required />

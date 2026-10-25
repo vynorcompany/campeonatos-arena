@@ -1,5 +1,6 @@
 "use server";
 
+import { arenaDatabase } from "@/lib/arena-database";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requirePermission } from "@/lib/auth/guards";
@@ -34,6 +35,7 @@ async function refreshPortal(arenaId: string) {
 
 export async function createPortalAnnouncementAction(formData: FormData) {
   const auth = await requirePermission("arena:portal");
+  const prisma = arenaDatabase(auth.arenaId);
   const parsed = announcementSchema.safeParse({ title: formData.get("title"), message: formData.get("message"), linkUrl: formData.get("linkUrl"), startsAt: formData.get("startsAt"), endsAt: formData.get("endsAt") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   await prisma.portalAnnouncement.create({ data: { arenaId: auth.arenaId, title: parsed.data.title, message: parsed.data.message, linkUrl: parsed.data.linkUrl, pinned: formData.get("pinned") === "on", startsAt: parsed.data.startsAt ? new Date(parsed.data.startsAt) : null, endsAt: parsed.data.endsAt ? new Date(parsed.data.endsAt) : null } });
@@ -42,6 +44,7 @@ export async function createPortalAnnouncementAction(formData: FormData) {
 
 export async function togglePortalAnnouncementAction(formData: FormData) {
   const auth = await requirePermission("arena:portal");
+  const prisma = arenaDatabase(auth.arenaId);
   const id = String(formData.get("announcementId") ?? "");
   const current = await prisma.portalAnnouncement.findFirst({ where: { id, arenaId: auth.arenaId }, select: { active: true } });
   if (!current) throw new Error("Aviso não encontrado.");
@@ -52,6 +55,7 @@ export async function togglePortalAnnouncementAction(formData: FormData) {
 
 export async function togglePortalAnnouncementPinAction(formData: FormData) {
   const auth = await requirePermission("arena:portal");
+  const prisma = arenaDatabase(auth.arenaId);
   const id = String(formData.get("announcementId") ?? "");
   const current = await prisma.portalAnnouncement.findFirst({ where: { id, arenaId: auth.arenaId }, select: { pinned: true } });
   if (!current) throw new Error("Aviso não encontrado.");
@@ -61,6 +65,7 @@ export async function togglePortalAnnouncementPinAction(formData: FormData) {
 
 export async function deletePortalAnnouncementAction(formData: FormData) {
   const auth = await requirePermission("arena:portal");
+  const prisma = arenaDatabase(auth.arenaId);
   const id = String(formData.get("announcementId") ?? "");
   const deleted = await prisma.portalAnnouncement.deleteMany({ where: { id, arenaId: auth.arenaId } });
   if (!deleted.count) throw new Error("Aviso não encontrado.");
@@ -69,6 +74,7 @@ export async function deletePortalAnnouncementAction(formData: FormData) {
 
 export async function togglePortalEventFeatureAction(formData: FormData) {
   const auth = await requirePermission("arena:portal");
+  const prisma = arenaDatabase(auth.arenaId);
   const id = String(formData.get("calendarEventId") ?? "");
   const current = await prisma.calendarEvent.findFirst({ where: { id, arenaId: auth.arenaId }, select: { featuredInPortal: true } });
   if (!current) throw new Error("Evento não encontrado.");
@@ -79,6 +85,7 @@ export async function togglePortalEventFeatureAction(formData: FormData) {
 
 export async function createPortalEventPostAction(formData: FormData) {
   const auth = await requirePermission("arena:portal");
+  const prisma = arenaDatabase(auth.arenaId);
   const parsed = eventPostSchema.safeParse({ title: formData.get("title"), caption: formData.get("caption"), linkUrl: formData.get("linkUrl") });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   const image = formData.get("image") as File | null;
@@ -96,6 +103,7 @@ export async function createPortalEventPostAction(formData: FormData) {
 
 export async function updatePortalEventPostAction(formData: FormData) {
   const auth = await requirePermission("arena:portal");
+  const prisma = arenaDatabase(auth.arenaId);
   const id = String(formData.get("eventPostId") ?? "").trim();
   const parsed = eventPostSchema.safeParse({ title: formData.get("title"), caption: formData.get("caption"), linkUrl: formData.get("linkUrl") });
   if (!id) return { error: "Evento não encontrado." };
@@ -107,6 +115,7 @@ export async function updatePortalEventPostAction(formData: FormData) {
 
 export async function togglePortalEventPostAction(formData: FormData) {
   const auth = await requirePermission("arena:portal");
+  const prisma = arenaDatabase(auth.arenaId);
   const id = String(formData.get("eventPostId") ?? "").trim();
   const current = await prisma.portalEventPost.findFirst({ where: { id, arenaId: auth.arenaId }, select: { active: true } });
   if (!current) return { error: "Evento não encontrado." };
@@ -117,6 +126,7 @@ export async function togglePortalEventPostAction(formData: FormData) {
 
 export async function togglePortalEventPostPinAction(formData: FormData) {
   const auth = await requirePermission("arena:portal");
+  const prisma = arenaDatabase(auth.arenaId);
   const id = String(formData.get("eventPostId") ?? "").trim();
   const current = await prisma.portalEventPost.findFirst({ where: { id, arenaId: auth.arenaId }, select: { pinned: true } });
   if (!current) return { error: "Evento não encontrado." };
@@ -127,6 +137,7 @@ export async function togglePortalEventPostPinAction(formData: FormData) {
 
 export async function deletePortalEventPostAction(formData: FormData) {
   const auth = await requirePermission("arena:portal");
+  const prisma = arenaDatabase(auth.arenaId);
   const id = String(formData.get("eventPostId") ?? "").trim();
   const deleted = await prisma.portalEventPost.deleteMany({ where: { id, arenaId: auth.arenaId } });
   if (!deleted.count) return { error: "Evento não encontrado." };
@@ -135,6 +146,7 @@ export async function deletePortalEventPostAction(formData: FormData) {
 
 export async function replacePortalEventPostImageAction(formData: FormData) {
   const auth = await requirePermission("arena:portal");
+  const prisma = arenaDatabase(auth.arenaId);
   const id = String(formData.get("eventPostId") ?? "").trim();
   const image = formData.get("image") as File | null;
   if (!id) return { error: "Evento não encontrado." };

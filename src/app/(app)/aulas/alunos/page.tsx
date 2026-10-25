@@ -111,7 +111,7 @@ export default async function StudentsPage() {
                 <td>
                   <SafeActionForm action={addStudentCreditsAction} className={viewStyles.inline_form} successMessage="Aulas adicionadas.">
                     <input type="hidden" name="studentId" value={student.id} />
-                    <input name="quantity" type="number" min="1" defaultValue="1" />
+                    <input name="quantity" type="number" min="1" defaultValue="1" aria-label={`Quantidade de aulas para ${student.name}`} />
                     <SubmitButton label="Adicionar" pendingLabel="..." className={viewStyles.button} />
                   </SafeActionForm>
                 </td>

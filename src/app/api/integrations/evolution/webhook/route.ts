@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { getEvolutionGroupName, getEvolutionProfilePicture } from "@/lib/integrations/evolution/client";
 import { hashWebhookSecret } from "@/lib/payments/connection-secrets";
-import { prisma } from "@/lib/prisma";
+import { prisma as registryDatabase } from "@/lib/prisma";
 import { arenaDatabase } from "@/lib/arena-database";
 import { normalizeWhatsAppAccountJid } from "@/lib/whatsapp-account";
 import { findEvolutionInstance } from "@/lib/integrations/evolution/agency";
@@ -78,6 +78,10 @@ export async function POST(request: NextRequest) {
   const payloadInstance = String(nestedValue(record, "instance") ?? nestedValue(record, "instanceName") ?? "").trim();
   const secret = request.nextUrl.searchParams.get("secret") ?? request.headers.get("x-evolution-webhook-secret") ?? "";
   if (!instanceName || !secret || (payloadInstance && payloadInstance !== instanceName)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (instanceName.length > 200) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const [scope] = await registryDatabase.$queryRaw<Array<{ arenaId: string | null }>>`SELECT public.resolve_whatsapp_arena(${instanceName}) AS "arenaId"`;
+  if (!scope?.arenaId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const prisma = arenaDatabase(scope.arenaId);
   const connection = await prisma.whatsAppConnection.findUnique({ where: { instanceName } });
   if (!connection || !safeEqual(hashWebhookSecret(secret), connection.webhookSecretHash)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

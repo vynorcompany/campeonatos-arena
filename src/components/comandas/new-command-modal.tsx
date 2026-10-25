@@ -7,11 +7,12 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 
 type PlayerOption = { id: string; name: string };
 
-export function NewCommandModal({ players, closeHref, action }: { players: PlayerOption[]; closeHref: string; action: (formData: FormData) => Promise<unknown> }) {
+export function NewCommandModal({ players, closeHref, action, cardsEnabled = false }: { cardsEnabled?: boolean; players: PlayerOption[]; closeHref: string; action: (formData: FormData) => Promise<unknown> }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [query, setQuery] = useState("");
+  const [cardNumber, setCardNumber] = useState("");
   const matchingPlayers = useMemo(() => players.filter((player) => player.name.toLocaleLowerCase("pt-BR").includes(query.trim().toLocaleLowerCase("pt-BR"))).slice(0, 12), [players, query]);
 
   useEffect(() => {
@@ -35,6 +36,7 @@ export function NewCommandModal({ players, closeHref, action }: { players: Playe
     const formData = new FormData();
     formData.set("type", "CLIENT");
     formData.set("playerId", playerId);
+    if (cardsEnabled && cardNumber.trim()) formData.set("cardNumber", cardNumber.trim());
     startTransition(async () => {
       try {
         const result = await action(formData);
@@ -54,6 +56,7 @@ export function NewCommandModal({ players, closeHref, action }: { players: Playe
   return <div className={viewStyles.commands_new_modal_backdrop} role="presentation" onMouseDown={() => !isPending && router.push(closeHref)}>
     <section className={viewStyles.commands_new_modal} role="dialog" aria-modal="true" aria-labelledby="commands-new-modal-title" onMouseDown={(event) => event.stopPropagation()}>
       <header><div><span>NOVA COMANDA</span><h2 id="commands-new-modal-title">Nova comanda</h2><p>A comanda será aberta ao selecionar um cliente.</p></div><button type="button" className={viewStyles.commands_modal_close} onClick={() => router.push(closeHref)} disabled={isPending} aria-label="Fechar">×</button></header>
+      {cardsEnabled ? <label className={viewStyles.field}>Número do cartão de comanda<input value={cardNumber} onChange={event => setCardNumber(event.currentTarget.value)} maxLength={40} pattern="[A-Za-z0-9_-]+" placeholder="Opcional · digite ou leia o cartão" disabled={isPending}/></label> : null}
       <label className={viewStyles.field}>Buscar cliente<input value={query} onChange={(event) => setQuery(event.currentTarget.value)} disabled={isPending} autoFocus placeholder="Digite o nome do cliente" /></label>
       <div className="tw:flex tw:items-center tw:justify-between tw:text-xs tw:font-semibold tw:text-[#607898]"><span>Clientes disponíveis</span><span>{matchingPlayers.length} exibidos</span></div><div className={viewStyles.commands_client_results} aria-label="Clientes encontrados">{matchingPlayers.map((player) => <button key={player.id} type="button" onClick={() => selectClient(player.id)} disabled={isPending}><strong className="tw:min-w-0 tw:flex-1 tw:break-words">{player.name}</strong><span className="tw:text-[11px] tw:text-[var(--muted)]">Selecionar</span></button>)}{query.trim() && !matchingPlayers.length ? <p>Nenhum cliente encontrado.</p> : null}</div>
       {error ? <p className={viewStyles.form_error} role="alert">{error}</p> : null}

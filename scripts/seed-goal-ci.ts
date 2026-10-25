@@ -8,7 +8,7 @@ const url = new URL(testUrl);
 if (
   url.hostname !== "127.0.0.1" ||
   url.port !== "55433" ||
-  url.pathname !== "/arena_goal" ||
+  (url.pathname !== "/arena_goal" && !(process.env.ARENA_VISUAL_LOCAL === "true" && url.pathname === "/arena_goal_visual")) ||
   url.username !== "postgres" ||
   process.env.DATABASE_URL !== testUrl ||
   process.env.DIRECT_URL !== testUrl ||

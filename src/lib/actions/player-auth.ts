@@ -1,4 +1,5 @@
 "use server";
+import { legalVersion } from "@/lib/legal/version";
 import { playerReturnPath } from "@/lib/auth/player-return-path";
 
 import bcrypt from "bcryptjs";
@@ -101,6 +102,8 @@ async function matchesIdentityPassword(identity: { passwordHash: string; account
 }
 
 export async function registerPublicClientAction(_: PublicClientAuthState, formData: FormData): Promise<PublicClientAuthState> {
+  if (String(formData.get("contactWebsite") ?? "").trim()) return { error: "Não foi possível validar o formulário. Recarregue a página e tente novamente." };
+  if (formData.get("termsAccepted") !== "on" || formData.get("legalVersion") !== legalVersion) return { error: "Leia e aceite a versão atual dos Termos de Uso e consulte a Política de Privacidade para criar a conta." };
   const parsed = registerSchema.safeParse({ arenaSlug: formData.get("arenaSlug"), returnTo: formData.get("returnTo"), name: formData.get("name"), phone: formData.get("phone"), password: formData.get("password"), confirmPassword: formData.get("confirmPassword") });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   const phone = normalizePhone(parsed.data.phone);
@@ -124,13 +127,15 @@ export async function registerPublicClientAction(_: PublicClientAuthState, formD
   const account = await withArenaTransaction(arena.id, async (tx) => {
     const linkedPlayer = player ?? await tx.player.create({ data: { arenaId: arena.id, name: parsed.data.name, phone } });
     const athleteIdentity = identity ?? await tx.athleteIdentity.create({ data: { phone, passwordHash } });
-    return tx.playerAccount.create({ data: { arenaId: arena.id, phone, playerId: linkedPlayer.id, passwordHash, identityId: athleteIdentity.id } });
+    return tx.playerAccount.create({ data: { arenaId: arena.id, phone, playerId: linkedPlayer.id, passwordHash, identityId: athleteIdentity.id, termsAcceptedAt: new Date(), termsVersion: legalVersion, privacyNoticeVersion: legalVersion } });
   });
   await createPublicPlayerSession(account.id, account.identityId);
   redirect(destination(parsed.data.arenaSlug, parsed.data.returnTo));
 }
 
 export async function confirmPublicClientRegistrationAction(_: PublicClientAuthState, formData: FormData): Promise<PublicClientAuthState> {
+  if (String(formData.get("contactWebsite") ?? "").trim()) return { error: "Não foi possível validar o formulário. Recarregue a página e tente novamente." };
+  if (formData.get("termsAccepted") !== "on" || formData.get("legalVersion") !== legalVersion) return { error: "Leia e aceite a versão atual dos Termos de Uso e consulte a Política de Privacidade para criar a conta." };
   const parsed = registerSchema.safeParse({ arenaSlug: formData.get("arenaSlug"), returnTo: formData.get("returnTo"), name: formData.get("name"), phone: formData.get("phone"), password: formData.get("password"), confirmPassword: formData.get("confirmPassword") });
   const parsedCode = registrationCodeSchema.safeParse(formData.get("code"));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
@@ -157,7 +162,7 @@ export async function confirmPublicClientRegistrationAction(_: PublicClientAuthS
     if (await tx.playerAccount.findUnique({ where: { arenaId_phone: { arenaId: arena.id, phone } }, select: { id: true } })) return null;
     const linkedPlayer = player ?? await tx.player.create({ data: { arenaId: arena.id, name: parsed.data.name, phone } });
     const athleteIdentity = identity ?? await tx.athleteIdentity.create({ data: { phone, passwordHash } });
-    return tx.playerAccount.create({ data: { arenaId: arena.id, phone, playerId: linkedPlayer.id, passwordHash, identityId: athleteIdentity.id } });
+    return tx.playerAccount.create({ data: { arenaId: arena.id, phone, playerId: linkedPlayer.id, passwordHash, identityId: athleteIdentity.id, termsAcceptedAt: new Date(), termsVersion: legalVersion, privacyNoticeVersion: legalVersion } });
   });
   if (!account) return { error: "Este código já foi utilizado. Solicite outro ou entre na sua conta." };
   await createPublicPlayerSession(account.id, account.identityId);
@@ -165,6 +170,7 @@ export async function confirmPublicClientRegistrationAction(_: PublicClientAuthS
 }
 
 export async function loginPublicClientAction(_: PublicClientAuthState, formData: FormData): Promise<PublicClientAuthState> {
+  if (String(formData.get("contactWebsite") ?? "").trim()) return { error: "Não foi possível validar o formulário. Recarregue a página e tente novamente." };
   const parsed = loginSchema.safeParse({ arenaSlug: formData.get("arenaSlug"), returnTo: formData.get("returnTo"), phone: formData.get("phone"), password: formData.get("password") });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   const arena = await prisma.arena.findUnique({ where: { slug: parsed.data.arenaSlug }, select: { id: true } });
@@ -187,6 +193,7 @@ export async function loginPublicClientAction(_: PublicClientAuthState, formData
 // The neutral portal is intentionally global. It authenticates the person once
 // and lets the arena route resolve the tenant-specific PlayerAccount afterwards.
 export async function loginGlobalAthleteAction(_: PublicClientAuthState, formData: FormData): Promise<PublicClientAuthState> {
+  if (String(formData.get("contactWebsite") ?? "").trim()) return { error: "Não foi possível validar o formulário. Recarregue a página e tente novamente." };
   const parsed = globalLoginSchema.safeParse({ phone: formData.get("phone"), password: formData.get("password") });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   const attemptKey = `athlete:${normalizePhone(parsed.data.phone)}`;
@@ -202,11 +209,13 @@ export async function loginGlobalAthleteAction(_: PublicClientAuthState, formDat
 }
 
 export async function requestGlobalPublicPasswordResetAction(_: PublicClientAuthState, formData: FormData): Promise<PublicClientAuthState> {
+  if (String(formData.get("contactWebsite") ?? "").trim()) return { error: "Não foi possível validar o formulário. Recarregue a página e tente novamente." };
   const phone = normalizePhone(String(formData.get("phone") ?? ""));
   if (phone.length < 10) return { error: "Informe um telefone válido." };
   const accounts = await prisma.playerAccount.findMany({ where: { phone }, select: { arenaId: true }, orderBy: { createdAt: "asc" } });
   if (accounts.length) {
-    const connection = await prisma.whatsAppConnection.findFirst({ where: { arenaId: { in: accounts.map((account) => account.arenaId) }, status: "CONNECTED" }, orderBy: { updatedAt: "desc" } });
+    const connections = await Promise.all(accounts.map(account => withArenaTransaction(account.arenaId, tx => tx.whatsAppConnection.findFirst({ where: { arenaId: account.arenaId, status: "CONNECTED" }, select: { arenaId: true, updatedAt: true } }))));
+    const connection = connections.filter((entry): entry is NonNullable<typeof entry> => entry !== null).sort((a, b) => (b.updatedAt?.getTime() ?? 0) - (a.updatedAt?.getTime() ?? 0))[0];
     try {
       await sendVerificationCode(connection?.arenaId ?? accounts[0].arenaId, phone, "RESET");
     } catch {
@@ -217,6 +226,7 @@ export async function requestGlobalPublicPasswordResetAction(_: PublicClientAuth
 }
 
 export async function confirmGlobalPublicPasswordResetAction(_: PublicClientAuthState, formData: FormData): Promise<PublicClientAuthState> {
+  if (String(formData.get("contactWebsite") ?? "").trim()) return { error: "Não foi possível validar o formulário. Recarregue a página e tente novamente." };
   const phone = normalizePhone(String(formData.get("phone") ?? ""));
   const code = String(formData.get("code") ?? "").trim();
   const newPassword = String(formData.get("newPassword") ?? "");
@@ -232,6 +242,7 @@ export async function confirmGlobalPublicPasswordResetAction(_: PublicClientAuth
 }
 
 export async function requestPublicPasswordResetAction(_: PublicClientAuthState, formData: FormData): Promise<PublicClientAuthState> {
+  if (String(formData.get("contactWebsite") ?? "").trim()) return { error: "Não foi possível validar o formulário. Recarregue a página e tente novamente." };
   const parsed = loginSchema.safeParse({ arenaSlug: formData.get("arenaSlug"), returnTo: "", phone: formData.get("phone"), password: "senha-segura" });
   if (!parsed.success) return { error: "Informe um telefone válido." };
   const arena = await prisma.arena.findUnique({ where: { slug: parsed.data.arenaSlug }, select: { id: true } });
@@ -248,6 +259,7 @@ export async function requestPublicPasswordResetAction(_: PublicClientAuthState,
 }
 
 export async function confirmPublicPasswordResetAction(_: PublicClientAuthState, formData: FormData): Promise<PublicClientAuthState> {
+  if (String(formData.get("contactWebsite") ?? "").trim()) return { error: "Não foi possível validar o formulário. Recarregue a página e tente novamente." };
   const parsed = resetSchema.safeParse({ arenaSlug: formData.get("arenaSlug"), phone: formData.get("phone"), code: formData.get("code"), newPassword: formData.get("newPassword"), confirmPassword: formData.get("confirmPassword") });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   const arena = await prisma.arena.findUnique({ where: { slug: parsed.data.arenaSlug }, select: { id: true } });

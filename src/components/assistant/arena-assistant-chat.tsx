@@ -45,7 +45,7 @@ export function ArenaAssistantChat({ initialMessages }: { initialMessages: ChatM
     <form className={viewStyles.assistant_chat_form} onSubmit={submit}>
       <label htmlFor="assistant-command">O que você precisa?</label>
       <div>
-        <textarea id="assistant-command" rows={2} value={value} onChange={(event) => setValue(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} placeholder="Digite sua solicitação para a arena…" disabled={isPending} />
+        <textarea id="assistant-command" maxLength={2000} rows={2} value={value} onChange={(event) => setValue(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} placeholder="Digite sua solicitação para a arena…" disabled={isPending} />
         <button className={viewStyles.button_button_primary} type="submit" disabled={isPending}>{isPending ? "Processando..." : "Enviar"}</button>
       </div>
       {error ? <p className={viewStyles.form_error} role="alert">{error}</p> : null}

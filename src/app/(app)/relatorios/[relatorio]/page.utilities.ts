@@ -32,7 +32,7 @@ export const viewStyles = {
     "tw:gap-y-[12px]", "tw:gap-x-[12px]", "tw:items-center", "tw:min-h-[38px]",
     "tw:pt-[0]", "tw:pr-[14px]", "tw:pb-[0]", "tw:pl-[14px]",
     "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:#e0e8f1]", "tw:bg-[color:#f6f9fd]",
-    "tw:[background-image:none]", "tw:text-[color:#60758d]", "tw:text-[.65rem]", "tw:font-[800]",
+    "tw:[background-image:none]", "tw:text-[color:#52677d]", "tw:text-[.65rem]", "tw:font-[800]",
     "tw:tracking-[.04em]", "tw:uppercase",
   ].join(" "),
   "client_empty": sharedUtilities.clientEmpty,

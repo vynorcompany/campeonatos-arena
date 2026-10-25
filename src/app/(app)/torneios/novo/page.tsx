@@ -5,12 +5,12 @@ import { TournamentForm } from "@/components/forms/tournament-form";
 import { SectionCard } from "@/components/section-card";
 import { requireModuleView } from "@/lib/auth/guards";
 import { canPerformPermission } from "@/lib/permissions";
-import { prisma } from "@/lib/prisma";
+import { arenaDatabase } from "@/lib/arena-database";
 
 export default async function NewTournamentPage() {
   const auth = await requireModuleView("tournaments");
   if (!canPerformPermission("tournaments:manage", auth.arenaRole, auth.systemRole, auth.editPermissions)) redirect("/jogos");
-  const rankings = await prisma.rankingProfile.findMany({
+  const rankings = await arenaDatabase(auth.arenaId).rankingProfile.findMany({
     where: {
       arenaId: auth.arenaId,
       type: "INDIVIDUAL",

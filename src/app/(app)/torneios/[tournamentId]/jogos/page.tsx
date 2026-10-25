@@ -1,3 +1,4 @@
+import { arenaDatabase } from "@/lib/arena-database";
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -10,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 
 export default async function TournamentGamesPage({ params }: { params: Promise<{ tournamentId: string }> }) {
   const auth = await requireModuleView("tournaments");
+  const prisma = arenaDatabase(auth.arenaId);
   const { tournamentId } = await params;
   if (!canPerformPermission("tournaments:manage", auth.arenaRole, auth.systemRole, auth.editPermissions)) {
     redirect(`/jogos?tournamentId=${encodeURIComponent(tournamentId)}`);

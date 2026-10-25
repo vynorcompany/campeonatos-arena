@@ -6,7 +6,7 @@ import { requireModuleEdit } from "@/lib/auth/guards";
 import { arenaDatabase } from "@/lib/arena-database";
 import { prisma } from "@/lib/prisma";
 import { getMissingTvTablesMessage, isPrismaSchemaOutdatedError, isPrismaUnknownFieldError } from "@/lib/prisma-errors";
-import { savePublicImageUpload } from "@/lib/uploads";
+import { savePublicImageUpload, toPersistentPlayerPhoto } from "@/lib/uploads";
 import { getDiscountedAmountCents } from "@/lib/finance/discounts";
 import { getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
 import { withArenaTransaction } from "@/lib/rls";
@@ -73,15 +73,7 @@ const sponsorshipPlanSchema = z.object({
 });
 
 async function toInlineLogo(file: File | null) {
-  if (!file || file.size === 0) return null;
-  if (!file.type.startsWith("image/")) {
-    throw new Error("Arquivo de logo invalido.");
-  }
-  if (file.size > 4 * 1024 * 1024) {
-    throw new Error("A logo deve ter no maximo 4 MB.");
-  }
-  const buffer = Buffer.from(await file.arrayBuffer());
-  return `data:${file.type};base64,${buffer.toString("base64")}`;
+  return toPersistentPlayerPhoto(file);
 }
 
 function parseMonthlyAmountToCents(value: string) {

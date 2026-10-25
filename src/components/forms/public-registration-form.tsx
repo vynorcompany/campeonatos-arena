@@ -6,6 +6,8 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useFormState } from "react-dom";
 import { createPublicRegistrationAction } from "@/lib/actions/public-registration";
+import { ArenaLegalLinks } from "@/components/legal/arena-legal-links";
+import { BotTrap } from "@/components/forms/bot-trap";
 import { SubmitButton } from "@/components/forms/submit-button";
 
 const initialState = {
@@ -33,22 +35,18 @@ function formatCategoryName(input: string) {
   return trimmed;
 }
 
-function formatBirthDate(input: string) {
-  const digits = input.replace(/\D/g, "").slice(0, 8);
-  const parts = [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 8)].filter(Boolean);
-  return parts.join("/");
-}
-
 export function PublicRegistrationForm({
   tournamentSlug,
   categories,
   arenaName,
+  arenaSlug,
   arenaLogoUrl
   , responsibleName = "", responsiblePhone = ""
 }: {
   tournamentSlug: string;
   categories: Category[];
   arenaName: string;
+  arenaSlug?: string;
   arenaLogoUrl: string;
   responsibleName?: string;
   responsiblePhone?: string;
@@ -129,7 +127,6 @@ export function PublicRegistrationForm({
             <div className={viewStyles.field}><label htmlFor="leadEmail">E-mail</label><input id="leadEmail" name="leadEmail" type="email" required /></div>
             <div className={viewStyles.field}><label htmlFor="leadPhone">Telefone</label><input id="leadPhone" name="leadPhone" required /></div>
             <div className={viewStyles.field}><label htmlFor="leadCpf">CPF</label><input id="leadCpf" name="leadCpf" required /></div>
-            <div className={viewStyles.field}><label htmlFor="leadBirthDate">Nascimento</label><input id="leadBirthDate" name="leadBirthDate" className={viewStyles.public_reg_date} type="text" inputMode="numeric" placeholder="dd/mm/aaaa" maxLength={10} onChange={(event) => { event.currentTarget.value = formatBirthDate(event.currentTarget.value); }} required /></div>
           </div>
         </section>
 
@@ -142,10 +139,11 @@ export function PublicRegistrationForm({
             <div className={viewStyles.field}><label htmlFor="partnerName">Nome</label><input id="partnerName" name="partnerName" required /></div>
             <div className={viewStyles.field}><label htmlFor="partnerPhone">Telefone</label><input id="partnerPhone" name="partnerPhone" required /></div>
             <div className={viewStyles.field}><label htmlFor="partnerCpf">CPF</label><input id="partnerCpf" name="partnerCpf" required /></div>
-            <div className={viewStyles.field}><label htmlFor="partnerBirthDate">Nascimento</label><input id="partnerBirthDate" name="partnerBirthDate" className={viewStyles.public_reg_date} type="text" inputMode="numeric" placeholder="dd/mm/aaaa" maxLength={10} onChange={(event) => { event.currentTarget.value = formatBirthDate(event.currentTarget.value); }} required /></div>
           </div>
         </section>
 
+        <BotTrap/>
+        <p className="tw:col-span-full tw:text-sm tw:leading-relaxed tw:text-[var(--muted)]">O CPF identifica o atleta e evita inscrições duplicadas no cálculo dos preços por categoria. Nome e resultados da dupla poderão aparecer na competição. Informe seu parceiro sobre o uso desses dados e consulte as condições da arena antes de continuar.</p>
         <div className={viewStyles.public_reg_submit}>
           <SubmitButton label="Ir para pagamento" pendingLabel="Criando inscrição..." className={viewStyles.button_button_primary} />
         </div>
@@ -158,6 +156,7 @@ export function PublicRegistrationForm({
           </div>
         ) : null}
       </form>
+      <footer className="tw:col-span-full tw:min-w-0 tw:px-1 tw:py-4"><ArenaLegalLinks arenaSlug={arenaSlug}/></footer>
     </div>
   );
 }

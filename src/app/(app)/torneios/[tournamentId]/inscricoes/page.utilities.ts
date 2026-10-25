@@ -25,7 +25,7 @@ export const viewStyles = {
     "tw:viewport-760:[&_summary]:grid-cols-[30px_minmax(0,_1fr)]", "tw:[&_summary]:items-center", "tw:[&_summary]:gap-y-[16px]", "tw:[&_summary]:gap-x-[16px]",
     "tw:[&_summary]:pt-[16px]", "tw:[&_summary]:pr-[16px]", "tw:[&_summary]:pb-[16px]", "tw:[&_summary]:pl-[16px]",
     "tw:[&_summary]:cursor-pointer", "tw:[&_summary]:[list-style:none]", "tw:[&_summary::-webkit-details-marker]:hidden", "tw:[&_summary_small]:block",
-    "tw:[&_summary_small]:mt-[3px]", "tw:[&_summary_small]:text-[color:#617997]", "tw:viewport-760:[&_summary_>_span:not(.registration-order)]:[grid-column:2]",
+    "tw:[&_summary_small]:mt-[3px]", "tw:[&_summary_small]:text-[color:#52677d]", "tw:viewport-760:[&_summary_>_span:not(.registration-order)]:[grid-column:2]",
   ].join(" "),
   "registration_order": [
     "registration-order", "tw:grid", "tw:place-items-center", "tw:w-[28px]",

@@ -5,6 +5,7 @@ export function isPendingCheckoutStatus(status: string) {
 export function checkoutStatusLabel(status: string) {
   const normalized = status.toUpperCase();
   if (normalized === "PAID") return "Confirmado";
+  if (normalized === "EXPIRED") return "Expirado · tentativas canceladas";
   if (normalized === "REVIEW") return "Em análise — conferir no Mercado Pago";
   if (status === "REFUNDED") return "Estornado · nova tentativa liberada";
   if (normalized === "REFUNDED") return "Estornado no provedor · conferir";

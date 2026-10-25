@@ -3,7 +3,7 @@ import "server-only";
 import { env } from "@/lib/env";
 import { buildEvolutionTextPayload, evolutionRecipientNumber } from "@/lib/integrations/evolution";
 import { decryptConnectionSecrets } from "@/lib/payments/connection-secrets";
-import { prisma } from "@/lib/prisma";
+import { arenaDatabase } from "@/lib/arena-database";
 import { readEvolutionGroupName } from "./groups";
 
 function getEvolutionConfig() {
@@ -14,15 +14,17 @@ function getEvolutionConfig() {
 export type EvolutionMessageKey = { id: string; remoteJid: string; fromMe: boolean; participant?: string };
 export type EvolutionQuotedMessage = { key: EvolutionMessageKey; message: Record<string, unknown> };
 
-export async function sendEvolutionTextMessage(phone: string, text: string, arenaId?: string, quoted?: EvolutionQuotedMessage) {
-  const connection = arenaId ? await prisma.whatsAppConnection.findUnique({ where: { arenaId } }) : null;
-  if (arenaId && (!connection || connection.status !== "CONNECTED" || !connection.encryptedToken)) throw new Error("O WhatsApp desta arena ainda não está conectado.");
+export async function sendEvolutionTextMessage(phone: string, text: string, arenaId: string, quoted?: EvolutionQuotedMessage, options?: { signal?: AbortSignal }) {
+  if (!arenaId?.trim()) throw new Error("A arena de origem é obrigatória para enviar mensagens.");
+  const connection = await arenaDatabase(arenaId).whatsAppConnection.findUnique({ where: { arenaId } });
+  if (!connection || connection.status !== "CONNECTED" || !connection.encryptedToken) throw new Error("O WhatsApp desta arena ainda não está conectado.");
   const config = getEvolutionConfig();
-  const instanceName = connection?.instanceName ?? config.instanceName;
+  const instanceName = connection.instanceName;
   if (!instanceName) throw new Error("Nenhuma instância Evolution foi definida.");
-  const legacyInstanceToken = connection?.encryptedToken ? decryptConnectionSecrets(connection.encryptedToken).token : "";
+  const legacyInstanceToken = decryptConnectionSecrets(connection.encryptedToken).token;
   const send = (apiKey: string) => fetch(`${config.apiUrl}/message/sendText/${encodeURIComponent(instanceName)}`, {
     method: "POST",
+    signal: options?.signal,
     headers: { apikey: apiKey, "content-type": "application/json" },
     body: JSON.stringify({ ...buildEvolutionTextPayload(phone, text), ...(phone.endsWith("@g.us") ? { number: phone } : {}), ...(quoted ? { quoted } : {}) }),
     cache: "no-store"
@@ -45,7 +47,7 @@ export async function sendEvolutionTextMessage(phone: string, text: string, aren
 }
 
 export async function sendEvolutionAudioMessage(phone: string, audioDataUrl: string, arenaId: string, quoted?: EvolutionQuotedMessage) {
-  const connection = await prisma.whatsAppConnection.findUnique({ where: { arenaId } });
+  const connection = await arenaDatabase(arenaId).whatsAppConnection.findUnique({ where: { arenaId } });
   if (!connection || connection.status !== "CONNECTED") throw new Error("O WhatsApp desta arena ainda não está conectado.");
   const config = getEvolutionConfig();
   const number = evolutionRecipientNumber(phone);
@@ -57,7 +59,7 @@ export async function sendEvolutionAudioMessage(phone: string, audioDataUrl: str
 }
 
 export async function sendEvolutionMediaMessage(phone: string, mediaDataUrl: string, mediaType: "image" | "document", fileName: string, mimeType: string, arenaId: string, quoted?: EvolutionQuotedMessage) {
-  const connection = await prisma.whatsAppConnection.findUnique({ where: { arenaId } });
+  const connection = await arenaDatabase(arenaId).whatsAppConnection.findUnique({ where: { arenaId } });
   if (!connection || connection.status !== "CONNECTED") throw new Error("O WhatsApp desta arena ainda não está conectado.");
   const config = getEvolutionConfig(); const number = evolutionRecipientNumber(phone);
   const send = (media: string) => fetch(`${config.apiUrl}/message/sendMedia/${encodeURIComponent(connection.instanceName)}`, { method: "POST", headers: { apikey: config.apiKey, "content-type": "application/json" }, body: JSON.stringify({ number: phone.endsWith("@g.us") ? phone : number, mediatype: mediaType, media, fileName, mimetype: mimeType, caption: "", ...(quoted ? { quoted } : {}) }), cache: "no-store" });
@@ -73,7 +75,7 @@ export async function sendEvolutionMediaMessage(phone: string, mediaDataUrl: str
 }
 
 export async function sendEvolutionReaction(key: EvolutionMessageKey, reaction: string, arenaId: string) {
-  const connection = await prisma.whatsAppConnection.findUnique({ where: { arenaId } });
+  const connection = await arenaDatabase(arenaId).whatsAppConnection.findUnique({ where: { arenaId } });
   if (!connection || connection.status !== "CONNECTED") throw new Error("O WhatsApp desta arena ainda não está conectado.");
   const config = getEvolutionConfig();
   const response = await fetch(`${config.apiUrl}/message/sendReaction/${encodeURIComponent(connection.instanceName)}`, {
@@ -85,7 +87,7 @@ export async function sendEvolutionReaction(key: EvolutionMessageKey, reaction: 
 }
 
 export async function getEvolutionProfilePicture(remoteJid: string, arenaId: string) {
-  const connection = await prisma.whatsAppConnection.findUnique({ where: { arenaId }, select: { instanceName: true, status: true } });
+  const connection = await arenaDatabase(arenaId).whatsAppConnection.findUnique({ where: { arenaId }, select: { instanceName: true, status: true } });
   if (!connection || connection.status !== "CONNECTED") return "";
   const config = getEvolutionConfig();
   const response = await fetch(`${config.apiUrl}/chat/fetchProfilePictureUrl/${encodeURIComponent(connection.instanceName)}`, {
@@ -98,7 +100,7 @@ export async function getEvolutionProfilePicture(remoteJid: string, arenaId: str
 
 export async function getEvolutionGroupName(remoteJid: string, arenaId: string) {
   if (!remoteJid.endsWith("@g.us")) return "";
-  const connection = await prisma.whatsAppConnection.findUnique({ where: { arenaId }, select: { instanceName: true, status: true } });
+  const connection = await arenaDatabase(arenaId).whatsAppConnection.findUnique({ where: { arenaId }, select: { instanceName: true, status: true } });
   if (!connection || connection.status !== "CONNECTED") return "";
   const config = getEvolutionConfig();
   const instance = encodeURIComponent(connection.instanceName);
@@ -125,7 +127,7 @@ export async function getEvolutionGroupName(remoteJid: string, arenaId: string) 
 }
 
 export async function getEvolutionMediaDataUrl(input: { providerId: string; providerPayload: unknown; mimeType: string; mediaUrl: string }, arenaId: string) {
-  const connection = await prisma.whatsAppConnection.findUnique({ where: { arenaId }, select: { instanceName: true, status: true } });
+  const connection = await arenaDatabase(arenaId).whatsAppConnection.findUnique({ where: { arenaId }, select: { instanceName: true, status: true } });
   if (!connection || connection.status !== "CONNECTED") return "";
   const config = getEvolutionConfig();
   const response = await fetch(`${config.apiUrl}/chat/getBase64FromMediaMessage/${encodeURIComponent(connection.instanceName)}`, {

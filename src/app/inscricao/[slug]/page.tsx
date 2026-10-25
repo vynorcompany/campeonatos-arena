@@ -38,7 +38,7 @@ export default async function PublicRegistrationPage(
   const tournament = await arenaDatabase(tournamentOwner.arenaId).tournament.findUnique({
     where: { publicSlug: params.slug, arenaId: tournamentOwner.arenaId },
     include: {
-      arena: { select: { name: true, logoUrl: true } },
+      arena: { select: { name: true, logoUrl: true, slug: true } },
       categories: { where: { active: true }, orderBy: { level: "asc" } },
       publicRegistrations: {
         where: { status: "CONFIRMED" },
@@ -76,7 +76,7 @@ export default async function PublicRegistrationPage(
         {publicTabs.map((tab) => <Link className={cx(activeTab === tab.id ? "is-active" : "")} href={`/inscricao/${tournament.publicSlug}${tab.id === "inscricao" ? "" : `?tab=${tab.id}`}`} key={tab.id}>{tab.label}</Link>)}
       </nav>
 
-      {activeTab === "inscricao" ? <PublicRegistrationForm tournamentSlug={tournament.publicSlug} categories={tournament.categories} arenaName={tournament.arena.name} arenaLogoUrl={tournament.arena.logoUrl} responsibleName={tournament.responsibleName} responsiblePhone={tournament.responsiblePhone} /> : null}
+      {activeTab === "inscricao" ? <PublicRegistrationForm tournamentSlug={tournament.publicSlug} categories={tournament.categories} arenaSlug={tournament.arena.slug} arenaName={tournament.arena.name} arenaLogoUrl={tournament.arena.logoUrl} responsibleName={tournament.responsibleName} responsiblePhone={tournament.responsiblePhone} /> : null}
 
       {activeTab === "inscritos" ? <section className={viewStyles.section_card_public_tournament_content}><header><h2>Inscritos</h2><p className={viewStyles.muted}>Duplas com inscrição confirmada.</p></header>{tournament.categories.map((category) => { const registrations = tournament.publicRegistrations.filter((registration) => registration.categoryId === category.id); return <article className={viewStyles.public_tournament_group} key={category.id}><h3>{category.name}</h3>{registrations.length ? <ul>{registrations.map((registration) => <li key={registration.id}>{pairName(registration)}</li>)}</ul> : <p className={viewStyles.muted}>Nenhuma dupla confirmada nesta categoria.</p>}</article>; })}</section> : null}
 

@@ -1,3 +1,4 @@
+import { deviceLabel } from "../src/lib/auth/device-label";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
@@ -24,6 +25,7 @@ function loadDelinquency(graceDays: number | null, invoice: { id: string; dueAt:
           return invoice && invoice.dueAt < where.dueAt.lt ? invoice : null;
         } },
       } };
+      if (name === "@/lib/auth/device-label") return { deviceLabel };
       throw new Error(`Unexpected import: ${name}`);
     },
   });
@@ -74,6 +76,7 @@ test("painel bloqueia arena inadimplente e libera após a fatura ser regularizad
       if (name === "@/lib/permissions") return { allPermissionModules: [] };
       if (name === "node:crypto") return { createHash: () => ({ update: () => ({ digest: () => "hash" }) }) };
       if (name === "@/lib/finance/agency-delinquency") return { getAgencyDelinquency: async () => blocked ? { blocked: true } : null };
+      if (name === "@/lib/auth/device-label") return { deviceLabel };
       throw new Error(`Unexpected import: ${name}`);
     },
   });

@@ -353,10 +353,10 @@ test("legacy tournaments only select and accept individual knockout rankings", a
     ]);
 
   for (const source of [newEventPage, eventPage]) {
-    const rankingQuery = source.slice(
-      source.indexOf("prisma.rankingProfile.findMany"),
-      source.indexOf("orderBy:", source.indexOf("prisma.rankingProfile.findMany")),
-    );
+    const queryStart = source.indexOf(".rankingProfile.findMany");
+    assert.ok(queryStart >= 0, "ranking query exists");
+    assert.match(source.slice(Math.max(0, queryStart - 80), queryStart), /arenaDatabase\(auth\.arenaId\)/);
+    const rankingQuery = source.slice(queryStart, source.indexOf("orderBy:", queryStart));
     assert.match(rankingQuery, /type:\s*"INDIVIDUAL"/);
     assert.match(rankingQuery, /model:\s*"KNOCKOUT"/);
   }

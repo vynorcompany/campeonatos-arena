@@ -435,3 +435,8 @@
 @keyframes whatsapp-sla-overdue-pulse { 0%, 100% { box-shadow: inset 0 0 0 0 rgb(216 66 59 / 0); } 50% { box-shadow: inset 0 0 0 999px rgb(238 102 96 / .19); } }
 
 @keyframes whatsapp-recording-pulse { 50% { transform: scale(1.08); } }
+
+@keyframes comanda-close-request {
+  0%, 100% { box-shadow: 0 0 8px #fbbf2426; }
+  50% { box-shadow: 0 0 24px #fbbf2470; }
+}

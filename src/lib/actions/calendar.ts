@@ -1,5 +1,6 @@
 "use server";
 
+import { arenaDatabase } from "@/lib/arena-database";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireModuleEdit, requirePermission } from "@/lib/auth/guards";
@@ -197,7 +198,7 @@ export async function createPublicCourtBookingAction(formData: FormData): Promis
   const endsAt = new Date(startsAt.getTime() + parsed.data.durationMinutes * 60_000);
   const startsAtMinute = startsAt.getHours() * 60 + startsAt.getMinutes();
   const endsAtMinute = endsAt.getHours() * 60 + endsAt.getMinutes();
-  const court = await prisma.court.findFirst({ where: { id: parsed.data.courtId, arenaId: arena.id, active: true }, include: { weeklyRules: true } });
+  const court = await arenaDatabase(arena.id).court.findFirst({ where: { id: parsed.data.courtId, arenaId: arena.id, active: true }, include: { weeklyRules: true } });
   if (!court) throw new Error("Quadra não encontrada.");
   if (!court.onlineDurationMinutes.includes(parsed.data.durationMinutes)) throw new Error("Esta duração não está disponível para reserva online.");
   if (!isCourtBookingStartOnGrid(startsAtMinute, arena.scheduleStartMinute, arena.scheduleEndMinute, court.onlineSlotMinutes)) throw new Error("Este horário não pertence à grade de reservas da quadra.");
@@ -216,7 +217,7 @@ export async function createPublicCourtBookingAction(formData: FormData): Promis
       const player = await tx.player.findFirst({ where: { id: playerAuth.playerId, arenaId: arena.id, active: true }, select: { id: true, name: true, email: true } });
       if (!player) throw new Error("Cliente não encontrado.");
       const delinquency = await getBookingDelinquency(tx, arena.id, player.id, arena.onlineBookingOverdueBlockDays);
-      if (delinquency.blocked) throw new PublicBookingConflictError("Há pagamentos em atraso. Regularize suas pendências na área financeira para voltar a reservar.");
+      if (delinquency.blocked) throw new PublicBookingConflictError(delinquency.requiresReview ? `Entre em contato com a recepção para revisar seu cadastro antes de reservar. Protocolo: ${delinquency.reviewReference}.` : "Há pagamentos em atraso. Regularize suas pendências na área financeira para voltar a reservar.");
       if (requiresPayment && !player.email) throw new Error("Informe seu e-mail no perfil para continuar com o pagamento online.");
       const occurrence = await tx.scheduleOccurrence.create({ data: { arenaId: arena.id, sourceType: "ONLINE_BOOKING", responsiblePlayerId: player.id, title: `${player.name} - Reserva`, startsAt, endsAt, status: requiresPayment ? "PENDING_PAYMENT" : arena.onlineBookingRequiresConfirmation ? "PENDING_CONFIRMATION" : "SCHEDULED", bookingTypeName: "Reserva", occurrenceCourts: { create: { courtId: court.id } }, participants: { create: { playerId: player.id, amountCents: bookingAmountCents } } } });
       const localDate = `${startsAt.getFullYear()}-${String(startsAt.getMonth() + 1).padStart(2, "0")}-${String(startsAt.getDate()).padStart(2, "0")}`;
@@ -357,11 +358,12 @@ export async function cancelCourtBookingAction(formData: FormData) {
 }
 
 async function ensureBookingTypes(arenaId: string) {
-  await prisma.bookingType.createMany({ data: DEFAULT_BOOKING_TYPES.map((name) => ({ arenaId, name })), skipDuplicates: true });
+  await arenaDatabase(arenaId).bookingType.createMany({ data: DEFAULT_BOOKING_TYPES.map((name) => ({ arenaId, name })), skipDuplicates: true });
 }
 
 export async function createBookingTypeAction(formData: FormData) {
   const auth = await requirePermission("arena:settings");
+  const prisma = arenaDatabase(auth.arenaId);
   const name = z.string().trim().min(2, "Informe o tipo de reserva.").safeParse(formData.get("name"));
   if (!name.success) throw new Error(name.error.issues[0]?.message ?? "Tipo inválido.");
   await ensureBookingTypes(auth.arenaId);
@@ -476,6 +478,7 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
 
 export async function createCourtWeeklyRuleAction(formData: FormData) {
   const auth = await requirePermission("calendar:settings:manage");
+  const prisma = arenaDatabase(auth.arenaId);
   const parsed = courtWeeklyRuleSchema.safeParse({
     courtId: formData.get("courtId"),
     weekday: formData.get("weekday"),
@@ -525,6 +528,7 @@ export async function createCourtWeeklyRuleAction(formData: FormData) {
 
 export async function updateCourtWeeklyRuleAction(formData: FormData) {
   const auth = await requirePermission("calendar:settings:manage");
+  const prisma = arenaDatabase(auth.arenaId);
   const parsed = updateCourtWeeklyRuleSchema.safeParse({
     ruleId: formData.get("ruleId"),
     startTime: formData.get("startTime"),
@@ -565,6 +569,7 @@ export async function updateCourtWeeklyRuleAction(formData: FormData) {
 
 export async function deleteCourtWeeklyRuleAction(formData: FormData) {
   const auth = await requirePermission("calendar:settings:manage");
+  const prisma = arenaDatabase(auth.arenaId);
   const ruleId = z.string().trim().min(1).safeParse(formData.get("ruleId"));
   if (!ruleId.success) {
     throw new Error("Regra inválida.");
@@ -581,6 +586,7 @@ export async function deleteCourtWeeklyRuleAction(formData: FormData) {
 
 export async function copyCourtWeeklyRuleAction(formData: FormData) {
   const auth = await requirePermission("calendar:settings:manage");
+  const prisma = arenaDatabase(auth.arenaId);
   const parsed = z.object({ ruleId: z.string().trim().min(1), targetWeekday: z.union([z.string().regex(/^[0-6]$/).transform(Number), z.literal("ALL")]) }).safeParse({
     ruleId: formData.get("ruleId"),
     targetWeekday: formData.get("targetWeekday")
@@ -611,6 +617,7 @@ export async function copyCourtWeeklyRuleAction(formData: FormData) {
 
 export async function updateScheduleSettingsAction(formData: FormData) {
   const auth = await requirePermission("calendar:settings:manage");
+  const prisma = arenaDatabase(auth.arenaId);
   const parsed = scheduleSettingsSchema.safeParse({
     startTime: formData.get("startTime"),
     endTime: formData.get("endTime"),
@@ -637,6 +644,7 @@ export async function updateScheduleSettingsAction(formData: FormData) {
 
 export async function createCourtAction(formData: FormData) {
   const auth = await requirePermission("calendar:settings:manage");
+  const prisma = arenaDatabase(auth.arenaId);
   const parsed = courtSchema.safeParse({ name: formData.get("name") });
 
   if (!parsed.success) {
@@ -651,6 +659,7 @@ export async function createCourtAction(formData: FormData) {
 
 export async function updateCourtSettingsAction(formData: FormData) {
   const auth = await requirePermission("calendar:settings:manage");
+  const prisma = arenaDatabase(auth.arenaId);
   const parsed = courtSettingsSchema.safeParse({
     courtId: formData.get("courtId"), color: formData.get("color"), onlineSlotMinutes: formData.get("onlineSlotMinutes"),
     onlineDurationMinutes: formData.getAll("onlineDurationMinutes")
@@ -686,6 +695,7 @@ export async function moveCourtAction(formData: FormData) {
 
 export async function copyCourtConfigurationAction(formData: FormData) {
   const auth = await requirePermission("calendar:settings:manage");
+  const prisma = arenaDatabase(auth.arenaId);
   const sourceCourtId = z.string().trim().min(1).safeParse(formData.get("sourceCourtId"));
   const targetCourtIds = Array.from(new Set(formData.getAll("targetCourtId").flatMap((value) => typeof value === "string" && value.length > 0 ? [value] : [])));
   if (!sourceCourtId.success || !targetCourtIds.length) throw new Error("Selecione ao menos uma quadra de destino.");
@@ -705,6 +715,7 @@ export async function copyCourtConfigurationAction(formData: FormData) {
 
 export async function createCalendarEventAction(formData: FormData) {
   const auth = await requirePermission("calendar:event:manage");
+  const prisma = arenaDatabase(auth.arenaId);
   const parsed = calendarSchema.safeParse({
     sourceType: "calendar",
     lessonId: "",
@@ -754,6 +765,7 @@ export async function createCalendarEventAction(formData: FormData) {
 
 export async function updateCalendarEventAction(formData: FormData) {
   const auth = await requirePermission("calendar:event:manage");
+  const prisma = arenaDatabase(auth.arenaId);
   const sourceType = formData.get("sourceType");
   const parsed = calendarSchema.safeParse({
     sourceType,
@@ -853,6 +865,7 @@ export async function updateCalendarEventAction(formData: FormData) {
 
 export async function deleteCalendarEventAction(formData: FormData) {
   const auth = await requirePermission("calendar:event:manage");
+  const prisma = arenaDatabase(auth.arenaId);
   const parsed = z
     .object({
       sourceType: z.enum(["lesson", "calendar"]).default("calendar"),

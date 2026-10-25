@@ -52,6 +52,37 @@ function loadWebhook(prisma: unknown, tx: unknown, getPayment: () => Promise<unk
 
 const request = () => new Request("https://example.test/api/payments/mercado-pago/webhook", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ data: { id: "synthetic-payment" } }) });
 
+test("late callbacks cannot resurrect expired checkouts or settle replacement debts", async () => {
+  for (const providerStatus of ["pending", "cancelled", "rejected", "approved", "refunded", "charged_back"]) {
+    const checkout = { id: "checkout-expired", arenaId: "arena-a", status: "EXPIRED" };
+    let alerts = 0;
+    const tx = {
+      $queryRaw: async () => [],
+      onlinePaymentCheckout: { findFirst: async () => checkout, update: async ({ data }: { data: any }) => Object.assign(checkout, data) },
+      arenaNotification: { create: async () => { alerts++; } },
+      financialSettlement: { create: async () => { throw new Error("Expired checkout must never settle money"); } },
+    };
+    const prisma = { publicTournamentRegistration: { findFirst: async () => null }, onlinePaymentCheckout: { findFirst: async () => checkout } };
+    const webhook = loadWebhook(prisma, tx, async () => ({ id: "synthetic-payment", status: providerStatus, external_reference: checkout.id }));
+    assert.equal((await webhook(request())).status, 200);
+    assert.equal((await webhook(request())).status, 200);
+    const review = ["approved", "refunded", "charged_back"].includes(providerStatus);
+    assert.equal(checkout.status, review ? "REVIEW" : "EXPIRED");
+    assert.equal(alerts, review ? 1 : 0);
+  }
+});
+
+test("rejected hosted-checkout attempts keep the preference pending until every attempt is reconciled", async () => {
+  for (const providerStatus of ["rejected", "cancelled", "canceled"]) {
+    const checkout = { id: "hosted-checkout", arenaId: "arena-a", status: "PENDING", checkoutUrl: "https://checkout.example.test/active", mercadoPagoPreferenceId: "preference-a", items: [] };
+    const tx = { $queryRaw: async () => [], onlinePaymentCheckout: { findFirst: async () => checkout, update: async ({ data }: { data: any }) => Object.assign(checkout, data) } };
+    const prisma = { publicTournamentRegistration: { findFirst: async () => null }, onlinePaymentCheckout: { findFirst: async () => checkout } };
+    const webhook = loadWebhook(prisma, tx, async () => ({ id: "synthetic-payment", status: providerStatus, external_reference: checkout.id }));
+    assert.equal((await webhook(request())).status, 200);
+    assert.equal(checkout.status, "PENDING");
+  }
+});
+
 test("callback com arena identifica inscrição e checkout dentro da própria arena", async () => {
   const registrationFilters: unknown[] = [];
   const checkoutFilters: unknown[] = [];
@@ -717,5 +748,26 @@ test("webhook de checkout real baixa a cobrança uma vez sob RLS", { skip: !disp
     await admin.player.deleteMany({ where: { id: playerId } });
     await runtime.$disconnect();
     await admin.$disconnect();
+  }
+});
+
+test("checkout registra a conta escolhida e exige revisão para reclassificar recebimentos anteriores", async () => {
+  for (const previousBank of [null, "bank-other"]) {
+    const entry = { id: "entry-a", arenaId: "arena-a", bankAccountId: previousBank, status: previousBank ? "PARTIAL" : "PENDING", category: "Plano", amountCents: previousBank ? 600 : 500, settlements: previousBank ? [{ amountCents: 100 }] : [] as Array<{ amountCents: number }>, paidAt: null, saleId: null };
+    const checkout = { id: "checkout-bank", arenaId: "arena-a", bankAccountId: "bank-selected", status: "PENDING", amountCents: 500, items: [{ amountCents: 500, financialEntry: entry }] };
+    let settlements = 0; const alerts: string[] = [];
+    const tx = {
+      $queryRaw: async () => [{ id: checkout.id }],
+      bankAccount: { findFirst: async (input: { where: { arenaId: string; id: string } }) => { assert.equal(input.where.arenaId, "arena-a"); assert.equal(input.where.id, "bank-selected"); return { id: "bank-selected" }; } },
+      onlinePaymentCheckout: { findFirst: async () => checkout, update: async ({ data }: { data: Record<string, unknown> }) => Object.assign(checkout, data) },
+      financialSettlement: { create: async ({ data }: { data: { amountCents: number } }) => { settlements++; entry.settlements.push({ amountCents: data.amountCents }); } },
+      financialEntry: { update: async ({ data }: { data: Record<string, unknown> }) => Object.assign(entry, data) },
+      arenaNotification: { create: async ({ data }: { data: { title: string } }) => { alerts.push(data.title); } },
+    };
+    const prisma = { publicTournamentRegistration: { findFirst: async () => null }, onlinePaymentCheckout: { findFirst: async () => checkout } };
+    const webhook = loadWebhook(prisma, tx, async () => ({ id: "bank-payment", status: "approved", currency_id: "BRL", transaction_amount: 5, external_reference: checkout.id }));
+    const response = await webhook(request()); assert.equal(response.status, 200, JSON.stringify(response.body));
+    if (previousBank) { assert.equal(checkout.status, "REVIEW"); assert.equal(entry.bankAccountId, "bank-other"); assert.equal(settlements, 0); assert.deepEqual(alerts, ["Conta de recebimento exige conferência"]); }
+    else { assert.equal(checkout.status, "PAID"); assert.equal(entry.bankAccountId, "bank-selected"); assert.equal(settlements, 1); }
   }
 });

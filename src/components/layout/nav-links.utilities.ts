@@ -2,10 +2,10 @@
 export const viewStyles = {
   "side_nav": [
     "side-nav", "tw:grid", "tw:gap-y-[17px]", "tw:gap-x-[17px]",
-    "tw:[&_.nav-link-cash]:text-[color:#fff]", "tw:[&_.nav-link-cash]:bg-[color:#118750]", "tw:[&_.nav-link-cash]:[background-image:none]", "tw:[&_.nav-link-cash]:border-t-[color:#118750]",
-    "tw:[&_.nav-link-cash]:border-r-[color:#118750]", "tw:[&_.nav-link-cash]:border-b-[color:#118750]", "tw:[&_.nav-link-cash]:border-l-[color:#118750]", "tw:[&_.nav-link-cash]:font-[750]",
-    "tw:[&_.nav-link-cash.nav-link-active]:text-[color:#fff]", "tw:[&_.nav-link-cash.nav-link-active]:bg-[color:#118750]", "tw:[&_.nav-link-cash.nav-link-active]:[background-image:none]", "tw:[&_.nav-link-cash.nav-link-active]:border-t-[color:#118750]",
-    "tw:[&_.nav-link-cash.nav-link-active]:border-r-[color:#118750]", "tw:[&_.nav-link-cash.nav-link-active]:border-b-[color:#118750]", "tw:[&_.nav-link-cash.nav-link-active]:border-l-[color:#118750]", "tw:[&_.nav-link-cash.nav-link-active]:font-[750]",
+    "tw:[&_.nav-link-cash]:text-[color:#fff]", "tw:[&_.nav-link-cash]:bg-[color:#0c7040]", "tw:[&_.nav-link-cash]:[background-image:none]", "tw:[&_.nav-link-cash]:border-t-[color:#0c7040]",
+    "tw:[&_.nav-link-cash]:border-r-[color:#0c7040]", "tw:[&_.nav-link-cash]:border-b-[color:#0c7040]", "tw:[&_.nav-link-cash]:border-l-[color:#0c7040]", "tw:[&_.nav-link-cash]:font-[750]",
+    "tw:[&_.nav-link-cash.nav-link-active]:text-[color:#fff]", "tw:[&_.nav-link-cash.nav-link-active]:bg-[color:#0c7040]", "tw:[&_.nav-link-cash.nav-link-active]:[background-image:none]", "tw:[&_.nav-link-cash.nav-link-active]:border-t-[color:#0c7040]",
+    "tw:[&_.nav-link-cash.nav-link-active]:border-r-[color:#0c7040]", "tw:[&_.nav-link-cash.nav-link-active]:border-b-[color:#0c7040]", "tw:[&_.nav-link-cash.nav-link-active]:border-l-[color:#0c7040]", "tw:[&_.nav-link-cash.nav-link-active]:font-[750]",
     "tw:[&_.nav-link-cash:hover]:text-[color:#fff]", "tw:[&_.nav-link-cash:hover]:bg-[color:#0c7040]", "tw:[&_.nav-link-cash:hover]:[background-image:none]", "tw:[&_.nav-link-cash:hover]:border-t-[color:#0c7040]",
     "tw:[&_.nav-link-cash:hover]:border-r-[color:#0c7040]", "tw:[&_.nav-link-cash:hover]:border-b-[color:#0c7040]", "tw:[&_.nav-link-cash:hover]:border-l-[color:#0c7040]", "tw:[&_.nav-link-cash:focus-visible]:text-[color:#fff]",
     "tw:[&_.nav-link-cash:focus-visible]:bg-[color:#0c7040]", "tw:[&_.nav-link-cash:focus-visible]:[background-image:none]", "tw:[&_.nav-link-cash:focus-visible]:border-t-[color:#0c7040]", "tw:[&_.nav-link-cash:focus-visible]:border-r-[color:#0c7040]",
@@ -68,25 +68,13 @@ export const viewStyles = {
     "tw:[&_.nav-svg-whatsapp]:[filter:drop-shadow(0_1px_1px_rgb(0_21_35_/_.28))]",
   ].join(" "),
   "nav_toggle_nav_expand_toggle": [
-    "nav-toggle", "nav-expand-toggle", "tw:grid", "tw:place-items-center",
-    "tw:w-[34px]", "tw:h-[32px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]",
-    "tw:border-t-[color:transparent]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:transparent]",
-    "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:transparent]", "tw:border-l-[length:1px]",
-    "tw:[border-left-style:solid]", "tw:border-l-[color:transparent]", "tw:rounded-[var(--radius-control)]", "tw:bg-[color:transparent]",
-    "tw:[background-image:none]", "tw:text-[color:rgba(245,_250,_255,_0.82)]", "tw:font-[800]", "tw:[transition:background_160ms_var(--ease-standard),_border-color_160ms_var(--ease-standard),_color_160ms_var(--ease-standard)]",
-    "tw:hover:border-t-[color:rgba(255,_255,_255,_0.16)]", "tw:hover:border-r-[color:rgba(255,_255,_255,_0.16)]", "tw:hover:border-b-[color:rgba(255,_255,_255,_0.16)]", "tw:hover:border-l-[color:rgba(255,_255,_255,_0.16)]",
-    "tw:hover:bg-[color:rgba(255,_255,_255,_0.14)]", "tw:hover:[background-image:none]", "tw:hover:text-[color:#ffffff]", "tw:[flex:0_0_34px]",
-    "tw:min-h-[36px]", "tw:pt-[0]", "tw:pr-[0]", "tw:pb-[0]",
-    "tw:pl-[0]", "tw:cursor-pointer", "tw:[&_.nav-chevron]:grid", "tw:[&_.nav-chevron]:place-items-center",
-    "tw:[&_.nav-chevron]:[transition:transform_160ms_var(--ease-standard)]", "tw:[&_.nav-chevron-open]:[transform:rotate(90deg)]",
+    "nav-toggle nav-expand-toggle tw:grid tw:size-9 tw:shrink-0 tw:place-items-center tw:cursor-pointer tw:rounded-xl tw:border tw:border-white/10 tw:bg-white/5 tw:p-0 tw:text-[#dcebe5] tw:transition-colors tw:hover:border-white/25 tw:hover:bg-white/15 tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#b6f36c] tw:aria-expanded:border-[#b6f36c]/35 tw:aria-expanded:bg-[#b6f36c]/15 tw:aria-expanded:text-[#d1f6a6]",
   ].join(" "),
   "nav_chevron": [
-    "nav-chevron", "tw:grid", "tw:w-[18px]", "tw:h-[18px]",
-    "tw:ml-[auto]", "tw:place-items-center", "tw:text-[color:#c3d8f7]", "tw:[transition:transform_.16s_ease]",
-    "tw:[&_svg]:w-[15px]", "tw:[&_svg]:h-[15px]",
+    "nav-chevron tw:grid tw:size-4 tw:place-items-center tw:transition-transform tw:duration-200 tw:motion-reduce:transition-none tw:[&_svg]:size-4",
   ].join(" "),
   "nav_chevron_open": [
-    "nav-chevron-open", "tw:[transform:rotate(180deg)]",
+    "nav-chevron-open tw:rotate-90",
   ].join(" "),
   "nav_link": [
     "nav-link", "tw:flex", "tw:items-center", "tw:gap-y-[10px]",

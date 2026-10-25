@@ -1,0 +1,62 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { randomUUID } from "node:crypto";
+import { PrismaClient } from "@prisma/client";
+import { arenaDatabaseForTest } from "./helpers/arena-database";
+
+const url = process.env.ARENA_GOAL_TEST_DATABASE_URL ?? "";
+const isolated = /^postgresql:\/\/[^@]+@127\.0\.0\.1:55433\/arena_goal\?/.test(url);
+test("sports RLS isolates rankings, League challenges and complete Super12 graphs", { skip: !isolated }, async () => {
+  const admin = new PrismaClient({ datasources: { db: { url } } });
+  const runtimeUrl = new URL(url); runtimeUrl.username = "arena_runtime";
+  const runtime = new PrismaClient({ datasources: { db: { url: runtimeUrl.toString() } } });
+  const ids: string[] = [];
+  try {
+    for (const label of ["A", "B"]) ids.push((await admin.arena.create({ data: { name: `Sports RLS ${label}`, slug: `sports-rls-${randomUUID()}`, createdById: "goal-test" } })).id);
+    const players = await Promise.all(ids.map(arenaId => admin.player.create({ data: { arenaId, name: "Sports player" } })));
+    const rankings = await Promise.all(ids.map(arenaId => admin.rankingProfile.create({ data: { arenaId, name: "Sports ranking", rules: { create: { stageKey: "WIN", label: "Win", points: 10, displayOrder: 1 } }, cycles: { create: { label: "Cycle" } } }, include: { rules: true, cycles: true } })));
+    const tournaments = await Promise.all(ids.map(arenaId => admin.tournament.create({ data: { arenaId, name: "Sports league", publicSlug: randomUUID() } })));
+    const categories = await Promise.all(tournaments.map(tournament => admin.tournamentCategory.create({ data: { tournamentId: tournament.id, name: "League A", level: 1 } })));
+    const competitions = await Promise.all(categories.map(category => admin.categoryCompetition.create({ data: { categoryId: category.id, format: "LEAGUE" } })));
+    const cycles = await Promise.all(competitions.map(competition => admin.leagueCycle.create({ data: { competitionId: competition.id, referenceMonth: "2030-01" } })));
+    const courts = await Promise.all(ids.map(arenaId => admin.court.create({ data: { arenaId, name: "Sports court" } })));
+    const pairs = await Promise.all(competitions.map(competition => Promise.all([1, 2].map(index => admin.categoryPair.create({ data: { competitionId: competition.id, name: `Pair ${index}` } })))));
+    const match = await admin.categoryMatch.create({ data: { competitionId: competitions[0].id, homePairId: pairs[0][0].id, awayPairId: pairs[0][1].id, label: "Match", stage: "GROUP", roundOrder: 1 } });
+    const events = await Promise.all(ids.map((arenaId, index) => admin.super12Event.create({ data: { arenaId, creatorId: players[index].id, name: "Sports Super12" } })));
+    const groups = await Promise.all(events.map((event, index) => admin.super12Group.create({ data: { eventId: event.id, name: `Group ${index}`, drawOrder: 1 } })));
+    const superPairs = await Promise.all(events.map((event, index) => admin.super12Pair.create({ data: { eventId: event.id, groupId: groups[index].id, name: "Sports pair", drawOrder: 1, players: { create: { playerId: players[index].id, slot: 1 } } }, include: { players: true } })));
+    const superMatch = await admin.super12Match.create({ data: { eventId: events[0].id, groupId: groups[0].id, homePairId: superPairs[0].id, roundOrder: 1 } });
+    const db = arenaDatabaseForTest(runtime, ids[0]);
+    assert.deepEqual(await runtime.rankingProfile.findMany({ where: { arenaId: { in: ids } } }), []);
+    assert.deepEqual(await runtime.super12Event.findMany({ where: { arenaId: { in: ids } } }), []);
+    const ownRankings = await db.rankingProfile.findMany({ where: { arenaId: { in: ids } }, include: { rules: true, cycles: true } });
+    assert.equal(ownRankings.length, 1); assert.equal(ownRankings[0].id, rankings[0].id); assert.equal(ownRankings[0].rules.length, 1); assert.equal(ownRankings[0].cycles.length, 1);
+    assert.deepEqual(await db.rankingRule.findMany({ where: { rankingId: rankings[1].id } }), []);
+    await assert.rejects(db.rankingRule.create({ data: { rankingId: rankings[1].id, stageKey: "CROSS", label: "Cross", points: 1, displayOrder: 2 } }));
+    await assert.rejects(db.rankingCycle.create({ data: { rankingId: rankings[1].id, label: "Cross" } }));
+    await db.leagueAthleteTier.create({ data: { arenaId: ids[0], playerId: players[0].id, leagueCycleId: cycles[0].id, tier: "A" } });
+    await assert.rejects(db.leagueAthleteTier.create({ data: { arenaId: ids[0], playerId: players[1].id, tier: "B" } }));
+    await assert.rejects(db.leagueAthleteTier.create({ data: { arenaId: ids[0], playerId: players[0].id, leagueCycleId: cycles[1].id, tier: "B" } }));
+    const challenge = await db.leagueChallenge.create({ data: { arenaId: ids[0], competitionId: competitions[0].id, categoryMatchId: match.id, courtId: courts[0].id, proposerPairId: pairs[0][0].id, opponentPairId: pairs[0][1].id, proposedStartsAt: new Date("2030-01-10T10:00:00Z"), proposedEndsAt: new Date("2030-01-10T11:00:00Z") } });
+    await assert.rejects(db.leagueChallenge.update({ where: { id: challenge.id }, data: { courtId: courts[1].id } }));
+    await assert.rejects(db.leagueChallenge.update({ where: { id: challenge.id }, data: { proposerPairId: pairs[1][0].id } }));
+    await assert.rejects(db.leagueChallenge.update({ where: { id: challenge.id }, data: { responderId: players[1].id } }));
+    assert.equal((await db.super12Event.findMany({ include: { groups: true, pairs: { include: { players: true } }, matches: true } })).length, 1);
+    assert.deepEqual(await db.super12Pair.findMany({ where: { eventId: events[1].id } }), []);
+    assert.deepEqual(await db.super12PairPlayer.findMany({ where: { playerId: players[1].id } }), []);
+    await assert.rejects(db.super12Event.update({ where: { id: events[0].id }, data: { creatorId: players[1].id } }));
+    await assert.rejects(db.super12Pair.update({ where: { id: superPairs[0].id }, data: { groupId: groups[1].id } }));
+    await assert.rejects(db.super12PairPlayer.update({ where: { id: superPairs[0].players[0].id }, data: { playerId: players[1].id } }));
+    await assert.rejects(db.super12Match.update({ where: { id: superMatch.id }, data: { homePairId: superPairs[1].id } }));
+    const ownOtherEvent = await db.super12Event.create({ data: { arenaId: ids[0], creatorId: players[0].id, name: "Other own event" } });
+    const ownOtherGroup = await db.super12Group.create({ data: { eventId: ownOtherEvent.id, name: "Other group", drawOrder: 1 } });
+    await assert.rejects(db.super12Pair.update({ where: { id: superPairs[0].id }, data: { groupId: ownOtherGroup.id } }));
+    await assert.rejects(db.super12Match.update({ where: { id: superMatch.id }, data: { groupId: ownOtherGroup.id } }));
+    assert.equal((await admin.leagueChallenge.findUniqueOrThrow({ where: { id: challenge.id } })).courtId, courts[0].id);
+  } finally {
+    await admin.tournament.deleteMany({ where: { arenaId: { in: ids } } });
+    await admin.super12Event.deleteMany({ where: { arenaId: { in: ids } } });
+    await admin.arena.deleteMany({ where: { id: { in: ids } } });
+    await runtime.$disconnect(); await admin.$disconnect();
+  }
+});

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import sharp from "sharp";
 import { buildArenaProfileUpdateData } from "@/lib/arena-profile";
 import { toPersistentArenaLogo } from "@/lib/uploads";
 
@@ -16,7 +17,7 @@ const profile = {
 };
 
 test("buildArenaProfileUpdateData returns a Prisma payload with a persistent PNG data URL", async () => {
-  const file = new File([new Uint8Array([137, 80, 78, 71])], "arena.png", { type: "image/png" });
+  const file = new File([new Uint8Array(await sharp({ create: { width: 8, height: 8, channels: 4, background: "green" } }).png().toBuffer())], "arena.png", { type: "image/png" });
 
   const data = await buildArenaProfileUpdateData(profile, file);
 

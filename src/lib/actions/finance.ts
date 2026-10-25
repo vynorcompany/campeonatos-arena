@@ -1,5 +1,6 @@
 "use server";
 
+import { arenaDatabase } from "@/lib/arena-database";
 import { revalidatePath } from "next/cache";
 import { requireFinancialEntryDelete, requirePermission } from "@/lib/auth/guards";
 import { requireArenaAccess } from "@/lib/auth/session";
@@ -113,6 +114,7 @@ function hasUnresolvedOnlinePayment(entry: {
 
 export async function createSubscriptionAction(formData: FormData) {
   const auth = await requirePermission("finance:receivable:create");
+  const prisma = arenaDatabase(auth.arenaId);
   const parsed = subscriptionSchema.safeParse({
     studentId: formData.get("studentId"),
     planId: formData.get("planId"),
@@ -635,14 +637,17 @@ export async function settleFinancialEntryAction(formData: FormData) {
 
   const amountCents = parseMoneyToCents(parsed.data.amount);
   const interestCents = parseMoneyToCents(parsed.data.interest);
-  if (amountCents <= 0) throw new Error("Informe um valor recebido maior que zero.");
+  if (!Number.isSafeInteger(interestCents) || interestCents < 0 || interestCents > 2147483647) throw new Error("Informe juros válidos, maiores ou iguais a zero.");
+  if (!Number.isSafeInteger(amountCents) || amountCents > 2147483647 || amountCents <= 0) throw new Error("Informe um valor recebido maior que zero.");
   const paidAt = parseDate(parsed.data.paidAt) ?? new Date();
 
   await withArenaTransaction(auth.arenaId, async (tx) => {
     await tx.$queryRaw`SELECT id FROM "FinancialEntry" WHERE id = ${parsed.data.entryId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
     const entry = await tx.financialEntry.findFirst({
-      where: { id: parsed.data.entryId, arenaId: auth.arenaId, status: { in: ["PENDING", "OVERDUE"] } },
+      where: { id: parsed.data.entryId, arenaId: auth.arenaId, status: { in: ["PENDING", "OVERDUE", "PARTIAL"] } },
       include: {
+        sale: { select: { comanda: { select: { playerId: true } } } },
+        scheduleParticipant: { select: { playerId: true } },
         settlements: { select: { amountCents: true, interestCents: true } },
         onlinePaymentItems: { select: { checkout: { select: { status: true, mercadoPagoPaymentId: true, checkoutUrl: true } } } },
       }
@@ -654,14 +659,24 @@ export async function settleFinancialEntryAction(formData: FormData) {
 
     const before = getFinancialEntryBalance(entry.amountCents, entry.settlements);
     const allowedCents = before.outstandingCents + interestCents;
-    if (amountCents > allowedCents) throw new Error("O valor informado supera o saldo desta conta com os juros.");
+    const appliedCents = Math.min(amountCents, allowedCents);
+    const surplusCents = amountCents - appliedCents;
+    let creditPlayerId: string | null = null;
+    if (surplusCents > 0) {
+      const settings = await tx.arenaOperationalSettings.findUnique({ where: { arenaId: auth.arenaId }, select: { preventOverpayment: true } });
+      if (settings?.preventOverpayment !== false || !["REVENUE", "INCOME"].includes(entry.type)) throw new Error("O valor informado supera o saldo desta conta com os juros.");
+      const playerId = entry.playerId ?? entry.sale?.comanda?.playerId ?? entry.scheduleParticipant?.playerId;
+      const player = playerId ? await tx.player.findFirst({ where: { id: playerId, arenaId: auth.arenaId }, select: { id: true } }) : null;
+      if (!player) throw new Error("Vincule um cliente da arena para registrar o pagamento excedente como saldo.");
+      creditPlayerId = player.id;
+    }
 
-    const after = getFinancialEntryBalance(entry.amountCents, [...entry.settlements, { amountCents, interestCents }]);
+    const after = getFinancialEntryBalance(entry.amountCents, [...entry.settlements, { amountCents: appliedCents, interestCents }]);
     await tx.financialSettlement.create({
       data: {
         arenaId: auth.arenaId,
         financialEntryId: entry.id,
-        amountCents,
+        amountCents: appliedCents,
         interestCents,
         paymentMethod: parsed.data.paymentMethod,
         paidAt,
@@ -676,6 +691,12 @@ export async function settleFinancialEntryAction(formData: FormData) {
         paymentMethod: parsed.data.paymentMethod
       }
     });
+    if (surplusCents > 0 && creditPlayerId) {
+      await tx.clientBalanceMovement.create({ data: { arenaId: auth.arenaId, playerId: creditPlayerId, kind: "MONEY", amountCents: surplusCents, reason: `Excedente recebido na conta ${entry.id}.` } });
+      const creditEntry = await tx.financialEntry.create({ data: { arenaId: auth.arenaId, playerId: creditPlayerId, bankAccountId: entry.bankAccountId, type: "INCOME", category: "CREDITO_DE_CLIENTE", description: `Crédito por excedente da conta ${entry.id}`, amountCents: surplusCents, status: "PAID", paidAt, paymentMethod: parsed.data.paymentMethod } });
+      await tx.financialSettlement.create({ data: { arenaId: auth.arenaId, financialEntryId: creditEntry.id, amountCents: surplusCents, paymentMethod: parsed.data.paymentMethod, paidAt, notes: `Saldo do cliente originado na baixa da conta ${entry.id}.` } });
+      await tx.auditEvent.create({ data: { arenaId: auth.arenaId, actorId: auth.userId, actorName: auth.userName, action: "RECEIVABLE_SURPLUS_CREDIT", entityId: entry.id, details: { playerId: creditPlayerId, amountCents: surplusCents, creditEntryId: creditEntry.id } } });
+    }
   });
 
   refreshFinanceRoutes();

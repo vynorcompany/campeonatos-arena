@@ -41,6 +41,8 @@ export function WorkspaceBreadcrumb({ canViewTournaments = true }: { canViewTour
   if (path.startsWith("/jogos")) return canViewTournaments
     ? <PageBreadcrumb section="Torneios" current="Eventos ativos" />
     : <PageBreadcrumb section="Jogos" current="Programação e placares" />;
+  if (path.startsWith("/configuracoes")) return <PageBreadcrumb section="Configurações" current={({ checkin: "Check-in e QR Code", impressora: "Impressora", dispositivos: "Dispositivos conectados", politicas: "Cancelamento e reembolso", privacidade: "Solicitações de privacidade" } as Record<string, string>)[parts[1] ?? ""] ?? "Visão geral"} />;
+  if (path.startsWith("/financeiro/configuracoes")) return <PageBreadcrumb section="Configurações" current="Configurações Financeiras" />;
   if (path.startsWith("/financeiro")) return <PageBreadcrumb section="Gestão" current={financeNames[parts[1] ?? ""] ?? readable(parts.at(-1) ?? "Financeiro")} />;
   if (path === "/pdv/caixa") return <PageBreadcrumb section="Gestão" current="Caixa" />;
   if (path.startsWith("/pdv")) return <PageBreadcrumb section="Financeiro" current={pdvNames[parts[1] ?? ""] ?? "Produto"} />;

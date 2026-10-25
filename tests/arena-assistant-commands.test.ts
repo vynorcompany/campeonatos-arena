@@ -17,3 +17,9 @@ test("parses a receivable invoice command with client, amount and today's date",
 test("rejects commands outside the approved assistant command catalog", () => {
   assert.equal(parseArenaAssistantCommand("Apague todos os clientes da arena."), null);
 });
+
+test("assistant rejects amounts that cannot be safely recorded in integer cents", () => {
+  assert.equal(parseArenaAssistantCommand("Crie uma fatura no valor de 21474836,47 para o cliente Alexandre.")?.amountCents, 2147483647);
+  assert.equal(parseArenaAssistantCommand("Crie uma fatura no valor de 21474836,48 para o cliente Alexandre."), null);
+  assert.equal(parseArenaAssistantCommand("Crie uma fatura no valor de 99999999999999999999 para o cliente Alexandre."), null);
+});

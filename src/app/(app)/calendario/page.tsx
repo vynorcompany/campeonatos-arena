@@ -1,3 +1,4 @@
+import { arenaDatabase } from "@/lib/arena-database";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
@@ -169,6 +170,7 @@ function getEventLayout(dayEvents: CalendarEvent[]) {
 export default async function CalendarPage(props: CalendarPageProps) {
   const searchParams = await props.searchParams;
   const auth = await requireModuleView("calendar");
+  const prisma = arenaDatabase(auth.arenaId);
   const canManageEvents = canPerformPermission("calendar:event:manage", auth.arenaRole, auth.systemRole, auth.editPermissions);
   const allowedPeriods = new Set(Object.keys(periodLabels));
   const period = allowedPeriods.has(searchParams?.periodo ?? "") ? searchParams?.periodo ?? "week" : "week";

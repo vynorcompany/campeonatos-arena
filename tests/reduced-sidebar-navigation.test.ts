@@ -18,7 +18,6 @@ test("sidebar exposes compact workspaces, a top user menu and separate settings"
   assert.match(navigation, /label: "Clientes"/);
   assert.doesNotMatch(navigation, /title: "Administração"/);
   assert.match(shell, /<SidebarUserMenu[\s\S]*<WorkspaceSwitcher[\s\S]*<NavLinks/);
-  assert.match(shell, /settingsHref \? <nav className=\{viewStyles\.sidebar_settings_menu\}/);
   assert.doesNotMatch(shell, /sidebar_user_sidebar_user_panel|form action=\{logoutAction\}/);
   const userMenu = readFileSync(resolve(process.cwd(), "src/components/layout/sidebar-user-menu.tsx"), "utf8");
   assert.match(userMenu, /SidebarPopover[\s\S]*form action=\{logoutAction\}[\s\S]*Sair/);
@@ -27,11 +26,11 @@ test("sidebar exposes compact workspaces, a top user menu and separate settings"
   assert.doesNotMatch(navigation, /Suporte\/Ajuda/);
 });
 
-test("settings menu exposes only the consolidated configuration entry", () => {
+test("settings menu exposes one expandable configuration entry", () => {
   const shell = readFileSync(resolve(process.cwd(), "src/components/layout/app-shell.tsx"), "utf8");
 
-  assert.match(shell, /sidebar-settings-menu/);
-  assert.match(shell, /<Link href=\{settingsHref\}[^>]*>[\s\S]*?Configurações<\/Link>/);
+  const navigation = readFileSync(resolve(process.cwd(), "src/components/layout/nav-links.tsx"), "utf8");
+  assert.match(navigation, /href: "\/configuracoes", label: "Configurações"/);
   assert.doesNotMatch(shell, /Configuração de quadras/);
 });
 

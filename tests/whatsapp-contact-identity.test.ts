@@ -17,12 +17,18 @@ function groupClient(fetch: (url: string, options: any) => Promise<any>, status 
       if (name === "@/lib/env") return { env: { evolutionApiUrl: "https://provider.invalid", evolutionApiKey: "fixture" } };
       if (name === "@/lib/integrations/evolution") return {};
       if (name === "@/lib/payments/connection-secrets") return {};
-      if (name === "@/lib/prisma") return { prisma: { whatsAppConnection: { findUnique: async () => ({ status, instanceName: "test" }) } } };
+      if (name === "@/lib/arena-database") return { arenaDatabase: () => ({ whatsAppConnection: { findUnique: async () => ({ status, instanceName: "test" }) } }) };
       throw new Error(`Unexpected import: ${name}`);
     },
   });
   return exports;
 }
+
+test("text delivery refuses a missing arena instead of using the global provider account", async () => {
+  const client = groupClient(async () => { throw new Error("must not call provider"); });
+  await assert.rejects(client.sendEvolutionTextMessage("5511999990001", "fixture"), /arena/i);
+  await assert.rejects(client.sendEvolutionTextMessage("5511999990001", "fixture", "   "), /arena/i);
+});
 
 test("WhatsApp formats DDI separately from the DDD for mobile and landline numbers", () => {
   assert.equal(formatWhatsAppPhone("5542999991234"), "+55 (42) 99999-1234");

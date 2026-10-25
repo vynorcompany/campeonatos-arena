@@ -29,10 +29,10 @@ test("ações de configuração e cadastro rápido exigem a permissão específi
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText, {
     exports,
     FormData,
-    require: (name: string) => name === "zod" ? require("zod") : name === "@/lib/auth/guards" ? {
+    require: function resolve(name: string): any { return name === "@/lib/arena-database" ? { arenaDatabase: () => resolve("@/lib/prisma").prisma } : name === "zod" ? require("zod") : name === "@/lib/auth/guards" ? {
       requirePermission: async (key: string) => { requested.push(key); throw new Error("Sem permissão para executar esta ação."); },
       requireModuleEdit: async () => { throw new Error("Guarda genérica de módulo indevida."); },
-    } : {},
+    } : {}; },
   });
   const settingsActions = [
     "updateOnlineBookingSettingsAction", "createCourtWeeklyRuleAction", "updateCourtWeeklyRuleAction",
@@ -66,7 +66,7 @@ test("converter evento em aula não cria registro se o evento não pertence à a
   };
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText, {
     exports, FormData, Date,
-    require: (name: string) => name === "zod" ? require("zod") : name === "@/lib/auth/guards" ? {
+    require: function resolve(name: string): any { return name === "@/lib/arena-database" ? { arenaDatabase: () => resolve("@/lib/prisma").prisma } : name === "zod" ? require("zod") : name === "@/lib/auth/guards" ? {
       requirePermission: async (key: string) => {
         assert.equal(key, "calendar:event:manage");
         return auth;
@@ -85,7 +85,7 @@ test("converter evento em aula não cria registro se o evento não pertence à a
       },
     } : name === "@/lib/calendar/revalidation" ? {
       refreshCalendarRoutes: () => { refreshes += 1; },
-    } : {},
+    } : {}; },
   });
   const form = new FormData();
   for (const [key, value] of Object.entries({ sourceType: "calendar", lessonId: "", calendarEventId: "other-arena-event", eventType: "AULA", title: "Aula de teste", scheduledAt: "2026-10-20T10:00", durationMinutes: "60", notes: "" })) form.set(key, value);

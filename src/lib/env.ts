@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { requiresPhoneVerification } from "./auth/phone-verification-policy";
 
 function withDefaultWhenInvalidNumber(value: unknown) {
   if (value === undefined || value === null) return undefined;
@@ -96,7 +97,11 @@ export const env = {
   sessionTtlDays: parsed.SESSION_TTL_DAYS,
   loginMaxAttempts: parsed.LOGIN_MAX_ATTEMPTS,
   loginLockMinutes: parsed.LOGIN_LOCK_MINUTES,
-  playerPhoneVerificationRequired: parsed.PLAYER_PHONE_VERIFICATION_REQUIRED === "true",
+  playerPhoneVerificationRequired: requiresPhoneVerification({
+    configured: parsed.PLAYER_PHONE_VERIFICATION_REQUIRED === "true",
+    production: process.env.NODE_ENV === "production",
+    appUrl: parsed.APP_URL,
+  }),
   mercadoPagoAccessToken: parsed.MERCADO_PAGO_ACCESS_TOKEN,
   mercadoPagoClientId: parsed.MERCADO_PAGO_CLIENT_ID,
   mercadoPagoClientSecret: parsed.MERCADO_PAGO_CLIENT_SECRET,

@@ -30,7 +30,7 @@ function loadPromotion(prisma: PrismaClient) {
       if (name === "@/lib/league/reference-month") return {};
       if (name === "@/lib/league/tier") return { resolveLeagueTier: (_name: string, tier: string) => tier };
       if (name === "@/lib/arena-database") return {};
-      if (name === "@/lib/rls") return {};
+      if (name === "@/lib/rls") return { withArenaTransaction: (arenaId: string, operation: (tx: any) => Promise<unknown>) => prisma.$transaction(async tx => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`; return operation(tx); }) };
       throw new Error(`Unexpected import: ${name}`);
     },
   });

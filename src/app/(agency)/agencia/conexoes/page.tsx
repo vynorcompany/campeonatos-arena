@@ -1,15 +1,17 @@
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
 import { requireAgencyPageAccess } from "@/lib/auth/guards";
+import { arenaDatabase } from "@/lib/arena-database";
 import { prisma } from "@/lib/prisma";
 import styles from "./page.styles";
 
 export default async function AgencyConnectionsPage() {
   await requireAgencyPageAccess();
-  const arenas = await prisma.arena.findMany({
-    orderBy: { name: "asc" },
-    include: { whatsappConnection: true }
-  });
+  const arenaRows = await prisma.arena.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } });
+  const arenas = await Promise.all(arenaRows.map(async arena => ({
+    ...arena,
+    whatsappConnection: await arenaDatabase(arena.id).whatsAppConnection.findUnique({ where: { arenaId: arena.id }, select: { status: true, instanceName: true, connectedPhone: true, lastConnectedAt: true, lastError: true } }),
+  })));
 
   return (
     <div className={cx(`${viewStyles.stack_md} ${styles.page}`)}>

@@ -86,8 +86,9 @@ test("revisão da caixa avança entre conversas com datas iguais sem vazar entre
       assert.equal(firstUpdate.updatedAt.getTime(), secondUpdate.updatedAt.getTime());
       assert.equal(secondUpdate.revision, firstUpdate.revision + 1n);
       assert.equal(await revision(firstArena), firstRevision + 4n);
-      assert.equal(await revision(secondArena), secondRevision);
+      assert.equal(await tx.whatsAppConnection.findUnique({ where: { arenaId: secondArena }, select: { inboxRevision: true } }), null);
       await tx.$executeRawUnsafe("RESET ROLE");
+      assert.equal(await revision(secondArena), secondRevision);
       await tx.whatsAppConversation.create({ data: { arenaId: secondArena, accountJid: "goal@s.whatsapp.net", remoteJid: "revision-c@s.whatsapp.net", lastMessageAt: sentAt } });
       assert.equal(await revision(secondArena), secondRevision + 1n);
       assert.equal(await revision(firstArena), firstRevision + 4n);

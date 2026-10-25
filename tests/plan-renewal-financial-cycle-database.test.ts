@@ -1,3 +1,4 @@
+import { arenaDatabaseForTest } from "./helpers/arena-database";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -53,6 +54,7 @@ test("renovação cria novo ciclo de 12 sem apagar mensalidades anteriores nem c
       "@/lib/academy/plan-recurrence-owner": { planRecurrenceOwnerWhere },
       "@/lib/payments/recurring-online-charges": { issueRecurringOnlineChargeForEntry: async () => { chargeAttempts += 1; } },
       "@/lib/finance/revalidation": { refreshFinanceRoutes() {} },
+      "@/lib/arena-database": { arenaDatabase: (arenaId: string) => arenaDatabaseForTest(runtime, arenaId) },
       "@/lib/prisma": { prisma: admin },
       "@/lib/rls": { withArenaTransaction: (arenaId: string, operation: (tx: unknown) => Promise<unknown>) => runtime.$transaction(async (tx) => {
         await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`;

@@ -1,0 +1,6 @@
+import Link from "next/link";
+import { CookiePreferences } from "./cookie-preferences";
+export function ArenaLegalLinks({ arenaSlug }: { arenaSlug?: string }) {
+  const base = arenaSlug ? `/classificacao/${encodeURIComponent(arenaSlug)}/legal` : "/legal";
+  return <div className="tw:grid tw:gap-3"><nav aria-label="Informações legais e privacidade" className="tw:flex tw:flex-wrap tw:gap-x-5 tw:gap-y-2 tw:text-xs tw:leading-relaxed">{[["privacidade", "Privacidade"], ["termos", "Termos de uso"], ["cookies", "Cookies"]].map(([path, label]) => <Link key={path} href={`${base}/${path}`} className="tw:inline-flex tw:min-h-8 tw:items-center tw:underline tw:underline-offset-4">{label}</Link>)}<Link href={arenaSlug ? `/classificacao/${encodeURIComponent(arenaSlug)}/cancelamento` : "/portal"} className="tw:inline-flex tw:min-h-8 tw:items-center tw:underline tw:underline-offset-4">{arenaSlug ? "Cancelamento e contato" : "Dados e contato da arena"}</Link>{arenaSlug ? <Link href={`/classificacao/${encodeURIComponent(arenaSlug)}/dados`} className="tw:inline-flex tw:min-h-8 tw:items-center tw:underline tw:underline-offset-4">Meus dados</Link> : null}</nav><CookiePreferences arenaSlug={arenaSlug}/></div>;
+}

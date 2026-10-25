@@ -16,14 +16,16 @@ const disposableDatabase = (() => {
   catch { return false; }
 })();
 
-function loadAction(tx: unknown, providerStatus: string, arenaId = "arena-a") {
+function loadAction(tx: unknown, providerStatus: string, arenaId = "arena-a", expiryKind?: "expired" | "review") {
   let providerCalls = 0;
   let revalidations = 0;
   const permissions: string[] = [];
+  const reconciliations: any[] = [];
   const exports: Record<string, (id: string, confirmed: boolean) => Promise<{ ok: boolean; error?: string }>> = {};
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
     exports,
     require: (name: string) => {
+      if (name === "@/lib/payments/mercado-pago-checkout-expiry") return { expireMercadoPagoCheckout: async (...args: any[]) => { reconciliations.push(args); if (!expiryKind) throw new Error("Unexpected expiry reconciliation in legacy fixture"); return { kind: expiryKind }; } };
       if (name === "next/cache") return { revalidatePath: () => { revalidations += 1; } };
       if (name === "@/lib/auth/guards") return { requirePermission: async (key: string) => { permissions.push(key); return { arenaId }; } };
       if (name === "@/lib/payments/mercado-pago") return { getMercadoPagoPayment: async () => { providerCalls += 1; return { status: providerStatus }; } };
@@ -32,8 +34,23 @@ function loadAction(tx: unknown, providerStatus: string, arenaId = "arena-a") {
       return require(name);
     },
   });
-  return { release: exports.releaseReviewedCheckoutAction, releaseEntry: exports.releaseReviewedFinancialEntryAction as unknown as (id: string, paymentId: string, confirmed: boolean) => Promise<{ ok: boolean; error?: string }>, cancelRegistration: exports.cancelReviewedRegistrationAction, providerCalls: () => providerCalls, revalidations: () => revalidations, permissions: () => permissions };
+  return { release: exports.releaseReviewedCheckoutAction, releaseEntry: exports.releaseReviewedFinancialEntryAction as unknown as (id: string, paymentId: string, confirmed: boolean) => Promise<{ ok: boolean; error?: string }>, cancelRegistration: exports.cancelReviewedRegistrationAction, providerCalls: () => providerCalls, revalidations: () => revalidations, permissions: () => permissions, reconciliations };
 }
+
+test("staff release reconciles every attempt on an expired preference instead of checking only one refund", async () => {
+  for (const kind of ["review", "expired"] as const) {
+    const checkout = { id: "checkout-a", mercadoPagoPaymentId: "123", mercadoPagoPreferenceId: "pref-a", expiresAt: new Date(Date.now() - 60_000), status: "REVIEW" };
+    const tx = { $queryRaw: async () => [], onlinePaymentCheckout: { findFirst: async () => checkout, updateMany: async () => { checkout.status = "REFUNDED"; return { count: 1 }; } } };
+    const action = loadAction(tx, "refunded", "arena-a", kind);
+    assert.equal((await action.release(checkout.id, true)).ok, kind === "expired");
+    assert.equal(checkout.status, kind === "expired" ? "REFUNDED" : "REVIEW");
+    assert.equal(action.providerCalls(), 0);
+    assert.equal(action.reconciliations[0][0].arenaId, "arena-a");
+    assert.equal(action.reconciliations[0][0].checkoutId, checkout.id);
+    assert.equal(action.reconciliations[0][0].preferenceId, "pref-a");
+    assert.equal(action.reconciliations[0][2].allowFullyRefunded, true);
+  }
+});
 
 test("revisão de estornos exige quitação de recebíveis ou gestão de torneios, não uma edição financeira qualquer", async () => {
   assert.equal(canPerformPermission("finance:receivable:settle", "STAFF", "VIEWER", ["finance:receivable:create"]), false);

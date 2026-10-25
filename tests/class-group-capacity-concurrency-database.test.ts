@@ -1,3 +1,4 @@
+import { arenaDatabaseForTest } from "./helpers/arena-database";
 import { registerLessonCheckin } from "../src/lib/checkin/lesson";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -57,6 +58,7 @@ test("duas transferências simultâneas respeitam a última vaga e preservam a o
       "@/lib/payments/recurring-online-charges": {},
       "@/lib/academy/class-group-capacity": { lockClassGroupCapacity },
       "@/lib/academy/subscription-lock": {},
+      "@/lib/arena-database": { arenaDatabase: (arenaId: string) => arenaDatabaseForTest(runtime, arenaId) },
       "@/lib/prisma": { prisma: admin },
       "@/lib/rls": { withArenaTransaction: (arenaId: string, operation: (tx: unknown) => Promise<unknown>) => runtime.$transaction(async (tx) => {
         await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`;

@@ -206,7 +206,7 @@ async function applyPromotionAndRelegation(cycleId: string) {
   if (!cycle) return;
   const tier = tierOf(cycle.competition);
   if (tier === "A" || tier === "B") {
-    await prisma.$transaction((tx) => syncLeagueAthleteTiers(tx, {
+    await withArenaTransaction(cycle.competition.category.tournament.arenaId, (tx) => syncLeagueAthleteTiers(tx, {
       arenaId: cycle.competition.category.tournament.arenaId,
       playerIds: cycle.competition.pairs.flatMap((pair) => pair.players.map((player) => player.playerId)),
       tier,
@@ -229,7 +229,7 @@ async function applyPromotionAndRelegation(cycleId: string) {
   const movePair = async (pairId: string, targetCompetitionId: string, targetTier: "A" | "B") => {
     const pair = cycle.competition.pairs.find((item) => item.id === pairId);
     if (!pair || targetCompetitionId === cycle.competitionId) return;
-    await prisma.$transaction(async (tx) => {
+    await withArenaTransaction(cycle.competition.category.tournament.arenaId, async (tx) => {
       await tx.categoryPair.update({ where: { id: pair.id }, data: { active: false } });
       const destinationHasOpenCycle = await tx.leagueCycle.findFirst({
         where: { competitionId: targetCompetitionId, status: "OPEN", referenceMonth: { lte: cycle.referenceMonth } },

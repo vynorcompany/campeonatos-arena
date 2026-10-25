@@ -1,3 +1,4 @@
+import { legalVersion } from "../src/lib/legal/version";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -29,6 +30,7 @@ function loadActions(deliveryFails: boolean) {
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, {
     exports: actions, FormData, Date, Buffer,
     require: (name: string) => {
+      if (name === "@/lib/legal/version") return { legalVersion };
       if (name === "next/navigation") return { redirect() {} };
       if (name === "@/lib/prisma") return { prisma };
       if (name === "@/lib/rls") return { withArenaTransaction: async (_arenaId: string, callback: (tx: typeof prisma) => Promise<unknown>) => callback(prisma) };

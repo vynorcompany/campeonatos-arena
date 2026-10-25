@@ -6,9 +6,10 @@ import sharp from "sharp";
 
 const databaseUrl = process.env.ARENA_GOAL_TEST_DATABASE_URL ?? "";
 const sessionToken = process.env.ARENA_GOAL_TEST_SESSION_TOKEN ?? "";
-if (process.env.GITHUB_ACTIONS !== "true" ||
+const localVisual = process.env.ARENA_VISUAL_LOCAL === "true";
+if ((process.env.GITHUB_ACTIONS !== "true" && !localVisual) ||
     process.env.DATABASE_URL !== databaseUrl ||
-    !databaseUrl.startsWith("postgresql://postgres@127.0.0.1:55433/arena_goal?") ||
+    !(databaseUrl.startsWith("postgresql://postgres@127.0.0.1:55433/arena_goal?") || (localVisual && databaseUrl.startsWith("postgresql://postgres@127.0.0.1:55433/arena_goal_visual?"))) ||
     !/^[a-f0-9]{40}$/i.test(sessionToken)) {
   throw new Error("O teste visual exige o banco fictício e isolado da CI.");
 }
@@ -51,6 +52,7 @@ const routes = [
   "/relatorios",
   ...["caixa", "lancamentos", "produtos", "estoque", "comandas", "dre", "planos", "reservas", "pagamentos-online"]
     .map((report) => `/relatorios/${report}`),
+  "/configuracoes", "/configuracoes/checkin", "/configuracoes/impressora", "/configuracoes/dispositivos", "/configuracoes/politicas", "/configuracoes/privacidade",
   "/arena", "/arena/regulamento", "/suporte",
 ];
 const agencyRoutes = [
@@ -207,9 +209,19 @@ async function main() {
             expression: "(() => { const nav = document.querySelector('nav[aria-label=\"Áreas financeiras\"]'); return nav ? [...nav.querySelectorAll('a')].map((link) => ({ path: new URL(link.href).pathname, clipped: link.scrollWidth > link.clientWidth + 1 })) : null; })()",
             returnByValue: true,
           });
-          const expected = ["/financeiro/folha", "/financeiro/contas-a-receber", "/financeiro/contas-a-pagar", "/pdv", "/financeiro/configuracoes"];
+          const expected = ["/financeiro/folha", "/financeiro/contas-a-receber", "/financeiro/contas-a-pagar", "/pdv"];
           if (!navigation.result.value || JSON.stringify(navigation.result.value.map((link) => link.path)) !== JSON.stringify(expected) || navigation.result.value.some((link) => link.clipped)) {
             throw new Error(`${label}: destinos do Financeiro faltando ou cortados: ${JSON.stringify(navigation.result.value)}`);
+          }
+        }
+        if (route === "/configuracoes") {
+          const settings = await send("Runtime.evaluate", {
+            expression: "(() => { const nav = document.querySelector('nav[aria-label=\"Configurações\"]'); return nav ? [...nav.querySelectorAll('a')].map(link => ({ href: new URL(link.href).pathname + new URL(link.href).search, clipped: link.scrollWidth > link.clientWidth + 1 })) : null; })()",
+            returnByValue: true,
+          });
+          const expected = ["/configuracoes/dispositivos", "/configuracoes/impressora", "/configuracoes/politicas", "/configuracoes/privacidade", "/arena", "/arena?section=portal", "/financeiro/configuracoes", "/configuracoes/checkin", "/agenda/configuracao"];
+          if (!settings.result.value || JSON.stringify(settings.result.value.map(link => link.href)) !== JSON.stringify(expected) || settings.result.value.some(link => link.clipped)) {
+            throw new Error(`${label}: destinos das Configurações faltando ou cortados: ${JSON.stringify(settings.result.value)}`);
           }
         }
         if (["/aulas", "/aulas/alunos", "/financeiro/planos"].includes(route)) {
@@ -1005,7 +1017,7 @@ async function main() {
           throw new Error(`${label}: conteúdo cortado ou sessão inválida: ${JSON.stringify({ path: compact.path, section: compact.section, authenticated: compact.authenticated, width: compact.width, scrollWidth: compact.scrollWidth, mainLength: compact.main.trim().length })}`);
         }
         if (view.label === "torneios-jogos") {
-          const leagueLayout = await send("Runtime.evaluate", { expression: "(() => { const selectors = ['.athlete-portal-events-shell', '.public-league-portal', '.portal-league-category-card', '.portal-league-category-card select', 'button[aria-label=\"Próxima semana\"]', 'article[id^=\"jogo-\"]']; return selectors.map(selector => { const element = document.querySelector(selector); const rect = element?.getBoundingClientRect(); const style = element && getComputedStyle(element); return {selector, left:rect?.left, right:rect?.right, boxSizing:style?.boxSizing, padding:style?.padding}; }); })()", returnByValue: true });
+          const leagueLayout = await send("Runtime.evaluate", { expression: "(() => { const selectors = ['.athlete-portal-events-shell', '.public-league-portal', '.portal-league-category-card', '.portal-league-category-card [role=combobox]', 'button[aria-label=\"Próxima semana\"]', 'article[id^=\"jogo-\"]']; return selectors.map(selector => { const element = document.querySelector(selector); const rect = element?.getBoundingClientRect(); const style = element && getComputedStyle(element); return {selector, left:rect?.left, right:rect?.right, boxSizing:style?.boxSizing, padding:style?.padding}; }); })()", returnByValue: true });
           if (leagueLayout.result.value.some(({ left, right }) => left == null || right == null || left < 0 || right > compact.width - 4)) {
             throw new Error(`${label}: seletor de semanas ou jogos ultrapassou a área visível: ${JSON.stringify(leagueLayout.result.value)}`);
           }
@@ -1142,10 +1154,11 @@ async function main() {
         throw new Error(`${viewport.name}: formulário público do torneio fictício incompleto.`);
       }
       const formLayout = await send("Runtime.evaluate", {
-        expression: "(() => { const form = document.querySelector('form:has(input[name=tournamentSlug])'); const controls = [...(form?.querySelectorAll('input:not([type=hidden]), select, button[type=submit]') ?? [])]; return { width: innerWidth, controls: controls.map(control => { const rect = control.getBoundingClientRect(); return { name: control.getAttribute('name'), left: rect.left, right: rect.right, width: rect.width }; }) }; })()",
+        expression: "(() => { const form = document.querySelector('form:has(input[name=tournamentSlug])'); const trap = form?.querySelector('input[name=contactWebsite]'); const controls = [...(form?.querySelectorAll('input:not([type=hidden]), select, button[type=submit]') ?? [])].filter(control => control.name !== 'contactWebsite'); return { width: innerWidth, trapProtected: Boolean(trap?.closest('[aria-hidden=true]') && trap.tabIndex === -1), controls: controls.map(control => { const rect = control.getBoundingClientRect(); return { name: control.getAttribute('name'), left: rect.left, right: rect.right, width: rect.width }; }) }; })()",
         returnByValue: true,
       });
-      if (formLayout.result.value.controls.length !== 12 || formLayout.result.value.controls.some((control) => control.width < 40 || control.left < -1 || control.right > formLayout.result.value.width + 1)) {
+      const expectedPublicControls = [null, "categoryId", "paymentMethod", "leadName", "leadEmail", "leadPhone", "leadCpf", "partnerName", "partnerPhone", "partnerCpf"].sort();
+      if (!formLayout.result.value.trapProtected || JSON.stringify(formLayout.result.value.controls.map(control => control.name).sort()) !== JSON.stringify(expectedPublicControls) || formLayout.result.value.controls.some((control) => control.width < 40 || control.left < -1 || control.right > formLayout.result.value.width + 1)) {
         throw new Error(`${viewport.name}: campos da inscrição pública cortados: ${JSON.stringify(formLayout.result.value)}`);
       }
       const tabsLayout = await send("Runtime.evaluate", {
@@ -1166,8 +1179,8 @@ async function main() {
     await visit(publicPath, adminViewports[2], arenaA.id, "mobile-320-inscricao-publica-preenchimento");
     const publicFormValues = {
       leadName: "Atleta Público GOAL", leadEmail: "atleta-goal@example.test", leadPhone: "11999999999",
-      leadCpf: "98765432100", leadBirthDate: "01/01/1990", partnerName: "Parceiro Público GOAL",
-      partnerPhone: "11988888888", partnerCpf: "98765432101", partnerBirthDate: "02/02/1991",
+      leadCpf: "98765432100", partnerName: "Parceiro Público GOAL",
+      partnerPhone: "11988888888", partnerCpf: "98765432101",
     };
     const publicFormPrepared = await send("Runtime.evaluate", {
       expression: `(() => { const form = document.querySelector('form:has(input[name=tournamentSlug])'); if (!form) return false; form.querySelector('select[name=categoryId]').value = ${JSON.stringify(publicCategory.id)}; for (const [name, value] of Object.entries(${JSON.stringify(publicFormValues)})) { const input = form.querySelector('input[name=' + name + ']'); if (!input) return false; input.value = value; input.dispatchEvent(new Event('input', { bubbles: true })); } return new FormData(form).get('categoryId') === ${JSON.stringify(publicCategory.id)} && form.checkValidity(); })()`,
@@ -1855,9 +1868,10 @@ async function main() {
       await db.arenaMember.updateMany({ where: { arenaId: arenaA.id, userId: restrictedUser.id }, data: { editPermissions: ["calendar:booking:create", "calendar:settings:manage"] } });
       try {
         for (const viewport of [viewports[0], adminViewports[2]]) {
-          await visit("/agenda", viewport, arenaA.id, `${viewport.name}-agenda-configuracao-permitida`, restrictedToken);
-          const settingsLink = await send("Runtime.evaluate", { expression: "document.querySelector('nav[aria-label=\"Configurações\"] a')?.getAttribute('href') ?? null", returnByValue: true });
-          if (settingsLink.result.value !== "/agenda/configuracao") throw new Error(`${viewport.name}: gestor da grade recebeu destino de configurações incorreto: ${settingsLink.result.value}`);
+          await visit("/configuracoes", viewport, arenaA.id, `${viewport.name}-agenda-configuracao-permitida`, restrictedToken);
+          const settingsLink = await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('nav[aria-label=\"Configurações\"] a')].map(link => link.getAttribute('href')).sort()", returnByValue: true });
+          const permittedSettings = ["/configuracoes/dispositivos", "/configuracoes/checkin", "/agenda/configuracao"].sort();
+          if (JSON.stringify(settingsLink.result.value) !== JSON.stringify(permittedSettings)) throw new Error(`${viewport.name}: gestor da grade recebeu destino de configurações incorreto: ${settingsLink.result.value}`);
           await visit("/agenda/configuracao", viewport, arenaA.id, `${viewport.name}-configuracao-grade-permitida`, restrictedToken);
         }
       } finally {

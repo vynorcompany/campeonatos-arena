@@ -20,7 +20,7 @@ export function parseArenaAssistantCommand(input: string): ArenaAssistantCommand
 
   try {
     const amountCents = parseMoneyToCents(match[1]);
-    if (amountCents <= 0) return null;
+    if (!Number.isSafeInteger(amountCents) || amountCents <= 0 || amountCents > 2147483647) return null;
 
     return {
       type: "CREATE_RECEIVABLE_INVOICE",

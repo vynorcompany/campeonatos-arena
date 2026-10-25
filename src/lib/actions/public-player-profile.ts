@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { arenaDatabase } from "@/lib/arena-database";
 import { requirePublicPlayerAuth } from "@/lib/auth/player-session";
+import { normalizeBrazilianPhone as normalizePhone } from "@/lib/phone";
 import { toPersistentPlayerPhoto } from "@/lib/uploads";
 
 const profileSchema = z.object({
@@ -18,7 +19,6 @@ const profileSchema = z.object({
   padelSide: z.enum(["", "RIGHT", "LEFT", "BOTH"]),
 });
 
-const normalizePhone = (value: string) => value.replace(/\D/g, "");
 
 export type PublicProfileActionState = { error: string | null; success: string | null };
 
@@ -100,13 +100,14 @@ export async function updatePublicPlayerProfileAction(_: PublicProfileActionStat
   const auth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
   const db = arenaDatabase(auth.arenaId);
   const phone = normalizePhone(parsed.data.phone);
+  const verifiedAccount = await db.playerAccount.findFirst({ where: { id: auth.playerAccountId, arenaId: auth.arenaId, playerId: auth.playerId }, select: { phone: true } });
+  if (!verifiedAccount || phone !== normalizePhone(verifiedAccount.phone)) return { error: "Para alterar o telefone de acesso, solicite à arena a verificação do novo número.", success: null };
   const photoUrl = await toPersistentPlayerPhoto(formData.get("photo") as File | null);
   const conflictingAccount = await db.playerAccount.findFirst({ where: { arenaId: auth.arenaId, phone, playerId: { not: auth.playerId } }, select: { id: true } });
   if (conflictingAccount) return { error: "Este telefone já está vinculado a outro cliente.", success: null };
 
   await db.$transaction(async (tx) => {
     await tx.player.update({ where: { id: auth.playerId }, data: { name: parsed.data.name, phone, email: parsed.data.email, bio: parsed.data.bio, birthDate: parsed.data.birthDate, gender: parsed.data.gender, class: parsed.data.padelCategories[0] ?? "", padelCategories: JSON.stringify(parsed.data.padelCategories), padelSide: parsed.data.padelSide, ...(photoUrl ? { photoUrl } : {}) } });
-    await tx.playerAccount.update({ where: { id: auth.playerAccountId }, data: { phone } });
     const student = await tx.student.findFirst({ where: { playerId: auth.playerId }, select: { id: true } });
     if (student) await tx.student.update({ where: { id: student.id }, data: { name: parsed.data.name, phone, email: parsed.data.email } });
     const teacher = await tx.teacher.findUnique({ where: { playerId: auth.playerId }, select: { id: true } });

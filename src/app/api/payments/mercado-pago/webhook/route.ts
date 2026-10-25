@@ -83,6 +83,15 @@ export async function POST(request: Request) {
           return;
         }
         if (!checkoutState || ["PAID", "REVIEW", "REFUNDED"].includes(checkoutState.status)) return;
+        if (checkoutState.status === "EXPIRED") {
+          // An old asynchronous callback must never resurrect an expired link
+          // or settle a debt for which a replacement checkout may now exist.
+          if (["approved", "refunded", "charged_back"].includes(providerStatus)) {
+            await tx.onlinePaymentCheckout.update({ where: { id: checkout!.id }, data: { status: "REVIEW", mercadoPagoPaymentId: String(payment.id ?? paymentId) } });
+            await tx.arenaNotification.create({ data: { arenaId: checkout!.arenaId, type: "ONLINE_PAYMENT_REVIEW", title: "Pagamento após expiração exige conferência", message: `O Mercado Pago informou ${providerStatus} para o pagamento ${String(payment.id ?? paymentId)} do checkout expirado ${checkout!.id}. Confira a cobrança e o eventual reembolso antes de liberar outra tentativa.`, href: "/relatorios/pagamentos-online" } });
+          }
+          return;
+        }
         // Outras formas de quitação também escrevem no lançamento. Leia saldos
         // somente depois de obter os bloqueios, sempre na mesma ordem.
         await tx.$queryRaw`SELECT "id" FROM "FinancialEntry" WHERE "arenaId" = ${checkout!.arenaId} AND "id" IN (SELECT "financialEntryId" FROM "OnlinePaymentCheckoutItem" WHERE "checkoutId" = ${checkout!.id}) ORDER BY "id" FOR UPDATE`;
@@ -90,7 +99,10 @@ export async function POST(request: Request) {
         if (!current) return;
         if (!approved) {
           const requiresReview = ["refunded", "charged_back"].includes(providerStatus);
-          const status = requiresReview ? "REVIEW" : ["rejected", "cancelled", "canceled"].includes(providerStatus) ? "FAILED" : "PENDING";
+          // A rejected card attempt does not close its hosted preference: the
+          // buyer can retry there or another Pix may still be outstanding.
+          const publishedPreference = Boolean(current.checkoutUrl || current.mercadoPagoPreferenceId);
+          const status = requiresReview ? "REVIEW" : !publishedPreference && ["rejected", "cancelled", "canceled"].includes(providerStatus) ? "FAILED" : "PENDING";
           await tx.onlinePaymentCheckout.update({ where: { id: current.id }, data: { mercadoPagoPaymentId: String(payment.id ?? paymentId), status } });
           if (requiresReview) await tx.arenaNotification.create({ data: { arenaId: current.arenaId, type: "ONLINE_PAYMENT_REVIEW", title: "Pagamento online exige conferência", message: `O pagamento ${String(payment.id ?? paymentId)} do checkout ${current.id} foi informado pelo Mercado Pago como ${providerStatus}. Confira o movimento antes de liberar outra tentativa.`, href: "/relatorios/pagamentos-online" } });
           return;
@@ -104,7 +116,7 @@ export async function POST(request: Request) {
         const alreadySettled = current.items.some((item) => {
           const entry = item.financialEntry;
           if (entry.arenaId !== current.arenaId) throw new Error("Cobrança vinculada a outra arena.");
-          return !["PENDING", "OVERDUE"].includes(entry.status)
+          return !["PENDING", "OVERDUE", "PARTIAL"].includes(entry.status)
             || getFinancialEntryBalance(entry.amountCents, entry.settlements, entry.status).outstandingCents < item.amountCents;
         });
         if (alreadySettled) {
@@ -112,12 +124,20 @@ export async function POST(request: Request) {
           await tx.arenaNotification.create({ data: { arenaId: current.arenaId, type: "ONLINE_PAYMENT_REVIEW", title: "Pagamento já quitado em análise", message: `O pagamento ${String(payment.id ?? paymentId)} chegou após um lançamento do checkout ${current.id} ter sido quitado ou alterado. Confira a cobrança e providencie a conciliação ou o reembolso.`, href: "/relatorios/pagamentos-online" } });
           return;
         }
+        if (current.bankAccountId) {
+          const bank = await tx.bankAccount.findFirst({ where: { id: current.bankAccountId, arenaId: current.arenaId }, select: { id: true } });
+          if (!bank || current.items.some(item => item.financialEntry.settlements.length > 0 && item.financialEntry.bankAccountId !== current.bankAccountId)) {
+            await tx.onlinePaymentCheckout.update({ where: { id: current.id }, data: { status: "REVIEW", mercadoPagoPaymentId: String(payment.id ?? paymentId) } });
+            await tx.arenaNotification.create({ data: { arenaId: current.arenaId, type: "ONLINE_PAYMENT_REVIEW", title: "Conta de recebimento exige conferência", message: `A conta do checkout ${current.id} não corresponde aos recebimentos já registrados. Confira o pagamento antes de baixar ou reclassificar os lançamentos.`, href: "/relatorios/pagamentos-online" } });
+            return;
+          }
+        }
         const paidAt = new Date();
         const settledComandaSaleIds = new Set<string>();
         for (const item of current.items) {
           const entry = item.financialEntry;
           if (entry.arenaId !== current.arenaId) throw new Error("Cobrança vinculada a outra arena.");
-          if (!["PENDING", "OVERDUE"].includes(entry.status)) continue;
+          if (!["PENDING", "OVERDUE", "PARTIAL"].includes(entry.status)) continue;
           const balance = getFinancialEntryBalance(entry.amountCents, entry.settlements, entry.status);
           const amountCents = Math.min(item.amountCents, balance.outstandingCents);
           if (!amountCents) continue;
@@ -127,7 +147,7 @@ export async function POST(request: Request) {
             settledComandaSaleIds.add(entry.saleId);
           }
           const remaining = balance.outstandingCents - amountCents;
-          await tx.financialEntry.update({ where: { id: entry.id }, data: { status: remaining === 0 ? "PAID" : entry.status, paidAt: remaining === 0 ? paidAt : entry.paidAt, paymentMethod: "Mercado Pago online" } });
+          await tx.financialEntry.update({ where: { id: entry.id }, data: { ...(current.bankAccountId ? { bankAccountId: current.bankAccountId } : {}), status: remaining === 0 ? "PAID" : entry.status, paidAt: remaining === 0 ? paidAt : entry.paidAt, paymentMethod: "Mercado Pago online" } });
         }
         for (const saleId of settledComandaSaleIds) {
           const sale = await tx.sale.findFirst({ where: { id: saleId, arenaId: current.arenaId }, select: { totalCents: true } });
@@ -278,7 +298,7 @@ export async function POST(request: Request) {
         }
         // A cobrança continua válida quando o vencimento já passou. O mesmo
         // lançamento que gerou a cobrança é a única conta baixada aqui.
-        if (!current || !["PENDING", "OVERDUE"].includes(current.status)) return;
+        if (!current || !["PENDING", "OVERDUE", "PARTIAL"].includes(current.status)) return;
         if (!approved) {
           await tx.financialEntry.update({ where: { id: current.id }, data: { onlinePaymentId: String(payment.id ?? paymentId) } });
           return;

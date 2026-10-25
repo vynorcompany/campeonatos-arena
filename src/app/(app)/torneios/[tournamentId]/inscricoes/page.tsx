@@ -41,8 +41,8 @@ export default async function TournamentRegistrationsPage(
     <section className={viewStyles.section_card}>
       <form className={viewStyles.tournament_registration_filters} method="get">
         <input name="q" defaultValue={searchParams?.q} placeholder="Buscar atleta ou dupla" />
-        <select name="category" defaultValue={searchParams?.category ?? ""}><option value="">Todas as categorias</option>{tournament.categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</select>
-        <select name="status" defaultValue={searchParams?.status ?? ""}><option value="">Todos os status</option><option value="PENDING">Pagamento pendente</option><option value="REVIEW">Em análise</option><option value="CONFIRMED">Confirmadas</option><option value="CANCELED">Canceladas</option></select>
+        <select aria-label="Filtrar por categoria" name="category" defaultValue={searchParams?.category ?? ""}><option value="">Todas as categorias</option>{tournament.categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</select>
+        <select aria-label="Filtrar por status" name="status" defaultValue={searchParams?.status ?? ""}><option value="">Todos os status</option><option value="PENDING">Pagamento pendente</option><option value="REVIEW">Em análise</option><option value="CONFIRMED">Confirmadas</option><option value="CANCELED">Canceladas</option></select>
         <button className={viewStyles.button} type="submit">Filtrar</button>
       </form>
       <div className={viewStyles.tournament_registration_list}>
@@ -59,11 +59,11 @@ export default async function TournamentRegistrationsPage(
                 <label>Atleta 1<input name="leadName" defaultValue={registration.leadName} required /></label>
                 <label>Telefone<input name="leadPhone" defaultValue={registration.leadPhone} required /></label>
                 <label>CPF<input name="leadCpf" defaultValue={registration.leadCpf} required /></label>
-                <label>Nascimento<input name="leadBirthDate" type="date" defaultValue={registration.leadBirthDate.toISOString().slice(0, 10)} required /></label>
+                <label>Nascimento (opcional)<input name="leadBirthDate" type="date" defaultValue={registration.leadBirthDate?.toISOString().slice(0, 10) ?? ""} /></label>
                 <label>Atleta 2<input name="partnerName" defaultValue={registration.partnerName} required /></label>
                 <label>Telefone<input name="partnerPhone" defaultValue={registration.partnerPhone} required /></label>
                 <label>CPF<input name="partnerCpf" defaultValue={registration.partnerCpf} required /></label>
-                <label>Nascimento<input name="partnerBirthDate" type="date" defaultValue={registration.partnerBirthDate.toISOString().slice(0, 10)} required /></label>
+                <label>Nascimento (opcional)<input name="partnerBirthDate" type="date" defaultValue={registration.partnerBirthDate?.toISOString().slice(0, 10) ?? ""} /></label>
                 <label>Valor (R$)<input name="amountReais" inputMode="decimal" defaultValue={(registration.amountCents / 100).toFixed(2).replace(".", ",")} /></label>
                 <label>Status<select name="paymentStatus" defaultValue={registration.paymentStatus === "PAID" ? "PAID" : "PENDING"}><option value="PENDING">Pagamento pendente</option><option value="PAID">Pago / confirmar</option></select></label>
                 <SubmitButton label="Salvar alterações" pendingLabel="Salvando..." className={viewStyles.button_button_primary} />

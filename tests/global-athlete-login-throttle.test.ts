@@ -1,3 +1,4 @@
+import { legalVersion } from "../src/lib/legal/version";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
@@ -14,6 +15,7 @@ function fixture() {
   const sessions: string[] = [];
   let lookups = 0;
   const mocks: Record<string, unknown> = {
+    "@/lib/legal/version": { legalVersion },
     bcryptjs: { compare: async (password: string) => password === "SenhaCorreta123!" },
     "next/navigation": { redirect: (path: string) => { throw new Error(`redirect:${path}`); } },
     "@/lib/auth/player-session": { createPublicPlayerSession: async (id: string) => { sessions.push(id); }, destroyPublicPlayerSession: async () => {} },

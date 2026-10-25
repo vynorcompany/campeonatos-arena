@@ -384,6 +384,7 @@ async function getTvSponsors(arenaId: string) {
 }
 
 async function getTvCalendarEntries(arenaId: string) {
+  const prisma = arenaDatabase(arenaId);
   const now = new Date();
   const calendarEventModel = (prisma as unknown as { calendarEvent?: { findMany: (args: unknown) => Promise<Array<{ id: string; scheduledAt: Date; title: string; notes: string; eventType: string }>> } }).calendarEvent;
 
@@ -462,7 +463,7 @@ async function getAdditionalRankingSlides(arenaId: string, rankingIds: string[])
     return [] as TvRankingSlide[];
   }
 
-  const rankings = await prisma.rankingProfile.findMany({
+  const rankings = await arenaDatabase(arenaId).rankingProfile.findMany({
     where: {
       arenaId,
       id: {

@@ -1,3 +1,4 @@
+import { portalCheckoutPolicy } from "../src/lib/payments/portal-checkout-policy";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
@@ -11,17 +12,17 @@ function moduleAt(path: string, mocks: Record<string, unknown>) {
 }
 
 test("ler notificações financeiras persiste a leitura sem eliminar a pendência", async()=>{
-  let read=false;const date=new Date();
-  const tx={
+  let read=false;const date=new Date();let paymentSettings:Parameters<typeof portalCheckoutPolicy>[0]=null;let paymentUrl="";
+  const tx={arenaOperationalSettings:{findUnique:async()=>paymentSettings},
     playerNotification:{findMany:async()=>[{id:"player-note",type:"GENERAL",title:"Aviso",message:"Mensagem",href:"",readAt:read?date:null,createdAt:date}]},
     portalAnnouncement:{findMany:async()=>[{id:"notice",title:"Arena",message:"Mensagem",createdAt:date}]},
-    financialEntry:{findMany:async()=>[{id:"debt",description:"Mensalidade",amountCents:500,status:"OVERDUE",dueDate:new Date("2020-01-01"),createdAt:date,onlinePaymentUrl:"",settlements:[]}]},
+    financialEntry:{findMany:async()=>[{id:"debt",description:"Mensalidade",amountCents:500,status:"OVERDUE",dueDate:new Date("2020-01-01"),createdAt:date,onlinePaymentUrl:paymentUrl,settlements:[]}]},
     playerPortalNotificationRead:{findMany:async()=>read?[{notificationKey:"finance-debt"},{notificationKey:"arena-notice"},{notificationKey:"booking-delinquency"}]:[]},
     categoryMatch:{findMany:async()=>[]},
   };
   const service=moduleAt("src/lib/services/public-player-notifications.ts",{
     "server-only":{},"@/lib/prisma":{prisma:{arena:{findUnique:async()=>({id:"arena-a",onlineBookingOverdueBlockDays:1})}}},
-    "@/lib/rls":{withArenaTransaction:async(_id:string,fn:(tx:unknown)=>unknown)=>fn(tx)},
+    "@/lib/payments/portal-checkout-policy":{portalCheckoutPolicy},"@/lib/rls":{withArenaTransaction:async(_id:string,fn:(tx:unknown)=>unknown)=>fn(tx)},
     "@/lib/finance/settlements":{getOutstandingCents:(amount:number)=>amount},
     "@/lib/calendar/arena-wall-clock":{arenaToday:()=>date,instantToArenaWallClock:(value:Date)=>value},
     "@/lib/calendar/booking-delinquency":{getBookingDelinquency:async()=>({blocked:true})},
@@ -30,6 +31,14 @@ test("ler notificações financeiras persiste a leitura sem eliminar a pendênci
   read=true;const after=await service.getAthletePortalNotifications("arena-a","player-a");assert.equal(after.filter((n:any)=>!n.isRead).length,0);
   assert.equal(after.find((n:any)=>n.id==="finance-debt").persistent,true);
   assert.ok(after.some((n:any)=>n.id==="booking-delinquency"));
+  paymentSettings={portalConsumptionEnabled:false,portalPaymentsConfigured:true,portalPaymentEnabled:true,portalPixEnabled:true,portalCreditCardEnabled:false,checkoutExpiryMinutes:0};
+  const hidden=await service.getAthletePortalNotifications("arena-a","player-a");
+  assert.equal(hidden.some((n:any)=>n.id==="finance-debt"),false);assert.doesNotMatch(JSON.stringify(hidden),/R\$|Pagamento pendente/);
+  assert.match(hidden.find((n:any)=>n.id==="booking-delinquency").href,/cancelamento/);
+  paymentSettings={...paymentSettings,portalConsumptionEnabled:true,portalPaymentEnabled:false};paymentUrl="https://checkout.private.example/pay";
+  const readonly=await service.getAthletePortalNotifications("arena-a","player-a");
+  assert.match(readonly.find((n:any)=>n.id==="finance-debt").href,/section=finance/);assert.doesNotMatch(JSON.stringify(readonly),/checkout\.private/);
+
 });
 
 test("leitura em lote usa a arena e o atleta autenticados e informa falhas", async()=>{
@@ -38,7 +47,7 @@ test("leitura em lote usa a arena e o atleta autenticados e informa falhas", asy
   const actions=moduleAt("src/lib/actions/public-player-notifications.ts",{
     zod:{z},"next/cache":{revalidatePath:(path:string)=>paths.push(path)},
     "@/lib/auth/player-session":{requirePublicPlayerAuth:async()=>({arenaId:"arena-a",playerId:"player-a"})},
-    "@/lib/rls":{withArenaTransaction:async(id:string,fn:(tx:unknown)=>unknown)=>{assert.equal(id,"arena-a");return fn(tx);}},
+    "@/lib/payments/portal-checkout-policy":{portalCheckoutPolicy},"@/lib/rls":{withArenaTransaction:async(id:string,fn:(tx:unknown)=>unknown)=>{assert.equal(id,"arena-a");return fn(tx);}},
   });
   const result=await actions.markAllPublicPlayerNotificationsReadAction("arena-a",[{id:"note",source:"PLAYER"},{id:"finance-debt",source:"FINANCE"},{id:"finance-debt",source:"FINANCE"}]);
   assert.equal(result.error,null);assert.equal(writes[0].where.playerId,"player-a");assert.equal(writes[0].where.player.arenaId,"arena-a");assert.equal(writes[1].data.length,1);assert.equal(writes[1].data[0].playerId,"player-a");assert.ok(paths.includes("/home"));

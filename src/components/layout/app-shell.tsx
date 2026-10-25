@@ -20,6 +20,7 @@ type AppShellProps = {
   canManageUsers: boolean;
   canManageFinancialSettings: boolean;
   canManageCourtSettings: boolean;
+  canManagePrinterSettings: boolean;
   financeView: { receivable: boolean; payable: boolean; reports: boolean };
   canEditStock: boolean;
   visibleModules: string[];
@@ -40,6 +41,7 @@ export function AppShell({
   canManageUsers,
   canManageFinancialSettings,
   canManageCourtSettings,
+  canManagePrinterSettings,
   financeView,
   canEditStock,
   visibleModules,
@@ -49,7 +51,6 @@ export function AppShell({
   billingAlert,
   children
 }: AppShellProps) {
-  const settingsHref = visibleModules.includes("arena") ? "/arena" : visibleModules.includes("calendar") && canManageCourtSettings ? "/agenda/configuracao" : null;
   return (
     <MobileAppFrame arenaName={arenaName} sidebar={<aside id="arena-mobile-navigation" className={viewStyles.sidebar} aria-label="Menu lateral">
         <div className={viewStyles.sidebar_inner}>
@@ -80,10 +81,10 @@ export function AppShell({
               currentWorkspace="arena"
             />
 
-            <NavLinks pollingScope={activeArenaId ?? ""} key={activeArenaId} canManageUsers={canManageUsers} canManageFinancialSettings={canManageFinancialSettings} financeView={financeView} canEditStock={canEditStock} visibleModules={visibleModules} whatsappUnreadCount={whatsappUnreadCount} />
+            <NavLinks pollingScope={activeArenaId ?? ""} key={activeArenaId} canManageUsers={canManageUsers} canManageFinancialSettings={canManageFinancialSettings} canManageCourtSettings={canManageCourtSettings} canManagePrinterSettings={canManagePrinterSettings} financeView={financeView} canEditStock={canEditStock} visibleModules={visibleModules} whatsappUnreadCount={whatsappUnreadCount} />
           </div>
 
-          {settingsHref ? <nav className={viewStyles.sidebar_settings_menu} aria-label="Configurações"><Link href={settingsHref} className={viewStyles.sidebar_settings_link}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="m9 3-1 3-3 1v3l-2 2 2 2v3l3 1 1 3h6l1-3 3-1v-3l2-2-2-2V7l-3-1-1-3Z" /><circle cx="12" cy="12" r="3" /></svg>Configurações</Link></nav> : null}
+
         </div>
       </aside>}>
       <main className={viewStyles.app_main}>

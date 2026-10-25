@@ -1,5 +1,6 @@
 "use server";
 
+import { arenaDatabase } from "@/lib/arena-database";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requirePublicPlayerAuth } from "@/lib/auth/player-session";
@@ -46,6 +47,7 @@ export async function createLeagueChallengeAction(formData: FormData) {
   const parsed = proposalSchema.safeParse({ arenaSlug: formData.get("arenaSlug"), proposerPairId: formData.get("proposerPairId"), opponentPairId: formData.get("opponentPairId"), courtId: formData.get("courtId"), startsAt: formData.get("startsAt"), durationMinutes: formData.get("durationMinutes") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados do desafio inválidos.");
   const auth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
+  const prisma = arenaDatabase(auth.arenaId);
   const linkedPlayerIds = await getPublicLinkedPlayerIds(auth.arenaId, auth.playerId);
   const startsAt = parseScheduledAt(parsed.data.startsAt);
   const endsAt = new Date(startsAt.getTime() + parsed.data.durationMinutes * 60_000);
@@ -84,6 +86,7 @@ export async function recordOwnLeagueMatchResultAction(formData: FormData) {
   const input = parseLeagueMatchResultInput(formData);
   if ("success" in input) throw new Error(input.error ?? "Dados do resultado inválidos.");
   const auth = await requirePublicPlayerAuth(arenaSlug);
+  const prisma = arenaDatabase(auth.arenaId);
   const linkedPlayerIds = await getPublicLinkedPlayerIds(auth.arenaId, auth.playerId);
   const match = await prisma.categoryMatch.findFirst({ where: { id: input.matchId, competition: { format: "LEAGUE", status: "PUBLISHED", category: { tournament: { arenaId: auth.arenaId } } } }, include: { homePair: { include: { players: { select: { playerId: true } } } }, awayPair: { include: { players: { select: { playerId: true } } } }, competition: { select: { categoryId: true } } } });
   if (!match?.homePair || !match.awayPair) throw new Error("Jogo de Liga inválido.");
@@ -98,6 +101,7 @@ export async function respondLeagueChallengeAction(formData: FormData) {
   const parsed = z.object({ arenaSlug: z.string().trim().min(1), challengeId: z.string().trim().min(1), response: z.enum(["ACCEPTED", "REJECTED"]) }).safeParse({ arenaSlug: formData.get("arenaSlug"), challengeId: formData.get("challengeId"), response: formData.get("response") });
   if (!parsed.success) throw new Error("Resposta de desafio inválida.");
   const auth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
+  const prisma = arenaDatabase(auth.arenaId);
   const challenge = await prisma.leagueChallenge.findFirst({ where: { id: parsed.data.challengeId, arenaId: auth.arenaId, status: "PENDING" }, include: { court: true, proposerPair: { include: { players: { select: { playerId: true } } } }, opponentPair: { include: { players: { select: { playerId: true } } } }, categoryMatch: true } });
   if (!challenge) throw new Error("Este desafio não está mais disponível.");
   if (!challenge.opponentPair.players.some((entry) => entry.playerId === auth.playerId)) throw new Error("Somente a dupla convidada pode responder.");
@@ -139,6 +143,7 @@ async function respondLeagueProposal(formData: FormData) {
   const parsed = z.object({ arenaSlug: z.string().trim().min(1), proposalId: z.string().trim().min(1), response: z.enum(["ACCEPTED", "REJECTED"]) }).safeParse({ arenaSlug: formData.get("arenaSlug"), proposalId: formData.get("proposalId"), response: formData.get("response") });
   if (!parsed.success) throw new Error("Resposta de horário inválida.");
   const auth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
+  const prisma = arenaDatabase(auth.arenaId);
   const proposal = await prisma.leagueMatchProposal.findFirst({
     where: {
       id: parsed.data.proposalId,

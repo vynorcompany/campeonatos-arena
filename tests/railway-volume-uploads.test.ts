@@ -4,6 +4,7 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
+import sharp from "sharp";
 import { GET } from "../src/app/media/uploads/[...filePath]/route";
 import { savePublicImageUpload } from "../src/lib/uploads";
 
@@ -29,12 +30,13 @@ test("volume uploads stay distinct across arenas and existing URLs remain readab
     process.env.RAILWAY_VOLUME_MOUNT_PATH = root;
     for (const key of keys.filter((key) => key.startsWith("R2_"))) delete process.env[key];
 
-    const first = await savePublicImageUpload(new File(["arena-a"], "image.jpg", { type: "image/jpeg" }), "portal-events", "event", "arena-a");
-    const second = await savePublicImageUpload(new File(["arena-b"], "image.jpg", { type: "image/jpeg" }), "portal-events", "event", "arena-b");
-    const repeated = await savePublicImageUpload(new File(["arena-a-again"], "image.jpg", { type: "image/jpeg" }), "portal-events", "event", "arena-a");
+    const fixture = await sharp({ create: { width: 8, height: 8, channels: 3, background: "green" } }).jpeg().toBuffer();
+    const first = await savePublicImageUpload(new File([new Uint8Array(fixture)], "image.jpg", { type: "image/jpeg" }), "portal-events", "event", "arena-a");
+    const second = await savePublicImageUpload(new File([new Uint8Array(fixture)], "image.jpg", { type: "image/jpeg" }), "portal-events", "event", "arena-b");
+    const repeated = await savePublicImageUpload(new File([new Uint8Array(fixture)], "image.jpg", { type: "image/jpeg" }), "portal-events", "event", "arena-a");
 
-    assert.match(first!, /^\/media\/uploads\/arenas\/arena-a\/portal-events\/event-[\w-]+\.jpg$/);
-    assert.match(second!, /^\/media\/uploads\/arenas\/arena-b\/portal-events\/event-[\w-]+\.jpg$/);
+    assert.match(first!, /^\/media\/uploads\/arenas\/arena-a\/portal-events\/event-[\w-]+\.png$/);
+    assert.match(second!, /^\/media\/uploads\/arenas\/arena-b\/portal-events\/event-[\w-]+\.png$/);
     assert.notEqual(first, repeated, "a second upload must not overwrite the first");
 
     const legacyDirectory = join(root, "portal-events");
@@ -48,7 +50,12 @@ test("volume uploads stay distinct across arenas and existing URLs remain readab
       const filePath = url.slice("/media/uploads/".length).split("/");
       const response = await GET(new Request(`http://localhost${url}`), { params: Promise.resolve({ filePath }) });
       assert.equal(response.status, 200, url);
-      assert.equal(await response.text(), expected, url);
+      if (expected === "legacy") assert.equal(await response.text(), expected, url);
+      else {
+        const decoded = await sharp(Buffer.from(await response.arrayBuffer())).metadata();
+        assert.equal(decoded.format, "png");
+        assert.equal(decoded.width, 8);
+      }
     }
   } finally {
     for (const key of keys) {

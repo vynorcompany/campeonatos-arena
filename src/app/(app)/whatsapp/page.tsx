@@ -11,7 +11,7 @@ export default async function WhatsAppPage() {
   const auth = await requireModuleView("support");
   const [arena, connection, clients] = await Promise.all([
     prisma.arena.findUniqueOrThrow({ where: { id: auth.arenaId }, select: { whatsappSlaMinutes: true } }),
-    prisma.whatsAppConnection.findUnique({ where: { arenaId: auth.arenaId }, select: { status: true, connectedPhone: true, inboxRevision: true } }),
+    arenaDatabase(auth.arenaId).whatsAppConnection.findUnique({ where: { arenaId: auth.arenaId }, select: { status: true, connectedPhone: true, inboxRevision: true } }),
     arenaDatabase(auth.arenaId).player.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true, phone: true, email: true, photoUrl: true }, orderBy: { name: "asc" }, take: 500 })
   ]);
   const accountJid = connection?.status === "CONNECTED" ? normalizeWhatsAppAccountJid(connection.connectedPhone) : "";

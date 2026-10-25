@@ -16,8 +16,8 @@ test("mobile dark portal keeps the green identity across its main surfaces", () 
   assert.match(portal, /tw:dark:\[--portal-ink:#eaf3e9\]/);
   assert.match(read("src/components/portal/portal-navigation.tsx"), /tw:dark:bg-\[#102d25\]/);
   for (const source of [finance, comandas, league]) assert.match(source, /tw:dark:/);
-  assert.match(login, /tw:dark:\[&_.public-client-auth_h2\]:text-\[#eafff3\]/);
-  assert.match(login, /tw:dark:\[&_.public-client-auth_input\]:bg-\[#104138\]/);
+  assert.match(login, /tw:dark:\[&_.public-client-auth>header_h2\]:text-\[#eafff3\]/);
+  assert.match(login, /tw:dark:\[&_.public-client-auth_input:not\(\[type=checkbox\]\):not\(\[type=radio\]\):not\(\[type=hidden\]\)\]:bg-\[#104138\]/);
 });
 
 test("league schedule heading remains legible in both mobile themes", () => {

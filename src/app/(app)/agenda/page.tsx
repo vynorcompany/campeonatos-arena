@@ -64,7 +64,7 @@ export default async function AgendaPage(props: AgendaPageProps) {
     tx.bookingType.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { name: true }, orderBy: { name: "asc" } }),
     tx.arenaServicePrice.findMany({ where: { arenaId: auth.arenaId }, select: { serviceCode: true, priceCents: true } }),
     tx.product.findMany({ where: { arenaId: auth.arenaId, active: true, isService: true }, select: { name: true, sku: true, priceCents: true, showOnAgenda: true } })
-  ]));
+  ]), { maxWait: 10_000 });
   const hiddenServices = new Set(customServices.filter(service => !service.showOnAgenda).map(serviceBookingName));
   const bookingTypes = Array.from(new Set(["Aula", "Aula fixa", "Plano", "Super 12", "Liga", "Reserva", ...storedBookingTypes.map((item) => item.name), ...customServices.filter(service => service.showOnAgenda).map(serviceBookingName)])).filter(name => !hiddenServices.has(name));
   const servicePriceValues = { ...standardServicePrices(servicePrices), ...Object.fromEntries(customServices.map(service => [serviceBookingName(service), service.priceCents])) };

@@ -1,3 +1,4 @@
+import { arenaDatabase } from "@/lib/arena-database";
 import { viewStyles } from "./page.utilities";
 import { SectionCard } from "@/components/section-card";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
@@ -21,6 +22,7 @@ function formatDate(value: Date | null) {
 
 export default async function RegisterLessonPage() {
   const auth = await requireModuleView("lessons");
+  const prisma = arenaDatabase(auth.arenaId);
   const [students, teachers, lessons] = await Promise.all([
     prisma.student.findMany({
       where: { arenaId: auth.arenaId, active: true },

@@ -1,4 +1,3 @@
-import { prisma } from "@/lib/prisma";
 import { arenaDatabase } from "@/lib/arena-database";
 import {
   buildGeneralRankingSourceEntries,
@@ -598,7 +597,7 @@ async function getCategoryPairRankingSourceEntries(
 }
 
 export async function getRankingProfilesWithLeaderboard(arenaId: string): Promise<RankingProfileWithLeaderboard[]> {
-  const rankings = await prisma.rankingProfile.findMany({
+  const rankings = await arenaDatabase(arenaId).rankingProfile.findMany({
     where: { arenaId },
     orderBy: [{ createdAt: "desc" }],
     include: {
@@ -672,7 +671,7 @@ export async function getRankingProfileLeaderboard(
   rankingId: string,
   requestedPeriod?: RankingPeriodQuery | string,
 ) {
-  const ranking = await prisma.rankingProfile.findFirst({
+  const ranking = await arenaDatabase(arenaId).rankingProfile.findFirst({
     where: {
       id: rankingId,
       arenaId

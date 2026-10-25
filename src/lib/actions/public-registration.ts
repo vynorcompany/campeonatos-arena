@@ -31,16 +31,6 @@ function normalizeCpf(input: string) {
   return input.replace(/\D/g, "");
 }
 
-function normalizeDateInput(input: unknown) {
-  const value = String(input ?? "").trim();
-  const brMatch = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
-  if (brMatch) {
-    const [, day, month, year] = brMatch;
-    return `${year}-${month}-${day}`;
-  }
-  return value;
-}
-
 function getPriceByOrder(
   order: number,
   pricing: { priceFirstCents: number; priceSecondCents: number; priceThirdCents: number }
@@ -54,6 +44,7 @@ export async function createPublicRegistrationAction(
   _: PublicRegistrationState,
   formData: FormData
 ): Promise<PublicRegistrationState> {
+  if (String(formData.get("contactWebsite") ?? "").trim()) return { ...initialState, error: "Não foi possível validar o formulário." };
   const parsed = createPublicRegistrationSchema.safeParse({
     tournamentSlug: formData.get("tournamentSlug"),
     categoryId: formData.get("categoryId"),
@@ -62,11 +53,11 @@ export async function createPublicRegistrationAction(
     leadEmail: formData.get("leadEmail"),
     leadPhone: formData.get("leadPhone"),
     leadCpf: normalizeCpf(String(formData.get("leadCpf") ?? "")),
-    leadBirthDate: normalizeDateInput(formData.get("leadBirthDate")),
+    leadBirthDate: null,
     partnerName: formData.get("partnerName"),
     partnerPhone: formData.get("partnerPhone"),
     partnerCpf: normalizeCpf(String(formData.get("partnerCpf") ?? "")),
-    partnerBirthDate: normalizeDateInput(formData.get("partnerBirthDate"))
+    partnerBirthDate: null
   });
 
   if (!parsed.success) {
