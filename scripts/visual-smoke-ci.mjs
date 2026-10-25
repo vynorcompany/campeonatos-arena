@@ -1868,9 +1868,10 @@ async function main() {
       await db.arenaMember.updateMany({ where: { arenaId: arenaA.id, userId: restrictedUser.id }, data: { editPermissions: ["calendar:booking:create", "calendar:settings:manage"] } });
       try {
         for (const viewport of [viewports[0], adminViewports[2]]) {
-          await visit("/agenda", viewport, arenaA.id, `${viewport.name}-agenda-configuracao-permitida`, restrictedToken);
-          const settingsLink = await send("Runtime.evaluate", { expression: "document.querySelector('nav[aria-label=\"Configurações\"] a')?.getAttribute('href') ?? null", returnByValue: true });
-          if (settingsLink.result.value !== "/agenda/configuracao") throw new Error(`${viewport.name}: gestor da grade recebeu destino de configurações incorreto: ${settingsLink.result.value}`);
+          await visit("/configuracoes", viewport, arenaA.id, `${viewport.name}-agenda-configuracao-permitida`, restrictedToken);
+          const settingsLink = await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('nav[aria-label=\"Configurações\"] a')].map(link => link.getAttribute('href')).sort()", returnByValue: true });
+          const permittedSettings = ["/configuracoes/dispositivos", "/configuracoes/checkin", "/agenda/configuracao"].sort();
+          if (JSON.stringify(settingsLink.result.value) !== JSON.stringify(permittedSettings)) throw new Error(`${viewport.name}: gestor da grade recebeu destino de configurações incorreto: ${settingsLink.result.value}`);
           await visit("/agenda/configuracao", viewport, arenaA.id, `${viewport.name}-configuracao-grade-permitida`, restrictedToken);
         }
       } finally {
