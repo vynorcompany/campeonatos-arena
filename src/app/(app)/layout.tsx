@@ -35,6 +35,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
       userRole={auth.arenaRole ?? auth.systemRole}
       canManageUsers={canManageUsers}
       canManageFinancialSettings={canPerformPermission("finance:settings:manage", auth.arenaRole, auth.systemRole, auth.editPermissions)}
+      canManagePrinterSettings={canPerformPermission("arena:settings", auth.arenaRole, auth.systemRole, auth.editPermissions)}
       canManageCourtSettings={canPerformPermission("calendar:settings:manage", auth.arenaRole, auth.systemRole, auth.editPermissions)}
       financeView={{
         receivable: canPerformPermission("finance:receivable:view", auth.arenaRole, auth.systemRole, auth.viewPermissions),

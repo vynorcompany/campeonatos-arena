@@ -1,4 +1,4 @@
-﻿"use server";
+"use server";
 
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
@@ -62,6 +62,7 @@ function getRemainingLockMinutes(lockedUntil: Date, now = new Date()) {
 }
 
 export async function loginAction(_: LoginState, formData: FormData): Promise<LoginState> {
+  if (String(formData.get("contactWebsite") ?? "").trim()) return { error: "Não foi possível validar o formulário. Recarregue a página e tente novamente." };
   const parsed = loginSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password")

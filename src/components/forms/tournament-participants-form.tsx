@@ -83,7 +83,7 @@ export function TournamentParticipantsForm(props: TournamentParticipantsFormProp
   }, [normalizedSearch, registrations]);
 
   const safeCategories = categories ?? [];
-  const eligiblePlayers = (players ?? []).filter((player) => player.phone && /^\d{11}$/.test(player.cpf) && player.birthDate);
+  const eligiblePlayers = (players ?? []).filter((player) => player.phone && /^\d{11}$/.test(player.cpf));
   const safeFiltered = filtered ?? [];
 
   return (
@@ -91,7 +91,7 @@ export function TournamentParticipantsForm(props: TournamentParticipantsFormProp
       <article className={viewStyles.section_card}>
         <h3>Inscrever dupla manualmente</h3>
         {!eligiblePlayers.length ? (
-          <p className={viewStyles.muted}>Nenhum atleta ativo possui os dados completos. Atualize telefone, CPF e nascimento em <a href="/jogadores">Atletas</a>.</p>
+          <p className={viewStyles.muted}>Nenhum atleta ativo possui os dados completos. Atualize telefone e CPF em <a href="/jogadores">Atletas</a>.</p>
         ) : (
         <form action={formAction} className={viewStyles.grid_form}>
           <input type="hidden" name="tournamentId" value={tournamentId} />
@@ -203,8 +203,8 @@ export function TournamentParticipantsForm(props: TournamentParticipantsFormProp
                           <input name="leadCpf" defaultValue={registration.leadCpf} required />
                         </div>
                         <div className={viewStyles.field}>
-                          <label>Nascimento atleta 1</label>
-                          <input name="leadBirthDate" type="text" inputMode="numeric" placeholder="dd/mm/aaaa" defaultValue={new Date(registration.leadBirthDate).toLocaleDateString("pt-BR")} required />
+                          <label>Nascimento atleta 1 (opcional)</label>
+                          <input name="leadBirthDate" type="text" inputMode="numeric" placeholder="dd/mm/aaaa" defaultValue={registration.leadBirthDate ? new Date(registration.leadBirthDate).toLocaleDateString("pt-BR") : ""} />
                         </div>
                         <div className={viewStyles.field}>
                           <label>Atleta 2</label>
@@ -219,8 +219,8 @@ export function TournamentParticipantsForm(props: TournamentParticipantsFormProp
                           <input name="partnerCpf" defaultValue={registration.partnerCpf} required />
                         </div>
                         <div className={viewStyles.field}>
-                          <label>Nascimento atleta 2</label>
-                          <input name="partnerBirthDate" type="text" inputMode="numeric" placeholder="dd/mm/aaaa" defaultValue={new Date(registration.partnerBirthDate).toLocaleDateString("pt-BR")} required />
+                          <label>Nascimento atleta 2 (opcional)</label>
+                          <input name="partnerBirthDate" type="text" inputMode="numeric" placeholder="dd/mm/aaaa" defaultValue={registration.partnerBirthDate ? new Date(registration.partnerBirthDate).toLocaleDateString("pt-BR") : ""} />
                         </div>
                         <div className={viewStyles.field}>
                           <label>Valor (R$)</label>

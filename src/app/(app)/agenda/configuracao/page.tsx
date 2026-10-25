@@ -1,10 +1,10 @@
+import { arenaDatabase } from "@/lib/arena-database";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
-import { CheckinSettings } from "@/components/courts/checkin-settings";
 import { OnlineBookingSettingsDialog } from "@/components/online-booking-settings-dialog";
 import { copyCourtConfigurationAction, copyCourtWeeklyRuleAction, createCourtAction, createCourtWeeklyRuleAction, deleteCourtWeeklyRuleAction, moveCourtAction, updateCourtSettingsAction, updateCourtWeeklyRuleAction } from "@/lib/actions/calendar";
 import { requireModuleView } from "@/lib/auth/guards";
@@ -23,6 +23,7 @@ const duration = (value: number) => `${Math.floor(value / 60) ? `${Math.floor(va
 export default async function AgendaConfiguracaoPage(props: Props) {
   const searchParams = await props.searchParams;
   const auth = await requireModuleView("calendar");
+  const prisma = arenaDatabase(auth.arenaId);
   if (!canPerformPermission("calendar:settings:manage", auth.arenaRole, auth.systemRole, auth.editPermissions)) notFound();
   const [arena, courts] = await Promise.all([
     prisma.arena.findUniqueOrThrow({ where: { id: auth.arenaId }, select: { checkinEnabled: true, checkinToken: true, slug: true, onlineBookingLayout: true, onlineBookingRequiresConfirmation: true, onlineBookingShowReserved: true, onlineBookingPaymentEnabled: true, onlineBookingEnabled: true, onlineBookingLeadTimeMinutes: true, onlineBookingOverdueBlockDays: true, onlineBookingWhatsappMessage: true, onlineBookingWhatsappConfirmationEnabled: true } }),
@@ -30,7 +31,6 @@ export default async function AgendaConfiguracaoPage(props: Props) {
   ]);
   const court = searchParams?.court ? courts.find((item) => item.id === searchParams.court) : undefined;
   return <div className={viewStyles.agenda_config_page}>
-    <CheckinSettings arenaSlug={arena.slug} enabled={arena.checkinEnabled} token={arena.checkinToken} />
     <div className={viewStyles.agenda_config_online_control}><OnlineBookingSettingsDialog settings={{ arenaSlug: arena.slug, layout: arena.onlineBookingLayout, requiresConfirmation: arena.onlineBookingRequiresConfirmation, showReserved: arena.onlineBookingShowReserved, paymentOnlineEnabled: arena.onlineBookingPaymentEnabled, enabled: arena.onlineBookingEnabled, leadTimeMinutes: arena.onlineBookingLeadTimeMinutes, overdueBlockDays: arena.onlineBookingOverdueBlockDays, whatsappMessage: arena.onlineBookingWhatsappMessage, whatsappConfirmationEnabled: arena.onlineBookingWhatsappConfirmationEnabled }} /></div>
     <section className={viewStyles.agenda_config_toolbar}><nav className={viewStyles.agenda_court_tabs} aria-label="Quadras cadastradas">{courts.map((item) => <Link key={item.id} href={`/agenda/configuracao/${item.id}`} className={cx(item.id === court?.id ? viewStyles.agenda_court_tab_agenda_court_tab_active : viewStyles.agenda_court_tab)} style={{ borderLeftColor: item.color }}><i style={{ backgroundColor: item.color }} />{item.name}<span>{item.active ? "Ativa" : "Inativa"}</span></Link>)}{!courts.length ? <span className={viewStyles.agenda_court_tabs_empty}>Nenhuma quadra cadastrada.</span> : null}</nav><SafeActionForm action={createCourtAction} className={viewStyles.agenda_create_court_inline} resetOnSuccess successMessage="Quadra cadastrada."><input name="name" placeholder="Nova quadra" required /><SubmitButton label="Adicionar" pendingLabel="Salvando..." className={viewStyles.button_button_primary} /></SafeActionForm></section>
     {court ? <section className={viewStyles.agenda_court_workspace}><div className={viewStyles.agenda_court_workspace_bar}><strong>{court.name}</strong><span>Identidade, reserva online e períodos.</span></div>

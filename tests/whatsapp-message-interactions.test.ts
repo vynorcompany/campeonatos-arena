@@ -12,6 +12,21 @@ import { presentWhatsAppGroupMessage } from "../src/lib/whatsapp-group-message";
 
 const require = createRequire(import.meta.url);
 function load(path: string, mocks: Record<string, unknown>) {
+  if (path.includes("evolution/webhook/route")) {
+    const base = (mocks["@/lib/prisma"] as { prisma: any }).prisma;
+    base.$queryRaw = async (_query: TemplateStringsArray, instanceName: string) => {
+      const connection = await base.whatsAppConnection.findUnique({ where: { instanceName } });
+      return [{ arenaId: connection?.arenaId ?? null }];
+    };
+    const factory = (mocks["@/lib/arena-database"] as { arenaDatabase?: (id: string) => any } | undefined)?.arenaDatabase;
+    mocks["@/lib/arena-database"] = { arenaDatabase: (id: string) => {
+      assert.ok(id, "tenant routing is resolved before accessing connection data");
+      const selected = factory?.(id) ?? {};
+      const merged = { ...base, ...selected };
+      for (const key of Object.keys(base)) if (base[key] && typeof base[key] === "object") merged[key] = { ...base[key], ...selected[key] };
+      return merged;
+    } };
+  }
   const exports: Record<string, (...args: any[]) => Promise<any>> = {};
   vm.runInNewContext(ts.transpileModule(readFileSync(new URL(path, import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, {
     exports, Date, Buffer, File, FormData,
@@ -42,7 +57,7 @@ test("Evolution requests carry quoted messages and native reactions, including g
       if (name === "@/lib/integrations/evolution") return { buildEvolutionTextPayload, evolutionRecipientNumber };
       if (name === "./groups") return { readEvolutionGroupName };
       if (name === "@/lib/payments/connection-secrets") return { decryptConnectionSecrets: () => ({ token: "" }) };
-      if (name === "@/lib/prisma") return { prisma: { whatsAppConnection: { findUnique: async () => ({ status: "CONNECTED", instanceName: "test", encryptedToken: "fixture" }) } } };
+      if (name === "@/lib/arena-database") return { arenaDatabase: () => ({ whatsAppConnection: { findUnique: async () => ({ status: "CONNECTED", instanceName: "test", encryptedToken: "fixture" }) } }) };
       throw new Error(`Unexpected import: ${name}`);
     },
   });
@@ -76,7 +91,7 @@ test("an accepted Evolution text response without JSON is not treated as a faile
       if (name === "@/lib/integrations/evolution") return { buildEvolutionTextPayload, evolutionRecipientNumber };
       if (name === "./groups") return { readEvolutionGroupName };
       if (name === "@/lib/payments/connection-secrets") return { decryptConnectionSecrets: () => ({ token: "" }) };
-      if (name === "@/lib/prisma") return { prisma: { whatsAppConnection: { findUnique: async () => ({ status: "CONNECTED", instanceName: "test", encryptedToken: "fixture" }) } } };
+      if (name === "@/lib/arena-database") return { arenaDatabase: () => ({ whatsAppConnection: { findUnique: async () => ({ status: "CONNECTED", instanceName: "test", encryptedToken: "fixture" }) } }) };
       throw new Error(`Unexpected import: ${name}`);
     },
   });
@@ -102,7 +117,7 @@ test("media retries only after format rejection, never after a server failure", 
         if (name === "@/lib/integrations/evolution") return { buildEvolutionTextPayload, evolutionRecipientNumber };
         if (name === "./groups") return { readEvolutionGroupName };
         if (name === "@/lib/payments/connection-secrets") return { decryptConnectionSecrets: () => ({ token: "" }) };
-        if (name === "@/lib/prisma") return { prisma: { whatsAppConnection: { findUnique: async () => ({ status: "CONNECTED", instanceName: "test" }) } } };
+        if (name === "@/lib/arena-database") return { arenaDatabase: () => ({ whatsAppConnection: { findUnique: async () => ({ status: "CONNECTED", instanceName: "test" }) } }) };
         throw new Error(`Unexpected import: ${name}`);
       },
     });

@@ -1,3 +1,4 @@
+import { deviceLabel } from "../src/lib/auth/device-label";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -62,6 +63,7 @@ test("cookie de arena inválido não altera o contexto para outra subconta", asy
       if (name === "@/lib/prisma") return { prisma: { session: { findUnique: async () => ({ expiresAt: new Date(Date.now() + 60_000), user: { id: "user-a", name: "Operador", email: "operator@example.test", systemRole: "VIEWER", memberships: [membership("arena-a", "Arena A"), membership("arena-b", "Arena B")] } }) } } };
       if (name === "@/lib/permissions") return { allPermissionModules: [] };
       if (name === "node:crypto") return { createHash: () => ({ update: () => ({ digest: () => "hash" }) }) };
+      if (name === "@/lib/auth/device-label") return { deviceLabel };
       throw new Error(`Unexpected import: ${name}`);
     },
   });
@@ -92,6 +94,7 @@ test("requisições simultâneas descartam sessão expirada sem erro concorrente
       } } };
       if (name === "@/lib/permissions") return { allPermissionModules: [] };
       if (name === "node:crypto") return { createHash: () => ({ update: () => ({ digest: () => "hash" }) }) };
+      if (name === "@/lib/auth/device-label") return { deviceLabel };
       throw new Error(`Unexpected import: ${name}`);
     },
   });

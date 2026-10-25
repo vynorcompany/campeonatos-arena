@@ -1,5 +1,6 @@
 export type PortalSection =
   | "home"
+  | "schedule"
   | "announcements"
   | "finance"
   | "comandas"

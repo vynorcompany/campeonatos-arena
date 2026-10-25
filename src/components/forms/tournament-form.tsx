@@ -4,6 +4,7 @@ import { viewStyles } from "./tournament-form.utilities";
 import { useEffect, useState } from "react";
 import { useFormState } from "react-dom";
 import { useRouter } from "next/navigation";
+import { LocalDateTimeField } from "@/components/forms/local-date-time-field";
 import { SubmitButton } from "@/components/forms/submit-button";
 import {
   createTournamentAction,
@@ -131,14 +132,14 @@ export function TournamentForm({
       <section className={viewStyles.tournament_editor_section}>
         <header><span>03</span><div><h2>Datas, desconto e bônus</h2><p>Defina o calendário comercial do torneio. O desconto é aplicado por dupla enquanto estiver vigente.</p></div></header>
         <div className={viewStyles.tournament_editor_grid}>
-          <div className={viewStyles.field}><label htmlFor="startsAt">Início do evento</label><input id="startsAt" name="startsAt" type="datetime-local" defaultValue={defaultStartsAt} /></div>
-          <div className={viewStyles.field}><label htmlFor="endsAt">Fim do evento</label><input id="endsAt" name="endsAt" type="datetime-local" defaultValue={defaultEndsAt} /></div>
-          <div className={viewStyles.field}><label htmlFor="registrationOpensAt">Abertura das inscrições</label><input id="registrationOpensAt" name="registrationOpensAt" type="datetime-local" defaultValue={defaultRegistrationOpensAt} /></div>
-          <div className={viewStyles.field}><label htmlFor="registrationClosesAt">Encerramento das inscrições</label><input id="registrationClosesAt" name="registrationClosesAt" type="datetime-local" defaultValue={defaultRegistrationClosesAt} /></div>
+          <LocalDateTimeField name="startsAt" label="Início do evento" defaultValue={defaultStartsAt} className={viewStyles.field}/>
+          <LocalDateTimeField name="endsAt" label="Fim do evento" defaultValue={defaultEndsAt} className={viewStyles.field}/>
+          <LocalDateTimeField name="registrationOpensAt" label="Abertura das inscrições" defaultValue={defaultRegistrationOpensAt} className={viewStyles.field}/>
+          <LocalDateTimeField name="registrationClosesAt" label="Encerramento das inscrições" defaultValue={defaultRegistrationClosesAt} className={viewStyles.field}/>
           <div className={viewStyles.field}><label htmlFor="earlyDiscountReais">Desconto por dupla</label><div className={viewStyles.currency_input}><span>R$</span><input id="earlyDiscountReais" name="earlyDiscountReais" inputMode="decimal" defaultValue={(defaultEarlyDiscountCents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} /></div></div>
-          <div className={viewStyles.field}><label htmlFor="earlyDiscountUntil">Desconto válido até</label><input id="earlyDiscountUntil" name="earlyDiscountUntil" type="datetime-local" defaultValue={defaultEarlyDiscountUntil} /></div>
+          <LocalDateTimeField name="earlyDiscountUntil" label="Desconto válido até" defaultValue={defaultEarlyDiscountUntil} className={viewStyles.field}/>
           <div className={viewStyles.field}><label htmlFor="firstBonusLimit">Bônus para os primeiros confirmados</label><input id="firstBonusLimit" name="firstBonusLimit" type="number" min="0" step="1" defaultValue={defaultFirstBonusLimit} /><p>0 desativa a lista de bônus.</p></div>
-          <div className={viewStyles.field}><label htmlFor="firstBonusUntil">Bônus válido até</label><input id="firstBonusUntil" name="firstBonusUntil" type="datetime-local" defaultValue={defaultFirstBonusUntil} /></div>
+          <LocalDateTimeField name="firstBonusUntil" label="Bônus válido até" defaultValue={defaultFirstBonusUntil} className={viewStyles.field}/>
         </div>
       </section>
 

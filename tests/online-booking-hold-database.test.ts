@@ -1,3 +1,4 @@
+import { arenaDatabaseForTest } from "./helpers/arena-database";
 import { arenaBookingPath } from "../src/lib/arena-booking-path";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -146,6 +147,7 @@ test("duas reservas simultâneas da mesma quadra produzem apenas um hold", { ski
       zod: require("zod"),
       "@/lib/auth/guards": { requireModuleEdit: async () => { throw new Error("Não usar acesso interno neste teste."); } },
       "@/lib/auth/player-session": { requirePublicPlayerAuth: async () => ({ arenaId, playerId: "goal-athlete-a" }) },
+      "@/lib/arena-database": { arenaDatabase: (arenaId: string) => arenaDatabaseForTest(runtime, arenaId) },
       "@/lib/prisma": { prisma: admin },
       "@/lib/rls": { withArenaTransaction: (scope: string, operation: (tx: any) => Promise<unknown>) => runtime.$transaction(async (tx) => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${scope}, true)`; return operation(tx); }) },
       "@/lib/calendar/inputs": { parseScheduledAt },

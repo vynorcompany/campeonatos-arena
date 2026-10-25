@@ -7,12 +7,11 @@ import test from "node:test";
 
 test("arena settings includes the complete court configuration as a dedicated section", () => {
   const arenaPage = readFileSync(resolve(process.cwd(), "src/app/(app)/arena/page.tsx"), "utf8");
-  const navigation = readFileSync(resolve(process.cwd(), "src/components/layout/app-shell.tsx"), "utf8");
+  const navigation = readFileSync(resolve(process.cwd(), "src/components/layout/nav-links.tsx"), "utf8");
 
   assert.match(arenaPage, /Quadras/);
   assert.match(arenaPage, /CourtConfigurationWorkspace/);
-  assert.match(navigation, /visibleModules\.includes\("arena"\) \? "\/arena"/);
-  assert.match(navigation, /<Link href=\{settingsHref\}[^>]*>[\s\S]*?Configurações<\/Link>/);
+  assert.match(navigation, /href: "\/configuracoes", label: "Configurações"/);
 });
 
 test("athlete portal uses the arena logo as branding and reserves the circular avatar for the athlete", () => {

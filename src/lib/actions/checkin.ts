@@ -18,6 +18,7 @@ export async function configureCourtCheckinAction(form: FormData) {
     } });
   });
   revalidatePath("/agenda/configuracao");
+  revalidatePath("/configuracoes/checkin");
 }
 
 export async function registerCourtCheckinAction(form: FormData) {

@@ -8,11 +8,11 @@ export function loadPortalFinancialEntries(tx: ArenaTransaction, arenaId: string
   const ownedEntries = { arenaId, OR: [
     { playerId, type: "REVENUE" },
     { type: "REVENUE", sale: { comanda: { playerId } } },
-    { type: "INCOME", status: { in: ["PENDING", "OVERDUE"] }, sale: { comanda: { playerId } } },
+    { type: "INCOME", status: { in: ["PENDING", "OVERDUE", "PARTIAL"] }, sale: { comanda: { playerId } } },
   ] } satisfies Prisma.FinancialEntryWhereInput;
   return Promise.all([
     tx.financialEntry.findMany({
-      where: { ...ownedEntries, status: { in: ["PENDING", "OVERDUE"] }, AND: [{ OR: [{ status: "OVERDUE" }, { dueDate: { lte: deadline } }] }] },
+      where: { ...ownedEntries, status: { in: ["PENDING", "OVERDUE", "PARTIAL"] }, AND: [{ OR: [{ status: "OVERDUE" }, { dueDate: { lte: deadline } }] }] },
       orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
       select: selectedEntry,
     }),

@@ -6,6 +6,7 @@ import { requirePermission } from "@/lib/auth/guards";
 import { getMercadoPagoPayment } from "@/lib/payments/mercado-pago";
 import { isProviderPaymentFullyReversed, markReviewedPaymentReversed } from "@/lib/payments/review-status";
 import { withArenaTransaction } from "@/lib/rls";
+import { expireMercadoPagoCheckout } from "@/lib/payments/mercado-pago-checkout-expiry";
 
 export async function releaseReviewedCheckoutAction(checkoutIdInput: string, confirmed: boolean): Promise<{ ok: boolean; error?: string }> {
   const auth = await requirePermission("finance:receivable:settle");
@@ -14,14 +15,19 @@ export async function releaseReviewedCheckoutAction(checkoutIdInput: string, con
 
   const checkout = await withArenaTransaction(auth.arenaId, (tx) => tx.onlinePaymentCheckout.findFirst({
     where: { id: checkoutId.data, arenaId: auth.arenaId, status: "REVIEW" },
-    select: { id: true, mercadoPagoPaymentId: true },
+    select: { id: true, mercadoPagoPaymentId: true, mercadoPagoPreferenceId: true, expiresAt: true },
   }));
   if (!checkout?.mercadoPagoPaymentId) return { ok: false, error: "Pagamento em análise não encontrado nesta arena." };
 
   let providerStatus: unknown;
   try {
-    const payment = await getMercadoPagoPayment(auth.arenaId, checkout.mercadoPagoPaymentId);
-    providerStatus = payment.status;
+    if (checkout.mercadoPagoPreferenceId && checkout.expiresAt && checkout.expiresAt <= new Date()) {
+      const result = await expireMercadoPagoCheckout({ arenaId: auth.arenaId, checkoutId: checkout.id, preferenceId: checkout.mercadoPagoPreferenceId, expiresAt: checkout.expiresAt }, new Date(), { allowFullyRefunded: true });
+      providerStatus = result.kind === "expired" ? "cancelled" : "review";
+    } else {
+      const payment = await getMercadoPagoPayment(auth.arenaId, checkout.mercadoPagoPaymentId);
+      providerStatus = payment.status;
+    }
   } catch {
     return { ok: false, error: "Não foi possível conferir o pagamento no Mercado Pago. Tente novamente." };
   }

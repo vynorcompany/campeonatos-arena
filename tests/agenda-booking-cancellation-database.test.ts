@@ -1,3 +1,4 @@
+import { arenaDatabaseForTest } from "./helpers/arena-database";
 import { arenaBookingPath } from "../src/lib/arena-booking-path";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -50,6 +51,7 @@ test("cancelar reserva respeita a escolha sobre cobranças abertas sem afetar va
         },
       },
       "@/lib/auth/player-session": {},
+      "@/lib/arena-database": { arenaDatabase: (arenaId: string) => arenaDatabaseForTest(runtime, arenaId) },
       "@/lib/prisma": { prisma: admin },
       "@/lib/rls": { withArenaTransaction: (arenaId: string, operation: (tx: unknown) => Promise<unknown>) => runtime.$transaction(async (tx) => {
         await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`;

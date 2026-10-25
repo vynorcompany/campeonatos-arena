@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAgencyAccess, requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
+import { arenaDatabase } from "@/lib/arena-database";
 import { configureEvolutionWebhook, createEvolutionInstance, createEvolutionInstanceName, createEvolutionInstanceToken, createEvolutionWebhookSecret, enableEvolutionHistorySync, findEvolutionInstance, getEvolutionQrCode, logoutEvolutionInstance } from "@/lib/integrations/evolution/agency";
 import { decryptConnectionSecrets, encryptConnectionSecrets, hashWebhookSecret } from "@/lib/payments/connection-secrets";
 import { normalizeWhatsAppAccountJid } from "@/lib/whatsapp-account";
@@ -72,6 +73,7 @@ export async function connectArenaWhatsAppAction(formData: FormData) {
   const parsed = whatsappConnectionSchema.safeParse({ arenaId: formData.get("arenaId") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   await requireWhatsAppConnectionAccess(parsed.data.arenaId);
+  const prisma = arenaDatabase(parsed.data.arenaId);
   const arena = await prisma.arena.findUnique({ where: { id: parsed.data.arenaId }, select: { id: true } });
   if (!arena) throw new Error("Arena não encontrada.");
   const existing = await prisma.whatsAppConnection.findUnique({ where: { arenaId: arena.id } });
@@ -108,6 +110,7 @@ export async function refreshArenaWhatsAppConnectionStatusAction(formData: FormD
   const parsed = whatsappConnectionSchema.safeParse({ arenaId: formData.get("arenaId") });
   if (!parsed.success) throw new Error("Arena inválida.");
   await requireWhatsAppConnectionAccess(parsed.data.arenaId);
+  const prisma = arenaDatabase(parsed.data.arenaId);
   const connection = await prisma.whatsAppConnection.findUnique({ where: { arenaId: parsed.data.arenaId } });
   if (!connection) return { connected: false };
   const instance = await findEvolutionInstance(connection.instanceName);
@@ -126,6 +129,7 @@ export async function resetArenaWhatsAppSessionAction(formData: FormData) {
   const parsed = whatsappConnectionSchema.safeParse({ arenaId: formData.get("arenaId") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   await requireWhatsAppConnectionAccess(parsed.data.arenaId);
+  const prisma = arenaDatabase(parsed.data.arenaId);
   const connection = await prisma.whatsAppConnection.findUnique({ where: { arenaId: parsed.data.arenaId } });
   if (!connection) return connectArenaWhatsAppAction(formData);
   const storedSecrets = connection.encryptedToken ? decryptConnectionSecrets(connection.encryptedToken) : null;
@@ -170,6 +174,7 @@ export async function refreshArenaWhatsAppQrAction(formData: FormData) {
   const parsed = whatsappConnectionSchema.safeParse({ arenaId: formData.get("arenaId") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   await requireWhatsAppConnectionAccess(parsed.data.arenaId);
+  const prisma = arenaDatabase(parsed.data.arenaId);
   const connection = await prisma.whatsAppConnection.findUnique({ where: { arenaId: parsed.data.arenaId } });
   if (!connection?.encryptedToken) throw new Error("Conecte esta arena primeiro.");
   const token = decryptConnectionSecrets(connection.encryptedToken).token;

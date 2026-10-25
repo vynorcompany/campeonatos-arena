@@ -10,9 +10,33 @@ const maxArenaLogoUploadSize = 500 * 1024;
 const allowedImageTypes = new Map([
   ["image/jpeg", "jpg"],
   ["image/png", "png"],
-  ["image/webp", "webp"],
-  ["image/svg+xml", "svg"]
+  ["image/webp", "webp"]
 ]);
+
+const maxImagePixels = 24_000_000;
+
+async function validatedRaster(file: File) {
+  try {
+    const content = Buffer.from(await file.arrayBuffer());
+    const image = sharp(content, { limitInputPixels: maxImagePixels, failOn: "warning" });
+    const metadata = await image.metadata();
+    const expected = allowedImageTypes.get(file.type);
+    const actual = metadata.format === "jpeg" ? "jpg" : metadata.format;
+    if (!expected || actual !== expected || (metadata.pages ?? 1) !== 1) throw new Error("format");
+    // Re-encoding strips EXIF, GPS, active payloads and appended source bytes.
+    return image.rotate();
+  } catch {
+    throw new Error("Imagem inválida. Envie um arquivo JPG, PNG ou WEBP válido, estático e com até 24 megapixels.");
+  }
+}
+
+async function normalizedImage(file: File, width: number) {
+  try {
+    return await (await validatedRaster(file)).resize({ width, height: width, fit: "inside", withoutEnlargement: true }).png().toBuffer();
+  } catch {
+    throw new Error("Não foi possível processar a imagem. Envie um JPG, PNG ou WEBP válido com até 24 megapixels.");
+  }
+}
 
 type R2Configuration = {
   endpoint: string;
@@ -58,14 +82,14 @@ export async function toPersistentArenaLogo(file: File | null): Promise<string |
   }
 
   if (!allowedImageTypes.has(file.type)) {
-    throw new Error("Envie uma imagem JPG, PNG, WEBP ou SVG.");
+    throw new Error("Envie uma imagem JPG, PNG ou WEBP.");
   }
 
   if (file.size > maxArenaLogoUploadSize) {
     throw new Error("A imagem deve ter no máximo 500 KB.");
   }
 
-  return `data:${file.type};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}`;
+  return `data:image/png;base64,${(await normalizedImage(file, 2048)).toString("base64")}`;
 }
 
 export async function toPersistentPlayerPhoto(file: File | null): Promise<string | null> {
@@ -73,7 +97,7 @@ export async function toPersistentPlayerPhoto(file: File | null): Promise<string
   if (!allowedImageTypes.has(file.type) || file.type === "image/svg+xml") throw new Error("Envie uma foto JPG, PNG ou WEBP.");
   if (file.size > maxUploadSize) throw new Error("A foto deve ter no máximo 4 MB.");
 
-  return `data:${file.type};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}`;
+  return `data:image/png;base64,${(await normalizedImage(file, 1024)).toString("base64")}`;
 }
 
 function sanitizeName(value: string) {
@@ -131,14 +155,14 @@ export async function savePublicImageUpload(file: File | null, folder: string, p
   if (!file || file.size === 0) return null;
 
   const extension = allowedImageTypes.get(file.type);
-  if (!extension) throw new Error("Envie uma imagem JPG, PNG, WEBP ou SVG.");
+  if (!extension) throw new Error("Envie uma imagem JPG, PNG ou WEBP.");
   if (file.size > maxUploadSize) throw new Error("A imagem deve ter no máximo 4 MB.");
 
-  return storePublicImage(Buffer.from(await file.arrayBuffer()), {
+  return storePublicImage(await normalizedImage(file, 2560), {
     folder,
     prefix,
-    extension,
-    contentType: file.type,
+    extension: "png",
+    contentType: "image/png",
     arenaId
   });
 }
@@ -150,7 +174,7 @@ export async function saveOptimizedPortalEventImageUpload(file: File | null, are
   }
   if (file.size > maxPortalEventUploadSize) throw new Error("A imagem original deve ter no máximo 25 MB.");
 
-  const optimizedImage = await sharp(Buffer.from(await file.arrayBuffer()))
+  const optimizedImage = await (await validatedRaster(file))
     .rotate()
     .resize({ width: 1080, height: 1920, fit: "cover" })
     .webp({ quality: 82, effort: 4 })

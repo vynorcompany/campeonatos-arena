@@ -49,7 +49,7 @@ export const viewStyles = {
     "tw:text-[0.86rem]", "tw:[text-decoration:none]",
   ].join(" "),
   "calendar_mini_muted": [
-    "calendar-mini-muted", "tw:text-[color:var(--muted)]", "tw:opacity-[0.58]",
+    "calendar-mini-muted", "tw:text-[color:var(--muted)]", "tw:bg-slate-50",
   ].join(" "),
   "calendar_mini_active": [
     "calendar-mini-active", "tw:bg-[color:var(--brand)]", "tw:[background-image:none]", "tw:text-[color:#ffffff]",
@@ -97,7 +97,7 @@ export const viewStyles = {
     "calendar-agenda-day", "calendar-agenda-day-today", "tw:grid", "tw:gap-y-[4px]",
     "tw:gap-x-[4px]", "tw:[justify-items:center]", "tw:min-h-[86px]", "tw:pt-[18px]",
     "tw:pr-[10px]", "tw:pb-[18px]", "tw:pl-[10px]", "tw:border-l-[length:1px]",
-    "tw:[border-left-style:solid]", "tw:border-l-[color:var(--line)]", "tw:text-[color:#6b819d]", "tw:[&_span]:text-[0.76rem]",
+    "tw:[border-left-style:solid]", "tw:border-l-[color:var(--line)]", "tw:text-[color:#516781]", "tw:[&_span]:text-[0.76rem]",
     "tw:[&_span]:font-[800]", "tw:[&_span]:uppercase", "tw:[&_span]:tracking-[0.06em]", "tw:[&_strong]:text-[color:var(--brand)]",
     "tw:[&_strong]:text-[1.6rem]", "tw:[&_span]:text-[color:var(--brand)]",
   ].join(" "),
@@ -105,7 +105,7 @@ export const viewStyles = {
     "calendar-agenda-day", "tw:grid", "tw:gap-y-[4px]", "tw:gap-x-[4px]",
     "tw:[justify-items:center]", "tw:min-h-[86px]", "tw:pt-[18px]", "tw:pr-[10px]",
     "tw:pb-[18px]", "tw:pl-[10px]", "tw:border-l-[length:1px]", "tw:[border-left-style:solid]",
-    "tw:border-l-[color:var(--line)]", "tw:text-[color:#6b819d]", "tw:[&_span]:text-[0.76rem]", "tw:[&_span]:font-[800]",
+    "tw:border-l-[color:var(--line)]", "tw:text-[color:#516781]", "tw:[&_span]:text-[0.76rem]", "tw:[&_span]:font-[800]",
     "tw:[&_span]:uppercase", "tw:[&_span]:tracking-[0.06em]", "tw:[&_strong]:text-[color:#56718f]", "tw:[&_strong]:text-[1.6rem]",
   ].join(" "),
   "calendar_agenda_grid": [
@@ -136,7 +136,7 @@ export const viewStyles = {
     "tw:pb-[12px]", "tw:pl-[12px]", "tw:rounded-[0_14px_14px_0]", "tw:text-left",
     "tw:cursor-pointer", "tw:[text-decoration:none]", "tw:[box-shadow:0_10px_22px_rgba(35,_50,_70,_0.08)]", "tw:[&_strong]:text-[color:inherit]",
     "tw:[&_strong]:text-[0.9rem]", "tw:[&_strong]:leading-[1.2]", "tw:[&_span]:text-[color:inherit]", "tw:[&_span]:text-[0.78rem]",
-    "tw:[&_span]:font-[800]", "tw:[&.calendar-time-event-lessons]:bg-[color:rgba(43,_122,_95,_0.12)]", "tw:[&.calendar-time-event-lessons]:[background-image:none]", "tw:[&.calendar-time-event-lessons]:text-[color:#2b7a5f]",
+    "tw:[&_span]:font-[800]", "tw:[&.calendar-time-event-lessons]:bg-[color:rgba(43,_122,_95,_0.12)]", "tw:[&.calendar-time-event-lessons]:[background-image:none]", "tw:[&.calendar-time-event-lessons]:text-[color:#20684f]",
     "tw:[&.calendar-time-event-tournaments]:bg-[color:rgba(147,_100,_12,_0.14)]", "tw:[&.calendar-time-event-tournaments]:[background-image:none]", "tw:[&.calendar-time-event-tournaments]:text-[color:#93640c]", "tw:[&.calendar-time-event-matches]:bg-[color:rgba(18,_93,_156,_0.12)]",
     "tw:[&.calendar-time-event-matches]:[background-image:none]", "tw:[&.calendar-time-event-matches]:text-[color:#125d9c]", "tw:[&.calendar-time-event-tv]:bg-[color:rgba(110,_76,_181,_0.13)]", "tw:[&.calendar-time-event-tv]:[background-image:none]",
     "tw:[&.calendar-time-event-tv]:text-[color:#6e4cb5]",

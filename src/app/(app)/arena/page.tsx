@@ -1,3 +1,4 @@
+import { arenaDatabase } from "@/lib/arena-database";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
 import Image from "next/image";
@@ -37,6 +38,7 @@ function canManageUsers(auth: { arenaRole: string | null; systemRole: string }) 
 export default async function ArenaPage(props: ArenaPageProps) {
   const searchParams = await props.searchParams;
   const auth = await requireModuleView("arena");
+  const prisma = arenaDatabase(auth.arenaId);
   const activeSection = resolveSection(searchParams?.section);
   const userManagementAllowed = canManageUsers(auth);
   const canViewSettings = canPerformPermission("arena:settings", auth.arenaRole, auth.systemRole, auth.viewPermissions);

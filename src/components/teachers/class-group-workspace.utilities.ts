@@ -54,7 +54,7 @@ export const viewStyles = {
   "class_group_schedules_title": [
     "class-group-schedules-title", "tw:flex", "tw:items-baseline", "tw:justify-between",
     "tw:gap-y-[12px]", "tw:gap-x-[12px]", "tw:text-[color:#143f6d]", "tw:text-[.82rem]",
-    "tw:[&_span]:text-[color:#6b849a]", "tw:[&_span]:text-[.71rem]",
+    "tw:[&_span]:text-[color:#526c82]", "tw:[&_span]:text-[.71rem]",
   ].join(" "),
   "class_group_schedule_row": [
     "class-group-schedule-row", "tw:[&_>_label]:grid", "tw:[&_>_label]:gap-y-[5px]", "tw:[&_>_label]:gap-x-[5px]",
@@ -79,7 +79,7 @@ export const viewStyles = {
     "tw:[&_article]:border-b-[color:#dce7f2]", "tw:[&_article]:border-l-[length:1px]", "tw:[&_article]:[border-left-style:solid]", "tw:[&_article]:border-l-[color:#dce7f2]",
     "tw:[&_article]:rounded-[12px]", "tw:[&_article]:bg-[color:#fff]", "tw:[&_article]:[background-image:none]", "tw:[&_article_header_div]:grid",
     "tw:[&_article_header_div]:gap-y-[2px]", "tw:[&_article_header_div]:gap-x-[2px]", "tw:[&_article_strong]:text-[color:#123b70]", "tw:[&_article_strong]:text-[.9rem]",
-    "tw:[&_article_header_span]:text-[color:#698196]", "tw:[&_article_header_span]:text-[.76rem]", "tw:[&_article_>_div]:grid", "tw:[&_article_>_div]:gap-y-[5px]",
+    "tw:[&_article_header_span]:text-[color:#526c82]", "tw:[&_article_header_span]:text-[.76rem]", "tw:[&_article_>_div]:grid", "tw:[&_article_>_div]:gap-y-[5px]",
     "tw:[&_article_>_div]:gap-x-[5px]", "tw:[&_article_>_div_span]:text-[color:#45647f]", "tw:[&_article_>_div_span]:text-[.76rem]", "tw:[&_article_>_div_span]:leading-[1.35]",
   ].join(" "),
   "button_button_primary_button_small": sharedUtilities.buttonButtonPrimaryButtonSmall,

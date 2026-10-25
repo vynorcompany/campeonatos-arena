@@ -41,6 +41,8 @@ type NavGroup = {
 type NavLinksProps = {
   canManageUsers: boolean;
   canManageFinancialSettings: boolean;
+  canManageCourtSettings?: boolean;
+  canManagePrinterSettings?: boolean;
   financeView: { receivable: boolean; payable: boolean; reports: boolean };
   canEditStock: boolean;
   visibleModules: string[];
@@ -177,7 +179,7 @@ function NavIcon({ name }: { name: IconName }) {
   return <svg {...common} className={cx(name === "whatsapp" ? "nav-svg-whatsapp" : undefined)}>{paths[name]}</svg>;
 }
 
-export function NavLinks({ canManageUsers, canManageFinancialSettings, financeView, canEditStock, visibleModules, whatsappUnreadCount, pollingScope = "" }: NavLinksProps) {
+export function NavLinks({ canManageUsers, canManageFinancialSettings, canManageCourtSettings = false, canManagePrinterSettings = false, financeView, canEditStock, visibleModules, whatsappUnreadCount, pollingScope = "" }: NavLinksProps) {
   const pathname = usePathname() ?? "";
   const openItemsStorageKey = "arena:sidebar-open-items";
   const canSee = (module: string) => visibleModules.includes(module);
@@ -261,6 +263,24 @@ export function NavLinks({ canManageUsers, canManageFinancialSettings, financeVi
               { href: "/pdv/estoque", label: "Estoque" },
               { href: "/pdv/balanco", label: "Criar balanço" }
             ] },
+
+          ]
+        },
+        {
+          href: "/relatorios",
+          label: "Relatórios",
+          icon: "building",
+          children: reportLinks.map(({ href, label }) => ({ href, label }))
+        },
+        ...(canManageUsers ? [{ href: "/auditoria", label: "Auditoria", icon: "support" as IconName }] : [])
+      ]
+    },
+    { title: "Configurações", links: [{ href: "/configuracoes", label: "Configurações", icon: "building", children: [
+      { href: "/configuracoes/dispositivos", label: "Dispositivos conectados" },
+      ...(canManagePrinterSettings ? [{ href: "/configuracoes/impressora", label: "Impressora" }, { href: "/configuracoes/politicas", label: "Cancelamento e reembolso" }, { href: "/configuracoes/privacidade", label: "Solicitações de privacidade" }] : []),
+      { href: "/arena", label: "Dados da Arena" },
+      { href: "/arena?section=portal", label: "Portal do Atleta" },
+      ...(canManageCourtSettings ? [{ href: "/configuracoes/checkin", label: "Check-in e QR Code" }, { href: "/agenda/configuracao", label: "Quadras e horários" }] : []),
             {
               href: "/financeiro/configuracoes",
               label: "Configurações Financeiras",
@@ -277,17 +297,7 @@ export function NavLinks({ canManageUsers, canManageFinancialSettings, financeVi
                 ] }
               ]
             }
-          ]
-        },
-        {
-          href: "/relatorios",
-          label: "Relatórios",
-          icon: "building",
-          children: reportLinks.map(({ href, label }) => ({ href, label }))
-        },
-        ...(canManageUsers ? [{ href: "/auditoria", label: "Auditoria", icon: "support" as IconName }] : [])
-      ]
-    }
+    ] }] }
   ];
   const moduleByHref: Record<string, string> = {
     "/painel": "dashboard",
@@ -339,6 +349,12 @@ export function NavLinks({ canManageUsers, canManageFinancialSettings, financeVi
     "/financeiro/configuracoes/pagamentos-online": "finance",
     "/relatorios": "finance",
     ...Object.fromEntries(reportLinks.map(({ href }) => [href, "finance"])),
+    "/configuracoes": "arena",
+    "/configuracoes/checkin": "calendar",
+    "/configuracoes/impressora": "arena",
+    "/configuracoes/politicas": "arena",
+    "/configuracoes/privacidade": "arena",
+    "/configuracoes/dispositivos": "dashboard",
     "/arena": "arena",
     "/arena/regulamento": "arena",
     "/suporte": "support",
@@ -346,6 +362,7 @@ export function NavLinks({ canManageUsers, canManageFinancialSettings, financeVi
     "/minha-conta": "dashboard"
   };
   const filterNavItem = (item: NavItem): NavItem | null => {
+    if (item.href === "/configuracoes/dispositivos") return item;
     if ((!canManageFinancialSettings && item.href === "/financeiro/configuracoes") || (!canEditStock && item.href === "/pdv/balanco")) return null;
     if (item.href === "/financeiro/folha" || item.href === "/financeiro/contas-a-pagar") {
       if (!financeView.payable) return null;

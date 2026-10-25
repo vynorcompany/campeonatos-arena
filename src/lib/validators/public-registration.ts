@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 const cpfSchema = z.string().trim().regex(/^\d{11}$/, "CPF deve ter 11 dígitos numéricos.");
+const optionalBirthDateSchema = z.preprocess(value => value === "" || value == null ? null : value, z.coerce.date().nullable());
 const fullNameSchema = z.string().trim().min(3, "Informe nome e sobrenome.").refine((name) => name.split(/\s+/).filter(Boolean).length >= 2, "Informe nome e sobrenome.");
 
 export const createPublicRegistrationSchema = z.object({
@@ -11,11 +12,11 @@ export const createPublicRegistrationSchema = z.object({
   leadEmail: z.string().trim().email("Informe um e-mail válido do atleta."),
   leadPhone: z.string().trim().min(8, "Informe o telefone do atleta."),
   leadCpf: cpfSchema,
-  leadBirthDate: z.coerce.date(),
+  leadBirthDate: optionalBirthDateSchema,
   partnerName: fullNameSchema,
   partnerPhone: z.string().trim().min(8, "Informe o telefone da dupla."),
   partnerCpf: cpfSchema,
-  partnerBirthDate: z.coerce.date()
+  partnerBirthDate: optionalBirthDateSchema
 }).refine((registration) => registration.leadCpf !== registration.partnerCpf, {
   message: "Os dois atletas da dupla devem ter CPFs diferentes.",
   path: ["partnerCpf"]
@@ -37,11 +38,11 @@ export const updateManualTournamentRegistrationSchema = z.object({
   leadName: fullNameSchema,
   leadPhone: z.string().trim().min(8, "Informe o telefone do atleta."),
   leadCpf: cpfSchema,
-  leadBirthDate: z.coerce.date(),
+  leadBirthDate: optionalBirthDateSchema,
   partnerName: fullNameSchema,
   partnerPhone: z.string().trim().min(8, "Informe o telefone da dupla."),
   partnerCpf: cpfSchema,
-  partnerBirthDate: z.coerce.date(),
+  partnerBirthDate: optionalBirthDateSchema,
   amountReais: z.union([z.string(), z.number()]),
   paymentStatus: z.enum(["PENDING", "PAID"]).default("PENDING")
 });

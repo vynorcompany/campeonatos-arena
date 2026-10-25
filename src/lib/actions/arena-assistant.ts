@@ -3,8 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/guards";
 import { parseArenaAssistantCommand } from "@/lib/assistant/commands";
-import { prisma } from "@/lib/prisma";
+import { arenaDatabase } from "@/lib/arena-database";
+import { canPerformPermission } from "@/lib/permissions";
 import { withArenaTransaction } from "@/lib/rls";
+import { arenaToday } from "@/lib/calendar/arena-wall-clock";
 
 type AssistantReply = {
   ok: boolean;
@@ -13,15 +15,15 @@ type AssistantReply = {
 };
 
 async function getConversation(arenaId: string, userId: string) {
-  return prisma.assistantConversation.upsert({
+  return arenaDatabase(arenaId).assistantConversation.upsert({
     where: { arenaId_userId: { arenaId, userId } },
     update: {},
     create: { arenaId, userId, title: "Assistente da Arena" }
   });
 }
 
-async function addAssistantMessage(conversationId: string, content: string) {
-  const message = await prisma.assistantMessage.create({
+async function addAssistantMessage(arenaId: string, conversationId: string, content: string) {
+  const message = await arenaDatabase(arenaId).assistantMessage.create({
     data: { conversationId, role: "ASSISTANT", content }
   });
 
@@ -30,15 +32,18 @@ async function addAssistantMessage(conversationId: string, content: string) {
 
 export async function runArenaAssistantCommandAction(input: string): Promise<AssistantReply> {
   const auth = await requireRole("ADMIN");
+  if (typeof input !== "string" || input.length > 2000) throw new Error("Use uma solicitação de até 2.000 caracteres.");
   const content = input.trim();
   if (!content) throw new Error("Digite uma solicitação para o assistente.");
 
+  const command = parseArenaAssistantCommand(content);
+  if (command && !canPerformPermission("finance:receivable:create", auth.arenaRole, auth.systemRole, auth.editPermissions)) throw new Error("Sem permissão para criar contas a receber.");
+  const prisma = arenaDatabase(auth.arenaId);
   const conversation = await getConversation(auth.arenaId, auth.userId);
   await prisma.assistantMessage.create({
     data: { conversationId: conversation.id, role: "USER", content }
   });
 
-  const command = parseArenaAssistantCommand(content);
   if (!command) {
     await prisma.assistantCommand.create({
       data: {
@@ -52,7 +57,7 @@ export async function runArenaAssistantCommandAction(input: string): Promise<Ass
       }
     });
 
-    return addAssistantMessage(conversation.id, "Ainda não consigo executar esse comando. Nesta etapa, posso criar faturas a receber para clientes já cadastrados.");
+    return addAssistantMessage(auth.arenaId, conversation.id, "Ainda não consigo executar esse comando. Nesta etapa, posso criar faturas a receber para clientes já cadastrados.");
   }
 
   const audit = await prisma.assistantCommand.create({
@@ -81,37 +86,33 @@ export async function runArenaAssistantCommandAction(input: string): Promise<Ass
       ? `Encontrei mais de um cliente chamado ${command.clientName}. Informe o nome completo para eu criar a fatura com segurança.`
       : `Não encontrei um cliente ativo chamado ${command.clientName}. Cadastre ou confirme o nome antes de criar a fatura.`;
     await prisma.assistantCommand.update({ where: { id: audit.id }, data: { status: "NEEDS_INPUT", output: reply } });
-    return addAssistantMessage(conversation.id, reply);
+    return addAssistantMessage(auth.arenaId, conversation.id, reply);
   }
 
   const client = clients[0];
-  const dueDate = new Date();
-  dueDate.setHours(0, 0, 0, 0);
-  const entry = await withArenaTransaction(auth.arenaId, (tx) => tx.financialEntry.create({
-    data: {
-      arenaId: auth.arenaId,
-      type: "REVENUE",
-      category: "Faturas",
-      description: `Fatura criada pelo Assistente - ${client.name}`,
-      counterpartyName: client.name,
-      amountCents: command.amountCents,
-      status: "PENDING",
-      dueDate,
-      notes: "Lançamento criado pelo Assistente da Arena.",
-      source: "ASSISTANT",
-      externalReference: audit.id
+  const dueDate = arenaToday();
+  const result = await withArenaTransaction(auth.arenaId, async tx => {
+    const current = await tx.$queryRaw<Array<{ id: string }>>`SELECT id FROM "Player" WHERE id = ${client.id} AND "arenaId" = ${auth.arenaId} AND active = true FOR UPDATE`;
+    if (!current.length) {
+      const reply = "O cadastro do cliente foi alterado. Confirme o atendimento antes de criar a fatura.";
+      await tx.assistantCommand.update({ where: { id: audit.id }, data: { status: "NEEDS_INPUT", output: reply } });
+      const message = await tx.assistantMessage.create({ data: { conversationId: conversation.id, role: "ASSISTANT", content: reply } });
+      return { ok: false, message: reply, createdAt: message.createdAt.toISOString() };
     }
-  }));
-  const reply = `Fatura de R$ ${(command.amountCents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} criada para ${client.name}, com vencimento hoje. Ela está em aberto no Contas a Receber.`;
-
-  await prisma.assistantCommand.update({
-    where: { id: audit.id },
-    data: { status: "EXECUTED", output: reply, targetModule: "FINANCE", targetId: entry.id, executedAt: new Date() }
+    const entry = await tx.financialEntry.create({ data: {
+      arenaId: auth.arenaId, playerId: client.id, type: "REVENUE", category: "Faturas",
+      description: `Fatura criada pelo Assistente - ${client.name}`, counterpartyName: client.name,
+      amountCents: command.amountCents, status: "PENDING", dueDate,
+      notes: "Lançamento criado pelo Assistente da Arena.", source: "ASSISTANT", externalReference: audit.id,
+    } });
+    const reply = `Fatura de R$ ${(command.amountCents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} criada para ${client.name}, com vencimento hoje. Ela está em aberto no Contas a Receber.`;
+    await tx.assistantCommand.update({ where: { id: audit.id }, data: { status: "EXECUTED", output: reply, targetModule: "FINANCE", targetId: entry.id, executedAt: new Date() } });
+    const message = await tx.assistantMessage.create({ data: { conversationId: conversation.id, role: "ASSISTANT", content: reply } });
+    return { ok: true, message: reply, createdAt: message.createdAt.toISOString() };
   });
-  const message = await prisma.assistantMessage.create({ data: { conversationId: conversation.id, role: "ASSISTANT", content: reply } });
 
   revalidatePath("/assistente");
   revalidatePath("/financeiro/contas-a-receber");
   revalidatePath("/painel");
-  return { ok: true, message: reply, createdAt: message.createdAt.toISOString() };
+  return result;
 }

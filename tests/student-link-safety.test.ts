@@ -24,6 +24,7 @@ function createStudentActionForTest(existingStudent: Student | null, linkedPlaye
       if (name === "@/lib/auth/guards") return { requireModuleEdit: async () => ({ arenaId: "arena-a" }) };
       if (name === "@/lib/academy/action-schemas") return { studentSchema: { safeParse: () => ({ success: true, data: { playerId: "new-player", name: "Nome repetido", phone: "", email: "", remainingClasses: 0, notes: "" } }) } };
       if (name === "@/lib/academy/revalidation") return { refreshAcademyRoutes: () => undefined };
+      if (name === "@/lib/arena-database") return { arenaDatabase: () => prisma };
       if (name === "@/lib/prisma") return { prisma };
       if (name === "@/lib/rls") return { withArenaTransaction: async (_arenaId: string, callback: (tx: typeof prisma) => Promise<unknown>) => callback(prisma) };
       return {};

@@ -1,3 +1,4 @@
+import { portalCheckoutPolicy } from "../src/lib/payments/portal-checkout-policy";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -10,12 +11,14 @@ import { Prisma, PrismaClient } from "@prisma/client";
 const require = createRequire(import.meta.url);
 const source = readFileSync(new URL("../src/lib/actions/public-finance-payment.ts", import.meta.url), "utf8");
 
-function paymentFlow(initialPending: { playerId: string; checkoutUrl: string; amountCents: number; items: Array<{ financialEntryId: string; amountCents: number }>; createdAt?: Date; mercadoPagoPaymentId?: string } | null = null) {
-  const checkouts: Array<{ id: string; playerId: string; status: string; amountCents: number; checkoutUrl: string; mercadoPagoPaymentId: string; createdAt: Date; items: Array<{ financialEntryId: string; amountCents: number }> }> = initialPending
+function paymentFlow(initialPending: { playerId: string; checkoutUrl: string; amountCents: number; items: Array<{ financialEntryId: string; amountCents: number }>; createdAt?: Date; mercadoPagoPaymentId?: string; expiresAt?: Date | null } | null = null, settings: Parameters<typeof portalCheckoutPolicy>[0] = null) {
+  const checkouts: Array<{ id: string; playerId: string; status: string; amountCents: number; checkoutUrl: string; mercadoPagoPaymentId: string; expiresAt?: Date | null; createdAt: Date; items: Array<{ financialEntryId: string; amountCents: number }> }> = initialPending
     ? [{ id: "checkout-existing", status: "PENDING", createdAt: new Date(), mercadoPagoPaymentId: "", ...initialPending }] : [];
   const locks: string[] = [];
   let providerCalls = 0;
+  const providerInputs: Record<string, any>[] = [];
   const tx = {
+    arenaOperationalSettings: { findUnique: async () => settings },
     $queryRaw: async (_sql: TemplateStringsArray, id: string) => { locks.push(id); return [{ id }]; },
     financialEntry: { findMany: async () => [{ id: "entry-a", arenaId: "arena-a", playerId: "player-a", type: "REVENUE", status: "PENDING", amountCents: 5000, settlements: [], notes: "", description: "Aula" }] },
     player: { findFirst: async () => ({ email: "atleta@example.test" }) },
@@ -25,8 +28,8 @@ function paymentFlow(initialPending: { playerId: string; checkoutUrl: string; am
         && (!where.createdAt || checkout.createdAt < where.createdAt.lt)
         && (where.checkoutUrl === undefined || checkout.checkoutUrl === where.checkoutUrl)
         && (where.mercadoPagoPaymentId === undefined || checkout.mercadoPagoPaymentId === where.mercadoPagoPaymentId)),
-      create: async ({ data }: { data: { playerId: string; amountCents: number; items: { create: Array<{ financialEntryId: string; amountCents: number }> } } }) => {
-        const checkout = { id: "checkout-new", playerId: data.playerId, status: "PENDING", amountCents: data.amountCents, checkoutUrl: "", mercadoPagoPaymentId: "", createdAt: new Date(), items: data.items.create };
+      create: async ({ data }: { data: { playerId: string; amountCents: number; expiresAt: Date | null; items: { create: Array<{ financialEntryId: string; amountCents: number }> } } }) => {
+        const checkout = { expiresAt: data.expiresAt, id: "checkout-new", playerId: data.playerId, status: "PENDING", amountCents: data.amountCents, checkoutUrl: "", mercadoPagoPaymentId: "", createdAt: new Date(), items: data.items.create };
         checkouts.push(checkout);
         return checkout;
       },
@@ -42,11 +45,13 @@ function paymentFlow(initialPending: { playerId: string; checkoutUrl: string; am
   };
   const exports: Record<string, (data: FormData) => Promise<{ checkoutUrl: string }>> = {};
   const mocks: Record<string, unknown> = {
+      "@/lib/payments/portal-checkout-expiry": { expirePortalCheckoutsForArena: async () => ({ expired: 0, review: 0, failed: 0 }) },
     "next/cache": { revalidatePath: () => {} },
     zod: require("zod"),
     "@/lib/auth/player-session": { requirePublicPlayerAuth: async () => ({ arenaId: "arena-a", playerId: "player-a" }) },
     "@/lib/finance/ledger": { getFinancialEntryBalance: (amountCents: number) => ({ outstandingCents: amountCents }) },
-    "@/lib/payments/mercado-pago": { createHostedCheckout: async () => { providerCalls += 1; return { checkoutUrl: "https://checkout.example.test/a", paymentId: "preference-a" }; } },
+    "@/lib/payments/portal-checkout-policy": { portalCheckoutPolicy },
+    "@/lib/payments/mercado-pago": { createHostedCheckout: async (input: Record<string, any>) => { providerInputs.push(input); providerCalls += 1; return { checkoutUrl: "https://checkout.example.test/a", paymentId: "preference-a" }; } },
     "@/lib/rls": { withArenaTransaction: async (_arenaId: string, callback: (client: typeof tx) => unknown) => callback(tx) },
     "@/lib/env": { env: { appUrl: "https://arena.example.test" } },
   };
@@ -56,7 +61,7 @@ function paymentFlow(initialPending: { playerId: string; checkoutUrl: string; am
   });
   const form = new FormData();
   form.set("arenaSlug", "arena-a"); form.append("entryId", "entry-a");
-  return { action: () => exports.startPublicFinancialEntryPaymentAction(form), checkouts, locks, get providerCalls() { return providerCalls; } };
+  return { action: () => exports.startPublicFinancialEntryPaymentAction(form), form, providerInputs, checkouts, locks, get providerCalls() { return providerCalls; } };
 }
 
 test("repetir pagamento do mesmo débito reutiliza o link sem criar outro checkout", async () => {
@@ -91,7 +96,7 @@ test("tentativa sem link abandonada há mais de dez minutos é liberada antes de
   assert.deepEqual(flow.locks, ["checkout-existing", "entry-a"]);
 });
 
-test("checkout com link publicado não é liberado automaticamente mesmo se antigo", async () => {
+test("checkout sem prazo configurado mantém o link publicado mesmo se antigo", async () => {
   const flow = paymentFlow({ playerId: "player-a", checkoutUrl: "https://checkout.example.test/old", amountCents: 5000, items: [{ financialEntryId: "entry-a", amountCents: 5000 }], createdAt: new Date(Date.now() - 60 * 60_000) });
   const result = await flow.action();
   assert.equal(result.checkoutUrl, "https://checkout.example.test/old");
@@ -121,10 +126,12 @@ test("atleta da arena A não inicia checkout de lançamento da arena B", { skip:
     await admin.financialEntry.create({ data: { id: entryId, arenaId: arenaB.id, type: "REVENUE", category: "Teste descartável", description: "Outro tenant", amountCents: 5000 } });
     const exports: Record<string, (data: FormData) => Promise<{ checkoutUrl: string }>> = {};
     const mocks: Record<string, unknown> = {
+      "@/lib/payments/portal-checkout-expiry": { expirePortalCheckoutsForArena: async () => ({ expired: 0, review: 0, failed: 0 }) },
       "next/cache": { revalidatePath: () => {} }, zod: require("zod"),
       "@/lib/auth/player-session": { requirePublicPlayerAuth: async () => ({ arenaId: arenaA.id, playerId: "goal-athlete-a" }) },
       "@/lib/finance/ledger": { getFinancialEntryBalance: (amountCents: number) => ({ outstandingCents: amountCents }) },
-      "@/lib/payments/mercado-pago": { createHostedCheckout: async () => { providerCalls += 1; throw new Error("O provedor não pode ser chamado para outro tenant."); } },
+      "@/lib/payments/portal-checkout-policy": { portalCheckoutPolicy },
+    "@/lib/payments/mercado-pago": { createHostedCheckout: async () => { providerCalls += 1; throw new Error("O provedor não pode ser chamado para outro tenant."); } },
       "@/lib/rls": { withArenaTransaction: (arenaId: string, operation: (tx: Prisma.TransactionClient) => Promise<unknown>) => runtime.$transaction(async (tx) => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`; return operation(tx); }) },
       "@/lib/env": { env: { appUrl: "https://arena.example.test" } },
     };
@@ -162,10 +169,12 @@ test("duas ações concorrentes criam somente um checkout no PostgreSQL", { skip
     await admin.financialEntry.create({ data: { id: entryId, arenaId: arena.id, playerId: player.id, type: "REVENUE", category: "Teste descartável", description: "Checkout concorrente descartável", amountCents: 5000 } });
     const exports: Record<string, (data: FormData) => Promise<{ checkoutUrl: string }>> = {};
     const mocks: Record<string, unknown> = {
+      "@/lib/payments/portal-checkout-expiry": { expirePortalCheckoutsForArena: async () => ({ expired: 0, review: 0, failed: 0 }) },
       "next/cache": { revalidatePath: () => {} }, zod: require("zod"),
       "@/lib/auth/player-session": { requirePublicPlayerAuth: async () => ({ arenaId: arena.id, playerId: player.id }) },
       "@/lib/finance/ledger": { getFinancialEntryBalance: (amountCents: number) => ({ outstandingCents: amountCents }) },
-      "@/lib/payments/mercado-pago": { createHostedCheckout: async () => { providerCalls += 1; providerStarted?.(); await released; return { checkoutUrl: "https://checkout.example.test/concurrent", paymentId: "preference-concurrent" }; } },
+      "@/lib/payments/portal-checkout-policy": { portalCheckoutPolicy },
+    "@/lib/payments/mercado-pago": { createHostedCheckout: async () => { providerCalls += 1; providerStarted?.(); await released; return { checkoutUrl: "https://checkout.example.test/concurrent", paymentId: "preference-concurrent" }; } },
       "@/lib/rls": { withArenaTransaction: (arenaId: string, operation: (tx: Prisma.TransactionClient) => Promise<unknown>) => runtime.$transaction(async (tx) => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`; return operation(tx); }) },
       "@/lib/env": { env: { appUrl: "https://arena.example.test" } },
     };
@@ -197,4 +206,31 @@ test("duas ações concorrentes criam somente um checkout no PostgreSQL", { skip
     await runtime.$disconnect();
     await admin.$disconnect();
   }
+});
+
+test("pagamento desativado bloqueia o servidor antes de gerar ou consultar cobranças", async () => {
+  const flow = paymentFlow(null, { portalPaymentsConfigured: true, portalPaymentEnabled: false, portalPixEnabled: true, portalCreditCardEnabled: false, checkoutExpiryMinutes: 0 });
+  await assert.rejects(flow.action(), /desativou pagamentos/);
+  assert.equal(flow.providerCalls, 0); assert.equal(flow.checkouts.length, 0); assert.equal(flow.locks.length, 0);
+});
+test("novos checkouts persistem o mesmo vencimento enviado ao provedor", async () => {
+  const flow = paymentFlow(null, { portalPaymentsConfigured: true, portalPaymentEnabled: true, portalPixEnabled: true, portalCreditCardEnabled: false, checkoutExpiryMinutes: 15 });
+  await flow.action();
+  const request = flow.providerInputs[0];
+  assert.equal(request.expiresAt.getTime() - request.validFrom.getTime(), 15 * 60_000);
+  assert.equal(request.expiresAt.getTime(), flow.checkouts[0].expiresAt?.getTime());
+  assert.deepEqual({ ...request.paymentTypes }, { pix: true, creditCard: false });
+});
+test("link expirado permanece bloqueado para evitar duplicidade com pagamento em processamento", async () => {
+  const flow = paymentFlow({ playerId: "player-a", checkoutUrl: "https://checkout.example.test/expired", amountCents: 5000, items: [{ financialEntryId: "entry-a", amountCents: 5000 }], expiresAt: new Date(Date.now() - 1000) });
+  await assert.rejects(flow.action(), /expirou/);
+  assert.equal(flow.checkouts.length, 1); assert.equal(flow.checkouts[0].status, "PENDING"); assert.equal(flow.providerCalls, 0);
+});
+
+test("lotes excessivos e identificadores inválidos são rejeitados antes de consultar contas ou chamar o provedor", async () => {
+  const oversized = paymentFlow(); oversized.form.append("entryId", "x".repeat(101));
+  await assert.rejects(oversized.action(), /Lançamento inválido/);
+  const excessive = paymentFlow(); for (let index = 0; index < 50; index++) excessive.form.append("entryId", `entry-extra-${index}`);
+  await assert.rejects(excessive.action(), /até 50/);
+  for (const flow of [oversized, excessive]) { assert.equal(flow.providerCalls, 0); assert.equal(flow.checkouts.length, 0); assert.equal(flow.locks.length, 0); }
 });

@@ -16,7 +16,7 @@ test("Portal do Atleta oferece Duplas e consulta categorias de Liga", () => {
   assert.match(portal, /leagueCategories/);
   assert.match(portal, /portal\.leagueCategories\.length\s*\?\s*\(\s*<form/);
   assert.match(portal, /Nenhuma categoria de liga ativa\./);
-  assert.match(portal, /tw:viewport-700:dark:text-\[#a4c8b9\]!/);
+  assert.match(portal, /tw:dark:text-\[#a4c8b9\]!/);
   assert.match(portal, /selectedLeaguePairs/);
   assert.match(portal, /leagueResults/);
   assert.match(portal, /LeagueMatchScheduleModal/);

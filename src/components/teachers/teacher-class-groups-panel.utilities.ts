@@ -72,7 +72,7 @@ export const viewStyles = {
     "tw:[background-image:none]", "tw:[grid-column:1_/_-1]", "tw:grid", "tw:gap-y-[9px]",
     "tw:gap-x-[9px]", "tw:[&_>_div:first-child]:flex", "tw:[&_>_div:first-child]:items-baseline", "tw:[&_>_div:first-child]:justify-between",
     "tw:[&_>_div:first-child]:gap-y-[10px]", "tw:[&_>_div:first-child]:gap-x-[10px]", "tw:[&_>_div:first-child]:text-[color:#173f6d]", "tw:[&_>_div:first-child]:text-[.82rem]",
-    "tw:[&_>_div:first-child_span]:text-[color:#6b849a]", "tw:[&_>_div:first-child_span]:text-[.72rem]",
+    "tw:[&_>_div:first-child_span]:text-[color:#526c82]", "tw:[&_>_div:first-child_span]:text-[.72rem]",
   ].join(" "),
   "teacher_group_schedule_row": [
     "teacher-group-schedule-row", "tw:[&_>_label]:grid", "tw:[&_>_label]:gap-y-[5px]", "tw:[&_>_label]:gap-x-[5px]",

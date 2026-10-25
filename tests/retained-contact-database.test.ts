@@ -1,0 +1,84 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { randomBytes, randomUUID } from "node:crypto";
+import { PrismaClient, type Prisma } from "@prisma/client";
+import { protectedContactHash, retainContactForObligations } from "../src/lib/legal/retained-contact";
+import { eraseArenaMembership } from "../src/lib/legal/membership-erasure";
+import { releaseRetainedContact } from "../src/lib/legal/contact-review";
+import { getBookingDelinquency } from "../src/lib/calendar/booking-delinquency";
+import { assertComandaMayOpen } from "../src/lib/comandas/operational-policy";
+
+const url = process.env.ARENA_GOAL_TEST_DATABASE_URL ?? "";
+const isolated = /^postgresql:\/\/[^@]+@127\.0\.0\.1:55433\/arena_goal\?/.test(url);
+test("contact hashes normalize phones and separate arenas and keys", () => {
+  const key = randomBytes(32).toString("hex");
+  assert.equal(protectedContactHash("A", "+55 (11) 98888-7777", key), protectedContactHash("A", "11988887777", key));
+  assert.notEqual(protectedContactHash("A", "11988887777", key), protectedContactHash("B", "11988887777", key));
+  assert.notEqual(protectedContactHash("A", "11988887777", key), protectedContactHash("A", "11988887777", randomBytes(32).toString("hex")));
+  assert.throws(() => protectedContactHash("A", "11988887777", ""), /chave de proteção/);
+});
+
+test("re-registration cannot bypass known overdue balances or inherit another profile's financial history", { skip: !isolated }, async () => {
+  const admin = new PrismaClient({ datasources: { db: { url } } });
+  const runtimeUrl = new URL(url); runtimeUrl.username = "arena_runtime";
+  const runtime = new PrismaClient({ datasources: { db: { url: runtimeUrl.toString() } } });
+  const previous = { key: process.env.PRIVACY_CONTACT_HASH_KEY, payment: process.env.PAYMENT_CONNECTIONS_ENCRYPTION_KEY };
+  process.env.PRIVACY_CONTACT_HASH_KEY = randomBytes(32).toString("hex");
+  const arenas: string[] = []; let identityId: string | undefined;
+  try {
+    for (const label of ["A", "B"]) arenas.push((await admin.arena.create({ data: { name: `Retained contact ${label}`, slug: `retained-${randomUUID()}`, createdById: "goal-test" } })).id);
+    await admin.arenaOperationalSettings.create({ data: { arenaId: arenas[0], blockDelinquentComandas: true, delinquentAfterDays: 3 } });
+    const old = await admin.player.create({ data: { arenaId: arenas[0], name: "Erased customer", phone: "11988887777", bio: "Must disappear" } });
+    const account = await admin.playerAccount.create({ data: { arenaId: arenas[0], playerId: old.id, phone: old.phone, passwordHash: "old-credential" } });
+    const today = new Date("2030-01-20T00:00:00Z");
+    const overdue = await admin.financialEntry.create({ data: { arenaId: arenas[0], playerId: old.id, type: "REVENUE", category: "QA", description: "Retained debt", status: "PARTIAL", dueDate: new Date("2030-01-01T00:00:00Z"), amountCents: 1000, settlements: { create: { arenaId: arenas[0], amountCents: 1050, interestCents: 100, paymentMethod: "PIX" } } } });
+    const future = await admin.financialEntry.create({ data: { arenaId: arenas[0], playerId: old.id, type: "REVENUE", category: "QA", description: "Future obligation", dueDate: new Date("2030-02-01T00:00:00Z"), amountCents: 2000 } });
+    const scoped = <T>(operation: (tx: Prisma.TransactionClient) => Promise<T>, arenaId = arenas[0]) => runtime.$transaction(async tx => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`; return operation(tx); }, { timeout: 30000 });
+    const key = process.env.PRIVACY_CONTACT_HASH_KEY;
+    delete process.env.PRIVACY_CONTACT_HASH_KEY; delete process.env.PAYMENT_CONNECTIONS_ENCRYPTION_KEY;
+    await assert.rejects(scoped(tx => eraseArenaMembership(tx, { arenaId: arenas[0], playerId: old.id, accountId: account.id })), /chave de proteção/);
+    assert.equal((await admin.player.findUniqueOrThrow({ where: { id: old.id } })).bio, "Must disappear");
+    assert.equal(await admin.playerAccount.count({ where: { id: account.id } }), 1);
+    process.env.PRIVACY_CONTACT_HASH_KEY = key;
+    const receipt = await scoped(tx => eraseArenaMembership(tx, { arenaId: arenas[0], playerId: old.id, accountId: account.id }));
+    assert.equal(receipt.contactReferenceRetained, true);
+    const reference = await admin.erasedContactReference.findFirstOrThrow({ where: { arenaId: arenas[0], playerId: old.id } });
+    assert.equal(reference.contactHash.length, 64); assert.equal(reference.contactHash.includes(old.phone), false);
+    assert.deepEqual(await runtime.erasedContactReference.findMany({ where: { arenaId: arenas[0] } }), []);
+    const foreign = await admin.player.create({ data: { arenaId: arenas[1], name: "Foreign customer", phone: old.phone } });
+    await assert.rejects(scoped(tx => tx.erasedContactReference.create({ data: { arenaId: arenas[0], playerId: foreign.id, contactHash: reference.contactHash } })));
+    const fresh = await admin.player.create({ data: { arenaId: arenas[0], name: "Fresh registration", phone: "11900000000" } });
+    const identity = await admin.athleteIdentity.create({ data: { phone: old.phone, passwordHash: "new-credential" } }); identityId = identity.id;
+    await admin.playerAccount.create({ data: { arenaId: arenas[0], playerId: fresh.id, phone: old.phone, identityId, passwordHash: "new-credential" } });
+    const blocked = await scoped(tx => getBookingDelinquency(tx, arenas[0], fresh.id, 3, today));
+    assert.deepEqual(blocked, { blocked: true, requiresReview: true, reviewReference: reference.id, count: 0, outstandingCents: 0 });
+    assert.equal(await admin.financialEntry.count({ where: { playerId: fresh.id } }), 0);
+    await assert.rejects(scoped(tx => assertComandaMayOpen(tx, arenas[0], fresh.id, today)), /revisão da recepção/);
+    assert.deepEqual(await scoped(tx => getBookingDelinquency(tx, arenas[1], foreign.id, 3, today), arenas[1]), { blocked: false, count: 0, outstandingCents: 0 });
+    await admin.financialEntry.update({ where: { id: overdue.id }, data: { status: "PAID" } });
+    assert.deepEqual(await scoped(tx => getBookingDelinquency(tx, arenas[0], fresh.id, 3, today)), { blocked: false, count: 0, outstandingCents: 0 }, "future charges do not block");
+    assert.equal(await admin.erasedContactReference.count({ where: { id: reference.id } }), 1);
+    const later = new Date("2030-02-10T00:00:00Z");
+    assert.equal((await scoped(tx => getBookingDelinquency(tx, arenas[0], fresh.id, 3, later))).requiresReview, true);
+    await admin.financialEntry.update({ where: { id: future.id }, data: { status: "PAID" } });
+    assert.equal((await scoped(tx => getBookingDelinquency(tx, arenas[0], fresh.id, 3, later))).blocked, false);
+    assert.equal(await admin.erasedContactReference.count({ where: { id: reference.id } }), 0, "unneeded reference is removed");
+    await admin.financialEntry.update({ where: { id: overdue.id }, data: { status: "PARTIAL" } });
+    await scoped(tx => retainContactForObligations(tx, arenas[0], old.id, old.phone));
+    const review = await admin.erasedContactReference.findFirstOrThrow({ where: { arenaId: arenas[0] } });
+    const request = { arenaId: arenas[0], referenceId: review.id, userId: "owner", userName: "Owner QA", reason: "Current contact ownership checked; do not transfer old financial history." };
+    assert.equal(await scoped(tx => releaseRetainedContact(tx, { ...request, arenaId: arenas[1] }), arenas[1]), false);
+    assert.equal(await scoped(tx => releaseRetainedContact(tx, request)), true);
+    assert.equal((await admin.financialEntry.findUniqueOrThrow({ where: { id: overdue.id } })).status, "PARTIAL");
+    assert.equal(await admin.auditEvent.count({ where: { arenaId: arenas[0], action: "RETAINED_CONTACT_RELEASED" } }), 1);
+    assert.equal((await scoped(tx => getBookingDelinquency(tx, arenas[0], fresh.id, 3, today))).blocked, false);
+  } finally {
+    if (previous.key === undefined) delete process.env.PRIVACY_CONTACT_HASH_KEY; else process.env.PRIVACY_CONTACT_HASH_KEY = previous.key;
+    if (previous.payment === undefined) delete process.env.PAYMENT_CONNECTIONS_ENCRYPTION_KEY; else process.env.PAYMENT_CONNECTIONS_ENCRYPTION_KEY = previous.payment;
+    await admin.erasedContactReference.deleteMany({ where: { arenaId: { in: arenas } } });
+    await admin.privacyRequest.deleteMany({ where: { arenaId: { in: arenas } } });
+    await admin.arena.deleteMany({ where: { id: { in: arenas } } });
+    if (identityId) await admin.athleteIdentity.deleteMany({ where: { id: identityId } });
+    await runtime.$disconnect(); await admin.$disconnect();
+  }
+});

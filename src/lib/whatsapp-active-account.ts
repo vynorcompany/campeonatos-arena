@@ -1,11 +1,10 @@
 import "server-only";
 
-import { prisma } from "@/lib/prisma";
 import { arenaDatabase } from "@/lib/arena-database";
 import { normalizeWhatsAppAccountJid } from "@/lib/whatsapp-account";
 
 export async function getActiveWhatsAppAccountJid(arenaId: string) {
-  const connection = await prisma.whatsAppConnection.findUnique({
+  const connection = await arenaDatabase(arenaId).whatsAppConnection.findUnique({
     where: { arenaId },
     select: { status: true, connectedPhone: true },
   });

@@ -1,3 +1,4 @@
+import * as operationalPolicy from "../src/lib/comandas/operational-policy";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { randomUUID } from "node:crypto";
@@ -20,7 +21,7 @@ test("abrir comandas da reserva simultaneamente reutiliza uma comanda por atleta
     const occurrence = await admin.scheduleOccurrence.create({ data: { arenaId: arena.id, sourceType: "BOOKING", title: "Reserva de teste", startsAt: new Date(), endsAt: new Date(Date.now() + 3600000), responsiblePlayerId: playerIds[0], participants: { create: playerIds.map(playerId => ({ playerId })) } } }); occurrenceId = occurrence.id;
     const transact = (arenaId: string, run: (tx: Prisma.TransactionClient) => Promise<unknown>) => runtime.$transaction(async tx => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`; return run(tx); });
     const actions: Record<string, (form: FormData) => Promise<{ error?: string; comandaIds?: string[] }>> = {};
-    const mocks: Record<string, unknown> = {
+    const mocks: Record<string, unknown> = { "@/lib/comandas/operational-policy": operationalPolicy,
       zod: { z }, "next/cache": { revalidatePath() {} },
       "@/lib/auth/guards": { requirePermission: async () => ({ arenaId: arena.id, userId: "goal-test", userName: "Operador GOAL" }) },
       "@/lib/rls": { withArenaTransaction: transact },

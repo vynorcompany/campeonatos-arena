@@ -1,3 +1,4 @@
+import { portalExcludedPaymentTypes } from "@/lib/payments/portal-checkout-policy";
 import { env } from "@/lib/env";
 import { decryptConnectionSecrets } from "@/lib/payments/connection-secrets";
 import { withArenaTransaction } from "@/lib/rls";
@@ -48,7 +49,7 @@ async function boletoDescriptionForArena(arenaId: string, description: string) {
   return `${arenaName} — ${itemDescription}`.slice(0, 255);
 }
 
-async function mercadoPagoAccessTokenForArena(arenaId: string) {
+export async function mercadoPagoAccessTokenForArena(arenaId: string) {
   const connection = await withArenaTransaction(arenaId, (tx) =>
     tx.paymentConnection.findUnique({
       where: { arenaId_provider: { arenaId, provider: "MERCADO_PAGO" } },
@@ -185,8 +186,8 @@ export async function createCardCheckout(input: CreateCardCheckoutInput): Promis
   });
 }
 
-export async function createHostedCheckout(input: CreateCardCheckoutInput): Promise<CreatePixPaymentResult> {
-  return createCheckoutPreference(input);
+export async function createHostedCheckout(input: CreateCardCheckoutInput & { paymentTypes?: { pix: boolean; creditCard: boolean } }): Promise<CreatePixPaymentResult> {
+  return createCheckoutPreference(input, input.paymentTypes ? { excluded_payment_types: portalExcludedPaymentTypes(input.paymentTypes) } : undefined);
 }
 
 export async function createBoletoPayment(input: CreateBoletoPaymentInput): Promise<CreatePixPaymentResult> {

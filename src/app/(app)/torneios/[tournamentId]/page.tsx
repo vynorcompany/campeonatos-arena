@@ -10,7 +10,6 @@ import { PublicRegistrationLinkActions } from "@/components/tournaments/public-r
 import { deleteTournamentAction, updateTournamentRegistrationPhaseAction } from "@/lib/actions/tournament";
 import { requireModuleView } from "@/lib/auth/guards";
 import { canPerformPermission } from "@/lib/permissions";
-import { prisma } from "@/lib/prisma";
 import { arenaDatabase } from "@/lib/arena-database";
 
 type TournamentDetailPageProps = {
@@ -53,7 +52,7 @@ export default async function TournamentDetailPage(props: TournamentDetailPagePr
         },
       },
     }),
-    prisma.rankingProfile.findMany({
+    arenaDatabase(auth.arenaId).rankingProfile.findMany({
       where: {
         arenaId: auth.arenaId,
         active: true,

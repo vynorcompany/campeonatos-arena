@@ -1,5 +1,6 @@
 "use server";
 
+import { arenaDatabase } from "@/lib/arena-database";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireModuleEdit } from "@/lib/auth/guards";
@@ -27,6 +28,7 @@ const referenceMonth = (value: Date) => `${value.getFullYear()}-${String(value.g
 
 export async function createStudentAction(formData: FormData) {
   const auth = await requireModuleEdit("students");
+  const prisma = arenaDatabase(auth.arenaId);
   const parsed = studentSchema.safeParse({
     name: formData.get("name"),
     playerId: formData.get("playerId"),
@@ -110,6 +112,7 @@ export async function createStudentAction(formData: FormData) {
 
 export async function addStudentCreditsAction(formData: FormData) {
   const auth = await requireModuleEdit("students");
+  const prisma = arenaDatabase(auth.arenaId);
   const studentId = String(formData.get("studentId") ?? "");
   const quantity = z.coerce
     .number()
@@ -142,6 +145,7 @@ export async function addStudentCreditsAction(formData: FormData) {
 
 export async function updateStudentAction(formData: FormData) {
   const auth = await requireModuleEdit("students");
+  const prisma = arenaDatabase(auth.arenaId);
   const studentId = String(formData.get("studentId") ?? "");
   const parsed = studentSchema.safeParse({
     name: formData.get("name"),
@@ -203,6 +207,7 @@ export async function updateStudentAction(formData: FormData) {
 
 export async function deleteStudentAction(formData: FormData) {
   const auth = await requireModuleEdit("students");
+  const prisma = arenaDatabase(auth.arenaId);
   const studentId = String(formData.get("studentId") ?? "");
 
   const deleted = await prisma.student.deleteMany({
@@ -221,6 +226,7 @@ export async function deleteStudentAction(formData: FormData) {
 
 export async function createTeacherAction(formData: FormData) {
   const auth = await requireModuleEdit("teachers");
+  const prisma = arenaDatabase(auth.arenaId);
   const playerId = String(formData.get("playerId") ?? "").trim();
   const client = playerId
     ? await withArenaTransaction(auth.arenaId, (tx) => tx.player.findFirst({
@@ -265,6 +271,7 @@ export async function createTeacherAction(formData: FormData) {
 
 export async function archiveTeacherAction(formData: FormData) {
   const auth = await requireModuleEdit("teachers");
+  const prisma = arenaDatabase(auth.arenaId);
   const teacherId = String(formData.get("teacherId") ?? "");
   const archived = await prisma.teacher.updateMany({
     where: { id: teacherId, arenaId: auth.arenaId, active: true },
@@ -319,6 +326,7 @@ export async function deleteTeacherAction(formData: FormData) {
 
 export async function createClassGroupAction(formData: FormData) {
   const auth = await requireModuleEdit("teachers");
+  const prisma = arenaDatabase(auth.arenaId);
   const teacherId = String(formData.get("teacherId") ?? "");
   const planIds = getFormValues(formData, "planIds");
   const weekdays = getFormValues(formData, "weekdays");
@@ -633,6 +641,7 @@ export async function transferTeacherStudentAction(formData: FormData) {
 
 export async function createTeacherPlanAction(formData: FormData) {
   const auth = await requireModuleEdit("teachers");
+  const prisma = arenaDatabase(auth.arenaId);
   const teacherId = String(formData.get("teacherId") ?? "");
   const planId = String(formData.get("planId") ?? "");
   const [teacher, plan] = await Promise.all([
@@ -656,6 +665,7 @@ export async function createTeacherPlanAction(formData: FormData) {
 
 export async function createTeacherPlanWithPriceAction(formData: FormData) {
   const auth = await requireModuleEdit("teachers");
+  const prisma = arenaDatabase(auth.arenaId);
   const teacherId = String(formData.get("teacherId") ?? "");
   const planId = String(formData.get("planId") ?? "");
   const monthlyPriceCents = parseMoneyToCents(
@@ -724,6 +734,7 @@ export async function updateTeacherPlanWithPriceAction(formData: FormData) {
 
 export async function assignTeacherPlanStudentAction(formData: FormData) {
   const auth = await requireModuleEdit("teachers");
+  const prisma = arenaDatabase(auth.arenaId);
   const teacherId = String(formData.get("teacherId") ?? "");
   const planId = String(formData.get("planId") ?? "");
   const clientId = String(formData.get("clientId") ?? "");
@@ -981,6 +992,7 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
 
 export async function copyTeacherPlansAction(formData: FormData) {
   const auth = await requireModuleEdit("teachers");
+  const prisma = arenaDatabase(auth.arenaId);
   const sourceTeacherId = String(formData.get("sourceTeacherId") ?? "");
   const targetTeacherId = String(formData.get("targetTeacherId") ?? "");
   if (
@@ -1132,6 +1144,7 @@ export async function removeTeacherPlanStudentAction(formData: FormData) {
 
 export async function createLessonAction(formData: FormData) {
   const auth = await requireModuleEdit("lessons");
+  const prisma = arenaDatabase(auth.arenaId);
   const studentIds = getFormValues(formData, "studentIds");
   const parsed = lessonSchema.safeParse({
     title: formData.get("title"),
@@ -1198,6 +1211,7 @@ export async function createLessonAction(formData: FormData) {
 
 export async function completeLessonAction(formData: FormData) {
   const auth = await requireModuleEdit("lessons");
+  const prisma = arenaDatabase(auth.arenaId);
   const lessonId = String(formData.get("lessonId") ?? "");
   const absentStudentIds = new Set(getFormValues(formData, "absentStudentIds"));
 
@@ -1302,6 +1316,7 @@ export async function completeLessonAction(formData: FormData) {
 
 export async function deleteLessonAction(formData: FormData) {
   const auth = await requireModuleEdit("lessons");
+  const prisma = arenaDatabase(auth.arenaId);
   const lessonId = String(formData.get("lessonId") ?? "");
 
   if (!lessonId) {

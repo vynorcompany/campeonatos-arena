@@ -22,7 +22,7 @@ export const viewStyles = {
     "tw:[&_>_header_>_span]:[background-image:none]", "tw:[&_>_header_>_span]:text-[color:#1262c4]", "tw:[&_>_header_>_span]:text-[.68rem]", "tw:[&_>_header_>_span]:font-[800]",
     "tw:[&_>_header_>_span]:tracking-[.06em]", "tw:[&_>_header_h2]:mt-[0]", "tw:[&_>_header_h2]:mr-[0]", "tw:[&_>_header_h2]:mb-[0]",
     "tw:[&_>_header_h2]:ml-[0]", "tw:[&_>_header_h2]:text-[color:#132e59]", "tw:[&_>_header_h2]:text-[1.05rem]", "tw:[&_>_header_p]:mt-[4px]",
-    "tw:[&_>_header_p]:mr-[0]", "tw:[&_>_header_p]:mb-[0]", "tw:[&_>_header_p]:ml-[0]", "tw:[&_>_header_p]:text-[color:#687c96]",
+    "tw:[&_>_header_p]:mr-[0]", "tw:[&_>_header_p]:mb-[0]", "tw:[&_>_header_p]:ml-[0]", "tw:[&_>_header_p]:text-[color:#52677d]",
     "tw:[&_>_header_p]:text-[.82rem]", "tw:[&_>_header_p]:leading-[1.45]",
   ].join(" "),
   "tournament_editor_grid": [
@@ -48,7 +48,7 @@ export const viewStyles = {
     "tw:[&_>_header_>_span]:font-[800]", "tw:[&_>_header_>_span]:tracking-[.06em]", "tw:[&_>_header_h2]:mt-[0]", "tw:[&_>_header_h2]:mr-[0]",
     "tw:[&_>_header_h2]:mb-[0]", "tw:[&_>_header_h2]:ml-[0]", "tw:[&_>_header_h2]:text-[color:#132e59]", "tw:[&_>_header_h2]:text-[1.05rem]",
     "tw:[&_>_header_p]:mt-[4px]", "tw:[&_>_header_p]:mr-[0]", "tw:[&_>_header_p]:mb-[0]", "tw:[&_>_header_p]:ml-[0]",
-    "tw:[&_>_header_p]:text-[color:#687c96]", "tw:[&_>_header_p]:text-[.82rem]", "tw:[&_>_header_p]:leading-[1.45]",
+    "tw:[&_>_header_p]:text-[color:#52677d]", "tw:[&_>_header_p]:text-[.82rem]", "tw:[&_>_header_p]:leading-[1.45]",
   ].join(" "),
   "field_form_full_tournament_public_slug": [
     "field", "form-full", "tournament-public-slug", "tw:grid",
@@ -100,7 +100,7 @@ export const viewStyles = {
     "tw:[&_>_span::after]:[background-image:none]", "tw:[&_>_span::after]:[content:'']", "tw:[&_>_span::after]:[transition:transform_.15s_ease]", "tw:[&_>_input:checked_+_span]:bg-[color:#1eaa67]",
     "tw:[&_>_input:checked_+_span]:[background-image:none]", "tw:[&_>_input:checked_+_span::after]:[transform:translateX(14px)]", "tw:[&_strong]:text-[color:#146142]", "tw:[&_strong]:text-[.87rem]",
     "tw:[&_p]:mt-[3px]", "tw:[&_p]:mr-[0]", "tw:[&_p]:mb-[0]", "tw:[&_p]:ml-[0]",
-    "tw:[&_p]:text-[color:#5c7a6a]", "tw:[&_p]:text-[.78rem]", "tw:[&_p]:leading-[1.4]", "tw:[grid-column:1_/_-1]",
+    "tw:[&_p]:text-[color:#486354]", "tw:[&_p]:text-[.78rem]", "tw:[&_p]:leading-[1.4]", "tw:[grid-column:1_/_-1]",
   ].join(" "),
   "currency_input": [
     "currency-input", "tw:flex", "tw:items-center", "tw:[overflow-x:hidden]",
@@ -120,7 +120,7 @@ export const viewStyles = {
     "tournament-editor-footer", "tw:flex", "tw:items-center", "tw:viewport-720:items-stretch",
     "tw:justify-between", "tw:gap-y-[16px]", "tw:gap-x-[16px]", "tw:pt-[4px]",
     "tw:pr-[2px]", "tw:pb-[4px]", "tw:pl-[2px]", "tw:[&_p]:mt-[0]",
-    "tw:[&_p]:mr-[0]", "tw:[&_p]:mb-[0]", "tw:[&_p]:ml-[0]", "tw:[&_p]:text-[color:#687c96]",
+    "tw:[&_p]:mr-[0]", "tw:[&_p]:mb-[0]", "tw:[&_p]:ml-[0]", "tw:[&_p]:text-[color:#52677d]",
     "tw:[&_p]:text-[.82rem]", "tw:[&_.button]:min-w-[156px]", "tw:viewport-720:flex-col", "tw:viewport-720:[&_.button]:w-[100%]",
   ].join(" "),
   "button_button_primary": sharedUtilities.buttonButtonPrimary,

@@ -1,4 +1,8 @@
 "use server";
+import { after } from "next/server";
+import { enqueueComandaWhatsapp } from "@/lib/comandas/whatsapp-outbox";
+import { dispatchComandaWhatsapp } from "@/lib/comandas/whatsapp-delivery";
+import { applyComandaPaymentPolicy, assertComandaMayOpen, assertComandaCashRegister } from "@/lib/comandas/operational-policy";
 import { allocateComandaShares } from "@/lib/comandas/split";
 import { deleteComandaWithAudit } from "@/lib/comandas/delete-with-audit";
 import { arenaDatabase } from "@/lib/arena-database";
@@ -17,6 +21,7 @@ import { issueManualFiscalDocument, type FiscalDocumentType } from "@/lib/fiscal
 
 const comandaSchema = z.object({
   type: z.enum(["CLIENT", "AVULSA"]),
+  cardNumber: z.string().trim().min(1).max(40).regex(/^[A-Za-z0-9_-]+$/).optional(),
   playerId: z.string().trim().optional(),
   label: z.string().trim().max(80).optional()
 });
@@ -43,7 +48,8 @@ const finishComandaSchema = z.object({
   payments: paymentsSchema,
   debtIds: z.array(z.string().min(1)).max(30),
   creditCents: z.coerce.number().int().nonnegative(),
-  allowEmpty: z.coerce.boolean().default(false),
+  allowEmpty: z.preprocess(value => value === true || value === "true" || value === "on", z.boolean()).default(false),
+  allowPartial: z.preprocess(value => value === true || value === "true" || value === "on", z.boolean()).default(false),
   fiscalDocumentType: z.enum(["", "NFS_E", "NFC_E"]).default("")
 });
 
@@ -56,6 +62,7 @@ export async function createComandaAction(formData: FormData) {
   const prisma = arenaDatabase(auth.arenaId);
   const parsed = comandaSchema.safeParse({
     type: formData.get("type"),
+    cardNumber: formData.get("cardNumber") || undefined,
     playerId: formData.get("playerId") || undefined,
     label: formData.get("label") || undefined
   });
@@ -86,13 +93,26 @@ export async function createComandaAction(formData: FormData) {
   }
 
   const result = await withArenaTransaction(auth.arenaId, async (tx) => {
+    const operational = await tx.arenaOperationalSettings.findUnique({ where: { arenaId: auth.arenaId }, select: { comandaCardsEnabled: true } });
+    const cardNumber = parsed.data.cardNumber?.toUpperCase();
+    if (cardNumber && !operational?.comandaCardsEnabled) throw new Error("Cartões de comanda não estão habilitados nesta arena.");
+    if (cardNumber) {
+      await tx.$queryRaw`SELECT id FROM "ArenaOperationalSettings" WHERE "arenaId" = ${auth.arenaId} FOR UPDATE`;
+      const used = await tx.comanda.findFirst({ where: { arenaId: auth.arenaId, status: "OPEN", cardNumber }, select: { playerId: true } });
+      if (used && (!player || used.playerId !== player.id)) throw new Error("Este cartão já está em uso em outra comanda aberta.");
+    }
     if (player) {
       await tx.$queryRaw`SELECT id FROM "Player" WHERE id = ${player.id} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
       const existing = await tx.comanda.findFirst({
         where: { arenaId: auth.arenaId, playerId: player.id, status: "OPEN" },
-        select: { id: true, openedAt: true }
+        select: { id: true, openedAt: true, cardNumber: true }
       });
-      if (existing) return { comandaId: existing.id, openedAt: existing.openedAt.toISOString(), reused: true, message: "Já existe uma comanda aberta para este cliente." };
+      if (existing) {
+        if (cardNumber && existing.cardNumber && existing.cardNumber !== cardNumber) throw new Error("O cliente já tem uma comanda aberta com outro cartão.");
+        if (cardNumber && !existing.cardNumber) await tx.comanda.update({ where: { id: existing.id }, data: { cardNumber } });
+        return { comandaId: existing.id, openedAt: existing.openedAt.toISOString(), reused: true, message: "Já existe uma comanda aberta para este cliente." };
+      }
+      await assertComandaMayOpen(tx, auth.arenaId, player.id);
     }
     const productCount = await tx.product.count({ where: { arenaId: auth.arenaId, active: true } });
     if (!productCount) {
@@ -104,6 +124,7 @@ export async function createComandaAction(formData: FormData) {
         playerId: player?.id,
         openedByUserId: auth.userId, openedByUserName: auth.userName,
         code: formatComandaCode(),
+        cardNumber,
         label,
         type: parsed.data.type
       }
@@ -148,6 +169,7 @@ export async function openBookingComandasAction(formData: FormData): Promise<{ e
           await tx.$queryRaw`SELECT id FROM "Comanda" WHERE id = ${existing.id} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
           existing = await tx.comanda.findFirst({ where: { id: existing.id, arenaId: auth.arenaId, status: "OPEN" }, select: { id: true } });
         }
+        if (!existing) await assertComandaMayOpen(tx, auth.arenaId, participant.playerId);
         const command = existing ?? await tx.comanda.create({ data: { arenaId: auth.arenaId, playerId: participant.playerId, openedByUserId: auth.userId, openedByUserName: auth.userName, label: participant.player.name, type: "CLIENT", code: formatComandaCode() } });
         if (!participant.financialEntryId && participant.amountCents > 0 && !participant.paymentMethod) {
           const entry = await tx.financialEntry.create({ data: { arenaId: auth.arenaId, playerId: participant.playerId, counterpartyName: participant.player.name, type: "REVENUE", category: "Reserva", source: "SCHEDULE_BOOKING", externalReference: occurrence.id, description: `${occurrence.bookingTypeName} · ${participant.player.name}`, amountCents: participant.amountCents, status: "PENDING", dueDate: occurrence.startsAt } });
@@ -189,12 +211,32 @@ export async function addComandaProductAction(formData: FormData) {
   revalidatePath("/comandas");
 }
 
+export async function requestPortalComandaCloseAction(formData: FormData) {
+  const parsed = z.object({ arenaSlug: z.string().trim().min(1).max(120), comandaId: z.string().min(1).max(100) }).safeParse({ arenaSlug: formData.get("arenaSlug"), comandaId: formData.get("comandaId") });
+  if (!parsed.success) throw new Error("Comanda inválida.");
+  const auth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
+  await withArenaTransaction(auth.arenaId, async tx => {
+    const portalSettings = await tx.arenaOperationalSettings.findUnique({ where: { arenaId: auth.arenaId }, select: { portalConsumptionEnabled: true } });
+    if (portalSettings?.portalConsumptionEnabled === false) throw new Error("A arena desativou comandas pelo Portal. Procure a recepção.");
+    await tx.$queryRaw`SELECT id FROM "Comanda" WHERE id = ${parsed.data.comandaId} AND "arenaId" = ${auth.arenaId} AND "playerId" = ${auth.playerId} FOR UPDATE`;
+    const comanda = await tx.comanda.findFirst({ where: { id: parsed.data.comandaId, arenaId: auth.arenaId, playerId: auth.playerId, status: "OPEN" }, select: { id: true, code: true, closeRequestedAt: true } });
+    if (!comanda) throw new Error("Esta comanda não está disponível.");
+    if (comanda.closeRequestedAt) return;
+    await tx.comanda.update({ where: { id: comanda.id }, data: { closeRequestedAt: new Date(), closeRequestedByPlayerId: auth.playerId } });
+    await tx.arenaNotification.create({ data: { arenaId: auth.arenaId, type: "COMANDA_CLOSE_REQUEST", title: "Fechamento de comanda solicitado", message: `${auth.name} pediu o fechamento da comanda ${comanda.code}.`, href: `/comandas?ids=${encodeURIComponent(comanda.id)}` } });
+    await tx.auditEvent.create({ data: { arenaId: auth.arenaId, actorId: auth.playerId, actorName: auth.name, action: "COMANDA_CLOSE_REQUEST", entityId: comanda.id, details: { source: "ATHLETE_PORTAL" } } });
+  });
+  revalidatePath("/comandas"); revalidatePath("/home"); revalidatePath(`/classificacao/${parsed.data.arenaSlug}`);
+}
+
 export async function requestPortalComandaProductAction(formData: FormData) {
   const arenaSlug = z.string().trim().min(1).safeParse(formData.get("arenaSlug"));
   const parsed = comandaProductSchema.safeParse({ comandaId: formData.get("comandaId"), productId: formData.get("productId"), quantity: formData.get("quantity") || 1 });
   if (!arenaSlug.success || !parsed.success) throw new Error("Pedido inválido.");
   const auth = await requirePublicPlayerAuth(arenaSlug.data);
   await withArenaTransaction(auth.arenaId, async (tx) => {
+    const portalSettings = await tx.arenaOperationalSettings.findUnique({ where: { arenaId: auth.arenaId }, select: { portalConsumptionEnabled: true } });
+    if (portalSettings?.portalConsumptionEnabled === false) throw new Error("A arena desativou comandas pelo Portal. Procure a recepção.");
     const [comanda, product] = await Promise.all([
       tx.comanda.findFirst({ where: { id: parsed.data.comandaId, arenaId: auth.arenaId, playerId: auth.playerId, status: "OPEN" }, select: { id: true } }),
       tx.product.findFirst({ where: { id: parsed.data.productId, arenaId: auth.arenaId, active: true, stockQuantity: { gt: 0 } }, select: { id: true, name: true, priceCents: true } }),
@@ -239,19 +281,23 @@ export async function finishComandaAction(formData: FormData) {
   if (typeof rawDebtIds === "string" && rawDebtIds.trim()) {
     try { debtIds = JSON.parse(rawDebtIds); } catch { throw new Error("Débitos inválidos."); }
   }
-  const parsed = finishComandaSchema.safeParse({ comandaId: formData.get("comandaId"), shares, payments, debtIds, creditCents: formData.get("creditCents") ?? 0, allowEmpty: formData.get("allowEmpty") ?? false, fiscalDocumentType: formData.get("fiscalDocumentType") ?? "" });
+  const parsed = finishComandaSchema.safeParse({ comandaId: formData.get("comandaId"), shares, payments, debtIds, creditCents: formData.get("creditCents") ?? 0, allowEmpty: formData.get("allowEmpty") ?? false, allowPartial: formData.get("allowPartial") ?? false, fiscalDocumentType: formData.get("fiscalDocumentType") ?? "" });
   if (!parsed.success) throw new Error("Comanda inválida.");
 
-  await withArenaTransaction(auth.arenaId, async (tx) => {
+  const whatsappIds = await withArenaTransaction(auth.arenaId, async (tx) => {
+    const owner = await tx.comanda.findFirst({ where: { id: parsed.data.comandaId, arenaId: auth.arenaId, status: "OPEN" }, select: { playerId: true } });
+    if (owner?.playerId) await tx.$queryRaw`SELECT id FROM "Player" WHERE id = ${owner.playerId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
     await tx.$queryRaw`SELECT id FROM "Comanda" WHERE id = ${parsed.data.comandaId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
     const comanda = await tx.comanda.findFirst({ where: { id: parsed.data.comandaId, arenaId: auth.arenaId, status: "OPEN" }, include: { items: { include: { product: true } }, bookingServices: { include: { participant: { select: { financialEntryId: true, financialEntry: { select: { status: true } }, occurrence: { select: { status: true } } } } } } } });
     if (!comanda) throw new Error("Comanda não está disponível.");
+    const operational = await tx.arenaOperationalSettings.findUnique({ where: { arenaId: auth.arenaId } });
     const automaticDebtIds = (comanda.bookingServices ?? []).flatMap(({ participant }) => participant.financialEntryId && ["PENDING", "OVERDUE", "PARTIAL"].includes(participant.financialEntry?.status ?? "") ? [participant.financialEntryId] : []);
     const debtIdsToSettle = [...new Set([...parsed.data.debtIds, ...automaticDebtIds])];
     for (const debtId of [...debtIdsToSettle].sort()) await tx.$queryRaw`SELECT id FROM "FinancialEntry" WHERE id = ${debtId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
     if (!comanda.items.length && !debtIdsToSettle.length) {
       if (!parsed.data.allowEmpty) throw new Error("Confirme o encerramento da comanda zerada.");
       await tx.comanda.update({ where: { id: comanda.id }, data: { status: "CLOSED", closedAt: new Date() } });
+      if (operational?.whatsappPaidEnabled) return enqueueComandaWhatsapp(tx, auth.arenaId, comanda, operational, [{ playerId: comanda.playerId, amountCents: 0, outstandingCents: 0 }]);
       return;
     }
     const totalCents = comanda.items.reduce((total, item) => total + item.totalCents, 0);
@@ -274,8 +320,9 @@ export async function finishComandaAction(formData: FormData) {
     if (selectedDebtBalances.length !== selectedDebts.length) throw new Error("Um dos débitos selecionados já foi quitado.");
     const selectedDebtTotalCents = selectedDebtBalances.reduce((total, debt) => total + debt.outstandingCents, 0);
     const grandTotalCents = totalCents + selectedDebtTotalCents;
-    if (paymentTotalCents > grandTotalCents) throw new Error("Os pagamentos não podem ultrapassar o total a receber.");
-    const debtPaymentAllocation = allocatePaymentsToDebts(selectedDebtBalances, parsed.data.payments);
+    const paymentPolicy = applyComandaPaymentPolicy({ totalCents: grandTotalCents, creditCents: creditAppliedCents, payments: parsed.data.payments, preventOverpayment: operational?.preventOverpayment ?? true, requireFullPayment: operational?.requireFullPayment ?? false, allowPartial: parsed.data.allowPartial, playerId: comanda.playerId });
+    await assertComandaCashRegister(tx, auth.arenaId, operational?.cashRegisterRequired ?? false, paymentTotalCents > 0);
+    const debtPaymentAllocation = allocatePaymentsToDebts(selectedDebtBalances, paymentPolicy.appliedPayments);
     const partialDebtPaymentCents = debtPaymentAllocation.settlements.reduce((total, settlement) => total + settlement.amountCents, 0);
     const settleSelectedDebts = Boolean(selectedDebts.length) && partialDebtPaymentCents >= selectedDebtTotalCents;
     const comandaPaymentCents = debtPaymentAllocation.remainingPayments.reduce((total, payment) => total + payment.amountCents, 0);
@@ -310,6 +357,13 @@ export async function finishComandaAction(formData: FormData) {
       await tx.product.update({ where: { id: item.productId }, data: { stockQuantity: { decrement: item.quantity } } });
       await tx.stockMovement.create({ data: { arenaId: auth.arenaId, productId: item.productId, type: "OUT", quantity: item.quantity, reason: `Comanda ${comanda.code}` } });
     }
+    if (paymentPolicy.excessCents && comanda.playerId) {
+      await tx.clientBalanceMovement.create({ data: { arenaId: auth.arenaId, playerId: comanda.playerId, kind: "MONEY", amountCents: paymentPolicy.excessCents, reason: `Crédito de pagamento excedente na comanda ${comanda.code}` } });
+      for (const payment of paymentPolicy.excessPayments) {
+        await tx.financialEntry.create({ data: { arenaId: auth.arenaId, playerId: comanda.playerId, type: "INCOME", category: "CREDITO_DE_CLIENTE", description: `Crédito de pagamento excedente na comanda ${comanda.code}`, amountCents: payment.amountCents, paymentMethod: payment.paymentMethod, status: "PAID", paidAt: now } });
+      }
+    }
+    if (paymentPolicy.partialOverride) await tx.auditEvent.create({ data: { arenaId: auth.arenaId, actorId: auth.userId, actorName: auth.userName, action: "COMANDA_PARTIAL_PAYMENT_OVERRIDE", entityId: comanda.id, details: { outstandingCents: paymentPolicy.outstandingCents } } });
     if (creditAppliedCents && comanda.playerId) {
       await tx.salePayment.create({ data: { saleId: sale.id, paymentMethod: "Saldo do cliente", amountCents: creditAppliedCents } });
       await tx.clientBalanceMovement.create({ data: { arenaId: auth.arenaId, playerId: comanda.playerId, kind: "MONEY", amountCents: -creditAppliedCents, reason: `Saldo utilizado na comanda ${comanda.code}` } });
@@ -361,8 +415,11 @@ export async function finishComandaAction(formData: FormData) {
       });
     }
     await tx.comanda.update({ where: { id: comanda.id }, data: { status: "CLOSED", closedAt: now } });
+    if (operational?.whatsappPaidEnabled || operational?.whatsappUnpaidEnabled) return enqueueComandaWhatsapp(tx, auth.arenaId, comanda, operational, allocations.map((part, index) => ({ playerId: part.playerId, amountCents: part.amountCents + (index === 0 ? selectedDebtTotalCents : 0), outstandingCents: part.outstandingCents + (index === 0 ? Math.max(0, selectedDebtTotalCents - partialDebtPaymentCents) : 0) })));
   });
+  if (whatsappIds?.length) after(async () => { for (const id of whatsappIds) { try { await dispatchComandaWhatsapp(auth.arenaId, id); } catch { console.warn("Mensagem da comanda permanece pendente", id); } } });
   revalidatePath("/comandas");
+  revalidatePath("/home");
   revalidatePath("/financeiro/lancamentos");
   revalidatePath("/pdv/caixa");
   revalidatePath("/relatorios/caixa");

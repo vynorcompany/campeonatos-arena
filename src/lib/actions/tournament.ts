@@ -1,9 +1,10 @@
-"use server";
+﻿"use server";
 
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { arenaDatabase } from "@/lib/arena-database";
 import { resolveRankingPeriod } from "@/lib/ranking/period";
 import { isPrismaUnknownFieldError } from "@/lib/prisma-errors";
 import { getAthleteDeletionRestriction } from "@/lib/athlete-management";
@@ -1272,6 +1273,7 @@ export async function updateRankingConfigurationAction(
 
 export async function resetRankingPointsAction(formData: FormData) {
   const auth = await requirePermission("tournaments:rankings");
+  const prisma = arenaDatabase(auth.arenaId);
   const rankingId = String(formData.get("rankingId") ?? "");
 
   if (!rankingId) {
@@ -1356,6 +1358,7 @@ export async function resetRankingPointsAction(formData: FormData) {
 
 export async function createRankingCycleAction(formData: FormData) {
   const auth = await requirePermission("tournaments:rankings");
+  const prisma = arenaDatabase(auth.arenaId);
   const parsed = createRankingCycleSchema.safeParse({
     rankingId: formData.get("rankingId"),
     label: formData.get("label"),
@@ -1398,6 +1401,7 @@ export async function createRankingCycleAction(formData: FormData) {
 
 export async function deleteRankingProfileAction(formData: FormData) {
   const auth = await requirePermission("tournaments:rankings");
+  const prisma = arenaDatabase(auth.arenaId);
   const parsed = deleteRankingProfileSchema.safeParse({
     rankingId: formData.get("rankingId")
   });
@@ -1996,13 +2000,13 @@ export async function createManualTournamentRegistrationAction(_: ActionState, f
         where: { arenaId: auth.arenaId, active: true, id: { in: [parsed.data.leadPlayerId, parsed.data.partnerPlayerId] } },
         select: { id: true, name: true, phone: true, cpf: true, birthDate: true }
       });
-      if (athletes.length !== 2 || athletes.some((athlete) => !athlete.phone || !/^\d{11}$/.test(athlete.cpf) || !athlete.birthDate)) {
+      if (athletes.length !== 2 || athletes.some((athlete) => !athlete.phone || !/^\d{11}$/.test(athlete.cpf))) {
         return { error: "Atleta não encontrado, inativo ou sem cadastro completo.", success: null };
       }
       const athletesById = new Map(athletes.map((athlete) => [athlete.id, athlete]));
       const lead = athletesById.get(parsed.data.leadPlayerId);
       const partner = athletesById.get(parsed.data.partnerPlayerId);
-      if (!lead || !partner || !lead.birthDate || !partner.birthDate) {
+      if (!lead || !partner) {
         return { error: "Atleta não encontrado, inativo ou sem cadastro completo.", success: null };
       }
 

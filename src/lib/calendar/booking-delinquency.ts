@@ -2,8 +2,9 @@ import { Prisma } from "@prisma/client";
 import { arenaToday } from "@/lib/calendar/arena-wall-clock";
 import { getOutstandingCents } from "@/lib/finance/settlements";
 import type { ArenaTransaction } from "@/lib/rls";
+import { retainedContactNeedsReview } from "@/lib/legal/retained-contact";
 
-export type BookingDelinquency = { blocked: boolean; count: number; outstandingCents: number };
+export type BookingDelinquency = { blocked: boolean; count: number; outstandingCents: number; requiresReview?: true; reviewReference?: string };
 
 /** The first day after the due date is day one of delinquency. */
 export function bookingDelinquencyCutoff(days: number, today = arenaToday()) {
@@ -23,7 +24,7 @@ export async function getBookingDelinquency(
   const ownedReceivable = {
     arenaId,
     type: { in: ["REVENUE", "INCOME"] },
-    status: { in: ["PENDING", "OVERDUE"] },
+    status: { in: ["PENDING", "OVERDUE", "PARTIAL"] },
     dueDate: { lt: bookingDelinquencyCutoff(blockAfterDays, today) },
     OR: [
       { playerId },
@@ -38,5 +39,7 @@ export async function getBookingDelinquency(
     select: { amountCents: true, settlements: { select: { amountCents: true, interestCents: true } } },
   });
   const balances = entries.map((entry) => getOutstandingCents(entry.amountCents, entry.settlements)).filter((balance) => balance > 0);
+  const reviewReference = await retainedContactNeedsReview(tx, arenaId, playerId, bookingDelinquencyCutoff(blockAfterDays, today));
+  if (reviewReference) return { blocked: true, count: balances.length, outstandingCents: balances.reduce((sum, amount) => sum + amount, 0), requiresReview: true, reviewReference };
   return { blocked: balances.length > 0, count: balances.length, outstandingCents: balances.reduce((sum, amount) => sum + amount, 0) };
 }

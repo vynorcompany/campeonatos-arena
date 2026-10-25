@@ -28,7 +28,7 @@ export function PortalSidebar({ items, current, href, arenaName, logoUrl }: { it
   </aside>;
 }
 export function PortalBottomNav({ items, current, href }: { items: PortalMenuItem[]; current: string; href: (section: PortalSection) => string }) {
-  const sections: PortalSection[]=["home","booking","leagues","finance","profile"];
+  const sections: PortalSection[]=["home","schedule","leagues","finance","profile"];
   const links=sections.flatMap(section=>items.find(item=>item.section===section)??[]);
   return <nav aria-label="Atalhos principais" className="tw:fixed tw:inset-x-0 tw:bottom-0 tw:z-40 tw:flex tw:border-t tw:border-[#dce7e1] tw:bg-white/95 tw:px-2 tw:pt-2 tw:pb-[max(10px,env(safe-area-inset-bottom))] tw:shadow-[0_-4px_24px_rgba(20,57,39,.06)] tw:backdrop-blur-lg tw:dark:border-[#29483f] tw:dark:bg-[#102d25]/95 tw:min-[1100px]:hidden">{links.map(item=><Link key={item.section} href={href(item.section)} aria-current={current===item.section ? "page" : undefined} className={`tw:flex tw:min-h-12 tw:min-w-0 tw:flex-1 tw:flex-col tw:items-center tw:justify-center tw:gap-1 tw:rounded-xl tw:px-1 tw:text-[10px] tw:font-medium tw:no-underline tw:focus-visible:outline-2 tw:focus-visible:outline-[#078f7c] ${current===item.section ? "tw:bg-[#e8f5ed] tw:text-[#087b63] tw:dark:bg-[#21483a] tw:dark:text-[#8de1b7]" : "tw:text-[#607467] tw:dark:text-[#adc6b7]"}`}><PortalIcon icon={item.icon}/><span>{item.section==="booking" ? "Reservar" : item.section==="profile" ? "Perfil" : item.label}</span></Link>)}</nav>;
 }

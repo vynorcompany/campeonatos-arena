@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const auth = await requireModuleView("support");
-  const connection = await prisma.whatsAppConnection.findUnique({
+  const connection = await arenaDatabase(auth.arenaId).whatsAppConnection.findUnique({
     where: { arenaId: auth.arenaId },
     select: { status: true, connectedPhone: true, inboxRevision: true },
   });

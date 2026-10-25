@@ -1,5 +1,6 @@
 "use server";
 
+import { arenaDatabase } from "@/lib/arena-database";
 import { revalidatePath } from "next/cache";
 import { requirePublicPlayerAuth } from "@/lib/auth/player-session";
 import { requireModuleEdit } from "@/lib/auth/guards";
@@ -138,6 +139,7 @@ export async function approveClassGroupRequestAction(formData: FormData) {
 
 async function requireTeacherForClassGroups(arenaSlug: string) {
   const auth = await requirePublicPlayerAuth(arenaSlug);
+  const prisma = arenaDatabase(auth.arenaId);
   const teacher = await prisma.teacher.findFirst({ where: { arenaId: auth.arenaId, playerId: auth.playerId, active: true }, select: { id: true } });
   if (!teacher) throw new Error("Seu perfil não possui acesso de professor.");
   return { ...auth, teacherId: teacher.id };
@@ -220,6 +222,7 @@ export async function notifyTeacherStudentAction(formData: FormData) {
   const studentId = String(formData.get("studentId") ?? "");
   const message = String(formData.get("message") ?? "").trim().slice(0, 500);
   const auth = await requireTeacherForClassGroups(arenaSlug);
+  const prisma = arenaDatabase(auth.arenaId);
   if (!studentId || !message) throw new Error("Escreva o aviso para o aluno.");
   const assignment = await prisma.teacherStudent.findFirst({ where: { teacherId: auth.teacherId, studentId, active: true }, include: { student: { select: { playerId: true } } } });
   if (!assignment?.student.playerId) throw new Error("Aluno não está vinculado ao portal.");
@@ -234,6 +237,7 @@ export async function registerClassGroupMakeupAction(formData: FormData) {
   const studentId = String(formData.get("studentId") ?? "");
   const scheduledFor = new Date(`${String(formData.get("scheduledFor") ?? "")}T12:00:00`);
   const auth = await requireTeacherForClassGroups(arenaSlug);
+  const prisma = arenaDatabase(auth.arenaId);
   if (!sourceClassGroupId || !destinationClassGroupId || !studentId || Number.isNaN(scheduledFor.getTime())) throw new Error("Informe aluno, turma de reposição e data.");
   const groups = await prisma.classGroup.findMany({ where: { id: { in: [sourceClassGroupId, destinationClassGroupId] }, arenaId: auth.arenaId, teacherId: auth.teacherId, active: true }, include: { schedules: true, enrollments: { where: { status: "ACTIVE" }, select: { id: true } } } });
   if (groups.length !== 2) throw new Error("Você só pode registrar reposições entre suas turmas.");

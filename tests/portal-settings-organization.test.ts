@@ -15,8 +15,8 @@ test("portal editorial management lives inside Dados da arena > Portal do Atleta
   assert.match(arenaPage, /PortalEditorPanels/);
   assert.match(arenaPage, /activeSection === "portal"/);
   assert.match(legacyPage, /redirect\("\/arena\?section=portal"\)/);
-  assert.match(shell, /visibleModules\.includes\("arena"\) \? "\/arena"/);
-  assert.match(shell, /<Link href=\{settingsHref\}[^>]*>[\s\S]*?Configurações<\/Link>/);
+  const navigation = read("src/components/layout/nav-links.tsx");
+  assert.match(navigation, /href: "\/arena\?section=portal", label: "Portal do Atleta"/);
   assert.doesNotMatch(shell, /Portal do Cliente/);
   assert.doesNotMatch(shell, /Configuração de quadras/);
 });

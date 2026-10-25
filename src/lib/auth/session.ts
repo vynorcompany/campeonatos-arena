@@ -1,5 +1,6 @@
 import { cache } from "react";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { deviceLabel } from "@/lib/auth/device-label";
 import { redirect } from "next/navigation";
 import crypto from "node:crypto";
 import { env } from "@/lib/env";
@@ -35,7 +36,7 @@ async function getSessionWithUser(token: string) {
   return prisma.session.findUnique({
     where: { token },
     select: {
-      id: true, expiresAt: true,
+      id: true, expiresAt: true, lastSeenAt: true,
       user: { select: {
         id: true, name: true, email: true, systemRole: true,
         memberships: { select: {
@@ -105,6 +106,7 @@ export async function createSession(userId: string) {
   await prisma.session.create({
     data: {
       token: hashedToken,
+      deviceLabel: deviceLabel((await headers()).get("user-agent") ?? ""),
       userId,
       expiresAt
     }
@@ -175,6 +177,9 @@ export const getAuthContext = cachePerRequest(async (): Promise<AuthContext | nu
 
     return null;
   }
+
+  const activityThreshold = new Date(Date.now() - 5 * 60_000);
+  if (session.lastSeenAt < activityThreshold) await prisma.session.updateMany({ where: { id: session.id, userId: session.user.id, lastSeenAt: { lt: activityThreshold } }, data: { lastSeenAt: new Date() } });
 
   const memberships: ArenaMembership[] = session.user.memberships.map((membership) => ({
     arenaId: membership.arenaId,
