@@ -30,11 +30,11 @@ test("expiry worker starts once, does not overlap runs, and resumes after a reje
 
 test("server registration starts the worker only when explicitly enabled in the Node runtime", async () => {
   const source = readFileSync(new URL("../src/instrumentation.ts", import.meta.url), "utf8");
-  for (const [runtime, enabled, expected] of [["nodejs", "true", 1], ["nodejs", "false", 0], ["nodejs", undefined, 0], ["edge", "true", 0]]) {
+  for (const [runtime, enabled, phase, expected] of [["nodejs", "true", undefined, 1], ["nodejs", "false", undefined, 0], ["nodejs", undefined, undefined, 0], ["edge", "true", undefined, 0], ["nodejs", "true", "phase-production-build", 0]]) {
     let starts = 0;
     const exports: any = {};
     vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, {
-      exports, process: { env: { NEXT_RUNTIME: runtime, PORTAL_CHECKOUT_EXPIRY_WORKER_ENABLED: enabled } },
+      exports, process: { env: { NEXT_RUNTIME: runtime, PORTAL_CHECKOUT_EXPIRY_WORKER_ENABLED: enabled, NEXT_PHASE: phase } },
       require: (path: string) => { assert.equal(path, "./lib/payments/portal-checkout-expiry-worker"); return { startPortalCheckoutExpiryWorker: () => { starts++; } }; },
     });
     await exports.register(); assert.equal(starts, expected);
