@@ -1154,10 +1154,11 @@ async function main() {
         throw new Error(`${viewport.name}: formulário público do torneio fictício incompleto.`);
       }
       const formLayout = await send("Runtime.evaluate", {
-        expression: "(() => { const form = document.querySelector('form:has(input[name=tournamentSlug])'); const controls = [...(form?.querySelectorAll('input:not([type=hidden]), select, button[type=submit]') ?? [])]; return { width: innerWidth, controls: controls.map(control => { const rect = control.getBoundingClientRect(); return { name: control.getAttribute('name'), left: rect.left, right: rect.right, width: rect.width }; }) }; })()",
+        expression: "(() => { const form = document.querySelector('form:has(input[name=tournamentSlug])'); const trap = form?.querySelector('input[name=contactWebsite]'); const controls = [...(form?.querySelectorAll('input:not([type=hidden]), select, button[type=submit]') ?? [])].filter(control => control.name !== 'contactWebsite'); return { width: innerWidth, trapProtected: Boolean(trap?.closest('[aria-hidden=true]') && trap.tabIndex === -1), controls: controls.map(control => { const rect = control.getBoundingClientRect(); return { name: control.getAttribute('name'), left: rect.left, right: rect.right, width: rect.width }; }) }; })()",
         returnByValue: true,
       });
-      if (formLayout.result.value.controls.length !== 12 || formLayout.result.value.controls.some((control) => control.width < 40 || control.left < -1 || control.right > formLayout.result.value.width + 1)) {
+      const expectedPublicControls = [null, "categoryId", "paymentMethod", "leadName", "leadEmail", "leadPhone", "leadCpf", "partnerName", "partnerPhone", "partnerCpf"].sort();
+      if (!formLayout.result.value.trapProtected || JSON.stringify(formLayout.result.value.controls.map(control => control.name).sort()) !== JSON.stringify(expectedPublicControls) || formLayout.result.value.controls.some((control) => control.width < 40 || control.left < -1 || control.right > formLayout.result.value.width + 1)) {
         throw new Error(`${viewport.name}: campos da inscrição pública cortados: ${JSON.stringify(formLayout.result.value)}`);
       }
       const tabsLayout = await send("Runtime.evaluate", {
@@ -1178,8 +1179,8 @@ async function main() {
     await visit(publicPath, adminViewports[2], arenaA.id, "mobile-320-inscricao-publica-preenchimento");
     const publicFormValues = {
       leadName: "Atleta Público GOAL", leadEmail: "atleta-goal@example.test", leadPhone: "11999999999",
-      leadCpf: "98765432100", leadBirthDate: "01/01/1990", partnerName: "Parceiro Público GOAL",
-      partnerPhone: "11988888888", partnerCpf: "98765432101", partnerBirthDate: "02/02/1991",
+      leadCpf: "98765432100", partnerName: "Parceiro Público GOAL",
+      partnerPhone: "11988888888", partnerCpf: "98765432101",
     };
     const publicFormPrepared = await send("Runtime.evaluate", {
       expression: `(() => { const form = document.querySelector('form:has(input[name=tournamentSlug])'); if (!form) return false; form.querySelector('select[name=categoryId]').value = ${JSON.stringify(publicCategory.id)}; for (const [name, value] of Object.entries(${JSON.stringify(publicFormValues)})) { const input = form.querySelector('input[name=' + name + ']'); if (!input) return false; input.value = value; input.dispatchEvent(new Event('input', { bubbles: true })); } return new FormData(form).get('categoryId') === ${JSON.stringify(publicCategory.id)} && form.checkValidity(); })()`,
