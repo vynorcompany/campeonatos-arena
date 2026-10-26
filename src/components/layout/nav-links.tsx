@@ -190,6 +190,7 @@ export function NavLinks({ canManageUsers, canManageFinancialSettings, canManage
       links: [
         { href: "/painel", label: "Dashboard", icon: "dashboard" },
         ...(canManageUsers ? [{ href: "/assistente", label: "Assistente", icon: "support" as IconName }] : []),
+        { href: "/comandas", label: "Comandas", icon: "cart" },
         ...(canSee("support") ? [{ href: "/whatsapp", label: "WhatsApp", icon: "whatsapp" as IconName, badge: liveWhatsAppUnreadCount }] : []),
         ...(canSee("pos") ? [{ href: "/pdv/caixa", label: "Gerenciar Caixa", icon: "cash" as IconName }] : [])
       ]
@@ -210,11 +211,6 @@ export function NavLinks({ canManageUsers, canManageFinancialSettings, canManage
           href: "/agenda",
           label: "Grade de Horários",
           icon: "calendar"
-        },
-        {
-          href: "/comandas",
-          label: "Comandas",
-          icon: "cart"
         },
         {
           href: "/proximos-jogos/apresentacao",

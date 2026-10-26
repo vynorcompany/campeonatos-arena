@@ -15,6 +15,7 @@ test("sidebar counts only the connected account and clears when the session is r
   ];
   let queries = 0;
   const prisma = {
+    $transaction: async (operation: (tx: unknown) => Promise<unknown>) => operation(prisma),
     whatsAppConnection: { findUnique: async () => connection },
     whatsAppConversation: { aggregate: async ({ where }: { where: { arenaId: string; accountJid: string } }) => {
       queries++;
