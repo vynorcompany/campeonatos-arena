@@ -248,7 +248,7 @@ export function PublicStandings({
     leagueCategoryId?: string,
     eventTab?: EventTab,
     super12Id?: string,
-  ) => `/home?arena=${encodeURIComponent(arena.slug)}&${portalQuery(section === "schedule" ? "booking" : section, leagueTab, teacherId, leagueCategoryId, eventTab, super12Id).slice(1)}`;
+  ) => `/home?arena=${encodeURIComponent(arena.slug)}&${portalQuery(section, leagueTab, teacherId, leagueCategoryId, eventTab, super12Id).slice(1)}`;
   if (!currentClient)
     return <AthletePortalLoginLayout arena={{ name: arena.name, logoUrl: arena.athletePortalLogoUrl || arena.logoUrl }}>{authForm}</AthletePortalLoginLayout>;
 
@@ -269,7 +269,7 @@ export function PublicStandings({
               : section === "radar" &&
                   !portalVisibility.athletePortalShowDoublesRadar
                 ? "profile"
-              : section;
+              : section === "schedule" ? "booking" : section;
   const selectedLeagueTab: LeagueTab =
     leagueTab === "pairs" ||
     leagueTab === "ranking" ||
@@ -280,20 +280,20 @@ export function PublicStandings({
   const selectedEventTab: EventTab = eventTab === "super12" || eventTab === "radar" ? eventTab : "leagues";
   const menuItems = portalMenu(portalVisibility, currentClient.isTeacher);
   const sectionTitle = requestedSection === "booking"
-    ? "Reservar quadra"
+    ? "Reservas"
     : menuItems.find(item => item.section === requestedSection)?.label ?? "Portal do atleta";
 
   return (
     <div className="portal-app tw:relative tw:isolate tw:[--panel:#fff] tw:[--text:#203c2e] tw:[--muted:#607467] tw:[--line:#e1e9e6] tw:[--line-strong:#91c4af] tw:[--brand:#247f5a] tw:[--brand-strong:#185f43] tw:dark:[--panel:#102d25] tw:dark:[--text:#eaf3e9] tw:dark:[--muted:#aac2b5] tw:dark:[--line:#29483f] tw:[--portal-ink:#203c2e] tw:[--portal-muted:#607467] tw:[--portal-accent:#247f5a] tw:[--portal-surface:#fff] tw:[--portal-soft:#f4f7f3] tw:[--portal-line:#e1e9e6] tw:[--portal-selection-surface:#d6f1dd] tw:[--portal-selection-ink:#133d2c] tw:dark:[--portal-selection-surface:#b6f36c] tw:dark:[--portal-selection-ink:#163429] tw:[--portal-warning-ink:#b64733] tw:[--portal-warning-surface:#fff3ed] tw:[--portal-panel-image:linear-gradient(135deg,#fff,#f7faf6)] tw:[--portal-shadow:0_3px_16px_rgba(21,60,44,.04)] tw:dark:[--portal-ink:#eaf3e9] tw:dark:[--portal-muted:#aac2b5] tw:dark:[--portal-accent:#a5dcaf] tw:dark:[--portal-surface:#102d25] tw:dark:[--portal-soft:#21483d] tw:dark:[--portal-line:#29483f] tw:dark:[--portal-warning-ink:#ffb49a] tw:dark:[--portal-warning-surface:#422d24] tw:dark:[--portal-panel-image:linear-gradient(135deg,#102d25,#14382b)] tw:[&_*]:box-border tw:flex tw:min-h-dvh tw:min-w-0 tw:bg-[#f4f7f3] tw:text-[#203c2e] tw:dark:bg-[#09251d] tw:dark:text-[#eaf3e9]">
       <PortalAmbientBackground />
-      <PortalSidebar items={menuItems} current={requestedSection} href={portalHref} arenaName={arena.name} logoUrl={arena.athletePortalLogoUrl || arena.logoUrl} />
+      <PortalSidebar items={menuItems} current={requestedSection === "booking" ? "schedule" : requestedSection} href={portalHref} arenaName={arena.name} logoUrl={arena.athletePortalLogoUrl || arena.logoUrl} />
       <main className={cx("athlete-portal-page tw:min-w-0 tw:flex-1 tw:pb-24 tw:min-[1100px]:pb-10", mobilePortalSkin)}>
       <header className="tw:flex tw:min-h-[76px] tw:items-center tw:justify-between tw:gap-3 tw:border-b tw:border-[#e1e9e6] tw:bg-white/80 tw:px-4 tw:py-3 tw:dark:border-[#29483f] tw:dark:bg-[#102d25]/80 tw:min-[700px]:px-8" aria-label="Cabeçalho do portal">
-        <div className="tw:flex tw:min-w-0 tw:items-center tw:gap-3">{requestedSection !== "home" ? <Link href={portalHref("home")} aria-label="Voltar ao início" className="tw:grid tw:size-10 tw:shrink-0 tw:place-items-center tw:rounded-xl tw:border tw:border-[#e1e9e6] tw:text-inherit tw:no-underline tw:dark:border-[#29483f]">←</Link> : null}<div className="tw:min-w-0"><AthletePortalWordmark compact/><Link href="/portal" aria-label="Trocar de arena" title={arena.name} className="tw:mt-1 tw:block tw:break-words tw:text-sm tw:font-semibold tw:text-inherit tw:no-underline tw:min-[1100px]:hidden">{arena.name}</Link><strong className="tw:mt-1 tw:hidden tw:text-sm tw:font-semibold tw:min-[1100px]:block">{arena.name}</strong></div></div>
+        <div className="tw:flex tw:min-w-0 tw:items-center tw:gap-3">{requestedSection !== "home" ? <Link href={portalHref("home")} aria-label="Voltar ao início" className="tw:grid tw:size-10 tw:shrink-0 tw:place-items-center tw:rounded-xl tw:border tw:border-[#e1e9e6] tw:text-inherit tw:no-underline tw:dark:border-[#29483f]">←</Link> : null}<div className="tw:min-w-0"><AthletePortalWordmark compact/><Link href="/portal" aria-label="Trocar de arena" title={arena.name} className="tw:mt-1 tw:block tw:break-words tw:text-sm tw:font-semibold tw:text-inherit tw:no-underline tw:min-[1100px]:hidden">{arena.name}</Link></div></div>
         <div className="tw:flex tw:shrink-0 tw:items-center tw:gap-2"><AthletePortalNotifications arenaSlug={arena.slug} notifications={notifications}/><Link href={portalHref("profile")} aria-label="Meu perfil" className="tw:grid tw:size-10 tw:place-items-center tw:rounded-full tw:border-2 tw:border-white tw:bg-[#dcebd8] tw:text-sm tw:font-bold tw:text-[#326b47] tw:no-underline tw:shadow-sm tw:dark:border-[#29483f] tw:dark:bg-[#294d3b] tw:dark:text-[#b6dfbb]"><PlayerAvatar photoUrl={currentClient.photoUrl} name={currentClient.name} className="athlete-portal-user-avatar tw:grid tw:size-9! tw:shrink-0 tw:place-items-center tw:overflow-hidden tw:rounded-full! tw:text-xs! tw:[&_img]:size-full tw:[&_img]:object-cover" /></Link><form action={logoutAthletePortalAction} className="tw:hidden tw:min-[700px]:block"><input type="hidden" name="arenaSlug" value={arena.slug}/><button className="tw:min-h-10 tw:cursor-pointer tw:rounded-xl tw:border-0 tw:bg-transparent tw:px-3 tw:text-xs tw:font-medium tw:text-[#607467] tw:hover:bg-[#e8f0e9] tw:dark:text-[#adc6b7]" type="submit">Sair</button></form></div>
       </header>
       <div className="portal-workspace tw:mx-auto tw:grid tw:w-full tw:max-w-[1240px] tw:min-w-0 tw:gap-5 tw:px-4 tw:py-6 tw:min-[700px]:px-8 tw:min-[700px]:py-8">
-      <div className="tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-3"><span className="tw:text-xs tw:font-semibold tw:text-[#607467] tw:dark:text-[#b9d6ca]">{arena.name}</span><Link href="/portal" className="tw:inline-flex tw:min-h-10 tw:items-center tw:gap-3 tw:rounded-xl tw:border tw:border-[#91bca8] tw:bg-white tw:px-4 tw:text-xs tw:font-bold tw:text-[#17543c] tw:no-underline tw:shadow-sm tw:dark:border-[#659a83] tw:dark:bg-[#244e42] tw:dark:text-[#d9ffe7]">Trocar de arena <span aria-hidden="true">⇄</span></Link></div>
+      <div className="tw:flex tw:justify-end"><Link href="/portal" className="tw:inline-flex tw:min-h-10 tw:items-center tw:gap-3 tw:rounded-xl tw:border tw:border-[#91bca8] tw:bg-white tw:px-4 tw:text-xs tw:font-bold tw:text-[#17543c] tw:no-underline tw:shadow-sm tw:dark:border-[#659a83] tw:dark:bg-[#244e42] tw:dark:text-[#d9ffe7]">Trocar de arena <span aria-hidden="true">⇄</span></Link></div>
       {requestedSection !== "home" ? <div><p className="tw:mb-1 tw:text-[10px] tw:font-semibold tw:tracking-[.12em] tw:text-[#607467] tw:dark:text-[#aac2b5]">SEU PORTAL</p><h1 className="tw:m-0 tw:text-2xl tw:font-semibold tw:tracking-tight">{sectionTitle}</h1></div> : null}
       <AthletePortalPrefetch hrefs={[portalHref("home"), portalHref("announcements"), portalHref("leagues", "games"), portalHref("lessons"), portalHref("profile"), portalHref("radar"), portalHref("comandas")]} />
       {requestedSection === "lessons" || requestedSection === "classes" ? (
@@ -444,7 +444,7 @@ export function PublicStandings({
       )}
       {requestedSection === "profile" ? <form action={logoutAthletePortalAction} className="tw:min-[700px]:hidden"><input type="hidden" name="arenaSlug" value={arena.slug}/><button type="submit" className="tw:min-h-11 tw:w-full tw:cursor-pointer tw:rounded-xl tw:border tw:border-[#dce7df] tw:bg-white tw:px-4 tw:text-sm tw:font-medium tw:text-[#607467] tw:dark:border-[#29483f] tw:dark:bg-[#102d25] tw:dark:text-[#adc6b7]">Sair da conta</button></form> : null}
       </div>
-      <PortalBottomNav items={menuItems} current={requestedSection} href={portalHref} />
+      <PortalBottomNav items={menuItems} current={requestedSection === "booking" ? "schedule" : requestedSection} href={portalHref} />
     <footer className="tw:mx-auto tw:w-full tw:max-w-[1240px] tw:px-4 tw:py-5 tw:text-xs tw:text-[var(--portal-muted)] tw:min-[700px]:px-8"><ArenaLegalLinks arenaSlug={arena.slug}/></footer>
       </main></div>
   );

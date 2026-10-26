@@ -57,10 +57,10 @@ export const viewStyles = {
     "tw:[&_.button-primary]:border-r-[color:var(--portal-line,#08775f)]", "tw:[&_.button-primary]:border-b-[color:var(--portal-line,#08775f)]", "tw:[&_.button-primary]:border-l-[color:var(--portal-line,#08775f)]", "tw:[&_.button-primary]:[box-shadow:var(--portal-shadow,0_3px_16px_rgb(21_60_44_/_0.04))]", "tw:viewport-720:[&_>_.button]:w-[100%]", "tw:viewport-720:[&_>_.button]:justify-center",
   ].join(" "),
   "public_booking_court_picker": [
-    "public-booking-court-picker tw:col-span-full tw:grid tw:gap-2 tw:[&>strong]:text-xs tw:[&>strong]:text-[var(--portal-muted)] tw:[&>div]:grid tw:[&>div]:grid-cols-2 tw:[&>div]:gap-2 tw:md:[&>div]:grid-cols-3",
+    "public-booking-court-picker tw:col-span-full tw:grid tw:gap-2 tw:[&>strong]:text-xs tw:[&>strong]:text-[var(--portal-muted)] tw:min-w-0",
   ].join(" "),
   "public_booking_court_card": [
-    "public-booking-court-card tw:flex tw:min-h-11 tw:min-w-0 tw:cursor-pointer tw:items-center tw:gap-2 tw:rounded-xl tw:border tw:border-l-[3px] tw:border-[var(--portal-line)] tw:bg-[var(--portal-surface)] tw:px-3 tw:py-2 tw:text-left tw:text-[var(--portal-ink)] tw:[&_i]:size-1.5 tw:[&_i]:shrink-0 tw:[&_i]:rounded-full tw:[&_span]:min-w-0 tw:[&_span]:break-words tw:[&_span]:text-xs tw:[&_span]:font-semibold tw:[&_small]:hidden tw:[&.is-active]:ring-2 tw:[&.is-active]:ring-[#078f7c] tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#078f7c]",
+    "public-booking-court-card tw:flex tw:min-h-16 tw:w-52 tw:shrink-0 tw:snap-start tw:select-none tw:min-w-0 tw:cursor-pointer tw:items-center tw:gap-2 tw:rounded-xl tw:border tw:border-l-[3px] tw:border-[var(--portal-line)] tw:bg-[var(--portal-surface)] tw:px-3 tw:py-2 tw:text-left tw:text-[var(--portal-ink)] tw:[&_i]:size-1.5 tw:[&_i]:shrink-0 tw:[&_i]:rounded-full tw:[&_span]:min-w-0 tw:[&_span]:break-words tw:[&_span]:text-xs tw:[&_span]:font-semibold tw:[&_small]:hidden tw:[&.is-active]:ring-2 tw:[&.is-active]:ring-[#078f7c] tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#078f7c]",
   ].join(" "),
   "field": sharedUtilities.field,
   "public_booking_slot_blocks": [
@@ -144,13 +144,7 @@ export const viewStyles = {
     "tw:[&_span]:tracking-[.08em]", "tw:[&_strong]:text-[color:var(--portal-accent,#07523f)]", "tw:[&_strong]:text-[.9rem]", "tw:[&_small]:text-[color:var(--portal-accent,#557367)]",
     "tw:[&_small]:text-[.71rem]", "tw:viewport-680:flex-col",
   ].join(" "),
-  "public_booking_total": [
-    "public-booking-total", "tw:min-w-[112px]", "tw:pl-[14px]", "tw:viewport-680:pl-[0]",
-    "tw:border-l-[length:1px]", "tw:viewport-680:border-l-[length:0]", "tw:[border-left-style:solid]", "tw:viewport-680:[border-left-style:none]",
-    "tw:border-l-[color:var(--portal-line,#b8dfd0)]", "tw:viewport-680:border-l-[color:currentColor]", "tw:text-right", "tw:viewport-680:text-left",
-    "tw:[&_strong]:text-[1rem]", "tw:viewport-680:pt-[9px]", "tw:viewport-680:pr-[0]", "tw:viewport-680:pb-[0]",
-    "tw:viewport-680:border-t-[length:1px]", "tw:viewport-680:[border-top-style:solid]", "tw:viewport-680:border-t-[color:var(--portal-line,#b8dfd0)]",
-  ].join(" "),
+  "public_booking_total": "public-booking-total tw:min-w-0 tw:rounded-xl tw:border-2 tw:border-emerald-600 tw:bg-emerald-50 tw:p-4 tw:text-right tw:text-emerald-950 tw:[&_strong]:text-2xl! tw:[&_strong]:font-bold! tw:dark:border-emerald-500 tw:dark:bg-emerald-950 tw:dark:text-emerald-50",
   "public_booking_pending": [
     "public-booking-pending", "tw:[grid-column:1_/_-1]", "tw:grid", "tw:gap-y-[3px]",
     "tw:gap-x-[12px]", "tw:pt-[10px]", "tw:pr-[12px]", "tw:pb-[10px]",

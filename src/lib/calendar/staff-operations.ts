@@ -1,0 +1,73 @@
+import type { ArenaTransaction } from "@/lib/rls";
+import { assertCourtBookingMayBeEdited } from "./court-booking-edit-safety";
+import { activeCourtOccurrenceWhere } from "./online-booking-hold";
+
+export async function manuallyCheckInParticipant(tx: ArenaTransaction, input: { arenaId: string; occurrenceId: string; playerId: string; actorId: string; actorName: string }, now = new Date()) {
+  await tx.$queryRaw`SELECT id FROM "ScheduleOccurrence" WHERE id = ${input.occurrenceId} AND "arenaId" = ${input.arenaId} FOR UPDATE`;
+  await tx.$queryRaw`SELECT id FROM "Player" WHERE id = ${input.playerId} AND "arenaId" = ${input.arenaId} FOR UPDATE`;
+  const occurrence = await tx.scheduleOccurrence.findFirst({ where: { id: input.occurrenceId, arenaId: input.arenaId, status: "SCHEDULED" }, include: { occurrenceCourts: { include: { court: true } }, participants: { where: { playerId: input.playerId }, include: { player: true } } } });
+  const participant = occurrence?.participants[0]; const court = occurrence?.occurrenceCourts[0]?.court;
+  if (!occurrence || !participant || !court || !participant.player.active) throw new Error("Selecione um atleta desta reserva confirmada.");
+  if (participant.checkedInAt) return participant.checkedInAt;
+  const overlap = await tx.checkinRecord.findFirst({ where: { arenaId: input.arenaId, playerId: input.playerId, occurrenceId: { not: occurrence.id }, startsAt: { lt: occurrence.endsAt }, endsAt: { gt: occurrence.startsAt } } });
+  if (overlap) throw new Error("Este atleta já realizou check-in em outro horário coincidente.");
+  await tx.scheduleParticipant.update({ where: { id: participant.id }, data: { checkedInAt: now } });
+  await tx.checkinRecord.upsert({ where: { occurrenceId_playerId: { occurrenceId: occurrence.id, playerId: participant.playerId } }, update: {}, create: { arenaId: input.arenaId, occurrenceId: occurrence.id, playerId: participant.playerId, playerName: participant.player.name, courtId: court.id, courtName: court.name, startsAt: occurrence.startsAt, endsAt: occurrence.endsAt, amountCents: participant.amountCents, financialEntryId: participant.financialEntryId, createdAt: now } });
+  await tx.auditEvent.create({ data: { arenaId: input.arenaId, actorId: input.actorId, actorName: input.actorName, action: "COURT_CHECKIN_MANUAL", entityId: occurrence.id, details: { label: participant.player.name, code: court.name } } });
+  return now;
+}
+
+export async function removeOptionalBookingService(tx: ArenaTransaction, arenaId: string, occurrenceId: string, serviceId: string) {
+  await assertCourtBookingMayBeEdited(tx, arenaId, occurrenceId);
+  const occurrence = await tx.scheduleOccurrence.findFirst({ where: { id: occurrenceId, arenaId, status: { in: ["SCHEDULED", "PENDING_CONFIRMATION"] } }, include: { participants: { orderBy: { id: "asc" } }, serviceReservations: { where: { id: serviceId } } } });
+  const service = occurrence?.serviceReservations[0];
+  if (!occurrence || !service) throw new Error("Serviço não encontrado nesta reserva.");
+  if (occurrence.participants.some(p => Boolean(p.paymentMethod))) throw new Error("Revise o pagamento da reserva antes de remover o serviço.");
+  const total = occurrence.participants.reduce((sum, p) => sum + p.amountCents, 0);
+  if (total < service.priceCents) throw new Error("O valor da reserva precisa de revisão financeira antes de remover este serviço.");
+  // Distribute the reduction proportionally, preserving the sum exactly in cents.
+  let deducted = 0; let cumulative = 0;
+  for (const [index, participant] of occurrence.participants.entries()) {
+    cumulative += participant.amountCents;
+    const target = index === occurrence.participants.length - 1 ? service.priceCents : Math.floor(service.priceCents * cumulative / Math.max(1, total));
+    const reduction = target - deducted; deducted = target;
+    const amountCents = participant.amountCents - reduction;
+    await tx.scheduleParticipant.update({ where: { id: participant.id }, data: { amountCents } });
+    if (participant.financialEntryId) await tx.financialEntry.update({ where: { id: participant.financialEntryId, arenaId }, data: { amountCents } });
+  }
+  await tx.scheduleServiceReservation.delete({ where: { id: service.id, arenaId } });
+  await tx.scheduleOccurrence.update({ where: { id: occurrenceId, arenaId }, data: { updatedAt: new Date() } });
+}
+
+export type BlockSlot = { courtId: string; startsAt: Date; endsAt: Date };
+export async function blockCourtSlots(tx: ArenaTransaction, arenaId: string, slots: BlockSlot[]) {
+  if (!slots.length || slots.length > 200 || slots.some(s => !Number.isFinite(s.startsAt.getTime()) || !Number.isFinite(s.endsAt.getTime()) || s.endsAt <= s.startsAt)) throw new Error("Selecione de 1 a 200 horários válidos.");
+  const unique = [...new Map(slots.map(slot => [`${slot.courtId}:${slot.startsAt.toISOString()}`, slot])).values()];
+  const arena = await tx.arena.findUniqueOrThrow({ where: { id: arenaId }, select: { scheduleSlotMinutes: true, scheduleStartMinute: true, scheduleEndMinute: true } });
+  for (const courtId of [...new Set(unique.map(s => s.courtId))].sort()) {
+    const rows = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM "Court" WHERE id = ${courtId} AND "arenaId" = ${arenaId} AND active = true FOR UPDATE`;
+    if (!rows.length) throw new Error("Quadra não encontrada nesta arena.");
+  }
+  for (const slot of unique) {
+    const minute = slot.startsAt.getHours() * 60 + slot.startsAt.getMinutes();
+    if ((slot.endsAt.getTime() - slot.startsAt.getTime()) !== arena.scheduleSlotMinutes * 60_000 || minute < arena.scheduleStartMinute || minute + arena.scheduleSlotMinutes > arena.scheduleEndMinute || (minute - arena.scheduleStartMinute) % arena.scheduleSlotMinutes !== 0) throw new Error("Selecione horários pertencentes à grade.");
+    const conflict = await tx.scheduleOccurrence.findFirst({ where: { arenaId, ...activeCourtOccurrenceWhere(), startsAt: { lt: slot.endsAt }, endsAt: { gt: slot.startsAt }, occurrenceCourts: { some: { courtId: slot.courtId } } }, select: { id: true } });
+    if (conflict) throw new Error("Um dos horários foi reservado. Atualize a grade e selecione novamente.");
+    await tx.scheduleOccurrence.create({ data: { arenaId, sourceType: "BOOKING", bookingTypeName: "Bloqueio", title: "Horário bloqueado", startsAt: slot.startsAt, endsAt: slot.endsAt, occurrenceCourts: { create: { courtId: slot.courtId } } } });
+  }
+}
+
+export async function moveBookingCourt(tx: ArenaTransaction, arenaId: string, occurrenceId: string, courtId: string) {
+  const initial = await tx.scheduleOccurrence.findFirst({ where: { id: occurrenceId, arenaId }, include: { occurrenceCourts: true } });
+  if (!initial) throw new Error("Reserva não encontrada nesta arena.");
+  for (const id of [...new Set([courtId, ...initial.occurrenceCourts.map(row => row.courtId)])].sort()) await tx.$queryRaw`SELECT id FROM "Court" WHERE id = ${id} AND "arenaId" = ${arenaId} FOR UPDATE`;
+  await tx.$queryRaw`SELECT id FROM "ScheduleOccurrence" WHERE id = ${occurrenceId} AND "arenaId" = ${arenaId} FOR UPDATE`;
+  const current = await tx.scheduleOccurrence.findFirst({ where: { id: occurrenceId, arenaId, status: { in: ["SCHEDULED", "PENDING_CONFIRMATION"] }, sourceType: { in: ["BOOKING", "COURT_BOOKING", "ONLINE_BOOKING"] } }, include: { occurrenceCourts: true } });
+  if (!current || current.occurrenceCourts.length !== 1) throw new Error("Selecione uma reserva confirmada de uma única quadra.");
+  if (current.updatedAt.getTime() !== initial.updatedAt.getTime() || current.occurrenceCourts[0]?.courtId !== initial.occurrenceCourts[0]?.courtId) throw new Error("A reserva foi alterada. Atualize a grade antes de mudar a quadra.");
+  const court = await tx.court.findFirst({ where: { id: courtId, arenaId, active: true }, select: { id: true, name: true } });
+  if (!court) throw new Error("Quadra não encontrada nesta arena.");
+  const conflict = await tx.scheduleOccurrence.findFirst({ where: { arenaId, id: { not: occurrenceId }, ...activeCourtOccurrenceWhere(), startsAt: { lt: current.endsAt }, endsAt: { gt: current.startsAt }, occurrenceCourts: { some: { courtId } } }, select: { id: true } });
+  if (conflict) throw new Error("Já existe um agendamento nessa quadra para este horário.");
+  await tx.scheduleOccurrence.update({ where: { id: occurrenceId, arenaId }, data: { occurrenceCourts: { deleteMany: {}, create: { courtId } }, updatedAt: new Date() } });
+}

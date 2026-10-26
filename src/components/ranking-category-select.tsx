@@ -1,4 +1,5 @@
 "use client";
+import { PortalChoice } from "@/components/portal/portal-choice";
 import { viewStyles } from "./ranking-category-select.utilities";
 
 type Option = { id: string; label: string };
@@ -9,8 +10,6 @@ export function RankingCategorySelect({ arenaSlug, options, selectedOptionId }: 
     <input type="hidden" name="section" value="leagues" />
     <input type="hidden" name="leagueTab" value="ranking" />
     <input type="hidden" name="tab" value="ranking" />
-    <label><span>Categoria</span><select name="view" defaultValue={selectedOptionId ?? undefined} onChange={(event) => event.currentTarget.form?.requestSubmit()}>
-      {options.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
-    </select></label>
+    <PortalChoice label="Categoria" name="view" defaultValue={selectedOptionId ?? ""} options={options.map(option => ({ value: option.id, label: option.label }))} />
   </form>;
 }
