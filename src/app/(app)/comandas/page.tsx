@@ -16,7 +16,7 @@ import { arenaToday, arenaWallClockToInstant, instantToArenaWallClock } from "@/
 import { withArenaTransaction } from "@/lib/rls";
 
 type ComandasPageProps = {
-  searchParams?: Promise<{ date?: string; search?: string; ids?: string; new?: "client" | "avulsa" }>;
+  searchParams?: Promise<{ date?: string; search?: string; ids?: string; new?: "client" | "avulsa"; player?: string }>;
 };
 
 function CommandIcon({ name }: { name: "search" | "receipt" | "calendar" | "list" | "plus" }) {
@@ -97,6 +97,7 @@ export default async function ComandasPage(props: ComandasPageProps) {
   ]));
 
   const operational = await withArenaTransaction(auth.arenaId, tx => tx.arenaOperationalSettings.findUnique({ where: { arenaId: auth.arenaId }, select: { comandaCardsEnabled: true, requireFullPayment: true, preventOverpayment: true } }));
+  const openRequests = await withArenaTransaction(auth.arenaId, tx => tx.arenaNotification.findMany({ where: { arenaId: auth.arenaId, type: "COMANDA_OPEN_REQUEST", readAt: null }, orderBy: { createdAt: "asc" }, take: 30, select: { id: true, message: true, href: true } }));
   const closeRequestStats = await withArenaTransaction(auth.arenaId, tx => tx.comanda.aggregate({ where: { arenaId: auth.arenaId, status: "OPEN", closeRequestedAt: { not: null } }, _count: { id: true }, _max: { closeRequestedAt: true } }));
   const openDays = new Set(openComandas.map((comanda) => toDateInput(instantToArenaWallClock(comanda.openedAt))));
   const today = arenaToday();
@@ -112,12 +113,13 @@ export default async function ComandasPage(props: ComandasPageProps) {
   }, {});
 
   return <div className={viewStyles.commands_page}><VisiblePageRefresh /><h1 className="tw:sr-only">Comandas</h1>
+    {openRequests.length ? <section aria-label="Solicitações de abertura de comanda" className="tw:grid tw:gap-2 tw:rounded-md tw:border tw:border-[var(--line)] tw:p-3 tw:text-xs">{openRequests.map(request => <div key={request.id} className="tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-2"><span>{request.message}</span><Link href={request.href} className={viewStyles.button}>Abrir comanda solicitada</Link></div>)}</section> : null}
     <header className={viewStyles.commands_toolbar}>
-      {requestedIds.length ? <div className="tw:grid tw:gap-1"><strong className="tw:text-sm">Comandas dos atletas da reserva</strong><Link href="/comandas" className="tw:text-xs tw:text-[var(--brand)]">Ver comandas do dia</Link></div> : <CommandsDatePicker selectedDate={toDateInput(selectedDate)} search={search} openDays={[...openDays]} today={toDateInput(today)} />}
+      {requestedIds.length ? <div className="tw:grid tw:gap-1"><strong className="tw:text-sm">Comandas selecionadas</strong><Link href="/comandas" className="tw:text-xs tw:text-[var(--brand)]">Ver comandas do dia</Link></div> : <CommandsDatePicker selectedDate={toDateInput(selectedDate)} search={search} openDays={[...openDays]} today={toDateInput(today)} />}
       <div className={viewStyles.commands_toolbar_right}><form method="get" className={viewStyles.commands_search}><input type="hidden" name="date" value={toDateInput(selectedDate)} />{requestedIds.length ? <input type="hidden" name="ids" value={requestedIds.join(",")} /> : null}<span aria-hidden="true"><CommandIcon name="search" /></span><input name="search" defaultValue={search} placeholder="Buscar comanda" aria-label="Buscar comanda pelo nome" /><button className={viewStyles.button} type="submit">Buscar</button></form><div className={viewStyles.commands_actions}><Link href={`/comandas?${new URLSearchParams({ date: toDateInput(selectedDate), new: "client" })}`} className={`${viewStyles.button_button_primary} tw:bg-[#087443]! tw:[background-image:none]! tw:border-[#087443]! tw:text-white!`}><CommandIcon name="plus" /> Nova Comanda</Link><Link href={`/comandas?${new URLSearchParams({ date: toDateInput(selectedDate), new: "avulsa" })}`} className={viewStyles.button}><CommandIcon name="receipt" /> Nova Comanda Avulsa</Link></div></div>
     </header>
 
-    {searchParams?.new === "client" ? <NewCommandModal cardsEnabled={operational?.comandaCardsEnabled ?? false} players={players} closeHref={`/comandas?${baseParams}`} action={createComandaAction} /> : null}
+    {searchParams?.new === "client" ? <NewCommandModal cardsEnabled={operational?.comandaCardsEnabled ?? false} players={searchParams?.player ? players.filter(player => player.id === searchParams.player) : players} closeHref={`/comandas?${baseParams}`} action={createComandaAction} /> : null}
     {searchParams?.new === "avulsa" ? <section className={viewStyles.commands_create_panel}><SafeActionForm action={createComandaAction} className={viewStyles.commands_create_form} successMessage="Comanda avulsa aberta."><input type="hidden" name="type" value="AVULSA" />{operational?.comandaCardsEnabled ? <label className={viewStyles.field}>Número do cartão de comanda<input name="cardNumber" maxLength={40} pattern="[A-Za-z0-9_-]+" placeholder="Opcional · digite ou leia o cartão" /></label> : null}<label className={viewStyles.field}>Nome da comanda<input name="label" placeholder="Ex.: Mesa 4" required /></label><SubmitButton label="Abrir comanda" pendingLabel="Abrindo..." className={`${viewStyles.button_button_primary} tw:bg-[#087443]! tw:[background-image:none]! tw:border-[#087443]! tw:text-white!`} /><Link href={`/comandas?${baseParams}`} className={viewStyles.button}>Cancelar</Link></SafeActionForm></section> : null}
 
     <CloseRequestsWatcher revision={`${closeRequestStats._count.id}:${closeRequestStats._max.closeRequestedAt?.toISOString() ?? ""}`} />

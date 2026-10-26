@@ -108,6 +108,7 @@ export async function createComandaAction(formData: FormData) {
         select: { id: true, openedAt: true, cardNumber: true }
       });
       if (existing) {
+        await tx.arenaNotification.updateMany({ where: { arenaId: auth.arenaId, type: "COMANDA_OPEN_REQUEST", readAt: null, href: `/comandas?new=client&player=${encodeURIComponent(player.id)}` }, data: { readAt: new Date() } });
         if (cardNumber && existing.cardNumber && existing.cardNumber !== cardNumber) throw new Error("O cliente já tem uma comanda aberta com outro cartão.");
         if (cardNumber && !existing.cardNumber) await tx.comanda.update({ where: { id: existing.id }, data: { cardNumber } });
         return { comandaId: existing.id, openedAt: existing.openedAt.toISOString(), reused: true, message: "Já existe uma comanda aberta para este cliente." };
@@ -129,6 +130,7 @@ export async function createComandaAction(formData: FormData) {
         type: parsed.data.type
       }
     });
+    if (player) await tx.arenaNotification.updateMany({ where: { arenaId: auth.arenaId, type: "COMANDA_OPEN_REQUEST", readAt: null, href: `/comandas?new=client&player=${encodeURIComponent(player.id)}` }, data: { readAt: new Date() } });
     return { comandaId: comanda.id, openedAt: comanda.openedAt.toISOString(), reused: false };
   });
 
@@ -432,4 +434,24 @@ export async function finishComandaAction(formData: FormData) {
   revalidatePath("/financeiro/lancamentos");
   revalidatePath("/pdv/caixa");
   revalidatePath("/relatorios/caixa");
+}
+
+export async function requestPortalComandaOpenAction(form: FormData) {
+  const arenaSlug = z.string().trim().min(1).max(120).parse(form.get("arenaSlug"));
+  const auth = await requirePublicPlayerAuth(arenaSlug);
+  await withArenaTransaction(auth.arenaId, async tx => {
+    await tx.$queryRaw`SELECT id FROM "Player" WHERE id = ${auth.playerId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
+    const settings = await tx.arenaOperationalSettings.findUnique({ where: { arenaId: auth.arenaId }, select: { portalConsumptionEnabled: true } });
+    if (settings?.portalConsumptionEnabled === false) throw new Error("Comandas pelo Portal estão desativadas nesta arena.");
+    const player = await tx.player.findFirst({ where: { id: auth.playerId, arenaId: auth.arenaId, active: true }, select: { id: true } });
+    if (!player) throw new Error("Cadastro indisponível. Procure a recepção.");
+    const existing = await tx.comanda.findFirst({ where: { arenaId: auth.arenaId, playerId: auth.playerId, status: "OPEN" }, select: { id: true } });
+    if (existing) throw new Error("Você já tem uma comanda aberta. Atualize a consulta.");
+    const href = `/comandas?new=client&player=${encodeURIComponent(auth.playerId)}`;
+    const pending = await tx.arenaNotification.findFirst({ where: { arenaId: auth.arenaId, type: "COMANDA_OPEN_REQUEST", readAt: null, href }, select: { id: true } });
+    if (pending) return;
+    await tx.arenaNotification.create({ data: { arenaId: auth.arenaId, type: "COMANDA_OPEN_REQUEST", title: "Abertura de comanda solicitada", message: `${auth.name} solicitou uma comanda pelo Portal.`, href } });
+    await tx.auditEvent.create({ data: { arenaId: auth.arenaId, actorId: auth.playerId, actorName: auth.name, action: "COMANDA_OPEN_REQUEST", entityId: auth.playerId, details: { source: "ATHLETE_PORTAL" } } });
+  });
+  revalidatePath("/comandas"); revalidatePath("/home");
 }

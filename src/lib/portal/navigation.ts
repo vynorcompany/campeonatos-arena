@@ -24,7 +24,7 @@ export function portalQuery(
   super12Id?: string,
 ) {
   const query = new URLSearchParams({
-    section,
+    section: section === "schedule" ? "booking-direct" : section,
     tab:
       leagueTab === "ranking"
         ? "ranking"

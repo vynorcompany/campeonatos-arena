@@ -4,8 +4,7 @@ export type PortalMenuItem = { section: PortalSection; label: string; descriptio
 export function portalMenu(visibility: { athletePortalShowBooking: boolean; athletePortalShowReservations: boolean; athletePortalShowLessons: boolean; athletePortalShowClasses: boolean; athletePortalShowLeagues: boolean; athletePortalShowDoublesRadar: boolean }, isTeacher: boolean): PortalMenuItem[] {
   return [
     { section: "home", label: "Início", description: "Seu dia na arena", icon: "home", group: "Principal" },
-    { section: "schedule", label: "Grade de Horários", description: "Escolha uma quadra e reserve seu horário", icon: "calendar", group: "Principal" },
-    ...(visibility.athletePortalShowBooking ? [{ section: "booking", label: "Reservar quadra", description: "Encontre seu próximo horário", icon: "calendar", group: "Jogar e aprender" } as const] : []),
+    { section: "schedule", label: "Reservas", description: "Encontre seu próximo horário", icon: "calendar", group: "Principal" },
     ...(visibility.athletePortalShowReservations ? [{ section: "reservations", label: "Minhas reservas", description: "Horários e detalhes dos jogos", icon: "reservations", group: "Jogar e aprender" } as const] : []),
     ...(visibility.athletePortalShowLessons ? [{ section: "lessons", label: "Minhas aulas", description: "Agenda, presenças e reposições", icon: "lessons", group: "Jogar e aprender" } as const] : []),
     ...(visibility.athletePortalShowClasses ? [{ section: "classes", label: "Turmas", description: "Conheça as turmas disponíveis", icon: "classes", group: "Jogar e aprender" } as const] : []),

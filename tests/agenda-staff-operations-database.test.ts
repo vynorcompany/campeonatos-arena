@@ -1,0 +1,52 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { randomUUID } from "node:crypto";
+import { PrismaClient, type Prisma } from "@prisma/client";
+import { manuallyCheckInParticipant, removeOptionalBookingService, blockCourtSlots, moveBookingCourt } from "../src/lib/calendar/staff-operations";
+
+const url = process.env.ARENA_GOAL_TEST_DATABASE_URL ?? "";
+const enabled = /^postgresql:\/\/[^@]+@127\.0\.0\.1:55433\/arena_goal\?/.test(url);
+test("staff agenda operations preserve billing, enforce scope/conflicts and block atomically", { skip: !enabled }, async () => {
+  const admin = new PrismaClient({ datasources: { db: { url } } }); const runtimeUrl = new URL(url); runtimeUrl.username = "arena_runtime";
+  const runtime = new PrismaClient({ datasources: { db: { url: runtimeUrl.toString() } } }); const ids: string[] = [];
+  const scope = <T>(id: string, run: (tx: Prisma.TransactionClient) => Promise<T>) => runtime.$transaction(async tx => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${id}, true)`; return run(tx); });
+  let ownerId = "";
+  const at = (hour: number, minute = 0) => new Date(2040, 0, 2, hour, minute);
+  try {
+    ownerId = (await admin.user.create({ data: { email: `staff-agenda-${randomUUID()}@example.test`, name: "Staff QA", passwordHash: "qa-only" } })).id;
+    for (let i = 0; i < 2; i++) ids.push((await admin.arena.create({ data: { name: "Staff agenda QA", slug: `staff-agenda-${randomUUID()}`, createdById: ownerId, scheduleStartMinute: 420, scheduleEndMinute: 1320, scheduleSlotMinutes: 30 } })).id);
+    const arenaId = ids[0];
+    const courts = await Promise.all([0,1,2].map(i => admin.court.create({ data: { arenaId: i === 2 ? ids[1] : arenaId, name: `Court ${i}` } })));
+    const players = await Promise.all([0,1,2].map(i => admin.player.create({ data: { arenaId, name: `Player ${i}` } })));
+    const service = await admin.product.create({ data: { arenaId, name: "Disparador QA", isService: true, priceCents: 2 } });
+    const occurrence = await admin.scheduleOccurrence.create({ data: { arenaId, sourceType: "BOOKING", title: "Reserva QA", startsAt: at(10), endsAt: at(11), occurrenceCourts: { create: { courtId: courts[0].id } }, participants: { create: players.map((p,i) => ({ playerId: p.id, amountCents: i === 2 ? 0 : 1 })) }, serviceReservations: { create: { productId: service.id, serviceName: service.name, priceCents: 2 } } }, include: { participants: true, serviceReservations: true } });
+    const pendingCharge = await admin.financialEntry.create({ data: { arenaId, playerId: players[0].id, type: "REVENUE", category: "Reserva", description: "Pending service", amountCents: 1, status: "PENDING" } });
+    await admin.scheduleParticipant.update({ where: { occurrenceId_playerId: { occurrenceId: occurrence.id, playerId: players[0].id } }, data: { financialEntryId: pendingCharge.id } });
+    const input = { arenaId, occurrenceId: occurrence.id, playerId: players[0].id, actorId: "qa", actorName: "Staff QA" };
+    const first = await scope(arenaId, tx => manuallyCheckInParticipant(tx, input));
+    assert.equal((await scope(arenaId, tx => manuallyCheckInParticipant(tx, input))).getTime(), first.getTime());
+    assert.equal(await admin.checkinRecord.count({ where: { occurrenceId: occurrence.id } }), 1);
+    await assert.rejects(scope(ids[1], tx => manuallyCheckInParticipant(tx, { ...input, arenaId: ids[1] })), /reserva confirmada/);
+    await scope(arenaId, tx => removeOptionalBookingService(tx, arenaId, occurrence.id, occurrence.serviceReservations[0].id));
+    assert.deepEqual((await admin.scheduleParticipant.findMany({ where: { occurrenceId: occurrence.id }, orderBy: { amountCents: "asc" } })).map(p => p.amountCents), [0,0,0]);
+    assert.equal((await admin.financialEntry.findUniqueOrThrow({ where: { id: pendingCharge.id } })).amountCents, 0, "service reduction updates the linked receivable");
+    assert.equal(await admin.scheduleServiceReservation.count({ where: { occurrenceId: occurrence.id } }), 0);
+    await scope(arenaId, tx => moveBookingCourt(tx, arenaId, occurrence.id, courts[1].id));
+    assert.equal((await admin.scheduleOccurrenceCourt.findFirstOrThrow({ where: { occurrenceId: occurrence.id } })).courtId, courts[1].id);
+    assert.equal((await admin.checkinRecord.findFirstOrThrow({ where: { occurrenceId: occurrence.id } })).courtId, courts[0].id, "immutable check-in retains the court at arrival");
+    await assert.rejects(scope(arenaId, tx => moveBookingCourt(tx, arenaId, occurrence.id, courts[2].id)), /Quadra não encontrada/);
+    const before = await admin.scheduleOccurrence.count({ where: { arenaId } });
+    await assert.rejects(scope(arenaId, tx => blockCourtSlots(tx, arenaId, [{ courtId: courts[0].id, startsAt: at(12), endsAt: at(12,30) }, { courtId: courts[1].id, startsAt: at(10), endsAt: at(10,30) }])), /foi reservado/);
+    assert.equal(await admin.scheduleOccurrence.count({ where: { arenaId } }), before, "conflict rolls back all blocks");
+    await scope(arenaId, tx => blockCourtSlots(tx, arenaId, [{ courtId: courts[0].id, startsAt: at(12), endsAt: at(12,30) }, { courtId: courts[0].id, startsAt: at(12,30), endsAt: at(13) }]));
+    assert.equal(await admin.scheduleOccurrence.count({ where: { arenaId, bookingTypeName: "Bloqueio" } }), 2);
+    const competing = await Promise.allSettled([0,1].map(() => scope(arenaId, tx => blockCourtSlots(tx, arenaId, [{ courtId: courts[0].id, startsAt: at(14), endsAt: at(14,30) }]))));
+    assert.equal(competing.filter(result => result.status === "fulfilled").length, 1, "court lock prevents simultaneous double blocks");
+    const charge = await admin.financialEntry.create({ data: { arenaId, playerId: players[0].id, type: "REVENUE", category: "Reserva", description: "Paid booking", amountCents: 500, status: "PAID" } });
+    await admin.scheduleParticipant.update({ where: { occurrenceId_playerId: { occurrenceId: occurrence.id, playerId: players[0].id } }, data: { financialEntryId: charge.id, amountCents: 500 } });
+    const snapshot = await admin.scheduleServiceReservation.create({ data: { arenaId, occurrenceId: occurrence.id, productId: service.id, serviceName: service.name, priceCents: 2 } });
+    await assert.rejects(scope(arenaId, tx => removeOptionalBookingService(tx, arenaId, occurrence.id, snapshot.id)), /pagamento ou cobrança/);
+    await scope(arenaId, tx => moveBookingCourt(tx, arenaId, occurrence.id, courts[0].id));
+    assert.equal((await admin.financialEntry.findUniqueOrThrow({ where: { id: charge.id } })).amountCents, 500, "court move preserves paid charge");
+  } finally { await admin.scheduleOccurrence.deleteMany({ where: { arenaId: { in: ids } } }); await admin.arena.deleteMany({ where: { id: { in: ids } } }); await runtime.$disconnect(); if (ownerId) await admin.user.delete({ where: { id: ownerId } }); await admin.$disconnect(); }
+});

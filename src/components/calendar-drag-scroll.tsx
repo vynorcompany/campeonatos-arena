@@ -6,9 +6,10 @@ import { useRef, useState } from "react";
 type CalendarDragScrollProps = {
   children: React.ReactNode;
   className?: string;
+  dragFromControls?: boolean;
 };
 
-export function CalendarDragScroll({ children, className }: CalendarDragScrollProps) {
+export function CalendarDragScroll({ children, className, dragFromControls = false }: CalendarDragScrollProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragState = useRef<{ pointerId: number; startX: number; startScrollLeft: number; moved: boolean } | null>(null);
@@ -20,7 +21,7 @@ export function CalendarDragScroll({ children, className }: CalendarDragScrollPr
       className={cx(`${className ?? ""}${isDragging ? " calendar-dragging" : ""}`)}
       onPointerDown={(event) => {
         const target = event.target as HTMLElement;
-        if (target.closest("button,input,select,textarea,label,a")) return;
+        if (event.pointerType !== "mouse" || event.button !== 0 || (!dragFromControls && target.closest("button,input,select,textarea,label,a"))) return;
         const element = ref.current;
         if (!element) return;
         dragState.current = {

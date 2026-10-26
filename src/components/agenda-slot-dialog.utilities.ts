@@ -151,7 +151,7 @@ export const viewStyles = {
     "tw:min-w-[0]", "tw:[&_>_p]:mt-[8px]", "tw:[&_>_p]:mr-[0]", "tw:[&_>_p]:mb-[8px]",
     "tw:[&_>_p]:ml-[0]", "tw:[&_>_p]:text-[color:var(--muted)]", "tw:[&_>_p]:text-[.82rem]",
   ].join(" "),
-  "agenda_participant_row": "agenda-participant-row tw:grid tw:min-w-0 tw:grid-cols-[minmax(0,1fr)_80px_minmax(120px,.8fr)_28px] tw:items-center tw:gap-2 tw:border-b tw:border-[var(--line)] tw:py-1.5 tw:[&>strong]:min-w-0 tw:[&>strong]:text-xs tw:[&_label]:min-w-0 tw:[&_input]:h-8! tw:[&_input]:min-h-8! tw:[&_select]:h-8! tw:[&_select]:min-h-8! tw:[&_input]:rounded-md! tw:[&_select]:rounded-md! tw:[&_input]:text-xs! tw:[&_select]:text-xs! tw:[&_button]:h-7! tw:[&_button]:min-h-7! tw:[&_button]:w-7! tw:[&_button]:p-0! tw:[&_button]:text-base! tw:viewport-680:grid-cols-[80px_minmax(0,1fr)_28px] tw:viewport-680:[&>strong]:col-span-full",
+  "agenda_participant_row": "agenda-participant-row tw:grid tw:min-w-0 tw:grid-cols-[minmax(0,1fr)_80px_minmax(120px,.8fr)_28px] tw:items-center tw:gap-2 tw:border-b tw:border-[var(--line)] tw:py-1.5 tw:[&>strong]:min-w-0 tw:[&>strong]:text-xs tw:[&_label]:min-w-0 tw:[&_input]:h-8! tw:[&_input]:min-h-8! tw:[&_select]:h-8! tw:[&_select]:min-h-8! tw:[&_input]:rounded-md! tw:[&_select]:rounded-md! tw:[&_input]:text-xs! tw:[&_select]:text-xs! tw:[&>button]:h-8! tw:[&>button]:min-h-8! tw:[&>button]:w-7! tw:[&>button]:rounded-md! tw:[&>button]:border-red-200! tw:[&>button]:bg-red-50! tw:[&>button]:text-red-700! tw:[&>button]:p-0! tw:viewport-680:grid-cols-[80px_minmax(0,1fr)_28px] tw:viewport-680:[&>strong]:col-span-full",
   "button_button_danger": sharedUtilities.buttonButtonDanger,
   "form_error": sharedUtilities.formError,
   "button_button_primary": sharedUtilities.buttonButtonPrimary,

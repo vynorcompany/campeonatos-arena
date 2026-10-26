@@ -5,7 +5,8 @@ const visibility = { athletePortalShowBooking: true, athletePortalShowReservatio
 test("portal offers one destination per feature, including reservations and client account",()=>{
  const items=portalMenu(visibility,false);
  assert.equal(new Set(items.map(item=>item.section)).size,items.length);
- for(const section of ["home","booking","reservations","lessons","classes","leagues","radar","comandas","finance","announcements","profile"])assert(items.some(item=>item.section===section));
+ for(const section of ["home","schedule","reservations","lessons","classes","leagues","radar","comandas","finance","announcements","profile"])assert(items.some(item=>item.section===section));
+ assert.equal(items.find(item=>item.section==="schedule")?.label,"Reservas");
  assert.equal(items.filter(item=>item.section==="leagues").length,1);
  assert(!items.some(item=>item.section==="teacher"));
 });
@@ -17,7 +18,7 @@ test("teaching workspace is available only to the teacher",()=>{
  assert(portalMenu(visibility,true).some(item=>item.section==="teacher"));
  for(const flag of Object.keys(visibility) as (keyof typeof visibility)[]){
   const all=portalMenu(visibility,true);const restricted=portalMenu({...visibility,[flag]:false},true);
-  assert.equal(restricted.length,all.length-1);
+  assert.equal(restricted.length,all.length-(flag === "athletePortalShowBooking" ? 0 : 1));
   assert(restricted.some(item=>item.section==="teacher"));
  }
 });

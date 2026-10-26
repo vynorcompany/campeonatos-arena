@@ -17,3 +17,7 @@ test("portal navigation maps ranking, rules and prizes to their legacy tabs", ()
   assert.equal(super12.get("eventTab"), "super12");
   assert.equal(super12.get("super12"), "evento 1");
 });
+
+test("Reservations menu uses the booking entry point, including legacy schedule links", () => {
+  assert.equal(new URLSearchParams(portalQuery("schedule").slice(1)).get("section"), "booking-direct");
+});
