@@ -69,8 +69,10 @@ test("comandas use a compact date trigger and a floating calendar modal", () => 
   assert.match(page, /Nova Comanda Avulsa/);
   assert.match(page, /CommandsDatePicker/);
   assert.match(picker, /commands-date-trigger/);
-  assert.match(picker, /commands-calendar-modal/);
-  assert.match(picker, /calendar-open-indicator/);
+  assert.match(picker, /<Modal title="Selecionar dia das comandas"/);
+  assert.match(picker, /aria-label="Mês anterior"/);
+  assert.match(picker, /aria-label="Próximo mês"/);
+  assert.match(picker, /viewStyles\.calendar_open_indicator/);
   assert.match(picker, /router\.push/);
 });
 

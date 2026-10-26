@@ -159,9 +159,10 @@ test("command detail acts as an item editor and modals close with Escape", () =>
   const card = readFileSync(resolve(process.cwd(), "src/components/comandas/command-card.tsx"), "utf8");
   const css = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
 
-  assert.match(card, /event\.preventDefault\(\); event\.stopPropagation\(\); setProductModalOpen\(true\)/);
+  assert.match(card, /setDetailsOpen\(false\); setProductModalOpen\(true\)/);
   assert.match(card, /onClick=\{\(event\) => event\.stopPropagation\(\)\}/);
-  assert.match(card, /Adicionar o primeiro produto/);
+  assert.doesNotMatch(card, /Adicionar o primeiro produto/);
+  assert.match(card, /Adicionar produtos/);
   assert.match(card, /command-details-item-controls/);
   assert.match(card, /event\.key !== "Escape"/);
   assert.match(card, /setProductModalOpen\(false\)/);

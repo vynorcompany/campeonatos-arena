@@ -283,6 +283,7 @@ export async function finishComandaAction(formData: FormData) {
   }
   const parsed = finishComandaSchema.safeParse({ comandaId: formData.get("comandaId"), shares, payments, debtIds, creditCents: formData.get("creditCents") ?? 0, allowEmpty: formData.get("allowEmpty") ?? false, allowPartial: formData.get("allowPartial") ?? false, fiscalDocumentType: formData.get("fiscalDocumentType") ?? "" });
   if (!parsed.success) throw new Error("Comanda inválida.");
+  if (parsed.data.payments.some(payment => /^(saldo\b|credito (do cliente|em conta)\b)/.test(payment.paymentMethod.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase()))) throw new Error("Para usar saldo, ative Usar saldo. O valor será validado e descontado da conta do cliente.");
 
   const whatsappIds = await withArenaTransaction(auth.arenaId, async (tx) => {
     const owner = await tx.comanda.findFirst({ where: { id: parsed.data.comandaId, arenaId: auth.arenaId, status: "OPEN" }, select: { playerId: true } });
@@ -301,16 +302,16 @@ export async function finishComandaAction(formData: FormData) {
       return;
     }
     const totalCents = comanda.items.reduce((total, item) => total + item.totalCents, 0);
-    const clientCreditCents = comanda.playerId ? Math.max(0, (await tx.clientBalanceMovement.aggregate({ where: { arenaId: auth.arenaId, playerId: comanda.playerId }, _sum: { amountCents: true } }))._sum.amountCents ?? 0) : 0;
+    const clientCreditCents = comanda.playerId ? Math.max(0, (await tx.clientBalanceMovement.aggregate({ where: { arenaId: auth.arenaId, playerId: comanda.playerId, kind: "MONEY" }, _sum: { amountCents: true } }))._sum.amountCents ?? 0) : 0;
     if (parsed.data.creditCents && !comanda.playerId) throw new Error("Saldo de cliente só pode ser usado em comandas vinculadas a um cliente.");
     if (parsed.data.creditCents > clientCreditCents) throw new Error("O saldo disponível do cliente foi alterado. Atualize a comanda e tente novamente.");
-    const creditAppliedCents = Math.min(parsed.data.creditCents, totalCents);
     const paymentTotalCents = parsed.data.payments.reduce((total, payment) => total + payment.amountCents, 0);
     const selectedDebts = comanda.playerId && debtIdsToSettle.length ? await tx.financialEntry.findMany({
       where: selectedComandaDebtWhere(auth.arenaId, debtIdsToSettle),
-      select: { id: true, playerId: true, amountCents: true, settlements: { select: { amountCents: true } }, scheduleParticipant: { select: { playerId: true } }, sale: { select: { comanda: { select: { playerId: true } } } } }
+      select: { id: true, playerId: true, amountCents: true, onlinePaymentId: true, onlinePaymentUrl: true, onlinePaymentClaimMethod: true, onlinePaymentClaimedAt: true, notes: true, onlinePaymentItems: { select: { checkout: { select: { status: true, mercadoPagoPaymentId: true, checkoutUrl: true } } } }, settlements: { select: { amountCents: true, interestCents: true } }, scheduleParticipant: { select: { playerId: true } }, sale: { select: { comanda: { select: { playerId: true } } } } }
     }) : [];
     if (selectedDebts.length !== debtIdsToSettle.length || selectedDebts.some((debt) => comandaDebtOwnerId(debt) !== comanda.playerId)) throw new Error("Um dos débitos selecionados não está disponível para este cliente.");
+    if (selectedDebts.some(debt => Boolean(debt.onlinePaymentId || debt.onlinePaymentUrl || debt.onlinePaymentClaimMethod || debt.onlinePaymentClaimedAt) || debt.notes.includes("[MP_REVIEW:") || debt.onlinePaymentItems.some(({ checkout }) => ["PENDING", "REVIEW", "PAID"].includes(checkout.status) || (checkout.status === "FAILED" && Boolean(checkout.mercadoPagoPaymentId || checkout.checkoutUrl))))) throw new Error("Um dos débitos possui pagamento online emitido ou em análise. Confira e concilie a cobrança antes de quitá-lo na comanda.");
     const selectedDebtBalances = selectedDebts
       .map((debt) => ({
         financialEntryId: debt.id,
@@ -320,19 +321,27 @@ export async function finishComandaAction(formData: FormData) {
     if (selectedDebtBalances.length !== selectedDebts.length) throw new Error("Um dos débitos selecionados já foi quitado.");
     const selectedDebtTotalCents = selectedDebtBalances.reduce((total, debt) => total + debt.outstandingCents, 0);
     const grandTotalCents = totalCents + selectedDebtTotalCents;
+    const sharedParts = parsed.data.shares.length ? parsed.data.shares : [{ playerId: comanda.playerId, amountCents: totalCents }];
+    if (parsed.data.creditCents > sharedParts[0].amountCents + selectedDebtTotalCents) throw new Error("Os pagamentos e o saldo utilizado excedem as partes da comanda.");
+    const creditAppliedCents = parsed.data.creditCents;
+    // Preserve credit on the owner's products first; any remainder pays their own debts/reservation.
+    const productCreditCents = Math.min(creditAppliedCents, sharedParts[0].amountCents);
+    const debtCreditCents = creditAppliedCents - productCreditCents;
     const paymentPolicy = applyComandaPaymentPolicy({ totalCents: grandTotalCents, creditCents: creditAppliedCents, payments: parsed.data.payments, preventOverpayment: operational?.preventOverpayment ?? true, requireFullPayment: operational?.requireFullPayment ?? false, allowPartial: parsed.data.allowPartial, playerId: comanda.playerId });
     await assertComandaCashRegister(tx, auth.arenaId, operational?.cashRegisterRequired ?? false, paymentTotalCents > 0);
-    const debtPaymentAllocation = allocatePaymentsToDebts(selectedDebtBalances, paymentPolicy.appliedPayments);
+    const creditDebtAllocation = allocatePaymentsToDebts(selectedDebtBalances, debtCreditCents ? [{ paymentMethod: "Saldo do cliente", amountCents: debtCreditCents }] : []);
+    const remainingDebtBalances = selectedDebtBalances.map(debt => ({ ...debt, outstandingCents: debt.outstandingCents - creditDebtAllocation.settlements.filter(settlement => settlement.financialEntryId === debt.financialEntryId).reduce((sum, settlement) => sum + settlement.amountCents, 0) })).filter(debt => debt.outstandingCents > 0);
+    const cashDebtAllocation = allocatePaymentsToDebts(remainingDebtBalances, paymentPolicy.appliedPayments);
+    const debtPaymentAllocation = { remainingPayments: cashDebtAllocation.remainingPayments, settlements: [...creditDebtAllocation.settlements, ...cashDebtAllocation.settlements] };
     const partialDebtPaymentCents = debtPaymentAllocation.settlements.reduce((total, settlement) => total + settlement.amountCents, 0);
     const settleSelectedDebts = Boolean(selectedDebts.length) && partialDebtPaymentCents >= selectedDebtTotalCents;
     const comandaPaymentCents = debtPaymentAllocation.remainingPayments.reduce((total, payment) => total + payment.amountCents, 0);
-    const remainingCents = totalCents - comandaPaymentCents - creditAppliedCents;
-    const sharedParts = parsed.data.shares.length ? parsed.data.shares : [{ playerId: comanda.playerId, amountCents: totalCents }];
+    const remainingCents = totalCents - comandaPaymentCents - productCreditCents;
     if (sharedParts[0].playerId !== comanda.playerId || sharedParts.slice(1).some(part => !part.playerId || part.amountCents <= 0)) throw new Error("A divisão deve manter o titular e identificar cada outra pessoa.");
     const otherIds = sharedParts.slice(1).map(part => part.playerId!);
     const otherPlayers = otherIds.length ? await tx.player.findMany({ where: { arenaId: auth.arenaId, id: { in: otherIds }, active: true }, select: { id: true, name: true } }) : [];
     if (otherPlayers.length !== otherIds.length) throw new Error("Uma das pessoas selecionadas não está disponível nesta arena.");
-    const allocations = allocateComandaShares(sharedParts, totalCents, comandaPaymentCents, creditAppliedCents);
+    const allocations = allocateComandaShares(sharedParts, totalCents, comandaPaymentCents, productCreditCents);
     const now = new Date();
     const sale = await tx.sale.create({
       data: {
@@ -341,7 +350,7 @@ export async function finishComandaAction(formData: FormData) {
         code: `VEN-${Date.now().toString(36).toUpperCase()}`,
         customerName: comanda.label,
         paymentMethod: parsed.data.payments.length + (creditAppliedCents ? 1 : 0) === 1 ? (creditAppliedCents ? "Saldo do cliente" : parsed.data.payments[0].paymentMethod) : parsed.data.payments.length || creditAppliedCents ? "MÚLTIPLO" : "",
-        status: remainingCents ? (comandaPaymentCents ? "PARTIAL" : "PENDING") : "PAID",
+        status: remainingCents ? (comandaPaymentCents + productCreditCents ? "PARTIAL" : "PENDING") : "PAID",
         totalCents,
         items: { create: comanda.items.map((item) => ({ productId: item.productId, quantity: item.quantity, unitPriceCents: item.unitPriceCents, totalCents: item.totalCents })) }
       }
@@ -365,7 +374,7 @@ export async function finishComandaAction(formData: FormData) {
     }
     if (paymentPolicy.partialOverride) await tx.auditEvent.create({ data: { arenaId: auth.arenaId, actorId: auth.userId, actorName: auth.userName, action: "COMANDA_PARTIAL_PAYMENT_OVERRIDE", entityId: comanda.id, details: { outstandingCents: paymentPolicy.outstandingCents } } });
     if (creditAppliedCents && comanda.playerId) {
-      await tx.salePayment.create({ data: { saleId: sale.id, paymentMethod: "Saldo do cliente", amountCents: creditAppliedCents } });
+      if (productCreditCents) await tx.salePayment.create({ data: { saleId: sale.id, paymentMethod: "Saldo do cliente", amountCents: productCreditCents } });
       await tx.clientBalanceMovement.create({ data: { arenaId: auth.arenaId, playerId: comanda.playerId, kind: "MONEY", amountCents: -creditAppliedCents, reason: `Saldo utilizado na comanda ${comanda.code}` } });
     }
     for (const payment of debtPaymentAllocation.remainingPayments) {

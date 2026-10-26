@@ -11,7 +11,8 @@ test("commands keeps date, search and actions in a wrapping toolbar", () => {
   const css = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
 
   assert.match(page, /commands-toolbar-right/);
-  assert.match(styleRules("commands-date-trigger"), /grid-column: auto/);
+  assert.match(styleRules("commands-date-trigger"), /display: flex/);
+  assert.match(styleRules("commands-date-trigger"), /min-width: 0/);
   assert.match(styleRules("commands-toolbar-right"), /flex-wrap: wrap/);
   assert.ok(utilityClasses("content-shell").length, "content-shell has component Tailwind utilities");
   assert.match(styleRules("commands-list-items"), /grid-template-columns/);
@@ -48,7 +49,7 @@ test("commands use compact controls and vector icons in the daily workspace", ()
   assert.doesNotMatch(styleRules("commands-day-panel"), /min-height: (620|500)px/);
   assert.match(styleRules("commands-actions", {"context":".button"}), /min-height: 46px/);
   assert.match(picker, /<svg (?:className="commands-icon"|className=\{(?:cx\()?viewStyles\.commands_icon(?:\))?\})/);
-  assert.match(styleRules("commands-date-trigger", {"context":".commands-date-icon"}), /color: #fff/);
+  assert.match(styleRules("commands-date-icon"), /color: #52677d/);
   assert.match(page, /stroke="currentColor"/);
 });
 
