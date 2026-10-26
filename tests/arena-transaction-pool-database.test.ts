@@ -37,7 +37,7 @@ test("tenant transaction entry points wait for a busy pool without losing isolat
     await assert.rejects(a.$transaction(async tx => tx.product.count(), { maxWait: 100 }), /Unable to start a transaction/);
     await new Promise(resolve => setTimeout(resolve, 2400));
     assert.equal(settled, 0, "normal reads must still be waiting after the old two-second limit");
-    release(); await blocker;
+    release!(); await blocker;
     assert.deepEqual(await Promise.all(pending), [{ value: [{ name: "Arena A" }] }, { value: [{ name: "Arena B" }] }]);
     assert.equal(await runtime.product.count(), 0, "transaction-local arena must not leak to unscoped queries");
   } finally {
