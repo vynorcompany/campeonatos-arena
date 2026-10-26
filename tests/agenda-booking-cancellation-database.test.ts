@@ -1,3 +1,4 @@
+import * as bookingResources from "../src/lib/calendar/booking-services";
 import { arenaDatabaseForTest } from "./helpers/arena-database";
 import { arenaBookingPath } from "../src/lib/arena-booking-path";
 import assert from "node:assert/strict";
@@ -57,7 +58,7 @@ test("cancelar reserva respeita a escolha sobre cobranças abertas sem afetar va
         await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`;
         return operation(tx);
       }) },
-      "@/lib/calendar/inputs": {},
+      "@/lib/calendar/booking-services": bookingResources, "@/lib/calendar/inputs": {},
       "@/lib/scheduling/weekly-rule": {},
       "@/lib/calendar/booking-types": {},
       "@/lib/calendar/revalidation": { refreshCalendarRoutes() {} },

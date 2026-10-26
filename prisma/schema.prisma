@@ -151,6 +151,7 @@ model Arena {
   portalAnnouncements               PortalAnnouncement[]
   portalEventPosts                  PortalEventPost[]
   courts                            Court[]
+  serviceReservations               ScheduleServiceReservation[]
   scheduleOccurrences               ScheduleOccurrence[]
   scheduleBookingSeries             ScheduleBookingSeries[]
   bookingTypes                      BookingType[]
@@ -1521,6 +1522,7 @@ model CourtWeeklyRule {
 }
 
 model ScheduleOccurrence {
+  serviceReservations ScheduleServiceReservation[]
   id               String                    @id @default(cuid())
   sourceType       String
   title            String
@@ -1545,6 +1547,7 @@ model ScheduleOccurrence {
   bookingSeries    ScheduleBookingSeries?    @relation(fields: [bookingSeriesId], references: [id], onDelete: SetNull)
   challenge        LeagueChallenge?          @relation(fields: [challengeId], references: [id], onDelete: SetNull)
 
+  @@unique([arenaId, id])
   @@index([arenaId, startsAt, endsAt])
   @@index([teacherId])
   @@index([responsiblePlayerId])
@@ -1693,6 +1696,9 @@ model ArenaServicePrice {
 }
 
 model Product {
+  showOnPortalBooking Boolean @default(false)
+  bookingConcurrentLimit Int @default(1)
+  serviceReservations ScheduleServiceReservation[]
   isService       Boolean          @default(false)
   showOnAgenda    Boolean          @default(false)
   showOnComandas  Boolean          @default(true)
@@ -1719,6 +1725,7 @@ model Product {
   fiscalDocumentItems FiscalDocumentItem[]
 
   @@unique([arenaId, name])
+  @@unique([arenaId, id])
   @@index([arenaId, active])
   @@index([arenaId, stockQuantity])
   @@index([categoryId])
@@ -2718,4 +2725,20 @@ model ArenaOperationalSettings {
   cancellationPolicyPublished Boolean @default(false)
   cancellationPolicyUpdatedAt DateTime?
   updatedAt DateTime @updatedAt
+}
+
+model ScheduleServiceReservation {
+  id String @id @default(cuid())
+  arenaId String
+  occurrenceId String
+  productId String
+  serviceName String
+  priceCents Int
+  createdAt DateTime @default(now())
+  arena Arena @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  occurrence ScheduleOccurrence @relation(fields: [arenaId, occurrenceId], references: [arenaId, id], onDelete: Cascade)
+  product Product @relation(fields: [arenaId, productId], references: [arenaId, id], onDelete: Restrict)
+
+  @@unique([occurrenceId, productId])
+  @@index([arenaId, productId, occurrenceId])
 }

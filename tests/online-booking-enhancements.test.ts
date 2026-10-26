@@ -30,7 +30,7 @@ test("online booking enforces a configurable lead time and marks pending request
   assert.match(bookingForm, /Ir para pagamento/);
   assert.match(bookingForm, /pendingReservation\.status === "PENDING_PAYMENT" \? <a[^>]+href=\{`\/reservar\/\$\{encodeURIComponent\(arenaSlug\)\}\/pagamento\/\$\{encodeURIComponent\(pendingReservation\.id\)\}`\}/);
   assert.match(bookingForm, /paymentOnlineEnabled && selectedTotalCents > 0/);
-  assert.match(actions, /const requiresPayment = arena\.onlineBookingPaymentEnabled && bookingAmountCents > 0/);
+  assert.match(actions, /requiresPayment = arena\.onlineBookingPaymentEnabled && totalAmountCents > 0/);
   assert.match(actions, /status: requiresPayment \? "PENDING_PAYMENT"/);
   assert.match(actions, /createPixPayment/);
   assert.doesNotMatch(actions, /financialEntry\.create\(\{ data: \{ arenaId: arena\.id, type: "REVENUE", category: "Reserva"/);
@@ -47,7 +47,7 @@ test("online booking serializes same-court requests and reports a readable confl
   const form = readFileSync(resolve(process.cwd(), "src/components/public-court-booking-form.tsx"), "utf8");
   assert.match(actions, /withArenaTransaction\(arena\.id, async \(tx\) => \{[\s\S]*FOR UPDATE[\s\S]*tx\.scheduleOccurrence\.findFirst[\s\S]*tx\.scheduleOccurrence\.create/);
   assert.match(actions, /PublicBookingConflictError[\s\S]*ok: false, error: error\.message/);
-  assert.match(form, /if \(!result\.ok\) \{ setMessage\(result\.error\); return; \}/);
+  assert.match(form, /if \(!result\.ok\) \{ setMessage\(result\.error\); router\.refresh\(\); return; \}/);
 });
 
 test("portal só cancela solicitação sem pagamento iniciado", () => {

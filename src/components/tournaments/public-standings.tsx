@@ -1,5 +1,4 @@
 import { ArenaLegalLinks } from "@/components/legal/arena-legal-links";
-import { PublicSchedule } from "@/components/portal/public-schedule";
 import { PortalChoice } from "@/components/portal/portal-choice";
 import { PortalAmbientBackground } from "@/components/portal/portal-ambient-background";
 import { arenaBookingPath } from "@/lib/arena-booking-path";
@@ -249,7 +248,7 @@ export function PublicStandings({
     leagueCategoryId?: string,
     eventTab?: EventTab,
     super12Id?: string,
-  ) => `/home?arena=${encodeURIComponent(arena.slug)}&${portalQuery(section, leagueTab, teacherId, leagueCategoryId, eventTab, super12Id).slice(1)}`;
+  ) => `/home?arena=${encodeURIComponent(arena.slug)}&${portalQuery(section === "schedule" ? "booking" : section, leagueTab, teacherId, leagueCategoryId, eventTab, super12Id).slice(1)}`;
   if (!currentClient)
     return <AthletePortalLoginLayout arena={{ name: arena.name, logoUrl: arena.athletePortalLogoUrl || arena.logoUrl }}>{authForm}</AthletePortalLoginLayout>;
 
@@ -426,9 +425,7 @@ export function PublicStandings({
           </> : selectedEventTab === "super12" ? <PublicSuper12 arenaSlug={arena.slug} data={super12} /> : <PublicEventRadar embedded view={eventRadarView} embeddedHref={(view) => `${portalHref("leagues", undefined, undefined, undefined, "radar")}&eventRadarView=${view}`} />}
           </section>
         </>
-      ) : requestedSection === "schedule" ? (
-        <PublicSchedule arenaSlug={arena.slug} date={bookingDate} />
-      ) : requestedSection === "booking" ? (
+      ) : requestedSection === "schedule" || requestedSection === "booking" ? (
         <PublicBookingContent
           arenaSlug={arena.slug}
           date={bookingDate}

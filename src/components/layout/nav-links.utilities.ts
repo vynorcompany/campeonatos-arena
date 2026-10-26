@@ -68,10 +68,10 @@ export const viewStyles = {
     "tw:[&_.nav-svg-whatsapp]:[filter:drop-shadow(0_1px_1px_rgb(0_21_35_/_.28))]",
   ].join(" "),
   "nav_toggle_nav_expand_toggle": [
-    "nav-toggle nav-expand-toggle tw:grid tw:size-9 tw:shrink-0 tw:place-items-center tw:cursor-pointer tw:rounded-xl tw:border tw:border-white/10 tw:bg-white/5 tw:p-0 tw:text-[#dcebe5] tw:transition-colors tw:hover:border-white/25 tw:hover:bg-white/15 tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#b6f36c] tw:aria-expanded:border-[#b6f36c]/35 tw:aria-expanded:bg-[#b6f36c]/15 tw:aria-expanded:text-[#d1f6a6]",
+    "nav-toggle nav-expand-toggle tw:grid tw:h-9 tw:w-7 tw:shrink-0 tw:place-items-center tw:cursor-pointer tw:rounded-sm tw:border-0 tw:bg-transparent tw:p-0 tw:text-[#a9beb6] tw:transition-colors tw:hover:bg-white/5 tw:hover:text-white tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#b6f36c] tw:aria-expanded:text-white",
   ].join(" "),
   "nav_chevron": [
-    "nav-chevron tw:grid tw:size-4 tw:place-items-center tw:transition-transform tw:duration-200 tw:motion-reduce:transition-none tw:[&_svg]:size-4",
+    "nav-chevron tw:grid tw:size-4 tw:place-items-center tw:transition-transform tw:duration-200 tw:motion-reduce:transition-none tw:[&_svg]:size-3",
   ].join(" "),
   "nav_chevron_open": [
     "nav-chevron-open tw:rotate-90",
