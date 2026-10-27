@@ -1,3 +1,4 @@
+import { fetchWithDeadline } from "@/lib/http/fetch-with-deadline";
 import "server-only";
 
 import crypto from "node:crypto";
@@ -41,7 +42,8 @@ function webhookConfiguration(instanceName: string, webhookSecret: string) {
     enabled: true,
     url: webhookUrl(instanceName),
     byEvents: false,
-    base64: true,
+    // Media is fetched on demand; inline copies in every webhook are unused.
+    base64: false,
     events: webhookEvents,
     headers: { "x-evolution-webhook-secret": webhookSecret },
   };
@@ -52,7 +54,8 @@ function legacyWebhookConfiguration(instanceName: string, webhookSecret: string)
     enabled: true,
     url: webhookUrl(instanceName, webhookSecret),
     byEvents: false,
-    base64: true,
+    // Media is fetched on demand; inline copies in every webhook are unused.
+    base64: false,
     events: webhookEvents,
   };
 }
@@ -69,7 +72,7 @@ function normalizeInstance(value: unknown) {
 export async function findEvolutionInstance(instanceName: string) {
   const config = requiredEnvironment();
   const endpoint = `${config.apiUrl}/instance/fetchInstances?instanceName=${encodeURIComponent(instanceName)}`;
-  const response = await fetch(endpoint, { headers: { apikey: config.apiKey }, cache: "no-store" });
+  const response = await fetchWithDeadline(fetch, endpoint, { headers: { apikey: config.apiKey }, cache: "no-store" });
   const payload = await response.json().catch(() => ({})) as unknown;
   // A Evolution responde 404 quando a instância não existe (inclusive após
   // um logout/removal feito pelo próprio WhatsApp). Isso não é uma falha de
@@ -93,7 +96,7 @@ export async function createEvolutionInstance(input: { instanceName: string; ins
   const config = requiredEnvironment();
   const webhook = webhookConfiguration(input.instanceName, input.webhookSecret);
   const legacyWebhook = legacyWebhookConfiguration(input.instanceName, input.webhookSecret);
-  const request = (body: Record<string, unknown>) => fetch(`${config.apiUrl}/instance/create`, {
+  const request = (body: Record<string, unknown>) => fetchWithDeadline(fetch, `${config.apiUrl}/instance/create`, {
     method: "POST",
     headers: { apikey: config.apiKey, "content-type": "application/json" },
     body: JSON.stringify(body),
@@ -111,7 +114,7 @@ export async function createEvolutionInstance(input: { instanceName: string; ins
       webhook,
   });
   if (!response.ok && [400, 403].includes(response.status)) response = await request({ instanceName: input.instanceName, token: input.instanceToken, qrcode: true, integration: "WHATSAPP-BAILEYS", syncFullHistory: true, webhook: legacyWebhook });
-  if (!response.ok && response.status === 400) response = await request({ instanceName: input.instanceName, token: input.instanceToken, qrcode: true, integration: "WHATSAPP-BAILEYS", syncFullHistory: true, webhook: legacyWebhook.url, webhook_by_events: false, events: webhookEvents });
+  if (!response.ok && response.status === 400) response = await request({ instanceName: input.instanceName, token: input.instanceToken, qrcode: true, integration: "WHATSAPP-BAILEYS", syncFullHistory: true, webhook: legacyWebhook.url, webhook_by_events: false, webhook_base64: false, events: webhookEvents });
   const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
   if (!response.ok) throw new Error(`A Evolution não criou a instância (${response.status})${providerMessage(payload) ? `: ${providerMessage(payload)}` : "."}`);
   const qrcode = payload.qrcode as Record<string, unknown> | undefined;
@@ -123,7 +126,7 @@ export async function configureEvolutionWebhook(input: { instanceName: string; w
   const endpoint = `${config.apiUrl}/webhook/set/${encodeURIComponent(input.instanceName)}`;
   const webhook = webhookConfiguration(input.instanceName, input.webhookSecret);
   const legacyWebhook = legacyWebhookConfiguration(input.instanceName, input.webhookSecret);
-  const request = (body: Record<string, unknown>) => fetch(endpoint, {
+  const request = (body: Record<string, unknown>) => fetchWithDeadline(fetch, endpoint, {
     method: "POST",
     signal: AbortSignal.timeout(8_000),
     headers: { apikey: config.apiKey, "content-type": "application/json" },
@@ -142,7 +145,7 @@ export async function configureEvolutionWebhook(input: { instanceName: string; w
 
 export async function logoutEvolutionInstance(instanceName: string) {
   const config = requiredEnvironment();
-  const response = await fetch(`${config.apiUrl}/instance/logout/${encodeURIComponent(instanceName)}`, {
+  const response = await fetchWithDeadline(fetch, `${config.apiUrl}/instance/logout/${encodeURIComponent(instanceName)}`, {
     method: "DELETE",
     headers: { apikey: config.apiKey },
     cache: "no-store",
@@ -157,11 +160,11 @@ export async function logoutEvolutionInstance(instanceName: string) {
 export async function enableEvolutionHistorySync(instanceName: string) {
   const config = requiredEnvironment();
   const headers = { apikey: config.apiKey, "content-type": "application/json" };
-  const currentResponse = await fetch(`${config.apiUrl}/settings/find/${encodeURIComponent(instanceName)}`, { headers, cache: "no-store" });
+  const currentResponse = await fetchWithDeadline(fetch, `${config.apiUrl}/settings/find/${encodeURIComponent(instanceName)}`, { headers, cache: "no-store" });
   const current = await currentResponse.json().catch(() => ({})) as Record<string, unknown>;
   if (!currentResponse.ok) throw new Error(`A Evolution não confirmou as configurações da instância (${currentResponse.status}).`);
   if (current.syncFullHistory === true) return;
-  const response = await fetch(`${config.apiUrl}/settings/set/${encodeURIComponent(instanceName)}`, { method: "POST", headers, body: JSON.stringify({ ...current, syncFullHistory: true }), cache: "no-store" });
+  const response = await fetchWithDeadline(fetch, `${config.apiUrl}/settings/set/${encodeURIComponent(instanceName)}`, { method: "POST", headers, body: JSON.stringify({ ...current, syncFullHistory: true }), cache: "no-store" });
   if (!response.ok) throw new Error(`A Evolution não ativou a sincronização de conversas (${response.status}).`);
 }
 
@@ -173,7 +176,7 @@ export async function getEvolutionQrCode(instanceName: string, instanceToken: st
   const keys = [...new Set([config.apiKey, instanceToken].filter(Boolean))];
   let failure = "";
   for (const apiKey of keys) {
-    const response = await fetch(`${config.apiUrl}/instance/connect/${encodeURIComponent(instanceName)}`, { headers: { apikey: apiKey }, cache: "no-store" });
+    const response = await fetchWithDeadline(fetch, `${config.apiUrl}/instance/connect/${encodeURIComponent(instanceName)}`, { headers: { apikey: apiKey }, cache: "no-store" });
     const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
     if (!response.ok) {
       failure = `${response.status}${providerMessage(payload) ? `: ${providerMessage(payload)}` : ""}`;

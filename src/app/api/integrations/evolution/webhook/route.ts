@@ -1,3 +1,4 @@
+import { readBoundedJson, RequestBodyTooLargeError } from "@/lib/http/json-body";
 import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
@@ -72,7 +73,9 @@ function sentAtFrom(data: Record<string, unknown>) {
 }
 
 export async function POST(request: NextRequest) {
-  const payload = await request.json().catch(() => null);
+  let payload: unknown;
+  try { payload = await readBoundedJson(request, 32 * 1024 * 1024); }
+  catch (error) { return NextResponse.json({ error: error instanceof RequestBodyTooLargeError ? error.message : "Payload inválido." }, { status: error instanceof RequestBodyTooLargeError ? 413 : 400 }); }
   if (!payload || typeof payload !== "object") return NextResponse.json({ error: "Payload inválido." }, { status: 400 });
   const record = payload as Record<string, unknown>;
   const instanceName = String(request.nextUrl.searchParams.get("instance") ?? nestedValue(record, "instance") ?? nestedValue(record, "instanceName") ?? "");

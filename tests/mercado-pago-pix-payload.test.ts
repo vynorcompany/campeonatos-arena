@@ -1,3 +1,4 @@
+import * as providerDeadline from "../src/lib/http/fetch-with-deadline";
 import { portalExcludedPaymentTypes } from "../src/lib/payments/portal-checkout-policy";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -19,6 +20,7 @@ function loadPaymentRequests(requests: Array<{ headers: Record<string, string>; 
       return { ok: true, json: async () => ({ id: "payment-synthetic", init_point: "https://example.test/card", point_of_interaction: { transaction_data: { ticket_url: "https://example.test/pix" } } }) };
     },
     require: (name: string) => {
+      if (name === "@/lib/http/fetch-with-deadline") return providerDeadline;
       if (name === "@/lib/payments/portal-checkout-policy") return { portalExcludedPaymentTypes };
       if (name === "@/lib/env") return { env: {} };
       if (name === "@/lib/payments/connection-secrets") return { decryptConnectionSecrets: () => ({ accessToken: "synthetic-token" }) };

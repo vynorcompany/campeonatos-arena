@@ -1,3 +1,4 @@
+import { fetchWithDeadline } from "@/lib/http/fetch-with-deadline";
 import "server-only";
 
 import { env } from "@/lib/env";
@@ -22,7 +23,7 @@ export async function sendEvolutionTextMessage(phone: string, text: string, aren
   const instanceName = connection.instanceName;
   if (!instanceName) throw new Error("Nenhuma instância Evolution foi definida.");
   const legacyInstanceToken = decryptConnectionSecrets(connection.encryptedToken).token;
-  const send = (apiKey: string) => fetch(`${config.apiUrl}/message/sendText/${encodeURIComponent(instanceName)}`, {
+  const send = (apiKey: string) => fetchWithDeadline(fetch, `${config.apiUrl}/message/sendText/${encodeURIComponent(instanceName)}`, {
     method: "POST",
     signal: options?.signal,
     headers: { apikey: apiKey, "content-type": "application/json" },
@@ -51,7 +52,7 @@ export async function sendEvolutionAudioMessage(phone: string, audioDataUrl: str
   if (!connection || connection.status !== "CONNECTED") throw new Error("O WhatsApp desta arena ainda não está conectado.");
   const config = getEvolutionConfig();
   const number = evolutionRecipientNumber(phone);
-  const response = await fetch(`${config.apiUrl}/message/sendWhatsAppAudio/${encodeURIComponent(connection.instanceName)}`, {
+  const response = await fetchWithDeadline(fetch, `${config.apiUrl}/message/sendWhatsAppAudio/${encodeURIComponent(connection.instanceName)}`, {
     method: "POST", headers: { apikey: config.apiKey, "content-type": "application/json" }, body: JSON.stringify({ number: phone.endsWith("@g.us") ? phone : number, audio: audioDataUrl, ...(quoted ? { quoted } : {}) }), cache: "no-store"
   });
   if (!response.ok) throw new Error(`A Evolution recusou o envio do áudio (${response.status}).`);
@@ -62,7 +63,7 @@ export async function sendEvolutionMediaMessage(phone: string, mediaDataUrl: str
   const connection = await arenaDatabase(arenaId).whatsAppConnection.findUnique({ where: { arenaId } });
   if (!connection || connection.status !== "CONNECTED") throw new Error("O WhatsApp desta arena ainda não está conectado.");
   const config = getEvolutionConfig(); const number = evolutionRecipientNumber(phone);
-  const send = (media: string) => fetch(`${config.apiUrl}/message/sendMedia/${encodeURIComponent(connection.instanceName)}`, { method: "POST", headers: { apikey: config.apiKey, "content-type": "application/json" }, body: JSON.stringify({ number: phone.endsWith("@g.us") ? phone : number, mediatype: mediaType, media, fileName, mimetype: mimeType, caption: "", ...(quoted ? { quoted } : {}) }), cache: "no-store" });
+  const send = (media: string) => fetchWithDeadline(fetch, `${config.apiUrl}/message/sendMedia/${encodeURIComponent(connection.instanceName)}`, { method: "POST", headers: { apikey: config.apiKey, "content-type": "application/json" }, body: JSON.stringify({ number: phone.endsWith("@g.us") ? phone : number, mediatype: mediaType, media, fileName, mimetype: mimeType, caption: "", ...(quoted ? { quoted } : {}) }), cache: "no-store" });
   let response = await send(mediaDataUrl);
   // Só tente o formato base64 puro se o provedor rejeitou a representação.
   // Em falha de servidor/rede, ele pode já ter aceitado o arquivo; reenviar
@@ -78,7 +79,7 @@ export async function sendEvolutionReaction(key: EvolutionMessageKey, reaction: 
   const connection = await arenaDatabase(arenaId).whatsAppConnection.findUnique({ where: { arenaId } });
   if (!connection || connection.status !== "CONNECTED") throw new Error("O WhatsApp desta arena ainda não está conectado.");
   const config = getEvolutionConfig();
-  const response = await fetch(`${config.apiUrl}/message/sendReaction/${encodeURIComponent(connection.instanceName)}`, {
+  const response = await fetchWithDeadline(fetch, `${config.apiUrl}/message/sendReaction/${encodeURIComponent(connection.instanceName)}`, {
     method: "POST", headers: { apikey: config.apiKey, "content-type": "application/json" },
     body: JSON.stringify({ key, reaction }), cache: "no-store",
   });
@@ -90,7 +91,7 @@ export async function getEvolutionProfilePicture(remoteJid: string, arenaId: str
   const connection = await arenaDatabase(arenaId).whatsAppConnection.findUnique({ where: { arenaId }, select: { instanceName: true, status: true } });
   if (!connection || connection.status !== "CONNECTED") return "";
   const config = getEvolutionConfig();
-  const response = await fetch(`${config.apiUrl}/chat/fetchProfilePictureUrl/${encodeURIComponent(connection.instanceName)}`, {
+  const response = await fetchWithDeadline(fetch, `${config.apiUrl}/chat/fetchProfilePictureUrl/${encodeURIComponent(connection.instanceName)}`, {
     method: "POST", headers: { apikey: config.apiKey, "content-type": "application/json" }, body: JSON.stringify({ number: remoteJid }), cache: "no-store"
   });
   if (!response.ok) return "";
@@ -104,13 +105,13 @@ export async function getEvolutionGroupName(remoteJid: string, arenaId: string) 
   if (!connection || connection.status !== "CONNECTED") return "";
   const config = getEvolutionConfig();
   const instance = encodeURIComponent(connection.instanceName);
-  const direct = await fetch(`${config.apiUrl}/group/findGroupInfos/${instance}?groupJid=${encodeURIComponent(remoteJid)}`, {
+  const direct = await fetchWithDeadline(fetch, `${config.apiUrl}/group/findGroupInfos/${instance}?groupJid=${encodeURIComponent(remoteJid)}`, {
     headers: { apikey: config.apiKey }, cache: "no-store", signal: AbortSignal.timeout(8000),
   }).catch(() => null);
   const directName = direct?.ok ? readEvolutionGroupName(await direct.json().catch(() => null), remoteJid) : "";
   if (directName) return directName;
   const url = `${config.apiUrl}/group/fetchAllGroups/${instance}?getParticipants=false`;
-  const request = (method: "GET" | "POST") => fetch(url, {
+  const request = (method: "GET" | "POST") => fetchWithDeadline(fetch, url, {
     method,
     headers: method === "POST" ? { apikey: config.apiKey, "content-type": "application/json" } : { apikey: config.apiKey },
     body: method === "POST" ? "{}" : undefined,
@@ -130,7 +131,7 @@ export async function getEvolutionMediaDataUrl(input: { providerId: string; prov
   const connection = await arenaDatabase(arenaId).whatsAppConnection.findUnique({ where: { arenaId }, select: { instanceName: true, status: true } });
   if (!connection || connection.status !== "CONNECTED") return "";
   const config = getEvolutionConfig();
-  const response = await fetch(`${config.apiUrl}/chat/getBase64FromMediaMessage/${encodeURIComponent(connection.instanceName)}`, {
+  const response = await fetchWithDeadline(fetch, `${config.apiUrl}/chat/getBase64FromMediaMessage/${encodeURIComponent(connection.instanceName)}`, {
     method: "POST",
     headers: { apikey: config.apiKey, "content-type": "application/json" },
     body: JSON.stringify({ message: { key: { id: input.providerId }, message: input.providerPayload }, convertToMp4: false }),

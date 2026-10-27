@@ -1,3 +1,5 @@
+import * as providerDeadline from "../src/lib/http/fetch-with-deadline";
+import { boundedJsonForRouteFixture } from "./helpers/json-request";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -13,6 +15,7 @@ import { presentWhatsAppGroupMessage } from "../src/lib/whatsapp-group-message";
 const require = createRequire(import.meta.url);
 function load(path: string, mocks: Record<string, unknown>) {
   if (path.includes("evolution/webhook/route")) {
+    mocks["@/lib/http/json-body"] = boundedJsonForRouteFixture;
     const base = (mocks["@/lib/prisma"] as { prisma: any }).prisma;
     base.$queryRaw = async (_query: TemplateStringsArray, instanceName: string) => {
       const connection = await base.whatsAppConnection.findUnique({ where: { instanceName } });
@@ -52,6 +55,7 @@ test("Evolution requests carry quoted messages and native reactions, including g
     exports,
     fetch: async (url: string, options: any) => { requests.push({ url, body: JSON.parse(options.body) }); return { ok: true, status: 201, json: async () => ({}) }; },
     require: (name: string) => {
+      if (name === "@/lib/http/fetch-with-deadline") return providerDeadline;
       if (name === "server-only") return {};
       if (name === "@/lib/env") return { env: { evolutionApiUrl: "https://provider.invalid", evolutionApiKey: "fixture" } };
       if (name === "@/lib/integrations/evolution") return { buildEvolutionTextPayload, evolutionRecipientNumber };
@@ -86,6 +90,7 @@ test("an accepted Evolution text response without JSON is not treated as a faile
     exports,
     fetch: async () => { requests += 1; return { ok: true, status: 200, json: async () => { throw new SyntaxError("empty response"); } }; },
     require: (name: string) => {
+      if (name === "@/lib/http/fetch-with-deadline") return providerDeadline;
       if (name === "server-only") return {};
       if (name === "@/lib/env") return { env: { evolutionApiUrl: "https://provider.invalid", evolutionApiKey: "fixture" } };
       if (name === "@/lib/integrations/evolution") return { buildEvolutionTextPayload, evolutionRecipientNumber };
@@ -112,6 +117,7 @@ test("media retries only after format rejection, never after a server failure", 
         return { ok: status === 201, status, json: async () => ({}), text: async () => "rejeitado" };
       },
       require: (name: string) => {
+      if (name === "@/lib/http/fetch-with-deadline") return providerDeadline;
         if (name === "server-only") return {};
         if (name === "@/lib/env") return { env: { evolutionApiUrl: "https://provider.invalid", evolutionApiKey: "fixture" } };
         if (name === "@/lib/integrations/evolution") return { buildEvolutionTextPayload, evolutionRecipientNumber };

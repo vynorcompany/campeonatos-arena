@@ -1,3 +1,4 @@
+import { readBoundedJson, RequestBodyTooLargeError } from "@/lib/http/json-body";
 import { NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { getMercadoPagoPayment } from "@/lib/payments/mercado-pago";
@@ -15,7 +16,12 @@ import { publicRegistrationApprovalAfterHold } from "@/lib/tournaments/registrat
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json().catch(() => ({}));
+    let body: any;
+    try { body = await readBoundedJson(request, 64 * 1024); }
+    catch (error) {
+      if (error instanceof RequestBodyTooLargeError) return NextResponse.json({ error: error.message }, { status: 413 });
+      body = {}; // Legacy provider callbacks may carry the payment ID in the URL only.
+    }
     const paymentId =
       String(body?.data?.id ?? "") ||
       new URL(request.url).searchParams.get("data.id") ||

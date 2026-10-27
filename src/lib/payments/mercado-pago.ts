@@ -1,3 +1,4 @@
+import { fetchWithDeadline } from "@/lib/http/fetch-with-deadline";
 import { portalExcludedPaymentTypes } from "@/lib/payments/portal-checkout-policy";
 import { env } from "@/lib/env";
 import { decryptConnectionSecrets } from "@/lib/payments/connection-secrets";
@@ -82,7 +83,7 @@ export async function createPixPayment(input: CreatePixPaymentInput): Promise<Cr
   // Without a fixed expiry, let Mercado Pago apply its default. A freshly
   // calculated timestamp would change the body on retries using the same key.
   const dateOfExpiration = input.expiresAt ? pixPaymentExpiration(new Date(), input.expiresAt).toISOString() : null;
-  const response = await fetch("https://api.mercadopago.com/v1/payments", {
+  const response = await fetchWithDeadline(fetch, "https://api.mercadopago.com/v1/payments", {
     method: "POST",
     signal: AbortSignal.timeout(25_000),
     headers: {
@@ -125,7 +126,7 @@ async function createCheckoutPreference(input: CreateCardCheckoutInput, paymentM
 
   const baseUrl = env.appUrl ?? "http://localhost:3000";
   const returnUrl = input.returnUrl ?? `${baseUrl}/inscricao/status`;
-  const response = await fetch("https://api.mercadopago.com/checkout/preferences", {
+  const response = await fetchWithDeadline(fetch, "https://api.mercadopago.com/checkout/preferences", {
     method: "POST",
     signal: AbortSignal.timeout(25_000),
     headers: {
@@ -197,7 +198,7 @@ export async function createBoletoPayment(input: CreateBoletoPaymentInput): Prom
   ]);
   const minimumExpiration = new Date(Date.now() + 24 * 60 * 60 * 1000);
   const expiresAt = input.expiresAt && input.expiresAt > minimumExpiration ? input.expiresAt : new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
-  const response = await fetch("https://api.mercadopago.com/v1/payments", {
+  const response = await fetchWithDeadline(fetch, "https://api.mercadopago.com/v1/payments", {
     method: "POST",
     signal: AbortSignal.timeout(25_000),
     headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json", "X-Idempotency-Key": mercadoPagoIdempotencyKey("boleto", input.arenaId, input.externalReference) },
@@ -216,7 +217,7 @@ export async function createBoletoPayment(input: CreateBoletoPaymentInput): Prom
 export async function getMercadoPagoPayment(arenaId: string, paymentId: string) {
   const accessToken = await mercadoPagoAccessTokenForArena(arenaId);
 
-  const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+  const response = await fetchWithDeadline(fetch, `https://api.mercadopago.com/v1/payments/${paymentId}`, {
     headers: {
       Authorization: `Bearer ${accessToken}`
     },
@@ -240,7 +241,7 @@ export async function cancelMercadoPagoPayment(arenaId: string, paymentId: strin
   }
 
   const accessToken = await mercadoPagoAccessTokenForArena(arenaId);
-  const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+  const response = await fetchWithDeadline(fetch, `https://api.mercadopago.com/v1/payments/${paymentId}`, {
     method: "PUT",
     headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
     body: JSON.stringify({ status: "cancelled" }),

@@ -1,3 +1,4 @@
+import { boundedJsonForRouteFixture } from "./helpers/json-request";
 import assert from "node:assert/strict";
 import test from "node:test";
 import vm from "node:vm";
@@ -33,6 +34,7 @@ test("WhatsApp routing reveals only tenant metadata and callbacks cannot authent
     assert.deepEqual(await runtime.$queryRaw`SELECT public.resolve_whatsapp_arena(${"unknown'; DROP TABLE ignored; --"}) AS "arenaId"`, [{ arenaId: null }]);
     let outboundRequests = 0;
     const mocks: Record<string, unknown> = {
+      "@/lib/http/json-body": boundedJsonForRouteFixture,
       "next/server": { NextResponse: { json: (body: unknown, options?: { status?: number }) => ({ status: options?.status ?? 200, body }) } },
       "@/lib/prisma": { prisma: runtime },
       "@/lib/arena-database": { arenaDatabase: (arenaId: string) => arenaDatabaseForTest(runtime, arenaId) },
