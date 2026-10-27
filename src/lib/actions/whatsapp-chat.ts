@@ -12,6 +12,7 @@ import { getArenaWhatsAppConversation, getEvolutionProviderId, persistOutboundWh
 import { reactionEmojis } from "@/lib/whatsapp-message-data";
 import { outgoingWhatsAppMediaKind } from "@/lib/whatsapp-media-types";
 import { presentWhatsAppGroupMessage } from "@/lib/whatsapp-group-message";
+import { normalizeWhatsAppAccountJid } from "@/lib/whatsapp-account";
 
 const sendSchema = z.object({ conversationId: z.string().min(1), body: z.string().trim().min(1, "Escreva uma mensagem.").max(4096, "A mensagem é muito longa.") });
 const readSchema = z.object({ conversationId: z.string().min(1) });
@@ -19,6 +20,38 @@ const linkSchema = z.object({ conversationId: z.string().min(1), playerId: z.str
 const slaSchema = z.object({ minutes: z.coerce.number().int().min(5, "O SLA mínimo é de 5 minutos.").max(1_440, "O SLA máximo é de 24 horas.") });
 const conversationActionSchema = z.object({ conversationId: z.string().min(1), action: z.enum(["archive", "pin", "unread", "favorite", "list", "clear", "delete", "resolve_sla"]), listName: z.string().trim().max(80).optional() });
 const contactSchema = z.object({ name: z.string().trim().min(3, "Informe o nome do contato."), phone: z.string().trim().min(8, "Informe o telefone do contato.") });
+
+export async function syncWhatsAppContactsAction() {
+  const auth = await requireWhatsAppManage();
+  const { getEvolutionContacts } = await import("@/lib/integrations/evolution/contact-directory");
+  const { syncWhatsAppContactNames } = await import("@/lib/services/whatsapp-contact-sync");
+  const accountJid = await getActiveWhatsAppAccountJid(auth.arenaId);
+  if (!accountJid) throw new Error("O WhatsApp da arena não está conectado.");
+  const directory = await getEvolutionContacts(auth.arenaId, accountJid);
+  const updated = await syncWhatsAppContactNames(auth.arenaId, accountJid, directory.instanceName, directory.contacts);
+  revalidatePath("/whatsapp");
+  return { contacts: directory.contacts, truncated: directory.truncated, eventsEnabled: directory.eventsEnabled, updated, accountJid };
+}
+
+export async function openWhatsAppContactConversationAction(formData: FormData) {
+  const auth = await requireWhatsAppSend();
+  const accountJid = await getActiveWhatsAppAccountJid(auth.arenaId);
+  const expectedAccountJid = String(formData.get("accountJid") ?? "");
+  const remoteJid = normalizeWhatsAppAccountJid(String(formData.get("remoteJid") ?? ""));
+  const name = String(formData.get("name") ?? "").trim().slice(0, 200);
+  if (!accountJid || accountJid !== expectedAccountJid || !remoteJid || remoteJid === accountJid || !name) throw new Error("Contato inválido ou conta alterada. Atualize a lista.");
+  const conversation = await withArenaTransaction(auth.arenaId, async tx => {
+    const [connection] = await tx.$queryRaw<Array<{ connectedPhone: string; status: string }>>`SELECT "connectedPhone", "status" FROM "WhatsAppConnection" WHERE "arenaId" = ${auth.arenaId} FOR UPDATE`;
+    if (connection?.status !== "CONNECTED" || normalizeWhatsAppAccountJid(connection.connectedPhone) !== accountJid) throw new Error("A conta do WhatsApp mudou. Atualize a página.");
+    return tx.whatsAppConversation.upsert({
+      where: { arenaId_accountJid_remoteJid: { arenaId: auth.arenaId, accountJid, remoteJid } },
+      create: { arenaId: auth.arenaId, accountJid, remoteJid, contactPhone: remoteJid.split("@")[0], contactName: name },
+      update: { archivedAt: null }, select: { id: true },
+    });
+  });
+  revalidatePath("/whatsapp");
+  return conversation;
+}
 
 async function persistAcceptedMessage(arenaId: string, conversationId: string, message: OutboundWhatsAppMessage) {
   try {
@@ -199,6 +232,10 @@ export async function refreshWhatsAppGroupNameAction(formData: FormData) {
   const conversation = await arenaDatabase(auth.arenaId).whatsAppConversation.findFirst({ where: { ...where, remoteJid: { endsWith: "@g.us" } }, select: { id: true, remoteJid: true } });
   if (!conversation) return { name: "" };
   const name = await getEvolutionGroupName(conversation.remoteJid, auth.arenaId);
-  if (name) await arenaDatabase(auth.arenaId).whatsAppConversation.update({ where: { id: conversation.id }, data: { contactName: name } });
+  if (name) await withArenaTransaction(auth.arenaId, async tx => {
+    const [connection] = await tx.$queryRaw<Array<{ connectedPhone: string; status: string }>>`SELECT "connectedPhone", "status" FROM "WhatsAppConnection" WHERE "arenaId" = ${auth.arenaId} FOR UPDATE`;
+    if (connection?.status !== "CONNECTED" || normalizeWhatsAppAccountJid(connection.connectedPhone) !== where.accountJid) throw new Error("A conta do WhatsApp mudou. Atualize a página.");
+    await tx.whatsAppConversation.updateMany({ where, data: { contactName: name } });
+  });
   return { name };
 }

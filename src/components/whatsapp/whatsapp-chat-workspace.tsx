@@ -27,6 +27,7 @@ import { WhatsAppMessageBubble } from "./whatsapp-message-bubble";
 import { mergeWhatsAppMessages } from "./merge-messages";
 import { presentWhatsAppGroupMessage } from "@/lib/whatsapp-group-message";
 import { whatsAppSendFailureMessage } from "@/lib/whatsapp-send-feedback";
+import { WhatsAppContactDirectory } from "./whatsapp-contact-directory";
 
 const time = (value: string) => new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 const emojis = ["😀", "😁", "😂", "🥳", "😍", "😎", "🙏", "👍", "👋", "🎾", "🔥", "❤️"];
@@ -62,7 +63,7 @@ function Avatar({ conversation, size = "", onExpand, withinButton = false }: { c
   return <i className={cx(`${viewStyles.whatsapp_contact_avatar} ${size}`)}>{photo ? <img ref={imageRef} className={cx(onExpand ? "whatsapp-photo-expandable" : undefined)} src={photo} alt={`Foto de ${conversation.contactName || "contato"}`} referrerPolicy="no-referrer" role={onExpand && !withinButton ? "button" : undefined} tabIndex={onExpand && !withinButton ? 0 : undefined} aria-label={onExpand && !withinButton ? "Ampliar foto do contato" : undefined} onError={() => setPhoto("")} onClick={(event) => { event.stopPropagation(); onExpand?.(photo); }} onKeyDown={(event) => { if (onExpand && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); event.stopPropagation(); onExpand(photo); } }} /> : initials(conversation.contactName || conversation.contactPhone)}</i>;
 }
 
-export function WhatsAppChatWorkspace({ conversations: initialConversations, pollingScope = "", connected, canEdit, canSend, clients, slaMinutes, initialVersion, currentUserName = "", currentAccountJid = "" }: { pollingScope?: string; currentAccountJid?: string; currentUserName?: string; conversations: WhatsAppConversation[]; connected: boolean; canEdit: boolean; canSend: boolean; clients: WhatsAppClient[]; slaMinutes: number; initialVersion: string }) {
+export function WhatsAppChatWorkspace({ conversations: initialConversations, pollingScope = "", connected, canEdit, canSend, clients, slaMinutes, initialVersion, selectedConversationId = "", currentUserName = "", currentAccountJid = "" }: { selectedConversationId?: string; pollingScope?: string; currentAccountJid?: string; currentUserName?: string; conversations: WhatsAppConversation[]; connected: boolean; canEdit: boolean; canSend: boolean; clients: WhatsAppClient[]; slaMinutes: number; initialVersion: string }) {
   const [groupNames, setGroupNames] = useState<Record<string, { name: string; previous: string }>>({});
   const requestedGroups = useRef(new Map<string, number>());
   const groupsInFlight = useRef(new Set<string>());
@@ -71,7 +72,9 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
     const resolved = groupNames[currentAccountJid + ':' + conversation.id];
     return resolved && resolved.previous === conversation.contactName ? { ...conversation, contactName: resolved.name } : conversation;
   }), [initialConversations, groupNames, currentAccountJid]);
-  const [activeId, setActiveId] = useState(conversations.find((item) => !item.archivedAt)?.id ?? conversations[0]?.id ?? "");
+  const [activeId, setActiveId] = useState(selectedConversationId || (conversations.find((item) => !item.archivedAt)?.id ?? conversations[0]?.id ?? ""));
+  const requestedConversation = useRef("");
+  useEffect(() => { if (selectedConversationId) { setActiveId(selectedConversationId); setMobileChatOpen(true); } }, [selectedConversationId]);
   const [mobileChatOpen, setMobileChatOpen] = useState(false);
   const activeIdRef = useRef(activeId);
   activeIdRef.current = activeId;
@@ -195,6 +198,9 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
   }, [active?.id, active?.unreadCount, mobileChatOpen]);
   useEffect(() => { if (!activeId && visible[0]) setActiveId(visible[0].id); }, [activeId, visible]);
   useEffect(() => {
+    if (requestedConversation.current && conversations.some(item => item.id === requestedConversation.current)) {
+      setActiveId(requestedConversation.current); requestedConversation.current = ""; return;
+    }
     if (activeId && !conversations.some((conversation) => conversation.id === activeId)) setActiveId(conversations[0]?.id ?? "");
   }, [activeId, conversations]);
   useEffect(() => {
@@ -402,7 +408,8 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
     <aside className={cx(viewStyles.whatsapp_inbox_list, mobileChatOpen ? "tw:viewport-900:hidden!" : undefined)}>
       <header><div><span>CAIXA DE ENTRADA</span><strong>Conversas</strong></div>{canEdit ? <div className={viewStyles.whatsapp_header_actions}>
         <button type="button" title="Configurar SLA" onClick={() => setShowSla((value) => !value)}><WhatsAppIcon name="clock" /></button>
-        <button type="button" title="Novo contato" onClick={() => { setLinkNewClient(false); setShowContact(true); }}><WhatsAppIcon name="plusUser" /></button>
+        <WhatsAppContactDirectory key={currentAccountJid} accountJid={currentAccountJid} canSend={canSend} onOpenConversation={id => { requestedConversation.current = id; if (conversations.some(item => item.id === id)) setActiveId(id); setMobileChatOpen(true); }} />
+        <button type="button" title="Novo cliente" onClick={() => { setLinkNewClient(false); setShowContact(true); }}><WhatsAppIcon name="plusUser" /></button>
         {showSla ? <div className={viewStyles.whatsapp_sla_popover}><label>Tempo de SLA <input value={slaValue} onChange={(event) => setSlaValue(event.target.value.replace(/\D/g, ""))} inputMode="numeric" /> min</label><button type="button" onClick={saveSla} disabled={pending}>Salvar</button></div> : null}
       </div> : null}</header>
       <div className={viewStyles.whatsapp_filters} role="tablist" aria-label="Filtros de conversas">{filterOptions.map(([id, label, icon]) => <button key={id} type="button" className={cx(filter === id ? "is-active" : "")} onClick={() => setFilter(id)} title={label}><i><WhatsAppIcon name={icon} size={15} /></i><span>{label}</span></button>)}</div>

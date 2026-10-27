@@ -34,7 +34,7 @@ function webhookUrl(instanceName: string, webhookSecret = "") {
   return `${config.appUrl}/api/integrations/evolution/webhook?${query.toString()}`;
 }
 
-const webhookEvents = ["QRCODE_UPDATED", "CONNECTION_UPDATE", "MESSAGES_UPSERT"];
+const webhookEvents = ["QRCODE_UPDATED", "CONNECTION_UPDATE", "MESSAGES_UPSERT", "CONTACTS_UPSERT", "CONTACTS_UPDATE"];
 
 function webhookConfiguration(instanceName: string, webhookSecret: string) {
   return {
@@ -125,6 +125,7 @@ export async function configureEvolutionWebhook(input: { instanceName: string; w
   const legacyWebhook = legacyWebhookConfiguration(input.instanceName, input.webhookSecret);
   const request = (body: Record<string, unknown>) => fetch(endpoint, {
     method: "POST",
+    signal: AbortSignal.timeout(8_000),
     headers: { apikey: config.apiKey, "content-type": "application/json" },
     body: JSON.stringify(body),
     cache: "no-store",

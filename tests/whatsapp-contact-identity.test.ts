@@ -94,3 +94,12 @@ test("mídia mantém o URL salvo quando a Evolution falha ou demora", async () =
   assert.equal(hasDeadline, true);
   assert.equal(await client.getEvolutionMediaDataUrl({ ...input, mediaUrl: "" }, "arena-a"), "");
 });
+
+
+test("group names never come from an instance envelope", () => {
+  const remoteJid = "120363000000@g.us";
+  assert.equal(readEvolutionGroupName({ name: "Arena Samas", data: { id: remoteJid, subject: "Turma correta" } }, remoteJid), "Turma correta");
+  assert.equal(readEvolutionGroupName({ name: "Arena Samas" }, remoteJid), "");
+  assert.equal(readEvolutionGroupName({ name: "Arena Samas", data: { id: "other@g.us", subject: "Outra turma" } }, remoteJid), "");
+  assert.equal(readEvolutionGroupName({ id: remoteJid, name: "Arena Samas" }, remoteJid), "Arena Samas");
+});
