@@ -1,5 +1,6 @@
 "use server";
 
+import { fetchWithDeadline } from "@/lib/http/fetch-with-deadline";
 import { arenaDatabase } from "@/lib/arena-database";
 import { revalidatePath } from "next/cache";
 import { requireFinancialEntryDelete, requirePermission } from "@/lib/auth/guards";
@@ -1137,7 +1138,7 @@ export async function connectPaymentProviderAction(formData: FormData) {
   if (data.provider === "ASAAS") {
     if (!data.accessToken) throw new Error("Informe a chave de API do Asaas.");
     const baseUrl = data.environment === "SANDBOX" ? "https://api-sandbox.asaas.com/v3" : "https://api.asaas.com/v3";
-    const response = await fetch(`${baseUrl}/myAccount`, { headers: { access_token: data.accessToken, "User-Agent": "ArenaPadelManager/1.0" }, cache: "no-store" });
+    const response = await fetchWithDeadline(fetch, `${baseUrl}/myAccount`, { headers: { access_token: data.accessToken, "User-Agent": "ArenaPadelManager/1.0" }, cache: "no-store" });
     if (!response.ok) throw new Error("Não foi possível validar a chave do Asaas. Confira o ambiente e a chave informada.");
     const account = await response.json() as { name?: string; email?: string; id?: string };
     await withArenaTransaction(auth.arenaId, (tx) => tx.paymentConnection.upsert({ where: { arenaId_provider: { arenaId: auth.arenaId, provider: "ASAAS" } }, create: { arenaId: auth.arenaId, provider: "ASAAS", environment: data.environment, status: "CONNECTED", displayName: account.name || "Asaas", accountReference: account.id || account.email || "", encryptedSecrets: encryptConnectionSecrets({ accessToken: data.accessToken }), lastValidatedAt: new Date() }, update: { environment: data.environment, status: "CONNECTED", displayName: account.name || "Asaas", accountReference: account.id || account.email || "", encryptedSecrets: encryptConnectionSecrets({ accessToken: data.accessToken }), lastValidatedAt: new Date(), lastError: "" } }));

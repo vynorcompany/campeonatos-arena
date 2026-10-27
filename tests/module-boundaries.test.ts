@@ -45,3 +45,21 @@ test("source modules have no runtime import cycles", () => {
   }
   for (const file of graph.keys()) visit(file);
 });
+
+test("server integrations declare cancellation or use the shared request deadline", () => {
+  const unbounded: string[] = [];
+  for (const file of [...sourceFiles("src/lib"), ...sourceFiles("src/app/api")]) {
+    const source = ts.createSourceFile(file, readFileSync(file, "utf8"), ts.ScriptTarget.Latest, true);
+    function inspect(node: ts.Node) {
+      if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "fetch") {
+        const options = node.arguments[1];
+        if (!options || !ts.isObjectLiteralExpression(options) || !options.properties.some(property => ts.isPropertyAssignment(property) && property.name.getText(source) === "signal")) {
+          unbounded.push(`${file}:${source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1}`);
+        }
+      }
+      ts.forEachChild(node, inspect);
+    }
+    inspect(source);
+  }
+  assert.deepEqual(unbounded, [], "Use fetchWithDeadline or provide a bounded AbortSignal for server network calls");
+});

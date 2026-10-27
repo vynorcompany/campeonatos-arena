@@ -1,3 +1,4 @@
+import * as providerDeadline from "../src/lib/http/fetch-with-deadline";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
@@ -17,7 +18,7 @@ function loadOAuth() {
     Buffer,
     Date,
     process: { env: { PAYMENT_CONNECTIONS_ENCRYPTION_KEY: "synthetic-test-key" } },
-    require: (name: string) => name === "server-only" ? {} : name === "@/lib/env" ? { env: { appUrl: "https://arena.example.test", mercadoPagoClientId: "client-id" } } : require(name),
+    require: (name: string) => name === "@/lib/http/fetch-with-deadline" ? providerDeadline : name === "server-only" ? {} : name === "@/lib/env" ? { env: { appUrl: "https://arena.example.test", mercadoPagoClientId: "client-id" } } : require(name),
   });
   return exports as {
     createMercadoPagoOAuthState: (arenaId: string, userId: string) => string;
@@ -37,6 +38,7 @@ function loadCallback(auth: { userId: string; arenaId: string | null; arenaRole:
     Date,
     console,
     require: (name: string) => {
+      if (name === "@/lib/http/fetch-with-deadline") return providerDeadline;
       if (name === "next/server") return { NextResponse: { redirect: (url: URL) => ({ url: url.toString() }) } };
       if (name === "@/lib/env") return { env: { appUrl: "https://arena.example.test" } };
       if (name === "@/lib/payments/connection-secrets") return { encryptConnectionSecrets: () => "encrypted-test" };

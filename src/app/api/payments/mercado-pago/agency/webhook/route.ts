@@ -1,3 +1,4 @@
+import { fetchWithDeadline } from "@/lib/http/fetch-with-deadline";
 import { readBoundedJson, RequestBodyTooLargeError } from "@/lib/http/json-body";
 import { NextResponse } from "next/server";
 import { env } from "@/lib/env";
@@ -19,7 +20,7 @@ export async function POST(request: Request) {
   if (env.mercadoPagoWebhookSecret && !verifyMercadoPagoWebhookSignature({ secret: env.mercadoPagoWebhookSecret, signatureHeader: request.headers.get("x-signature"), requestId: request.headers.get("x-request-id"), dataId: paymentId })) return NextResponse.json({ ok: false }, { status: 401 });
   const accessToken = await getAgencyMercadoPagoToken().catch(() => null);
   if (!accessToken) return NextResponse.json({ ok: false }, { status: 503 });
-  const response = await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`, { headers: { Authorization: `Bearer ${accessToken}` }, cache: "no-store" });
+  const response = await fetchWithDeadline(fetch, `https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`, { headers: { Authorization: `Bearer ${accessToken}` }, cache: "no-store" });
   if (!response.ok) return NextResponse.json({ ok: false }, { status: 502 });
   const payment = await response.json() as { id?: string | number; status?: string; status_detail?: string; external_reference?: string; transaction_amount?: number; currency_id?: string };
   const invoice = await prisma.agencyInvoice.findUnique({ where: { id: String(payment.external_reference ?? "") } });
