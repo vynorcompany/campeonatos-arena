@@ -52,6 +52,18 @@ test("dashboard reconciles forecasts, arrears, customer ticket, product margin a
   };
   const result = buildDashboardAnalytics(data, from, to, new Date("2026-02-28T23:59:59"), "caixa", undefined, date("2026-01-20"));
   const card = (id: string) => result.cards.find(item => item.id === id)!;
+  assert.equal(card("income").tone, "positive");
+  assert.equal(card("expense").tone, "negative");
+  assert.equal(card("to-receive").tone, "positive");
+  assert.equal(card("forecast").tone, "positive");
+  assert.equal(card("delinquency").tone, "negative");
+  assert.equal(card("product-profit").tone, "positive");
+  assert.ok(card("income").items.every(item => item.tone === "positive"));
+  assert.ok(card("expense").items.every(item => item.tone === "negative"));
+  assert.ok(card("delinquency").items.every(item => item.tone === "negative"));
+  const loss = buildDashboardAnalytics({ ...data, products: data.products.map((product: any) => ({ ...product, costCents: 9000 })) }, from, to, to, "caixa");
+  assert.equal(loss.cards.find(card => card.id === "product-profit")?.tone, "negative");
+  assert.equal(loss.cards.find(card => card.id === "product-profit")?.items[0].tone, "negative");
   assert.equal(result.received, 8000); assert.equal(result.paid, 9000); assert.equal(card("result").tone, "negative");
   assert.match(String(card("to-receive").value), /200,00/); assert.match(String(card("forecast").value), /280,00/);
   assert.match(String(card("delinquency").value), /70,00/); assert.equal(card("delinquency").secondary, "46,7%");

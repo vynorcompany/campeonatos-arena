@@ -11,7 +11,8 @@ test("dashboard renders a daily cash-flow chart and the requested operational ch
   const flow = readFileSync(resolve(process.cwd(), "src/app/(app)/painel/dashboard-flow-panel.tsx"), "utf8");
   const comparison = readFileSync(resolve(process.cwd(), "src/components/dashboard-comparison-filter.tsx"), "utf8");
 
-  assert.match(dashboard, /Resumo financeiro/);
+  assert.match(dashboard, /DashboardFreeLayout/);
+  assert.match(dashboard, /DashboardMetricTile/);
   assert.match(flow, /Fluxo de caixa diário/);
   assert.match(flow, /dashboard-cash-chart/);
   assert.match(dashboard, /Quadras com mais reservas/);
