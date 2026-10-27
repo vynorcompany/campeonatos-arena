@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { defaultDashboardLayout, readDashboardLayout, rectanglesOverlap, resizeDashboardRect, settleDashboardLayout, type DashboardEdge } from "../src/lib/ui/dashboard-layout";
 
-test("free dashboard moves neighbours without moving the dragged card or leaving overlaps", () => {
+test("initial layout settlement preserves its anchor and prevents overlapping measurements", () => {
   const layout = { a: { x: 0, y: 100, width: 400, height: 180 }, b: { x: 200, y: 200, width: 400, height: 200 }, c: { x: 200, y: 400, width: 400, height: 120 }, d: { x: 900, y: 100, width: 300, height: 120 } };
   const settled = settleDashboardLayout(layout, "a");
   assert.deepEqual(settled.a, layout.a);
@@ -39,4 +39,56 @@ test("stored layouts reject malformed dimensions, clamp to the viewport and incl
   assert.equal(saved.a.x, 0); assert.equal(saved.a.y, 0); assert.equal(saved.a.width, 330);
   assert.deepEqual(saved.b, defaults.b);
   assert.deepEqual(Object.keys(saved), ["a", "b"]);
+});
+
+test("alignment guides snap edges and centers without mutating any neighbour", async () => {
+  const { snapDashboardRect } = await import("../src/lib/ui/dashboard-layout");
+  const layout = { a: { x: 0, y: 0, width: 240, height: 120 }, b: { x: 400, y: 300, width: 300, height: 180 } };
+  const original = structuredClone(layout);
+  const edges = snapDashboardRect({ x: 404, y: 20, width: 240, height: 120 }, layout, "a", 8, 8, 12);
+  assert.equal(edges.rect.x, 400);
+  assert.ok(edges.guides.some(guide => guide.axis === "x" && guide.position === 400));
+  const center = snapDashboardRect({ x: 432, y: 30, width: 240, height: 120 }, layout, "a", 8, 8, 12);
+  assert.equal(center.rect.x + center.rect.width / 2, 550);
+  const gap = snapDashboardRect({ x: 20, y: 494, width: 240, height: 120 }, layout, "a", 8, 8, 12);
+  assert.equal(gap.rect.y, 492);
+  assert.deepEqual(layout, original);
+});
+
+test("resizing snaps only the chosen edge and respects minimum dimensions", async () => {
+  const { snapDashboardRect } = await import("../src/lib/ui/dashboard-layout");
+  const layout = { b: { x: 400, y: 300, width: 300, height: 180 } };
+  const result = snapDashboardRect({ x: 100, y: 0, width: 296, height: 120 }, layout, "a", 8, 8, 12, "e", 220, 110);
+  assert.equal(result.rect.x, 100); assert.equal(result.rect.width, 300);
+  assert.equal(result.rect.height, 120);
+});
+
+test("occupied drops find nearby space or return to their start without cascading the layout", async () => {
+  const { finishDashboardPlacement, dashboardPositionAvailable } = await import("../src/lib/ui/dashboard-layout");
+  const start = { x: 0, y: 0, width: 240, height: 120 };
+  const layout = { a: start, b: { x: 300, y: 200, width: 300, height: 180 }, c: { x: 1000, y: 200, width: 200, height: 180 } };
+  const original = structuredClone(layout);
+  const near = finishDashboardPlacement({ ...start, x: 580, y: 200 }, layout, "a", start, 12, 48, 48);
+  assert.equal(dashboardPositionAvailable(near, layout, "a"), true);
+  assert.equal(near.x, 612);
+  const occupied = finishDashboardPlacement({ ...start, x: 330, y: 220 }, layout, "a", start, 12, 20, 20);
+  assert.deepEqual(occupied, start);
+  assert.deepEqual(layout, original);
+});
+
+
+test("nearby alignment takes priority over a slightly closer anchor on a distant card", async () => {
+  const { snapDashboardRect } = await import("../src/lib/ui/dashboard-layout");
+  const result = snapDashboardRect({ x: 482.9, y: 200, width: 240, height: 132 }, { near: { x: 480, y: 0, width: 240, height: 132 }, far: { x: 603.475, y: 800, width: 294, height: 132 } }, "active", 6, 8, 12);
+  assert.equal(result.rect.x, 480);
+  assert.equal(result.guides[0].position, 480);
+  assert.equal(result.guides[0].start, 0);
+});
+
+
+test("drop validation keeps the same vertical gutter used when restoring saved layouts", async () => {
+  const { dashboardPositionAvailable } = await import("../src/lib/ui/dashboard-layout");
+  const layout = { b: { x: 0, y: 0, width: 300, height: 132 } };
+  assert.equal(dashboardPositionAvailable({ x: 0, y: 132, width: 300, height: 132 }, layout, "a"), false);
+  assert.equal(dashboardPositionAvailable({ x: 0, y: 144, width: 300, height: 132 }, layout, "a"), true);
 });
