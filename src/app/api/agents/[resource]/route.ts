@@ -1,3 +1,4 @@
+import { readAgentDashboard } from "@/lib/agents/dashboard";
 import { readBoundedJson, RequestBodyTooLargeError } from "@/lib/http/json-body";
 import { z } from "zod";
 import { instantToArenaWallClock, arenaWallClockToInstant } from "@/lib/calendar/arena-wall-clock";
@@ -12,7 +13,7 @@ function failure(error: unknown) {
   console.error("Falha na API de agentes", error instanceof Error ? error.name : "Erro desconhecido");
   return json({ error: "Serviço temporariamente indisponível. Tente novamente." }, 503);
 }
-const querySchema = z.object({ period: z.string().regex(/^20\d{2}-(0[1-9]|1[0-2])$/).optional(), offset: z.coerce.number().int().min(0).max(100000).default(0), from: z.string().datetime().optional(), to: z.string().datetime().optional() }).strict();
+const querySchema = z.object({ view: z.enum(["caixa","competencia"]).optional(), period: z.string().regex(/^20\d{2}-(0[1-9]|1[0-2])$/).optional(), offset: z.coerce.number().int().min(0).max(100000).default(0), from: z.string().datetime().optional(), to: z.string().datetime().optional() }).strict();
 export async function GET(request: Request, { params }: { params: Promise<{ resource: string }> }) {
   const { resource } = await params;
   if (!Object.hasOwn(resourceScopes, resource)) return json({ error: "Recurso não encontrado." }, 404);
@@ -21,6 +22,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ reso
     const query = querySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
     if (!query.success) return json({ error: "Use offset inteiro e datas ISO em from e to." }, 400);
     if(query.data.period && (query.data.from || query.data.to || query.data.offset)) return json({error:"Use período mensal ou datas/offset, sem combinar."},400);
+    if (resource === "dashboard") {
+      if (!query.data.period) return json({ error: "Informe period AAAA-MM para consultar o Dashboard." }, 400);
+      const result = await readAgentDashboard(key.arenaId, query.data.period, query.data.view ?? "caixa");
+      await withArenaTransaction(key.arenaId, tx => tx.agentApiKey.update({ where: { id: key.id, arenaId: key.arenaId }, data: { lastUsedAt: new Date() } }));
+      return json(result);
+    }
+    if (query.data.view) return json({ error: "view é exclusivo do Dashboard." }, 400);
     const monthStart=query.data.period ? new Date(query.data.period+"-01T00:00:00-03:00") : null;
     const monthEnd=monthStart ? new Date(monthStart) : null;
     if(monthEnd)monthEnd.setUTCMonth(monthEnd.getUTCMonth()+1);

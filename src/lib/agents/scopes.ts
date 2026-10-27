@@ -10,5 +10,5 @@ export const agentScopes = {
 export type AgentScope = keyof typeof agentScopes;
 export const resourceScopes: Record<string, AgentScope> = {
   agents: "agents:read", reservations: "schedule:read", finance: "finance:read",
-  reports: "reports:read", clients: "clients:read", teachers: "teachers:read",
+  reports: "reports:read", dashboard: "reports:read", clients: "clients:read", teachers: "teachers:read",
 };
