@@ -10,6 +10,7 @@ import { findEvolutionInstance } from "@/lib/integrations/evolution/agency";
 import { persistWhatsAppReaction } from "@/lib/services/whatsapp-conversation";
 import { nextWhatsAppConversationVersion } from "@/lib/whatsapp-conversation-version";
 import { readEvolutionGroupName } from "@/lib/integrations/evolution/groups";
+import { readEvolutionContacts } from "@/lib/integrations/evolution/contacts";
 import { withArenaTransaction } from "@/lib/rls";
 
 const groupNameLookupAfter = new Map<string, number>();
@@ -86,6 +87,17 @@ export async function POST(request: NextRequest) {
   if (!connection || !safeEqual(hashWebhookSecret(secret), connection.webhookSecretHash)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const event = String(record.event ?? record.type ?? "").toUpperCase();
+  if (["CONTACTS_SET", "CONTACTS_UPSERT", "CONTACTS_UPDATE"].includes(event.replace(/[.\s-]+/g, "_"))) {
+    const current = await prisma.whatsAppConnection.findUnique({ where: { id: connection.id } });
+    const accountJid = normalizeWhatsAppAccountJid(current?.connectedPhone ?? "");
+    const owner = String(toRecord(record.data).owner || record.sender || "");
+    const eventAccountJid = normalizeWhatsAppAccountJid(owner.includes("@") ? owner : `${owner}@s.whatsapp.net`);
+    // Contact events without an owner cannot safely distinguish a delayed event after an account switch.
+    if (current?.status !== "CONNECTED" || !accountJid || eventAccountJid !== accountJid) return NextResponse.json({ received: true, ignored: "account-mismatch" });
+    const { syncWhatsAppContactNames } = await import("@/lib/services/whatsapp-contact-sync");
+    await syncWhatsAppContactNames(connection.arenaId, accountJid, connection.instanceName, readEvolutionContacts(record.data));
+    return NextResponse.json({ received: true });
+  }
   const state = String(nestedValue(record, "state") ?? nestedValue(record, "status") ?? "").toUpperCase();
   if (event.includes("CONNECTION") || (!event && ["OPEN", "CONNECTED", "CLOSE", "CLOSED", "DISCONNECTED"].includes(state))) {
     const connected = ["OPEN", "CONNECTED"].includes(state);
@@ -138,7 +150,8 @@ export async function POST(request: NextRequest) {
       const savedGroupName = existingGroup?.contactName && existingGroup.contactName !== "Grupo do WhatsApp" ? existingGroup.contactName : "";
       const groupKey = `${connection.arenaId}:${accountJid}:${remoteJid}`;
       const resolvedGroupName = isGroup && !eventGroupName && reserveGroupNameLookup(groupKey, Boolean(savedGroupName)) ? await getEvolutionGroupName(remoteJid, connection.arenaId).catch(() => "") : "";
-      const contactName = isGroup ? (eventGroupName || resolvedGroupName || savedGroupName) : senderName;
+      // pushName on an outbound message belongs to our own account, never its recipient.
+      const contactName = isGroup ? (eventGroupName || resolvedGroupName || savedGroupName) : fromMe ? "" : senderName;
       const photoFromEvent = String(data.profilePictureUrl ?? data.profilePicUrl ?? "");
       const content = [message.extendedTextMessage, message.imageMessage, message.audioMessage, message.videoMessage, message.documentMessage, message.stickerMessage].map(toRecord).find((value) => value.contextInfo);
       const context = toRecord(content?.contextInfo);

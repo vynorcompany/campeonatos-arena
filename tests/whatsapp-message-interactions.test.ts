@@ -546,3 +546,62 @@ test("group webhook refreshes known names without requesting metadata on every m
   assert.equal(savedName, "Novo nome do evento");
   assert.equal(providerCalls, 1);
 });
+
+test("outbound first message never saves our own pushName as the recipient name", async () => {
+  const created: Record<string, unknown>[] = [];
+  let contactName = "";
+  const tx = {
+    whatsAppConversation: {
+      upsert: async ({ create }: any) => { contactName = create.contactName; return { id: "conversation", profilePhotoUrl: "", lastMessageAt: new Date(0), updatedAt: new Date(0) }; },
+      update: async () => ({}),
+    },
+    whatsAppMessage: {
+      findUnique: async () => null,
+      upsert: async ({ create }: { create: Record<string, unknown> }) => { created.push(create); return { id: "message" }; },
+    },
+    $queryRaw: async () => [{ id: "conversation" }],
+  };
+  const webhook = load("../src/app/api/integrations/evolution/webhook/route.ts", {
+    "next/server": { NextResponse: { json: (value: unknown) => value } },
+    "@prisma/client": {},
+    "@/lib/integrations/evolution/client": { getEvolutionGroupName: async () => "Grupo de teste", getEvolutionProfilePicture: async () => "" },
+    "@/lib/payments/connection-secrets": { hashWebhookSecret: () => "hash" },
+    "@/lib/prisma": { prisma: { whatsAppConnection: { findUnique: async () => ({ id: "connection", arenaId: "arena", webhookSecretHash: "hash", status: "CONNECTED", connectedPhone: "111@s.whatsapp.net" }) } } },
+    "@/lib/arena-database": { arenaDatabase: () => ({ whatsAppConversation: { findUnique: async () => null } }) },
+    "@/lib/whatsapp-account": { normalizeWhatsAppAccountJid },
+    "@/lib/integrations/evolution/agency": {},
+    "@/lib/integrations/evolution/groups": { readEvolutionGroupName: () => "" },
+    "@/lib/services/whatsapp-conversation": {},
+    "@/lib/rls": { withArenaTransaction: async (_arenaId: string, operation: (client: typeof tx) => unknown) => operation(tx) },
+  });
+  await webhook.POST({
+    nextUrl: { searchParams: new URLSearchParams("instance=group-instance&secret=secret") }, headers: new Headers(),
+    json: async () => ({ instance: "group-instance", event: "MESSAGES_UPSERT", data: {
+      owner: "111", key: { remoteJid: "5511999991111@s.whatsapp.net", fromMe: true, id: "group-message" },
+      pushName: "Arena Samas", message: { conversation: "Olá!" },
+    } }),
+  });
+  assert.equal(created.length, 1);
+  assert.equal(created[0].senderName, "");
+  assert.equal(contactName, "5511999991111");
+  assert.equal(created[0].body, "Olá!");
+});
+
+test("contact update webhooks reject the previous account and pass only identified contacts to name repair", async () => {
+  const repairs: any[] = [];
+  const webhook = load("../src/app/api/integrations/evolution/webhook/route.ts", {
+    "next/server": { NextResponse: { json: (value: unknown) => value } }, "@prisma/client": {},
+    "@/lib/integrations/evolution/client": {}, "@/lib/payments/connection-secrets": { hashWebhookSecret: () => "hash" },
+    "@/lib/prisma": { prisma: { whatsAppConnection: { findUnique: async () => ({ id: "connection", arenaId: "arena", instanceName: "contacts-instance", webhookSecretHash: "hash", status: "CONNECTED", connectedPhone: "5511999990000@s.whatsapp.net" }) } } },
+    "@/lib/whatsapp-account": { normalizeWhatsAppAccountJid }, "@/lib/integrations/evolution/agency": {},
+    "@/lib/services/whatsapp-conversation": {}, "@/lib/rls": {},
+    "@/lib/services/whatsapp-contact-sync": { syncWhatsAppContactNames: async (...args: any[]) => { repairs.push(args); } },
+  });
+  const request = (sender: string) => ({ nextUrl: { searchParams: new URLSearchParams("instance=contacts-instance&secret=secret") }, headers: new Headers(), json: async () => ({ instance: "contacts-instance", event: "contacts.update", sender, data: [{ remoteJid: "5511999991111@s.whatsapp.net", pushName: "Nome atualizado" }, { id: "12345@lid", name: "Não é telefone" }] }) });
+  assert.equal((await webhook.POST(request("5511999999999@s.whatsapp.net"))).ignored, "account-mismatch");
+  assert.equal(repairs.length, 0);
+  await webhook.POST(request("5511999990000@s.whatsapp.net"));
+  assert.equal(repairs.length, 1);
+  assert.deepEqual(repairs[0].slice(0, 3), ["arena", "5511999990000@s.whatsapp.net", "contacts-instance"]);
+  assert.equal(repairs[0][3].length, 1); assert.equal(repairs[0][3][0].name, "Nome atualizado");
+});

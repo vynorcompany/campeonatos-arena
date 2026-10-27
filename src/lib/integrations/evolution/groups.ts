@@ -16,12 +16,13 @@ export function readEvolutionGroupName(payload: unknown, remoteJid: string, dept
   const value = record(payload);
   const identity = value.id ?? value.jid ?? value.groupJid ?? value.remoteJid;
   if (identity && jid(identity) !== jid(remoteJid)) return "";
-  for (const field of ["subject", "subjectName", "groupName", "groupSubject", "name"]) {
-    if (typeof value[field] === "string" && value[field].trim()) return value[field].trim();
-  }
+  // Envelopes may carry the instance's `name`. Resolve scoped metadata first.
   for (const field of ["data", "response", "groups", "metadata", "groupMetadata"]) {
     const name = readEvolutionGroupName(value[field], remoteJid, depth + 1);
     if (name) return name;
+  }
+  for (const field of ["subject", "subjectName", "groupName", "groupSubject", ...(identity ? ["name"] : [])]) {
+    if (typeof value[field] === "string" && value[field].trim()) return value[field].trim();
   }
   return "";
 }
