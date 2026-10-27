@@ -25,6 +25,7 @@ test("contact directory requires an identified personal JID and never uses the e
     { remoteJid: "123456789012@lid", pushName: "LID sem telefone" },
     { remoteJid: "120363000000@g.us", pushName: "Grupo" },
     { id: "not-a-contact", name: "Arena Samas" },
+    { remoteJid: "5511888888888@s.whatsapp.net", pushName: "+55 (11) 88888-8888" },
   ] });
   assert.deepEqual(contacts.map(contact => [contact.remoteJid, contact.name]), [["5511999991111@s.whatsapp.net", "Cliente A"], ["5511999992222@s.whatsapp.net", "Nome salvo"]]);
   assert.deepEqual(readEvolutionContacts({ name: "Arena Samas" }), []);

@@ -12,7 +12,8 @@ export function readEvolutionContacts(payload: unknown): EvolutionContact[] {
     const match = /^(\d{7,15})(?::\d+)?@(s\.whatsapp\.net|c\.us)$/.exec(raw);
     if (match) {
       const name = [value.name, value.pushName, value.notify, value.verifiedName].find(item => typeof item === "string" && item.trim());
-      if (typeof name === "string") contacts.set(`${match[1]}@s.whatsapp.net`, { remoteJid: `${match[1]}@s.whatsapp.net`, phone: match[1], name: name.trim().slice(0, 200) });
+      // Evolution also returns the telephone itself as pushName for unnamed entries.
+      if (typeof name === "string" && name.trim() !== raw && name.replace(/[+\s().-]/g, "") !== match[1]) contacts.set(`${match[1]}@s.whatsapp.net`, { remoteJid: `${match[1]}@s.whatsapp.net`, phone: match[1], name: name.trim().slice(0, 200) });
       return;
     }
     for (const field of ["data", "response", "contacts"]) visit(value[field], depth + 1);
