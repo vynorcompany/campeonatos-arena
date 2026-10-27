@@ -3,11 +3,10 @@ import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DashboardComparisonFilter } from "@/components/dashboard-comparison-filter";
-import { DashboardMetricCards } from "@/components/dashboard-metric-cards";
+import { DashboardMetricTile } from "@/components/dashboard-metric-cards";
 import { DashboardWorkspace } from "@/components/dashboard-workspace";
-import { DashboardSortablePanels } from "@/components/dashboard-sortable-panels";
+import { DashboardFreeLayout } from "@/components/dashboard-free-layout";
 import { DashboardBarPanel } from "@/components/dashboard-bar-panel";
-import { SectionCard } from "@/components/section-card";
 import { requireArenaAccess } from "@/lib/auth/session";
 import { canViewModule, firstVisibleModuleHref } from "@/lib/permissions";
 import { loadDashboardData } from "@/lib/reports/dashboard-data";
@@ -63,9 +62,10 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
       <div className={viewStyles.dashboard_presets}>{presets.map(([label, start, end]) => <Link key={label} href={presetHref(start, end)} aria-current={dashboardDateKey(from) === dashboardDateKey(start) && dashboardDateKey(to) === dashboardDateKey(end) ? "date" : undefined} className={cx(dashboardDateKey(from) === dashboardDateKey(start) && dashboardDateKey(to) === dashboardDateKey(end) ? "dashboard-period-preset-active" : undefined)}>{label}</Link>)}</div>
       <label>Período inicial<input type="date" name="dataInicial" defaultValue={dashboardDateKey(from)} required /></label><label>Período final<input type="date" name="dataFinal" defaultValue={dashboardDateKey(to)} required /></label><label>Visualização<select name="visao" defaultValue={view}><option value="caixa">Visão de caixa</option><option value="competencia">Visão de competência</option></select></label><DashboardComparisonFilter mode={query.comparar} from={dashboardDateKey(previous.from)} to={dashboardDateKey(previous.to)} /><button type="submit" className={viewStyles.button_button_primary}>Aplicar</button>
     </form></header>
-    <SectionCard title="Resumo financeiro" className={viewStyles.dashboard_financial_summary}><div className="stats-grid tw:min-w-0"><DashboardMetricCards cards={analytics.cards.slice(0, 8)} storageScope={`${auth.arenaId}:finance`} /></div></SectionCard>
-    <SectionCard title="Operação" className="tw:min-w-0"><div className="tw:min-w-0"><DashboardMetricCards cards={analytics.cards.slice(8)} storageScope={`${auth.arenaId}:operations`} /></div></SectionCard>
-    <DashboardFlowPanel days={analytics.cashDays} view={view} arenaId={auth.arenaId} />
-    <DashboardSortablePanels storageScope={auth.arenaId}>{panels.map(panel => <DashboardBarPanel key={panel.id} {...panel} arenaId={auth.arenaId} referenceAllowed={!["clients", "debtors", "courts", "products"].includes(panel.id)} />)}</DashboardSortablePanels>
+    <DashboardFreeLayout storageScope={auth.arenaId} panels={[
+      ...analytics.cards.map(card => ({ id: card.id, kind: "metric" as const, title: card.label, content: <DashboardMetricTile card={card} /> })),
+      { id: "cash-flow", kind: "flow", title: "Fluxo de caixa", content: <DashboardFlowPanel days={analytics.cashDays} view={view} arenaId={auth.arenaId} /> },
+      ...panels.map(panel => ({ id: panel.id, kind: "chart" as const, title: panel.title, content: <DashboardBarPanel {...panel} arenaId={auth.arenaId} referenceAllowed={!["clients", "debtors", "courts", "products"].includes(panel.id)} /> })),
+    ]} />
   </DashboardWorkspace>;
 }
