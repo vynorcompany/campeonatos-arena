@@ -7,17 +7,19 @@ import test from "node:test";
 
 test("dashboard renders a daily cash-flow chart and the requested operational charts", () => {
   const dashboard = readFileSync(resolve(process.cwd(), "src/app/(app)/painel/page.tsx"), "utf8");
+  const analytics = readFileSync(resolve(process.cwd(), "src/lib/reports/dashboard-analytics.ts"), "utf8");
+  const flow = readFileSync(resolve(process.cwd(), "src/app/(app)/painel/dashboard-flow-panel.tsx"), "utf8");
   const comparison = readFileSync(resolve(process.cwd(), "src/components/dashboard-comparison-filter.tsx"), "utf8");
 
   assert.match(dashboard, /Resumo financeiro/);
-  assert.match(dashboard, /Fluxo de caixa diário/);
-  assert.match(dashboard, /dashboard-cash-chart/);
+  assert.match(flow, /Fluxo de caixa diário/);
+  assert.match(flow, /dashboard-cash-chart/);
   assert.match(dashboard, /Quadras com mais reservas/);
   assert.match(dashboard, /Produtos mais vendidos/);
-  assert.match(dashboard, /Alunos por professor/);
-  assert.match(dashboard, /Ocupação das quadras/);
-  assert.match(dashboard, /reservationInsights/);
-  assert.match(dashboard, /paidAt/);
+  assert.match(dashboard, /Aulas por professor/);
+  assert.match(analytics, /Ocupação das quadras/);
+  assert.match(analytics, /dashboardCourtOccupancy/);
+  assert.match(analytics, /receipts/);
   assert.match(dashboard, /Visão de caixa/);
   assert.match(dashboard, /Visão de competência/);
   assert.match(dashboard, /dataInicial/);
@@ -35,10 +37,10 @@ test("dashboard renders a daily cash-flow chart and the requested operational ch
 
 test("dashboard only reads prior-period totals when comparison is enabled", () => {
   const dashboard = readFileSync(resolve(process.cwd(), "src/app/(app)/painel/page.tsx"), "utf8");
-  assert.match(dashboard, /comparing \? tx\.financialEntry\.findMany\(\{ where: previousFinancialWhere/);
-  assert.match(dashboard, /comparing \? tx\.scheduleOccurrence\.count\(\{ where:/);
-  assert.match(dashboard, /comparisonPercent\(received, previousReceived\)/);
-  assert.match(dashboard, /comparisonPercent\(reservations\.length, previousReservations\)/);
+  const loader = readFileSync(resolve(process.cwd(), "src/lib/reports/dashboard-data.ts"), "utf8");
+  assert.match(dashboard, /comparing \? previous.from : undefined/);
+  assert.match(loader, /previousFrom && previousTo \? tx\.financialEntry\.findMany/);
+  assert.match(loader, /previousFrom && previousTo \? tx\.scheduleOccurrence\.count/);
 });
 
 test("shared layout waits for tenant-scoped notifications during a connection spike", () => {

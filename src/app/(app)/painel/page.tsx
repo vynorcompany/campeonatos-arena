@@ -5,125 +5,66 @@ import { redirect } from "next/navigation";
 import { DashboardComparisonFilter } from "@/components/dashboard-comparison-filter";
 import { DashboardMetricCards } from "@/components/dashboard-metric-cards";
 import { DashboardSortablePanels } from "@/components/dashboard-sortable-panels";
+import { DashboardBarPanel } from "@/components/dashboard-bar-panel";
 import { SectionCard } from "@/components/section-card";
 import { requireArenaAccess } from "@/lib/auth/session";
 import { canViewModule, firstVisibleModuleHref } from "@/lib/permissions";
-import { formatOccupancy, reservationInsights } from "@/lib/reports/reservation-insights";
-import { activeCourtOccurrenceWhere } from "@/lib/calendar/online-booking-hold";
-import { withArenaTransaction } from "@/lib/rls";
-import { DashboardCashChart } from "./dashboard-cash-chart";
-import { loadDashboardProductSales } from "@/lib/reports/dashboard-product-sales";
+import { loadDashboardData } from "@/lib/reports/dashboard-data";
+import { buildDashboardAnalytics } from "@/lib/reports/dashboard-analytics";
+import { dashboardPeriod, shiftDashboardPeriod } from "@/lib/reports/dashboard-period";
+import { dashboardDateKey } from "@/lib/reports/dashboard-projections";
+import { DashboardFlowPanel } from "./dashboard-flow-panel";
 
-const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value / 100);
-const dayKey = (value: Date) => `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
-const dayLabel = (value: Date) => new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" }).format(value);
-const inputDate = (value: Date) => dayKey(value);
-
-function parseDate(value: string | undefined, fallback: Date) {
-  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return fallback;
-  const parsed = new Date(`${value}T00:00:00`);
-  return Number.isNaN(parsed.getTime()) ? fallback : parsed;
-}
-
-function ranking(items: Array<{ name: string; value: number }>) {
-  return Object.values(items.reduce<Record<string, { name: string; value: number }>>((all, item) => {
-    all[item.name] = { name: item.name, value: (all[item.name]?.value ?? 0) + item.value };
-    return all;
-  }, {})).sort((a, b) => b.value - a.value).slice(0, 5);
-}
-
-function comparisonPercent(current: number, previous: number) {
-  if (!previous) return current ? 100 : 0;
-  return ((current - previous) / previous) * 100;
-}
-
-type DashboardSearchParams = Promise<{ dataInicial?: string; dataFinal?: string; visao?: string; comparar?: string; compararDataInicial?: string; compararDataFinal?: string }>;
-
-export default async function OverviewPage({ searchParams }: { searchParams: DashboardSearchParams }) {
+type DashboardQuery = { dataInicial?: string; dataFinal?: string; visao?: string; comparar?: string; compararDataInicial?: string; compararDataFinal?: string };
+export default async function OverviewPage({ searchParams }: { searchParams: Promise<DashboardQuery> }) {
   const auth = await requireArenaAccess();
-  if (!canViewModule("dashboard", auth.arenaRole, auth.systemRole, auth.viewPermissions)) {
-    redirect(firstVisibleModuleHref(auth.arenaRole, auth.systemRole, auth.viewPermissions));
-  }
+  if (!canViewModule("dashboard", auth.arenaRole, auth.systemRole, auth.viewPermissions)) redirect(firstVisibleModuleHref(auth.arenaRole, auth.systemRole, auth.viewPermissions));
   const query = await searchParams;
-  const defaultEnd = new Date(); defaultEnd.setHours(23, 59, 59, 999);
-  const defaultStart = new Date(defaultEnd); defaultStart.setDate(defaultStart.getDate() - 29); defaultStart.setHours(0, 0, 0, 0);
-  const from = parseDate(query.dataInicial, defaultStart); from.setHours(0, 0, 0, 0);
-  const to = parseDate(query.dataFinal, defaultEnd); to.setHours(23, 59, 59, 999);
+  const period = dashboardPeriod(query.dataInicial, query.dataFinal);
+  if (period.error) return <section className="tw:grid tw:gap-3 tw:p-4"><p role="alert">{period.error}</p><Link href="/painel">Voltar ao Dashboard</Link></section>;
+  const { from, to, horizonEnd, today } = period;
   const view = query.visao === "competencia" ? "competencia" : "caixa";
-  const financialDateField = view === "caixa" ? "paidAt" : "dueDate";
-  const financialWhere = view === "caixa"
-    ? { arenaId: auth.arenaId, status: "PAID", paidAt: { gte: from, lte: to } }
-    : { arenaId: auth.arenaId, status: { not: "VOIDED" }, dueDate: { gte: from, lte: to } };
-  const periodDays = Math.max(1, Math.min(93, Math.round((to.getTime() - from.getTime()) / 86_400_000) + 1));
-  const comparisonMode = query.comparar === "previous-year" || query.comparar === "custom" ? query.comparar : "previous-month";
-  const previousFrom = query.comparar === "custom" && query.compararDataInicial ? parseDate(query.compararDataInicial, from) : new Date(from);
-  const previousTo = query.comparar === "custom" && query.compararDataFinal ? parseDate(query.compararDataFinal, to) : new Date(to);
-  if (comparisonMode === "previous-year") { previousFrom.setFullYear(previousFrom.getFullYear() - 1); previousTo.setFullYear(previousTo.getFullYear() - 1); }
-  if (comparisonMode === "previous-month") { previousFrom.setMonth(previousFrom.getMonth() - 1); previousTo.setMonth(previousTo.getMonth() - 1); }
-  const previousFinancialWhere = view === "caixa"
-    ? { arenaId: auth.arenaId, status: "PAID", paidAt: { gte: previousFrom, lte: previousTo } }
-    : { arenaId: auth.arenaId, status: { not: "VOIDED" }, dueDate: { gte: previousFrom, lte: previousTo } };
-  const comparing = query.comparar === "previous-month" || query.comparar === "previous-year" || query.comparar === "custom";
-  const [entries, previousEntries, reservations, previousReservations, saleItems, teachers, portalAccounts, openDebts, paidByClient, arenaCourts] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
-    tx.financialEntry.findMany({ where: financialWhere, select: { id: true, type: true, status: true, amountCents: true, paidAt: true, dueDate: true, description: true, counterpartyName: true, paymentMethod: true } }),
-    comparing ? tx.financialEntry.findMany({ where: previousFinancialWhere, select: { type: true, amountCents: true } }) : Promise.resolve([]),
-    tx.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, startsAt: { lte: to }, endsAt: { gte: from }, ...activeCourtOccurrenceWhere() }, include: { occurrenceCourts: { include: { court: { select: { name: true } } } } } }),
-    comparing ? tx.scheduleOccurrence.count({ where: { arenaId: auth.arenaId, startsAt: { lte: previousTo }, endsAt: { gte: previousFrom }, ...activeCourtOccurrenceWhere() } }) : Promise.resolve(0),
-    loadDashboardProductSales(tx, auth.arenaId, { gte: from, lte: to }),
-    tx.teacher.findMany({ where: { arenaId: auth.arenaId, active: true }, include: { lessons: { where: { scheduledAt: { gte: from, lte: to } }, include: { attendances: true } } } }),
-    tx.playerAccount.findMany({ where: { arenaId: auth.arenaId, createdAt: { gte: from, lte: to } }, select: { id: true, phone: true, createdAt: true, player: { select: { name: true, email: true } } }, orderBy: { createdAt: "desc" } }),
-    tx.financialEntry.findMany({ where: { arenaId: auth.arenaId, type: "REVENUE", status: { in: ["PENDING", "OVERDUE"] } }, select: { id: true, counterpartyName: true, amountCents: true, dueDate: true } }),
-    view === "caixa" ? Promise.resolve([]) : tx.financialEntry.findMany({ where: { arenaId: auth.arenaId, type: "REVENUE", status: "PAID", paidAt: { gte: from, lte: to } }, select: { id: true, counterpartyName: true, amountCents: true, paidAt: true } }),
-    tx.court.findMany({ where: { arenaId: auth.arenaId, active: true }, include: { weeklyRules: true }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }] }),
-  // Um pico de arenas distintas pode enfileirar leituras no pool do Prisma.
-  // A espera não prolonga a transação em si; ela evita HTTP 500 antes de obter conexão.
-  ]), { maxWait: 20_000, timeout: 10_000 });
-  const received = entries.filter((entry) => entry.type === "REVENUE").reduce((total, entry) => total + entry.amountCents, 0);
-  const paid = entries.filter((entry) => entry.type === "EXPENSE").reduce((total, entry) => total + entry.amountCents, 0);
-  const previousReceived = previousEntries.filter((entry) => entry.type === "REVENUE").reduce((total, entry) => total + entry.amountCents, 0);
-  const previousPaid = previousEntries.filter((entry) => entry.type === "EXPENSE").reduce((total, entry) => total + entry.amountCents, 0);
-  const days = Array.from({ length: periodDays }, (_, index) => { const date = new Date(from); date.setDate(from.getDate() + index); return date; });
-  const cashDays = days.map((date) => {
-    const key = dayKey(date);
-    const income = entries.filter((entry) => entry.type === "REVENUE" && entry[financialDateField] && dayKey(entry[financialDateField] as Date) === key).reduce((total, entry) => total + entry.amountCents, 0);
-    const expense = entries.filter((entry) => entry.type === "EXPENSE" && entry[financialDateField] && dayKey(entry[financialDateField] as Date) === key).reduce((total, entry) => total + entry.amountCents, 0);
-    return { label: dayLabel(date), income, expense };
-  });
-  const courts = ranking(reservations.flatMap((reservation) => reservation.occurrenceCourts.map((court) => ({ name: court.court.name, value: 1 }))));
-  const occupancy = reservationInsights(arenaCourts, reservations, from, to);
-  const products = ranking(saleItems);
-  const students = ranking(teachers.map((teacher) => ({ name: teacher.name, value: new Set(teacher.lessons.flatMap((lesson) => lesson.attendances.map((attendance) => attendance.studentId))).size })));
-  const debtors = ranking(openDebts.map((entry) => ({ name: entry.counterpartyName || "Cliente não identificado", value: entry.amountCents })));
-  const bestClients = ranking((view === "caixa" ? entries.filter((entry) => entry.type === "REVENUE") : paidByClient).map((entry) => ({ name: entry.counterpartyName || "Cliente não identificado", value: entry.amountCents })));
-  const paymentMethods = ranking(entries.filter((entry) => entry.type === "REVENUE" && entry.status === "PAID").map((entry) => ({ name: entry.paymentMethod || "Não informado", value: entry.amountCents })));
-  const maxPaymentMethod = Math.max(1, ...paymentMethods.map((item) => item.value));
-  const maxRanking = Math.max(1, ...courts.map((item) => item.value), ...products.map((item) => item.value), ...students.map((item) => item.value));
-  const maxFinancialRanking = Math.max(1, ...debtors.map((item) => item.value), ...bestClients.map((item) => item.value));
-  const metricCards = [
-    { id: "income", label: "Entradas", value: money(received), caption: view === "caixa" ? "Valores recebidos" : "Receitas previstas", comparison: comparing ? { percent: comparisonPercent(received, previousReceived) } : undefined, title: "Entradas no período", description: "Receitas consideradas na visualização selecionada.", emptyMessage: "Nenhuma entrada encontrada neste período.", items: entries.filter((entry) => entry.type === "REVENUE").map((entry) => ({ id: entry.id, title: entry.description || "Receita", subtitle: entry.counterpartyName || "Sem identificação", value: money(entry.amountCents), date: (entry[financialDateField] as Date | null)?.toISOString() })) },
-    { id: "expense", label: "Saídas", value: money(paid), caption: view === "caixa" ? "Valores pagos" : "Despesas previstas", comparison: comparing ? { percent: comparisonPercent(paid, previousPaid) } : undefined, title: "Saídas no período", description: "Despesas consideradas na visualização selecionada.", emptyMessage: "Nenhuma saída encontrada neste período.", items: entries.filter((entry) => entry.type === "EXPENSE").map((entry) => ({ id: entry.id, title: entry.description || "Despesa", subtitle: entry.counterpartyName || "Sem identificação", value: money(entry.amountCents), date: (entry[financialDateField] as Date | null)?.toISOString() })) },
-    { id: "result", label: "Resultado", value: money(received - paid), caption: view === "caixa" ? "Saldo do período" : "Resultado por competência", comparison: comparing ? { percent: comparisonPercent(received - paid, previousReceived - previousPaid) } : undefined, title: "Composição do resultado", description: "Saldo obtido pela diferença entre entradas e saídas do período.", emptyMessage: "Não há movimentações no período.", items: [{ id: "income", title: "Entradas", subtitle: "Receitas do período", value: money(received) }, { id: "expense", title: "Saídas", subtitle: "Despesas do período", value: money(paid) }, { id: "balance", title: "Resultado", subtitle: "Entradas menos saídas", value: money(received - paid) }] },
-    { id: "reservations", label: "Reservas", value: reservations.length, caption: "No período", comparison: comparing ? { percent: comparisonPercent(reservations.length, previousReservations) } : undefined, title: "Reservas no período", description: "Inclui somente reservas ativas; reservas canceladas ou excluídas não entram nesta lista.", emptyMessage: "Nenhuma reserva encontrada neste período.", items: reservations.map((reservation) => ({ id: reservation.id, title: reservation.title || reservation.bookingTypeName, subtitle: reservation.occurrenceCourts.map((court) => court.court.name).join(" · ") || "Quadra não informada", date: reservation.startsAt.toISOString() })) },
-    { id: "occupancy", label: "Ocupação das quadras", value: formatOccupancy(occupancy.occupiedMinutes, occupancy.availableMinutes), caption: occupancy.highestVolumeCourt ? `${occupancy.highestVolumeCourt.courtName}: ${occupancy.highestVolumeCourt.reservations} reservas` : "Sem reservas no período", title: "Carga de lotação das quadras", description: "Percentual das horas reservadas sobre os horários disponíveis na grade da arena.", emptyMessage: "Nenhuma disponibilidade configurada para calcular a ocupação.", items: occupancy.courtInsights.map((court) => ({ id: court.courtId, title: court.courtName, subtitle: `${court.reservations} reserva${court.reservations === 1 ? "" : "s"} · ${court.occupiedMinutes} min reservados`, value: formatOccupancy(court.occupiedMinutes, court.availableMinutes) })) },
-    { id: "portal-users", label: "Novos usuários do portal", value: portalAccounts.length, caption: "Cadastros no período selecionado", title: "Novos usuários do Portal", description: "Usuários que criaram acesso no período selecionado.", emptyMessage: "Nenhum usuário criou acesso ao Portal neste período.", items: portalAccounts.map((account) => ({ id: account.id, title: account.player.name, subtitle: account.phone || account.player.email || "Contato não informado", date: account.createdAt.toISOString() })) },
+  const comparing = ["previous-month", "previous-year", "custom"].includes(query.comparar || "");
+  const shifted = shiftDashboardPeriod(from, to, query.comparar === "previous-year" ? -12 : -1);
+  const custom = query.comparar === "custom" ? dashboardPeriod(query.compararDataInicial, query.compararDataFinal) : null;
+  const previous = custom && !custom.error ? { from: custom.from, to: custom.to } : shifted;
+  if (custom?.error) return <section className="tw:grid tw:gap-3 tw:p-4"><p role="alert">Período de comparação inválido. {custom.error}</p><Link href="/painel">Voltar ao Dashboard</Link></section>;
+  const data = await loadDashboardData(auth.arenaId, from, to, horizonEnd, comparing ? previous.from : undefined, comparing ? previous.to : undefined);
+  const analytics = buildDashboardAnalytics(data, from, to, horizonEnd, view, comparing ? previous : undefined);
+  const presetHref = (start: Date, end: Date) => {
+    const params = new URLSearchParams({ dataInicial: dashboardDateKey(start), dataFinal: dashboardDateKey(end), visao: view });
+    if (comparing) { params.set("comparar", query.comparar!); if (query.comparar === "custom") { params.set("compararDataInicial", query.compararDataInicial || ""); params.set("compararDataFinal", query.compararDataFinal || ""); } }
+    return `/painel?${params}`;
+  };
+  const month = today.getMonth(), year = today.getFullYear();
+  const presets: Array<[string, Date, Date]> = [
+    ["Este mês", new Date(year, month, 1), today],
+    ["Próximo Mês", new Date(year, month + 1, 1), new Date(year, month + 2, 0)],
+    ["Mês passado", new Date(year, month - 1, 1), new Date(year, month, 0)],
+    ["Últimos 90 dias", new Date(year, month, today.getDate() - 89), today],
+    ["Últimos 7 dias", new Date(year, month, today.getDate() - 6), today],
   ];
-
-  const presetHref = (start: Date, end: Date) => `/painel?dataInicial=${inputDate(start)}&dataFinal=${inputDate(end)}&visao=${view}${comparing ? `&comparar=${query.comparar}` : ""}`;
-  const today = new Date(); const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1); const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1); const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
-  const isPreset = (start: Date, end: Date) => inputDate(from) === inputDate(start) && inputDate(to) === inputDate(end);
+  const panels = [
+    { id: "payments", title: "Principais formas de pagamento", description: "Recebimentos no período, incluindo baixas parciais, agrupados pela forma efetiva do pagamento.", items: analytics.methods },
+    { id: "categories", title: "Faturamento por categoria", description: "Receitas na visão de caixa ou competência selecionada, agrupadas pela categoria financeira do lançamento.", items: analytics.categories },
+    { id: "court-revenue", title: "Faturamento por quadra", description: "Receitas na visão selecionada. Reservas com várias quadras são rateadas igualmente; demais receitas aparecem em Sem quadra vinculada.", items: analytics.courtRevenue },
+    { id: "court-forecast", title: "Previsão de faturamento por quadra", description: "Receitas lançadas e programadas por vencimento, incluindo reservas já agendadas. Valores de reservas com várias quadras são rateados; receitas sem vínculo ficam identificadas separadamente.", items: analytics.forecastCourts },
+    { id: "total-forecast", title: "Previsão de faturamento total", description: `Receitas lançadas e programadas por vencimento, de ${dashboardDateKey(from)} a ${dashboardDateKey(horizonEnd)}. Inclui lançamentos, recorrências ativas e reservas com valor definido. O primeiro mês começa na data inicial do filtro. Não estima novas vendas.`, items: analytics.months, chronological: true },
+    { id: "teachers", title: "Aulas por professor", description: "Quantidade de aulas não canceladas da grade e do cadastro de aulas avulsas, no período.", items: analytics.lessonsByTeacher, monetary: false },
+    { id: "clients", title: "Top 10 Clientes", description: "Dez clientes com mais recebimentos confirmados no período, incluindo pagamentos parciais. Registros sem vínculo usam o nome informado no lançamento.", items: analytics.clients },
+    { id: "debtors", title: "Top 10 Devedores", description: "Dez maiores saldos vencidos das contas com vencimento no período selecionado, descontando pagamentos parciais.", items: analytics.debtors },
+    { id: "courts", title: "Quadras com mais reservas", description: "Agendamentos ativos por quadra, incluindo aulas, sem bloqueios nem cancelamentos.", items: analytics.courtReservations, monetary: false },
+    { id: "products", title: "Produtos mais vendidos", description: "Quantidade de produtos vendidos no período. Serviços são apresentados nos indicadores de receitas.", items: analytics.products, monetary: false },
+  ];
   return <div className={viewStyles.stack_md_workspace_page}>
-    <header className={viewStyles.page_header_dashboard_header}><form className={viewStyles.dashboard_filters}><div className={viewStyles.dashboard_presets}><Link href={presetHref(thisMonthStart, today)} className={cx(isPreset(thisMonthStart, today) ? "dashboard-period-preset-active" : undefined)}>Este mês</Link><Link href={presetHref(lastMonthStart, lastMonthEnd)} className={cx(isPreset(lastMonthStart, lastMonthEnd) ? "dashboard-period-preset-active" : undefined)}>Mês passado</Link><Link href={presetHref(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 89), today)} className={cx(isPreset(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 89), today) ? "dashboard-period-preset-active" : undefined)}>Últimos 90 dias</Link><Link href={presetHref(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6), today)} className={cx(isPreset(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6), today) ? "dashboard-period-preset-active" : undefined)}>Últimos 7 dias</Link></div><label>Período inicial<input type="date" name="dataInicial" defaultValue={inputDate(from)} /></label><label>Período final<input type="date" name="dataFinal" defaultValue={inputDate(to)} /></label><label>Visualização<select name="visao" defaultValue={view}><option value="caixa">Visão de caixa</option><option value="competencia">Visão de competência</option></select></label><DashboardComparisonFilter mode={query.comparar} from={inputDate(previousFrom)} to={inputDate(previousTo)} /><button type="submit" className={viewStyles.button_button_primary}>Aplicar</button></form></header>
-    <SectionCard title="Resumo financeiro" className={viewStyles.dashboard_financial_summary}><div className={viewStyles.stats_grid}><DashboardMetricCards cards={metricCards} /></div></SectionCard>
-    <div className="tw:grid tw:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] tw:gap-3 tw:viewport-1000:grid-cols-1">
-    <SectionCard title={view === "caixa" ? "Fluxo de caixa diário" : "Fluxo por competência diário"} className={viewStyles.dashboard_cash_flow}><div className={viewStyles.dashboard_chart_legend}><span><i className={viewStyles.dashboard_chart_income} />Entradas</span><span><i className={viewStyles.dashboard_chart_expense} />Saídas</span></div><DashboardCashChart days={cashDays} view={view} /></SectionCard>
-    <SectionCard title="Entradas por forma de pagamento" description="Valores recebidos no período selecionado" className="dashboard-payment-methods"><div className={viewStyles.dashboard_payment_towers}>{paymentMethods.length ? paymentMethods.map((item) => <article key={item.name}><div title={`${item.name}: ${money(item.value)}`}><i style={{ height: `${Math.max(8, (item.value / maxPaymentMethod) * 100)}%` }} /></div><strong>{item.name}</strong><span>{money(item.value)}</span></article>) : <p className={viewStyles.muted}>Nenhuma entrada recebida no período.</p>}</div></SectionCard>
-    </div>
-    <DashboardSortablePanels>
-      <SectionCard title="Quadras com mais reservas"><div className={viewStyles.dashboard_ranking_chart}>{courts.map((item) => <div key={item.name}><span>{item.name}</span><i><b style={{ width: `${(item.value / maxRanking) * 100}%` }} /></i><strong>{item.value}</strong></div>)}</div></SectionCard>
-      <SectionCard title="Produtos mais vendidos"><div className={viewStyles.dashboard_ranking_chart}>{products.map((item) => <div key={item.name}><span>{item.name}</span><i><b style={{ width: `${(item.value / maxRanking) * 100}%` }} /></i><strong>{item.value}</strong></div>)}</div></SectionCard>
-      <SectionCard title="Alunos por professor"><div className={viewStyles.dashboard_ranking_chart}>{students.map((item) => <div key={item.name}><span>{item.name}</span><i><b style={{ width: `${(item.value / maxRanking) * 100}%` }} /></i><strong>{item.value}</strong></div>)}</div></SectionCard>
-      <SectionCard title="Principais devedores" description="Contas em aberto"><div className={viewStyles.dashboard_ranking_chart_dashboard_ranking_chart_financial}>{debtors.length ? debtors.map((item) => <div key={item.name}><span>{item.name}</span><i><b style={{ width: `${(item.value / maxFinancialRanking) * 100}%` }} /></i><strong>{money(item.value)}</strong></div>) : <p className={viewStyles.muted}>Nenhuma conta em aberto.</p>}</div></SectionCard>
-      <SectionCard title="Clientes que mais gastam" description="Pagamentos confirmados no período"><div className={viewStyles.dashboard_ranking_chart_dashboard_ranking_chart_financial}>{bestClients.length ? bestClients.map((item) => <div key={item.name}><span>{item.name}</span><i><b style={{ width: `${(item.value / maxFinancialRanking) * 100}%` }} /></i><strong>{money(item.value)}</strong></div>) : <p className={viewStyles.muted}>Nenhum pagamento confirmado no período.</p>}</div></SectionCard>
-    </DashboardSortablePanels>
+    <h1 className="tw:sr-only">Dashboard</h1>
+    <header className={viewStyles.page_header_dashboard_header}><form key={`${dashboardDateKey(from)}:${dashboardDateKey(to)}:${view}:${query.comparar || "none"}`} className={viewStyles.dashboard_filters}>
+      <div className={viewStyles.dashboard_presets}>{presets.map(([label, start, end]) => <Link key={label} href={presetHref(start, end)} className={cx(dashboardDateKey(from) === dashboardDateKey(start) && dashboardDateKey(to) === dashboardDateKey(end) ? "dashboard-period-preset-active" : undefined)}>{label}</Link>)}</div>
+      <label>Período inicial<input type="date" name="dataInicial" defaultValue={dashboardDateKey(from)} required /></label><label>Período final<input type="date" name="dataFinal" defaultValue={dashboardDateKey(to)} required /></label><label>Visualização<select name="visao" defaultValue={view}><option value="caixa">Visão de caixa</option><option value="competencia">Visão de competência</option></select></label><DashboardComparisonFilter mode={query.comparar} from={dashboardDateKey(previous.from)} to={dashboardDateKey(previous.to)} /><button type="submit" className={viewStyles.button_button_primary}>Aplicar</button>
+    </form></header>
+    <SectionCard title="Resumo financeiro" className={viewStyles.dashboard_financial_summary}><div className="stats-grid tw:grid tw:min-w-0 tw:grid-cols-4 tw:gap-3 tw:viewport-1120:grid-cols-3 tw:viewport-900:grid-cols-2 tw:viewport-580:grid-cols-1"><DashboardMetricCards cards={analytics.cards.slice(0, 8)} storageScope={`${auth.arenaId}:finance`} /></div></SectionCard>
+    <SectionCard title="Operação" className="tw:min-w-0"><div className="tw:grid tw:min-w-0 tw:grid-cols-4 tw:gap-3 tw:viewport-1120:grid-cols-3 tw:viewport-900:grid-cols-2 tw:viewport-580:grid-cols-1"><DashboardMetricCards cards={analytics.cards.slice(8)} storageScope={`${auth.arenaId}:operations`} /></div></SectionCard>
+    <DashboardFlowPanel days={analytics.cashDays} view={view} arenaId={auth.arenaId} />
+    <DashboardSortablePanels storageScope={auth.arenaId}>{panels.map(panel => <DashboardBarPanel key={panel.id} {...panel} arenaId={auth.arenaId} />)}</DashboardSortablePanels>
   </div>;
 }

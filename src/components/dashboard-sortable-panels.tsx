@@ -5,13 +5,15 @@ import { viewStyles } from "./dashboard-sortable-panels.utilities";
 
 import { Children, type DragEvent, type PointerEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
-const storageKey = "arena-dashboard-panel-order-v1";
+const orderStoragePrefix = "arena-dashboard-panel-order-v2";
 // Uma versão nova evita reaproveitar dimensões experimentais gravadas pela
 // primeira implementação do redimensionamento.
-const layoutStorageKey = "arena-dashboard-panel-layout-v3";
+const layoutStoragePrefix = "arena-dashboard-panel-layout-v4";
 type PanelLayout = { columns: number; minHeight: number };
 
-export function DashboardSortablePanels({ children }: { children: ReactNode }) {
+export function DashboardSortablePanels({ children, storageScope = "default" }: { children: ReactNode; storageScope?: string }) {
+  const storageKey = `${orderStoragePrefix}:${storageScope}`;
+  const layoutStorageKey = `${layoutStoragePrefix}:${storageScope}`;
   const panels = Children.toArray(children);
   const panelCount = panels.length;
   const defaultOrder = useMemo(() => Array.from({ length: panelCount }, (_, index) => String(index)), [panelCount]);
@@ -39,13 +41,13 @@ export function DashboardSortablePanels({ children }: { children: ReactNode }) {
       if (stored.length === defaultOrder.length && new Set(stored).size === stored.length && stored.every((id) => defaultOrder.includes(id))) nextOrder = stored;
     } catch { /* A ordem padrão continua disponível se o navegador não puder ler o armazenamento. */ }
     setOrder(nextOrder);
-  }, [defaultOrder]);
+  }, [defaultOrder, storageKey]);
   useEffect(() => {
     try {
       const stored = JSON.parse(window.localStorage.getItem(layoutStorageKey) ?? "{}") as Record<string, PanelLayout>;
       setLayouts(Object.fromEntries(Object.entries(stored).filter(([id, layout]) => defaultOrder.includes(id) && Number.isFinite(layout?.columns) && Number.isFinite(layout?.minHeight)).map(([id, layout]) => [id, { columns: Math.max(1, Math.min(3, Math.round(layout.columns))), minHeight: Math.max(0, Math.min(880, layout.minHeight)) }])));
     } catch { /* mantém o tamanho padrão */ }
-  }, [defaultOrder]);
+  }, [defaultOrder, layoutStorageKey]);
 
   function move(targetId: string) {
     if (!draggedId || draggedId === targetId) return;

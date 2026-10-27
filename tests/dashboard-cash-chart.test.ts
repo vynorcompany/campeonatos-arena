@@ -32,3 +32,18 @@ test("short periods keep every daily label", () => {
   const html = renderToStaticMarkup(React.createElement(DashboardCashChart, { view: "competencia", days }));
   assert.equal((html.match(/<small>\d\/10<\/small>/g) ?? []).length, 7);
 });
+
+test("cash bars keep their true proportion against a configured reference instead of overstating small amounts", () => {
+  const html = renderToStaticMarkup(React.createElement(DashboardCashChart, { view: "caixa", days: [{ label: "01/10", income: 100, expense: 50 }], reference: { value: 10000, label: "Meta" } }));
+  assert.match(html, /dashboard-cash-income[^>]+height:1%/);
+  assert.match(html, /dashboard-cash-expense[^>]+height:0\.5%/);
+  assert.match(html, /bottom:100%/);
+});
+
+test("accessible totals in cumulative mode use the last point instead of summing running balances", () => {
+  const html = renderToStaticMarkup(React.createElement(DashboardCashChart, { view: "caixa", cumulative: true, days: [{ label: "01/10", income: 10000, expense: 2000 }, { label: "02/10", income: 30000, expense: 5000 }] }));
+  assert.match(html, /Gráfico acumulado/);
+  assert.match(html, /Total de entradas: R\$\s*300,00/);
+  assert.match(html, /Total de saídas: R\$\s*50,00/);
+  assert.doesNotMatch(html, /400,00/);
+});
