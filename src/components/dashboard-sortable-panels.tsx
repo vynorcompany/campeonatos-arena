@@ -1,136 +1,128 @@
 "use client";
-import { elementVisualScale } from "@/lib/ui/element-visual-scale";
+
+import { Children, type PointerEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { cx } from "@/lib/ui/classes";
-import { viewStyles } from "./dashboard-sortable-panels.utilities";
+import { useDashboardLayout } from "./dashboard-workspace";
 
-import { Children, type DragEvent, type PointerEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-
-const orderStoragePrefix = "arena-dashboard-panel-order-v2";
-// Uma versão nova evita reaproveitar dimensões experimentais gravadas pela
-// primeira implementação do redimensionamento.
-const layoutStoragePrefix = "arena-dashboard-panel-layout-v4";
 type PanelLayout = { columns: number; minHeight: number };
+const control = "tw:inline-flex tw:min-h-8 tw:min-w-8 tw:items-center tw:justify-center tw:rounded tw:border tw:border-solid tw:border-slate-300 tw:bg-white tw:px-2 tw:text-xs tw:text-slate-700 tw:disabled:opacity-35 tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-blue-700";
 
-export function DashboardSortablePanels({ children, storageScope = "default" }: { children: ReactNode; storageScope?: string }) {
-  const storageKey = `${orderStoragePrefix}:${storageScope}`;
-  const layoutStorageKey = `${layoutStoragePrefix}:${storageScope}`;
+export function DashboardSortablePanels({ children, storageScope = "default", metrics = false }: { children: ReactNode; storageScope?: string; metrics?: boolean }) {
+  const { editing, resetVersion } = useDashboardLayout();
+  const storageKey = `${metrics ? "arena-dashboard-metric-order-v2" : "arena-dashboard-panel-order-v2"}:${storageScope}`;
+  const layoutStorageKey = `arena-dashboard-panel-layout-v5:${storageScope}`;
   const panels = Children.toArray(children);
-  const panelCount = panels.length;
-  const defaultOrder = useMemo(() => Array.from({ length: panelCount }, (_, index) => String(index)), [panelCount]);
+  const ids = panels.map((panel, index) => metrics && typeof panel === "object" && panel !== null && "key" in panel ? String(panel.key).replace(/^\.\$/, "") : String(index));
+  const signature = JSON.stringify(ids);
+  const defaultOrder = useMemo<string[]>(() => JSON.parse(signature), [signature]);
   const [order, setOrder] = useState(defaultOrder);
-  const [draggedId, setDraggedId] = useState<string | null>(null);
   const [layouts, setLayouts] = useState<Record<string, PanelLayout>>({});
-  const grid = useRef<HTMLDivElement>(null);
-  const resizeCleanup = useRef<(() => void) | null>(null);
   const [gridColumns, setGridColumns] = useState(1);
-  useEffect(() => () => resizeCleanup.current?.(), []);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [targetId, setTargetId] = useState<string | null>(null);
+  const [announcement, setAnnouncement] = useState("");
+  const grid = useRef<HTMLDivElement>(null);
+  const cleanupDrag = useRef<(() => void) | null>(null);
+  const lastReset = useRef(resetVersion);
+
   useEffect(() => {
     const element = grid.current;
     if (!element) return;
-    const measure = () => setGridColumns(Math.max(1, window.getComputedStyle(element).gridTemplateColumns.split(" ").filter(Boolean).length));
+    const measure = () => setGridColumns(Math.max(1, Number(getComputedStyle(element).getPropertyValue("--dashboard-columns")) || 1));
     const observer = new ResizeObserver(measure);
-    observer.observe(element);
-    measure();
+    observer.observe(element); measure();
     return () => observer.disconnect();
   }, []);
-
+  useEffect(() => () => cleanupDrag.current?.(), []);
+  useEffect(() => { if (!editing) cleanupDrag.current?.(); }, [editing]);
   useEffect(() => {
     let nextOrder = defaultOrder;
+    let nextLayouts: Record<string, PanelLayout> = {};
     try {
-      const stored = JSON.parse(window.localStorage.getItem(storageKey) ?? "[]") as string[];
-      if (stored.length === defaultOrder.length && new Set(stored).size === stored.length && stored.every((id) => defaultOrder.includes(id))) nextOrder = stored;
-    } catch { /* A ordem padrão continua disponível se o navegador não puder ler o armazenamento. */ }
-    setOrder(nextOrder);
-  }, [defaultOrder, storageKey]);
+      const stored: unknown = JSON.parse(localStorage.getItem(storageKey) ?? "[]");
+      if (Array.isArray(stored)) nextOrder = [...new Set(stored.filter((id): id is string => typeof id === "string" && defaultOrder.includes(id))), ...defaultOrder.filter(id => !stored.includes(id))];
+      const saved = JSON.parse(localStorage.getItem(layoutStorageKey) ?? "{}");
+      nextLayouts = Object.fromEntries(Object.entries(saved ?? {}).filter(([id, value]) => defaultOrder.includes(id) && value && typeof value === "object" && "columns" in value && "minHeight" in value && Number.isFinite(value.columns) && Number.isFinite(value.minHeight)).map(([id, value]) => {
+        const layout = value as PanelLayout;
+        return [id, { columns: Math.max(1, Math.min(4, Math.round(layout.columns))), minHeight: Math.max(0, Math.min(880, layout.minHeight)) }];
+      }));
+    } catch { /* Mantém o dashboard utilizável sem armazenamento local. */ }
+    setOrder(nextOrder); setLayouts(nextLayouts);
+  }, [defaultOrder, storageKey, layoutStorageKey]);
   useEffect(() => {
-    try {
-      const stored = JSON.parse(window.localStorage.getItem(layoutStorageKey) ?? "{}") as Record<string, PanelLayout>;
-      setLayouts(Object.fromEntries(Object.entries(stored).filter(([id, layout]) => defaultOrder.includes(id) && Number.isFinite(layout?.columns) && Number.isFinite(layout?.minHeight)).map(([id, layout]) => [id, { columns: Math.max(1, Math.min(3, Math.round(layout.columns))), minHeight: Math.max(0, Math.min(880, layout.minHeight)) }])));
-    } catch { /* mantém o tamanho padrão */ }
-  }, [defaultOrder, layoutStorageKey]);
+    if (resetVersion === lastReset.current) return;
+    lastReset.current = resetVersion;
+    setOrder(defaultOrder); setLayouts({});
+    try { localStorage.removeItem(storageKey); localStorage.removeItem(layoutStorageKey); } catch { /* armazenamento indisponível */ }
+  }, [resetVersion, defaultOrder, storageKey, layoutStorageKey]);
 
-  function move(targetId: string) {
-    if (!draggedId || draggedId === targetId) return;
-    setOrder((current) => {
+  function move(id: string, target: string) {
+    if (id === target) return;
+    setOrder(current => {
       const next = [...current];
-      const from = next.indexOf(draggedId);
-      const to = next.indexOf(targetId);
-      next.splice(from, 1);
-      next.splice(to, 0, draggedId);
-      try { window.localStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* sem persistência local */ }
-      return next;
-    });
-    setDraggedId(null);
-  }
-
-  function persistLayout(id: string, layout: PanelLayout) {
-    setLayouts((current) => {
-      const next = { ...current, [id]: layout };
-      try { window.localStorage.setItem(layoutStorageKey, JSON.stringify(next)); } catch { /* sem persistência local */ }
+      const from = next.indexOf(id), to = next.indexOf(target);
+      if (from < 0 || to < 0) return current;
+      next.splice(from, 1); next.splice(to, 0, id);
+      try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* armazenamento indisponível */ }
+      setAnnouncement(`Cartão movido para a posição ${to + 1}.`);
       return next;
     });
   }
-
-  function startResize(event: PointerEvent<HTMLSpanElement>, id: string, axis: "horizontal" | "vertical") {
+  function resize(id: string, change: Partial<PanelLayout>) {
+    setLayouts(current => {
+      const next = { ...current, [id]: { ...(current[id] ?? { columns: 1, minHeight: 0 }), ...change } };
+      try { localStorage.setItem(layoutStorageKey, JSON.stringify(next)); } catch { /* armazenamento indisponível */ }
+      return next;
+    });
+  }
+  function startDrag(event: PointerEvent<HTMLButtonElement>, id: string) {
     if (event.button !== 0) return;
     event.preventDefault();
-    event.stopPropagation();
-    resizeCleanup.current?.();
-    const handle = event.currentTarget;
-    const panel = event.currentTarget.parentElement;
-    const grid = panel?.parentElement;
-    if (!panel || !grid) return;
-    const visualScale = elementVisualScale(panel);
-    const panelRect = { width: panel.offsetWidth, height: panel.offsetHeight };
-    const gridRect = { width: grid.offsetWidth };
-    const start = { x: event.clientX, y: event.clientY };
-    const gridStyle = window.getComputedStyle(grid);
-    const columns = Math.max(1, gridStyle.gridTemplateColumns.split(" ").filter(Boolean).length);
-    if (axis === "horizontal" && columns === 1) return;
-    handle.setPointerCapture(event.pointerId);
-    const initial = { columns: Math.min(columns, layouts[id]?.columns ?? 1), minHeight: layouts[id]?.minHeight ?? Math.round(panelRect.height) };
-    const gap = Number.parseFloat(gridStyle.columnGap) || 0;
-    const columnWidth = Math.max(1, (gridRect.width - gap * (columns - 1)) / columns);
-    let next = initial;
-    const pointerId = event.pointerId;
-    const move = (moveEvent: globalThis.PointerEvent) => {
-      if (moveEvent.pointerId !== pointerId) return;
-      next = axis === "horizontal"
-        ? { ...initial, columns: Math.max(1, Math.min(columns, Math.round((panelRect.width + (moveEvent.clientX - start.x) / visualScale + gap) / (columnWidth + gap)))) }
-        : { ...initial, minHeight: Math.max(160, Math.min(880, Math.round(panelRect.height + (moveEvent.clientY - start.y) / visualScale))) };
-      setLayouts(current => ({ ...current, [id]: next }));
+    cleanupDrag.current?.();
+    const handle = event.currentTarget, pointerId = event.pointerId;
+    let target = id;
+    let pointerX = event.clientX, pointerY = event.clientY, frame = 0;
+    handle.setPointerCapture(pointerId);
+    setDraggedId(id);
+    const update = (next: globalThis.PointerEvent) => {
+      if (next.pointerId !== pointerId) return;
+      pointerX = next.clientX; pointerY = next.clientY;
+      const element = document.elementFromPoint(pointerX, pointerY)?.closest<HTMLElement>("[data-dashboard-panel]");
+      if (element?.parentElement === grid.current && element.dataset.dashboardPanel) {
+        target = element.dataset.dashboardPanel; setTargetId(target);
+      }
     };
+    const autoScroll = () => {
+      if (pointerY < 80) window.scrollBy(0, -12);
+      else if (pointerY > innerHeight - 80) window.scrollBy(0, 12);
+      const element = document.elementFromPoint(pointerX, pointerY)?.closest<HTMLElement>("[data-dashboard-panel]");
+      if (element?.parentElement === grid.current && element.dataset.dashboardPanel) { target = element.dataset.dashboardPanel; setTargetId(target); }
+      frame = requestAnimationFrame(autoScroll);
+    };
+    frame = requestAnimationFrame(autoScroll);
     const cleanup = () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", end);
-      window.removeEventListener("pointercancel", cancel);
+      cancelAnimationFrame(frame);
+      window.removeEventListener("pointermove", update); window.removeEventListener("pointerup", end); window.removeEventListener("pointercancel", cancel); window.removeEventListener("keydown", escape);
       if (handle.hasPointerCapture(pointerId)) handle.releasePointerCapture(pointerId);
-      resizeCleanup.current = null;
+      setDraggedId(null); setTargetId(null); cleanupDrag.current = null;
     };
-    const end = (endEvent: globalThis.PointerEvent) => {
-      if (endEvent.pointerId !== pointerId) return;
-      move(endEvent);
-      cleanup();
-      persistLayout(id, next);
-    };
-    const cancel = (cancelEvent: globalThis.PointerEvent) => {
-      if (cancelEvent.pointerId !== pointerId) return;
-      cleanup();
-      persistLayout(id, next);
-    };
-    resizeCleanup.current = cleanup;
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", end);
-    window.addEventListener("pointercancel", cancel);
+    const end = (next: globalThis.PointerEvent) => { if (next.pointerId !== pointerId) return; update(next); cleanup(); move(id, target); };
+    const cancel = (next: globalThis.PointerEvent) => { if (next.pointerId === pointerId) cleanup(); };
+    const escape = (next: KeyboardEvent) => { if (next.key === "Escape") cleanup(); };
+    cleanupDrag.current = cleanup;
+    window.addEventListener("pointermove", update); window.addEventListener("pointerup", end); window.addEventListener("pointercancel", cancel); window.addEventListener("keydown", escape);
   }
-
-  return <div ref={grid} className={viewStyles.dashboard_grid_dashboard_chart_grid_dashboard_sortable_grid} aria-label="Painéis reordenáveis do dashboard">
-    {order.map((id) => <div key={id} className={cx(`${viewStyles.dashboard_sortable_panel}${draggedId === id ? " is-dragging" : ""}`)} style={{ gridColumn: `span ${Math.max(1, Math.min(gridColumns, layouts[id]?.columns ?? 1))}`, minHeight: layouts[id]?.minHeight }} onDragOver={(event) => event.preventDefault()} onDrop={() => move(id)}>
-      <span className={viewStyles.dashboard_drag_handle} draggable onDragStart={(event: DragEvent<HTMLSpanElement>) => { setDraggedId(id); event.dataTransfer.effectAllowed = "move"; }} onDragEnd={() => setDraggedId(null)} aria-label="Arraste para reordenar" title="Arraste para reordenar">⠿</span>
-      {layouts[id] ? <button type="button" className="tw:absolute tw:top-2 tw:right-9 tw:z-10 tw:grid tw:size-6 tw:place-items-center tw:rounded tw:border-0 tw:bg-transparent tw:text-[var(--muted)] tw:hover:bg-[var(--panel-muted)]" aria-label="Restaurar tamanho do card" title="Restaurar tamanho do card" onClick={() => { resizeCleanup.current?.(); setLayouts(current => { const next = { ...current }; delete next[id]; try { window.localStorage.setItem(layoutStorageKey, JSON.stringify(next)); } catch { /* sem persistência local */ } return next; }); }}>↺</button> : null}
-      {gridColumns > 1 ? <span className={viewStyles.dashboard_panel_resize_handle_dashboard_panel_resize_handle_right} role="separator" tabIndex={0} aria-orientation="vertical" aria-valuemin={1} aria-valuemax={gridColumns} aria-valuenow={Math.min(gridColumns, layouts[id]?.columns ?? 1)} aria-label="Arraste para alterar a largura" onPointerDown={(event) => startResize(event, id, "horizontal")} onKeyDown={event => { if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return; event.preventDefault(); const panel = event.currentTarget.parentElement!; persistLayout(id, { columns: Math.max(1, Math.min(gridColumns, (layouts[id]?.columns ?? 1) + (event.key === "ArrowRight" ? 1 : -1))), minHeight: layouts[id]?.minHeight ?? Math.round(panel.offsetHeight) }); }} /> : null}
-      <span className={viewStyles.dashboard_panel_resize_handle_dashboard_panel_resize_handle_bottom} role="separator" tabIndex={0} aria-orientation="horizontal" aria-valuemin={160} aria-valuemax={880} aria-valuenow={layouts[id]?.minHeight ?? 160} aria-label="Arraste para alterar a altura" onPointerDown={(event) => startResize(event, id, "vertical")} onKeyDown={event => { if (!["ArrowUp", "ArrowDown"].includes(event.key)) return; event.preventDefault(); const panel = event.currentTarget.parentElement!; persistLayout(id, { columns: Math.min(gridColumns, layouts[id]?.columns ?? 1), minHeight: Math.max(160, Math.min(880, Math.round(panel.offsetHeight) + (event.key === "ArrowDown" ? 20 : -20))) }); }} />
-      {panels[Number(id)]}
+  return <div ref={grid} className={cx("dashboard-sortable-grid tw:grid tw:min-w-0 tw:items-stretch tw:gap-3", metrics ? "tw:[--dashboard-columns:4] tw:viewport-1120:[--dashboard-columns:3] tw:viewport-900:[--dashboard-columns:2] tw:viewport-580:[--dashboard-columns:1] tw:grid-cols-4 tw:viewport-1120:grid-cols-3 tw:viewport-900:grid-cols-2 tw:viewport-580:grid-cols-1" : "tw:[--dashboard-columns:3] tw:viewport-1180:[--dashboard-columns:2] tw:viewport-760:[--dashboard-columns:1] tw:grid-cols-3 tw:viewport-1180:grid-cols-2 tw:viewport-760:grid-cols-1")} aria-label={metrics ? "Indicadores reordenáveis" : "Gráficos reordenáveis"}>
+    {order.filter(id => ids.includes(id)).map((id, index) => <div key={id} data-dashboard-panel={id} className={cx("dashboard-sortable-panel tw:flex tw:min-w-0 tw:flex-col tw:rounded-xl tw:[&>.card]:flex-1 tw:[&>.dashboard-stat-trigger]:flex-1", editing && "tw:outline tw:outline-1 tw:outline-dashed tw:outline-slate-300", draggedId === id && "tw:opacity-50", targetId === id && targetId !== draggedId && "tw:ring-2 tw:ring-blue-600")} style={{ gridColumn: `span ${Math.min(gridColumns, layouts[id]?.columns ?? 1)}`, minHeight: layouts[id]?.minHeight || undefined }}>
+      {editing ? <div className="tw:flex tw:flex-wrap tw:items-center tw:gap-1.5 tw:rounded-t-xl tw:border-b tw:border-slate-200 tw:bg-slate-50 tw:p-2">
+        <button type="button" className={cx(control, "tw:touch-none tw:cursor-grab tw:active:cursor-grabbing")} onPointerDown={event => startDrag(event, id)} aria-label={`Arrastar cartão ${index + 1}`} title="Arrastar para reposicionar">⠿</button>
+        <button type="button" className={control} disabled={index === 0} onClick={() => move(id, order[index - 1])} aria-label={`Mover cartão ${index + 1} para antes`}>←</button>
+        <button type="button" className={control} disabled={index === order.length - 1} onClick={() => move(id, order[index + 1])} aria-label={`Mover cartão ${index + 1} para depois`}>→</button>
+        {gridColumns > 1 ? <label className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:text-slate-600">Largura<select className={control} aria-label={`Largura do cartão ${index + 1}`} value={Math.min(gridColumns, layouts[id]?.columns ?? 1)} onChange={event => resize(id, { columns: Number(event.target.value) })}>{Array.from({ length: gridColumns }, (_, column) => <option key={column} value={column + 1}>{column + 1 === gridColumns ? "Linha inteira" : `${column + 1} coluna${column ? "s" : ""}`}</option>)}</select></label> : null}
+        {!metrics ? <label className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:text-slate-600">Altura<select className={control} aria-label={`Altura do cartão ${index + 1}`} value={layouts[id]?.minHeight ?? 0} onChange={event => resize(id, { minHeight: Number(event.target.value) })}><option value={0}>Automática</option><option value={320}>Compacta</option><option value={440}>Média</option><option value={560}>Ampla</option></select></label> : null}
+      </div> : null}
+      {panels[ids.indexOf(id)]}
     </div>)}
+    <span className="tw:sr-only tw:absolute" role="status">{announcement}</span>
   </div>;
 }
