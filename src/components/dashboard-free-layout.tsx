@@ -3,7 +3,7 @@
 import { type KeyboardEvent, type PointerEvent, type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { cx } from "@/lib/ui/classes";
 import { elementVisualScale } from "@/lib/ui/element-visual-scale";
-import { DASHBOARD_WIDTH, defaultDashboardLayout, readDashboardLayout, resizeDashboardRect, settleDashboardLayout, type DashboardEdge, type DashboardLayout, type DashboardPanelDefinition } from "@/lib/ui/dashboard-layout";
+import { DASHBOARD_WIDTH, dashboardPositionAvailable, finishDashboardPlacement, snapDashboardRect, type DashboardGuide, defaultDashboardLayout, readDashboardLayout, resizeDashboardRect, settleDashboardLayout, type DashboardEdge, type DashboardLayout, type DashboardPanelDefinition } from "@/lib/ui/dashboard-layout";
 import { useDashboardLayout } from "./dashboard-workspace";
 
 type Panel = DashboardPanelDefinition & { title: string; content: ReactNode };
@@ -32,6 +32,8 @@ export function DashboardFreeLayout({ panels, storageScope }: { panels: Panel[];
   const [layout, setLayout] = useState<DashboardLayout>({});
   const layoutRef = useRef(layout);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [guides, setGuides] = useState<DashboardGuide[]>([]);
+  const [overlap, setOverlap] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const lastReset = useRef(resetVersion);
   const signature = JSON.stringify(panels.map(({ id, kind }) => ({ id, kind })));
@@ -81,7 +83,7 @@ export function DashboardFreeLayout({ panels, storageScope }: { panels: Panel[];
           return [id, { ...rect, height }];
         }));
         if (!changed) return current;
-        const settled = settleDashboardLayout(next, activePanel.current ?? undefined); layoutRef.current = settled; return settled;
+        const settled = activePanel.current ? next : settleDashboardLayout(next); layoutRef.current = settled; return settled;
       });
     });
     contents.current.forEach(element => observer.observe(element));
@@ -100,7 +102,7 @@ export function DashboardFreeLayout({ panels, storageScope }: { panels: Panel[];
       return [id, { ...rect, height }];
     }));
     if (changed) {
-      const settled = settleDashboardLayout(next, activePanel.current ?? undefined);
+      const settled = activePanel.current ? next : settleDashboardLayout(next);
       layoutRef.current = settled; setLayout(settled);
     }
   }, [layout, free]);
@@ -129,7 +131,11 @@ export function DashboardFreeLayout({ panels, storageScope }: { panels: Panel[];
       moved = true; suppressClick.current = true; activePanel.current = id; setActiveId(id);
       const minimumHeight = Math.max(definitions.find(panel => panel.id === id)?.kind === "metric" ? 110 : 180, naturalHeights.current[id] ?? 0);
       const nextRect = edge ? resizeDashboardRect(rect, edge, dx, dy, minimumWidth(id), minimumHeight) : { ...rect, x: Math.max(0, Math.min(DASHBOARD_WIDTH - rect.width, rect.x + dx)), y: Math.max(0, rect.y + dy) };
-      apply(settleDashboardLayout({ ...initial, [id]: nextRect }, id));
+      const horizontalScale = DASHBOARD_WIDTH / width;
+      const snapped = snapDashboardRect(nextRect, initial, id, 7 / scale * horizontalScale, 7 / scale, 12 * horizontalScale, edge, minimumWidth(id), minimumHeight);
+      setGuides(snapped.guides);
+      setOverlap(!dashboardPositionAvailable(snapped.rect, initial, id));
+      apply({ ...initial, [id]: snapped.rect });
     }
     const move = (next: globalThis.PointerEvent) => { if (next.pointerId !== pointerId) return; pointerX = next.clientX; pointerY = next.clientY; update(); };
     const autoScroll = () => {
@@ -146,11 +152,23 @@ export function DashboardFreeLayout({ panels, storageScope }: { panels: Panel[];
       cancelAnimationFrame(frame);
       window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", end); window.removeEventListener("pointercancel", cancel); window.removeEventListener("keydown", escape);
       if (element.hasPointerCapture(pointerId)) element.releasePointerCapture(pointerId);
-      cleanupGesture.current = null; activePanel.current = null; setActiveId(null);
+      cleanupGesture.current = null; activePanel.current = null; setActiveId(null); setGuides([]); setOverlap(false);
       // The synthetic click following pointerup must not open the details dialog.
       window.setTimeout(() => { suppressClick.current = false; }, 0);
     };
-    const end = (next: globalThis.PointerEvent) => { if (next.pointerId !== pointerId) return; move(next); if (moved) { apply(layoutRef.current, true); setAnnouncement(`${edge ? "Tamanho" : "Posição"} de ${panels.find(panel => panel.id === id)?.title} salvo.`); } cleanup(); };
+    const end = (next: globalThis.PointerEvent) => {
+      if (next.pointerId !== pointerId) return;
+      move(next);
+      if (moved) {
+        const preview = layoutRef.current[id];
+        const measured = contents.current.get(id)?.offsetHeight ?? 0;
+        const candidate = { ...preview, height: Math.max(preview.height, measured + 2) };
+        const placed = finishDashboardPlacement(candidate, initial, id, rect, 12 * DASHBOARD_WIDTH / width, 48 / scale * DASHBOARD_WIDTH / width, 48 / scale);
+        apply({ ...initial, [id]: placed }, true);
+        setAnnouncement(placed === rect ? "Espaço ocupado. O cartão voltou à posição anterior." : `${edge ? "Tamanho" : "Posição"} de ${panels.find(panel => panel.id === id)?.title} salvo.`);
+      }
+      cleanup();
+    };
     const cancel = (next: globalThis.PointerEvent) => { if (next.pointerId !== pointerId) return; apply(initial); cleanup(); };
     const escape = (next: globalThis.KeyboardEvent) => { if (next.key === "Escape") { apply(initial); cleanup(); } };
     cleanupGesture.current = () => { apply(initial); cleanup(); };
@@ -164,17 +182,19 @@ export function DashboardFreeLayout({ panels, storageScope }: { panels: Panel[];
     const dx = event.key === "ArrowRight" ? 20 : event.key === "ArrowLeft" ? -20 : 0;
     const dy = event.key === "ArrowDown" ? 20 : event.key === "ArrowUp" ? -20 : 0;
     const next = edge || event.shiftKey ? resizeDashboardRect(rect, edge ?? "se", dx, dy, minimumWidth(id), Math.max(110, naturalHeights.current[id] ?? 0)) : { ...rect, x: Math.max(0, Math.min(DASHBOARD_WIDTH - rect.width, rect.x + dx)), y: Math.max(0, rect.y + dy) };
-    apply(settleDashboardLayout({ ...layoutRef.current, [id]: next }, id), true);
+    if (dashboardPositionAvailable(next, layoutRef.current, id)) apply({ ...layoutRef.current, [id]: next }, true);
+    else setAnnouncement("Espaço ocupado. Os outros cartões permanecem na posição atual.");
   }
   const height = Math.max(0, ...Object.values(layout).map(rect => rect.y + rect.height));
   return <div ref={container} className={cx("dashboard-free-layout tw:relative tw:min-w-0", !free && "tw:grid tw:gap-3")} style={free ? { height } : undefined} aria-label="Dashboard com organização livre" onClickCapture={event => { if (suppressClick.current) { event.preventDefault(); event.stopPropagation(); } }}>
     {panels.map(panel => {
       const rect = layout[panel.id];
-      return <article key={panel.id} data-dashboard-panel={panel.id} tabIndex={free ? 0 : undefined} aria-label={panel.title} aria-describedby={free ? "dashboard-layout-instructions" : undefined} onKeyDown={event => keyboard(event, panel.id)} onPointerDownCapture={event => { if (!(event.target as HTMLElement).closest("[data-resize-edge]")) startGesture(event, panel.id); }} className={cx("dashboard-free-panel tw:group tw:min-w-0 tw:rounded-xl tw:border tw:border-solid tw:border-[var(--line)] tw:bg-white tw:shadow-[var(--shadow)] tw:focus-visible:outline-2 tw:focus-visible:outline-blue-600", free && "tw:absolute tw:cursor-grab tw:select-none tw:hover:border-blue-400", activeId === panel.id && "tw:z-20 tw:cursor-grabbing tw:ring-2 tw:ring-blue-500")} style={free && rect ? { left: `${rect.x / DASHBOARD_WIDTH * 100}%`, top: rect.y, width: `${rect.width / DASHBOARD_WIDTH * 100}%`, height: rect.height } : free ? { visibility: "hidden" } : undefined}>
+      return <article key={panel.id} data-dashboard-panel={panel.id} tabIndex={free ? 0 : undefined} aria-label={panel.title} aria-describedby={free ? "dashboard-layout-instructions" : undefined} onKeyDown={event => keyboard(event, panel.id)} onPointerDownCapture={event => { if (!(event.target as HTMLElement).closest("[data-resize-edge]")) startGesture(event, panel.id); }} className={cx("dashboard-free-panel tw:group tw:min-w-0 tw:rounded-xl tw:border tw:border-solid tw:border-[var(--line)] tw:bg-white tw:shadow-[var(--shadow)] tw:focus-visible:outline-2 tw:focus-visible:outline-blue-600", free && "tw:absolute tw:cursor-grab tw:select-none tw:hover:border-blue-400", activeId === panel.id && "tw:z-20 tw:cursor-grabbing tw:ring-2", activeId === panel.id && (overlap ? "tw:ring-amber-500 tw:opacity-80" : "tw:ring-blue-500"))} style={free && rect ? { left: `${rect.x / DASHBOARD_WIDTH * 100}%`, top: rect.y, width: `${rect.width / DASHBOARD_WIDTH * 100}%`, height: rect.height } : free ? { visibility: "hidden" } : undefined}>
         <div ref={element => { if (element) contents.current.set(panel.id, element); else contents.current.delete(panel.id); }} data-dashboard-content={panel.id} className="dashboard-free-content tw:min-w-0 tw:[&>.card]:h-auto! tw:[&>.card]:border-0! tw:[&>.card]:shadow-none! tw:[&>.dashboard-stat-trigger]:w-full tw:[&>.dashboard-stat-trigger]:border-0! tw:[&>.dashboard-stat-trigger]:shadow-none! tw:[&_header]:touch-none tw:[&_.eyebrow]:touch-none">{panel.content}</div>
         {free ? (Object.keys(edgeStyles) as DashboardEdge[]).map(edge => <button key={edge} type="button" data-resize-edge={edge} aria-label={`Redimensionar ${panel.title}: ${edgeNames[edge]}`} title={`Arraste o extremo ${edgeNames[edge]}`} className={cx("tw:absolute tw:z-10 tw:touch-none tw:rounded-sm tw:border-0 tw:bg-transparent tw:p-0 tw:hover:bg-blue-500/20 tw:focus-visible:bg-blue-500/20 tw:focus-visible:outline-2 tw:focus-visible:outline-blue-600", edgeStyles[edge])} onPointerDown={event => { event.stopPropagation(); startGesture(event, panel.id, edge); }} onKeyDown={event => keyboard(event, panel.id, edge)} />) : null}
       </article>;
     })}
+    {guides.map(guide => <div key={guide.axis} data-dashboard-guide={guide.axis} aria-hidden="true" className={cx("tw:pointer-events-none tw:absolute tw:z-30 tw:border-blue-500", guide.axis === "x" ? "tw:w-0 tw:border-l tw:border-dashed" : "tw:h-0 tw:border-t tw:border-dashed")} style={guide.axis === "x" ? { left: `${guide.position / DASHBOARD_WIDTH * 100}%`, top: guide.start - 6, height: guide.end - guide.start + 12 } : { top: guide.position, left: `${guide.start / DASHBOARD_WIDTH * 100}%`, width: `${(guide.end - guide.start) / DASHBOARD_WIDTH * 100}%` }} />)}
     <p id="dashboard-layout-instructions" className="tw:sr-only">Arraste o cartão para mover. Arraste qualquer borda ou canto para redimensionar. Pelo teclado, use as setas para mover e Shift mais setas para redimensionar. Escape cancela o ajuste.</p>
     <span className="tw:sr-only" role="status">{announcement}</span>
   </div>;

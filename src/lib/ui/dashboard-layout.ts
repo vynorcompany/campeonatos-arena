@@ -68,3 +68,60 @@ export function readDashboardLayout(value: unknown, defaults: DashboardLayout, m
   }
   return settleDashboardLayout(next);
 }
+
+export type DashboardGuide = { axis: "x" | "y"; position: number; start: number; end: number };
+
+/** Snap only the manipulated rectangle; neighbours remain immutable throughout the gesture. */
+export function snapDashboardRect(rect: DashboardRect, layout: DashboardLayout, id: string, toleranceX: number, toleranceY: number, gapX: number, edge?: DashboardEdge, minWidth = 0, minHeight = 0): { rect: DashboardRect; guides: DashboardGuide[] } {
+  type Match = { delta: number; position: number; own: number; other: DashboardRect; priority: number; distance: number };
+  let xMatch: Match | undefined, yMatch: Match | undefined;
+  const ownX = edge ? edge.includes("w") ? [0] : edge.includes("e") ? [1] : [] : [0, 1, .5];
+  const ownY = edge ? edge.includes("n") ? [0] : edge.includes("s") ? [1] : [] : [0, 1, .5];
+  const choose = (current: Match | undefined, candidate: Match, tolerance: number) => {
+    if (Math.abs(candidate.delta) > tolerance) return current;
+    const score = (match: Match) => Math.abs(match.delta) / Math.max(1, tolerance) + match.distance / 160;
+    return !current || score(candidate) < score(current) - .01 || Math.abs(score(candidate) - score(current)) < .01 && candidate.priority < current.priority ? candidate : current;
+  };
+  const neighbours = Object.entries(layout).filter(([key]) => key !== id).map(([, value]) => value);
+  for (const other of neighbours) {
+    const distanceX = Math.max(0, other.y - rect.y - rect.height, rect.y - other.y - other.height);
+    const distanceY = Math.max(0, other.x - rect.x - rect.width, rect.x - other.x - other.width);
+    for (const own of ownX) for (const target of [0, 1, .5]) {
+      const position = other.x + other.width * target;
+      xMatch = choose(xMatch, { delta: position - (rect.x + rect.width * own), position, own, other, priority: own === target ? 0 : 1, distance: distanceX }, toleranceX);
+    }
+    for (const own of ownY) for (const target of [0, 1, .5]) {
+      const position = other.y + other.height * target;
+      yMatch = choose(yMatch, { delta: position - (rect.y + rect.height * own), position, own, other, priority: own === target ? 0 : 1, distance: distanceY }, toleranceY);
+    }
+    for (const [own, position] of [[0, other.x + other.width + gapX], [1, other.x - gapX]]) if (ownX.includes(own)) xMatch = choose(xMatch, { delta: position - (rect.x + rect.width * own), position, own, other, priority: 2, distance: distanceX }, toleranceX);
+    for (const [own, position] of [[0, other.y + other.height + DASHBOARD_GAP], [1, other.y - DASHBOARD_GAP]]) if (ownY.includes(own)) yMatch = choose(yMatch, { delta: position - (rect.y + rect.height * own), position, own, other, priority: 2, distance: distanceY }, toleranceY);
+  }
+  const snapped = edge ? resizeDashboardRect(rect, edge, xMatch?.delta ?? 0, yMatch?.delta ?? 0, minWidth, minHeight) : { ...rect, x: Math.max(0, Math.min(DASHBOARD_WIDTH - rect.width, rect.x + (xMatch?.delta ?? 0))), y: Math.max(0, rect.y + (yMatch?.delta ?? 0)) };
+  const guides: DashboardGuide[] = [];
+  if (xMatch && Math.abs(snapped.x + snapped.width * xMatch.own - xMatch.position) < .1) guides.push({ axis: "x", position: xMatch.position, start: Math.min(snapped.y, xMatch.other.y), end: Math.max(snapped.y + snapped.height, xMatch.other.y + xMatch.other.height) });
+  if (yMatch && Math.abs(snapped.y + snapped.height * yMatch.own - yMatch.position) < .1) guides.push({ axis: "y", position: yMatch.position, start: Math.min(snapped.x, yMatch.other.x), end: Math.max(snapped.x + snapped.width, yMatch.other.x + yMatch.other.width) });
+  return { rect: snapped, guides };
+}
+
+export function dashboardPositionAvailable(rect: DashboardRect, layout: DashboardLayout, id: string) {
+  return !Object.entries(layout).some(([otherId, other]) => otherId !== id && rectanglesOverlap({ ...rect, height: rect.height + DASHBOARD_GAP }, { ...other, height: other.height + DASHBOARD_GAP }));
+}
+
+/** Find a nearby empty position on drop, or return to the start; never cascade other cards. */
+export function finishDashboardPlacement(rect: DashboardRect, layout: DashboardLayout, id: string, fallback: DashboardRect, gapX: number, maxDistanceX: number, maxDistanceY: number): DashboardRect {
+  if (dashboardPositionAvailable(rect, layout, id)) return rect;
+  const xs = [rect.x], ys = [rect.y];
+  for (const [otherId, other] of Object.entries(layout)) if (otherId !== id) {
+    xs.push(other.x - rect.width - gapX, other.x + other.width + gapX);
+    ys.push(other.y - rect.height - DASHBOARD_GAP, other.y + other.height + DASHBOARD_GAP);
+  }
+  const candidates: DashboardRect[] = [];
+  for (const x of xs) for (const y of ys) {
+    if (x < 0 || x + rect.width > DASHBOARD_WIDTH || y < 0 || Math.abs(x - rect.x) > maxDistanceX || Math.abs(y - rect.y) > maxDistanceY) continue;
+    const candidate = { ...rect, x, y };
+    if (dashboardPositionAvailable(candidate, layout, id)) candidates.push(candidate);
+  }
+  candidates.sort((a, b) => Math.hypot((a.x - rect.x) / maxDistanceX, (a.y - rect.y) / maxDistanceY) - Math.hypot((b.x - rect.x) / maxDistanceX, (b.y - rect.y) / maxDistanceY));
+  return candidates[0] ?? fallback;
+}
