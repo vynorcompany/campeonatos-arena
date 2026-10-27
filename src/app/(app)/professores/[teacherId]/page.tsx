@@ -20,7 +20,6 @@ import {
 } from "@/lib/actions/academy";
 import { requireModuleView } from "@/lib/auth/guards";
 import { canPerformPermission } from "@/lib/permissions";
-import { uniqueStandardPlanOptions } from "@/lib/academy/standard-plans";
 import { arenaDatabase } from "@/lib/arena-database";
 import { instantToArenaWallClock } from "@/lib/calendar/arena-wall-clock";
 
@@ -71,7 +70,7 @@ export default async function TeacherDetailPage(
   const reportEnd = searchParams?.fim
     ? new Date(`${searchParams.fim}T23:59:59`)
     : monthEnd;
-  const [teacher, clients, targetTeachers, standardPlans, makeupAttendances] = await Promise.all([
+  const [teacher, clients, targetTeachers, makeupAttendances] = await Promise.all([
     prisma.teacher.findFirst({
       where: { id: params.teacherId, arenaId: auth.arenaId },
       include: {
@@ -138,11 +137,6 @@ export default async function TeacherDetailPage(
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
-    prisma.plan.findMany({
-      where: { arenaId: auth.arenaId, active: true },
-      select: { id: true, name: true, classesPerMonth: true },
-      orderBy: { name: "asc" },
-    }),
     prisma.lessonAttendance.findMany({ where: { student: { arenaId: auth.arenaId, teacherAssignments: { some: { teacherId: params.teacherId, active: true } } }, makeupRequestedAt: { not: null } }, select: { makeupScheduledAt: true, makeupExpiresAt: true } }),
   ]);
   if (!teacher) notFound();
@@ -169,10 +163,6 @@ export default async function TeacherDetailPage(
     },
     orderBy: { dueDate: "desc" },
   });
-  const standardPlanOptions = uniqueStandardPlanOptions(standardPlans, [
-    teacher.name,
-    ...targetTeachers.map((targetTeacher) => targetTeacher.name),
-  ]);
   const classGroupsBySchedule = [...teacher.classGroups].sort(
     (first, second) => {
       const firstSchedule = first.schedules[0];
@@ -424,7 +414,7 @@ export default async function TeacherDetailPage(
                   teacherId={teacher.id}
                   teachers={targetTeachers}
                 />
-                <TeacherPlanCreateDialog teacherId={teacher.id} plans={standardPlanOptions} />
+                <TeacherPlanCreateDialog teacherId={teacher.id} />
               </div>
             </header>
             <div className={viewStyles.teacher_plan_cards}>
@@ -439,7 +429,7 @@ export default async function TeacherDetailPage(
                     <b>{money(monthlyPriceCents)}</b>
                     <small>{plan.subscriptions.length} aluno(s) ativo(s)</small>
                   </div>
-                  <TeacherPlanEditor teacherId={teacher.id} plan={{ id: plan.id, name: plan.name, monthlyPriceCents }} />
+                  <div className="tw:flex! tw:flex-wrap tw:items-center tw:justify-end tw:gap-2"><TeacherPlanEditor teacherId={teacher.id} plan={{ id: plan.id, name: plan.name, monthlyPriceCents }} /><TeacherPlanCreateDialog teacherId={teacher.id} initialPlan={{ name: plan.name, classesPerMonth: plan.classesPerMonth, monthlyPriceCents, notes: plan.notes }} /></div>
                 </article>
               ))}
               {!teacher.planAssignments.length ? (

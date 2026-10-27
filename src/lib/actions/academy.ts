@@ -1,5 +1,6 @@
 "use server";
 
+import { createIndependentTeacherPlan } from "@/lib/academy/create-teacher-plan";
 import { arenaDatabase } from "@/lib/arena-database";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -665,27 +666,18 @@ export async function createTeacherPlanAction(formData: FormData) {
 
 export async function createTeacherPlanWithPriceAction(formData: FormData) {
   const auth = await requireModuleEdit("teachers");
-  const prisma = arenaDatabase(auth.arenaId);
-  const teacherId = String(formData.get("teacherId") ?? "");
-  const planId = String(formData.get("planId") ?? "");
-  const monthlyPriceCents = parseMoneyToCents(
-    String(formData.get("monthlyPrice") ?? ""),
-  );
-  const [teacher, plan] = await Promise.all([
-    prisma.teacher.findFirst({
-    where: { id: teacherId, arenaId: auth.arenaId },
-    select: { id: true },
-    }),
-    prisma.plan.findFirst({ where: { id: planId, arenaId: auth.arenaId, active: true }, select: { id: true } }),
-  ]);
-  if (!teacher || !plan)
-    throw new Error("Selecione o professor e um plano padrão.");
-  await prisma.teacherPlan.upsert({
-    where: { teacherId_planId: { teacherId, planId: plan.id } },
-    update: { active: true, monthlyPriceCents },
-    create: { arenaId: auth.arenaId, teacherId, planId: plan.id, monthlyPriceCents },
-  });
-  refreshAcademyRoutes();
+  try {
+    await withArenaTransaction(auth.arenaId, tx => createIndependentTeacherPlan(tx, auth.arenaId, auth.userId, Object.fromEntries(formData)));
+    refreshAcademyRoutes();
+    revalidatePath(`/professores/${String(formData.get("teacherId") ?? "")}`);
+    revalidatePath("/financeiro/planos");
+    return {};
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error && error.code === "P2002") return { error: "Já existe um plano com esse nome. Escolha outro nome." };
+    const message = error instanceof Error ? error.message : "";
+    const known = ["Selecione o professor.", "Informe o nome do plano.", "Use até 120 caracteres no nome.", "Informe o preço mensal.", "Quantidade de aulas inválida.", "Use até 6.000 caracteres nas observações.", "Valor inválido.", "Professor não encontrado nesta arena."];
+    return { error: known.includes(message) ? message : "Não foi possível criar o plano. Revise os dados e tente novamente." };
+  }
 }
 
 export async function updateTeacherPlanWithPriceAction(formData: FormData) {

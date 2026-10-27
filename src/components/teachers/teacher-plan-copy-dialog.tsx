@@ -1,4 +1,5 @@
 "use client";
+import { planCopyButton } from "./teacher-plan-create-dialog";
 import { viewStyles } from "./teacher-plan-copy-dialog.utilities";
 
 import { useState } from "react";
@@ -24,10 +25,12 @@ export function TeacherPlanCopyDialog({
     <>
       <button
         type="button"
-        className={viewStyles.button_button_secondary_button_small_teacher_plan_copy_trigger}
+        className={planCopyButton}
+        aria-label="Copiar planos para outro professor"
+        title="Copiar planos para outro professor"
         onClick={() => setOpen(true)}
       >
-        <EventIcon name="clipboard" size={15} /> Copiar planos
+        <EventIcon name="clipboard" size={15} />
       </button>
       {open ? (
         <div

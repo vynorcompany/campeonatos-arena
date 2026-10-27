@@ -4,19 +4,15 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
 
+import { normalizeStandardPlanName, uniqueStandardPlanOptions } from "../src/lib/academy/standard-plans";
+
 const root = process.cwd();
 const read = (path: string) => readFileSync(resolve(root, path), "utf8");
 
-test("planos padrão removem o sufixo legado do professor antes de chegar ao seletor", () => {
-  const page = read("src/app/(app)/professores/[teacherId]/page.tsx");
-  const normalizerPath = resolve(root, "src/lib/academy/standard-plans.ts");
-
-  assert.match(page, /uniqueStandardPlanOptions/);
-  assert.equal(existsSync(normalizerPath), true);
-  const normalizer = read("src/lib/academy/standard-plans.ts");
-  assert.match(normalizer, /export function normalizeStandardPlanName/);
-  assert.match(normalizer, /` · \$\{teacherName\}`/);
-  assert.match(normalizer, /` \| \$\{teacherName\}`/);
+test("a normalização de nomes legados continua preservando o modelo canônico", () => {
+  assert.equal(normalizeStandardPlanName("Mensal · Professor QA", ["Professor QA"]), "Mensal");
+  assert.equal(normalizeStandardPlanName("Mensal | Professor QA", ["Professor QA"]), "Mensal");
+  assert.deepEqual(uniqueStandardPlanOptions([{ id: "legacy", name: "Mensal · Professor QA", classesPerMonth: 4 }, { id: "canonical", name: "Mensal", classesPerMonth: 4 }], ["Professor QA"]), [{ id: "canonical", name: "Mensal", classesPerMonth: 4 }]);
 });
 
 test("a consolidação dos planos legados preserva os vínculos antes de excluir duplicatas", () => {

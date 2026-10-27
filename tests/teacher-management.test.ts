@@ -805,16 +805,18 @@ test("a student has at most one active subscription for each plan", () => {
   assert.match(classGroups, /const activeSubscription = await tx\.studentSubscription\.findFirst/);
 });
 
-test("teacher pricing links a standard plan instead of duplicating its name", () => {
+test("teacher plan creation accepts independent details and duplicates without an existing-plan selector", () => {
   const schema = readFileSync(resolve(process.cwd(), "prisma/schema.prisma"), "utf8");
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/academy.ts"), "utf8");
   const createDialog = readFileSync(resolve(process.cwd(), "src/components/teachers/teacher-plan-create-dialog.tsx"), "utf8");
   const editor = readFileSync(resolve(process.cwd(), "src/components/teachers/teacher-plan-editor.tsx"), "utf8");
 
   assert.match(schema, /model TeacherPlan \{[\s\S]*monthlyPriceCents\s+Int/);
-  assert.match(actions, /createTeacherPlanWithPriceAction[\s\S]*planId/);
+  assert.match(actions, /createIndependentTeacherPlan/);
   assert.doesNotMatch(actions, /const duplicate = await prisma\.plan\.findFirst/);
-  assert.match(createDialog, /Plano padrão/);
-  assert.match(createDialog, /name="planId"/);
+  assert.match(createDialog, /name="name"/);
+  assert.match(createDialog, /name="classesPerMonth"/);
+  assert.match(createDialog, /Duplicar plano/);
+  assert.doesNotMatch(createDialog, /name="planId"/);
   assert.doesNotMatch(editor, /name="name"/);
 });
