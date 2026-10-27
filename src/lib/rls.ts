@@ -15,5 +15,5 @@ export async function withArenaTransaction<T>(arenaId: string, operation: (tx: A
   return prisma.$transaction(async (tx) => {
     await setArenaRlsContext(tx, arenaId);
     return operation(tx);
-  }, options);
+  }, { maxWait: 10_000, ...options });
 }

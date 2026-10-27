@@ -13,7 +13,7 @@ export function arenaDatabase(arenaId: string): PrismaClient {
     noteAuditArena(arenaId);
     await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`;
     return run(tx);
-  }, options);
+  }, { maxWait: 10_000, ...options });
   const defer = (operation: Operation) => {
     // Remain lazy, including when collected into an atomic batch transaction.
     let result: Promise<unknown> | undefined;
