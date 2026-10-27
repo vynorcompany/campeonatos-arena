@@ -39,3 +39,11 @@ test("cash bars keep their true proportion against a configured reference instea
   assert.match(html, /dashboard-cash-expense[^>]+height:0\.5%/);
   assert.match(html, /bottom:100%/);
 });
+
+test("accessible totals in cumulative mode use the last point instead of summing running balances", () => {
+  const html = renderToStaticMarkup(React.createElement(DashboardCashChart, { view: "caixa", cumulative: true, days: [{ label: "01/10", income: 10000, expense: 2000 }, { label: "02/10", income: 30000, expense: 5000 }] }));
+  assert.match(html, /Gráfico acumulado/);
+  assert.match(html, /Total de entradas: R\$\s*300,00/);
+  assert.match(html, /Total de saídas: R\$\s*50,00/);
+  assert.doesNotMatch(html, /400,00/);
+});
