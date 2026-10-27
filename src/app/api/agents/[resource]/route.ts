@@ -43,7 +43,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ reso
         case "reports": return tx.financialEntry.groupBy({ by: ["type", "status"], where: { ...financeWhere, status: { not: "VOIDED" } }, _sum: { amountCents: true }, _count: true });
       }
     });
-    return json({ data: Array.isArray(data) && query.data.period ? data.slice(0,1000) : data, period_month: query.data.period, ...(resource === "reports" ? { description: "Valor nominal dos lançamentos por tipo e situação; não representa saldo bancário ou recebimento efetivo." } : { nextOffset: Array.isArray(data) && data.length === 100 ? query.data.offset + 100 : null }), period: { from, to }, ...(resource === "finance" || resource === "reports" ? {
+    return json({ data: Array.isArray(data) && query.data.period ? data.slice(0,1000) : data, period_month: query.data.period, currency: "BRL", ...(resource === "reports" ? { description: "Valor nominal dos lançamentos por tipo e situação; não representa saldo bancário ou recebimento efetivo." } : { nextOffset: Array.isArray(data) && data.length === 100 ? query.data.offset + 100 : null }), period: { from, to }, ...(resource === "finance" || resource === "reports" ? {
       source: { system: "arena", company: key.arenaId },
       coverage: { basis: "payment_or_due_date", competenceAvailable: false, openingBalanceAvailable: false, bankStatementAvailable: false, completeDataset: Boolean(query.data.period && Array.isArray(data) && data.length<=1000),
         limitation: "Recorte por pagamento ou vencimento; não representa DRE por competência nem saldo bancário. Lançamentos sem ambas as datas não integram o recorte." },
