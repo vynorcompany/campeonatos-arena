@@ -22,8 +22,8 @@ export function DashboardCashChart({ days, view, reference }: { days: DashboardC
       {days.map((day, index) => <div className={viewStyles.dashboard_cash_day} key={`${index}-${day.label}`} title={`${day.label}: entradas ${money(day.income)}, saídas ${money(day.expense)}`}>
         <div className={`${viewStyles.dashboard_cash_column} tw:relative`}>
           {reference ? <i className="tw:absolute tw:inset-x-0 tw:z-10 tw:border-t-2 tw:border-dashed tw:border-amber-700" style={{ bottom: `${reference.value / max * 100}%` }} aria-label={`${reference.label}: ${money(reference.value)}`} /> : null}
-          <span className={viewStyles.dashboard_cash_income} style={{ height: `${Math.max(day.income ? 7 : 0, (day.income / max) * 100)}%` }} />
-          <span className={viewStyles.dashboard_cash_expense} style={{ height: `${Math.max(day.expense ? 7 : 0, (day.expense / max) * 100)}%` }} />
+          <span className={viewStyles.dashboard_cash_income} style={{ height: `${(day.income / max) * 100}%` }} />
+          <span className={viewStyles.dashboard_cash_expense} style={{ height: `${(day.expense / max) * 100}%` }} />
         </div>
         <small>{index === 0 || index === days.length - 1 || index % tickInterval === 0 ? day.label : null}</small>
       </div>)}

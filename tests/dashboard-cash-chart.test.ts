@@ -32,3 +32,10 @@ test("short periods keep every daily label", () => {
   const html = renderToStaticMarkup(React.createElement(DashboardCashChart, { view: "competencia", days }));
   assert.equal((html.match(/<small>\d\/10<\/small>/g) ?? []).length, 7);
 });
+
+test("cash bars keep their true proportion against a configured reference instead of overstating small amounts", () => {
+  const html = renderToStaticMarkup(React.createElement(DashboardCashChart, { view: "caixa", days: [{ label: "01/10", income: 100, expense: 50 }], reference: { value: 10000, label: "Meta" } }));
+  assert.match(html, /dashboard-cash-income[^>]+height:1%/);
+  assert.match(html, /dashboard-cash-expense[^>]+height:0\.5%/);
+  assert.match(html, /bottom:100%/);
+});
