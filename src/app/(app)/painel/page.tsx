@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DashboardComparisonFilter } from "@/components/dashboard-comparison-filter";
 import { DashboardMetricCards } from "@/components/dashboard-metric-cards";
+import { DashboardWorkspace } from "@/components/dashboard-workspace";
 import { DashboardSortablePanels } from "@/components/dashboard-sortable-panels";
 import { DashboardBarPanel } from "@/components/dashboard-bar-panel";
 import { SectionCard } from "@/components/section-card";
@@ -56,15 +57,15 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
     { id: "courts", title: "Quadras com mais reservas", description: "Agendamentos ativos por quadra, incluindo aulas, sem bloqueios nem cancelamentos.", items: analytics.courtReservations, monetary: false },
     { id: "products", title: "Produtos mais vendidos", description: "Quantidade de produtos vendidos no período. Serviços são apresentados nos indicadores de receitas.", items: analytics.products, monetary: false },
   ];
-  return <div className={viewStyles.stack_md_workspace_page}>
+  return <DashboardWorkspace className={viewStyles.stack_md_workspace_page}>
     <h1 className="tw:sr-only">Dashboard</h1>
     <header className={viewStyles.page_header_dashboard_header}><form key={`${dashboardDateKey(from)}:${dashboardDateKey(to)}:${view}:${query.comparar || "none"}`} className={viewStyles.dashboard_filters}>
-      <div className={viewStyles.dashboard_presets}>{presets.map(([label, start, end]) => <Link key={label} href={presetHref(start, end)} className={cx(dashboardDateKey(from) === dashboardDateKey(start) && dashboardDateKey(to) === dashboardDateKey(end) ? "dashboard-period-preset-active" : undefined)}>{label}</Link>)}</div>
+      <div className={viewStyles.dashboard_presets}>{presets.map(([label, start, end]) => <Link key={label} href={presetHref(start, end)} aria-current={dashboardDateKey(from) === dashboardDateKey(start) && dashboardDateKey(to) === dashboardDateKey(end) ? "date" : undefined} className={cx(dashboardDateKey(from) === dashboardDateKey(start) && dashboardDateKey(to) === dashboardDateKey(end) ? "dashboard-period-preset-active" : undefined)}>{label}</Link>)}</div>
       <label>Período inicial<input type="date" name="dataInicial" defaultValue={dashboardDateKey(from)} required /></label><label>Período final<input type="date" name="dataFinal" defaultValue={dashboardDateKey(to)} required /></label><label>Visualização<select name="visao" defaultValue={view}><option value="caixa">Visão de caixa</option><option value="competencia">Visão de competência</option></select></label><DashboardComparisonFilter mode={query.comparar} from={dashboardDateKey(previous.from)} to={dashboardDateKey(previous.to)} /><button type="submit" className={viewStyles.button_button_primary}>Aplicar</button>
     </form></header>
-    <SectionCard title="Resumo financeiro" className={viewStyles.dashboard_financial_summary}><div className="stats-grid tw:grid tw:min-w-0 tw:grid-cols-4 tw:gap-3 tw:viewport-1120:grid-cols-3 tw:viewport-900:grid-cols-2 tw:viewport-580:grid-cols-1"><DashboardMetricCards cards={analytics.cards.slice(0, 8)} storageScope={`${auth.arenaId}:finance`} /></div></SectionCard>
-    <SectionCard title="Operação" className="tw:min-w-0"><div className="tw:grid tw:min-w-0 tw:grid-cols-4 tw:gap-3 tw:viewport-1120:grid-cols-3 tw:viewport-900:grid-cols-2 tw:viewport-580:grid-cols-1"><DashboardMetricCards cards={analytics.cards.slice(8)} storageScope={`${auth.arenaId}:operations`} /></div></SectionCard>
+    <SectionCard title="Resumo financeiro" className={viewStyles.dashboard_financial_summary}><div className="stats-grid tw:min-w-0"><DashboardMetricCards cards={analytics.cards.slice(0, 8)} storageScope={`${auth.arenaId}:finance`} /></div></SectionCard>
+    <SectionCard title="Operação" className="tw:min-w-0"><div className="tw:min-w-0"><DashboardMetricCards cards={analytics.cards.slice(8)} storageScope={`${auth.arenaId}:operations`} /></div></SectionCard>
     <DashboardFlowPanel days={analytics.cashDays} view={view} arenaId={auth.arenaId} />
-    <DashboardSortablePanels storageScope={auth.arenaId}>{panels.map(panel => <DashboardBarPanel key={panel.id} {...panel} arenaId={auth.arenaId} />)}</DashboardSortablePanels>
-  </div>;
+    <DashboardSortablePanels storageScope={auth.arenaId}>{panels.map(panel => <DashboardBarPanel key={panel.id} {...panel} arenaId={auth.arenaId} referenceAllowed={!["clients", "debtors", "courts", "products"].includes(panel.id)} />)}</DashboardSortablePanels>
+  </DashboardWorkspace>;
 }
