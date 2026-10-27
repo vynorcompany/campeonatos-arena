@@ -1,4 +1,5 @@
 "use client";
+import { elementVisualScale } from "@/lib/ui/element-visual-scale";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./dashboard-sortable-panels.utilities";
 
@@ -77,8 +78,9 @@ export function DashboardSortablePanels({ children }: { children: ReactNode }) {
     const panel = event.currentTarget.parentElement;
     const grid = panel?.parentElement;
     if (!panel || !grid) return;
-    const panelRect = panel.getBoundingClientRect();
-    const gridRect = grid.getBoundingClientRect();
+    const visualScale = elementVisualScale(panel);
+    const panelRect = { width: panel.offsetWidth, height: panel.offsetHeight };
+    const gridRect = { width: grid.offsetWidth };
     const start = { x: event.clientX, y: event.clientY };
     const gridStyle = window.getComputedStyle(grid);
     const columns = Math.max(1, gridStyle.gridTemplateColumns.split(" ").filter(Boolean).length);
@@ -92,8 +94,8 @@ export function DashboardSortablePanels({ children }: { children: ReactNode }) {
     const move = (moveEvent: globalThis.PointerEvent) => {
       if (moveEvent.pointerId !== pointerId) return;
       next = axis === "horizontal"
-        ? { ...initial, columns: Math.max(1, Math.min(columns, Math.round((panelRect.width + moveEvent.clientX - start.x + gap) / (columnWidth + gap)))) }
-        : { ...initial, minHeight: Math.max(160, Math.min(880, Math.round(panelRect.height + moveEvent.clientY - start.y))) };
+        ? { ...initial, columns: Math.max(1, Math.min(columns, Math.round((panelRect.width + (moveEvent.clientX - start.x) / visualScale + gap) / (columnWidth + gap)))) }
+        : { ...initial, minHeight: Math.max(160, Math.min(880, Math.round(panelRect.height + (moveEvent.clientY - start.y) / visualScale))) };
       setLayouts(current => ({ ...current, [id]: next }));
     };
     const cleanup = () => {
@@ -124,8 +126,8 @@ export function DashboardSortablePanels({ children }: { children: ReactNode }) {
     {order.map((id) => <div key={id} className={cx(`${viewStyles.dashboard_sortable_panel}${draggedId === id ? " is-dragging" : ""}`)} style={{ gridColumn: `span ${Math.max(1, Math.min(gridColumns, layouts[id]?.columns ?? 1))}`, minHeight: layouts[id]?.minHeight }} onDragOver={(event) => event.preventDefault()} onDrop={() => move(id)}>
       <span className={viewStyles.dashboard_drag_handle} draggable onDragStart={(event: DragEvent<HTMLSpanElement>) => { setDraggedId(id); event.dataTransfer.effectAllowed = "move"; }} onDragEnd={() => setDraggedId(null)} aria-label="Arraste para reordenar" title="Arraste para reordenar">⠿</span>
       {layouts[id] ? <button type="button" className="tw:absolute tw:top-2 tw:right-9 tw:z-10 tw:grid tw:size-6 tw:place-items-center tw:rounded tw:border-0 tw:bg-transparent tw:text-[var(--muted)] tw:hover:bg-[var(--panel-muted)]" aria-label="Restaurar tamanho do card" title="Restaurar tamanho do card" onClick={() => { resizeCleanup.current?.(); setLayouts(current => { const next = { ...current }; delete next[id]; try { window.localStorage.setItem(layoutStorageKey, JSON.stringify(next)); } catch { /* sem persistência local */ } return next; }); }}>↺</button> : null}
-      {gridColumns > 1 ? <span className={viewStyles.dashboard_panel_resize_handle_dashboard_panel_resize_handle_right} role="separator" tabIndex={0} aria-orientation="vertical" aria-valuemin={1} aria-valuemax={gridColumns} aria-valuenow={Math.min(gridColumns, layouts[id]?.columns ?? 1)} aria-label="Arraste para alterar a largura" onPointerDown={(event) => startResize(event, id, "horizontal")} onKeyDown={event => { if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return; event.preventDefault(); const panel = event.currentTarget.parentElement!; persistLayout(id, { columns: Math.max(1, Math.min(gridColumns, (layouts[id]?.columns ?? 1) + (event.key === "ArrowRight" ? 1 : -1))), minHeight: layouts[id]?.minHeight ?? Math.round(panel.getBoundingClientRect().height) }); }} /> : null}
-      <span className={viewStyles.dashboard_panel_resize_handle_dashboard_panel_resize_handle_bottom} role="separator" tabIndex={0} aria-orientation="horizontal" aria-valuemin={160} aria-valuemax={880} aria-valuenow={layouts[id]?.minHeight ?? 160} aria-label="Arraste para alterar a altura" onPointerDown={(event) => startResize(event, id, "vertical")} onKeyDown={event => { if (!["ArrowUp", "ArrowDown"].includes(event.key)) return; event.preventDefault(); const panel = event.currentTarget.parentElement!; persistLayout(id, { columns: Math.min(gridColumns, layouts[id]?.columns ?? 1), minHeight: Math.max(160, Math.min(880, Math.round(panel.getBoundingClientRect().height) + (event.key === "ArrowDown" ? 20 : -20))) }); }} />
+      {gridColumns > 1 ? <span className={viewStyles.dashboard_panel_resize_handle_dashboard_panel_resize_handle_right} role="separator" tabIndex={0} aria-orientation="vertical" aria-valuemin={1} aria-valuemax={gridColumns} aria-valuenow={Math.min(gridColumns, layouts[id]?.columns ?? 1)} aria-label="Arraste para alterar a largura" onPointerDown={(event) => startResize(event, id, "horizontal")} onKeyDown={event => { if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return; event.preventDefault(); const panel = event.currentTarget.parentElement!; persistLayout(id, { columns: Math.max(1, Math.min(gridColumns, (layouts[id]?.columns ?? 1) + (event.key === "ArrowRight" ? 1 : -1))), minHeight: layouts[id]?.minHeight ?? Math.round(panel.offsetHeight) }); }} /> : null}
+      <span className={viewStyles.dashboard_panel_resize_handle_dashboard_panel_resize_handle_bottom} role="separator" tabIndex={0} aria-orientation="horizontal" aria-valuemin={160} aria-valuemax={880} aria-valuenow={layouts[id]?.minHeight ?? 160} aria-label="Arraste para alterar a altura" onPointerDown={(event) => startResize(event, id, "vertical")} onKeyDown={event => { if (!["ArrowUp", "ArrowDown"].includes(event.key)) return; event.preventDefault(); const panel = event.currentTarget.parentElement!; persistLayout(id, { columns: Math.min(gridColumns, layouts[id]?.columns ?? 1), minHeight: Math.max(160, Math.min(880, Math.round(panel.offsetHeight) + (event.key === "ArrowDown" ? 20 : -20))) }); }} />
       {panels[Number(id)]}
     </div>)}
   </div>;

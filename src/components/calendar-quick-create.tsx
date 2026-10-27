@@ -1,4 +1,5 @@
 "use client";
+import { elementVisualScale } from "@/lib/ui/element-visual-scale";
 import { viewStyles } from "./calendar-quick-create.utilities";
 
 import { useEffect, useMemo, useState } from "react";
@@ -120,7 +121,7 @@ export function CalendarQuickCreate() {
 
       const rect = timelineCell.getBoundingClientRect();
       const offsetY = Math.max(0, Math.min(rect.height, event.clientY - rect.top));
-      const minuteOffset = Math.floor((offsetY / 72) * 60);
+      const minuteOffset = Math.floor((offsetY / elementVisualScale(timelineCell) / 72) * 60);
       const pickedDate = buildDateFromTimeline(dayKey, minuteOffset);
 
       setState({

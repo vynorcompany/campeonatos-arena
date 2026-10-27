@@ -1,4 +1,5 @@
 "use client";
+import { elementVisualScale } from "@/lib/ui/element-visual-scale";
 import { cx } from "@/lib/ui/classes";
 
 import { useRef, useState } from "react";
@@ -12,7 +13,7 @@ type CalendarDragScrollProps = {
 export function CalendarDragScroll({ children, className, dragFromControls = false }: CalendarDragScrollProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const dragState = useRef<{ pointerId: number; startX: number; startScrollLeft: number; moved: boolean } | null>(null);
+  const dragState = useRef<{ pointerId: number; startX: number; startScrollLeft: number; visualScale: number; moved: boolean } | null>(null);
   const suppressClickRef = useRef(false);
 
   return (
@@ -28,6 +29,7 @@ export function CalendarDragScroll({ children, className, dragFromControls = fal
           pointerId: event.pointerId,
           startX: event.clientX,
           startScrollLeft: element.scrollLeft,
+          visualScale: elementVisualScale(element),
           moved: false
         };
       }}
@@ -42,7 +44,7 @@ export function CalendarDragScroll({ children, className, dragFromControls = fal
           element.setPointerCapture(event.pointerId);
         }
         if (!current.moved) return;
-        element.scrollLeft = current.startScrollLeft - delta;
+        element.scrollLeft = current.startScrollLeft - delta / current.visualScale;
       }}
       onPointerUp={(event) => {
         const element = ref.current;
