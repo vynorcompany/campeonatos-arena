@@ -2,12 +2,13 @@
 import { z } from "zod";
 import { requirePermission } from "@/lib/auth/guards";
 import { withArenaTransaction } from "@/lib/rls";
-import { manuallyCheckInParticipant, removeOptionalBookingService, blockCourtSlots, moveBookingCourt } from "@/lib/calendar/staff-operations";
+import { manuallyCheckInParticipant, removeOptionalBookingService, blockCourtSlots, moveBookingCourt, releaseBlockedCourtSlot } from "@/lib/calendar/staff-operations";
 import { refreshCalendarRoutes } from "@/lib/calendar/revalidation";
 import { refreshFinanceRoutes } from "@/lib/finance/revalidation";
 
 type AgendaResult = { error?: string; checkedInAt?: string };
 const visibleErrors = new Set([
+  "Bloqueio não encontrado. Atualize a grade.",
   "Selecione um atleta desta reserva confirmada.",
   "Este atleta já realizou check-in em outro horário coincidente.",
   "Serviço não encontrado nesta reserva.",
@@ -61,4 +62,13 @@ export async function moveBookingCourtAction(form: FormData): Promise<AgendaResu
     await withArenaTransaction(auth.arenaId, tx => moveBookingCourt(tx, auth.arenaId, input.occurrenceId, input.courtId));
     refreshCalendarRoutes(); return {};
   } catch (error) { return actionError(error, "Não foi possível mudar a quadra. Atualize a reserva e tente novamente."); }
+}
+
+export async function releaseBlockedAgendaSlotAction(form: FormData): Promise<AgendaResult> {
+  const auth = await requirePermission("calendar:recurrence:release");
+  try {
+    const occurrenceId = z.string().min(1).parse(form.get("occurrenceId"));
+    await withArenaTransaction(auth.arenaId, tx => releaseBlockedCourtSlot(tx, auth.arenaId, occurrenceId));
+    refreshCalendarRoutes(); return {};
+  } catch (error) { return actionError(error, "Não foi possível liberar o horário. Atualize a grade e tente novamente."); }
 }

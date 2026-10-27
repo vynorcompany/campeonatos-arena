@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { randomUUID } from "node:crypto";
 import { PrismaClient, type Prisma } from "@prisma/client";
-import { manuallyCheckInParticipant, removeOptionalBookingService, blockCourtSlots, moveBookingCourt } from "../src/lib/calendar/staff-operations";
+import { manuallyCheckInParticipant, removeOptionalBookingService, blockCourtSlots, moveBookingCourt, releaseBlockedCourtSlot } from "../src/lib/calendar/staff-operations";
+
+import { assertCourtBookingMayBeEdited } from "../src/lib/calendar/court-booking-edit-safety";
 
 const url = process.env.ARENA_GOAL_TEST_DATABASE_URL ?? "";
 const enabled = /^postgresql:\/\/[^@]+@127\.0\.0\.1:55433\/arena_goal\?/.test(url);
@@ -40,6 +42,13 @@ test("staff agenda operations preserve billing, enforce scope/conflicts and bloc
     assert.equal(await admin.scheduleOccurrence.count({ where: { arenaId } }), before, "conflict rolls back all blocks");
     await scope(arenaId, tx => blockCourtSlots(tx, arenaId, [{ courtId: courts[0].id, startsAt: at(12), endsAt: at(12,30) }, { courtId: courts[0].id, startsAt: at(12,30), endsAt: at(13) }]));
     assert.equal(await admin.scheduleOccurrence.count({ where: { arenaId, bookingTypeName: "Bloqueio" } }), 2);
+    const block = await admin.scheduleOccurrence.findFirstOrThrow({ where: { arenaId, bookingTypeName: "Bloqueio", startsAt: at(12) } });
+    await assert.rejects(scope(arenaId, tx => assertCourtBookingMayBeEdited(tx, arenaId, block.id)), /Horário bloqueado/);
+    await assert.rejects(scope(ids[1], tx => releaseBlockedCourtSlot(tx, ids[1], block.id)), /Bloqueio não encontrado/);
+    await assert.rejects(scope(arenaId, tx => releaseBlockedCourtSlot(tx, arenaId, occurrence.id)), /Bloqueio não encontrado/);
+    await scope(arenaId, tx => releaseBlockedCourtSlot(tx, arenaId, block.id));
+    assert.equal((await admin.scheduleOccurrence.findUniqueOrThrow({ where: { id: block.id } })).status, "CANCELED");
+    await scope(arenaId, tx => blockCourtSlots(tx, arenaId, [{ courtId: courts[0].id, startsAt: at(12), endsAt: at(12,30) }]));
     const competing = await Promise.allSettled([0,1].map(() => scope(arenaId, tx => blockCourtSlots(tx, arenaId, [{ courtId: courts[0].id, startsAt: at(14), endsAt: at(14,30) }]))));
     assert.equal(competing.filter(result => result.status === "fulfilled").length, 1, "court lock prevents simultaneous double blocks");
     const charge = await admin.financialEntry.create({ data: { arenaId, playerId: players[0].id, type: "REVENUE", category: "Reserva", description: "Paid booking", amountCents: 500, status: "PAID" } });

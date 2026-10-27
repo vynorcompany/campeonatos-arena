@@ -1,4 +1,3 @@
-import { WorkspaceHeading } from "@/components/ui/workspace-heading";
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { UsbPrinters } from "@/components/settings/usb-printers";
 import Link from "next/link";
@@ -11,9 +10,9 @@ export default async function PrinterSettingsPage() {
   const auth = await requirePermission("arena:settings");
   const settings = await arenaDatabase(auth.arenaId).arenaOperationalSettings.findUnique({ where: { arenaId: auth.arenaId }, select: { printerPaper: true, printerCopies: true } });
   return <section className={`${ui.page} tw:max-w-4xl`}>
-    <WorkspaceHeading title="Impressora">
+    <div className="tw:flex tw:flex-wrap tw:justify-end tw:gap-2">
       <Link href="/imprimir/teste" target="_blank" rel="noopener noreferrer" className={ui.secondary}>Abrir página de teste ↗</Link>
-    </WorkspaceHeading>
+    </div>
     <UsbPrinters />
     <SafeActionForm action={savePrinterSettingsAction} successMessage="Preferências de impressão salvas." className={`${ui.panel} tw:grid tw:gap-4`}>
 

@@ -53,7 +53,7 @@ export async function blockCourtSlots(tx: ArenaTransaction, arenaId: string, slo
     if ((slot.endsAt.getTime() - slot.startsAt.getTime()) !== arena.scheduleSlotMinutes * 60_000 || minute < arena.scheduleStartMinute || minute + arena.scheduleSlotMinutes > arena.scheduleEndMinute || (minute - arena.scheduleStartMinute) % arena.scheduleSlotMinutes !== 0) throw new Error("Selecione horários pertencentes à grade.");
     const conflict = await tx.scheduleOccurrence.findFirst({ where: { arenaId, ...activeCourtOccurrenceWhere(), startsAt: { lt: slot.endsAt }, endsAt: { gt: slot.startsAt }, occurrenceCourts: { some: { courtId: slot.courtId } } }, select: { id: true } });
     if (conflict) throw new Error("Um dos horários foi reservado. Atualize a grade e selecione novamente.");
-    await tx.scheduleOccurrence.create({ data: { arenaId, sourceType: "BOOKING", bookingTypeName: "Bloqueio", title: "Horário bloqueado", startsAt: slot.startsAt, endsAt: slot.endsAt, occurrenceCourts: { create: { courtId: slot.courtId } } } });
+    await tx.scheduleOccurrence.create({ data: { arenaId, sourceType: "BOOKING", bookingTypeName: "Bloqueio", title: "Horário Bloqueado", startsAt: slot.startsAt, endsAt: slot.endsAt, occurrenceCourts: { create: { courtId: slot.courtId } } } });
   }
 }
 
@@ -70,4 +70,11 @@ export async function moveBookingCourt(tx: ArenaTransaction, arenaId: string, oc
   const conflict = await tx.scheduleOccurrence.findFirst({ where: { arenaId, id: { not: occurrenceId }, ...activeCourtOccurrenceWhere(), startsAt: { lt: current.endsAt }, endsAt: { gt: current.startsAt }, occurrenceCourts: { some: { courtId } } }, select: { id: true } });
   if (conflict) throw new Error("Já existe um agendamento nessa quadra para este horário.");
   await tx.scheduleOccurrence.update({ where: { id: occurrenceId, arenaId }, data: { occurrenceCourts: { deleteMany: {}, create: { courtId } }, updatedAt: new Date() } });
+}
+
+export async function releaseBlockedCourtSlot(tx: ArenaTransaction, arenaId: string, occurrenceId: string) {
+  await tx.$queryRaw`SELECT id FROM "ScheduleOccurrence" WHERE id = ${occurrenceId} AND "arenaId" = ${arenaId} FOR UPDATE`;
+  const block = await tx.scheduleOccurrence.findFirst({ where: { id: occurrenceId, arenaId, sourceType: "BOOKING", bookingTypeName: "Bloqueio", status: "SCHEDULED", participants: { none: {} }, serviceReservations: { none: {} } }, select: { id: true } });
+  if (!block) throw new Error("Bloqueio não encontrado. Atualize a grade.");
+  await tx.scheduleOccurrence.update({ where: { id: block.id, arenaId }, data: { status: "CANCELED" } });
 }
