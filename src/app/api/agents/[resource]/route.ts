@@ -12,7 +12,7 @@ function failure(error: unknown) {
   console.error("Falha na API de agentes", error instanceof Error ? error.name : "Erro desconhecido");
   return json({ error: "Serviço temporariamente indisponível. Tente novamente." }, 503);
 }
-const querySchema = z.object({ offset: z.coerce.number().int().min(0).max(100000).default(0), from: z.string().datetime().optional(), to: z.string().datetime().optional() });
+const querySchema = z.object({ period: z.string().regex(/^20\d{2}-(0[1-9]|1[0-2])$/).optional(), offset: z.coerce.number().int().min(0).max(100000).default(0), from: z.string().datetime().optional(), to: z.string().datetime().optional() }).strict();
 export async function GET(request: Request, { params }: { params: Promise<{ resource: string }> }) {
   const { resource } = await params;
   if (!Object.hasOwn(resourceScopes, resource)) return json({ error: "Recurso não encontrado." }, 404);
@@ -20,23 +20,34 @@ export async function GET(request: Request, { params }: { params: Promise<{ reso
     const key = await authenticateAgent(request, resourceScopes[resource]);
     const query = querySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
     if (!query.success) return json({ error: "Use offset inteiro e datas ISO em from e to." }, 400);
-    const from = query.data.from ? new Date(query.data.from) : new Date(Date.now() - 7 * 86_400_000);
-    const to = query.data.to ? new Date(query.data.to) : new Date(from.getTime() + 30 * 86_400_000);
+    if(query.data.period && (query.data.from || query.data.to || query.data.offset)) return json({error:"Use período mensal ou datas/offset, sem combinar."},400);
+    const monthStart=query.data.period ? new Date(query.data.period+"-01T00:00:00-03:00") : null;
+    const monthEnd=monthStart ? new Date(monthStart) : null;
+    if(monthEnd)monthEnd.setUTCMonth(monthEnd.getUTCMonth()+1);
+    const from = monthStart ?? (query.data.from ? new Date(query.data.from) : new Date(Date.now() - 7 * 86_400_000));
+    const to = monthEnd ?? (query.data.to ? new Date(query.data.to) : new Date(from.getTime() + 30 * 86_400_000));
     if (to <= from || to.getTime() - from.getTime() > 31 * 86_400_000) return json({ error: "Informe um período de até 31 dias com a data final após a inicial." }, 400);
     const data = await withArenaTransaction(key.arenaId, async tx => {
       await tx.agentApiKey.update({ where: { id: key.id, arenaId: key.arenaId }, data: { lastUsedAt: new Date() } });
-      const pagination = { take: 100, skip: query.data.offset };
+      const pagination = { take: query.data.period ? 1001 : 100, skip: query.data.offset };
       const where = { arenaId: key.arenaId };
+      // Creation is neither payment nor accounting competence. Export a union of
+      // actual payments and maturities, and state the basis instead of inventing it.
+      const financeWhere = { ...where, OR: [{ paidAt: { gte: from, lt: to } }, { dueDate: { gte: from, lt: to } }] };
       switch (resource) {
         case "agents": return tx.agentApiKey.findMany({ where, ...pagination, orderBy: { id: "asc" }, select: { id: true, name: true, scopes: true, expiresAt: true, revokedAt: true, lastUsedAt: true } });
         case "clients": return tx.player.findMany({ where, ...pagination, orderBy: { id: "asc" }, select: { id: true, name: true, active: true, phone: true, email: true } });
         case "teachers": return tx.teacher.findMany({ where, ...pagination, orderBy: { id: "asc" }, select: { id: true, name: true, active: true } });
         case "reservations": return (await tx.scheduleOccurrence.findMany({ where: { ...where, startsAt: { gte: instantToArenaWallClock(from), lt: instantToArenaWallClock(to) } }, ...pagination, orderBy: [{ startsAt: "asc" }, { id: "asc" }], select: { id: true, title: true, startsAt: true, endsAt: true, status: true, responsiblePlayerId: true, teacherId: true, occurrenceCourts: { select: { courtId: true } }, participants: { select: { playerId: true, checkedInAt: true } } } })).map(row => ({ ...row, startsAt: arenaWallClockToInstant(row.startsAt), endsAt: arenaWallClockToInstant(row.endsAt) }));
-        case "finance": return tx.financialEntry.findMany({ where: { ...where, createdAt: { gte: from, lt: to } }, ...pagination, orderBy: [{ createdAt: "asc" }, { id: "asc" }], select: { id: true, description: true, type: true, category: true, amountCents: true, status: true, dueDate: true, playerId: true } });
-        case "reports": return tx.financialEntry.groupBy({ by: ["type", "status"], where: { ...where, createdAt: { gte: from, lt: to }, status: { not: "VOIDED" } }, _sum: { amountCents: true }, _count: true });
+        case "finance": return tx.financialEntry.findMany({ where: financeWhere, ...pagination, orderBy: [{ createdAt: "asc" }, { id: "asc" }], select: { id: true, description: true, type: true, category: true, amountCents: true, status: true, dueDate: true, paidAt: true, createdAt: true, updatedAt: true, playerId: true } });
+        case "reports": return tx.financialEntry.groupBy({ by: ["type", "status"], where: { ...financeWhere, status: { not: "VOIDED" } }, _sum: { amountCents: true }, _count: true });
       }
     });
-    return json({ data, ...(resource === "reports" ? { description: "Valor nominal dos lançamentos por tipo e situação; não representa saldo bancário ou recebimento efetivo." } : { nextOffset: Array.isArray(data) && data.length === 100 ? query.data.offset + 100 : null }), period: { from, to } });
+    return json({ data: Array.isArray(data) && query.data.period ? data.slice(0,1000) : data, period_month: query.data.period, ...(resource === "reports" ? { description: "Valor nominal dos lançamentos por tipo e situação; não representa saldo bancário ou recebimento efetivo." } : { nextOffset: Array.isArray(data) && data.length === 100 ? query.data.offset + 100 : null }), period: { from, to }, ...(resource === "finance" || resource === "reports" ? {
+      source: { system: "arena", company: key.arenaId },
+      coverage: { basis: "payment_or_due_date", competenceAvailable: false, openingBalanceAvailable: false, bankStatementAvailable: false, completeDataset: Boolean(query.data.period && Array.isArray(data) && data.length<=1000),
+        limitation: "Recorte por pagamento ou vencimento; não representa DRE por competência nem saldo bancário. Lançamentos sem ambas as datas não integram o recorte." },
+    } : {}) });
   } catch (error) { return failure(error); }
 }
 const entrySchema = z.object({
