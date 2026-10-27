@@ -1,3 +1,4 @@
+import { readBoundedJson, RequestBodyTooLargeError } from "@/lib/http/json-body";
 import { z } from "zod";
 import { instantToArenaWallClock, arenaWallClockToInstant } from "@/lib/calendar/arena-wall-clock";
 import { authenticateAgent, AgentAccessError } from "@/lib/agents/authenticate";
@@ -49,7 +50,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ res
     const key = await authenticateAgent(request, "finance:write");
     const idempotencyKey = request.headers.get("idempotency-key") ?? "";
     if (!/^[a-zA-Z0-9_-]{8,80}$/.test(idempotencyKey)) return json({ error: "Informe Idempotency-Key com 8 a 80 letras, números, hífen ou sublinhado para evitar lançamentos duplicados." }, 400);
-    let body: unknown; try { body = await request.json(); } catch { return json({ error: "Envie um JSON válido." }, 400); }
+    let body: unknown; try { body = await readBoundedJson(request, 64 * 1024); } catch (error) { return json({ error: error instanceof RequestBodyTooLargeError ? error.message : "Envie um JSON válido." }, error instanceof RequestBodyTooLargeError ? 413 : 400); }
     const parsed = entrySchema.safeParse(body);
     if (!parsed.success) return json({ error: "Informe descrição, categoria, tipo REVENUE ou EXPENSE e amountCents inteiro positivo. Datas devem estar em ISO; novos lançamentos ficam pendentes." }, 400);
     const data = await withArenaTransaction(key.arenaId, async tx => {

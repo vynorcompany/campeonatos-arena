@@ -27,6 +27,7 @@ test("geração e recálculo de torneio respeitam a arena ativa", { skip: !dispo
       exports,
       require: (name: string) => {
         if (name === "@/lib/prisma") return { prisma: admin };
+        if (name === "@/lib/services/tournament-queries") return {};
         if (name === "@/lib/arena-database") return {};
         if (name === "@/lib/rls") return { withArenaTransaction: async (arenaId: string, operation: (tx: Prisma.TransactionClient) => Promise<unknown>) => {
           transactionCount += 1;

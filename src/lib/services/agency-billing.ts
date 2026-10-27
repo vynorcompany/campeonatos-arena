@@ -1,3 +1,4 @@
+import { fetchWithDeadline } from "@/lib/http/fetch-with-deadline";
 import "server-only";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -59,7 +60,7 @@ export async function ensureAgencyCheckout(invoiceId: string) {
   if (!invoice || invoice.status !== "PENDING" || invoice.checkoutUrl || !connection || connection.status !== "CONNECTED" || !env.appUrl) return null;
   const accessToken = await getAgencyMercadoPagoToken();
   const backUrl = new URL("/financeiro/contas-a-pagar", env.appUrl).toString();
-  const response = await fetch("https://api.mercadopago.com/checkout/preferences", {
+  const response = await fetchWithDeadline(fetch, "https://api.mercadopago.com/checkout/preferences", {
     method: "POST",
     headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json", "X-Idempotency-Key": `agency-${invoice.id}` },
     body: JSON.stringify({

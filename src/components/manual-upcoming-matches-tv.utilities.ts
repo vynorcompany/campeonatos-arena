@@ -3,7 +3,7 @@ export const viewStyles = {
   "tv_stage_tv_stage_empty": [
     "tv-stage", "tv-stage-empty", "tw:min-h-[100vh]", "tw:grid",
     "tw:place-items-center", "tw:pt-[clamp(16px,_2vw,_30px)]", "tw:pr-[clamp(16px,_2vw,_30px)]", "tw:pb-[clamp(16px,_2vw,_30px)]",
-    "tw:pl-[clamp(16px,_2vw,_30px)]", "tw:bg-[color:#061827]", "tw:[background-image:linear-gradient(90deg,_rgb(3_16_29_/_.93),_rgb(4_25_39_/_.78)_52%,_rgb(3_17_30_/_.9)),_url('/portal-padel-hero.png')]", "tw:[background-size:cover]",
+    "tw:pl-[clamp(16px,_2vw,_30px)]", "tw:bg-[color:#061827]", "tw:[background-image:linear-gradient(90deg,_rgb(3_16_29_/_.93),_rgb(4_25_39_/_.78)_52%,_rgb(3_17_30_/_.9)),_url('/portal-padel-hero.webp')]", "tw:[background-size:cover]",
     "tw:text-[color:#eaf7fb]", "tw:[overflow-x:hidden]", "tw:[overflow-y:hidden]", "tw:[animation:tv-ambient-shift_18s_ease-in-out_infinite_alternate]",
     "tw:[background-position:center]", "tw:[font-family:var(--font-body)]", "tw:text-center",
   ].join(" "),
@@ -39,7 +39,7 @@ export const viewStyles = {
   "tv_stage": [
     "tv-stage", "tw:min-h-[100vh]", "tw:grid", "tw:place-items-center",
     "tw:pt-[clamp(16px,_2vw,_30px)]", "tw:pr-[clamp(16px,_2vw,_30px)]", "tw:pb-[clamp(16px,_2vw,_30px)]", "tw:pl-[clamp(16px,_2vw,_30px)]",
-    "tw:bg-[color:#061827]", "tw:[background-image:linear-gradient(90deg,_rgb(3_16_29_/_.93),_rgb(4_25_39_/_.78)_52%,_rgb(3_17_30_/_.9)),_url('/portal-padel-hero.png')]", "tw:[background-size:cover]", "tw:text-[color:#eaf7fb]",
+    "tw:bg-[color:#061827]", "tw:[background-image:linear-gradient(90deg,_rgb(3_16_29_/_.93),_rgb(4_25_39_/_.78)_52%,_rgb(3_17_30_/_.9)),_url('/portal-padel-hero.webp')]", "tw:[background-size:cover]", "tw:text-[color:#eaf7fb]",
     "tw:[overflow-x:hidden]", "tw:[overflow-y:hidden]", "tw:[animation:tv-ambient-shift_18s_ease-in-out_infinite_alternate]", "tw:[background-position:center]",
     "tw:[font-family:var(--font-body)]",
   ].join(" "),

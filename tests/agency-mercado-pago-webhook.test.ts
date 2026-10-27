@@ -1,3 +1,5 @@
+import * as providerDeadline from "../src/lib/http/fetch-with-deadline";
+import * as jsonBody from "../src/lib/http/json-body";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
@@ -14,6 +16,8 @@ function webhookFor(payment: { id: string; status: string; status_detail?: strin
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, {
     exports, URL, Date, Math, Number, String, console,
     require: (name: string) => {
+      if (name === "@/lib/http/fetch-with-deadline") return providerDeadline;
+      if (name === "@/lib/http/json-body") return jsonBody;
       if (name === "next/server") return { NextResponse: { json: (body: Record<string, unknown>, options?: { status?: number }) => ({ body, status: options?.status ?? 200 }) } };
       if (name === "@/lib/env") return { env: { mercadoPagoWebhookSecret: "" } };
       if (name === "@/lib/prisma") return { prisma: { agencyInvoice: { findUnique: async ({ where }: { where: { id: string } }) => where.id === invoice.id ? { ...invoice } : null } } };

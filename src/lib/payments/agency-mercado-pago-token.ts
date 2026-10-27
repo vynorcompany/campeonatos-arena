@@ -1,3 +1,4 @@
+import { fetchWithDeadline } from "@/lib/http/fetch-with-deadline";
 import "server-only";
 import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
@@ -12,7 +13,7 @@ export async function getAgencyMercadoPagoToken() {
     return secrets.accessToken;
   }
   if (!secrets.refreshToken || !env.mercadoPagoClientId || !env.mercadoPagoClientSecret) throw new Error("A conexão do Mercado Pago expirou. Reconecte-a na agência.");
-  const response = await fetch("https://api.mercadopago.com/oauth/token", {
+  const response = await fetchWithDeadline(fetch, "https://api.mercadopago.com/oauth/token", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ client_id: env.mercadoPagoClientId, client_secret: env.mercadoPagoClientSecret, grant_type: "refresh_token", refresh_token: secrets.refreshToken }),

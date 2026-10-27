@@ -1,3 +1,4 @@
+import { fetchWithDeadline } from "@/lib/http/fetch-with-deadline";
 import "server-only";
 import { createHmac, randomBytes, timingSafeEqual } from "crypto";
 import { env } from "@/lib/env";
@@ -49,7 +50,7 @@ export function mercadoPagoAuthorizationUrl(arenaId: string, userId: string) {
 
 export async function exchangeMercadoPagoAuthorizationCode(code: string) {
   if (!env.mercadoPagoClientId || !env.mercadoPagoClientSecret) throw new Error("Mercado Pago não habilitado pela plataforma.");
-  const response = await fetch("https://api.mercadopago.com/oauth/token", {
+  const response = await fetchWithDeadline(fetch, "https://api.mercadopago.com/oauth/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
     body: new URLSearchParams({ client_id: env.mercadoPagoClientId, client_secret: env.mercadoPagoClientSecret, grant_type: "authorization_code", code, redirect_uri: mercadoPagoCallbackUrl() }),
@@ -60,7 +61,7 @@ export async function exchangeMercadoPagoAuthorizationCode(code: string) {
 }
 
 export async function getMercadoPagoAccount(accessToken: string) {
-  const response = await fetch("https://api.mercadopago.com/users/me", { headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/json" }, cache: "no-store" });
+  const response = await fetchWithDeadline(fetch, "https://api.mercadopago.com/users/me", { headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/json" }, cache: "no-store" });
   if (!response.ok) return { reference: "", displayName: "" };
   const account = await response.json() as { id?: string | number; first_name?: string; last_name?: string; nickname?: string; email?: string };
   return { reference: String(account.id ?? ""), displayName: [account.first_name, account.last_name].filter(Boolean).join(" ") || account.nickname || account.email || "" };

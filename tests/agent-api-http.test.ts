@@ -5,7 +5,14 @@ import { PrismaClient } from "@prisma/client";
 import { arenaWallClockToInstant } from "../src/lib/calendar/arena-wall-clock";
 const url = process.env.ARENA_AGENT_TEST_DATABASE_URL ?? "";
 const baseUrl = process.env.ARENA_AGENT_TEST_BASE_URL ?? "";
-const enabled = (() => { try { const db = new URL(url), base = new URL(baseUrl); return db.hostname === "127.0.0.1" && db.port === "55439" && db.pathname === "/arena_verify" && base.hostname === "127.0.0.1" && base.port === "3013"; } catch { return false; } })();
+const enabled = (() => {
+  try {
+    const db = new URL(url), base = new URL(baseUrl);
+    if (db.hostname !== "127.0.0.1" || base.hostname !== "127.0.0.1") return false;
+    return (db.port === "55439" && db.pathname === "/arena_verify" && base.port === "3013") ||
+      (db.port === "55433" && db.pathname === "/arena_goal" && base.port === "3015");
+  } catch { return false; }
+})();
 test("API aplica escopos e arena, revoga chaves e evita lançamentos duplicados", { skip: !enabled, timeout: 120000 }, async () => {
   const admin = new PrismaClient({ datasources: { db: { url } } });
   const keyIds: string[] = [], entryIds: string[] = [];
@@ -31,6 +38,7 @@ test("API aplica escopos e arena, revoga chaves e evita lançamentos duplicados"
     const first = await post(); assert.equal(first.status, 201); const receipt = await first.json(); entryIds.push(receipt.data.id);
     const repeated = await post(); assert.equal(repeated.status, 200); assert.equal((await repeated.json()).data.id, receipt.data.id);
     assert.equal((await post({ ...body, amountCents: 1235 })).status, 409);
+    assert.equal((await call("finance", writer.secret, { method: "POST", headers: { "content-type": "application/json", "idempotency-key": randomUUID() }, body: JSON.stringify({ ...body, description: "x".repeat(64 * 1024) }) })).status, 413);
     assert.equal(await admin.financialEntry.count({ where: { id: receipt.data.id, arenaId: arena.id } }), 1);
     assert.equal(await admin.auditEvent.count({ where: { entityId: receipt.data.id, action: "FINANCIAL_ENTRY_CREATED" } }), 1);
     const invalid = await call("finance", writer.secret, { method: "POST", headers: { "content-type": "application/json", "idempotency-key": randomUUID() }, body: JSON.stringify({ ...body, playerId: otherPlayer.id }) }); assert.equal(invalid.status, 400);

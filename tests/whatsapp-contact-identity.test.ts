@@ -1,3 +1,4 @@
+import * as providerDeadline from "../src/lib/http/fetch-with-deadline";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { formatWhatsAppPhone, whatsAppConversationName, type WhatsAppConversation } from "../src/components/whatsapp/types";
@@ -12,6 +13,7 @@ function groupClient(fetch: (url: string, options: any) => Promise<any>, status 
   vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/lib/integrations/evolution/client.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
     exports, fetch, AbortSignal,
     require: (name: string) => {
+      if (name === "@/lib/http/fetch-with-deadline") return providerDeadline;
       if (name === "server-only") return {};
       if (name === "./groups") return { readEvolutionGroupName };
       if (name === "@/lib/env") return { env: { evolutionApiUrl: "https://provider.invalid", evolutionApiKey: "fixture" } };

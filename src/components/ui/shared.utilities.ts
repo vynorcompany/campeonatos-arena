@@ -494,8 +494,8 @@ export const sharedUtilities = {
   athletePortalHero: [
     "athlete-portal-hero", "tw:pt-[34px]", "tw:viewport-700:pt-[16px]", "tw:pr-[max(20px,_calc((100vw_-_1060px)_/_2))]",
     "tw:viewport-700:pr-[24px]", "tw:pb-[30px]", "tw:viewport-700:pb-[17px]", "tw:pl-[max(20px,_calc((100vw_-_1060px)_/_2))]",
-    "tw:viewport-700:pl-[24px]", "tw:text-[color:#fff]", "tw:bg-[color:transparent]", "tw:[background-image:linear-gradient(90deg,_rgb(3_17_31_/_.97)_0%,_rgb(4_20_35_/_.88)_50%,_rgb(2_25_33_/_.35)_100%),_url('/portal-padel-hero.png')]",
-    "tw:viewport-700:[background-image:linear-gradient(90deg,_rgb(2_14_30_/_.88)_0%,_rgb(2_18_34_/_.72)_48%,_rgb(1_27_34_/_.32)_100%),_url('/portal-padel-hero.png')]", "tw:[box-shadow:inset_0_-1px_rgb(114_240_197_/_.18),_0_18px_48px_rgb(0_0_0_/_.28)]", "tw:[padding-block:22px]", "tw:relative",
+    "tw:viewport-700:pl-[24px]", "tw:text-[color:#fff]", "tw:bg-[color:transparent]", "tw:[background-image:linear-gradient(90deg,_rgb(3_17_31_/_.97)_0%,_rgb(4_20_35_/_.88)_50%,_rgb(2_25_33_/_.35)_100%),_url('/portal-padel-hero.webp')]",
+    "tw:viewport-700:[background-image:linear-gradient(90deg,_rgb(2_14_30_/_.88)_0%,_rgb(2_18_34_/_.72)_48%,_rgb(1_27_34_/_.32)_100%),_url('/portal-padel-hero.webp')]", "tw:[box-shadow:inset_0_-1px_rgb(114_240_197_/_.18),_0_18px_48px_rgb(0_0_0_/_.28)]", "tw:[padding-block:22px]", "tw:relative",
     "tw:[overflow-x:visible]", "tw:[overflow-y:visible]", "tw:min-h-[286px]", "tw:viewport-700:min-h-[0]",
     "tw:[background-position:center]", "tw:viewport-700:[background-position:64%_center]", "tw:[background-size:cover]", "tw:z-[1000]",
     "tw:[&::after]:absolute", "tw:[&::after]:top-[auto]", "tw:[&::after]:right-[-120px]", "tw:[&::after]:bottom-[-210px]",
