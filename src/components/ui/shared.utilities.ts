@@ -671,7 +671,7 @@ export const sharedUtilities = {
     "tw:viewport-600:[align-items:end]",
   ].join(" "),
   teacherPlanEditDialog: [
-    "teacher-plan-edit-dialog", "tw:grid", "tw:gap-y-[15px]", "tw:gap-x-[15px]",
+    "teacher-plan-edit-dialog", "tw:h-[min(600px,calc(var(--workspace-viewport-height,100dvh)_-_24px))]", "tw:overflow-y-auto", "tw:content-start", "tw:grid", "tw:gap-y-[15px]", "tw:gap-x-[15px]",
     "tw:w-[min(390px,_100%)]", "tw:pt-[19px]", "tw:pr-[19px]", "tw:pb-[19px]",
     "tw:pl-[19px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:#d8e5f0]",
     "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:#d8e5f0]", "tw:border-b-[length:1px]",

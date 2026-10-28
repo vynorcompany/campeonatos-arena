@@ -1,3 +1,4 @@
+import { activeCourtOccurrenceWhere } from "@/lib/calendar/online-booking-hold";
 import { prisma } from "@/lib/prisma";
 import { getLeagueMonthBlocks } from "@/lib/league/monthly-schedule";
 import { withArenaTransaction } from "@/lib/rls";
@@ -360,6 +361,7 @@ export async function getPublicLeaguePortal(
           homePair: { select: { name: true } },
           awayPair: { select: { name: true } },
           winnerPair: { select: { id: true } },
+          bookingOccurrences: { where: { arenaId: arena.id, ...activeCourtOccurrenceWhere() }, orderBy: { createdAt: "desc" }, take: 1, select: { startsAt: true, status: true, occurrenceCourts: { select: { court: { select: { name: true } } } } } },
           leagueCycle: { select: { referenceMonth: true } },
         },
       },
@@ -407,6 +409,9 @@ export async function getPublicLeaguePortal(
         match.leagueCycle?.referenceMonth,
         match.leagueBlock,
       ),
+      canSchedule: selectedLeagueCompetition?.status === "PUBLISHED" && ownPairs.some(pair => pair.id === match.homePairId || pair.id === match.awayPairId) && !match.bookingOccurrences.length,
+      reservationStatus: match.bookingOccurrences[0]?.status ?? null,
+      reservationLabel: match.bookingOccurrences[0] ? `${dateTimeLabel(match.bookingOccurrences[0].startsAt)} · ${match.bookingOccurrences[0].occurrenceCourts.map(item => item.court.name).join(" · ")}` : null,
       homePairName: match.homePair?.name ?? "Dupla a definir",
       awayPairName: match.awayPair?.name ?? "Dupla a definir",
       homeScore: match.homeScore,
@@ -422,7 +427,7 @@ export async function getPublicLeaguePortal(
       ),
       scheduledDate: match.scheduledDate,
       scheduledTime: match.scheduledTime,
-      scheduledAtLabel: leagueMatchScheduleLabel(
+      scheduledAtLabel: match.bookingOccurrences[0] ? dateTimeLabel(match.bookingOccurrences[0].startsAt) : leagueMatchScheduleLabel(
         match.scheduledDate,
         match.scheduledTime,
       ),

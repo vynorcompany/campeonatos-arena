@@ -9,6 +9,7 @@ type ReconciledItem = { index: number; productId?: string; name: string; sku: st
 
 function refreshFiscalRoutes() {
   revalidatePath("/financeiro/configuracoes/notas-fiscais");
+  revalidatePath("/financeiro/notas-fiscais");
   revalidatePath("/pdv");
   revalidatePath("/pdv/estoque");
 }

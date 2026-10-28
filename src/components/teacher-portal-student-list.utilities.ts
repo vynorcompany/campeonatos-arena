@@ -33,7 +33,7 @@ export const viewStyles = {
     "tw:[&_>_nav_button]:border-l-[length:1px]", "tw:[&_>_nav_button]:[border-left-style:solid]", "tw:[&_>_nav_button]:border-l-[color:var(--portal-line,rgb(105_181_198_/_.28))]", "tw:[&_>_nav_button]:rounded-[6px]",
     "tw:[&_>_nav_button]:text-[color:var(--portal-ink,#b9d4da)]", "tw:[&_>_nav_button]:bg-[color:var(--portal-soft,rgb(6_47_62_/_.45))]", "tw:[&_>_nav_button]:[background-image:none]", "tw:[&_>_nav_button]:text-[.67rem]",
     "tw:[&_>_nav_button]:font-[700]", "tw:[&_>_nav_button.active]:border-t-[color:var(--portal-line,rgb(79_223_181_/_.56))]", "tw:[&_>_nav_button.active]:border-r-[color:var(--portal-line,rgb(79_223_181_/_.56))]", "tw:[&_>_nav_button.active]:border-b-[color:var(--portal-line,rgb(79_223_181_/_.56))]",
-    "tw:[&_>_nav_button.active]:border-l-[color:var(--portal-line,rgb(79_223_181_/_.56))]", "tw:[&_>_nav_button.active]:text-[color:var(--portal-ink,#effffc)]", "tw:[&_>_nav_button.active]:bg-[color:var(--portal-soft,rgb(24_113_98_/_.5))]", "tw:[&_>_nav_button.active]:[background-image:none]",
+    "tw:[&_>_nav_button.active]:border-l-[color:var(--portal-line,rgb(79_223_181_/_.56))]", "tw:[&_>_nav_button.active]:text-[color:var(--portal-ink,#eff6ff)]", "tw:[&_>_nav_button.active]:bg-[color:var(--portal-soft,rgb(24_113_98_/_.5))]", "tw:[&_>_nav_button.active]:[background-image:none]",
   ].join(" "),
   "teacher_student_action_panel": [
     "teacher-student-action-panel", "tw:grid", "tw:gap-y-[8px]", "tw:gap-x-[8px]",
@@ -43,7 +43,7 @@ export const viewStyles = {
     "tw:border-b-[color:var(--portal-line,rgb(105_181_198_/_.22))]", "tw:border-l-[length:1px]", "tw:[border-left-style:solid]", "tw:border-l-[color:var(--portal-line,rgb(105_181_198_/_.22))]",
     "tw:rounded-[8px]", "tw:bg-[color:var(--portal-soft,rgb(3_32_46_/_.36))]", "tw:[background-image:none]", "tw:[&_>_header]:flex",
     "tw:[&_>_header]:items-baseline", "tw:[&_>_header]:justify-between", "tw:[&_>_header]:gap-y-[9px]", "tw:[&_>_header]:gap-x-[9px]",
-    "tw:[&_>_header_>_span]:text-[color:var(--portal-ink,#bdd9df)]", "tw:[&_>_header_>_span]:text-[.69rem]", "tw:[&_>_header_>_strong]:text-[color:var(--portal-accent,#65ecc3)]", "tw:[&_>_header_>_strong]:text-[.88rem]",
+    "tw:[&_>_header_>_span]:text-[color:var(--portal-ink,#bdd9df)]", "tw:[&_>_header_>_span]:text-[.69rem]", "tw:[&_>_header_>_strong]:text-[color:var(--portal-accent,#659dec)]", "tw:[&_>_header_>_strong]:text-[.88rem]",
     "tw:[&_>_header_small]:text-[color:var(--portal-ink,#a9c9d2)]", "tw:[&_>_header_small]:text-[.66rem]", "tw:[&_>_header_small]:font-[500]",
   ].join(" "),
   "teacher_student_balance_actions": [

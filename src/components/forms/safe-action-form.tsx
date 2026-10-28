@@ -1,4 +1,6 @@
 "use client";
+import { compactDialogFrame } from "@/components/ui/dialog-frame";
+
 import { viewStyles } from "./safe-action-form.utilities";
 
 import { useEffect, useId, useRef, useState, useTransition } from "react";
@@ -148,7 +150,7 @@ export function SafeActionForm({
             setError(null);
           }
         }}>
-          <section className={viewStyles.safe_action_confirmation} role="dialog" aria-modal="true" aria-labelledby="safe-action-confirm-title">
+          <section className={[viewStyles.safe_action_confirmation, compactDialogFrame].join(" ")} role="dialog" aria-modal="true" aria-labelledby="safe-action-confirm-title">
             <header>
               <span className={confirmation.destructive ? viewStyles.safe_action_confirmation_icon : viewStyles.safe_action_confirmation_icon_neutral} aria-hidden="true">!</span>
               <div><strong id="safe-action-confirm-title">{confirmation.title}</strong><span>{confirmation.destructive ? "Esta ação pode ser irreversível." : "Revise os dados antes de continuar."}</span></div>

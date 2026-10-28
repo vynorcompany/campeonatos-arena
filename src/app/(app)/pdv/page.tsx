@@ -7,6 +7,6 @@ export default async function ProductsAndServicesPage() {
   return <OperationalSubmenuList ariaLabel="Produtos e Serviços" items={[
     { label: "Serviços", href: "/pdv/servicos", description: canEdit ? "Cadastre serviços e defina onde serão oferecidos." : "Consulte os serviços e seus valores." },
     { label: "Estoque", href: "/pdv/estoque", description: canEdit ? "Cadastre produtos, revise preços e acompanhe o estoque." : "Consulte produtos, preços e movimentações do estoque." },
-    ...(canEdit ? [{ label: "Criar balanço", href: "/pdv/balanco", description: "Registre a contagem física e confira as divergências." }] : [])
+    ...(canEdit ? [{ label: "Balanço", href: "/pdv/balanco", description: "Registre a contagem física e confira as divergências." }] : [])
   ]} />;
 }

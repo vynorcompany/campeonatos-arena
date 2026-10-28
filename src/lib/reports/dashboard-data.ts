@@ -6,7 +6,7 @@ export const dashboardEntrySelect = {
   id: true, type: true, category: true, status: true, amountCents: true, dueDate: true, paidAt: true, description: true, counterpartyName: true, paymentMethod: true, recurrenceId: true, playerId: true,
   player: { select: { id: true, name: true } },
   sale: { select: { comanda: { select: { playerId: true, player: { select: { name: true } } } } } },
-  settlements: { select: { id: true, amountCents: true, interestCents: true, paidAt: true, paymentMethod: true } },
+  settlements: { select: { id: true, amountCents: true, interestCents: true, discountCents: true, paidAt: true, paymentMethod: true } },
   scheduleParticipant: { select: { playerId: true, player: { select: { name: true } }, occurrence: { select: { occurrenceCourts: { select: { courtId: true, court: { select: { name: true } } } } } } } },
 } satisfies Prisma.FinancialEntrySelect;
 export type DashboardEntry = Prisma.FinancialEntryGetPayload<{ select: typeof dashboardEntrySelect }>;

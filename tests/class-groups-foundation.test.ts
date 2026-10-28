@@ -65,13 +65,13 @@ test("athlete portal shows class groups only for the selected weekday", () => {
     "utf8",
   );
 
-  assert.match(portal, /const selectedClassGroups = groups/);
-  assert.match(portal, /schedule\.weekday === selectedDay/);
+  assert.match(portal, /PortalLocalTabs/);
+  assert.match(portal, /groups\.filter\(group => group\.schedules\.some\(schedule => schedule\.weekday === day\)\)/);
   assert.match(
     portal,
-    /viewStyles\.portal_class_group_list/,
+    /label="Dias das turmas"/,
   );
-  assert.match(portal, /selectedClassGroups\.length/);
+  assert.match(portal, /Não há turmas neste dia\./);
   assert.match(styleRules("portal-class-group-list", {"context":".button"}), /padding-top:/);
 });
 
@@ -84,9 +84,9 @@ test("athlete portal orders class groups by weekday and marks availability", () 
     readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8"),
   ];
 
-  assert.match(portal, /\.sort\(\(first, second\) =>/);
-  assert.match(portal, /portal-class-group-available/);
-  assert.match(portal, /portal-class-group-full/);
+  assert.match(portal, /\.sort\(\(a,b\) =>/);
+  assert.match(portal, /group\.available/);
+  assert.match(portal, /Sem vagas/);
   assert.ok(utilityClasses("portal-class-group-list").length, "portal-class-group-list has component Tailwind utilities");
   assert.ok(utilityClasses("portal-class-group-list").length, "portal-class-group-list has component Tailwind utilities");
 });

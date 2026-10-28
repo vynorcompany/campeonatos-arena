@@ -1,4 +1,6 @@
 "use client";
+import { fixedDialogFrame } from "@/components/ui/dialog-frame";
+
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./portal-editor-panels.utilities";
 
@@ -38,7 +40,7 @@ function Dialog({ title, close, children }: { title: string; close: () => void; 
   }, [close]);
   return (
     <div className={viewStyles.portal_editor_modal} onMouseDown={close}>
-      <section className="portal-editor-dialog" role="dialog" aria-modal="true" aria-label={title} onMouseDown={(event) => event.stopPropagation()}>
+      <section className={["portal-editor-dialog", fixedDialogFrame].join(" ")} role="dialog" aria-modal="true" aria-label={title} onMouseDown={(event) => event.stopPropagation()}>
         <header>
           <div><p className={viewStyles.eyebrow}>PORTAL DO ATLETA</p><h2>{title}</h2></div>
           <button type="button" onClick={close} aria-label="Fechar">×</button>

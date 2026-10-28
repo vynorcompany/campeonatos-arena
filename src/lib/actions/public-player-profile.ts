@@ -15,7 +15,7 @@ const profileSchema = z.object({
   bio: z.string().trim().max(800, "A bio pode ter até 800 caracteres."),
   birthDate: z.preprocess((value) => value || null, z.coerce.date().nullable()),
   gender: z.enum(["", "Feminino", "Masculino", "Outro"]),
-  padelCategories: z.array(z.string().trim().min(1).max(40)).max(1, "Selecione apenas uma categoria.").default([]),
+  padelCategories: z.array(z.string().trim().min(1).max(40)).max(9, "Selecione até nove categorias.").default([]),
   padelSide: z.enum(["", "RIGHT", "LEFT", "BOTH"]),
 });
 
@@ -92,7 +92,7 @@ export async function updatePublicPlayerProfileAction(_: PublicProfileActionStat
     bio: formData.get("bio"),
     birthDate: formData.get("birthDate"),
     gender: formData.get("gender"),
-    padelCategories: formData.get("padelCategory") ? [formData.get("padelCategory")] : [],
+    padelCategories: [...new Set(formData.getAll("padelCategory"))],
     padelSide: formData.get("padelSide"),
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos.", success: null };

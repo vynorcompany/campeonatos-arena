@@ -1,6 +1,7 @@
 type Settlement = {
   amountCents: number;
   interestCents?: number;
+  discountCents?: number;
 };
 
 export function getFinancialEntryBalance(originalCents: number, settlements: Settlement[], status?: string) {
@@ -8,7 +9,7 @@ export function getFinancialEntryBalance(originalCents: number, settlements: Set
   const paidCents = settlements.length || status !== "PAID"
     ? settlements.reduce((total, settlement) => total + settlement.amountCents, 0)
     : originalCents;
-  const outstandingCents = Math.max(0, originalCents + interestCents - paidCents);
+  const outstandingCents = Math.max(0, originalCents + interestCents - paidCents - settlements.reduce((total, settlement) => total + (settlement.discountCents ?? 0), 0));
 
   return {
     originalCents,

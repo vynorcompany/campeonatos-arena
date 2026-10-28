@@ -16,8 +16,8 @@ test("portal shows active comandas separately from payable receivables", () => {
   assert.match(service, /status: "OPEN", items: \{ some: \{\} \}/);
   assert.match(service, /sale: \{ comanda: \{ playerId \} \}/);
   assert.match(service, /entry\.status === "PAID" \|\| !outstandingCents \? "paid"/);
-  assert.match(list, /Comandas em aberto/);
-  assert.match(list, /O pagamento é liberado quando a comanda é fechada/);
+  assert.match(portal, /id: "comandas", label: "Comandas"/);
+  assert.match(portal, /content: <PortalClientComandas data=\{comandas\}/);
   assert.match(portal, /comandas=\{finance\.comandas\}/);
 });
 

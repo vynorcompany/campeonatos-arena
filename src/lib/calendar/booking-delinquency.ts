@@ -36,7 +36,7 @@ export async function getBookingDelinquency(
   } satisfies Prisma.FinancialEntryWhereInput;
   const entries = await tx.financialEntry.findMany({
     where: ownedReceivable,
-    select: { amountCents: true, settlements: { select: { amountCents: true, interestCents: true } } },
+    select: { amountCents: true, settlements: { select: { amountCents: true, interestCents: true, discountCents: true } } },
   });
   const balances = entries.map((entry) => getOutstandingCents(entry.amountCents, entry.settlements)).filter((balance) => balance > 0);
   const reviewReference = await retainedContactNeedsReview(tx, arenaId, playerId, bookingDelinquencyCutoff(blockAfterDays, today));

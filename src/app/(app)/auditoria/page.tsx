@@ -1,3 +1,4 @@
+import { AuditDetails } from "@/components/audit-details";
 import Link from "next/link";
 import { auditFinancialOperation, auditSnapshotRows } from "@/lib/audit/presentation";
 import type { Prisma } from "@prisma/client";
@@ -59,23 +60,23 @@ export default async function AuditPage({ searchParams }: { searchParams?: Promi
       {["SUPER_ADMIN", "ADMIN"].includes(auth.systemRole) ? <label className={ui.field}>Escopo<select name="scope" defaultValue={global ? "system" : "arena"}><option value="arena">Arena atual</option><option value="system">Agência e sistema</option></select></label> : null}
       <button className={ui.secondary}>Filtrar</button>
     </form>
-    <p className="tw:m-0 tw:text-xs tw:text-[var(--muted)]">{total} registro{total === 1 ? "" : "s"}</p>
+    <p className="tw:m-0 tw:text-xs tw:text-[#354f70]">{total} registro{total === 1 ? "" : "s"}</p>
     <div className={ui.list}>{!events.length ? <p className={ui.empty}>Nenhum registro encontrado.</p> : events.map(event => {
       const details = event.details && typeof event.details === "object" && !Array.isArray(event.details) ? event.details : {};
       const snapshot = details.after && typeof details.after === "object" && !Array.isArray(details.after) ? details.after : details.before && typeof details.before === "object" && !Array.isArray(details.before) ? details.before : {};
       const recordName = snapshot.name ?? snapshot.label ?? snapshot.title;
       const changes = auditSnapshotRows(details);
-      return <details key={event.id} className="tw:min-w-0 tw:border-b tw:border-[var(--line)] tw:last:border-b-0">
-      <summary className={`${ui.row} tw:cursor-pointer tw:list-none tw:grid-cols-[170px_minmax(0,1fr)_160px] tw:viewport-760:grid-cols-1 tw:focus-visible:outline-2 tw:focus-visible:outline-[var(--primary)]`}>
-        <time dateTime={event.createdAt.toISOString()} className="tw:text-xs tw:text-[var(--muted)]">{new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "medium" }).format(event.createdAt)}</time>
+      return <article key={event.id} className="tw:min-w-0 tw:border-b tw:border-[var(--line)] tw:last:border-b-0">
+      <div className={`${ui.row} tw:cursor-pointer tw:list-none tw:grid-cols-[170px_minmax(0,1fr)_160px] tw:viewport-760:grid-cols-1 tw:focus-visible:outline-2 tw:focus-visible:outline-[var(--primary)]`}>
+        <time dateTime={event.createdAt.toISOString()} className="tw:text-xs tw:text-[#354f70]">{new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "medium" }).format(event.createdAt)}</time>
         <div><strong>{actionLabel(event.action, details)}</strong><small className="tw:break-words">{String(recordName ?? details.code ?? details.name ?? details.description ?? "")}</small>{typeof details.statusCode === "number" ? <small>HTTP {details.statusCode}{details.stage === "INTERRUPTED" ? " · conexão interrompida" : ""}</small> : details.stage === "REQUESTED" ? <small>Solicitação registrada</small> : null}{global && typeof details.affectedArenaCount === "number" && details.affectedArenaCount > 1 ? <small>{details.affectedArenaCount} arenas envolvidas</small> : null}{typeof details.totalCents === "number" ? <small>{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(details.totalCents / 100)}</small> : null}</div>
-        <span className="tw:grid tw:gap-1 tw:break-words tw:text-xs">{event.actorName}<span className="tw:text-[var(--primary)]">Ver detalhes ↕</span></span>
-      </summary>
-      <div className="tw:grid tw:min-w-0 tw:gap-3 tw:border-t tw:border-[var(--line)] tw:bg-[var(--bg)] tw:p-3">
-        <dl className="tw:m-0 tw:grid tw:min-w-0 tw:gap-1 tw:text-xs tw:text-[#52677d]"><div className="tw:break-all"><dt className="tw:inline tw:font-semibold">Registro: </dt><dd className="tw:m-0 tw:inline">{event.entityId}</dd></div><div className="tw:break-all"><dt className="tw:inline tw:font-semibold">Operação: </dt><dd className="tw:m-0 tw:inline">{event.action}</dd></div></dl>
-        {changes.length ? <div className="tw:grid tw:min-w-0 tw:gap-2">{changes.map(change => <div key={change.key} className="tw:grid tw:min-w-0 tw:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] tw:gap-2 tw:rounded-lg tw:border tw:border-[var(--line)] tw:bg-[var(--panel)] tw:p-3 tw:text-xs tw:viewport-480:grid-cols-1"><strong className="tw:col-span-full">{change.label}</strong><div className="tw:min-w-0 tw:whitespace-pre-wrap tw:break-words"><span className="tw:block tw:pb-1 tw:text-[var(--muted)]">Antes</span>{change.before}</div><div className="tw:min-w-0 tw:whitespace-pre-wrap tw:break-words"><span className="tw:block tw:pb-1 tw:text-[var(--muted)]">Depois</span>{change.after}</div></div>)}</div> : <p className="tw:m-0 tw:text-xs tw:text-[var(--muted)]">Este registro não possui alterações de campos disponíveis para exibição.</p>}
+        <span className="tw:grid tw:gap-1 tw:break-words tw:text-xs">{event.actorName}<AuditDetails>      <div className="tw:grid tw:min-w-0 tw:gap-3 tw:border-t tw:border-[var(--line)] tw:bg-white tw:p-3">
+        <dl className="tw:m-0 tw:grid tw:min-w-0 tw:gap-1 tw:text-xs tw:text-[#354f70]"><div className="tw:break-all"><dt className="tw:inline tw:font-semibold">Registro: </dt><dd className="tw:m-0 tw:inline">{event.entityId}</dd></div><div className="tw:break-all"><dt className="tw:inline tw:font-semibold">Operação: </dt><dd className="tw:m-0 tw:inline">{event.action}</dd></div></dl>
+        {changes.length ? <div className="tw:grid tw:min-w-0 tw:gap-2">{changes.map(change => <div key={change.key} className="tw:grid tw:min-w-0 tw:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] tw:gap-2 tw:rounded-lg tw:border tw:border-[var(--line)] tw:bg-[var(--panel)] tw:p-3 tw:text-xs tw:viewport-480:grid-cols-1"><strong className="tw:col-span-full">{change.label}</strong><div className="tw:min-w-0 tw:whitespace-pre-wrap tw:break-words"><span className="tw:block tw:pb-1 tw:text-[#354f70]">Antes</span>{change.before}</div><div className="tw:min-w-0 tw:whitespace-pre-wrap tw:break-words"><span className="tw:block tw:pb-1 tw:text-[#354f70]">Depois</span>{change.after}</div></div>)}</div> : <p className="tw:m-0 tw:text-xs tw:text-[#354f70]">Este registro não possui alterações de campos disponíveis para exibição.</p>}
       </div>
-      </details>;
+</AuditDetails></span>
+      </div>
+      </article>;
     })}</div>
     <nav aria-label="Páginas da auditoria" className="tw:flex tw:flex-wrap tw:items-center tw:gap-2">{page > 1 ? <Link href={href(page - 1)} className={ui.secondary}>Anterior</Link> : null}<span className="tw:text-xs">Página {page} de {Math.max(1, Math.ceil(total / 50))}</span>{page * 50 < total ? <Link href={href(page + 1)} className={ui.secondary}>Próxima</Link> : null}</nav>
   </section>;

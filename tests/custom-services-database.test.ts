@@ -1,3 +1,4 @@
+import * as servicePricing from "../src/lib/products/service-pricing";
 import * as operationalPolicy from "../src/lib/comandas/operational-policy";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -30,7 +31,7 @@ test("serviços respeitam as duas visibilidades, isolamento e permissões; coman
     const actor = await admin.user.findUniqueOrThrow({ where: { id: "goal-test" } });
     const auth = { arenaId: arena.id, userId: actor.id, userName: actor.name };
     const transact = (arenaId: string, operation: (tx: Prisma.TransactionClient) => Promise<unknown>) => runtime.$transaction(async tx => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`; return operation(tx); });
-    const mocks = { "@/lib/comandas/operational-policy": operationalPolicy, "@/lib/calendar/standard-services": { STANDARD_SERVICES }, "next/cache": { revalidatePath() {} }, "@/lib/auth/guards": { requireModuleEdit: async () => { if (!allowed) throw new Error("Sem permissão"); return auth; }, requirePermission: async () => auth }, "@/lib/rls": { withArenaTransaction: transact }, "@/lib/arena-database": { arenaDatabase: () => ({}) }, "@/lib/comandas/split": { allocateComandaShares }, "@/lib/finance/settlements": { allocatePaymentsToDebts, getOutstandingCents } };
+    const mocks = { "@/lib/products/service-pricing": servicePricing, "@/lib/comandas/operational-policy": operationalPolicy, "@/lib/calendar/standard-services": { STANDARD_SERVICES }, "next/cache": { revalidatePath() {} }, "@/lib/auth/guards": { requireModuleEdit: async () => { if (!allowed) throw new Error("Sem permissão"); return auth; }, requirePermission: async () => auth }, "@/lib/rls": { withArenaTransaction: transact }, "@/lib/arena-database": { arenaDatabase: () => ({}) }, "@/lib/comandas/split": { allocateComandaShares }, "@/lib/finance/settlements": { allocatePaymentsToDebts, getOutstandingCents } };
     const services = load("../src/lib/actions/services.ts", mocks);
     for (const agenda of [false, true]) for (const commands of [false, true]) {
       const name = `Serviço QA ${randomUUID()}`;
@@ -45,15 +46,27 @@ test("serviços respeitam as duas visibilidades, isolamento e permissões; coman
     allowed = true;
     const foreign = await admin.product.create({ data: { arenaId: other.id, name: `Outro ${randomUUID()}`, isService: true } }); ids.push(foreign.id);
     await assert.rejects(services.saveServiceAction(form({ id: foreign.id, name: "Not allowed", price: "1,00" })), /não encontrado/);
+    await services.manageServiceAction(form({ id: ids[3], operation: "duplicate" }));
+    const copy = await admin.product.findFirstOrThrow({ where: { arenaId: arena.id, name: { endsWith: "(cópia)" }, priceCents: 2550, createdByUserId: actor.id }, orderBy: { createdAt: "desc" } }); ids.push(copy.id);
+    await services.manageServiceAction(form({ id: copy.id, operation: "deactivate" }));
+    assert.equal((await admin.product.findUniqueOrThrow({ where: { id: copy.id } })).active, false);
+    await services.manageServiceAction(form({ id: copy.id, operation: "activate" }));
+    assert.equal((await admin.product.findUniqueOrThrow({ where: { id: copy.id } })).active, true);
+    await assert.rejects(services.manageServiceAction(form({ id: foreign.id, operation: "delete" })), /não encontrado/);
+    await services.manageServiceAction(form({ id: copy.id, operation: "delete" }));
+    assert.equal(await admin.product.count({ where: { id: copy.id } }), 0);
+    await admin.product.update({ where: { id: ids[3] }, data: { serviceHourly: true } });
     const commands = load("../src/lib/actions/comanda.ts", mocks);
     const opened = await commands.createComandaAction(form({ type: "AVULSA", label: "Teste de serviço" })); commandId = opened.comandaId;
     const command = await admin.comanda.findUniqueOrThrow({ where: { id: commandId } });
     assert.equal(command.openedByUserId, actor.id); assert.equal(command.openedByUserName, actor.name);
     await assert.rejects(commands.addComandaProductAction(form({ comandaId: commandId, productId: ids[0], quantity: "1" })), /Produto não encontrado/);
-    await commands.addComandaProductAction(form({ comandaId: commandId, productId: ids[3], quantity: "2" }));
+    await commands.addComandaProductAction(form({ comandaId: commandId, productId: ids[3], quantity: "2", durationMinutes: "90" }));
+    await assert.rejects(commands.addComandaProductAction(form({ comandaId: commandId, productId: ids[3], quantity: "1", durationMinutes: "120" })), /outra duração/);
+    await assert.rejects(services.manageServiceAction(form({ id: ids[3], operation: "delete" })), /histórico/);
     await commands.finishComandaAction(form({ comandaId: commandId, payments: "[]" }));
     assert.equal((await admin.comanda.findUniqueOrThrow({ where: { id: commandId } })).status, "CLOSED");
-    assert.equal((await admin.sale.findUniqueOrThrow({ where: { comandaId: commandId } })).totalCents, 5100);
+    assert.equal((await admin.sale.findUniqueOrThrow({ where: { comandaId: commandId } })).totalCents, 7650);
     assert.equal((await admin.product.findUniqueOrThrow({ where: { id: ids[3] } })).stockQuantity, 0);
     assert.equal(await admin.stockMovement.count({ where: { productId: ids[3] } }), 0);
   } finally {

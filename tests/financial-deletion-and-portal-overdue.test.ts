@@ -14,14 +14,15 @@ test("client portal marks open receivables past their due date as overdue", () =
   const portal = readPortalSources();
   const financeEntries = read("src/components/public-finance-entry-list.tsx");
 
-  assert.match(home, /settlements: \{ select: \{ amountCents: true, interestCents: true \} \}/);
+  assert.match(home, /settlements: \{ select: \{ amountCents: true, interestCents: true, discountCents: true \} \}/);
   assert.match(home, /getOutstandingCents/);
   assert.match(home, /futureEntries/);
   assert.match(home, /entry\.dueDate && entry\.dueDate < today/);
   assert.match(home, /em atraso/);
   assert.match(home, /financialStatus: overdue \? "overdue" : due \|\| hasOpenComanda \? "pending" : "active"/);
   assert.match(portal, /status===\"overdue\"/);
-  assert.match(financeEntries, /viewStyles\.client_finance_entry_public_finance_entry\} is-\$\{entry\.status\}/);
+  assert.match(financeEntries, /entry\.status === "overdue" \? "Venceu em" : "Vence em"/);
+  assert.match(financeEntries, /tw:text-red-700 tw:dark:text-red-300/);
   assert.match(portal, /futureFinancial/);
 });
 

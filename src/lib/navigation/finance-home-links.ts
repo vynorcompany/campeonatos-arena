@@ -17,6 +17,7 @@ export function financeHomeLinks(auth: FinanceNavigationAccess) {
     ...(canViewPayable ? [{ label: "Folha", href: "/financeiro/folha", description: "Calcule salários, horas extras e pagamentos de funcionários." }] : []),
     ...(canViewReceivable ? [{ label: "Contas a Receber", href: "/financeiro/contas-a-receber", description: "Receba aulas, comandas, planos e demais receitas." }] : []),
     ...(canViewPayable ? [{ label: "Contas a Pagar", href: "/financeiro/contas-a-pagar", description: "Gerencie fornecedores, custos e despesas da arena." }] : []),
+    ...(canViewFinance && canPerformPermission("finance:settings:manage", auth.arenaRole, auth.systemRole, auth.editPermissions) ? [{ label: "Notas Fiscais", href: "/financeiro/notas-fiscais", description: "Notas e importação de documentos fiscais." }] : []),
     ...(canViewStock ? [{ label: "Produtos e Serviços", href: "/pdv", description: "Acesse serviços, estoque e balanços." }] : []),
   ];
 }

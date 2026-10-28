@@ -771,3 +771,24 @@ test("checkout registra a conta escolhida e exige revisão para reclassificar re
     else { assert.equal(checkout.status, "PAID"); assert.equal(entry.bankAccountId, "bank-selected"); assert.equal(settlements, 1); }
   }
 });
+
+test("pagamento com desconto e juros baixa o valor líquido uma única vez sem alterar o principal", async () => {
+ const entry={id:"entry-quote",arenaId:"arena-a",status:"PENDING",amountCents:10000,settlements:[],source:"MANUAL",externalReference:"",notes:"",onlinePaymentId:"synthetic-payment",onlinePaymentUrl:"https://example.test/pay",onlineChargeAmountCents:9500,onlineChargeDiscountCents:1000,onlineChargeInterestCents:500};
+ const settlements:Record<string,unknown>[]=[];
+ const tx={$queryRaw:async()=>[],financialEntry:{findFirst:async()=>entry,update:async({data}:{data:Record<string,unknown>})=>Object.assign(entry,data)},financialSettlement:{create:async({data}:{data:Record<string,unknown>})=>{settlements.push(data);return data;}},arenaNotification:{create:async()=>{throw Error("A valid quote must not require review")}}};
+ const prisma={publicTournamentRegistration:{findFirst:async()=>null},onlinePaymentCheckout:{findFirst:async()=>null},financialEntry:{findFirst:async()=>entry}};
+ const webhook=loadWebhook(prisma,tx,async()=>({id:"synthetic-payment",status:"approved",currency_id:"BRL",transaction_amount:95,external_reference:entry.id}));
+ const request=()=>new Request("https://example.test/api/payments/mercado-pago/webhook?arenaId=arena-a",{method:"POST",body:JSON.stringify({data:{id:"synthetic-payment"}})});
+ assert.equal((await webhook(request())).status,200);assert.equal((await webhook(request())).status,200);
+ assert.equal(entry.status,"PAID");assert.equal(entry.amountCents,10000);assert.equal(settlements.length,1);
+ assert.equal(settlements[0].amountCents,9500);assert.equal(settlements[0].discountCents,1000);assert.equal(settlements[0].interestCents,500);
+});
+
+test("pagamento com cotação cujo saldo mudou é enviado à revisão sem conceder desconto", async () => {
+ const entry={id:"entry-stale-quote",arenaId:"arena-a",status:"PENDING",amountCents:12000,settlements:[],source:"MANUAL",externalReference:"",notes:"",onlinePaymentId:"synthetic-payment",onlineChargeAmountCents:9000,onlineChargeDiscountCents:1000,onlineChargeInterestCents:0};let alerts=0;
+ const tx={$queryRaw:async()=>[],financialEntry:{findFirst:async()=>entry,update:async({data}:{data:Record<string,unknown>})=>Object.assign(entry,data)},financialSettlement:{create:async()=>{throw Error("Stale quote must never settle")}},arenaNotification:{create:async()=>{alerts++}}};
+ const prisma={publicTournamentRegistration:{findFirst:async()=>null},onlinePaymentCheckout:{findFirst:async()=>null},financialEntry:{findFirst:async()=>entry}};
+ const webhook=loadWebhook(prisma,tx,async()=>({id:"synthetic-payment",status:"approved",currency_id:"BRL",transaction_amount:90,external_reference:entry.id}));
+ const request=()=>new Request("https://example.test/api/payments/mercado-pago/webhook?arenaId=arena-a",{method:"POST",body:JSON.stringify({data:{id:"synthetic-payment"}})});
+ await webhook(request());await webhook(request());assert.equal(entry.status,"PENDING");assert.equal(alerts,1);assert.match(entry.notes,/MP_REVIEW/);
+});

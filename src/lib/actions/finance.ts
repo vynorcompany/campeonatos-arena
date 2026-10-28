@@ -1,4 +1,5 @@
 "use server";
+import { parseDreGroup } from "@/lib/reports/dre";
 
 import { fetchWithDeadline } from "@/lib/http/fetch-with-deadline";
 import { arenaDatabase } from "@/lib/arena-database";
@@ -286,7 +287,7 @@ export async function recordPlanPaymentAction(formData: FormData) {
     const entry = await tx.financialEntry.findFirst({
       where: { ...where, id: entryIds[0].id, status: "PENDING" },
       include: {
-        settlements: { select: { amountCents: true, interestCents: true } },
+        settlements: { select: { amountCents: true, interestCents: true, discountCents: true } },
         fiscalDocument: { select: { id: true } },
         onlinePaymentItems: { select: { checkout: { select: { status: true, mercadoPagoPaymentId: true, checkoutUrl: true } } } },
       },
@@ -347,6 +348,7 @@ export async function createFinancialEntryAction(formData: FormData) {
     paymentMethod: formData.get("paymentMethod"),
     status: formData.get("status"),
     dueDate: formData.get("dueDate"),
+    competenceDate: formData.get("competenceDate") ?? "",
     paidAt: formData.get("paidAt") ?? "",
     notes: formData.get("notes")
   });
@@ -403,6 +405,7 @@ export async function createFinancialEntryAction(formData: FormData) {
         paymentMethod: parsed.data.paymentMethod,
         status: parsed.data.status,
         dueDate,
+        competenceDate: parseDate(parsed.data.competenceDate),
         paidAt,
         notes: parsed.data.notes
       }
@@ -456,6 +459,7 @@ export async function updateFinancialEntryAction(formData: FormData) {
     productId: formData.get("productId"),
     amount: formData.get("amount"),
     dueDate: formData.get("dueDate"),
+    competenceDate: formData.get("competenceDate") ?? "",
     notes: formData.get("notes"),
   });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
@@ -464,7 +468,7 @@ export async function updateFinancialEntryAction(formData: FormData) {
   await withArenaTransaction(auth.arenaId, async (tx) => {
     const entry = await tx.financialEntry.findFirst({
       where: { id: parsed.data.entryId, arenaId: auth.arenaId, status: { not: "VOIDED" } },
-      include: { settlements: { select: { amountCents: true } } },
+      include: { settlements: { select: { amountCents: true, discountCents: true } } },
     });
     if (!entry) throw new Error("Lançamento não encontrado ou estornado.");
     assertFinancialEntryPermission(auth, entry.type, "edit");
@@ -475,7 +479,7 @@ export async function updateFinancialEntryAction(formData: FormData) {
       productId: parsed.data.productId,
     });
 
-    const paidCents = entry.settlements.reduce((total, settlement) => total + settlement.amountCents, 0);
+    const paidCents = entry.settlements.reduce((total, settlement) => total + settlement.amountCents + settlement.discountCents, 0);
     if (amountCents < paidCents) throw new Error("O valor não pode ser menor que o total já baixado.");
     const nextPlanId = parsed.data.planId || null;
     const keepsTeacher = entry.teacherId && nextPlanId && (entry.planId === nextPlanId || await tx.teacherPlan.findFirst({ where: { arenaId: auth.arenaId, teacherId: entry.teacherId, planId: nextPlanId, active: true }, select: { id: true } }));
@@ -488,6 +492,7 @@ export async function updateFinancialEntryAction(formData: FormData) {
         description: parsed.data.description,
         amountCents,
         dueDate: parseDate(parsed.data.dueDate),
+        competenceDate: parseDate(parsed.data.competenceDate),
         notes: parsed.data.notes,
         bankAccountId: parsed.data.bankAccountId || null,
         planId: nextPlanId,
@@ -577,9 +582,9 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
 
 export async function generateFinancialEntryOnlineChargeAction(formData: FormData) {
   const auth = await requirePermission("finance:receivable:settle");
-  const parsed = onlineChargeSchema.safeParse({ entryId: formData.get("entryId"), method: formData.get("method") });
+  const parsed = onlineChargeSchema.safeParse({ entryId: formData.get("entryId"), method: formData.get("method"), amount: formData.get("amount"), discount: formData.get("discount"), discountMode: formData.get("discountMode"), interest: formData.get("interest") });
   if (!parsed.success) return { error: "Dados da cobrança inválidos." };
-  const entry = await withArenaTransaction(auth.arenaId, (tx) => tx.financialEntry.findFirst({ where: { id: parsed.data.entryId, arenaId: auth.arenaId, type: "REVENUE", status: "PENDING" }, include: { settlements: { select: { amountCents: true, interestCents: true } } } }));
+  const entry = await withArenaTransaction(auth.arenaId, (tx) => tx.financialEntry.findFirst({ where: { id: parsed.data.entryId, arenaId: auth.arenaId, type: "REVENUE", status: { in: ["PENDING", "OVERDUE", "PARTIAL"] } }, include: { settlements: { select: { amountCents: true, interestCents: true, discountCents: true } } } }));
   if (!entry) return { error: "Lançamento a receber não encontrado ou já quitado." };
   if (hasExistingOnlineCharge(entry)) return { error: "Este lançamento já possui uma cobrança online. Use ‘Ver cobrança’ no lançamento para consultá-la antes de emitir outra." };
   const playerId = entry.playerId;
@@ -587,13 +592,18 @@ export async function generateFinancialEntryOnlineChargeAction(formData: FormDat
   const player = await withArenaTransaction(auth.arenaId, (tx) => tx.player.findFirst({ where: { id: playerId, arenaId: auth.arenaId, active: true }, select: { name: true, email: true, cpf: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } }));
   if (!player?.email) return { error: "Informe o e-mail do atleta antes de gerar a cobrança." };
   if (parsed.data.method === "BOLETO") { const missing = getMissingBoletoPayerFields(player); if (missing.length) return { error: `Dados incompletos do cliente: informe ${missing.join(", ")} no cadastro de ${player.name} antes de emitir o boleto.` }; }
-  const amountCents = getFinancialEntryBalance(entry.amountCents, entry.settlements).outstandingCents;
-  if (!amountCents) return { error: "Este lançamento não possui saldo para cobrar." };
-  if (parsed.data.method === "BOLETO" && amountCents < 500) return { error: "Boleto exige valor mínimo de R$ 5,00. Ajuste o lançamento antes de emitir." };
+  const outstandingCents = getFinancialEntryBalance(entry.amountCents, entry.settlements).outstandingCents;
+  if (!outstandingCents) return { error: "Este lançamento não possui saldo para cobrar." };
+  const discountValue = parsed.data.discountMode === "PERCENTAGE" ? Number(parsed.data.discount.replace(",", ".")) : parseMoneyToCents(parsed.data.discount);
+  if (!Number.isFinite(discountValue) || discountValue < 0 || (parsed.data.discountMode === "PERCENTAGE" && discountValue > 100)) return { error: "Informe um desconto válido." };
+  const discountCents = parsed.data.discountMode === "PERCENTAGE" ? Math.round(outstandingCents * discountValue / 100) : discountValue;
+  const interestCents = parseMoneyToCents(parsed.data.interest || "0");
+  const quotedAmountCents = parsed.data.amount ? parseMoneyToCents(parsed.data.amount) : undefined;
   const claim = await withArenaTransaction(auth.arenaId, (tx) => claimFinancialOnlineCharge(tx, {
-    arenaId: auth.arenaId, entryId: entry.id, method: parsed.data.method, expectedAmountCents: amountCents,
+    arenaId: auth.arenaId, entryId: entry.id, method: parsed.data.method, expectedAmountCents: outstandingCents, discountCents, interestCents, quotedAmountCents,
   }));
   if (!claim.ok) return { error: claim.error };
+  const amountCents = claim.amountCents;
   const input = { arenaId: auth.arenaId, amountCents, description: entry.description, payerEmail: player.email, externalReference: entry.id };
   let charge;
   try {
@@ -602,14 +612,14 @@ export async function generateFinancialEntryOnlineChargeAction(formData: FormDat
   } catch (error) {
     console.error("Could not create online financial charge", error);
     await withArenaTransaction(auth.arenaId, (tx) => tx.financialEntry.updateMany({
-      where: { id: entry.id, arenaId: auth.arenaId, status: "PENDING", onlinePaymentId: "", onlinePaymentUrl: "", onlinePaymentClaimMethod: parsed.data.method, onlinePaymentClaimedAt: claim.claimedAt },
+      where: { id: entry.id, arenaId: auth.arenaId, status: { in: ["PENDING", "OVERDUE", "PARTIAL"] }, onlinePaymentId: "", onlinePaymentUrl: "", onlinePaymentClaimMethod: parsed.data.method, onlinePaymentClaimedAt: claim.claimedAt },
       data: { onlinePaymentClaimedAt: null },
     })).catch((releaseError) => console.error("Could not release failed online charge claim", releaseError));
     return { error: parsed.data.method === "BOLETO" ? "Não foi possível emitir o boleto agora. Verifique a conexão do Mercado Pago e tente novamente." : "Não foi possível gerar o PIX agora. Verifique a conexão do Mercado Pago e tente novamente." };
   }
   const saved = await withArenaTransaction(auth.arenaId, async (tx) => {
     const updated = await tx.financialEntry.updateMany({
-      where: { id: entry.id, arenaId: auth.arenaId, status: "PENDING", onlinePaymentId: { in: ["", charge.paymentId] }, onlinePaymentUrl: "", onlinePaymentClaimMethod: parsed.data.method, onlinePaymentClaimedAt: claim.claimedAt },
+      where: { id: entry.id, arenaId: auth.arenaId, status: { in: ["PENDING", "OVERDUE", "PARTIAL"] }, onlinePaymentId: { in: ["", charge.paymentId] }, onlinePaymentUrl: "", onlinePaymentClaimMethod: parsed.data.method, onlinePaymentClaimedAt: claim.claimedAt },
       data: { onlineProvider: "MERCADO_PAGO", onlinePaymentId: charge.paymentId, onlinePaymentUrl: charge.checkoutUrl, onlinePaymentQrCode: charge.qrCode, onlinePaymentExpiresAt: charge.expiresAt, onlinePaymentPublishedAt: new Date(), onlinePaymentClaimedAt: null },
     });
     if (updated.count) return "saved" as const;
@@ -628,6 +638,8 @@ export async function settleFinancialEntryAction(formData: FormData) {
   const auth = await requireArenaAccess();
   const parsed = settlementSchema.safeParse({
     entryId: formData.get("entryId"),
+    discount: formData.get("discount") || "0",
+    discountMode: formData.get("discountMode") || "AMOUNT",
     amount: formData.get("amount"),
     interest: formData.get("interest"),
     paymentMethod: formData.get("paymentMethod"),
@@ -639,7 +651,7 @@ export async function settleFinancialEntryAction(formData: FormData) {
   const amountCents = parseMoneyToCents(parsed.data.amount);
   const interestCents = parseMoneyToCents(parsed.data.interest);
   if (!Number.isSafeInteger(interestCents) || interestCents < 0 || interestCents > 2147483647) throw new Error("Informe juros válidos, maiores ou iguais a zero.");
-  if (!Number.isSafeInteger(amountCents) || amountCents > 2147483647 || amountCents <= 0) throw new Error("Informe um valor recebido maior que zero.");
+  if (!Number.isSafeInteger(amountCents) || amountCents > 2147483647 || amountCents < 0) throw new Error("Informe um valor recebido maior que zero.");
   const paidAt = parseDate(parsed.data.paidAt) ?? new Date();
 
   await withArenaTransaction(auth.arenaId, async (tx) => {
@@ -649,7 +661,7 @@ export async function settleFinancialEntryAction(formData: FormData) {
       include: {
         sale: { select: { comanda: { select: { playerId: true } } } },
         scheduleParticipant: { select: { playerId: true } },
-        settlements: { select: { amountCents: true, interestCents: true } },
+        settlements: { select: { amountCents: true, interestCents: true, discountCents: true } },
         onlinePaymentItems: { select: { checkout: { select: { status: true, mercadoPagoPaymentId: true, checkoutUrl: true } } } },
       }
     });
@@ -659,7 +671,12 @@ export async function settleFinancialEntryAction(formData: FormData) {
     if (hasUnresolvedOnlinePayment(entry)) throw new Error("Esta conta possui cobrança online emitida, em emissão ou em análise. Confira e concilie o pagamento antes da baixa manual.");
 
     const before = getFinancialEntryBalance(entry.amountCents, entry.settlements);
-    const allowedCents = before.outstandingCents + interestCents;
+    const discountValue = parsed.data.discountMode === "PERCENTAGE" ? Number(parsed.data.discount.replace(",", ".")) : parseMoneyToCents(parsed.data.discount);
+    if (!Number.isFinite(discountValue) || discountValue < 0 || (parsed.data.discountMode === "PERCENTAGE" && discountValue > 100)) throw new Error("Informe um desconto válido.");
+    const discountCents = parsed.data.discountMode === "PERCENTAGE" ? Math.round(before.outstandingCents * discountValue / 100) : discountValue;
+    if (!Number.isSafeInteger(discountCents) || discountCents > before.outstandingCents) throw new Error("O desconto supera o saldo da conta.");
+    if (amountCents === 0 && discountCents === 0) throw new Error("Informe um valor recebido maior que zero.");
+    const allowedCents = before.outstandingCents + interestCents - discountCents;
     const appliedCents = Math.min(amountCents, allowedCents);
     const surplusCents = amountCents - appliedCents;
     let creditPlayerId: string | null = null;
@@ -672,13 +689,14 @@ export async function settleFinancialEntryAction(formData: FormData) {
       creditPlayerId = player.id;
     }
 
-    const after = getFinancialEntryBalance(entry.amountCents, [...entry.settlements, { amountCents: appliedCents, interestCents }]);
+    const after = getFinancialEntryBalance(entry.amountCents, [...entry.settlements, { amountCents: appliedCents, interestCents, discountCents }]);
     await tx.financialSettlement.create({
       data: {
         arenaId: auth.arenaId,
         financialEntryId: entry.id,
         amountCents: appliedCents,
         interestCents,
+        discountCents,
         paymentMethod: parsed.data.paymentMethod,
         paidAt,
         notes: parsed.data.notes || `Baixa ${entry.type === "REVENUE" ? "recebida" : "paga"} manualmente.`
@@ -719,7 +737,7 @@ export async function settleFinancialEntriesBulkAction(formData: FormData) {
     const entries = await tx.financialEntry.findMany({
       where: { arenaId: auth.arenaId, id: { in: entryIds }, status: { in: ["PENDING", "OVERDUE"] }, source: { not: "AGENCY_SUBSCRIPTION" } },
       include: {
-        settlements: { select: { amountCents: true, interestCents: true } },
+        settlements: { select: { amountCents: true, interestCents: true, discountCents: true } },
         onlinePaymentItems: { select: { checkout: { select: { status: true, mercadoPagoPaymentId: true, checkoutUrl: true } } } },
       }
     });
@@ -897,7 +915,7 @@ export async function createFinancialSettingAction(formData: FormData) {
   }
   try {
     await withArenaTransaction(auth.arenaId, async (tx) => {
-      if (parsed.data.area === "categorias-financeiras") await tx.financialCategory.create({ data: { arenaId: auth.arenaId, name: parsed.data.name, type: parsed.data.type } });
+      if (parsed.data.area === "categorias-financeiras") await tx.financialCategory.create({ data: { arenaId: auth.arenaId, name: parsed.data.name, type: parsed.data.type, dreGroup: parseDreGroup(formData.get("dreGroup")) } });
       if (parsed.data.area === "formas-pagamento") await tx.paymentMethodSetting.create({ data: { arenaId: auth.arenaId, name: parsed.data.name } });
       if (parsed.data.area === "contas-bancarias") await tx.bankAccount.create({ data: { arenaId: auth.arenaId, name: parsed.data.name, bankName: parsed.data.bankName, openingBalanceCents } });
       if (parsed.data.area === "fornecedores") await tx.supplier.create({ data: { arenaId: auth.arenaId, name: parsed.data.name, document: parsed.data.document, phone: parsed.data.phone, email: parsed.data.email, notes: parsed.data.notes } });
@@ -1040,7 +1058,7 @@ export async function updateFinancialCategoryAction(formData: FormData) {
   const parsed = financialCategoryUpdateSchema.safeParse({ categoryId: formData.get("categoryId"), name: formData.get("name"), type: formData.get("type") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   try {
-    const updated = await withArenaTransaction(auth.arenaId, (tx) => tx.financialCategory.updateMany({ where: { id: parsed.data.categoryId, arenaId: auth.arenaId }, data: { name: parsed.data.name, type: parsed.data.type } }));
+    const updated = await withArenaTransaction(auth.arenaId, (tx) => tx.financialCategory.updateMany({ where: { id: parsed.data.categoryId, arenaId: auth.arenaId }, data: { name: parsed.data.name, type: parsed.data.type, dreGroup: parseDreGroup(formData.get("dreGroup")) } }));
     if (!updated.count) throw new Error("Categoria não encontrada.");
   } catch (error) {
     if (error instanceof Error && error.message.includes("Unique constraint")) throw new Error("Já existe uma categoria com este nome.");

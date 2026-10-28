@@ -7,10 +7,10 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   recordOwnLeagueMatchResultAction,
-  respondLeagueProposalAction,
 } from "@/lib/actions/league-challenges";
 import { requestLeagueMedicalSubstitutionAction } from "@/lib/actions/league-medical-substitutions";
-import { LeagueMatchScheduleModal } from "@/components/tournaments/league-match-schedule-modal";
+import Link from "next/link";
+import { arenaBookingPath } from "@/lib/arena-booking-path";
 
 type Portal = NonNullable<
   Awaited<
@@ -36,7 +36,7 @@ export function PublicLeaguePortal({
   const router = useRouter();
   const [message, setMessage] = useState("");
   const [pending, startTransition] = useTransition();
-  const mutedText = cx(viewStyles.muted, "tw:text-[#607467]! tw:dark:text-[#a4c8b9]!");
+  const mutedText = cx(viewStyles.muted, "tw:text-[#606874]! tw:dark:text-[#a4b3c8]!");
   const submit = (
     form: HTMLFormElement,
     action: (data: FormData) => Promise<void | { error: string }>,
@@ -130,7 +130,7 @@ export function PublicLeaguePortal({
   }, [portal.leagueResults]);
 
   return (
-    <section className={cx(viewStyles.public_league_portal_section_card_stack_md, "tw:viewport-700:mx-0! tw:viewport-700:mt-2! tw:viewport-700:w-full! tw:viewport-700:min-w-0! tw:viewport-700:grid-cols-[minmax(0,1fr)]! tw:viewport-700:border-0! tw:viewport-700:bg-transparent! tw:viewport-700:p-0! tw:viewport-700:shadow-none! tw:viewport-700:text-[#133047]! tw:viewport-700:dark:text-[#eafff3]!")}>
+    <section className={cx(viewStyles.public_league_portal_section_card_stack_md, "tw:viewport-700:mx-0! tw:viewport-700:mt-2! tw:viewport-700:w-full! tw:viewport-700:min-w-0! tw:viewport-700:grid-cols-[minmax(0,1fr)]! tw:viewport-700:border-0! tw:viewport-700:bg-transparent! tw:viewport-700:p-0! tw:viewport-700:shadow-none! tw:viewport-700:text-[#133047]! tw:viewport-700:dark:text-[#eaf3ff]!")}>
       <header
         className={
           cx(view === "pairs"
@@ -164,7 +164,7 @@ export function PublicLeaguePortal({
         <form
           method="get"
           action={`/classificacao/${arenaSlug}`}
-          className="portal-league-category-card tw:viewport-700:my-2! tw:viewport-700:box-border! tw:viewport-700:max-w-full! tw:viewport-700:rounded-xl! tw:viewport-700:border! tw:viewport-700:border-[#d8e5e9]! tw:viewport-700:bg-white! tw:viewport-700:[background-image:none]! tw:viewport-700:p-3! tw:viewport-700:shadow-none! tw:viewport-700:dark:border-[#2a6155]! tw:viewport-700:dark:bg-[#0b302a]! tw:viewport-700:[&_>_header]:hidden! tw:viewport-700:[&_>_p]:hidden! tw:viewport-700:[&_.portal-league-category-actions]:hidden! tw:viewport-700:[&_label]:text-[#607467]! tw:viewport-700:dark:[&_label]:text-[#a4c8b9]! tw:viewport-700:[&_select]:border-[#d8e5e9]! tw:viewport-700:[&_select]:bg-white! tw:viewport-700:[&_select]:[background-image:none]! tw:viewport-700:[&_select]:text-[#133047]! tw:viewport-700:dark:[&_select]:border-[#2a6155]! tw:viewport-700:dark:[&_select]:bg-[#0b302a]! tw:viewport-700:dark:[&_select]:text-[#eafff3]!"
+          className="portal-league-category-card tw:viewport-700:my-2! tw:viewport-700:box-border! tw:viewport-700:max-w-full! tw:viewport-700:rounded-xl! tw:viewport-700:border! tw:viewport-700:border-[#d8e5e9]! tw:viewport-700:bg-white! tw:viewport-700:[background-image:none]! tw:viewport-700:p-3! tw:viewport-700:shadow-none! tw:viewport-700:dark:border-[#2a4161]! tw:viewport-700:dark:bg-[#0b1a30]! tw:viewport-700:[&_>_header]:hidden! tw:viewport-700:[&_>_p]:hidden! tw:viewport-700:[&_.portal-league-category-actions]:hidden! tw:viewport-700:[&_label]:text-[#606874]! tw:viewport-700:dark:[&_label]:text-[#a4b3c8]! tw:viewport-700:[&_select]:border-[#d8e5e9]! tw:viewport-700:[&_select]:bg-white! tw:viewport-700:[&_select]:[background-image:none]! tw:viewport-700:[&_select]:text-[#133047]! tw:viewport-700:dark:[&_select]:border-[#2a4161]! tw:viewport-700:dark:[&_select]:bg-[#0b1a30]! tw:viewport-700:dark:[&_select]:text-[#eaf3ff]!"
         >
           <input type="hidden" name="arena" value={arenaSlug} />
           <input type="hidden" name="section" value="leagues" />
@@ -186,7 +186,7 @@ export function PublicLeaguePortal({
           <div>
             <PortalChoice label="Categoria" name="leagueCategory" defaultValue={portal.selectedLeagueCategoryId ?? ""} options={portal.leagueCategories.map(category => ({ value: category.id, label: category.label }))} />
           </div>
-          {selectedCategory.member ? <small className="tw:hidden tw:viewport-700:block tw:mt-1 tw:text-xs tw:font-semibold tw:text-[#087f69] tw:dark:text-[#70dec1]">Sua categoria</small> : null}
+          {selectedCategory.member ? <small className="tw:hidden tw:viewport-700:block tw:mt-1 tw:text-xs tw:font-semibold tw:text-[#083a7f] tw:dark:text-[#709ede]">Sua categoria</small> : null}
           <p className={viewStyles.portal_league_category_context}>
             {selectedCategory.member
               ? "Você participa desta categoria. As ações da sua dupla aparecem abaixo."
@@ -238,9 +238,9 @@ export function PublicLeaguePortal({
             <p className={mutedText}>{portal.leagueCategories.length ? "Ainda não há duplas nesta categoria." : "Nenhuma categoria de liga ativa."}</p>
           )}
         </section>
-        <section className="tw:mx-1 tw:mt-3 tw:mb-24 tw:hidden tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-4 tw:viewport-700:block tw:dark:border-[#3e8b70] tw:dark:bg-[#104c3b]">
-          <div className="tw:mb-3 tw:flex tw:items-center tw:justify-between tw:gap-3"><h2 className="tw:m-0 tw:text-base tw:font-semibold tw:text-[#133047]! tw:dark:text-[#eafff3]!">Duplas inscritas</h2><span className="tw:text-xs tw:text-[#607467]! tw:dark:text-[#a4c8b9]!">{portal.selectedLeaguePairs.length}</span></div>
-          {portal.selectedLeaguePairs.length ? <div className="tw:grid tw:gap-2">{portal.selectedLeaguePairs.map((pair, index) => <article key={pair.id} className="tw:flex tw:items-start tw:gap-3 tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-[#f5f8f8] tw:p-3 tw:dark:border-[#2a6155] tw:dark:bg-[#104138]"><span className="tw:grid tw:size-8 tw:shrink-0 tw:place-items-center tw:rounded-full tw:bg-[#def2ed] tw:text-xs tw:font-semibold tw:text-[#087b63]! tw:dark:bg-[#16483d] tw:dark:text-[#5bdec1]!">{index + 1}</span><div className="tw:min-w-0"><strong className="tw:block tw:break-words tw:text-sm tw:leading-snug tw:text-[#133047]! tw:dark:text-[#eafff3]!">{pair.name}</strong>{pair.groupName ? <small className="tw:mt-1 tw:block tw:text-xs tw:text-[#607467]! tw:dark:text-[#a4c8b9]!">{pair.groupName}</small> : null}</div></article>)}</div> : <p className="tw:m-0 tw:text-sm tw:text-[#607467]! tw:dark:text-[#a4c8b9]!">{portal.leagueCategories.length ? "Ainda não há duplas nesta categoria." : "Nenhuma categoria de liga ativa."}</p>}
+        <section className="tw:mx-1 tw:mt-3 tw:mb-24 tw:hidden tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-4 tw:viewport-700:block tw:dark:border-[#3e5e8b] tw:dark:bg-[#10294c]">
+          <div className="tw:mb-3 tw:flex tw:items-center tw:justify-between tw:gap-3"><h2 className="tw:m-0 tw:text-base tw:font-semibold tw:text-[#133047]! tw:dark:text-[#eaf3ff]!">Duplas inscritas</h2><span className="tw:text-xs tw:text-[#606874]! tw:dark:text-[#a4b3c8]!">{portal.selectedLeaguePairs.length}</span></div>
+          {portal.selectedLeaguePairs.length ? <div className="tw:grid tw:gap-2">{portal.selectedLeaguePairs.map((pair, index) => <article key={pair.id} className="tw:flex tw:items-start tw:gap-3 tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-[#f5f6f8] tw:p-3 tw:dark:border-[#2a4161] tw:dark:bg-[#102441]"><span className="tw:grid tw:size-8 tw:shrink-0 tw:place-items-center tw:rounded-full tw:bg-[#dee6f2] tw:text-xs tw:font-semibold tw:text-[#08387b]! tw:dark:bg-[#162b48] tw:dark:text-[#5b92de]!">{index + 1}</span><div className="tw:min-w-0"><strong className="tw:block tw:break-words tw:text-sm tw:leading-snug tw:text-[#133047]! tw:dark:text-[#eaf3ff]!">{pair.name}</strong>{pair.groupName ? <small className="tw:mt-1 tw:block tw:text-xs tw:text-[#606874]! tw:dark:text-[#a4b3c8]!">{pair.groupName}</small> : null}</div></article>)}</div> : <p className="tw:m-0 tw:text-sm tw:text-[#606874]! tw:dark:text-[#a4b3c8]!">{portal.leagueCategories.length ? "Ainda não há duplas nesta categoria." : "Nenhuma categoria de liga ativa."}</p>}
         </section></>
       ) : (
         <>
@@ -282,7 +282,7 @@ export function PublicLeaguePortal({
               ))}
             </section>
           ) : null}
-          <section className={cx(viewStyles.portal_league_results, "tw:viewport-700:min-w-0! tw:viewport-700:grid-cols-[minmax(0,1fr)]! tw:viewport-700:[&_h3]:text-[#133047]! tw:viewport-700:dark:[&_h3]:text-[#eafff3]! tw:viewport-700:[&_>_header_>_small]:hidden! tw:viewport-700:[&_>_header_span]:hidden!")}>
+          <section className={cx(viewStyles.portal_league_results, "tw:viewport-700:min-w-0! tw:viewport-700:grid-cols-[minmax(0,1fr)]! tw:viewport-700:[&_h3]:text-[#133047]! tw:viewport-700:dark:[&_h3]:text-[#eaf3ff]! tw:viewport-700:[&_>_header_>_small]:hidden! tw:viewport-700:[&_>_header_span]:hidden!")}>
             <header>
               <div>
                 <span>CALENDÁRIO DA LIGA</span>
@@ -306,7 +306,7 @@ export function PublicLeaguePortal({
                     </button>
                   ))}
                 </div>
-                {selectedWeek ? <nav className="tw:hidden tw:viewport-700:flex tw:items-center tw:justify-between tw:gap-3 tw:py-2 tw:viewport-700:[&_strong]:text-[#133047]! tw:viewport-700:dark:[&_strong]:text-[#eafff3]!" aria-label="Selecionar semana da Liga"><button type="button" onClick={() => setSelectedWeekBlock(leagueResultsByWeek[selectedWeekIndex - 1]?.block ?? selectedWeek.block)} disabled={selectedWeekIndex <= 0} aria-label="Semana anterior" className="tw:grid tw:size-9 tw:shrink-0 tw:place-items-center tw:rounded-full tw:border tw:border-[#d8e5e9] tw:bg-white tw:text-[#133047] tw:disabled:opacity-35 tw:dark:border-[#3e8b70] tw:dark:bg-[#104c3b] tw:dark:text-[#eafff3]">‹</button><span className="tw:min-w-0 tw:text-center"><strong className="tw:block tw:text-sm tw:font-semibold tw:text-[#133047] tw:dark:text-[#eafff3]">Semana {selectedWeek.block} de {leagueResultsByWeek.length}</strong><small className="tw:block tw:text-[.75rem] tw:text-[#4d6675]! tw:dark:text-[#a4c8b9]!">{selectedWeek.period}</small></span><button type="button" onClick={() => setSelectedWeekBlock(leagueResultsByWeek[selectedWeekIndex + 1]?.block ?? selectedWeek.block)} disabled={selectedWeekIndex >= leagueResultsByWeek.length - 1} aria-label="Próxima semana" className="tw:grid tw:size-9 tw:shrink-0 tw:place-items-center tw:rounded-full tw:border tw:border-[#d8e5e9] tw:bg-white tw:text-[#133047] tw:disabled:opacity-35 tw:dark:border-[#3e8b70] tw:dark:bg-[#104c3b] tw:dark:text-[#eafff3]">›</button></nav> : null}
+                {selectedWeek ? <nav className="tw:hidden tw:viewport-700:flex tw:items-center tw:justify-between tw:gap-3 tw:py-2 tw:viewport-700:[&_strong]:text-[#133047]! tw:viewport-700:dark:[&_strong]:text-[#eaf3ff]!" aria-label="Selecionar semana da Liga"><button type="button" onClick={() => setSelectedWeekBlock(leagueResultsByWeek[selectedWeekIndex - 1]?.block ?? selectedWeek.block)} disabled={selectedWeekIndex <= 0} aria-label="Semana anterior" className="tw:grid tw:size-9 tw:shrink-0 tw:place-items-center tw:rounded-full tw:border tw:border-[#d8e5e9] tw:bg-white tw:text-[#133047] tw:disabled:opacity-35 tw:dark:border-[#3e5e8b] tw:dark:bg-[#10294c] tw:dark:text-[#eaf3ff]">‹</button><span className="tw:min-w-0 tw:text-center"><strong className="tw:block tw:text-sm tw:font-semibold tw:text-[#133047] tw:dark:text-[#eaf3ff]">Semana {selectedWeek.block} de {leagueResultsByWeek.length}</strong><small className="tw:block tw:text-[.75rem] tw:text-[#4d6675]! tw:dark:text-[#a4b3c8]!">{selectedWeek.period}</small></span><button type="button" onClick={() => setSelectedWeekBlock(leagueResultsByWeek[selectedWeekIndex + 1]?.block ?? selectedWeek.block)} disabled={selectedWeekIndex >= leagueResultsByWeek.length - 1} aria-label="Próxima semana" className="tw:grid tw:size-9 tw:shrink-0 tw:place-items-center tw:rounded-full tw:border tw:border-[#d8e5e9] tw:bg-white tw:text-[#133047] tw:disabled:opacity-35 tw:dark:border-[#3e5e8b] tw:dark:bg-[#10294c] tw:dark:text-[#eaf3ff]">›</button></nav> : null}
                 {selectedWeek ? (
                   <section className={cx(viewStyles.portal_league_week, "tw:viewport-700:border-0! tw:viewport-700:bg-transparent! tw:viewport-700:[&_>_header]:hidden! tw:viewport-700:[&_>_div]:gap-2!")} key={selectedWeek.block}>
                     <header>
@@ -321,8 +321,8 @@ export function PublicLeaguePortal({
                     </header>
                     <div>
                       {selectedWeek.results.map((result) => (
-                        <article id={`jogo-${result.id}`} key={result.id} className="tw:viewport-700:block! tw:viewport-700:rounded-2xl! tw:viewport-700:border! tw:viewport-700:border-[#d8e5e9]! tw:viewport-700:bg-white! tw:viewport-700:p-3! tw:viewport-700:dark:border-[#2a6155]! tw:viewport-700:dark:bg-[#0b302a]! tw:viewport-700:[&_strong]:text-[#133047]! tw:viewport-700:dark:[&_strong]:text-[#eafff3]!">
-                          <div className="tw:hidden tw:viewport-700:block"><div className="tw:mb-3 tw:flex tw:items-center tw:justify-between tw:gap-2 tw:text-[.67rem] tw:font-medium tw:text-[#607467] tw:dark:text-[#a4c8b9]"><span>{result.scheduledAtLabel || "Horário a definir"}</span><span>{result.finished ? "Encerrado" : result.scheduledAtLabel ? "Agendado" : "Aguardando"}</span></div><div className="tw:grid tw:grid-cols-[minmax(0,1fr)_auto] tw:items-center tw:gap-x-3 tw:gap-y-2"><div className="tw:min-w-0"><span className="tw:block tw:text-[.64rem] tw:font-semibold tw:uppercase tw:text-[#087b63] tw:dark:text-[#5bdec1]">Mandante</span><strong className="tw:mt-1 tw:block tw:text-sm tw:leading-snug tw:font-semibold tw:text-[#133047] tw:dark:text-[#eafff3]">{result.homePairName}</strong></div><b className="tw:text-base tw:text-[#087b63] tw:dark:text-[#5bdec1]">{result.finished ? result.homeScore ?? 0 : ""}</b><div className="tw:min-w-0"><span className="tw:block tw:text-[.64rem] tw:font-semibold tw:uppercase tw:text-[#607467] tw:dark:text-[#a4c8b9]">Visitante</span><strong className="tw:mt-1 tw:block tw:text-sm tw:leading-snug tw:font-semibold tw:text-[#133047] tw:dark:text-[#eafff3]">{result.awayPairName}</strong></div><b className="tw:text-base tw:text-[#607467] tw:dark:text-[#a4c8b9]">{result.finished ? result.awayScore ?? 0 : ""}</b></div>{result.finished && result.setScores.length ? <div className="tw:mt-3 tw:flex tw:justify-between tw:border-t tw:border-[#d8e5e9] tw:pt-2 tw:text-[.7rem] tw:dark:border-[#2a6155]"><span className="tw:text-[#607467] tw:dark:text-[#a4c8b9]">Games</span><strong className="tw:text-[#133047] tw:dark:text-[#eafff3]">{result.setScores.map(([home, away]) => `${home}–${away}`).join(" · ")}</strong></div> : null}</div>
+                        <article id={`jogo-${result.id}`} key={result.id} className="tw:viewport-700:block! tw:viewport-700:rounded-2xl! tw:viewport-700:border! tw:viewport-700:border-[#d8e5e9]! tw:viewport-700:bg-white! tw:viewport-700:p-3! tw:viewport-700:dark:border-[#2a4161]! tw:viewport-700:dark:bg-[#0b1a30]! tw:viewport-700:[&_strong]:text-[#133047]! tw:viewport-700:dark:[&_strong]:text-[#eaf3ff]!">
+                          <div className="tw:hidden tw:viewport-700:block"><div className="tw:mb-3 tw:flex tw:items-center tw:justify-between tw:gap-2 tw:text-[.67rem] tw:font-medium tw:text-[#606874] tw:dark:text-[#a4b3c8]"><span>{result.scheduledAtLabel || "Horário a definir"}</span><span>{result.finished ? "Encerrado" : result.scheduledAtLabel ? "Agendado" : "Aguardando"}</span></div><div className="tw:grid tw:grid-cols-[minmax(0,1fr)_auto] tw:items-center tw:gap-x-3 tw:gap-y-2"><div className="tw:min-w-0"><span className="tw:block tw:text-[.64rem] tw:font-semibold tw:uppercase tw:text-[#08387b] tw:dark:text-[#5b92de]">Mandante</span><strong className="tw:mt-1 tw:block tw:text-sm tw:leading-snug tw:font-semibold tw:text-[#133047] tw:dark:text-[#eaf3ff]">{result.homePairName}</strong></div><b className="tw:text-base tw:text-[#08387b] tw:dark:text-[#5b92de]">{result.finished ? result.homeScore ?? 0 : ""}</b><div className="tw:min-w-0"><span className="tw:block tw:text-[.64rem] tw:font-semibold tw:uppercase tw:text-[#606874] tw:dark:text-[#a4b3c8]">Visitante</span><strong className="tw:mt-1 tw:block tw:text-sm tw:leading-snug tw:font-semibold tw:text-[#133047] tw:dark:text-[#eaf3ff]">{result.awayPairName}</strong></div><b className="tw:text-base tw:text-[#606874] tw:dark:text-[#a4b3c8]">{result.finished ? result.awayScore ?? 0 : ""}</b></div>{result.finished && result.setScores.length ? <div className="tw:mt-3 tw:flex tw:justify-between tw:border-t tw:border-[#d8e5e9] tw:pt-2 tw:text-[.7rem] tw:dark:border-[#2a4161]"><span className="tw:text-[#606874] tw:dark:text-[#a4b3c8]">Games</span><strong className="tw:text-[#133047] tw:dark:text-[#eaf3ff]">{result.setScores.map(([home, away]) => `${home}–${away}`).join(" · ")}</strong></div> : null}</div>
                           <strong className={cx(viewStyles.portal_league_match_sides, "tw:viewport-700:hidden!")}>
                             <span className="portal-league-match-home">
                               <small
@@ -363,6 +363,8 @@ export function PublicLeaguePortal({
                               </span>
                             </span>
                           </strong>
+                          {!result.finished && result.canSchedule ? <Link href={`${arenaBookingPath(arenaSlug)}?match=${encodeURIComponent(result.id)}`} className="tw:mt-3 tw:inline-flex tw:items-center tw:gap-1 tw:rounded-md tw:border tw:border-blue-300 tw:px-3 tw:py-1.5 tw:text-xs tw:font-medium tw:text-blue-700 tw:dark:text-blue-200">Agendar Confronto</Link> : null}
+                          {result.reservationLabel ? <small className="tw:mt-3 tw:block tw:text-xs tw:text-[#354f70] tw:dark:text-[#c2d5ee]">{result.reservationStatus === "PENDING_PAYMENT" ? "Aguardando pagamento" : result.reservationStatus === "PENDING_CONFIRMATION" ? "Aguardando confirmação" : "Reserva confirmada"} · {result.reservationLabel}</small> : null}
                         </article>
                       ))}
                     </div>
@@ -380,16 +382,6 @@ export function PublicLeaguePortal({
                   <header>
                     <strong>{pair.name}</strong>
                   </header>
-                  {pair.opponents.length ? (
-                    <LeagueMatchScheduleModal
-                      arenaSlug={arenaSlug}
-                      proposerPairId={pair.id}
-                      proposerName={pair.name}
-                      opponents={pair.opponents}
-                      slots={portal.slots}
-                      onMessage={setMessage}
-                    />
-                  ) : null}
                   {pair.opponents.map((opponent) => (
                     <details
                       className={viewStyles.public_league_result_entry}
@@ -529,95 +521,7 @@ export function PublicLeaguePortal({
               ))}
             </section>
           ) : null}
-          <section className={viewStyles.public_challenge_list}>
-            <h3 className="tw:viewport-700:text-[#133047]! tw:viewport-700:dark:text-[#edf7fb]!">Sugestões de horário</h3>
-            {challenges.length ? (
-              challenges.map((challenge) => (
-                <article id={`desafio-${challenge.id}`} key={challenge.id}>
-                  <div className={viewStyles.public_challenge_details}>
-                    <div className={viewStyles.public_challenge_title_row}>
-                      <strong>
-                        Semana {challenge.block ?? "—"} · {challenge.proposer} ×{" "}
-                        {challenge.opponent}
-                      </strong>
-                      {challenge.status === "ACCEPTED" ? (
-                        <span className={viewStyles.public_league_reservation_status}>
-                          <b aria-hidden="true">✓</b> Reserva confirmada
-                        </span>
-                      ) : null}
-                    </div>
-                    <span>
-                      {challenge.court} · {challenge.proposedAt}
-                    </span>
-                    {challenge.status === "PENDING" ? (
-                      <small>Responder até {challenge.responseDueAt}</small>
-                    ) : challenge.status === "REJECTED" ? (
-                      <small>Recusado</small>
-                    ) : null}
-                  </div>
-                  {challenge.incoming && challenge.status === "PENDING" ? (
-                    <div className={viewStyles.public_challenge_actions}>
-                      <form
-                        onSubmit={(event) => {
-                          event.preventDefault();
-                          submit(
-                            event.currentTarget,
-                            respondLeagueProposalAction,
-                            "Sugestão aceita.",
-                          );
-                        }}
-                      >
-                        <input
-                          type="hidden"
-                          name="arenaSlug"
-                          value={arenaSlug}
-                        />
-                        <input
-                          type="hidden"
-                          name="proposalId"
-                          value={challenge.id}
-                        />
-                        <input type="hidden" name="response" value="ACCEPTED" />
-                        <button
-                          className={viewStyles.button_button_primary}
-                          disabled={pending}
-                        >
-                          Aceitar
-                        </button>
-                      </form>
-                      <form
-                        onSubmit={(event) => {
-                          event.preventDefault();
-                          submit(
-                            event.currentTarget,
-                            respondLeagueProposalAction,
-                            "Sugestão recusada.",
-                          );
-                        }}
-                      >
-                        <input
-                          type="hidden"
-                          name="arenaSlug"
-                          value={arenaSlug}
-                        />
-                        <input
-                          type="hidden"
-                          name="proposalId"
-                          value={challenge.id}
-                        />
-                        <input type="hidden" name="response" value="REJECTED" />
-                        <button className={viewStyles.button} disabled={pending}>
-                          Recusar
-                        </button>
-                      </form>
-                    </div>
-                  ) : null}
-                </article>
-              ))
-            ) : (
-              <p className={mutedText}>{portal.leagueCategories.length ? "Nenhuma sugestão nesta categoria." : "Nenhuma sugestão de horário."}</p>
-            )}
-          </section>
+
         </>
       )}
       {message ? (

@@ -6,4 +6,5 @@ test("aplica desconto financeiro em reais ou percentual sem gerar valor negativo
   assert.equal(getDiscountedAmountCents(12000, 1500, "AMOUNT"), 10500);
   assert.equal(getDiscountedAmountCents(12000, 12.5, "PERCENTAGE"), 10500);
   assert.equal(getDiscountedAmountCents(12000, 15000, "AMOUNT"), 0);
+  assert.equal(getDiscountedAmountCents(12345, 10, "PERCENTAGE"), 11110);
 });

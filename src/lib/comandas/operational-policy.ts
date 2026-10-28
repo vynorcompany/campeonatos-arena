@@ -29,7 +29,7 @@ export async function assertComandaMayOpen(tx: Prisma.TransactionClient, arenaId
   const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - settings.delinquentAfterDays + 1);
   const reviewReference = await retainedContactNeedsReview(tx, arenaId, playerId, cutoff);
   if (reviewReference) throw new Error(`Este cadastro precisa de revisão da recepção antes de abrir uma comanda. Protocolo: ${reviewReference}.`);
-  const debts = await tx.financialEntry.findMany({ where: { ...ownedReceivables(arenaId, [playerId]), dueDate: { lt: cutoff } }, select: { amountCents: true, settlements: { select: { amountCents: true, interestCents: true } } } });
+  const debts = await tx.financialEntry.findMany({ where: { ...ownedReceivables(arenaId, [playerId]), dueDate: { lt: cutoff } }, select: { amountCents: true, settlements: { select: { amountCents: true, interestCents: true, discountCents: true } } } });
   if (debts.some(debt => getOutstandingCents(debt.amountCents, debt.settlements) > 0)) throw new Error("A abertura de comanda está bloqueada por pagamentos vencidos deste cliente.");
 }
 

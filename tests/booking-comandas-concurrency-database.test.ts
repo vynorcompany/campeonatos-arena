@@ -27,7 +27,14 @@ test("abrir comandas da reserva simultaneamente reutiliza uma comanda por atleta
       "@/lib/rls": { withArenaTransaction: transact },
     };
     vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/lib/actions/comanda.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports: actions, FormData, Date, crypto: globalThis.crypto, require: (name: string) => mocks[name] ?? {} });
-    const open = () => { const form = new FormData(); form.set("occurrenceId", occurrenceId); return actions.openBookingComandasAction(form); };
+    const open = (ids?: string[]) => { const form = new FormData(); form.set("occurrenceId", occurrenceId); if (ids) form.set("playerIds", JSON.stringify(ids)); return actions.openBookingComandasAction(form); };
+    const selected = await open([playerIds[0]]);
+    assert.equal(selected.error, undefined);
+    assert.deepEqual(Array.from(selected.comandaIds ?? []), [previous.id]);
+    assert.equal(await admin.comanda.count({ where: { playerId: playerIds[1] } }), 0);
+    assert.match((await open(["foreign-player"])).error ?? "", /não pertence/);
+    assert.match((await open([])).error ?? "", /Selecione ao menos/);
+    assert.equal(await admin.comanda.count({ where: { playerId: playerIds[1] } }), 0);
     const outcomes = await Promise.all([open(), open()]);
     for (const result of outcomes) { assert.equal(result.error, undefined); assert.equal(result.comandaIds?.length, 2); assert(result.comandaIds?.includes(previous.id)); }
     assert.equal((await admin.comanda.findUniqueOrThrow({ where: { id: previous.id } })).openedByUserName, "Autor original");

@@ -1,3 +1,4 @@
+import * as servicePricing from "../src/lib/products/service-pricing";
 import assert from "node:assert/strict";
 import test from "node:test";
 import vm from "node:vm";
@@ -40,7 +41,7 @@ async function fixture(options: { limit?: number; courtPrice?: number; onlinePay
   const service = await admin.product.create({ data: { arenaId: arena.id, name: "Locação de disparador", isService: true, showOnPortalBooking: true, bookingConcurrentLimit: options.limit ?? 1, priceCents: 1500 } });
   const scope = <T>(arenaId: string, run: (tx: Prisma.TransactionClient) => Promise<T>) => runtime.$transaction(async tx => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`; return run(tx); }, { maxWait: 10_000, timeout: 10_000 });
   const auth = { arenaId: arena.id, userId: "goal-test", userName: "Resource operator" };
-  const mocks: Record<string, unknown> = {
+  const mocks: Record<string, unknown> = { "@/lib/products/service-pricing": servicePricing,
     "@/lib/calendar/booking-services": resources, "@/lib/calendar/service-capacity": capacity, "@/lib/calendar/standard-services": standards, "@/lib/comandas/operational-policy": operationalPolicy,
     "next/cache": { revalidatePath() {} }, "@/lib/auth/guards": { requireModuleEdit: async () => auth, requirePermission: async () => auth },
     "@/lib/auth/player-session": { requirePublicPlayerAuth: async () => ({ arenaId: arena.id, playerId: player.id }) }, "@/lib/prisma": { prisma: runtime },
@@ -133,4 +134,45 @@ test("staff rescheduling preserves equipment and refuses a conflicting destinati
     assert.equal((await f.admin.scheduleOccurrence.findUniqueOrThrow({ where: { id: original.id } })).startsAt.getTime(), at(13).getTime());
     assert.equal(await f.admin.scheduleServiceReservation.count({ where: { occurrenceId: original.id, productId: f.service.id } }), 1);
   } finally { await f.cleanup(); }
+});
+
+test("hourly rental charges the booked interval and adjacent reservations release the equipment", { skip: !enabled }, async () => {
+  const f = await fixture(); try {
+    await f.admin.product.update({ where: { id: f.service.id }, data: { serviceHourly: true } });
+    assert.equal((await f.book(0, 10, 120, [f.service.id], 15000)).ok, true);
+    const service = await f.admin.scheduleServiceReservation.findFirstOrThrow({ where: { arenaId: f.arena.id } });
+    assert.equal(service.priceCents, 3000);
+    assert.equal((await f.book(1, 11, 60, [f.service.id], 7500)).ok, false);
+    assert.equal((await f.book(1, 12, 60, [f.service.id], 7500)).ok, true);
+  } finally { await f.cleanup(); }
+});
+
+test("booking a match derives all athletes, charges only the responsible player, prevents duplicates and allows rebooking after cancellation", { skip: !enabled }, async () => {
+ const f = await fixture(); let tournamentId = "";
+ try {
+  const others = await Promise.all([1,2,3].map(index => f.admin.player.create({ data: { arenaId: f.arena.id, name: `Match athlete ${index}` } })));
+  const tournament = await f.admin.tournament.create({ data: { arenaId: f.arena.id, name: "Match reservation QA" } }); tournamentId = tournament.id;
+  const category = await f.admin.tournamentCategory.create({ data: { tournamentId, name: "QA", level: 1 } });
+  const competition = await f.admin.categoryCompetition.create({ data: { categoryId: category.id, format: "LEAGUE", status: "PUBLISHED" } });
+  const ids = [f.player.id, ...others.map(player => player.id)];
+  const pairs = await Promise.all([0,1].map(index => f.admin.categoryPair.create({ data: { competitionId: competition.id, name: index ? "Visitors" : "Hosts", players: { create: ids.slice(index*2,index*2+2).map((playerId,slot) => ({ playerId, slot: slot+1 })) } } })));
+  const match = await f.admin.categoryMatch.create({ data: { competitionId: competition.id, homePairId: pairs[0].id, awayPairId: pairs[1].id, label: "QA match", stage: "LEAGUE", roundOrder: 1 } });
+  const data = (court: number, matchId = match.id) => form({ arenaSlug: f.arena.slug, courtId: f.courts[court].id, startsAt: "2040-01-02T10:00", durationMinutes: "60", quotedTotalCents: "6000", matchId });
+  await f.admin.categoryMatch.update({ where: { id: match.id }, data: { manualStatus: "FINISHED" } });
+  assert.match((await f.actions.createPublicCourtBookingAction(data(0))).error, /não está disponível/);
+  assert.equal(await f.admin.scheduleOccurrence.count({ where: { categoryMatchId: match.id } }), 0);
+  await f.admin.categoryMatch.update({ where: { id: match.id }, data: { manualStatus: null } });
+  assert.equal((await f.actions.createPublicCourtBookingAction(data(0))).ok, true);
+  const occurrence = await f.admin.scheduleOccurrence.findFirstOrThrow({ where: { categoryMatchId: match.id }, include: { participants: true } });
+  assert.equal(occurrence.title, "Hosts × Visitors"); assert.equal(occurrence.participants.length, 4);
+  assert.equal(occurrence.participants.reduce((sum,p) => sum+p.amountCents,0), 6000);
+  assert.equal(occurrence.participants.find(p=>p.playerId===f.player.id)?.amountCents,6000);
+  assert.match((await f.actions.createPublicCourtBookingAction(data(1))).error, /já possui uma reserva/);
+  assert.equal((await f.actions.createPublicCourtBookingAction(data(1,"foreign-or-missing"))).ok, false);
+  await f.admin.scheduleOccurrence.update({ where: { id: occurrence.id }, data: { status: "CANCELED" } });
+  assert.equal((await f.actions.createPublicCourtBookingAction(data(1))).ok, true);
+ } finally {
+  if(tournamentId) { await f.admin.scheduleOccurrence.deleteMany({where:{arenaId:f.arena.id}}); await f.admin.categoryMatch.deleteMany({where:{competition:{category:{tournamentId}}}}); await f.admin.tournament.delete({where:{id:tournamentId}}); }
+  await f.cleanup();
+ }
 });

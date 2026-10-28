@@ -47,7 +47,7 @@ async function alertIneligibleRecurringBoletos(arenaId: string, count: number) {
 export async function issueRecurringOnlineChargeForEntry(arenaId: string, entryId: string, now = new Date()): Promise<ChargeAttempt> {
   const entry = await arenaDatabase(arenaId).financialEntry.findFirst({
     where: { id: entryId, ...recurringBoletoEntryWhere(arenaId) },
-    include: { player: { select: { name: true, phone: true, email: true, cpf: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } }, settlements: { select: { amountCents: true, interestCents: true } } }
+    include: { player: { select: { name: true, phone: true, email: true, cpf: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } }, settlements: { select: { amountCents: true, interestCents: true, discountCents: true } } }
   });
 
   if (!entry) return { created: false, skipped: false };
@@ -139,7 +139,7 @@ export async function recurringOnlineChargeCandidates(now = new Date()) {
         select: {
           id: true, arenaId: true, dueDate: true, amountCents: true,
           player: { select: { email: true, cpf: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } },
-          settlements: { select: { amountCents: true, interestCents: true } },
+          settlements: { select: { amountCents: true, interestCents: true, discountCents: true } },
         },
         orderBy: [{ dueDate: "asc" }, { id: "asc" }],
         take: recurringChargeBatchLimit,

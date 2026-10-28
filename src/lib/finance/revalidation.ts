@@ -18,6 +18,7 @@ export function refreshFinancialSettings() {
   revalidatePath("/financeiro/configuracoes/categorias-produtos");
   revalidatePath("/financeiro/configuracoes/cupons");
   revalidatePath("/financeiro/configuracoes/notas-fiscais");
+  revalidatePath("/financeiro/notas-fiscais");
   revalidatePath("/financeiro/configuracoes/pagamentos-online");
   revalidatePath("/pdv");
   revalidatePath("/pdv/novo");

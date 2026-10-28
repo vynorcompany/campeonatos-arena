@@ -1,4 +1,5 @@
 "use server";
+import { servicePriceCents } from "@/lib/products/service-pricing";
 import { after } from "next/server";
 import { enqueueComandaWhatsapp } from "@/lib/comandas/whatsapp-outbox";
 import { dispatchComandaWhatsapp } from "@/lib/comandas/whatsapp-delivery";
@@ -154,17 +155,22 @@ export async function openBookingComandasAction(formData: FormData): Promise<{ e
     const occurrenceId = z.string().trim().min(1).safeParse(formData.get("occurrenceId"));
     if (!occurrenceId.success) throw new Error("Horário inválido.");
 
+    let selectedPlayerIds: string[] | undefined;
+    if (formData.has("playerIds")) { const ids = z.array(z.string().trim().min(1)).min(1, "Selecione ao menos um atleta.").max(100).safeParse(JSON.parse(String(formData.get("playerIds")))); if (!ids.success) throw new Error("Selecione ao menos um atleta da reserva."); selectedPlayerIds = [...new Set(ids.data)]; }
     const comandaIds = await withArenaTransaction(auth.arenaId, async (tx) => {
       await tx.$queryRaw`SELECT id FROM "ScheduleOccurrence" WHERE id = ${occurrenceId.data} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
       const occurrence = await tx.scheduleOccurrence.findFirst({ where: { id: occurrenceId.data, arenaId: auth.arenaId, status: { not: "CANCELED" } }, include: { participants: { include: { player: { select: { name: true } }, financialEntry: { select: { arenaId: true, playerId: true, type: true } } } } } });
       if (!occurrence) throw new Error("Horário não encontrado.");
+      if (occurrence.bookingTypeName === "Bloqueio") throw new Error("Este horário está bloqueado.");
       if (occurrence.status === "PENDING_PAYMENT") throw new Error("Esta reserva aguarda confirmação do pagamento online.");
       if (!occurrence.participants.length) throw new Error("Não é possível abrir comandas: esta reserva não possui cliente atribuído.");
-      for (const playerId of occurrence.participants.map(participant => participant.playerId).sort()) {
+      if (selectedPlayerIds?.some(id => !occurrence.participants.some(participant => participant.playerId === id))) throw new Error("Um dos atletas selecionados não pertence a esta reserva.");
+      const participants = selectedPlayerIds ? occurrence.participants.filter(participant => selectedPlayerIds.includes(participant.playerId)) : occurrence.participants;
+      for (const playerId of participants.map(participant => participant.playerId).sort()) {
         await tx.$queryRaw`SELECT id FROM "Player" WHERE id = ${playerId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
       }
       const ids: string[] = [];
-      for (const participant of occurrence.participants) {
+      for (const participant of participants) {
         if (participant.financialEntryId && (!participant.financialEntry || participant.financialEntry.arenaId !== auth.arenaId || (participant.financialEntry.playerId && participant.financialEntry.playerId !== participant.playerId) || !["REVENUE", "INCOME"].includes(participant.financialEntry.type))) throw new Error("A cobrança da reserva não está disponível para este atleta. Revise o lançamento financeiro.");
         let existing = await tx.comanda.findFirst({ where: { arenaId: auth.arenaId, playerId: participant.playerId, status: "OPEN" }, select: { id: true } });
         if (existing) {
@@ -190,6 +196,7 @@ export async function openBookingComandasAction(formData: FormData): Promise<{ e
 }
 
 export async function addComandaProductAction(formData: FormData) {
+  const durationMinutes = z.coerce.number().int().min(1).max(1440).parse(formData.get("durationMinutes") || 60);
   const auth = await requirePermission("pos:command:items");
   const parsed = comandaProductSchema.safeParse({ comandaId: formData.get("comandaId"), productId: formData.get("productId"), quantity: formData.get("quantity") || 1 });
   if (!parsed.success) throw new Error("Produto inválido.");
@@ -197,16 +204,19 @@ export async function addComandaProductAction(formData: FormData) {
   await withArenaTransaction(auth.arenaId, async (tx) => {
     const [comanda, product] = await Promise.all([
       tx.comanda.findFirst({ where: { id: parsed.data.comandaId, arenaId: auth.arenaId, status: "OPEN" }, select: { id: true } }),
-      tx.product.findFirst({ where: { id: parsed.data.productId, arenaId: auth.arenaId, active: true, OR: [{ isService: false }, { showOnComandas: true }] }, select: { id: true, priceCents: true, stockQuantity: true } })
+      tx.product.findFirst({ where: { id: parsed.data.productId, arenaId: auth.arenaId, active: true, OR: [{ isService: false }, { showOnComandas: true }] }, select: { id: true, priceCents: true, stockQuantity: true, isService: true, serviceHourly: true } })
     ]);
     if (!comanda) throw new Error("Comanda não está disponível.");
     if (!product) throw new Error("Produto não encontrado.");
     const current = await tx.comandaItem.findUnique({ where: { comandaId_productId: { comandaId: comanda.id, productId: product.id } } });
+    if (current && product.isService && product.serviceHourly && current.durationMinutes !== durationMinutes) throw new Error("Este serviço já está lançado com outra duração. Remova o item antes de alterar o período.");
+    const unitPriceCents = current?.unitPriceCents ?? servicePriceCents(product.priceCents, product.isService && product.serviceHourly, durationMinutes);
     const nextQuantity = (current?.quantity ?? 0) + parsed.data.quantity;
+    if (nextQuantity > 999 || unitPriceCents * nextQuantity > 2_147_483_647) throw new Error("Quantidade ou valor acima do limite permitido.");
     await tx.comandaItem.upsert({
       where: { comandaId_productId: { comandaId: comanda.id, productId: product.id } },
-      update: { quantity: nextQuantity, unitPriceCents: product.priceCents, totalCents: product.priceCents * nextQuantity },
-      create: { comandaId: comanda.id, productId: product.id, quantity: parsed.data.quantity, unitPriceCents: product.priceCents, totalCents: product.priceCents * parsed.data.quantity }
+      update: { quantity: nextQuantity, totalCents: unitPriceCents * nextQuantity },
+      create: { comandaId: comanda.id, productId: product.id, quantity: parsed.data.quantity, durationMinutes: product.isService && product.serviceHourly ? durationMinutes : 60, unitPriceCents, totalCents: unitPriceCents * parsed.data.quantity }
     });
     await tx.comandaRequest.updateMany({ where: { comandaId: comanda.id, productId: product.id, status: "PENDING" }, data: { status: "CONFIRMED" } });
   });
@@ -310,7 +320,7 @@ export async function finishComandaAction(formData: FormData) {
     const paymentTotalCents = parsed.data.payments.reduce((total, payment) => total + payment.amountCents, 0);
     const selectedDebts = comanda.playerId && debtIdsToSettle.length ? await tx.financialEntry.findMany({
       where: selectedComandaDebtWhere(auth.arenaId, debtIdsToSettle),
-      select: { id: true, playerId: true, amountCents: true, onlinePaymentId: true, onlinePaymentUrl: true, onlinePaymentClaimMethod: true, onlinePaymentClaimedAt: true, notes: true, onlinePaymentItems: { select: { checkout: { select: { status: true, mercadoPagoPaymentId: true, checkoutUrl: true } } } }, settlements: { select: { amountCents: true, interestCents: true } }, scheduleParticipant: { select: { playerId: true } }, sale: { select: { comanda: { select: { playerId: true } } } } }
+      select: { id: true, playerId: true, amountCents: true, onlinePaymentId: true, onlinePaymentUrl: true, onlinePaymentClaimMethod: true, onlinePaymentClaimedAt: true, notes: true, onlinePaymentItems: { select: { checkout: { select: { status: true, mercadoPagoPaymentId: true, checkoutUrl: true } } } }, settlements: { select: { amountCents: true, interestCents: true, discountCents: true } }, scheduleParticipant: { select: { playerId: true } }, sale: { select: { comanda: { select: { playerId: true } } } } }
     }) : [];
     if (selectedDebts.length !== debtIdsToSettle.length || selectedDebts.some((debt) => comandaDebtOwnerId(debt) !== comanda.playerId)) throw new Error("Um dos débitos selecionados não está disponível para este cliente.");
     if (selectedDebts.some(debt => Boolean(debt.onlinePaymentId || debt.onlinePaymentUrl || debt.onlinePaymentClaimMethod || debt.onlinePaymentClaimedAt) || debt.notes.includes("[MP_REVIEW:") || debt.onlinePaymentItems.some(({ checkout }) => ["PENDING", "REVIEW", "PAID"].includes(checkout.status) || (checkout.status === "FAILED" && Boolean(checkout.mercadoPagoPaymentId || checkout.checkoutUrl))))) throw new Error("Um dos débitos possui pagamento online emitido ou em análise. Confira e concilie a cobrança antes de quitá-lo na comanda.");

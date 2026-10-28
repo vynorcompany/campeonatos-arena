@@ -111,8 +111,7 @@ function NavIcon({ name }: { name: IconName }) {
     ),
     finance: (
       <>
-        <path d="M12 2v20" />
-        <path d="M17 6.5c-.8-1-2.4-1.5-4.2-1.5-2.4 0-4.3 1-4.3 2.8 0 4.2 8.5 1.8 8.5 6.4 0 1.9-1.9 3.1-4.5 3.1-2 0-3.7-.6-4.7-1.8" />
+        <rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M7 15h2m3-2h5m-5 4h3"/>
       </>
     ),
     cash: (
@@ -254,10 +253,11 @@ export function NavLinks({ canManageUsers, canManageFinancialSettings, canManage
             { href: "/financeiro/folha", label: "Folha" },
             { href: "/financeiro/contas-a-receber", label: "Contas a Receber" },
             { href: "/financeiro/contas-a-pagar", label: "Contas a Pagar" },
+            ...(canManageFinancialSettings ? [{ href: "/financeiro/notas-fiscais", label: "Notas Fiscais" }] : []),
             { href: "/pdv", label: "Produtos e Serviços", children: [
               { href: "/pdv/servicos", label: "Serviços" },
               { href: "/pdv/estoque", label: "Estoque" },
-              { href: "/pdv/balanco", label: "Criar balanço" }
+              { href: "/pdv/balanco", label: "Balanço" }
             ] },
 
           ]
@@ -288,9 +288,7 @@ export function NavLinks({ canManageUsers, canManageFinancialSettings, canManage
                 { href: "/financeiro/configuracoes/cupons", label: "Cupons" },
                 { href: "/financeiro/configuracoes/fornecedores", label: "Fornecedores" },
                 { href: "/financeiro/configuracoes/formas-pagamento", label: "Formas de Pagamentos" },
-                { href: "/financeiro/configuracoes/notas-fiscais", label: "Notas Fiscais", children: [
-                  { href: "/financeiro/configuracoes/notas-fiscais?secao=emissao", label: "Configurações de Emissão" }
-                ] }
+                { href: "/financeiro/configuracoes/notas-fiscais?secao=emissao", label: "Configurações das Notas Fiscais" }
               ]
             }
     ] }] }
@@ -336,6 +334,7 @@ export function NavLinks({ canManageUsers, canManageFinancialSettings, canManage
     "/financeiro/pdv-estoque": "finance",
     "/financeiro/configuracoes": "finance",
     "/financeiro/configuracoes/notas-fiscais": "finance",
+    "/financeiro/notas-fiscais": "finance",
     "/financeiro/configuracoes/fornecedores": "finance",
     "/financeiro/configuracoes/categorias-produtos": "finance",
     "/financeiro/configuracoes/formas-pagamento": "finance",

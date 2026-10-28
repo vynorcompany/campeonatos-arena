@@ -4,9 +4,9 @@ export const viewStyles = {
   "teacher_makeup_planner": [
     "teacher-makeup-planner", "tw:grid", "tw:gap-y-[12px]", "tw:gap-x-[12px]",
     "tw:[&_>_header]:grid", "tw:[&_>_header]:gap-y-[3px]", "tw:[&_>_header]:gap-x-[3px]", "tw:[&_h3]:mt-[0]",
-    "tw:[&_h3]:mr-[0]", "tw:[&_h3]:mb-[0]", "tw:[&_h3]:ml-[0]", "tw:[&_h3]:text-[color:var(--portal-ink,#edfafa)]",
+    "tw:[&_h3]:mr-[0]", "tw:[&_h3]:mb-[0]", "tw:[&_h3]:ml-[0]", "tw:[&_h3]:text-[color:var(--portal-ink,#edf2fa)]",
     "tw:[&_h3]:text-[.95rem]", "tw:[&_p]:mt-[0]", "tw:[&_p]:mr-[0]", "tw:[&_p]:mb-[0]",
-    "tw:[&_p]:ml-[0]", "tw:[&_p]:text-[color:var(--portal-ink,#abc9d2)]", "tw:[&_p]:text-[.73rem]", "tw:[&_>_header_>_span]:text-[color:var(--portal-accent,#58e5bd)]",
+    "tw:[&_p]:ml-[0]", "tw:[&_p]:text-[color:var(--portal-ink,#abc9d2)]", "tw:[&_p]:text-[.73rem]", "tw:[&_>_header_>_span]:text-[color:var(--portal-accent,#5893e5)]",
     "tw:[&_>_header_>_span]:text-[.67rem]", "tw:[&_>_header_>_span]:font-[800]", "tw:[&_>_header_>_span]:tracking-[.08em]",
   ].join(" "),
   "teacher_makeup_form": [
@@ -22,7 +22,7 @@ export const viewStyles = {
     "tw:[&_label]:[border-right-style:solid]", "tw:[&_label]:border-r-[color:var(--portal-line,rgb(105_181_198_/_.24))]", "tw:[&_label]:border-b-[length:1px]", "tw:[&_label]:[border-bottom-style:solid]",
     "tw:[&_label]:border-b-[color:var(--portal-line,rgb(105_181_198_/_.24))]", "tw:[&_label]:border-l-[length:1px]", "tw:[&_label]:[border-left-style:solid]", "tw:[&_label]:border-l-[color:var(--portal-line,rgb(105_181_198_/_.24))]",
     "tw:[&_label]:rounded-[7px]", "tw:[&_label]:cursor-pointer", "tw:[&_input[type=checkbox]]:w-[15px]", "tw:[&_input[type=checkbox]]:h-[15px]",
-    "tw:[&_input[type=checkbox]]:[accent-color:#4ce1b8]", "tw:[&_span]:grid", "tw:[&_span]:gap-y-[2px]", "tw:[&_span]:gap-x-[2px]",
+    "tw:[&_input[type=checkbox]]:[accent-color:#4c8ae1]", "tw:[&_span]:grid", "tw:[&_span]:gap-y-[2px]", "tw:[&_span]:gap-x-[2px]",
     "tw:[&_strong]:text-[color:var(--portal-ink,#eaf9fb)]", "tw:[&_strong]:text-[.74rem]", "tw:[&_small]:text-[color:var(--portal-ink,#abc8d0)]", "tw:[&_small]:text-[.66rem]",
   ].join(" "),
   "teacher_makeup_slot": [

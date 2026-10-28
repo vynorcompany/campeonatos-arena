@@ -1,4 +1,6 @@
 "use client";
+import { fixedDialogFrame } from "@/components/ui/dialog-frame";
+
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./event-quick-actions.utilities";
 
@@ -61,7 +63,7 @@ export function EventQuickActions({ tournament, publicPageUrl, categories, initi
     })}
 
     {activeAction && activeCopy ? <div className={viewStyles.event_action_modal_backdrop} role="presentation" onMouseDown={() => setActiveAction(null)}>
-      <section className={viewStyles.event_action_modal} role="dialog" aria-modal="true" aria-label={activeCopy.title} onMouseDown={(event) => event.stopPropagation()}>
+      <section className={[viewStyles.event_action_modal, fixedDialogFrame].join(" ")} role="dialog" aria-modal="true" aria-label={activeCopy.title} onMouseDown={(event) => event.stopPropagation()}>
         <header><div><p className={viewStyles.eyebrow}>EVENTO</p><h2>{activeCopy.title}</h2></div><button type="button" className={viewStyles.button_button_small} onClick={() => setActiveAction(null)}>Fechar</button></header>
         <div className={viewStyles.event_action_modal_content}>
           {activeAction === "public" ? <div className={viewStyles.event_action_public_page}><p>Confira a visualização publicada para atletas e público.</p><Link href={publicPageUrl} target="_blank" rel="noreferrer" className={viewStyles.button_button_primary}><EventIcon name="external" />Abrir página pública</Link></div> : null}

@@ -1,4 +1,6 @@
 "use client";
+import { fixedDialogFrame } from "@/components/ui/dialog-frame";
+
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -65,7 +67,7 @@ export function LeagueHistoryPanel({ cycles, successHref }: { successHref: strin
     )}</div>
     {selected && typeof document !== "undefined" ? createPortal(
       <div className={styles.backdrop} onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedId(null); }}>
-        <section className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="league-history-dialog-title" tabIndex={-1}>
+        <section className={[styles.dialog, fixedDialogFrame].join(" ")} role="dialog" aria-modal="true" aria-labelledby="league-history-dialog-title" tabIndex={-1}>
           <header className={styles.dialogHeader}><div><span className={styles.kicker}>Histórico da Liga</span><h2 id="league-history-dialog-title">{monthLabel(selected.referenceMonth)}</h2></div><button ref={closeButton} type="button" className={styles.close} onClick={() => setSelectedId(null)} aria-label="Fechar histórico">×</button></header>
           <div className={styles.dialogBody}>
             <div className={styles.highlights}>

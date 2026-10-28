@@ -2,7 +2,7 @@
 export const viewStyles = {
   "client_portal_event_image_fallback": [
     "client-portal-event-image-fallback", "tw:grid", "tw:w-[100%]", "tw:[aspect-ratio:16_/_9]",
-    "tw:place-items-center", "tw:[object-fit:cover]", "tw:text-[color:#dff8f3]", "tw:bg-[color:transparent]",
+    "tw:place-items-center", "tw:[object-fit:cover]", "tw:text-[color:#dfe9f8]", "tw:bg-[color:transparent]",
     "tw:[background-image:linear-gradient(135deg,_#0a5c61,_#102b46)]", "tw:text-[1.35rem]", "tw:font-[850]",
   ].join(" "),
   "client_portal_event_link": [
