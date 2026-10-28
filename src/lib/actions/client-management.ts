@@ -49,17 +49,17 @@ export async function adjustClientBalanceAction(formData: FormData) {
 export async function mergeClientsAction(formData: FormData) {
   const auth = await requirePermission("players:merge");
   const parsed = z.object({ primaryPlayerId: z.string().min(1), duplicatePlayerId: z.string().min(1) }).safeParse({ primaryPlayerId: formData.get("primaryPlayerId"), duplicatePlayerId: formData.get("duplicatePlayerId") });
-  if (!parsed.success || parsed.data.primaryPlayerId === parsed.data.duplicatePlayerId) throw new Error("Selecione dois clientes diferentes.");
-  await withArenaTransaction(auth.arenaId, async (tx) => {
+  if (!parsed.success || parsed.data.primaryPlayerId === parsed.data.duplicatePlayerId) return { error: "Selecione dois clientes diferentes." };
+  const result = await withArenaTransaction(auth.arenaId, async (tx) => {
     for (const id of [parsed.data.primaryPlayerId, parsed.data.duplicatePlayerId].sort()) {
       const locked = await tx.$queryRaw<{ id: string }[]>`SELECT "id" FROM "Player" WHERE "id" = ${id} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
-      if (!locked.length) throw new Error("Cliente não encontrado nesta arena.");
+      if (!locked.length) return { error: "Cliente não encontrado nesta arena." };
     }
     const clients = await tx.player.findMany({ where: { arenaId: auth.arenaId, id: { in: [parsed.data.primaryPlayerId, parsed.data.duplicatePlayerId] } }, include: {
       student: true, account: true, teacher: true,
       _count: { select: {
         entries: true, pairPlayers: true, categoryPairPlayers: true, scheduleParticipants: true,
-        notifications: true, portalNotificationReads: true, financialEntries: true, financialRecurrences: true,
+        notifications: true, portalNotificationReads: true, financialRecurrences: true,
         onlinePaymentCheckouts: true, sponsorships: true, respondedLeagueChallenges: true,
         leagueAthleteTiers: true, createdSuper12Events: true, super12PairPlayers: true,
         whatsAppConversations: true, mergedPlayers: true,
@@ -67,11 +67,19 @@ export async function mergeClientsAction(formData: FormData) {
     } });
     const primary = clients.find((item) => item.id === parsed.data.primaryPlayerId);
     const duplicate = clients.find((item) => item.id === parsed.data.duplicatePlayerId);
-    if (!primary || !duplicate) throw new Error("Cliente não encontrado.");
-    if (!primary.active || !duplicate.active || primary.mergedIntoPlayerId || duplicate.mergedIntoPlayerId) throw new Error("Selecione dois clientes ativos que ainda não foram mesclados.");
+    if (!primary || !duplicate) return { error: "Cliente não encontrado." };
+    if (!primary.active || !duplicate.active || primary.mergedIntoPlayerId || duplicate.mergedIntoPlayerId) return { error: "Selecione dois clientes ativos que ainda não foram mesclados." };
     if (Object.values(duplicate._count).some((count) => count > 0) || duplicate.teacher || (duplicate.student && primary.student) || (duplicate.account && primary.account)) {
-      throw new Error("Este cliente possui histórico ou vínculos que não podem ser mesclados automaticamente. Os cadastros foram preservados; solicite uma revisão antes de mesclar.");
+      return { error: "O contato duplicado possui vínculos incompatíveis (torneios, reservas, planos ou acessos ao portal). Tente mantê-lo como cliente principal. Se ambos possuem esses vínculos, a mesclagem exige revisão. Nenhum dado foi alterado." };
     }
+    await tx.financialEntry.updateMany({ where: { arenaId: auth.arenaId, playerId: duplicate.id }, data: { playerId: primary.id } });
+    // Fill missing contact details without replacing the selected principal's data.
+    await tx.player.update({ where: { id: primary.id }, data: {
+      phone: primary.phone || duplicate.phone,
+      email: primary.email || duplicate.email,
+      cpf: primary.cpf || duplicate.cpf,
+      birthDate: primary.birthDate ?? duplicate.birthDate,
+    } });
     if (!primary.account && duplicate.account) await tx.playerAccount.update({ where: { playerId: duplicate.id }, data: { playerId: primary.id } });
     await tx.comanda.updateMany({ where: { arenaId: auth.arenaId, playerId: duplicate.id }, data: { playerId: primary.id } });
     await tx.clientBalanceMovement.updateMany({ where: { arenaId: auth.arenaId, playerId: duplicate.id }, data: { playerId: primary.id } });
@@ -82,10 +90,12 @@ export async function mergeClientsAction(formData: FormData) {
       if (alreadyPrimary) await tx.scheduleParticipant.delete({ where: { id: participant.id } });
       else await tx.scheduleParticipant.update({ where: { id: participant.id }, data: { playerId: primary.id } });
     }
-    if (duplicate.student && !primary.student) await tx.student.update({ where: { id: duplicate.student.id }, data: { playerId: primary.id, name: primary.name, phone: primary.phone } });
+    if (duplicate.student && !primary.student) await tx.student.update({ where: { id: duplicate.student.id }, data: { playerId: primary.id, name: primary.name, phone: primary.phone || duplicate.phone } });
     await tx.player.update({ where: { id: duplicate.id }, data: { active: false, mergedIntoPlayerId: primary.id } });
+    return { success: true as const };
   });
-  refreshClients();
+  if (result.success) refreshClients();
+  return result;
 }
 
 export async function archiveClientsAction(formData: FormData) {
