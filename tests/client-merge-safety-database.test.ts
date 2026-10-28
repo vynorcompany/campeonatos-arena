@@ -14,7 +14,7 @@ const disposableDatabase = (() => {
   catch { return false; }
 })();
 
-test("mesclagem preserva clientes com histórico financeiro e aceita duplicata simples", { skip: !disposableDatabase }, async () => {
+test("mesclagem transfere débitos e baixas sem perder dados e impede vínculos incompatíveis", { skip: !disposableDatabase }, async () => {
   const db = new PrismaClient({ datasources: { db: { url: testUrl } } });
   const rollback = new Error("rollback da mesclagem descartável");
   try {
@@ -22,11 +22,13 @@ test("mesclagem preserva clientes com histórico financeiro e aceita duplicata s
     await assert.rejects(db.$transaction(async (tx) => {
       const suffix = randomBytes(6).toString("hex");
       const [primary, duplicate, simple] = await Promise.all([
-        tx.player.create({ data: { arenaId: arena.id, name: `Principal ${suffix}` } }),
-        tx.player.create({ data: { arenaId: arena.id, name: `Com histórico ${suffix}` } }),
+        tx.player.create({ data: { arenaId: arena.id, name: `Principal ${suffix}`, email: "principal@example.invalid" } }),
+        tx.player.create({ data: { arenaId: arena.id, name: `Com histórico ${suffix}`, phone: "42998880001", email: "duplicado@example.invalid", birthDate: new Date("1990-01-02T00:00:00Z") } }),
         tx.player.create({ data: { arenaId: arena.id, name: `Simples ${suffix}` } }),
       ]);
-      await tx.financialEntry.create({ data: { arenaId: arena.id, playerId: duplicate.id, type: "REVENUE", category: "Teste", description: "Histórico descartável", amountCents: 1000 } });
+      const debt = await tx.financialEntry.create({ data: { arenaId: arena.id, playerId: duplicate.id, type: "REVENUE", category: "Teste", description: "Histórico descartável", amountCents: 1000, status: "PARTIAL", source: "GRIPO_IMPORT", externalReference: `gripo-${suffix}` } });
+      const settlement = await tx.financialSettlement.create({ data: { arenaId: arena.id, financialEntryId: debt.id, amountCents: 300, paymentMethod: "PIX", notes: "Baixa preservada" } });
+      const original = await tx.financialEntry.create({ data: { arenaId: arena.id, playerId: primary.id, type: "REVENUE", category: "Teste", description: "Conta do principal", amountCents: 500 } });
       const exports: Record<string, any> = {};
       const source = readFileSync(new URL("../src/lib/actions/client-management.ts", import.meta.url), "utf8");
       const mocks: Record<string, unknown> = {
@@ -42,9 +44,23 @@ test("mesclagem preserva clientes com histórico financeiro e aceita duplicata s
       const form = new FormData();
       form.set("primaryPlayerId", primary.id);
       form.set("duplicatePlayerId", duplicate.id);
-      await assert.rejects(exports.mergeClientsAction(form), /histórico ou vínculos/);
-      assert.equal((await tx.player.findUniqueOrThrow({ where: { id: duplicate.id } })).active, true);
-      assert.equal(await tx.financialEntry.count({ where: { playerId: duplicate.id } }), 1);
+      assert.equal((await exports.mergeClientsAction(form)).success, true);
+      const transferred = await tx.financialEntry.findUniqueOrThrow({ where: { id: debt.id }, include: { settlements: true } });
+      assert.equal(transferred.playerId, primary.id);
+      assert.equal(transferred.amountCents, 1000);
+      assert.equal(transferred.status, "PARTIAL");
+      assert.equal(transferred.externalReference, debt.externalReference);
+      assert.equal(transferred.settlements[0].id, settlement.id);
+      assert.equal(transferred.settlements[0].amountCents, 300);
+      assert.equal((await tx.financialEntry.findUniqueOrThrow({ where: { id: original.id } })).amountCents, 500);
+      assert.equal(await tx.financialEntry.count({ where: { playerId: primary.id } }), 2);
+      assert.equal(await tx.financialEntry.count({ where: { playerId: duplicate.id } }), 0);
+      const kept = await tx.player.findUniqueOrThrow({ where: { id: primary.id } });
+      assert.equal(kept.phone, duplicate.phone);
+      assert.equal(kept.email, primary.email);
+      assert.equal(kept.birthDate?.toISOString(), duplicate.birthDate?.toISOString());
+      assert.equal((await tx.player.findUniqueOrThrow({ where: { id: duplicate.id } })).mergedIntoPlayerId, primary.id);
+      assert.match((await exports.mergeClientsAction(form)).error, /ativos/);
 
       form.set("duplicatePlayerId", simple.id);
       await exports.mergeClientsAction(form);
@@ -62,9 +78,17 @@ test("mesclagem preserva clientes com histórico financeiro e aceita duplicata s
       ]);
       form.set("primaryPlayerId", portalPrimary.id);
       form.set("duplicatePlayerId", portalDuplicate.id);
-      await assert.rejects(exports.mergeClientsAction(form), /histórico ou vínculos/);
+      assert.match((await exports.mergeClientsAction(form)).error, /vínculos incompatíveis/);
       assert.equal(await tx.playerAccount.count({ where: { playerId: { in: [portalPrimary.id, portalDuplicate.id] } } }), 2);
       assert.equal((await tx.player.findUniqueOrThrow({ where: { id: portalDuplicate.id } })).active, true);
+      const protectedDebt = await tx.financialEntry.create({ data: { arenaId: arena.id, playerId: portalDuplicate.id, type: "REVENUE", category: "Teste", description: "Débito protegido", amountCents: 700 } });
+      assert.match((await exports.mergeClientsAction(form)).error, /vínculos incompatíveis/);
+      assert.equal((await tx.financialEntry.findUniqueOrThrow({ where: { id: protectedDebt.id } })).playerId, portalDuplicate.id);
+      const foreign = await tx.arena.findUniqueOrThrow({ where: { slug: "arena-beta-goal" }, select: { id: true } });
+      const foreignPlayer = await tx.player.create({ data: { arenaId: foreign.id, name: "Outro tenant descartável" } });
+      form.set("duplicatePlayerId", foreignPlayer.id);
+      assert.match((await exports.mergeClientsAction(form)).error, /nesta arena/);
+      assert.equal((await tx.player.findUniqueOrThrow({ where: { id: foreignPlayer.id } })).active, true);
       throw rollback;
     }), (error: unknown) => error === rollback);
   } finally {
