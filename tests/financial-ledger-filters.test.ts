@@ -77,7 +77,10 @@ test("financial entry notes are readable and category controls stay compact", ()
 
   assert.match(ledger, /<textarea (?:className="financial-notes-field"|className=\{(?:cx\()?viewStyles\.financial_notes_field(?:\))?\}) name="notes" rows=\{4\}/);
   assert.match(ledger, /viewStyles\.simple_list_financial_category_list/);
-  assert.match(styleRules("financial-setting-quick-create"), /width: fit-content/);
+  const categoryForm = styleRules("financial-setting-quick-create");
+  assert.match(categoryForm, /grid-template-columns: minmax\(0,\s*1fr\) auto/);
+  assert.match(categoryForm, /grid-template-columns: repeat\(1, minmax\(0, 1fr\)\)/);
+  assert.match(categoryForm, /white-space: nowrap/);
   assert.match(styleRules("financial-category-list"), /flex-wrap: wrap/);
   assert.match(styleRules("financial-notes-field"), /min-height: 92px/);
 });
