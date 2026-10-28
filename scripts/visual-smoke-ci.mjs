@@ -1772,7 +1772,7 @@ async function main() {
         const servicesBody = await visit("/pdv/servicos", viewport, arenaA.id, `${viewport.name}-servicos-somente-leitura`, restrictedToken);
         if (!servicesBody.includes("Valores por atleta") || servicesBody.includes("Salvar valor")) throw new Error(`${viewport.name}: serviços não abriu em modo de consulta.`);
         const balanceBody = await visit("/pdv/balanco", viewport, arenaA.id, `${viewport.name}-balanco-somente-leitura`, restrictedToken);
-        if (!balanceBody.includes("Relatório de divergências") || balanceBody.includes("Finalizar balanço")) throw new Error(`${viewport.name}: balanço expôs formulário a perfil somente leitura.`);
+        if (!balanceBody.includes("Consultar ajustes anteriores") || balanceBody.includes("Finalizar balanço") || balanceBody.includes("Novo Balanço")) throw new Error(`${viewport.name}: balanço expôs formulário a perfil somente leitura.`);
         const stockShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
         await writeFile(`${outputDir}/${viewport.name}-balanco-somente-leitura.png`, Buffer.from(stockShot.data, "base64"));
       }
