@@ -20,6 +20,9 @@ test("contas a receber mostra o cliente diretamente vinculado sem trazer a outra
   const runtime = new PrismaClient({ datasources: { db: { url: testUrl.replace("postgres@", "arena_runtime@") } } });
   const ownId = `goal-ledger-own-${randomUUID()}`;
   const foreignId = `goal-ledger-foreign-${randomUUID()}`;
+  const datedId = `goal-ledger-dated-${randomUUID()}`;
+  const futureId = `goal-ledger-future-${randomUUID()}`;
+  const paidId = `goal-ledger-paid-${randomUUID()}`;
   try {
     const [arenaA, arenaB] = await Promise.all([
       admin.arena.findUniqueOrThrow({ where: { slug: "arena-teste-goal" }, select: { id: true } }),
@@ -30,12 +33,15 @@ test("contas a receber mostra o cliente diretamente vinculado sem trazer a outra
       admin.player.findFirstOrThrow({ where: { arenaId: arenaB.id, name: "Atleta Exclusivo Outra Arena GOAL" }, select: { id: true } }),
     ]);
     await admin.financialEntry.createMany({ data: [
-      { id: ownId, arenaId: arenaA.id, playerId: ownPlayer.id, type: "REVENUE", category: "GOAL", description: "Recebível descartável", amountCents: 100, status: "PENDING" },
+      { id: ownId, arenaId: arenaA.id, playerId: ownPlayer.id, type: "REVENUE", category: "GOAL", description: "Recebível descartável", amountCents: 100, status: "PENDING", source: "GRIPO_IMPORT", counterpartyName: "Nome anterior no Gripo" },
+      { id: datedId, arenaId: arenaA.id, playerId: ownPlayer.id, type: "REVENUE", category: "GOAL", description: "Recebível datado", amountCents: 200, status: "PENDING", dueDate: new Date("2026-10-20T12:00:00Z") },
+      { id: futureId, arenaId: arenaA.id, playerId: ownPlayer.id, type: "REVENUE", category: "GOAL", description: "Recebível futuro", amountCents: 300, status: "PENDING", dueDate: new Date("2027-01-20T12:00:00Z") },
+      { id: paidId, arenaId: arenaA.id, playerId: ownPlayer.id, type: "REVENUE", category: "GOAL", description: "Recebível quitado sem vencimento", amountCents: 400, status: "PAID", paidAt: new Date("2026-09-20T12:00:00Z") },
       { id: foreignId, arenaId: arenaB.id, playerId: foreignPlayer.id, type: "REVENUE", category: "GOAL", description: "Recebível de outra arena", amountCents: 100, status: "PENDING" },
     ] });
 
     const source = readFileSync(new URL("../src/lib/finance/accounts.ts", import.meta.url), "utf8");
-    const exports: Record<string, (arenaId: string, type: string) => Promise<Array<{ id: string; counterpartyName: string }>>> = {};
+    const exports: Record<string, (arenaId: string, type: string, filters?: Record<string, unknown>) => Promise<Array<{ id: string; counterpartyName: string }>>> = {};
     const require = createRequire(import.meta.url);
     vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText, {
       exports,
@@ -49,10 +55,19 @@ test("contas a receber mostra o cliente diretamente vinculado sem trazer a outra
       },
     });
     const entries = await exports.getAccountsLedger(arenaA.id, "REVENUE");
-    assert.equal(entries.find((entry) => entry.id === ownId)?.counterpartyName, ownPlayer.name);
+    assert.equal(entries.find((entry) => entry.id === datedId)?.counterpartyName, ownPlayer.name);
+    assert.ok(entries.findIndex(entry => entry.id === ownId) < entries.findIndex(entry => entry.id === datedId));
+    const filtered = await exports.getAccountsLedger(arenaA.id, "REVENUE", { start: "2026-10-01", end: "2026-10-31", name: ownPlayer.name });
+    assert.ok(filtered.some(entry => entry.id === ownId), "Imported undated debt is visible by linked client's current name");
+    assert.ok(filtered.some(entry => entry.id === datedId));
+    assert.ok(!filtered.some(entry => [futureId, paidId, foreignId].includes(entry.id)), "Date and arena filters still apply to dated or paid entries");
+    const paidPeriod = await exports.getAccountsLedger(arenaA.id, "REVENUE", { start: "2026-10-01", end: "2026-10-31", dateField: "paidAt" });
+    assert.ok(!paidPeriod.some(entry => [ownId, paidId].includes(entry.id)), "Payment-date filter excludes unpaid entries and payments outside period");
+    const category = await exports.getAccountsLedger(arenaA.id, "REVENUE", { start: "2026-10-01", end: "2026-10-31", category: "Categoria sem registros" });
+    assert.ok(!category.some(entry => entry.id === ownId), "Other filters are not bypassed by null dates");
     assert.equal(entries.some((entry) => entry.id === foreignId), false);
   } finally {
-    await admin.financialEntry.deleteMany({ where: { id: { in: [ownId, foreignId] } } });
+    await admin.financialEntry.deleteMany({ where: { id: { in: [ownId, foreignId, datedId, futureId, paidId] } } });
     await runtime.$disconnect();
     await admin.$disconnect();
   }
