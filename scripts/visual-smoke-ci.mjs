@@ -959,7 +959,7 @@ async function main() {
               if (!switched.result.value) throw new Error(`${label}: aba ${tabName} ausente.`);
               await pause(100);
               const state = await send("Runtime.evaluate", { expression: "({url:location.href,selected:document.querySelector('[role=tablist][aria-label=\"Navegação financeira\"] [aria-selected=true]')?.textContent.trim(),body:document.querySelector('main')?.innerText ?? ''})", returnByValue: true });
-              if (state.result.value.url !== financeUrl.result.value || state.result.value.selected !== tabName || (tabName === "Comandas" && !state.result.value.body.includes("GOAL-COMANDA"))) throw new Error(`${label}: aba ${tabName} não preservou a URL ou ocultou a comanda aberta.`);
+              if (state.result.value.url !== financeUrl.result.value || state.result.value.selected !== tabName || (tabName === "Comandas" && !state.result.value.body.includes("1× Produto GOAL"))) throw new Error(`${label}: aba ${tabName} não preservou a URL ou ocultou a comanda aberta.`);
             }
           }
           if (view.label === "torneios-jogos" && (!metrics.body.includes("Parceira de Nome Comprido GOAL") || !metrics.body.includes("6–2 · 6–3"))) {
