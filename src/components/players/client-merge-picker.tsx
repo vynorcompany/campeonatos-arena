@@ -2,23 +2,16 @@
 import { viewStyles } from "./client-merge-picker.utilities";
 
 import { useMemo, useState } from "react";
-import { normalizeBrazilianPhone } from "@/lib/phone";
+import { matchesMergeSearch, type MergeClient } from "@/lib/client-duplicates";
 
-type ClientOption = { id: string; name: string; phone: string };
-
-function normalize(value: string) {
-  if (/^[\d\s()+-]+$/.test(value)) return normalizeBrazilianPhone(value);
-  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase();
-}
-
-export function ClientMergePicker({ label, clients, excludedId, value, onChange }: { label: string; clients: ClientOption[]; excludedId?: string; value: string; onChange: (id: string) => void }) {
+export function ClientMergePicker({ label, clients, excludedId, value, onChange, primary = false }: { label: string; primary?: boolean; clients: MergeClient[]; excludedId?: string; value: string; onChange: (id: string) => void }) {
   const selected = clients.find((client) => client.id === value);
   const [query, setQuery] = useState(selected ? `${selected.name} · ${selected.phone || "Sem telefone"}` : "");
   const [open, setOpen] = useState(false);
   const matches = useMemo(() => {
-    const term = normalize(query.trim());
-    return clients.filter((client) => client.id !== excludedId && (!term || normalize(client.name).includes(term) || normalize(client.phone).includes(term))).slice(0, 8);
-  }, [clients, excludedId, query]);
+    const term = selected ? "" : query.trim();
+    return clients.filter((client) => client.id !== excludedId && matchesMergeSearch(client, term)).slice(0, 8);
+  }, [clients, excludedId, query, selected]);
 
-  return <label className={viewStyles.client_merge_picker}>{label}<input value={query} placeholder="Pesquisar cliente por nome ou telefone" autoComplete="off" onFocus={() => setOpen(true)} onBlur={() => window.setTimeout(() => setOpen(false), 120)} onChange={(event) => { setQuery(event.target.value); onChange(""); setOpen(true); }} />{open ? <span className={viewStyles.client_merge_search_results} role="listbox" aria-label={`Resultados para ${label}`}>{matches.length ? matches.map((client) => <button type="button" key={client.id} role="option" aria-selected={client.id === value} onMouseDown={(event) => event.preventDefault()} onClick={() => { onChange(client.id); setQuery(`${client.name} · ${client.phone || "Sem telefone"}`); setOpen(false); }}><strong>{client.name}</strong><small>{client.phone || "Sem telefone"}</small></button>) : <em>Nenhum cliente encontrado.</em>}</span> : null}</label>;
+  return <label className={`${viewStyles.client_merge_picker} ${primary ? "tw:rounded-md tw:border tw:border-[#83acd8] tw:border-l-4 tw:border-l-[#2162aa] tw:bg-[#edf5ff] tw:p-3" : ""}`}><span className={primary ? "tw:text-sm tw:font-extrabold tw:text-[#123b6b]" : ""}>{label}</span><input value={selected ? `${selected.name} · ${selected.phone || "Sem telefone"}` : query} placeholder="Pesquisar cliente por nome ou telefone/CPF" autoComplete="off" onFocus={() => setOpen(true)} onBlur={() => window.setTimeout(() => setOpen(false), 120)} onChange={(event) => { setQuery(event.target.value); onChange(""); setOpen(true); }} />{open ? <span className={viewStyles.client_merge_search_results} role="listbox" aria-label={`Resultados para ${label}`}>{matches.length ? matches.map((client) => <button type="button" key={client.id} role="option" aria-selected={client.id === value} onMouseDown={(event) => event.preventDefault()} onClick={() => { onChange(client.id); setQuery(`${client.name} · ${client.phone || "Sem telefone"}`); setOpen(false); }}><strong>{client.name}</strong><small>{client.phone || "Sem telefone"}</small></button>) : <em>Nenhum cliente encontrado.</em>}</span> : null}</label>;
 }
