@@ -45,7 +45,7 @@ const routes = [
   "/proximos-jogos/apresentacao", "/proximos-jogos/patrocinios",
   "/jogadores", "/professores", "/aulas", "/aulas/alunos", "/aulas/registrar",
   "/pdv/caixa", "/pdv", "/pdv/novo", "/pdv/servicos", "/pdv/vendas", "/pdv/estoque", "/pdv/balanco",
-  "/financeiro", "/financeiro/folha", "/financeiro/contas-a-receber", "/financeiro/contas-a-pagar",
+  "/financeiro", "/financeiro/folha", "/financeiro/contas-a-receber", "/financeiro/contas-a-pagar", "/financeiro/notas-fiscais",
   "/financeiro/mensalidades", "/financeiro/planos", "/financeiro/pdv-estoque", "/financeiro/configuracoes",
   ...["categorias-financeiras", "categorias-produtos", "pagamentos-online", "contas-bancarias", "cupons", "fornecedores", "formas-pagamento", "notas-fiscais"]
     .map((area) => `/financeiro/configuracoes/${area}`),
@@ -209,7 +209,7 @@ async function main() {
             expression: "(() => { const nav = document.querySelector('nav[aria-label=\"Áreas financeiras\"]'); return nav ? [...nav.querySelectorAll('a')].map((link) => ({ path: new URL(link.href).pathname, clipped: link.scrollWidth > link.clientWidth + 1 })) : null; })()",
             returnByValue: true,
           });
-          const expected = ["/financeiro/folha", "/financeiro/contas-a-receber", "/financeiro/contas-a-pagar", "/pdv"];
+          const expected = ["/financeiro/folha", "/financeiro/contas-a-receber", "/financeiro/contas-a-pagar", "/financeiro/notas-fiscais", "/pdv"];
           if (!navigation.result.value || JSON.stringify(navigation.result.value.map((link) => link.path)) !== JSON.stringify(expected) || navigation.result.value.some((link) => link.clipped)) {
             throw new Error(`${label}: destinos do Financeiro faltando ou cortados: ${JSON.stringify(navigation.result.value)}`);
           }
