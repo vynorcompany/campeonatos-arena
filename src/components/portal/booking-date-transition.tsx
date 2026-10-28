@@ -13,7 +13,7 @@ export function BookingDateTransition({ children }: { children: ReactNode }) {
     startTransition(()=>router.push(target.pathname+target.search,{scroll:false}));
   };
   return <div className="tw:min-w-0" onClickCapture={navigate} aria-busy={pending}>
-    <span role="status" aria-live="polite" className={pending ? "tw:mb-3 tw:block tw:rounded-xl tw:bg-[#e4f2eb] tw:px-3 tw:py-2 tw:text-xs tw:font-medium tw:text-[#087b63] tw:dark:bg-[#21483a] tw:dark:text-[#a5dcaf]" : "tw:sr-only"}>{pending ? "Carregando horários da data selecionada…" : ""}</span>
+    <span role="status" aria-live="polite" className={pending ? "tw:mb-3 tw:block tw:rounded-xl tw:bg-[#e4eaf2] tw:px-3 tw:py-2 tw:text-xs tw:font-medium tw:text-[#08387b] tw:dark:bg-[#213148] tw:dark:text-[#a5bcdc]" : "tw:sr-only"}>{pending ? "Carregando horários da data selecionada…" : ""}</span>
     <fieldset disabled={pending} className="tw:m-0 tw:min-w-0 tw:border-0 tw:p-0 tw:disabled:opacity-60">{children}</fieldset>
   </div>;
 }

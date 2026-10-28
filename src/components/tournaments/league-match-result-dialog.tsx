@@ -1,4 +1,6 @@
 "use client";
+import { fixedDialogFrame } from "@/components/ui/dialog-frame";
+
 import { viewStyles } from "./league-match-result-dialog.utilities";
 
 import { useState } from "react";
@@ -43,7 +45,7 @@ export function LeagueMatchResultDialog({ match }: { match: Match }) {
         {match.homeSet1 == null ? "Registrar sets" : `${match.homeSet1}–${match.awaySet1} · ${match.homeSet2}–${match.awaySet2}${match.homeSet3 != null ? ` · ${match.homeSet3}–${match.awaySet3}` : ""}`}
       </button>
       {open ? <div className={viewStyles.league_score_backdrop} role="presentation" onMouseDown={() => setOpen(false)}>
-        <section className={viewStyles.league_score_dialog} role="dialog" aria-modal="true" aria-label={`Resultado de ${match.label}`} onMouseDown={(event) => event.stopPropagation()}>
+        <section className={[viewStyles.league_score_dialog, fixedDialogFrame].join(" ")} role="dialog" aria-modal="true" aria-label={`Resultado de ${match.label}`} onMouseDown={(event) => event.stopPropagation()}>
           <header><div><p className={viewStyles.eyebrow}>Liga</p><h3>{match.label}</h3></div><button type="button" className={viewStyles.button} onClick={() => setOpen(false)}>Fechar</button></header>
           <LeagueMatchResultForm match={match} onClose={() => setOpen(false)} />
         </section>

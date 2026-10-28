@@ -1,4 +1,6 @@
 "use client";
+import { compactDialogFrame } from "@/components/ui/dialog-frame";
+
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -83,7 +85,7 @@ export function useConfirmAction() {
 
   const confirmationDialog = confirmation && typeof document !== "undefined" ? createPortal(
     <div className={viewStyles.safe_action_confirmation_backdrop} role="presentation" onClick={event => event.stopPropagation()} onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}>
-      <section ref={dialog} className={viewStyles.safe_action_confirmation} role="dialog" aria-modal="true" aria-labelledby={titleId}>
+      <section ref={dialog} className={[viewStyles.safe_action_confirmation, compactDialogFrame].join(" ")} role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <header>
           <span className={viewStyles.safe_action_confirmation_icon} aria-hidden="true">!</span>
           <div><strong id={titleId}>{confirmation.title ?? "Confirmar exclusão"}</strong><span>Esta ação pode ser irreversível.</span></div>

@@ -22,6 +22,7 @@ export default async function PublicStandingsPage(
       league?: string;
       status?: string;
       data?: string;
+      match?: string;
       section?: string;
       leagueTab?: string;
       leagueCategory?: string;
@@ -57,12 +58,13 @@ export default async function PublicStandingsPage(
     needsPortalData && !isSuper12 ? getPublicLeaguePortal(params.arenaSlug, currentClient.playerId, searchParams?.leagueCategory) : null,
     section === "home" || section === "announcements" ? getPublicClientHome(params.arenaSlug, currentClient.playerId) : null,
     section === "finance" ? getPublicClientFinance(params.arenaSlug, currentClient.playerId) : null,
-    section === "comandas" ? getPublicClientComandas(params.arenaSlug, currentClient.playerId) : null,
+    (section === "comandas" || section === "finance") ? getPublicClientComandas(params.arenaSlug, currentClient.playerId) : null,
     section === "radar" ? getPublicDoublesRadar(params.arenaSlug, currentClient.playerId, { gender: searchParams?.radarGender, category: searchParams?.radarCategory, athleteId: searchParams?.athlete }) : null,
     isSuper12 ? getPublicSuper12(params.arenaSlug, currentClient.playerId, searchParams?.super12) : null,
     getAthletePortalNotifications(params.arenaSlug, currentClient.playerId),
   ]) : [null, null, null, null, null, null, []];
   const leagueTab = searchParams?.leagueTab === "pairs" || searchParams?.leagueTab === "ranking" || searchParams?.leagueTab === "rules" || searchParams?.leagueTab === "prizes" ? searchParams.leagueTab : "games";
   const authReturnTo = section === "booking" ? `${arenaBookingPath(params.arenaSlug)}${searchParams?.data ? `?data=${encodeURIComponent(searchParams.data)}` : ""}` : `/classificacao/${encodeURIComponent(params.arenaSlug)}?section=${section}${searchParams?.data ? `&data=${encodeURIComponent(searchParams.data)}` : ""}`;
-  return <PublicStandings data={data} arena={arena} currentClient={currentClient} athleteArenas={athleteIdentity?.arenas ?? []} portal={portal} home={home} finance={finance} comandas={comandas} radar={radar} radarGender={searchParams?.radarGender} radarCategory={searchParams?.radarCategory} super12={super12} notifications={notifications} eventTab={searchParams?.eventTab === "super12" ? "super12" : searchParams?.eventTab === "radar" ? "radar" : "leagues"} eventRadarView={searchParams?.eventRadarView === "all" ? "all" : "region"} super12Id={searchParams?.super12} financeTab={searchParams?.financeTab === "history" ? "history" : "upcoming"} section={section} directBooking={directBooking} leagueTab={leagueTab} leagueCategoryId={searchParams?.leagueCategory} bookingDate={searchParams?.data} weekday={searchParams?.weekday} authForm={<PublicClientAuthForm arenaSlug={params.arenaSlug} returnTo={authReturnTo} />} />;
+  const bookingAuthReturnTo = section === "booking" && searchParams?.match ? `${authReturnTo}${authReturnTo.includes("?") ? "&" : "?"}match=${encodeURIComponent(searchParams.match)}` : authReturnTo;
+  return <PublicStandings data={data} arena={arena} currentClient={currentClient} athleteArenas={athleteIdentity?.arenas ?? []} portal={portal} home={home} finance={finance} comandas={comandas} radar={radar} radarGender={searchParams?.radarGender} radarCategory={searchParams?.radarCategory} super12={super12} notifications={notifications} eventTab={searchParams?.eventTab === "super12" ? "super12" : searchParams?.eventTab === "radar" ? "radar" : "leagues"} eventRadarView={searchParams?.eventRadarView === "all" ? "all" : "region"} super12Id={searchParams?.super12} financeTab={searchParams?.financeTab === "history" ? "history" : "upcoming"} section={section} directBooking={directBooking} leagueTab={leagueTab} leagueCategoryId={searchParams?.leagueCategory} bookingDate={searchParams?.data} bookingMatchId={searchParams?.match} weekday={searchParams?.weekday} authForm={<PublicClientAuthForm arenaSlug={params.arenaSlug} returnTo={bookingAuthReturnTo} />} />;
 }

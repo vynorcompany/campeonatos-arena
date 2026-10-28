@@ -58,7 +58,7 @@ export async function startPublicFinancialEntryPaymentAction(formData: FormData)
         { playerId: auth.playerId, type: "REVENUE" },
         { type: { in: ["REVENUE", "INCOME"] }, sale: { comanda: { playerId: auth.playerId } } },
       ] },
-      include: { settlements: { select: { amountCents: true, interestCents: true } } }
+      include: { settlements: { select: { amountCents: true, interestCents: true, discountCents: true } } }
       }),
       tx.player.findFirst({ where: { id: auth.playerId, arenaId: auth.arenaId }, select: { email: true } }),
       tx.onlinePaymentCheckout.findFirst({ where: { arenaId: auth.arenaId, playerId: auth.playerId, status: "REVIEW", items: { some: { financialEntryId: { in: entryIds } } } }, select: { id: true } }),

@@ -1,12 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Arena · Padel">
-  <defs><linearGradient id="court" x2="1" y2="1"><stop stop-color="#176b55"/><stop offset="1" stop-color="#072e28"/></linearGradient></defs>
+  <defs><linearGradient id="court" x2="1" y2="1"><stop stop-color="#173a6b"/><stop offset="1" stop-color="#07172e"/></linearGradient></defs>
   <rect width="512" height="512" rx="112" fill="url(#court)"/>
   <path d="M55 389 389 55M83 432 432 83" stroke="#fff" stroke-opacity=".08" stroke-width="3"/>
   <g transform="rotate(34 244 259)">
-    <path d="M244 102c-68 0-104 45-104 108 0 56 32 97 76 116l9 57h38l9-57c44-19 76-60 76-116 0-63-36-108-104-108Z" fill="#f1f8ec"/>
-    <path d="M225 366h38v60a19 19 0 0 1-38 0Z" fill="#d4f475"/>
-    <g fill="#17634e"><circle cx="209" cy="170" r="12"/><circle cx="251" cy="170" r="12"/><circle cx="188" cy="211" r="12"/><circle cx="230" cy="211" r="12"/><circle cx="272" cy="211" r="12"/><circle cx="209" cy="252" r="12"/><circle cx="251" cy="252" r="12"/><circle cx="230" cy="291" r="10"/></g>
+    <path d="M244 102c-68 0-104 45-104 108 0 56 32 97 76 116l9 57h38l9-57c44-19 76-60 76-116 0-63-36-108-104-108Z" fill="#ecf1f8"/>
+    <path d="M225 366h38v60a19 19 0 0 1-38 0Z" fill="#75aaf4"/>
+    <g fill="#173763"><circle cx="209" cy="170" r="12"/><circle cx="251" cy="170" r="12"/><circle cx="188" cy="211" r="12"/><circle cx="230" cy="211" r="12"/><circle cx="272" cy="211" r="12"/><circle cx="209" cy="252" r="12"/><circle cx="251" cy="252" r="12"/><circle cx="230" cy="291" r="10"/></g>
   </g>
-  <circle cx="381" cy="139" r="41" fill="#d4f475"/>
-  <path d="M354 109c23 10 38 29 39 61" fill="none" stroke="#527a24" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="381" cy="139" r="41" fill="#75aaf4"/>
+  <path d="M354 109c23 10 38 29 39 61" fill="none" stroke="#24487a" stroke-width="5" stroke-linecap="round"/>
 </svg>

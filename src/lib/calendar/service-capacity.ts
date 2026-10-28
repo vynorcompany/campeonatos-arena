@@ -12,4 +12,4 @@ export function peakServiceOccupancy(windows: readonly CapacityWindow[], start: 
   return peak;
 }
 
-export type PortalBookingService = { id: string; name: string; priceCents: number; limit: number; busy: CapacityWindow[] };
+export type PortalBookingService = { serviceHourly?: boolean; id: string; name: string; priceCents: number; limit: number; busy: CapacityWindow[] };

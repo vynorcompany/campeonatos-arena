@@ -66,7 +66,7 @@ export const viewStyles = {
     "tw:[&_[role=listbox]_button:hover]:[background-image:none]", "tw:[&_[role=listbox]_span]:grid", "tw:[&_[role=listbox]_span]:w-[24px]", "tw:[&_[role=listbox]_span]:h-[24px]",
     "tw:[&_[role=listbox]_span]:[overflow-x:hidden]", "tw:[&_[role=listbox]_span]:[overflow-y:hidden]", "tw:[&_[role=listbox]_span]:place-items-center", "tw:[&_[role=listbox]_span]:rounded-[50%]",
     "tw:[&_[role=listbox]_span]:text-[color:var(--portal-ink,#fff)]", "tw:[&_[role=listbox]_span]:bg-[color:var(--portal-soft,#2c7aac)]", "tw:[&_[role=listbox]_span]:[background-image:none]", "tw:[&_[role=listbox]_span]:text-[.58rem]",
-    "tw:[&_img]:w-[100%]", "tw:[&_img]:h-[100%]", "tw:[&_img]:[object-fit:cover]", "tw:[&_[role=listbox]_small]:text-[color:var(--portal-accent,#16836b)]",
+    "tw:[&_img]:w-[100%]", "tw:[&_img]:h-[100%]", "tw:[&_img]:[object-fit:cover]", "tw:[&_[role=listbox]_small]:text-[color:var(--portal-accent,#164383)]",
     "tw:[&_[role=listbox]_small]:text-[.65rem]",
   ].join(" "),
   "super12_create_actions": [

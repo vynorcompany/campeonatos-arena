@@ -68,7 +68,7 @@ test("payables keep only expense fields and create suppliers, categories, and re
   assert.match(ledger, /type === "REVENUE" \? <>.*Plano\/pacote/s);
   assert.match(ledger, /<em>Pagamento recorrente<\/em>/);
   assert.match(styleRules("accounts-ledger"), /width: 100%[\s\S]*max-width: none[\s\S]*font-size: 90%/);
-  assert.match(styles, /grid-template-columns: minmax\(0, 1fr\) 76px/);
+  assert.match(styles, /grid-template-columns: minmax\(0, 1fr\) 96px/);
 });
 
 test("financial entry notes are readable and category controls stay compact", () => {

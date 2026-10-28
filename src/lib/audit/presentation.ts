@@ -6,7 +6,7 @@ const fields: Record<string, string> = {
   referenceDate: "Data de referência", openingBalanceCents: "Saldo inicial", expectedBalanceCents: "Saldo esperado",
   countedBalanceCents: "Saldo contado", voidReason: "Motivo da exclusão ou estorno", voidedAt: "Estornado em",
   paidAt: "Pago em", dueDate: "Vencimento", type: "Tipo", source: "Origem", interestCents: "Juros",
-  serviceName: "Serviço reservado", showOnPortalBooking: "Visível na reserva online", bookingConcurrentLimit: "Limite simultâneo",
+  onlineChargeAmountCents: "Valor da cobrança online", onlineChargeDiscountCents: "Desconto da cobrança online", onlineChargeInterestCents: "Juros da cobrança online", discountCents: "Desconto", competenceDate: "Competência", serviceHourly: "Cobrança por hora", dreGroup: "Grupo na DRE", durationMinutes: "Duração (minutos)", serviceName: "Serviço reservado", showOnPortalBooking: "Visível na reserva online", bookingConcurrentLimit: "Limite simultâneo",
 };
 const statuses: Record<string, string> = { PAID: "Pago", PENDING: "Em aberto", OVERDUE: "Vencido", VOIDED: "Estornado / excluído", OPEN: "Aberta", CLOSED: "Fechada", CANCELED: "Cancelado", CONFIRMED: "Confirmado", SCHEDULED: "Agendado", REVENUE: "Conta a receber", INCOME: "Recebimento", EXPENSE: "Despesa", MANUAL: "Manual", COMANDA: "Comanda" };
 function snapshot(value: unknown): Snapshot {

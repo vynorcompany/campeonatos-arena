@@ -42,7 +42,8 @@ test("booking link enters the athlete portal and preserves booking after login",
   );
 
   assert.match(portal, /section=\$\{section\}/);
-  assert.match(portal, /returnTo=\{authReturnTo\}/);
+  assert.match(portal, /returnTo=\{bookingAuthReturnTo\}/);
+  assert.match(portal, /encodeURIComponent\(searchParams.match\)/);
 });
 
 test("legacy public reservation route delegates to the configured booking content", () => {

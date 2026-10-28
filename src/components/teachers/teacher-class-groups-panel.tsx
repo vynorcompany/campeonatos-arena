@@ -1,4 +1,6 @@
 "use client";
+import { fixedDialogFrame } from "@/components/ui/dialog-frame";
+
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./teacher-class-groups-panel.utilities";
 
@@ -147,7 +149,7 @@ export function TeacherClassGroupsPanel({
           onMouseDown={() => setCreateOpen(false)}
         >
           <section
-            className={viewStyles.section_card_teacher_detail_section_teacher_class_create_panel}
+            className={[viewStyles.section_card_teacher_detail_section_teacher_class_create_panel, fixedDialogFrame].join(" ")}
             role="dialog"
             aria-modal="true"
             aria-labelledby="teacher-class-create-title"
@@ -325,7 +327,7 @@ export function TeacherClassGroupsPanel({
           onMouseDown={() => setEditingGroupId(null)}
         >
           <section
-            className={viewStyles.section_card_teacher_detail_section_teacher_class_create_panel}
+            className={[viewStyles.section_card_teacher_detail_section_teacher_class_create_panel, fixedDialogFrame].join(" ")}
             role="dialog"
             aria-modal="true"
             aria-labelledby="teacher-class-edit-title"

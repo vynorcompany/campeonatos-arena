@@ -1,4 +1,5 @@
 "use server";
+import { Prisma } from "@prisma/client";
 import { arenaDatabase } from "@/lib/arena-database";
 
 import { revalidatePath } from "next/cache";
@@ -213,7 +214,7 @@ export async function createStockBalanceAction(formData: FormData) {
   if (!requestedCounts.length) {
     throw new Error("Informe a contagem de pelo menos um produto.");
   }
-  if (requestedCounts.some((item) => !item.productId || !Number.isInteger(item.count) || item.count < 0)) {
+  if (requestedCounts.some((item) => !item.productId || !Number.isSafeInteger(item.count) || item.count < 0 || item.count > 2147483647)) {
     throw new Error("Cada contagem informada deve ser um número inteiro igual ou maior que zero.");
   }
 
@@ -222,18 +223,14 @@ export async function createStockBalanceAction(formData: FormData) {
     throw new Error("Há produtos repetidos no balanço.");
   }
 
-  const products = await prisma.product.findMany({
-    where: { arenaId: auth.arenaId, isService: false, id: { in: productIds } },
-    select: { id: true, name: true, stockQuantity: true }
-  });
-  if (products.length !== productIds.length) {
-    throw new Error("Um ou mais produtos não pertencem a esta arena.");
-  }
-
-  const productById = new Map(products.map((product) => [product.id, product]));
   const stamp = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date());
-
+  const title = String(formData.get("title") ?? "").trim().slice(0, 100) || `Balanço ${stamp}`;
   await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "Product" WHERE "arenaId" = ${auth.arenaId} AND id IN (${Prisma.join([...productIds].sort())}) ORDER BY id FOR UPDATE`;
+    const products = await tx.product.findMany({ where: { arenaId: auth.arenaId, isService: false, id: { in: productIds } }, select: { id: true, name: true, sku: true, stockQuantity: true } });
+    if (products.length !== productIds.length) throw new Error("Um ou mais produtos não pertencem a esta arena.");
+    const productById = new Map(products.map(product => [product.id, product]));
+    const items = requestedCounts.map(item => { const product = productById.get(item.productId)!; return { productId: product.id, name: product.name, sku: product.sku, systemQuantity: product.stockQuantity, countedQuantity: item.count, difference: item.count - product.stockQuantity }; });
     for (const item of requestedCounts) {
       const product = productById.get(item.productId)!;
       const difference = item.count - product.stockQuantity;
@@ -252,6 +249,7 @@ export async function createStockBalanceAction(formData: FormData) {
         }
       });
     }
+    await tx.auditEvent.create({ data: { arenaId: auth.arenaId, actorId: auth.userId, actorName: auth.userName, action: "STOCK_BALANCE_COMPLETED", entityId: crypto.randomUUID(), details: { title, reason, items } } });
   });
 
   refreshPosRoutes();

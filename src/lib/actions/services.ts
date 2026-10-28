@@ -25,6 +25,7 @@ export async function saveServiceAction(form: FormData) {
     const current = input.data.id ? await tx.product.findFirst({ where: { id: input.data.id, arenaId: auth.arenaId, isService: true }, select: { id: true, name: true, sku: true, bookingConcurrentLimit: true } }) : null;
     if (input.data.id && !current) throw new Error("Serviço não encontrado.");
     const standard = STANDARD_SERVICES.find(item => current?.sku === `ARENA-SERVICE:${item.code}`);
+    if (standard && form.get("serviceHourly") === "on") throw new Error("Serviços padrão são cobrados por atleta.");
     if (standard && input.data.name !== current?.name) throw new Error("O nome deste serviço padrão é fixo.");
     if (!standard && ["liga", "super 12", "aula", "aula fixa", "plano", "reserva", "reserva fixa"].includes(input.data.name.toLocaleLowerCase("pt-BR"))) throw new Error("Este nome já é utilizado por um tipo padrão da grade.");
     if (current && input.data.bookingConcurrentLimit < current.bookingConcurrentLimit) {
@@ -34,7 +35,7 @@ export async function saveServiceAction(form: FormData) {
       const peak = peakServiceOccupancy(windows, now.getTime(), Math.max(now.getTime(), ...windows.map(window => window.end)) + 1);
       if (peak > input.data.bookingConcurrentLimit) throw new Error(`Há ${peak} reservas simultâneas já registradas para este serviço. Ajuste essas reservas antes de reduzir o limite.`);
     }
-    const data = { name: input.data.name, priceCents, showOnPortalBooking: form.get("showOnPortalBooking") === "on", bookingConcurrentLimit: input.data.bookingConcurrentLimit, showOnAgenda: form.get("showOnAgenda") === "on", showOnComandas: form.get("showOnComandas") === "on", updatedByUserId: auth.userId };
+    const data = { name: input.data.name, priceCents, serviceHourly: form.get("serviceHourly") === "on", showOnPortalBooking: form.get("showOnPortalBooking") === "on", bookingConcurrentLimit: input.data.bookingConcurrentLimit, showOnAgenda: form.get("showOnAgenda") === "on", showOnComandas: form.get("showOnComandas") === "on", updatedByUserId: auth.userId };
     const duplicate = await tx.product.findFirst({ where: { arenaId: auth.arenaId, name: { equals: data.name, mode: "insensitive" }, ...(input.data.id ? { id: { not: input.data.id } } : {}) }, select: { id: true } });
     if (duplicate) throw new Error("Já existe um produto ou serviço com este nome.");
     if (input.data.id) {
@@ -43,6 +44,29 @@ export async function saveServiceAction(form: FormData) {
       await tx.product.update({ where: { id: service.id }, data });
       if (standard) await tx.arenaServicePrice.upsert({ where: { arenaId_serviceCode: { arenaId: auth.arenaId, serviceCode: standard.code } }, create: { arenaId: auth.arenaId, serviceCode: standard.code, priceCents, updatedByUserId: auth.userId }, update: { priceCents, updatedByUserId: auth.userId } });
     } else await tx.product.create({ data: { ...data, arenaId: auth.arenaId, isService: true, createdByUserId: auth.userId } });
+  });
+  for (const path of ["/pdv/servicos", "/agenda", "/comandas", "/home"]) revalidatePath(path);
+}
+
+export async function manageServiceAction(form: FormData) {
+  const auth = await requireModuleEdit("stock");
+  const input = z.object({ id: z.string().min(1), operation: z.enum(["duplicate", "activate", "deactivate", "delete"]) }).parse({ id: form.get("id"), operation: form.get("operation") });
+  await withArenaTransaction(auth.arenaId, async tx => {
+    await tx.$queryRaw`SELECT id FROM "Product" WHERE id = ${input.id} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
+    const service = await tx.product.findFirst({ where: { id: input.id, arenaId: auth.arenaId, isService: true } });
+    if (!service) throw new Error("Serviço não encontrado.");
+    if (service.sku.startsWith("ARENA-SERVICE:") && input.operation !== "duplicate") throw new Error("Serviços padrão da grade não podem ser excluídos ou inativados.");
+    if (input.operation === "duplicate") {
+      const base = service.name.slice(0, 100);
+      let name = `${base} (cópia)`;
+      for (let n = 2; await tx.product.findFirst({ where: { arenaId: auth.arenaId, name: { equals: name, mode: "insensitive" } }, select: { id: true } }); n++) name = `${base} (cópia ${n})`;
+      await tx.product.create({ data: { arenaId: auth.arenaId, name, isService: true, serviceHourly: service.serviceHourly, priceCents: service.priceCents, costCents: service.costCents, categoryId: service.categoryId, showOnAgenda: service.showOnAgenda, showOnComandas: service.showOnComandas, showOnPortalBooking: service.showOnPortalBooking, bookingConcurrentLimit: service.bookingConcurrentLimit, createdByUserId: auth.userId, updatedByUserId: auth.userId } });
+    } else if (input.operation === "delete") {
+      const used = await tx.product.findUniqueOrThrow({ where: { id: service.id }, select: { _count: { select: { saleItems: true, comandaItems: true, comandaRequests: true, stockMovements: true, fiscalDocumentItems: true, serviceReservations: true } } } });
+      if (Object.values(used._count).some(count => count > 0)) throw new Error("Este serviço possui histórico. Inative-o para preservar os registros.");
+      await tx.product.delete({ where: { id: service.id } });
+    } else await tx.product.update({ where: { id: service.id }, data: { active: input.operation === "activate", updatedByUserId: auth.userId } });
+    await tx.auditEvent.create({ data: { arenaId: auth.arenaId, actorId: auth.userId, actorName: auth.userName, action: `SERVICE_${input.operation.toUpperCase()}`, entityId: service.id, details: { name: service.name } } });
   });
   for (const path of ["/pdv/servicos", "/agenda", "/comandas", "/home"]) revalidatePath(path);
 }

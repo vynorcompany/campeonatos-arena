@@ -1,4 +1,6 @@
 "use client";
+import { fixedDialogFrame } from "@/components/ui/dialog-frame";
+
 import { WorkspaceHeading } from "@/components/ui/workspace-heading";
 
 import Link from "next/link";
@@ -56,7 +58,7 @@ function PayrollForm({ employees, entries, referenceMonth, initial, canCreate, c
     setStatus(found?.financialEntry?.status === "PAID" ? "PAID" : "PENDING"); setDueDate(found?.financialEntry?.dueDate || today()); setPaidAt(found?.financialEntry?.paidAt || today()); setNotes(found?.notes ?? "");
   };
   const moneyFields = [["fixedSalaryCents", "fixedSalary", "Salário base"], ["bonusCents", "bonus", "Adicionais e bônus"], ["benefitsCents", "benefits", "Benefícios"], ["discountCents", "discount", "Descontos"], ["advanceCents", "advance", "Adiantamentos"]] as const;
-  return <div className={styles.overlay} onMouseDown={event => { if (event.target === event.currentTarget) close(); }}><div ref={container} className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="employee-payroll-title">
+  return <div className={styles.overlay} onMouseDown={event => { if (event.target === event.currentTarget) close(); }}><div ref={container} className={[styles.modal, fixedDialogFrame].join(" ")} role="dialog" aria-modal="true" aria-labelledby="employee-payroll-title">
     <header className={styles.toolbar}><div><h2 id="employee-payroll-title" className="tw:m-0 tw:text-lg">{matching ? "Editar folha" : "Nova folha"}</h2><p>Salário e verbas do funcionário.</p></div><button ref={dismiss} type="button" className={styles.secondary} onClick={close} aria-label="Fechar folha">×</button></header>
     <SafeActionForm action={upsertPayrollEntryAction} className={styles.form} successMessage="Folha salva em Contas a Pagar." onSuccess={close}>
       <label>Funcionário{!canCreate ? <input type="hidden" name="userId" value={userId} /> : null}<select name={canCreate ? "userId" : undefined} required disabled={!canCreate} value={userId} onChange={event => changeEmployee(event.target.value, month)}><option value="">Selecione o funcionário</option>{employees.map(employee => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</select></label>

@@ -82,13 +82,13 @@ export default async function ComandasPage(props: ComandasPageProps) {
       select: { openedAt: true, playerId: true, code: true }
     }),
     tx.player.findMany({ where: { arenaId: auth.arenaId, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    tx.product.findMany({ where: { arenaId: auth.arenaId, active: true, OR: [{ isService: false }, { showOnComandas: true }] }, select: { id: true, name: true, priceCents: true, stockQuantity: true, isService: true, category: { select: { name: true } } }, orderBy: { name: "asc" } }),
+    tx.product.findMany({ where: { arenaId: auth.arenaId, active: true, OR: [{ isService: false }, { showOnComandas: true }] }, select: { id: true, name: true, priceCents: true, stockQuantity: true, isService: true, serviceHourly: true, category: { select: { name: true } } }, orderBy: { name: "asc" } }),
     tx.paymentMethodSetting.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { name: true }, orderBy: { name: "asc" } }),
     tx.financialEntry.findMany({
       where: { arenaId: auth.arenaId, type: { in: ["REVENUE", "INCOME"] }, status: { in: ["PENDING", "OVERDUE", "PARTIAL"] } },
       select: {
         id: true, playerId: true, description: true, amountCents: true, dueDate: true,
-        settlements: { select: { amountCents: true, interestCents: true } },
+        settlements: { select: { amountCents: true, interestCents: true, discountCents: true } },
         scheduleParticipant: { select: { playerId: true } },
         sale: { select: { comanda: { select: { playerId: true } } } }
       },
@@ -113,7 +113,7 @@ export default async function ComandasPage(props: ComandasPageProps) {
   }, {});
 
   return <div className={viewStyles.commands_page}><VisiblePageRefresh /><h1 className="tw:sr-only">Comandas</h1>
-    {openRequests.length ? <section aria-label="Solicitações de abertura de comanda" className="tw:grid tw:gap-2 tw:rounded-md tw:border tw:border-[var(--line)] tw:p-3 tw:text-xs">{openRequests.map(request => <div key={request.id} className="tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-2"><span>{request.message}</span><Link href={request.href} className={viewStyles.button}>Abrir comanda solicitada</Link></div>)}</section> : null}
+    {openRequests.length ? <section aria-label="Solicitações de abertura de comanda" className="tw:grid tw:gap-3 tw:rounded-md tw:border tw:border-amber-400 tw:border-l-4 tw:bg-amber-50 tw:p-4 tw:text-sm tw:text-amber-950"><strong>{openRequests.length} solicitação{openRequests.length === 1 ? "" : "ões"} de abertura de comanda</strong>{openRequests.map(request => <div key={request.id} className="tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-2"><span>{request.message}</span><Link href={request.href} className={viewStyles.button}>Abrir comanda solicitada</Link></div>)}</section> : null}
     <header className={viewStyles.commands_toolbar}>
       {requestedIds.length ? <div className="tw:grid tw:gap-1"><strong className="tw:text-sm">Comandas selecionadas</strong><Link href="/comandas" className="tw:text-xs tw:text-[var(--brand)]">Ver comandas do dia</Link></div> : <CommandsDatePicker selectedDate={toDateInput(selectedDate)} search={search} openDays={[...openDays]} today={toDateInput(today)} />}
       <div className={viewStyles.commands_toolbar_right}><form method="get" className={viewStyles.commands_search}><input type="hidden" name="date" value={toDateInput(selectedDate)} />{requestedIds.length ? <input type="hidden" name="ids" value={requestedIds.join(",")} /> : null}<span aria-hidden="true"><CommandIcon name="search" /></span><input name="search" defaultValue={search} placeholder="Buscar comanda" aria-label="Buscar comanda pelo nome" /><button className={viewStyles.button} type="submit">Buscar</button></form><div className={viewStyles.commands_actions}><Link href={`/comandas?${new URLSearchParams({ date: toDateInput(selectedDate), new: "client" })}`} className={`${viewStyles.button_button_primary} tw:bg-[#087443]! tw:[background-image:none]! tw:border-[#087443]! tw:text-white!`}><CommandIcon name="plus" /> Nova Comanda</Link><Link href={`/comandas?${new URLSearchParams({ date: toDateInput(selectedDate), new: "avulsa" })}`} className={viewStyles.button}><CommandIcon name="receipt" /> Nova Comanda Avulsa</Link></div></div>

@@ -15,36 +15,39 @@ function signed(value: number) {
   return `${value > 0 ? "+" : ""}${value}`;
 }
 
-export default async function StockBalancePage() {
+export default async function StockBalancePage({ searchParams }: { searchParams?: Promise<{ novo?: string; historico?: string }> }) {
+  const query = await searchParams;
+  const creating = query?.novo === "1";
   const auth = await requireModuleView("stock");
   const canEdit = canEditModule("stock", auth.arenaRole, auth.systemRole, auth.editPermissions);
   const prisma = arenaDatabase(auth.arenaId);
   const [products, movements] = await Promise.all([
-    prisma.product.findMany({
+    creating && canEdit ? prisma.product.findMany({
       where: { arenaId: auth.arenaId, active: true, isService: false },
       select: { id: true, name: true, sku: true, stockQuantity: true, minStock: true },
       orderBy: { name: "asc" }
-    }),
-    prisma.stockMovement.findMany({
+    }) : Promise.resolve([]),
+    query?.historico === "1" ? prisma.stockMovement.findMany({
       where: { arenaId: auth.arenaId, type: "ADJUST", reason: { startsWith: "Balanço " } },
       orderBy: { createdAt: "desc" },
       take: 40
-    })
+    }) : Promise.resolve([])
   ]);
+  const balances = !creating ? await prisma.auditEvent.findMany({ where: { arenaId: auth.arenaId, action: "STOCK_BALANCE_COMPLETED" }, select: { id: true, details: true, createdAt: true, actorName: true }, orderBy: { createdAt: "desc" }, take: 100 }) : [];
   const productNames = await loadVisibleProductNames(prisma, auth.arenaId, movements.map((movement) => movement.productId));
 
   return (
     <div className={viewStyles.stack_md_workspace_page_stock_balance_page}>
-      <WorkspaceHeading eyebrow="ESTOQUE · CONFERÊNCIA" title="Balanço de estoque" description="Compare a contagem física com o sistema e acompanhe cada ajuste.">
-        <Link href="/pdv/estoque" className={viewStyles.button}>Voltar ao estoque</Link>
+      <WorkspaceHeading title="Balanço de estoque">
+        <Link href="/pdv/estoque" className={viewStyles.button}>Voltar ao estoque</Link>{canEdit && !creating ? <Link href="/pdv/balanco?novo=1" className={ui.primary}>Novo Balanço</Link> : null}{creating ? <Link href="/pdv/balanco" className={ui.secondary}>Voltar aos balanços</Link> : null}
       </WorkspaceHeading>
 
-      {canEdit ? <section className={ui.page}><div className={ui.toolbar}><p>Informe a contagem física. As divergências são ajustadas e registradas no histórico.</p></div>
-        <SafeActionForm action={createStockBalanceAction} className={viewStyles.stock_balance_form} successMessage="Balanço registrado. As divergências foram atualizadas no relatório abaixo.">
-          <label className={viewStyles.field_stock_balance_reason}>
-            <span>Observação do balanço (opcional)</span>
+      {canEdit && creating ? <section className={ui.page}><div className={ui.toolbar}><p>Informe a contagem física. As divergências são ajustadas e registradas no histórico.</p></div>
+        <SafeActionForm action={createStockBalanceAction} className={viewStyles.stock_balance_form} successHref="/pdv/balanco" successMessage="Balanço registrado.">
+          <div className={viewStyles.field_stock_balance_reason}><label>
+            <span>Título do balanço</span><input name="title" maxLength={100} required placeholder="Ex.: Conferência de fechamento"/></label><label><span>Observação (opcional)</span>
             <input name="reason" maxLength={80} placeholder="Ex.: fechamento de turno" />
-          </label>
+          </label></div>
           <div className={viewStyles.stock_balance_table} role="table" aria-label="Produtos para balanço">
             <div className={viewStyles.stock_balance_row_stock_balance_head} role="row"><span>Produto</span><span>Sistema</span><span>Estoque mínimo</span><span>Contagem real</span></div>
             {products.map((product) => (
@@ -61,7 +64,9 @@ export default async function StockBalancePage() {
         </SafeActionForm>
       </section> : null}
 
-      <section className={ui.page}><h2 className="tw:m-0 tw:text-sm tw:font-semibold">Relatório de divergências</h2>
+      {!creating ? <div className={ui.list}><div className={`${ui.head} tw:grid-cols-[minmax(0,1fr)_170px_170px]`}><span>Balanço</span><span>Data</span><span>Responsável</span></div>{balances.map(balance => { const details = balance.details as { title?: string }; return <Link key={balance.id} href={`/pdv/balanco/${balance.id}`} className={`${ui.row} tw:grid-cols-[minmax(0,1fr)_170px_170px] tw:text-[#15385f] tw:no-underline tw:hover:bg-blue-50 tw:viewport-760:grid-cols-1`}><strong>{details.title || "Balanço de estoque"}</strong><time>{balance.createdAt.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</time><span>{balance.actorName}</span></Link>; })}{!balances.length ? <p className={ui.empty}>Nenhum balanço concluído.</p> : null}</div> : null}
+      {!creating ? <Link href="/pdv/balanco?historico=1" className={ui.secondary}>Consultar ajustes anteriores</Link> : null}
+      {query?.historico === "1" ? <section className={ui.page}><h2 className="tw:m-0 tw:text-sm tw:font-semibold">Ajustes anteriores</h2>
         {movements.length ? <div className={viewStyles.stock_balance_report}>
           {movements.map((movement) => {
             const match = movement.reason.match(/sistema: (\d+) \| contado: (\d+) \| diferença: ([+-]?\d+)/);
@@ -72,7 +77,7 @@ export default async function StockBalancePage() {
             </article>;
           })}
         </div> : <p className={viewStyles.muted}>Nenhum balanço concluído ainda.</p>}
-      </section>
+      </section> : null}
     </div>
   );
 }

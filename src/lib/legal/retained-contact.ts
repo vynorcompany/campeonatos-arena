@@ -20,7 +20,7 @@ export function ownedReceivables(arenaId: string, playerIds: string[]): Prisma.F
 }
 
 export async function hasRetainedObligations(tx: ArenaTransaction, arenaId: string, playerId: string) {
-  const entries = await tx.financialEntry.findMany({ where: ownedReceivables(arenaId, [playerId]), select: { amountCents: true, settlements: { select: { amountCents: true, interestCents: true } } } });
+  const entries = await tx.financialEntry.findMany({ where: ownedReceivables(arenaId, [playerId]), select: { amountCents: true, settlements: { select: { amountCents: true, interestCents: true, discountCents: true } } } });
   if (entries.some(entry => getOutstandingCents(entry.amountCents, entry.settlements) > 0)) return true;
   if (await tx.comanda.findFirst({ where: { arenaId, playerId, status: "OPEN" }, select: { id: true } })) return true;
   if (await tx.financialRecurrence.findFirst({ where: { arenaId, active: true, type: { in: ["REVENUE", "INCOME"] }, OR: [{ playerId }, { student: { playerId } }] }, select: { id: true } })) return true;
@@ -51,7 +51,7 @@ export async function retainedContactNeedsReview(tx: ArenaTransaction, arenaId: 
       await tx.erasedContactReference.deleteMany({ where: { id: reference.id, arenaId } });
       continue;
     }
-    const debts = await tx.financialEntry.findMany({ where: { ...ownedReceivables(arenaId, [reference.playerId]), dueDate: { lt: overdueCutoff } }, select: { amountCents: true, settlements: { select: { amountCents: true, interestCents: true } } } });
+    const debts = await tx.financialEntry.findMany({ where: { ...ownedReceivables(arenaId, [reference.playerId]), dueDate: { lt: overdueCutoff } }, select: { amountCents: true, settlements: { select: { amountCents: true, interestCents: true, discountCents: true } } } });
     if (debts.some(debt => getOutstandingCents(debt.amountCents, debt.settlements) > 0)) reviewReference ??= reference.id;
   }
   return reviewReference;

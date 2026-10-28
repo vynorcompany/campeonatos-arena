@@ -25,7 +25,7 @@ const pdvNames: Record<string, string> = {
   "servicos": "Serviços",
   "vendas": "Vendas",
   "estoque": "Estoque",
-  "balanco": "Criar balanço",
+  "balanco": "Balanço",
 };
 
 function readable(value: string) {
@@ -46,7 +46,7 @@ export function WorkspaceBreadcrumb({ canViewTournaments = true }: { canViewTour
   if (path.startsWith("/financeiro")) return <PageBreadcrumb section="Gestão" current={financeNames[parts[1] ?? ""] ?? readable(parts.at(-1) ?? "Financeiro")} />;
   if (path === "/pdv/caixa") return <PageBreadcrumb section="Gestão" current="Caixa" />;
   if (path.startsWith("/pdv")) return <PageBreadcrumb section="Financeiro" current={pdvNames[parts[1] ?? ""] ?? "Produto"} />;
-  if (path.startsWith("/relatorios")) return <PageBreadcrumb section="Gestão" current={parts[1] ? readable(parts[1]) : "Relatórios"} />;
+  if (path.startsWith("/relatorios")) return <PageBreadcrumb section="Gestão" current={parts[1] === "dre" ? "DRE Gerencial" : parts[1] ? readable(parts[1]) : "Relatórios"} />;
   return null;
 }
 

@@ -101,7 +101,7 @@ export async function POST(request: Request) {
         // Outras formas de quitação também escrevem no lançamento. Leia saldos
         // somente depois de obter os bloqueios, sempre na mesma ordem.
         await tx.$queryRaw`SELECT "id" FROM "FinancialEntry" WHERE "arenaId" = ${checkout!.arenaId} AND "id" IN (SELECT "financialEntryId" FROM "OnlinePaymentCheckoutItem" WHERE "checkoutId" = ${checkout!.id}) ORDER BY "id" FOR UPDATE`;
-        const current = await tx.onlinePaymentCheckout.findFirst({ where: { id: checkout!.id, arenaId: checkout!.arenaId }, include: { items: { include: { financialEntry: { include: { settlements: { select: { amountCents: true, interestCents: true } } } } } } } });
+        const current = await tx.onlinePaymentCheckout.findFirst({ where: { id: checkout!.id, arenaId: checkout!.arenaId }, include: { items: { include: { financialEntry: { include: { settlements: { select: { amountCents: true, interestCents: true, discountCents: true } } } } } } } });
         if (!current) return;
         if (!approved) {
           const requiresReview = ["refunded", "charged_back"].includes(providerStatus);
@@ -293,7 +293,7 @@ export async function POST(request: Request) {
         await tx.$queryRaw`SELECT "id" FROM "FinancialEntry" WHERE "id" = ${entry.id} AND "arenaId" = ${entry.arenaId} FOR UPDATE`;
         const current = await tx.financialEntry.findFirst({
           where: { id: entry.id, arenaId: entry.arenaId },
-          include: { settlements: { select: { amountCents: true, interestCents: true } } }
+          include: { settlements: { select: { amountCents: true, interestCents: true, discountCents: true } } }
         });
         const providerStatus = String(payment.status ?? "").toLowerCase();
         if (current?.status === "PAID" && ["refunded", "charged_back"].includes(providerStatus)) {
@@ -314,7 +314,10 @@ export async function POST(request: Request) {
         const references = current.source === "ONLINE_BOOKING" && current.externalReference
           ? [current.id, `online_booking:${current.externalReference}`]
           : [current.id];
-        const verification = verifyApprovedMercadoPagoPayment(payment, balance.outstandingCents, references);
+        const discountCents = current.onlineChargeDiscountCents ?? 0, interestCents = current.onlineChargeInterestCents ?? 0;
+        const expectedAmountCents = current.onlineChargeAmountCents ?? balance.outstandingCents;
+        const validQuote = discountCents <= balance.outstandingCents && expectedAmountCents === balance.outstandingCents - discountCents + interestCents;
+        const verification = validQuote ? verifyApprovedMercadoPagoPayment(payment, expectedAmountCents, references) : { ok: false as const, reason: "O saldo mudou após a emissão da cobrança com desconto ou juros." };
         if (!verification.ok) {
           const reviewMarker = `[MP_REVIEW:${String(payment.id ?? paymentId)}]`;
           if (!current.notes.includes(reviewMarker)) {
@@ -327,7 +330,9 @@ export async function POST(request: Request) {
           data: {
             arenaId: entry.arenaId,
             financialEntryId: current.id,
-            amountCents: balance.outstandingCents,
+            amountCents: expectedAmountCents,
+            discountCents,
+            interestCents,
             paymentMethod: current.onlinePaymentUrl ? "Mercado Pago online" : "Mercado Pago",
             paidAt: new Date(),
             notes: `Pagamento online Mercado Pago confirmado (${String(payment.id ?? paymentId)}).`

@@ -39,7 +39,7 @@ export async function loadLedgerMovements(db: Pick<Prisma.TransactionClient, "$q
       SELECT e.id, e.type, e.status, e.description, e.category, e."amountCents", e."paymentMethod", e."paidAt", e."createdAt", e."dueDate"
       FROM "FinancialEntry" e WHERE ${scope}
     ), balances AS (
-      SELECT e.*, coalesce(sum(s."amountCents"),0) AS settled, coalesce(sum(s."interestCents"),0) AS interest,
+      SELECT e.*, coalesce(sum(s."amountCents"),0) AS settled, coalesce(sum(s."interestCents"),0) AS interest, coalesce(sum(s."discountCents"),0) AS discount,
         count(s.id) AS settlement_count
       FROM scoped e LEFT JOIN "FinancialSettlement" s ON s."financialEntryId" = e.id AND s."arenaId" = ${arenaId}
       GROUP BY e.id, e.type, e.status, e.description, e.category, e."amountCents", e."paymentMethod", e."paidAt", e."createdAt", e."dueDate"
@@ -58,7 +58,7 @@ export async function loadLedgerMovements(db: Pick<Prisma.TransactionClient, "$q
     ), outstanding AS (
       SELECT e.id, e.type, e.description, e.category, e."paymentMethod" AS method,
         coalesce(e."dueDate", e."createdAt") AS date,
-        greatest(0, e."amountCents" + e.interest - e.settled) AS amount
+        greatest(0, e."amountCents" + e.interest - e.settled - e.discount) AS amount
       FROM balances e WHERE e.status IN ('PENDING','OVERDUE')
         AND coalesce(e."dueDate", e."createdAt") BETWEEN ${period.gte} AND ${period.lte}
         ${filters.paymentMethod ? Prisma.sql`AND e."paymentMethod" = ${filters.paymentMethod}` : Prisma.empty}

@@ -7,7 +7,7 @@ function formatCents(digits: string, negative = false) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((negative ? -cents : cents) / 100);
 }
 
-export function CurrencyInput({ defaultValue = "0,00", allowNegative = false, ...props }: Omit<React.InputHTMLAttributes<HTMLInputElement>, "defaultValue" | "onChange"> & { defaultValue?: string; allowNegative?: boolean }) {
+export function CurrencyInput({ defaultValue = "0,00", allowNegative = false, onValueCentsChange, ...props }: Omit<React.InputHTMLAttributes<HTMLInputElement>, "defaultValue" | "onChange"> & { defaultValue?: string; allowNegative?: boolean; onValueCentsChange?: (cents: number) => void }) {
   const initial = defaultValue.replace(/\D/g, "") || "0";
   const [digits, setDigits] = useState(initial);
   const [negative, setNegative] = useState(allowNegative && defaultValue.includes("-"));
@@ -20,6 +20,7 @@ export function CurrencyInput({ defaultValue = "0,00", allowNegative = false, ..
     const nextNegative = allowNegative && raw.includes("-");
     setNegative(nextNegative);
     setDigits(next);
+    onValueCentsChange?.(Number(next) * (nextNegative ? -1 : 1));
     requestAnimationFrame(() => {
       const input = ref.current;
       if (!input) return;

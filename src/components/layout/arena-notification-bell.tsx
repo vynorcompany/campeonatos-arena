@@ -1,4 +1,5 @@
 "use client";
+import { ComandaRequestAlerts } from "@/components/comandas/request-alerts";
 import { viewStyles } from "./arena-notification-bell.utilities";
 
 import Link from "next/link";
@@ -11,12 +12,14 @@ type Notification = { id: string; title: string; message: string; href: string; 
 
 export function ArenaNotificationBell({ notifications }: { notifications: Notification[] }) {
   const [open, setOpen] = useState(false);
+  const [alertSettingsHost, setAlertSettingsHost] = useState<HTMLDivElement | null>(null);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
   const [unread, setUnread] = useState(notifications);
   const containerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLElement>(null);
   useEffect(() => setUnread(notifications), [notifications]);
+  useEffect(() => { const refresh = () => router.refresh(); window.addEventListener("arena-comanda-request", refresh); return () => window.removeEventListener("arena-comanda-request", refresh); }, [router]);
   useEffect(() => { if (!open) return; const close = (event: PointerEvent) => { if (!containerRef.current?.contains(event.target as Node) && !panelRef.current?.contains(event.target as Node)) setOpen(false); }; const escape = (event: KeyboardEvent) => { if (event.key === "Escape") { setOpen(false); containerRef.current?.querySelector("button")?.focus(); } }; document.addEventListener("pointerdown", close); document.addEventListener("keydown", escape); return () => { document.removeEventListener("pointerdown", close); document.removeEventListener("keydown", escape); }; }, [open]);
   const markRead = (notificationId: string) => {
     setUnread((current) => current.filter((notification) => notification.id !== notificationId));
@@ -26,5 +29,5 @@ export function ArenaNotificationBell({ notifications }: { notifications: Notifi
     setUnread([]);
     startTransition(async () => { await markAllArenaNotificationsReadAction(); router.refresh(); });
   };
-  return <div ref={containerRef} className={viewStyles.arena_notification_bell}><button type="button" aria-label="Notificações" aria-expanded={open} onClick={() => setOpen((current) => !current)}>🔔{unread.length ? <b>{unread.length > 9 ? "9+" : unread.length}</b> : null}</button>{open && typeof document !== "undefined" ? createPortal(<section ref={panelRef} aria-label="Notificações da arena" className={viewStyles.arena_notification_panel}><header><div><strong>Notificações</strong><span>{pending ? "Atualizando..." : unread.length ? `${unread.length} não lida${unread.length === 1 ? "" : "s"}` : "Você está em dia"}</span></div>{unread.length ? <button type="button" onClick={markAllRead} disabled={pending}>Marcar todas como lidas</button> : null}</header>{unread.length ? unread.map((notification) => <Link href={notification.href || "/agenda"} key={notification.id} onClick={() => { markRead(notification.id); setOpen(false); }}><strong>{notification.title}</strong><span>{notification.message}</span></Link>) : <p>Você está em dia.</p>}</section>, document.body) : null}</div>;
+  return <><ComandaRequestAlerts showSettings={open} settingsHost={alertSettingsHost}/><div ref={containerRef} className={viewStyles.arena_notification_bell}><button type="button" aria-label="Notificações" aria-expanded={open} onClick={() => setOpen((current) => !current)}>🔔{unread.length ? <b>{unread.length > 9 ? "9+" : unread.length}</b> : null}</button>{open && typeof document !== "undefined" ? createPortal(<section ref={panelRef} aria-label="Notificações da arena" className={viewStyles.arena_notification_panel}><header><div><strong>Notificações</strong><span>{pending ? "Atualizando..." : unread.length ? `${unread.length} não lida${unread.length === 1 ? "" : "s"}` : "Você está em dia"}</span></div>{unread.length ? <button type="button" onClick={markAllRead} disabled={pending}>Marcar todas como lidas</button> : null}</header><div ref={setAlertSettingsHost} />{unread.length ? unread.map((notification) => <Link href={notification.href || "/agenda"} key={notification.id} onClick={() => { markRead(notification.id); setOpen(false); }}><strong>{notification.title}</strong><span>{notification.message}</span></Link>) : <p>Você está em dia.</p>}</section>, document.body) : null}</div></>;
 }

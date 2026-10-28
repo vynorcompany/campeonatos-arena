@@ -215,11 +215,11 @@
 :root {
   --bg: #f5f7fa;
   --panel: #ffffff;
-  --panel-muted: #f9fbfd;
+  --panel-muted: #edf4ff;
   --line: #d8e0ea;
   --line-strong: #c7d3e1;
   --text: #231f20;
-  --muted: #667489;
+  --muted: #354f70;
   --brand: #1e5ea8;
   --brand-strong: #174983;
   --brand-soft: #eaf2fb;

@@ -10,11 +10,11 @@ export type PaymentAmount = {
 
 export function getOutstandingCents(
   amountCents: number,
-  settlements: Array<{ amountCents: number; interestCents?: number }>
+  settlements: Array<{ amountCents: number; discountCents?: number; interestCents?: number }>
 ) {
   const settledCents = settlements.reduce((total, settlement) => total + settlement.amountCents, 0);
   const interestCents = settlements.reduce((total, settlement) => total + (settlement.interestCents ?? 0), 0);
-  return Math.max(0, amountCents + interestCents - settledCents);
+  return Math.max(0, amountCents + interestCents - settledCents - settlements.reduce((total, settlement) => total + (settlement.discountCents ?? 0), 0));
 }
 
 export function allocatePaymentsToDebts(debts: DebtBalance[], payments: PaymentAmount[]) {

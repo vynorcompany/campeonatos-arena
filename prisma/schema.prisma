@@ -965,6 +965,7 @@ model CategoryMatch {
   hostProposalDeadline DateTime?
   woReason             String?
   leagueCycle          LeagueCycle?          @relation(fields: [leagueCycleId], references: [id], onDelete: SetNull)
+  bookingOccurrences   ScheduleOccurrence[]
   proposals            LeagueMatchProposal[]
 
   @@index([competitionId, stage, roundOrder])
@@ -1535,6 +1536,8 @@ model ScheduleOccurrence {
   teacherId        String?
   responsiblePlayerId String?
   bookingSeriesId  String?
+  categoryMatchId  String?
+  categoryMatch    CategoryMatch? @relation(fields: [categoryMatchId], references: [id], onDelete: SetNull)
   challengeId      String?                   @unique
   createdAt        DateTime                  @default(now())
   updatedAt        DateTime                  @updatedAt
@@ -1551,6 +1554,7 @@ model ScheduleOccurrence {
   @@index([arenaId, startsAt, endsAt])
   @@index([teacherId])
   @@index([responsiblePlayerId])
+  @@index([categoryMatchId])
   @@index([bookingSeriesId, startsAt])
 }
 
@@ -1696,6 +1700,7 @@ model ArenaServicePrice {
 }
 
 model Product {
+  serviceHourly Boolean @default(false)
   showOnPortalBooking Boolean @default(false)
   bookingConcurrentLimit Int @default(1)
   serviceReservations ScheduleServiceReservation[]
@@ -2244,6 +2249,7 @@ model ComandaBookingService {
 }
 
 model ComandaItem {
+  durationMinutes Int @default(60)
   id             String   @id @default(cuid())
   quantity       Int      @default(1)
   unitPriceCents Int
@@ -2336,6 +2342,7 @@ model StudentSubscription {
 }
 
 model FinancialEntry {
+  competenceDate DateTime?
   id                       String                @id @default(cuid())
   type                     String
   category                 String
@@ -2354,6 +2361,9 @@ model FinancialEntry {
   onlineProvider           String                @default("")
   onlinePaymentId          String                @default("")
   onlinePaymentUrl         String                @default("")
+  onlineChargeAmountCents Int?
+  onlineChargeDiscountCents Int @default(0)
+  onlineChargeInterestCents Int @default(0)
   onlinePaymentClaimMethod String                @default("")
   onlinePaymentClaimedAt   DateTime?
   onlinePaymentQrCode      String                @default("")
@@ -2388,6 +2398,7 @@ model FinancialEntry {
   @@index([arenaId, type, status])
   @@index([arenaId, type, status, counterpartyName])
   @@index([arenaId, onlinePaymentId])
+  @@index([arenaId, competenceDate])
   @@index([arenaId, dueDate])
   @@index([arenaId, status, dueDate])
   @@index([arenaId, paidAt])
@@ -2513,6 +2524,7 @@ model FinancialRecurrence {
 }
 
 model FinancialSettlement {
+  discountCents Int @default(0)
   id               String         @id @default(cuid())
   amountCents      Int
   interestCents    Int            @default(0)
@@ -2533,6 +2545,7 @@ model FinancialSettlement {
 }
 
 model FinancialCategory {
+  dreGroup String @default("AUTO")
   id        String   @id @default(cuid())
   name      String
   type      String   @default("BOTH")

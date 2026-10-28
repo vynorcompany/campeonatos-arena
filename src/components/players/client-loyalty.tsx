@@ -1,4 +1,6 @@
 "use client";
+import { fixedDialogFrame } from "@/components/ui/dialog-frame";
+
 
 import { useEffect, useState, useTransition } from "react";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
@@ -29,7 +31,7 @@ export function LoyaltySettingsButton({ settings }: { settings: Settings }) {
   return <>
     <button type="button" className={button} onClick={() => setOpen(true)}>Configurar fidelidade</button>
     {open ? <div className="tw:fixed tw:inset-0 tw:z-[1000] tw:grid tw:place-items-center tw:bg-[#071b33]/65 tw:p-3" onMouseDown={() => setOpen(false)}>
-      <section className={panel} role="dialog" aria-modal="true" aria-label="Configurar fidelidade" onMouseDown={(event) => event.stopPropagation()}>
+      <section className={[panel, fixedDialogFrame].join(" ")} role="dialog" aria-modal="true" aria-label="Configurar fidelidade" onMouseDown={(event) => event.stopPropagation()}>
         <header className="tw:mb-4 tw:flex tw:items-start tw:justify-between tw:gap-3"><div><span className="tw:text-xs tw:font-bold tw:tracking-wider tw:text-[#1d5ca7]">CLIENTES</span><h2 className="tw:m-0 tw:text-xl">Fidelidade da arena</h2></div><button type="button" className={button} onClick={() => setOpen(false)}>Fechar</button></header>
         <p className="tw:mb-4 tw:text-sm tw:text-[#536b86]">Reservas encerradas contam automaticamente. Visitas avulsas são registradas no cadastro do cliente. A recompensa é entregue pela equipe, sem crédito financeiro automático.</p>
         <SafeActionForm action={updateClientLoyaltySettingsAction} onSuccess={() => setOpen(false)} className="tw:grid tw:gap-4" successMessage="Fidelidade atualizada.">
@@ -65,7 +67,7 @@ export function ClientLoyaltyDialog({ playerId, playerName, canEdit, onClose }: 
     });
   };
   return <div className="tw:fixed tw:inset-0 tw:z-[1000] tw:grid tw:place-items-center tw:bg-[#071b33]/65 tw:p-3" onMouseDown={onClose}>
-    <section className={panel} role="dialog" aria-modal="true" aria-label={`Fidelidade de ${playerName}`} onMouseDown={(event) => event.stopPropagation()}>
+    <section className={[panel, fixedDialogFrame].join(" ")} role="dialog" aria-modal="true" aria-label={`Fidelidade de ${playerName}`} onMouseDown={(event) => event.stopPropagation()}>
       <header className="tw:mb-4 tw:flex tw:items-start tw:justify-between tw:gap-3"><div><span className="tw:text-xs tw:font-bold tw:tracking-wider tw:text-[#1d5ca7]">CLIENTE · FIDELIDADE</span><h2 className="tw:m-0 tw:text-xl">{playerName}</h2></div><button className={button} type="button" onClick={onClose}>Fechar</button></header>
       {error ? <p role="alert" className="tw:rounded-lg tw:bg-red-50 tw:p-3 tw:text-sm tw:text-red-800">{error}</p> : null}
       {!state ? <p className="tw:text-sm tw:text-[#536b86]">Carregando fidelidade…</p> : !state.settings.loyaltyEnabled ? <p className="tw:rounded-lg tw:bg-[#f0f5fb] tw:p-3 tw:text-sm">O programa de fidelidade está desativado nesta arena.</p> : <div className="tw:grid tw:gap-4">

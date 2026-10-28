@@ -61,10 +61,11 @@ test("baixa manual exige valor real, quita vencidos e não aceita lote parcialme
       exports: actions, Date, FormData, console,
       require: (name: string) => mocks[name] ?? {},
     });
-    const settle = (entryId: string, amount: string) => {
+    const settle = (entryId: string, amount: string, discount = "0", discountMode = "AMOUNT") => {
       const form = new FormData();
       form.set("entryId", entryId);
       form.set("amount", amount);
+      form.set("discount", discount); form.set("discountMode", discountMode);
       form.set("interest", "0");
       form.set("paymentMethod", "PIX");
       form.set("paidAt", "");
@@ -98,6 +99,23 @@ test("baixa manual exige valor real, quita vencidos e não aceita lote parcialme
     const partlyPaid = await admin.financialEntry.findUniqueOrThrow({ where: { id: overdue.id }, include: { settlements: true } });
     assert.equal(partlyPaid.status, "OVERDUE");
     assert.equal(getFinancialEntryBalance(partlyPaid.amountCents, partlyPaid.settlements).outstandingCents, 1500);
+    const discounted = await admin.financialEntry.create({ data: { arenaId: arenaA.id, type: "REVENUE", category: "GOAL", description: "Desconto fictício", amountCents: 10000 } }); entryIds.push(discounted.id);
+    await assert.rejects(settle(discounted.id, "1,00", "101", "PERCENTAGE"), /desconto válido/);
+    await settle(discounted.id, "40,00", "10", "PERCENTAGE");
+    const partial = await admin.financialEntry.findUniqueOrThrow({ where: { id: discounted.id }, include: { settlements: true } });
+    assert.equal(partial.amountCents, 10000);
+    assert.equal(partial.settlements[0].discountCents, 1000);
+    assert.equal(partial.settlements[0].amountCents, 4000);
+    assert.equal(getFinancialEntryBalance(partial.amountCents, partial.settlements).outstandingCents, 5000);
+    await settle(discounted.id, "45,00", "5,00");
+    const complete = await admin.financialEntry.findUniqueOrThrow({ where: { id: discounted.id }, include: { settlements: true } });
+    assert.equal(complete.status, "PAID");
+    assert.equal(complete.settlements.reduce((sum, row) => sum + row.amountCents, 0), 8500);
+    assert.equal(getFinancialEntryBalance(complete.amountCents, complete.settlements).outstandingCents, 0);
+    const waived = await admin.financialEntry.create({ data: { arenaId: arenaA.id, type: "REVENUE", category: "GOAL", description: "Desconto integral fictício", amountCents: 1000 } }); entryIds.push(waived.id);
+    await settle(waived.id, "0,00", "100", "PERCENTAGE");
+    const waiver = await admin.financialEntry.findUniqueOrThrow({ where: { id: waived.id }, include: { settlements: true } });
+    assert.equal(waiver.status, "PAID"); assert.equal(waiver.settlements[0].amountCents, 0); assert.equal(waiver.settlements[0].discountCents, 1000);
     await settleBulk([overdue.id, pending.id]);
     assert.equal((await admin.financialEntry.findUniqueOrThrow({ where: { id: overdue.id } })).status, "PAID");
     assert.equal((await admin.financialEntry.findUniqueOrThrow({ where: { id: pending.id } })).status, "PAID");

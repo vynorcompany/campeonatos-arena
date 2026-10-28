@@ -1,4 +1,6 @@
 "use client";
+import { fixedDialogFrame } from "@/components/ui/dialog-frame";
+
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./league-match-schedule-modal.utilities";
 
@@ -137,7 +139,7 @@ export function LeagueMatchScheduleModal({
           onMouseDown={() => !pending && setOpen(false)}
         >
           <section
-            className={viewStyles.public_league_schedule_modal}
+            className={[viewStyles.public_league_schedule_modal, fixedDialogFrame].join(" ")}
             role="dialog"
             aria-modal="true"
             aria-labelledby={`league-schedule-${proposerPairId}`}

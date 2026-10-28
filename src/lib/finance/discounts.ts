@@ -4,6 +4,6 @@ export function getDiscountedAmountCents(amountCents: number, discount: number, 
   const safeAmount = Math.max(0, Math.round(amountCents));
   const safeDiscount = Math.max(0, Number.isFinite(discount) ? discount : 0);
   return mode === "PERCENTAGE"
-    ? Math.max(0, Math.round(safeAmount * (1 - Math.min(safeDiscount, 100) / 100)))
+    ? Math.max(0, safeAmount - Math.round(safeAmount * Math.min(safeDiscount, 100) / 100))
     : Math.max(0, safeAmount - Math.round(safeDiscount));
 }

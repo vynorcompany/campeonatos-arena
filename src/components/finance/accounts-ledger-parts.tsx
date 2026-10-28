@@ -21,10 +21,11 @@ export type Account = {
   onlinePaymentPublishedAt: string | null;
   onlinePaymentViewedAt: string | null;
   dueDate: string | null;
+  competenceDate?: string | null;
   notes: string;
   status: string;
   voidReason: string;
-  settlements: Array<{ amountCents: number; interestCents: number; paymentMethod: string; paidAt: string; notes: string }>;
+  settlements: Array<{ amountCents: number; discountCents?: number; interestCents: number; paymentMethod: string; paidAt: string; notes: string }>;
   balance: { interestCents: number; paidCents: number; outstandingCents: number };
 };
 

@@ -1,4 +1,6 @@
 "use client";
+import { fixedDialogFrame } from "@/components/ui/dialog-frame";
+
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./teacher-plan-enrollment-form.utilities";
 
@@ -205,7 +207,7 @@ export function TeacherPlanEnrollmentForm({
             role="dialog"
             aria-modal="true"
             aria-label="Inserir aluno"
-            onMouseDown={(event) => event.stopPropagation()}
+            onMouseDown={(event) => event.stopPropagation()} className={fixedDialogFrame}
           >
             <header>
               <div>

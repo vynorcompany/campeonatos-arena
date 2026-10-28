@@ -29,6 +29,7 @@ export const paymentSchema = z.object({
 });
 
 export const entrySchema = z.object({
+  competenceDate: optionalText,
   type: z.enum(["REVENUE", "EXPENSE"]),
   category: z.string().trim().min(2, "Informe a categoria."),
   description: z.string().trim().min(2, "Informe a descrição."),
@@ -65,6 +66,7 @@ export const recurrenceSchema = z.object({
 });
 
 export const updateEntrySchema = entrySchema.pick({
+  competenceDate: true,
   category: true,
   description: true,
   counterpartyName: true,
@@ -131,6 +133,8 @@ export const onlinePaymentSettingsSchema = z.object({
 });
 
 export const settlementSchema = z.object({
+  discount: z.string().trim().default("0"),
+  discountMode: z.enum(["AMOUNT", "PERCENTAGE"]).default("AMOUNT"),
   entryId: z.string().min(1, "Conta inválida."),
   amount: z.string().trim().min(1, "Informe o valor recebido."),
   interest: z.string().trim().optional().default("0"),
@@ -170,7 +174,7 @@ export const bankBalanceSchema = z.object({
   balance: z.string().trim().min(1, "Informe o saldo conferido.")
 });
 
-export const onlineChargeSchema = z.object({ entryId: z.string().min(1), method: z.enum(["PIX", "BOLETO"]) });
+export const onlineChargeSchema = z.object({ entryId: z.string().min(1), method: z.enum(["PIX", "BOLETO"]), amount: optionalText, interest: optionalDiscount, discount: optionalDiscount, discountMode: discountModeSchema });
 
 export const paymentConnectionSchema = z.object({
   provider: z.enum(["ASAAS", "SICOOB"]),

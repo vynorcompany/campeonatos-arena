@@ -70,7 +70,7 @@ export function AppShell({
                 <p className={viewStyles.eyebrow}>Arena Padel Manager</p>
                 <strong>{arenaName}</strong>
               </div>
-              <ArenaNotificationBell notifications={notifications} />
+              <ArenaNotificationBell key={activeArenaId ?? ""} notifications={notifications} />
             </div>
 
             <SidebarUserMenu userName={userName} userRole={userRole} />
