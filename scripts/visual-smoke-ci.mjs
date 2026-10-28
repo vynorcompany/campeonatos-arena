@@ -851,7 +851,7 @@ async function main() {
       { label: "perfil", query: "section=profile" },
     ];
     const portalContrastSelectors = {
-      avisos: [".portal-announcements-feed > p.muted"],
+      avisos: ['section[aria-label="Avisos"] [aria-live="polite"]'],
       super12: [".super12-empty strong", ".super12-empty p"],
       reservas: [".portal-activity-list article strong", ".portal-activity-list article span", ".portal-activity-list article b"],
       perfil: [".avatar-crop-field > small"],
@@ -949,8 +949,18 @@ async function main() {
           if (view.label === "financas" && viewport.name === "mobile" && (!metrics.main.includes("Itens em aberto") || !metrics.main.includes("Você tem uma comanda aberta para acompanhar") || metrics.main.includes("Seus pagamentos estão em dia"))) {
             throw new Error(`${label}: resumo financeiro contradiz a comanda aberta do atleta fictício.`);
           }
-          if (view.label === "financas" && viewport.name === "desktop" && (!metrics.main.includes("Comanda em aberto") || metrics.main.includes("Tudo certo por aqui"))) {
+          if (view.label === "financas" && viewport.name === "desktop" && (!metrics.main.includes("Em aberto") || metrics.main.includes("Tudo certo por aqui"))) {
             throw new Error(`${label}: destaque financeiro contradiz a comanda aberta do atleta fictício.`);
+          }
+          if (view.label === "financas") {
+            const financeUrl = await send("Runtime.evaluate", { expression: "location.href", returnByValue: true });
+            for (const tabName of ["Histórico", "Comandas", "Lançamentos"]) {
+              const switched = await send("Runtime.evaluate", { expression: `(() => { const tab=[...document.querySelectorAll('[role=tablist][aria-label="Navegação financeira"] [role=tab]')].find(button=>button.textContent.trim()===${JSON.stringify(tabName)}); tab?.click(); return Boolean(tab); })()`, returnByValue: true });
+              if (!switched.result.value) throw new Error(`${label}: aba ${tabName} ausente.`);
+              await pause(100);
+              const state = await send("Runtime.evaluate", { expression: "({url:location.href,selected:document.querySelector('[role=tablist][aria-label=\"Navegação financeira\"] [aria-selected=true]')?.textContent.trim(),body:document.querySelector('main')?.innerText ?? ''})", returnByValue: true });
+              if (state.result.value.url !== financeUrl.result.value || state.result.value.selected !== tabName || (tabName === "Comandas" && !state.result.value.body.includes("GOAL-COMANDA"))) throw new Error(`${label}: aba ${tabName} não preservou a URL ou ocultou a comanda aberta.`);
+            }
           }
           if (view.label === "torneios-jogos" && (!metrics.body.includes("Parceira de Nome Comprido GOAL") || !metrics.body.includes("6–2 · 6–3"))) {
             throw new Error(`${label}: placar e games da liga fictícia não aparecem juntos.`);
@@ -965,10 +975,12 @@ async function main() {
             throw new Error(`${label}: a turma e seus horários fictícios não aparecem corretamente ou houve vazamento entre arenas.`);
           }
           if (view.label === "turmas" && viewport.name === "mobile" && theme === "light") {
-            await clickElement('a[aria-label="Quarta"]');
+            const classesUrl = await send("Runtime.evaluate", { expression: "location.href", returnByValue: true });
+            await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('[role=tablist][aria-label=\"Dias das turmas\"] button')].find(button=>button.textContent.trim()==='Quarta')?.click()" });
             await pause(300);
             const wednesday = await send("Runtime.evaluate", { expression: "document.querySelector('main')?.innerText ?? ''", returnByValue: true });
-            if (!wednesday.result.value.includes("Quarta") || !wednesday.result.value.includes("Turma GOAL Iniciante - Manhã") || !wednesday.result.value.includes("07:30")) {
+            const classesAfter = await send("Runtime.evaluate", { expression: "location.href", returnByValue: true });
+            if (classesAfter.result.value !== classesUrl.result.value || !wednesday.result.value.includes("Quarta") || !wednesday.result.value.includes("Turma GOAL Iniciante - Manhã") || !wednesday.result.value.includes("07:30")) {
               throw new Error(`${label}: a seleção de quarta-feira não mostrou a turma e seu horário.`);
             }
             const dayShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
