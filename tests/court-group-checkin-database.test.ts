@@ -1,0 +1,50 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { randomUUID, randomBytes } from "node:crypto";
+import { PrismaClient, type Prisma } from "@prisma/client";
+import { instantToArenaWallClock } from "../src/lib/calendar/arena-wall-clock";
+import { registerCourtCheckin, registerSelectedCourtCheckins } from "../src/lib/checkin/register";
+const url = process.env.ARENA_GOAL_TEST_DATABASE_URL ?? "";
+const local = /^postgresql:\/\/postgres@127\.0\.0\.1:55433\/arena_goal(?:\?|$)/.test(url);
+test("check-in em grupo respeita modo, vínculo, arena, seleção, auditoria, concorrência e rollback integral", { skip: !local }, async () => {
+  const db = new PrismaClient({datasources:{db:{url}}});
+  const runtime = new PrismaClient({datasources:{db:{url:url.replace("postgres@","arena_runtime@")}}});
+  let ownerId="";const arenaIds:string[]=[];
+  const scope=<T>(arenaId:string,fn:(tx:Prisma.TransactionClient)=>Promise<T>)=>runtime.$transaction(async tx=>{await tx.$executeRaw`SELECT set_config('app.arena_id',${arenaId},true)`;return fn(tx);});
+  try {
+    ownerId=(await db.user.create({data:{name:"Check-in QA",email:`group-${randomUUID()}@example.test`,passwordHash:"disabled"}})).id;
+    const token=randomBytes(32).toString("hex");
+    const arena=await db.arena.create({data:{name:"Grupo QA",slug:`group-${randomUUID()}`,createdById:ownerId,checkinEnabled:true,checkinToken:token}});arenaIds.push(arena.id);
+    const other=await db.arena.create({data:{name:"Outra QA",slug:`group-${randomUUID()}`,createdById:ownerId}});arenaIds.push(other.id);
+    const players=await Promise.all(["Ana","Bruno","Carla","Visitante"].map(name=>db.player.create({data:{arenaId:arena.id,name}})));
+    const foreign=await db.player.create({data:{arenaId:other.id,name:"Outra arena"}});
+    const court=await db.court.create({data:{arenaId:arena.id,name:"Quadra QA"}});
+    const now=new Date(),wall=instantToArenaWallClock(now);
+    const slot=await db.scheduleOccurrence.create({data:{arenaId:arena.id,sourceType:"BOOKING",title:"Jogo QA",startsAt:wall,endsAt:new Date(wall.getTime()+3600000),occurrenceCourts:{create:{courtId:court.id}},participants:{create:players.slice(0,3).map(p=>({playerId:p.id}))}}});
+    const input={arenaId:arena.id,playerId:players[0].id,occurrenceId:slot.id,courtId:court.id,token};
+    const run=(ids:string[],actor=input.playerId)=>scope(arena.id,tx=>registerSelectedCourtCheckins(tx,{...input,playerId:actor,playerIds:ids},now));
+    await assert.rejects(run([players[1].id]),/próprio check-in/);
+    await db.arena.update({where:{id:arena.id},data:{checkinMode:"GROUP"}});
+    await assert.rejects(run([]),/Selecione/);
+    await assert.rejects(run([players[1].id],players[3].id),/vinculados/);
+    await assert.rejects(run([players[3].id]),/vinculados/);
+    await assert.rejects(run([foreign.id]),/vinculados/);
+    await assert.rejects(scope(arena.id,tx=>registerCourtCheckin(tx,{...input,playerId:players[3].id},now)),/vinculados/);
+    assert.equal(await db.checkinRecord.count({where:{occurrenceId:slot.id}}),0);
+    const overlap=await db.scheduleOccurrence.create({data:{arenaId:arena.id,sourceType:"BOOKING",title:"Outro jogo",startsAt:wall,endsAt:new Date(wall.getTime()+3600000),occurrenceCourts:{create:{courtId:court.id}},participants:{create:{playerId:players[2].id}}}});
+    await scope(arena.id,tx=>registerCourtCheckin(tx,{...input,occurrenceId:overlap.id,playerId:players[2].id},now));
+    await assert.rejects(run([players[0].id,players[2].id]),/coincide/);
+    assert.equal(await db.checkinRecord.count({where:{occurrenceId:slot.id}}),0,"falha de um atleta desfaz todo o lote");
+    await Promise.all([run([players[0].id,players[1].id]),run([players[1].id,players[0].id])]);
+    assert.equal(await db.checkinRecord.count({where:{occurrenceId:slot.id}}),2);
+    assert.equal((await db.scheduleParticipant.findUniqueOrThrow({where:{occurrenceId_playerId:{occurrenceId:slot.id,playerId:players[2].id}}})).checkedInAt,null,"não selecionado continua sem presença");
+    const events=await db.auditEvent.findMany({where:{arenaId:arena.id,entityId:slot.id,action:"COURT_CHECKIN"}});
+    assert.equal(events.length,2);assert(events.every(e=>e.actorId===players[0].id));
+    await db.arena.update({where:{id:arena.id},data:{checkinMode:"SELF"}});
+    await assert.rejects(run([players[1].id]),/próprio check-in/);
+  } finally {
+    await db.scheduleOccurrence.deleteMany({where:{arenaId:{in:arenaIds}}});
+    await db.arena.deleteMany({where:{id:{in:arenaIds}}});if(ownerId)await db.user.delete({where:{id:ownerId}});
+    await runtime.$disconnect();await db.$disconnect();
+  }
+});

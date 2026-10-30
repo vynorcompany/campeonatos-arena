@@ -463,8 +463,12 @@ async function main() {
       const comanda = await visit("/comandas/goal-fixture-comanda", viewport, arenaA.id, `${viewport.name}-comanda-detalhe`);
       if (!comanda.includes("Comanda GOAL") || !comanda.includes("Produto GOAL")) throw new Error(`${viewport.name}: detalhe da comanda fictícia incompleto.`);
       const product = await visit(`/pdv/${detailProduct.id}`, viewport, arenaA.id, `${viewport.name}-produto-detalhe`);
-      if (!product.includes("Produto GOAL") || !product.includes("Ajuste de estoque")) throw new Error(`${viewport.name}: detalhe do produto fictício incompleto.`);
-      const productBreadcrumb = await send("Runtime.evaluate", { expression: "document.querySelector('.workspace-page-breadcrumb strong')?.textContent?.trim() ?? ''", returnByValue: true });
+      if (!product.includes("Produto GOAL")) throw new Error(`${viewport.name}: detalhe do produto fictício incompleto.`);
+      await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('[role=tab]')].find(tab => tab.textContent?.trim() === 'Estoque')?.click()" });
+      await pause(250);
+      const stockEditor = await send("Runtime.evaluate", { expression: "(() => { const panel=document.querySelector('[role=tabpanel]:not([hidden])'); return Boolean(panel?.querySelector('select[name=type]') && panel.querySelector('input[name=quantity]') && panel.querySelector('input[name=reason]') && [...panel.querySelectorAll('button')].some(button=>button.textContent?.includes('Registrar ajuste')) && document.documentElement.scrollWidth<=innerWidth+1); })()", returnByValue: true });
+      if (!stockEditor.result.value) throw new Error(`${viewport.name}: aba de estoque sem controles de ajuste acessíveis.`);
+      const productBreadcrumb = await send("Runtime.evaluate", { expression: "document.querySelector('[aria-label=\"Caminho de navegação\"] strong')?.textContent?.trim() ?? ''", returnByValue: true });
       if (productBreadcrumb.result.value !== "Produto") throw new Error(`${viewport.name}: breadcrumb do produto exibe ID técnico ou rota incorreta: ${productBreadcrumb.result.value}`);
     }
     for (const [path, ownName] of [["/comandas/goal-fixture-comanda", "Comanda GOAL"], [`/pdv/${detailProduct.id}`, "Produto GOAL"]]) {

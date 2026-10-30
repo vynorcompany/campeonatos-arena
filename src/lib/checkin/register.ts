@@ -2,12 +2,22 @@ import type { Prisma } from "@prisma/client";
 import { instantToArenaWallClock } from "../calendar/arena-wall-clock";
 
 export async function registerCourtCheckin(tx: Prisma.TransactionClient, input: {
-  arenaId: string; playerId: string; occurrenceId: string; courtId: string; token: string;
+  arenaId: string; playerId: string; occurrenceId: string; courtId: string; token: string; actorPlayerId?: string;
 }, now = new Date()) {
   await tx.$queryRaw`SELECT id FROM "Arena" WHERE id = ${input.arenaId} FOR SHARE`;
   const arena = await tx.arena.findFirst({ where: { id: input.arenaId, checkinEnabled: true, checkinToken: input.token } });
   if (!arena || !input.token) throw new Error("Este QR Code foi desativado. Peça o código atual à recepção.");
   await tx.$queryRaw`SELECT id FROM "ScheduleOccurrence" WHERE id = ${input.occurrenceId} AND "arenaId" = ${input.arenaId} FOR UPDATE`;
+  const actorId = input.actorPlayerId ?? input.playerId;
+  const actor = await tx.player.findFirst({ where: { id: actorId, arenaId: input.arenaId, active: true }, select: { id: true, name: true } });
+  if (!actor) throw new Error("Seu cadastro no clube não está ativo. Procure a recepção.");
+  if (actorId !== input.playerId || arena.checkinMode === "GROUP") {
+    if (arena.checkinMode !== "GROUP") throw new Error("Cada atleta deve realizar o próprio check-in nesta arena.");
+    const booking = await tx.scheduleOccurrence.findFirst({ where: { id: input.occurrenceId, arenaId: input.arenaId,
+      OR: [{ responsiblePlayerId: actorId }, { participants: { some: { playerId: actorId } } }] }, select: { id: true } });
+    const target = await tx.scheduleParticipant.findFirst({ where: { occurrenceId: input.occurrenceId, playerId: input.playerId, occurrence: { arenaId: input.arenaId } }, select: { id: true } });
+    if (!booking || (actorId !== input.playerId && !target)) throw new Error("Você só pode confirmar atletas vinculados à sua reserva.");
+  }
   await tx.$queryRaw`SELECT id FROM "Player" WHERE id = ${input.playerId} AND "arenaId" = ${input.arenaId} FOR UPDATE`;
   const player = await tx.player.findFirst({ where: { id: input.playerId, arenaId: input.arenaId, active: true }, select: { id: true, name: true } });
   if (!player) throw new Error("Seu cadastro no clube não está ativo. Procure a recepção.");
@@ -33,6 +43,17 @@ export async function registerCourtCheckin(tx: Prisma.TransactionClient, input: 
     courtId: court.id, courtName: court.name, startsAt: occurrence.startsAt, endsAt: occurrence.endsAt,
     amountCents: participant.amountCents, financialEntryId: participant.financialEntryId, createdAt: now,
   } });
-  await tx.auditEvent.create({ data: { arenaId: input.arenaId, actorId: player.id, actorName: player.name, action: "COURT_CHECKIN", entityId: occurrence.id, details: { code: court.name, label: player.name, startsAt: occurrence.startsAt.toISOString(), endsAt: occurrence.endsAt.toISOString(), totalCents: participant.amountCents, financialEntryId: participant.financialEntryId } } });
+  await tx.auditEvent.create({ data: { arenaId: input.arenaId, actorId: actor.id, actorName: actor.name, action: "COURT_CHECKIN", entityId: occurrence.id, details: { playerId: player.id, registeredByPlayerId: actor.id, code: court.name, label: player.name, startsAt: occurrence.startsAt.toISOString(), endsAt: occurrence.endsAt.toISOString(), totalCents: participant.amountCents, financialEntryId: participant.financialEntryId } } });
   return record;
+}
+
+/** Selected athletes are processed atomically in a stable lock order. */
+export async function registerSelectedCourtCheckins(tx: Prisma.TransactionClient, input: {
+  arenaId: string; playerId: string; occurrenceId: string; courtId: string; token: string; playerIds: string[];
+}, now = new Date()) {
+  const ids = [...new Set(input.playerIds)].sort();
+  if (!ids.length || ids.length > 64) throw new Error("Selecione de 1 a 64 atletas.");
+  const results = [];
+  for (const playerId of ids) results.push(await registerCourtCheckin(tx, { ...input, playerId, actorPlayerId: input.playerId }, now));
+  return results;
 }

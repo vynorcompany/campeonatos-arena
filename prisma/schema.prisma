@@ -106,6 +106,7 @@ model Arena {
   accountStatus                     String                   @default("ACTIVE")
   agencyNotes                       String                   @default("")
   checkinEnabled                    Boolean                  @default(false)
+  checkinMode                       String                   @default("SELF")
   checkinToken                      String?                  @unique
   checkinRecords                    CheckinRecord[]
   scheduleStartMinute               Int                      @default(360)
