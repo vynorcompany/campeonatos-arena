@@ -1,3 +1,4 @@
+import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { viewStyles } from "./ranking-list.utilities";
 import Link from "next/link";
 import type { RankingProfileWithLeaderboard } from "@/lib/services/ranking";
@@ -27,6 +28,7 @@ export function RankingList({ rankings }: RankingListProps) {
 
   return (
     <section className={viewStyles.active_event_list} aria-label="Rankings ativos">
+      <div className={`${ui.head} tw:grid-cols-[minmax(0,1fr)_auto]`}><span>Ranking</span><span>Ações</span></div>
       {rankings.map((ranking) => (
         <article key={ranking.id} className={viewStyles.active_event_row}>
           <div>

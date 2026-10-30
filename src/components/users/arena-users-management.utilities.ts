@@ -16,7 +16,7 @@ export const viewStyles = {
   "button_button_small": sharedUtilities.buttonButtonSmall,
   "muted": sharedUtilities.muted,
   "user_table_scroll": [
-    "user-table-scroll", "tw:max-w-[100%]", "tw:[overflow-x:auto]", "tw:[&_.data-table]:min-w-[580px]",
+    "user-table-scroll", "tw:min-[761px]:rounded-lg", "tw:min-[761px]:border", "tw:border-[var(--line)]", "tw:max-w-[100%]", "tw:[overflow-x:auto]", "tw:[&_.data-table]:min-w-[580px]",
     "tw:viewport-760:[overflow-x:visible]", "tw:viewport-760:[&_.data-table]:min-w-0!", "tw:viewport-760:[&_.data-table]:w-full",
     "tw:viewport-760:[&_.data-table_thead]:hidden", "tw:viewport-760:[&_.data-table_tbody]:grid", "tw:viewport-760:[&_.data-table_tbody]:gap-3",
     "tw:viewport-760:[&_.data-table_tbody_tr]:grid", "tw:viewport-760:[&_.data-table_tbody_tr]:min-w-0", "tw:viewport-760:[&_.data-table_tbody_tr]:gap-3",
@@ -24,7 +24,7 @@ export const viewStyles = {
     "tw:viewport-760:[&_.data-table_tbody_td]:block", "tw:viewport-760:[&_.data-table_tbody_td]:min-w-0", "tw:viewport-760:[&_.data-table_tbody_td]:p-0!", "tw:viewport-760:[&_.data-table_tbody_td]:border-0!",
     "tw:viewport-760:[&_.data-table_tbody_td:first-child]:[overflow-wrap:anywhere]", "tw:viewport-760:[&_.data-table_tbody_td:last-child]:border-t!", "tw:viewport-760:[&_.data-table_tbody_td:last-child]:border-[#e8eef4]!", "tw:viewport-760:[&_.data-table_tbody_td:last-child]:pt-3!",
   ].join(" "),
-  "data_table": sharedUtilities.dataTable,
+  "data_table": sharedUtilities.dataTable + " tw:table-fixed tw:[&_thead_th]:bg-[#174983] tw:[&_thead_th]:text-white! tw:[&_thead_th]:py-3! tw:[&_th:first-child]:w-[42%] tw:[&_th:nth-child(2)]:w-[28%] tw:[&_th:last-child]:w-[30%] tw:[&_td:first-child]:[overflow-wrap:anywhere]",
   "table_subtext": sharedUtilities.tableSubtext,
   "user_mobile_label": "tw:hidden tw:viewport-760:block tw:viewport-760:mb-1 tw:viewport-760:text-[.7rem] tw:viewport-760:font-bold tw:viewport-760:uppercase tw:viewport-760:tracking-[.08em] tw:viewport-760:text-[color:var(--muted)]",
   "user_invites_list": [
@@ -36,7 +36,7 @@ export const viewStyles = {
     "tw:pb-[12px]", "tw:pl-[12px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]",
     "tw:border-t-[color:#dce7f1]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:#dce7f1]",
     "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:#dce7f1]", "tw:border-l-[length:1px]",
-    "tw:[border-left-style:solid]", "tw:border-l-[color:#dce7f1]", "tw:rounded-[8px]", "tw:bg-[color:#f8fbff]",
+    "tw:[border-left-style:solid]", "tw:border-l-[color:#dce7f1]", "tw:rounded-[8px]", "tw:bg-white",
     "tw:[background-image:none]", "tw:[&_>_div]:grid", "tw:[&_>_div]:gap-y-[3px]", "tw:[&_>_div]:gap-x-[3px]",
     "tw:[&_>_div]:min-w-[min(100%,_230px)]", "tw:[&_>_div]:mr-[auto]", "tw:[&_>_div_span]:text-[color:#64788c]", "tw:[&_>_div_span]:text-[.78rem]",
     "tw:[&_>_div_span]:[overflow-wrap:anywhere]", "tw:[&_>_span]:text-[color:#64788c]", "tw:[&_>_span]:text-[.78rem]", "tw:[&_>_span]:[overflow-wrap:anywhere]",

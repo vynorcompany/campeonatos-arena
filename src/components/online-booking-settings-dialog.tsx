@@ -4,8 +4,9 @@ import { viewStyles } from "./online-booking-settings-dialog.utilities";
 import Link from "next/link";
 import { arenaBookingPath } from "@/lib/arena-booking-path";
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
+import { Modal } from "@/components/ui/modal";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { updateOnlineBookingSettingsAction } from "@/lib/actions/calendar";
 
@@ -29,12 +30,7 @@ export function OnlineBookingSettingsDialog({ settings }: { settings: OnlineBook
   const [blockOverdue, setBlockOverdue] = useState(settings.overdueBlockDays !== null);
   const [whatsappEnabled, setWhatsappEnabled] = useState(settings.whatsappConfirmationEnabled);
 
-  useEffect(() => {
-    if (!open) return;
-    const onEscape = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
-    window.addEventListener("keydown", onEscape);
-    return () => window.removeEventListener("keydown", onEscape);
-  }, [open]);
+  const closeSettings = useCallback(() => setOpen(false), []);
 
   const copyLink = async () => {
     await navigator.clipboard.writeText(`${window.location.origin}${publicPath}`);
@@ -43,10 +39,9 @@ export function OnlineBookingSettingsDialog({ settings }: { settings: OnlineBook
   };
 
   return <>
-    <button type="button" className={viewStyles.agenda_online_settings_trigger} onClick={() => setOpen(true)} aria-label="Configurações do agendamento online" title="Configurações do agendamento online">⚙</button>
-    {open ? <div className={viewStyles.command_modal_backdrop} role="presentation" onMouseDown={() => setOpen(false)}>
-      <section className={`${viewStyles.online_booking_settings_modal} tw:max-h-[calc(100dvh-24px)] tw:overflow-y-auto`} role="dialog" aria-modal="true" aria-label="Configurações do agendamento online" onMouseDown={(event) => event.stopPropagation()}>
-        <header><div><span>AGENDAMENTO ONLINE</span><h2>Configurações</h2></div><button type="button" className={viewStyles.button_button_small} onClick={() => setOpen(false)}>Fechar</button></header>
+    <button type="button" className={viewStyles.agenda_online_settings_trigger} onClick={() => setOpen(true)} aria-label="Configurações do agendamento online" title="Configurações do agendamento online"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="tw:size-4" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="8" cy="7" r="2" fill="currentColor"/><circle cx="16" cy="12" r="2" fill="currentColor"/><circle cx="10" cy="17" r="2" fill="currentColor"/></svg></button>
+    <Modal title="Configurações do agendamento online" open={open} onClose={closeSettings} width="tw:max-w-[600px]">
+      <div className="tw:grid tw:gap-4">
         <div className={viewStyles.online_booking_link}><div><strong>Link do Portal do Atleta</strong><code>{publicPath}</code></div><button type="button" className={viewStyles.button_button_small} onClick={copyLink}>{copied ? "Link copiado" : "Copiar link"}</button></div>
         <Link href="/configuracoes/checkin" className="tw:block tw:text-xs tw:font-medium tw:text-[var(--primary)]">Check-in nas quadras · Configurar e gerar QR Code</Link>
         <SafeActionForm action={updateOnlineBookingSettingsAction} className={viewStyles.online_booking_settings_form} successMessage="Configurações do agendamento online salvas.">
@@ -63,7 +58,7 @@ export function OnlineBookingSettingsDialog({ settings }: { settings: OnlineBook
           {whatsappEnabled ? <label className={viewStyles.field_form_full}>Mensagem de WhatsApp<textarea name="whatsappMessage" defaultValue={settings.whatsappMessage} placeholder="Ex.: Olá, {cliente}! Sua reserva foi recebida para {data} às {horario}." /><small>Variáveis: {"{cliente}, {data}, {horario}, {quadra}, {arena}"}.</small></label> : <input type="hidden" name="whatsappMessage" value={settings.whatsappMessage} />}
           <div className={viewStyles.online_booking_settings_footer_form_full}><SubmitButton label="Salvar configurações" pendingLabel="Salvando..." className={viewStyles.button_button_primary} /></div>
         </SafeActionForm>
-      </section>
-    </div> : null}
+      </div>
+    </Modal>
   </>;
 }

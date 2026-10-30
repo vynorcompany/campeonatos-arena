@@ -26,7 +26,7 @@ test("DRE uses competence regardless of payment, falls back to due date and excl
  {arenaId:b.id,type:"REVENUE",category:"QA",description:"Foreign",amountCents:9999,competenceDate:at}
  ]});
  const report=await loadDreReportData(tx as unknown as Parameters<typeof loadDreReportData>[0],dreReportWhere(a.id,{gte:new Date("2048-03-01"),lte:new Date("2048-03-31T23:59:59Z")}));
- assert.equal(report.entries.length,2);assert.equal(report.byType.reduce((sum,row)=>sum+(row._sum.amountCents??0),0),1300);throw rollback;
+ assert.equal("entries" in report,false);assert.equal(report.byType.reduce((sum,row)=>sum+(row._sum.amountCents??0),0),1300);throw rollback;
  }),error=>error===rollback);}finally{await db.$disconnect()}
 });
 

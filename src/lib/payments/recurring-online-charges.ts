@@ -64,7 +64,13 @@ export async function issueRecurringOnlineChargeForEntry(arenaId: string, entryI
     return { created: false, skipped: true };
   }
   const claim = await withArenaTransaction(arenaId, (tx) => claimFinancialOnlineCharge(tx, { arenaId, entryId: entry.id, method: "BOLETO", expectedAmountCents: amountCents, requireActiveBoletoRecurrence: true }));
-  if (!claim.ok) return { created: false, skipped: false };
+  if (!claim.ok) {
+    if (/conta bancária/.test(claim.error)) {
+      await alertRecurringBoleto(arenaId, entry.id, "ONLINE_CHARGE_ISSUANCE_REVIEW", "Conta bancária pendente para o boleto", "Selecione uma conta bancária ativa no lançamento em Contas a Receber antes de emitir o boleto recorrente.");
+      return { created: false, skipped: true };
+    }
+    return { created: false, skipped: false };
+  }
 
   let charge;
   try {

@@ -1,3 +1,5 @@
+import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
+import { recordTournamentRegistrationReceipt } from "@/lib/tournaments/registration-receipt";
 import type { Prisma } from "@prisma/client";
 import type { z } from "zod";
 import { ensureTournamentPairFromRegistration } from "@/lib/services/registration-pair";
@@ -28,6 +30,12 @@ export async function updateManualTournamentRegistration(tx: Prisma.TransactionC
   });
   if (!category) return { ok: false, error: "Categoria inválida para este torneio." };
 
+  let bankAccountId: string | null = null;
+  if (input.paymentStatus === "PAID" && input.amountCents > 0) {
+    try { bankAccountId = await requireReceivingBankAccount(tx, input.arenaId, input.bankAccountId); }
+    catch (error) { if (error instanceof Error && error.message.startsWith("Selecione")) return { ok: false, error: error.message }; throw error; }
+  }
+
   const updated = await tx.publicTournamentRegistration.updateMany({
     where: { id: registration.id, tournamentId: input.tournamentId, status: "PENDING_PAYMENT", paymentStatus: "PENDING", paymentProvider: "MANUAL", paymentReference: "", mercadoPagoPaymentId: "", paymentCheckoutUrl: "" },
     data: {
@@ -46,6 +54,8 @@ export async function updateManualTournamentRegistration(tx: Prisma.TransactionC
     },
   });
   if (updated.count !== 1) return { ok: false, error: "Esta inscrição foi alterada. Atualize a página." };
+
+  if (bankAccountId) await recordTournamentRegistrationReceipt(tx, { ...input, bankAccountId });
 
   if (input.paymentStatus === "PAID") {
     await ensureTournamentPairFromRegistration(tx, {

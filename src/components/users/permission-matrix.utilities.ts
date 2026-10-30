@@ -8,7 +8,7 @@ export const viewStyles = {
     "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:var(--line)]", "tw:border-r-[length:1px]",
     "tw:[border-right-style:solid]", "tw:border-r-[color:var(--line)]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]",
     "tw:border-b-[color:var(--line)]", "tw:border-l-[length:1px]", "tw:[border-left-style:solid]", "tw:border-l-[color:var(--line)]",
-    "tw:rounded-[14px]", "tw:bg-[color:rgba(18,_93,_156,_0.04)]", "tw:[background-image:none]", "tw:[&_legend]:pt-[0]",
+    "tw:rounded-[14px]", "tw:bg-white", "tw:[background-image:none]", "tw:[&_legend]:pt-[0]",
     "tw:[&_legend]:pr-[6px]", "tw:[&_legend]:pb-[0]", "tw:[&_legend]:pl-[6px]", "tw:[&_legend]:text-[color:var(--text)]",
     "tw:[&_legend]:text-[0.9rem]", "tw:[&_legend]:font-[700]",
   ].join(" "),
@@ -34,7 +34,7 @@ export const viewStyles = {
     "tw:bg-[color:#fff]", "tw:[background-image:none]", "tw:[&_h3]:mt-[0]", "tw:[&_h3]:mr-[0]",
     "tw:[&_h3]:mb-[0]", "tw:[&_h3]:ml-[0]", "tw:[&_h3]:pt-[10px]", "tw:[&_h3]:pr-[12px]",
     "tw:[&_h3]:pb-[10px]", "tw:[&_h3]:pl-[12px]", "tw:[&_h3]:border-b-[length:1px]", "tw:[&_h3]:[border-bottom-style:solid]",
-    "tw:[&_h3]:border-b-[color:var(--line)]", "tw:[&_h3]:text-[color:var(--brand-strong)]", "tw:[&_h3]:bg-[color:var(--panel-muted)]", "tw:[&_h3]:[background-image:none]",
+    "tw:[&_h3]:border-b-[color:var(--line)]", "tw:[&_h3]:text-[color:var(--brand-strong)]", "tw:[&_h3]:bg-[#174983] tw:[&_h3]:text-white!", "tw:[&_h3]:[background-image:none]",
     "tw:[&_h3]:text-[.8rem]",
   ].join(" "),
   "permission_action": [

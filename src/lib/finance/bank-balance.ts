@@ -9,8 +9,8 @@ export async function calculateBankAccountBalanceCents(
   const base = { arenaId, bankAccountId, status: { not: "VOIDED" } };
   const revenueTypes = { in: ["REVENUE", "INCOME"] };
   const [received, paid, legacyReceived, legacyPaid] = await Promise.all([
-    tx.financialSettlement.aggregate({ where: { arenaId, financialEntry: { ...base, type: revenueTypes } }, _sum: { amountCents: true } }),
-    tx.financialSettlement.aggregate({ where: { arenaId, financialEntry: { ...base, type: "EXPENSE" } }, _sum: { amountCents: true } }),
+    tx.financialSettlement.aggregate({ where: { arenaId, financialEntry: { arenaId, status: { not: "VOIDED" }, type: revenueTypes }, OR: [{ bankAccountId }, { bankAccountId: null, financialEntry: { bankAccountId } }] }, _sum: { amountCents: true } }),
+    tx.financialSettlement.aggregate({ where: { arenaId, financialEntry: { arenaId, status: { not: "VOIDED" }, type: "EXPENSE" }, OR: [{ bankAccountId }, { bankAccountId: null, financialEntry: { bankAccountId } }] }, _sum: { amountCents: true } }),
     tx.financialEntry.aggregate({ where: { ...base, status: "PAID", type: revenueTypes, settlements: { none: {} } }, _sum: { amountCents: true } }),
     tx.financialEntry.aggregate({ where: { ...base, status: "PAID", type: "EXPENSE", settlements: { none: {} } }, _sum: { amountCents: true } }),
   ]);

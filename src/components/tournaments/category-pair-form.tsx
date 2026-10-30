@@ -2,7 +2,8 @@
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./category-pair-form.utilities";
 
-import { useMemo, useState } from "react";
+import { Modal } from "@/components/ui/modal";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -30,14 +31,16 @@ export function AthleteSearchField({ id, label, name, athletes, excludedId, onSe
 }
 
 export function CategoryPairForm({ competitionId, athletes }: { competitionId: string; athletes: AthleteOption[] }) {
+  const [open, setOpen] = useState(false);
+  const close = useCallback(() => { setOpen(false); setFirstPlayerId(""); setSecondPlayerId(""); }, []);
   const [firstPlayerId, setFirstPlayerId] = useState("");
   const [secondPlayerId, setSecondPlayerId] = useState("");
 
-  return <SafeActionForm action={addManualPairAction} className={viewStyles.grid_form_category_pair_form} successMessage="Dupla adicionada com sucesso." resetOnSuccess>
+  return <><button type="button" className={viewStyles.button_button_primary} disabled={athletes.length < 2} onClick={() => setOpen(true)}>Adicionar dupla</button><Modal title="Adicionar dupla" open={open} onClose={close} width="tw:max-w-[720px]"><SafeActionForm action={addManualPairAction} onSuccess={close} className={viewStyles.grid_form_category_pair_form} successMessage="Dupla adicionada com sucesso." resetOnSuccess>
     <input type="hidden" name="competitionId" value={competitionId} />
     <AthleteSearchField id={`first-player-${competitionId}`} label="Primeiro atleta" name="firstPlayerId" athletes={athletes} excludedId={secondPlayerId} onSelect={setFirstPlayerId} />
     <AthleteSearchField id={`second-player-${competitionId}`} label="Segundo atleta" name="secondPlayerId" athletes={athletes} excludedId={firstPlayerId} onSelect={setSecondPlayerId} />
-    <div className={viewStyles.field_field_submit_category_pair_submit}><SubmitButton label="Adicionar dupla" pendingLabel="Adicionando..." className={viewStyles.button_button_primary} disabled={athletes.length < 2} /></div>
+    <div className={viewStyles.field_field_submit_category_pair_submit}><button type="button" className="tw:mr-2 tw:rounded-md tw:border tw:border-[var(--line)] tw:bg-white tw:px-3 tw:text-xs" onClick={close}>Cancelar</button><SubmitButton label="Adicionar dupla" pendingLabel="Adicionando..." className={viewStyles.button_button_primary} disabled={athletes.length < 2} /></div>
     {athletes.length < 2 ? <p className={viewStyles.muted_form_full}>Disponibilize ao menos dois atletas ativos, elegíveis e ainda sem dupla nesta categoria em <Link href="/players">Gestão → Atletas</Link>.</p> : null}
-  </SafeActionForm>;
+  </SafeActionForm></Modal></>;
 }

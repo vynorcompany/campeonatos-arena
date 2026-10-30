@@ -1,4 +1,6 @@
-﻿"use server";
+"use server";
+import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
+import { recordTournamentRegistrationReceipt } from "@/lib/tournaments/registration-receipt";
 
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
@@ -1973,6 +1975,7 @@ export async function createManualTournamentRegistrationAction(_: ActionState, f
     leadPlayerId: formData.get("leadPlayerId"),
     partnerPlayerId: formData.get("partnerPlayerId"),
     amountReais: formData.get("amountReais"),
+    bankAccountId: formData.get("bankAccountId") || undefined,
     paymentStatus: formData.get("paymentStatus")
   });
 
@@ -2010,8 +2013,9 @@ export async function createManualTournamentRegistrationAction(_: ActionState, f
         return { error: "Atleta não encontrado, inativo ou sem cadastro completo.", success: null };
       }
 
+      const bankAccountId = parsed.data.paymentStatus === "PAID" && amountCents > 0 ? await requireReceivingBankAccount(tx, auth.arenaId, parsed.data.bankAccountId) : null;
       const registrationOrder = await nextTournamentRegistrationOrder(tx, parsed.data.tournamentId);
-      await tx.publicTournamentRegistration.create({
+      const registration = await tx.publicTournamentRegistration.create({
         data: {
           tournamentId: parsed.data.tournamentId,
           categoryId: categories[0].id,
@@ -2032,6 +2036,8 @@ export async function createManualTournamentRegistrationAction(_: ActionState, f
         }
       });
 
+      if (bankAccountId) await recordTournamentRegistrationReceipt(tx, { arenaId: auth.arenaId, registrationId: registration.id, bankAccountId, amountCents, leadName: lead.name, partnerName: partner.name });
+
       if (parsed.data.paymentStatus === "PAID") {
         await ensureTournamentPairFromRegistration(tx, {
           arenaId: auth.arenaId,
@@ -2044,7 +2050,8 @@ export async function createManualTournamentRegistrationAction(_: ActionState, f
       }
       return { error: null, success: "Inscrição manual criada com sucesso." };
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith("Selecione")) return { error: error.message, success: null };
     return { error: "Não foi possível criar a inscrição. Nenhuma alteração foi aplicada.", success: null };
   }
   if (result.error) return result;
@@ -2104,6 +2111,7 @@ export async function updateTournamentRegistrationAction(
     partnerCpf: normalizeCpf(String(formData.get("partnerCpf") ?? "")),
     partnerBirthDate: normalizeDateInput(formData.get("partnerBirthDate")),
     amountReais: formData.get("amountReais"),
+    bankAccountId: formData.get("bankAccountId") || undefined,
     paymentStatus: formData.get("paymentStatus")
   });
 

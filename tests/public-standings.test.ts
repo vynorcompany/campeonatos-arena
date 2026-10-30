@@ -1,3 +1,4 @@
+import { readPortalSources } from "./helpers/portal-source";
 import { styleRules, utilityClasses } from "./helpers/utility-styles";
 import { readFile } from "./helpers/style-source";
 import assert from "node:assert/strict";
@@ -399,22 +400,23 @@ test("public arena route renders ranking and game views", async () => {
     ),
   ]);
 
+  const combined = component + readPortalSources();
   assert.match(route, /getArenaPublicStandings/);
   assert.match(route, /tab\?: string/);
   assert.match(route, /league\?: string/);
   assert.match(route, /status\?: string/);
-  assert.match(component, />\s*Ranking/);
-  assert.match(component, />\s*Jogos/);
-  assert.match(component, /athlete-portal-hero/);
-  assert.match(component, /RankingPanel/);
-  assert.match(component, /PublicLeaguePortal/);
-  assert.match(component, /Vitórias/);
-  assert.match(component, /selectedLeagueTab/);
-  assert.match(component, /leagueCategoryId/);
-  assert.match(component, /selectedLeagueTab/);
-  assert.match(component, /PortalSection/);
-  assert.doesNotMatch(component, /totalPoints/);
-  assert.doesNotMatch(component, /finishCategoryCompetitionAction/);
+  assert.match(combined, />\s*Ranking/);
+  assert.match(combined, />\s*Jogos/);
+  assert.match(combined, /athlete-portal-hero/);
+  assert.match(combined, /RankingPanel/);
+  assert.match(combined, /PublicLeaguePortal/);
+  assert.match(combined, /Vitórias/);
+  assert.match(combined, /selectedLeagueTab/);
+  assert.match(combined, /leagueCategoryId/);
+  assert.match(combined, /selectedLeagueTab/);
+  assert.match(combined, /PortalSection/);
+  assert.doesNotMatch(combined, /totalPoints/);
+  assert.doesNotMatch(combined, /finishCategoryCompetitionAction/);
   assert.match(service, /filterPublicGames\(/);
 });
 
@@ -430,7 +432,8 @@ test("public agenda copy is stored as valid Portuguese text", async () => {
     "utf8",
   );
 
-  assert.match(component, /Agenda/);
-  assert.match(component, />Jogos</);
-  assert.doesNotMatch(component, /PÃ|Ãƒ/);
+  const combined = component + readPortalSources();
+  assert.match(combined, /Agenda/);
+  assert.match(combined, /label:\s*"Jogos"/);
+  assert.doesNotMatch(combined, /PÃ|Ãƒ/);
 });

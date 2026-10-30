@@ -31,7 +31,7 @@ export default async function FinancePlansPage() {
   return (
     <div className={viewStyles.stack_md}>
 
-      {canManagePlans ? <SectionCard title="Cadastrar plano padrão" description="Defina o nome e a frequência que os professores poderão vincular aos seus preços.">
+      {canManagePlans ? <SectionCard title="Cadastrar plano padrão" description="Defina o nome e a frequência que os professores poderão vincular aos seus preços." hideHeading>
         <SafeActionForm action={createPlanAction} className={viewStyles.grid_form} resetOnSuccess successMessage="Plano salvo.">
           <div className={viewStyles.field}>
             <label htmlFor="plan-name">Nome do plano</label>
@@ -55,7 +55,7 @@ export default async function FinancePlansPage() {
         </SafeActionForm>
       </SectionCard> : null}
 
-      <SectionCard title="Planos padrão cadastrados" description="Os professores vinculam estes modelos e definem seu preço mensal individualmente.">
+      <SectionCard title="Planos padrão cadastrados" description="Os professores vinculam estes modelos e definem seu preço mensal individualmente." hideHeading>
         <div className={viewStyles.simple_list}>
           {plans.map((plan) => (
             <div className={viewStyles.simple_item} key={plan.id}>

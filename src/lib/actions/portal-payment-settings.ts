@@ -13,6 +13,7 @@ export async function savePortalPaymentSettingsAction(form: FormData) {
   const result = await withArenaTransaction(auth.arenaId, async tx => {
     const connection = await tx.paymentConnection.findUnique({ where: { arenaId_provider: { arenaId: auth.arenaId, provider: "MERCADO_PAGO" } }, select: { status: true } });
     if (parsed.data.portalPaymentEnabled && connection?.status !== "CONNECTED") return { error: "Conecte a conta do Mercado Pago da arena antes de ativar pagamentos no Portal." };
+    if (parsed.data.portalPaymentEnabled && !parsed.data.portalPaymentBankAccountId) return { error: "Selecione a conta bancária para receber pagamentos do Portal." };
     if (parsed.data.portalPaymentBankAccountId) {
       const bank = await tx.bankAccount.findFirst({ where: { id: parsed.data.portalPaymentBankAccountId, arenaId: auth.arenaId }, select: { active: true } });
       if (!bank) return { error: "Conta de recebimento não encontrada nesta arena." };

@@ -24,8 +24,8 @@ export const viewStyles = {
     "tw:[&_span]:border-b-[length:1px]", "tw:[&_span]:[border-bottom-style:solid]", "tw:[&_span]:border-b-[color:#edf2f7]", "tw:[&_span]:border-l-[length:0]",
     "tw:[&_span]:[border-left-style:none]", "tw:[&_span]:border-l-[color:currentColor]", "tw:[&_span]:bg-[color:#fff]", "tw:[&_span]:[background-image:none]",
     "tw:[&_span]:text-[color:#26476d]", "tw:[&_span]:[font:inherit]", "tw:[&_span]:text-[.8rem]", "tw:[&_span]:text-left",
-    "tw:[&_span]:cursor-pointer", "tw:[&_button:hover]:bg-[color:#eef6ff]", "tw:[&_button:hover]:[background-image:none]", "tw:[&_button:hover]:text-[color:#155cae]",
-    "tw:[&_button[aria-selected=true]]:bg-[color:#eef6ff]", "tw:[&_button[aria-selected=true]]:[background-image:none]", "tw:[&_button[aria-selected=true]]:text-[color:#155cae]",
+    "tw:[&_span]:cursor-pointer", "tw:[&_button:focus-visible]:bg-[#174983]", "tw:[&_button:focus-visible]:text-white", "tw:[&_button:hover]:bg-[color:#174983]", "tw:[&_button:hover]:[background-image:none]", "tw:[&_button:hover]:text-[color:#fff]",
+    "tw:[&_button[aria-selected=true]]:bg-[color:#174983]", "tw:[&_button[aria-selected=true]]:[background-image:none]", "tw:[&_button[aria-selected=true]]:text-[color:#fff]",
   ].join(" "),
   "sponsorship_filter_form": [
     "sponsorship-filter-form", "tw:flex", "tw:viewport-760:grid", "tw:[flex:1]",

@@ -2,6 +2,14 @@
 @import "tailwindcss/theme.css" layer(theme) prefix(tw);
 @import "tailwindcss/utilities.css" layer(utilities) prefix(tw);
 
+/* Portal preference overrides the OS only inside the Portal. Other pages keep OS behavior. */
+@custom-variant dark {
+  &:where([data-portal-theme="dark"], [data-portal-theme="dark"] *) { @slot; }
+  @media (prefers-color-scheme: dark) {
+    &:not(:where([data-portal-theme="light"], [data-portal-theme="light"] *)) { @slot; }
+  }
+}
+
 @custom-variant viewport-1260 {
   @media (max-width: 1260px) {
     @slot;
@@ -213,9 +221,9 @@
 }
 
 :root {
-  --bg: #f5f7fa;
+  --bg: #ffffff;
   --panel: #ffffff;
-  --panel-muted: #edf4ff;
+  --panel-muted: #ffffff;
   --line: #d8e0ea;
   --line-strong: #c7d3e1;
   --text: #231f20;
@@ -439,4 +447,13 @@
 @keyframes comanda-close-request {
   0%, 100% { box-shadow: 0 0 8px #fbbf2426; }
   50% { box-shadow: 0 0 24px #fbbf2470; }
+}
+
+
+@keyframes debt-border {
+  0% { clip-path: inset(0 75% 0 0); }
+  25% { clip-path: inset(0 0 75% 0); }
+  50% { clip-path: inset(0 0 0 75%); }
+  75% { clip-path: inset(75% 0 0 0); }
+  100% { clip-path: inset(0 75% 0 0); }
 }

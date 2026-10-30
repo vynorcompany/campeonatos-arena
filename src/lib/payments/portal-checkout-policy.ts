@@ -1,9 +1,10 @@
 type Settings = { portalPaymentBankAccountId?: string | null; portalConsumptionEnabled?: boolean; portalPaymentsConfigured: boolean; portalPaymentEnabled: boolean; portalPixEnabled: boolean; portalCreditCardEnabled: boolean; checkoutExpiryMinutes: number };
 export function portalCheckoutPolicy(settings: Settings | null) {
   const visible = settings?.portalConsumptionEnabled ?? true;
-  // Creating printer preferences must not silently change existing payment flows.
-  if (!settings?.portalPaymentsConfigured) return { configured: false, bankAccountId: null, visible, enabled: visible, pix: true, creditCard: true, expiryMinutes: 0 };
-  return { configured: true, bankAccountId: settings.portalPaymentBankAccountId ?? null, visible, enabled: visible && settings.portalPaymentEnabled, pix: settings.portalPixEnabled, creditCard: settings.portalCreditCardEnabled, expiryMinutes: settings.checkoutExpiryMinutes };
+  const bankAccountId = settings?.portalPaymentBankAccountId?.trim() || null;
+  // A arena escolhe a conta de todos os novos checkouts antes de habilitar recebimentos.
+  if (!settings?.portalPaymentsConfigured) return { configured: false, bankAccountId, visible, enabled: visible && Boolean(bankAccountId), pix: true, creditCard: true, expiryMinutes: 0 };
+  return { configured: true, bankAccountId, visible, enabled: visible && settings.portalPaymentEnabled && Boolean(bankAccountId), pix: settings.portalPixEnabled, creditCard: settings.portalCreditCardEnabled, expiryMinutes: settings.checkoutExpiryMinutes };
 }
 
 export function portalExcludedPaymentTypes(methods: { pix: boolean; creditCard: boolean }) {

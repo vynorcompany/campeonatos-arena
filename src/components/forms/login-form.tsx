@@ -1,7 +1,7 @@
 "use client";
 import { viewStyles } from "./login-form.utilities";
 
-import { useFormState } from "react-dom";
+import { useActionState } from "react";
 import { loginAction, type LoginState } from "@/lib/auth/actions";
 import { BotTrap } from "@/components/forms/bot-trap";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -12,7 +12,7 @@ const initialState: LoginState = {
 };
 
 export function LoginForm() {
-  const [state, formAction] = useFormState(loginAction, initialState);
+  const [state, formAction] = useActionState(loginAction, initialState);
 
   return (
     <form action={formAction} className={viewStyles.stack_md_login_form}><BotTrap/>

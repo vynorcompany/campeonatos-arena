@@ -707,6 +707,8 @@ model PublicTournamentRegistration {
   registrationOrder    Int
   amountCents          Int
   discountCents        Int                    @default(0)
+  paymentBankAccountId String?
+  paymentBankAccount   BankAccount? @relation(fields: [paymentBankAccountId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   paymentStatus        String                 @default("PENDING")
   paymentProvider      String                 @default("")
   paymentReference     String                 @default("")
@@ -729,6 +731,7 @@ model PublicTournamentRegistration {
   awayBracketMatches   CategoryBracketMatch[] @relation("CategoryBracketAway")
   winnerBracketMatches CategoryBracketMatch[] @relation("CategoryBracketWinner")
 
+  @@index([paymentBankAccountId])
   @@index([tournamentId, createdAt])
   @@index([categoryId, createdAt])
   @@index([leadCpf, createdAt])
@@ -1523,6 +1526,8 @@ model CourtWeeklyRule {
 }
 
 model ScheduleOccurrence {
+  paymentBankAccountId String?
+  paymentBankAccount BankAccount? @relation(fields: [arenaId, paymentBankAccountId], references: [arenaId, id], onDelete: NoAction, onUpdate: NoAction)
   serviceReservations ScheduleServiceReservation[]
   id               String                    @id @default(cuid())
   sourceType       String
@@ -1552,6 +1557,7 @@ model ScheduleOccurrence {
 
   @@unique([arenaId, id])
   @@index([arenaId, startsAt, endsAt])
+  @@index([arenaId, paymentBankAccountId])
   @@index([teacherId])
   @@index([responsiblePlayerId])
   @@index([categoryMatchId])
@@ -1700,9 +1706,15 @@ model ArenaServicePrice {
 }
 
 model Product {
+  notes String @default("")
+  fiscalProfile Json @default("{}")
+  stockChoices Json @default("[]")
+  stockAggregates Json @default("[]")
+  serviceDeletedAt DateTime?
   serviceHourly Boolean @default(false)
   showOnPortalBooking Boolean @default(false)
   bookingConcurrentLimit Int @default(1)
+  bookingRules Json @default("{}")
   serviceReservations ScheduleServiceReservation[]
   isService       Boolean          @default(false)
   showOnAgenda    Boolean          @default(false)
@@ -1771,6 +1783,8 @@ model Coupon {
 }
 
 model FiscalSettings {
+  crt String @default("")
+  issuerState String @default("")
   id          String   @id @default(cuid())
   provider    String   @default("NONE")
   environment String   @default("SANDBOX")
@@ -2142,6 +2156,7 @@ model CashMovement {
 }
 
 model Sale {
+  stockConsumption Json?
   id               String                @id @default(cuid())
   code             String                @unique
   customerName     String                @default("")
@@ -2164,6 +2179,8 @@ model Sale {
 }
 
 model SalePayment {
+  bankAccountId String?
+  bankAccount BankAccount? @relation(fields: [bankAccountId], references: [id], onDelete: NoAction)
   id            String   @id @default(cuid())
   amountCents   Int
   paymentMethod String
@@ -2223,6 +2240,10 @@ model ComandaWhatsappDelivery {
 }
 
 model ComandaRequest {
+  variantKey String @default("")
+  compositionLabel String @default("")
+  stockRecipe Json?
+  ingredientChoices Json @default("{}")
   id        String   @id @default(cuid())
   quantity  Int      @default(1)
   status    String   @default("PENDING")
@@ -2249,6 +2270,9 @@ model ComandaBookingService {
 }
 
 model ComandaItem {
+  variantKey String @default("")
+  compositionLabel String @default("")
+  stockRecipe Json?
   durationMinutes Int @default(60)
   id             String   @id @default(cuid())
   quantity       Int      @default(1)
@@ -2261,11 +2285,15 @@ model ComandaItem {
   comanda        Comanda  @relation(fields: [comandaId], references: [id], onDelete: Cascade)
   product        Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
 
-  @@unique([comandaId, productId])
+  @@unique([comandaId, productId, variantKey])
   @@index([productId])
 }
 
 model SaleItem {
+  fiscalProfile Json?
+  variantKey String @default("")
+  compositionLabel String @default("")
+  stockRecipe Json?
   id             String  @id @default(cuid())
   quantity       Int
   unitPriceCents Int
@@ -2541,6 +2569,8 @@ model FinancialRecurrence {
 }
 
 model FinancialSettlement {
+  bankAccountId String?
+  bankAccount BankAccount? @relation(fields: [arenaId, bankAccountId], references: [arenaId, id], onDelete: NoAction, onUpdate: NoAction)
   discountCents Int @default(0)
   id               String         @id @default(cuid())
   amountCents      Int
@@ -2590,6 +2620,10 @@ model PaymentMethodSetting {
 }
 
 model BankAccount {
+  registrationPayments PublicTournamentRegistration[]
+  bookingPayments ScheduleOccurrence[]
+  settlements FinancialSettlement[]
+  salePayments SalePayment[]
   portalSettings       ArenaOperationalSettings[]
   portalCheckouts      OnlinePaymentCheckout[]
   id                   String                @id @default(cuid())

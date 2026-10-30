@@ -15,7 +15,7 @@ test("active events are listed before their categories are selected", () => {
   assert.match(navigation, /children: canSee\("tournaments"\) \? \[/);
   assert.match(page, /if \(!canViewTournaments && !canReadMatches\) notFound\(\)/);
   assert.match(page, /selectedTournament && !canManageTournaments && !canRecordResults/);
-  assert.match(page, /Entrar no evento/);
+  assert.match(page, /Categorias/);
   assert.match(page, /Novo evento/);
   assert.match(page, /Gerenciar evento/);
   assert.match(page, /Escolha uma categoria/);
@@ -29,7 +29,11 @@ test("clients can be opened from the list and edited in a modal", () => {
 
   assert.match(workspace, /updatePlayerAction/);
   assert.match(workspace, /setEditingClient\(client\)/);
-  assert.match(workspace, /aria-label="Editar cliente"/);
+  assert.match(workspace, /<ClientWorkspaceDialog title="Editar cliente"/);
+  assert.match(workspace, /<Modal title=\{title\} open onClose=\{closeDialog\}/);
+  const modal = readFileSync(resolve(process.cwd(), "src/components/ui/modal.tsx"), "utf8");
+  assert.match(modal, /role="dialog"/);
+  assert.match(modal, /aria-labelledby=\{titleId\}/);
   assert.match(workspace, /Salvar alterações/);
 });
 

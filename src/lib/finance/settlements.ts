@@ -4,6 +4,7 @@ export type DebtBalance = {
 };
 
 export type PaymentAmount = {
+  bankAccountId?: string;
   paymentMethod: string;
   amountCents: number;
 };
@@ -29,6 +30,7 @@ export function allocatePaymentsToDebts(debts: DebtBalance[], payments: PaymentA
       const paidCents = Math.min(remainingCents, outstandingCents);
       if (paidCents > 0) {
         settlements.push({
+          ...payment,
           financialEntryId: debts[debtIndex].financialEntryId,
           paymentMethod: payment.paymentMethod,
           amountCents: paidCents
@@ -42,7 +44,7 @@ export function allocatePaymentsToDebts(debts: DebtBalance[], payments: PaymentA
       }
     }
     if (remainingCents > 0) {
-      remainingPayments.push({ paymentMethod: payment.paymentMethod, amountCents: remainingCents });
+      remainingPayments.push({ ...payment, amountCents: remainingCents });
     }
   }
 

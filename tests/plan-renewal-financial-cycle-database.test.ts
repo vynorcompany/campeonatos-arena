@@ -1,3 +1,4 @@
+import { requireReceivingBankAccount } from "../src/lib/finance/receiving-bank-account";
 import { arenaDatabaseForTest } from "./helpers/arena-database";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -27,12 +28,13 @@ test("renovação cria novo ciclo de 12 sem apagar mensalidades anteriores nem c
   runtimeUrl.username = "arena_runtime";
   runtimeUrl.password = "";
   const runtime = new PrismaClient({ datasources: { db: { url: runtimeUrl.toString() } } });
-  const ids: { plans: string[]; checkout?: string; player?: string; student?: string; betaStudent?: string; betaPlayer?: string } = { plans: [] };
+  const ids: { plans: string[]; checkout?: string; bank?: string; player?: string; student?: string; betaStudent?: string; betaPlayer?: string } = { plans: [] };
   let chargeAttempts = 0;
   try {
     const arenaA = await admin.arena.findUniqueOrThrow({ where: { slug: "arena-teste-goal" }, select: { id: true } });
     const arenaB = await admin.arena.findUniqueOrThrow({ where: { slug: "arena-beta-goal" }, select: { id: true } });
     const suffix = randomUUID();
+    ids.bank = (await admin.bankAccount.create({ data: { arenaId: arenaA.id, name: `Banco mensalidade ${suffix}` } })).id;
     for (const name of ["Principal", "Adicional"]) {
       const plan = await admin.plan.create({ data: { arenaId: arenaA.id, name: `Plano ${name} Renovação GOAL ${suffix}`, monthlyPriceCents: 30000, classesPerMonth: 4 }, select: { id: true } });
       ids.plans.push(plan.id);
@@ -48,6 +50,7 @@ test("renovação cria novo ciclo de 12 sem apagar mensalidades anteriores nem c
       "@/lib/auth/guards": { requirePermission: async () => ({ arenaId: arenaA.id }) },
       "@/lib/finance/action-schemas": { paymentSchema, subscriptionSchema },
       "@/lib/finance/inputs": { getReferenceMonthRange, parseDate, parseMoneyToCents },
+      "@/lib/finance/receiving-bank-account": { requireReceivingBankAccount },
       "@/lib/finance/ledger": { getFinancialEntryBalance },
       "@/lib/finance/recurrences": { getNextFinancialRecurrenceDate },
       "@/lib/academy/subscription-lock": { lockStudentPlanSubscription },
@@ -76,6 +79,7 @@ test("renovação cria novo ciclo de 12 sem apagar mensalidades anteriores nem c
     };
     const recordPayment = (subscriptionId: string, referenceMonth: string, amount = "") => {
       const form = new FormData();
+      form.set("bankAccountId", ids.bank!);
       form.set("subscriptionId", subscriptionId);
       form.set("referenceMonth", referenceMonth);
       form.set("amount", amount);
@@ -120,6 +124,8 @@ test("renovação cria novo ciclo de 12 sem apagar mensalidades anteriores nem c
     paidEntry = await admin.financialEntry.findUniqueOrThrow({ where: { id: oldEntries[0].id }, include: { settlements: true } });
     assert.equal(paidEntry.status, "PAID");
     assert.equal(paidEntry.settlements.length, 2);
+    assert.equal(paidEntry.bankAccountId, ids.bank);
+    assert.ok(paidEntry.settlements.every(settlement => settlement.bankAccountId === ids.bank));
     assert.equal(getFinancialEntryBalance(paidEntry.amountCents, paidEntry.settlements).outstandingCents, 0);
     assert.equal(await admin.financialEntry.count({ where: { arenaId: arenaA.id, planId: ids.plans[0], playerId: ids.player } }), 12);
     await assert.rejects(recordPayment(oldSubscription.id, referenceMonth), /já foi quitada/);
@@ -156,6 +162,7 @@ test("renovação cria novo ciclo de 12 sem apagar mensalidades anteriores nem c
     if (ids.betaStudent) await admin.student.delete({ where: { id: ids.betaStudent } });
     if (ids.betaPlayer) await admin.player.delete({ where: { id: ids.betaPlayer } });
     for (const planId of ids.plans) await admin.plan.delete({ where: { id: planId } });
+    if (ids.bank) await admin.bankAccount.delete({ where: { id: ids.bank } });
     await runtime.$disconnect();
     await admin.$disconnect();
   }

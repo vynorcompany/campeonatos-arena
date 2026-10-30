@@ -52,7 +52,10 @@ test("event quick actions keep category management in the category list", async 
   );
 
   assert.match(source, /EventQuickActions/);
-  assert.match(quickActions, /role="dialog"/);
+  assert.match(quickActions, /<Modal\s/);
+  const modal = await readSource("src", "components", "ui", "modal.tsx");
+  assert.match(modal, /role="dialog"/);
+  assert.match(modal, /createPortal/);
   assert.match(quickActions, /Configurar categorias/);
   assert.match(quickActions, /href=\{`\/torneios\/\$\{tournament\.id\}\/categorias`\}/);
   assert.doesNotMatch(quickActions, /TournamentCategoryManagerForm/);

@@ -1,10 +1,9 @@
 "use client";
-import { fixedDialogFrame } from "@/components/ui/dialog-frame";
+import { Modal } from "@/components/ui/modal";
 
 import { viewStyles } from "./league-match-result-dialog.utilities";
 
-import { useState } from "react";
-import { useFormState } from "react-dom";
+import { useActionState, useCallback, useState } from "react";
 import { recordCategoryLeagueMatchResultAction } from "@/lib/actions/category-competition";
 import { initialLeagueMatchResultActionState } from "@/lib/actions/league-match-result-state";
 
@@ -17,7 +16,7 @@ type Match = {
 const sets = [["homeSet1", "awaySet1", "Set 1"], ["homeSet2", "awaySet2", "Set 2"], ["homeSet3", "awaySet3", "Set 3"]] as const;
 
 function LeagueMatchResultForm({ match, onClose }: { match: Match; onClose: () => void }) {
-  const [state, formAction] = useFormState(
+  const [state, formAction] = useActionState(
     recordCategoryLeagueMatchResultAction,
     initialLeagueMatchResultActionState,
   );
@@ -32,24 +31,22 @@ function LeagueMatchResultForm({ match, onClose }: { match: Match; onClose: () =
         <strong>{match.awayPair?.name ?? "A definir"}</strong>{sets.map(([, away, label]) => <input key={away} name={away} type="number" min="0" defaultValue={match[away] ?? ""} aria-label={`${label} de ${match.awayPair?.name ?? "visitante"}`} />)}
       </div>
       <p className={viewStyles.muted}>Informe os dois primeiros sets. O terceiro é usado apenas no desempate.</p>
-      <div className="field-inline"><button type="button" className={viewStyles.button} onClick={onClose}>Cancelar</button><button className={viewStyles.button_button_primary} type="submit">Salvar resultado</button></div>
+      <div className="tw:flex tw:flex-wrap tw:justify-end tw:gap-2 tw:border-t tw:border-[var(--line)] tw:pt-3"><button type="button" className={viewStyles.button} onClick={onClose}>Cancelar</button><button className={viewStyles.button_button_primary} type="submit">Salvar resultado</button></div>
     </form>
   );
 }
 
 export function LeagueMatchResultDialog({ match }: { match: Match }) {
   const [open, setOpen] = useState(false);
+  const closeDialog = useCallback(() => setOpen(false), []);
   return (
     <>
       <button type="button" className={viewStyles.category_league_result_trigger} onClick={() => setOpen(true)}>
         {match.homeSet1 == null ? "Registrar sets" : `${match.homeSet1}–${match.awaySet1} · ${match.homeSet2}–${match.awaySet2}${match.homeSet3 != null ? ` · ${match.homeSet3}–${match.awaySet3}` : ""}`}
       </button>
-      {open ? <div className={viewStyles.league_score_backdrop} role="presentation" onMouseDown={() => setOpen(false)}>
-        <section className={[viewStyles.league_score_dialog, fixedDialogFrame].join(" ")} role="dialog" aria-modal="true" aria-label={`Resultado de ${match.label}`} onMouseDown={(event) => event.stopPropagation()}>
-          <header><div><p className={viewStyles.eyebrow}>Liga</p><h3>{match.label}</h3></div><button type="button" className={viewStyles.button} onClick={() => setOpen(false)}>Fechar</button></header>
+      {open ? <Modal title={`Resultado de ${match.label}`} open onClose={closeDialog} width="tw:max-w-[640px]">
           <LeagueMatchResultForm match={match} onClose={() => setOpen(false)} />
-        </section>
-      </div> : null}
+      </Modal> : null}
     </>
   );
 }

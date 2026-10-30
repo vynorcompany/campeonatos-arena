@@ -87,9 +87,9 @@ function RankingLeaderboard({
     <>
       <div className="tw:hidden tw:viewport-680:grid tw:gap-3" aria-label="Classificação">
         {rows.map((row) => (
-          <article key={row.key} className="tw:min-w-0 tw:rounded-xl tw:border tw:border-[#d9e5f1] tw:bg-[#f8fbff] tw:p-3">
+          <article key={row.key} className="tw:min-w-0 tw:rounded-xl tw:border tw:border-[#d9e5f1] tw:bg-white tw:p-3">
             <div className="tw:flex tw:min-w-0 tw:items-start tw:gap-3">
-              <span className="tw:grid tw:size-9 tw:shrink-0 tw:place-items-center tw:rounded-lg tw:bg-[#e8f1fc] tw:text-sm tw:font-bold tw:text-[#15599e]">#{row.position}</span>
+              <span className="tw:grid tw:size-9 tw:shrink-0 tw:place-items-center tw:rounded-lg tw:bg-[#174983] tw:text-sm tw:font-bold tw:text-white">#{row.position}</span>
               <strong className="tw:min-w-0 tw:flex-1 tw:break-words tw:text-sm tw:leading-snug tw:text-[#102b50]">{row.name}</strong>
               <span className="tw:shrink-0 tw:text-sm tw:font-bold tw:text-[#15599e]">{row.points} pts</span>
             </div>
@@ -189,12 +189,9 @@ export default async function RankingDetailPage(props: RankingDetailPageProps) {
 
   return (
     <div className={viewStyles.stack_md_ranking_detail_page}>
-      <header className={viewStyles.page_header_ranking_detail_header}>
-        <div className={viewStyles.ranking_detail_identity}><span>RANKING</span><h1>{ranking.name}</h1><p>{ranking.type === "PAIR" ? "Duplas" : "Individual"} · {ranking.model === "LEAGUE" ? "Liga" : "Mata-mata"}</p></div>
-        <div className={viewStyles.section_actions}>
+      <header className="tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:justify-end tw:gap-2"><h1 className="tw:sr-only">{ranking.name}</h1><div className={viewStyles.section_actions}>
           <Link href="/torneios/rankings" className={viewStyles.button}>Voltar aos rankings</Link>
-        </div>
-      </header>
+        </div></header>
 
       <RankingWorkspaceTabs
         rankingId={ranking.id}
@@ -203,7 +200,7 @@ export default async function RankingDetailPage(props: RankingDetailPageProps) {
         periodQuery={periodQuery}
       />
 
-      <section className={viewStyles.section_card_ranking_detail_period} aria-label="Período do ranking">
+      {tab === "classificacao" || tab === "uso" ? <section className={viewStyles.section_card_ranking_detail_period} aria-label="Período do ranking">
         <div className={viewStyles.stack_xs}>
           <strong>Período</strong>
           {ranking.period.mode === "custom" || ranking.period.mode === "cycle"
@@ -255,7 +252,7 @@ export default async function RankingDetailPage(props: RankingDetailPageProps) {
         ) : null}
 
         {ranking.period.mode === "cycle" ? (
-          <div className="stack-sm">
+          <div className="tw:grid tw:gap-3">
             <form method="get" className={viewStyles.inline_form}>
               <input type="hidden" name="tab" value={tab} />
               <input type="hidden" name="period" value="cycle" />
@@ -277,7 +274,7 @@ export default async function RankingDetailPage(props: RankingDetailPageProps) {
               <summary className={viewStyles.button}>Novo ciclo</summary>
               <SafeActionForm
                 action={createRankingCycleAction}
-                className="form-grid compact-form"
+                className="tw:mt-3 tw:grid tw:grid-cols-[repeat(2,minmax(0,1fr))] tw:gap-3 tw:viewport-680:grid-cols-1"
                 resetOnSuccess
                 successMessage="Ciclo criado com sucesso."
               >
@@ -303,7 +300,7 @@ export default async function RankingDetailPage(props: RankingDetailPageProps) {
         ) : null}
 
         {ranking.period.error ? <p className={viewStyles.form_error} role="alert">{ranking.period.error}</p> : null}
-      </section>
+      </section> : null}
 
       {tab === "configuracao" ? (
         <RankingConfigurationForm ranking={ranking} formatLocked={formatLocked} />
@@ -311,7 +308,7 @@ export default async function RankingDetailPage(props: RankingDetailPageProps) {
 
       {tab === "pontuacao" ? (
         <div className={viewStyles.stack_md}>
-          <SectionCard title="Regras de pontuação" description="Defina os pontos para cada posição compatível com o modelo deste ranking.">
+          <SectionCard title="Regras de pontuação" description="Defina os pontos para cada posição compatível com o modelo deste ranking." hideHeading>
             <RankingPointsForm ranking={ranking} />
           </SectionCard>
           <SafeActionForm
@@ -323,7 +320,7 @@ export default async function RankingDetailPage(props: RankingDetailPageProps) {
           >
             <input type="hidden" name="rankingId" value={ranking.id} />
             <div>
-              <h3>Iniciar novo ciclo</h3>
+              <h3 className="tw:sr-only">Iniciar novo ciclo</h3>
               <p className={viewStyles.muted}>O ciclo atual será encerrado e a próxima pontuação começará do zero.</p>
             </div>
             <div className={viewStyles.section_actions}>
@@ -334,21 +331,22 @@ export default async function RankingDetailPage(props: RankingDetailPageProps) {
       ) : null}
 
       {tab === "classificacao" ? (
-        <SectionCard title="Classificação" description={`Pontuação acumulada em ${ranking.period.label.toLowerCase()}.`}>
+        <SectionCard className="tw:p-0!" title="Classificação" description={`Pontuação acumulada em ${ranking.period.label.toLowerCase()}.`} hideHeading>
           <RankingLeaderboard ranking={ranking} />
         </SectionCard>
       ) : null}
 
       {tab === "uso" ? (
         <div className={viewStyles.stack_md}>
-          <SectionCard title="Categorias vinculadas" description="Categorias que usaram este ranking no período selecionado.">
+          <SectionCard className="tw:p-0!" title="Categorias vinculadas" description="Categorias que usaram este ranking no período selecionado." hideHeading>
             {categoryCompetitions.length ? (
               <div className={viewStyles.simple_list}>
+                <div className="tw:bg-[#174983] tw:px-3 tw:py-2 tw:text-xs tw:text-white">Categorias vinculadas</div>
                 {categoryCompetitions.map((competition) => (
                   <div className={viewStyles.simple_item} key={competition.id}>
                     <div>
                       <strong>{competition.category.tournament.name} · {competition.category.name}</strong>
-                      <span>{competition.format === "LEAGUE" ? "Liga" : "Mata-mata"} · {competition.status}</span>
+                      <span>{competition.format === "LEAGUE" ? "Liga" : "Mata-mata"} · {formatTournamentStatus(competition.status)}</span>
                     </div>
                     <Link href={`/torneios/${competition.category.tournament.id}`} className={viewStyles.button}>Ver torneio</Link>
                   </div>
@@ -356,9 +354,10 @@ export default async function RankingDetailPage(props: RankingDetailPageProps) {
               </div>
             ) : <p className={viewStyles.muted}>Nenhuma categoria vinculada neste período.</p>}
           </SectionCard>
-          <SectionCard title="Torneios do período" description="Eventos que contribuem para a classificação selecionada.">
+          <SectionCard className="tw:p-0!" title="Torneios do período" description="Eventos que contribuem para a classificação selecionada." hideHeading>
             {ranking.tournaments.length ? (
               <div className={viewStyles.simple_list}>
+                <div className="tw:bg-[#174983] tw:px-3 tw:py-2 tw:text-xs tw:text-white">Torneios do período</div>
                 {ranking.tournaments.map((tournament) => (
                   <div className={viewStyles.simple_item} key={tournament.id}>
                     <div>

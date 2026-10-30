@@ -1,3 +1,4 @@
+import { recordTournamentRegistrationReceipt } from "@/lib/tournaments/registration-receipt";
 import { readBoundedJson, RequestBodyTooLargeError } from "@/lib/http/json-body";
 import { NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
@@ -101,7 +102,7 @@ export async function POST(request: Request) {
         // Outras formas de quitação também escrevem no lançamento. Leia saldos
         // somente depois de obter os bloqueios, sempre na mesma ordem.
         await tx.$queryRaw`SELECT "id" FROM "FinancialEntry" WHERE "arenaId" = ${checkout!.arenaId} AND "id" IN (SELECT "financialEntryId" FROM "OnlinePaymentCheckoutItem" WHERE "checkoutId" = ${checkout!.id}) ORDER BY "id" FOR UPDATE`;
-        const current = await tx.onlinePaymentCheckout.findFirst({ where: { id: checkout!.id, arenaId: checkout!.arenaId }, include: { items: { include: { financialEntry: { include: { settlements: { select: { amountCents: true, interestCents: true, discountCents: true } } } } } } } });
+        const current = await tx.onlinePaymentCheckout.findFirst({ where: { id: checkout!.id, arenaId: checkout!.arenaId }, include: { items: { include: { financialEntry: { include: { settlements: { select: { amountCents: true, interestCents: true, discountCents: true, bankAccountId: true } } } } } } } });
         if (!current) return;
         if (!approved) {
           const requiresReview = ["refunded", "charged_back"].includes(providerStatus);
@@ -132,7 +133,7 @@ export async function POST(request: Request) {
         }
         if (current.bankAccountId) {
           const bank = await tx.bankAccount.findFirst({ where: { id: current.bankAccountId, arenaId: current.arenaId }, select: { id: true } });
-          if (!bank || current.items.some(item => item.financialEntry.settlements.length > 0 && item.financialEntry.bankAccountId !== current.bankAccountId)) {
+          if (!bank || current.items.some(item => item.financialEntry.settlements.some(settlement => !settlement.bankAccountId) && item.financialEntry.bankAccountId !== current.bankAccountId)) {
             await tx.onlinePaymentCheckout.update({ where: { id: current.id }, data: { status: "REVIEW", mercadoPagoPaymentId: String(payment.id ?? paymentId) } });
             await tx.arenaNotification.create({ data: { arenaId: current.arenaId, type: "ONLINE_PAYMENT_REVIEW", title: "Conta de recebimento exige conferência", message: `A conta do checkout ${current.id} não corresponde aos recebimentos já registrados. Confira o pagamento antes de baixar ou reclassificar os lançamentos.`, href: "/relatorios/pagamentos-online" } });
             return;
@@ -147,9 +148,9 @@ export async function POST(request: Request) {
           const balance = getFinancialEntryBalance(entry.amountCents, entry.settlements, entry.status);
           const amountCents = Math.min(item.amountCents, balance.outstandingCents);
           if (!amountCents) continue;
-          await tx.financialSettlement.create({ data: { arenaId: current.arenaId, financialEntryId: entry.id, amountCents, paymentMethod: "Mercado Pago online", paidAt, notes: `Pagamento agrupado Mercado Pago confirmado (${String(payment.id ?? paymentId)}).` } });
+          await tx.financialSettlement.create({ data: { arenaId: current.arenaId, financialEntryId: entry.id, bankAccountId: current.bankAccountId ?? entry.bankAccountId, amountCents, paymentMethod: "Mercado Pago online", paidAt, notes: `Pagamento agrupado Mercado Pago confirmado (${String(payment.id ?? paymentId)}).` } });
           if (entry.category === "COMANDAS" && entry.saleId) {
-            await tx.salePayment.create({ data: { saleId: entry.saleId, amountCents, paymentMethod: "Mercado Pago online" } });
+            await tx.salePayment.create({ data: { saleId: entry.saleId, bankAccountId: current.bankAccountId ?? entry.bankAccountId, amountCents, paymentMethod: "Mercado Pago online" } });
             settledComandaSaleIds.add(entry.saleId);
           }
           const remaining = balance.outstandingCents - amountCents;
@@ -240,6 +241,7 @@ export async function POST(request: Request) {
           const financialEntry = await tx.financialEntry.create({
             data: {
               arenaId,
+              bankAccountId: occurrence.paymentBankAccountId ?? null,
               type: "REVENUE",
               category: duplicatePayment ? "Pagamento duplicado" : amountMismatch ? "Pagamento divergente" : "Reserva",
               description: `${duplicatePayment ? "Pagamento duplicado de reserva online" : amountMismatch ? "Pagamento divergente de reserva online" : "Reserva online"} · ${courtName}`,
@@ -261,7 +263,10 @@ export async function POST(request: Request) {
                 : `Reserva online paga via Mercado Pago (${String(payment.id ?? paymentId)}).`
             }
           });
-          await tx.financialSettlement.create({ data: { arenaId, financialEntryId: financialEntry.id, amountCents: receivedAmountCents, paymentMethod: "Mercado Pago online", paidAt, notes: `Pagamento online Mercado Pago confirmado (${String(payment.id ?? paymentId)}).` } });
+          await tx.financialSettlement.create({ data: { arenaId, financialEntryId: financialEntry.id, bankAccountId: occurrence.paymentBankAccountId ?? null, amountCents: receivedAmountCents, paymentMethod: "Mercado Pago online", paidAt, notes: `Pagamento online Mercado Pago confirmado (${String(payment.id ?? paymentId)}).` } });
+          if (!occurrence.paymentBankAccountId) {
+            await tx.arenaNotification.create({ data: { arenaId, type: "ONLINE_BOOKING_BANK_REVIEW", title: "Conta bancária do recebimento pendente", message: `O pagamento da reserva em ${courtName} foi registrado, mas a cobrança antiga não informa a conta bancária. Confira o recebimento ${financialEntry.id} antes da conciliação.`, href: "/financeiro/contas-a-receber" } });
+          }
           if (duplicatePayment || amountMismatch) {
             await tx.arenaNotification.create({ data: { arenaId, type: "ONLINE_BOOKING_PAYMENT_REVIEW", title: duplicatePayment ? "Pagamento duplicado de reserva" : "Valor de pagamento divergente", message: duplicatePayment ? `Uma segunda cobrança foi paga para a reserva em ${courtName}. Confira o lançamento e providencie o reembolso.` : `O valor pago pela reserva em ${courtName} difere do esperado. A reserva não foi confirmada; verifique o lançamento e o atendimento/reembolso.`, href: "/financeiro/contas-a-receber" } });
             await tx.playerNotification.createMany({ data: [{ playerId: participant.player.id, type: "ONLINE_BOOKING_PAYMENT_REVIEW", title: duplicatePayment ? "Pagamento duplicado em análise" : "Pagamento em análise", message: duplicatePayment ? "Identificamos um segundo pagamento para a mesma reserva. A arena verificará o reembolso." : "Recebemos seu pagamento, mas o valor difere do esperado. A arena verificará sua reserva ou o reembolso.", href: `/home?arena=${encodeURIComponent(occurrence.arena.slug)}&section=booking` }] });
@@ -293,7 +298,7 @@ export async function POST(request: Request) {
         await tx.$queryRaw`SELECT "id" FROM "FinancialEntry" WHERE "id" = ${entry.id} AND "arenaId" = ${entry.arenaId} FOR UPDATE`;
         const current = await tx.financialEntry.findFirst({
           where: { id: entry.id, arenaId: entry.arenaId },
-          include: { settlements: { select: { amountCents: true, interestCents: true, discountCents: true } } }
+          include: { settlements: { select: { amountCents: true, interestCents: true, discountCents: true, bankAccountId: true } } }
         });
         const providerStatus = String(payment.status ?? "").toLowerCase();
         if (current?.status === "PAID" && ["refunded", "charged_back"].includes(providerStatus)) {
@@ -332,6 +337,7 @@ export async function POST(request: Request) {
             financialEntryId: current.id,
             amountCents: expectedAmountCents,
             discountCents,
+            bankAccountId: current.bankAccountId,
             interestCents,
             paymentMethod: current.onlinePaymentUrl ? "Mercado Pago online" : "Mercado Pago",
             paidAt: new Date(),
@@ -357,7 +363,7 @@ export async function POST(request: Request) {
     const approved = payment.status === "approved";
     await withArenaTransaction(registration.tournament.arenaId, async (tx) => {
       await tx.$queryRaw`SELECT "id" FROM "PublicTournamentRegistration" WHERE "id" = ${registration.id} AND "tournamentId" = ${registration.tournament.id} FOR UPDATE`;
-      const current = await tx.publicTournamentRegistration.findFirst({ where: { id: registration.id, tournamentId: registration.tournament.id }, select: { paymentStatus: true, status: true, amountCents: true, holdExpiresAt: true, mercadoPagoPaymentId: true, paymentProvider: true, paymentReference: true, paymentQrCode: true, paymentCheckoutUrl: true } });
+      const current = await tx.publicTournamentRegistration.findFirst({ where: { id: registration.id, tournamentId: registration.tournament.id }, select: { paymentBankAccountId: true, paymentStatus: true, status: true, amountCents: true, holdExpiresAt: true, mercadoPagoPaymentId: true, paymentProvider: true, paymentReference: true, paymentQrCode: true, paymentCheckoutUrl: true } });
       const legacyCheckoutPreference = current?.paymentStatus === "PENDING"
         && current.paymentProvider === "MERCADO_PAGO"
         && current.paymentReference === current.mercadoPagoPaymentId
@@ -413,6 +419,20 @@ export async function POST(request: Request) {
       });
 
       if (approved) {
+        await recordTournamentRegistrationReceipt(tx, {
+          arenaId: registration.tournament.arenaId, registrationId: registration.id,
+          bankAccountId: current.paymentBankAccountId ?? null, amountCents: current.amountCents,
+          leadName: registration.leadName, partnerName: registration.partnerName,
+          paymentMethod: "Mercado Pago online", paidAt: payment.date_approved ? new Date(payment.date_approved) : new Date(),
+        });
+        if (!current.paymentBankAccountId) {
+          await tx.arenaNotification.create({ data: {
+            arenaId: registration.tournament.arenaId, type: "ONLINE_REGISTRATION_BANK_REVIEW",
+            title: "Conta bancária da inscrição pendente",
+            message: `A inscrição ${registration.id} recebeu pagamento de uma cobrança antiga sem conta bancária definida. Concilie o recebimento no financeiro.`,
+            href: "/financeiro/contas-a-receber",
+          } });
+        }
         await ensureTournamentPairFromRegistration(tx, {
           arenaId: registration.tournament.arenaId,
           tournamentId: registration.tournament.id,

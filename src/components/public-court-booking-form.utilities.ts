@@ -60,7 +60,7 @@ export const viewStyles = {
     "public-booking-court-picker tw:col-span-full tw:grid tw:gap-2 tw:[&>strong]:text-xs tw:[&>strong]:text-[var(--portal-muted)] tw:min-w-0",
   ].join(" "),
   "public_booking_court_card": [
-    "public-booking-court-card tw:flex tw:min-h-16 tw:w-52 tw:shrink-0 tw:snap-start tw:select-none tw:min-w-0 tw:cursor-pointer tw:items-center tw:gap-2 tw:rounded-xl tw:border tw:border-l-[3px] tw:border-[var(--portal-line)] tw:bg-[var(--portal-surface)] tw:px-3 tw:py-2 tw:text-left tw:text-[var(--portal-ink)] tw:[&_i]:size-1.5 tw:[&_i]:shrink-0 tw:[&_i]:rounded-full tw:[&_span]:min-w-0 tw:[&_span]:break-words tw:[&_span]:text-xs tw:[&_span]:font-semibold tw:[&_small]:hidden tw:[&.is-active]:ring-2 tw:[&.is-active]:ring-[#07408f] tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#07408f]",
+    "public-booking-court-card tw:flex tw:min-h-16 tw:w-52 tw:shrink-0 tw:snap-start tw:select-none tw:min-w-0 tw:cursor-pointer tw:items-center tw:gap-2 tw:rounded-xl tw:border tw:border-l-[3px] tw:border-[var(--portal-line)] tw:bg-[var(--portal-surface)] tw:px-3 tw:py-2 tw:text-left tw:text-[var(--portal-ink)] tw:[&_i]:size-1.5 tw:[&_i]:shrink-0 tw:[&_i]:rounded-full tw:[&_span]:min-w-0 tw:[&_span]:break-words tw:[&_span]:text-xs tw:[&_span]:font-semibold tw:[&_small]:hidden tw:[&.is-active]:bg-[#174983]! tw:[&.is-active]:text-white! tw:[&.is-active]:ring-2 tw:[&.is-active]:ring-[#07408f] tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#07408f]",
   ].join(" "),
   "field": sharedUtilities.field,
   "public_booking_slot_blocks": [
@@ -81,16 +81,8 @@ export const viewStyles = {
     "tw:hover:border-r-[color:var(--portal-line,#083677)]", "tw:hover:border-b-[color:var(--portal-line,#083677)]", "tw:hover:border-l-[color:var(--portal-line,#083677)]", "tw:hover:bg-[color:var(--portal-soft,#dfe9f7)]",
     "tw:hover:[background-image:none]", "tw:hover:text-[color:var(--portal-accent,#072b5d)]", "tw:hover:[box-shadow:var(--portal-shadow,0_3px_16px_rgb(21_60_44_/_0.04))]",
   ].join(" "),
-  "public_booking_slot_block_selected": [
-    "public-booking-slot-block-selected", "tw:border-t-[color:var(--portal-line,#1d4d90)]", "tw:border-r-[color:var(--portal-line,#1d4d90)]", "tw:border-b-[color:var(--portal-line,#1d4d90)]",
-    "tw:border-l-[color:var(--portal-line,#1d4d90)]", "tw:bg-[color:var(--portal-soft,#ecf2fb)]", "tw:[background-image:none]", "tw:text-[color:var(--portal-accent,#072b5d)]",
-    "tw:[box-shadow:var(--portal-shadow,0_3px_16px_rgb(21_60_44_/_0.04))]",
-  ].join(" "),
-  "public_booking_slot_block_active": [
-    "public-booking-slot-block-active", "tw:border-t-[color:var(--portal-line,#083677)]", "tw:border-r-[color:var(--portal-line,#083677)]", "tw:border-b-[color:var(--portal-line,#083677)]",
-    "tw:border-l-[color:var(--portal-line,#083677)]", "tw:bg-[color:var(--portal-soft,#dfe9f7)]", "tw:[background-image:none]", "tw:text-[color:var(--portal-accent,#072b5d)]",
-    "tw:[box-shadow:var(--portal-shadow,0_3px_16px_rgb(21_60_44_/_0.04))]",
-  ].join(" "),
+  "public_booking_slot_block_selected": "public-booking-slot-block-selected tw:border-[#174983]! tw:bg-[#174983]! tw:text-white! tw:[&_small]:text-white! tw:ring-2 tw:ring-[#174983] tw:ring-offset-1",
+  "public_booking_slot_block_active": "public-booking-slot-block-active tw:border-[#174983]! tw:bg-[#174983]! tw:text-white! tw:[&_small]:text-white! tw:ring-2 tw:ring-[#174983] tw:ring-offset-1",
   "public_booking_slot_block_public_booking_slot_block_conflict": [
     "public-booking-slot-block", "public-booking-slot-block-conflict", "tw:grid", "tw:gap-y-[2px]",
     "tw:gap-x-[2px]", "tw:min-w-[78px]", "tw:viewport-720:min-w-[0]", "tw:pt-[8px]",
@@ -144,7 +136,7 @@ export const viewStyles = {
     "tw:[&_span]:tracking-[.08em]", "tw:[&_strong]:text-[color:var(--portal-accent,#072652)]", "tw:[&_strong]:text-[.9rem]", "tw:[&_small]:text-[color:var(--portal-accent,#556273)]",
     "tw:[&_small]:text-[.71rem]", "tw:viewport-680:flex-col",
     "tw:col-span-full tw:min-w-0 tw:flex-wrap tw:gap-4 tw:[&>div]:min-w-0 tw:[&>div:last-child]:max-w-full tw:[&>div:last-child]:shrink-0"].join(" "),
-  "public_booking_total": "public-booking-total tw:min-w-0 tw:rounded-xl tw:border-2 tw:border-blue-600 tw:bg-blue-50 tw:p-4 tw:text-right tw:text-blue-950 tw:[&_strong]:text-2xl! tw:[&_strong]:font-bold! tw:dark:border-blue-500 tw:dark:bg-blue-950 tw:dark:text-blue-50",
+  "public_booking_total": "public-booking-total tw:min-w-0 tw:rounded-xl tw:border-2 tw:border-[#174983] tw:bg-[#174983] tw:p-4 tw:text-right tw:text-white tw:[&.public-booking-total_span]:text-white! tw:[&.public-booking-total_strong]:text-white! tw:[&_strong]:text-2xl! tw:[&_strong]:font-bold!",
   "public_booking_pending": [
     "public-booking-pending", "tw:[grid-column:1_/_-1]", "tw:grid", "tw:gap-y-[3px]",
     "tw:gap-x-[12px]", "tw:pt-[10px]", "tw:pr-[12px]", "tw:pb-[10px]",

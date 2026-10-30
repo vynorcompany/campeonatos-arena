@@ -1,6 +1,8 @@
 "use server";
+import { servicePermitsDuration } from "@/lib/calendar/service-booking-rules";
 
 import { lockAvailableBookingServices, BookingServiceUnavailableError } from "@/lib/calendar/booking-services";
+import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
 import { arenaDatabase } from "@/lib/arena-database";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -122,6 +124,8 @@ const courtBookingSchema = z.object({
 type CourtBookingActionResult = { error?: string };
 const visibleCourtBookingErrors = new Set([
   "Dados inválidos.",
+  "Selecione a conta bancária do recebimento.",
+  "Selecione uma conta bancária ativa desta arena.",
   "Data e hora invalidas.",
   "Participantes inválidos.",
   "Selecione pelo menos um cliente antes de salvar a reserva.",
@@ -204,7 +208,7 @@ export async function createPublicCourtBookingAction(formData: FormData): Promis
   const endsAtMinute = endsAt.getHours() * 60 + endsAt.getMinutes();
   const court = await arenaDatabase(arena.id).court.findFirst({ where: { id: parsed.data.courtId, arenaId: arena.id, active: true }, include: { weeklyRules: true } });
   if (!court) throw new Error("Quadra não encontrada.");
-  if (!court.onlineDurationMinutes.includes(parsed.data.durationMinutes)) throw new Error("Esta duração não está disponível para reserva online.");
+
   if (!isCourtBookingStartOnGrid(startsAtMinute, arena.scheduleStartMinute, arena.scheduleEndMinute, court.onlineSlotMinutes)) throw new Error("Este horário não pertence à grade de reservas da quadra.");
   if (parsed.data.durationMinutes % court.onlineSlotMinutes !== 0) throw new Error("A duração deve respeitar o intervalo configurado para a quadra.");
   const bookingAmountCents = calculateCourtIntervalPrice({ startsAtMinute, durationMinutes: parsed.data.durationMinutes, intervalMinutes: court.onlineSlotMinutes, weekday: startsAt.getDay(), rules: court.weeklyRules });
@@ -231,7 +235,8 @@ export async function createPublicCourtBookingAction(formData: FormData): Promis
         if (existing) throw new PublicBookingConflictError("Este confronto já possui uma reserva. Consulte a equipe para alterá-la.");
         matchBooking = { id: match.id, title: `${match.homePair.name} × ${match.awayPair.name}`, playerIds };
       }
-      const services = parsed.data.serviceIds.length ? await lockAvailableBookingServices(tx, arena.id, parsed.data.serviceIds, startsAt, endsAt) : [];
+      const services = parsed.data.serviceIds.length ? await lockAvailableBookingServices(tx, arena.id, parsed.data.serviceIds, startsAt, endsAt, { courtIds: [court.id] }) : [];
+      if (parsed.data.durationMinutes > Math.max(...court.onlineDurationMinutes) || !servicePermitsDuration(court.onlineDurationMinutes, parsed.data.durationMinutes, services, court.id, startsAt.getDay(), startsAtMinute, court.onlineSlotMinutes)) throw new PublicBookingConflictError("Esta duração exige um serviço compatível selecionado. Confira as condições da reserva.");
       const totalAmountCents = bookingAmountCents + services.reduce((sum, service) => sum + service.priceCents, 0);
       if (!Number.isSafeInteger(totalAmountCents) || totalAmountCents > 2_147_483_647) throw new PublicBookingConflictError("O valor total da reserva está acima do limite permitido.");
       if ((services.length && parsed.data.quotedTotalCents === undefined) || (parsed.data.quotedTotalCents !== undefined && parsed.data.quotedTotalCents !== totalAmountCents)) throw new PublicBookingConflictError("O valor da reserva foi atualizado. Atualize a página e confira os valores antes de reservar.");
@@ -241,7 +246,7 @@ export async function createPublicCourtBookingAction(formData: FormData): Promis
       const delinquency = await getBookingDelinquency(tx, arena.id, player.id, arena.onlineBookingOverdueBlockDays);
       if (delinquency.blocked) throw new PublicBookingConflictError(delinquency.requiresReview ? `Entre em contato com a recepção para revisar seu cadastro antes de reservar. Protocolo: ${delinquency.reviewReference}.` : "Há pagamentos em atraso. Regularize suas pendências na área financeira para voltar a reservar.");
       if (requiresPayment && !player.email) throw new Error("Informe seu e-mail no perfil para continuar com o pagamento online.");
-      const occurrence = await tx.scheduleOccurrence.create({ data: { arenaId: arena.id, sourceType: "ONLINE_BOOKING", responsiblePlayerId: player.id, categoryMatchId: matchBooking?.id, title: matchBooking?.title ?? `${player.name} - Reserva`, startsAt, endsAt, status: requiresPayment ? "PENDING_PAYMENT" : arena.onlineBookingRequiresConfirmation ? "PENDING_CONFIRMATION" : "SCHEDULED", bookingTypeName: "Reserva", occurrenceCourts: { create: { courtId: court.id } }, participants: { create: (matchBooking?.playerIds ?? [player.id]).map(playerId => ({ playerId, amountCents: playerId === player.id ? totalAmountCents : 0 })) }, ...(services.length ? { serviceReservations: { create: services } } : {}) } });
+      const occurrence = await tx.scheduleOccurrence.create({ data: { arenaId: arena.id, sourceType: "ONLINE_BOOKING", responsiblePlayerId: player.id, categoryMatchId: matchBooking?.id, title: matchBooking?.title ?? `${player.name} - Reserva`, startsAt, endsAt, status: requiresPayment ? "PENDING_PAYMENT" : arena.onlineBookingRequiresConfirmation ? "PENDING_CONFIRMATION" : "SCHEDULED", bookingTypeName: "Reserva", occurrenceCourts: { create: { courtId: court.id } }, participants: { create: (matchBooking?.playerIds ?? [player.id]).map(playerId => ({ playerId, amountCents: playerId === player.id ? totalAmountCents : 0 })) }, ...(services.length ? { serviceReservations: { create: services.map(({ rules: _rules, ...service }) => service) } } : {}) } });
       const localDate = `${startsAt.getFullYear()}-${String(startsAt.getMonth() + 1).padStart(2, "0")}-${String(startsAt.getDate()).padStart(2, "0")}`;
       await tx.arenaNotification.create({ data: { arenaId: arena.id, title: requiresPayment ? "Reserva aguardando pagamento" : arena.onlineBookingRequiresConfirmation ? "Reserva aguardando confirmação" : "Nova reserva online", message: `${player.name} solicitou ${court.name} às ${String(startsAt.getHours()).padStart(2, "0")}:${String(startsAt.getMinutes()).padStart(2, "0")}.`, href: `/agenda?data=${localDate}`, type: "ONLINE_BOOKING" } });
       return { occurrenceId: occurrence.id, playerEmail: player.email };
@@ -422,6 +427,7 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
     ? expandWeeklyOccurrences({ startsAt, endsAt, until: repeatUntil })
     : [{ startsAt, endsAt }];
   const participants = parseBookingParticipants(parsed.data.participants);
+  if (participants.some(participant => participant.amountCents > 0 && participant.paymentMethod)) await requirePermission("finance:receivable:settle");
   if (!participants.length) throw new Error("Selecione pelo menos um cliente antes de salvar a reserva.");
   const responsiblePlayerId = parsed.data.responsiblePlayerId || participants[0]?.playerId || "";
   if (!participants.some((participant) => participant.playerId === responsiblePlayerId)) throw new Error("Selecione um participante como responsável pela reserva.");
@@ -445,6 +451,10 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
   const notificationDates: string[] = [];
   const unpaidParticipantNames = new Set<string>();
   await withArenaTransaction(auth.arenaId, async (tx) => {
+    const receivingAccounts = new Map<string, string>();
+    for (const participant of participants) {
+      if (participant.amountCents > 0 && participant.paymentMethod && participant.paymentMethod !== "CREDIT_BALANCE") receivingAccounts.set(participant.playerId, await requireReceivingBankAccount(tx, auth.arenaId, participant.bankAccountId));
+    }
     for (const courtId of [...courtIds].sort()) {
       const lockedCourt = await tx.$queryRaw<{ id: string }[]>`SELECT "id" FROM "Court" WHERE "id" = ${courtId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
       if (!lockedCourt.length) throw new Error("Quadra não encontrada.");
@@ -452,7 +462,7 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
     if (parsed.data.occurrenceId) {
       await assertCourtBookingMayBeEdited(tx, auth.arenaId, parsed.data.occurrenceId);
       const attachedServices = await tx.scheduleServiceReservation.findMany({ where: { arenaId: auth.arenaId, occurrenceId: parsed.data.occurrenceId }, select: { productId: true } });
-      if (attachedServices.length) await lockAvailableBookingServices(tx, auth.arenaId, attachedServices.map(service => service.productId), startsAt, endsAt, { excludeOccurrenceId: parsed.data.occurrenceId, requireVisible: false });
+      if (attachedServices.length) await lockAvailableBookingServices(tx, auth.arenaId, attachedServices.map(service => service.productId), startsAt, endsAt, { excludeOccurrenceId: parsed.data.occurrenceId, requireVisible: false, courtIds });
     }
     const conflict = await tx.scheduleOccurrence.findFirst({ where: {
       arenaId: auth.arenaId, id: parsed.data.occurrenceId ? { not: parsed.data.occurrenceId } : undefined,
@@ -467,7 +477,7 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
         return Promise.all(occurrenceTimes.map((occurrence) => tx.scheduleOccurrence.create({ data: { arenaId: auth.arenaId, sourceType: "BOOKING", bookingSeriesId: series?.id, title: bookingTitle, startsAt: occurrence.startsAt, endsAt: occurrence.endsAt, bookingTypeName: parsed.data.bookingTypeName, teacherId: parsed.data.teacherId || null, responsiblePlayerId: responsiblePlayerId || null, notes: parsed.data.notes, occurrenceCourts: { create: courtIds.map((courtId) => ({ courtId })) } } })));
       })();
     for (const occurrence of occurrences) {
-      const previous = await tx.scheduleParticipant.findMany({ where: { occurrenceId: occurrence.id }, include: { financialEntry: { select: { status: true } } } });
+      const previous = await tx.scheduleParticipant.findMany({ where: { occurrenceId: occurrence.id }, include: { financialEntry: { select: { status: true, bankAccountId: true } } } });
       for (const participant of previous) if (!participants.some((item) => item.playerId === participant.playerId) && participant.financialEntryId) await tx.financialEntry.delete({ where: { id: participant.financialEntryId } });
       await tx.scheduleParticipant.deleteMany({ where: { occurrenceId: occurrence.id, playerId: { notIn: participants.map((participant) => participant.playerId) } } });
       for (const participant of participants) {
@@ -479,8 +489,11 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
         const startsAtLabel = `${String(occurrence.startsAt.getHours()).padStart(2, "0")}:${String(occurrence.startsAt.getMinutes()).padStart(2, "0")}`;
         const endsAtLabel = `${String(occurrence.endsAt.getHours()).padStart(2, "0")}:${String(occurrence.endsAt.getMinutes()).padStart(2, "0")}`;
         const responsibleDetail = fixedBooking && responsibleName ? ` · Resp. ${responsibleName}` : "";
-        const entryData = { type: "REVENUE", category: "Reserva", counterpartyName: player.name, playerId: player.id, description: `Reserva · ${date} · ${startsAtLabel}–${endsAtLabel} · ${courtNames}${responsibleDetail}`, amountCents: participant.amountCents, paymentMethod, status: paymentMethod ? "PAID" : "PENDING", dueDate: occurrence.startsAt, paidAt: paymentMethod ? new Date() : null, source: "SCHEDULE_BOOKING", externalReference: occurrence.id, notes: `Agendamento ${occurrence.id}${responsibleName ? ` · Responsável: ${responsibleName}` : ""}`, arenaId: auth.arenaId };
+        const bankAccountId = paymentMethod ? receivingAccounts.get(participant.playerId) ?? null : existing?.financialEntry?.bankAccountId ?? null;
+        const paidAt = hasCharge && paymentMethod ? new Date() : null;
+        const entryData = { bankAccountId, type: "REVENUE", category: "Reserva", counterpartyName: player.name, playerId: player.id, description: `Reserva · ${date} · ${startsAtLabel}–${endsAtLabel} · ${courtNames}${responsibleDetail}`, amountCents: participant.amountCents, paymentMethod, status: paymentMethod ? "PAID" : "PENDING", dueDate: occurrence.startsAt, paidAt, source: "SCHEDULE_BOOKING", externalReference: occurrence.id, notes: `Agendamento ${occurrence.id}${responsibleName ? ` · Responsável: ${responsibleName}` : ""}`, arenaId: auth.arenaId };
         const financialEntryId = hasCharge ? (existing?.financialEntryId ? (await tx.financialEntry.update({ where: { id: existing.financialEntryId }, data: entryData })).id : (await tx.financialEntry.create({ data: entryData })).id) : null;
+        if (financialEntryId && paidAt) await tx.financialSettlement.create({ data: { arenaId: auth.arenaId, financialEntryId, bankAccountId, amountCents: participant.amountCents, paymentMethod, paidAt, notes: "Recebimento registrado na Grade de Horários." } });
         if (fixedBooking && responsiblePlayerId && participant.playerId !== responsiblePlayerId && hasCharge && !paymentMethod && (!existing?.financialEntryId || existing.financialEntry?.status === "PAID")) {
           unpaidParticipantNames.add(player.name);
           notificationDates.push(`${date} às ${startsAtLabel}`);
@@ -492,6 +505,7 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
     if (fixedBooking && responsiblePlayerId && unpaidParticipantNames.size) await tx.playerNotification.create({ data: { playerId: responsiblePlayerId, type: "FIXED_BOOKING_OPEN_BALANCE", title: "Saldo em aberto na reserva fixa", message: `${Array.from(unpaidParticipantNames).join(", ")} ${unpaidParticipantNames.size === 1 ? "está com uma parte em aberto" : "estão com partes em aberto"} na reserva ${courtNames}${notificationDates.length ? ` (${notificationDates.slice(0, 3).join(" · ")}${notificationDates.length > 3 ? "…" : ""})` : ""}.`, href: `/home?arena=${encodeURIComponent(arena.slug)}&section=finance` } });
   });
   refreshCalendar();
+  refreshFinanceRoutes();
   return {};
   } catch (reason) {
     const message = reason instanceof Error ? reason.message : "";

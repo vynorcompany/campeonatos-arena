@@ -1,5 +1,7 @@
 "use server";
+import { consumeProductStock, saveStockAggregates } from "@/lib/products/stock-aggregates";
 import { Prisma } from "@prisma/client";
+import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
 import { arenaDatabase } from "@/lib/arena-database";
 
 import { revalidatePath } from "next/cache";
@@ -14,6 +16,7 @@ const paymentMethods = ["PIX", "CREDIT_CARD", "DEBIT_CARD", "CASH", "OTHER"] as 
 const productSchema = z.object({
   name: z.string().trim().min(2, "Informe o nome do produto."),
   sku: z.string().trim().max(40).default(""),
+  notes: z.string().trim().max(2000, "Observações devem ter até 2.000 caracteres.").default(""),
   cost: z.string().trim().min(1, "Informe o preço de custo."),
   price: z.string().trim().min(1, "Informe o preço."),
   categoryId: z.string().trim().optional().default(""),
@@ -31,6 +34,7 @@ const stockSchema = z.object({
 const saleSchema = z.object({
   productId: z.string().min(1, "Produto inválido."),
   quantity: z.coerce.number().int().min(1, "Quantidade inválida."),
+  bankAccountId: z.string().trim().max(100).optional().default(""),
   paymentMethod: z.enum(paymentMethods),
   customerName: z.string().trim().max(80).default("")
 });
@@ -40,6 +44,7 @@ const cartSaleSchema = z.object({
     .string()
     .min(2, "Adicione pelo menos um produto.")
     .transform((value) => JSON.parse(value) as Array<{ productId: string; quantity: number }>),
+  bankAccountId: z.string().trim().max(100).optional().default(""),
   paymentMethod: z.enum(paymentMethods),
   customerName: z.string().trim().max(80).default("")
 });
@@ -54,7 +59,7 @@ function refreshPosRoutes() {
 }
 
 function parseMoneyToCents(value: string) {
-  const normalized = value.replace(/\./g, "").replace(",", ".");
+  const normalized = value.trim().replace(/^R\$\s*/, "").replace(/\./g, "").replace(",", ".");
   const amount = Number(normalized);
 
   if (!Number.isFinite(amount) || amount < 0) {
@@ -73,7 +78,7 @@ export async function createProductAction(formData: FormData) {
   const prisma = arenaDatabase(auth.arenaId);
   const parsed = productSchema.safeParse({
     name: formData.get("name"),
-    sku: formData.get("sku"),
+    sku: formData.get("sku"), notes: formData.get("notes") ?? "",
     cost: formData.get("cost"),
     price: formData.get("price"),
     categoryId: formData.get("categoryId"),
@@ -103,7 +108,7 @@ export async function createProductAction(formData: FormData) {
         priceCents,
         costCents,
         stockQuantity: parsed.data.stockQuantity,
-        minStock: parsed.data.minStock
+        minStock: parsed.data.minStock, notes: parsed.data.notes
         , categoryId: parsed.data.categoryId || null
       }
     });
@@ -129,7 +134,7 @@ export async function updateProductAction(formData: FormData) {
   const prisma = arenaDatabase(auth.arenaId);
   const productId = String(formData.get("productId") ?? "");
   const parsed = productSchema.safeParse({
-    name: formData.get("name"), sku: formData.get("sku"), cost: formData.get("cost"), price: formData.get("price"),
+    name: formData.get("name"), sku: formData.get("sku"), notes: formData.get("notes") ?? "", cost: formData.get("cost"), price: formData.get("price"),
     stockQuantity: formData.get("stockQuantity"), minStock: formData.get("minStock"), categoryId: formData.get("categoryId")
   });
   if (!productId || !parsed.success) throw new Error(parsed.success ? "Produto inválido." : parsed.error.issues[0]?.message ?? "Dados inválidos.");
@@ -137,7 +142,7 @@ export async function updateProductAction(formData: FormData) {
     const category = await prisma.productCategory.findFirst({ where: { id: parsed.data.categoryId, arenaId: auth.arenaId, active: true }, select: { id: true } });
     if (!category) throw new Error("Categoria de produto inválida.");
   }
-  const updated = await prisma.product.updateMany({ where: { id: productId, arenaId: auth.arenaId }, data: { name: parsed.data.name, sku: parsed.data.sku, costCents: parseMoneyToCents(parsed.data.cost), priceCents: parseMoneyToCents(parsed.data.price), minStock: parsed.data.minStock, categoryId: parsed.data.categoryId || null, updatedByUserId: auth.userId } });
+  const updated = await prisma.product.updateMany({ where: { id: productId, arenaId: auth.arenaId, serviceDeletedAt: null }, data: { name: parsed.data.name, sku: parsed.data.sku, notes: formData.has("notes") ? parsed.data.notes : undefined, costCents: parseMoneyToCents(parsed.data.cost), priceCents: parseMoneyToCents(parsed.data.price), minStock: parsed.data.minStock, categoryId: parsed.data.categoryId || null, updatedByUserId: auth.userId } });
   if (!updated.count) throw new Error("Produto não encontrado.");
   refreshPosRoutes();
 }
@@ -262,6 +267,7 @@ export async function createSaleAction(formData: FormData) {
   const parsed = saleSchema.safeParse({
     productId: formData.get("productId"),
     quantity: formData.get("quantity"),
+    bankAccountId: formData.get("bankAccountId") ?? "",
     paymentMethod: formData.get("paymentMethod"),
     customerName: formData.get("customerName")
   });
@@ -286,6 +292,7 @@ export async function createSaleAction(formData: FormData) {
     arenaId: auth.arenaId,
     customerName: parsed.data.customerName,
     paymentMethod: parsed.data.paymentMethod,
+    bankAccountId: parsed.data.bankAccountId,
     products: [{ ...product, quantity: parsed.data.quantity }]
   });
 
@@ -297,6 +304,7 @@ export async function createCartSaleAction(formData: FormData) {
   const prisma = arenaDatabase(auth.arenaId);
   const parsed = cartSaleSchema.safeParse({
     items: formData.get("items"),
+    bankAccountId: formData.get("bankAccountId") ?? "",
     paymentMethod: formData.get("paymentMethod"),
     customerName: formData.get("customerName")
   });
@@ -344,6 +352,7 @@ export async function createCartSaleAction(formData: FormData) {
     arenaId: auth.arenaId,
     customerName: parsed.data.customerName,
     paymentMethod: parsed.data.paymentMethod,
+    bankAccountId: parsed.data.bankAccountId,
     products: productsWithQuantities
   });
 
@@ -354,23 +363,28 @@ async function createSaleFromProducts({
   arenaId,
   customerName,
   paymentMethod,
+  bankAccountId: selectedBankAccountId,
   products
 }: {
   arenaId: string;
   customerName: string;
   paymentMethod: (typeof paymentMethods)[number];
+  bankAccountId: string;
   products: Array<{
     id: string;
     name: string;
     priceCents: number;
     quantity: number;
     isService?: boolean;
+    fiscalProfile?: Prisma.JsonValue;
   }>;
 }) {
   const prisma = arenaDatabase(arenaId);
   const totalCents = products.reduce((total, product) => total + product.priceCents * product.quantity, 0);
 
   await prisma.$transaction(async (tx) => {
+    const bankAccountId = totalCents > 0 ? await requireReceivingBankAccount(tx, arenaId, selectedBankAccountId) : null;
+    const paidAt = new Date();
     const sale = await tx.sale.create({
       data: {
         arenaId,
@@ -380,7 +394,11 @@ async function createSaleFromProducts({
         totalCents
       }
     });
-    if (paymentMethod === "CASH") {
+    if (totalCents > 0) {
+      await tx.salePayment.create({ data: { saleId: sale.id, bankAccountId, amountCents: totalCents, paymentMethod } });
+      await tx.financialEntry.create({ data: { arenaId, saleId: sale.id, bankAccountId, type: "INCOME", category: "VENDAS_DIRETAS", description: `Recebimento da venda ${sale.code}`, counterpartyName: customerName, amountCents: totalCents, paymentMethod, status: "PAID", paidAt } });
+    }
+    if (paymentMethod === "CASH" && totalCents > 0) {
       await recordCashSaleIfOpen(tx, { arenaId, referenceDate: cashReferenceDate(), amountCents: totalCents, description: `Venda ${sale.code}`, createdByName: "PDV" });
     }
 
@@ -391,33 +409,26 @@ async function createSaleFromProducts({
         data: {
           saleId: sale.id,
           productId: product.id,
+          fiscalProfile: product.fiscalProfile == null ? undefined : product.fiscalProfile,
           quantity: product.quantity,
           unitPriceCents: product.priceCents,
           totalCents: itemTotalCents
         }
       });
-
-      if (product.isService) continue;
-      await tx.product.update({
-        where: {
-          id: product.id
-        },
-        data: {
-          stockQuantity: {
-            decrement: product.quantity
-          }
-        }
-      });
-
-      await tx.stockMovement.create({
-        data: {
-          arenaId,
-          productId: product.id,
-          type: "OUT",
-          quantity: product.quantity,
-          reason: `Venda ${sale.code}`
-        }
-      });
     }
+    await consumeProductStock(tx, arenaId, products.map(product => ({ productId: product.id, quantity: product.quantity })), `Venda ${sale.code}`, sale.id);
   });
+}
+
+export async function updateStockAggregatesAction(formData: FormData) {
+  const auth = await requireModuleEdit("stock");
+  const productId = String(formData.get("productId") ?? "");
+  let rows: unknown; let choices: unknown;
+  try { rows = JSON.parse(String(formData.get("stockAggregates") ?? "[]")); choices = formData.has("stockChoices") ? JSON.parse(String(formData.get("stockChoices"))) : undefined; }
+  catch { throw new Error("Revise os produtos agregados."); }
+  await arenaDatabase(auth.arenaId).$transaction(tx => saveStockAggregates(tx, auth.arenaId, productId, rows, choices));
+  refreshPosRoutes();
+  revalidatePath(`/pdv/${productId}`);
+  revalidatePath("/comandas");
+  revalidatePath("/home");
 }

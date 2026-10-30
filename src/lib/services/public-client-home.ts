@@ -1,3 +1,5 @@
+import { decorateCompositions } from "@/lib/products/composition";
+import { catalogAggregateAvailability } from "@/lib/products/stock-aggregates";
 import { portalCheckoutPolicy } from "@/lib/payments/portal-checkout-policy";
 import { bookingServicesInclude, bookingServiceRows } from "@/lib/comandas/booking-service";
 import { prisma } from "@/lib/prisma";
@@ -122,15 +124,15 @@ export async function getPublicClientFinance(arenaSlug: string, playerId: string
   return { disabled: false, paymentEnabled: paymentPolicy.enabled, health, headline, detail, overdue, open, paid, comandas };
 }
 
-export async function getPublicClientComandas(arenaSlug: string, playerId: string) {
+export async function getPublicClientComandas(arenaSlug: string, playerId: string, { catalog = true }: { catalog?: boolean } = {}) {
   const arena = await prisma.arena.findUnique({ where: { slug: arenaSlug }, select: { id: true } });
   if (!arena) return null;
   const settings = await withArenaTransaction(arena.id, tx => tx.arenaOperationalSettings.findUnique({ where: { arenaId: arena.id }, select: { portalConsumptionEnabled: true } }));
   if (settings?.portalConsumptionEnabled === false) return { disabled: true, comandas: [], categories: [], products: [] };
   const [comandas, products, categories] = await withArenaTransaction(arena.id, (tx) => Promise.all([
     tx.comanda.findMany({ where: { arenaId: arena.id, playerId, status: "OPEN" }, include: { bookingServices: bookingServicesInclude, items: { include: { product: { select: { name: true } } }, orderBy: { createdAt: "asc" } } }, orderBy: { openedAt: "desc" } }),
-    tx.product.findMany({ where: { arenaId: arena.id, active: true, stockQuantity: { gt: 0 } }, select: { id: true, name: true, priceCents: true, stockQuantity: true, category: { select: { name: true } } }, orderBy: { name: "asc" }, take: 120 }),
-    tx.productCategory.findMany({ where: { arenaId: arena.id, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    catalog ? tx.product.findMany({ where: { arenaId: arena.id, active: true, stockQuantity: { gt: 0 } }, select: { id: true, name: true, priceCents: true, stockQuantity: true, stockAggregates: true, stockChoices: true, category: { select: { name: true } } }, orderBy: { name: "asc" }, take: 120 }).then(products => catalogAggregateAvailability(tx, arena.id, products)).then(products => decorateCompositions(tx,arena.id,products)) : Promise.resolve([]),
+    catalog ? tx.productCategory.findMany({ where: { arenaId: arena.id, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }) : Promise.resolve([]),
   ]));
-  return { disabled: false, comandas: comandas.map((comanda) => ({ id: comanda.id, code: comanda.code, closeRequestedAt: comanda.closeRequestedAt?.toISOString() ?? null, openedAt: date(comanda.openedAt), openedBy: comanda.openedByUserName || "Equipe da arena", bookingServices: bookingServiceRows(comanda.bookingServices), totalCents: comanda.items.reduce((total, item) => total + item.totalCents, 0) + bookingServiceRows(comanda.bookingServices).reduce((total, service) => total + service.amountCents, 0), items: comanda.items.map((item) => ({ id: item.id, name: item.product.name, quantity: item.quantity, totalCents: item.totalCents })) })), categories, products: products.map((product) => ({ ...product, category: product.category?.name ?? "Sem categoria" })) };
+  return { disabled: false, comandas: comandas.map((comanda) => ({ id: comanda.id, code: comanda.code, closeRequestedAt: comanda.closeRequestedAt?.toISOString() ?? null, openedAt: date(comanda.openedAt), openedBy: comanda.openedByUserName || "Equipe da arena", bookingServices: bookingServiceRows(comanda.bookingServices), totalCents: comanda.items.reduce((total, item) => total + item.totalCents, 0) + bookingServiceRows(comanda.bookingServices).reduce((total, service) => total + service.amountCents, 0), items: comanda.items.map((item) => ({ id: item.id, name: item.product.name + (item.compositionLabel ? ` · ${item.compositionLabel}` : ""), quantity: item.quantity, totalCents: item.totalCents })) })), categories, products: products.map(({ stockAggregates: _recipe, stockChoices: _choices, ...product }) => ({ ...product, category: product.category?.name ?? "Sem categoria" })) };
 }

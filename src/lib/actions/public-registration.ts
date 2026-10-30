@@ -1,5 +1,6 @@
-﻿"use server";
+"use server";
 
+import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
 import { revalidatePath } from "next/cache";
 import { createCardCheckout, createPixPayment } from "@/lib/payments/mercado-pago";
 import { prisma } from "@/lib/prisma";
@@ -161,6 +162,15 @@ export async function createPublicRegistrationAction(
         ? Math.min(grossAmountCents, tournament.earlyDiscountCents)
         : 0;
       const amountCents = grossAmountCents - discountCents;
+      let paymentBankAccountId: string | null = null;
+      if (amountCents > 0) {
+        const settings = await tx.arenaOperationalSettings.findUnique({ where: { arenaId: tournament.arenaId }, select: { portalPaymentBankAccountId: true } });
+        try {
+          paymentBankAccountId = await requireReceivingBankAccount(tx, tournament.arenaId, settings?.portalPaymentBankAccountId);
+        } catch {
+          throw new Error("A arena precisa configurar uma conta bancária ativa para receber inscrições online. Procure a recepção.");
+        }
+      }
       const registration = await tx.publicTournamentRegistration.create({
         data: {
           tournamentId: tournament.id,
@@ -175,6 +185,7 @@ export async function createPublicRegistrationAction(
           partnerBirthDate: parsed.data.partnerBirthDate,
           registrationOrder,
           amountCents,
+          paymentBankAccountId,
           discountCents,
           paymentStatus: "PENDING",
           paymentProvider: amountCents > 0 ? "MERCADO_PAGO_PENDING" : "",

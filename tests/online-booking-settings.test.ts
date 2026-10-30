@@ -57,7 +57,7 @@ test("legacy public reservation route delegates to the configured booking conten
   assert.match(page, /PublicBookingContent/);
   assert.match(content, /onlineBookingLayout/);
   assert.match(content, /onlineBookingShowReserved/);
-  assert.match(content, /Reserva online/);
+  assert.match(content, /PublicCourtBookingForm/);
   assert.match(form, /public-booking-slot-blocks/);
   assert.match(form, /Horários reservados/);
 });

@@ -16,7 +16,7 @@ test("games starts with arena-scoped active events in a list", async () => {
   assert.match(source, /prisma\.tournament\.findMany/);
   assert.match(source, /arenaId:\s*auth\.arenaId/);
   assert.match(source, /registrationPhase:[^\n]*not:\s*"FINISHED"/);
-  assert.match(source, /Entrar no evento/);
+  assert.match(source, /Categorias/);
   assert.doesNotMatch(source, /aria-label="Selecionar evento"/);
 });
 

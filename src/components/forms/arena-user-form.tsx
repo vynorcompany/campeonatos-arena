@@ -2,7 +2,7 @@
 import { viewStyles } from "./arena-user-form.utilities";
 
 import { useEffect, useState } from "react";
-import { useFormState } from "react-dom";
+import { useActionState } from "react";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { inviteArenaUserAction, type AccountAccessState } from "@/lib/actions/account-access";
 
@@ -12,7 +12,7 @@ const initialState: AccountAccessState = {
 };
 
 export function ArenaUserForm({ profiles }: { profiles: { id: string; name: string }[] }) {
-  const [state, formAction] = useFormState(inviteArenaUserAction, initialState);
+  const [state, formAction] = useActionState(inviteArenaUserAction, initialState);
   const [invitationUrl, setInvitationUrl] = useState("");
   const [copyMessage, setCopyMessage] = useState("");
   useEffect(() => {
@@ -48,10 +48,7 @@ export function ArenaUserForm({ profiles }: { profiles: { id: string; name: stri
         </select>
       </div>
 
-      <div className={viewStyles.field_field_submit}>
-        <label className={viewStyles.sr_only} htmlFor="submit-user">
-          Criar convite
-        </label>
+      <div className="tw:col-span-full tw:flex tw:justify-end tw:border-t tw:border-[var(--line)] tw:pt-4">
         <SubmitButton label="Criar convite" pendingLabel="Criando..." className={viewStyles.button_button_primary} />
       </div>
 

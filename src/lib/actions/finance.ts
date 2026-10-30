@@ -1,4 +1,5 @@
 "use server";
+import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
 import { parseDreGroup } from "@/lib/reports/dre";
 
 import { fetchWithDeadline } from "@/lib/http/fetch-with-deadline";
@@ -231,6 +232,7 @@ export async function createSubscriptionAction(formData: FormData) {
 export async function recordPlanPaymentAction(formData: FormData) {
   const auth = await requirePermission("finance:receivable:settle");
   const parsed = paymentSchema.safeParse({
+    bankAccountId: formData.get("bankAccountId"),
     subscriptionId: formData.get("subscriptionId"),
     referenceMonth: formData.get("referenceMonth"),
     paidAt: formData.get("paidAt"),
@@ -302,10 +304,12 @@ export async function recordPlanPaymentAction(formData: FormData) {
     if (parsed.data.fiscalDocumentType && (before.paidCents > 0 || amountCents !== before.outstandingCents || entry.fiscalDocument)) {
       throw new Error("Para emitir documento fiscal por este formulário, quite o valor integral da mensalidade ainda sem baixas. Confira as baixas parciais em Contas a Receber.");
     }
+    const bankAccountId = await requireReceivingBankAccount(tx, auth.arenaId, parsed.data.bankAccountId);
     const after = getFinancialEntryBalance(entry.amountCents, [...entry.settlements, { amountCents, interestCents: 0 }]);
     await tx.financialSettlement.create({ data: {
       arenaId: auth.arenaId,
       financialEntryId: entry.id,
+      bankAccountId,
       amountCents,
       interestCents: 0,
       paymentMethod: parsed.data.paymentMethod || "Não informado",
@@ -313,6 +317,7 @@ export async function recordPlanPaymentAction(formData: FormData) {
       notes: `Pagamento da mensalidade de ${parsed.data.referenceMonth}.`,
     } });
     await tx.financialEntry.update({ where: { id: entry.id }, data: {
+      bankAccountId,
       status: after.settled ? "PAID" : "PENDING",
       paidAt: after.settled ? paidAt : null,
       paymentMethod: parsed.data.paymentMethod || "Não informado",
@@ -379,6 +384,9 @@ export async function createFinancialEntryAction(formData: FormData) {
     if (parsed.data.type === "REVENUE" && parsed.data.planId && teacherId && !teacherPlan) {
       throw new Error("O plano selecionado não pertence a este professor nesta arena.");
     }
+    const bankAccountId = parsed.data.status === "PAID" && parsed.data.type === "REVENUE" && amountCents > 0
+      ? await requireReceivingBankAccount(tx, auth.arenaId, parsed.data.bankAccountId)
+      : parsed.data.bankAccountId || null;
     let supplierId = parsed.data.supplierId || null;
     if (parsed.data.type === "EXPENSE" && parsed.data.counterpartyName && !supplierId) {
       const supplier = await tx.supplier.upsert({
@@ -396,7 +404,7 @@ export async function createFinancialEntryAction(formData: FormData) {
         description: parsed.data.description,
         counterpartyName: parsed.data.counterpartyName,
         supplierId,
-        bankAccountId: parsed.data.bankAccountId || null,
+        bankAccountId,
         planId: parsed.data.planId || null,
         teacherId: teacherPlan?.teacherId ?? null,
         productId: parsed.data.productId || null,
@@ -414,6 +422,7 @@ export async function createFinancialEntryAction(formData: FormData) {
       await tx.financialSettlement.create({ data: {
         arenaId: auth.arenaId,
         financialEntryId: entry.id,
+        bankAccountId,
         amountCents,
         interestCents: 0,
         paymentMethod: parsed.data.paymentMethod || "Não informado",
@@ -582,7 +591,7 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
 
 export async function generateFinancialEntryOnlineChargeAction(formData: FormData) {
   const auth = await requirePermission("finance:receivable:settle");
-  const parsed = onlineChargeSchema.safeParse({ entryId: formData.get("entryId"), method: formData.get("method"), amount: formData.get("amount"), discount: formData.get("discount"), discountMode: formData.get("discountMode"), interest: formData.get("interest") });
+  const parsed = onlineChargeSchema.safeParse({ bankAccountId: formData.get("bankAccountId"), entryId: formData.get("entryId"), method: formData.get("method"), amount: formData.get("amount"), discount: formData.get("discount"), discountMode: formData.get("discountMode"), interest: formData.get("interest") });
   if (!parsed.success) return { error: "Dados da cobrança inválidos." };
   const entry = await withArenaTransaction(auth.arenaId, (tx) => tx.financialEntry.findFirst({ where: { id: parsed.data.entryId, arenaId: auth.arenaId, type: "REVENUE", status: { in: ["PENDING", "OVERDUE", "PARTIAL"] } }, include: { settlements: { select: { amountCents: true, interestCents: true, discountCents: true } } } }));
   if (!entry) return { error: "Lançamento a receber não encontrado ou já quitado." };
@@ -600,7 +609,7 @@ export async function generateFinancialEntryOnlineChargeAction(formData: FormDat
   const interestCents = parseMoneyToCents(parsed.data.interest || "0");
   const quotedAmountCents = parsed.data.amount ? parseMoneyToCents(parsed.data.amount) : undefined;
   const claim = await withArenaTransaction(auth.arenaId, (tx) => claimFinancialOnlineCharge(tx, {
-    arenaId: auth.arenaId, entryId: entry.id, method: parsed.data.method, expectedAmountCents: outstandingCents, discountCents, interestCents, quotedAmountCents,
+    arenaId: auth.arenaId, entryId: entry.id, method: parsed.data.method, expectedAmountCents: outstandingCents, bankAccountId: parsed.data.bankAccountId, discountCents, interestCents, quotedAmountCents,
   }));
   if (!claim.ok) return { error: claim.error };
   const amountCents = claim.amountCents;
@@ -638,6 +647,7 @@ export async function settleFinancialEntryAction(formData: FormData) {
   const auth = await requireArenaAccess();
   const parsed = settlementSchema.safeParse({
     entryId: formData.get("entryId"),
+    bankAccountId: formData.get("bankAccountId"),
     discount: formData.get("discount") || "0",
     discountMode: formData.get("discountMode") || "AMOUNT",
     amount: formData.get("amount"),
@@ -670,6 +680,8 @@ export async function settleFinancialEntryAction(formData: FormData) {
     if (entry.source === "AGENCY_SUBSCRIPTION") throw new Error("Pague esta fatura pelo link do Mercado Pago. A baixa será automática.");
     if (hasUnresolvedOnlinePayment(entry)) throw new Error("Esta conta possui cobrança online emitida, em emissão ou em análise. Confira e concilie o pagamento antes da baixa manual.");
 
+    const bankAccountId = amountCents > 0 ? await requireReceivingBankAccount(tx, auth.arenaId, parsed.data.bankAccountId) : null;
+
     const before = getFinancialEntryBalance(entry.amountCents, entry.settlements);
     const discountValue = parsed.data.discountMode === "PERCENTAGE" ? Number(parsed.data.discount.replace(",", ".")) : parseMoneyToCents(parsed.data.discount);
     if (!Number.isFinite(discountValue) || discountValue < 0 || (parsed.data.discountMode === "PERCENTAGE" && discountValue > 100)) throw new Error("Informe um desconto válido.");
@@ -694,6 +706,7 @@ export async function settleFinancialEntryAction(formData: FormData) {
       data: {
         arenaId: auth.arenaId,
         financialEntryId: entry.id,
+        bankAccountId,
         amountCents: appliedCents,
         interestCents,
         discountCents,
@@ -706,14 +719,15 @@ export async function settleFinancialEntryAction(formData: FormData) {
       where: { id: entry.id },
       data: {
         status: after.settled ? "PAID" : entry.status,
+        ...(bankAccountId ? { bankAccountId } : {}),
         paidAt: after.settled ? paidAt : null,
         paymentMethod: parsed.data.paymentMethod
       }
     });
     if (surplusCents > 0 && creditPlayerId) {
       await tx.clientBalanceMovement.create({ data: { arenaId: auth.arenaId, playerId: creditPlayerId, kind: "MONEY", amountCents: surplusCents, reason: `Excedente recebido na conta ${entry.id}.` } });
-      const creditEntry = await tx.financialEntry.create({ data: { arenaId: auth.arenaId, playerId: creditPlayerId, bankAccountId: entry.bankAccountId, type: "INCOME", category: "CREDITO_DE_CLIENTE", description: `Crédito por excedente da conta ${entry.id}`, amountCents: surplusCents, status: "PAID", paidAt, paymentMethod: parsed.data.paymentMethod } });
-      await tx.financialSettlement.create({ data: { arenaId: auth.arenaId, financialEntryId: creditEntry.id, amountCents: surplusCents, paymentMethod: parsed.data.paymentMethod, paidAt, notes: `Saldo do cliente originado na baixa da conta ${entry.id}.` } });
+      const creditEntry = await tx.financialEntry.create({ data: { arenaId: auth.arenaId, playerId: creditPlayerId, bankAccountId, type: "INCOME", category: "CREDITO_DE_CLIENTE", description: `Crédito por excedente da conta ${entry.id}`, amountCents: surplusCents, status: "PAID", paidAt, paymentMethod: parsed.data.paymentMethod } });
+      await tx.financialSettlement.create({ data: { arenaId: auth.arenaId, financialEntryId: creditEntry.id, bankAccountId, amountCents: surplusCents, paymentMethod: parsed.data.paymentMethod, paidAt, notes: `Saldo do cliente originado na baixa da conta ${entry.id}.` } });
       await tx.auditEvent.create({ data: { arenaId: auth.arenaId, actorId: auth.userId, actorName: auth.userName, action: "RECEIVABLE_SURPLUS_CREDIT", entityId: entry.id, details: { playerId: creditPlayerId, amountCents: surplusCents, creditEntryId: creditEntry.id } } });
     }
   });
@@ -725,6 +739,7 @@ export async function settleFinancialEntriesBulkAction(formData: FormData) {
   const auth = await requireArenaAccess();
   const parsed = bulkEntrySchema.safeParse({
     entryIds: formData.getAll("entryIds"),
+    bankAccountId: formData.get("bankAccountId"),
     paymentMethod: formData.get("paymentMethod"),
     paidAt: formData.get("paidAt")
   });
@@ -744,6 +759,7 @@ export async function settleFinancialEntriesBulkAction(formData: FormData) {
     if (entries.length !== entryIds.length) throw new Error("Uma ou mais contas não estão disponíveis para quitação. Atualize a lista antes de tentar novamente.");
     for (const type of new Set(entries.map((entry) => entry.type))) assertFinancialEntryPermission(auth, type, "settle");
     if (entries.some(hasUnresolvedOnlinePayment)) throw new Error("Uma ou mais contas possuem cobrança online emitida, em emissão ou em análise. Confira e concilie antes da baixa em lote.");
+    const bankAccountId = await requireReceivingBankAccount(tx, auth.arenaId, parsed.data.bankAccountId);
     let count = 0;
     for (const entry of entries) {
       const balance = getFinancialEntryBalance(entry.amountCents, entry.settlements);
@@ -751,13 +767,14 @@ export async function settleFinancialEntriesBulkAction(formData: FormData) {
       await tx.financialSettlement.create({ data: {
         arenaId: auth.arenaId,
         financialEntryId: entry.id,
+        bankAccountId,
         amountCents: balance.outstandingCents,
         interestCents: 0,
         paymentMethod: parsed.data.paymentMethod,
         paidAt,
         notes: "Baixa em massa registrada manualmente."
       } });
-      await tx.financialEntry.update({ where: { id: entry.id }, data: { status: "PAID", paidAt, paymentMethod: parsed.data.paymentMethod } });
+      await tx.financialEntry.update({ where: { id: entry.id }, data: { status: "PAID", paidAt, paymentMethod: parsed.data.paymentMethod, bankAccountId } });
       count += 1;
     }
     return count;
@@ -1094,6 +1111,8 @@ export async function updateFiscalSettingsAction(formData: FormData) {
   const auth = await requirePermission("finance:settings:manage");
   const parsed = fiscalSettingsSchema.safeParse({
     provider: formData.get("provider"),
+    crt: formData.has("crt") ? formData.get("crt") : undefined,
+    issuerState: formData.has("issuerState") ? formData.get("issuerState") : undefined,
     environment: formData.get("environment"),
     series: formData.get("series"),
     nextNumber: formData.get("nextNumber"),
@@ -1110,6 +1129,7 @@ export async function updateFiscalSettingsAction(formData: FormData) {
     });
   });
   refreshFinancialSettings();
+  revalidatePath("/pdv", "layout");
 }
 
 export async function updateOnlinePaymentSettingsAction(formData: FormData) {

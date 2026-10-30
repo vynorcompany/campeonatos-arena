@@ -1,10 +1,9 @@
 "use client";
-import { fixedDialogFrame } from "@/components/ui/dialog-frame";
+import { Modal } from "@/components/ui/modal";
 
 import { viewStyles } from "./tv-match-source-fields.utilities";
 
-import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import { useCallback, useState } from "react";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { createManualUpcomingMatchAction, deleteManualUpcomingMatchAction, updateManualUpcomingMatchAction } from "@/lib/actions/upcoming-match";
@@ -21,12 +20,7 @@ export function TvMatchSourceFields({ initialSource, initialTournamentId, tourna
   const [source, setSource] = useState(initialSource);
   const [manualOpen, setManualOpen] = useState(false);
 
-  useEffect(() => {
-    if (!manualOpen) return;
-    const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") setManualOpen(false); };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [manualOpen]);
+  const closeManual = useCallback(() => setManualOpen(false), []);
 
   return <>
     <div className={viewStyles.field}>
@@ -49,10 +43,8 @@ export function TvMatchSourceFields({ initialSource, initialTournamentId, tourna
       </select>
       {source === "TOURNAMENT" ? <small>Jogos em andamento e próximos desse torneio aparecerão na TV.</small> : null}
     </div>
-    {manualOpen && typeof document !== "undefined" ? createPortal(
-      <div className={viewStyles.tv_manual_modal_backdrop} onMouseDown={(event) => { if (event.target === event.currentTarget) setManualOpen(false); }}>
-        <section className={[viewStyles.tv_manual_modal, fixedDialogFrame].join(" ")} role="dialog" aria-modal="true" aria-labelledby="tv-manual-title">
-          <header><div><h2 id="tv-manual-title">Jogos manuais</h2><p>Cadastre e edite até 3 jogos para a TV.</p></div><button type="button" className={viewStyles.tv_manual_modal_close} aria-label="Fechar" onClick={() => setManualOpen(false)}>×</button></header>
+    <Modal title="Jogos manuais" open={manualOpen} onClose={closeManual} width="tw:max-w-[760px]">
+          <p className="tw:mb-3 tw:text-sm tw:text-[var(--muted)]">Até 3 jogos podem aparecer na TV.</p>
           {manualMatches.length > 3 ? <p className={viewStyles.tv_manual_warning}>Há {manualMatches.length} jogos antigos. Os 3 primeiros aparecem na TV; remova os excedentes para cadastrar novos.</p> : null}
           <div className={viewStyles.tv_manual_games}>
             {manualMatches.map((match) => <div className={viewStyles.tv_manual_game} key={match.id}>
@@ -76,7 +68,6 @@ export function TvMatchSourceFields({ initialSource, initialTournamentId, tourna
               <footer><SubmitButton label="Adicionar jogo" pendingLabel="Adicionando..." className={viewStyles.button_button_primary} /></footer>
             </SafeActionForm> : null}
           </div>
-        </section>
-      </div>, document.body) : null}
+    </Modal>
   </>;
 }

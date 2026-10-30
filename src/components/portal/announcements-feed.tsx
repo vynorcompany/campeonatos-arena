@@ -9,6 +9,23 @@ export function AnnouncementsFeed({ arenaSlug }: { arenaSlug: string }) {
   const [error, setError] = useState("");
   const busy = useRef(false);
   const sentinel = useRef<HTMLDivElement>(null);
+  const focusedNotice = useRef<string | null>(null);
+  useEffect(() => {
+    // The feed arrives after navigation, so the browser cannot find the anchor immediately.
+    const focusNotice = () => {
+      let id: string;
+      try { id = decodeURIComponent(window.location.hash.slice(1)); } catch { return; }
+      if (!id.startsWith("aviso-") || focusedNotice.current === id) return;
+      const target = document.getElementById(id);
+      if (!target) return;
+      focusedNotice.current = id;
+      target.scrollIntoView({ block: "start" });
+      target.focus({ preventScroll: true });
+    };
+    focusNotice();
+    window.addEventListener("hashchange", focusNotice);
+    return () => window.removeEventListener("hashchange", focusNotice);
+  }, [items]);
   const load = useCallback(async () => {
     if (busy.current || cursor === null) return;
     busy.current = true; setLoading(true); setError("");
@@ -32,9 +49,9 @@ export function AnnouncementsFeed({ arenaSlug }: { arenaSlug: string }) {
     return () => observer.disconnect();
   }, [load, error, cursor]);
   return <section aria-label="Avisos" className="tw:mx-auto tw:w-full tw:max-w-3xl tw:px-2 tw:text-[var(--portal-text)]">
-    {items.map(post => <article key={post.id} className="tw:border-b tw:border-blue-300/35 tw:py-7">
+    {items.map(post => <article key={post.id} id={`aviso-${post.id}`} tabIndex={-1} aria-labelledby={`aviso-titulo-${post.id}`} className="tw:scroll-mt-4 tw:border-b tw:border-blue-300/35 tw:py-7 tw:focus-visible:outline-2 tw:focus-visible:outline-offset-4 tw:focus-visible:outline-[#1e5ea8]">
       <div className="tw:mb-2 tw:flex tw:items-center tw:gap-3 tw:text-xs tw:text-[var(--portal-muted)]"><time dateTime={post.createdAt}>{new Date(post.createdAt).toLocaleDateString("pt-BR")}</time>{post.pinned ? <span className="tw:font-semibold tw:text-blue-600 tw:dark:text-blue-300">Fixado</span> : null}</div>
-      <h2 className="tw:mb-3 tw:text-lg tw:font-semibold">{post.title}</h2>
+      <h2 id={`aviso-titulo-${post.id}`} className="tw:mb-3 tw:text-lg tw:font-semibold">{post.title}</h2>
       <div className="tw:break-words tw:text-sm tw:leading-7"><PortalRichText text={post.message} /></div>
       {post.linkUrl && /^https?:\/\//i.test(post.linkUrl) ? <a href={post.linkUrl} target="_blank" rel="noreferrer" className="tw:mt-3 tw:inline-flex tw:font-semibold tw:text-blue-600 tw:dark:text-blue-300">Abrir link ↗</a> : null}
     </article>)}

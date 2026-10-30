@@ -59,7 +59,7 @@ test("portal bloqueia nova cobran√ßa quando o pagamento anterior exige concilia√
   const legacyRegistrations = read("src/app/(app)/torneios/inscricoes/page.tsx");
   assert.match(legacyRegistrations, /registration\.paymentStatus === "REVIEW" \? <ReviewedCheckoutRelease kind="registration"/);
   const editForm = read("src/components/tournaments/registration-edit-form.tsx");
-  assert.match(editForm, /useFormState\(updateTournamentRegistrationAction, initialState\)/);
+  assert.match(editForm, /useActionState\(updateTournamentRegistrationAction, initialState\)/);
   assert.match(editForm, /role="alert"/);
   assert.match(registrations, /<RegistrationEditForm className=\{viewStyles\.tournament_registration_edit\}>/);
   assert.match(legacyRegistrations, /<RegistrationEditForm className=\{viewStyles\.grid_form\}>/);

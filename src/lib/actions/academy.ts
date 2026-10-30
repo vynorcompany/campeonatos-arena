@@ -7,6 +7,7 @@ import { z } from "zod";
 import { requireModuleEdit } from "@/lib/auth/guards";
 import { getDiscountedAmountCents } from "@/lib/finance/discounts";
 import { getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
+import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
 import { cashReferenceDate } from "@/lib/finance/cash-day";
 import { issueRecurringOnlineChargeForEntry } from "@/lib/payments/recurring-online-charges";
 import { cancelMercadoPagoPayment, getMercadoPagoPayment } from "@/lib/payments/mercado-pago";
@@ -1151,6 +1152,7 @@ export async function createLessonAction(formData: FormData) {
   const paidAt = priceCents > 0 ? new Date() : null;
 
   await prisma.$transaction(async (tx) => {
+    const bankAccountId = priceCents > 0 ? await requireReceivingBankAccount(tx, auth.arenaId, formData.get("bankAccountId")) : null;
     const lesson = await tx.lesson.create({
       data: {
         arenaId: auth.arenaId,
@@ -1177,6 +1179,7 @@ export async function createLessonAction(formData: FormData) {
           arenaId: auth.arenaId,
           type: "REVENUE",
           category: "Aulas avulsas",
+          bankAccountId,
           description: `${lesson.title} - ${scheduledAt ? scheduledAt.toLocaleDateString("pt-BR") : "sem data"}`,
           amountCents: priceCents,
           paymentMethod: parsed.data.paymentMethod,

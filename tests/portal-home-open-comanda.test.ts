@@ -1,3 +1,5 @@
+import * as composition from "../src/lib/products/composition";
+import * as stockAggregates from "../src/lib/products/stock-aggregates";
 import { portalCheckoutPolicy } from "../src/lib/payments/portal-checkout-policy";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -25,7 +27,7 @@ test("a tela inicial não diz que está tudo em dia quando há comanda aberta", 
     financialEntry: { findMany: async () => [] },
     comanda: { findMany: async (query: Record<string, unknown>) => { comandaQueries.push(query); return openComandas; } },
   };
-  const mocks: Record<string, unknown> = {
+  const mocks: Record<string, unknown> = { "@/lib/products/composition": composition, "@/lib/products/stock-aggregates": stockAggregates,
     "@/lib/comandas/booking-service": { bookingServicesInclude: { include: { participant: true } }, bookingServiceRows: (rows: unknown[]) => rows },
     "@/lib/prisma": { prisma: { arena: { findUnique: async () => ({ id: "arena-a" }) } } },
     "@/lib/payments/portal-checkout-policy": { portalCheckoutPolicy },

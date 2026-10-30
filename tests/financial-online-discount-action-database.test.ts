@@ -19,6 +19,7 @@ test("staff emits the quoted Pix and boleto amount, preserves principal and refu
  try{
   const arena=await admin.arena.create({data:{name:"Online discount QA",slug:`quote-${randomUUID()}`,createdById:"goal-test"}});arenas.push(arena.id);
   const player=await admin.player.create({data:{arenaId:arena.id,name:"Cliente cotação QA",email:"quote@example.test"}});
+  const bank=await admin.bankAccount.create({data:{arenaId:arena.id,name:"Online receipts QA"}});
   const calls:{amountCents:number;externalReference:string}[]=[];let fail=false;
   const provider=async(input:{amountCents:number;externalReference:string})=>{calls.push(input);if(fail)throw Error("Synthetic timeout");return {paymentId:`test-${input.externalReference}`,checkoutUrl:"https://example.test/charge",qrCode:"synthetic-code",expiresAt:new Date(Date.now()+3600000)}};
   const scope=<T>(arenaId:string,run:(tx:Prisma.TransactionClient)=>Promise<T>)=>runtime.$transaction(async tx=>{await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`;return run(tx)});
@@ -33,7 +34,7 @@ test("staff emits the quoted Pix and boleto amount, preserves principal and refu
   const actions:Record<string,(data:FormData)=>Promise<{error?:string;url?:string}>>={};
   vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/lib/actions/finance.ts",import.meta.url),"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports:actions,FormData,Date,Intl,console:{error(){}},require:(name:string)=>mocks[name]??(name.startsWith("@/")?{}:require(name))});
   const create=()=>admin.financialEntry.create({data:{arenaId:arena.id,playerId:player.id,type:"REVENUE",category:"QA",description:"Quote action QA",amountCents:10000,status:"PENDING"}});
-  const issue=(entryId:string,method:string,discount:string,mode="AMOUNT",interest="0,00",amount?:string)=>{const data=new FormData();for(const[key,value]of Object.entries({entryId,method,discount,discountMode:mode,interest,...amount?{amount}:{}}))data.set(key,value);return actions.generateFinancialEntryOnlineChargeAction(data)};
+  const issue=(entryId:string,method:string,discount:string,mode="AMOUNT",interest="0,00",amount?:string)=>{const data=new FormData();for(const[key,value]of Object.entries({entryId,bankAccountId:bank.id,method,discount,discountMode:mode,interest,...amount?{amount}:{}}))data.set(key,value);return actions.generateFinancialEntryOnlineChargeAction(data)};
   const pix=await create();assert((await issue(pix.id,"PIX","10","PERCENTAGE","5,00","95,00")).url);assert.equal(calls.at(-1)?.amountCents,9500);
   const saved=await admin.financialEntry.findUniqueOrThrow({where:{id:pix.id},include:{settlements:true}});assert.equal(saved.amountCents,10000);assert.equal(saved.onlineChargeDiscountCents,1000);assert.equal(saved.onlineChargeInterestCents,500);assert.equal(saved.settlements.length,0);assert.equal(saved.status,"PENDING");
   assert((await issue(pix.id,"PIX","10","PERCENTAGE")).error);assert.equal(calls.length,1);

@@ -1,3 +1,4 @@
+import { WorkspaceHeading } from "@/components/ui/workspace-heading";
 import { viewStyles } from "./page.utilities";
 import { PasswordForm } from "@/components/forms/password-form";
 import { ProfileForm } from "@/components/forms/profile-form";
@@ -9,21 +10,13 @@ export default async function MyAccountPage() {
 
   return (
     <div className={viewStyles.stack_md}>
-      <header className={viewStyles.page_header}>
-        <div className={viewStyles.stack_xs}>
-          <p className={viewStyles.eyebrow}>Conta</p>
-          <h1>Minha conta</h1>
-          <p className={viewStyles.muted}>
-            Atualize seus dados de acesso e mantenha sua senha sob controle para uso online com segurança.
-          </p>
-        </div>
-      </header>
+      <WorkspaceHeading title="Minha conta" />
 
-      <SectionCard title="Perfil" description="Atualize o nome exibido na navegação do sistema.">
+      <SectionCard title="Perfil" hideHeading>
         <ProfileForm userName={auth.userName} userEmail={auth.userEmail} />
       </SectionCard>
 
-      <SectionCard title="Senha" description="Troque sua senha atual por uma nova combinação forte.">
+      <SectionCard title="Senha" hideHeading>
         <PasswordForm />
       </SectionCard>
     </div>

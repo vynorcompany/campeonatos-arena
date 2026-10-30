@@ -1,3 +1,6 @@
+import * as composition from "../src/lib/products/composition";
+import { consumeProductStock } from "../src/lib/products/stock-aggregates";
+import { requireReceivingBankAccount } from "../src/lib/finance/receiving-bank-account";
 import assert from "node:assert/strict";
 import test from "node:test";
 import vm from "node:vm";
@@ -23,13 +26,14 @@ test("comanda policies enforce delinquency, cash, full payment, surplus, wallet 
   try {
     const arena = await admin.arena.create({ data: { slug: `comanda-policy-${randomUUID()}`, name: "Comanda policies QA", createdById: "goal-test" } }); arenas.push(arena.id);
     const foreign = await admin.arena.create({ data: { slug: `comanda-foreign-${randomUUID()}`, name: "Other policies QA", createdById: "goal-test" } }); arenas.push(foreign.id);
+    const bank = await admin.bankAccount.create({ data: { arenaId: arena.id, name: "Conta recebimentos QA" } });
     const player = await admin.player.create({ data: { arenaId: arena.id, name: "Policy customer QA" } });
     const other = await admin.player.create({ data: { arenaId: foreign.id, name: "Foreign policy customer QA" } });
     const product = await admin.product.create({ data: { arenaId: arena.id, name: "Service QA", isService: true, priceCents: 1000 } });
     const settings = await admin.arenaOperationalSettings.create({ data: { arenaId: arena.id, requireFullPayment: true, cashRegisterRequired: true, blockDelinquentComandas: true, comandaCardsEnabled: true } });
     const transact = <T>(arenaId: string, operation: Parameters<PrismaClient["$transaction"]>[0]) => runtime.$transaction(async tx => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`; return (operation as (tx: unknown) => Promise<T>)(tx); });
-    const mocks: Record<string, unknown> = {
-      "next/cache": { revalidatePath() {} }, "@/lib/auth/guards": { requirePermission: async () => ({ arenaId: arena.id, userId: "goal-test", userName: "Policy operator QA" }) },
+    const mocks: Record<string, unknown> = { "@/lib/products/composition": composition, "@/lib/products/stock-aggregates": { consumeProductStock },
+      "@/lib/finance/receiving-bank-account": { requireReceivingBankAccount }, "next/cache": { revalidatePath() {} }, "@/lib/auth/guards": { requirePermission: async () => ({ arenaId: arena.id, userId: "goal-test", userName: "Policy operator QA" }) },
       "@/lib/arena-database": { arenaDatabase: (arenaId: string) => arenaDatabaseForTest(runtime, arenaId) }, "@/lib/rls": { withArenaTransaction: transact },
       "@/lib/comandas/operational-policy": operationalPolicy, "@/lib/comandas/split": { allocateComandaShares }, "@/lib/finance/settlements": { allocatePaymentsToDebts, getOutstandingCents },
       "@/lib/finance/comanda-debts": { comandaDebtOwnerId, selectedComandaDebtWhere }, "@/lib/finance/cash-day": { cashReferenceDate }, "@/lib/finance/cash-register-sales": { recordCashSaleIfOpen },
@@ -38,7 +42,7 @@ test("comanda policies enforce delinquency, cash, full payment, surplus, wallet 
     vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/lib/actions/comanda.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports: actions, FormData, Date, crypto: globalThis.crypto, require: (name: string) => mocks[name] ?? (name.startsWith("@/") ? {} : nodeRequire(name)) });
     const form = (values: Record<string, string>) => { const data = new FormData(); for (const [key, value] of Object.entries(values)) data.set(key, value); return data; };
     const open = (cardNumber?: string, playerId = player.id) => actions.createComandaAction(form({ type: "CLIENT", playerId, ...(cardNumber ? { cardNumber } : {}) }));
-    const finish = (id: string, amount: number, extra: Record<string, string> = {}) => actions.finishComandaAction(form({ comandaId: id, payments: JSON.stringify(amount ? [{ paymentMethod: "PIX", amountCents: amount }] : []), debtIds: "[]", ...extra }));
+    const finish = (id: string, amount: number, extra: Record<string, string> = {}) => actions.finishComandaAction(form({ comandaId: id, payments: JSON.stringify(amount ? [{ bankAccountId: bank.id, paymentMethod: "PIX", amountCents: amount }] : []), debtIds: "[]", ...extra }));
     const createBill = () => admin.comanda.create({ data: { arenaId: arena.id, playerId: player.id, label: player.name, code: `POLICY-${randomUUID()}`, items: { create: { productId: product.id, quantity: 1, unitPriceCents: 1000, totalCents: 1000 } } } });
     const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 2);
     const debt = await admin.financialEntry.create({ data: { arenaId: arena.id, playerId: player.id, type: "REVENUE", category: "QA", description: "Overdue QA", amountCents: 1000, dueDate: yesterday, status: "PARTIAL" } });
@@ -68,5 +72,15 @@ test("comanda policies enforce delinquency, cash, full payment, surplus, wallet 
     const attempts = await Promise.allSettled([finish(first.id, 800, { creditCents: "200" }), finish(second.id, 800, { creditCents: "200" })]);
     assert.equal(attempts.filter(result => result.status === "fulfilled").length, 1);
     assert.equal((await admin.clientBalanceMovement.aggregate({ where: { arenaId: arena.id, playerId: player.id }, _sum: { amountCents: true } }))._sum.amountCents, 0);
+    const soda = await admin.product.create({data:{arenaId:arena.id,name:"Ingrediente fiscal QA",stockQuantity:10,fiscalProfile:{ncm:"22021000"}}});
+    const drink = await admin.product.create({data:{arenaId:arena.id,name:"Composto fiscal QA",stockQuantity:10,priceCents:1000,fiscalProfile:{ncm:"22089000",icmsCode:"102"},stockAggregates:[{productId:soda.id,quantity:1}]}});
+    const fiscalBill=await admin.comanda.create({data:{arenaId:arena.id,playerId:player.id,label:player.name,code:`FISCAL-${randomUUID()}`,items:{create:{productId:drink.id,quantity:1,unitPriceCents:1000,totalCents:1000,stockRecipe:[{productId:soda.id,quantity:1}]}}}});
+    await finish(fiscalBill.id,1000);
+    const fiscalSale=await admin.sale.findUniqueOrThrow({where:{comandaId:fiscalBill.id},include:{items:true}});
+    assert.equal(fiscalSale.items.length,1,"Ingrediente não vira um segundo item cobrado na nota");
+    assert.equal((fiscalSale.items[0].fiscalProfile as Record<string,string>).ncm,"22089000");
+    assert.equal((await admin.product.findUniqueOrThrow({where:{id:soda.id}})).stockQuantity,9);
+    await admin.product.update({where:{id:drink.id},data:{fiscalProfile:{ncm:"21069090"}}});
+    assert.equal(((await admin.saleItem.findUniqueOrThrow({where:{id:fiscalSale.items[0].id}})).fiscalProfile as Record<string,string>).ncm,"22089000","Alterar cadastro não reescreve o histórico fiscal da venda");
   } finally { await admin.sale.deleteMany({ where: { arenaId: { in: arenas } } }); await admin.comanda.deleteMany({ where: { arenaId: { in: arenas } } }); await admin.financialEntry.deleteMany({ where: { arenaId: { in: arenas } } }); await admin.arena.deleteMany({ where: { id: { in: arenas } } }); await runtime.$disconnect(); await admin.$disconnect(); }
 });

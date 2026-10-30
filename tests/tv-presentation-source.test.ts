@@ -27,9 +27,11 @@ test("manual TV games use a separate modal form and the shared composer keeps th
   const css = source("src/app/globals.css");
   const chat = source("src/components/whatsapp/whatsapp-chat-workspace.tsx");
 
-  assert.match(fields, /createPortal/);
+  assert.match(fields, /<Modal title="Jogos manuais"/);
+  const modal = source("src/components/ui/modal.tsx");
+  assert.match(modal, /createPortal/);
   assert.match(fields, /createManualUpcomingMatchAction/);
-  assert.match(fields, /role="dialog"/);
+  assert.match(modal, /role="dialog"/);
   assert.ok(utilityClasses("app-shell").length, "app-shell has component Tailwind utilities");
   assert.match(css, /overflow-y: auto/);
   assert.match(chat, /form (?:className="whatsapp-composer"|className=\{(?:cx\()?viewStyles\.whatsapp_composer(?:\))?\})/);
@@ -39,7 +41,7 @@ test("athlete-facing league menu is titled Torneios and admin panels share bread
   const standings = source("src/components/tournaments/public-standings.tsx");
   const breadcrumb = source("src/components/layout/page-breadcrumb.tsx");
   assert.match(source("src/lib/portal/menu.ts"), /label: "Eventos"/);
-  assert.match(standings, /<strong>Torneios<\/strong>/);
+  assert.match(standings, /id: "leagues", label: "Torneios"/);
   assert.match(breadcrumb, /path\.startsWith\("\/financeiro"\)/);
   assert.match(breadcrumb, /path\.startsWith\("\/relatorios"\)/);
 });

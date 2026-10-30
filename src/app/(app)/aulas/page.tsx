@@ -1,3 +1,4 @@
+import { LessonPaymentFields } from "@/components/finance/lesson-payment-fields";
 import { viewStyles } from "./page.utilities";
 import { SectionCard } from "@/components/section-card";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
@@ -82,6 +83,8 @@ export default async function LessonsPage() {
     prisma.classGroupRequest.findMany({ where: { arenaId: auth.arenaId, status: "PENDING" }, include: { student: { select: { name: true } }, classGroup: { include: { plans: { include: { plan: { select: { id: true, name: true } } } } } } }, orderBy: { createdAt: "asc" } })
   ]);
 
+  const bankAccounts = await prisma.bankAccount.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } });
+
   const activeStudents = students.filter((student) => student.active);
   const linkedPlayerIds = new Set(students.map((student) => student.playerId).filter(Boolean));
   const availablePlayers = players.filter((player) => !linkedPlayerIds.has(player.id));
@@ -90,15 +93,7 @@ export default async function LessonsPage() {
 
   return (
     <div className={viewStyles.stack_md}>
-      <header className={viewStyles.page_header}>
-        <div className={viewStyles.stack_xs}>
-          <p className={viewStyles.eyebrow}>Aulas</p>
-          <h1>Controle de aulas</h1>
-          <p className={viewStyles.muted}>
-            Cadastre alunos, registre aulas, acompanhe presenças e veja quantas aulas cada aluno ainda possui.
-          </p>
-        </div>
-      </header>
+      <h1 className="tw:sr-only">Controle de aulas</h1>
 
       <div className={viewStyles.stats_grid}>
         <div className={viewStyles.stat_card}>
@@ -117,7 +112,7 @@ export default async function LessonsPage() {
 
       <ClassGroupWorkspace teachers={teachers.map((teacher) => ({ id: teacher.id, name: teacher.name }))} plans={plans} groups={classGroups} requests={classGroupRequests} />
 
-      <SectionCard id="cadastro" title="Cadastrar aluno" description="Use este cadastro para controlar pacotes, frequência e histórico de aulas.">
+      <SectionCard id="cadastro" title="Cadastrar aluno" description="Use este cadastro para controlar pacotes, frequência e histórico de aulas." hideHeading>
         <SafeActionForm action={createStudentAction} className={viewStyles.grid_form} resetOnSuccess successMessage="Aluno salvo.">
           <div className={viewStyles.field_form_full}>
             <label htmlFor="student-player">Vincular a um jogador existente</label>
@@ -156,7 +151,7 @@ export default async function LessonsPage() {
         </SafeActionForm>
       </SectionCard>
 
-      <SectionCard id="registro" title="Registrar aula" description="Selecione professor, horário e alunos. Ao concluir a aula, o sistema baixa uma aula dos presentes.">
+      <SectionCard id="registro" title="Registrar aula" description="Selecione professor, horário e alunos. Ao concluir a aula, o sistema baixa uma aula dos presentes." hideHeading>
         <SafeActionForm action={createLessonAction} className={viewStyles.grid_form} resetOnSuccess successMessage="Aula registrada.">
           <div className={viewStyles.field}>
             <label htmlFor="lesson-title">Nome da aula</label>
@@ -181,24 +176,7 @@ export default async function LessonsPage() {
             <label htmlFor="lesson-duration">Duração</label>
             <input id="lesson-duration" name="durationMinutes" type="number" min="15" step="15" defaultValue="60" />
           </div>
-          <label className={viewStyles.check_option}>
-            <input name="isPaid" type="checkbox" />
-            <span>Registrar como aula paga</span>
-          </label>
-          <div className={viewStyles.field}>
-            <label htmlFor="lesson-price">Valor da aula</label>
-            <input id="lesson-price" name="price" type="text" placeholder="120,00" />
-          </div>
-          <div className={viewStyles.field}>
-            <label htmlFor="lesson-payment-method">Pagamento</label>
-            <select id="lesson-payment-method" name="paymentMethod" defaultValue="PIX">
-              <option value="PIX">Pix</option>
-              <option value="CREDIT_CARD">Cartão de crédito</option>
-              <option value="DEBIT_CARD">Cartão de débito</option>
-              <option value="CASH">Dinheiro</option>
-              <option value="OTHER">Outro</option>
-            </select>
-          </div>
+          <LessonPaymentFields accounts={bankAccounts} />
           <div className={viewStyles.field_form_full}>
             <label>Alunos da aula</label>
             <div className={viewStyles.check_grid}>
@@ -220,7 +198,7 @@ export default async function LessonsPage() {
         </SafeActionForm>
       </SectionCard>
 
-      <SectionCard title="Alunos e créditos" description="Acompanhe aulas restantes, presenças e frequência de cada aluno.">
+      <SectionCard title="Alunos e créditos" description="Acompanhe aulas restantes, presenças e frequência de cada aluno." hideHeading>
         <table className={viewStyles.data_table}>
           <thead>
             <tr>
@@ -263,7 +241,7 @@ export default async function LessonsPage() {
         </table>
       </SectionCard>
 
-      <SectionCard title="Histórico e conclusão de aulas" description="Marque faltas antes de concluir. Alunos presentes consomem uma aula do pacote.">
+      <SectionCard title="Histórico e conclusão de aulas" description="Marque faltas antes de concluir. Alunos presentes consomem uma aula do pacote." hideHeading>
         <div className={viewStyles.lesson_list}>
           {lessons.map((lesson) => (
             <article key={lesson.id} className={viewStyles.lesson_item}>

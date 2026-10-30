@@ -26,9 +26,12 @@ test("saldo bancário inclui receitas atuais, legadas e baixas parciais sem dupl
   for (const query of queries) {
     const where = query.where as { arenaId: string; financialEntry?: { arenaId: string; bankAccountId: string; status: unknown; type: unknown }; bankAccountId?: string; status?: string; settlements?: unknown };
     assert.equal(where.arenaId, "arena-a");
-    assert.equal((where.financialEntry ?? where).bankAccountId, "bank-a");
-    if (query.kind === "settlement") assert.deepEqual(where.financialEntry?.status, { not: "VOIDED" });
+    if (query.kind === "settlement") {
+      assert.deepEqual(where.financialEntry?.status, { not: "VOIDED" });
+      assert.deepEqual(query.where.OR, [{ bankAccountId: "bank-a" }, { bankAccountId: null, financialEntry: { bankAccountId: "bank-a" } }]);
+    }
     else {
+      assert.equal(where.bankAccountId, "bank-a");
       assert.equal(where.status, "PAID");
       assert.deepEqual(where.settlements, { none: {} });
     }

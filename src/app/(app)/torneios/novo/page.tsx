@@ -2,7 +2,6 @@ import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { TournamentForm } from "@/components/forms/tournament-form";
-import { SectionCard } from "@/components/section-card";
 import { requireModuleView } from "@/lib/auth/guards";
 import { canPerformPermission } from "@/lib/permissions";
 import { arenaDatabase } from "@/lib/arena-database";
@@ -22,26 +21,11 @@ export default async function NewTournamentPage() {
 
   return (
     <div className={viewStyles.stack_md}>
-      <header className={viewStyles.page_header}>
-        <div className={viewStyles.stack_xs}>
-          <p className={viewStyles.eyebrow}>Torneios</p>
-          <h1>Novo evento</h1>
-          <p className={viewStyles.muted}>
-            Cadastre os dados gerais agora. Categorias, formatos e rankings são
-            configurados dentro do evento.
-          </p>
-        </div>
-        <Link href="/torneios" className={viewStyles.button}>
+      <header className="tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:justify-end tw:gap-2"><h1 className="tw:sr-only">Novo evento</h1><Link href="/torneios" className={viewStyles.button}>
           Voltar
-        </Link>
-      </header>
+        </Link></header>
 
-      <SectionCard
-        title="Dados do evento"
-        description="A criação não define formato, grupos ou ranking."
-      >
-        <TournamentForm rankings={rankings} />
-      </SectionCard>
+      <TournamentForm rankings={rankings} />
     </div>
   );
 }

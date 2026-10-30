@@ -1,7 +1,8 @@
+import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
-  "button_button_primary": sharedUtilities.buttonButtonPrimary,
+  "button_button_primary": ui.primary,
   "stack_md": sharedUtilities.stackMd,
   "section_card_stack_md_category_operation_panel": sharedUtilities.sectionCardStackMdCategoryOperationPanel,
   "league_registration_panel": [
@@ -9,7 +10,7 @@ export const viewStyles = {
     "tw:viewport-760:pt-[17px]", "tw:pr-[22px]", "tw:viewport-760:pr-[17px]", "tw:pb-[22px]",
     "tw:viewport-760:pb-[17px]", "tw:pl-[22px]", "tw:viewport-760:pl-[17px]", "tw:border-t-[color:#d9e5f2]",
     "tw:border-r-[color:#d9e5f2]", "tw:border-b-[color:#d9e5f2]", "tw:border-l-[color:#d9e5f2]", "tw:rounded-[15px]",
-    "tw:bg-[color:transparent]", "tw:[background-image:linear-gradient(145deg,_#fff,_#fbfdff)]", "tw:[box-shadow:0_11px_28px_rgb(15_54_104_/_.055)]", "tw:[&_>_.muted]:mt-[-12px]",
+    "tw:bg-white", "tw:[background-image:none]", "tw:[box-shadow:0_11px_28px_rgb(15_54_104_/_.055)]", "tw:[&_>_.muted]:mt-[-12px]",
     "tw:[&_>_.muted]:mr-[0]", "tw:[&_>_.muted]:mb-[0]", "tw:[&_>_.muted]:ml-[0]", "tw:[&_>_.muted]:text-[color:#62738c]",
     "tw:[&_>_.muted]:text-[.88rem]",
   ].join(" "),
@@ -76,5 +77,5 @@ export const viewStyles = {
     "tw:[&_select]:rounded-[var(--radius-md)]", "tw:[&_select]:bg-[color:var(--panel)]", "tw:[&_select]:[background-image:none]", "tw:[&_select]:text-[color:var(--text)]",
     "tw:[&_.button]:min-h-[38px]",
   ].join(" "),
-  "button_button_small": sharedUtilities.buttonButtonSmall,
+  "button_button_small": ui.secondary,
 } as const;

@@ -1,3 +1,4 @@
+import { requireReceivingBankAccount } from "../src/lib/finance/receiving-bank-account";
 import assert from "node:assert/strict";
 import test from "node:test";
 import vm from "node:vm";
@@ -21,6 +22,7 @@ test("receivable surplus honors its setting, preserves interest, audits credit a
   const settings = await admin.arenaOperationalSettings.create({ data: { arenaId, preventOverpayment: true } });
   const actions: Record<string, (form: FormData) => Promise<unknown>> = {};
   const mocks: Record<string, unknown> = {
+   "@/lib/finance/receiving-bank-account": { requireReceivingBankAccount },
    "@prisma/client": { Prisma }, "@/lib/auth/session": { requireArenaAccess: async () => ({ arenaId, userId: "goal-test", userName: "Surplus QA" }) },
    "@/lib/permissions": { canPerformPermission: () => true }, "@/lib/finance/entry-permissions": { financialEntryPermission },
    "@/lib/finance/action-schemas": { settlementSchema }, "@/lib/finance/inputs": { parseDate, parseMoneyToCents }, "@/lib/finance/ledger": { getFinancialEntryBalance },
@@ -28,7 +30,7 @@ test("receivable surplus honors its setting, preserves interest, audits credit a
   };
   vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/lib/actions/finance.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports: actions, FormData, Date, require: (name: string) => mocks[name] ?? {} });
   const entry = await admin.financialEntry.create({ data: { arenaId, bankAccountId: bank.id, playerId: player.id, type: "REVENUE", category: "QA", description: "Receivable QA", amountCents: 1000 } });
-  const settle = (id: string, amount = "15,00", interest = "1,00") => { const form = new FormData(); for (const [key, value] of Object.entries({ entryId: id, amount, interest, paymentMethod: "PIX", paidAt: "", notes: "" })) form.set(key, value); return actions.settleFinancialEntryAction(form); };
+  const settle = (id: string, amount = "15,00", interest = "1,00") => { const form = new FormData(); for (const [key, value] of Object.entries({ entryId: id, bankAccountId: bank.id, amount, interest, paymentMethod: "PIX", paidAt: "", notes: "" })) form.set(key, value); return actions.settleFinancialEntryAction(form); };
   await assert.rejects(settle(entry.id), /supera o saldo/); assert.equal(await admin.financialSettlement.count({ where: { financialEntryId: entry.id } }), 0);
   await admin.arenaOperationalSettings.update({ where: { id: settings.id }, data: { preventOverpayment: false } });
   const results = await Promise.allSettled([settle(entry.id), settle(entry.id)]); assert.equal(results.filter(result => result.status === "fulfilled").length, 1);

@@ -176,7 +176,7 @@ test("ranking configuration executes advisory locks and keeps General controls a
   assert.match(form, /ranking-general-control/);
   assert.ok(utilityClasses("ranking-general-control").length);
   assert.match(styleRules("ranking-general-control", {"context":"input"}), /width:\s*18px/);
-  assert.match(styleRules("ranking-general-control-copy"), /gap:\s*4px/);
+  assert.match(styleRules("ranking-general-control-copy"), /gap:\s*(?:4px|var\(--tw-spacing\))/);
 });
 
 test("ranking format changes are rejected after a category competition starts", () => {

@@ -73,7 +73,7 @@ export default async function PublicRegistrationPage(
         </div>
       </header>
       <nav className={viewStyles.public_tournament_tabs} aria-label="Navegação do torneio">
-        {publicTabs.map((tab) => <Link className={cx(activeTab === tab.id ? "is-active" : "")} href={`/inscricao/${tournament.publicSlug}${tab.id === "inscricao" ? "" : `?tab=${tab.id}`}`} key={tab.id}>{tab.label}</Link>)}
+        {publicTabs.map((tab) => <Link aria-current={activeTab === tab.id ? "page" : undefined} className={cx(activeTab === tab.id ? "is-active" : "")} href={`/inscricao/${tournament.publicSlug}${tab.id === "inscricao" ? "" : `?tab=${tab.id}`}`} key={tab.id}>{tab.label}</Link>)}
       </nav>
 
       {activeTab === "inscricao" ? <PublicRegistrationForm tournamentSlug={tournament.publicSlug} categories={tournament.categories} arenaSlug={tournament.arena.slug} arenaName={tournament.arena.name} arenaLogoUrl={tournament.arena.logoUrl} responsibleName={tournament.responsibleName} responsiblePhone={tournament.responsiblePhone} /> : null}

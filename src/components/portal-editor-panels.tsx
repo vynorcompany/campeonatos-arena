@@ -1,10 +1,10 @@
 "use client";
-import { fixedDialogFrame } from "@/components/ui/dialog-frame";
+import { Modal } from "@/components/ui/modal";
 
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./portal-editor-panels.utilities";
 
-import { useEffect, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import {
@@ -33,29 +33,18 @@ function validatePortalEventImage(formData: FormData) {
 }
 
 function Dialog({ title, close, children }: { title: string; close: () => void; children: React.ReactNode }) {
-  useEffect(() => {
-    const onEscape = (event: KeyboardEvent) => { if (event.key === "Escape") close(); };
-    document.addEventListener("keydown", onEscape);
-    return () => document.removeEventListener("keydown", onEscape);
-  }, [close]);
-  return (
-    <div className={viewStyles.portal_editor_modal} onMouseDown={close}>
-      <section className={["portal-editor-dialog", fixedDialogFrame].join(" ")} role="dialog" aria-modal="true" aria-label={title} onMouseDown={(event) => event.stopPropagation()}>
-        <header>
-          <div><p className={viewStyles.eyebrow}>PORTAL DO ATLETA</p><h2>{title}</h2></div>
-          <button type="button" onClick={close} aria-label="Fechar">×</button>
-        </header>
-        {children}
-      </section>
-    </div>
-  );
+  const closeRef = useRef(close);
+  closeRef.current = close;
+  const closeDialog = useCallback(() => closeRef.current(), []);
+  return <Modal title={title} open onClose={closeDialog}><div className="portal-editor-dialog">{children}</div></Modal>;
 }
 
 function ImageUploadField() {
   const [fileName, setFileName] = useState("");
   return (
     <label className={viewStyles.portal_upload_field}>
-      <span>Imagem vertical <small>1080 × 1920 · otimizada automaticamente</small></span>
+      <span>Imagem do evento em destaque</span>
+      <small>Tamanho ideal: 1080 × 1920 px, proporção 9:16 (vertical). A imagem é otimizada automaticamente.</small>
       <input name="image" type="file" accept="image/jpeg,image/png,image/webp" required onChange={(event) => setFileName(event.target.files?.[0]?.name ?? "")} />
       <span className={viewStyles.portal_upload_control}><strong>Selecionar imagem</strong><em>{fileName || "JPG, PNG ou WebP · até 25 MB"}</em></span>
     </label>
@@ -69,14 +58,14 @@ export function PortalEditorPanels({ announcements, posts }: { announcements: An
   return (
     <div className={viewStyles.portal_editor_workspace}>
       <section className={viewStyles.section_card}>
-        <header className={viewStyles.portal_editor_header}><div><h2>Avisos para o portal</h2><p>Os avisos ativos aparecem na tela inicial do atleta.</p></div><button className={viewStyles.button_button_primary_button_small} type="button" onClick={() => setDialog("notice")}>Novo aviso</button></header>
+        <header className={viewStyles.portal_editor_header}><div><h2>Avisos para o portal</h2></div><button className={viewStyles.button_button_primary_button_small} type="button" onClick={() => setDialog("notice")}>Novo aviso</button></header>
         <div className={viewStyles.client_portal_settings_list}>
           {announcements.map((announcement) => <article key={announcement.id}><div><strong>{announcement.pinned ? "📌 " : ""}{announcement.title}</strong><span className={cx(`portal-notice-status ${announcement.active ? "is-active" : ""}`)}>{announcement.active ? "Aviso ativo" : "Aviso desativado"}{announcement.linkUrl ? " · Link ativo" : ""}</span><span className={viewStyles.portal_editor_text}>{announcement.message}</span></div><div className={viewStyles.section_actions}><SafeActionForm action={togglePortalAnnouncementPinAction}><input type="hidden" name="announcementId" value={announcement.id} /><SubmitButton label={announcement.pinned ? "Desafixar" : "Fixar"} pendingLabel="Salvando..." className={viewStyles.button_button_small} /></SafeActionForm><SafeActionForm action={togglePortalAnnouncementAction}><input type="hidden" name="announcementId" value={announcement.id} /><SubmitButton label={announcement.active ? "Desativar aviso" : "Ativar aviso"} pendingLabel="Salvando..." className={viewStyles.button_button_small} /></SafeActionForm><SafeActionForm action={deletePortalAnnouncementAction} successMessage="Aviso excluído." confirmKeyword="EXCLUIR" confirmPrompt={`Excluir o aviso ${announcement.title}? Digite EXCLUIR para confirmar.`}><input type="hidden" name="announcementId" value={announcement.id} /><SubmitButton label="Excluir aviso" pendingLabel="Excluindo..." className={viewStyles.button_button_danger_button_small} /></SafeActionForm></div></article>)}
           {!announcements.length ? <p className={viewStyles.muted}>Nenhum aviso publicado.</p> : null}
         </div>
       </section>
       <section className={viewStyles.section_card}>
-        <header className={viewStyles.portal_editor_header}><div><h2>Eventos em destaque</h2><p>Posts verticais para a experiência mobile do atleta.</p></div><button className={viewStyles.button_button_primary_button_small} type="button" onClick={() => setDialog("event")}>Novo evento</button></header>
+        <header className={viewStyles.portal_editor_header}><div><h2>Eventos em destaque</h2></div><button className={viewStyles.button_button_primary_button_small} type="button" onClick={() => setDialog("event")}>Novo evento</button></header>
         <div className={viewStyles.portal_event_post_list}>
           {posts.map((post) => <article key={post.id}><img src={post.imageUrl} alt={`Imagem do evento ${post.title}`} /><div><strong>{post.pinned ? "📌 " : ""}{post.title}</strong><span className={viewStyles.portal_editor_text}>{post.caption}</span>{post.linkUrl ? <small>Link ativo</small> : null}<form action={togglePortalEventPostAction}><input type="hidden" name="eventPostId" value={post.id} /><label className={viewStyles.control_toggle}><input type="checkbox" defaultChecked={post.active} onChange={(event) => event.currentTarget.form?.requestSubmit()} /><span aria-hidden="true" />Exibir no Portal</label></form><div className={viewStyles.section_actions}><SafeActionForm action={togglePortalEventPostPinAction}><input type="hidden" name="eventPostId" value={post.id} /><SubmitButton label={post.pinned ? "Desafixar" : "Fixar"} pendingLabel="Salvando..." className={viewStyles.button_button_small} /></SafeActionForm><button className={viewStyles.button_button_small} type="button" onClick={() => setPostToEdit(post)}>Editar evento</button><button className={viewStyles.button_button_small} type="button" onClick={() => setPostToReplace(post)}>Trocar imagem</button><SafeActionForm action={deletePortalEventPostAction} successMessage="Evento excluído." confirmKeyword="EXCLUIR" confirmPrompt={`Excluir o evento ${post.title}? Digite EXCLUIR para confirmar.`}><input type="hidden" name="eventPostId" value={post.id} /><SubmitButton label="Excluir evento" pendingLabel="Excluindo..." className={viewStyles.button_button_danger_button_small} /></SafeActionForm></div></div></article>)}
           {!posts.length ? <p className={viewStyles.muted}>Nenhum evento publicado.</p> : null}

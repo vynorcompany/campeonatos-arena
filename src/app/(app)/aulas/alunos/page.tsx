@@ -1,4 +1,5 @@
 import { viewStyles } from "./page.utilities";
+import { WorkspaceHeading } from "@/components/ui/workspace-heading";
 import { SectionCard } from "@/components/section-card";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -31,15 +32,9 @@ export default async function StudentsPage() {
 
   return (
     <div className={viewStyles.stack_md}>
-      <header className={viewStyles.page_header}>
-        <div className={viewStyles.stack_xs}>
-          <p className={viewStyles.eyebrow}>Aulas</p>
-          <h1>Alunos</h1>
-          <p className={viewStyles.muted}>Cadastre alunos, vincule jogadores existentes e acompanhe créditos, presença e frequência.</p>
-        </div>
-      </header>
+      <WorkspaceHeading title="Alunos" />
 
-      <SectionCard title="Cadastrar aluno" description="Use este cadastro para controlar pacotes, frequência e histórico de aulas.">
+      <SectionCard title="Cadastrar aluno" className={viewStyles.panel} hideHeading>
         <SafeActionForm action={createStudentAction} className={viewStyles.grid_form} resetOnSuccess successMessage="Aluno salvo.">
           <div className={viewStyles.field_form_full}>
             <label htmlFor="student-player">Vincular a um jogador existente</label>
@@ -78,7 +73,7 @@ export default async function StudentsPage() {
         </SafeActionForm>
       </SectionCard>
 
-      <SectionCard title="Alunos e créditos" description="Acompanhe aulas restantes, presenças e frequência de cada aluno.">
+      <SectionCard title="Alunos e créditos" className={viewStyles.panel} hideHeading>
         <table className={viewStyles.data_table}>
           <thead>
             <tr>

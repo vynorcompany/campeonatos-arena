@@ -6,7 +6,7 @@ export const viewStyles = {
     "tw:[&_>_summary]:h-[38px]", "tw:[&_>_summary]:border-t-[length:1px]", "tw:[&_>_summary]:[border-top-style:solid]", "tw:[&_>_summary]:border-t-[color:var(--line)]",
     "tw:[&_>_summary]:border-r-[length:1px]", "tw:[&_>_summary]:[border-right-style:solid]", "tw:[&_>_summary]:border-r-[color:var(--line)]", "tw:[&_>_summary]:border-b-[length:1px]",
     "tw:[&_>_summary]:[border-bottom-style:solid]", "tw:[&_>_summary]:border-b-[color:var(--line)]", "tw:[&_>_summary]:border-l-[length:1px]", "tw:[&_>_summary]:[border-left-style:solid]",
-    "tw:[&_>_summary]:border-l-[color:var(--line)]", "tw:[&_>_summary]:rounded-[var(--radius-control)]", "tw:[&_>_summary]:text-[color:#185c96]", "tw:[&_>_summary]:bg-[color:#f7fbff]",
+    "tw:[&_>_summary]:border-l-[color:var(--line)]", "tw:[&_>_summary]:rounded-[var(--radius-control)]", "tw:[&_>_summary]:text-[color:#185c96]", "tw:[&_>_summary]:bg-[color:#fff]",
     "tw:[&_>_summary]:[background-image:none]", "tw:[&_>_summary]:text-[1rem]", "tw:[&_>_summary]:cursor-pointer", "tw:[&_>_summary]:[list-style:none]",
     "tw:[&_>_summary::-webkit-details-marker]:hidden", "tw:[&_>_summary:hover]:[box-shadow:0_4px_10px_rgb(19_89_143_/_.25)]", "tw:[&_>_summary:hover]:[transform:translateY(-1px)]",
   ].join(" "),
@@ -23,7 +23,7 @@ export const viewStyles = {
     "tw:[&_header_button]:h-[28px]", "tw:[&_header_button]:border-t-[length:0]", "tw:[&_header_button]:[border-top-style:none]", "tw:[&_header_button]:border-t-[color:currentColor]",
     "tw:[&_header_button]:border-r-[length:0]", "tw:[&_header_button]:[border-right-style:none]", "tw:[&_header_button]:border-r-[color:currentColor]", "tw:[&_header_button]:border-b-[length:0]",
     "tw:[&_header_button]:[border-bottom-style:none]", "tw:[&_header_button]:border-b-[color:currentColor]", "tw:[&_header_button]:border-l-[length:0]", "tw:[&_header_button]:[border-left-style:none]",
-    "tw:[&_header_button]:border-l-[color:currentColor]", "tw:[&_header_button]:rounded-[7px]", "tw:[&_header_button]:text-[color:#185c96]", "tw:[&_header_button]:bg-[color:#edf5fc]",
+    "tw:[&_header_button]:border-l-[color:currentColor]", "tw:[&_header_button]:rounded-[7px]", "tw:[&_header_button]:text-[color:#185c96]", "tw:[&_header_button]:bg-[color:#fff]",
     "tw:[&_header_button]:[background-image:none]", "tw:[&_header_button]:cursor-pointer", "tw:[&_header_button]:text-[1rem]",
   ].join(" "),
   "agenda_month_picker_weekdays": [
@@ -35,8 +35,8 @@ export const viewStyles = {
     "agenda-month-picker-days", "tw:grid", "tw:grid-cols-[repeat(7,_1fr)]", "tw:gap-y-[2px]",
     "tw:gap-x-[2px]", "tw:text-center", "tw:[&_a]:grid", "tw:[&_a]:place-items-center",
     "tw:[&_a]:min-h-[27px]", "tw:[&_a]:rounded-[6px]", "tw:[&_a]:text-[color:#223b57]", "tw:[&_a]:text-[.72rem]",
-    "tw:[&_a]:[text-decoration:none]", "tw:[&_a:hover]:bg-[color:#eaf3fc]", "tw:[&_a:hover]:[background-image:none]", "tw:[&_a:hover]:text-[color:#075da7]",
-    "tw:[&_a.is-outside]:text-[color:#b7c2d0]", "tw:[&_a.is-selected]:text-[color:#fff]", "tw:[&_a.is-selected]:bg-[color:#126eae]", "tw:[&_a.is-selected]:[background-image:none]",
+    "tw:[&_a]:[text-decoration:none]", "tw:[&_a:hover]:bg-[color:#174983]", "tw:[&_a:hover]:[background-image:none]", "tw:[&_a:hover]:text-[color:#fff]",
+    "tw:[&_a.is-outside]:text-[color:#66758a]", "tw:[&_a.is-selected]:text-[color:#fff]", "tw:[&_a.is-selected]:bg-[color:#174983]", "tw:[&_a.is-selected]:[background-image:none]",
     "tw:[&_a.is-selected]:font-[800]",
   ].join(" "),
 } as const;

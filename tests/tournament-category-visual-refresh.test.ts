@@ -40,7 +40,9 @@ test("área da categoria mantém ações e formulário de duplas em escala compa
 
   assert.match(registration, /CategoryPairForm/);
   assert.ok(utilityClasses("category-pair-form").length, "category-pair-form has component Tailwind utilities");
-  assert.match(styleRules("category-pair-submit", {context: ".button"}), /min-height:/);
+  const pair = readFileSync(resolve(process.cwd(), "src/components/tournaments/category-pair-form.tsx"), "utf8");
+  assert.match(pair, /<Modal title="Adicionar dupla"/);
+  assert.match(pair, /onSuccess=\{close\}/);
   assert.match(styleRules("category-detail-hero"), /padding-top: 18px[\s\S]*padding-right: 20px/);
   assert.ok(utilityClasses("league-overview-bottom").length, "league-overview-bottom has component Tailwind utilities");
 });

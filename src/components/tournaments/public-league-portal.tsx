@@ -22,7 +22,6 @@ type Portal = NonNullable<
 
 export function PublicLeaguePortal({
   arenaSlug,
-  playerName,
   portal,
   view = "games",
   showPrize = true,
@@ -131,78 +130,22 @@ export function PublicLeaguePortal({
 
   return (
     <section className={cx(viewStyles.public_league_portal_section_card_stack_md, "tw:viewport-700:mx-0! tw:viewport-700:mt-2! tw:viewport-700:w-full! tw:viewport-700:min-w-0! tw:viewport-700:grid-cols-[minmax(0,1fr)]! tw:viewport-700:border-0! tw:viewport-700:bg-transparent! tw:viewport-700:p-0! tw:viewport-700:shadow-none! tw:viewport-700:text-[#133047]! tw:viewport-700:dark:text-[#eaf3ff]!")}>
-      <header
-        className={
-          cx(view === "pairs"
-            ? viewStyles.public_league_portal_header
-            : viewStyles.public_league_portal_header_public_league_portal_hero_card, "tw:viewport-700:hidden!")
-        }
-      >
-        {view === "pairs" ? (
-          <h2>Duplas da Liga</h2>
-        ) : (
-          <>
-            <span>TORNEIOS DA ARENA</span>
-            <h2>Olá, {playerName}</h2>
-            <p>
-              Confira os jogos e resultados da sua categoria. As ações da sua
-              dupla aparecem aqui.
-            </p>
-            <b aria-hidden="true">
-              MAIS
-              <br />
-              JOGOS
-              <br />
-              MAIS
-              <br />
-              HISTÓRIAS
-            </b>
-          </>
-        )}
-      </header>
       {selectedCategory ? (
         <form
           method="get"
           action={`/classificacao/${arenaSlug}`}
-          className="portal-league-category-card tw:viewport-700:my-2! tw:viewport-700:box-border! tw:viewport-700:max-w-full! tw:viewport-700:rounded-xl! tw:viewport-700:border! tw:viewport-700:border-[#d8e5e9]! tw:viewport-700:bg-white! tw:viewport-700:[background-image:none]! tw:viewport-700:p-3! tw:viewport-700:shadow-none! tw:viewport-700:dark:border-[#2a4161]! tw:viewport-700:dark:bg-[#0b1a30]! tw:viewport-700:[&_>_header]:hidden! tw:viewport-700:[&_>_p]:hidden! tw:viewport-700:[&_.portal-league-category-actions]:hidden! tw:viewport-700:[&_label]:text-[#606874]! tw:viewport-700:dark:[&_label]:text-[#a4b3c8]! tw:viewport-700:[&_select]:border-[#d8e5e9]! tw:viewport-700:[&_select]:bg-white! tw:viewport-700:[&_select]:[background-image:none]! tw:viewport-700:[&_select]:text-[#133047]! tw:viewport-700:dark:[&_select]:border-[#2a4161]! tw:viewport-700:dark:[&_select]:bg-[#0b1a30]! tw:viewport-700:dark:[&_select]:text-[#eaf3ff]!"
+          className="portal-league-category-card tw:grid tw:min-w-0 tw:gap-3 tw:rounded-lg tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-4 tw:text-[#133047] tw:dark:border-[#2a4161] tw:dark:bg-[#0b1a30] tw:dark:text-[#eaf3ff] tw:viewport-700:p-3"
         >
           <input type="hidden" name="arena" value={arenaSlug} />
           <input type="hidden" name="section" value="leagues" />
           <input type="hidden" name="leagueTab" value={view} />
           <input type="hidden" name="tab" value="games" />
-          <header>
-            <strong>
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="m4 8 8-4 8 4-8 4-8-4ZM6.5 10.2V15c2.8 2 8.2 2 11 0v-4.8M20 8v7" />
-              </svg>
-              Categoria da liga
-            </strong>
-            {selectedCategory.member ? (
-              <b>
-                <span>✓</span>Você já está inscrito nesta categoria
-              </b>
-            ) : null}
-          </header>
           <div>
             <PortalChoice label="Categoria" name="leagueCategory" defaultValue={portal.selectedLeagueCategoryId ?? ""} options={portal.leagueCategories.map(category => ({ value: category.id, label: category.label }))} />
           </div>
-          {selectedCategory.member ? <small className="tw:hidden tw:viewport-700:block tw:mt-1 tw:text-xs tw:font-semibold tw:text-[#083a7f] tw:dark:text-[#709ede]">Sua categoria</small> : null}
-          <p className={viewStyles.portal_league_category_context}>
-            {selectedCategory.member
-              ? "Você participa desta categoria. As ações da sua dupla aparecem abaixo."
-              : "Visualização pública: acompanhe as duplas e os resultados desta categoria."}
-          </p>
-          <div className="portal-league-category-actions">
-            <p className="portal-league-registration-fee">
-              <span>Inscrição</span>
-              <strong>
-                {new Intl.NumberFormat("pt-BR", {
-                  style: "currency",
-                  currency: "BRL",
-                }).format(selectedCategory.registrationFeeCents / 100)}
-              </strong>
-              <small>por atleta</small>
-            </p>
+          <div className="tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-2 tw:text-xs">
+            <span className="tw:text-[#606874] tw:dark:text-[#a4b3c8]">{selectedCategory.member ? "Sua categoria" : "Categoria pública"}</span>
+            <span>Inscrição: {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(selectedCategory.registrationFeeCents / 100)} por atleta</span>
           </div>
         </form>
       ) : portal.leagueCategories.length ? (
@@ -238,9 +181,9 @@ export function PublicLeaguePortal({
             <p className={mutedText}>{portal.leagueCategories.length ? "Ainda não há duplas nesta categoria." : "Nenhuma categoria de liga ativa."}</p>
           )}
         </section>
-        <section className="tw:mx-1 tw:mt-3 tw:mb-24 tw:hidden tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-4 tw:viewport-700:block tw:dark:border-[#3e5e8b] tw:dark:bg-[#10294c]">
+        <section aria-label="Duplas inscritas" className="tw:mx-1 tw:mt-3 tw:mb-24 tw:hidden tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-4 tw:viewport-700:block tw:dark:border-[#3e5e8b] tw:dark:bg-[#10294c]">
           <div className="tw:mb-3 tw:flex tw:items-center tw:justify-between tw:gap-3"><h2 className="tw:m-0 tw:text-base tw:font-semibold tw:text-[#133047]! tw:dark:text-[#eaf3ff]!">Duplas inscritas</h2><span className="tw:text-xs tw:text-[#606874]! tw:dark:text-[#a4b3c8]!">{portal.selectedLeaguePairs.length}</span></div>
-          {portal.selectedLeaguePairs.length ? <div className="tw:grid tw:gap-2">{portal.selectedLeaguePairs.map((pair, index) => <article key={pair.id} className="tw:flex tw:items-start tw:gap-3 tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-[#f5f6f8] tw:p-3 tw:dark:border-[#2a4161] tw:dark:bg-[#102441]"><span className="tw:grid tw:size-8 tw:shrink-0 tw:place-items-center tw:rounded-full tw:bg-[#dee6f2] tw:text-xs tw:font-semibold tw:text-[#08387b]! tw:dark:bg-[#162b48] tw:dark:text-[#5b92de]!">{index + 1}</span><div className="tw:min-w-0"><strong className="tw:block tw:break-words tw:text-sm tw:leading-snug tw:text-[#133047]! tw:dark:text-[#eaf3ff]!">{pair.name}</strong>{pair.groupName ? <small className="tw:mt-1 tw:block tw:text-xs tw:text-[#606874]! tw:dark:text-[#a4b3c8]!">{pair.groupName}</small> : null}</div></article>)}</div> : <p className="tw:m-0 tw:text-sm tw:text-[#606874]! tw:dark:text-[#a4b3c8]!">{portal.leagueCategories.length ? "Ainda não há duplas nesta categoria." : "Nenhuma categoria de liga ativa."}</p>}
+          {portal.selectedLeaguePairs.length ? <div className="tw:grid tw:gap-2">{portal.selectedLeaguePairs.map((pair, index) => <article key={pair.id} className="tw:flex tw:items-start tw:gap-3 tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-3 tw:dark:border-[#2a4161] tw:dark:bg-[#102441]"><span className="tw:grid tw:size-8 tw:shrink-0 tw:place-items-center tw:rounded-full tw:bg-[#174983] tw:text-xs tw:font-semibold tw:text-white! tw:dark:bg-[#174983] tw:dark:text-white!">{index + 1}</span><div className="tw:min-w-0"><strong className="tw:block tw:break-words tw:text-sm tw:leading-snug tw:text-[#133047]! tw:dark:text-[#eaf3ff]!">{pair.name}</strong>{pair.groupName ? <small className="tw:mt-1 tw:block tw:text-xs tw:text-[#606874]! tw:dark:text-[#a4b3c8]!">{pair.groupName}</small> : null}</div></article>)}</div> : <p className="tw:m-0 tw:text-sm tw:text-[#606874]! tw:dark:text-[#a4b3c8]!">{portal.leagueCategories.length ? "Ainda não há duplas nesta categoria." : "Nenhuma categoria de liga ativa."}</p>}
         </section></>
       ) : (
         <>

@@ -1,4 +1,5 @@
 import { readFileSync } from "./helpers/style-source";
+import { readPortalSources } from "./helpers/portal-source";
 import assert from "node:assert/strict";
 
 import { resolve } from "node:path";
@@ -22,5 +23,5 @@ test("Duplas não repete os atletas e regras não repete o nome da Liga", () => 
   const standings = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"), "utf8");
 
   assert.doesNotMatch(portal, /pair\.players\.map\(\(player\) => player\.name\)\.join/);
-  assert.match(standings, /<strong>\{league\.categoryName\}<\/strong>/);
+  assert.match(readPortalSources(), /<strong>\{league\.categoryName\}<\/strong>/);
 });

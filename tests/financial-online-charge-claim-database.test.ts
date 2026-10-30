@@ -24,13 +24,15 @@ test("uma emissão financeira por vez, sem trocar Pix por boleto durante tentati
   const admin = new PrismaClient({ datasources: { db: { url: testUrl } } });
   const runtime = new PrismaClient({ datasources: { db: { url: runtimeUrl.toString() } } });
   const entryIds: string[] = [];
+  const bankId = `goal-charge-bank-${randomUUID()}`;
   try {
     const arena = await admin.arena.findUniqueOrThrow({ where: { slug: "arena-teste-goal" }, select: { id: true } });
     const otherArena = await admin.arena.findUniqueOrThrow({ where: { slug: "arena-beta-goal" }, select: { id: true } });
+    await admin.bankAccount.create({ data: { id: bankId, arenaId: arena.id, name: "Conta cobrança QA" } });
     const createEntry = async () => {
       const entry = await admin.financialEntry.create({ data: {
         id: `goal-charge-${randomUUID()}`, arenaId: arena.id, type: "REVENUE", category: "Teste descartável",
-        description: "Cobrança concorrente descartável", amountCents: 5000, status: "PENDING",
+        description: "Cobrança concorrente descartável", amountCents: 5000, status: "PENDING", bankAccountId: bankId,
       }, select: { id: true } });
       entryIds.push(entry.id);
       return entry.id;
@@ -39,6 +41,15 @@ test("uma emissão financeira por vez, sem trocar Pix por boleto durante tentati
       await tx.$executeRaw`SELECT set_config('app.arena_id', ${arena.id}, true)`;
       return claimFinancialOnlineCharge(tx, { arenaId: arena.id, entryId, method, expectedAmountCents: 5000, now });
     });
+
+    const missingBankEntry = await createEntry();
+    await admin.financialEntry.update({ where: { id: missingBankEntry }, data: { bankAccountId: null } });
+    assert.match(denied(await claim(missingBankEntry, "PIX")), /Selecione a conta bancária/);
+    assert.equal((await admin.financialEntry.findUniqueOrThrow({ where: { id: missingBankEntry } })).onlinePaymentClaimedAt, null);
+    await admin.bankAccount.update({ where: { id: bankId }, data: { active: false } });
+    const inactiveBankEntry = await createEntry();
+    assert.match(denied(await claim(inactiveBankEntry, "BOLETO")), /conta bancária ativa desta arena/);
+    await admin.bankAccount.update({ where: { id: bankId }, data: { active: true } });
 
     const entryId = await createEntry();
     const foreignClaim = await runtime.$transaction(async (tx) => {
@@ -64,16 +75,18 @@ test("uma emissão financeira por vez, sem trocar Pix por boleto durante tentati
     assert.equal(saved.onlineProvider, "MERCADO_PAGO");
   } finally {
     await admin.financialEntry.deleteMany({ where: { id: { in: entryIds } } });
+    await admin.bankAccount.deleteMany({ where: { id: bankId } });
     await runtime.$disconnect();
     await admin.$disconnect();
   }
 });
 
 test("a cotação preserva o principal, congela desconto e juros nas tentativas e valida o valor líquido", { skip: !disposableDatabase }, async () => {
- const admin = new PrismaClient({datasources:{db:{url:testUrl}}}); const runtimeUrl=new URL(testUrl);runtimeUrl.username="arena_runtime";runtimeUrl.password="";const runtime=new PrismaClient({datasources:{db:{url:runtimeUrl.toString()}}});const ids:string[]=[];
+ const admin = new PrismaClient({datasources:{db:{url:testUrl}}}); const runtimeUrl=new URL(testUrl);runtimeUrl.username="arena_runtime";runtimeUrl.password="";const runtime=new PrismaClient({datasources:{db:{url:runtimeUrl.toString()}}});const ids:string[]=[];const bankId=`goal-quote-bank-${randomUUID()}`;
  try {
   const arena=await admin.arena.findUniqueOrThrow({where:{slug:"arena-teste-goal"}});
-  const create=async()=>{const row=await admin.financialEntry.create({data:{arenaId:arena.id,type:"REVENUE",category:"QA cotação",description:"Cotação de teste",amountCents:5000,status:"PENDING"}});ids.push(row.id);return row.id;};
+  await admin.bankAccount.create({data:{id:bankId,arenaId:arena.id,name:"Conta cotação QA"}});
+  const create=async()=>{const row=await admin.financialEntry.create({data:{arenaId:arena.id,type:"REVENUE",category:"QA cotação",description:"Cotação de teste",amountCents:5000,status:"PENDING",bankAccountId:bankId}});ids.push(row.id);return row.id;};
   const at=new Date();
   const claim=(entryId:string,extra:Partial<Parameters<typeof claimFinancialOnlineCharge>[1]>={})=>runtime.$transaction(async tx=>{await tx.$executeRaw`SELECT set_config('app.arena_id', ${arena.id}, true)`;return claimFinancialOnlineCharge(tx,{arenaId:arena.id,entryId,method:"PIX",expectedAmountCents:5000,now:at,...extra});});
   const id=await create();
@@ -87,5 +100,5 @@ test("a cotação preserva o principal, congela desconto e juros nas tentativas 
   const invalid=await create();
   for(const extra of [{discountCents:5001},{discountCents:5000},{discountCents:-1},{interestCents:2147483647},{discountCents:500,quotedAmountCents:4000},{discountCents:4600,method:"BOLETO" as const}])assert.equal((await claim(invalid,extra)).ok,false);
   assert.equal((await admin.financialEntry.findUniqueOrThrow({where:{id:invalid}})).onlinePaymentClaimMethod,"");
- }finally{await admin.financialEntry.deleteMany({where:{id:{in:ids}}});await runtime.$disconnect();await admin.$disconnect();}
+ }finally{await admin.financialEntry.deleteMany({where:{id:{in:ids}}});await admin.bankAccount.deleteMany({where:{id:bankId}});await runtime.$disconnect();await admin.$disconnect();}
 });

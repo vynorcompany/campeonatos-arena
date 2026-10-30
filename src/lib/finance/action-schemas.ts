@@ -20,6 +20,7 @@ export const subscriptionSchema = z.object({
 });
 
 export const paymentSchema = z.object({
+  bankAccountId: optionalText,
   subscriptionId: z.string().min(1, "Selecione uma assinatura."),
   referenceMonth: z.string().trim().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Informe um mês de referência válido."),
   paidAt: z.string().optional().default(""),
@@ -119,6 +120,8 @@ export const supplierUpdateSchema = z.object({ supplierId: z.string().min(1, "Fo
 export const deleteSupplierSchema = z.object({ supplierId: z.string().min(1, "Fornecedor inválido.") });
 
 export const fiscalSettingsSchema = z.object({
+  crt: z.enum(["", "1", "2", "3", "4"]).optional(),
+  issuerState: z.string().regex(/^(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)?$/, "UF inválida.").optional(),
   provider: z.enum(["NONE", "MANUAL"]),
   environment: z.enum(["SANDBOX", "PRODUCTION"]),
   series: z.string().trim().max(20).default(""),
@@ -133,6 +136,7 @@ export const onlinePaymentSettingsSchema = z.object({
 });
 
 export const settlementSchema = z.object({
+  bankAccountId: optionalText,
   discount: z.string().trim().default("0"),
   discountMode: z.enum(["AMOUNT", "PERCENTAGE"]).default("AMOUNT"),
   entryId: z.string().min(1, "Conta inválida."),
@@ -144,6 +148,7 @@ export const settlementSchema = z.object({
 });
 
 export const bulkEntrySchema = z.object({
+  bankAccountId: optionalText,
   entryIds: z.array(z.string().min(1)).min(1, "Selecione ao menos um lançamento."),
   paymentMethod: z.string().trim().min(1, "Selecione a forma de pagamento."),
   paidAt: z.string().optional().default("")
@@ -174,7 +179,7 @@ export const bankBalanceSchema = z.object({
   balance: z.string().trim().min(1, "Informe o saldo conferido.")
 });
 
-export const onlineChargeSchema = z.object({ entryId: z.string().min(1), method: z.enum(["PIX", "BOLETO"]), amount: optionalText, interest: optionalDiscount, discount: optionalDiscount, discountMode: discountModeSchema });
+export const onlineChargeSchema = z.object({ bankAccountId: optionalText, entryId: z.string().min(1), method: z.enum(["PIX", "BOLETO"]), amount: optionalText, interest: optionalDiscount, discount: optionalDiscount, discountMode: discountModeSchema });
 
 export const paymentConnectionSchema = z.object({
   provider: z.enum(["ASAAS", "SICOOB"]),

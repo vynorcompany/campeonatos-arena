@@ -1,0 +1,1 @@
+ALTER TABLE "Product" ADD COLUMN "notes" TEXT NOT NULL DEFAULT '';

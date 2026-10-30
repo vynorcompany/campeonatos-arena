@@ -1,7 +1,9 @@
 "use client";
 
 import { viewStyles } from "./student-actions-cell.utilities";
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { Modal } from "@/components/ui/modal";
+import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { deleteStudentAction, updateStudentAction } from "@/lib/actions/academy";
@@ -28,35 +30,26 @@ export function StudentActionsCell({
   const [isEditing, setIsEditing] = useState(false);
   const contact = phone || email || "Sem contato";
 
-  if (isEditing) {
-    return (
-      <SafeActionForm action={updateStudentAction} className={viewStyles.entity_edit_form} successMessage="Aluno atualizado.">
-        <input type="hidden" name="studentId" value={studentId} />
-        <div className={viewStyles.entity_edit_grid}>
-          <input name="name" type="text" defaultValue={name} aria-label="Nome do aluno" autoFocus />
-          <input name="phone" type="text" defaultValue={phone} aria-label="Telefone do aluno" placeholder="Telefone" />
-          <input name="email" type="email" defaultValue={email} aria-label="E-mail do aluno" placeholder="E-mail" />
-          <input
-            name="remainingClasses"
-            type="number"
-            min="0"
-            defaultValue={remainingClasses}
-            aria-label="Aulas restantes"
-          />
-          <input name="notes" type="text" defaultValue={notes} aria-label="ObservaÃ§Ãµes do aluno" placeholder="ObservaÃ§Ãµes" />
-        </div>
-        <div className={viewStyles.player_inline_actions}>
-          <SubmitButton label="Salvar" pendingLabel="..." className={viewStyles.player_inline_text_button_player_inline_text_button_save} />
-          <button type="button" className={viewStyles.player_inline_text_button} onClick={() => setIsEditing(false)}>
-            Cancelar
-          </button>
-        </div>
-      </SafeActionForm>
-    );
-  }
+  const closeEditor = useCallback(() => setIsEditing(false), []);
 
   return (
     <div className={viewStyles.entity_actions_cell}>
+      <Modal open={isEditing} title="Editar aluno" onClose={closeEditor} width="tw:max-w-[640px]">
+        <SafeActionForm action={updateStudentAction} className="tw:flex tw:min-h-full tw:min-w-0 tw:flex-col tw:gap-4" successMessage="Aluno atualizado." onSuccess={closeEditor}>
+          <input type="hidden" name="studentId" value={studentId} />
+          <div className="tw:grid tw:min-w-0 tw:gap-3 tw:sm:grid-cols-2">
+            <label className={ui.field}>Nome<input name="name" type="text" defaultValue={name} required /></label>
+            <label className={ui.field}>Telefone<input name="phone" type="tel" defaultValue={phone} autoComplete="tel" /></label>
+            <label className={ui.field}>E-mail<input name="email" type="email" defaultValue={email} autoComplete="email" /></label>
+            <label className={ui.field}>Aulas restantes<input name="remainingClasses" type="number" min="0" defaultValue={remainingClasses} /></label>
+            <label className={`${ui.field} tw:col-span-full`}>Observações<textarea name="notes" defaultValue={notes} rows={4} /></label>
+          </div>
+          <footer className="tw:mt-auto tw:flex tw:flex-wrap tw:justify-end tw:gap-2 tw:border-t tw:border-[var(--line)] tw:pt-3">
+            <button type="button" className={ui.secondary} onClick={closeEditor}>Cancelar</button>
+            <SubmitButton label="Salvar aluno" pendingLabel="Salvando..." className={ui.primary} />
+          </footer>
+        </SafeActionForm>
+      </Modal>
       <div className={viewStyles.entity_main_text}>
         <strong>{name}</strong>
         <span className={viewStyles.table_subtext}>

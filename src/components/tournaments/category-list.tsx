@@ -40,7 +40,7 @@ export function CategoryList({
           className={viewStyles.button_button_primary}
           href={`/torneios/${tournamentId}/categorias/nova`}
         >
-          <span className={viewStyles.category_add_symbol}>＋</span>Adicionar categoria
+          <svg className={viewStyles.category_add_symbol} viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>Adicionar categoria
         </Link>
       </div>
 

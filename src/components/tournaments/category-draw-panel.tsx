@@ -102,7 +102,7 @@ export function CategoryDrawPanel({
           >
             <div className={cx(`${viewStyles.page_header} ${competition?.format === "LEAGUE" ? viewStyles.league_groups_hero : ""}`)}>
               <div className={viewStyles.stack_xs}>
-                <h3>{category.name}</h3>
+                {categories.length > 1 ? <strong className="tw:text-sm">{category.name}</strong> : null}
                 <p className={viewStyles.muted}>
                   {competition?.pairs.length ?? 0} duplas ·{" "}
                   {competition?.groups.length ?? 0} grupos

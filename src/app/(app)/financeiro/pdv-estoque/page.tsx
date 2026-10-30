@@ -49,7 +49,7 @@ export default async function FinancePdvStockPage() {
         </div>
       </div>
 
-      <SectionCard title="Movimentações do mês" description="Entradas, saídas, vendas e ajustes de estoque.">
+      <SectionCard title="Movimentações do mês" description="Entradas, saídas, vendas e ajustes de estoque." hideHeading>
         <div className={viewStyles.simple_list}>
           {stockMovements.map((movement) => (
             <div className={viewStyles.simple_item} key={movement.id}>

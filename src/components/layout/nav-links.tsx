@@ -4,7 +4,7 @@ import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./nav-links.utilities";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useWhatsAppUnreadCount } from "@/components/whatsapp/use-whatsapp-unread-count";
 import { reportLinks } from "@/lib/navigation/report-links";
 import { usePersistedOpenItems } from "./use-persisted-open-items";
@@ -47,6 +47,7 @@ type NavLinksProps = {
   canEditStock: boolean;
   visibleModules: string[];
   whatsappUnreadCount: number;
+  comandaRequestCount?: number;
   pollingScope?: string;
 };
 
@@ -178,10 +179,13 @@ function NavIcon({ name }: { name: IconName }) {
   return <svg {...common} className={cx(name === "whatsapp" ? "nav-svg-whatsapp" : undefined)}>{paths[name]}</svg>;
 }
 
-export function NavLinks({ canManageUsers, canManageFinancialSettings, canManageCourtSettings = false, canManagePrinterSettings = false, financeView, canEditStock, visibleModules, whatsappUnreadCount, pollingScope = "" }: NavLinksProps) {
+export function NavLinks({ canManageUsers, canManageFinancialSettings, canManageCourtSettings = false, canManagePrinterSettings = false, financeView, canEditStock, visibleModules, whatsappUnreadCount, comandaRequestCount = 0, pollingScope = "" }: NavLinksProps) {
   const pathname = usePathname() ?? "";
   const openItemsStorageKey = "arena:sidebar-open-items";
   const canSee = (module: string) => visibleModules.includes(module);
+  const [liveComandaCount, setLiveComandaCount] = useState(comandaRequestCount);
+  useEffect(() => setLiveComandaCount(comandaRequestCount), [comandaRequestCount, pollingScope]);
+  useEffect(() => { const update = (event: Event) => { const count = (event as CustomEvent<number>).detail; if (Number.isInteger(count) && count >= 0) setLiveComandaCount(count); }; window.addEventListener("arena-comanda-count", update); return () => window.removeEventListener("arena-comanda-count", update); }, [pollingScope]);
   const liveWhatsAppUnreadCount = useWhatsAppUnreadCount(whatsappUnreadCount, canSee("support"), pollingScope);
   const navigationGroups: NavGroup[] = [
     {
@@ -189,7 +193,7 @@ export function NavLinks({ canManageUsers, canManageFinancialSettings, canManage
       links: [
         { href: "/painel", label: "Dashboard", icon: "dashboard" },
         ...(canManageUsers ? [{ href: "/assistente", label: "Assistente", icon: "support" as IconName }] : []),
-        { href: "/comandas", label: "Comandas", icon: "cart" },
+        { href: "/comandas", label: "Comandas", icon: "cart", badge: canSee("pos") ? liveComandaCount : 0 },
         ...(canSee("support") ? [{ href: "/whatsapp", label: "WhatsApp", icon: "whatsapp" as IconName, badge: liveWhatsAppUnreadCount }] : []),
         ...(canSee("pos") ? [{ href: "/pdv/caixa", label: "Gerenciar Caixa", icon: "cash" as IconName }] : [])
       ]
@@ -427,7 +431,7 @@ export function NavLinks({ canManageUsers, canManageFinancialSettings, canManage
                       <div className={viewStyles.nav_expandable_row}>
                         <Link prefetch={false} href={item.href === "/financeiro" && !canSee("finance") ? "/pdv" : item.href} className={cx(`${viewStyles.nav_link_nav_link_destination}${isActive ? " " + viewStyles.nav_link_active : ""}`)}>
                           <span className={viewStyles.nav_icon} aria-hidden="true">{item.icon ? <NavIcon name={item.icon} /> : null}</span>
-                          <span>{item.label}</span>{item.badge ? <b className="nav-unread-badge tw:ml-auto tw:min-w-[17px] tw:rounded-full tw:bg-[#d83932] tw:px-[5px] tw:py-px tw:text-center tw:text-[.62rem] tw:leading-[1.45] tw:text-white" role="status" aria-label={`${item.badge} mensagens não lidas`}>{item.badge > 99 ? "99+" : item.badge}</b> : null}
+                          <span>{item.label}</span>{item.badge ? <b className="nav-unread-badge tw:ml-auto tw:min-w-[17px] tw:rounded-full tw:bg-[#d83932] tw:px-[5px] tw:py-px tw:text-center tw:text-[.62rem] tw:leading-[1.45] tw:text-white" role="status" aria-label={`${item.badge} ${item.href === "/comandas" ? "solicitações de comanda" : "mensagens não lidas"}`}>{item.badge > 99 ? "99+" : item.badge}</b> : null}
                         </Link>
                         <button className={viewStyles.nav_toggle_nav_expand_toggle} type="button" aria-label={isOpen ? `Fechar submenu ${item.label}` : `Abrir submenu ${item.label}`} aria-expanded={isOpen} onClick={() => toggleItem(item.href)}>
                           <span className={cx(`${viewStyles.nav_chevron}${isOpen ? " " + viewStyles.nav_chevron_open : ""}`)} aria-hidden="true"><NavIcon name="chevron" /></span>
@@ -436,7 +440,7 @@ export function NavLinks({ canManageUsers, canManageFinancialSettings, canManage
                     ) : (
                       <Link prefetch={false} href={item.href} target={item.href === "/proximos-jogos/tv" ? "_blank" : undefined} rel={item.href === "/proximos-jogos/tv" ? "noopener noreferrer" : undefined} className={cx(`${viewStyles.nav_link}${isActive ? " " + viewStyles.nav_link_active : ""}${item.href === "/pdv/caixa" ? " nav-link-cash" : ""}`)}>
                         <span className={viewStyles.nav_icon} aria-hidden="true">{item.icon ? <NavIcon name={item.icon} /> : null}</span>
-                        <span>{item.label}</span>{item.badge ? <b className="nav-unread-badge tw:ml-auto tw:min-w-[17px] tw:rounded-full tw:bg-[#d83932] tw:px-[5px] tw:py-px tw:text-center tw:text-[.62rem] tw:leading-[1.45] tw:text-white" role="status" aria-label={`${item.badge} mensagens não lidas`}>{item.badge > 99 ? "99+" : item.badge}</b> : null}
+                        <span>{item.label}</span>{item.badge ? <b className="nav-unread-badge tw:ml-auto tw:min-w-[17px] tw:rounded-full tw:bg-[#d83932] tw:px-[5px] tw:py-px tw:text-center tw:text-[.62rem] tw:leading-[1.45] tw:text-white" role="status" aria-label={`${item.badge} ${item.href === "/comandas" ? "solicitações de comanda" : "mensagens não lidas"}`}>{item.badge > 99 ? "99+" : item.badge}</b> : null}
                       </Link>
                     )}
                   </div>

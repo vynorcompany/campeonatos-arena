@@ -37,7 +37,7 @@ export function RankingConfigurationForm({
   return (
     <div className={viewStyles.stack_md}>
       <form action={formAction} className={viewStyles.grid_form_section_card_ranking_configuration_form}>
-        <div className={viewStyles.form_full_ranking_configuration_heading}><h2>Dados do ranking</h2><p className={viewStyles.muted}>Defina como o ranking identifica e pontua as competições.</p></div>
+        <h2 className="tw:sr-only">Dados do ranking</h2>
         <input type="hidden" name="rankingId" value={ranking.id} />
         <input type="hidden" name="generalSettingsPresent" value="on" />
         <div className={viewStyles.field}>

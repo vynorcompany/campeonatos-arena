@@ -22,8 +22,10 @@ test("emissão automática de boleto não disputa lançamento já reivindicado p
   const suffix = randomUUID();
   const recurrenceId = `goal-recurrence-${suffix}`;
   const entryId = `goal-entry-${suffix}`;
+  const bankId = `goal-recurring-bank-${suffix}`;
   try {
     const arena = await admin.arena.findUniqueOrThrow({ where: { slug: "arena-teste-goal" }, select: { id: true } });
+    await admin.bankAccount.create({data:{id:bankId,arenaId:arena.id,name:"Conta recorrente QA"}});
     const dueDate = new Date("2035-01-05T12:00:00.000Z");
     await admin.financialRecurrence.create({ data: {
       id: recurrenceId, arenaId: arena.id, type: "REVENUE", counterpartyName: "Teste descartável", category: "Teste",
@@ -32,7 +34,7 @@ test("emissão automática de boleto não disputa lançamento já reivindicado p
     } });
     await admin.financialEntry.create({ data: {
       id: entryId, arenaId: arena.id, type: "REVENUE", category: "Teste", description: "Lançamento descartável",
-      amountCents: 5000, status: "PENDING", dueDate, recurrenceId, playerId: "goal-athlete-a",
+      amountCents: 5000, status: "PENDING", bankAccountId: bankId, dueDate, recurrenceId, playerId: "goal-athlete-a",
     } });
     const scanAt = new Date("2035-01-01T12:00:00.000Z");
     const dueBefore = new Date(scanAt.getTime() + 15 * 24 * 60 * 60_000);
@@ -58,6 +60,7 @@ test("emissão automática de boleto não disputa lançamento já reivindicado p
   } finally {
     await admin.financialEntry.deleteMany({ where: { id: entryId } });
     await admin.financialRecurrence.deleteMany({ where: { id: recurrenceId } });
+    await admin.bankAccount.deleteMany({where:{id:bankId}});
     await runtime.$disconnect();
     await admin.$disconnect();
   }

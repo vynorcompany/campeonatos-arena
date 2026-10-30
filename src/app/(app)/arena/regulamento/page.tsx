@@ -47,25 +47,17 @@ export default async function RegulationPage() {
 
   return (
     <div className={viewStyles.stack_md}>
-      <header className={viewStyles.page_header}>
-        <div className={viewStyles.stack_xs}>
-          <p className={viewStyles.eyebrow}>Arena</p>
-          <h1>Regulamento público</h1>
-          <p className={viewStyles.muted}>
-            Escreva os termos uma vez, publique o link e acompanhe os aceites feitos pelos clientes na página pública.
-          </p>
-        </div>
-      </header>
+      <h1 className="tw:sr-only">Regulamento público</h1>
 
       <div className={viewStyles.two_column_grid}>
         <SectionCard
           title="Novo regulamento"
           description="Publique uma nova versão. O sistema vai gerar um link público para compartilhar com o cliente."
-        >
+         hideHeading>
           <RegulationDocumentForm defaultContent={latestDocument?.content ?? ""} />
         </SectionCard>
 
-        <SectionCard title="Último link público" description="Copie e compartilhe a versão ativa do regulamento.">
+        <SectionCard title="Último link público" description="Copie e compartilhe a versão ativa do regulamento." hideHeading>
           {latestDocument ? (
             <div className={viewStyles.regulation_link_panel}>
               <strong>{latestDocument.createdBy?.name ?? "Sistema"}</strong>

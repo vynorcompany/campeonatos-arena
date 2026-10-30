@@ -2,7 +2,7 @@ import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { RegistrationEditForm } from "@/components/tournaments/registration-edit-form";
+import { RegistrationEditForm, RegistrationPaymentFields } from "@/components/tournaments/registration-edit-form";
 import { requireModuleView } from "@/lib/auth/guards";
 import { arenaDatabase } from "@/lib/arena-database";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -24,6 +24,7 @@ export default async function TournamentRegistrationsPage(
     include: { categories: { orderBy: { level: "asc" }, select: { id: true, name: true } }, publicRegistrations: { orderBy: { createdAt: "asc" }, include: { category: { select: { id: true, name: true } } } } },
   });
   if (!tournament) notFound();
+  const bankAccounts = await arenaDatabase(auth.arenaId).bankAccount.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } });
   const q = (searchParams?.q ?? "").trim().toLowerCase();
   const registrations = tournament.publicRegistrations.filter((item) => {
     if (q && !`${item.leadName} ${item.partnerName}`.toLowerCase().includes(q)) return false;
@@ -37,10 +38,10 @@ export default async function TournamentRegistrationsPage(
   const canResolveReview = canPerformPermission("tournaments:manage", auth.arenaRole, auth.systemRole, auth.editPermissions);
 
   return <main className={viewStyles.tournament_management_page_stack_md}>
-    <header className={viewStyles.page_header_tournament_management_header}><div><p className={viewStyles.eyebrow}>Torneio</p><h1>Inscrições</h1><p className={viewStyles.muted}>{tournament.name} · lista única por ordem de inscrição.</p></div><Link href={`/torneios/${tournament.id}`} className={viewStyles.button}>Voltar ao torneio</Link></header>
+    <header className="tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:justify-end tw:gap-2"><h1 className="tw:sr-only">Inscrições</h1><Link href={`/torneios/${tournament.id}`} className={viewStyles.button}>Voltar ao torneio</Link></header>
     <section className={viewStyles.section_card}>
       <form className={viewStyles.tournament_registration_filters} method="get">
-        <input name="q" defaultValue={searchParams?.q} placeholder="Buscar atleta ou dupla" />
+        <input aria-label="Buscar atleta ou dupla" name="q" defaultValue={searchParams?.q} placeholder="Buscar atleta ou dupla" />
         <select aria-label="Filtrar por categoria" name="category" defaultValue={searchParams?.category ?? ""}><option value="">Todas as categorias</option>{tournament.categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</select>
         <select aria-label="Filtrar por status" name="status" defaultValue={searchParams?.status ?? ""}><option value="">Todos os status</option><option value="PENDING">Pagamento pendente</option><option value="REVIEW">Em análise</option><option value="CONFIRMED">Confirmadas</option><option value="CANCELED">Canceladas</option></select>
         <button className={viewStyles.button} type="submit">Filtrar</button>
@@ -64,8 +65,7 @@ export default async function TournamentRegistrationsPage(
                 <label>Telefone<input name="partnerPhone" defaultValue={registration.partnerPhone} required /></label>
                 <label>CPF<input name="partnerCpf" defaultValue={registration.partnerCpf} required /></label>
                 <label>Nascimento (opcional)<input name="partnerBirthDate" type="date" defaultValue={registration.partnerBirthDate?.toISOString().slice(0, 10) ?? ""} /></label>
-                <label>Valor (R$)<input name="amountReais" inputMode="decimal" defaultValue={(registration.amountCents / 100).toFixed(2).replace(".", ",")} /></label>
-                <label>Status<select name="paymentStatus" defaultValue={registration.paymentStatus === "PAID" ? "PAID" : "PENDING"}><option value="PENDING">Pagamento pendente</option><option value="PAID">Pago / confirmar</option></select></label>
+                <RegistrationPaymentFields amountCents={registration.amountCents} accounts={bankAccounts} />
                 <SubmitButton label="Salvar alterações" pendingLabel="Salvando..." className={viewStyles.button_button_primary} />
               </RegistrationEditForm>}
           </details>;

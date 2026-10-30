@@ -6,7 +6,7 @@ import test from "node:test";
 
 test("authenticated public portal exposes league challenges scoped to the player pair", () => {
   const schema = readFileSync(resolve(process.cwd(), "prisma/schema.prisma"), "utf8");
-  const standings = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"), "utf8");
+  const standings = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"), "utf8") + readFileSync(resolve(process.cwd(), "src/components/portal/tournament-tabs.tsx"), "utf8");
   const page = readFileSync(resolve(process.cwd(), "src/app/classificacao/[arenaSlug]/page.tsx"), "utf8");
 
   assert.match(schema, /model LeagueChallenge/);

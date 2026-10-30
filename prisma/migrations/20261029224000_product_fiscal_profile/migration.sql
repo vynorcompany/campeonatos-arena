@@ -1,0 +1,3 @@
+ALTER TABLE "Product" ADD COLUMN "fiscalProfile" JSONB NOT NULL DEFAULT '{}';
+ALTER TABLE "SaleItem" ADD COLUMN "fiscalProfile" JSONB;
+ALTER TABLE "FiscalSettings" ADD COLUMN "crt" TEXT NOT NULL DEFAULT '', ADD COLUMN "issuerState" TEXT NOT NULL DEFAULT '';

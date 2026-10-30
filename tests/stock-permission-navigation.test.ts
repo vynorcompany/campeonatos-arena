@@ -20,7 +20,7 @@ test("product detail follows stock permission and separates view from edit", () 
 
   assert.match(detail, /requireModuleView\("stock"\)/);
   assert.doesNotMatch(detail, /requireModuleView\("pos"\)/);
-  assert.match(detail, /canEditModule\("stock"/);
+  assert.match(detail, /canEditModule\(\s*"stock"/);
   assert.match(list, /canEdit=\{canEditModule\("stock"/);
   assert.match(workspace, /canEdit \? <details/);
   assert.match(workspace, /canEdit \? "Editar" : "Ver"/);

@@ -78,20 +78,20 @@ export const viewStyles = {
   ].join(" "),
   "event_metric_icon": [
     "event-metric-icon", "tw:grid", "tw:[flex:0_0_48px]", "tw:w-[48px]",
-    "tw:h-[48px]", "tw:place-items-center", "tw:rounded-[10px]", "tw:bg-[color:#eaf1ff]",
-    "tw:[background-image:none]", "tw:text-[color:#0759d6]", "tw:text-[1.45rem]", "tw:font-[800]",
+    "tw:h-[48px]", "tw:place-items-center", "tw:rounded-[10px]", "tw:bg-[color:#174983]",
+    "tw:[background-image:none]", "tw:text-[color:#fff]", "tw:text-[1.45rem]", "tw:font-[800]",
     "tw:[&_.event-icon]:w-[24px]", "tw:[&_.event-icon]:h-[24px]",
   ].join(" "),
   "event_metric_icon_event_metric_icon_success": [
     "event-metric-icon", "event-metric-icon-success", "tw:grid", "tw:[flex:0_0_48px]",
     "tw:w-[48px]", "tw:h-[48px]", "tw:place-items-center", "tw:rounded-[10px]",
-    "tw:bg-[color:#e6faef]", "tw:[background-image:none]", "tw:text-[color:#009a4e]", "tw:text-[1.45rem]",
+    "tw:bg-[color:#174983]", "tw:[background-image:none]", "tw:text-[color:#fff]", "tw:text-[1.45rem]",
     "tw:font-[800]", "tw:[&_.event-icon]:w-[24px]", "tw:[&_.event-icon]:h-[24px]",
   ].join(" "),
   "event_metric_icon_event_metric_icon_purple": [
     "event-metric-icon", "event-metric-icon-purple", "tw:grid", "tw:[flex:0_0_48px]",
     "tw:w-[48px]", "tw:h-[48px]", "tw:place-items-center", "tw:rounded-[10px]",
-    "tw:bg-[color:#f1ebff]", "tw:[background-image:none]", "tw:text-[color:#7845dd]", "tw:text-[1.45rem]",
+    "tw:bg-[color:#174983]", "tw:[background-image:none]", "tw:text-[color:#fff]", "tw:text-[1.45rem]",
     "tw:font-[800]", "tw:[&_.event-icon]:w-[24px]", "tw:[&_.event-icon]:h-[24px]",
   ].join(" "),
   "event_detail_grid": [
@@ -139,7 +139,7 @@ export const viewStyles = {
     "tw:pl-[12px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:#dce6f3]",
     "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:#dce6f3]", "tw:border-b-[length:1px]",
     "tw:[border-bottom-style:solid]", "tw:border-b-[color:#dce6f3]", "tw:border-l-[length:1px]", "tw:[border-left-style:solid]",
-    "tw:border-l-[color:#dce6f3]", "tw:rounded-[10px]", "tw:bg-[color:#f8fbff]", "tw:[background-image:none]",
+    "tw:border-l-[color:#dce6f3]", "tw:rounded-[10px]", "tw:bg-[color:#fff]", "tw:[background-image:none]",
     "tw:[&_label]:grid", "tw:[&_label]:gap-y-[6px]", "tw:[&_label]:gap-x-[6px]", "tw:[&_label]:text-[color:#3a5278]",
     "tw:[&_label]:text-[.72rem]", "tw:[&_label]:font-[700]", "tw:[&_select]:min-w-[0]", "tw:[&_select]:w-[100%]",
     "tw:[&_select]:min-h-[38px]", "tw:[&_select]:text-[.8rem]", "tw:[&_.button]:[justify-self:start]", "tw:[&_.button]:min-h-[36px]",

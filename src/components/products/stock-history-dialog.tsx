@@ -1,20 +1,22 @@
 "use client";
-import { viewStyles } from "./stock-history-dialog.utilities";
 
-import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import { useCallback, useState } from "react";
+import { Modal } from "@/components/ui/modal";
+import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 
 type Movement = { id: string; type: string; quantity: number; reason: string; createdAt: string };
+const movementLabels: Record<string, string> = { IN: "Entrada", OUT: "Saída", ADJUST: "Contagem" };
+
 export function StockHistoryDialog({ movements }: { movements: Movement[] }) {
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  useEffect(() => {
-    if (!open) return;
-    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [open]);
-  const modal = open ? <div className={viewStyles.command_modal_backdrop} onMouseDown={() => setOpen(false)}><section className={`${viewStyles.financial_entry_modal_financial_entry_modal_small} tw:max-w-[520px] tw:h-[min(600px,calc(var(--workspace-viewport-height,100dvh)_-_24px))] tw:overflow-y-auto`} role="dialog" aria-modal="true" aria-label="Histórico de estoque" onMouseDown={(event) => event.stopPropagation()}><header><div><span>ESTOQUE</span><h2>Histórico de estoque</h2></div><button type="button" className={viewStyles.button_button_small} onClick={() => setOpen(false)}>Fechar</button></header><div className={viewStyles.simple_list}>{movements.length ? movements.map((movement) => <div className={viewStyles.simple_item} key={movement.id}><strong>{movement.type} · {movement.quantity} unidade(s)</strong><span>{movement.reason || "Sem observação"} · {new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(movement.createdAt))}</span></div>) : <p className={viewStyles.muted}>Nenhuma movimentação registrada.</p>}</div></section></div> : null;
-  return <><button type="button" className={`${viewStyles.button_button_small_product_history_trigger} tw:justify-self-start`} onClick={() => setOpen(true)}>Ver histórico</button>{mounted && modal ? createPortal(modal, document.body) : null}</>;
+  const close = useCallback(() => setOpen(false), []);
+  return <>
+    <button type="button" className={`${ui.secondary} tw:mt-3 tw:justify-self-start`} onClick={() => setOpen(true)}>Ver histórico</button>
+    <Modal title="Histórico de estoque" width="tw:max-w-[560px]" open={open} onClose={close}>
+      {movements.length ? <ul className="tw:m-0 tw:grid tw:list-none tw:gap-0 tw:p-0">{movements.map(movement => <li key={movement.id} className="tw:grid tw:min-w-0 tw:gap-1 tw:border-b tw:border-[var(--line)] tw:py-3 tw:first:pt-0 tw:last:border-b-0">
+        <div className="tw:flex tw:flex-wrap tw:items-baseline tw:justify-between tw:gap-2"><strong className="tw:text-sm tw:text-[#174983]">{movementLabels[movement.type] ?? movement.type} · {movement.quantity} unidade(s)</strong><time dateTime={movement.createdAt} className="tw:text-xs tw:text-[var(--muted)]">{new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(movement.createdAt))}</time></div>
+        <span className="tw:break-words tw:text-sm">{movement.reason || "Sem observação"}</span>
+      </li>)}</ul> : <p className={ui.empty}>Nenhuma movimentação registrada.</p>}
+    </Modal>
+  </>;
 }

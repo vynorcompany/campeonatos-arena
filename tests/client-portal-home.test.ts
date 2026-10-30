@@ -75,7 +75,7 @@ test("portal events preserve the image on mobile and can open an optional extern
   assert.match(portal, /ClientPortalEventCarousel/);
   assert.match(carousel, /event\.linkUrl/);
   assert.match(carousel, /target="_blank"/);
-  assert.match(styleRules("client-portal-event-posts", {"maxWidth":620}), /background-color: #f2f6fa/);
+  assert.match(styleRules("client-portal-event-posts", {"context":"img"}), /background-color: (?:#fff|white|var\(--tw-color-white\))/);
 });
 
 test("client home filters financial entries in the database for the signed-in athlete", () => {

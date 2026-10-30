@@ -1,3 +1,4 @@
+import { NfeImportWorkspace } from "@/components/fiscal/nfe-import-workspace";
 import { WorkspaceHeading } from "@/components/ui/workspace-heading";
 import Link from "next/link";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
@@ -12,7 +13,7 @@ const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "curren
 
 export function StockWorkspace({ products, categories, query = "", stock = "", canEdit }: { products: StockProduct[]; categories: { id: string; name: string }[]; query?: string; stock?: string; canEdit: boolean }) {
   const visible = products.filter(product => (!query || product.name.toLocaleLowerCase("pt-BR").includes(query.toLocaleLowerCase("pt-BR")) || product.sku.toLocaleLowerCase("pt-BR").includes(query.toLocaleLowerCase("pt-BR"))) && (stock !== "LOW" || product.stockQuantity <= product.minStock));
-  return <div className={`${ui.page} tw:[&_input]:h-9 tw:[&_select]:h-9`}><WorkspaceHeading eyebrow="PRODUTOS · ESTOQUE" title="Controle de estoque" description="Produtos, disponibilidade e reposição para manter a operação em dia.">{canEdit ? <><Link href="/pdv/balanco" className={ui.secondary}>Conferir estoque</Link><NewProductDialog categories={categories} /></> : null}</WorkspaceHeading>
+  return <div className={`${ui.page} tw:[&_input]:h-9 tw:[&_select]:h-9`}><WorkspaceHeading eyebrow="PRODUTOS · ESTOQUE" title="Controle de estoque">{canEdit ? <><NfeImportWorkspace buttonLabel="Entrada por NFE" buttonClassName={ui.primary} /><Link href="/pdv/balanco" className={ui.secondary}>Conferir estoque</Link><NewProductDialog categories={categories} /></> : null}</WorkspaceHeading>
     <p className="tw:m-0 tw:text-xs tw:text-[var(--muted)]">{products.length} produtos · {products.filter(product => product.stockQuantity <= product.minStock).length} no estoque mínimo</p>
     <form method="get" className={`${ui.filters} tw:[&_label:first-child]:w-[min(100%,280px)] tw:[&_label:nth-child(2)]:w-[170px] tw:pb-1`} aria-label="Filtros de estoque"><label className={ui.field}>Pesquisar<input type="search" name="q" defaultValue={query} placeholder="Nome ou SKU" /></label><label className={ui.field}>Estoque<select name="stock" defaultValue={stock}><option value="">Todos os produtos</option><option value="LOW">No estoque mínimo</option></select></label><button className={ui.secondary}>Filtrar</button><Link href="/pdv/estoque" className={ui.secondary}>Limpar</Link></form>
     <div className={ui.list}>

@@ -1,3 +1,4 @@
+import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { arenaDatabase } from "@/lib/arena-database";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
@@ -60,22 +61,23 @@ export default async function ArenaPage(props: ArenaPageProps) {
 
   return (
     <div className={viewStyles.stack_md}>
+      {activeSection !== "courts" ? <h1 className="tw:sr-only">Configurações da arena</h1> : null}
       <div className={viewStyles.arena_settings_layout}>
         <aside className={viewStyles.arena_settings_nav} aria-label="Seções de Dados da Arena">
-          {canViewSettings ? <Link href="/arena" className={cx(activeSection === "data" ? viewStyles.arena_settings_nav_link : viewStyles.arena_settings_nav_link_2)}>
+          {canViewSettings ? <Link href="/arena" aria-current={activeSection === "data" ? "page" : undefined} className={cx(activeSection === "data" ? viewStyles.arena_settings_nav_link : viewStyles.arena_settings_nav_link_2)}>
             Dados da Arena
           </Link> : null}
-          {canViewPortal ? <Link href="/arena?section=portal" className={cx(activeSection === "portal" ? viewStyles.arena_settings_nav_link : viewStyles.arena_settings_nav_link_2)}>
+          {canViewPortal ? <Link href="/arena?section=portal" aria-current={activeSection === "portal" ? "page" : undefined} className={cx(activeSection === "portal" ? viewStyles.arena_settings_nav_link : viewStyles.arena_settings_nav_link_2)}>
             Portal do Atleta
           </Link> : null}
-          {canViewSettings ? <Link href="/arena?section=courts" className={cx(activeSection === "courts" ? viewStyles.arena_settings_nav_link : viewStyles.arena_settings_nav_link_2)}>
+          {canViewSettings ? <Link href="/arena?section=courts" aria-current={activeSection === "courts" ? "page" : undefined} className={cx(activeSection === "courts" ? viewStyles.arena_settings_nav_link : viewStyles.arena_settings_nav_link_2)}>
             Quadras
           </Link> : null}
-          {userManagementAllowed ? <Link href="/arena?section=integrations" className={cx(activeSection === "integrations" ? viewStyles.arena_settings_nav_link : viewStyles.arena_settings_nav_link_2)}>Integrações</Link> : null}
+          {userManagementAllowed ? <Link href="/arena?section=integrations" aria-current={activeSection === "integrations" ? "page" : undefined} className={cx(activeSection === "integrations" ? viewStyles.arena_settings_nav_link : viewStyles.arena_settings_nav_link_2)}>Integrações</Link> : null}
           {userManagementAllowed ? (
             <>
-              <Link href="/arena?section=users" className={cx(activeSection === "users" ? viewStyles.arena_settings_nav_link : viewStyles.arena_settings_nav_link_2)}>Usuários</Link>
-              <Link href="/arena?section=profiles" className={cx(activeSection === "profiles" ? viewStyles.arena_settings_nav_link : viewStyles.arena_settings_nav_link_2)}>Perfis de usuário</Link>
+              <Link href="/arena?section=users" aria-current={activeSection === "users" ? "page" : undefined} className={cx(activeSection === "users" ? viewStyles.arena_settings_nav_link : viewStyles.arena_settings_nav_link_2)}>Usuários</Link>
+              <Link href="/arena?section=profiles" aria-current={activeSection === "profiles" ? "page" : undefined} className={cx(activeSection === "profiles" ? viewStyles.arena_settings_nav_link : viewStyles.arena_settings_nav_link_2)}>Perfis de usuário</Link>
             </>
           ) : null}
         </aside>
@@ -83,7 +85,7 @@ export default async function ArenaPage(props: ArenaPageProps) {
         <section className={viewStyles.arena_settings_content}>
           {activeSection === "integrations" && userManagementAllowed ? <AgentIntegrations arenaId={auth.arenaId} /> : null}
           {activeSection === "data" ? (
-            <SectionCard title="Identidade da arena" description="Essas informações aparecem no sistema e nas telas de apresentação.">
+            <section className={ui.panel} aria-label="Dados da arena">
               <div className={viewStyles.arena_profile_layout}>
                 <div className={viewStyles.arena_logo_preview}>
                   <Image src={arena.logoUrl || "/arena-profile.jpg"} alt={`Logo de ${arena.name}`} width={160} height={160} />
@@ -103,12 +105,12 @@ export default async function ArenaPage(props: ArenaPageProps) {
                   }}
                 />
               </div>
-            </SectionCard>
+            </section>
           ) : null}
 
           {activeSection === "portal" ? (
             <div className={viewStyles.stack_md}>
-              <SectionCard title="Portal do Atleta" description="Escolha quais áreas ficarão visíveis para os atletas no portal online.">
+              <section className={ui.panel} aria-label="Configurações do Portal do Atleta">
                 <AthletePortalSettingsForm
                   settings={{
                     showLeagues: arena.athletePortalShowLeagues,
@@ -120,7 +122,7 @@ export default async function ArenaPage(props: ArenaPageProps) {
                     portalLogoUrl: arena.athletePortalLogoUrl
                   }}
                 />
-              </SectionCard>
+              </section>
               <PortalEditorPanels announcements={announcements} posts={posts} />
             </div>
           ) : null}
@@ -144,7 +146,7 @@ export default async function ArenaPage(props: ArenaPageProps) {
 
 function WhatsAppConnectionSection({ arena }: { arena: { id: string; name: string; connection: { instanceName: string; status: string; qrCodeDataUrl: string; connectedPhone: string; lastError: string; lastConnectedAt: Date | null } | null } }) {
   const connected = arena.connection?.status === "CONNECTED";
-  return <SectionCard title="WhatsApp Business">{arena.connection && !connected ? <WhatsAppConnectionStatusWatcher arenaId={arena.id} /> : null}<div className={viewStyles.arena_whatsapp_panel}><div className={viewStyles.arena_whatsapp_panel_header}><div><span className={cx(`${viewStyles.agency_connection_status} ${connected ? "is-connected" : ""}`)}><i />{connected ? "Conectado" : arena.connection ? "Aguardando conexão" : "Não configurado"}</span><strong>{connected ? arena.connection?.connectedPhone || "WhatsApp conectado" : "Conecte o número da arena"}</strong></div></div>{connected ? <p className="form-message form-message-success">WhatsApp conectado com sucesso. As novas conversas serão exibidas no menu WhatsApp.</p> : null}{arena.connection?.qrCodeDataUrl && !connected ? <div className={viewStyles.agency_whatsapp_qr}><img src={arena.connection.qrCodeDataUrl} alt={`QR Code para conectar o WhatsApp da ${arena.name}`} /><div><strong>Escaneie o QR Code no WhatsApp Business</strong><p>Abra Dispositivos conectados e escolha Conectar dispositivo.</p><SafeActionForm action={refreshArenaWhatsAppQrAction} successMessage="QR Code atualizado."><input type="hidden" name="arenaId" value={arena.id} /><SubmitButton label="Gerar novo QR Code" pendingLabel="Gerando..." className={viewStyles.button_button_small} /></SafeActionForm></div></div> : <SafeActionForm action={connectArenaWhatsAppAction} successMessage={connected ? "Conexão verificada." : "Instância preparada. Escaneie o QR Code para concluir."}><input type="hidden" name="arenaId" value={arena.id} /><SubmitButton label={connected ? "Verificar conexão" : "Conectar WhatsApp"} pendingLabel="Preparando conexão..." className={viewStyles.button_button_primary_button_small} /></SafeActionForm>}{arena.connection ? <div className={viewStyles.arena_whatsapp_reset}><p>Troque a sessão somente ao mudar o aparelho conectado.</p><SafeActionForm action={resetArenaWhatsAppSessionAction} successMessage="Sessão resetada. Escaneie o novo QR Code."><input type="hidden" name="arenaId" value={arena.id} /><SubmitButton label="Resetar sessão" pendingLabel="Resetando..." className={viewStyles.button_button_danger_button_small} /></SafeActionForm></div> : null}{arena.connection?.lastError ? <p className={viewStyles.form_error}>{arena.connection.lastError}</p> : null}</div></SectionCard>;
+  return <SectionCard title="WhatsApp Business" hideHeading>{arena.connection && !connected ? <WhatsAppConnectionStatusWatcher arenaId={arena.id} /> : null}<div className={viewStyles.arena_whatsapp_panel}><div className={viewStyles.arena_whatsapp_panel_header}><div><span className={cx(`${viewStyles.agency_connection_status} ${connected ? "is-connected" : ""}`)}><i />{connected ? "Conectado" : arena.connection ? "Aguardando conexão" : "Não configurado"}</span><strong>{connected ? arena.connection?.connectedPhone || "WhatsApp conectado" : "Conecte o número da arena"}</strong></div></div>{connected ? <p className="form-message form-message-success">WhatsApp conectado com sucesso. As novas conversas serão exibidas no menu WhatsApp.</p> : null}{arena.connection?.qrCodeDataUrl && !connected ? <div className={viewStyles.agency_whatsapp_qr}><img src={arena.connection.qrCodeDataUrl} alt={`QR Code para conectar o WhatsApp da ${arena.name}`} /><div><strong>Escaneie o QR Code no WhatsApp Business</strong><p>Abra Dispositivos conectados e escolha Conectar dispositivo.</p><SafeActionForm action={refreshArenaWhatsAppQrAction} successMessage="QR Code atualizado."><input type="hidden" name="arenaId" value={arena.id} /><SubmitButton label="Gerar novo QR Code" pendingLabel="Gerando..." className={viewStyles.button_button_small} /></SafeActionForm></div></div> : <SafeActionForm action={connectArenaWhatsAppAction} successMessage={connected ? "Conexão verificada." : "Instância preparada. Escaneie o QR Code para concluir."}><input type="hidden" name="arenaId" value={arena.id} /><SubmitButton label={connected ? "Verificar conexão" : "Conectar WhatsApp"} pendingLabel="Preparando conexão..." className={viewStyles.button_button_primary_button_small} /></SafeActionForm>}{arena.connection ? <div className={viewStyles.arena_whatsapp_reset}><p>Troque a sessão somente ao mudar o aparelho conectado.</p><SafeActionForm action={resetArenaWhatsAppSessionAction} successMessage="Sessão resetada. Escaneie o novo QR Code."><input type="hidden" name="arenaId" value={arena.id} /><SubmitButton label="Resetar sessão" pendingLabel="Resetando..." className={viewStyles.button_button_danger_button_small} /></SafeActionForm></div> : null}{arena.connection?.lastError ? <p className={viewStyles.form_error}>{arena.connection.lastError}</p> : null}</div></SectionCard>;
 }
 
 async function PermissionProfilesSection({ arenaId }: { arenaId: string }) {

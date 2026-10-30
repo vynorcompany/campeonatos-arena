@@ -1,3 +1,5 @@
+import * as serviceBookingRules from "../src/lib/calendar/service-booking-rules";
+import { requireReceivingBankAccount } from "../src/lib/finance/receiving-bank-account";
 import * as bookingResources from "../src/lib/calendar/booking-services";
 import { arenaDatabaseForTest } from "./helpers/arena-database";
 import { arenaBookingPath } from "../src/lib/arena-booking-path";
@@ -40,6 +42,7 @@ test("cancelar reserva respeita a escolha sobre cobranças abertas sem afetar va
     const source = readFileSync(new URL("../src/lib/actions/calendar.ts", import.meta.url), "utf8");
     const exports: Record<string, (form: FormData) => Promise<void>> = {};
     const mocks: Record<string, unknown> = {
+      "@/lib/finance/receiving-bank-account": { requireReceivingBankAccount },
       "@/lib/calendar/booking-confirmation-whatsapp": { sendBookingConfirmationForOccurrence: async () => ({ sent: 0, failed: 0 }) },
       "@/lib/arena-booking-path": { arenaBookingPath },
       "next/cache": { revalidatePath() {} },
@@ -58,7 +61,7 @@ test("cancelar reserva respeita a escolha sobre cobranças abertas sem afetar va
         await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`;
         return operation(tx);
       }) },
-      "@/lib/calendar/booking-services": bookingResources, "@/lib/calendar/inputs": {},
+      "@/lib/calendar/service-booking-rules": serviceBookingRules, "@/lib/calendar/booking-services": bookingResources, "@/lib/calendar/inputs": {},
       "@/lib/scheduling/weekly-rule": {},
       "@/lib/calendar/booking-types": {},
       "@/lib/calendar/revalidation": { refreshCalendarRoutes() {} },

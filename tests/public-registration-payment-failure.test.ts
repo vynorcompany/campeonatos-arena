@@ -4,11 +4,12 @@ import { createRequire } from "node:module";
 import vm from "node:vm";
 import test from "node:test";
 import ts from "typescript";
+import { requireReceivingBankAccount } from "../src/lib/finance/receiving-bank-account";
 
 const require = createRequire(import.meta.url);
 const source = readFileSync(new URL("../src/lib/actions/public-registration.ts", import.meta.url), "utf8");
 
-function loadAction(createPayment: (input: Record<string, unknown>) => Promise<Record<string, unknown>>) {
+function loadAction(createPayment: (input: Record<string, unknown>) => Promise<Record<string, unknown>>, bank: "valid" | "missing" | "inactive" = "valid") {
   const registration = { id: "registration-a", tournamentId: "tournament-a", leadName: "Atleta Um", partnerName: "Atleta Dois", status: "PENDING_PAYMENT", paymentStatus: "PENDING", createdAt: new Date(), holdExpiresAt: null as Date | null };
   const updates: Array<Record<string, unknown>> = [];
   const releaseFilters: Array<Record<string, unknown>> = [];
@@ -16,13 +17,15 @@ function loadAction(createPayment: (input: Record<string, unknown>) => Promise<R
   const contexts: string[] = [];
   let providerAtCreation = "";
   const tx = {
+    arenaOperationalSettings: { findUnique: async () => ({ portalPaymentBankAccountId: bank === "missing" ? null : "bank-a" }) },
+    bankAccount: { findFirst: async ({ where }: { where: { id: string; arenaId: string; active: boolean } }) => bank === "valid" && where.id === "bank-a" && where.arenaId === "arena-a" && where.active ? { id: "bank-a" } : null },
     tournament: { findUnique: async ({ where }: { where: { publicSlug?: string } }) => where.publicSlug
       ? { id: "tournament-a", arenaId: "arena-a" }
       : { id: "tournament-a", arenaId: "arena-a", name: "Torneio", registrationPhase: "REGISTRATIONS", registrationOpensAt: null, registrationClosesAt: null, earlyDiscountCents: 0, blockCategoryGap: false, categories: [{ id: "category-a", maxRegistrations: 16, priceFirstCents: 500, priceSecondCents: 500, priceThirdCents: 500, allowedRegistrationCategoryIds: [] }] } },
     publicTournamentRegistration: {
       count: async () => 0,
       findMany: async () => [],
-      create: async ({ data }: { data: { paymentProvider: string; holdExpiresAt: Date | null } }) => { providerAtCreation = data.paymentProvider; registration.holdExpiresAt = data.holdExpiresAt; return registration; },
+      create: async ({ data }: { data: { paymentProvider: string; holdExpiresAt: Date | null } }) => { providerAtCreation = data.paymentProvider; Object.assign(registration, data); return registration; },
       updateMany: async ({ where, data }: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
         if (where.holdExpiresAt) { releaseFilters.push(where); return { count: 0 }; }
         updates.push(data); Object.assign(registration, data); return { count: 1 };
@@ -34,6 +37,7 @@ function loadAction(createPayment: (input: Record<string, unknown>) => Promise<R
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
     exports, FormData, Date, Error,
     require: (name: string) => {
+      if (name === "@/lib/finance/receiving-bank-account") return { requireReceivingBankAccount };
       if (name === "next/cache") return { revalidatePath: () => undefined };
       if (name === "@/lib/payments/mercado-pago") return { createCardCheckout: (input: Record<string, unknown>) => { paymentInputs.push(input); return createPayment(input); }, createPixPayment: (input: Record<string, unknown>) => { paymentInputs.push(input); return createPayment(input); } };
       if (name === "@/lib/prisma") return { prisma };
@@ -73,4 +77,22 @@ test("checkout de cartão mantém preferência separada do ID do pagamento", asy
   assert.ok(registration.holdExpiresAt instanceof Date);
   assert.equal(paymentInputs[0].expiresAt, registration.holdExpiresAt);
   assert.deepEqual(contexts, ["arena-a", "arena-a"]);
+});
+
+test("inscrição online não cria vaga nem cobra sem conta bancária ativa da arena", async () => {
+  for (const bank of ["missing", "inactive"] as const) {
+    let calls = 0;
+    const state = loadAction(async () => { calls += 1; return {}; }, bank);
+    const result = await state.action({}, new FormData());
+    assert.match(String(result.error), /conta bancária ativa/);
+    assert.equal(calls, 0);
+    assert.equal(state.providerAtCreation(), "");
+  }
+});
+test("conta bancária fica persistida na inscrição antes de chamar o provedor", async () => {
+  const state = loadAction(async () => {
+    assert.equal((state.registration as { paymentBankAccountId?: string }).paymentBankAccountId, "bank-a");
+    return { provider: "MERCADO_PAGO", reference: "pref", checkoutUrl: "https://checkout.example.test", qrCode: "" };
+  });
+  assert.equal((await state.action({}, new FormData())).error, null);
 });

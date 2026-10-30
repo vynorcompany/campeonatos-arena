@@ -1,7 +1,8 @@
+import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
-  "button_button_primary": sharedUtilities.buttonButtonPrimary,
+  "button_button_primary": ui.primary,
   "stack_md": sharedUtilities.stackMd,
   "section_card_stack_md_category_operation_panel": sharedUtilities.sectionCardStackMdCategoryOperationPanel,
   "league_groups_panel": [
@@ -9,7 +10,7 @@ export const viewStyles = {
     "tw:viewport-760:pt-[17px]", "tw:pr-[22px]", "tw:viewport-760:pr-[17px]", "tw:pb-[22px]",
     "tw:viewport-760:pb-[17px]", "tw:pl-[22px]", "tw:viewport-760:pl-[17px]", "tw:border-t-[color:#d9e5f2]",
     "tw:border-r-[color:#d9e5f2]", "tw:border-b-[color:#d9e5f2]", "tw:border-l-[color:#d9e5f2]", "tw:rounded-[15px]",
-    "tw:bg-[color:transparent]", "tw:[background-image:linear-gradient(145deg,_#fff,_#fbfdff)]", "tw:[box-shadow:0_11px_28px_rgb(15_54_104_/_.055)]",
+    "tw:bg-white", "tw:[background-image:none]", "tw:[box-shadow:0_11px_28px_rgb(15_54_104_/_.055)]",
   ].join(" "),
   "page_header": sharedUtilities.pageHeader,
   "league_groups_hero": [
@@ -26,17 +27,17 @@ export const viewStyles = {
     "league-groups-actions", "tw:flex!", "tw:items-center", "tw:viewport-760:items-start",
     "tw:gap-y-[12px]!", "tw:gap-x-[12px]!", "tw:pt-[12px]!", "tw:pr-[14px]!",
     "tw:pb-[12px]!", "tw:pl-[14px]!", "tw:border-t-[color:#cfdef0]!", "tw:border-r-[color:#cfdef0]!",
-    "tw:border-b-[color:#cfdef0]!", "tw:border-l-[color:#cfdef0]!", "tw:rounded-[10px]!", "tw:bg-[color:#f7fbff]!",
+    "tw:border-b-[color:#cfdef0]!", "tw:border-l-[color:#cfdef0]!", "tw:rounded-[10px]!", "tw:bg-white!",
     "tw:[background-image:none]!", "tw:[&_.muted]:mt-[0]", "tw:[&_.muted]:mr-[0]", "tw:[&_.muted]:mb-[0]",
     "tw:[&_.muted]:ml-[0]", "tw:[&_.muted]:text-[color:#64738d]", "tw:[&_.muted]:text-[.8rem]", "tw:viewport-760:flex-col",
   ].join(" "),
-  "button": sharedUtilities.button,
+  "button": ui.secondary,
   "section_actions_league_groups_actions": [
     "section-actions", "league-groups-actions", "tw:flex!", "tw:flex-wrap",
     "tw:gap-y-[12px]!", "tw:gap-x-[12px]!", "tw:items-center", "tw:viewport-760:items-start",
     "tw:pt-[12px]!", "tw:pr-[14px]!", "tw:pb-[12px]!", "tw:pl-[14px]!",
     "tw:border-t-[color:#cfdef0]!", "tw:border-r-[color:#cfdef0]!", "tw:border-b-[color:#cfdef0]!", "tw:border-l-[color:#cfdef0]!",
-    "tw:rounded-[10px]!", "tw:bg-[color:#f7fbff]!", "tw:[background-image:none]!", "tw:[&_.muted]:mt-[0]",
+    "tw:rounded-[10px]!", "tw:bg-white!", "tw:[background-image:none]!", "tw:[&_.muted]:mt-[0]",
     "tw:[&_.muted]:mr-[0]", "tw:[&_.muted]:mb-[0]", "tw:[&_.muted]:ml-[0]", "tw:[&_.muted]:text-[color:#64738d]",
     "tw:[&_.muted]:text-[.8rem]", "tw:viewport-760:flex-col",
   ].join(" "),
@@ -60,7 +61,7 @@ export const viewStyles = {
   ].join(" "),
   "league_group_icon": [
     "league-group-icon", "tw:grid", "tw:[flex:0_0_auto]", "tw:place-items-center",
-    "tw:text-[color:#1264d2]", "tw:bg-[color:#eaf2ff]", "tw:[background-image:none]", "tw:font-[700]",
+    "tw:text-white", "tw:bg-[#1e5ea8]", "tw:[background-image:none]", "tw:font-[700]",
     "tw:w-[36px]", "tw:h-[36px]", "tw:rounded-[9px]", "tw:text-[1.1rem]",
     "tw:[&_svg]:block", "tw:[&_svg]:w-[55%]", "tw:[&_svg]:h-[55%]", "tw:[&_svg]:[stroke-linecap:round]",
     "tw:[&_svg]:[stroke-linejoin:round]",
@@ -74,12 +75,12 @@ export const viewStyles = {
     "league-group-pair", "tw:flex!", "tw:items-center!", "tw:gap-y-[11px]",
     "tw:gap-x-[11px]", "tw:min-h-[52px]", "tw:pt-[8px]!", "tw:pr-[10px]!",
     "tw:pb-[8px]!", "tw:pl-[10px]!", "tw:border-t-[color:#dce7f2]!", "tw:border-r-[color:#dce7f2]!",
-    "tw:border-b-[color:#dce7f2]!", "tw:border-l-[color:#dce7f2]!", "tw:rounded-[9px]!", "tw:bg-[color:transparent]!",
-    "tw:[background-image:linear-gradient(90deg,_#fff,_#fcfdff)]!", "tw:[&_strong]:text-[color:#102244]", "tw:[&_strong]:text-[.86rem]", "tw:[&_.field-inline]:ml-[auto]",
+    "tw:border-b-[color:#dce7f2]!", "tw:border-l-[color:#dce7f2]!", "tw:rounded-[9px]!", "tw:bg-white!",
+    "tw:[background-image:none]!", "tw:[&_strong]:text-[color:#102244]", "tw:[&_strong]:text-[.86rem]", "tw:[&_.field-inline]:ml-[auto]",
   ].join(" "),
   "league_group_pair_icon": [
     "league-group-pair-icon", "tw:grid", "tw:[flex:0_0_auto]", "tw:place-items-center",
-    "tw:text-[color:#1264d2]", "tw:bg-[color:#eaf2ff]", "tw:[background-image:none]", "tw:font-[700]",
+    "tw:text-white", "tw:bg-[#1e5ea8]", "tw:[background-image:none]", "tw:font-[700]",
     "tw:w-[31px]", "tw:h-[31px]", "tw:rounded-[8px]", "tw:text-[.95rem]",
     "tw:[&_svg]:block", "tw:[&_svg]:w-[55%]", "tw:[&_svg]:h-[55%]", "tw:[&_svg]:[stroke-linecap:round]",
     "tw:[&_svg]:[stroke-linejoin:round]",
