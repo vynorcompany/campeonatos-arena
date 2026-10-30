@@ -1,3 +1,8 @@
+import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
+import { TeacherPlanTransferDialog } from "@/components/teachers/teacher-plan-transfer-dialog";
+import { TeacherPlanPriceSchedule } from "@/components/teachers/teacher-plan-price-schedule";
+import { academyToday } from "@/lib/academy/plan-price-worker";
+import { transferCycle } from "@/lib/academy/plan-transfer-calculation";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
@@ -78,6 +83,7 @@ export default async function TeacherDetailPage(
         planAssignments: {
           where: { active: true },
           include: {
+            priceChanges: { where: { status: "SCHEDULED" }, orderBy: { effectiveDate: "asc" } },
             plan: {
               include: {
                 subscriptions: {
@@ -247,28 +253,17 @@ export default async function TeacherDetailPage(
 
   return (
     <div
-      className={cx(`${viewStyles.stack_md_workspace_page_teacher_detail_page} ${tab === "students" ? "teacher-students-dashboard" : ""}`)}
+      className={`${ui.page} ${tab === "students" ? "teacher-students-dashboard" : ""}`}
     >
-      <header className={viewStyles.page_header_teacher_detail_hero}>
-        <div>
-          <Link href="/professores" className={viewStyles.back_link}>
+      <header className="tw:grid tw:min-w-0 tw:grid-cols-[auto_minmax(0,1fr)] tw:items-center tw:gap-3 tw:sm:grid-cols-[auto_auto_minmax(0,1fr)_auto]"><Link href="/professores" className={`${viewStyles.back_link} tw:col-span-2 tw:sm:col-span-1`}>
             ← Professores
-          </Link>
-          <div className={viewStyles.teacher_detail_identity}>
-            <span className={viewStyles.teacher_detail_avatar} aria-hidden="true">
+          </Link><span className={viewStyles.teacher_detail_avatar} aria-hidden="true">
               {teacher.player?.photoUrl ? (
                 <img src={teacher.player.photoUrl} alt="" />
               ) : (
                 initials
               )}
-            </span>
-            <div>
-              <p className={viewStyles.eyebrow}>PROFESSOR</p>
-              <h1>{teacher.name}</h1>
-            </div>
-          </div>
-        </div>
-        <div className={viewStyles.teacher_page_actions}>
+            </span><h1 className="tw:m-0 tw:min-w-0 tw:break-words tw:text-base tw:font-medium">{teacher.name}</h1><div className={`${viewStyles.teacher_page_actions} tw:col-span-2 tw:justify-self-end tw:sm:col-span-1`}>
           <span
             className={
               cx(teacher.active ? "status-badge status-active" : "status-badge")
@@ -319,30 +314,29 @@ export default async function TeacherDetailPage(
               )}
             </div>
           </details>
-        </div>
-      </header>
+        </div></header>
       <nav className={viewStyles.teacher_detail_tabs} aria-label="Painel do professor">
         <Link
           href={tabHref("plans")}
-          className={cx(tab === "plans" ? "is-active" : "")}
+          aria-current={tab === "plans" ? "page" : undefined} className={cx(tab === "plans" ? "is-active" : "")}
         >
           Planos e preços
         </Link>
         <Link
           href={tabHref("students")}
-          className={cx(tab === "students" ? "is-active" : "")}
+          aria-current={tab === "students" ? "page" : undefined} className={cx(tab === "students" ? "is-active" : "")}
         >
           Alunos ativos
         </Link>
         <Link
           href={tabHref("classes")}
-          className={cx(tab === "classes" ? "is-active" : "")}
+          aria-current={tab === "classes" ? "page" : undefined} className={cx(tab === "classes" ? "is-active" : "")}
         >
           Turmas
         </Link>
         <Link
           href={tabHref("report")}
-          className={cx(tab === "report" ? "is-active" : "")}
+          aria-current={tab === "report" ? "page" : undefined} className={cx(tab === "report" ? "is-active" : "")}
         >
           Relatório
         </Link>
@@ -408,8 +402,8 @@ export default async function TeacherDetailPage(
       {tab === "plans" ? (
         <section className={viewStyles.section_card_teacher_detail_section_teacher_plans_panel}>
             <header>
-              <h2>Planos e preços</h2>
-              <div className={viewStyles.teacher_plan_panel_actions}>
+              <h2 className="tw:sr-only">Planos e preços</h2>
+              <div className={`${viewStyles.teacher_plan_panel_actions} tw:ml-auto`}>
                 <TeacherPlanCopyDialog
                   teacherId={teacher.id}
                   teachers={targetTeachers}
@@ -418,18 +412,16 @@ export default async function TeacherDetailPage(
               </div>
             </header>
             <div className={viewStyles.teacher_plan_cards}>
-              {teacher.planAssignments.map(({ plan, monthlyPriceCents }) => (
+              {teacher.planAssignments.map(({ plan, monthlyPriceCents, priceChanges }) => (
                 <article key={plan.id}>
                   <div>
                     <strong>{plan.name}</strong>
-                    <span className={viewStyles.teacher_plan_owner_tag}>
-                      Professor: {teacher.name}
-                    </span>
+
                     <span>{plan.classesPerMonth} aulas/mês</span>
-                    <b>{money(monthlyPriceCents)}</b>
+                    <span className="tw:text-base tw:font-medium tw:text-green-700">{money(monthlyPriceCents)}</span>{priceChanges.map(change => <span key={change.id} className="tw:text-xs tw:text-amber-800">{money(change.amountCents)} a partir de {change.effectiveDate.toLocaleDateString("pt-BR", { timeZone: "UTC" })}</span>)}
                     <small>{plan.subscriptions.length} aluno(s) ativo(s)</small>
                   </div>
-                  <div className="tw:flex! tw:flex-wrap tw:items-center tw:justify-end tw:gap-2"><TeacherPlanEditor teacherId={teacher.id} plan={{ id: plan.id, name: plan.name, monthlyPriceCents }} /><TeacherPlanCreateDialog teacherId={teacher.id} initialPlan={{ name: plan.name, classesPerMonth: plan.classesPerMonth, monthlyPriceCents, notes: plan.notes }} /></div>
+                  <div className="tw:flex! tw:flex-wrap tw:items-center tw:justify-end tw:gap-2"><TeacherPlanEditor teacherId={teacher.id} plan={{ id: plan.id, name: plan.name, monthlyPriceCents }} /><TeacherPlanPriceSchedule teacherId={teacher.id} planId={plan.id} planName={plan.name} currentPriceCents={monthlyPriceCents} changes={priceChanges.map(change => ({ id: change.id, amountCents: change.amountCents, effectiveDate: change.effectiveDate.toISOString().slice(0, 10) }))}/><TeacherPlanCreateDialog teacherId={teacher.id} initialPlan={{ name: plan.name, classesPerMonth: plan.classesPerMonth, monthlyPriceCents, notes: plan.notes }} /></div>
                 </article>
               ))}
               {!teacher.planAssignments.length ? (
@@ -440,12 +432,7 @@ export default async function TeacherDetailPage(
       ) : null}
       {tab === "students" ? (
         <section className={viewStyles.section_card_teacher_detail_section_teacher_active_students_panel}>
-          <header>
-            <span className={viewStyles.teacher_active_students_icon} aria-hidden="true">
-              <EventIcon name="users" size={16} />
-            </span>
-            <h2>Alunos ativos</h2>
-          </header>
+          <h2 className="tw:sr-only">Alunos ativos</h2>
           <TeacherPlanEnrollmentForm
             variant="students"
             teacherId={teacher.id}
@@ -502,6 +489,7 @@ export default async function TeacherDetailPage(
                           Saldo de aulas: {subscription.student.remainingClasses}
                         </em>
                       </summary>
+                      <div className="tw:py-3"><TeacherPlanTransferDialog teacherId={teacher.id} subscriptionId={subscription.id} currentPlanId={plan.id} studentName={subscription.student.name} defaultDueDate={transferCycle(academyToday(), subscription.dueDay).end.toISOString().slice(0, 10)} plans={teacher.planAssignments.map(assignment => ({ id: assignment.planId, name: assignment.plan.name, monthlyPriceCents: assignment.monthlyPriceCents }))}/></div>
                       <SafeActionForm
                         action={moveTeacherClassGroupStudentAction}
                         className={viewStyles.teacher_student_group_move}
@@ -610,7 +598,7 @@ export default async function TeacherDetailPage(
       {tab === "report" ? (
         <section className={viewStyles.section_card_teacher_detail_section}>
           <header>
-            <h2>Relatório</h2>
+            <h2 className="tw:sr-only">Relatório</h2>
           </header>
           <form className={viewStyles.filter_bar_compact_teacher_report_filters}>
             <input type="hidden" name="tab" value="report" />

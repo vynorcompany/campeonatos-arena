@@ -2470,6 +2470,7 @@ model TeacherStudent {
 }
 
 model TeacherPlan {
+  priceChanges      PlanPriceChange[]
   id                String   @id @default(cuid())
   active            Boolean  @default(true)
   monthlyPriceCents Int      @default(0)
@@ -2484,6 +2485,22 @@ model TeacherPlan {
 
   @@unique([teacherId, planId])
   @@index([arenaId, active])
+}
+
+model PlanPriceChange {
+  id                String   @id @default(cuid())
+  arenaId           String
+  teacherPlanId     String
+  amountCents       Int
+  effectiveDate     DateTime @db.Date
+  status            String   @default("SCHEDULED")
+  createdAt         DateTime @default(now())
+  appliedAt         DateTime?
+  createdByUserId   String
+  teacherPlan       TeacherPlan @relation(fields: [teacherPlanId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherPlanId, effectiveDate])
+  @@index([arenaId, status, effectiveDate])
 }
 
 model FinancialRecurrence {

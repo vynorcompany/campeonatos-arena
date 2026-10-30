@@ -23,7 +23,7 @@ export const viewStyles = {
     "tw:pb-[14px]", "tw:pl-[14px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]",
     "tw:border-t-[color:#dce8f3]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:#dce8f3]",
     "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:#dce8f3]", "tw:border-l-[length:1px]",
-    "tw:[border-left-style:solid]", "tw:border-l-[color:#dce8f3]", "tw:rounded-[12px]", "tw:bg-[color:#f8fbfe]",
+    "tw:[border-left-style:solid]", "tw:border-l-[color:#dce8f3]", "tw:rounded-[12px]", "tw:bg-[color:#fff]",
     "tw:[background-image:none]", "tw:[&_>_label]:grid", "tw:[&_>_label]:gap-y-[5px]", "tw:[&_>_label]:gap-x-[5px]",
     "tw:[&_>_label]:text-[color:#5d768e]", "tw:[&_>_label]:text-[.67rem]", "tw:[&_>_label]:font-[800]", "tw:[&_>_label]:tracking-[.035em]",
     "tw:[&_>_label]:uppercase", "tw:[&_>_.button-primary]:[justify-self:start]", "tw:[&_>_.button-primary]:min-h-[38px]", "tw:[&_>_.button-primary]:[padding-inline:15px]",
@@ -59,7 +59,7 @@ export const viewStyles = {
   "class_group_schedule_row": [
     "class-group-schedule-row", "tw:[&_>_label]:grid", "tw:[&_>_label]:gap-y-[5px]", "tw:[&_>_label]:gap-x-[5px]",
     "tw:[&_>_label]:text-[color:#5d768e]", "tw:[&_>_label]:text-[.67rem]", "tw:[&_>_label]:font-[800]", "tw:[&_>_label]:tracking-[.035em]",
-    "tw:[&_>_label]:uppercase", "tw:grid", "tw:grid-cols-[minmax(150px,_1fr)_minmax(110px,_.55fr)_minmax(90px,_.42fr)_auto]", "tw:viewport-700:grid-cols-[1fr_1fr]",
+    "tw:[&_>_label]:uppercase", "tw:grid", "tw:grid-cols-[minmax(150px,_1fr)_minmax(110px,_.55fr)_minmax(90px,_.42fr)_auto]", "tw:viewport-700:grid-cols-[repeat(2,_minmax(0,_1fr))]", "tw:viewport-440:grid-cols-1", "tw:[&_>_label]:min-w-0", "tw:[&_input]:min-w-0", "tw:[&_input]:w-full", "tw:[&_select]:min-w-0", "tw:[&_select]:w-full",
     "tw:[align-items:end]", "tw:gap-y-[9px]", "tw:gap-x-[9px]", "tw:pt-[9px]",
     "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:#e5edf5]", "tw:viewport-700:[&_>_.button]:[grid-column:1_/_-1]",
     "tw:viewport-700:[&_>_.button]:[justify-self:start]",

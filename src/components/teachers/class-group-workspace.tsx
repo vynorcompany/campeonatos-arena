@@ -16,7 +16,7 @@ export function ClassGroupWorkspace({ teachers, plans, groups, requests }: { tea
   const [schedules, setSchedules] = useState<Schedule[]>([{ weekday: "1", startTime: "18:00", capacity: "8" }]);
   const updateSchedule = (index: number, change: Partial<Schedule>) => setSchedules((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, ...change } : item));
   return <section className={viewStyles.class_group_workspace}>
-    <header className={viewStyles.class_group_workspace_header}><div><p className={viewStyles.eyebrow}>TURMAS</p><h2>Turmas e horários</h2><p className={viewStyles.muted}>Organize professor, planos aceitos e a ocupação de cada encontro fixo.</p></div></header>
+    <h2 className="tw:sr-only">Turmas e horários</h2>
     <SafeActionForm action={createClassGroupAction} className={viewStyles.class_group_form} resetOnSuccess successMessage="Turma criada.">
       <label>Nome da turma<input name="name" required placeholder="Ex.: Iniciante noite" /></label>
       <label>Professor<select name="teacherId" required defaultValue=""><option value="" disabled>Selecione</option>{teachers.map((teacher) => <option key={teacher.id} value={teacher.id}>{teacher.name}</option>)}</select></label>

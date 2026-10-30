@@ -28,7 +28,7 @@ test("teachers directory keeps only professors and opens creation in a floating 
 
   assert.match(page, /TeacherManagementWorkspace/);
   assert.match(workspace, /Cadastrar professor/);
-  assert.match(workspace, /teacher-modal-backdrop/);
+  assert.match(workspace, /<Modal title="Cadastrar professor"/);
   assert.match(workspace, /teacher-directory-item/);
   assert.match(workspace, /href={`\/professores\/\$\{teacher\.id\}`}/);
   assert.match(workspace, /name="playerId" required/);
@@ -47,7 +47,7 @@ test("teachers directory keeps only professors and opens creation in a floating 
 test("teacher creation fields use the compact radius standard", () => {
   const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
 
-  assert.match(styleRules("teacher-modal", {"context":".grid-form :where(input"}), /border-radius: 7px/);
+  assert.match(styleRules("teacher-create-form", {"context":":where(input"}), /border-radius: 7px/);
 });
 
 test("teachers directory presents searchable operational rows with status and metrics", () => {
@@ -296,7 +296,7 @@ test("teacher classes open their creation form in a visible floating modal", () 
     "utf8",
   );
 
-  assert.match(panel, /teacher-class-create-modal/);
+  assert.match(panel, /<Modal title="Nova turma"/);
   assert.match(panel, /setCreateOpen\(true\)/);
 });
 
@@ -427,7 +427,7 @@ test("existing teacher plans can be edited without changing active subscriptions
     actions,
     /export async function updateTeacherPlanWithPriceAction/,
   );
-  assert.match(actions, /prisma\.teacherPlan\.update/);
+  assert.match(actions, /tx\.teacherPlan\.updateMany/);
   assert.match(page, /TeacherPlanEditor/);
   assert.match(
     readFileSync(
@@ -471,8 +471,9 @@ test("class creation keeps day, time and capacity aligned inside the modal", () 
     panel,
     /viewStyles\.teacher_group_schedule_row\}\$\{schedules\.length > 1 \? " has-remove" : ""\}/,
   );
-  assert.match(styleRules("teacher-group-schedule-row"), /grid-template-columns: minmax\(0, 1fr\) minmax\(0, \.62fr\) minmax\(0, \.48fr\)/);
-  assert.match(styleRules("teacher-group-schedule-row", {"context":".has-remove"}), / grid-template-columns: minmax\(0, 1fr\) minmax\(0, \.62fr\) minmax\(0, \.48fr\) auto; /);
+  assert.match(styleRules("teacher-group-schedule-row"), /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.match(styleRules("teacher-group-schedule-row", {maxWidth: 440}), /grid-template-columns: minmax\(0, 1fr\)/);
+  assert.match(styleRules("teacher-group-schedule-row", {"context":".has-remove"}), /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
   assert.match(styleRules("teacher-group-schedule-row", {"context":"> label"}), / min-width: 0; /);
 });
 
@@ -496,7 +497,7 @@ test("existing class groups can be edited with their plans and fixed schedules",
   assert.match(actions, /lockClassGroupCapacity\(tx, auth\.arenaId, classGroupId\)/);
   assert.match(actions, /tx\.classGroup\.update/);
   assert.match(panel, /updateTeacherClassGroupAction/);
-  assert.match(panel, /EDITAR TURMA/);
+  assert.match(panel, /<Modal title="Editar turma"/);
   assert.match(panel, /Editar turma/);
   assert.match(page, /plans: \{ select: \{ planId: true \} \}/);
 });
@@ -552,8 +553,11 @@ test("plan editing returns a safe validation message and uses a dismissible moda
 
   assert.match(actions, /updateTeacherPlanWithPriceAction/);
   assert.match(actions, /return \{ error:/);
-  assert.match(editor, /teacher-plan-edit-modal/);
-  assert.match(editor, /onMouseDown=\{\(\) => setOpen\(false\)\}/);
+  assert.match(editor, /<Modal\s/);
+  assert.match(editor, /onClose=\{close\}/);
+  const modal = readFileSync(resolve(process.cwd(), "src/components/ui/modal.tsx"), "utf8");
+  assert.match(modal, /onMouseDown=/);
+  assert.match(modal, /event.key === "Escape"/);
   assert.match(
     form,
     /result &&\s*typeof result === "object" &&\s*"error" in result/,
@@ -599,9 +603,9 @@ test("teacher workspace keeps plan creation and student enrollment in focused di
   assert.match(page, /TeacherPlanCreateDialog/);
   assert.match(page, /TeacherPlanCreateDialog/);
   assert.doesNotMatch(page, /<TeacherPlanEnrollmentForm\s+[\s\S]*activePlan/);
-  assert.match(enrollment, /teacher-student-enrollment-modal/);
+  assert.match(enrollment, /<Modal title="Inserir aluno"/);
   assert.match(enrollment, /teacher-enrollment-financial/);
-  assert.match(styleRules("teacher-student-enrollment-modal", {"context":"> section"}), /grid-template-columns/);
+  assert.match(enrollment, /onClose=\{close\}/);
 });
 
 test("active-student rows expose a compact class assignment and financial shortcut", () => {
@@ -706,7 +710,7 @@ test("teacher workspace uses client photos, vector icons and matching compact me
 
   assert.match(page, /player: \{ select: \{ photoUrl: true \} \}/);
   assert.match(page, /teacher\.player\?\.photoUrl/);
-  assert.match(page, /EventIcon name="users" size=\{16\}/);
+  assert.match(page, /EventIcon name="users"/);
   assert.match(classPanel, /EventIcon name="users" size=\{14\}/);
   assert.match(styleRules("teacher-insert-student-trigger"), /justify-self: start/);
   assert.match(styleRules("teacher-detail-page", {"context":".teacher-detail-metrics article"}), /min-height: 92px/);
@@ -736,7 +740,8 @@ test("teacher plans can be copied to another active professor in a compact dialo
   assert.match(page, /targetTeachers/);
   assert.match(dialog, /Copiar planos/);
   assert.match(dialog, /copyTeacherPlansAction/);
-  assert.match(dialog, /onMouseDown=\{\(\) => setOpen\(false\)\}/);
+  assert.match(dialog, /<Modal title="Copiar planos"/);
+  assert.match(dialog, /onClose=\{closeDialog\}/);
 });
 
 test("teacher plans identify their owner and flag active students without a financial entry", () => {
@@ -749,7 +754,7 @@ test("teacher plans identify their owner and flag active students without a fina
     "utf8",
   );
 
-  assert.match(detail, /Professor:\s*\{teacher\.name\}/);
+  assert.match(detail, /<h1[^>]*>\{teacher\.name\}<\/h1>/);
   assert.match(detail, /Sem lançamento atribuído/);
   assert.match(financePlans, /teacherAssignments/);
   assert.match(financePlans, /Professor:/);

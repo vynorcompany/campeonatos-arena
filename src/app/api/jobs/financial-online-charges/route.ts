@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { env } from "@/lib/env";
 import { issueRecurringOnlineCharges } from "@/lib/payments/recurring-online-charges";
 import { issueDueAgencyInvoices } from "@/lib/services/agency-billing";
+import { processPlanPriceChanges } from "@/lib/academy/plan-price-worker";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,8 @@ function authorized(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const prices = await processPlanPriceChanges();
+  if (prices.failed) return NextResponse.json({ ok: false, ...prices }, { status: 500 });
   const [arenaCharges, agencyCharges] = await Promise.allSettled([issueRecurringOnlineCharges(), issueDueAgencyInvoices()]);
   if (arenaCharges.status === "rejected") console.error("Arena recurring online charge job failed", arenaCharges.reason);
   if (agencyCharges.status === "rejected") console.error("Agency recurring online charge job failed", agencyCharges.reason);

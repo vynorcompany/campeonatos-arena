@@ -700,20 +700,11 @@ export async function updateTeacherPlanWithPriceAction(formData: FormData) {
     }
     const monthlyPriceCents = parseMoneyToCents(parsed.data.monthlyPrice);
 
-    const assignment = await prisma.teacherPlan.findFirst({
-      where: { teacherId, planId, arenaId: auth.arenaId, active: true },
-      select: { id: true },
+    await withArenaTransaction(auth.arenaId, async tx => {
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`teacher-prices:${auth.arenaId}:${teacherId}`}, 0))::text`;
+      const updated = await tx.teacherPlan.updateMany({ where: { teacherId, planId, arenaId: auth.arenaId, active: true }, data: { monthlyPriceCents } });
+      if (!updated.count) throw new Error("Plano não encontrado para este professor.");
     });
-    if (!assignment) {
-      return { error: "Plano não encontrado para este professor." };
-    }
-    const updated = await prisma.teacherPlan.updateMany({
-      where: { teacherId, planId, arenaId: auth.arenaId, active: true },
-      data: { monthlyPriceCents },
-    });
-    if (!updated.count) {
-      return { error: "Não foi possível localizar este plano." };
-    }
     refreshAcademyRoutes();
   } catch (error) {
     console.error("Falha ao atualizar plano do professor", error);
