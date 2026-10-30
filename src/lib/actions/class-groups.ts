@@ -1,4 +1,5 @@
 "use server";
+import { changeLessonCredits, lessonCreditState } from "@/lib/academy/lesson-credits";
 
 import { arenaDatabase } from "@/lib/arena-database";
 import { revalidatePath } from "next/cache";
@@ -37,13 +38,22 @@ export async function requestPortalLessonMakeupAction(formData: FormData) {
   const auth = await requirePublicPlayerAuth(arenaSlug);
   const now = new Date();
   await withArenaTransaction(auth.arenaId, async (tx) => {
-    const attendance = await tx.lessonAttendance.findFirst({ where: { lessonId, student: { arenaId: auth.arenaId, playerId: auth.playerId, active: true } }, include: { lesson: { select: { scheduledAt: true, status: true } } } });
-    if (!attendance?.lesson.scheduledAt || attendance.lesson.status === "CANCELED" || arenaWallClockToInstant(attendance.lesson.scheduledAt) <= now) throw new Error("A reposição deve ser solicitada antes do início da aula.");
+    await tx.$queryRaw`SELECT id FROM "Lesson" WHERE id=${lessonId} AND "arenaId"=${auth.arenaId} FOR UPDATE`;
+    const attendance = await tx.lessonAttendance.findFirst({ where: { lessonId, student: { arenaId: auth.arenaId, playerId: auth.playerId, active: true } }, include: { lesson: { select: { scheduledAt: true, status: true, teacher: {select:{playerId:true}} } }, student:{select:{name:true}} } });
+    const policy=await tx.arenaOperationalSettings.findUnique({where:{arenaId:auth.arenaId}});
+    if(policy?.lessonMakeupEnabled===false)throw new Error("A arena desativou solicitações de reposição.");
+    if (!attendance?.lesson.scheduledAt || attendance.checkedInAt || ["CANCELED", "COMPLETED"].includes(attendance.lesson.status)) throw new Error("Esta aula não está disponível para reposição.");
+    const leadHours=policy?.lessonMakeupLeadHours??0;
+    if (arenaWallClockToInstant(attendance.lesson.scheduledAt).getTime() <= now.getTime()+leadHours*3600000) throw new Error(leadHours ? `A reposição exige pelo menos ${leadHours} horas de antecedência.` : "A reposição deve ser solicitada antes do início da aula.");
     if (attendance.makeupRequestedAt) throw new Error("A reposição desta aula já foi solicitada.");
     const lessonDate = attendance.lesson.scheduledAt;
     const monthEnd = new Date(lessonDate.getFullYear(), lessonDate.getMonth() + 1, 0, 23, 59, 59, 999);
-    const expiresAt = new Date(monthEnd); expiresAt.setDate(expiresAt.getDate() + 30);
-    await tx.lessonAttendance.update({ where: { id: attendance.id }, data: { makeupRequestedAt: now, makeupExpiresAt: expiresAt } });
+    const expiresAt = new Date(policy?.lessonMakeupMonthEnd===false?lessonDate:monthEnd); expiresAt.setDate(expiresAt.getDate() + (policy?.lessonMakeupValidityDays??30));
+    const updated=await tx.lessonAttendance.updateMany({ where: { id: attendance.id, makeupRequestedAt:null, checkedInAt:null }, data: { makeupRequestedAt: now, makeupExpiresAt: expiresAt } });
+    if(!updated.count)throw new Error("A reposição desta aula já foi solicitada.");
+    const title="Reposição de aula solicitada";const message=`${attendance.student.name} solicitou reposição da aula.`;
+    await tx.arenaNotification.create({data:{arenaId:auth.arenaId,type:"LESSON_MAKEUP_REQUEST",title,message,href:"/aulas"}});
+    if(attendance.lesson.teacher?.playerId)await tx.playerNotification.create({data:{playerId:attendance.lesson.teacher.playerId,type:"LESSON_MAKEUP_REQUEST",title,message,href:`/home?arena=${encodeURIComponent(arenaSlug)}&section=teacher`}});
   });
   revalidatePath(`/classificacao/${arenaSlug}`);
   revalidatePath("/aulas");
@@ -198,21 +208,13 @@ export async function adjustTeacherStudentBalanceAction(formData: FormData) {
   const assignment = await withArenaTransaction(auth.arenaId, (tx) => tx.teacherStudent.findFirst({ where: { arenaId: auth.arenaId, teacherId: auth.teacherId, studentId, active: true }, include: { student: { select: { playerId: true, remainingClasses: true, subscriptions: { where: { status: "ACTIVE" }, orderBy: { startedAt: "desc" }, take: 1, select: { classesPerMonth: true } } } } } }));
   if (!assignment) throw new Error("Você só pode ajustar o saldo dos seus alunos ativos.");
   await withArenaTransaction(auth.arenaId, async (tx) => {
-    const month = referenceMonth(instantToArenaWallClock(new Date()));
-    const balance = await tx.studentMonthlyBalance.findUnique({ where: { studentId_referenceMonth: { studentId, referenceMonth: month } } });
-    // O limite pertence ao plano. Um ajuste do professor recupera ou retira
-    // aulas do saldo do ciclo, mas nunca aumenta o pacote contratado.
-    const monthlyTotal = assignment.student.subscriptions[0]?.classesPerMonth ?? balance?.totalClasses ?? assignment.student.remainingClasses;
-    const current = balance ? Math.min(balance.remainingClasses, monthlyTotal) : monthlyTotal;
-    const next = Math.min(monthlyTotal, Math.max(0, current + classesDelta));
-    if (classesDelta < 0 && current === 0) throw new Error("O saldo mensal não pode ficar negativo.");
-    if (balance) {
-      await tx.studentMonthlyBalance.update({ where: { id: balance.id }, data: { remainingClasses: next, totalClasses: monthlyTotal } });
-    } else {
-      await tx.studentMonthlyBalance.create({ data: { arenaId: auth.arenaId, studentId, referenceMonth: month, totalClasses: monthlyTotal, remainingClasses: next } });
-    }
-    await tx.student.update({ where: { id: studentId }, data: { remainingClasses: next } });
-    if (assignment.student.playerId) await tx.clientBalanceMovement.create({ data: { arenaId: auth.arenaId, playerId: assignment.student.playerId, kind: "LESSON_CREDIT", classesDelta, reason } });
+    const state=await lessonCreditState(tx,auth.arenaId,studentId);
+    const limit=assignment.student.subscriptions[0]?.classesPerMonth ?? state.available;
+    const next=classesDelta>0?Math.max(state.available,Math.min(limit,state.available+classesDelta)):Math.max(0,state.available+classesDelta);
+    if (next===state.available) throw new Error("O ajuste ultrapassa o saldo permitido para este aluno.");
+    const effectiveDelta=next-state.available;
+    await changeLessonCredits(tx,auth.arenaId,studentId,effectiveDelta);
+    if (assignment.student.playerId) await tx.clientBalanceMovement.create({ data: { arenaId: auth.arenaId, playerId: assignment.student.playerId, kind: "LESSON_CREDIT", classesDelta: effectiveDelta, reason } });
   });
   revalidatePath(`/classificacao/${arenaSlug}`);
 }

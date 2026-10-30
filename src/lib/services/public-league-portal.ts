@@ -1,3 +1,5 @@
+import { playerLessonCredits } from "@/lib/academy/lesson-credit-portal";
+import { lessonCreditBalances } from "@/lib/academy/lesson-credits";
 import { activeCourtOccurrenceWhere } from "@/lib/calendar/online-booking-hold";
 import { prisma } from "@/lib/prisma";
 import { getLeagueMonthBlocks } from "@/lib/league/monthly-schedule";
@@ -540,8 +542,11 @@ export async function getPublicLeaguePortal(
       }),
     )
     .flat();
+  const creditState=await withArenaTransaction(arena.id,tx=>playerLessonCredits(tx,arena.id,playerId,arenaSlug));
+  const teacherCredits=await withArenaTransaction(arena.id,tx=>lessonCreditBalances(tx,arena.id,teacherManagement?.studentAssignments.map(a=>a.student.id)??[]));
   return {
     arenaSlug,
+    makeupEnabled: creditState?.makeupEnabled ?? true,
     leagueCategories,
     selectedLeagueCategoryId: selectedLeagueCompetition?.categoryId ?? null,
     selectedLeaguePairs,
@@ -693,14 +698,7 @@ export async function getPublicLeaguePortal(
     })),
     student: student
       ? {
-          remainingClasses: Math.min(
-            student.monthlyBalances[0]?.remainingClasses ??
-              student.subscriptions[0]?.classesPerMonth ??
-              student.remainingClasses,
-            student.subscriptions[0]?.classesPerMonth ??
-              student.monthlyBalances[0]?.totalClasses ??
-              student.remainingClasses,
-          ),
+          remainingClasses: creditState?.available ?? 0,
           attendedClasses: student.attendedClasses,
           missedClasses: student.missedClasses,
           active: student.active,
@@ -724,11 +722,7 @@ export async function getPublicLeaguePortal(
             return {
               id: assignment.student.id,
               name: assignment.student.name,
-              remainingClasses: Math.min(
-                assignment.student.monthlyBalances[0]?.remainingClasses ??
-                  initialMonthlyClasses,
-                initialMonthlyClasses,
-              ),
+              remainingClasses: teacherCredits.get(assignment.student.id) ?? 0,
               initialMonthlyClasses,
               planName:
                 assignment.student.subscriptions[0]?.plan.name ??

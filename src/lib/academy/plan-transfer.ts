@@ -1,3 +1,4 @@
+import { lessonCreditState } from "./lesson-credits";
 import { createHash } from "node:crypto";
 import type { ArenaTransaction } from "@/lib/rls";
 import { dateOnly, transferCycle, calculatePlanTransfer, cycleDate } from "./plan-transfer-calculation";
@@ -38,6 +39,7 @@ export async function transferStudentPlan(tx: ArenaTransaction, arenaId: string,
   const state = await planTransferQuote(tx, arenaId, input, today);
   const { quote, subscription, target, recurrence, upcoming, groupsToRemove, newDueDate } = state;
   if (quote.token !== expectedToken) throw new Error("Os dados mudaram. Confira novamente os valores antes de confirmar.");
+  await lessonCreditState(tx,arenaId,subscription.studentId,today);
   const note = `Transferência: ${quote.oldPlanName} (${quote.oldPriceCents}) > ${quote.newPlanName} (${quote.newPriceCents}); diferença ${quote.differenceCents} centavos; vencimento ${quote.currentDueDate} > ${quote.newDueDate}.`;
   const future = upcoming;
   for (const entry of future) {

@@ -1,3 +1,4 @@
+import { consumeLessonCredit } from "../academy/lesson-credits";
 import type { Prisma } from "@prisma/client";
 import { arenaWallClockToInstant } from "../calendar/arena-wall-clock";
 
@@ -16,15 +17,10 @@ export async function registerLessonCheckin(tx: Prisma.TransactionClient, input:
   const startsAt = attendance.lesson.scheduledAt;
   const instant = arenaWallClockToInstant(startsAt).getTime();
   if (now.getTime() < instant - 3 * 60 * 60_000 || now.getTime() > instant + 8 * 60 * 60_000) throw new Error("O check-in fica disponível três horas antes da aula e até oito horas após o início.");
-  const month = `${startsAt.getFullYear()}-${String(startsAt.getMonth() + 1).padStart(2, "0")}`;
-  const balance = await tx.studentMonthlyBalance.findUnique({ where: { studentId_referenceMonth: { studentId: student.id, referenceMonth: month } } });
-  const credits = balance?.remainingClasses ?? (attendance.student.subscriptions[0]?.classesPerMonth || attendance.student.remainingClasses);
-  if (credits <= 0) throw new Error("Não há saldo de aulas disponível para este mês.");
-  if (balance) await tx.studentMonthlyBalance.update({ where: { id: balance.id }, data: { remainingClasses: { decrement: 1 } } });
-  else await tx.studentMonthlyBalance.create({ data: { arenaId: input.arenaId, studentId: student.id, referenceMonth: month, totalClasses: credits, remainingClasses: credits - 1 } });
+  const remaining = await consumeLessonCredit(tx,input.arenaId,student.id,attendance.id,now);
   const result = await tx.lessonAttendance.update({ where: { id: attendance.id }, data: { status: "PRESENT", checkedInAt: now } });
-  await tx.student.update({ where: { id: student.id }, data: { remainingClasses: credits - 1, attendedClasses: { increment: 1 } } });
-  await tx.auditEvent.create({ data: { arenaId: input.arenaId, actorId: input.playerId, actorName: attendance.student.name, action: "LESSON_CHECKIN", entityId: input.lessonId, details: { studentId: student.id, remainingClasses: credits - 1 } } });
+  await tx.student.update({ where: { id: student.id }, data: { remainingClasses: remaining, attendedClasses: { increment: 1 } } });
+  await tx.auditEvent.create({ data: { arenaId: input.arenaId, actorId: input.playerId, actorName: attendance.student.name, action: "LESSON_CHECKIN", entityId: input.lessonId, details: { studentId: student.id, remainingClasses: remaining } } });
   return result;
 }
 

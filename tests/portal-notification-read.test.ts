@@ -21,7 +21,7 @@ test("ler notificações financeiras persiste a leitura sem eliminar a pendênci
     categoryMatch:{findMany:async()=>[]},
   };
   const service=moduleAt("src/lib/services/public-player-notifications.ts",{
-    "server-only":{},"@/lib/prisma":{prisma:{arena:{findUnique:async()=>({id:"arena-a",onlineBookingOverdueBlockDays:1})}}},
+    "@/lib/academy/lesson-credit-portal": {playerLessonCredits:async()=>null}, "server-only":{},"@/lib/prisma":{prisma:{arena:{findUnique:async()=>({id:"arena-a",onlineBookingOverdueBlockDays:1})}}},
     "@/lib/payments/portal-checkout-policy":{portalCheckoutPolicy},"@/lib/rls":{withArenaTransaction:async(_id:string,fn:(tx:unknown)=>unknown)=>fn(tx)},
     "@/lib/finance/settlements":{getOutstandingCents:(amount:number)=>amount},
     "@/lib/calendar/arena-wall-clock":{arenaToday:()=>date,instantToArenaWallClock:(value:Date)=>value},

@@ -1,3 +1,4 @@
+import { LessonCreditPortalPanel, TeacherLessonCreditRequestsPanel } from "@/components/teachers/lesson-credit-portal";
 import { loadPortalEventPanelAction } from "@/lib/actions/portal-events";
 import { PortalTournamentTabs } from "@/components/portal/tournament-tabs";
 import { PortalTheme } from "@/components/portal/portal-theme";
@@ -368,11 +369,11 @@ export function PublicStandings({
       ) : requestedSection === "reservations" ? (
         <ReservationsPanel portal={portal} />
       ) : requestedSection === "lessons" ? (
-        <LessonsPanel portal={portal} />
+        <><LessonCreditPortalPanel arenaSlug={arena.slug}/><LessonsPanel portal={portal} /></>
       ) : requestedSection === "classes" ? (
         <ClassesPanel portal={portal} weekday={weekday} arenaSlug={arena.slug} />
       ) : requestedSection === "teacher" && currentClient.isTeacher ? (
-        <TeacherManagementPanel portal={portal} />
+        <><TeacherManagementPanel portal={portal}/><TeacherLessonCreditRequestsPanel arenaSlug={arena.slug}/></>
       ) : (
         <PublicPlayerProfile arenaSlug={arena.slug} player={currentClient} />
       )}
@@ -473,7 +474,7 @@ function LessonsPanel({ portal }: { portal: Portal }) {
       <header className={viewStyles.athlete_portal_learning_heading}>
         <h2>Minhas aulas</h2>
       </header>
-      {portal?.student ? <div aria-label="Créditos de aulas" className="tw:mb-4 tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-3 tw:rounded-md tw:border tw:border-[#b8cfee] tw:bg-white tw:p-4 tw:text-[#15385f] tw:dark:border-[#365879] tw:dark:bg-[#173d66] tw:dark:text-[#e4efff]"><div><span className="tw:block tw:text-sm">Créditos disponíveis neste mês</span>{portal.student.planName ? <small>{portal.student.planName}</small> : null}</div><strong className="tw:text-2xl tw:tabular-nums">{portal.student.remainingClasses}</strong></div> : null}
+
       {portal?.lessons.length ? (
         <div className={viewStyles.portal_activity_list}>
           {portal.lessons.map((lesson) => (
@@ -485,7 +486,7 @@ function LessonsPanel({ portal }: { portal: Portal }) {
                   {lesson.when}
                 </span>
               </div>
-              <div className={viewStyles.portal_lesson_actions}><b>{lesson.checkedIn ? "Check-in realizado" : lesson.makeupRequested ? "Reposição solicitada" : lesson.status}</b>{!lesson.checkedIn && lesson.status === "Agendada" ? <SafeActionForm action={checkInPortalLessonAction} successMessage="Check-in realizado. Uma aula foi descontada do saldo deste mês."><input type="hidden" name="arenaSlug" value={portal?.arenaSlug} /><input type="hidden" name="lessonId" value={lesson.id} /><SubmitButton label="Fazer check-in" pendingLabel="Registrando..." className={viewStyles.button_button_primary_button_small} /></SafeActionForm> : null}{!lesson.checkedIn && !lesson.makeupRequested && lesson.status === "Agendada" ? <SafeActionForm action={requestPortalLessonMakeupAction} successMessage="Reposição solicitada. Seu professor será notificado."><input type="hidden" name="arenaSlug" value={portal?.arenaSlug} /><input type="hidden" name="lessonId" value={lesson.id} /><SubmitButton label="Solicitar reposição" pendingLabel="Solicitando..." className={viewStyles.button_button_small} /></SafeActionForm> : null}</div>
+              <div className={viewStyles.portal_lesson_actions}><b>{lesson.checkedIn ? "Check-in realizado" : lesson.makeupRequested ? "Reposição solicitada" : lesson.status}</b>{!lesson.checkedIn && lesson.status === "Agendada" ? <SafeActionForm action={checkInPortalLessonAction} successMessage="Check-in realizado. Uma aula foi descontada dos seus créditos disponíveis."><input type="hidden" name="arenaSlug" value={portal?.arenaSlug} /><input type="hidden" name="lessonId" value={lesson.id} /><SubmitButton label="Fazer check-in" pendingLabel="Registrando..." className={viewStyles.button_button_primary_button_small} /></SafeActionForm> : null}{portal.makeupEnabled && !lesson.checkedIn && !lesson.makeupRequested && lesson.status === "Agendada" ? <SafeActionForm action={requestPortalLessonMakeupAction} successMessage="Reposição solicitada. Seu professor será notificado."><input type="hidden" name="arenaSlug" value={portal?.arenaSlug} /><input type="hidden" name="lessonId" value={lesson.id} /><SubmitButton label="Solicitar reposição" pendingLabel="Solicitando..." className={viewStyles.button_button_small} /></SafeActionForm> : null}</div>
             </article>
           ))}
         </div>

@@ -9,7 +9,7 @@ export async function GET(request: Request) {
   const auth = await getAuthContext();
   if (!auth?.arenaId)
     return Response.json({ error: "Não autenticado." }, { status: 401 });
-  const canSee = (module: "players" | "pos") =>
+  const canSee = (module: "players" | "pos" | "teachers" | "students") =>
     canViewModule(
       module,
       auth.arenaRole,
@@ -20,6 +20,7 @@ export async function GET(request: Request) {
     ? ["COMANDA_OPEN_REQUEST", "COMANDA_REQUEST", "COMANDA_CLOSE_REQUEST"]
     : [];
   const comandaOnly = new URL(request.url).searchParams.get("scope") === "comandas";
+  if (!comandaOnly && (canSee("teachers") || canSee("students"))) types.push("LESSON_CREDIT_REQUEST", "LESSON_MAKEUP_REQUEST");
   if (!comandaOnly && canSee("players")) {
     await refreshLoyaltyNotifications(auth.arenaId);
     types.push(loyaltyNotificationType);

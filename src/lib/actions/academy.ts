@@ -1,4 +1,6 @@
 "use server";
+import { changeLessonCredits, lessonCreditState, consumeLessonCredit, preservePlanCreditBatches } from "@/lib/academy/lesson-credits";
+import { readExpiryPolicy } from "@/lib/academy/credit-expiry-policy";
 
 import { createIndependentTeacherPlan } from "@/lib/academy/create-teacher-plan";
 import { arenaDatabase } from "@/lib/arena-database";
@@ -73,22 +75,9 @@ export async function createStudentAction(formData: FormData) {
       if (existingStudent.playerId && existingStudent.playerId !== linkedPlayer.id) {
         throw new Error("Este aluno já está vinculado a outro cliente com o mesmo nome.");
       }
-      await prisma.student.update({
-        where: {
-          id: existingStudent.id,
-        },
-        data: {
-          playerId: linkedPlayer.id,
-          phone: parsed.data.phone || existingStudent.phone,
-          email: parsed.data.email || existingStudent.email,
-          remainingClasses: {
-            increment: parsed.data.remainingClasses,
-          },
-          totalClasses: {
-            increment: parsed.data.remainingClasses,
-          },
-          notes: parsed.data.notes || existingStudent.notes,
-        },
+      await withArenaTransaction(auth.arenaId,async tx=>{
+        if(parsed.data.remainingClasses>0) await changeLessonCredits(tx,auth.arenaId,existingStudent.id,parsed.data.remainingClasses);
+        await tx.student.update({where:{id:existingStudent.id},data:{playerId:linkedPlayer.id,phone:parsed.data.phone||existingStudent.phone,email:parsed.data.email||existingStudent.email,notes:parsed.data.notes||existingStudent.notes}});
       });
 
       refreshAcademyRoutes();
@@ -123,24 +112,7 @@ export async function addStudentCreditsAction(formData: FormData) {
     .max(200)
     .parse(formData.get("quantity"));
 
-  const updated = await prisma.student.updateMany({
-    where: {
-      id: studentId,
-      arenaId: auth.arenaId,
-    },
-    data: {
-      remainingClasses: {
-        increment: quantity,
-      },
-      totalClasses: {
-        increment: quantity,
-      },
-    },
-  });
-
-  if (!updated.count) {
-    throw new Error("Aluno não encontrado.");
-  }
+  await withArenaTransaction(auth.arenaId,tx=>changeLessonCredits(tx,auth.arenaId,studentId,quantity));
 
   refreshAcademyRoutes();
 }
@@ -191,17 +163,10 @@ export async function updateStudentAction(formData: FormData) {
     throw new Error("Já existe outro aluno com esse nome.");
   }
 
-  await prisma.student.update({
-    where: {
-      id: student.id,
-    },
-    data: {
-      name: parsed.data.name,
-      phone: parsed.data.phone,
-      email: parsed.data.email,
-      remainingClasses: parsed.data.remainingClasses,
-      notes: parsed.data.notes,
-    },
+  await withArenaTransaction(auth.arenaId,async tx=>{
+    const state=await lessonCreditState(tx,auth.arenaId,student.id);
+    await changeLessonCredits(tx,auth.arenaId,student.id,parsed.data.remainingClasses-state.available);
+    await tx.student.update({where:{id:student.id},data:{name:parsed.data.name,phone:parsed.data.phone,email:parsed.data.email,notes:parsed.data.notes}});
   });
 
   refreshAcademyRoutes();
@@ -705,6 +670,7 @@ export async function updateTeacherPlanWithPriceAction(formData: FormData) {
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`teacher-prices:${auth.arenaId}:${teacherId}`}, 0))::text`;
       const updated = await tx.teacherPlan.updateMany({ where: { teacherId, planId, arenaId: auth.arenaId, active: true }, data: { monthlyPriceCents } });
       if (!updated.count) throw new Error("Plano não encontrado para este professor.");
+      if (formData.has("creditExpiryCycle")) { await preservePlanCreditBatches(tx,auth.arenaId,planId); await tx.plan.updateMany({where:{id:planId,arenaId:auth.arenaId},data:{...readExpiryPolicy(formData),creditPolicyConfiguredAt:new Date(),updatedByUserId:auth.userId}}); }
     });
     refreshAcademyRoutes();
   } catch (error) {
@@ -1116,7 +1082,8 @@ export async function removeTeacherPlanStudentAction(formData: FormData) {
       }
     }
     await tx.studentSubscription.update({ where: { id: current.id }, data: { status: "CANCELED", endedAt: now } });
-    if (clearRemainingClasses && subscription.student.remainingClasses > 0) {
+    if (clearRemainingClasses) {
+      await tx.lessonCreditBatch.updateMany({where:{arenaId:auth.arenaId,studentId:subscription.student.id},data:{remaining:0}});
       await tx.student.update({ where: { id: subscription.student.id }, data: { remainingClasses: 0 } });
       if (subscription.student.playerId) await tx.clientBalanceMovement.create({ data: { arenaId: auth.arenaId, playerId: subscription.student.playerId, kind: "CLASSES", classesDelta: -subscription.student.remainingClasses, reason: `Saldo removido ao encerrar o plano ${planId}.` } });
     }
@@ -1202,22 +1169,8 @@ export async function completeLessonAction(formData: FormData) {
   const absentStudentIds = new Set(getFormValues(formData, "absentStudentIds"));
 
   const lesson = await withArenaTransaction(auth.arenaId, (tx) => tx.lesson.findFirst({
-    where: {
-      id: lessonId,
-      arenaId: auth.arenaId,
-    },
-    include: {
-      attendances: {
-        include: {
-          student: {
-            select: {
-              remainingClasses: true,
-              subscriptions: { where: { status: "ACTIVE" }, orderBy: { startedAt: "desc" }, take: 1, select: { classesPerMonth: true } },
-            },
-          },
-        },
-      },
-    },
+    where: { id: lessonId, arenaId: auth.arenaId },
+    select: { id: true, status: true },
   }));
 
   if (!lesson) {
@@ -1229,7 +1182,11 @@ export async function completeLessonAction(formData: FormData) {
   }
 
   await prisma.$transaction(async (tx) => {
-    for (const attendance of lesson.attendances) {
+    await tx.$queryRaw`SELECT id FROM "Lesson" WHERE id=${lesson.id} AND "arenaId"=${auth.arenaId} FOR UPDATE`;
+    const currentLesson=await tx.lesson.findFirst({where:{id:lesson.id,arenaId:auth.arenaId},select:{status:true,attendances:true}});
+    if(!currentLesson || currentLesson.status==="COMPLETED")throw new Error("Esta aula já foi concluída.");
+
+    for (const attendance of [...currentLesson.attendances].sort((a,b)=>a.studentId.localeCompare(b.studentId))) {
       const isAbsent = absentStudentIds.has(attendance.studentId);
 
       await tx.lessonAttendance.update({
@@ -1252,37 +1209,10 @@ export async function completeLessonAction(formData: FormData) {
             },
           },
         });
-        if (!attendance.makeupRequestedAt) {
-          const month = referenceMonth(lesson.scheduledAt ?? new Date());
-          const balance = await tx.studentMonthlyBalance.findUnique({ where: { studentId_referenceMonth: { studentId: attendance.studentId, referenceMonth: month } } });
-          const current = balance?.remainingClasses ?? attendance.student.subscriptions[0]?.classesPerMonth ?? attendance.student.remainingClasses;
-          const next = Math.max(0, current - 1);
-          if (balance) await tx.studentMonthlyBalance.update({ where: { id: balance.id }, data: { remainingClasses: next } });
-          else await tx.studentMonthlyBalance.create({ data: { arenaId: auth.arenaId, studentId: attendance.studentId, referenceMonth: month, totalClasses: current, remainingClasses: next } });
-          await tx.student.update({ where: { id: attendance.studentId }, data: { remainingClasses: next } });
-        }
+        if (!attendance.makeupRequestedAt) await consumeLessonCredit(tx,auth.arenaId,attendance.studentId,attendance.id);
       } else if (!attendance.checkedInAt) {
-        const month = referenceMonth(lesson.scheduledAt ?? new Date());
-        const balance = await tx.studentMonthlyBalance.findUnique({ where: { studentId_referenceMonth: { studentId: attendance.studentId, referenceMonth: month } } });
-        const current = balance?.remainingClasses ?? attendance.student.subscriptions[0]?.classesPerMonth ?? attendance.student.remainingClasses;
-        const next = Math.max(0, current - 1);
-
-        if (balance) {
-          await tx.studentMonthlyBalance.update({ where: { id: balance.id }, data: { remainingClasses: next } });
-        } else {
-          await tx.studentMonthlyBalance.create({ data: { arenaId: auth.arenaId, studentId: attendance.studentId, referenceMonth: month, totalClasses: current, remainingClasses: next } });
-        }
-        await tx.student.update({
-          where: {
-            id: attendance.studentId,
-          },
-          data: {
-            attendedClasses: {
-              increment: 1,
-            },
-            remainingClasses: next,
-          },
-        });
+        const next=await consumeLessonCredit(tx,auth.arenaId,attendance.studentId,attendance.id);
+        await tx.student.update({where:{id:attendance.studentId},data:{attendedClasses:{increment:1},remainingClasses:next}});
         if (attendance.makeupRequestedAt) await tx.lessonAttendance.update({ where: { id: attendance.id }, data: { makeupRequestedAt: null, makeupExpiresAt: null } });
       }
     }

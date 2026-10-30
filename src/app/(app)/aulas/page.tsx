@@ -1,3 +1,5 @@
+import { canViewModule } from "@/lib/permissions";
+import { LessonCreditRequestsPanel } from "@/components/teachers/lesson-credit-portal";
 import { LessonPaymentFields } from "@/components/finance/lesson-payment-fields";
 import { viewStyles } from "./page.utilities";
 import { SectionCard } from "@/components/section-card";
@@ -284,6 +286,7 @@ export default async function LessonsPage() {
           {!lessons.length ? <p className={viewStyles.muted}>Nenhuma aula registrada ainda.</p> : null}
         </div>
       </SectionCard>
+    {canViewModule("students",auth.arenaRole,auth.systemRole,auth.viewPermissions)?<LessonCreditRequestsPanel arenaId={auth.arenaId}/>:null}
     </div>
   );
 }

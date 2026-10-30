@@ -1233,6 +1233,7 @@ model SponsorshipPlan {
 }
 
 model Student {
+  creditBatches LessonCreditBatch[]
   id                    String                 @id @default(cuid())
   name                  String
   phone                 String                 @default("")
@@ -1258,6 +1259,7 @@ model Student {
   monthlyBalances       StudentMonthlyBalance[]
   financialRecurrences  FinancialRecurrence[]
 
+  @@unique([arenaId, id])
   @@unique([arenaId, name])
   @@unique([playerId])
   @@index([arenaId, active])
@@ -1660,6 +1662,8 @@ model ScheduleOccurrenceCourt {
 }
 
 model LessonAttendance {
+  creditBatchId String?
+  creditBatch LessonCreditBatch? @relation(fields: [studentId, creditBatchId], references: [studentId, id], onDelete: NoAction, map: "LessonAttendance_credit_batch_student_fkey")
   id               String  @id @default(cuid())
   status           String  @default("PRESENT")
   checkedInAt      DateTime?
@@ -2323,6 +2327,9 @@ model StockMovement {
 }
 
 model Plan {
+  creditExpiryCycle String @default("MONTHLY")
+  creditExpiryDays Int?
+  creditPolicyConfiguredAt DateTime?
   id                    String                @id @default(cuid())
   name                  String
   monthlyPriceCents     Int                   @default(0)
@@ -2775,6 +2782,14 @@ model ArenaOperationalSettings {
   delinquentAfterDays Int @default(0)
   whatsappUnpaidEnabled Boolean @default(false)
   whatsappPaidEnabled Boolean @default(false)
+  whatsappPaidMessage String @default("")
+  whatsappUnpaidMessage String @default("")
+  lessonMakeupEnabled Boolean @default(true)
+  lessonMakeupLeadHours Int @default(0)
+  lessonMakeupValidityDays Int @default(30)
+  lessonMakeupMonthEnd Boolean @default(true)
+  lessonMakeupPolicy String @default("")
+  lessonCreditNoticeDays Int @default(7)
   whatsappMessage String @default("")
   autoFiscalNfce Boolean @default(false)
   portalConsumptionEnabled Boolean @default(true)
@@ -2805,4 +2820,35 @@ model ScheduleServiceReservation {
 
   @@unique([occurrenceId, productId])
   @@index([arenaId, productId, occurrenceId])
+}
+
+model LessonCreditBatch {
+  id String @id @default(cuid())
+  arenaId String
+  studentId String
+  sourceKey String
+  granted Int
+  remaining Int
+  grantedAt DateTime @default(now())
+  expiresAt DateTime?
+  student Student @relation(fields: [arenaId, studentId], references: [arenaId, id], onDelete: Cascade)
+  attendances LessonAttendance[]
+  request LessonCreditRequest?
+  @@unique([arenaId, id])
+  @@unique([studentId, id])
+  @@unique([studentId, sourceKey])
+  @@index([arenaId, studentId, expiresAt])
+}
+model LessonCreditRequest {
+  id String @id @default(cuid())
+  arenaId String
+  batchId String @unique
+  status String @default("PENDING")
+  message String @default("")
+  response String @default("")
+  createdAt DateTime @default(now())
+  resolvedAt DateTime?
+  batch LessonCreditBatch @relation(fields: [arenaId, batchId], references: [arenaId, id], onDelete: Cascade)
+  @@unique([arenaId, batchId])
+  @@index([arenaId, status, createdAt])
 }

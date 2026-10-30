@@ -1,3 +1,4 @@
+import { expiryPolicySchema } from "./credit-expiry-policy";
 import { z } from "zod";
 import type { ArenaTransaction } from "@/lib/rls";
 import { parseMoneyToCents } from "./inputs";
@@ -19,7 +20,7 @@ export async function createIndependentTeacherPlan(tx: ArenaTransaction, arenaId
   const teacher = await tx.teacher.findFirst({ where: { id: data.teacherId, arenaId, active: true }, select: { id: true } });
   if (!teacher) throw new Error("Professor não encontrado nesta arena.");
   return tx.plan.create({ data: {
-    arenaId, name: data.name, classesPerMonth: data.classesPerMonth, monthlyPriceCents, notes: data.notes,
+    ...expiryPolicySchema.parse(input), creditPolicyConfiguredAt: new Date(), arenaId, name: data.name, classesPerMonth: data.classesPerMonth, monthlyPriceCents, notes: data.notes,
     createdByUserId: actorId, updatedByUserId: actorId,
     teacherAssignments: { create: { arenaId, teacherId: teacher.id, monthlyPriceCents } },
   } });
