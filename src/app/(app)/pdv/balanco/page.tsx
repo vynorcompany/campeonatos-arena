@@ -39,7 +39,7 @@ export default async function StockBalancePage({ searchParams }: { searchParams?
   return (
     <div className={viewStyles.stack_md_workspace_page_stock_balance_page}>
       <WorkspaceHeading title="Balanço de estoque">
-        <Link href="/pdv/estoque" className={viewStyles.button}>Voltar ao estoque</Link>{canEdit && !creating ? <Link href="/pdv/balanco?novo=1" className={ui.primary}>Novo Balanço</Link> : null}{creating ? <Link href="/pdv/balanco" className={ui.secondary}>Voltar aos balanços</Link> : null}
+        <Link href="/pdv/estoque" className={ui.secondary}>Voltar ao estoque</Link>{!creating ? <Link href={query?.historico === "1" ? "/pdv/balanco" : "/pdv/balanco?historico=1"} className={ui.secondary}>{query?.historico === "1" ? "Ocultar ajustes anteriores" : "Ajustes anteriores"}</Link> : null}{canEdit && !creating ? <Link href="/pdv/balanco?novo=1" className={ui.primary}>Novo Balanço</Link> : null}{creating ? <Link href="/pdv/balanco" className={ui.secondary}>Voltar aos balanços</Link> : null}
       </WorkspaceHeading>
 
       {canEdit && creating ? <section className={ui.page}><div className={ui.toolbar}><p>Informe a contagem física. As divergências são ajustadas e registradas no histórico.</p></div>
@@ -64,8 +64,7 @@ export default async function StockBalancePage({ searchParams }: { searchParams?
         </SafeActionForm>
       </section> : null}
 
-      {!creating ? <div className={ui.list}><div className={`${ui.head} tw:grid-cols-[minmax(0,1fr)_170px_170px]`}><span>Balanço</span><span>Data</span><span>Responsável</span></div>{balances.map(balance => { const details = balance.details as { title?: string }; return <Link key={balance.id} href={`/pdv/balanco/${balance.id}`} className={`${ui.row} tw:grid-cols-[minmax(0,1fr)_170px_170px] tw:text-[#15385f] tw:no-underline tw:hover:bg-blue-50 tw:viewport-760:grid-cols-1`}><strong>{details.title || "Balanço de estoque"}</strong><time>{balance.createdAt.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</time><span>{balance.actorName}</span></Link>; })}{!balances.length ? <p className={ui.empty}>Nenhum balanço concluído.</p> : null}</div> : null}
-      {!creating ? <Link href="/pdv/balanco?historico=1" className={ui.secondary}>Consultar ajustes anteriores</Link> : null}
+      {!creating ? <div className={ui.list}><div className={`${ui.head} tw:grid-cols-[minmax(0,1fr)_170px_170px]`}><span>Balanço</span><span>Data</span><span>Responsável</span></div>{balances.map(balance => { const details = balance.details as { title?: string }; return <Link key={balance.id} href={`/pdv/balanco/${balance.id}`} className={`${ui.row} tw:grid-cols-[minmax(0,1fr)_170px_170px] tw:text-[#15385f] tw:no-underline tw:hover:bg-[#1e5ea8] tw:hover:text-white tw:focus-visible:outline-2 tw:focus-visible:outline-[#1e5ea8] tw:viewport-760:grid-cols-1`}><strong>{details.title || "Balanço de estoque"}</strong><time>{balance.createdAt.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</time><span>{balance.actorName}</span></Link>; })}{!balances.length ? <p className={ui.empty}>Nenhum balanço concluído.</p> : null}</div> : null}
       {query?.historico === "1" ? <section className={ui.page}><h2 className="tw:m-0 tw:text-sm tw:font-semibold">Ajustes anteriores</h2>
         {movements.length ? <div className={viewStyles.stock_balance_report}>
           {movements.map((movement) => {

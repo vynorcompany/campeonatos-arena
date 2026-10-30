@@ -1,10 +1,10 @@
 "use client";
-import { fixedDialogFrame } from "@/components/ui/dialog-frame";
+import { Modal } from "@/components/ui/modal";
 
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./teacher-class-groups-panel.utilities";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { EventIcon } from "@/components/tournaments/event-icon";
@@ -140,35 +140,13 @@ export function TeacherClassGroupsPanel({
         first.schedule.startTime.localeCompare(second.schedule.startTime),
     );
 
+  const closeCreate = useCallback(() => setCreateOpen(false), []);
+  const closeEdit = useCallback(() => setEditingGroupId(null), []);
+
   return (
     <div className={viewStyles.teacher_groups_panel_teacher_class_directory}>
-      {createOpen ? (
-        <div
-          className={viewStyles.teacher_class_create_modal}
-          role="presentation"
-          onMouseDown={() => setCreateOpen(false)}
-        >
-          <section
-            className={[viewStyles.section_card_teacher_detail_section_teacher_class_create_panel, fixedDialogFrame].join(" ")}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="teacher-class-create-title"
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <header>
-              <div>
-                <p className={viewStyles.eyebrow}>NOVA TURMA</p>
-                <h2 id="teacher-class-create-title">Horários fixos e vagas</h2>
-              </div>
-              <button
-                type="button"
-                className={viewStyles.teacher_class_create_close}
-                onClick={() => setCreateOpen(false)}
-                aria-label="Fechar"
-              >
-                ×
-              </button>
-            </header>
+      <Modal title="Nova turma" open={createOpen} onClose={closeCreate} width="tw:max-w-[760px]">
+        <div className="teacher-class-create-panel tw:grid tw:min-w-0 tw:gap-4">
             {!plans.length ? (
               <p className={viewStyles.muted}>
                 Crie ao menos um plano para este professor antes de montar uma
@@ -317,36 +295,10 @@ export function TeacherClassGroupsPanel({
                 </button>
               </SafeActionForm>
             )}
-          </section>
         </div>
-      ) : null}
-      {editingGroup ? (
-        <div
-          className={viewStyles.teacher_class_create_modal}
-          role="presentation"
-          onMouseDown={() => setEditingGroupId(null)}
-        >
-          <section
-            className={[viewStyles.section_card_teacher_detail_section_teacher_class_create_panel, fixedDialogFrame].join(" ")}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="teacher-class-edit-title"
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <header>
-              <div>
-                <p className={viewStyles.eyebrow}>EDITAR TURMA</p>
-                <h2 id="teacher-class-edit-title">Horários, vagas e planos</h2>
-              </div>
-              <button
-                type="button"
-                className={viewStyles.teacher_class_create_close}
-                onClick={() => setEditingGroupId(null)}
-                aria-label="Fechar"
-              >
-                ×
-              </button>
-            </header>
+      </Modal>
+      {editingGroup ? <Modal title="Editar turma" open onClose={closeEdit} width="tw:max-w-[760px]">
+        <div className="teacher-class-create-panel tw:grid tw:min-w-0 tw:gap-4">
             <SafeActionForm
               action={updateTeacherClassGroupAction}
               className={viewStyles.teacher_group_create_form}
@@ -488,14 +440,12 @@ export function TeacherClassGroupsPanel({
                 Cancelar
               </button>
             </SafeActionForm>
-          </section>
         </div>
-      ) : null}
+      </Modal> : null}
       <section className={viewStyles.section_card_teacher_detail_section_teacher_class_list_panel}>
         <header>
           <div>
-            <h2>Turmas do professor</h2>
-            <p className={viewStyles.muted}>Gerencie os horários e vagas das turmas.</p>
+            <h2 className="tw:sr-only">Turmas do professor</h2>
           </div>
           <button
             type="button"

@@ -1,3 +1,5 @@
+import * as composition from "../src/lib/products/composition";
+import { consumeProductStock } from "../src/lib/products/stock-aggregates";
 import * as operationalPolicy from "../src/lib/comandas/operational-policy";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -26,7 +28,7 @@ test("divisão finalizada grava débitos por pessoa, não duplica estoque e reje
     const createCommand = async () => { const command = await admin.comanda.create({ data: { arenaId: arena.id, code: randomUUID(), label: `Divisão ${nonce}`, playerId: playerIds[0], items: { create: { productId, quantity: 1, unitPriceCents: 1000, totalCents: 1000 } } } }); commandIds.push(command.id); return command; };
     const transact = (arenaId: string, operation: (tx: Prisma.TransactionClient) => Promise<unknown>) => runtime.$transaction(async tx => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`; return operation(tx); });
     const exports: Record<string, (form: FormData) => Promise<void>> = {};
-    const mocks: Record<string, unknown> = { "@/lib/comandas/operational-policy": operationalPolicy, zod: { z }, "next/cache": { revalidatePath() {} }, "@/lib/auth/guards": { requirePermission: async () => ({ arenaId: arena.id, userId: actor.id, userName: actor.name }) }, "@/lib/rls": { withArenaTransaction: transact }, "@/lib/comandas/split": { allocateComandaShares }, "@/lib/finance/settlements": { allocatePaymentsToDebts, getOutstandingCents } };
+    const mocks: Record<string, unknown> = { "@/lib/products/composition": composition, "@/lib/products/stock-aggregates": { consumeProductStock }, "@/lib/comandas/operational-policy": operationalPolicy, zod: { z }, "next/cache": { revalidatePath() {} }, "@/lib/auth/guards": { requirePermission: async () => ({ arenaId: arena.id, userId: actor.id, userName: actor.name }) }, "@/lib/rls": { withArenaTransaction: transact }, "@/lib/comandas/split": { allocateComandaShares }, "@/lib/finance/settlements": { allocatePaymentsToDebts, getOutstandingCents } };
     vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/lib/actions/comanda.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports, FormData, Date, crypto: globalThis.crypto, require: (name: string) => mocks[name] ?? {} });
     const finish = (comandaId: string, secondId: string) => { const form = new FormData(); form.set("comandaId", comandaId); form.set("payments", "[]"); form.set("shares", JSON.stringify([{ playerId: playerIds[0], amountCents: 600 }, { playerId: secondId, amountCents: 400 }])); return exports.finishComandaAction(form); };
     const rejected = await createCommand();

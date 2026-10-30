@@ -8,7 +8,7 @@ import type { EvolutionContact } from "@/lib/integrations/evolution/contacts";
 import { WhatsAppIcon } from "./whatsapp-icons";
 import { formatWhatsAppPhone } from "./types";
 
-const button = "tw:inline-flex tw:min-h-8 tw:items-center tw:justify-center tw:gap-2 tw:rounded-md tw:border tw:border-[var(--line)] tw:bg-white tw:px-3 tw:text-xs tw:font-medium tw:text-[var(--ink)] tw:hover:bg-slate-50 tw:disabled:opacity-50";
+const button = "tw:inline-flex tw:min-h-8 tw:items-center tw:justify-center tw:gap-2 tw:rounded-md tw:border tw:border-[var(--line)] tw:bg-white tw:px-3 tw:text-xs tw:font-medium tw:text-[var(--ink)] tw:enabled:hover:bg-[#174983] tw:enabled:hover:text-white tw:focus-visible:bg-[#174983] tw:focus-visible:text-white tw:disabled:opacity-50";
 
 export function WhatsAppContactDirectory({ accountJid, canSend, onOpenConversation }: { accountJid: string; canSend: boolean; onOpenConversation: (id: string) => void }) {
   const router = useRouter();
@@ -44,12 +44,12 @@ export function WhatsAppContactDirectory({ accountJid, canSend, onOpenConversati
     <button type="button" title="Contatos do WhatsApp" aria-label="Contatos do WhatsApp" onClick={() => setOpen(true)}><WhatsAppIcon name="users" /></button>
     <Modal title="Contatos do WhatsApp" open={open} onClose={close} width="tw:max-w-[560px]">
       <div className="tw:flex tw:min-w-0 tw:flex-wrap tw:items-end tw:gap-2">
-        <label className="tw:grid tw:min-w-0 tw:flex-1 tw:basis-48 tw:gap-1 tw:text-xs tw:font-medium">Buscar contato<input value={query} onChange={event => setQuery(event.target.value)} placeholder="Nome ou telefone" className="tw:w-full tw:min-w-0" /></label>
+        <label className="tw:grid tw:min-w-0 tw:flex-1 tw:basis-48 tw:gap-1 tw:text-xs tw:font-medium">Buscar contato<input value={query} onChange={event => setQuery(event.target.value)} placeholder="Nome ou telefone" className="tw:w-full tw:min-w-0 tw:rounded-[7px]!" /></label>
         <button type="button" className={button} disabled={busy} onClick={() => void synchronize()}>{busy ? "Sincronizando…" : "Atualizar"}</button>
       </div>
       {error ? <p role="alert" className="tw:m-0 tw:text-xs tw:text-red-700">{error}</p> : <p role="status" className="tw:m-0 tw:text-xs tw:text-[var(--muted)]">{busy ? "Buscando contatos…" : status}</p>}
       <div className="tw:h-[min(360px,45dvh)] tw:min-w-0 tw:overflow-y-auto tw:rounded-md tw:border tw:border-[var(--line)]">
-        {visible.map(contact => <button key={contact.remoteJid} type="button" disabled={!canSend || busy} className="tw:flex tw:w-full tw:min-w-0 tw:items-center tw:gap-3 tw:border-0 tw:border-b tw:border-solid tw:border-[var(--line)] tw:bg-white tw:px-3 tw:py-3 tw:text-left tw:hover:bg-slate-50 tw:disabled:opacity-60" onClick={async () => {
+        {visible.map(contact => <button key={contact.remoteJid} type="button" disabled={!canSend || busy} className="tw:flex tw:w-full tw:min-w-0 tw:items-center tw:gap-3 tw:border-0 tw:border-b tw:border-solid tw:border-[var(--line)] tw:bg-white tw:px-3 tw:py-3 tw:text-left tw:enabled:hover:bg-[#174983] tw:enabled:hover:text-white tw:focus-visible:bg-[#174983] tw:focus-visible:text-white tw:[&:enabled:hover_span]:text-white tw:[&:focus-visible_span]:text-white tw:disabled:opacity-60" onClick={async () => {
           setBusy(true); setError("");
           try {
             const form = new FormData(); form.set("accountJid", accountJid); form.set("remoteJid", contact.remoteJid); form.set("name", contact.name);

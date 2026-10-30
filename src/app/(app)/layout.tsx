@@ -1,3 +1,5 @@
+import { refreshLoyaltyNotifications } from "@/lib/services/refresh-loyalty-notifications";
+import { loyaltyNotificationType } from "@/lib/services/client-loyalty-notifications";
 import { AppShell } from "@/components/layout/app-shell";
 import { requireArenaAccess } from "@/lib/auth/session";
 import { allPermissionModules, canEditModule, canPerformPermission, canViewModule } from "@/lib/permissions";
@@ -16,17 +18,20 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     canViewModule(module, auth.arenaRole, auth.systemRole, auth.viewPermissions)
   );
   const canAccessAgency = auth.systemRole === "SUPER_ADMIN" || auth.systemRole === "ADMIN" || auth.systemRole === "MANAGER";
-  const [notifications, whatsappUnreadCount, billingAlert] = await Promise.all([
+  if (visibleModules.includes("players")) await refreshLoyaltyNotifications(auth.arenaId);
+  const [notifications, whatsappUnreadCount, billingAlert, comandaRequestCount] = await Promise.all([
     arenaDatabase(auth.arenaId).$transaction(
-      (tx) => tx.arenaNotification.findMany({ where: { arenaId: auth.arenaId, readAt: null }, select: { id: true, title: true, message: true, href: true, createdAt: true }, orderBy: { createdAt: "desc" }, take: 8 }),
+      (tx) => tx.arenaNotification.findMany({ where: { arenaId: auth.arenaId, readAt: null, ...(!visibleModules.includes("players") ? { type: { not: loyaltyNotificationType } } : {}) }, select: { id: true, title: true, message: true, href: true, createdAt: true }, orderBy: { createdAt: "desc" }, take: 8 }),
       { maxWait: 20_000, timeout: 10_000 }
     ),
     visibleModules.includes("support") ? getActiveWhatsAppUnreadCount(auth.arenaId) : Promise.resolve(0),
     getAgencyDelinquency(auth.arenaId),
+    visibleModules.includes("pos") ? arenaDatabase(auth.arenaId).arenaNotification.count({ where: { arenaId: auth.arenaId, readAt: null, type: { in: ["COMANDA_OPEN_REQUEST", "COMANDA_REQUEST", "COMANDA_CLOSE_REQUEST"] } } }) : Promise.resolve(0),
   ]);
 
   return (
     <AppShell
+      comandaRequestCount={comandaRequestCount}
       arenaName={auth.arenaName ?? "Arena"}
       arenaLogoUrl={auth.memberships.find((membership) => membership.arenaId === auth.arenaId)?.arenaLogoUrl ?? "/arena-profile.jpg"}
       activeArenaId={auth.arenaId}

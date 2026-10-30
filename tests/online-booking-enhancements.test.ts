@@ -84,7 +84,7 @@ test("each tournament stores rules and the public league page exposes them", () 
   const schema = readFileSync(resolve(process.cwd(), "prisma/schema.prisma"), "utf8");
   const form = readFileSync(resolve(process.cwd(), "src/components/tournaments/tournament-event-edit-form.tsx"), "utf8");
   const service = readFileSync(resolve(process.cwd(), "src/lib/services/public-standings.ts"), "utf8");
-  const publicPage = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"), "utf8");
+  const publicPage = readFileSync(resolve(process.cwd(), "src/components/portal/tournament-tabs.tsx"), "utf8");
 
   assert.match(schema, /model Tournament \{[\s\S]*rules\s+String/);
   assert.match(form, /Regulamento/);

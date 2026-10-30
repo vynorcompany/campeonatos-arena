@@ -4,7 +4,7 @@ export const viewStyles = {
     "login-brand-panel", "tw:flex", "tw:min-w-[0]", "tw:flex-col",
     "tw:justify-between", "tw:pt-[clamp(28px,_4vw,_54px)]", "tw:viewport-760:pt-[24px]", "tw:pr-[clamp(28px,_4vw,_54px)]",
     "tw:viewport-760:pr-[24px]", "tw:pb-[clamp(28px,_4vw,_54px)]", "tw:viewport-760:pb-[24px]", "tw:pl-[clamp(28px,_4vw,_54px)]",
-    "tw:viewport-760:pl-[24px]", "tw:text-[color:#fff]", "tw:bg-[color:transparent]", "tw:[background-image:radial-gradient(circle_at_85%_16%,_rgb(65_166_231_/_.28),_transparent_30%),_linear-gradient(150deg,_#103e77,_#0a2955_72%)]",
+    "tw:viewport-760:pl-[24px]", "tw:text-[color:#fff]", "tw:bg-[#174983]", "tw:[background-image:none]",
     "tw:viewport-760:gap-y-[20px]", "tw:viewport-760:gap-x-[20px]",
   ].join(" "),
   "login_brand": [
@@ -30,7 +30,7 @@ export const viewStyles = {
     "tw:[&_p]:text-[.95rem]", "tw:viewport-760:[&_h2]:max-w-[360px]", "tw:viewport-760:[&_p]:hidden",
   ].join(" "),
   "login_kicker": [
-    "login-kicker", "tw:text-[color:#69d6af]", "tw:text-[.69rem]", "tw:font-[800]",
+    "login-kicker", "tw:text-white", "tw:text-[.69rem]", "tw:font-[800]",
     "tw:tracking-[.14em]", "tw:viewport-760:hidden",
   ].join(" "),
   "login_brand_footer": [

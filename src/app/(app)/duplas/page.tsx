@@ -39,15 +39,7 @@ export default async function PairsPage(props: PairsPageProps) {
 
   return (
     <div className={viewStyles.stack_md}>
-      <header className={viewStyles.page_header}>
-        <div className={viewStyles.stack_xs}>
-          <p className={viewStyles.eyebrow}>Duplas</p>
-          <h1>Formação de duplas</h1>
-          <p className={viewStyles.muted}>
-            Monte as duplas manualmente e use a pontuação delas como base para equilibrar os grupos.
-          </p>
-        </div>
-        {activeTournaments.length ? (
+      <header className="tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:justify-end tw:gap-2"><h1 className="tw:sr-only">Formação de duplas</h1>{activeTournaments.length ? (
           <form method="get" className={viewStyles.section_actions}>
             <select name="tournamentId" defaultValue={activeTournament?.id ?? ""} className={viewStyles.button} aria-label="Selecionar torneio">
               {activeTournaments.map((tournament) => (
@@ -58,8 +50,7 @@ export default async function PairsPage(props: PairsPageProps) {
             </select>
             <SubmitButton label="Abrir torneio" pendingLabel="..." className={viewStyles.button} />
           </form>
-        ) : null}
-      </header>
+        ) : null}</header>
 
       {!activeTournament ? (
         <SectionCard title="Nenhum torneio em andamento">
@@ -67,7 +58,7 @@ export default async function PairsPage(props: PairsPageProps) {
         </SectionCard>
       ) : (
         <>
-          <SectionCard title="Preparar duplas" description="Primeiro defina quem participa do torneio e depois selecione manualmente quem joga junto.">
+          <SectionCard title="Preparar duplas" description="Primeiro defina quem participa do torneio e depois selecione manualmente quem joga junto." hideHeading>
             <div className={viewStyles.section_actions}>
               <Link href={`/torneios/${activeTournament.id}?tab=participants`} className={viewStyles.button}>
                 Gerenciar inscritos do torneio
@@ -93,7 +84,7 @@ export default async function PairsPage(props: PairsPageProps) {
             />
           </SectionCard>
 
-          <SectionCard title="Jogadores livres" description="Participantes do torneio que ainda não foram associados a nenhuma dupla.">
+          <SectionCard title="Jogadores livres" description="Participantes do torneio que ainda não foram associados a nenhuma dupla." hideHeading>
             {availableEntries.length ? (
               <div className={viewStyles.group_list}>
                 {availableEntries.map((entry) => (
@@ -108,7 +99,7 @@ export default async function PairsPage(props: PairsPageProps) {
             )}
           </SectionCard>
 
-          <SectionCard title="Duplas cadastradas" description="A força de cada dupla define a distribuição automática dos grupos.">
+          <SectionCard title="Duplas cadastradas" description="A força de cada dupla define a distribuição automática dos grupos." hideHeading>
             {activeTournament.pairs.length ? (
               <table className={viewStyles.data_table}>
                 <thead>

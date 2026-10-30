@@ -19,7 +19,7 @@ export const viewStyles = {
   ].join(" "),
   "grid_form": [
     "grid-form", "tw:[margin-top:0.75rem]", "tw:grid", "tw:gap-y-[14px]",
-    "tw:gap-x-[14px]", "tw:grid-cols-[repeat(3,_minmax(0,_1fr))]", "tw:viewport-1120:grid-cols-[1fr]", "tw:[&_textarea]:w-[100%]",
+    "tw:gap-x-[14px]", "tw:min-w-0", "tw:[&_:where(label,.field)]:min-w-0", "tw:[&_label]:grid", "tw:[&_label]:gap-1.5", "tw:[&_label]:content-start", "tw:[&_:where(input,select)]:min-w-0", "tw:[&_:where(input,select)]:w-full", "tw:[&_:where(input,select)]:rounded-[7px]!", "tw:[&_:where(input,select)]:bg-white!", "tw:grid-cols-[repeat(3,_minmax(0,_1fr))]", "tw:viewport-1120:grid-cols-[1fr]", "tw:[&_textarea]:w-[100%]",
     "tw:[&_textarea]:pt-[12px]", "tw:[&_textarea]:pr-[14px]", "tw:[&_textarea]:pb-[12px]", "tw:[&_textarea]:pl-[14px]",
     "tw:[&_textarea]:border-t-[length:1px]", "tw:[&_textarea]:[border-top-style:solid]", "tw:[&_textarea]:border-t-[color:var(--line)]", "tw:[&_textarea]:border-r-[length:1px]",
     "tw:[&_textarea]:[border-right-style:solid]", "tw:[&_textarea]:border-r-[color:var(--line)]", "tw:[&_textarea]:border-b-[length:1px]", "tw:[&_textarea]:[border-bottom-style:solid]",

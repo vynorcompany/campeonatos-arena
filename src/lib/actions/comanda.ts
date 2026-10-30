@@ -1,5 +1,8 @@
 "use server";
-import { servicePriceCents } from "@/lib/products/service-pricing";
+import { ingredientChoicesSchema } from "@/lib/products/composition";
+import { consumeProductStock, assertAggregateAvailability } from "@/lib/products/stock-aggregates";
+import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
+import { appendComandaProduct, confirmPortalOrderItem, submitPortalOrder } from "@/lib/comandas/portal-orders";
 import { after } from "next/server";
 import { enqueueComandaWhatsapp } from "@/lib/comandas/whatsapp-outbox";
 import { dispatchComandaWhatsapp } from "@/lib/comandas/whatsapp-delivery";
@@ -27,6 +30,8 @@ const comandaSchema = z.object({
   label: z.string().trim().max(80).optional()
 });
 
+function parseIngredientChoices(formData: FormData) { try { return ingredientChoicesSchema.parse(JSON.parse(String(formData.get("choices") ?? "{}"))); } catch { throw new Error("Revise as opções do produto."); } }
+
 const comandaProductSchema = z.object({
   comandaId: z.string().min(1),
   productId: z.string().min(1),
@@ -39,6 +44,7 @@ const itemQuantitySchema = z.object({
 });
 
 const paymentsSchema = z.array(z.object({
+  bankAccountId: z.string().trim().optional().default(""),
   paymentMethod: z.string().trim().min(1).max(80),
   amountCents: z.coerce.number().int().positive()
 })).max(8);
@@ -201,25 +207,7 @@ export async function addComandaProductAction(formData: FormData) {
   const parsed = comandaProductSchema.safeParse({ comandaId: formData.get("comandaId"), productId: formData.get("productId"), quantity: formData.get("quantity") || 1 });
   if (!parsed.success) throw new Error("Produto inválido.");
 
-  await withArenaTransaction(auth.arenaId, async (tx) => {
-    const [comanda, product] = await Promise.all([
-      tx.comanda.findFirst({ where: { id: parsed.data.comandaId, arenaId: auth.arenaId, status: "OPEN" }, select: { id: true } }),
-      tx.product.findFirst({ where: { id: parsed.data.productId, arenaId: auth.arenaId, active: true, OR: [{ isService: false }, { showOnComandas: true }] }, select: { id: true, priceCents: true, stockQuantity: true, isService: true, serviceHourly: true } })
-    ]);
-    if (!comanda) throw new Error("Comanda não está disponível.");
-    if (!product) throw new Error("Produto não encontrado.");
-    const current = await tx.comandaItem.findUnique({ where: { comandaId_productId: { comandaId: comanda.id, productId: product.id } } });
-    if (current && product.isService && product.serviceHourly && current.durationMinutes !== durationMinutes) throw new Error("Este serviço já está lançado com outra duração. Remova o item antes de alterar o período.");
-    const unitPriceCents = current?.unitPriceCents ?? servicePriceCents(product.priceCents, product.isService && product.serviceHourly, durationMinutes);
-    const nextQuantity = (current?.quantity ?? 0) + parsed.data.quantity;
-    if (nextQuantity > 999 || unitPriceCents * nextQuantity > 2_147_483_647) throw new Error("Quantidade ou valor acima do limite permitido.");
-    await tx.comandaItem.upsert({
-      where: { comandaId_productId: { comandaId: comanda.id, productId: product.id } },
-      update: { quantity: nextQuantity, totalCents: unitPriceCents * nextQuantity },
-      create: { comandaId: comanda.id, productId: product.id, quantity: parsed.data.quantity, durationMinutes: product.isService && product.serviceHourly ? durationMinutes : 60, unitPriceCents, totalCents: unitPriceCents * parsed.data.quantity }
-    });
-    await tx.comandaRequest.updateMany({ where: { comandaId: comanda.id, productId: product.id, status: "PENDING" }, data: { status: "CONFIRMED" } });
-  });
+  await withArenaTransaction(auth.arenaId, tx => appendComandaProduct(tx, auth.arenaId, { ...parsed.data, choices: parseIngredientChoices(formData), durationMinutes }));
   revalidatePath("/comandas");
 }
 
@@ -255,6 +243,7 @@ export async function requestPortalComandaProductAction(formData: FormData) {
     ]);
     if (!comanda) throw new Error("Esta comanda não está mais aberta.");
     if (!product) throw new Error("Produto indisponível no momento.");
+    await assertAggregateAvailability(tx, auth.arenaId, [{ productId: product.id, quantity: parsed.data.quantity }]);
     const player = await tx.player.findFirst({ where: { id: auth.playerId, arenaId: auth.arenaId }, select: { name: true } });
     await tx.comandaRequest.create({ data: { comandaId: comanda.id, productId: product.id, quantity: parsed.data.quantity } });
     await tx.arenaNotification.create({ data: { arenaId: auth.arenaId, type: "COMANDA_REQUEST", title: `Novo pedido na comanda ${comanda.id.slice(-6).toUpperCase()}`, message: `${player?.name ?? "Cliente"} solicitou ${parsed.data.quantity}× ${product.name}. Confirme e lance o item na comanda.`, href: "/comandas" } });
@@ -303,6 +292,7 @@ export async function finishComandaAction(formData: FormData) {
     await tx.$queryRaw`SELECT id FROM "Comanda" WHERE id = ${parsed.data.comandaId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
     const comanda = await tx.comanda.findFirst({ where: { id: parsed.data.comandaId, arenaId: auth.arenaId, status: "OPEN" }, include: { items: { include: { product: true } }, bookingServices: { include: { participant: { select: { financialEntryId: true, financialEntry: { select: { status: true } }, occurrence: { select: { status: true } } } } } } } });
     if (!comanda) throw new Error("Comanda não está disponível.");
+    for (const bankAccountId of new Set(parsed.data.payments.map(payment => payment.bankAccountId))) await requireReceivingBankAccount(tx, auth.arenaId, bankAccountId);
     const operational = await tx.arenaOperationalSettings.findUnique({ where: { arenaId: auth.arenaId } });
     const automaticDebtIds = (comanda.bookingServices ?? []).flatMap(({ participant }) => participant.financialEntryId && ["PENDING", "OVERDUE", "PARTIAL"].includes(participant.financialEntry?.status ?? "") ? [participant.financialEntryId] : []);
     const debtIdsToSettle = [...new Set([...parsed.data.debtIds, ...automaticDebtIds])];
@@ -364,7 +354,7 @@ export async function finishComandaAction(formData: FormData) {
         paymentMethod: parsed.data.payments.length + (creditAppliedCents ? 1 : 0) === 1 ? (creditAppliedCents ? "Saldo do cliente" : parsed.data.payments[0].paymentMethod) : parsed.data.payments.length || creditAppliedCents ? "MÚLTIPLO" : "",
         status: remainingCents ? (comandaPaymentCents + productCreditCents ? "PARTIAL" : "PENDING") : "PAID",
         totalCents,
-        items: { create: comanda.items.map((item) => ({ productId: item.productId, quantity: item.quantity, unitPriceCents: item.unitPriceCents, totalCents: item.totalCents })) }
+        items: { create: comanda.items.map((item) => ({ productId: item.productId, quantity: item.quantity, unitPriceCents: item.unitPriceCents, totalCents: item.totalCents, variantKey: item.variantKey, compositionLabel: item.compositionLabel, stockRecipe: item.stockRecipe ?? undefined, fiscalProfile: item.product.fiscalProfile as object })) }
       }
     });
     const cashReceivedCents = parsed.data.payments
@@ -373,15 +363,12 @@ export async function finishComandaAction(formData: FormData) {
     if (cashReceivedCents > 0) {
       await recordCashSaleIfOpen(tx, { arenaId: auth.arenaId, referenceDate: cashReferenceDate(now), amountCents: cashReceivedCents, description: `Comanda ${comanda.code}`, createdByName: auth.userName });
     }
-    for (const item of comanda.items) {
-      if (item.product.isService) continue;
-      await tx.product.update({ where: { id: item.productId }, data: { stockQuantity: { decrement: item.quantity } } });
-      await tx.stockMovement.create({ data: { arenaId: auth.arenaId, productId: item.productId, type: "OUT", quantity: item.quantity, reason: `Comanda ${comanda.code}` } });
-    }
+    await consumeProductStock(tx, auth.arenaId, comanda.items, `Comanda ${comanda.code}`, sale.id);
+
     if (paymentPolicy.excessCents && comanda.playerId) {
       await tx.clientBalanceMovement.create({ data: { arenaId: auth.arenaId, playerId: comanda.playerId, kind: "MONEY", amountCents: paymentPolicy.excessCents, reason: `Crédito de pagamento excedente na comanda ${comanda.code}` } });
       for (const payment of paymentPolicy.excessPayments) {
-        await tx.financialEntry.create({ data: { arenaId: auth.arenaId, playerId: comanda.playerId, type: "INCOME", category: "CREDITO_DE_CLIENTE", description: `Crédito de pagamento excedente na comanda ${comanda.code}`, amountCents: payment.amountCents, paymentMethod: payment.paymentMethod, status: "PAID", paidAt: now } });
+        await tx.financialEntry.create({ data: { arenaId: auth.arenaId, playerId: comanda.playerId, bankAccountId: payment.bankAccountId, type: "INCOME", category: "CREDITO_DE_CLIENTE", description: `Crédito de pagamento excedente na comanda ${comanda.code}`, amountCents: payment.amountCents, paymentMethod: payment.paymentMethod, status: "PAID", paidAt: now } });
       }
     }
     if (paymentPolicy.partialOverride) await tx.auditEvent.create({ data: { arenaId: auth.arenaId, actorId: auth.userId, actorName: auth.userName, action: "COMANDA_PARTIAL_PAYMENT_OVERRIDE", entityId: comanda.id, details: { outstandingCents: paymentPolicy.outstandingCents } } });
@@ -390,14 +377,15 @@ export async function finishComandaAction(formData: FormData) {
       await tx.clientBalanceMovement.create({ data: { arenaId: auth.arenaId, playerId: comanda.playerId, kind: "MONEY", amountCents: -creditAppliedCents, reason: `Saldo utilizado na comanda ${comanda.code}` } });
     }
     for (const payment of debtPaymentAllocation.remainingPayments) {
-      await tx.salePayment.create({ data: { saleId: sale.id, paymentMethod: payment.paymentMethod, amountCents: payment.amountCents } });
-      await tx.financialEntry.create({ data: { arenaId: auth.arenaId, saleId: sale.id, type: "INCOME", category: "COMANDAS", description: `Recebimento da comanda ${comanda.code}`, amountCents: payment.amountCents, paymentMethod: payment.paymentMethod, status: "PAID", paidAt: now } });
+      await tx.salePayment.create({ data: { saleId: sale.id, bankAccountId: payment.bankAccountId, paymentMethod: payment.paymentMethod, amountCents: payment.amountCents } });
+      await tx.financialEntry.create({ data: { arenaId: auth.arenaId, saleId: sale.id, bankAccountId: payment.bankAccountId, type: "INCOME", category: "COMANDAS", description: `Recebimento da comanda ${comanda.code}`, amountCents: payment.amountCents, paymentMethod: payment.paymentMethod, status: "PAID", paidAt: now } });
     }
     for (const settlement of debtPaymentAllocation.settlements) {
       await tx.financialSettlement.create({
         data: {
           arenaId: auth.arenaId,
           financialEntryId: settlement.financialEntryId,
+          bankAccountId: settlement.bankAccountId,
           saleId: sale.id,
           amountCents: settlement.amountCents,
           paymentMethod: settlement.paymentMethod,
@@ -464,4 +452,22 @@ export async function requestPortalComandaOpenAction(form: FormData) {
     await tx.auditEvent.create({ data: { arenaId: auth.arenaId, actorId: auth.playerId, actorName: auth.name, action: "COMANDA_OPEN_REQUEST", entityId: auth.playerId, details: { source: "ATHLETE_PORTAL" } } });
   });
   revalidatePath("/comandas"); revalidatePath("/home");
+}
+
+export async function requestPortalComandaOrderAction(formData: FormData) {
+  const arenaSlug = z.string().trim().min(1).parse(formData.get("arenaSlug"));
+  const auth = await requirePublicPlayerAuth(arenaSlug);
+  let items: unknown;
+  try { items = JSON.parse(String(formData.get("items") ?? "")); } catch { throw new Error("Pedido inválido."); }
+  const parsed = z.object({ comandaId: z.string().min(1), orderId: z.string().uuid(), items: z.array(z.object({ productId: z.string().min(1), quantity: z.number().int().min(1).max(999), choices: ingredientChoicesSchema.optional() })).min(1).max(50) }).safeParse({ comandaId: formData.get("comandaId"), orderId: formData.get("orderId"), items });
+  if (!parsed.success) throw new Error("Revise os produtos e quantidades do pedido.");
+  await withArenaTransaction(auth.arenaId, tx => submitPortalOrder(tx, { ...parsed.data, arenaId: auth.arenaId, playerId: auth.playerId }));
+  revalidatePath("/comandas");
+}
+
+export async function confirmPortalComandaRequestAction(formData: FormData) {
+  const auth = await requirePermission("pos:command:items");
+  const requestId = z.string().min(1).parse(formData.get("requestId"));
+  await withArenaTransaction(auth.arenaId, tx => confirmPortalOrderItem(tx, auth.arenaId, requestId));
+  revalidatePath("/comandas");
 }

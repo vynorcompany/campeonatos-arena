@@ -1,3 +1,6 @@
+import * as composition from "../src/lib/products/composition";
+import { consumeProductStock } from "../src/lib/products/stock-aggregates";
+import { requireReceivingBankAccount } from "../src/lib/finance/receiving-bank-account";
 import * as operationalPolicy from "../src/lib/comandas/operational-policy";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -22,13 +25,14 @@ test("reserva entra automaticamente na comanda sem nova receita, respeita valore
   let arenaId = ""; let allowed = true;
   try {
     const arena = await admin.arena.create({ data: { name: "Serviço automático descartável", slug: `booking-service-${randomUUID()}`, createdById: "goal-test" } }); arenaId = arena.id;
+    const bank = await admin.bankAccount.create({ data: { arenaId: arenaId, name: "Conta recebimentos QA" } });
     const players = await Promise.all(["Em aberto", "Pago", "Gratuito"].map(name => admin.player.create({ data: { arenaId, name } })));
     const entry = await admin.financialEntry.create({ data: { arenaId, playerId: players[0].id, type: "REVENUE", category: "Reserva", description: "Liga individual", amountCents: 1000 } });
     await admin.financialSettlement.create({ data: { arenaId, financialEntryId: entry.id, amountCents: 200, paymentMethod: "PIX" } });
     const paid = await admin.financialEntry.create({ data: { arenaId, playerId: players[1].id, type: "REVENUE", category: "Reserva", description: "Liga paga", amountCents: 600, status: "PAID" } });
     const occurrence = await admin.scheduleOccurrence.create({ data: { arenaId, sourceType: "BOOKING", bookingTypeName: "Liga", title: "Liga com valores individuais", startsAt: new Date(), endsAt: new Date(Date.now()+3600000), participants: { create: [{ playerId: players[0].id, amountCents: 1000, financialEntryId: entry.id }, { playerId: players[1].id, amountCents: 600, paymentMethod: "PIX", financialEntryId: paid.id }, { playerId: players[2].id }] } } });
     const transact = (scope: string, run: (tx: Prisma.TransactionClient) => Promise<unknown>) => runtime.$transaction(async tx => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${scope}, true)`; return run(tx); }, { timeout: 15000 });
-    const mocks: Record<string, unknown> = { "@/lib/comandas/operational-policy": operationalPolicy, "next/cache": { revalidatePath() {} }, "@/lib/auth/guards": { requirePermission: async () => { if(!allowed) throw Error("Sem permissão"); return { arenaId, userId: "goal-test", userName: "Operador automático" }; } }, "@/lib/rls": { withArenaTransaction: transact }, "@/lib/comandas/split": { allocateComandaShares }, "@/lib/finance/settlements": { allocatePaymentsToDebts, getOutstandingCents }, "@/lib/finance/comanda-debts": { comandaDebtOwnerId, selectedComandaDebtWhere } };
+    const mocks: Record<string, unknown> = { "@/lib/products/composition": composition, "@/lib/products/stock-aggregates": { consumeProductStock }, "@/lib/comandas/operational-policy": operationalPolicy, "@/lib/finance/receiving-bank-account": { requireReceivingBankAccount }, "next/cache": { revalidatePath() {} }, "@/lib/auth/guards": { requirePermission: async () => { if(!allowed) throw Error("Sem permissão"); return { arenaId, userId: "goal-test", userName: "Operador automático" }; } }, "@/lib/rls": { withArenaTransaction: transact }, "@/lib/comandas/split": { allocateComandaShares }, "@/lib/finance/settlements": { allocatePaymentsToDebts, getOutstandingCents }, "@/lib/finance/comanda-debts": { comandaDebtOwnerId, selectedComandaDebtWhere } };
     const actions: Record<string, (f: FormData) => Promise<any>> = {};
     vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/lib/actions/comanda.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports: actions, FormData, Date, Error, crypto: globalThis.crypto, require: (name: string) => Object.hasOwn(mocks, name) ? mocks[name] : name.startsWith("@/") ? {} : require(name) });
     const open = () => actions.openBookingComandasAction(form({ occurrenceId: occurrence.id }));
@@ -47,7 +51,7 @@ test("reserva entra automaticamente na comanda sem nova receita, respeita valore
     await assert.rejects(transact(arenaId, tx => tx.comandaBookingService.create({ data: { comandaId: wrongOwner.id, participantId: command.bookingServices[0].participantId } })), /row.level security/i);
     const product = await admin.product.create({ data: { arenaId, name: "Consumo à parte", priceCents: 500, stockQuantity: 2 } });
     await admin.comandaItem.create({ data: { comandaId: command.id, productId: product.id, unitPriceCents: 500, totalCents: 500 } });
-    await actions.finishComandaAction(form({ comandaId: command.id, payments: JSON.stringify([{ paymentMethod: "PIX", amountCents: 600 }]) }));
+    await actions.finishComandaAction(form({ comandaId: command.id, payments: JSON.stringify([{ bankAccountId: bank.id, paymentMethod: "PIX", amountCents: 600 }]) }));
     let original = await admin.financialEntry.findUniqueOrThrow({ where: { id: entry.id }, include: { settlements: true } });
     assert.equal(getOutstandingCents(original.amountCents, original.settlements), 200); assert.equal(original.status, "PENDING");
     assert.equal(await admin.financialEntry.count({ where: { arenaId, amountCents: 1000 } }), 1);
@@ -56,7 +60,7 @@ test("reserva entra automaticamente na comanda sem nova receita, respeita valore
     await open();
     const reopened = await admin.comanda.findFirstOrThrow({ where: { arenaId, playerId: players[0].id, status: "OPEN" }, include: { bookingServices: bookingServicesInclude } });
     assert.notEqual(reopened.id, command.id); assert.equal(bookingServiceRows(reopened.bookingServices)[0].amountCents, 200);
-    await actions.finishComandaAction(form({ comandaId: reopened.id, payments: JSON.stringify([{ paymentMethod: "PIX", amountCents: 200 }]) }));
+    await actions.finishComandaAction(form({ comandaId: reopened.id, payments: JSON.stringify([{ bankAccountId: bank.id, paymentMethod: "PIX", amountCents: 200 }]) }));
     original = await admin.financialEntry.findUniqueOrThrow({ where: { id: entry.id }, include: { settlements: true } });
     assert.equal(original.status, "PAID"); assert.equal(getOutstandingCents(original.amountCents, original.settlements), 0);
     await assert.rejects(actions.finishComandaAction(form({ comandaId: reopened.id, payments: "[]" })), /não está disponível/);
@@ -78,14 +82,14 @@ test("reserva entra automaticamente na comanda sem nova receita, respeita valore
     const voided = await admin.comandaBookingService.findUniqueOrThrow({ where: { id: secondLink.id }, include: bookingServicesInclude.include });
     assert.equal(bookingServiceRows([voided])[0].amountCents, 0);
     assert.equal(bookingServiceRows([voided])[0].state, "Cancelado");
-    await assert.rejects(actions.finishComandaAction(form({ comandaId: freeCommand.id, payments: JSON.stringify([{ paymentMethod: "PIX", amountCents: 700 }]) })), /comanda zerada/);
+    await assert.rejects(actions.finishComandaAction(form({ comandaId: freeCommand.id, payments: JSON.stringify([{ bankAccountId: bank.id, paymentMethod: "PIX", amountCents: 700 }]) })), /comanda zerada/);
     await admin.financialEntry.update({ where: { id: secondLink.participant.financialEntryId! }, data: { status: "PENDING" } });
     await admin.scheduleOccurrence.update({ where: { id: occurrence.id }, data: { status: "CANCELED" } });
     const paidCanceled = await admin.comandaBookingService.findUniqueOrThrow({ where: { id: reopened.bookingServices[0].id }, include: bookingServicesInclude.include });
     assert.equal(bookingServiceRows([paidCanceled])[0].state, "Pago");
     assert.equal(bookingServiceRows([paidCanceled])[0].chargedAmountCents, 1000);
     const parallel = await admin.comanda.create({ data: { arenaId, playerId: players[2].id, label: "Outro atendimento simultâneo", code: randomUUID(), bookingServices: { create: { participantId: secondLink.participantId } } } });
-    const finishes = await Promise.allSettled([freeCommand.id, parallel.id].map(comandaId => actions.finishComandaAction(form({ comandaId, payments: JSON.stringify([{ paymentMethod: "PIX", amountCents: 700 }]) }))));
+    const finishes = await Promise.allSettled([freeCommand.id, parallel.id].map(comandaId => actions.finishComandaAction(form({ comandaId, payments: JSON.stringify([{ bankAccountId: bank.id, paymentMethod: "PIX", amountCents: 700 }]) }))));
     assert.equal(finishes.filter(result => result.status === "fulfilled").length, 1);
     const charge = await admin.financialEntry.findUniqueOrThrow({ where: { id: secondLink.participant.financialEntryId! }, include: { settlements: true } });
     assert.equal(charge.settlements.reduce((sum, settlement) => sum+settlement.amountCents, 0), 700);

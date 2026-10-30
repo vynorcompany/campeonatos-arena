@@ -1,10 +1,10 @@
 "use client";
-import { fixedDialogFrame } from "@/components/ui/dialog-frame";
+import { Modal } from "@/components/ui/modal";
 
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./teacher-plan-enrollment-form.utilities";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { EventIcon } from "@/components/tournaments/event-icon";
@@ -32,6 +32,7 @@ export function TeacherPlanEnrollmentForm({
   const [planId, setPlanId] = useState(plans[0]?.id ?? "");
   const [groupId, setGroupId] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
+  const close = useCallback(() => setModalOpen(false), []);
   const [clientPickerOpen, setClientPickerOpen] = useState(false);
   const matches = useMemo(
     () =>
@@ -116,6 +117,7 @@ export function TeacherPlanEnrollmentForm({
               setClientId("");
               setClientPickerOpen(true);
             }}
+            aria-label="Pesquisar cliente"
             placeholder="Digite o nome do cliente"
             autoComplete="off"
             required
@@ -197,35 +199,9 @@ export function TeacherPlanEnrollmentForm({
       >
         <EventIcon name="user-plus" size={15} /> Inserir aluno
       </button>
-      {modalOpen ? (
-        <div
-          className={viewStyles.teacher_student_enrollment_modal}
-          role="presentation"
-          onMouseDown={() => setModalOpen(false)}
-        >
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-label="Inserir aluno"
-            onMouseDown={(event) => event.stopPropagation()} className={fixedDialogFrame}
-          >
-            <header>
-              <div>
-                <p className={viewStyles.eyebrow}>NOVO ALUNO</p>
-                <h2>Plano e turma</h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setModalOpen(false)}
-                aria-label="Fechar"
-              >
-                ×
-              </button>
-            </header>
-            {form}
-          </section>
-        </div>
-      ) : null}
+      <Modal title="Inserir aluno" width="tw:max-w-[760px]" open={modalOpen} onClose={close}>
+        {form}
+      </Modal>
     </>
   );
 }

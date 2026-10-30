@@ -41,8 +41,8 @@ export const viewStyles = {
   ].join(" "),
   "dashboard_metric_list_icon": [
     "dashboard-metric-list-icon", "tw:grid", "tw:w-[34px]", "tw:h-[34px]",
-    "tw:place-items-center", "tw:rounded-[50%]", "tw:bg-[color:#eaf3ff]", "tw:[background-image:none]",
-    "tw:text-[color:#1763af]", "tw:text-[.72rem]", "tw:font-[800]",
+    "tw:place-items-center", "tw:rounded-[50%]", "tw:bg-[color:#174983]", "tw:[background-image:none]",
+    "tw:text-[color:#fff]", "tw:text-[.72rem]", "tw:font-[800]",
   ].join(" "),
   "dashboard_metric_empty": [
     "dashboard-metric-empty", "tw:pt-[18px]", "tw:pr-[0]", "tw:pb-[18px]",

@@ -13,7 +13,7 @@ function ErrorPage({ statusCode }: ErrorPageProps) {
         <p className={viewStyles.eyebrow}>Arena Padel</p>
         <h1>{statusCode ? `Erro ${statusCode}` : "Erro inesperado"}</h1>
         <p className={viewStyles.muted}>
-          O servidor nao conseguiu carregar esta pagina no momento.
+          O servidor não conseguiu carregar esta página no momento.
         </p>
         <div className={viewStyles.section_actions}>
           <Link href="/login" className={viewStyles.button_button_primary}>

@@ -1,9 +1,8 @@
 "use client";
-import { compactDialogFrame } from "@/components/ui/dialog-frame";
+import { Modal } from "@/components/ui/modal";
 
 
-import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useCallback, useState } from "react";
 import { viewStyles } from "./safe-action-form.utilities";
 
 type Confirmation = {
@@ -20,44 +19,14 @@ export function useConfirmAction() {
   const [value, setValue] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-  const titleId = useId();
-  const trigger = useRef<HTMLElement | null>(null);
-  const dialog = useRef<HTMLElement | null>(null);
-
   const close = useCallback(() => {
     if (pending) return;
     setConfirmation(null);
     setValue("");
     setError("");
-    trigger.current?.focus();
   }, [pending]);
 
-  useEffect(() => {
-    if (!confirmation) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !pending) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        close();
-      }
-      if (event.key === "Tab") {
-        const fields = Array.from(dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), [tabindex="0"]') ?? []);
-        const first = fields[0], last = fields.at(-1);
-        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
-        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
-      }
-    };
-    document.addEventListener("keydown", onKeyDown, true);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener("keydown", onKeyDown, true);
-    };
-  }, [confirmation, pending, close]);
-
   const confirm = (request: Confirmation) => {
-    trigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setValue("");
     setError("");
     setConfirmation(request);
@@ -75,7 +44,6 @@ export function useConfirmAction() {
       await confirmation.onConfirm();
       setConfirmation(null);
       setValue("");
-      trigger.current?.focus();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Não foi possível concluir a ação.");
     } finally {
@@ -83,22 +51,18 @@ export function useConfirmAction() {
     }
   };
 
-  const confirmationDialog = confirmation && typeof document !== "undefined" ? createPortal(
-    <div className={viewStyles.safe_action_confirmation_backdrop} role="presentation" onClick={event => event.stopPropagation()} onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}>
-      <section ref={dialog} className={[viewStyles.safe_action_confirmation, compactDialogFrame].join(" ")} role="dialog" aria-modal="true" aria-labelledby={titleId}>
-        <header>
-          <span className={viewStyles.safe_action_confirmation_icon} aria-hidden="true">!</span>
-          <div><strong id={titleId}>{confirmation.title ?? "Confirmar exclusão"}</strong><span>Esta ação pode ser irreversível.</span></div>
-        </header>
+  const confirmationDialog = confirmation ? (
+    <Modal title={confirmation.title ?? "Confirmar exclusão"} open onClose={close} width="tw:max-w-[480px]">
+      <div className="tw:flex tw:min-h-full tw:flex-col tw:gap-4">
         <p>{confirmation.message}</p>
-        {confirmation.keyword ? <label>Confirmação<input autoFocus value={value} onChange={(event) => setValue(event.currentTarget.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void submit(); } }} placeholder={`Digite ${confirmation.keyword}`} /></label> : null}
+        {confirmation.keyword ? <label className="tw:grid tw:gap-2 tw:text-sm tw:font-semibold">Confirmação<input data-modal-autofocus className="tw:min-h-10 tw:w-full tw:rounded-md tw:border tw:border-[var(--line)] tw:bg-white tw:px-3" value={value} onChange={(event) => setValue(event.currentTarget.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void submit(); } }} placeholder={`Digite ${confirmation.keyword}`} /></label> : null}
         {error ? <p role="alert" className={viewStyles.form_error_form_full}>{error}</p> : null}
-        <footer>
+        <footer className="tw:mt-auto tw:flex tw:flex-wrap tw:justify-end tw:gap-2 tw:border-t tw:border-[var(--line)] tw:pt-3">
           <button type="button" className={viewStyles.button} onClick={close} disabled={pending}>Cancelar</button>
           <button type="button" className={viewStyles.button_button_danger} onClick={() => void submit()} disabled={pending}>{pending ? "Aguarde..." : confirmation.actionLabel ?? "Excluir"}</button>
         </footer>
-      </section>
-    </div>, document.body,
+      </div>
+    </Modal>
   ) : null;
 
   return { confirm, confirmationDialog };

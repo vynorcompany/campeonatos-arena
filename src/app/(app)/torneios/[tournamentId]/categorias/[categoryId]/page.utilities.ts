@@ -26,7 +26,7 @@ export const viewStyles = {
     "tw:viewport-760:pl-[18px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:#d9e5f2]",
     "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:#d9e5f2]", "tw:border-b-[length:1px]",
     "tw:[border-bottom-style:solid]", "tw:border-b-[color:#d9e5f2]", "tw:border-l-[length:1px]", "tw:[border-left-style:solid]",
-    "tw:border-l-[color:#d9e5f2]", "tw:rounded-[15px]", "tw:bg-[color:transparent]", "tw:[background-image:linear-gradient(145deg,_#fff_0%,_#fbfdff_100%)]",
+    "tw:border-l-[color:#d9e5f2]", "tw:rounded-[15px]", "tw:bg-white", "tw:[background-image:none]",
     "tw:[box-shadow:0_12px_30px_rgb(15_54_104_/_.06)]",
   ].join(" "),
   "league_overview_header": [
@@ -71,19 +71,19 @@ export const viewStyles = {
     "league-overview-metric-icon", "league-overview-metric-icon-blue", "tw:grid", "tw:[flex:0_0_auto]",
     "tw:place-items-center", "tw:w-[38px]", "tw:h-[38px]", "tw:rounded-[50%]",
     "tw:text-[1rem]", "tw:font-[700]", "tw:leading-[1]", "tw:[&_.league-icon]:w-[19px]",
-    "tw:[&_.league-icon]:h-[19px]", "tw:text-[color:#1264d2]", "tw:bg-[color:transparent]", "tw:[background-image:linear-gradient(145deg,_#eaf2ff,_#dce9fb)]",
+    "tw:[&_.league-icon]:h-[19px]", "tw:text-[color:#1264d2]", "tw:bg-white", "tw:[background-image:none]",
   ].join(" "),
   "league_overview_metric_icon_league_overview_metric_icon_green": [
     "league-overview-metric-icon", "league-overview-metric-icon-green", "tw:grid", "tw:[flex:0_0_auto]",
     "tw:place-items-center", "tw:w-[38px]", "tw:h-[38px]", "tw:rounded-[50%]",
     "tw:text-[1rem]", "tw:font-[700]", "tw:leading-[1]", "tw:[&_.league-icon]:w-[19px]",
-    "tw:[&_.league-icon]:h-[19px]", "tw:text-[color:#159963]", "tw:bg-[color:transparent]", "tw:[background-image:linear-gradient(145deg,_#e8faf1,_#dff5e9)]",
+    "tw:[&_.league-icon]:h-[19px]", "tw:text-[color:#159963]", "tw:bg-white", "tw:[background-image:none]",
   ].join(" "),
   "league_overview_metric_icon_league_overview_metric_icon_purple": [
     "league-overview-metric-icon", "league-overview-metric-icon-purple", "tw:grid", "tw:[flex:0_0_auto]",
     "tw:place-items-center", "tw:w-[38px]", "tw:h-[38px]", "tw:rounded-[50%]",
     "tw:text-[1rem]", "tw:font-[700]", "tw:leading-[1]", "tw:[&_.league-icon]:w-[19px]",
-    "tw:[&_.league-icon]:h-[19px]", "tw:text-[color:#654ce1]", "tw:bg-[color:transparent]", "tw:[background-image:linear-gradient(145deg,_#f0edff,_#e6e2fb)]",
+    "tw:[&_.league-icon]:h-[19px]", "tw:text-[color:#654ce1]", "tw:bg-white", "tw:[background-image:none]",
   ].join(" "),
   "league_overview_primary_action": [
     "league-overview-primary-action", "tw:grid", "tw:items-center", "tw:min-w-[0]",
@@ -135,7 +135,7 @@ export const viewStyles = {
     "league-overview-section-icon", "tw:grid", "tw:[flex:0_0_auto]", "tw:place-items-center",
     "tw:w-[38px]", "tw:h-[38px]", "tw:rounded-[50%]", "tw:text-[1rem]",
     "tw:font-[700]", "tw:leading-[1]", "tw:text-[color:#1264d2]", "tw:bg-[color:transparent]",
-    "tw:[background-image:linear-gradient(145deg,_#eaf2ff,_#dce9fb)]", "tw:[&_.league-icon]:w-[19px]", "tw:[&_.league-icon]:h-[19px]",
+    "tw:[background-image:none]", "tw:[&_.league-icon]:w-[19px]", "tw:[&_.league-icon]:h-[19px]",
   ].join(" "),
   "league_prize_edit_icon": [
     "league-prize-edit-icon", "tw:grid", "tw:w-[32px]", "tw:h-[32px]",
@@ -181,7 +181,7 @@ export const viewStyles = {
     "tw:[&_.button]:[padding-inline:12px]", "tw:[&_.button]:border-t-[color:#ccdbea]", "tw:[&_.button]:border-r-[color:#ccdbea]", "tw:[&_.button]:border-b-[color:#ccdbea]",
     "tw:[&_.button]:border-l-[color:#ccdbea]", "tw:[&_.button]:rounded-[9px]", "tw:[&_.button]:text-[color:#1e2d4b]", "tw:[&_.button]:bg-[color:#fff]",
     "tw:[&_.button]:[background-image:none]", "tw:[&_.button]:[box-shadow:none]", "tw:[&_.button]:text-[.76rem]", "tw:[&_.button:hover]:border-t-[color:#9bb8d8]",
-    "tw:[&_.button:hover]:border-r-[color:#9bb8d8]", "tw:[&_.button:hover]:border-b-[color:#9bb8d8]", "tw:[&_.button:hover]:border-l-[color:#9bb8d8]", "tw:[&_.button:hover]:bg-[color:#f4f8fc]",
+    "tw:[&_.button:hover]:border-r-[color:#9bb8d8]", "tw:[&_.button:hover]:border-b-[color:#9bb8d8]", "tw:[&_.button:hover]:border-l-[color:#9bb8d8]", "tw:[&_.button:hover]:bg-white",
     "tw:[&_.button:hover]:[background-image:none]", "tw:[&_.button_span]:text-[color:#376392]", "tw:[&_.button_span]:text-[1.05rem]", "tw:viewport-580:[&_.button]:w-[100%]",
     "tw:[&_.league-icon]:w-[15px]", "tw:[&_.league-icon]:h-[15px]",
   ].join(" "),
@@ -205,7 +205,7 @@ export const viewStyles = {
     "tw:[&_.category-overview-metrics_div]:border-t-[length:1px]", "tw:[&_.category-overview-metrics_div]:[border-top-style:solid]", "tw:[&_.category-overview-metrics_div]:border-t-[color:#e0eaf5]", "tw:[&_.category-overview-metrics_div]:border-r-[length:1px]",
     "tw:[&_.category-overview-metrics_div]:[border-right-style:solid]", "tw:[&_.category-overview-metrics_div]:border-r-[color:#e0eaf5]", "tw:[&_.category-overview-metrics_div]:border-b-[length:1px]", "tw:[&_.category-overview-metrics_div]:[border-bottom-style:solid]",
     "tw:[&_.category-overview-metrics_div]:border-b-[color:#e0eaf5]", "tw:[&_.category-overview-metrics_div]:border-l-[length:1px]", "tw:[&_.category-overview-metrics_div]:[border-left-style:solid]", "tw:[&_.category-overview-metrics_div]:border-l-[color:#e0eaf5]",
-    "tw:[&_.category-overview-metrics_div]:rounded-[10px]", "tw:[&_.category-overview-metrics_div]:bg-[color:#f8fbff]", "tw:[&_.category-overview-metrics_div]:[background-image:none]", "tw:[&_.category-overview-metrics_dt]:text-[color:#6882a0]",
+    "tw:[&_.category-overview-metrics_div]:rounded-[10px]", "tw:[&_.category-overview-metrics_div]:bg-white", "tw:[&_.category-overview-metrics_div]:[background-image:none]", "tw:[&_.category-overview-metrics_dt]:text-[color:#6882a0]",
     "tw:[&_.category-overview-metrics_dt]:text-[.65rem]", "tw:[&_.category-overview-metrics_dd]:text-[color:#0b3568]", "tw:[&_.category-overview-metrics_dd]:text-[1.05rem]", "tw:viewport-760:[&_.category-overview-metrics]:grid-cols-[1fr]",
   ].join(" "),
   "category_overview_head": [

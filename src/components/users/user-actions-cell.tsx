@@ -1,19 +1,16 @@
 "use client";
 import { viewStyles } from "./user-actions-cell.utilities";
 
-import { useState } from "react";
+import { Modal } from "@/components/ui/modal";
+import { SettingsDialogButton } from "@/components/ui/settings-dialog-button";
+import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
+import { useCallback, useState } from "react";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { removeArenaUserAction, updateArenaUserAction } from "@/lib/actions/user";
 import { UserRecoveryForm } from "@/components/users/user-recovery-form";
 import type { ArenaRole } from "@/types/auth";
 
-const roleLabels: Record<ArenaRole, string> = {
-  OWNER: "Owner",
-  ADMIN: "Admin",
-  STAFF: "Staff",
-  VIEWER: "Viewer"
-};
 
 type UserActionsCellProps = {
   userId: string;
@@ -39,33 +36,24 @@ export function UserActionsCell({
   isCurrentUser
 }: UserActionsCellProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const closeEditing = useCallback(() => setIsEditing(false), []);
   if (isEditing) {
     return (
-      <SafeActionForm action={updateArenaUserAction} className={viewStyles.entity_edit_form} successMessage="Usuário atualizado.">
-        <input type="hidden" name="userId" value={userId} />
-        <div className={viewStyles.entity_edit_grid_entity_edit_grid_user}>
-          <input name="name" type="text" defaultValue={name} aria-label="Nome do usuário" autoFocus />
-          <input name="email" type="email" defaultValue={email} aria-label="E-mail do usuário" />
-          <input type="hidden" name="arenaRole" value={role} />
-          <select name="permissionProfileId" defaultValue={profileId ?? ""} aria-label="Perfil de usuário" required>
-            <option value="" disabled>Selecione o perfil</option>
-            {profiles.map((profile) => <option key={profile.id} value={profile.id} title={profile.name}>{profile.optionLabel ?? profile.name}</option>)}
-          </select>
-        </div>
-        <div className={viewStyles.player_inline_actions}>
-          <SubmitButton label="Salvar" pendingLabel="..." className={viewStyles.player_inline_text_button_player_inline_text_button_save} />
-          <button type="button" className={viewStyles.player_inline_text_button} onClick={() => setIsEditing(false)}>
-            Cancelar
-          </button>
-        </div>
-      </SafeActionForm>
+      <Modal title={`Editar ${name}`} open onClose={closeEditing}>
+        <SafeActionForm action={updateArenaUserAction} className="tw:grid tw:min-w-0 tw:gap-4" successMessage="Usuário atualizado." onSuccess={closeEditing}>
+          <input type="hidden" name="userId" value={userId} /><input type="hidden" name="arenaRole" value={role} />
+          <label className={ui.field}>Nome e sobrenome<input name="name" type="text" defaultValue={name} required /></label>
+          <label className={ui.field}>E-mail<input name="email" type="email" defaultValue={email} required /></label>
+          <label className={ui.field}>Perfil de usuário<select name="permissionProfileId" defaultValue={profileId ?? ""} required><option value="" disabled>Selecione o perfil</option>{profiles.map(profile => <option key={profile.id} value={profile.id} title={profile.name}>{profile.optionLabel ?? profile.name}</option>)}</select></label>
+          <footer className="tw:flex tw:flex-wrap tw:justify-end tw:gap-2 tw:border-t tw:border-[var(--line)] tw:pt-4"><button type="button" className={ui.secondary} onClick={closeEditing}>Cancelar</button><SubmitButton label="Salvar usuário" pendingLabel="Salvando..." className={ui.primary} /></footer>
+        </SafeActionForm>
+      </Modal>
     );
   }
 
   return (
     <div className={viewStyles.entity_actions_cell}>
       <div className={viewStyles.user_row_actions}>
-        <span className={viewStyles.pill}>{roleLabels[role]}</span>
         <button
           type="button"
           className={viewStyles.player_inline_icon_button}
@@ -123,7 +111,7 @@ export function UserActionsCell({
           </SafeActionForm>
         ) : null}
       </div>
-      <UserRecoveryForm userId={userId} />
+      <SettingsDialogButton label="Recuperar acesso" title={`Recuperar acesso de ${name}`} secondary><UserRecoveryForm userId={userId} /></SettingsDialogButton>
     </div>
   );
 }

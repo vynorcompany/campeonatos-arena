@@ -1,4 +1,4 @@
-import { viewStyles } from "./page.utilities";
+import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getPublicAthleteIdentity } from "@/lib/auth/player-session";
@@ -10,5 +10,5 @@ export default async function EventRadarPage(props: { searchParams?: Promise<{ v
   const searchParams = await props.searchParams;
   const athlete = await getPublicAthleteIdentity();
   if (!athlete) redirect("/portal");
-  return <main className={viewStyles.athlete_portal_page}><section className={viewStyles.athlete_portal_hero}><div className={viewStyles.athlete_portal_hero_inner}><div className={viewStyles.athlete_portal_brand}><div className={viewStyles.athlete_portal_mark}>⌁</div><div className={viewStyles.athlete_portal_brand_copy}><span>REDE DE ARENAS</span><h1>Radar de Eventos</h1></div></div><Link className={viewStyles.athlete_portal_profile_link} href="/portal">← Voltar</Link></div></section><PublicEventRadar view={searchParams?.view === "all" ? "all" : "region"} /></main>;
+  return <main className="tw:min-h-dvh tw:bg-white tw:py-6 tw:text-[#231f20] tw:dark:bg-[#07111f] tw:dark:text-white"><header className="tw:mx-auto tw:flex tw:w-[min(calc(100%_-_32px),1060px)] tw:flex-wrap tw:items-center tw:justify-between tw:gap-3"><h1 className="tw:m-0 tw:text-xl tw:font-semibold">Radar de eventos</h1><Link className={ui.secondary} href="/portal">Voltar</Link></header><PublicEventRadar view={searchParams?.view === "all" ? "all" : "region"} /></main>;
 }

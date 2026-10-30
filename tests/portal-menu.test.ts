@@ -12,13 +12,13 @@ test("portal offers one destination per feature, including reservations and clie
 });
 test("portal navigation honors arena visibility for both menu and app shortcuts",()=>{
  const items=portalMenu(Object.fromEntries(Object.keys(visibility).map(key=>[key,false])) as typeof visibility,false);
- assert.deepEqual(items.map(item=>item.section),["home","schedule","comandas","finance","announcements","profile"]);
+ assert.deepEqual(items.map(item=>item.section),["home","comandas","finance","announcements","profile"]);
 });
 test("teaching workspace is available only to the teacher",()=>{
  assert(portalMenu(visibility,true).some(item=>item.section==="teacher"));
  for(const flag of Object.keys(visibility) as (keyof typeof visibility)[]){
   const all=portalMenu(visibility,true);const restricted=portalMenu({...visibility,[flag]:false},true);
-  assert.equal(restricted.length,all.length-(flag === "athletePortalShowBooking" ? 0 : 1));
+  assert.equal(restricted.length,all.length-1);
   assert(restricted.some(item=>item.section==="teacher"));
  }
 });

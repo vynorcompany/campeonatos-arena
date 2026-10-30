@@ -7,15 +7,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   const { q } = await searchParams;
   return (
     <div className={viewStyles.stack_md}>
-      <header className={viewStyles.page_header}>
-        <div className={viewStyles.stack_xs}>
-          <p className={viewStyles.eyebrow}>Acesso</p>
-          <h1>Usuários</h1>
-          <p className={viewStyles.muted}>
-            Convide pessoas para esta arena, acompanhe acessos e gerencie os perfis de cada usuário.
-          </p>
-        </div>
-      </header>
+      <h1 className="tw:sr-only">Usuários</h1>
 
       <ArenaUsersManagement arenaId={auth.arenaId} currentUserId={auth.userId} query={q?.trim().slice(0, 100) ?? ""} />
     </div>

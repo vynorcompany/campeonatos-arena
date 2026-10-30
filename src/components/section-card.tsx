@@ -6,15 +6,16 @@ type SectionCardProps = {
   description?: string;
   children: React.ReactNode;
   className?: string;
+  hideHeading?: boolean;
 };
 
-export function SectionCard({ id, title, description, children, className }: SectionCardProps) {
+export function SectionCard({ id, title, description, children, className, hideHeading = false }: SectionCardProps) {
   return (
     <section id={id} className={cx([viewStyles.card, viewStyles.stack_md, className].filter(Boolean).join(" "))}>
-      <div className={viewStyles.stack_xs}>
+      {hideHeading ? <h2 className="tw:sr-only">{title}</h2> : <div className={viewStyles.stack_xs}>
         <h2>{title}</h2>
         {description ? <p className={viewStyles.muted}>{description}</p> : null}
-      </div>
+      </div>}
       {children}
     </section>
   );

@@ -30,6 +30,7 @@ export function TournamentTabs({
       {tabs.filter((tab) => !availableTabs || availableTabs.includes(tab.key)).map((tab) => (
         <Link
           key={tab.key}
+          aria-current={activeTab === tab.key ? "page" : undefined}
           href={`/torneios/${tournamentId}/categorias/${categoryId}?tab=${tab.key}`}
           className={cx(`${viewStyles.t_tab} ${activeTab === tab.key ? viewStyles.t_tab_active : ""}`)}
         >

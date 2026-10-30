@@ -30,3 +30,9 @@ test("financial settlement helpers allocate each payment to debts before the new
   ]);
   assert.deepEqual(allocation.remainingPayments, [{ paymentMethod: "Dinheiro", amountCents: 10000 }]);
 });
+
+test("allocation preserves each receiving account when a payment spans debt and sale", () => {
+  const allocation = allocatePaymentsToDebts([{ financialEntryId: "debt", outstandingCents: 1200 }], [{ bankAccountId: "bank-a", paymentMethod: "PIX", amountCents: 1000 }, { bankAccountId: "bank-b", paymentMethod: "Cartão", amountCents: 1200 }]);
+  assert.deepEqual(allocation.settlements.map(row => [row.bankAccountId, row.amountCents]), [["bank-a", 1000], ["bank-b", 200]]);
+  assert.deepEqual(allocation.remainingPayments, [{ bankAccountId: "bank-b", paymentMethod: "Cartão", amountCents: 1000 }]);
+});

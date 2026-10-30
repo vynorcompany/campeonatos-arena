@@ -1,3 +1,4 @@
+import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
 import type { ArenaTransaction } from "@/lib/rls";
 import { onlineBookingHoldCutoff } from "@/lib/calendar/online-booking-hold";
 import { getMissingBoletoPayerFields } from "@/lib/payments/boleto-payer";
@@ -66,8 +67,19 @@ export async function claimOnlineBookingPaymentMethod(
   if (participant.paymentMethod && participant.paymentMethod !== chosenMethod) {
     throw new Error("Já existe uma cobrança iniciada para esta reserva. Continue com a forma de pagamento escolhida ou aguarde o prazo de 15 minutos para fazer uma nova reserva.");
   }
+  let paymentBankAccountId = booking.paymentBankAccountId;
+  if (!paymentBankAccountId) {
+    if (participant.paymentMethod) throw new Error("Esta cobrança foi iniciada sem conta bancária registrada. Procure a recepção antes de tentar novamente.");
+    const settings = await tx.arenaOperationalSettings.findUnique({ where: { arenaId: input.arenaId }, select: { portalPaymentBankAccountId: true } });
+    try { paymentBankAccountId = await requireReceivingBankAccount(tx, input.arenaId, settings?.portalPaymentBankAccountId); }
+    catch (error) {
+      if (error instanceof Error && error.message.startsWith("Selecione")) throw new Error("A arena precisa configurar uma conta bancária ativa para o pagamento online. Procure a recepção.");
+      throw error;
+    }
+    await tx.scheduleOccurrence.update({ where: { id: booking.id }, data: { paymentBankAccountId } });
+  }
   if (!participant.paymentMethod) {
     await tx.scheduleParticipant.update({ where: { id: participant.id }, data: { paymentMethod: chosenMethod } });
   }
-  return booking;
+  return { ...booking, paymentBankAccountId };
 }

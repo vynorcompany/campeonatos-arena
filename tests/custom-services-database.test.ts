@@ -1,3 +1,7 @@
+import * as serviceBookingRules from "../src/lib/calendar/service-booking-rules";
+import * as composition from "../src/lib/products/composition";
+import { consumeProductStock } from "../src/lib/products/stock-aggregates";
+import * as portalOrders from "../src/lib/comandas/portal-orders";
 import * as servicePricing from "../src/lib/products/service-pricing";
 import * as operationalPolicy from "../src/lib/comandas/operational-policy";
 import assert from "node:assert/strict";
@@ -31,7 +35,7 @@ test("serviços respeitam as duas visibilidades, isolamento e permissões; coman
     const actor = await admin.user.findUniqueOrThrow({ where: { id: "goal-test" } });
     const auth = { arenaId: arena.id, userId: actor.id, userName: actor.name };
     const transact = (arenaId: string, operation: (tx: Prisma.TransactionClient) => Promise<unknown>) => runtime.$transaction(async tx => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`; return operation(tx); });
-    const mocks = { "@/lib/products/service-pricing": servicePricing, "@/lib/comandas/operational-policy": operationalPolicy, "@/lib/calendar/standard-services": { STANDARD_SERVICES }, "next/cache": { revalidatePath() {} }, "@/lib/auth/guards": { requireModuleEdit: async () => { if (!allowed) throw new Error("Sem permissão"); return auth; }, requirePermission: async () => auth }, "@/lib/rls": { withArenaTransaction: transact }, "@/lib/arena-database": { arenaDatabase: () => ({}) }, "@/lib/comandas/split": { allocateComandaShares }, "@/lib/finance/settlements": { allocatePaymentsToDebts, getOutstandingCents } };
+    const mocks = { "@/lib/products/composition": composition, "@/lib/products/stock-aggregates": { consumeProductStock }, "@/lib/comandas/portal-orders": portalOrders, "@/lib/products/service-pricing": servicePricing, "@/lib/comandas/operational-policy": operationalPolicy, "@/lib/calendar/service-booking-rules": serviceBookingRules, "@/lib/calendar/standard-services": { STANDARD_SERVICES }, "next/cache": { revalidatePath() {} }, "@/lib/auth/guards": { requireModuleEdit: async () => { if (!allowed) throw new Error("Sem permissão"); return auth; }, requirePermission: async () => auth }, "@/lib/rls": { withArenaTransaction: transact }, "@/lib/arena-database": { arenaDatabase: () => ({}) }, "@/lib/comandas/split": { allocateComandaShares }, "@/lib/finance/settlements": { allocatePaymentsToDebts, getOutstandingCents } };
     const services = load("../src/lib/actions/services.ts", mocks);
     for (const agenda of [false, true]) for (const commands of [false, true]) {
       const name = `Serviço QA ${randomUUID()}`;
@@ -63,7 +67,12 @@ test("serviços respeitam as duas visibilidades, isolamento e permissões; coman
     await assert.rejects(commands.addComandaProductAction(form({ comandaId: commandId, productId: ids[0], quantity: "1" })), /Produto não encontrado/);
     await commands.addComandaProductAction(form({ comandaId: commandId, productId: ids[3], quantity: "2", durationMinutes: "90" }));
     await assert.rejects(commands.addComandaProductAction(form({ comandaId: commandId, productId: ids[3], quantity: "1", durationMinutes: "120" })), /outra duração/);
-    await assert.rejects(services.manageServiceAction(form({ id: ids[3], operation: "delete" })), /histórico/);
+    await services.manageServiceAction(form({ id: ids[3], operation: "delete" }));
+    const removed = await admin.product.findUniqueOrThrow({ where: { id: ids[3] } });
+    assert(removed.serviceDeletedAt); assert.equal(removed.active, false);
+    assert.equal(removed.showOnComandas, false); assert.equal(removed.showOnAgenda, false);
+    assert.equal(await admin.comandaItem.count({ where: { comandaId: commandId, productId: ids[3] } }), 1);
+    await assert.rejects(services.manageServiceAction(form({ id: ids[3], operation: "activate" })), /não encontrado/);
     await commands.finishComandaAction(form({ comandaId: commandId, payments: "[]" }));
     assert.equal((await admin.comanda.findUniqueOrThrow({ where: { id: commandId } })).status, "CLOSED");
     assert.equal((await admin.sale.findUniqueOrThrow({ where: { comandaId: commandId } })).totalCents, 7650);

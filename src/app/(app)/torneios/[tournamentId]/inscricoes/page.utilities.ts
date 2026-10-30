@@ -29,7 +29,7 @@ export const viewStyles = {
   ].join(" "),
   "registration_order": [
     "registration-order", "tw:grid", "tw:place-items-center", "tw:w-[28px]",
-    "tw:h-[28px]", "tw:rounded-[50%]", "tw:text-[color:var(--brand)]", "tw:bg-[color:#eaf2ff]",
+    "tw:h-[28px]", "tw:rounded-[50%]", "tw:text-white", "tw:bg-[#174983]",
     "tw:[background-image:none]", "tw:text-[.8rem]", "tw:font-[800]",
   ].join(" "),
   "status_confirmed": [
@@ -48,7 +48,7 @@ export const viewStyles = {
     "tournament-registration-edit", "tw:grid", "tw:grid-cols-[repeat(4,_minmax(0,_1fr))]", "tw:viewport-760:grid-cols-[1fr]",
     "tw:gap-y-[12px]", "tw:gap-x-[12px]", "tw:pt-[18px]", "tw:pr-[18px]",
     "tw:pb-[18px]", "tw:pl-[18px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]",
-    "tw:border-t-[color:#e5edf5]", "tw:bg-[color:#f8fbfe]", "tw:[background-image:none]", "tw:[&_label]:grid",
+    "tw:border-t-[color:#e5edf5]", "tw:bg-white", "tw:[background-image:none]", "tw:[&_label]:grid", "tw:[&_label]:min-w-0", "tw:[&_label]:content-start", "tw:[&_input]:min-w-0", "tw:[&_select]:min-w-0", "tw:[&_input]:w-full", "tw:[&_select]:w-full", "tw:[&_:where(input,select)]:rounded-[7px]!",
     "tw:[&_label]:gap-y-[6px]", "tw:[&_label]:gap-x-[6px]", "tw:[&_label]:text-[color:#354e6d]", "tw:[&_label]:text-[.82rem]",
     "tw:[&_label]:font-[700]", "tw:[&_.button]:[align-self:end]",
   ].join(" "),

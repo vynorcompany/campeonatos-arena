@@ -1,4 +1,5 @@
 import { readFileSync } from "./helpers/style-source";
+import { readPortalSources } from "./helpers/portal-source";
 import assert from "node:assert/strict";
 
 import { resolve } from "node:path";
@@ -12,7 +13,7 @@ test("Portal do Atleta oferece Duplas e consulta categorias de Liga", () => {
 
   assert.match(page, /leagueCategory/);
   assert.match(standings, /\"pairs\"/);
-  assert.match(standings, /Duplas/);
+  assert.match(readPortalSources(), /label: "Duplas"/);
   assert.match(portal, /leagueCategories/);
   assert.match(portal, /portal\.leagueCategories\.length\s*\?\s*\(\s*<form/);
   assert.match(portal, /Nenhuma categoria de liga ativa\./);

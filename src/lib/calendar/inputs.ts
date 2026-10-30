@@ -4,6 +4,7 @@ export type BookingParticipant = {
   playerId: string;
   amountCents: number;
   paymentMethod: string;
+  bankAccountId?: string;
 };
 
 export function parseScheduledAt(value: string) {
@@ -54,7 +55,8 @@ export function parseBookingParticipants(value: string): BookingParticipant[] {
   const parsed = z.array(z.object({
     playerId: z.string().trim().min(1),
     amountCents: z.coerce.number().int().min(0),
-    paymentMethod: z.string().trim().default("")
+    paymentMethod: z.string().trim().default(""),
+    bankAccountId: z.string().trim().optional()
   })).safeParse(raw);
   if (!parsed.success) {
     throw new Error("Participantes inválidos.");

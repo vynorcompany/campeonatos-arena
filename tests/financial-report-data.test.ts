@@ -42,8 +42,9 @@ test("ledger and DRE totals include entries beyond the visible row limits", asyn
 
   calls.length = 0;
   const dre = await loadDreReportData(db, where);
-  assert.equal(dre.entries.length, 100);
+  assert.equal("entries" in dre, false);
   assert.deepEqual(financialTypeTotals(dre.byType), { revenue: 30_100, expense: 5_000 });
+  assert.ok(calls.every(({ method }) => method === "groupBy"));
   assert.ok(calls.every(({ query }) => query.where === where));
 });
 
@@ -67,7 +68,7 @@ test("financial totals use every scoped record under the runtime tenant role", {
       const ledger = await loadLedgerReportData(scopedDb, where);
       const dre = await loadDreReportData(scopedDb, where);
       assert.equal(ledger.entries.length, 250);
-      assert.equal(dre.entries.length, 100);
+      assert.equal("entries" in dre, false);
       assert.deepEqual(financialTypeTotals(ledger.byType), { revenue: 25_100, expense: 0 });
       assert.deepEqual(financialTypeTotals(dre.byType), { revenue: 25_100, expense: 0 });
       assert.equal(ledger.byPaymentStatus[0]?._count._all, 251);

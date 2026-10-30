@@ -32,7 +32,7 @@ export const viewStyles = {
     "tw:[&_div]:inline-flex", "tw:[&_div]:gap-y-[8px]", "tw:[&_div]:gap-x-[8px]", "tw:[&_a]:inline-flex",
     "tw:[&_a]:items-center", "tw:[&_a]:justify-center", "tw:[&_a]:w-[34px]", "tw:[&_a]:h-[34px]",
     "tw:[&_a]:rounded-[999px]", "tw:[&_a]:text-[color:var(--brand)]", "tw:[&_a]:[text-decoration:none]", "tw:[&_a]:text-[1.55rem]",
-    "tw:[&_a]:leading-[1]", "tw:[&_a]:[transition:background-color_160ms_ease,_color_160ms_ease]", "tw:[&_a:hover]:bg-[color:var(--brand-soft)]", "tw:[&_a:hover]:[background-image:none]",
+    "tw:[&_a]:leading-[1]", "tw:[&_a]:[transition:background-color_160ms_ease,_color_160ms_ease]", "tw:[&_a:hover]:bg-[color:#fff]", "tw:[&_a:hover]:[background-image:none]",
     "tw:[&_a:hover]:text-[color:var(--brand-strong)]",
   ].join(" "),
   "calendar_mini_weekdays": [
@@ -49,7 +49,7 @@ export const viewStyles = {
     "tw:text-[0.86rem]", "tw:[text-decoration:none]",
   ].join(" "),
   "calendar_mini_muted": [
-    "calendar-mini-muted", "tw:text-[color:var(--muted)]", "tw:bg-slate-50",
+    "calendar-mini-muted", "tw:text-[color:var(--muted)]", "tw:bg-white",
   ].join(" "),
   "calendar_mini_active": [
     "calendar-mini-active", "tw:bg-[color:var(--brand)]", "tw:[background-image:none]", "tw:text-[color:#ffffff]",
@@ -89,8 +89,8 @@ export const viewStyles = {
   "calendar_agenda_days": [
     "calendar-agenda-days", "tw:grid", "tw:min-w-[860px]", "tw:sticky",
     "tw:top-[0]", "tw:z-[2]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]",
-    "tw:border-b-[color:var(--line)]", "tw:bg-[color:#f7f9fc]", "tw:[background-image:none]", "tw:[&_>_span]:sticky",
-    "tw:[&_>_span]:left-[0]", "tw:[&_>_span]:z-[4]", "tw:[&_>_span]:bg-[color:#f7f9fc]", "tw:[&_>_span]:[background-image:none]",
+    "tw:border-b-[color:var(--line)]", "tw:bg-[color:#fff]", "tw:[background-image:none]", "tw:[&_>_span]:sticky",
+    "tw:[&_>_span]:left-[0]", "tw:[&_>_span]:z-[4]", "tw:[&_>_span]:bg-[color:#fff]", "tw:[&_>_span]:[background-image:none]",
     "tw:[&_>_span]:border-r-[length:1px]", "tw:[&_>_span]:[border-right-style:solid]", "tw:[&_>_span]:border-r-[color:var(--line)]",
   ].join(" "),
   "calendar_agenda_day_calendar_agenda_day_today": [
@@ -136,9 +136,9 @@ export const viewStyles = {
     "tw:pb-[12px]", "tw:pl-[12px]", "tw:rounded-[0_14px_14px_0]", "tw:text-left",
     "tw:cursor-pointer", "tw:[text-decoration:none]", "tw:[box-shadow:0_10px_22px_rgba(35,_50,_70,_0.08)]", "tw:[&_strong]:text-[color:inherit]",
     "tw:[&_strong]:text-[0.9rem]", "tw:[&_strong]:leading-[1.2]", "tw:[&_span]:text-[color:inherit]", "tw:[&_span]:text-[0.78rem]",
-    "tw:[&_span]:font-[800]", "tw:[&.calendar-time-event-lessons]:bg-[color:rgba(43,_122,_95,_0.12)]", "tw:[&.calendar-time-event-lessons]:[background-image:none]", "tw:[&.calendar-time-event-lessons]:text-[color:#20684f]",
-    "tw:[&.calendar-time-event-tournaments]:bg-[color:rgba(147,_100,_12,_0.14)]", "tw:[&.calendar-time-event-tournaments]:[background-image:none]", "tw:[&.calendar-time-event-tournaments]:text-[color:#93640c]", "tw:[&.calendar-time-event-matches]:bg-[color:rgba(18,_93,_156,_0.12)]",
-    "tw:[&.calendar-time-event-matches]:[background-image:none]", "tw:[&.calendar-time-event-matches]:text-[color:#125d9c]", "tw:[&.calendar-time-event-tv]:bg-[color:rgba(110,_76,_181,_0.13)]", "tw:[&.calendar-time-event-tv]:[background-image:none]",
-    "tw:[&.calendar-time-event-tv]:text-[color:#6e4cb5]",
+    "tw:[&_span]:font-[800]", "tw:[&.calendar-time-event-lessons]:bg-[color:#fff]", "tw:[&.calendar-time-event-lessons]:[background-image:none]", "tw:[&.calendar-time-event-lessons]:text-[color:#174983]",
+    "tw:[&.calendar-time-event-tournaments]:bg-[color:#fff]", "tw:[&.calendar-time-event-tournaments]:[background-image:none]", "tw:[&.calendar-time-event-tournaments]:text-[color:#174983]", "tw:[&.calendar-time-event-matches]:bg-[color:#fff]",
+    "tw:[&.calendar-time-event-matches]:[background-image:none]", "tw:[&.calendar-time-event-matches]:text-[color:#174983]", "tw:[&.calendar-time-event-tv]:bg-[color:#fff]", "tw:[&.calendar-time-event-tv]:[background-image:none]",
+    "tw:[&.calendar-time-event-tv]:text-[color:#174983]",
   ].join(" "),
 } as const;

@@ -8,7 +8,7 @@ import {
   updateCategoryBracketMatchScheduleAction,
   updateTournamentCategoryFormatAction,
 } from "@/lib/actions/tournament";
-import { RegistrationEditForm } from "@/components/tournaments/registration-edit-form";
+import { RegistrationEditForm, RegistrationPaymentFields } from "@/components/tournaments/registration-edit-form";
 import { getTournamentScheduleConflicts } from "@/lib/services/tournament";
 import { ReviewedCheckoutRelease } from "@/components/finance/reviewed-checkout-release";
 import { canPerformPermission } from "@/lib/permissions";
@@ -91,30 +91,26 @@ export default async function TournamentRegistrationsPage() {
   }
 
   if (!tournament) {
-    return <SectionCard title="Inscrições"><p className={viewStyles.muted}>Nenhum torneio ativo.</p></SectionCard>;
+    return <SectionCard title="Inscrições" hideHeading><p className={viewStyles.muted}>Nenhum torneio ativo.</p></SectionCard>;
   }
+
+  const bankAccounts = await tenantDb.bankAccount.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } });
 
   const conflicts = await getTournamentScheduleConflicts(tournament.id, auth.arenaId);
 
   return (
     <div className={viewStyles.stack_md}>
-      <header className={viewStyles.page_header}>
-        <div className={viewStyles.stack_xs}>
-          <p className={viewStyles.eyebrow}>Torneios</p>
-          <h1>Inscritos por categoria</h1>
-          <p className={viewStyles.muted}>Gerencie inscrições e, após encerrar inscrições, defina formato e monte o chaveamento por categoria.</p>
-        </div>
-      </header>
+      <h1 className="tw:sr-only">Inscritos por categoria</h1>
 
       {tournament.registrationPhase === "REGISTRATIONS" ? (
-        <SectionCard title="Inscrições em andamento">
+        <SectionCard title="Inscrições em andamento" hideHeading>
           <p className={viewStyles.muted}>
             A montagem só é liberada após encerrar inscrições. Quando mudar a fase do torneio, você poderá definir grupos e duplas por grupo em cada categoria.
           </p>
         </SectionCard>
       ) : null}
 
-      <SectionCard title="Conflitos de agenda (jogos gerais)" description="Validador para evitar atleta em dois jogos no mesmo horário.">
+      <SectionCard title="Conflitos de agenda (jogos gerais)" description="Validador para evitar atleta em dois jogos no mesmo horário." hideHeading>
         {conflicts.length ? (
           <ul className={viewStyles.simple_list}>
             {conflicts.map((conflict) => (
@@ -172,65 +168,46 @@ export default async function TournamentRegistrationsPage() {
                 <div key={registration.id} className={viewStyles.simple_item}>
                   <div className={viewStyles.stack_xs_2}>
                     <strong>{registration.leadName} / {registration.partnerName}</strong>
-                    <span>{registration.paymentStatus === "REVIEW" ? "Pagamento em análise" : registration.paymentStatus === "REFUNDED" || registration.status === "CANCELED" ? "Inscrição cancelada" : registration.status === "CONFIRMED" ? "Confirmada" : "Pagamento pendente"} · R$ {(registration.amountCents / 100).toFixed(2)}</span>
+                    <span>{registration.paymentStatus === "REVIEW" ? "Pagamento em análise" : registration.paymentStatus === "REFUNDED" || registration.status === "CANCELED" ? "Inscrição cancelada" : registration.status === "CONFIRMED" ? "Confirmada" : "Pagamento pendente"} · {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(registration.amountCents / 100)}</span>
                     {registration.paymentStatus === "REVIEW" ? <ReviewedCheckoutRelease kind="registration" recordId={registration.id} paymentId={registration.mercadoPagoPaymentId} clientName={`${registration.leadName} / ${registration.partnerName}`} canResolve={canResolveReview} /> : registration.paymentStatus === "REFUNDED" || registration.status === "CANCELED" ? <p className={viewStyles.muted}>Pagamento estornado ou inscrição cancelada. A dupla pode fazer uma nova inscrição.</p> : !canEditManualTournamentRegistration(registration) ? <p className={viewStyles.muted}>{registration.status === "CONFIRMED" ? "Dupla confirmada: correções devem preservar seus vínculos com os jogos." : "Inscrição com cobrança online: confira o pagamento antes de alterar os dados."}</p> : <details>
-                      <summary className="tw:[cursor:pointer] tw:[color:var(--brand)] tw:[font-weight:700]">Editar inscricao</summary>
+                      <summary className="tw:[cursor:pointer] tw:[color:var(--brand)] tw:[font-weight:700]">Editar inscrição</summary>
                       <RegistrationEditForm className={viewStyles.grid_form}>
                         <input type="hidden" name="registrationId" value={registration.id} />
                         <input type="hidden" name="tournamentId" value={tournament.id} />
-                        <div className={viewStyles.field}>
-                          <label>Categoria</label>
+                        <label className={viewStyles.field}>Categoria
                           <select name="categoryId" defaultValue={registration.categoryId} required>
                             {tournament.categories.map((item: any) => (
                               <option key={item.id} value={item.id}>{item.name}</option>
                             ))}
                           </select>
-                        </div>
-                        <div className={viewStyles.field}>
-                          <label>Atleta 1</label>
+                        </label>
+                        <label className={viewStyles.field}>Atleta 1
                           <input name="leadName" defaultValue={registration.leadName} required />
-                        </div>
-                        <div className={viewStyles.field}>
-                          <label>Telefone atleta 1</label>
+                        </label>
+                        <label className={viewStyles.field}>Telefone atleta 1
                           <input name="leadPhone" defaultValue={registration.leadPhone} required />
-                        </div>
-                        <div className={viewStyles.field}>
-                          <label>CPF atleta 1</label>
+                        </label>
+                        <label className={viewStyles.field}>CPF atleta 1
                           <input name="leadCpf" defaultValue={registration.leadCpf} required />
-                        </div>
-                        <div className={viewStyles.field}>
-                          <label>Nascimento atleta 1</label>
-                          <input name="leadBirthDate" type="text" inputMode="numeric" placeholder="dd/mm/aaaa" defaultValue={new Date(registration.leadBirthDate).toLocaleDateString("pt-BR")} required />
-                        </div>
-                        <div className={viewStyles.field}>
-                          <label>Atleta 2</label>
+                        </label>
+                        <label className={viewStyles.field}>Nascimento atleta 1 (opcional)
+                          <input name="leadBirthDate" type="date" defaultValue={registration.leadBirthDate ? new Date(registration.leadBirthDate).toISOString().slice(0, 10) : ""} />
+                        </label>
+                        <label className={viewStyles.field}>Atleta 2
                           <input name="partnerName" defaultValue={registration.partnerName} required />
-                        </div>
-                        <div className={viewStyles.field}>
-                          <label>Telefone atleta 2</label>
+                        </label>
+                        <label className={viewStyles.field}>Telefone atleta 2
                           <input name="partnerPhone" defaultValue={registration.partnerPhone} required />
-                        </div>
-                        <div className={viewStyles.field}>
-                          <label>CPF atleta 2</label>
+                        </label>
+                        <label className={viewStyles.field}>CPF atleta 2
                           <input name="partnerCpf" defaultValue={registration.partnerCpf} required />
-                        </div>
-                        <div className={viewStyles.field}>
-                          <label>Nascimento atleta 2</label>
-                          <input name="partnerBirthDate" type="text" inputMode="numeric" placeholder="dd/mm/aaaa" defaultValue={new Date(registration.partnerBirthDate).toLocaleDateString("pt-BR")} required />
-                        </div>
-                        <div className={viewStyles.field}>
-                          <label>Valor (R$)</label>
-                          <input name="amountReais" defaultValue={(registration.amountCents / 100).toFixed(2).replace(".", ",")} required />
-                        </div>
-                        <div className={viewStyles.field}>
-                          <label>Pagamento</label>
-                          <select name="paymentStatus" defaultValue={registration.paymentStatus} required>
-                            <option value="PENDING">Pendente</option>
-                            <option value="PAID">Pago</option>
-                          </select>
-                        </div>
+                        </label>
+                        <label className={viewStyles.field}>Nascimento atleta 2 (opcional)
+                          <input name="partnerBirthDate" type="date" defaultValue={registration.partnerBirthDate ? new Date(registration.partnerBirthDate).toISOString().slice(0, 10) : ""} />
+                        </label>
+                        <RegistrationPaymentFields amountCents={registration.amountCents} accounts={bankAccounts} />
                         <div className={viewStyles.field_field_submit}>
-                          <SubmitButton label="Salvar alteracoes" pendingLabel="Salvando..." className={viewStyles.button_button_primary} />
+                          <SubmitButton label="Salvar alterações" pendingLabel="Salvando..." className={viewStyles.button_button_primary} />
                         </div>
                       </RegistrationEditForm>
                     </details>}

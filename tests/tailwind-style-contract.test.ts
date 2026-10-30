@@ -26,6 +26,8 @@ test("system and portal styles use Tailwind; raw CSS is reserved for tokens and 
     ], "Both Tailwind entrypoints must remain separate, valid imports.");
     sheet.walkAtRules("apply", () => assert.fail(`${file}: component styles belong in JSX utilities.`));
     sheet.walkRules(rule => {
+      let ancestor: Node | undefined = rule.parent;
+      while (ancestor) { if (ancestor.type === "atrule" && "name" in ancestor && ancestor.name === "custom-variant") { assert.ok(rule.selector.startsWith("&"), "Variant selectors must stay relative."); return; } ancestor = ancestor.parent; }
       if (rule.parent?.type === "atrule" && /keyframes$/.test(rule.parent.name)) return;
       assert.equal(rule.selector, ":root", `${file}: presentation selectors must not return.`);
       for (const declaration of rule.nodes) {
@@ -46,4 +48,19 @@ test("system and portal styles use Tailwind; raw CSS is reserved for tokens and 
   for (const file of files.filter(file => /\.tsx?$/.test(file))) {
     assert.doesNotMatch(readFileSync(file, "utf8"), /import\s+.*["'][^"']+\.module\.css["']/);
   }
+});
+
+
+test("shared surfaces stay white and Arena blues retain readable white labels", () => {
+  const sheet = postcss.parse(readFileSync("src/app/globals.css", "utf8"));
+  const tokens = new Map<string, string>();
+  sheet.walkDecls(declaration => { if (declaration.parent?.type === "rule" && declaration.parent.selector === ":root") tokens.set(declaration.prop, declaration.value); });
+  for (const name of ["--bg", "--panel", "--panel-muted"]) assert.match(tokens.get(name) ?? "", /^#(?:fff|ffffff)$/i, `${name}: content surfaces must be white`);
+  assert.equal(tokens.get("--brand"), "#1e5ea8");
+  assert.equal(tokens.get("--brand-strong"), "#174983");
+  const luminance = (hex: string) => {
+    const rgb = hex.replace("#", "").match(/../g)!.map(value => { const channel = parseInt(value, 16) / 255; return channel <= .04045 ? channel / 12.92 : ((channel + .055) / 1.055) ** 2.4; });
+    return rgb[0] * .2126 + rgb[1] * .7152 + rgb[2] * .0722;
+  };
+  for (const name of ["--brand", "--brand-strong"]) assert.ok(1.05 / (luminance(tokens.get(name)!) + .05) >= 4.5, `${name}: white labels need AA contrast`);
 });

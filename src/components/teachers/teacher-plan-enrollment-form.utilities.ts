@@ -8,7 +8,7 @@ export const viewStyles = {
     "tw:[border-top-style:solid]", "tw:border-t-[color:#dbe6f0]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]",
     "tw:border-r-[color:#dbe6f0]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:#dbe6f0]",
     "tw:border-l-[length:1px]", "tw:[border-left-style:solid]", "tw:border-l-[color:#dbe6f0]", "tw:rounded-[12px]",
-    "tw:bg-[color:#f8fbfe]", "tw:[background-image:none]", "tw:[&_label]:grid", "tw:[&_label]:gap-y-[4px]",
+    "tw:bg-[color:#fff]", "tw:[background-image:none]", "tw:[&_label]:grid", "tw:[&_label]:gap-y-[4px]",
     "tw:[&_label]:gap-x-[4px]", "tw:[&_label]:text-[color:#425a78]", "tw:[&_label]:text-[.7rem]", "tw:[&_label]:font-[700]",
     "tw:[&_>_.button]:min-w-[106px]", "tw:[&_>_.button]:[grid-column:2]", "tw:viewport-600:[&_>_.button]:[grid-column:1]", "tw:[&_>_.button]:[justify-self:end]",
     "tw:[&_>_.button]:w-[auto]", "tw:viewport-600:[&_>_.button]:w-[100%]", "tw:[&_>_.button]:min-h-[38px]", "tw:[&_>_.button]:[padding-inline:14px]",
@@ -38,7 +38,7 @@ export const viewStyles = {
     "tw:[&_>_.button]:[box-shadow:none]", "tw:[&_>_.button]:[grid-column:auto]", "tw:[&_>_.button]:text-[.74rem]", "tw:[&_>_.button]:min-w-[0]",
     "tw:[&_>_.button:hover]:text-[color:#fff]", "tw:[&_>_.button:hover]:bg-[color:#1768d6]", "tw:[&_>_.button:hover]:[background-image:none]", "tw:[&_>_.button::first-letter]:text-[1.1rem]",
     "tw:viewport-760:[&_>_.button]:w-[100%]", "tw:[&_>_.button:disabled]:border-t-[color:#c8d6e5]", "tw:[&_>_.button:disabled]:border-r-[color:#c8d6e5]", "tw:[&_>_.button:disabled]:border-b-[color:#c8d6e5]",
-    "tw:[&_>_.button:disabled]:border-l-[color:#c8d6e5]", "tw:[&_>_.button:disabled]:text-[color:#8aa0b7]", "tw:[&_>_.button:disabled]:bg-[color:#edf2f7]", "tw:[&_>_.button:disabled]:[background-image:none]",
+    "tw:[&_>_.button:disabled]:border-l-[color:#c8d6e5]", "tw:[&_>_.button:disabled]:text-[color:#8aa0b7]", "tw:[&_>_.button:disabled]:bg-[color:#fff]", "tw:[&_>_.button:disabled]:[background-image:none]",
     "tw:[&_>_.button:disabled]:cursor-not-allowed",
   ].join(" "),
   "teacher_enrollment_primary": [
@@ -61,7 +61,7 @@ export const viewStyles = {
     "tw:[&_button]:[border-right-style:none]", "tw:[&_button]:border-r-[color:currentColor]", "tw:[&_button]:border-b-[length:1px]", "tw:[&_button]:[border-bottom-style:solid]",
     "tw:[&_button]:border-b-[color:#edf2f7]", "tw:[&_button]:border-l-[length:0]", "tw:[&_button]:[border-left-style:none]", "tw:[&_button]:border-l-[color:currentColor]",
     "tw:[&_button]:bg-[color:#fff]", "tw:[&_button]:[background-image:none]", "tw:[&_button]:text-[color:#173a62]", "tw:[&_button]:text-left",
-    "tw:[&_button]:cursor-pointer", "tw:[&_button:hover]:bg-[color:#edf6ff]", "tw:[&_button:hover]:[background-image:none]", "tw:[&_span]:text-[color:#697d94]",
+    "tw:[&_button]:cursor-pointer", "tw:[&_button:hover]:bg-[#1e5ea8] tw:[&_button:hover]:text-white tw:[&_button:hover_span]:text-white", "tw:[&_button:hover]:[background-image:none]", "tw:[&_span]:text-[color:#697d94]",
     "tw:[&_span]:text-[.72rem]",
   ].join(" "),
   "teacher_enrollment_financial": [

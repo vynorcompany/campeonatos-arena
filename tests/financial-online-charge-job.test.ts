@@ -10,7 +10,7 @@ const source = readFileSync(new URL("../src/app/api/jobs/financial-online-charge
 
 type JobResult = { status: number; body: Record<string, unknown> };
 
-function loadJob(arena: () => Promise<Record<string, number>>, agency: () => Promise<Record<string, number>>) {
+function loadJob(arena: () => Promise<Record<string, number>>, agency: () => Promise<Record<string, number>>, prices = async () => ({ applied: 0, failed: 0 })) {
   const exports: Record<string, (request: Request) => Promise<JobResult>> = {};
   const errors: unknown[][] = [];
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
@@ -20,6 +20,7 @@ function loadJob(arena: () => Promise<Record<string, number>>, agency: () => Pro
       if (name === "next/server") return { NextResponse: { json: (body: Record<string, unknown>, init: { status?: number } = {}) => ({ body, status: init.status ?? 200 }) } };
       if (name === "@/lib/env") return { env: { cronSecret: "synthetic-cron-secret-for-tests" } };
       if (name === "@/lib/payments/recurring-online-charges") return { issueRecurringOnlineCharges: arena };
+      if (name === "@/lib/academy/plan-price-worker") return { processPlanPriceChanges: prices };
       if (name === "@/lib/services/agency-billing") return { issueDueAgencyInvoices: agency };
       return require(name);
     },
@@ -35,7 +36,7 @@ function request(secret = "synthetic-cron-secret-for-tests") {
 
 test("financial job rejects unauthorized requests before running either batch", async () => {
   let called = 0;
-  const job = loadJob(async () => { called++; return {}; }, async () => { called++; return {}; });
+  const job = loadJob(async () => { called++; return {}; }, async () => { called++; return {}; }, async () => { called++; return { applied: 0, failed: 0 }; });
   const result = await job.post(request("wrong-secret"));
   assert.equal(result.status, 401);
   assert.equal(called, 0);
@@ -65,4 +66,17 @@ test("agency batch runs even when arena batch rejects", async () => {
   assert.equal(result.body.agencyInvoicesIssued, 1);
   assert.equal(agencyRan, true);
   assert.equal(job.errors.length, 1);
+});
+
+// A failed price update must not allow invoices at stale plan prices.
+test("price processing runs before billing and a failed update prevents issuing charges", async () => {
+  const order: string[] = [];
+  const job = loadJob(async () => { order.push("arena"); return {}; }, async () => { order.push("agency"); return {}; }, async () => { order.push("prices"); return { applied: 0, failed: 1 }; });
+  const result = await job.post(request());
+  assert.equal(result.status, 500);
+  assert.deepEqual(order, ["prices"]);
+  const success = loadJob(async () => { order.push("arena"); return { failed: 0 }; }, async () => { order.push("agency"); return { agencyInvoiceFailures: 0, agencyCheckoutFailures: 0 }; }, async () => { order.push("prices"); return { applied: 1, failed: 0 }; });
+  order.length = 0;
+  assert.equal((await success.post(request())).status, 200);
+  assert.deepEqual(order, ["prices", "arena", "agency"]);
 });

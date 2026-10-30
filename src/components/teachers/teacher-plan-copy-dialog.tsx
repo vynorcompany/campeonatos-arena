@@ -2,7 +2,9 @@
 import { planCopyButton } from "./teacher-plan-create-dialog";
 import { viewStyles } from "./teacher-plan-copy-dialog.utilities";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
+import { Modal } from "@/components/ui/modal";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { EventIcon } from "@/components/tournaments/event-icon";
@@ -18,6 +20,7 @@ export function TeacherPlanCopyDialog({
   teachers: TargetTeacher[];
 }) {
   const [open, setOpen] = useState(false);
+  const closeDialog = useCallback(() => setOpen(false), []);
 
   if (!teachers.length) return null;
 
@@ -32,33 +35,7 @@ export function TeacherPlanCopyDialog({
       >
         <EventIcon name="clipboard" size={15} />
       </button>
-      {open ? (
-        <div
-          className={viewStyles.teacher_plan_edit_modal}
-          role="presentation"
-          onMouseDown={() => setOpen(false)}
-        >
-          <section
-            className={viewStyles.teacher_plan_edit_dialog}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="teacher-plan-copy-title"
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <header>
-              <div>
-                <p className={viewStyles.eyebrow}>PLANOS DO PROFESSOR</p>
-                <h2 id="teacher-plan-copy-title">Copiar planos</h2>
-              </div>
-              <button
-                type="button"
-                className={viewStyles.teacher_plan_edit_close}
-                onClick={() => setOpen(false)}
-                aria-label="Fechar"
-              >
-                ×
-              </button>
-            </header>
+      <Modal title="Copiar planos" open={open} onClose={closeDialog} width="tw:max-w-[520px]">
             <SafeActionForm
               action={copyTeacherPlansAction}
               className={viewStyles.teacher_plan_edit_form}
@@ -66,7 +43,7 @@ export function TeacherPlanCopyDialog({
               onSuccess={() => setOpen(false)}
             >
               <input type="hidden" name="sourceTeacherId" value={teacherId} />
-              <label>
+              <label className={ui.field}>
                 Copiar para
                 <select name="targetTeacherId" required defaultValue="">
                   <option value="" disabled>
@@ -97,9 +74,7 @@ export function TeacherPlanCopyDialog({
                 />
               </div>
             </SafeActionForm>
-          </section>
-        </div>
-      ) : null}
+      </Modal>
     </>
   );
 }

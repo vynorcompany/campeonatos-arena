@@ -47,16 +47,10 @@ export default async function SalesPage() {
 
   return (
     <div className={viewStyles.stack_md}>
-      <header className={viewStyles.page_header}>
-        <div className={viewStyles.stack_xs}>
-          <p className={viewStyles.eyebrow}>PDV</p>
-          <h1>Vendas</h1>
-          <p className={viewStyles.muted}>Consulte o histórico de vendas e movimentações de estoque geradas pelo caixa.</p>
-        </div>
-      </header>
+      <h1 className="tw:sr-only">Vendas</h1>
 
       <div className={viewStyles.two_column_grid}>
-        <SectionCard title="Últimas vendas" description="Histórico recente da frente de caixa.">
+        <SectionCard title="Últimas vendas" description="Histórico recente da frente de caixa." hideHeading>
           <div className={viewStyles.simple_list}>
             {sales.map((sale) => (
               <div className={viewStyles.simple_item} key={sale.id}>
@@ -71,7 +65,7 @@ export default async function SalesPage() {
           </div>
         </SectionCard>
 
-        <SectionCard title="Movimentações de estoque" description="Entradas, saídas, vendas e ajustes manuais.">
+        <SectionCard title="Movimentações de estoque" description="Entradas, saídas, vendas e ajustes manuais." hideHeading>
           <div className={viewStyles.simple_list}>
             {stockMovements.map((movement) => (
               <div className={viewStyles.simple_item} key={movement.id}>

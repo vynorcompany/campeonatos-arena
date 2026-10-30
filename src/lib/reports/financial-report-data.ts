@@ -32,11 +32,8 @@ export async function loadLedgerReportData(db: Pick<PrismaClient, "financialEntr
 }
 
 export async function loadDreReportData(db: Pick<PrismaClient, "financialEntry">, where: Prisma.FinancialEntryWhereInput) {
-  const [entries, byType] = await Promise.all([
-    db.financialEntry.findMany({ where, orderBy: { createdAt: "desc" }, take: 100 }),
-    db.financialEntry.groupBy({ where, by: ["type", "category"], _sum: { amountCents: true } }),
-  ]);
-  return { entries, byType };
+  const byType = await db.financialEntry.groupBy({ where, by: ["type", "category"], _sum: { amountCents: true } });
+  return { byType };
 }
 
 export function financialTypeTotals(groups: Array<{ type: string; _sum: { amountCents: number | null } }>) {

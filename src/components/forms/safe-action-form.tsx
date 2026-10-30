@@ -1,10 +1,9 @@
 "use client";
-import { compactDialogFrame } from "@/components/ui/dialog-frame";
+import { Modal } from "@/components/ui/modal";
 
 import { viewStyles } from "./safe-action-form.utilities";
 
-import { useEffect, useId, useRef, useState, useTransition } from "react";
-import { createPortal } from "react-dom";
+import { useCallback, useId, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 type SafeActionFormProps = {
@@ -57,18 +56,12 @@ export function SafeActionForm({
     title: "Confirmar ação", action: "Confirmar", pending: "Confirmando...", destructive: false,
   };
 
-  useEffect(() => {
-    if (!isConfirming) return;
-    function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setIsConfirming(false);
-        setConfirmValue("");
-        setError(null);
-      }
-    }
-    document.addEventListener("keydown", closeOnEscape);
-    return () => document.removeEventListener("keydown", closeOnEscape);
-  }, [isConfirming]);
+  const closeConfirmation = useCallback(() => {
+    if (isPending) return;
+    setIsConfirming(false);
+    setConfirmValue("");
+    setError(null);
+  }, [isPending]);
 
   return (
     <form
@@ -142,47 +135,21 @@ export function SafeActionForm({
       aria-busy={isPending}
     >
       {children}
-      {confirmKeyword && isConfirming ? createPortal(
-        <div className={viewStyles.safe_action_confirmation_backdrop} role="presentation" onMouseDown={(event) => {
-          if (event.target === event.currentTarget && !isPending) {
-            setIsConfirming(false);
-            setConfirmValue("");
-            setError(null);
-          }
-        }}>
-          <section className={[viewStyles.safe_action_confirmation, compactDialogFrame].join(" ")} role="dialog" aria-modal="true" aria-labelledby="safe-action-confirm-title">
-            <header>
-              <span className={confirmation.destructive ? viewStyles.safe_action_confirmation_icon : viewStyles.safe_action_confirmation_icon_neutral} aria-hidden="true">!</span>
-              <div><strong id="safe-action-confirm-title">{confirmation.title}</strong><span>{confirmation.destructive ? "Esta ação pode ser irreversível." : "Revise os dados antes de continuar."}</span></div>
-            </header>
-            <p>{confirmPrompt ?? `Digite ${confirmKeyword} para confirmar esta ação.`}</p>
-            {confirmationContent ? (
-              <div ref={(element) => {
-                element?.querySelectorAll("input, select, textarea").forEach((control) => {
-                  control.setAttribute("form", formId);
-                });
-              }}>{confirmationContent}</div>
-            ) : null}
-            <label>
-              Confirmação
-              <input
-                name="confirmKeyword"
-                form={formId}
-                type="text"
-                value={confirmValue}
-                onChange={(event) => setConfirmValue(event.currentTarget.value)}
-                placeholder={`Digite ${confirmKeyword}`}
-                autoFocus
-              />
-            </label>
-            <footer>
-              <button type="button" className={viewStyles.button} onClick={() => { setIsConfirming(false); setConfirmValue(""); setError(null); }} disabled={isPending}>Cancelar</button>
-              <button type="submit" form={formId} className={confirmation.destructive ? viewStyles.button_button_danger : viewStyles.button_button_primary} disabled={isPending}>{isPending ? confirmation.pending : confirmation.action}</button>
-            </footer>
-          </section>
-        </div>, document.body
-      ) : null}
-      {error ? (
+      {confirmKeyword ? <Modal title={confirmation.title} open={isConfirming} onClose={closeConfirmation} width="tw:max-w-[480px]" fixedSize>
+        <div className="tw:flex tw:min-h-full tw:min-w-0 tw:flex-col tw:gap-4">
+          <p className="tw:m-0 tw:break-words tw:text-sm tw:leading-relaxed">{confirmPrompt ?? `Digite ${confirmKeyword} para confirmar esta ação.`}</p>
+          {confirmationContent ? <div ref={element => { element?.querySelectorAll("input, select, textarea").forEach(control => control.setAttribute("form", formId)); }}>{confirmationContent}</div> : null}
+          <label className="tw:grid tw:gap-2 tw:text-sm tw:font-semibold">Confirmação
+            <input data-modal-autofocus name="confirmKeyword" form={formId} type="text" value={confirmValue} onChange={event => setConfirmValue(event.currentTarget.value)} placeholder={`Digite ${confirmKeyword}`} className="tw:w-full tw:min-w-0 tw:rounded-md tw:border tw:border-[var(--line)] tw:bg-white tw:px-3 tw:py-2 tw:text-sm tw:font-normal"/>
+          </label>
+          {error ? <p className={viewStyles.form_error_form_full} role="alert">{error}</p> : null}
+          <footer className="tw:mt-auto tw:flex tw:flex-wrap tw:justify-end tw:gap-2 tw:border-t tw:border-[var(--line)] tw:pt-3">
+            <button type="button" className={viewStyles.button} onClick={closeConfirmation} disabled={isPending}>Cancelar</button>
+            <button type="submit" form={formId} className={confirmation.destructive ? viewStyles.button_button_danger : viewStyles.button_button_primary} disabled={isPending}>{isPending ? confirmation.pending : confirmation.action}</button>
+          </footer>
+        </div>
+      </Modal> : null}
+      {error && !isConfirming ? (
         <p className={viewStyles.form_error_form_full} role="alert">
           {error}
         </p>

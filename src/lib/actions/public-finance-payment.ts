@@ -23,7 +23,7 @@ export async function startPublicFinancialEntryPaymentAction(formData: FormData)
   if (!entryIds.length) throw new Error("Selecione ao menos um débito para pagar.");
   const auth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
   const policy = portalCheckoutPolicy(await withArenaTransaction(auth.arenaId, tx => tx.arenaOperationalSettings.findUnique({ where: { arenaId: auth.arenaId } })));
-  if (!policy.enabled) throw new Error("Esta arena desativou pagamentos pelo Portal. Procure a recepção.");
+  if (!policy.enabled) throw new Error(policy.bankAccountId ? "Esta arena desativou pagamentos pelo Portal. Procure a recepção." : "A arena precisa configurar a conta bancária dos pagamentos do Portal. Procure a recepção.");
   await expirePortalCheckoutsForArena(auth.arenaId, { playerId: auth.playerId, entryIds, limit: 3 });
   // A checkout without a stored link was never returned to the player. If its
   // creator disappeared, release only that unpublished attempt after 10 min.
@@ -58,7 +58,7 @@ export async function startPublicFinancialEntryPaymentAction(formData: FormData)
         { playerId: auth.playerId, type: "REVENUE" },
         { type: { in: ["REVENUE", "INCOME"] }, sale: { comanda: { playerId: auth.playerId } } },
       ] },
-      include: { settlements: { select: { amountCents: true, interestCents: true, discountCents: true } } }
+      include: { settlements: { select: { amountCents: true, interestCents: true, discountCents: true, bankAccountId: true } } }
       }),
       tx.player.findFirst({ where: { id: auth.playerId, arenaId: auth.arenaId }, select: { email: true } }),
       tx.onlinePaymentCheckout.findFirst({ where: { arenaId: auth.arenaId, playerId: auth.playerId, status: "REVIEW", items: { some: { financialEntryId: { in: entryIds } } } }, select: { id: true } }),
@@ -66,7 +66,7 @@ export async function startPublicFinancialEntryPaymentAction(formData: FormData)
     ]);
     if (entries.length !== entryIds.length) throw new Error("Um ou mais lançamentos não estão disponíveis para pagamento.");
     if (reviewCheckout || entries.some((entry) => entry.notes.includes("[MP_REVIEW:"))) throw new Error("Existe um pagamento em análise para um dos lançamentos. Aguarde a conferência da arena antes de pagar novamente.");
-    if (policy.bankAccountId && entries.some(entry => entry.settlements.length > 0 && entry.bankAccountId !== policy.bankAccountId)) throw new Error("Um lançamento já possui recebimentos em outra conta. Solicite a conferência da arena antes de pagar pelo Portal.");
+    if (policy.bankAccountId && entries.some(entry => entry.settlements.some(settlement => !settlement.bankAccountId) && entry.bankAccountId !== policy.bankAccountId)) throw new Error("Um lançamento já possui recebimentos em outra conta. Solicite a conferência da arena antes de pagar pelo Portal.");
     if (!player?.email) throw new Error("Informe um e-mail no seu perfil antes de prosseguir com o pagamento.");
     const items = entries.map((entry) => ({ entry, amountCents: getFinancialEntryBalance(entry.amountCents, entry.settlements, entry.status).outstandingCents })).filter((item) => item.amountCents > 0);
     if (items.length !== entries.length) throw new Error("Um ou mais lançamentos já foram liquidados.");

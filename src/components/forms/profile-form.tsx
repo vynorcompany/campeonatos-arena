@@ -1,7 +1,7 @@
 "use client";
 import { viewStyles } from "./profile-form.utilities";
 
-import { useFormState } from "react-dom";
+import { useActionState } from "react";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { updateOwnProfileAction, type UserActionState } from "@/lib/actions/user";
 
@@ -16,7 +16,7 @@ type ProfileFormProps = {
 };
 
 export function ProfileForm({ userName, userEmail }: ProfileFormProps) {
-  const [state, formAction] = useFormState(updateOwnProfileAction, initialState);
+  const [state, formAction] = useActionState(updateOwnProfileAction, initialState);
 
   return (
     <form action={formAction} className={viewStyles.grid_form}>
@@ -26,8 +26,8 @@ export function ProfileForm({ userName, userEmail }: ProfileFormProps) {
       </div>
 
       <div className={viewStyles.field}>
-        <label htmlFor="email">E-mail</label>
-        <input id="email" name="email" type="email" defaultValue={userEmail} disabled />
+        <span id="profile-email-label">E-mail</span>
+        <p aria-labelledby="profile-email-label" className="tw:m-0 tw:min-h-[42px] tw:min-w-0 tw:rounded-[7px] tw:border tw:border-[var(--line)] tw:bg-white tw:px-3 tw:py-2 tw:font-normal tw:text-[var(--ink)] tw:[overflow-wrap:anywhere]">{userEmail}</p>
       </div>
 
       <div className={viewStyles.field_field_submit}>

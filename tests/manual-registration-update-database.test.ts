@@ -37,7 +37,18 @@ test("edição da inscrição valida arena/categoria e confirma a dupla na mesma
       assert.equal((await updateManualTournamentRegistration(tx, { ...input, arenaId: arenaB.id })).ok, false);
       assert.equal((await updateManualTournamentRegistration(tx, { ...input, categoryId: categoryB.id })).ok, false);
       assert.equal((await tx.publicTournamentRegistration.findUniqueOrThrow({ where: { id: registration.id } })).paymentStatus, "PENDING");
-      assert.equal((await updateManualTournamentRegistration(tx, input)).ok, true);
+      assert.equal((await updateManualTournamentRegistration(tx, input)).ok, false);
+      assert.equal(await tx.financialEntry.count({where:{arenaId:arenaA.id,externalReference:registration.id}}),0);
+      const bank = await tx.bankAccount.create({data:{arenaId:arenaA.id,name:`Conta inscrição ${unique}`}});
+      const foreignBank = await tx.bankAccount.create({data:{arenaId:arenaB.id,name:`Conta inscrição ${unique}`}});
+      const inactiveBank = await tx.bankAccount.create({data:{arenaId:arenaA.id,name:`Conta inativa ${unique}`,active:false}});
+      for (const bankAccountId of [foreignBank.id,inactiveBank.id]) assert.equal((await updateManualTournamentRegistration(tx,{...input,bankAccountId})).ok,false);
+      assert.equal((await tx.publicTournamentRegistration.findUniqueOrThrow({where:{id:registration.id}})).paymentStatus,"PENDING");
+      assert.equal((await updateManualTournamentRegistration(tx, {...input,bankAccountId:bank.id})).ok, true);
+      const receipt=await tx.financialEntry.findFirstOrThrow({where:{arenaId:arenaA.id,externalReference:registration.id},include:{settlements:true}});
+      assert.equal(receipt.bankAccountId,bank.id);assert.equal(receipt.amountCents,15000);assert.equal(receipt.status,"PAID");
+      assert.equal(receipt.settlements.length,1);assert.equal(receipt.settlements[0].bankAccountId,bank.id);
+
       const confirmed = await tx.publicTournamentRegistration.findUniqueOrThrow({ where: { id: registration.id } });
       assert.equal(confirmed.status, "CONFIRMED");
       assert.equal(confirmed.paymentStatus, "PAID");
@@ -47,6 +58,7 @@ test("edição da inscrição valida arena/categoria e confirma a dupla na mesma
       assert.equal((await updateManualTournamentRegistration(tx, { ...input, paymentStatus: "PENDING" })).ok, false);
       assert.equal((await updateManualTournamentRegistration(tx, { ...input, leadName: "Outra dupla" })).ok, false);
       assert.equal(await tx.pair.count({ where: { tournamentId: tournamentA.id } }), 1);
+      assert.equal(await tx.financialEntry.count({where:{arenaId:arenaA.id,externalReference:registration.id}}),1);
       assert.equal((await tx.publicTournamentRegistration.findUniqueOrThrow({ where: { id: registration.id } })).leadName, registration.leadName);
 
       const online = await tx.publicTournamentRegistration.create({ data: {

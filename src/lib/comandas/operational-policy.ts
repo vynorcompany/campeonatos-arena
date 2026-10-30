@@ -4,7 +4,7 @@ import { cashReferenceDate } from "@/lib/finance/cash-day";
 import { getOutstandingCents } from "@/lib/finance/settlements";
 import { ownedReceivables, retainedContactNeedsReview } from "@/lib/legal/retained-contact";
 
-type Payment = { paymentMethod: string; amountCents: number };
+type Payment = { paymentMethod: string; amountCents: number; bankAccountId?: string };
 export function applyComandaPaymentPolicy(input: { totalCents: number; creditCents: number; payments: readonly Payment[]; preventOverpayment: boolean; requireFullPayment: boolean; allowPartial: boolean; playerId: string | null }) {
   const paymentTotal = input.payments.reduce((sum, payment) => sum + payment.amountCents, 0);
   if (![input.totalCents, input.creditCents, paymentTotal].every(Number.isSafeInteger) || input.totalCents < 0 || input.creditCents < 0 || input.creditCents > input.totalCents || input.payments.some(payment => !Number.isSafeInteger(payment.amountCents) || payment.amountCents <= 0)) throw new Error("Valores de pagamento inválidos.");

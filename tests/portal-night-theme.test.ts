@@ -15,7 +15,9 @@ test("mobile dark portal keeps the blue identity across its main surfaces", () =
   assert.match(portal, /tw:dark:\[--portal-surface:#101c2d\]/);
   assert.match(portal, /tw:dark:\[--portal-ink:#e9edf3\]/);
   assert.match(read("src/components/portal/portal-navigation.tsx"), /tw:dark:bg-\[#101c2d\]/);
-  for (const source of [finance, comandas, league]) assert.match(source, /tw:dark:/);
+  for (const source of [finance, league]) assert.match(source, /tw:dark:/);
+  assert.match(comandas, /var\(--portal-surface,white\)/);
+  assert.match(comandas, /var\(--portal-ink,#133047\)/);
   assert.match(login, /tw:dark:\[&_.public-client-auth>header_h2\]:text-\[#eaf3ff\]/);
   assert.match(login, /tw:dark:\[&_.public-client-auth_input:not\(\[type=checkbox\]\):not\(\[type=radio\]\):not\(\[type=hidden\]\)\]:bg-\[#102441\]/);
 });

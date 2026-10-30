@@ -1,3 +1,4 @@
+import { FiscalSettingsForm } from "@/components/fiscal/fiscal-settings-form";
 import { DRE_GROUP_OPTIONS } from "@/lib/reports/dre";
 import { SupplierDialog } from "@/components/finance/supplier-dialog";
 import { WorkspaceHeading } from "@/components/ui/workspace-heading";
@@ -14,7 +15,7 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard as BaseSectionCard } from "@/components/section-card";
 import { CouponActiveToggle } from "@/components/finance/coupon-active-toggle";
 import { CurrencyInput } from "@/components/forms/currency-input";
-import { connectPaymentProviderAction, createCouponAction, createFinancialSettingAction, createProductCategoryAction, deleteCouponAction, deleteFinancialCategoryAction, reconcileBankAccountBalanceAction, updateCouponAction, updateFinancialCategoryAction, updateFiscalSettingsAction } from "@/lib/actions/finance";
+import { connectPaymentProviderAction, createCouponAction, createFinancialSettingAction, createProductCategoryAction, deleteCouponAction, deleteFinancialCategoryAction, reconcileBankAccountBalanceAction, updateCouponAction, updateFinancialCategoryAction } from "@/lib/actions/finance";
 import { requireModuleView } from "@/lib/auth/guards";
 import { canPerformPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
@@ -34,7 +35,7 @@ const backLink = () => <Link className={`${viewStyles.button_button_small} tw:ju
 function CreatePanel({ label, children }: { label: string; children: ReactNode }) { return <details className={viewStyles.setting_create_panel}><summary className={viewStyles.button_button_primary_button_small}>{label}</summary><div>{children}</div></details>; }
 function Status({ children, tone = "active" }: { children: ReactNode; tone?: "active" | "neutral" | "revenue" | "expense" }) { return <span className={cx(`${viewStyles.settings_status} settings-status-${tone}`)}>{children}</span>; }
 function List({ columns, empty, children }: { columns: string[]; empty: boolean; children: ReactNode }) { return <div className={viewStyles.settings_operational_list}><div className={viewStyles.settings_operational_head}>{columns.map((column) => <span key={column}>{column}</span>)}</div>{empty ? <p className={viewStyles.client_empty}>Nenhum cadastro nesta área.</p> : children}</div>; }
-function FiscalEmission({ settings }: { settings: { provider: string; environment: string; series: string; nextNumber: number; notes: string } | null }) { return <SectionCard title="Configurações de Emissão" description="Defina a numeração interna e o ambiente fiscal da arena."><SafeActionForm action={updateFiscalSettingsAction} className={viewStyles.grid_form} successMessage="Configuração fiscal salva."><div className={viewStyles.field}><label>Modo de emissão<select name="provider" defaultValue={settings?.provider ?? "NONE"}><option value="NONE">Desativada</option><option value="MANUAL">Controle manual</option></select></label></div><div className={viewStyles.field}><label>Ambiente<select name="environment" defaultValue={settings?.environment ?? "SANDBOX"}><option value="SANDBOX">Testes</option><option value="PRODUCTION">Produção</option></select></label></div><div className={viewStyles.field}><label>Série<input name="series" defaultValue={settings?.series ?? ""} /></label></div><div className={viewStyles.field}><label>Próximo número<input name="nextNumber" type="number" min="1" defaultValue={settings?.nextNumber ?? 1} /></label></div><div className={viewStyles.field_form_full}><label>Observações<textarea name="notes" defaultValue={settings?.notes ?? ""} /></label></div><div className={viewStyles.field_field_submit}><SubmitButton label="Salvar configurações" pendingLabel="Salvando..." className={viewStyles.button_button_primary_button_small} /></div></SafeActionForm></SectionCard>; }
+
 
 export default async function FinancialSettingAreaPage(
   props: { params: Promise<{ area: string }>; searchParams?: Promise<{ connectionError?: string; secao?: string; q?: string; status?: string }> }
@@ -54,7 +55,7 @@ export default async function FinancialSettingAreaPage(
   }
   if (area === "notas-fiscais") {
     const settings = await prisma.fiscalSettings.findUnique({ where: { arenaId: auth.arenaId } });
-    return <div className={viewStyles.stack_md_settings_page}><section className={viewStyles.settings_emission_shell}>{backLink()}<FiscalEmission settings={settings} /></section></div>;
+    return <FiscalSettingsForm settings={settings} />;
   }
   if (area === "pagamentos-online") {
     const connections = await prisma.paymentConnection.findMany({ where: { arenaId: auth.arenaId }, select: { provider: true, status: true, displayName: true, accountReference: true } }); const mercadoPago = connections.find((entry) => entry.provider === "MERCADO_PAGO"); const asaas = connections.find((entry) => entry.provider === "ASAAS"); const sicoob = connections.find((entry) => entry.provider === "SICOOB");

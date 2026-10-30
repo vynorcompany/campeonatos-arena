@@ -26,6 +26,7 @@ type AppShellProps = {
   visibleModules: string[];
   canAccessAgency: boolean;
   whatsappUnreadCount: number;
+  comandaRequestCount: number;
   notifications: { id: string; title: string; message: string; href: string; createdAt: Date }[];
   billingAlert: { id: string; daysRemaining: number; deadline: Date; checkoutUrl: string } | null;
   children: React.ReactNode;
@@ -47,6 +48,7 @@ export function AppShell({
   visibleModules,
   canAccessAgency,
   whatsappUnreadCount,
+  comandaRequestCount,
   notifications,
   billingAlert,
   children
@@ -81,7 +83,7 @@ export function AppShell({
               currentWorkspace="arena"
             />
 
-            <NavLinks pollingScope={activeArenaId ?? ""} key={activeArenaId} canManageUsers={canManageUsers} canManageFinancialSettings={canManageFinancialSettings} canManageCourtSettings={canManageCourtSettings} canManagePrinterSettings={canManagePrinterSettings} financeView={financeView} canEditStock={canEditStock} visibleModules={visibleModules} whatsappUnreadCount={whatsappUnreadCount} />
+            <NavLinks comandaRequestCount={comandaRequestCount} pollingScope={activeArenaId ?? ""} key={activeArenaId} canManageUsers={canManageUsers} canManageFinancialSettings={canManageFinancialSettings} canManageCourtSettings={canManageCourtSettings} canManagePrinterSettings={canManagePrinterSettings} financeView={financeView} canEditStock={canEditStock} visibleModules={visibleModules} whatsappUnreadCount={whatsappUnreadCount} />
           </div>
 
 

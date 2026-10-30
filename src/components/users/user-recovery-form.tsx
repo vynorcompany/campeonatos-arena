@@ -30,7 +30,7 @@ export function UserRecoveryForm({ userId }: { userId: string }) {
   return (
     <form action={action} className="tw:grid tw:min-w-0 tw:gap-2">
       <input type="hidden" name="userId" value={userId} />
-      <SubmitButton label="Recuperar acesso" pendingLabel="Preparando..." className={`${viewStyles.button} tw:w-fit`} />
+      <SubmitButton label="Gerar link de recuperação" pendingLabel="Preparando..." className={`${viewStyles.button} tw:w-fit`} />
       {state.error ? <p role="alert" className="tw:m-0 tw:text-sm tw:text-red-700">{state.error}</p> : null}
       {state.success ? <p role="status" className="tw:m-0 tw:text-sm">{state.success}</p> : null}
       {link ? (

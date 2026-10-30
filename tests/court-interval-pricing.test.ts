@@ -34,8 +34,11 @@ test("existing court intervals expose an edit action for their configured value"
   const page = readFileSync(resolve(process.cwd(), "src/app/(app)/agenda/configuracao/page.tsx"), "utf8");
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/calendar.ts"), "utf8");
 
-  assert.match(page, /Editar/);
-  assert.match(page, /updateCourtWeeklyRuleAction/);
+  const dialog = readFileSync(resolve(process.cwd(), "src/components/courts/weekly-rule-edit-dialog.tsx"), "utf8");
+  assert.match(page, /<WeeklyRuleEditDialog ruleId=\{rule.id\}/);
+  assert.match(page, /priceCents=\{rule.priceCents\}/);
+  assert.match(dialog, /action=\{updateCourtWeeklyRuleAction\}/);
+  assert.match(dialog, /defaultValue=\{formatMoneyInput\(priceCents\)\}/);
   assert.match(actions, /export async function updateCourtWeeklyRuleAction/);
 });
 
@@ -44,8 +47,10 @@ test("court interval controls close after editing and can copy to all weekly per
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/calendar.ts"), "utf8");
   const form = readFileSync(resolve(process.cwd(), "src/components/forms/safe-action-form.tsx"), "utf8");
 
-  assert.match(page, /closeClosestDetailsOnSuccess/);
+  const dialog = readFileSync(resolve(process.cwd(), "src/components/courts/weekly-rule-edit-dialog.tsx"), "utf8");
+  assert.match(dialog, /<Modal title="Editar faixa de horário" open onClose=\{close\}/);
+  assert.match(dialog, /onSuccess=\{close\}/);
   assert.match(page, /Todos os períodos/);
   assert.match(actions, /targetWeekday: z\.union/);
-  assert.match(form, /closeClosestDetailsOnSuccess/);
+  assert.match(form, /onSuccess\?\.\(\)/);
 });

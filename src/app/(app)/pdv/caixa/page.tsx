@@ -31,14 +31,7 @@ export default async function CashRegisterPage() {
 
   return <div className={cx(`cash-register-page ${styles.page}`)}>
 
-    <header className={styles.overview}>
-      <div className={styles.overviewCopy}>
-        <span className={styles.eyebrow}>Operação diária</span>
-        <div className={styles.overviewTitle}><h1 className="tw:m-0 tw:text-lg tw:font-semibold tw:text-[#132d58]">Caixa de hoje</h1><span className={cx(`${styles.status} ${isOpen ? styles.open : register ? styles.closed : styles.notOpened}`)}><span aria-hidden="true" />{isOpen ? "Aberto" : register ? "Encerrado" : "Não aberto"}</span></div>
-        <p>{dayLabel}</p>
-      </div>
-      <div className={styles.shortcuts}><Link className={viewStyles.button_button_small} href="/pdv">Produtos e serviços</Link><Link className={viewStyles.button_button_small} href="/relatorios/caixa">Relatório de caixa</Link></div>
-    </header>
+    <header className="tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:justify-end tw:gap-2"><h1 className="tw:sr-only">Caixa de hoje</h1><span className={cx(`${styles.status} ${isOpen ? styles.open : register ? styles.closed : styles.notOpened}`)}><span aria-hidden="true" />{isOpen ? "Aberto" : register ? "Encerrado" : "Não aberto"}</span><div className={styles.shortcuts}><Link className={viewStyles.button_button_small} href="/pdv">Produtos e serviços</Link><Link className={viewStyles.button_button_small} href="/relatorios/caixa">Relatório de caixa</Link></div></header>
 
     {register ? <section className={styles.summaryGrid} aria-label="Resumo do caixa">
       <article><span>Fundo inicial</span><strong>{money(register.openingAmountCents)}</strong></article>
@@ -47,7 +40,7 @@ export default async function CashRegisterPage() {
       {!isOpen ? <article><span>Diferença</span><strong>{money(register.differenceCents ?? 0)}</strong></article> : null}
     </section> : null}
 
-    {!isOpen ? <SectionCard className={styles.panel} title={register ? "Nova abertura de caixa" : "Abertura de caixa"} description="Informe o valor disponível no início desta operação.">
+    {!isOpen ? <SectionCard hideHeading className={styles.panel} title={register ? "Nova abertura de caixa" : "Abertura de caixa"} description="Informe o valor disponível no início desta operação.">
       <SafeActionForm action={openCashRegisterAction} className={styles.form} successMessage="Caixa aberto.">
         <div className="tw:grid tw:gap-1"><CurrencyField name="openingAmount" label="Fundo inicial" defaultValue={(suggestedOpeningCents / 100).toFixed(2).replace(".", ",")} /><p className={`tw:text-[11px]! ${suggestedOpeningCents > 0 ? "tw:text-emerald-700!" : "tw:text-[var(--muted)]!"}`}>Esperado na abertura: {money(suggestedOpeningCents)}{previousClosing ? " · último fechamento" : " · sem fechamento anterior"}</p></div>
         <label className={viewStyles.field}><span>Observação de abertura</span><input name="openingNotes" placeholder="Ex.: troco inicial" /></label>
@@ -55,11 +48,11 @@ export default async function CashRegisterPage() {
       </SafeActionForm>
     </SectionCard> : null}
 
-    {register && !isOpen ? <SectionCard className={styles.panel} title="Última operação encerrada" description="O fechamento anterior permanece no histórico. Você pode abrir um novo caixa hoje."><p className={viewStyles.muted}>Consulte as movimentações e os valores no relatório de caixa.</p></SectionCard> : null}
+    {register && !isOpen ? <SectionCard className={styles.panel} title="Última operação encerrada" description="O fechamento anterior permanece no histórico. Você pode abrir um novo caixa hoje." hideHeading><p className={viewStyles.muted}>Consulte as movimentações e os valores no relatório de caixa.</p></SectionCard> : null}
 
     {register && isOpen ? <>
       <div className={styles.operationGrid}>
-        <SectionCard className={styles.panel} title="Registrar movimentação" description="Entradas de suprimento ou retiradas de sangria.">
+        <SectionCard className={styles.panel} title="Registrar movimentação" description="Entradas de suprimento ou retiradas de sangria." hideHeading>
           <SafeActionForm action={createCashMovementAction} className={styles.form} resetOnSuccess successMessage="Movimentação registrada.">
             <input type="hidden" name="registerId" value={register.id} />
             <label className={viewStyles.field}><span>Tipo</span><select name="type"><option value="SUPPLY">Suprimento</option><option value="WITHDRAWAL">Sangria</option></select></label>
@@ -68,7 +61,7 @@ export default async function CashRegisterPage() {
             <div className={styles.formActions}><SubmitButton className={viewStyles.button_button_primary} label="Registrar" pendingLabel="Registrando..." /></div>
           </SafeActionForm>
         </SectionCard>
-        <SectionCard className={styles.panel} title="Fechamento de caixa" description="Confira o dinheiro contado antes de encerrar o dia.">
+        <SectionCard className={styles.panel} title="Fechamento de caixa" description="Confira o dinheiro contado antes de encerrar o dia." hideHeading>
           <SafeActionForm action={closeCashRegisterAction} className={styles.form} successMessage="Caixa encerrado.">
             <input type="hidden" name="registerId" value={register.id} />
             <CurrencyField name="countedAmount" label="Valor contado" />
@@ -77,7 +70,7 @@ export default async function CashRegisterPage() {
           </SafeActionForm>
         </SectionCard>
       </div>
-      <SectionCard className={styles.panel} title="Movimentações de hoje">
+      <SectionCard className={styles.panel} title="Movimentações de hoje" hideHeading>
         <div className={styles.movementList}>{register.movements.map((item) => <article key={item.id}>
           <span><strong>{item.type === "SUPPLY" ? "Suprimento" : item.type === "SALE" ? "Venda" : "Sangria"}</strong><small>{item.description || "Sem observação"}</small></span>
           <b className={cx(item.amountCents < 0 ? styles.negative : styles.positive)}>{item.amountCents < 0 ? "−" : "+"}{money(Math.abs(item.amountCents))}</b>

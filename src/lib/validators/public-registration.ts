@@ -28,6 +28,7 @@ export const createManualTournamentRegistrationSchema = z.object({
   leadPlayerId: z.string().trim().min(1, "Selecione o primeiro atleta."),
   partnerPlayerId: z.string().trim().min(1, "Selecione o segundo atleta."),
   amountReais: z.union([z.string(), z.number()]),
+  bankAccountId: z.string().trim().max(100).optional(),
   paymentStatus: z.enum(["PENDING", "PAID"]).default("PENDING")
 });
 
@@ -44,5 +45,6 @@ export const updateManualTournamentRegistrationSchema = z.object({
   partnerCpf: cpfSchema,
   partnerBirthDate: optionalBirthDateSchema,
   amountReais: z.union([z.string(), z.number()]),
+  bankAccountId: z.string().trim().max(100).optional(),
   paymentStatus: z.enum(["PENDING", "PAID"]).default("PENDING")
 });

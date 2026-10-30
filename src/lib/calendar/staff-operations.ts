@@ -1,3 +1,4 @@
+import { lockAvailableBookingServices } from "./booking-services";
 import type { ArenaTransaction } from "@/lib/rls";
 import { assertCourtBookingMayBeEdited } from "./court-booking-edit-safety";
 import { activeCourtOccurrenceWhere } from "./online-booking-hold";
@@ -67,6 +68,8 @@ export async function moveBookingCourt(tx: ArenaTransaction, arenaId: string, oc
   if (current.updatedAt.getTime() !== initial.updatedAt.getTime() || current.occurrenceCourts[0]?.courtId !== initial.occurrenceCourts[0]?.courtId) throw new Error("A reserva foi alterada. Atualize a grade antes de mudar a quadra.");
   const court = await tx.court.findFirst({ where: { id: courtId, arenaId, active: true }, select: { id: true, name: true } });
   if (!court) throw new Error("Quadra não encontrada nesta arena.");
+  const services = await tx.scheduleServiceReservation.findMany({ where: { arenaId, occurrenceId }, select: { productId: true } });
+  if (services.length) await lockAvailableBookingServices(tx, arenaId, services.map(service => service.productId), current.startsAt, current.endsAt, { courtIds: [courtId], excludeOccurrenceId: occurrenceId, requireVisible: false });
   const conflict = await tx.scheduleOccurrence.findFirst({ where: { arenaId, id: { not: occurrenceId }, ...activeCourtOccurrenceWhere(), startsAt: { lt: current.endsAt }, endsAt: { gt: current.startsAt }, occurrenceCourts: { some: { courtId } } }, select: { id: true } });
   if (conflict) throw new Error("Já existe um agendamento nessa quadra para este horário.");
   await tx.scheduleOccurrence.update({ where: { id: occurrenceId, arenaId }, data: { occurrenceCourts: { deleteMany: {}, create: { courtId } }, updatedAt: new Date() } });

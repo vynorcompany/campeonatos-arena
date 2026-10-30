@@ -43,7 +43,7 @@ export const viewStyles = {
   ].join(" "),
   "t_category_icon": [
     "t-category-icon", "tw:grid", "tw:w-[38px]", "tw:h-[38px]", "tw:@max-[700px]:[grid-column:1]", "tw:@max-[700px]:[grid-row:1/3]",
-    "tw:place-items-center", "tw:rounded-[9px]", "tw:bg-[color:transparent]", "tw:[background-image:linear-gradient(145deg,_#0c61dc,_#00419c)]",
+    "tw:place-items-center", "tw:rounded-[9px]", "tw:bg-[color:#174983]", "tw:[background-image:none]",
     "tw:text-[color:#fff]", "tw:text-[1.1rem]", "tw:[&_.event-icon]:w-[19px]", "tw:[&_.event-icon]:h-[19px]",
   ].join(" "),
   "t_category_name": [
@@ -53,7 +53,7 @@ export const viewStyles = {
   "t_category_format": [
     "t-category-format", "tw:text-[color:#36699c]", "tw:text-[.82rem]", "tw:w-[fit-content]",
     "tw:pt-[5px]", "tw:pr-[8px]", "tw:pb-[5px]", "tw:pl-[8px]",
-    "tw:rounded-[6px]", "tw:bg-[color:#edf4ff]", "tw:[background-image:none]", "tw:font-[700]",
+    "tw:rounded-[6px]", "tw:bg-[color:#fff]", "tw:[background-image:none]", "tw:font-[700]",
     "tw:viewport-680:[grid-row:2]", "tw:viewport-760:hidden", "tw:@max-[700px]:inline-flex", "tw:@max-[700px]:[grid-column:2]", "tw:@max-[700px]:[grid-row:2]",
   ].join(" "),
   "t_category_pairs": [
@@ -76,7 +76,7 @@ export const viewStyles = {
     "tw:[border-left-style:solid]", "tw:border-l-[color:#d6e1ef]", "tw:rounded-[8px]", "tw:text-[.8rem]",
     "tw:items-center", "tw:leading-[1]", "tw:@max-[700px]:[grid-column:3]", "tw:@max-[700px]:[grid-row:1]", "tw:hover:text-[color:var(--brand-strong)]", "tw:hover:[transform:none]",
     "tw:hover:border-t-[color:#0759d6]", "tw:hover:border-r-[color:#0759d6]", "tw:hover:border-b-[color:#0759d6]", "tw:hover:border-l-[color:#0759d6]",
-    "tw:hover:bg-[color:#eff6ff]", "tw:hover:[background-image:none]", "tw:viewport-760:[grid-column:3]", "tw:viewport-760:[grid-row:1]",
+    "tw:hover:bg-[color:#fff] tw:hover:border-[#1e5ea8]", "tw:hover:[background-image:none]", "tw:viewport-760:[grid-column:3]", "tw:viewport-760:[grid-row:1]",
     "tw:viewport-680:[align-self:center]", "tw:[&_span]:text-[1.25rem]", "tw:[&_span]:leading-[.8]",
   ].join(" "),
   "t_category_empty": [

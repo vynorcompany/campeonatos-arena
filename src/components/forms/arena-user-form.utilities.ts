@@ -1,7 +1,7 @@
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
-  "grid_form": sharedUtilities.gridForm,
+  "grid_form": sharedUtilities.gridForm + " tw:grid-cols-1!",
   "field": sharedUtilities.field,
   "field_field_submit": sharedUtilities.fieldFieldSubmit,
   "sr_only": sharedUtilities.srOnly,

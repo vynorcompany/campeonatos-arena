@@ -1,12 +1,15 @@
 "use client";
-import { fixedDialogFrame } from "@/components/ui/dialog-frame";
+import { MonthPicker } from "@/components/forms/month-picker";
+import { Modal } from "@/components/ui/modal";
+import { ToggleSwitch } from "@/components/forms/toggle-switch";
 
 import { WorkspaceHeading } from "@/components/ui/workspace-heading";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
-import { MoneyInput } from "@/components/forms/money-input";
+import { HoursInput } from "@/components/forms/hours-input";
+import { CentavosInput } from "@/components/forms/centavos-input";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { upsertPayrollEntryAction } from "@/lib/actions/finance";
 import { calculateEmployeePayroll, type PayrollAmounts } from "@/lib/finance/employee-payroll";
@@ -16,6 +19,10 @@ import { payrollStyles as styles } from "./employee-payroll-workspace.utilities"
 type Employee = { id: string; name: string };
 export type EmployeePayrollRow = PayrollAmounts & { id: string; userId: string | null; employeeName: string; referenceMonth: string; notes: string; financialEntry: { amountCents: number; status: string; dueDate: string; paidAt: string; settlements: { amountCents: number; interestCents: number }[] } | null };
 const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
+const payrollMoneyFormat = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function PayrollMoneyInput({ name, readOnly, valueCents, onValueCentsChange }: { name: string; readOnly: boolean; valueCents: number; onValueCentsChange: (value: number) => void }) {
+  return <span className="tw:relative tw:block tw:min-w-0"><span aria-hidden="true" className="tw:pointer-events-none tw:absolute tw:left-3 tw:top-1/2 tw:-translate-y-1/2 tw:text-xs tw:font-normal">R$</span><CentavosInput name={name} readOnly={readOnly} value={payrollMoneyFormat.format(valueCents / 100)} className="tw:pl-10! tw:tabular-nums" onValueChange={value => onValueCentsChange(Number(value.replace(/\D/g, "")) || 0)} /></span>;
+}
 const today = () => new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Sao_Paulo" }).format(new Date());
 const emptyAmounts: PayrollAmounts = { fixedSalaryCents: 0, monthlyMinutes: 13200, overtimeMinutes: 0, overtimePercentage: 50, bonusCents: 0, benefitsCents: 0, discountCents: 0, advanceCents: 0 };
 const hourMinutes = (value: string) => Math.max(0, Math.round((Number(value.replace(",", ".")) || 0) * 60));
@@ -30,26 +37,10 @@ function PayrollForm({ employees, entries, referenceMonth, initial, canCreate, c
   const [dueDate, setDueDate] = useState(initial?.financialEntry?.dueDate || today());
   const [paidAt, setPaidAt] = useState(initial?.financialEntry?.paidAt || today());
   const [notes, setNotes] = useState(initial?.notes ?? "");
-  const dismiss = useRef<HTMLButtonElement>(null);
-  const container = useRef<HTMLDivElement>(null);
   const matching = entries.find(entry => entry.userId === userId && entry.referenceMonth === month);
   const canSave = matching ? canEdit : canCreate;
   const paid = matching?.financialEntry?.status === "PAID";
   const hasPayments = paid || Boolean(matching?.financialEntry?.settlements.length);
-  useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null;
-    dismiss.current?.focus();
-    const key = (event: KeyboardEvent) => {
-      if (event.key === "Escape") close();
-      if (event.key !== "Tab") return;
-      const focusable = Array.from(container.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled):not([type=hidden]), select:not(:disabled), a[href]') ?? []);
-      const first = focusable[0], last = focusable.at(-1);
-      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
-      if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
-    };
-    window.addEventListener("keydown", key);
-    return () => { window.removeEventListener("keydown", key); previous?.focus(); };
-  }, [close]);
   const totals = calculateEmployeePayroll(amounts);
   const changeEmployee = (id: string, nextMonth: string) => {
     setUserId(id); setMonth(nextMonth);
@@ -58,31 +49,30 @@ function PayrollForm({ employees, entries, referenceMonth, initial, canCreate, c
     setStatus(found?.financialEntry?.status === "PAID" ? "PAID" : "PENDING"); setDueDate(found?.financialEntry?.dueDate || today()); setPaidAt(found?.financialEntry?.paidAt || today()); setNotes(found?.notes ?? "");
   };
   const moneyFields = [["fixedSalaryCents", "fixedSalary", "Salário base"], ["bonusCents", "bonus", "Adicionais e bônus"], ["benefitsCents", "benefits", "Benefícios"], ["discountCents", "discount", "Descontos"], ["advanceCents", "advance", "Adiantamentos"]] as const;
-  return <div className={styles.overlay} onMouseDown={event => { if (event.target === event.currentTarget) close(); }}><div ref={container} className={[styles.modal, fixedDialogFrame].join(" ")} role="dialog" aria-modal="true" aria-labelledby="employee-payroll-title">
-    <header className={styles.toolbar}><div><h2 id="employee-payroll-title" className="tw:m-0 tw:text-lg">{matching ? "Editar folha" : "Nova folha"}</h2><p>Salário e verbas do funcionário.</p></div><button ref={dismiss} type="button" className={styles.secondary} onClick={close} aria-label="Fechar folha">×</button></header>
+  return <Modal open title={matching ? "Editar folha" : "Nova folha"} onClose={close} width="tw:max-w-[820px]">
     <SafeActionForm action={upsertPayrollEntryAction} className={styles.form} successMessage="Folha salva em Contas a Pagar." onSuccess={close}>
       <label>Funcionário{!canCreate ? <input type="hidden" name="userId" value={userId} /> : null}<select name={canCreate ? "userId" : undefined} required disabled={!canCreate} value={userId} onChange={event => changeEmployee(event.target.value, month)}><option value="">Selecione o funcionário</option>{employees.map(employee => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</select></label>
-      <label>Mês de referência<input name="referenceMonth" type="month" required readOnly={!canCreate} value={month} onChange={event => changeEmployee(userId, event.target.value)} /></label>
-      {moneyFields.slice(0, 1).map(([key, name, label]) => <label key={key}>{label}<MoneyInput name={name} readOnly={hasPayments} valueCents={amounts[key]} onValueCentsChange={value => setAmounts(current => ({ ...current, [key]: value }))} /></label>)}
-      <label>Jornada mensal (horas)<input name="monthlyHours" inputMode="decimal" required readOnly={hasPayments} value={monthlyHours} onChange={event => { setMonthlyHours(event.target.value); setAmounts(current => ({ ...current, monthlyMinutes: hourMinutes(event.target.value) })); }} /></label>
-      <label>Horas extras<input name="overtimeHours" inputMode="decimal" readOnly={hasPayments} value={overtimeHours} onChange={event => { setOvertimeHours(event.target.value); setAmounts(current => ({ ...current, overtimeMinutes: hourMinutes(event.target.value) })); }} /></label>
+      <MonthPicker name="referenceMonth" label="Mês de referência" disabled={!canCreate} value={month} onChange={value => changeEmployee(userId, value)} />
+      {moneyFields.slice(0, 1).map(([key, name, label]) => <label key={key}>{label}<PayrollMoneyInput name={name} readOnly={hasPayments} valueCents={amounts[key]} onValueCentsChange={value => setAmounts(current => ({ ...current, [key]: value }))} /></label>)}
+      <label>Jornada mensal (horas)<HoursInput name="monthlyHours" required readOnly={hasPayments} value={monthlyHours} onValueChange={value => { setMonthlyHours(value); setAmounts(current => ({ ...current, monthlyMinutes: hourMinutes(value) })); }} /></label>
+      <label>Horas extras<HoursInput name="overtimeHours" readOnly={hasPayments} value={overtimeHours} onValueChange={value => { setOvertimeHours(value); setAmounts(current => ({ ...current, overtimeMinutes: hourMinutes(value) })); }} /></label>
       <label>Adicional da hora extra (%)<input name="overtimePercentage" type="number" min="0" max="300" step="1" required readOnly={hasPayments} value={amounts.overtimePercentage} onChange={event => setAmounts(current => ({ ...current, overtimePercentage: Number(event.target.value) }))} /></label>
-      {moneyFields.slice(1).map(([key, name, label]) => <label key={key}>{label}<MoneyInput name={name} readOnly={hasPayments} valueCents={amounts[key]} onValueCentsChange={value => setAmounts(current => ({ ...current, [key]: value }))} /></label>)}
-      <p className="tw:col-span-full tw:m-0 tw:text-xs tw:text-[var(--muted)]">Hora extra = salário ÷ jornada mensal × horas extras × (1 + adicional). Informe a jornada e o adicional aplicáveis ao funcionário.</p>
+      {moneyFields.slice(1).map(([key, name, label]) => <label key={key}>{label}<PayrollMoneyInput name={name} readOnly={hasPayments} valueCents={amounts[key]} onValueCentsChange={value => setAmounts(current => ({ ...current, [key]: value }))} /></label>)}
       {hasPayments ? <p className="tw:col-span-full tw:m-0 tw:text-xs tw:text-[var(--muted)]">Os valores já têm pagamentos registrados. Revise baixas e datas em Contas a Pagar.</p> : null}
-      <div className={styles.full}><span className="tw:text-xs tw:font-semibold">Status</span><input type="hidden" name="status" value={status} /><div><button type="button" className={styles.status} role="switch" aria-label="Pagamento da folha" aria-checked={status === "PAID"} disabled={paid || !canSettle} onClick={() => setStatus(current => current === "PAID" ? "PENDING" : "PAID")}><i aria-hidden="true" /><span>{status === "PAID" ? "Pago" : "A pagar"}</span></button></div></div>
+      <div className={styles.full}><input type="hidden" name="status" value={status} /><ToggleSwitch compact label="Pagamento realizado" checked={status === "PAID"} disabled={paid || !canSettle} onCheckedChange={checked => setStatus(checked ? "PAID" : "PENDING")} /></div>
       <label>Data de vencimento<input name="dueDate" type="date" required value={dueDate} onChange={event => setDueDate(event.target.value)} /></label>
       {status === "PAID" ? <label>Data do pagamento<input name="paidAt" type="date" required readOnly={paid} value={paidAt} onChange={event => setPaidAt(event.target.value)} /></label> : <input type="hidden" name="paidAt" value="" />}
       <label className={styles.full}>Observações<input name="notes" maxLength={2000} value={notes} onChange={event => setNotes(event.target.value)} /></label>
-      <div className={styles.preview} aria-live="polite"><span>Horas extras</span><strong>{money(totals.overtimeCents)}</strong><span>Descontos e adiantamentos</span><strong>{money(totals.deductionsCents)}</strong><span>Total líquido</span><strong data-testid="payroll-total">{money(totals.totalCents)}</strong></div>
+      <div className={styles.preview} aria-live="polite"><span>Horas extras</span><strong>{money(totals.overtimeCents)}</strong><span>Descontos e adiantamentos</span><strong>{money(totals.deductionsCents)}</strong><span className="tw:font-semibold">Total líquido</span><strong className="tw:text-lg! tw:font-bold" data-testid="payroll-total">{money(totals.totalCents)}</strong></div>
       {!canSave ? <p className="tw:col-span-full tw:m-0 tw:text-xs tw:text-[var(--muted)]">Você não tem permissão para {matching ? "editar esta folha" : "criar uma nova folha"}.</p> : null}
       <div className="tw:col-span-full tw:flex tw:flex-wrap tw:justify-end tw:gap-2"><button type="button" className={styles.secondary} onClick={close}>Cancelar</button>{canSave ? <SubmitButton label="Salvar folha" pendingLabel="Salvando..." className={styles.button} /> : null}</div>
     </SafeActionForm>
-  </div></div>;
+  </Modal>;
 }
 
 export function EmployeePayrollWorkspace({ employees, entries, referenceMonth, canCreate, canEdit, canSettle }: { employees: Employee[]; entries: EmployeePayrollRow[]; referenceMonth: string; canCreate: boolean; canEdit: boolean; canSettle: boolean }) {
   const [query, setQuery] = useState("");
+  const [filterMonth, setFilterMonth] = useState(referenceMonth);
   const [form, setForm] = useState<{ entry: EmployeePayrollRow | null } | null>(null);
   const close = useRef(() => setForm(null)).current;
   const visible = entries.filter(entry => entry.employeeName.toLocaleLowerCase("pt-BR").includes(query.toLocaleLowerCase("pt-BR")));
@@ -93,9 +83,9 @@ export function EmployeePayrollWorkspace({ employees, entries, referenceMonth, c
     return { total: totals.total + entry.amountCents, paid: totals.paid + balance.paidCents, pending: totals.pending + balance.outstandingCents };
   }, { total: 0, paid: 0, pending: 0 });
   return <section className={styles.page}>
-    <WorkspaceHeading eyebrow="FINANCEIRO · EQUIPE" title="Folha de pagamento" description="Acompanhe a competência, os valores e a situação dos pagamentos da equipe.">{canCreate ? <button type="button" className={styles.button} disabled={!employees.length} onClick={() => setForm({ entry: null })}>Nova folha</button> : null}</WorkspaceHeading>
-    <div className={styles.filters}><form method="get" action="/financeiro/folha" className="tw:flex tw:flex-wrap tw:items-center tw:gap-2"><label htmlFor="payroll-month" className="tw:text-sm">Mês</label><input id="payroll-month" name="mes" type="month" defaultValue={referenceMonth} required /><button className={styles.secondary}>Filtrar</button></form><input type="search" aria-label="Buscar funcionário" placeholder="Buscar funcionário..." value={query} onChange={event => setQuery(event.target.value)} /><Link href="/financeiro/contas-a-pagar" className={styles.secondary}>Contas a Pagar</Link></div>
-    <div className={styles.summary}><div><span>Total da folha</span><strong>{money(summary.total)}</strong></div><div><span>Pago</span><strong>{money(summary.paid)}</strong></div><div><span>A pagar</span><strong>{money(summary.pending)}</strong></div></div>
+    <WorkspaceHeading title="Folha de pagamento">{canCreate ? <button type="button" className={styles.button} disabled={!employees.length} onClick={() => setForm({ entry: null })}>Nova folha</button> : null}</WorkspaceHeading>
+    <div className={styles.filters}><form method="get" action="/financeiro/folha" className="tw:flex tw:min-w-0 tw:flex-wrap tw:items-end tw:gap-2"><MonthPicker name="mes" value={filterMonth} onChange={setFilterMonth} /><button className={`${styles.secondary} tw:h-9`}>Filtrar</button></form><label className="tw:grid tw:min-w-0 tw:gap-1 tw:text-xs tw:font-semibold">Funcionário<input type="search" aria-label="Buscar funcionário" placeholder="Buscar funcionário..." value={query} onChange={event => setQuery(event.target.value)} /></label><Link href="/financeiro/contas-a-pagar" className={`${styles.secondary} tw:h-9 tw:justify-self-start`}>Contas a Pagar</Link></div>
+    <div className={styles.summary}><div><span>Total da folha</span><strong>{money(summary.total)}</strong></div><div><span>Pago</span><strong className="tw:text-emerald-700">{money(summary.paid)}</strong></div><div><span>A pagar</span><strong className="tw:text-red-700">{money(summary.pending)}</strong></div></div>
     <div className={styles.list}>{visible.map(row => {
       const entry = row.financialEntry;
       const status = entry?.status === "PAID" ? "Pago" : entry?.status === "VOIDED" ? "Cancelado" : entry ? "A pagar" : "Lançamento excluído";

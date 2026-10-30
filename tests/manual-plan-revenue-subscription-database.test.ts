@@ -1,3 +1,4 @@
+import { requireReceivingBankAccount } from "../src/lib/finance/receiving-bank-account";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -23,11 +24,13 @@ test("receitas manuais simultâneas do mesmo plano criam apenas uma assinatura n
   runtimeUrl.username = "arena_runtime";
   runtimeUrl.password = "";
   const runtime = new PrismaClient({ datasources: { db: { url: runtimeUrl.toString() } } });
+  const bankIds: string[] = [];
   const ids: { teacher?: string; plan?: string; client?: string; betaClient?: string } = {};
   try {
     const arenaA = await admin.arena.findUniqueOrThrow({ where: { slug: "arena-teste-goal" }, select: { id: true } });
     const arenaB = await admin.arena.findUniqueOrThrow({ where: { slug: "arena-beta-goal" }, select: { id: true } });
     const suffix = randomUUID();
+    for (const [arenaId, active] of [[arenaA.id, true], [arenaA.id, false], [arenaB.id, true]] as const) bankIds.push((await admin.bankAccount.create({ data: { arenaId, active, name: `Conta receita ${suffix}-${bankIds.length}` } })).id);
     ids.teacher = (await admin.teacher.create({ data: { arenaId: arenaA.id, name: `Professor Receita GOAL ${suffix}` }, select: { id: true } })).id;
     ids.plan = (await admin.plan.create({ data: { arenaId: arenaA.id, name: `Plano Receita GOAL ${suffix}`, monthlyPriceCents: 30000, classesPerMonth: 4 }, select: { id: true } })).id;
     await admin.teacherPlan.create({ data: { arenaId: arenaA.id, teacherId: ids.teacher, planId: ids.plan, monthlyPriceCents: 30000 } });
@@ -49,6 +52,7 @@ test("receitas manuais simultâneas do mesmo plano criam apenas uma assinatura n
       "@/lib/finance/action-schemas": { entrySchema: { safeParse: () => ({ success: true, data }) } },
       "@/lib/finance/inputs": { parseMoneyToCents: () => 30000, parseDate: (value: string) => value ? new Date(`${value}T12:00:00Z`) : null },
       "@/lib/finance/discounts": { getDiscountedAmountCents: () => 30000 },
+      "@/lib/finance/receiving-bank-account": { requireReceivingBankAccount },
       "@/lib/finance/entry-relations": { assertFinancialEntryRelationsBelongToArena },
       "@/lib/academy/subscription-lock": { lockStudentPlanSubscription },
       "@/lib/finance/revalidation": { refreshFinanceRoutes() {} },
@@ -74,6 +78,18 @@ test("receitas manuais simultâneas do mesmo plano criam apenas uma assinatura n
     assert.equal(await admin.studentSubscription.count({ where: { arenaId: arenaA.id, studentId: student.id, planId: ids.plan, status: "ACTIVE" } }), 1);
     assert.equal(await admin.teacherStudent.count({ where: { arenaId: arenaA.id, studentId: student.id, teacherId: ids.teacher } }), 1);
 
+    data.status = "PAID";
+    for (const bank of ["", bankIds[1], bankIds[2]]) {
+      data.bankAccountId = bank;
+      await assert.rejects(create(ids.client), /bancária/);
+    }
+    assert.equal(await admin.financialEntry.count({ where: { arenaId: arenaA.id, planId: ids.plan, playerId: ids.client } }), 2);
+    data.bankAccountId = bankIds[0];
+    await create(ids.client);
+    const paid = await admin.financialEntry.findFirstOrThrow({ where: { planId: ids.plan, status: "PAID" }, include: { settlements: true } });
+    assert.equal(paid.bankAccountId, bankIds[0]);
+    assert.equal(paid.settlements.length, 1);
+    assert.equal(paid.settlements[0].bankAccountId, bankIds[0]);
     await assert.rejects(create(ids.betaClient), /Cliente não encontrado nesta arena/);
     assert.equal(await admin.financialEntry.count({ where: { arenaId: arenaA.id, playerId: ids.betaClient } }), 0);
   } finally {
@@ -88,6 +104,7 @@ test("receitas manuais simultâneas do mesmo plano criam apenas uma assinatura n
     if (ids.betaClient) await admin.player.delete({ where: { id: ids.betaClient } });
     if (ids.plan) await admin.plan.delete({ where: { id: ids.plan } });
     if (ids.teacher) await admin.teacher.delete({ where: { id: ids.teacher } });
+    await admin.bankAccount.deleteMany({ where: { id: { in: bankIds } } });
     await runtime.$disconnect();
     await admin.$disconnect();
   }

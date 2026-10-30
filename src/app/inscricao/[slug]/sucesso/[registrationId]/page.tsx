@@ -31,7 +31,7 @@ export default async function RegistrationSuccessPage(props: { params: Promise<{
         <div><span>Torneio</span><strong>{registration.tournament.name}</strong></div>
         <div><span>Categoria</span><strong>{registration.category.name}</strong></div>
         <div><span>Dupla</span><strong>{registration.leadName} / {registration.partnerName}</strong></div>
-        <div><span>Valor</span><strong>{money.format(registration.amountCents / 100)}</strong></div>
+        <div><span>Valor</span><strong className="tw:text-xl! tw:font-semibold tw:text-[#174983] tw:dark:text-white">{money.format(registration.amountCents / 100)}</strong></div>
         {registration.discountCents ? <div><span>Desconto aplicado</span><strong>{money.format(registration.discountCents / 100)}</strong></div> : null}
         <div><span>Status</span><strong className={cx(confirmed ? viewStyles.status_confirmed : canceled || expired ? viewStyles.status_expired : viewStyles.status_pending)}>{confirmed ? "Confirmada" : needsReview ? "Em análise" : canceled ? "Cancelada" : expired ? "Prazo encerrado" : "Pagamento pendente"}</strong></div>
       </div>

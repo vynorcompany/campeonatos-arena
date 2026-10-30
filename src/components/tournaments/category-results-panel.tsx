@@ -1,3 +1,4 @@
+import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./category-results-panel.utilities";
 import Link from "next/link";
@@ -182,7 +183,7 @@ export function CategoryResultsPanel({
           >
             <div className={cx(`${viewStyles.page_header} ${competition?.format === "LEAGUE" && mode === "games" ? viewStyles.league_games_hero : ""}`)}>
               <div className={viewStyles.stack_xs}>
-                <h3>{category.name}</h3>
+                {categories.length > 1 ? <strong className="tw:text-sm">{category.name}</strong> : null}
                 <p className={viewStyles.muted}>
                   {completedMatchCount}/{competition?.matches.length ?? 0} jogos
                   concluídos
@@ -244,7 +245,7 @@ export function CategoryResultsPanel({
                           {startsLeagueWeek ? (
                             <div className={viewStyles.league_week_divider}>
                               <div>
-                                <span>Calendário mensal</span>
+
                                 <strong>Semana {leagueBlock}</strong>
                               </div>
                               <small>{orderedMatches.filter((item) => getLeagueMatchBlock(item) === leagueBlock).length} jogos</small>
@@ -316,24 +317,24 @@ export function CategoryResultsPanel({
                               value={match.id}
                             />
                             <input type="hidden" name="courtName" value={match.courtName ?? ""} />
-                            <input
+                            <label className={ui.field}>Data<input
                               name="scheduledDate"
                               type="date"
                               defaultValue={match.scheduledDate ?? ""}
                               aria-label={`Data de ${match.label}`}
                               required
                             />
-                            <input
+                            </label><label className={ui.field}>Horário<input
                               name="scheduledTime"
                               type="time"
                               defaultValue={match.scheduledTime ?? ""}
                               aria-label={`Horário de ${match.label}`}
                               required
                             />
-                            <SubmitButton
+                            </label><SubmitButton
                               label="Salvar horário"
                               pendingLabel="..."
-                              className={viewStyles.button}
+                              className={`${ui.primary} tw:bg-[#1e5ea8]! tw:text-white!`}
                             />
                           </form> : null}
                           {canManage ? <form
@@ -420,7 +421,7 @@ export function CategoryResultsPanel({
                   competition.sportsResults.leagueStandings.length ? (
                     <div className={viewStyles.group_standings}>
                       <h4>Classificação da Liga</h4>
-                      <table className={viewStyles.group_standings_table}>
+                      <div className="tw:min-w-0 tw:max-w-full tw:overflow-x-auto tw:focus-visible:outline-2 tw:focus-visible:outline-[#1e5ea8]" role="region" aria-label="Classificação da Liga: deslize para ver as colunas" tabIndex={0}><table className={`${viewStyles.group_standings_table} tw:min-w-[560px]`}>
                         <thead>
                           <tr>
                             <th>Posição</th>
@@ -445,7 +446,7 @@ export function CategoryResultsPanel({
                             ),
                           )}
                         </tbody>
-                      </table>
+                      </table></div>
                     </div>
                   ) : (
                     <p className={viewStyles.muted}>Nenhum resultado registrado.</p>

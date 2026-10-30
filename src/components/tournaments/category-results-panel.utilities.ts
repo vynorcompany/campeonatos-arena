@@ -1,7 +1,8 @@
+import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
-  "button_button_primary": sharedUtilities.buttonButtonPrimary,
+  "button_button_primary": ui.primary,
   "stack_md": sharedUtilities.stackMd,
   "section_card_stack_md_category_operation_panel": sharedUtilities.sectionCardStackMdCategoryOperationPanel,
   "league_games_panel": [
@@ -19,7 +20,7 @@ export const viewStyles = {
     "tw:viewport-760:pt-[17px]", "tw:pr-[24px]", "tw:viewport-760:pr-[17px]", "tw:pl-[24px]",
     "tw:viewport-760:pl-[17px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:#d9e5f2]",
     "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:#d9e5f2]", "tw:border-l-[length:1px]",
-    "tw:[border-left-style:solid]", "tw:border-l-[color:#d9e5f2]", "tw:rounded-[14px]", "tw:bg-[color:#fff]",
+    "tw:[border-left-style:solid]", "tw:border-l-[color:#d9e5f2]", "tw:rounded-[8px]", "tw:bg-[color:#fff]",
     "tw:[background-image:none]", "tw:[box-shadow:0_8px_22px_rgb(15_54_104_/_.045)]", "tw:[&_h3]:text-[color:#081d46]", "tw:[&_h3]:text-[clamp(1.35rem,_2.2vw,_1.8rem)]",
     "tw:[&_h3]:tracking-[-.045em]", "tw:[&_.muted]:text-[color:#64738d]", "tw:[&_.muted]:text-[.86rem]",
   ].join(" "),
@@ -34,7 +35,7 @@ export const viewStyles = {
     "tw:[border-top-style:solid]", "tw:border-t-[color:var(--line,_#d9e1ea)]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]",
     "tw:border-r-[color:var(--line,_#d9e1ea)]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:var(--line,_#d9e1ea)]",
     "tw:border-l-[length:1px]", "tw:[border-left-style:solid]", "tw:border-l-[color:var(--line,_#d9e1ea)]", "tw:rounded-[12px]",
-    "tw:bg-[color:var(--surface-muted,_#f7f9fc)]", "tw:[background-image:none]", "tw:[&_select]:w-[100%]", "tw:[&_select]:min-h-[38px]",
+    "tw:bg-white", "tw:[background-image:none]", "tw:[&_select]:w-[100%]", "tw:[&_select]:min-h-[38px]",
     "tw:[&_input]:w-[100%]", "tw:[&_input]:min-h-[38px]",
   ].join(" "),
   "league_games_filters": [
@@ -55,7 +56,7 @@ export const viewStyles = {
     "category-game-filter-field", "category-game-filter-search", "tw:grid", "tw:gap-y-[6px]",
     "tw:gap-x-[6px]", "tw:[&_label]:text-[.8rem]", "tw:[&_label]:font-[700]",
   ].join(" "),
-  "button": sharedUtilities.button,
+  "button": ui.secondary,
   "category_game_list": [
     "category-game-list", "tw:grid", "tw:gap-y-[10px]", "tw:gap-x-[10px]",
   ].join(" "),
@@ -65,7 +66,7 @@ export const viewStyles = {
     "tw:viewport-760:pb-[17px]", "tw:pl-[18px]", "tw:viewport-760:pl-[17px]", "tw:border-t-[length:1px]",
     "tw:[border-top-style:solid]", "tw:border-t-[color:#dce7f2]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]",
     "tw:border-r-[color:#dce7f2]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:#dce7f2]",
-    "tw:border-l-[length:1px]", "tw:[border-left-style:solid]", "tw:border-l-[color:#dce7f2]", "tw:rounded-[14px]",
+    "tw:border-l-[length:1px]", "tw:[border-left-style:solid]", "tw:border-l-[color:#dce7f2]", "tw:rounded-[8px]",
     "tw:bg-[color:#fff]", "tw:[background-image:none]", "tw:[box-shadow:0_8px_22px_rgb(15_54_104_/_.04)]", "tw:[&_.league-week-divider]:mt-[0]",
     "tw:[&_.league-week-divider]:pt-[0]", "tw:[&_.league-week-divider]:pr-[0]", "tw:[&_.league-week-divider]:pb-[8px]", "tw:[&_.league-week-divider]:pl-[0]",
     "tw:[&_.league-week-divider]:border-t-[length:0]", "tw:[&_.league-week-divider]:[border-top-style:none]", "tw:[&_.league-week-divider]:border-t-[color:currentColor]", "tw:[&_.league-week-divider]:border-r-[length:0]",
@@ -80,11 +81,11 @@ export const viewStyles = {
     "tw:[border-top-style:solid]", "tw:border-t-[color:#d5e4f2]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]",
     "tw:border-r-[color:#d5e4f2]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:#d5e4f2]",
     "tw:border-l-[length:1px]", "tw:[border-left-style:solid]", "tw:border-l-[color:#d5e4f2]", "tw:rounded-[9px_9px_0_0]",
-    "tw:bg-[color:transparent]", "tw:[background-image:linear-gradient(90deg,_#f5f9ff,_#fbfdff)]", "tw:[&_>_div]:grid", "tw:[&_>_div]:gap-y-[2px]",
+    "tw:bg-white", "tw:[background-image:none]", "tw:[&_>_div]:grid", "tw:[&_>_div]:gap-y-[2px]",
     "tw:[&_>_div]:gap-x-[2px]", "tw:[&_span]:text-[color:#5f7fa7]", "tw:[&_span]:text-[.63rem]", "tw:[&_span]:font-[800]",
     "tw:[&_span]:tracking-[.08em]", "tw:[&_span]:uppercase", "tw:[&_strong]:text-[color:#143b6d]", "tw:[&_strong]:text-[.9rem]",
     "tw:[&_small]:pt-[4px]", "tw:[&_small]:pr-[8px]", "tw:[&_small]:pb-[4px]", "tw:[&_small]:pl-[8px]",
-    "tw:[&_small]:rounded-[999px]", "tw:[&_small]:bg-[color:#e6f1ff]", "tw:[&_small]:[background-image:none]", "tw:[&_small]:text-[color:#2c609e]",
+    "tw:[&_small]:rounded-[999px]", "tw:[&_small]:bg-[#1e5ea8]", "tw:[&_small]:[background-image:none]", "tw:[&_small]:text-white",
     "tw:[&_small]:text-[.68rem]", "tw:[&_small]:font-[800]", "tw:[&_small]:whitespace-nowrap", "tw:[&_+_.category-game-row]:[border-top-left-radius:0]",
     "tw:[&_+_.category-game-row]:[border-top-right-radius:0]",
   ].join(" "),
@@ -94,7 +95,7 @@ export const viewStyles = {
     "tw:pr-[14px]", "tw:pb-[14px]", "tw:pl-[14px]", "tw:border-t-[length:1px]",
     "tw:[border-top-style:solid]", "tw:border-t-[color:var(--line)]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]",
     "tw:border-r-[color:var(--line)]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:var(--line)]",
-    "tw:border-l-[length:1px]", "tw:[border-left-style:solid]", "tw:border-l-[color:var(--line)]", "tw:rounded-[var(--radius-md)]",
+    "tw:border-l-[length:1px]", "tw:[border-left-style:solid]", "tw:border-l-[color:var(--line)]", "tw:rounded-[8px]",
     "tw:bg-[color:var(--panel-muted)]", "tw:[background-image:none]",
   ].join(" "),
   "league_calendar_card": [
@@ -109,11 +110,11 @@ export const viewStyles = {
     "tw:[&_.category-game-time_strong]:text-[.84rem]", "tw:[&_.category-game-stage_strong]:text-[color:#14223f]", "tw:[&_.category-game-stage_strong]:text-[.84rem]", "tw:[&_.category-game-stage_span:not(.category-game-label)]:text-[color:#687a91]",
     "tw:[&_.category-game-stage_span:not(.category-game-label)]:text-[.78rem]", "tw:[&_.league-match-sides]:grid", "tw:[&_.league-match-sides]:grid-cols-[minmax(0,_1fr)_auto_minmax(0,_1fr)]", "tw:[&_.league-match-sides]:items-center",
     "tw:[&_.league-match-sides]:gap-y-[10px]", "tw:[&_.league-match-sides]:gap-x-[10px]", "tw:[&_.league-match-sides_>_span]:text-[color:#1a2a46]", "tw:[&_.league-match-sides_>_span]:text-[.78rem]",
-    "tw:[&_.league-match-sides_>_span]:leading-[1.35]", "tw:[&_.league-match-sides_>_span:last-child_small]:text-[color:#5e7189]", "tw:[&_.league-match-sides_>_span:last-child_small]:bg-[color:#edf3f8]", "tw:[&_.league-match-sides_>_span:last-child_small]:[background-image:none]",
+    "tw:[&_.league-match-sides_>_span]:leading-[1.35]", "tw:[&_.league-match-sides_>_span:last-child_small]:text-[color:#5e7189]", "tw:[&_.league-match-sides_>_span:last-child_small]:bg-white", "tw:[&_.league-match-sides_>_span:last-child_small]:[background-image:none]",
     "tw:[&_.league-match-sides_>_b]:text-[color:#5d7492]", "tw:[&_.category-game-result]:[align-content:center]", "tw:[&_.category-game-result_strong]:text-[color:#192641]", "tw:[&_.category-game-result_strong]:text-[.88rem]",
     "tw:[&_.category-game-result_.status-badge]:mt-[2px]", "tw:[&_.category-game-actions]:grid-cols-[minmax(0,_1fr)_auto]", "tw:viewport-1180:[&_.category-game-actions]:grid-cols-[repeat(3,_minmax(0,_1fr))]", "tw:viewport-760:[&_.category-game-actions]:grid-cols-[1fr]",
     "tw:[&_.category-game-actions]:[align-content:center]", "tw:[&_.category-game-actions]:gap-y-[7px]", "tw:[&_.category-game-actions]:gap-x-[7px]", "tw:[&_.category-game-form]:min-w-[0]",
-    "tw:[&_.category-game-form:first-child]:[grid-column:1_/_-1]", "tw:[&_.category-game-form:nth-child(2)]:[grid-column:1_/_-1]", "tw:[&_.category-game-form:nth-child(2)]:grid", "tw:[&_.category-game-form:nth-child(2)]:grid-cols-[minmax(0,_1fr)_minmax(105px,_.65fr)_auto]",
+    "tw:[&_.category-game-form:first-child]:[grid-column:1_/_-1]", "tw:[&_.category-game-form:nth-child(2)]:[grid-column:1_/_-1]", "tw:[&_.category-game-form:nth-child(2)]:grid", "tw:[&_.category-game-form:nth-child(2)]:grid-cols-[repeat(2,minmax(0,1fr))] tw:[&_.category-game-form:nth-child(2)_button]:col-span-full tw:[&_.category-game-form:nth-child(2)_label]:min-w-0",
     "tw:viewport-460:[&_.category-game-form:nth-child(2)]:grid-cols-[1fr]", "tw:[&_.category-game-form:nth-child(3)]:[grid-column:1]", "tw:[&_.button]:min-h-[32px]", "tw:[&_.button]:[padding-inline:10px]",
     "tw:[&_.button]:border-t-[color:#cfdeec]", "tw:[&_.button]:border-r-[color:#cfdeec]", "tw:[&_.button]:border-b-[color:#cfdeec]", "tw:[&_.button]:border-l-[color:#cfdeec]",
     "tw:[&_.button]:bg-[color:#fff]", "tw:[&_.button]:[background-image:none]", "tw:[&_.button]:text-[color:#294662]", "tw:[&_.button]:[box-shadow:none]",

@@ -1,8 +1,9 @@
+import { operationalTypography } from "@/components/ui/operational-typography.utilities";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
   "app_shell": [
-    "app-shell", "tw:min-h-[var(--workspace-viewport-height,100vh)]", "tw:[overflow-x:clip]", "tw:grid",
+    operationalTypography, "app-shell", "tw:min-h-[var(--workspace-viewport-height,100vh)]", "tw:[overflow-x:clip]", "tw:grid",
     "tw:viewport-760:block", "tw:grid-cols-[280px_minmax(0,_1fr)]", "tw:viewport-1120:grid-cols-[248px_minmax(0,_1fr)]", "tw:[&_.nav-link-active]:border-t-[color:rgb(83_158_255_/_.56)]",
     "tw:[&_.nav-link-active]:border-r-[color:rgb(83_158_255_/_.56)]", "tw:[&_.nav-link-active]:border-b-[color:rgb(83_158_255_/_.56)]", "tw:[&_.nav-link-active]:border-l-[color:rgb(83_158_255_/_.56)]", "tw:[&_.nav-link-active]:bg-[color:transparent]",
     "tw:[&_.nav-link-active]:[background-image:linear-gradient(135deg,_#0868e5,_#0754c3)]", "tw:[&_.nav-link-active]:text-[color:#fff]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)]:h-[var(--workspace-viewport-height,100dvh)]", "tw:[@media(min-width:721px)]:[&:has(.whatsapp-page)]:min-h-[0]",

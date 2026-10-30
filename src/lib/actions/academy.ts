@@ -7,6 +7,7 @@ import { z } from "zod";
 import { requireModuleEdit } from "@/lib/auth/guards";
 import { getDiscountedAmountCents } from "@/lib/finance/discounts";
 import { getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
+import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
 import { cashReferenceDate } from "@/lib/finance/cash-day";
 import { issueRecurringOnlineChargeForEntry } from "@/lib/payments/recurring-online-charges";
 import { cancelMercadoPagoPayment, getMercadoPagoPayment } from "@/lib/payments/mercado-pago";
@@ -700,20 +701,11 @@ export async function updateTeacherPlanWithPriceAction(formData: FormData) {
     }
     const monthlyPriceCents = parseMoneyToCents(parsed.data.monthlyPrice);
 
-    const assignment = await prisma.teacherPlan.findFirst({
-      where: { teacherId, planId, arenaId: auth.arenaId, active: true },
-      select: { id: true },
+    await withArenaTransaction(auth.arenaId, async tx => {
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`teacher-prices:${auth.arenaId}:${teacherId}`}, 0))::text`;
+      const updated = await tx.teacherPlan.updateMany({ where: { teacherId, planId, arenaId: auth.arenaId, active: true }, data: { monthlyPriceCents } });
+      if (!updated.count) throw new Error("Plano não encontrado para este professor.");
     });
-    if (!assignment) {
-      return { error: "Plano não encontrado para este professor." };
-    }
-    const updated = await prisma.teacherPlan.updateMany({
-      where: { teacherId, planId, arenaId: auth.arenaId, active: true },
-      data: { monthlyPriceCents },
-    });
-    if (!updated.count) {
-      return { error: "Não foi possível localizar este plano." };
-    }
     refreshAcademyRoutes();
   } catch (error) {
     console.error("Falha ao atualizar plano do professor", error);
@@ -1160,6 +1152,7 @@ export async function createLessonAction(formData: FormData) {
   const paidAt = priceCents > 0 ? new Date() : null;
 
   await prisma.$transaction(async (tx) => {
+    const bankAccountId = priceCents > 0 ? await requireReceivingBankAccount(tx, auth.arenaId, formData.get("bankAccountId")) : null;
     const lesson = await tx.lesson.create({
       data: {
         arenaId: auth.arenaId,
@@ -1186,6 +1179,7 @@ export async function createLessonAction(formData: FormData) {
           arenaId: auth.arenaId,
           type: "REVENUE",
           category: "Aulas avulsas",
+          bankAccountId,
           description: `${lesson.title} - ${scheduledAt ? scheduledAt.toLocaleDateString("pt-BR") : "sem data"}`,
           amountCents: priceCents,
           paymentMethod: parsed.data.paymentMethod,

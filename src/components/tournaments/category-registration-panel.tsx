@@ -106,11 +106,8 @@ export function CategoryRegistrationPanel({
           >
             <div className={cx(`${viewStyles.page_header} ${category.competition?.format === "LEAGUE" ? viewStyles.league_registration_hero : ""}`)}>
               <div className={viewStyles.stack_xs}>
-                <h3>{category.name}</h3>
-                <p className={viewStyles.muted}>
-                  {category.class || "Classe pendente"} ·{" "}
-                  {category.gender || "Gênero pendente"}
-                </p>
+                {categories.length > 1 ? <strong className="tw:text-sm">{category.name}</strong> : null}
+                <span className="tw:text-xs tw:font-semibold">{category.competition?.pairs.length ?? 0} duplas inscritas</span>
               </div>
               <StatusBadge
                 status={category.competition?.status ?? "DRAFT"}

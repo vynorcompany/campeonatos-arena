@@ -1,3 +1,4 @@
+import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
 import type { ArenaTransaction } from "@/lib/rls";
 import { getFinancialEntryBalance } from "@/lib/finance/ledger";
 import { hasExistingOnlineCharge } from "@/lib/payments/existing-online-charge";
@@ -13,6 +14,7 @@ export async function claimFinancialOnlineCharge(tx: ArenaTransaction, input: {
   discountCents?: number;
   interestCents?: number;
   quotedAmountCents?: number;
+  bankAccountId?: string;
   now?: Date;
   requireActiveBoletoRecurrence?: boolean;
 }): Promise<{ ok: true; claimedAt: Date; amountCents: number } | { ok: false; error: string }> {
@@ -50,11 +52,15 @@ export async function claimFinancialOnlineCharge(tx: ArenaTransaction, input: {
   if (entry.onlinePaymentClaimedAt && entry.onlinePaymentClaimedAt.getTime() > now.getTime() - claimLeaseMs) {
     return { ok: false, error: "A emissão desta cobrança já está em andamento. Aguarde um minuto e tente novamente." };
   }
+  let bankAccountId: string;
+  try { bankAccountId = await requireReceivingBankAccount(tx, input.arenaId, input.bankAccountId ?? entry.bankAccountId); }
+  catch (error) { return { ok: false, error: error instanceof Error ? error.message : "Selecione a conta bancária." }; }
+  if (entry.onlinePaymentClaimMethod && entry.bankAccountId && entry.bankAccountId !== bankAccountId) return { ok: false, error: "Esta cobrança já foi iniciada em outra conta bancária. Confira a cobrança antes de alterar a conta." };
   await tx.financialEntry.update({
     where: { id: entry.id },
     // Register the provider before its callback can arrive. The webhook uses
     // this marker plus the arena-scoped external reference to find the entry.
-    data: { onlineProvider: "MERCADO_PAGO", onlinePaymentClaimMethod: input.method, onlinePaymentClaimedAt: now, onlineChargeAmountCents: amountCents, onlineChargeDiscountCents: discountCents, onlineChargeInterestCents: interestCents },
+    data: { ...(bankAccountId ? { bankAccountId } : {}), onlineProvider: "MERCADO_PAGO", onlinePaymentClaimMethod: input.method, onlinePaymentClaimedAt: now, onlineChargeAmountCents: amountCents, onlineChargeDiscountCents: discountCents, onlineChargeInterestCents: interestCents },
   });
   return { ok: true, claimedAt: now, amountCents };
 }

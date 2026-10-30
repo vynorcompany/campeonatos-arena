@@ -23,7 +23,8 @@ test("financial setting workspaces persist product categories, coupons and integ
   assert.match(actions, /export async function updateOnlinePaymentSettingsAction/);
   assert.match(page, /createProductCategoryAction/);
   assert.match(page, /createCouponAction/);
-  assert.match(page, /updateFiscalSettingsAction/);
+  assert.match(page, /FiscalSettingsForm/);
+  assert.match(read("src/components/fiscal/fiscal-settings-form.tsx"), /action=\{updateFiscalSettingsAction\}/);
   assert.match(page, /connectPaymentProviderAction/);
 });
 

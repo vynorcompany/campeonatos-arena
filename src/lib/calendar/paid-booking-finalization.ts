@@ -22,7 +22,7 @@ export async function finalizePaidCourtBooking(tx: ArenaTransaction, arenaId: st
   }) : null;
   let serviceConflict = false;
   if (current.status === "PENDING_PAYMENT" && booking.serviceReservations?.length) {
-    try { await lockAvailableBookingServices(tx, arenaId, booking.serviceReservations.map(service => service.productId), booking.startsAt, booking.endsAt, { excludeOccurrenceId: occurrenceId, requireVisible: false }); }
+    try { await lockAvailableBookingServices(tx, arenaId, booking.serviceReservations.map(service => service.productId), booking.startsAt, booking.endsAt, { excludeOccurrenceId: occurrenceId, requireVisible: false, courtIds }); }
     catch (error) { if (error instanceof BookingServiceUnavailableError) serviceConflict = true; else throw error; }
   }
   if (current.status !== "PENDING_PAYMENT" || conflict || serviceConflict || !courtIds.length || arenaWallClockToInstant(booking.startsAt) <= new Date()) {

@@ -1,3 +1,4 @@
+import { WorkspaceHeading } from "@/components/ui/workspace-heading";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
@@ -51,16 +52,10 @@ export default async function SupportPage() {
 
   return (
     <div className={viewStyles.stack_md}>
-      <header className={viewStyles.page_header}>
-        <div className={viewStyles.stack_xs}>
-          <p className={viewStyles.eyebrow}>Suporte</p>
-          <h1>Suporte e ajuda</h1>
-          <p className={viewStyles.muted}>Abra chamados para reportar erros, pedir ajustes ou falar com a equipe de suporte.</p>
-        </div>
-      </header>
+      <WorkspaceHeading title="Suporte" />
 
-      <SectionCard title="Abrir ticket" description="Descreva o que aconteceu e informe a prioridade para a equipe de CS priorizar corretamente.">
-        <SafeActionForm action={createSupportTicketAction} className={viewStyles.grid_form} resetOnSuccess successMessage="Ticket enviado ao suporte.">
+      <SectionCard title="Novo chamado" hideHeading>
+        <SafeActionForm action={createSupportTicketAction} className={viewStyles.grid_form} resetOnSuccess successMessage="Chamado enviado ao suporte.">
           <div className={viewStyles.field}>
             <label htmlFor="ticket-title">Título</label>
             <input id="ticket-title" name="title" type="text" placeholder="Ex.: erro ao salvar jogo" required />
@@ -89,12 +84,12 @@ export default async function SupportPage() {
             <textarea id="ticket-description" name="description" rows={5} placeholder="Explique o que você tentou fazer, o que aconteceu e o que esperava que acontecesse." required />
           </div>
           <div className={viewStyles.field_field_submit}>
-            <SubmitButton label="Enviar ticket" pendingLabel="Enviando..." className={viewStyles.button_button_primary} />
+            <SubmitButton label="Enviar chamado" pendingLabel="Enviando..." className={viewStyles.button_button_primary} />
           </div>
         </SafeActionForm>
       </SectionCard>
 
-      <SectionCard title="Meus tickets" description="Acompanhe o status dos chamados abertos por esta arena.">
+      <SectionCard title="Chamados" hideHeading>
         <div className={viewStyles.support_ticket_list}>
           {tickets.map((ticket) => (
             <article key={ticket.id} className={viewStyles.support_ticket_card}>
@@ -108,12 +103,12 @@ export default async function SupportPage() {
               </div>
               <div className={viewStyles.support_ticket_meta}>
                 <span>Solicitante: {ticket.requester.name}</span>
-                <span>Responsável: {ticket.assignee?.name ?? "Aguardando CS"}</span>
+                <span>Responsável: {ticket.assignee?.name ?? "Aguardando atendimento"}</span>
                 <span>Atualizado em {ticket.updatedAt.toLocaleDateString("pt-BR")}</span>
               </div>
             </article>
           ))}
-          {!tickets.length ? <p className={viewStyles.muted}>Nenhum ticket aberto ainda.</p> : null}
+          {!tickets.length ? <p className={viewStyles.muted}>Nenhum chamado aberto.</p> : null}
         </div>
       </SectionCard>
     </div>

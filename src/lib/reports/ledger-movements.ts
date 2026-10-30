@@ -32,34 +32,36 @@ export async function loadLedgerMovements(db: Pick<Prisma.TransactionClient, "$q
     ${filters.type === "REVENUE" ? Prisma.sql`AND e.type IN ('REVENUE','INCOME')` : filters.type === "EXPENSE" ? Prisma.sql`AND e.type = 'EXPENSE'` : Prisma.empty}
     ${filters.status === "PAID" ? Prisma.sql`AND e.status = 'PAID'` : filters.status === "PENDING" ? Prisma.sql`AND e.status IN ('PENDING','OVERDUE')` : Prisma.empty}
     ${filters.category ? ledgerCategories.some(item => item.value === filters.category) ? Prisma.sql`AND (${category}) = ${filters.category}` : Prisma.sql`AND e.category = ${filters.category}` : Prisma.empty}
-    ${filters.bankAccountId ? Prisma.sql`AND e."bankAccountId" = ${filters.bankAccountId}` : Prisma.empty}`;
+    `;
   const method = filters.paymentMethod ? Prisma.sql`AND m.method = ${filters.paymentMethod}` : Prisma.empty;
   const [result] = await db.$queryRaw<Result[]>(Prisma.sql`
     WITH scoped AS (
-      SELECT e.id, e.type, e.status, e.description, e.category, e."amountCents", e."paymentMethod", e."paidAt", e."createdAt", e."dueDate"
+      SELECT e.id, e.type, e.status, e.description, e.category, e."amountCents", e."paymentMethod", e."paidAt", e."createdAt", e."dueDate", e."bankAccountId"
       FROM "FinancialEntry" e WHERE ${scope}
     ), balances AS (
       SELECT e.*, coalesce(sum(s."amountCents"),0) AS settled, coalesce(sum(s."interestCents"),0) AS interest, coalesce(sum(s."discountCents"),0) AS discount,
         count(s.id) AS settlement_count
       FROM scoped e LEFT JOIN "FinancialSettlement" s ON s."financialEntryId" = e.id AND s."arenaId" = ${arenaId}
-      GROUP BY e.id, e.type, e.status, e.description, e.category, e."amountCents", e."paymentMethod", e."paidAt", e."createdAt", e."dueDate"
+      GROUP BY e.id, e.type, e.status, e.description, e.category, e."amountCents", e."paymentMethod", e."paidAt", e."createdAt", e."dueDate", e."bankAccountId"
     ), all_movements AS (
       SELECT s.id, e.id AS entry_id, e.type, e.description, e.category, s."amountCents" AS amount,
-        s."paymentMethod" AS method, s."paidAt" AS date
+        s."paymentMethod" AS method, s."paidAt" AS date, coalesce(s."bankAccountId", e."bankAccountId") AS bank_id
       FROM scoped e JOIN "FinancialSettlement" s ON s."financialEntryId" = e.id AND s."arenaId" = ${arenaId}
       WHERE s."paidAt" BETWEEN ${period.gte} AND ${period.lte}
       UNION ALL
-      SELECT e.id, e.id, e.type, e.description, e.category, e."amountCents", e."paymentMethod", coalesce(e."paidAt", e."createdAt")
+      SELECT e.id, e.id, e.type, e.description, e.category, e."amountCents", e."paymentMethod", coalesce(e."paidAt", e."createdAt"), e."bankAccountId"
       FROM balances e WHERE e.status = 'PAID' AND e.settlement_count = 0
         AND coalesce(e."paidAt", e."createdAt") BETWEEN ${period.gte} AND ${period.lte}
     ), movements AS (
       SELECT m.* FROM all_movements m
       WHERE trim(m.method) !~* '^(saldo($|[[:space:]])|cr[eé]dito (do cliente|em conta)($|[[:space:]]))' ${method}
+        ${filters.bankAccountId ? Prisma.sql`AND m.bank_id = ${filters.bankAccountId}` : Prisma.empty}
     ), outstanding AS (
       SELECT e.id, e.type, e.description, e.category, e."paymentMethod" AS method,
         coalesce(e."dueDate", e."createdAt") AS date,
         greatest(0, e."amountCents" + e.interest - e.settled - e.discount) AS amount
       FROM balances e WHERE e.status IN ('PENDING','OVERDUE')
+        ${filters.bankAccountId ? Prisma.sql`AND e."bankAccountId" = ${filters.bankAccountId}` : Prisma.empty}
         AND coalesce(e."dueDate", e."createdAt") BETWEEN ${period.gte} AND ${period.lte}
         ${filters.paymentMethod ? Prisma.sql`AND e."paymentMethod" = ${filters.paymentMethod}` : Prisma.empty}
     ), methods AS (

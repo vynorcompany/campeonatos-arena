@@ -44,6 +44,7 @@ export async function importNfeXmlAction(formData: FormData) {
         const product = reconciled?.productId
           ? existingProducts.find((entry) => entry.id === reconciled.productId)
           : (item.code ? productBySku.get(item.code) : undefined) ?? productByName.get(item.description.toLocaleLowerCase("pt-BR"));
+        if (reconciled?.productId && !product) throw new Error("O produto selecionado não pertence ao estoque desta arena.");
         const productName = reconciled?.name?.trim() || item.description;
         const productSku = reconciled?.sku?.trim() || item.code;
         const costCents = Number.isInteger(reconciled?.costCents) && reconciled!.costCents >= 0 ? reconciled!.costCents : item.unitCostCents;

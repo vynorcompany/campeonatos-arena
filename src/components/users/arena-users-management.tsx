@@ -1,4 +1,6 @@
 import { viewStyles } from "./arena-users-management.utilities";
+import { SettingsDialogButton } from "@/components/ui/settings-dialog-button";
+import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { ArenaUserForm } from "@/components/forms/arena-user-form";
 import { SectionCard } from "@/components/section-card";
 import { UserActionsCell } from "@/components/users/user-actions-cell";
@@ -32,11 +34,8 @@ export async function ArenaUsersManagement({ arenaId, currentUserId, query = "" 
 
   return (
     <div className={viewStyles.stack_md}>
-      <SectionCard title="Usuários" description="Cada acesso pertence a esta arena. Novos usuários definem a própria senha por um convite enviado por e-mail ou compartilhado por link.">
-        <details className={viewStyles.setting_create_panel}>
-          <summary className={viewStyles.button_button_primary_button_small}>Convidar usuário</summary>
-          <div><ArenaUserForm profiles={assignableProfiles} /></div>
-        </details>
+      <section className={ui.page} aria-label="Usuários da arena">
+        <div className={ui.toolbar}><SettingsDialogButton label="Convidar usuário"><ArenaUserForm profiles={assignableProfiles} /></SettingsDialogButton></div>
         <form method="GET" action="/usuarios" className={viewStyles.user_search_form} role="search"><label htmlFor="user-search">Buscar por nome ou e-mail</label><div><input id="user-search" name="q" type="search" defaultValue={query} placeholder="Nome ou e-mail" /><button className={viewStyles.button_button_small} type="submit">Buscar</button>{query ? <a className={viewStyles.button_button_small} href="/usuarios">Limpar</a> : null}</div></form>
         <p className={viewStyles.muted}>{members.length} {members.length === 1 ? "usuário encontrado" : "usuários encontrados"}</p>
         <div className={viewStyles.user_table_scroll}><table className={viewStyles.data_table}>
@@ -75,8 +74,8 @@ export async function ArenaUsersManagement({ arenaId, currentUserId, query = "" 
           </tbody>
         </table></div>
         {!members.length ? <p className={viewStyles.muted}>Nenhum usuário corresponde à busca nesta arena.</p> : null}
-      </SectionCard>
-      {invites.length ? <SectionCard title="Convites pendentes" description="O link de convite expira em 48 horas."><div className={viewStyles.user_invites_list}>{invites.map((invite) => <article key={invite.id} className={viewStyles.user_invite_row}><div><strong>{invite.name}</strong><span>{invite.email}</span></div><span>Válido até {new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(invite.expiresAt)}</span><SafeActionForm action={revokeArenaInviteAction} successMessage="Convite revogado."><input type="hidden" name="inviteId" value={invite.id} /><button type="submit" className={viewStyles.button_button_small}>Revogar</button></SafeActionForm></article>)}</div></SectionCard> : null}
+      </section>
+      {invites.length ? <SectionCard title="Convites pendentes" description="O link de convite expira em 48 horas." hideHeading><div className={viewStyles.user_invites_list}>{invites.map((invite) => <article key={invite.id} className={viewStyles.user_invite_row}><div><strong>{invite.name}</strong><span>{invite.email}</span></div><span>Válido até {new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(invite.expiresAt)}</span><SafeActionForm action={revokeArenaInviteAction} successMessage="Convite revogado."><input type="hidden" name="inviteId" value={invite.id} /><button type="submit" className={viewStyles.button_button_small}>Revogar</button></SafeActionForm></article>)}</div></SectionCard> : null}
     </div>
   );
 }

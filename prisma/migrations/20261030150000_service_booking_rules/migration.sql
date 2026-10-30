@@ -1,0 +1,1 @@
+ALTER TABLE "Product" ADD COLUMN "bookingRules" JSONB NOT NULL DEFAULT '{}';

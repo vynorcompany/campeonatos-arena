@@ -18,5 +18,6 @@ const paths = {
 export type WhatsAppIconName = keyof typeof paths;
 
 export function WhatsAppIcon({ name, size = 16 }: { name: WhatsAppIconName; size?: number }) {
+  if (name === "more") return <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><circle className="tw:fill-current! tw:stroke-none!" cx="12" cy="5.5" r="1.8"/><circle className="tw:fill-current! tw:stroke-none!" cx="12" cy="12" r="1.8"/><circle className="tw:fill-current! tw:stroke-none!" cx="12" cy="18.5" r="1.8"/></svg>;
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name]} /></svg>;
 }

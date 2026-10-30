@@ -148,7 +148,7 @@ export function TournamentParticipantsForm(props: TournamentParticipantsFormProp
           <input id="participant-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nome, dupla ou categoria" />
         </div>
         {!safeFiltered.length ? (
-          <p className={viewStyles.muted}>Nenhuma inscricao encontrada.</p>
+          <p className={viewStyles.muted}>Nenhuma inscrição encontrada.</p>
         ) : (
           <div className={viewStyles.simple_list}>
             {safeFiltered.map((registration) => {
@@ -168,7 +168,7 @@ export function TournamentParticipantsForm(props: TournamentParticipantsFormProp
                         Pagamento: {getPaymentLabel(registration.paymentStatus)}
                       </span>
                       <span className={cx(`${viewStyles.player_status_pill}${paid ? "" : " " + viewStyles.player_status_pill_inactive}`)}>
-                        Situacao: {getConfirmationLabel(registration.paymentStatus)}
+                        Situação: {getConfirmationLabel(registration.paymentStatus)}
                       </span>
                       {canDelete ? <SafeActionForm action={deleteTournamentRegistrationAction} successMessage="Inscrição excluída." confirmKeyword="EXCLUIR" confirmPrompt={`Excluir a inscrição de ${registration.leadName} / ${registration.partnerName}? Digite EXCLUIR para confirmar.`}>
                         <input type="hidden" name="registrationId" value={registration.id} />

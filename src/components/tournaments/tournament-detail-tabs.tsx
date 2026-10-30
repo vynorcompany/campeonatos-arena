@@ -110,7 +110,7 @@ export function TournamentCategoriesTab({ tournament }: { tournament: NonNullabl
         />
       </article>
       <div className={viewStyles.section_actions}>
-        <Link href="/torneios/inscricoes" className={viewStyles.button}>Gerenciar inscricoes por categoria</Link>
+        <Link href="/torneios/inscricoes" className={viewStyles.button}>Gerenciar inscrições por categoria</Link>
       </div>
     </div>
   );

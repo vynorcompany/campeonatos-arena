@@ -8,8 +8,8 @@ const source = (path: string) => readFileSync(resolve(process.cwd(), path), "utf
 
 test("Portal agrupa Ligas e Super 12 dentro de Eventos", () => {
   const portal = source("src/components/tournaments/public-standings.tsx");
-  assert.match(portal, />Eventos</);
-  assert.match(portal, />Super 12</);
+  assert.match(portal, /label="Menu de Eventos"/);
+  assert.match(portal, /id: "super12", label: "Super 12"/);
   assert.match(portal, /selectedEventTab/);
 });
 

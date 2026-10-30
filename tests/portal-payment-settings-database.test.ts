@@ -26,13 +26,15 @@ test("portal payment settings require the arena's connector, permission and isol
     assert.match((await actions.savePortalPaymentSettingsAction(form())).error ?? "", /Conecte/);
     assert.equal(await admin.arenaOperationalSettings.count({ where: { arenaId: ids[0] } }), 0);
     await admin.paymentConnection.create({ data: { arenaId: ids[0], provider: "MERCADO_PAGO", status: "CONNECTED" } });
-    assert.equal((await actions.savePortalPaymentSettingsAction(form())).error, null);
+    assert.match((await actions.savePortalPaymentSettingsAction(form())).error ?? "", /Selecione a conta bancária/);
+    const ownBank = await admin.bankAccount.create({ data: { arenaId: ids[0], name: "Recebimentos Portal QA" } });
+    assert.equal((await actions.savePortalPaymentSettingsAction(form({ portalPaymentBankAccountId: ownBank.id }))).error, null);
     const saved = await admin.arenaOperationalSettings.findUniqueOrThrow({ where: { arenaId: ids[0] } });
     assert.equal(saved.portalPaymentsConfigured, true); assert.equal(saved.checkoutExpiryMinutes, 15); assert.equal(saved.portalCreditCardEnabled, false); assert.equal(saved.printerPaper, "80MM");
     assert.equal(await admin.arenaOperationalSettings.count({ where: { arenaId: ids[1] } }), 0);
     assert.match((await actions.savePortalPaymentSettingsAction(form({ portalPixEnabled: "" }))).error ?? "", /Ative Pix/);
     assert.ok((await actions.savePortalPaymentSettingsAction(form({ checkoutExpiryMinutes: "-1" }))).error);
-    const ownBank = await admin.bankAccount.create({ data: { arenaId: ids[0], name: "Recebimentos Portal QA" } });
+
     const foreignBank = await admin.bankAccount.create({ data: { arenaId: ids[1], name: "Outro banco QA" } });
     assert.match((await actions.savePortalPaymentSettingsAction(form({ portalPaymentBankAccountId: foreignBank.id }))).error ?? "", /nesta arena/);
     assert.equal((await actions.savePortalPaymentSettingsAction(form({ portalPaymentBankAccountId: ownBank.id }))).error, null);

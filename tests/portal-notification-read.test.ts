@@ -28,7 +28,9 @@ test("ler notificações financeiras persiste a leitura sem eliminar a pendênci
     "@/lib/calendar/booking-delinquency":{getBookingDelinquency:async()=>({blocked:true})},
   });
   const before=await service.getAthletePortalNotifications("arena-a","player-a");assert.equal(before.filter((n:any)=>!n.isRead).length,4);
+  assert.equal(before.find((n:any)=>n.id==="arena-notice").href,"/home?arena=arena-a&section=announcements#aviso-notice");
   read=true;const after=await service.getAthletePortalNotifications("arena-a","player-a");assert.equal(after.filter((n:any)=>!n.isRead).length,0);
+  assert.equal(after.find((n:any)=>n.id==="arena-notice").href,before.find((n:any)=>n.id==="arena-notice").href);
   assert.equal(after.find((n:any)=>n.id==="finance-debt").persistent,true);
   assert.ok(after.some((n:any)=>n.id==="booking-delinquency"));
   paymentSettings={portalConsumptionEnabled:false,portalPaymentsConfigured:true,portalPaymentEnabled:true,portalPixEnabled:true,portalCreditCardEnabled:false,checkoutExpiryMinutes:0};

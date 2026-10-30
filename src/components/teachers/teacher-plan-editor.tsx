@@ -1,102 +1,28 @@
 "use client";
-import { viewStyles } from "./teacher-plan-editor.utilities";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { Modal } from "@/components/ui/modal";
+import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
+import { MoneyInput, formatMoneyInput } from "@/components/forms/money-input";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { EventIcon } from "@/components/tournaments/event-icon";
 import { updateTeacherPlanWithPriceAction } from "@/lib/actions/academy";
 
-type PlanEditorProps = {
-  teacherId: string;
-  plan: {
-    id: string;
-    name: string;
-    monthlyPriceCents: number;
-  };
-};
-
-const moneyInput = (value: number) =>
-  (value / 100).toLocaleString("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+type PlanEditorProps = { teacherId: string; plan: { id: string; name: string; monthlyPriceCents: number } };
 
 export function TeacherPlanEditor({ teacherId, plan }: PlanEditorProps) {
   const [open, setOpen] = useState(false);
-
-  return (
-    <>
-      <button
-        type="button"
-        className={viewStyles.teacher_plan_edit_trigger}
-        onClick={() => setOpen(true)}
-      >
-        <EventIcon name="edit" />
-        Editar plano
-      </button>
-      {open ? (
-        <div
-          className={viewStyles.teacher_plan_edit_modal}
-          role="presentation"
-          onMouseDown={() => setOpen(false)}
-        >
-          <section
-            className={viewStyles.teacher_plan_edit_dialog}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="teacher-plan-edit-title"
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <header>
-              <div>
-                <p className={viewStyles.eyebrow}>EDITAR PLANO</p>
-                <h2 id="teacher-plan-edit-title">{plan.name}</h2>
-              </div>
-              <button
-                type="button"
-                className={viewStyles.teacher_plan_edit_close}
-                onClick={() => setOpen(false)}
-                aria-label="Fechar"
-              >
-                ×
-              </button>
-            </header>
-            <SafeActionForm
-              action={updateTeacherPlanWithPriceAction}
-              className={viewStyles.teacher_plan_edit_form}
-              successMessage="Plano atualizado. Os alunos atuais mantêm seus valores contratados."
-              onSuccess={() => setOpen(false)}
-            >
-              <input type="hidden" name="teacherId" value={teacherId} />
-              <input type="hidden" name="planId" value={plan.id} />
-              <label>
-                Preço mensal
-                <input
-                  name="monthlyPrice"
-                  inputMode="decimal"
-                  required
-                  defaultValue={moneyInput(plan.monthlyPriceCents)}
-                />
-              </label>
-              <div className={viewStyles.teacher_plan_edit_actions}>
-                <button
-                  type="button"
-                  className={viewStyles.button_button_secondary_button_small}
-                  onClick={() => setOpen(false)}
-                >
-                  Cancelar
-                </button>
-                <SubmitButton
-                  label="Salvar plano"
-                  pendingLabel="Salvando..."
-                  className={viewStyles.button_button_primary_button_small}
-                />
-              </div>
-            </SafeActionForm>
-          </section>
-        </div>
-      ) : null}
-    </>
-  );
+  const close = useCallback(() => setOpen(false), []);
+  return <>
+    <button type="button" className={ui.secondary} onClick={() => setOpen(true)}><EventIcon name="edit" />Editar plano</button>
+    <Modal title={`Editar plano · ${plan.name}`} width="tw:max-w-[560px]" open={open} onClose={close}>
+      <SafeActionForm action={updateTeacherPlanWithPriceAction} className="tw:flex tw:h-full tw:min-w-0 tw:flex-col tw:gap-4" successMessage="Plano atualizado. Os alunos atuais mantêm seus valores contratados." onSuccess={close}>
+        <input type="hidden" name="teacherId" value={teacherId} />
+        <input type="hidden" name="planId" value={plan.id} />
+        <label className={ui.field}>Preço mensal<MoneyInput name="monthlyPrice" defaultValue={formatMoneyInput(plan.monthlyPriceCents)} required /></label>
+        <div className="tw:mt-auto tw:flex tw:flex-wrap tw:justify-end tw:gap-2 tw:border-t tw:border-[var(--line)] tw:pt-3"><button type="button" className={ui.secondary} onClick={close}>Cancelar</button><SubmitButton label="Salvar plano" pendingLabel="Salvando..." className={ui.primary} /></div>
+      </SafeActionForm>
+    </Modal>
+  </>;
 }

@@ -1,3 +1,6 @@
+import * as serviceBookingRules from "../src/lib/calendar/service-booking-rules";
+import { requireReceivingBankAccount } from "../src/lib/finance/receiving-bank-account";
+import { randomUUID } from "node:crypto";
 import * as bookingResources from "../src/lib/calendar/booking-services";
 import { arenaDatabaseForTest } from "./helpers/arena-database";
 import { arenaBookingPath } from "../src/lib/arena-booking-path";
@@ -145,13 +148,14 @@ test("duas reservas simultâneas da mesma quadra produzem apenas um hold", { ski
       "@/lib/calendar/booking-confirmation-whatsapp": { sendBookingConfirmationForOccurrence: async () => ({ sent: 0, failed: 0 }) },
       "@/lib/arena-booking-path": { arenaBookingPath },
       "next/cache": { revalidatePath() {} },
+      "@/lib/finance/receiving-bank-account": { requireReceivingBankAccount },
       zod: require("zod"),
       "@/lib/auth/guards": { requireModuleEdit: async () => { throw new Error("Não usar acesso interno neste teste."); } },
       "@/lib/auth/player-session": { requirePublicPlayerAuth: async () => ({ arenaId, playerId: "goal-athlete-a" }) },
       "@/lib/arena-database": { arenaDatabase: (arenaId: string) => arenaDatabaseForTest(runtime, arenaId) },
       "@/lib/prisma": { prisma: admin },
       "@/lib/rls": { withArenaTransaction: (scope: string, operation: (tx: any) => Promise<unknown>) => runtime.$transaction(async (tx) => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${scope}, true)`; return operation(tx); }) },
-      "@/lib/calendar/booking-services": bookingResources, "@/lib/calendar/inputs": { parseScheduledAt },
+      "@/lib/calendar/service-booking-rules": serviceBookingRules, "@/lib/calendar/booking-services": bookingResources, "@/lib/calendar/inputs": { parseScheduledAt },
       "@/lib/scheduling/weekly-rule": {},
       "@/lib/calendar/booking-types": {},
       "@/lib/calendar/revalidation": { refreshCalendarRoutes() {} },
@@ -307,7 +311,19 @@ test("uma reserva só inicia um método de pagamento durante o bloqueio", { skip
         participants: { create: { playerId, amountCents: 5000 } },
       }, select: { id: true } });
       const input = { arenaId: arena.id, occurrenceId: booking.id, playerId, method: "PIX" as const };
-      assert.equal((await claimOnlineBookingPaymentMethod(tx, input))?.id, booking.id);
+      await tx.arenaOperationalSettings.upsert({ where: { arenaId: arena.id }, create: { arenaId: arena.id }, update: { portalPaymentBankAccountId: null } });
+      await assert.rejects(claimOnlineBookingPaymentMethod(tx, input), /conta bancária ativa/);
+      assert.equal((await tx.scheduleParticipant.findFirstOrThrow({ where: { occurrenceId: booking.id } })).paymentMethod, "");
+      const firstBank = await tx.bankAccount.create({ data: { arenaId: arena.id, name: `Banco reserva ${randomUUID()}`, active: false } });
+      const secondBank = await tx.bankAccount.create({ data: { arenaId: arena.id, name: `Banco futuro ${randomUUID()}` } });
+      await tx.arenaOperationalSettings.update({ where: { arenaId: arena.id }, data: { portalPaymentBankAccountId: firstBank.id } });
+      await assert.rejects(claimOnlineBookingPaymentMethod(tx, input), /conta bancária ativa/);
+      await tx.bankAccount.update({ where: { id: firstBank.id }, data: { active: true } });
+      assert.equal((await claimOnlineBookingPaymentMethod(tx, input))?.paymentBankAccountId, firstBank.id);
+      await tx.arenaOperationalSettings.update({ where: { arenaId: arena.id }, data: { portalPaymentBankAccountId: secondBank.id } });
+      await tx.bankAccount.update({ where: { id: firstBank.id }, data: { active: false } });
+      assert.equal((await claimOnlineBookingPaymentMethod(tx, input))?.paymentBankAccountId, firstBank.id);
+      assert.equal((await tx.scheduleOccurrence.findUniqueOrThrow({ where: { id: booking.id } })).paymentBankAccountId, firstBank.id);
       assert.equal((await claimOnlineBookingPaymentMethod(tx, input))?.id, booking.id);
       assert.equal((await tx.scheduleParticipant.findFirstOrThrow({ where: { occurrenceId: booking.id, playerId }, select: { paymentMethod: true } })).paymentMethod, "MERCADO_PAGO_PENDING:PIX");
       await assert.rejects(claimOnlineBookingPaymentMethod(tx, { ...input, method: "CARD" }), /Já existe uma cobrança iniciada/);

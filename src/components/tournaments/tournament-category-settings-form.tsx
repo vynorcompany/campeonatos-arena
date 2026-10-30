@@ -1,6 +1,7 @@
 "use client";
 import { viewStyles } from "./tournament-category-settings-form.utilities";
 
+import { MoneyInput, formatMoneyInput } from "@/components/forms/money-input";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { updateTournamentCategorySettingsAction } from "@/lib/actions/category-competition";
 
@@ -27,15 +28,13 @@ export function TournamentCategorySettingsForm({
     <form action={updateTournamentCategorySettingsAction} className={viewStyles.tournament_category_detail_form}>
       <input type="hidden" name="categoryId" value={category.id} />
       <header>
-        <p className={viewStyles.eyebrow}>Inscrições da categoria</p>
         <h2>Configurar {category.name}</h2>
-        <p>Defina vagas, valores e as categorias padrão permitidas para o mesmo atleta.</p>
       </header>
       <div className={viewStyles.tournament_category_detail_grid}>
         <label>Limite máximo de duplas<input name="maxRegistrations" type="number" min="0" step="1" defaultValue={category.maxRegistrations} required /><small>Use 0 para vagas ilimitadas.</small></label>
-        <label>Valor por dupla (R$)<input name="priceFirst" type="number" min="0" step="0.01" defaultValue={(category.priceFirstCents / 100).toFixed(2)} required /></label>
-        <label>Valor da 2ª inscrição (R$)<input name="priceSecond" type="number" min="0" step="0.01" defaultValue={(category.priceSecondCents / 100).toFixed(2)} required /></label>
-        <label>Valor da 3ª inscrição (R$)<input name="priceThird" type="number" min="0" step="0.01" defaultValue={(category.priceThirdCents / 100).toFixed(2)} required /></label>
+        <label>Valor por dupla (R$)<MoneyInput name="priceFirst" defaultValue={formatMoneyInput(category.priceFirstCents)} required /></label>
+        <label>Valor da 2ª inscrição (R$)<MoneyInput name="priceSecond" defaultValue={formatMoneyInput(category.priceSecondCents)} required /></label>
+        <label>Valor da 3ª inscrição (R$)<MoneyInput name="priceThird" defaultValue={formatMoneyInput(category.priceThirdCents)} required /></label>
       </div>
       <section className={viewStyles.tournament_category_restrictions}>
         <div><strong>Impedimentos de inscrição</strong><p>Um atleta nesta categoria só poderá ter inscrição simultânea nas categorias padrão marcadas.</p></div>

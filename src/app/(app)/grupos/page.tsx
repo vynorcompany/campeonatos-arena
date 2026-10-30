@@ -123,15 +123,7 @@ export default async function GroupsPage(props: GroupsPageProps) {
 
   return (
     <div className={viewStyles.stack_md}>
-      <header className={viewStyles.page_header}>
-        <div className={viewStyles.stack_xs}>
-          <p className={viewStyles.eyebrow}>Grupos</p>
-          <h1>Organizacao dos grupos</h1>
-          <p className={viewStyles.muted}>
-            Distribua as duplas por forca e, quando precisar, arraste manualmente uma dupla de um grupo para outro.
-          </p>
-        </div>
-        {activeTournaments.length ? (
+      <header className="tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:justify-end tw:gap-2"><h1 className="tw:sr-only">Organizacao dos grupos</h1>{activeTournaments.length ? (
           <form method="get" className={viewStyles.section_actions}>
             <select name="tournamentId" defaultValue={activeTournament?.id ?? ""} className={viewStyles.button} aria-label="Selecionar torneio">
               {activeTournaments.map((tournament) => (
@@ -142,8 +134,7 @@ export default async function GroupsPage(props: GroupsPageProps) {
             </select>
             <SubmitButton label="Abrir torneio" pendingLabel="..." className={viewStyles.button} />
           </form>
-        ) : null}
-      </header>
+        ) : null}</header>
 
       {!activeTournament ? (
         <SectionCard title="Nenhum torneio em andamento">
@@ -185,7 +176,7 @@ export default async function GroupsPage(props: GroupsPageProps) {
           {groups.length ? (
             <GroupEditor groups={groups} />
           ) : (
-            <SectionCard title="Grupos ainda nao montados">
+            <SectionCard title="Grupos ainda não montados" hideHeading>
               <p className={viewStyles.muted}>Assim que as duplas forem distribuidas, os grupos aparecerao aqui.</p>
             </SectionCard>
           )}
@@ -194,7 +185,7 @@ export default async function GroupsPage(props: GroupsPageProps) {
             <SectionCard
               title="Ranking geral da fase de grupos"
               description="Classificacao final considerando os resultados dos 3 grupos."
-            >
+             hideHeading>
               <table className={viewStyles.data_table}>
                 <thead>
                   <tr>

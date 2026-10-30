@@ -2,8 +2,9 @@
 import { elementVisualScale } from "@/lib/ui/element-visual-scale";
 import { viewStyles } from "./calendar-quick-create.utilities";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Modal } from "@/components/ui/modal";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { useConfirmAction } from "@/components/forms/use-confirm-action";
@@ -57,19 +58,6 @@ export function CalendarQuickCreate() {
   const [open, setOpen] = useState(false);
   const [state, setState] = useState<FormState>(initialState);
   const isEditing = Boolean(state.lessonId || state.calendarEventId);
-  const confirmationOpen = Boolean(confirmationDialog);
-
-  useEffect(() => {
-    if (!open) return;
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key !== "Escape" || confirmationOpen) return;
-      event.preventDefault();
-      setOpen(false);
-    }
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [open, confirmationOpen]);
-
   useEffect(() => {
     function onDocClick(event: MouseEvent) {
       const target = event.target as HTMLElement;
@@ -135,7 +123,7 @@ export function CalendarQuickCreate() {
     return () => document.removeEventListener("click", onDocClick);
   }, []);
 
-  const close = () => setOpen(false);
+  const close = useCallback(() => setOpen(false), []);
 
   const dateHint = useMemo(() => {
     const date = new Date(state.scheduledAt);
@@ -145,12 +133,8 @@ export function CalendarQuickCreate() {
   if (!open) return null;
 
   return (
-    <div className={viewStyles.calendar_create_overlay} role="presentation" onMouseDown={(event) => {
-      if (event.target === event.currentTarget && !confirmationOpen) close();
-    }}>
-      <div className={viewStyles.calendar_create_card} role="dialog" aria-modal="true" aria-label={isEditing ? "Editar evento da agenda" : "Criar evento na agenda"}>
-        <button type="button" className={viewStyles.calendar_create_close} onClick={close} aria-label="Fechar">×</button>
-        <h3>{isEditing ? "Editar evento" : "Adicionar titulo"}</h3>
+    <>
+      <Modal title={isEditing ? "Editar evento" : "Novo evento"} open={open} onClose={close} width="tw:max-w-[560px]">
         <SafeActionForm
           action={isEditing ? updateCalendarEventAction : createCalendarEventAction}
           className={viewStyles.calendar_create_form}
@@ -162,7 +146,7 @@ export function CalendarQuickCreate() {
           <input type="hidden" name="calendarEventId" value={state.calendarEventId} />
 
           <div className={viewStyles.field}>
-            <label htmlFor="event-title">Titulo</label>
+            <label htmlFor="event-title">Título</label>
             <input
               id="event-title"
               name="title"
@@ -173,7 +157,7 @@ export function CalendarQuickCreate() {
                 setState((current) => ({ ...current, title: value }));
               }}
               required
-              autoFocus
+              data-modal-autofocus
             />
           </div>
 
@@ -194,7 +178,7 @@ export function CalendarQuickCreate() {
               <option value="AULA">Aula</option>
               <option value="TORNEIO">Torneio</option>
               <option value="JOGO">Jogo</option>
-              <option value="REUNIAO">Reuniao</option>
+              <option value="REUNIAO">Reunião</option>
             </select>
           </div>
 
@@ -215,7 +199,7 @@ export function CalendarQuickCreate() {
           </div>
 
           <div className={viewStyles.field}>
-            <label htmlFor="event-duration">Duracao (min)</label>
+            <label htmlFor="event-duration">Duração (min)</label>
             <input
               id="event-duration"
               name="durationMinutes"
@@ -231,7 +215,7 @@ export function CalendarQuickCreate() {
           </div>
 
           <div className={viewStyles.field}>
-            <label htmlFor="event-notes">Descricao</label>
+            <label htmlFor="event-notes">Descrição</label>
             <input
               id="event-notes"
               name="notes"
@@ -241,7 +225,7 @@ export function CalendarQuickCreate() {
                 const value = e.currentTarget.value;
                 setState((current) => ({ ...current, notes: value }));
               }}
-              placeholder="Adicionar descricao"
+              placeholder="Adicionar descrição"
             />
           </div>
 
@@ -265,14 +249,14 @@ export function CalendarQuickCreate() {
               </button>
             ) : null}
             <SubmitButton
-              label={isEditing ? "Salvar alteracoes" : "Salvar"}
+              label={isEditing ? "Salvar alterações" : "Salvar"}
               pendingLabel="Salvando..."
               className={viewStyles.button_button_primary}
             />
           </div>
         </SafeActionForm>
-      </div>
+      </Modal>
       {confirmationDialog}
-    </div>
+    </>
   );
 }

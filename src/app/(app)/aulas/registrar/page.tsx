@@ -1,11 +1,12 @@
+import { LessonPaymentFields } from "@/components/finance/lesson-payment-fields";
 import { arenaDatabase } from "@/lib/arena-database";
 import { viewStyles } from "./page.utilities";
+import { WorkspaceHeading } from "@/components/ui/workspace-heading";
 import { SectionCard } from "@/components/section-card";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { completeLessonAction, createLessonAction, deleteLessonAction } from "@/lib/actions/academy";
 import { requireModuleView } from "@/lib/auth/guards";
-import { prisma } from "@/lib/prisma";
 
 function formatDate(value: Date | null) {
   if (!value) {
@@ -43,17 +44,13 @@ export default async function RegisterLessonPage() {
     })
   ]);
 
+  const bankAccounts = await prisma.bankAccount.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } });
+
   return (
     <div className={viewStyles.stack_md}>
-      <header className={viewStyles.page_header}>
-        <div className={viewStyles.stack_xs}>
-          <p className={viewStyles.eyebrow}>Aulas</p>
-          <h1>Registrar aula</h1>
-          <p className={viewStyles.muted}>Registre aulas, marque pagamento avulso e conclua presença ou falta dos alunos.</p>
-        </div>
-      </header>
+      <WorkspaceHeading title="Registrar aula" />
 
-      <SectionCard title="Nova aula" description="Se a aula for paga, o valor já entra automaticamente no financeiro.">
+      <SectionCard title="Nova aula" className={viewStyles.panel} hideHeading>
         <SafeActionForm action={createLessonAction} className={viewStyles.grid_form} resetOnSuccess successMessage="Aula registrada.">
           <div className={viewStyles.field}>
             <label htmlFor="lesson-title">Nome da aula</label>
@@ -75,29 +72,12 @@ export default async function RegisterLessonPage() {
             <input id="lesson-date" name="scheduledAt" type="datetime-local" />
           </div>
           <div className={viewStyles.field}>
-            <label htmlFor="lesson-duration">Duração</label>
+            <label htmlFor="lesson-duration">Duração (minutos)</label>
             <input id="lesson-duration" name="durationMinutes" type="number" min="15" step="15" defaultValue="60" />
           </div>
-          <label className={viewStyles.check_option}>
-            <input name="isPaid" type="checkbox" />
-            <span>Registrar como aula paga</span>
-          </label>
-          <div className={viewStyles.field}>
-            <label htmlFor="lesson-price">Valor da aula</label>
-            <input id="lesson-price" name="price" type="text" placeholder="120,00" />
-          </div>
-          <div className={viewStyles.field}>
-            <label htmlFor="lesson-payment-method">Pagamento</label>
-            <select id="lesson-payment-method" name="paymentMethod" defaultValue="PIX">
-              <option value="PIX">Pix</option>
-              <option value="CREDIT_CARD">Cartão de crédito</option>
-              <option value="DEBIT_CARD">Cartão de débito</option>
-              <option value="CASH">Dinheiro</option>
-              <option value="OTHER">Outro</option>
-            </select>
-          </div>
-          <div className={viewStyles.field_form_full}>
-            <label>Alunos da aula</label>
+          <LessonPaymentFields accounts={bankAccounts} />
+          <div className="tw:col-span-full tw:grid tw:min-w-0 tw:gap-2 tw:text-xs tw:font-semibold">
+            <span>Alunos da aula</span>
             <div className={viewStyles.check_grid}>
               {students.map((student) => (
                 <label key={student.id} className={viewStyles.check_option_2}>
@@ -117,7 +97,7 @@ export default async function RegisterLessonPage() {
         </SafeActionForm>
       </SectionCard>
 
-      <SectionCard title="Histórico e conclusão" description="Marque faltas antes de concluir. Alunos presentes consomem uma aula do pacote.">
+      <SectionCard className={viewStyles.panel} title="Histórico e conclusão" description="Marque faltas antes de concluir. Alunos presentes consomem uma aula do pacote." hideHeading>
         <div className={viewStyles.lesson_list}>
           {lessons.map((lesson) => (
             <article key={lesson.id} className={viewStyles.lesson_item}>

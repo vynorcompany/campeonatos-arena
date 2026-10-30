@@ -1,3 +1,6 @@
+import * as composition from "../src/lib/products/composition";
+import { consumeProductStock } from "../src/lib/products/stock-aggregates";
+import { requireReceivingBankAccount } from "../src/lib/finance/receiving-bank-account";
 import assert from "node:assert/strict";
 import test from "node:test";
 import vm from "node:vm";
@@ -21,6 +24,7 @@ test("comanda WhatsApp sends only committed own shares once and preserves financ
   const runtime = new PrismaClient({ datasources: { db: { url: runtimeUrl.toString() } } }); const ids: string[] = [];
   try {
     for (const name of ["A", "B"]) { const arena = await admin.arena.create({ data: { name: `WhatsApp QA ${name}`, slug: `comanda-whatsapp-${randomUUID()}`, createdById: "goal-test" } }); ids.push(arena.id); }
+    const bank = await admin.bankAccount.create({ data: { arenaId: ids[0], name: "Conta recebimentos QA" } });
     const owner = await admin.player.create({ data: { arenaId: ids[0], name: "Owner QA", phone: "5511999990001" } });
     const partner = await admin.player.create({ data: { arenaId: ids[0], name: "Partner QA", phone: "5511999990002" } });
     const foreign = await admin.player.create({ data: { arenaId: ids[1], name: "Foreign QA", phone: "5511999990003" } });
@@ -29,21 +33,21 @@ test("comanda WhatsApp sends only committed own shares once and preserves financ
     const transact = (arenaId: string, operation: (tx: Prisma.TransactionClient) => Promise<unknown>) => runtime.$transaction(async tx => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`; return operation(tx); });
     const callbacks: (() => Promise<void>)[] = []; const sent: { phone: string; message: string }[] = []; let failProvider = false; let failQueue = false;
     const exports: Record<string, any> = {}; const dispatcher: Record<string, any> = {};
-    const common: Record<string, unknown> = { "@/lib/rls": { withArenaTransaction: transact } };
+    const common: Record<string, unknown> = { "@/lib/products/composition": composition, "@/lib/products/stock-aggregates": { consumeProductStock }, "@/lib/rls": { withArenaTransaction: transact } };
     const load = (file: string, target: Record<string, any>, mocks: Record<string, unknown>) => vm.runInNewContext(ts.transpileModule(readFileSync(new URL(file, import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports: target, FormData, Date, AbortSignal, crypto: globalThis.crypto, console, require: (name: string) => mocks[name] ?? (name.startsWith("@/") ? {} : nodeRequire(name)) });
     load("../src/lib/comandas/whatsapp-delivery.ts", dispatcher, { ...common, "@/lib/integrations/evolution/client": { sendEvolutionTextMessage: async (phone: string, message: string, arenaId: string) => {
       assert.equal(arenaId, ids[0]); assert.equal(await admin.sale.count({ where: { arenaId: ids[0] } }) > 0, true, "provider called before sale commit");
       sent.push({ phone, message }); if (failProvider) throw Error("Network uncertainty"); return {};
     } } });
     load("../src/lib/actions/comanda.ts", exports, { ...common,
-      "next/cache": { revalidatePath() {} }, "next/server": { after: (callback: () => Promise<void>) => callbacks.push(callback) },
+      "@/lib/finance/receiving-bank-account": { requireReceivingBankAccount }, "next/cache": { revalidatePath() {} }, "next/server": { after: (callback: () => Promise<void>) => callbacks.push(callback) },
       "@/lib/auth/guards": { requirePermission: async () => ({ arenaId: ids[0], userId: "goal-test", userName: "WhatsApp QA" }) },
       "@/lib/comandas/whatsapp-outbox": { enqueueComandaWhatsapp: (...args: Parameters<typeof enqueueComandaWhatsapp>) => { if (failQueue) throw Error("Queue unavailable"); return enqueueComandaWhatsapp(...args); } },
       "@/lib/comandas/whatsapp-delivery": dispatcher, "@/lib/comandas/operational-policy": operationalPolicy,
       "@/lib/comandas/split": { allocateComandaShares }, "@/lib/finance/settlements": { allocatePaymentsToDebts, getOutstandingCents }, "@/lib/finance/comanda-debts": { comandaDebtOwnerId, selectedComandaDebtWhere }, "@/lib/finance/cash-day": { cashReferenceDate }, "@/lib/finance/cash-register-sales": { recordCashSaleIfOpen },
     });
     const bill = () => admin.comanda.create({ data: { arenaId: ids[0], playerId: owner.id, label: owner.name, code: `WA-${randomUUID()}`, items: { create: { productId: product.id, quantity: 1, unitPriceCents: 1000, totalCents: 1000 } } } });
-    const finish = (comandaId: string, split = false) => { const form = new FormData(); form.set("comandaId", comandaId); form.set("payments", JSON.stringify([{ paymentMethod: "PIX", amountCents: split ? 400 : 1000 }])); if (split) form.set("shares", JSON.stringify([{ playerId: owner.id, amountCents: 400 }, { playerId: partner.id, amountCents: 600 }])); return exports.finishComandaAction(form); };
+    const finish = (comandaId: string, split = false) => { const form = new FormData(); form.set("comandaId", comandaId); form.set("payments", JSON.stringify([{ bankAccountId: bank.id, paymentMethod: "PIX", amountCents: split ? 400 : 1000 }])); if (split) form.set("shares", JSON.stringify([{ playerId: owner.id, amountCents: 400 }, { playerId: partner.id, amountCents: 600 }])); return exports.finishComandaAction(form); };
     const first = await bill(); await finish(first.id, true);
     assert.equal(sent.length, 0); assert.equal(callbacks.length, 1);
     const deliveries = await admin.comandaWhatsappDelivery.findMany({ where: { comandaId: first.id } }); assert.equal(deliveries.length, 2);

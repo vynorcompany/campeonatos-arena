@@ -2,9 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { portalCheckoutPolicy, portalExcludedPaymentTypes } from "../src/lib/payments/portal-checkout-policy";
 const initial = { portalPaymentsConfigured: false, portalPaymentEnabled: false, portalPixEnabled: true, portalCreditCardEnabled: false, checkoutExpiryMinutes: 0 };
-test("configurar impressora não desativa pagamentos existentes nem seus meios", () => {
+test("pagamentos novos exigem conta bancária e preservam as preferências dos meios", () => {
   assert.deepEqual(portalCheckoutPolicy(initial), portalCheckoutPolicy(null));
-  assert.equal(portalCheckoutPolicy(initial).enabled, true);
+  assert.equal(portalCheckoutPolicy(initial).enabled, false);
+  assert.equal(portalCheckoutPolicy({ ...initial, portalPaymentBankAccountId: "bank-a" }).enabled, true);
+  assert.equal(portalCheckoutPolicy({ ...initial, portalPaymentsConfigured: true, portalPaymentEnabled: true }).enabled, false);
+  assert.equal(portalCheckoutPolicy({ ...initial, portalPaymentsConfigured: true, portalPaymentEnabled: true, portalPaymentBankAccountId: "bank-a" }).enabled, true);
   assert.equal(portalCheckoutPolicy(initial).creditCard, true);
   assert.equal(portalCheckoutPolicy({ ...initial, portalPaymentsConfigured: true }).enabled, false);
 });

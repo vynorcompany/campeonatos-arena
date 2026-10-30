@@ -1,3 +1,5 @@
+import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
+import { ReceivingBankAccountSelect } from "@/components/finance/bank-account-select";
 import { viewStyles } from "./page.utilities";
 import { SectionCard } from "@/components/section-card";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
@@ -24,7 +26,7 @@ export default async function MonthlyPaymentsPage() {
   const auth = await requireFinanceView("receivable");
   const canCreate = canPerformPermission("finance:receivable:create", auth.arenaRole, auth.systemRole, auth.editPermissions);
   const canSettle = canPerformPermission("finance:receivable:settle", auth.arenaRole, auth.systemRole, auth.editPermissions);
-  const [students, plans, subscriptions] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
+  const [students, plans, subscriptions, bankAccounts] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
     tx.student.findMany({
       where: { arenaId: auth.arenaId, active: true },
       orderBy: { name: "asc" }
@@ -37,7 +39,8 @@ export default async function MonthlyPaymentsPage() {
       where: { arenaId: auth.arenaId, status: "ACTIVE" },
       include: { student: true, plan: true },
       orderBy: { dueDay: "asc" }
-    })
+    }),
+    tx.bankAccount.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } })
   ]));
   const today = new Date();
   const renewalLimit = new Date(today); renewalLimit.setDate(renewalLimit.getDate() + 30);
@@ -47,7 +50,7 @@ export default async function MonthlyPaymentsPage() {
     <div className={viewStyles.stack_md}>
 
       {canCreate || canSettle ? <div className={viewStyles.two_column_grid}>
-        {canCreate ? <SectionCard title="Ativar ou renovar plano" description="Cria um ciclo de 12 mensalidades. A renovação fica disponível após completar 12 meses; as cobranças anteriores são preservadas." className="tw:content-start">
+        {canCreate ? <SectionCard title="Ativar ou renovar plano" description="Cria um ciclo de 12 mensalidades. A renovação fica disponível após completar 12 meses; as cobranças anteriores são preservadas." className="tw:content-start" hideHeading>
           <SafeActionForm action={createSubscriptionAction} className={viewStyles.grid_form_finance_narrow_form} resetOnSuccess successMessage="Plano ativado ou renovado. Novo ciclo de 12 mensalidades criado.">
             <div className={viewStyles.field}>
               <label htmlFor="subscription-student">Aluno</label>
@@ -89,7 +92,7 @@ export default async function MonthlyPaymentsPage() {
           </SafeActionForm>
         </SectionCard> : null}
 
-        {canSettle ? <SectionCard title="Registrar pagamento" description="O pagamento entra como receita no financeiro.">
+        {canSettle ? <SectionCard title="Registrar pagamento" description="O pagamento entra como receita no financeiro." hideHeading>
           <SafeActionForm action={recordPlanPaymentAction} className="grid-form tw:grid tw:grid-cols-1 tw:gap-3 tw:[align-content:start]" resetOnSuccess successMessage="Pagamento registrado.">
             <div className={viewStyles.field_form_full}>
               <label htmlFor="payment-subscription">Assinatura</label>
@@ -121,6 +124,7 @@ export default async function MonthlyPaymentsPage() {
                 <option value="OTHER">Outro</option>
               </select>
             </div>
+            <ReceivingBankAccountSelect accounts={bankAccounts} className={viewStyles.field} />
             <div className={viewStyles.field}>
               <label htmlFor="payment-paid-at">Data do pagamento</label>
               <input id="payment-paid-at" name="paidAt" type="date" />
@@ -140,35 +144,18 @@ export default async function MonthlyPaymentsPage() {
         </SectionCard> : null}
       </div> : null}
 
-      <SectionCard title="Renovações de planos" description="Acompanhe os alunos cujo ciclo de 12 mensalidades está terminando. A renovação é sempre manual, evitando novas cobranças sem aprovação.">
+      <SectionCard title="Renovações de planos" description="Acompanhe os alunos cujo ciclo de 12 mensalidades está terminando. A renovação é sempre manual, evitando novas cobranças sem aprovação." hideHeading>
         {renewals.length ? <div className={viewStyles.simple_list_settings_compact_list}>{renewals.map((subscription) => <div className={viewStyles.simple_item} key={subscription.id}><strong>{subscription.student.name} · {subscription.plan.name}</strong><span>Renovação em {new Intl.DateTimeFormat("pt-BR").format(subscription.renewAt)} · {subscription.renewAt < today ? "renovação disponível" : "renovação próxima"}</span><small>A partir dessa data, use “Ativar ou renovar” para criar as próximas 12 mensalidades sem cancelar as anteriores.</small></div>)}</div> : <p className={viewStyles.muted}>Nenhuma renovação necessária nos próximos 30 dias.</p>}
       </SectionCard>
 
-      <SectionCard title="Assinaturas ativas" description="Alunos com planos ativos.">
-        <table className={viewStyles.data_table}>
-          <thead>
-            <tr>
-              <th>Aluno</th>
-              <th>Plano</th>
-              <th>Valor</th>
-              <th>Vencimento</th>
-              <th>Aulas</th>
-              <th>Ciclo</th>
-            </tr>
-          </thead>
-          <tbody>
-            {subscriptions.map((subscription) => (
-              <tr key={subscription.id}>
-                <td>{subscription.student.name}</td>
-                <td>{subscription.plan.name}</td>
-                <td>{formatMoney(subscription.monthlyPriceCents)}</td>
-                <td>Dia {subscription.dueDay}</td>
-                <td>{subscription.classesPerMonth} por mês</td>
-                <td>{new Intl.DateTimeFormat("pt-BR").format(renewalDate(subscription.startedAt))}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <SectionCard title="Assinaturas ativas" description="Alunos com planos ativos." hideHeading>
+        <div className={ui.list}>
+          <div className={`${ui.head} tw:max-[1200px]:hidden tw:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_120px_100px_100px_110px]`}><span>Aluno</span><span>Plano</span><span>Valor</span><span>Vencimento</span><span>Aulas</span><span>Ciclo</span></div>
+          {subscriptions.map(subscription => <article key={subscription.id} className={`${ui.row} tw:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_120px_100px_100px_110px] tw:max-[1200px]:grid-cols-2`}>
+            <strong>{subscription.student.name}</strong><span>{subscription.plan.name}</span><strong className="tw:tabular-nums">{formatMoney(subscription.monthlyPriceCents)}</strong><span><small className="tw:hidden tw:max-[1200px]:block">Vencimento</small>Dia {subscription.dueDay}</span><span>{subscription.classesPerMonth} aulas por mês</span><span><small className="tw:hidden tw:max-[1200px]:block">Renovação</small>{new Intl.DateTimeFormat("pt-BR").format(renewalDate(subscription.startedAt))}</span>
+          </article>)}
+          {!subscriptions.length ? <p className={ui.empty}>Nenhuma assinatura ativa.</p> : null}
+        </div>
       </SectionCard>
     </div>
   );

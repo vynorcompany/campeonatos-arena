@@ -92,7 +92,7 @@ export const viewStyles = {
     "tw:pl-[18px]", "tw:border-t-[length:1px]", "tw:[border-top-style:dashed]", "tw:border-t-[color:#c8d8e8]",
     "tw:border-r-[length:1px]", "tw:[border-right-style:dashed]", "tw:border-r-[color:#c8d8e8]", "tw:border-b-[length:1px]",
     "tw:[border-bottom-style:dashed]", "tw:border-b-[color:#c8d8e8]", "tw:border-l-[length:1px]", "tw:[border-left-style:dashed]",
-    "tw:border-l-[color:#c8d8e8]", "tw:rounded-[14px]", "tw:bg-[color:#f8fbfe]", "tw:[background-image:none]",
+    "tw:border-l-[color:#c8d8e8]", "tw:rounded-[14px]", "tw:bg-[color:#fff]", "tw:[background-image:none]",
     "tw:text-[color:#526987]", "tw:[&_strong]:text-[color:#132d58]", "tw:[&_p]:mt-[0]", "tw:[&_p]:mr-[0]",
     "tw:[&_p]:mb-[0]", "tw:[&_p]:ml-[0]", "tw:[&_p]:text-[color:#6f829f]", "tw:[&_p]:text-[.82rem]",
   ].join(" "),

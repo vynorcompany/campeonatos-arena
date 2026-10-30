@@ -1,3 +1,6 @@
+import * as composition from "../src/lib/products/composition";
+import { consumeProductStock } from "../src/lib/products/stock-aggregates";
+import { requireReceivingBankAccount } from "../src/lib/finance/receiving-bank-account";
 import assert from "node:assert/strict";
 import test from "node:test";
 import vm from "node:vm";
@@ -25,13 +28,14 @@ async function fixture() {
   const runtime = new PrismaClient({ datasources: { db: { url: limitedUrl.toString() } } });
   const arena = await admin.arena.create({ data: { name: "Wallet settlement QA", slug: `wallet-${randomUUID()}`, createdById: "goal-test" } });
   const foreign = await admin.arena.create({ data: { name: "Foreign wallet QA", slug: `wallet-foreign-${randomUUID()}`, createdById: "goal-test" } });
+  const bank = await admin.bankAccount.create({ data: { arenaId: arena.id, name: "Conta recebimentos QA" } });
   const owner = await admin.player.create({ data: { arenaId: arena.id, name: "Wallet owner QA" } });
   const other = await admin.player.create({ data: { arenaId: arena.id, name: "Other payer QA" } });
   const product = await admin.product.create({ data: { arenaId: arena.id, name: "Service QA", priceCents: 1000, isService: true } });
   await admin.arenaOperationalSettings.create({ data: { arenaId: arena.id, requireFullPayment: true } });
   const transact = (scope: string, operation: (tx: unknown) => Promise<unknown>) => runtime.$transaction(async tx => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${scope}, true)`; return operation(tx); }, { maxWait: 10_000, timeout: 10_000 });
-  const mocks: Record<string, unknown> = {
-    "next/cache": { revalidatePath() {} }, "@/lib/auth/guards": { requirePermission: async () => ({ arenaId: arena.id, userId: "goal-test", userName: "Wallet QA" }) },
+  const mocks: Record<string, unknown> = { "@/lib/products/composition": composition, "@/lib/products/stock-aggregates": { consumeProductStock },
+    "@/lib/finance/receiving-bank-account": { requireReceivingBankAccount }, "next/cache": { revalidatePath() {} }, "@/lib/auth/guards": { requirePermission: async () => ({ arenaId: arena.id, userId: "goal-test", userName: "Wallet QA" }) },
     "@/lib/arena-database": { arenaDatabase: (scope: string) => arenaDatabaseForTest(runtime, scope) }, "@/lib/rls": { withArenaTransaction: transact },
     "@/lib/comandas/operational-policy": operationalPolicy, "@/lib/comandas/split": { allocateComandaShares }, "@/lib/finance/settlements": { allocatePaymentsToDebts, getOutstandingCents },
     "@/lib/finance/comanda-debts": { comandaDebtOwnerId, selectedComandaDebtWhere }, "@/lib/finance/cash-day": { cashReferenceDate }, "@/lib/finance/cash-register-sales": { recordCashSaleIfOpen },
@@ -42,7 +46,7 @@ async function fixture() {
   const debt = (amountCents: number, playerId = owner.id, arenaId = arena.id) => admin.financialEntry.create({ data: { arenaId, playerId, type: "REVENUE", category: "Reservas", description: "Wallet debt QA", amountCents, status: "PENDING" } });
   const fund = (amountCents: number) => admin.clientBalanceMovement.create({ data: { arenaId: arena.id, playerId: owner.id, kind: "MONEY", amountCents, reason: "QA initial wallet" } });
   const balance = async () => (await admin.clientBalanceMovement.aggregate({ where: { arenaId: arena.id, playerId: owner.id, kind: "MONEY" }, _sum: { amountCents: true } }))._sum.amountCents ?? 0;
-  const finish = (comandaId: string, creditCents: number, debtIds: string[] = [], cashCents = 0, extra: Record<string, string> = {}) => actions.finishComandaAction(form({ comandaId, creditCents: String(creditCents), debtIds: JSON.stringify(debtIds), payments: JSON.stringify(cashCents ? [{ paymentMethod: "PIX", amountCents: cashCents }] : []), ...extra }));
+  const finish = (comandaId: string, creditCents: number, debtIds: string[] = [], cashCents = 0, extra: Record<string, string> = {}) => actions.finishComandaAction(form({ comandaId, creditCents: String(creditCents), debtIds: JSON.stringify(debtIds), payments: JSON.stringify(cashCents ? [{ bankAccountId: bank.id, paymentMethod: "PIX", amountCents: cashCents }] : []), ...extra }));
   const booking = async (comandaId: string, amountCents: number) => {
     const entry = await debt(amountCents);
     const occurrence = await admin.scheduleOccurrence.create({ data: { arenaId: arena.id, sourceType: "BOOKING", title: "Reservation wallet QA", bookingTypeName: "Reserva", startsAt: new Date(), endsAt: new Date(Date.now() + 3600000), participants: { create: { playerId: owner.id, amountCents, financialEntryId: entry.id } } }, include: { participants: true } });
@@ -50,7 +54,7 @@ async function fixture() {
     return entry;
   };
   const cleanup = async () => { const ids = [arena.id, foreign.id]; try { await admin.scheduleOccurrence.deleteMany({ where: { arenaId: { in: ids } } }); await admin.financialSettlement.deleteMany({ where: { arenaId: { in: ids } } }); await admin.financialEntry.deleteMany({ where: { arenaId: { in: ids } } }); await admin.sale.deleteMany({ where: { arenaId: { in: ids } } }); await admin.comanda.deleteMany({ where: { arenaId: { in: ids } } }); await admin.arena.deleteMany({ where: { id: { in: ids } } }); } finally { await runtime.$disconnect(); await admin.$disconnect(); } };
-  return { admin, arena, foreign, owner, other, command, debt, fund, balance, finish, booking, cleanup };
+  return { admin, bank, arena, foreign, owner, other, command, debt, fund, balance, finish, booking, cleanup };
 }
 
 test("wallet alone pays an automatically linked reservation once without a second income entry", { skip: !isolated }, async () => {
@@ -111,5 +115,30 @@ test("partial wallet payment preserves the booking debt and refuses forged walle
     await f.admin.arenaOperationalSettings.update({ where: { arenaId: f.arena.id }, data: { requireFullPayment: false } });
     await f.finish(c.id, 400); const entry = await f.admin.financialEntry.findUniqueOrThrow({ where: { id: d.id }, include: { settlements: true } }); assert.equal(getOutstandingCents(entry.amountCents, entry.settlements), 600); assert.equal(await f.balance(), 0);
     assert.equal(await f.admin.financialEntry.count({ where: { arenaId: f.arena.id, type: "INCOME" } }), 0);
+  } finally { await f.cleanup(); }
+});
+
+test("comanda validates receiving accounts and preserves each account across debts and product receipts", { skip: !isolated }, async () => {
+  const f = await fixture();
+  try {
+    const command = await f.command();
+    const debt = await f.debt(1200);
+    const otherBank = await f.admin.bankAccount.create({ data: { arenaId: f.arena.id, name: "Second receiving account QA", active: false } });
+    const foreignBank = await f.admin.bankAccount.create({ data: { arenaId: f.foreign.id, name: "Foreign account QA" } });
+    const finish = (payments: { paymentMethod: string; amountCents: number; bankAccountId?: string }[]) => f.finish(command.id, 0, [debt.id], 0, { payments: JSON.stringify(payments) });
+    await assert.rejects(finish([{ paymentMethod: "PIX", amountCents: 2200 }]), /Selecione a conta bancária/);
+    for (const bankAccountId of [foreignBank.id, otherBank.id]) await assert.rejects(finish([{ bankAccountId, paymentMethod: "PIX", amountCents: 2200 }]), /ativa desta arena/);
+    assert.equal(await f.admin.sale.count({ where: { comandaId: command.id } }), 0);
+    assert.equal(await f.admin.financialSettlement.count({ where: { financialEntryId: debt.id } }), 0);
+    assert.equal((await f.admin.comanda.findUniqueOrThrow({ where: { id: command.id } })).status, "OPEN");
+    await f.admin.bankAccount.update({ where: { id: otherBank.id }, data: { active: true } });
+    await finish([{ bankAccountId: f.bank.id, paymentMethod: "PIX", amountCents: 1000 }, { bankAccountId: otherBank.id, paymentMethod: "Cartão", amountCents: 1200 }]);
+    const settlements = await f.admin.financialSettlement.findMany({ where: { financialEntryId: debt.id } });
+    assert.equal(settlements.find(row => row.bankAccountId === f.bank.id)?.amountCents, 1000);
+    assert.equal(settlements.find(row => row.bankAccountId === otherBank.id)?.amountCents, 200);
+    const sale = await f.admin.sale.findUniqueOrThrow({ where: { comandaId: command.id }, include: { payments: true } });
+    assert.equal(sale.payments.length, 1); assert.equal(sale.payments[0].bankAccountId, otherBank.id); assert.equal(sale.payments[0].amountCents, 1000);
+    const receipt = await f.admin.financialEntry.findFirstOrThrow({ where: { arenaId: f.arena.id, saleId: sale.id, type: "INCOME" } });
+    assert.equal(receipt.bankAccountId, otherBank.id); assert.equal(receipt.amountCents, 1000);
   } finally { await f.cleanup(); }
 });

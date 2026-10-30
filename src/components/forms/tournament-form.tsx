@@ -110,7 +110,7 @@ export function TournamentForm({
       ) : null}
 
       <section className={viewStyles.tournament_editor_section}>
-        <header><span>01</span><div><h2>Dados do evento</h2><p>Informe o essencial. Categorias e chaveamento são configurados na próxima etapa.</p></div></header>
+
         <div className={viewStyles.tournament_editor_grid}>
           <div className={viewStyles.field_form_full}><label htmlFor="name">Nome do evento</label><input id="name" name="name" type="text" placeholder="Ex.: Open da Arena — Agosto" defaultValue={defaultName} onChange={(event) => { if (!slugEdited) setPublicSlug(slugify(event.target.value)); }} required /></div>
           <div className={viewStyles.field_form_full}><label htmlFor="description">Descrição</label><textarea id="description" name="description" placeholder="Datas, local, regras gerais e observações do evento." defaultValue={defaultDescription} rows={4} /></div>
@@ -120,7 +120,7 @@ export function TournamentForm({
       </section>
 
       <section className={viewStyles.tournament_editor_section_tournament_editor_publication}>
-        <header><span>02</span><div><h2>Inscrições e divulgação</h2><p>Defina como os atletas entram no torneio e onde ele será exibido.</p></div></header>
+
         <div className={viewStyles.tournament_editor_grid}>
           <div className={viewStyles.field}><label htmlFor="creationMode">Origem das inscrições</label><select id="creationMode" name="creationMode" defaultValue={defaultCreationMode}><option value="MANUAL">Somente inscrições manuais</option><option value="PUBLIC">Aceitar inscrições pelo link público</option></select></div>
           <div className={viewStyles.field}><label htmlFor="registrationPhase">Fase do evento</label><select id="registrationPhase" name="registrationPhase" defaultValue={defaultRegistrationPhase}><option value="REGISTRATIONS">Inscrições abertas</option><option value="EDITING">Configuração</option><option value="LIVE">Em andamento</option><option value="FINISHED">Finalizado</option></select></div>
@@ -130,7 +130,7 @@ export function TournamentForm({
       </section>
 
       <section className={viewStyles.tournament_editor_section}>
-        <header><span>03</span><div><h2>Datas, desconto e bônus</h2><p>Defina o calendário comercial do torneio. O desconto é aplicado por dupla enquanto estiver vigente.</p></div></header>
+        <h2 className="tw:sr-only">Datas, desconto e bônus</h2>
         <div className={viewStyles.tournament_editor_grid}>
           <LocalDateTimeField name="startsAt" label="Início do evento" defaultValue={defaultStartsAt} className={viewStyles.field}/>
           <LocalDateTimeField name="endsAt" label="Fim do evento" defaultValue={defaultEndsAt} className={viewStyles.field}/>

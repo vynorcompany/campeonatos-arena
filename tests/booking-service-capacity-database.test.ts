@@ -1,3 +1,7 @@
+import { moveBookingCourt } from "../src/lib/calendar/staff-operations";
+import * as serviceBookingRules from "../src/lib/calendar/service-booking-rules";
+import * as composition from "../src/lib/products/composition";
+import { consumeProductStock } from "../src/lib/products/stock-aggregates";
 import * as servicePricing from "../src/lib/products/service-pricing";
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -41,7 +45,7 @@ async function fixture(options: { limit?: number; courtPrice?: number; onlinePay
   const service = await admin.product.create({ data: { arenaId: arena.id, name: "Locação de disparador", isService: true, showOnPortalBooking: true, bookingConcurrentLimit: options.limit ?? 1, priceCents: 1500 } });
   const scope = <T>(arenaId: string, run: (tx: Prisma.TransactionClient) => Promise<T>) => runtime.$transaction(async tx => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`; return run(tx); }, { maxWait: 10_000, timeout: 10_000 });
   const auth = { arenaId: arena.id, userId: "goal-test", userName: "Resource operator" };
-  const mocks: Record<string, unknown> = { "@/lib/products/service-pricing": servicePricing,
+  const mocks: Record<string, unknown> = { "@/lib/calendar/service-booking-rules": serviceBookingRules, "@/lib/products/composition": composition, "@/lib/products/stock-aggregates": { consumeProductStock }, "@/lib/products/service-pricing": servicePricing,
     "@/lib/calendar/booking-services": resources, "@/lib/calendar/service-capacity": capacity, "@/lib/calendar/standard-services": standards, "@/lib/comandas/operational-policy": operationalPolicy,
     "next/cache": { revalidatePath() {} }, "@/lib/auth/guards": { requireModuleEdit: async () => auth, requirePermission: async () => auth },
     "@/lib/auth/player-session": { requirePublicPlayerAuth: async () => ({ arenaId: arena.id, playerId: player.id }) }, "@/lib/prisma": { prisma: runtime },
@@ -175,4 +179,40 @@ test("booking a match derives all athletes, charges only the responsible player,
   if(tournamentId) { await f.admin.scheduleOccurrence.deleteMany({where:{arenaId:f.arena.id}}); await f.admin.categoryMatch.deleteMany({where:{competition:{category:{tournamentId}}}}); await f.admin.tournament.delete({where:{id:tournamentId}}); }
   await f.cleanup();
  }
+});
+
+
+test("service duration exception requires the selected service and enforces court, weekday and complete morning interval", { skip: !enabled }, async () => {
+  const f = await fixture();
+  try {
+    for (const court of f.courts) await f.admin.court.update({ where: { id: court.id }, data: { onlineSlotMinutes: 30, onlineDurationMinutes: [90] } });
+    await f.admin.product.update({ where: { id: f.service.id }, data: { bookingRules: { minimumMinutes: 30, courtIds: [f.courts[0].id], weekdays: [at(10).getDay()], startMinute: 420, endMinute: 720 } } });
+    assert.equal((await f.book(0, 10, 30, [], 6000)).ok, false);
+    assert.equal((await f.book(1, 10, 30, [f.service.id], 7500)).ok, false);
+    assert.equal((await f.book(0, 12, 30, [f.service.id], 7500)).ok, false);
+    assert.equal((await f.book(0, 11, 90, [f.service.id], 19500)).ok, false);
+    assert.equal(await f.admin.scheduleOccurrence.count({ where: { arenaId: f.arena.id } }), 0);
+    assert.equal((await f.book(0, 10, 30, [f.service.id], 7500)).ok, true);
+    const booking = await f.admin.scheduleOccurrence.findFirstOrThrow({ where: { arenaId: f.arena.id }, include: { participants: true, serviceReservations: true } });
+    assert.equal(booking.endsAt.getTime()-booking.startsAt.getTime(), 30*60_000);
+    assert.equal(booking.participants[0].amountCents, 7500);
+    assert.equal(booking.serviceReservations.length,1);
+    await assert.rejects(() => f.scope(f.arena.id, tx => moveBookingCourt(tx, f.arena.id, booking.id, f.courts[1].id)), /não é permitido/);
+    assert.equal((await f.book(0, 11, 60, [f.service.id], 13500)).ok, true);
+  } finally { await f.cleanup(); }
+});
+
+
+test("service editor persists and duplicates booking rules and rejects another arena's courts", { skip: !enabled }, async () => {
+  const f = await fixture();
+  try {
+    const rules = { minimumMinutes: 30, courtIds: [f.courts[0].id], weekdays: [1,2], startMinute: 420, endMinute: 720 };
+    await f.serviceActions.saveServiceAction(form({ id:f.service.id, name:f.service.name, price:'15,00', showOnPortalBooking:'on', bookingConcurrentLimit:'1', bookingRules:JSON.stringify(rules) }));
+    assert.deepEqual((await f.admin.product.findUniqueOrThrow({where:{id:f.service.id}})).bookingRules,rules);
+    await f.serviceActions.manageServiceAction(form({id:f.service.id,operation:'duplicate'}));
+    const copy=await f.admin.product.findFirstOrThrow({where:{arenaId:f.arena.id,name:{contains:'(cópia)'}}});
+    assert.deepEqual(copy.bookingRules,rules);
+    const foreignCourt=await f.admin.court.create({data:{arenaId:f.foreign.id,name:'Outra arena'}});
+    await assert.rejects(()=>f.serviceActions.saveServiceAction(form({id:f.service.id,name:f.service.name,price:'15,00',bookingRules:JSON.stringify({...rules,courtIds:[foreignCourt.id]})})),/quadras desta arena/);
+  } finally { await f.cleanup(); }
 });

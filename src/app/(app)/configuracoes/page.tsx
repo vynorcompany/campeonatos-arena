@@ -1,3 +1,4 @@
+import { WorkspaceHeading } from "@/components/ui/workspace-heading";
 import { requireArenaAccess } from "@/lib/auth/session";
 import { canPerformPermission, canViewModule } from "@/lib/permissions";
 import { OperationalSubmenuList } from "@/components/operational-submenu-list";
@@ -13,5 +14,5 @@ export default async function SettingsPage() {
     ...(canView("finance") && canManage("finance:settings:manage") ? [{ href: "/financeiro/configuracoes", label: "Configurações Financeiras", description: "Regras de comandas, pagamentos, categorias e emissão fiscal." }] : []),
     ...(canView("calendar") && canManage("calendar:settings:manage") ? [{ href: "/configuracoes/checkin", label: "Check-in e QR Code", description: "Ative, baixe ou renove o QR de reservas e aulas." }, { href: "/agenda/configuracao", label: "Quadras e horários", description: "Faixas, valores, quadras e disponibilidade online." }] : []),
   ];
-  return <section className="tw:grid tw:min-w-0 tw:gap-5"><header><p className="tw:mb-1 tw:text-xs tw:font-semibold tw:text-[var(--muted)]">PREFERÊNCIAS DA ARENA</p><h1 className="tw:m-0 tw:text-2xl tw:font-semibold">Configurações</h1><p className="tw:text-sm tw:text-[var(--muted)]">Organize a operação e os acessos em um só lugar.</p></header><OperationalSubmenuList ariaLabel="Configurações" items={items} /></section>;
+  return <section className="tw:grid tw:min-w-0 tw:gap-5"><WorkspaceHeading title="Configurações" /><OperationalSubmenuList ariaLabel="Configurações" items={items} /></section>;
 }

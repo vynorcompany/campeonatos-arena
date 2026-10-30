@@ -1,3 +1,6 @@
+import { calculateBankAccountBalanceCents } from "../src/lib/finance/bank-balance";
+import { loadLedgerMovements } from "../src/lib/reports/ledger-movements";
+import { requireReceivingBankAccount } from "../src/lib/finance/receiving-bank-account";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
@@ -25,9 +28,13 @@ test("baixa manual exige valor real, quita vencidos e não aceita lote parcialme
   const runtime = new PrismaClient({ datasources: { db: { url: runtimeUrl.toString() } } });
   const entryIds: string[] = [];
   let checkoutId = "";
+  const bankIds: string[] = [];
   try {
     const arenaA = await admin.arena.findUniqueOrThrow({ where: { slug: "arena-teste-goal" }, select: { id: true } });
     const arenaB = await admin.arena.findUniqueOrThrow({ where: { slug: "arena-beta-goal" }, select: { id: true } });
+    const bank = await admin.bankAccount.create({ data: { arenaId: arenaA.id, name: `Receiving QA ${crypto.randomUUID()}` } }); bankIds.push(bank.id);
+    const bank2 = await admin.bankAccount.create({ data: { arenaId: arenaA.id, name: `Other receiving QA ${crypto.randomUUID()}`, active: false } }); bankIds.push(bank2.id);
+    const foreignBank = await admin.bankAccount.create({ data: { arenaId: arenaB.id, name: `Foreign bank QA ${crypto.randomUUID()}` } }); bankIds.push(foreignBank.id);
     const pending = await admin.financialEntry.create({ data: { arenaId: arenaA.id, type: "REVENUE", category: "GOAL", description: "Conta fictícia pendente", amountCents: 1000 }, select: { id: true } });
     const overdue = await admin.financialEntry.create({ data: { arenaId: arenaA.id, type: "REVENUE", category: "GOAL", description: "Conta fictícia vencida", amountCents: 2000, status: "OVERDUE" }, select: { id: true } });
     const foreign = await admin.financialEntry.create({ data: { arenaId: arenaB.id, type: "REVENUE", category: "GOAL", description: "Conta fictícia de outra arena", amountCents: 3000 }, select: { id: true } });
@@ -44,6 +51,7 @@ test("baixa manual exige valor real, quita vencidos e não aceita lote parcialme
     const actions: Record<string, (form: FormData) => Promise<unknown>> = {};
     const mocks: Record<string, unknown> = {
       "@prisma/client": { Prisma },
+      "@/lib/finance/receiving-bank-account": { requireReceivingBankAccount },
       "@/lib/auth/guards": { requireModuleEdit: async () => ({ arenaId: arenaA.id }) },
       "@/lib/auth/session": { requireArenaAccess: async () => ({ arenaId: arenaA.id }) },
       "@/lib/permissions": { canPerformPermission: () => true },
@@ -61,9 +69,10 @@ test("baixa manual exige valor real, quita vencidos e não aceita lote parcialme
       exports: actions, Date, FormData, console,
       require: (name: string) => mocks[name] ?? {},
     });
-    const settle = (entryId: string, amount: string, discount = "0", discountMode = "AMOUNT") => {
+    const settle = (entryId: string, amount: string, discount = "0", discountMode = "AMOUNT", bankAccountId = bank.id) => {
       const form = new FormData();
       form.set("entryId", entryId);
+      form.set("bankAccountId", bankAccountId);
       form.set("amount", amount);
       form.set("discount", discount); form.set("discountMode", discountMode);
       form.set("interest", "0");
@@ -74,11 +83,17 @@ test("baixa manual exige valor real, quita vencidos e não aceita lote parcialme
     const settleBulk = (ids: string[]) => {
       const form = new FormData();
       ids.forEach((id) => form.append("entryIds", id));
+      form.set("bankAccountId", bank.id);
       form.set("paymentMethod", "PIX");
       form.set("paidAt", "");
       return actions.settleFinancialEntriesBulkAction(form);
     };
 
+    await assert.rejects(settle(pending.id, "1,00", "0", "AMOUNT", ""), /Selecione a conta bancária/);
+    await assert.rejects(settle(pending.id, "1,00", "0", "AMOUNT", foreignBank.id), /ativa desta arena/);
+    await assert.rejects(settle(pending.id, "1,00", "0", "AMOUNT", bank2.id), /ativa desta arena/);
+    assert.equal(await admin.financialSettlement.count({ where: { financialEntryId: pending.id } }), 0);
+    await admin.bankAccount.update({ where: { id: bank2.id }, data: { active: true } });
     await assert.rejects(settle(pending.id, "0"), /maior que zero/);
     await assert.rejects(settle(foreign.id, "10,00"), /não está disponível/);
     await assert.rejects(settleBulk([pending.id, foreign.id]), /Uma ou mais contas não estão disponíveis/);
@@ -107,8 +122,14 @@ test("baixa manual exige valor real, quita vencidos e não aceita lote parcialme
     assert.equal(partial.settlements[0].discountCents, 1000);
     assert.equal(partial.settlements[0].amountCents, 4000);
     assert.equal(getFinancialEntryBalance(partial.amountCents, partial.settlements).outstandingCents, 5000);
-    await settle(discounted.id, "45,00", "5,00");
+    await settle(discounted.id, "45,00", "5,00", "AMOUNT", bank2.id);
     const complete = await admin.financialEntry.findUniqueOrThrow({ where: { id: discounted.id }, include: { settlements: true } });
+    assert.equal(complete.bankAccountId, bank2.id);
+    assert.equal(complete.settlements.find(row => row.amountCents === 4000)?.bankAccountId, bank.id);
+    assert.equal(complete.settlements.find(row => row.amountCents === 4500)?.bankAccountId, bank2.id);
+    assert.equal(await calculateBankAccountBalanceCents(admin, arenaA.id, bank2.id, 0), 4500);
+    const bankLedger = await loadLedgerMovements(admin, arenaA.id, { gte: new Date(Date.now() - 86400000), lte: new Date(Date.now() + 86400000) }, { bankAccountId: bank2.id });
+    assert.equal(bankLedger.income, 4500);
     assert.equal(complete.status, "PAID");
     assert.equal(complete.settlements.reduce((sum, row) => sum + row.amountCents, 0), 8500);
     assert.equal(getFinancialEntryBalance(complete.amountCents, complete.settlements).outstandingCents, 0);
@@ -124,6 +145,7 @@ test("baixa manual exige valor real, quita vencidos e não aceita lote parcialme
   } finally {
     if (checkoutId) await admin.onlinePaymentCheckout.delete({ where: { id: checkoutId } });
     if (entryIds.length) await admin.financialEntry.deleteMany({ where: { id: { in: entryIds } } });
+    if (bankIds.length) await admin.bankAccount.deleteMany({ where: { id: { in: bankIds } } });
     await runtime.$disconnect();
     await admin.$disconnect();
   }

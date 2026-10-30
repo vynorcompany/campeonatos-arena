@@ -26,7 +26,7 @@ test("forms use the shared visual control and active-state switch patterns", asy
   assert.match(productDialog, /<Modal/);
 });
 
-test("financial launches and product management use dedicated spacious work areas", async () => {
+test("financial launches and product management use dedicated operational work areas", async () => {
   const [styles, products, productDetail, pricing, history] = await Promise.all([
     readFile("src/app/globals.css", "utf8"),
     readFile("src/components/products/stock-workspace.tsx", "utf8"),
@@ -39,10 +39,14 @@ test("financial launches and product management use dedicated spacious work area
   const productDialog = await readFile("src/components/products/new-product-dialog.tsx", "utf8");
   assert.match(productDialog, /ProductPricingFields/);
   assert.match(products, /href=\{`\/pdv\/\$\{product\.id\}`\}/);
-  assert.match(productDetail, /Ajuste de estoque/);
-  assert.match(productDetail, /Configurações NFC-e/);
+  assert.match(productDetail, /ProductEditorTabs/);
+  assert.match(productDetail, /adjustStockAction/);
+  assert.match(productDetail, /ProductFiscalForm/);
   assert.match(pricing, /Preço de custo/);
   assert.match(pricing, /Margem desejada/);
   assert.match(history, /Ver histórico/);
-  assert.match(history, /createPortal/);
+  assert.match(history, /<Modal\s/);
+  const modal = await readFile("src/components/ui/modal.tsx", "utf8");
+  assert.match(modal, /createPortal/);
+  assert.match(modal, /role="dialog"/);
 });
