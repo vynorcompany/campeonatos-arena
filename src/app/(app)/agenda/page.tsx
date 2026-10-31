@@ -82,7 +82,7 @@ export default async function AgendaPage(props: AgendaPageProps) {
   const weekday = selectedDate.getDay();
   const dayHref = (date: Date) => `/agenda?data=${dateInputValue(date)}`;
   const selectedDateLabel = new Intl.DateTimeFormat("pt-BR", { weekday: "long", day: "2-digit", month: "short" }).format(selectedDate);
-  const gridMinWidth = 64 + courts.length * 220;
+  const gridMinWidth = courts.length * 220;
   const canCreateBooking = canPerformPermission("calendar:booking:create", auth.arenaRole, auth.systemRole, auth.editPermissions);
   const canEditBooking = canPerformPermission("calendar:booking:edit", auth.arenaRole, auth.systemRole, auth.editPermissions);
   const canCancelBooking = canPerformPermission("calendar:booking:cancel", auth.arenaRole, auth.systemRole, auth.editPermissions);
@@ -105,9 +105,9 @@ export default async function AgendaPage(props: AgendaPageProps) {
       <div className={viewStyles.agenda_calendar_controls}><AgendaMonthPicker selectedDate={dateInputValue(selectedDate)} />{canManageSchedule ? <OnlineBookingSettingsDialog settings={{ arenaSlug: arena.slug, layout: arena.onlineBookingLayout, requiresConfirmation: arena.onlineBookingRequiresConfirmation, showReserved: arena.onlineBookingShowReserved, paymentOnlineEnabled: arena.onlineBookingPaymentEnabled, enabled: arena.onlineBookingEnabled, leadTimeMinutes: arena.onlineBookingLeadTimeMinutes, overdueBlockDays: arena.onlineBookingOverdueBlockDays, whatsappMessage: arena.onlineBookingWhatsappMessage, whatsappConfirmationEnabled: arena.onlineBookingWhatsappConfirmationEnabled }} /> : null}</div>
     </div>
     <div className={viewStyles.agenda_grid_caption}><strong>{selectedDateLabel}</strong><span>Preço e disponibilidade por quadra</span></div>
-    {courts.length > 1 ? <p className="tw:hidden tw:viewport-700:block tw:m-0 tw:text-xs tw:text-[#617991]">Deslize a grade para ver as outras quadras. A coluna de horários permanece visível.</p> : null}
+    {courts.length > 1 ? <p className="tw:hidden tw:viewport-700:block tw:m-0 tw:text-xs tw:text-[#617991]">Deslize a grade para ver as outras quadras.</p> : null}
     <AgendaBulkSelection allowed={canCreateBooking}>
-    {courts.length ? <div className={viewStyles.daily_court_grid_scroll} role="region" aria-label="Grade de horários por quadra" tabIndex={0}><table className={viewStyles.daily_court_grid} style={{ minWidth: gridMinWidth }}><thead><tr><th scope="col">Hora</th>{courts.map((court) => <th scope="col" className="daily-court-heading" style={{ "--court-color": court.color } as CSSProperties} key={court.id}>{court.name}</th>)}</tr></thead><tbody>{slots.map((slot) => <tr key={slot}><th scope="row">{minuteLabel(slot)}</th>{courts.map((court) => {
+    {courts.length ? <div className={viewStyles.daily_court_grid_scroll} role="region" aria-label="Grade de horários por quadra" tabIndex={0}><table className={viewStyles.daily_court_grid} style={{ minWidth: gridMinWidth }}><thead><tr>{courts.map((court) => <th scope="col" className="daily-court-heading" style={{ "--court-color": court.color } as CSSProperties} key={court.id}>{court.name}</th>)}</tr></thead><tbody>{slots.map((slot) => <tr key={slot}>{courts.map((court) => {
       const occurrence = occurrencesByCourtAndSlot.get(`${court.id}:${slot}`);
       const isOccupied = occupiedCourtSlots.has(`${court.id}:${slot}`);
       if (isOccupied) return null;
