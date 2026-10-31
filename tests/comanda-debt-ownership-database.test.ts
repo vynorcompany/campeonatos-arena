@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import test from "node:test";
 import { PrismaClient } from "@prisma/client";
-import { comandaDebtOwnerId, selectedComandaDebtWhere } from "../src/lib/finance/comanda-debts";
+import { comandaDebtOwnerId, selectedComandaDebtWhere, listedComandaDebtWhere } from "../src/lib/finance/comanda-debts";
 
 const testUrl = process.env.ARENA_GOAL_TEST_DATABASE_URL ?? "";
 const disposableDatabase = (() => {
@@ -41,6 +41,18 @@ test("comanda não oferece débito de homônimo, despesa ou outra arena e aceita
       });
       assert.deepEqual(entries.filter((entry) => comandaDebtOwnerId(entry) === owner.id).map((entry) => entry.id), [overdue.id]);
       assert.deepEqual(new Set(entries.map((entry) => entry.id)), new Set([overdue.id, sameName.id]));
+      const cases = [
+        { label: "anterior", dueDate: new Date("2040-01-01T00:00:00Z"), status: "OVERDUE", expected: true },
+        { label: "dia", dueDate: new Date("2040-01-02T00:00:00Z"), status: "PENDING", expected: true },
+        { label: "fim-dia", dueDate: new Date("2040-01-02T23:59:59.999Z"), status: "PARTIAL", expected: true },
+        { label: "futuro", dueDate: new Date("2040-01-03T00:00:00Z"), status: "PENDING", expected: false },
+        { label: "pago", dueDate: new Date("2040-01-02T00:00:00Z"), status: "PAID", expected: false },
+        { label: "sem-vencimento-antigo", dueDate: null, createdAt: new Date("2040-01-02T03:00:00Z"), status: "PENDING", expected: true },
+        { label: "sem-vencimento-futuro", dueDate: null, createdAt: new Date("2040-01-03T03:00:00Z"), status: "PENDING", expected: false },
+      ];
+      const dated = await Promise.all(cases.map(item => tx.financialEntry.create({ data: { arenaId: arenaA.id, playerId: owner.id, type: "REVENUE", category: "Teste", description: item.label, amountCents: 1000, status: item.status, dueDate: item.dueDate, createdAt: item.createdAt } })));
+      const listed = await tx.financialEntry.findMany({ where: { ...listedComandaDebtWhere(arenaA.id, new Date(2040, 0, 2)), id: { in: dated.map(entry => entry.id) } }, select: { id: true } });
+      assert.deepEqual(new Set(listed.map(entry => entry.id)), new Set(dated.filter((_, index) => cases[index].expected).map(entry => entry.id)), "somente vencimentos até o dia selecionado e débitos antigos sem vencimento");
       throw rollback;
     }), (error: unknown) => error === rollback);
   } finally {
