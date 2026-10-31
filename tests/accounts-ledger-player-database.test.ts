@@ -36,7 +36,7 @@ test("contas a receber mostra o cliente diretamente vinculado sem trazer a outra
       { id: ownId, arenaId: arenaA.id, playerId: ownPlayer.id, type: "REVENUE", category: "GOAL", description: "Recebível descartável", amountCents: 100, status: "PENDING", source: "GRIPO_IMPORT", counterpartyName: "Nome anterior no Gripo" },
       { id: datedId, arenaId: arenaA.id, playerId: ownPlayer.id, type: "REVENUE", category: "GOAL", description: "Recebível datado", amountCents: 200, status: "PENDING", dueDate: new Date("2026-10-20T12:00:00Z") },
       { id: futureId, arenaId: arenaA.id, playerId: ownPlayer.id, type: "REVENUE", category: "GOAL", description: "Recebível futuro", amountCents: 300, status: "PENDING", dueDate: new Date("2027-01-20T12:00:00Z") },
-      { id: paidId, arenaId: arenaA.id, playerId: ownPlayer.id, type: "REVENUE", category: "GOAL", description: "Recebível quitado sem vencimento", amountCents: 400, status: "PAID", paidAt: new Date("2026-09-20T12:00:00Z") },
+      { id: paidId, arenaId: arenaA.id, playerId: ownPlayer.id, type: "INCOME", category: "COMANDAS", description: "Recebível quitado sem vencimento", amountCents: 400, status: "PAID", paidAt: new Date("2026-09-20T12:00:00Z") },
       { id: foreignId, arenaId: arenaB.id, playerId: foreignPlayer.id, type: "REVENUE", category: "GOAL", description: "Recebível de outra arena", amountCents: 100, status: "PENDING" },
     ] });
 
@@ -61,6 +61,8 @@ test("contas a receber mostra o cliente diretamente vinculado sem trazer a outra
     assert.ok(filtered.some(entry => entry.id === ownId), "Imported undated debt is visible by linked client's current name");
     assert.ok(filtered.some(entry => entry.id === datedId));
     assert.ok(!filtered.some(entry => [futureId, paidId, foreignId].includes(entry.id)), "Date and arena filters still apply to dated or paid entries");
+    const legacyPaid = await exports.getAccountsLedger(arenaA.id, "REVENUE", {start:"2026-09-01",end:"2026-09-30",category:"Comandas",status:"PAID"});
+    assert.equal(legacyPaid.filter(entry => entry.id === paidId).length, 1, "legacy undated receipt appears once in its payment month under the default date filter");
     const paidPeriod = await exports.getAccountsLedger(arenaA.id, "REVENUE", { start: "2026-10-01", end: "2026-10-31", dateField: "paidAt" });
     assert.ok(!paidPeriod.some(entry => [ownId, paidId].includes(entry.id)), "Payment-date filter excludes unpaid entries and payments outside period");
     const category = await exports.getAccountsLedger(arenaA.id, "REVENUE", { start: "2026-10-01", end: "2026-10-31", category: "Categoria sem registros" });

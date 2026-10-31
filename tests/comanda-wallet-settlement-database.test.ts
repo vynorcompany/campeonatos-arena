@@ -65,7 +65,7 @@ test("wallet alone pays an automatically linked reservation once without a secon
     assert.equal(paid.status, "PAID"); assert.equal(paid.settlements.length, 1); assert.equal(paid.settlements[0].paymentMethod, "Saldo do cliente"); assert.equal(paid.settlements[0].amountCents, 2500);
     assert.equal(await f.balance(), 1500); assert.equal((await f.admin.comanda.findUniqueOrThrow({ where: { id: c.id } })).status, "CLOSED");
     const sale = await f.admin.sale.findUniqueOrThrow({ where: { comandaId: c.id }, include: { payments: true } }); assert.equal(sale.totalCents, 0); assert.equal(sale.payments.length, 0);
-    assert.equal(await f.admin.financialEntry.count({ where: { arenaId: f.arena.id, type: "INCOME" } }), 0);
+    assert.equal(await f.admin.financialEntry.count({ where: { arenaId: f.arena.id, type: { in: ["REVENUE", "INCOME"] }, category: "COMANDAS", status: "PAID" } }), 0);
     await assert.rejects(f.finish(c.id, 2500), /não está disponível/); assert.equal(await f.balance(), 1500);
   } finally { await f.cleanup(); }
 });
@@ -78,7 +78,7 @@ test("mixed wallet and PIX settle products, debt and existing interest without d
     const paid = await f.admin.financialEntry.findUniqueOrThrow({ where: { id: d.id }, include: { settlements: true } }); assert.equal(paid.status, "PAID"); assert.equal(getOutstandingCents(paid.amountCents, paid.settlements), 0);
     assert.equal(paid.settlements.filter(s => s.paymentMethod === "Saldo do cliente").reduce((sum, s) => sum + s.amountCents, 0), 500);
     const sale = await f.admin.sale.findUniqueOrThrow({ where: { comandaId: c.id }, include: { payments: true } }); assert.equal(sale.status, "PAID"); assert.equal(sale.payments.reduce((sum, p) => sum + p.amountCents, 0), 1000);
-    assert.equal(await f.balance(), 0); assert.equal(await f.admin.financialEntry.count({ where: { arenaId: f.arena.id, type: "INCOME" } }), 0);
+    assert.equal(await f.balance(), 0); assert.equal(await f.admin.financialEntry.count({ where: { arenaId: f.arena.id, type: { in: ["REVENUE", "INCOME"] }, category: "COMANDAS", status: "PAID" } }), 0);
   } finally { await f.cleanup(); }
 });
 
@@ -89,7 +89,7 @@ test("wallet pays only the owner's split and debts; it cannot spend on another p
     await assert.rejects(f.finish(c.id, 1000, [d.id], 500, { shares }), /excedem/); assert.equal(await f.balance(), 1500);
     await f.finish(c.id, 900, [d.id], 600, { shares }); assert.equal(await f.balance(), 600);
     const sale = await f.admin.sale.findUniqueOrThrow({ where: { comandaId: c.id }, include: { payments: true } }); assert.equal(sale.payments.find(p => p.paymentMethod === "Saldo do cliente")?.amountCents, 400);
-    assert.equal((await f.admin.financialEntry.aggregate({ where: { arenaId: f.arena.id, type: "INCOME" }, _sum: { amountCents: true } }))._sum.amountCents, 600);
+    assert.equal((await f.admin.financialEntry.aggregate({ where: { arenaId: f.arena.id, saleId: sale.id, type: "REVENUE" }, _sum: { amountCents: true } }))._sum.amountCents, 600);
   } finally { await f.cleanup(); }
 });
 
@@ -114,7 +114,7 @@ test("partial wallet payment preserves the booking debt and refuses forged walle
     await f.admin.financialEntry.update({ where: { id: d.id }, data: { onlinePaymentClaimMethod: "", onlinePaymentClaimedAt: null } });
     await f.admin.arenaOperationalSettings.update({ where: { arenaId: f.arena.id }, data: { requireFullPayment: false } });
     await f.finish(c.id, 400); const entry = await f.admin.financialEntry.findUniqueOrThrow({ where: { id: d.id }, include: { settlements: true } }); assert.equal(getOutstandingCents(entry.amountCents, entry.settlements), 600); assert.equal(await f.balance(), 0);
-    assert.equal(await f.admin.financialEntry.count({ where: { arenaId: f.arena.id, type: "INCOME" } }), 0);
+    assert.equal(await f.admin.financialEntry.count({ where: { arenaId: f.arena.id, type: { in: ["REVENUE", "INCOME"] }, category: "COMANDAS", status: "PAID" } }), 0);
   } finally { await f.cleanup(); }
 });
 
@@ -138,7 +138,8 @@ test("comanda validates receiving accounts and preserves each account across deb
     assert.equal(settlements.find(row => row.bankAccountId === otherBank.id)?.amountCents, 200);
     const sale = await f.admin.sale.findUniqueOrThrow({ where: { comandaId: command.id }, include: { payments: true } });
     assert.equal(sale.payments.length, 1); assert.equal(sale.payments[0].bankAccountId, otherBank.id); assert.equal(sale.payments[0].amountCents, 1000);
-    const receipt = await f.admin.financialEntry.findFirstOrThrow({ where: { arenaId: f.arena.id, saleId: sale.id, type: "INCOME" } });
+    const receipt = await f.admin.financialEntry.findFirstOrThrow({ where: { arenaId: f.arena.id, saleId: sale.id, type: "REVENUE" } });
     assert.equal(receipt.bankAccountId, otherBank.id); assert.equal(receipt.amountCents, 1000);
+    assert.equal(receipt.playerId, f.owner.id); assert.equal(receipt.source, "COMANDA"); assert.ok(receipt.dueDate); assert.equal(receipt.status, "PAID");
   } finally { await f.cleanup(); }
 });

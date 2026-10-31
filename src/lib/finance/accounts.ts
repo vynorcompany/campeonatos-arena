@@ -31,6 +31,7 @@ export async function getAccountsLedger(arenaId: string, type: "REVENUE" | "EXPE
     if (type === "REVENUE" && dateField === "dueDate") conditions.push({ OR: [
       { dueDate: range },
       { dueDate: null, status: { in: ["PENDING", "OVERDUE", "PARTIAL"] } },
+      { dueDate: null, status: "PAID", paidAt: range },
     ] });
     else where[dateField] = range;
   }
