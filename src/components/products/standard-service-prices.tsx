@@ -1,3 +1,4 @@
+import { serviceMatchesSearch } from "@/lib/calendar/service-search";
 import { ServiceDialog, type Service } from "./service-dialog";
 import type { ReactNode } from "react";
 import { WorkspaceHeading } from "@/components/ui/workspace-heading";
@@ -10,10 +11,10 @@ import { updateStandardServicePriceAction } from "@/lib/actions/standard-service
 import { STANDARD_SERVICES, type StandardServicePrices } from "@/lib/calendar/standard-services";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 
-export function StandardServicePriceSettings({ prices, canEdit, children, services = [], courts = [] }: { courts?: { id: string; name: string }[]; services?: Service[]; prices: StandardServicePrices; canEdit: boolean; children?: ReactNode }) {
+export function StandardServicePriceSettings({ prices, canEdit, children, services = [], courts = [], query = "" }: { query?: string; courts?: { id: string; name: string }[]; services?: Service[]; prices: StandardServicePrices; canEdit: boolean; children?: ReactNode }) {
   return <div className={ui.page}><WorkspaceHeading eyebrow="SERVIÇOS · TABELA DE VALORES" title="Serviços" description="Valores por atleta e disponibilidade na grade e nas comandas.">{children}</WorkspaceHeading>
     <div className={ui.list}><div className={`${ui.head} ${canEdit ? "tw:grid-cols-[minmax(0,1fr)_150px_120px]" : "tw:grid-cols-[minmax(0,1fr)_180px]"}`}><span>Serviço</span><span>Valor por atleta</span>{canEdit ? <span>Ações</span> : null}</div>
-      {STANDARD_SERVICES.map((service) => {
+      {STANDARD_SERVICES.filter(service => serviceMatchesSearch(service.name, query)).map((service) => {
         const configured = services.find(item => item.sku === `ARENA-SERVICE:${service.code}`);
         if (configured) return <div key={service.code} className={`${ui.row} tw:grid-cols-[minmax(0,1fr)_150px_120px] tw:viewport-620:grid-cols-1`}><div><strong>{service.name}</strong><small>{configured.showOnAgenda ? "Grade" : "Fora da grade"} · {configured.showOnComandas ? "Comandas" : "Fora das comandas"}</small></div><span className="tw:text-sm">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(configured.priceCents / 100)}</span>{canEdit ? <ServiceDialog service={configured} courts={courts} /> : null}</div>;
         return canEdit ? <SafeActionForm key={service.code} action={updateStandardServicePriceAction} successMessage={`Valor de ${service.name} atualizado.`} className={`${ui.row} tw:grid-cols-[minmax(0,1fr)_150px_120px] tw:items-center tw:viewport-1120:grid-cols-[minmax(0,1fr)_180px] tw:viewport-1120:[&>button]:col-start-2 tw:viewport-620:grid-cols-1 tw:viewport-620:[&>button]:col-start-1`}>

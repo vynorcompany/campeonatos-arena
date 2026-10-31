@@ -28,3 +28,23 @@ test("service conditions group complete weeks and order partial days consistentl
  assert.equal(serviceRuleDetails(readServiceBookingRules({weekdays:[0,5,1]}),courts)[1].value,'Seg · Sex · Dom');
  assert.equal(serviceRuleDetails(readServiceBookingRules({}),courts)[0].value,'Todas as quadras');
 });
+
+test("independent daily windows constrain the entire reservation and allow shorter service bookings", () => {
+ const rules = readServiceBookingRules({minimumMinutes:30,courtIds:['elaine'],dailyWindows:[{weekday:1,startMinute:420,endMinute:660},{weekday:2,startMinute:840,endMinute:1080}]});
+ assert.equal(servicePermitsInterval(rules,'elaine',1,630,30),true);
+ assert.equal(servicePermitsInterval(rules,'elaine',1,630,60),false);
+ assert.equal(servicePermitsInterval(rules,'elaine',2,630,30),false);
+ assert.equal(servicePermitsInterval(rules,'elaine',2,840,30),true);
+ assert.equal(servicePermitsInterval(rules,'elaine',3,840,30),false);
+ assert.equal(servicePermitsInterval(rules,'outra',2,840,30),false);
+ assert.equal(servicePermitsDuration([90],30,[{rules}],'elaine',2,840,30),true);
+ assert.equal(servicePermitsInterval(readServiceBookingRules({dailyWindows:[]}),'elaine',1,420,30),false);
+ assert.equal(serviceRuleDetails(rules,[])[2].value,'Seg 07:00–11:00 · Ter 14:00–18:00');
+});
+
+test("daily windows reject duplicate days and inverted or invalid times", () => {
+ assert.throws(()=>readServiceBookingRules({dailyWindows:[{weekday:1,startMinute:600,endMinute:420}]}));
+ assert.throws(()=>readServiceBookingRules({dailyWindows:[{weekday:7,startMinute:420,endMinute:600}]}));
+ assert.throws(()=>readServiceBookingRules({dailyWindows:[{weekday:1,startMinute:420,endMinute:600},{weekday:1,startMinute:700,endMinute:800}]}));
+ assert.equal(readServiceBookingRules({weekdays:[1],startMinute:420,endMinute:600}).dailyWindows,undefined);
+});

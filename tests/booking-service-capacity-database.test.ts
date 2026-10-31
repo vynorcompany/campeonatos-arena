@@ -216,3 +216,18 @@ test("service editor persists and duplicates booking rules and rejects another a
     await assert.rejects(()=>f.serviceActions.saveServiceAction(form({id:f.service.id,name:f.service.name,price:'15,00',bookingRules:JSON.stringify({...rules,courtIds:[foreignCourt.id]})})),/quadras desta arena/);
   } finally { await f.cleanup(); }
 });
+
+
+test("per-day service windows persist and block out-of-window public reservations", { skip: !enabled }, async () => {
+  const f = await fixture();
+  try {
+    const weekday = at(10).getDay();
+    const rules = serviceBookingRules.readServiceBookingRules({dailyWindows:[{weekday,startMinute:420,endMinute:660},{weekday:(weekday+1)%7,startMinute:840,endMinute:1080}]});
+    await f.serviceActions.saveServiceAction(form({id:f.service.id,name:f.service.name,price:'15,00',showOnPortalBooking:'on',bookingConcurrentLimit:'1',bookingRules:JSON.stringify(rules)}));
+    assert.deepEqual((await f.admin.product.findUniqueOrThrow({where:{id:f.service.id}})).bookingRules,rules);
+    assert.equal((await f.book(0,14)).ok,false);
+    assert.equal((await f.book(0,10,120)).ok,false);
+    assert.equal(await f.admin.scheduleOccurrence.count({where:{arenaId:f.arena.id}}),0);
+    assert.equal((await f.book(0,10)).ok,true);
+  } finally { await f.cleanup(); }
+});
