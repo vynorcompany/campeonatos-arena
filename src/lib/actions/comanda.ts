@@ -378,7 +378,7 @@ export async function finishComandaAction(formData: FormData) {
     }
     for (const payment of debtPaymentAllocation.remainingPayments) {
       await tx.salePayment.create({ data: { saleId: sale.id, bankAccountId: payment.bankAccountId, paymentMethod: payment.paymentMethod, amountCents: payment.amountCents } });
-      await tx.financialEntry.create({ data: { arenaId: auth.arenaId, saleId: sale.id, bankAccountId: payment.bankAccountId, type: "INCOME", category: "COMANDAS", description: `Recebimento da comanda ${comanda.code}`, amountCents: payment.amountCents, paymentMethod: payment.paymentMethod, status: "PAID", paidAt: now } });
+      await tx.financialEntry.create({ data: { arenaId: auth.arenaId, saleId: sale.id, playerId: comanda.playerId, counterpartyName: comanda.label, bankAccountId: payment.bankAccountId, type: "REVENUE", category: "COMANDAS", source: "COMANDA", dueDate: now, description: `Recebimento da comanda ${comanda.code}`, amountCents: payment.amountCents, paymentMethod: payment.paymentMethod, status: "PAID", paidAt: now } });
     }
     for (const settlement of debtPaymentAllocation.settlements) {
       await tx.financialSettlement.create({
@@ -430,6 +430,8 @@ export async function finishComandaAction(formData: FormData) {
   revalidatePath("/comandas");
   revalidatePath("/home");
   revalidatePath("/financeiro/lancamentos");
+  revalidatePath("/financeiro/contas-a-receber");
+  revalidatePath("/painel");
   revalidatePath("/pdv/caixa");
   revalidatePath("/relatorios/caixa");
 }

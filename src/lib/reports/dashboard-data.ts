@@ -40,8 +40,11 @@ export function dashboardFinancialRows(entries: DashboardEntry[], view: "caixa" 
   return entries.filter(entry => entry.status !== "VOIDED").flatMap(entry => {
     const playerId = entry.playerId || entry.scheduleParticipant?.playerId || entry.sale?.comanda?.playerId || null;
     const name = entry.player?.name || entry.scheduleParticipant?.player.name || entry.sale?.comanda?.player?.name || entry.counterpartyName || "Cliente não identificado";
-    const base = { ...entry, playerId, counterpartyName: name };
-    if (view === "competencia") return within(entry.dueDate) ? [{ ...base, value: entry.amountCents, date: entry.dueDate! }] : [];
+    // Older comanda receipts were written as INCOME, unlike the revenue ledger.
+    const legacyComanda = entry.type === "INCOME" && entry.category.trim().toUpperCase() === "COMANDAS";
+    const base = { ...entry, type: legacyComanda ? "REVENUE" : entry.type, playerId, counterpartyName: name };
+    const competenceDate = entry.dueDate ?? (legacyComanda && entry.paidAt ? instantToArenaWallClock(entry.paidAt) : null);
+    if (view === "competencia") return within(competenceDate) ? [{ ...base, value: entry.amountCents, date: competenceDate! }] : [];
     if (entry.settlements.length) return entry.settlements.filter(settlement => paidWithin(settlement.paidAt)).map(settlement => ({ ...base, id: `${entry.id}:${settlement.id}`, value: settlement.amountCents, date: instantToArenaWallClock(settlement.paidAt), paymentMethod: settlement.paymentMethod }));
     return entry.status === "PAID" && paidWithin(entry.paidAt) ? [{ ...base, value: entry.amountCents, date: instantToArenaWallClock(entry.paidAt!) }] : [];
   });
