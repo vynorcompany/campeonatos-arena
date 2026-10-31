@@ -6,7 +6,7 @@ export const viewStyles = {
     "tw:pr-[18px]", "tw:pb-[28px]", "tw:pl-[18px]", "tw:viewport-700:pr-[0]", "tw:viewport-700:pl-[0]",
   ].join(" "),
   "agenda_date_strip": [
-    "agenda-date-strip", "tw:flex", "tw:items-stretch", "tw:gap-y-[6px]",
+    "agenda-date-strip", "tw:sticky", "tw:top-0", "tw:z-[25]", "tw:self-start", "tw:viewport-760:top-14", "tw:flex", "tw:items-stretch", "tw:gap-y-[6px]",
     "tw:gap-x-[6px]", "tw:pt-[8px]", "tw:pr-[8px]", "tw:pb-[8px]",
     "tw:pl-[8px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:var(--line)]",
     "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:var(--line)]", "tw:border-b-[length:1px]",
