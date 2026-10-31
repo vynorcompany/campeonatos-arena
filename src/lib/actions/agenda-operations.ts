@@ -1,13 +1,17 @@
 "use server";
 import { z } from "zod";
+import { BookingServiceUnavailableError } from "@/lib/calendar/booking-services";
 import { requirePermission } from "@/lib/auth/guards";
 import { withArenaTransaction } from "@/lib/rls";
-import { manuallyCheckInParticipant, removeOptionalBookingService, blockCourtSlots, moveBookingCourt, releaseBlockedCourtSlot } from "@/lib/calendar/staff-operations";
+import { manuallyCheckInParticipant, addOptionalBookingService, removeOptionalBookingService, blockCourtSlots, moveBookingCourt, releaseBlockedCourtSlot } from "@/lib/calendar/staff-operations";
 import { refreshCalendarRoutes } from "@/lib/calendar/revalidation";
 import { refreshFinanceRoutes } from "@/lib/finance/revalidation";
 
 type AgendaResult = { error?: string; checkedInAt?: string };
 const visibleErrors = new Set([
+  "Adicione atletas à reserva antes de inserir o serviço.",
+  "Revise o pagamento da reserva antes de inserir o serviço.",
+  "Serviço indisponível na grade desta arena.",
   "Bloqueio não encontrado. Atualize a grade.",
   "Selecione um atleta desta reserva confirmada.",
   "Este atleta já realizou check-in em outro horário coincidente.",
@@ -28,7 +32,7 @@ const visibleErrors = new Set([
 ]);
 function actionError(error: unknown, fallback: string): AgendaResult {
   const message = error instanceof Error ? error.message : "";
-  return { error: visibleErrors.has(message) ? message : fallback };
+  return { error: error instanceof BookingServiceUnavailableError || visibleErrors.has(message) ? message : fallback };
 }
 
 export async function manualBookingCheckinAction(form: FormData): Promise<AgendaResult> {
@@ -38,6 +42,14 @@ export async function manualBookingCheckinAction(form: FormData): Promise<Agenda
     const date = await withArenaTransaction(auth.arenaId, tx => manuallyCheckInParticipant(tx, { ...input, arenaId: auth.arenaId, actorId: auth.userId, actorName: auth.userName }));
     refreshCalendarRoutes(); return { checkedInAt: date.toISOString() };
   } catch (error) { return actionError(error, "Não foi possível registrar o check-in. Atualize a reserva e tente novamente."); }
+}
+export async function addBookingServiceAction(form: FormData): Promise<AgendaResult> {
+  const auth = await requirePermission("calendar:booking:edit");
+  try {
+    const input = z.object({ occurrenceId: z.string().min(1), productId: z.string().min(1) }).parse(Object.fromEntries(form));
+    await withArenaTransaction(auth.arenaId, tx => addOptionalBookingService(tx, auth.arenaId, input.occurrenceId, input.productId));
+    refreshCalendarRoutes(); refreshFinanceRoutes(); return {};
+  } catch (error) { return actionError(error, "Não foi possível inserir o serviço. Confira a disponibilidade e as condições na lista de serviços."); }
 }
 export async function removeBookingServiceAction(form: FormData): Promise<AgendaResult> {
   const auth = await requirePermission("calendar:booking:edit");

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { randomUUID } from "node:crypto";
 import { PrismaClient, type Prisma } from "@prisma/client";
-import { manuallyCheckInParticipant, removeOptionalBookingService, blockCourtSlots, moveBookingCourt, releaseBlockedCourtSlot } from "../src/lib/calendar/staff-operations";
+import { manuallyCheckInParticipant, addOptionalBookingService, removeOptionalBookingService, blockCourtSlots, moveBookingCourt, releaseBlockedCourtSlot } from "../src/lib/calendar/staff-operations";
 
 import { assertCourtBookingMayBeEdited } from "../src/lib/calendar/court-booking-edit-safety";
 
@@ -33,6 +33,15 @@ test("staff agenda operations preserve billing, enforce scope/conflicts and bloc
     assert.deepEqual((await admin.scheduleParticipant.findMany({ where: { occurrenceId: occurrence.id }, orderBy: { amountCents: "asc" } })).map(p => p.amountCents), [0,0,0]);
     assert.equal((await admin.financialEntry.findUniqueOrThrow({ where: { id: pendingCharge.id } })).amountCents, 0, "service reduction updates the linked receivable");
     assert.equal(await admin.scheduleServiceReservation.count({ where: { occurrenceId: occurrence.id } }), 0);
+    await admin.product.update({ where: { id: service.id }, data: { showOnAgenda: true, priceCents: 10001 } });
+    await assert.rejects(scope(ids[1], tx => addOptionalBookingService(tx, ids[1], occurrence.id, service.id)), /Reserva não encontrada/);
+    await Promise.all([0, 1].map(() => scope(arenaId, tx => addOptionalBookingService(tx, arenaId, occurrence.id, service.id))));
+    const shares = await admin.scheduleParticipant.findMany({ where: { occurrenceId: occurrence.id }, orderBy: { id: "asc" }, include: { financialEntry: true } });
+    assert.deepEqual(shares.map(p => p.amountCents), [3334, 3334, 3333]);
+    assert.ok(shares.every(p => p.financialEntry?.amountCents === p.amountCents));
+    assert.equal(await admin.scheduleServiceReservation.count({ where: { occurrenceId: occurrence.id } }), 1, "retry and concurrent submission must not charge twice");
+    const added = await admin.scheduleServiceReservation.findFirstOrThrow({ where: { occurrenceId: occurrence.id } });
+    await scope(arenaId, tx => removeOptionalBookingService(tx, arenaId, occurrence.id, added.id));
     await scope(arenaId, tx => moveBookingCourt(tx, arenaId, occurrence.id, courts[1].id));
     assert.equal((await admin.scheduleOccurrenceCourt.findFirstOrThrow({ where: { occurrenceId: occurrence.id } })).courtId, courts[1].id);
     assert.equal((await admin.checkinRecord.findFirstOrThrow({ where: { occurrenceId: occurrence.id } })).courtId, courts[0].id, "immutable check-in retains the court at arrival");

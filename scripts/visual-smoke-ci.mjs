@@ -1,3 +1,4 @@
+import { dialogByAccessibleName } from "./lib/dialog-by-accessible-name.mjs";
 import { PrismaClient } from "@prisma/client";
 import { spawn } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
@@ -130,6 +131,7 @@ async function main() {
     socket = connection.socket;
     const { send } = connection;
     await send("Page.enable");
+    await send("Page.addScriptToEvaluateOnNewDocument", { source: `window.__arenaSmokeDialog = ${dialogByAccessibleName.toString()};` });
     await send("Runtime.enable");
     await send("Network.enable");
     await send("Emulation.setLocaleOverride", { locale: "pt-BR" });
@@ -267,7 +269,7 @@ async function main() {
           if (!opened.result.value) throw new Error(`${label}: botão de mesclagem ausente.`);
           await pause(350);
           const modalResult = await send("Runtime.evaluate", {
-            expression: "(() => { const dialog = document.querySelector('[role=dialog][aria-label=\"Mesclar contatos\"]'); if (!dialog) return null; const rect = dialog.getBoundingClientRect(); return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, width: innerWidth, height: innerHeight, overflow: dialog.scrollWidth > dialog.clientWidth + 1 || document.documentElement.scrollWidth > innerWidth + 1, notice: dialog.textContent?.includes('O principal será mantido') && dialog.textContent?.includes('lançamentos financeiros serão transferidos'), actions: Boolean([...dialog.querySelectorAll('button')].find((item) => item.textContent?.includes('Confirmar mesclagem'))) }; })()",
+            expression: "(() => { const dialog = window.__arenaSmokeDialog('Mesclar contatos'); if (!dialog) return null; const rect = dialog.getBoundingClientRect(); return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, width: innerWidth, height: innerHeight, overflow: dialog.scrollWidth > dialog.clientWidth + 1 || document.documentElement.scrollWidth > innerWidth + 1, notice: dialog.textContent?.includes('O principal será mantido') && dialog.textContent?.includes('lançamentos financeiros serão transferidos'), actions: Boolean([...dialog.querySelectorAll('button')].find((item) => item.textContent?.includes('Confirmar mesclagem'))) }; })()",
             returnByValue: true,
           });
           const modal = modalResult.result.value;
@@ -297,7 +299,7 @@ async function main() {
         const settingsButton = await send("Runtime.evaluate", { expression: "(() => { const button=[...document.querySelectorAll('button')].find(item=>item.textContent?.trim()==='Configurar fidelidade'); button?.click(); return Boolean(button); })()", returnByValue: true });
         if (!settingsButton.result.value) throw new Error(`${label}: configuração de fidelidade indisponível.`);
         await pause(200);
-        const settings = await send("Runtime.evaluate", { expression: "(() => { const dialog=document.querySelector('[role=dialog][aria-label=\"Configurar fidelidade\"]'); if (!dialog) return null; const rect=dialog.getBoundingClientRect(), fields=[...dialog.querySelectorAll('input[name=visitsRequired],input[name=rewardLabel]')].map(item=>item.getBoundingClientRect()); return {left:rect.left,right:rect.right,top:rect.top,bottom:rect.bottom,width:innerWidth,height:innerHeight,overflow:dialog.scrollWidth>dialog.clientWidth+1||document.documentElement.scrollWidth>innerWidth+1,fields:fields.map(item=>({top:item.top,bottom:item.bottom}))}; })()", returnByValue: true });
+        const settings = await send("Runtime.evaluate", { expression: "(() => { const dialog=window.__arenaSmokeDialog('Configurar fidelidade'); if (!dialog) return null; const rect=dialog.getBoundingClientRect(), fields=[...dialog.querySelectorAll('input[name=visitsRequired],input[name=rewardLabel]')].map(item=>item.getBoundingClientRect()); return {left:rect.left,right:rect.right,top:rect.top,bottom:rect.bottom,width:innerWidth,height:innerHeight,overflow:dialog.scrollWidth>dialog.clientWidth+1||document.documentElement.scrollWidth>innerWidth+1,fields:fields.map(item=>({top:item.top,bottom:item.bottom}))}; })()", returnByValue: true });
         const config = settings.result.value;
         if (!config || config.left < -1 || config.right > config.width + 1 || config.top < -1 || config.bottom > config.height + 1 || config.overflow || config.fields.length !== 2 ||
             (viewport.name !== "desktop" && config.fields[1].top < config.fields[0].bottom - 1)) {
@@ -312,7 +314,7 @@ async function main() {
         if (!clientButton.result.value) throw new Error(`${label}: fidelidade do cliente indisponível ou modal anterior não fechou com Esc.`);
         let clientDialog;
         for (let attempt = 0; attempt < 25; attempt += 1) {
-          clientDialog = await send("Runtime.evaluate", { expression: "(() => { const dialog=document.querySelector('[role=dialog][aria-label^=\"Fidelidade de \" ]'); if (!dialog || !dialog.textContent?.includes('Reservas concluídas')) return null; const rect=dialog.getBoundingClientRect(); return {left:rect.left,right:rect.right,top:rect.top,bottom:rect.bottom,width:innerWidth,height:innerHeight,overflow:dialog.scrollWidth>dialog.clientWidth+1||document.documentElement.scrollWidth>innerWidth+1,visit:dialog.textContent.includes('Registrar visita avulsa'),reward:dialog.textContent.includes('Resgatar recompensa')}; })()", returnByValue: true });
+          clientDialog = await send("Runtime.evaluate", { expression: "(() => { const dialog=window.__arenaSmokeDialog('Fidelidade de ', true); if (!dialog || !dialog.textContent?.includes('Reservas concluídas')) return null; const rect=dialog.getBoundingClientRect(); return {left:rect.left,right:rect.right,top:rect.top,bottom:rect.bottom,width:innerWidth,height:innerHeight,overflow:dialog.scrollWidth>dialog.clientWidth+1||document.documentElement.scrollWidth>innerWidth+1,visit:dialog.textContent.includes('Registrar visita avulsa'),reward:dialog.textContent.includes('Resgatar recompensa')}; })()", returnByValue: true });
           if (clientDialog.result.value) break;
           await pause(200);
         }
@@ -461,8 +463,12 @@ async function main() {
       const comanda = await visit("/comandas/goal-fixture-comanda", viewport, arenaA.id, `${viewport.name}-comanda-detalhe`);
       if (!comanda.includes("Comanda GOAL") || !comanda.includes("Produto GOAL")) throw new Error(`${viewport.name}: detalhe da comanda fictícia incompleto.`);
       const product = await visit(`/pdv/${detailProduct.id}`, viewport, arenaA.id, `${viewport.name}-produto-detalhe`);
-      if (!product.includes("Produto GOAL") || !product.includes("Ajuste de estoque")) throw new Error(`${viewport.name}: detalhe do produto fictício incompleto.`);
-      const productBreadcrumb = await send("Runtime.evaluate", { expression: "document.querySelector('.workspace-page-breadcrumb strong')?.textContent?.trim() ?? ''", returnByValue: true });
+      if (!product.includes("Produto GOAL")) throw new Error(`${viewport.name}: detalhe do produto fictício incompleto.`);
+      await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('[role=tab]')].find(tab => tab.textContent?.trim() === 'Estoque')?.click()" });
+      await pause(250);
+      const stockEditor = await send("Runtime.evaluate", { expression: "(() => { const panel=document.querySelector('[role=tabpanel]:not([hidden])'); return Boolean(panel?.querySelector('select[name=type]') && panel.querySelector('input[name=quantity]') && panel.querySelector('input[name=reason]') && [...panel.querySelectorAll('button')].some(button=>button.textContent?.includes('Registrar ajuste')) && document.documentElement.scrollWidth<=innerWidth+1); })()", returnByValue: true });
+      if (!stockEditor.result.value) throw new Error(`${viewport.name}: aba de estoque sem controles de ajuste acessíveis.`);
+      const productBreadcrumb = await send("Runtime.evaluate", { expression: "document.querySelector('[aria-label=\"Caminho de navegação\"] strong')?.textContent?.trim() ?? ''", returnByValue: true });
       if (productBreadcrumb.result.value !== "Produto") throw new Error(`${viewport.name}: breadcrumb do produto exibe ID técnico ou rota incorreta: ${productBreadcrumb.result.value}`);
     }
     for (const [path, ownName] of [["/comandas/goal-fixture-comanda", "Comanda GOAL"], [`/pdv/${detailProduct.id}`, "Produto GOAL"]]) {
@@ -499,7 +505,7 @@ async function main() {
       if (!opened.result.value) throw new Error(`${viewport.name}: não foi possível abrir o agendamento.`);
       await pause(700);
       const dialogResult = await send("Runtime.evaluate", {
-        expression: "(() => { const dialog = document.querySelector('[role=dialog][aria-label=\"Agendamento de horário\"]'); if (!dialog) return null; const rect = dialog.getBoundingClientRect(); const footer = dialog.querySelector('footer'); return { width: innerWidth, pageOverflow: document.documentElement.scrollWidth > innerWidth + 1, left: rect.left, right: rect.right, dialogOverflow: dialog.scrollWidth > dialog.clientWidth + 1, hasFields: Boolean(dialog.querySelector('input[type=date]') && dialog.querySelector('input[placeholder=\"Digite o nome do cliente\"]')), hasSave: Boolean([...(footer?.querySelectorAll('button') ?? [])].find((button) => button.textContent?.includes('Salvar agendamento'))) }; })()",
+        expression: "(() => { const dialog = window.__arenaSmokeDialog('Agendamento de horário'); if (!dialog) return null; const rect = dialog.getBoundingClientRect(); const footer = dialog.querySelector('footer'); return { width: innerWidth, pageOverflow: document.documentElement.scrollWidth > innerWidth + 1, left: rect.left, right: rect.right, dialogOverflow: dialog.scrollWidth > dialog.clientWidth + 1, hasFields: Boolean(dialog.querySelector('input[type=date]') && dialog.querySelector('input[placeholder=\"Digite o nome do cliente\"]')), hasSave: Boolean([...(footer?.querySelectorAll('button') ?? [])].find((button) => button.textContent?.includes('Salvar agendamento'))) }; })()",
         returnByValue: true,
       });
       const dialog = dialogResult.result.value;
@@ -508,14 +514,14 @@ async function main() {
       }
       const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
       await writeFile(`${outputDir}/${viewport.name}-agenda-agendamento-modal.png`, Buffer.from(shot.data, "base64"));
-      await send("Runtime.evaluate", { expression: "document.querySelector('[role=dialog][aria-label=\"Agendamento de horário\"]').scrollTop = 100000" });
+      await send("Runtime.evaluate", { expression: "window.__arenaSmokeDialog('Agendamento de horário').scrollTop = 100000" });
       await pause(200);
       const footerShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
       await writeFile(`${outputDir}/${viewport.name}-agenda-agendamento-acoes.png`, Buffer.from(footerShot.data, "base64"));
       await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
       await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
       await pause(200);
-      const closed = await send("Runtime.evaluate", { expression: "!document.querySelector('[role=dialog][aria-label=\"Agendamento de horário\"]')", returnByValue: true });
+      const closed = await send("Runtime.evaluate", { expression: "!window.__arenaSmokeDialog('Agendamento de horário')", returnByValue: true });
       if (!closed.result.value) throw new Error(`${viewport.name}: Esc não fechou o agendamento.`);
       console.log(`${viewport.name}: modal de agendamento futuro abre, mantém campos/ações legíveis e fecha com Esc.`);
     }
@@ -544,23 +550,23 @@ async function main() {
       });
       await pause(350);
       const cancelTrigger = await send("Runtime.evaluate", {
-        expression: "(() => { const dialog = document.querySelector('[role=dialog][aria-label=\"Agendamento de horário\"]'); const button = [...(dialog?.querySelectorAll('button') ?? [])].find((item) => item.textContent?.trim() === 'Cancelar reserva'); button?.click(); return Boolean(button); })()",
+        expression: "(() => { const dialog = window.__arenaSmokeDialog('Agendamento de horário'); const button = [...(dialog?.querySelectorAll('button') ?? [])].find((item) => item.textContent?.trim() === 'Cancelar reserva'); button?.click(); return Boolean(button); })()",
         returnByValue: true,
       });
       if (!cancelTrigger.result.value) throw new Error(`${viewport.name}: ação de cancelar reserva ausente.`);
       await pause(250);
       const confirm = await send("Runtime.evaluate", {
-        expression: "(() => { const dialog = document.querySelector('[role=dialog][aria-label=\"Cancelar reserva e cobranças\"]'); if (!dialog) return null; const rect = dialog.getBoundingClientRect(); const radios = [...dialog.querySelectorAll('input[name=\"booking-cancel-charge\"]')]; return { width: innerWidth, left: rect.left, right: rect.right, overflow: dialog.scrollWidth > dialog.clientWidth + 1 || document.documentElement.scrollWidth > innerWidth + 1, radios: radios.length, keepChecked: radios[0]?.checked, confirm: Boolean([...dialog.querySelectorAll('button')].find((button) => button.textContent?.includes('Confirmar cancelamento'))) }; })()",
+        expression: "(() => { const dialog = window.__arenaSmokeDialog('Cancelar reserva e cobranças'); if (!dialog) return null; const rect = dialog.getBoundingClientRect(); const radios = [...dialog.querySelectorAll('input[name=\"booking-cancel-charge\"]')]; return { width: innerWidth, left: rect.left, right: rect.right, overflow: dialog.scrollWidth > dialog.clientWidth + 1 || document.documentElement.scrollWidth > innerWidth + 1, radios: radios.length, keepChecked: radios[0]?.checked, confirm: Boolean([...dialog.querySelectorAll('button')].find((button) => button.textContent?.includes('Confirmar cancelamento'))) }; })()",
         returnByValue: true,
       });
       const modal = confirm.result.value;
       if (!modal || modal.left < -1 || modal.right > modal.width + 1 || modal.overflow || modal.radios !== 2 || !modal.keepChecked || !modal.confirm) {
         throw new Error(`${viewport.name}: escolha de cobranças não está legível ou completa: ${JSON.stringify(modal)}`);
       }
-      if (choice === "void") await send("Runtime.evaluate", { expression: "document.querySelectorAll('[role=dialog][aria-label=\"Cancelar reserva e cobranças\"] input[name=\"booking-cancel-charge\"]')[1].click()" });
+      if (choice === "void") await send("Runtime.evaluate", { expression: "(window.__arenaSmokeDialog('Cancelar reserva e cobranças')?.querySelectorAll('input[name=\"booking-cancel-charge\"]') ?? [])[1].click()" });
       const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
       await writeFile(`${outputDir}/${viewport.name}-agenda-cancelamento-${choice}.png`, Buffer.from(shot.data, "base64"));
-      await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('[role=dialog][aria-label=\"Cancelar reserva e cobranças\"] button')].find((button) => button.textContent?.includes('Confirmar cancelamento'))?.click()" });
+      await send("Runtime.evaluate", { expression: "[...(window.__arenaSmokeDialog('Cancelar reserva e cobranças')?.querySelectorAll('button') ?? [])].find((button) => button.textContent?.includes('Confirmar cancelamento'))?.click()" });
       let resultingStatus;
       for (let attempt = 0; attempt < 80; attempt += 1) {
         const [booking, charge] = await Promise.all([
@@ -591,6 +597,12 @@ async function main() {
       returnByValue: true,
     });
     if (!recoveryTrigger.result.value) throw new Error("Proprietário não encontrou a recuperação do colaborador na lista de usuários.");
+    await pause(250);
+    const recoveryGeneration = await send("Runtime.evaluate", {
+      expression: "(() => { const dialog = window.__arenaSmokeDialog('Recuperar acesso de ', true); const button = [...(dialog?.querySelectorAll('button') ?? [])].find(item => item.textContent?.trim() === 'Gerar link de recuperação'); button?.click(); return Boolean(button); })()",
+      returnByValue: true,
+    });
+    if (!recoveryGeneration.result.value) throw new Error("O formulário de recuperação não apresentou a ação para gerar o link.");
     let recoveryUrl = "";
     for (let attempt = 0; attempt < 80; attempt += 1) {
       const response = await send("Runtime.evaluate", {
@@ -923,7 +935,7 @@ async function main() {
             let notificationPanel;
             for (let attempt = 0; attempt < 30; attempt += 1) {
               const evaluated = await send("Runtime.evaluate", {
-                expression: "(() => { const panel=document.querySelector('[role=dialog][aria-label=\"Notificações\"]'); if(!panel) return null; const rect=panel.getBoundingClientRect(); return {left:rect.left,right:rect.right,top:rect.top,bottom:rect.bottom,width:rect.width,height:rect.height,viewportWidth:innerWidth,viewportHeight:innerHeight,content:panel.innerText}; })()",
+                expression: "(() => { const panel=window.__arenaSmokeDialog('Notificações'); if(!panel) return null; const rect=panel.getBoundingClientRect(); return {left:rect.left,right:rect.right,top:rect.top,bottom:rect.bottom,width:rect.width,height:rect.height,viewportWidth:innerWidth,viewportHeight:innerHeight,content:panel.innerText}; })()",
                 returnByValue: true,
               });
               notificationPanel = evaluated.result.value;
@@ -939,7 +951,7 @@ async function main() {
             await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
             let closed = false;
             for (let attempt = 0; attempt < 20; attempt += 1) {
-              const evaluated = await send("Runtime.evaluate", { expression: "!document.querySelector('[role=dialog][aria-label=\"Notificações\"]')", returnByValue: true });
+              const evaluated = await send("Runtime.evaluate", { expression: "!window.__arenaSmokeDialog('Notificações')", returnByValue: true });
               closed = Boolean(evaluated.result.value);
               if (closed) break;
               await pause(100);
@@ -1039,7 +1051,7 @@ async function main() {
           let panel;
           for (let attempt = 0; attempt < 30; attempt += 1) {
             const evaluated = await send("Runtime.evaluate", {
-              expression: "(() => { const dialog = document.querySelector('[role=dialog][aria-label=\"Notificações\"]'); if (!dialog) return null; const rect = dialog.getBoundingClientRect(); const buttons = [...dialog.querySelectorAll('button')].filter(button => button.getClientRects().length).map(button => { const box = button.getBoundingClientRect(); return { left: box.left, right: box.right, top: box.top, bottom: box.bottom }; }); return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, width: rect.width, height: rect.height, viewportHeight: innerHeight, scrollWidth: dialog.scrollWidth, clientWidth: dialog.clientWidth, buttons, text: dialog.innerText }; })()",
+              expression: "(() => { const dialog = window.__arenaSmokeDialog('Notificações'); if (!dialog) return null; const rect = dialog.getBoundingClientRect(); const buttons = [...dialog.querySelectorAll('button')].filter(button => button.getClientRects().length).map(button => { const box = button.getBoundingClientRect(); return { left: box.left, right: box.right, top: box.top, bottom: box.bottom }; }); return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, width: rect.width, height: rect.height, viewportHeight: innerHeight, scrollWidth: dialog.scrollWidth, clientWidth: dialog.clientWidth, buttons, text: dialog.innerText }; })()",
               returnByValue: true,
             });
             panel = evaluated.result.value;
@@ -1055,7 +1067,7 @@ async function main() {
           await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
           let closed = false;
           for (let attempt = 0; attempt < 20; attempt += 1) {
-            const evaluated = await send("Runtime.evaluate", { expression: "!document.querySelector('[role=dialog][aria-label=\"Notificações\"]')", returnByValue: true });
+            const evaluated = await send("Runtime.evaluate", { expression: "!window.__arenaSmokeDialog('Notificações')", returnByValue: true });
             closed = Boolean(evaluated.result.value);
             if (closed) break;
             await pause(100);
@@ -1454,10 +1466,10 @@ async function main() {
     const loadedDesktopShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
     await writeFile(`${outputDir}/whatsapp-conversa-desktop-carregada.png`, Buffer.from(loadedDesktopShot.data, "base64"));
     await send("Runtime.evaluate", { expression: "document.querySelector('.whatsapp-chat-main .whatsapp-message-image')?.click()" });
-    const imageDialog = await send("Runtime.evaluate", { expression: "!!document.querySelector('[role=dialog][aria-label=\"Imagem ampliada\"]')", returnByValue: true });
+    const imageDialog = await send("Runtime.evaluate", { expression: "!!window.__arenaSmokeDialog('Imagem ampliada')", returnByValue: true });
     if (!imageDialog.result.value) throw new Error("A imagem do WhatsApp não abriu ampliada.");
     await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
-    const imageClosed = await send("Runtime.evaluate", { expression: "!document.querySelector('[role=dialog][aria-label=\"Imagem ampliada\"]')", returnByValue: true });
+    const imageClosed = await send("Runtime.evaluate", { expression: "!window.__arenaSmokeDialog('Imagem ampliada')", returnByValue: true });
     if (!imageClosed.result.value) throw new Error("A imagem ampliada não fechou com Esc.");
     await send("Runtime.evaluate", { expression: "window.__goalWhatsappPageStayedOpen = true" });
     await db.whatsAppMessage.create({ data: { conversationId: conversation.id, providerId: "goal-live", direction: "INBOUND", body: "Mensagem ao vivo GOAL" } });
@@ -1671,12 +1683,12 @@ async function main() {
       await visit(`/calendario?periodo=day&data=${futureAgendaDate}`, viewport, arenaA.id, label);
       await send("Runtime.evaluate", { expression: "document.querySelector('[data-calendar-create]')?.click()" });
       await pause(200);
-      await send("Runtime.evaluate", { expression: "document.querySelector('[role=dialog][aria-label=\"Criar evento na agenda\"] input[name=title]')?.focus()" });
+      await send("Runtime.evaluate", { expression: "window.__arenaSmokeDialog('Criar evento na agenda')?.querySelector('input[name=title]')?.focus()" });
       await send("Input.insertText", { text: "X" });
-      await send("Runtime.evaluate", { expression: "document.querySelector('[role=dialog][aria-label=\"Criar evento na agenda\"] form')?.requestSubmit()" });
+      await send("Runtime.evaluate", { expression: "window.__arenaSmokeDialog('Criar evento na agenda')?.querySelector('form')?.requestSubmit()" });
       let errorState;
       for (let attempt = 0; attempt < 35; attempt += 1) {
-        const result = await send("Runtime.evaluate", { expression: "(() => { const modal = document.querySelector('[role=dialog][aria-label=\"Criar evento na agenda\"]'); const rect = modal?.getBoundingClientRect(); return { open: Boolean(modal), error: modal?.querySelector('[role=alert]')?.textContent?.trim() ?? '', title: modal?.querySelector('input[name=title]')?.value ?? '', overflow: Boolean(modal && modal.scrollWidth > modal.clientWidth + 1), left: rect?.left, right: rect?.right, bottom: rect?.bottom, width: innerWidth, height: innerHeight }; })()", returnByValue: true });
+        const result = await send("Runtime.evaluate", { expression: "(() => { const modal = window.__arenaSmokeDialog('Criar evento na agenda'); const rect = modal?.getBoundingClientRect(); return { open: Boolean(modal), error: modal?.querySelector('[role=alert]')?.textContent?.trim() ?? '', title: modal?.querySelector('input[name=title]')?.value ?? '', overflow: Boolean(modal && modal.scrollWidth > modal.clientWidth + 1), left: rect?.left, right: rect?.right, bottom: rect?.bottom, width: innerWidth, height: innerHeight }; })()", returnByValue: true });
         errorState = result.result.value;
         if (errorState?.error) break;
         await pause(200);
@@ -1689,25 +1701,25 @@ async function main() {
       await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
       await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
       await pause(120);
-      const afterEscape = await send("Runtime.evaluate", { expression: "Boolean(document.querySelector('[role=dialog][aria-label=\"Criar evento na agenda\"]'))", returnByValue: true });
+      const afterEscape = await send("Runtime.evaluate", { expression: "Boolean(window.__arenaSmokeDialog('Criar evento na agenda'))", returnByValue: true });
       if (afterEscape.result.value) throw new Error(`${label}: Esc não fechou o modal.`);
       await send("Runtime.evaluate", { expression: "document.querySelector('[data-calendar-create]')?.click()" });
       await pause(120);
       await send("Runtime.evaluate", { expression: "document.querySelector('.calendar-create-overlay')?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))" });
       await pause(120);
-      const afterBackdrop = await send("Runtime.evaluate", { expression: "Boolean(document.querySelector('[role=dialog][aria-label=\"Criar evento na agenda\"]'))", returnByValue: true });
+      const afterBackdrop = await send("Runtime.evaluate", { expression: "Boolean(window.__arenaSmokeDialog('Criar evento na agenda'))", returnByValue: true });
       if (afterBackdrop.result.value) throw new Error(`${label}: clique fora não fechou o modal.`);
       const createdTitle = `Evento criado GOAL ${viewport.name}`;
       try {
         await send("Runtime.evaluate", { expression: "document.querySelector('[data-calendar-create]')?.click()" });
         await pause(120);
-        await send("Runtime.evaluate", { expression: "document.querySelector('[role=dialog][aria-label=\"Criar evento na agenda\"] input[name=title]')?.focus()" });
+        await send("Runtime.evaluate", { expression: "window.__arenaSmokeDialog('Criar evento na agenda')?.querySelector('input[name=title]')?.focus()" });
         await send("Input.insertText", { text: createdTitle });
-        await send("Runtime.evaluate", { expression: "document.querySelector('[role=dialog][aria-label=\"Criar evento na agenda\"] form')?.requestSubmit()" });
+        await send("Runtime.evaluate", { expression: "window.__arenaSmokeDialog('Criar evento na agenda')?.querySelector('form')?.requestSubmit()" });
         let saved = false;
         for (let attempt = 0; attempt < 35; attempt += 1) {
           const stored = await db.calendarEvent.count({ where: { arenaId: arenaA.id, title: createdTitle } });
-          const dialog = await send("Runtime.evaluate", { expression: "Boolean(document.querySelector('[role=dialog][aria-label=\"Criar evento na agenda\"]'))", returnByValue: true });
+          const dialog = await send("Runtime.evaluate", { expression: "Boolean(window.__arenaSmokeDialog('Criar evento na agenda'))", returnByValue: true });
           if (stored === 1 && !dialog.result.value) { saved = true; break; }
           await pause(200);
         }
@@ -1760,14 +1772,14 @@ async function main() {
         await writeFile(`${outputDir}/${viewport.name}-produto-somente-leitura.png`, Buffer.from(detailShot.data, "base64"));
         await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('button')].find((button)=>button.textContent?.trim()==='Ver histórico')?.click()" });
         await pause(150);
-        const historyOpen = await send("Runtime.evaluate", { expression: "(() => { const dialog=document.querySelector('[role=dialog][aria-label=\"Histórico de estoque\"]'); const rect=dialog?.getBoundingClientRect(); return {open:Boolean(dialog),left:rect?.left,right:rect?.right,width:rect?.width,viewport:innerWidth}; })()", returnByValue: true });
+        const historyOpen = await send("Runtime.evaluate", { expression: "(() => { const dialog=window.__arenaSmokeDialog('Histórico de estoque'); const rect=dialog?.getBoundingClientRect(); return {open:Boolean(dialog),left:rect?.left,right:rect?.right,width:rect?.width,viewport:innerWidth}; })()", returnByValue: true });
         if (!historyOpen.result.value?.open || historyOpen.result.value.left < -1 || historyOpen.result.value.right > historyOpen.result.value.viewport + 1 || historyOpen.result.value.width > 522) throw new Error(`${viewport.name}: histórico de estoque não abriu em largura adequada: ${JSON.stringify(historyOpen.result.value)}`);
         const historyShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
         await writeFile(`${outputDir}/${viewport.name}-historico-estoque-somente-leitura.png`, Buffer.from(historyShot.data, "base64"));
         await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
         await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
         await pause(150);
-        const historyClosed = await send("Runtime.evaluate", { expression: "!document.querySelector('[role=dialog][aria-label=\"Histórico de estoque\"]')", returnByValue: true });
+        const historyClosed = await send("Runtime.evaluate", { expression: "!window.__arenaSmokeDialog('Histórico de estoque')", returnByValue: true });
         if (!historyClosed.result.value) throw new Error(`${viewport.name}: Esc não fechou o histórico de estoque.`);
         const servicesBody = await visit("/pdv/servicos", viewport, arenaA.id, `${viewport.name}-servicos-somente-leitura`, restrictedToken);
         if (!servicesBody.includes("Valores por atleta") || servicesBody.includes("Salvar valor")) throw new Error(`${viewport.name}: serviços não abriu em modo de consulta.`);
@@ -1934,7 +1946,7 @@ async function main() {
         if (!actions.result.value?.opened || actions.result.value.cancelVisible || actions.result.value.settingsVisible) throw new Error(`${label}: ação de cancelamento ou configuração disponível para perfil que só pode criar reservas.`);
         await pause(300);
         const dialog = await send("Runtime.evaluate", {
-          expression: "(() => { const el = document.querySelector('[role=dialog][aria-label=\"Agendamento de horário\"]'); if (!el) return null; const footer = el.querySelector('footer'); const rect = el.getBoundingClientRect(); return { canSave: [...(footer?.querySelectorAll('button') ?? [])].some((button) => button.textContent?.includes('Salvar agendamento')), canCancel: [...(footer?.querySelectorAll('button') ?? [])].some((button) => button.textContent?.includes('Cancelar reserva')), overflow: el.scrollWidth > el.clientWidth + 1 || document.documentElement.scrollWidth > innerWidth + 1, left: rect.left, right: rect.right, width: innerWidth }; })()",
+          expression: "(() => { const el = window.__arenaSmokeDialog('Agendamento de horário'); if (!el) return null; const footer = el.querySelector('footer'); const rect = el.getBoundingClientRect(); return { canSave: [...(footer?.querySelectorAll('button') ?? [])].some((button) => button.textContent?.includes('Salvar agendamento')), canCancel: [...(footer?.querySelectorAll('button') ?? [])].some((button) => button.textContent?.includes('Cancelar reserva')), overflow: el.scrollWidth > el.clientWidth + 1 || document.documentElement.scrollWidth > innerWidth + 1, left: rect.left, right: rect.right, width: innerWidth }; })()",
           returnByValue: true,
         });
         if (!dialog.result.value || dialog.result.value.canSave || dialog.result.value.canCancel || dialog.result.value.overflow || dialog.result.value.left < -1 || dialog.result.value.right > dialog.result.value.width + 1) {

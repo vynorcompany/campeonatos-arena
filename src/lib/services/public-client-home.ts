@@ -1,3 +1,4 @@
+import { playerLessonCredits } from "@/lib/academy/lesson-credit-portal";
 import { decorateCompositions } from "@/lib/products/composition";
 import { catalogAggregateAvailability } from "@/lib/products/stock-aggregates";
 import { portalCheckoutPolicy } from "@/lib/payments/portal-checkout-policy";
@@ -68,8 +69,8 @@ export async function getPublicClientHome(arenaSlug: string, playerId: string) {
   const overdue = currentEntries.some((entry) => entry.status === "OVERDUE" || (entry.dueDate && entry.dueDate < today));
   const dueSoon = futureEntries.some((entry) => getPortalDueUrgency(entry.dueDate, today, entry.status) === "soon");
   const charges = portalBalances.filter((entry) => policy.enabled && entry.onlinePaymentUrl).map((entry) => ({ id: entry.id, description: entry.description, amount: money(entry.payableCents), dueDate: entry.dueDate ? new Intl.DateTimeFormat("pt-BR").format(entry.dueDate) : "Sem vencimento", paymentUrl: entry.onlinePaymentUrl, urgency: getPortalDueUrgency(entry.dueDate, today, entry.status) }));
-  const monthlyClasses = student?.subscriptions[0]?.classesPerMonth ?? student?.remainingClasses ?? 0;
-  const availableClasses = Math.min(student?.monthlyBalances[0]?.remainingClasses ?? monthlyClasses, monthlyClasses);
+  const creditState = await withArenaTransaction(arena.id, tx=>playerLessonCredits(tx,arena.id,playerId,arenaSlug));
+  const availableClasses = creditState?.available ?? 0;
   return { financialVisible: policy.visible, announcements, events: events.map((event) => ({ ...event, when: date(event.scheduledAt) })), eventPosts, charges, upcomingReservations: upcomingReservations.map((reservation) => ({ id: reservation.id, title: reservation.title, when: date(reservation.startsAt), courtName: reservation.occurrenceCourts.map((entry) => entry.court.name).join(" · ") || "Quadra a definir" })), summary: { financial: !policy.visible ? "Consulta desativada" : overdue ? `${money(due)} em atraso` : due || hasOpenComanda ? `${money(due + openComandaTotal)} em aberto` : "Em dia", futureFinancial: future ? `${money(future)} em lançamentos futuros` : null, financialStatus: overdue ? "overdue" : due || hasOpenComanda ? "pending" : "active", mobileFinancialStatus: overdue ? "overdue" as const : due || hasOpenComanda || dueSoon ? "soon" as const : "healthy" as const, mobileFinancialLabel: !policy.visible ? "Consulta desativada" : overdue ? "Pagamento em atraso" : due ? "Pagamento em aberto" : hasOpenComanda ? "Comanda em aberto" : dueSoon ? "Vence em até 3 dias" : "Tudo em dia", classes: availableClasses, reservations, leagues: pairs } };
 }
 

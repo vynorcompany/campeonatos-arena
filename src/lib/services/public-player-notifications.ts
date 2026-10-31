@@ -1,4 +1,5 @@
 import "server-only";
+import { playerLessonCredits } from "@/lib/academy/lesson-credit-portal";
 import { portalCheckoutPolicy } from "@/lib/payments/portal-checkout-policy";
 
 import { prisma } from "@/lib/prisma";
@@ -16,6 +17,7 @@ export type AthletePortalNotification = {
   createdAt: string;
   isRead: boolean;
   persistent?: boolean;
+  creditBatchId?: string;
 };
 
 function leagueMatchHref(arenaSlug: string, categoryId: string, matchId: string) {
@@ -26,6 +28,7 @@ function leagueMatchHref(arenaSlug: string, categoryId: string, matchId: string)
 export async function getAthletePortalNotifications(arenaSlug: string, playerId: string) {
   const arena = await prisma.arena.findUnique({ where: { slug: arenaSlug }, select: { id: true, onlineBookingOverdueBlockDays: true } });
   if (!arena) return [] as AthletePortalNotification[];
+  const credits = await withArenaTransaction(arena.id,tx=>playerLessonCredits(tx,arena.id,playerId,arenaSlug));
   const policy = portalCheckoutPolicy(await withArenaTransaction(arena.id, tx => tx.arenaOperationalSettings.findUnique({ where: { arenaId: arena.id } })));
   const now = new Date();
   const arenaNow = instantToArenaWallClock(now);
@@ -48,7 +51,7 @@ export async function getAthletePortalNotifications(arenaSlug: string, playerId:
       const historicResultMatch = notification.type === "LEAGUE_MATCH" && notification.title === "Resultado lançado pela dupla mandante" && !notification.href.includes("#jogo-")
         ? recordedLeagueMatches.find((match) => notification.createdAt.getTime() >= match.updatedAt.getTime() && notification.createdAt.getTime() - match.updatedAt.getTime() < 5 * 60_000)
         : null;
-      return { id: notification.id, source: "PLAYER" as const, title: notification.title, message: notification.message, href: historicResultMatch ? leagueMatchHref(arenaSlug, historicResultMatch.competition.categoryId, historicResultMatch.id) : notification.href || `/classificacao/${arenaSlug}`, createdAt: notification.createdAt.toISOString(), isRead: Boolean(notification.readAt) };
+      return { creditBatchId: notification.type === "LESSON_CREDIT_EXPIRY" && credits?.makeupEnabled ? credits.batches.find(b=>b.id===notification.id.split(":")[1] && b.near && !b.requestStatus)?.id : undefined, id: notification.id, source: "PLAYER" as const, title: notification.title, message: notification.message, href: historicResultMatch ? leagueMatchHref(arenaSlug, historicResultMatch.competition.categoryId, historicResultMatch.id) : notification.href || `/classificacao/${arenaSlug}`, createdAt: notification.createdAt.toISOString(), isRead: Boolean(notification.readAt) };
     }),
     ...announcements.map((announcement) => ({ id: `arena-${announcement.id}`, source: "ARENA" as const, title: announcement.title, message: announcement.message, href: `/home?arena=${encodeURIComponent(arenaSlug)}&section=announcements#aviso-${encodeURIComponent(announcement.id)}`, createdAt: announcement.createdAt.toISOString(), isRead: readKeys.has(`arena-${announcement.id}`) })),
     ...financial,

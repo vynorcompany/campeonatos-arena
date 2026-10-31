@@ -1,3 +1,5 @@
+import { LessonCreditExpiryFields } from "@/components/teachers/lesson-credit-expiry-fields";
+import { LessonPlanExpirySettings } from "@/components/teachers/lesson-credit-settings";
 import { arenaDatabase } from "@/lib/arena-database";
 import { viewStyles } from "./page.utilities";
 import { SectionCard } from "@/components/section-card";
@@ -45,7 +47,7 @@ export default async function FinancePlansPage() {
             <label htmlFor="plan-classes">Aulas por mês</label>
             <input id="plan-classes" name="classesPerMonth" type="number" min="0" defaultValue="0" />
           </div>
-          <div className={viewStyles.field_form_full}>
+          <div className={viewStyles.field_form_full}><LessonCreditExpiryFields/></div><div className={viewStyles.field_form_full}>
             <label htmlFor="plan-notes">Observações</label>
             <textarea id="plan-notes" name="notes" rows={2} placeholder="Regras, benefícios ou restrições do plano." />
           </div>
@@ -59,7 +61,7 @@ export default async function FinancePlansPage() {
         <div className={viewStyles.simple_list}>
           {plans.map((plan) => (
             <div className={viewStyles.simple_item} key={plan.id}>
-              <strong>{plan.name}</strong>
+              <strong>{plan.name}</strong>{canManagePlans ? <LessonPlanExpirySettings plan={plan}/> : null}
               <span>
                 {formatMoney(plan.monthlyPriceCents)} por mês - {plan.classesPerMonth} aulas
               </span>

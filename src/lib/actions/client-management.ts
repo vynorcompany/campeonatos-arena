@@ -1,4 +1,5 @@
 "use server";
+import { changeLessonCredits } from "@/lib/academy/lesson-credits";
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -38,8 +39,7 @@ export async function adjustClientBalanceAction(formData: FormData) {
     if (!player) throw new Error("Cliente não encontrado.");
     if (parsed.data.kind === "CLASSES") {
       const student = player.student ?? await tx.student.create({ data: { arenaId: auth.arenaId, playerId: player.id, name: player.name, phone: player.phone } });
-      if (direction < 0 && student.remainingClasses < quantity) throw new Error("O cliente não possui saldo de aulas suficiente.");
-      await tx.student.update({ where: { id: student.id }, data: { remainingClasses: { increment: direction * quantity }, ...(direction > 0 ? { totalClasses: { increment: quantity } } : {}) } });
+      await changeLessonCredits(tx,auth.arenaId,student.id,direction*quantity);
     }
     await tx.clientBalanceMovement.create({ data: { arenaId: auth.arenaId, playerId: player.id, kind: parsed.data.kind, amountCents: parsed.data.kind === "MONEY" ? direction * quantity : 0, classesDelta: parsed.data.kind === "CLASSES" ? direction * quantity : 0, reason: parsed.data.reason } });
   });

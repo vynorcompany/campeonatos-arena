@@ -1,3 +1,5 @@
+import * as credits from "../src/lib/academy/lesson-credits";
+import * as expiryPolicy from "../src/lib/academy/credit-expiry-policy";
 import { arenaDatabaseForTest } from "./helpers/arena-database";
 import { registerLessonCheckin } from "../src/lib/checkin/lesson";
 import assert from "node:assert/strict";
@@ -68,7 +70,7 @@ test("aprovações simultâneas não duplicam matrícula nem cobrança e respeit
       "@/lib/academy/subscription-lock": { lockStudentPlanSubscription },
       "@/lib/arena-database": { arenaDatabase: (arenaId: string) => arenaDatabaseForTest(runtime, arenaId) },
       "@/lib/prisma": { prisma: admin },
-      "@/lib/rls": { withArenaTransaction: (arenaId: string, operation: (tx: unknown) => Promise<unknown>) => runtime.$transaction(async (tx) => {
+      "@/lib/academy/lesson-credits": credits, "@/lib/academy/credit-expiry-policy": expiryPolicy, "@/lib/rls": { withArenaTransaction: (arenaId: string, operation: (tx: unknown) => Promise<unknown>) => runtime.$transaction(async (tx) => {
         await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`;
         return operation(tx);
       }) },

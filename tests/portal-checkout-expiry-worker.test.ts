@@ -34,7 +34,7 @@ test("server registration starts the worker only when explicitly enabled in the 
     let starts = 0;
     const exports: any = {};
     vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, {
-      exports, process: { env: { NEXT_RUNTIME: runtime, PLAN_PRICE_WORKER_ENABLED: "false", PORTAL_CHECKOUT_EXPIRY_WORKER_ENABLED: enabled, NEXT_PHASE: phase } },
+      exports, process: { env: { NEXT_RUNTIME: runtime, PLAN_PRICE_WORKER_ENABLED: "false", LESSON_CREDIT_WORKER_ENABLED: "false", PORTAL_CHECKOUT_EXPIRY_WORKER_ENABLED: enabled, NEXT_PHASE: phase } },
       require: (path: string) => { assert.equal(path, "./lib/payments/portal-checkout-expiry-worker"); return { startPortalCheckoutExpiryWorker: () => { starts++; } }; },
     });
     await exports.register(); assert.equal(starts, expected);

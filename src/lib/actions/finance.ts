@@ -1,4 +1,5 @@
 "use server";
+import { readExpiryPolicy } from "@/lib/academy/credit-expiry-policy";
 import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
 import { parseDreGroup } from "@/lib/reports/dre";
 
@@ -86,6 +87,7 @@ export async function createPlanAction(formData: FormData) {
 
   await withArenaTransaction(auth.arenaId, (tx) => tx.plan.create({
     data: {
+      ...readExpiryPolicy(formData), creditPolicyConfiguredAt: new Date(),
       arenaId: auth.arenaId,
       createdByUserId: auth.userId,
       updatedByUserId: auth.userId,

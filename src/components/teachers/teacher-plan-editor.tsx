@@ -1,5 +1,6 @@
 "use client";
 
+import { LessonCreditExpiryFields, type ExpiryDraft } from "./lesson-credit-expiry-fields";
 import { useCallback, useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
@@ -9,7 +10,7 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { EventIcon } from "@/components/tournaments/event-icon";
 import { updateTeacherPlanWithPriceAction } from "@/lib/actions/academy";
 
-type PlanEditorProps = { teacherId: string; plan: { id: string; name: string; monthlyPriceCents: number } };
+type PlanEditorProps = { teacherId: string; plan: ExpiryDraft & { id: string; name: string; monthlyPriceCents: number } };
 
 export function TeacherPlanEditor({ teacherId, plan }: PlanEditorProps) {
   const [open, setOpen] = useState(false);
@@ -21,7 +22,7 @@ export function TeacherPlanEditor({ teacherId, plan }: PlanEditorProps) {
         <input type="hidden" name="teacherId" value={teacherId} />
         <input type="hidden" name="planId" value={plan.id} />
         <label className={ui.field}>Preço mensal<MoneyInput name="monthlyPrice" defaultValue={formatMoneyInput(plan.monthlyPriceCents)} required /></label>
-        <div className="tw:mt-auto tw:flex tw:flex-wrap tw:justify-end tw:gap-2 tw:border-t tw:border-[var(--line)] tw:pt-3"><button type="button" className={ui.secondary} onClick={close}>Cancelar</button><SubmitButton label="Salvar plano" pendingLabel="Salvando..." className={ui.primary} /></div>
+        <LessonCreditExpiryFields value={plan}/><div className="tw:mt-auto tw:flex tw:flex-wrap tw:justify-end tw:gap-2 tw:border-t tw:border-[var(--line)] tw:pt-3"><button type="button" className={ui.secondary} onClick={close}>Cancelar</button><SubmitButton label="Salvar plano" pendingLabel="Salvando..." className={ui.primary} /></div>
       </SafeActionForm>
     </Modal>
   </>;

@@ -1,0 +1,43 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
+import { PrismaClient, type Prisma } from "@prisma/client";
+import { lessonCreditState,changeLessonCredits,consumeLessonCredit,preservePlanCreditBatches } from "../src/lib/academy/lesson-credits";
+import { playerLessonCredits } from "../src/lib/academy/lesson-credit-portal";
+import { registerLessonCheckin } from "../src/lib/checkin/lesson";
+import { instantToArenaWallClock } from "../src/lib/calendar/arena-wall-clock";
+const url=process.env.ARENA_GOAL_TEST_DATABASE_URL??"";
+const safe=/^postgresql:\/\/postgres@127\.0\.0\.1:55433\/arena_goal(?:\?|$)/.test(url);
+test("créditos respeitam validade, acúmulo, lançamento único e isolamento por arena",{skip:!safe},async()=>{
+ const db=new PrismaClient({datasources:{db:{url}}});const runtime=new PrismaClient({datasources:{db:{url:url.replace('postgres@','arena_runtime@')}}});let owner="";const arenas:string[]=[];
+ const scope=<T>(arenaId:string,fn:(tx:Prisma.TransactionClient)=>Promise<T>)=>runtime.$transaction(async tx=>{await tx.$executeRaw`SELECT set_config('app.arena_id',${arenaId},true)`;return fn(tx);},{timeout:30000});
+ try{
+  owner=(await db.user.create({data:{name:"Créditos QA",email:`credits-${randomUUID()}@example.test`,passwordHash:"disabled"}})).id;
+  for(let i=0;i<2;i++)arenas.push((await db.arena.create({data:{name:"Créditos QA",slug:`credits-${randomUUID()}`,createdById:owner}})).id);
+  const make=async(cycle:string,created="2038-01-01T12:00:00Z")=>{const plan=await db.plan.create({data:{arenaId:arenas[0],name:randomUUID(),classesPerMonth:4,creditExpiryCycle:cycle,creditExpiryDays:20,creditPolicyConfiguredAt:new Date("2037-12-01T12:00:00Z")}});const player=await db.player.create({data:{arenaId:arenas[0],name:randomUUID()}});const student=await db.student.create({data:{arenaId:arenas[0],name:player.name,playerId:player.id}});await db.studentSubscription.create({data:{arenaId:arenas[0],studentId:student.id,planId:plan.id,classesPerMonth:4,startedAt:new Date(created),createdAt:new Date(created)}});return {student,player,plan};};
+  const short=await make("FORTNIGHT");const jan10=new Date("2038-01-10T15:00:00Z");
+  const results=await Promise.all([scope(arenas[0],tx=>lessonCreditState(tx,arenas[0],short.student.id,jan10)),scope(arenas[0],tx=>lessonCreditState(tx,arenas[0],short.student.id,jan10))]);
+  assert(results.every(r=>r.available===4));assert.equal(await db.lessonCreditBatch.count({where:{studentId:short.student.id,granted:{gt:0}}}),1);
+  const expired=await scope(arenas[0],tx=>lessonCreditState(tx,arenas[0],short.student.id,new Date("2038-01-17T15:00:00Z")));assert.equal(expired.available,0);
+  const never=await make("NONE");await scope(arenas[0],tx=>lessonCreditState(tx,arenas[0],never.student.id,jan10));
+  const lesson=await db.lesson.create({data:{arenaId:arenas[0],title:"Créditos",scheduledAt:instantToArenaWallClock(jan10),attendances:{create:{studentId:never.student.id}}}});
+  await Promise.all([scope(arenas[0],tx=>registerLessonCheckin(tx,{arenaId:arenas[0],playerId:never.player.id,lessonId:lesson.id},jan10)),scope(arenas[0],tx=>registerLessonCheckin(tx,{arenaId:arenas[0],playerId:never.player.id,lessonId:lesson.id},jan10))]);
+  assert.equal((await db.student.findUniqueOrThrow({where:{id:never.student.id}})).attendedClasses,1);
+  assert.equal((await scope(arenas[0],tx=>lessonCreditState(tx,arenas[0],never.student.id,new Date("2038-02-10T15:00:00Z")))).available,7);
+  const month=await make("MONTHLY");await scope(arenas[0],tx=>lessonCreditState(tx,arenas[0],month.student.id,jan10));assert.equal((await scope(arenas[0],tx=>lessonCreditState(tx,arenas[0],month.student.id,new Date("2038-02-10T15:00:00Z")))).available,4);
+  const quarter=await make("QUARTERLY");assert.equal((await scope(arenas[0],tx=>lessonCreditState(tx,arenas[0],quarter.student.id,new Date("2038-03-10T15:00:00Z")))).available,12);
+  assert.equal((await scope(arenas[0],tx=>lessonCreditState(tx,arenas[0],quarter.student.id,new Date("2038-04-10T15:00:00Z")))).available,12);
+  const yearly=await make("YEARLY");assert.equal((await scope(arenas[0],tx=>lessonCreditState(tx,arenas[0],yearly.student.id,new Date("2039-01-10T15:00:00Z")))).available,48);
+  await scope(arenas[0],tx=>changeLessonCredits(tx,arenas[0],short.student.id,2,new Date("2038-01-14T15:00:00Z")));
+  assert.equal((await scope(arenas[0],tx=>lessonCreditState(tx,arenas[0],short.student.id,new Date("2038-01-17T15:00:00Z")))).available,2);
+  const foreign=await db.student.create({data:{arenaId:arenas[1],name:randomUUID()}});
+  assert.deepEqual(await scope(arenas[1],tx=>tx.lessonCreditBatch.findMany({where:{studentId:short.student.id}})),[]);
+  await assert.rejects(scope(arenas[0],tx=>tx.lessonCreditBatch.create({data:{arenaId:arenas[0],studentId:foreign.id,sourceKey:"FORGED",granted:1,remaining:1}})));
+  const batch=await db.lessonCreditBatch.findFirstOrThrow({where:{studentId:short.student.id,granted:{gt:0}}});
+  await assert.rejects(scope(arenas[1],tx=>tx.lessonCreditRequest.create({data:{arenaId:arenas[1],batchId:batch.id}})));
+  await db.arenaOperationalSettings.create({data:{arenaId:arenas[0],lessonCreditNoticeDays:7}});
+  const notices=await scope(arenas[0],tx=>playerLessonCredits(tx,arenas[0],month.player.id,"qa",new Date("2038-02-25T15:00:00Z")));assert(notices?.batches.some(b=>b.near));
+  await scope(arenas[0],tx=>playerLessonCredits(tx,arenas[0],month.player.id,"qa",new Date("2038-02-25T15:00:00Z")));
+  assert.equal(await db.playerNotification.count({where:{playerId:month.player.id,type:"LESSON_CREDIT_EXPIRY"}}),1);
+ }finally{for(const id of arenas)await db.arena.delete({where:{id}});if(owner)await db.user.delete({where:{id:owner}});await runtime.$disconnect();await db.$disconnect();}
+});
