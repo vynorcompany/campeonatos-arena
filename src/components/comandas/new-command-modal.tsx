@@ -39,7 +39,7 @@ export function NewCommandModal({ players, closeHref, action, cardsEnabled = fal
         const destination = new URL(closeHref, window.location.origin);
         const comandaId = result && typeof result === "object" && "comandaId" in result && typeof result.comandaId === "string" ? result.comandaId : null;
         if (!comandaId) throw new Error("Não foi possível identificar a comanda aberta.");
-        destination.searchParams.set("ids", comandaId);
+        destination.searchParams.delete("ids");
         destination.searchParams.delete("search");
         if (openedAt) destination.searchParams.set("date", arenaDateInput(new Date(openedAt)));
         router.push(`${destination.pathname}${destination.search}`);

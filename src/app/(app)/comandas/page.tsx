@@ -12,7 +12,7 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { createComandaAction } from "@/lib/actions/comanda";
 import { requireModuleView } from "@/lib/auth/guards";
 import { getOutstandingCents } from "@/lib/finance/settlements";
-import { comandaDebtOwnerId } from "@/lib/finance/comanda-debts";
+import { comandaDebtOwnerId, listedComandaDebtWhere } from "@/lib/finance/comanda-debts";
 import { arenaToday, arenaWallClockToInstant, instantToArenaWallClock } from "@/lib/calendar/arena-wall-clock";
 import { withArenaTransaction } from "@/lib/rls";
 
@@ -86,7 +86,7 @@ export default async function ComandasPage(props: ComandasPageProps) {
     tx.product.findMany({ where: { arenaId: auth.arenaId, active: true, OR: [{ isService: false }, { showOnComandas: true }] }, select: { id: true, name: true, priceCents: true, stockQuantity: true, stockAggregates: true, stockChoices: true, isService: true, serviceHourly: true, category: { select: { name: true } } }, orderBy: { name: "asc" } }).then(products => decorateCompositions(tx,auth.arenaId,products)),
     tx.paymentMethodSetting.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { name: true }, orderBy: { name: "asc" } }),
     tx.financialEntry.findMany({
-      where: { arenaId: auth.arenaId, type: { in: ["REVENUE", "INCOME"] }, status: { in: ["PENDING", "OVERDUE", "PARTIAL"] } },
+      where: listedComandaDebtWhere(auth.arenaId, selectedDate),
       select: {
         id: true, playerId: true, description: true, amountCents: true, dueDate: true,
         settlements: { select: { amountCents: true, interestCents: true, discountCents: true } },
@@ -117,7 +117,7 @@ export default async function ComandasPage(props: ComandasPageProps) {
   return <div className={viewStyles.commands_page}><VisiblePageRefresh /><h1 className="tw:sr-only">Comandas</h1>
     {openRequests.length ? <section aria-label="Solicitações de abertura de comanda" className="tw:grid tw:gap-3 tw:rounded-md tw:border tw:border-amber-400 tw:border-l-4 tw:bg-amber-50 tw:p-4 tw:text-sm tw:text-amber-950"><strong>{openRequests.length} {openRequests.length === 1 ? "solicitação" : "solicitações"} de abertura de comanda</strong>{openRequests.map(request => <div key={request.id} className="tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-2"><span>{request.message}</span><Link href={request.href} className={viewStyles.button}>Abrir comanda solicitada</Link></div>)}</section> : null}
     <header className={viewStyles.commands_toolbar}>
-      {requestedIds.length ? <div className="tw:grid tw:gap-1"><strong className="tw:text-sm">Comandas selecionadas</strong><Link href="/comandas" className="tw:text-xs tw:text-[var(--brand)]">Ver comandas do dia</Link></div> : <CommandsDatePicker selectedDate={toDateInput(selectedDate)} search={search} openDays={[...openDays]} today={toDateInput(today)} />}
+      <div className="tw:flex tw:flex-wrap tw:items-center tw:gap-2"><CommandsDatePicker selectedDate={toDateInput(selectedDate)} search={search} openDays={[...openDays]} today={toDateInput(today)} />{requestedIds.length ? <Link href={`/comandas?${new URLSearchParams({ date: toDateInput(selectedDate) })}`} className="tw:text-xs tw:text-[var(--brand)]">Ver todas do dia</Link> : null}</div>
       <div className={viewStyles.commands_toolbar_right}><form method="get" className={viewStyles.commands_search}><input type="hidden" name="date" value={toDateInput(selectedDate)} />{requestedIds.length ? <input type="hidden" name="ids" value={requestedIds.join(",")} /> : null}<span aria-hidden="true"><CommandIcon name="search" /></span><input name="search" defaultValue={search} placeholder="Buscar comanda" aria-label="Buscar comanda pelo nome" /><button className={viewStyles.button} type="submit">Buscar</button></form><div className={viewStyles.commands_actions}><Link href={`/comandas?${new URLSearchParams({ date: toDateInput(selectedDate), new: "avulsa" })}`} className={viewStyles.button}><CommandIcon name="receipt" /> Nova Comanda Avulsa</Link></div></div>
     </header>
 
