@@ -84,7 +84,9 @@ test("zero-value commands request explicit confirmation and schedule charges use
   assert.match(calendarActions, /counterpartyName: player\.name/);
   assert.match(calendarActions, /refreshCalendarRoutes\(\)/);
   assert.match(calendarRevalidation, /revalidatePath\("\/comandas"\)/);
-  assert.match(page, /\["PENDING", "OVERDUE", "PARTIAL"\]/);
+  const debtFilter = readFileSync(resolve(process.cwd(), "src/lib/finance/comanda-debts.ts"), "utf8");
+  assert.match(page, /listedComandaDebtWhere/);
+  assert.match(debtFilter, /\["PENDING", "OVERDUE", "PARTIAL"\]/);
   assert.ok(existsSync(resolve(process.cwd(), "prisma/migrations/20260910110000_normalize_schedule_financial_entries/migration.sql")));
 });
 
