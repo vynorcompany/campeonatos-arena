@@ -10,7 +10,7 @@ import { withArenaTransaction } from "@/lib/rls";
 import { getActiveWhatsAppAccountJid } from "@/lib/whatsapp-active-account";
 import { getArenaWhatsAppConversation, getEvolutionProviderId, persistOutboundWhatsAppMessage, persistWhatsAppReaction, type OutboundWhatsAppMessage } from "@/lib/services/whatsapp-conversation";
 import { reactionEmojis } from "@/lib/whatsapp-message-data";
-import { outgoingWhatsAppMediaKind } from "@/lib/whatsapp-media-types";
+import { outgoingWhatsAppMediaKind, attachmentMimeType, attachmentFileName } from "@/lib/whatsapp-media-types";
 import { presentWhatsAppGroupMessage } from "@/lib/whatsapp-group-message";
 import { normalizeWhatsAppAccountJid } from "@/lib/whatsapp-account";
 
@@ -132,12 +132,15 @@ export async function sendWhatsAppMediaMessageAction(formData: FormData) {
   const auth = await requireWhatsAppSend(); const conversationId = String(formData.get("conversationId") ?? ""); const file = formData.get("file");
   if (!conversationId || !(file instanceof File) || !file.size) throw new Error("Anexo inválido.");
   if (file.size > 16 * 1024 * 1024) throw new Error("O anexo pode ter no máximo 16 MB.");
-  const mediaType = outgoingWhatsAppMediaKind(file.type);
-  if (!mediaType) throw new Error("Envie uma imagem ou PDF.");
+  const caption = z.string().trim().max(4096, "A legenda é muito longa.").parse(formData.get("caption") ?? "");
+  const mimeType = attachmentMimeType(file);
+  const fileName = attachmentFileName(file.name);
+  const mediaType = outgoingWhatsAppMediaKind(mimeType);
+  if (!mediaType) throw new Error("Envie uma imagem, PDF ou documento de texto, planilha ou apresentação.");
   const conversation = await getArenaWhatsAppConversation(auth.arenaId, conversationId); if (!conversation) throw new Error("Conversa não encontrada.");
   const reply = await replyContext(auth.arenaId, conversation.id, formData);
-  const dataUrl = `data:${file.type};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}`; const sentAt = new Date(); const delivery = await sendEvolutionMediaMessage(conversation.remoteJid?.endsWith("@g.us") ? conversation.remoteJid : conversation.contactPhone || conversation.remoteJid.replace(/@.*$/, ""), dataUrl, mediaType, file.name, file.type, auth.arenaId, reply.quoted);
-  return persistAcceptedMessage(auth.arenaId, conversation.id, { ...reply.metadata, senderUserId: auth.userId, senderName: auth.userName, providerId: getEvolutionProviderId(delivery), body: mediaType === "image" ? "Imagem" : "Documento", mediaType: mediaType === "image" ? "IMAGE" : "DOCUMENT", mediaMimeType: file.type, mediaUrl: dataUrl, sentAt });
+  const dataUrl = `data:${mimeType};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}`; const sentAt = new Date(); const delivery = await sendEvolutionMediaMessage(conversation.remoteJid?.endsWith("@g.us") ? conversation.remoteJid : conversation.contactPhone || conversation.remoteJid.replace(/@.*$/, ""), dataUrl, mediaType, fileName, mimeType, auth.arenaId, reply.quoted, caption);
+  return persistAcceptedMessage(auth.arenaId, conversation.id, { ...reply.metadata, senderUserId: auth.userId, senderName: auth.userName, providerId: getEvolutionProviderId(delivery), body: caption || (mediaType === "image" ? "Imagem" : "Documento"), mediaType: mediaType === "image" ? "IMAGE" : "DOCUMENT", mediaMimeType: mimeType, mediaFileName: fileName, mediaUrl: dataUrl, sentAt });
 }
 
 export async function markWhatsAppConversationReadAction(formData: FormData) {

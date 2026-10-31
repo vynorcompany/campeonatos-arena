@@ -14,6 +14,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const etag = JSON.stringify("messages:" + conversation.id + ":" + conversation.revision.toString());
   const headers = { "cache-control": "private, no-cache", etag };
   if (request.headers.get("if-none-match") === etag) return new NextResponse(null, { status: 304, headers });
-  const messages = await db.whatsAppMessage.findMany({ where: { conversationId: conversation.id }, orderBy: { sentAt: "desc" }, take: 120, select: { id: true, direction: true, body: true, senderName: true, participantJid: true, quotedProviderId: true, quotedBody: true, quotedAuthor: true, reactions: true, mediaType: true, mediaMimeType: true, sentAt: true } });
+  const messages = await db.whatsAppMessage.findMany({ where: { conversationId: conversation.id }, orderBy: { sentAt: "desc" }, take: 120, select: { id: true, direction: true, body: true, senderName: true, participantJid: true, quotedProviderId: true, quotedBody: true, quotedAuthor: true, reactions: true, mediaType: true, mediaMimeType: true, mediaFileName: true, sentAt: true } });
   return NextResponse.json({ messages: messages.map(message => ({ ...message, mediaUrl: "", reactions: readWhatsAppReactions(message.reactions), sentAt: message.sentAt.toISOString() })) }, { headers });
 }

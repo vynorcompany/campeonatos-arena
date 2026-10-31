@@ -25,7 +25,7 @@ export default async function WhatsAppPage({ searchParams }: { searchParams: Pro
         player: { select: { id: true, name: true, phone: true, email: true, photoUrl: true } },
         messages: {
           orderBy: { sentAt: "desc" }, take: 1,
-          select: { id: true, direction: true, body: true, senderName: true, participantJid: true, quotedProviderId: true, quotedBody: true, quotedAuthor: true, reactions: true, mediaType: true, mediaMimeType: true, sentAt: true },
+          select: { id: true, direction: true, body: true, senderName: true, participantJid: true, quotedProviderId: true, quotedBody: true, quotedAuthor: true, reactions: true, mediaType: true, mediaMimeType: true, mediaFileName: true, sentAt: true },
         },
       } satisfies Prisma.WhatsAppConversationSelect;
   const conversations = accountJid ? await arenaDatabase(auth.arenaId).whatsAppConversation.findMany({

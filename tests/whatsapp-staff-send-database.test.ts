@@ -8,7 +8,7 @@ import { PrismaClient } from "@prisma/client";
 import ts from "typescript";
 import { canSendWhatsApp } from "../src/lib/permissions";
 import { readWhatsAppReactions } from "../src/lib/whatsapp-message-data";
-import { outgoingWhatsAppMediaKind } from "../src/lib/whatsapp-media-types";
+import { outgoingWhatsAppMediaKind, attachmentMimeType, attachmentFileName } from "../src/lib/whatsapp-media-types";
 
 const require = createRequire(import.meta.url);
 const testUrl = process.env.ARENA_GOAL_TEST_DATABASE_URL ?? "";
@@ -84,7 +84,7 @@ test("colaborador autorizado envia texto, áudio e PDF só pela conta da arena c
         "@/lib/arena-database": { arenaDatabase: () => tx },
         "@/lib/rls": {},
         "@/lib/whatsapp-message-data": { reactionEmojis: [] },
-        "@/lib/whatsapp-media-types": { outgoingWhatsAppMediaKind },
+        "@/lib/whatsapp-media-types": { outgoingWhatsAppMediaKind, attachmentMimeType, attachmentFileName },
         "@/lib/whatsapp-group-message": {},
       });
       const form = new FormData(); form.set("conversationId", own.id); form.set("body", "Resposta descartável");
@@ -94,7 +94,10 @@ test("colaborador autorizado envia texto, áudio e PDF só pela conta da arena c
       const audio = new FormData(); audio.set("conversationId", own.id); audio.set("audio", new File(["áudio descartável"], "teste.webm", { type: "audio/webm" }));
       const attachment = new FormData(); attachment.set("conversationId", own.id); attachment.set("file", new File(["PDF descartável"], "teste.pdf", { type: "application/pdf" }));
       assert.equal((await actions.sendWhatsAppAudioMessageAction(audio)).mediaType, "AUDIO");
-      assert.equal((await actions.sendWhatsAppMediaMessageAction(attachment)).mediaType, "DOCUMENT");
+      const sentDocument = await actions.sendWhatsAppMediaMessageAction(attachment);
+      assert.equal(sentDocument.mediaType, "DOCUMENT");
+      assert.equal(sentDocument.mediaFileName, (attachment.get("file") as File).name);
+      assert.equal((await tx.whatsAppMessage.findUniqueOrThrow({ where: { id: sentDocument.id } })).mediaFileName, sentDocument.mediaFileName);
       assert.equal(delivered, 3);
       const stored = await tx.whatsAppMessage.findMany({ where: { conversationId: own.id }, orderBy: { providerId: "asc" } });
       assert.deepEqual(stored.map((message) => message.providerId), ["goal-provider-1", "goal-provider-2", "goal-provider-3"]);

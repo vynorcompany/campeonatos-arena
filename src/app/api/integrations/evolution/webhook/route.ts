@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
           const sentAt = !fromMe && sameSecondAsLatest && liveMessage && providerSentAt <= current.lastMessageAt
             ? new Date(current.lastMessageAt.getTime() + 1)
             : providerSentAt;
-          await tx.whatsAppMessage.upsert({ where: { conversationId_providerId: messageKey }, create: { providerId, conversationId: current.id, direction: fromMe ? "OUTBOUND" : "INBOUND", body, senderName: !fromMe ? senderName : "", participantJid: String(key.participant ?? data.participant ?? ""), quotedProviderId, quotedBody, quotedAuthor, mediaType: media.type, mediaMimeType: media.mimeType, mediaUrl: media.url, providerPayload: message as Prisma.InputJsonValue, sentAt }, update: {} });
+          await tx.whatsAppMessage.upsert({ where: { conversationId_providerId: messageKey }, create: { providerId, conversationId: current.id, direction: fromMe ? "OUTBOUND" : "INBOUND", body, senderName: !fromMe ? senderName : "", participantJid: String(key.participant ?? data.participant ?? ""), quotedProviderId, quotedBody, quotedAuthor, mediaType: media.type, mediaFileName: String(toRecord(message.documentMessage).fileName ?? "").replace(/[\u0000-\u001f\u007f]/g, "").slice(0, 240), mediaMimeType: media.mimeType, mediaUrl: media.url, providerPayload: message as Prisma.InputJsonValue, sentAt }, update: {} });
           const updatedAt = nextWhatsAppConversationVersion(current.updatedAt);
           // A Evolution pode entregar o histórico fora de ordem. Uma mensagem
           // anterior à última resposta não reabre o SLA nem recua a conversa.

@@ -59,11 +59,11 @@ export async function sendEvolutionAudioMessage(phone: string, audioDataUrl: str
   return response.json().catch(() => ({})) as Promise<unknown>;
 }
 
-export async function sendEvolutionMediaMessage(phone: string, mediaDataUrl: string, mediaType: "image" | "document", fileName: string, mimeType: string, arenaId: string, quoted?: EvolutionQuotedMessage) {
+export async function sendEvolutionMediaMessage(phone: string, mediaDataUrl: string, mediaType: "image" | "document", fileName: string, mimeType: string, arenaId: string, quoted?: EvolutionQuotedMessage, caption = "") {
   const connection = await arenaDatabase(arenaId).whatsAppConnection.findUnique({ where: { arenaId } });
   if (!connection || connection.status !== "CONNECTED") throw new Error("O WhatsApp desta arena ainda não está conectado.");
   const config = getEvolutionConfig(); const number = evolutionRecipientNumber(phone);
-  const send = (media: string) => fetchWithDeadline(fetch, `${config.apiUrl}/message/sendMedia/${encodeURIComponent(connection.instanceName)}`, { method: "POST", headers: { apikey: config.apiKey, "content-type": "application/json" }, body: JSON.stringify({ number: phone.endsWith("@g.us") ? phone : number, mediatype: mediaType, media, fileName, mimetype: mimeType, caption: "", ...(quoted ? { quoted } : {}) }), cache: "no-store" });
+  const send = (media: string) => fetchWithDeadline(fetch, `${config.apiUrl}/message/sendMedia/${encodeURIComponent(connection.instanceName)}`, { method: "POST", headers: { apikey: config.apiKey, "content-type": "application/json" }, body: JSON.stringify({ number: phone.endsWith("@g.us") ? phone : number, mediatype: mediaType, media, fileName, mimetype: mimeType, caption, ...(quoted ? { quoted } : {}) }), cache: "no-store" });
   let response = await send(mediaDataUrl);
   // Só tente o formato base64 puro se o provedor rejeitou a representação.
   // Em falha de servidor/rede, ele pode já ter aceitado o arquivo; reenviar

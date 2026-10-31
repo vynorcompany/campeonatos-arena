@@ -17,6 +17,7 @@ export type WhatsAppMessage = {
   reactions?: { actorJid: string; emoji: string }[];
   mediaType: string;
   mediaMimeType: string;
+  mediaFileName?: string;
   mediaUrl: string;
   sentAt: string;
 };

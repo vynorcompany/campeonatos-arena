@@ -163,7 +163,7 @@ test("reply and reaction actions validate the account and send original provider
   await actions.sendWhatsAppMediaMessageAction(form);
   for (const item of delivered) {
     assert.equal(item.args[0], target.conversation.remoteJid);
-    const quote = item.args.at(-1);
+    const quote = item.args[item.kind === "media" ? 6 : 3];
     assert.equal(quote.key.id, "original-provider");
     assert.equal(quote.key.fromMe, false);
     assert.equal(quote.key.participant, target.participantJid);
