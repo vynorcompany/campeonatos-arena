@@ -597,6 +597,12 @@ async function main() {
       returnByValue: true,
     });
     if (!recoveryTrigger.result.value) throw new Error("Proprietário não encontrou a recuperação do colaborador na lista de usuários.");
+    await pause(250);
+    const recoveryGeneration = await send("Runtime.evaluate", {
+      expression: "(() => { const dialog = window.__arenaSmokeDialog('Recuperar acesso de ', true); const button = [...(dialog?.querySelectorAll('button') ?? [])].find(item => item.textContent?.trim() === 'Gerar link de recuperação'); button?.click(); return Boolean(button); })()",
+      returnByValue: true,
+    });
+    if (!recoveryGeneration.result.value) throw new Error("O formulário de recuperação não apresentou a ação para gerar o link.");
     let recoveryUrl = "";
     for (let attempt = 0; attempt < 80; attempt += 1) {
       const response = await send("Runtime.evaluate", {

@@ -69,7 +69,7 @@ export default async function AgendaPage(props: AgendaPageProps) {
     tx.teacher.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     tx.bookingType.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { name: true }, orderBy: { name: "asc" } }),
     tx.arenaServicePrice.findMany({ where: { arenaId: auth.arenaId }, select: { serviceCode: true, priceCents: true } }),
-    tx.product.findMany({ where: { arenaId: auth.arenaId, active: true, isService: true }, select: { name: true, sku: true, priceCents: true, showOnAgenda: true } }),
+    tx.product.findMany({ where: { arenaId: auth.arenaId, active: true, isService: true }, select: { id: true, name: true, sku: true, priceCents: true, showOnAgenda: true } }),
     canReceivePayments ? tx.bankAccount.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }) : Promise.resolve([])
   ]), { maxWait: 10_000 });
   const hiddenServices = new Set(customServices.filter(service => !service.showOnAgenda).map(serviceBookingName));
@@ -92,7 +92,7 @@ export default async function AgendaPage(props: AgendaPageProps) {
   const canManageSchedule = canPerformPermission("calendar:settings:manage", auth.arenaRole, auth.systemRole, auth.editPermissions);
   const AgendaSlotDialog = (dialogProps: Omit<ComponentProps<typeof BaseAgendaSlotDialog>, "canCreateBooking" | "canEditBooking" | "canCancelBooking" | "canReleaseBooking" | "canOpenComandas" | "canCreatePlayer" | "bankAccounts" | "canReceivePayments">) => {
     const managed = !dialogProps.slot.occurrenceId || isAgendaManagedBooking(dialogProps.slot.sourceType ?? "");
-    return <BaseAgendaSlotDialog {...dialogProps} canCreateBooking={canCreateBooking} canEditBooking={managed && canEditBooking} canCancelBooking={managed && canCancelBooking} canReleaseBooking={managed && canReleaseBooking} canOpenComandas={canOpenComandas} canCreatePlayer={canCreatePlayer} bankAccounts={bankAccounts} canReceivePayments={canReceivePayments} />;
+    return <BaseAgendaSlotDialog {...dialogProps} availableServices={customServices.filter(service => service.showOnAgenda).map(service => ({ id: service.id, name: service.name }))} canCreateBooking={canCreateBooking} canEditBooking={managed && canEditBooking} canCancelBooking={managed && canCancelBooking} canReleaseBooking={managed && canReleaseBooking} canOpenComandas={canOpenComandas} canCreatePlayer={canCreatePlayer} bankAccounts={bankAccounts} canReceivePayments={canReceivePayments} />;
   };
 
   return <div className={viewStyles.agenda_page} aria-label="Agenda de quadras">
