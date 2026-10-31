@@ -8,7 +8,9 @@ export async function manuallyCheckInParticipant(tx: ArenaTransaction, input: { 
   await tx.$queryRaw`SELECT id FROM "Player" WHERE id = ${input.playerId} AND "arenaId" = ${input.arenaId} FOR UPDATE`;
   const occurrence = await tx.scheduleOccurrence.findFirst({ where: { id: input.occurrenceId, arenaId: input.arenaId, status: "SCHEDULED" }, include: { occurrenceCourts: { include: { court: true } }, participants: { where: { playerId: input.playerId }, include: { player: true } } } });
   const participant = occurrence?.participants[0]; const court = occurrence?.occurrenceCourts[0]?.court;
-  if (!occurrence || !participant || !court || !participant.player.active) throw new Error("Selecione um atleta desta reserva confirmada.");
+  if (!occurrence || !court) throw new Error("Selecione um atleta desta reserva confirmada.");
+  if (!participant) throw new Error("Salve o atleta na reserva antes de fazer o check-in.");
+  if (!participant.player.active) throw new Error("Este cliente está inativo. Ative o cadastro antes de fazer o check-in.");
   if (participant.checkedInAt) return participant.checkedInAt;
   const overlap = await tx.checkinRecord.findFirst({ where: { arenaId: input.arenaId, playerId: input.playerId, occurrenceId: { not: occurrence.id }, startsAt: { lt: occurrence.endsAt }, endsAt: { gt: occurrence.startsAt } } });
   if (overlap) throw new Error("Este atleta já realizou check-in em outro horário coincidente.");
