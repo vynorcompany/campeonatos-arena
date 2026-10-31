@@ -28,6 +28,8 @@ const visibleErrors = new Set([
   "Serviço indisponível na grade desta arena.",
   "Bloqueio não encontrado. Atualize a grade.",
   "Selecione um atleta desta reserva confirmada.",
+  "Salve o atleta na reserva antes de fazer o check-in.",
+  "Este cliente está inativo. Ative o cadastro antes de fazer o check-in.",
   "Este atleta já realizou check-in em outro horário coincidente.",
   "Serviço não encontrado nesta reserva.",
   "Revise o pagamento da reserva antes de remover o serviço.",

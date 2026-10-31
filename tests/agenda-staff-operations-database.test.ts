@@ -25,6 +25,14 @@ test("staff agenda operations preserve billing, enforce scope/conflicts and bloc
     const pendingCharge = await admin.financialEntry.create({ data: { arenaId, playerId: players[0].id, type: "REVENUE", category: "Reserva", description: "Pending service", amountCents: 1, status: "PENDING" } });
     await admin.scheduleParticipant.update({ where: { occurrenceId_playerId: { occurrenceId: occurrence.id, playerId: players[0].id } }, data: { financialEntryId: pendingCharge.id } });
     const input = { arenaId, occurrenceId: occurrence.id, playerId: players[0].id, actorId: "qa", actorName: "Staff QA" };
+    const unsaved = await admin.player.create({ data: { arenaId, name: "Cliente ainda fora da reserva" } });
+    await assert.rejects(scope(arenaId, tx => manuallyCheckInParticipant(tx, { ...input, playerId: unsaved.id })), /Salve o atleta na reserva/);
+    assert.equal(await admin.checkinRecord.count({ where: { occurrenceId: occurrence.id } }), 0);
+    await admin.scheduleParticipant.create({ data: { occurrenceId: occurrence.id, playerId: unsaved.id, amountCents: 0 } });
+    await scope(arenaId, tx => manuallyCheckInParticipant(tx, { ...input, playerId: unsaved.id }));
+    assert.ok((await admin.scheduleParticipant.findUniqueOrThrow({ where: { occurrenceId_playerId: { occurrenceId: occurrence.id, playerId: unsaved.id } } })).checkedInAt);
+    await admin.checkinRecord.deleteMany({ where: { occurrenceId: occurrence.id, playerId: unsaved.id } });
+    await admin.scheduleParticipant.delete({ where: { occurrenceId_playerId: { occurrenceId: occurrence.id, playerId: unsaved.id } } });
     const first = await scope(arenaId, tx => manuallyCheckInParticipant(tx, input));
     assert.equal((await scope(arenaId, tx => manuallyCheckInParticipant(tx, input))).getTime(), first.getTime());
     assert.equal(await admin.checkinRecord.count({ where: { occurrenceId: occurrence.id } }), 1);
