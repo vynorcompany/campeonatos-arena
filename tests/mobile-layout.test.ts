@@ -22,9 +22,10 @@ test("agenda uses a compact date strip and a contained, keyboard-accessible cour
   const page = source("src/app/(app)/agenda/page.tsx");
   const styles = source("src/app/(app)/agenda/page.utilities.ts");
   assert.match(page, /role="region" aria-label="Grade de horários por quadra" tabIndex=\{0\}/);
-  assert.match(page, /const gridMinWidth = 64 \+ courts\.length \* 220/);
+  assert.match(page, /const gridMinWidth = courts\.length \* 220/);
   assert.match(styles, /viewport-700:grid-cols-\[repeat\(3,_minmax\(0,_1fr\)\)\]/);
-  assert.match(styles, /viewport-700:\[&_tbody_>_tr_>_th\]:sticky/);
+  assert.doesNotMatch(page, /<th scope="col">Hora<\/th>/);
+  assert.doesNotMatch(page, /<th scope="row">/);
 });
 
 test("WhatsApp mobile keeps the composer inside the viewport and scrolls only its panels", () => {

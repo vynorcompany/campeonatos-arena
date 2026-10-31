@@ -1,3 +1,5 @@
+import * as playerValidators from "../src/lib/validators/player";
+import * as playerPhones from "../src/lib/phone";
 import * as serviceBookingRules from "../src/lib/calendar/service-booking-rules";
 import { requireReceivingBankAccount } from "../src/lib/finance/receiving-bank-account";
 import { randomUUID } from "node:crypto";
@@ -155,7 +157,7 @@ test("duas reservas simultâneas da mesma quadra produzem apenas um hold", { ski
       "@/lib/arena-database": { arenaDatabase: (arenaId: string) => arenaDatabaseForTest(runtime, arenaId) },
       "@/lib/prisma": { prisma: admin },
       "@/lib/rls": { withArenaTransaction: (scope: string, operation: (tx: any) => Promise<unknown>) => runtime.$transaction(async (tx) => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${scope}, true)`; return operation(tx); }) },
-      "@/lib/calendar/service-booking-rules": serviceBookingRules, "@/lib/calendar/booking-services": bookingResources, "@/lib/calendar/inputs": { parseScheduledAt },
+      "@/lib/validators/player": playerValidators, "@/lib/phone": playerPhones, "@/lib/calendar/service-booking-rules": serviceBookingRules, "@/lib/calendar/booking-services": bookingResources, "@/lib/calendar/inputs": { parseScheduledAt },
       "@/lib/scheduling/weekly-rule": {},
       "@/lib/calendar/booking-types": {},
       "@/lib/calendar/revalidation": { refreshCalendarRoutes() {} },
