@@ -1,0 +1,7 @@
+"use client";
+export function AttachmentPreview({ name, mimeType, size, imageUrl, href }: { name: string; mimeType: string; size?: number; imageUrl?: string; href?: string }) {
+  const extension = name.includes(".") ? name.split(".").at(-1)?.toUpperCase() : mimeType === "application/pdf" ? "PDF" : "Documento";
+  const content = <><span className="tw:flex tw:size-11 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-md tw:bg-[#e5ece9] tw:text-[#475e56]">{imageUrl ? <img src={imageUrl} alt="Prévia do anexo" className="tw:size-11 tw:rounded-md tw:object-cover" /> : <svg viewBox="0 0 24 24" width="27" height="27" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v6h5M8 13h8M8 17h5"/></svg>}</span><span className="tw:grid tw:min-w-0 tw:gap-1"><span className="tw:break-words tw:text-sm tw:font-normal tw:text-[#173c32]">{name}</span><small className="tw:text-[11px] tw:text-[#64766f]">{extension}{size !== undefined ? ` · ${size < 1048576 ? Math.ceil(size / 1024) + " KB" : (size / 1048576).toFixed(1) + " MB"}` : ""}{href ? " · Abrir documento ↗" : ""}</small></span></>;
+  const className = "tw:flex tw:min-w-0 tw:items-center tw:gap-3 tw:rounded-md tw:border tw:border-[#d0ded7] tw:bg-[#f1f5f2] tw:p-3 tw:no-underline";
+  return href ? <a className={className} href={href} target="_blank" rel="noreferrer" aria-label={`Abrir ${name}`}>{content}</a> : <div className={className}>{content}</div>;
+}

@@ -2102,6 +2102,7 @@ model WhatsAppMessage {
   body           String               @default("")
   mediaType      String               @default("")
   mediaMimeType  String               @default("")
+  mediaFileName  String               @default("")
   mediaUrl       String               @default("")
   providerPayload Json?
   senderUserId   String               @default("")

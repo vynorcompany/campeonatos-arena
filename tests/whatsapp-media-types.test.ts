@@ -5,7 +5,7 @@ import { createRequire } from "node:module";
 import vm from "node:vm";
 import test from "node:test";
 import ts from "typescript";
-import { outgoingWhatsAppMediaKind, safeWhatsAppMediaType } from "../src/lib/whatsapp-media-types";
+import { outgoingWhatsAppMediaKind, safeWhatsAppMediaType, attachmentMimeType, attachmentFileName } from "../src/lib/whatsapp-media-types";
 
 test("mídias comuns continuam visíveis e conteúdo ativo vira download", () => {
   for (const mimeType of ["image/jpeg", "image/png", "image/gif", "image/webp", "audio/ogg", "audio/webm", "audio/mpeg", "video/mp4", "video/webm", "application/pdf"]) {
@@ -91,4 +91,15 @@ test("a rota de mídia não entrega anexos de outra arena nem da conta anterior"
   arenaId = "arena-b";
   assert.equal((await request()).status, 404);
   assert.equal(seen.length, 3);
+});
+
+
+test("anexos comuns preservam nome e extensão sem liberar conteúdo ativo inline", () => {
+  const word = attachmentMimeType({ name: "Proposta.docx", type: "" });
+  assert.equal(outgoingWhatsAppMediaKind(word), "document");
+  assert.deepEqual(safeWhatsAppMediaType(word), { mimeType: "application/octet-stream", disposition: "attachment" });
+  assert.equal(attachmentMimeType({ name: "Planilha.xlsx", type: "application/octet-stream" }), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  assert.equal(outgoingWhatsAppMediaKind(attachmentMimeType({ name: "executar.exe", type: "" })), null);
+  assert.equal(attachmentFileName("C:\\pasta\\Orçamento\r\n.pdf"), "Orçamento.pdf");
+  assert.equal(attachmentFileName("/tmp/relatório.csv"), "relatório.csv");
 });

@@ -14,6 +14,7 @@ export type OutboundWhatsAppMessage = {
   quotedAuthor?: string;
   mediaType?: string;
   mediaMimeType?: string;
+  mediaFileName?: string;
   mediaUrl?: string;
 };
 
@@ -53,7 +54,7 @@ export async function persistOutboundWhatsAppMessage(
     if (!conversation) throw new Error("Conversa não pertence ao WhatsApp conectado.");
     const stored = await tx.whatsAppMessage.upsert({
       where: { conversationId_providerId: { conversationId, providerId: message.providerId } },
-      select: { id: true, direction: true, body: true, senderName: true, quotedProviderId: true, quotedBody: true, quotedAuthor: true, reactions: true, mediaType: true, mediaMimeType: true, sentAt: true },
+      select: { id: true, direction: true, body: true, senderName: true, quotedProviderId: true, quotedBody: true, quotedAuthor: true, reactions: true, mediaType: true, mediaMimeType: true, mediaFileName: true, sentAt: true },
       create: {
         providerId: message.providerId,
         conversationId,
@@ -66,6 +67,7 @@ export async function persistOutboundWhatsAppMessage(
         quotedAuthor: message.quotedAuthor ?? "",
         mediaType: message.mediaType ?? "",
         mediaMimeType: message.mediaMimeType ?? "",
+        mediaFileName: message.mediaFileName ?? "",
         mediaUrl: message.mediaUrl ?? "",
         sentAt: message.sentAt,
       },
@@ -79,6 +81,7 @@ export async function persistOutboundWhatsAppMessage(
         quotedAuthor: message.quotedAuthor ?? "",
         mediaType: message.mediaType ?? "",
         mediaMimeType: message.mediaMimeType ?? "",
+        mediaFileName: message.mediaFileName ?? "",
         mediaUrl: message.mediaUrl ?? "",
         sentAt: message.sentAt,
       },
@@ -109,6 +112,7 @@ export async function persistOutboundWhatsAppMessage(
       reactions: readWhatsAppReactions(stored.reactions),
       mediaType: stored.mediaType,
       mediaMimeType: stored.mediaMimeType,
+      mediaFileName: stored.mediaFileName,
       mediaUrl: "",
       sentAt: stored.sentAt.toISOString(),
     };

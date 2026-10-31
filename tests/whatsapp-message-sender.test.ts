@@ -4,7 +4,7 @@ import { createRequire } from "node:module";
 import vm from "node:vm";
 import test from "node:test";
 import ts from "typescript";
-import { outgoingWhatsAppMediaKind } from "../src/lib/whatsapp-media-types";
+import { outgoingWhatsAppMediaKind, attachmentMimeType, attachmentFileName } from "../src/lib/whatsapp-media-types";
 
 const require = createRequire(import.meta.url);
 
@@ -80,7 +80,7 @@ test("text, audio and attachments store authenticated authors without sending th
       if (name === "next/cache") return { revalidatePath() {} };
       if (name === "@/lib/auth/guards") return { requireWhatsAppSend: async () => ({ arenaId: "arena", userId: "authenticated-id", userName: "Atendente de teste" }) };
       if (name === "@/lib/integrations/evolution/client") return { sendEvolutionTextMessage: deliver, sendEvolutionAudioMessage: deliver, sendEvolutionMediaMessage: deliver };
-      if (name === "@/lib/whatsapp-media-types") return { outgoingWhatsAppMediaKind };
+      if (name === "@/lib/whatsapp-media-types") return { outgoingWhatsAppMediaKind, attachmentMimeType, attachmentFileName };
       if (name === "@/lib/services/whatsapp-conversation") return {
         getArenaWhatsAppConversation: async () => ({ id: "conversation", contactPhone: "11999999999" }),
         getEvolutionProviderId: () => "provider",
@@ -121,7 +121,7 @@ test("a mensagem aceita pelo provedor não é tratada como falha de envio se a g
       if (name === "next/cache") return { revalidatePath() {} };
       if (name === "@/lib/auth/guards") return { requireWhatsAppSend: async () => ({ arenaId: "arena", userId: "user", userName: "Atendente" }) };
       if (name === "@/lib/integrations/evolution/client") return { sendEvolutionTextMessage: deliver, sendEvolutionAudioMessage: deliver, sendEvolutionMediaMessage: deliver };
-      if (name === "@/lib/whatsapp-media-types") return { outgoingWhatsAppMediaKind };
+      if (name === "@/lib/whatsapp-media-types") return { outgoingWhatsAppMediaKind, attachmentMimeType, attachmentFileName };
       if (name === "@/lib/services/whatsapp-conversation") return {
         getArenaWhatsAppConversation: async () => ({ id: "conversation", contactPhone: "11999999999" }),
         getEvolutionProviderId: (delivery: { key: { id: string } }) => delivery.key.id,

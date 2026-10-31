@@ -1,4 +1,7 @@
 "use client";
+import { AttachmentPreview } from "./attachment-preview";
+import { useThreadScroll } from "./use-thread-scroll";
+import { attachmentMimeType, outgoingWhatsAppMediaKind } from "@/lib/whatsapp-media-types";
 import { fixedDialogFrame } from "@/components/ui/dialog-frame";
 
 import { cx } from "@/lib/ui/classes";
@@ -37,6 +40,7 @@ const filterOptions: [WhatsAppFilter, string, WhatsAppIconName][] = [["all", "Co
 const unsyncedSendNotice = "Envio aceito pelo WhatsApp, mas o histórico não atualizou. Não reenvie; atualize a conversa.";
 
 type ConversationAction = "archive" | "pin" | "unread" | "favorite" | "list" | "clear" | "delete" | "resolve_sla";
+type AttachmentDraft = { id: string; file: File; previewUrl: string; conversationId: string };
 type AudioDraft = { file: File; previewUrl: string; conversationId: string };
 
 function Avatar({ conversation, size = "", onExpand, withinButton = false }: { conversation: WhatsAppConversation; size?: string; onExpand?: (url: string) => void; withinButton?: boolean }) {
@@ -80,6 +84,12 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
   const [mobileChatOpen, setMobileChatOpen] = useState(false);
   const activeIdRef = useRef(activeId);
   activeIdRef.current = activeId;
+  const [attachments, setAttachments] = useState<AttachmentDraft[]>([]);
+  const attachmentRef = useRef(attachments);
+  attachmentRef.current = attachments;
+  const [draggingFiles, setDraggingFiles] = useState(false);
+  const dragDepth = useRef(0);
+  useEffect(() => () => { attachmentRef.current.forEach(item => URL.revokeObjectURL(item.previewUrl)); }, []);
   const [body, setBody] = useState("");
   const [query, setQuery] = useState("");
   const [clientQuery, setClientQuery] = useState("");
@@ -128,6 +138,26 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
     conversation.id === active?.id && messageHistory.ready,
   ), [localMessages, loadedMessages, active?.id, messageHistory.ready]);
   const activeMessages = active ? messagesFor(active) : [];
+  const threadScroll = useThreadScroll(currentAccountJid + ":" + active?.id, `${activeMessages.length}:${activeMessages.at(-1)?.id}:${messageHistory.ready}:${mobileChatOpen}`);
+  const activeAttachments = attachments.filter(item => item.conversationId === active?.id);
+  const removeAttachment = (id: string) => {
+    const item = attachmentRef.current.find(item => item.id === id);
+    if (item) URL.revokeObjectURL(item.previewUrl);
+    setAttachments(current => current.filter(item => item.id !== id));
+  };
+  const queueFiles = (files: File[]) => {
+    if (!canSend || !active || pending || recording) return;
+    const additions: AttachmentDraft[] = []; const errors: string[] = [];
+    for (const file of files) {
+      if (attachmentRef.current.length + additions.length >= 10) { errors.push("Anexe até 10 arquivos por vez."); break; }
+      if (!file.size || file.size > 16 * 1024 * 1024) { errors.push(`${file.name}: o limite por arquivo é 16 MB.`); continue; }
+      if (!outgoingWhatsAppMediaKind(attachmentMimeType(file))) { errors.push(`${file.name}: formato não suportado. Use imagem, PDF, texto, planilha ou apresentação.`); continue; }
+      additions.push({ id: crypto.randomUUID(), file, conversationId: active.id, previewUrl: URL.createObjectURL(file) });
+    }
+    setAttachments(current => [...current, ...additions]);
+    setNotice([...new Set(errors)].join(" "));
+    if (fileInput.current) fileInput.current.value = "";
+  };
   useEffect(() => {
     const storedIds = new Set([...loadedMessages.map(message => message.id), ...conversations.flatMap((conversation) => conversation.messages.map((message) => message.id))]);
     setLocalMessages((current) => {
@@ -319,14 +349,17 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
   const sendText = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!canSend || pending || recording) return;
+    if (activeAttachments.length) { sendAttachments(); return; }
     if (audioDraft && audioDraft.conversationId === active?.id) { void sendAudio(); return; }
     if (!active || !body.trim()) return;
+    setNotice("");
     const text = body.trim();
     const reply = replyTo;
     const temporaryId = `local-${Date.now()}`;
     const temporary: WhatsAppMessage = { id: temporaryId, direction: "OUTBOUND", senderName: currentUserName, body: text, quotedProviderId: reply?.id, quotedBody: reply?.body, quotedAuthor: reply?.direction === "OUTBOUND" ? reply.senderName || "Você" : active.contactName || "Contato", mediaType: "", mediaMimeType: "", mediaUrl: "", sentAt: new Date().toISOString() };
     const form = new FormData(); form.set("conversationId", active.id); form.set("body", text);
     if (reply) form.set("replyToId", reply.id);
+    threadScroll.follow();
     setLocalMessages((current) => ({ ...current, [active.id]: [...(current[active.id] ?? []), temporary] }));
     setBody("");
     setReplyTo(null);
@@ -351,6 +384,7 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
     const draft = audioDraft;
     if (draft.conversationId !== active.id) { setNotice("Volte à conversa em que o áudio foi gravado para enviá-lo."); return; }
     const conversationId = draft.conversationId;
+    threadScroll.follow();
     // Keep the object URL alive until the delivery succeeds. If Evolution is
     // temporarily unavailable, the person can retry the same recording.
     setAudioDraft(null);
@@ -373,21 +407,26 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
       }
     });
   };
-  const uploadFile = (file: File) => {
-    if (!canSend || !active) return;
-    const form = new FormData(); form.set("conversationId", active.id); form.set("file", file);
-    if (replyTo) form.set("replyToId", replyTo.id);
+  const sendAttachments = () => {
+    if (!canSend || !active || pending || recording || !activeAttachments.length) return;
+    setNotice("");
+    const conversationId = active.id, batch = [...activeAttachments], reply = replyTo, caption = body.trim();
+    threadScroll.follow();
     startTransition(async () => {
-      try {
-        const message = await sendWhatsAppMediaMessageAction(form);
-        setReplyTo(null);
-        if ("acceptedButUnsynced" in message) {
-          setNotice(unsyncedSendNotice);
-        } else {
-          setLocalMessages((current) => ({ ...current, [active.id]: [...(current[active.id] ?? []), message] }));
-        }
-      } catch (error) { setNotice(error instanceof Error ? error.message : "Não foi possível enviar o anexo."); }
-      finally { if (fileInput.current) fileInput.current.value = ""; }
+      let uncertain = false;
+      for (const [index, draft] of batch.entries()) {
+        const form = new FormData(); form.set("conversationId", conversationId); form.set("file", draft.file);
+        if (reply) form.set("replyToId", reply.id);
+        if (index === 0) form.set("caption", caption);
+        try {
+          const message = await sendWhatsAppMediaMessageAction(form);
+          removeAttachment(draft.id);
+          if (activeIdRef.current === conversationId) { setReplyTo(null); if (index === 0) setBody(current => current.trim() === caption ? "" : current); }
+          if ("acceptedButUnsynced" in message) { uncertain = true; setNotice(unsyncedSendNotice); }
+          else setLocalMessages(current => ({ ...current, [conversationId]: [...(current[conversationId] ?? []), message] }));
+        } catch (error) { setNotice("Não foi possível enviar este anexo. Os arquivos restantes continuam selecionados para conferência."); return; }
+      }
+      if (!uncertain) setNotice(batch.length === 1 ? "Anexo enviado." : `${batch.length} anexos enviados.`);
     });
   };
 
@@ -406,7 +445,8 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
 
   if (!connected) return <section className={viewStyles.whatsapp_chat_empty}><strong>Conecte o WhatsApp da arena para começar.</strong><span>O QR Code fica em Configurações › Integrações.</span></section>;
 
-  return <section className={cx(viewStyles.whatsapp_chat_workspace_whatsapp_inbox, showContactDetails && active ? "has-contact-details" : undefined, mobileChatOpen ? "is-mobile-chat-open" : undefined)}>
+  return <section onDragEnter={event => { if (!event.dataTransfer.types.includes("Files")) return; event.preventDefault(); dragDepth.current += 1; if (canSend && active && !pending) setDraggingFiles(true); }} onDragOver={event => { if (event.dataTransfer.types.includes("Files")) { event.preventDefault(); event.dataTransfer.dropEffect = canSend && active && !pending ? "copy" : "none"; } }} onDragLeave={event => { if (!event.dataTransfer.types.includes("Files")) return; event.preventDefault(); dragDepth.current = Math.max(0, dragDepth.current - 1); if (!dragDepth.current) setDraggingFiles(false); }} onDrop={event => { if (!event.dataTransfer.types.includes("Files")) return; event.preventDefault(); dragDepth.current = 0; setDraggingFiles(false); queueFiles(Array.from(event.dataTransfer.files)); }} className={cx(viewStyles.whatsapp_chat_workspace_whatsapp_inbox, showContactDetails && active ? "has-contact-details" : undefined, mobileChatOpen ? "is-mobile-chat-open" : undefined)}>
+    {draggingFiles ? <div className="tw:pointer-events-none tw:absolute tw:inset-2 tw:z-50 tw:grid tw:place-items-center tw:rounded-lg tw:border-2 tw:border-dashed tw:border-[#0b8063] tw:bg-[#edf9f4]/95 tw:p-5 tw:text-center tw:text-base tw:font-medium tw:text-[#126247]" role="status">Solte os arquivos para anexar à conversa</div> : null}
     <aside className={cx(viewStyles.whatsapp_inbox_list, mobileChatOpen ? "tw:viewport-900:hidden!" : undefined)}>
       <header><h1 className="tw:sr-only">Conversas</h1>{canEdit ? <div className={`${viewStyles.whatsapp_header_actions} tw:ml-auto`}>
         <button type="button" title="Configurar SLA" onClick={() => setShowSla((value) => !value)}><WhatsAppIcon name="clock" /></button>
@@ -427,7 +467,7 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
     </aside>
     <main className={cx(viewStyles.whatsapp_chat_main, mobileChatOpen ? "tw:viewport-900:row-start-1!" : "tw:viewport-900:hidden!")}>{active ? <>
       <header className="tw:viewport-420:gap-x-1.5! tw:viewport-420:px-2! tw:viewport-420:py-2!"><div className="tw:min-w-0 tw:flex-1 tw:viewport-420:gap-x-1.5!"><button type="button" className={viewStyles.whatsapp_mobile_back} aria-label="Voltar às conversas" onClick={() => { setMobileChatOpen(false); setShowContactDetails(false); }}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m14 5-7 7 7 7" /></svg></button><Avatar conversation={active} size="is-header" onExpand={setSelectedImage} /><span className="tw:min-w-0 tw:flex-1"><strong className="tw:viewport-420:whitespace-normal! tw:viewport-420:break-words!">{whatsAppConversationName(active)}</strong><small className="tw:viewport-420:whitespace-normal! tw:viewport-420:break-words!">{active.remoteJid.endsWith("@g.us") ? "Grupo do WhatsApp" : formatWhatsAppPhone(active.contactPhone)}</small></span></div><button ref={mobileContactDetailsTrigger} type="button" className={viewStyles.whatsapp_mobile_details} title="Detalhes do contato" aria-label="Detalhes do contato" aria-controls="whatsapp-contact-details" aria-expanded={showContactDetails} onClick={() => { contactDetailsOpenedByUser.current = !showContactDetails; setShowContactDetails((value) => !value); }}><WhatsAppIcon name="user" size={20} /></button></header>
-      <div className={viewStyles.whatsapp_message_thread}>{messageHistory.loading ? <p role="status" className="tw:text-xs tw:text-slate-500">Carregando histórico…</p> : null}{messageHistory.failed ? <p role="status" className="tw:text-xs tw:text-slate-600">Não foi possível carregar o histórico. <button type="button" className="tw:underline" onClick={messageHistory.retry}>Tentar novamente</button></p> : null}{activeMessages.map((message) => <WhatsAppMessageBubble key={message.id} message={message} isGroup={active.remoteJid.endsWith("@g.us")} accountJid={currentAccountJid} canEdit={canSend} pending={pending} menuOpen={canSend && messageMenuId === message.id} onMenu={() => setMessageMenuId(messageMenuId === message.id ? "" : message.id)} onReply={() => { setReplyTo(message); setMessageMenuId(""); messageInput.current?.focus(); }} onReact={(emoji) => reactToMessage(message, emoji)} onImage={setSelectedImage} />)}</div>
+      <div ref={threadScroll.thread} onScroll={threadScroll.onScroll} className={`${viewStyles.whatsapp_message_thread} tw:[overflow-anchor:none]`}><div ref={threadScroll.content} className="tw:flex tw:min-w-0 tw:flex-col tw:gap-3">{messageHistory.loading ? <p role="status" className="tw:text-xs tw:text-slate-500">Carregando histórico…</p> : null}{messageHistory.failed ? <p role="status" className="tw:text-xs tw:text-slate-600">Não foi possível carregar o histórico. <button type="button" className="tw:underline" onClick={messageHistory.retry}>Tentar novamente</button></p> : null}{activeMessages.map((message) => <WhatsAppMessageBubble key={message.id} message={message} isGroup={active.remoteJid.endsWith("@g.us")} accountJid={currentAccountJid} canEdit={canSend} pending={pending} menuOpen={canSend && messageMenuId === message.id} onMenu={() => setMessageMenuId(messageMenuId === message.id ? "" : message.id)} onReply={() => { setReplyTo(message); setMessageMenuId(""); threadScroll.follow(); messageInput.current?.focus({ preventScroll: true }); }} onReact={(emoji) => reactToMessage(message, emoji)} onImage={setSelectedImage} />)}</div></div>
       {notice ? <p className={viewStyles.whatsapp_workspace_notice} role="status">{notice}</p> : null}
       {canSend ? <form className={viewStyles.whatsapp_composer} onSubmit={sendText} onKeyDown={(event) => {
         if (event.target instanceof HTMLTextAreaElement && event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229) {
@@ -436,12 +476,13 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
         }
       }}>
         {replyTo ? <div className={viewStyles.whatsapp_reply_preview}><div><strong>Respondendo a {replyTo.direction === "OUTBOUND" ? replyTo.senderName || "você" : active.remoteJid.endsWith("@g.us") ? replyPresentation?.senderName || "participante" : active.contactName || "contato"}</strong><span>{replyPresentation?.body || "Mensagem"}</span></div><button type="button" aria-label="Cancelar resposta" onClick={() => setReplyTo(null)}>×</button></div> : null}
-        <input ref={fileInput} type="file" accept="image/*,.pdf" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) uploadFile(file); }} />
+        {activeAttachments.length ? <div aria-label="Anexos selecionados" className="tw:col-span-full tw:grid tw:max-h-52 tw:min-w-0 tw:gap-2 tw:overflow-y-auto">{activeAttachments.map(draft => <div key={draft.id} className="tw:grid tw:min-w-0 tw:grid-cols-[minmax(0,1fr)_32px] tw:items-center tw:gap-2"><AttachmentPreview name={draft.file.name} mimeType={attachmentMimeType(draft.file)} size={draft.file.size} imageUrl={draft.file.type.startsWith("image/") ? draft.previewUrl : undefined} /><button type="button" aria-label={`Remover anexo ${draft.file.name}`} className="tw:grid tw:size-8 tw:place-items-center tw:rounded-md tw:border-0 tw:bg-transparent tw:text-[#7b4848]" disabled={pending} onClick={() => removeAttachment(draft.id)}>×</button></div>)}</div> : null}
+        <input ref={fileInput} type="file" multiple aria-label="Selecionar anexos" accept="image/jpeg,image/png,image/webp,image/gif,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf,.odt,.ods" hidden disabled={pending || recording} onChange={event => queueFiles(Array.from(event.target.files ?? []))} />
         <button type="button" className={viewStyles.whatsapp_composer_icon} title="Anexar imagem ou PDF" aria-label="Anexar imagem ou PDF" onClick={() => fileInput.current?.click()}><WhatsAppIcon name="paperclip" size={20} /></button>
         <button type="button" className={cx(`${viewStyles.whatsapp_composer_icon_whatsapp_record_button} ${recording ? "is-recording" : ""}`)} title={recording ? "Parar gravação" : "Gravar áudio"} aria-label={recording ? "Parar gravação" : "Gravar áudio"} onClick={() => recording ? stopRecording() : beginRecording()}><WhatsAppIcon name="microphone" /></button>
         <div className={viewStyles.whatsapp_composer_field}>{recording ? <div className={viewStyles.whatsapp_recording_indicator} role="status"><i /><div className={viewStyles.whatsapp_recording_wave}>{Array.from({ length: 18 }, (_, index) => <b key={index} style={{ transform: `scaleY(${Math.max(.22, Math.min(1.9, .22 + level * 4.5 * (.58 + (Math.sin(index * 1.7) + 1) * .16)))})` }} />)}</div><strong>Gravando áudio</strong><small>Clique no microfone para parar</small></div> : audioDraft?.conversationId === active.id ? <div className={viewStyles.whatsapp_pending_audio}><audio controls preload="metadata" src={audioDraft.previewUrl} /><button type="button" title="Remover áudio" aria-label="Remover áudio" onClick={discardAudioDraft}>×</button></div> : <textarea ref={messageInput} aria-label="Mensagem ou legenda" value={body} onChange={(event) => setBody(event.target.value)} placeholder="Digite uma mensagem..." rows={1} />}</div>
         <button type="button" className={viewStyles.whatsapp_composer_icon} title="Inserir emoji" aria-label="Inserir emoji" onClick={() => setShowEmoji((value) => !value)}><WhatsAppIcon name="smile" size={20} /></button>
-        <button className={viewStyles.whatsapp_send_button} disabled={pending || recording || (!body.trim() && audioDraft?.conversationId !== active.id)} title="Enviar mensagem" aria-label="Enviar mensagem"><WhatsAppIcon name="send" size={19} /></button>
+        <button className={viewStyles.whatsapp_send_button} disabled={pending || recording || (!body.trim() && !activeAttachments.length && audioDraft?.conversationId !== active.id)} title={activeAttachments.length ? "Enviar anexos" : "Enviar mensagem"} aria-label={activeAttachments.length ? "Enviar anexos" : "Enviar mensagem"}><WhatsAppIcon name="send" size={19} /></button>
         {showEmoji ? <div className={viewStyles.whatsapp_emoji_picker} role="dialog" aria-label="Escolha um emoji">{emojis.map((emoji) => <button key={emoji} type="button" onClick={() => { setBody((value) => `${value}${emoji}`); setShowEmoji(false); }}>{emoji}</button>)}</div> : null}
       </form> : <div className={viewStyles.whatsapp_composer} role="status"><span className="tw:text-sm tw:text-slate-600">Você tem acesso somente de leitura a estas conversas.</span></div>}
     </> : <div className={viewStyles.whatsapp_chat_empty}><strong>Selecione uma conversa.</strong></div>}</main>
