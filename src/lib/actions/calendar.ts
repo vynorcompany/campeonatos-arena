@@ -1,4 +1,6 @@
 "use server";
+import { createPlayerSchema } from "@/lib/validators/player";
+import { normalizeBrazilianPhone } from "@/lib/phone";
 import { servicePermitsDuration } from "@/lib/calendar/service-booking-rules";
 
 import { lockAvailableBookingServices, BookingServiceUnavailableError } from "@/lib/calendar/booking-services";
@@ -400,10 +402,24 @@ export async function createBookingTypeAction(formData: FormData) {
 
 export async function createQuickPlayerAction(formData: FormData) {
   const auth = await requirePermission("players:create");
-  const parsed = z.object({ name: z.string().trim().min(3), phone: z.string().trim().min(8), cpf: z.string().trim().default(""), class: z.string().trim().default(""), gender: z.string().trim().default(""), birthDate: z.string().trim().default("") }).safeParse({ name: formData.get("name"), phone: formData.get("phone"), cpf: formData.get("cpf"), class: formData.get("class"), gender: formData.get("gender"), birthDate: formData.get("birthDate") });
-  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
-  const player = await withArenaTransaction(auth.arenaId, (tx) => tx.player.create({ data: { arenaId: auth.arenaId, name: parsed.data.name, phone: parsed.data.phone, cpf: parsed.data.cpf.replace(/\D/g, ""), class: parsed.data.class, gender: parsed.data.gender, birthDate: parsed.data.birthDate ? new Date(parsed.data.birthDate) : null } }));
-  refreshCalendar(); return { id: player.id, name: player.name };
+  const parsed = createPlayerSchema.pick({ name: true, phone: true, email: true, cpf: true, class: true, gender: true, birthDate: true }).extend({
+    phone: z.string().trim().min(8, "Informe um telefone válido.").max(30),
+  }).safeParse({
+    name: formData.get("name"), phone: normalizeBrazilianPhone(String(formData.get("phone") ?? "")),
+    email: formData.get("email"), cpf: String(formData.get("cpf") ?? "").replace(/\D/g, ""),
+    class: formData.get("class"), gender: formData.get("gender"), birthDate: formData.get("birthDate"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  try {
+    const player = await withArenaTransaction(auth.arenaId, async tx => {
+      const existing = await tx.player.findMany({ where: { arenaId: auth.arenaId, mergedIntoPlayerId: null }, select: { phone: true } });
+      if (existing.some(player => normalizeBrazilianPhone(player.phone) === parsed.data.phone)) return null;
+      return tx.player.create({ data: { arenaId: auth.arenaId, ...parsed.data } });
+    });
+    if (!player) return { error: "Já existe um cliente cadastrado com este telefone." };
+    refreshCalendar(); return { id: player.id, name: player.name };
+  } catch { return { error: "Não foi possível cadastrar o cliente. Tente novamente." }; }
+
 }
 
 export async function saveCourtBookingAction(formData: FormData): Promise<CourtBookingActionResult> {
