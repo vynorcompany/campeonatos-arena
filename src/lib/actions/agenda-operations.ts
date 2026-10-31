@@ -7,7 +7,21 @@ import { manuallyCheckInParticipant, addOptionalBookingService, removeOptionalBo
 import { refreshCalendarRoutes } from "@/lib/calendar/revalidation";
 import { refreshFinanceRoutes } from "@/lib/finance/revalidation";
 
-type AgendaResult = { error?: string; checkedInAt?: string };
+type BookingCharges = {
+  participants: { playerId: string; amountCents: number; paymentMethod: string; bankAccountId?: string; checkedInAt: string | null }[];
+  services: { id: string; name: string; priceCents: number }[];
+};
+type AgendaResult = { error?: string; checkedInAt?: string; charges?: BookingCharges };
+async function bookingCharges(tx: import("@/lib/rls").ArenaTransaction, arenaId: string, occurrenceId: string): Promise<BookingCharges> {
+  const booking = await tx.scheduleOccurrence.findFirstOrThrow({ where: { id: occurrenceId, arenaId }, include: {
+    participants: { orderBy: { id: "asc" }, include: { financialEntry: { select: { bankAccountId: true } } } },
+    serviceReservations: { orderBy: { id: "asc" } },
+  } });
+  return {
+    participants: booking.participants.map(participant => ({ playerId: participant.playerId, amountCents: participant.amountCents, paymentMethod: participant.paymentMethod ?? "", bankAccountId: participant.financialEntry?.bankAccountId ?? undefined, checkedInAt: participant.checkedInAt?.toISOString() ?? null })),
+    services: booking.serviceReservations.map(service => ({ id: service.id, name: service.serviceName, priceCents: service.priceCents })),
+  };
+}
 const visibleErrors = new Set([
   "Adicione atletas à reserva antes de inserir o serviço.",
   "Revise o pagamento da reserva antes de inserir o serviço.",
@@ -47,16 +61,16 @@ export async function addBookingServiceAction(form: FormData): Promise<AgendaRes
   const auth = await requirePermission("calendar:booking:edit");
   try {
     const input = z.object({ occurrenceId: z.string().min(1), productId: z.string().min(1) }).parse(Object.fromEntries(form));
-    await withArenaTransaction(auth.arenaId, tx => addOptionalBookingService(tx, auth.arenaId, input.occurrenceId, input.productId));
-    refreshCalendarRoutes(); refreshFinanceRoutes(); return {};
+    const charges = await withArenaTransaction(auth.arenaId, async tx => { await addOptionalBookingService(tx, auth.arenaId, input.occurrenceId, input.productId); return bookingCharges(tx, auth.arenaId, input.occurrenceId); });
+    refreshCalendarRoutes(); refreshFinanceRoutes(); return { charges };
   } catch (error) { return actionError(error, "Não foi possível inserir o serviço. Confira a disponibilidade e as condições na lista de serviços."); }
 }
 export async function removeBookingServiceAction(form: FormData): Promise<AgendaResult> {
   const auth = await requirePermission("calendar:booking:edit");
   try {
     const input = z.object({ occurrenceId: z.string().min(1), serviceId: z.string().min(1) }).parse(Object.fromEntries(form));
-    await withArenaTransaction(auth.arenaId, tx => removeOptionalBookingService(tx, auth.arenaId, input.occurrenceId, input.serviceId));
-    refreshCalendarRoutes(); refreshFinanceRoutes(); return {};
+    const charges = await withArenaTransaction(auth.arenaId, async tx => { await removeOptionalBookingService(tx, auth.arenaId, input.occurrenceId, input.serviceId); return bookingCharges(tx, auth.arenaId, input.occurrenceId); });
+    refreshCalendarRoutes(); refreshFinanceRoutes(); return { charges };
   } catch (error) { return actionError(error, "Não foi possível remover o serviço. Atualize a reserva e tente novamente."); }
 }
 export async function blockAgendaSlotsAction(form: FormData): Promise<AgendaResult> {
