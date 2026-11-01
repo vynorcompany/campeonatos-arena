@@ -18,15 +18,16 @@ export function DashboardCashChart({ days, view, reference, cumulative = false }
   const scrollLongPeriod = days.length > 45;
 
   return <div className={viewStyles.dashboard_cash_chart} role="img" aria-label={`Gráfico ${cumulative ? "acumulado" : "diário"} de entradas e saídas na visão de ${view}. Total de entradas: ${money(income)}. Total de saídas: ${money(expense)}.`}>
-    <div className={viewStyles.dashboard_cash_bars} style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))`, ...(scrollLongPeriod ? { minWidth: `${days.length * 8 + 40}px` } : {}) }}>
-      {days.map((day, index) => <div className={viewStyles.dashboard_cash_day} key={`${index}-${day.label}`} title={`${day.label}: entradas ${money(day.income)}, saídas ${money(day.expense)}`}>
+    <div className={`${viewStyles.dashboard_cash_bars} tw:relative tw:grid-rows-[minmax(0,1fr)_auto]`} style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))`, ...(scrollLongPeriod ? { minWidth: `${days.length * 8 + 40}px` } : {}) }}>
+      {days.map((day, index) => <div className={`${viewStyles.dashboard_cash_day} tw:row-span-2 tw:grid-rows-subgrid!`} key={`${index}-${day.label}`} title={`${day.label}: entradas ${money(day.income)}, saídas ${money(day.expense)}`}>
         <div className={`${viewStyles.dashboard_cash_column} tw:relative`}>
-          {reference ? <i className="tw:absolute tw:inset-x-0 tw:z-10 tw:border-t-2 tw:border-dashed tw:border-amber-700" style={{ bottom: `${reference.value / max * 100}%` }} aria-label={`${reference.label}: ${money(reference.value)}`} /> : null}
+
           <span className={viewStyles.dashboard_cash_income} style={{ height: `${(day.income / max) * 100}%` }} />
           <span className={viewStyles.dashboard_cash_expense} style={{ height: `${(day.expense / max) * 100}%` }} />
         </div>
         <small>{index === 0 || index === days.length - 1 || index % tickInterval === 0 ? day.label : null}</small>
       </div>)}
+      {reference ? <i className="tw:pointer-events-none tw:absolute tw:inset-x-0 tw:row-start-1 tw:row-end-2 tw:z-10 tw:border-t-2 tw:border-solid tw:border-amber-700" style={{ gridColumn: `1 / span ${Math.max(1,days.length)}`, bottom: `${reference.value / max * 100}%` }} aria-label={`${reference.label}: ${money(reference.value)}`} /> : null}
     </div>
   </div>;
 }
