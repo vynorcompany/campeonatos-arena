@@ -38,6 +38,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   };
   const month = today.getMonth(), year = today.getFullYear();
   const presets: Array<[string, Date, Date]> = [
+    ["Hoje", today, today],
     ["Este mês", new Date(year, month, 1), today],
     ["Próximo Mês", new Date(year, month + 1, 1), new Date(year, month + 2, 0)],
     ["Mês passado", new Date(year, month - 1, 1), new Date(year, month, 0)],
@@ -47,8 +48,8 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   const panels = [
     { id: "payments", title: "Principais formas de pagamento", description: "Recebimentos no período, incluindo baixas parciais, agrupados pela forma efetiva do pagamento.", items: analytics.methods },
     { id: "categories", title: "Faturamento por categoria", description: "Receitas na visão de caixa ou competência selecionada, agrupadas pela categoria financeira do lançamento.", items: analytics.categories },
-    { id: "court-revenue", title: "Faturamento por quadra", description: "Receitas na visão selecionada. Reservas com várias quadras são rateadas igualmente; demais receitas aparecem em Sem quadra vinculada.", items: analytics.courtRevenue },
-    { id: "court-forecast", title: "Previsão de faturamento por quadra", description: "Receitas lançadas e programadas por vencimento, incluindo reservas já agendadas. Valores de reservas com várias quadras são rateados; receitas sem vínculo ficam identificadas separadamente.", items: analytics.forecastCourts },
+    { id: "court-revenue", title: "Faturamento por quadra", description: "Receitas de reservas vinculadas a quadras. Reservas com várias quadras são rateadas igualmente; vendas de produtos e demais receitas ficam em suas categorias.", items: analytics.courtRevenue },
+    { id: "court-forecast", title: "Previsão de faturamento por quadra", description: "Receitas lançadas e programadas por vencimento, incluindo reservas já agendadas. Valores de reservas com várias quadras são rateados; receitas sem quadra não compõem este gráfico.", items: analytics.forecastCourts },
     { id: "total-forecast", title: "Previsão de faturamento total", description: `Receitas lançadas e programadas por vencimento, de ${dashboardDateKey(from)} a ${dashboardDateKey(horizonEnd)}. Inclui lançamentos, recorrências ativas e reservas com valor definido. O primeiro mês começa na data inicial do filtro. Não estima novas vendas.`, items: analytics.months, chronological: true },
     { id: "teachers", title: "Aulas por professor", description: "Quantidade de aulas não canceladas da grade e do cadastro de aulas avulsas, no período.", items: analytics.lessonsByTeacher, monetary: false },
     { id: "clients", title: "Top 10 Clientes", description: "Dez clientes com mais recebimentos confirmados no período, incluindo pagamentos parciais. Registros sem vínculo usam o nome informado no lançamento.", items: analytics.clients },

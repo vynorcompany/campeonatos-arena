@@ -1,5 +1,6 @@
 "use server";
 
+import { readArenaData } from "@/lib/assistant/read-data";
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/guards";
 import { parseArenaAssistantCommand } from "@/lib/assistant/commands";
@@ -45,6 +46,14 @@ export async function runArenaAssistantCommandAction(input: string): Promise<Ass
   });
 
   if (!command) {
+    const reply = await withArenaTransaction(auth.arenaId, tx => readArenaData(tx, auth.arenaId, content, key => canPerformPermission(key, auth.arenaRole, auth.systemRole, auth.viewPermissions)), { maxWait: 20_000, timeout: 20_000 });
+    if (reply) {
+      const message = await withArenaTransaction(auth.arenaId, async tx => {
+        await tx.assistantCommand.create({ data: { arenaId: auth.arenaId, conversationId: conversation.id, requestedByUserId: auth.userId, type: "READ_ARENA_DATA", status: "EXECUTED", input: content, output: reply, executedAt: new Date() } });
+        return tx.assistantMessage.create({ data: { conversationId: conversation.id, role: "ASSISTANT", content: reply } });
+      });
+      return { ok: true, message: reply, createdAt: message.createdAt.toISOString() };
+    }
     await prisma.assistantCommand.create({
       data: {
         arenaId: auth.arenaId,
@@ -57,7 +66,7 @@ export async function runArenaAssistantCommandAction(input: string): Promise<Ass
       }
     });
 
-    return addAssistantMessage(auth.arenaId, conversation.id, "Ainda não consigo executar esse comando. Nesta etapa, posso criar faturas a receber para clientes já cadastrados.");
+    return addAssistantMessage(auth.arenaId, conversation.id, "Qual dado você quer consultar? Posso ler o fluxo de caixa, inadimplência, contas a receber e pagar, clientes, reservas, comandas, estoque, serviços, aulas, turmas, professores, planos e eventos. Informe um período (hoje, ontem, mês passado ou 01/10 a 31/10). Para buscar um nome específico, coloque-o entre aspas.");
   }
 
   const audit = await prisma.assistantCommand.create({

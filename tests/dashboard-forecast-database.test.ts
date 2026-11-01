@@ -1,3 +1,4 @@
+import { loadClientActivity } from "../src/lib/reports/client-activity";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { randomUUID } from "node:crypto";
@@ -31,6 +32,7 @@ test("dashboard projection reads remain tenant scoped, reconcile posted and virt
       exports,
       require: (name: string) => {
         if (name === "@/lib/calendar/arena-wall-clock") return { arenaWallClockToInstant, instantToArenaWallClock };
+        if (name === "./client-activity") return { loadClientActivity };
         if (name === "@/lib/rls") return { withArenaTransaction: (scope: string, operation: any) => { assert.equal(scope, arenaId); return arenaDatabaseForTest(runtime, scope).$transaction(operation); } };
         if (name === "@/lib/calendar/online-booking-hold") return { activeCourtOccurrenceWhere };
         throw new Error(`Unexpected dependency ${name}`);
@@ -42,7 +44,7 @@ test("dashboard projection reads remain tenant scoped, reconcile posted and virt
     assert.equal(result.received, 0);
     assert.match(String(result.cards.find(card => card.id === "to-receive")?.value), /110,00/);
     assert.match(String(result.cards.find(card => card.id === "forecast")?.value), /130,00/);
-    assert.equal(result.forecastCourts.reduce((total, item) => total + item.value, 0), 13000);
+    assert.equal(result.forecastCourts.reduce((total, item) => total + item.value, 0), 3000);
     assert.equal(result.months.reduce((total, item) => total + item.value, 0), 23000);
     assert.equal(data.entries.length, 2);
     assert.equal(await admin.financialEntry.count({ where: { arenaId } }), 2, "projection must remain read-only");

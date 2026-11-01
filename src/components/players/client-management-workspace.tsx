@@ -16,17 +16,17 @@ import { adjustClientBalanceAction, archiveClientsAction, importClientsAction, m
 import { archivePlayerAction, reactivatePlayerAction, updatePlayerAction } from "@/lib/actions/tournament";
 
 type Client = { id: string; name: string; photoUrl: string; phone: string; email: string; cpf: string; addressZipCode: string; addressStreet: string; addressNumber: string; addressNeighborhood: string; addressCity: string; addressState: string; birthDate: string; gender: string; class: string; isTeacher: boolean; points: number; leagueTier: string; active: boolean; financialStatus: string; moneyBalanceCents: number; classBalance: number; plans: { id: string; name: string; status: string; startedAt: string; endedAt: string | null; classesPerMonth: number; dueDay: number }[]; balanceMovements: { id: string; kind: string; amountCents: number; classesDelta: number; reason: string; createdAt: string }[] };
-type Props = { clients: Client[]; mergeClients: MergeClient[]; plans: { id: string; name: string }[]; teachers: { id: string; name: string }[]; canEditLoyalty: boolean; filters: { q: string; phone: string; financial: string; planId: string; active: string; teacherId: string } };
+type Props = { initialClientId?: string; clients: Client[]; mergeClients: MergeClient[]; plans: { id: string; name: string }[]; teachers: { id: string; name: string }[]; canEditLoyalty: boolean; filters: { q: string; phone: string; financial: string; planId: string; active: string; teacherId: string } };
 const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value / 100);
 const date = (value: string) => new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(new Date(value));
 
-export function ClientManagementWorkspace({ clients, mergeClients, plans, teachers, canEditLoyalty, filters }: Props) {
+export function ClientManagementWorkspace({ clients, mergeClients, plans, teachers, canEditLoyalty, filters, initialClientId }: Props) {
   const router = useRouter();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [balanceClient, setBalanceClient] = useState<Client | null>(null);
   const [plansClient, setPlansClient] = useState<Client | null>(null);
   const [loyaltyClient, setLoyaltyClient] = useState<Client | null>(null);
-  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [editingClient, setEditingClient] = useState<Client | null>(() => clients.find(client => client.id === initialClientId) ?? null);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [primaryPlayerId, setPrimaryPlayerId] = useState("");
   const [duplicatePlayerId, setDuplicatePlayerId] = useState("");

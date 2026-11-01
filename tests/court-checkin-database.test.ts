@@ -33,6 +33,12 @@ test("check-in persiste presença e valor, é idempotente, valida horário e iso
     assert.equal((await admin.scheduleOccurrence.findUniqueOrThrow({ where: { id: row.id } })).responsiblePlayerId, player.id);
     const overlap = await create(60000);
     await assert.rejects(run(tx => registerCourtCheckin(tx, { ...input, occurrenceId: overlap.id }, now)), /coincide/);
+    const late = await create(-61 * 60000);
+    await admin.scheduleOccurrence.update({ where: { id: late.id }, data: { endsAt: new Date(wallNow.getTime() + 3600000) } });
+    await assert.rejects(run(tx => registerCourtCheckin(tx, { ...input, occurrenceId: late.id }, now)), /uma hora/);
+    const withinTolerance = await create(-59 * 60000);
+    // The time window accepts 59 minutes late; the existing simultaneous check-in still protects against overlap.
+    await assert.rejects(run(tx => registerCourtCheckin(tx, { ...input, occurrenceId: withinTolerance.id }, now)), /coincide/);
     const future = await create(3 * 3600000);
     await assert.rejects(run(tx => registerCourtCheckin(tx, { ...input, occurrenceId: future.id }, now)), /uma hora/);
     newPlayerId = (await admin.player.create({ data: { arenaId, name: "Atleta novo no horário" } })).id;

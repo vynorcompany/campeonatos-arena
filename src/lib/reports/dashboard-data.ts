@@ -1,15 +1,24 @@
+import { loadClientActivity, type ClientActivity } from "./client-activity";
 import { arenaWallClockToInstant, instantToArenaWallClock } from "@/lib/calendar/arena-wall-clock";
 import type { Prisma } from "@prisma/client";
 import { activeCourtOccurrenceWhere } from "@/lib/calendar/online-booking-hold";
 
 export const dashboardEntrySelect = {
-  id: true, type: true, category: true, status: true, amountCents: true, dueDate: true, paidAt: true, description: true, counterpartyName: true, paymentMethod: true, recurrenceId: true, playerId: true,
+  source: true, externalReference: true, id: true, type: true, category: true, status: true, amountCents: true, dueDate: true, paidAt: true, description: true, counterpartyName: true, paymentMethod: true, recurrenceId: true, playerId: true,
   player: { select: { id: true, name: true } },
   sale: { select: { comanda: { select: { playerId: true, player: { select: { name: true } } } } } },
   settlements: { select: { id: true, amountCents: true, interestCents: true, discountCents: true, paidAt: true, paymentMethod: true } },
   scheduleParticipant: { select: { playerId: true, player: { select: { name: true } }, occurrence: { select: { occurrenceCourts: { select: { courtId: true, court: { select: { name: true } } } } } } } },
 } satisfies Prisma.FinancialEntrySelect;
-export type DashboardEntry = Prisma.FinancialEntryGetPayload<{ select: typeof dashboardEntrySelect }>;
+type EntryPayload = Prisma.FinancialEntryGetPayload<{ select: typeof dashboardEntrySelect }>;
+export type DashboardEntry = Omit<EntryPayload,"source"|"externalReference"> & Partial<Pick<EntryPayload,"source"|"externalReference">> & { bookingCourts?: { id: string; name: string }[] };
+export async function attachBookingCourts(tx: Prisma.TransactionClient, arenaId: string, entries: DashboardEntry[]) {
+  const ids = [...new Set(entries.filter(e=>e.source === "SCHEDULE_BOOKING" && !e.scheduleParticipant && e.externalReference).map(e=>e.externalReference!))];
+  if (!ids.length) return;
+  const bookings = await tx.scheduleOccurrence.findMany({ where: { arenaId, id: { in: ids } }, select: { id: true, occurrenceCourts: { select: { courtId: true, court: { select: { name: true } } } } } });
+  const courts = new Map(bookings.map(b=>[b.id,b.occurrenceCourts.map(c=>({id:c.courtId,name:c.court.name}))]));
+  for(const entry of entries) if(entry.externalReference && courts.has(entry.externalReference)) entry.bookingCourts=courts.get(entry.externalReference);
+}
 
 export async function loadDashboardData(arenaId: string, from: Date, to: Date, horizonEnd: Date, previousFrom?: Date, previousTo?: Date) {
   const { withArenaTransaction } = await import("@/lib/rls");
@@ -29,7 +38,9 @@ export async function loadDashboardData(arenaId: string, from: Date, to: Date, h
       previousFrom && previousTo ? tx.financialEntry.findMany({ where: { arenaId, OR: [{ dueDate: { gte: previousFrom, lte: previousTo } }, { paidAt: previousCashPeriod }, { settlements: { some: { paidAt: previousCashPeriod } } }] }, select: dashboardEntrySelect }) : Promise.resolve([]),
       previousFrom && previousTo ? tx.scheduleOccurrence.count({ where: { arenaId, startsAt: { lte: previousTo }, endsAt: { gte: previousFrom }, bookingTypeName: { not: "Bloqueio" }, NOT: { OR: [{ sourceType: { in: ["LESSON", "LESSON_MAKEUP"] } }, { bookingTypeName: { contains: "aula", mode: "insensitive" } }, { bookingTypeName: { contains: "reposi", mode: "insensitive" } }] }, ...activeCourtOccurrenceWhere() } }) : Promise.resolve(0),
     ]);
-    return { entries, recurrences, occurrences, courts, lessons, portalAccounts, saleGroups, products, previousEntries, previousReservations };
+    await attachBookingCourts(tx, arenaId, [...entries, ...previousEntries]);
+    const clientActivity = await loadClientActivity(tx, arenaId);
+    return { entries, recurrences, occurrences, courts, lessons, portalAccounts, saleGroups, products, previousEntries, previousReservations, clientActivity } as { entries: typeof entries; recurrences: typeof recurrences; occurrences: typeof occurrences; courts: typeof courts; lessons: typeof lessons; portalAccounts: typeof portalAccounts; saleGroups: typeof saleGroups; products: typeof products; previousEntries: typeof previousEntries; previousReservations: number; clientActivity?: ClientActivity };
   }, { maxWait: 20_000, timeout: 20_000 });
 }
 

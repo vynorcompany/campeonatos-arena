@@ -8,7 +8,7 @@ import { arenaDatabase } from "@/lib/arena-database";
 import { normalizeBrazilianPhone } from "@/lib/phone";
 import { clientFinancialStatus, matchesClientFinancialFilter, type ClientFinancialEntry } from "@/lib/finance/client-financial-status";
 
-type PlayersPageProps = { searchParams?: Promise<{ q?: string; phone?: string; financial?: string; planId?: string; active?: string; teacherId?: string }> };
+type PlayersPageProps = { searchParams?: Promise<{ player?: string; q?: string; phone?: string; financial?: string; planId?: string; active?: string; teacherId?: string }> };
 type Entry = ClientFinancialEntry & { id: string };
 
 export default async function PlayersPage(props: PlayersPageProps) {
@@ -35,5 +35,5 @@ export default async function PlayersPage(props: PlayersPageProps) {
   });
 
   const canEditLoyalty = canEditModule("players", auth.arenaRole, auth.systemRole, auth.editPermissions);
-  return <div className={viewStyles.client_management_page}><header className={viewStyles.client_management_header}><nav className={viewStyles.page_breadcrumb} aria-label="Caminho de navegação"><span>Arena</span><i aria-hidden="true">›</i><strong>Clientes</strong></nav><div className="tw:flex tw:flex-wrap tw:gap-2">{canEditLoyalty ? <LoyaltySettingsButton settings={{ ...loyaltySettings, loyaltyStartedAt: loyaltySettings.loyaltyStartedAt?.toISOString() ?? null }} /> : null}<AthleteCreatePanel openLabel="Novo cliente" /></div></header><ClientManagementWorkspace clients={filtered} mergeClients={players.filter(player => player.active).map(({ id, name, phone, cpf, active }) => ({ id, name, phone, cpf, active }))} plans={plans} teachers={teachers} canEditLoyalty={canEditLoyalty} filters={{ q: searchParams?.q ?? "", phone: searchParams?.phone ?? "", financial: searchParams?.financial ?? "ALL", planId: searchParams?.planId ?? "", active: searchParams?.active ?? "ALL", teacherId: searchParams?.teacherId ?? "" }} /></div>;
+  return <div className={viewStyles.client_management_page}><header className={viewStyles.client_management_header}><nav className={viewStyles.page_breadcrumb} aria-label="Caminho de navegação"><span>Arena</span><i aria-hidden="true">›</i><strong>Clientes</strong></nav><div className="tw:flex tw:flex-wrap tw:gap-2">{canEditLoyalty ? <LoyaltySettingsButton settings={{ ...loyaltySettings, loyaltyStartedAt: loyaltySettings.loyaltyStartedAt?.toISOString() ?? null }} /> : null}<AthleteCreatePanel openLabel="Novo cliente" /></div></header><ClientManagementWorkspace initialClientId={searchParams?.player} clients={filtered} mergeClients={players.filter(player => player.active).map(({ id, name, phone, cpf, active }) => ({ id, name, phone, cpf, active }))} plans={plans} teachers={teachers} canEditLoyalty={canEditLoyalty} filters={{ q: searchParams?.q ?? "", phone: searchParams?.phone ?? "", financial: searchParams?.financial ?? "ALL", planId: searchParams?.planId ?? "", active: searchParams?.active ?? "ALL", teacherId: searchParams?.teacherId ?? "" }} /></div>;
 }

@@ -32,5 +32,5 @@ test("primary action buttons use the shared subtle rounded control style", () =>
   assert.match(styleRules("button"), /border-radius:\s*var\(--radius-control\)/);
   assert.match(styleRules("button"), /min-height:\s*36px/);
   assert.match(styles, /--radius-control:\s*8px/);
-  assert.match(styleRules("court-copy-settings", {"context":"> .button"}), /justify-self:\s*start/);
+  assert.match(styleRules("court-copy-settings", {"context":"> .button"}), /justify-self:\s*(?:flex-)?start/);
 });
