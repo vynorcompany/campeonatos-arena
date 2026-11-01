@@ -21,6 +21,7 @@ export type Account = {
   onlinePaymentPublishedAt: string | null;
   onlinePaymentViewedAt: string | null;
   dueDate: string | null;
+  paidAt?: string | null;
   competenceDate?: string | null;
   notes: string;
   status: string;

@@ -41,7 +41,7 @@ test("contas a receber mostra o cliente diretamente vinculado sem trazer a outra
     ] });
 
     const source = readFileSync(new URL("../src/lib/finance/accounts.ts", import.meta.url), "utf8");
-    const exports: Record<string, (arenaId: string, type: string, filters?: Record<string, unknown>) => Promise<Array<{ id: string; counterpartyName: string }>>> = {};
+    const exports: Record<string, (arenaId: string, type: string, filters?: Record<string, unknown>) => Promise<Array<{ id: string; counterpartyName: string; paidAt: string | null }>>> = {};
     const require = createRequire(import.meta.url);
     vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText, {
       exports,
@@ -63,6 +63,7 @@ test("contas a receber mostra o cliente diretamente vinculado sem trazer a outra
     assert.ok(!filtered.some(entry => [futureId, paidId, foreignId].includes(entry.id)), "Date and arena filters still apply to dated or paid entries");
     const legacyPaid = await exports.getAccountsLedger(arenaA.id, "REVENUE", {start:"2026-09-01",end:"2026-09-30",category:"Comandas",status:"PAID"});
     assert.equal(legacyPaid.filter(entry => entry.id === paidId).length, 1, "legacy undated receipt appears once in its payment month under the default date filter");
+    assert.equal(legacyPaid.find(entry => entry.id === paidId)?.paidAt, "2026-09-20");
     const paidPeriod = await exports.getAccountsLedger(arenaA.id, "REVENUE", { start: "2026-10-01", end: "2026-10-31", dateField: "paidAt" });
     assert.ok(!paidPeriod.some(entry => [ownId, paidId].includes(entry.id)), "Payment-date filter excludes unpaid entries and payments outside period");
     const category = await exports.getAccountsLedger(arenaA.id, "REVENUE", { start: "2026-10-01", end: "2026-10-31", category: "Categoria sem registros" });
