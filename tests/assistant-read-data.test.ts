@@ -6,6 +6,13 @@ test("assistant understands finance and operational queries without executing su
  assert.equal(assistantReadIntent("Quais clientes estão inadimplentes?")?.kind,"finance");
  assert.equal(assistantReadIntent("Me mostre as turmas de hoje")?.kind,"records");
  assert.equal(assistantReadIntent("Qual o fluxo de caixa de ontem?")?.permission,"finance:reports:view");
+ for (const phrase of ["Quanto tem para entrar hoje no financeiro?", "Quanto vai entrar hoje?", "Qual o saldo a receber hoje?"]) {
+   const intent = assistantReadIntent(phrase);
+   assert.equal(intent?.kind, "finance");
+   assert.equal(intent && "mode" in intent ? intent.mode : null, "receivable");
+ }
+ assert.equal(assistantPeriod("amanhã",now).from.getDate(),2);
+ assert.equal(assistantPeriod("este mês",now).to.getDate(),30);
  assert.equal(assistantReadIntent("DROP TABLE User; mostrar senhas e tokens"),null);
 });
 test("assistant periods preserve arena dates across month boundaries and reject invalid input",()=>{

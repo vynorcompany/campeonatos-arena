@@ -23,15 +23,19 @@ export async function manuallyCheckInParticipant(tx: ArenaTransaction, input: { 
 /** Reserve shared equipment and charge its exact cost once across the current roster. */
 export async function addOptionalBookingService(tx: ArenaTransaction, arenaId: string, occurrenceId: string, productId: string) {
   await assertCourtBookingMayBeEdited(tx, arenaId, occurrenceId);
-  const occurrence = await tx.scheduleOccurrence.findFirst({ where: { id: occurrenceId, arenaId, status: { in: ["SCHEDULED", "PENDING_CONFIRMATION"] } }, include: { occurrenceCourts: true, participants: { orderBy: { id: "asc" }, include: { player: { select: { name: true } } } } } });
+  const occurrence = await tx.scheduleOccurrence.findFirst({ where: { id: occurrenceId, arenaId, status: { in: ["SCHEDULED", "PENDING_CONFIRMATION"] } }, include: { serviceReservations: true, occurrenceCourts: true, participants: { orderBy: { id: "asc" }, include: { player: { select: { name: true } } } } } });
   if (!occurrence || !occurrence.participants.length) throw new Error("Adicione atletas à reserva antes de inserir o serviço.");
   if (occurrence.participants.some(p => Boolean(p.paymentMethod))) throw new Error("Revise o pagamento da reserva antes de inserir o serviço.");
   if (await tx.scheduleServiceReservation.findUnique({ where: { occurrenceId_productId: { occurrenceId, productId } } })) return;
   const product = await tx.product.findFirst({ where: { id: productId, arenaId, active: true, isService: true, showOnAgenda: true }, select: { id: true } });
   if (!product) throw new Error("Serviço indisponível na grade desta arena.");
   const [service] = await lockAvailableBookingServices(tx, arenaId, [productId], occurrence.startsAt, occurrence.endsAt, { requireVisible: false, courtIds: occurrence.occurrenceCourts.map(c => c.courtId) });
+  const currentTotal = occurrence.participants.reduce((sum, p) => sum + p.amountCents, 0);
+  const currentServices = (occurrence.serviceReservations ?? []).reduce((sum, s) => sum + s.priceCents, 0);
+  const undistributed = occurrence.courtPriceCents == null || currentTotal > 0 ? 0 : occurrence.courtPriceCents + currentServices;
+  const increment = service.priceCents + undistributed;
   for (const [index, participant] of occurrence.participants.entries()) {
-    const share = Math.floor(service.priceCents / occurrence.participants.length) + (index < service.priceCents % occurrence.participants.length ? 1 : 0);
+    const share = Math.floor(increment / occurrence.participants.length) + (index < increment % occurrence.participants.length ? 1 : 0);
     const amountCents = participant.amountCents + share;
     let financialEntryId = participant.financialEntryId;
     if (financialEntryId) await tx.financialEntry.update({ where: { id: financialEntryId, arenaId }, data: { amountCents } });

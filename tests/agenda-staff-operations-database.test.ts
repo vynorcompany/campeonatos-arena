@@ -54,6 +54,11 @@ test("staff agenda operations preserve billing, enforce scope/conflicts and bloc
     const added = await admin.scheduleServiceReservation.findFirstOrThrow({ where: { occurrenceId: occurrence.id } });
     await scope(arenaId, tx => removeOptionalBookingService(tx, arenaId, occurrence.id, added.id));
     assert.equal((await admin.scheduleParticipant.findMany({ where: { occurrenceId: occurrence.id } })).reduce((sum, participant) => sum + participant.amountCents, 0), 6000, "removing the service preserves the court amount");
+    const unallocated = await admin.scheduleOccurrence.create({data:{arenaId,sourceType:"BOOKING",title:"Court price saved separately",courtPriceCents:12000,startsAt:at(15),endsAt:at(16),occurrenceCourts:{create:{courtId:courts[0].id}},participants:{create:players.map(p=>({playerId:p.id,amountCents:0}))}}});
+    await scope(arenaId,tx=>addOptionalBookingService(tx,arenaId,unallocated.id,service.id));
+    const allocated=await admin.scheduleParticipant.findMany({where:{occurrenceId:unallocated.id},include:{financialEntry:true}});
+    assert.equal(allocated.reduce((sum,p)=>sum+p.amountCents,0),22001,"service allocation includes the independently saved court price once");
+    assert.ok(allocated.every(p=>p.financialEntry?.amountCents===p.amountCents));
     await scope(arenaId, tx => moveBookingCourt(tx, arenaId, occurrence.id, courts[1].id));
     assert.equal((await admin.scheduleOccurrenceCourt.findFirstOrThrow({ where: { occurrenceId: occurrence.id } })).courtId, courts[1].id);
     assert.equal((await admin.checkinRecord.findFirstOrThrow({ where: { occurrenceId: occurrence.id } })).courtId, courts[0].id, "immutable check-in retains the court at arrival");

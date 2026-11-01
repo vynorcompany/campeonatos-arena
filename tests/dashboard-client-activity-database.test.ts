@@ -17,9 +17,16 @@ test("120-day client activity and assistant reads remain scoped, ignore future/v
   const foreign=await db.player.create({data:{arenaId:ids[1],name:"Foreign private QA"}});await db.financialEntry.create({data:{arenaId:ids[1],playerId:foreign.id,type:"REVENUE",category:"COMANDAS",description:"Foreign financial QA",amountCents:999999,status:"PAID",paidAt:new Date("2026-11-01T01:30:00Z")}});
   const scope=<T,>(fn:(tx:any)=>Promise<T>)=>runtime.$transaction(async tx=>{await tx.$executeRaw`SELECT set_config('app.arena_id', ${ids[0]}, true)`;return fn(tx);});
   const activity=await scope(tx=>loadClientActivity(tx,ids[0],now));assert.deepEqual(activity.active.map(p=>p.name),["Recent QA"]);assert.equal(activity.inactive.length,5);
-  const reply=await scope(tx=>readArenaData(tx,ids[0],"fluxo de caixa de ontem",()=>true,now));assert.match(reply!,/25,00/);assert.doesNotMatch(reply!,/Foreign|9\.999/);
+  const reply=await scope(tx=>readArenaData(tx,ids[0],"fluxo de caixa de ontem",()=>true,now));assert.match(reply!,/Entradas: R\$\s*50,00/);assert.doesNotMatch(reply!,/Foreign|9\.999/);
   const clients=await scope(tx=>readArenaData(tx,ids[0],"clientes inativos",()=>true,now));assert.match(clients!,/Old QA/);assert.doesNotMatch(clients!,/Recent QA|Foreign/);
   await assert.rejects(scope(tx=>readArenaData(tx,ids[0],"fluxo de caixa",()=>false,now)),/permissão/);
   const products=await scope(tx=>readArenaData(tx,ids[0],'clientes "Recent"',()=>true,now));assert.match(products!,/Recent QA/);assert.doesNotMatch(products!,/Old QA|Foreign/);
+  const dueToday = await db.financialEntry.create({data:{arenaId:ids[0],playerId:players[0].id,type:"REVENUE",category:"Reserva",description:"Only today QA",amountCents:3000,status:"PARTIAL",dueDate:new Date("2026-11-01T00:00:00Z"),settlements:{create:{arenaId:ids[0],amountCents:500,paymentMethod:"PIX",paidAt:now}}}});
+  for(const [description,dueDate,status] of [["Yesterday debt QA","2026-10-31T00:00:00Z","PENDING"],["Tomorrow debt QA","2026-11-02T00:00:00Z","PENDING"],["Voided debt QA","2026-11-01T00:00:00Z","VOIDED"]])await db.financialEntry.create({data:{arenaId:ids[0],type:"REVENUE",category:"Reserva",description,amountCents:10000,status,dueDate:new Date(dueDate)}});
+  const pending = await scope(tx=>readArenaData(tx,ids[0],"Quanto tem para entrar hoje no financeiro?",()=>true,now));
+  assert.match(pending!,/A receber: R\$\s*25,00/);assert.match(pending!,/1 lançamento/);assert.equal(pending!.split("\n").length,1);
+  const detail = await scope(tx=>readArenaData(tx,ids[0],"Liste as contas a receber hoje",()=>true,now));
+  assert.match(detail!,/Only today QA/);assert.doesNotMatch(detail!,/Yesterday debt|Tomorrow debt|Voided debt/);
+  await db.financialSettlement.deleteMany({where:{financialEntryId:dueToday.id}});
  }finally{await db.financialEntry.deleteMany({where:{arenaId:{in:ids}}});await db.arena.deleteMany({where:{id:{in:ids}}});await runtime.$disconnect();await db.$disconnect();}
 });

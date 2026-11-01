@@ -1,3 +1,4 @@
+import { financialQuestion } from "./financial-question";
 import { loadClientActivity } from "../reports/client-activity";
 import { Prisma } from "@prisma/client";
 import type { PrismaClient } from "@prisma/client";
@@ -12,9 +13,11 @@ export function assistantPeriod(input:string, now=new Date()) {
  const explicit=[...text.matchAll(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?\b/g)];
  if(explicit.length){const dates=explicit.map(m=>new Date(Number(m[3]||today.getFullYear()),Number(m[2])-1,Number(m[1])));if(dates.some((d,i)=>d.getMonth()!==Number(explicit[i][2])-1||d.getDate()!==Number(explicit[i][1])))throw Error("Informe uma data válida.");from=dates[0];to=dates.at(-1)!;}
  else if(/ontem/.test(text)){from=new Date(today.getFullYear(),today.getMonth(),today.getDate()-1);to=new Date(from);}
+ else if(/amanha/.test(text)){from=new Date(today.getFullYear(),today.getMonth(),today.getDate()+1);to=new Date(from);}
  else if(/hoje/.test(text)){from=new Date(today);to=new Date(today);}
  else if(/mes passado|mes anterior/.test(text)){from=new Date(today.getFullYear(),today.getMonth()-1,1);to=new Date(today.getFullYear(),today.getMonth(),0);}
  else if(/proximo mes/.test(text)){from=new Date(today.getFullYear(),today.getMonth()+1,1);to=new Date(today.getFullYear(),today.getMonth()+2,0);}
+ else if(/este mes|nesse mes|mes atual/.test(text)){from=new Date(today.getFullYear(),today.getMonth(),1);to=new Date(today.getFullYear(),today.getMonth()+1,0);}
  else if(/este ano|ano atual/.test(text)){from=new Date(today.getFullYear(),0,1);to=new Date(today);}
  else if(/janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro/.test(text)){const names=["janeiro","fevereiro","marco","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];const month=names.findIndex(name=>new RegExp(`\\b${name}\\b`).test(text));const year=Number(text.match(/\b(20\d{2})\b/)?.[1]||today.getFullYear());from=new Date(year,month,1);to=new Date(year,month+1,0);}
  else {const days=text.match(/ultimos?\s+(\d+)\s+dias/);if(days){const n=Number(days[1]);if(n<1||n>366)throw Error("Consulte até 366 dias por vez.");from=new Date(today.getFullYear(),today.getMonth(),today.getDate()-n+1);}}
@@ -48,7 +51,8 @@ const catalog = [
 ] as const;
 export function assistantReadIntent(input:string) {
  const text=normalized(input);
- if(/fluxo|caixa|inadimpl|devedor|atrasad|contas? a (?:pagar|receber)|recebimento|receita|despesa|faturamento|saldo a entrar|quanto.*(?:receb|pag)|entradas|saidas/.test(text)) return {kind:"finance" as const, permission:/contas? a pagar|despesas/.test(text)?"finance:payable:view":/inadimpl|devedor|atrasad|contas? a receber/.test(text)?"finance:receivable:view":"finance:reports:view"};
+ const finance=financialQuestion(input);
+ if(finance && (!/quadra/.test(text) || /faturamento|receita|fluxo|caixa|financeiro/.test(text))) return {kind:"finance" as const, ...finance};
  const entry=catalog.find(row=>row[3].test(text));return entry?{kind:"records" as const,model:entry[0],label:entry[1],permission:entry[2]}:null;
 }
 const labels:Record<string,string>={name:"Nome",title:"Título",label:"Identificação",description:"Descrição",status:"Status",active:"Ativo",phone:"Telefone",email:"E-mail",amountCents:"Valor",priceCents:"Preço",totalCents:"Total",stockQuantity:"Estoque",remainingClasses:"Créditos",createdAt:"Cadastro",startsAt:"Início",endsAt:"Fim",scheduledAt:"Data",dueDate:"Vencimento",paidAt:"Pagamento",bookingTypeName:"Tipo",quantity:"Quantidade",serviceName:"Serviço",reason:"Motivo",classesDelta:"Aulas",kind:"Tipo"};
@@ -58,18 +62,57 @@ export async function readArenaData(tx:Prisma.TransactionClient,arenaId:string,i
  const intent=assistantReadIntent(input);if(!intent)return null;if(!canRead(intent.permission))throw Error("Você não tem permissão para consultar este módulo.");
  const {from,to}=assistantPeriod(input,now);const text=normalized(input);const period=`${from.toLocaleDateString("pt-BR")} a ${to.toLocaleDateString("pt-BR")}`;
  if(intent.kind==="finance"){
-  const paidRange={gte:arenaWallClockToInstant(from),lte:arenaWallClockToInstant(to)};
-  const entries=await tx.financialEntry.findMany({where:{arenaId,status:{not:"VOIDED"},OR:[{paidAt:paidRange},{status:"PAID",paidAt:null,createdAt:paidRange},{settlements:{some:{paidAt:paidRange}}},{dueDate:{gte:from,lte:to}}, {status:{in:["PENDING","PARTIAL","OVERDUE"]},OR:[{dueDate:{lt:arenaToday(now)}},{dueDate:null}]}]},select:dashboardEntrySelect});
-  if (/quadra/.test(text)) await attachBookingCourts(tx,arenaId,entries);
-  const permitted=entries.filter(e=>canRead(e.type==="EXPENSE"?"finance:payable:view":"finance:receivable:view"));
-  const rows=dashboardFinancialRows(permitted,"caixa",from,to);const revenue=rows.filter(e=>e.type==="REVENUE"),expense=rows.filter(e=>e.type==="EXPENSE");
-  const total=(a:{value:number}[])=>a.reduce((s,e)=>s+e.value,0);
-  const overdue=/inadimpl|devedor|atrasad/.test(text),payable=/contas? a pagar|despesas/.test(text),pending=/contas? a (?:pagar|receber)|saldo a entrar/.test(text);
-  if(overdue||pending){const debts=permitted.filter(e=>(payable?e.type==="EXPENSE":["REVENUE","INCOME"].includes(e.type))&&e.status!=="PAID"&&getOutstandingCents(e.amountCents,e.settlements)>0&&(overdue?e.dueDate&&e.dueDate<arenaToday(now):!e.dueDate||e.dueDate<=to));const sum=debts.reduce((s,e)=>s+getOutstandingCents(e.amountCents,e.settlements),0);return `${overdue?"Inadimplência até hoje":payable?"Contas a pagar":"Contas a receber"}: ${money(sum)} · ${debts.length} lançamentos.\n${debts.slice(0,50).map(e=>`${e.player?.name||e.counterpartyName||"Sem nome"} · ${e.description}: ${money(getOutstandingCents(e.amountCents,e.settlements))}${e.dueDate?` · venc. ${e.dueDate.toLocaleDateString("pt-BR")}`:" · sem vencimento"}`).join("\n")}${debts.length>50?"\nExibindo os primeiros 50; o total inclui todos os lançamentos.":""}`;}
-  if(/quadra/.test(text)) { const courts=new Map<string,number>(); for(const row of revenue){const links=row.scheduleParticipant?.occurrence.occurrenceCourts.map(c=>({id:c.courtId,name:c.court.name}))??row.bookingCourts??[];for(const c of links)courts.set(c.name,(courts.get(c.name)||0)+row.value/links.length);}return `Faturamento por quadra · ${period}\n${[...courts].map(([name,value])=>`${name}: ${money(value)}`).join("\n")||"Nenhuma receita de quadra no período."}`;}
-  const grouped=new Map<string,number>();if(/categoria|forma|pagamento/.test(text))for(const row of revenue){const key=/categoria/.test(text)?row.category:row.paymentMethod;grouped.set(key,(grouped.get(key)||0)+row.value);}
-  return `Fluxo de caixa · ${period}\nEntradas: ${canRead("finance:receivable:view")?money(total(revenue)):"Acesso restrito"}\nSaídas: ${canRead("finance:payable:view")?money(total(expense)):"Acesso restrito"}\nResultado: ${canRead("finance:receivable:view")&&canRead("finance:payable:view")?money(total(revenue)-total(expense)):"Acesso restrito"}\n${rows.length} baixas no período.\n${grouped.size?[...grouped].map(([name,value])=>`${name||"Não informado"}: ${money(value)}`).join("\n"):rows.slice(0,50).map(e=>`${e.date.toLocaleDateString("pt-BR")} · ${e.counterpartyName} · ${e.description}: ${money(e.value)}`).join("\n")}${rows.length>50?"\nExibindo as primeiras 50 baixas; totais calculados sobre todas.":""}`;
+  const pending = ["receivable", "payable", "overdue"].includes(intent.mode);
+  const includeOverdue = /ate hoje|inclu.*(?:atras|vencid)|(?:atrasad|vencid).* e /.test(text);
+  // Due dates from finance forms are calendar dates stored at UTC midnight.
+  // Receipts below are real instants and keep the arena timezone conversion.
+  const dueFrom = new Date(Date.UTC(from.getFullYear(), from.getMonth(), from.getDate()));
+  const dueTo = new Date(Date.UTC(to.getFullYear(), to.getMonth(), to.getDate(), 23, 59, 59, 999));
+  const today = arenaToday(now);
+  const dueToday = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+  const dueRange = { gte: dueFrom, lte: dueTo };
+  const paidRange = { gte: arenaWallClockToInstant(from), lte: arenaWallClockToInstant(to) };
+  const entries = await tx.financialEntry.findMany({
+    where: pending ? { arenaId, status: { in: ["PENDING", "PARTIAL", "OVERDUE"] }, type: intent.mode === "payable" ? "EXPENSE" : { in: ["REVENUE", "INCOME"] }, dueDate: intent.mode === "overdue" ? { lt: dueToday } : includeOverdue ? { lte: dueTo } : dueRange }
+      : { arenaId, status: { not: "VOIDED" }, OR: [{ paidAt: paidRange }, { status: "PAID", paidAt: null, createdAt: paidRange }, { settlements: { some: { paidAt: paidRange } } }] },
+    select: dashboardEntrySelect, orderBy: [{ dueDate: "asc" }, { id: "asc" }],
+  });
+  const permitted = entries.filter(e => canRead(e.type === "EXPENSE" ? "finance:payable:view" : "finance:receivable:view"));
+  const details = intent.details;
+  if (pending) {
+    const debts = permitted.filter(e => getOutstandingCents(e.amountCents, e.settlements) > 0);
+    const sum = debts.reduce((total, e) => total + getOutstandingCents(e.amountCents, e.settlements), 0);
+    const label = intent.mode === "overdue" ? "Inadimplência até hoje" : intent.mode === "payable" ? "A pagar" : "A receber";
+    const singleDay = from.toDateString() === to.toDateString();
+    const dayLabel = from.toDateString() === today.toDateString() ? "hoje" : `em ${from.toLocaleDateString("pt-BR")}`;
+    const scope = intent.mode === "overdue" ? "" : includeOverdue ? ` · vencimentos até ${to.toLocaleDateString("pt-BR")}` : singleDay ? ` · vencimento ${dayLabel}` : ` · vencimentos de ${period}`;
+    const summary = `${label}: ${money(sum)}${scope}. ${debts.length} ${debts.length === 1 ? "lançamento" : "lançamentos"} em aberto.`;
+    if (!details) return summary;
+    return summary + "\n" + debts.slice(0, 50).map(e => `${e.player?.name || e.counterpartyName || "Sem nome"} · ${e.description}: ${money(getOutstandingCents(e.amountCents, e.settlements))} · venc. ${e.dueDate?.toLocaleDateString("pt-BR", {timeZone:"UTC"})}`).join("\n") + (debts.length > 50 ? "\nExibindo os primeiros 50; o total inclui todos." : "");
+  }
+  if (/quadra/.test(text)) await attachBookingCourts(tx, arenaId, permitted);
+  const rows = dashboardFinancialRows(permitted, "caixa", from, to);
+  const revenue = rows.filter(e => e.type === "REVENUE"), expense = rows.filter(e => e.type === "EXPENSE");
+  const total = (values: { value: number }[]) => values.reduce((sum, e) => sum + e.value, 0);
+  if (/quadra/.test(text)) {
+    const courts = new Map<string, number>();
+    for (const row of revenue) {
+      const links = row.scheduleParticipant?.occurrence.occurrenceCourts.map(c => ({ id: c.courtId, name: c.court.name })) ?? row.bookingCourts ?? [];
+      for (const c of links) courts.set(c.name, (courts.get(c.name) || 0) + row.value / links.length);
+    }
+    return `Faturamento por quadra · ${period}\n${[...courts].map(([name, value]) => `${name}: ${money(value)}`).join("\n") || "Nenhuma receita de quadra no período."}`;
+  }
+  const summary = intent.mode === "received" ? `Recebido: ${money(total(revenue))} · ${period}.`
+    : intent.mode === "spent" ? `Pago: ${money(total(expense))} · ${period}.`
+    : `Fluxo de caixa · ${period}\nEntradas: ${canRead("finance:receivable:view") ? money(total(revenue)) : "Acesso restrito"}\nSaídas: ${canRead("finance:payable:view") ? money(total(expense)) : "Acesso restrito"}\nResultado: ${canRead("finance:receivable:view") && canRead("finance:payable:view") ? money(total(revenue) - total(expense)) : "Acesso restrito"}`;
+  const grouped = new Map<string, number>();
+  if (/categoria|forma.*pagamento/.test(text)) for (const row of revenue) { const key = /categoria/.test(text) ? row.category : row.paymentMethod; grouped.set(key, (grouped.get(key) || 0) + row.value); }
+  if (grouped.size) return summary + "\n" + [...grouped].map(([name, value]) => `${name || "Não informado"}: ${money(value)}`).join("\n");
+  if (!details) return summary;
+  const selected = intent.mode === "received" ? revenue : intent.mode === "spent" ? expense : rows;
+  return summary + "\n" + selected.slice(0, 50).map(e => `${e.date.toLocaleDateString("pt-BR")} · ${e.counterpartyName} · ${e.description}: ${money(e.value)}`).join("\n") + (selected.length > 50 ? "\nExibindo as primeiras 50 baixas; o total inclui todas." : "");
  }
+
  if(intent.model==="Player" && /\b(?:ativos|inativos)\b/.test(text)){const activity=await loadClientActivity(tx,arenaId,now);const list=/inativos/.test(text)?activity.inactive:activity.active;return `Clientes ${/inativos/.test(text)?"inativos":"ativos"}: ${list.length} · janela de 120 dias.\n${list.slice(0,50).map(c=>`${c.name}${c.phone?` · ${c.phone}`:""}`).join("\n")}${list.length>50?"\nExibindo os primeiros 50 cadastros.":""}`;}
  const schema=Prisma.dmmf.datamodel.models.find(m=>m.name===intent.model);if(!schema) return `Módulo ${intent.label} indisponível.`;
  const delegateName=intent.model[0].toLowerCase()+intent.model.slice(1);
