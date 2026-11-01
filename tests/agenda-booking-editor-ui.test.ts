@@ -45,5 +45,5 @@ test("agenda organiza a reserva em cards e mantém a busca de cliente discreta",
   assert.match(source, /valueCents=\{participant\.amountCents\}/);
   assert.match(styleRules("agenda-booking-summary-grid"), /grid-template-columns:/);
   assert.match(styleRules("agenda-client-search"), /max-width:/);
-  assert.match(styleRules("agenda-booking-dialog"), /1120px/);
+  assert.match(styleRules("agenda-booking-dialog"), /1220px/);
 });

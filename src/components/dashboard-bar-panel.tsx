@@ -5,13 +5,13 @@ import { DashboardReferenceControl, useDashboardReference } from "@/components/d
 import type { DashboardBreakdown } from "@/lib/reports/dashboard-analytics";
 const barColors = ["tw:bg-blue-600", "tw:bg-teal-600", "tw:bg-violet-600", "tw:bg-amber-600", "tw:bg-cyan-600", "tw:bg-rose-600"];
 const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value / 100);
-export function DashboardBarPanel({ id, arenaId, title, description, items, monetary = true, chronological = false, referenceAllowed = true }: { id: string; arenaId: string; title: string; description: string; items: DashboardBreakdown[]; monetary?: boolean; chronological?: boolean; referenceAllowed?: boolean }) {
+export function DashboardBarPanel({ id, arenaId, title, description, items, monetary = true, chronological = false, referenceAllowed = true, fixedCostCents = 0 }: { id: string; arenaId: string; title: string; description: string; items: DashboardBreakdown[]; monetary?: boolean; chronological?: boolean; referenceAllowed?: boolean; fixedCostCents?: number }) {
   const [open, setOpen] = useState(false);
   const [vertical, setVertical] = useState(false);
   const chartKey = `arena-dashboard-chart:${arenaId}:${id}`;
   useEffect(() => { try { setVertical(localStorage.getItem(chartKey) === "vertical"); } catch {} }, [chartKey]);
   const chartMode = (value: boolean) => { setVertical(value); try { localStorage.setItem(chartKey, value ? "vertical" : "horizontal"); } catch {} };
-  const [reference, changeReference] = useDashboardReference(`arena-dashboard-reference-v1:${arenaId}:${id}`);
+  const [reference, changeReference] = useDashboardReference(`arena-dashboard-reference-v1:${arenaId}:${id}`, fixedCostCents);
   const showReference = referenceAllowed && reference.enabled;
   const format = monetary ? money : (value: number) => value.toLocaleString("pt-BR");
   const max = Math.max(1, ...items.map(item => Math.abs(item.value)), showReference ? reference.value : 0);

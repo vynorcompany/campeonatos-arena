@@ -6,6 +6,11 @@ export type ProjectionEntry = { id: string; type: string; status: string; amount
 export type ProjectionRecurrence = { id: string; type: string; active: boolean; amountCents: number; startsAt: Date; endsAt: Date | null; nextDueDate: Date; frequency: string; description: string; counterpartyName: string; playerId: string | null };
 export type ProjectedAmount = { id: string; type: string; amountCents: number; outstandingCents: number; date: Date; description: string; counterpartyName: string; playerId: string | null; projected: boolean };
 
+/** Total payables in the selected period, paid or pending, with recurring dates deduplicated. */
+export function dashboardProjectedCost(entries: ProjectionEntry[], recurrences: ProjectionRecurrence[], from: Date, to: Date) {
+  return projectDashboardAmounts(entries, recurrences, from, to).reduce((total, item) => total + (item.type === "EXPENSE" ? item.amountCents : 0), 0);
+}
+
 /** Preview only: never materialize charges. A persisted occurrence, including a voided one, replaces its recurrence date. */
 export function projectDashboardAmounts(entries: ProjectionEntry[], recurrences: ProjectionRecurrence[], from: Date, to: Date): ProjectedAmount[] {
   const within = (date: Date) => date >= from && date <= to;
