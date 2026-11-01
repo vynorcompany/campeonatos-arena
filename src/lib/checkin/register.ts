@@ -26,10 +26,10 @@ export async function registerCourtCheckin(tx: Prisma.TransactionClient, input: 
   const wallNow = instantToArenaWallClock(now);
   const occurrence = await tx.scheduleOccurrence.findFirst({ where: {
     id: input.occurrenceId, arenaId: input.arenaId, status: "SCHEDULED",
-    startsAt: { lte: new Date(wallNow.getTime() + 60 * 60_000) }, endsAt: { gt: wallNow },
+    startsAt: { gte: new Date(wallNow.getTime() - 60 * 60_000), lte: new Date(wallNow.getTime() + 60 * 60_000) }, endsAt: { gt: wallNow },
     occurrenceCourts: { some: { courtId: input.courtId, court: { arenaId: input.arenaId, active: true } } },
   }, include: { occurrenceCourts: { include: { court: true } } } });
-  if (!occurrence) throw new Error("Este horário não está disponível para check-in. Ele abre uma hora antes da reserva e encerra ao final dela.");
+  if (!occurrence) throw new Error("Este horário não está disponível para check-in. Ele está disponível de uma hora antes até uma hora após o início.");
   const court = occurrence.occurrenceCourts.find(row => row.courtId === input.courtId)!.court;
   const overlap = await tx.checkinRecord.findFirst({ where: { arenaId: input.arenaId, playerId: player.id, startsAt: { lt: occurrence.endsAt }, endsAt: { gt: occurrence.startsAt } } });
   if (overlap) throw new Error("Você já confirmou presença em outro horário que coincide com esta reserva. Procure a recepção.");

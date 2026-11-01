@@ -43,6 +43,7 @@ test("dashboard reconciles forecasts, arrears, customer ticket, product margin a
   const occurrence = (id: string, extra: any = {}) => ({ id, title: id, sourceType: "BOOKING", bookingTypeName: "Reserva", status: "SCHEDULED", createdAt: date("2026-01-01"), startsAt: date("2026-01-25"), endsAt: new Date("2026-01-25T13:00:00"), bookingSeriesId: null, teacherId: null, teacher: null, occurrenceCourts: [{ courtId: court.id, court }], participants: [], ...extra });
   const participant = (id: string, amountCents: number, financialEntryId: string | null = null) => ({ id: `part-${id}`, playerId: id, player: { name: id }, amountCents, paymentMethod: "", financialEntryId, financialEntry: financialEntryId ? { status: "PENDING" } : null });
   const data: any = {
+    clientActivity: { active: [{id:"active",name:"Cliente recente",phone:""}], inactive: [{id:"inactive",name:"Cliente antigo",phone:""}] },
     entries: [entry({ settlements: [{ id: "s1", amountCents: 2000, interestCents: 0, paidAt: date("2026-01-08"), paymentMethod: "Pix" }, { id: "s2", amountCents: 1000, interestCents: 0, paidAt: date("2026-01-10"), paymentMethod: "Dinheiro" }], scheduleParticipant: { playerId: "p1", player: { name: "p1" }, occurrence: { occurrenceCourts: [{ courtId: court.id, court }] } } }), entry({ id: "paid", status: "PAID", amountCents: 5000, playerId: "p2", player: { id: "p2", name: "p2" }, dueDate: date("2026-01-10"), paidAt: date("2026-01-10"), paymentMethod: "Pix" }), entry({ id: "expense", type: "EXPENSE", status: "PAID", amountCents: 9000, dueDate: date("2026-01-10"), paidAt: date("2026-01-10") })],
     recurrences: [{ id: "rec", type: "REVENUE", active: true, amountCents: 7000, startsAt: date("2026-01-25"), nextDueDate: date("2026-01-25"), endsAt: date("2026-02-25"), frequency: "MONTHLY", description: "Plano", counterpartyName: "p1", playerId: "p1" }],
     occurrences: [occurrence("fixed", { bookingSeriesId: "series", participants: [participant("p1", 10000, "entry")] }), occurrence("free", { participants: [participant("p2", 0)] }), occurrence("lesson", { bookingTypeName: "Aula fixa", teacherId: "teacher", teacher: { name: "Professor" }, participants: [participant("p3", 6000)] }), occurrence("cancelled", { status: "CANCELED" }), occurrence("blocked", { bookingTypeName: "Bloqueio" }), occurrence("expired", { status: "PENDING_PAYMENT" })],
@@ -68,12 +69,12 @@ test("dashboard reconciles forecasts, arrears, customer ticket, product margin a
   assert.match(String(card("to-receive").value), /200,00/); assert.match(String(card("forecast").value), /280,00/);
   assert.match(String(card("delinquency").value), /70,00/); assert.equal(card("delinquency").secondary, "46,7%");
   assert.match(String(card("ticket").value), /40,00/); assert.match(String(card("product-profit").value), /40,00/); assert.equal(card("product-profit").secondary, "40%");
-  assert.equal(card("active-clients").value, 4); assert.equal(card("reservations").value, 2); assert.match(card("reservations").caption, /33,3%.*1 canceladas/);
+  assert.equal(card("active-clients").value, 1); assert.equal(card("inactive-clients").value, 1); assert.equal(card("inactive-clients").items[0].href,"/jogadores?player=inactive"); assert.equal(card("reservations").value, 2); assert.match(card("reservations").caption, /33,3%.*1 canceladas/);
   assert.equal(card("fixed-reservations").value, 1); assert.equal(card("fixed-reservations").secondary, "50%");
   assert.equal(card("lessons").value, 2); assert.equal(card("fixed-lessons").value, 1); assert.equal(card("uncharged").value, 1); assert.equal(card("uncharged").secondary, "50%");
   assert.equal(result.lessonsByTeacher[0].value, 2);
-  assert.equal(result.courtRevenue.reduce((total, item) => total + item.value, 0), result.received);
-  assert.equal(result.forecastCourts.reduce((total, item) => total + item.value, 0), 28000);
+  assert.equal(result.courtRevenue.reduce((total, item) => total + item.value, 0), 3000); assert.ok(result.courtRevenue.every(item=>item.id!=="unassigned"));
+  assert.equal(result.forecastCourts.reduce((total, item) => total + item.value, 0), 16000);
   assert.equal(result.methods.reduce((total, item) => total + item.value, 0), result.received);
   assert.equal(result.months.reduce((total, item) => total + item.value, 0), 35000);
 });

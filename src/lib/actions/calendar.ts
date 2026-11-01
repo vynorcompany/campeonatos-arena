@@ -140,6 +140,8 @@ const visibleCourtBookingErrors = new Set([
   "A data final da reserva fixa deve ser igual ou posterior ao primeiro horário.",
   "Um ou mais atletas não pertencem à arena.",
   "Já existe um agendamento nessa quadra para este horário.",
+  "Um valor com recebimento já registrado não pode ser alterado pela grade. Ajuste pelo financeiro.",
+  "Saldo do cliente insuficiente.",
   "Reserva não encontrada nesta arena.",
   "Esta reserva aguarda pagamento e não pode ser editada agora.",
   "Esta reserva já tem pagamento ou cobrança online vinculada. Faça o ajuste financeiro antes de editá-la.",
@@ -476,7 +478,7 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
       if (!lockedCourt.length) throw new Error("Quadra não encontrada.");
     }
     if (parsed.data.occurrenceId) {
-      await assertCourtBookingMayBeEdited(tx, auth.arenaId, parsed.data.occurrenceId);
+      await assertCourtBookingMayBeEdited(tx, auth.arenaId, parsed.data.occurrenceId, true);
       const attachedServices = await tx.scheduleServiceReservation.findMany({ where: { arenaId: auth.arenaId, occurrenceId: parsed.data.occurrenceId }, select: { productId: true } });
       if (attachedServices.length) await lockAvailableBookingServices(tx, auth.arenaId, attachedServices.map(service => service.productId), startsAt, endsAt, { excludeOccurrenceId: parsed.data.occurrenceId, requireVisible: false, courtIds });
     }
@@ -493,28 +495,46 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
         return Promise.all(occurrenceTimes.map((occurrence) => tx.scheduleOccurrence.create({ data: { arenaId: auth.arenaId, sourceType: "BOOKING", bookingSeriesId: series?.id, title: bookingTitle, startsAt: occurrence.startsAt, endsAt: occurrence.endsAt, bookingTypeName: parsed.data.bookingTypeName, teacherId: parsed.data.teacherId || null, responsiblePlayerId: responsiblePlayerId || null, notes: parsed.data.notes, occurrenceCourts: { create: courtIds.map((courtId) => ({ courtId })) } } })));
       })();
     for (const occurrence of occurrences) {
-      const previous = await tx.scheduleParticipant.findMany({ where: { occurrenceId: occurrence.id }, include: { financialEntry: { select: { status: true, bankAccountId: true } } } });
-      for (const participant of previous) if (!participants.some((item) => item.playerId === participant.playerId) && participant.financialEntryId) await tx.financialEntry.delete({ where: { id: participant.financialEntryId } });
+      const linked = await tx.scheduleParticipant.findMany({ where: { occurrenceId: occurrence.id }, select: { financialEntryId: true } });
+      for (const id of linked.map(row => row.financialEntryId).filter((id): id is string => Boolean(id)).sort()) await tx.$queryRaw`SELECT id FROM "FinancialEntry" WHERE id = ${id} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
+      const previous = await tx.scheduleParticipant.findMany({ where: { occurrenceId: occurrence.id }, include: { financialEntry: { include: { settlements: true } } } });
+      for (const participant of previous) if (!participants.some((item) => item.playerId === participant.playerId) && participant.financialEntryId) {
+        const entry = participant.financialEntry;
+        if (entry && entry.status !== "PAID" && !entry.paidAt && !entry.settlements.some(row => row.amountCents > 0)) await tx.financialEntry.update({ where: { id: entry.id }, data: { status: "VOIDED", voidedAt: new Date(), voidReason: "Atleta removido da reserva." } });
+      }
       await tx.scheduleParticipant.deleteMany({ where: { occurrenceId: occurrence.id, playerId: { notIn: participants.map((participant) => participant.playerId) } } });
       for (const participant of participants) {
         const existing = previous.find((item) => item.playerId === participant.playerId);
         const player = players.find((item) => item.id === participant.playerId)!;
         const hasCharge = participant.amountCents > 0;
-        const paymentMethod = occurrence === occurrences[0] ? participant.paymentMethod : "";
+        const oldEntry = existing?.financialEntry;
+        const posted = Boolean(oldEntry && (oldEntry.status === "PAID" || oldEntry.paidAt || oldEntry.settlements.some(row => row.amountCents > 0)));
+        if (posted && oldEntry!.amountCents !== participant.amountCents) throw new Error("Um valor com recebimento já registrado não pode ser alterado pela grade. Ajuste pelo financeiro.");
+        const alreadyPaid = oldEntry?.status === "PAID";
+        const paymentMethod = alreadyPaid ? oldEntry.paymentMethod : occurrence === occurrences[0] ? participant.paymentMethod : "";
         const date = `${String(occurrence.startsAt.getDate()).padStart(2, "0")}/${String(occurrence.startsAt.getMonth() + 1).padStart(2, "0")}/${occurrence.startsAt.getFullYear()}`;
         const startsAtLabel = `${String(occurrence.startsAt.getHours()).padStart(2, "0")}:${String(occurrence.startsAt.getMinutes()).padStart(2, "0")}`;
         const endsAtLabel = `${String(occurrence.endsAt.getHours()).padStart(2, "0")}:${String(occurrence.endsAt.getMinutes()).padStart(2, "0")}`;
         const responsibleDetail = fixedBooking && responsibleName ? ` · Resp. ${responsibleName}` : "";
-        const bankAccountId = paymentMethod ? receivingAccounts.get(participant.playerId) ?? null : existing?.financialEntry?.bankAccountId ?? null;
-        const paidAt = hasCharge && paymentMethod ? new Date() : null;
-        const entryData = { bankAccountId, type: "REVENUE", category: "Reserva", counterpartyName: player.name, playerId: player.id, description: `Reserva · ${date} · ${startsAtLabel}–${endsAtLabel} · ${courtNames}${responsibleDetail}`, amountCents: participant.amountCents, paymentMethod, status: paymentMethod ? "PAID" : "PENDING", dueDate: occurrence.startsAt, paidAt, source: "SCHEDULE_BOOKING", externalReference: occurrence.id, notes: `Agendamento ${occurrence.id}${responsibleName ? ` · Responsável: ${responsibleName}` : ""}`, arenaId: auth.arenaId };
+        const bankAccountId = alreadyPaid ? oldEntry!.bankAccountId : paymentMethod ? receivingAccounts.get(participant.playerId) ?? null : existing?.financialEntry?.bankAccountId ?? null;
+        const paidAt = alreadyPaid ? oldEntry!.paidAt : hasCharge && paymentMethod ? new Date() : null;
+        const entryData = { bankAccountId, type: "REVENUE", category: "Reserva", counterpartyName: player.name, playerId: player.id, description: `Reserva · ${date} · ${startsAtLabel}–${endsAtLabel} · ${courtNames}${responsibleDetail}`, amountCents: participant.amountCents, paymentMethod, status: alreadyPaid || paymentMethod ? "PAID" : posted ? "PARTIAL" : "PENDING", dueDate: occurrence.startsAt, paidAt, source: "SCHEDULE_BOOKING", externalReference: occurrence.id, notes: `Agendamento ${occurrence.id}${responsibleName ? ` · Responsável: ${responsibleName}` : ""}`, arenaId: auth.arenaId };
         const financialEntryId = hasCharge ? (existing?.financialEntryId ? (await tx.financialEntry.update({ where: { id: existing.financialEntryId }, data: entryData })).id : (await tx.financialEntry.create({ data: entryData })).id) : null;
-        if (financialEntryId && paidAt) await tx.financialSettlement.create({ data: { arenaId: auth.arenaId, financialEntryId, bankAccountId, amountCents: participant.amountCents, paymentMethod, paidAt, notes: "Recebimento registrado na Grade de Horários." } });
+        if (financialEntryId && paidAt && !alreadyPaid) {
+          const amountCents = Math.max(0, participant.amountCents + (oldEntry?.settlements.reduce((sum, row) => sum + row.interestCents - row.discountCents - row.amountCents, 0) ?? 0));
+          if (paymentMethod === "CREDIT_BALANCE" && amountCents) {
+            await tx.$queryRaw`SELECT id FROM "Player" WHERE id = ${player.id} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
+            const balance = await tx.clientBalanceMovement.aggregate({ where: { arenaId: auth.arenaId, playerId: player.id, kind: "MONEY" }, _sum: { amountCents: true } });
+            if ((balance._sum.amountCents ?? 0) < amountCents) throw new Error("Saldo do cliente insuficiente.");
+            await tx.clientBalanceMovement.create({ data: { arenaId: auth.arenaId, playerId: player.id, kind: "MONEY", amountCents: -amountCents, reason: `Reserva ${occurrence.id}` } });
+          }
+          if (amountCents) await tx.financialSettlement.create({ data: { arenaId: auth.arenaId, financialEntryId, bankAccountId, amountCents, paymentMethod, paidAt, notes: "Recebimento registrado na Grade de Horários." } });
+        }
         if (fixedBooking && responsiblePlayerId && participant.playerId !== responsiblePlayerId && hasCharge && !paymentMethod && (!existing?.financialEntryId || existing.financialEntry?.status === "PAID")) {
           unpaidParticipantNames.add(player.name);
           notificationDates.push(`${date} às ${startsAtLabel}`);
         }
-        if (!hasCharge && existing?.financialEntryId) await tx.financialEntry.delete({ where: { id: existing.financialEntryId } });
+        if (!hasCharge && existing?.financialEntryId && !posted) await tx.financialEntry.update({ where: { id: existing.financialEntryId }, data: { status: "VOIDED", voidedAt: new Date(), voidReason: "Valor retirado da reserva." } });
         await tx.scheduleParticipant.upsert({ where: { occurrenceId_playerId: { occurrenceId: occurrence.id, playerId: participant.playerId } }, update: { amountCents: participant.amountCents, paymentMethod, financialEntryId }, create: { occurrenceId: occurrence.id, playerId: participant.playerId, amountCents: participant.amountCents, paymentMethod, financialEntryId } });
       }
     }

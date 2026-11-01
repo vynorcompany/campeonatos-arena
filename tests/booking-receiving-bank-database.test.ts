@@ -73,11 +73,18 @@ test("Grade exige conta ativa por recebimento, preserva reservas em aberto e cob
       assert.equal(entry.settlements[0].amountCents, 6000);
     }
     const occurrence = await admin.scheduleOccurrence.findFirstOrThrow({ where: { arenaId } });
-    assert.match((await actions.saveCourtBookingAction(form([payer(0, bankA.id)], "2040-01-02", { occurrenceId: occurrence.id }))).error ?? "", /já tem pagamento/);
+    assert.equal((await actions.saveCourtBookingAction(form([payer(0, bankA.id),payer(1,bankB.id)], "2040-01-02", { occurrenceId: occurrence.id }))).error, undefined);
+    assert.equal(await admin.financialSettlement.count({where:{arenaId}}),2,"saving paid athletes does not create another receipt");
+    assert.equal((await actions.saveCourtBookingAction(form([payer(0,bankA.id)],"2040-01-02",{occurrenceId:occurrence.id}))).error,undefined);
+    assert.equal((await admin.financialEntry.findUniqueOrThrow({where:{id:paid.find(e=>e.playerId===players[1].id)!.id}})).status,"PAID","removed paid athlete keeps the original entry");
     assert.equal(await admin.financialSettlement.count({ where: { arenaId } }), 2);
     canSettle = false;
     assert.equal((await actions.saveCourtBookingAction(form([payer(0, "", "")], "2040-01-03"))).error, undefined);
     canSettle = true;
+    const openBooking=await admin.scheduleOccurrence.findFirstOrThrow({where:{arenaId,startsAt:new Date("2040-01-03T10:00:00")},include:{participants:true}});
+    const openId=openBooking.participants[0].financialEntryId!;
+    assert.equal((await actions.saveCourtBookingAction(form([payer(1,"","")],"2040-01-03",{occurrenceId:openBooking.id,responsiblePlayerId:players[1].id}))).error,undefined);
+    assert.equal((await admin.financialEntry.findUniqueOrThrow({where:{id:openId}})).status,"VOIDED","unpaid removed athlete is voided, not deleted");
     assert.equal((await actions.saveCourtBookingAction(form([payer(0, bankA.id)], "2040-01-07", { bookingTypeName: "Reserva fixa", repeatUntil: "2040-01-21" }))).error, undefined);
     const series = await admin.scheduleOccurrence.findMany({ where: { arenaId, bookingSeriesId: { not: null } }, orderBy: { startsAt: "asc" }, include: { participants: { include: { financialEntry: { include: { settlements: true } } } } } });
     assert.equal(series.length, 3);

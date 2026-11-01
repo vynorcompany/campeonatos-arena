@@ -40,12 +40,12 @@ export function ArenaAssistantChat({ initialMessages }: { initialMessages: ChatM
       {messages.length ? messages.map((message) => <article className={cx(`${viewStyles.assistant_message} assistant-message-${message.role.toLowerCase()}`)} key={message.id}>
         <span>{message.role === "USER" ? "Você" : "Assistente da Arena"}</span>
         <p>{message.content}</p>
-      </article>) : <div className={viewStyles.assistant_chat_empty}><strong>Olá! Sou o Assistente da Arena.</strong><span>Posso executar ações administrativas autorizadas e, futuramente, analisar os dados operacionais da arena.</span></div>}
+      </article>) : <div className={viewStyles.assistant_chat_empty}><strong>Olá! Sou o Assistente da Arena.</strong><span>Consulte os dados da sua arena: fluxo de caixa, inadimplência, reservas, comandas, clientes, aulas e estoque.</span></div>}
     </div>
     <form className={viewStyles.assistant_chat_form} onSubmit={submit}>
       <label htmlFor="assistant-command">O que você precisa?</label>
       <div>
-        <textarea id="assistant-command" maxLength={2000} rows={2} value={value} onChange={(event) => setValue(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} placeholder="Digite sua solicitação para a arena…" disabled={isPending} />
+        <textarea id="assistant-command" maxLength={2000} rows={2} value={value} onChange={(event) => setValue(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} placeholder="Ex.: Qual o fluxo de caixa de hoje? Quais clientes estão inadimplentes?" disabled={isPending} />
         <button className={viewStyles.button_button_primary} type="submit" disabled={isPending}>{isPending ? "Processando..." : "Enviar"}</button>
       </div>
       {error ? <p className={viewStyles.form_error} role="alert">{error}</p> : null}

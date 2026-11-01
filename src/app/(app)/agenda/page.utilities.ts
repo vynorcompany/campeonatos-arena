@@ -93,7 +93,7 @@ export const viewStyles = {
     "tw:[&_thead_th.daily-court-heading]:[background-image:none]", "tw:[&_td_>_.agenda-slot-entry]:h-[100%]",
   ].join(" "),
   "daily_court_event_daily_court_event_online": [
-    "daily-court-event", "daily-court-event-online", "tw:bg-[color:#e7f5ed]!", "tw:[background-image:none]!",
+    "daily-court-event", "daily-court-event-online", "tw:[&_.agenda-booking-event-card]:bg-emerald-50!", "tw:[&_.agenda-booking-event-card]:[background-image:none]!", "tw:[&_.agenda-booking-event-card]:border-emerald-300!", "tw:bg-[color:#e7f5ed]!", "tw:[background-image:none]!",
     "tw:text-[color:#125b36]", "tw:min-h-[42px]", "tw:pt-[4px]!", "tw:pr-[4px]!",
     "tw:pb-[4px]!", "tw:pl-[4px]!", "tw:[&_strong]:block", "tw:[&_span]:block",
     "tw:[&_span]:mt-[4px]", "tw:[&_span]:text-[.72rem]", "tw:[&_span]:font-[700]", "tw:[&_span]:uppercase",
@@ -235,8 +235,8 @@ export const viewStyles = {
     "tw:font-[900]", "tw:leading-[1]", "tw:[vertical-align:1px]",
   ].join(" "),
   "daily_court_unavailable": [
-    "daily-court-unavailable", "tw:[&_span]:block", "tw:[&_span]:text-[.67rem]", "tw:text-[color:#9aa3af]",
-    "tw:bg-[color:#fff]", "tw:[background-image:none]",
+    "daily-court-unavailable", "tw:[&_span]:block", "tw:[&_span]:text-[.67rem]", "tw:text-red-800",
+    "tw:bg-red-50!", "tw:[background-image:none]",
   ].join(" "),
   "daily_court_available": [
     "daily-court-available", "tw:bg-[color:#fff]", "tw:[background-image:none]", "tw:text-[color:#23633c]",

@@ -1,3 +1,4 @@
+import { readArenaData } from "../src/lib/assistant/read-data";
 import assert from "node:assert/strict";
 import test from "node:test";
 import vm from "node:vm";
@@ -31,7 +32,7 @@ test("assistant tenant isolation, financial permission and atomic invoice audit 
     const auth = { arenaId: ids[0], userId: "operator", userName: "Operator QA", arenaRole: "ADMIN", systemRole: "VIEWER", editPermissions: [] as string[] };
     let databaseCalls = 0, failAudit = false;
     const mocks: Record<string, unknown> = {
-      "next/cache": { revalidatePath() {} }, "@/lib/auth/guards": { requireRole: async () => auth },
+      "@/lib/assistant/read-data": { readArenaData }, "next/cache": { revalidatePath() {} }, "@/lib/auth/guards": { requireRole: async () => auth },
       "@/lib/permissions": { canPerformPermission }, "@/lib/assistant/commands": { parseArenaAssistantCommand },
       "@/lib/calendar/arena-wall-clock": { arenaToday },
       "@/lib/arena-database": { arenaDatabase: (arenaId: string) => { databaseCalls++; assert.equal(arenaId, ids[0]); return scoped; } },

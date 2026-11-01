@@ -1,7 +1,7 @@
 import type { ArenaTransaction } from "@/lib/rls";
 import { isAgendaManagedBooking } from "./agenda-managed-booking";
 
-export async function assertCourtBookingMayBeEdited(tx: ArenaTransaction, arenaId: string, occurrenceId: string) {
+export async function assertCourtBookingMayBeEdited(tx: ArenaTransaction, arenaId: string, occurrenceId: string, preservePayments = false) {
   const [booking] = await tx.$queryRaw<{ status: string; sourceType: string; bookingTypeName: string }[]>`
     SELECT "status", "sourceType", "bookingTypeName" FROM "ScheduleOccurrence"
     WHERE "id" = ${occurrenceId} AND "arenaId" = ${arenaId}
@@ -26,8 +26,7 @@ export async function assertCourtBookingMayBeEdited(tx: ArenaTransaction, arenaI
       financialEntry: {
         is: {
           OR: [
-            { status: { in: ["PAID", "PARTIAL"] } },
-            { settlements: { some: {} } },
+            ...(!preservePayments ? [{ status: { in: ["PAID", "PARTIAL"] } }, { settlements: { some: {} } }] : []),
             { onlineProvider: { not: "" } },
             { onlinePaymentId: { not: "" } },
             { onlinePaymentUrl: { not: "" } },
