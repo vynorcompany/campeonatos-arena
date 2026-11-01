@@ -114,7 +114,7 @@ export const viewStyles = {
     "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:[background-image:none]", "tw:[&_.agenda-booking-event-card_strong]:text-[color:#135635]",
   ].join(" "),
   "daily_court_event": [
-    "daily-court-event", "tw:relative", "tw:[&_.agenda-slot-options-trigger]:rounded-sm!", "tw:bg-[color:#edf3f9]", "tw:[background-image:none]", "tw:text-[color:var(--brand-strong)]",
+    "daily-court-event", "tw:relative", "tw:[&_.agenda-slot-options-trigger]:rounded-sm!", "tw:bg-[color:#cfe3fb]", "tw:[background-image:none]", "tw:text-[color:var(--brand-strong)]",
     "tw:min-h-[42px]", "tw:pt-[4px]!", "tw:pr-[4px]!", "tw:pb-[4px]!",
     "tw:pl-[4px]!", "tw:[&_.agenda-booking-event-card_strong]:block", "tw:[&_.agenda-booking-event-card_span]:block", "tw:[&_.agenda-booking-event-card_span]:mt-[4px]",
     "tw:[&_.agenda-booking-event-card_span]:text-[.72rem]", "tw:[&_.agenda-booking-event-card_span]:font-[700]", "tw:[&_.agenda-booking-event-card_span]:uppercase", "tw:[&_.agenda-slot-entry]:pr-[32px]",
@@ -131,7 +131,7 @@ export const viewStyles = {
     "tw:[&_.agenda-slot-options-menu]:top-[calc(100%_+_4px)]", "tw:[&_.agenda-slot-options-menu]:right-[0]", "tw:[&_.agenda-slot-options-menu]:[transform:none]",
   ].join(" "),
   "agenda_event_type_fixed_lesson": [
-    "agenda-event-type-fixed-lesson", "tw:bg-[#edf3f9]!", "tw:[background-image:none]!",
+    "agenda-event-type-fixed-lesson", "tw:bg-[#cfe3fb]!", "tw:[background-image:none]!",
     "tw:[&_.agenda-booking-event-card]:bg-transparent", "tw:[&_.agenda-booking-event-card]:[background-image:none]",
     "tw:[&_.agenda-booking-event-card]:border-[var(--line)]", "tw:[&_.agenda-booking-event-card]:border-l-[#1e5ea8]",
     "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:bg-[#174983]", "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:text-white",
@@ -139,7 +139,7 @@ export const viewStyles = {
     "tw:[&_.agenda-slot-options-trigger]:text-[#174983]!",
   ].join(" "),
   "agenda_event_type_lesson": [
-    "agenda-event-type-lesson", "tw:bg-[#edf3f9]!", "tw:[background-image:none]!",
+    "agenda-event-type-lesson", "tw:bg-[#cfe3fb]!", "tw:[background-image:none]!",
     "tw:[&_.agenda-booking-event-card]:bg-transparent", "tw:[&_.agenda-booking-event-card]:[background-image:none]",
     "tw:[&_.agenda-booking-event-card]:border-[var(--line)]", "tw:[&_.agenda-booking-event-card]:border-l-[#1e5ea8]",
     "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:bg-[#174983]", "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:text-white",
@@ -147,7 +147,7 @@ export const viewStyles = {
     "tw:[&_.agenda-slot-options-trigger]:text-[#174983]!",
   ].join(" "),
   "agenda_event_type_plan": [
-    "agenda-event-type-plan", "tw:bg-[#edf3f9]!", "tw:[background-image:none]!",
+    "agenda-event-type-plan", "tw:bg-[#cfe3fb]!", "tw:[background-image:none]!",
     "tw:[&_.agenda-booking-event-card]:bg-transparent", "tw:[&_.agenda-booking-event-card]:[background-image:none]",
     "tw:[&_.agenda-booking-event-card]:border-[var(--line)]", "tw:[&_.agenda-booking-event-card]:border-l-[#1e5ea8]",
     "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:bg-[#174983]", "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:text-white",
@@ -155,7 +155,7 @@ export const viewStyles = {
     "tw:[&_.agenda-slot-options-trigger]:text-[#174983]!",
   ].join(" "),
   "agenda_event_type_super12": [
-    "agenda-event-type-super12", "tw:bg-[#edf3f9]!", "tw:[background-image:none]!",
+    "agenda-event-type-super12", "tw:bg-[#cfe3fb]!", "tw:[background-image:none]!",
     "tw:[&_.agenda-booking-event-card]:bg-transparent", "tw:[&_.agenda-booking-event-card]:[background-image:none]",
     "tw:[&_.agenda-booking-event-card]:border-[var(--line)]", "tw:[&_.agenda-booking-event-card]:border-l-[#1e5ea8]",
     "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:bg-[#174983]", "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:text-white",
@@ -163,7 +163,7 @@ export const viewStyles = {
     "tw:[&_.agenda-slot-options-trigger]:text-[#174983]!",
   ].join(" "),
   "agenda_event_type_league": [
-    "agenda-event-type-league", "tw:bg-[#edf3f9]!", "tw:[background-image:none]!",
+    "agenda-event-type-league", "tw:bg-[#cfe3fb]!", "tw:[background-image:none]!",
     "tw:[&_.agenda-booking-event-card]:bg-transparent", "tw:[&_.agenda-booking-event-card]:[background-image:none]",
     "tw:[&_.agenda-booking-event-card]:border-[var(--line)]", "tw:[&_.agenda-booking-event-card]:border-l-[#1e5ea8]",
     "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:bg-[#174983]", "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:text-white",
@@ -171,7 +171,7 @@ export const viewStyles = {
     "tw:[&_.agenda-slot-options-trigger]:text-[#174983]!",
   ].join(" "),
   "agenda_event_type_booking": [
-    "agenda-event-type-booking", "tw:bg-[#edf3f9]!", "tw:[background-image:none]!",
+    "agenda-event-type-booking", "tw:bg-[#cfe3fb]!", "tw:[background-image:none]!",
     "tw:[&_.agenda-booking-event-card]:bg-transparent", "tw:[&_.agenda-booking-event-card]:[background-image:none]",
     "tw:[&_.agenda-booking-event-card]:border-[var(--line)]", "tw:[&_.agenda-booking-event-card]:border-l-[#1e5ea8]",
     "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:bg-[#174983]", "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:text-white",

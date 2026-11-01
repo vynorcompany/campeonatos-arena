@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import React from "react";
-import { renderToStaticMarkup } from "react-dom/server";
+import { renderToStaticMarkup, renderToString } from "react-dom/server";
 import { DashboardCashChart } from "../src/app/(app)/painel/dashboard-cash-chart";
 
 test("empty dashboard cash chart explains the lack of movements", () => {
@@ -35,9 +35,11 @@ test("short periods keep every daily label", () => {
 
 test("cash bars keep their true proportion against a configured reference instead of overstating small amounts", () => {
   const html = renderToStaticMarkup(React.createElement(DashboardCashChart, { view: "caixa", days: [{ label: "01/10", income: 100, expense: 50 }], reference: { value: 10000, label: "Meta" } }));
-  assert.match(html, /dashboard-cash-income[^>]+height:1%/);
-  assert.match(html, /dashboard-cash-expense[^>]+height:0\.5%/);
-  assert.match(html, /bottom:100%/);
+  assert.match(html, /dashboard-cash-income[^>]+height="1\.5"/);
+  assert.match(html, /dashboard-cash-expense[^>]+height="0\.75"/);
+  assert.match(html, /y1="0" y2="0" stroke="#b45309"/);
+  assert.match(html, /Eixo em reais/);
+  assert.match(html, /<polyline[^>]+stroke="#6d28d9"/);
 });
 
 test("accessible totals in cumulative mode use the last point instead of summing running balances", () => {
@@ -46,4 +48,12 @@ test("accessible totals in cumulative mode use the last point instead of summing
   assert.match(html, /Total de entradas: R\$\s*300,00/);
   assert.match(html, /Total de saídas: R\$\s*50,00/);
   assert.doesNotMatch(html, /400,00/);
+});
+
+
+test("cash chart SVG titles hydrate as a single text node", () => {
+  const html = renderToString(React.createElement(DashboardCashChart, { view: "caixa", days: [{ label: "01/11", income: 3000, expense: 120000 }], reference: { value: 240000, label: "Custo fixo" } }));
+  const titles = [...html.matchAll(/<title>(.*?)<\/title>/g)].map(match => match[1]);
+  assert.equal(titles.length, 2);
+  assert.ok(titles.every(title => !title.includes("<")), "SVG titles must contain only text to preserve browser hydration");
 });

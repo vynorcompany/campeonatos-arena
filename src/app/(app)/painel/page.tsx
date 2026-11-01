@@ -12,7 +12,7 @@ import { canViewModule, firstVisibleModuleHref } from "@/lib/permissions";
 import { loadDashboardData } from "@/lib/reports/dashboard-data";
 import { buildDashboardAnalytics } from "@/lib/reports/dashboard-analytics";
 import { dashboardPeriod, shiftDashboardPeriod } from "@/lib/reports/dashboard-period";
-import { dashboardDateKey } from "@/lib/reports/dashboard-projections";
+import { dashboardDateKey, dashboardProjectedCost } from "@/lib/reports/dashboard-projections";
 import { DashboardFlowPanel } from "./dashboard-flow-panel";
 
 type DashboardQuery = { dataInicial?: string; dataFinal?: string; visao?: string; comparar?: string; compararDataInicial?: string; compararDataFinal?: string };
@@ -31,6 +31,8 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   if (custom?.error) return <section className="tw:grid tw:gap-3 tw:p-4"><p role="alert">Período de comparação inválido. {custom.error}</p><Link href="/painel">Voltar ao Dashboard</Link></section>;
   const data = await loadDashboardData(auth.arenaId, from, to, horizonEnd, comparing ? previous.from : undefined, comparing ? previous.to : undefined);
   const analytics = buildDashboardAnalytics(data, from, to, horizonEnd, view, comparing ? previous : undefined);
+  const fixedCostCents = dashboardProjectedCost(data.entries, data.recurrences, from, to);
+  const forecastCostCents = dashboardProjectedCost(data.entries, data.recurrences, from, horizonEnd);
   const presetHref = (start: Date, end: Date) => {
     const params = new URLSearchParams({ dataInicial: dashboardDateKey(start), dataFinal: dashboardDateKey(end), visao: view });
     if (comparing) { params.set("comparar", query.comparar!); if (query.comparar === "custom") { params.set("compararDataInicial", query.compararDataInicial || ""); params.set("compararDataFinal", query.compararDataFinal || ""); } }
@@ -65,8 +67,8 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
     </form></header>
     <DashboardFreeLayout storageScope={auth.arenaId} panels={[
       ...analytics.cards.map(card => ({ id: card.id, kind: "metric" as const, title: card.label, content: <DashboardMetricTile card={card} /> })),
-      { id: "cash-flow", kind: "flow", title: "Fluxo de caixa", content: <DashboardFlowPanel days={analytics.cashDays} view={view} arenaId={auth.arenaId} /> },
-      ...panels.map(panel => ({ id: panel.id, kind: "chart" as const, title: panel.title, content: <DashboardBarPanel {...panel} arenaId={auth.arenaId} referenceAllowed={!["clients", "debtors", "courts", "products"].includes(panel.id)} /> })),
+      { id: "cash-flow", kind: "flow", title: "Fluxo de caixa", content: <DashboardFlowPanel fixedCostCents={fixedCostCents} days={analytics.cashDays} view={view} arenaId={auth.arenaId} /> },
+      ...panels.map(panel => ({ id: panel.id, kind: "chart" as const, title: panel.title, content: <DashboardBarPanel {...panel} fixedCostCents={panel.id === "total-forecast" ? forecastCostCents : fixedCostCents} arenaId={auth.arenaId} referenceAllowed={!["clients", "debtors", "courts", "products"].includes(panel.id)} /> })),
     ]} />
   </DashboardWorkspace>;
 }

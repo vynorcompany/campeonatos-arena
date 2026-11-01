@@ -25,7 +25,7 @@ test("agenda makes the complete slot clickable and exposes individual commandas"
   assert.match(dialog, /openComandasForParticipants/);
   assert.match(dialog, /Abrir comandas dos atletas/);
   assert.match(styleRules("agenda-slot-entry"), /min-height: 100%/);
-  assert.match(styleRules("agenda-booking-dialog"), /max-width: 1120px/);
+  assert.match(styleRules("agenda-booking-dialog"), /max-width: 1220px/);
 });
 
 test("agenda booking identifies reservation types, suggests athletes and closes slot options outside", () => {
