@@ -8,6 +8,7 @@ import { refreshCalendarRoutes } from "@/lib/calendar/revalidation";
 import { refreshFinanceRoutes } from "@/lib/finance/revalidation";
 
 type BookingCharges = {
+  totalAmountCents: number;
   participants: { playerId: string; amountCents: number; paymentMethod: string; bankAccountId?: string; checkedInAt: string | null }[];
   services: { id: string; name: string; priceCents: number }[];
 };
@@ -19,6 +20,7 @@ async function bookingCharges(tx: import("@/lib/rls").ArenaTransaction, arenaId:
   } });
   return {
     participants: booking.participants.map(participant => ({ playerId: participant.playerId, amountCents: participant.amountCents, paymentMethod: participant.paymentMethod ?? "", bankAccountId: participant.financialEntry?.bankAccountId ?? undefined, checkedInAt: participant.checkedInAt?.toISOString() ?? null })),
+    totalAmountCents: booking.courtPriceCents == null ? booking.participants.reduce((sum, p) => sum + p.amountCents, 0) : booking.courtPriceCents + booking.serviceReservations.reduce((sum, service) => sum + service.priceCents, 0),
     services: booking.serviceReservations.map(service => ({ id: service.id, name: service.serviceName, priceCents: service.priceCents })),
   };
 }

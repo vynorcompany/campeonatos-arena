@@ -13,6 +13,21 @@ export function ArenaAssistantChat({ initialMessages }: { initialMessages: ChatM
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
   const messageList = useRef<HTMLDivElement>(null);
+  const chatPanel = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const fit = () => {
+      const panel = chatPanel.current;
+      if (!panel) return;
+      const rect = panel.getBoundingClientRect();
+      const scale = rect.width / panel.offsetWidth || 1;
+      panel.style.setProperty("--assistant-height", `${Math.max(240, (window.innerHeight - rect.top - 20) / scale)}px`);
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    const observer = new ResizeObserver(fit);
+    if (chatPanel.current?.parentElement) observer.observe(chatPanel.current.parentElement);
+    return () => { window.removeEventListener("resize", fit); observer.disconnect(); };
+  }, []);
   useEffect(() => { const list = messageList.current; if (list) list.scrollTop = list.scrollHeight; }, [messages.length]);
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -35,7 +50,7 @@ export function ArenaAssistantChat({ initialMessages }: { initialMessages: ChatM
     });
   }
 
-  return <section className={viewStyles.assistant_chat} aria-label="Conversa com o Assistente da Arena">
+  return <section ref={chatPanel} className={viewStyles.assistant_chat} aria-label="Conversa com o Assistente da Arena">
     <div ref={messageList} className={viewStyles.assistant_chat_messages} role="log" aria-live="polite" aria-label="Mensagens do assistente">
       {messages.length ? messages.map((message) => <article className={cx(`${viewStyles.assistant_message} assistant-message-${message.role.toLowerCase()}`)} key={message.id}>
         <span>{message.role === "USER" ? "Você" : "Assistente da Arena"}</span>

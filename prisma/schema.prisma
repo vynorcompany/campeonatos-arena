@@ -1529,6 +1529,7 @@ model CourtWeeklyRule {
 }
 
 model ScheduleOccurrence {
+  courtPriceCents Int?
   paymentBankAccountId String?
   paymentBankAccount BankAccount? @relation(fields: [arenaId, paymentBankAccountId], references: [arenaId, id], onDelete: NoAction, onUpdate: NoAction)
   serviceReservations ScheduleServiceReservation[]

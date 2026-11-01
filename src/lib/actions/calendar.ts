@@ -109,6 +109,7 @@ const updateCourtWeeklyRuleSchema = courtWeeklyRuleSchema.pick({
 }).extend({ ruleId: z.string().trim().min(1) });
 
 const courtBookingSchema = z.object({
+  courtPriceCents: z.coerce.number().int().min(0).max(100000000).optional(),
   occurrenceId: z.string().trim().default(""),
   courtId: z.string().trim().min(1),
   courtIds: z.string().trim().default("[]"),
@@ -427,6 +428,7 @@ export async function createQuickPlayerAction(formData: FormData) {
 export async function saveCourtBookingAction(formData: FormData): Promise<CourtBookingActionResult> {
   try {
   const parsed = courtBookingSchema.safeParse({
+    courtPriceCents: formData.get("courtPriceCents") ?? undefined,
     occurrenceId: String(formData.get("occurrenceId") ?? ""), courtId: formData.get("courtId"), courtIds: formData.get("courtIds"), title: formData.get("title"),
     startsAt: formData.get("startsAt"), durationMinutes: formData.get("durationMinutes"), bookingTypeName: formData.get("bookingTypeName"),
     repeatUntil: formData.get("repeatUntil"),
@@ -489,10 +491,10 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
     }, select: { id: true } });
     if (conflict) throw new Error("Já existe um agendamento nessa quadra para este horário.");
     const occurrences = parsed.data.occurrenceId
-      ? [await tx.scheduleOccurrence.update({ where: { id: parsed.data.occurrenceId, arenaId: auth.arenaId }, data: { title: bookingTitle, startsAt, endsAt, bookingTypeName: parsed.data.bookingTypeName, teacherId: parsed.data.teacherId || null, responsiblePlayerId: responsiblePlayerId || null, notes: parsed.data.notes, occurrenceCourts: { deleteMany: {}, create: courtIds.map((courtId) => ({ courtId })) } } })]
+      ? [await tx.scheduleOccurrence.update({ where: { id: parsed.data.occurrenceId, arenaId: auth.arenaId }, data: { courtPriceCents: parsed.data.courtPriceCents, title: bookingTitle, startsAt, endsAt, bookingTypeName: parsed.data.bookingTypeName, teacherId: parsed.data.teacherId || null, responsiblePlayerId: responsiblePlayerId || null, notes: parsed.data.notes, occurrenceCourts: { deleteMany: {}, create: courtIds.map((courtId) => ({ courtId })) } } })]
       : await (async () => {
         const series = fixedBooking ? await tx.scheduleBookingSeries.create({ data: { arenaId: auth.arenaId, title: bookingTitle, bookingTypeName: parsed.data.bookingTypeName, startsAt, endsAt: occurrenceTimes.at(-1)!.endsAt, teacherId: parsed.data.teacherId || null, responsiblePlayerId: responsiblePlayerId || null, notes: parsed.data.notes } }) : null;
-        return Promise.all(occurrenceTimes.map((occurrence) => tx.scheduleOccurrence.create({ data: { arenaId: auth.arenaId, sourceType: "BOOKING", bookingSeriesId: series?.id, title: bookingTitle, startsAt: occurrence.startsAt, endsAt: occurrence.endsAt, bookingTypeName: parsed.data.bookingTypeName, teacherId: parsed.data.teacherId || null, responsiblePlayerId: responsiblePlayerId || null, notes: parsed.data.notes, occurrenceCourts: { create: courtIds.map((courtId) => ({ courtId })) } } })));
+        return Promise.all(occurrenceTimes.map((occurrence) => tx.scheduleOccurrence.create({ data: { arenaId: auth.arenaId, sourceType: "BOOKING", courtPriceCents: parsed.data.courtPriceCents, bookingSeriesId: series?.id, title: bookingTitle, startsAt: occurrence.startsAt, endsAt: occurrence.endsAt, bookingTypeName: parsed.data.bookingTypeName, teacherId: parsed.data.teacherId || null, responsiblePlayerId: responsiblePlayerId || null, notes: parsed.data.notes, occurrenceCourts: { create: courtIds.map((courtId) => ({ courtId })) } } })));
       })();
     for (const occurrence of occurrences) {
       const linked = await tx.scheduleParticipant.findMany({ where: { occurrenceId: occurrence.id }, select: { financialEntryId: true } });

@@ -86,6 +86,12 @@ test("Grade exige conta ativa por recebimento, preserva reservas em aberto e cob
     assert.equal((await actions.saveCourtBookingAction(form([payer(1,"","")],"2040-01-03",{occurrenceId:openBooking.id,responsiblePlayerId:players[1].id}))).error,undefined);
     assert.equal((await admin.financialEntry.findUniqueOrThrow({where:{id:openId}})).status,"VOIDED","unpaid removed athlete is voided, not deleted");
     assert.equal((await actions.saveCourtBookingAction(form([payer(0, bankA.id)], "2040-01-07", { bookingTypeName: "Reserva fixa", repeatUntil: "2040-01-21" }))).error, undefined);
+    const unallocated = [{...payer(0,"",""),amountCents:0}];
+    assert.equal((await actions.saveCourtBookingAction(form(unallocated,"2040-02-01",{courtPriceCents:"18000"}))).error,undefined);
+    const priced=await admin.scheduleOccurrence.findFirstOrThrow({where:{arenaId,startsAt:new Date("2040-02-01T10:00:00")},include:{participants:true}});
+    assert.equal(priced.courtPriceCents,18000);assert.equal(priced.participants[0].amountCents,0,"saving the court price does not automatically charge athletes");
+    assert.equal((await actions.saveCourtBookingAction(form(unallocated,"2040-02-01",{occurrenceId:priced.id,courtPriceCents:"0"}))).error,undefined);
+    assert.equal((await admin.scheduleOccurrence.findUniqueOrThrow({where:{id:priced.id}})).courtPriceCents,0,"an explicit free booking remains free");
     const series = await admin.scheduleOccurrence.findMany({ where: { arenaId, bookingSeriesId: { not: null } }, orderBy: { startsAt: "asc" }, include: { participants: { include: { financialEntry: { include: { settlements: true } } } } } });
     assert.equal(series.length, 3);
     assert.equal(series[0].participants[0].financialEntry!.bankAccountId, bankA.id);
