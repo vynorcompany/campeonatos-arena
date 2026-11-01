@@ -53,7 +53,7 @@ export const viewStyles = {
     "tw:place-items-center", "tw:pt-[20px]", "tw:pr-[20px]", "tw:pb-[20px]",
     "tw:pl-[20px]", "tw:viewport-680:p-[8px]", "tw:bg-[color:rgb(15_23_42_/_.36)]", "tw:[background-image:none]", "tw:[backdrop-filter:blur(6px)]",
   ].join(" "),
-  "agenda_slot_dialog_agenda_booking_dialog": "agenda-slot-dialog agenda-booking-dialog tw:text-[16px] tw:[&_button.button]:text-[calc(.86rem+2px)] tw:flex tw:flex-col tw:h-[min(780px,calc(var(--workspace-viewport-height,100dvh)_-_24px))] tw:w-full tw:max-w-[1120px] tw:min-w-0 tw:gap-4 tw:rounded-xl tw:border tw:border-[var(--line)] tw:bg-white tw:p-5 tw:shadow-xl tw:max-h-[calc(var(--workspace-viewport-height,100dvh)_-_24px)] tw:overflow-y-auto tw:[&>header]:flex tw:[&>header]:items-start tw:[&>header]:justify-between tw:[&>header]:gap-3 tw:[&>header]:border-b tw:[&>header]:border-[var(--line)] tw:[&>header]:pb-3 tw:[&_h2]:m-0 tw:[&_h2]:text-[20px] tw:[&_h2]:font-semibold tw:[&_p]:m-0 tw:[&_header_span]:text-[14px] tw:[&_header_span]:text-[var(--muted)] tw:viewport-680:p-3 tw:[&_input]:h-8 tw:[&_select]:h-8 tw:[&_input]:min-h-8 tw:[&_select]:min-h-8 tw:[&_input]:w-full tw:[&_select]:w-full tw:[&_input]:min-w-0 tw:[&_select]:min-w-0 tw:[&_input]:rounded-lg tw:[&_select]:rounded-lg tw:[&_input]:border tw:[&_select]:border tw:[&_input]:border-[var(--line)] tw:[&_select]:border-[var(--line)] tw:[&_input]:bg-white tw:[&_select]:bg-white tw:[&_input]:px-2.5 tw:[&_select]:px-2.5 tw:[&_input]:text-[13px] tw:[&_select]:text-[13px]",
+  "agenda_slot_dialog_agenda_booking_dialog": "agenda-slot-dialog agenda-booking-dialog tw:text-[16px] tw:[&_button.button]:text-[calc(.86rem+2px)] tw:flex tw:flex-col tw:h-[min(780px,calc(var(--workspace-viewport-height,100dvh)_-_24px))] tw:w-full tw:max-w-[1120px] tw:min-w-0 tw:gap-4 tw:rounded-xl tw:border tw:border-[var(--line)] tw:bg-white tw:p-5 tw:shadow-xl tw:max-h-[calc(var(--workspace-viewport-height,100dvh)_-_24px)] tw:overflow-hidden tw:[&>header]:shrink-0 tw:[&>header]:flex tw:[&>header]:items-start tw:[&>header]:justify-between tw:[&>header]:gap-3 tw:[&>header]:border-b tw:[&>header]:border-[var(--line)] tw:[&>header]:pb-3 tw:[&_h2]:m-0 tw:[&_h2]:text-[20px] tw:[&_h2]:font-semibold tw:[&_p]:m-0 tw:[&_header_span]:text-[14px] tw:[&_header_span]:text-[var(--muted)] tw:viewport-680:p-3 tw:[&_input]:h-8 tw:[&_select]:h-8 tw:[&_input]:min-h-8 tw:[&_select]:min-h-8 tw:[&_input]:w-full tw:[&_select]:w-full tw:[&_input]:min-w-0 tw:[&_select]:min-w-0 tw:[&_input]:rounded-lg tw:[&_select]:rounded-lg tw:[&_input]:border tw:[&_select]:border tw:[&_input]:border-[var(--line)] tw:[&_select]:border-[var(--line)] tw:[&_input]:bg-white tw:[&_select]:bg-white tw:[&_input]:px-2.5 tw:[&_select]:px-2.5 tw:[&_input]:text-[13px] tw:[&_select]:text-[13px]",
   "eyebrow": sharedUtilities.eyebrow + " tw:text-[calc(.74rem+2px)]",
   "agenda_reservation_client": [
     "agenda-reservation-client", "tw:inline-flex", "tw:items-center", "tw:viewport-720:items-start",
@@ -73,7 +73,7 @@ export const viewStyles = {
   ].join(" "),
   "button": sharedUtilities.button,
   "agenda_booking_form": [
-    "agenda-booking-form", "tw:grid", "tw:grid-cols-[minmax(0,_1fr)]", "tw:gap-y-[18px]",
+    "agenda-booking-form", "tw:grid", "tw:min-h-0", "tw:flex-1", "tw:content-start", "tw:overflow-y-auto", "tw:overscroll-contain", "tw:pr-1", "tw:grid-cols-[minmax(0,_1fr)]", "tw:gap-y-[18px]",
     "tw:gap-x-[18px]", "tw:[&_>_label]:grid", "tw:[&_>_label]:gap-y-[6px]", "tw:[&_>_label]:gap-x-[6px]",
     "tw:[&_>_label]:text-[calc(.78rem+2px)]", "tw:[&_>_label]:font-[700]", "tw:[&.agenda-booking-form_input]:w-[100%]", "tw:[&.agenda-booking-form_input]:min-h-[38px]",
     "tw:[&.agenda-booking-form_input]:pt-[8px]", "tw:[&.agenda-booking-form_input]:pr-[10px]", "tw:[&.agenda-booking-form_input]:pb-[8px]", "tw:[&.agenda-booking-form_input]:pl-[10px]",
@@ -147,7 +147,7 @@ export const viewStyles = {
     "tw:[&_button]:cursor-pointer", "tw:[&_button:hover]:bg-[color:var(--brand-soft)]", "tw:[&_button:hover]:[background-image:none]",
   ].join(" "),
   "agenda_participant_list": [
-    "agenda-participant-list", "tw:grid", "tw:gap-y-0", "tw:gap-x-0",
+    "agenda-participant-list", "tw:grid", "tw:h-[220px]", "tw:min-h-0", "tw:content-start", "tw:overflow-y-auto", "tw:overscroll-contain", "tw:pr-2", "tw:gap-y-0", "tw:gap-x-0",
     "tw:min-w-[0]", "tw:[&_>_p]:mt-[8px]", "tw:[&_>_p]:mr-[0]", "tw:[&_>_p]:mb-[8px]",
     "tw:[&_>_p]:ml-[0]", "tw:[&_>_p]:text-[color:var(--muted)]", "tw:[&_>_p]:text-[calc(.82rem+2px)]",
   ].join(" "),

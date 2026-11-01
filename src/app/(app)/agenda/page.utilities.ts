@@ -67,7 +67,7 @@ export const viewStyles = {
     "tw:[&_strong]:[text-transform:capitalize]", "tw:viewport-700:flex-col", "tw:viewport-700:gap-y-[2px]", "tw:viewport-700:gap-x-[2px]",
   ].join(" "),
   "daily_court_grid_scroll": [
-    "daily-court-grid-scroll", "tw:[overflow-x:auto]", "tw:[overflow-y:auto]", "tw:border-t-[length:1px]",
+    "daily-court-grid-scroll", "tw:w-3/4", "tw:viewport-960:w-full", "tw:[overflow-x:auto]", "tw:[overflow-y:auto]", "tw:border-t-[length:1px]",
     "tw:[border-top-style:solid]", "tw:border-t-[color:var(--line)]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]",
     "tw:border-r-[color:var(--line)]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:var(--line)]",
     "tw:border-l-[length:1px]", "tw:[border-left-style:solid]", "tw:border-l-[color:var(--line)]", "tw:rounded-[12px]",

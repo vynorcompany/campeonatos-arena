@@ -83,7 +83,7 @@ export default async function AgendaPage(props: AgendaPageProps) {
   const weekday = selectedDate.getDay();
   const dayHref = (date: Date) => `/agenda?data=${dateInputValue(date)}`;
   const selectedDateLabel = new Intl.DateTimeFormat("pt-BR", { weekday: "long", day: "2-digit", month: "short" }).format(selectedDate);
-  const gridMinWidth = courts.length * 220;
+  const gridMinWidth = courts.length * 165;
   const canCreateBooking = canPerformPermission("calendar:booking:create", auth.arenaRole, auth.systemRole, auth.editPermissions);
   const canEditBooking = canPerformPermission("calendar:booking:edit", auth.arenaRole, auth.systemRole, auth.editPermissions);
   const canCancelBooking = canPerformPermission("calendar:booking:cancel", auth.arenaRole, auth.systemRole, auth.editPermissions);
