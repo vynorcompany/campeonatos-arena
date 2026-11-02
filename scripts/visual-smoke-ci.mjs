@@ -1320,7 +1320,7 @@ async function main() {
           const inset = await send("Runtime.evaluate", { expression: `(() => {
             const form = document.querySelector('#ranking-name')?.closest('form');
             const period = document.querySelector('[aria-label="Período do ranking"]');
-            const panel = ${tab == 'configuracao' if False else '"${tab}" === "configuracao"'} ? form : period;
+            const panel = "${tab}" === "configuracao" ? form : period;
             const child = panel === form ? form?.querySelector('label[for="ranking-name"]') : period?.firstElementChild;
             if (!panel || !child) return -1;
             const scale = panel.getBoundingClientRect().width / panel.offsetWidth || 1;
