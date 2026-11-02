@@ -12,7 +12,7 @@ export function auditedDatabase(base: PrismaClient): PrismaClient {
     await tx.$executeRaw`SELECT set_config('app.audit_actor_id', ${context.actorId ?? "ANONYMOUS"}, true), set_config('app.audit_actor_name', ${context.actorName ?? "Não autenticado"}, true), set_config('app.audit_parent_request', ${context.requestId ?? ""}, true), set_config('app.audit_arena_id', ${context.arenaId ?? ""}, true)`;
     if (context.arenaId) await tx.$executeRaw`SELECT set_config('app.arena_id', ${context.arenaId}, true)`;
     return run(tx);
-  }, options);
+  }, { maxWait: 10_000, ...options });
   const defer = (operation: Operation, context: AuditRequestContext) => {
     let result: Promise<unknown> | undefined;
     const execute = () => result ??= scoped(operation, context);
