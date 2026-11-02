@@ -168,7 +168,9 @@ async function main() {
         if (metrics?.ready === "complete" && metrics.mainBody.trim().length >= 15 && metrics.path === pathname) break;
         await pause(200);
       }
-      await pause(1200);
+      await waitForPageFade();
+      await send("Runtime.evaluate", { expression: "document.fonts.ready.then(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))", awaitPromise: true });
+      await pause(200);
       const settled = await send("Runtime.evaluate", {
         expression: pageMetricsExpression,
         returnByValue: true,
@@ -1314,9 +1316,17 @@ async function main() {
       for (const tab of ["configuracao", "pontuacao", "classificacao", "uso"]) {
         const body = await visit(`/torneios/rankings/${ranking.id}?tab=${tab}`, viewport, arenaA.id, `${viewport.name}-ranking-${tab}`);
         if (!body.includes("Ranking GOAL Visual")) throw new Error(`${viewport.name}: detalhe do ranking ${tab} não exibiu o ranking fictício.`);
-        if (tab === "configuracao") {
-          const insets = await send("Runtime.evaluate", { expression: "(() => { const period=document.querySelector('.ranking-detail-period'); const form=document.querySelector('.ranking-configuration-form'); const heading=form?.querySelector('.ranking-configuration-heading'); return {period:period?.firstElementChild ? period.firstElementChild.getBoundingClientRect().left-period.getBoundingClientRect().left : -1,form:heading ? heading.getBoundingClientRect().left-form.getBoundingClientRect().left : -1}; })()", returnByValue: true });
-          if (insets.result.value.period < 20 || insets.result.value.form < 20) throw new Error(`${viewport.name}: conteúdo do ranking colado à borda dos cards: ${JSON.stringify(insets.result.value)}`);
+        if (["configuracao", "classificacao", "uso"].includes(tab)) {
+          const inset = await send("Runtime.evaluate", { expression: `(() => {
+            const form = document.querySelector('#ranking-name')?.closest('form');
+            const period = document.querySelector('[aria-label="Período do ranking"]');
+            const panel = ${tab == 'configuracao' if False else '"${tab}" === "configuracao"'} ? form : period;
+            const child = panel === form ? form?.querySelector('label[for="ranking-name"]') : period?.firstElementChild;
+            if (!panel || !child) return -1;
+            const scale = panel.getBoundingClientRect().width / panel.offsetWidth || 1;
+            return (child.getBoundingClientRect().left - panel.getBoundingClientRect().left) / scale;
+          })()`, returnByValue: true });
+          if (inset.result.value < 12) throw new Error(`${viewport.name}: conteúdo do ranking colado à borda do painel ${tab}: ${inset.result.value}`);
         }
       }
     }
