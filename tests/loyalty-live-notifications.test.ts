@@ -88,3 +88,24 @@ test("alertas ao vivo exigem sessão e respeitam permissões de clientes e coman
   assert.equal(queries.length, previousQueries, "ordinary staff do not receive administrative recovery alerts");
 
 });
+
+
+test("ordinary notification dismissal preserves administrative recovery alerts", async () => {
+  let auth = { arenaId: "arena-a", arenaRole: "STAFF", systemRole: "VIEWER" };
+  const writes: any[] = [];
+  const actions = load("../src/lib/actions/notifications.ts", {
+    "next/cache": { revalidatePath: () => {} },
+    "@/lib/auth/session": { requireArenaAccess: async () => auth },
+    "@/lib/arena-database": { arenaDatabase: (arenaId: string) => ({ arenaNotification: { updateMany: async (query: any) => { writes.push({arenaId,...query}); return {count:0}; } } }) },
+  });
+  await actions.markAllArenaNotificationsReadAction();
+  await actions.markArenaNotificationReadAction("recovery-id");
+  for (const write of writes) {
+    assert.equal(write.arenaId, "arena-a");
+    assert.equal(write.where.arenaId, "arena-a");
+    assert.equal(write.where.type.not, "SYSTEM_RECOVERY");
+  }
+  auth = { ...auth, arenaRole: "OWNER" };
+  await actions.markAllArenaNotificationsReadAction();
+  assert.equal(writes.at(-1).where.type, undefined);
+});
