@@ -5,7 +5,7 @@ import { getFinancialEntryBalance } from "./ledger";
 export async function saveEmployeePayroll(tx: ArenaTransaction, arenaId: string, input: EmployeePayrollInput, authorize?: (state: { exists: boolean; hasFinancialEntry: boolean; paid: boolean }) => void) {
   const values = employeePayrollAmounts(input);
   const totals = calculateEmployeePayroll(values);
-  if (!Number.isSafeInteger(totals.totalCents) || totals.totalCents <= 0 || totals.totalCents > 2_000_000_000 || totals.overtimeCents > 2_000_000_000) throw new Error("O total líquido deve ser positivo e os valores devem estar dentro do limite.");
+  if (!Number.isSafeInteger(totals.totalCents) || totals.totalCents <= 0 || totals.totalCents > 2_000_000_000 || [totals.overtimeCents, totals.nightCents, totals.nightOvertimeCents, totals.grossCents].some(value => !Number.isSafeInteger(value) || value < 0 || value > 2_000_000_000)) throw new Error("O total líquido deve ser positivo e os valores devem estar dentro do limite.");
   const member = await tx.arenaMember.findFirst({ where: { arenaId, userId: input.userId }, select: { user: { select: { id: true, name: true } } } });
   if (!member) throw new Error("Funcionário não encontrado nesta arena.");
   const key = `${arenaId}:${input.userId}:${input.referenceMonth}`;
@@ -40,7 +40,7 @@ export async function saveEmployeePayroll(tx: ArenaTransaction, arenaId: string,
     const remaining = getFinancialEntryBalance(totals.totalCents, entry?.settlements ?? [], "PENDING").outstandingCents;
     if (remaining > 0) await tx.financialSettlement.create({ data: { arenaId, financialEntryId: financialEntry.id, amountCents: remaining, paidAt: paidAt!, paymentMethod: "", notes: "Pagamento registrado na folha de funcionários." } });
   }
-  const payrollData = { ...values, overtimeCents: totals.overtimeCents, employeeName: member.user.name, notes, financialEntryId: financialEntry.id };
+  const payrollData = { ...values, overtimeCents: totals.overtimeCents, nightCents: totals.nightCents, nightOvertimeCents: totals.nightOvertimeCents, employeeName: member.user.name, notes, financialEntryId: financialEntry.id };
   return tx.employeePayrollEntry.upsert({
     where: { arenaId_userId_referenceMonth: { arenaId, userId: input.userId, referenceMonth: input.referenceMonth } },
     create: { ...payrollData, arenaId, userId: input.userId, referenceMonth: input.referenceMonth }, update: payrollData,
