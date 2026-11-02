@@ -1,3 +1,4 @@
+import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import { moveBookingCourt } from "../src/lib/calendar/staff-operations";
 import * as serviceBookingRules from "../src/lib/calendar/service-booking-rules";
 import * as composition from "../src/lib/products/composition";
@@ -56,7 +57,7 @@ async function fixture(options: { limit?: number; courtPrice?: number; onlinePay
     "@/lib/calendar/booking-confirmation-whatsapp": { sendBookingConfirmationForOccurrence: async () => ({ sent: 0, failed: 0 }) },
     "@/lib/calendar/revalidation": { refreshCalendarRoutes() {} }, "@/lib/finance/revalidation": { refreshFinanceRoutes() {} },
   };
-  const load = (path: string) => { const exports: Record<string, (data: FormData) => Promise<any>> = {}; vm.runInNewContext(ts.transpileModule(readFileSync(new URL(path, import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports, FormData, Date, Error, crypto: globalThis.crypto, require: (name: string) => mocks[name] ?? (name.startsWith("@/") ? {} : require(name)) }); return exports; };
+  const load = (path: string) => { const exports: Record<string, (data: FormData) => Promise<any>> = {}; vm.runInNewContext(ts.transpileModule(readFileSync(new URL(path, import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports, FormData, Date, Error, crypto: globalThis.crypto, require: withDatabaseModuleMocks((name: string) => mocks[name] ?? (name.startsWith("@/") ? {} : require(name))) }); return exports; };
   const actions = load("../src/lib/actions/calendar.ts"), serviceActions = load("../src/lib/actions/services.ts"), commands = load("../src/lib/actions/comanda.ts");
   const book = (court: number, hour = 10, duration = 60, ids = [service.id], quote = (options.courtPrice ?? 6000) * duration / 60 + 1500) => {
     const data = form({ arenaSlug: arena.slug, courtId: courts[court].id, startsAt: `2040-01-02T${String(hour).padStart(2, "0")}:00`, durationMinutes: String(duration), quotedTotalCents: String(quote) }); for (const id of ids) data.append("serviceIds", id); return actions.createPublicCourtBookingAction(data);
@@ -131,7 +132,7 @@ test("staff rescheduling preserves equipment and refuses a conflicting destinati
   const f = await fixture(); try {
     assert.equal((await f.book(0, 10)).ok, true); assert.equal((await f.book(1, 12)).ok, true);
     const original = await f.admin.scheduleOccurrence.findFirstOrThrow({ where: { arenaId: f.arena.id, startsAt: at(10) } });
-    const change = (hour: number) => f.actions.saveCourtBookingAction(form({ occurrenceId: original.id, courtId: f.courts[2].id, courtIds: JSON.stringify([f.courts[2].id]), title: "Reagendamento QA", startsAt: `2040-01-02T${hour}:00`, durationMinutes: "60", bookingTypeName: "Reserva", repeatUntil: "", teacherId: "", responsiblePlayerId: f.player.id, notes: "", participants: JSON.stringify([{ playerId: f.player.id, amountCents: 7500, paymentMethod: "" }]) }));
+    const change = (hour: number) => f.actions.saveCourtBookingAction(form({ occurrenceId: original.id, expectedUpdatedAt: original.updatedAt.toISOString(), courtId: f.courts[2].id, courtIds: JSON.stringify([f.courts[2].id]), title: "Reagendamento QA", startsAt: `2040-01-02T${hour}:00`, durationMinutes: "60", bookingTypeName: "Reserva", repeatUntil: "", teacherId: "", responsiblePlayerId: f.player.id, notes: "", participants: JSON.stringify([{ playerId: f.player.id, amountCents: 7500, paymentMethod: "" }]) }));
     assert.match((await change(12)).error, /não está disponível/);
     assert.equal((await f.admin.scheduleOccurrence.findUniqueOrThrow({ where: { id: original.id } })).startsAt.getTime(), at(10).getTime());
     assert.equal((await change(13)).error, undefined);

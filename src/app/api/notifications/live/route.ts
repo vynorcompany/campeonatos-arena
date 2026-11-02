@@ -25,6 +25,7 @@ export async function GET(request: Request) {
     await refreshLoyaltyNotifications(auth.arenaId);
     types.push(loyaltyNotificationType);
   }
+  if (!comandaOnly && (["OWNER", "ADMIN"].includes(auth.arenaRole ?? "") || ["SUPER_ADMIN", "ADMIN"].includes(auth.systemRole))) types.push("SYSTEM_RECOVERY");
   const notifications = types.length
     ? await arenaDatabase(auth.arenaId).arenaNotification.findMany({
         where: { arenaId: auth.arenaId, readAt: null, type: { in: types } },

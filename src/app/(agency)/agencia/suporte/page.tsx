@@ -5,7 +5,7 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard } from "@/components/section-card";
 import { addSupportTicketMessageAction, updateAgencyTicketAction } from "@/lib/actions/support";
 import { requireAgencyPageAccess } from "@/lib/auth/guards";
-import { prisma } from "@/lib/prisma";
+import { agencyDatabase as prisma } from "@/lib/auth/database";
 
 const statusLabels: Record<string, string> = {
   OPEN: "Aberto",

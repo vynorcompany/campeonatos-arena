@@ -87,6 +87,7 @@ export default async function ProductDetailPage(props: {
                     successMessage="Produto atualizado."
                   >
                     <input type="hidden" name="productId" value={product.id} />
+                    <input type="hidden" name="expectedUpdatedAt" value={product.updatedAt.toISOString()} />
                     <input
                       type="hidden"
                       name="stockQuantity"

@@ -1,3 +1,4 @@
+import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
@@ -41,7 +42,7 @@ function registration(overrides: { conflicts?: Array<{ code: string; meta: { tar
     "@/lib/finance/agency-billing-dates": { agencyBillingDay: () => 1 },
   };
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, {
-    exports, require: (name: string) => { if (!(name in mocks)) throw new Error(`Unexpected import: ${name}`); return mocks[name]; }, FormData, Date, URL, console,
+    exports, require: withDatabaseModuleMocks((name: string) => { if (!(name in mocks)) throw new Error(`Unexpected import: ${name}`); return mocks[name]; }), FormData, Date, URL, console,
   });
   const data = new FormData();
   data.set("arenaName", "Arena Prova"); data.set("ownerName", "Responsável GOAL"); data.set("email", "goal-registration@example.test");

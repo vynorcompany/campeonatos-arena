@@ -5,7 +5,7 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard } from "@/components/section-card";
 import { deleteAgencyArenaAction, updateAgencyArenaAction, updateAgencyArenaStatusAction } from "@/lib/actions/agency";
 import { requireAgencyPageAccess } from "@/lib/auth/guards";
-import { prisma } from "@/lib/prisma";
+import { agencyDatabase as prisma } from "@/lib/auth/database";
 import { agencyStatusLabel } from "@/lib/agency/status-label";
 
 export default async function AgencyArenasPage() {
@@ -40,7 +40,7 @@ export default async function AgencyArenasPage() {
             <article key={arena.id} className={viewStyles.agency_arena_card}>
               <div className={viewStyles.agency_ticket_head}>
                 <div>
-                  <span className={cx(`${viewStyles.ticket_status} ticket-status-${arena.accountStatus.toLowerCase()}`)}>{agencyStatusLabel(arena.accountStatus)}</span>
+                  <span className={cx(`${viewStyles.ticket_status} ticket-status-${arena.accountStatus.toLowerCase()}`)}>{arena.archivedAt ? "Arquivada" : agencyStatusLabel(arena.accountStatus)}</span>
                   <h3>{arena.name}</h3>
                   <p className={viewStyles.muted}>{arena.slug} · {arena._count.members} usuário(s) · {arena._count.supportTickets} ticket(s)</p>
                 </div>
@@ -68,13 +68,13 @@ export default async function AgencyArenasPage() {
                 <SubmitButton label="Salvar arena" pendingLabel="Salvando..." className={viewStyles.button_button_primary} />
               </SafeActionForm>
 
-              <SafeActionForm action={deleteAgencyArenaAction} className={viewStyles.agency_danger_form} successMessage="Arena removida." confirmKeyword="EXCLUIR" confirmPrompt={`Excluir definitivamente a arena ${arena.name}? Digite EXCLUIR para confirmar.`}>
+              <SafeActionForm action={deleteAgencyArenaAction} className={viewStyles.agency_danger_form} successMessage="Arena arquivada. Dados preservados." confirmKeyword="ARQUIVAR" confirmPrompt={`Arquivar ${arena.name}? Os dados serão preservados e o acesso ficará suspenso. Digite ARQUIVAR para confirmar.`}>
                 <input type="hidden" name="arenaId" value={arena.id} />
                 <button
                   type="submit"
                   className={viewStyles.button_button_secondary}
                 >
-                  Excluir arena
+                  Arquivar arena
                 </button>
               </SafeActionForm>
             </article>

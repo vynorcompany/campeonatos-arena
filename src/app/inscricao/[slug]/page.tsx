@@ -30,10 +30,7 @@ export default async function PublicRegistrationPage(
   const activeTab = publicTabs.some((tab) => tab.id === searchParams?.tab)
     ? searchParams?.tab as PublicTournamentTab
     : "inscricao";
-  const tournamentOwner = await prisma.tournament.findUnique({
-    where: { publicSlug: params.slug },
-    select: { arenaId: true },
-  });
+  const [tournamentOwner] = await prisma.$queryRaw<{ id: string; arenaId: string }[]>`SELECT * FROM public.resolve_tournament_public_slug(${params.slug})`;
   if (!tournamentOwner) notFound();
   const tournament = await arenaDatabase(tournamentOwner.arenaId).tournament.findUnique({
     where: { publicSlug: params.slug, arenaId: tournamentOwner.arenaId },

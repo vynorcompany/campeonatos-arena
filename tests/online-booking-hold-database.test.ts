@@ -1,3 +1,4 @@
+import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import * as playerValidators from "../src/lib/validators/player";
 import * as playerPhones from "../src/lib/phone";
 import * as serviceBookingRules from "../src/lib/calendar/service-booking-rules";
@@ -159,6 +160,7 @@ test("duas reservas simultâneas da mesma quadra produzem apenas um hold", { ski
       "@/lib/rls": { withArenaTransaction: (scope: string, operation: (tx: any) => Promise<unknown>) => runtime.$transaction(async (tx) => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${scope}, true)`; return operation(tx); }) },
       "@/lib/validators/player": playerValidators, "@/lib/phone": playerPhones, "@/lib/calendar/service-booking-rules": serviceBookingRules, "@/lib/calendar/booking-services": bookingResources, "@/lib/calendar/inputs": { parseScheduledAt },
       "@/lib/scheduling/weekly-rule": {},
+      "@/lib/scheduling/copy-weekly-rule": {},
       "@/lib/calendar/booking-types": {},
       "@/lib/calendar/revalidation": { refreshCalendarRoutes() {} },
       "@/lib/finance/revalidation": { refreshFinanceRoutes() {} },
@@ -176,7 +178,7 @@ test("duas reservas simultâneas da mesma quadra produzem apenas um hold", { ski
     };
     vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText, {
       exports, Date, FormData, Set, console,
-      require: (name: string) => { if (!(name in mocks)) throw new Error(`Import inesperado: ${name}`); return mocks[name]; },
+      require: withDatabaseModuleMocks((name: string) => { if (!(name in mocks)) throw new Error(`Import inesperado: ${name}`); return mocks[name]; }),
     });
     const form = new FormData();
     form.set("arenaSlug", "arena-teste-goal"); form.set("courtId", courtId);

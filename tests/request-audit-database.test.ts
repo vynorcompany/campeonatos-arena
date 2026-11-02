@@ -15,7 +15,7 @@ test("auditoria HTTP persiste autor e resultado, mantém isolamento e protege re
   const token = randomUUID(); const route = `/audit-test-${randomUUID()}`;
   let userId = ""; const ids: string[] = [];
   let observedArena = "";
-  const http = createServer(createAuditedHandler((req: any, res: any) => { if (req.headers["x-test-observe-arena"] === "yes") noteAuditArena(observedArena); res.statusCode = 403; res.end("consulta rejeitada"); }, { db: runtime, onError() { throw new Error("Não foi possível gravar a auditoria real."); } }));
+  const http = createServer(createAuditedHandler((req: any, res: any) => { if (req.headers["x-test-observe-arena"] === "yes") noteAuditArena(observedArena); res.statusCode = 403; res.end("consulta rejeitada"); }, { db: runtime, authDb: admin, onError() { throw new Error("Não foi possível gravar a auditoria real."); } }));
   try {
     const arenaA = await admin.arena.findUniqueOrThrow({ where: { slug: "arena-teste-goal" } });
     observedArena = arenaA.id;

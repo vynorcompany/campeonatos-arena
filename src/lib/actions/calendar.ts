@@ -1,4 +1,5 @@
 "use server";
+import { staleRecordMessage } from "@/lib/record-version";
 import { createPlayerSchema } from "@/lib/validators/player";
 import { normalizeBrazilianPhone } from "@/lib/phone";
 import { servicePermitsDuration } from "@/lib/calendar/service-booking-rules";
@@ -125,7 +126,7 @@ const courtBookingSchema = z.object({
   participants: z.string().trim().default("[]")
 });
 
-type CourtBookingActionResult = { error?: string };
+type CourtBookingActionResult = { error?: string; version?: string };
 const visibleCourtBookingErrors = new Set([
   "Dados inválidos.",
   "Selecione a conta bancária do recebimento.",
@@ -436,6 +437,9 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
     teacherId: formData.get("teacherId"), responsiblePlayerId: formData.get("responsiblePlayerId"), notes: formData.get("notes"), participants: formData.get("participants")
   });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  const expectedVersion = formData.get("expectedUpdatedAt");
+  if (parsed.data.occurrenceId && typeof expectedVersion !== "string") return { error: staleRecordMessage };
+  let savedVersion: string | undefined;
   const auth = await requirePermission(parsed.data.occurrenceId ? "calendar:booking:edit" : "calendar:booking:create");
   const prisma = arenaDatabase(auth.arenaId);
   const startsAt = parseScheduledAt(parsed.data.startsAt);
@@ -481,7 +485,7 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
       if (!lockedCourt.length) throw new Error("Quadra não encontrada.");
     }
     if (parsed.data.occurrenceId) {
-      await assertCourtBookingMayBeEdited(tx, auth.arenaId, parsed.data.occurrenceId, true);
+      await assertCourtBookingMayBeEdited(tx, auth.arenaId, parsed.data.occurrenceId, true, String(expectedVersion));
       const attachedServices = await tx.scheduleServiceReservation.findMany({ where: { arenaId: auth.arenaId, occurrenceId: parsed.data.occurrenceId }, select: { productId: true } });
       if (attachedServices.length) await lockAvailableBookingServices(tx, auth.arenaId, attachedServices.map(service => service.productId), startsAt, endsAt, { excludeOccurrenceId: parsed.data.occurrenceId, requireVisible: false, courtIds });
     }
@@ -497,6 +501,7 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
         const series = fixedBooking ? await tx.scheduleBookingSeries.create({ data: { arenaId: auth.arenaId, title: bookingTitle, bookingTypeName: parsed.data.bookingTypeName, startsAt, endsAt: occurrenceTimes.at(-1)!.endsAt, teacherId: parsed.data.teacherId || null, responsiblePlayerId: responsiblePlayerId || null, notes: parsed.data.notes } }) : null;
         return Promise.all(occurrenceTimes.map((occurrence) => tx.scheduleOccurrence.create({ data: { arenaId: auth.arenaId, sourceType: "BOOKING", courtPriceCents: parsed.data.courtPriceCents, bookingSeriesId: series?.id, title: bookingTitle, startsAt: occurrence.startsAt, endsAt: occurrence.endsAt, bookingTypeName: parsed.data.bookingTypeName, teacherId: parsed.data.teacherId || null, responsiblePlayerId: responsiblePlayerId || null, notes: parsed.data.notes, occurrenceCourts: { create: courtIds.map((courtId) => ({ courtId })) } } })));
       })();
+    savedVersion = occurrences[0]?.updatedAt?.toISOString();
     for (const occurrence of occurrences) {
       const linked = await tx.scheduleParticipant.findMany({ where: { occurrenceId: occurrence.id }, select: { financialEntryId: true } });
       for (const id of linked.map(row => row.financialEntryId).filter((id): id is string => Boolean(id)).sort()) await tx.$queryRaw`SELECT id FROM "FinancialEntry" WHERE id = ${id} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
@@ -545,10 +550,10 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
   });
   refreshCalendar();
   refreshFinanceRoutes();
-  return {};
+  return { version: savedVersion };
   } catch (reason) {
     const message = reason instanceof Error ? reason.message : "";
-    if (reason instanceof BookingServiceUnavailableError || visibleCourtBookingErrors.has(message)) return { error: message };
+    if (message === staleRecordMessage || reason instanceof BookingServiceUnavailableError || visibleCourtBookingErrors.has(message)) return { error: message };
     console.error("Falha ao salvar agendamento da grade", reason);
     return { error: "Não foi possível salvar o agendamento. Tente novamente." };
   }

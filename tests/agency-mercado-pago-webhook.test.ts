@@ -1,3 +1,4 @@
+import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import * as providerDeadline from "../src/lib/http/fetch-with-deadline";
 import * as jsonBody from "../src/lib/http/json-body";
 import assert from "node:assert/strict";
@@ -15,7 +16,7 @@ function webhookFor(payment: { id: string; status: string; status_detail?: strin
   const exports: Record<string, (request: Request) => Promise<{ status: number; body: Record<string, unknown> }>> = {};
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, {
     exports, URL, Date, Math, Number, String, console,
-    require: (name: string) => {
+    require: withDatabaseModuleMocks((name: string) => {
       if (name === "@/lib/http/fetch-with-deadline") return providerDeadline;
       if (name === "@/lib/http/json-body") return jsonBody;
       if (name === "next/server") return { NextResponse: { json: (body: Record<string, unknown>, options?: { status?: number }) => ({ body, status: options?.status ?? 200 }) } };
@@ -54,7 +55,7 @@ function webhookFor(payment: { id: string; status: string; status_detail?: strin
       if (name === "@/lib/payments/agency-mercado-pago-token") return { getAgencyMercadoPagoToken: async () => "synthetic-token" };
       if (name === "@/lib/payments/mercado-pago-webhook-signature") return { verifyMercadoPagoWebhookSignature: () => true };
       return {};
-    },
+    }),
     fetch: async (_url: string, options: { headers: { Authorization: string } }) => {
       assert.equal(options.headers.Authorization, "Bearer synthetic-token");
       return { ok: true, json: async () => payment };

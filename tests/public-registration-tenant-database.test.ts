@@ -69,7 +69,7 @@ test("inscrições públicas só podem ser lidas e alteradas pela arena do torne
       assert.equal(await tx.publicTournamentRegistration.findFirst({ where: { id: registration.id } }), null);
       assert.equal((await tx.publicTournamentRegistration.updateMany({ where: { id: registration.id }, data: { leadName: "Invadido" } })).count, 0);
       const foreignTournament = await tx.tournament.findUnique({ where: { id: tournamentId }, include: { publicRegistrations: true } });
-      assert.equal(foreignTournament?.publicRegistrations.length, 0);
+      assert.equal(foreignTournament, null);
       await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaA.id}, true)`;
       assert.equal((await tx.publicTournamentRegistration.findFirst({ where: { id: registration.id } }))?.leadName, "Atleta GOAL");
       assert.equal(await tx.publicTournamentRegistration.findFirst({ where: { id: malformed.id } }), null);

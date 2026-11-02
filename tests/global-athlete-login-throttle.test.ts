@@ -1,3 +1,4 @@
+import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import { legalVersion } from "../src/lib/legal/version";
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -37,7 +38,7 @@ function fixture() {
     },
   };
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, {
-    exports, require: (name: string) => name in mocks ? mocks[name] : require(name), FormData, Date, URL, Buffer, console,
+    exports, require: withDatabaseModuleMocks((name: string) => name in mocks ? mocks[name] : require(name)), FormData, Date, URL, Buffer, console,
   });
   const login = (password: string) => {
     const form = new FormData(); form.set("phone", "(11) 97777-0042"); form.set("password", password);

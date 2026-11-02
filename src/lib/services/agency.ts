@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { agencyDatabase as prisma } from "@/lib/auth/database";
 
 export function formatCurrency(cents: number) {
   return new Intl.NumberFormat("pt-BR", {

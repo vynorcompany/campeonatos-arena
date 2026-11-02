@@ -1,6 +1,6 @@
 import { AgencyPlansContent } from "@/components/agency/agency-plans-content";
 import { requireAgencyPageAccess } from "@/lib/auth/guards";
-import { prisma } from "@/lib/prisma";
+import { agencyDatabase as prisma } from "@/lib/auth/database";
 
 export default async function AgencyPlansPage({ searchParams }: { searchParams: Promise<{ connected?: string; connectionError?: string }> }) {
   await requireAgencyPageAccess();

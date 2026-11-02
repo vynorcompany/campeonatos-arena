@@ -89,6 +89,17 @@ if [ "$source_functions" != "$target_functions" ]; then
   echo "Restore did not preserve function security and EXECUTE privileges." >&2
   exit 1
 fi
+# Column-level identity grants and separate service roles are recovery invariants too.
+for service_role in arena_runtime arena_auth arena_agency; do
+  source_role="$(psql "$DATABASE_URL" -X -At -v ON_ERROR_STOP=1 -c "SELECT count(*) FROM pg_roles WHERE rolname='$service_role'")"
+  [ "$source_role" = "1" ] || continue
+  target_role="$(psql "$RESTORE_DATABASE_URL" -X -At -v ON_ERROR_STOP=1 -c "SELECT count(*) FROM pg_roles WHERE rolname='$service_role' AND NOT rolsuper AND NOT rolcreatedb AND NOT rolcreaterole AND NOT rolreplication AND NOT rolbypassrls")"
+  if [ "$target_role" != "1" ]; then echo "Restore target needs restricted role $service_role." >&2; exit 1; fi
+  column_sql="SELECT md5(coalesce(string_agg(c.relname || ':' || a.attname || ':' || has_column_privilege('$service_role',c.oid,a.attnum,'SELECT')::text || ':' || has_column_privilege('$service_role',c.oid,a.attnum,'INSERT')::text || ':' || has_column_privilege('$service_role',c.oid,a.attnum,'UPDATE')::text,'|' ORDER BY c.relname,a.attnum),'')) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace JOIN pg_attribute a ON a.attrelid=c.oid WHERE n.nspname='public' AND c.relkind='r' AND a.attnum>0 AND NOT a.attisdropped"
+  before_columns="$(psql "$DATABASE_URL" -X -At -v ON_ERROR_STOP=1 -c "$column_sql")"
+  after_columns="$(psql "$RESTORE_DATABASE_URL" -X -At -v ON_ERROR_STOP=1 -c "$column_sql")"
+  if [ "$before_columns" != "$after_columns" ]; then echo "Restore changed column permissions for $service_role." >&2; exit 1; fi
+done
 psql "$RESTORE_DATABASE_URL" -X -At -v ON_ERROR_STOP=1 -c 'SET ROLE arena_runtime; SELECT count(*) FROM "Arena";' >/dev/null
 psql "$RESTORE_DATABASE_URL" -X -At -v ON_ERROR_STOP=1 -c 'SET ROLE arena_runtime; DO $$BEGIN IF EXISTS (SELECT 1 FROM "ScheduleOccurrence") THEN RAISE EXCEPTION '\''Unscoped arena rows are visible after restore'\''; END IF; END$$;' >/dev/null
 psql "$RESTORE_DATABASE_URL" -v ON_ERROR_STOP=1 -c 'SELECT current_database() AS restored_database, NOW() AS checked_at;'

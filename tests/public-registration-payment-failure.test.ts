@@ -1,3 +1,4 @@
+import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -17,6 +18,7 @@ function loadAction(createPayment: (input: Record<string, unknown>) => Promise<R
   const contexts: string[] = [];
   let providerAtCreation = "";
   const tx = {
+    $queryRaw: async () => [{ id: "tournament-a", arenaId: "arena-a" }],
     arenaOperationalSettings: { findUnique: async () => ({ portalPaymentBankAccountId: bank === "missing" ? null : "bank-a" }) },
     bankAccount: { findFirst: async ({ where }: { where: { id: string; arenaId: string; active: boolean } }) => bank === "valid" && where.id === "bank-a" && where.arenaId === "arena-a" && where.active ? { id: "bank-a" } : null },
     tournament: { findUnique: async ({ where }: { where: { publicSlug?: string } }) => where.publicSlug
@@ -36,7 +38,7 @@ function loadAction(createPayment: (input: Record<string, unknown>) => Promise<R
   const exports: Record<string, (state: unknown, formData: FormData) => Promise<Record<string, unknown>>> = {};
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
     exports, FormData, Date, Error,
-    require: (name: string) => {
+    require: withDatabaseModuleMocks((name: string) => {
       if (name === "@/lib/finance/receiving-bank-account") return { requireReceivingBankAccount };
       if (name === "next/cache") return { revalidatePath: () => undefined };
       if (name === "@/lib/payments/mercado-pago") return { createCardCheckout: (input: Record<string, unknown>) => { paymentInputs.push(input); return createPayment(input); }, createPixPayment: (input: Record<string, unknown>) => { paymentInputs.push(input); return createPayment(input); } };
@@ -47,7 +49,7 @@ function loadAction(createPayment: (input: Record<string, unknown>) => Promise<R
       if (name === "@/lib/tournaments/registration-order") return { lockTournamentRegistrations: async () => undefined, nextTournamentRegistrationOrder: async () => 1 };
       if (name === "@/lib/rls") return { setArenaRlsContext: async (_tx: unknown, arenaId: string) => { contexts.push(arenaId); }, withArenaTransaction: async (arenaId: string, operation: (client: typeof tx) => Promise<unknown>) => { contexts.push(arenaId); return operation(tx); } };
       return require(name);
-    },
+    }),
   });
   return { action: exports.createPublicRegistrationAction, registration, updates, releaseFilters, paymentInputs, contexts, providerAtCreation: () => providerAtCreation };
 }

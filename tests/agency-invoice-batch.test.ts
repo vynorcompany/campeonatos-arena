@@ -1,3 +1,4 @@
+import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -50,7 +51,7 @@ test("one failed agency invoice or checkout does not stop the remaining work", a
   const exports: Record<string, (now: Date) => Promise<Record<string, number>>> = {};
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
     exports, Date, URL, console: { error: (...args: unknown[]) => errors.push(args) },
-    require: (name: string) => {
+    require: withDatabaseModuleMocks((name: string) => {
       if (name === "server-only") return {};
       if (name === "@prisma/client") return { Prisma: { PrismaClientKnownRequestError: class extends Error {} } };
       if (name === "@/lib/prisma") return { prisma };
@@ -62,7 +63,7 @@ test("one failed agency invoice or checkout does not stop the remaining work", a
         nextAgencyDueDate: () => new Date("2035-02-01T00:00:00.000Z"),
       };
       return require(name);
-    },
+    }),
   });
   const result = await exports.issueDueAgencyInvoices(new Date("2035-01-02T00:00:00.000Z"));
   assert.deepEqual(JSON.parse(JSON.stringify(result)), {
@@ -115,7 +116,7 @@ test("failed records in the first agency batch cannot starve later subscriptions
   const exports: Record<string, (now: Date) => Promise<Record<string, number>>> = {};
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
     exports, Date, URL, console: { error: () => undefined },
-    require: (name: string) => {
+    require: withDatabaseModuleMocks((name: string) => {
       if (name === "server-only") return {};
       if (name === "@prisma/client") return { Prisma: { PrismaClientKnownRequestError: class extends Error {} } };
       if (name === "@/lib/prisma") return { prisma };
@@ -124,7 +125,7 @@ test("failed records in the first agency batch cannot starve later subscriptions
       if (name === "@/lib/env") return { env: { appUrl: "https://arena.example.test" } };
       if (name === "@/lib/finance/agency-billing-dates") return { agencyInvoicePeriod: () => "2035-01", nextAgencyDueDate: () => new Date("2035-02-01T00:00:00.000Z") };
       return require(name);
-    },
+    }),
   });
   const result = await exports.issueDueAgencyInvoices(new Date("2035-01-02T00:00:00.000Z"));
   assert.deepEqual(JSON.parse(JSON.stringify(result)), {

@@ -1,3 +1,4 @@
+import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import { boundedJsonForRouteFixture } from "./helpers/json-request";
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -36,7 +37,7 @@ test("WhatsApp routing reveals only tenant metadata and callbacks cannot authent
     const mocks: Record<string, unknown> = {
       "@/lib/http/json-body": boundedJsonForRouteFixture,
       "next/server": { NextResponse: { json: (body: unknown, options?: { status?: number }) => ({ status: options?.status ?? 200, body }) } },
-      "@/lib/prisma": { prisma: runtime },
+      "@/lib/prisma": { prisma: admin },
       "@/lib/arena-database": { arenaDatabase: (arenaId: string) => arenaDatabaseForTest(runtime, arenaId) },
       "@/lib/payments/connection-secrets": { hashWebhookSecret: hash },
       "@/lib/whatsapp-account": { normalizeWhatsAppAccountJid },
@@ -45,7 +46,7 @@ test("WhatsApp routing reveals only tenant metadata and callbacks cannot authent
       "@/lib/services/whatsapp-conversation": {}, "@/lib/whatsapp-conversation-version": {}, "@/lib/integrations/evolution/groups": {}, "@/lib/rls": {},
     };
     const actions: any = {};
-    vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/app/api/integrations/evolution/webhook/route.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports: actions, Date, Buffer, require: (name: string) => name in mocks ? mocks[name] : require(name) });
+    vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/app/api/integrations/evolution/webhook/route.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports: actions, Date, Buffer, require: withDatabaseModuleMocks((name: string) => name in mocks ? mocks[name] : require(name)) });
     const request = (index: number, secret: string, payloadIndex = index) => ({ nextUrl: { searchParams: new URLSearchParams({ instance: connections[index].instanceName }) }, headers: new Headers({ "x-evolution-webhook-secret": secret }), json: async () => ({ instance: connections[payloadIndex].instanceName, event: "CONNECTION_UPDATE", data: { state: "close" } }) });
     assert.equal((await actions.POST(request(1, secrets[0]))).status, 401);
     assert.equal((await actions.POST(request(0, secrets[0], 1))).status, 401);
@@ -64,13 +65,13 @@ test("WhatsApp routing reveals only tenant metadata and callbacks cannot authent
     }
     const sent: Array<{ phone: string; arenaId: string }> = [];
     const authMocks: Record<string, unknown> = {
-      "@/lib/legal/version": { legalVersion }, "next/navigation": {}, "@/lib/auth/player-session": {}, "@/lib/prisma": { prisma: runtime },
+      "@/lib/legal/version": { legalVersion }, "next/navigation": {}, "@/lib/auth/player-session": {}, "@/lib/prisma": { prisma: admin },
       "@/lib/services/public-client-registration": {}, "@/lib/env": { env: {} }, "@/lib/auth/login-attempts": {}, "@/lib/phone": { normalizeBrazilianPhone: (value: string) => value.replace(/\D/g, "") },
       "@/lib/integrations/evolution/client": { sendEvolutionTextMessage: async (target: string, _message: string, arenaId: string) => { sent.push({ phone: target, arenaId }); } },
       "@/lib/rls": { withArenaTransaction: (arenaId: string, operation: (tx: unknown) => Promise<unknown>) => runtime.$transaction(async tx => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`; return operation(tx); }) },
     };
     const authActions: any = {};
-    vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/lib/actions/player-auth.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText, { exports: authActions, Date, Buffer, FormData, require: (name: string) => name in authMocks ? authMocks[name] : require(name) });
+    vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/lib/actions/player-auth.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText, { exports: authActions, Date, Buffer, FormData, require: withDatabaseModuleMocks((name: string) => name in authMocks ? authMocks[name] : require(name)) });
     const form = new FormData(); form.set("phone", phone);
     assert.equal((await authActions.requestGlobalPublicPasswordResetAction({}, form)).requested, true);
     assert.deepEqual(sent, [{ phone, arenaId: ids[1] }]);

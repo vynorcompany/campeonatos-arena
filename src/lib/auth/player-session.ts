@@ -2,7 +2,7 @@ import "server-only";
 
 import crypto from "node:crypto";
 import { cookies } from "next/headers";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/auth/database";
 import { arenaDatabase } from "@/lib/arena-database";
 
 const PLAYER_SESSION_COOKIE = "arena_player_session";
@@ -32,7 +32,7 @@ export async function destroyPublicPlayerSession() {
 }
 
 const membershipInclude = {
-  player: { include: { arena: { select: { slug: true, name: true, logoUrl: true, city: true, state: true } }, teacher: { select: { active: true } } } },
+  player: { include: { arena: { select: { slug: true, name: true, logoUrl: true, city: true, state: true, archivedAt: true } }, teacher: { select: { active: true } } } },
 } as const;
 
 async function getSession() {
@@ -64,9 +64,9 @@ async function getSession() {
       where: { id: account.playerId, arenaId: account.arenaId },
       include: membershipInclude.player.include,
     });
-    return player ? { ...account, player } : null;
+    return player && !player.arena.archivedAt ? { ...account, player } : null;
   }))).filter((account): account is NonNullable<typeof account> => account !== null);
-  const primary = accounts.find((account) => account.id === session.playerAccount.id);
+  const primary = accounts.find((account) => account.id === session.playerAccount.id) ?? accounts[0];
   if (!primary) return null;
   const resolvedIdentity = identity ? { ...identity, accounts } : null;
   return {

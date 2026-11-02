@@ -67,10 +67,7 @@ export async function createPublicRegistrationAction(
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      const target = await tx.tournament.findUnique({
-        where: { publicSlug: parsed.data.tournamentSlug },
-        select: { id: true, arenaId: true }
-      });
+      const [target] = await tx.$queryRaw<{ id: string; arenaId: string }[]>`SELECT * FROM public.resolve_tournament_public_slug(${parsed.data.tournamentSlug})`;
       if (!target) throw new Error("Torneio nao encontrado.");
       await setArenaRlsContext(tx, target.arenaId);
       await lockTournamentRegistrations(tx, target.id, target.arenaId);

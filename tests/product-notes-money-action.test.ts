@@ -1,3 +1,4 @@
+import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import test from "node:test";
 import assert from "node:assert/strict";
 import vm from "node:vm";
@@ -55,16 +56,16 @@ test("cadastro/edição de produto: moeda brasileira, observações e isolamento
     }).outputText,
     {
       exports,
-      require: (name: string) => {
+      require: withDatabaseModuleMocks((name: string) => {
         assert.ok(name in mocks, name);
         return mocks[name];
-      },
+      }),
       FormData,
     },
   );
   const form = new FormData();
   Object.entries({
-    productId: "product-a",
+    productId: "product-a", expectedUpdatedAt: "2026-11-02T12:00:00.000Z",
     name: "Bebida",
     sku: "",
     cost: "R$ 1.234,56",

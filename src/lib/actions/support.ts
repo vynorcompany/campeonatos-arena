@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireArenaAccess } from "@/lib/auth/session";
 import { requireAgencyAccess } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
+import { agencyDatabase } from "@/lib/auth/database";
 
 const ticketSchema = z.object({
   title: z.string().trim().min(4, "Informe um título com pelo menos 4 caracteres."),
@@ -68,6 +69,7 @@ export async function createSupportTicketAction(formData: FormData) {
 
 export async function updateAgencyTicketAction(formData: FormData) {
   const auth = await requireAgencyAccess();
+  const prisma = agencyDatabase;
   const parsed = agencyTicketUpdateSchema.safeParse({
     ticketId: formData.get("ticketId"),
     status: formData.get("status"),
@@ -96,6 +98,7 @@ export async function updateAgencyTicketAction(formData: FormData) {
 
 export async function addSupportTicketMessageAction(formData: FormData) {
   const auth = await requireAgencyAccess();
+  const prisma = agencyDatabase;
   const parsed = messageSchema.safeParse({
     ticketId: formData.get("ticketId"),
     body: formData.get("body"),

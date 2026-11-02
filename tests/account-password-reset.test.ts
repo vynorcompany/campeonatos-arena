@@ -1,3 +1,4 @@
+import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
@@ -43,7 +44,7 @@ function fixture() {
     "@/lib/validators/user": { inviteArenaUserSchema: {} }
   };
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, {
-    exports, Date, URL, URLSearchParams, require: (name: string) => name in mocks ? mocks[name] : require(name)
+    exports, Date, URL, URLSearchParams, require: withDatabaseModuleMocks((name: string) => name in mocks ? mocks[name] : require(name))
   });
   const form = new FormData();
   form.set("token", token);

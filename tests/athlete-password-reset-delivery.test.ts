@@ -1,3 +1,4 @@
+import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import { legalVersion } from "../src/lib/legal/version";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -29,7 +30,7 @@ function loadActions(deliveryFails: boolean) {
   const actions: Record<string, (_state: unknown, form: FormData) => Promise<Record<string, unknown>>> = {};
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, {
     exports: actions, FormData, Date, Buffer,
-    require: (name: string) => {
+    require: withDatabaseModuleMocks((name: string) => {
       if (name === "@/lib/legal/version") return { legalVersion };
       if (name === "next/navigation") return { redirect() {} };
       if (name === "@/lib/prisma") return { prisma };
@@ -41,7 +42,7 @@ function loadActions(deliveryFails: boolean) {
       if (name === "@/lib/phone") return { normalizeBrazilianPhone: (phone: string) => phone.replace(/\D/g, "") };
       if (name === "@/lib/integrations/evolution/client") return { sendEvolutionTextMessage: async () => { calls.sent += 1; if (deliveryFails) throw new Error("Evolution indisponível"); return { key: { id: "message-a" } }; } };
       return require(name);
-    },
+    }),
   });
   return { actions, calls };
 }

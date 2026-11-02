@@ -1,3 +1,4 @@
+import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import { deviceLabel } from "../src/lib/auth/device-label";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -14,7 +15,7 @@ function loadDelinquency(graceDays: number | null, invoice: { id: string; dueAt:
   const exports: Record<string, (arenaId: string, now: Date) => Promise<{ blocked: boolean; daysRemaining: number; id: string } | null>> = {};
   vm.runInNewContext(ts.transpileModule(delinquencySource, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
     exports, Date, Promise,
-    require: (name: string) => {
+    require: withDatabaseModuleMocks((name: string) => {
       if (name === "server-only") return {};
       if (name === "@/lib/finance/agency-billing-dates") return { agencyInvoiceDeadline };
       if (name === "@/lib/prisma") return { prisma: {
@@ -27,7 +28,7 @@ function loadDelinquency(graceDays: number | null, invoice: { id: string; dueAt:
       } };
       if (name === "@/lib/auth/device-label") return { deviceLabel };
       throw new Error(`Unexpected import: ${name}`);
-    },
+    }),
   });
   return exports.getAgencyDelinquency;
 }
@@ -64,7 +65,7 @@ test("painel bloqueia arena inadimplente e libera após a fatura ser regularizad
   const membership = { arenaId: "arena-a", role: "OWNER", viewPermissions: [], editPermissions: [], arena: { id: "arena-a", name: "Arena A", logoUrl: "" }, permissionProfile: null };
   vm.runInNewContext(ts.transpileModule(sessionSource, { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, {
     exports, Date,
-    require: (name: string) => {
+    require: withDatabaseModuleMocks((name: string) => {
       if (name === "react") return { cache: (callback: unknown) => callback };
       if (name === "next/headers") return { cookies: async () => ({ get: (key: string) => key === "session" ? { value: "token" } : key === "arena" ? { value: "arena-a" } : undefined }) };
       if (name === "next/navigation") return { redirect: (path: string) => { throw new Error(`redirect:${path}`); } };
@@ -78,7 +79,7 @@ test("painel bloqueia arena inadimplente e libera após a fatura ser regularizad
       if (name === "@/lib/finance/agency-delinquency") return { getAgencyDelinquency: async () => blocked ? { blocked: true } : null };
       if (name === "@/lib/auth/device-label") return { deviceLabel };
       throw new Error(`Unexpected import: ${name}`);
-    },
+    }),
   });
   await assert.rejects(exports.requireArenaAccess(), /redirect:\/acesso-indisponivel/);
   blocked = false;

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAgencyAccess } from "@/lib/auth/guards";
-import { prisma } from "@/lib/prisma";
+import { agencyDatabase as prisma } from "@/lib/auth/database";
 import { agencyBillingDay } from "@/lib/finance/agency-billing-dates";
 import { ensureAgencyCheckout, issueAgencyInvoice } from "@/lib/services/agency-billing";
 

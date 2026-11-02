@@ -9,7 +9,7 @@
     "test": "node --import tsx --test",
     "dev": "next dev",
     "build": "prisma generate && next build && node scripts/prepare-standalone.mjs",
-    "start": "node .next/standalone/server.js",
+    "start": "node scripts/start-server.mjs",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "db:generate": "prisma generate",

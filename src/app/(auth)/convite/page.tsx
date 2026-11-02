@@ -3,7 +3,7 @@ import Link from "next/link";
 import { LoginBrandPanel } from "@/components/auth/login-brand-panel";
 import { AcceptInviteForm } from "@/components/auth/account-access-forms";
 import { hashAccountToken } from "@/lib/auth/account-tokens";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/auth/database";
 
 export default async function ArenaInvitePage({ searchParams }: { searchParams: Promise<{ token?: string }> }) {
   const { token = "" } = await searchParams;

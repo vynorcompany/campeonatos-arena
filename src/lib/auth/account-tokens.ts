@@ -1,6 +1,6 @@
 import "server-only";
 import crypto from "node:crypto";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/auth/database";
 
 export function hashAccountToken(token: string) {
   return crypto.createHash("sha256").update(token).digest("hex");

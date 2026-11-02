@@ -1,3 +1,4 @@
+import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import { deviceLabel } from "../src/lib/auth/device-label";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -24,7 +25,7 @@ test("troca de arena rejeita IDs alheios antes de gravar o cookie", async () => 
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, {
     exports,
     FormData,
-    require: (name: string) => {
+    require: withDatabaseModuleMocks((name: string) => {
       if (name === "next/navigation") return { redirect };
       if (name === "@/lib/auth/session") return {
         getAuthContext: async () => ({ memberships: [{ arenaId: "arena-a" }] }),
@@ -32,7 +33,7 @@ test("troca de arena rejeita IDs alheios antes de gravar o cookie", async () => 
       };
       if (name === "bcryptjs") return { default: {} };
       return {};
-    },
+    }),
   });
 
   const form = new FormData();
@@ -55,7 +56,7 @@ test("cookie de arena inválido não altera o contexto para outra subconta", asy
   });
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, {
     exports,
-    require: (name: string) => {
+    require: withDatabaseModuleMocks((name: string) => {
       if (name === "react") return { cache: (callback: unknown) => callback };
       if (name === "next/headers") return { cookies: async () => ({ get: (key: string) => key === "session" ? { value: "token" } : key === "arena" ? { value: selectedArenaId } : undefined }) };
       if (name === "next/navigation") return { redirect: () => { throw new Error("unexpected redirect"); } };
@@ -65,7 +66,7 @@ test("cookie de arena inválido não altera o contexto para outra subconta", asy
       if (name === "node:crypto") return { createHash: () => ({ update: () => ({ digest: () => "hash" }) }) };
       if (name === "@/lib/auth/device-label") return { deviceLabel };
       throw new Error(`Unexpected import: ${name}`);
-    },
+    }),
   });
 
   assert.equal((await exports.getAuthContext()).arenaId, "arena-b");
@@ -83,7 +84,7 @@ test("requisições simultâneas descartam sessão expirada sem erro concorrente
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, {
     exports,
     Date,
-    require: (name: string) => {
+    require: withDatabaseModuleMocks((name: string) => {
       if (name === "react") return { cache: (callback: unknown) => callback };
       if (name === "next/headers") return { cookies: async () => ({ get: () => ({ value: "expired-token" }) }) };
       if (name === "next/navigation") return { redirect: () => { throw new Error("unexpected redirect"); } };
@@ -96,7 +97,7 @@ test("requisições simultâneas descartam sessão expirada sem erro concorrente
       if (name === "node:crypto") return { createHash: () => ({ update: () => ({ digest: () => "hash" }) }) };
       if (name === "@/lib/auth/device-label") return { deviceLabel };
       throw new Error(`Unexpected import: ${name}`);
-    },
+    }),
   });
 
   const results = await Promise.all([exports.getAuthContext(), exports.getAuthContext()]);

@@ -17,7 +17,7 @@ import { getFinancialEntryBalance } from "@/lib/finance/ledger";
 import { payrollStyles as styles } from "./employee-payroll-workspace.utilities";
 
 type Employee = { id: string; name: string };
-export type EmployeePayrollRow = PayrollAmounts & { id: string; userId: string | null; employeeName: string; referenceMonth: string; notes: string; financialEntry: { amountCents: number; status: string; dueDate: string; paidAt: string; settlements: { amountCents: number; interestCents: number }[] } | null };
+export type EmployeePayrollRow = PayrollAmounts & { id: string; updatedAt: string; userId: string | null; employeeName: string; referenceMonth: string; notes: string; financialEntry: { updatedAt: string; amountCents: number; status: string; dueDate: string; paidAt: string; settlements: { amountCents: number; interestCents: number }[] } | null };
 const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
 const payrollMoneyFormat = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 function PayrollMoneyInput({ name, readOnly, valueCents, onValueCentsChange }: { name: string; readOnly: boolean; valueCents: number; onValueCentsChange: (value: number) => void }) {
@@ -54,6 +54,7 @@ function PayrollForm({ employees, entries, referenceMonth, initial, canCreate, c
   const moneyFields = [["fixedSalaryCents", "fixedSalary", "Salário base"], ["bonusCents", "bonus", "Adicionais e bônus"], ["benefitsCents", "benefits", "Benefícios"], ["discountCents", "discount", "Descontos"], ["advanceCents", "advance", "Adiantamentos"]] as const;
   return <Modal open title={matching ? "Editar folha" : "Nova folha"} onClose={close} width="tw:max-w-[820px]">
     <SafeActionForm action={upsertPayrollEntryAction} className={styles.form} successMessage="Folha salva em Contas a Pagar." onSuccess={close}>
+      <input type="hidden" name="expectedVersion" value={matching ? `${matching.updatedAt}|${matching.financialEntry?.updatedAt ?? "NONE"}` : "NEW"} />
       <label>Funcionário{!canCreate ? <input type="hidden" name="userId" value={userId} /> : null}<select name={canCreate ? "userId" : undefined} required disabled={!canCreate} value={userId} onChange={event => changeEmployee(event.target.value, month)}><option value="">Selecione o funcionário</option>{employees.map(employee => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</select></label>
       <MonthPicker name="referenceMonth" label="Mês de referência" disabled={!canCreate} value={month} onChange={value => changeEmployee(userId, value)} />
       {moneyFields.slice(0, 1).map(([key, name, label]) => <label key={key}>{label}<PayrollMoneyInput name={name} readOnly={hasPayments} valueCents={amounts[key]} onValueCentsChange={value => setAmounts(current => ({ ...current, [key]: value }))} /></label>)}

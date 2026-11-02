@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAgencyAccess, requireRole } from "@/lib/auth/guards";
-import { prisma } from "@/lib/prisma";
+import { agencyDatabase } from "@/lib/auth/database";
 import { arenaDatabase } from "@/lib/arena-database";
 import { configureEvolutionWebhook, createEvolutionInstance, createEvolutionInstanceName, createEvolutionInstanceToken, createEvolutionWebhookSecret, enableEvolutionHistorySync, findEvolutionInstance, getEvolutionQrCode, logoutEvolutionInstance } from "@/lib/integrations/evolution/agency";
 import { decryptConnectionSecrets, encryptConnectionSecrets, hashWebhookSecret } from "@/lib/payments/connection-secrets";
@@ -193,6 +193,7 @@ export async function refreshArenaWhatsAppQrAction(formData: FormData) {
 
 export async function updateUserSystemRoleAction(formData: FormData) {
   const auth = await requireAgencyAccess();
+  const prisma = agencyDatabase;
   const parsed = systemRoleSchema.safeParse({
     userId: formData.get("userId"),
     systemRole: formData.get("systemRole")
@@ -222,6 +223,7 @@ export async function updateUserSystemRoleAction(formData: FormData) {
 
 export async function updateAgencyArenaAction(formData: FormData) {
   await requireAgencyAccess();
+  const prisma = agencyDatabase;
   const parsed = arenaUpdateSchema.safeParse({
     arenaId: formData.get("arenaId"),
     name: formData.get("name"),
@@ -259,6 +261,7 @@ export async function updateAgencyArenaAction(formData: FormData) {
 
 export async function updateAgencyArenaStatusAction(formData: FormData) {
   await requireAgencyAccess();
+  const prisma = agencyDatabase;
   const parsed = arenaStatusSchema.safeParse({
     arenaId: formData.get("arenaId"),
     accountStatus: formData.get("accountStatus")
@@ -273,7 +276,8 @@ export async function updateAgencyArenaStatusAction(formData: FormData) {
       id: parsed.data.arenaId
     },
     data: {
-      accountStatus: parsed.data.accountStatus
+      accountStatus: parsed.data.accountStatus,
+      ...(parsed.data.accountStatus === "ACTIVE" ? { archivedAt: null } : {})
     }
   });
 
@@ -283,16 +287,17 @@ export async function updateAgencyArenaStatusAction(formData: FormData) {
 
 export async function deleteAgencyArenaAction(formData: FormData) {
   await requireAgencyAccess();
+  const prisma = agencyDatabase;
   const arenaId = String(formData.get("arenaId") ?? "");
 
   if (!arenaId) {
     throw new Error("Arena inválida.");
   }
 
-  await prisma.arena.delete({
-    where: {
-      id: arenaId
-    }
+  if (String(formData.get("confirmation") ?? "") !== "ARQUIVAR") return { error: "Confirme o arquivamento da arena." };
+  await prisma.$transaction(async tx => {
+    await tx.arena.update({ where: { id: arenaId }, data: { archivedAt: new Date(), accountStatus: "CANCELED" } });
+    await tx.agencySubscription.updateMany({ where: { arenaId }, data: { status: "CANCELED", nextDueAt: null } });
   });
 
   revalidatePath("/agencia");

@@ -1,7 +1,7 @@
 import { viewStyles } from "./page.utilities";
 import { SectionCard } from "@/components/section-card";
 import { requireAgencyPageAccess } from "@/lib/auth/guards";
-import { prisma } from "@/lib/prisma";
+import { agencyDatabase as prisma } from "@/lib/auth/database";
 import { agencyStatusLabel } from "@/lib/agency/status-label";
 import { formatCurrency, getAgencyMetrics } from "@/lib/services/agency";
 

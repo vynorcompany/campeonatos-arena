@@ -1,3 +1,4 @@
+import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import { calculateBankAccountBalanceCents } from "../src/lib/finance/bank-balance";
 import { loadLedgerMovements } from "../src/lib/reports/ledger-movements";
 import { requireReceivingBankAccount } from "../src/lib/finance/receiving-bank-account";
@@ -67,11 +68,12 @@ test("baixa manual exige valor real, quita vencidos e não aceita lote parcialme
     };
     vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, {
       exports: actions, Date, FormData, console,
-      require: (name: string) => mocks[name] ?? {},
+      require: withDatabaseModuleMocks((name: string) => mocks[name] ?? {}),
     });
-    const settle = (entryId: string, amount: string, discount = "0", discountMode = "AMOUNT", bankAccountId = bank.id) => {
+    const settle = async (entryId: string, amount: string, discount = "0", discountMode = "AMOUNT", bankAccountId = bank.id) => {
       const form = new FormData();
       form.set("entryId", entryId);
+      form.set("expectedUpdatedAt", (await admin.financialEntry.findUniqueOrThrow({ where: { id: entryId } })).updatedAt.toISOString());
       form.set("bankAccountId", bankAccountId);
       form.set("amount", amount);
       form.set("discount", discount); form.set("discountMode", discountMode);
@@ -80,12 +82,14 @@ test("baixa manual exige valor real, quita vencidos e não aceita lote parcialme
       form.set("paidAt", "");
       return actions.settleFinancialEntryAction(form);
     };
-    const settleBulk = (ids: string[]) => {
+    const settleBulk = async (ids: string[]) => {
       const form = new FormData();
       ids.forEach((id) => form.append("entryIds", id));
       form.set("bankAccountId", bank.id);
       form.set("paymentMethod", "PIX");
       form.set("paidAt", "");
+      const snapshots = await admin.financialEntry.findMany({ where: { id: { in: ids } }, select: { id: true, updatedAt: true } });
+      form.set("expectedVersions", JSON.stringify(Object.fromEntries(snapshots.map(row => [row.id, row.updatedAt.toISOString()]))));
       return actions.settleFinancialEntriesBulkAction(form);
     };
 
