@@ -19,6 +19,7 @@ import {
   parseScheduledAt,
   timeToMinutes
 } from "@/lib/calendar/inputs";
+import { copyWeeklyRule } from "@/lib/scheduling/copy-weekly-rule";
 import { weeklyRangesOverlap } from "@/lib/scheduling/weekly-rule";
 import { isFixedBookingType } from "@/lib/calendar/booking-types";
 import { refreshCalendarRoutes } from "@/lib/calendar/revalidation";
@@ -663,33 +664,14 @@ export async function deleteCourtWeeklyRuleAction(formData: FormData) {
 
 export async function copyCourtWeeklyRuleAction(formData: FormData) {
   const auth = await requirePermission("calendar:settings:manage");
-  const prisma = arenaDatabase(auth.arenaId);
   const parsed = z.object({ ruleId: z.string().trim().min(1), targetWeekday: z.union([z.string().regex(/^[0-6]$/).transform(Number), z.literal("ALL")]) }).safeParse({
-    ruleId: formData.get("ruleId"),
-    targetWeekday: formData.get("targetWeekday")
+    ruleId: formData.get("ruleId"), targetWeekday: formData.get("targetWeekday")
   });
-  if (!parsed.success) throw new Error("Selecione o dia de destino.");
-
-  const source = await prisma.courtWeeklyRule.findFirst({
-    where: { id: parsed.data.ruleId, court: { arenaId: auth.arenaId } },
-    include: { court: { include: { weeklyRules: true } } }
-  });
-  if (!source) throw new Error("Faixa não encontrada.");
-  const targetWeekdays = parsed.data.targetWeekday === "ALL" ? [0, 1, 2, 3, 4, 5, 6] : [parsed.data.targetWeekday];
-  const destinations = targetWeekdays.filter((weekday) => weekday !== source.weekday && !source.court.weeklyRules.some((rule) =>
-    rule.weekday === weekday && weeklyRangesOverlap(source.startsAtMinute, source.endsAtMinute, rule.startsAtMinute, rule.endsAtMinute)
-  ));
-  if (!destinations.length) throw new Error("Já existe uma faixa sobreposta nos períodos selecionados.");
-
-  await prisma.courtWeeklyRule.createMany({ data: destinations.map((weekday) => ({
-    courtId: source.courtId,
-    weekday,
-    startsAtMinute: source.startsAtMinute,
-    endsAtMinute: source.endsAtMinute,
-    priceCents: source.priceCents,
-    available: source.available
-  })) });
+  if (!parsed.success) return { error: "Selecione o dia de destino." };
+  const result = await withArenaTransaction(auth.arenaId, tx => copyWeeklyRule(tx, auth.arenaId, parsed.data.ruleId, parsed.data.targetWeekday));
+  if ("error" in result) return result;
   refreshCalendar();
+  return result;
 }
 
 export async function updateScheduleSettingsAction(formData: FormData) {
