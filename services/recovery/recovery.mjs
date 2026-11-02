@@ -14,7 +14,7 @@ function railway(config,args){const prefix=config.operator?['-u',config.operator
 function variables(config,service){return JSON.parse(railway(config,['variables','-p',config.projectId,'-e',config.environmentId,'-s',service,'--json']).toString());}
 async function consumeProcess(child,destination,key,immutable){
  let stderr='';child.stderr.on('data',chunk=>{stderr+=chunk.toString().slice(0,1000)});
- const ended=new Promise((resolve,reject)=>{child.on('error',reject);child.on('close',code=>code===0?resolve():reject(new Error('Remote snapshot failed.')))});
+ const ended=new Promise((resolve,reject)=>{child.on('error',reject);child.on('close',code=>{if(code===0)resolve();else{const error=new Error('Remote snapshot failed.');error.code='REMOTE_SNAPSHOT';error.exitCode=code;error.diagnostic=stderr;reject(error)}})});
  try{const [result]=await Promise.all([encryptStream(child.stdout,destination,key,{immutable}),ended]);return result;}catch(error){child.kill('SIGTERM');throw error;}
 }
 export async function runRecovery(config){
@@ -69,7 +69,7 @@ export async function runRecovery(config){
     manifest.snapshots.push({name:snapshot.name,kind:snapshot.kind,file:'objects/'+filename,...result});continue;
    }
    const child=spawn('ssh',sshArgs,{stdio:['ignore','pipe','pipe']});
-   const result=await consumeProcess(child,destination,key,config.immutable);
+   let result;try{result=await consumeProcess(child,destination,key,config.immutable)}catch(error){error.snapshot=snapshot.name;throw error;}
    manifest.snapshots.push({name:snapshot.name,kind:snapshot.kind,file:'objects/'+filename,...result});
   }
   for(const service of config.configurationServices||[]){
@@ -83,7 +83,7 @@ export async function runRecovery(config){
   await atomicJson(join(root,'status.json'),{ok:true,startedAt:manifest.startedAt,completedAt:manifest.completedAt,revision:config.revision,objects:manifest.objects.length,snapshots:manifest.snapshots.length,manifest:manifestFile});
   await (await import("./monitor.mjs")).reportRecovery(config,"independent-copy",true);
   return {objects:manifest.objects.length,snapshots:manifest.snapshots.length};
- }catch(error){await atomicJson(join(root,'failure.json'),{ok:false,checkedAt:new Date().toISOString(),message:'A cópia independente não foi concluída. Verifique o serviço de recuperação.'});await (await import("./monitor.mjs")).reportRecovery(config,"independent-copy",false);throw new Error('Independent recovery failed; source data was not modified.');}
+ }catch(error){await atomicJson(join(root,'failure.json'),{ok:false,checkedAt:new Date().toISOString(),message:'A cópia independente não foi concluída. Verifique o serviço de recuperação.'});await (await import("./monitor.mjs")).reportRecovery(config,"independent-copy",false);throw new Error('Independent recovery failed; source data was not modified.',{cause:error});}
  finally{await rm(temporary,{recursive:true,force:true});}
 }
 if(process.argv[1]?.endsWith('/recovery.mjs')){
