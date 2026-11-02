@@ -1274,7 +1274,7 @@ async function main() {
           throw new Error(`${viewport.name}: inscrição Pix sem ação de copiar o código.`);
         }
         const summary = await send("Runtime.evaluate", {
-          expression: "(() => { const grid = document.querySelector('.public-reg-success-summary'); const cells = [...(grid?.children ?? [])]; const badge = grid?.querySelector('strong[class*=status-]'); return { badgeColor: badge ? getComputedStyle(badge).color : null, gridWidth: grid?.getBoundingClientRect().width ?? 0, lastWidth: cells.at(-1)?.getBoundingClientRect().width ?? 0, overflow: document.documentElement.scrollWidth - window.innerWidth }; })()",
+          expression: "(() => { const grid = document.querySelector('.public-reg-success-summary'); const cells = [...(grid?.children ?? [])]; const badge = grid?.querySelector('strong[class*=status-]'); return { badgeColor: badge ? getComputedStyle(badge).color : null, gridWidth: grid ? grid.getBoundingClientRect().width - ['paddingLeft','paddingRight','borderLeftWidth','borderRightWidth'].reduce((total, key) => total + (parseFloat(getComputedStyle(grid)[key]) || 0), 0) : 0, lastWidth: cells.at(-1)?.getBoundingClientRect().width ?? 0, overflow: document.documentElement.scrollWidth - window.innerWidth }; })()",
           returnByValue: true,
         });
         const layout = summary.result.value;
