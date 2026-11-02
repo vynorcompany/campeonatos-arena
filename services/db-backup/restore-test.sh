@@ -59,8 +59,7 @@ echo "Downloading backup ${latest_key}"
 aws s3 cp "s3://${S3_BUCKET}/${latest_key}" "$file" --endpoint-url "$S3_ENDPOINT" --only-show-errors
 
 echo "Restoring into the confirmed disposable database"
-pg_restore --dbname="$RESTORE_DATABASE_URL" --no-owner --no-privileges --exit-on-error "$file"
-psql "$RESTORE_DATABASE_URL" -X -v ON_ERROR_STOP=1 -f "${RESTORE_PRIVILEGES_SQL:-/restore-runtime-privileges.sql}" >/dev/null
+pg_restore --dbname="$RESTORE_DATABASE_URL" --no-owner --exit-on-error "$file"
 security_sql="SELECT (SELECT count(*) FROM pg_policies WHERE schemaname = 'public')::text || ':' || (SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relrowsecurity)::text"
 source_security="$(psql "$DATABASE_URL" -X -At -v ON_ERROR_STOP=1 -c "$security_sql")"
 target_security="$(psql "$RESTORE_DATABASE_URL" -X -At -v ON_ERROR_STOP=1 -c "$security_sql")"
@@ -80,6 +79,14 @@ source_sequences="$(psql "$DATABASE_URL" -X -At -v ON_ERROR_STOP=1 -c "$sequence
 target_sequences="$(psql "$RESTORE_DATABASE_URL" -X -At -v ON_ERROR_STOP=1 -c "$sequence_sql")"
 if [ "$source_sequences" != "$target_sequences" ]; then
   echo "Restore did not preserve the application's sequence privileges." >&2
+  exit 1
+fi
+# Preserve the dump's ACLs, including EXECUTE restrictions on SECURITY DEFINER functions.
+function_sql="SELECT md5(coalesce(string_agg(p.proname || '(' || pg_get_function_identity_arguments(p.oid) || '):' || has_function_privilege('arena_runtime', p.oid, 'EXECUTE')::text || ':' || EXISTS(SELECT 1 FROM aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a WHERE a.grantee = 0 AND a.privilege_type = 'EXECUTE')::text || ':' || p.prosecdef::text || ':' || coalesce(p.proconfig::text, ''), '|' ORDER BY p.proname, pg_get_function_identity_arguments(p.oid)), '')) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public'"
+source_functions="$(psql "$DATABASE_URL" -X -At -v ON_ERROR_STOP=1 -c "$function_sql")"
+target_functions="$(psql "$RESTORE_DATABASE_URL" -X -At -v ON_ERROR_STOP=1 -c "$function_sql")"
+if [ "$source_functions" != "$target_functions" ]; then
+  echo "Restore did not preserve function security and EXECUTE privileges." >&2
   exit 1
 fi
 psql "$RESTORE_DATABASE_URL" -X -At -v ON_ERROR_STOP=1 -c 'SET ROLE arena_runtime; SELECT count(*) FROM "Arena";' >/dev/null

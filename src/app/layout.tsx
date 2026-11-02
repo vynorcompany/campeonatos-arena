@@ -2,6 +2,8 @@ import { documentUtilities } from "./document.utilities";
 import type { Metadata } from "next";
 import "@/app/globals.css";
 import { env } from "@/lib/env";
+import { SystemUpdateNotice } from "@/components/system-update-notice";
+import { releaseRevision } from "@/lib/release-version";
 
 export const metadata: Metadata = {
   metadataBase: env.appUrl ? new URL(env.appUrl) : undefined,
@@ -16,7 +18,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" className={documentUtilities}>
-      <body>{children}</body>
+      <body>{children}<SystemUpdateNotice initialRevision={releaseRevision(process.env.RAILWAY_GIT_COMMIT_SHA)} /></body>
     </html>
   );
 }

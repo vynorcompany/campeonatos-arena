@@ -15,11 +15,12 @@ psql() {
   *pg_policies*) if [ "$1" = source ] || [ "$PROBE_MODE" != missing_policies ]; then echo 27:27; else echo 0:0; fi ;;
   *'SELECT count(*) FROM pg_class'*) if [ "$PROBE_MODE" = occupied ]; then echo 2; else echo 0; fi ;;
   *rolcanlogin*) if [ "$PROBE_MODE" = missing_runtime_role ]; then echo 0; else echo 1; fi ;;
+  *has_function_privilege*) if [ "$1" = target ] && [ "$PROBE_MODE" = missing_function_privileges ]; then echo mismatch; else echo matching; fi ;;
   *has_table_privilege*) if [ "$1" = target ] && [ "$PROBE_MODE" = missing_privileges ]; then echo mismatch; else echo matching; fi ;;
  esac
 }
 aws() { if [ "$2" = ls ]; then case "$*" in *--only-show-errors*) return 90;; esac; echo '2026-01-01 01:00:00 100 arena/backup.dump'; else echo DOWNLOAD_CALLED; fi; }
-pg_restore() { case "$*" in *--clean*|*--if-exists*) return 80;; esac; echo RESTORE_CALLED; }
+pg_restore() { case "$*" in *--clean*|*--if-exists*|*--no-privileges*) return 80;; esac; echo RESTORE_CALLED; }
 . '${script}'
 `],{encoding:'utf8',env:{...process.env,PROBE_MODE:mode,DATABASE_URL:'source',RESTORE_DATABASE_URL:'target',RESTORE_CONFIRM:'RESTORE_DISPOSABLE_DATABASE',S3_BUCKET:'fixture',S3_ENDPOINT:'fixture',AWS_ACCESS_KEY_ID:'fixture',AWS_SECRET_ACCESS_KEY:'fixture',AWS_DEFAULT_REGION:'fixture'}});
 }
@@ -45,4 +46,8 @@ test('restore requires the runtime role and verifies grants after restoring', { 
   const missingGrants = execute('missing_privileges');
   assert.notEqual(missingGrants.status, 0);
   assert.match(missingGrants.stderr, /table privileges/);
+});
+
+test('restore rejects changed function execution privileges', { skip: !existsSync(bash) }, () => {
+ const result=execute('missing_function_privileges');assert.notEqual(result.status,0);assert.match(result.stderr,/function security and EXECUTE privileges/);
 });

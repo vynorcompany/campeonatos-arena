@@ -489,7 +489,7 @@ async function main() {
       let slotReady = false;
       for (let attempt = 0; attempt < 80; attempt += 1) {
         const result = await send("Runtime.evaluate", {
-          expression: "location.pathname === '/agenda' && [...document.querySelectorAll('td')].some((cell) => cell.textContent?.trim() === 'Livre' && cell.querySelector('button'))",
+          expression: "location.pathname === '/agenda' && Boolean(document.querySelector('td.daily-court-available .agenda-slot-trigger'))",
           returnByValue: true,
         });
         slotReady = result.result.value;
@@ -499,7 +499,7 @@ async function main() {
       if (!slotReady) throw new Error(`${viewport.name}: horário livre não apareceu na grade futura.`);
       await pause(500);
       const opened = await send("Runtime.evaluate", {
-        expression: "(() => { const cell = [...document.querySelectorAll('td')].find((item) => item.textContent?.trim() === 'Livre' && item.querySelector('button')); cell?.querySelector('button')?.click(); return Boolean(cell); })()",
+        expression: "(() => { const trigger = document.querySelector('td.daily-court-available .agenda-slot-trigger'); trigger?.click(); return Boolean(trigger); })()",
         returnByValue: true,
       });
       if (!opened.result.value) throw new Error(`${viewport.name}: não foi possível abrir o agendamento.`);
