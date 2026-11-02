@@ -26,7 +26,7 @@ function fixture(member = true) {
 
 test("employee payroll calculates fractional overtime and deductions in cents", () => {
   const amounts = employeePayrollAmounts(employeePayrollSchema.parse(payload));
-  assert.deepEqual(calculateEmployeePayroll(amounts), { overtimeCents: 15000, grossCents: 265000, deductionsCents: 35000, totalCents: 230000 });
+  assert.deepEqual(calculateEmployeePayroll(amounts), { overtimeCents: 15000, nightCents: 0, nightOvertimeCents: 0, nightEquivalentHours: 0, nightOvertimeEquivalentHours: 0, grossCents: 265000, deductionsCents: 35000, totalCents: 230000 });
   assert.equal(calculateEmployeePayroll({ ...amounts, overtimeMinutes: 75, overtimePercentage: 100 }).overtimeCents, 2500);
 });
 
@@ -115,4 +115,30 @@ test("net salary must stay positive and a deleted payable can be recreated witho
   await saveEmployeePayroll(tx, "arena", employeePayrollSchema.parse(payload));
   assert.equal(state.payroll.id, "payroll");
   assert.equal(state.entry.amountCents, 230000);
+});
+
+
+test("night hours convert clock time once and add only the ordinary night premium", () => {
+ const amounts = employeePayrollAmounts(employeePayrollSchema.parse({...payload, nightHours:"7", nightOvertimeHours:"1,75"}));
+ const total = calculateEmployeePayroll(amounts);
+ assert.equal(total.nightEquivalentHours, 8);
+ assert.equal(total.nightCents,1600);
+ assert.equal(total.nightOvertimeEquivalentHours,2);
+ assert.equal(total.nightOvertimeCents,3600);
+ assert.equal(total.totalCents,235200);
+ const conventional=calculateEmployeePayroll({...amounts,nightHourMinutes:60,nightPercentage:30});
+ assert.equal(conventional.nightCents,2100);
+ assert.equal(conventional.nightOvertimeCents,3413);
+});
+test("night inputs reject negative hours, invalid reduction and below-minimum premiums", () => {
+ for(const change of [{nightHours:"-1"},{nightOvertimeHours:"NaN"},{nightPercentage:19},{nightPercentage:301},{nightHourMinutes:0},{nightHourMinutes:61}]) assert.equal(employeePayrollSchema.safeParse({...payload,...change}).success,false);
+});
+test("night amounts persist and update one payable, and a paid payroll cannot change its night total",async()=>{
+ const {tx,state}=fixture();const input=employeePayrollSchema.parse({...payload,nightHours:"7",nightOvertimeHours:"1,75"});
+ await saveEmployeePayroll(tx,"arena",input);
+ assert.equal(state.payroll.nightMinutes,420);assert.equal(state.payroll.nightCents,1600);assert.equal(state.payroll.nightOvertimeCents,3600);assert.equal(state.entry.amountCents,235200);
+ await saveEmployeePayroll(tx,"arena",{...input,status:"PAID",paidAt:"2026-11-05"});
+ assert.equal(state.payments.length,1);assert.equal(state.payments[0].amountCents,235200);
+ await assert.rejects(saveEmployeePayroll(tx,"arena",{...input,status:"PAID",paidAt:"2026-11-05",nightHours:480}),/total alterado/);
+ assert.equal(state.payments.length,1);
 });

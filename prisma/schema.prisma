@@ -2704,6 +2704,12 @@ model EmployeePayrollEntry {
   monthlyMinutes      Int
   overtimeMinutes     Int @default(0)
   overtimePercentage  Int @default(50)
+  nightMinutes        Int @default(0)
+  nightOvertimeMinutes Int @default(0)
+  nightPercentage     Int @default(20)
+  nightHourMinutes    Float @default(52.5)
+  nightCents          Int @default(0)
+  nightOvertimeCents   Int @default(0)
   overtimeCents       Int @default(0)
   bonusCents          Int @default(0)
   benefitsCents       Int @default(0)
