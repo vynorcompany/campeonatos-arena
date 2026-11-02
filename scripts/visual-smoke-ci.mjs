@@ -1411,15 +1411,25 @@ async function main() {
       }
       if (!history?.button || history.scrollWidth > history.width + 1) throw new Error(`${viewport.name}: histórico da Liga ausente ou com overflow.`);
       await clickElement('button[aria-label^="Ver histórico de"]');
-      const detail = await send("Runtime.evaluate", { expression: "({dialog:document.querySelector('[role=dialog]')?.innerText ?? '',width:innerWidth,scrollWidth:document.documentElement.scrollWidth})", returnByValue: true });
+      let detail;
+      for(let attempt=0;attempt<80;attempt++) {
+        detail = await send("Runtime.evaluate", { expression: "({dialog:document.querySelector('[role=dialog]')?.innerText ?? '',width:innerWidth,scrollWidth:document.documentElement.scrollWidth})", returnByValue: true });
+        if(detail.result.value.dialog.includes("Campeã") && detail.result.value.dialog.includes("Parceira de Nome Comprido GOAL") && detail.result.value.dialog.includes("Saldo")) break;
+        await pause(100);
+      }
       if (!detail.result.value.dialog.includes("Campeã") || !detail.result.value.dialog.includes("Parceira de Nome Comprido GOAL") || !detail.result.value.dialog.includes("Saldo") || detail.result.value.scrollWidth > detail.result.value.width + 1) {
-        throw new Error(`${viewport.name}: modal do histórico não mostrou campeã e classificação sem overflow.`);
+        throw new Error(`${viewport.name}: modal do histórico não mostrou campeã e classificação sem overflow: ${JSON.stringify(detail.result.value)}`);
       }
       await waitForPageFade();
       const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
       await writeFile(`${outputDir}/liga-historico-${viewport.name}.png`, Buffer.from(shot.data, "base64"));
       await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
-      const closed = await send("Runtime.evaluate", { expression: "Boolean(document.querySelector('[role=dialog]'))", returnByValue: true });
+      let closed;
+      for(let attempt=0;attempt<40;attempt++) {
+        closed = await send("Runtime.evaluate", { expression: "Boolean(document.querySelector('[role=dialog]'))", returnByValue: true });
+        if(!closed.result.value) break;
+        await pause(100);
+      }
       if (closed.result.value) throw new Error(`${viewport.name}: histórico não fechou com Esc.`);
       console.log(`${viewport.name}: histórico da Liga exibiu campeã, ranking e fechou com Esc.`);
     }
