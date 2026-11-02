@@ -50,7 +50,7 @@ test("court interval controls close after editing and can copy to all weekly per
   const dialog = readFileSync(resolve(process.cwd(), "src/components/courts/weekly-rule-edit-dialog.tsx"), "utf8");
   assert.match(dialog, /<Modal title="Editar faixa de horário" open onClose=\{close\}/);
   assert.match(dialog, /onSuccess=\{close\}/);
-  assert.match(page, /Todos os outros dias/);
+  assert.match(page, /Todos os dias/);
   assert.match(actions, /targetWeekday: z\.union/);
   assert.match(form, /onSuccess\?\.\(\)/);
 });
