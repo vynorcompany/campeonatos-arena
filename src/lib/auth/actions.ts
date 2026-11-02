@@ -3,6 +3,7 @@
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { agencyDatabase } from "@/lib/auth/database";
 import { createSession, destroySession, getAuthContext, setArenaContextCookie } from "@/lib/auth/session";
 import { loginSchema, registerArenaSchema } from "@/lib/validators/auth";
 import { defaultArenaPermissionProfiles, defaultPermissionsForRole } from "@/lib/permissions";
@@ -146,7 +147,7 @@ export async function registerArenaAction(_: RegisterArenaState, formData: FormD
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const slug = await uniqueArenaSlug(parsed.data.arenaName, attempt + 1);
     try {
-      userId = await prisma.$transaction(async (tx) => {
+      userId = await agencyDatabase.$transaction(async (tx) => {
         const trialPlan = await tx.agencyPlan.findUnique({ where: { id: "agency-trial-7-days" } });
         if (!trialPlan) return null;
         const createdUser = await tx.user.create({

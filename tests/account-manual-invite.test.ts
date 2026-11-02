@@ -1,3 +1,4 @@
+import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
@@ -24,7 +25,7 @@ function fixture(options: { configured?: boolean; failEmail?: boolean; appUrl?: 
       arenaMember: { findUnique: async ({ where }: any) => where.userId_arenaId.arenaId === "arena" && where.userId_arenaId.userId === "member" ? { user: { id: "member", email: "member@example.invalid" } } : null },
     } },
   };
-  vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/lib/actions/account-access.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, { exports, Date, URL, URLSearchParams, require: (name: string) => name in mocks ? mocks[name] : require(name) });
+  vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/lib/actions/account-access.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, { exports, Date, URL, URLSearchParams, require: withDatabaseModuleMocks((name: string) => name in mocks ? mocks[name] : require(name)) });
   const form = new FormData(); form.set("name", "Pessoa de Teste"); form.set("email", "USER@example.invalid"); form.set("permissionProfileId", "profile");
   const recoveryForm = new FormData(); recoveryForm.set("userId", "member");
   return { invite: () => exports.inviteArenaUserAction({ error: null, success: null }, form), recover: (userId = "member") => { recoveryForm.set("userId", userId); return exports.sendArenaUserRecoveryAction({ error: null, success: null }, recoveryForm); }, tokens, deliveries };

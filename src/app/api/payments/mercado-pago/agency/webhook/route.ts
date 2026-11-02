@@ -2,7 +2,7 @@ import { fetchWithDeadline } from "@/lib/http/fetch-with-deadline";
 import { readBoundedJson, RequestBodyTooLargeError } from "@/lib/http/json-body";
 import { NextResponse } from "next/server";
 import { env } from "@/lib/env";
-import { prisma } from "@/lib/prisma";
+import { agencyDatabase as prisma } from "@/lib/auth/database";
 import { withArenaTransaction } from "@/lib/rls";
 import { getAgencyMercadoPagoToken } from "@/lib/payments/agency-mercado-pago-token";
 import { verifyMercadoPagoWebhookSignature } from "@/lib/payments/mercado-pago-webhook-signature";

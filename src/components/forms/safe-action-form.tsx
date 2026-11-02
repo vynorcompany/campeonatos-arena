@@ -22,6 +22,7 @@ type SafeActionFormProps = {
 };
 
 const confirmationLabels: Record<string, { title: string; action: string; pending: string; destructive: boolean }> = {
+  ARQUIVAR: { title: "Arquivar arena", action: "Arquivar", pending: "Arquivando...", destructive: false },
   EXCLUIR: { title: "Confirmar exclusão", action: "Excluir", pending: "Excluindo...", destructive: true },
   REMOVER: { title: "Confirmar remoção", action: "Remover", pending: "Removendo...", destructive: true },
   RESETAR: { title: "Confirmar redefinição", action: "Resetar", pending: "Resetando...", destructive: true },
@@ -93,6 +94,7 @@ export function SafeActionForm({
           return;
         }
 
+        if (confirmKeyword) formData.set("confirmation", confirmValue.trim().toUpperCase());
         setError(null);
         setSuccess(null);
 

@@ -1,4 +1,5 @@
 "use server";
+import { expectedRecordDate, staleRecordMessage } from "@/lib/record-version";
 import { consumeProductStock, saveStockAggregates } from "@/lib/products/stock-aggregates";
 import { Prisma } from "@prisma/client";
 import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
@@ -142,8 +143,10 @@ export async function updateProductAction(formData: FormData) {
     const category = await prisma.productCategory.findFirst({ where: { id: parsed.data.categoryId, arenaId: auth.arenaId, active: true }, select: { id: true } });
     if (!category) throw new Error("Categoria de produto inválida.");
   }
-  const updated = await prisma.product.updateMany({ where: { id: productId, arenaId: auth.arenaId, serviceDeletedAt: null }, data: { name: parsed.data.name, sku: parsed.data.sku, notes: formData.has("notes") ? parsed.data.notes : undefined, costCents: parseMoneyToCents(parsed.data.cost), priceCents: parseMoneyToCents(parsed.data.price), minStock: parsed.data.minStock, categoryId: parsed.data.categoryId || null, updatedByUserId: auth.userId } });
-  if (!updated.count) throw new Error("Produto não encontrado.");
+  const expectedUpdatedAt = expectedRecordDate(formData.get("expectedUpdatedAt"));
+  if (!expectedUpdatedAt) return { error: staleRecordMessage };
+  const updated = await prisma.product.updateMany({ where: { id: productId, arenaId: auth.arenaId, updatedAt: expectedUpdatedAt, serviceDeletedAt: null }, data: { name: parsed.data.name, sku: parsed.data.sku, notes: formData.has("notes") ? parsed.data.notes : undefined, costCents: parseMoneyToCents(parsed.data.cost), priceCents: parseMoneyToCents(parsed.data.price), minStock: parsed.data.minStock, categoryId: parsed.data.categoryId || null, updatedByUserId: auth.userId } });
+  if (!updated.count) return { error: staleRecordMessage };
   refreshPosRoutes();
 }
 

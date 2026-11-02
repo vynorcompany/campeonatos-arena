@@ -8,7 +8,7 @@ const disposableDatabase = (() => {
   catch { return false; }
 })();
 
-test("nova movimentação não aceita sessão de outra arena; registro legado permanece visível sem expor sessão", { skip: !disposableDatabase }, async () => {
+test("nova movimentação não aceita sessão de outra arena; até a conexão administrativa é impedida de criar vínculo cruzado", { skip: !disposableDatabase }, async () => {
   const runtimeUrl = new URL(testUrl);
   runtimeUrl.username = "arena_runtime";
   runtimeUrl.password = "";
@@ -34,12 +34,8 @@ test("nova movimentação não aceita sessão de outra arena; registro legado pe
       await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaA.id}, true)`;
       return tx.cashMovement.create({ data: { arenaId: arenaA.id, registerId: registerB.id, type: "SUPPLY", amountCents: 100, description: "GOAL externo" } });
     }), /42501|row-level security|segurança no nível de linha/);
-    const malformed = await admin.cashMovement.create({ data: { arenaId: arenaA.id, registerId: registerB.id, type: "SUPPLY", amountCents: 100, description: "GOAL legado externo" } });
-    await runtime.$transaction(async (tx) => {
-      await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaA.id}, true)`;
-      assert.equal((await tx.cashMovement.findFirst({ where: { id: malformed.id }, select: { id: true } }))?.id, malformed.id);
-      assert.equal(await tx.cashRegister.findFirst({ where: { id: registerB.id }, select: { id: true } }), null);
-    });
+    await assert.rejects(admin.cashMovement.create({ data: { arenaId: arenaA.id, registerId: registerB.id, type: "SUPPLY", amountCents: 100, description: "GOAL vínculo cruzado" } }), /tenant_link_|Foreign key constraint/);
+
   } finally {
     if (registerIds.length) await admin.cashRegister.deleteMany({ where: { id: { in: registerIds } } });
     await runtime.$disconnect();

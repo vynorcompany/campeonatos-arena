@@ -1,3 +1,4 @@
+import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
@@ -12,9 +13,10 @@ test("criar, editar e repetir lançamentos recusam conta bancária de outra aren
   let writes = 0;
   const relation = { bankAccount: { findFirst: async () => null } };
   const tx = {
+    $queryRaw: async () => [],
     ...relation,
     financialEntry: {
-      findFirst: async () => ({ id: "entry-a", type: "EXPENSE", source: "MANUAL", settlements: [] }),
+      findFirst: async () => ({ id: "entry-a", updatedAt: new Date("2026-11-02T12:00:00.000Z"), type: "EXPENSE", source: "MANUAL", settlements: [] }),
       create: async () => { writes += 1; return { id: "new-entry" }; },
       update: async () => { writes += 1; return { id: "entry-a" }; },
     },
@@ -44,11 +46,12 @@ test("criar, editar e repetir lançamentos recusam conta bancária de outra aren
     exports,
     FormData,
     Date,
-    require: (name: string) => mocks[name] ?? {},
+    require: withDatabaseModuleMocks((name: string) => mocks[name] ?? {}),
   });
 
   for (const action of ["createFinancialEntryAction", "updateFinancialEntryAction", "createFinancialRecurrenceAction"]) {
-    await assert.rejects(exports[action](new FormData()), /Conta bancária não encontrada nesta arena/, action);
+    const form = new FormData(); form.set("expectedUpdatedAt", "2026-11-02T12:00:00.000Z");
+    await assert.rejects(exports[action](form), /Conta bancária não encontrada nesta arena/, action);
   }
   assert.equal(writes, 0);
 });
@@ -72,7 +75,7 @@ test("estorno usa o tipo armazenado, não o tipo adulterado no formulário", asy
   };
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, {
     exports, FormData, Date,
-    require: (name: string) => mocks[name] ?? {},
+    require: withDatabaseModuleMocks((name: string) => mocks[name] ?? {}),
   });
   const form = new FormData();
   form.set("type", "REVENUE");

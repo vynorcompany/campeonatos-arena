@@ -2,7 +2,7 @@ import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
 import { requireAgencyPageAccess } from "@/lib/auth/guards";
 import { arenaDatabase } from "@/lib/arena-database";
-import { prisma } from "@/lib/prisma";
+import { agencyDatabase as prisma } from "@/lib/auth/database";
 import styles from "./page.styles";
 
 export default async function AgencyConnectionsPage() {

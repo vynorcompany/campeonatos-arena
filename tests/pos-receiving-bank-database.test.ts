@@ -1,3 +1,4 @@
+import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import * as stockAggregates from "../src/lib/products/stock-aggregates";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -40,7 +41,7 @@ test("vendas diretas exigem conta da arena e gravam venda, recebimento e estoque
       "@/lib/finance/cash-register-sales":{recordCashSaleIfOpen},
       "@/lib/finance/cash-day":{cashReferenceDate},
     };
-    vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/lib/actions/pos.ts",import.meta.url),"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports:actions,Date,Math,Map,require:(name:string)=>{if(!(name in mocks))throw Error(`Unexpected import: ${name}`);return mocks[name];}});
+    vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/lib/actions/pos.ts",import.meta.url),"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports:actions,Date,Math,Map,require:withDatabaseModuleMocks((name:string)=>{if(!(name in mocks))throw Error(`Unexpected import: ${name}`);return mocks[name];})});
     const form=(bankAccountId:string)=>{const data=new FormData();for(const [key,value] of Object.entries({bankAccountId,productId:product.id,quantity:"2",paymentMethod:"PIX",customerName:"Cliente QA",items:JSON.stringify([{productId:product.id,quantity:2}])}))data.set(key,value);return data;};
     for(const action of [actions.createSaleAction,actions.createCartSaleAction])for(const account of ["",inactive.id,foreign.id])await assert.rejects(action(form(account)),/conta bancária/);
     assert.equal(await admin.sale.count({where:{arenaId:ids[0]}}),0);

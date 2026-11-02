@@ -331,13 +331,13 @@ async function main() {
     for (const viewport of [viewports[0], adminViewports[2]]) {
       await visit("/agencia/arenas", viewport, arenaA.id, `${viewport.name}-agencia-exclusao-antes`);
       const opened = await send("Runtime.evaluate", {
-        expression: "(() => { const button = [...document.querySelectorAll('button')].find(item => item.textContent?.trim() === 'Excluir arena'); button?.click(); return Boolean(button); })()",
+        expression: "(() => { const button = [...document.querySelectorAll('button')].find(item => item.textContent?.trim() === 'Arquivar arena'); button?.click(); return Boolean(button); })()",
         returnByValue: true,
       });
       if (!opened.result.value) throw new Error(`${viewport.name}: exclusão da arena sem botão de confirmação.`);
       await pause(300);
       const confirmation = await send("Runtime.evaluate", {
-        expression: "(() => { const dialog = document.querySelector('[role=dialog]'); const rect = dialog?.getBoundingClientRect(); return { title: dialog?.textContent?.includes('Confirmar exclusão'), keyword: Boolean(dialog?.querySelector('input[name=confirmKeyword]')), left: rect?.left, right: rect?.right, top: rect?.top, bottom: rect?.bottom, width: innerWidth, height: innerHeight, overflow: Boolean(dialog && dialog.scrollWidth > dialog.clientWidth + 1) || document.documentElement.scrollWidth > innerWidth + 1 }; })()",
+        expression: "(() => { const dialog = document.querySelector('[role=dialog]'); const rect = dialog?.getBoundingClientRect(); return { title: dialog?.textContent?.includes('Arquivar arena'), keyword: Boolean(dialog?.querySelector('input[name=confirmKeyword]')), left: rect?.left, right: rect?.right, top: rect?.top, bottom: rect?.bottom, width: innerWidth, height: innerHeight, overflow: Boolean(dialog && dialog.scrollWidth > dialog.clientWidth + 1) || document.documentElement.scrollWidth > innerWidth + 1 }; })()",
         returnByValue: true,
       });
       const modal = confirmation.result.value;
@@ -352,16 +352,16 @@ async function main() {
       const closed = await send("Runtime.evaluate", { expression: "!document.querySelector('[role=dialog]')", returnByValue: true });
       if (!closed.result.value || !await db.arena.findUnique({ where: { id: arenaA.id } })) throw new Error(`${viewport.name}: Esc não fechou a confirmação sem excluir a arena.`);
       if (viewport.name === "mobile-320") {
-        await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('button')].find(item => item.textContent?.trim() === 'Excluir arena')?.click()" });
+        await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('button')].find(item => item.textContent?.trim() === 'Arquivar arena')?.click()" });
         await pause(200);
         await send("Input.dispatchMouseEvent", { type: "mousePressed", x: 2, y: 2, button: "left", clickCount: 1 });
         await send("Input.dispatchMouseEvent", { type: "mouseReleased", x: 2, y: 2, button: "left", clickCount: 1 });
         await pause(200);
         const outsideClosed = await send("Runtime.evaluate", { expression: "!document.querySelector('[role=dialog]')", returnByValue: true });
-        if (!outsideClosed.result.value) throw new Error("Clicar fora não fechou o modal de exclusão.");
+        if (!outsideClosed.result.value) throw new Error("Clicar fora não fechou o modal de arquivamento.");
       }
     }
-    console.log("Exclusão da arena exige modal padrão legível em desktop e 320 px, e Esc cancela sem apagar.");
+    console.log("Arquivamento da arena exige modal padrão legível em desktop e 320 px, e Esc cancela sem apagar.");
     const previousTvSettings = await db.tvPresentationSettings.findUnique({ where: { arenaId: arenaA.id } });
     const tvFixture = await db.manualUpcomingMatch.createManyAndReturn({
       data: [1, 2, 3].map((index) => ({ arenaId: arenaA.id, displayOrder: index, homePairName: `Mandante TV GOAL ${index}`, awayPairName: `Visitante TV GOAL ${index}`, courtName: "Quadra GOAL", scheduledTime: `19:0${index}`, status: "SCHEDULED" })),
@@ -533,21 +533,16 @@ async function main() {
       await send("Emulation.setDeviceMetricsOverride", { width: viewport.width, height: viewport.height, deviceScaleFactor: 1, mobile: viewport.name === "mobile" });
       await selectArena(arenaA.id);
       await send("Page.navigate", { url: `${baseUrl}/agenda?data=${date}` });
+      const bookingSelector = `button[data-occurrence-id="${occurrenceId}"]`;
       let bookingVisible = false;
       for (let attempt = 0; attempt < 80; attempt += 1) {
-        const result = await send("Runtime.evaluate", {
-          expression: `Boolean([...document.querySelectorAll('button')].find((button) => button.textContent?.includes(${JSON.stringify(`Reserva cancelamento GOAL ${choice === "keep" ? "manter" : "cancelar"}`)})))`,
-          returnByValue: true,
-        });
-        bookingVisible = result.result.value;
-        if (bookingVisible) break;
+        const result = await send("Runtime.evaluate", { expression: `Boolean(document.querySelector(${JSON.stringify(bookingSelector)}))`, returnByValue: true });
+        if (result.result.value) { bookingVisible = true; break; }
         await pause(250);
       }
       if (!bookingVisible) throw new Error(`${viewport.name}: reserva fictícia não apareceu na agenda para cancelar.`);
       await pause(500);
-      await send("Runtime.evaluate", {
-        expression: `(() => { const button = [...document.querySelectorAll('button')].find((item) => item.textContent?.includes(${JSON.stringify(`Reserva cancelamento GOAL ${choice === "keep" ? "manter" : "cancelar"}`)})); button?.click(); })()`,
-      });
+      await send("Runtime.evaluate", { expression: `document.querySelector(${JSON.stringify(bookingSelector)})?.click()` });
       await pause(350);
       const cancelTrigger = await send("Runtime.evaluate", {
         expression: "(() => { const dialog = window.__arenaSmokeDialog('Agendamento de horário'); const button = [...(dialog?.querySelectorAll('button') ?? [])].find((item) => item.textContent?.trim() === 'Cancelar reserva'); button?.click(); return Boolean(button); })()",

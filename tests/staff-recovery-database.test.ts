@@ -1,3 +1,4 @@
+import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import assert from "node:assert/strict";
 import { createHash, randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -21,7 +22,7 @@ function loadActions(path: string, mocks: Record<string, unknown>) {
   const source = readFileSync(new URL(path, import.meta.url), "utf8");
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText, {
     exports, Date, URL, URLSearchParams,
-    require: (name: string) => name in mocks ? mocks[name] : require(name),
+    require: withDatabaseModuleMocks((name: string) => name in mocks ? mocks[name] : require(name)),
   });
   return exports;
 }

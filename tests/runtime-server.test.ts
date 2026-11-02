@@ -4,7 +4,9 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
 const code = readFileSync(new URL('../scripts/runtime-server.mjs', import.meta.url), 'utf8');
-const sandbox: any = { URL };
+// @ts-expect-error shared deployment module
+import { authenticationDatabaseUrl } from "../scripts/lib/auth-database.mjs";
+const sandbox: any = { URL, authenticationDatabaseUrl };
 vm.runInNewContext(code.slice(code.indexOf('export function runtimeEnvironment'), code.indexOf('\nfunction start')).replaceAll('export function', 'function') + '\nthis.runtimeEnvironment=runtimeEnvironment; this.runtimeWritableDirectories=runtimeWritableDirectories;', sandbox);
 test('web environment only inherits the limited database credential', () => {
   const environment = sandbox.runtimeEnvironment({ APP_DATABASE_URL: 'postgresql://arena_runtime:fixture@private/arena', DATABASE_URL: 'postgresql://postgres:admin@private/arena', DIRECT_URL: 'admin', PGPASSWORD: 'admin', PGUSER: 'postgres', PORT: '8080' });
@@ -37,7 +39,7 @@ test('web startup grants cache access before launching the limited process', () 
   const events: string[] = [];
   let childOptions: { uid?: number; gid?: number } = {};
   const context = {
-    URL,
+    URL, authenticationDatabaseUrl,
     process: {
       env: { APP_DATABASE_URL: 'postgresql://arena_runtime:fixture@private/arena' },
       platform: 'linux', getuid: () => 0, setgroups: () => events.push('drop-groups'),

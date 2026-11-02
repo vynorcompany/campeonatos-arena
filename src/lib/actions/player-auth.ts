@@ -7,7 +7,7 @@ import crypto from "node:crypto";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createPublicPlayerSession, destroyPublicPlayerSession } from "@/lib/auth/player-session";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/auth/database";
 import { resolvePublicClientPlayer } from "@/lib/services/public-client-registration";
 import { env } from "@/lib/env";
 import { sendEvolutionTextMessage } from "@/lib/integrations/evolution/client";

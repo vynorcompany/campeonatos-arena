@@ -10,7 +10,7 @@ const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL
 
 export default async function RegistrationSuccessPage(props: { params: Promise<{ slug: string; registrationId: string }> }) {
   const params = await props.params;
-  const tournament = await prisma.tournament.findUnique({ where: { publicSlug: params.slug }, select: { id: true, arenaId: true } });
+  const [tournament] = await prisma.$queryRaw<{ id: string; arenaId: string }[]>`SELECT * FROM public.resolve_tournament_public_slug(${params.slug})`;
   if (!tournament) notFound();
   const registration = await arenaDatabase(tournament.arenaId).publicTournamentRegistration.findFirst({
     where: { id: params.registrationId, tournamentId: tournament.id },

@@ -1,7 +1,7 @@
 import { fetchWithDeadline } from "@/lib/http/fetch-with-deadline";
 import "server-only";
 import { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { agencyDatabase as prisma } from "@/lib/auth/database";
 import { setArenaRlsContext, withArenaTransaction } from "@/lib/rls";
 import { getAgencyMercadoPagoToken } from "@/lib/payments/agency-mercado-pago-token";
 import { env } from "@/lib/env";

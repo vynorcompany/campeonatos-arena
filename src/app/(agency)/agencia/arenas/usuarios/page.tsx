@@ -4,7 +4,7 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard } from "@/components/section-card";
 import { updateUserSystemRoleAction } from "@/lib/actions/agency";
 import { requireAgencyPageAccess } from "@/lib/auth/guards";
-import { prisma } from "@/lib/prisma";
+import { agencyDatabase as prisma } from "@/lib/auth/database";
 
 export default async function AgencyArenaUsersPage() {
   const auth = await requireAgencyPageAccess();

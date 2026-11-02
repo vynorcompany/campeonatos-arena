@@ -1,3 +1,4 @@
+import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import { legalVersion } from "../src/lib/legal/version";
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -47,7 +48,7 @@ test("cadastro por código usa a arena correta, não aceita código cruzado e n�
         "@/lib/auth/login-attempts": { activeLoginLock: async () => null, recordFailedLogin: async () => null, clearLoginFailures: async () => {} },
       };
       const source = readFileSync(new URL("../src/lib/actions/player-auth.ts", import.meta.url), "utf8");
-      vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, { exports, require: (name: string) => name in mocks ? mocks[name] : require(name), FormData, Date, URL, Buffer, console });
+      vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, { exports, require: withDatabaseModuleMocks((name: string) => name in mocks ? mocks[name] : require(name)), FormData, Date, URL, Buffer, console });
       const form = (code?: string) => { const data = new FormData(); data.set("termsAccepted", "on"); data.set("legalVersion", legalVersion); data.set("arenaSlug", "arena-teste-goal"); data.set("returnTo", ""); data.set("name", "Atleta Descartável GOAL"); data.set("phone", phone); data.set("password", "GoalSenha123!"); data.set("confirmPassword", "GoalSenha123!"); if (code) data.set("code", code); return data; };
 
       const requested = await exports.registerPublicClientAction({ error: null }, form());

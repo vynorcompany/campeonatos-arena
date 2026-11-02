@@ -2,7 +2,7 @@ import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
 import { SectionCard } from "@/components/section-card";
 import { requireAgencyPageAccess } from "@/lib/auth/guards";
-import { prisma } from "@/lib/prisma";
+import { agencyDatabase as prisma } from "@/lib/auth/database";
 
 export default async function AgencySupportHistoryPage() {
   await requireAgencyPageAccess();

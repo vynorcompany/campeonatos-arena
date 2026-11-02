@@ -27,3 +27,8 @@ aws s3 cp "$file" "s3://${S3_BUCKET}/${prefix}/${filename}" \
   --only-show-errors
 
 echo "Backup completed: ${prefix}/${filename}"
+
+# Exercise the real stored dump weekly, not only the synthetic CI fixture.
+if [ "${RESTORE_DRILL_ENABLED:-true}" = "true" ] && [ "$(date -u +%u)" = "${RESTORE_DRILL_WEEKDAY:-7}" ]; then
+  sh /restore-drill.sh
+fi

@@ -1,4 +1,5 @@
 "use server";
+import { StaleRecordError, staleRecordMessage, expectedRecordDate, assertRecordVersion, recordVersion } from "@/lib/record-version";
 import { readExpiryPolicy } from "@/lib/academy/credit-expiry-policy";
 import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
 import { parseDreGroup } from "@/lib/reports/dre";
@@ -476,13 +477,17 @@ export async function updateFinancialEntryAction(formData: FormData) {
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
 
   const amountCents = parseMoneyToCents(parsed.data.amount);
-  await withArenaTransaction(auth.arenaId, async (tx) => {
+  const expectedUpdatedAt = expectedRecordDate(formData.get("expectedUpdatedAt"));
+  if (!expectedUpdatedAt) return { error: staleRecordMessage };
+  try { await withArenaTransaction(auth.arenaId, async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "FinancialEntry" WHERE id = ${parsed.data.entryId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
     const entry = await tx.financialEntry.findFirst({
       where: { id: parsed.data.entryId, arenaId: auth.arenaId, status: { not: "VOIDED" } },
       include: { settlements: { select: { amountCents: true, discountCents: true } } },
     });
     if (!entry) throw new Error("Lançamento não encontrado ou estornado.");
     assertFinancialEntryPermission(auth, entry.type, "edit");
+    assertRecordVersion(recordVersion(entry.updatedAt), expectedUpdatedAt.toISOString());
     if (entry.source === "AGENCY_SUBSCRIPTION") throw new Error("Esta fatura é gerenciada pela agência e não pode ser alterada aqui.");
     await assertFinancialEntryRelationsBelongToArena(tx, auth.arenaId, {
       bankAccountId: parsed.data.bankAccountId,
@@ -511,7 +516,7 @@ export async function updateFinancialEntryAction(formData: FormData) {
         productId: parsed.data.productId || null,
       },
     });
-  });
+  }); } catch (error) { if (error instanceof StaleRecordError) return { error: error.message }; throw error; }
   refreshFinanceRoutes();
 }
 
@@ -666,7 +671,9 @@ export async function settleFinancialEntryAction(formData: FormData) {
   if (!Number.isSafeInteger(amountCents) || amountCents > 2147483647 || amountCents < 0) throw new Error("Informe um valor recebido maior que zero.");
   const paidAt = parseDate(parsed.data.paidAt) ?? new Date();
 
-  await withArenaTransaction(auth.arenaId, async (tx) => {
+  const expectedUpdatedAt = expectedRecordDate(formData.get("expectedUpdatedAt"));
+  if (!expectedUpdatedAt) return { error: staleRecordMessage };
+  try { await withArenaTransaction(auth.arenaId, async (tx) => {
     await tx.$queryRaw`SELECT id FROM "FinancialEntry" WHERE id = ${parsed.data.entryId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
     const entry = await tx.financialEntry.findFirst({
       where: { id: parsed.data.entryId, arenaId: auth.arenaId, status: { in: ["PENDING", "OVERDUE", "PARTIAL"] } },
@@ -679,6 +686,7 @@ export async function settleFinancialEntryAction(formData: FormData) {
     });
     if (!entry) throw new Error("Esta conta não está disponível para baixa.");
     assertFinancialEntryPermission(auth, entry.type, "settle");
+    assertRecordVersion(recordVersion(entry.updatedAt), expectedUpdatedAt.toISOString());
     if (entry.source === "AGENCY_SUBSCRIPTION") throw new Error("Pague esta fatura pelo link do Mercado Pago. A baixa será automática.");
     if (hasUnresolvedOnlinePayment(entry)) throw new Error("Esta conta possui cobrança online emitida, em emissão ou em análise. Confira e concilie o pagamento antes da baixa manual.");
 
@@ -732,7 +740,7 @@ export async function settleFinancialEntryAction(formData: FormData) {
       await tx.financialSettlement.create({ data: { arenaId: auth.arenaId, financialEntryId: creditEntry.id, bankAccountId, amountCents: surplusCents, paymentMethod: parsed.data.paymentMethod, paidAt, notes: `Saldo do cliente originado na baixa da conta ${entry.id}.` } });
       await tx.auditEvent.create({ data: { arenaId: auth.arenaId, actorId: auth.userId, actorName: auth.userName, action: "RECEIVABLE_SURPLUS_CREDIT", entityId: entry.id, details: { playerId: creditPlayerId, amountCents: surplusCents, creditEntryId: creditEntry.id } } });
     }
-  });
+  }); } catch (error) { if (error instanceof StaleRecordError) return { error: error.message }; throw error; }
 
   refreshFinanceRoutes();
 }
@@ -748,7 +756,15 @@ export async function settleFinancialEntriesBulkAction(formData: FormData) {
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
 
   const paidAt = parseDate(parsed.data.paidAt) ?? new Date();
-  const settledCount = await withArenaTransaction(auth.arenaId, async (tx) => {
+  let versions: Record<string, string>;
+  try {
+    const value = JSON.parse(String(formData.get("expectedVersions") ?? ""));
+    if (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value).length > 2000 || Object.values(value).some(item => !expectedRecordDate(item))) throw new Error("Invalid version map");
+    versions = value;
+  }
+  catch { return { error: staleRecordMessage }; }
+  let settledCount = 0;
+  try { settledCount = await withArenaTransaction(auth.arenaId, async (tx) => {
     const entryIds = [...new Set(parsed.data.entryIds)];
     await tx.$queryRaw`SELECT id FROM "FinancialEntry" WHERE "arenaId" = ${auth.arenaId} AND id IN (${Prisma.join(entryIds)}) ORDER BY id FOR UPDATE`;
     const entries = await tx.financialEntry.findMany({
@@ -760,6 +776,7 @@ export async function settleFinancialEntriesBulkAction(formData: FormData) {
     });
     if (entries.length !== entryIds.length) throw new Error("Uma ou mais contas não estão disponíveis para quitação. Atualize a lista antes de tentar novamente.");
     for (const type of new Set(entries.map((entry) => entry.type))) assertFinancialEntryPermission(auth, type, "settle");
+    for (const entry of entries) assertRecordVersion(recordVersion(entry.updatedAt), versions[entry.id]);
     if (entries.some(hasUnresolvedOnlinePayment)) throw new Error("Uma ou mais contas possuem cobrança online emitida, em emissão ou em análise. Confira e concilie antes da baixa em lote.");
     const bankAccountId = await requireReceivingBankAccount(tx, auth.arenaId, parsed.data.bankAccountId);
     let count = 0;
@@ -780,7 +797,7 @@ export async function settleFinancialEntriesBulkAction(formData: FormData) {
       count += 1;
     }
     return count;
-  });
+  }); } catch (error) { if (error instanceof StaleRecordError) return { error: error.message }; throw error; }
   if (!settledCount) throw new Error("Nenhum lançamento pendente estava disponível para quitação.");
   refreshFinanceRoutes();
 }
@@ -1193,10 +1210,12 @@ export async function upsertPayrollEntryAction(formData: FormData) {
   const auth = await requireArenaAccess();
   const parsed = employeePayrollSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
-  await withArenaTransaction(auth.arenaId, tx => saveEmployeePayroll(tx, auth.arenaId, parsed.data, (state) => {
+  const expectedVersion = formData.get("expectedVersion");
+  if (typeof expectedVersion !== "string") return { error: staleRecordMessage };
+  try { await withArenaTransaction(auth.arenaId, tx => saveEmployeePayroll(tx, auth.arenaId, parsed.data, (state) => {
     assertFinancialEntryPermission(auth, "EXPENSE", state.exists ? "edit" : "create");
     if (state.exists && !state.hasFinancialEntry) assertFinancialEntryPermission(auth, "EXPENSE", "create");
     if (parsed.data.status === "PAID" && !state.paid) assertFinancialEntryPermission(auth, "EXPENSE", "settle");
-  }));
+  }, expectedVersion)); } catch (error) { if (error instanceof StaleRecordError) return { error: error.message }; throw error; }
   refreshFinanceRoutes();
 }

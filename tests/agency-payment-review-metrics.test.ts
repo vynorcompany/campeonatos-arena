@@ -1,3 +1,4 @@
+import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
@@ -10,7 +11,7 @@ test("financeiro da agência separa faturas em revisão das efetivamente pagas",
   const exports: Record<string, () => Promise<Record<string, number>>> = {};
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
     exports, Date, Intl,
-    require: (name: string) => {
+    require: withDatabaseModuleMocks((name: string) => {
       if (name !== "@/lib/prisma") throw new Error(`Unexpected import: ${name}`);
       return { prisma: {
         arena: { findMany: async () => [] },
@@ -27,7 +28,7 @@ test("financeiro da agência separa faturas em revisão das efetivamente pagas",
           ];
         } },
       } };
-    },
+    }),
   });
   const metrics = await exports.getAgencyMetrics();
   assert.equal(metrics.paidInvoiceCents, 10000);

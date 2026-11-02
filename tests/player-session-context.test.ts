@@ -1,3 +1,4 @@
+import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -43,7 +44,7 @@ function fixture(expired = false) {
   };
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: {
     module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true,
-  } }).outputText, { exports, Date, process, require: (name: string) => name in mocks ? mocks[name] : require(name) });
+  } }).outputText, { exports, Date, process, require: withDatabaseModuleMocks((name: string) => name in mocks ? mocks[name] : require(name)) });
   return { exports, get reads() { return reads; }, get deletions() { return deletions; }, get playerReads() { return playerReads; } };
 }
 

@@ -44,7 +44,7 @@ function publicArenaSlug(url) {
       segments[1] === 'portaldoatleta' ? segments[0] : null);
   try { return value ? decodeURIComponent(value) : null; } catch { return null; }
 }
-async function resolveActor(db, req, source = process.env, responseCookies = [], publicAction = false) {
+async function resolveActor(db, req, source = process.env, responseCookies = [], publicAction = false, authDb = db) {
   const cookies = cookiesOf(req.headers.cookie);
   for (const value of responseCookies) {
     const entry = cookiesOf(String(value).split(';', 1)[0]);
@@ -54,13 +54,14 @@ async function resolveActor(db, req, source = process.env, responseCookies = [],
   const url = requestUrl(req);
   const publicRoute = publicAction || /^\/(?:home|portal|classificacao|reservar|checkin)(?:\/|$)/.test(url.pathname) || /^\/[^/]+\/portaldoatleta(?:\/|$)/.test(url.pathname) || /^\/api\/(?:reservar|checkin)(?:\/|$)/.test(url.pathname);
   const agentRoute = url.pathname.startsWith('/api/agents/');
+  if (url.pathname === '/api/jobs/recovery-monitor' && source.RECOVERY_MONITOR_SECRET?.length >= 32 && req.headers.authorization === `Bearer ${source.RECOVERY_MONITOR_SECRET}`) return { arenaId: null, actorId: 'SYSTEM:RECOVERY', actorName: 'Monitor de recuperação' };
   if (url.pathname.startsWith('/api/jobs/') && source.CRON_SECRET &&
       (req.headers.authorization === `Bearer ${source.CRON_SECRET}` || req.headers['x-cron-secret'] === source.CRON_SECRET)) {
     return { arenaId: null, actorId: 'SYSTEM:JOBS', actorName: 'Agendamento automático' };
   }
   const sessionToken = cookies.get(source.SESSION_COOKIE_NAME || 'padel_session');
   if (sessionToken && !publicRoute && !agentRoute) {
-    const session = await db.session.findUnique({ where: { token: digest(sessionToken) }, select: { expiresAt: true, user: { select: { id: true, name: true, systemRole: true, memberships: { select: { arenaId: true }, orderBy: { createdAt: 'asc' } } } } } });
+    const session = await authDb.session.findUnique({ where: { token: digest(sessionToken) }, select: { expiresAt: true, user: { select: { id: true, name: true, systemRole: true, memberships: { select: { arenaId: true }, orderBy: { createdAt: 'asc' } } } } } });
     if (session && session.expiresAt > now) {
       const user = session.user;
       const selected = cookies.get(source.ARENA_COOKIE_NAME || 'padel_arena');
@@ -86,10 +87,10 @@ async function resolveActor(db, req, source = process.env, responseCookies = [],
   }
   const playerToken = cookies.get('arena_player_session');
   if (playerToken && !agentRoute) {
-    const session = await db.playerSession.findFirst({ where: { token: { in: [playerToken, digest(playerToken)] }, expiresAt: { gt: now } }, select: { athleteIdentityId: true, playerAccount: { select: { id: true, arenaId: true, playerId: true, identityId: true } } } });
+    const session = await authDb.playerSession.findFirst({ where: { token: { in: [playerToken, digest(playerToken)] }, expiresAt: { gt: now } }, select: { athleteIdentityId: true, playerAccount: { select: { id: true, arenaId: true, playerId: true, identityId: true } } } });
     if (session) {
       const identityId = session.athleteIdentityId || session.playerAccount.identityId;
-      const accounts = identityId ? await db.playerAccount.findMany({ where: { identityId }, select: { id: true, arenaId: true, playerId: true } }) : [session.playerAccount];
+      const accounts = identityId ? await authDb.playerAccount.findMany({ where: { identityId }, select: { id: true, arenaId: true, playerId: true } }) : [session.playerAccount];
       const slug = publicArenaSlug(url);
       const arena = slug ? await db.arena.findUnique({ where: { slug }, select: { id: true } }) : null;
       const account = accounts.find(item => item.arenaId === arena?.id) || session.playerAccount;
@@ -103,7 +104,7 @@ async function resolveActor(db, req, source = process.env, responseCookies = [],
 }
 
 /** Audit every application request centrally, without inspecting its body or query string. */
-function createAuditedHandler(handle, { db, manifest = {}, source = process.env, onError = () => console.error('Falha ao atualizar o registro de auditoria da requisição.') }) {
+function createAuditedHandler(handle, { db, authDb = db, manifest = {}, source = process.env, onError = () => console.error('Falha ao atualizar o registro de auditoria da requisição.') }) {
   return async (req, res) => {
     if (!shouldAudit(req)) return handle(req, res);
     const id = randomUUID();
@@ -114,7 +115,7 @@ function createAuditedHandler(handle, { db, manifest = {}, source = process.env,
     const publicAction = /(?:^|\/)(?:public-[^/]+|player-auth)\.ts$/.test(actionSource);
     let actor;
     try {
-      actor = await resolveActor(db, req, source, [], publicAction);
+      actor = await resolveActor(db, req, source, [], publicAction, authDb);
       await scoped(db, actor.arenaId, tx => tx.auditEvent.create({ data: { id, ...actor, action: operationOf(req, manifest), entityId: id, details } }), id);
     } catch {
       res.statusCode = 503;
@@ -131,7 +132,7 @@ function createAuditedHandler(handle, { db, manifest = {}, source = process.env,
       try {
         const setCookie = res.getHeader('set-cookie');
         const responseCookies = Array.isArray(setCookie) ? setCookie : setCookie ? [String(setCookie)] : [];
-        const identified = actor.actorId === 'ANONYMOUS' && responseCookies.length ? await resolveActor(db, req, source, responseCookies, publicAction) : actor;
+        const identified = actor.actorId === 'ANONYMOUS' && responseCookies.length ? await resolveActor(db, req, source, responseCookies, publicAction, authDb) : actor;
         const observed = [...scope.arenaIds];
         const agencyRequest = /^\/agencia(?:\/|$)/.test(path) || path.includes('/mercado-pago/agency/');
         const targetArenaId = identified.arenaId || (!agencyRequest && observed.length === 1 ? observed[0] : null);
@@ -156,6 +157,7 @@ function productionAuditHandler(handle, rootDir) {
   const { PrismaClient } = require('@prisma/client');
   const db = new PrismaClient({ datasources: { db: { url: process.env.APP_DATABASE_URL || process.env.DATABASE_URL } } });
   const manifest = JSON.parse(readFileSync(join(rootDir, '.next/server/server-reference-manifest.json'), 'utf8'));
-  return createAuditedHandler(handle, { db, manifest });
+  const authDb = process.env.AUTH_DATABASE_URL ? new PrismaClient({ datasources: { db: { url: process.env.AUTH_DATABASE_URL } } }) : db;
+  return createAuditedHandler(handle, { db, authDb, manifest });
 }
 module.exports = { cookiesOf, shouldAudit, operationOf, resolveActor, createAuditedHandler, productionAuditHandler };

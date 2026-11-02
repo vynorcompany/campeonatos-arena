@@ -3,6 +3,7 @@ import { viewStyles } from "./accounts-ledger-parts.utilities";
 
 export type Account = {
   id: string;
+  updatedAt: string;
   source: string;
   counterpartyName: string;
   category: string;

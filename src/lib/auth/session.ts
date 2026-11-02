@@ -4,7 +4,7 @@ import { deviceLabel } from "@/lib/auth/device-label";
 import { redirect } from "next/navigation";
 import crypto from "node:crypto";
 import { env } from "@/lib/env";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/auth/database";
 import { allPermissionModules } from "@/lib/permissions";
 import type { ArenaMembership, ArenaRole, SystemRole } from "@/types/auth";
 
@@ -94,7 +94,7 @@ export async function createSession(userId: string) {
     include: {
       memberships: {
         include: {
-          arena: true
+          arena: { select: { id: true } }
         },
         orderBy: {
           createdAt: "asc"

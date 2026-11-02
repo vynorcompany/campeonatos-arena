@@ -1,3 +1,4 @@
+import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -30,7 +31,7 @@ function loginFixture(passwordHash: string) {
   };
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText, {
     exports,
-    require: (name: string) => name in mocks ? mocks[name] : require(name),
+    require: withDatabaseModuleMocks((name: string) => name in mocks ? mocks[name] : require(name)),
   });
   return { action: exports.loginAction, redirectSignal, state: () => ({ sessionsCreated, failures }) };
 }

@@ -10,6 +10,7 @@ export function auditedDatabase(base: PrismaClient): PrismaClient {
   const operations = new WeakMap<object, Operation>();
   const scoped = (run: Operation, context: AuditRequestContext, options?: object) => base.$transaction(async tx => {
     await tx.$executeRaw`SELECT set_config('app.audit_actor_id', ${context.actorId ?? "ANONYMOUS"}, true), set_config('app.audit_actor_name', ${context.actorName ?? "Não autenticado"}, true), set_config('app.audit_parent_request', ${context.requestId ?? ""}, true), set_config('app.audit_arena_id', ${context.arenaId ?? ""}, true)`;
+    if (context.arenaId) await tx.$executeRaw`SELECT set_config('app.arena_id', ${context.arenaId}, true)`;
     return run(tx);
   }, options);
   const defer = (operation: Operation, context: AuditRequestContext) => {
@@ -58,7 +59,7 @@ export function auditedDatabase(base: PrismaClient): PrismaClient {
           return (...args: unknown[]) => {
             const operation: Operation = tx => (tx as any)[key][method](...args);
             const context = getAuditRequestContext();
-            if (context && writes.has(String(method))) return defer(operation, context);
+            if (context && (writes.has(String(method)) || context.arenaId)) return defer(operation, context);
             const result = member.apply(delegate, args);
             if (result && typeof result === "object") operations.set(result, operation);
             return result;

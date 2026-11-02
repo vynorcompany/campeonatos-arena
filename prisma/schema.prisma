@@ -104,6 +104,7 @@ model Arena {
   logoUrl                           String                   @default("/arena-profile.jpg")
   athletePortalLogoUrl              String                   @default("")
   accountStatus                     String                   @default("ACTIVE")
+  archivedAt                        DateTime?
   agencyNotes                       String                   @default("")
   checkinEnabled                    Boolean                  @default(false)
   checkinMode                       String                   @default("SELF")
@@ -2860,4 +2861,12 @@ model LessonCreditRequest {
   batch LessonCreditBatch @relation(fields: [arenaId, batchId], references: [arenaId, id], onDelete: Cascade)
   @@unique([arenaId, batchId])
   @@index([arenaId, status, createdAt])
+}
+
+model RecoveryCheck {
+  id            String    @id
+  status        String
+  checkedAt     DateTime
+  lastSuccessAt DateTime?
+  errorCode     String    @default("")
 }

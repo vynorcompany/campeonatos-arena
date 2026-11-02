@@ -1,5 +1,6 @@
 "use server";
 
+import { arenaDatabase } from "@/lib/arena-database";
 import crypto from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -117,7 +118,7 @@ export async function acceptRegulationDocumentAction(_: RegulationActionState, f
     };
   }
 
-  await prisma.regulationAcceptance.create({
+  await arenaDatabase(regulation.arena.id).regulationAcceptance.create({
     data: {
       arenaId: regulation.arena.id,
       content: regulation.content,

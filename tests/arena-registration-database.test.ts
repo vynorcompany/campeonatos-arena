@@ -1,3 +1,4 @@
+import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
@@ -36,7 +37,7 @@ test("cadastro cria trial, perfis e owner na arena correta sem persistir dados d
       };
       const source = readFileSync(new URL("../src/lib/auth/actions.ts", import.meta.url), "utf8");
       vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, {
-        exports, require: (name: string) => { if (!(name in mocks)) throw new Error(`Unexpected import: ${name}`); return mocks[name]; }, FormData, Date, URL, console,
+        exports, require: withDatabaseModuleMocks((name: string) => { if (!(name in mocks)) throw new Error(`Unexpected import: ${name}`); return mocks[name]; }), FormData, Date, URL, console,
       });
       const form = new FormData();
       form.set("arenaName", "Arena Cadastro GOAL"); form.set("ownerName", "Responsável GOAL"); form.set("email", email);

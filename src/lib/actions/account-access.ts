@@ -7,7 +7,7 @@ import { requireArenaAccess } from "@/lib/auth/session";
 import { accountEmailIsConfigured, sendAccountEmail } from "@/lib/auth/account-email";
 import { createAccountToken, hashAccountToken } from "@/lib/auth/account-tokens";
 import { env } from "@/lib/env";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/auth/database";
 import { inviteArenaUserSchema } from "@/lib/validators/user";
 
 export type AccountAccessState = { error: string | null; success: string | null; invitationUrl?: string };

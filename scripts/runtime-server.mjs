@@ -1,3 +1,4 @@
+import { authenticationDatabaseUrl } from "./lib/auth-database.mjs";
 import { spawn } from "node:child_process";
 import { mkdirSync, chownSync } from "node:fs";
 import { resolve } from "node:path";
@@ -17,6 +18,8 @@ export function runtimeEnvironment(source) {
   const environment = {
     ...source,
     DATABASE_URL: source.APP_DATABASE_URL,
+    AUTH_DATABASE_URL: authenticationDatabaseUrl(source.APP_DATABASE_URL),
+    AGENCY_DATABASE_URL: authenticationDatabaseUrl(source.APP_DATABASE_URL, "agency"),
     HOSTNAME: '0.0.0.0',
     __NEXT_PRIVATE_ORIGIN: `http://127.0.0.1:${port}`,
   };

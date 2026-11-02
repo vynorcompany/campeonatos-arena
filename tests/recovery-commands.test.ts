@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+// @ts-expect-error plain-Node deployment module
+import {recoveryStartupParameters,snapshotCommand,shellQuote}from'../services/recovery/snapshot-command.mjs';
+test('PITR startup cannot use lower critical limits than the original cluster',()=>{const text='max_connections setting:              500\nmax_worker_processes setting:         8\nmax_wal_senders setting:              10\nmax_prepared_xacts setting:           0\nmax_locks_per_xact setting:           64\n';const options=recoveryStartupParameters(text,{max_connections:20,max_wal_senders:30});assert.match(options,/max_connections=500/);assert.match(options,/max_wal_senders=30/);assert.throws(()=>recoveryStartupParameters('invalid'),/missing/)});
+test('snapshot directories are quoted and traversal is refused',()=>{assert.equal(shellQuote("/data/a'b"),"'/data/a'\\''b'");assert.match(snapshotCommand({kind:'files',path:'/data/files'}),/tar -czf/);assert.throws(()=>snapshotCommand({kind:'files',path:'/data/../private'}),/Invalid/);assert.equal(snapshotCommand({kind:'postgres'}),'pg_dump --format=custom --no-owner "$DATABASE_URL"');});

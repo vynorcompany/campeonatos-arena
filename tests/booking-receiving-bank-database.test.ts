@@ -1,3 +1,4 @@
+import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -49,21 +50,22 @@ test("Grade exige conta ativa por recebimento, preserva reservas em aberto e cob
       "@/lib/calendar/revalidation": { refreshCalendarRoutes() {} },
       "@/lib/finance/revalidation": { refreshFinanceRoutes() {} },
     };
-    vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/lib/actions/calendar.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports: actions, FormData, Date, Error, console: { error() {} }, require: (name: string) => mocks[name] ?? (name === "zod" ? { z: requireZod } : {}) });
+    vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/lib/actions/calendar.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports: actions, FormData, Date, Error, console: { error() {} }, require: withDatabaseModuleMocks((name: string) => mocks[name] ?? (name === "zod" ? { z: requireZod } : {})) });
     const payer = (index: number, bankAccountId = "", paymentMethod = "PIX") => ({ playerId: players[index].id, amountCents: 6000, paymentMethod, bankAccountId });
-    const form = (participants: ReturnType<typeof payer>[], date = "2040-01-02", extra: Record<string, string> = {}) => {
+    const form = async (participants: ReturnType<typeof payer>[], date = "2040-01-02", extra: Record<string, string> = {}) => {
       const data = new FormData();
       for (const [key, value] of Object.entries({ occurrenceId: "", courtId: court.id, courtIds: JSON.stringify([court.id]), title: "Reserva QA", startsAt: `${date}T10:00`, durationMinutes: "60", bookingTypeName: "Reserva", repeatUntil: "", teacherId: "", responsiblePlayerId: players[0].id, notes: "", participants: JSON.stringify(participants), ...extra })) data.set(key, value);
+      if (extra.occurrenceId) data.set("expectedUpdatedAt", (await admin.scheduleOccurrence.findUniqueOrThrow({where:{id:extra.occurrenceId}})).updatedAt.toISOString());
       return data;
     };
-    for (const bank of ["", inactive.id, foreign.id]) assert.match((await actions.saveCourtBookingAction(form([payer(0, bank)]))).error ?? "", /conta bancária/);
+    for (const bank of ["", inactive.id, foreign.id]) assert.match((await actions.saveCourtBookingAction(await form([payer(0, bank)]))).error ?? "", /conta bancária/);
     assert.equal(await admin.scheduleOccurrence.count({ where: { arenaId } }), 0);
     assert.equal(await admin.financialEntry.count({ where: { arenaId } }), 0);
     canSettle = false;
-    assert.ok((await actions.saveCourtBookingAction(form([payer(0, bankA.id)]))).error);
+    assert.ok((await actions.saveCourtBookingAction(await form([payer(0, bankA.id)]))).error);
     assert.equal(await admin.scheduleOccurrence.count({ where: { arenaId } }), 0);
     canSettle = true;
-    assert.equal((await actions.saveCourtBookingAction(form([payer(0, bankA.id), payer(1, bankB.id)]))).error, undefined);
+    assert.equal((await actions.saveCourtBookingAction(await form([payer(0, bankA.id), payer(1, bankB.id)]))).error, undefined);
     const paid = await admin.financialEntry.findMany({ where: { arenaId }, include: { settlements: true }, orderBy: { playerId: "asc" } });
     assert.equal(paid.length, 2);
     for (const [index, player] of players.entries()) {
@@ -73,24 +75,24 @@ test("Grade exige conta ativa por recebimento, preserva reservas em aberto e cob
       assert.equal(entry.settlements[0].amountCents, 6000);
     }
     const occurrence = await admin.scheduleOccurrence.findFirstOrThrow({ where: { arenaId } });
-    assert.equal((await actions.saveCourtBookingAction(form([payer(0, bankA.id),payer(1,bankB.id)], "2040-01-02", { occurrenceId: occurrence.id }))).error, undefined);
+    assert.equal((await actions.saveCourtBookingAction(await form([payer(0, bankA.id),payer(1,bankB.id)], "2040-01-02", { occurrenceId: occurrence.id }))).error, undefined);
     assert.equal(await admin.financialSettlement.count({where:{arenaId}}),2,"saving paid athletes does not create another receipt");
-    assert.equal((await actions.saveCourtBookingAction(form([payer(0,bankA.id)],"2040-01-02",{occurrenceId:occurrence.id}))).error,undefined);
+    assert.equal((await actions.saveCourtBookingAction(await form([payer(0,bankA.id)],"2040-01-02",{occurrenceId:occurrence.id}))).error,undefined);
     assert.equal((await admin.financialEntry.findUniqueOrThrow({where:{id:paid.find(e=>e.playerId===players[1].id)!.id}})).status,"PAID","removed paid athlete keeps the original entry");
     assert.equal(await admin.financialSettlement.count({ where: { arenaId } }), 2);
     canSettle = false;
-    assert.equal((await actions.saveCourtBookingAction(form([payer(0, "", "")], "2040-01-03"))).error, undefined);
+    assert.equal((await actions.saveCourtBookingAction(await form([payer(0, "", "")], "2040-01-03"))).error, undefined);
     canSettle = true;
     const openBooking=await admin.scheduleOccurrence.findFirstOrThrow({where:{arenaId,startsAt:new Date("2040-01-03T10:00:00")},include:{participants:true}});
     const openId=openBooking.participants[0].financialEntryId!;
-    assert.equal((await actions.saveCourtBookingAction(form([payer(1,"","")],"2040-01-03",{occurrenceId:openBooking.id,responsiblePlayerId:players[1].id}))).error,undefined);
+    assert.equal((await actions.saveCourtBookingAction(await form([payer(1,"","")],"2040-01-03",{occurrenceId:openBooking.id,responsiblePlayerId:players[1].id}))).error,undefined);
     assert.equal((await admin.financialEntry.findUniqueOrThrow({where:{id:openId}})).status,"VOIDED","unpaid removed athlete is voided, not deleted");
-    assert.equal((await actions.saveCourtBookingAction(form([payer(0, bankA.id)], "2040-01-07", { bookingTypeName: "Reserva fixa", repeatUntil: "2040-01-21" }))).error, undefined);
+    assert.equal((await actions.saveCourtBookingAction(await form([payer(0, bankA.id)], "2040-01-07", { bookingTypeName: "Reserva fixa", repeatUntil: "2040-01-21" }))).error, undefined);
     const unallocated = [{...payer(0,"",""),amountCents:0}];
-    assert.equal((await actions.saveCourtBookingAction(form(unallocated,"2040-02-01",{courtPriceCents:"18000"}))).error,undefined);
+    assert.equal((await actions.saveCourtBookingAction(await form(unallocated,"2040-02-01",{courtPriceCents:"18000"}))).error,undefined);
     const priced=await admin.scheduleOccurrence.findFirstOrThrow({where:{arenaId,startsAt:new Date("2040-02-01T10:00:00")},include:{participants:true}});
     assert.equal(priced.courtPriceCents,18000);assert.equal(priced.participants[0].amountCents,0,"saving the court price does not automatically charge athletes");
-    assert.equal((await actions.saveCourtBookingAction(form(unallocated,"2040-02-01",{occurrenceId:priced.id,courtPriceCents:"0"}))).error,undefined);
+    assert.equal((await actions.saveCourtBookingAction(await form(unallocated,"2040-02-01",{occurrenceId:priced.id,courtPriceCents:"0"}))).error,undefined);
     assert.equal((await admin.scheduleOccurrence.findUniqueOrThrow({where:{id:priced.id}})).courtPriceCents,0,"an explicit free booking remains free");
     const series = await admin.scheduleOccurrence.findMany({ where: { arenaId, bookingSeriesId: { not: null } }, orderBy: { startsAt: "asc" }, include: { participants: { include: { financialEntry: { include: { settlements: true } } } } } });
     assert.equal(series.length, 3);
