@@ -9,7 +9,7 @@ import { savePrinterSettingsAction } from "@/lib/actions/printer-settings";
 export default async function PrinterSettingsPage() {
   const auth = await requirePermission("arena:settings");
   const settings = await arenaDatabase(auth.arenaId).arenaOperationalSettings.findUnique({ where: { arenaId: auth.arenaId }, select: { printerPaper: true, printerCopies: true } });
-  return <section className={`${ui.page} tw:max-w-4xl`}>
+  return <section className={`${ui.page} tw:w-full`}>
     <div className="tw:flex tw:flex-wrap tw:justify-end tw:gap-2">
       <Link href="/imprimir/teste" target="_blank" rel="noopener noreferrer" className={ui.secondary}>Abrir página de teste ↗</Link>
     </div>

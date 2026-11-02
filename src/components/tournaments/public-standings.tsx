@@ -575,11 +575,11 @@ function TeacherManagementPanel({ portal }: { portal: Portal }) {
             <article className={viewStyles.teacher_portal_management_section} data-panel="classes">
             <header><h3>Turmas</h3></header>
             {management.classGroups.length ? (
-              management.classGroups.map((group) => <section className={viewStyles.teacher_portal_class_group} key={group.id}>
-                <header><span><strong>{group.name}</strong><small>{group.enrolledCount} aluno(s) matriculado(s)</small></span></header>
+              management.classGroups.map((group) => <details className={viewStyles.teacher_portal_class_group} key={group.id}>
+                <summary className="tw:cursor-pointer tw:list-none tw:rounded tw:py-2 tw:focus-visible:outline-2 tw:focus-visible:outline-blue-500"><span><strong>{group.name}</strong><small className="tw:ml-2">{group.enrolledCount} aluno(s) matriculado(s) · Expandir</small></span></summary>
                 <div className={viewStyles.teacher_portal_class_slots}>{group.schedules.map((schedule) => <SafeActionForm action={updateTeacherPortalClassGroupCapacityAction} className={viewStyles.teacher_portal_class_slot} key={schedule.id}><input type="hidden" name="arenaSlug" value={portal?.arenaSlug} /><input type="hidden" name="classGroupId" value={group.id} /><input type="hidden" name="scheduleId" value={schedule.id} /><strong>{weekdays[schedule.weekday]} · {schedule.startTime}</strong><label><span>Vagas</span><input name="capacity" type="number" min={Math.max(1, group.enrolledCount)} max="99" defaultValue={schedule.capacity} /></label><SubmitButton label="Salvar" pendingLabel="..." className={viewStyles.button_button_small} /></SafeActionForm>)}</div>
                 {group.students.length ? <div className={viewStyles.teacher_portal_class_members}><span>Alunos</span>{group.students.map((student) => <small key={student.id}>{student.name}</small>)}</div> : <small className={viewStyles.teacher_portal_class_empty}>Nenhum aluno matriculado.</small>}
-              </section>)
+              </details>)
             ) : (
               <p>Nenhuma turma vinculada.</p>
             )}

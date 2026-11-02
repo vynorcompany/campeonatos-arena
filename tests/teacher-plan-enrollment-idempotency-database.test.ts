@@ -48,7 +48,7 @@ test("duas inscrições no mesmo plano geram uma assinatura e doze lançamentos,
     ids.betaClient = betaClient.id;
 
     const source = readFileSync(new URL("../src/lib/actions/academy.ts", import.meta.url), "utf8");
-    const exports: Record<string, (form: FormData) => Promise<void>> = {};
+    const exports: Record<string, (form: FormData) => Promise<void | { error: string }>> = {};
     const nodeRequire = createRequire(import.meta.url);
     const mocks: Record<string, unknown> = {
       "next/cache": { revalidatePath() {} },
@@ -86,10 +86,10 @@ test("duas inscrições no mesmo plano geram uma assinatura e doze lançamentos,
     };
 
     const results = await Promise.allSettled([enroll(client.id), enroll(client.id)]);
-    assert.equal(results.filter((result) => result.status === "fulfilled").length, 1);
-    const rejected = results.find((result) => result.status === "rejected");
-    assert.equal(rejected?.status, "rejected");
-    assert.match(String(rejected.reason), /já possui uma assinatura ativa/);
+    assert.equal(results.filter(result => result.status === "rejected").length, 0);
+    const outcomes = results.map(result => result.status === "fulfilled" ? result.value : undefined);
+    assert.equal(outcomes.filter(value => !value).length, 1);
+    assert.equal(outcomes.find(value => value)?.error, "Este aluno já está inscrito neste plano.");
     const student = await admin.student.findUniqueOrThrow({ where: { playerId: client.id }, select: { id: true, totalClasses: true } });
     assert.equal(student.totalClasses, 4);
     assert.equal(await admin.studentSubscription.count({ where: { studentId: student.id, planId: plan.id, status: "ACTIVE" } }), 1);

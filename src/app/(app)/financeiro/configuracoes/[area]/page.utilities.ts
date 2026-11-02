@@ -55,7 +55,7 @@ export const viewStyles = {
     "stack-md", "settings-page", "tw:grid", "tw:gap-y-[18px]",
     "tw:gap-x-[18px]", "tw:[&_>_*:nth-child(1)]:[animation-delay:40ms]", "tw:[&_>_*:nth-child(2)]:[animation-delay:100ms]", "tw:[&_>_*:nth-child(3)]:[animation-delay:160ms]",
     "tw:[&_>_*:nth-child(4)]:[animation-delay:220ms]", "tw:[&_>_.section-card:last-child]:border-b-[length:1px]", "tw:[&_>_.section-card:last-child]:[border-bottom-style:solid]", "tw:[&_>_.section-card:last-child]:border-b-[color:var(--line)]",
-    "tw:max-w-[1320px]", "tw:[&_>_.card]:relative", "tw:[&_>_.card]:pt-[62px]", "tw:[&_>_.card_>_.button:last-child]:absolute",
+    "tw:w-full", "tw:[&_>_.card]:relative", "tw:[&_>_.card]:pt-[62px]", "tw:[&_>_.card_>_.button:last-child]:absolute",
     "tw:[&_>_.card_>_.button:last-child]:top-[17px]", "tw:[&_>_.card_>_.button:last-child]:left-[18px]", "tw:[&_>_.card_>_.button:last-child]:w-[fit-content]", "tw:[&_>_.card_>_.button:last-child]:min-h-[32px]",
     "tw:[&_.grid-form_input]:min-h-[34px]", "tw:[&_.grid-form_input]:pt-[7px]", "tw:[&_.grid-form_input]:pr-[9px]", "tw:[&_.grid-form_input]:pb-[7px]",
     "tw:[&_.grid-form_input]:pl-[9px]", "tw:[&_.grid-form_input]:text-[.78rem]", "tw:[&_.grid-form_select]:min-h-[34px]", "tw:[&_.grid-form_select]:pt-[7px]",

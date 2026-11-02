@@ -787,6 +787,7 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
   const firstAmountCents = discountedAmountCents;
   const firstDueDate = dueDateInput ?? getFirstDueDate(startedAt, dueDay);
   let firstEntryId = "";
+  try {
   await withArenaTransaction(auth.arenaId, async (tx) => {
     await lockClassGroupCapacity(tx, auth.arenaId, classGroupId);
     await lockStudentPlanSubscription(tx, auth.arenaId, client.id, planId);
@@ -819,7 +820,7 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
       orderBy: { createdAt: "desc" },
       select: { id: true },
     });
-    if (subscription) throw new Error("Este aluno já possui uma assinatura ativa neste plano. Cancele ou altere o plano atual antes de inscrevê-lo novamente.");
+    if (subscription) throw new Error("Este aluno já está inscrito neste plano.");
     await tx.teacherStudent.upsert({
       where: { teacherId_studentId: { teacherId, studentId: student.id } },
       update: { active: true },
@@ -932,6 +933,10 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
       data: { endsAt: lastDueDate, nextDueDate },
     });
   });
+  } catch (error) {
+    if (error instanceof Error && error.message === "Este aluno já está inscrito neste plano.") return { error: error.message };
+    throw error;
+  }
   if (firstEntryId) {
     try { await issueRecurringOnlineChargeForEntry(auth.arenaId, firstEntryId); }
     catch (error) { console.error("Could not issue the initial plan boleto", error); }
