@@ -1,3 +1,6 @@
+import { currentPlanBill } from "@/lib/academy/current-plan-bill";
+import { lessonCreditBalances } from "@/lib/academy/lesson-credits";
+import { withArenaTransaction } from "@/lib/rls";
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { TeacherPlanTransferDialog } from "@/components/teachers/teacher-plan-transfer-dialog";
 import { TeacherPlanPriceSchedule } from "@/components/teachers/teacher-plan-price-schedule";
@@ -59,6 +62,8 @@ export default async function TeacherDetailPage(
     searchParams?.tab === "report"
       ? searchParams.tab
       : "plans";
+  const canRegisterEnrollmentPayment = canPerformPermission("finance:receivable:settle", auth.arenaRole, auth.systemRole, auth.editPermissions);
+  const enrollmentBankAccounts = canRegisterEnrollmentPayment ? await prisma.bankAccount.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }) : [];
   const now = instantToArenaWallClock(new Date());
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthEnd = new Date(
@@ -147,6 +152,8 @@ export default async function TeacherDetailPage(
     prisma.lessonAttendance.findMany({ where: { student: { arenaId: auth.arenaId, teacherAssignments: { some: { teacherId: params.teacherId, active: true } } }, makeupRequestedAt: { not: null } }, select: { makeupScheduledAt: true, makeupExpiresAt: true } }),
   ]);
   if (!teacher) notFound();
+  const paidCreditBalances = await withArenaTransaction(auth.arenaId, tx => lessonCreditBalances(tx, auth.arenaId, teacher.planAssignments.flatMap(({ plan }) => plan.subscriptions.map(sub => sub.student.id))));
+  for (const { plan } of teacher.planAssignments) for (const subscription of plan.subscriptions) subscription.student.remainingClasses = paidCreditBalances.get(subscription.student.id) ?? subscription.student.remainingClasses;
   const activeStudentFinancialEntries = await prisma.financialEntry.findMany({
     where: {
       arenaId: auth.arenaId,
@@ -436,6 +443,8 @@ export default async function TeacherDetailPage(
           <h2 className="tw:sr-only">Alunos ativos</h2>
           <TeacherPlanEnrollmentForm
             variant="students"
+            bankAccounts={enrollmentBankAccounts}
+            canRegisterPayment={canRegisterEnrollmentPayment}
             teacherId={teacher.id}
             plans={teacher.planAssignments.map(({ plan }) => ({
               id: plan.id,
@@ -456,15 +465,15 @@ export default async function TeacherDetailPage(
                 // ambos os IDs evita depender do nome (que pode ser alterado
                 // no cadastro) e impede que um lançamento de outro plano
                 // apareça como a mensalidade deste aluno.
-                const payment = activeStudentFinancialEntries.find(
+                const payment = currentPlanBill(activeStudentFinancialEntries.filter(
                   (entry) =>
                     entry.planId === plan.id &&
                     entry.playerId === subscription.student.playerId,
-                ) ?? plan.financialEntries.find(
+                ), now) ?? currentPlanBill(plan.financialEntries.filter(
                   (entry) =>
-                    entry.playerId === subscription.student.playerId ||
-                    entry.counterpartyName === subscription.student.name,
-                );
+                    (Boolean(subscription.student.playerId) && entry.playerId === subscription.student.playerId) ||
+                    (!entry.playerId && entry.counterpartyName === subscription.student.name),
+                ), now);
                 const financialStatus = !payment
                   ? "Sem lançamento atribuído"
                   : payment.status === "VOIDED"

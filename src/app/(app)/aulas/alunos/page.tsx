@@ -1,3 +1,5 @@
+import { lessonCreditBalances } from "@/lib/academy/lesson-credits";
+import { withArenaTransaction } from "@/lib/rls";
 import { viewStyles } from "./page.utilities";
 import { WorkspaceHeading } from "@/components/ui/workspace-heading";
 import { SectionCard } from "@/components/section-card";
@@ -27,6 +29,8 @@ export default async function StudentsPage() {
       orderBy: { name: "asc" }
     })
   ]);
+  const paidCreditBalances = await withArenaTransaction(auth.arenaId, tx => lessonCreditBalances(tx, auth.arenaId, students.map(student => student.id)));
+  for (const student of students) student.remainingClasses = paidCreditBalances.get(student.id) ?? student.remainingClasses;
   const linkedPlayerIds = new Set(students.map((student) => student.playerId).filter(Boolean));
   const availablePlayers = players.filter((player) => !linkedPlayerIds.has(player.id));
 

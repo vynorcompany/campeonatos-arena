@@ -148,7 +148,7 @@ test("teacher monthly reports generate one auditable payable entry from selected
   assert.ok(utilityClasses("teacher-report-payable-form").length, "teacher-report-payable-form has component Tailwind utilities");
 });
 
-test("teacher plans enroll searchable clients with balance, due date, discount and recurring finance", () => {
+test("teacher plans enroll searchable clients with payment date, due date, discount and recurring finance", () => {
   const detail = readFileSync(
     resolve(process.cwd(), "src/app/(app)/professores/[teacherId]/page.tsx"),
     "utf8",
@@ -167,7 +167,10 @@ test("teacher plans enroll searchable clients with balance, due date, discount a
 
   assert.match(enrollment, /Pesquisar cliente/);
   assert.match(enrollment, /Data de início/);
-  assert.match(enrollment, /Saldo de aulas/);
+  assert.match(enrollment, /Mensalidade paga/);
+  assert.match(enrollment, /name="paidAt"/);
+  assert.match(enrollment, /Créditos liberados após a quitação/);
+  assert.doesNotMatch(enrollment, /name="remainingClasses"/);
   assert.match(enrollment, /Desconto/);
   assert.match(detail, /TeacherPlanEnrollmentForm/);
   assert.match(detail, /variant="students"/);
@@ -806,7 +809,8 @@ test("a student has at most one active subscription for each plan", () => {
   assert.match(migration, /CREATE UNIQUE INDEX "StudentSubscription_one_active_plan_per_student"/);
   assert.match(migration, /WHERE "status" = 'ACTIVE'/);
   assert.match(migration, /ROW_NUMBER\(\) OVER/);
-  assert.match(academy, /studentId: student\.id, planId, status: "ACTIVE"/);
+  assert.match(academy, /planId, status: "ACTIVE", student: \{ playerId: client\.id \}/);
+  assert.match(academy, /lockStudentPlanSubscription\(tx, auth\.arenaId, client\.id, planId\)/);
   assert.match(classGroups, /const activeSubscription = await tx\.studentSubscription\.findFirst/);
 });
 

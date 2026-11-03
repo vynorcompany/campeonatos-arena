@@ -6,7 +6,7 @@ import { createIndependentTeacherPlan } from "@/lib/academy/create-teacher-plan"
 import { arenaDatabase } from "@/lib/arena-database";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireModuleEdit } from "@/lib/auth/guards";
+import { requireModuleEdit, requirePermission } from "@/lib/auth/guards";
 import { getDiscountedAmountCents } from "@/lib/finance/discounts";
 import { getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
 import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
@@ -697,12 +697,16 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
   const dueDay =
     dueDateInput?.getDate() ??
     Math.min(28, Math.max(1, Number(formData.get("dueDay") ?? 10) || 10));
-  const remainingClasses = z.coerce
-    .number()
-    .int()
-    .min(0)
-    .max(500)
-    .parse(formData.get("remainingClasses") ?? "0");
+  // Plan allowances are released by the paid monthly bill, never by enrollment.
+  const remainingClasses = 0;
+  const enrollmentPaid = formData.get("paid") === "on";
+  const paidAt = enrollmentPaid ? parseFormDate(String(formData.get("paidAt") ?? "")) : null;
+  const paymentMethod = String(formData.get("paymentMethod") ?? "").trim();
+  if (enrollmentPaid) {
+    const paymentAuth = await requirePermission("finance:receivable:settle");
+    if (paymentAuth.arenaId !== auth.arenaId) return { error: "Atualize a arena antes de registrar o pagamento." };
+    if (!paidAt || !paymentMethod) return { error: "Informe a data e a forma de pagamento." };
+  }
   const discountMode =
     String(formData.get("discountMode") ?? "AMOUNT") === "PERCENTAGE"
       ? "PERCENTAGE"
@@ -758,6 +762,8 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
   ]);
   if (!teacher || !plan || !assignment || !client)
     throw new Error("Professor, plano ou cliente não encontrado.");
+  const alreadyEnrolled = await prisma.studentSubscription.findFirst({ where: { arenaId: auth.arenaId, planId, status: "ACTIVE", student: { playerId: client.id } }, select: { id: true } });
+  if (alreadyEnrolled) return { error: "Este aluno já está inscrito neste plano." };
   if (
     classGroupId &&
     (!classGroup ||
@@ -789,8 +795,11 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
   let firstEntryId = "";
   try {
   await withArenaTransaction(auth.arenaId, async (tx) => {
+    const bankAccountId = enrollmentPaid && firstAmountCents > 0 ? await requireReceivingBankAccount(tx, auth.arenaId, formData.get("bankAccountId")) : null;
     await lockClassGroupCapacity(tx, auth.arenaId, classGroupId);
     await lockStudentPlanSubscription(tx, auth.arenaId, client.id, planId);
+    const alreadyEnrolled = await tx.studentSubscription.findFirst({ where: { arenaId: auth.arenaId, planId, status: "ACTIVE", student: { playerId: client.id } }, select: { id: true } });
+    if (alreadyEnrolled) throw new Error("Este aluno já está inscrito neste plano.");
     const currentGroup = await tx.classGroup.findFirst({
       where: { id: classGroupId, arenaId: auth.arenaId, teacherId, active: true },
       include: { plans: { select: { planId: true } }, schedules: true, enrollments: { where: { status: "ACTIVE" }, select: { id: true } } },
@@ -803,8 +812,7 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
         active: true,
         name: client.name,
         phone: client.phone,
-        remainingClasses,
-        totalClasses: { increment: remainingClasses },
+
       },
       create: {
         arenaId: auth.arenaId,
@@ -815,12 +823,6 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
         totalClasses: remainingClasses,
       },
     });
-    const subscription = await tx.studentSubscription.findFirst({
-      where: { arenaId: auth.arenaId, studentId: student.id, planId, status: "ACTIVE" },
-      orderBy: { createdAt: "desc" },
-      select: { id: true },
-    });
-    if (subscription) throw new Error("Este aluno já está inscrito neste plano.");
     await tx.teacherStudent.upsert({
       where: { teacherId_studentId: { teacherId, studentId: student.id } },
       update: { active: true },
@@ -900,11 +902,18 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
         teacherId,
         recurrenceId: recurrence.id,
         playerId: client.id,
-        paymentMethod: "Boleto",
+        status: enrollmentPaid ? "PAID" : "PENDING",
+        bankAccountId,
+        paidAt,
+        paymentMethod: enrollmentPaid ? paymentMethod : "Boleto",
         notes: `Primeira mensalidade. ${note}`,
       },
     });
     firstEntryId = firstEntry.id;
+    if (enrollmentPaid) {
+      if (firstAmountCents > 0) await tx.financialSettlement.create({ data: { arenaId: auth.arenaId, financialEntryId: firstEntry.id, bankAccountId, amountCents: firstAmountCents, paymentMethod, paidAt: paidAt! } });
+      await lessonCreditState(tx, auth.arenaId, student.id);
+    }
     let nextDueDate = getNextFinancialRecurrenceDate(firstDueDate, "MONTHLY");
     let lastDueDate = firstDueDate;
     for (let month = 0; month < 11; month += 1) {
@@ -937,7 +946,7 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
     if (error instanceof Error && error.message === "Este aluno já está inscrito neste plano.") return { error: error.message };
     throw error;
   }
-  if (firstEntryId) {
+  if (firstEntryId && !enrollmentPaid && firstAmountCents > 0) {
     try { await issueRecurringOnlineChargeForEntry(auth.arenaId, firstEntryId); }
     catch (error) { console.error("Could not issue the initial plan boleto", error); }
   }

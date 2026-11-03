@@ -1,4 +1,5 @@
 "use client";
+import { ToggleSwitch } from "@/components/forms/toggle-switch";
 import { createQuickPlayerAction } from "@/lib/actions/calendar";
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { Modal } from "@/components/ui/modal";
@@ -22,13 +23,20 @@ export function TeacherPlanEnrollmentForm({
   clients,
   groups = [],
   variant = "default",
+  bankAccounts = [],
+  paymentMethods = ["PIX", "Dinheiro", "Cartão de débito", "Cartão de crédito", "Boleto"],
+  canRegisterPayment = false,
 }: {
   teacherId: string;
   plans: Plan[];
   clients: Client[];
   groups?: Group[];
   variant?: "default" | "students";
+  bankAccounts?: { id: string; name: string }[];
+  paymentMethods?: string[];
+  canRegisterPayment?: boolean;
 }) {
+  const [paid, setPaid] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickError, setQuickError] = useState("");
   const [quickPending, startQuickTransition] = useTransition();
@@ -37,7 +45,7 @@ export function TeacherPlanEnrollmentForm({
   const [planId, setPlanId] = useState(plans[0]?.id ?? "");
   const [groupId, setGroupId] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
-  const close = useCallback(() => setModalOpen(false), []);
+  const close = useCallback(() => { setPaid(false); setModalOpen(false); }, []);
   const [clientPickerOpen, setClientPickerOpen] = useState(false);
   const matches = useMemo(
     () =>
@@ -67,6 +75,10 @@ export function TeacherPlanEnrollmentForm({
         return null;
       }}
       onSuccess={() => {
+        setPaid(false);
+        setClientId("");
+        setQuery("");
+        setGroupId("");
         setClientPickerOpen(false);
         setModalOpen(false);
       }}
@@ -155,16 +167,6 @@ export function TeacherPlanEnrollmentForm({
           <input type="date" name="startedAt" required />
         </label>
         <label>
-          Saldo de aulas
-          <input
-            type="number"
-            name="remainingClasses"
-            min="0"
-            defaultValue="0"
-            required
-          />
-        </label>
-        <label>
           Vencimento
           <input type="date" name="dueDate" required />
         </label>
@@ -187,6 +189,7 @@ export function TeacherPlanEnrollmentForm({
           </select>
         </label>
       </div>
+      {canRegisterPayment ? <section className="tw:col-span-full tw:grid tw:min-w-0 tw:gap-3 tw:rounded-md tw:border tw:border-[var(--line)] tw:p-3 tw:sm:grid-cols-2"><div className="tw:col-span-full"><input type="hidden" name="paid" value={paid ? "on" : ""} /><ToggleSwitch compact label="Mensalidade paga" checked={paid} onCheckedChange={setPaid} /></div>{paid ? <><label className={ui.field}>Data do pagamento<input name="paidAt" type="date" required defaultValue={new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date())} /></label><label className={ui.field}>Forma de pagamento<select name="paymentMethod" required>{paymentMethods.map(method => <option key={method} value={method}>{method}</option>)}</select></label><label className={`${ui.field} tw:sm:col-span-2`}>Conta bancária<select name="bankAccountId" required defaultValue=""><option value="">Selecione a conta</option>{bankAccounts.map(account => <option key={account.id} value={account.id}>{account.name}</option>)}</select></label></> : null}<small className="tw:col-span-full tw:text-xs tw:font-normal tw:text-[var(--muted)]">Créditos liberados após a quitação da mensalidade do mês.</small></section> : <p className="tw:col-span-full tw:text-xs tw:font-normal tw:text-[var(--muted)]">Créditos liberados após a quitação da mensalidade do mês.</p>}
       <SubmitButton
         label="Inserir aluno"
         pendingLabel="Inserindo..."

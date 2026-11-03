@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { NotificationTarget } from "@/components/notifications/notification-target";
 import { documentUtilities } from "./document.utilities";
 import type { Metadata } from "next";
 import "@/app/globals.css";
@@ -18,7 +20,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" className={documentUtilities}>
-      <body>{children}<SystemUpdateNotice initialRevision={releaseRevision(process.env.RAILWAY_GIT_COMMIT_SHA)} /></body>
+      <body>{children}<Suspense fallback={null}><NotificationTarget /></Suspense><SystemUpdateNotice initialRevision={releaseRevision(process.env.RAILWAY_GIT_COMMIT_SHA)} /></body>
     </html>
   );
 }
