@@ -436,13 +436,14 @@ export async function insertSponsorInPlanAction(formData: FormData) {
     const sponsor = await tx.tvSponsor.create({ data: { arenaId: auth.arenaId, name, subtitle: plan.name, sponsorshipType: plan.sponsorshipType, monthlyAmountCents, benefits: [plan.reservationCredits ? "Reservas" : "", plan.lessonCredits ? "Aulas" : ""].filter(Boolean).join(" · "), reservationCredits: plan.reservationCredits, lessonCredits: plan.lessonCredits, sponsorshipPlanId: plan.id, playerId: client?.id ?? null, startedAt, installments, dueDay, discountMode, discountValue: Math.round(discountValue), discountApplication, displayOrder: (lastSponsor?.displayOrder ?? 0) + 1, ...(logoUrl ? { logoUrl } : {}) } });
     const note = `Patrocínio ${plan.name}. Desconto ${discountMode === "PERCENTAGE" ? `${discountValue}%` : `R$ ${(discountValue / 100).toFixed(2)}`} ${discountApplication === "RECURRING" ? "recorrente" : "na primeira mensalidade"}.`;
     const recurrence = await tx.financialRecurrence.create({ data: { arenaId: auth.arenaId, type: "REVENUE", counterpartyName, playerId: client?.id ?? null, bankAccountId,category: "Patrocínios", description: `${plan.name} · ${name}`, amountCents: recurringAmountCents, onlinePaymentMethod:boleto?"BOLETO":"",frequency: "MONTHLY", startsAt: startedAt, endsAt: installments === 1 ? firstDue : null, nextDueDate: firstDue, notes: `${note} Sponsor:${sponsor.id}` } });
-    let dueDate = firstDue;
+    let dueDate = firstDue, lastDueDate = firstDue;
     for (let installment = 0; installment < installments; installment += 1) {
       const entry=await tx.financialEntry.create({ data: { arenaId: auth.arenaId, type: "REVENUE", counterpartyName, playerId: client?.id ?? null, bankAccountId,category: "Patrocínios", description: `${plan.name} · ${name} · ${installment + 1}/${installments}`, amountCents: installment === 0 ? firstAmountCents : recurringAmountCents, dueDate, recurrenceId: recurrence.id, paymentMethod,automaticBoleto:boleto, source: "SPONSORSHIP", externalReference: sponsor.id, notes: note } });
       if(!firstEntryId)firstEntryId=entry.id;
+      lastDueDate = dueDate;
       dueDate = getNextFinancialRecurrenceDate(dueDate, "MONTHLY");
     }
-    await tx.financialRecurrence.update({ where: { id: recurrence.id }, data: { nextDueDate: dueDate, active: installments > 1 } });
+    await tx.financialRecurrence.update({ where: { id: recurrence.id }, data: { nextDueDate: dueDate, endsAt:lastDueDate, active: installments > 1 } });
   });
   if(boleto&&firstEntryId){try{await issueRecurringOnlineChargeForEntry(auth.arenaId,firstEntryId);}catch{ /* Queue preserves retry state. */ }}
   revalidatePath("/financeiro/fila-de-boletos");
