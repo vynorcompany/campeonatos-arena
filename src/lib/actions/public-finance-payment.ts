@@ -56,6 +56,7 @@ export async function startPublicFinancialEntryPaymentAction(formData: FormData)
       tx.financialEntry.findMany({
       where: { id: { in: entryIds }, arenaId: auth.arenaId, status: { in: ["PENDING", "OVERDUE", "PARTIAL"] }, OR: [
         { playerId: auth.playerId, type: "REVENUE" },
+        { billingPlayerId: auth.playerId, type: { in: ["REVENUE", "INCOME"] } },
         { type: { in: ["REVENUE", "INCOME"] }, sale: { comanda: { playerId: auth.playerId } } },
       ] },
       include: { settlements: { select: { amountCents: true, interestCents: true, discountCents: true, bankAccountId: true } } }

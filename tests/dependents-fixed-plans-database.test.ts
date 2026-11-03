@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
+import {z} from "zod";
+import {portalCheckoutPolicy} from "../src/lib/payments/portal-checkout-policy";
 import ts from "typescript";
 import { PrismaClient, Prisma } from "@prisma/client";
 import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
@@ -26,7 +28,7 @@ test("dependent billing snapshots guardian, spends guardian credit atomically, a
             const arena = await tx.arena.findUniqueOrThrow({ where: { slug: "arena-teste-goal" } });
             const foreign = await tx.arena.findUniqueOrThrow({ where: { slug: "arena-beta-goal" } });
             await tx.$executeRaw `SELECT set_config('app.arena_id',${arena.id},true)`;
-            const parent = await tx.player.create({ data: { arenaId: arena.id, name: "Responsável dependentes QA" } });
+            const parent = await tx.player.create({ data: { arenaId: arena.id, name: "Responsável dependentes QA", email: "guardian@example.test" } });
             const other = await tx.player.create({ data: { arenaId: arena.id, name: "Outro responsável QA" } });
             await validateGuardian(tx, arena.id, parent.id);
             const child = await tx.player.create({ data: { arenaId: arena.id, name: "Dependente QA", guardianId: parent.id } });
@@ -49,9 +51,15 @@ test("dependent billing snapshots guardian, spends guardian credit atomically, a
             await tx.$executeRawUnsafe('SAVEPOINT tenant_billing');
             await assert.rejects(tx.financialEntry.update({ where: { id: invoice.id }, data: { billingPlayerId: "goal-athlete-b" } }));
             await tx.$executeRawUnsafe('ROLLBACK TO SAVEPOINT tenant_billing');
+            let portalPlayerId = parent.id; let providerCalls=0;
             const auth = { arenaId: arena.id, userId: "goal-test", userName: "Operador QA" };
             const mocks: Record<string, unknown> = {
-                "@prisma/client": { Prisma }, "next/cache": { revalidatePath() { } },
+                "@prisma/client": { Prisma }, zod:{z},
+                "@/lib/auth/player-session":{requirePublicPlayerAuth:async()=>({arenaId:arena.id,playerId:portalPlayerId})},
+                "@/lib/env":{env:{appUrl:"http://localhost"}},
+                "@/lib/payments/portal-checkout-policy":{portalCheckoutPolicy},
+                "@/lib/payments/portal-checkout-expiry":{expirePortalCheckoutsForArena:async()=>{}},
+                "@/lib/payments/mercado-pago":{createHostedCheckout:async()=>{providerCalls++;return {id:"guardian-checkout-qa",checkoutUrl:"https://checkout.example.test/guardian"};}}, "next/cache": { revalidatePath() { } },
                 "@/lib/auth/guards": { requirePermission: async () => auth, requireModuleEdit: async () => auth },
                 "@/lib/auth/session": { requireArenaAccess: async () => auth },
                 "@/lib/permissions": { canPerformPermission: () => true },
@@ -70,6 +78,18 @@ test("dependent billing snapshots guardian, spends guardian credit atomically, a
         const repeatedDependent = new FormData(); repeatedDependent.set("guardianId",other.id); repeatedDependent.set("name",child.name);
         assert.match((await dependentActions.createDependentAction(repeatedDependent)).error,/Já existe um dependente/);
         await tx.clientBalanceMovement.create({ data: { arenaId: arena.id, playerId: parent.id, kind: "MONEY", amountCents: 15000, reason: "Crédito QA" } });
+            const portalBank=await tx.bankAccount.create({data:{arenaId:arena.id,name:"Conta Portal responsável QA"}});
+            const settings={portalPaymentsConfigured:true,portalPaymentEnabled:true,portalPixEnabled:true,portalCreditCardEnabled:false,portalPaymentBankAccountId:portalBank.id};
+            await tx.arenaOperationalSettings.upsert({where:{arenaId:arena.id},create:{arenaId:arena.id,...settings},update:settings});
+            const portal=load("src/lib/actions/public-finance-payment.ts");
+            const pay=new FormData();pay.set("arenaSlug",arena.slug);pay.append("entryId",invoice.id);
+            assert.equal((await portal.startPublicFinancialEntryPaymentAction(pay)).checkoutUrl,"https://checkout.example.test/guardian");
+            assert.equal(providerCalls,1);
+            const checkout=await tx.onlinePaymentCheckout.findFirstOrThrow({where:{arenaId:arena.id,playerId:parent.id,items:{some:{financialEntryId:invoice.id}}}});
+            portalPlayerId=other.id;
+            await assert.rejects(portal.startPublicFinancialEntryPaymentAction(pay),/não estão disponíveis/);
+            assert.equal(providerCalls,1);
+            await tx.onlinePaymentCheckout.update({where:{id:checkout.id},data:{status:"CANCELED"}});
             const finance = load("src/lib/actions/finance.ts");
             const form = new FormData();
             Object.entries({ entryId: invoice.id, expectedUpdatedAt: invoice.updatedAt.toISOString(), bankAccountId: "", discount: "0", discountMode: "AMOUNT", amount: "100,00", interest: "0", paymentMethod: "CREDIT_BALANCE", paidAt: "2035-01-10", notes: "" }).forEach(([k, v]) => form.set(k, v));
