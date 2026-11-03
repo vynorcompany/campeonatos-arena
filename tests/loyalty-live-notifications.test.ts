@@ -78,9 +78,12 @@ test("alertas ao vivo exigem sessão e respeitam permissões de clientes e coman
   assert.deepEqual(await (await route.GET(new Request("https://arena.test/api/notifications/live?scope=comandas"))).json(), { notifications: [], comandaRequestCount: 0 });
   assert.equal(scans.length, scansBefore);
   modules = new Set(); auth = { arenaId: "arena-a", arenaRole: "OWNER", systemRole: "VIEWER" };
-  await route.GET(new Request("https://arena.test/api/notifications/live"));
-  assert.deepEqual(Array.from(queries.at(-1).query.where.type.in), ["SYSTEM_RECOVERY"]);
   const previousQueries = queries.length;
+  await route.GET(new Request("https://arena.test/api/notifications/live"));
+  assert.equal(queries.length, previousQueries, "arena owners must not receive infrastructure alerts");
+  auth = { ...auth, systemRole: "SUPER_ADMIN" };
+  await route.GET(new Request("https://arena.test/api/notifications/live"));
+  assert.equal(queries.length, previousQueries, "technical alerts stay outside every tenant notification feed");
   await route.GET(new Request("https://arena.test/api/notifications/live?scope=comandas"));
   assert.equal(queries.length, previousQueries, "recovery alerts do not leak into the comanda-only counter");
   auth = { arenaId: "arena-a", arenaRole: "STAFF", systemRole: "VIEWER" };
@@ -107,5 +110,5 @@ test("ordinary notification dismissal preserves administrative recovery alerts",
   }
   auth = { ...auth, arenaRole: "OWNER" };
   await actions.markAllArenaNotificationsReadAction();
-  assert.equal(writes.at(-1).where.type, undefined);
+  assert.equal(writes.at(-1).where.type.not, "SYSTEM_RECOVERY");
 });
