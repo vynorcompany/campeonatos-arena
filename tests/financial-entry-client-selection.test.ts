@@ -12,7 +12,7 @@ test("contas a receber fornece clientes cadastrados para o editor de lançamento
   assert.match(page, /clients=\{clients\}/);
   assert.match(ledger, /clients: Option\[\]/);
   assert.match(ledger, /matchingClients/);
-  assert.match(ledger, /Selecionar cliente cadastrado/);
+  assert.match(ledger, /<SmartEntitySelect label=\{partyLabel\} createKind=\{type==="REVENUE"\?"client":"supplier"\}/);
 });
 
 test("a busca de cliente usa um painel expandido com identificação e rolagem", async () => {
@@ -21,8 +21,8 @@ test("a busca de cliente usa um painel expandido com identificação e rolagem",
   const styles = await readFile("src/app/globals.css", "utf8");
 
   assert.match(page, /phone: true/);
-  assert.match(ledger, /client-search-panel/);
-  assert.match(ledger, /client\.phone/);
+  assert.match(ledger, /SmartEntitySelect name="name" label=\{filterLabel\}/);
+  assert.match(ledger, /valueMode="name"/);
   assert.ok(utilityClasses("client-search-panel").length, "client-search-panel has component Tailwind utilities");
   assert.match(styles, /max-height: 260px/);
 });

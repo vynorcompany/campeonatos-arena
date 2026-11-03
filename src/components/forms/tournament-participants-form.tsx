@@ -1,4 +1,6 @@
 "use client";
+import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
+
 
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./tournament-participants-form.utilities";
@@ -97,29 +99,29 @@ export function TournamentParticipantsForm(props: TournamentParticipantsFormProp
           <input type="hidden" name="tournamentId" value={tournamentId} />
           <div className={viewStyles.field}>
             <label htmlFor="categoryId">Categoria</label>
-            <select id="categoryId" name="categoryId" required>
+            <SmartEntitySelect createKind="tournament-category" contextId={tournamentId} label="Categoria" id="categoryId" name="categoryId" required>
               {safeCategories.map((category) => (
                 <option key={category.id} value={category.id}>{category.name}</option>
               ))}
-            </select>
+            </SmartEntitySelect>
           </div>
           <div className={viewStyles.field}>
             <label htmlFor="leadPlayerId">Atleta 1</label>
-            <select id="leadPlayerId" name="leadPlayerId" required>
+            <SmartEntitySelect createKind="client" label="Atleta 1" id="leadPlayerId" name="leadPlayerId" required>
               <option value="">Selecione um atleta</option>
               {eligiblePlayers.map((player) => (
                 <option key={player.id} value={player.id}>{player.name}</option>
               ))}
-            </select>
+            </SmartEntitySelect>
           </div>
           <div className={viewStyles.field}>
             <label htmlFor="partnerPlayerId">Atleta 2</label>
-            <select id="partnerPlayerId" name="partnerPlayerId" required>
+            <SmartEntitySelect createKind="client" label="Atleta 2" id="partnerPlayerId" name="partnerPlayerId" required>
               <option value="">Selecione um atleta</option>
               {eligiblePlayers.map((player) => (
                 <option key={player.id} value={player.id}>{player.name}</option>
               ))}
-            </select>
+            </SmartEntitySelect>
           </div>
           <div className={viewStyles.field}>
             <label htmlFor="amountReais">Valor (R$)</label>
@@ -184,11 +186,11 @@ export function TournamentParticipantsForm(props: TournamentParticipantsFormProp
                         <input type="hidden" name="tournamentId" value={tournamentId} />
                         <div className={viewStyles.field}>
                           <label>Categoria</label>
-                          <select name="categoryId" defaultValue={registration.categoryId} required>
+                          <SmartEntitySelect createKind="tournament-category" contextId={tournamentId} label="Categoria" name="categoryId" defaultValue={registration.categoryId} required>
                             {safeCategories.map((category) => (
                               <option key={category.id} value={category.id}>{category.name}</option>
                             ))}
-                          </select>
+                          </SmartEntitySelect>
                         </div>
                         <div className={viewStyles.field}>
                           <label>Atleta 1</label>

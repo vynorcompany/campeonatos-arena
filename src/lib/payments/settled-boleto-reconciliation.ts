@@ -8,7 +8,7 @@ export async function reconcileSettledBoletosForArena(arenaId:string) {
   const ids=await tx.$queryRaw<{id:string}[]>`SELECT e.id FROM "FinancialEntry" e
     WHERE e."arenaId"=${arenaId} AND e.type='REVENUE' AND e."boletoReconciledAt" IS NULL
       AND e.status IN ('PAID','PENDING','PARTIAL','OVERDUE')
-      AND (e."onlinePaymentClaimMethod"='BOLETO' OR EXISTS (SELECT 1 FROM "FinancialRecurrence" r WHERE r.id=e."recurrenceId" AND r."arenaId"=${arenaId} AND r."onlinePaymentMethod"='BOLETO'))
+      AND (e."automaticBoleto"=true OR e."onlinePaymentClaimMethod"='BOLETO' OR EXISTS (SELECT 1 FROM "FinancialRecurrence" r WHERE r.id=e."recurrenceId" AND r."arenaId"=${arenaId} AND r."onlinePaymentMethod"='BOLETO'))
       AND (e.status='PAID' OR e."amountCents" <= COALESCE((SELECT sum(s."amountCents"+s."discountCents"-s."interestCents") FROM "FinancialSettlement" s WHERE s."financialEntryId"=e.id AND s."arenaId"=${arenaId}),0))
     ORDER BY e."updatedAt",e.id LIMIT 100`;
   return tx.financialEntry.findMany({where:{arenaId,id:{in:ids.map(e=>e.id)}},include:{settlements:{select:{amountCents:true,interestCents:true,discountCents:true}}}});

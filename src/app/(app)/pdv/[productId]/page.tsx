@@ -1,3 +1,5 @@
+
+import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { ProductEditorTabs } from "@/components/products/product-editor-tabs";
 import { ProductFiscalForm } from "@/components/products/product-fiscal-form";
@@ -104,7 +106,7 @@ export default async function ProductDetailPage(props: {
                       </label>
                       <label className={viewStyles.field}>
                         Categoria
-                        <select
+                        <SmartEntitySelect createKind="product-category" label="Categoria"
                           name="categoryId"
                           defaultValue={product.categoryId ?? ""}
                         >
@@ -114,7 +116,7 @@ export default async function ProductDetailPage(props: {
                               {category.name}
                             </option>
                           ))}
-                        </select>
+                        </SmartEntitySelect>
                       </label>
                       <label className={viewStyles.field}>
                         Código/SKU

@@ -13,3 +13,7 @@ Estas instruções se aplicam a todo o frontend deste projeto, incluindo sistema
 ## Novos menus e páginas
 
 Todo novo menu ou página deve seguir o padrão visual existente do sistema: componentes compartilhados, escala compacta, cores, tipografia e espaçamentos consistentes, apresentação em Tailwind e validação renderizada em desktop e celular. Os acessos da página inicial de um módulo devem corresponder aos da barra lateral, respeitando as permissões.
+
+## Campos de entidades
+
+Campos de cliente, fornecedor e categorias de cadastro devem oferecer pesquisa e criação no contexto, usando SmartEntitySelect ou um seletor equivalente. Preserve o identificador canônico no formulário e valide permissões e arena no servidor. Em filtros públicos e seleções restritas a vínculos existentes (como responsável entre participantes), permita pesquisa e mantenha a criação no fluxo autorizado de inclusão. Enumerações estáticas não são categorias de cadastro.

@@ -27,7 +27,7 @@ export async function claimFinancialOnlineCharge(tx: ArenaTransaction, input: {
   const entry = await tx.financialEntry.findFirst({
     where: {
       id: input.entryId, arenaId: input.arenaId, type: "REVENUE", status: input.requireActiveBoletoRecurrence ? "PENDING" : { in: ["PENDING", "OVERDUE", "PARTIAL"] },
-      ...(input.requireActiveBoletoRecurrence ? { recurrence: { active: true, onlinePaymentMethod: "BOLETO" } } : {}),
+      ...(input.requireActiveBoletoRecurrence ? { OR:[{recurrence:{active:true,onlinePaymentMethod:"BOLETO"}},{automaticBoleto:true}] } : {}),
     },
     include: { settlements: { select: { amountCents: true, interestCents: true, discountCents: true } } },
   });

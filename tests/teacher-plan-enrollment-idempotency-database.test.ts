@@ -124,6 +124,11 @@ test("duas inscrições no mesmo plano geram uma assinatura e doze lançamentos,
     assert.equal(await admin.financialEntry.count({ where: { playerId: paidClient.id, planId: plan.id, status: "PENDING" } }), 11);
     assert.equal(await admin.lessonCreditBatch.count({ where: { studentId: paidStudent.id, granted: 4 } }), 1);
     assert.equal(issuedCharges, 1, "matrícula paga não emite um novo boleto");
+    const pixRecurrence=await admin.financialRecurrence.findFirstOrThrow({where:{playerId:paidClient.id,planId:plan.id}});
+    assert.equal(pixRecurrence.onlinePaymentMethod,"");
+    const pixBills=await admin.financialEntry.findMany({where:{recurrenceId:pixRecurrence.id}});
+    assert(pixBills.every(e=>e.paymentMethod==="PIX"&&e.bankAccountId===bank.id));
+
     const duplicateInFullGroup = await enroll(client.id);
     assert.equal(duplicateInFullGroup && duplicateInFullGroup.error, "Este aluno já está inscrito neste plano.");
 

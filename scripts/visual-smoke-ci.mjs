@@ -1175,7 +1175,7 @@ async function main() {
         throw new Error(`${viewport.name}: formulário público do torneio fictício incompleto.`);
       }
       const formLayout = await send("Runtime.evaluate", {
-        expression: "(() => { const form = document.querySelector('form:has(input[name=tournamentSlug])'); const trap = form?.querySelector('input[name=contactWebsite]'); const controls = [...(form?.querySelectorAll('input:not([type=hidden]), select, button[type=submit]') ?? [])].filter(control => control.name !== 'contactWebsite'); return { width: innerWidth, trapProtected: Boolean(trap?.closest('[aria-hidden=true]') && trap.tabIndex === -1), controls: controls.map(control => { const rect = control.getBoundingClientRect(); return { name: control.getAttribute('name'), left: rect.left, right: rect.right, width: rect.width }; }) }; })()",
+        expression: "(() => { const form = document.querySelector('form:has(input[name=tournamentSlug])'); const trap = form?.querySelector('input[name=contactWebsite]'); const controls = [...(form?.querySelectorAll('input:not([type=hidden]), select, button[type=submit]') ?? [])].filter(control => control.name !== 'contactWebsite' && control.getAttribute('aria-hidden') !== 'true'); return { width: innerWidth, trapProtected: Boolean(trap?.closest('[aria-hidden=true]') && trap.tabIndex === -1), controls: controls.map(control => { const rect = control.getBoundingClientRect(); return { name: control.getAttribute('name') ?? (control.getAttribute('role') === 'combobox' ? control.id : null), left: rect.left, right: rect.right, width: rect.width }; }) }; })()",
         returnByValue: true,
       });
       const expectedPublicControls = [null, "categoryId", "paymentMethod", "leadName", "leadEmail", "leadPhone", "leadCpf", "partnerName", "partnerPhone", "partnerCpf"].sort();
@@ -1203,8 +1203,16 @@ async function main() {
       leadCpf: "98765432100", partnerName: "Parceiro Público GOAL",
       partnerPhone: "11988888888", partnerCpf: "98765432101",
     };
+    // Exercise the visible searchable category control; its native select is the canonical FormData value.
+    await send("Runtime.evaluate", { expression: "document.querySelector('input#categoryId[role=combobox]')?.focus()" });
+    await pause(150);
+    const pickedPublicCategory = await send("Runtime.evaluate", {
+      expression: `(() => { const select=document.querySelector('select[name=categoryId]'); const label=[...select.options].find(option=>option.value===${JSON.stringify(publicCategory.id)})?.textContent?.trim(); const option=[...document.querySelectorAll('[role=listbox] [role=option]')].find(item=>item.textContent?.trim()===label); option?.click(); return Boolean(option); })()`, returnByValue:true,
+    });
+    if(!pickedPublicCategory.result.value) throw new Error("A busca de categoria pública não exibiu a opção selecionável.");
+    await pause(100);
     const publicFormPrepared = await send("Runtime.evaluate", {
-      expression: `(() => { const form = document.querySelector('form:has(input[name=tournamentSlug])'); if (!form) return false; form.querySelector('select[name=categoryId]').value = ${JSON.stringify(publicCategory.id)}; for (const [name, value] of Object.entries(${JSON.stringify(publicFormValues)})) { const input = form.querySelector('input[name=' + name + ']'); if (!input) return false; input.value = value; input.dispatchEvent(new Event('input', { bubbles: true })); } return new FormData(form).get('categoryId') === ${JSON.stringify(publicCategory.id)} && form.checkValidity(); })()`,
+      expression: `(() => { const form = document.querySelector('form:has(input[name=tournamentSlug])'); if (!form) return false; for (const [name, value] of Object.entries(${JSON.stringify(publicFormValues)})) { const input = form.querySelector('input[name=' + name + ']'); if (!input) return false; input.value = value; input.dispatchEvent(new Event('input', { bubbles: true })); } return new FormData(form).get('categoryId') === ${JSON.stringify(publicCategory.id)} && form.checkValidity(); })()`,
       returnByValue: true,
     });
     if (!publicFormPrepared.result.value) throw new Error("O formulário público fictício não aceitou os dados da dupla.");

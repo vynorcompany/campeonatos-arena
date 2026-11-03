@@ -1,4 +1,5 @@
 "use client";
+import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
 import { AgendaQuickPlayerDialog } from "./agenda-quick-player-dialog";
 import { compactDialogFrame } from "@/components/ui/dialog-frame";
 
@@ -184,7 +185,7 @@ export function AgendaSlotDialog({ slot, players, courts, teachers, bookingTypes
         </div>
         <div className="agenda-booking-workspace tw:grid tw:min-w-0 tw:grid-cols-[240px_minmax(0,1fr)] tw:items-start tw:gap-5 tw:border-t tw:border-[var(--line)] tw:pt-4 tw:viewport-960:grid-cols-1"><div className="tw:grid tw:min-w-0 tw:content-start tw:gap-3">
         {fixedBooking && !slot.occurrenceId ? <label className={viewStyles.agenda_booking_extra}>Repetir semanalmente até<input type="date" min={dateValue} value={repeatUntil} onChange={(event) => setRepeatUntil(event.target.value)} required /></label> : null}
-        <label className={viewStyles.agenda_booking_extra}>Responsável pela reserva<select value={responsiblePlayerId || selectedParticipants[0]?.playerId || ""} onChange={(event) => setResponsiblePlayerId(event.target.value)} required><option value="" disabled>Selecione um participante</option>{selectedParticipants.map((participant) => <option value={participant.playerId} key={participant.playerId}>{playerOptions.find((player) => player.id === participant.playerId)?.name ?? "Participante"}</option>)}</select></label>
+        <label className={viewStyles.agenda_booking_extra}>Responsável pela reserva<SmartEntitySelect label="Responsável pela reserva" value={responsiblePlayerId || selectedParticipants[0]?.playerId || ""} onChange={(event) => setResponsiblePlayerId(event.target.value)} required><option value="" disabled>Selecione um participante</option>{selectedParticipants.map((participant) => <option value={participant.playerId} key={participant.playerId}>{playerOptions.find((player) => player.id === participant.playerId)?.name ?? "Participante"}</option>)}</SmartEntitySelect></label>
         {lesson ? <label className={viewStyles.agenda_booking_extra}>Professor responsável<select value={teacherId} onChange={(event) => setTeacherId(event.target.value)} required><option value="">Selecione o professor</option>{teachers.map((teacher) => <option value={teacher.id} key={teacher.id}>{teacher.name}</option>)}</select></label> : null}
         {super12 ? <section className={viewStyles.agenda_super12_courts}><strong>Quadras do Super 12</strong><div>{courts.map((court) => <label key={court.id}><input type="checkbox" checked={courtIds.includes(court.id)} onChange={() => toggleCourt(court.id)} />{court.name}</label>)}</div></section> : null}
         {slot.occurrenceId && canEditBooking && availableServices.length ? <section aria-label="Inserir serviço na reserva" className="tw:flex tw:flex-wrap tw:items-end tw:gap-2 tw:border-t tw:border-[var(--line)] tw:py-2">

@@ -1,4 +1,6 @@
 "use client";
+import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
+
 
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./public-registration-form.utilities";
@@ -99,12 +101,12 @@ export function PublicRegistrationForm({
           <div className={viewStyles.public_reg_grid_public_reg_grid_2}>
             <div className={viewStyles.field}>
               <label htmlFor="categoryId">Categoria</label>
-              <select id="categoryId" name="categoryId" className={viewStyles.public_reg_select} required>
+              <SmartEntitySelect label="Categoria" id="categoryId" name="categoryId" className={viewStyles.public_reg_select} required>
                 <option value="">Selecione</option>
                 {categories.map((category) => (
                   <option key={category.id} value={category.id}>{formatCategoryName(category.name)}</option>
                 ))}
-              </select>
+              </SmartEntitySelect>
             </div>
 
             <div className={viewStyles.field}>

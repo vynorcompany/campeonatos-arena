@@ -1,3 +1,5 @@
+
+import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
 import { lessonCreditBalances } from "@/lib/academy/lesson-credits";
 import { withArenaTransaction } from "@/lib/rls";
 import { canViewModule } from "@/lib/permissions";
@@ -122,14 +124,14 @@ export default async function LessonsPage() {
         <SafeActionForm action={createStudentAction} className={viewStyles.grid_form} resetOnSuccess successMessage="Aluno salvo.">
           <div className={viewStyles.field_form_full}>
             <label htmlFor="student-player">Vincular a um jogador existente</label>
-            <select id="student-player" name="playerId" defaultValue="">
+            <SmartEntitySelect createKind="client" label="Cliente" id="student-player" name="playerId" defaultValue="">
               <option value="">Sem vínculo com jogador</option>
               {availablePlayers.map((player) => (
                 <option key={player.id} value={player.id}>
                   {player.name}
                 </option>
               ))}
-            </select>
+            </SmartEntitySelect>
           </div>
           <div className={viewStyles.field}>
             <label htmlFor="student-name">Nome</label>

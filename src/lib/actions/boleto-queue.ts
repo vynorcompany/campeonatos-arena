@@ -10,7 +10,7 @@ export async function cancelQueuedBoletoAction(form:FormData) {
   const paymentId=await withArenaTransaction(auth.arenaId,async tx=>{
    await tx.$queryRaw`SELECT id FROM "FinancialEntry" WHERE id=${id} AND "arenaId"=${auth.arenaId} FOR UPDATE`;
    const entry=await tx.financialEntry.findFirst({where:{id,arenaId:auth.arenaId,type:"REVENUE"},include:{recurrence:{select:{onlinePaymentMethod:true}}}});
-   if(!entry||!(entry.onlinePaymentClaimMethod==="BOLETO"||entry.recurrence?.onlinePaymentMethod==="BOLETO")) throw new Error("Boleto não encontrado nesta arena.");
+   if(!entry||!(entry.automaticBoleto||entry.onlinePaymentClaimMethod==="BOLETO"||entry.recurrence?.onlinePaymentMethod==="BOLETO")) throw new Error("Boleto não encontrado nesta arena.");
    if(entry.status==="VOIDED") throw new Error("Lançamento cancelado. Atualize a fila.");
    if(entry.onlinePaymentCanceledAt) return "";
    if(entry.onlinePaymentClaimedAt || (entry.onlinePaymentClaimMethod && !entry.onlinePaymentId)) throw new Error("Emissão em andamento ou sem confirmação. Concilie a cobrança antes de cancelar.");
@@ -49,4 +49,16 @@ export async function reconcileReceivedBoletosAction() {
  const result=await reconcileSettledBoletosForArena(auth.arenaId);
  if(result.retired){revalidatePath("/financeiro/fila-de-boletos");revalidatePath("/financeiro/contas-a-receber");}
  return result;
+}
+
+export async function generateQueuedBoletoNowAction(form:FormData) {
+ const auth=await requirePermission("finance:receivable:settle");
+ const id=String(form.get("entryId")||"");
+ if(!id)return{error:"Selecione um boleto da fila."};
+ try {
+  const {issueRecurringOnlineChargeForEntry}=await import("@/lib/payments/recurring-online-charges");
+  const result=await issueRecurringOnlineChargeForEntry(auth.arenaId,id,new Date(),true);
+  revalidatePath("/financeiro/fila-de-boletos");revalidatePath("/financeiro/contas-a-receber");
+  return result.created?{success:true}:{error:"Boleto não emitido. Confira saldo, dados do cliente, conta bancária e a conexão do emissor; se a emissão já começou, aguarde a confirmação."};
+ }catch{return{error:"Não foi possível emitir agora. Confira o cadastro do cliente e a conexão do emissor."};}
 }

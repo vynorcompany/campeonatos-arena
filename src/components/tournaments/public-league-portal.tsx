@@ -1,4 +1,6 @@
 "use client";
+import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
+
 import { PortalChoice } from "@/components/portal/portal-choice";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./public-league-portal.utilities";
@@ -421,17 +423,17 @@ export function PublicLeaguePortal({
                         <input type="hidden" name="pairId" value={pair.id} />
                         <label>
                           Atleta afastado
-                          <select name="previousPlayerId">
+                          <SmartEntitySelect label="Atleta afastado" name="previousPlayerId">
                             {pair.players.map((player) => (
                               <option value={player.id} key={player.id}>
                                 {player.name}
                               </option>
                             ))}
-                          </select>
+                          </SmartEntitySelect>
                         </label>
                         <label>
                           Substituto
-                          <select name="replacementPlayerId">
+                          <SmartEntitySelect label="Substituto" name="replacementPlayerId">
                             {portal.replacementPlayers
                               .filter(
                                 (player) =>
@@ -444,7 +446,7 @@ export function PublicLeaguePortal({
                                   {player.name}
                                 </option>
                               ))}
-                          </select>
+                          </SmartEntitySelect>
                         </label>
                         <label>
                           Motivo médico

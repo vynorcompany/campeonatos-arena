@@ -37,6 +37,7 @@ export function TeacherPlanEnrollmentForm({
   canRegisterPayment?: boolean;
 }) {
   const [paid, setPaid] = useState(false);
+  const [paymentMethod,setPaymentMethod]=useState("Boleto");
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickError, setQuickError] = useState("");
   const [quickPending, startQuickTransition] = useTransition();
@@ -189,7 +190,9 @@ export function TeacherPlanEnrollmentForm({
           </select>
         </label>
       </div>
-      {canRegisterPayment ? <section className="tw:col-span-full tw:grid tw:min-w-0 tw:gap-3 tw:rounded-md tw:border tw:border-[var(--line)] tw:p-3 tw:sm:grid-cols-2"><div className="tw:col-span-full"><input type="hidden" name="paid" value={paid ? "on" : ""} /><ToggleSwitch compact label="Mensalidade paga" checked={paid} onCheckedChange={setPaid} /></div>{paid ? <><label className={ui.field}>Data do pagamento<input name="paidAt" type="date" required defaultValue={new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date())} /></label><label className={ui.field}>Forma de pagamento<select name="paymentMethod" required>{paymentMethods.map(method => <option key={method} value={method}>{method}</option>)}</select></label><label className={`${ui.field} tw:sm:col-span-2`}>Conta bancária<select name="bankAccountId" required defaultValue=""><option value="">Selecione a conta</option>{bankAccounts.map(account => <option key={account.id} value={account.id}>{account.name}</option>)}</select></label></> : null}<small className="tw:col-span-full tw:text-xs tw:font-normal tw:text-[var(--muted)]">Créditos liberados após a quitação da mensalidade do mês.</small></section> : <p className="tw:col-span-full tw:text-xs tw:font-normal tw:text-[var(--muted)]">Créditos liberados após a quitação da mensalidade do mês.</p>}
+      <label className={ui.field}>Forma de pagamento<select name="paymentMethod" required value={paymentMethod} onChange={e=>setPaymentMethod(e.target.value)}>{[...new Set([...paymentMethods,"Boleto"])].map(method=><option key={method}>{method}</option>)}</select></label>
+      {!paid&&paymentMethod.toLowerCase()==="boleto"?<label className={ui.field}>Conta bancária<select name="bankAccountId" required defaultValue=""><option value="">Selecione a conta</option>{bankAccounts.map(account=><option key={account.id} value={account.id}>{account.name}</option>)}</select></label>:null}
+      {canRegisterPayment ? <section className="tw:col-span-full tw:grid tw:min-w-0 tw:gap-3 tw:rounded-md tw:border tw:border-[var(--line)] tw:p-3 tw:sm:grid-cols-2"><div className="tw:col-span-full"><input type="hidden" name="paid" value={paid ? "on" : ""} /><ToggleSwitch compact label="Mensalidade paga" checked={paid} onCheckedChange={setPaid} /></div>{paid ? <><label className={ui.field}>Data do pagamento<input name="paidAt" type="date" required defaultValue={new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date())} /></label><label className={`${ui.field} tw:sm:col-span-2`}>Conta bancária<select name="bankAccountId" required defaultValue=""><option value="">Selecione a conta</option>{bankAccounts.map(account => <option key={account.id} value={account.id}>{account.name}</option>)}</select></label></> : null}<small className="tw:col-span-full tw:text-xs tw:font-normal tw:text-[var(--muted)]">Créditos liberados após a quitação da mensalidade do mês.</small></section> : <p className="tw:col-span-full tw:text-xs tw:font-normal tw:text-[var(--muted)]">Créditos liberados após a quitação da mensalidade do mês.</p>}
       <SubmitButton
         label="Inserir aluno"
         pendingLabel="Inserindo..."

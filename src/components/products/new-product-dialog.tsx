@@ -1,4 +1,6 @@
 "use client";
+import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
+
 
 import { useCallback, useState } from "react";
 import { Modal } from "@/components/ui/modal";
@@ -42,14 +44,14 @@ export function NewProductDialog({
           </label>
           <label className={ui.field}>
             Categoria
-            <select name="categoryId">
+            <SmartEntitySelect createKind="product-category" label="Categoria" name="categoryId">
               <option value="">Sem categoria</option>
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name}
                 </option>
               ))}
-            </select>
+            </SmartEntitySelect>
           </label>
           <label className={ui.field}>
             Código/SKU

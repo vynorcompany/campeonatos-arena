@@ -1,4 +1,6 @@
 "use client";
+import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
+
 import { viewStyles } from "./manual-pair-form.utilities";
 
 import { useFormState } from "react-dom";
@@ -29,26 +31,26 @@ export function ManualPairForm({ tournamentId, players }: ManualPairFormProps) {
 
       <div className={viewStyles.field}>
         <label htmlFor="playerAId">Jogador 1</label>
-        <select id="playerAId" name="playerAId" defaultValue="" disabled={!hasEnoughPlayers} required>
+        <SmartEntitySelect createKind="client" label="Jogador 1" id="playerAId" name="playerAId" defaultValue=""  required>
           <option value="">Selecione</option>
           {players.map((player) => (
             <option key={`player-a-${player.id}`} value={player.id}>
               {player.name} ({player.points} pts)
             </option>
           ))}
-        </select>
+        </SmartEntitySelect>
       </div>
 
       <div className={viewStyles.field}>
         <label htmlFor="playerBId">Jogador 2</label>
-        <select id="playerBId" name="playerBId" defaultValue="" disabled={!hasEnoughPlayers} required>
+        <SmartEntitySelect createKind="client" label="Jogador 2" id="playerBId" name="playerBId" defaultValue=""  required>
           <option value="">Selecione</option>
           {players.map((player) => (
             <option key={`player-b-${player.id}`} value={player.id}>
               {player.name} ({player.points} pts)
             </option>
           ))}
-        </select>
+        </SmartEntitySelect>
       </div>
 
       <div className={viewStyles.field_field_submit}>

@@ -1,4 +1,6 @@
 "use server";
+import { recurringBoletoIssueDeadline } from "@/lib/payments/recurring-charge-eligibility";
+import { issueRecurringOnlineChargeForEntry } from "@/lib/payments/recurring-online-charges";
 import { availableFixedTimes, fixedMonthAmount } from "@/lib/plans/fixed-court";
 import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
 import { revalidatePath } from "next/cache";
@@ -19,6 +21,9 @@ export async function enrollFixedCourtPlanAction(form: FormData) {
         return { error: "Informe um período de até um ano, com fim após o início." };
     const firstPaid=form.get("firstPaid")==="on";
     if(firstPaid) await requirePermission("finance:receivable:edit");
+    const boletoIds:string[]=[];
+    const requestedMethod=String(form.get("paymentMethod")??"").trim(),boleto=requestedMethod.toLowerCase()==="boleto";
+    if(form.has("paymentMethod")&&!requestedMethod)return{error:"Selecione a forma de pagamento."};
     try {
         await withArenaTransaction(auth.arenaId, async (tx) => {
             const plan = await tx.sponsorshipPlan.findFirst({ where: { id: planId, arenaId: auth.arenaId, kind: "FIXED_COURT" } });
@@ -34,13 +39,15 @@ export async function enrollFixedCourtPlanAction(form: FormData) {
             if(!court) throw new Error("Selecione uma quadra ativa desta arena.");
             await tx.$queryRaw`SELECT id FROM "Court" WHERE id=${court.id} AND "arenaId"=${auth.arenaId} FOR UPDATE`;
             if(!availableFixedTimes(court.weeklyRules,weekday,durationMinutes,court.onlineSlotMinutes).includes(startMinute)) throw new Error("Selecione um dia e horário disponíveis na configuração da grade.");
-            let bankAccountId:string|undefined,paidAt:Date|undefined,paymentMethod="";
-            if(firstPaid) {
+            let bankAccountId:string|undefined,paidAt:Date|undefined,paymentMethod=requestedMethod;
+            if(firstPaid||boleto) {
               bankAccountId=await requireReceivingBankAccount(tx,auth.arenaId,form.get("bankAccountId"));
+            }
+            if(firstPaid) {
               const raw=String(form.get("paidAt")||"");paidAt=new Date(raw+"T12:00:00-03:00");
               if(!/^\d{4}-\d{2}-\d{2}$/.test(raw)||!Number.isFinite(paidAt.getTime())) throw new Error("Informe a data do pagamento.");
               paymentMethod=String(form.get("paymentMethod")||"");
-              if(!await tx.paymentMethodSetting.findFirst({where:{arenaId:auth.arenaId,name:paymentMethod,active:true}})||["CREDIT_BALANCE","Saldo de crédito"].includes(paymentMethod)) throw new Error("Selecione uma forma de pagamento válida. Para saldo, receba a mensalidade no financeiro.");
+              if((!["PIX","Dinheiro","Cartão de débito","Cartão de crédito","Boleto","BOLETO"].includes(paymentMethod)&&!await tx.paymentMethodSetting.findFirst({where:{arenaId:auth.arenaId,name:paymentMethod,active:true}}))||["CREDIT_BALANCE","Saldo de crédito"].includes(paymentMethod)) throw new Error("Selecione uma forma de pagamento válida. Para saldo, receba a mensalidade no financeiro.");
             }
             if (await tx.scheduleBookingSeries.findFirst({ where: { arenaId: auth.arenaId, sponsorshipPlanId: plan.id, responsiblePlayerId: player.id, status: "ACTIVE", startsAt: { lte: until }, endsAt: { gte: from } } }))
                 throw new Error("Este cliente já possui vínculo ativo com este plano no período.");
@@ -62,7 +69,8 @@ export async function enrollFixedCourtPlanAction(form: FormData) {
             do {
                 const month=fixedMonthAmount(plan.monthlyAmountCents,due.getUTCFullYear(),due.getUTCMonth(),weekday,prorate);
                 const isPaid=first && firstPaid && month.amountCents>0;
-                const entry=await tx.financialEntry.create({ data: { arenaId: auth.arenaId, playerId: player.id, type: "REVENUE", category: "Planos de quadra", description: `${plan.name} · ${player.name}`, amountCents: month.amountCents, dueDate: new Date(due), competenceDate:new Date(Date.UTC(due.getUTCFullYear(),due.getUTCMonth(),1,12)), source: "FIXED_COURT_PLAN", externalReference: series.id, notes: `Reserva fixa do plano ${plan.id}; ${month.occurrences} ocorrências no mês${prorate?"; base de quatro reservas":""}.`, ...(isPaid?{status:"PAID",paidAt,paymentMethod,bankAccountId}:{}) } });
+                const entry=await tx.financialEntry.create({ data: { arenaId: auth.arenaId, playerId: player.id, type: "REVENUE", category: "Planos de quadra", description: `${plan.name} · ${player.name}`, amountCents: month.amountCents, automaticBoleto:boleto, paymentMethod, bankAccountId, dueDate: new Date(due), competenceDate:new Date(Date.UTC(due.getUTCFullYear(),due.getUTCMonth(),1,12)), source: "FIXED_COURT_PLAN", externalReference: series.id, notes: `Reserva fixa do plano ${plan.id}; ${month.occurrences} ocorrências no mês${prorate?"; base de quatro reservas":""}.`, ...(isPaid?{status:"PAID",paidAt,paymentMethod,bankAccountId}:{}) } });
+                if(boleto&&!isPaid&&due<=recurringBoletoIssueDeadline(new Date()))boletoIds.push(entry.id);
                 if(isPaid) await tx.financialSettlement.create({data:{arenaId:auth.arenaId,financialEntryId:entry.id,amountCents:month.amountCents,paidAt:paidAt!,paymentMethod,bankAccountId,notes:"Primeira mensalidade recebida na adesão ao plano fixo."}});
                 first=false;
                 due.setUTCMonth(due.getUTCMonth() + 1);
@@ -72,6 +80,8 @@ export async function enrollFixedCourtPlanAction(form: FormData) {
     catch (error) {
         return { error: error instanceof Error && !error.name.startsWith("Prisma") ? error.message : "Não foi possível vincular o cliente." };
     }
+    for(const id of boletoIds) {try{await issueRecurringOnlineChargeForEntry(auth.arenaId,id);}catch{ /* Queue retains unconfirmed attempts for review. */ }}
+    revalidatePath("/financeiro/fila-de-boletos");
     revalidatePath("/agenda");
     revalidatePath("/financeiro/contas-a-receber");
     revalidatePath(`/proximos-jogos/patrocinios/${planId}`);

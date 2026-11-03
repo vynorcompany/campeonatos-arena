@@ -1,4 +1,6 @@
 "use client";
+import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
+
 import { viewStyles } from "./player-form.utilities";
 
 import { useFormState } from "react-dom";
@@ -15,7 +17,7 @@ export function PlayerForm({ guardians = [] }: { guardians?: { id:string; name:s
 
   return (
     <form action={formAction} className={viewStyles.grid_form_client_create_form}>
-      {guardians.length ? <label className={viewStyles.field}>Responsável financeiro (opcional)<select name="guardianId" defaultValue=""><option value="">Cadastro independente</option>{guardians.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label> : null}
+      {guardians.length ? <label className={viewStyles.field}>Responsável financeiro (opcional)<SmartEntitySelect createKind="client" label="Cliente" name="guardianId" defaultValue=""><option value="">Cadastro independente</option>{guardians.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</SmartEntitySelect></label> : null}
       <div className={viewStyles.field}>
         <label htmlFor="name">Nome e sobrenome do atleta</label>
         <input id="name" name="name" type="text" placeholder="Ex.: Pedro Martins" required />

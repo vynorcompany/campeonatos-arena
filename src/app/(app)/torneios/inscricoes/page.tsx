@@ -1,3 +1,5 @@
+
+import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
 import { viewStyles } from "./page.utilities";
 ﻿import { SectionCard } from "@/components/section-card";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -175,11 +177,11 @@ export default async function TournamentRegistrationsPage() {
                         <input type="hidden" name="registrationId" value={registration.id} />
                         <input type="hidden" name="tournamentId" value={tournament.id} />
                         <label className={viewStyles.field}>Categoria
-                          <select name="categoryId" defaultValue={registration.categoryId} required>
+                          <SmartEntitySelect createKind="tournament-category" contextId={tournament.id} label="Categoria" name="categoryId" defaultValue={registration.categoryId} required>
                             {tournament.categories.map((item: any) => (
                               <option key={item.id} value={item.id}>{item.name}</option>
                             ))}
-                          </select>
+                          </SmartEntitySelect>
                         </label>
                         <label className={viewStyles.field}>Atleta 1
                           <input name="leadName" defaultValue={registration.leadName} required />

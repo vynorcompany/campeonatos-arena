@@ -2398,6 +2398,7 @@ model StudentSubscription {
 }
 
 model FinancialEntry {
+  automaticBoleto Boolean @default(false)
   boletoReconciledAt DateTime?
   boletoQueueCanceledAt DateTime?
   onlinePaymentCanceledAt DateTime?

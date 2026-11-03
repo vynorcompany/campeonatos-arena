@@ -1,4 +1,6 @@
 ﻿"use server";
+import { issueRecurringOnlineChargeForEntry } from "@/lib/payments/recurring-online-charges";
+import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
 import { planDueDays } from "@/lib/plans/fixed-court";
 
 import { revalidatePath } from "next/cache";
@@ -425,17 +427,25 @@ export async function insertSponsorInPlanAction(formData: FormData) {
   const counterpartyName = client?.name ?? name;
   if(plan.kind !== "SPONSORSHIP") throw new Error("Use a vinculação de cliente do plano fixo.");
   const firstDue = firstDueDate(startedAt, dueDay);
+  const paymentMethod=String(formData.get("paymentMethod")??"").trim(),boleto=paymentMethod.toLowerCase()==="boleto";
+  if(formData.has("paymentMethod")&&!paymentMethod)throw new Error("Selecione a forma de pagamento.");
+  if(boleto&&!client)throw new Error("Vincule um cliente para emitir os boletos.");
+  let firstEntryId="";
   await withArenaTransaction(auth.arenaId, async (tx) => {
+    const bankAccountId=boleto?await requireReceivingBankAccount(tx,auth.arenaId,formData.get("bankAccountId")):null;
     const sponsor = await tx.tvSponsor.create({ data: { arenaId: auth.arenaId, name, subtitle: plan.name, sponsorshipType: plan.sponsorshipType, monthlyAmountCents, benefits: [plan.reservationCredits ? "Reservas" : "", plan.lessonCredits ? "Aulas" : ""].filter(Boolean).join(" · "), reservationCredits: plan.reservationCredits, lessonCredits: plan.lessonCredits, sponsorshipPlanId: plan.id, playerId: client?.id ?? null, startedAt, installments, dueDay, discountMode, discountValue: Math.round(discountValue), discountApplication, displayOrder: (lastSponsor?.displayOrder ?? 0) + 1, ...(logoUrl ? { logoUrl } : {}) } });
     const note = `Patrocínio ${plan.name}. Desconto ${discountMode === "PERCENTAGE" ? `${discountValue}%` : `R$ ${(discountValue / 100).toFixed(2)}`} ${discountApplication === "RECURRING" ? "recorrente" : "na primeira mensalidade"}.`;
-    const recurrence = await tx.financialRecurrence.create({ data: { arenaId: auth.arenaId, type: "REVENUE", counterpartyName, playerId: client?.id ?? null, category: "Patrocínios", description: `${plan.name} · ${name}`, amountCents: recurringAmountCents, frequency: "MONTHLY", startsAt: startedAt, endsAt: installments === 1 ? firstDue : null, nextDueDate: firstDue, notes: `${note} Sponsor:${sponsor.id}` } });
+    const recurrence = await tx.financialRecurrence.create({ data: { arenaId: auth.arenaId, type: "REVENUE", counterpartyName, playerId: client?.id ?? null, bankAccountId,category: "Patrocínios", description: `${plan.name} · ${name}`, amountCents: recurringAmountCents, onlinePaymentMethod:boleto?"BOLETO":"",frequency: "MONTHLY", startsAt: startedAt, endsAt: installments === 1 ? firstDue : null, nextDueDate: firstDue, notes: `${note} Sponsor:${sponsor.id}` } });
     let dueDate = firstDue;
     for (let installment = 0; installment < installments; installment += 1) {
-      await tx.financialEntry.create({ data: { arenaId: auth.arenaId, type: "REVENUE", counterpartyName, playerId: client?.id ?? null, category: "Patrocínios", description: `${plan.name} · ${name} · ${installment + 1}/${installments}`, amountCents: installment === 0 ? firstAmountCents : recurringAmountCents, dueDate, recurrenceId: recurrence.id, paymentMethod: "Boleto", source: "SPONSORSHIP", externalReference: sponsor.id, notes: note } });
+      const entry=await tx.financialEntry.create({ data: { arenaId: auth.arenaId, type: "REVENUE", counterpartyName, playerId: client?.id ?? null, bankAccountId,category: "Patrocínios", description: `${plan.name} · ${name} · ${installment + 1}/${installments}`, amountCents: installment === 0 ? firstAmountCents : recurringAmountCents, dueDate, recurrenceId: recurrence.id, paymentMethod,automaticBoleto:boleto, source: "SPONSORSHIP", externalReference: sponsor.id, notes: note } });
+      if(!firstEntryId)firstEntryId=entry.id;
       dueDate = getNextFinancialRecurrenceDate(dueDate, "MONTHLY");
     }
     await tx.financialRecurrence.update({ where: { id: recurrence.id }, data: { nextDueDate: dueDate, active: installments > 1 } });
   });
+  if(boleto&&firstEntryId){try{await issueRecurringOnlineChargeForEntry(auth.arenaId,firstEntryId);}catch{ /* Queue preserves retry state. */ }}
+  revalidatePath("/financeiro/fila-de-boletos");
   refreshUpcomingMatches();
   revalidatePath(`/proximos-jogos/patrocinios/${planId}`);
 }
