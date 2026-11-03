@@ -1077,7 +1077,7 @@ async function main() {
     }
     const betaResponse = await fetch(`${baseUrl}/classificacao/arena-beta-goal?section=finance`, { headers: { Cookie: portalCookie }, signal: AbortSignal.timeout(20_000) });
     const betaHtml = await betaResponse.text();
-    if (betaResponse.status !== 200 || !betaHtml.includes("Seu espaço dentro e fora da quadra.") || betaHtml.includes("Receita beta GOAL")) {
+    if (betaResponse.status !== 200 || !betaHtml.includes("athlete-login-page") || !betaHtml.includes('name="phone"') || !betaHtml.includes('name="password"') || betaHtml.includes("Receita beta GOAL")) {
       throw new Error("A sessão do atleta da arena A obteve conteúdo privado da arena B.");
     }
     console.log("Portal do Atleta validado em desktop, celular claro/escuro e sem dados financeiros de outra arena.");
