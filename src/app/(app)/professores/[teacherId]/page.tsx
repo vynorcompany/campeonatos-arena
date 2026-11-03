@@ -34,6 +34,7 @@ const money = (value: number) =>
   );
 const inputDate = (value: Date) => value.toISOString().slice(0, 10);
 type DetailQuery = {
+  q?: string;
   tab?: string;
   planId?: string;
   inicio?: string;
@@ -447,9 +448,10 @@ export default async function TeacherDetailPage(
               planIds: group.plans.map(({ planId }) => planId),
             }))}
           />
+          <form method="get" className="tw:my-3 tw:flex tw:flex-wrap tw:items-end tw:gap-2"><input type="hidden" name="tab" value="students" /><label className="tw:grid tw:gap-1 tw:text-xs">Pesquisar aluno<input type="search" name="q" defaultValue={searchParams?.q ?? ""} placeholder="Nome do aluno" className="tw:min-h-9 tw:w-full tw:sm:w-72" /></label><button className={viewStyles.button_button_small}>Pesquisar</button></form>
           <div className={viewStyles.teacher_student_plan_list}>
             {teacher.planAssignments.flatMap(({ plan }) =>
-              plan.subscriptions.map((subscription) => {
+              plan.subscriptions.filter(subscription => !searchParams?.q || subscription.student.name.toLocaleLowerCase("pt-BR").includes(searchParams.q.trim().toLocaleLowerCase("pt-BR"))).map((subscription) => {
                 // O lançamento nasce vinculado ao cliente e ao plano. Usar
                 // ambos os IDs evita depender do nome (que pode ser alterado
                 // no cadastro) e impede que um lançamento de outro plano

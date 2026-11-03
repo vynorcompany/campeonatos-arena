@@ -131,7 +131,7 @@ export const viewStyles = {
     "tw:[&_.agenda-slot-options-menu]:top-[calc(100%_+_4px)]", "tw:[&_.agenda-slot-options-menu]:right-[0]", "tw:[&_.agenda-slot-options-menu]:[transform:none]",
   ].join(" "),
   "agenda_event_type_fixed_lesson": [
-    "agenda-event-type-fixed-lesson", "tw:bg-[#cfe3fb]!", "tw:[background-image:none]!",
+    "agenda-event-type-fixed-lesson", "tw:bg-[#bfdbfe]!", "tw:[background-image:none]!",
     "tw:[&_.agenda-booking-event-card]:bg-transparent", "tw:[&_.agenda-booking-event-card]:[background-image:none]",
     "tw:[&_.agenda-booking-event-card]:border-[var(--line)]", "tw:[&_.agenda-booking-event-card]:border-l-[#1e5ea8]",
     "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:bg-[#174983]", "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:text-white",
@@ -139,7 +139,7 @@ export const viewStyles = {
     "tw:[&_.agenda-slot-options-trigger]:text-[#174983]!",
   ].join(" "),
   "agenda_event_type_lesson": [
-    "agenda-event-type-lesson", "tw:bg-[#cfe3fb]!", "tw:[background-image:none]!",
+    "agenda-event-type-lesson", "tw:bg-[#bfdbfe]!", "tw:[background-image:none]!",
     "tw:[&_.agenda-booking-event-card]:bg-transparent", "tw:[&_.agenda-booking-event-card]:[background-image:none]",
     "tw:[&_.agenda-booking-event-card]:border-[var(--line)]", "tw:[&_.agenda-booking-event-card]:border-l-[#1e5ea8]",
     "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:bg-[#174983]", "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:text-white",
@@ -147,7 +147,7 @@ export const viewStyles = {
     "tw:[&_.agenda-slot-options-trigger]:text-[#174983]!",
   ].join(" "),
   "agenda_event_type_plan": [
-    "agenda-event-type-plan", "tw:bg-[#cfe3fb]!", "tw:[background-image:none]!",
+    "agenda-event-type-plan", "tw:bg-[#bfdbfe]!", "tw:[background-image:none]!",
     "tw:[&_.agenda-booking-event-card]:bg-transparent", "tw:[&_.agenda-booking-event-card]:[background-image:none]",
     "tw:[&_.agenda-booking-event-card]:border-[var(--line)]", "tw:[&_.agenda-booking-event-card]:border-l-[#1e5ea8]",
     "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:bg-[#174983]", "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:text-white",
@@ -155,7 +155,7 @@ export const viewStyles = {
     "tw:[&_.agenda-slot-options-trigger]:text-[#174983]!",
   ].join(" "),
   "agenda_event_type_super12": [
-    "agenda-event-type-super12", "tw:bg-[#cfe3fb]!", "tw:[background-image:none]!",
+    "agenda-event-type-super12", "tw:bg-[#bfdbfe]!", "tw:[background-image:none]!",
     "tw:[&_.agenda-booking-event-card]:bg-transparent", "tw:[&_.agenda-booking-event-card]:[background-image:none]",
     "tw:[&_.agenda-booking-event-card]:border-[var(--line)]", "tw:[&_.agenda-booking-event-card]:border-l-[#1e5ea8]",
     "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:bg-[#174983]", "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:text-white",
@@ -163,7 +163,7 @@ export const viewStyles = {
     "tw:[&_.agenda-slot-options-trigger]:text-[#174983]!",
   ].join(" "),
   "agenda_event_type_league": [
-    "agenda-event-type-league", "tw:bg-[#cfe3fb]!", "tw:[background-image:none]!",
+    "agenda-event-type-league", "tw:bg-[#bfdbfe]!", "tw:[background-image:none]!",
     "tw:[&_.agenda-booking-event-card]:bg-transparent", "tw:[&_.agenda-booking-event-card]:[background-image:none]",
     "tw:[&_.agenda-booking-event-card]:border-[var(--line)]", "tw:[&_.agenda-booking-event-card]:border-l-[#1e5ea8]",
     "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:bg-[#174983]", "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:text-white",
@@ -171,7 +171,7 @@ export const viewStyles = {
     "tw:[&_.agenda-slot-options-trigger]:text-[#174983]!",
   ].join(" "),
   "agenda_event_type_booking": [
-    "agenda-event-type-booking", "tw:bg-[#cfe3fb]!", "tw:[background-image:none]!",
+    "agenda-event-type-booking", "tw:bg-[#bfdbfe]!", "tw:[background-image:none]!",
     "tw:[&_.agenda-booking-event-card]:bg-transparent", "tw:[&_.agenda-booking-event-card]:[background-image:none]",
     "tw:[&_.agenda-booking-event-card]:border-[var(--line)]", "tw:[&_.agenda-booking-event-card]:border-l-[#1e5ea8]",
     "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:bg-[#174983]", "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:text-white",
@@ -206,8 +206,8 @@ export const viewStyles = {
   ].join(" "),
   "agenda_payment_indicator": [
     "agenda-payment-indicator", "tw:inline-flex", "tw:items-center", "tw:justify-center",
-    "tw:min-w-[15px]", "tw:h-[15px]", "tw:ml-[4px]", "tw:rounded-[50%]",
-    "tw:bg-[color:#1f9d55]", "tw:[background-image:none]", "tw:text-[color:#fff]", "tw:text-[.68rem]",
+    "tw:min-w-[15px]", "tw:h-[15px]", "tw:ml-[4px]", "tw:rounded-[4px]",
+    "tw:bg-[color:#dcfce7]", "tw:[background-image:none]", "tw:text-[color:#166534]", "tw:text-[.68rem]",
     "tw:font-[900]", "tw:leading-[1]", "tw:[vertical-align:1px]",
   ].join(" "),
   "daily_court_unavailable": [
