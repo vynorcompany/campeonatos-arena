@@ -29,6 +29,7 @@ function fixture() {
       if(name==='react/jsx-runtime')return{jsx:()=>null,jsxs:()=>null};
       if(name==='react-dom')return{createPortal:()=>null};
       if(name==='@/lib/actions/notifications')return{markArenaNotificationReadAction:async()=>{}};
+      if(name==='@/components/notifications/notification-time')return{NotificationTime:()=>null};
       if(name==='next/link')return{default:()=>null};
       throw Error(name);
     },

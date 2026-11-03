@@ -103,6 +103,7 @@ export async function createPlanAction(formData: FormData) {
 }
 
 function hasUnresolvedOnlinePayment(entry: {
+  onlinePaymentCanceledAt?: Date | null;
   onlinePaymentId: string;
   onlinePaymentUrl: string;
   onlinePaymentClaimMethod: string;
@@ -110,7 +111,7 @@ function hasUnresolvedOnlinePayment(entry: {
   notes: string;
   onlinePaymentItems: { checkout: { status: string; mercadoPagoPaymentId: string; checkoutUrl: string } }[];
 }) {
-  return Boolean(entry.onlinePaymentId || entry.onlinePaymentUrl || entry.onlinePaymentClaimMethod || entry.onlinePaymentClaimedAt)
+  return (!entry.onlinePaymentCanceledAt && Boolean(entry.onlinePaymentId || entry.onlinePaymentUrl || entry.onlinePaymentClaimMethod || entry.onlinePaymentClaimedAt))
     || entry.notes.includes("[MP_REVIEW:")
     || entry.onlinePaymentItems.some(({ checkout }) =>
       ["PENDING", "REVIEW", "PAID"].includes(checkout.status)

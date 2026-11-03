@@ -1,4 +1,5 @@
 "use client";
+import { PlanDueOptions } from "./plan-due-options";
 import { viewStyles } from "./sponsorship-plan-dialogs.utilities";
 
 import { useCallback, useMemo, useRef, useState } from "react";
@@ -27,8 +28,8 @@ export function CreateSponsorshipPlanButton({ action, courts = [] }: { action: A
     {open ? <Dialog title="Criar plano" close={() => setOpen(false)}>
       <SafeActionForm action={action} className={viewStyles.grid_form_sponsorship_dialog_form} resetOnSuccess successMessage="Plano criado." onSuccess={() => setOpen(false)}>
         <label className={viewStyles.field}>Finalidade<select name="kind" value={kind} onChange={e=>setKind(e.target.value)}><option value="SPONSORSHIP">Patrocínio</option><option value="FIXED_COURT">Reserva fixa de quadra</option></select></label>
-        <label className={viewStyles.field}>Vencimento padrão<input name="dueDay" type="number" min="1" max="28" defaultValue="10" required/></label>
-        {kind==="FIXED_COURT" ? <><label className={viewStyles.field}>Quadra<select name="courtId" required><option value="">Selecione</option>{courts.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label><label className={viewStyles.field}>Dia da semana<select name="weekday" defaultValue="1">{["Domingo","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira","Sábado"].map((d,i)=><option key={i} value={i}>{d}</option>)}</select></label><label className={viewStyles.field}>Horário<input name="startTime" type="time" required/></label><label className={viewStyles.field}>Duração (min)<input name="durationMinutes" type="number" min="15" max="720" step="15" defaultValue="90" required/></label></> : null}
+        <PlanDueOptions/>
+        {kind==="FIXED_COURT" ? <label className="tw:col-span-full tw:flex tw:items-center tw:gap-2 tw:text-xs"><input name="prorateFifthWeek" type="checkbox"/>Calcular proporcional em meses com cinco reservas<small className="tw:text-[var(--muted)]">Base mensal: quatro reservas.</small></label> : null}
         <label className={viewStyles.field}>Nome do plano<input name="name" required placeholder={kind==="FIXED_COURT"?"Ex.: Quadra semanal":"Ex.: Patrocinador ouro"} /></label>
         {kind==="SPONSORSHIP"?<label className={viewStyles.field}>Tipo<select name="sponsorshipType" defaultValue="Mensal">{planTypes.map((type) => <option key={type}>{type}</option>)}</select></label>:<input type="hidden" name="sponsorshipType" value="Mensal"/>}
         <label className={viewStyles.field}>Valor mensal<CurrencyInput name="monthlyAmount" defaultValue="0,00" required /></label>

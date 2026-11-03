@@ -1,4 +1,6 @@
 "use server";
+import { availableFixedTimes, fixedMonthAmount } from "@/lib/plans/fixed-court";
+import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
 import { revalidatePath } from "next/cache";
 import { requirePermission, requireModuleEdit } from "@/lib/auth/guards";
 import { withArenaTransaction } from "@/lib/rls";
@@ -13,37 +15,56 @@ export async function enrollFixedCourtPlanAction(form: FormData) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end))
         return { error: "Informe início e fim do plano." };
     const from = new Date(`${start}T12:00:00Z`), until = new Date(`${end}T23:59:59-03:00`);
-    if (!Number.isFinite(from.getTime()) || !Number.isFinite(until.getTime()) || until < from || until.getTime() - from.getTime() > 366 * 86400000)
+    if (!Number.isFinite(from.getTime()) || !Number.isFinite(until.getTime()) || from.toISOString().slice(0,10)!==start || new Date(`${end}T12:00:00Z`).toISOString().slice(0,10)!==end || until < from || until.getTime() - from.getTime() > 366 * 86400000)
         return { error: "Informe um período de até um ano, com fim após o início." };
+    const firstPaid=form.get("firstPaid")==="on";
+    if(firstPaid) await requirePermission("finance:receivable:edit");
     try {
         await withArenaTransaction(auth.arenaId, async (tx) => {
             const plan = await tx.sponsorshipPlan.findFirst({ where: { id: planId, arenaId: auth.arenaId, kind: "FIXED_COURT" } });
             const player = await tx.player.findFirst({ where: { id: playerId, arenaId: auth.arenaId, active: true, mergedIntoPlayerId: null } });
-            if (!plan?.courtId || plan.weekday == null || plan.startMinute == null || !player)
-                throw new Error("Selecione um plano e um cliente ativos desta arena.");
-            const court = await tx.$queryRaw<{
-                id: string;
-            }[]> `SELECT id FROM "Court" WHERE id=${plan.courtId} AND "arenaId"=${auth.arenaId} AND active=true FOR UPDATE`;
-            if (!court.length)
-                throw new Error("Quadra indisponível.");
+            if (!plan || !player) throw new Error("Selecione um plano e um cliente ativos desta arena.");
+            const courtId=String(form.get("courtId")||plan.courtId||"");
+            const weekday=Number(form.get("weekday")??plan.weekday??NaN),startMinute=Number(form.get("startMinute")??plan.startMinute??NaN),durationMinutes=Number(form.get("durationMinutes")||plan.durationMinutes);
+            const dueDay=Number(form.get("dueDay")||plan.dueDay);
+            const allowed=plan.dueDays.length?plan.dueDays:[plan.dueDay];
+            if(!allowed.includes(dueDay)) throw new Error("Escolha um vencimento disponível no plano.");
+            const prorate=form.has("dueDay") ? form.get("prorateFifthWeek")==="on" : plan.prorateFifthWeek;
+            const court=await tx.court.findFirst({where:{id:courtId,arenaId:auth.arenaId,active:true},include:{weeklyRules:true}});
+            if(!court) throw new Error("Selecione uma quadra ativa desta arena.");
+            await tx.$queryRaw`SELECT id FROM "Court" WHERE id=${court.id} AND "arenaId"=${auth.arenaId} FOR UPDATE`;
+            if(!availableFixedTimes(court.weeklyRules,weekday,durationMinutes,court.onlineSlotMinutes).includes(startMinute)) throw new Error("Selecione um dia e horário disponíveis na configuração da grade.");
+            let bankAccountId:string|undefined,paidAt:Date|undefined,paymentMethod="";
+            if(firstPaid) {
+              bankAccountId=await requireReceivingBankAccount(tx,auth.arenaId,form.get("bankAccountId"));
+              const raw=String(form.get("paidAt")||"");paidAt=new Date(raw+"T12:00:00-03:00");
+              if(!/^\d{4}-\d{2}-\d{2}$/.test(raw)||!Number.isFinite(paidAt.getTime())) throw new Error("Informe a data do pagamento.");
+              paymentMethod=String(form.get("paymentMethod")||"");
+              if(!await tx.paymentMethodSetting.findFirst({where:{arenaId:auth.arenaId,name:paymentMethod,active:true}})||["CREDIT_BALANCE","Saldo de crédito"].includes(paymentMethod)) throw new Error("Selecione uma forma de pagamento válida. Para saldo, receba a mensalidade no financeiro.");
+            }
             if (await tx.scheduleBookingSeries.findFirst({ where: { arenaId: auth.arenaId, sponsorshipPlanId: plan.id, responsiblePlayerId: player.id, status: "ACTIVE", startsAt: { lte: until }, endsAt: { gte: from } } }))
                 throw new Error("Este cliente já possui vínculo ativo com este plano no período.");
-            from.setUTCDate(from.getUTCDate() + (plan.weekday - from.getUTCDay() + 7) % 7);
-            const date = from.toISOString().slice(0, 10), time = `${String(Math.floor(plan.startMinute / 60)).padStart(2, "0")}:${String(plan.startMinute % 60).padStart(2, "0")}`;
-            const startsAt = new Date(`${date}T${time}:00-03:00`), endsAt = new Date(startsAt.getTime() + plan.durationMinutes * 60000);
+            from.setUTCDate(from.getUTCDate() + (weekday - from.getUTCDay() + 7) % 7);
+            const date = from.toISOString().slice(0, 10), time = `${String(Math.floor(startMinute / 60)).padStart(2, "0")}:${String(startMinute % 60).padStart(2, "0")}`;
+            const startsAt = new Date(`${date}T${time}:00-03:00`), endsAt = new Date(startsAt.getTime() + durationMinutes * 60000);
             const occurrences = expandWeeklyOccurrences({ startsAt, endsAt, until });
             if (!occurrences.length)
                 throw new Error("O período não contém o dia da semana configurado.");
-            if (await tx.scheduleOccurrence.findFirst({ where: { arenaId: auth.arenaId, AND: [activeCourtOccurrenceWhere(), { OR: occurrences.map(o => ({ startsAt: { lt: o.endsAt }, endsAt: { gt: o.startsAt } })) }], occurrenceCourts: { some: { courtId: plan.courtId } } } }))
+            if (await tx.scheduleOccurrence.findFirst({ where: { arenaId: auth.arenaId, AND: [activeCourtOccurrenceWhere(), { OR: occurrences.map(o => ({ startsAt: { lt: o.endsAt }, endsAt: { gt: o.startsAt } })) }], occurrenceCourts: { some: { courtId: courtId } } } }))
                 throw new Error("Um dos horários já está reservado ou bloqueado. Nenhum vínculo foi criado.");
-            const series = await tx.scheduleBookingSeries.create({ data: { arenaId: auth.arenaId, sponsorshipPlanId: plan.id, responsiblePlayerId: player.id, title: `${plan.name} · ${player.name}`, bookingTypeName: "Reserva fixa", startsAt, endsAt: occurrences.at(-1)!.endsAt, notes: "Cobrança mensal pelo plano, sem cobrança avulsa por horário." } });
+            const series = await tx.scheduleBookingSeries.create({ data: { arenaId: auth.arenaId, sponsorshipPlanId: plan.id, dueDay, prorateFifthWeek:prorate, responsiblePlayerId: player.id, title: `${plan.name} · ${player.name}`, bookingTypeName: "Reserva fixa", startsAt, endsAt: occurrences.at(-1)!.endsAt, notes: "Cobrança mensal pelo plano, sem cobrança avulsa por horário." } });
             for (const o of occurrences)
-                await tx.scheduleOccurrence.create({ data: { arenaId: auth.arenaId, bookingSeriesId: series.id, sourceType: "BOOKING", bookingTypeName: "Reserva fixa", title: series.title, responsiblePlayerId: player.id, startsAt: o.startsAt, endsAt: o.endsAt, courtPriceCents: 0, notes: series.notes, occurrenceCourts: { create: { courtId: plan.courtId } }, participants: { create: { playerId: player.id, amountCents: 0 } } } });
-            let due = new Date(Date.UTC(Number(start.slice(0, 4)), Number(start.slice(5, 7)) - 1, plan.dueDay, 12));
+                await tx.scheduleOccurrence.create({ data: { arenaId: auth.arenaId, bookingSeriesId: series.id, sourceType: "BOOKING", bookingTypeName: "Reserva fixa", title: series.title, responsiblePlayerId: player.id, startsAt: o.startsAt, endsAt: o.endsAt, courtPriceCents: 0, notes: series.notes, occurrenceCourts: { create: { courtId: courtId } }, participants: { create: { playerId: player.id, amountCents: 0 } } } });
+            let due = new Date(Date.UTC(Number(start.slice(0, 4)), Number(start.slice(5, 7)) - 1, dueDay, 12));
             if (due < new Date(`${start}T00:00:00-03:00`))
                 due.setUTCMonth(due.getUTCMonth() + 1);
+            let first=true;
             do {
-                await tx.financialEntry.create({ data: { arenaId: auth.arenaId, playerId: player.id, type: "REVENUE", category: "Planos de quadra", description: `${plan.name} · ${player.name}`, amountCents: plan.monthlyAmountCents, dueDate: new Date(due), source: "FIXED_COURT_PLAN", externalReference: series.id, notes: `Reserva fixa do plano ${plan.id}; horários sem cobrança duplicada.` } });
+                const month=fixedMonthAmount(plan.monthlyAmountCents,due.getUTCFullYear(),due.getUTCMonth(),weekday,prorate);
+                const isPaid=first && firstPaid && month.amountCents>0;
+                const entry=await tx.financialEntry.create({ data: { arenaId: auth.arenaId, playerId: player.id, type: "REVENUE", category: "Planos de quadra", description: `${plan.name} · ${player.name}`, amountCents: month.amountCents, dueDate: new Date(due), competenceDate:new Date(Date.UTC(due.getUTCFullYear(),due.getUTCMonth(),1,12)), source: "FIXED_COURT_PLAN", externalReference: series.id, notes: `Reserva fixa do plano ${plan.id}; ${month.occurrences} ocorrências no mês${prorate?"; base de quatro reservas":""}.`, ...(isPaid?{status:"PAID",paidAt,paymentMethod,bankAccountId}:{}) } });
+                if(isPaid) await tx.financialSettlement.create({data:{arenaId:auth.arenaId,financialEntryId:entry.id,amountCents:month.amountCents,paidAt:paidAt!,paymentMethod,bankAccountId,notes:"Primeira mensalidade recebida na adesão ao plano fixo."}});
+                first=false;
                 due.setUTCMonth(due.getUTCMonth() + 1);
             } while (due <= until);
         }, { timeout: 30000 });
@@ -71,7 +92,7 @@ export async function endFixedCourtPlanAction(form: FormData) {
                 await tx.$queryRaw `SELECT id FROM "Court" WHERE id=${row.courtId} AND "arenaId"=${auth.arenaId} FOR UPDATE`;
             const now = new Date();
             const future = await tx.financialEntry.findMany({ where: { arenaId: auth.arenaId, source: "FIXED_COURT_PLAN", externalReference: seriesId, dueDate: { gte: now }, status: { in: ["PENDING", "OVERDUE", "PARTIAL"] } }, include: { settlements: { select: { amountCents: true } }, onlinePaymentItems: { select: { id: true } } } });
-            if (future.some(e => e.onlinePaymentId || e.onlinePaymentUrl || e.onlinePaymentClaimMethod || e.onlinePaymentItems.length))
+            if (future.some(e => (!e.onlinePaymentCanceledAt && (e.onlinePaymentId || e.onlinePaymentUrl || e.onlinePaymentClaimMethod)) || e.onlinePaymentItems.length))
                 throw new Error("Cancele ou concilie as cobranças online deste plano no financeiro antes de encerrar.");
             for (const entry of future)
                 if (!entry.settlements.some(s => s.amountCents > 0))
@@ -87,4 +108,19 @@ export async function endFixedCourtPlanAction(form: FormData) {
     revalidatePath("/proximos-jogos/patrocinios");
     revalidatePath("/financeiro/contas-a-receber");
     return { success: true };
+}
+
+export async function updateFixedCourtPlanOptionsAction(form:FormData) {
+ const auth=await requireModuleEdit("tv");
+ const id=String(form.get("planId")||"");
+ try {
+  const {planDueDays}=await import("@/lib/plans/fixed-court");
+  if(!form.getAll("dueDays").length) throw new Error("Selecione ao menos um vencimento.");
+  const dueDays=planDueDays(form.getAll("dueDays"));
+  await withArenaTransaction(auth.arenaId,async tx=>{
+   const updated=await tx.sponsorshipPlan.updateMany({where:{id,arenaId:auth.arenaId,kind:"FIXED_COURT"},data:{dueDays,dueDay:dueDays[0],prorateFifthWeek:form.get("prorateFifthWeek")==="on"}});
+   if(!updated.count) throw new Error("Plano não encontrado.");
+  });
+ } catch(error) { return {error:error instanceof Error&&!error.name.startsWith("Prisma")?error.message:"Não foi possível atualizar o plano."}; }
+ revalidatePath(`/proximos-jogos/patrocinios/${id}`);revalidatePath("/proximos-jogos/patrocinios");return {success:true};
 }

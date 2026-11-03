@@ -1222,6 +1222,8 @@ model TvSponsor {
 }
 
 model SponsorshipPlan {
+  dueDays Int[] @default([])
+  prorateFifthWeek Boolean @default(false)
   kind String @default("SPONSORSHIP")
   dueDay Int @default(10)
   courtId String?
@@ -1581,6 +1583,8 @@ model ScheduleOccurrence {
 }
 
 model ScheduleBookingSeries {
+  dueDay Int?
+  prorateFifthWeek Boolean @default(false)
   sponsorshipPlanId String?
   sponsorshipPlan SponsorshipPlan? @relation(fields: [sponsorshipPlanId], references: [id], onDelete: Restrict)
   id              String               @id @default(cuid())
@@ -2394,6 +2398,8 @@ model StudentSubscription {
 }
 
 model FinancialEntry {
+  boletoQueueCanceledAt DateTime?
+  onlinePaymentCanceledAt DateTime?
   billingPlayerId String?
   billingPlayer Player? @relation("EntryBillingPlayer", fields: [billingPlayerId], references: [id], onDelete: Restrict)
   competenceDate DateTime?

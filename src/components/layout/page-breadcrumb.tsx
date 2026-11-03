@@ -10,6 +10,7 @@ export function PageBreadcrumb({ section, current }: { section: string; current:
 const financeNames: Record<string, string> = {
   "": "Financeiro",
   "contas-a-receber": "Contas a Receber",
+  "fila-de-boletos": "Fila de boletos",
   "contas-a-pagar": "Contas a Pagar",
   "lancamentos": "Lançamentos",
   "mensalidades": "Mensalidades",

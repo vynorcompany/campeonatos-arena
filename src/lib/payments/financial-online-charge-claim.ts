@@ -34,6 +34,7 @@ export async function claimFinancialOnlineCharge(tx: ArenaTransaction, input: {
   if (!entry) return { ok: false, error: input.requireActiveBoletoRecurrence
     ? "O lançamento não está mais pendente ou a recorrência foi encerrada."
     : "O lançamento não está mais pendente." };
+  if (input.method === "BOLETO" && entry.boletoQueueCanceledAt) return {ok:false,error:"Boleto retirado da fila. Consulte o lançamento antes de emitir outra cobrança."};
   if (hasExistingOnlineCharge(entry)) return { ok: false, error: "Este lançamento já possui uma cobrança online. Use ‘Ver cobrança’ para consultá-la." };
   if (getFinancialEntryBalance(entry.amountCents, entry.settlements).outstandingCents !== input.expectedAmountCents) {
     return { ok: false, error: "O saldo do lançamento mudou. Atualize a página antes de gerar a cobrança." };
