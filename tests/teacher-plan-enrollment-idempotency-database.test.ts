@@ -29,7 +29,7 @@ test("duas inscrições no mesmo plano geram uma assinatura e doze lançamentos,
   runtimeUrl.username = "arena_runtime";
   runtimeUrl.password = "";
   const runtime = new PrismaClient({ datasources: { db: { url: runtimeUrl.toString() } } });
-  const ids: { teacher?: string; plan?: string; group?: string; client?: string; betaClient?: string; paidClient?: string; bank?: string } = {};
+  const ids: { teacher?: string; plan?: string; group?: string; client?: string; betaClient?: string; paidClient?: string; freeClient?:string; bank?: string } = {};
   let issuedCharges = 0;
   try {
     const arenaA = await admin.arena.findUniqueOrThrow({ where: { slug: "arena-teste-goal" }, select: { id: true } });
@@ -129,6 +129,17 @@ test("duas inscrições no mesmo plano geram uma assinatura e doze lançamentos,
     const pixBills=await admin.financialEntry.findMany({where:{recurrenceId:pixRecurrence.id}});
     assert(pixBills.every(e=>e.paymentMethod==="PIX"&&e.bankAccountId===bank.id));
 
+    // A free first bill must retain the receiving bank for the eleven paid future bills.
+    await admin.classGroupSchedule.updateMany({where:{classGroupId:group.id},data:{capacity:3}});
+    const freeClient=await admin.player.create({data:{arenaId:arenaA.id,name:`Aluno desconto integral QA ${suffix}`}});ids.freeClient=freeClient.id;
+    const freeForm=new FormData();
+    for(const [key,value] of Object.entries({teacherId:teacher.id,planId:plan.id,clientId:freeClient.id,classGroupId:group.id,startedAt:today,dueDate:today,paymentMethod:"Boleto",bankAccountId:bank.id,discount:"100",discountMode:"PERCENTAGE",discountApplication:"ONE_TIME"}))freeForm.set(key,value);
+    await exports.assignTeacherPlanStudentAction(freeForm);
+    const freeRecurrence=await admin.financialRecurrence.findFirstOrThrow({where:{playerId:freeClient.id,planId:plan.id}});
+    assert.equal(freeRecurrence.bankAccountId,bank.id);assert.equal(freeRecurrence.onlinePaymentMethod,"BOLETO");
+    const futureBills=await admin.financialEntry.findMany({where:{recurrenceId:freeRecurrence.id},orderBy:{dueDate:"asc"}});
+    assert.equal(futureBills.length,12);assert.equal(futureBills[0].amountCents,0);assert(futureBills.slice(1).every(e=>e.amountCents===30000&&e.bankAccountId===bank.id&&e.paymentMethod==="Boleto"));
+    assert.equal(issuedCharges,1,"mensalidade zerada não emite boleto");
     const duplicateInFullGroup = await enroll(client.id);
     assert.equal(duplicateInFullGroup && duplicateInFullGroup.error, "Este aluno já está inscrito neste plano.");
 
@@ -148,6 +159,7 @@ test("duas inscrições no mesmo plano geram uma assinatura e doze lançamentos,
     }
     if (ids.betaClient) await admin.player.delete({ where: { id: ids.betaClient } });
     if (ids.paidClient) { await admin.student.deleteMany({ where: { playerId: ids.paidClient } }); await admin.player.delete({ where: { id: ids.paidClient } }); }
+    if (ids.freeClient) { await admin.student.deleteMany({where:{playerId:ids.freeClient}});await admin.player.delete({where:{id:ids.freeClient}}); }
     if (ids.bank) await admin.bankAccount.delete({ where: { id: ids.bank } });
     if (ids.teacher) await admin.teacher.delete({ where: { id: ids.teacher } });
     await runtime.$disconnect();

@@ -797,7 +797,7 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
   let firstEntryId = "";
   try {
   await withArenaTransaction(auth.arenaId, async (tx) => {
-    const bankAccountId = (enrollmentPaid || (boleto && formData.has("paymentMethod"))) && firstAmountCents > 0 ? await requireReceivingBankAccount(tx, auth.arenaId, formData.get("bankAccountId")) : null;
+    const bankAccountId = ((enrollmentPaid && firstAmountCents > 0) || (boleto && formData.has("paymentMethod"))) ? await requireReceivingBankAccount(tx, auth.arenaId, formData.get("bankAccountId")) : null;
     await lockClassGroupCapacity(tx, auth.arenaId, classGroupId);
     await lockStudentPlanSubscription(tx, auth.arenaId, client.id, planId);
     const alreadyEnrolled = await tx.studentSubscription.findFirst({ where: { arenaId: auth.arenaId, planId, status: "ACTIVE", student: { playerId: client.id } }, select: { id: true } });
