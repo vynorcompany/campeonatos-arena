@@ -3,7 +3,7 @@ import { sharedUtilities } from "@/components/ui/shared.utilities";
 export const viewStyles = {
   "teacher_directory_page": "teacher-directory-page tw:grid tw:w-full tw:min-w-0 tw:gap-4 tw:pb-4",
   "teacher_directory_page_header": [
-    "teacher-directory-page-header", "tw:grid", "tw:gap-y-[17px]", "tw:gap-x-[17px]",
+    "teacher-directory-page-header", "tw:flex", "tw:flex-wrap", "tw:items-center", "tw:justify-between", "tw:gap-3",
     "tw:[&_nav]:flex", "tw:[&_nav]:items-center", "tw:[&_nav]:gap-y-[12px]", "tw:[&_nav]:gap-x-[12px]",
     "tw:[&_nav]:text-[color:#1763c5]", "tw:[&_nav]:text-[.9rem]", "tw:[&_nav_i]:text-[color:#a4b4c8]", "tw:[&_nav_i]:text-[1.35rem]",
     "tw:[&_nav_i]:not-italic", "tw:[&_nav_strong]:text-[color:#0f58b7]", "tw:[&_h1]:mt-[0]", "tw:[&_h1]:mr-[0]",
