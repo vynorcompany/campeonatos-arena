@@ -15,6 +15,7 @@ import { activeCourtOccurrenceWhere } from "../src/lib/calendar/online-booking-h
 import { settlementSchema } from "../src/lib/finance/action-schemas";
 import { parseDate, parseMoneyToCents } from "../src/lib/finance/inputs";
 import { getFinancialEntryBalance } from "../src/lib/finance/ledger";
+import { boletoCancellationDisposition } from "../src/lib/payments/boleto-cancellation";
 import { recurringBoletoEntryWhere } from "../src/lib/payments/recurring-charge-eligibility";
 import { claimFinancialOnlineCharge } from "../src/lib/payments/financial-online-charge-claim";
 import { financialEntryPermission } from "../src/lib/finance/entry-permissions";
@@ -55,7 +56,7 @@ test("dependent billing snapshots guardian, spends guardian credit atomically, a
             await tx.$executeRawUnsafe('SAVEPOINT tenant_billing');
             await assert.rejects(tx.financialEntry.update({ where: { id: invoice.id }, data: { billingPlayerId: "goal-athlete-b" } }));
             await tx.$executeRawUnsafe('ROLLBACK TO SAVEPOINT tenant_billing');
-            let portalPlayerId = parent.id; let providerCalls=0;let canceledProvider:string[]=[];let cancelFails=false;
+            let portalPlayerId = parent.id; let providerCalls=0;let canceledProvider:string[]=[];let cancelFails=false;const providerStatuses:Record<string,string>={};
             const auth = { arenaId: arena.id, userId: "goal-test", userName: "Operador QA" };
             const mocks: Record<string, unknown> = {
                 "@prisma/client": { Prisma }, zod:{z},
@@ -63,7 +64,8 @@ test("dependent billing snapshots guardian, spends guardian credit atomically, a
                 "@/lib/env":{env:{appUrl:"http://localhost"}},
                 "@/lib/payments/portal-checkout-policy":{portalCheckoutPolicy},
                 "@/lib/payments/portal-checkout-expiry":{expirePortalCheckoutsForArena:async()=>{}},
-                "@/lib/payments/mercado-pago":{cancelMercadoPagoPayment:async(_arena:string,id:string)=>{assert.equal(_arena,arena.id);canceledProvider.push(id);if(cancelFails)throw new Error("Pagamento já recebido no emissor.");},createHostedCheckout:async()=>{providerCalls++;return {id:"guardian-checkout-qa",checkoutUrl:"https://checkout.example.test/guardian"};}}, "next/cache": { revalidatePath() { } },
+                "@/lib/payments/boleto-cancellation":{boletoCancellationDisposition},
+                "@/lib/payments/mercado-pago":{getMercadoPagoPayment:async(_arena:string,id:string)=>{assert.equal(_arena,arena.id);return{status:providerStatuses[id]??"pending"};},cancelMercadoPagoPayment:async(_arena:string,id:string)=>{assert.equal(_arena,arena.id);canceledProvider.push(id);if(cancelFails)throw new Error("Pagamento já recebido no emissor.");},createHostedCheckout:async()=>{providerCalls++;return {id:"guardian-checkout-qa",checkoutUrl:"https://checkout.example.test/guardian"};}}, "next/cache": { revalidatePath() { } },
                 "@/lib/auth/guards": { requirePermission: async () => auth, requireModuleEdit: async () => auth },
                 "@/lib/auth/session": { requireArenaAccess: async () => auth },
                 "@/lib/permissions": { canPerformPermission: () => true },
@@ -163,6 +165,29 @@ test("dependent billing snapshots guardian, spends guardian credit atomically, a
             const uncertain=await tx.financialEntry.create({data:{arenaId:arena.id,type:"REVENUE",category:"QA",description:"Emissão incerta QA",amountCents:5000,onlinePaymentClaimMethod:"BOLETO",onlinePaymentClaimedAt:new Date(),playerId:parent.id}});
             cancel.set("entryId",uncertain.id);assert.match((await queue.cancelQueuedBoletoAction(cancel)).error,/Emissão em andamento/);
             cancel.set("entryId","foreign-entry");assert.match((await queue.cancelQueuedBoletoAction(cancel)).error,/não encontrado/);
+            const bulk=new FormData();bulk.append("entryId",queued.id);bulk.append("entryId","foreign-entry");
+            const batch=await queue.cancelQueuedBoletosAction(bulk);assert.deepEqual(Array.from(batch.failedIds),["foreign-entry"]);assert.match(batch.error,/1 cancelado/);
+            // Fully settled legacy entries are retired automatically, without touching receipts.
+            const paidBoleto=await tx.financialEntry.create({data:{arenaId:arena.id,type:"REVENUE",category:"QA",description:"Pago com boleto pendente QA",amountCents:7000,status:"PAID",paymentMethod:"PIX",paidAt:new Date(),onlinePaymentId:"paid-pending-qa",onlinePaymentUrl:"https://example.test/old",onlinePaymentClaimMethod:"BOLETO",playerId:parent.id}});
+            cancel.set("entryId",paidBoleto.id);assert.equal((await queue.cancelQueuedBoletoAction(cancel)).success,true);assert.equal((await tx.financialEntry.findUniqueOrThrow({where:{id:paidBoleto.id}})).status,"PAID");
+            const paidQueue=await tx.financialEntry.create({data:{arenaId:arena.id,type:"REVENUE",category:"QA",description:"Pago sem emitir QA",amountCents:7000,status:"PAID",paidAt:new Date(),recurrenceId:recurring.id,playerId:parent.id}});
+            const partial=await tx.financialEntry.create({data:{arenaId:arena.id,type:"REVENUE",category:"QA",description:"Parcial QA",amountCents:7000,status:"PARTIAL",onlinePaymentId:"partial-qa",onlinePaymentClaimMethod:"BOLETO",settlements:{create:{arenaId:arena.id,amountCents:1000,paidAt:new Date(),paymentMethod:"PIX"}},playerId:parent.id}});
+            const fullReceipt=await tx.financialEntry.create({data:{arenaId:arena.id,type:"REVENUE",category:"QA",description:"Recebido integral sem status atualizado QA",amountCents:7000,status:"PENDING",recurrenceId:recurring.id,settlements:{create:{arenaId:arena.id,amountCents:6000,discountCents:1200,interestCents:200,paidAt:new Date(),paymentMethod:"PIX"}},playerId:parent.id}});
+            const approved=await tx.financialEntry.create({data:{arenaId:arena.id,type:"REVENUE",category:"QA",description:"Pago também no emissor QA",amountCents:7000,status:"PAID",paymentMethod:"PIX",paidAt:new Date(),onlinePaymentId:"paid-approved-qa",onlinePaymentClaimMethod:"BOLETO",playerId:parent.id}});providerStatuses[approved.onlinePaymentId]="approved";
+            const reconciler=load("src/lib/payments/settled-boleto-reconciliation.ts");
+            const before=await tx.financialSettlement.count({where:{arenaId:arena.id}});
+            const reconciled=await reconciler.reconcileSettledBoletosForArena(arena.id);assert.equal(reconciled.failed,0);assert(reconciled.retired>=3);
+            assert((await tx.financialEntry.findUniqueOrThrow({where:{id:paidBoleto.id}})).onlinePaymentCanceledAt);
+            assert((await tx.financialEntry.findUniqueOrThrow({where:{id:paidQueue.id}})).boletoQueueCanceledAt);
+            assert.equal((await tx.financialEntry.findUniqueOrThrow({where:{id:partial.id}})).boletoReconciledAt,null);
+            assert((await tx.financialEntry.findUniqueOrThrow({where:{id:fullReceipt.id}})).boletoReconciledAt);
+            const approvedAfter=await tx.financialEntry.findUniqueOrThrow({where:{id:approved.id}});assert(approvedAfter.boletoReconciledAt);assert.equal(approvedAfter.onlinePaymentCanceledAt,null);
+            assert.equal(await tx.financialSettlement.count({where:{arenaId:arena.id}}),before);
+            const callsAfter=canceledProvider.length;assert.equal((await reconciler.reconcileSettledBoletosForArena(arena.id)).retired,0);assert.equal(canceledProvider.length,callsAfter);
+            const failedBoleto=await tx.financialEntry.create({data:{arenaId:arena.id,type:"REVENUE",category:"QA",description:"Cancelamento para repetir QA",amountCents:7000,status:"PAID",paidAt:new Date(),onlinePaymentId:"retry-cancel-qa",onlinePaymentClaimMethod:"BOLETO",playerId:parent.id}});
+            cancelFails=true;assert.equal((await reconciler.reconcileSettledBoletosForArena(arena.id)).failed,1);assert.equal((await tx.financialEntry.findUniqueOrThrow({where:{id:failedBoleto.id}})).boletoReconciledAt,null);
+            cancelFails=false;assert.equal((await reconciler.reconcileSettledBoletosForArena(arena.id)).retired,1);
+            const excessive=new FormData();for(let i=0;i<101;i++)excessive.append("entryId",`qa-${i}`);assert.match((await queue.cancelQueuedBoletosAction(excessive)).error,/1 e 100/);
             throw rollback;
         }, { timeout: 60000 }), (e: any) => e === rollback);
     }

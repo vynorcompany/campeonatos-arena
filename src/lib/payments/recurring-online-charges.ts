@@ -1,3 +1,4 @@
+import { reconcileSettledBoletosForArena } from "@/lib/payments/settled-boleto-reconciliation";
 import { createBoletoPayment, getMissingBoletoPayerFields } from "@/lib/payments/mercado-pago";
 import { sendEvolutionTextMessage } from "@/lib/integrations/evolution/client";
 import { prisma } from "@/lib/prisma";
@@ -185,9 +186,14 @@ export async function issueRecurringOnlineCharges(now = new Date()) {
     await Promise.all(ineligibleArenas.slice(index, index + 8).map(([arenaId, count]) => alertIneligibleRecurringBoletos(arenaId, count)));
   }
 
+  let reconciliationFailures=0;
+  for(const arenaId of Object.keys(ineligibleByArena)) {
+    try { const result=await reconcileSettledBoletosForArena(arenaId);reconciliationFailures+=result.failed; }
+    catch(error) { reconciliationFailures++;console.error("Settled boleto reconciliation failed",{arenaId,error}); }
+  }
   let created = 0;
   let skipped = ineligible;
-  let failed = failures.length;
+  let failed = failures.length+reconciliationFailures;
   for (const failure of failures) {
     console.error("Recurring boleto arena scan failed", failure);
   }
