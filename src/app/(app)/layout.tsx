@@ -21,7 +21,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   if (visibleModules.includes("players")) await refreshLoyaltyNotifications(auth.arenaId);
   const [notifications, whatsappUnreadCount, billingAlert, comandaRequestCount] = await Promise.all([
     arenaDatabase(auth.arenaId).$transaction(
-      (tx) => tx.arenaNotification.findMany({ where: { arenaId: auth.arenaId, readAt: null, ...(!visibleModules.includes("players") ? { type: { not: loyaltyNotificationType } } : {}) }, select: { id: true, title: true, message: true, href: true, createdAt: true }, orderBy: { createdAt: "desc" }, take: 8 }),
+      (tx) => tx.arenaNotification.findMany({ where: { arenaId: auth.arenaId, readAt: null, type: { notIn: ["SYSTEM_RECOVERY", ...(!visibleModules.includes("players") ? [loyaltyNotificationType] : [])] } }, select: { id: true, title: true, message: true, href: true, createdAt: true }, orderBy: { createdAt: "desc" }, take: 8 }),
       { maxWait: 20_000, timeout: 10_000 }
     ),
     visibleModules.includes("support") ? getActiveWhatsAppUnreadCount(auth.arenaId) : Promise.resolve(0),
