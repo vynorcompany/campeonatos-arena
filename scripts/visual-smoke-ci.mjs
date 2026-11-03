@@ -230,7 +230,7 @@ async function main() {
         }
         if (["/aulas", "/aulas/alunos", "/financeiro/planos"].includes(route)) {
           const form = await send("Runtime.evaluate", {
-            expression: "(() => ({ notes: document.querySelector('#plan-notes, #student-notes')?.tagName, emptyPlayerOption: document.querySelector('#student-player option[value=\"\"]')?.textContent?.trim() ?? null }))()",
+            expression: "(() => ({ notes: document.querySelector('#plan-notes, #student-notes')?.tagName, emptyPlayerOption: document.querySelector('select[name=playerId] option[value=\"\"]')?.textContent?.trim() ?? null }))()",
             returnByValue: true,
           });
           if (form.result.value.notes !== "TEXTAREA" || (route !== "/financeiro/planos" && form.result.value.emptyPlayerOption !== "Sem vínculo com jogador")) {
