@@ -207,7 +207,7 @@ export const viewStyles = {
   "agenda_payment_indicator": [
     "agenda-payment-indicator", "tw:inline-flex", "tw:items-center", "tw:justify-center",
     "tw:min-w-[15px]", "tw:h-[15px]", "tw:ml-[4px]", "tw:rounded-[4px]",
-    "tw:bg-[color:#dcfce7]", "tw:[background-image:none]", "tw:text-[color:#166534]", "tw:text-[.68rem]",
+    "tw:bg-transparent", "tw:[background-image:none]", "tw:text-[color:#166534]", "tw:text-[.68rem]",
     "tw:font-[900]", "tw:leading-[1]", "tw:[vertical-align:1px]",
   ].join(" "),
   "daily_court_unavailable": [

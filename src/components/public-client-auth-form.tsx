@@ -13,8 +13,8 @@ import { SubmitButton } from "@/components/forms/submit-button";
 
 const initialState: PublicClientAuthState = { error: null };
 
-export function PublicClientAuthForm({ arenaSlug, returnTo }: { arenaSlug: string; returnTo?: string }) {
-  const [mode, setMode] = useState<"LOGIN" | "REGISTER" | "REGISTER_CONFIRM" | "RESET_REQUEST" | "RESET_CONFIRM">("LOGIN");
+export function PublicClientAuthForm({ arenaSlug, returnTo, initialMode = "LOGIN" }: { arenaSlug: string; returnTo?: string; initialMode?: "LOGIN" | "REGISTER" }) {
+  const [mode, setMode] = useState<"LOGIN" | "REGISTER" | "REGISTER_CONFIRM" | "RESET_REQUEST" | "RESET_CONFIRM">(initialMode);
   const [loginState, loginAction] = useFormState(loginPublicClientAction, initialState);
   const [registerState, registerAction] = useFormState(registerPublicClientAction, initialState);
   const [registerConfirmState, registerConfirmAction] = useFormState(confirmPublicClientRegistrationAction, initialState);
