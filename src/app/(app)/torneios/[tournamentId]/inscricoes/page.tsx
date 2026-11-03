@@ -1,3 +1,5 @@
+
+import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
@@ -42,7 +44,7 @@ export default async function TournamentRegistrationsPage(
     <section className={viewStyles.section_card}>
       <form className={viewStyles.tournament_registration_filters} method="get">
         <input aria-label="Buscar atleta ou dupla" name="q" defaultValue={searchParams?.q} placeholder="Buscar atleta ou dupla" />
-        <select aria-label="Filtrar por categoria" name="category" defaultValue={searchParams?.category ?? ""}><option value="">Todas as categorias</option>{tournament.categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</select>
+        <SmartEntitySelect createKind="tournament-category" contextId={tournament.id} label="Categoria" aria-label="Filtrar por categoria" name="category" defaultValue={searchParams?.category ?? ""}><option value="">Todas as categorias</option>{tournament.categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</SmartEntitySelect>
         <select aria-label="Filtrar por status" name="status" defaultValue={searchParams?.status ?? ""}><option value="">Todos os status</option><option value="PENDING">Pagamento pendente</option><option value="REVIEW">Em análise</option><option value="CONFIRMED">Confirmadas</option><option value="CANCELED">Canceladas</option></select>
         <button className={viewStyles.button} type="submit">Filtrar</button>
       </form>
@@ -56,7 +58,7 @@ export default async function TournamentRegistrationsPage(
             {underReview ? <ReviewedCheckoutRelease kind="registration" recordId={registration.id} paymentId={registration.mercadoPagoPaymentId} clientName={`${registration.leadName} / ${registration.partnerName}`} canResolve={canResolveReview} /> : canceled ? <p className={viewStyles.muted}>Pagamento estornado ou cancelado. A dupla pode fazer uma nova inscrição.</p> : !canEditManualTournamentRegistration(registration) ? <p className={viewStyles.muted}>{confirmed ? "Dupla confirmada: correções devem preservar seus vínculos com os jogos." : "Inscrição com cobrança online: confira o pagamento antes de alterar os dados."}</p> :
               <RegistrationEditForm className={viewStyles.tournament_registration_edit}>
                 <input type="hidden" name="registrationId" value={registration.id} /><input type="hidden" name="tournamentId" value={tournament.id} />
-                <label>Categoria<select name="categoryId" defaultValue={registration.categoryId}>{tournament.categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
+                <label>Categoria<SmartEntitySelect createKind="tournament-category" contextId={tournament.id} label="Categoria" name="categoryId" defaultValue={registration.categoryId}>{tournament.categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SmartEntitySelect></label>
                 <label>Atleta 1<input name="leadName" defaultValue={registration.leadName} required /></label>
                 <label>Telefone<input name="leadPhone" defaultValue={registration.leadPhone} required /></label>
                 <label>CPF<input name="leadCpf" defaultValue={registration.leadCpf} required /></label>

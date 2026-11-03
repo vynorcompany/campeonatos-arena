@@ -45,7 +45,7 @@ async function alertIneligibleRecurringBoletos(arenaId: string, count: number) {
 }
 
 /** Creates the boleto for one recurring entry. The external reference and Mercado Pago idempotency key make retries safe. */
-export async function issueRecurringOnlineChargeForEntry(arenaId: string, entryId: string, now = new Date()): Promise<ChargeAttempt> {
+export async function issueRecurringOnlineChargeForEntry(arenaId: string, entryId: string, now = new Date(), force = false): Promise<ChargeAttempt> {
   const entry = await arenaDatabase(arenaId).financialEntry.findFirst({
     where: { id: entryId, ...recurringBoletoEntryWhere(arenaId) },
     include: { billingPlayer: { select: { name: true, phone: true, email: true, cpf: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } }, player: { select: { name: true, phone: true, email: true, cpf: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } }, settlements: { select: { amountCents: true, interestCents: true, discountCents: true } } }
@@ -53,7 +53,7 @@ export async function issueRecurringOnlineChargeForEntry(arenaId: string, entryI
 
   if (!entry) return { created: false, skipped: false };
   const issueUntil = recurringBoletoIssueDeadline(now);
-  if (!entry.dueDate || entry.dueDate > issueUntil) return { created: false, skipped: false };
+  if (!entry.dueDate || (!force && entry.dueDate > issueUntil)) return { created: false, skipped: false };
   const player = entry.billingPlayer ?? entry.player;
   if (!player || getMissingBoletoPayerFields(player).length) {
     await alertRecurringBoleto(arenaId, entry.id, "ONLINE_CHARGE_ISSUANCE_REVIEW", "Boleto pendente de emissão", "O lançamento recorrente foi criado, mas faltam dados do cliente para emitir o boleto. Revise o cadastro em Contas a Receber.");
@@ -96,7 +96,7 @@ export async function issueRecurringOnlineChargeForEntry(arenaId: string, entryI
     throw error;
   }
   const updated = await withArenaTransaction(arenaId, (tx) => tx.financialEntry.updateMany({
-    where: { id: entry.id, arenaId, status: "PENDING", onlinePaymentId: { in: ["", charge.paymentId] }, onlinePaymentUrl: "", onlinePaymentClaimMethod: "BOLETO", onlinePaymentClaimedAt: claim.claimedAt, recurrence: { active: true, onlinePaymentMethod: "BOLETO" } },
+    where: { id: entry.id, arenaId, status: "PENDING", onlinePaymentId: { in: ["", charge.paymentId] }, onlinePaymentUrl: "", onlinePaymentClaimMethod: "BOLETO", onlinePaymentClaimedAt: claim.claimedAt, OR:[{recurrence:{active:true,onlinePaymentMethod:"BOLETO"}},{automaticBoleto:true}], boletoQueueCanceledAt:null },
     data: {
       onlineProvider: "MERCADO_PAGO",
       onlinePaymentId: charge.paymentId,

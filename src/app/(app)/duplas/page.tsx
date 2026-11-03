@@ -1,3 +1,5 @@
+
+import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { ManualPairForm } from "@/components/forms/manual-pair-form";
@@ -129,7 +131,7 @@ export default async function PairsPage(props: PairsPageProps) {
                               );
 
                               return (
-                                <select
+                                <SmartEntitySelect createKind="client" label="Cliente"
                                   key={`${pair.id}-${slot}`}
                                   name={slot === 1 ? "playerAId" : "playerBId"}
                                   defaultValue={currentPlayerId}
@@ -142,7 +144,7 @@ export default async function PairsPage(props: PairsPageProps) {
                                       {entry.player.name} ({entry.seedPoints} pts)
                                     </option>
                                   ))}
-                                </select>
+                                </SmartEntitySelect>
                               );
                             })}
                             <SubmitButton label="Salvar" pendingLabel="Salvando..." className={viewStyles.button} />

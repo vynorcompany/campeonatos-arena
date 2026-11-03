@@ -48,7 +48,7 @@ test("financial ledgers support recurrence, supplier selection and server-side f
   assert.match(schema, /supplierId\s+String\?/);
   assert.match(actions, /createFinancialRecurrenceAction/);
   assert.match(ledger, /Categorias financeiras/);
-  assert.match(ledger, /Criar fornecedor/);
+  assert.match(ledger, /createKind=\{type==="REVENUE"\?"client":"supplier"\}/);
   assert.match(ledger, /Data de vencimento/);
   assert.match(query, /includeEarlier/);
   assert.match(query, /productId/);
@@ -63,8 +63,8 @@ test("payables keep only expense fields and create suppliers, categories, and re
   assert.deepEqual(entrySchema.shape.type.options, ["REVENUE", "EXPENSE"]);
   assert.match(actions, /type: parsed\.data\.type/);
   assert.match(ledger, /createFinancialSettingAction/);
-  assert.match(ledger, /createQuickSetting\("fornecedores"/);
-  assert.match(ledger, /Criar categoria/);
+  assert.match(ledger, /valueMode=\{type==="REVENUE"\?"id":"name"\}/);
+  assert.match(ledger, /createKind="financial-category"/);
   assert.match(ledger, /type === "REVENUE" \? <>.*Plano\/pacote/s);
   assert.match(ledger, /<em>Pagamento recorrente<\/em>/);
   assert.match(styleRules("accounts-ledger"), /width: 100%[\s\S]*max-width: none[\s\S]*font-size: 90%/);

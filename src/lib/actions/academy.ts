@@ -701,7 +701,9 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
   const remainingClasses = 0;
   const enrollmentPaid = formData.get("paid") === "on";
   const paidAt = enrollmentPaid ? parseFormDate(String(formData.get("paidAt") ?? "")) : null;
-  const paymentMethod = String(formData.get("paymentMethod") ?? "").trim();
+  const paymentMethod = String(formData.get("paymentMethod") ?? "Boleto").trim();
+  const boleto=paymentMethod.toLowerCase()==="boleto";
+  if(!paymentMethod)return{error:"Selecione a forma de pagamento."};
   if (enrollmentPaid) {
     const paymentAuth = await requirePermission("finance:receivable:settle");
     if (paymentAuth.arenaId !== auth.arenaId) return { error: "Atualize a arena antes de registrar o pagamento." };
@@ -795,7 +797,7 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
   let firstEntryId = "";
   try {
   await withArenaTransaction(auth.arenaId, async (tx) => {
-    const bankAccountId = enrollmentPaid && firstAmountCents > 0 ? await requireReceivingBankAccount(tx, auth.arenaId, formData.get("bankAccountId")) : null;
+    const bankAccountId = ((enrollmentPaid && firstAmountCents > 0) || (boleto && formData.has("paymentMethod"))) ? await requireReceivingBankAccount(tx, auth.arenaId, formData.get("bankAccountId")) : null;
     await lockClassGroupCapacity(tx, auth.arenaId, classGroupId);
     await lockStudentPlanSubscription(tx, auth.arenaId, client.id, planId);
     const alreadyEnrolled = await tx.studentSubscription.findFirst({ where: { arenaId: auth.arenaId, planId, status: "ACTIVE", student: { playerId: client.id } }, select: { id: true } });
@@ -881,7 +883,8 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
         frequency: "MONTHLY",
         startsAt: startedAt,
         nextDueDate: firstDueDate,
-        onlinePaymentMethod: "BOLETO",
+        onlinePaymentMethod: boleto?"BOLETO":"",
+        bankAccountId,
         planId,
         teacherId,
         playerId: client.id,
@@ -905,7 +908,7 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
         status: enrollmentPaid ? "PAID" : "PENDING",
         bankAccountId,
         paidAt,
-        paymentMethod: enrollmentPaid ? paymentMethod : "Boleto",
+        paymentMethod,
         notes: `Primeira mensalidade. ${note}`,
       },
     });
@@ -930,7 +933,8 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
           teacherId,
           recurrenceId: recurrence.id,
           playerId: client.id,
-          paymentMethod: "Boleto",
+          paymentMethod,
+          bankAccountId,
           notes: `Mensalidade recorrente gerada pelo plano do professor. ${note}`,
         },
       });
@@ -946,7 +950,7 @@ export async function assignTeacherPlanStudentAction(formData: FormData) {
     if (error instanceof Error && error.message === "Este aluno já está inscrito neste plano.") return { error: error.message };
     throw error;
   }
-  if (firstEntryId && !enrollmentPaid && firstAmountCents > 0) {
+  if (boleto && firstEntryId && !enrollmentPaid && firstAmountCents > 0) {
     try { await issueRecurringOnlineChargeForEntry(auth.arenaId, firstEntryId); }
     catch (error) { console.error("Could not issue the initial plan boleto", error); }
   }

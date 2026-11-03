@@ -16,7 +16,7 @@ import { settlementSchema } from "../src/lib/finance/action-schemas";
 import { parseDate, parseMoneyToCents } from "../src/lib/finance/inputs";
 import { getFinancialEntryBalance } from "../src/lib/finance/ledger";
 import { boletoCancellationDisposition } from "../src/lib/payments/boleto-cancellation";
-import { recurringBoletoEntryWhere } from "../src/lib/payments/recurring-charge-eligibility";
+import { recurringBoletoEntryWhere, recurringBoletoIssueDeadline } from "../src/lib/payments/recurring-charge-eligibility";
 import { claimFinancialOnlineCharge } from "../src/lib/payments/financial-online-charge-claim";
 import { financialEntryPermission } from "../src/lib/finance/entry-permissions";
 import { loadPortalFinancialEntries } from "../src/lib/portal/finance-entries";
@@ -65,6 +65,8 @@ test("dependent billing snapshots guardian, spends guardian credit atomically, a
                 "@/lib/payments/portal-checkout-policy":{portalCheckoutPolicy},
                 "@/lib/payments/portal-checkout-expiry":{expirePortalCheckoutsForArena:async()=>{}},
                 "@/lib/payments/boleto-cancellation":{boletoCancellationDisposition},
+                "@/lib/payments/recurring-charge-eligibility":{recurringBoletoIssueDeadline},
+                "@/lib/payments/recurring-online-charges":{issueRecurringOnlineChargeForEntry:async()=>({created:false,skipped:false})},
                 "@/lib/payments/mercado-pago":{getMercadoPagoPayment:async(_arena:string,id:string)=>{assert.equal(_arena,arena.id);return{status:providerStatuses[id]??"pending"};},cancelMercadoPagoPayment:async(_arena:string,id:string)=>{assert.equal(_arena,arena.id);canceledProvider.push(id);if(cancelFails)throw new Error("Pagamento já recebido no emissor.");},createHostedCheckout:async()=>{providerCalls++;return {id:"guardian-checkout-qa",checkoutUrl:"https://checkout.example.test/guardian"};}}, "next/cache": { revalidatePath() { } },
                 "@/lib/auth/guards": { requirePermission: async () => auth, requireModuleEdit: async () => auth },
                 "@/lib/auth/session": { requireArenaAccess: async () => auth },
@@ -147,6 +149,19 @@ test("dependent billing snapshots guardian, spends guardian credit atomically, a
             assert.deepEqual(proportional.map(e=>e.amountCents),[50000,40000]);assert.equal(proportional[0].status,"PAID");assert.equal(proportional[0].settlements[0].amountCents,50000);assert.equal(proportional[0].paidAt?.toISOString().slice(0,10),"2035-01-02");assert.equal(proportional[1].status,"PENDING");
             paidPlan.set("playerId",other.id);paidPlan.set("startMinute","720");paidPlan.delete("firstPaid");assert.equal((await fixed.enrollFixedCourtPlanAction(paidPlan)).success,true);
             assert.equal(await tx.scheduleBookingSeries.count({where:{sponsorshipPlanId:standard.id}}),2);
+            const pixelBills=await tx.financialEntry.findMany({where:{externalReference:member.id,source:"FIXED_COURT_PLAN"}});
+            assert(pixelBills.every(e=>e.paymentMethod==="PIX"&&!e.automaticBoleto));
+            paidPlan.set("playerId",child.id);paidPlan.set("startMinute","840");paidPlan.set("paymentMethod","Boleto");
+            assert.equal((await fixed.enrollFixedCourtPlanAction(paidPlan)).success,true);
+            const boletoMember=await tx.scheduleBookingSeries.findFirstOrThrow({where:{sponsorshipPlanId:standard.id,responsiblePlayerId:child.id}});
+            const futureBoletoBills=await tx.financialEntry.findMany({where:{externalReference:boletoMember.id,source:"FIXED_COURT_PLAN"},orderBy:{dueDate:"asc"}});
+            assert.equal(futureBoletoBills.length,2);assert(futureBoletoBills.every(e=>e.automaticBoleto&&e.paymentMethod==="Boleto"&&e.bankAccountId===portalBank.id));
+            assert.equal(await tx.financialEntry.count({where:{...recurringBoletoEntryWhere(arena.id),id:{in:futureBoletoBills.map(e=>e.id)}}}),2);
+            assert.equal(futureBoletoBills[0].dueDate?.toISOString().slice(0,10),"2035-01-15");
+
+            const explicitClaim=await claimFinancialOnlineCharge(tx,{arenaId:arena.id,entryId:futureBoletoBills[0].id,method:"BOLETO",expectedAmountCents:futureBoletoBills[0].amountCents,requireActiveBoletoRecurrence:true});
+            assert.equal(explicitClaim.ok,true);
+            assert.equal((await claimFinancialOnlineCharge(tx,{arenaId:arena.id,entryId:futureBoletoBills[0].id,method:"BOLETO",expectedAmountCents:futureBoletoBills[0].amountCents,requireActiveBoletoRecurrence:true})).ok,false,"não duplica emissão em andamento");
             const recurring=await tx.financialRecurrence.create({data:{arenaId:arena.id,type:"REVENUE",category:"QA",counterpartyName:parent.name,description:"Fila QA",amountCents:5000,frequency:"MONTHLY",startsAt:new Date(),nextDueDate:new Date(),onlinePaymentMethod:"BOLETO",playerId:parent.id}});
             const queued=await tx.financialEntry.create({data:{arenaId:arena.id,type:"REVENUE",category:"QA",description:"Boleto fila QA",amountCents:5000,recurrenceId:recurring.id,playerId:parent.id,bankAccountId:portalBank.id}});
             const queue=load("src/lib/actions/boleto-queue.ts"),cancel=new FormData();cancel.set("entryId",queued.id);

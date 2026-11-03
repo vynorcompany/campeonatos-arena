@@ -1,4 +1,5 @@
 "use client";
+import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
 import { PlanDueOptions } from "./plan-due-options";
 import { viewStyles } from "./sponsorship-plan-dialogs.utilities";
 
@@ -40,8 +41,9 @@ export function CreateSponsorshipPlanButton({ action, courts = [] }: { action: A
   </>;
 }
 
-export function AddSponsorToPlanButton({ action, planId, clients = [], monthlyAmount = "0,00", dueDay = 10 }: { action: Action; planId: string; clients?: { id: string; name: string; phone: string }[]; monthlyAmount?: string; dueDay?: number }) {
+export function AddSponsorToPlanButton({ action, planId, clients = [], monthlyAmount = "0,00", dueDay = 10, banks=[], methods=["PIX","Dinheiro","Cartão de débito","Cartão de crédito","Boleto"] }: { banks?:{id:string;name:string}[];methods?:string[];action: Action; planId: string; clients?: { id: string; name: string; phone: string }[]; monthlyAmount?: string; dueDay?: number }) {
   const [open, setOpen] = useState(false);
+  const [paymentMethod,setPaymentMethod]=useState("");
   const [clientQuery, setClientQuery] = useState("");
   const [clientId, setClientId] = useState("");
   const matchingClients = useMemo(() => clientQuery.trim() ? clients.filter((client) => `${client.name} ${client.phone}`.toLocaleLowerCase("pt-BR").includes(clientQuery.toLocaleLowerCase("pt-BR"))).slice(0, 8) : [], [clientQuery, clients]);
@@ -51,7 +53,8 @@ export function AddSponsorToPlanButton({ action, planId, clients = [], monthlyAm
       <SafeActionForm action={action} className={viewStyles.grid_form_sponsorship_dialog_form} resetOnSuccess successMessage="Empresa inserida e lançamentos a receber gerados." onSuccess={() => setOpen(false)}>
         <input type="hidden" name="sponsorshipPlanId" value={planId} />
         <label className={viewStyles.field_form_full}>Empresa<input name="name" required placeholder="Nome da empresa" autoFocus /></label>
-        <input type="hidden" name="clientId" value={clientId} /><label className={viewStyles.field_form_full_sponsor_client_search}>Cliente vinculado <input value={clientQuery} autoComplete="off" onChange={(event) => { setClientQuery(event.currentTarget.value); setClientId(""); }} placeholder="Digite para pesquisar um cliente" />{clientQuery && !clientId ? <div className={viewStyles.sponsor_client_options}><button type="button" onClick={() => { setClientId(""); setClientQuery(""); }}>Sem cliente vinculado</button>{matchingClients.map((client) => <button type="button" key={client.id} onClick={() => { setClientId(client.id); setClientQuery(client.name); }}><strong>{client.name}</strong><small>{client.phone || "Sem telefone"}</small></button>)}{!matchingClients.length ? <span>Nenhum cliente encontrado.</span> : null}</div> : null}<small>Quando selecionado, o lançamento será emitido no nome do cliente.</small></label>
+        <label className={viewStyles.field_form_full}>Cliente vinculado<SmartEntitySelect name="clientId" createKind="client" label="Cliente vinculado" value={clientId} onChange={e=>setClientId(e.target.value)} required={paymentMethod.toLowerCase()==="boleto"}><option value="">Sem cliente vinculado</option>{clients.map(client=><option key={client.id} value={client.id}>{client.name}</option>)}</SmartEntitySelect></label>
+        <label className={viewStyles.field}>Forma de pagamento<select name="paymentMethod" required value={paymentMethod} onChange={e=>setPaymentMethod(e.target.value)}><option value="">Selecione</option>{[...new Set([...methods,"Boleto"])].map(name=><option key={name}>{name}</option>)}</select></label>{paymentMethod.toLowerCase()==="boleto"?<label className={viewStyles.field}>Conta do boleto<select name="bankAccountId" required><option value="">Selecione</option>{banks.map(bank=><option key={bank.id} value={bank.id}>{bank.name}</option>)}</select></label>:null}
         <label className={viewStyles.field_form_full}>Logo <small>PNG, JPG ou WebP</small><input name="logo" type="file" accept="image/png,image/jpeg,image/webp" /></label>
         <label className={viewStyles.field}>Data de início<input name="startedAt" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} /></label>
         <label className={viewStyles.field}>Número de parcelas<input name="installments" type="number" min="1" max="60" defaultValue="12" required /></label>

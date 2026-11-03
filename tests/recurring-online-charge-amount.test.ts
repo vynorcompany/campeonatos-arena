@@ -79,7 +79,7 @@ function loadRecurring(createBoleto: (input: Record<string, unknown>) => Promise
     },
   });
   return {
-    issue: (arenaId: string, entryId: string, now = new Date("2034-12-25T12:00:00.000Z")) => (exports.issueRecurringOnlineChargeForEntry as (arenaId: string, entryId: string, now: Date) => Promise<{ created: boolean; skipped: boolean }>)(arenaId, entryId, now),
+    issue: (arenaId: string, entryId: string, now = new Date("2034-12-25T12:00:00.000Z"), force=false) => (exports.issueRecurringOnlineChargeForEntry as (arenaId: string, entryId: string, now: Date, force:boolean) => Promise<{ created: boolean; skipped: boolean }>)(arenaId, entryId, now, force),
     batch: (now = new Date("2034-12-25T12:00:00.000Z")) => (exports.issueRecurringOnlineCharges as (now: Date) => Promise<{ scanned: number; created: number; skipped: number; failed: number }>)(now),
     candidates: (now = new Date()) => (exports.recurringOnlineChargeCandidates as (now: Date) => Promise<{ candidates: Array<{ id: string }>; failures: Array<{ arenaId: string }>; ineligible: number; ineligibleByArena: Record<string, number> }>)(now),
     claims, updates, errors, queries, alerts,
@@ -274,3 +274,16 @@ test("boleto emitido sem telefone gera um único alerta de entrega", async () =>
   assert.equal(service.alerts.length, 1);
   assert.equal(service.alerts[0].data.type, "ONLINE_CHARGE_DELIVERY_REVIEW");
 });
+
+ test("gerar agora antecipa a janela mas mantém a reserva de emissão e cobra somente o saldo",async()=>{
+ const calls:Array<Record<string,unknown>>=[];
+ const service=loadRecurring(async input=>{calls.push(input);return{paymentId:"manual-now",checkoutUrl:"https://example.test/manual",qrCode:"",expiresAt:null};});
+ const before=new Date("2034-11-01T12:00:00Z");
+ await service.issue("arena-a","entry-a",before);assert.equal(calls.length,0);
+ await service.issue("arena-a","entry-a",before,true);assert.equal(calls.length,1);
+ assert.equal(calls[0].amountCents,3000);assert.equal(service.claims[0].requireActiveBoletoRecurrence,true);
+ });
+ test("fila inclui boletos escolhidos em planos sem recorrência e exclui os retirados",()=>{
+ const filter=recurringBoletoEntryWhere("arena-a") as any;assert.equal(filter.arenaId,"arena-a");assert.equal(filter.boletoQueueCanceledAt,null);
+ assert.equal(filter.OR[1].automaticBoleto,true);assert.equal(filter.OR[0].recurrence.onlinePaymentMethod,"BOLETO");
+ });

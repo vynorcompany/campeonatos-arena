@@ -1,3 +1,4 @@
+import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./public-doubles-radar.utilities";
 import Link from "next/link";
@@ -105,7 +106,7 @@ export function PublicDoublesRadar({
         <input type="hidden" name="section" value="radar" />
         <strong><RadarIcon icon="filter" /> Filtrar atletas</strong>
         <label>Sexo<select name="radarGender" defaultValue={selectedGender ?? ""}><option value="">Todos</option>{availableGenders.map((gender) => <option key={gender} value={gender}>{gender}</option>)}</select></label>
-        <label>Categoria<select name="radarCategory" defaultValue={selectedCategory ?? ""}><option value="">Todas</option>{availableCategories.map((category) => <option key={category} value={category}>{category}</option>)}</select></label>
+        <label>Categoria<SmartEntitySelect name="radarCategory" defaultValue={selectedCategory ?? ""}><option value="">Todas</option>{availableCategories.map((category) => <option key={category} value={category}>{category}</option>)}</SmartEntitySelect></label>
         <div><button className={viewStyles.button_button_primary_button_small} type="submit">Filtrar</button>{selectedGender || selectedCategory ? <Link className={viewStyles.button_button_small} href={href(arenaSlug, {})}>Limpar</Link> : null}</div>
       </form>
       <div className={viewStyles.doubles_radar_list}><header><strong>Atletas encontrados</strong><span>{radar.athletes.length} atleta{radar.athletes.length === 1 ? "" : "s"}</span></header>
