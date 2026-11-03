@@ -56,6 +56,7 @@ function loadRecurring(createBoleto: (input: Record<string, unknown>) => Promise
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText, {
     exports, Date, Intl, console: { error: (...args: unknown[]) => errors.push(args) },
     require: (name: string) => {
+      if (name === "@/lib/payments/settled-boleto-reconciliation") return {reconcileSettledBoletosForArena:async()=>({retired:0,failed:0})};
       if (name === "@/lib/payments/mercado-pago") return { createBoletoPayment: createBoleto, getMissingBoletoPayerFields: scanEntries ? getMissingBoletoPayerFields : () => options.missingPayer ? ["CPF"] : [] };
       if (name === "@/lib/integrations/evolution/client") return { sendEvolutionTextMessage: options.sendMessage ?? (async () => undefined) };
       if (name === "@/lib/prisma") return { prisma: { arena: { findMany: async () => [{ id: "arena-a" }] } } };
