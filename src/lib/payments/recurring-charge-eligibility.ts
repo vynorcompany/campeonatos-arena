@@ -16,6 +16,7 @@ export function recurringBoletoEntryWhere(arenaId: string, dueBefore?: Date): Pr
     recurrenceId: { not: null },
     recurrence: { active: true, onlinePaymentMethod: "BOLETO" },
     playerId: { not: null },
+    boletoQueueCanceledAt: null,
     onlinePaymentId: "",
     onlinePaymentUrl: "",
     onlinePaymentClaimMethod: { in: ["", "BOLETO"] },

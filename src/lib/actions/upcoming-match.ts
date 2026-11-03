@@ -1,4 +1,5 @@
 ﻿"use server";
+import { planDueDays } from "@/lib/plans/fixed-court";
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -383,15 +384,13 @@ export async function createSponsorshipPlanAction(formData: FormData) {
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   const { monthlyAmount, ...data } = parsed.data;
   const kind = String(formData.get("kind") || "SPONSORSHIP");
-  const dueDay = Number(formData.get("dueDay") || 10);
-  const courtId = String(formData.get("courtId") || ""), weekday=Number(formData.get("weekday")), durationMinutes=Number(formData.get("durationMinutes") || 90);
-  const time=String(formData.get("startTime")||""); const startMinute=/^\d{2}:\d{2}$/.test(time)?Number(time.slice(0,2))*60+Number(time.slice(3)):NaN;
-  if(!["SPONSORSHIP","FIXED_COURT"].includes(kind) || !Number.isInteger(dueDay) || dueDay<1 || dueDay>28) throw new Error("Selecione o tipo e um vencimento entre 1 e 28.");
-  if(kind==="FIXED_COURT" && (!Number.isInteger(weekday)||weekday<0||weekday>6||!Number.isInteger(startMinute)||startMinute<0||startMinute>=1440||!Number.isInteger(durationMinutes)||durationMinutes<15||durationMinutes>720||startMinute+durationMinutes>1440)) throw new Error("Informe dia, horário e duração válidos.");
-  if(kind==="FIXED_COURT" && !await db.court.findFirst({where:{id:courtId,arenaId:auth.arenaId,active:true}})) throw new Error("Selecione uma quadra ativa desta arena.");
+  if(formData.has("dueOptionsConfigured") && !formData.getAll("dueDays").length) throw new Error("Selecione ao menos um vencimento.");
+  const dueDays = planDueDays(formData.getAll("dueDays"), Number(formData.get("dueDay") || 10));
+  const dueDay = dueDays[0];
+  if(!["SPONSORSHIP","FIXED_COURT"].includes(kind)) throw new Error("Selecione a finalidade do plano.");
   const monthlyAmountCents=parseMonthlyAmountToCents(monthlyAmount);
   if(monthlyAmountCents<0 || !Number.isSafeInteger(monthlyAmountCents)) throw new Error("Informe um valor mensal válido.");
-  await db.sponsorshipPlan.create({ data: { arenaId: auth.arenaId, ...data, kind, dueDay, monthlyAmountCents, ...(kind==="FIXED_COURT"?{courtId,weekday,startMinute,durationMinutes,reservationCredits:0,lessonCredits:0}:{}) } });
+  await db.sponsorshipPlan.create({ data: { arenaId: auth.arenaId, ...data, kind, dueDay, dueDays, prorateFifthWeek: formData.get("prorateFifthWeek")==="on", monthlyAmountCents, ...(kind==="FIXED_COURT"?{reservationCredits:0,lessonCredits:0}:{}) } });
   refreshUpcomingMatches();
 }
 

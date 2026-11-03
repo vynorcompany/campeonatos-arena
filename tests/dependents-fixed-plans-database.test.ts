@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import {z} from "zod";
+import { availableFixedTimes, fixedMonthAmount } from "../src/lib/plans/fixed-court";
+import { requireReceivingBankAccount } from "../src/lib/finance/receiving-bank-account";
 import {portalCheckoutPolicy} from "../src/lib/payments/portal-checkout-policy";
 import ts from "typescript";
 import { PrismaClient, Prisma } from "@prisma/client";
@@ -13,6 +15,8 @@ import { activeCourtOccurrenceWhere } from "../src/lib/calendar/online-booking-h
 import { settlementSchema } from "../src/lib/finance/action-schemas";
 import { parseDate, parseMoneyToCents } from "../src/lib/finance/inputs";
 import { getFinancialEntryBalance } from "../src/lib/finance/ledger";
+import { recurringBoletoEntryWhere } from "../src/lib/payments/recurring-charge-eligibility";
+import { claimFinancialOnlineCharge } from "../src/lib/payments/financial-online-charge-claim";
 import { financialEntryPermission } from "../src/lib/finance/entry-permissions";
 import { loadPortalFinancialEntries } from "../src/lib/portal/finance-entries";
 const url = process.env.ARENA_GOAL_TEST_DATABASE_URL ?? "";
@@ -51,7 +55,7 @@ test("dependent billing snapshots guardian, spends guardian credit atomically, a
             await tx.$executeRawUnsafe('SAVEPOINT tenant_billing');
             await assert.rejects(tx.financialEntry.update({ where: { id: invoice.id }, data: { billingPlayerId: "goal-athlete-b" } }));
             await tx.$executeRawUnsafe('ROLLBACK TO SAVEPOINT tenant_billing');
-            let portalPlayerId = parent.id; let providerCalls=0;
+            let portalPlayerId = parent.id; let providerCalls=0;let canceledProvider:string[]=[];let cancelFails=false;
             const auth = { arenaId: arena.id, userId: "goal-test", userName: "Operador QA" };
             const mocks: Record<string, unknown> = {
                 "@prisma/client": { Prisma }, zod:{z},
@@ -59,7 +63,7 @@ test("dependent billing snapshots guardian, spends guardian credit atomically, a
                 "@/lib/env":{env:{appUrl:"http://localhost"}},
                 "@/lib/payments/portal-checkout-policy":{portalCheckoutPolicy},
                 "@/lib/payments/portal-checkout-expiry":{expirePortalCheckoutsForArena:async()=>{}},
-                "@/lib/payments/mercado-pago":{createHostedCheckout:async()=>{providerCalls++;return {id:"guardian-checkout-qa",checkoutUrl:"https://checkout.example.test/guardian"};}}, "next/cache": { revalidatePath() { } },
+                "@/lib/payments/mercado-pago":{cancelMercadoPagoPayment:async(_arena:string,id:string)=>{assert.equal(_arena,arena.id);canceledProvider.push(id);if(cancelFails)throw new Error("Pagamento já recebido no emissor.");},createHostedCheckout:async()=>{providerCalls++;return {id:"guardian-checkout-qa",checkoutUrl:"https://checkout.example.test/guardian"};}}, "next/cache": { revalidatePath() { } },
                 "@/lib/auth/guards": { requirePermission: async () => auth, requireModuleEdit: async () => auth },
                 "@/lib/auth/session": { requireArenaAccess: async () => auth },
                 "@/lib/permissions": { canPerformPermission: () => true },
@@ -70,10 +74,12 @@ test("dependent billing snapshots guardian, spends guardian credit atomically, a
                 "@/lib/finance/ledger": { getFinancialEntryBalance },
                 "@/lib/finance/revalidation": { refreshFinanceRoutes() { } },
                 "@/lib/rls": { withArenaTransaction: async (id: string, fn: any) => { assert.equal(id, arena.id); return fn(tx); } },
+                "@/lib/plans/fixed-court":{availableFixedTimes,fixedMonthAmount},
+                "@/lib/finance/receiving-bank-account":{requireReceivingBankAccount},
                 "@/lib/calendar/online-booking-hold": { activeCourtOccurrenceWhere },
                 "@/lib/scheduling/recurrence": { expandWeeklyOccurrences },
             };
-            const load = (path: string) => { const exports: any = {}; vm.runInNewContext(ts.transpileModule(readFileSync(path, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports, Date, FormData, console, require: withDatabaseModuleMocks((name: string) => mocks[name] ?? {}) }); return exports; };
+            const load = (path: string) => { const exports: any = {}; vm.runInNewContext(ts.transpileModule(readFileSync(path, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports, Date, FormData, Error, console, require: withDatabaseModuleMocks((name: string) => mocks[name] ?? {}) }); return exports; };
             const dependentActions = load("src/lib/actions/dependents.ts");
         const repeatedDependent = new FormData(); repeatedDependent.set("guardianId",other.id); repeatedDependent.set("name",child.name);
         assert.match((await dependentActions.createDependentAction(repeatedDependent)).error,/Já existe um dependente/);
@@ -102,6 +108,7 @@ test("dependent billing snapshots guardian, spends guardian credit atomically, a
             await assert.rejects(finance.settleFinancialEntryAction(form), /insuficiente/);
             assert.equal(await tx.financialSettlement.count({ where: { financialEntryId: poor.id } }), 0);
             const court = await tx.court.create({ data: { arenaId: arena.id, name: "Quadra plano fixo QA" } });
+            await tx.courtWeeklyRule.create({data:{courtId:court.id,weekday:1,startsAtMinute:420,endsAtMinute:1320}});
             const plan = await tx.sponsorshipPlan.create({ data: { arenaId: arena.id, name: "Plano quadra QA", kind: "FIXED_COURT", courtId: court.id, weekday: 1, startMinute: 600, durationMinutes: 90, monthlyAmountCents: 30000, dueDay: 10 } });
             const fixed = load("src/lib/actions/fixed-court-plans.ts");
             const enrollment = new FormData();
@@ -124,6 +131,38 @@ test("dependent billing snapshots guardian, spends guardian credit atomically, a
             assert.equal(await tx.scheduleOccurrence.count({ where: { bookingSeriesId: series.id, status: "CANCELED" } }), 9);
             assert.equal((await tx.financialEntry.findUniqueOrThrow({ where: { id: bills[0].id } })).status, "PAID");
             assert.equal((await tx.financialEntry.findUniqueOrThrow({ where: { id: bills[1].id } })).status, "VOIDED");
+            // A standard plan has no court/time: two clients can choose their own.
+            const standard=await tx.sponsorshipPlan.create({data:{arenaId:arena.id,name:"Plano padrão QA",kind:"FIXED_COURT",monthlyAmountCents:40000,dueDay:5,dueDays:[5,15],prorateFifthWeek:true}});
+            await tx.paymentMethodSetting.upsert({where:{arenaId_name:{arenaId:arena.id,name:"PIX"}},create:{arenaId:arena.id,name:"PIX"},update:{active:true}});
+            const paidPlan=new FormData();
+            Object.entries({planId:standard.id,playerId:parent.id,courtId:court.id,weekday:"1",startMinute:"600",durationMinutes:"90",dueDay:"15",prorateFifthWeek:"on",startsAt:"2035-01-01",endsAt:"2035-02-28",firstPaid:"on",paidAt:"2035-01-02",paymentMethod:"PIX",bankAccountId:portalBank.id}).forEach(([k,v])=>paidPlan.set(k,v));
+            paidPlan.set("dueDay","7");assert.match((await fixed.enrollFixedCourtPlanAction(paidPlan)).error,/vencimento/);
+            paidPlan.set("dueDay","15");paidPlan.set("startMinute","0");assert.match((await fixed.enrollFixedCourtPlanAction(paidPlan)).error,/disponíveis/);
+            paidPlan.set("startMinute","600");assert.equal((await fixed.enrollFixedCourtPlanAction(paidPlan)).success,true);
+            const member=await tx.scheduleBookingSeries.findFirstOrThrow({where:{sponsorshipPlanId:standard.id,responsiblePlayerId:parent.id}});
+            assert.equal(member.dueDay,15);assert.equal(member.prorateFifthWeek,true);
+            const proportional=await tx.financialEntry.findMany({where:{externalReference:member.id,source:"FIXED_COURT_PLAN"},orderBy:{dueDate:"asc"},include:{settlements:true}});
+            assert.deepEqual(proportional.map(e=>e.amountCents),[50000,40000]);assert.equal(proportional[0].status,"PAID");assert.equal(proportional[0].settlements[0].amountCents,50000);assert.equal(proportional[0].paidAt?.toISOString().slice(0,10),"2035-01-02");assert.equal(proportional[1].status,"PENDING");
+            paidPlan.set("playerId",other.id);paidPlan.set("startMinute","720");paidPlan.delete("firstPaid");assert.equal((await fixed.enrollFixedCourtPlanAction(paidPlan)).success,true);
+            assert.equal(await tx.scheduleBookingSeries.count({where:{sponsorshipPlanId:standard.id}}),2);
+            const recurring=await tx.financialRecurrence.create({data:{arenaId:arena.id,type:"REVENUE",category:"QA",counterpartyName:parent.name,description:"Fila QA",amountCents:5000,frequency:"MONTHLY",startsAt:new Date(),nextDueDate:new Date(),onlinePaymentMethod:"BOLETO",playerId:parent.id}});
+            const queued=await tx.financialEntry.create({data:{arenaId:arena.id,type:"REVENUE",category:"QA",description:"Boleto fila QA",amountCents:5000,recurrenceId:recurring.id,playerId:parent.id,bankAccountId:portalBank.id}});
+            const queue=load("src/lib/actions/boleto-queue.ts"),cancel=new FormData();cancel.set("entryId",queued.id);
+            assert.equal((await queue.cancelQueuedBoletoAction(cancel)).success,true);
+            assert.equal(canceledProvider.length,0);assert.equal((await tx.financialEntry.findUniqueOrThrow({where:{id:queued.id}})).status,"PENDING");
+            assert.equal(await tx.financialEntry.count({where:{...recurringBoletoEntryWhere(arena.id),id:queued.id}}),0);
+            assert.equal((await tx.financialRecurrence.findUniqueOrThrow({where:{id:recurring.id}})).active,true);
+            assert.equal((await claimFinancialOnlineCharge(tx,{arenaId:arena.id,entryId:queued.id,method:"BOLETO",expectedAmountCents:5000,requireActiveBoletoRecurrence:true})).ok,false);
+            const issued=await tx.financialEntry.create({data:{arenaId:arena.id,type:"REVENUE",category:"QA",description:"Emitido QA",amountCents:5000,onlinePaymentId:"test-provider-id",onlinePaymentUrl:"https://example.test/boleto",onlinePaymentClaimMethod:"BOLETO",playerId:parent.id,bankAccountId:portalBank.id}});
+            cancel.set("entryId",issued.id);cancelFails=true;assert.match((await queue.cancelQueuedBoletoAction(cancel)).error,/já recebido/);
+            assert.equal((await tx.financialEntry.findUniqueOrThrow({where:{id:issued.id}})).onlinePaymentCanceledAt,null);
+            cancelFails=false;assert.equal((await queue.cancelQueuedBoletoAction(cancel)).success,true);
+            const canceled=await tx.financialEntry.findUniqueOrThrow({where:{id:issued.id}});assert(canceled.onlinePaymentCanceledAt);assert.equal(canceled.onlinePaymentUrl,"");assert.equal(canceled.onlinePaymentId,"test-provider-id");
+            form.set("entryId",issued.id);form.set("expectedUpdatedAt",canceled.updatedAt.toISOString());form.set("amount","50,00");
+            assert.equal((await finance.settleFinancialEntryAction(form)),undefined);
+            const uncertain=await tx.financialEntry.create({data:{arenaId:arena.id,type:"REVENUE",category:"QA",description:"Emissão incerta QA",amountCents:5000,onlinePaymentClaimMethod:"BOLETO",onlinePaymentClaimedAt:new Date(),playerId:parent.id}});
+            cancel.set("entryId",uncertain.id);assert.match((await queue.cancelQueuedBoletoAction(cancel)).error,/Emissão em andamento/);
+            cancel.set("entryId","foreign-entry");assert.match((await queue.cancelQueuedBoletoAction(cancel)).error,/não encontrado/);
             throw rollback;
         }, { timeout: 60000 }), (e: any) => e === rollback);
     }

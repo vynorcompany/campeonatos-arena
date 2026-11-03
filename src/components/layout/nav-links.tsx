@@ -256,6 +256,7 @@ export function NavLinks({ canManageUsers, canManageFinancialSettings, canManage
           children: [
             { href: "/financeiro/folha", label: "Folha" },
             { href: "/financeiro/contas-a-receber", label: "Contas a Receber" },
+            { href: "/financeiro/fila-de-boletos", label: "Fila de boletos" },
             { href: "/financeiro/contas-a-pagar", label: "Contas a Pagar" },
             ...(canManageFinancialSettings ? [{ href: "/financeiro/notas-fiscais", label: "Notas Fiscais" }] : []),
             { href: "/pdv", label: "Produtos e Serviços", children: [
@@ -334,6 +335,7 @@ export function NavLinks({ canManageUsers, canManageFinancialSettings, canManage
     "/financeiro/folha": "finance",
     "/financeiro/lancamentos": "finance",
     "/financeiro/contas-a-receber": "finance",
+    "/financeiro/fila-de-boletos": "finance",
     "/financeiro/contas-a-pagar": "finance",
     "/financeiro/pdv-estoque": "finance",
     "/financeiro/configuracoes": "finance",
@@ -366,7 +368,7 @@ export function NavLinks({ canManageUsers, canManageFinancialSettings, canManage
     if (item.href === "/financeiro/folha" || item.href === "/financeiro/contas-a-pagar") {
       if (!financeView.payable) return null;
     }
-    if (item.href === "/financeiro/contas-a-receber" && !financeView.receivable) return null;
+    if (["/financeiro/contas-a-receber","/financeiro/fila-de-boletos"].includes(item.href) && !financeView.receivable) return null;
     if ((item.href === "/relatorios" || item.href.startsWith("/relatorios/")) && !financeView.reports) return null;
     const children = item.children?.map(filterNavItem).filter((child): child is NavItem => child !== null);
     if (!canSee(moduleByHref[item.href.split("?", 1)[0]] ?? "dashboard") && !children?.length) return null;
