@@ -398,6 +398,26 @@ export async function createFinancialEntryAction(formData: FormData) {
       });
       supplierId = supplier.id;
     }
+    if (parsed.data.type === "REVENUE" && parsed.data.planId && clientId && teacherPlan) {
+      await lockStudentPlanSubscription(tx, auth.arenaId, clientId, parsed.data.planId);
+      const client = await tx.player.findFirst({ where: { id: clientId, arenaId: auth.arenaId, active: true }, select: { id: true, name: true, phone: true } });
+      if (client) {
+        const student = await tx.student.upsert({
+          where: { playerId: client.id },
+          update: { active: true, name: client.name, phone: client.phone },
+          create: { arenaId: auth.arenaId, playerId: client.id, name: client.name, phone: client.phone },
+        });
+        await tx.teacherStudent.upsert({
+          where: { teacherId_studentId: { teacherId, studentId: student.id } },
+          update: { active: true },
+          create: { arenaId: auth.arenaId, teacherId, studentId: student.id },
+        });
+        const subscription = await tx.studentSubscription.findFirst({ where: { arenaId: auth.arenaId, studentId: student.id, planId: parsed.data.planId, status: "ACTIVE" }, select: { id: true } });
+        if (!subscription) await tx.studentSubscription.create({ data: { arenaId: auth.arenaId, studentId: student.id, planId: parsed.data.planId, monthlyPriceCents: teacherPlan.monthlyPriceCents, classesPerMonth: teacherPlan.plan.classesPerMonth } });
+        const enrollment = await tx.classGroupEnrollment.findFirst({ where: { arenaId: auth.arenaId, studentId: student.id, status: "ACTIVE", classGroup: { teacherId, active: true, plans: { some: { planId: parsed.data.planId } } } }, select: { id: true } });
+        if (!enrollment) enrollmentNotice = `${client.name} foi incluído no plano de ${teacherPlan.teacher.name}. Agora atribua-o a uma turma em Alunos ativos.`;
+      }
+    }
     const entry = await tx.financialEntry.create({
       data: {
         arenaId: auth.arenaId,
@@ -433,26 +453,7 @@ export async function createFinancialEntryAction(formData: FormData) {
         notes: "Baixa registrada na criação do lançamento."
       } });
     }
-    if (parsed.data.type === "REVENUE" && parsed.data.planId && clientId && teacherPlan) {
-      await lockStudentPlanSubscription(tx, auth.arenaId, clientId, parsed.data.planId);
-      const client = await tx.player.findFirst({ where: { id: clientId, arenaId: auth.arenaId, active: true }, select: { id: true, name: true, phone: true } });
-      if (client) {
-        const student = await tx.student.upsert({
-          where: { playerId: client.id },
-          update: { active: true, name: client.name, phone: client.phone },
-          create: { arenaId: auth.arenaId, playerId: client.id, name: client.name, phone: client.phone },
-        });
-        await tx.teacherStudent.upsert({
-          where: { teacherId_studentId: { teacherId, studentId: student.id } },
-          update: { active: true },
-          create: { arenaId: auth.arenaId, teacherId, studentId: student.id },
-        });
-        const subscription = await tx.studentSubscription.findFirst({ where: { arenaId: auth.arenaId, studentId: student.id, planId: parsed.data.planId, status: "ACTIVE" }, select: { id: true } });
-        if (!subscription) await tx.studentSubscription.create({ data: { arenaId: auth.arenaId, studentId: student.id, planId: parsed.data.planId, monthlyPriceCents: teacherPlan.monthlyPriceCents, classesPerMonth: teacherPlan.plan.classesPerMonth } });
-        const enrollment = await tx.classGroupEnrollment.findFirst({ where: { arenaId: auth.arenaId, studentId: student.id, status: "ACTIVE", classGroup: { teacherId, active: true, plans: { some: { planId: parsed.data.planId } } } }, select: { id: true } });
-        if (!enrollment) enrollmentNotice = `${client.name} foi incluído no plano de ${teacherPlan.teacher.name}. Agora atribua-o a uma turma em Alunos ativos.`;
-      }
-    }
+
   });
 
   refreshFinanceRoutes();

@@ -1,3 +1,5 @@
+import { lessonCreditBalances } from "@/lib/academy/lesson-credits";
+import { withArenaTransaction } from "@/lib/rls";
 import { canViewModule } from "@/lib/permissions";
 import { LessonCreditRequestsPanel } from "@/components/teachers/lesson-credit-portal";
 import { LessonPaymentFields } from "@/components/finance/lesson-payment-fields";
@@ -88,6 +90,8 @@ export default async function LessonsPage() {
   const bankAccounts = await prisma.bankAccount.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } });
 
   const activeStudents = students.filter((student) => student.active);
+  const paidCreditBalances = await withArenaTransaction(auth.arenaId, tx => lessonCreditBalances(tx, auth.arenaId, students.map(student => student.id)));
+  for (const student of students) student.remainingClasses = paidCreditBalances.get(student.id) ?? student.remainingClasses;
   const linkedPlayerIds = new Set(students.map((student) => student.playerId).filter(Boolean));
   const availablePlayers = players.filter((player) => !linkedPlayerIds.has(player.id));
   const scheduledLessons = lessons.filter((lesson) => lesson.status !== "COMPLETED");
