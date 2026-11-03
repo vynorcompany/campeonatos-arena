@@ -10,7 +10,7 @@ import { PortalAmbientBackground } from "@/components/portal/portal-ambient-back
 import { arenaBookingPath } from "@/lib/arena-booking-path";
 import { AthletePortalWordmark } from "@/components/athlete-portal-wordmark";
 import { PortalHome } from "@/components/portal/portal-home";
-import { PortalSidebar, PortalBottomNav } from "@/components/portal/portal-navigation";
+import { ArenaSwitchIcon, PortalSidebar, PortalBottomNav } from "@/components/portal/portal-navigation";
 import { portalMenu } from "@/lib/portal/menu";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./public-standings.utilities";
@@ -300,7 +300,7 @@ export function PublicStandings({
         <div className="tw:flex tw:shrink-0 tw:items-center tw:gap-2"><PortalThemeToggle /><AthletePortalNotifications arenaSlug={arena.slug} notifications={notifications}/><Link href={portalHref("profile")} aria-label="Meu perfil" className="tw:grid tw:size-10 tw:place-items-center tw:rounded-full tw:border-2 tw:border-white tw:bg-white tw:text-sm tw:font-bold tw:text-[#324a6b] tw:no-underline tw:shadow-sm tw:dark:border-[#293648] tw:dark:bg-[#29384d] tw:dark:text-[#b6c7df]"><PlayerAvatar photoUrl={currentClient.photoUrl} name={currentClient.name} className="athlete-portal-user-avatar tw:grid tw:size-9! tw:shrink-0 tw:place-items-center tw:overflow-hidden tw:rounded-full! tw:text-xs! tw:[&_img]:size-full tw:[&_img]:object-cover" /></Link><form action={logoutAthletePortalAction} className="tw:hidden tw:min-[700px]:block"><input type="hidden" name="arenaSlug" value={arena.slug}/><button className="tw:min-h-10 tw:cursor-pointer tw:rounded-xl tw:border-0 tw:bg-transparent tw:px-3 tw:text-xs tw:font-medium tw:text-[#606874] tw:hover:bg-white tw:dark:text-[#adb7c6]" type="submit" data-portal-neutral>Sair</button></form></div>
       </header>
       <div className="portal-workspace tw:mx-auto tw:grid tw:w-full tw:max-w-[1240px] tw:min-w-0 tw:gap-5 tw:px-4 tw:py-6 tw:min-[700px]:px-8 tw:min-[700px]:py-8">
-      <div className="tw:flex tw:justify-end"><Link href="/portal" className="tw:inline-flex tw:min-h-10 tw:items-center tw:gap-3 tw:rounded-xl tw:border tw:border-[#91a3bc] tw:bg-white tw:px-4 tw:text-xs tw:font-bold tw:text-[#173054] tw:no-underline tw:shadow-sm tw:dark:border-[#657b9a] tw:dark:bg-[#24354e] tw:dark:text-[#d9e9ff]">Trocar de arena <span aria-hidden="true">⇄</span></Link></div>
+      <div className="tw:flex tw:justify-end"><Link href="/portal" aria-label="Trocar de arena" title="Trocar de arena" className="tw:grid tw:size-10 tw:shrink-0 tw:place-items-center tw:rounded-xl tw:border tw:border-[#d3dce6] tw:bg-white tw:text-[#174983] tw:no-underline tw:shadow-sm tw:hover:bg-[#f3f6fa] tw:focus-visible:outline-2 tw:focus-visible:outline-[#174983] tw:dark:border-[#42546b] tw:dark:bg-[#19283d] tw:dark:text-[#d9e9ff]"><ArenaSwitchIcon/></Link></div>
       {requestedSection !== "home" ? <div><p className="tw:mb-1 tw:text-[10px] tw:font-semibold tw:tracking-[.12em] tw:text-[#606874] tw:dark:text-[#aab4c2]">SEU PORTAL</p><h1 className="tw:m-0 tw:text-2xl tw:font-semibold tw:tracking-tight">{sectionTitle}</h1></div> : null}
       <AthletePortalPrefetch hrefs={[portalHref("home"), portalHref("announcements"), portalHref("leagues", "games"), portalHref("lessons"), portalHref("profile"), portalHref("radar"), portalHref("comandas")]} />
       {requestedSection === "lessons" || requestedSection === "classes" ? (

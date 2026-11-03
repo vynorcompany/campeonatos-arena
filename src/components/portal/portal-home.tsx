@@ -33,7 +33,7 @@ export function PortalHome({ home, name, items, href, bookingHref }: { home: Hom
   const groups=[...new Set(items.filter(item=>item.section!=="home").map(item=>item.group))];
   const muted="tw:text-[#606874] tw:dark:text-[#aab4c2]";
   return <div className="client-portal-home portal-home tw:grid tw:min-w-0 tw:gap-7">
-    <header><p className={`tw:m-0 tw:mb-2 tw:text-xs ${muted}`}>{new Intl.DateTimeFormat("pt-BR",{dateStyle:"full",timeZone:"America/Sao_Paulo"}).format(new Date())}</p><h1 className="tw:m-0 tw:text-[clamp(1.65rem,3vw,2.3rem)] tw:leading-tight tw:font-semibold tw:tracking-[-.045em]">{getPortalGreeting(new Date())}, {firstName}<span className="tw:text-[#3b6298]">.</span></h1><p className={`tw:m-0 tw:mt-2 tw:text-sm ${muted}`}>Seu jogo começa por aqui. O que vamos fazer hoje?</p></header>
+    <header><h1 className="tw:m-0 tw:text-[clamp(1.65rem,3vw,2.3rem)] tw:leading-tight tw:font-semibold tw:tracking-[-.045em]">{getPortalGreeting(new Date())}, {firstName}<span className="tw:text-[#3b6298]">.</span></h1><p className={`tw:m-0 tw:mt-2 tw:text-sm ${muted}`}>Seu jogo começa por aqui. O que vamos fazer hoje?</p></header>
     <div className={`tw:grid tw:min-w-0 tw:gap-4 ${home.financialVisible !== false && can("schedule") ? "tw:min-[800px]:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]" : ""}`}>
       {can("schedule") ? <section className="portal-padel-hero tw:relative tw:isolate tw:min-w-0 tw:overflow-hidden tw:rounded-[24px] tw:border tw:border-[#2c4870] tw:bg-[#10243f] tw:bg-[linear-gradient(115deg,#174983_20%,#1e5ea8_100%)] tw:p-5 tw:text-white tw:shadow-[0_16px_36px_rgba(16,42,79,.16)] tw:min-[700px]:p-7">
         <PadelBackdrop />

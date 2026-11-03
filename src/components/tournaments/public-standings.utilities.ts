@@ -1086,7 +1086,7 @@ export const viewStyles = {
     "portal-teacher-hint", "tw:mt-[16px]", "tw:mr-[0]", "tw:mb-[0]",
     "tw:ml-[0]", "tw:text-[color:var(--portal-accent,#5f798b)]", "tw:text-[.84rem]",
   ].join(" "),
-  "athlete_portal_content_panel_teacher_portal_management": "athlete-portal-content-panel teacher-portal-management tw:[--portal-soft:#edf4ff] tw:[--portal-line:#b8cfee] tw:[--portal-ink:#15385f] tw:[--portal-muted:#354f70] tw:[--portal-selection-surface:#dbeafe] tw:dark:[--portal-soft:#173d66] tw:dark:[--portal-line:#365879] tw:dark:[--portal-ink:#e4efff] tw:dark:[--portal-muted:#c2d5ee] tw:dark:[--portal-selection-surface:#215181] tw:mx-0 tw:my-0 tw:w-full tw:min-w-0 tw:rounded-2xl tw:border tw:border-[#e1e4e9] tw:bg-white tw:p-5 tw:text-[#202c3c] tw:shadow-[0_3px_16px_rgba(21,37,60,.04)] tw:dark:border-[#293648] tw:dark:bg-[#101c2d] tw:dark:text-[#e9edf3] tw:min-[700px]:p-6 tw:[&>header]:mb-5 tw:[&>header]:border-b tw:[&>header]:border-[#e8ebee] tw:[&>header]:pb-4 tw:dark:[&>header]:border-[#293648] tw:[&>header_h2]:m-0 tw:[&>header_h2]:text-xl tw:[&>header_h2]:font-semibold tw:[&>header_p]:mt-2 tw:[&>header_p]:text-sm tw:[&>header_p]:text-[#737b87] tw:dark:[&>header_p]:text-[#aab4c2] tw:[&>header>span]:text-[10px] tw:[&>header>span]:font-semibold tw:[&>header>span]:text-[#345179] tw:[&>header>span]:tracking-[.1em]",
+  "athlete_portal_content_panel_teacher_portal_management": "athlete-portal-content-panel teacher-portal-management tw:[--portal-soft:#f7f9fc] tw:[--portal-line:#d3dce6] tw:[--portal-ink:#202c3c] tw:[--portal-muted:#52627a] tw:[--portal-selection-surface:#174983] tw:[--portal-selection-ink:#fff] tw:dark:[--portal-soft:#19283d] tw:dark:[--portal-line:#3d506a] tw:dark:[--portal-ink:#e9edf3] tw:dark:[--portal-muted:#c5d0df] tw:dark:[--portal-selection-surface:#174983] tw:mx-0 tw:my-0 tw:w-full tw:min-w-0 tw:rounded-2xl tw:border tw:border-[#e1e4e9] tw:bg-white tw:p-5 tw:text-[#202c3c] tw:shadow-[0_3px_16px_rgba(21,37,60,.04)] tw:dark:border-[#293648] tw:dark:bg-[#101c2d] tw:dark:text-[#e9edf3] tw:min-[700px]:p-6 tw:[&>header]:mb-5 tw:[&>header]:border-b tw:[&>header]:border-[#e8ebee] tw:[&>header]:pb-4 tw:dark:[&>header]:border-[#293648] tw:[&>header_h2]:m-0 tw:[&>header_h2]:text-xl tw:[&>header_h2]:font-semibold tw:[&>header_p]:mt-2 tw:[&>header_p]:text-sm tw:[&>header_p]:text-[#737b87] tw:dark:[&>header_p]:text-[#aab4c2] tw:[&>header>span]:text-[10px] tw:[&>header>span]:font-semibold tw:[&>header>span]:text-[#345179] tw:[&>header>span]:tracking-[.1em]",
   "teacher_portal_management_menu": [
     "teacher-portal-management-menu", "tw:grid", "tw:gap-y-[9px]", "tw:gap-x-[9px]",
     "tw:[&_>_details]:[overflow-x:hidden]", "tw:[&_>_details]:[overflow-y:hidden]", "tw:[&_>_details]:border-t-[length:1px]", "tw:[&_>_details]:[border-top-style:solid]",
@@ -1175,7 +1175,7 @@ export const viewStyles = {
     "tw:[&_>_header_small]:text-[color:var(--portal-ink,#a8c8d2)]", "tw:[&_>_header_small]:text-[.7rem]",
   ].join(" "),
   "teacher_portal_class_slots": [
-    "teacher-portal-class-slots", "tw:grid", "tw:grid-cols-[repeat(auto-fit,_minmax(230px,_1fr))]", "tw:gap-y-[7px]",
+    "teacher-portal-class-slots", "tw:grid", "tw:grid-cols-[repeat(auto-fit,_minmax(min(100%,230px),_1fr))]", "tw:gap-y-[7px]",
     "tw:gap-x-[7px]",
   ].join(" "),
   "teacher_portal_class_slot": [
