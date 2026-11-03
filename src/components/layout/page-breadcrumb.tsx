@@ -35,7 +35,7 @@ function readable(value: string) {
 export function WorkspaceBreadcrumb({ canViewTournaments = true }: { canViewTournaments?: boolean }) {
   const path = usePathname() ?? "";
   const parts = path.split("/").filter(Boolean);
-  if (path.startsWith("/proximos-jogos/patrocinios")) return <PageBreadcrumb section="Gestão" current="Gestão de patrocínios" />;
+  if (path.startsWith("/proximos-jogos/patrocinios")) return <PageBreadcrumb section="Gestão" current="Planos" />;
   if (path.startsWith("/proximos-jogos")) return <PageBreadcrumb section="Painéis" current="Tela da TV" />;
   if (path.startsWith("/torneios/rankings")) return <PageBreadcrumb section="Torneios" current="Rankings" />;
   if (path.startsWith("/jogos")) return canViewTournaments

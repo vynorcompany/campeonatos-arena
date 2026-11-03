@@ -21,23 +21,24 @@ export default async function SponsorshipManagementPage(
   const query = String(searchParams?.q ?? "").trim();
   const type = String(searchParams?.type ?? "").trim();
   const sort = String(searchParams?.sort ?? "name");
-  const [plans, planTypeRows] = await Promise.all([
-    db.sponsorshipPlan.findMany({ where: { arenaId: auth.arenaId, ...(query ? { name: { contains: query, mode: "insensitive" } } : {}), ...(type ? { sponsorshipType: type } : {}) }, include: { sponsors: { orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }] } }, orderBy: { createdAt: "asc" } }),
-    db.sponsorshipPlan.findMany({ where: { arenaId: auth.arenaId }, select: { sponsorshipType: true }, distinct: ["sponsorshipType"] })
+  const [plans, planTypeRows, courts] = await Promise.all([
+    db.sponsorshipPlan.findMany({ where: { arenaId: auth.arenaId, ...(query ? { name: { contains: query, mode: "insensitive" } } : {}), ...(type ? { sponsorshipType: type } : {}) }, include: { bookingSeries: { where:{ status:"ACTIVE" },select:{ id:true } }, sponsors: { orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }] } }, orderBy: { createdAt: "asc" } }),
+    db.sponsorshipPlan.findMany({ where: { arenaId: auth.arenaId }, select: { sponsorshipType: true }, distinct: ["sponsorshipType"] }),
+    db.court.findMany({where:{arenaId:auth.arenaId,active:true},select:{id:true,name:true},orderBy:{name:"asc"}})
   ]);
   const orderedPlans = [...plans].sort((first, second) => sort === "value" ? second.monthlyAmountCents - first.monthlyAmountCents : sort === "companies" ? second.sponsors.length - first.sponsors.length : first.name.localeCompare(second.name, "pt-BR"));
   const planTypes = planTypeRows.map((plan) => plan.sponsorshipType).sort((first, second) => first.localeCompare(second, "pt-BR"));
 
   const columns = "tw:grid-cols-[minmax(180px,1fr)_150px_minmax(150px,1fr)_80px_auto] tw:viewport-1120:grid-cols-[minmax(0,1fr)_auto]";
   return <div className={ui.page}>
-    <WorkspaceHeading title="Patrocínios"><CreateSponsorshipPlanButton action={createSponsorshipPlanAction} /></WorkspaceHeading>
+    <WorkspaceHeading title="Planos"><CreateSponsorshipPlanButton action={createSponsorshipPlanAction} courts={courts} /></WorkspaceHeading>
     <div className="tw:[&_input]:h-9! tw:[&_input]:min-h-9! tw:[&_select]:h-9! tw:[&_select]:min-h-9! tw:[&_form]:gap-2! tw:[&_label]:text-xs!"><SponsorshipFilters query={query} type={type} sort={sort} planTypes={planTypes} /></div>
-    <div className={ui.list}><div className={`${ui.head} ${columns}`}><span>Plano</span><span>Mensalidade</span><span>Benefícios por ciclo</span><span>Empresas</span><span>Ações</span></div>
+    <div className={ui.list}><div className={`${ui.head} ${columns}`}><span>Plano</span><span>Mensalidade</span><span>Benefícios por ciclo</span><span>Vínculos</span><span>Ações</span></div>
     {orderedPlans.map(plan => <article className={`${ui.row} ${columns}`} key={plan.id}>
-      <div><strong>{plan.name}</strong><small>{plan.sponsorshipType}</small></div>
+      <div><strong>{plan.name}</strong><small>{plan.kind==="FIXED_COURT" ? "Reserva fixa de quadra" : plan.sponsorshipType}</small></div>
       <span className="tw:text-[13px] tw:font-semibold tw:tabular-nums">R$ {asCurrency(plan.monthlyAmountCents)}<small className="tw:font-normal">por mês</small></span>
-      <div className="tw:flex tw:flex-wrap tw:gap-1 tw:text-[11px]">{plan.reservationCredits ? <span>{plan.reservationCredits} reservas</span> : null}{plan.lessonCredits ? <span>{plan.reservationCredits ? "· " : ""}{plan.lessonCredits} aulas</span> : null}{!plan.reservationCredits && !plan.lessonCredits ? <span className="tw:inline-flex tw:rounded tw:bg-white tw:border tw:border-[var(--line)] tw:px-1.5 tw:py-0.5 tw:text-[var(--muted)]">Sem saldo incluído</span> : null}</div>
-      <span className="tw:text-xs tw:text-[var(--muted)]">{plan.sponsors.length} empresa{plan.sponsors.length === 1 ? "" : "s"}</span>
+      {plan.kind==="FIXED_COURT"?<div className="tw:grid tw:gap-1 tw:text-xs"><span>{courts.find(c=>c.id===plan.courtId)?.name} · {["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][plan.weekday??0]}</span><small>{String(Math.floor((plan.startMinute??0)/60)).padStart(2,"0")}:{String((plan.startMinute??0)%60).padStart(2,"0")} · {plan.durationMinutes} min</small></div>:<div className="tw:flex tw:flex-wrap tw:gap-1 tw:text-[11px]">{plan.reservationCredits ? <span>{plan.reservationCredits} reservas</span> : null}{plan.lessonCredits ? <span>{plan.reservationCredits ? "· " : ""}{plan.lessonCredits} aulas</span> : null}{!plan.reservationCredits && !plan.lessonCredits ? <span className="tw:inline-flex tw:rounded tw:bg-white tw:border tw:border-[var(--line)] tw:px-1.5 tw:py-0.5 tw:text-[var(--muted)]">Sem saldo incluído</span> : null}</div>}
+      <span className="tw:text-xs tw:text-[var(--muted)]">{plan.kind==="FIXED_COURT" ? `${plan.bookingSeries.length} cliente(s)` : `${plan.sponsors.length} empresa(s)`}</span>
       <div className="tw:flex tw:flex-wrap tw:gap-2 tw:viewport-1120:col-span-full"><Link href={`/proximos-jogos/patrocinios/${plan.id}`} className={ui.secondary}>Abrir plano</Link><SafeActionForm action={deleteSponsorshipPlanAction} confirmKeyword="EXCLUIR" confirmPrompt={`Excluir o plano ${plan.name}? Digite EXCLUIR para confirmar.`}><input type="hidden" name="planId" value={plan.id} /><SubmitButton label="Excluir" pendingLabel="Excluindo..." className={ui.secondary} /></SafeActionForm></div>
     </article>)}{!orderedPlans.length ? <p className={ui.empty}>Nenhum plano encontrado. Ajuste os filtros ou cadastre um plano.</p> : null}</div>
   </div>;

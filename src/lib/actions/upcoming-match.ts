@@ -382,7 +382,16 @@ export async function createSponsorshipPlanAction(formData: FormData) {
   const parsed = sponsorshipPlanSchema.safeParse({ name: formData.get("name"), sponsorshipType: formData.get("sponsorshipType"), monthlyAmount: formData.get("monthlyAmount"), reservationCredits: formData.get("reservationCredits"), lessonCredits: formData.get("lessonCredits") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   const { monthlyAmount, ...data } = parsed.data;
-  await db.sponsorshipPlan.create({ data: { arenaId: auth.arenaId, ...data, monthlyAmountCents: parseMonthlyAmountToCents(monthlyAmount) } });
+  const kind = String(formData.get("kind") || "SPONSORSHIP");
+  const dueDay = Number(formData.get("dueDay") || 10);
+  const courtId = String(formData.get("courtId") || ""), weekday=Number(formData.get("weekday")), durationMinutes=Number(formData.get("durationMinutes") || 90);
+  const time=String(formData.get("startTime")||""); const startMinute=/^\d{2}:\d{2}$/.test(time)?Number(time.slice(0,2))*60+Number(time.slice(3)):NaN;
+  if(!["SPONSORSHIP","FIXED_COURT"].includes(kind) || !Number.isInteger(dueDay) || dueDay<1 || dueDay>28) throw new Error("Selecione o tipo e um vencimento entre 1 e 28.");
+  if(kind==="FIXED_COURT" && (!Number.isInteger(weekday)||weekday<0||weekday>6||!Number.isInteger(startMinute)||startMinute<0||startMinute>=1440||!Number.isInteger(durationMinutes)||durationMinutes<15||durationMinutes>720||startMinute+durationMinutes>1440)) throw new Error("Informe dia, horário e duração válidos.");
+  if(kind==="FIXED_COURT" && !await db.court.findFirst({where:{id:courtId,arenaId:auth.arenaId,active:true}})) throw new Error("Selecione uma quadra ativa desta arena.");
+  const monthlyAmountCents=parseMonthlyAmountToCents(monthlyAmount);
+  if(monthlyAmountCents<0 || !Number.isSafeInteger(monthlyAmountCents)) throw new Error("Informe um valor mensal válido.");
+  await db.sponsorshipPlan.create({ data: { arenaId: auth.arenaId, ...data, kind, dueDay, monthlyAmountCents, ...(kind==="FIXED_COURT"?{courtId,weekday,startMinute,durationMinutes,reservationCredits:0,lessonCredits:0}:{}) } });
   refreshUpcomingMatches();
 }
 
@@ -415,6 +424,7 @@ export async function insertSponsorInPlanAction(formData: FormData) {
   const firstAmountCents = getDiscountedAmountCents(monthlyAmountCents, discountValue, discountMode);
   const recurringAmountCents = discountApplication === "RECURRING" ? firstAmountCents : monthlyAmountCents;
   const counterpartyName = client?.name ?? name;
+  if(plan.kind !== "SPONSORSHIP") throw new Error("Use a vinculação de cliente do plano fixo.");
   const firstDue = firstDueDate(startedAt, dueDay);
   await withArenaTransaction(auth.arenaId, async (tx) => {
     const sponsor = await tx.tvSponsor.create({ data: { arenaId: auth.arenaId, name, subtitle: plan.name, sponsorshipType: plan.sponsorshipType, monthlyAmountCents, benefits: [plan.reservationCredits ? "Reservas" : "", plan.lessonCredits ? "Aulas" : ""].filter(Boolean).join(" · "), reservationCredits: plan.reservationCredits, lessonCredits: plan.lessonCredits, sponsorshipPlanId: plan.id, playerId: client?.id ?? null, startedAt, installments, dueDay, discountMode, discountValue: Math.round(discountValue), discountApplication, displayOrder: (lastSponsor?.displayOrder ?? 0) + 1, ...(logoUrl ? { logoUrl } : {}) } });
@@ -436,6 +446,7 @@ export async function deleteSponsorshipPlanAction(formData: FormData) {
   const db = arenaDatabase(auth.arenaId);
   const planId = z.string().trim().min(1).safeParse(formData.get("planId"));
   if (!planId.success) throw new Error("Plano de patrocínio inválido.");
+  if(await db.scheduleBookingSeries.count({where:{arenaId:auth.arenaId,sponsorshipPlanId:planId.data}})) return {error:"Este plano possui histórico de reservas. Encerre os vínculos; o histórico deve ser preservado."};
   await db.sponsorshipPlan.deleteMany({ where: { id: planId.data, arenaId: auth.arenaId } });
   refreshUpcomingMatches();
 }

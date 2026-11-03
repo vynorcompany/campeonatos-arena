@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { markArenaNotificationReadAction } from "@/lib/actions/notifications";
 import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
 type RequestNotice = { id: string; title: string; message: string; href: string; createdAt: string };
@@ -53,6 +54,7 @@ export function ComandaRequestAlerts({ showSettings = false, settingsHost }: { s
         if (nextEtag) etags.set(scope, nextEtag);
         const data = await response.json() as { notifications: RequestNotice[]; comandaRequestCount: number };
         if (!active) return;
+        if (scope === "all") setNotice(current => current && !data.notifications.some(item=>item.id===current.id) ? null : current);
         if (requestSequence >= appliedCountSequence) {
           appliedCountSequence = requestSequence;
           window.dispatchEvent(new CustomEvent("arena-comanda-count", { detail: data.comandaRequestCount }));
@@ -94,5 +96,6 @@ export function ComandaRequestAlerts({ showSettings = false, settingsHost }: { s
     if ("Notification" in window) { const permission = await Notification.requestPermission(); if (permission !== "granted") setFeedback("Som ativado. Libere notificações nas permissões do navegador para receber os alertas na área de trabalho."); }
   }
   const settings = <div className="tw:flex tw:flex-wrap tw:items-center tw:gap-2 tw:border-b tw:border-[var(--line)] tw:p-3">{showSettings ? <button type="button" aria-pressed={enabled} onClick={() => { if (enabled) { localStorage.removeItem("arena-comanda-alerts"); setEnabled(false); } else void enable().catch(() => setFeedback("Não foi possível ativar os alertas neste navegador.")); }} className="tw:rounded-md tw:border tw:border-[var(--line)] tw:bg-white tw:px-2 tw:py-1 tw:text-xs tw:font-medium tw:text-[#174a85]">{enabled ? "Alertas sonoros ativos" : "Ativar som e notificações"}</button> : null}{showSettings && feedback ? <p role="status" className="tw:text-xs tw:text-[#354f70]">{feedback}</p> : null}</div>;
-  return <>{showSettings && settingsHost ? createPortal(settings, settingsHost) : null}{notice ? createPortal(<aside role="status" aria-live="polite" className="tw:fixed tw:right-4 tw:bottom-4 tw:z-[1200] tw:w-[min(380px,calc(100vw_-_32px))] tw:rounded-md tw:border tw:border-[#8bb5ed] tw:border-l-4 tw:bg-white tw:p-4 tw:text-[#153c70] tw:shadow-xl"><div className="tw:flex tw:items-start tw:justify-between tw:gap-3"><strong className="tw:text-sm">{notice.title}</strong><button type="button" aria-label="Dispensar alerta" onClick={() => setNotice(null)} className="tw:size-7 tw:shrink-0 tw:rounded tw:border tw:border-[#b8cfee]">×</button></div><p className="tw:my-2 tw:text-sm">{notice.message}</p><Link href={notice.href || "/comandas"} onClick={() => setNotice(null)} className="tw:text-sm tw:font-semibold tw:underline">Ver detalhes</Link></aside>, document.body) : null}</>;
+  const dismiss = () => { if(notice) void markArenaNotificationReadAction(notice.id).catch(()=>{}); setNotice(null); };
+  return <>{showSettings && settingsHost ? createPortal(settings, settingsHost) : null}{notice ? createPortal(<aside role="status" aria-live="polite" className="tw:fixed tw:right-4 tw:bottom-4 tw:z-[1200] tw:w-[min(380px,calc(100vw_-_32px))] tw:rounded-md tw:border tw:border-[#8bb5ed] tw:border-l-4 tw:bg-white tw:p-4 tw:text-[#153c70] tw:shadow-xl"><div className="tw:flex tw:items-start tw:justify-between tw:gap-3"><strong className="tw:text-sm">{notice.title}</strong><button type="button" aria-label="Dispensar alerta" onClick={dismiss} className="tw:size-7 tw:shrink-0 tw:rounded tw:border tw:border-[#b8cfee]">×</button></div><p className="tw:my-2 tw:text-sm">{notice.message}</p><Link href={notice.href || "/comandas"} onClick={dismiss} className="tw:text-sm tw:font-semibold tw:underline">Ver detalhes</Link></aside>, document.body) : null}</>;
 }

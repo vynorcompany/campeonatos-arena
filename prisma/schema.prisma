@@ -324,6 +324,10 @@ model PermissionProfile {
 }
 
 model Player {
+  guardianId String?
+  guardian Player? @relation("PlayerDependents", fields: [guardianId], references: [id], onDelete: Restrict)
+  dependents Player[] @relation("PlayerDependents")
+  billedEntries FinancialEntry[] @relation("EntryBillingPlayer")
   id                        String                         @id @default(cuid())
   name                      String
   points                    Int                            @default(1000)
@@ -1218,6 +1222,13 @@ model TvSponsor {
 }
 
 model SponsorshipPlan {
+  kind String @default("SPONSORSHIP")
+  dueDay Int @default(10)
+  courtId String?
+  weekday Int?
+  startMinute Int?
+  durationMinutes Int @default(90)
+  bookingSeries ScheduleBookingSeries[]
   id                 String      @id @default(cuid())
   name               String
   sponsorshipType    String      @default("Mensal")
@@ -1570,6 +1581,8 @@ model ScheduleOccurrence {
 }
 
 model ScheduleBookingSeries {
+  sponsorshipPlanId String?
+  sponsorshipPlan SponsorshipPlan? @relation(fields: [sponsorshipPlanId], references: [id], onDelete: Restrict)
   id              String               @id @default(cuid())
   title           String
   bookingTypeName String
@@ -2381,6 +2394,8 @@ model StudentSubscription {
 }
 
 model FinancialEntry {
+  billingPlayerId String?
+  billingPlayer Player? @relation("EntryBillingPlayer", fields: [billingPlayerId], references: [id], onDelete: Restrict)
   competenceDate DateTime?
   id                       String                @id @default(cuid())
   type                     String

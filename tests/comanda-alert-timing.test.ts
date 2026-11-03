@@ -28,6 +28,7 @@ function fixture() {
       if(name==='react')return{useEffect:(fn:()=>()=>void)=>{effect=fn;},useRef:(value:unknown)=>({current:value}),useState:(value:unknown)=>[value,()=>{}]};
       if(name==='react/jsx-runtime')return{jsx:()=>null,jsxs:()=>null};
       if(name==='react-dom')return{createPortal:()=>null};
+      if(name==='@/lib/actions/notifications')return{markArenaNotificationReadAction:async()=>{}};
       if(name==='next/link')return{default:()=>null};
       throw Error(name);
     },

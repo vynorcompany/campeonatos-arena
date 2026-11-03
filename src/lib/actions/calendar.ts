@@ -337,6 +337,10 @@ export async function cancelCourtBookingAction(formData: FormData) {
   const parsed = z.object({ occurrenceId: z.string().trim().min(1), mode: z.enum(["CANCEL", "FREE"]).default("CANCEL"), cancelOpenCharges: z.enum(["yes", "no"]) }).safeParse({ occurrenceId: formData.get("occurrenceId"), mode: formData.get("mode"), cancelOpenCharges: formData.get("cancelOpenCharges") });
   if (!parsed.success) throw new Error("Horário inválido.");
   const auth = await requirePermission(parsed.data.mode === "FREE" ? "calendar:recurrence:release" : "calendar:booking:cancel");
+  if(parsed.data.mode === "CANCEL") {
+    const linked = await withArenaTransaction(auth.arenaId,tx=>tx.scheduleOccurrence.findFirst({where:{id:parsed.data.occurrenceId,arenaId:auth.arenaId},select:{bookingSeries:{select:{sponsorshipPlanId:true}}}}));
+    if(linked?.bookingSeries?.sponsorshipPlanId) return { error: "Encerre o vínculo no menu Planos para revisar também as mensalidades. Para liberar somente este horário, use Liberar horário." };
+  }
   const handledPayments = new Set<string>();
   const preservedEntries = new Set<string>();
   if (parsed.data.cancelOpenCharges === "yes") {

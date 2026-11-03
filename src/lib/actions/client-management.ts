@@ -60,7 +60,7 @@ export async function mergeClientsAction(formData: FormData) {
       _count: { select: {
         entries: true, pairPlayers: true, categoryPairPlayers: true, scheduleParticipants: true,
         notifications: true, portalNotificationReads: true, financialRecurrences: true,
-        onlinePaymentCheckouts: true, sponsorships: true, respondedLeagueChallenges: true,
+        onlinePaymentCheckouts: true, sponsorships: true, dependents:true, billedEntries:true, respondedLeagueChallenges: true,
         leagueAthleteTiers: true, createdSuper12Events: true, super12PairPlayers: true,
         whatsAppConversations: true, mergedPlayers: true,
       } },
@@ -69,7 +69,7 @@ export async function mergeClientsAction(formData: FormData) {
     const duplicate = clients.find((item) => item.id === parsed.data.duplicatePlayerId);
     if (!primary || !duplicate) return { error: "Cliente não encontrado." };
     if (!primary.active || !duplicate.active || primary.mergedIntoPlayerId || duplicate.mergedIntoPlayerId) return { error: "Selecione dois clientes ativos que ainda não foram mesclados." };
-    if (Object.values(duplicate._count).some((count) => count > 0) || duplicate.teacher || (duplicate.student && primary.student) || (duplicate.account && primary.account)) {
+    if (duplicate.guardianId || Object.values(duplicate._count).some((count) => count > 0) || duplicate.teacher || (duplicate.student && primary.student) || (duplicate.account && primary.account)) {
       return { error: "O contato duplicado possui vínculos incompatíveis (torneios, reservas, planos ou acessos ao portal). Tente mantê-lo como cliente principal. Se ambos possuem esses vínculos, a mesclagem exige revisão. Nenhum dado foi alterado." };
     }
     await tx.financialEntry.updateMany({ where: { arenaId: auth.arenaId, playerId: duplicate.id }, data: { playerId: primary.id } });

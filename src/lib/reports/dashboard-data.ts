@@ -14,10 +14,16 @@ type EntryPayload = Prisma.FinancialEntryGetPayload<{ select: typeof dashboardEn
 export type DashboardEntry = Omit<EntryPayload,"source"|"externalReference"> & Partial<Pick<EntryPayload,"source"|"externalReference">> & { bookingCourts?: { id: string; name: string }[] };
 export async function attachBookingCourts(tx: Prisma.TransactionClient, arenaId: string, entries: DashboardEntry[]) {
   const ids = [...new Set(entries.filter(e=>e.source === "SCHEDULE_BOOKING" && !e.scheduleParticipant && e.externalReference).map(e=>e.externalReference!))];
-  if (!ids.length) return;
-  const bookings = await tx.scheduleOccurrence.findMany({ where: { arenaId, id: { in: ids } }, select: { id: true, occurrenceCourts: { select: { courtId: true, court: { select: { name: true } } } } } });
+  const seriesIds=[...new Set(entries.filter(e=>e.source==="FIXED_COURT_PLAN"&&e.externalReference).map(e=>e.externalReference!))];
+  if (!ids.length && !seriesIds.length) return;
+  const bookings = ids.length ? await tx.scheduleOccurrence.findMany({ where: { arenaId, id: { in: ids } }, select: { id: true, occurrenceCourts: { select: { courtId: true, court: { select: { name: true } } } } } }) : [];
   const courts = new Map(bookings.map(b=>[b.id,b.occurrenceCourts.map(c=>({id:c.courtId,name:c.court.name}))]));
+  if(seriesIds.length){
+    const series=await tx.scheduleBookingSeries.findMany({where:{arenaId,id:{in:seriesIds}},select:{id:true,occurrences:{take:1,orderBy:{startsAt:"asc"},select:{occurrenceCourts:{select:{courtId:true,court:{select:{name:true}}}}}}}});
+    for(const row of series) courts.set(row.id,row.occurrences[0]?.occurrenceCourts.map(c=>({id:c.courtId,name:c.court.name}))??[]);
+  }
   for(const entry of entries) if(entry.externalReference && courts.has(entry.externalReference)) entry.bookingCourts=courts.get(entry.externalReference);
+
 }
 
 export async function loadDashboardData(arenaId: string, from: Date, to: Date, horizonEnd: Date, previousFrom?: Date, previousTo?: Date) {
@@ -56,7 +62,7 @@ export function dashboardFinancialRows(entries: DashboardEntry[], view: "caixa" 
     const base = { ...entry, type: legacyComanda ? "REVENUE" : entry.type, playerId, counterpartyName: name };
     const competenceDate = entry.dueDate ?? (legacyComanda && entry.paidAt ? instantToArenaWallClock(entry.paidAt) : null);
     if (view === "competencia") return within(competenceDate) ? [{ ...base, value: entry.amountCents, date: competenceDate! }] : [];
-    if (entry.settlements.length) return entry.settlements.filter(settlement => paidWithin(settlement.paidAt)).map(settlement => ({ ...base, id: `${entry.id}:${settlement.id}`, value: settlement.amountCents, date: instantToArenaWallClock(settlement.paidAt), paymentMethod: settlement.paymentMethod }));
-    return entry.status === "PAID" && paidWithin(entry.paidAt) ? [{ ...base, value: entry.amountCents, date: instantToArenaWallClock(entry.paidAt!) }] : [];
+    if (entry.settlements.length) return entry.settlements.filter(settlement => settlement.paymentMethod !== "CREDIT_BALANCE" && paidWithin(settlement.paidAt)).map(settlement => ({ ...base, id: `${entry.id}:${settlement.id}`, value: settlement.amountCents, date: instantToArenaWallClock(settlement.paidAt), paymentMethod: settlement.paymentMethod }));
+    return entry.status === "PAID" && entry.paymentMethod !== "CREDIT_BALANCE" && paidWithin(entry.paidAt) ? [{ ...base, value: entry.amountCents, date: instantToArenaWallClock(entry.paidAt!) }] : [];
   });
 }
