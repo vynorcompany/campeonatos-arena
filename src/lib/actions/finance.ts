@@ -364,6 +364,7 @@ export async function createFinancialEntryAction(formData: FormData) {
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
+  if(parsed.data.status === "PAID" && ["CREDIT_BALANCE","Saldo de crédito"].includes(parsed.data.paymentMethod??"")) return {error:"Crie o lançamento em aberto e use Receber conta para quitar com saldo do cliente ou responsável."};
   assertFinancialEntryPermission(auth, parsed.data.type, "create");
   if (parsed.data.status === "PAID") assertFinancialEntryPermission(auth, parsed.data.type, "settle");
 
@@ -604,7 +605,7 @@ export async function generateFinancialEntryOnlineChargeAction(formData: FormDat
   const entry = await withArenaTransaction(auth.arenaId, (tx) => tx.financialEntry.findFirst({ where: { id: parsed.data.entryId, arenaId: auth.arenaId, type: "REVENUE", status: { in: ["PENDING", "OVERDUE", "PARTIAL"] } }, include: { settlements: { select: { amountCents: true, interestCents: true, discountCents: true } } } }));
   if (!entry) return { error: "Lançamento a receber não encontrado ou já quitado." };
   if (hasExistingOnlineCharge(entry)) return { error: "Este lançamento já possui uma cobrança online. Use ‘Ver cobrança’ no lançamento para consultá-la antes de emitir outra." };
-  const playerId = entry.playerId;
+  const playerId = entry.billingPlayerId ?? entry.playerId;
   if (!playerId) return { error: "Associe este lançamento a um cliente cadastrado antes de gerar a cobrança online." };
   const player = await withArenaTransaction(auth.arenaId, (tx) => tx.player.findFirst({ where: { id: playerId, arenaId: auth.arenaId, active: true }, select: { name: true, email: true, cpf: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } }));
   if (!player?.email) return { error: "Informe o e-mail do atleta antes de gerar a cobrança." };
@@ -691,7 +692,9 @@ export async function settleFinancialEntryAction(formData: FormData) {
     if (entry.source === "AGENCY_SUBSCRIPTION") throw new Error("Pague esta fatura pelo link do Mercado Pago. A baixa será automática.");
     if (hasUnresolvedOnlinePayment(entry)) throw new Error("Esta conta possui cobrança online emitida, em emissão ou em análise. Confira e concilie o pagamento antes da baixa manual.");
 
-    const bankAccountId = amountCents > 0 ? await requireReceivingBankAccount(tx, auth.arenaId, parsed.data.bankAccountId) : null;
+    const usingBalance = ["CREDIT_BALANCE", "Saldo de crédito"].includes(parsed.data.paymentMethod);
+    if (usingBalance && !["REVENUE", "INCOME"].includes(entry.type)) throw new Error("Saldo do cliente só pode quitar contas a receber.");
+    const bankAccountId = amountCents > 0 && !usingBalance ? await requireReceivingBankAccount(tx, auth.arenaId, parsed.data.bankAccountId) : null;
 
     const before = getFinancialEntryBalance(entry.amountCents, entry.settlements);
     const discountValue = parsed.data.discountMode === "PERCENTAGE" ? Number(parsed.data.discount.replace(",", ".")) : parseMoneyToCents(parsed.data.discount);
@@ -706,13 +709,21 @@ export async function settleFinancialEntryAction(formData: FormData) {
     if (surplusCents > 0) {
       const settings = await tx.arenaOperationalSettings.findUnique({ where: { arenaId: auth.arenaId }, select: { preventOverpayment: true } });
       if (settings?.preventOverpayment !== false || !["REVENUE", "INCOME"].includes(entry.type)) throw new Error("O valor informado supera o saldo desta conta com os juros.");
-      const playerId = entry.playerId ?? entry.sale?.comanda?.playerId ?? entry.scheduleParticipant?.playerId;
+      const playerId = entry.billingPlayerId ?? entry.playerId ?? entry.sale?.comanda?.playerId ?? entry.scheduleParticipant?.playerId;
       const player = playerId ? await tx.player.findFirst({ where: { id: playerId, arenaId: auth.arenaId }, select: { id: true } }) : null;
       if (!player) throw new Error("Vincule um cliente da arena para registrar o pagamento excedente como saldo.");
       creditPlayerId = player.id;
     }
 
     const after = getFinancialEntryBalance(entry.amountCents, [...entry.settlements, { amountCents: appliedCents, interestCents, discountCents }]);
+    if (usingBalance && amountCents > 0) {
+      const creditOwnerId = entry.billingPlayerId ?? entry.playerId;
+      if (!creditOwnerId || surplusCents > 0) throw new Error("Vincule um cliente e informe até o saldo pendente para usar crédito.");
+      await tx.$queryRaw`SELECT id FROM "Player" WHERE id=${creditOwnerId} AND "arenaId"=${auth.arenaId} FOR UPDATE`;
+      const available = (await tx.clientBalanceMovement.aggregate({ where:{ arenaId:auth.arenaId, playerId:creditOwnerId, kind:"MONEY" }, _sum:{ amountCents:true } }))._sum.amountCents ?? 0;
+      if (available < amountCents) throw new Error("Saldo do responsável insuficiente.");
+      await tx.clientBalanceMovement.create({ data:{ arenaId:auth.arenaId, playerId:creditOwnerId, kind:"MONEY", amountCents:-amountCents, reason:`Quitação ${entry.id}${entry.playerId !== creditOwnerId ? " · dependente" : ""}` } });
+    }
     await tx.financialSettlement.create({
       data: {
         arenaId: auth.arenaId,
@@ -721,7 +732,7 @@ export async function settleFinancialEntryAction(formData: FormData) {
         amountCents: appliedCents,
         interestCents,
         discountCents,
-        paymentMethod: parsed.data.paymentMethod,
+        paymentMethod: usingBalance ? "CREDIT_BALANCE" : parsed.data.paymentMethod,
         paidAt,
         notes: parsed.data.notes || `Baixa ${entry.type === "REVENUE" ? "recebida" : "paga"} manualmente.`
       }
@@ -732,13 +743,13 @@ export async function settleFinancialEntryAction(formData: FormData) {
         status: after.settled ? "PAID" : entry.status,
         ...(bankAccountId ? { bankAccountId } : {}),
         paidAt: after.settled ? paidAt : null,
-        paymentMethod: parsed.data.paymentMethod
+        paymentMethod: usingBalance ? "CREDIT_BALANCE" : parsed.data.paymentMethod
       }
     });
     if (surplusCents > 0 && creditPlayerId) {
       await tx.clientBalanceMovement.create({ data: { arenaId: auth.arenaId, playerId: creditPlayerId, kind: "MONEY", amountCents: surplusCents, reason: `Excedente recebido na conta ${entry.id}.` } });
-      const creditEntry = await tx.financialEntry.create({ data: { arenaId: auth.arenaId, playerId: creditPlayerId, bankAccountId, type: "INCOME", category: "CREDITO_DE_CLIENTE", description: `Crédito por excedente da conta ${entry.id}`, amountCents: surplusCents, status: "PAID", paidAt, paymentMethod: parsed.data.paymentMethod } });
-      await tx.financialSettlement.create({ data: { arenaId: auth.arenaId, financialEntryId: creditEntry.id, bankAccountId, amountCents: surplusCents, paymentMethod: parsed.data.paymentMethod, paidAt, notes: `Saldo do cliente originado na baixa da conta ${entry.id}.` } });
+      const creditEntry = await tx.financialEntry.create({ data: { arenaId: auth.arenaId, playerId: creditPlayerId, bankAccountId, type: "INCOME", category: "CREDITO_DE_CLIENTE", description: `Crédito por excedente da conta ${entry.id}`, amountCents: surplusCents, status: "PAID", paidAt, paymentMethod: usingBalance ? "CREDIT_BALANCE" : parsed.data.paymentMethod } });
+      await tx.financialSettlement.create({ data: { arenaId: auth.arenaId, financialEntryId: creditEntry.id, bankAccountId, amountCents: surplusCents, paymentMethod: usingBalance ? "CREDIT_BALANCE" : parsed.data.paymentMethod, paidAt, notes: `Saldo do cliente originado na baixa da conta ${entry.id}.` } });
       await tx.auditEvent.create({ data: { arenaId: auth.arenaId, actorId: auth.userId, actorName: auth.userName, action: "RECEIVABLE_SURPLUS_CREDIT", entityId: entry.id, details: { playerId: creditPlayerId, amountCents: surplusCents, creditEntryId: creditEntry.id } } });
     }
   }); } catch (error) { if (error instanceof StaleRecordError) return { error: error.message }; throw error; }
@@ -757,6 +768,7 @@ export async function settleFinancialEntriesBulkAction(formData: FormData) {
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
 
   const paidAt = parseDate(parsed.data.paidAt) ?? new Date();
+  if(["CREDIT_BALANCE","Saldo de crédito"].includes(parsed.data.paymentMethod)) return {error:"Para utilizar saldo do cliente ou responsável, quite cada lançamento individualmente."};
   let versions: Record<string, string>;
   try {
     const value = JSON.parse(String(formData.get("expectedVersions") ?? ""));

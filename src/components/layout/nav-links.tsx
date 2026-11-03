@@ -246,7 +246,7 @@ export function NavLinks({ canManageUsers, canManageFinancialSettings, canManage
       links: [
         {
           href: "/proximos-jogos/patrocinios",
-          label: "Gestão de patrocínios",
+          label: "Planos",
           icon: "building"
         },
         {

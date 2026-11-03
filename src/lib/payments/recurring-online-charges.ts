@@ -47,13 +47,13 @@ async function alertIneligibleRecurringBoletos(arenaId: string, count: number) {
 export async function issueRecurringOnlineChargeForEntry(arenaId: string, entryId: string, now = new Date()): Promise<ChargeAttempt> {
   const entry = await arenaDatabase(arenaId).financialEntry.findFirst({
     where: { id: entryId, ...recurringBoletoEntryWhere(arenaId) },
-    include: { player: { select: { name: true, phone: true, email: true, cpf: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } }, settlements: { select: { amountCents: true, interestCents: true, discountCents: true } } }
+    include: { billingPlayer: { select: { name: true, phone: true, email: true, cpf: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } }, player: { select: { name: true, phone: true, email: true, cpf: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } }, settlements: { select: { amountCents: true, interestCents: true, discountCents: true } } }
   });
 
   if (!entry) return { created: false, skipped: false };
   const issueUntil = recurringBoletoIssueDeadline(now);
   if (!entry.dueDate || entry.dueDate > issueUntil) return { created: false, skipped: false };
-  const player = entry.player;
+  const player = entry.billingPlayer ?? entry.player;
   if (!player || getMissingBoletoPayerFields(player).length) {
     await alertRecurringBoleto(arenaId, entry.id, "ONLINE_CHARGE_ISSUANCE_REVIEW", "Boleto pendente de emissão", "O lançamento recorrente foi criado, mas faltam dados do cliente para emitir o boleto. Revise o cadastro em Contas a Receber.");
     return { created: false, skipped: true };
@@ -144,6 +144,7 @@ export async function recurringOnlineChargeCandidates(now = new Date()) {
         where: recurringBoletoEntryWhere(arenaId, limit),
         select: {
           id: true, arenaId: true, dueDate: true, amountCents: true,
+          billingPlayer: { select: { email: true, cpf: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } },
           player: { select: { email: true, cpf: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } },
           settlements: { select: { amountCents: true, interestCents: true, discountCents: true } },
         },
@@ -153,7 +154,8 @@ export async function recurringOnlineChargeCandidates(now = new Date()) {
       });
       if (!page.length) break;
       for (const entry of page) {
-        if (entry.player && !getMissingBoletoPayerFields(entry.player).length
+        const payer = entry.billingPlayer ?? entry.player;
+        if (payer && !getMissingBoletoPayerFields(payer).length
           && getFinancialEntryBalance(entry.amountCents, entry.settlements).outstandingCents >= 500) {
           candidates.push({ id: entry.id, arenaId: entry.arenaId, dueDate: entry.dueDate });
           if (candidates.length === recurringChargeBatchLimit) break;

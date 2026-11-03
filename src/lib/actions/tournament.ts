@@ -1,4 +1,5 @@
 "use server";
+import { validateGuardian } from "@/lib/clients/dependents";
 import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
 import { recordTournamentRegistrationReceipt } from "@/lib/tournaments/registration-receipt";
 
@@ -283,9 +284,10 @@ export async function createPlayerAction(_: ActionState, formData: FormData): Pr
     const photoUrl = await toPersistentPlayerPhoto(formData.get("photo") as File | null);
 
     await withArenaTransaction(auth.arenaId, async (tx) => {
+      const guardianId = await validateGuardian(tx, auth.arenaId, String(formData.get("guardianId") ?? ""));
       const player = await tx.player.create({
         data: {
-          arenaId: auth.arenaId,
+          arenaId: auth.arenaId, guardianId,
           name: parsed.data.name,
           points: parsed.data.points,
           class: parsed.data.class,
@@ -356,9 +358,10 @@ export async function updatePlayerAction(formData: FormData) {
     if (phone && existingPhones.some((player) => normalizeBrazilianPhone(player.phone) === phone)) throw new Error("Já existe um cliente cadastrado com este telefone.");
     const photoUrl = await toPersistentPlayerPhoto(formData.get("photo") as File | null);
     await withArenaTransaction(auth.arenaId, async (tx) => {
+      const guardianChange = formData.has("guardianId") ? { guardianId: await validateGuardian(tx, auth.arenaId, String(formData.get("guardianId") ?? ""), parsed.data.playerId) } : {};
       const updated = await tx.player.updateMany({
         where: { id: parsed.data.playerId, arenaId: auth.arenaId },
-        data: { name: parsed.data.name, points: parsed.data.points, class: parsed.data.class, gender: parsed.data.gender, phone, ...(parsed.data.email !== undefined ? { email: parsed.data.email } : {}), cpf: parsed.data.cpf, birthDate: parsed.data.birthDate, ...(parsed.data.addressZipCode !== undefined ? { addressZipCode: parsed.data.addressZipCode.replace(/\D/g, ""), addressStreet: parsed.data.addressStreet ?? "", addressNumber: parsed.data.addressNumber ?? "", addressNeighborhood: parsed.data.addressNeighborhood ?? "", addressCity: parsed.data.addressCity ?? "", addressState: (parsed.data.addressState ?? "").toUpperCase() } : {}), ...(photoUrl ? { photoUrl } : {}) }
+        data: { ...guardianChange, name: parsed.data.name, points: parsed.data.points, class: parsed.data.class, gender: parsed.data.gender, phone, ...(parsed.data.email !== undefined ? { email: parsed.data.email } : {}), cpf: parsed.data.cpf, birthDate: parsed.data.birthDate, ...(parsed.data.addressZipCode !== undefined ? { addressZipCode: parsed.data.addressZipCode.replace(/\D/g, ""), addressStreet: parsed.data.addressStreet ?? "", addressNumber: parsed.data.addressNumber ?? "", addressNeighborhood: parsed.data.addressNeighborhood ?? "", addressCity: parsed.data.addressCity ?? "", addressState: (parsed.data.addressState ?? "").toUpperCase() } : {}), ...(photoUrl ? { photoUrl } : {}) }
       });
       if (!updated.count) throw new Error("Jogador não encontrado.");
       const player = await tx.player.findFirst({ where: { id: parsed.data.playerId, arenaId: auth.arenaId }, select: { name: true, phone: true, email: true } });

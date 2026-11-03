@@ -10,11 +10,12 @@ const initialState: ActionState = {
   success: null
 };
 
-export function PlayerForm() {
+export function PlayerForm({ guardians = [] }: { guardians?: { id:string; name:string }[] }) {
   const [state, formAction] = useFormState(createPlayerAction, initialState);
 
   return (
     <form action={formAction} className={viewStyles.grid_form_client_create_form}>
+      {guardians.length ? <label className={viewStyles.field}>Responsável financeiro (opcional)<select name="guardianId" defaultValue=""><option value="">Cadastro independente</option>{guardians.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label> : null}
       <div className={viewStyles.field}>
         <label htmlFor="name">Nome e sobrenome do atleta</label>
         <input id="name" name="name" type="text" placeholder="Ex.: Pedro Martins" required />
