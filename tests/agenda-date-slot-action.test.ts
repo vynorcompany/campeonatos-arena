@@ -19,6 +19,7 @@ test("opening a slot uses the authenticated arena, exact date and explicit onlin
  assert.equal(f.writes[0].where.arenaId,"arena-a");assert.equal(f.writes[0].data.dateAvailability[0].date,"2040-01-02");assert.equal(f.writes[0].data.dateAvailability[0].online,false);
 });
 test("occupied, off-grid and invalid calendar dates cannot be opened",async()=>{
- for(const changes of [{date:"2040-02-31"},{startsAtMinute:"601"},{endsAtMinute:"660"}]){const f=fixture();assert.ok((await f.submit(changes)).error);assert.equal(f.writes.length,0);}
+ const invalidCases: Record<string,string>[]=[{date:"2040-02-31"},{startsAtMinute:"601"},{endsAtMinute:"660"}];
+ for(const changes of invalidCases){const f=fixture();assert.ok((await f.submit(changes)).error);assert.equal(f.writes.length,0);}
  const f=fixture();f.setConflict();assert.ok((await f.submit()).error);assert.equal(f.writes.length,0);
 });
