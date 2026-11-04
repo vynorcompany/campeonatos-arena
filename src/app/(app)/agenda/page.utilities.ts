@@ -93,7 +93,7 @@ export const viewStyles = {
     "tw:[&_thead_th.daily-court-heading]:[background-image:none]", "tw:[&_td_>_.agenda-slot-entry]:h-[100%]",
   ].join(" "),
   "daily_court_event_daily_court_event_online": [
-    "daily-court-event", "tw:relative", "tw:[&_.agenda-slot-options-trigger]:rounded-full!", "tw:[&_.agenda-slot-options-trigger]:border!", "tw:[&_.agenda-slot-options-trigger]:border-[#9bb8dc]!", "tw:[&_.agenda-slot-options-trigger]:size-6!", "daily-court-event-online", "tw:[&_.agenda-booking-event-card]:bg-transparent!", "tw:[&_.agenda-booking-event-card]:[background-image:none]!", "tw:[&_.agenda-booking-event-card]:border-emerald-300!", "tw:bg-white!", "tw:border-l-8!", "tw:border-l-emerald-600!", "tw:[background-image:none]!",
+    "daily-court-event", "tw:relative", "tw:[&_.agenda-slot-options-trigger]:rounded-full!", "tw:[&_.agenda-slot-options-trigger]:border-0!", "tw:[&_.agenda-slot-options-trigger]:size-6!", "daily-court-event-online", "tw:[&_.agenda-booking-event-card]:bg-transparent!", "tw:[&_.agenda-booking-event-card]:[background-image:none]!", "tw:[&_.agenda-booking-event-card]:border-emerald-300!", "tw:bg-white!", "tw:border-l-8!", "tw:border-l-emerald-600!", "tw:[background-image:none]!",
     "tw:text-[color:#064e3b]", "tw:min-h-[42px]", "tw:pt-[4px]!", "tw:pr-[4px]!",
     "tw:pb-[4px]!", "tw:pl-[4px]!", "tw:[&_.agenda-booking-event-card_strong]:block", "tw:[&_.agenda-booking-event-card_span]:block",
     "tw:[&_.agenda-booking-event-card_span]:mt-[4px]", "tw:[&_.agenda-booking-event-card_span]:text-[.72rem]", "tw:[&_.agenda-booking-event-card_span]:font-[700]", "tw:[&_.agenda-booking-event-card_span]:uppercase",
@@ -114,7 +114,7 @@ export const viewStyles = {
     "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:[background-image:none]", "tw:[&_.agenda-booking-event-card_strong]:text-[color:#135635]",
   ].join(" "),
   "daily_court_event": [
-    "daily-court-event", "tw:relative", "tw:[&_.agenda-slot-options-trigger]:rounded-full!", "tw:[&_.agenda-slot-options-trigger]:border!", "tw:[&_.agenda-slot-options-trigger]:border-[#9bb8dc]!", "tw:[&_.agenda-slot-options-trigger]:size-6!", "tw:bg-white!", "tw:[background-image:none]", "tw:text-[color:var(--brand-strong)]",
+    "daily-court-event", "tw:relative", "tw:[&_.agenda-slot-options-trigger]:rounded-full!", "tw:[&_.agenda-slot-options-trigger]:border-0!", "tw:[&_.agenda-slot-options-trigger]:size-6!", "tw:bg-white!", "tw:[background-image:none]", "tw:text-[color:var(--brand-strong)]",
     "tw:min-h-[42px]", "tw:pt-[4px]!", "tw:pr-[4px]!", "tw:pb-[4px]!",
     "tw:pl-[4px]!", "tw:[&_.agenda-booking-event-card_strong]:block", "tw:[&_.agenda-booking-event-card_span]:block", "tw:[&_.agenda-booking-event-card_span]:mt-[4px]",
     "tw:[&_.agenda-booking-event-card_span]:text-[.72rem]", "tw:[&_.agenda-booking-event-card_span]:font-[700]", "tw:[&_.agenda-booking-event-card_span]:uppercase", "tw:[&_.agenda-slot-entry]:pr-[32px]",
@@ -181,7 +181,7 @@ export const viewStyles = {
   "agenda_event_content": [
     "agenda-event-content", "tw:absolute", "tw:inset-0", "tw:h-full", "tw:min-h-[30px]", "tw:[&:has(.agenda-slot-options)_.agenda-slot-confirmation-indicator]:right-[23px]",
   ].join(" "),
-  "agenda_booking_event_card": "agenda-booking-event-card tw:relative tw:grid tw:grid-cols-[18px_minmax(0,1fr)] tw:h-full tw:min-h-[42px] tw:content-start tw:gap-2 tw:rounded-none! tw:border-0! tw:border-l-0! tw:border-l-[#215da5] tw:bg-transparent! tw:bg-none! tw:pl-0 tw:pr-2 tw:py-1 tw:text-left tw:shadow-none! tw:[&>div]:grid tw:[&>div]:min-w-0 tw:[&_strong]:text-sm tw:[&_strong]:font-medium tw:[&_strong]:leading-4 tw:[&_strong]:text-[#17345c] tw:[&_strong]:break-words tw:[&_small]:text-[#31577e] tw:[&_.agenda-booking-type-icon]:size-4",
+  "agenda_booking_event_card": "agenda-booking-event-card tw:relative tw:grid tw:grid-cols-[18px_minmax(0,1fr)_20px] tw:h-full tw:min-h-[42px] tw:content-start tw:gap-2 tw:rounded-none! tw:border-0! tw:border-l-0! tw:border-l-[#215da5] tw:bg-transparent! tw:bg-none! tw:pl-2 tw:pr-2 tw:py-1 tw:text-left tw:shadow-none! tw:[&>div]:grid tw:[&>div]:min-w-0 tw:[&_strong]:text-sm tw:[&_strong]:font-medium tw:[&_strong]:leading-4 tw:[&_strong]:text-[#17345c] tw:[&_strong]:break-words tw:[&_small]:text-[#31577e] tw:[&_.agenda-payment-indicator]:self-start tw:[&_.agenda-payment-indicator]:m-0! tw:[&_.agenda-booking-type-icon]:size-4",
   "agenda_booking_type_icon": [
     "agenda-booking-type-icon", "tw:[display:inline-grid]", "tw:w-[15px]", "tw:h-[15px]",
     "tw:mr-[4px]", "tw:place-items-center", "tw:text-[color:#355b83]", "tw:text-[.62rem]",

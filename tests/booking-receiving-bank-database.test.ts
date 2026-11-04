@@ -37,7 +37,7 @@ test("Grade exige conta ativa por recebimento, preserva reservas em aberto e cob
     const scope = <T>(id: string, fn: (tx: Prisma.TransactionClient) => Promise<T>) => runtime.$transaction(async tx => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${id}, true)`; return fn(tx); });
     const actions: Record<string, (data: FormData) => Promise<{ error?: string }>> = {};
     const mocks: Record<string, unknown> = {
-      "@/lib/auth/guards": { requirePermission: async (permission: string) => { if (permission === "finance:receivable:settle" && !canSettle) throw new Error("Sem permissão financeira."); return { arenaId, userId: "goal-test" }; } },
+      "@/lib/auth/guards": { requirePermission: async (permission: string) => { if (permission === "finance:receivable:settle" && !canSettle) throw new Error("Sem permissão financeira."); return { arenaId, userId: "goal-test", userName: "Operador GOAL" }; } },
       "@/lib/arena-database": { arenaDatabase: (id: string) => arenaDatabaseForTest(runtime, id) },
       "@/lib/rls": { withArenaTransaction: scope },
       "@/lib/calendar/inputs": inputs,
@@ -75,7 +75,11 @@ test("Grade exige conta ativa por recebimento, preserva reservas em aberto e cob
       assert.equal(entry.settlements[0].amountCents, 6000);
     }
     const occurrence = await admin.scheduleOccurrence.findFirstOrThrow({ where: { arenaId } });
+    const creation = await admin.auditEvent.findFirstOrThrow({ where: { arenaId, entityId: occurrence.id, action: "booking.created" } });
+    assert.equal(creation.actorId, "goal-test");
+    assert.equal(creation.actorName, "Operador GOAL");
     assert.equal((await actions.saveCourtBookingAction(await form([payer(0, bankA.id),payer(1,bankB.id)], "2040-01-02", { occurrenceId: occurrence.id }))).error, undefined);
+    assert.equal(await admin.auditEvent.count({ where: { arenaId, entityId: occurrence.id, action: "booking.created" } }), 1, "edits preserve the original creation record");
     assert.equal(await admin.financialSettlement.count({where:{arenaId}}),2,"saving paid athletes does not create another receipt");
     assert.equal((await actions.saveCourtBookingAction(await form([payer(0,bankA.id)],"2040-01-02",{occurrenceId:occurrence.id}))).error,undefined);
     assert.equal((await admin.financialEntry.findUniqueOrThrow({where:{id:paid.find(e=>e.playerId===players[1].id)!.id}})).status,"PAID","removed paid athlete keeps the original entry");

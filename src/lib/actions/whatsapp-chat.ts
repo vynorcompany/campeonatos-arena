@@ -13,6 +13,26 @@ import { reactionEmojis } from "@/lib/whatsapp-message-data";
 import { outgoingWhatsAppMediaKind, attachmentMimeType, attachmentFileName } from "@/lib/whatsapp-media-types";
 import { presentWhatsAppGroupMessage } from "@/lib/whatsapp-group-message";
 import { normalizeWhatsAppAccountJid } from "@/lib/whatsapp-account";
+import { normalizeBrazilianPhone } from "@/lib/phone";
+
+export async function openWhatsAppPlayerConversationAction(form: FormData) {
+  const auth = await requireWhatsAppSend();
+  const accountJid = await getActiveWhatsAppAccountJid(auth.arenaId);
+  if (!accountJid) throw new Error("Conecte o WhatsApp da arena em Configurações > Integrações.");
+  const playerId = String(form.get("playerId") ?? "");
+  return withArenaTransaction(auth.arenaId, async tx => {
+    const [connection] = await tx.$queryRaw<Array<{ connectedPhone: string; status: string }>>`SELECT "connectedPhone", "status" FROM "WhatsAppConnection" WHERE "arenaId" = ${auth.arenaId} FOR UPDATE`;
+    if (connection?.status !== "CONNECTED" || normalizeWhatsAppAccountJid(connection.connectedPhone) !== accountJid) throw new Error("A conta do WhatsApp mudou. Atualize a página.");
+    const player = await tx.player.findFirst({ where: { id: playerId, arenaId: auth.arenaId, active: true }, select: { id: true, name: true, phone: true } });
+    if (!player) throw new Error("Cliente não encontrado nesta arena.");
+    const phone = normalizeBrazilianPhone(player.phone);
+    if (!/^\d{10,11}$/.test(phone)) throw new Error("Cadastre um telefone válido para este cliente.");
+    const remoteJid = `55${phone}@s.whatsapp.net`;
+    const existing = await tx.whatsAppConversation.findFirst({ where: { arenaId: auth.arenaId, accountJid, remoteJid: { not: { endsWith: "@g.us" } }, OR: [{ playerId: player.id }, { remoteJid }] }, orderBy: { lastMessageAt: "desc" }, select: { id: true } });
+    if (existing) return tx.whatsAppConversation.update({ where: { id: existing.id }, data: { archivedAt: null }, select: { id: true } });
+    return tx.whatsAppConversation.upsert({ where: { arenaId_accountJid_remoteJid: { arenaId: auth.arenaId, accountJid, remoteJid } }, create: { arenaId: auth.arenaId, accountJid, remoteJid, playerId: player.id, contactName: player.name, contactPhone: `55${phone}` }, update: { archivedAt: null }, select: { id: true } });
+  });
+}
 
 const sendSchema = z.object({ conversationId: z.string().min(1), body: z.string().trim().min(1, "Escreva uma mensagem.").max(4096, "A mensagem é muito longa.") });
 const readSchema = z.object({ conversationId: z.string().min(1) });
