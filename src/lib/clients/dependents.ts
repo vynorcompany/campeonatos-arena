@@ -12,3 +12,12 @@ export async function validateGuardian(tx: ArenaTransaction, arenaId: string, gu
         throw new Error("Um responsável com dependentes não pode ser vinculado a outro responsável.");
     return guardian.id;
 }
+
+/** Link the existing client without recreating their profile, payments or lessons. */
+export async function linkExistingDependent(tx: ArenaTransaction, arenaId: string, guardianId: string, dependentId: string) {
+    await validateGuardian(tx, arenaId, guardianId, dependentId);
+    const dependent = await tx.player.findFirst({ where: { id: dependentId, arenaId, active: true, mergedIntoPlayerId: null }, select: { id: true, guardianId: true } });
+    if (!dependent) throw new Error("Selecione um cliente ativo desta arena para vincular como dependente.");
+    if (dependent.guardianId && dependent.guardianId !== guardianId) throw new Error("Este cliente já possui outro responsável financeiro. Revise o vínculo no cadastro dele antes de alterar.");
+    await tx.player.update({ where: { id: dependent.id, arenaId }, data: { guardianId } });
+}

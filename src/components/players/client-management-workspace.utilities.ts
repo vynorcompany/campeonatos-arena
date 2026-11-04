@@ -167,9 +167,9 @@ export const viewStyles = {
   ].join(" "),
   "client_edit_form": [
     "client-edit-form", "tw:grid", "tw:grid-cols-[repeat(2,_minmax(0,_1fr))]", "tw:viewport-620:grid-cols-[1fr]",
-    "tw:gap-y-[12px]", "tw:gap-x-[12px]", "tw:pt-[16px]", "tw:[&_label]:grid",
+    "tw:gap-y-[14px]", "tw:gap-x-[16px]", "tw:pt-[4px]", "tw:items-start", "tw:[&_label]:flex", "tw:[&_label]:flex-col", "tw:[&_label]:self-start",
     "tw:[&_label]:gap-y-[5px]", "tw:[&_label]:gap-x-[5px]", "tw:[&_label]:text-[color:#51657d]", "tw:[&_label]:text-[.7rem]",
-    "tw:[&_label]:font-[750]", "tw:[&_footer]:[grid-column:1_/_-1]", "tw:[&_footer]:flex", "tw:[&_footer]:justify-end",
+    "tw:[&_label]:font-medium", "tw:[&_input:not([type=checkbox])]:h-10", "tw:[&_select]:h-10", "tw:[&_footer]:[grid-column:1_/_-1]", "tw:[&_footer]:flex", "tw:[&_footer]:justify-end",
     "tw:[&_footer]:gap-y-[8px]", "tw:[&_footer]:gap-x-[8px]", "tw:[&_footer]:pt-[4px]",
   ].join(" "),
   "form_full": [
