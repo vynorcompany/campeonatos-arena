@@ -67,7 +67,7 @@ export const viewStyles = {
     "tw:[&_strong]:[text-transform:capitalize]", "tw:viewport-700:flex-col", "tw:viewport-700:gap-y-[2px]", "tw:viewport-700:gap-x-[2px]",
   ].join(" "),
   "daily_court_grid_scroll": [
-    "daily-court-grid-scroll", "tw:w-3/4", "tw:viewport-960:w-full", "tw:[overflow-x:auto]", "tw:[overflow-y:auto]", "tw:border-t-[length:1px]",
+    "daily-court-grid-scroll", "tw:w-full", "tw:mx-auto", "tw:viewport-960:w-full", "tw:[overflow-x:auto]", "tw:[overflow-y:auto]", "tw:border-t-[length:1px]",
     "tw:[border-top-style:solid]", "tw:border-t-[color:var(--line)]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]",
     "tw:border-r-[color:var(--line)]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:var(--line)]",
     "tw:border-l-[length:1px]", "tw:[border-left-style:solid]", "tw:border-l-[color:var(--line)]", "tw:rounded-[12px]",
@@ -93,7 +93,7 @@ export const viewStyles = {
     "tw:[&_thead_th.daily-court-heading]:[background-image:none]", "tw:[&_td_>_.agenda-slot-entry]:h-[100%]",
   ].join(" "),
   "daily_court_event_daily_court_event_online": [
-    "daily-court-event", "tw:relative", "tw:[&_.agenda-slot-options-trigger]:rounded-sm!", "daily-court-event-online", "tw:[&_.agenda-booking-event-card]:bg-transparent!", "tw:[&_.agenda-booking-event-card]:[background-image:none]!", "tw:[&_.agenda-booking-event-card]:border-emerald-300!", "tw:bg-[color:#86d9ad]!", "tw:[background-image:none]!",
+    "daily-court-event", "tw:relative", "tw:[&_.agenda-slot-options-trigger]:rounded-full!", "tw:[&_.agenda-slot-options-trigger]:border!", "tw:[&_.agenda-slot-options-trigger]:border-[#9bb8dc]!", "tw:[&_.agenda-slot-options-trigger]:size-6!", "daily-court-event-online", "tw:[&_.agenda-booking-event-card]:bg-transparent!", "tw:[&_.agenda-booking-event-card]:[background-image:none]!", "tw:[&_.agenda-booking-event-card]:border-emerald-300!", "tw:bg-white!", "tw:border-l-4!", "tw:border-l-emerald-600!", "tw:[background-image:none]!",
     "tw:text-[color:#064e3b]", "tw:min-h-[42px]", "tw:pt-[4px]!", "tw:pr-[4px]!",
     "tw:pb-[4px]!", "tw:pl-[4px]!", "tw:[&_.agenda-booking-event-card_strong]:block", "tw:[&_.agenda-booking-event-card_span]:block",
     "tw:[&_.agenda-booking-event-card_span]:mt-[4px]", "tw:[&_.agenda-booking-event-card_span]:text-[.72rem]", "tw:[&_.agenda-booking-event-card_span]:font-[700]", "tw:[&_.agenda-booking-event-card_span]:uppercase",
@@ -103,7 +103,7 @@ export const viewStyles = {
     "tw:[&_.agenda-slot-options-trigger]:pl-[0]", "tw:[&_.agenda-slot-options-trigger]:border-t-[length:0]", "tw:[&_.agenda-slot-options-trigger]:[border-top-style:none]", "tw:[&_.agenda-slot-options-trigger]:border-t-[color:currentColor]",
     "tw:[&_.agenda-slot-options-trigger]:border-r-[length:0]", "tw:[&_.agenda-slot-options-trigger]:[border-right-style:none]", "tw:[&_.agenda-slot-options-trigger]:border-r-[color:currentColor]", "tw:[&_.agenda-slot-options-trigger]:border-b-[length:0]",
     "tw:[&_.agenda-slot-options-trigger]:[border-bottom-style:none]", "tw:[&_.agenda-slot-options-trigger]:border-b-[color:currentColor]", "tw:[&_.agenda-slot-options-trigger]:border-l-[length:0]", "tw:[&_.agenda-slot-options-trigger]:[border-left-style:none]",
-    "tw:[&_.agenda-slot-options-trigger]:border-l-[color:currentColor]", "tw:[&_.agenda-slot-options-trigger]:rounded-[6px]", "tw:[&_.agenda-slot-options-trigger]:bg-[color:rgb(255_255_255_/_.36)]", "tw:[&_.agenda-slot-options-trigger]:[background-image:none]",
+    "tw:[&_.agenda-slot-options-trigger]:border-l-[color:currentColor]", "tw:[&_.agenda-slot-options-trigger]:rounded-[6px]", "tw:[&_.agenda-slot-options-trigger]:bg-transparent", "tw:[&_.agenda-slot-options-trigger]:text-[#174983]!", "tw:[&_.agenda-slot-options-trigger]:[background-image:none]",
     "tw:[&_.agenda-slot-options-trigger]:text-[color:currentColor]", "tw:[&_.agenda-slot-options-trigger]:[box-shadow:none]", "tw:[&_.agenda-slot-options-trigger:hover]:bg-[color:rgb(255_255_255_/_.72)]", "tw:[&_.agenda-slot-options-trigger:hover]:[background-image:none]",
     "tw:[&_.agenda-slot-options-trigger[aria-expanded=true]]:bg-[color:rgb(255_255_255_/_.72)]", "tw:[&_.agenda-slot-options-trigger[aria-expanded=true]]:[background-image:none]", "tw:[&_.agenda-slot-options-trigger_svg]:w-[15px]", "tw:[&_.agenda-slot-options-trigger_svg]:h-[15px]",
     "tw:[&_.agenda-slot-options-trigger_svg]:[fill:none]", "tw:[&_.agenda-slot-options-trigger_svg]:[stroke:currentColor]", "tw:[&_.agenda-slot-options-trigger_svg]:[stroke-linecap:round]", "tw:[&_.agenda-slot-options-trigger_svg]:[stroke-linejoin:round]",
@@ -114,7 +114,7 @@ export const viewStyles = {
     "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:[background-image:none]", "tw:[&_.agenda-booking-event-card_strong]:text-[color:#135635]",
   ].join(" "),
   "daily_court_event": [
-    "daily-court-event", "tw:relative", "tw:[&_.agenda-slot-options-trigger]:rounded-sm!", "tw:bg-[color:#cfe3fb]", "tw:[background-image:none]", "tw:text-[color:var(--brand-strong)]",
+    "daily-court-event", "tw:relative", "tw:[&_.agenda-slot-options-trigger]:rounded-full!", "tw:[&_.agenda-slot-options-trigger]:border!", "tw:[&_.agenda-slot-options-trigger]:border-[#9bb8dc]!", "tw:[&_.agenda-slot-options-trigger]:size-6!", "tw:bg-white!", "tw:[background-image:none]", "tw:text-[color:var(--brand-strong)]",
     "tw:min-h-[42px]", "tw:pt-[4px]!", "tw:pr-[4px]!", "tw:pb-[4px]!",
     "tw:pl-[4px]!", "tw:[&_.agenda-booking-event-card_strong]:block", "tw:[&_.agenda-booking-event-card_span]:block", "tw:[&_.agenda-booking-event-card_span]:mt-[4px]",
     "tw:[&_.agenda-booking-event-card_span]:text-[.72rem]", "tw:[&_.agenda-booking-event-card_span]:font-[700]", "tw:[&_.agenda-booking-event-card_span]:uppercase", "tw:[&_.agenda-slot-entry]:pr-[32px]",
@@ -124,14 +124,14 @@ export const viewStyles = {
     "tw:[&_.agenda-slot-options-trigger]:border-t-[length:0]", "tw:[&_.agenda-slot-options-trigger]:[border-top-style:none]", "tw:[&_.agenda-slot-options-trigger]:border-t-[color:currentColor]", "tw:[&_.agenda-slot-options-trigger]:border-r-[length:0]",
     "tw:[&_.agenda-slot-options-trigger]:[border-right-style:none]", "tw:[&_.agenda-slot-options-trigger]:border-r-[color:currentColor]", "tw:[&_.agenda-slot-options-trigger]:border-b-[length:0]", "tw:[&_.agenda-slot-options-trigger]:[border-bottom-style:none]",
     "tw:[&_.agenda-slot-options-trigger]:border-b-[color:currentColor]", "tw:[&_.agenda-slot-options-trigger]:border-l-[length:0]", "tw:[&_.agenda-slot-options-trigger]:[border-left-style:none]", "tw:[&_.agenda-slot-options-trigger]:border-l-[color:currentColor]",
-    "tw:[&_.agenda-slot-options-trigger]:rounded-[6px]", "tw:[&_.agenda-slot-options-trigger]:bg-[color:rgb(255_255_255_/_.36)]", "tw:[&_.agenda-slot-options-trigger]:[background-image:none]", "tw:[&_.agenda-slot-options-trigger]:text-[color:currentColor]",
+    "tw:[&_.agenda-slot-options-trigger]:rounded-[6px]", "tw:[&_.agenda-slot-options-trigger]:bg-transparent", "tw:[&_.agenda-slot-options-trigger]:text-[#174983]!", "tw:[&_.agenda-slot-options-trigger]:[background-image:none]", "tw:[&_.agenda-slot-options-trigger]:text-[color:currentColor]",
     "tw:[&_.agenda-slot-options-trigger]:[box-shadow:none]", "tw:[&_.agenda-slot-options-trigger:hover]:bg-[color:rgb(255_255_255_/_.72)]", "tw:[&_.agenda-slot-options-trigger:hover]:[background-image:none]", "tw:[&_.agenda-slot-options-trigger[aria-expanded=true]]:bg-[color:rgb(255_255_255_/_.72)]",
     "tw:[&_.agenda-slot-options-trigger[aria-expanded=true]]:[background-image:none]", "tw:[&_.agenda-slot-options-trigger_svg]:w-[15px]", "tw:[&_.agenda-slot-options-trigger_svg]:h-[15px]", "tw:[&_.agenda-slot-options-trigger_svg]:[fill:none]",
     "tw:[&_.agenda-slot-options-trigger_svg]:[stroke:currentColor]", "tw:[&_.agenda-slot-options-trigger_svg]:[stroke-linecap:round]", "tw:[&_.agenda-slot-options-trigger_svg]:[stroke-linejoin:round]", "tw:[&_.agenda-slot-options-trigger_svg]:[stroke-width:2]",
     "tw:[&_.agenda-slot-options-menu]:top-[calc(100%_+_4px)]", "tw:[&_.agenda-slot-options-menu]:right-[0]", "tw:[&_.agenda-slot-options-menu]:[transform:none]",
   ].join(" "),
   "agenda_event_type_fixed_lesson": [
-    "agenda-event-type-fixed-lesson", "tw:bg-[#ddd6fe]!", "tw:[background-image:none]!",
+    "agenda-event-type-fixed-lesson", "tw:bg-white!", "tw:border-l-4!", "tw:border-l-[#6d28d9]!", "tw:[background-image:none]!",
     "tw:[&_.agenda-booking-event-card]:bg-transparent", "tw:[&_.agenda-booking-event-card]:[background-image:none]",
     "tw:[&_.agenda-booking-event-card]:border-[var(--line)]", "tw:[&_.agenda-booking-event-card]:border-l-[#6d28d9]",
     "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:bg-[#6d28d9]", "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:text-white",
@@ -139,7 +139,7 @@ export const viewStyles = {
     "tw:[&_.agenda-slot-options-trigger]:text-[#6d28d9]!",
   ].join(" "),
   "agenda_event_type_lesson": [
-    "agenda-event-type-lesson", "tw:bg-[#a5d8ff]!", "tw:[background-image:none]!",
+    "agenda-event-type-lesson", "tw:bg-white!", "tw:border-l-4!", "tw:border-l-[#075985]!", "tw:[background-image:none]!",
     "tw:[&_.agenda-booking-event-card]:bg-transparent", "tw:[&_.agenda-booking-event-card]:[background-image:none]",
     "tw:[&_.agenda-booking-event-card]:border-[var(--line)]", "tw:[&_.agenda-booking-event-card]:border-l-[#075985]",
     "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:bg-[#075985]", "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:text-white",
@@ -147,7 +147,7 @@ export const viewStyles = {
     "tw:[&_.agenda-slot-options-trigger]:text-[#075985]!",
   ].join(" "),
   "agenda_event_type_plan": [
-    "agenda-event-type-plan", "tw:bg-[#fed7aa]!", "tw:[background-image:none]!",
+    "agenda-event-type-plan", "tw:bg-white!", "tw:border-l-4!", "tw:border-l-[#9a3412]!", "tw:[background-image:none]!",
     "tw:[&_.agenda-booking-event-card]:bg-transparent", "tw:[&_.agenda-booking-event-card]:[background-image:none]",
     "tw:[&_.agenda-booking-event-card]:border-[var(--line)]", "tw:[&_.agenda-booking-event-card]:border-l-[#9a3412]",
     "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:bg-[#9a3412]", "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:text-white",
@@ -155,7 +155,7 @@ export const viewStyles = {
     "tw:[&_.agenda-slot-options-trigger]:text-[#9a3412]!",
   ].join(" "),
   "agenda_event_type_super12": [
-    "agenda-event-type-super12", "tw:bg-[#fef08a]!", "tw:[background-image:none]!",
+    "agenda-event-type-super12", "tw:bg-white!", "tw:border-l-4!", "tw:border-l-[#854d0e]!", "tw:[background-image:none]!",
     "tw:[&_.agenda-booking-event-card]:bg-transparent", "tw:[&_.agenda-booking-event-card]:[background-image:none]",
     "tw:[&_.agenda-booking-event-card]:border-[var(--line)]", "tw:[&_.agenda-booking-event-card]:border-l-[#854d0e]",
     "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:bg-[#854d0e]", "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:text-white",
@@ -163,7 +163,7 @@ export const viewStyles = {
     "tw:[&_.agenda-slot-options-trigger]:text-[#854d0e]!",
   ].join(" "),
   "agenda_event_type_league": [
-    "agenda-event-type-league", "tw:bg-[#f5c2e7]!", "tw:[background-image:none]!",
+    "agenda-event-type-league", "tw:bg-white!", "tw:border-l-4!", "tw:border-l-[#86198f]!", "tw:[background-image:none]!",
     "tw:[&_.agenda-booking-event-card]:bg-transparent", "tw:[&_.agenda-booking-event-card]:[background-image:none]",
     "tw:[&_.agenda-booking-event-card]:border-[var(--line)]", "tw:[&_.agenda-booking-event-card]:border-l-[#86198f]",
     "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:bg-[#86198f]", "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:text-white",
@@ -171,7 +171,7 @@ export const viewStyles = {
     "tw:[&_.agenda-slot-options-trigger]:text-[#86198f]!",
   ].join(" "),
   "agenda_event_type_booking": [
-    "agenda-event-type-booking", "tw:bg-[#80bfff]!", "tw:[background-image:none]!",
+    "agenda-event-type-booking", "tw:bg-white!", "tw:border-l-4!", "tw:border-l-[#174983]!", "tw:[background-image:none]!",
     "tw:[&_.agenda-booking-event-card]:bg-transparent", "tw:[&_.agenda-booking-event-card]:[background-image:none]",
     "tw:[&_.agenda-booking-event-card]:border-[var(--line)]", "tw:[&_.agenda-booking-event-card]:border-l-[#174983]",
     "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:bg-[#174983]", "tw:[&_.agenda-booking-event-card_>_.agenda-booking-type-icon]:text-white",
@@ -181,7 +181,7 @@ export const viewStyles = {
   "agenda_event_content": [
     "agenda-event-content", "tw:absolute", "tw:inset-0", "tw:h-full", "tw:min-h-[30px]", "tw:[&:has(.agenda-slot-options)_.agenda-slot-confirmation-indicator]:right-[23px]",
   ].join(" "),
-  "agenda_booking_event_card": "agenda-booking-event-card tw:relative tw:grid tw:grid-cols-[18px_minmax(0,1fr)] tw:h-full tw:min-h-[42px] tw:content-start tw:gap-2 tw:rounded-none! tw:border-0! tw:border-l-[3px]! tw:border-l-[#215da5] tw:bg-transparent! tw:bg-none! tw:px-2 tw:py-1 tw:text-left tw:shadow-none! tw:[&>div]:grid tw:[&>div]:min-w-0 tw:[&_strong]:text-sm tw:[&_strong]:font-medium tw:[&_strong]:leading-4 tw:[&_strong]:text-[#17345c] tw:[&_strong]:break-words tw:[&_small]:text-[#31577e] tw:[&_.agenda-booking-type-icon]:size-4",
+  "agenda_booking_event_card": "agenda-booking-event-card tw:relative tw:grid tw:grid-cols-[18px_minmax(0,1fr)] tw:h-full tw:min-h-[42px] tw:content-start tw:gap-2 tw:rounded-none! tw:border-0! tw:border-l-0! tw:border-l-[#215da5] tw:bg-transparent! tw:bg-none! tw:px-2 tw:py-1 tw:text-left tw:shadow-none! tw:[&>div]:grid tw:[&>div]:min-w-0 tw:[&_strong]:text-sm tw:[&_strong]:font-medium tw:[&_strong]:leading-4 tw:[&_strong]:text-[#17345c] tw:[&_strong]:break-words tw:[&_small]:text-[#31577e] tw:[&_.agenda-booking-type-icon]:size-4",
   "agenda_booking_type_icon": [
     "agenda-booking-type-icon", "tw:[display:inline-grid]", "tw:w-[15px]", "tw:h-[15px]",
     "tw:mr-[4px]", "tw:place-items-center", "tw:text-[color:#355b83]", "tw:text-[.62rem]",
