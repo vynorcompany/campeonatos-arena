@@ -1,5 +1,5 @@
 "use server";
-import { validateGuardian } from "@/lib/clients/dependents";
+import { linkExistingDependent, validateGuardian } from "@/lib/clients/dependents";
 import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
 import { recordTournamentRegistrationReceipt } from "@/lib/tournaments/registration-receipt";
 
@@ -366,6 +366,8 @@ export async function updatePlayerAction(formData: FormData) {
       if (!updated.count) throw new Error("Jogador não encontrado.");
       const player = await tx.player.findFirst({ where: { id: parsed.data.playerId, arenaId: auth.arenaId }, select: { name: true, phone: true, email: true } });
       if (!player) throw new Error("Jogador não encontrado.");
+      const dependentId = String(formData.get("dependentPlayerId") ?? "").trim();
+      if (dependentId) await linkExistingDependent(tx, auth.arenaId, parsed.data.playerId, dependentId);
       const student = await tx.student.findFirst({ where: { playerId: parsed.data.playerId, arenaId: auth.arenaId }, select: { id: true } });
       if (student) {
         await tx.student.update({ where: { id: student.id }, data: { name: player.name, phone: player.phone, email: player.email } });
@@ -400,7 +402,7 @@ export async function updatePlayerAction(formData: FormData) {
       }
     });
   } catch (error) {
-    if (error instanceof Error && ["Jogador não encontrado.", "Já existe um cliente cadastrado com este telefone."].includes(error.message)) return { error: error.message };
+    if (error instanceof Error && ["Jogador não encontrado.", "Já existe um cliente cadastrado com este telefone.", "O cliente não pode ser responsável por si mesmo.", "Selecione um responsável ativo desta arena, sem outro responsável vinculado.", "Um responsável com dependentes não pode ser vinculado a outro responsável.", "Selecione um cliente ativo desta arena para vincular como dependente.", "Este cliente já possui outro responsável financeiro. Revise o vínculo no cadastro dele antes de alterar."].includes(error.message)) return { error: error.message };
     console.error("updatePlayerAction failed", { code: error instanceof Prisma.PrismaClientKnownRequestError ? error.code : "unknown" });
     return { error: getPrismaMessage(error, "Não foi possível atualizar o jogador.") };
   }

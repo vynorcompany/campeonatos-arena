@@ -29,7 +29,8 @@ test("clients can be opened from the list and edited in a modal", () => {
 
   assert.match(workspace, /updatePlayerAction/);
   assert.match(workspace, /setEditingClient\(client\)/);
-  assert.match(workspace, /<ClientWorkspaceDialog title="Editar cliente"/);
+  assert.match(workspace, /<Modal title="Editar cliente"/);
+  assert.match(workspace, /type="submit" form=\{formId\}/);
   assert.match(workspace, /<Modal title=\{title\} open onClose=\{closeDialog\}/);
   const modal = readFileSync(resolve(process.cwd(), "src/components/ui/modal.tsx"), "utf8");
   assert.match(modal, /role="dialog"/);
