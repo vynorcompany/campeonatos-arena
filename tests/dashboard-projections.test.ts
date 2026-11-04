@@ -111,3 +111,12 @@ test("forecast gross revenue includes already recorded interest so outstanding n
   const result = projectDashboardAmounts([entry({ settlements: [{ amountCents: 2000, interestCents: 1000 }] })], [], from, to);
   assert.equal(result[0].amountCents, 11000); assert.equal(result[0].outstandingCents, 9000);
 });
+
+test("projected expenses count only unpaid balances and unmaterialized recurrence dates in the selected period", () => {
+  const recurrence = { id: "expense-rec", type: "EXPENSE", active: true, amountCents: 5000, startsAt: date("2026-01-10"), nextDueDate: date("2026-01-10"), endsAt: null, frequency: "MONTHLY", description: "Aluguel", counterpartyName: "Fornecedor", playerId: null };
+  const data: any = { entries: [entry({id:"partial-expense",type:"EXPENSE",amountCents:10000,settlements:[{amountCents:3000}]}),entry({id:"paid-expense",type:"EXPENSE",status:"PAID",amountCents:5000,recurrenceId:recurrence.id,dueDate:date("2026-01-10")}),entry({id:"void-expense",type:"EXPENSE",status:"VOIDED"}),entry({id:"outside-expense",type:"EXPENSE",dueDate:date("2026-02-05")})], recurrences: [recurrence,{...recurrence,id:"future-expense",startsAt:date("2026-01-20"),nextDueDate:date("2026-01-20")}], occurrences: [], courts: [], lessons: [], portalAccounts: [], saleGroups: [], products: [], previousEntries: [], previousReservations: 0 };
+  const card = buildDashboardAnalytics(data,from,to,date("2026-02-28"),"caixa").cards.find(card=>card.id==="projected-expenses")!;
+  assert.equal(card.items.length,2);
+  assert.equal(card.value,new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(120));
+  assert.equal(card.tone,"negative");
+});
