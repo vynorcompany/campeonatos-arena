@@ -23,7 +23,7 @@ test("clientes inativos podem ser reativados pelo mesmo modal", () => {
 
 test("mesclagem preserva os dois acessos quando ambos possuem portal", () => {
   const managementActions = readFileSync(resolve(root, "src/lib/actions/client-management.ts"), "utf8");
-  assert.match(managementActions, /duplicate\.account && primary\.account/);
+  assert.match(readFileSync(resolve(process.cwd(), "src/lib/clients/merge-history.ts"), "utf8"), /primary\.account\s*&&\s*duplicate\.account/);
   assert.doesNotMatch(managementActions, /playerAccount\.delete/);
 });
 
