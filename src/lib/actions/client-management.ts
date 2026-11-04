@@ -1,4 +1,5 @@
 "use server";
+import { ClientMergeConflict, transferClientHistory } from "@/lib/clients/merge-history";
 import { changeLessonCredits } from "@/lib/academy/lesson-credits";
 
 import { revalidatePath } from "next/cache";
@@ -50,7 +51,8 @@ export async function mergeClientsAction(formData: FormData) {
   const auth = await requirePermission("players:merge");
   const parsed = z.object({ primaryPlayerId: z.string().min(1), duplicatePlayerId: z.string().min(1) }).safeParse({ primaryPlayerId: formData.get("primaryPlayerId"), duplicatePlayerId: formData.get("duplicatePlayerId") });
   if (!parsed.success || parsed.data.primaryPlayerId === parsed.data.duplicatePlayerId) return { error: "Selecione dois clientes diferentes." };
-  const result = await withArenaTransaction(auth.arenaId, async (tx) => {
+  let result;
+  try { result = await withArenaTransaction(auth.arenaId, async (tx) => {
     for (const id of [parsed.data.primaryPlayerId, parsed.data.duplicatePlayerId].sort()) {
       const locked = await tx.$queryRaw<{ id: string }[]>`SELECT "id" FROM "Player" WHERE "id" = ${id} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
       if (!locked.length) return { error: "Cliente não encontrado nesta arena." };
@@ -69,31 +71,24 @@ export async function mergeClientsAction(formData: FormData) {
     const duplicate = clients.find((item) => item.id === parsed.data.duplicatePlayerId);
     if (!primary || !duplicate) return { error: "Cliente não encontrado." };
     if (!primary.active || !duplicate.active || primary.mergedIntoPlayerId || duplicate.mergedIntoPlayerId) return { error: "Selecione dois clientes ativos que ainda não foram mesclados." };
-    if (duplicate.guardianId || Object.values(duplicate._count).some((count) => count > 0) || duplicate.teacher || (duplicate.student && primary.student) || (duplicate.account && primary.account)) {
-      return { error: "O contato duplicado possui vínculos incompatíveis (torneios, reservas, planos ou acessos ao portal). Tente mantê-lo como cliente principal. Se ambos possuem esses vínculos, a mesclagem exige revisão. Nenhum dado foi alterado." };
-    }
-    await tx.financialEntry.updateMany({ where: { arenaId: auth.arenaId, playerId: duplicate.id }, data: { playerId: primary.id } });
+    await transferClientHistory(tx, auth.arenaId, primary, duplicate);
     // Fill missing contact details without replacing the selected principal's data.
     await tx.player.update({ where: { id: primary.id }, data: {
       phone: primary.phone || duplicate.phone,
       email: primary.email || duplicate.email,
       cpf: primary.cpf || duplicate.cpf,
       birthDate: primary.birthDate ?? duplicate.birthDate,
+      guardianId: primary.guardianId ?? duplicate.guardianId,
+      ...Object.fromEntries(["addressZipCode","addressStreet","addressNumber","addressNeighborhood","addressCity","addressState","photoUrl","bio"].map(field=>[field,(primary as any)[field] || (duplicate as any)[field]])),
     } });
-    if (!primary.account && duplicate.account) await tx.playerAccount.update({ where: { playerId: duplicate.id }, data: { playerId: primary.id } });
-    await tx.comanda.updateMany({ where: { arenaId: auth.arenaId, playerId: duplicate.id }, data: { playerId: primary.id } });
-    await tx.clientBalanceMovement.updateMany({ where: { arenaId: auth.arenaId, playerId: duplicate.id }, data: { playerId: primary.id } });
-    await tx.loyaltyActivity.updateMany({ where: { arenaId: auth.arenaId, playerId: duplicate.id }, data: { playerId: primary.id } });
-    const duplicateParticipants = await tx.scheduleParticipant.findMany({ where: { playerId: duplicate.id }, select: { id: true, occurrenceId: true } });
-    for (const participant of duplicateParticipants) {
-      const alreadyPrimary = await tx.scheduleParticipant.findFirst({ where: { occurrenceId: participant.occurrenceId, playerId: primary.id }, select: { id: true } });
-      if (alreadyPrimary) await tx.scheduleParticipant.delete({ where: { id: participant.id } });
-      else await tx.scheduleParticipant.update({ where: { id: participant.id }, data: { playerId: primary.id } });
-    }
     if (duplicate.student && !primary.student) await tx.student.update({ where: { id: duplicate.student.id }, data: { playerId: primary.id, name: primary.name, phone: primary.phone || duplicate.phone } });
+    await tx.comandaWhatsappDelivery.updateMany({where:{arenaId:auth.arenaId,playerId:duplicate.id},data:{playerId:primary.id}});
+    await tx.checkinRecord.updateMany({where:{arenaId:auth.arenaId,playerId:duplicate.id},data:{playerId:primary.id}});
+    await tx.auditEvent.create({data:{arenaId:auth.arenaId,actorId:auth.userId ?? "SYSTEM",actorName:auth.userName ?? "Operador",action:"CLIENT_MERGED",entityId:primary.id,details:JSON.parse(JSON.stringify({primaryId:primary.id,duplicateId:duplicate.id,previousStudent:duplicate.student,previousCounts:duplicate._count}))}});
     await tx.player.update({ where: { id: duplicate.id }, data: { active: false, mergedIntoPlayerId: primary.id } });
     return { success: true as const };
-  });
+  }, { timeout: 60_000 });
+  } catch(error) { if(error instanceof ClientMergeConflict)return {error:error.message}; throw error; }
   if (result.success) refreshClients();
   return result;
 }
