@@ -246,7 +246,7 @@ export async function requestPortalComandaProductAction(formData: FormData) {
     await assertAggregateAvailability(tx, auth.arenaId, [{ productId: product.id, quantity: parsed.data.quantity }]);
     const player = await tx.player.findFirst({ where: { id: auth.playerId, arenaId: auth.arenaId }, select: { name: true } });
     await tx.comandaRequest.create({ data: { comandaId: comanda.id, productId: product.id, quantity: parsed.data.quantity } });
-    await tx.arenaNotification.create({ data: { arenaId: auth.arenaId, type: "COMANDA_REQUEST", title: `Novo pedido na comanda ${comanda.id.slice(-6).toUpperCase()}`, message: `${player?.name ?? "Cliente"} solicitou ${parsed.data.quantity}× ${product.name}. Confirme e lance o item na comanda.`, href: "/comandas" } });
+    await tx.arenaNotification.create({ data: { arenaId: auth.arenaId, type: "COMANDA_REQUEST", title: `Novo pedido na comanda ${comanda.id.slice(-6).toUpperCase()}`, message: `${player?.name ?? "Cliente"} solicitou ${parsed.data.quantity}× ${product.name}. Confirme e lance o item na comanda.`, href: `/comandas?ids=${encodeURIComponent(comanda.id)}#comanda-${encodeURIComponent(comanda.id)}` } });
   });
   revalidatePath(`/classificacao/${arenaSlug.data}`);
   revalidatePath("/comandas");

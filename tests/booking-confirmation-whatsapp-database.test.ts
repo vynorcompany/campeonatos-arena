@@ -1,3 +1,4 @@
+import { availabilityDate } from "../src/lib/calendar/date-availability";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { randomUUID } from "node:crypto";
@@ -22,7 +23,7 @@ test("WhatsApp usa configuração persistida, respeita desativação e registra 
   const occurrence = await admin.scheduleOccurrence.create({ data: { arenaId, sourceType: "ONLINE_BOOKING", title: "Reserva teste", startsAt: new Date(2026, 9, 24, 19, 30), endsAt: new Date(2026, 9, 24, 20, 30), status: "SCHEDULED", participants: { create: { playerId: player.id } }, occurrenceCourts: { create: { courtId: court.id } } } });
   const transact = (id: string, operation: (tx: Prisma.TransactionClient) => Promise<unknown>) => runtime.$transaction(async tx => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${id}, true)`; return operation(tx); });
   const exports: Record<string, (id: string, bookingId: string) => Promise<{ sent: number; failed: number }>> = {};
-  vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/lib/calendar/booking-confirmation-whatsapp.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports, Map, Promise, require: (name: string) => name === "@/lib/rls" ? { withArenaTransaction: transact } : name === "./booking-confirmation-message" ? { bookingConfirmationMessage } : { sendEvolutionTextMessage: async (phone: string, text: string, arenaId: string) => { if (reject) throw Error("Provider refused"); sent.push({ phone, text, arenaId }); } } });
+  vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/lib/calendar/booking-confirmation-whatsapp.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports, Map, Promise, require: (name: string) => name === "./date-availability" ? { availabilityDate } : name === "@/lib/rls" ? { withArenaTransaction: transact } : name === "./booking-confirmation-message" ? { bookingConfirmationMessage } : { sendEvolutionTextMessage: async (phone: string, text: string, arenaId: string) => { if (reject) throw Error("Provider refused"); sent.push({ phone, text, arenaId }); } } });
   await exports.sendBookingConfirmationForOccurrence(arenaId, occurrence.id); assert.equal(sent.length, 0);
   await admin.arena.update({ where: { id: arenaId }, data: { onlineBookingWhatsappConfirmationEnabled: true } });
   await exports.sendBookingConfirmationForOccurrence(arenaId, occurrence.id);

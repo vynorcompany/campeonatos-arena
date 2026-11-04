@@ -1,4 +1,6 @@
 "use server";
+import { availabilityDate, readDateAvailability } from "@/lib/calendar/date-availability";
+import { activeCourtOccurrenceWhere } from "@/lib/calendar/online-booking-hold";
 import { z } from "zod";
 import { BookingServiceUnavailableError } from "@/lib/calendar/booking-services";
 import { requirePermission } from "@/lib/auth/guards";
@@ -103,4 +105,25 @@ export async function releaseBlockedAgendaSlotAction(form: FormData): Promise<Ag
     await withArenaTransaction(auth.arenaId, tx => releaseBlockedCourtSlot(tx, auth.arenaId, occurrenceId));
     refreshCalendarRoutes(); return {};
   } catch (error) { return actionError(error, "Não foi possível liberar o horário. Atualize a grade e tente novamente."); }
+}
+
+export async function openAgendaDateSlotAction(form: FormData): Promise<AgendaResult> {
+  const auth = await requirePermission("calendar:recurrence:release");
+  try {
+    const input = z.object({ courtId:z.string().min(1), date:z.string().regex(/^\d{4}-\d{2}-\d{2}$/), startsAtMinute:z.coerce.number().int().min(0).max(1439), endsAtMinute:z.coerce.number().int().min(1).max(1440), priceCents:z.coerce.number().int().min(0).max(100000000), online:z.enum(["true","false"]) }).parse(Object.fromEntries(form));
+    await withArenaTransaction(auth.arenaId, async tx => {
+      await tx.$queryRaw`SELECT id FROM "Court" WHERE id = ${input.courtId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
+      const [court, arena] = await Promise.all([tx.court.findFirst({where:{id:input.courtId,arenaId:auth.arenaId,active:true}}),tx.arena.findUniqueOrThrow({where:{id:auth.arenaId},select:{scheduleStartMinute:true,scheduleEndMinute:true,scheduleSlotMinutes:true}})]);
+      if(!court) throw new Error("Quadra não encontrada nesta arena.");
+      const start = new Date(`${input.date}T00:00:00`);
+      if(!Number.isFinite(start.getTime()) || availabilityDate(start)!==input.date || input.endsAtMinute-input.startsAtMinute!==arena.scheduleSlotMinutes || input.startsAtMinute<arena.scheduleStartMinute || input.endsAtMinute>arena.scheduleEndMinute || (input.startsAtMinute-arena.scheduleStartMinute)%arena.scheduleSlotMinutes!==0) throw new Error("Selecione horários pertencentes à grade.");
+      const end=new Date(start);start.setMinutes(input.startsAtMinute);end.setMinutes(input.endsAtMinute);
+      const conflict=await tx.scheduleOccurrence.findFirst({where:{arenaId:auth.arenaId,...activeCourtOccurrenceWhere(),startsAt:{lt:end},endsAt:{gt:start},occurrenceCourts:{some:{courtId:court.id}}},select:{id:true}});
+      if(conflict) throw new Error("Um dos horários foi reservado. Atualize a grade e selecione novamente.");
+      const rows=readDateAvailability(court.dateAvailability).filter(row=>row.date!==input.date || row.startsAtMinute!==input.startsAtMinute);
+      rows.push({date:input.date,startsAtMinute:input.startsAtMinute,endsAtMinute:input.endsAtMinute,priceCents:input.priceCents,online:input.online==="true"});
+      await tx.court.update({where:{id:court.id,arenaId:auth.arenaId},data:{dateAvailability:rows}});
+    });
+    refreshCalendarRoutes(); return {};
+  } catch(error) { return actionError(error,"Não foi possível liberar o horário deste dia. Atualize a grade e tente novamente."); }
 }

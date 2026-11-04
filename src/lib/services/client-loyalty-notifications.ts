@@ -49,7 +49,7 @@ export async function syncClientLoyaltyNotifications(tx: ArenaTransaction, arena
       id: `loyalty-${key}`,
       title: "Recompensa de fidelidade disponível",
       message: `${client.name} atingiu a meta de ${required} visitas. ${client.available} recompensa${client.available === 1 ? " disponível" : "s disponíveis"}: ${arena.loyaltyRewardLabel}.`,
-      href: `/jogadores?q=${encodeURIComponent(client.name)}`,
+      href: `/jogadores?q=${encodeURIComponent(client.name)}#cliente-${encodeURIComponent(client.id)}`,
     };
   });
   const activeIds = notifications.map(notice => notice.id);

@@ -1491,6 +1491,7 @@ model PortalEventPost {
 }
 
 model Court {
+  dateAvailability Json @default("[]")
   id                    String                    @id @default(cuid())
   name                  String
   active                Boolean                   @default(true)
