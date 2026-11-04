@@ -12,7 +12,7 @@ test("agenda slot dialog offers booking details, participants and payment contro
   assert.match(source, /Forma de pagamento/);
   assert.match(source, /Horário/);
   assert.match(source, /VALOR DA QUADRA/);
-  assert.match(source, /Dividir igualmente/);
+  assert.match(source, />Dividir</);
   assert.match(source, /slot\.participants \?\? \[\]/);
   assert.doesNotMatch(source, /Math\.max\(0, 4/);
   assert.match(source, /às/);
