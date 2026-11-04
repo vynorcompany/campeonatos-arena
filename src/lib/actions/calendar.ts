@@ -1,4 +1,5 @@
 "use server";
+import { courtRulesForDate } from "@/lib/calendar/date-availability";
 import { staleRecordMessage } from "@/lib/record-version";
 import { createPlayerSchema } from "@/lib/validators/player";
 import { normalizeBrazilianPhone } from "@/lib/phone";
@@ -218,7 +219,7 @@ export async function createPublicCourtBookingAction(formData: FormData): Promis
 
   if (!isCourtBookingStartOnGrid(startsAtMinute, arena.scheduleStartMinute, arena.scheduleEndMinute, court.onlineSlotMinutes)) throw new Error("Este horário não pertence à grade de reservas da quadra.");
   if (parsed.data.durationMinutes % court.onlineSlotMinutes !== 0) throw new Error("A duração deve respeitar o intervalo configurado para a quadra.");
-  const bookingAmountCents = calculateCourtIntervalPrice({ startsAtMinute, durationMinutes: parsed.data.durationMinutes, intervalMinutes: court.onlineSlotMinutes, weekday: startsAt.getDay(), rules: court.weeklyRules });
+  const bookingAmountCents = calculateCourtIntervalPrice({ startsAtMinute, durationMinutes: parsed.data.durationMinutes, intervalMinutes: court.onlineSlotMinutes, weekday: startsAt.getDay(), rules: courtRulesForDate(court.weeklyRules, court.dateAvailability, startsAt, true) });
   if (bookingAmountCents === null) throw new Error("Este horário não está disponível para reserva online.");
   let requiresPayment = false;
   let onlineBooking: { occurrenceId: string; playerEmail: string | null };
@@ -255,7 +256,7 @@ export async function createPublicCourtBookingAction(formData: FormData): Promis
       if (requiresPayment && !player.email) throw new Error("Informe seu e-mail no perfil para continuar com o pagamento online.");
       const occurrence = await tx.scheduleOccurrence.create({ data: { arenaId: arena.id, sourceType: "ONLINE_BOOKING", responsiblePlayerId: player.id, categoryMatchId: matchBooking?.id, title: matchBooking?.title ?? `${player.name} - Reserva`, startsAt, endsAt, status: requiresPayment ? "PENDING_PAYMENT" : arena.onlineBookingRequiresConfirmation ? "PENDING_CONFIRMATION" : "SCHEDULED", bookingTypeName: "Reserva", occurrenceCourts: { create: { courtId: court.id } }, participants: { create: (matchBooking?.playerIds ?? [player.id]).map(playerId => ({ playerId, amountCents: playerId === player.id ? totalAmountCents : 0 })) }, ...(services.length ? { serviceReservations: { create: services.map(({ rules: _rules, ...service }) => service) } } : {}) } });
       const localDate = `${startsAt.getFullYear()}-${String(startsAt.getMonth() + 1).padStart(2, "0")}-${String(startsAt.getDate()).padStart(2, "0")}`;
-      await tx.arenaNotification.create({ data: { arenaId: arena.id, title: requiresPayment ? "Reserva aguardando pagamento" : arena.onlineBookingRequiresConfirmation ? "Reserva aguardando confirmação" : "Nova reserva online", message: `${player.name} solicitou ${court.name} às ${String(startsAt.getHours()).padStart(2, "0")}:${String(startsAt.getMinutes()).padStart(2, "0")}.`, href: `/agenda?data=${localDate}`, type: "ONLINE_BOOKING" } });
+      await tx.arenaNotification.create({ data: { arenaId: arena.id, title: requiresPayment ? "Reserva aguardando pagamento" : arena.onlineBookingRequiresConfirmation ? "Reserva aguardando confirmação" : "Nova reserva online", message: `${player.name} solicitou ${court.name} às ${String(startsAt.getHours()).padStart(2, "0")}:${String(startsAt.getMinutes()).padStart(2, "0")}.`, href: `/agenda?data=${localDate}#reserva-${occurrence.id}`, type: "ONLINE_BOOKING" } });
       return { occurrenceId: occurrence.id, playerEmail: player.email };
     });
   } catch (error) {

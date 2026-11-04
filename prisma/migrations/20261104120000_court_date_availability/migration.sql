@@ -1,0 +1,1 @@
+ALTER TABLE "Court" ADD COLUMN "dateAvailability" JSONB NOT NULL DEFAULT '[]';
