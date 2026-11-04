@@ -88,7 +88,7 @@ test("mesclagem transfere débitos e baixas sem perder dados e impede vínculos 
       const protectedDebt = await tx.financialEntry.create({ data: { arenaId: arena.id, playerId: portalDuplicate.id, type: "REVENUE", category: "Teste", description: "Débito protegido", amountCents: 700 } });
       assert.match((await exports.mergeClientsAction(form)).error, /acesso ao Portal/);
       assert.equal((await tx.financialEntry.findUniqueOrThrow({ where: { id: protectedDebt.id } })).playerId, portalDuplicate.id);
-      const studentPrimary=await tx.player.create({data:{arenaId:arena.id,name:`Aluno principal ${suffix}`,student:{create:{arenaId:arena.id,name:`Aluno principal ${suffix}`,remainingClasses:3,totalClasses:5}}},include:{student:true}});
+      const studentPrimary=await tx.player.create({data:{arenaId:arena.id,name:`Aluno principal ${suffix}`,student:{create:{arenaId:arena.id,name:`Aluno principal ${suffix}`,active:false,remainingClasses:3,totalClasses:5}}},include:{student:true}});
       const studentDuplicate=await tx.player.create({data:{arenaId:arena.id,name:`Aluno duplicado ${suffix}`,student:{create:{arenaId:arena.id,name:`Aluno duplicado ${suffix}`,remainingClasses:8,totalClasses:9}}},include:{student:true}});
       const batch=await tx.lessonCreditBatch.create({data:{arenaId:arena.id,studentId:studentDuplicate.student!.id,sourceKey:`merge-${suffix}`,granted:9,remaining:8}});
       const lesson=await tx.lesson.create({data:{arenaId:arena.id,title:"Histórico de aula da mesclagem"}});
@@ -99,6 +99,7 @@ test("mesclagem transfere débitos e baixas sem perder dados e impede vínculos 
       assert.equal((await tx.lessonCreditBatch.findUniqueOrThrow({where:{id:batch.id}})).studentId,studentPrimary.student!.id);
       assert.equal((await tx.lessonAttendance.findUniqueOrThrow({where:{id:attendance.id}})).studentId,studentPrimary.student!.id);
       assert.equal((await tx.lessonAttendance.findUniqueOrThrow({where:{id:attendance.id}})).creditBatchId,batch.id);
+      assert.equal(combinedStudent.active,true);
       assert.equal(combinedStudent.remainingClasses,11);assert.equal(combinedStudent.totalClasses,14);
       const oldStudent=await tx.student.findUniqueOrThrow({where:{id:studentDuplicate.student!.id}});assert.equal(oldStudent.active,false);assert.equal(oldStudent.remainingClasses,0);
       assert.ok(await tx.auditEvent.findFirst({where:{arenaId:arena.id,action:"CLIENT_MERGED",entityId:studentPrimary.id}}));

@@ -71,7 +71,7 @@ export async function transferClientHistory(tx:ArenaTransaction, arenaId:string,
  for(const plan of plans)await delegate(tx,plan.model).updateMany({where:{...plan.scope,[plan.field]:plan.from},data:{[plan.field]:plan.to}});
  if(bothStudents) {
   for(const field of ["remainingClasses","totalClasses","attendedClasses","missedClasses"])if(!Number.isSafeInteger(primary.student[field]+duplicate.student[field])||primary.student[field]+duplicate.student[field]>2147483647)throw new ClientMergeConflict("O saldo de aulas excede o limite permitido. Revise os créditos antes de mesclar.");
-  await tx.student.update({where:{id:primary.student.id},data:{remainingClasses:{increment:duplicate.student.remainingClasses},totalClasses:{increment:duplicate.student.totalClasses},attendedClasses:{increment:duplicate.student.attendedClasses},missedClasses:{increment:duplicate.student.missedClasses}}});
+  await tx.student.update({where:{id:primary.student.id},data:{active:primary.student.active||duplicate.student.active,remainingClasses:{increment:duplicate.student.remainingClasses},totalClasses:{increment:duplicate.student.totalClasses},attendedClasses:{increment:duplicate.student.attendedClasses},missedClasses:{increment:duplicate.student.missedClasses}}});
   await tx.student.update({where:{id:duplicate.student.id},data:{active:false,remainingClasses:0,totalClasses:0,attendedClasses:0,missedClasses:0}});
  }
 }
