@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { refreshArenaWhatsAppConnectionStatusAction } from "@/lib/actions/agency";
 import { z } from "zod";
 import { requireModuleView, requireWhatsAppManage, requireWhatsAppSend } from "@/lib/auth/guards";
 import { getEvolutionGroupName, getEvolutionProfilePicture, sendEvolutionAudioMessage, sendEvolutionMediaMessage, sendEvolutionTextMessage, sendEvolutionReaction, type EvolutionQuotedMessage } from "@/lib/integrations/evolution/client";
@@ -15,12 +16,22 @@ import { presentWhatsAppGroupMessage } from "@/lib/whatsapp-group-message";
 import { normalizeWhatsAppAccountJid } from "@/lib/whatsapp-account";
 import { normalizeBrazilianPhone } from "@/lib/phone";
 
-export async function openWhatsAppPlayerConversationAction(form: FormData) {
+export async function openWhatsAppPlayerConversationAction(form: FormData): Promise<{ id: string } | { error: string; needsConnection: boolean }> {
+  try {
   const auth = await requireWhatsAppSend();
-  const accountJid = await getActiveWhatsAppAccountJid(auth.arenaId);
+  let accountJid = await getActiveWhatsAppAccountJid(auth.arenaId);
+  if (!accountJid) {
+    try {
+      const connectionForm = new FormData(); connectionForm.set("arenaId", auth.arenaId);
+      const status = await refreshArenaWhatsAppConnectionStatusAction(connectionForm);
+      if (status.connected) accountJid = await getActiveWhatsAppAccountJid(auth.arenaId);
+    } catch {
+      // Verification uses the integration permissions; failures keep the explicit connection notice.
+    }
+  }
   if (!accountJid) throw new Error("Conecte o WhatsApp da arena em Configurações > Integrações.");
   const playerId = String(form.get("playerId") ?? "");
-  return withArenaTransaction(auth.arenaId, async tx => {
+  return await withArenaTransaction(auth.arenaId, async tx => {
     const [connection] = await tx.$queryRaw<Array<{ connectedPhone: string; status: string }>>`SELECT "connectedPhone", "status" FROM "WhatsAppConnection" WHERE "arenaId" = ${auth.arenaId} FOR UPDATE`;
     if (connection?.status !== "CONNECTED" || normalizeWhatsAppAccountJid(connection.connectedPhone) !== accountJid) throw new Error("A conta do WhatsApp mudou. Atualize a página.");
     const player = await tx.player.findFirst({ where: { id: playerId, arenaId: auth.arenaId, active: true }, select: { id: true, name: true, phone: true } });
@@ -32,6 +43,13 @@ export async function openWhatsAppPlayerConversationAction(form: FormData) {
     if (existing) return tx.whatsAppConversation.update({ where: { id: existing.id }, data: { archivedAt: null }, select: { id: true } });
     return tx.whatsAppConversation.upsert({ where: { arenaId_accountJid_remoteJid: { arenaId: auth.arenaId, accountJid, remoteJid } }, create: { arenaId: auth.arenaId, accountJid, remoteJid, playerId: player.id, contactName: player.name, contactPhone: `55${phone}` }, update: { archivedAt: null }, select: { id: true } });
   });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    const expected = ["Conecte o WhatsApp da arena em Configurações > Integrações.", "A conta do WhatsApp mudou. Atualize a página.", "Cliente não encontrado nesta arena.", "Cadastre um telefone válido para este cliente.", "Sem permissão para enviar mensagens no WhatsApp."];
+    if (expected.includes(message)) return { error: message, needsConnection: message.startsWith("Conecte o WhatsApp") };
+    console.error("whatsapp_shortcut_failed", { code: error && typeof error === "object" && "code" in error ? String(error.code) : "unknown" });
+    return { error: "Não foi possível abrir a conversa. Atualize a página e tente novamente.", needsConnection: false };
+  }
 }
 
 const sendSchema = z.object({ conversationId: z.string().min(1), body: z.string().trim().min(1, "Escreva uma mensagem.").max(4096, "A mensagem é muito longa.") });
