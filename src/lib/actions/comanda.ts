@@ -425,7 +425,9 @@ export async function finishComandaAction(formData: FormData) {
     }
     await tx.comanda.update({ where: { id: comanda.id }, data: { status: "CLOSED", closedAt: now } });
     if (operational?.whatsappPaidEnabled || operational?.whatsappUnpaidEnabled) return enqueueComandaWhatsapp(tx, auth.arenaId, comanda, operational, allocations.map((part, index) => ({ playerId: part.playerId, amountCents: part.amountCents + (index === 0 ? selectedDebtTotalCents : 0), outstandingCents: part.outstandingCents + (index === 0 ? Math.max(0, selectedDebtTotalCents - partialDebtPaymentCents) : 0) })));
-  });
+  }).catch((error: unknown) => { if (error && typeof error === "object" && "fiscalValidation" in error) return { error: error instanceof Error ? error.message : "Revise a configuração fiscal." }; throw error; });
+  if (whatsappIds && !Array.isArray(whatsappIds)) return whatsappIds;
+  if (parsed.data.fiscalDocumentType) after(async () => { try { const { dispatchComandaFiscal } = await import("@/lib/fiscal/focus-issuance"); await dispatchComandaFiscal(auth.arenaId, parsed.data.comandaId); } catch { console.warn("Emissão fiscal permanece pendente para consulta no painel fiscal."); } });
   if (whatsappIds?.length) after(async () => { for (const id of whatsappIds) { try { await dispatchComandaWhatsapp(auth.arenaId, id); } catch { console.warn("Mensagem da comanda permanece pendente", id); } } });
   revalidatePath("/comandas");
   revalidatePath("/home");

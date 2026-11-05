@@ -55,7 +55,7 @@ export default async function FinancialSettingAreaPage(
   }
   if (area === "notas-fiscais") {
     const settings = await prisma.fiscalSettings.findUnique({ where: { arenaId: auth.arenaId } });
-    return <FiscalSettingsForm settings={settings} />;
+    return <FiscalSettingsForm settings={settings ? { crt: settings.crt, issuerState: settings.issuerState, provider: settings.provider, environment: settings.environment, series: settings.series, nextNumber: settings.nextNumber, notes: settings.notes, focusCnpj: settings.focusCnpj, hasFocusTokens: Boolean(settings.encryptedFocusTokens) } : null} />;
   }
   if (area === "pagamentos-online") {
     const connections = await prisma.paymentConnection.findMany({ where: { arenaId: auth.arenaId }, select: { provider: true, status: true, displayName: true, accountReference: true } }); const mercadoPago = connections.find((entry) => entry.provider === "MERCADO_PAGO"); const asaas = connections.find((entry) => entry.provider === "ASAAS"); const sicoob = connections.find((entry) => entry.provider === "SICOOB");

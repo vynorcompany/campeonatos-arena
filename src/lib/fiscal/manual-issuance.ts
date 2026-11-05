@@ -19,6 +19,11 @@ export async function issueManualFiscalDocument(
   }
 ) {
   const settings = await tx.fiscalSettings.findUnique({ where: { arenaId: input.arenaId } });
+  if (settings?.enabled && settings.provider === "FOCUS") {
+    const { enqueueFocusNfce } = await import("./focus-issuance");
+    try { return await enqueueFocusNfce(tx, input); }
+    catch (error) { throw Object.assign(new Error(error instanceof Error ? error.message : "Revise a configuração fiscal da comanda."), { fiscalValidation: true }); }
+  }
   if (!settings?.enabled || settings.provider !== "MANUAL") {
     throw new Error("Configure a emissão fiscal manual antes de emitir um documento.");
   }

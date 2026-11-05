@@ -1,0 +1,20 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import vm from "node:vm";
+import ts from "typescript";
+import { readFileSync } from "node:fs";
+import { z } from "zod";
+import { validFiscalCnpj } from "../src/lib/fiscal/focus-payload";
+test("Focus settings: issuer matches arena, tokens remain separate and production requires explicit confirmation",async()=>{
+ const exports:Record<string,any>={};const stored={focusCnpj:"11222333000181",encryptedFocusTokens:JSON.stringify({SANDBOX:"saved-sandbox-token",PRODUCTION:"saved-production-token"})};
+ const mocks:Record<string,unknown>={"server-only":{},zod:{z},"./focus-payload":{validFiscalCnpj},"@/lib/payments/connection-secrets":{encryptConnectionSecrets:JSON.stringify,decryptConnectionSecrets:JSON.parse}};
+ vm.runInNewContext(ts.transpileModule(readFileSync("src/lib/fiscal/focus-settings.ts","utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports,Error,require:(name:string)=>mocks[name]??{}});
+ const tx={arena:{findUniqueOrThrow:async()=>({cnpj:"11.222.333/0001-81"})},fiscalSettings:{findUnique:async()=>stored}};
+ const form=new FormData();form.set("focusCnpj","11.222.333/0001-81");
+ const kept=await exports.focusSettingsData(tx,"arena","NONE" as any,"NONE","SANDBOX");assert.deepEqual(JSON.parse(JSON.stringify(kept)),{});
+ const saved=await exports.focusSettingsData(tx,"arena",form,"FOCUS","SANDBOX");assert.equal(saved.focusCnpj,stored.focusCnpj);assert.equal(JSON.parse(saved.encryptedFocusTokens).PRODUCTION,"saved-production-token");
+ form.set("focusSandboxToken","new-sandbox-token");const changed=await exports.focusSettingsData(tx,"arena",form,"FOCUS","SANDBOX");assert.equal(JSON.parse(changed.encryptedFocusTokens).SANDBOX,"new-sandbox-token");assert.equal(JSON.parse(changed.encryptedFocusTokens).PRODUCTION,"saved-production-token");
+ await assert.rejects(exports.focusSettingsData(tx,"arena",form,"FOCUS","PRODUCTION"),/Confirme/);form.set("confirmProduction","on");await exports.focusSettingsData(tx,"arena",form,"FOCUS","PRODUCTION");
+ form.set("focusCnpj","123");await assert.rejects(exports.focusSettingsData(tx,"arena",form,"FOCUS","SANDBOX"),/CNPJ válido/);
+ form.set("focusCnpj","11222333000181");await assert.rejects(exports.focusSettingsData({...tx,arena:{findUniqueOrThrow:async()=>({cnpj:"00000000000000"})}},"arena",form,"FOCUS","SANDBOX"),/mesmo cadastrado nesta arena/);
+});
