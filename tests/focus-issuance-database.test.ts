@@ -5,7 +5,7 @@ import vm from "node:vm";
 import ts from "typescript";
 import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
-import { buildFocusNfce } from "../src/lib/fiscal/focus-payload";
+import { buildFocusNfce, FocusFiscalValidationError } from "../src/lib/fiscal/focus-payload";
 const url=process.env.ARENA_GOAL_TEST_DATABASE_URL??"";
 const enabled=/^postgresql:\/\/postgres@127\.0\.0\.1:55433\/arena_goal(?:\?|$)/.test(url);
 class FakeHttpError extends Error { constructor(public status:number,public providerCode:string){super("HTTP failure");} }
@@ -22,7 +22,7 @@ test("Focus outbox: arena isolation, immutable payload, retry lookup after timeo
   const key="41261111222333000181"+"0".repeat(24);
   assert.equal(key.length,44);
   const exports:Record<string,any>={};
-  const mocks:Record<string,unknown>={"server-only":{},"crypto":{randomUUID},"@/lib/arena-database":{arenaDatabase:(id:string)=>{assert.equal(id,arena.id);return {...tx,$transaction:async(fn:any)=>fn(tx)};}},"@/lib/payments/connection-secrets":{decryptConnectionSecrets:()=>({SANDBOX:"synthetic-token"})},"./focus-payload":{buildFocusNfce},"./focus-client":{FocusHttpError:FakeHttpError,focusDocumentUrl:(_:string,path:unknown)=>String(path??""),focusRequest:async(environment:string,token:string,path:string,method="GET",body?:any)=>{
+  const mocks:Record<string,unknown>={"server-only":{},"crypto":{randomUUID},"@/lib/arena-database":{arenaDatabase:(id:string)=>{assert.equal(id,arena.id);return {...tx,$transaction:async(fn:any)=>fn(tx)};}},"@/lib/payments/connection-secrets":{decryptConnectionSecrets:()=>({SANDBOX:"synthetic-token"})},"./focus-payload":{buildFocusNfce,FocusFiscalValidationError},"./focus-client":{FocusHttpError:FakeHttpError,focusDocumentUrl:(_:string,path:unknown)=>String(path??""),focusRequest:async(environment:string,token:string,path:string,method="GET",body?:any)=>{
    assert.equal(environment,"SANDBOX");assert.equal(token,"synthetic-token");
    if(method==="GET"){gets++;if(!remote)throw new FakeHttpError(404,"nao_encontrado");return{status:"autorizado",chave_nfe:key,cnpj_emitente:"11222333000181",ref:lastReference,numero:"1",serie:"1"};}
    if(method==="DELETE"){cancels++;assert.ok(body.justificativa.length>=15);if(cancelFails)return{status:"erro_autorizacao",mensagem_sefaz:"Cancelamento recusado"};return{status:"cancelado",mensagem_sefaz:"Cancelamento homologado"};}

@@ -4,10 +4,10 @@ import vm from "node:vm";
 import ts from "typescript";
 import { readFileSync } from "node:fs";
 import { z } from "zod";
-import { validFiscalCnpj } from "../src/lib/fiscal/focus-payload";
+import { validFiscalCnpj, FocusFiscalValidationError } from "../src/lib/fiscal/focus-payload";
 test("Focus settings: issuer matches arena, tokens remain separate and production requires explicit confirmation",async()=>{
  const exports:Record<string,any>={};const stored={focusCnpj:"11222333000181",encryptedFocusTokens:JSON.stringify({SANDBOX:"saved-sandbox-token",PRODUCTION:"saved-production-token"})};
- const mocks:Record<string,unknown>={"server-only":{},zod:{z},"./focus-payload":{validFiscalCnpj},"@/lib/payments/connection-secrets":{encryptConnectionSecrets:JSON.stringify,decryptConnectionSecrets:JSON.parse}};
+ const mocks:Record<string,unknown>={"server-only":{},zod:{z},"./focus-payload":{validFiscalCnpj,FocusFiscalValidationError},"@/lib/payments/connection-secrets":{encryptConnectionSecrets:JSON.stringify,decryptConnectionSecrets:JSON.parse}};
  vm.runInNewContext(ts.transpileModule(readFileSync("src/lib/fiscal/focus-settings.ts","utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports,Error,require:(name:string)=>mocks[name]??{}});
  const tx={arena:{findUniqueOrThrow:async()=>({cnpj:"11.222.333/0001-81"})},fiscalSettings:{findUnique:async()=>stored}};
  const form=new FormData();form.set("focusCnpj","11.222.333/0001-81");

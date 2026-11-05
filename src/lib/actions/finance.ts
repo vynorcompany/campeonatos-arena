@@ -1161,7 +1161,11 @@ export async function updateFiscalSettingsAction(formData: FormData) {
       create: { arenaId: auth.arenaId, ...parsed.data, ...focus, enabled },
       update: { ...parsed.data, ...focus, enabled }
     });
-  }); } catch (error) { return { error: error instanceof Error ? error.message : "Não foi possível salvar a integração fiscal." }; }
+  }); } catch (error) {
+    if (error && typeof error === "object" && "fiscalValidation" in error && error instanceof Error) return { error: error.message };
+    console.error("fiscal_settings_failed", { name: error instanceof Error ? error.name : "unknown" });
+    return { error: "Não foi possível salvar a integração fiscal. Confira a configuração segura do servidor." };
+  }
   refreshFinancialSettings();
   revalidatePath("/pdv", "layout");
 }
