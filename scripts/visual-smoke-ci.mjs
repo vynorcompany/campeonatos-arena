@@ -948,6 +948,24 @@ async function main() {
           if (metrics.path !== "/home" || !metrics.authenticated || metrics.main.trim().length < 40 || metrics.scrollWidth > metrics.width + 1 || /Algo saiu do fluxo|Application error|Internal Server Error/i.test(metrics.body) || metrics.body.includes("Receita beta GOAL")) {
             throw new Error(`${label}: portal inválido: ${JSON.stringify({ path: metrics.path, authenticated: metrics.authenticated, mainLength: metrics.main.trim().length, width: metrics.width, scrollWidth: metrics.scrollWidth })}`);
           }
+          if (view.label === "reservar") {
+            const bookingLayout = await send("Runtime.evaluate", {
+              expression: `(() => { const form=document.querySelector('form:has([aria-label="Etapas da reserva"])'); if(!form)return null; const times=form.querySelector('[aria-label="Horários disponíveis"]'); const services=form.querySelector('[aria-label="Serviços opcionais da reserva"]'); return {slots:times.querySelectorAll('button[aria-pressed],select option[value]:not([value=""])').length, disabled:times.querySelectorAll('button:disabled').length, servicesBelow:!services||services.getBoundingClientRect().top>=times.getBoundingClientRect().bottom, total:form.querySelector('output').textContent}; })()`, returnByValue: true,
+            });
+            if (bookingLayout.result.value) {
+              const layout=bookingLayout.result.value;
+              if(!layout.slots||layout.disabled||!layout.servicesBelow)throw new Error(`${label}: disponibilidade ou posição dos serviços incorreta: ${JSON.stringify(layout)}`);
+              const before=await db.scheduleOccurrence.count({where:{arenaId:arenaA.id,sourceType:"ONLINE_BOOKING"}});
+              await clickElement('form:has([aria-label="Etapas da reserva"]) button[data-portal-action]');
+              await pause(400);
+              const review=await send("Runtime.evaluate",{expression:`({review:Boolean(document.querySelector('[aria-label="Revisão da reserva"]')),total:document.querySelector('output[aria-label="Valor total da reserva"]')?.textContent})`,returnByValue:true});
+              if(!review.result.value.review||review.result.value.total!==layout.total||before!==await db.scheduleOccurrence.count({where:{arenaId:arenaA.id,sourceType:"ONLINE_BOOKING"}}))throw new Error(`${label}: revisão alterou o total ou enviou uma reserva antes da confirmação.`);
+              const reviewShot=await send("Page.captureScreenshot",{format:"png",fromSurface:true});
+              await writeFile(`${outputDir}/${label}-revisao.png`,Buffer.from(reviewShot.data,"base64"));
+              await clickElement('[aria-label="Revisão da reserva"] button');
+              await pause(200);
+            }
+          }
           const contrastSelectors=portalContrastSelectors[view.label];
           if(contrastSelectors){
             const rendered=await send("Runtime.evaluate",{expression:`(${measurePortalContrast.toString()})(${JSON.stringify(contrastSelectors)})`,returnByValue:true});

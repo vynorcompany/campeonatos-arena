@@ -46,7 +46,7 @@ test("booking link enters the athlete portal and preserves booking after login",
   assert.match(portal, /encodeURIComponent\(searchParams.match\)/);
 });
 
-test("legacy public reservation route delegates to the configured booking content", () => {
+test("legacy public reservation route delegates to booking content with available times only", () => {
   const pagePath = resolve(process.cwd(), "src/app/reservar/[arenaSlug]/page.tsx");
   const formPath = resolve(process.cwd(), "src/components/public-court-booking-form.tsx");
   const contentPath = resolve(process.cwd(), "src/components/public-booking-content.tsx");
@@ -59,5 +59,5 @@ test("legacy public reservation route delegates to the configured booking conten
   assert.match(content, /onlineBookingShowReserved/);
   assert.match(content, /PublicCourtBookingForm/);
   assert.match(form, /public-booking-slot-blocks/);
-  assert.match(form, /Horários reservados/);
+  assert.doesNotMatch(form, /Horários reservados/);
 });
