@@ -507,11 +507,11 @@ async function main() {
       if (!opened.result.value) throw new Error(`${viewport.name}: não foi possível abrir o agendamento.`);
       await pause(700);
       const dialogResult = await send("Runtime.evaluate", {
-        expression: "(() => { const dialog = window.__arenaSmokeDialog('Agendamento de horário'); if (!dialog) return null; const rect = dialog.getBoundingClientRect(); const footer = dialog.querySelector('footer'); return { width: innerWidth, pageOverflow: document.documentElement.scrollWidth > innerWidth + 1, left: rect.left, right: rect.right, dialogOverflow: dialog.scrollWidth > dialog.clientWidth + 1, hasFields: Boolean(dialog.querySelector('input[type=date]') && dialog.querySelector('input[placeholder=\"Digite o nome do cliente\"]')), hasSave: Boolean([...(footer?.querySelectorAll('button') ?? [])].find((button) => button.textContent?.includes('Salvar agendamento'))) }; })()",
+        expression: "(() => { const dialog = window.__arenaSmokeDialog('Agendamento de horário'); if (!dialog) return null; const rect = dialog.getBoundingClientRect(); const footer = dialog.querySelector('footer'); const price = dialog.querySelector('.agenda-price-editor span'); return { priceFontSize: price ? parseFloat(getComputedStyle(price).fontSize) : 0, priceWeight: price ? Number(getComputedStyle(price).fontWeight) : 0, width: innerWidth, pageOverflow: document.documentElement.scrollWidth > innerWidth + 1, left: rect.left, right: rect.right, dialogOverflow: dialog.scrollWidth > dialog.clientWidth + 1, hasFields: Boolean(dialog.querySelector('input[type=date]') && dialog.querySelector('input[placeholder=\"Digite o nome do cliente\"]')), hasSave: Boolean([...(footer?.querySelectorAll('button') ?? [])].find((button) => button.textContent?.includes('Salvar agendamento'))) }; })()",
         returnByValue: true,
       });
       const dialog = dialogResult.result.value;
-      if (!dialog || dialog.pageOverflow || dialog.dialogOverflow || dialog.left < -1 || dialog.right > dialog.width + 1 || !dialog.hasFields || !dialog.hasSave) {
+      if (!dialog || dialog.priceFontSize < 20 || dialog.priceWeight < 700 || dialog.pageOverflow || dialog.dialogOverflow || dialog.left < -1 || dialog.right > dialog.width + 1 || !dialog.hasFields || !dialog.hasSave) {
         throw new Error(`${viewport.name}: modal de agendamento cortado ou incompleto: ${JSON.stringify(dialog)}`);
       }
       const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
