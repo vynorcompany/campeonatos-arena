@@ -14,6 +14,7 @@ export async function issueManualFiscalDocument(
     documentType: FiscalDocumentType;
     totalCents: number;
     customerName: string;
+    customerDocument?: string;
     financialEntryId?: string;
     saleId?: string;
   }

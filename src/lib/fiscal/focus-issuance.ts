@@ -6,13 +6,13 @@ import { decryptConnectionSecrets } from "@/lib/payments/connection-secrets";
 import { buildFocusNfce, FocusFiscalValidationError } from "./focus-payload";
 import { focusDocumentUrl, FocusHttpError, focusRequest, type FocusEnvironment } from "./focus-client";
 
-export async function enqueueFocusNfce(tx: Prisma.TransactionClient, input: { arenaId: string; saleId?: string; documentType: string }) {
+export async function enqueueFocusNfce(tx: Prisma.TransactionClient, input: { arenaId: string; saleId?: string; documentType: string; customerDocument?: string }) {
   if (input.documentType !== "NFC_E" || !input.saleId) throw new FocusFiscalValidationError("A integração Focus está habilitada para NFC-e de mercadorias nas comandas. Serviços precisam de NFS-e.");
   const settings = await tx.fiscalSettings.findUniqueOrThrow({ where: { arenaId: input.arenaId } });
   const tokens = settings.encryptedFocusTokens ? decryptConnectionSecrets(settings.encryptedFocusTokens) : {};
   if (!tokens[settings.environment]) throw new FocusFiscalValidationError("Cadastre o token da Focus para o ambiente selecionado.");
   const sale = await tx.sale.findFirstOrThrow({ where: { id: input.saleId, arenaId: input.arenaId }, include: { items: { include: { product: { select: { name: true, isService: true } } } }, payments: true } });
-  const payload = buildFocusNfce(sale, settings, settings.environment);
+  const payload = buildFocusNfce({ ...sale, customerDocument: input.customerDocument }, settings, settings.environment);
   const reference = `arena-${randomUUID()}`;
   return tx.fiscalDocument.create({ data: { arenaId: input.arenaId, saleId: sale.id, provider: "FOCUS", environment: settings.environment, providerReference: reference, requestPayload: payload, direction: "OUTGOING", documentType: "NFC_E", status: "PENDING", accessKey: `PENDING-${reference}`, supplierName: sale.customerName, supplierDocument: settings.focusCnpj, totalCents: sale.totalCents, items: { create: sale.items.map((item,index) => ({ productId: item.productId, code: item.productId, description: item.product.name, ncm: payload.items[index].codigo_ncm, cfop: payload.items[index].cfop, barcode: payload.items[index].codigo_barras_comercial, unit: payload.items[index].unidade_comercial, quantity: item.quantity, totalCents: item.totalCents })) } } });
 }

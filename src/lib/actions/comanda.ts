@@ -50,6 +50,7 @@ const paymentsSchema = z.array(z.object({
 })).max(8);
 
 const finishComandaSchema = z.object({
+  fiscalCustomerDocument: z.string().trim().max(18).default(""),
   comandaId: z.string().min(1),
   shares: z.array(z.object({ playerId: z.string().min(1).nullable(), amountCents: z.coerce.number().int().nonnegative() })).max(20).default([]),
   payments: paymentsSchema,
@@ -282,7 +283,7 @@ export async function finishComandaAction(formData: FormData) {
   if (typeof rawDebtIds === "string" && rawDebtIds.trim()) {
     try { debtIds = JSON.parse(rawDebtIds); } catch { throw new Error("Débitos inválidos."); }
   }
-  const parsed = finishComandaSchema.safeParse({ comandaId: formData.get("comandaId"), shares, payments, debtIds, creditCents: formData.get("creditCents") ?? 0, allowEmpty: formData.get("allowEmpty") ?? false, allowPartial: formData.get("allowPartial") ?? false, fiscalDocumentType: formData.get("fiscalDocumentType") ?? "" });
+  const parsed = finishComandaSchema.safeParse({ comandaId: formData.get("comandaId"), fiscalCustomerDocument: formData.get("fiscalCustomerDocument") ?? "", shares, payments, debtIds, creditCents: formData.get("creditCents") ?? 0, allowEmpty: formData.get("allowEmpty") ?? false, allowPartial: formData.get("allowPartial") ?? false, fiscalDocumentType: formData.get("fiscalDocumentType") ?? "" });
   if (!parsed.success) throw new Error("Comanda inválida.");
   if (parsed.data.payments.some(payment => /^(saldo\b|credito (do cliente|em conta)\b)/.test(payment.paymentMethod.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase()))) throw new Error("Para usar saldo, ative Usar saldo. O valor será validado e descontado da conta do cliente.");
 
@@ -420,6 +421,7 @@ export async function finishComandaAction(formData: FormData) {
         documentType: parsed.data.fiscalDocumentType as FiscalDocumentType,
         totalCents,
         customerName: comanda.label,
+        customerDocument: parsed.data.fiscalCustomerDocument,
         saleId: sale.id,
       });
     }

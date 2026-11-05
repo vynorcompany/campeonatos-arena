@@ -5,7 +5,9 @@ import { encryptConnectionSecrets, decryptConnectionSecrets } from "@/lib/paymen
 import { validFiscalCnpj, FocusFiscalValidationError } from "./focus-payload";
 export async function focusSettingsData(tx: Prisma.TransactionClient, arenaId: string, form: FormData, provider: string, environment: string) {
   if (provider !== "FOCUS") return {};
-  const cnpj = String(form.get("focusCnpj") ?? "").replace(/\D/g, "");
+  const cnpjInput = String(form.get("focusCnpj") ?? "");
+  if (/[A-Za-z]/.test(cnpjInput)) throw new FocusFiscalValidationError("Esta integração inicial atende CNPJ numérico. CNPJ alfanumérico exige atualização específica antes de emitir.");
+  const cnpj = cnpjInput.replace(/\D/g, "");
   if (!validFiscalCnpj(cnpj)) throw new FocusFiscalValidationError("Informe o CNPJ válido cadastrado na Focus.");
   const arena = await tx.arena.findUniqueOrThrow({ where: { id: arenaId }, select: { cnpj: true } });
   if (arena.cnpj.replace(/\D/g, "") !== cnpj) throw new FocusFiscalValidationError("O CNPJ emitente deve ser o mesmo cadastrado nesta arena, e não o CNPJ da fornecedora do sistema.");
