@@ -1643,9 +1643,10 @@ async function main() {
             const rect = button.getBoundingClientRect(), frame = dialog.getBoundingClientRect();
             const scroll = dialog.querySelector('form')?.parentElement;
             const fits = !scroll || scroll.scrollHeight <= scroll.clientHeight + 1;
+            const noHorizontalOverflow = !scroll || scroll.scrollWidth <= scroll.clientWidth + 1;
             if (scroll) scroll.scrollTop = scroll.scrollHeight;
             const after = button.getBoundingClientRect();
-            return { fits, valid: frame.top >= 0 && frame.bottom <= innerHeight + 1 && frame.left >= 0 && frame.right <= innerWidth + 1 && rect.top >= frame.top && rect.bottom <= innerHeight && Math.abs(after.top - rect.top) < 1, form: Boolean(button.form.querySelector('textarea[name=notes]')) };
+            return { fits, valid: noHorizontalOverflow && frame.top >= 0 && frame.bottom <= innerHeight + 1 && frame.left >= 0 && frame.right <= innerWidth + 1 && rect.top >= frame.top && rect.bottom <= innerHeight && Math.abs(after.top - rect.top) < 1, form: Boolean(button.form.querySelector('textarea[name=notes]')) };
           })()`,
           returnByValue: true,
         });
