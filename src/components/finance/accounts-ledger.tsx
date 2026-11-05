@@ -299,7 +299,7 @@ export function AccountsLedger({
               if (!category) { setMessage("Selecione uma categoria financeira."); return; }
               const form = new FormData(event.currentTarget);
               run(() => recurring ? createFinancialRecurrenceAction(form) : createFinancialEntryAction(form), () => setNewEntryOpen(false));
-            }} className={`${viewStyles.grid_form} tw:gap-y-3!`}>
+            }} className={`${viewStyles.grid_form} tw:gap-y-3! tw:[zoom:0.9]`}>
               <input type="hidden" name="type" value={type} />
               <input type="hidden" name="status" value={paid && !recurring ? "PAID" : "PENDING"} />
               <input type="hidden" name="category" value={category} />
