@@ -83,7 +83,9 @@ test("expiry claims coordinate workers, preserve money, and isolate arenas and a
     await exports.expirePortalCheckoutsForArena(ids[0], { playerId: a.id }, now);
     assert.equal(calls.length, callsBefore, "Failed provider calls must respect the backoff");
     outcomes.set(uncertain.id, "expired");
-    const retried = await exports.expirePortalCheckoutsForArena(ids[0], { playerId: a.id, entryIds: [uncertain.entryId] }, new Date(now.getTime() + 121_000));
+    const previousLease = (await admin.onlinePaymentCheckout.findUniqueOrThrow({ where: { id: uncertain.id } })).expiryCheckClaimedAt;
+    assert.ok(previousLease);
+    const retried = await exports.expirePortalCheckoutsForArena(ids[0], { playerId: a.id, entryIds: [uncertain.entryId] }, new Date(previousLease.getTime() + 121_000));
     assert.equal(retried.expired, 1);
     assert.equal(await status(uncertain.id), "EXPIRED");
     const delayed = await create(ids[0], a.id, new Date(now.getTime() - 6 * 60_000), "failed");
