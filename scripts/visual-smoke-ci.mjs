@@ -1649,10 +1649,11 @@ async function main() {
           })()`,
           returnByValue: true,
         });
-        if (!result.result.value?.valid || !result.result.value?.form) throw new Error(`${viewport.name}: modal ${mode} cortado ou rodapé inacessível: ${JSON.stringify(result.result.value)}`);
-        if (mode === "create" && viewport.name === "desktop" && viewport.height >= 700 && !result.result.value.fits) throw new Error(`${viewport.width}x${viewport.height}: o formulário padrão de lançamento exige rolagem apesar do espaço disponível.`);
         const modalShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
         await writeFile(`${outputDir}/ledger-${mode}-${viewport.width}x${viewport.height}.png`, Buffer.from(modalShot.data, "base64"));
+        if (!result.result.value?.valid || !result.result.value?.form) throw new Error(`${viewport.name}: modal ${mode} cortado ou rodapé inacessível: ${JSON.stringify(result.result.value)}`);
+        if (mode === "create" && viewport.name === "desktop" && viewport.height >= 700 && !result.result.value.fits) throw new Error(`${viewport.width}x${viewport.height}: o formulário padrão de lançamento exige rolagem apesar do espaço disponível.`);
+
         await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('[role=dialog] button')].find(node => node.textContent?.trim() === 'Cancelar')?.click()" });
         await pause(150);
       }

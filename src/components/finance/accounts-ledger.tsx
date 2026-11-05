@@ -299,7 +299,7 @@ export function AccountsLedger({
               if (!category) { setMessage("Selecione uma categoria financeira."); return; }
               const form = new FormData(event.currentTarget);
               run(() => recurring ? createFinancialRecurrenceAction(form) : createFinancialEntryAction(form), () => setNewEntryOpen(false));
-            }} className={viewStyles.grid_form}>
+            }} className={`${viewStyles.grid_form} tw:gap-y-3!`}>
               <input type="hidden" name="type" value={type} />
               <input type="hidden" name="status" value={paid && !recurring ? "PAID" : "PENDING"} />
               <input type="hidden" name="category" value={category} />
@@ -326,7 +326,7 @@ export function AccountsLedger({
                 <label className={viewStyles.field}>Encerramento (opcional)<input name="endsAt" type="date" /></label>
                 {type === "REVENUE" ? <label className={viewStyles.field_form_full}>Cobrança online<select name="onlinePaymentMethod" defaultValue=""><option value="">Não gerar cobrança online</option><option value="BOLETO">Boleto recorrente (Mercado Pago)</option></select><small>Para boleto, o atleta precisa ter CPF e e-mail válidos.</small>{message.startsWith("Dados incompletos do cliente:") ? <span className={viewStyles.financial_boleto_validation} role="alert"><strong>Complete o cadastro do cliente</strong>{message.replace("Dados incompletos do cliente: ", "")}</span> : null}</label> : null}
               </> : null}
-              <label className={viewStyles.field_form_full}>Observações<textarea className={viewStyles.financial_notes_field} name="notes" rows={4} /></label>
+              <label className={viewStyles.field_form_full}>Observações<textarea className={viewStyles.financial_notes_field} name="notes" rows={3} /></label>
 
             </form>
         </Modal>
