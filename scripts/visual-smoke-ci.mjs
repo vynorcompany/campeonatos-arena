@@ -955,11 +955,11 @@ async function main() {
             if (bookingLayout.result.value) {
               const layout=bookingLayout.result.value;
               if(!layout.slots||layout.disabled||!layout.servicesBelow)throw new Error(`${label}: disponibilidade ou posição dos serviços incorreta: ${JSON.stringify(layout)}`);
-              const before=await db.scheduleOccurrence.count({where:{arenaId:arenaA.id,source:"ONLINE_BOOKING"}});
+              const before=await db.scheduleOccurrence.count({where:{arenaId:arenaA.id,sourceType:"ONLINE_BOOKING"}});
               await clickElement('form:has([aria-label="Etapas da reserva"]) button[data-portal-action]');
               await pause(400);
               const review=await send("Runtime.evaluate",{expression:`({review:Boolean(document.querySelector('[aria-label="Revisão da reserva"]')),total:document.querySelector('output[aria-label="Valor total da reserva"]')?.textContent})`,returnByValue:true});
-              if(!review.result.value.review||review.result.value.total!==layout.total||before!==await db.scheduleOccurrence.count({where:{arenaId:arenaA.id,source:"ONLINE_BOOKING"}}))throw new Error(`${label}: revisão alterou o total ou enviou uma reserva antes da confirmação.`);
+              if(!review.result.value.review||review.result.value.total!==layout.total||before!==await db.scheduleOccurrence.count({where:{arenaId:arenaA.id,sourceType:"ONLINE_BOOKING"}}))throw new Error(`${label}: revisão alterou o total ou enviou uma reserva antes da confirmação.`);
               const reviewShot=await send("Page.captureScreenshot",{format:"png",fromSurface:true});
               await writeFile(`${outputDir}/${label}-revisao.png`,Buffer.from(reviewShot.data,"base64"));
               await clickElement('[aria-label="Revisão da reserva"] button');
