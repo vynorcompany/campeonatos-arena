@@ -1623,6 +1623,37 @@ async function main() {
     if (!["Mensalidade GOAL A1", "Mensalidade GOAL A2", "Mensalidade GOAL B", "Mensalidade GOAL compartilhada A", "Mensalidade GOAL compartilhada B", "Venda GOAL filtrada"].every((label) => receivables.includes(label)) || receivables.includes("Venda sigilosa GOAL B")) {
       throw new Error("Contas a receber não exibiu os lançamentos próprios com isolamento entre arenas.");
     }
+    // Creation and editing must both keep their actions visible, including on short viewports.
+    for (const viewport of [...viewports, { name: "ledger-short", width: 1270, height: 554 }]) {
+      await visit("/financeiro/contas-a-receber", viewport, arenaA.id, `${viewport.name}-ledger-modal`);
+      for (const mode of ["create", "edit"]) {
+        const opened = await send("Runtime.evaluate", {
+          expression: mode === "create"
+            ? "(() => { const button = [...document.querySelectorAll('button')].find(node => node.textContent?.trim() === 'Novo lançamento'); button?.click(); return Boolean(button); })()"
+            : "(() => { const entry = [...document.querySelectorAll('article')].find(node => node.textContent?.includes('Mensalidade GOAL A1')); entry?.click(); return Boolean(entry); })()",
+          returnByValue: true,
+        });
+        if (!opened.result.value) throw new Error(`${viewport.name}: não abriu ${mode} de lançamento.`);
+        await pause(400);
+        const result = await send("Runtime.evaluate", {
+          expression: `(() => {
+            const dialog = [...document.querySelectorAll('[role=dialog]')].at(-1);
+            const button = [...(dialog?.querySelectorAll('button') ?? [])].find(node => node.textContent?.trim() === ${JSON.stringify(mode === "create" ? "Salvar lançamento" : "Salvar alterações")});
+            if (!dialog || !button || !button.form) return { valid: false };
+            const rect = button.getBoundingClientRect(), frame = dialog.getBoundingClientRect();
+            const scroll = dialog.querySelector('form')?.parentElement;
+            if (scroll) scroll.scrollTop = scroll.scrollHeight;
+            const after = button.getBoundingClientRect();
+            return { valid: frame.top >= 0 && frame.bottom <= innerHeight + 1 && frame.left >= 0 && frame.right <= innerWidth + 1 && rect.top >= frame.top && rect.bottom <= innerHeight && Math.abs(after.top - rect.top) < 1, form: Boolean(button.form.querySelector('textarea[name=notes]')) };
+          })()`,
+          returnByValue: true,
+        });
+        if (!result.result.value?.valid || !result.result.value?.form) throw new Error(`${viewport.name}: modal ${mode} cortado ou rodapé inacessível: ${JSON.stringify(result.result.value)}`);
+        await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('[role=dialog] button')].find(node => node.textContent?.trim() === 'Cancelar')?.click()" });
+        await pause(150);
+      }
+    }
+    await visit("/financeiro/contas-a-receber", viewports[0], arenaA.id, "recebiveis-pos-modais");
     const teacherOption = await send("Runtime.evaluate", { expression: `(() => { const select = document.querySelector('select[name="planId"]'); const value = 'teacher:${teacherA.id}'; if (!select || ![...select.options].some(option => option.value === value)) return false; select.value = value; select.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`, returnByValue: true });
     if (!teacherOption.result.value) throw new Error("A opção Todos os planos da professora fictícia não apareceu.");
     let teacherFiltered = false;
