@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { refreshArenaWhatsAppConnectionStatusAction } from "@/lib/actions/agency";
 import { z } from "zod";
 import { requireModuleView, requireWhatsAppManage, requireWhatsAppSend } from "@/lib/auth/guards";
 import { getEvolutionGroupName, getEvolutionProfilePicture, sendEvolutionAudioMessage, sendEvolutionMediaMessage, sendEvolutionTextMessage, sendEvolutionReaction, type EvolutionQuotedMessage } from "@/lib/integrations/evolution/client";
@@ -22,6 +21,7 @@ export async function openWhatsAppPlayerConversationAction(form: FormData): Prom
   let accountJid = await getActiveWhatsAppAccountJid(auth.arenaId);
   if (!accountJid) {
     try {
+      const { refreshArenaWhatsAppConnectionStatusAction } = await import("@/lib/actions/agency");
       const connectionForm = new FormData(); connectionForm.set("arenaId", auth.arenaId);
       const status = await refreshArenaWhatsAppConnectionStatusAction(connectionForm);
       if (status.connected) accountJid = await getActiveWhatsAppAccountJid(auth.arenaId);
