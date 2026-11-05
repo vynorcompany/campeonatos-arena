@@ -527,6 +527,35 @@ async function main() {
       if (!closed.result.value) throw new Error(`${viewport.name}: Esc não fechou o agendamento.`);
       console.log(`${viewport.name}: modal de agendamento futuro abre, mantém campos/ações legíveis e fecha com Esc.`);
     }
+    const pendingAgendaDate = "2038-06-14";
+    const pendingAgendaCourt = await db.court.findFirstOrThrow({ where: { arenaId: arenaA.id, active: true, weeklyRules: { some: {} } }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }], select: { id: true } });
+    const pendingAgendaCases = [
+      { id: "goal-agenda-payment-status", status: "PENDING_PAYMENT", label: "Aguardando pagamento", hour: 12 },
+      { id: "goal-agenda-confirmation-status", status: "PENDING_CONFIRMATION", label: "Aguardando confirmação", hour: 14 },
+      { id: "goal-agenda-scheduled-status", status: "SCHEDULED", label: "", hour: 16 },
+    ];
+    for (const item of pendingAgendaCases) await db.scheduleOccurrence.create({ data: {
+      id: item.id, arenaId: arenaA.id, sourceType: "ONLINE_BOOKING", status: item.status, title: `Reserva QA ${item.status}`, bookingTypeName: "Reserva", responsiblePlayerId: "goal-athlete-a", courtPriceCents: 10000,
+      startsAt: new Date(`${pendingAgendaDate}T${item.hour}:00:00.000Z`), endsAt: new Date(`${pendingAgendaDate}T${item.hour}:30:00.000Z`),
+      occurrenceCourts: { create: { courtId: pendingAgendaCourt.id } }, participants: { create: { playerId: "goal-athlete-a", amountCents: 10000 } },
+    } });
+    for (const viewport of viewports) {
+      await visit(`/agenda?data=${pendingAgendaDate}`, viewport, arenaA.id, `${viewport.name}-agenda-status`);
+      for (const mode of viewport.name === "desktop" ? ["fit", "detail"] : ["detail"]) {
+        const result = await send("Runtime.evaluate", { expression: `(${JSON.stringify(pendingAgendaCases)}).map(item => {
+          const cell = document.getElementById('reserva-' + item.id), label = cell?.querySelector('.agenda-pending-confirmation');
+          if (!item.label) return { valid: Boolean(cell) && !label };
+          if (!cell || !label) return { valid: false };
+          const rect = label.getBoundingClientRect(), frame = cell.getBoundingClientRect();
+          return { valid: label.textContent?.trim() === item.label && getComputedStyle(label).display !== 'none' && label.scrollWidth <= label.clientWidth + 1 && rect.height > 0 && rect.left >= frame.left && rect.right <= frame.right + 1 && rect.bottom <= frame.bottom + 1 };
+        })`, returnByValue: true });
+        if (!result.result.value?.every(item => item.valid)) throw new Error(`${viewport.name}: avisos de reserva pendente ocultos ou cortados em ${mode}: ${JSON.stringify(result.result.value)}`);
+        const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+        await writeFile(`${outputDir}/${viewport.name}-agenda-status-${mode}.png`, Buffer.from(shot.data, "base64"));
+        if (mode === "fit") { await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('button')].find(button => button.textContent?.trim() === 'Grade encaixada')?.click()" }); await pause(200); }
+      }
+    }
+    await db.scheduleOccurrence.deleteMany({ where: { arenaId: arenaA.id, id: { in: pendingAgendaCases.map(item => item.id) } } });
     for (const [index, choice] of ["keep", "void"].entries()) {
       const viewport = viewports[index];
       const occurrenceId = `goal-cancel-${choice}`;

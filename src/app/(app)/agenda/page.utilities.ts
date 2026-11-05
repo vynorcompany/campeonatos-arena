@@ -179,9 +179,9 @@ export const viewStyles = {
     "tw:[&_.agenda-slot-options-trigger]:text-[#174983]!",
   ].join(" "),
   "agenda_event_content": [
-    "agenda-event-content", "tw:absolute", "tw:inset-0", "tw:h-full", "tw:min-h-[30px]", "tw:[&:has(.agenda-slot-options)_.agenda-slot-confirmation-indicator]:right-[23px]",
+    "agenda-event-content", "tw:[&:has(.agenda-pending-confirmation)]:relative", "tw:[&:has(.agenda-pending-confirmation)]:h-auto", "tw:absolute", "tw:inset-0", "tw:h-full", "tw:min-h-[30px]", "tw:[&:has(.agenda-slot-options)_.agenda-slot-confirmation-indicator]:right-[23px]",
   ].join(" "),
-  "agenda_booking_event_card": "agenda-booking-event-card tw:relative tw:grid tw:grid-cols-[18px_minmax(0,1fr)_20px] tw:h-full tw:min-h-[42px] tw:content-start tw:gap-2 tw:rounded-none! tw:border-0! tw:border-l-0! tw:border-l-[#215da5] tw:bg-transparent! tw:bg-none! tw:pl-2 tw:pr-2 tw:py-1 tw:text-left tw:shadow-none! tw:[&>div]:grid tw:[&>div]:min-w-0 tw:[&_strong]:text-sm tw:[&_strong]:font-medium tw:[&_strong]:leading-4 tw:[&_strong]:text-[#17345c] tw:[&_strong]:break-words tw:[&_small]:text-[#31577e] tw:[&_.agenda-payment-indicator]:self-start tw:[&_.agenda-payment-indicator]:m-0! tw:[&_.agenda-booking-type-icon]:size-4",
+  "agenda_booking_event_card": "agenda-booking-event-card tw:[&:has(.agenda-pending-confirmation)]:gap-y-0.5 tw:relative tw:grid tw:grid-cols-[18px_minmax(0,1fr)_20px] tw:h-full tw:min-h-[42px] tw:content-start tw:gap-2 tw:rounded-none! tw:border-0! tw:border-l-0! tw:border-l-[#215da5] tw:bg-transparent! tw:bg-none! tw:pl-2 tw:pr-2 tw:py-1 tw:text-left tw:shadow-none! tw:[&>div]:grid tw:[&>div]:min-w-0 tw:[&_strong]:text-sm tw:[&_strong]:font-medium tw:[&_strong]:leading-4 tw:[&_strong]:text-[#17345c] tw:[&_strong]:break-words tw:[&_small]:text-[#31577e] tw:[&_.agenda-payment-indicator]:self-start tw:[&_.agenda-payment-indicator]:m-0! tw:[&_.agenda-booking-type-icon]:size-4",
   "agenda_booking_type_icon": [
     "agenda-booking-type-icon", "tw:[display:inline-grid]", "tw:w-[15px]", "tw:h-[15px]",
     "tw:mr-[4px]", "tw:place-items-center", "tw:text-[color:#355b83]", "tw:text-[.62rem]",
@@ -194,15 +194,15 @@ export const viewStyles = {
     "tw:tracking-[.02em]", "tw:normal-case!",
   ].join(" "),
   "agenda_pending_confirmation": [
-    "agenda-pending-confirmation", "tw:static", "tw:top-[1px]", "tw:left-[0]",
-    "tw:inline-flex", "tw:items-center", "tw:min-h-[15px]", "tw:pt-[0]",
+    "agenda-pending-confirmation", "tw:col-span-full", "tw:static", "tw:top-[1px]", "tw:left-[0]",
+    "tw:inline-flex!", "tw:items-center", "tw:min-h-[15px]", "tw:pt-[0]",
     "tw:pr-[0]", "tw:pb-[0]", "tw:pl-[0]", "tw:border-t-[length:0]",
     "tw:[border-top-style:none]", "tw:border-t-[color:currentColor]", "tw:border-r-[length:0]", "tw:[border-right-style:none]",
     "tw:border-r-[color:currentColor]", "tw:border-b-[length:0]", "tw:[border-bottom-style:none]", "tw:border-b-[color:currentColor]",
     "tw:border-l-[length:0]", "tw:[border-left-style:none]", "tw:border-l-[color:currentColor]", "tw:rounded-[4px]",
-    "tw:bg-[color:transparent]", "tw:[background-image:none]", "tw:text-[color:#8b5d12]", "tw:text-[.58rem]",
-    "tw:font-[700]", "tw:leading-[1]", "tw:tracking-[0]", "tw:whitespace-nowrap",
-    "tw:ml-[6px]", "tw:[&_i]:mr-[2px]", "tw:[&_i]:not-italic",
+    "tw:bg-[color:transparent]", "tw:[background-image:none]", "tw:text-[color:#8b5d12]", "tw:text-[10px]!",
+    "tw:font-medium!", "tw:leading-3", "tw:tracking-[0]", "tw:whitespace-normal", "tw:min-w-0",
+    "tw:ml-0", "tw:mt-0!", "tw:normal-case!", "tw:gap-1",
   ].join(" "),
   "agenda_payment_indicator": [
     "agenda-payment-indicator", "tw:inline-flex", "tw:items-center", "tw:justify-center",
