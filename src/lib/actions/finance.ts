@@ -1154,13 +1154,18 @@ export async function updateFiscalSettingsAction(formData: FormData) {
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   const enabled = parsed.data.provider !== "NONE";
 
-  await withArenaTransaction(auth.arenaId, async (tx) => {
+  try { await withArenaTransaction(auth.arenaId, async (tx) => {
+    const focus = parsed.data.provider === "FOCUS" ? await (await import("@/lib/fiscal/focus-settings")).focusSettingsData(tx, auth.arenaId, formData, parsed.data.provider, parsed.data.environment) : {};
     await tx.fiscalSettings.upsert({
       where: { arenaId: auth.arenaId },
-      create: { arenaId: auth.arenaId, ...parsed.data, enabled },
-      update: { ...parsed.data, enabled }
+      create: { arenaId: auth.arenaId, ...parsed.data, ...focus, enabled },
+      update: { ...parsed.data, ...focus, enabled }
     });
-  });
+  }); } catch (error) {
+    if (error && typeof error === "object" && "fiscalValidation" in error && error instanceof Error) return { error: error.message };
+    console.error("fiscal_settings_failed", { name: error instanceof Error ? error.name : "unknown" });
+    return { error: "Não foi possível salvar a integração fiscal. Confira a configuração segura do servidor." };
+  }
   refreshFinancialSettings();
   revalidatePath("/pdv", "layout");
 }

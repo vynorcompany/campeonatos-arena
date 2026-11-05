@@ -18,6 +18,7 @@ function loadJob(arena: () => Promise<Record<string, number>>, agency: () => Pro
     console: { error: (...args: unknown[]) => errors.push(args) },
     require: (name: string) => {
       if (name === "next/server") return { NextResponse: { json: (body: Record<string, unknown>, init: { status?: number } = {}) => ({ body, status: init.status ?? 200 }) } };
+      if (name === "@/lib/fiscal/focus-issuance") return { processPendingFocusDocuments: async () => ({ processed: 0 }) };
       if (name === "@/lib/env") return { env: { cronSecret: "synthetic-cron-secret-for-tests" } };
       if (name === "@/lib/payments/recurring-online-charges") return { issueRecurringOnlineCharges: arena };
       if (name === "@/lib/academy/plan-price-worker") return { processPlanPriceChanges: prices };

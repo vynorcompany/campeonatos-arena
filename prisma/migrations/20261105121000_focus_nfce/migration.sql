@@ -1,0 +1,3 @@
+ALTER TABLE "FiscalSettings" ADD COLUMN "focusCnpj" TEXT NOT NULL DEFAULT '', ADD COLUMN "encryptedFocusTokens" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "FiscalDocument" ADD COLUMN "provider" TEXT NOT NULL DEFAULT 'MANUAL', ADD COLUMN "environment" TEXT NOT NULL DEFAULT 'SANDBOX', ADD COLUMN "providerReference" TEXT NOT NULL DEFAULT '', ADD COLUMN "requestPayload" JSONB, ADD COLUMN "providerMessage" TEXT NOT NULL DEFAULT '', ADD COLUMN "xmlUrl" TEXT NOT NULL DEFAULT '', ADD COLUMN "printUrl" TEXT NOT NULL DEFAULT '', ADD COLUMN "processingAt" TIMESTAMP(3), ADD COLUMN "attempts" INTEGER NOT NULL DEFAULT 0;
+CREATE INDEX "FiscalDocument_provider_status_processingAt_idx" ON "FiscalDocument"("provider", "status", "processingAt");

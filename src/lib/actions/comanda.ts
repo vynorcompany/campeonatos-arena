@@ -50,6 +50,7 @@ const paymentsSchema = z.array(z.object({
 })).max(8);
 
 const finishComandaSchema = z.object({
+  fiscalCustomerDocument: z.string().trim().max(18).default(""),
   comandaId: z.string().min(1),
   shares: z.array(z.object({ playerId: z.string().min(1).nullable(), amountCents: z.coerce.number().int().nonnegative() })).max(20).default([]),
   payments: paymentsSchema,
@@ -282,7 +283,7 @@ export async function finishComandaAction(formData: FormData) {
   if (typeof rawDebtIds === "string" && rawDebtIds.trim()) {
     try { debtIds = JSON.parse(rawDebtIds); } catch { throw new Error("Débitos inválidos."); }
   }
-  const parsed = finishComandaSchema.safeParse({ comandaId: formData.get("comandaId"), shares, payments, debtIds, creditCents: formData.get("creditCents") ?? 0, allowEmpty: formData.get("allowEmpty") ?? false, allowPartial: formData.get("allowPartial") ?? false, fiscalDocumentType: formData.get("fiscalDocumentType") ?? "" });
+  const parsed = finishComandaSchema.safeParse({ comandaId: formData.get("comandaId"), fiscalCustomerDocument: formData.get("fiscalCustomerDocument") ?? "", shares, payments, debtIds, creditCents: formData.get("creditCents") ?? 0, allowEmpty: formData.get("allowEmpty") ?? false, allowPartial: formData.get("allowPartial") ?? false, fiscalDocumentType: formData.get("fiscalDocumentType") ?? "" });
   if (!parsed.success) throw new Error("Comanda inválida.");
   if (parsed.data.payments.some(payment => /^(saldo\b|credito (do cliente|em conta)\b)/.test(payment.paymentMethod.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase()))) throw new Error("Para usar saldo, ative Usar saldo. O valor será validado e descontado da conta do cliente.");
 
@@ -420,12 +421,15 @@ export async function finishComandaAction(formData: FormData) {
         documentType: parsed.data.fiscalDocumentType as FiscalDocumentType,
         totalCents,
         customerName: comanda.label,
+        customerDocument: parsed.data.fiscalCustomerDocument,
         saleId: sale.id,
       });
     }
     await tx.comanda.update({ where: { id: comanda.id }, data: { status: "CLOSED", closedAt: now } });
     if (operational?.whatsappPaidEnabled || operational?.whatsappUnpaidEnabled) return enqueueComandaWhatsapp(tx, auth.arenaId, comanda, operational, allocations.map((part, index) => ({ playerId: part.playerId, amountCents: part.amountCents + (index === 0 ? selectedDebtTotalCents : 0), outstandingCents: part.outstandingCents + (index === 0 ? Math.max(0, selectedDebtTotalCents - partialDebtPaymentCents) : 0) })));
-  });
+  }).catch((error: unknown) => { if (error && typeof error === "object" && "fiscalValidation" in error) return { error: error instanceof Error ? error.message : "Revise a configuração fiscal." }; throw error; });
+  if (whatsappIds && !Array.isArray(whatsappIds)) return whatsappIds;
+  if (parsed.data.fiscalDocumentType) after(async () => { try { const { dispatchComandaFiscal } = await import("@/lib/fiscal/focus-issuance"); await dispatchComandaFiscal(auth.arenaId, parsed.data.comandaId); } catch { console.warn("Emissão fiscal permanece pendente para consulta no painel fiscal."); } });
   if (whatsappIds?.length) after(async () => { for (const id of whatsappIds) { try { await dispatchComandaWhatsapp(auth.arenaId, id); } catch { console.warn("Mensagem da comanda permanece pendente", id); } } });
   revalidatePath("/comandas");
   revalidatePath("/home");

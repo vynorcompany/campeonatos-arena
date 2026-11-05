@@ -15,7 +15,8 @@ export async function POST(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const prices = await processPlanPriceChanges();
   if (prices.failed) return NextResponse.json({ ok: false, ...prices }, { status: 500 });
-  const [arenaCharges, agencyCharges] = await Promise.allSettled([issueRecurringOnlineCharges(), issueDueAgencyInvoices()]);
+  const [arenaCharges, agencyCharges, fiscal] = await Promise.allSettled([issueRecurringOnlineCharges(), issueDueAgencyInvoices(), (async () => { const { processPendingFocusDocuments } = await import("@/lib/fiscal/focus-issuance"); return processPendingFocusDocuments(); })()]);
+  if (fiscal.status === "rejected") console.error("Fiscal pending document job failed");
   if (arenaCharges.status === "rejected") console.error("Arena recurring online charge job failed", arenaCharges.reason);
   if (agencyCharges.status === "rejected") console.error("Agency recurring online charge job failed", agencyCharges.reason);
   const ok = arenaCharges.status === "fulfilled" && agencyCharges.status === "fulfilled"

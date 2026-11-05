@@ -308,6 +308,7 @@ export function ProductFiscalForm({
             disabled={!canEdit}
           />
           {input("cest", "CEST", { maxLength: 7 })}
+          <p className="tw:col-span-full tw:m-0 tw:text-xs tw:leading-relaxed tw:text-[var(--muted)]">Confirme NCM, CEST e tributação com a contabilidade. Insumos de bebidas preparadas têm baixa de estoque; a nota descreve o produto vendido, sem duplicar os ingredientes.</p>
           <label className={ui.field}>
             Origem
             <select

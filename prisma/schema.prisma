@@ -1808,6 +1808,8 @@ model Coupon {
 }
 
 model FiscalSettings {
+  focusCnpj String @default("")
+  encryptedFocusTokens String @default("")
   crt String @default("")
   issuerState String @default("")
   id          String   @id @default(cuid())
@@ -1824,6 +1826,15 @@ model FiscalSettings {
 }
 
 model FiscalDocument {
+  provider String @default("MANUAL")
+  environment String @default("SANDBOX")
+  providerReference String @default("")
+  requestPayload Json?
+  providerMessage String @default("")
+  xmlUrl String @default("")
+  printUrl String @default("")
+  processingAt DateTime?
+  attempts Int @default(0)
   id               String               @id @default(cuid())
   direction        String               @default("INCOMING")
   status           String               @default("IMPORTED")
@@ -1848,6 +1859,7 @@ model FiscalDocument {
   items            FiscalDocumentItem[]
 
   @@unique([arenaId, accessKey])
+  @@index([provider, status, processingAt])
   @@index([arenaId, direction, issuedAt])
   @@index([arenaId, importedAt])
 }

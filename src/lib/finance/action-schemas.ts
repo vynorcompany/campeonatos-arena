@@ -122,7 +122,7 @@ export const deleteSupplierSchema = z.object({ supplierId: z.string().min(1, "Fo
 export const fiscalSettingsSchema = z.object({
   crt: z.enum(["", "1", "2", "3", "4"]).optional(),
   issuerState: z.string().regex(/^(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)?$/, "UF inválida.").optional(),
-  provider: z.enum(["NONE", "MANUAL"]),
+  provider: z.enum(["NONE", "MANUAL", "FOCUS"]),
   environment: z.enum(["SANDBOX", "PRODUCTION"]),
   series: z.string().trim().max(20).default(""),
   nextNumber: z.coerce.number().int().min(1).max(999999999).default(1),
