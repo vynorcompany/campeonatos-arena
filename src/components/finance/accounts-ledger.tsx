@@ -10,7 +10,7 @@ import { viewStyles } from "./accounts-ledger.utilities";
 import Link from "next/link";
 import { getDiscountedAmountCents } from "@/lib/finance/discounts";
 import { CurrencyInput } from "@/components/forms/currency-input";
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 import {
   createFinancialEntryAction,
   createFinancialSettingAction,
@@ -73,6 +73,7 @@ export function AccountsLedger({
   canManageSettings: boolean;
   canDeleteEntries: boolean;
 }) {
+  const newEntryFormId = useId();
   const cashPaymentMethods = paymentMethods.filter(method => !["CREDIT_BALANCE","Saldo de crédito"].includes(method));
   const [settlementMethod,setSettlementMethod] = useState(cashPaymentMethods[0]??"PIX");
   const [pending, startTransition] = useTransition();
@@ -290,11 +291,9 @@ export function AccountsLedger({
       </section>
 
       {newEntryOpen ? (
-        <div className={viewStyles.command_modal_backdrop} onMouseDown={() => setNewEntryOpen(false)} role="presentation">
-          <section className={viewStyles.financial_entry_modal} role="dialog" aria-modal="true" aria-label="Novo lançamento" onMouseDown={(event) => event.stopPropagation()}>
-            <header><div><span>NOVO LANÇAMENTO</span><h2>{title}</h2></div><button type="button" className={viewStyles.button_button_small} onClick={() => setNewEntryOpen(false)}>Fechar</button></header>
+        <Modal open title={`Novo lançamento · ${title}`} width="tw:max-w-[1080px]" heightClassName="tw:h-[min(800px,calc(100dvh_-_24px))]!" onClose={() => setNewEntryOpen(false)} footer={<div className="tw:flex tw:flex-wrap tw:justify-end tw:gap-2"><button type="button" className={viewStyles.button} onClick={() => setNewEntryOpen(false)}>Cancelar</button><button type="submit" form={newEntryFormId} className={viewStyles.button_button_primary} disabled={pending}>{pending ? "Salvando..." : recurring ? "Criar recorrência" : "Salvar lançamento"}</button></div>}>
             {message && !message.startsWith("Dados incompletos do cliente:") ? <p className="form-message form-message-error" role="alert">{message}</p> : null}
-            <form onSubmit={(event) => {
+            <form id={newEntryFormId} onSubmit={(event) => {
               event.preventDefault();
               if (!category) { setMessage("Selecione uma categoria financeira."); return; }
               const form = new FormData(event.currentTarget);
@@ -326,10 +325,9 @@ export function AccountsLedger({
                 {type === "REVENUE" ? <label className={viewStyles.field_form_full}>Cobrança online<select name="onlinePaymentMethod" defaultValue=""><option value="">Não gerar cobrança online</option><option value="BOLETO">Boleto recorrente (Mercado Pago)</option></select><small>Para boleto, o atleta precisa ter CPF e e-mail válidos.</small>{message.startsWith("Dados incompletos do cliente:") ? <span className={viewStyles.financial_boleto_validation} role="alert"><strong>Complete o cadastro do cliente</strong>{message.replace("Dados incompletos do cliente: ", "")}</span> : null}</label> : null}
               </> : null}
               <label className={viewStyles.field_form_full}>Observações<textarea className={viewStyles.financial_notes_field} name="notes" rows={4} /></label>
-              <footer className={viewStyles.modal_actions_form_full}><button type="button" className={viewStyles.button} onClick={() => setNewEntryOpen(false)}>Cancelar</button><button className={viewStyles.button_button_primary} disabled={pending}>{pending ? "Salvando..." : recurring ? "Criar recorrência" : "Salvar lançamento"}</button></footer>
+
             </form>
-          </section>
-        </div>
+        </Modal>
       ) : null}
 
       {bulkPaymentOpen ? <div className={viewStyles.command_modal_backdrop} onMouseDown={() => setBulkPaymentOpen(false)} role="presentation"><section className={viewStyles.financial_entry_modal_financial_entry_modal_small} role="dialog" aria-modal="true" aria-label="Quitar lançamentos em massa" onMouseDown={(event) => event.stopPropagation()}><header><div><span>QUITAÇÃO EM MASSA</span><h2>Quitar {selectedPendingEntries.length} lançamento{selectedPendingEntries.length === 1 ? "" : "s"}</h2></div><button type="button" className={viewStyles.button_button_small} onClick={() => setBulkPaymentOpen(false)}>Fechar</button></header><p>Todos os saldos pendentes selecionados serão quitados integralmente.</p>{message ? <p className="form-message form-message-error" role="alert">{message}</p> : null}<form onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget); selectedPendingEntries.forEach((entry) => form.append("entryIds", entry.id)); form.set("expectedVersions", JSON.stringify(Object.fromEntries(selectedPendingEntries.map(entry => [entry.id, entry.updatedAt])))); run(() => settleFinancialEntriesBulkAction(form), () => { setBulkPaymentOpen(false); setSelectedEntryIds(new Set()); }); }} className={viewStyles.grid_form}><ReceivingBankAccountSelect accounts={bankAccounts} className={viewStyles.field}/><label className={viewStyles.field}>Forma de pagamento<select name="paymentMethod" defaultValue={cashPaymentMethods[0] ?? "PIX"}>{cashPaymentMethods.map((method) => <option key={method} value={method}>{method}</option>)}</select></label><label className={viewStyles.field}>Data da quitação<input name="paidAt" type="date" defaultValue={new Date().toISOString().slice(0, 10)} /></label><footer className={viewStyles.modal_actions_form_full}><button type="button" className={viewStyles.button} onClick={() => setBulkPaymentOpen(false)}>Cancelar</button><button className={viewStyles.button_button_success} disabled={pending}>Quitar selecionados</button></footer></form></section></div> : null}
