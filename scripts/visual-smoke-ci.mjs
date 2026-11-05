@@ -1624,8 +1624,8 @@ async function main() {
       throw new Error("Contas a receber não exibiu os lançamentos próprios com isolamento entre arenas.");
     }
     // Creation and editing must both keep their actions visible, including on short viewports.
-    for (const viewport of [...viewports, { name: "ledger-short", width: 1270, height: 554 }]) {
-      await visit("/financeiro/contas-a-receber", viewport, arenaA.id, `${viewport.name}-ledger-modal`);
+    for (const viewport of [...viewports, { name: "desktop", width: 1432, height: 717 }, { name: "desktop", width: 1270, height: 554 }]) {
+      await visit("/financeiro/contas-a-receber", viewport, arenaA.id, `${viewport.name}-${viewport.width}-ledger-modal`);
       for (const mode of ["create", "edit"]) {
         const opened = await send("Runtime.evaluate", {
           expression: mode === "create"
@@ -1642,13 +1642,19 @@ async function main() {
             if (!dialog || !button || !button.form) return { valid: false };
             const rect = button.getBoundingClientRect(), frame = dialog.getBoundingClientRect();
             const scroll = dialog.querySelector('form')?.parentElement;
+            const fits = !scroll || scroll.scrollHeight <= scroll.clientHeight + 1;
+            const noHorizontalOverflow = !scroll || scroll.scrollWidth <= scroll.clientWidth + 1;
             if (scroll) scroll.scrollTop = scroll.scrollHeight;
             const after = button.getBoundingClientRect();
-            return { valid: frame.top >= 0 && frame.bottom <= innerHeight + 1 && frame.left >= 0 && frame.right <= innerWidth + 1 && rect.top >= frame.top && rect.bottom <= innerHeight && Math.abs(after.top - rect.top) < 1, form: Boolean(button.form.querySelector('textarea[name=notes]')) };
+            return { fits, valid: noHorizontalOverflow && frame.top >= 0 && frame.bottom <= innerHeight + 1 && frame.left >= 0 && frame.right <= innerWidth + 1 && rect.top >= frame.top && rect.bottom <= innerHeight && Math.abs(after.top - rect.top) < 1, form: Boolean(button.form.querySelector('textarea[name=notes]')) };
           })()`,
           returnByValue: true,
         });
+        const modalShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+        await writeFile(`${outputDir}/ledger-${mode}-${viewport.width}x${viewport.height}.png`, Buffer.from(modalShot.data, "base64"));
         if (!result.result.value?.valid || !result.result.value?.form) throw new Error(`${viewport.name}: modal ${mode} cortado ou rodapé inacessível: ${JSON.stringify(result.result.value)}`);
+        if (mode === "create" && viewport.name === "desktop" && viewport.height >= 700 && !result.result.value.fits) throw new Error(`${viewport.width}x${viewport.height}: o formulário padrão de lançamento exige rolagem apesar do espaço disponível.`);
+
         await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('[role=dialog] button')].find(node => node.textContent?.trim() === 'Cancelar')?.click()" });
         await pause(150);
       }
