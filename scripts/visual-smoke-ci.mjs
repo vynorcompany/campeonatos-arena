@@ -1763,6 +1763,27 @@ async function main() {
         await pause(150);
       }
     }
+    // Controlled amounts must keep focus through every parent render, not only a single fill().
+    for (const viewport of [viewports[0], { name: "mobile", width: 390, height: 844 }]) {
+      await visit("/financeiro/contas-a-pagar", viewport, arenaA.id, `${viewport.name}-payable-money-focus`);
+      await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('button')].find(node=>node.textContent?.trim()==='Novo lançamento')?.click()" });
+      await pause(250);
+      const focused = await send("Runtime.evaluate", { expression: "(() => { const field=document.querySelector('[role=dialog] input[name=amount]'); field?.focus(); return Boolean(field); })()", returnByValue: true });
+      if (!focused.result.value) throw new Error("Campo monetário de Contas a Pagar não encontrado.");
+      for (const digit of "123456") {
+        await send("Input.insertText", { text: digit });
+        await pause(40);
+        const stays = await send("Runtime.evaluate", { expression: "document.activeElement===document.querySelector('[role=dialog] input[name=amount]')", returnByValue: true });
+        if (!stays.result.value) throw new Error(`${viewport.name}: o valor perdeu foco ao digitar ${digit}.`);
+      }
+      const value = await send("Runtime.evaluate", { expression: "document.querySelector('[role=dialog] input[name=amount]')?.value", returnByValue: true });
+      if (value.result.value !== "1.234,56") throw new Error(`Valor digitado alterado: ${value.result.value}`);
+      await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+      await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+      await pause(150);
+      const closed = await send("Runtime.evaluate", { expression: "({closed:!document.querySelector('[role=dialog]'),zoom:getComputedStyle(document.querySelector('.accounts-ledger-list')).zoom,overflow:document.documentElement.scrollWidth>innerWidth+1})", returnByValue: true });
+      if (!closed.result.value?.closed || Number(closed.result.value.zoom)!==1.15 || closed.result.value.overflow) throw new Error(`Fechamento ou escala da listagem inválidos: ${JSON.stringify(closed.result.value)}`);
+    }
     await visit("/financeiro/contas-a-receber", viewports[0], arenaA.id, "recebiveis-pos-modais");
     const teacherOption = await send("Runtime.evaluate", { expression: `(() => { const select = document.querySelector('select[name="planId"]'); const value = 'teacher:${teacherA.id}'; if (!select || ![...select.options].some(option => option.value === value)) return false; select.value = value; select.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`, returnByValue: true });
     if (!teacherOption.result.value) throw new Error("A opção Todos os planos da professora fictícia não apareceu.");
