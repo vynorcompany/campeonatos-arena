@@ -1,3 +1,4 @@
+import { ShareGameButton } from "@/components/courts/share-game-button";
 import { LessonCreditPortalPanel, TeacherLessonCreditRequestsPanel } from "@/components/teachers/lesson-credit-portal";
 import { loadPortalEventPanelAction } from "@/lib/actions/portal-events";
 import { PortalTournamentTabs } from "@/components/portal/tournament-tabs";
@@ -452,7 +453,7 @@ function ReservationsPanel({ portal }: { portal: Portal }) {
                   {reservation.courtName} · {reservation.when}
                 </span>
               </div>
-              <b>{reservation.status}</b>
+              <div className="tw:grid tw:min-w-0 tw:justify-items-start tw:gap-2"><b>{reservation.status}</b>{reservation.canShareGame ? <ShareGameButton arenaSlug={portal.arenaSlug} occurrenceId={reservation.id}/> : null}</div>
             </article>
           ))}
         </div>

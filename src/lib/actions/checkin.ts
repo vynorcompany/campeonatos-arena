@@ -35,7 +35,7 @@ export async function registerCourtCheckinAction(form: FormData) {
     const selected = z.array(z.string().min(1)).max(64).parse(form.getAll("playerIds"));
     await withArenaTransaction(auth.arenaId, async tx => {
       if (selected.length || form.get("selectionMode") === "group") await registerSelectedCourtCheckins(tx, { ...parsed.data, arenaId: auth.arenaId, playerId: auth.playerId, playerIds: selected });
-      else await registerCourtCheckin(tx, { ...parsed.data, arenaId: auth.arenaId, playerId: auth.playerId });
+      else await registerCourtCheckin(tx, { ...parsed.data, arenaId: auth.arenaId, playerId: auth.playerId, joinOwnGame: form.get("joinOwnGame") === "true" });
     });
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Não foi possível confirmar sua presença. Tente novamente ou procure a recepção." };
@@ -56,4 +56,13 @@ export async function registerLessonQrCheckinAction(form: FormData) {
   revalidatePath(`/classificacao/${parsed.data.arenaSlug}`);
   revalidatePath("/home");
   revalidatePath("/aulas");
+}
+
+
+export async function shareCheckinGameAction(form: FormData) {
+  const parsed = z.object({ arenaSlug: z.string().min(1).max(160), occurrenceId: z.string().min(1).max(160) }).safeParse(Object.fromEntries(form));
+  if (!parsed.success) return { error: "Selecione um jogo válido." };
+  const auth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
+  const { shareCheckinGame } = await import("@/lib/checkin/share-game");
+  return withArenaTransaction(auth.arenaId, tx => shareCheckinGame(tx, { ...parsed.data, arenaId: auth.arenaId, playerId: auth.playerId }));
 }

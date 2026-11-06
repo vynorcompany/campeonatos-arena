@@ -1,8 +1,9 @@
+import { checkinGameWhere } from "./game";
 import type { Prisma } from "@prisma/client";
 import { instantToArenaWallClock } from "../calendar/arena-wall-clock";
 
 export async function registerCourtCheckin(tx: Prisma.TransactionClient, input: {
-  arenaId: string; playerId: string; occurrenceId: string; courtId: string; token: string; actorPlayerId?: string;
+  arenaId: string; playerId: string; occurrenceId: string; courtId: string; token: string; actorPlayerId?: string; joinOwnGame?: boolean;
 }, now = new Date()) {
   await tx.$queryRaw`SELECT id FROM "Arena" WHERE id = ${input.arenaId} FOR SHARE`;
   const arena = await tx.arena.findFirst({ where: { id: input.arenaId, checkinEnabled: true, checkinToken: input.token } });
@@ -16,7 +17,8 @@ export async function registerCourtCheckin(tx: Prisma.TransactionClient, input: 
     const booking = await tx.scheduleOccurrence.findFirst({ where: { id: input.occurrenceId, arenaId: input.arenaId,
       OR: [{ responsiblePlayerId: actorId }, { participants: { some: { playerId: actorId } } }] }, select: { id: true } });
     const target = await tx.scheduleParticipant.findFirst({ where: { occurrenceId: input.occurrenceId, playerId: input.playerId, occurrence: { arenaId: input.arenaId } }, select: { id: true } });
-    if (!booking || (actorId !== input.playerId && !target)) throw new Error("Você só pode confirmar atletas vinculados à sua reserva.");
+    const joiningSelf = input.joinOwnGame === true && !input.actorPlayerId && actorId === input.playerId;
+    if ((!booking && !joiningSelf) || (actorId !== input.playerId && !target)) throw new Error("Você só pode confirmar atletas vinculados à sua reserva.");
   }
   await tx.$queryRaw`SELECT id FROM "Player" WHERE id = ${input.playerId} AND "arenaId" = ${input.arenaId} FOR UPDATE`;
   const player = await tx.player.findFirst({ where: { id: input.playerId, arenaId: input.arenaId, active: true }, select: { id: true, name: true } });
@@ -26,9 +28,10 @@ export async function registerCourtCheckin(tx: Prisma.TransactionClient, input: 
   const wallNow = instantToArenaWallClock(now);
   const occurrence = await tx.scheduleOccurrence.findFirst({ where: {
     id: input.occurrenceId, arenaId: input.arenaId, status: "SCHEDULED",
+    ...(input.joinOwnGame ? checkinGameWhere : {}),
     startsAt: { gte: new Date(wallNow.getTime() - 60 * 60_000), lte: new Date(wallNow.getTime() + 60 * 60_000) }, endsAt: { gt: wallNow },
     occurrenceCourts: { some: { courtId: input.courtId, court: { arenaId: input.arenaId, active: true } } },
-  }, include: { occurrenceCourts: { include: { court: true } } } });
+  }, include: { occurrenceCourts: { include: { court: true } }, participants: { where: { player: { arenaId: input.arenaId, active: true } }, orderBy: { id: "asc" }, take: 1, select: { playerId: true } } } });
   if (!occurrence) throw new Error("Este horário não está disponível para check-in. Ele está disponível de uma hora antes até uma hora após o início.");
   const court = occurrence.occurrenceCourts.find(row => row.courtId === input.courtId)!.court;
   const overlap = await tx.checkinRecord.findFirst({ where: { arenaId: input.arenaId, playerId: player.id, startsAt: { lt: occurrence.endsAt }, endsAt: { gt: occurrence.startsAt } } });
@@ -37,7 +40,7 @@ export async function registerCourtCheckin(tx: Prisma.TransactionClient, input: 
     where: { occurrenceId_playerId: { occurrenceId: occurrence.id, playerId: player.id } },
     create: { occurrenceId: occurrence.id, playerId: player.id, checkedInAt: now }, update: { checkedInAt: now },
   });
-  if (!occurrence.responsiblePlayerId) await tx.scheduleOccurrence.update({ where: { id: occurrence.id }, data: { responsiblePlayerId: player.id } });
+  if (!occurrence.responsiblePlayerId) await tx.scheduleOccurrence.update({ where: { id: occurrence.id }, data: { responsiblePlayerId: occurrence.participants[0]?.playerId ?? player.id } });
   const record = await tx.checkinRecord.create({ data: {
     arenaId: input.arenaId, occurrenceId: occurrence.id, playerId: player.id, playerName: player.name,
     courtId: court.id, courtName: court.name, startsAt: occurrence.startsAt, endsAt: occurrence.endsAt,
