@@ -45,6 +45,7 @@ export async function getPublicLeaguePortal(
     where: { slug: arenaSlug },
     select: {
       id: true,
+      checkinEnabled: true,
       scheduleStartMinute: true,
       scheduleEndMinute: true,
       courts: {
@@ -639,6 +640,7 @@ export async function getPublicLeaguePortal(
     })),
     reservations: reservations.map((reservation) => ({
       id: reservation.id,
+      canShareGame: arena.checkinEnabled && reservation.responsiblePlayerId === playerId && reservation.status === "SCHEDULED" && !reservation.teacherId && !["aula", "aula fixa"].includes(reservation.bookingTypeName.toLowerCase()) && ["BOOKING", "COURT_BOOKING", "ONLINE_BOOKING"].includes(reservation.sourceType),
       title: reservation.title,
       courtName:
         reservation.occurrenceCourts

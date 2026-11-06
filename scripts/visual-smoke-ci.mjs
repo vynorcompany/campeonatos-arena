@@ -1144,6 +1144,43 @@ async function main() {
     }
     console.log("Portal do Atleta validado em desktop, celular claro/escuro e sem dados financeiros de outra arena.");
 
+    // A guest follows the shared game link, sees its organizer and joins in GROUP mode.
+    const checkinBefore = await db.arena.findUniqueOrThrow({where:{id:arenaA.id},select:{checkinEnabled:true,checkinToken:true,checkinMode:true}});
+    const checkinToken = createHash("sha256").update(randomUUID()).digest("hex");
+    const checkinOwner = await db.player.create({data:{arenaId:arenaA.id,name:"Responsável do jogo QA"}});
+    let checkinGame;
+    try {
+      await db.arena.update({where:{id:arenaA.id},data:{checkinEnabled:true,checkinMode:"GROUP",checkinToken}});
+      const court = await db.court.findFirstOrThrow({where:{arenaId:arenaA.id,active:true},select:{id:true,name:true}});
+      const parts=Object.fromEntries(new Intl.DateTimeFormat("en-US",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date()).map(part=>[part.type,part.value]));
+      const start=new Date(Number(parts.year),Number(parts.month)-1,Number(parts.day),Number(parts.hour),Number(parts.minute));
+      checkinGame=await db.scheduleOccurrence.create({data:{arenaId:arenaA.id,sourceType:"ONLINE_BOOKING",status:"SCHEDULED",title:"Check-in compartilhado QA",responsiblePlayerId:checkinOwner.id,startsAt:start,endsAt:new Date(start.getTime()+90*60_000),occurrenceCourts:{create:{courtId:court.id}},participants:{create:{playerId:checkinOwner.id,amountCents:15000}}}});
+      const path=`/checkin/arena-teste-goal?token=${checkinToken}&jogo=${checkinGame.id}`;
+      for(const viewport of [viewports[0],{name:"mobile",width:390,height:844},{name:"mobile-320",width:320,height:700}]){
+        await send("Emulation.setDeviceMetricsOverride",{width:viewport.width,height:viewport.height,deviceScaleFactor:1,mobile:viewport.name!=="desktop"});
+        await send("Network.setCookie",{name:"arena_player_session",value:athleteToken,url:baseUrl,httpOnly:true,sameSite:"Lax"});
+        await send("Page.navigate",{url:baseUrl+path});
+        let state;
+        for(let attempt=0;attempt<80;attempt++){
+          const result=await send("Runtime.evaluate",{expression:`(() => {const panel=document.querySelector('aside[aria-label="Seu check-in"]');const button=panel?.querySelector('button[type="submit"]');return {ready:Boolean(button&&!button.disabled),body:document.body.innerText,width:innerWidth,scrollWidth:document.documentElement.scrollWidth};})()`,returnByValue:true});
+          state=result.result.value;if(state.ready)break;await pause(100);
+        }
+        if(!state?.ready||state.scrollWidth>state.width+1||!state.body.includes("Jogo de Responsável do jogo QA")||!state.body.includes(court.name))throw new Error(`Check-in compartilhado indisponível em ${viewport.name}: ${JSON.stringify(state)}`);
+        const shot=await send("Page.captureScreenshot",{format:"png",fromSurface:true});await writeFile(`${outputDir}/checkin-game-${viewport.name}.png`,Buffer.from(shot.data,"base64"));
+      }
+      await clickElement('aside[aria-label="Seu check-in"] button[type="submit"]');
+      let joined=false;
+      for(let attempt=0;attempt<80;attempt++){if(await db.checkinRecord.count({where:{occurrenceId:checkinGame.id,playerId:"goal-athlete-a"}})){joined=true;break;}await pause(100);}
+      if(!joined)throw new Error("O convidado não foi vinculado à reserva após confirmar a presença.");
+      const owner=await db.scheduleOccurrence.findUniqueOrThrow({where:{id:checkinGame.id},select:{responsiblePlayerId:true}});
+      if(owner.responsiblePlayerId!==checkinOwner.id)throw new Error("O check-in do convidado trocou o responsável.");
+    } finally {
+      if(checkinGame){await db.checkinRecord.deleteMany({where:{occurrenceId:checkinGame.id}});await db.auditEvent.deleteMany({where:{arenaId:arenaA.id,entityId:checkinGame.id}});await db.scheduleOccurrence.delete({where:{id:checkinGame.id}});}
+      await db.player.delete({where:{id:checkinOwner.id}});
+      await db.arena.update({where:{id:arenaA.id},data:checkinBefore});
+    }
+    console.log("Check-in compartilhado validado em desktop e celular, com inclusão real do convidado sem trocar o responsável.");
+
     const bookingCourt = await db.court.findFirstOrThrow({ where: { arenaId: arenaA.id }, select: { id: true } });
     const bookingPlayer = await db.player.findFirstOrThrow({ where: { id: "goal-athlete-a", arenaId: arenaA.id }, select: { id: true } });
     const bookingStartsAt = new Date(Date.now() + 4 * 24 * 60 * 60_000);

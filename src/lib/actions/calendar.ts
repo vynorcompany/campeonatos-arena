@@ -163,7 +163,7 @@ const publicCourtBookingSchema = z.object({
 });
 type PublicCourtBookingActionResult =
   | { ok: false; error: string }
-  | { ok: true; checkoutUrl: string; calendarUrl: string; reservationStatus: "PENDING_PAYMENT" | "PENDING_CONFIRMATION" | "SCHEDULED" };
+  | { ok: true; occurrenceId: string; checkoutUrl: string; calendarUrl: string; reservationStatus: "PENDING_PAYMENT" | "PENDING_CONFIRMATION" | "SCHEDULED" };
 class PublicBookingConflictError extends Error {}
 
 const DEFAULT_BOOKING_TYPES = ["Aula", "Aula fixa", "Plano", "Super 12", "Liga", "Reserva"];
@@ -273,6 +273,7 @@ export async function createPublicCourtBookingAction(formData: FormData): Promis
   return {
     ok: true,
     checkoutUrl,
+    occurrenceId: onlineBooking.occurrenceId,
     calendarUrl: `/api/reservar/${arena.slug}/${onlineBooking.occurrenceId}/calendario`,
     reservationStatus: requiresPayment ? "PENDING_PAYMENT" : arena.onlineBookingRequiresConfirmation ? "PENDING_CONFIRMATION" : "SCHEDULED"
   };

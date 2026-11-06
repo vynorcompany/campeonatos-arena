@@ -1,4 +1,5 @@
 "use client";
+import { ShareGameButton } from "@/components/courts/share-game-button";
 import { CalendarDragScroll } from "@/components/calendar-drag-scroll";
 import { serviceRuleDetails } from "@/lib/calendar/service-booking-rules";
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
@@ -23,7 +24,7 @@ function endLabel(startsAt: string, minutes: number) { const value = dateMinute(
 
 type PendingReservation = { id: string; label: string; status: "PENDING_PAYMENT" | "PENDING_CONFIRMATION" };
 
-export function PublicCourtBookingForm({ arenaSlug, datePicker, matchId, matchSummary, courts, services = [], currentClient, layout, paymentOnlineEnabled, reservedSlots, pendingReservation, bookingBlocked = false, embedded = false }: { arenaSlug: string; datePicker?: ReactNode; matchId?: string; matchSummary?: { title: string; athletes: string[] }; courts: Court[]; services?: PortalBookingService[]; currentClient: { name: string }; layout: string; paymentOnlineEnabled: boolean; reservedSlots: string[]; pendingReservation: PendingReservation | null; bookingBlocked?: boolean; embedded?: boolean }) {
+export function PublicCourtBookingForm({ arenaSlug, datePicker, matchId, matchSummary, courts, services = [], currentClient, layout, paymentOnlineEnabled, reservedSlots, pendingReservation, bookingBlocked = false, embedded = false, canShareGames = false }: { arenaSlug: string; datePicker?: ReactNode; matchId?: string; matchSummary?: { title: string; athletes: string[] }; courts: Court[]; services?: PortalBookingService[]; currentClient: { name: string }; layout: string; paymentOnlineEnabled: boolean; reservedSlots: string[]; pendingReservation: PendingReservation | null; bookingBlocked?: boolean; embedded?: boolean; canShareGames?: boolean }) {
   const router = useRouter();
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const selectedServices = useMemo(()=>services.filter(service=>selectedServiceIds.includes(service.id)),[services,selectedServiceIds]);
@@ -42,6 +43,7 @@ export function PublicCourtBookingForm({ arenaSlug, datePicker, matchId, matchSu
   const weekday = startsAt ? new Date(`${startsAt.slice(0,10)}T12:00:00`).getDay() : 0;
   const [message, setMessage] = useState("");
   const [calendarUrl, setCalendarUrl] = useState("");
+  const [createdGameId, setCreatedGameId] = useState("");
   const [pending, startTransition] = useTransition();
   const [reviewing, setReviewing] = useState(false);
   const courtRail = useRef<HTMLDivElement>(null);
@@ -84,7 +86,7 @@ export function PublicCourtBookingForm({ arenaSlug, datePicker, matchId, matchSu
 
   const changeCourt = (nextCourtId: string) => { setCourtId(nextCourtId); };
   const changeSlot = (nextStartsAt: string) => { setStartsAt(nextStartsAt); };
-  const submit = (form: HTMLFormElement) => { const data = new FormData(form); data.set("arenaSlug", arenaSlug); if (matchId) data.set("matchId", matchId); data.set("courtId", courtId); data.set("startsAt", startsAt); data.set("durationMinutes", String(durationMinutes)); data.set("quotedTotalCents", String(selectedTotalCents)); for (const service of selectedServices) data.append("serviceIds", service.id); setMessage(""); setCalendarUrl(""); startTransition(async () => { try { const result = await createPublicCourtBookingAction(data); if (!result.ok) { setMessage(result.error); router.refresh(); return; } if (result.checkoutUrl) { window.location.assign(result.checkoutUrl); return; } form.reset(); setCalendarUrl(result.reservationStatus === "SCHEDULED" ? result.calendarUrl : ""); setMessage(result.reservationStatus === "SCHEDULED" ? "Reserva confirmada com sucesso." : "Reserva enviada com sucesso. A arena confirmará seu horário em breve."); } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível enviar sua reserva."); } }); };
+  const submit = (form: HTMLFormElement) => { const data = new FormData(form); data.set("arenaSlug", arenaSlug); if (matchId) data.set("matchId", matchId); data.set("courtId", courtId); data.set("startsAt", startsAt); data.set("durationMinutes", String(durationMinutes)); data.set("quotedTotalCents", String(selectedTotalCents)); for (const service of selectedServices) data.append("serviceIds", service.id); setMessage(""); setCalendarUrl(""); startTransition(async () => { try { const result = await createPublicCourtBookingAction(data); if (!result.ok) { setMessage(result.error); router.refresh(); return; } if (result.checkoutUrl) { window.location.assign(result.checkoutUrl); return; } form.reset(); setCreatedGameId(result.reservationStatus === "SCHEDULED" ? result.occurrenceId : ""); setCalendarUrl(result.reservationStatus === "SCHEDULED" ? result.calendarUrl : ""); setMessage(result.reservationStatus === "SCHEDULED" ? "Reserva confirmada com sucesso." : "Reserva enviada com sucesso. A arena confirmará seu horário em breve."); } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível enviar sua reserva."); } }); };
   const cancelPendingReservation = () => { if (!pendingReservation) return; setMessage(""); startTransition(async () => { try { const data = new FormData(); data.set("arenaSlug", arenaSlug); data.set("occurrenceId", pendingReservation.id); await cancelPublicCourtBookingRequestAction(data); window.location.reload(); } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível cancelar a solicitação."); } }); };
   const pendingNotice = pendingReservation ? <section className={cx(viewStyles.public_booking_pending,"tw:[&_span]:text-black! tw:[&_small]:text-black! tw:dark:[&_strong]:text-[#9bc5ff]! tw:dark:[&_span]:text-[#eff3f8]! tw:dark:[&_small]:text-[#bdd9e6]!")}><strong>{pendingReservation.status === "PENDING_PAYMENT" ? "Aguardando pagamento" : "Aguardando confirmação"}</strong><span>{pendingReservation.label}</span><small>{pendingReservation.status === "PENDING_PAYMENT" ? "Conclua o pagamento para confirmar sua reserva." : "A arena avisará você assim que confirmar a reserva."}</small><div className={viewStyles.public_booking_pending_actions}>{pendingReservation.status === "PENDING_PAYMENT" ? <a className={viewStyles.button_button_small} href={`/reservar/${encodeURIComponent(arenaSlug)}/pagamento/${encodeURIComponent(pendingReservation.id)}`}>Concluir pagamento</a> : null}<button type="button" className={viewStyles.button_button_small} disabled={pending} onClick={cancelPendingReservation}>Cancelar solicitação</button></div></section> : null;
 
@@ -164,6 +166,7 @@ export function PublicCourtBookingForm({ arenaSlug, datePicker, matchId, matchSu
     {serviceConflict ? <p role="alert" className="tw:text-sm tw:text-red-700 tw:dark:text-red-300">Não há horários para esta duração. Escolha outra duração ou selecione um serviço compatível.</p> : null}
     {selection.hasConflict ? <p className={viewStyles.public_booking_conflict} role="alert">Há uma reserva conflitando com este período. Escolha outro horário ou uma duração menor.</p> : null}
     {pendingNotice}
+    {createdGameId && canShareGames ? <ShareGameButton arenaSlug={arenaSlug} occurrenceId={createdGameId}/> : null}
     {message ? <p role="status" className="tw:text-sm">{message}{calendarUrl ? <> <a href={calendarUrl}>Adicionar ao meu calendário</a></> : null}</p> : null}
     </div>
     <section aria-label="Resumo da reserva" className={cx(surface,"tw:sticky tw:top-5 tw:grid tw:min-w-0 tw:gap-4 tw:max-[1000px]:static")}>
