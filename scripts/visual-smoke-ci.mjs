@@ -950,11 +950,11 @@ async function main() {
           }
           if (view.label === "reservar") {
             const bookingLayout = await send("Runtime.evaluate", {
-              expression: `(() => { const form=document.querySelector('form:has([aria-label="Etapas da reserva"])'); if(!form)return null; const times=form.querySelector('[aria-label="Horários disponíveis"]'); const services=form.querySelector('[aria-label="Serviços opcionais da reserva"]'); return {slots:times.querySelectorAll('button[aria-pressed],select option[value]:not([value=""])').length, disabled:times.querySelectorAll('button:disabled').length, servicesBelow:!services||services.getBoundingClientRect().top>=times.getBoundingClientRect().bottom, total:form.querySelector('output').textContent}; })()`, returnByValue: true,
+              expression: `(() => { const form=document.querySelector('form:has([aria-label="Etapas da reserva"])'); if(!form)return null; const times=form.querySelector('[aria-label="Quadras e horários"]'); const services=form.querySelector('[aria-label="Serviços opcionais da reserva"]'); return {slots:times.querySelectorAll('button[aria-pressed],select option[value]:not([value=""])').length, disabled:times.querySelectorAll('button:disabled').length, servicesBelow:!services||services.getBoundingClientRect().top>=times.getBoundingClientRect().bottom, durationAbove:Boolean(form.querySelector('[aria-label="Duração da reserva"]').compareDocumentPosition(times)&Node.DOCUMENT_POSITION_FOLLOWING), dateField:Boolean(form.querySelector('input[type="date"]')), selected:times.querySelectorAll('[data-selected-minute]').length, expected:Number(form.querySelector('[data-duration-minutes][aria-pressed="true"]').dataset.durationMinutes)/Number(times.querySelector('[data-selected-court="true"]').dataset.slotMinutes), total:form.querySelector('output').textContent}; })()`, returnByValue: true,
             });
             if (bookingLayout.result.value) {
               const layout=bookingLayout.result.value;
-              if(!layout.slots||layout.disabled||!layout.servicesBelow)throw new Error(`${label}: disponibilidade ou posição dos serviços incorreta: ${JSON.stringify(layout)}`);
+              if(!layout.slots||layout.disabled||!layout.servicesBelow||!layout.durationAbove||layout.dateField||layout.selected!==layout.expected)throw new Error(`${label}: disponibilidade ou posição dos serviços incorreta: ${JSON.stringify(layout)}`);
               const before=await db.scheduleOccurrence.count({where:{arenaId:arenaA.id,sourceType:"ONLINE_BOOKING"}});
               await clickElement('form:has([aria-label="Etapas da reserva"]) button[data-portal-action]');
               await pause(400);
