@@ -13,7 +13,7 @@ function failure(error: unknown) {
   console.error("Falha na API de agentes", error instanceof Error ? error.name : "Erro desconhecido");
   return json({ error: "Serviço temporariamente indisponível. Tente novamente." }, 503);
 }
-const querySchema = z.object({ view: z.enum(["caixa","competencia"]).optional(), period: z.string().regex(/^20\d{2}-(0[1-9]|1[0-2])$/).optional(), offset: z.coerce.number().int().min(0).max(100000).default(0), from: z.string().datetime().optional(), to: z.string().datetime().optional() }).strict();
+const querySchema = z.object({ requestId: z.string().regex(/^[a-zA-Z0-9_-]{8,80}$/).optional(), view: z.enum(["caixa","competencia"]).optional(), period: z.string().regex(/^20\d{2}-(0[1-9]|1[0-2])$/).optional(), offset: z.coerce.number().int().min(0).max(100000).default(0), from: z.string().datetime().optional(), to: z.string().datetime().optional() }).strict();
 export async function GET(request: Request, { params }: { params: Promise<{ resource: string }> }) {
   const { resource } = await params;
   if (!Object.hasOwn(resourceScopes, resource)) return json({ error: "Recurso não encontrado." }, 404);
@@ -21,6 +21,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ reso
     const key = await authenticateAgent(request, resourceScopes[resource]);
     const query = querySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
     if (!query.success) return json({ error: "Use offset inteiro e datas ISO em from e to." }, 400);
+    if (query.data.requestId) {
+      if (resource !== "finance" || query.data.period || query.data.from || query.data.to || query.data.offset || query.data.view) return json({ error: "Use requestId isoladamente em finance." }, 400);
+      const receipt = await withArenaTransaction(key.arenaId, async tx => {
+        const entry = await tx.financialEntry.findFirst({ where: { arenaId: key.arenaId, source: "AGENT_API", externalReference: `${key.id}:${query.data.requestId}` }, select: { id: true, status: true, description: true, category: true, amountCents: true, type: true, dueDate: true, paidAt: true, paymentMethod: true } });
+        return entry ? { state: "saved", requestId: query.data.requestId, verified: true, entry } : { state: "not_found", requestId: query.data.requestId };
+      });
+      return json({ ...receipt, source: { system: "arena", company: key.arenaId } });
+    }
     if(query.data.period && (query.data.from || query.data.to || query.data.offset)) return json({error:"Use período mensal ou datas/offset, sem combinar."},400);
     if (resource === "dashboard") {
       if (!query.data.period) return json({ error: "Informe period AAAA-MM para consultar o Dashboard." }, 400);
@@ -61,8 +69,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ reso
 const entrySchema = z.object({
   description: z.string().trim().min(1).max(200), category: z.string().trim().min(1).max(80),
   type: z.enum(["REVENUE", "EXPENSE"]), amountCents: z.number().int().positive().max(2_147_483_647),
+  status: z.enum(["PENDING", "PAID"]).default("PENDING"), paidAt: z.string().datetime().optional(), paymentMethod: z.string().trim().min(1).max(80).optional(),
   dueDate: z.string().datetime().optional(), playerId: z.string().min(1).optional(), bankAccountId: z.string().min(1).optional(),
-}).strict();
+}).strict().superRefine((value, ctx) => {
+  if (value.status === "PAID" && (!value.paidAt || !value.paymentMethod)) ctx.addIssue({ code: "custom", message: "Pagamento realizado exige data e forma de pagamento." });
+  if (value.status === "PENDING" && value.paidAt) ctx.addIssue({ code: "custom", message: "Conta pendente não pode conter data de pagamento." });
+});
 export async function POST(request: Request, { params }: { params: Promise<{ resource: string }> }) {
   if ((await params).resource !== "finance") return json({ error: "Escrita disponível somente em /api/agents/finance." }, 405);
   try {
@@ -72,23 +84,30 @@ export async function POST(request: Request, { params }: { params: Promise<{ res
     let body: unknown; try { body = await readBoundedJson(request, 64 * 1024); } catch (error) { return json({ error: error instanceof RequestBodyTooLargeError ? error.message : "Envie um JSON válido." }, error instanceof RequestBodyTooLargeError ? 413 : 400); }
     const parsed = entrySchema.safeParse(body);
     if (!parsed.success) return json({ error: "Informe descrição, categoria, tipo REVENUE ou EXPENSE e amountCents inteiro positivo. Datas devem estar em ISO; novos lançamentos ficam pendentes." }, 400);
+    if (parsed.data.status === "PAID" && !key.scopes.includes("finance:settle")) throw new AgentAccessError("A chave não permite registrar pagamentos realizados.", 403);
     const data = await withArenaTransaction(key.arenaId, async tx => {
       await tx.$queryRaw`SELECT id FROM "AgentApiKey" WHERE id = ${key.id} AND "arenaId" = ${key.arenaId} FOR UPDATE`;
       const active = await tx.agentApiKey.findFirst({ where: { id: key.id, arenaId: key.arenaId, revokedAt: null, expiresAt: { gt: new Date() } } });
       if (!active?.scopes.includes("finance:write")) throw new AgentAccessError("A chave foi revogada ou perdeu a permissão de escrita.", 403);
+      if (parsed.data.status === "PAID" && !active.scopes.includes("finance:settle")) throw new AgentAccessError("Permissão de registrar pagamento revogada.", 403);
       const reference = `${key.id}:${idempotencyKey}`;
       const previous = await tx.financialEntry.findFirst({ where: { arenaId: key.arenaId, source: "AGENT_API", externalReference: reference } });
       if (previous) {
-        const matches = previous.description === parsed.data.description && previous.type === parsed.data.type && previous.category === parsed.data.category && previous.amountCents === parsed.data.amountCents && previous.playerId === (parsed.data.playerId ?? null) && previous.bankAccountId === (parsed.data.bankAccountId ?? null) && previous.dueDate?.toISOString() === (parsed.data.dueDate ? new Date(parsed.data.dueDate).toISOString() : undefined);
+        const matches = previous.description === parsed.data.description && previous.type === parsed.data.type && previous.category === parsed.data.category && previous.amountCents === parsed.data.amountCents && previous.status === parsed.data.status && previous.paymentMethod === (parsed.data.paymentMethod ?? "") && previous.paidAt?.toISOString() === (parsed.data.paidAt ? new Date(parsed.data.paidAt).toISOString() : undefined) && previous.playerId === (parsed.data.playerId ?? null) && previous.bankAccountId === (parsed.data.bankAccountId ?? null) && previous.dueDate?.toISOString() === (parsed.data.dueDate ? new Date(parsed.data.dueDate).toISOString() : undefined);
         if (!matches) throw new AgentAccessError("Idempotency-Key já utilizada com outros dados. Use outra chave para um novo lançamento.", 409);
-        return { id: previous.id, status: previous.status, reused: true };
+        return { id: previous.id, status: previous.status, reused: true, requestId: idempotencyKey, verified: true };
       }
       if (parsed.data.playerId && !await tx.player.findFirst({ where: { id: parsed.data.playerId, arenaId: key.arenaId } })) throw new AgentAccessError("Cliente não encontrado nesta arena.", 400);
       if (parsed.data.bankAccountId && !await tx.bankAccount.findFirst({ where: { id: parsed.data.bankAccountId, arenaId: key.arenaId } })) throw new AgentAccessError("Conta bancária não encontrada nesta arena.", 400);
-      const entry = await tx.financialEntry.create({ data: { ...parsed.data, dueDate: parsed.data.dueDate ? new Date(parsed.data.dueDate) : null, arenaId: key.arenaId, status: "PENDING", source: "AGENT_API", externalReference: reference } });
+      const entry = await tx.financialEntry.create({ data: { ...parsed.data, dueDate: parsed.data.dueDate ? new Date(parsed.data.dueDate) : null, paidAt: parsed.data.paidAt ? new Date(parsed.data.paidAt) : null, paymentMethod: parsed.data.paymentMethod ?? "", arenaId: key.arenaId, source: "AGENT_API", externalReference: reference } });
+      if (entry.status === "PAID") await tx.financialSettlement.create({ data: {
+        arenaId: key.arenaId, financialEntryId: entry.id, bankAccountId: entry.bankAccountId,
+        amountCents: entry.amountCents, interestCents: 0, paymentMethod: entry.paymentMethod,
+        paidAt: entry.paidAt!, notes: "Pagamento já realizado informado pelo agente autorizado."
+      } });
       await tx.auditEvent.create({ data: { arenaId: key.arenaId, actorId: key.id, actorName: active.name, action: "FINANCIAL_ENTRY_CREATED", entityId: entry.id, details: { description: entry.description, amountCents: entry.amountCents, source: "AGENT_API" } } });
       await tx.agentApiKey.update({ where: { id: key.id }, data: { lastUsedAt: new Date() } });
-      return { id: entry.id, status: entry.status, reused: false };
+      return { id: entry.id, status: entry.status, reused: false, requestId: idempotencyKey, verified: true };
     });
     return json({ data }, data.reused ? 200 : 201);
   } catch (error) { return failure(error); }

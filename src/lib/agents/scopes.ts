@@ -3,6 +3,7 @@ export const agentScopes = {
   "schedule:read": "Consultar agenda e reservas",
   "finance:read": "Consultar lançamentos financeiros",
   "finance:write": "Criar lançamentos financeiros",
+  "finance:settle": "Registrar pagamentos financeiros já realizados",
   "reports:read": "Consultar relatórios financeiros",
   "clients:read": "Consultar clientes",
   "teachers:read": "Consultar professores",

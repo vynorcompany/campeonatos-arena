@@ -10,7 +10,8 @@ const enabled = (() => {
     const db = new URL(url), base = new URL(baseUrl);
     if (db.hostname !== "127.0.0.1" || base.hostname !== "127.0.0.1") return false;
     return (db.port === "55439" && db.pathname === "/arena_verify" && base.port === "3013") ||
-      (db.port === "55433" && db.pathname === "/arena_goal" && base.port === "3015");
+      (db.port === "55433" && db.pathname === "/arena_goal" && base.port === "3015") ||
+      (db.port === "55441" && db.pathname === "/arena_finwrite" && base.port === "3018");
   } catch { return false; }
 })();
 test("API aplica escopos e arena, revoga chaves e evita lançamentos duplicados", { skip: !enabled, timeout: 120000 }, async () => {
@@ -42,6 +43,23 @@ test("API aplica escopos e arena, revoga chaves e evita lançamentos duplicados"
     assert.equal(await admin.financialEntry.count({ where: { id: receipt.data.id, arenaId: arena.id } }), 1);
     assert.equal(await admin.auditEvent.count({ where: { entityId: receipt.data.id, action: "FINANCIAL_ENTRY_CREATED" } }), 1);
     const invalid = await call("finance", writer.secret, { method: "POST", headers: { "content-type": "application/json", "idempotency-key": randomUUID() }, body: JSON.stringify({ ...body, playerId: otherPlayer.id }) }); assert.equal(invalid.status, 400);
+    const paidRequestId = randomUUID();
+    const paidBody = { ...body, type: "EXPENSE", description: "Pagamento informado", status: "PAID", paidAt: "2026-11-05T15:00:00.000Z", paymentMethod: "PIX" };
+    const paidPost = (secret: string, value = paidBody) => call("finance", secret, { method: "POST", headers: { "content-type": "application/json", "idempotency-key": paidRequestId }, body: JSON.stringify(value) });
+    assert.equal((await paidPost(writer.secret)).status, 403);
+    const settler = await createKey(["finance:write", "finance:read", "finance:settle"]);
+    const paid = await paidPost(settler.secret); assert.equal(paid.status, 201);
+    const paidReceipt = await paid.json(); entryIds.push(paidReceipt.data.id);
+    assert.equal((await paidPost(settler.secret)).status, 200);
+    assert.equal((await paidPost(settler.secret, { ...paidBody, paidAt: "2026-11-05T15:00:00Z" })).status, 200);
+    assert.equal(await admin.financialSettlement.count({ where: { financialEntryId: paidReceipt.data.id } }), 1);
+    const lookup = await call(`finance?requestId=${paidRequestId}`, settler.secret); assert.equal(lookup.status, 200);
+    const proof = await lookup.json(); assert.deepEqual(proof.source, { system: "arena", company: arena.id }); assert.equal(proof.state, "saved"); assert.equal(proof.entry.status, "PAID"); assert.equal(proof.entry.paymentMethod, "PIX"); assert.equal(proof.entry.amountCents, body.amountCents);
+    assert.equal((await (await call(`finance?requestId=${paidRequestId}`, writer.secret)).json()).state, "not_found");
+    assert.equal((await paidPost(settler.secret, { ...paidBody, paymentMethod: "CASH" })).status, 409);
+    assert.equal((await paidPost(settler.secret, { ...paidBody, status: "PENDING" })).status, 400);
+    await admin.agentApiKey.update({ where: { id: settler.key.id }, data: { revokedAt: new Date() } });
+    assert.equal((await call(`finance?requestId=${paidRequestId}`, settler.secret)).status, 401);
     for (const resource of ["finance", "reports", "agents", "reservations", "teachers"]) { const response = await call(resource, writer.secret); assert.equal(response.status, 200, resource); assert.ok(!JSON.stringify(await response.json()).includes(writer.key.tokenHash)); }
     const storedSlot = await admin.scheduleOccurrence.findUnique({ where: { id: "visual-checkin-slot" } });
     if (storedSlot) {
@@ -54,6 +72,7 @@ test("API aplica escopos e arena, revoga chaves e evita lançamentos duplicados"
     const expired = await createKey(["clients:read"], true); assert.equal((await call("clients", expired.secret)).status, 401);
   } finally {
     await admin.auditEvent.deleteMany({ where: { entityId: { in: [...entryIds, ...keyIds] } } });
+    await admin.financialSettlement.deleteMany({ where: { financialEntryId: { in: entryIds } } });
     await admin.financialEntry.deleteMany({ where: { id: { in: entryIds } } });
     await admin.agentApiKey.deleteMany({ where: { id: { in: keyIds } } });
     await admin.$disconnect();
