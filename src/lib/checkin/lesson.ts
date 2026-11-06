@@ -1,3 +1,4 @@
+import { assertLessonCheckinDebtPolicy } from "./lesson-debt-policy";
 import { consumeLessonCredit } from "../academy/lesson-credits";
 import type { Prisma } from "@prisma/client";
 import { arenaWallClockToInstant } from "../calendar/arena-wall-clock";
@@ -17,6 +18,7 @@ export async function registerLessonCheckin(tx: Prisma.TransactionClient, input:
   const startsAt = attendance.lesson.scheduledAt;
   const instant = arenaWallClockToInstant(startsAt).getTime();
   if (now.getTime() < instant - 3 * 60 * 60_000 || now.getTime() > instant + 8 * 60 * 60_000) throw new Error("O check-in fica disponível três horas antes da aula e até oito horas após o início.");
+  await assertLessonCheckinDebtPolicy(tx, input.arenaId, student.id, input.playerId, now);
   const remaining = await consumeLessonCredit(tx,input.arenaId,student.id,attendance.id,now);
   const result = await tx.lessonAttendance.update({ where: { id: attendance.id }, data: { status: "PRESENT", checkedInAt: now } });
   await tx.student.update({ where: { id: student.id }, data: { remainingClasses: remaining, attendedClasses: { increment: 1 } } });

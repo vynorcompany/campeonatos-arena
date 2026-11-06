@@ -1,10 +1,11 @@
+import { LessonCheckinPolicyForm } from "@/components/courts/lesson-checkin-policy-form";
 import QRCode from "qrcode";
 import { env } from "@/lib/env";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { configureCourtCheckinAction } from "@/lib/actions/checkin";
 
-export async function CheckinSettings({ arenaSlug, enabled, token, mode = "SELF" }: { arenaSlug: string; enabled: boolean; token: string | null; mode?: string }) {
+export async function CheckinSettings({ arenaSlug, enabled, token, mode = "SELF", blockOverdueLessons = false }: { arenaSlug: string; enabled: boolean; token: string | null; mode?: string; blockOverdueLessons?: boolean }) {
   const url = enabled && token ? new URL(`/checkin/${encodeURIComponent(arenaSlug)}?token=${encodeURIComponent(token)}`, env.appUrl).toString() : null;
   const qr = url ? await QRCode.toDataURL(url, { width: 320, margin: 3, errorCorrectionLevel: "M" }) : null;
   const button = "tw:rounded-lg tw:border tw:border-[#cbd9e7] tw:bg-white tw:px-4 tw:py-2.5 tw:text-sm tw:font-semibold tw:text-[#132d58]";
@@ -20,6 +21,7 @@ export async function CheckinSettings({ arenaSlug, enabled, token, mode = "SELF"
           <p className="tw:m-0 tw:text-xs tw:leading-relaxed tw:text-[#607898]">No modo em grupo, um atleta vinculado à reserva seleciona individualmente quem está presente. O check-in das aulas continua individual.</p>
           <SubmitButton label="Salvar modo de check-in" pendingLabel="Salvando..." className={`${button} tw:justify-self-start`} />
         </SafeActionForm>
+        <LessonCheckinPolicyForm enabled={blockOverdueLessons} />
         <div className="tw:flex tw:flex-wrap tw:gap-3"><SafeActionForm action={configureCourtCheckinAction} successMessage={enabled ? "Check-in desativado." : "Check-in ativado."}><input type="hidden" name="enabled" value={String(!enabled)} /><SubmitButton label={enabled ? "Desativar check-in" : "Ativar e gerar QR Code"} pendingLabel="Salvando..." className={button} /></SafeActionForm>
           {enabled ? <SafeActionForm action={configureCourtCheckinAction} confirmKeyword="ALTERAR" confirmPrompt="Gerar outro QR Code? O código anterior deixará de funcionar." successMessage="Novo QR Code gerado. Substitua a imagem disponibilizada na arena."><input type="hidden" name="enabled" value="true" /><input type="hidden" name="rotate" value="true" /><SubmitButton label="Renovar QR Code" pendingLabel="Gerando..." className={button} /></SafeActionForm> : null}
         </div>
