@@ -21,13 +21,13 @@ test("occupied agenda slots expose cancellation and command operations", () => {
   assert.match(comandaActions, /crypto\.randomUUID\(\)/);
 });
 
-test("online booking lists starts that fit the minimum duration and flags a conflicting extension", () => {
+test("online booking excludes every duration that overlaps an occupied interval", () => {
   const page = readFileSync(resolve(process.cwd(), "src/components/public-booking-content.tsx"), "utf8");
   const form = readFileSync(resolve(process.cwd(), "src/components/public-court-booking-form.tsx"), "utf8");
   const styles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
 
   assert.match(page, /minimumDuration/);
-  assert.match(page, /minimumBlocked/);
+  assert.match(page, /!blockedMinutes\.some/);
   assert.match(page, /blockedMinutes/);
   assert.match(form, /public-booking-slot-block-conflict/);
   assert.match(form, /currentClient\.name/);
