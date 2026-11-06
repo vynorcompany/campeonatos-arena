@@ -1145,6 +1145,7 @@ async function main() {
     console.log("Portal do Atleta validado em desktop, celular claro/escuro e sem dados financeiros de outra arena.");
 
     // A guest follows the shared game link, sees its organizer and joins in GROUP mode.
+    const checkinThemeBefore = (await send("Network.getCookies",{urls:[baseUrl]})).cookies.find(cookie=>cookie.name==="arena_portal_theme");
     const checkinBefore = await db.arena.findUniqueOrThrow({where:{id:arenaA.id},select:{checkinEnabled:true,checkinToken:true,checkinMode:true}});
     const checkinToken = createHash("sha256").update(randomUUID()).digest("hex");
     const checkinOwner = await db.player.create({data:{arenaId:arenaA.id,name:"Responsável do jogo QA"}});
@@ -1157,6 +1158,7 @@ async function main() {
       checkinGame=await db.scheduleOccurrence.create({data:{arenaId:arenaA.id,sourceType:"ONLINE_BOOKING",status:"SCHEDULED",title:"Check-in compartilhado QA",responsiblePlayerId:checkinOwner.id,startsAt:start,endsAt:new Date(start.getTime()+90*60_000),occurrenceCourts:{create:{courtId:court.id}},participants:{create:{playerId:checkinOwner.id,amountCents:15000}}}});
       const path=`/checkin/arena-teste-goal?token=${checkinToken}&jogo=${checkinGame.id}`;
       for(const viewport of [viewports[0],{name:"mobile",width:390,height:844},{name:"mobile-320",width:320,height:700}]){
+        await send("Network.setCookie",{name:"arena_portal_theme",value:viewport.name==="mobile"?"dark":"light",url:baseUrl,sameSite:"Lax"});
         await send("Emulation.setDeviceMetricsOverride",{width:viewport.width,height:viewport.height,deviceScaleFactor:1,mobile:viewport.name!=="desktop"});
         await send("Network.setCookie",{name:"arena_player_session",value:athleteToken,url:baseUrl,httpOnly:true,sameSite:"Lax"});
         await send("Page.navigate",{url:baseUrl+path});
@@ -1166,6 +1168,8 @@ async function main() {
           state=result.result.value;if(state.ready)break;await pause(100);
         }
         if(!state?.ready||state.scrollWidth>state.width+1||!state.body.includes("Jogo de Responsável do jogo QA")||!state.body.includes(court.name))throw new Error(`Check-in compartilhado indisponível em ${viewport.name}: ${JSON.stringify(state)}`);
+        const contrast=await send("Runtime.evaluate",{expression:`(${measurePortalContrast.toString()})(['button[aria-pressed="true"][aria-label^="Jogo de"]'])`,returnByValue:true});
+        if((contrast.result.value??[]).some(check=>check.missing||check.contrast<check.threshold))throw new Error(`Check-in com contraste insuficiente em ${viewport.name}: ${JSON.stringify(contrast.result.value)}`);
         const shot=await send("Page.captureScreenshot",{format:"png",fromSurface:true});await writeFile(`${outputDir}/checkin-game-${viewport.name}.png`,Buffer.from(shot.data,"base64"));
       }
       await clickElement('aside[aria-label="Seu check-in"] button[type="submit"]');
@@ -1178,6 +1182,7 @@ async function main() {
       if(checkinGame){await db.checkinRecord.deleteMany({where:{occurrenceId:checkinGame.id}});await db.auditEvent.deleteMany({where:{arenaId:arenaA.id,entityId:checkinGame.id}});await db.scheduleOccurrence.delete({where:{id:checkinGame.id}});}
       await db.player.delete({where:{id:checkinOwner.id}});
       await db.arena.update({where:{id:arenaA.id},data:checkinBefore});
+      if(checkinThemeBefore)await send("Network.setCookie",{name:"arena_portal_theme",value:checkinThemeBefore.value,url:baseUrl,sameSite:"Lax"});else await send("Network.deleteCookies",{name:"arena_portal_theme",url:baseUrl});
     }
     console.log("Check-in compartilhado validado em desktop e celular, com inclusão real do convidado sem trocar o responsável.");
 
