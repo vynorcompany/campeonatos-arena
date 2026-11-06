@@ -257,7 +257,7 @@ test("dados incompletos deixam alerta operacional sem tentar emitir boleto", asy
   assert.match(result.reason, /Cadastro incompleto.*CPF/);
   assert.equal(service.claims.length, 0);
   assert.equal(service.alerts[0].data.type, "ONLINE_CHARGE_ISSUANCE_REVIEW");
-  assert.match(service.alerts[0].data.message, /CPF/);
+  assert.match(service.alerts[0].data.message ?? "", /CPF/);
 });
 
 test("falha no WhatsApp mantém o boleto emitido e deixa alerta sem reenviar", async () => {
