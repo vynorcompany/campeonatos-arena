@@ -108,7 +108,17 @@ export function PublicCourtBookingForm({ arenaSlug, datePicker, matchId, matchSu
     </ol>
     <div className="tw:grid tw:min-w-0 tw:grid-cols-[minmax(0,1fr)_300px] tw:items-start tw:gap-6 tw:max-[1000px]:grid-cols-1">
     <div className="tw:grid tw:min-w-0 tw:gap-5">
-    {reviewing ? <section className={surface} aria-label="Revisão da reserva"><h2 tabIndex={-1} className="tw:m-0 tw:text-xl tw:font-medium">Confira sua reserva</h2><p className="tw:my-3 tw:text-sm">{court?.name} · {slot?.label} às {endLabel(startsAt,durationMinutes)} · {duration(durationMinutes)}</p><p className="tw:my-3 tw:text-sm">{selectedServices.length ? selectedServices.map(service => service.name).join(" · ") : "Sem serviços adicionais"}</p><button type="button" className={ui.secondary} onClick={() => setReviewing(false)}>Alterar horário ou serviços</button></section> : <>
+    {reviewing ? <section className={surface} aria-label="Revisão da reserva"><h2 tabIndex={-1} className="tw:m-0 tw:text-xl tw:font-medium">Confira sua reserva</h2><dl className="tw:my-4 tw:grid tw:min-w-0 tw:grid-cols-[repeat(auto-fit,minmax(min(100%,230px),1fr))] tw:gap-3">
+      <div className="tw:min-w-0 tw:rounded-md tw:border tw:border-[#c5d8ef] tw:border-l-4 tw:border-l-[#215da5] tw:bg-[#f2f7fe] tw:p-4 tw:dark:border-[#3b4e66] tw:dark:border-l-[#78b3ff] tw:dark:bg-[#15263c]">
+        <dt className="tw:flex tw:items-center tw:gap-2 tw:text-xs tw:font-normal"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="tw:size-4 tw:shrink-0 tw:text-[#215da5] tw:dark:text-[#9bc5ff]"><rect x="3" y="5" width="18" height="14" rx="1"/><path d="M12 5v14M3 12h18M7 5v14M17 5v14"/></svg>Quadra</dt>
+        <dd className="tw:mx-0 tw:mb-0 tw:mt-2 tw:break-words tw:text-2xl tw:font-semibold tw:leading-tight tw:text-[#174983] tw:dark:text-[#9bc5ff]">{court?.name}</dd>
+      </div>
+      <div className="tw:min-w-0 tw:rounded-md tw:border tw:border-[#c5d8ef] tw:border-l-4 tw:border-l-[#215da5] tw:bg-[#f2f7fe] tw:p-4 tw:dark:border-[#3b4e66] tw:dark:border-l-[#78b3ff] tw:dark:bg-[#15263c]">
+        <dt className="tw:flex tw:items-center tw:gap-2 tw:text-xs tw:font-normal"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="tw:size-4 tw:shrink-0 tw:text-[#215da5] tw:dark:text-[#9bc5ff]"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Horário</dt>
+        <dd className="tw:mx-0 tw:mb-0 tw:mt-2 tw:text-2xl tw:font-semibold tw:leading-tight tw:tabular-nums tw:text-[#174983] tw:dark:text-[#9bc5ff]"><span className="tw:whitespace-nowrap">{slot?.label}</span><span className="tw:px-1 tw:text-base tw:font-normal">às</span><span className="tw:whitespace-nowrap">{endLabel(startsAt,durationMinutes)}</span></dd>
+        <dd className="tw:mx-0 tw:mb-0 tw:mt-1 tw:text-xs tw:font-normal">Duração: {duration(durationMinutes)}</dd>
+      </div>
+    </dl><p className="tw:my-3 tw:text-sm">{selectedServices.length ? selectedServices.map(service => service.name).join(" · ") : "Sem serviços adicionais"}</p><button type="button" className={ui.secondary} onClick={() => setReviewing(false)}>Alterar horário ou serviços</button></section> : <>
     <section aria-label="Horários disponíveis" className="tw:grid tw:min-w-0 tw:gap-3">
       <h2 className="tw:m-0 tw:text-xl tw:font-medium">Escolha quando jogar</h2>{datePicker}
     </section>
