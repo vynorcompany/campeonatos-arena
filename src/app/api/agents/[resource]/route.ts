@@ -27,7 +27,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ reso
         const entry = await tx.financialEntry.findFirst({ where: { arenaId: key.arenaId, source: "AGENT_API", externalReference: `${key.id}:${query.data.requestId}` }, select: { id: true, status: true, description: true, category: true, amountCents: true, type: true, dueDate: true, paidAt: true, paymentMethod: true } });
         return entry ? { state: "saved", requestId: query.data.requestId, verified: true, entry } : { state: "not_found", requestId: query.data.requestId };
       });
-      return json(receipt);
+      return json({ ...receipt, source: { system: "arena", company: key.arenaId } });
     }
     if(query.data.period && (query.data.from || query.data.to || query.data.offset)) return json({error:"Use período mensal ou datas/offset, sem combinar."},400);
     if (resource === "dashboard") {
@@ -93,7 +93,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ res
       const reference = `${key.id}:${idempotencyKey}`;
       const previous = await tx.financialEntry.findFirst({ where: { arenaId: key.arenaId, source: "AGENT_API", externalReference: reference } });
       if (previous) {
-        const matches = previous.description === parsed.data.description && previous.type === parsed.data.type && previous.category === parsed.data.category && previous.amountCents === parsed.data.amountCents && previous.status === parsed.data.status && previous.paymentMethod === (parsed.data.paymentMethod ?? "") && previous.paidAt?.toISOString() === parsed.data.paidAt && previous.playerId === (parsed.data.playerId ?? null) && previous.bankAccountId === (parsed.data.bankAccountId ?? null) && previous.dueDate?.toISOString() === (parsed.data.dueDate ? new Date(parsed.data.dueDate).toISOString() : undefined);
+        const matches = previous.description === parsed.data.description && previous.type === parsed.data.type && previous.category === parsed.data.category && previous.amountCents === parsed.data.amountCents && previous.status === parsed.data.status && previous.paymentMethod === (parsed.data.paymentMethod ?? "") && previous.paidAt?.toISOString() === (parsed.data.paidAt ? new Date(parsed.data.paidAt).toISOString() : undefined) && previous.playerId === (parsed.data.playerId ?? null) && previous.bankAccountId === (parsed.data.bankAccountId ?? null) && previous.dueDate?.toISOString() === (parsed.data.dueDate ? new Date(parsed.data.dueDate).toISOString() : undefined);
         if (!matches) throw new AgentAccessError("Idempotency-Key já utilizada com outros dados. Use outra chave para um novo lançamento.", 409);
         return { id: previous.id, status: previous.status, reused: true, requestId: idempotencyKey, verified: true };
       }

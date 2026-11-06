@@ -51,9 +51,10 @@ test("API aplica escopos e arena, revoga chaves e evita lançamentos duplicados"
     const paid = await paidPost(settler.secret); assert.equal(paid.status, 201);
     const paidReceipt = await paid.json(); entryIds.push(paidReceipt.data.id);
     assert.equal((await paidPost(settler.secret)).status, 200);
+    assert.equal((await paidPost(settler.secret, { ...paidBody, paidAt: "2026-11-05T15:00:00Z" })).status, 200);
     assert.equal(await admin.financialSettlement.count({ where: { financialEntryId: paidReceipt.data.id } }), 1);
     const lookup = await call(`finance?requestId=${paidRequestId}`, settler.secret); assert.equal(lookup.status, 200);
-    const proof = await lookup.json(); assert.equal(proof.state, "saved"); assert.equal(proof.entry.status, "PAID"); assert.equal(proof.entry.paymentMethod, "PIX"); assert.equal(proof.entry.amountCents, body.amountCents);
+    const proof = await lookup.json(); assert.deepEqual(proof.source, { system: "arena", company: arena.id }); assert.equal(proof.state, "saved"); assert.equal(proof.entry.status, "PAID"); assert.equal(proof.entry.paymentMethod, "PIX"); assert.equal(proof.entry.amountCents, body.amountCents);
     assert.equal((await (await call(`finance?requestId=${paidRequestId}`, writer.secret)).json()).state, "not_found");
     assert.equal((await paidPost(settler.secret, { ...paidBody, paymentMethod: "CASH" })).status, 409);
     assert.equal((await paidPost(settler.secret, { ...paidBody, status: "PENDING" })).status, 400);
