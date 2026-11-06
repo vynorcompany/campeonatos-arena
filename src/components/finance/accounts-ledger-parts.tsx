@@ -6,6 +6,9 @@ export type Account = {
   updatedAt: string;
   source: string;
   counterpartyName: string;
+  supplierId?: string | null;
+  payeeEmployeeId?: string | null;
+  payeeTeacherId?: string | null;
   category: string;
   description: string;
   amountCents: number;
