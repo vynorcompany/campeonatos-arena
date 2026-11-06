@@ -33,7 +33,29 @@ test("QR de aulas respeita arena, matrícula, janela, saldo e concorrência com 
     }
     const canceled = await create(0,arena.id,"CANCELED");
     await assert.rejects(run(tx=>registerQrLessonCheckin(tx,{...input,lessonId:canceled.id},now)),/não está disponível/);
+    // With the policy enabled, only unpaid, expired lesson charges block attendance.
+    await admin.arenaOperationalSettings.create({ data: { arenaId: arena.id, lessonCheckinBlockOverdue: true } });
+    const today = new Date(wall.getFullYear(), wall.getMonth(), wall.getDate());
+    const yesterday = new Date(today); yesterday.setDate(yesterday.getDate()-1);
+    const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate()+1);
+    await admin.financialEntry.createMany({ data: [
+      { arenaId: arena.id, playerId: player.id, type: "REVENUE", category: "Planos de aulas", description: "Vence hoje", amountCents: 1000, dueDate: today },
+      { arenaId: arena.id, playerId: player.id, type: "REVENUE", category: "Planos de aulas", description: "Futura", amountCents: 1000, dueDate: tomorrow, status: "OVERDUE" },
+      { arenaId: arena.id, playerId: player.id, type: "REVENUE", category: "Comandas", description: "Outra categoria", amountCents: 1000, dueDate: yesterday },
+    ] });
+    const debt = await admin.financialEntry.create({ data: { arenaId: arena.id, playerId: player.id, type: "REVENUE", category: "Planos de aulas", description: "Mensalidade vencida", amountCents: 10000, dueDate: yesterday, status: "PARTIAL", settlements: { create: { arenaId: arena.id, amountCents: 6000, paymentMethod: "Dinheiro", paidAt: now } } } });
+    await assert.rejects(run(tx=>registerQrLessonCheckin(tx,input,now)), /40,00.*caixa/);
+    assert.equal((await admin.student.findUniqueOrThrow({where:{id:student.id}})).remainingClasses,2);
+    assert.equal((await admin.lessonAttendance.findUniqueOrThrow({where:{lessonId_studentId:{lessonId:lesson.id,studentId:student.id}}})).checkedInAt,null);
+    // Disabling the arena policy restores the existing check-in flow, even with debt.
+    await admin.arenaOperationalSettings.update({where:{arenaId:arena.id},data:{lessonCheckinBlockOverdue:false}});
     await Promise.all([run(tx=>registerQrLessonCheckin(tx,input,now)),run(tx=>registerLessonCheckin(tx,input,now))]);
+    await admin.arenaOperationalSettings.update({where:{arenaId:arena.id},data:{lessonCheckinBlockOverdue:true}});
+    const blockedLesson = await create();
+    await assert.rejects(run(tx=>registerLessonCheckin(tx,{...input,lessonId:blockedLesson.id},now)), /caixa/);
+    // A fully settled charge cannot block even if its status has not reconciled yet.
+    await admin.financialSettlement.create({data:{arenaId:arena.id,financialEntryId:debt.id,amountCents:4000,paymentMethod:"Dinheiro",paidAt:now}});
+
     let persisted = await admin.student.findUniqueOrThrow({where:{id:student.id}});
     assert.equal(persisted.remainingClasses,1); assert.equal(persisted.attendedClasses,1);
     assert.ok((await admin.lessonAttendance.findUniqueOrThrow({where:{lessonId_studentId:{lessonId:lesson.id,studentId:student.id}}})).checkedInAt);

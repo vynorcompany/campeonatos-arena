@@ -10,10 +10,15 @@ import { registerCourtCheckin, registerSelectedCourtCheckins } from "@/lib/check
 
 export async function configureCourtCheckinAction(form: FormData) {
   const auth = await requirePermission("calendar:settings:manage");
-  const enabled = form.has("checkinMode") ? undefined : form.get("enabled") === "true";
+  const lessonPolicy = form.get("lessonDebtPolicy") === "true";
+  const enabled = form.has("checkinMode") || lessonPolicy ? undefined : form.get("enabled") === "true";
   const checkinMode = form.has("checkinMode") ? z.enum(["SELF", "GROUP"]).parse(form.get("checkinMode")) : undefined;
   await withArenaTransaction(auth.arenaId, async tx => {
     const arena = await tx.arena.findUniqueOrThrow({ where: { id: auth.arenaId }, select: { checkinToken: true } });
+    if (lessonPolicy) {
+      const lessonCheckinBlockOverdue = z.enum(["true", "false"]).parse(form.get("lessonCheckinBlockOverdue")) === "true";
+      await tx.arenaOperationalSettings.upsert({ where: { arenaId: auth.arenaId }, create: { arenaId: auth.arenaId, lessonCheckinBlockOverdue }, update: { lessonCheckinBlockOverdue } });
+    }
     await tx.arena.update({ where: { id: auth.arenaId }, data: { ...(enabled === undefined ? {} : { checkinEnabled: enabled }), ...(checkinMode ? { checkinMode } : {}),
       ...(enabled && (!arena.checkinToken || form.get("rotate") === "true") ? { checkinToken: randomBytes(32).toString("hex") } : {}),
     } });

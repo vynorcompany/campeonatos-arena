@@ -11,7 +11,7 @@ import { recurringBoletoEntryWhere, recurringBoletoIssueDeadline } from "@/lib/p
 
 const issuanceConcurrency = 4;
 
-type ChargeAttempt = { created: boolean; skipped: boolean };
+type ChargeAttempt = { created: boolean; skipped: boolean; reason?: string };
 
 async function alertRecurringBoleto(arenaId: string, entryId: string, type: string, title: string, message: string) {
   const href = `/financeiro/contas-a-receber?entryId=${encodeURIComponent(entryId)}`;
@@ -55,10 +55,13 @@ export async function issueRecurringOnlineChargeForEntry(arenaId: string, entryI
   const issueUntil = recurringBoletoIssueDeadline(now);
   if (!entry.dueDate || (!force && entry.dueDate > issueUntil)) return { created: false, skipped: false };
   const player = entry.billingPlayer ?? entry.player;
-  if (!player || getMissingBoletoPayerFields(player).length) {
-    await alertRecurringBoleto(arenaId, entry.id, "ONLINE_CHARGE_ISSUANCE_REVIEW", "Boleto pendente de emissão", "O lançamento recorrente foi criado, mas faltam dados do cliente para emitir o boleto. Revise o cadastro em Contas a Receber.");
-    return { created: false, skipped: true };
+  const missingFields = player ? getMissingBoletoPayerFields(player) : ["cliente vinculado"];
+  if (missingFields.length) {
+    const reason = `Cadastro incompleto para emitir o boleto: ${missingFields.join(", ")}. Confira o cadastro do cliente.`;
+    await alertRecurringBoleto(arenaId, entry.id, "ONLINE_CHARGE_ISSUANCE_REVIEW", "Boleto pendente de emissão", reason);
+    return { created: false, skipped: true, reason };
   }
+  if (!player) return { created: false, skipped: true };
   const amountCents = getFinancialEntryBalance(entry.amountCents, entry.settlements).outstandingCents;
   if (amountCents < 500) {
     await alertRecurringBoleto(arenaId, entry.id, "ONLINE_CHARGE_ISSUANCE_REVIEW", "Boleto não emitido", "O saldo do lançamento recorrente é inferior ao mínimo de R$ 5,00 para emissão de boleto. Revise a cobrança em Contas a Receber.");

@@ -964,6 +964,21 @@ async function main() {
               await writeFile(`${outputDir}/${label}-revisao.png`,Buffer.from(reviewShot.data,"base64"));
               await clickElement('[aria-label="Revisão da reserva"] button');
               await pause(200);
+              const dateNavigation=await send("Runtime.evaluate",{expression:`(() => { const selected=document.querySelector('a[data-booking-date][aria-current="date"]'); const next=document.querySelector('nav[aria-label="Dias próximos"] a[data-booking-date]:not([aria-current])'); if(!selected||!next)return null; window.__bookingDocumentMarker="same-document"; const before={url:location.href,original:selected.href,target:next.href}; next.click(); return before; })()`,returnByValue:true});
+              if(!dateNavigation.result.value)throw new Error(`${label}: seletor de dias ausente.`);
+              const dateState=dateNavigation.result.value;
+              const waitForBookingDate=async (href)=>{
+                for(let attempt=0;attempt<100;attempt++){
+                  const result=await send("Runtime.evaluate",{expression:`({url:location.href,marker:window.__bookingDocumentMarker,date:document.querySelector('a[data-booking-date][aria-current="date"]')?.href,error:document.querySelector('[role="alert"]')?.textContent})`,returnByValue:true});
+                  if(result.result.value.url!==dateState.url||result.result.value.marker!=="same-document")throw new Error(`${label}: trocar data navegou para outra página.`);
+                  if(result.result.value.date===href)return;
+                  await pause(100);
+                }
+                throw new Error(`${label}: troca de data não atualizou a disponibilidade.`);
+              };
+              await waitForBookingDate(dateState.target);
+              await send("Runtime.evaluate",{expression:`[...document.querySelectorAll('a[data-booking-date]')].find(a=>a.href===${JSON.stringify(dateState.original)})?.click()`});
+              await waitForBookingDate(dateState.original);
             }
           }
           const contrastSelectors=portalContrastSelectors[view.label];

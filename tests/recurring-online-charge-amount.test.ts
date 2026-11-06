@@ -251,9 +251,13 @@ test("falha após uma página descarta contagem parcial e não reconcilia o aler
 
 test("dados incompletos deixam alerta operacional sem tentar emitir boleto", async () => {
   const service = loadRecurring(async () => { throw new Error("O provedor não deveria ser chamado"); }, [], [], undefined, { missingPayer: true });
-  assert.deepEqual(JSON.parse(JSON.stringify(await service.issue("arena-a", "entry-a"))), { created: false, skipped: true });
+  const result = JSON.parse(JSON.stringify(await service.issue("arena-a", "entry-a")));
+  assert.equal(result.created, false);
+  assert.equal(result.skipped, true);
+  assert.match(result.reason, /Cadastro incompleto.*CPF/);
   assert.equal(service.claims.length, 0);
   assert.equal(service.alerts[0].data.type, "ONLINE_CHARGE_ISSUANCE_REVIEW");
+  assert.match(service.alerts[0].data.message ?? "", /CPF/);
 });
 
 test("falha no WhatsApp mantém o boleto emitido e deixa alerta sem reenviar", async () => {

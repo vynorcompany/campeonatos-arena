@@ -59,6 +59,6 @@ export async function generateQueuedBoletoNowAction(form:FormData) {
   const {issueRecurringOnlineChargeForEntry}=await import("@/lib/payments/recurring-online-charges");
   const result=await issueRecurringOnlineChargeForEntry(auth.arenaId,id,new Date(),true);
   revalidatePath("/financeiro/fila-de-boletos");revalidatePath("/financeiro/contas-a-receber");
-  return result.created?{success:true}:{error:"Boleto não emitido. Confira saldo, dados do cliente, conta bancária e a conexão do emissor; se a emissão já começou, aguarde a confirmação."};
+  return result.created?{success:true}:{error:result.reason??"Boleto não emitido. Confira saldo, dados do cliente, conta bancária e a conexão do emissor; se a emissão já começou, aguarde a confirmação."};
  }catch{return{error:"Não foi possível emitir agora. Confira o cadastro do cliente e a conexão do emissor."};}
 }

@@ -7,7 +7,7 @@ import test from "node:test";
 
 test("public booking highlights the consecutive slots for the authenticated client", () => {
   const form = readFileSync(resolve(process.cwd(), "src/components/public-court-booking-form.tsx"), "utf8");
-  const page = readFileSync(resolve(process.cwd(), "src/components/public-booking-content.tsx"), "utf8");
+  const page = readFileSync(resolve(process.cwd(), "src/components/public-booking-view.tsx"), "utf8");
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/calendar.ts"), "utf8");
 
   assert.match(form, /slotMinutes/);

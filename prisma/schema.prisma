@@ -2830,6 +2830,7 @@ model ArenaOperationalSettings {
   whatsappPaidEnabled Boolean @default(false)
   whatsappPaidMessage String @default("")
   whatsappUnpaidMessage String @default("")
+  lessonCheckinBlockOverdue Boolean @default(false)
   lessonMakeupEnabled Boolean @default(true)
   lessonMakeupLeadHours Int @default(0)
   lessonMakeupValidityDays Int @default(30)
