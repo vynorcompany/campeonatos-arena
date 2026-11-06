@@ -1,4 +1,5 @@
 "use server";
+import { resolvePayablePayee } from "@/lib/finance/payable-payee";
 import { StaleRecordError, staleRecordMessage, expectedRecordDate, assertRecordVersion, recordVersion } from "@/lib/record-version";
 import { readExpiryPolicy } from "@/lib/academy/credit-expiry-policy";
 import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
@@ -392,14 +393,7 @@ export async function createFinancialEntryAction(formData: FormData) {
     const bankAccountId = parsed.data.status === "PAID" && parsed.data.type === "REVENUE" && amountCents > 0
       ? await requireReceivingBankAccount(tx, auth.arenaId, parsed.data.bankAccountId)
       : parsed.data.bankAccountId || null;
-    let supplierId = parsed.data.supplierId || null;
-    if (parsed.data.type === "EXPENSE" && parsed.data.counterpartyName && !supplierId) {
-      const supplier = await tx.supplier.upsert({
-        where: { arenaId_name: { arenaId: auth.arenaId, name: parsed.data.counterpartyName } },
-        update: {}, create: { arenaId: auth.arenaId, name: parsed.data.counterpartyName }
-      });
-      supplierId = supplier.id;
-    }
+    const payee = parsed.data.type === "EXPENSE" ? await resolvePayablePayee(tx, auth.arenaId, formData, parsed.data.counterpartyName) : null;
     if (parsed.data.type === "REVENUE" && parsed.data.planId && clientId && teacherPlan) {
       await lockStudentPlanSubscription(tx, auth.arenaId, clientId, parsed.data.planId);
       const client = await tx.player.findFirst({ where: { id: clientId, arenaId: auth.arenaId, active: true }, select: { id: true, name: true, phone: true } });
@@ -427,8 +421,7 @@ export async function createFinancialEntryAction(formData: FormData) {
         type: parsed.data.type,
         category: parsed.data.category,
         description: parsed.data.description,
-        counterpartyName: parsed.data.counterpartyName,
-        supplierId,
+        ...(payee ?? { counterpartyName: parsed.data.counterpartyName, supplierId: parsed.data.supplierId || null }),
         bankAccountId,
         planId: parsed.data.planId || null,
         teacherId: teacherPlan?.teacherId ?? null,
@@ -503,10 +496,11 @@ export async function updateFinancialEntryAction(formData: FormData) {
     const nextPlanId = parsed.data.planId || null;
     const keepsTeacher = entry.teacherId && nextPlanId && (entry.planId === nextPlanId || await tx.teacherPlan.findFirst({ where: { arenaId: auth.arenaId, teacherId: entry.teacherId, planId: nextPlanId, active: true }, select: { id: true } }));
 
+    const payee = entry.type === "EXPENSE" && formData.has("payeeKind") ? await resolvePayablePayee(tx, auth.arenaId, formData, parsed.data.counterpartyName) : null;
     await tx.financialEntry.update({
       where: { id: entry.id },
       data: {
-        counterpartyName: parsed.data.counterpartyName,
+        ...(payee ?? { counterpartyName: parsed.data.counterpartyName }),
         category: parsed.data.category,
         description: parsed.data.description,
         amountCents,
@@ -563,8 +557,10 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
     if (parsed.data.type === "REVENUE" && parsed.data.planId && teacherId && !teacherPlan) {
       throw new Error("O plano selecionado não pertence a este professor nesta arena.");
     }
+    const payee = parsed.data.type === "EXPENSE" ? await resolvePayablePayee(tx, auth.arenaId, formData, parsed.data.counterpartyName) : null;
     const recurrence = await tx.financialRecurrence.create({ data: {
-      arenaId: auth.arenaId, type: parsed.data.type, counterpartyName: parsed.data.counterpartyName, category: parsed.data.category,
+      arenaId: auth.arenaId, type: parsed.data.type, category: parsed.data.category,
+      ...(payee ?? { counterpartyName: parsed.data.counterpartyName }),
       description: parsed.data.description, amountCents, frequency: parsed.data.frequency,
       startsAt, endsAt, nextDueDate: startsAt, bankAccountId: parsed.data.bankAccountId || null, planId: parsed.data.planId || null, teacherId: teacherPlan?.teacherId ?? null,
       playerId: parsed.data.type === "REVENUE" && clientId ? clientId : null, onlinePaymentMethod: parsed.data.onlinePaymentMethod, notes: parsed.data.notes
@@ -574,6 +570,7 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
       const entry = await tx.financialEntry.create({ data: {
         arenaId: auth.arenaId, type: recurrence.type, counterpartyName: recurrence.counterpartyName, category: recurrence.category,
         description: recurrence.description, amountCents: recurrence.amountCents, dueDate, notes: recurrence.notes,
+        supplierId: recurrence.supplierId, payeeEmployeeId: recurrence.payeeEmployeeId, payeeTeacherId: recurrence.payeeTeacherId,
         recurrenceId: recurrence.id, bankAccountId: recurrence.bankAccountId, planId: recurrence.planId, teacherId: recurrence.teacherId, playerId: recurrence.playerId,
         paymentMethod: recurrence.onlinePaymentMethod === "BOLETO" ? "Boleto" : ""
       } });

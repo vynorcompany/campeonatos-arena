@@ -33,6 +33,8 @@ model User {
   systemRole            String                 @default("ADMIN")
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
+  payableEntries FinancialEntry[] @relation("PayableEmployee")
+  payableRecurrences FinancialRecurrence[] @relation("PayableEmployeeRecurrence")
   employeePayrollEntries EmployeePayrollEntry[]
   sessions              Session[]
   accountActionTokens   AccountActionToken[]
@@ -1296,6 +1298,8 @@ model Teacher {
   playerId              String?                 @unique
   arena                 Arena                   @relation(fields: [arenaId], references: [id], onDelete: Cascade)
   player                Player?                 @relation(fields: [playerId], references: [id], onDelete: SetNull)
+  payableEntries FinancialEntry[] @relation("PayableTeacher")
+  payableRecurrences FinancialRecurrence[] @relation("PayableTeacherRecurrence")
   lessons               Lesson[]
   scheduleOccurrences   ScheduleOccurrence[]
   scheduleBookingSeries ScheduleBookingSeries[]
@@ -2449,6 +2453,10 @@ model FinancialEntry {
   updatedAt                DateTime              @updatedAt
   arenaId                  String
   saleId                   String?
+  payeeEmployeeId String?
+  payeeTeacherId String?
+  payeeEmployee User? @relation("PayableEmployee", fields: [payeeEmployeeId], references: [id], onDelete: SetNull)
+  payeeTeacher Teacher? @relation("PayableTeacher", fields: [payeeTeacherId], references: [id], onDelete: SetNull)
   supplierId               String?
   bankAccountId            String?
   planId                   String?
@@ -2485,6 +2493,8 @@ model FinancialEntry {
   @@index([recurrenceId])
   @@index([productId])
   @@index([arenaId, playerId, status])
+  @@index([arenaId, payeeEmployeeId])
+  @@index([arenaId, payeeTeacherId])
 }
 
 model OnlinePaymentCheckout {
@@ -2595,6 +2605,10 @@ model FinancialRecurrence {
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
   arenaId             String
+  payeeEmployeeId String?
+  payeeTeacherId String?
+  payeeEmployee User? @relation("PayableEmployeeRecurrence", fields: [payeeEmployeeId], references: [id], onDelete: SetNull)
+  payeeTeacher Teacher? @relation("PayableTeacherRecurrence", fields: [payeeTeacherId], references: [id], onDelete: SetNull)
   supplierId          String?
   bankAccountId       String?
   planId              String?
@@ -2613,6 +2627,8 @@ model FinancialRecurrence {
   @@index([playerId])
   @@index([arenaId, teacherId])
   @@index([arenaId, studentId, planId, active])
+  @@index([arenaId, payeeEmployeeId])
+  @@index([arenaId, payeeTeacherId])
 }
 
 model FinancialSettlement {
