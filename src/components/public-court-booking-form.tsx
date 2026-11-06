@@ -1,4 +1,5 @@
 "use client";
+import { CalendarDragScroll } from "@/components/calendar-drag-scroll";
 import { serviceRuleDetails } from "@/lib/calendar/service-booking-rules";
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { servicePriceCents } from "@/lib/products/service-pricing";
@@ -44,6 +45,23 @@ export function PublicCourtBookingForm({ arenaSlug, datePicker, matchId, matchSu
   const [pending, startTransition] = useTransition();
   const [reviewing, setReviewing] = useState(false);
   const courtRail = useRef<HTMLDivElement>(null);
+  const [railEdges, setRailEdges] = useState({ previous: false, next: false });
+  useEffect(() => {
+    const rail = courtRail.current;
+    if (!rail) return;
+    const update = () => setRailEdges({ previous: rail.scrollLeft > 2, next: rail.scrollLeft + rail.clientWidth < rail.scrollWidth - 2 });
+    const observer = new ResizeObserver(update);
+    observer.observe(rail);
+    rail.addEventListener("scroll", update, { passive: true });
+    update();
+    return () => { observer.disconnect(); rail.removeEventListener("scroll", update); };
+  }, [courts, reviewing, durationMinutes]);
+  const scrollCourts = (direction: number) => {
+    const rail = courtRail.current;
+    if (!rail) return;
+    const card = rail.querySelector<HTMLElement>("[data-selected-court]");
+    rail.scrollBy({ left: direction * ((card?.offsetWidth ?? rail.clientWidth) + 12), behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+  };
   useEffect(() => {
     if (reviewing) return;
     const rail=courtRail.current;
@@ -100,13 +118,14 @@ export function PublicCourtBookingForm({ arenaSlug, datePicker, matchId, matchSu
       {selectedServices.some(service=>service.rules.minimumMinutes) ? <p className="tw:m-0 tw:basis-full tw:text-xs tw:text-black tw:dark:text-[#9bc5ff]">Durações liberadas pelos serviços selecionados.</p> : null}
     </section>
     <section aria-label="Quadras e horários" className="tw:min-w-0">
-      <div ref={courtRail} className="tw:relative tw:grid tw:min-w-0 tw:auto-cols-[minmax(210px,1fr)] tw:grid-rows-[auto_auto_auto_auto] tw:grid-flow-col tw:gap-3 tw:overflow-x-auto tw:pb-2 tw:snap-x tw:snap-mandatory tw:viewport-700:auto-cols-[85%] tw:viewport-700:grid-rows-1">
+      {railEdges.previous || railEdges.next ? <div className="tw:mb-2 tw:flex tw:items-center tw:justify-end tw:gap-2"><span className="tw:mr-auto tw:text-xs">Deslize para ver as quadras</span>{([-1, 1] as const).map(direction => <button type="button" key={direction} aria-label={direction < 0 ? "Quadras anteriores" : "Próximas quadras"} disabled={direction < 0 ? !railEdges.previous : !railEdges.next} onClick={() => scrollCourts(direction)} className="tw:grid tw:size-8 tw:place-items-center tw:rounded-md tw:border tw:border-[#cad8e7] tw:bg-white tw:text-[#174983] tw:disabled:opacity-35 tw:dark:border-[#3b4e66] tw:dark:bg-[#15263c] tw:dark:text-[#9bc5ff]"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="tw:size-4"><path d={direction < 0 ? "m14 6-6 6 6 6" : "m10 6 6 6-6 6"}/></svg></button>)}</div> : null}
+      <CalendarDragScroll scrollRef={courtRail} dragFromControls className="tw:relative tw:grid tw:min-w-0 tw:auto-cols-[max(210px,calc((100%-24px)/3))] tw:grid-rows-[auto_auto_auto_auto] tw:grid-flow-col tw:gap-3 tw:overflow-x-auto tw:pb-2 tw:snap-x tw:snap-mandatory tw:viewport-700:auto-cols-[85%] tw:viewport-700:grid-rows-1">
       {courts.map(item => <section key={item.id} data-selected-court={item.id === courtId} data-slot-minutes={item.slotMinutes} aria-label={`Horários da quadra ${item.name}`} className={cx("tw:row-span-4 tw:grid tw:min-w-0 tw:snap-start tw:grid-rows-subgrid tw:viewport-700:row-span-1 tw:viewport-700:self-start tw:viewport-700:grid-rows-[auto_auto_auto_auto] tw:overflow-hidden tw:rounded-lg tw:border",item.id === courtId ? "tw:border-[#174983] tw:ring-1 tw:ring-[#174983] tw:dark:border-[#9bc5ff] tw:dark:ring-[#9bc5ff]" : "tw:border-[#d8e5e9] tw:dark:border-[#3b4e66]")}>
         <h3 className="tw:m-0 tw:flex tw:items-center tw:gap-2 tw:border-b tw:border-[#d8e5e9] tw:bg-[#f3f7fc] tw:px-3 tw:py-4 tw:text-base tw:font-medium tw:dark:border-[#293648] tw:dark:bg-[#15263c]"><i className="tw:size-2.5 tw:shrink-0 tw:rounded-full" style={{backgroundColor:item.color}}/>{item.name}</h3>
         {periods.map(period => { const valid=availableCourts.find(option=>option.court.id===item.id)?.slots.map(option=>option.slot) ?? [];
           const times=[...valid.map(time=>({startsAt:time.startsAt,label:time.label,canStart:true})),...(item.id===courtId ? selection.selectedMinutes.filter(minute=>!valid.some(time=>dateMinute(time.startsAt)===minute)).map(minute=>({startsAt:`${startsAt.slice(0,10)}T${String(Math.floor(minute/60)).padStart(2,"0")}:${String(minute%60).padStart(2,"0")}`,label:`${String(Math.floor(minute/60)).padStart(2,"0")}:${String(minute%60).padStart(2,"0")}`,canStart:false})) : [])].filter(time=>dateMinute(time.startsAt)>=period.start && dateMinute(time.startsAt)<period.end).sort((a,b)=>a.startsAt.localeCompare(b.startsAt)); return <div key={period.label} className="tw:min-h-36 tw:viewport-700:min-h-0 tw:border-b tw:border-[#d8e5e9] tw:p-3 tw:last:border-b-0 tw:dark:border-[#293648]"><h4 className="tw:mb-3 tw:mt-0 tw:text-xs tw:font-medium tw:text-black tw:dark:text-[#bdd9e6]">{period.label}</h4>{times.length ? layout === "LIST" ? <label className={ui.field}><span className="tw:sr-only">{item.name} · {period.label}</span><select aria-label={`${item.name} · ${period.label}`} value={item.id === courtId && times.some(time=>time.startsAt===startsAt) ? startsAt : ""} onChange={event=>{ if(event.target.value) { changeCourt(item.id); changeSlot(event.target.value); } }}><option value="">Escolha um horário</option>{times.filter(time=>time.canStart).map(time=><option key={time.startsAt} value={time.startsAt}>{time.label}</option>)}</select></label> : <div className="tw:grid tw:grid-cols-3 tw:gap-2">{times.map(time => { const selected=item.id===courtId && selection.selectedMinutes.includes(dateMinute(time.startsAt)); if(!time.canStart) return <span key={time.startsAt} data-selected-minute={time.label} aria-label={`${time.label} · parte da reserva`} className={cx(slotButton,"tw:border-[#174983] tw:bg-[#174983] tw:text-white")}>{time.label}</span>; return <button key={time.startsAt} type="button" data-selected-minute={selected ? time.label : undefined} aria-label={`${item.name} às ${time.label}`} aria-pressed={selected} className={cx(slotButton,selected ? "tw:border-[#174983] tw:bg-[#174983] tw:text-white" : "tw:border-[#cad8e7] tw:bg-white tw:text-black tw:hover:border-[#174983] tw:dark:border-[#3b4e66] tw:dark:bg-[#101c2d] tw:dark:text-[#eff3f8]")} onClick={()=>{if(item.id!==courtId) changeCourt(item.id); changeSlot(time.startsAt);}}>{time.label}</button>; })}</div> : <p className="tw:m-0 tw:text-xs tw:text-black tw:dark:text-[#bdd9e6]">Sem horários disponíveis</p>}</div>; })}
       </section>)}
-      </div>
+      </CalendarDragScroll>
     </section>
     {services.length ? <section aria-label="Serviços opcionais da reserva" className="tw:grid tw:min-w-0 tw:grid-cols-2 tw:gap-3 tw:viewport-700:grid-cols-1"><h2 className="tw:col-span-full tw:m-0 tw:text-xl tw:font-medium">Complete sua reserva</h2>{availableServices.map(service => {
       const checked=selectedServiceIds.includes(service.id);

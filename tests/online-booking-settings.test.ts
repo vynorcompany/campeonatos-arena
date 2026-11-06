@@ -49,7 +49,7 @@ test("booking link enters the athlete portal and preserves booking after login",
 test("legacy public reservation route delegates to booking content with available times only", () => {
   const pagePath = resolve(process.cwd(), "src/app/reservar/[arenaSlug]/page.tsx");
   const formPath = resolve(process.cwd(), "src/components/public-court-booking-form.tsx");
-  const contentPath = resolve(process.cwd(), "src/components/public-booking-content.tsx");
+  const contentPath = resolve(process.cwd(), "src/components/public-booking-view.tsx");
   assert.ok(existsSync(pagePath));
   const page = readFileSync(pagePath, "utf8");
   const form = readFileSync(formPath, "utf8");

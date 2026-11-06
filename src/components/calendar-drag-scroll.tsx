@@ -2,16 +2,18 @@
 import { elementVisualScale } from "@/lib/ui/element-visual-scale";
 import { cx } from "@/lib/ui/classes";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type RefObject } from "react";
 
 type CalendarDragScrollProps = {
   children: React.ReactNode;
   className?: string;
   dragFromControls?: boolean;
+  scrollRef?: RefObject<HTMLDivElement>;
 };
 
-export function CalendarDragScroll({ children, className, dragFromControls = false }: CalendarDragScrollProps) {
-  const ref = useRef<HTMLDivElement>(null);
+export function CalendarDragScroll({ children, className, dragFromControls = false, scrollRef }: CalendarDragScrollProps) {
+  const localRef = useRef<HTMLDivElement>(null);
+  const ref = scrollRef ?? localRef;
   const [isDragging, setIsDragging] = useState(false);
   const dragState = useRef<{ pointerId: number; startX: number; startScrollLeft: number; visualScale: number; moved: boolean } | null>(null);
   const suppressClickRef = useRef(false);

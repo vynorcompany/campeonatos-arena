@@ -60,7 +60,7 @@ test("bloqueio por inadimplência é configurável, validado no servidor e avisa
   const schema = readFileSync(resolve(process.cwd(), "prisma/schema.prisma"), "utf8");
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/calendar.ts"), "utf8");
   const dialog = readFileSync(resolve(process.cwd(), "src/components/online-booking-settings-dialog.tsx"), "utf8");
-  const booking = readFileSync(resolve(process.cwd(), "src/components/public-booking-content.tsx"), "utf8");
+  const booking = readFileSync(resolve(process.cwd(), "src/components/public-booking-view.tsx"), "utf8");
   const notifications = readFileSync(resolve(process.cwd(), "src/lib/services/public-player-notifications.ts"), "utf8");
   assert.match(schema, /onlineBookingOverdueBlockDays\s+Int\?/);
   assert.match(dialog, /overdueBlockEnabled/);
