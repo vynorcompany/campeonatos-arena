@@ -111,7 +111,7 @@ export const viewStyles = {
   "button_button_primary_button_small": sharedUtilities.buttonButtonPrimaryButtonSmall,
   "button_button_danger_button_small": sharedUtilities.buttonButtonDangerButtonSmall,
   "accounts_ledger_list": [
-    "accounts-ledger-list", "tw:[overflow-x:hidden]",  "tw:[overflow-y:hidden]",
+    "accounts-ledger-list", "tw:[zoom:1.15]", "tw:[overflow-y:hidden]",
     "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:var(--line)]", "tw:border-r-[length:1px]",
     "tw:[border-right-style:solid]", "tw:border-r-[color:var(--line)]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]",
     "tw:border-b-[color:var(--line)]", "tw:border-l-[length:1px]", "tw:[border-left-style:solid]", "tw:border-l-[color:var(--line)]",
@@ -125,7 +125,7 @@ export const viewStyles = {
     "tw:border-b-[color:var(--line)]", "tw:bg-[color:#ffffff]", "tw:[background-image:none]", "tw:text-[color:#354f70]",
     "tw:text-[.62rem]", "tw:font-[800]", "tw:tracking-[.02em]", "tw:uppercase",
     "tw:[&_input]:w-[15px]", "tw:[&_input]:h-[15px]", "tw:[&_input]:[accent-color:var(--brand)]", "",
-    "tw:viewport-700:hidden tw:min-w-[0]",
+    "tw:viewport-700:hidden tw:min-w-[1080px]",
   ].join(" "),
   "accounts_ledger_row_accounts_ledger_row_clickable": [
     "accounts-ledger-row", "accounts-ledger-row-clickable", "tw:grid", "tw:grid-cols-[30px_100px_minmax(115px,_.95fr)_minmax(90px,_.75fr)_minmax(150px,_1.4fr)_minmax(110px,_.8fr)_minmax(95px,_.72fr)_minmax(190px,_1.3fr)]",
@@ -139,7 +139,7 @@ export const viewStyles = {
     "", "tw:cursor-pointer", "tw:[transition:background_150ms_var(--ease-standard)]", "tw:hover:bg-[color:color-mix(in_srgb,_var(--brand-soft)_52%,_var(--panel))]",
     "tw:hover:[background-image:none]", "tw:[&_strong_a]:text-[color:var(--brand-strong)]", "tw:[&_strong_a]:[text-decoration:underline]", "tw:[&_strong_a]:[text-decoration-color:transparent]",
     "tw:[&_strong_a]:[text-underline-offset:3px]", "tw:[&_strong_a:hover]:[text-decoration-color:currentColor]",
-    "tw:min-w-[0] tw:viewport-700:min-w-0! tw:viewport-700:grid-cols-[24px_minmax(0,1fr)]! tw:viewport-700:items-start tw:viewport-700:gap-x-3 tw:viewport-700:gap-y-2 tw:viewport-700:py-3 tw:viewport-700:[&>_*:not(:first-child)]:col-start-2 tw:viewport-700:[&>_*:first-child]:row-span-7 tw:viewport-700:[&>_strong]:whitespace-normal! tw:viewport-700:[&>_strong]:overflow-visible! tw:viewport-700:[&>_*]:break-words tw:viewport-700:[&>_[data-label]]:before:content-[attr(data-label)] tw:viewport-700:[&>_[data-label]]:before:block tw:viewport-700:[&>_[data-label]]:before:text-[.65rem] tw:viewport-700:[&>_[data-label]]:before:font-normal tw:viewport-700:[&>_[data-label]]:before:text-[#354f70]",
+    "tw:min-w-[1080px] tw:viewport-700:min-w-0! tw:viewport-700:grid-cols-[24px_minmax(0,1fr)]! tw:viewport-700:items-start tw:viewport-700:gap-x-3 tw:viewport-700:gap-y-2 tw:viewport-700:py-3 tw:viewport-700:[&>_*:not(:first-child)]:col-start-2 tw:viewport-700:[&>_*:first-child]:row-span-7 tw:viewport-700:[&>_strong]:whitespace-normal! tw:viewport-700:[&>_strong]:overflow-visible! tw:viewport-700:[&>_*]:break-words tw:viewport-700:[&>_[data-label]]:before:content-[attr(data-label)] tw:viewport-700:[&>_[data-label]]:before:block tw:viewport-700:[&>_[data-label]]:before:text-[.65rem] tw:viewport-700:[&>_[data-label]]:before:font-normal tw:viewport-700:[&>_[data-label]]:before:text-[#354f70]",
   ].join(" "),
   "accounts_ledger_row_overdue": [
     "accounts-ledger-row-overdue", "tw:border-l-[length:4px]", "tw:[border-left-style:solid]", "tw:border-l-[color:#c92a2a]",

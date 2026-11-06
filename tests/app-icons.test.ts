@@ -14,10 +14,19 @@ test("ícones de navegador e iOS têm formatos e dimensões válidos", () => {
 
   const ico = readFileSync("public/favicon.ico");
   assert.equal(ico.readUInt16LE(2), 1);
-  assert.equal(ico.readUInt16LE(4), 1);
-  assert.equal(ico[6], 64);
-  assert.equal(ico[7], 64);
-  assert.equal(ico.readUInt32LE(18), 22);
-  assert.deepEqual(ico.subarray(22, 30), pngSignature);
-  assert.equal(ico.readUInt32LE(14), ico.length - 22);
+  const count = ico.readUInt16LE(4);
+  assert.ok(count >= 1);
+  const sizes = new Set<number>();
+  for (let index = 0; index < count; index += 1) {
+    const entry = 6 + index * 16;
+    const width = ico[entry] || 256, height = ico[entry + 1] || 256;
+    const length = ico.readUInt32LE(entry + 8), offset = ico.readUInt32LE(entry + 12);
+    assert.ok(offset >= 6 + count * 16 && offset + length <= ico.length);
+    const png = ico.subarray(offset, offset + length);
+    assert.deepEqual(png.subarray(0, 8), pngSignature);
+    assert.equal(png.readUInt32BE(16), width);
+    assert.equal(png.readUInt32BE(20), height);
+    sizes.add(width);
+  }
+  assert.ok(sizes.has(16) && sizes.has(32) && sizes.has(64));
 });
