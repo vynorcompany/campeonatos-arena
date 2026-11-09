@@ -1,6 +1,6 @@
 import { PortalTeacherWorkspace } from "@/components/teachers/portal-teacher-workspace";
 import { FilterMemoryProvider } from "@/components/filters/filter-memory";
-import { ShareGameButton } from "@/components/courts/share-game-button";
+import { PortalReservations } from "@/components/portal/portal-reservations";
 import { LessonCreditPortalPanel, TeacherLessonCreditRequestsPanel } from "@/components/teachers/lesson-credit-portal";
 import { loadPortalEventPanelAction } from "@/lib/actions/portal-events";
 import { PortalTournamentTabs } from "@/components/portal/tournament-tabs";
@@ -367,7 +367,7 @@ export function PublicStandings({
           embedded
         />
       ) : requestedSection === "reservations" ? (
-        <ReservationsPanel portal={portal} />
+        <PortalReservations reservations={portal?.reservations ?? []} arenaSlug={arena.slug} bookingHref={menuItems.some(item=>item.section === "schedule") ? portalHref("schedule") : undefined} />
       ) : requestedSection === "lessons" ? (
         <><LessonCreditPortalPanel arenaSlug={arena.slug}/><LessonsPanel portal={portal} /></>
       ) : requestedSection === "classes" ? (
@@ -433,39 +433,6 @@ function EventNavIcon({ icon }: { icon: "calendar" | "players" | "ranking" | "ru
     target: <><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="4.5" /><circle cx="12" cy="12" r="1" /><path d="M12 1v3M12 20v3M1 12h3M20 12h3" /></>,
   };
   return <svg className={viewStyles.athlete_portal_event_icon} viewBox="0 0 24 24" aria-hidden="true">{shapes[icon]}</svg>;
-}
-
-function ReservationsPanel({ portal }: { portal: Portal }) {
-  return (
-    <section className={viewStyles.athlete_portal_content_panel}>
-      <header>
-        <span>MINHAS RESERVAS</span>
-        <h2>Próximos horários</h2>
-      </header>
-      {portal?.reservations.length ? (
-        <div className={viewStyles.portal_activity_list}>
-          {portal.reservations.map((reservation) => (
-            <article key={reservation.id}>
-              <div>
-                <strong>{reservation.title}</strong>
-                <span>
-                  {reservation.courtName} · {reservation.when}
-                </span>
-              </div>
-              <div className="tw:grid tw:min-w-0 tw:justify-items-start tw:gap-2"><b>{reservation.status}</b>{reservation.canShareGame ? <ShareGameButton arenaSlug={portal.arenaSlug} occurrenceId={reservation.id}/> : null}</div>
-            </article>
-          ))}
-        </div>
-      ) : (
-        <PortalEmpty
-          title="Nenhuma reserva futura"
-          detail="Suas próximas reservas aparecerão aqui."
-          action="Reservar horário"
-          href={`/reservar/${portal?.arenaSlug ?? ""}`}
-        />
-      )}
-    </section>
-  );
 }
 
 function LessonsPanel({ portal }: { portal: Portal }) {
