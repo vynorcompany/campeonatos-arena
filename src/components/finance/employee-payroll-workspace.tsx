@@ -7,7 +7,7 @@ import { ToggleSwitch } from "@/components/forms/toggle-switch";
 import { WorkspaceHeading } from "@/components/ui/workspace-heading";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { HoursInput } from "@/components/forms/hours-input";
 import { CentavosInput } from "@/components/forms/centavos-input";
@@ -86,6 +86,7 @@ function PayrollForm({ employees, entries, referenceMonth, initial, canCreate, c
 export function EmployeePayrollWorkspace({ employees, entries, referenceMonth, canCreate, canEdit, canSettle }: { employees: Employee[]; entries: EmployeePayrollRow[]; referenceMonth: string; canCreate: boolean; canEdit: boolean; canSettle: boolean }) {
   const [query, setQuery] = useFilterMemory("payroll-query", "");
   const [filterMonth, setFilterMonth] = useState(referenceMonth);
+  useEffect(()=>setFilterMonth(referenceMonth),[referenceMonth]);
   const [form, setForm] = useState<{ entry: EmployeePayrollRow | null } | null>(null);
   const close = useRef(() => setForm(null)).current;
   const visible = entries.filter(entry => entry.employeeName.toLocaleLowerCase("pt-BR").includes(query.toLocaleLowerCase("pt-BR")));

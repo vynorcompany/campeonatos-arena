@@ -1798,11 +1798,16 @@ async function main() {
         if(form?.count!=="3"||form.payment!=="Cartão de crédito"||!form.required||form.overflow||!form.footer)throw new Error(`Formulário parcelado inválido: ${JSON.stringify(form)}`);
       }
     }
-    await visit("/financeiro/contas-a-receber?description=Mensalidade",viewports[0],arenaA.id,"filters-memory-selected");
+    await visit("/financeiro/contas-a-receber?description=Mensalidade&name=Atleta+GOAL+A",viewports[0],arenaA.id,"filters-memory-selected");
     await visit("/financeiro/contas-a-pagar",viewports[0],arenaA.id,"filters-memory-away",sessionToken,true);
     await visit("/financeiro/contas-a-receber",viewports[0],arenaA.id,"filters-memory-return",sessionToken,true);
-    const restoredFilter=await send("Runtime.evaluate",{expression:"new URLSearchParams(location.search).get('description')",returnByValue:true});
-    if(restoredFilter.result.value!=="Mensalidade")throw new Error("Filtro não restaurado ao retornar ao menu.");
+    let restoredFilter;
+    for(let attempt=0;attempt<25;attempt++) {
+      restoredFilter=await send("Runtime.evaluate",{expression:"(() => {const query=new URLSearchParams(location.search);return {description:query.get('description'),name:query.get('name'),visible:document.querySelector('input[aria-label=Cliente]')?.value};})()",returnByValue:true});
+      if(restoredFilter.result.value?.description==="Mensalidade"&&restoredFilter.result.value?.visible==="Atleta GOAL A")break;
+      await pause(200);
+    }
+    if(restoredFilter.result.value?.description!=="Mensalidade"||restoredFilter.result.value?.name!=="Atleta GOAL A"||restoredFilter.result.value?.visible!=="Atleta GOAL A")throw new Error(`Filtros ou campos não restaurados: ${JSON.stringify(restoredFilter.result.value)}`);
     await visit("/financeiro/contas-a-receber", viewports[0], arenaA.id, "recebiveis-pos-modais");
     const teacherOption = await send("Runtime.evaluate", { expression: `(() => { const select = document.querySelector('select[name="planId"]'); const value = 'teacher:${teacherA.id}'; if (!select || ![...select.options].some(option => option.value === value)) return false; select.value = value; select.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`, returnByValue: true });
     if (!teacherOption.result.value) throw new Error("A opção Todos os planos da professora fictícia não apareceu.");

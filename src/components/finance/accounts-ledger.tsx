@@ -119,6 +119,7 @@ export function AccountsLedger({
   const [message, setMessage] = useState("");
   const [notice, setNotice] = useState("");
   const [clientFilter, setClientFilter] = useState(String(filters.name ?? ""));
+  useEffect(()=>setClientFilter(String(filters.name ?? "")),[filters.name]);
   const [clientFilterOpen, setClientFilterOpen] = useState(false);
   const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(new Set());
   const [bulkPaymentOpen, setBulkPaymentOpen] = useState(false);
