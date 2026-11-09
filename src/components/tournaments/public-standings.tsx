@@ -367,7 +367,7 @@ export function PublicStandings({
           embedded
         />
       ) : requestedSection === "reservations" ? (
-        <PortalReservations reservations={portal?.reservations ?? []} arenaSlug={arena.slug} bookingHref={menuItems.some(item=>item.section === "schedule") ? portalHref("schedule") : undefined} />
+        <PortalReservations reservations={portal?.reservations ?? []} arenaSlug={arena.slug} bookingHref={portalHref("schedule")} />
       ) : requestedSection === "lessons" ? (
         <><LessonCreditPortalPanel arenaSlug={arena.slug}/><LessonsPanel portal={portal} /></>
       ) : requestedSection === "classes" ? (

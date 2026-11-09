@@ -1,3 +1,5 @@
+import { createCardInstallmentEntries } from "../src/lib/finance/card-installment-service";
+import { cardInstallmentSchedule } from "../src/lib/finance/card-installments";
 import * as composition from "../src/lib/products/composition";
 import { consumeProductStock } from "../src/lib/products/stock-aggregates";
 import { requireReceivingBankAccount } from "../src/lib/finance/receiving-bank-account";
@@ -34,7 +36,7 @@ async function fixture() {
   const product = await admin.product.create({ data: { arenaId: arena.id, name: "Service QA", priceCents: 1000, isService: true } });
   await admin.arenaOperationalSettings.create({ data: { arenaId: arena.id, requireFullPayment: true } });
   const transact = (scope: string, operation: (tx: unknown) => Promise<unknown>) => runtime.$transaction(async tx => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${scope}, true)`; return operation(tx); }, { maxWait: 10_000, timeout: 10_000 });
-  const mocks: Record<string, unknown> = { "@/lib/products/composition": composition, "@/lib/products/stock-aggregates": { consumeProductStock },
+  const mocks: Record<string, unknown> = { "@/lib/finance/card-installment-service": { createCardInstallmentEntries }, "@/lib/finance/card-installments": { cardInstallmentSchedule }, "@/lib/products/composition": composition, "@/lib/products/stock-aggregates": { consumeProductStock },
     "@/lib/finance/receiving-bank-account": { requireReceivingBankAccount }, "next/cache": { revalidatePath() {} }, "@/lib/auth/guards": { requirePermission: async () => ({ arenaId: arena.id, userId: "goal-test", userName: "Wallet QA" }) },
     "@/lib/arena-database": { arenaDatabase: (scope: string) => arenaDatabaseForTest(runtime, scope) }, "@/lib/rls": { withArenaTransaction: transact },
     "@/lib/comandas/operational-policy": operationalPolicy, "@/lib/comandas/split": { allocateComandaShares }, "@/lib/finance/settlements": { allocatePaymentsToDebts, getOutstandingCents },
@@ -141,5 +143,39 @@ test("comanda validates receiving accounts and preserves each account across deb
     const receipt = await f.admin.financialEntry.findFirstOrThrow({ where: { arenaId: f.arena.id, saleId: sale.id, type: "REVENUE" } });
     assert.equal(receipt.bankAccountId, otherBank.id); assert.equal(receipt.amountCents, 1000);
     assert.equal(receipt.playerId, f.owner.id); assert.equal(receipt.source, "COMANDA"); assert.ok(receipt.dueDate); assert.equal(receipt.status, "PAID");
+  } finally { await f.cleanup(); }
+});
+
+
+test("comanda credit installments create monthly receivables once, without cash income", { skip: !isolated }, async () => {
+  const f = await fixture(); try {
+    const c = await f.command();
+    const payments = JSON.stringify([{ bankAccountId: f.bank.id, paymentMethod: "Cartão de crédito", amountCents: 1000, installmentCount: 3, firstDueDate: "2027-01-31" }]);
+    await f.finish(c.id, 0, [], 0, { payments });
+    const sale = await f.admin.sale.findUniqueOrThrow({ where: { comandaId: c.id }, include: { payments: true } });
+    const entries = await f.admin.financialEntry.findMany({ where: { saleId: sale.id }, orderBy: { dueDate: "asc" } });
+    assert.equal(sale.status, "PAID"); assert.equal(sale.payments.reduce((sum, p) => sum + p.amountCents, 0), 1000);
+    assert.equal(entries.length, 3); assert.deepEqual(entries.map(e => e.amountCents), [334, 333, 333]);
+    assert.deepEqual(entries.map(e => e.dueDate!.toISOString().slice(0,10)), ["2027-01-31", "2027-02-28", "2027-03-31"]);
+    assert.ok(entries.every(e => e.status === "PENDING" && e.paidAt === null && e.bankAccountId === f.bank.id && e.playerId === f.owner.id));
+    await assert.rejects(f.finish(c.id, 0, [], 0, { payments }), /não está disponível/);
+    assert.equal(await f.admin.financialEntry.count({ where: { saleId: sale.id } }), 3);
+  } finally { await f.cleanup(); }
+});
+
+test("comanda mixes PIX for reservation and installments for products, rejecting debt capitalization", { skip: !isolated }, async () => {
+  const f = await fixture(); try {
+    const c = await f.command(); const d = await f.booking(c.id, 500);
+    const card = { bankAccountId: f.bank.id, paymentMethod: "Cartão de crédito", amountCents: 1500, installmentCount: 3, firstDueDate: "2027-01-10" };
+    await assert.rejects(f.finish(c.id, 0, [], 0, { payments: JSON.stringify([card]) }), /reservas e outros débitos/);
+    assert.equal((await f.admin.comanda.findUniqueOrThrow({where:{id:c.id}})).status, "OPEN");
+    await assert.rejects(f.finish(c.id, 0, [], 0, { payments: JSON.stringify([{...card, firstDueDate:"2027-02-31"}]) }), /primeira parcela/);
+    await assert.rejects(f.finish(c.id, 0, [], 0, { payments: JSON.stringify([{...card, paymentMethod:"PIX"}]) }), /somente no cartão/);
+    await f.finish(c.id, 0, [], 0, { payments: JSON.stringify([{...card, amountCents:1000}, {bankAccountId:f.bank.id,paymentMethod:"PIX",amountCents:500}]) });
+    const paid = await f.admin.financialEntry.findUniqueOrThrow({where:{id:d.id},include:{settlements:true}});
+    assert.equal(paid.status,"PAID"); assert.equal(paid.settlements.length,1); assert.equal(paid.settlements[0].amountCents,500);
+    const sale = await f.admin.sale.findUniqueOrThrow({where:{comandaId:c.id}});
+    assert.equal(await f.admin.financialEntry.count({where:{saleId:sale.id,status:"PAID"}}),0);
+    assert.equal(await f.admin.financialEntry.count({where:{saleId:sale.id,status:"PENDING"}}),3);
   } finally { await f.cleanup(); }
 });
