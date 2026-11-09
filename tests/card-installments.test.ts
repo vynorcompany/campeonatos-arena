@@ -13,4 +13,5 @@ test("memória guarda filtros e exclui tokens, ações e parâmetros não autori
  assert.equal(rememberedFilterQuery("status=PAID&start=2026-11-01&token=secret&entryId=123&name=Ana"),"status=PAID&start=2026-11-01&name=Ana");
  assert.equal(rememberedFilterQuery("status=&name=&dateField=paidAt"),"status=&name=&dateField=paidAt");
  assert.equal(rememberedFilterQuery("q="+"x".repeat(301)),"");
+ assert.equal(rememberedFilterQuery("visao=competencia&comparar=previous-month&periodo=week&tipo=aula&stock=low"),"visao=competencia&comparar=previous-month&periodo=week&tipo=aula&stock=low");
 });
