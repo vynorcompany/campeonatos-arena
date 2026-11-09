@@ -1,4 +1,6 @@
 "use server";
+import { createCardInstallmentEntries } from "@/lib/finance/card-installment-service";
+import { cardInstallmentSchedule } from "@/lib/finance/card-installments";
 import { ingredientChoicesSchema } from "@/lib/products/composition";
 import { consumeProductStock, assertAggregateAvailability } from "@/lib/products/stock-aggregates";
 import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
@@ -46,7 +48,9 @@ const itemQuantitySchema = z.object({
 const paymentsSchema = z.array(z.object({
   bankAccountId: z.string().trim().optional().default(""),
   paymentMethod: z.string().trim().min(1).max(80),
-  amountCents: z.coerce.number().int().positive()
+  amountCents: z.coerce.number().int().positive(),
+  installmentCount: z.number().int().min(2).max(36).optional(),
+  firstDueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()
 })).max(8);
 
 const finishComandaSchema = z.object({
@@ -287,6 +291,14 @@ export async function finishComandaAction(formData: FormData) {
   if (!parsed.success) throw new Error("Comanda inválida.");
   if (parsed.data.payments.some(payment => /^(saldo\b|credito (do cliente|em conta)\b)/.test(payment.paymentMethod.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase()))) throw new Error("Para usar saldo, ative Usar saldo. O valor será validado e descontado da conta do cliente.");
 
+  const installmentPayments = parsed.data.payments.filter(payment => payment.installmentCount);
+  for (const payment of installmentPayments) {
+    if (!/^(cartao de credito|credito|credit_card)$/i.test(payment.paymentMethod.normalize("NFD").replace(/[\u0300-\u036f]/g, ""))) throw new Error("Parcelamento disponível somente no cartão de crédito.");
+    const first = new Date(`${payment.firstDueDate}T12:00:00Z`);
+    if (!payment.firstDueDate || !Number.isFinite(first.getTime()) || first.toISOString().slice(0,10) !== payment.firstDueDate) throw new Error("Informe o vencimento da primeira parcela.");
+    cardInstallmentSchedule(payment.amountCents, payment.installmentCount!, first);
+  }
+  const installmentTotalCents = installmentPayments.reduce((sum, payment) => sum + payment.amountCents, 0);
   const whatsappIds = await withArenaTransaction(auth.arenaId, async (tx) => {
     const owner = await tx.comanda.findFirst({ where: { id: parsed.data.comandaId, arenaId: auth.arenaId, status: "OPEN" }, select: { playerId: true } });
     if (owner?.playerId) await tx.$queryRaw`SELECT id FROM "Player" WHERE id = ${owner.playerId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
@@ -334,11 +346,15 @@ export async function finishComandaAction(formData: FormData) {
     await assertComandaCashRegister(tx, auth.arenaId, operational?.cashRegisterRequired ?? false, paymentTotalCents > 0);
     const creditDebtAllocation = allocatePaymentsToDebts(selectedDebtBalances, debtCreditCents ? [{ paymentMethod: "Saldo do cliente", amountCents: debtCreditCents }] : []);
     const remainingDebtBalances = selectedDebtBalances.map(debt => ({ ...debt, outstandingCents: debt.outstandingCents - creditDebtAllocation.settlements.filter(settlement => settlement.financialEntryId === debt.financialEntryId).reduce((sum, settlement) => sum + settlement.amountCents, 0) })).filter(debt => debt.outstandingCents > 0);
-    const cashDebtAllocation = allocatePaymentsToDebts(remainingDebtBalances, paymentPolicy.appliedPayments);
+    if (installmentTotalCents && paymentPolicy.excessCents) throw new Error("O parcelamento não pode ultrapassar o total da comanda.");
+    const cashDebtAllocation = allocatePaymentsToDebts(remainingDebtBalances, installmentTotalCents ? parsed.data.payments.filter(payment => !payment.installmentCount) : paymentPolicy.appliedPayments);
+
     const debtPaymentAllocation = { remainingPayments: cashDebtAllocation.remainingPayments, settlements: [...creditDebtAllocation.settlements, ...cashDebtAllocation.settlements] };
     const partialDebtPaymentCents = debtPaymentAllocation.settlements.reduce((total, settlement) => total + settlement.amountCents, 0);
     const settleSelectedDebts = Boolean(selectedDebts.length) && partialDebtPaymentCents >= selectedDebtTotalCents;
-    const comandaPaymentCents = debtPaymentAllocation.remainingPayments.reduce((total, payment) => total + payment.amountCents, 0);
+    const regularProductPaymentCents = debtPaymentAllocation.remainingPayments.reduce((total, payment) => total + payment.amountCents, 0);
+    if (installmentTotalCents > totalCents - productCreditCents - regularProductPaymentCents) throw new Error("O parcelamento cobre os itens da comanda. Para quitar reservas e outros débitos, adicione outra forma de pagamento.");
+    const comandaPaymentCents = regularProductPaymentCents + installmentTotalCents;
     const remainingCents = totalCents - comandaPaymentCents - productCreditCents;
     if (sharedParts[0].playerId !== comanda.playerId || sharedParts.slice(1).some(part => !part.playerId || part.amountCents <= 0)) throw new Error("A divisão deve manter o titular e identificar cada outra pessoa.");
     const otherIds = sharedParts.slice(1).map(part => part.playerId!);
@@ -380,6 +396,10 @@ export async function finishComandaAction(formData: FormData) {
     for (const payment of debtPaymentAllocation.remainingPayments) {
       await tx.salePayment.create({ data: { saleId: sale.id, bankAccountId: payment.bankAccountId, paymentMethod: payment.paymentMethod, amountCents: payment.amountCents } });
       await tx.financialEntry.create({ data: { arenaId: auth.arenaId, saleId: sale.id, playerId: comanda.playerId, counterpartyName: comanda.label, bankAccountId: payment.bankAccountId, type: "REVENUE", category: "COMANDAS", source: "COMANDA", dueDate: now, description: `Recebimento da comanda ${comanda.code}`, amountCents: payment.amountCents, paymentMethod: payment.paymentMethod, status: "PAID", paidAt: now } });
+    }
+    for (const payment of installmentPayments) {
+      await tx.salePayment.create({ data: { saleId: sale.id, bankAccountId: payment.bankAccountId, paymentMethod: payment.paymentMethod, amountCents: payment.amountCents } });
+      await createCardInstallmentEntries(tx, { arenaId: auth.arenaId, saleId: sale.id, playerId: comanda.playerId, counterpartyName: comanda.label, bankAccountId: payment.bankAccountId, type: "REVENUE", category: "COMANDAS", source: "COMANDA", dueDate: new Date(`${payment.firstDueDate}T12:00:00Z`), description: `Cartão da comanda ${comanda.code}`, amountCents: payment.amountCents, status: "PENDING" }, payment.installmentCount!, crypto.randomUUID());
     }
     for (const settlement of debtPaymentAllocation.settlements) {
       await tx.financialSettlement.create({

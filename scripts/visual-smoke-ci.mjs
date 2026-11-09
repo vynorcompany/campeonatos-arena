@@ -923,6 +923,7 @@ async function main() {
         await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: theme }] });
         await send("Network.setCookie", { name: "arena_player_session", value: athleteToken, url: baseUrl, httpOnly: true, sameSite: "Lax" });
         for (const view of portalViews) {
+          if (view.label === "reservas") await db.arena.update({where:{id:arenaA.id},data:{athletePortalShowBooking:false}});
           const path = `/home?arena=arena-teste-goal&${view.query}`;
           const label = `portal-${viewport.name}-${theme}-${view.label}`;
           const response = await fetch(`${baseUrl}${path}`, { headers: { Cookie: portalCookie }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
@@ -998,6 +999,7 @@ async function main() {
               await pause(200);
             }
             if(!bookingReady)throw new Error(`${label}: o atalho não abriu o agendamento da arena sem overflow.`);
+            await db.arena.update({where:{id:arenaA.id},data:{athletePortalShowBooking:true}});
           }
           if (view.label === "inicio" && (!metrics.main.includes(viewport.name === "mobile" ? "Comanda em aberto" : "em aberto") || metrics.main.includes("Tudo em dia"))) {
             throw new Error(`${label}: a tela inicial ignora a comanda aberta do atleta fictício.`);

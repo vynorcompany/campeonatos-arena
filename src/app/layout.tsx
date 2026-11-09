@@ -12,8 +12,8 @@ export const metadata: Metadata = {
   title: "Arena Padel Manager",
   description: "Sistema online para gestão de campeonatos, duplas, grupos e jogos da arena.",
   icons: {
-    icon: [{ url: "/favicon.ico?v=padel-volley-4", type: "image/x-icon" }, { url: "/icon.svg?v=padel-volley-4", type: "image/svg+xml" }],
-    apple: "/apple-touch-icon.png?v=padel-volley-4"
+    icon: [{ url: "/favicon.ico?v=padel-man-volley-5", type: "image/x-icon", sizes: "16x16 32x32 48x48 64x64" }, { url: "/padel-volley-mark.png?v=padel-man-volley-5", type: "image/png", sizes: "512x512" }],
+    apple: "/apple-touch-icon.png?v=padel-man-volley-5"
   }
 };
 
