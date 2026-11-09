@@ -31,6 +31,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
 
   return (
     <AppShell
+      filterScope={`${auth.userId}:${auth.arenaId}`}
       comandaRequestCount={comandaRequestCount}
       arenaName={auth.arenaName ?? "Arena"}
       arenaLogoUrl={auth.memberships.find((membership) => membership.arenaId === auth.arenaId)?.arenaLogoUrl ?? "/arena-profile.jpg"}

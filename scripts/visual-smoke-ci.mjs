@@ -149,7 +149,7 @@ async function main() {
       }
       throw new Error("A animação de entrada da página não terminou antes da captura.");
     };
-    const visit = async (path, viewport, arenaId, label, token = sessionToken) => {
+    const visit = async (path, viewport, arenaId, label, token = sessionToken, preserveFilterMemory = false) => {
       const pathname = path.split("?", 1)[0];
       const response = await fetch(`${baseUrl}${path}`, { headers: { Cookie: cookie(arenaId, token) }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
       await response.body?.cancel();
@@ -157,6 +157,8 @@ async function main() {
       await send("Emulation.setDeviceMetricsOverride", { width: viewport.width, height: viewport.height, deviceScaleFactor: 1, mobile: viewport.name !== "desktop" });
       await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: "light" }] });
       await selectArena(arenaId, token);
+      // Independent smoke cases start clean; dedicated persistence cases opt in.
+      if (!preserveFilterMemory) await send("Runtime.evaluate", { expression: "(() => { try { for(const key of Object.keys(localStorage)) if(key.startsWith('filters:v1:')) localStorage.removeItem(key); } catch {} })()" });
       await send("Page.navigate", { url: `${baseUrl}${path}` });
       let metrics;
       for (let attempt = 0; attempt < 60; attempt += 1) {
@@ -1784,6 +1786,23 @@ async function main() {
       const closed = await send("Runtime.evaluate", { expression: "({closed:!document.querySelector('[role=dialog]'),zoom:getComputedStyle(document.querySelector('.accounts-ledger-list')).zoom,overflow:document.documentElement.scrollWidth>innerWidth+1})", returnByValue: true });
       if (!closed.result.value?.closed || Number(closed.result.value.zoom)!==1.15 || closed.result.value.overflow) throw new Error(`Fechamento ou escala da listagem inválidos: ${JSON.stringify(closed.result.value)}`);
     }
+    for (const path of ["/financeiro/contas-a-pagar", "/financeiro/contas-a-receber"]) {
+      for (const viewport of viewports) {
+        await visit(path, viewport, arenaA.id, `${viewport.name}-card-installments`);
+        await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('button')].find(node=>node.textContent?.trim()==='Novo lançamento')?.click()" });
+        await pause(200);
+        await send("Runtime.evaluate", { expression: "(() => { const label=[...document.querySelectorAll('[role=dialog] label')].find(node=>node.textContent?.includes('Cartão de crédito parcelado')); label?.querySelector('input')?.click(); })()" });
+        await pause(200);
+        const installmentForm=await send("Runtime.evaluate", {expression: "(() => {const d=document.querySelector('[role=dialog]'),count=d?.querySelector('input[name=cardInstallmentCount]'),button=[...(d?.querySelectorAll('button')??[])].find(b=>b.textContent?.trim()==='Salvar lançamento');return {count:count?.value,payment:d?.querySelector('input[name=paymentMethod]')?.value,required:d?.querySelector('input[name=dueDate]')?.required,overflow:d?d.scrollWidth>d.clientWidth+1:true,footer:button?.getBoundingClientRect().bottom<=innerHeight};})()",returnByValue:true});
+        const form=installmentForm.result.value;
+        if(form?.count!=="3"||form.payment!=="Cartão de crédito"||!form.required||form.overflow||!form.footer)throw new Error(`Formulário parcelado inválido: ${JSON.stringify(form)}`);
+      }
+    }
+    await visit("/financeiro/contas-a-receber?description=Mensalidade",viewports[0],arenaA.id,"filters-memory-selected");
+    await visit("/financeiro/contas-a-pagar",viewports[0],arenaA.id,"filters-memory-away",sessionToken,true);
+    await visit("/financeiro/contas-a-receber",viewports[0],arenaA.id,"filters-memory-return",sessionToken,true);
+    const restoredFilter=await send("Runtime.evaluate",{expression:"new URLSearchParams(location.search).get('description')",returnByValue:true});
+    if(restoredFilter.result.value!=="Mensalidade")throw new Error("Filtro não restaurado ao retornar ao menu.");
     await visit("/financeiro/contas-a-receber", viewports[0], arenaA.id, "recebiveis-pos-modais");
     const teacherOption = await send("Runtime.evaluate", { expression: `(() => { const select = document.querySelector('select[name="planId"]'); const value = 'teacher:${teacherA.id}'; if (!select || ![...select.options].some(option => option.value === value)) return false; select.value = value; select.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`, returnByValue: true });
     if (!teacherOption.result.value) throw new Error("A opção Todos os planos da professora fictícia não apareceu.");

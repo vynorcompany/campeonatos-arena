@@ -119,7 +119,7 @@ test("teacher portal management includes the teacher class groups and their occu
   const studentList = readFileSync(resolve(process.cwd(), "src/components/teacher-portal-student-list.tsx"), "utf8");
 
   assert.match(service, /classGroups:/);
-  assert.match(portal, /<h3>Turmas<\/h3>/);
+  assert.match(readFileSync(resolve(process.cwd(), "src/components/teachers/portal-teacher-workspace.tsx"), "utf8"), /label:`Turmas/);
   assert.match(portal, /vagas/);
   assert.match(studentList, /TeacherPortalStudentList/);
 });
@@ -171,5 +171,5 @@ test("teacher class management supports moving students and logging make-up clas
   assert.match(studentList, /Transferir/);
   assert.match(makeupPlanner, /scheduleTeacherMakeupAction/);
   assert.match(makeupPlanner, /Agendar reposição/);
-  assert.match(portal, /TeacherPortalMakeupPlanner/);
+  assert.match(readFileSync(resolve(process.cwd(), "src/components/teachers/portal-teacher-workspace.tsx"), "utf8"), /TeacherPortalMakeupPlanner/);
 });

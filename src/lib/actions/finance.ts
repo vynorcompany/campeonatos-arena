@@ -1,4 +1,7 @@
 "use server";
+import { splitCardEntry } from "@/lib/finance/split-card-entry";
+import { readCardInstallmentCount } from "@/lib/finance/card-installments";
+import { createCardInstallmentEntries } from "@/lib/finance/card-installment-service";
 import { resolvePayablePayee } from "@/lib/finance/payable-payee";
 import { StaleRecordError, staleRecordMessage, expectedRecordDate, assertRecordVersion, recordVersion } from "@/lib/record-version";
 import { readExpiryPolicy } from "@/lib/academy/credit-expiry-policy";
@@ -341,6 +344,7 @@ export async function recordPlanPaymentAction(formData: FormData) {
 
 export async function createFinancialEntryAction(formData: FormData) {
   const auth = await requireArenaAccess();
+  const installmentCount=readCardInstallmentCount(formData);
   const clientId = String(formData.get("clientId") ?? "");
   const teacherId = String(formData.get("teacherId") ?? "");
   const parsed = entrySchema.safeParse({
@@ -366,6 +370,7 @@ export async function createFinancialEntryAction(formData: FormData) {
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
+  if(installmentCount && (parsed.data.status==="PAID" || parsed.data.planId))return {error:"Para parcelar, mantenha o lançamento em aberto e sem vínculo direto a um plano de aulas."};
   if(parsed.data.status === "PAID" && ["CREDIT_BALANCE","Saldo de crédito"].includes(parsed.data.paymentMethod??"")) return {error:"Crie o lançamento em aberto e use Receber conta para quitar com saldo do cliente ou responsável."};
   assertFinancialEntryPermission(auth, parsed.data.type, "create");
   if (parsed.data.status === "PAID") assertFinancialEntryPermission(auth, parsed.data.type, "settle");
@@ -414,8 +419,7 @@ export async function createFinancialEntryAction(formData: FormData) {
         if (!enrollment) enrollmentNotice = `${client.name} foi incluído no plano de ${teacherPlan.teacher.name}. Agora atribua-o a uma turma em Alunos ativos.`;
       }
     }
-    const entry = await tx.financialEntry.create({
-      data: {
+    const entryData = {
         arenaId: auth.arenaId,
         source: "MANUAL",
         type: parsed.data.type,
@@ -434,8 +438,8 @@ export async function createFinancialEntryAction(formData: FormData) {
         competenceDate: parseDate(parsed.data.competenceDate),
         paidAt,
         notes: parsed.data.notes
-      }
-    });
+    };
+    const entry=installmentCount ? await createCardInstallmentEntries(tx,entryData,installmentCount,String(formData.get("installmentRequestId")??"")) : await tx.financialEntry.create({data:entryData});
     if (parsed.data.status === "PAID") {
       await tx.financialSettlement.create({ data: {
         arenaId: auth.arenaId,
@@ -1234,4 +1238,15 @@ export async function upsertPayrollEntryAction(formData: FormData) {
     if (parsed.data.status === "PAID" && !state.paid) assertFinancialEntryPermission(auth, "EXPENSE", "settle");
   }, expectedVersion)); } catch (error) { if (error instanceof StaleRecordError) return { error: error.message }; throw error; }
   refreshFinanceRoutes();
+}
+
+export async function splitFinancialEntryCardAction(formData:FormData) {
+ const auth=await requireArenaAccess();const entryId=String(formData.get("entryId")??"");
+ const expected=expectedRecordDate(formData.get("expectedUpdatedAt"));if(!expected)return {error:staleRecordMessage};
+ const count=readCardInstallmentCount(formData),firstDueDate=parseDate(String(formData.get("dueDate")??""));if(!count||!firstDueDate)return {error:"Informe as parcelas e o primeiro vencimento."};
+ await withArenaTransaction(auth.arenaId,async tx=>{
+  const entry=await tx.financialEntry.findFirst({where:{id:entryId,arenaId:auth.arenaId},select:{type:true}});if(!entry)throw new Error("Lançamento não encontrado.");
+  assertFinancialEntryPermission(auth,entry.type,"edit");assertFinancialEntryPermission(auth,entry.type,"create");
+  await splitCardEntry(tx,auth.arenaId,{entryId,expectedUpdatedAt:expected.toISOString(),count,firstDueDate,requestId:String(formData.get("installmentRequestId")??"")});
+ });refreshFinanceRoutes();
 }

@@ -1,3 +1,5 @@
+import { PortalTeacherWorkspace } from "@/components/teachers/portal-teacher-workspace";
+import { FilterMemoryProvider } from "@/components/filters/filter-memory";
 import { ShareGameButton } from "@/components/courts/share-game-button";
 import { LessonCreditPortalPanel, TeacherLessonCreditRequestsPanel } from "@/components/teachers/lesson-credit-portal";
 import { loadPortalEventPanelAction } from "@/lib/actions/portal-events";
@@ -31,8 +33,6 @@ import { AthletePortalLoginLayout } from "@/components/athlete-portal-login-layo
 import { logoutAthletePortalAction } from "@/lib/actions/player-auth";
 import { PublicEventRadar } from "@/components/public-event-radar";
 import { PublicFinanceEntryList } from "@/components/public-finance-entry-list";
-import { TeacherPortalStudentList } from "@/components/teacher-portal-student-list";
-import { TeacherPortalMakeupPlanner } from "@/components/teacher-portal-makeup-planner";
 import { PortalClientComandas } from "@/components/portal-client-comandas";
 import { mobileFinanceAttention } from "@/lib/finance/mobile-finance-attention";
 import {
@@ -45,7 +45,6 @@ import {
   checkInPortalLessonAction,
   requestPortalLessonMakeupAction,
   requestClassGroupAction,
-  updateTeacherPortalClassGroupCapacityAction,
 } from "@/lib/actions/class-groups";
 
 type Portal = Awaited<
@@ -292,7 +291,7 @@ export function PublicStandings({
 
   // Panel consumers expect an image token; equal color stops keep their fill opaque and solid.
   return (
-    <PortalTheme className="portal-app tw:[color-scheme:light] tw:dark:[color-scheme:dark] tw:[&_button[type=submit]:not([data-portal-neutral])]:bg-[#087443]! tw:[&_button[type=submit]:not([data-portal-neutral])]:text-white! tw:[&_[data-portal-action]]:bg-[#087443]! tw:[&_[data-portal-action]]:text-white! tw:relative tw:isolate tw:[--panel:#fff] tw:[--text:#202c3c] tw:[--muted:#606874] tw:[--line:#e1e4e9] tw:[--line-strong:#91a6c4] tw:[--brand:#1e5ea8] tw:[--brand-strong:#174983] tw:dark:[--panel:#101c2d] tw:dark:[--text:#e9edf3] tw:dark:[--muted:#aab4c2] tw:dark:[--line:#293648] tw:[--portal-ink:#202c3c] tw:[--portal-muted:#606874] tw:[--portal-accent:#174983] tw:[--portal-surface:#fff] tw:[--portal-soft:#fff] tw:[--portal-line:#e1e4e9] tw:[--portal-selection-surface:#174983] tw:[--portal-selection-ink:#fff] tw:dark:[--portal-selection-surface:#174983] tw:dark:[--portal-selection-ink:#fff] tw:[--portal-warning-ink:#b64733] tw:[--portal-warning-surface:#fff3ed] tw:[--portal-panel-image:linear-gradient(#fff,#fff)] tw:[--portal-shadow:0_3px_16px_rgba(21,37,60,.04)] tw:dark:[--portal-ink:#e9edf3] tw:dark:[--portal-muted:#aab4c2] tw:dark:[--portal-accent:#a5bcdc] tw:dark:[--portal-surface:#101c2d] tw:dark:[--portal-soft:#213148] tw:dark:[--portal-line:#293648] tw:dark:[--portal-warning-ink:#ffb49a] tw:dark:[--portal-warning-surface:#422d24] tw:dark:[--portal-panel-image:linear-gradient(#101c2d,#101c2d)] tw:[&_*]:box-border tw:flex tw:min-h-dvh tw:min-w-0 tw:bg-white tw:text-[#202c3c] tw:dark:bg-[#091525] tw:dark:text-[#e9edf3]">
+    <FilterMemoryProvider scope={`portal:${arena.slug}:${portal?.playerId ?? ""}`}><PortalTheme className="portal-app tw:[color-scheme:light] tw:dark:[color-scheme:dark] tw:[&_button[type=submit]:not([data-portal-neutral])]:bg-[#087443]! tw:[&_button[type=submit]:not([data-portal-neutral])]:text-white! tw:[&_[data-portal-action]]:bg-[#087443]! tw:[&_[data-portal-action]]:text-white! tw:relative tw:isolate tw:[--panel:#fff] tw:[--text:#202c3c] tw:[--muted:#606874] tw:[--line:#e1e4e9] tw:[--line-strong:#91a6c4] tw:[--brand:#1e5ea8] tw:[--brand-strong:#174983] tw:dark:[--panel:#101c2d] tw:dark:[--text:#e9edf3] tw:dark:[--muted:#aab4c2] tw:dark:[--line:#293648] tw:[--portal-ink:#202c3c] tw:[--portal-muted:#606874] tw:[--portal-accent:#174983] tw:[--portal-surface:#fff] tw:[--portal-soft:#fff] tw:[--portal-line:#e1e4e9] tw:[--portal-selection-surface:#174983] tw:[--portal-selection-ink:#fff] tw:dark:[--portal-selection-surface:#174983] tw:dark:[--portal-selection-ink:#fff] tw:[--portal-warning-ink:#b64733] tw:[--portal-warning-surface:#fff3ed] tw:[--portal-panel-image:linear-gradient(#fff,#fff)] tw:[--portal-shadow:0_3px_16px_rgba(21,37,60,.04)] tw:dark:[--portal-ink:#e9edf3] tw:dark:[--portal-muted:#aab4c2] tw:dark:[--portal-accent:#a5bcdc] tw:dark:[--portal-surface:#101c2d] tw:dark:[--portal-soft:#213148] tw:dark:[--portal-line:#293648] tw:dark:[--portal-warning-ink:#ffb49a] tw:dark:[--portal-warning-surface:#422d24] tw:dark:[--portal-panel-image:linear-gradient(#101c2d,#101c2d)] tw:[&_*]:box-border tw:flex tw:min-h-dvh tw:min-w-0 tw:bg-white tw:text-[#202c3c] tw:dark:bg-[#091525] tw:dark:text-[#e9edf3]">
       <PortalAmbientBackground />
       <PortalSidebar items={menuItems} current={requestedSection === "booking" ? "schedule" : requestedSection} href={portalHref} arenaName={arena.name} logoUrl={arena.athletePortalLogoUrl || arena.logoUrl} />
       <main className={cx("athlete-portal-page tw:min-w-0 tw:flex-1 tw:pb-24 tw:min-[1100px]:pb-10", mobilePortalSkin)}>
@@ -382,7 +381,7 @@ export function PublicStandings({
       </div>
       <PortalBottomNav items={menuItems} current={requestedSection === "booking" ? "schedule" : requestedSection} href={portalHref} />
     <footer className="tw:mx-auto tw:w-full tw:max-w-[1240px] tw:px-4 tw:py-5 tw:text-xs tw:text-[var(--portal-muted)] tw:min-[700px]:px-8"><ArenaLegalLinks arenaSlug={arena.slug}/></footer>
-      </main></PortalTheme>
+      </main></PortalTheme></FilterMemoryProvider>
   );
 }
 
@@ -515,102 +514,8 @@ function ClassesPanel({ portal, weekday, arenaSlug }: { portal: Portal; weekday?
  return <section className="tw:mx-3 tw:mb-20 tw:min-w-0"><h2 className="tw:sr-only">Turmas</h2><PortalLocalTabs key={arenaSlug} label="Dias das turmas" initial={initial} tabs={days.map(day => ({ id: String(day), label: names[day], content: <div className="tw:grid tw:gap-3">{groups.filter(group => group.schedules.some(schedule => schedule.weekday === day)).sort((a,b) => a.schedules.find(schedule => schedule.weekday === day)!.startTime.localeCompare(b.schedules.find(schedule => schedule.weekday === day)!.startTime) || a.teacherName.localeCompare(b.teacherName, "pt-BR")).map(group => <article key={group.id} className="tw:grid tw:min-w-0 tw:gap-3 tw:rounded-md tw:border tw:border-[#c7d8ec] tw:bg-white tw:p-4 tw:text-[#15385f] tw:dark:border-[#365879] tw:dark:bg-[#102f4b] tw:dark:text-[#e4efff]"><div className="tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-2"><strong className="tw:text-sm">{group.teacherName} · {group.name}</strong>{group.enrolled ? <span className="tw:text-xs">Você participa</span> : group.requestPending ? <span className="tw:text-xs">Solicitação enviada</span> : null}</div><div className="tw:flex tw:flex-wrap tw:gap-2">{group.schedules.filter(schedule => schedule.weekday === day).map((schedule,index) => <span key={index} className="tw:rounded tw:bg-white tw:px-3 tw:py-2 tw:text-sm tw:dark:bg-[#173d66]">{schedule.startTime} · {classGroupSeatsLabel(group)}</span>)}</div>{!group.enrolled && !group.requestPending && group.available ? <SafeActionForm action={requestClassGroupAction} successMessage="Solicitação enviada para a arena."><input type="hidden" name="arenaSlug" value={arenaSlug}/><input type="hidden" name="classGroupId" value={group.id}/><SubmitButton label="Solicitar vaga" pendingLabel="Enviando…" className={viewStyles.button_button_primary_button_small}/></SafeActionForm> : !group.available && !group.enrolled ? <small>Sem vagas</small> : null}</article>)}{!groups.some(group => group.schedules.some(schedule => schedule.weekday === day)) ? <p className="tw:text-sm tw:text-[#354f70] tw:dark:text-[#c2d5ee]">Não há turmas neste dia.</p> : null}</div> }))}/></section>;
 }
 
-function TeacherManagementIcon({ name }: { name: "plans" | "students" | "classes" | "makeups" | "agenda" }) {
-  const paths = {
-    plans: <><path d="M4 7h16M6 4h12v16H6z" /><path d="M9 11h6M9 14h4" /></>,
-    students: <><circle cx="12" cy="8" r="3" /><path d="M5 20c.8-3.4 3.1-5 7-5s6.2 1.6 7 5" /></>,
-    classes: <><rect x="4" y="5" width="16" height="14" rx="2" /><path d="M8 9h8M8 13h3M13 13h3" /></>,
-    makeups: <><rect x="6" y="6" width="12" height="12" rx="2" /><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M18 9h3M3 15h3M18 15h3" /></>,
-    agenda: <><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4M16 3v4M4 10h16M8 14h3M8 17h5" /></>,
-  }[name];
-  return <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{paths}</svg>;
-}
-
 function TeacherManagementPanel({ portal }: { portal: Portal }) {
-  const management = portal?.teacherManagement;
-  const weekdays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-  return (
-    <section className={viewStyles.athlete_portal_content_panel_teacher_portal_management}>
-
-      {management ? (
-        <div className={viewStyles.teacher_portal_management_menu}>
-          <input className={viewStyles.teacher_portal_menu_control} type="radio" name="teacher-portal-menu" id="teacher-portal-plans" defaultChecked />
-          <input className={viewStyles.teacher_portal_menu_control} type="radio" name="teacher-portal-menu" id="teacher-portal-students" />
-          <input className={viewStyles.teacher_portal_menu_control} type="radio" name="teacher-portal-menu" id="teacher-portal-classes" />
-          <input className={viewStyles.teacher_portal_menu_control} type="radio" name="teacher-portal-menu" id="teacher-portal-makeups" />
-          <input className={viewStyles.teacher_portal_menu_control} type="radio" name="teacher-portal-menu" id="teacher-portal-agenda" />
-          <nav className={viewStyles.teacher_portal_submenu} aria-label="Área do Professor">
-            <label htmlFor="teacher-portal-plans"><TeacherManagementIcon name="plans" /><span>Planos e preços</span></label>
-            <label htmlFor="teacher-portal-students"><TeacherManagementIcon name="students" /><span>Alunos ativos</span></label>
-            <label htmlFor="teacher-portal-classes"><TeacherManagementIcon name="classes" /><span>Turmas</span></label>
-            <label htmlFor="teacher-portal-makeups"><TeacherManagementIcon name="makeups" /><span>Reposições</span></label>
-            <label htmlFor="teacher-portal-agenda"><TeacherManagementIcon name="agenda" /><span>Agenda</span></label>
-          </nav>
-          <div className={viewStyles.teacher_portal_submenu_panels}>
-            <article className={viewStyles.teacher_portal_management_section} data-panel="plans">
-            <header><h3>Planos e preços</h3></header>
-            {management.plans.length ? (
-              management.plans.map((plan) => (
-                <div className={viewStyles.teacher_portal_plan_row} key={plan.id}>
-                  <span><strong>{plan.name}</strong><small>
-                    {plan.classesPerMonth} aulas/mês ·{" "}
-                    {(plan.monthlyPriceCents / 100).toLocaleString("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    })}
-                  </small></span>
-                </div>
-              ))
-            ) : (
-              <p>Nenhum plano vinculado.</p>
-            )}
-            </article>
-            <article className={viewStyles.teacher_portal_management_section} data-panel="students">
-            <header><h3>Alunos ativos</h3></header>
-            {management.students.length ? (
-              <TeacherPortalStudentList arenaSlug={portal?.arenaSlug ?? ""} students={management.students} classGroups={management.classGroups.map((group) => ({ id: group.id, name: group.name }))} />
-            ) : (
-              <p>Nenhum aluno ativo.</p>
-            )}
-            </article>
-            <article className={viewStyles.teacher_portal_management_section} data-panel="classes">
-            <header><h3>Turmas</h3></header>
-            {management.classGroups.length ? (
-              management.classGroups.map((group) => <details className={viewStyles.teacher_portal_class_group} key={group.id}>
-                <summary className="tw:cursor-pointer tw:list-none tw:rounded tw:py-2 tw:focus-visible:outline-2 tw:focus-visible:outline-blue-500"><span><strong>{group.name}</strong><small className="tw:ml-2">{group.enrolledCount} aluno(s) matriculado(s) · Expandir</small></span></summary>
-                <div className={viewStyles.teacher_portal_class_slots}>{group.schedules.map((schedule) => <SafeActionForm action={updateTeacherPortalClassGroupCapacityAction} className={viewStyles.teacher_portal_class_slot} key={schedule.id}><input type="hidden" name="arenaSlug" value={portal?.arenaSlug} /><input type="hidden" name="classGroupId" value={group.id} /><input type="hidden" name="scheduleId" value={schedule.id} /><strong>{weekdays[schedule.weekday]} · {schedule.startTime}</strong><label><span>Vagas</span><input name="capacity" type="number" min={Math.max(1, group.enrolledCount)} max="99" defaultValue={schedule.capacity} /></label><SubmitButton label="Salvar" pendingLabel="..." className={viewStyles.button_button_small} /></SafeActionForm>)}</div>
-                {group.students.length ? <div className={viewStyles.teacher_portal_class_members}><span>Alunos</span>{group.students.map((student) => <small key={student.id}>{student.name}</small>)}</div> : <small className={viewStyles.teacher_portal_class_empty}>Nenhum aluno matriculado.</small>}
-              </details>)
-            ) : (
-              <p>Nenhuma turma vinculada.</p>
-            )}
-            </article>
-            <article className={viewStyles.teacher_portal_management_section} data-panel="makeups"><TeacherPortalMakeupPlanner arenaSlug={portal?.arenaSlug ?? ""} students={management.students} slots={management.makeupSlots} /></article>
-            <article className={viewStyles.teacher_portal_management_section} data-panel="agenda">
-            <header><h3>Agenda</h3></header>
-            {management.agenda.length ? (
-              management.agenda.map((item) => (
-                <div key={item.id}>
-                  <strong>{item.title}</strong>
-                  <span>
-                    {item.when} · {item.status}
-                  </span>
-                </div>
-              ))
-            ) : (
-              <p>Nenhuma atividade futura.</p>
-            )}
-            </article>
-          </div>
-        </div>
-      ) : (
-        <PortalEmpty
-          title="Perfil de professor indisponível"
-          detail="Peça à arena para ativar o seu cadastro de professor."
-        />
-      )}
-    </section>
-  );
+  return portal?.teacherManagement ? <PortalTeacherWorkspace arenaSlug={portal.arenaSlug} management={portal.teacherManagement}/> : <PortalEmpty title="Perfil de professor indisponível" detail="Peça à arena para ativar o seu cadastro de professor."/>;
 }
 
 function PortalEmpty({

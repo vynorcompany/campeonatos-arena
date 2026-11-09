@@ -5,6 +5,7 @@ export type Account = {
   id: string;
   updatedAt: string;
   source: string;
+  canCardInstallment?: boolean;
   counterpartyName: string;
   supplierId?: string | null;
   payeeEmployeeId?: string | null;

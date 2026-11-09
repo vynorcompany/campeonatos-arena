@@ -1,4 +1,5 @@
 "use client";
+import { useFilterMemory } from "@/components/filters/filter-memory";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 export function PortalLocalTabs({
   label,
@@ -17,9 +18,12 @@ export function PortalLocalTabs({
     href?: string;
   }[];
 }) {
+  const [remembered,setRemembered] = useFilterMemory(`tabs:${label}`, initial);
   const [selected, setSelected] = useState(
     tabs.some((tab) => tab.id === initial) ? initial : tabs[0]?.id,
   );
+  useEffect(()=>{if(tabs.some(tab=>tab.id===remembered))setSelected(remembered);},[remembered]);
+  const selectTab=(id:string)=>{setSelected(id);setRemembered(id);};
   useEffect(() => {
     if (!hashTabs) return;
     const activate = (href: string) => {
@@ -33,7 +37,7 @@ export function PortalLocalTabs({
       const match = Object.entries(hashTabs).find(([prefix]) =>
         url.hash.startsWith(`#${prefix}`),
       );
-      if (match) setSelected(match[1]);
+      if (match) selectTab(match[1]);
     };
     const click = (event: MouseEvent) => {
       if (
@@ -87,7 +91,7 @@ export function PortalLocalTabs({
         );
         if (tab) {
           event.preventDefault();
-          setSelected(tab.id);
+          selectTab(tab.id);
         }
       }}
     >
@@ -108,7 +112,7 @@ export function PortalLocalTabs({
             aria-selected={selected === tab.id}
             tabIndex={selected === tab.id ? 0 : -1}
             type="button"
-            onClick={() => setSelected(tab.id)}
+            onClick={() => selectTab(tab.id)}
             onKeyDown={(event) => {
               const delta =
                 event.key === "ArrowRight"
@@ -126,7 +130,7 @@ export function PortalLocalTabs({
                       : null;
               if (target !== null) {
                 event.preventDefault();
-                setSelected(tabs[target].id);
+                selectTab(tabs[target].id);
                 buttons.current[target]?.focus();
               }
             }}

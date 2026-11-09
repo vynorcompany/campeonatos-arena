@@ -1,4 +1,5 @@
 "use client";
+import { useFilterMemory } from "@/components/filters/filter-memory";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -13,7 +14,7 @@ const button = "tw:inline-flex tw:min-h-8 tw:items-center tw:justify-center tw:g
 export function WhatsAppContactDirectory({ accountJid, canSend, onOpenConversation }: { accountJid: string; canSend: boolean; onOpenConversation: (id: string) => void }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useFilterMemory("whatsapp-directory-query", "");
   const [contacts, setContacts] = useState<EvolutionContact[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");

@@ -1,4 +1,5 @@
 "use client";
+import { useFilterMemory } from "@/components/filters/filter-memory";
 import { MonthPicker } from "@/components/forms/month-picker";
 import { Modal } from "@/components/ui/modal";
 import { ToggleSwitch } from "@/components/forms/toggle-switch";
@@ -83,7 +84,7 @@ function PayrollForm({ employees, entries, referenceMonth, initial, canCreate, c
 }
 
 export function EmployeePayrollWorkspace({ employees, entries, referenceMonth, canCreate, canEdit, canSettle }: { employees: Employee[]; entries: EmployeePayrollRow[]; referenceMonth: string; canCreate: boolean; canEdit: boolean; canSettle: boolean }) {
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useFilterMemory("payroll-query", "");
   const [filterMonth, setFilterMonth] = useState(referenceMonth);
   const [form, setForm] = useState<{ entry: EmployeePayrollRow | null } | null>(null);
   const close = useRef(() => setForm(null)).current;
