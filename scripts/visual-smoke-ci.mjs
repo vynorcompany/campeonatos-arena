@@ -116,7 +116,7 @@ async function main() {
   let browser;
   let socket;
   try {
-    const arenaA = await db.arena.findUniqueOrThrow({ where: { slug: "arena-teste-goal" }, select: { id: true } });
+    const arenaA = await db.arena.findUniqueOrThrow({ where: { slug: "arena-teste-goal" }, select: { id: true, slug: true } });
     const arenaB = await db.arena.findUniqueOrThrow({ where: { slug: "arena-beta-goal" }, select: { id: true } });
     await mkdir(outputDir, { recursive: true });
     browser = spawn("microsoft-edge", [
@@ -893,7 +893,7 @@ async function main() {
     const portalContrastSelectors = {
       avisos: ['section[aria-label="Avisos"] [aria-live="polite"]'],
       super12: [".super12-empty strong", ".super12-empty p"],
-      reservas: [".portal-activity-list article strong", ".portal-activity-list article span", ".portal-activity-list article b"],
+      reservas: ['section[aria-label="Reservas do atleta"] article h2', 'section[aria-label="Reservas do atleta"] article > p', 'section[aria-label="Reservas do atleta"] article > div:first-child > span'],
       perfil: [".avatar-crop-field > small"],
     };
     // Check readable text against the rendered surface rather than pinning the old theme's RGB values.
@@ -987,6 +987,17 @@ async function main() {
           if(contrastSelectors){
             const rendered=await send("Runtime.evaluate",{expression:`(${measurePortalContrast.toString()})(${JSON.stringify(contrastSelectors)})`,returnByValue:true});
             for(const check of rendered.result.value??[]) if(check.missing||check.contrast<check.threshold) throw new Error(`${label}: contraste insuficiente: ${JSON.stringify(check)}`);
+          }
+          if (view.label === "reservas") {
+            const shortcut=await send("Runtime.evaluate",{expression:`(() => {const link=document.querySelector('section[aria-label="Reservas do atleta"] a[href]');if(!link)return null;const url=new URL(link.href);const valid=url.pathname==="/home"&&url.searchParams.get("arena")===${JSON.stringify(arenaA.slug)}&&url.searchParams.get("section")==="booking-direct";if(valid)link.click();return {valid,href:url.href};})()`,returnByValue:true});
+            if(!shortcut.result.value?.valid)throw new Error(`${label}: atalho de agendamento ausente ou com destino incorreto.`);
+            let bookingReady=false;
+            for(let attempt=0;attempt<40;attempt++) {
+              const result=await send("Runtime.evaluate",{expression:`({ready:Boolean(document.querySelector('nav[aria-label="Dias próximos"]')),arena:new URLSearchParams(location.search).get("arena"),overflow:document.documentElement.scrollWidth>innerWidth+1})`,returnByValue:true});
+              if(result.result.value?.ready&&result.result.value.arena===arenaA.slug&&!result.result.value.overflow){bookingReady=true;break;}
+              await pause(200);
+            }
+            if(!bookingReady)throw new Error(`${label}: o atalho não abriu o agendamento da arena sem overflow.`);
           }
           if (view.label === "inicio" && (!metrics.main.includes(viewport.name === "mobile" ? "Comanda em aberto" : "em aberto") || metrics.main.includes("Tudo em dia"))) {
             throw new Error(`${label}: a tela inicial ignora a comanda aberta do atleta fictício.`);
