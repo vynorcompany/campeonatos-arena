@@ -546,6 +546,7 @@ export async function getPublicLeaguePortal(
   const creditState=await withArenaTransaction(arena.id,tx=>playerLessonCredits(tx,arena.id,playerId,arenaSlug));
   const teacherCredits=await withArenaTransaction(arena.id,tx=>lessonCreditBalances(tx,arena.id,teacherManagement?.studentAssignments.map(a=>a.student.id)??[]));
   return {
+    playerId,
     arenaSlug,
     makeupEnabled: creditState?.makeupEnabled ?? true,
     leagueCategories,

@@ -1,3 +1,4 @@
+import { readCardInstallmentCount } from "../src/lib/finance/card-installments";
 import { requireReceivingBankAccount } from "../src/lib/finance/receiving-bank-account";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -22,7 +23,7 @@ test("receitas manuais simultâneas do mesmo plano criam apenas uma assinatura n
   const admin = new PrismaClient({ datasources: { db: { url: testUrl } } });
   const runtimeUrl = new URL(testUrl);
   runtimeUrl.username = "arena_runtime";
-  runtimeUrl.password = "";
+  runtimeUrl.password = process.env.ARENA_GOAL_TEST_RUNTIME_PASSWORD ?? "";
   const runtime = new PrismaClient({ datasources: { db: { url: runtimeUrl.toString() } } });
   const bankIds: string[] = [];
   const ids: { teacher?: string; plan?: string; client?: string; betaClient?: string } = {};
@@ -49,6 +50,7 @@ test("receitas manuais simultâneas do mesmo plano criam apenas uma assinatura n
       "@/lib/auth/session": { requireArenaAccess: async () => ({ arenaId: arenaA.id }) },
       "@/lib/permissions": { canPerformPermission: () => true },
       "@/lib/finance/entry-permissions": { financialEntryPermission },
+      "@/lib/finance/card-installments": { readCardInstallmentCount },
       "@/lib/finance/action-schemas": { entrySchema: { safeParse: () => ({ success: true, data }) } },
       "@/lib/finance/inputs": { parseMoneyToCents: () => 30000, parseDate: (value: string) => value ? new Date(`${value}T12:00:00Z`) : null },
       "@/lib/finance/discounts": { getDiscountedAmountCents: () => 30000 },

@@ -14,6 +14,7 @@ export function SmartEntitySelect({createKind,contextId,financeType="BOTH",value
  const router=useRouter();
  const id=useId(),native=useRef<HTMLSelectElement>(null),input=useRef<HTMLInputElement>(null),host=useRef<HTMLDivElement>(null),popup=useRef<HTMLDivElement>(null);
  const [created,setCreated]=useState<Option[]>([]),[chosen,setChosen]=useState(String(props.defaultValue??options(children)[0]?.value??"")),[query,setQuery]=useState(""),[open,setOpen]=useState(false),[active,setActive]=useState(0),[position,setPosition]=useState<{top:number;left:number;width:number;maxHeight:number}|null>(null);
+ useEffect(()=>{if(props.value===undefined){setChosen(String(props.defaultValue??options(children)[0]?.value??""));setQuery("");}},[props.defaultValue]);
  const [creating,setCreating]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState("");
  const all=useMemo(()=>[...options(children),...created].filter((o,i,a)=>a.findIndex(x=>x.value===o.value)===i),[children,created]);
  const current=String(props.value??chosen),selected=all.find(o=>o.value===current);

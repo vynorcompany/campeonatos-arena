@@ -5,6 +5,7 @@ import test from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
 import { assertFinancialEntryRelationsBelongToArena } from "../src/lib/finance/entry-relations";
+import { readCardInstallmentCount } from "../src/lib/finance/card-installments";
 import { financialEntryPermission } from "../src/lib/finance/entry-permissions";
 
 test("criar, editar e repetir lançamentos recusam conta bancária de outra arena antes de gravar", async () => {
@@ -32,6 +33,7 @@ test("criar, editar e repetir lançamentos recusam conta bancária de outra aren
     "@/lib/auth/session": { requireArenaAccess: async () => ({ arenaId: "arena-a" }) },
     "@/lib/permissions": { canPerformPermission: () => true },
     "@/lib/finance/entry-permissions": { financialEntryPermission },
+    "@/lib/finance/card-installments": { readCardInstallmentCount },
     "@/lib/finance/inputs": { parseMoneyToCents: () => 1000, parseDate: (value: string) => value ? new Date(`${value}T12:00:00Z`) : null },
     "@/lib/finance/discounts": { getDiscountedAmountCents: () => 1000 },
     "@/lib/finance/entry-relations": { assertFinancialEntryRelationsBelongToArena },
@@ -70,6 +72,7 @@ test("estorno usa o tipo armazenado, não o tipo adulterado no formulário", asy
     "@/lib/auth/session": { requireArenaAccess: async () => ({ arenaId: "arena-a" }) },
     "@/lib/permissions": { canPerformPermission: (key: string) => key === "finance:receivable:edit" },
     "@/lib/finance/entry-permissions": { financialEntryPermission },
+    "@/lib/finance/card-installments": { readCardInstallmentCount },
     "@/lib/finance/action-schemas": { voidEntrySchema: { safeParse: () => ({ success: true, data: { entryId: "expense-a", reason: "Teste" } }) } },
     "@/lib/rls": { withArenaTransaction: async (_arenaId: string, callback: (client: typeof tx) => Promise<unknown>) => callback(tx) },
   };

@@ -1,3 +1,4 @@
+import { FilterMemoryProvider } from "@/components/filters/filter-memory";
 import { viewStyles } from "./app-shell.utilities";
 import Image from "next/image";
 import Link from "next/link";
@@ -11,6 +12,7 @@ import { WorkspaceBreadcrumb } from "@/components/layout/page-breadcrumb";
 import { MobileAppFrame } from "@/components/layout/mobile-app-frame";
 
 type AppShellProps = {
+  filterScope?: string;
   arenaName: string;
   arenaLogoUrl: string;
   activeArenaId: string | null;
@@ -33,6 +35,7 @@ type AppShellProps = {
 };
 
 export function AppShell({
+  filterScope = "",
   arenaName,
   arenaLogoUrl,
   activeArenaId,
@@ -54,7 +57,7 @@ export function AppShell({
   children
 }: AppShellProps) {
   return (
-    <MobileAppFrame arenaName={arenaName} sidebar={<aside id="arena-mobile-navigation" className={viewStyles.sidebar} aria-label="Menu lateral">
+    <FilterMemoryProvider scope={filterScope} queryMemory><MobileAppFrame arenaName={arenaName} sidebar={<aside id="arena-mobile-navigation" className={viewStyles.sidebar} aria-label="Menu lateral">
         <div className={viewStyles.sidebar_inner}>
           <div className={viewStyles.sidebar_top}>
             <div className={viewStyles.brand_lockup_sidebar_brand_lockup}>
@@ -92,6 +95,6 @@ export function AppShell({
       <main className={viewStyles.app_main}>
         <div className={viewStyles.content_shell}>{billingAlert ? <><AgencyBillingNotice invoiceId={billingAlert.id} daysRemaining={billingAlert.daysRemaining} /><div className={viewStyles.agency_payment_alert} role="alert"><strong>Fatura do sistema em atraso.</strong><span>Regularize o pagamento para evitar a suspensão do acesso{billingAlert.daysRemaining ? ` em ${billingAlert.daysRemaining} dia${billingAlert.daysRemaining === 1 ? "" : "s"}` : " hoje"}.</span>{billingAlert.checkoutUrl ? <a href={billingAlert.checkoutUrl} target="_blank" rel="noopener noreferrer">Pagar fatura</a> : <span>Solicite o link de pagamento à agência.</span>}</div></> : null}<WorkspaceBreadcrumb canViewTournaments={visibleModules.includes("tournaments")} />{children}</div>
       </main>
-    </MobileAppFrame>
+    </MobileAppFrame></FilterMemoryProvider>
   );
 }

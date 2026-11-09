@@ -1,7 +1,7 @@
 "use client";
 import { viewStyles } from "./sponsorship-filters.utilities";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Option = { value: string; label: string };
 
@@ -9,6 +9,8 @@ function SearchableSelect({ label, name, value, options, placeholder }: { label:
   const [query, setQuery] = useState(options.find((option) => option.value === value)?.label ?? "");
   const [selected, setSelected] = useState(value);
   const [open, setOpen] = useState(false);
+  const selectedLabel=options.find(option=>option.value===value)?.label ?? "";
+  useEffect(()=>{setSelected(value);setQuery(selectedLabel);},[value,selectedLabel]);
   const filteredOptions = useMemo(() => options.filter((option) => option.label.toLocaleLowerCase("pt-BR").includes(query.toLocaleLowerCase("pt-BR"))), [options, query]);
 
   return <label className={viewStyles.sponsorship_searchable_select}>

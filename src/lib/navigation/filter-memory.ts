@@ -1,0 +1,4 @@
+export const rememberedFilterKeys = new Set(["q","query","search","name","start","end","date","dia","month","mes","year","status","type","category","categoryId","paymentMethod","bankAccountId","description","productId","planId","teacherId","teacher","courtId","court","sort","sortBy","direction","order","active","includeEarlier","includeVoided","dateField","weekday","from","to","period","view","tab","data","dataInicial","dataFinal","inicio","fim","categoria","banco","forma","referenceMonth","groupId","tournamentId","competitionId","periodo","tipo","stock","phone","financial","gender","athleteId","until","scope","visao","comparar","compararDataInicial","compararDataFinal"]);
+export function rememberedFilterQuery(search:string) {
+ const result=new URLSearchParams();for(const [key,value] of new URLSearchParams(search))if(rememberedFilterKeys.has(key)&&value.length<=300)result.append(key,value);return result.toString();
+}

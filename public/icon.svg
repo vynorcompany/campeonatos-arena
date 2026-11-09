@@ -1,6 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Arena">
-  <rect width="128" height="128" rx="28" fill="#123c70"/>
-  <path d="m25 99 29-70h20l29 70H82L64 52 46 99Z" fill="#fff"/>
-  <path d="M48 79h32l6 16H42Z" fill="#51b7ff"/>
-  <circle cx="99" cy="29" r="12" fill="#51b7ff"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Atleta de padel em voleio de revés">
+  <rect width="128" height="128" rx="25" fill="#123c70"/>
+  <circle cx="78" cy="29" r="9" fill="#fff"/>
+  <path d="M66 42c-9 1-14 10-19 20l-8 10 19 8 15-22 8-5-6-12Z" fill="#fff"/>
+  <path d="m65 46-17-3-15-14m37 25-23-2-13-17" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="m47 73-18 23-12 5m40-25 15 13 18 15" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="m33 31-6-6" stroke="#51b7ff" stroke-width="6" stroke-linecap="round"/>
+  <ellipse cx="22" cy="20" rx="9" ry="13" transform="rotate(-40 22 20)" fill="#51b7ff"/>
+  <path d="m19 16 6 7m-8-3 7-5" stroke="#123c70" stroke-width="2.4" stroke-linecap="round"/>
+  <circle cx="103" cy="30" r="6" fill="#51b7ff"/>
 </svg>

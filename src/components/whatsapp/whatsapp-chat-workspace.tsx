@@ -1,4 +1,5 @@
 "use client";
+import { useFilterMemory } from "@/components/filters/filter-memory";
 import { AttachmentPreview } from "./attachment-preview";
 import { useThreadScroll } from "./use-thread-scroll";
 import { attachmentMimeType, outgoingWhatsAppMediaKind } from "@/lib/whatsapp-media-types";
@@ -91,9 +92,9 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
   const dragDepth = useRef(0);
   useEffect(() => () => { attachmentRef.current.forEach(item => URL.revokeObjectURL(item.previewUrl)); }, []);
   const [body, setBody] = useState("");
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useFilterMemory("whatsapp-chat-query", "");
   const [clientQuery, setClientQuery] = useState("");
-  const [filter, setFilter] = useState<WhatsAppFilter>("all");
+  const [filter, setFilter] = useFilterMemory<WhatsAppFilter>("whatsapp-chat-filter", "all");
   const [menuId, setMenuId] = useState("");
   const [showContactDetails, setShowContactDetails] = useState(false);
   const contactDetailsOpenedByUser = useRef(false);
