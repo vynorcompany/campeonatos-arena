@@ -1,3 +1,7 @@
+import { headers } from "next/headers";
+import { env } from "@/lib/env";
+import { prisma } from "@/lib/prisma";
+import { portalArenaSlugForHost } from "@/lib/portal/login-arena-host";
 import { PortalIcon, portalCard, portalInteractive } from "@/components/portal/portal-navigation";
 import Link from "next/link";
 import { GlobalAthleteAuthForm } from "@/components/global-athlete-auth-form";
@@ -9,7 +13,11 @@ export const dynamic = "force-dynamic";
 
 export default async function GlobalAthletePortalPage() {
   const athlete = await getPublicAthleteIdentity();
-  if (!athlete) return <AthletePortalLoginLayout><GlobalAthleteAuthForm /></AthletePortalLoginLayout>;
+  if (!athlete) {
+    const slug = portalArenaSlugForHost((await headers()).get("host"),env.portalArenaHosts);
+    const arena = slug ? await prisma.arena.findFirst({where:{slug,archivedAt:null},select:{name:true,logoUrl:true,athletePortalLogoUrl:true}}) : null;
+    return <AthletePortalLoginLayout arena={arena ? {name:arena.name,logoUrl:arena.athletePortalLogoUrl || arena.logoUrl} : undefined}><GlobalAthleteAuthForm /></AthletePortalLoginLayout>;
+  }
   return <main className="athlete-portal-page tw:min-h-dvh tw:bg-[#ffffff] tw:px-4 tw:py-6 tw:text-[#231f20] tw:dark:bg-[#07111f] tw:dark:text-[#e9edf3] tw:[&_*]:box-border tw:min-[700px]:p-10"><div className="tw:mx-auto tw:max-w-[1000px]">
     <header className="tw:mb-12 tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-4"><Link href="/portal" className="tw:flex tw:items-center tw:gap-3 tw:text-inherit tw:no-underline"><img src="/padel-volley-mark.png?v=padel-man-volley-5" alt="" className="tw:size-11 tw:rounded-xl"/><span className="tw:text-xs tw:font-semibold tw:tracking-[.12em]">PORTAL DO ATLETA</span></Link><div className="tw:flex tw:items-center tw:gap-4"><Link href="/portal/eventos" className="tw:text-xs tw:font-medium tw:text-[#174983] tw:no-underline tw:dark:text-[#d0def0]">Radar de eventos ↗</Link><form action={logoutAthletePortalAction}><button type="submit" className="tw:min-h-10 tw:cursor-pointer tw:rounded-xl tw:border tw:border-[#dce1e7] tw:bg-transparent tw:px-4 tw:text-xs tw:text-inherit tw:dark:border-[#33455c]">Sair</button></form></div></header>
     <section><p className="tw:m-0 tw:text-[10px] tw:font-semibold tw:tracking-[.12em] tw:text-[#52627a] tw:dark:text-[#b8c8dc]">SEU PONTO DE PARTIDA</p><h1 className="tw:mt-3 tw:mb-2 tw:text-3xl tw:font-semibold tw:tracking-tight tw:min-[700px]:text-4xl">Onde vamos jogar hoje?</h1><p className="tw:m-0 tw:text-sm tw:leading-relaxed tw:text-[#52627a] tw:dark:text-[#b8c8dc]">Escolha uma arena para acessar seus horários, eventos e sua conta.</p>
