@@ -22,7 +22,7 @@ test("agenda uses a compact date strip and a contained, keyboard-accessible cour
   const page = source("src/app/(app)/agenda/page.tsx");
   const styles = source("src/app/(app)/agenda/page.utilities.ts");
   assert.match(page, /role="region" aria-label="Grade de horários por quadra" tabIndex=\{0\}/);
-  assert.match(page, /const gridMinWidth = courts\.length \* 165/);
+  assert.match(page, /const gridMinWidth = courts\.length \* 320/);
   assert.match(styles, /viewport-700:grid-cols-\[repeat\(3,_minmax\(0,_1fr\)\)\]/);
   assert.doesNotMatch(page, /<th scope="col">Hora<\/th>/);
   assert.doesNotMatch(page, /<th scope="row">/);
