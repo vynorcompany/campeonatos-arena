@@ -121,7 +121,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ res
         amountCents: entry.amountCents, interestCents: 0, paymentMethod: entry.paymentMethod,
         paidAt: entry.paidAt!, notes: "Pagamento já realizado informado pelo agente autorizado."
       } });
-      await tx.auditEvent.create({ data: { arenaId: key.arenaId, actorId: key.id, actorName: active.name, action: "FINANCIAL_ENTRY_CREATED", entityId: entry.id, details: { description: entry.description, amountCents: entry.amountCents, category: entry.category, supplierId: entry.supplierId, competenceDate: entry.competenceDate?.toISOString() ?? null, source: "AGENT_API" } } });
+      await tx.auditEvent.create({ data: { arenaId: key.arenaId, actorId: key.id, actorName: active.name, action: "FINANCIAL_ENTRY_CREATED", entityId: entry.id, details: { description: entry.description, amountCents: entry.amountCents, category: entry.category, supplierId: entry.supplierId, competenceDate: entry.competenceDate?.toISOString() ?? null, source: "AGENT_API", actorType: "AGENT" } } });
       await tx.agentApiKey.update({ where: { id: key.id }, data: { lastUsedAt: new Date() } });
       return { id: entry.id, status: entry.status, reused: false, requestId: idempotencyKey, verified: true };
     });

@@ -1,4 +1,5 @@
 "use server";
+import { entryAdjustedAmount, entryAdjustmentNotes } from "@/lib/finance/entry-adjustments";
 import { splitCardEntry } from "@/lib/finance/split-card-entry";
 import { readCardInstallmentCount, readCardInstallmentRows } from "@/lib/finance/card-installments";
 import { createCardInstallmentEntries } from "@/lib/finance/card-installment-service";
@@ -357,6 +358,7 @@ export async function createFinancialEntryAction(formData: FormData) {
     planId: formData.get("planId"),
     productId: formData.get("productId"),
     amount: formData.get("amount"),
+    interest: formData.get("interest"),
     discount: formData.get("discount"),
     discountMode: formData.get("discountMode"),
     paymentMethod: formData.get("paymentMethod"),
@@ -377,7 +379,8 @@ export async function createFinancialEntryAction(formData: FormData) {
 
   const discount = parsed.data.discountMode === "PERCENTAGE" ? Number(parsed.data.discount.replace(",", ".")) : parseMoneyToCents(parsed.data.discount);
   if (!Number.isFinite(discount)) throw new Error("Informe um desconto válido.");
-  const amountCents = getDiscountedAmountCents(parseMoneyToCents(parsed.data.amount), discount, parsed.data.discountMode);
+  const adjustment = entryAdjustedAmount(parsed.data.amount, parsed.data.discount, parsed.data.discountMode, parsed.data.interest);
+  const { amountCents } = adjustment;
   const dueDate = parseDate(parsed.data.dueDate);
   const paidAt = parsed.data.status === "PAID" ? parseDate(parsed.data.paidAt) ?? new Date() : parseDate(parsed.data.paidAt);
   let enrollmentNotice = "";
@@ -437,7 +440,7 @@ export async function createFinancialEntryAction(formData: FormData) {
         dueDate,
         competenceDate: parseDate(parsed.data.competenceDate),
         paidAt,
-        notes: parsed.data.notes
+        notes: entryAdjustmentNotes(parsed.data.notes,adjustment)
     };
     const entry=installmentCount ? await createCardInstallmentEntries(tx,entryData,installmentCount,String(formData.get("installmentRequestId")??""),readCardInstallmentRows(formData)) : await tx.financialEntry.create({data:entryData});
     if (parsed.data.status === "PAID") {
@@ -528,7 +531,7 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
   const parsed = recurrenceSchema.safeParse({
     type: formData.get("type"),
     counterpartyName: formData.get("counterpartyName"), category: formData.get("category"), description: formData.get("description"),
-    amount: formData.get("amount"), discount: formData.get("discount"), discountMode: formData.get("discountMode"), frequency: formData.get("frequency"), startsAt: formData.get("startsAt"),
+    amount: formData.get("amount"), interest: formData.get("interest"), discount: formData.get("discount"), discountMode: formData.get("discountMode"), frequency: formData.get("frequency"), startsAt: formData.get("startsAt"),
     endsAt: formData.get("endsAt"), bankAccountId: formData.get("bankAccountId"), planId: formData.get("planId"), onlinePaymentMethod: formData.get("onlinePaymentMethod"), notes: formData.get("notes")
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
@@ -539,7 +542,8 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
   if (endsAt && endsAt < startsAt) return { error: "A data final deve ser posterior à inicial." };
   const discount = parsed.data.discountMode === "PERCENTAGE" ? Number(parsed.data.discount.replace(",", ".")) : parseMoneyToCents(parsed.data.discount);
   if (!Number.isFinite(discount)) return { error: "Informe um desconto válido." };
-  const amountCents = getDiscountedAmountCents(parseMoneyToCents(parsed.data.amount), discount, parsed.data.discountMode);
+  const adjustment = entryAdjustedAmount(parsed.data.amount, parsed.data.discount, parsed.data.discountMode, parsed.data.interest);
+  const { amountCents } = adjustment;
   if (parsed.data.onlinePaymentMethod === "BOLETO") {
     if (amountCents < 500) return { error: "Boleto recorrente exige valor mínimo de R$ 5,00. Ajuste o valor antes de continuar." };
     if (parsed.data.type !== "REVENUE" || !clientId) return { error: "Dados incompletos do cliente: selecione um cliente cadastrado para gerar o boleto recorrente." };
@@ -567,7 +571,7 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
       ...(payee ?? { counterpartyName: parsed.data.counterpartyName }),
       description: parsed.data.description, amountCents, frequency: parsed.data.frequency,
       startsAt, endsAt, nextDueDate: startsAt, bankAccountId: parsed.data.bankAccountId || null, planId: parsed.data.planId || null, teacherId: teacherPlan?.teacherId ?? null,
-      playerId: parsed.data.type === "REVENUE" && clientId ? clientId : null, onlinePaymentMethod: parsed.data.onlinePaymentMethod, notes: parsed.data.notes
+      playerId: parsed.data.type === "REVENUE" && clientId ? clientId : null, onlinePaymentMethod: parsed.data.onlinePaymentMethod, notes: entryAdjustmentNotes(parsed.data.notes,adjustment)
     } });
     const dates = getFinancialRecurrenceDates(startsAt, parsed.data.frequency, endsAt);
     for (const dueDate of dates) {

@@ -52,12 +52,12 @@ export function useConfirmAction() {
   };
 
   const confirmationDialog = confirmation ? (
-    <Modal title={confirmation.title ?? "Confirmar exclusão"} open onClose={close} width="tw:max-w-[480px]">
-      <div className="tw:flex tw:min-h-full tw:flex-col tw:gap-4">
-        <p>{confirmation.message}</p>
-        {confirmation.keyword ? <label className="tw:grid tw:gap-2 tw:text-sm tw:font-semibold">Confirmação<input data-modal-autofocus className="tw:min-h-10 tw:w-full tw:rounded-md tw:border tw:border-[var(--line)] tw:bg-white tw:px-3" value={value} onChange={(event) => setValue(event.currentTarget.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void submit(); } }} placeholder={`Digite ${confirmation.keyword}`} /></label> : null}
+    <Modal title={confirmation.title ?? "Confirmar exclusão"} open onClose={close} width="tw:max-w-[440px]" fixedSize={false}>
+      <div className="tw:flex tw:flex-col tw:gap-4">
+        <p className="tw:m-0 tw:text-sm tw:leading-relaxed">{confirmation.message}</p>
+        {confirmation.keyword ? <label className="tw:grid tw:gap-2 tw:text-sm">Confirmação<input data-modal-autofocus className="tw:min-h-10 tw:w-full tw:rounded-md tw:border tw:border-[var(--line)] tw:bg-white tw:px-3" value={value} onChange={(event) => setValue(event.currentTarget.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void submit(); } }} placeholder={`Digite ${confirmation.keyword}`} /></label> : null}
         {error ? <p role="alert" className={viewStyles.form_error_form_full}>{error}</p> : null}
-        <footer className="tw:mt-auto tw:flex tw:flex-wrap tw:justify-end tw:gap-2 tw:border-t tw:border-[var(--line)] tw:pt-3">
+        <footer className="tw:flex tw:flex-wrap tw:justify-end tw:gap-2 tw:border-t tw:border-[var(--line)] tw:pt-3">
           <button type="button" className={viewStyles.button} onClick={close} disabled={pending}>Cancelar</button>
           <button type="button" className={viewStyles.button_button_danger} onClick={() => void submit()} disabled={pending}>{pending ? "Aguarde..." : confirmation.actionLabel ?? "Excluir"}</button>
         </footer>

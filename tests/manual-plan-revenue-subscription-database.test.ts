@@ -1,3 +1,4 @@
+import { entryAdjustedAmount, entryAdjustmentNotes } from "../src/lib/finance/entry-adjustments";
 import { readCardInstallmentCount } from "../src/lib/finance/card-installments";
 import { requireReceivingBankAccount } from "../src/lib/finance/receiving-bank-account";
 import assert from "node:assert/strict";
@@ -43,7 +44,7 @@ test("receitas manuais simultâneas do mesmo plano criam apenas uma assinatura n
     const data = {
       type: "REVENUE", category: "Planos", description: "Mensalidade GOAL", counterpartyName: "Cliente GOAL",
       supplierId: "", bankAccountId: "", planId: ids.plan, productId: "", amount: "300,00", discount: "0",
-      discountMode: "VALUE", paymentMethod: "PIX", status: "PENDING", dueDate: "2030-01-10", paidAt: "", notes: "",
+      interest: "0", discountMode: "AMOUNT", paymentMethod: "PIX", status: "PENDING", dueDate: "2030-01-10", paidAt: "", notes: "",
     };
     const mocks: Record<string, unknown> = {
       "@/lib/auth/guards": { requirePermission: async () => ({ arenaId: arenaA.id }) },
@@ -53,6 +54,7 @@ test("receitas manuais simultâneas do mesmo plano criam apenas uma assinatura n
       "@/lib/finance/card-installments": { readCardInstallmentCount },
       "@/lib/finance/action-schemas": { entrySchema: { safeParse: () => ({ success: true, data }) } },
       "@/lib/finance/inputs": { parseMoneyToCents: () => 30000, parseDate: (value: string) => value ? new Date(`${value}T12:00:00Z`) : null },
+      "@/lib/finance/entry-adjustments": { entryAdjustedAmount, entryAdjustmentNotes },
       "@/lib/finance/discounts": { getDiscountedAmountCents: () => 30000 },
       "@/lib/finance/receiving-bank-account": { requireReceivingBankAccount },
       "@/lib/finance/entry-relations": { assertFinancialEntryRelationsBelongToArena },
