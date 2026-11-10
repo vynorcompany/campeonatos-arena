@@ -1,6 +1,6 @@
 "use server";
 import { createCardInstallmentEntries } from "@/lib/finance/card-installment-service";
-import { cardInstallmentSchedule } from "@/lib/finance/card-installments";
+import { customizedCardInstallments } from "@/lib/finance/card-installments";
 import { ingredientChoicesSchema } from "@/lib/products/composition";
 import { consumeProductStock, assertAggregateAvailability } from "@/lib/products/stock-aggregates";
 import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
@@ -50,6 +50,7 @@ const paymentsSchema = z.array(z.object({
   paymentMethod: z.string().trim().min(1).max(80),
   amountCents: z.coerce.number().int().positive(),
   installmentCount: z.number().int().min(2).max(36).optional(),
+  installmentRows: z.array(z.object({ dueDate: z.string(), amountCents: z.number().int().positive() })).max(36).optional(),
   firstDueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()
 })).max(8);
 
@@ -296,7 +297,7 @@ export async function finishComandaAction(formData: FormData) {
     if (!/^(cartao de credito|credito|credit_card)$/i.test(payment.paymentMethod.normalize("NFD").replace(/[\u0300-\u036f]/g, ""))) throw new Error("Parcelamento disponível somente no cartão de crédito.");
     const first = new Date(`${payment.firstDueDate}T12:00:00Z`);
     if (!payment.firstDueDate || !Number.isFinite(first.getTime()) || first.toISOString().slice(0,10) !== payment.firstDueDate) throw new Error("Informe o vencimento da primeira parcela.");
-    cardInstallmentSchedule(payment.amountCents, payment.installmentCount!, first);
+    customizedCardInstallments(payment.amountCents, payment.installmentCount!, first, payment.installmentRows);
   }
   const installmentTotalCents = installmentPayments.reduce((sum, payment) => sum + payment.amountCents, 0);
   const whatsappIds = await withArenaTransaction(auth.arenaId, async (tx) => {
@@ -399,7 +400,7 @@ export async function finishComandaAction(formData: FormData) {
     }
     for (const payment of installmentPayments) {
       await tx.salePayment.create({ data: { saleId: sale.id, bankAccountId: payment.bankAccountId, paymentMethod: payment.paymentMethod, amountCents: payment.amountCents } });
-      await createCardInstallmentEntries(tx, { arenaId: auth.arenaId, saleId: sale.id, playerId: comanda.playerId, counterpartyName: comanda.label, bankAccountId: payment.bankAccountId, type: "REVENUE", category: "COMANDAS", source: "COMANDA", dueDate: new Date(`${payment.firstDueDate}T12:00:00Z`), description: `Cartão da comanda ${comanda.code}`, amountCents: payment.amountCents, status: "PENDING" }, payment.installmentCount!, crypto.randomUUID());
+      await createCardInstallmentEntries(tx, { arenaId: auth.arenaId, saleId: sale.id, playerId: comanda.playerId, counterpartyName: comanda.label, bankAccountId: payment.bankAccountId, type: "REVENUE", category: "COMANDAS", source: "COMANDA", dueDate: new Date(`${payment.firstDueDate}T12:00:00Z`), description: `Cartão da comanda ${comanda.code}`, amountCents: payment.amountCents, status: "PENDING" }, payment.installmentCount!, crypto.randomUUID(), payment.installmentRows);
     }
     for (const settlement of debtPaymentAllocation.settlements) {
       await tx.financialSettlement.create({

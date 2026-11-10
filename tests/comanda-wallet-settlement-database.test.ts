@@ -1,5 +1,5 @@
 import { createCardInstallmentEntries } from "../src/lib/finance/card-installment-service";
-import { cardInstallmentSchedule } from "../src/lib/finance/card-installments";
+import { customizedCardInstallments } from "../src/lib/finance/card-installments";
 import * as composition from "../src/lib/products/composition";
 import { consumeProductStock } from "../src/lib/products/stock-aggregates";
 import { requireReceivingBankAccount } from "../src/lib/finance/receiving-bank-account";
@@ -36,7 +36,7 @@ async function fixture() {
   const product = await admin.product.create({ data: { arenaId: arena.id, name: "Service QA", priceCents: 1000, isService: true } });
   await admin.arenaOperationalSettings.create({ data: { arenaId: arena.id, requireFullPayment: true } });
   const transact = (scope: string, operation: (tx: unknown) => Promise<unknown>) => runtime.$transaction(async tx => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${scope}, true)`; return operation(tx); }, { maxWait: 10_000, timeout: 10_000 });
-  const mocks: Record<string, unknown> = { "@/lib/finance/card-installment-service": { createCardInstallmentEntries }, "@/lib/finance/card-installments": { cardInstallmentSchedule }, "@/lib/products/composition": composition, "@/lib/products/stock-aggregates": { consumeProductStock },
+  const mocks: Record<string, unknown> = { "@/lib/finance/card-installment-service": { createCardInstallmentEntries }, "@/lib/finance/card-installments": { customizedCardInstallments }, "@/lib/products/composition": composition, "@/lib/products/stock-aggregates": { consumeProductStock },
     "@/lib/finance/receiving-bank-account": { requireReceivingBankAccount }, "next/cache": { revalidatePath() {} }, "@/lib/auth/guards": { requirePermission: async () => ({ arenaId: arena.id, userId: "goal-test", userName: "Wallet QA" }) },
     "@/lib/arena-database": { arenaDatabase: (scope: string) => arenaDatabaseForTest(runtime, scope) }, "@/lib/rls": { withArenaTransaction: transact },
     "@/lib/comandas/operational-policy": operationalPolicy, "@/lib/comandas/split": { allocateComandaShares }, "@/lib/finance/settlements": { allocatePaymentsToDebts, getOutstandingCents },
@@ -178,4 +178,19 @@ test("comanda mixes PIX for reservation and installments for products, rejecting
     assert.equal(await f.admin.financialEntry.count({where:{saleId:sale.id,status:"PAID"}}),0);
     assert.equal(await f.admin.financialEntry.count({where:{saleId:sale.id,status:"PENDING"}}),3);
   } finally { await f.cleanup(); }
+});
+
+
+test("comanda persists customized dates and amounts atomically and rejects a mismatched total", { skip: !isolated }, async () => {
+ const f=await fixture();try{
+  const c=await f.command();
+  const installmentRows=[{dueDate:"2027-01-10",amountCents:500},{dueDate:"2027-03-15",amountCents:200},{dueDate:"2027-04-20",amountCents:300}];
+  const card={bankAccountId:f.bank.id,paymentMethod:"Cartão de crédito",amountCents:1000,installmentCount:3,firstDueDate:"2027-01-31",installmentRows};
+  await assert.rejects(f.finish(c.id,0,[],0,{payments:JSON.stringify([{...card,installmentRows:[...installmentRows.slice(0,2),{dueDate:"2027-04-20",amountCents:299}]}])}),/soma das parcelas/);
+  assert.equal((await f.admin.comanda.findUniqueOrThrow({where:{id:c.id}})).status,"OPEN");
+  await f.finish(c.id,0,[],0,{payments:JSON.stringify([card])});
+  const sale=await f.admin.sale.findUniqueOrThrow({where:{comandaId:c.id}});
+  const rows=await f.admin.financialEntry.findMany({where:{saleId:sale.id},orderBy:{dueDate:"asc"}});
+  assert.deepEqual(rows.map(row=>({dueDate:row.dueDate!.toISOString().slice(0,10),amountCents:row.amountCents})),installmentRows);
+ }finally{await f.cleanup()}
 });

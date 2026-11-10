@@ -45,7 +45,7 @@ export function GlobalAthleteAuthForm() {
   </div>;
 
   return <section className={viewStyles.public_client_auth}>
-    <header><span>CONTA DO ATLETA</span><h2>{mode === "LOGIN" ? "Entre no Portal do Atleta" : mode === "REQUEST" ? "Recupere sua senha" : "Crie uma nova senha"}</h2>{mode !== "LOGIN" ? <p>Enviaremos um código para o WhatsApp cadastrado.</p> : null}</header>
+    <header><h2>{mode === "LOGIN" ? "Entre no Portal do Atleta" : mode === "REQUEST" ? "Recupere sua senha" : "Crie uma nova senha"}</h2>{mode !== "LOGIN" ? <p>Enviaremos um código para o WhatsApp cadastrado.</p> : null}</header>
     {mode === "LOGIN" ? <form action={action}><BotTrap/>
       <label className={viewStyles.field}>Telefone<input name="phone" inputMode="tel" autoComplete="tel" required /></label>
       <label className={viewStyles.field}>Senha<input name="password" type="password" autoComplete="current-password" required /></label>

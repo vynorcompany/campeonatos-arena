@@ -16,6 +16,13 @@ test("cartão parcelado cria uma série sem dupla contagem, preserva vínculos e
    const rows=await tx.financialEntry.findMany({where:{arenaId:arena.id,recurrenceId:first.recurrenceId}});assert.equal(rows.length,3);assert.equal(rows.reduce((n,r)=>n+r.amountCents,0),10000);assert.ok(rows.every(r=>r.status==="PENDING"&&r.paidAt===null&&r.paymentMethod==="Cartão de crédito"));
    assert.equal((await tx.financialRecurrence.findUniqueOrThrow({where:{id:first.recurrenceId!}})).active,false);
   }
+  const custom=[{dueDate:"2028-01-05",amountCents:5000},{dueDate:"2028-02-20",amountCents:2000},{dueDate:"2028-04-12",amountCents:3000}];
+  for(const type of ["REVENUE","EXPENSE"]){
+   const first=await createCardInstallmentEntries(tx,{arenaId:arena.id,type,category:"QA",description:"Personalizadas QA",amountCents:10000,dueDate:new Date("2028-01-31T12:00:00Z"),status:"PENDING"},3,randomUUID(),custom);
+   const rows=await tx.financialEntry.findMany({where:{recurrenceId:first.recurrenceId},orderBy:{dueDate:"asc"}});
+   assert.deepEqual(rows.map(row=>({dueDate:row.dueDate!.toISOString().slice(0,10),amountCents:row.amountCents})),custom);
+   assert.equal((await tx.financialRecurrence.findUniqueOrThrow({where:{id:first.recurrenceId!}})).startsAt.toISOString().slice(0,10),"2028-01-05");
+  }
   const original=await tx.financialEntry.create({data:{arenaId:arena.id,type:"EXPENSE",source:"MANUAL",category:"QA",description:"Original QA",amountCents:9000,playerId:"goal-athlete-a",billingPlayerId:"goal-athlete-a",competenceDate:new Date("2028-02-01T12:00:00Z")}});
   const requestId=randomUUID(),input={entryId:original.id,expectedUpdatedAt:original.updatedAt.toISOString(),count:3,firstDueDate:new Date("2028-02-10T12:00:00Z"),requestId};
   await splitCardEntry(tx,arena.id,input);await splitCardEntry(tx,arena.id,input);
