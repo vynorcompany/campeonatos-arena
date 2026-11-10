@@ -31,5 +31,6 @@ test("filtros iniciais usam mês da Arena e abertos, preservando escolhas e link
  assert.deepEqual(defaultLedgerFilters({},new Date("2026-12-01T01:00:00Z")),{start:"2026-11-01",end:"2026-11-30",status:"OPEN"});
  assert.deepEqual(defaultLedgerFilters({start:"",end:"",status:"ALL"}),{start:"",end:"",status:"ALL"});
  assert.deepEqual(defaultLedgerFilters({start:"2026-01-01",end:"2026-01-31",status:"PAID"}),{start:"2026-01-01",end:"2026-01-31",status:"PAID"});
+ assert.equal(defaultLedgerFilters({status:"PENDING"}).status,"OPEN");
  assert.deepEqual(defaultLedgerFilters({description:"Aviso específico"}),{description:"Aviso específico"});
 });

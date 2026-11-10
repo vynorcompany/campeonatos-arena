@@ -1,3 +1,4 @@
+import { entryAdjustedAmount, entryAdjustmentNotes } from "../src/lib/finance/entry-adjustments";
 import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -25,7 +26,7 @@ test("criar, editar e repetir lançamentos recusam conta bancária de outra aren
   };
   const base = {
     category: "Teste", description: "Teste", counterpartyName: "Cliente", amount: "10,00", discount: "0",
-    discountMode: "VALUE", bankAccountId: "bank-from-arena-b", planId: "", productId: "", notes: "",
+    interest: "0", discountMode: "AMOUNT", bankAccountId: "bank-from-arena-b", planId: "", productId: "", notes: "",
   };
   const valid = (data: Record<string, unknown>) => ({ safeParse: () => ({ success: true, data }) });
   const mocks: Record<string, unknown> = {
@@ -35,6 +36,7 @@ test("criar, editar e repetir lançamentos recusam conta bancária de outra aren
     "@/lib/finance/entry-permissions": { financialEntryPermission },
     "@/lib/finance/card-installments": { readCardInstallmentCount },
     "@/lib/finance/inputs": { parseMoneyToCents: () => 1000, parseDate: (value: string) => value ? new Date(`${value}T12:00:00Z`) : null },
+    "@/lib/finance/entry-adjustments": { entryAdjustedAmount, entryAdjustmentNotes },
     "@/lib/finance/discounts": { getDiscountedAmountCents: () => 1000 },
     "@/lib/finance/entry-relations": { assertFinancialEntryRelationsBelongToArena },
     "@/lib/rls": { withArenaTransaction: async (_arenaId: string, callback: (client: typeof tx) => Promise<unknown>) => callback(tx) },

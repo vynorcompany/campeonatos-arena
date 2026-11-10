@@ -5,7 +5,11 @@ import { cardInstallmentSchedule, type CardInstallmentOverride } from "@/lib/fin
 
 export function defaultInstallmentRows(total: number, count: number, date: string): CardInstallmentOverride[] {
   try { return cardInstallmentSchedule(total, count, new Date(`${date}T12:00:00Z`)).map(row => ({ amountCents: row.amountCents, dueDate: row.dueDate.toISOString().slice(0, 10) })); }
-  catch { return []; }
+  catch {
+    if (!Number.isSafeInteger(count) || count < 2 || count > 36 || total < 0 || !Number.isSafeInteger(total)) return [];
+    const dates = cardInstallmentSchedule(count,count,new Date(`${date || new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo"}).format(new Date())}T12:00:00Z`));
+    return dates.map((row,index)=>({dueDate:row.dueDate.toISOString().slice(0,10),amountCents:Math.floor(total/count)+(index<total%count?1:0)}));
+  }
 }
 
 export function useInstallmentDraft(total: number, count: number, date: string) {
@@ -21,7 +25,7 @@ export function InstallmentEditor({ rows, totalCents, onChange, name }: { rows: 
   const change = (index: number, patch: Partial<CardInstallmentOverride>) => onChange(rows.map((row, i) => i === index ? { ...row, ...patch } : row));
   return <div className="tw:grid tw:min-w-0 tw:gap-2">
     {name ? <input type="hidden" name={name} value={JSON.stringify(rows)}/> : null}
-    <div className="tw:grid tw:grid-cols-[2.5rem_minmax(0,1fr)] tw:min-[640px]:grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,.85fr)] tw:gap-2 tw:text-xs tw:text-[#42536a]" aria-hidden="true"><span>Parcela</span><span><span className="tw:min-[640px]:hidden">Vencimento / valor</span><span className="tw:hidden tw:min-[640px]:inline">Vencimento</span></span><span className="tw:hidden tw:min-[640px]:inline">Valor</span></div>
+    <div className="tw:grid tw:grid-cols-[2.5rem_minmax(0,1fr)] tw:min-[640px]:grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,.85fr)] tw:gap-2 tw:text-xs tw:text-[#42536a]" aria-hidden="true"><span>Nº</span><span><span className="tw:min-[640px]:hidden">Vencimento / valor</span><span className="tw:hidden tw:min-[640px]:inline">Vencimento</span></span><span className="tw:hidden tw:min-[640px]:inline">Valor</span></div>
     <ol aria-label="Parcelas personalizadas" className="tw:m-0 tw:grid tw:max-h-64 tw:list-none tw:gap-2 tw:overflow-y-auto tw:p-0 tw:pr-1">
       {rows.map((row, index) => <li key={index} className="tw:grid tw:min-w-0 tw:grid-cols-[2.5rem_minmax(0,1fr)] tw:min-[640px]:grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,.85fr)] tw:items-center tw:gap-2 tw:text-xs tw:tabular-nums">
         <span className="tw:row-span-2 tw:min-[640px]:row-span-1">{index + 1}/{rows.length}</span>

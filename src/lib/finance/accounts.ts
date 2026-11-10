@@ -13,7 +13,7 @@ export async function getAccountsLedger(arenaId: string, type: "REVENUE" | "EXPE
   const start = parseFilterDate(filters.start); const end = parseFilterDate(filters.end, true);
   const where: Record<string, unknown> = { arenaId, type: type === "REVENUE" ? { in: ["REVENUE", "INCOME"] } : type };
   const conditions: Record<string, unknown>[] = [];
-  if (filters.status === "OPEN") where.status = { in: ["PENDING", "OVERDUE", "PARTIAL"] };
+  if (filters.status === "OPEN" || filters.status === "PENDING") where.status = { in: ["PENDING", "OVERDUE", "PARTIAL"] };
   else if (!filters.includeVoided) where.status = filters.status && filters.status !== "ALL" ? filters.status : { not: "VOIDED" }; else if (filters.status && filters.status !== "ALL") where.status = filters.status;
   if (filters.paymentMethod) where.paymentMethod = filters.paymentMethod;
   if (filters.bankAccountId) where.bankAccountId = filters.bankAccountId;
