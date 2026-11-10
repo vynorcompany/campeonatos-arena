@@ -7,6 +7,7 @@ export type Account = {
   source: string;
   canCardInstallment?: boolean;
   counterpartyName: string;
+  playerId?: string | null;
   supplierId?: string | null;
   payeeEmployeeId?: string | null;
   payeeTeacherId?: string | null;

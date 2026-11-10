@@ -433,7 +433,7 @@ export async function createFinancialEntryAction(formData: FormData) {
         planId: parsed.data.planId || null,
         teacherId: teacherPlan?.teacherId ?? null,
         productId: parsed.data.productId || null,
-        playerId: parsed.data.type === "REVENUE" && clientId ? clientId : null,
+        playerId: payee ? payee.playerId : clientId || null,
         amountCents,
         paymentMethod: parsed.data.paymentMethod,
         status: parsed.data.status,
@@ -571,7 +571,7 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
       ...(payee ?? { counterpartyName: parsed.data.counterpartyName }),
       description: parsed.data.description, amountCents, frequency: parsed.data.frequency,
       startsAt, endsAt, nextDueDate: startsAt, bankAccountId: parsed.data.bankAccountId || null, planId: parsed.data.planId || null, teacherId: teacherPlan?.teacherId ?? null,
-      playerId: parsed.data.type === "REVENUE" && clientId ? clientId : null, onlinePaymentMethod: parsed.data.onlinePaymentMethod, notes: entryAdjustmentNotes(parsed.data.notes,adjustment)
+      playerId: payee ? payee.playerId : clientId || null, onlinePaymentMethod: parsed.data.onlinePaymentMethod, notes: entryAdjustmentNotes(parsed.data.notes,adjustment)
     } });
     const dates = getFinancialRecurrenceDates(startsAt, parsed.data.frequency, endsAt);
     for (const dueDate of dates) {
