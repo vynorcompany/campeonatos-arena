@@ -169,7 +169,10 @@ test("cancelar reserva respeita a escolha sobre cobranças abertas sem afetar va
     const canceledBefore = canceledPaymentIds.length;
     const queriedBefore = queriedPaymentIds.length;
     await assert.rejects(cancel(unsupportedOccurrence, "yes"), /Não foi possível confirmar o status/);
-    assert.deepEqual(new Set(queriedPaymentIds.slice(queriedBefore)), new Set(["goal-payment-pending", "goal-payment-unsupported"]));
+    // The database does not promise charge order; validation may stop at the unknown charge.
+    const checkedIds = queriedPaymentIds.slice(queriedBefore);
+    assert.ok(checkedIds.includes("goal-payment-unsupported"));
+    assert.ok(checkedIds.every(id => ["goal-payment-pending", "goal-payment-unsupported"].includes(id)));
     assert.equal(canceledPaymentIds.length, canceledBefore);
     assert.equal((await admin.scheduleOccurrence.findUniqueOrThrow({ where: { id: unsupportedOccurrence } })).status, "SCHEDULED");
     assert.equal((await admin.financialEntry.findUniqueOrThrow({ where: { id: cancellableEntry } })).status, "PENDING");

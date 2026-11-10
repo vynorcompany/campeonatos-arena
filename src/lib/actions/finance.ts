@@ -1,6 +1,6 @@
 "use server";
 import { splitCardEntry } from "@/lib/finance/split-card-entry";
-import { readCardInstallmentCount } from "@/lib/finance/card-installments";
+import { readCardInstallmentCount, readCardInstallmentRows } from "@/lib/finance/card-installments";
 import { createCardInstallmentEntries } from "@/lib/finance/card-installment-service";
 import { resolvePayablePayee } from "@/lib/finance/payable-payee";
 import { StaleRecordError, staleRecordMessage, expectedRecordDate, assertRecordVersion, recordVersion } from "@/lib/record-version";
@@ -439,7 +439,7 @@ export async function createFinancialEntryAction(formData: FormData) {
         paidAt,
         notes: parsed.data.notes
     };
-    const entry=installmentCount ? await createCardInstallmentEntries(tx,entryData,installmentCount,String(formData.get("installmentRequestId")??"")) : await tx.financialEntry.create({data:entryData});
+    const entry=installmentCount ? await createCardInstallmentEntries(tx,entryData,installmentCount,String(formData.get("installmentRequestId")??""),readCardInstallmentRows(formData)) : await tx.financialEntry.create({data:entryData});
     if (parsed.data.status === "PAID") {
       await tx.financialSettlement.create({ data: {
         arenaId: auth.arenaId,
@@ -1247,6 +1247,6 @@ export async function splitFinancialEntryCardAction(formData:FormData) {
  await withArenaTransaction(auth.arenaId,async tx=>{
   const entry=await tx.financialEntry.findFirst({where:{id:entryId,arenaId:auth.arenaId},select:{type:true}});if(!entry)throw new Error("Lançamento não encontrado.");
   assertFinancialEntryPermission(auth,entry.type,"edit");assertFinancialEntryPermission(auth,entry.type,"create");
-  await splitCardEntry(tx,auth.arenaId,{entryId,expectedUpdatedAt:expected.toISOString(),count,firstDueDate,requestId:String(formData.get("installmentRequestId")??"")});
+  await splitCardEntry(tx,auth.arenaId,{entryId,expectedUpdatedAt:expected.toISOString(),count,firstDueDate,requestId:String(formData.get("installmentRequestId")??""),customRows:readCardInstallmentRows(formData)});
  });refreshFinanceRoutes();
 }

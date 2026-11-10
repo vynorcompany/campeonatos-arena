@@ -82,7 +82,8 @@ async function main() {
 
     const probes = [
       { path: "/painel", label: "dashboard", prefix: "Receita isolada" },
-      { path: "/financeiro/contas-a-receber", label: "contas-a-receber", prefix: "Receita isolada" },
+      // These fixtures are paid; explicitly include them instead of relying on the UI's open-only default.
+      { path: "/financeiro/contas-a-receber?status=ALL&dateField=paidAt&start=&end=", label: "contas-a-receber", prefix: "Receita isolada" },
       { path: "/agenda?data=2026-10-17", label: "agenda", prefix: "Quadra isolada" },
       { path: "/home", label: "portal", prefix: "Atleta isolado" },
     ];

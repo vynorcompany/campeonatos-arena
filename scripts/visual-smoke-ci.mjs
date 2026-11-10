@@ -1802,6 +1802,8 @@ async function main() {
     for (const path of ["/financeiro/contas-a-pagar", "/financeiro/contas-a-receber"]) {
       for (const viewport of viewports) {
         await visit(path, viewport, arenaA.id, `${viewport.name}-card-installments`);
+        const defaults = await send("Runtime.evaluate", {expression:"({status:document.querySelector('select[name=status]')?.value,start:document.querySelector('input[name=start]')?.value,inlineInstallment:[...document.querySelectorAll('article button')].some(button=>button.textContent?.trim()==='Parcelar no cartão')})",returnByValue:true});
+        if(defaults.result.value?.status!=="OPEN"||!/^\d{4}-\d{2}-01$/.test(defaults.result.value.start)||defaults.result.value.inlineInstallment)throw new Error(`Filtros iniciais ou ação de parcelar fora do modal: ${JSON.stringify(defaults.result.value)}`);
         await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('button')].find(node=>node.textContent?.trim()==='Novo lançamento')?.click()" });
         await pause(200);
         await send("Runtime.evaluate", { expression: "(() => { const label=[...document.querySelectorAll('[role=dialog] label')].find(node=>node.textContent?.includes('Cartão de crédito parcelado')); label?.querySelector('input')?.click(); })()" });
@@ -1809,6 +1811,10 @@ async function main() {
         const installmentForm=await send("Runtime.evaluate", {expression: "(() => {const d=document.querySelector('[role=dialog]'),count=d?.querySelector('input[name=cardInstallmentCount]'),button=[...(d?.querySelectorAll('button')??[])].find(b=>b.textContent?.trim()==='Salvar lançamento');return {count:count?.value,payment:d?.querySelector('input[name=paymentMethod]')?.value,required:d?.querySelector('input[name=dueDate]')?.required,overflow:d?d.scrollWidth>d.clientWidth+1:true,footer:button?.getBoundingClientRect().bottom<=innerHeight};})()",returnByValue:true});
         const form=installmentForm.result.value;
         if(form?.count!=="3"||form.payment!=="Cartão de crédito"||!form.required||form.overflow||!form.footer)throw new Error(`Formulário parcelado inválido: ${JSON.stringify(form)}`);
+        await send("Runtime.evaluate", {expression:"(() => {const d=document.querySelector('[role=dialog]'),set=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;for(const [name,value] of [['dueDate','2027-01-31'],['amount','100,00']]){const input=d.querySelector('input[name='+name+']');set.call(input,value);input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));}})()"});
+        await pause(200);
+        const rows = await send("Runtime.evaluate", {expression:"(() => {const d=document.querySelector('[role=dialog]'),dates=[...d.querySelectorAll('input[aria-label^=\"Vencimento da parcela\"]')],values=[...d.querySelectorAll('input[aria-label^=\"Valor da parcela \"]')];return {dates:dates.length,values:values.length,minDateWidth:Math.min(...dates.map(input=>input.getBoundingClientRect().width)),custom:JSON.parse(d.querySelector('input[name=cardInstallmentRows]')?.value??'[]'),overflow:d.scrollWidth>d.clientWidth+1};})()",returnByValue:true});
+        if(rows.result.value?.dates!==3||rows.result.value.values!==3||rows.result.value.minDateWidth<120||rows.result.value.overflow||rows.result.value.custom.reduce((sum,row)=>sum+row.amountCents,0)!==10000)throw new Error(`Parcelas não editáveis ou campos comprimidos: ${JSON.stringify(rows.result.value)}`);
       }
     }
     await visit("/financeiro/contas-a-receber?description=Mensalidade&name=Atleta+GOAL+A",viewports[0],arenaA.id,"filters-memory-selected");
