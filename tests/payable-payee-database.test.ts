@@ -21,10 +21,13 @@ test("favorecidos preservam vínculo canônico sem duplicar fornecedor e rejeita
       const teacher = await tx.teacher.create({ data: { arenaId: a.id, name: `Professor QA ${randomUUID()}` } });
       const foreign = await tx.teacher.create({ data: { arenaId: b.id, name: `Professor externo QA ${randomUUID()}` } });
       const inactive = await tx.teacher.create({ data: { arenaId: a.id, name: `Inativo QA ${randomUUID()}`, active: false } });
+      const client = await tx.player.create({ data: { arenaId: a.id, name: "Cliente favorecido QA" } });
+      const externalClient = await tx.player.create({ data: { arenaId: b.id, name: "Cliente externo QA" } });
+      const inactiveClient = await tx.player.create({ data: { arenaId: a.id, name: "Cliente inativo QA", active: false } });
       await tx.$executeRawUnsafe("SET LOCAL ROLE arena_runtime");
       await tx.$executeRaw`SELECT set_config('app.arena_id', ${a.id}, true)`;
       const suppliersBefore = await tx.supplier.count({ where: { arenaId: a.id } });
-      for (const [kind, id, name] of [["EMPLOYEE", user.id, user.name], ["TEACHER", teacher.id, teacher.name]]) {
+      for (const [kind, id, name] of [["EMPLOYEE", user.id, user.name], ["TEACHER", teacher.id, teacher.name], ["CLIENT", client.id, client.name]]) {
         const payee = await resolvePayablePayee(tx, a.id, form(kind, id), "Nome adulterado");
         assert.equal(payee.counterpartyName, name);
         assert.equal(payee.supplierId, null);
@@ -36,6 +39,8 @@ test("favorecidos preservam vínculo canônico sem duplicar fornecedor e rejeita
         assert.equal(saved.payeeEmployeeId, payee.payeeEmployeeId);
         assert.equal(saved.payeeTeacherId, payee.payeeTeacherId);
         assert.equal(saved.status, "PAID");
+        assert.equal(saved.playerId,payee.playerId);
+        assert.equal(recurrence.playerId,payee.playerId);
         assert.equal(recurrence.payeeTeacherId, payee.payeeTeacherId);
         assert.equal(recurrence.payeeEmployeeId, payee.payeeEmployeeId);
       }
@@ -43,6 +48,9 @@ test("favorecidos preservam vínculo canônico sem duplicar fornecedor e rejeita
       await assert.rejects(resolvePayablePayee(tx, a.id, form("EMPLOYEE", outsider.id), "Externo"), /funcionário cadastrado/);
       await assert.rejects(resolvePayablePayee(tx, a.id, form("TEACHER", foreign.id), "Externo"), /professor ativo/);
       await assert.rejects(resolvePayablePayee(tx, a.id, form("TEACHER", inactive.id), "Inativo"), /professor ativo/);
+      await assert.rejects(resolvePayablePayee(tx,a.id,form("CLIENT",externalClient.id),"Adulterado"),/cliente ativo/);
+      await assert.rejects(resolvePayablePayee(tx,a.id,form("CLIENT",inactiveClient.id),"Adulterado"),/cliente ativo/);
+      await assert.rejects(resolvePayablePayee(tx,a.id,form("CLIENT",""),"Adulterado"),/cliente ativo/);
       await assert.rejects(resolvePayablePayee(tx, a.id, form("OTHER", user.id), "Inválido"), /Tipo de favorecido/);
       const supplier = await resolvePayablePayee(tx, a.id, form("SUPPLIER", ""), `Fornecedor QA ${randomUUID()}`);
       assert.ok(supplier.supplierId); assert.equal(supplier.payeeTeacherId, null);

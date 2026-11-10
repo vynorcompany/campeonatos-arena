@@ -5,7 +5,12 @@ export async function resolvePayablePayee(tx: Prisma.TransactionClient, arenaId:
   const kind = String(form.get("payeeKind") ?? "SUPPLIER");
   const id = String(form.get("payeeId") ?? form.get("supplierId") ?? "").trim();
   if (id.length > 160) throw new Error("Favorecido inválido.");
-  const empty = { supplierId: null as string | null, payeeEmployeeId: null as string | null, payeeTeacherId: null as string | null };
+  const empty = { playerId: null as string | null, supplierId: null as string | null, payeeEmployeeId: null as string | null, payeeTeacherId: null as string | null };
+  if (kind === "CLIENT") {
+    const client = id ? await tx.player.findFirst({ where: { arenaId, id, active: true }, select: { id: true, name: true } }) : null;
+    if (!client) throw new Error("Selecione um cliente ativo desta arena.");
+    return { ...empty, playerId: client.id, counterpartyName: client.name };
+  }
   if (kind === "EMPLOYEE") {
     const member = id ? await tx.arenaMember.findFirst({ where: { arenaId, userId: id }, select: { user: { select: { id: true, name: true } } } }) : null;
     if (!member) throw new Error("Selecione um funcionário cadastrado nesta arena.");
