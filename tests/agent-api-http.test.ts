@@ -44,7 +44,7 @@ test("API aplica escopos e arena, revoga chaves e evita lançamentos duplicados"
     assert.equal(await admin.auditEvent.count({ where: { entityId: receipt.data.id, action: "FINANCIAL_ENTRY_CREATED" } }), 1);
     const invalid = await call("finance", writer.secret, { method: "POST", headers: { "content-type": "application/json", "idempotency-key": randomUUID() }, body: JSON.stringify({ ...body, playerId: otherPlayer.id }) }); assert.equal(invalid.status, 400);
     const paidRequestId = randomUUID();
-    const paidBody = { ...body, type: "EXPENSE", description: "Pagamento informado", status: "PAID", paidAt: "2026-11-05T15:00:00.000Z", paymentMethod: "PIX" };
+    const paidBody = { ...body, type: "EXPENSE", category: "Serviço agente teste", counterpartyName: "Fornecedor agente teste", competenceDate: "2026-10-01T12:00:00.000Z", description: "Pagamento informado", status: "PAID", paidAt: "2026-11-05T15:00:00.000Z", paymentMethod: "PIX" };
     const paidPost = (secret: string, value = paidBody) => call("finance", secret, { method: "POST", headers: { "content-type": "application/json", "idempotency-key": paidRequestId }, body: JSON.stringify(value) });
     assert.equal((await paidPost(writer.secret)).status, 403);
     const settler = await createKey(["finance:write", "finance:read", "finance:settle"]);
@@ -55,6 +55,14 @@ test("API aplica escopos e arena, revoga chaves e evita lançamentos duplicados"
     assert.equal(await admin.financialSettlement.count({ where: { financialEntryId: paidReceipt.data.id } }), 1);
     const lookup = await call(`finance?requestId=${paidRequestId}`, settler.secret); assert.equal(lookup.status, 200);
     const proof = await lookup.json(); assert.deepEqual(proof.source, { system: "arena", company: arena.id }); assert.equal(proof.state, "saved"); assert.equal(proof.entry.status, "PAID"); assert.equal(proof.entry.paymentMethod, "PIX"); assert.equal(proof.entry.amountCents, body.amountCents);
+    assert.equal(proof.entry.counterpartyName, paidBody.counterpartyName);
+    assert.equal(proof.entry.competenceDate, paidBody.competenceDate);
+    assert.ok(proof.entry.supplierId);
+    const storedSupplier = await admin.supplier.findFirstOrThrow({ where: { id: proof.entry.supplierId, arenaId: arena.id } });
+    assert.equal(storedSupplier.name, paidBody.counterpartyName);
+    assert.ok(await admin.financialCategory.findFirst({ where: { arenaId: arena.id, name: paidBody.category, active: true, type: "EXPENSE" } }));
+    assert.equal((await paidPost(settler.secret, { ...paidBody, competenceDate: "2026-11-01T12:00:00.000Z" })).status, 409);
+    assert.equal((await paidPost(settler.secret, { ...paidBody, counterpartyName: "Outro fornecedor" })).status, 409);
     assert.equal((await (await call(`finance?requestId=${paidRequestId}`, writer.secret)).json()).state, "not_found");
     assert.equal((await paidPost(settler.secret, { ...paidBody, paymentMethod: "CASH" })).status, 409);
     assert.equal((await paidPost(settler.secret, { ...paidBody, status: "PENDING" })).status, 400);

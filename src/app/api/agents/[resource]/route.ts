@@ -24,7 +24,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ reso
     if (query.data.requestId) {
       if (resource !== "finance" || query.data.period || query.data.from || query.data.to || query.data.offset || query.data.view) return json({ error: "Use requestId isoladamente em finance." }, 400);
       const receipt = await withArenaTransaction(key.arenaId, async tx => {
-        const entry = await tx.financialEntry.findFirst({ where: { arenaId: key.arenaId, source: "AGENT_API", externalReference: `${key.id}:${query.data.requestId}` }, select: { id: true, status: true, description: true, category: true, amountCents: true, type: true, dueDate: true, paidAt: true, paymentMethod: true } });
+        const entry = await tx.financialEntry.findFirst({ where: { arenaId: key.arenaId, source: "AGENT_API", externalReference: `${key.id}:${query.data.requestId}` }, select: { id: true, status: true, description: true, category: true, amountCents: true, type: true, dueDate: true, paidAt: true, paymentMethod: true, counterpartyName: true, supplierId: true, competenceDate: true } });
         return entry ? { state: "saved", requestId: query.data.requestId, verified: true, entry } : { state: "not_found", requestId: query.data.requestId };
       });
       return json({ ...receipt, source: { system: "arena", company: key.arenaId } });
@@ -55,7 +55,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ reso
         case "clients": return tx.player.findMany({ where, ...pagination, orderBy: { id: "asc" }, select: { id: true, name: true, active: true, phone: true, email: true } });
         case "teachers": return tx.teacher.findMany({ where, ...pagination, orderBy: { id: "asc" }, select: { id: true, name: true, active: true } });
         case "reservations": return (await tx.scheduleOccurrence.findMany({ where: { ...where, startsAt: { gte: instantToArenaWallClock(from), lt: instantToArenaWallClock(to) } }, ...pagination, orderBy: [{ startsAt: "asc" }, { id: "asc" }], select: { id: true, title: true, startsAt: true, endsAt: true, status: true, responsiblePlayerId: true, teacherId: true, occurrenceCourts: { select: { courtId: true } }, participants: { select: { playerId: true, checkedInAt: true } } } })).map(row => ({ ...row, startsAt: arenaWallClockToInstant(row.startsAt), endsAt: arenaWallClockToInstant(row.endsAt) }));
-        case "finance": return tx.financialEntry.findMany({ where: financeWhere, ...pagination, orderBy: [{ createdAt: "asc" }, { id: "asc" }], select: { id: true, description: true, type: true, category: true, amountCents: true, status: true, dueDate: true, paidAt: true, createdAt: true, updatedAt: true, playerId: true } });
+        case "finance": return tx.financialEntry.findMany({ where: financeWhere, ...pagination, orderBy: [{ createdAt: "asc" }, { id: "asc" }], select: { id: true, description: true, type: true, category: true, amountCents: true, status: true, dueDate: true, paidAt: true, createdAt: true, updatedAt: true, playerId: true, competenceDate: true, counterpartyName: true, supplierId: true } });
         case "reports": return tx.financialEntry.groupBy({ by: ["type", "status"], where: { ...financeWhere, status: { not: "VOIDED" } }, _sum: { amountCents: true }, _count: true });
       }
     });
@@ -70,6 +70,7 @@ const entrySchema = z.object({
   description: z.string().trim().min(1).max(200), category: z.string().trim().min(1).max(80),
   type: z.enum(["REVENUE", "EXPENSE"]), amountCents: z.number().int().positive().max(2_147_483_647),
   status: z.enum(["PENDING", "PAID"]).default("PENDING"), paidAt: z.string().datetime().optional(), paymentMethod: z.string().trim().min(1).max(80).optional(),
+  competenceDate: z.string().datetime().optional(), counterpartyName: z.string().trim().min(1).max(160).optional(),
   dueDate: z.string().datetime().optional(), playerId: z.string().min(1).optional(), bankAccountId: z.string().min(1).optional(),
 }).strict().superRefine((value, ctx) => {
   if (value.status === "PAID" && (!value.paidAt || !value.paymentMethod)) ctx.addIssue({ code: "custom", message: "Pagamento realizado exige data e forma de pagamento." });
@@ -93,19 +94,34 @@ export async function POST(request: Request, { params }: { params: Promise<{ res
       const reference = `${key.id}:${idempotencyKey}`;
       const previous = await tx.financialEntry.findFirst({ where: { arenaId: key.arenaId, source: "AGENT_API", externalReference: reference } });
       if (previous) {
-        const matches = previous.description === parsed.data.description && previous.type === parsed.data.type && previous.category === parsed.data.category && previous.amountCents === parsed.data.amountCents && previous.status === parsed.data.status && previous.paymentMethod === (parsed.data.paymentMethod ?? "") && previous.paidAt?.toISOString() === (parsed.data.paidAt ? new Date(parsed.data.paidAt).toISOString() : undefined) && previous.playerId === (parsed.data.playerId ?? null) && previous.bankAccountId === (parsed.data.bankAccountId ?? null) && previous.dueDate?.toISOString() === (parsed.data.dueDate ? new Date(parsed.data.dueDate).toISOString() : undefined);
+        const matches = previous.counterpartyName.toLocaleLowerCase() === (parsed.data.counterpartyName ?? "").toLocaleLowerCase() && previous.competenceDate?.toISOString() === (parsed.data.competenceDate ? new Date(parsed.data.competenceDate).toISOString() : undefined) && previous.description === parsed.data.description && previous.type === parsed.data.type && previous.category.toLocaleLowerCase() === parsed.data.category.toLocaleLowerCase() && previous.amountCents === parsed.data.amountCents && previous.status === parsed.data.status && previous.paymentMethod === (parsed.data.paymentMethod ?? "") && previous.paidAt?.toISOString() === (parsed.data.paidAt ? new Date(parsed.data.paidAt).toISOString() : undefined) && previous.playerId === (parsed.data.playerId ?? null) && previous.bankAccountId === (parsed.data.bankAccountId ?? null) && previous.dueDate?.toISOString() === (parsed.data.dueDate ? new Date(parsed.data.dueDate).toISOString() : undefined);
         if (!matches) throw new AgentAccessError("Idempotency-Key já utilizada com outros dados. Use outra chave para um novo lançamento.", 409);
         return { id: previous.id, status: previous.status, reused: true, requestId: idempotencyKey, verified: true };
       }
       if (parsed.data.playerId && !await tx.player.findFirst({ where: { id: parsed.data.playerId, arenaId: key.arenaId } })) throw new AgentAccessError("Cliente não encontrado nesta arena.", 400);
       if (parsed.data.bankAccountId && !await tx.bankAccount.findFirst({ where: { id: parsed.data.bankAccountId, arenaId: key.arenaId } })) throw new AgentAccessError("Conta bancária não encontrada nesta arena.", 400);
-      const entry = await tx.financialEntry.create({ data: { ...parsed.data, dueDate: parsed.data.dueDate ? new Date(parsed.data.dueDate) : null, paidAt: parsed.data.paidAt ? new Date(parsed.data.paidAt) : null, paymentMethod: parsed.data.paymentMethod ?? "", arenaId: key.arenaId, source: "AGENT_API", externalReference: reference } });
+      // Resolve literal names in this arena, so ledger selectors can display them.
+      // Do not revive inactive entities or silently change their financial type.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key.arenaId + ":financial-category:" + parsed.data.category.toLocaleLowerCase("pt-BR")},0))`;
+      const category = await tx.financialCategory.findFirst({ where: { arenaId: key.arenaId, name: { equals: parsed.data.category, mode: "insensitive" } } });
+      if (category && (!category.active || !["BOTH", parsed.data.type].includes(category.type))) throw new AgentAccessError("A categoria está inativa ou não corresponde ao tipo do lançamento.", 400);
+      if (!category) await tx.financialCategory.create({ data: { arenaId: key.arenaId, name: parsed.data.category, type: parsed.data.type } });
+      let supplierId: string | null = null;
+      let counterpartyName = parsed.data.counterpartyName ?? "";
+      if (parsed.data.counterpartyName) {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key.arenaId + ":supplier:" + parsed.data.counterpartyName.toLocaleLowerCase("pt-BR")},0))`;
+        const supplier = await tx.supplier.findFirst({ where: { arenaId: key.arenaId, name: { equals: parsed.data.counterpartyName, mode: "insensitive" } } });
+        if (supplier && !supplier.active) throw new AgentAccessError("O fornecedor está inativo.", 400);
+        counterpartyName = supplier?.name ?? counterpartyName;
+        supplierId = supplier?.id ?? (await tx.supplier.create({ data: { arenaId: key.arenaId, name: parsed.data.counterpartyName } })).id;
+      }
+      const entry = await tx.financialEntry.create({ data: { ...parsed.data, category: category?.name ?? parsed.data.category, supplierId, counterpartyName, competenceDate: parsed.data.competenceDate ? new Date(parsed.data.competenceDate) : null, dueDate: parsed.data.dueDate ? new Date(parsed.data.dueDate) : null, paidAt: parsed.data.paidAt ? new Date(parsed.data.paidAt) : null, paymentMethod: parsed.data.paymentMethod ?? "", arenaId: key.arenaId, source: "AGENT_API", externalReference: reference } });
       if (entry.status === "PAID") await tx.financialSettlement.create({ data: {
         arenaId: key.arenaId, financialEntryId: entry.id, bankAccountId: entry.bankAccountId,
         amountCents: entry.amountCents, interestCents: 0, paymentMethod: entry.paymentMethod,
         paidAt: entry.paidAt!, notes: "Pagamento já realizado informado pelo agente autorizado."
       } });
-      await tx.auditEvent.create({ data: { arenaId: key.arenaId, actorId: key.id, actorName: active.name, action: "FINANCIAL_ENTRY_CREATED", entityId: entry.id, details: { description: entry.description, amountCents: entry.amountCents, source: "AGENT_API" } } });
+      await tx.auditEvent.create({ data: { arenaId: key.arenaId, actorId: key.id, actorName: active.name, action: "FINANCIAL_ENTRY_CREATED", entityId: entry.id, details: { description: entry.description, amountCents: entry.amountCents, category: entry.category, supplierId: entry.supplierId, competenceDate: entry.competenceDate?.toISOString() ?? null, source: "AGENT_API" } } });
       await tx.agentApiKey.update({ where: { id: key.id }, data: { lastUsedAt: new Date() } });
       return { id: entry.id, status: entry.status, reused: false, requestId: idempotencyKey, verified: true };
     });
