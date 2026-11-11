@@ -139,7 +139,7 @@ export const viewStyles = {
     "", "tw:cursor-pointer", "tw:[transition:background_150ms_var(--ease-standard)]", "tw:hover:bg-[color:color-mix(in_srgb,_var(--brand-soft)_52%,_var(--panel))]",
     "tw:hover:[background-image:none]", "tw:[&_strong_a]:text-[color:var(--brand-strong)]", "tw:[&_strong_a]:[text-decoration:underline]", "tw:[&_strong_a]:[text-decoration-color:transparent]",
     "tw:[&_strong_a]:[text-underline-offset:3px]", "tw:[&_strong_a:hover]:[text-decoration-color:currentColor]",
-    "tw:min-w-[1080px] tw:viewport-700:min-w-0! tw:viewport-700:grid-cols-[24px_minmax(0,1fr)]! tw:viewport-700:items-start tw:viewport-700:gap-x-3 tw:viewport-700:gap-y-2 tw:viewport-700:py-2 tw:viewport-700:[&>_*:not(:first-child)]:col-start-2 tw:viewport-700:[&>_*:first-child]:row-span-7 tw:viewport-700:[&>_strong]:whitespace-normal! tw:viewport-700:[&>_strong]:overflow-visible! tw:viewport-700:[&>_*]:break-words tw:viewport-700:[&>_[data-label]]:before:content-[attr(data-label)] tw:viewport-700:[&>_[data-label]]:before:block tw:viewport-700:[&>_[data-label]]:before:text-[.65rem] tw:viewport-700:[&>_[data-label]]:before:font-normal tw:viewport-700:[&>_[data-label]]:before:text-[#354f70]",
+    "tw:min-w-[1080px] tw:viewport-700:min-w-0! tw:viewport-700:grid-cols-[20px_minmax(0,1fr)_minmax(0,1fr)]! tw:viewport-700:items-start tw:viewport-700:gap-x-2 tw:viewport-700:gap-y-1 tw:viewport-700:py-2 tw:viewport-700:[&>_*:first-child]:row-span-6 tw:viewport-700:[&>_*:nth-child(2)]:col-start-2 tw:viewport-700:[&>_*:nth-child(3)]:col-start-3 tw:viewport-700:[&>_*:nth-child(4)]:col-start-2 tw:viewport-700:[&>_*:nth-child(4)]:col-span-2 tw:viewport-700:[&>_*:nth-child(5)]:col-start-2 tw:viewport-700:[&>_*:nth-child(5)]:col-span-2 tw:viewport-700:[&>_*:nth-child(6)]:col-start-2 tw:viewport-700:[&>_*:nth-child(6)]:col-span-2 tw:viewport-700:[&>_*:nth-child(7)]:col-start-2 tw:viewport-700:[&>_*:nth-child(8)]:col-start-3 tw:viewport-700:[&>_strong]:whitespace-normal! tw:viewport-700:[&>_strong]:overflow-visible! tw:viewport-700:[&>_*]:break-words tw:viewport-700:[&>_:nth-child(2)]:before:content-[attr(data-label)] tw:viewport-700:[&>_:nth-child(3)]:before:content-[attr(data-label)] tw:viewport-700:[&>_[data-label]]:before:block tw:viewport-700:[&>_[data-label]]:before:text-[.65rem] tw:viewport-700:[&>_[data-label]]:before:font-normal tw:viewport-700:[&>_[data-label]]:before:text-[#354f70]",
   ].join(" "),
   "accounts_ledger_row_overdue": [
     "accounts-ledger-row-overdue", "tw:border-l-[length:4px]", "tw:[border-left-style:solid]", "tw:border-l-[color:#c92a2a]",
@@ -174,7 +174,7 @@ export const viewStyles = {
     "tw:font-normal", "tw:tracking-[.03em]",
   ].join(" "),
   "accounts_ledger_actions": [
-    "accounts-ledger-actions", "tw:viewport-700:justify-start!", "tw:viewport-700:col-span-full!", "tw:viewport-700:col-start-1!", "tw:viewport-700:[&>button]:min-h-10", "tw:flex!", "tw:flex-wrap", "tw:gap-y-[6px]",
+    "accounts-ledger-actions", "tw:viewport-700:justify-end!", "tw:viewport-700:col-span-2!", "tw:viewport-700:col-start-2!", "tw:viewport-700:[&>button]:min-h-7", "tw:flex!", "tw:flex-wrap", "tw:gap-y-[6px]",
     "tw:gap-x-[6px]", "tw:justify-start", "tw:whitespace-nowrap",
   ].join(" "),
   "button_button_small_button_primary": sharedUtilities.buttonButtonSmallButtonPrimary,
