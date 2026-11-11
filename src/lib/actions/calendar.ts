@@ -527,12 +527,12 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
       for (const participant of participants) {
         const existing = previous.find((item) => item.playerId === participant.playerId);
         const player = players.find((item) => item.id === participant.playerId)!;
-        const hasCharge = participant.amountCents > 0 || participant.paymentMethod === "RESERVATION_CREDIT";
         const oldEntry = existing?.financialEntry;
         const posted = Boolean(oldEntry && (oldEntry.status === "PAID" || oldEntry.paidAt || oldEntry.settlements.some(row => row.amountCents > 0)));
         if (posted && oldEntry!.amountCents !== participant.amountCents) throw new Error("Um valor com recebimento já registrado não pode ser alterado pela grade. Ajuste pelo financeiro.");
         const alreadyPaid = oldEntry?.status === "PAID";
         const paymentMethod = alreadyPaid ? oldEntry.paymentMethod : occurrence === occurrences[0] ? participant.paymentMethod : "";
+        const hasCharge = participant.amountCents > 0 || paymentMethod === "RESERVATION_CREDIT";
         if (paymentMethod === "RESERVATION_CREDIT") {
           const services = await tx.scheduleServiceReservation.count({ where: { occurrenceId: occurrence.id } });
           if (services) throw new Error("Receba os serviços separadamente na comanda antes de usar o saldo de reservas.");

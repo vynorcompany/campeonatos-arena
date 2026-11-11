@@ -134,6 +134,13 @@ test("Grade exige conta ativa por recebimento, preserva reservas em aberto e cob
     const zeroCredit = await admin.scheduleOccurrence.findFirstOrThrow({where:{arenaId,startsAt:new Date("2040-03-06T10:00:00")},include:{participants:{include:{financialEntry:true}}}});
     assert.equal(zeroCredit.participants[0].financialEntry!.status,"PAID");
     assert.equal(await admin.clientBalanceMovement.count({where:{arenaId,playerId:players[1].id,kind:"RESERVATION"}}),3);
+    await admin.financialEntry.update({where:{id:grant.id},data:{notes:"Reserva fixa; 4 ocorrências no mês."}});
+    assert.equal((await actions.saveCourtBookingAction(await form([{...creditPayer,amountCents:0}],"2040-05-01",{responsiblePlayerId:players[1].id,bookingTypeName:"Reserva fixa",repeatUntil:"2040-05-15"}))).error,undefined);
+    const zeroSeries = await admin.scheduleOccurrence.findMany({where:{arenaId,startsAt:{gte:new Date("2040-05-01T00:00:00"),lte:new Date("2040-05-16T00:00:00")}},orderBy:{startsAt:"asc"},include:{participants:true}});
+    assert.equal(zeroSeries.length,3);
+    assert.ok(zeroSeries[0].participants[0].financialEntryId);
+    for(const future of zeroSeries.slice(1))assert.equal(future.participants[0].financialEntryId,null,"future zero-value bookings do not create spurious receivables");
+    assert.equal(await admin.clientBalanceMovement.count({where:{arenaId,playerId:players[1].id,kind:"RESERVATION"}}),4);
   } finally {
     await admin.scheduleOccurrence.deleteMany({ where: { arenaId: { in: arenas } } });
     await admin.financialEntry.deleteMany({ where: { arenaId: { in: arenas } } });
