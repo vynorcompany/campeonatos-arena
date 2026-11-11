@@ -3,7 +3,7 @@ import { useState } from "react";
 import { availableFixedTimes, type WeeklyRule } from "@/lib/plans/fixed-court";
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 export type FixedCourt = { id:string; name:string; onlineSlotMinutes:number; weeklyRules:WeeklyRule[] };
-const days=["Domingo","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira","Sábado"];
+const days=["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
 export function FixedCourtSchedule({ courts }: { courts:FixedCourt[] }) {
  const [courtId,setCourt]=useState(courts[0]?.id??""),[duration,setDuration]=useState(90);
  const [schedules,setSchedules]=useState([{id:0,weekday:1,startMinute:""}]);
