@@ -1,3 +1,4 @@
+import { PaginatedList } from "@/components/ui/list-pagination";
 import { viewStyles } from "./page.utilities";
 import { SectionCard } from "@/components/section-card";
 import { requireModuleView } from "@/lib/auth/guards";
@@ -52,7 +53,7 @@ export default async function SalesPage() {
       <div className={viewStyles.two_column_grid}>
         <SectionCard title="Últimas vendas" description="Histórico recente da frente de caixa." hideHeading>
           <div className={viewStyles.simple_list}>
-            {sales.map((sale) => (
+            <PaginatedList>{sales.map((sale) => (
               <div className={viewStyles.simple_item} key={sale.id}>
                 <strong>{sale.code}</strong>
                 <span>
@@ -60,22 +61,22 @@ export default async function SalesPage() {
                 </span>
                 <span>{sale.items.map((item) => `${item.quantity}x ${visibleProductName(productNames, item.productId)}`).join(", ")}</span>
               </div>
-            ))}
-            {!sales.length ? <p className={viewStyles.muted}>Nenhuma venda registrada ainda.</p> : null}
+            ))}{!sales.length ? <p className={viewStyles.muted}>Nenhuma venda registrada ainda.</p> : null}</PaginatedList>
+
           </div>
         </SectionCard>
 
         <SectionCard title="Movimentações de estoque" description="Entradas, saídas, vendas e ajustes manuais." hideHeading>
           <div className={viewStyles.simple_list}>
-            {stockMovements.map((movement) => (
+            <PaginatedList>{stockMovements.map((movement) => (
               <div className={viewStyles.simple_item} key={movement.id}>
                 <strong>{visibleProductName(productNames, movement.productId)}</strong>
                 <span>
                   {movement.type} {movement.quantity} un. - {movement.reason || "Sem motivo"} - {formatDate(movement.createdAt)}
                 </span>
               </div>
-            ))}
-            {!stockMovements.length ? <p className={viewStyles.muted}>Nenhuma movimentação registrada ainda.</p> : null}
+            ))}{!stockMovements.length ? <p className={viewStyles.muted}>Nenhuma movimentação registrada ainda.</p> : null}</PaginatedList>
+
           </div>
         </SectionCard>
       </div>

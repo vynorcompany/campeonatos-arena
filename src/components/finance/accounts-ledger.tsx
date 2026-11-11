@@ -1,4 +1,5 @@
 "use client";
+import { ServerListPagination } from "@/components/ui/list-pagination";
 import { AgentActionBadge } from "@/components/ui/agent-action-badge";
 import { CardInstallmentFields } from "./card-installment-fields";
 import { PayablePayeeFields } from "./payable-payee-fields";
@@ -45,6 +46,7 @@ import {
 
 export function AccountsLedger({
   title,
+  pagination,
   type,
   entries,
   paymentMethods,
@@ -63,6 +65,7 @@ export function AccountsLedger({
   canManageSettings,
   canDeleteEntries,
 }: {
+  pagination?: { total: number; totalCents: number; activeCount: number; page: number; pageSize: number };
   title: string;
   type: "REVENUE" | "EXPENSE";
   entries: Account[];
@@ -182,7 +185,7 @@ export function AccountsLedger({
   const selectableEntries = entries.filter((entry) => entry.status !== "VOIDED" && entry.source !== "AGENCY_SUBSCRIPTION");
   const selectedEntries = entries.filter((entry) => selectedEntryIds.has(entry.id));
   const selectedPendingEntries = selectedEntries.filter((entry) => ["PENDING", "OVERDUE", "PARTIAL"].includes(entry.status) && entry.balance.outstandingCents > 0);
-  const listedTotalCents = selectableEntries.reduce((total, entry) => total + entry.amountCents, 0);
+  const listedTotalCents = pagination?.totalCents ?? selectableEntries.reduce((total, entry) => total + entry.amountCents, 0);
   const selectedTotalCents = selectedEntries.filter((entry) => entry.status !== "VOIDED").reduce((total, entry) => total + entry.amountCents, 0);
   const allSelectableEntriesSelected = selectableEntries.length > 0 && selectableEntries.every((entry) => selectedEntryIds.has(entry.id));
   const toggleEntrySelection = (entryId: string) => setSelectedEntryIds((current) => {
@@ -276,7 +279,7 @@ export function AccountsLedger({
       </form>
 
       <section className={viewStyles.accounts_ledger_totals} aria-label="Totais dos lançamentos">
-        <article><span>Total listado</span><strong>{money(listedTotalCents)}</strong><small>{selectableEntries.length} lançamento{selectableEntries.length === 1 ? "" : "s"} ativo{selectableEntries.length === 1 ? "" : "s"}</small></article>
+        <article><span>Total listado</span><strong>{money(listedTotalCents)}</strong><small>{pagination?.activeCount ?? selectableEntries.length} lançamento(s) no período</small></article>
         <article className={cx(selectedEntries.length ? "accounts-ledger-total-selected" : "")}><span>Total selecionado</span><strong>{money(selectedTotalCents)}</strong><small>{selectedEntries.length ? `${selectedEntries.length} lançamento${selectedEntries.length === 1 ? "" : "s"} selecionado${selectedEntries.length === 1 ? "" : "s"}` : "Selecione lançamentos na lista"}</small></article>
       </section>
 
@@ -291,17 +294,17 @@ export function AccountsLedger({
           return (
           <article id={`finance-${entry.id}`} data-notification-item={entry.id} className={cx(`${viewStyles.accounts_ledger_row_accounts_ledger_row_clickable}${overdue ? " " + viewStyles.accounts_ledger_row_overdue : ""}`)} key={entry.id} role={canEditEntries ? "button" : undefined} tabIndex={canEditEntries ? 0 : undefined} onClick={canEditEntries ? () => openEntry(entry) : undefined} onKeyDown={canEditEntries ? (event) => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); openEntry(entry); } } : undefined}>
             <span className={viewStyles.accounts_ledger_selection}><input type="checkbox" aria-label={`Selecionar ${entry.description}`} checked={selectedEntryIds.has(entry.id)} disabled={entry.status === "VOIDED" || entry.source === "AGENCY_SUBSCRIPTION"} onClick={(event) => event.stopPropagation()} onChange={() => toggleEntrySelection(entry.id)} /></span><span data-label="Vencimento" className="tw:min-w-0"><span className="tw:block">{date(entry.dueDate)}</span>{entry.paidAt ? <small className="tw:mt-1 tw:block tw:text-[11px] tw:font-normal tw:leading-relaxed tw:text-[#354f70]">{entry.balance.outstandingCents > 0 ? type === "REVENUE" ? "Último recebimento" : "Último pagamento" : type === "REVENUE" ? "Recebido em" : "Pago em"} <time dateTime={entry.paidAt}>{date(entry.paidAt)}</time></small> : null}</span><strong data-label={partyLabel}>{type === "REVENUE" && entry.counterpartyName !== "Não informado" ? <Link href={`/jogadores?q=${encodeURIComponent(entry.counterpartyName)}`} onClick={(event) => event.stopPropagation()}>{entry.counterpartyName}</Link> : entry.counterpartyName}</strong><span data-label="Tipo">{entry.category}</span><span data-label="Descrição">{entry.description}{entry.source === "AGENT_API" ? <AgentActionBadge/> : null}{entry.comanda ? <Link className={viewStyles.account_comanda_link} href={`/comandas/${entry.comanda.id}`} onClick={(event) => event.stopPropagation()}>Ver comanda · {entry.comanda.code}</Link> : null}</span>
-            <span data-label="Valor / saldo"><b>{money(entry.amountCents)}</b>{canEditEntries && entry.status !== "VOIDED" && entry.source !== "AGENCY_SUBSCRIPTION" ? <button type="button" title="Estornar" aria-label={`Estornar ${entry.description}`} className="tw:ml-2 tw:inline-grid tw:size-7 tw:cursor-pointer tw:place-items-center tw:rounded-md tw:border tw:border-orange-300 tw:bg-orange-50 tw:align-middle tw:text-orange-700 tw:hover:bg-orange-100" onClick={event => { event.stopPropagation(); setMessage(""); setVoidEntry(entry); }}><svg className="tw:size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 4-5 5 5 5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button> : null}{entry.balance.interestCents ? <small>Juros: {money(entry.balance.interestCents)}</small> : null}{entry.status !== "VOIDED" ? <small>Saldo: {money(entry.balance.outstandingCents)}</small> : null}</span>
+            <span data-label="Valor / saldo"><b>{money(entry.amountCents)}</b>{canEditEntries && entry.status !== "VOIDED" && entry.source !== "AGENCY_SUBSCRIPTION" ? <button type="button" title="Estornar" aria-label={`Estornar ${entry.description}`} className="tw:ml-2 tw:inline-grid tw:size-6 tw:cursor-pointer tw:place-items-center tw:rounded-md tw:border tw:border-orange-300 tw:bg-orange-50 tw:align-middle tw:text-orange-700 tw:hover:bg-orange-100" onClick={event => { event.stopPropagation(); setMessage(""); setVoidEntry(entry); }}><svg className="tw:size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 4-5 5 5 5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button> : null}{entry.balance.interestCents ? <small>Juros: {money(entry.balance.interestCents)}</small> : null}{entry.status !== "VOIDED" ? <small>Saldo: {money(entry.balance.outstandingCents)}</small> : null}</span>
             <span><em className={cx(`${viewStyles.account_status} ${overdue ? viewStyles.account_status_overdue : `account-status-${entry.status.toLowerCase()}`}`)}>{overdue ? "EM ATRASO" : entry.status === "PAID" ? "Quitada" : entry.status === "VOIDED" ? "Estornada" : "Em aberto"}</em><OnlineChargeBadge entry={entry} />{entry.voidReason ? <small>{entry.voidReason}</small> : null}</span>
             <span className={viewStyles.accounts_ledger_actions}>
               {type === "EXPENSE" && entry.onlinePaymentUrl && entry.status === "PENDING" ? <a className={viewStyles.button_button_small_button_primary} href={entry.onlinePaymentUrl} target="_blank" rel="noopener noreferrer" onClick={(event) => event.stopPropagation()}>Pagar online</a> : null}
               {entry.source !== "AGENCY_SUBSCRIPTION" ? <>
                 {["PENDING", "OVERDUE", "PARTIAL"].includes(entry.status) ? <>
-                  {canSettleEntries ? <button type="button" className="tw:inline-flex tw:min-h-8 tw:w-fit tw:cursor-pointer tw:items-center tw:justify-center tw:rounded tw:border-0 tw:bg-[#087443] tw:px-3 tw:py-1.5 tw:text-xs tw:font-normal tw:text-white tw:hover:bg-[#065c35] tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#087443]" onClick={(event) => { event.stopPropagation(); setMessage(""); setPaymentDiscount(0); setPaymentInterest(0); setPaymentDiscountMode("AMOUNT"); setSettlementMethod(cashPaymentMethods[0]??"PIX"); setPaymentEntry(entry); }}>{actionLabel}</button> : null}
+                  {canSettleEntries ? <button type="button" className="tw:inline-flex tw:min-h-7 tw:w-fit tw:cursor-pointer tw:items-center tw:justify-center tw:rounded tw:border-0 tw:bg-[#087443] tw:px-3 tw:py-1 tw:text-xs tw:font-normal tw:text-white tw:hover:bg-[#065c35] tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#087443]" onClick={(event) => { event.stopPropagation(); setMessage(""); setPaymentDiscount(0); setPaymentInterest(0); setPaymentDiscountMode("AMOUNT"); setSettlementMethod(cashPaymentMethods[0]??"PIX"); setPaymentEntry(entry); }}>{actionLabel}</button> : null}
 
                 </> : null}
 
-                {canDeleteEntries && entry.status !== "VOIDED" ? <button type="button" aria-label={`Excluir ${entry.description}`} title="Excluir lançamento" className="tw:inline-grid tw:size-8 tw:shrink-0 tw:cursor-pointer tw:place-items-center tw:rounded tw:border-0 tw:bg-transparent tw:text-[#b42318] tw:hover:bg-[#fff1f0] tw:focus-visible:outline-2 tw:focus-visible:outline-[#b42318]" onClick={(event) => { event.stopPropagation(); confirm({ keyword: "EXCLUIR", message: "Excluir este lançamento? Ele será removido da operação, mas permanecerá registrado para auditoria. Digite EXCLUIR para confirmar.", onConfirm: () => { const form = new FormData(); form.set("entryId", entry.id); run(() => deleteFinancialEntryAction(form), () => {}); } }); }}><svg className="tw:size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6m4-6v6"/></svg></button> : null}
+                {canDeleteEntries && entry.status !== "VOIDED" ? <button type="button" aria-label={`Excluir ${entry.description}`} title="Excluir lançamento" className="tw:inline-grid tw:size-8 tw:shrink-0 tw:cursor-pointer tw:place-items-center tw:rounded tw:border-0 tw:bg-transparent tw:text-[#b42318] tw:hover:bg-[#fff1f0] tw:focus-visible:outline-2 tw:focus-visible:outline-[#b42318]" onClick={(event) => { event.stopPropagation(); confirm({ keyword: "EXCLUIR", message: "Excluir este lançamento? Ele será removido da operação, mas permanecerá registrado para auditoria. Digite EXCLUIR para confirmar.", onConfirm: () => { const form = new FormData(); form.set("entryId", entry.id); run(() => deleteFinancialEntryAction(form), () => {}); } }); }}><svg className="tw:size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6m4-6v6"/></svg></button> : null}
               </> : null}
             </span>
           </article>
@@ -309,6 +312,7 @@ export function AccountsLedger({
         })}
         {!entries.length ? <div className={viewStyles.accounts_ledger_empty}>Nenhuma conta cadastrada.</div> : null}
       </section>
+      {pagination ? <ServerListPagination {...pagination} label="lançamentos" /> : null}
 
       {newEntryOpen ? (
         <Modal open title={`Novo lançamento · ${title}`} width="tw:max-w-[1080px]" heightClassName="tw:gap-3! tw:bg-[#f5f8fc]! tw:[&>header]:rounded-lg tw:[&>header]:border-0 tw:[&>header]:bg-[#174983] tw:[&>header]:p-2 tw:[&>header]:text-white tw:[&>div:last-child]:bg-white tw:[&>div:last-child]:rounded-md tw:[&>div:last-child]:p-2 tw:h-[min(960px,calc(var(--workspace-viewport-height,100dvh)_-_32px))]! tw:max-h-[calc(var(--workspace-viewport-height,100dvh)_-_24px)]!" onClose={() => setNewEntryOpen(false)} footer={<div className="tw:flex tw:flex-wrap tw:justify-end tw:gap-2"><button type="button" className={viewStyles.button} onClick={() => setNewEntryOpen(false)}>Cancelar</button><button type="submit" form={newEntryFormId} className={viewStyles.button_button_primary} disabled={pending}>{pending ? "Salvando..." : recurring ? "Criar recorrência" : "Salvar lançamento"}</button></div>}>

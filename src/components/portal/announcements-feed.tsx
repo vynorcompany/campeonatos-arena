@@ -1,4 +1,5 @@
 "use client";
+import { PaginatedList } from "@/components/ui/list-pagination";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PortalRichText } from "@/components/portal-rich-text";
 type Post = { id: string; title: string; message: string; pinned: boolean; linkUrl: string | null; createdAt: string };
@@ -49,12 +50,12 @@ export function AnnouncementsFeed({ arenaSlug }: { arenaSlug: string }) {
     return () => observer.disconnect();
   }, [load, error, cursor]);
   return <section aria-label="Avisos" className="tw:mx-auto tw:w-full tw:max-w-3xl tw:px-2 tw:text-[var(--portal-text)]">
-    {items.map(post => <article key={post.id} id={`aviso-${post.id}`} tabIndex={-1} aria-labelledby={`aviso-titulo-${post.id}`} className="tw:scroll-mt-4 tw:border-b tw:border-blue-300/35 tw:py-7 tw:focus-visible:outline-2 tw:focus-visible:outline-offset-4 tw:focus-visible:outline-[#1e5ea8]">
+    <PaginatedList>{items.map(post => <article key={post.id} id={`aviso-${post.id}`} tabIndex={-1} aria-labelledby={`aviso-titulo-${post.id}`} className="tw:scroll-mt-4 tw:border-b tw:border-blue-300/35 tw:py-7 tw:focus-visible:outline-2 tw:focus-visible:outline-offset-4 tw:focus-visible:outline-[#1e5ea8]">
       <div className="tw:mb-2 tw:flex tw:items-center tw:gap-3 tw:text-xs tw:text-[var(--portal-muted)]"><time dateTime={post.createdAt}>{new Date(post.createdAt).toLocaleDateString("pt-BR")}</time>{post.pinned ? <span className="tw:font-semibold tw:text-blue-600 tw:dark:text-blue-300">Fixado</span> : null}</div>
       <h2 id={`aviso-titulo-${post.id}`} className="tw:mb-3 tw:text-lg tw:font-semibold">{post.title}</h2>
       <div className="tw:break-words tw:text-sm tw:leading-7"><PortalRichText text={post.message} /></div>
       {post.linkUrl && /^https?:\/\//i.test(post.linkUrl) ? <a href={post.linkUrl} target="_blank" rel="noreferrer" className="tw:mt-3 tw:inline-flex tw:font-semibold tw:text-blue-600 tw:dark:text-blue-300">Abrir link ↗</a> : null}
-    </article>)}
+    </article>)}</PaginatedList>
     <div ref={sentinel} className="tw:py-6 tw:text-center" aria-live="polite">{loading ? "Carregando avisos…" : error || (cursor === null && !items.length ? "A arena ainda não divulgou avisos." : "")}</div>
     {!loading && (error || cursor !== null) ? <button type="button" onClick={() => void load()} className="tw:mx-auto tw:mb-6 tw:block tw:rounded-md tw:border tw:border-blue-300 tw:px-4 tw:py-2">{error ? "Tentar novamente" : "Carregar mais"}</button> : null}
   </section>;

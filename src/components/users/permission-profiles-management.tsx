@@ -1,3 +1,4 @@
+import { PaginatedList } from "@/components/ui/list-pagination";
 import { SettingsDialogButton } from "@/components/ui/settings-dialog-button";
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { viewStyles } from "./permission-profiles-management.utilities";
@@ -23,8 +24,8 @@ export function PermissionProfilesManagement({ profiles }: { profiles: { id: str
     </SettingsDialogButton></div>
     <nav className={viewStyles.standard_list_permission_profiles_list} aria-label="Perfis disponíveis">
       <div className={viewStyles.standard_list_head} aria-hidden="true"><span>Perfil</span><span>Descrição</span><span>Usuários</span><span>Ação</span></div>
-      {orderedProfiles.map((profile) => <Link key={profile.id} href={`/arena/perfis/${profile.id}`} className={viewStyles.standard_list_row}><strong>{permissionProfileLabel(profile.name)}</strong><span>{profile.description || "Sem descrição"}</span><span className={viewStyles.permission_profile_members}>{profile.members.length ? profile.members.map(({ user }) => user.name).join(" · ") : "Nenhum usuário vinculado"}</span><span className={viewStyles.standard_list_action}>Configurar <b aria-hidden="true">›</b></span></Link>)}
-      {!orderedProfiles.length ? <p className={viewStyles.standard_list_empty}>Nenhum perfil criado.</p> : null}
+      <PaginatedList>{orderedProfiles.map((profile) => <Link key={profile.id} href={`/arena/perfis/${profile.id}`} className={viewStyles.standard_list_row}><strong>{permissionProfileLabel(profile.name)}</strong><span>{profile.description || "Sem descrição"}</span><span className={viewStyles.permission_profile_members}>{profile.members.length ? profile.members.map(({ user }) => user.name).join(" · ") : "Nenhum usuário vinculado"}</span><span className={viewStyles.standard_list_action}>Configurar <b aria-hidden="true">›</b></span></Link>)}{!orderedProfiles.length ? <p className={viewStyles.standard_list_empty}>Nenhum perfil criado.</p> : null}</PaginatedList>
+
     </nav>
   </section>;
 }

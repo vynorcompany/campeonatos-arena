@@ -1,3 +1,4 @@
+import { PaginatedList } from "@/components/ui/list-pagination";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./category-registration-panel.utilities";
 import Link from "next/link";
@@ -76,7 +77,7 @@ export function CategoryRegistrationPanel({
 
   return (
     <div className={viewStyles.stack_md}>
-      {categories.map((category) => {
+      <PaginatedList>{categories.map((category) => {
         const eligibleAthletes = athletes.filter(
           (athlete) =>
             athlete.active &&
@@ -203,7 +204,7 @@ export function CategoryRegistrationPanel({
             ) : null}
           </article>
         );
-      })}
+      })}</PaginatedList>
     </div>
   );
 }

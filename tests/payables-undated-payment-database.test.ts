@@ -37,6 +37,7 @@ test("paid payable without due date appears in its payment month without bypassi
           await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`;
           return operation(tx);
         }) };
+        if (name === "@/lib/pagination") return require("../src/lib/pagination.ts");
         if (name.startsWith("@/lib/finance/")) return require(`../src/lib/finance/${name.slice("@/lib/finance/".length)}.ts`);
         return require(name);
       },

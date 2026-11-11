@@ -1,3 +1,4 @@
+import { PaginatedList } from "@/components/ui/list-pagination";
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { WorkspaceHeading } from "@/components/ui/workspace-heading";
 import { viewStyles } from "./page.utilities";
@@ -34,12 +35,12 @@ export default async function SponsorshipManagementPage(
     <WorkspaceHeading title="Planos"><CreateSponsorshipPlanButton action={createSponsorshipPlanAction} courts={courts} /></WorkspaceHeading>
     <div className="tw:[&_input]:h-9! tw:[&_input]:min-h-9! tw:[&_select]:h-9! tw:[&_select]:min-h-9! tw:[&_form]:gap-2! tw:[&_label]:text-xs!"><SponsorshipFilters query={query} type={type} sort={sort} planTypes={planTypes} /></div>
     <div className={ui.list}><div className={`${ui.head} ${columns}`}><span>Plano</span><span>Mensalidade</span><span>Benefícios por ciclo</span><span>Vínculos</span><span>Ações</span></div>
-    {orderedPlans.map(plan => <article className={`${ui.row} ${columns}`} key={plan.id}>
+    <PaginatedList>{orderedPlans.map(plan => <article className={`${ui.row} ${columns}`} key={plan.id}>
       <div><strong>{plan.name}</strong><small>{plan.kind==="FIXED_COURT" ? "Reserva fixa de quadra" : plan.sponsorshipType}</small></div>
       <span className="tw:text-[13px] tw:font-semibold tw:tabular-nums">R$ {asCurrency(plan.monthlyAmountCents)}<small className="tw:font-normal">por mês</small></span>
       {plan.kind==="FIXED_COURT"?<div className="tw:grid tw:gap-1 tw:text-xs"><span>Quadra e horário por cliente</span><small>{plan.prorateFifthWeek?"Proporcional nos meses com cinco reservas":"Mensalidade fixa"}</small></div>:<div className="tw:flex tw:flex-wrap tw:gap-1 tw:text-[11px]">{plan.reservationCredits ? <span>{plan.reservationCredits} reservas</span> : null}{plan.lessonCredits ? <span>{plan.reservationCredits ? "· " : ""}{plan.lessonCredits} aulas</span> : null}{!plan.reservationCredits && !plan.lessonCredits ? <span className="tw:inline-flex tw:rounded tw:bg-white tw:border tw:border-[var(--line)] tw:px-1.5 tw:py-0.5 tw:text-[var(--muted)]">Sem saldo incluído</span> : null}</div>}
       <span className="tw:text-xs tw:text-[var(--muted)]">{plan.kind==="FIXED_COURT" ? `${plan.bookingSeries.length} cliente(s)` : `${plan.sponsors.length} empresa(s)`}</span>
       <div className="tw:flex tw:flex-wrap tw:gap-2 tw:viewport-1120:col-span-full"><Link href={`/proximos-jogos/patrocinios/${plan.id}`} className={ui.secondary}>Abrir plano</Link><SafeActionForm action={deleteSponsorshipPlanAction} confirmKeyword="EXCLUIR" confirmPrompt={`Excluir o plano ${plan.name}? Digite EXCLUIR para confirmar.`}><input type="hidden" name="planId" value={plan.id} /><SubmitButton label="Excluir" pendingLabel="Excluindo..." className={ui.secondary} /></SafeActionForm></div>
-    </article>)}{!orderedPlans.length ? <p className={ui.empty}>Nenhum plano encontrado. Ajuste os filtros ou cadastre um plano.</p> : null}</div>
+    </article>)}{!orderedPlans.length ? <p className={ui.empty}>Nenhum plano encontrado. Ajuste os filtros ou cadastre um plano.</p> : null}</PaginatedList></div>
   </div>;
 }

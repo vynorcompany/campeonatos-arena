@@ -1,3 +1,4 @@
+import { PaginatedList } from "@/components/ui/list-pagination";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./category-list.utilities";
 import Link from "next/link";
@@ -47,7 +48,7 @@ export function CategoryList({
       {categories.length ? (
         <div className={viewStyles.t_category_list}>
           <div className={viewStyles.t_category_table_head}><span>Categoria</span><span>Tipo</span><span>Duplas inscritas</span><span>Status</span><span>Ações</span></div>
-          {categories.map((category) => (
+          <PaginatedList>{categories.map((category) => (
             <div className={viewStyles.t_category_row} key={category.id}>
               <span className={viewStyles.t_category_icon}><EventIcon name="users" /></span>
               <div className={viewStyles.t_category_name}><strong>{category.name}</strong><small>{category.competition ? "Categoria configurada" : "Aguardando configuração"}</small></div>
@@ -69,7 +70,7 @@ export function CategoryList({
                 Entrar <span aria-hidden="true">›</span>
               </Link>
             </div>
-          ))}
+          ))}</PaginatedList>
         </div>
       ) : (
         <p className={viewStyles.t_category_empty}>

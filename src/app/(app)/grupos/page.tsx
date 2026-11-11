@@ -1,3 +1,4 @@
+import { PaginatedList, PaginatedTableRows } from "@/components/ui/list-pagination";
 import { viewStyles } from "./page.utilities";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { GroupEditor } from "@/components/group-editor";
@@ -199,7 +200,7 @@ export default async function GroupsPage(props: GroupsPageProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {overallStandings.map((item, index) => {
+                  <PaginatedTableRows>{overallStandings.map((item, index) => {
                     const balance = item.gamesFor - item.gamesAgainst;
                     return (
                       <tr key={item.pairId}>
@@ -212,7 +213,7 @@ export default async function GroupsPage(props: GroupsPageProps) {
                         <td>{balance}</td>
                       </tr>
                     );
-                  })}
+                  })}</PaginatedTableRows>
                 </tbody>
               </table>
             </SectionCard>

@@ -1,3 +1,4 @@
+import { PaginatedList } from "@/components/ui/list-pagination";
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -143,7 +144,7 @@ export default async function TournamentDetailPage(props: TournamentDetailPagePr
                 : null,
             }))}
           />
-          {tournament.firstBonusLimit > 0 ? <section className={viewStyles.section_card}><header><div><p className={viewStyles.eyebrow}>Bônus</p><h2>Primeiros {tournament.firstBonusLimit} pagamentos confirmados</h2><p className={viewStyles.muted}>{tournament.firstBonusUntil ? `Válido até ${new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(tournament.firstBonusUntil)}.` : "Sem data limite configurada."}</p></div></header>{tournament.publicRegistrations.filter((item) => !tournament.firstBonusUntil || item.createdAt <= tournament.firstBonusUntil).slice(0, tournament.firstBonusLimit).length ? <ol>{tournament.publicRegistrations.filter((item) => !tournament.firstBonusUntil || item.createdAt <= tournament.firstBonusUntil).slice(0, tournament.firstBonusLimit).map((item) => <li key={item.id}>{item.leadName} / {item.partnerName}</li>)}</ol> : <p className={viewStyles.muted}>A lista será preenchida automaticamente conforme os pagamentos forem confirmados.</p>}</section> : null}
+          {tournament.firstBonusLimit > 0 ? <section className={viewStyles.section_card}><header><div><p className={viewStyles.eyebrow}>Bônus</p><h2>Primeiros {tournament.firstBonusLimit} pagamentos confirmados</h2><p className={viewStyles.muted}>{tournament.firstBonusUntil ? `Válido até ${new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(tournament.firstBonusUntil)}.` : "Sem data limite configurada."}</p></div></header>{tournament.publicRegistrations.filter((item) => !tournament.firstBonusUntil || item.createdAt <= tournament.firstBonusUntil).slice(0, tournament.firstBonusLimit).length ? <ol><PaginatedList listSemantics>{tournament.publicRegistrations.filter((item) => !tournament.firstBonusUntil || item.createdAt <= tournament.firstBonusUntil).slice(0, tournament.firstBonusLimit).map((item) => <li key={item.id}>{item.leadName} / {item.partnerName}</li>)}</PaginatedList></ol> : <p className={viewStyles.muted}>A lista será preenchida automaticamente conforme os pagamentos forem confirmados.</p>}</section> : null}
         </div>
         <aside className={viewStyles.event_side_column}>
           <EventQuickActions

@@ -1,3 +1,4 @@
+import { PaginatedList, PaginatedTableRows } from "@/components/ui/list-pagination";
 import { viewStyles } from "./arena-users-management.utilities";
 import { SettingsDialogButton } from "@/components/ui/settings-dialog-button";
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
@@ -47,7 +48,7 @@ export async function ArenaUsersManagement({ arenaId, currentUserId, query = "" 
             </tr>
           </thead>
           <tbody>
-            {members.map((member) => (
+            <PaginatedTableRows>{members.map((member) => (
               <tr key={member.id}>
                 <td>
                   <strong>{member.user.name}</strong>
@@ -70,12 +71,12 @@ export async function ArenaUsersManagement({ arenaId, currentUserId, query = "" 
                   />
                 </td>
               </tr>
-            ))}
+            ))}</PaginatedTableRows>
           </tbody>
         </table></div>
         {!members.length ? <p className={viewStyles.muted}>Nenhum usuário corresponde à busca nesta arena.</p> : null}
       </section>
-      {invites.length ? <SectionCard title="Convites pendentes" description="O link de convite expira em 48 horas." hideHeading><div className={viewStyles.user_invites_list}>{invites.map((invite) => <article key={invite.id} className={viewStyles.user_invite_row}><div><strong>{invite.name}</strong><span>{invite.email}</span></div><span>Válido até {new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(invite.expiresAt)}</span><SafeActionForm action={revokeArenaInviteAction} successMessage="Convite revogado."><input type="hidden" name="inviteId" value={invite.id} /><button type="submit" className={viewStyles.button_button_small}>Revogar</button></SafeActionForm></article>)}</div></SectionCard> : null}
+      {invites.length ? <SectionCard title="Convites pendentes" description="O link de convite expira em 48 horas." hideHeading><div className={viewStyles.user_invites_list}><PaginatedList>{invites.map((invite) => <article key={invite.id} className={viewStyles.user_invite_row}><div><strong>{invite.name}</strong><span>{invite.email}</span></div><span>Válido até {new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(invite.expiresAt)}</span><SafeActionForm action={revokeArenaInviteAction} successMessage="Convite revogado."><input type="hidden" name="inviteId" value={invite.id} /><button type="submit" className={viewStyles.button_button_small}>Revogar</button></SafeActionForm></article>)}</PaginatedList></div></SectionCard> : null}
     </div>
   );
 }
