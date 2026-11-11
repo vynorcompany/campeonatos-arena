@@ -28,9 +28,9 @@ export async function getAccountsLedger(arenaId: string, type: "REVENUE" | "EXPE
   if (filters.name) conditions.push({ OR: [{ billingPlayer: { name: { contains: filters.name, mode: "insensitive" } } }, { counterpartyName: { contains: filters.name, mode: "insensitive" } }, { player: { name: { contains: filters.name, mode: "insensitive" } } }, { supplier: { name: { contains: filters.name, mode: "insensitive" } } }, { scheduleParticipant: { player: { name: { contains: filters.name, mode: "insensitive" } } } }, { sale: { customerName: { contains: filters.name, mode: "insensitive" } } }] });
   if (start || end) {
     const range = { ...(start && !filters.includeEarlier ? { gte: start } : {}), ...(end ? { lte: end } : {}) };
-    // An open receivable without a known due date must remain actionable.
-    // Do not assign an invented due date to migrated balances.
-    if (type === "REVENUE" && dateField === "dueDate") conditions.push({ OR: [
+    // An undated obligation must remain visible. Paid entries without a due
+    // date belong to their payment month; do not invent a due date to list them.
+    if (dateField === "dueDate") conditions.push({ OR: [
       { dueDate: range },
       { dueDate: null, status: { in: ["PENDING", "OVERDUE", "PARTIAL"] } },
       { dueDate: null, status: "PAID", paidAt: range },
