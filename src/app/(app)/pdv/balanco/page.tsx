@@ -1,4 +1,4 @@
-import { PaginatedList } from "@/components/ui/list-pagination";
+
 import { WorkspaceHeading } from "@/components/ui/workspace-heading";
 import { arenaDatabase } from "@/lib/arena-database";
 import { cx } from "@/lib/ui/classes";
@@ -68,14 +68,14 @@ export default async function StockBalancePage({ searchParams }: { searchParams?
       {!creating ? <div className={ui.list}><div className={`${ui.head} tw:grid-cols-[minmax(0,1fr)_170px_170px]`}><span>Balanço</span><span>Data</span><span>Responsável</span></div>{balances.map(balance => { const details = balance.details as { title?: string }; return <Link key={balance.id} href={`/pdv/balanco/${balance.id}`} className={`${ui.row} tw:grid-cols-[minmax(0,1fr)_170px_170px] tw:text-[#15385f] tw:no-underline tw:hover:bg-[#1e5ea8] tw:hover:text-white tw:focus-visible:outline-2 tw:focus-visible:outline-[#1e5ea8] tw:viewport-760:grid-cols-1`}><strong>{details.title || "Balanço de estoque"}</strong><time>{balance.createdAt.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</time><span>{balance.actorName}</span></Link>; })}{!balances.length ? <p className={ui.empty}>Nenhum balanço concluído.</p> : null}</div> : null}
       {query?.historico === "1" ? <section className={ui.page}><h2 className="tw:m-0 tw:text-sm tw:font-semibold">Ajustes anteriores</h2>
         {movements.length ? <div className={viewStyles.stock_balance_report}>
-          <PaginatedList>{movements.map((movement) => {
+          <>{movements.map((movement) => {
             const match = movement.reason.match(/sistema: (\d+) \| contado: (\d+) \| diferença: ([+-]?\d+)/);
             const difference = match ? Number(match[3]) : 0;
             return <article key={movement.id} className={cx(difference === 0 ? "" : difference < 0 ? "is-loss" : "is-surplus")}>
               <div><strong>{visibleProductName(productNames, movement.productId)}</strong><span>{movement.createdAt.toLocaleString("pt-BR")}</span><small>{movement.reason}</small></div>
               <b>{signed(difference)}</b>
             </article>;
-          })}</PaginatedList>
+          })}</>
         </div> : <p className={viewStyles.muted}>Nenhum balanço concluído ainda.</p>}
       </section> : null}
     </div>

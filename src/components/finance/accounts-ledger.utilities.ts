@@ -119,7 +119,7 @@ export const viewStyles = {
     "tw:min-w-0 tw:max-w-full tw:overflow-x-auto",
   ].join(" "),
   "accounts_ledger_columns": [
-    "accounts-ledger-columns", "tw:grid", "tw:grid-cols-[30px_100px_minmax(115px,_.95fr)_minmax(90px,_.75fr)_minmax(150px,_1.4fr)_minmax(110px,_.8fr)_minmax(95px,_.72fr)_minmax(190px,_1.3fr)]", "tw:gap-y-[12px]",
+    "accounts-ledger-columns", "tw:grid", "tw:grid-cols-[24px_82px_86px_minmax(110px,_.95fr)_minmax(80px,_.7fr)_minmax(140px,_1.4fr)_minmax(110px,_.8fr)_minmax(110px,_.8fr)_100px]", "tw:gap-y-[12px]",
     "tw:gap-x-[12px]", "tw:items-center", "tw:pt-[9px]", "tw:pr-[13px]",
     "tw:pb-[9px]", "tw:pl-[13px]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]",
     "tw:border-b-[color:var(--line)]", "tw:bg-[color:#ffffff]", "tw:[background-image:none]", "tw:text-[color:#354f70]",
@@ -128,9 +128,9 @@ export const viewStyles = {
     "tw:viewport-700:hidden tw:min-w-[1080px]",
   ].join(" "),
   "accounts_ledger_row_accounts_ledger_row_clickable": [
-    "accounts-ledger-row", "accounts-ledger-row-clickable", "tw:grid", "tw:grid-cols-[30px_100px_minmax(115px,_.95fr)_minmax(90px,_.75fr)_minmax(150px,_1.4fr)_minmax(110px,_.8fr)_minmax(95px,_.72fr)_minmax(190px,_1.3fr)]",
-    "tw:gap-y-[12px]", "tw:gap-x-[12px]", "tw:items-center", "tw:min-h-[44px]",
-    "tw:pt-[5px]", "tw:pr-[13px]", "tw:pb-[5px]", "tw:pl-[13px]",
+    "accounts-ledger-row", "accounts-ledger-row-clickable", "tw:grid", "tw:grid-cols-[24px_82px_86px_minmax(110px,_.95fr)_minmax(80px,_.7fr)_minmax(140px,_1.4fr)_minmax(110px,_.8fr)_minmax(110px,_.8fr)_100px]",
+    "tw:gap-y-[4px]", "tw:gap-x-[8px]", "tw:items-center", "tw:min-h-[36px]",
+    "tw:pt-[3px]", "tw:pr-[13px]", "tw:pb-[3px]", "tw:pl-[13px]",
     "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:var(--line)]", "tw:text-[.74rem]",
     "tw:[&:nth-of-type(even)]:bg-[color:color-mix(in_srgb,_#ffffff_42%,_var(--panel))]", "tw:[&:nth-of-type(even)]:[background-image:none]", "tw:[&:last-child]:border-b-[length:0]", "tw:[&:last-child]:[border-bottom-style:none]",
     "tw:[&:last-child]:border-b-[color:currentColor]", "tw:[&_>_span]:block", "tw:[&_>_span]:gap-y-[3px]", "tw:[&_>_span]:gap-x-[3px]",

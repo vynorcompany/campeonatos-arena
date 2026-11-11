@@ -392,7 +392,7 @@ export async function createSponsorshipPlanAction(formData: FormData) {
   if(!["SPONSORSHIP","FIXED_COURT"].includes(kind)) throw new Error("Selecione a finalidade do plano.");
   const monthlyAmountCents=parseMonthlyAmountToCents(monthlyAmount);
   if(monthlyAmountCents<0 || !Number.isSafeInteger(monthlyAmountCents)) throw new Error("Informe um valor mensal válido.");
-  await db.sponsorshipPlan.create({ data: { arenaId: auth.arenaId, ...data, kind, dueDay, dueDays, prorateFifthWeek: formData.get("prorateFifthWeek")==="on", monthlyAmountCents, ...(kind==="FIXED_COURT"?{reservationCredits:0,lessonCredits:0}:{}) } });
+  await db.sponsorshipPlan.create({ data: { arenaId: auth.arenaId, ...data, kind, dueDay, dueDays, prorateFifthWeek: formData.get("prorateFifthWeek")==="on", monthlyAmountCents, ...(kind==="FIXED_COURT"?{reservationCredits:data.reservationCredits,lessonCredits:0}:{}) } });
   refreshUpcomingMatches();
 }
 

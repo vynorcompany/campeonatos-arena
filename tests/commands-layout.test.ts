@@ -47,7 +47,7 @@ test("commands use compact controls and vector icons in the daily workspace", ()
   assert.match(page, /M8 14h\.01M12 14h\.01M16 14h\.01/);
   assert.match(picker, /commands-icon/);
   assert.doesNotMatch(styleRules("commands-day-panel"), /min-height: (620|500)px/);
-  assert.match(styleRules("commands-actions", {"context":".button"}), /min-height: 46px/);
+  assert.match(styleRules("commands-actions", {"context":".button"}), /min-height: 30px/);
   assert.match(picker, /<svg (?:className="commands-icon"|className=\{(?:cx\()?viewStyles\.commands_icon(?:\))?\})/);
   assert.match(styleRules("commands-date-icon"), /color: #52677d/);
   assert.match(page, /stroke="currentColor"/);

@@ -1,7 +1,7 @@
 "use client";
 import { PayslipImportDialog } from "./payslip-import-dialog";
 import type { PayslipDraft } from "@/lib/finance/payslip-import";
-import { PaginatedList } from "@/components/ui/list-pagination";
+
 import { useFilterMemory } from "@/components/filters/filter-memory";
 import { MonthPicker } from "@/components/forms/month-picker";
 import { Modal } from "@/components/ui/modal";
@@ -111,11 +111,11 @@ export function EmployeePayrollWorkspace({ employees, entries, referenceMonth, c
     <WorkspaceHeading title="Folha de pagamento">{canCreate ? <PayslipImportDialog onImport={importPayslip}/> : null}{canCreate ? <button type="button" className={styles.button} disabled={!employees.length} onClick={() => setForm({ entry: null })}>Nova folha</button> : null}</WorkspaceHeading>
     <div className={styles.filters}><form method="get" action="/financeiro/folha" className="tw:flex tw:min-w-0 tw:flex-wrap tw:items-end tw:gap-2"><MonthPicker name="mes" value={filterMonth} onChange={setFilterMonth} /><button className={`${styles.secondary} tw:h-9`}>Filtrar</button></form><label className="tw:grid tw:min-w-0 tw:gap-1 tw:text-xs tw:font-semibold">Funcionário<input type="search" aria-label="Buscar funcionário" placeholder="Buscar funcionário..." value={query} onChange={event => setQuery(event.target.value)} /></label><Link href="/financeiro/contas-a-pagar" className={`${styles.secondary} tw:h-9 tw:justify-self-start`}>Contas a Pagar</Link></div>
     <div className={styles.summary}><div><span>Total da folha</span><strong>{money(summary.total)}</strong></div><div><span>Pago</span><strong className="tw:text-emerald-700">{money(summary.paid)}</strong></div><div><span>A pagar</span><strong className="tw:text-red-700">{money(summary.pending)}</strong></div></div>
-    <div className={styles.list}><PaginatedList>{visible.map(row => {
+    <div className={styles.list}><>{visible.map(row => {
       const entry = row.financialEntry;
       const status = entry?.status === "PAID" ? "Pago" : entry?.status === "VOIDED" ? "Cancelado" : entry ? "A pagar" : "Lançamento excluído";
       return <article className={styles.row} key={row.id}><div><strong>{row.employeeName}</strong><small>{row.referenceMonth.split("-").reverse().join("/")} · {(row.overtimeMinutes / 60).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} h extras{row.nightMinutes || row.nightOvertimeMinutes ? ` · ${(((row.nightMinutes ?? 0) + (row.nightOvertimeMinutes ?? 0)) / 60).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} h noturnas` : ""}</small></div><div><strong>{money(entry?.amountCents ?? calculateEmployeePayroll(row).totalCents)}</strong><small>{entry?.status === "PAID" ? "Pago em " + entry.paidAt.split("-").reverse().join("/") : entry?.dueDate ? "Vence em " + entry.dueDate.split("-").reverse().join("/") : ""}</small></div><span className={entry?.status === "PAID" ? "tw:text-xs tw:font-semibold tw:text-emerald-700" : "tw:text-xs tw:font-semibold tw:text-[var(--muted)]"}>{status}</span>{canEdit ? <button type="button" className={styles.secondary} disabled={!employees.some(employee => employee.id === row.userId) || entry?.status === "VOIDED"} onClick={() => setForm({ entry: row })} aria-label={`Editar folha de ${row.employeeName}`}>Editar</button> : null}</article>;
-    })}{!visible.length ? <p className="tw:m-0 tw:p-4 tw:text-sm tw:text-[var(--muted)]">{entries.length ? "Nenhuma folha corresponde à busca." : "Nenhuma folha de funcionários neste mês."}</p> : null}</PaginatedList></div>
+    })}{!visible.length ? <p className="tw:m-0 tw:p-4 tw:text-sm tw:text-[var(--muted)]">{entries.length ? "Nenhuma folha corresponde à busca." : "Nenhuma folha de funcionários neste mês."}</p> : null}</></div>
     {!employees.length ? <p className="tw:m-0 tw:text-sm tw:text-[var(--muted)]">Cadastre um usuário na arena para criar uma folha.</p> : null}
     {form ? <PayrollForm employees={employees} entries={entries} referenceMonth={referenceMonth} initial={form.entry} importDraft={form.importDraft} canCreate={canCreate} canEdit={canEdit} canSettle={canSettle} close={close} /> : null}
   </section>;

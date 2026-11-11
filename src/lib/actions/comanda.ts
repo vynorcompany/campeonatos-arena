@@ -343,11 +343,13 @@ export async function finishComandaAction(formData: FormData) {
     // Preserve credit on the owner's products first; any remainder pays their own debts/reservation.
     const productCreditCents = Math.min(creditAppliedCents, sharedParts[0].amountCents);
     const debtCreditCents = creditAppliedCents - productCreditCents;
-    const paymentPolicy = applyComandaPaymentPolicy({ totalCents: grandTotalCents, creditCents: creditAppliedCents, payments: parsed.data.payments, preventOverpayment: operational?.preventOverpayment ?? true, requireFullPayment: operational?.requireFullPayment ?? false, allowPartial: parsed.data.allowPartial, playerId: comanda.playerId });
+    const excessDisposition = String(formData.get("excessDisposition") ?? "");
+    if(parsed.data.payments.reduce((sum,p)=>sum+p.amountCents,0)+creditAppliedCents>grandTotalCents && !["CREDIT","CHANGE"].includes(excessDisposition)) throw new Error("Escolha se deseja gerar saldo para o cliente ou devolver troco.");
+    const paymentPolicy = applyComandaPaymentPolicy({ totalCents: grandTotalCents, creditCents: creditAppliedCents, payments: parsed.data.payments, excessDisposition: excessDisposition === "CREDIT" || excessDisposition === "CHANGE" ? excessDisposition : undefined, preventOverpayment: operational?.preventOverpayment ?? true, requireFullPayment: operational?.requireFullPayment ?? false, allowPartial: parsed.data.allowPartial, playerId: comanda.playerId });
     await assertComandaCashRegister(tx, auth.arenaId, operational?.cashRegisterRequired ?? false, paymentTotalCents > 0);
     const creditDebtAllocation = allocatePaymentsToDebts(selectedDebtBalances, debtCreditCents ? [{ paymentMethod: "Saldo do cliente", amountCents: debtCreditCents }] : []);
     const remainingDebtBalances = selectedDebtBalances.map(debt => ({ ...debt, outstandingCents: debt.outstandingCents - creditDebtAllocation.settlements.filter(settlement => settlement.financialEntryId === debt.financialEntryId).reduce((sum, settlement) => sum + settlement.amountCents, 0) })).filter(debt => debt.outstandingCents > 0);
-    if (installmentTotalCents && paymentPolicy.excessCents) throw new Error("O parcelamento não pode ultrapassar o total da comanda.");
+    if (installmentTotalCents && (paymentPolicy.excessCents || paymentPolicy.changeCents)) throw new Error("O parcelamento não pode ultrapassar o total da comanda.");
     const cashDebtAllocation = allocatePaymentsToDebts(remainingDebtBalances, installmentTotalCents ? parsed.data.payments.filter(payment => !payment.installmentCount) : paymentPolicy.appliedPayments);
 
     const debtPaymentAllocation = { remainingPayments: cashDebtAllocation.remainingPayments, settlements: [...creditDebtAllocation.settlements, ...cashDebtAllocation.settlements] };
@@ -377,12 +379,13 @@ export async function finishComandaAction(formData: FormData) {
     });
     const cashReceivedCents = parsed.data.payments
       .filter((payment) => ["dinheiro", "cash"].includes(payment.paymentMethod.trim().toLocaleLowerCase("pt-BR")))
-      .reduce((total, payment) => total + payment.amountCents, 0);
+      .reduce((total, payment) => total + payment.amountCents, 0) - paymentPolicy.changeCents;
     if (cashReceivedCents > 0) {
       await recordCashSaleIfOpen(tx, { arenaId: auth.arenaId, referenceDate: cashReferenceDate(now), amountCents: cashReceivedCents, description: `Comanda ${comanda.code}`, createdByName: auth.userName });
     }
     await consumeProductStock(tx, auth.arenaId, comanda.items, `Comanda ${comanda.code}`, sale.id);
 
+    if(paymentPolicy.changeCents) await tx.auditEvent.create({data:{arenaId:auth.arenaId,actorId:auth.userId,actorName:auth.userName,action:"COMANDA_CHANGE_RETURNED",entityId:comanda.id,details:{changeCents:paymentPolicy.changeCents}}});
     if (paymentPolicy.excessCents && comanda.playerId) {
       await tx.clientBalanceMovement.create({ data: { arenaId: auth.arenaId, playerId: comanda.playerId, kind: "MONEY", amountCents: paymentPolicy.excessCents, reason: `Crédito de pagamento excedente na comanda ${comanda.code}` } });
       for (const payment of paymentPolicy.excessPayments) {

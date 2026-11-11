@@ -1,4 +1,4 @@
-import { PaginatedList, PaginatedTableRows } from "@/components/ui/list-pagination";
+
 
 import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
 import { viewStyles } from "./page.utilities";
@@ -115,7 +115,7 @@ export default async function PairsPage(props: PairsPageProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  <PaginatedTableRows>{activeTournament.pairs.map((pair, index) => {
+                  <>{activeTournament.pairs.map((pair, index) => {
                     const currentPairPlayerIds = new Set(pair.players.map((player) => player.playerId));
 
                     return (
@@ -172,7 +172,7 @@ export default async function PairsPage(props: PairsPageProps) {
                         </td>
                       </tr>
                     );
-                  })}</PaginatedTableRows>
+                  })}</>
                 </tbody>
               </table>
             ) : (

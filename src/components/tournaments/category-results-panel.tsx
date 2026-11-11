@@ -1,4 +1,4 @@
-import { PaginatedList, PaginatedTableRows } from "@/components/ui/list-pagination";
+
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./category-results-panel.utilities";
@@ -148,7 +148,7 @@ export function CategoryResultsPanel({
 
   return (
     <div className={viewStyles.stack_md}>
-      <PaginatedTableRows>{categories.map((category) => {
+      <>{categories.map((category) => {
         const competition = category.competition;
         const completedMatchCount =
           competition?.matches.filter((match) => match.winnerPair).length ?? 0;
@@ -494,7 +494,7 @@ export function CategoryResultsPanel({
             )}
           </article>
         );
-      })}</PaginatedTableRows>
+      })}</>
     </div>
   );
 }

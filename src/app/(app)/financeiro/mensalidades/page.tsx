@@ -1,4 +1,4 @@
-import { PaginatedList } from "@/components/ui/list-pagination";
+
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { ReceivingBankAccountSelect } from "@/components/finance/bank-account-select";
 import { viewStyles } from "./page.utilities";
@@ -152,9 +152,9 @@ export default async function MonthlyPaymentsPage() {
       <SectionCard title="Assinaturas ativas" description="Alunos com planos ativos." hideHeading>
         <div className={ui.list}>
           <div className={`${ui.head} tw:max-[1200px]:hidden tw:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_120px_100px_100px_110px]`}><span>Aluno</span><span>Plano</span><span>Valor</span><span>Vencimento</span><span>Aulas</span><span>Ciclo</span></div>
-          <PaginatedList>{subscriptions.map(subscription => <article key={subscription.id} className={`${ui.row} tw:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_120px_100px_100px_110px] tw:max-[1200px]:grid-cols-2`}>
+          <>{subscriptions.map(subscription => <article key={subscription.id} className={`${ui.row} tw:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_120px_100px_100px_110px] tw:max-[1200px]:grid-cols-2`}>
             <strong>{subscription.student.name}</strong><span>{subscription.plan.name}</span><strong className="tw:tabular-nums">{formatMoney(subscription.monthlyPriceCents)}</strong><span><small className="tw:hidden tw:max-[1200px]:block">Vencimento</small>Dia {subscription.dueDay}</span><span>{subscription.classesPerMonth} aulas por mês</span><span><small className="tw:hidden tw:max-[1200px]:block">Renovação</small>{new Intl.DateTimeFormat("pt-BR").format(renewalDate(subscription.startedAt))}</span>
-          </article>)}{!subscriptions.length ? <p className={ui.empty}>Nenhuma assinatura ativa.</p> : null}</PaginatedList>
+          </article>)}{!subscriptions.length ? <p className={ui.empty}>Nenhuma assinatura ativa.</p> : null}</>
 
         </div>
       </SectionCard>

@@ -1,4 +1,4 @@
-import { PaginatedList } from "@/components/ui/list-pagination";
+
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { WorkspaceHeading } from "@/components/ui/workspace-heading";
 import Link from "next/link";
@@ -54,12 +54,12 @@ export default async function GamesPage(props: GamesPageProps) {
       </div>
       {canManageTournaments || canRecordResults ? <>
         <h3 className="tw:sr-only">Categorias</h3>
-        {selectedTournament.categories.length ? <div className={ui.list}><PaginatedList>{selectedTournament.categories.map((category) =>
+        {selectedTournament.categories.length ? <div className={ui.list}><>{selectedTournament.categories.map((category) =>
           <article className={`${ui.row} tw:grid-cols-[minmax(0,1fr)_auto] tw:[&_span]:block tw:[&_span]:text-xs tw:[&_span]:text-[var(--muted)]`} key={category.id}><div><strong>{category.name}</strong><span>{category.competition?.status === "FINISHED" ? "Concluída" : "Em operação"}</span></div><Link href={`/torneios/${selectedTournament.id}/categorias/${category.id}${canManageTournaments ? "" : "?tab=games"}`} className={ui.secondary}>{canManageTournaments ? "Abrir categoria" : "Lançar resultados"}</Link></article>
-        )}</PaginatedList></div> : <p className={viewStyles.muted}>Este evento ainda não possui categorias ativas.</p>}
+        )}</></div> : <p className={viewStyles.muted}>Este evento ainda não possui categorias ativas.</p>}
       </> : <>
         <h3 className="tw:m-0 tw:text-base tw:font-semibold tw:text-[#132d58]">Programação e placares</h3>
-        {matches.length ? <div className="tw:grid tw:gap-3"><PaginatedList>{matches.map((match) => {
+        {matches.length ? <div className="tw:grid tw:gap-3"><>{matches.map((match) => {
           const score = match.homeScore !== null && match.awayScore !== null ? `${match.homeScore} × ${match.awayScore}` : "Aguardando";
           const games = setScores(match);
           return <article key={match.id} className="tw:min-w-0 tw:rounded-xl tw:border tw:border-[#dce7f2] tw:bg-white tw:p-4">
@@ -70,8 +70,8 @@ export default async function GamesPage(props: GamesPageProps) {
               <div data-match-away className="tw:min-w-0 tw:sm:text-right"><span className="tw:mb-0.5 tw:block tw:text-[10px] tw:font-semibold tw:uppercase tw:tracking-wide tw:text-[#607898] tw:sm:hidden">Visitante</span><strong className="tw:block tw:break-words">{match.awayPair?.name ?? "A definir"}</strong></div>
             </div>
           </article>;
-        })}</PaginatedList></div> : <p className={viewStyles.muted}>Nenhum jogo gerado para as categorias ativas deste evento.</p>}
+        })}</></div> : <p className={viewStyles.muted}>Nenhum jogo gerado para as categorias ativas deste evento.</p>}
       </>}
-    </SectionCard> : activeTournaments.length ? <section className={ui.list} aria-label="Eventos em operação"><div className={`${ui.head} tw:grid-cols-[minmax(0,1fr)_140px_220px]`}><span>Evento</span><span>Categorias ativas</span><span className="tw:text-right">Ações</span></div><PaginatedList>{activeTournaments.map(event => <article key={event.id} className={`${ui.row} tw:grid-cols-[minmax(0,1fr)_140px_220px] tw:viewport-760:grid-cols-[minmax(0,1fr)_auto] tw:viewport-760:[&>div:last-child]:col-span-full`}><strong>{event.name}</strong><span className="tw:text-xs">{event.categories.length} {event.categories.length === 1 ? "categoria ativa" : "categorias ativas"}</span><div className="tw:flex tw:flex-wrap tw:justify-end tw:gap-2"><Link href={`${eventDirectoryPath}${eventDirectoryPath.includes("?") ? "&" : "?"}tournamentId=${encodeURIComponent(event.id)}`} className={ui.secondary}>{canManageTournaments ? "Categorias" : "Ver jogos"}</Link>{canManageTournaments ? <Link href={`/torneios/${event.id}`} className={ui.primary}>Abrir evento</Link> : null}</div></article>)}</PaginatedList></section> : <SectionCard title="Eventos" hideHeading><p className={ui.empty}>{searchParams?.status === "finished" ? "Nenhum evento finalizado." : "Nenhum evento ativo."}</p>{canManageTournaments && searchParams?.status !== "finished" ? <Link href="/torneios/novo" className={ui.primary}>Criar evento</Link> : null}</SectionCard>}
+    </SectionCard> : activeTournaments.length ? <section className={ui.list} aria-label="Eventos em operação"><div className={`${ui.head} tw:grid-cols-[minmax(0,1fr)_140px_220px]`}><span>Evento</span><span>Categorias ativas</span><span className="tw:text-right">Ações</span></div><>{activeTournaments.map(event => <article key={event.id} className={`${ui.row} tw:grid-cols-[minmax(0,1fr)_140px_220px] tw:viewport-760:grid-cols-[minmax(0,1fr)_auto] tw:viewport-760:[&>div:last-child]:col-span-full`}><strong>{event.name}</strong><span className="tw:text-xs">{event.categories.length} {event.categories.length === 1 ? "categoria ativa" : "categorias ativas"}</span><div className="tw:flex tw:flex-wrap tw:justify-end tw:gap-2"><Link href={`${eventDirectoryPath}${eventDirectoryPath.includes("?") ? "&" : "?"}tournamentId=${encodeURIComponent(event.id)}`} className={ui.secondary}>{canManageTournaments ? "Categorias" : "Ver jogos"}</Link>{canManageTournaments ? <Link href={`/torneios/${event.id}`} className={ui.primary}>Abrir evento</Link> : null}</div></article>)}</></section> : <SectionCard title="Eventos" hideHeading><p className={ui.empty}>{searchParams?.status === "finished" ? "Nenhum evento finalizado." : "Nenhum evento ativo."}</p>{canManageTournaments && searchParams?.status !== "finished" ? <Link href="/torneios/novo" className={ui.primary}>Criar evento</Link> : null}</SectionCard>}
   </div>;
 }

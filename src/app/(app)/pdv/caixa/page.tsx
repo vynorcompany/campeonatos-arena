@@ -1,4 +1,4 @@
-import { PaginatedList } from "@/components/ui/list-pagination";
+
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
@@ -72,10 +72,10 @@ export default async function CashRegisterPage() {
         </SectionCard>
       </div>
       <SectionCard className={styles.panel} title="Movimentações de hoje" hideHeading>
-        <div className={styles.movementList}><PaginatedList>{register.movements.map((item) => <article key={item.id}>
+        <div className={styles.movementList}><>{register.movements.map((item) => <article key={item.id}>
           <span><strong>{item.type === "SUPPLY" ? "Suprimento" : item.type === "SALE" ? "Venda" : "Sangria"}</strong><small>{item.description || "Sem observação"}</small></span>
           <b className={cx(item.amountCents < 0 ? styles.negative : styles.positive)}>{item.amountCents < 0 ? "−" : "+"}{money(Math.abs(item.amountCents))}</b>
-        </article>)}</PaginatedList>{!register.movements.length ? <p className={viewStyles.muted}>Nenhuma movimentação registrada.</p> : null}</div>
+        </article>)}</>{!register.movements.length ? <p className={viewStyles.muted}>Nenhuma movimentação registrada.</p> : null}</div>
       </SectionCard>
     </> : null}
   </div>;

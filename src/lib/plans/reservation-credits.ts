@@ -17,7 +17,7 @@ export async function reservationCreditGrants(tx: Prisma.TransactionClient, aren
     const first = plan?.occurrences[0];
     if (!plan || plan.responsiblePlayerId !== entry.playerId || !cycle || !first || !entry.playerId) return [];
     const weekday = new Date(plan.startsAt.getTime() - 3 * 3600000).getUTCDay();
-    return [{ entryId: entry.id, playerId: entry.playerId, quantity: Number(entry.notes.match(/(?:^|; )(\d+) ocorrências no mês/)?.[1]) || fixedMonthAmount(0, cycle.getUTCFullYear(), cycle.getUTCMonth(), weekday, false).occurrences, durationMinutes: Math.round((first.endsAt.getTime() - first.startsAt.getTime()) / 60000) }];
+    return [{ entryId: entry.id, playerId: entry.playerId, quantity: Number(entry.notes.match(/(?:^|; )(\d+) créditos de reserva/)?.[1]) || Number(entry.notes.match(/(?:^|; )(\d+) ocorrências no mês/)?.[1]) || fixedMonthAmount(0, cycle.getUTCFullYear(), cycle.getUTCMonth(), weekday, false).occurrences, durationMinutes: Math.round((first.endsAt.getTime() - first.startsAt.getTime()) / 60000) }];
   });
 }
 export async function reservationCreditBalances(tx: Prisma.TransactionClient, arenaId: string, playerIds: string[]) {

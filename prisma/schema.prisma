@@ -1588,6 +1588,8 @@ model ScheduleOccurrence {
 }
 
 model ScheduleBookingSeries {
+  fixedPlanEnrollmentId String?
+  @@index([arenaId, fixedPlanEnrollmentId])
   dueDay Int?
   prorateFifthWeek Boolean @default(false)
   sponsorshipPlanId String?
