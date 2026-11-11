@@ -1,3 +1,4 @@
+import * as reservationCredits from "../src/lib/plans/reservation-credits";
 import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -41,6 +42,7 @@ test("Grade exige conta ativa por recebimento, preserva reservas em aberto e cob
       "@/lib/arena-database": { arenaDatabase: (id: string) => arenaDatabaseForTest(runtime, id) },
       "@/lib/rls": { withArenaTransaction: scope },
       "@/lib/calendar/inputs": inputs,
+      "@/lib/plans/reservation-credits": reservationCredits,
       "@/lib/calendar/booking-services": resources,
       "@/lib/calendar/booking-types": { isFixedBookingType },
       "@/lib/calendar/court-booking-edit-safety": { assertCourtBookingMayBeEdited },
@@ -103,6 +105,42 @@ test("Grade exige conta ativa por recebimento, preserva reservas em aberto e cob
     assert.equal(series[0].participants[0].financialEntry!.bankAccountId, bankA.id);
     assert.equal(series[0].participants[0].financialEntry!.settlements.length, 1);
     for (const future of series.slice(1)) { assert.equal(future.participants[0].financialEntry!.status, "PENDING"); assert.equal(future.participants[0].financialEntry!.settlements.length, 0); }
+    // A fully paid monthly plan is the grant; pending/partial and foreign entries are not.
+    const creditSeries = await admin.scheduleBookingSeries.create({data:{arenaId,title:"Plano QA",bookingTypeName:"Reserva fixa",responsiblePlayerId:players[1].id,startsAt:new Date("2040-02-06T10:00:00Z"),endsAt:new Date("2040-02-28T11:00:00Z")}});
+    await admin.scheduleOccurrence.create({data:{arenaId,bookingSeriesId:creditSeries.id,sourceType:"BOOKING",title:"Plano QA",bookingTypeName:"Reserva fixa",startsAt:new Date("2040-02-06T10:00:00Z"),endsAt:new Date("2040-02-06T11:00:00Z")}});
+    const grant = await admin.financialEntry.create({data:{arenaId,playerId:players[1].id,source:"FIXED_COURT_PLAN",externalReference:creditSeries.id,type:"REVENUE",category:"Planos de quadra",description:"Mensalidade QA",amountCents:40000,status:"PENDING",competenceDate:new Date("2040-02-01T12:00:00Z"),notes:"Reserva fixa; 1 ocorrências no mês."}});
+    assert.equal((await scope(arenaId,tx=>reservationCredits.reservationCreditBalances(tx,arenaId,[players[1].id]))).get(players[1].id)??0,0);
+    const creditPayer = {...payer(1,"","RESERVATION_CREDIT"), amountCents:6000};
+    const creditForm = (date:string,extra:Record<string,string>={})=>form([creditPayer],date,{responsiblePlayerId:players[1].id,...extra});
+    assert.match((await actions.saveCourtBookingAction(await creditForm("2040-03-04"))).error??"",/Sem crédito de reserva/);
+    await admin.financialEntry.update({where:{id:grant.id},data:{status:"PAID",paidAt:new Date()}});
+    assert.equal((await scope(arenaId,tx=>reservationCredits.reservationCreditBalances(tx,arenaId,[players[1].id]))).get(players[1].id),1);
+    assert.equal((await actions.saveCourtBookingAction(await creditForm("2040-03-04"))).error,undefined);
+    const creditBooking = await admin.scheduleOccurrence.findFirstOrThrow({where:{arenaId,startsAt:new Date("2040-03-04T10:00:00")},include:{participants:{include:{financialEntry:{include:{settlements:true}}}}}});
+    const creditEntry=creditBooking.participants[0].financialEntry!;
+    assert.equal(creditEntry.status,"PAID");assert.equal(creditEntry.paymentMethod,"RESERVATION_CREDIT");assert.equal(creditEntry.bankAccountId,null);assert.equal(creditEntry.settlements[0].paymentMethod,"RESERVATION_CREDIT");
+    assert.equal((await actions.saveCourtBookingAction(await creditForm("2040-03-04",{occurrenceId:creditBooking.id}))).error,undefined);
+    assert.equal(await admin.clientBalanceMovement.count({where:{arenaId,playerId:players[1].id,kind:"RESERVATION"}}),1,"saving twice never debits twice");
+    assert.match((await actions.saveCourtBookingAction(await creditForm("2040-03-05"))).error??"",/Sem crédito de reserva/);
+    assert.equal((await scope(foreignId,tx=>reservationCredits.reservationCreditBalances(tx,foreignId,[players[1].id]))).get(players[1].id)??0,0);
+    assert.match((await actions.saveCourtBookingAction(await form([creditPayer],"2040-03-04",{responsiblePlayerId:players[1].id,occurrenceId:creditBooking.id,durationMinutes:"90"}))).error??"",/Sem crédito de reserva/);
+    // Concurrent redemption is serialized on the player, even for distinct bookings.
+    await admin.financialEntry.update({where:{id:grant.id},data:{notes:"Reserva fixa; 2 ocorrências no mês."}});
+    const concurrent = await Promise.allSettled(["concurrent-a","concurrent-b"].map(id=>scope(arenaId,tx=>reservationCredits.redeemReservationCredit(tx,arenaId,players[1].id,id,60))));
+    assert.equal(concurrent.filter(r=>r.status==="fulfilled").length,1);
+    assert.equal(await admin.clientBalanceMovement.count({where:{arenaId,playerId:players[1].id,kind:"RESERVATION"}}),2);
+    await admin.financialEntry.update({where:{id:grant.id},data:{notes:"Reserva fixa; 3 ocorrências no mês."}});
+    assert.equal((await actions.saveCourtBookingAction(await form([{...creditPayer,amountCents:0}],"2040-03-06",{responsiblePlayerId:players[1].id}))).error,undefined);
+    const zeroCredit = await admin.scheduleOccurrence.findFirstOrThrow({where:{arenaId,startsAt:new Date("2040-03-06T10:00:00")},include:{participants:{include:{financialEntry:true}}}});
+    assert.equal(zeroCredit.participants[0].financialEntry!.status,"PAID");
+    assert.equal(await admin.clientBalanceMovement.count({where:{arenaId,playerId:players[1].id,kind:"RESERVATION"}}),3);
+    await admin.financialEntry.update({where:{id:grant.id},data:{notes:"Reserva fixa; 4 ocorrências no mês."}});
+    assert.equal((await actions.saveCourtBookingAction(await form([{...creditPayer,amountCents:0}],"2040-05-01",{responsiblePlayerId:players[1].id,bookingTypeName:"Reserva fixa",repeatUntil:"2040-05-15"}))).error,undefined);
+    const zeroSeries = await admin.scheduleOccurrence.findMany({where:{arenaId,startsAt:{gte:new Date("2040-05-01T00:00:00"),lte:new Date("2040-05-16T00:00:00")}},orderBy:{startsAt:"asc"},include:{participants:true}});
+    assert.equal(zeroSeries.length,3);
+    assert.ok(zeroSeries[0].participants[0].financialEntryId);
+    for(const future of zeroSeries.slice(1))assert.equal(future.participants[0].financialEntryId,null,"future zero-value bookings do not create spurious receivables");
+    assert.equal(await admin.clientBalanceMovement.count({where:{arenaId,playerId:players[1].id,kind:"RESERVATION"}}),4);
   } finally {
     await admin.scheduleOccurrence.deleteMany({ where: { arenaId: { in: arenas } } });
     await admin.financialEntry.deleteMany({ where: { arenaId: { in: arenas } } });

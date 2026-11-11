@@ -373,6 +373,7 @@ export async function createFinancialEntryAction(formData: FormData) {
     throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
   if(installmentCount && (parsed.data.status==="PAID" || parsed.data.planId))return {error:"Para parcelar, mantenha o lançamento em aberto e sem vínculo direto a um plano de aulas."};
+  if (parsed.data.paymentMethod === "RESERVATION_CREDIT") return {error:"Use o saldo de reservas pela grade de horários."};
   if(parsed.data.status === "PAID" && ["CREDIT_BALANCE","Saldo de crédito"].includes(parsed.data.paymentMethod??"")) return {error:"Crie o lançamento em aberto e use Receber conta para quitar com saldo do cliente ou responsável."};
   assertFinancialEntryPermission(auth, parsed.data.type, "create");
   if (parsed.data.status === "PAID") assertFinancialEntryPermission(auth, parsed.data.type, "settle");
@@ -698,6 +699,7 @@ export async function settleFinancialEntryAction(formData: FormData) {
     if (entry.source === "AGENCY_SUBSCRIPTION") throw new Error("Pague esta fatura pelo link do Mercado Pago. A baixa será automática.");
     if (hasUnresolvedOnlinePayment(entry)) throw new Error("Esta conta possui cobrança online emitida, em emissão ou em análise. Confira e concilie o pagamento antes da baixa manual.");
 
+    if (parsed.data.paymentMethod === "RESERVATION_CREDIT") throw new Error("Use o saldo de reservas pela grade de horários.");
     const usingBalance = ["CREDIT_BALANCE", "Saldo de crédito"].includes(parsed.data.paymentMethod);
     if (usingBalance && !["REVENUE", "INCOME"].includes(entry.type)) throw new Error("Saldo do cliente só pode quitar contas a receber.");
     const bankAccountId = amountCents > 0 && !usingBalance ? await requireReceivingBankAccount(tx, auth.arenaId, parsed.data.bankAccountId) : null;
@@ -774,6 +776,7 @@ export async function settleFinancialEntriesBulkAction(formData: FormData) {
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
 
   const paidAt = parseDate(parsed.data.paidAt) ?? new Date();
+  if (parsed.data.paymentMethod === "RESERVATION_CREDIT") return {error:"Use o saldo de reservas pela grade de horários."};
   if(["CREDIT_BALANCE","Saldo de crédito"].includes(parsed.data.paymentMethod)) return {error:"Para utilizar saldo do cliente ou responsável, quite cada lançamento individualmente."};
   let versions: Record<string, string>;
   try {
