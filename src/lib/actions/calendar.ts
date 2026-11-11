@@ -1,4 +1,5 @@
 "use server";
+import { redeemReservationCredit } from "@/lib/plans/reservation-credits";
 import { courtRulesForDate } from "@/lib/calendar/date-availability";
 import { staleRecordMessage } from "@/lib/record-version";
 import { createPlayerSchema } from "@/lib/validators/player";
@@ -146,6 +147,9 @@ const visibleCourtBookingErrors = new Set([
   "Já existe um agendamento nessa quadra para este horário.",
   "Um valor com recebimento já registrado não pode ser alterado pela grade. Ajuste pelo financeiro.",
   "Saldo do cliente insuficiente.",
+  "Um crédito de reserva cobre apenas uma quadra.",
+  "Sem crédito de reserva disponível para esta duração. Confira o pagamento do plano.",
+  "Receba os serviços separadamente na comanda antes de usar o saldo de reservas.",
   "Reserva não encontrada nesta arena.",
   "Esta reserva aguarda pagamento e não pode ser editada agora.",
   "Esta reserva já tem pagamento ou cobrança online vinculada. Faça o ajuste financeiro antes de editá-la.",
@@ -459,11 +463,12 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
     ? expandWeeklyOccurrences({ startsAt, endsAt, until: repeatUntil })
     : [{ startsAt, endsAt }];
   const participants = parseBookingParticipants(parsed.data.participants);
-  if (participants.some(participant => participant.amountCents > 0 && participant.paymentMethod)) await requirePermission("finance:receivable:settle");
+  if (participants.some(participant => (participant.amountCents > 0 || participant.paymentMethod === "RESERVATION_CREDIT") && participant.paymentMethod)) await requirePermission("finance:receivable:settle");
   if (!participants.length) throw new Error("Selecione pelo menos um cliente antes de salvar a reserva.");
   const responsiblePlayerId = parsed.data.responsiblePlayerId || participants[0]?.playerId || "";
   if (!participants.some((participant) => participant.playerId === responsiblePlayerId)) throw new Error("Selecione um participante como responsável pela reserva.");
   const courtIds = parseCourtIds(parsed.data.courtIds, parsed.data.courtId);
+  if (courtIds.length !== 1 && participants.some(p => p.paymentMethod === "RESERVATION_CREDIT")) throw new Error("Um crédito de reserva cobre apenas uma quadra.");
   const courts = await prisma.court.findMany({ where: { arenaId: auth.arenaId, id: { in: courtIds } }, select: { id: true, name: true } });
   if (courts.length !== courtIds.length) throw new Error("Uma ou mais quadras não pertencem à arena.");
   const isLesson = ["aula", "aula fixa"].includes(parsed.data.bookingTypeName.toLowerCase());
@@ -485,7 +490,7 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
   await withArenaTransaction(auth.arenaId, async (tx) => {
     const receivingAccounts = new Map<string, string>();
     for (const participant of participants) {
-      if (participant.amountCents > 0 && participant.paymentMethod && participant.paymentMethod !== "CREDIT_BALANCE") receivingAccounts.set(participant.playerId, await requireReceivingBankAccount(tx, auth.arenaId, participant.bankAccountId));
+      if (participant.amountCents > 0 && participant.paymentMethod && !["CREDIT_BALANCE", "RESERVATION_CREDIT"].includes(participant.paymentMethod)) receivingAccounts.set(participant.playerId, await requireReceivingBankAccount(tx, auth.arenaId, participant.bankAccountId));
     }
     for (const courtId of [...courtIds].sort()) {
       const lockedCourt = await tx.$queryRaw<{ id: string }[]>`SELECT "id" FROM "Court" WHERE "id" = ${courtId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
@@ -522,12 +527,17 @@ export async function saveCourtBookingAction(formData: FormData): Promise<CourtB
       for (const participant of participants) {
         const existing = previous.find((item) => item.playerId === participant.playerId);
         const player = players.find((item) => item.id === participant.playerId)!;
-        const hasCharge = participant.amountCents > 0;
+        const hasCharge = participant.amountCents > 0 || participant.paymentMethod === "RESERVATION_CREDIT";
         const oldEntry = existing?.financialEntry;
         const posted = Boolean(oldEntry && (oldEntry.status === "PAID" || oldEntry.paidAt || oldEntry.settlements.some(row => row.amountCents > 0)));
         if (posted && oldEntry!.amountCents !== participant.amountCents) throw new Error("Um valor com recebimento já registrado não pode ser alterado pela grade. Ajuste pelo financeiro.");
         const alreadyPaid = oldEntry?.status === "PAID";
         const paymentMethod = alreadyPaid ? oldEntry.paymentMethod : occurrence === occurrences[0] ? participant.paymentMethod : "";
+        if (paymentMethod === "RESERVATION_CREDIT") {
+          const services = await tx.scheduleServiceReservation.count({ where: { occurrenceId: occurrence.id } });
+          if (services) throw new Error("Receba os serviços separadamente na comanda antes de usar o saldo de reservas.");
+          await redeemReservationCredit(tx, auth.arenaId, player.id, occurrence.id, Math.round((occurrence.endsAt.getTime()-occurrence.startsAt.getTime())/60000));
+        }
         const date = `${String(occurrence.startsAt.getDate()).padStart(2, "0")}/${String(occurrence.startsAt.getMonth() + 1).padStart(2, "0")}/${occurrence.startsAt.getFullYear()}`;
         const startsAtLabel = `${String(occurrence.startsAt.getHours()).padStart(2, "0")}:${String(occurrence.startsAt.getMinutes()).padStart(2, "0")}`;
         const endsAtLabel = `${String(occurrence.endsAt.getHours()).padStart(2, "0")}:${String(occurrence.endsAt.getMinutes()).padStart(2, "0")}`;

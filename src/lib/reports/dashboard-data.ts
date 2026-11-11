@@ -61,8 +61,12 @@ export function dashboardFinancialRows(entries: DashboardEntry[], view: "caixa" 
     const legacyComanda = entry.type === "INCOME" && entry.category.trim().toUpperCase() === "COMANDAS";
     const base = { ...entry, type: legacyComanda ? "REVENUE" : entry.type, playerId, counterpartyName: name };
     const competenceDate = entry.dueDate ?? (legacyComanda && entry.paidAt ? instantToArenaWallClock(entry.paidAt) : null);
-    if (view === "competencia") return within(competenceDate) ? [{ ...base, value: entry.amountCents, date: competenceDate! }] : [];
-    if (entry.settlements.length) return entry.settlements.filter(settlement => settlement.paymentMethod !== "CREDIT_BALANCE" && paidWithin(settlement.paidAt)).map(settlement => ({ ...base, id: `${entry.id}:${settlement.id}`, value: settlement.amountCents, date: instantToArenaWallClock(settlement.paidAt), paymentMethod: settlement.paymentMethod }));
-    return entry.status === "PAID" && entry.paymentMethod !== "CREDIT_BALANCE" && paidWithin(entry.paidAt) ? [{ ...base, value: entry.amountCents, date: instantToArenaWallClock(entry.paidAt!) }] : [];
+    if (view === "competencia") {
+      const redeemed = entry.settlements.filter(s => s.paymentMethod === "RESERVATION_CREDIT").reduce((sum,s) => sum + s.amountCents,0);
+      const value = Math.max(0, entry.amountCents - (redeemed || (entry.paymentMethod === "RESERVATION_CREDIT" ? entry.amountCents : 0)));
+      return value && within(competenceDate) ? [{ ...base, value, date: competenceDate! }] : [];
+    }
+    if (entry.settlements.length) return entry.settlements.filter(settlement => !["CREDIT_BALANCE", "RESERVATION_CREDIT"].includes(settlement.paymentMethod) && paidWithin(settlement.paidAt)).map(settlement => ({ ...base, id: `${entry.id}:${settlement.id}`, value: settlement.amountCents, date: instantToArenaWallClock(settlement.paidAt), paymentMethod: settlement.paymentMethod }));
+    return entry.status === "PAID" && !["CREDIT_BALANCE", "RESERVATION_CREDIT"].includes(entry.paymentMethod) && paidWithin(entry.paidAt) ? [{ ...base, value: entry.amountCents, date: instantToArenaWallClock(entry.paidAt!) }] : [];
   });
 }

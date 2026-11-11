@@ -1,3 +1,4 @@
+import { reservationCreditBalances } from "@/lib/plans/reservation-credits";
 import { OpenAgendaDateSlot } from "@/components/open-agenda-date-slot";
 import { courtRulesForDate } from "@/lib/calendar/date-availability";
 import { bookingPreviewName } from "@/lib/calendar/booking-preview-name";
@@ -69,7 +70,7 @@ export default async function AgendaPage(props: AgendaPageProps) {
   const canReceivePayments = canPerformPermission("finance:receivable:settle", auth.arenaRole, auth.systemRole, auth.editPermissions);
   const selectedDate = startOfDay(parseDate(searchParams?.data));
   const nextDay = addDays(selectedDate, 1);
-  const [arena, storedCourts, scheduleOccurrences, players, teachers, storedBookingTypes, servicePrices, customServices, bankAccounts] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
+  const [arena, storedCourts, scheduleOccurrences, storedPlayers, teachers, storedBookingTypes, servicePrices, customServices, bankAccounts] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
     tx.arena.findUniqueOrThrow({ where: { id: auth.arenaId }, select: { slug: true, scheduleStartMinute: true, scheduleEndMinute: true, scheduleSlotMinutes: true, onlineBookingLayout: true, onlineBookingRequiresConfirmation: true, onlineBookingShowReserved: true, onlineBookingPaymentEnabled: true, onlineBookingEnabled: true, onlineBookingLeadTimeMinutes: true, onlineBookingOverdueBlockDays: true, onlineBookingWhatsappMessage: true, onlineBookingWhatsappConfirmationEnabled: true } }),
     tx.court.findMany({ where: { arenaId: auth.arenaId, active: true, weeklyRules: { some: {} } }, include: { weeklyRules: true }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }] }),
     tx.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, ...activeCourtOccurrenceWhere(), startsAt: { lt: nextDay }, endsAt: { gt: selectedDate } }, include: { occurrenceCourts: true, participants: { orderBy: { id: "asc" }, include: { financialEntry: { select: { bankAccountId: true, status: true, paymentMethod: true } } } }, serviceReservations: { orderBy: { id: "asc" } } }, orderBy: [{ startsAt: "asc" }, { id: "asc" }] }),
@@ -80,6 +81,8 @@ export default async function AgendaPage(props: AgendaPageProps) {
     tx.product.findMany({ where: { arenaId: auth.arenaId, active: true, isService: true }, select: { id: true, name: true, sku: true, priceCents: true, showOnAgenda: true } }),
     canReceivePayments ? tx.bankAccount.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }) : Promise.resolve([])
   ]), { maxWait: 10_000 });
+  const creditBalances = await withArenaTransaction(auth.arenaId, tx => reservationCreditBalances(tx, auth.arenaId, storedPlayers.map(p => p.id)));
+  const players = storedPlayers.map(p => ({...p, reservationCredits: creditBalances.get(p.id) ?? 0}));
   const creationEvents = scheduleOccurrences.length ? await withArenaTransaction(auth.arenaId, tx => tx.auditEvent.findMany({ where: { arenaId: auth.arenaId, action: "booking.created", entityId: { in: scheduleOccurrences.map(row=>row.id) } }, select: { entityId: true, actorName: true }, orderBy: { createdAt: "asc" } })) : [];
   const bookingCreators = new Map(creationEvents.map(event=>[event.entityId,event.actorName]));
   const courts = storedCourts.map(court=>({...court,weeklyRules:courtRulesForDate(court.weeklyRules,court.dateAvailability,selectedDate)}));
